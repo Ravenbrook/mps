@@ -1,6 +1,6 @@
 /* impl.h.mpm: MEMORY POOL MANAGER DEFINITIONS
  *
- * $HopeName: MMsrc!mpm.h(MMdevel_ptw_pseudoloci.5) $
+ * $HopeName: MMsrc!mpm.h(MMdevel_ptw_pseudoloci.6) $
  * Copyright (C) 1998.  Harlequin Group plc.  All rights reserved.
  */
 
@@ -519,7 +519,9 @@ extern void LocusClientSetCohortParameters(LocusClient client,
                                            RefSet disdained,
                                            Index lifetime);
 extern void LocusClientFinish(LocusClient client);
-extern void LocusClientZoneRangeInitialize(LocusClient client);
+extern void LocusClientZoneRangeInitialize(LocusClient client,
+                                           Index startZone,
+                                           Bool searchUp);
 extern Bool LocusClientZoneRangeFinished(LocusClient client);
 extern void LocusClientZoneRangeNext(Addr *baseReturn,
                                      Addr *limitReturn,

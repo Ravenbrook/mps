@@ -1,6 +1,6 @@
 /* impl.h.mpmst: MEMORY POOL MANAGER DATA STRUCTURES
  *
- * $HopeName: MMsrc!mpmst.h(MMdevel_ptw_pseudoloci.5) $
+ * $HopeName: MMsrc!mpmst.h(MMdevel_ptw_pseudoloci.6) $
  * Copyright (C) 1998 Harlequin Group plc.  All rights reserved.
  *
  * .readership: MM developers.
@@ -110,13 +110,20 @@ typedef struct LocusManagerStruct
 {
   /* Support for refset search policy */
   Bool searchCacheValid;
-  RefSet searchCache[RefSetSize];
-  Index searchIndex;
-  Index searchLimit;
-  RefSet searchCurrent;
-  Index searchZone;
+  /* Locus and client valid for */
   LocusClient searchClient;
   Locus searchLocus;
+  /* Cache of refSets to search in order */
+  RefSet searchCache[RefSetSize];
+  Index searchCacheIndex;
+  Index searchCacheLimit;
+  /* Zone search state */
+  Bool searchUp;
+  Index searchStartZone;
+  Index searchCurrentZone;
+  Index searchEndZone;
+  RefSet searchRefSet;
+  /* Scaffolding for future parameters */
   Bool searchUseFree;
   Bool searchExpand;
   /* summary of loci's zone usage (always valid) */
