@@ -1,6 +1,6 @@
 /* impl.c.poolawl: AUTOMATIC WEAK LINKED POOL CLASS
  *
- * $HopeName: MMsrc!poolawl.c(MM_dylan_sunflower.4) $
+ * $HopeName: MMsrc!poolawl.c(MM_dylan_sunflower.5) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  *
  * READERSHIP
@@ -16,7 +16,7 @@
 #include "mpm.h"
 #include "mpscawl.h"
 
-SRCID(poolawl, "$HopeName: MMsrc!poolawl.c(MM_dylan_sunflower.4) $");
+SRCID(poolawl, "$HopeName: MMsrc!poolawl.c(MM_dylan_sunflower.5) $");
 
 
 #define AWLSig	((Sig)0x519b7a37)	/* SIGPooLAWL */
@@ -261,8 +261,12 @@ static Res AWLBufferFill(Seg *segReturn, Addr *baseReturn, Addr *limitReturn,
     group = (AWLGroup)SegP(seg);
     AVERT(AWLGroup, group);
 
-    if(AWLGroupAlloc(&base, &limit, group, awl, size))
-      goto found;
+    if(SegBuffer(seg) == NULL &&
+       SegRankSet(seg) == BufferRankSet(buffer)) {
+      if(AWLGroupAlloc(&base, &limit, group, awl, size)) {
+	goto found;
+      }
+    }
   }
 
   /* No free space in existing groups, so create new group */
@@ -275,6 +279,7 @@ static Res AWLBufferFill(Seg *segReturn, Addr *baseReturn, Addr *limitReturn,
   limit = SegLimit(space, group->seg);
 
 found:
+  SegSetSummary(group->seg, RefSetUNIV);
   {
     Index i, j;
     i = AddrOffset(SegBase(space, group->seg), base) >> awl->alignShift;
