@@ -1,6 +1,6 @@
 /* impl.c.buffer: ALLOCATION BUFFER IMPLEMENTATION
  *
- * $HopeName: MMsrc!buffer.c(MMdevel_restr2.2) $
+ * $HopeName: MMsrc!buffer.c(MMdevel_restr2.3) $
  * Copyright (C) 1996 Harlequin Group, all rights reserved
  *
  * This is the interface to allocation buffers.
@@ -115,7 +115,7 @@
 
 #include "mpm.h"
 
-SRCID(buffer, "$HopeName: MMsrc!buffer.c(MMdevel_restr2.2) $");
+SRCID(buffer, "$HopeName: MMsrc!buffer.c(MMdevel_restr2.3) $");
 
 
 Ring BufferPoolRing(Buffer buffer)
@@ -225,7 +225,7 @@ void BufferDestroy(Buffer buffer)
   pool = buffer->pool;
 
   AVER((pool->class->attr & AttrBUF) != 0);
-  AVER(BufferIsReset(buffer));
+  AVER(BufferIsReady(buffer));
   AVER(buffer->exposed == FALSE);
 
   /* Detach the buffer from its owning pool. */
