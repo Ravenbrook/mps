@@ -1,6 +1,6 @@
 /* impl.h.mpstd: HARLEQUIN MEMORY POOL SYSTEM TARGET DETECTION
  *
- * $HopeName: MMsrc!mpstd.h(MMdevel_sw_eq.4) $
+ * $HopeName: MMsrc!mpstd.h(MMdevel_sw_eq.5) $
  * Copyright (C) 1996 Harlequin Group, all rights reserved
  *
  * Detect the target platform using predefined preprocessor symbols
@@ -15,9 +15,11 @@
 #ifndef mpstd_h
 #define mpstd_h
 
-/* Irix 5 man cc */
+/* Irix 5/6 man cc and man abi. Note that we check for _ABIO32, as os.i5
+ * is defined to be the O32 ABI. When we support other ABIs, we need a
+ * new OS name for them. */
 
-#if defined(__sgi) && defined(__unix) && defined(__mips) && defined(_SYSTYPE_SVR4)
+#if defined(__sgi) && defined(__unix) && defined(__mips) && defined(_SYSTYPE_SVR4) && defined(_ABIO32)
 #define MPS_PF_I5R4CC
 #define MPS_OS_I5
 #define MPS_ARCH_R4
