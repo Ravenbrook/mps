@@ -1,6 +1,6 @@
 /* impl.h.mpmst: MEMORY POOL MANAGER DATA STRUCTURES
  *
- * $HopeName: MMsrc!mpmst.h(MMdevel_metrics.1) $
+ * $HopeName: MMsrc!mpmst.h(MMdevel_metrics.2) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  *
  * .readership: MM developers.
@@ -509,6 +509,7 @@ typedef struct TraceStruct {
   Count nailCount;              /* segments nailed by ambig refs */
   Count snapCount;              /* refs snapped to forwarded objs */
   Count forwardCount;           /* objects forwarded */
+  Count faultCount;             /* read barrier faults */
 } TraceStruct;
 
 
