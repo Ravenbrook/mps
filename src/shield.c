@@ -1,6 +1,6 @@
 /* impl.c.shield: SHIELD IMPLEMENTATION
  *
- * $HopeName: MMsrc!shield.c(MMdevel_restr.4) $
+ * $HopeName: MMsrc!shield.c(MMdevel_restr.5) $
  *
  * See: idea.shield, design.mps.shield.
  *
@@ -72,7 +72,7 @@
 
 #include "mpm.h"
 
-SRCID(shield, "$HopeName: MMsrc!shield.c(MMdevel_restr.4) $");
+SRCID(shield, "$HopeName: MMsrc!shield.c(MMdevel_restr.5) $");
 
 void ShieldSuspend(Space space)
 {
@@ -96,7 +96,7 @@ void ShieldResume(Space space)
 }
 
 /* This ensures actual prot mode does not include mode */
-static void protLower(Space space, Seg seg, ProtMode mode)
+static void protLower(Space space, Seg seg, AccessSet mode)
 {
   AVERT(Space, space);
   AVERT(Seg, seg);
@@ -169,19 +169,19 @@ static void cache(Space space, Seg seg)
   }
 }
 
-void ShieldRaise(Space space, Seg seg, ProtMode mode)
+void ShieldRaise(Space space, Seg seg, AccessSet mode)
 {
   AVERT(Space, space);
   AVERT(Seg, seg);
 
-  AVER((seg->sm & mode) == ProtNONE);
+  AVER((seg->sm & mode) == AccessSetEMPTY);
   seg->sm |= mode; /* inv.prot.shield preserved */
 
   /* ensure inv.unsynced.suspended & inv.unsynced.depth */
   cache(space, seg);
 }
 
-void ShieldLower(Space space, Seg seg, ProtMode mode)
+void ShieldLower(Space space, Seg seg, AccessSet mode)
 {
   AVERT(Space, space);
   AVERT(Seg, seg);
@@ -246,7 +246,7 @@ void ShieldLeave(Space space)
 
 void ShieldExpose(Space space, Seg seg)
 {
-  ProtMode mode = ProtREAD | ProtWRITE;
+  AccessSet mode = AccessREAD | AccessWRITE;
   AVERT(Space, space);
   AVER(space->insideShield);
 
@@ -265,7 +265,7 @@ void ShieldCover(Space space, Seg seg)
 {
   AVERT(Space, space);
   AVERT(Seg, seg);
-  AVER(seg->pm == ProtNONE);
+  AVER(seg->pm == AccessSetEMPTY);
 
   AVER(space->shDepth > 0);
   AVER(seg->depth > 0);

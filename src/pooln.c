@@ -2,7 +2,7 @@
  *
  *                         NULL POOL
  *
- *  $HopeName: MMsrc!pooln.c(MMdevel_restr.2) $
+ *  $HopeName: MMsrc!pooln.c(MMdevel_restr.3) $
  *
  *  Copyright(C) 1995 Harlequin Group, all rights reserved
  *
@@ -13,7 +13,7 @@
 #include "mpm.h"
 #include "pooln.h"
 
-SRCID(pooln, "$HopeName: MMsrc!pooln.c(MMdevel_restr.2) $");
+SRCID(pooln, "$HopeName: MMsrc!pooln.c(MMdevel_restr.3) $");
 
 
 typedef struct PoolNStruct {
@@ -41,7 +41,7 @@ static void mark(Pool pool, Space space, TraceId ti);
 static Res scan(ScanState ss, Pool pool, Bool *finishedReturn);
 static Res fix(Pool pool, ScanState ss, Seg seg, Ref *refIO);
 static void reclaim(Pool pool, Space space, TraceId ti);
-static void access(Pool pool, Seg seg, ProtMode mode);
+static void access(Pool pool, Seg seg, AccessSet mode);
 
 
 /*  Class Structure  */
@@ -297,7 +297,7 @@ static void reclaim(Pool pool, Space space, TraceId ti)
   /* all unmarked and condemned objects reclaimed */
 }
 
-static void access(Pool pool, Seg seg, ProtMode mode)
+static void access(Pool pool, Seg seg, AccessSet mode)
 {
   AVERT(Pool, pool);
   AVER(pool->class == &PoolClassNStruct);

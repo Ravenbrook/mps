@@ -1,7 +1,7 @@
 /*  impl.c.protnt
  *
  *               PROTECTION FOR WIN32
- *  $HopeName: MMsrc!protnt.c(MMdevel_restr.2) $
+ *  $HopeName: MMsrc!protnt.c(MMdevel_restr.3) $
  *
  *  Copyright (C) 1995 Harlequin Group, all rights reserved
  */
@@ -14,7 +14,7 @@
 
 #include <windows.h>
 
-SRCID(protnt, "$HopeName: MMsrc!protnt.c(MMdevel_restr.2) $");
+SRCID(protnt, "$HopeName: MMsrc!protnt.c(MMdevel_restr.3) $");
 
 
 void ProtSetup(void)
@@ -22,7 +22,7 @@ void ProtSetup(void)
   return;
 }
 
-void ProtSet(Addr base, Addr limit, ProtMode mode)
+void ProtSet(Addr base, Addr limit, AccessSet mode)
 {
   DWORD newProtect;
   DWORD oldProtect;
@@ -32,9 +32,9 @@ void ProtSet(Addr base, Addr limit, ProtMode mode)
   AVER(base != 0);
 
   newProtect = PAGE_EXECUTE_READWRITE;
-  if((mode & ProtWRITE) != 0)
+  if((mode & AccessWRITE) != 0)
     newProtect = PAGE_EXECUTE_READ;
-  if((mode & ProtREAD) != 0)
+  if((mode & AccessREAD) != 0)
     newProtect = PAGE_NOACCESS;
 
   if(VirtualProtect((LPVOID)base, (DWORD)(limit - base),
@@ -47,7 +47,7 @@ LONG ProtSEHfilter(LPEXCEPTION_POINTERS info)
   LPEXCEPTION_RECORD er;
   DWORD iswrite;
   DWORD address;
-  ProtMode mode;
+  AccessSet mode;
   Addr base, limit;
   LONG action;
 
@@ -69,9 +69,9 @@ LONG ProtSEHfilter(LPEXCEPTION_POINTERS info)
   /* Pages cannot be made write-only, so an attempt to write must
    * also cause a read-access if necessary */
   if(iswrite)
-    mode = ProtREAD | ProtWRITE;
+    mode = AccessREAD | AccessWRITE;
   else
-    mode = ProtREAD;
+    mode = AccessREAD;
 
   address = er->ExceptionInformation[1];
 

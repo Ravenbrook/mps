@@ -2,7 +2,7 @@
  *
  *                   ROOT IMPLEMENTATION
  *
- *  $HopeName: MMsrc!root.c(trunk.13) $
+ *  $HopeName: MMsrc!root.c(MMdevel_restr.2) $
  *
  *  Copyright (C) 1995 Harlequin Group, all rights reserved
  *
@@ -11,7 +11,7 @@
 
 #include "mpm.h"
 
-SRCID(root, "$HopeName: MMsrc!root.c(trunk.13) $");
+SRCID(root, "$HopeName: MMsrc!root.c(MMdevel_restr.2) $");
 
 Bool RootCheck(Root root)
 {
@@ -67,7 +67,7 @@ static Res create(Root *rootReturn, Space space,
   root->rank = rank;
   root->var = type;
   root->the  = theUnion;
-  root->marked = TraceSetEmpty;
+  root->grey = TraceSetEMPTY;
 
   RingInit(&root->spaceRing);
 
@@ -173,7 +173,7 @@ Rank RootRank(Root root)
 void RootGrey(Root root, Space space, TraceId ti)
 {
   AVERT(Root, root);
-  root->marked = TraceSetAdd(root->marked, ti);
+  root->grey = TraceSetAdd(root->grey, ti);
 }
 
 Res RootScan(ScanState ss, Root root)
@@ -184,7 +184,7 @@ Res RootScan(ScanState ss, Root root)
   AVERT(ScanState, ss);
   AVER(root->rank == ss->rank);
 
-  if(!TraceSetIsMember(root->marked, ss->traceId))
+  if(!TraceSetIsMember(root->grey, ss->traceId))
     return ResOK;
 
   switch(root->var) {
@@ -218,7 +218,7 @@ Res RootScan(ScanState ss, Root root)
     NOTREACHED;
   }
 
-  root->marked = TraceSetDelete(root->marked, ss->traceId);
+  root->grey = TraceSetDelete(root->grey, ss->traceId);
 
   return ResOK;
 }
@@ -246,8 +246,8 @@ Res RootDescribe(Root root, Lib_FILE *stream)
   for(id = 0; id < TRACE_MAX; ++id)
     Lib_fprintf(stream, "    %2lu %s\n",
                (unsigned long)id,
-               TraceSetIsMember(root->marked, id) ?
-                 "marked" : "not marked");
+               TraceSetIsMember(root->grey, id) ?
+                 "grey" : "not grey");
 
   switch(root->var)
   {

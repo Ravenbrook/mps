@@ -1,6 +1,6 @@
 /* impl.c.protsu: PROTECTION FOR SUNOS
  *
- * $HopeName: MMsrc!protsu.c(MMdevel_restr.4) $
+ * $HopeName: MMsrc!protsu.c(MMdevel_restr.5) $
  *
  * Copyright (C) 1995 Harlequin Group, all rights reserved
  *
@@ -19,7 +19,7 @@
 #error "protsu.c is SunOS 4 specific, but MPS_OS_SU is not set"
 #endif
 
-SRCID(protsu, "$HopeName: MMsrc!protsu.c(MMdevel_restr.4) $");
+SRCID(protsu, "$HopeName: MMsrc!protsu.c(MMdevel_restr.5) $");
 
 
 /* .hack.sigdfl */
@@ -79,9 +79,9 @@ static void sigHandle(int sig, int code,
   AVER(scp != NULL);
 
   if(code == SEGV_PROT) {
-    ProtMode mode;
+    AccessSet mode;
     AVER(addr != SIG_NOADDR);		/* .sigh.addr */
-    mode = ProtREAD | ProtWRITE;	/* .sigh.decode */
+    mode = AccessREAD | AccessWRITE;	/* .sigh.decode */
     if(SpaceAccess((Addr)addr, mode))	/* .sigh.size */
       return;
   }
@@ -146,7 +146,7 @@ void ProtSetup(void)
  * This is just a thin veneer on top of mprotect(2).
  */
 
-void ProtSet(Addr base, Addr limit, ProtMode mode)
+void ProtSet(Addr base, Addr limit, AccessSet mode)
 {
   int flags;
 
@@ -156,9 +156,9 @@ void ProtSet(Addr base, Addr limit, ProtMode mode)
   AVER(AddrOffset(base, limit) <= INT_MAX); /* should be redundant */
 
   flags = PROT_READ | PROT_WRITE | PROT_EXEC;
-  if((mode & ProtWRITE) != 0)
+  if((mode & AccessWRITE) != 0)
     flags = PROT_READ | PROT_EXEC;
-  if((mode & ProtREAD) != 0)
+  if((mode & AccessREAD) != 0)
     flags = PROT_NONE;
 
   if(mprotect((caddr_t)base, (int)AddrOffset(base, limit), flags) != 0)
