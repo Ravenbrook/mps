@@ -1,6 +1,6 @@
 # ==== SECOND COMMON FRAGMENT FOR PLATFORMS USING MV AND NMAKE
 #
-# $HopeName: MMsrc!commpost.nmk(MM_dylan_sunflower.1) $
+# $HopeName: MMsrc!commpost.nmk(MM_dylan_sunflower.2) $
 # Copyright(C) 1997 Harlequin Group, all rights reserved
 #
 # DESCRIPTION
@@ -129,7 +129,7 @@ $(PFM)\$(VARIETY)\mmsw.lib: $(SWOBJ)
 	$(ECHO) $@
 	$(LIBMAN) $(LIBFLAGS) /OUT:$@ $**
 
-$(PFM)\$(VARIETY)\mmdw.lib: $(MPMOBJ) $(AMCOBJ) $(DWOBJ)
+$(PFM)\$(VARIETY)\mmdw.lib: $(MPMOBJ) $(AMCOBJ) $(DWOBJ) $(AWLOBJ) $(LOOBJ)
 	$(ECHO) $@
 	$(LIBMAN) $(LIBFLAGS) /OUT:$@ $**
 
