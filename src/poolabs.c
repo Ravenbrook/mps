@@ -1,16 +1,11 @@
 /* impl.c.poolabs: ABSTRACT POOL CLASSES
  *
- * $HopeName: MMsrc!poolabs.c(MMdevel_tony_inheritance.2) $
+ * $HopeName: MMsrc!poolabs.c(MMdevel_tony_inheritance.3) $
  * Copyright (C) 1998. Harlequin Group plc. All rights reserved.
  *
  * READERSHIP
  *
  * .readership: any MPS developer
- *
- * DESIGN
- *
- * .design: See design.mps.class-interface and design.mps.pool [both of
- * these are somewhat dated, but still useful in part -- drj 1998-04-17]
  *
  * PURPOSE
  *
@@ -35,7 +30,7 @@
 
 #include "mpm.h"
 
-SRCID(poolabs, "$HopeName: MMsrc!poolabs.c(MMdevel_tony_inheritance.2) $");
+SRCID(poolabs, "$HopeName: MMsrc!poolabs.c(MMdevel_tony_inheritance.3) $");
 
 typedef PoolClassStruct AbstractPoolClassStruct;
 typedef PoolClassStruct AbstractAllocFreePoolClassStruct;
