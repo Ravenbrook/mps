@@ -50,7 +50,9 @@
 
 static void LocusManagerZoneRangeInitialize(LocusManager manager,
                                             Locus locus,
-                                            LocusClient client);
+                                            LocusClient client,
+                                            Index startZone,
+                                            Bool searchUp);
 static Bool LocusManagerZoneRangeFinished(LocusManager manager,
                                           Locus locus,
                                           LocusClient client);
@@ -192,10 +194,13 @@ void LocusManagerInit(LocusManager manager)
   Locus locus;
   
   manager->searchCacheValid = FALSE;
-  manager->searchIndex = 0;
-  manager->searchLimit = 0;
-  manager->searchCurrent = RefSetEMPTY;
-  manager->searchZone = 0;
+  manager->searchCacheIndex = 0;
+  manager->searchCacheLimit = 0;
+  manager->searchUp = TRUE;
+  manager->searchStartZone = 0;
+  manager->searchCurrentZone = 0;
+  manager->searchEndZone = 0;
+  manager->searchRefSet = RefSetEMPTY;
   manager->searchUseFree = TRUE;
   manager->searchExpand = TRUE;
   ZoneUsageInit(LocusManagerZoneUsage(manager));
@@ -309,12 +314,14 @@ void LocusClientSetCohortParameters(LocusClient client,
 
 /* LocusClientZoneRangeInitialize -- Initialize the zone range
    iteration */
-void LocusClientZoneRangeInitialize(LocusClient client)
+void LocusClientZoneRangeInitialize(LocusClient client,
+                                    Index startZone, Bool searchUp)
 {
   AVERT(LocusClient, client);
   LocusClientEnsureLocus(client);
   
-  LocusManagerZoneRangeInitialize(client->manager, client->locus, client);
+  LocusManagerZoneRangeInitialize(client->manager, client->locus,
+                                  client, startZone, searchUp);
 }
 
 
@@ -406,7 +413,9 @@ void LocusClientNoteSegFree(LocusClient client, Arena arena, Seg seg)
    iteration */
 static void LocusManagerZoneRangeInitialize(LocusManager manager,
                                             Locus locus,
-                                            LocusClient client) 
+                                            LocusClient client,
+                                            Index startZone,
+                                            Bool searchUp) 
 {
   if (manager->searchCacheValid &&
       manager->searchClient == client &&
@@ -431,9 +440,11 @@ static void LocusManagerZoneRangeInitialize(LocusManager manager,
     manager->searchCacheValid = TRUE;
   }
   
-  manager->searchIndex = 0;
-  manager->searchCurrent = RefSetEMPTY;
-  manager->searchZone = 0;
+  manager->searchUp = searchUp;
+  manager->searchStartZone = startZone;
+  manager->searchCurrentZone = startZone;
+  manager->searchCacheIndex = 0;
+  manager->searchRefSet = RefSetEMPTY;
   return;
 }
 
@@ -446,8 +457,8 @@ static Bool LocusManagerZoneRangeFinished(LocusManager manager,
 {
   AVER(manager->searchClient == client);
 
-  return (manager->searchCurrent == RefSetEMPTY &&
-          (! (manager->searchIndex < manager->searchLimit)));
+  return (manager->searchCurrentZone == manager->searchStartZone &&
+          manager->searchCacheIndex == manager->searchCacheLimit);
 }
 
 
@@ -477,6 +488,59 @@ RefSet RefSetOfRange(Space space, Addr rangeBase, Addr rangeLimit)
 }
 
 
+#if 0
+static Word Rotate(Word word, int rotation);
+#endif
+
+/* A decent compiler should be able to compile this to a single
+   instruction */
+#define ROTATE(word, rotation)                                  \
+  (((word) << (rotation % MPS_WORD_WIDTH)) |                      \
+    ((word) >> (MPS_WORD_WIDTH - (rotation % MPS_WORD_WIDTH))))
+
+
+#if 0
+static Word(Rotate)(Word word, int rotation) 
+{
+  return ROTATE(word, rotation);
+}
+#endif
+
+static void (RefSetFind)(Index *zoneReturn,
+                         RefSet refSet, Index next,
+                         Bool up, Bool set, Bool first);
+
+#define REFSETFIND(zoneReturn, refSet, next, up, set, first)            \
+BEGIN                                                                   \
+  Index end = (next) + up?RefSetSize:(- RefSetSize);                    \
+  Index zone = (next);                                                  \
+  RefSet temp = ROTATE(refSet, zone);                                   \
+                                                                        \
+  /* The intent of this macro is that a decent compiler can optimize    \
+     out all the (presumably constant) ?:'s and reduce this loop to a   \
+     very small number of instructions. */                              \
+  for (; zone != end; ROTATE(temp, (up)?1:-1), zone = (up)?1:-1) {      \
+    if ((temp & 01) == (set)?((first)?1:0):((first)?0:1)) {                 \
+      *(zoneReturn) = (zone + ((first)?0:((up)?-1:1))) & RefSetMASK;        \
+      break;                                                            \
+    }                                                                   \
+  }                                                                     \
+END
+
+
+/* RefSetFind -- Find a zone in refSet, searching up or down from next
+   according to up, searching for set or reset according to set,
+   searching for first or last (consecutive) according to first. */
+static void (RefSetFind)(Index *zoneReturn,
+                          RefSet refSet, Index next,
+                          Bool up, Bool set, Bool first)
+{
+  /* The functional version will necessarily be slow because of all
+     the non-constant ?:'s */
+  REFSETFIND(zoneReturn, refSet, next, up, set, first);
+}
+
+
 /* LocusManagerZoneRangeNext -- Return the next zone range in the
    iteration */
 static void LocusManagerZoneRangeNext(Addr *baseReturn,
@@ -485,10 +549,9 @@ static void LocusManagerZoneRangeNext(Addr *baseReturn,
                                       Locus locus,
                                       LocusClient client)
 {
-  Arena arena = LocusManagerArena(manager);
-  Word zoneShift = ArenaZoneShift(arena);
-  RefSet current = manager->searchCurrent;
-  Index zone = manager->searchZone;
+  RefSet current = manager->searchRefSet;
+  Index startZone = manager->searchStartZone;
+  Index zone = manager->searchCurrentZone;
   
   AVER(locus->ready);
   AVER(manager->searchCacheValid);
@@ -496,35 +559,60 @@ static void LocusManagerZoneRangeNext(Addr *baseReturn,
   AVER(manager->searchLocus == locus);
 
   for (;;) {
-    if (current == RefSetEMPTY) {
-      current = manager->searchCache[manager->searchIndex];
-      manager->searchIndex++;
-      zone = 0;
+    Index start = startZone;
+    Index end = startZone;
+
+    if (zone == startZone) {
+      current = manager->searchCache[manager->searchCacheIndex];
+      manager->searchCacheIndex++;
     }
 
-    /* @@@ Need to be able to search in opposite direction, too */
-    for (; current; current >>= 1, zone++) {
-      if (current & 01) {
-        *baseReturn = (Addr)(zone << zoneShift);
-        /* Note: top zone represented by 1 << zoneShift + 1 */
-        for (; zone <= RefSetSize; current >>= 1, zone++) {
-          if (! (current & 01)) {
-            *limitReturn = (Addr)(zone << zoneShift);
-            manager->searchCurrent = current;
-            manager->searchZone = zone;
-            AVER(*baseReturn < *limitReturn);
-            {
-              RefSet search =
-                manager->searchCache[manager->searchIndex - 1];
-              RefSet found = RefSetOfRange(arena, *baseReturn,
-                                           *limitReturn);
-              AVER(RefSetSuper(search, found));
-            }
-            return;
-          }
-        }
-      }
+    AVER(current != RefSetEMPTY);
+
+    if (RefSetIsMemberZone(current, zone)) {
+      /* We are in the middle of a range, find the ends */
+      /* Start is from zone the down, set, last */
+      RefSetFind(&start, current, zone, FALSE, TRUE, FALSE);
+      /* End is from zone the up, reset, first */
+      RefSetFind(&end, current, zone, TRUE, FALSE, TRUE);
+    } else if (manager->searchUp) {
+      /* Find the next range above */
+      /* Start is from zone the up, set, first */
+      RefSetFind(&start, current, zone, TRUE, TRUE, TRUE);
+      /* End is from start the up, reset, first */
+      RefSetFind(&end, current, start, TRUE, FALSE, TRUE);
+    } else {
+      /* Find the next range below */
+      /* End is from zone the down, reset, last */
+      RefSetFind(&end, current, zone, FALSE, FALSE, FALSE);
+      /* Start is from end-1 the down, set, last */
+      RefSetFind(&start, current, end - 1, FALSE, TRUE, FALSE);
     }
+    
+    if (start != end) {
+      Arena arena = LocusManagerArena(manager);
+      Word zoneShift = ArenaZoneShift(arena);
+
+      /* save your place */
+      manager->searchCurrentZone = end;
+      manager->searchRefSet = current;
+
+      *baseReturn = (Addr)(start << zoneShift);
+      *limitReturn = (Addr)(end << zoneShift);
+
+      AVER(*baseReturn < *limitReturn);
+      {
+        RefSet search =
+          manager->searchCache[manager->searchCacheIndex - 1];
+        RefSet found = RefSetOfRange(arena, *baseReturn,
+                                     *limitReturn);
+        AVER(RefSetSuper(search, found));
+      }
+      return;
+    }
+
+    /* no sale */
+    zone = startZone;
   }
 }
 
@@ -658,7 +746,7 @@ static void LocusManagerRefSetCalculate(LocusManager manager)
       }
     }
   }
-  manager->searchLimit = r;
+  manager->searchCacheLimit = r;
 }
   
 
@@ -1051,7 +1139,7 @@ static Bool LocusManagerCheck(LocusManager manager)
   if (manager->searchCacheValid) {
     CHECKD(LocusClient, manager->searchClient);
     CHECKD(Locus, manager->searchLocus);
-    CHECKL(manager->searchIndex <= manager->searchLimit);
+    CHECKL(manager->searchCacheIndex <= manager->searchCacheLimit);
   }
   CHECKL(BoolCheck(manager->searchUseFree));
   CHECKL(BoolCheck(manager->searchExpand));
@@ -1221,14 +1309,14 @@ Res LocusManagerDescribe(LocusManager manager, mps_lib_FILE *stream)
       return res;
     res = WriteF(stream,
                  "\n",
-                 "  searchIndex: $U\n", (WriteFU)manager->searchIndex,
-                 "  searchLimit: $U\n", (WriteFU)manager->searchLimit,
+                 "  searchCacheIndex: $U\n", (WriteFU)manager->searchCacheIndex,
+                 "  searchCacheLimit: $U\n", (WriteFU)manager->searchCacheLimit,
                  "  searchCache: \n",
                  NULL);
     if (res != ResOK)
       return res;
 
-    for (i = 0; i < manager->searchLimit; i++) {
+    for (i = 0; i < manager->searchCacheLimit; i++) {
       res = WriteF(stream,
                    "  search[$U]: $B\n", (WriteFU)i,
                    (WriteFU)manager->searchCache[i],
