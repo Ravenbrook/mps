@@ -1,6 +1,6 @@
 /* impl.c.pool: POOL IMPLEMENTATION
  *
- * $HopeName: !pool.c(trunk.32) $
+ * $HopeName: MMsrc!pool.c(MMdevel_control.1) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  *
  * This is the implementation of the generic pool interface.  The
@@ -12,7 +12,7 @@
 
 #include "mpm.h"
 
-SRCID(pool, "$HopeName: !pool.c(trunk.32) $");
+SRCID(pool, "$HopeName: MMsrc!pool.c(MMdevel_control.1) $");
 
 
 Bool PoolClassCheck(PoolClass class)
@@ -40,6 +40,8 @@ Bool PoolClassCheck(PoolClass class)
   CHECKL(FUNCHECK(class->reclaim));
   CHECKL(FUNCHECK(class->traceEnd));
   CHECKL(FUNCHECK(class->benefit));
+  CHECKL(FUNCHECK(class->sizeMin));
+  CHECKL(FUNCHECK(class->sizeCurrent));
   CHECKL(FUNCHECK(class->describe));
   CHECKL(class->endSig == PoolClassSig);
   return TRUE;
@@ -58,13 +60,15 @@ Bool PoolCheck(Pool pool)
   CHECKL(RingCheck(&pool->actionRing));
   /* Cannot check pool->bufferSerial */
   CHECKL(AlignCheck(pool->alignment));
+  CHECKL(pool->size >= pool->segs * ArenaAlign(pool->space));
+  CHECKL(pool->segs > 0 || RingNext(&pool->segRing) == &pool->segRing);
   return TRUE;
 }
 
 /* PoolInit, PoolInitV -- initialize a pool
  *
- * Initialize the generic fields of the pool and calls class-specific init. 
- * See design.mps.pool.align
+ * Initialize the generic fields of the pool and calls class-specific
+ * init.  See design.mps.pool.align
  */
 
 Res PoolInit(Pool pool, Space space, PoolClass class, ...)
@@ -96,6 +100,8 @@ Res PoolInitV(Pool pool, Space space,
   pool->bufferSerial = (Serial)0;
   pool->actionSerial = (Serial)0;
   pool->alignment = MPS_PF_ALIGN;
+  pool->segs = (Count)0;
+  pool->size = (Size)0;
 
   /* Initialise signature last; see design.mps.sig */
   pool->sig = PoolSig;
@@ -157,8 +163,8 @@ Res PoolCreateV(Pool *poolReturn, Space space,
       goto failSpaceAlloc;
 
   /* base is the address of the class-specific pool structure. */
-  /* We calculate the address of the generic pool structure within the */
-  /* instance by using the offset information from the class. */
+  /* We calculate the address of the generic pool structure within */
+  /* the instance by using the offset information from the class. */
   pool = (Pool)PointerAdd(base, class->offset);
 
   /* Initialize the pool. */  
@@ -175,7 +181,7 @@ failSpaceAlloc:
   return res;
 }
 
-/* PoolFinish -- Finish pool including class-specific and generic fields. */
+/* PoolFinish -- Finish pool (class-specific and generic fields) */
 
 void PoolFinish(Pool pool)
 {
@@ -183,6 +189,10 @@ void PoolFinish(Pool pool)
   
   /* Do any class-specific finishing. */
   (*pool->class->finish)(pool);
+
+  /* There mustn't be any segments left hanging around once the */
+  /* pool is finished. */
+  AVER(pool->size == 0);
 
   /* Detach the pool from the space, and unsig it. */
   RingRemove(&pool->spaceRing);
@@ -300,7 +310,8 @@ Res PoolScan(ScanState ss, Pool pool, Seg seg)
   /* so we only check that either ss->rank is in the segment's */
   /* ranks, or that ss->rank is exact. */
   /* See impl.c.trace.scan.conservative */
-  AVER(ss->rank == RankEXACT || RankSetIsMember(SegRankSet(seg), ss->rank));
+  AVER(ss->rank == RankEXACT ||
+       RankSetIsMember(SegRankSet(seg), ss->rank));
 
   /* Should only scan segments which contain grey objects. */
   AVER(TraceSetInter(SegGrey(seg), ss->traces) != TraceSetEMPTY);
@@ -352,12 +363,13 @@ void PoolTraceEnd(Pool pool, Trace trace, Action action)
 }
 
 
-double PoolBenefit(Pool pool, Action action)
+double PoolBenefit(Pool pool, Action action, double reclaimBenefit)
 {
   AVERT(Pool, pool);
   AVERT(Action, action);
   AVER(action->pool == pool);
-  return (*pool->class->benefit)(pool, action);
+  AVER(reclaimBenefit >= 0);
+  return (*pool->class->benefit)(pool, action, reclaimBenefit);
 }
 
 
@@ -432,6 +444,8 @@ Res PoolSegAlloc(Seg *segReturn, SegPref pref, Pool pool, Size size)
   if(res != ResOK) return res;
 
   RingAppend(&pool->segRing, SegPoolRing(seg));
+  ++pool->segs;
+  pool->size += size;
 
   *segReturn = seg;
   return ResOK;
@@ -457,6 +471,8 @@ void PoolSegFree(Pool pool, Seg seg)
   ShieldFlush(space); /* See impl.c.shield.shield.flush */
 
   RingRemove(SegPoolRing(seg));
+  --pool->segs;
+  pool->size -= SegSize(space, seg);
 
   SegFree(space, seg);
 }
@@ -500,6 +516,20 @@ Align (PoolAlignment)(Pool pool)
 {
   AVERT(Pool, pool);
   return pool->alignment;
+}
+
+
+Size PoolSizeMin(Pool pool)
+{
+  AVERT(Pool, pool);
+  return (*pool->class->sizeMin)(pool);
+}
+
+
+Size PoolSizeCurrent(Pool pool)
+{
+  AVERT(Pool, pool);
+  return (*pool->class->sizeCurrent)(pool);
 }
 
 
@@ -579,7 +609,8 @@ void PoolTrivBufferFinish(Pool pool, Buffer buffer)
   NOOP;
 }
 
-Res PoolNoBufferFill(Seg *segReturn, Addr *baseReturn, Addr *limitReturn,
+Res PoolNoBufferFill(Seg *segReturn,
+                     Addr *baseReturn, Addr *limitReturn,
                      Pool pool, Buffer buffer, Size size)
 {
   AVER(baseReturn != NULL);
@@ -590,7 +621,8 @@ Res PoolNoBufferFill(Seg *segReturn, Addr *baseReturn, Addr *limitReturn,
   return ResUNIMPL;
 }
 
-Res PoolTrivBufferFill(Seg *segReturn, Addr *baseReturn, Addr *limitReturn,
+Res PoolTrivBufferFill(Seg *segReturn,
+                       Addr *baseReturn, Addr *limitReturn,
                        Pool pool, Buffer buffer, Size size)
 {
   Res res;
@@ -644,7 +676,9 @@ Res PoolTrivDescribe(Pool pool, mps_lib_FILE *stream)
 {
   AVERT(Pool, pool);
   AVER(stream != NULL);
-  return WriteF(stream, "  No class-specific description available.\n", NULL);
+  return WriteF(stream,
+                "  No class-specific description available.\n",
+                NULL);
 }
 
 Res PoolNoTraceBegin(Pool pool, Trace trace, Action action)
@@ -756,11 +790,24 @@ void PoolTrivTraceEnd(Pool pool, Trace trace, Action action)
   AVER(pool->space == trace->space);
 }
 
-double PoolNoBenefit(Pool pool, Action action)
+double PoolNoBenefit(Pool pool, Action action, double reclaimBenefit)
 {
   AVERT(Pool, pool);
   AVERT(Action, action);
   AVER(action->pool == pool);
+  AVER(reclaimBenefit >= 0);
   NOTREACHED;
   return (double)0;
+}
+
+Size PoolTrivSizeMin(Pool pool)
+{
+  AVERT(Pool, pool);
+  return pool->size;
+}
+
+Size PoolTrivSizeCurrent(Pool pool)
+{
+  AVERT(Pool, pool);
+  return pool->size;
 }

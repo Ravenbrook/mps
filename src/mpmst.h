@@ -1,6 +1,6 @@
 /* impl.h.mpmst: MEMORY POOL MANAGER DATA STRUCTURES
  *
- * $HopeName: !mpmst.h(trunk.28) $
+ * $HopeName: MMsrc!mpmst.h(MMdevel_control.1) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  *
  * .readership: MM developers.
@@ -82,7 +82,7 @@ typedef struct PoolClassStruct {
   Sig sig;                      /* design.mps.sig */
   const char *name;             /* class name string */
   size_t size;                  /* size of outer structure */
-  size_t offset;                /* offset of generic struct in outer struct */
+  size_t offset;                /* offset of PoolStruct in pool desc. */
   Attr attr;                    /* attributes */
   PoolInitMethod init;          /* initialize the pool descriptor */
   PoolFinishMethod finish;      /* finish the pool descriptor */
@@ -100,6 +100,8 @@ typedef struct PoolClassStruct {
   PoolReclaimMethod reclaim;    /* reclaim dead objects after tracing */
   PoolTraceEndMethod traceEnd;
   PoolBenefitMethod benefit;
+  PoolSizeMinMethod sizeMin;
+  PoolSizeCurrentMethod sizeCurrent;
   PoolDescribeMethod describe;  /* describe the contents of the pool */
   Sig endSig;                   /* .class.end-sig */
 } PoolClassStruct;
@@ -123,21 +125,24 @@ typedef struct PoolStruct {     /* generic structure */
   PoolClass class;              /* pool class structure */
   Space space;                  /* owning space */
   RingStruct spaceRing;         /* link in list of pools in space */
-  RingStruct bufferRing;        /* allocation buffers are attached to pool */
+  RingStruct bufferRing;        /* buffers attached to pool */
   Serial bufferSerial;          /* serial of next buffer */
   RingStruct segRing;           /* segs are attached to pool */
   RingStruct actionRing;	/* actions are attached to pool */
   Serial actionSerial;		/* serial of next action */
   Align alignment;              /* alignment for units */
+  Count segs;                   /* number of segments in pool */
+  Size size;                    /* sum of sizes of segments */
 } PoolStruct;
+
 
 /* MFSStruct -- MFS (Manual Fixed Small) pool outer structure
  *
  * .mfs: See impl.c.poolmfs, design.mps.poolmfs.
  *
  * The MFS outer structure is declared here because it is in-lined
- * in the control pool structure which is in-lined in the space.  Normally,
- * pool outer structures are declared with the pools.
+ * in the control pool structure which is in-lined in the space.
+ * Normally, pool outer structures are declared with the pools.
  *
  * The signature is placed at the end, see
  * design.mps.pool.outer-structure.sig
@@ -148,7 +153,7 @@ typedef struct PoolStruct {     /* generic structure */
 typedef struct MFSStruct {      /* MFS outer structure */
   PoolStruct poolStruct;        /* generic structure */
   Size unroundedUnitSize;       /* the unit size requested */
-  Size extendBy;                /* segment size rounded using unitSize */
+  Size extendBy;                /* seg size rounded using unitSize */
   Size unitSize;                /* rounded for management purposes */
   Word unitsPerSeg;             /* number of units per segment */
   struct MFSHeaderStruct *freeList; /* head of the free list */

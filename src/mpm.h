@@ -1,6 +1,6 @@
 /* impl.h.mpm: MEMORY POOL MANAGER DEFINITIONS
  *
- * $HopeName: !mpm.h(trunk.34) $
+ * $HopeName: MMsrc!mpm.h(MMdevel_control.1) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  */
 
@@ -272,7 +272,11 @@ extern Res (PoolFix)(Pool pool, ScanState ss, Seg seg, Addr *refIO);
   ((*(pool)->class->fix)(pool, ss, seg, refIO))
 extern void PoolReclaim(Pool pool, Trace trace, Seg seg);
 extern void PoolTraceEnd(Pool pool, Trace trace, Action action);
-extern double PoolBenefit(Pool pool, Action action);
+extern double PoolBenefit(Pool pool,
+                          Action action,
+                          double reclaimBenefit);
+extern Size PoolSizeMin(Pool pool);
+extern Size PoolSizeCurrent(Pool pool);
 
 extern void PoolTrivFinish(Pool pool);
 extern Res PoolNoAlloc(Addr *pReturn, Pool pool, Size size);
@@ -301,7 +305,11 @@ extern Res PoolNoFix(Pool pool, ScanState ss, Seg seg, Ref *refIO);
 extern void PoolNoReclaim(Pool pool, Trace trace, Seg seg);
 extern void PoolNoTraceEnd(Pool pool, Trace trace, Action action);
 extern void PoolTrivTraceEnd(Pool pool, Trace trace, Action action);
-extern double PoolNoBenefit(Pool pool, Action action);
+extern double PoolNoBenefit(Pool pool,
+                            Action action,
+                            double reclaimBenefit);
+extern Size PoolTrivSizeMin(Pool pool);
+extern Size PoolTrivSizeCurrent(Pool pool);
 
 
 /* Trace Interface -- see impl.c.trace */
