@@ -1,13 +1,17 @@
 # impl.gmk.eg: GNUMAKEFILE FRAGMENT FOR EGCS
 #
-# $HopeName$
-# Copyright (C) 1996, 1997, 1998 Harlequin Group, all rights reserved
+# $HopeName: MMsrc!eg.gmk(MM_epcore_brisling.1) $
+# Copyright (C) 1999 Harlequin Group, all rights reserved
+#
+# See builder.eg
 #
 # This file is included by platform makefiles that use the EGCS
 # compiler.  It defines the compiler specific variables that the
 # common makefile fragment (impl.gmk.comm) requires.
 #
-# It was made by copying gc.gmk on 1998-03-23
+# It was made by copying gc.gmk on 1999-03-23
+#
+# The options are the same as gcc
 
 
 CC = egcs
