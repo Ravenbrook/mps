@@ -1,6 +1,6 @@
 /* impl.c.poolmv2: MANUAL VARIABLE POOL, II
  *
- * $HopeName: MMsrc!poolmv2.c(MMdevel_mv2_rework.2) $
+ * $HopeName: MMsrc!poolmv2.c(MMdevel_mv2_rework.3) $
  * Copyright (C) 1998 Harlequin Group plc.  All rights reserved.
  *
  * .readership: any MPS developer
@@ -17,7 +17,7 @@
 #include "abq.h"
 #include "meter.h"
 
-SRCID(poolmv2, "$HopeName: MMsrc!poolmv2.c(MMdevel_mv2_rework.2) $");
+SRCID(poolmv2, "$HopeName: MMsrc!poolmv2.c(MMdevel_mv2_rework.3) $");
 
 
 /* Signatures */
@@ -53,6 +53,9 @@ static Bool MV2ContingencyCallback(CBS cbs, CBSBlock block,
                                    void *closureP,
                                    unsigned long closureS);
 static Bool MV2CheckFit(CBSBlock block, Size min, Arena arena);
+#if 0
+static Res MV2CheckSum(CBSBlock block, Size *sizeP, Size envSize);
+#endif
 static MV2 PoolPoolMV2(Pool pool);
 static Pool MV2Pool(MV2 mv2);
 static ABQ MV2ABQ(MV2 mv2);
@@ -60,7 +63,7 @@ static CBS MV2CBS(MV2 mv2);
 static MV2 CBSMV2(CBS cbs);
 static SegPref MV2SegPref(MV2 mv2);
 static Size MV2SegExceptionSize(MV2 mv2, Seg seg);
-static void MV2SetSegExceptionSize(Size limit, MV2 mv2, Seg seg);
+static void MV2SegExceptionSizeSet(Size limit, MV2 mv2, Seg seg);
 
 
 /* Types */
@@ -83,8 +86,6 @@ typedef struct MV2Struct
   Size fillSize;                /* Size of pool segments */
   /* design.mps.poolmv2:arch.contingency */
   Size availLimit;              /* Limit on available */
-  /* design.mps.poolmv2:impl.c.free.merge.segment.overflow */
-  Bool abqOverflow;             /* ABQ dropped some candidates */
   /* design.mps.poolmv2:arch.ap.high-water */
   Size abqSize;
   Size abqLimit;
@@ -216,6 +217,21 @@ static SegPref MV2SegPref(MV2 mv2)
 }
 
 
+static Size MV2SegExceptionSize(MV2 mv2, Seg seg)
+{
+  AVER(SegPool(seg) == MV2Pool(mv2));
+  return (Size)SegP(seg);
+}
+
+
+static void MV2SegExceptionSizeSet(Size size, MV2 mv2, Seg seg) 
+{
+  AVER(SegPool(seg) == MV2Pool(mv2));
+  AVER(SegP(seg) == 0);
+  SegSetP(seg, (void*)size);
+}
+
+
 /* Methods */
 
 
@@ -262,11 +278,12 @@ static Res MV2Init(Pool pool, va_list arg)
   maxSize = SizeAlignUp(maxSize, ArenaAlign(arena));
   /* see design.mps.poolmv2:arch.fragmentation.internal */
   reuseSize = 2 * fillSize;
-  abqLimit = (reserveDepth * meanSize);
-  abqDepth = (abqLimit + reuseSize - 1) / reuseSize;
+  abqLimit = SizeAlignUp(reserveDepth * meanSize, ArenaAlign(arena));
+  /* + 1 to allow push, then check limit */
+  abqDepth = (abqLimit + reuseSize - 1) / reuseSize + 1;
 
-  res = CBSInit(arena, MV2CBS(mv2), &MV2NoteNew, &MV2NoteGrow,
-               &MV2NoteShrink, &MV2NoteDelete, reuseSize, TRUE);
+  res = CBSInit(arena, MV2CBS(mv2), &MV2NoteNew, &MV2NoteDelete,
+               &MV2NoteGrow, &MV2NoteShrink, reuseSize, TRUE);
   if (res != ResOK)
     goto failCBS;
   
@@ -286,7 +303,6 @@ static Res MV2Init(Pool pool, va_list arg)
 
   mv2->reuseSize = reuseSize;
   mv2->fillSize = fillSize;
-  mv2->abqOverflow = FALSE;
   mv2->abqSize = 0;
   mv2->abqLimit = abqLimit;
   mv2->minSize = minSize;
@@ -368,10 +384,19 @@ static Bool MV2Check(MV2 mv2)
   CHECKL(mv2->minSize > 0);
   CHECKL(mv2->fragLimit >= 0 && mv2->fragLimit <= 100);
   CHECKL(mv2->availLimit == mv2->size * mv2->fragLimit / 100);
-  CHECKL(BoolCheck(mv2->abqOverflow));
-  CHECKL(mv2->abqSize < mv2->abqLimit);
+  /* --- can't check this because it does (transiently) overflow */
+  /* CHECKL(mv2->abqSize < mv2->abqLimit); */
   CHECKL(mv2->abqSize <= mv2->available);
-  /* --- iterate over abq to verify abqSize? */
+  /* iterate over abq to verify abqSize? --- no, because it also may
+     (transiently) be incorrect */
+#if 0  
+  {
+    Size size = 0;
+    
+    ABQMap(MV2ABQ(mv2), (ABQMapMethod)&MV2CheckSum, &size, 1);
+    CHECKL(mv2->abqSize == size);
+  }
+#endif
   CHECKL(BoolCheck(mv2->splinter));
   if (mv2->splinter) {
     CHECKL(AddrOffset(mv2->splinterBase, mv2->splinterLimit) >=
@@ -411,6 +436,7 @@ static void MV2Finish(Pool pool)
   /* Free the segments in the pool */
   ring = PoolSegRing(pool);
   RING_FOR(node, ring, nextNode) {
+    SegSetP(SegOfPoolRing(node), 0);
     MV2SegFree(mv2, SegOfPoolRing(node));
   }
 
@@ -460,7 +486,7 @@ static Res MV2BufferFill(Seg *segReturn,
     if (res == ResOK) {
       Size splinter = alignedSize - minSize;
       
-      MV2SetSegExceptionSize(minSize, mv2, seg);
+      MV2SegExceptionSizeSet(minSize, mv2, seg);
       base = SegBase(seg);
       /* only allocate this block in the segment */
       limit = AddrAdd(base, minSize);
@@ -698,7 +724,7 @@ static void MV2Free(Pool pool, Addr base, Size size)
     Bool b = SegOfAddr(&seg, PoolArena(pool), base);
     AVER(b);
   }
-  AVER(base == SegBase(seg));
+  AVER(base >= SegBase(seg));
   AVER(limit <= SegLimit(seg));
 
   /* design.mps.poolmv2:arch.ap.no-fit.oversize.policy */
@@ -713,6 +739,8 @@ static void MV2Free(Pool pool, Addr base, Size size)
       Size splinter = segSize - exceptionSize;
       /* --- Interface AVER */
       AVER(size == exceptionSize);
+      AVER(base == SegBase(seg));
+      AVER(limit <= SegLimit(seg));
       mv2->available += splinter;
       mv2->unavailable -= splinter;
       AVER(mv2->size == mv2->allocated + mv2->available +
@@ -721,7 +749,7 @@ static void MV2Free(Pool pool, Addr base, Size size)
 
       if (SegBuffer(seg) != NULL)
         BufferDetach(SegBuffer(seg), MV2Pool(mv2));
-      MV2SetSegExceptionSize(0, mv2, seg);
+      MV2SegExceptionSizeSet(0, mv2, seg);
       MV2SegFree(mv2, seg);
       return;
     }
@@ -757,7 +785,6 @@ static Res MV2Describe(Pool pool, mps_lib_FILE *stream)
 	       "  reuseSize: $U \n", (WriteFU)mv2->reuseSize,
 	       "  fillSize: $U \n", (WriteFU)mv2->fillSize,
 	       "  availLimit: $U \n", (WriteFU)mv2->availLimit,
-	       "  abqOverflow: $S \n", mv2->abqOverflow?"TRUE":"FALSE",
 	       "  abqSize: $U \n", (WriteFU)mv2->abqSize,
 	       "  abqLimit: $U \n", (WriteFU)mv2->abqLimit,
                "  splinter: $S \n", mv2->splinter?"TRUE":"FALSE",
@@ -892,7 +919,7 @@ static Res MV2SegAlloc(Seg *segReturn, MV2 mv2, Size size, Pool pool)
   if (res == ResOK) {
     Size segSize = SegSize(seg);
     
-    MV2SetSegExceptionSize(0, mv2, seg);
+    MV2SegExceptionSizeSet(0, mv2, seg);
     *segReturn = seg;
     
     mv2->size += segSize;
@@ -938,14 +965,13 @@ static void MV2NoteNew(CBS cbs, CBSBlock block, Size oldSize, Size newSize)
   AVER(oldSize < mv2->reuseSize);
   AVER(newSize >= mv2->reuseSize);
 
-  mv2->abqSize += newSize;
-  if (! (mv2->abqSize < mv2->abqLimit)) {
-    MV2ReturnABQSegs(mv2);
-  }
-  
   {
     Res res = ABQPush(MV2ABQ(mv2), block);
     AVER(res == ResOK);
+  }
+  mv2->abqSize += newSize;
+  if (! (mv2->abqSize < mv2->abqLimit)) {
+    MV2ReturnABQSegs(mv2);
   }
 }
 
@@ -1062,6 +1088,7 @@ static Bool MV2ReturnBlockSegs(MV2 mv2, CBSBlock block, Arena arena,
         baseFirst = segBase;
         success = TRUE;
       }
+      /* Note: SegP also serves as SegExceptionSize */
       SegSetP(seg, segList);
       segList = seg;
       limitLast = segLimit;
@@ -1072,12 +1099,17 @@ static Bool MV2ReturnBlockSegs(MV2 mv2, CBSBlock block, Arena arena,
   }
 
   if (success) {
+    Seg next;
+    
     {
       Res r = CBSDelete(MV2CBS(mv2), baseFirst, limitLast);
       AVER(r == ResOK);
     }
-    for (seg = segList ; seg != NULL; seg = SegP(seg))
+    for (seg = segList ; seg != NULL; seg = next) {
+      next = SegP(seg);
+      SegSetP(seg, 0);
       MV2SegFree(mv2, seg);
+    }
   }
 
   return success;
@@ -1204,21 +1236,16 @@ static Bool MV2CheckFit(CBSBlock block, Size min, Arena arena)
 }
 
 
-/* MV2SegExceptionSize -- the size of the exceptional object allocated
- * in a segment
- */
-static Size MV2SegExceptionSize(MV2 mv2, Seg seg)
+#if 0
+/* MV2CheckSum -- ABQMapMethod to sum the sizes of the blocks */
+static Res MV2CheckSum(CBSBlock block, Size *sizeP, Size envSize)
 {
-  AVER(SegPool(seg) == MV2Pool(mv2));
-  return (Size)SegP(seg);
+  AVER(envSize == 1);
+  AVERT(CBSBlock, block);
+  AVER(sizeP != NULL);
+  *sizeP += CBSBlockSize(block);
+  return ResOK;
 }
+#endif
 
 
-/* MV2SetSegExceptionSize -- set the size of the exceptional object
- * allocated in a segment
- */
-static void MV2SetSegExceptionSize(Size size, MV2 mv2, Seg seg) 
-{
-  AVER(SegPool(seg) == MV2Pool(mv2));
-  SegSetP(seg, (void*) size);
-}
