@@ -1,6 +1,6 @@
 /* impl.c.arena: ARENA IMPLEMENTATION
  *
- * $HopeName: !arena.c(trunk.60) $
+ * $HopeName: MMsrc!arena.c(MMdevel_drj_arena_hysteresis.1) $
  * Copyright (C) 1998. Harlequin Group plc. All rights reserved.
  *
  * .readership: Any MPS developer
@@ -36,7 +36,7 @@
 #include "poolmrg.h"
 #include "mps.h"
 
-SRCID(arena, "$HopeName: !arena.c(trunk.60) $");
+SRCID(arena, "$HopeName: MMsrc!arena.c(MMdevel_drj_arena_hysteresis.1) $");
 
 
 /* Forward declarations */
@@ -575,7 +575,8 @@ void ArenaInit(Arena arena, ArenaClass class)
   /* commitLimit may be overrideen by init (but probably not */
   /* as there's not much point) */
   arena->commitLimit = (Size)-1;
-  /* usually overridden by init */
+  arena->spareCommitted = (Size)0;
+  /* alignment is usually overridden by init */
   arena->alignment = MPS_PF_ALIGN;
   /* usually overridden by init */
   arena->zoneShift = ARENA_ZONESHIFT;
@@ -1047,6 +1048,7 @@ Res ArenaDescribe(Arena arena, mps_lib_FILE *stream)
 
   res = WriteF(stream,
                "  commitLimit $W\n", (WriteFW)arena->commitLimit,
+	       "  spareCommitted $W\n", (WriteFW)arena->spareCommitted,
                "  zoneShift $U\n", (WriteFU)arena->zoneShift,
                "  alignment $W\n", (WriteFW)arena->alignment,
                "  poolSerial $U\n", (WriteFU)arena->poolSerial,
