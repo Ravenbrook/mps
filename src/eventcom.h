@@ -1,7 +1,7 @@
 /* impl.h.eventcom -- Event Logging Common Types
  *
  * Copyright (C) 1997, 1998, 1999 Harlequin Group, all rights reserved.
- * $HopeName: !eventcom.h(trunk.13) $
+ * $HopeName: MMsrc!eventcom.h(MMdevel_tony_sunset.1) $
  *
  * .readership: MPS developers.
  * .sources: mps.design.telemetry
@@ -32,6 +32,8 @@ typedef Word EventType;
 #define EventPoolFree       ((EventType)0xEFB07F6E) /* POoL FREe */
 #define EventArenaCreate    ((EventType)0xEFA64C6E) /* AReNa CREate */
 #define EventArenaDestroy   ((EventType)0xEFA64DE5) /* AReNa DEStroy */
+#define EventArenaAlloc     ((EventType)0xEFA64A77) /* AReNa ALLoc */
+#define EventArenaFree	    ((EventType)0xEFA64F6E) /* AReNa FREe */
 #define EventSegAlloc       ((EventType)0xEF5E9A77) /* SEG ALLoc */
 #define EventSegFree	    ((EventType)0xEF5E9F6E) /* SEG FREe */
 #define EventAMCGenCreate   ((EventType)0xEFA3C94C) /* AMC GeN Create */
@@ -86,6 +88,7 @@ typedef Word EventType;
 #define EventMV2Finish      ((EventType)0xEF3F2F14) /* MV2 FINish */
 #define EventBufferFill     ((EventType)0xEFB0FFF7) /* BUFFer FilL */
 #define EventBufferEmpty    ((EventType)0xEFB0FFE3) /* BUFFer EMpty */
+#define EventArenaAllocFail ((EventType)0xEFA64A7F) /* AReNa ALloc Fail */
 #define EventSegAllocFail   ((EventType)0xEF5E9A7F) /* SEG ALloc Fail */
 #define EventMeterInit      ((EventType)0xEF3E2141) /* METer INIt */
 #define EventMeterValues    ((EventType)0xEF3E2FA7) /* METer VALues */

@@ -1,6 +1,6 @@
 /* impl.h.eventdef -- Event Logging Definitions
  *
- * $HopeName: !eventdef.h(trunk.19) $
+ * $HopeName: MMsrc!eventdef.h(MMdevel_tony_sunset.1) $
  * Copyright (C) 1997, 1998, 1999 Harlequin Group plc.  All rights reserved.
  *
  * .readership: MPS developers.
@@ -131,3 +131,6 @@ RELATION(SegAllocFail                    , 0x003B, TRUE, Seg, PWP)
 RELATION(TraceScanSeg                    , 0x003C, TRUE, Seg, UUPP)
 /* TraceScanSingleRef abuses kind, see .kind.abuse */
 RELATION(TraceScanSingleRef              , 0x003D, TRUE, Seg, UUPA)
+RELATION(ArenaAlloc                      , 0x003E, TRUE, Arena, PPAWP)
+RELATION(ArenaFree                       , 0x003F, TRUE, Arena, PAW)
+RELATION(ArenaAllocFail                  , 0x0040, TRUE, Arena, PWP)
