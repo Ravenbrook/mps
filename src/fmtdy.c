@@ -1,6 +1,6 @@
 /* impl.c.fmtdy: DYLAN OBJECT FORMAT IMPLEMENTATION
  *
- *  $HopeName: MMsrc!fmtdy.c(MMdevel_configura.1) $
+ *  $HopeName: MMsrc!fmtdy.c(MMdevel_configura.2) $
  *  Copyright (C) 1996,1997, 2000 Harlequin Group, all rights reserved.
  *
  * .readership: MPS developers, Dylan developers
@@ -249,7 +249,7 @@ static mps_res_t dylan_scan_contig(mps_ss_t mps_ss,
 
 /* Scan weakly a contiguous array of references in [base, limit). */
 /* Only required to scan vectors for Dylan Weak Tables. */
-/* Depends on the vector length field being scannable (ie a tagged */
+/* Depends on the vector length field being scannable (i.e., a tagged */
 /* integer). */
 /* When a reference that has been fixed to NULL is detected the */
 /* corresponding reference in the associated table (pointed to be the */
@@ -377,9 +377,9 @@ static mps_res_t dylan_scan1(mps_ss_t mps_ss, mps_addr_t *object_io)
   header = (int*)((char*)p - headerSIZE);
   if (*header != realTYPE) {
     switch (*header) {
-    case pad1TYPE: *object_io = (mps_addr_t)((char*)p + 4);
-    case pad2TYPE: *object_io = (mps_addr_t)((char*)p + 8);
-    default: assert(0 == 1);
+    case pad1TYPE: *object_io = (mps_addr_t)((char*)p + 4); break;
+    case pad2TYPE: *object_io = (mps_addr_t)((char*)p + 8); break;
+    default: assert(0 == 1); break;
     }
     return MPS_RES_OK;
   }
@@ -392,7 +392,7 @@ static mps_res_t dylan_scan1(mps_ss_t mps_ss, mps_addr_t *object_io)
 
     if((h & 3) == 1) {
       /* single-word */
-      l = (mps_addr_t)(p + 1);
+      l = AddHeader(p + 1);
       FMTDY_COUNT(++dylan_fw_counts[0]);
     } else {                      /* multi-word */
       assert((h & 3) == 2);
@@ -400,7 +400,7 @@ static mps_res_t dylan_scan1(mps_ss_t mps_ss, mps_addr_t *object_io)
       FMTDY_COUNT(++dylan_fw_counts[1]);
     }
 
-    *object_io = AddHeader(l);
+    *object_io = l;
     return MPS_RES_OK;
   }
 
@@ -509,20 +509,23 @@ static mps_res_t dylan_scan1(mps_ss_t mps_ss, mps_addr_t *object_io)
   return MPS_RES_OK;
 }
 
+
 static mps_res_t dylan_scan(mps_ss_t mps_ss,
                             mps_addr_t base, mps_addr_t limit)
 {
   mps_res_t res;
+  mps_addr_t p = base;
 
-  while(base < limit) {
-    res = dylan_scan1(mps_ss, &base);
+  while(p < limit) {
+    res = dylan_scan1(mps_ss, &p);
     if(res) return res;
   }
 
-  assert(base == AddHeader(limit));
+  assert(p <= AddHeader(limit));
 
   return MPS_RES_OK;
 }
+
 
 /* dylan_class -- return pointer indicating class of object
  *
@@ -538,6 +541,7 @@ static mps_addr_t dylan_class(mps_addr_t obj)
   else
     return (mps_addr_t)first_word;
 }
+
 
 static mps_res_t dylan_scan1_weak(mps_ss_t mps_ss, mps_addr_t *object_io)
 {
@@ -636,9 +640,9 @@ static mps_addr_t dylan_skip(mps_addr_t object)
   header = (int*)((char*)object - headerSIZE);
   if (*header != realTYPE) {
     switch (*header) {
-    case pad1TYPE: return (mps_addr_t)((char*)object + 4);
-    case pad2TYPE: return (mps_addr_t)((char*)object + 8);
-    default: assert(0 == 1);
+    case pad1TYPE: return (mps_addr_t)((char*)object + 4); break;
+    case pad2TYPE: return (mps_addr_t)((char*)object + 8); break;
+    default: assert(0 == 1); break;
     }
   }
 
@@ -646,16 +650,12 @@ static mps_addr_t dylan_skip(mps_addr_t object)
 
   /* If the object is forwarded, simply skip it. */
   if(h & 3) {
-    mps_addr_t l;
-
     if((h & 3) == 1)            /* single-word */
-      l = (mps_addr_t)(p + 1);
+      return AddHeader(p + 1);
     else {                      /* multi-word */
       assert((h & 3) == 2);
-      l = (mps_addr_t)p[1];
+      return (mps_addr_t)p[1];
     }
-
-    return l;
   }
 
   w = (mps_word_t *)h;          /* load the fixed wrapper */
@@ -686,7 +686,7 @@ static mps_addr_t dylan_skip(mps_addr_t object)
       p += vt;
   }
 
-  return (mps_addr_t)((char*)p + headerSIZE);
+  return AddHeader(p);
 }
 
 
@@ -705,9 +705,16 @@ static void dylan_no_copy(mps_addr_t old, mps_addr_t new)
   notreached();
 }
 
+
 static mps_addr_t dylan_isfwd(mps_addr_t object)
 {
   mps_word_t h, tag;
+  int *header;
+
+  header = (int*)((char*)object - headerSIZE);
+  if (*header != realTYPE) {
+    return NULL;
+  }
 
   h = *(mps_word_t *)object;
   tag = h & 3;
@@ -723,6 +730,7 @@ static mps_addr_t dylan_no_isfwd(mps_addr_t object)
   notreached();
   return 0;
 }
+
 
 static void dylan_fwd(mps_addr_t old, mps_addr_t new)
 {
@@ -748,6 +756,7 @@ static void dylan_no_fwd(mps_addr_t old, mps_addr_t new)
   notreached();
 }
 
+
 void dylan_pad(mps_addr_t addr, size_t fullSize)
 {
   mps_word_t *p;
@@ -763,7 +772,7 @@ void dylan_pad(mps_addr_t addr, size_t fullSize)
       p[0] = 1;
     else {
       p[0] = 2;
-      p[1] = (mps_word_t)((char *)addr + size);
+      p[1] = (mps_word_t)AddHeader((char *)addr + fullSize);
     }
   }
 }
@@ -773,6 +782,7 @@ static void dylan_no_pad(mps_addr_t addr, size_t size)
   unused(addr); unused(size);
   notreached();
 }
+
 
 static struct mps_fmt_A_s dylan_fmt_A_s =
 {

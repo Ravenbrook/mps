@@ -1,6 +1,6 @@
 /* impl.c.poolamc: AUTOMATIC MOSTLY-COPYING MEMORY POOL CLASS
  *
- * $HopeName: MMsrc!poolamc.c(MMdevel_configura.1) $
+ * $HopeName: MMsrc!poolamc.c(MMdevel_configura.2) $
  * Copyright (C) 1999, 2000 Harlequin Limited.  All rights reserved.
  *
  * .sources: design.mps.poolamc.
@@ -9,7 +9,7 @@
 #include "mpscamc.h"
 #include "mpm.h"
 
-SRCID(poolamc, "$HopeName: MMsrc!poolamc.c(MMdevel_configura.1) $");
+SRCID(poolamc, "$HopeName: MMsrc!poolamc.c(MMdevel_configura.2) $");
 
 
 /* Binary i/f used by ASG (drj 1998-06-11) */
@@ -1209,7 +1209,7 @@ static Res AMCScanNailedOnce(Bool *totalReturn, Bool *moreReturn,
 
   p = AddrAdd(SegBase(seg), format->headerSize);
   while(SegBuffer(seg) != NULL) {
-    limit = BufferScanLimit(SegBuffer(seg));
+    limit = AddrAdd(BufferScanLimit(SegBuffer(seg)), format->headerSize);
     if(p >= limit) {
       AVER(p == limit);
       goto returnGood;
@@ -1236,7 +1236,7 @@ static Res AMCScanNailedOnce(Bool *totalReturn, Bool *moreReturn,
   /* Should have a ScanMarkedRange or something like that @@@@ */
   /* to abstract common code. */
 
-  limit = SegLimit(seg);
+  limit = AddrAdd(SegLimit(seg), format->headerSize);
   /* @@@@ Shouldn't p be set to BufferLimit here?! */
   while(p < limit) {
     Addr q;
@@ -1269,8 +1269,7 @@ returnGood:
 
 /* AMCScanNailed -- scan a nailed segment */
 
-static Res AMCScanNailed(Bool *totalReturn,
-                         ScanState ss, Pool pool,
+static Res AMCScanNailed(Bool *totalReturn, ScanState ss, Pool pool,
                          Seg seg, AMC amc)
 {
   Bool total;
@@ -1294,7 +1293,7 @@ static Res AMCScanNailed(Bool *totalReturn,
 
 /* AMCScan -- scan a single seg, turning it black
  *
- * See design.mps.poolamc.scan.
+ * See design.mps.poolamc.seg-scan.
  */
 
 static Res AMCScan(Bool *totalReturn, ScanState ss, Pool pool, Seg seg)
@@ -1323,9 +1322,10 @@ static Res AMCScan(Bool *totalReturn, ScanState ss, Pool pool, Seg seg)
   EVENT_PPP(AMCScanBegin, amc, seg, ss);
 
   base = AddrAdd(SegBase(seg), format->headerSize);
-  while(SegBuffer(seg) != NULL) {  /* design.mps.poolamc.scan.loop */
-    limit = BufferScanLimit(SegBuffer(seg));
+  while(SegBuffer(seg) != NULL) {  /* design.mps.poolamc.seg-scan.loop */
+    limit = AddrAdd(BufferScanLimit(SegBuffer(seg)), format->headerSize);
     if(base >= limit) {
+      /* @@@@ Are we sure we don't need scan the rest of the segment? */
       AVER(base == limit);
       *totalReturn = TRUE;
       return ResOK;
@@ -1336,12 +1336,13 @@ static Res AMCScan(Bool *totalReturn, ScanState ss, Pool pool, Seg seg)
       return res;
     }
     ss->scannedSize += AddrOffset(base, limit);
-    base = AddrAdd(limit, format->headerSize);
+    base = limit;
   }
 
-  /* design.mps.poolamc.scan.finish @@@@ base? */
-  limit = SegLimit(seg);
-  AVER(SegBase(seg) <= base && base <= SegLimit(seg));
+  /* design.mps.poolamc.seg-scan.finish @@@@ base? */
+  limit = AddrAdd(SegLimit(seg), format->headerSize);
+  AVER(SegBase(seg) <= base
+       && base <= AddrAdd(SegLimit(seg), format->headerSize));
   if(base < limit) {
     res = (*format->scan)(ss, base, limit);
     if(res != ResOK) {
@@ -1367,6 +1368,7 @@ static Res AMCScan(Bool *totalReturn, ScanState ss, Pool pool, Seg seg)
  * If the segment has a nail board then we use that to record the fix.
  * Otherwise we simply grey and nail the entire segment.
  */
+
 static void AMCFixInPlace(Pool pool, Seg seg, ScanState ss, Ref *refIO)
 {
   Addr ref;
@@ -1551,8 +1553,7 @@ static Res AMCFix(Pool pool, ScanState ss, Seg seg, Ref *refIO)
     ss->forwardedSize += length;
 
     do {
-      res = BUFFER_RESERVE(&newRef, buffer, length,
-                           /* withReservoirPermit */ FALSE);
+      res = BUFFER_RESERVE(&newRef, buffer, length, FALSE);
       if(res != ResOK)
         goto returnRes;
 
@@ -1721,8 +1722,7 @@ static Res AMCHFix(Pool pool, ScanState ss, Seg seg, Ref *refIO)
     do {
       Size headerSize = format->headerSize;
 
-      res = BUFFER_RESERVE(&newBase, buffer, length,
-                           /* withReservoirPermit */ FALSE);
+      res = BUFFER_RESERVE(&newBase, buffer, length, FALSE);
       if(res != ResOK)
         goto returnRes;
       newRef = AddrAdd(newBase, headerSize);
@@ -1789,6 +1789,7 @@ static void AMCReclaimNailed(Pool pool, Trace trace, Seg seg)
   Count preservedInPlaceCount = (Count)0;
   Size preservedInPlaceSize = (Size)0;
   AMC amc;
+  Size headerSize;
 
   /* All arguments AVERed by AMCReclaim */
 
@@ -1807,19 +1808,21 @@ static void AMCReclaimNailed(Pool pool, Trace trace, Seg seg)
   }
 
   /* see design.mps.poolamc.nailboard.limitations for improvements */
+  headerSize = format->headerSize;
   ShieldExpose(arena, seg);
-  p = AddrAdd(SegBase(seg), format->headerSize);
+  p = AddrAdd(SegBase(seg), headerSize);
   if(SegBuffer(seg) != NULL)
     limit = BufferScanLimit(SegBuffer(seg));
   else
     limit = SegLimit(seg);
+  limit = AddrAdd(limit, headerSize);
   while(p < limit) {
     Addr q;
     Size length;
     q = (*format->skip)(p);
     length = AddrOffset(p, q);
     if(!AMCNailGetMark(seg, p)) {
-      (*format->pad)(p, length);
+      (*format->pad)(AddrSub(p, headerSize), length);
       bytesReclaimed += length;
     } else {
       ++preservedInPlaceCount;
@@ -1909,11 +1912,11 @@ static Res AMCSegDescribe(AMC amc, Seg seg, mps_lib_FILE *stream)
   Align step;
   Size row;
 
-  step = amc->poolStruct.alignment;
+  step = AMCPool(amc)->alignment;
   row = step * 64;
 
   base = SegBase(seg);
-  p = base;
+  p = AddrAdd(base, AMCPool(amc)->format->headerSize);
   limit = SegLimit(seg);
   if(SegBuffer(seg) != NULL)
     init = BufferGetInit(SegBuffer(seg));
@@ -1928,8 +1931,7 @@ static Res AMCSegDescribe(AMC amc, Seg seg, mps_lib_FILE *stream)
   if(res != ResOK)
     return res;
 
-  for(i = AddrAdd(base, AMCPool(amc)->format->headerSize); i < limit;
-      i = AddrAdd(i, row)) {
+  for(i = base; i < limit; i = AddrAdd(i, row)) {
     Addr j;
     char c;
 
@@ -1945,7 +1947,7 @@ static Res AMCSegDescribe(AMC amc, Seg seg, mps_lib_FILE *stream)
         c = '.';
       else if(j == p) {
         c = '*';
-        p = (*amc->poolStruct.format->skip)(p);
+        p = (AMCPool(amc)->format->skip)(p);
       } else
         c = '=';
       res = WriteF(stream, "$C", c, NULL);
@@ -1972,6 +1974,12 @@ static void AMCWalk(Pool pool, Seg seg,
                     FormattedObjectsStepMethod f,
                     void *p, unsigned long s)
 {
+    Addr object;
+    Addr nextObject;
+    Addr limit;
+    AMC amc;
+    Format format;
+
   AVERT(Pool, pool);
   AVERT(Seg, seg);
   AVER(FUNCHECK(f));
@@ -1986,12 +1994,6 @@ static void AMCWalk(Pool pool, Seg seg,
   if(SegWhite(seg) == TraceSetEMPTY &&
      SegGrey(seg) == TraceSetEMPTY &&
      SegNailed(seg) == TraceSetEMPTY) {
-    Addr object;
-    Addr nextObject;
-    Addr limit;
-    AMC amc;
-    Format format;
-
     amc = PoolPoolAMC(pool);
     AVERT(AMC, amc);
     format = pool->format;
@@ -2002,6 +2004,7 @@ static void AMCWalk(Pool pool, Seg seg,
       limit = BufferScanLimit(SegBuffer(seg));
     else
       limit = SegLimit(seg);
+    limit = AddrAdd(limit, format->headerSize);
 
     object = AddrAdd(SegBase(seg), format->headerSize);
     while(object < limit) {
