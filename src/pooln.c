@@ -2,7 +2,7 @@
  *
  *                         NULL POOL
  *
- *  $HopeName: MMsrc!pooln.c(trunk.7) $
+ *  $HopeName: MMsrc!pooln.c(MMdevel_restr.2) $
  *
  *  Copyright(C) 1995 Harlequin Group, all rights reserved
  *
@@ -12,9 +12,14 @@
 
 #include "mpm.h"
 #include "pooln.h"
-#include "poolnst.h"
 
-SRCID(pooln, "$HopeName: MMsrc!pooln.c(trunk.7) $");
+SRCID(pooln, "$HopeName: MMsrc!pooln.c(MMdevel_restr.2) $");
+
+
+typedef struct PoolNStruct {
+  PoolStruct poolStruct;                /* generic pool structure */
+  /* and that's it */
+} PoolNStruct;
 
 
 /*  Class's methods  */
