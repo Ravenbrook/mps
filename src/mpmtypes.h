@@ -1,6 +1,6 @@
 /* impl.h.mpmtypes: MEMORY POOL MANAGER TYPES
  *
- * $HopeName: MMsrc!mpmtypes.h(MM_epcore_brisling.1) $
+ * $HopeName: MMsrc!mpmtypes.h(MM_epcore_brisling.2) $
  * Copyright (C) 1997, 1998 Harlequin Group plc.  All rights reserved.
  *
  * .readership: MM developers.
@@ -218,6 +218,7 @@ typedef Res (*RootScanRegMethod)(ScanState ss, Thread thread, void *p,
 /* design.mps.sig SIGnature IS BAD */
 #define SigInvalid      ((Sig)0x51915BAD) 
 
+#define SizeMAX         ((Size)-1)
 #define AccessSetEMPTY  ((AccessSet)0) /* design.mps.type.access-set */
 #define AccessREAD      ((AccessSet)(1<<0))
 #define AccessWRITE     ((AccessSet)(1<<1))
