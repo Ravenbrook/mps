@@ -1,7 +1,7 @@
 /* impl.h.config: MPS CONFIGURATION
  *
  * Copyright (C) 1997 Harlequin Group, all rights reserved.
- * $HopeName: !config.h(trunk.11) $
+ * $HopeName: MMsrc!config.h(MMdevel_control2.1) $
  */
 
 #ifndef config_h
@@ -99,7 +99,7 @@
 #define SPACE_CONTROL_EXTENDBY  ((Size)4096)
 #define SPACE_CONTROL_AVGSIZE   ((Size)32)
 #define SPACE_CONTROL_MAXSIZE   ((Size)65536)
-#define SPACE_POLL_MAX          ((Size)262144)
+#define SPACE_POLL_MAX          ((Size)65536)
 #define SPACE_LD_LENGTH         ((Size)4)
 
 
