@@ -1,6 +1,6 @@
 /* impl.h.mpmst: MEMORY POOL MANAGER DATA STRUCTURES
  *
- * $HopeName: MMsrc!mpmst.h(MM_dylan_jackdaw.1) $
+ * $HopeName: MMsrc!mpmst.h(MM_dylan_jackdaw.2) $
  * Copyright (C) 1998 Harlequin Group plc.  All rights reserved.
  *
  * .readership: MM developers.
@@ -651,6 +651,7 @@ typedef struct ArenaStruct {
   Serial serial;                /* design.mps.arena.static.serial */
   ArenaClass class;             /* arena class structure */
   RingStruct globalRing;        /* node in global ring of arenas */
+  const char *mpsVersionString; /* MPSVersion() */
 
   Bool poolReady;               /* design.mps.arena.pool.ready */
   MVStruct controlPoolStruct;   /* design.mps.arena.pool */
