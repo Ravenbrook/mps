@@ -1,6 +1,6 @@
 /* impl.h.mps: HARLEQUIN MEMORY POOL SYSTEM C INTERFACE
  *
- * $HopeName: !mps.h(trunk.22) $
+ * $HopeName: MMsrc!mps.h(MMdevel_clamp.1) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  *
  * .readership: customers, MPS developers.
@@ -174,6 +174,10 @@ extern size_t mps_space_committed(mps_space_t);
 /* Client memory arenas */
 extern mps_res_t mps_arena_extend(mps_arena_t, mps_addr_t, size_t);
 extern mps_res_t mps_arena_retract(mps_arena_t, mps_addr_t, size_t);
+
+extern void mps_clamp(mps_arena_t);
+extern void mps_release(mps_arena_t);
+extern void mps_park(mps_arena_t);
 
 
 /* Object Formats */

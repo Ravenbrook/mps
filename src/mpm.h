@@ -1,6 +1,6 @@
 /* impl.h.mpm: MEMORY POOL MANAGER DEFINITIONS
  *
- * $HopeName: !mpm.h(trunk.39) $
+ * $HopeName: MMsrc!mpm.h(MMdevel_clamp.1) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  */
 
@@ -427,6 +427,10 @@ extern void (ArenaPoll)(Arena arena);
 #endif
 /* .nogc.why: ScriptWorks doesn't use MM-provided incremental GC, so */
 /* doesn't need to poll when allocating. */
+
+extern void ArenaClamp(Arena arena);
+extern void ArenaRelease(Arena arena);
+extern void ArenaPark(Arena arena);
 
 extern Res ArenaAlloc(void **baseReturn, Arena arena, Size size);
 extern void ArenaFree(Arena arena, Addr base, Size size);

@@ -1,6 +1,6 @@
 /* impl.h.mpmst: MEMORY POOL MANAGER DATA STRUCTURES
  *
- * $HopeName: !mpmst.h(trunk.31) $
+ * $HopeName: MMsrc!mpmst.h(MMdevel_clamp.1) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  *
  * .readership: MM developers.
@@ -520,6 +520,7 @@ typedef struct ArenaStruct {
   Bool insidePoll;              /* design.mps.arena.poll */
   Size actionInterval;          /* design.mps.arena.poll.interval */
   double allocTime;             /* "time" in allocated bytes */
+  Bool clamped;                 /* design.mps.arena.poll.clamp */
 
   Shift zoneShift;              /* see also impl.c.ref */
   Align alignment;		/* minimum alignment of segments */

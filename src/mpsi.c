@@ -1,6 +1,6 @@
 /* impl.c.mpsi: MEMORY POOL SYSTEM C INTERFACE LAYER
  *
- * $HopeName: !mpsi.c(trunk.27) $
+ * $HopeName: MMsrc!mpsi.c(MMdevel_clamp.1) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  *
  * .purpose: This code bridges between the MPS interface to C,
@@ -52,7 +52,7 @@
 #include "mps.h"
 #include "mpsavm.h" /* only for mps_space_create */
 
-SRCID(mpsi, "$HopeName: !mpsi.c(trunk.27) $");
+SRCID(mpsi, "$HopeName: MMsrc!mpsi.c(MMdevel_clamp.1) $");
 
 
 /* mpsi_check -- check consistency of interface mappings
@@ -211,6 +211,42 @@ size_t mps_arena_committed(mps_arena_t mps_arena)
 size_t mps_space_committed(mps_space_t mps_space)
 {
   return mps_arena_committed(mps_space);
+}
+
+
+/* mps_clamp -- prevent further background activity */
+
+void mps_clamp(mps_arena_t mps_arena)
+{
+  Arena arena = (Arena)mps_arena;
+
+  ArenaEnter(arena);
+  ArenaClamp(arena);
+  ArenaLeave(arena);
+}
+
+
+/* mps_release -- allow further background activity */
+
+void mps_release(mps_arena_t mps_arena)
+{
+  Arena arena = (Arena)mps_arena;
+
+  ArenaEnter(arena);
+  ArenaRelease(arena);
+  ArenaLeave(arena);
+}
+
+
+/* mps_park -- finish background activity and clamp */
+
+void mps_park(mps_arena_t mps_arena)
+{
+  Arena arena = (Arena)mps_arena;
+
+  ArenaEnter(arena);
+  ArenaPark(arena);
+  ArenaLeave(arena);
 }
 
 

@@ -1,6 +1,6 @@
 /* impl.c.arena: ARENA IMPLEMENTATION
  *
- * $HopeName: !arena.c(trunk.2) $
+ * $HopeName: MMsrc!arena.c(MMdevel_clamp.1) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  *
  * .readership: Any MPS developer
@@ -38,7 +38,7 @@
 #include "mpm.h"
 
 
-SRCID(arena, "$HopeName: !arena.c(trunk.2) $");
+SRCID(arena, "$HopeName: MMsrc!arena.c(MMdevel_clamp.1) $");
 
 
 /* All static data objects are declared here. See .static */
@@ -94,6 +94,8 @@ Bool ArenaCheck(Arena arena)
   CHECKL(arena->serial < arenaSerial); /* design.mps.arena.static.serial */
   CHECKD(ArenaClass, arena->class);
   CHECKL(RingCheck(&arena->globalRing));
+
+  CHECKL(BoolCheck(arena->clamped));
 
   CHECKL(BoolCheck(arena->poolReady));
   if(arena->poolReady)                 /* design.mps.arena.pool.ready */
@@ -206,6 +208,7 @@ void ArenaInit(Arena arena, ArenaClass class)
   arena->pollThreshold = (Size)0;
   arena->insidePoll = FALSE;
   arena->actionInterval = ARENA_POLL_MAX;  /* design.mps.arena.poll.interval */
+  arena->clamped = FALSE;
   arena->epoch = (Epoch)0;              /* impl.c.ld */
   arena->prehistory = RefSetEMPTY;
   for(i = 0; i < ARENA_LD_LENGTH; ++i)
@@ -402,6 +405,61 @@ Bool ArenaAccess(Addr addr, AccessSet mode)
 }
 
 
+/* ArenaClamp -- prevent further background activity */
+
+void ArenaClamp(Arena arena)
+{
+  AVERT(Arena, arena);
+  arena->clamped = TRUE;
+}
+
+
+/* ArenaRelease -- allow background activity to continue */
+
+void ArenaRelease(Arena arena)
+{
+  AVERT(Arena, arena);
+  arena->clamped = FALSE;
+}
+
+
+/* ArenaPollTraces -- poll each active trace once */
+
+static void ArenaPollTraces(Arena arena)
+{
+  Res res;
+  TraceId ti;
+  Trace trace;
+
+  /* Poll active traces to make progress. */
+  for(ti = 0; ti < TRACE_MAX; ++ti)
+    if(TraceSetIsMember(arena->busyTraces, ti)) {
+      /* design.mps.arena.trace */
+      trace = ArenaTrace(arena, ti);
+
+      res = TracePoll(trace);
+      AVER(res == ResOK); /* @@@@ */
+
+      /* @@@@ Pick up results and use for prediction. */
+      if(trace->state == TraceFINISHED)
+        TraceDestroy(trace);
+    }
+}
+
+
+/* ArenaPark -- finish background activity and clamp the arena */
+
+void ArenaPark(Arena arena)
+{
+  AVERT(Arena, arena);
+
+  ArenaClamp(arena);
+
+  while(arena->busyTraces != TraceSetEMPTY)
+    ArenaPollTraces(arena);
+}
+
+
 /* ArenaPoll -- trigger periodic actions
  *
  * Poll all background activities to see if they need to do anything.
@@ -432,9 +490,11 @@ void ArenaPoll(Arena arena)
   TraceId ti;
   Size size;
   Size interval;
-  Res res;
 
   AVERT(Arena, arena);
+
+  if(arena->clamped)
+    return;
 
   size = ArenaCommitted(arena);
   if(arena->insidePoll || size < arena->pollThreshold)
@@ -446,19 +506,7 @@ void ArenaPoll(Arena arena)
   /* Poll actions to see if any new action is to be taken. */
   ActionPoll(arena);
 
-  /* Poll active traces to make progress. */
-  for(ti = 0; ti < TRACE_MAX; ++ti)
-    if(TraceSetIsMember(arena->busyTraces, ti)) {
-      /* design.mps.arena.trace */
-      Trace trace = ArenaTrace(arena, ti);
-
-      res = TracePoll(trace);
-      AVER(res == ResOK); /* @@@@ */
-
-      /* @@@@ Pick up results and use for prediction. */
-      if(trace->state == TraceFINISHED)
-        TraceDestroy(trace);
-    }
+  ArenaPollTraces(arena);
 
   /* Work out when to come back and poll again. */
   /* See design.mps.arena.poll.inc */
