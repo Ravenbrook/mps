@@ -1,7 +1,7 @@
 /* impl.c.poolmv2: NEW MANUAL VARIABLE POOL
  *
- * $HopeName: MMsrc!poolmv2.c(MMdevel_gavinm_splay.1) $
- * Copyright (C) 1998 The Harlequin Group Limited.  All rights reserved.
+ * $HopeName: MMsrc!poolmv2.c(MMdevel_gavinm_splay.2) $
+ * Copyright (C) 1998 Harlequin Group plc. All rights reserved.
  *
  * .purpose: The implementation of the new manual-variable pool class
  *
@@ -11,22 +11,37 @@
  */
 
 #include "mpm.h"
-#include "poolmv2.h"
-#include "mpscmv2.h"
+/* Missing */
+typedef struct CBSBlockStruct *CBSBlock;
+extern Bool CBSCheck(CBS);
+extern Bool CBSBlockCheck(CBSBlock);
+extern Size CBSBlockSize(CBSBlock);
+extern Addr CBSBlockBase(CBSBlock);
+extern Addr CBSBlockLimit(CBSBlock);
 
-#include "cbs.h"
+/* For #include "poolmv2.h" */
 
-SRCID(poolmv2, "$HopeName: MMsrc!poolmv2.c(MMdevel_gavinm_splay.1) $");
+/* For #include "mpscmv2.h" */
+
+SRCID(poolmv2, "$HopeName: MMsrc!poolmv2.c(MMdevel_gavinm_splay.2) $");
 
 /* Signatures */
 #define MV2Sig ((Sig)0x5193F299) /* SIGnature MV2 */
 
 /* Prototypes */
 typedef struct MV2Struct *MV2;
-static Bool MV2Check(MV2)
-static Bool ABQCheck(ABQ)
+typedef struct ABQStruct *ABQ;
+static Bool MV2Check(MV2);
+static Bool ABQCheck(ABQ);
 
 /* Structures */
+
+typedef struct ABQStruct
+{
+  Count count;
+  int head, tail;
+  CBSBlock *queue;
+}ABQStruct;
 
 typedef struct MV2Struct 
 {
@@ -37,31 +52,56 @@ typedef struct MV2Struct
   Size reuseSize;               /* Size at which blocks are recycled */
   Bool abqOverflow;             /* ABQ dropped some candidates */
   Bool contingency;             /* High fragmentation mode */
+  /* A free > maxSize will be handeled exceptionally */
+  Size maxSize;
+  /* A splinter >= minSize returned from a buffer will be used ASAP */
+  Size minSize;
+  Seg splinterSeg;              /* Saved splinter seg */
+  Addr splinterBase;            /* Saved splinter base */
+  Size splinterSize;            /* Saved splinter size */
   Sig sig;
 }MV2Struct;
 
+/* Macros */
+#define PoolPoolMV2(pool) PARENT(MV2Struct, poolStruct, (pool))
+#define MV2Pool(mv2) (&(mv2)->poolStruct)
+#define MV2ABQ(mv2) (&(mv2)->abqStruct)
+#define CBSMV2(cbs) PARENT(MV2Struct, cbsStruct, (cbs))
+#define MV2CBS(mv2) (&(mv2)->cbsStruct)
+#define MV2segPref(mv2) (&(mv2)->segPrefStruct)
+
+/* Like AVER, but side-effect never optimized away */
+#define ENSURE(cond) ASSERT(cond, #cond)
+
+/* Methods */
 static Bool MV2Check(MV2 mv2)
 {
   UNUSED(mv2);
   CHECKS(MV2, mv2);
   CHECKD(Pool, &mv2->poolStruct);
   CHECKL(mv2->poolStruct.class == &PoolClassMV2Struct);
-  CHECKD(CBS, &mv2->cbsStruct);
-  CHECKD(ABQ, &mv2->abqStruct);
+  /* --- how to check these??? */
+  /* CHECKD(CBS, &mv2->cbsStruct); */
+  AVERT(CBS, &mv2->cbsStruct);
+  /* CHECKD(ABQ, &mv2->abqStruct); */
+  AVERT(ABQ, &mv2->abqStruct);
   CHECKD(SegPref, &mv2->segPrefStruct);
   CHECKL(mv2->reuseSize > 0);
   CHECKL(mv2->abqOverflow == FALSE || mv2->abqOverflow == TRUE);
   CHECKL(mv2->contingency == FALSE || mv2->contingency == TRUE);
+  CHECKL(mv2->maxSize >= mv2->reuseSize);
+  CHECKL(mv2->minSize <= mv2->reuseSize);
+  if (mv2->splinterSize != 0) {
+    CHECKL(mv2->splinterSize > mv2->minSize);
+    /* --- How to check Seg ??? */
+    /* CHECKT(Seg, mv2->splinterSeg); */
+    AVERT(Seg, mv2->splinterSeg);
+    CHECKL(mv2->splinterBase >= SegBase(mv2->splinterSeg));
+    CHECKL(AddrAdd(mv2->splinterBase, mv2->splinterSize) <= SegLimit(mv2->splinterSeg));
+  }
 
   return TRUE;
 }
-
-typedef struct ABQStruct
-{
-  Count count;
-  int head, tail;
-  Addr *queue;
-}ABQStruct;
 
 static Bool ABQCheck(ABQ abq)
 {
@@ -77,18 +117,9 @@ static Bool ABQCheck(ABQ abq)
   return TRUE;
 }
 
-/* Macros */
-#define PoolPoolMV2(pool) PARENT(MV2Struct, poolStruct, (pool))
-#define MV2Pool(mv2) (&(mv2)->poolStruct)
-#define MV2ABQ(mv2) (&(mv2)->abqStruct)
-#define CBSMV2(cbs) PARENT(cbsStruct, MV2Struct, (cbs))
-#define MV2CBS(mv2) (&(mv2)->cbsStruct)
-#define MV2segPref(mv2) (&(mv2)->segPrefStruct)
-
-/* Methods */
 static Size ABQqueueSize(Count count)
 {
-  return (Size)(sizeof((MV2Struct)0.queue[0]) * count);
+  return (Size)(sizeof(((ABQ)NULL)->queue[0]) * count);
 }
 
 
@@ -109,7 +140,7 @@ static Res ABQInit(Arena arena, ABQ abq, Count count)
   abq->count = count;
   abq->head = 0;
   abq->tail = 0;
-  abq->queue = (Addr *)p;
+  abq->queue = (CBSBlock *)p;
 
   AVERT(ABQ, abq);
   return ResOK;
@@ -121,7 +152,7 @@ static void ABQFinish(Arena arena, ABQ abq)
   AVERT(Arena, arena);
   AVERT(ABQ, abq);
   /* must be empty */
-  AVERT(abq->head == abq->tail);
+  AVER(abq->head == abq->tail);
 
   ArenaFree(arena, abq->queue, ABQqueueSize(abq->count));
   
@@ -138,11 +169,11 @@ static Bool ABQEmpty(ABQ abq)
 
 
 /* ABQPop -- pop a block from the head of the ABQ */
-static Res ABQPop(ABQ abq, Addr *addrReturn)
+static Res ABQPop(ABQ abq, CBSBlock *blockReturn)
 {
   int index;
   
-  AVER(addrReturn != NULL);
+  AVER(blockReturn != NULL);
   AVERT(ABQ, abq);
 
   index = abq->head;
@@ -153,17 +184,17 @@ static Res ABQPop(ABQ abq, Addr *addrReturn)
     index = 0;
   abq->head = index;
 
-  *addrReturn = abq->queue[index];
+  *blockReturn = abq->queue[index];
   AVERT(ABQ, abq);
   return ResOK;
 }
 
 /* ABQPeek -- peek at the head of the ABQ */
-static Res ABQPop(ABQ abq, Addr *addrReturn)
+static Res ABQPeek(ABQ abq, CBSBlock *blockReturn)
 {
   int index;
   
-  AVER(addrReturn != NULL);
+  AVER(blockReturn != NULL);
   AVERT(ABQ, abq);
 
   index = abq->head;
@@ -174,13 +205,13 @@ static Res ABQPop(ABQ abq, Addr *addrReturn)
     index = 0;
   /* Identical to pop, but don't write index back into head */
 
-  *addrReturn = abq->queue[index];
+  *blockReturn = abq->queue[index];
   AVERT(ABQ, abq);
   return ResOK;
 }
 
 /* ABQPush -- push a block onto the tail of the ABQ */
-static Res ABQPush(ABQ abq, Addr addr)
+static Res ABQPush(ABQ abq, CBSBlock block)
 {
   int index;
 
@@ -194,16 +225,16 @@ static Res ABQPush(ABQ abq, Addr addr)
     return ResFAIL;
   abq->tail = index;
 
-  abq->queue[index] = addr;
+  abq->queue[index] = block;
   AVERT(ABQ, abq);
   return ResOK;
 }
 
 /* ABQDelete -- delete a block from the ABQ */
-static Res ABQDelete(ABQ abq, Addr addr)
+static Res ABQDelete(ABQ abq, CBSBlock block)
 {
   int index, last, count, done;
-  Addr *queue;
+  CBSBlock *queue;
   Bool found = FALSE;
 
   AVERT(ABQ, abq);
@@ -218,7 +249,7 @@ static Res ABQDelete(ABQ abq, Addr addr)
     if (++index >= count)
       index = 0;
     
-    if (queue[index] == addr) {
+    if (queue[index] == block) {
       found = TRUE;
       break;
     }
@@ -243,44 +274,76 @@ static Res ABQDelete(ABQ abq, Addr addr)
   return ResFAIL;
 }
 
-static void noteNew(CBS cbs, CBSBlock block) 
+/*
+ * NoteNew -- Callback invoked when a block on the CBS >= reuseSize
+ */
+static void NoteNew(CBS cbs, CBSBlock block) 
 {
   Res res;
+  MV2 mv2;
   
   AVERT(CBS, cbs);
-  AVERT(MV2, CBSMV2(cbs));
+  mv2 = CBSMV2(cbs);
+  AVERT(MV2, mv2);
   AVERT(CBSBlock, block);
-  AVER(CBSBlockSize(block) >= CBSMV2(cbs)->reuseSize);
+  AVER(CBSBlockSize(block) >= mv2->reuseSize);
   
-  res = ABQPush(MV2ABQ(CBSMV2(cbs)), block);
+  res = ABQPush(MV2ABQ(mv2), block);
   if (res != ResOK) {
-    /* +++ return segment policy */
-    CBSMV2(cbs)->abqOverflow = TRUE;
+    /* See .impl.c.poolmv2.free.merge: */
+    CBSBlock block;
+    Addr base, limit;
+    
+    ENSURE(ABQPeek(MV2ABQ(mv2), &block) == ResOK);
+    base = CBSBlockBase(block);
+    limit = CBSBlockLimit(block);
+
+    while (base < limit) {
+      Seg seg;
+      Addr segBase, segLimit;
+      
+      ENSURE(SegOfAddr(&seg, PoolArena(MV2Pool(mv2)), base));
+      segBase = SegBase(seg);
+      segLimit = SegLimit(seg);
+      if (base <= segBase && limit >= segLimit) {
+        ENSURE(CBSDelete(MV2CBS(mv2), segBase, segLimit) == ResOK);
+        SegFree(seg);
+      }
+      base = segLimit;
+    }
+
+    res = ABQPush(MV2ABQ(CBSMV2(cbs)), block);
+    if (res != ResOK) {
+      CBSMV2(cbs)->abqOverflow = TRUE;
+    }
   }
 }
 
-static void noteDelete(CBS cbs, CBSBlock block)
+/*
+ * NoteDelete -- Callback invoked when a block on the CBS <= reuseSize
+ */
+static void NoteDelete(CBS cbs, CBSBlock block)
 {
-  Res res;
-  
   AVERT(CBS, cbs);
   AVERT(MV2, CBSMV2(cbs));
   AVERT(CBSBlock, block);
   AVER(CBSBlockSize(block) < CBSMV2(cbs)->reuseSize);
 
-  res = ABQDelete(MV2ABQ(CBSMV2(cbs)), base);
-  if (res == ResOK) {
-    return;
-  }
-  NOTREACHED;
+  ENSURE(ABQDelete(MV2ABQ(CBSMV2(cbs)), block) == ResOK);
 }
   
+/*
+ * MV2Init -- Initialize an MV2 pool
+ *
+ * Parameters are:
+ * minSize, medianSize, maxSize, reserveDepth
+ */
 static Res MV2Init(Pool pool, va_list arg)
 {
   /* --- ABQ decay rate */
   Arena arena;
-  Size reuseSize;
-  Count abqCount;
+  Size minSize, medianSize, maxSize, reuseSize;
+  Count reserveDepth, abqDepth;
   MV2 mv2;
   Res res;
   void* p;
@@ -290,29 +353,45 @@ static Res MV2Init(Pool pool, va_list arg)
   arena = PoolArena(pool);
   AVERT(Arena, arena);
   
-  reuseSize = va_arg(arg, Size);
-  AVER(resuseSize > 0);
-  abqCount = va_arg(arg, Count);
-  AVER(abqCount > 0);
+  /* --- These should be ARGAVER's or something */
+  minSize = va_arg(arg, Size);
+  AVER(minSize > 0);
+  medianSize = va_arg(arg, Size);
+  AVER(medianSize >= minSize);
+  maxSize = va_arg(arg, Size);
+  AVER(maxSize >= medianSize);
+  reserveDepth = va_arg(arg, Count);
+  AVER(reserveDepth > 0);
 
-  res = CBSInit(arena, MV2CBS(mv2), noteNew, noteDelete, reuseSize);
-  if (res != ResOk)
+  reuseSize = SizeAlignUp(maxSize, ArenaAlign(arena));
+  abqDepth = (reserveDepth * medianSize + reuseSize - 1) / reuseSize;
+
+  res = CBSInit(arena, MV2CBS(mv2), NoteNew, NoteDelete, reuseSize);
+  if (res != ResOK)
     goto failCBS;
   
   res = ABQInit(arena, MV2ABQ(mv2), abqCount);
-  if (res != ResOk)
+  if (res != ResOK)
     goto failABQ;
 
-  /* --- Loci needed here, what should the pref be? */
-  /* --- why non SegPrefDefault(MV2segPref)? */
-  *MV2segPref(mv2) = *SegPrefDefault();
-  /* +++ At least get me my own RefSet */
-  refset = RefSetComp(ARENA_DEFAULT_REFSET);
-  SegPrefExpress(MV2segPref(mv2), SegPrefRefSet, (void *)&refset);
+  {
+    RefSet refset;
+    /* --- Loci needed here, what should the pref be? */
+    /* --- why non SegPrefDefault(MV2segPref)? */
+    *MV2segPref(mv2) = *SegPrefDefault();
+    /* +++ At least get me my own RefSet */
+    refset = RefSetComp(ARENA_DEFAULT_REFSET);
+    SegPrefExpress(MV2segPref(mv2), SegPrefRefSet, (void *)&refset);
+  }
 
-  mv2->reuseSize = SizeAlignUp(reuseSize, ArenaAlign(arena));
+  mv2->reuseSize = reuseSize;
   mv2->abqOverflow = FALSE;
   mv2->contingency = FALSE;
+  mv2->maxSize = maxSize;
+  mv2->minSize = minSize;
+  mv2->splinterBase = (Addr)0;
+  mv2->splinterSeg = NULL;
+  mv2->splinterSize = 0;
 
   mv2->sig = MV2Sig;
 
@@ -349,13 +428,13 @@ static void MV2Finish(Pool pool)
 }
 
 
-static void EnsureABQ(mv2) 
+static void EnsureABQ(MV2 mv2) 
 {
   AVERT(MV2, mv2);
 
   if (mv2->abqOverflow && ABQEmpty(MV2ABQ(mv2))) {
     mv2->abqOverflow = FALSE;
-    CBSSetMinSize(MV2CBS(mv2), reuseSize);
+    CBSSetMinSize(MV2CBS(mv2), mv2->reuseSize);
   }
 }
 
@@ -398,21 +477,28 @@ static Res MV2BufferFill(Seg *segReturn,
     goto direct;
   }
 
+  /* Use any splinter if available */
+  if (mv2->splinterSize > minSize) {
+    seg = mv2->splinterSeg;
+    base = mv2->splinterBase;
+    limit = AddrAdd(base, mv2->splinterSize);
+    mv2->splinterSize = 0;
+    
+    goto done;
+  }
+  
   /* Attempt to retrieve a free block from the ABQ */
   EnsureABQ(mv2);
   res = ABQPeek(MV2ABQ(mv2), &block);
   if (res == ResOK) {
     base = CBSBlockBase(block);
     limit = CBSBlockLimit(block);
-    seg = segOfAddr(base);
-    /* Only use whole block if it would leave a splinter smaller than reuse size*/
+    ENSURE(SegOfAddr(&seg, arena, base));
+    /* Use the whole block if the remnant would not stay in the ABQ */
     if (AddrOffset(base, limit) - idealSize > reuseSize) {
       limit = AddrAdd(base, idealSize);
     }
-    res = CBSDelete(MV2CBS(mv2), base, limit);
-    if (res == ResOK)
-      goto done;
-    NOTREACHED;
+    ENSURE(CBSDelete(MV2CBS(mv2), base, limit) == ResOK);
   }
   
 retry:
@@ -485,11 +571,46 @@ static void MV2BufferEmpty(Pool pool, Buffer buffer)
   if (size == 0)
     return;
   
-  res = CBSInsert(MV2CBS(mv2), base, limit);
-  if (res == ResOK) {
-    /* +++ put splinter > minSize at head of ABQ */
-    return;
+  /* put splinter > minSize at (effective) head of ABQ */
+  if (size >= mv2->minSize) {
+    Size splinterSize = mv2->splinterSize;
+    
+    /* discard any previous splinter */
+    if (splinterSize != 0) {
+      ENSURE(CBSInsert(MV2CBS(mv2), mv2->splinterBase, AddrAdd(mv2->splinterBase, splinterSize))
+             == ResOK);
+    }
+    mv2->splinterSeg = seg;
+    mv2->splinterBase = base;
+    mv2->splinterSize = size;
   }
+  else {
+    ENSURE(CBSInsert(MV2CBS(mv2), base, limit) == ResOK);
+  }
+}
+
+/* MV2Free -- free a block
+ *
+ * see design.poolmv2.impl.c.poolmv2.free
+ */
+
+static void MV2Free(Pool pool, Addr base, Size size)
+{
+  MV2 mv2;
+  Addr limit;
+
+  AVERT(Pool, pool);
+  mv2 = PoolPoolMV2(pool);
+  AVERT(MV2, mv2);
+
+  AVER(base != (Addr)0);
+  AVER(size > 0);
+
+  /* We know the buffer observes pool->alignement  */
+  size = SizeAlignUp(size, pool->alignment);
+  limit = AddrAdd(base, size);
   
-  NOTREACHED;
+  /* --- return exceptional blocks directly to arena ??? */
+  
+  ENSURE(CBSInsert(MV2CBS(mv2), base, limit) != ResOK);
 }
