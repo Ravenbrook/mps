@@ -1,7 +1,8 @@
 # impl.gmk.comm: COMMON GNUMAKEFILE FRAGMENT
 #
-# $HopeName: MMsrc!comm.gmk(MMdevel_gavinm_splay.1) $
-# Copyright (C) 1995,1996,1997, 1998 Harlequin Group, all rights reserved
+# $HopeName: MMsrc!comm.gmk(MMdevel_gavinm_splay.2) $
+# Copyright (C) 1995, 1996, 1997, 1998 Harlequin Group plc.  All
+# rights reserved
 #
 # DESCRIPTION
 #
@@ -162,6 +163,7 @@ AMS = poolams.c
 AWL = poolawl.c
 LO = poollo.c
 POOLN = pooln.c
+POOLMV2 = poolmv2.c abq.c meter.c
 ARENAAN = arenaan.c
 TESTLIB = testlib.c
 FMTDY = fmtdy.c fmtdytst.c
@@ -190,6 +192,8 @@ LOOBJ = $(LO:%.c=$(PFM)/$(VARIETY)/%.o)
 LODEP = $(LO:%.c=$(PFM)/$(VARIETY)/%.d)
 POOLNOBJ = $(POOLN:%.c=$(PFM)/$(VARIETY)/%.o)
 POOLNDEP = $(POOLN:%.c=$(PFM)/$(VARIETY)/%.d)
+POOLMV2OBJ = $(POOLMV2:%.c=$(PFM)/$(VARIETY)/%.o)
+POOLMV2DEP = $(POOLMV2:%.c=$(PFM)/$(VARIETY)/%.d)
 ARENAANOBJ = $(ARENAAN:%.c=$(PFM)/$(VARIETY)/%.o)
 ARENAANDEP = $(ARENAAN:%.c=$(PFM)/$(VARIETY)/%.d)
 SWOBJ = $(SW:%.c=$(PFM)/$(VARIETY)/%.o)
@@ -223,7 +227,8 @@ endif
 # just a convenient set of targets to build.
 
 all: mpmss amcss amsss awlut mpsicv lockcov poolncv mps.a \
-     lo.a locv qs finalcv arenacv bttest teletest cbstest
+     lo.a locv qs finalcv arenacv bttest teletest cbstest \
+     mv2test
 
 # These convenience targets allow one to type "make foo" to build target
 # foo in all varieties.
@@ -232,7 +237,7 @@ all: mpmss amcss amsss awlut mpsicv lockcov poolncv mps.a \
 
 mpmss amcss amsss awlut mpsicv lockcov poolncv \
   locv qs finalcv arenacv bttest teletest cbstest epvmss \
-  mps.a lo.a awl.a mmsw.a: phony
+  mv2test mps.a lo.a awl.a mmsw.a: phony
 ifdef VARIETY
 	$(MAKE) -f $(PFM).gmk TARGET=$@ variety
 else
@@ -298,6 +303,9 @@ $(PFM)/$(VARIETY)/teletest: $(PFM)/$(VARIETY)/teletest.o \
 
 $(PFM)/$(VARIETY)/cbstest: $(PFM)/$(VARIETY)/cbstest.o \
 	$(MPMOBJ) $(ARENAANOBJ) $(TESTLIBOBJ)
+
+$(PFM)/$(VARIETY)/mv2test: $(PFM)/$(VARIETY)/mv2test.o \
+	$(MPMOBJ) $(POOLMV2OBJ) $(ARENAANOBJ) $(TESTLIBOBJ)
 
 $(PFM)/$(VARIETY)/lockcov: $(PFM)/$(VARIETY)/lockcov.o \
 	$(MPMOBJ)
@@ -382,7 +390,7 @@ ifdef VARIETY
 ifdef TARGET
 # %%PART: Add the dependency file macro for the new part here.
 include $(MPMDEP) $(AMSDEP) $(AMCDEP) $(LODEP) $(SWDEP) $(ARENAANDEP) \
-  $(AWLDEP) $(POOLNDEP) $(TESTLIBDEP) $(FMTDYDEP) $(FMTPSDEP) \
+  $(AWLDEP) $(POOLNDEP) $(POOLMV2DEP) $(TESTLIBDEP) $(FMTDYDEP) $(FMTPSDEP) \
   $(PLINTHDEP) $(EVENTDEP)
 endif
 endif
