@@ -64,7 +64,7 @@ libsc.a: $(SCL_OBJS)
 sc.dylib: $(SC_OBJS)
 	libtool -dynamic -lcc_dynamic -framework System -o $@ $^
 
-$(SC_OBJS): sc.h
+$(SC_OBJS) scinitstub.o scinit.o main.o: sc.h
 
 .PHONY: clean
 clean:

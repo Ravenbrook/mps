@@ -69,7 +69,7 @@
 #define TEMPS		((size_t)3)		/* number of temporary registers */
 #define HEAP		((size_t)1uL<<24)	/* initial heap size */
 #define SYMTAB		128			/* initial symbol table size */
-#define ALIGN		4			/* minimum alignment for objects */
+#define ALIGN		8			/* minimum alignment for objects */
 #define LJ_ERROR	1			/* longjump code for thrown error */
 #define LJ_RETURN	2			/* longjump code for return */
 #define LJ_FATAL	3			/* longjump code for uncaught error */
@@ -299,6 +299,8 @@ typedef struct state_s {
   /* MPS integration */
   mps_arena_t arena;
   mps_pool_t state_pool, obj_pool;
+  mps_ap_t obj_ap;
+  obj_t baby;
 
   /* Procedures
    *
@@ -572,37 +574,26 @@ extern int allocating;
 
 #define MAKE_PAIR(var, pair_car, pair_cdr) \
   BEGIN_MAKE \
-    obj_t _baby; \
-    MAKE_OBJ(_baby, TYPE_PAIR, sizeof(pair_s)); \
-    _baby->pair.car = (pair_car); \
-    _baby->pair.cdr = (pair_cdr); \
-    (var) = _baby; \
-    COUNT(MAKE_PAIR); \
+    make_pair(state); \
+    state->baby->pair.car = (pair_car); \
+    state->baby->pair.cdr = (pair_cdr); \
+    (var) = state->baby; \
   END_MAKE
 
 #define MAKE_INTEGER(var, int_int) \
   BEGIN_MAKE \
-    obj_t _baby; \
-    MAKE_OBJ(_baby, TYPE_INTEGER, sizeof(integer_s)); \
-    _baby->integer.integer = (int_int); \
-    (var) = _baby; \
-    COUNT(MAKE_INTEGER); \
+    make_integer(state); \
+    state->baby->integer.integer = (int_int); \
+    (var) = state->baby; \
   END_MAKE
 
 #define MAKE_PROC_REGS(var, fun_name, fun_entry, len) \
   BEGIN_MAKE \
-    obj_t _baby; \
-    size_t _len = (len), _i; \
-    MAKE_OBJ(_baby, TYPE_PROC, offsetof(proc_s, locs[_len])); \
-    _baby->proc.name  = (fun_name); \
-    _baby->proc.entry = (fun_entry); \
-    _baby->proc.cont  = obj_undef; \
-    _baby->proc.read_only = 0; \
-    _baby->proc.regs  = _len; \
-    for(_i = 0; _i < _len; ++_i) \
-      _baby->proc.locs[_i] = obj_undef; \
-    (var) = _baby; \
-    COUNT(MAKE_PROC); \
+    make_proc_regs(state, len); \
+    state->baby->proc.name  = (fun_name); \
+    state->baby->proc.entry = (fun_entry); \
+    state->baby->proc.cont = obj_undef; /* @@@@ why? */ \
+    (var) = state->baby; \
   END_MAKE
 
 #define MAKE_PROC(var, fun_name, fun_entry) \
@@ -611,7 +602,7 @@ extern int allocating;
 #ifdef AGE_STATS
 #define DUP_PROC_BIRTHDAY \
   BEGIN \
-    _baby->header.birthday = state->step; \
+    state->baby->header.birthday = state->step; \
   END
 #else
 #define DUP_PROC_BIRTHDAY       NOOP
@@ -621,14 +612,14 @@ extern int allocating;
   BEGIN_MAKE \
     size_t _len = (len), _i, _regs = (f)->proc.regs; \
     size_t _size = offsetof(proc_s, locs[_len]); \
-    obj_t _baby = alloc(state, _size); \
+    make_proc_regs(state, _len); \
     ASSERT(_len >= _regs); \
-    memcpy(_baby, (f), _size); \
-    _baby->proc.regs = _len; \
+    memcpy(state->baby, (f), _size); \
     for(_i = _regs; _i < _len; ++_i) \
-      _baby->proc.locs[_i] = obj_undef; \
+      state->baby->proc.locs[_i] = obj_uninit; \
+    state->baby->proc.regs = _len; \
     DUP_PROC_BIRTHDAY; \
-    (var) = _baby; \
+    (var) = state->baby; \
     COUNT(DUP_PROC); \
   END_MAKE
 
@@ -638,94 +629,61 @@ extern int allocating;
 #define MAKE_VECTOR(var, len, fill) \
   BEGIN_MAKE \
     size_t _len = (len), _i; \
-    obj_t _baby; \
-    MAKE_OBJ(_baby, TYPE_VECTOR, offsetof(vector_s, elements[_len])); \
-    _baby->vector.length = _len; \
+    make_vector(state, _len); \
     for(_i = 0; _i < _len; ++_i) \
-      _baby->vector.elements[_i] = (fill); \
-    (var) = _baby; \
-    COUNT(MAKE_VECTOR); \
+      state->baby->vector.elements[_i] = (fill); \
+    (var) = state->baby; \
   END_MAKE
 
 #define MAKE_SYMBOL(var, len, str) \
   BEGIN_MAKE \
-    size_t _len = (len); \
-    obj_t _baby; \
-    MAKE_OBJ(_baby, TYPE_SYMBOL, offsetof(symbol_s, string[_len + 1])); \
-    _baby->symbol.length = _len; \
-    memcpy(_baby->symbol.string, str, _len+1); \
-    (var) = _baby; \
-    COUNT(MAKE_SYMBOL); \
+    make_symbol(state, len, str); \
+    (var) = state->baby; \
   END_MAKE
-
-#define MAKE_STRING_ALLOC(var, len) \
-  BEGIN \
-    size_t _make_string_alloc_len = (len); \
-    MAKE_OBJ(var, TYPE_STRING, \
-	     offsetof(string_s, string[_make_string_alloc_len + 1])); \
-    (var)->string.length = _make_string_alloc_len; \
-    COUNT(MAKE_STRING); \
-  END
 
 #define MAKE_STRING_UNINIT(var, len) \
   BEGIN_MAKE \
-    obj_t _baby; \
-    MAKE_STRING_ALLOC(_baby, len); \
-    (var) = _baby; \
+    make_string_uninit(state, len); \
+    (var) = state->baby; \
   END_MAKE
 
 #define MAKE_STRING(var, len, str) \
   BEGIN_MAKE \
-    size_t _make_string_len = (len); \
-    obj_t _baby; \
-    MAKE_STRING_ALLOC(_baby, _make_string_len); \
-    memcpy(_baby->string.string, str, _make_string_len+1); \
-    (var) = _baby; \
+    size_t _len = (len); \
+    make_string_uninit(state, _len); \
+    memcpy(state->baby->string.string, (str), _len + 1); \
+    (var) = state->baby; \
   END_MAKE
 
 #define MAKE_SPECIAL(var, str) \
   BEGIN_MAKE \
-    obj_t _baby; \
-    MAKE_OBJ(_baby, TYPE_SPECIAL, sizeof(special_s)); \
-    _baby->special.name = (str); \
-    (var) = _baby; \
-    COUNT(MAKE_SPECIAL); \
+    make_special(state, str); \
+    (var) = state->baby; \
   END_MAKE
 
 #define MAKE_INPORT(var, str) \
   BEGIN_MAKE \
-    obj_t _baby; \
-    MAKE_OBJ(_baby, TYPE_INPORT, sizeof(port_s)); \
-    _baby->port.stream = (str); \
-    (var) = _baby; \
-    COUNT(MAKE_INPORT); \
+    make_inport(state, str); \
+    (var) = state->baby; \
   END_MAKE
 
 #define MAKE_OUTPORT(var, str) \
   BEGIN_MAKE \
-    obj_t _baby; \
-    MAKE_OBJ(_baby, TYPE_OUTPORT, sizeof(port_s)); \
-    _baby->port.stream = (str); \
-    (var) = _baby; \
-    COUNT(MAKE_OUTPORT); \
+    make_outport(state, str); \
+    (var) = state->baby; \
   END_MAKE
 
 #define MAKE_EXCEPTION(var, obj) \
   BEGIN_MAKE \
-    obj_t _baby; \
-    MAKE_OBJ(_baby, TYPE_EXCEPTION, sizeof(exception_s)); \
-    _baby->exception.object = (obj); \
-    (var) = _baby; \
-    COUNT(MAKE_EXCEPTION); \
+    make_exception(state); \
+    state->baby->exception.object = (obj); \
+    (var) = state->baby; \
   END_MAKE
 
 #define MAKE_CHARACTER(var, ch) \
   BEGIN_MAKE \
-    obj_t _baby; \
-    MAKE_OBJ(_baby, TYPE_CHARACTER, sizeof(character_s)); \
-    _baby->character.c = (ch); \
-    (var) = _baby; \
-    COUNT(MAKE_CHARACTER); \
+    make_character(state, ch); \
+    (var) = state->baby; \
   END_MAKE
 
 
@@ -1074,7 +1032,21 @@ extern void heap_check(state_t);
 extern void gc(state_t, size_t);
 extern void stats(state_t, void *, void *);
 extern mps_pool_t create_pool(mps_arena_t);
+extern mps_root_t create_root(mps_arena_t, state_t);
+extern void make_pair(state_t);
+extern void make_integer(state_t);
+extern void make_vector(state_t, size_t);
+extern void make_symbol(state_t, size_t, char *);
+extern void make_string_uninit(state_t, size_t);
+extern void make_proc_regs(state_t, size_t);
+extern void make_special(state_t, char *);
+extern void make_inport(state_t, FILE *);
+extern void make_outport(state_t, FILE *);
+extern void make_exception(state_t);
+extern void make_character(state_t, char);
 
+/* from scrun.c */
+extern void no_entry(state_t) __attribute__((noreturn));
 
 extern void intern(state_t);
 extern void error(state_t, const char *, ...) __attribute__((noreturn, format(printf, 2, 3)));

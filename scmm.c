@@ -180,7 +180,8 @@ static int is_static(obj_t obj)
 static obj_t pointer_check(state_t state, obj_t obj)
 {
   ASSERT(is_dynamic(state, obj) || is_static(obj));
-  ASSERT(ALIGN_UP((ulong)obj) == (ulong)obj);
+  if(!is_static(obj)) /* @@@@ because we had to align too much */
+    ASSERT(ALIGN_UP((ulong)obj) == (ulong)obj);
   ASSERT(!ISNTTYPE(TYPE(obj)));
   return obj;
 }
@@ -619,3 +620,269 @@ extern mps_pool_t create_pool(mps_arena_t arena)
 
   return pool;
 }
+
+static void fail_alloc(void) __attribute__((noreturn));
+
+static void fail_alloc(void)
+{
+  (void)fprintf(stderr, "Failed to allocate!\n");
+  exit(EXIT_FAILURE);
+}
+
+extern void make_pair(state_t state)
+{
+  void *p;
+  size_t size = ALIGN_UP(sizeof(pair_s));
+  do {
+    obj_t obj;
+    mps_res_t res = mps_reserve(&p, state->obj_ap, size);
+    if(res != MPS_RES_OK) fail_alloc();
+    obj = p;
+    obj->header.type = TYPE_PAIR;
+    obj->pair.car = obj_uninit;
+    obj->pair.cdr = obj_uninit;
+    state->baby = obj;
+  } while(!mps_commit(state->obj_ap, p, size));
+  COUNT(MAKE_PAIR);
+}
+
+extern void make_integer(state_t state)
+{
+  void *p;
+  size_t size = ALIGN_UP(sizeof(integer_s));
+  do {
+    obj_t obj;
+    mps_res_t res = mps_reserve(&p, state->obj_ap, size);
+    if(res != MPS_RES_OK) fail_alloc();
+    obj = p;
+    obj->header.type = TYPE_INTEGER;
+    obj->integer.integer = 0;
+    state->baby = obj;
+  } while(!mps_commit(state->obj_ap, p, size));
+  COUNT(MAKE_INTEGER);
+}
+
+extern void make_vector(state_t state, size_t length)
+{
+  void *p;
+  size_t size = ALIGN_UP(offsetof(vector_s, elements[length]));
+  do {
+    obj_t obj;
+    size_t i;
+    mps_res_t res = mps_reserve(&p, state->obj_ap, size);
+    if(res != MPS_RES_OK) fail_alloc();
+    obj = p;
+    obj->header.type = TYPE_VECTOR;
+    obj->vector.length = length;
+    for(i = 0; i < length; ++i)
+      obj->vector.elements[i] = obj_uninit;
+    state->baby = obj;
+  } while(!mps_commit(state->obj_ap, p, size));
+  COUNT(MAKE_VECTOR);
+}
+
+extern void make_symbol(state_t state, size_t length, char *string)
+{
+  void *p;
+  size_t size = ALIGN_UP(offsetof(symbol_s, string[length + 1]));
+  do {
+    obj_t obj;
+    mps_res_t res = mps_reserve(&p, state->obj_ap, size);
+    if(res != MPS_RES_OK) fail_alloc();
+    obj = p;
+    obj->header.type = TYPE_SYMBOL;
+    obj->symbol.length = length;
+    memcpy(obj->symbol.string, string, length + 1);
+    state->baby = obj;
+  } while(!mps_commit(state->obj_ap, p, size));
+  COUNT(MAKE_SYMBOL);
+}
+
+extern void make_string_uninit(state_t state, size_t length)
+{
+  void *p;
+  size_t size = ALIGN_UP(offsetof(symbol_s, string[length + 1]));
+  do {
+    obj_t obj;
+    mps_res_t res = mps_reserve(&p, state->obj_ap, size);
+    if(res != MPS_RES_OK) fail_alloc();
+    obj = p;
+    obj->header.type = TYPE_STRING;
+    obj->string.length = length;
+    state->baby = obj;
+  } while(!mps_commit(state->obj_ap, p, size));
+  COUNT(MAKE_STRING);
+}
+
+extern void make_proc_regs(state_t state, size_t length)
+{
+  void *p;
+  size_t size = ALIGN_UP(offsetof(proc_s, locs[length]));
+  do {
+    obj_t obj;
+    size_t i;
+    mps_res_t res = mps_reserve(&p, state->obj_ap, size);
+    if(res != MPS_RES_OK) fail_alloc();
+    obj = p;
+    obj->header.type = TYPE_PROC;
+    obj->proc.name = obj_uninit;
+    obj->proc.entry = &no_entry;
+    obj->proc.cont = obj_uninit;
+    obj->proc.cont = obj_uninit;
+    obj->proc.read_only = 0;
+    obj->proc.regs = length;
+    for(i = 0; i < length; ++i)
+      obj->proc.locs[i] = obj_uninit;
+    state->baby = obj;
+  } while(!mps_commit(state->obj_ap, p, size));
+  COUNT(MAKE_PROC);
+}
+
+extern void make_special(state_t state, char *string)
+{
+  void *p;
+  size_t size = ALIGN_UP(sizeof(special_s));
+  do {
+    obj_t obj;
+    mps_res_t res = mps_reserve(&p, state->obj_ap, size);
+    if(res != MPS_RES_OK) fail_alloc();
+    obj = p;
+    obj->header.type = TYPE_SPECIAL;
+    obj->special.name = string;
+    state->baby = obj;
+  } while(!mps_commit(state->obj_ap, p, size));
+  COUNT(MAKE_SPECIAL);
+}
+
+extern void make_inport(state_t state, FILE *stream)
+{
+  void *p;
+  size_t size = ALIGN_UP(sizeof(port_s));
+  do {
+    obj_t obj;
+    mps_res_t res = mps_reserve(&p, state->obj_ap, size);
+    if(res != MPS_RES_OK) fail_alloc();
+    obj = p;
+    obj->header.type = TYPE_INPORT;
+    obj->port.stream = stream;
+    state->baby = obj;
+  } while(!mps_commit(state->obj_ap, p, size));
+  COUNT(MAKE_INPORT);
+}
+
+extern void make_outport(state_t state, FILE *stream)
+{
+  void *p;
+  size_t size = ALIGN_UP(sizeof(port_s));
+  do {
+    obj_t obj;
+    mps_res_t res = mps_reserve(&p, state->obj_ap, size);
+    if(res != MPS_RES_OK) fail_alloc();
+    obj = p;
+    obj->header.type = TYPE_OUTPORT;
+    obj->port.stream = stream;
+    state->baby = obj;
+  } while(!mps_commit(state->obj_ap, p, size));
+  COUNT(MAKE_OUTPORT);
+}
+
+extern void make_exception(state_t state)
+{
+  void *p;
+  size_t size = ALIGN_UP(sizeof(exception_s));
+  do {
+    obj_t obj;
+    mps_res_t res = mps_reserve(&p, state->obj_ap, size);
+    if(res != MPS_RES_OK) fail_alloc();
+    obj = p;
+    obj->header.type = TYPE_EXCEPTION;
+    obj->exception.object = obj_uninit;
+    state->baby = obj;
+  } while(!mps_commit(state->obj_ap, p, size));
+  COUNT(MAKE_EXCEPTION);
+}
+
+extern void make_character(state_t state, char c)
+{
+  void *p;
+  size_t size = ALIGN_UP(sizeof(special_s));
+  do {
+    obj_t obj;
+    mps_res_t res = mps_reserve(&p, state->obj_ap, size);
+    if(res != MPS_RES_OK) fail_alloc();
+    obj = p;
+    obj->header.type = TYPE_CHARACTER;
+    obj->character.c = c;
+    state->baby = obj;
+  } while(!mps_commit(state->obj_ap, p, size));
+  COUNT(MAKE_CHARACTER);
+}
+
+static mps_res_t my_state_scan(mps_ss_t ss, void *p, size_t size)
+{
+  state_t state;
+  size_t i;
+  mps_res_t res;
+
+  ASSERT(size == sizeof(state_s));
+
+  state = p;
+
+  MPS_SCAN_BEGIN(ss) {
+  
+    for(i = 0; i < ARRAYLEN(state->procs); ++i) {
+      res = MPS_FIX12(ss, (mps_addr_t *)&state->procs[i]);
+      if(res != MPS_RES_OK) goto fail_fix;
+    }
+  
+    res = MPS_FIX12(ss, (mps_addr_t *)&state->here);
+    if(res != MPS_RES_OK) goto fail_fix;
+    res = MPS_FIX12(ss, (mps_addr_t *)&state->cont);
+    if(res != MPS_RES_OK) goto fail_fix;
+    res = MPS_FIX12(ss, (mps_addr_t *)&state->argl);
+    if(res != MPS_RES_OK) goto fail_fix;
+  
+    for(i = 0; i < TEMPS; ++i) {
+      res = MPS_FIX12(ss, (mps_addr_t *)&state->temp[i]);
+      if(res != MPS_RES_OK) goto fail_fix;
+    }
+  
+    res = MPS_FIX12(ss, (mps_addr_t *)&state->errproc);
+    if(res != MPS_RES_OK) goto fail_fix;
+  
+    res = MPS_FIX12(ss, (mps_addr_t *)&state->inport);
+    if(res != MPS_RES_OK) goto fail_fix;
+    res = MPS_FIX12(ss, (mps_addr_t *)&state->outport);
+    if(res != MPS_RES_OK) goto fail_fix;
+    res = MPS_FIX12(ss, (mps_addr_t *)&state->errport);
+    if(res != MPS_RES_OK) goto fail_fix;
+  
+    res = MPS_FIX12(ss, (mps_addr_t *)&state->obj_symtab);
+    if(res != MPS_RES_OK) goto fail_fix;
+  
+    res = MPS_FIX12(ss, (mps_addr_t *)&state->units);
+    if(res != MPS_RES_OK) goto fail_fix;
+
+  } MPS_SCAN_END(ss);
+
+  return MPS_RES_OK;
+
+fail_fix:
+  return res;
+}
+
+extern mps_root_t create_root(mps_arena_t arena, state_t state)
+{
+  mps_res_t res;
+  mps_root_t root;
+
+  /* @@@@ Anything other than (mps_rm_t)0 asserts out! */
+  res = mps_root_create(&root, arena,
+                        MPS_RANK_EXACT, (mps_rm_t)0,
+                        my_state_scan, &state, sizeof(state));
+  if(res != MPS_RES_OK)
+    return NULL;
+
+  return root;
+}
+

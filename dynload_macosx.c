@@ -70,7 +70,7 @@ static void load_compiled_unit_entry(state_t state)
   /* See "opcodes.h" macro "UNIT_BEGIN". */
   /* @@@@ Should perhaps have a scheme for translating funny characters in */
   /* the symbol. */
-  MAKE_STRING_ALLOC(T1, sizeof "_sc_unit_" - 1 + SYMLEN(A0));
+  MAKE_STRING_UNINIT(T1, sizeof "_sc_unit_" - 1 + SYMLEN(A0));
   strcpy(STR(T1), "_sc_unit_");
   strncat(STR(T1), SYMSTR(A0), SYMLEN(A0));
 

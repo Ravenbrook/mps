@@ -621,7 +621,7 @@ static state_t state_create(void)
   obj_pool = create_pool(arena);
   if(obj_pool == NULL)
     goto fail_pool;
-
+  
   /* What do these parameters mean? */
   res = mps_pool_create(&state_pool, arena, mps_class_mv(),
                         sizeof(state_s), sizeof(state_s), sizeof(state_s));
@@ -640,6 +640,10 @@ static state_t state_create(void)
   state->arena = arena;
   state->state_pool = state_pool;
   state->obj_pool = obj_pool;
+
+  res = mps_ap_create(&state->obj_ap, obj_pool, MPS_RANK_EXACT);
+  if(res != MPS_RES_OK)
+    goto fail_ap;
 
   state->trace = 0;		/* don't trace by default */
   state->heap_checking = 0;	/* don't heap check by default */
@@ -675,10 +679,18 @@ static state_t state_create(void)
 
   /* The roots should all now be initialized. */
   state->inited = 1;
+
+  if(create_root(arena, state) == NULL)
+    goto fail_root;
+
   heap_check(state);
 
   return state;
 
+fail_root:
+  mps_ap_destroy(state->obj_ap);
+fail_ap:
+  mps_free(state_pool, state_pool, HEAP);
 fail_heap:
   mps_free(state_pool, state, sizeof(state_s)); /* @@@@ won't pool_destroy do this? */
 fail_state:

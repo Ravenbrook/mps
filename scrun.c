@@ -14,9 +14,7 @@
 
 /* no_entry -- unreachable entry point for dummy functions */
 
-static void no_entry(state_t) __attribute__((noreturn));
-
-static void no_entry(state_t state)
+extern void no_entry(state_t state)
 {
   UNUSED(state);
   ASSERT(0);			/* not reached */
