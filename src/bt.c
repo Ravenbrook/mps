@@ -1,6 +1,6 @@
 /* impl.c.bt: BIT TABLES
  *
- * $HopeName: MMsrc!bt.c(trunk.8) $
+ * $HopeName: !bt.c(trunk.9) $
  * Copyright (C) 1997 Harlequin Group, all rights reserved
  *
  * READERSHIP
@@ -19,7 +19,7 @@
 
 #include "mpm.h"
 
-SRCID(bt, "$HopeName: MMsrc!bt.c(trunk.8) $");
+SRCID(bt, "$HopeName: !bt.c(trunk.9) $");
 
 
 /* AMSBTCreate -- allocate a BT from the control pool
