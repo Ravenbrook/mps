@@ -1,6 +1,6 @@
 /* impl.h.mpm: MEMORY POOL MANAGER DEFINITIONS
  *
- * $HopeName: !mpm.h(trunk.9) $
+ * $HopeName: MMsrc!mpm.h(MMdevel_event.1) $
  * Copyright (C) 1996 Harlequin Group, all rights reserved.
  */
 
@@ -32,6 +32,17 @@
 #define AVER(cond)              NOCHECK(cond)
 #define AVERT(type, val)        NOCHECK(type ## Check(val))
 #endif
+
+
+/* EVENT -- event annotation and logging */
+
+extern Res EventPointCreate(EventPoint *pointReturn);
+extern void EventPointDestroy(EventPoint point);
+extern Res EventEnter(EventPoint point, EventType type, Size length, ...);
+#define EVENT0(space, type)		EventEnter(space->eventPoint, Event ## type, 0)
+#define EVENT1(space, type, p0)		EventEnter(space->eventPoint, Event ## type, 1, p0)
+#define EVENT2(space, type, p0, p1)	EventEnter(space->eventPoint, Event ## type, 2, p0, p1)
+#define EVENT3(space, type, p0, p1, p2)	EventEnter(space->eventPoint, Event ## type, 3, p0, p1, p2)
 
 
 /* MPMCheck -- check MPM assumptions */

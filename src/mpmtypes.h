@@ -1,6 +1,6 @@
 /* impl.h.mpmtypes: MEMORY POOL MANAGER TYPES
  *
- * $HopeName: !mpmtypes.h(trunk.5) $
+ * $HopeName: MMsrc!mpmtypes.h(MMdevel_event.1) $
  * Copyright (C) 1996 Harlequin Group, all rights reserved.
  *
  * .rationale: Types and type constants are almost all defined
@@ -87,6 +87,8 @@ typedef struct ArenaStruct *Arena;      /* impl.c.arena* */
 typedef struct VMStruct *VM;            /* impl.c.vm* */
 typedef struct RootStruct *Root;        /* impl.c.root */
 typedef struct ThreadStruct *Thread;    /* impl.c.th* */
+typedef struct EventPointStruct *EventPoint; /* impl.c.event */
+typedef unsigned EventType;		/* impl.c.event */
 
 
 /* Pool*Method -- Pool Class Interface types
@@ -185,6 +187,19 @@ enum {                          /* root variants, see impl.h.mpmst.root */
   RootTABLE,                    /* table */
   RootREG,                      /* register */
   RootFMT                       /* formatted */
+};
+
+
+/* @@@@ These codes are pure names, but we may want to use impure names. */
+/* i.e. we may want to encode information in them.  Don't treat them as final. */
+
+enum {
+  EventSPACE_CREATE	= 0x1000,
+  EventSPACE_DESTROY	= 0x1001,
+  EventPOOL_INIT	= 0x2000,
+  EventPOOL_FINISH	= 0x2001,
+  EventPOOL_ALLOC	= 0x2010,
+  EventPOOL_FREE	= 0x2011
 };
 
 #endif /* mpmtypes_h */
