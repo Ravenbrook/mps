@@ -1,6 +1,6 @@
 /* impl.c.seg: SEGMENTS
  *
- * $HopeName: MMsrc!seg.c(MMdevel_tony_sunset.4) $
+ * $HopeName: MMsrc!seg.c(MMdevel_tony_sunset.5) $
  * Copyright (C) 1998 Harlequin Group plc.  All rights reserved.
  *
  * .design: The design for this module is design.mps.seg.
@@ -28,7 +28,7 @@
 
 #include "mpm.h"
 
-SRCID(seg, "$HopeName: MMsrc!seg.c(MMdevel_tony_sunset.4) $");
+SRCID(seg, "$HopeName: MMsrc!seg.c(MMdevel_tony_sunset.5) $");
 
 
 /* SegSegGC -- convert generic Seg to SegGC */
@@ -169,12 +169,11 @@ void SegInit(Seg seg, Pool pool, Addr base, Size size)
   seg->sig = SegSig;  /* set sig now so tract checks will see it */
 
   TRACT_FOR(tract, addr, arena, base, limit) {
-    AVER(NULL == TractSeg(tract));
+    AVER(NULL == TractP(tract));
     AVER(!TractHasSeg(tract));
     AVER(TractPool(tract) == pool);
     AVER(TractWhite(tract) == TraceSetEMPTY);
-    tract->hasSeg = 1;
-    TractSetP(tract, seg);
+    TRACT_SET_SEG(tract, seg);
     if (addr == base) {
       AVER(seg->firstTract == NULL);
       seg->firstTract = tract;
@@ -219,9 +218,8 @@ void SegFinish(Seg seg)
   base = SegBase(seg);
   limit = SegLimit(seg);
   TRACT_TRACT_FOR(tract, addr, arena, seg->firstTract, limit) {
-    tract->white = TraceSetEMPTY;
-    tract->hasSeg = 0;
-    TractSetP(tract, NULL);
+    TractSetWhite(tract, TraceSetEMPTY);
+    TRACT_UNSET_SEG(tract);
   }
   AVER(addr == seg->limit);
 
@@ -381,7 +379,7 @@ Res SegDescribe(Seg seg, mps_lib_FILE *stream)
 
 Addr (SegBase)(Seg seg)
 {
-  AVERT(Seg, seg);
+  AVERT_CRITICAL(Seg, seg);
   return SegBase(seg);
 }
 
@@ -390,7 +388,7 @@ Addr (SegBase)(Seg seg)
 
 Addr (SegLimit)(Seg seg)
 {
-  AVERT(Seg, seg);
+  AVERT_CRITICAL(Seg, seg);
   return SegLimit(seg);
 }
 
@@ -402,23 +400,6 @@ Size SegSize(Seg seg)
   AVERT_CRITICAL(Seg, seg);
   return AddrOffset(SegBase(seg), SegLimit(seg));
 }
-
-
-/* SegOfTract -- safely return the seg of a tract, if any */
-
-static Bool SegOfTract(Seg *segReturn, Tract tract)
-{
-  AVERT_CRITICAL(Tract, tract); /* .seg.critcial */
-  AVER_CRITICAL(segReturn != NULL);  /* .seg.critcial */
-  if (TractHasSeg(tract)) {
-    Seg seg = TractSeg(tract);
-    AVERT_CRITICAL(Seg, seg);
-    *segReturn = seg;
-    return TRUE;
-  } else {
-    return FALSE;
-  }
-}
  
 
 /* SegOfAddr -- return the seg the given address is in, if any */
@@ -429,7 +410,7 @@ Bool SegOfAddr(Seg *segReturn, Arena arena, Addr addr)
   AVER_CRITICAL(segReturn != NULL);   /* .seg.critcial */
   AVERT_CRITICAL(Arena, arena);       /* .seg.critcial */
   if (TractOfAddr(&tract, arena, addr)) {
-    return SegOfTract(segReturn, tract);
+    return TRACT_SEG(segReturn, tract);
   } else {
     return FALSE;
   }
@@ -450,7 +431,7 @@ Bool SegFirst(Seg *segReturn, Arena arena)
   if (TractFirst(&tract, arena)) {
     do {
       Seg seg;
-      if (SegOfTract(&seg, tract)) {
+      if (TRACT_SEG(&seg, tract)) {
         *segReturn = seg;
         return TRUE;
       } 
@@ -479,7 +460,7 @@ Bool SegNext(Seg *segReturn, Arena arena, Addr addr)
 
   while (TractNext(&tract, arena, base)) {
     Seg seg;
-    if (SegOfTract(&seg, tract)) {
+    if (TRACT_SEG(&seg, tract)) {
       if (tract == seg->firstTract) {
         *segReturn = seg;
         return TRUE;
@@ -537,8 +518,9 @@ Bool SegCheck(Seg seg)
 
   /* Each tract of the segment must agree about white traces */
   TRACT_TRACT_FOR(tract, addr, arena, seg->firstTract, seg->limit) {
-    CHECKL(TractHasSeg(tract) == 1);
-    CHECKL(TractSeg(tract) == seg);
+    Seg trseg;
+    UNUSED(trseg); /* @@@@ hack: unused in hot varieties */
+    CHECKL(TRACT_SEG(&trseg, tract) && (trseg == seg));
     CHECKL(TractWhite(tract) == seg->white);
     CHECKL(TractPool(tract) == pool);
   }
@@ -568,7 +550,7 @@ Bool SegCheck(Seg seg)
 }
 
 
-/* segTrivInit -- method to initialize the generic part of a segment */
+/* segTrivInit -- method to initialize the base fields of a segment */
 
 static void segTrivInit(Seg seg, Pool pool, Addr base, Size size)
 {
@@ -588,7 +570,7 @@ static void segTrivInit(Seg seg, Pool pool, Addr base, Size size)
 }
 
 
-/* segTrivFinish -- finish the generic part of a segment */
+/* segTrivFinish -- finish the base fields of a segment */
 
 static void segTrivFinish(Seg seg)
 {
@@ -665,7 +647,7 @@ static Buffer segNoBuffer(Seg seg)
 {
   AVERT(Seg, seg);
   NOTREACHED;
-  return (Buffer)0;
+  return NULL;
 }
 
 
@@ -686,7 +668,7 @@ static void *segNoP(Seg seg)
 {
   AVERT(Seg, seg);
   NOTREACHED;
-  return (void *)0;
+  return NULL;
 }
 
 
@@ -695,7 +677,7 @@ static void *segNoP(Seg seg)
 static void segNoSetP(Seg seg, void *p)
 {
   AVERT(Seg, seg);
-  UNUSED(p);;
+  UNUSED(p);
   NOTREACHED;
 }
 
@@ -785,6 +767,7 @@ Bool SegGCCheck(SegGC gcseg)
     CHECKU(Buffer, gcseg->buffer);
     /* design.mps.seg.field.buffer.owner */
     CHECKL(BufferPool(gcseg->buffer) == SegPool(seg));
+    CHECKL(BufferRankSet(gcseg->buffer) == SegRankSet(seg));
   }
 
   /* The segment must belong to some pool, so it should be on a */
@@ -800,8 +783,7 @@ Bool SegGCCheck(SegGC gcseg)
          RingIsSingle(&gcseg->greyRing));
 
   if(seg->rankSet == RankSetEMPTY) {
-    /* design.mps.seg.field.rankSet.empty: If there are no refs */
-    /* in the segment then it cannot contain black or grey refs. */
+    /* design.mps.seg.field.rankSet.empty */
     CHECKL(gcseg->summary == RefSetEMPTY);
   } 
 
@@ -959,9 +941,10 @@ static void segGCSetWhite(Seg seg, TraceSet white)
 
   /* Each tract of the segment records white traces */
   TRACT_TRACT_FOR(tract, addr, arena, seg->firstTract, limit) {
-    AVER(TractHasSeg(tract));
-    AVER(TractSeg(tract) == seg);
-    tract->white = white;
+    Seg trseg;
+    UNUSED(trseg); /* @@@@ hack: unused in hot varieties */
+    AVER_CRITICAL(TRACT_SEG(&trseg, tract) && (trseg == seg));
+    TractSetWhite(tract, white);
   }
   AVER(addr == limit);
   seg->white = white;
