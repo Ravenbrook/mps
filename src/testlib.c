@@ -1,7 +1,7 @@
 /* impl.c.testlib: Test library
  *
- * $HopeName: !testlib.c(trunk.13) $
- * Copyright (C) 1995, 1998 Harlequin Group plc.  All rights reserved.
+ * $HopeName: MMsrc!testlib.c(MM_epcore_brisling.2) $
+ * Copyright (C) 1998 Harlequin Limited.  All rights reserved.
  *
  * .purpose: A library of functions that may be of use to unit tests.
  */
@@ -9,10 +9,6 @@
 #include "testlib.h"
 #include "mps.h"
 #include "mpm.h"
-#include "mpstd.h"
-#ifdef MPS_OS_SU
-#include "ossu.h"
-#endif
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
