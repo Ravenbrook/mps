@@ -1,6 +1,6 @@
 /* impl.h.mpm: MEMORY POOL MANAGER DEFINITIONS
  *
- * $HopeName: MMsrc!mpm.h(MMdevel_ptw_pseudoloci.1) $
+ * $HopeName: MMsrc!mpm.h(MMdevel_ptw_pseudoloci.2) $
  * Copyright (C) 1998.  Harlequin Group plc.  All rights reserved.
  */
 
@@ -518,12 +518,11 @@ extern void LocusClientSetCohortParameters(LocusClient client,
                                            RefSet disdained,
                                            Index lifetime);
 extern void LocusClientFinish(LocusClient client);
-extern void LocusClientZoneRangeBest(Addr *baseReturn,
+extern void LocusClientZoneRangeInitialize(LocusClient client);
+extern Bool LocusClientZoneRangeFinished(LocusClient client);
+extern void LocusClientZoneRangeNext(Addr *baseReturn,
                                      Addr *limitReturn,
                                      LocusClient client);
-extern void LocusClientZoneRangeNextBest(Addr *baseReturn,
-                                         Addr *limitReturn,
-                                         LocusClient client);
 extern void LocusClientSegAdd(LocusClient client, Arena arena, Seg seg);
 
 
@@ -625,6 +624,10 @@ extern Size ArenaReservoirAvailable(Arena arena);
 
 extern Res SegAlloc(Seg *segReturn, SegPref pref,
                     Size size, Pool pool, Bool withReservoirPermit);
+
+extern Res DefaultSegAllocInZoneRange(Seg *segReturn, SegPref pref,
+                                      Size size, Pool pool,
+                                      Addr base, Addr limit);
 extern void SegFree(Seg seg);
 extern Addr SegBase(Seg seg);
 extern Addr SegLimit(Seg seg);
