@@ -1,6 +1,6 @@
 /* impl.c.mpsi: MEMORY POOL SYSTEM C INTERFACE LAYER
  *
- * $HopeName: !mpsi.c(trunk.31) $
+ * $HopeName: MMsrc!mpsi.c(MM_dylan_honeybee.1) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  *
  * .purpose: This code bridges between the MPS interface to C,
@@ -52,7 +52,7 @@
 #include "mps.h"
 #include "mpsavm.h" /* only for mps_space_create */
 
-SRCID(mpsi, "$HopeName: !mpsi.c(trunk.31) $");
+SRCID(mpsi, "$HopeName: MMsrc!mpsi.c(MM_dylan_honeybee.1) $");
 
 
 /* mpsi_check -- check consistency of interface mappings
@@ -213,6 +213,7 @@ size_t mps_space_committed(mps_space_t mps_space)
   return mps_arena_committed(mps_space);
 }
 
+
 void mps_arena_clamp(mps_arena_t mps_arena)
 {
   Arena arena = (Arena)mps_arena;
@@ -220,7 +221,15 @@ void mps_arena_clamp(mps_arena_t mps_arena)
   ArenaClamp(arena);
   ArenaLeave(arena);
 }
+
+/* for backward compatibility */
+void mps_space_clamp(mps_space_t mps_space)
+{
+  mps_arena_clamp(mps_space);
+  return;
+}
  
+   
 void mps_arena_release(mps_arena_t mps_arena)
 {
   Arena arena = (Arena)mps_arena;
@@ -228,7 +237,15 @@ void mps_arena_release(mps_arena_t mps_arena)
   ArenaRelease(arena);
   ArenaLeave(arena);
 }
- 
+
+/* for backward compatibility */
+void mps_space_release(mps_space_t mps_space)
+{
+  mps_arena_release(mps_space);
+  return;
+}
+  
+
 void mps_arena_park(mps_space_t mps_space)
 {
   Arena arena = (Arena)mps_space;
@@ -236,7 +253,15 @@ void mps_arena_park(mps_space_t mps_space)
   ArenaPark(arena);
   ArenaLeave(arena);
 }
+
+/* for backward compatibility */
+void mps_space_park(mps_space_t mps_space)
+{
+  mps_arena_park(mps_space);
+  return;
+}
  
+
 mps_res_t mps_arena_collect(mps_space_t mps_space)
 {
   Res res;
@@ -246,7 +271,13 @@ mps_res_t mps_arena_collect(mps_space_t mps_space)
   ArenaLeave(arena);
   return res;
 }
- 
+
+/* for backward compatibility */
+mps_res_t mps_space_collect(mps_space_t mps_space)
+{
+  return mps_arena_collect(mps_space);
+}
+    
 
 /* mps_arena_create -- create an arena object */
 
