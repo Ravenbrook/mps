@@ -1,6 +1,6 @@
 # ==== SECOND COMMON FRAGMENT FOR PLATFORMS USING MV AND NMAKE
 #
-# $HopeName: MMsrc!commpost.nmk(MM_dylan_sunflower.2) $
+# $HopeName: MMsrc!commpost.nmk(MM_dylan_sunflower.3) $
 # Copyright(C) 1997 Harlequin Group, all rights reserved
 #
 # DESCRIPTION
@@ -51,6 +51,7 @@ target:
 	$(MAKE) /nologo /f $(PFM).nmk VARIETY=ds variety
 	$(MAKE) /nologo /f $(PFM).nmk VARIETY=dl variety
 	$(MAKE) /nologo /f $(PFM).nmk VARIETY=ro variety
+	$(MAKE) /nologo /f $(PFM).nmk VARIETY=rs variety
 !ENDIF
 !ENDIF
 

@@ -1,6 +1,6 @@
 # ==== NTI3MV NMAKE FILE ====
 #
-# $HopeName: MMsrc!w3i3mv.nmk(MM_dylan_sunflower.1) $
+# $HopeName: MMsrc!w3i3mv.nmk(MM_dylan_sunflower.2) $
 #
 # Copyright (C) 1995,1996,1997 Harlequin Group, all rights reserved
 #
@@ -153,6 +153,29 @@ MRGOBJ = $(MRGOBJ0:>=.obj)
 DWOBJ0 = $(DW:<=w3i3mv\ro\)
 DWOBJ = $(DWOBJ0:>=.obj)
 TESTLIBOBJ0 = $(TESTLIB:<=w3i3mv\ro\)
+TESTLIBOBJ = $(TESTLIBOBJ0:>=.obj)
+
+!ELSEIF "$(VARIETY)" == "rs"
+CFLAGS=$(CFLAGSCOMMON) $(CFRS)
+LINKFLAGS=$(LINKFLAGSCOMMON) $(LFRS)
+LIBFLAGS=$(LIBFLAGSCOMMON) $(LIBFLAGSRS)
+MPMOBJ0 = $(MPM:<=w3i3mv\rs\)
+MPMOBJ = $(MPMOBJ0:>=.obj)
+PLINTHOBJ0 = $(PLINTH:<=w3i3mv\rs\)
+PLINTHOBJ = $(PLINTHOBJ0:>=.obj)
+SWOBJ0 = $(SW:<=w3i3mv\rs\)
+SWOBJ = $(SWOBJ0:>=.obj)
+AMCOBJ0 = $(AMC:<=w3i3mv\rs\)
+AMCOBJ = $(AMCOBJ0:>=.obj)
+AWLOBJ0 = $(AWL:<=w3i3mv\rs\)
+AWLOBJ = $(AWLOBJ0:>=.obj)
+LOOBJ0 = $(LO:<=w3i3mv\rs\)
+LOOBJ = $(LOOBJ0:>=.obj)
+MRGOBJ0 = $(MRG:<=w3i3mv\rs\)
+MRGOBJ = $(MRGOBJ0:>=.obj)
+DWOBJ0 = $(DW:<=w3i3mv\rs\)
+DWOBJ = $(DWOBJ0:>=.obj)
+TESTLIBOBJ0 = $(TESTLIB:<=w3i3mv\rs\)
 TESTLIBOBJ = $(TESTLIBOBJ0:>=.obj)
 
 !ELSEIF "$(VARIETY)" == "cv"

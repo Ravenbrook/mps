@@ -1,6 +1,6 @@
 # ==== FIRST COMMON FRAGMENT FOR PLATFORMS USING MV AND NMAKE
 #
-# $HopeName: !commpre.nmk(trunk.5) $
+# $HopeName: MMsrc!commpre.nmk(MM_dylan_sunflower.1) $
 # Copyright (C) 1995,1997 Harlequin Group, all rights reserved
 #
 # DESCRIPTION
@@ -129,6 +129,9 @@ CFDL = /DCONFIG_VAR_DL /Z7
 # optimization and debug information
 CFRO = /DCONFIG_VAR_RO /DNDEBUG /Z7 /O2
 
+# "release stipped" variety flags, for change.dylan.sunflower.7.170071
+CFRS = /DCONFIG_VAR_RO /DNDEBUG /O2
+
 # "cover" variety flags
 CFCV = /DCONFIG_VAR_DP /Z7
 
@@ -141,6 +144,7 @@ LFDP = /DEBUG:full /DEBUGTYPE:cv
 LFDS = /DEBUG:full /DEBUGTYPE:cv
 LFDL = /DEBUG:full /DEBUGTYPE:cv
 LFRO = /RELEASE /DEBUG:full /DEBUGTYPE:cv
+LFRS = /RELEASE /DEBUG:none
 LFCV = /PROFILE /DEBUG:full /DEBUGTYPE:cv
 
 # Library manager
@@ -153,6 +157,7 @@ LIBFLAGSDS =
 LIBFLAGSDL = 
 LIBFLAGSRO = 
 LIBFLAGSCV =
+LIBFLAGSRS =
 
 # Browser database manager [not used at present]
 #BSC = bscmake
