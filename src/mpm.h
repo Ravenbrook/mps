@@ -1,6 +1,6 @@
 /* impl.h.mpm: MEMORY POOL MANAGER DEFINITIONS
  *
- * $HopeName: MMsrc!mpm.h(MMdevel_remem.1) $
+ * $HopeName: MMsrc!mpm.h(MMdevel_remem.2) $
  * Copyright (C) 1996 Harlequin Group, all rights reserved.
  */
 
@@ -135,6 +135,8 @@ extern Align (PoolAlignment)(Pool pool);
 #define PoolAlignment(pool)     ((pool)->alignment)
 
 extern Res PoolSegAlloc(Seg *segReturn, Pool pool, Size size);
+extern Res PoolSegAllocPref(Seg *segReturn, Pool pool, Size size,
+                              RefSet pref);
 extern void PoolSegFree(Pool pool, Seg seg);
 extern Bool PoolOfAddr(Pool *poolReturn, Space space, Addr addr);
 extern Bool PoolHasAddr(Pool pool, Addr addr);
@@ -145,7 +147,7 @@ extern Res PoolCreateV(Pool *poolReturn, PoolClass class,
 extern void PoolDestroy(Pool pool);
 extern Res PoolAlloc(Addr *pReturn, Pool pool, Size size);
 extern void PoolFree(Pool pool, Addr old, Size size);
-extern Res PoolCondemn(RefSet *condemnedReturn, Pool pool,
+extern Res PoolCondemn(RefSet *condemnedIO, Pool pool,
                          Space space, TraceId ti);
 extern void PoolGrey(Pool pool, Space space, TraceId ti);
 extern Res PoolScan(ScanState ss, Pool pool, Bool *finishedReturn);
@@ -255,6 +257,8 @@ extern Align ArenaAlign(Space space);
 extern Size ArenaReserved(Space space);
 extern Size ArenaCommitted(Space space);
 extern Res SegAlloc(Seg *segReturn, Space space, Size size, Pool pool);
+extern Res SegAllocPref(Seg *segReturn, Space space, Size size,
+                          Pool pool, RefSet pref);
 extern void SegFree(Space space, Seg seg);
 extern Addr SegBase(Space space, Seg seg);
 extern Addr SegLimit(Space space, Seg seg);

@@ -1,6 +1,6 @@
 /* impl.c.pool: POOL IMPLEMENTATION
  *
- * $HopeName: !pool.c(trunk.13) $
+ * $HopeName: MMsrc!pool.c(MMdevel_remem.1) $
  * Copyright (C) 1994,1995,1996 Harlequin Group, all rights reserved
  *
  * This is the implementation of the generic pool interface.  The
@@ -9,7 +9,7 @@
 
 #include "mpm.h"
 
-SRCID(pool, "$HopeName: !pool.c(trunk.13) $");
+SRCID(pool, "$HopeName: MMsrc!pool.c(MMdevel_remem.1) $");
 
 
 Bool PoolCheck(Pool pool)
@@ -110,13 +110,15 @@ void PoolFree(Pool pool, Addr old, Size size)
     (*pool->class->free)(pool, old, size);
 }
 
-Res PoolCondemn(RefSet *condemnedReturn, Pool pool,
+Res PoolCondemn(RefSet *condemnedIO, Pool pool,
                   Space space, TraceId ti)
 {
-  if(pool->class->condemn != NULL)
-    return (*pool->class->condemn)(condemnedReturn, pool, space, ti);
+  AVER(condemnedIO != NULL);
 
-  *condemnedReturn = RefSetEmpty;
+  if(pool->class->condemn != NULL)
+    return (*pool->class->condemn)(condemnedIO, pool, space, ti);
+
+  *condemnedIO = RefSetEmpty;
   return ResOK;
 }
 
@@ -186,6 +188,27 @@ Space (PoolSpace)(Pool pool)
   return pool->space;
 }
 
+
+Res PoolSegAllocPref(Seg *segReturn, Pool pool, Size size, RefSet pref)
+{
+  Res res;
+  Seg seg;
+  Space space;
+
+  AVER(segReturn != NULL);
+  AVERT(Pool, pool);
+  space = PoolSpace(pool);
+  AVER(SizeIsAligned(size, ArenaAlign(space)));
+
+  res = SegAllocPref(&seg, space, size, pool, pref);
+  if(res != ResOK)
+    return res;
+
+  seg->pool = pool;
+
+  *segReturn = seg;
+  return ResOK;
+}
 
 Res PoolSegAlloc(Seg *segReturn, Pool pool, Size size)
 {
