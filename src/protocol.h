@@ -1,6 +1,6 @@
 /* impl.h.protocol: PROTOCOL INHERITANCE DEFINITIONS
  *
- * $HopeName: MMsrc!protocol.h(MMdevel_tony_inheritance.3) $
+ * $HopeName: MMsrc!protocol.h(MMdevel_tony_inheritance.4) $
  * Copyright (C) 1998.  Harlequin Group plc.  All rights reserved.
  */
 
@@ -17,7 +17,7 @@
 #define DERIVE_LOCAL(name) protocol ## name
 #define DERIVE_STRUCT(name) name ## Struct
 #define DERIVE_ENSURE(name) Ensure ## name 
-#define DERIVE_ENSURE_INTERNAL(name) protocol ## Ensure ## name
+#define DERIVE_ENSURE_INTERNAL(name) protocolEnsure ## name
 #define DERIVE_GUARDIAN(name) protocol ## name ## Guardian
 #define DERIVE_STATIC_STORAGE(name) protocol ## name ## Struct
 
@@ -76,7 +76,7 @@
 
 
 #define ProtocolClassSig ((Sig)0x519B60C7) /* SIGnature PROtocol CLass */
-#define ProtocolInstSig  ((Sig)0x519B6020) /* SIGnature PROTOcol */
+#define ProtocolInstSig  ((Sig)0x519B6014) /* SIGnature PROtocol INst */
 
 
 /* ProtocolClass
