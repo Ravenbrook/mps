@@ -1,6 +1,6 @@
 /* impl.c.vmi5: VIRTUAL MEMORY MAPPING FOR IRIX 5 (AND 6)
  *
- * $HopeName: MMsrc!vmi5.c(MM_epcore_minnow.2) $
+ * $HopeName: MMsrc!vmi5.c(MM_epcore_minnow.3) $
  * Copyright (C) 1997, 1998 Harlequin Group plc.  All rights reserved.
  *
  * Design: design.mps.vm
@@ -32,21 +32,21 @@
 
 #include "mpm.h"
 
-#ifndef MPS_OS_I5
-#error "vmi5.c is IRIX 5 specific, but MPS_OS_I5 is not set"
+#if !defined(MPS_OS_I5) && !defined(MPS_OS_IA)
+#error "vmi5.c is IRIX-specific, but MPS_OS_I5 or MPS_OS_IA is not set"
 #endif
 
-/* Open sesame magic */
 #define _POSIX_SOURCE
+#define _POSIX_C_SOURCE 199309L
 
 #include <sys/types.h>
 #include <sys/mman.h>
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <errno.h>
-#include <unistd.h> /* for _SC_PAGESIZE */
+#include <unistd.h>
 
-SRCID(vmi5, "$HopeName: MMsrc!vmi5.c(MM_epcore_minnow.2) $");
+SRCID(vmi5, "$HopeName: MMsrc!vmi5.c(MM_epcore_minnow.3) $");
 
 
 /* VMStruct -- virtual memory structure */
