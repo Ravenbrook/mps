@@ -1,6 +1,6 @@
 # ==== FIRST COMMON FRAGMENT FOR PLATFORMS USING MV AND NMAKE
 #
-# $HopeName$
+# $HopeName: !commpre.nmk(trunk.17) $
 # Copyright (C) 1998 Harlequin Limited.  All rights reserved.
 #
 # DESCRIPTION

@@ -1,6 +1,6 @@
 # impl.gmk.sos9sc: BUILD FOR Solaris/SPARC v9/SunPro C PLATFORM
 #
-# $HopeName: MMsrc!sos9sc.gmk(trunk.21) $
+# $HopeName: !sos9sc.gmk(trunk.22) $
 # Copyright (C) 2000.  Harlequin Ltd.  All rights reserved.
 #
 # This is the GNU makefile for platform.sos9sc.
