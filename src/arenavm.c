@@ -1,6 +1,6 @@
 /* impl.c.arenavm: VIRTUAL MEMORY BASED ARENA IMPLEMENTATION
  *
- * $HopeName: MMsrc!arenavm.c(trunk.47) $
+ * $HopeName: !arenavm.c(trunk.48) $
  * Copyright (C) 1998. Harlequin Group plc. All rights reserved.
  *
  * This is the implementation of the Segment abstraction from the VM
@@ -29,7 +29,7 @@
 #include "mpm.h"
 #include "mpsavm.h"
 
-SRCID(arenavm, "$HopeName: MMsrc!arenavm.c(trunk.47) $");
+SRCID(arenavm, "$HopeName: !arenavm.c(trunk.48) $");
 
 
 typedef struct VMArenaStruct *VMArena;
