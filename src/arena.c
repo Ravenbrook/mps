@@ -1,6 +1,6 @@
 /* impl.c.arena: ARENA IMPLEMENTATION
  *
- * $HopeName: !arena.c(trunk.61) $
+ * $HopeName: MMsrc!arena.c(MM_epcore_brisling.1) $
  * Copyright (C) 1998. Harlequin Group plc. All rights reserved.
  *
  * .readership: Any MPS developer
@@ -36,7 +36,7 @@
 #include "poolmrg.h"
 #include "mps.h"
 
-SRCID(arena, "$HopeName: !arena.c(trunk.61) $");
+SRCID(arena, "$HopeName: MMsrc!arena.c(MM_epcore_brisling.1) $");
 
 
 /* Forward declarations */
@@ -1394,7 +1394,7 @@ Size ArenaSpareCommitLimit(Arena arena)
 void ArenaSetSpareCommitLimit(Arena arena, Size limit)
 {
   AVERT(Arena, arena);
-  AVER(0 < limit);
+  /* Can't check limit, as all possible values are allowed. */
 
   arena->spareCommitLimit = limit;
   if(arena->spareCommitLimit < arena->spareCommitted) {
