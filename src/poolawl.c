@@ -1,6 +1,6 @@
 /* impl.c.poolawl: AUTOMATIC WEAK LINKED POOL CLASS
  *
- * $HopeName: MMsrc!poolawl.c(trunk.12) $
+ * $HopeName: MMsrc!poolawl.c(MMdevel_greylist.2) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  *
  * READERSHIP
@@ -16,7 +16,7 @@
 #include "mpm.h"
 #include "mpscawl.h"
 
-SRCID(poolawl, "$HopeName: MMsrc!poolawl.c(trunk.12) $");
+SRCID(poolawl, "$HopeName: MMsrc!poolawl.c(MMdevel_greylist.2) $");
 
 
 #define AWLSig	((Sig)0x519b7a37)	/* SIGPooLAWL */
@@ -81,7 +81,7 @@ static void AWLGroupDestroy(AWLGroup group)
   segGrains = SegSize(space, seg) >> awl->alignShift;
   AVER(segGrains == group->grains);
   tableSize = BTSize(segGrains);
-  PoolSegFree(pool, seg);
+  SegFree(space, seg);
   SpaceFree(space, (Addr)group->alloc, tableSize);
   SpaceFree(space, (Addr)group->scanned, tableSize);
   SpaceFree(space, (Addr)group->mark, tableSize);
@@ -118,7 +118,7 @@ static Res AWLGroupCreate(AWLGroup *groupReturn,
   if(size == 0) {
     return ResMEMORY;
   }
-  res = PoolSegAlloc(&seg, SegPrefDefault(), pool, size);
+  res = SegAlloc(&seg, SegPrefDefault(), space, size, pool);
   if(res != ResOK)
     goto failSegAlloc;
   res = SpaceAlloc(&v, space, sizeof *group);
@@ -159,7 +159,7 @@ failSpaceAllocScanned:
 failSpaceAllocMark:
   SpaceFree(space, (Addr)group, sizeof *group);
 failSpaceAlloc0:
-  PoolSegFree(pool, seg);
+  SegFree(space, seg);
 failSegAlloc:
   return res;
 }

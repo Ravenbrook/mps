@@ -2,7 +2,7 @@
  * 
  * MANUAL RANK GUARDIAN POOL
  * 
- * $HopeName: !poolmrg.c(trunk.11) $
+ * $HopeName: MMsrc!poolmrg.c(MMdevel_greylist.1) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  *
  * READERSHIP
@@ -28,7 +28,7 @@
 #include "mpm.h"
 #include "poolmrg.h"
 
-SRCID(poolmrg, "$HopeName: !poolmrg.c(trunk.11) $");
+SRCID(poolmrg, "$HopeName: MMsrc!poolmrg.c(MMdevel_greylist.1) $");
 
 
 #define MRGSig          ((Sig)0x519369B0) /* SIGnature MRG POol */
@@ -91,13 +91,13 @@ typedef MRGGroupStruct *MRGGroup;
 
 static void MRGGroupDestroy(MRGGroup group, MRG mrg)
 {
-  Pool pool;
+  Space space;
 
-  pool = MRGPool(mrg);
+  space = PoolSpace(MRGPool(mrg));
   RingRemove(&group->group);
-  PoolSegFree(pool, group->refseg);
-  PoolSegFree(pool, group->linkseg);
-  SpaceFree(PoolSpace(pool), (Addr)group, (Size)sizeof(MRGGroupStruct));
+  SegFree(space, group->refseg);
+  SegFree(space, group->linkseg);
+  SpaceFree(space, (Addr)group, (Size)sizeof(MRGGroupStruct));
 }
 
 static Res MRGGroupCreate(MRGGroup *groupReturn, MRG mrg)
@@ -121,14 +121,14 @@ static Res MRGGroupCreate(MRGGroup *groupReturn, MRG mrg)
   if(res != ResOK)
     goto failSpaceAlloc;
   group = v;
-  res = PoolSegAlloc(&refseg, SegPrefDefault(), pool, mrg->extendBy);
+  res = SegAlloc(&refseg, SegPrefDefault(), space, mrg->extendBy, pool);
   if(res != ResOK)
     goto failRefSegAlloc;
 
   guardians = mrg->extendBy / sizeof(Addr);     /* per seg */
   linksegsize = guardians * sizeof(RingStruct);
   linksegsize = SizeAlignUp(linksegsize, ArenaAlign(space));
-  res = PoolSegAlloc(&linkseg, SegPrefDefault(), pool, linksegsize);
+  res = SegAlloc(&linkseg, SegPrefDefault(), space, linksegsize, pool);
   if(res != ResOK)
     goto failLinkSegAlloc;
 
@@ -162,7 +162,7 @@ static Res MRGGroupCreate(MRGGroup *groupReturn, MRG mrg)
   return ResOK;
 
 failLinkSegAlloc:
-  PoolSegFree(pool, refseg);
+  SegFree(space, refseg);
 failRefSegAlloc:
   SpaceFree(space, (Addr)group, (Size)sizeof(MRGGroupStruct)); 
 failSpaceAlloc:

@@ -1,6 +1,6 @@
 /* impl.c.poolmv: MANUAL VARIABLE POOL
  *
- * $HopeName: !poolmv.c(trunk.22) $
+ * $HopeName: MMsrc!poolmv.c(MMdevel_greylist.1) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  *
  * **** RESTRICTION: This pool may not allocate from the arena control
@@ -37,7 +37,7 @@
 #include "poolmfs.h"
 #include "mpscmv.h"
 
-SRCID(poolmv, "$HopeName: !poolmv.c(trunk.22) $");
+SRCID(poolmv, "$HopeName: MMsrc!poolmv.c(MMdevel_greylist.1) $");
 
 
 #define BLOCKPOOL(mv)   (MFSPool(&(mv)->blockPoolStruct))
@@ -213,7 +213,7 @@ static void MVFinish(Pool pool)
   RING_FOR(node, spans) {
     span = RING_ELT(MVSpan, spans, node);
     AVERT(MVSpan, span);
-    PoolSegFree(pool, span->seg);
+    SegFree(PoolSpace(pool), span->seg);
   }
 
   mv->sig = SigInvalid;
@@ -417,10 +417,10 @@ static Res MVAlloc(Addr *pReturn, Pool pool, Size size)
   space = PoolSpace(pool);
   segSize = SizeAlignUp(segSize, ArenaAlign(space));
 
-  res = PoolSegAlloc(&span->seg, SegPrefDefault(), pool, segSize);
+  res = SegAlloc(&span->seg, SegPrefDefault(), space, segSize, pool);
   if(res != ResOK) { /* try again with a segment big enough for this object */
     segSize = SizeAlignUp(size, ArenaAlign(space));
-    res = PoolSegAlloc(&span->seg, SegPrefDefault(), pool, segSize);
+    res = SegAlloc(&span->seg, SegPrefDefault(), space, segSize, pool);
     if (res != ResOK) {
       PoolFree(SPANPOOL(mv), (Addr)span, sizeof(MVSpanStruct));
       return res;
@@ -497,7 +497,7 @@ static void MVFree(Pool pool, Addr old, Size size)
     /* both blocks are the trivial sentinel blocks */
     AVER(span->base.limit == span->base.base);
     AVER(span->limit.limit == span->limit.base);
-    PoolSegFree(pool, span->seg);
+    SegFree(PoolSpace(pool), span->seg);
     RingRemove(&span->spans);
     PoolFree(SPANPOOL(mv), (Addr)span, sizeof(MVSpanStruct));
   }

@@ -1,6 +1,6 @@
 /* impl.c.pool: POOL IMPLEMENTATION
  *
- * $HopeName: MMsrc!pool.c(trunk.33) $
+ * $HopeName: MMsrc!pool.c(MMdevel_greylist.2) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  *
  * This is the implementation of the generic pool interface.  The
@@ -12,7 +12,7 @@
 
 #include "mpm.h"
 
-SRCID(pool, "$HopeName: MMsrc!pool.c(trunk.33) $");
+SRCID(pool, "$HopeName: MMsrc!pool.c(MMdevel_greylist.2) $");
 
 
 Bool PoolClassCheck(PoolClass class)
@@ -407,58 +407,6 @@ Space (PoolSpace)(Pool pool)
   /* AVERT(Pool, pool); */
 
   return pool->space;
-}
-
-
-/* PoolSegAlloc -- allocate a segment in a pool
- *
- * @@@@ There's no need for this routine.  The segment could be
- * attached in SegInit.
- */
-
-Res PoolSegAlloc(Seg *segReturn, SegPref pref, Pool pool, Size size)
-{
-  Res res;
-  Seg seg;
-  Space space;
-
-  AVER(segReturn != NULL);
-  AVERT(Pool, pool);
-  AVERT(SegPref, pref);
-  space = PoolSpace(pool);
-  AVER(SizeIsAligned(size, ArenaAlign(space)));
-
-  res = SegAlloc(&seg, pref, space, size, pool);
-  if(res != ResOK) return res;
-
-  RingAppend(&pool->segRing, SegPoolRing(seg));
-
-  *segReturn = seg;
-  return ResOK;
-}
-
-
-/* PoolSegFree -- free a segment from a pool
- *
- * @@@@ There's no need for this routine.  The segment could be
- * detached in SegFinish.
- */
-
-void PoolSegFree(Pool pool, Seg seg)
-{
-  Space space;
-
-  AVERT(Pool, pool);
-  AVERT(Seg, seg);
-  AVER(SegPool(seg) == pool);
-
-  space = PoolSpace(pool);
-
-  ShieldFlush(space); /* See impl.c.shield.shield.flush */
-
-  RingRemove(SegPoolRing(seg));
-
-  SegFree(space, seg);
 }
 
 

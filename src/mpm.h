@@ -1,6 +1,6 @@
 /* impl.h.mpm: MEMORY POOL MANAGER DEFINITIONS
  *
- * $HopeName: MMsrc!mpm.h(trunk.38) $
+ * $HopeName: MMsrc!mpm.h(MMdevel_greylist.2) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  */
 
@@ -265,8 +265,6 @@ extern Align (PoolAlignment)(Pool pool);
 extern Ring (PoolSegRing)(Pool pool);
 #define PoolSegRing(pool)       (&(pool)->segRing)
 
-extern Res PoolSegAlloc(Seg *segReturn, SegPref pref, Pool pool, Size size);
-extern void PoolSegFree(Pool pool, Seg seg);
 extern Bool PoolOfAddr(Pool *poolReturn, Space space, Addr addr);
 extern Bool PoolHasAddr(Pool pool, Addr addr);
 
