@@ -1,6 +1,6 @@
 /* impl.h.mpsacl: MEMORY POOL SYSTEM ARENA CLASS "CL"
  *
- * $HopeName: MMsrc!mpsacl.h(MMdevel_config_thread.1) $
+ * $HopeName: !mpsacl.h(trunk.2) $
  * Copyright (C) 1997 The Harlequin Group.  All rights reserved.
  */
 
