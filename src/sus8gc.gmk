@@ -1,7 +1,7 @@
 #
 #     BUILD FOR SUNOS/SPARC/GCC PLATFORM
 #
-#  $HopeName: MMsrc!suspgc.gmk(MMdevel_protoposm_1.8) $
+#  $HopeName: MMsrc!suspgc.gmk(MMdevel_protoposm_1.9) $
 #
 #  Copyright (C) 1995 Harlequin Group, all rights reserved
 #
@@ -19,7 +19,7 @@ MPMS = sssusp.s
 AMC = amc.c amcgroup.c
 DW = dwformat.c dw.c
 DB = poolps.c db.c \
-     cluster.c gc.c iohigh.c iolow.c db.c dbm.c mapping.c chunk.c
+     cluster.c gc.c iohigh.c iolow.c db.c dbm.c mapping.c chunk.c \
      chunktbl.c clustbl.c swizzle.c \
      assoc.c broker.c element.c stretchy.c support.c tables.c \
      memdump.c
