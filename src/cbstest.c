@@ -1,6 +1,6 @@
 /*  impl.c.cbstest: COALESCING BLOCK STRUCTURE TEST
  *
- *  $HopeName$
+ *  $HopeName: MMsrc!cbstest.c(MMdevel_gavinm_splay.1) $
  * Copyright (C) 1998 Harlequin Group plc.  All rights reserved.
  */
 
@@ -20,13 +20,13 @@
 #endif /* MPS_OS_SU */
 
 
-SRCID(cbstest, "$HopeName$");
+SRCID(cbstest, "$HopeName: MMsrc!cbstest.c(MMdevel_gavinm_splay.1) $");
 
 #define ArraySize ((size_t)4096)
 #define nOperations ((size_t)10000)
 #define addr_of_index(i) ((mps_addr_t)((char *)block + (i)))
 #define index_of_addr(a) ((long)((char *)(a) - (char *)block))
-#define ERROR(message) MPS_BEGIN printf(message "\n"); exit(1); MPS_END
+#define ErrorExit(message) MPS_BEGIN printf(message "\n"); exit(1); MPS_END
 
 static BT alloc; /* the BT which we will use for alloc */
 static Arena arena; /* the ANSI arena which we use to allocate the BT */
@@ -67,14 +67,14 @@ static void allocate(mps_addr_t base, mps_addr_t limit) {
   if(res == ResOK) {
     printf("> allocate %p%p\n", base, limit);
     if(!BTIsResRange(alloc, ib, il))  
-      ERROR("succeeded in deleting non-alloced block");
+      ErrorExit("succeeded in deleting non-alloced block");
     else
       BTSetRange(alloc, ib, il);
   } else if(res == ResFAIL) {
     if(BTIsResRange(alloc, ib, il))
-      ERROR("failed to delete alloced block");
+      ErrorExit("failed to delete alloced block");
   } else {
-    ERROR("Unexpected result");
+    ErrorExit("Unexpected result");
   }
 }
 
@@ -90,14 +90,14 @@ static void deallocate(mps_addr_t base, mps_addr_t limit) {
   if(res == ResOK) {
     printf("> deallocate %p%p\n", base, limit);
     if(!BTIsSetRange(alloc, ib, il))  
-      ERROR("succeeded in inserting non-free block");
+      ErrorExit("succeeded in inserting non-free block");
     else
       BTResRange(alloc, ib, il);
   } else if(res == ResFAIL) {
     if(BTIsSetRange(alloc, ib, il))
-      ERROR("failed to insert free block");
+      ErrorExit("failed to insert free block");
   } else {
-    ERROR("Unexpected result");
+    ErrorExit("Unexpected result");
   }
 }
 
@@ -112,21 +112,21 @@ extern int main(int argc, char *argv[])
   res = mps_arena_create((mps_arena_t *)&arena,
                          mps_arena_class_an());
   if (res != MPS_RES_OK) 
-    ERROR("failed to create ANSI arena.");
+    ErrorExit("failed to create ANSI arena.");
   res = BTCreate(&alloc, arena, ArraySize);
   if (res != MPS_RES_OK) 
-    ERROR("failed to create bit table.");
+    ErrorExit("failed to create bit table.");
 
   res = CBSRootInit(arena, &cbs, NULL, NULL, NULL, NULL, 0);
   if(res != MPS_RES_OK)
-    ERROR("failed to initialise CBS.");
+    ErrorExit("failed to initialise CBS.");
 
   BTSetRange(alloc, 0, ArraySize); /* Initially all allocated */
   /* We're not going to use this block, but I feel unhappy just */
   /* inventing addresses. */
   res = ArenaAlloc(&block, arena, ArraySize);
   if(res != MPS_RES_OK)
-    ERROR("failed to allocate block");
+    ErrorExit("failed to allocate block");
   printf("block %p %p\n", block, (char *)block + ArraySize);
 
   for(i = 0; i < nOperations; i++) {
