@@ -1,6 +1,6 @@
 /* impl.c.poolmfs: MANUAL FIXED SMALL UNIT POOL
  *
- * $HopeName: MMsrc!poolmfs.c(MMdevel_restr2.1) $
+ * $HopeName: MMsrc!poolmfs.c(MMdevel_restr2.2) $
  * Copyright (C) 1994,1995 Harlequin Group, all rights reserved
  *
  * This is the implementation of the MFS pool class.  MFS operates
@@ -34,7 +34,7 @@
 #include "mpm.h"
 #include "poolmfs.h"
 
-SRCID(poolmfs, "$HopeName: MMsrc!poolmfs.c(MMdevel_restr2.1) $");
+SRCID(poolmfs, "$HopeName: MMsrc!poolmfs.c(MMdevel_restr2.2) $");
 
 
 /*  == Round up ==
@@ -45,34 +45,6 @@ SRCID(poolmfs, "$HopeName: MMsrc!poolmfs.c(MMdevel_restr2.1) $");
 #define ROUND(unit, n)  ((n)+(unit)-1 - ((n)+(unit)-1)%(unit))
 
 #define PoolPoolMFS(pool)	PARENT(MFSStruct, poolStruct, pool)
-
-
-/*  == Class Structure ==  */
-
-static Res MFSInit(Pool pool, va_list arg);
-static void MFSFinish(Pool pool);
-static Res MFSAlloc(Addr *pReturn, Pool pool, Size size);
-static void MFSFree(Pool pool, Addr old, Size size);
-static Res MFSDescribe(Pool pool, Lib_FILE *stream);
-
-static PoolClassStruct PoolClassMFSStruct;
-
-PoolClass PoolClassMFS(void)
-{
-  PoolClassInit(&PoolClassMFSStruct,
-                "MFS",
-                sizeof(MFSStruct), offsetof(MFSStruct, poolStruct),
-                MFSInit, MFSFinish,
-                MFSAlloc, MFSFree,
-                NULL, NULL,             /* bufferCreate, bufferDestroy */
-                NULL, NULL,             /* bufferFill, bufferTrip */
-                NULL, NULL,             /* bufferExpose, bufferCover */
-                NULL, NULL,             /* mark, scan */
-                NULL, NULL,             /* fix, relcaim */
-                NULL, NULL,             /* access, poll */
-                MFSDescribe);
-  return &PoolClassMFSStruct;
-}
 
 
 /*  == Free List Structure ==
@@ -96,21 +68,6 @@ MFSInfo MFSGetInfo(void)
     /* unitSizeMin */   UNIT_MIN
   };
   return &info;
-}
-
-
-Bool MFSCheck(MFS mfs)
-{
-  Space space;
-  CHECKS(MFS, mfs);
-  CHECKL(mfs != NULL);
-  CHECKL(mfs->unroundedUnitSize >= UNIT_MIN);
-  CHECKL(SizeAlignUp(mfs->unroundedUnitSize, mfs->poolStruct.alignment) == mfs->unitSize);
-  CHECKL(mfs->extendBy >= UNIT_MIN);
-  space = PoolSpace(&mfs->poolStruct);
-  CHECKL(SizeIsAligned(mfs->extendBy, ArenaAlign(space)));
-  CHECKL(mfs->unitsPerSeg == mfs->extendBy/mfs->unitSize);
-  return TRUE;
 }
 
 
@@ -189,11 +146,10 @@ static Res MFSAlloc(Addr *pReturn, Pool pool, Size size)
   MFS mfs;
 
   AVERT(Pool, pool);
-  AVER(pool->class == &PoolClassMFSStruct);
+  mfs = PoolPoolMFS(pool);
+  AVERT(MFS, mfs);
+
   AVER(pReturn != NULL);
-
-  mfs = PARENT(MFSStruct, poolStruct, pool);
-
   AVER(size == mfs->unroundedUnitSize);
 
   f = mfs->freeList;
@@ -268,11 +224,10 @@ static void MFSFree(Pool pool, Addr old, Size size)
   MFS mfs;
 
   AVERT(Pool, pool);
-  AVER(pool->class == &PoolClassMFSStruct);
+  mfs = PoolPoolMFS(pool);
+  AVERT(MFS, mfs);
+
   AVER(old != (Addr)0);
-
-  mfs = PARENT(MFSStruct, poolStruct, pool);
-
   AVER(size == mfs->unroundedUnitSize);
 
   /* Locality isn't too good, but deallocation is quick.  See note 2. */
@@ -288,10 +243,10 @@ static Res MFSDescribe(Pool pool, Lib_FILE *stream)
   int e;
 
   AVERT(Pool, pool);
-  AVER(pool->class == &PoolClassMFSStruct);
-  AVER(stream != NULL);
+  mfs = PoolPoolMFS(pool);
+  AVERT(MFS, mfs);
 
-  mfs = PARENT(MFSStruct, poolStruct, pool);
+  AVER(stream != NULL);
 
   e = Lib_fprintf(stream,
                   "  unrounded unit size %lu\n"
@@ -312,3 +267,49 @@ static Res MFSDescribe(Pool pool, Lib_FILE *stream)
   return ResOK;
 }
 
+
+static PoolClassStruct PoolClassMFSStruct = {
+  PoolClassSig,
+  "MFS",				/* name */
+  sizeof(MFSStruct),			/* size */
+  offsetof(MFSStruct, poolStruct),	/* offset */
+  MFSInit,				/* init */
+  MFSFinish,				/* finish */
+  MFSAlloc,				/* alloc */
+  MFSFree,				/* free */
+  NULL,					/* bufferCreate */
+  NULL,             			/* bufferDestroy */
+  NULL,					/* bufferFill */
+  NULL,             			/* bufferTrip */
+  NULL,					/* bufferExpose */
+  NULL,             			/* bufferCover */
+  NULL,					/* grey */
+  NULL,             			/* scan */
+  NULL,					/* fix */
+  NULL,             			/* relcaim */
+  NULL,					/* access */
+  NULL,             			/* poll */
+  MFSDescribe,				/* describe */
+  PoolClassSig				/* impl.h.mpmst.class.end-sig */
+};
+
+
+PoolClass PoolClassMFS(void)
+{
+  return &PoolClassMFSStruct;
+}
+
+Bool MFSCheck(MFS mfs)
+{
+  Space space;
+  CHECKS(MFS, mfs);
+  CHECKD(Pool, &mfs->poolStruct);
+  CHECKL(mfs->poolStruct.class == &PoolClassMFSStruct);
+  CHECKL(mfs->unroundedUnitSize >= UNIT_MIN);
+  CHECKL(SizeAlignUp(mfs->unroundedUnitSize, mfs->poolStruct.alignment) == mfs->unitSize);
+  CHECKL(mfs->extendBy >= UNIT_MIN);
+  space = PoolSpace(&mfs->poolStruct);
+  CHECKL(SizeIsAligned(mfs->extendBy, ArenaAlign(space)));
+  CHECKL(mfs->unitsPerSeg == mfs->extendBy/mfs->unitSize);
+  return TRUE;
+}
