@@ -1,6 +1,6 @@
 # ==== FIRST COMMON FRAGMENT FOR PLATFORMS USING MV AND NMAKE
 #
-# $HopeName: MMsrc!commpre.nmk(MMdevel_alloc_replay.1) $
+# $HopeName: MMsrc!commpre.nmk(MMdevel_alloc_replay.2) $
 # Copyright (C) 1995, 1997, 1998 Harlequin Group plc.  All rights reserved.
 #
 # DESCRIPTION
@@ -169,7 +169,7 @@ CFTI = /DCONFIG_VAR_TI $(CRTFLAGSC)  $(CFLAGSCOOL) $(CFLAGSINTERNAL)
 # LINKER FLAGS
 # %%VARIETY: define a macro containing the flags for the new variety
 LINKER = link
-LINKFLAGSCOMMON = /nologo /PDB:NONE /DEBUGTYPE:cv
+LINKFLAGSCOMMON = /nologo /PDB:NONE
 LINKFLAGSINTERNAL = /DEBUG:full
 LINKFLAGSEXTERNAL = /RELEASE
 
