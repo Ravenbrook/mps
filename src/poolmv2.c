@@ -1,6 +1,6 @@
 /* impl.c.poolmv2: MANUAL VARIABLE POOL, II
  *
- * $HopeName: MMsrc!poolmv2.c(MMdevel_gavinm_splay.9) $
+ * $HopeName: MMsrc!poolmv2.c(MMdevel_gavinm_splay.10) $
  * Copyright (C) 1998 Harlequin Group plc.  All rights reserved.
  *
  * .limitation.seg : MV2BufferFill may fill a buffer with a range that
@@ -15,7 +15,7 @@
 #include "abq.h"
 #include "meter.h"
 
-SRCID(poolmv2, "$HopeName: MMsrc!poolmv2.c(MMdevel_gavinm_splay.9) $");
+SRCID(poolmv2, "$HopeName: MMsrc!poolmv2.c(MMdevel_gavinm_splay.10) $");
 
 /* Signatures */
 #define MV2Sig ((Sig)0x5193F299) /* SIGnature MV2 */
@@ -54,6 +54,8 @@ typedef struct MV2Struct
   METER_DECL(bufferFills);
   METER_DECL(bufferEmpties);
   METER_DECL(poolFrees);
+  METER_DECL(poolSize);
+  METER_DECL(poolAvailable);
   /* abq meters */
   METER_DECL(overflows);
   METER_DECL(refills);
@@ -101,7 +103,9 @@ static Res MV2SegAlloc(Seg *segReturn, MV2 mv2, Size size, Pool pool)
     Size segSize = SegSize(*segReturn);
     
     mv2->size += segSize;
+    METER_ACC(mv2->poolSize, mv2->size);
     mv2->available += segSize;
+    METER_ACC(mv2->poolAvailable, mv2->available);
     METER_ACC(mv2->segAllocs, segSize);
   }
   return res;
@@ -117,7 +121,9 @@ static void MV2SegFree(MV2 mv2, Seg seg)
   Size size = SegSize(seg);
 
   mv2->available -= size;
+  METER_ACC(mv2->poolAvailable, mv2->available);
   mv2->size -= size;
+  METER_ACC(mv2->poolSize, mv2->size);
   SegFree(seg);
   METER_ACC(mv2->segFrees, size);
 }
@@ -276,6 +282,8 @@ static Res MV2Init(Pool pool, va_list arg)
   METER_INIT(mv2->bufferFills, "buffer fills");
   METER_INIT(mv2->bufferEmpties, "buffer empties");
   METER_INIT(mv2->poolFrees, "pool frees");
+  METER_INIT(mv2->poolSize, "pool size");
+  METER_INIT(mv2->poolAvailable, "pool available");
   METER_INIT(mv2->overflows, "ABQ overflows");
   METER_INIT(mv2->refills, "ABQ refills");
   METER_INIT(mv2->refillPushes, "ABQ refill pushes");
@@ -302,6 +310,9 @@ failCBS:
 }
 
 
+/*
+ * MV2Finish
+ */
 static void MV2Finish(Pool pool)
 {
   MV2 mv2;
@@ -331,6 +342,10 @@ static void MV2Finish(Pool pool)
 }
 
 
+/*
+ * ABQRefillCallback -- Called from CBSIterate at the behest of
+ * ABQRefillIfNecessary
+ */
 static Bool ABQRefillCallback(CBS cbs, CBSBlock block, void *closureP,
                               unsigned long closureS)
 {
@@ -357,6 +372,10 @@ static Bool ABQRefillCallback(CBS cbs, CBSBlock block, void *closureP,
 }
   
 
+/*
+ * ABQRefillIfNecessary -- Refill the ABQ if it had overflown and is
+ * now empty.
+ */
 static void ABQRefillIfNecessary(MV2 mv2, Size size) 
 {
   AVERT(MV2, mv2);
@@ -364,7 +383,7 @@ static void ABQRefillIfNecessary(MV2 mv2, Size size)
   if (mv2->abqOverflow && ABQIsEmpty(MV2ABQ(mv2))) {
     mv2->abqOverflow = FALSE;
     METER_ACC(mv2->refills, size);
-    CBSIterateLarge(MV2CBS(mv2), ABQRefillCallback, NULL, 0);
+    CBSIterateLarge(MV2CBS(mv2), &ABQRefillCallback, NULL, 0);
   }
 }
 
@@ -380,6 +399,10 @@ typedef struct MV2ClosureStruct
 } MV2ClosureStruct;
 
 
+/*
+ * MV2ContingencyCallback -- Called from CBSIterate at the behest of
+ * MV2ContingencySearch
+ */
 static Bool MV2ContingencyCallback(CBS cbs, CBSBlock block, void *closureP,
                                    unsigned long closureS)
 {
@@ -402,6 +425,9 @@ static Bool MV2ContingencyCallback(CBS cbs, CBSBlock block, void *closureP,
 }
 
 
+/*
+ * MV2ContingencySearch -- Search the CBS for a block of size min
+ */
 static Res MV2ContingencySearch(CBSBlock *blockReturn, CBS cbs, Size min)
 {
   MV2ClosureStruct cls;
@@ -414,7 +440,7 @@ static Res MV2ContingencySearch(CBSBlock *blockReturn, CBS cbs, Size min)
   cls.min = min;
   cls.steps = 0;
   
-  CBSIterate(cbs, MV2ContingencyCallback, (void *)&cls, (unsigned long)sizeof(cls));
+  CBSIterate(cbs, &MV2ContingencyCallback, (void *)&cls, (unsigned long)sizeof(cls));
   if (cls.block != NULL) {
     AVER(CBSBlockSize(cls.block) >= min);
     METER_ACC(CBSMV2(cbs)->contingencySearches, cls.steps);
@@ -426,7 +452,8 @@ static Res MV2ContingencySearch(CBSBlock *blockReturn, CBS cbs, Size min)
 }
 
 
-/* MV2BufferFill -- refill an allocation buffer
+/*
+ * MV2BufferFill -- refill an allocation buffer
  *
  * See design.mps.poolmv2.impl.c.poolmv2.ap.fill
  */
@@ -492,7 +519,7 @@ retry:
   ABQRefillIfNecessary(mv2, idealSize);
   res = ABQPeek(MV2ABQ(mv2), &block);
   if (res != ResOK) {
-    /* If contingency mode, search the CBS using oldest-fit */
+    /* If contingency mode, search the CBS */
     if (mv2->contingency) {
       res = MV2ContingencySearch(&block, MV2CBS(mv2), minSize);
     }
@@ -504,7 +531,7 @@ retry:
       Bool b = SegOfAddr(&seg, arena, base);
       AVER(b);
     }
-    /* Use the whole block unless the remnant would not stay in the ABQ */
+    /* Use the whole block unless the remnant would stay in the ABQ */
     if (AddrOffset(base, limit) > idealSize + reuseSize) {
       limit = AddrAdd(base, idealSize);
     }
@@ -523,7 +550,7 @@ retry:
     goto done;
   }
 
-  /* Enter contingency mode */
+  /* Enter contingency mode if not already there */
   if (!mv2->contingency) {
     mv2->contingency = TRUE;
     METER_ACC(mv2->contingencies, idealSize);
@@ -544,6 +571,7 @@ done:
   *baseReturn = base;
   *limitReturn = limit;
   mv2->available -= AddrOffset(base, limit);
+  METER_ACC(mv2->poolAvailable, mv2->available);
   METER_ACC(mv2->bufferFills, AddrOffset(base, limit));
   EVENT_PPWAW(MV2BufferFill, mv2, buffer, minSize, base,
               AddrOffset(base, limit));
@@ -552,11 +580,11 @@ done:
 }
 
 
-/* MV2BufferEmpty -- detach a buffer from a segment
+/*
+ * MV2BufferEmpty -- detach a buffer from a segment
  *
  * See design.mps.poolmv2.impl.c.poolmv2.ap.empty
  */
-
 static void MV2BufferEmpty(Pool pool, Buffer buffer)
 {
   MV2 mv2;
@@ -578,6 +606,7 @@ static void MV2BufferEmpty(Pool pool, Buffer buffer)
   
   EVENT_PPW(MV2BufferEmpty, mv2, buffer, size);
   mv2->available += size;
+  METER_ACC(mv2->poolAvailable, mv2->available);
   METER_ACC(mv2->bufferEmpties, size);
 
   if (size == 0)
@@ -626,11 +655,11 @@ static void MV2BufferEmpty(Pool pool, Buffer buffer)
 }
 
 
-/* MV2Free -- free a block
+/*
+ * MV2Free -- free a block
  *
  * see design.poolmv2.impl.c.poolmv2.free
  */
-
 static void MV2Free(Pool pool, Addr base, Size size)
 { 
   MV2 mv2;
@@ -655,9 +684,13 @@ static void MV2Free(Pool pool, Addr base, Size size)
   }
   METER_ACC(mv2->poolFrees, size);
   mv2->available += size;
+  METER_ACC(mv2->poolAvailable, mv2->available);
 }
 
 
+/*
+ * MV2Describe -- Describe an MV2 pool
+ */
 static Res MV2Describe(Pool pool, mps_lib_FILE *stream)
 {
   Res res;
@@ -701,6 +734,8 @@ static Res MV2Describe(Pool pool, mps_lib_FILE *stream)
   METER_WRITE(mv2->bufferFills, stream);
   METER_WRITE(mv2->bufferEmpties, stream);
   METER_WRITE(mv2->poolFrees, stream);
+  METER_WRITE(mv2->poolSize, stream);
+  METER_WRITE(mv2->poolAvailable, stream);
   METER_WRITE(mv2->overflows, stream);
   METER_WRITE(mv2->refills, stream);
   METER_WRITE(mv2->refillPushes, stream);
@@ -755,6 +790,9 @@ static PoolClassStruct PoolClassMV2Struct =
 };
 
 
+/*
+ * MV2Check -- validate an MV2 Pool
+ */
 static Bool MV2Check(MV2 mv2)
 {
   CHECKS(MV2, mv2);
@@ -798,6 +836,7 @@ mps_class_t mps_class_mv2(void)
   return (mps_class_t)(PoolClassMV2());
 }
 
+/* --- should these be pool generics? */
 
 /* Free bytes */
 
@@ -815,6 +854,7 @@ size_t mps_mv2_free_size(mps_pool_t mps_pool)
   return (size_t)mv2->available;
 }
 
+/* Total bytes */
 
 size_t mps_mv2_size(mps_pool_t mps_pool)
 {
