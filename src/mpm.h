@@ -1,6 +1,6 @@
 /* impl.h.mpm: MEMORY POOL MANAGER DEFINITIONS
  *
- * $HopeName: MMsrc!mpm.h(MMdevel_drj_message.2) $
+ * $HopeName: MMsrc!mpm.h(MMdevel_drj_message.3) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  */
 
@@ -319,6 +319,7 @@ extern Bool MessageExType(MessageType *typeReturn, Space space);
 extern Bool MessageExDeliver(Space space, MessageType type,
 			     void *buffer, size_t length);
 extern Bool MessageDiscard(Space space, MessageType type);
+extern void MessageEmpty(Space space);
 
 
 /* Trace Interface -- see impl.c.trace */

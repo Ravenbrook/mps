@@ -1,6 +1,6 @@
 /* impl.c.message: MPS / CLIENT MESSAGES
  *
- * $HopeName: MMsrc!message.c(MMdevel_drj_message.1) $
+ * $HopeName: MMsrc!message.c(MMdevel_drj_message.2) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All Rights Reserved.
  *
  * READERSHIP
@@ -33,7 +33,7 @@
 #include "mpm.h"
 
 
-SRCID(message, "$HopeName: MMsrc!message.c(MMdevel_drj_message.1) $");
+SRCID(message, "$HopeName: MMsrc!message.c(MMdevel_drj_message.2) $");
 
 
 /* Maps from a Ring pointer to the message */
@@ -83,7 +83,7 @@ Bool MessageClassCheck(MessageClass class)
 
 Bool MessageTypeCheck(MessageType type)
 {
-  /* No check yet */
+  CHECKL(type < MessageTypeMAX);
 
   return TRUE;
 }
@@ -284,18 +284,47 @@ Bool MessageExDeliver(Space space, MessageType type,
   return TRUE;
 }
 
-Bool MessageDiscard(Space space, MessageType type)
+/* Deletes the message at the head of the queue.
+ * Internal function. */
+static void MessageDeleteHead(Space space)
 {
   Message message;
+
+  AVERT(Space, space);
+  AVER(!RingIsSingle(&space->messageRing));
+
+  message = MessageHead(space);
+  AVERT(Message, message);
+  RingRemove(&message->queueRing);
+  MessageDelete(message);
+
+  return;
+}
+
+/* Discards a message at the head of the queue only if it has type type */
+Bool MessageDiscard(Space space, MessageType type)
+{
   AVERT(Space, space);
   AVERT(MessageType, type);
 
   if(!MessageHeadIsType(space, type)) {
     return FALSE;
   }
-  message = MessageHead(space);
-  RingRemove(&message->queueRing);
-  MessageDelete(message);
+  MessageDeleteHead(space);
 
   return TRUE;
 }
+
+
+/* Empies the queue by discarding all messages */
+void MessageEmpty(Space space)
+{
+  AVERT(Space, space);
+
+  while(!RingIsSingle(&space->messageRing)) {
+    MessageDeleteHead(space);
+  }
+
+  return;
+}
+
