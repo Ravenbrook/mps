@@ -2,7 +2,7 @@
  *
  *               MANUAL RANK GUARDIAN POOL CLASS
  *
- *  $HopeName$
+ *  $HopeName: !poolmrg.h(trunk.1) $
  *  Copyright (C) 1995,1997 Harlequin Group, all rights reserved
  */
 

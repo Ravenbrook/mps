@@ -1,6 +1,6 @@
 /* impl.c.root: ROOT IMPLEMENTATION
  *
- * $HopeName: MMsrc!root.c(trunk.20) $
+ * $HopeName: !root.c(trunk.21) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  *
  * .scope: This is the implementation of the root datatype.
@@ -10,7 +10,7 @@
 
 #include "mpm.h"
 
-SRCID(root, "$HopeName: MMsrc!root.c(trunk.20) $");
+SRCID(root, "$HopeName: !root.c(trunk.21) $");
 
 
 /* RootCheck -- check the consistency of a root structure

@@ -2,7 +2,7 @@
  *
  *                  WIN32 THREAD MANAGER
  *
- *  $HopeName: MMsrc!thnti3.c(trunk.16) $
+ *  $HopeName: !thnti3.c(trunk.17) $
  *
  *  Copyright (C) 1995 Harlequin Group, all rights reserved
  *
@@ -67,7 +67,7 @@
 
 #include <windows.h>
 
-SRCID(thnti3, "$HopeName: MMsrc!thnti3.c(trunk.16) $");
+SRCID(thnti3, "$HopeName: !thnti3.c(trunk.17) $");
 
 Bool ThreadCheck(Thread thread)
 {
