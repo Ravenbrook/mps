@@ -1,7 +1,7 @@
 # impl.gmk.comm: COMMON GNUMAKEFILE FRAGMENT
 #
-# $HopeName: MMsrc!comm.gmk(MMdevel_sw_eq.3) $
-# Copyright (C) 1995,1996 Harlequin Group, all rights reserved
+# $HopeName: MMsrc!comm.gmk(MMdevel_sw_eq.4) $
+# Copyright (C) 1995,1996, 1997 Harlequin Group, all rights reserved
 #
 # DESCRIPTION
 #
@@ -111,7 +111,11 @@ ifdef TARGET
 ifeq ($(TARGET),mmsw.a)
 CFLAGSTARGET = -DTARGET_ARENA_CLIENT
 else
+ifeq ($(TARGET),mpmss)
+CFLAGSTARGET = -DTARGET_ARENA_CLIENT
+else
 CFLAGSTARGET =
+endif
 endif
 endif
 
@@ -143,7 +147,7 @@ CFRO = -DTARGET_VAR_RO $(CFLAGSOPTIMIZE)
 
 ifdef VARIETY
 MPMOBJ = $(MPM:%.c=$(PFM)/$(VARIETY)/%.o) \
-	$(MPMS:%.s=$(PFM)/$(VARIETY)/%.o) $(MPMPS:%.S=$(PFM)/$(VARIETY)/%.o)
+         $(MPMS:%.s=$(PFM)/$(VARIETY)/%.o) $(MPMPS:%.S=$(PFM)/$(VARIETY)/%.o)
 MPMDEP = $(MPM:%.c=$(PFM)/$(VARIETY)/%.d)
 AMCOBJ = $(AMC:%.c=$(PFM)/$(VARIETY)/%.o)
 AMCDEP = $(AMC:%.c=$(PFM)/$(VARIETY)/%.d)
@@ -244,7 +248,7 @@ $(PFM)/$(VARIETY)/locv: $(PFM)/$(VARIETY)/locv.o \
 	$(MPMOBJ) $(LOOBJ) $(TESTLIBOBJ)
 
 $(PFM)/$(VARIETY)/mpmss: $(PFM)/$(VARIETY)/mpmss.o \
-	$(MPMOBJ)
+	$(PFM)/$(VARIETY)/mpsliban.o $(SWOBJ)
 
 $(PFM)/$(VARIETY)/lockcov: $(PFM)/$(VARIETY)/lockcov.o \
 	$(MPMOBJ)
@@ -310,7 +314,6 @@ $(PFM)/$(VARIETY)/%.o: %.S
 # including them.
 
 ifdef gendep
-
 $(PFM)/$(VARIETY)/%.d: %.c
 	$(ECHO) "$(PFM): $@"
 	test -d $(PFM) || mkdir $(PFM)
