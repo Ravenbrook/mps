@@ -1,6 +1,6 @@
 /* impl.c.ssw3i3: WIN32/INTEL STACK SCANNING
  *
- * $HopeName: $
+ * $HopeName: MMsrc!ssw3i3.c(MM_dylan_jackdaw.1) $
  * Copyright (C) 1999.  Harlequin Group plc.  All rights reserved.
  *
  *  This scans the stack and fixes the registers which may contain 
@@ -25,6 +25,7 @@ SRCID(ssw3i3, "$HopeName: MMsrc!ssw3i3.c(MM_dylan_jackdaw.1) $");
 Res StackScan(ScanState ss, Addr *stackBot)
 {
   Addr *stackTop;
+  Res res;
 
   __asm {
     push edi           /* these registers are the save registers  */
@@ -34,6 +35,11 @@ Res StackScan(ScanState ss, Addr *stackBot)
   }
 
   AVER(AddrIsAligned((Addr)stackTop, sizeof(Addr)));  /* .align */
+  res = TraceScanArea(ss, stackTop, stackBot);
 
-  return TraceScanArea(ss, stackTop, stackBot);
+  __asm {
+    add esp, 0xc       /* pop 3 registers to restore the stack pointer */
+  }
+
+  return res;
 }
