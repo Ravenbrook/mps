@@ -1,6 +1,6 @@
 /* impl.h.mpm: MEMORY POOL MANAGER DEFINITIONS
  *
- * $HopeName: MMsrc!mpm.h(MMdevel_pekka_rate.2) $
+ * $HopeName: MMsrc!mpm.h(MMdevel_pekka_rate.3) $
  * Copyright (C) 1998.  Harlequin Group plc.  All rights reserved.
  */
 
@@ -202,7 +202,7 @@ extern Ring (RingNext)(Ring ring);
 /* Bit Table Interface -- see design.mps.bt.if.* for doc */
 
 /* design.mps.bt.if.size */
-extern Size (BTSize)(unsigned long length);
+extern size_t (BTSize)(unsigned long length);
 #define BTSize(n) (((n)+MPS_WORD_WIDTH-1)/MPS_WORD_WIDTH*sizeof(Word))
 
 
@@ -510,8 +510,8 @@ extern void ArenaRelease(Arena arena);
 extern void ArenaPark(Arena arena);
 extern Res ArenaCollect(Arena arena);
 
-extern Res ArenaAlloc(void **baseReturn, Arena arena, Size size);
-extern void ArenaFree(Arena arena, void *base, Size size);
+extern Res ArenaAlloc(void **baseReturn, Arena arena, size_t size);
+extern void ArenaFree(Arena arena, void *base, size_t size);
 
 /* Peek/Poke
  *
