@@ -1,25 +1,21 @@
-/*  impl.c.lockan
+/* impl.c.lockan: ANSI RECURSIVE LOCKS
  *
- *                  ANSI RECURSIVE LOCKS
+ * $HopeName: MMsrc!lockan.c(MM_epcore_brisling.1) $
  *
- *  $HopeName: !lockan.c(trunk.7) $
+ * Copyright (C) 1995, 1998 Harlequin Group plc.  All rights reserved.
  *
- *  Copyright (C) 1995 Harlequin Group, all rights reserved
+ * .purpose: This is a trivial implemenation of recursive locks
+ * that assumes we are not running in a multi-threaded environment.
+ * This provides stubs for the locking code where locking is not
+ * applicable.  The stubs provide some amount of checking.
  *
- *  This is a trivial implemenation of recursive locks
- *  that assumes we are not running in a multi-threaded
- *  environment.
- *
- *  This provides stubs for the locking code where locking
- *  is not applicable.  The stubs provide some amount of
- *  checking.
- *
- *  The limit on the number of recursive claims is ULONG_MAX.
+ * .limit: The limit on the number of recursive claims is ULONG_MAX.
  */
 
 #include "mpm.h"
 
-SRCID(lockan, "$HopeName: !lockan.c(trunk.7) $");
+SRCID(lockan, "$HopeName: MMsrc!lockan.c(MM_epcore_brisling.1) $");
+
 
 Bool LockCheck(Lock lock)
 {
@@ -80,14 +76,12 @@ static LockStruct globalLockStruct = {
 
 static Lock globalLock = &globalLockStruct;
 
-void LockClaimGlobalRecursive()
+void LockClaimGlobalRecursive(void)
 {
   LockClaimRecursive(globalLock);
 }
 
-void LockReleaseGlobalRecursive()
+void LockReleaseGlobalRecursive(void)
 {
   LockReleaseRecursive(globalLock);
 }
-
-
