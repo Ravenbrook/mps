@@ -657,7 +657,7 @@ static Bool arenaShouldCollectWorld(Arena arena,
           scanRate = arena->tracedSize / arena->tracedTime;
         else
           scanRate = 25000000.0; /* a reasonable default. */
-        arenaScanTime = arenaSize / scanRate;
+        arenaScanTime = (double)arenaSize / scanRate;
         arenaScanTime += 0.1;   /* for overheads. */
 
         /* how long since we last collected the world? */

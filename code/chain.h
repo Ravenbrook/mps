@@ -44,7 +44,7 @@ typedef struct PoolGenStruct *PoolGen;
 
 typedef struct PoolGenStruct {
   Sig sig;
-  Serial nr;          /* generation number */
+  Gen nr;             /* generation number */
   Pool pool;          /* pool this belongs to */
   Chain chain;        /* chain this belongs to */
   /* link in ring of all PoolGen's in this GenDesc (locus) */

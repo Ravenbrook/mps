@@ -373,7 +373,7 @@ extern double TraceWorkFactor;
 
 #define TRACE_SCAN_BEGIN(ss) \
   BEGIN \
-    Shift SCANzoneShift = (ss)->zoneShift; \
+    Shift SCANzoneShift = (Shift)(ss)->zoneShift; \
     ZoneSet SCANwhite = (ss)->white; \
     RefSet SCANsummary = (ss)->unfixedSummary; \
     Word SCANt; \

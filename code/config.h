@@ -206,7 +206,7 @@
 
 /* Tracer Configuration -- see <code/trace.c> */
 
-#define TraceLIMIT ((size_t)1)
+#define TraceLIMIT ((TraceId)1)
 /* I count 4 function calls to scan, 10 to copy. */
 #define TraceCopyScanRATIO (1.5)
 

@@ -347,7 +347,7 @@ static RefPart MRGRefPartOfLink(Link link, Arena arena)
   AVERT(MRGLinkSeg, linkseg);
   linkBase = (Link)SegBase(seg);
   AVER(link >= linkBase);
-  index = link - linkBase;
+  index = (Index)(link - linkBase);
   AVER(index < MRGGuardiansPerSeg(Pool2MRG(SegPool(seg))));
 
   return refPartOfIndex(linkseg->refSeg, index);
