@@ -1,7 +1,7 @@
 /* impl.c.trace: GENERIC TRACER IMPLEMENTATION
  *
- * $HopeName: !trace.c(trunk.88) $
- * Copyright (C) 1999.  Harlequin Limited.  All rights reserved.
+ * $HopeName: MMsrc!trace.c(MM_dylan_kinglet.1) $
+ * Copyright (C) 1999 Harlequin Limited.  All rights reserved.
  *
  * .design: design.mps.trace.
  */
@@ -9,7 +9,7 @@
 #include "mpm.h"
 
 
-SRCID(trace, "$HopeName: !trace.c(trunk.88) $");
+SRCID(trace, "$HopeName: MMsrc!trace.c(MM_dylan_kinglet.1) $");
 
 
 /* Types
@@ -965,10 +965,11 @@ static void TraceReclaim(Trace trace)
         /* The code from the class-specific reclaim methods to */
         /* unwhiten the segment could in fact be moved here.   */
         {
-          Seg nonWhiteSeg = NULL;       /* prevents compiler warning */
+          Seg nonWhiteSeg = NULL; /* prevents uninitialized warning */
           AVER_CRITICAL(!(SegOfAddr(&nonWhiteSeg, arena, base)
                           && TraceSetIsMember(SegWhite(nonWhiteSeg),
                                               trace->ti)));
+          UNUSED(nonWhiteSeg); /* impl.c.mpm.check.unused */
         }
       }
     } while(SegNext(&seg, arena, base));
@@ -1270,6 +1271,7 @@ static void TraceExpedite(Trace trace)
     /* because we are using emergencyFix the trace shouldn't */
     /* raise any error conditions */
     AVER(res == ResOK);
+    UNUSED(res); /* impl.c.mpm.check.unused */
   }
 }
 
