@@ -1,6 +1,6 @@
 /* impl.c.pool: POOL IMPLEMENTATION
  *
- * $HopeName: MMsrc!pool.c(MMdevel_lib.2) $
+ * $HopeName: MMsrc!pool.c(MMdevel_lib.3) $
  * Copyright (C) 1994,1995,1996 Harlequin Group, all rights reserved
  *
  * This is the implementation of the generic pool interface.  The
@@ -9,7 +9,7 @@
 
 #include "mpm.h"
 
-SRCID(pool, "$HopeName: MMsrc!pool.c(MMdevel_lib.2) $");
+SRCID(pool, "$HopeName: MMsrc!pool.c(MMdevel_lib.3) $");
 
 
 Bool PoolClassCheck(PoolClass class)
@@ -469,13 +469,9 @@ Res PoolNoDescribe(Pool pool, mps_lib_FILE *stream)
 
 Res PoolTrivDescribe(Pool pool, mps_lib_FILE *stream)
 {
-  int e;
   AVERT(Pool, pool);
   AVER(stream != NULL);
-  e = mps_lib_fprintf(stream, "  No class-specific description available.\n");
-  if(e < 0)
-    return ResIO;
-  return ResOK;
+  return WriteF(stream, "  No class-specific description available.\n", NULL);
 }
 
 Res PoolNoCondemn(RefSet *condemnedReturn, Pool pool, Space space, TraceId ti)
