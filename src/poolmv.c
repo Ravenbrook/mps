@@ -1,6 +1,6 @@
 /* impl.c.poolmv: MANUAL VARIABLE POOL
  *
- * $HopeName: MMsrc!poolmv.c(MMdevel_restr2.3) $
+ * $HopeName: MMsrc!poolmv.c(MMdevel_restr2.4) $
  * Copyright (C) 1994, 1995 Harlequin Group, all rights reserved
  *
  * **** RESTRICTION: This pool may not allocate from the arena control
@@ -37,7 +37,7 @@
 #include "poolmfs.h"
 #include "mpscmv.h"
 
-SRCID(poolmv, "$HopeName: MMsrc!poolmv.c(MMdevel_restr2.3) $");
+SRCID(poolmv, "$HopeName: MMsrc!poolmv.c(MMdevel_restr2.4) $");
 
 
 #define BLOCKPOOL(mv)   (MFSPool(&(mv)->blockPoolStruct))
@@ -578,18 +578,18 @@ static PoolClassStruct PoolClassMVStruct = {
   MVFinish,				/* finish */
   MVAlloc,				/* alloc */
   MVFree,				/* free */
-  NULL,					/* bufferInit */
-  NULL,             			/* bufferFinish */
-  NULL,					/* bufferFill */
-  NULL,					/* bufferTrip */
-  NULL,					/* bufferExpose */
-  NULL,					/* bufferCover */
-  NULL,					/* mark */
-  NULL,             			/* scan */
-  NULL,					/* fix */
-  NULL,             			/* relcaim */
-  NULL,					/* access */
-  NULL,             			/* poll */
+  PoolNoBufferInit,			/* bufferInit */
+  PoolNoBufferFinish,			/* bufferFinish */
+  PoolNoBufferFill,			/* bufferFill */
+  PoolNoBufferTrip,			/* bufferTrip */
+  PoolNoBufferExpose,			/* bufferExpose */
+  PoolNoBufferCover,			/* bufferCover */
+  PoolNoCondemn,			/* condemn */
+  PoolNoGrey,				/* mark */
+  PoolNoScan,             		/* scan */
+  PoolNoFix,				/* fix */
+  PoolNoReclaim,             		/* relcaim */
+  PoolNoAccess,				/* access */
   MVDescribe,				/* describe */
   PoolClassSig				/* impl.h.mpmst.class.end-sig */
 };

@@ -1,6 +1,6 @@
 /* impl.c.pool: POOL IMPLEMENTATION
  *
- * $HopeName: MMsrc!pool.c(MMdevel_restr2.3) $
+ * $HopeName: MMsrc!pool.c(MMdevel_restr2.4) $
  * Copyright (C) 1994,1995,1996 Harlequin Group, all rights reserved
  *
  * This is the implementation of the generic pool interface.  The
@@ -9,29 +9,35 @@
 
 #include "mpm.h"
 
-SRCID(pool, "$HopeName: MMsrc!pool.c(MMdevel_restr2.3) $");
+SRCID(pool, "$HopeName: MMsrc!pool.c(MMdevel_restr2.4) $");
 
 
 Bool PoolClassCheck(PoolClass class)
 {
   CHECKS(PoolClass, class);
-  CHECKL(class->endSig == PoolClassSig);
   CHECKL(class->name != NULL);
   CHECKL(class->size >= sizeof(PoolStruct));
   CHECKL(class->offset <= (size_t)(class->size - sizeof(PoolStruct)));
   CHECKL(class->init != NULL);
   CHECKL(class->finish != NULL);
-  /* if there's a free there must be an alloc */
-  CHECKL(class->alloc != NULL || class->free == NULL);
-  /* if theres a bufferCreate there must be other buffer methods */
-  if((class->attr & AttrBUF) != 0) {
-    CHECKL(class->bufferFill != NULL);
-    CHECKL(class->bufferTrip != NULL);
-  }
-  /* can't say much about access */
+  CHECKL(class->alloc != NULL);
+  CHECKL(class->free != NULL);
+  CHECKL(class->bufferInit != NULL);
+  CHECKL(class->bufferFinish != NULL);
+  CHECKL(class->bufferFill != NULL);
+  CHECKL(class->bufferTrip != NULL);
+  CHECKL(class->bufferExpose != NULL);
+  CHECKL(class->bufferCover != NULL);
+  CHECKL(class->condemn != NULL);
+  CHECKL(class->grey != NULL);
+  CHECKL(class->scan != NULL);
+  CHECKL(class->fix != NULL);
+  CHECKL(class->reclaim != NULL);
+  CHECKL(class->access != NULL);
+  CHECKL(class->describe != NULL);
+  CHECKL(class->endSig == PoolClassSig);
   return TRUE;
 }
-
 
 Bool PoolCheck(Pool pool)
 {
@@ -196,40 +202,31 @@ Res (PoolAlloc)(Addr *pReturn, Pool pool, Size size)
   return ResOK;
 }
 
-void PoolFree(Pool pool, Addr old, Size size)
+void (PoolFree)(Pool pool, Addr old, Size size)
 {
   AVERT(Pool, pool);
   AVER(old != (Addr)0);
   AVER(PoolHasAddr(pool, old));
-
-  if(pool->class->free != NULL)
-    (*pool->class->free)(pool, old, size);
+  (*pool->class->free)(pool, old, size);
 }
 
-Res PoolCondemn(RefSet *condemnedReturn, Pool pool,
+Res (PoolCondemn)(RefSet *condemnedReturn, Pool pool,
                   Space space, TraceId ti)
 {
-  if(pool->class->condemn != NULL)
-    return (*pool->class->condemn)(condemnedReturn, pool, space, ti);
-
-  *condemnedReturn = RefSetEmpty;
-  return ResOK;
+  AVERT(Pool, pool);
+  return (*pool->class->condemn)(condemnedReturn, pool, space, ti);
 }
 
-void PoolGrey(Pool pool, Space space, TraceId ti)
+void (PoolGrey)(Pool pool, Space space, TraceId ti)
 {
-  if(pool->class->grey != NULL)
-    (*pool->class->grey)(pool, space, ti);
+  AVERT(Pool, pool);
+  (*pool->class->grey)(pool, space, ti);
 }
 
-Res PoolScan(ScanState ss, Pool pool, Bool *finishedReturn)
+Res (PoolScan)(ScanState ss, Pool pool, Bool *finishedReturn)
 {
-  if(pool->class->scan != NULL)
-    return (*pool->class->scan)(ss, pool, finishedReturn);
-  else {
-    *finishedReturn = TRUE;
-    return ResOK;
-  }
+  AVERT(Pool, pool);
+  return (*pool->class->scan)(ss, pool, finishedReturn);
 }
 
 Res (PoolFix)(Pool pool, ScanState ss, Seg seg, Addr *refIO)
@@ -238,39 +235,40 @@ Res (PoolFix)(Pool pool, ScanState ss, Seg seg, Addr *refIO)
   return PoolFix(pool, ss, seg, refIO);
 }
 
-void PoolReclaim(Pool pool, Space space, TraceId ti)
+void (PoolReclaim)(Pool pool, Space space, TraceId ti)
 {
-  if(pool->class->reclaim != NULL)
-    (*pool->class->reclaim)(pool, space, ti);
+  AVERT(Pool, pool);
+  (*pool->class->reclaim)(pool, space, ti);
 }
 
-
-void PoolAccess(Pool pool, Seg seg, AccessSet mode)
+void (PoolAccess)(Pool pool, Seg seg, AccessSet mode)
 {
-  if(pool->class->access != NULL)
-    (*pool->class->access)(pool, seg, mode);
+  AVERT(Pool, pool);
+  (*pool->class->access)(pool, seg, mode);
 }
 
 
 Res PoolDescribe(Pool pool, Lib_FILE *stream)
 {
+  int e;
+  Res res;
   AVERT(Pool, pool);
   AVER(stream != NULL);
 
-  Lib_fprintf(stream,
-              "Pool %p {\n"
-              "  Class %s\n"
-              "  alignment %lu\n",
-              pool,
-              pool->class->name,
-              (unsigned long)pool->alignment);
+  e = Lib_fprintf(stream,
+                  "Pool %p {\n"
+                  "  Class %s\n"
+                  "  alignment %lu\n",
+                  pool,
+                  pool->class->name,
+                  (unsigned long)pool->alignment);
+  if(e < 0) return ResIO;
 
-  if(pool->class->describe == NULL)
-    Lib_fprintf(stream, "  No class-specific description available.\n");
-  else
-    (void)(*pool->class->describe)(pool, stream);
+  res = (*pool->class->describe)(pool, stream);
+  if(res != ResOK) return res;
 
-  Lib_fprintf(stream, "} Pool %p\n", pool);
+  e = Lib_fprintf(stream, "} Pool %p\n", pool);
+  if(e < 0) return ResIO;
 
   return ResOK;
 }
@@ -353,4 +351,172 @@ Align (PoolAlignment)(Pool pool)
 {
   AVERT(Pool, pool);
   return pool->alignment;
+}
+
+
+/* PoolNo*, PoolTriv* -- Trivial and non-methods for Pool Classes
+ *
+ * If a pool class doesn't implement a method, and doesn't expect it
+ * to be called, it should use a non-method (PoolNo*) which will cause
+ * an assertion failure if they are reached.
+ *
+ * If a pool class supports a protocol but does not require any more
+ * than a trivial implementation, it should use a trivial method
+ * (PoolTriv*) which will do the trivial thing.
+ */
+
+Res PoolNoAlloc(Addr *pReturn, Pool pool, Size size)
+{
+  AVER(pReturn != NULL);
+  AVERT(Pool, pool);
+  AVER(size > 0);
+  NOTREACHED;
+  return ResUNIMPL;
+}
+
+void PoolNoFree(Pool pool, Addr old, Size size)
+{
+  AVERT(Pool, pool);
+  AVER(old != NULL);
+  AVER(size > 0);
+  NOTREACHED;
+}
+
+void PoolTrivFree(Pool pool, Addr old, Size size)
+{
+  AVERT(Pool, pool);
+  AVER(old != NULL);
+  AVER(size > 0);
+  NOOP;				/* trivial free has no effect */
+}
+
+Res PoolNoBufferInit(Pool pool, Buffer buf)
+{
+  AVERT(Pool, pool);
+  NOTREACHED;
+  return ResUNIMPL;
+}
+
+Res PoolTrivBufferInit(Pool pool, Buffer buf)
+{
+  AVERT(Pool, pool);
+  return ResOK;
+}
+
+void PoolNoBufferFinish(Pool pool, Buffer buf)
+{
+  AVERT(Pool, pool);
+  AVERT(Buffer, buf);
+  NOTREACHED;
+}
+
+void PoolTrivBufferFinish(Pool pool, Buffer buf)
+{
+  AVERT(Pool, pool);
+  AVERT(Buffer, buf);
+}
+
+Res PoolNoBufferFill(Addr *baseReturn, Pool pool, Buffer buffer, Size size)
+{
+  AVER(baseReturn != NULL);
+  AVERT(Pool, pool);
+  AVERT(Buffer, buffer);
+  AVER(size > 0);
+  NOTREACHED;
+  return ResUNIMPL;
+}
+
+Bool PoolNoBufferTrip(Pool pool, Buffer buffer, Addr base, Size size)
+{
+  AVERT(Pool, pool);
+  AVERT(Buffer, buffer);
+  AVER(base != NULL);
+  AVER(size > 0);
+  NOTREACHED;
+  return FALSE;
+}
+
+void PoolNoBufferExpose(Pool pool, Buffer buffer)
+{
+  AVERT(Pool, pool);
+  AVERT(Buffer, buffer);
+  NOTREACHED;
+}
+
+void PoolNoBufferCover(Pool pool, Buffer buffer)
+{
+  AVERT(Pool, pool);
+  AVERT(Buffer, buffer);
+  NOTREACHED;
+}
+
+Res PoolNoDescribe(Pool pool, Lib_FILE *stream)
+{
+  AVERT(Pool, pool);
+  AVER(stream != NULL);
+  NOTREACHED;
+  return ResUNIMPL;
+}
+
+Res PoolTrivDescribe(Pool pool, Lib_FILE *stream)
+{
+  int e;
+  AVERT(Pool, pool);
+  AVER(stream != NULL);
+  e = Lib_fprintf(stream, "  No class-specific description available.\n");
+  if(e < 0)
+    return ResIO;
+  return ResOK;
+}
+
+Res PoolNoCondemn(RefSet *condemnedReturn, Pool pool, Space space, TraceId ti)
+{
+  AVER(condemnedReturn != NULL);
+  AVERT(Pool, pool);
+  AVERT(Space, space);
+  AVER(TraceIdCheck(ti));
+  NOTREACHED;
+  return ResUNIMPL;
+}
+
+void PoolNoGrey(Pool pool, Space space, TraceId ti)
+{
+  AVERT(Pool, pool);
+  AVERT(Space, space);
+  AVER(TraceIdCheck(ti));
+  NOTREACHED;
+}
+
+Res PoolNoScan(ScanState ss, Pool pool, Bool *finishedReturn)
+{
+  AVERT(ScanState, ss);
+  AVERT(Pool, pool);
+  AVER(finishedReturn != NULL);
+  NOTREACHED;
+  return ResUNIMPL;
+}
+
+Res PoolNoFix(Pool pool, ScanState ss, Seg seg, Ref *refIO)
+{
+  AVERT(Pool, pool);
+  AVERT(ScanState, ss);
+  AVERT(Seg, seg);
+  AVER(refIO != NULL);
+  NOTREACHED;
+  return ResUNIMPL;
+}
+
+void PoolNoReclaim(Pool pool, Space space, TraceId ti)
+{
+  AVERT(Pool, pool);
+  AVERT(Space, space);
+  AVER(TraceIdCheck(ti));
+  NOTREACHED;
+}
+
+void PoolNoAccess(Pool pool, Seg seg, AccessSet mode)
+{
+  AVERT(Pool, pool);
+  AVERT(Seg, seg);
+  NOTREACHED;
 }

@@ -1,6 +1,6 @@
 /* impl.h.mpm: MEMORY POOL MANAGER DEFINITIONS
  *
- * $HopeName: MMsrc!mpm.h(MMdevel_restr2.2) $
+ * $HopeName: MMsrc!mpm.h(MMdevel_restr2.3) $
  * Copyright (C) 1996 Harlequin Group, all rights reserved.
  */
 
@@ -158,6 +158,26 @@ extern Res (PoolFix)(Pool pool, ScanState ss, Seg seg, Addr *refIO);
 extern void PoolReclaim(Pool pool, Space space, TraceId ti);
 extern void PoolAccess(Pool pool, Seg seg, AccessSet mode);
 extern Size PoolPoll(Pool pool);
+
+extern Res PoolNoAlloc(Addr *pReturn, Pool pool, Size size);
+extern void PoolNoFree(Pool pool, Addr old, Size size);
+extern void PoolTrivFree(Pool pool, Addr old, Size size);
+extern Res PoolNoBufferInit(Pool pool, Buffer buf);
+extern Res PoolTrivBufferInit(Pool pool, Buffer buf);
+extern void PoolNoBufferFinish(Pool pool, Buffer buf);
+extern void PoolTrivBufferFinish(Pool pool, Buffer buf);
+extern Res PoolNoBufferFill(Addr *baseReturn, Pool pool, Buffer buffer, Size size);
+extern Bool PoolNoBufferTrip(Pool pool, Buffer buffer, Addr base, Size size);
+extern void PoolNoBufferExpose(Pool pool, Buffer buffer);
+extern void PoolNoBufferCover(Pool pool, Buffer buffer);
+extern Res PoolNoDescribe(Pool pool, Lib_FILE *stream);
+extern Res PoolTrivDescribe(Pool pool, Lib_FILE *stream);
+extern Res PoolNoCondemn(RefSet *condemnedReturn, Pool pool, Space space, TraceId ti);
+extern void PoolNoGrey(Pool pool, Space space, TraceId ti);
+extern Res PoolNoScan(ScanState ss, Pool pool, Bool *finishedReturn);
+extern Res PoolNoFix(Pool pool, ScanState ss, Seg seg, Ref *refIO);
+extern void PoolNoReclaim(Pool pool, Space space, TraceId ti);
+extern void PoolNoAccess(Pool pool, Seg seg, AccessSet mode);
 
 
 /* Trace Interface -- see impl.c.trace */
