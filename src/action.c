@@ -1,7 +1,7 @@
 /* impl.c.action: STRATEGIC ACTION
  *
  * Copyright (C) 1997 Harlequin Group, all rights reserved.
- * $HopeName: MMsrc!action.c(MMdevel_gens2.1) $
+ * $HopeName: MMsrc!action.c(MMdevel_gens2.2) $
  */
 
 #include "mpm.h"
@@ -9,7 +9,7 @@
 #include <float.h>
 #include <stdio.h> /* @@@@ for fprintf in debugging */
 
-SRCID(action, "$HopeName: MMsrc!action.c(MMdevel_gens2.1) $");
+SRCID(action, "$HopeName: MMsrc!action.c(MMdevel_gens2.2) $");
 
 
 /* ActionCheck -- check consistency of an Action structure */
@@ -147,21 +147,10 @@ static Res ActionCollect(Action action)
 
   space = PoolSpace(action->pool);
 
-  res = TraceCreate(&trace, space);
-  if(res != ResOK) goto failTraceCreate;
-
-  res = TraceStart(trace, action);
-  if(res != ResOK) goto failStart;
+  res = TraceCreate(&trace, space, action);
+  if(res != ResOK) return res;
 
   return ResOK;
-
-failStart:
-  /* .improve.undo-condemn: This is unsatisfactory as pools which
-   * successfully completed a condemn aren't given a chance to
-   * release any resources they may have allocated. */
-  TraceDestroy(trace);
-failTraceCreate:
-  return res;
 }
 
 
