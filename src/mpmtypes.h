@@ -1,6 +1,6 @@
 /* impl.h.mpmtypes: MEMORY POOL MANAGER TYPES
  *
- * $HopeName: MMsrc!mpmtypes.h(MMdevel_ptw_pseudoloci.2) $
+ * $HopeName: MMsrc!mpmtypes.h(MMdevel_ptw_pseudoloci.3) $
  * Copyright (C) 1997, 1998 Harlequin Group plc.  All rights reserved.
  *
  * .readership: MM developers.
@@ -104,11 +104,11 @@ typedef Bool (*CBSIterateMethod)(CBS cbs, CBSBlock block,
 /* @@@ Arbitrary constant defining the number of Loci that will be
    created and managed.  Seems like it should be of the same magnitude
    as the number of Zones */
-#define NUMLOCI ((Count)(MPS_WORD_WIDTH/2))
+#define NUMLOCI ((Count)(RefSetSize/2))
 typedef struct LocusManagerStruct *LocusManager;
 typedef struct LocusStruct *Locus;
 typedef struct LocusClientStruct *LocusClient;
-
+typedef struct ZoneUsageStruct *ZoneUsage;
 
 /* Arena*Method -- see @@@@ */
 
@@ -240,6 +240,8 @@ typedef Res (*RootScanRegMethod)(ScanState ss, Thread thread, void *p,
 #define TraceIdNONE     ((TraceId)-1)   /* design.mps.tracer */
 #define RefSetEMPTY     BS_EMPTY(RefSet)
 #define RefSetUNIV      BS_UNIV(RefSet)
+#define RefSetSize      BS_SIZE(RefSet)
+#define RefSetMASK      (RefSetSize - 1)
 #define TraceSetEMPTY   BS_EMPTY(TraceSet) /* design.mps.tracer */
 #define RankSetEMPTY    BS_EMPTY(RankSet)
 #define RankSetUNIV     ((1uL<<RankMAX)-1)

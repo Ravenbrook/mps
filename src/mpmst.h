@@ -1,6 +1,6 @@
 /* impl.h.mpmst: MEMORY POOL MANAGER DATA STRUCTURES
  *
- * $HopeName: MMsrc!mpmst.h(MMdevel_ptw_pseudoloci.2) $
+ * $HopeName: MMsrc!mpmst.h(MMdevel_ptw_pseudoloci.3) $
  * Copyright (C) 1998 Harlequin Group plc.  All rights reserved.
  *
  * .readership: MM developers.
@@ -49,54 +49,72 @@ typedef struct RingStruct {     /* double-ended queue structure */
 } RingStruct;
 
 
-/* LocusManagerStruct, LocusClientStruct, LocusStruct -- Locus
-   structures.  See design.mps.loci */
+/* Locus structures.  See design.mps.loci */
+
+/* ZoneUsageStruct -- accounts and summarizes zone usage */
+typedef struct ZoneUsageStruct
+{
+  /* one of these is redundant, for robustness */
+  RefSet free;                  /* unused zones */
+  RefSet exclusive;             /* zones with single usage */
+  RefSet shared;                /* zones with multiple usage */
+  Count usage[RefSetSize];
+} ZoneUsageStruct;
+
 
 /* LocusClientStruct -- included in any pool or generation that wants
    locus services */
 typedef struct LocusClientStruct 
 {
-  LocusManager manager;         /* backpointer */
+  LocusManager manager;         /* grandparent */
   Bool assigned;                /* has a locus */
-  Locus locus;                  /* backpointer */
+  Locus locus;                  /* parent */
+  /* cohort description */
+  RefSet preferred;             /* preferred zones */
+  RefSet disdained;             /* disdained zones */
+  Index lifetime;               /* mean object life */
+  /* summary of zone usage */
+  ZoneUsageStruct zoneUsageStruct;
+  /* locus client node */
   RingStruct locusRingStruct;
   Serial locusSerial;
-  RefSet preferred;
-  RefSet disdained;
-  /* @@@ cohort description */
-  Index lifetime;
-  RefSet used;
 } LocusClientStruct;
+
 
 /* LocusStruct -- Locus manager manages an array of these to implement
    locus services */
 typedef struct LocusStruct 
 {
+  LocusManager manager;         /* parent */
   Bool inUse;                   /* active */
-  Bool ready;                   /* client summary valid */
-  /* summary of client's cohort descriptions */
-  Index lifetime;               /* lifetime estimate */
-  RefSet preferred;             /* preferred zones */
-  RefSet disdained;             /* disdained zones */
-  RefSet used;                  /* zones in use by this locus */
+  Bool ready;                   /* cohort summary valid */
+  /* summary of clients' cohort descriptions */
+  RefSet preferred;             /* intersection */
+  RefSet disdained;             /* union */
+  Index lifetime;               /* average */
+  /* summary of clients' zone usage (always valid) */
+  ZoneUsageStruct zoneUsageStruct;
   /* Support for refset search policy */
   RefSet search;
   Index searchIndex;
-  LocusManager manager;         /* backpointer */
-  RingStruct clientRingStruct;  /* clients */
+  /* locus client list */
+  RingStruct clientRingStruct;
   Serial clientSerial;
-  /* @@@ placement description */
 } LocusStruct;
+
 
 /* LocusManagerStruct -- Included in any arena that wants to provide
    locus services */
 typedef struct LocusManagerStruct 
 {
-  Bool ready;                   /* free is up to date */
-  RefSet free;                  /* free zones in arena cache */
-  LocusStruct locus[NUMLOCI];   /* the loci */
+  /* summary of loci's zone usage (always valid) */
+  ZoneUsageStruct zoneUsageStruct;
+  /* the loci */
+  LocusStruct locus[NUMLOCI];
 } LocusManagerStruct;
 
+
+/* End of locus structures  */
 
 /* PoolClassStruct -- pool class structure
  *

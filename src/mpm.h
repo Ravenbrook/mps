@@ -1,6 +1,6 @@
 /* impl.h.mpm: MEMORY POOL MANAGER DEFINITIONS
  *
- * $HopeName: MMsrc!mpm.h(MMdevel_ptw_pseudoloci.2) $
+ * $HopeName: MMsrc!mpm.h(MMdevel_ptw_pseudoloci.3) $
  * Copyright (C) 1998.  Harlequin Group plc.  All rights reserved.
  */
 
@@ -523,7 +523,10 @@ extern Bool LocusClientZoneRangeFinished(LocusClient client);
 extern void LocusClientZoneRangeNext(Addr *baseReturn,
                                      Addr *limitReturn,
                                      LocusClient client);
-extern void LocusClientSegAdd(LocusClient client, Arena arena, Seg seg);
+extern void LocusClientNoteSegAlloc(LocusClient client, Arena arena,
+                                    Seg seg);
+extern void LocusClientNoteSegFree(LocusClient client, Arena arena,
+                                   Seg seg);
 
 
 /* Arena Interface -- see impl.c.arena */
@@ -780,18 +783,30 @@ extern Bool RankSetCheck(RankSet rankSet);
 #define RankSetDel(rs, r)       BS_DEL(RankSet, (rs), (r))
 
 #define RefSetCheck(refset)     TRUE
-#define RefSetZone(arena, addr) \
-  (((Word)(addr) >> (arena)->zoneShift) & (MPS_WORD_WIDTH - 1))
+#define RefSetZone(arena, addr)                         \
+  (((Word)(addr) >> (arena)->zoneShift) & RefSetMASK)
 #define RefSetUnion(rs1, rs2)   BS_UNION((rs1), (rs2))
 #define RefSetInter(rs1, rs2)   BS_INTER((rs1), (rs2))
-#define RefSetAdd(arena, rs, addr) \
-  BS_ADD(RefSet, (rs), RefSetZone((arena), (addr)))
-#define RefSetIsMember(arena, rs, addr) \
-  BS_IS_MEMBER((rs), RefSetZone((arena), (addr)))
+#define ZoneRefSet(z)           BS_SINGLE(RefSet, (z))
+#define RefSetAddZone(rs, z)    BS_ADD(RefSet, (rs), (z))
+#define RefSetAdd(arena, rs, addr)                      \
+   RefSetAddZone((rs), RefSetZone((arena), (addr)))
+#define RefSetIsMemberZone(rs, z)               \
+   BS_IS_MEMBER((rs), (z))
+#define RefSetIsMember(arena, rs, addr)                 \
+   RefSetIsMemberZone((rs), RefSetZone((arena), (addr)))
 #define RefSetSuper(rs1, rs2)   BS_SUPER((rs1), (rs2))
 #define RefSetDiff(rs1, rs2)    BS_DIFF((rs1), (rs2))
 #define RefSetSub(rs1, rs2)     BS_SUB((rs1), (rs2))
 #define RefSetComp(rs)          BS_COMP(rs)
+/* Executes body with zone set to each zone in the set */
+#define RefSet_FOR(ref, zone, next)             \
+     for(next = (ref), zone = 0;                \
+         next;                                  \
+         next >>= 1, zone++)                    \
+     if (next & 01)
+
+
 
 extern RefSet RefSetOfSeg(Arena arena, Seg seg);
 
