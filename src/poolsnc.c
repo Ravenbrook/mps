@@ -1,6 +1,6 @@
 /* impl.c.poolsnc: STACK NO CHECKING POOL CLASS
  *
- * $HopeName: !poolsnc.c(trunk.4) $
+ * $HopeName: MMsrc!poolsnc.c(MMdevel_tony_sunset.1) $
  * Copyright (C) 1998.  Harlequin Group plc.  All rights reserved.
  *
  * READERSHIP
@@ -26,7 +26,7 @@
 #include "mpm.h"
 
 
-SRCID(poolsnc, "$HopeName: !poolsnc.c(trunk.4) $");
+SRCID(poolsnc, "$HopeName: MMsrc!poolsnc.c(MMdevel_tony_sunset.1) $");
 
 
 #define SNCSig  ((Sig)0x519b754c)       /* SIGPooLSNC */
@@ -284,7 +284,8 @@ found:
 }
 
 
-static void SNCBufferEmpty(Pool pool, Buffer buffer, Seg seg)
+static void SNCBufferEmpty(Pool pool, Buffer buffer, 
+                           Seg seg, Addr init, Addr limit)
 {
   SNC snc;
   Arena arena;
@@ -292,6 +293,9 @@ static void SNCBufferEmpty(Pool pool, Buffer buffer, Seg seg)
 
   AVERT(Pool, pool);
   AVERT(Buffer, buffer);
+  AVER(SegCheck(seg));
+  AVER(init <= limit);
+  AVER(SegLimit(seg) == limit);
   snc = PoolPoolSNC(pool);
   AVERT(SNC, snc);
   AVER(BufferFrameState(buffer) == BufferFrameVALID);
@@ -301,10 +305,10 @@ static void SNCBufferEmpty(Pool pool, Buffer buffer, Seg seg)
   arena = BufferArena(buffer);
 
   /* Pad the end unused space at the end of the segment */
-  size = AddrOffset(BufferGetInit(buffer), SegLimit(seg));
+  size = AddrOffset(init, limit);
   if(size > 0) {
     ShieldExpose(arena, seg);
-    (*pool->format->pad)(BufferGetInit(buffer), size);
+    (*pool->format->pad)(init, size);
     ShieldCover(arena, seg);
   }
 }

@@ -1,6 +1,6 @@
 /* impl.c.pooln: NULL POOL CLASS
  *
- * $HopeName: !pooln.c(trunk.25) $
+ * $HopeName: MMsrc!pooln.c(MMdevel_tony_sunset.1) $
  * Copyright (C) 1997 Harlequin Group plc.  All rights reserved.
  *
  * .readership: MPS developers
@@ -9,7 +9,7 @@
 #include "pooln.h"
 #include "mpm.h"
 
-SRCID(pooln, "$HopeName: !pooln.c(trunk.25) $");
+SRCID(pooln, "$HopeName: MMsrc!pooln.c(MMdevel_tony_sunset.1) $");
 
 
 typedef struct PoolNStruct {
@@ -136,12 +136,14 @@ static Res NBufferFill(Seg *segReturn, Addr *baseReturn, Addr *limitReturn,
 }
 
 
-static void NBufferEmpty(Pool pool, Buffer buffer, Seg seg)
+static void NBufferEmpty(Pool pool, Buffer buffer, 
+                         Seg seg, Addr init, Addr limit)
 {
   AVERT(Pool, pool);
   AVERT(Buffer, buffer);
   AVER(BufferIsReady(buffer));
-  AVER(SegCheck(seg));
+  AVER((NULL == seg) || SegCheck(seg));
+  AVER(init <= limit);
 
   NOTREACHED;   /* can't create buffers, so they shouldn't trip */
 }
