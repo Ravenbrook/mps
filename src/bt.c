@@ -1,6 +1,6 @@
 /* impl.c.bt: BIT TABLES
  *
- * $HopeName: MMsrc!bt.c(trunk.14) $
+ * $HopeName: !bt.c(trunk.15) $
  * Copyright (C) 1997, 1998 Harlequin Group, all rights reserved
  *
  * READERSHIP
@@ -19,7 +19,7 @@
 
 #include "mpm.h"
 
-SRCID(bt, "$HopeName: MMsrc!bt.c(trunk.14) $");
+SRCID(bt, "$HopeName: !bt.c(trunk.15) $");
 
 /* is the whole word of bits at this index set? */
 
