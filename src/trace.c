@@ -1,12 +1,12 @@
 /* impl.c.trace: GENERIC TRACER IMPLEMENTATION
  *
- * $HopeName: MMsrc!trace.c(MMdevel_control3.2) $
+ * $HopeName: MMsrc!trace.c(MMdevel_control3.3) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  */
 
 #include "mpm.h"
 
-SRCID(trace, "$HopeName: MMsrc!trace.c(MMdevel_control3.2) $");
+SRCID(trace, "$HopeName: MMsrc!trace.c(MMdevel_control3.3) $");
 
 
 /* ScanStateCheck -- check consistency of a ScanState object */
@@ -214,10 +214,10 @@ static Res TraceStart(Trace trace, Action action)
   {
     double surviving = trace->condemned / 2;
     double scan = trace->foundation + surviving;
-    double reclaim = trace->condemned - surviving;
-    double alloc = reclaim / 2;
+    /* double reclaim = trace->condemned - surviving; */
+    double alloc = 1024*1024; /* reclaim / 2; */
     if(alloc > 0)
-      trace->rate = (Size)(scan * SPACE_POLL_MAX / (4096 * alloc));
+      trace->rate = 1 + (Size)(scan * SPACE_POLL_MAX / (4096 * alloc));
     else
       trace->rate = (Size)(scan / 4096);
   }
