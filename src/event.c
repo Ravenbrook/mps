@@ -1,6 +1,6 @@
 /* impl.c.event: EVENT LOGGING
  *
- * $HopeName: MMsrc!event.c(MMdevel_telemetry.1) $
+ * $HopeName: MMsrc!event.c(MMdevel_telemetry.2) $
  * Copyright (C) 1997 Harlequin Group, all rights reserved.
  *
  * .readership: MPS developers.
@@ -26,7 +26,7 @@
 #include "event.h"
 #include "mpsio.h"
 
-SRCID(event, "$HopeName: MMsrc!event.c(MMdevel_telemetry.1) $");
+SRCID(event, "$HopeName: MMsrc!event.c(MMdevel_telemetry.2) $");
 
 #ifdef EVENT /* .trans.ifdef */
 
@@ -66,7 +66,7 @@ Res (EventInit)(void)
     if(res != ResOK) return res;
     EventNext = eventBuffer;
     EventLimit = &eventBuffer[EVENT_BUFFER_SIZE];
-    eventUserCount = (Word)0;
+    eventUserCount = (Count)0;
     eventInited = TRUE;
     EventKindControl = (Word)mps_lib_telemetry_control();
   }
