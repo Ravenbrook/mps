@@ -1,6 +1,6 @@
 /* impl.c.arena: ARENA IMPLEMENTATION
  *
- * $HopeName: MMsrc!arena.c(MMdevel_reservoir.3) $
+ * $HopeName: MMsrc!arena.c(MMdevel_reservoir.4) $
  * Copyright (C) 1998. Harlequin Group plc. All rights reserved.
  *
  * .readership: Any MPS developer
@@ -36,10 +36,12 @@
 #include "poolmrg.h"
 #include "mps.h"
 
-SRCID(arena, "$HopeName: MMsrc!arena.c(MMdevel_reservoir.3) $");
+SRCID(arena, "$HopeName: MMsrc!arena.c(MMdevel_reservoir.4) $");
 
 
 /* Forward declarations */
+
+typedef struct NSEGStruct *NSEG;
 
 void SegRealloc(Seg seg, Pool newpool);
 
@@ -59,8 +61,6 @@ static Serial arenaSerial;         /* design.mps.arena.static.serial */
 
 
 /* The reservoir pool is defined here. See design.mps.reservoir */
-
-typedef struct NSEGStruct *NSEG;
 
 #define PoolPoolNSEG(pool)       PARENT(NSEGStruct, poolStruct, pool)
 
