@@ -1,6 +1,6 @@
 /* impl.c.poolawl: AUTOMATIC WEAK LINKED POOL CLASS
  *
- * $HopeName: MMsrc!poolawl.c(MM_dylan_sunflower.1) $
+ * $HopeName: MMsrc!poolawl.c(MM_dylan_sunflower.2) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  *
  * READERSHIP
@@ -16,7 +16,7 @@
 #include "mpm.h"
 #include "mpscawl.h"
 
-SRCID(poolawl, "$HopeName: MMsrc!poolawl.c(MM_dylan_sunflower.1) $");
+SRCID(poolawl, "$HopeName: MMsrc!poolawl.c(MM_dylan_sunflower.2) $");
 
 
 #define AWLSig	((Sig)0x519b7a37)	/* SIGPooLAWL */
@@ -458,9 +458,12 @@ notFinished:
 	Bool b;
 
 	b = SegOfAddr(&dependentSeg, space, dependentObj);
-	AVER(b == TRUE);
-	ShieldExpose(space, dependentSeg);
-	TraceSetSummary(space, dependentSeg, RefSetUNIV);
+	if(b == TRUE) {
+	  ShieldExpose(space, dependentSeg);
+	  TraceSetSummary(space, dependentSeg, RefSetUNIV);
+	} else {
+	  dependent = FALSE;
+	}
       }
       res = awl->format->scan(ss, p, objectEnd);
       if(dependent) {
