@@ -21,6 +21,9 @@
  * pool.  reserve_depth is a measure of the expected hysteresis of the
  * object population.
  */
+extern size_t mps_mv2_free_size(mps_pool_t mps_pool);
+extern size_t mps_mv2_size(mps_pool_t mps_pool);
 extern mps_class_t mps_class_mv2(void);
+
 
 #endif /* mpscmv2_h */
