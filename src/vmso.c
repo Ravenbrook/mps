@@ -1,6 +1,6 @@
 /* impl.c.vmso: VIRTUAL MEMORY MAPPING FOR SOLARIS 2.x
  *
- * $HopeName: MMsrc!vmso.c(MMepcore_pilchard.1) $
+ * $HopeName: MMsrc!vmso.c(MMepcore_pilchard.2) $
  * Copyright (C) 1995, 1998 Harlequin Group, all rights reserved
  *
  * Design: design.mps.vm
@@ -56,7 +56,7 @@
 /* unistd for _SC_PAGESIZE */
 #include <unistd.h>
 
-SRCID(vmso, "$HopeName: MMsrc!vmso.c(MMepcore_pilchard.1) $");
+SRCID(vmso, "$HopeName: MMsrc!vmso.c(MMepcore_pilchard.2) $");
 
 
 /* Fix up unprototyped system calls.  */
@@ -114,11 +114,11 @@ Res VMCreate(VM *vmReturn, Size size)
   int none_fd;
   VM vm;
 
+  AVER(vmReturn != NULL);
+
   align = (Align)sysconf(_SC_PAGESIZE);
   AVER(SizeIsP2(align));
-
-  AVER(vmReturn != NULL);
-  AVER(SizeIsAligned(size, align));
+  size = SizeAlignUp(size, align);
   AVER(size != 0);
   AVER(size <= INT_MAX); /* see .assume.size */
 

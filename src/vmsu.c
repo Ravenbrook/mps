@@ -1,6 +1,6 @@
 /* impl.c.vmsu: VIRTUAL MEMORY MAPPING FOR SUNOS 4
  *
- * $HopeName: MMsrc!vmsu.c(MMepcore_pilchard.1) $
+ * $HopeName: MMsrc!vmsu.c(MMepcore_pilchard.2) $
  * Copyright (C) 1995, 1997, 1998 Harlequin Group, all rights reserved
  *
  * Design: design.mps.vm
@@ -54,7 +54,7 @@
 #include <errno.h>
 #include <sys/errno.h>
 
-SRCID(vmsu, "$HopeName: MMsrc!vmsu.c(MMepcore_pilchard.1) $");
+SRCID(vmsu, "$HopeName: MMsrc!vmsu.c(MMepcore_pilchard.2) $");
 
 
 /* Fix up unprototyped system calls.  */
@@ -115,11 +115,11 @@ Res VMCreate(VM *vmReturn, Size size)
   int none_fd;
   VM vm;
 
+  AVER(vmReturn != NULL);
+
   align = (Align)getpagesize();
   AVER(SizeIsP2(align));
-
-  AVER(vmReturn != NULL);
-  AVER(SizeIsAligned(size, align));
+  size = SizeAlignUp(size, align);
   AVER(size != 0);
   AVER(size <= INT_MAX); /* see .assume.size */
 
