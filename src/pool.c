@@ -1,7 +1,7 @@
 /* impl.c.pool: POOL IMPLEMENTATION
  *
- * $HopeName: !pool.c(trunk.55) $
- * Copyright (C) 1997. Harlequin Group plc. All rights reserved.
+ * $HopeName: MMsrc!pool.c(MMdevel_ramp_alloc.1) $
+ * Copyright (C) 1997.  Harlequin Group plc.  All rights reserved.
  *
  * READERSHIP
  *
@@ -37,7 +37,7 @@
 
 #include "mpm.h"
 
-SRCID(pool, "$HopeName: !pool.c(trunk.55) $");
+SRCID(pool, "$HopeName: MMsrc!pool.c(MMdevel_ramp_alloc.1) $");
 
 
 Bool PoolClassCheck(PoolClass class)
@@ -1017,6 +1017,20 @@ failBegin:
   TraceDestroy(trace);
 failCreate:
   return res;
+}
+
+
+void PoolNoRampBegin(Pool pool, Buffer buf)
+{
+  AVERT(Pool, pool);
+  AVERT(Buffer, buf);
+}
+
+
+void PoolNoRampEnd(Pool pool, Buffer buf)
+{
+  AVERT(Pool, pool);
+  AVERT(Buffer, buf);
 }
 
 
