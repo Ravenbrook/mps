@@ -1,6 +1,6 @@
 /* impl.c.arenavm: VIRTUAL MEMORY BASED ARENA IMPLEMENTATION
  *
- * $HopeName: MMsrc!arenavm.c(MMdevel_drj_coop_arena.2) $
+ * $HopeName: MMsrc!arenavm.c(MMdevel_drj_coop_arena.3) $
  * Copyright (C) 1998. Harlequin Group plc. All rights reserved.
  *
  * This is the implementation of the Segment abstraction from the VM
@@ -31,7 +31,7 @@
 #include "mpm.h"
 #include "mpsavm.h"
 
-SRCID(arenavm, "$HopeName: MMsrc!arenavm.c(MMdevel_drj_coop_arena.2) $");
+SRCID(arenavm, "$HopeName: MMsrc!arenavm.c(MMdevel_drj_coop_arena.3) $");
 
 
 typedef struct VMArenaStruct *VMArena;
@@ -995,6 +995,95 @@ static Bool findFreeInRefSet(Index *baseReturn, VMArenaChunk *chunkReturn,
   return FALSE;
 }
 
+
+static Serial vmGenOfSegPref(VMArena vmArena, SegPref pref)
+{
+  Serial gen;
+
+  AVERT(VMArena, vmArena);
+  AVERT(SegPref, pref);
+  AVER(pref->isGen);
+
+  gen = pref->gen;
+  if(gen >= VMArenaGenCount) {
+    gen = VMArenaGenCount - 1;
+  }
+  return gen;
+}
+
+static Bool VMSegFind(Index *baseReturn, VMArenaChunk *chunkReturn,
+                      VMArena vmArena, SegPref pref, Size size)
+{
+  RefSet refSet;
+
+  /* This function is local to VMSegAlloc, so */
+  /* no checking required */
+
+  if(pref->isGen) {
+    Serial gen = vmGenOfSegPref(vmArena, pref);
+    refSet = vmArena->genRefSet[gen];
+  } else {
+    refSet = pref->refSet;
+  }
+
+  /* @@@@ Some of these tests might be duplicates.  If we're about */
+  /* to run out of virtual address space, then slow allocation is */
+  /* probably the least of our worries. */
+
+  /* .segalloc.improve.map: Define a function that takes a list */
+  /* (say 4 long) of RefSets and tries findFreeInRefSet on */
+  /* each one in turn.  Extra RefSet args that weren't needed */
+  /* could be RefSetUNIV */
+
+  if(pref->isCollected) { /* GC'd segment */
+    /* We look for space in the following places (in order) */
+    /*   - Zones already allocated to me (refSet) but are not */
+    /*     blacklisted; */
+    /*   - Zones that are either allocated to me, or are unallocated */
+    /*     but not blacklisted; */
+    /*   - Any non-blacklisted zone; */
+    /*   - Any zone; */
+    /* Note that each is a superset of the previous, unless blacklisted */
+    /* zones have been allocated (or the default is used). */
+    if(!findFreeInRefSet(baseReturn, chunkReturn, vmArena, size, 
+			 RefSetDiff(refSet, vmArena->blacklist),
+			 pref->high) &&
+       !findFreeInRefSet(baseReturn, chunkReturn, vmArena, size, 
+                         RefSetUnion(refSet,
+				     RefSetDiff(vmArena->freeSet, 
+						vmArena->blacklist)),
+						pref->high) && 
+       !findFreeInRefSet(baseReturn, chunkReturn, vmArena, size, 
+			 RefSetDiff(RefSetUNIV, vmArena->blacklist),
+			 pref->high) && 
+       !findFreeInRefSet(baseReturn, chunkReturn, vmArena, size,
+			 RefSetUNIV, pref->high)) {
+      return FALSE;
+    }
+  } else { /* non-GC'd segment */
+    /* We look for space in the following places (in order) */
+    /*   - Zones preferred (refSet) and blacklisted; */
+    /*   - Zones preferred; */
+    /*   - Zones preferred or blacklisted zone; */
+    /*   - Any zone. */
+    /* Note that each is a superset of the previous, unless blacklisted */
+    /* zones have been allocated. */
+    if(!findFreeInRefSet(baseReturn, chunkReturn, vmArena, size, 
+			 RefSetInter(refSet, vmArena->blacklist),
+			 pref->high) &&
+       !findFreeInRefSet(baseReturn, chunkReturn, vmArena, size,
+			 refSet, pref->high) && 
+       !findFreeInRefSet(baseReturn, chunkReturn, vmArena, size, 
+			 RefSetUnion(refSet, vmArena->blacklist),
+			 pref->high) && 
+       !findFreeInRefSet(baseReturn, chunkReturn, vmArena, size,
+			 RefSetUNIV, pref->high)) {
+      return FALSE;
+    }
+  }
+  return TRUE;
+}
+
 /* VMSegAlloc -- allocate a segment from the arena */
 
 static Res VMSegAlloc(Seg *segReturn, SegPref pref, Size size,
@@ -1003,10 +1092,9 @@ static Res VMSegAlloc(Seg *segReturn, SegPref pref, Size size,
   Addr addr, unmappedPagesBase, unmappedPagesLimit;
   Arena arena;
   Index i, pages, base;
-  RefSet refSet, segRefSet;
+  RefSet segRefSet;
   Res res;
   Seg seg;
-  Serial gen = (Serial)0; /* avoids incorrect warning */
   VMArena vmArena;
   VMArenaChunk chunk;
 
@@ -1026,69 +1114,18 @@ static Res VMSegAlloc(Seg *segReturn, SegPref pref, Size size,
   /* must be non-NULL. */
   AVER(pool != NULL);
 
-  if(pref->isGen) {
-    gen = pref->gen;
-    if(gen >= VMArenaGenCount)
-      gen = VMArenaGenCount - 1;
-    refSet = vmArena->genRefSet[gen];
-  } else {
-    refSet = pref->refSet;
-  }
-
-  /* @@@@ Some of these tests might be duplicates.  If we're about */
-  /* to run out of virtual address space, then slow allocation is */
-  /* probably the least of our worries. */
-
-  if(pref->isCollected) { /* GC'd segment */
-    /* We look for space in the following places (in order) */
-    /*   - Zones already allocated to me (refSet) but are not */
-    /*     blacklisted; */
-    /*   - Zones that are either allocated to me, or are unallocated */
-    /*     but not blacklisted; */
-    /*   - Any non-blacklisted zone; */
-    /*   - Any zone; */
-    /* Note that each is a superset of the previous, unless blacklisted */
-    /* zones have been allocated (or the default is used). */
-    if(!findFreeInRefSet(&base, &chunk, vmArena, size, 
-			 RefSetDiff(refSet, vmArena->blacklist),
-			 pref->high) &&
-       !findFreeInRefSet(&base, &chunk, vmArena, size, 
-                         RefSetUnion(refSet,
-				     RefSetDiff(vmArena->freeSet, 
-						vmArena->blacklist)),
-						pref->high) && 
-       !findFreeInRefSet(&base, &chunk, vmArena, size, 
-			 RefSetDiff(RefSetUNIV, vmArena->blacklist),
-			 pref->high) && 
-       !findFreeInRefSet(&base, &chunk, vmArena, size,
-			 RefSetUNIV, pref->high)) {
+  if(!VMSegFind(&base, &chunk, vmArena, pref, size)) {
+    /* @@@@ extend arena with new chunk */
+    if(!VMSegFind(&base, &chunk, vmArena, pref, size)) {
+      /* even with new chunk didn't work... */
       /* .improve.alloc-fail: This could be because the request was */
       /* too large, or perhaps the arena is fragmented.  We could return a */
       /* more meaningful code. */
       return ResRESOURCE;
     }
-  } else { /* non-GC'd segment */
-    /* We look for space in the following places (in order) */
-    /*   - Zones preferred (refSet) and blacklisted; */
-    /*   - Zones preferred; */
-    /*   - Zones preferred or blacklisted zone; */
-    /*   - Any zone. */
-    /* Note that each is a superset of the previous, unless blacklisted */
-    /* zones have been allocated. */
-    if(!findFreeInRefSet(&base, &chunk, vmArena, size, 
-			 RefSetInter(refSet, vmArena->blacklist),
-			 pref->high) &&
-       !findFreeInRefSet(&base, &chunk, vmArena, size, refSet, pref->high) && 
-       !findFreeInRefSet(&base, &chunk, vmArena, size, 
-			 RefSetUnion(refSet, vmArena->blacklist),
-			 pref->high) && 
-       !findFreeInRefSet(&base, &chunk, vmArena, size,
-			 RefSetUNIV, pref->high)) {
-      return ResRESOURCE;
-    }
   }
 
-  /* chunk (and base) should be initialised by findFree */
+  /* chunk (and base) should be initialised by VMSegFind */
   AVERT(VMArenaChunk, chunk);
 
   /* Test commit limit */
@@ -1152,9 +1189,11 @@ static Res VMSegAlloc(Seg *segReturn, SegPref pref, Size size,
 
   segRefSet = RefSetOfSeg(arena, seg);
 
-  if(pref->isGen)
+  if(pref->isGen) {
+    Serial gen = vmGenOfSegPref(vmArena, pref);
     vmArena->genRefSet[gen] = 
       RefSetUnion(vmArena->genRefSet[gen], segRefSet);
+  }
 
   vmArena->freeSet = RefSetDiff(vmArena->freeSet, segRefSet);
   
