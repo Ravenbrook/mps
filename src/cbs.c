@@ -92,7 +92,7 @@ Bool CBSBlockCheck(CBSBlock block) {
   /* If the block is in the middle of being deleted, */
   /* the pointers will be equal. */
   CHECKL(CBSBlockBase(block) <= CBSBlockLimit(block));
-  CHECKL(CBSBlockSize(block) <= block->maxSize);
+  /* Can't check maxSize because it may be invalid at the time */
   return TRUE;
 }
  
@@ -321,6 +321,7 @@ static void CBSBlockShrink(CBS cbs, CBSBlock block, Size oldSize) {
 
   SplayNodeRefresh(SplayTreeOfCBS(cbs), SplayNodeOfCBSBlock(block),
                    KeyOfCBSBlock(block));
+  AVER(CBSBlockSize(block) <= block->maxSize);
 
   if(cbs->delete != NULL && oldSize >= cbs->minSize && 
      newSize < cbs->minSize)
@@ -340,6 +341,7 @@ static void CBSBlockGrow(CBS cbs, CBSBlock block, Size oldSize) {
 
   SplayNodeRefresh(SplayTreeOfCBS(cbs), SplayNodeOfCBSBlock(block),
                    KeyOfCBSBlock(block));
+  AVER(CBSBlockSize(block) <= block->maxSize);
 
   if(cbs->new != NULL && oldSize < cbs->minSize &&
      newSize >= cbs->minSize)

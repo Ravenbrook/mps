@@ -248,25 +248,26 @@ static void SplayAssemble(SplayTree tree, SplayNode top,
       SplayNode node, parent, rightChild;
 
       /* Reverse the pointers between leftTop and leftLast */
+      /* leftLast is not reversed. */
       node = leftTop;
       parent = NULL;
-      rightChild = SplayNodeRightChild(node);
-      do {
+      while(node != leftLast) {
+        rightChild = SplayNodeRightChild(node);
         SplayNodeSetRightChild(node, parent); /* pointer reversal */
         parent = node;
         node = rightChild;
-        rightChild = SplayNodeRightChild(node);
-      } while(node != leftLast);
+       }
 
       /* Now restore the pointers, updating the client property. */
-      /* node is leftLast, rightChild is node->right */
-      do {
+      /* node is leftLast, parent is the last parent (or NULL). */
+      SplayNodeUpdate(tree, node);
+      while(node != leftTop) {
+        rightChild = node;
+        node = parent;
         parent = SplayNodeRightChild(node);
         SplayNodeSetRightChild(node, rightChild); /* un-reverse pointer */
         SplayNodeUpdate(tree, node);
-        rightChild = node;
-        node = parent;
-      } while(node != leftTop);
+      }
     }
   }
   /* otherwise leave top->left alone */
@@ -280,25 +281,26 @@ static void SplayAssemble(SplayTree tree, SplayNode top,
       SplayNode node, parent, leftChild;
 
       /* Reverse the pointers between rightTop and rightFirst */
+      /* ightFirst is not reversed. */
       node = rightTop;
       parent = NULL;
-      leftChild = SplayNodeLeftChild(node);
-      do {
+      while(node != rightFirst) {
+        leftChild = SplayNodeLeftChild(node);
         SplayNodeSetLeftChild(node, parent); /* pointer reversal */
         parent = node;
         node = leftChild;
-        leftChild = SplayNodeLeftChild(node);
-      } while(node != rightFirst);
+       }
 
       /* Now restore the pointers, updating the client property. */
-      /* node is rightFirst, leftChild is node->left */
-      do {
+      /* node is rightFirst, parent is the last parent (or NULL). */
+      SplayNodeUpdate(tree, node);
+      while(node != rightTop) {
+        leftChild = node;
+        node = parent;
         parent = SplayNodeLeftChild(node);
         SplayNodeSetLeftChild(node, leftChild); /* un-reverse pointer */
         SplayNodeUpdate(tree, node);
-        leftChild = node;
-        node = parent;
-      } while(node != rightTop);
+      }
     }
   }
   /* otherwise leave top->right alone */

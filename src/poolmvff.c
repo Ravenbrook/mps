@@ -144,6 +144,9 @@ static void MVFFFreeSegs(MVFF mvff)
 
   base = mvff->freeRangeBase;
   limit = mvff->freeRangeLimit;
+
+  mvff->freeRangeToCheck = FALSE;
+  mvff->freeRangeBase = mvff->freeRangeLimit = (Addr)0;
   
   pool = MVFFPool(mvff);
   arena = PoolArena(pool);
@@ -199,8 +202,6 @@ static void MVFFFreeSegs(MVFF mvff)
   }
 
 done:
-  mvff->freeRangeToCheck = FALSE;
-  mvff->freeRangeBase = mvff->freeRangeLimit = (Addr)0;
   return;
 }
 
@@ -255,6 +256,12 @@ static Res MVFFAddSeg(MVFF mvff, Size size, Bool withReservoirPermit)
   SegSetP(seg, (void*)0);
 
   res = MVFFAddToFreeList(mvff, SegBase(seg), SegLimit(seg));
+  if(mvff->freeRangeToCheck) {
+    /* We know there can't be any whole segs. */
+    mvff->freeRangeToCheck = FALSE;
+    mvff->freeRangeBase = mvff->freeRangeLimit = (Addr)0;
+  }
+
   return res;
 }
 
