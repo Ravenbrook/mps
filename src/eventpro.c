@@ -1,7 +1,7 @@
 /* impl.c.eventpro: Event processing routines
  * Copyright (C) 1999 Harlequin Group plc.  All rights reserved.
  *
- * $HopeName: !eventpro.c(trunk.3) $
+ * $HopeName: MMsrc!eventpro.c(MMdevel_alloc_replay.1) $
  */
 
 #include <assert.h>
@@ -34,7 +34,7 @@ struct EventProcStruct {
  * Should integrate with client exceptions, but that'll do for now.
  */
 
-#define error(fmt, arg) assert(FALSE);
+#define error(fmt, arg) assert(((void)fmt, FALSE));
 
 
 /* PointerAdd -- add offset to pointer
@@ -121,8 +121,10 @@ EventCode EventName2Code(char *name)
   size_t i;
   
   for(i = 0; i < eventTypeCount; ++i)
-    if (strcmp(eventTypes[i].name, name) == 0)
+    if (strcmp(eventTypes[i].name, name) == 0) {
+      assert(eventTypes[i].code <= EventCodeMAX);
       return eventTypes[i].code;
+    }
   error("Unknown event name %s", name);
   return 0;
 }
@@ -149,6 +151,7 @@ char *EventCode2Format(EventCode code)
 EventCode EventGetCode(Event event)
 {
   size_t i = eventType2Index(event->any.code);
+  assert(eventTypes[i].code <= EventCodeMAX);
   return eventTypes[i].code;
 }
 
@@ -209,9 +212,10 @@ typedef struct labelStruct *Label;
 
 Word AddrLabel(EventProc proc, Addr addr)
 {
-  Label label;
-  if (TableLookup((void **)&label, proc->labelTable, (Word)addr))
-    return label->id;
+  void *entry;
+
+  if (TableLookup(&entry, proc->labelTable, (Word)addr))
+    return ((Label)entry)->id;
   else
     return (Word)0;
 }
@@ -221,10 +225,10 @@ Word AddrLabel(EventProc proc, Addr addr)
 
 EventString LabelText(EventProc proc, Word id)
 {
-  Symbol sym;
+  void *entry;
 
-  if (TableLookup((void **)&sym, proc->internTable, id))
-    return sym->name;
+  if (TableLookup(&entry, proc->internTable, id))
+    return ((Symbol)entry)->name;
   else
     return NULL;
 }
@@ -301,19 +305,17 @@ Res EventRecord(EventProc proc, Event event, Word etime)
     res = TableDefine(proc->internTable, sym->id, sym);
   } break;
   case EventLabel: {		/* addr, id */
-    Label label = malloc(sizeof(labelStruct)), oldLabel;
+    Label label = malloc(sizeof(labelStruct));
+    void *entry;
 
     if (label == NULL) return ResMEMORY;
     label->id = event->aw.w1;
     if (!proc->partialLog) {
-      Symbol sym;
-      assert(TableLookup((void **)&sym, proc->internTable, label->id));
-      UNUSED(sym);
+      assert(TableLookup(&entry, proc->internTable, label->id));
     }
     label->time = etime;
     label->addr = event->aw.a0;
-    if (TableLookup((void **)&oldLabel, proc->labelTable,
-                    (Word)label->addr))
+    if (TableLookup(&entry, proc->labelTable, (Word)label->addr))
       res = TableRedefine(proc->labelTable, (Word)label->addr, label);
     else
       res = TableDefine(proc->labelTable, (Word)label->addr, label);
