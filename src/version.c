@@ -1,6 +1,6 @@
 /* impl.c.version: Version Inspection
  *
- * $HopeName: MMsrc!version.c(MM_epcore_brisling.8) $
+ * $HopeName: MMsrc!version.c(MM_epcore_brisling.9) $
  * Copyright (C) 1998.  Harlequin Group plc.  All rights reserved.
  *
  * PURPOSE
@@ -25,7 +25,7 @@
 /* .release: When making a new release, change the expansion of
  * MPS_RELEASE to be a string of the form "release.dylan.crow.2"
  * or whatever. */
-#define MPS_RELEASE "release.brisling.2+ [$HopeName: MMsrc!version.c(MM_epcore_brisling.8) $] *** DEVELOPMENT ONLY ***"
+#define MPS_RELEASE "release.epcore.brisling.3 [$HopeName: MMsrc!version.c(MM_epcore_brisling.9) $]"
 
 /* Version String
  *
