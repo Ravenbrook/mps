@@ -1,6 +1,6 @@
 /* impl.h.mpm: MEMORY POOL MANAGER DEFINITIONS
  *
- * $HopeName: !mpm.h(trunk.90) $
+ * $HopeName: MMsrc!mpm.h(MMdevel_tony_lifetime.1) $
  * Copyright (C) 1998.  Harlequin Group plc.  All rights reserved.
  */
 
@@ -515,6 +515,15 @@ extern Res ArenaCollect(Arena arena);
 
 extern Res ArenaAlloc(void **baseReturn, Arena arena, size_t size);
 extern void ArenaFree(Arena arena, void *base, size_t size);
+
+/* Arena support for deathtime tracking */
+extern void ArenaTrackFrequencySet(Arena arena, double freq);
+extern Res ArenaStartTrackingDeathtimes(Arena arena);
+extern Res ArenaStopTrackingDeathtimes(Arena arena);
+extern Res ArenaTrackDeathEvent(Arena arena, Addr addr);
+
+
+
 
 /* Peek/Poke
  *
