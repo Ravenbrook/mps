@@ -1,6 +1,6 @@
 # impl.gmk.gc: GNUMAKEFILE FRAGMENT FOR GNU CC
 #
-# $HopeName: !gc.gmk(trunk.21) $
+# $HopeName: MMsrc!gc.gmk(MMdevel_control3.1) $
 # Copyright (C) 1996 Harlequin Group, all rights reserved
 #
 # This file is included by platform makefiles that use the GNU CC
@@ -14,7 +14,7 @@ CFLAGSCOMPILER = \
 	-Winline -Waggregate-return -Wnested-externs \
 	-Wcast-qual -Wshadow
 CFLAGSDEBUG = -g -ggdb3
-CFLAGSOPTIMIZE = -O
+CFLAGSOPTIMIZE = -O -g -ggdb3
 
 # gcc -MM generates a dependency line of the form:
 #   thing.o : thing.c ...
