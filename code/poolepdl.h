@@ -2,7 +2,6 @@
  *
  * Copyright (c) 2001 Ravenbrook Limited.
  * $Id$
- * $HopeName: MMsrc!poolepdl.h(trunk.3) $
  * 
  * .purpose: This is a pool class for EPcore display lists. See
  * impl.c.poolepdl.purpose.

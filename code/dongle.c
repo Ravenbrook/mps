@@ -1,7 +1,6 @@
 /* impl.c.dongle: SENTINEL SUPERPRO DONGLE INTERFACE
  *
  * $Id$
- * $HopeName: MMsrc!dongle.c(trunk.6) $
  * Copyright (c) 2001 Ravenbrook Limited.
  *
  * .readership: NOTE: This file contains the secret IDs and formats for

@@ -1,7 +1,6 @@
 /* impl.h.dongle: DONGLE INTERFACE
  *
  * $Id$
- * $HopeName: MMsrc!dongle.h(trunk.2) $
  * Copyright (c) 2001 Ravenbrook Limited.
  */
 

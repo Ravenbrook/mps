@@ -1,7 +1,6 @@
 /* impl.c.poolepvm: ELECTRONIC PUBLISHING "VIRTUAL MEMORY" CLASS
  *
  * $Id$
- * $HopeName: MMsrc!poolepvm.c(trunk.45) $
  * Copyright (c) 2001 Ravenbrook Limited.
  *
  * .purpose: This is the implementation of the PostScript Virtual Memory

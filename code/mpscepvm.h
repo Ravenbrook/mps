@@ -1,7 +1,6 @@
 /* impl.h.mpscepvm: MEMORY POOL SYSTEM CLASS "EPVM"
  *
  * $Id$
- * $HopeName: MMsrc!mpscepvm.h(trunk.3) $
  * Copyright (c) 2001 Ravenbrook Limited.
  */
 

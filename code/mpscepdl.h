@@ -1,7 +1,6 @@
 /* impl.h.mpscepdl: MEMORY POOL SYSTEM CLASS "EPDL"
  *
  * $Id$
- * $HopeName: MMsrc!mpscepdl.h(trunk.4) $
  * Copyright (c) 2001 Ravenbrook Limited.
  */
 

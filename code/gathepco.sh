@@ -1,7 +1,6 @@
 #! /usr/local/bin/bash
 #
 # $Id$
-# $HopeName: MMsrc!gathepco.sh(trunk.1) $
 # Copyright (c) 2001 Ravenbrook Limited.
 
 mkdir release
