@@ -1,6 +1,6 @@
 /* impl.c.trace: GENERIC TRACER IMPLEMENTATION
  *
- * $HopeName: !trace.c(trunk.52) $
+ * $HopeName: MMsrc!trace.c(MMdevel_progress.1) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  *
  * .sources: design.mps.tracer.
@@ -8,7 +8,7 @@
 
 #include "mpm.h"
 
-SRCID(trace, "$HopeName: !trace.c(trunk.52) $");
+SRCID(trace, "$HopeName: MMsrc!trace.c(MMdevel_progress.1) $");
 
 
 /* ScanStateCheck -- check consistency of a ScanState object */
@@ -65,10 +65,12 @@ Bool TraceCheck(Trace trace)
   CHECKL(TraceSetIsMember(trace->arena->busyTraces, trace->ti));
   /* Can't check trace->white -- not in O(1) anyway. */
   CHECKL(RefSetSub(trace->mayMove, trace->white));
+  CHECKL(trace->preserved <= trace->condemned);
   /* Use trace->state to check more invariants. */
   switch(trace->state) {
     case TraceINIT:
     /* @@@@ What can be checked here? */
+    CHECKL(trace->preserved == 0);
     break;
 
     case TraceUNFLIPPED:
@@ -163,7 +165,7 @@ Res TraceStart(Trace trace)
   if(trace->white == RefSetEMPTY) {
     arena->flippedTraces = TraceSetAdd(arena->flippedTraces, trace->ti);
     trace->state = TraceFINISHED;
-    trace->rate = (Size)1;
+    /* @@@@ what about deadline etc? */
     return ResOK;
   }
 
@@ -193,11 +195,8 @@ Res TraceStart(Trace trace)
         /* to the white set.  This is done by seeing if the summary */
         /* of references in the segment intersects with the approximation */
         /* to the white set. */
-        if(RefSetInter(SegSummary(seg), trace->white) != RefSetEMPTY) {
+        if(RefSetInter(SegSummary(seg), trace->white) != RefSetEMPTY)
           PoolGrey(SegPool(seg), trace, seg);
-	  if(TraceSetIsMember(SegGrey(seg), trace->ti))
-	    trace->foundation += SegSize(seg);
-        }
       }
     } while(SegNext(&seg, arena, base));
   }
@@ -214,6 +213,7 @@ Res TraceStart(Trace trace)
     node = next;
   }
 
+#if 0
   /* Calculate the rate of working.  Assumes that half the condemned */
   /* set will survive, and calculates a rate of work which will */
   /* finish the collection by the time that a megabyte has been */
@@ -230,6 +230,9 @@ Res TraceStart(Trace trace)
     /* else */
       /* trace->rate = 1 + (Size)(scan / 4096); */
   }
+#endif /* 0 */
+
+  trace->deadline = arena->time + 900 * 1024;
 
   trace->state = TraceUNFLIPPED;
 
@@ -285,9 +288,11 @@ found:
   trace->mayMove = RefSetEMPTY;
   trace->ti = ti;
   trace->state = TraceINIT;
-  trace->condemned = (Size)0;   /* nothing condemned yet */
-  trace->foundation = (Size)0;  /* nothing grey yet */
-  trace->rate = (Size)0;        /* no scanning to be done yet */
+  trace->condemned = (Size)0;
+  trace->preserved = (Size)0;
+  trace->scanned = (Size)0;
+  trace->greySize = (Size)0;
+  trace->deadline = (Time)arena->time;
 
   trace->sig = TraceSig;
   AVERT(Trace, trace);
@@ -453,6 +458,8 @@ Res TraceFlip(Trace trace)
   ss.arena = arena;
   ss.traces = TraceSetSingle(trace->ti);
   ss.wasMarked = TRUE;
+  ss.preserved = (Size)0;
+  ss.scanned = (Size)0;
   ss.sig = ScanStateSig;
 
   for(ss.rank = RankAMBIG; ss.rank <= RankEXACT; ++ss.rank) {
@@ -478,6 +485,9 @@ Res TraceFlip(Trace trace)
       node = next;
     }
   }
+
+  trace->preserved += ss.preserved;
+  trace->scanned += ss.scanned;
 
   ss.sig = SigInvalid;  /* just in case */
 
@@ -681,6 +691,8 @@ static Res TraceScan(TraceSet ts, Rank rank,
     ss.arena = arena;
     ss.wasMarked = TRUE;
     ss.white = white;
+    ss.scanned = (Size)0;
+    ss.preserved = (Size)0;
     ss.sig = ScanStateSig;
     AVERT(ScanState, &ss);
     
@@ -704,6 +716,10 @@ static Res TraceScan(TraceSet ts, Rank rank,
     /* summary should replace the segment summary. */
     SegSetSummary(seg, ScanStateSummary(&ss));
     
+    /* @@@@ How do we calculate preservation for multiple traces? */
+    ArenaTrace(arena, 0)->preserved += ss.preserved;
+    ArenaTrace(arena, 0)->scanned += ss.scanned;
+
     ss.sig = SigInvalid;                  /* just in case */
   }
 
@@ -764,25 +780,40 @@ void TraceAccess(Arena arena, Seg seg, AccessSet mode)
 }
 
 
-static Res TraceRun(Trace trace)
+static Work TraceWork(Trace trace)
+{
+  AVERT(Trace, trace);
+
+  return ARENA_SCAN_COST * trace->scanned +
+         ARENA_PRESERVE_COST * trace->preserved;
+}
+
+
+static Res TraceRun(Trace trace, Work work)
 {
   Res res;
   Arena arena;
   Seg seg;
   Rank rank;
+  Work threshold;
 
   AVERT(Trace, trace);
   AVER(trace->state == TraceFLIPPED);
 
   arena = trace->arena;
+  threshold = TraceWork(trace) + work;
 
-  if(traceFindGrey(&seg, &rank, arena, trace->ti)) {
-    AVER((SegPool(seg)->class->attr & AttrSCAN) != 0);
-    res = TraceScan(TraceSetSingle(trace->ti), rank,
-                    arena, seg);
-    if(res != ResOK) return res;
-  } else
-    trace->state = TraceRECLAIM;
+  while(TraceWork(trace) < threshold) {
+    if(traceFindGrey(&seg, &rank, arena, trace->ti)) {
+      AVER((SegPool(seg)->class->attr & AttrSCAN) != 0);
+      res = TraceScan(TraceSetSingle(trace->ti), rank, arena, seg);
+      if(res != ResOK)
+        return res;
+    } else {
+      trace->state = TraceRECLAIM;
+      break;
+    }
+  }
 
   return ResOK;
 }
@@ -793,7 +824,7 @@ static Res TraceRun(Trace trace)
  * @@@@ This should accept some sort of progress control.
  */
 
-Res TracePoll(Trace trace)
+Res TracePoll(Trace trace, Work work)
 {
   Arena arena;
   Res res;
@@ -811,7 +842,7 @@ Res TracePoll(Trace trace)
     } break;
 
     case TraceFLIPPED: {
-      res = TraceRun(trace);
+      res = TraceRun(trace, work);
       if(res != ResOK) return res;
     } break;
 

@@ -1,6 +1,6 @@
 /* impl.c.seg: SEGMENTS
  *
- * $HopeName: !seg.c(trunk.6) $
+ * $HopeName: MMsrc!seg.c(MMdevel_progress.1) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  *
  * .design: The design for this module is design.mps.seg.
@@ -16,7 +16,7 @@
 
 #include "mpm.h"
 
-SRCID(seg, "$HopeName: !seg.c(trunk.6) $");
+SRCID(seg, "$HopeName: MMsrc!seg.c(MMdevel_progress.1) $");
 
 
 /* SegCheck -- check the integrity of a segment */
@@ -193,13 +193,16 @@ void SegSetGrey(Seg seg, TraceSet grey)
       for(rank = 0; rank < RankMAX; ++rank)
 	if(RankSetIsMember(seg->_rankSet, rank)) {
 	  RingInsert(ArenaGreyRing(arena, rank), &seg->_greyRing);
+          ArenaTrace(arena, 0)->greySize += SegSize(seg); /* @@@@ */
 	  break;
 	}
       AVER(rank != RankMAX); /* there should've been a match */
     }
   } else {
-    if(grey == TraceSetEMPTY)
+    if(grey == TraceSetEMPTY) {
       RingRemove(&seg->_greyRing);
+      ArenaTrace(arena, 0)->greySize -= SegSize(seg); /* @@@@ */
+    }
   }
 
   /* The read barrier is raised when the segment is grey for */
