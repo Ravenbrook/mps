@@ -1,7 +1,7 @@
 #
 #              GENERIC BUILD.GC MAKEFILE FRAGMENT
 #
-# $HopeName: MMsrc!gc.gmk(MMdevel_protoposm_1.6) $
+# $HopeName: MMsrc!gc.gmk(MMdevel_protoposm_1.7) $
 #
 # Copyright (C) 1995 Harlequin Group, all rights reserved
 #
@@ -234,12 +234,14 @@ $(PFM)/$(VARIETY)/fmtcvtr: $(PFM)/$(VARIETY)/poolpscv.o \
 	$(PFM)/$(VARIETY)/poolps.o \
 	$(PFM)/$(VARIETY)/trformat.o \
 	$(PFM)/$(VARIETY)/fmtcvtr.o \
+	$(PFM)/$(VARIETY)/memdump.o \
 	$(DBOBJ) $(MPMOBJ) $(STDOBJ) $(TESTLIBOBJ)
 
 $(PFM)/$(VARIETY)/fmtcvdw: $(PFM)/$(VARIETY)/poolpscv.o \
 	$(PFM)/$(VARIETY)/poolps.o \
 	$(PFM)/$(VARIETY)/dwformat.o \
 	$(PFM)/$(VARIETY)/fmtcvdw.o \
+	$(PFM)/$(VARIETY)/memdump.o \
 	$(DBOBJ) $(MPMOBJ) $(STDOBJ) $(TESTLIBOBJ)
 
 $(PFM)/$(VARIETY)/dumper: $(PFM)/$(VARIETY)/dumper.o \
