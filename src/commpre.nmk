@@ -1,6 +1,6 @@
 # ==== FIRST COMMON FRAGMENT FOR PLATFORMS USING MV AND NMAKE
 #
-# $HopeName: !commpre.nmk(trunk.5) $
+# $HopeName: MMsrc!commpre.nmk(MMdevel_dropin.1) $
 # Copyright (C) 1995,1997 Harlequin Group, all rights reserved
 #
 # DESCRIPTION
@@ -108,7 +108,7 @@ CFLAGSTARGET = /MT /DCONFIG_PROD_MPS
 !endif
 !endif
 
-CFLAGSCOMMON = /nologo /W3 /WX $(PFMDEFS) $(CFLAGSTARGET)
+CFLAGSCOMMON = $(PFMDEFS) $(CFLAGSTARGET)
 
 
 # "debug" variety flags
