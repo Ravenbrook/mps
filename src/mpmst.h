@@ -1,6 +1,6 @@
 /* impl.h.mpmst: MEMORY POOL MANAGER DATA STRUCTURES
  *
- * $HopeName: MMsrc!mpmst.h(MMdevel_ptw_pseudoloci.3) $
+ * $HopeName: MMsrc!mpmst.h(MMdevel_ptw_pseudoloci.5) $
  * Copyright (C) 1998 Harlequin Group plc.  All rights reserved.
  *
  * .readership: MM developers.
@@ -59,6 +59,7 @@ typedef struct ZoneUsageStruct
   RefSet exclusive;             /* zones with single usage */
   RefSet shared;                /* zones with multiple usage */
   Count usage[RefSetSize];
+  Sig sig;
 } ZoneUsageStruct;
 
 
@@ -78,6 +79,7 @@ typedef struct LocusClientStruct
   /* locus client node */
   RingStruct locusRingStruct;
   Serial locusSerial;
+  Sig sig;
 } LocusClientStruct;
 
 
@@ -94,13 +96,11 @@ typedef struct LocusStruct
   Index lifetime;               /* average */
   /* summary of clients' zone usage (always valid) */
   ZoneUsageStruct zoneUsageStruct;
-  /* Support for refset search policy */
-  RefSet search;
-  Index searchIndex;
-  Index i, j, k;
   /* locus client list */
   RingStruct clientRingStruct;
   Serial clientSerial;
+  Count clients;
+  Sig sig;
 } LocusStruct;
 
 
@@ -108,10 +108,23 @@ typedef struct LocusStruct
    locus services */
 typedef struct LocusManagerStruct 
 {
+  /* Support for refset search policy */
+  Bool searchCacheValid;
+  RefSet searchCache[RefSetSize];
+  Index searchIndex;
+  Index searchLimit;
+  RefSet searchCurrent;
+  Index searchZone;
+  LocusClient searchClient;
+  Locus searchLocus;
+  Bool searchUseFree;
+  Bool searchExpand;
   /* summary of loci's zone usage (always valid) */
   ZoneUsageStruct zoneUsageStruct;
   /* the loci */
   LocusStruct locus[NUMLOCI];
+  Count activeLoci;
+  Sig sig;
 } LocusManagerStruct;
 
 
