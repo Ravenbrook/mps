@@ -1,7 +1,7 @@
 /* impl.h.cbs: CBS -- Coalescing Block Structure
  *
- * $HopeName: MMsrc!cbs.h(MMdevel_color_pool.2) $
- * Copyright (C) 1998 Harlequin Group plc.  All rights reserved.
+ * $HopeName: MMsrc!cbs.h(MMdevel_color_pool.3) $
+ * Copyright (C) 1998, 1999 Harlequin Group plc.  All rights reserved.
  *
  * .source: design.mps.cbs.
  */
@@ -94,10 +94,7 @@ extern Res CBSBlockDescribe(CBSBlock block, mps_lib_FILE *stream);
 extern Addr (CBSBlockBase)(CBSBlock block);
 #define CBSBlockLimit(block) ((block)->limit)
 extern Addr (CBSBlockLimit)(CBSBlock block);
-/* ANSI C doesn't define subtraction of zero pointers. */
-#define CBSBlockSize(block) \
-  (CBSBlockBase((block)) == (Addr)0 ? (Size)0 : \
-    (AddrOffset(CBSBlockBase((block)), CBSBlockLimit((block)))))
+#define CBSBlockSize(block) AddrOffset((block)->base, (block)->limit)
 extern Size (CBSBlockSize)(CBSBlock block);
 
 typedef unsigned CBSFindDelete;
