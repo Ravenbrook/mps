@@ -1,6 +1,6 @@
 /* impl.c.finalcv: FINALIZATION COVERAGE TEST
  *
- * $HopeName: MMsrc!finalcv.c(MMdevel_drj_message.2) $
+ * $HopeName: MMsrc!finalcv.c(MMdevel_drj_message.3) $
  * Copyright (C) 1996,1997 Harlequin Group, all rights reserved
  *
  * READERSHIP
@@ -151,7 +151,7 @@ test(void *arg, size_t s)
       objind = dylan_int_int(obj[2]);
       printf("Finalizing: object %lu at %p\n", objind, objaddr);
       assert(root[objind] == NULL);
-      root[objind] = msg.ref;
+      root[objind] = objaddr;
     }
   }
 
