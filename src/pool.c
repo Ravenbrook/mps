@@ -1,6 +1,6 @@
 /* impl.c.pool: POOL IMPLEMENTATION
  *
- * $HopeName: !pool.c(trunk.58) $
+ * $HopeName: MMsrc!pool.c(MMdevel_ptw_pseudoloci.1) $
  * Copyright (C) 1997. Harlequin Group plc. All rights reserved.
  *
  * READERSHIP
@@ -37,7 +37,7 @@
 
 #include "mpm.h"
 
-SRCID(pool, "$HopeName: !pool.c(trunk.58) $");
+SRCID(pool, "$HopeName: MMsrc!pool.c(MMdevel_ptw_pseudoloci.1) $");
 
 
 Bool PoolClassCheck(PoolClass class)
@@ -132,6 +132,9 @@ Res PoolInitV(Pool pool, Arena arena,
   pool->fillInternalSize = 0.0;
   pool->emptyInternalSize = 0.0;
 
+  /* Initialize the locus client  */
+  LocusClientInit(PoolLocusClient(pool), ArenaLocusManager(arena));
+  
   /* Initialise signature last; see design.mps.sig */
   pool->sig = PoolSig;
   pool->serial = arena->poolSerial;
