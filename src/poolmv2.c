@@ -1,6 +1,6 @@
 /* impl.c.poolmv2: MANUAL VARIABLE POOL, II
  *
- * $HopeName: MMsrc!poolmv2.c(MMdevel_gavinm_mvff.1) $
+ * $HopeName: MMsrc!poolmv2.c(MMdevel_gavinm_mvff.2) $
  * Copyright (C) 1998 Harlequin Group plc.  All rights reserved.
  *
  * .readership: any MPS developer
@@ -17,7 +17,7 @@
 #include "abq.h"
 #include "meter.h"
 
-SRCID(poolmv2, "$HopeName: MMsrc!poolmv2.c(MMdevel_gavinm_mvff.1) $");
+SRCID(poolmv2, "$HopeName: MMsrc!poolmv2.c(MMdevel_gavinm_mvff.2) $");
 
 
 /* Signatures */
@@ -273,7 +273,7 @@ static Res MV2Init(Pool pool, va_list arg)
     abqDepth = 3;
 
   res = CBSInit(arena, MV2CBS(mv2), &MV2NoteNew, &MV2NoteDelete,
-                NULL, NULL, reuseSize, TRUE);
+                NULL, NULL, reuseSize, MPS_PF_ALIGN, TRUE, FALSE);
   if (res != ResOK)
     goto failCBS;
   

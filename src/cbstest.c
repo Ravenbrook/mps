@@ -1,6 +1,6 @@
 /*  impl.c.cbstest: COALESCING BLOCK STRUCTURE TEST
  *
- *  $HopeName: MMsrc!cbstest.c(MMdevel_gavinm_mvff.1) $
+ *  $HopeName: MMsrc!cbstest.c(MMdevel_gavinm_mvff.2) $
  * Copyright (C) 1998 Harlequin Group plc.  All rights reserved.
  */
 
@@ -20,7 +20,7 @@
 #endif /* MPS_OS_SU */
 
 
-SRCID(cbstest, "$HopeName: MMsrc!cbstest.c(MMdevel_gavinm_mvff.1) $");
+SRCID(cbstest, "$HopeName: MMsrc!cbstest.c(MMdevel_gavinm_mvff.2) $");
 
 #define ArraySize ((size_t)123456)
 #define nOperations ((size_t)125000)
@@ -223,7 +223,7 @@ extern int main(int argc, char *argv[])
     ErrorExit("failed to create bit table.");
 
   res = CBSInit(arena, &cbsStruct, &cbs_new_callback, NULL, NULL, NULL,
-                minSize, TRUE);
+                minSize, (Align)1, FALSE, FALSE);
   if(res != MPS_RES_OK)
     ErrorExit("failed to initialise CBS.");
 

@@ -1,6 +1,6 @@
 /* impl.c.cbs: COALESCING BLOCK STRUCTURE IMPLEMENTATION
  *
- * $HopeName: MMsrc!cbs.c(MMdevel_gavinm_mvff.1) $
+ * $HopeName: MMsrc!cbs.c(MMdevel_gavinm_mvff.3) $
  * Copyright (C) 1998 Harlequin Group plc, all rights reserved.
  *
  * .readership: Any MPS developer.
@@ -18,7 +18,7 @@
 #include "mpm.h"
 
 
-SRCID(cbs, "$HopeName: MMsrc!cbs.c(MMdevel_gavinm_mvff.1) $");
+SRCID(cbs, "$HopeName: MMsrc!cbs.c(MMdevel_gavinm_mvff.3) $");
 
 typedef struct CBSEmergencyBlockStruct *CBSEmergencyBlock;
 typedef struct CBSEmergencyBlockStruct {
@@ -39,6 +39,27 @@ typedef struct CBSEmergencyGrainStruct {
 #define SplayNodeOfCBSBlock(block) (&((block)->splayNode))
 #define KeyOfCBSBlock(block) ((void *)&((block)->base))
 
+#define CBSEmergencyBlockBase(block) ((Addr)(block))
+#define CBSEmergencyBlockLimit(block) ((block)->limit)
+#define CBSEmergencyGrainBase(grain) ((Addr)(grain))
+#define CBSEmergencyGrainSize(cbs) ((cbs)->alignment)
+#define CBSEmergencyGrainLimit(cbs, grain) \
+  AddrAdd(CBSEmergencyGrainBase((grain)), CBSEmergencyGrainSize((cbs)))
+
+static CBSEmergencyBlock CBSEmergencyBlockInit(Addr base, Addr limit)
+{
+  CBSEmergencyBlock block = (CBSEmergencyBlock)base;
+  block->limit = limit;
+  block->next = NULL;
+  return block;
+}
+
+static CBSEmergencyGrain CBSEmergencyGrainInit(CBS cbs, Addr base, Addr limit)
+{
+  CBSEmergencyGrain grain = (CBSEmergencyGrain)base;
+  AVER(AddrOffset(base, limit) == CBSEmergencyGrainSize(cbs));
+  return grain;
+}
 
 /* CBSEnter, CBSLeave -- Avoid re-entrance 
  *
@@ -70,6 +91,7 @@ Bool CBSCheck(CBS cbs) {
   /* can't check emergencyBlockList or emergencyGrainList */
   CHECKD(Pool, cbs->blockPool);
   CHECKL(BoolCheck(cbs->mayUseInline));
+  CHECKL(BoolCheck(cbs->fastFind));
   CHECKL(BoolCheck(cbs->inCBS));
   CHECKL(cbs->new == NULL || FUNCHECK(cbs->new));
   CHECKL(cbs->delete == NULL || FUNCHECK(cbs->delete));
@@ -77,6 +99,7 @@ Bool CBSCheck(CBS cbs) {
   CHECKL(cbs->shrink == NULL || FUNCHECK(cbs->shrink));
   CHECKL(cbs->mayUseInline || cbs->emergencyBlockList == NULL);
   CHECKL(cbs->mayUseInline || cbs->emergencyGrainList == NULL);
+  CHECKL(!cbs->mayUseInline || AlignIsAligned(cbs->alignment, MPS_PF_ALIGN));
 
   return TRUE;
 }
@@ -159,6 +182,7 @@ static Bool CBSTestNode(SplayTree tree, SplayNode node,
   AVERT(SplayNode, node);
   AVER(closureP == NULL);
   AVER(closureS > 0);
+  AVER(CBSOfSplayTree(tree)->fastFind);
 
   size = (Size)closureS;
   block = CBSBlockOfSplayNode(node);
@@ -176,6 +200,7 @@ static Bool CBSTestTree(SplayTree tree, SplayNode node,
   AVERT(SplayNode, node);
   AVER(closureP == NULL);
   AVER(closureS > 0);
+  AVER(CBSOfSplayTree(tree)->fastFind);
 
   size = (Size)closureS;
   block = CBSBlockOfSplayNode(node);
@@ -195,6 +220,7 @@ static void CBSUpdateNode(SplayTree tree, SplayNode node,
     AVERT(SplayNode, leftChild);
   if(rightChild != NULL)
     AVERT(SplayNode, rightChild);
+  AVER(CBSOfSplayTree(tree)->fastFind);
 
   block = CBSBlockOfSplayNode(node);
   maxSize = CBSBlockSize(block);
@@ -225,15 +251,27 @@ Res CBSInit(Arena arena, CBS cbs,
             CBSChangeSizeMethod grow,
             CBSChangeSizeMethod shrink,
             Size minSize,
-            Bool mayUseInline) {
+            Align alignment,
+            Bool mayUseInline,
+            Bool fastFind) {
   Res res;
 
   AVERT(Arena, arena);
   AVER(new == NULL || FUNCHECK(new));
   AVER(delete == NULL || FUNCHECK(delete));
   AVER(BoolCheck(mayUseInline));
+  if(mayUseInline) {
+    /* Range alignment must be enough to store structures there. */
+    AVER(AlignIsAligned(alignment, MPS_PF_ALIGN));
+    /* We must be able to store a grain structure in any range. */
+    AVER(sizeof(CBSEmergencyGrainStruct) <= MPS_PF_ALIGN);
+    /* We must be able to store a block structure in two adjacent grains. */
+    AVER(2 * sizeof(CBSEmergencyGrainStruct) <= 
+         sizeof(CBSEmergencyBlockStruct));
+  }
 
-  SplayTreeInit(SplayTreeOfCBS(cbs), &CBSSplayCompare, &CBSUpdateNode);
+  SplayTreeInit(SplayTreeOfCBS(cbs), &CBSSplayCompare, 
+                fastFind ? &CBSUpdateNode : NULL);
   res = PoolCreate(&(cbs->blockPool), arena, PoolClassMFS(),
                    sizeof(CBSBlockStruct) * 64, sizeof(CBSBlockStruct));
   if(res != ResOK)
@@ -245,6 +283,8 @@ Res CBSInit(Arena arena, CBS cbs,
   cbs->shrink = shrink;
   cbs->minSize = minSize;
   cbs->mayUseInline = mayUseInline;
+  cbs->fastFind = fastFind;
+  cbs->alignment = alignment;
   cbs->inCBS = TRUE;
   cbs->emergencyBlockList = NULL;
   cbs->emergencyGrainList = NULL;
@@ -319,9 +359,11 @@ static void CBSBlockShrink(CBS cbs, CBSBlock block, Size oldSize) {
   newSize = CBSBlockSize(block);
   AVER(oldSize > newSize);
 
-  SplayNodeRefresh(SplayTreeOfCBS(cbs), SplayNodeOfCBSBlock(block),
-                   KeyOfCBSBlock(block));
-  AVER(CBSBlockSize(block) <= block->maxSize);
+  if(cbs->fastFind) {
+    SplayNodeRefresh(SplayTreeOfCBS(cbs), SplayNodeOfCBSBlock(block),
+                     KeyOfCBSBlock(block));
+    AVER(CBSBlockSize(block) <= block->maxSize);
+  }
 
   if(cbs->delete != NULL && oldSize >= cbs->minSize && 
      newSize < cbs->minSize)
@@ -339,9 +381,11 @@ static void CBSBlockGrow(CBS cbs, CBSBlock block, Size oldSize) {
   newSize = CBSBlockSize(block);
   AVER(oldSize < newSize);
 
-  SplayNodeRefresh(SplayTreeOfCBS(cbs), SplayNodeOfCBSBlock(block),
-                   KeyOfCBSBlock(block));
-  AVER(CBSBlockSize(block) <= block->maxSize);
+  if(cbs->fastFind) {
+    SplayNodeRefresh(SplayTreeOfCBS(cbs), SplayNodeOfCBSBlock(block),
+                     KeyOfCBSBlock(block));
+    AVER(CBSBlockSize(block) <= block->maxSize);
+  }
 
   if(cbs->new != NULL && oldSize < cbs->minSize &&
      newSize >= cbs->minSize)
@@ -390,23 +434,23 @@ failPoolAlloc:
 }
 
 
-/* CBSInsert -- Insert a range into the CBS
+/* CBSInsertIntoTree -- Insert a range into the CBS proper
  *
- * See design.mps.cbs.functions.cbs.insert.
+ * ... as opposed to the emergency lists.
  */
 
-Res CBSInsert(CBS cbs, Addr base, Addr limit) {
+static Res CBSInsertIntoTree(CBS cbs, Addr base, Addr limit) {
   Res res;
   SplayNode leftSplay, rightSplay;
   CBSBlock leftCBS, rightCBS;
   Bool leftMerge, rightMerge;
   Size oldSize;
 
-  CBSEnter(cbs);
-
   AVERT(CBS, cbs);
   AVER(base != (Addr)0);
   AVER(base < limit);
+  AVER(AddrIsAligned(base, cbs->alignment));
+  AVER(AddrIsAligned(limit, cbs->alignment));
 
   res = SplayTreeNeighbours(&leftSplay, &rightSplay,
                             SplayTreeOfCBS(cbs), (void *)&base);
@@ -468,32 +512,234 @@ Res CBSInsert(CBS cbs, Addr base, Addr limit) {
     }
   }
 
-  CBSLeave(cbs);
   return ResOK;
 
 fail:
-  CBSLeave(cbs);
   AVER(res != ResOK);
   return res;
 }
 
 
-/* CBSDelete -- Remove a range from a CBS
+/* CBSCoalesceWithEmergencyLists -- coalesce received range with EBL and EGL
  *
- * See design.mps.cbs.function.cbs.delete.
+ * Attempts to extend the range about to be freed by adding ranges from
+ * the emergency lists.  May remove blocks from the emergency list.
  */
 
-Res CBSDelete(CBS cbs, Addr base, Addr limit) {
+static void CBSCoalesceWithEmergencyLists(Addr *baseIO, Addr *limitIO, CBS cbs)
+{
+  Addr base, limit;
+  Count nCoalescences = 0;
+
+  AVER(baseIO != NULL);
+  AVER(limitIO != NULL);
+  AVERT(CBS, cbs);
+  AVER(cbs->mayUseInline);
+
+  base = *baseIO;
+  limit = *limitIO;
+  AVER(base < limit);
+
+  if(cbs->emergencyBlockList != NULL) {
+    CBSEmergencyBlock prev, block, next;
+
+    for(block = cbs->emergencyBlockList, prev = NULL;
+        block != NULL && CBSEmergencyBlockBase(block) <= limit;
+        prev = block, block = block->next) {
+      if(CBSEmergencyBlockLimit(block) == base) {
+        base = CBSEmergencyBlockBase(block);
+        next = block->next;
+        if(prev == NULL)
+          cbs->emergencyBlockList = next;
+        else
+          prev->next = next;
+        ++nCoalescences;
+      } else if(CBSEmergencyBlockBase(block) == limit) {
+        limit = CBSEmergencyBlockLimit(block);
+        next = block->next;
+        if(prev == NULL)
+          cbs->emergencyBlockList = next;
+        else
+          prev->next = next;
+        ++nCoalescences;
+        break;
+      }
+    }
+  }
+  
+  if(cbs->emergencyGrainList != NULL) {
+    CBSEmergencyGrain prev, grain, next;
+
+    for(grain = cbs->emergencyGrainList, prev = NULL;
+        grain != NULL && CBSEmergencyGrainBase(grain) <= limit &&
+          nCoalescences < 2;
+        prev = grain, grain = grain->next) {
+      if(CBSEmergencyGrainLimit(cbs, grain) == base) {
+        base = CBSEmergencyGrainBase(grain);
+        next = grain->next;
+        if(prev == NULL)
+          cbs->emergencyGrainList = next;
+        else
+          prev->next = next;
+        ++nCoalescences;
+      } else if(CBSEmergencyGrainBase(grain) == limit) {
+        limit = CBSEmergencyGrainLimit(cbs, grain);
+        next = grain->next;
+        if(prev == NULL)
+          cbs->emergencyGrainList = next;
+        else
+          prev->next = next;
+        ++nCoalescences;
+        break;
+      }
+    }
+  }
+
+  AVER(nCoalescences <= 2); 
+
+  *baseIO = base;
+  *limitIO = limit;
+  return;
+}
+
+
+/* CBSAddToEmergencyLists -- Adds range to emergency lists
+ *
+ * The range must be unadjacent to any items on the emergency lists.
+ */
+
+static Res CBSAddToEmergencyLists(CBS cbs, Addr base, Addr limit) 
+{
+  Res res = ResOK;
+  Size size;
+
+  AVERT(CBS, cbs);
+  AVER(base < limit);
+
+  size = AddrOffset(base, limit);
+  if(size >= sizeof(CBSEmergencyBlockStruct)) {
+    CBSEmergencyBlock prev, block, new;
+    new = CBSEmergencyBlockInit(base, limit);
+    for(prev = NULL, block = cbs->emergencyBlockList;
+        block != NULL && CBSEmergencyBlockBase(block) < base;
+        prev = block, block = block->next)
+      NOOP;
+    if(prev == NULL) 
+      cbs->emergencyBlockList = new;
+    else
+      prev->next = new;
+    new->next = block; /* may be NULL */
+  } else if(size == CBSEmergencyGrainSize(cbs)) {
+    CBSEmergencyGrain prev, grain, new;
+    new = CBSEmergencyGrainInit(cbs, base, limit);
+    for(prev = NULL, grain = cbs->emergencyGrainList;
+        grain != NULL && CBSEmergencyGrainBase(grain) < base;
+        prev = grain, grain = grain->next)
+      NOOP;
+    if(prev == NULL) 
+      cbs->emergencyGrainList = new;
+    else
+      prev->next = new;
+    new->next = grain; /* may be NULL */
+  } else {
+    NOTREACHED;
+    res = ResFAIL;
+  }
+
+  return res;
+}
+
+
+/* CBSFlushEmergencyLists -- Attempt to move ranges to CBS proper */
+
+static Res CBSFlushEmergencyLists(CBS cbs) 
+{
+  Res res = ResOK;
+
+  AVERT(CBS, cbs);
+  AVER(cbs->mayUseInline);
+
+  if(cbs->emergencyBlockList != NULL) {
+    CBSEmergencyBlock block;
+    for(block = cbs->emergencyBlockList;
+        block != NULL;
+        block = block->next) {
+      res = CBSInsertIntoTree(cbs, CBSEmergencyBlockBase(block),
+                              CBSEmergencyBlockLimit(block));
+      if(res == ResOK) {
+        cbs->emergencyBlockList = block->next;
+      } else {
+        AVER(ResIsAllocFailure(res));
+        if(ResIsAllocFailure(res))
+          res = ResOK;
+        goto done;
+      }
+    }
+  }
+
+  if(cbs->emergencyGrainList != NULL) {
+    CBSEmergencyGrain grain;
+    for(grain = cbs->emergencyGrainList;
+        grain != NULL;
+        grain = grain->next) {
+      res = CBSInsertIntoTree(cbs, CBSEmergencyGrainBase(grain),
+                              CBSEmergencyGrainLimit(cbs, grain));
+      if(res == ResOK) {
+        cbs->emergencyGrainList = grain->next;
+      } else {
+        AVER(ResIsAllocFailure(res));
+        if(ResIsAllocFailure(res))
+          res = ResOK;
+        goto done;
+      }
+    }
+  }
+
+  done:
+  return res;
+}
+
+/* CBSInsert -- Insert a range into the CBS
+ *
+ * See design.mps.cbs.functions.cbs.insert.
+ */
+
+Res CBSInsert(CBS cbs, Addr base, Addr limit) {
+  Res res;
+
+  CBSEnter(cbs);
+
+  AVERT(CBS, cbs);
+  AVER(base != (Addr)0);
+  AVER(base < limit);
+  AVER(AddrIsAligned(base, cbs->alignment));
+  AVER(AddrIsAligned(limit, cbs->alignment));
+
+  CBSCoalesceWithEmergencyLists(&base, &limit, cbs);
+
+  res = CBSInsertIntoTree(cbs, base, limit);
+  if(res != ResOK) {
+    if(cbs->mayUseInline) {
+      res = CBSAddToEmergencyLists(cbs, base, limit);
+      AVER(res == ResOK);
+    }
+  } else if(cbs->mayUseInline) {
+    /* Attempt to clear emergency lists */
+    res = CBSFlushEmergencyLists(cbs);
+  }
+
+  CBSLeave(cbs);
+  return res;
+}
+
+
+static Res CBSDeleteFromTree(CBS cbs, Addr base, Addr limit) {
   Res res;
   CBSBlock cbsBlock;
   SplayNode splayNode;
   Size oldSize;
 
-  CBSEnter(cbs);
-
-  AVERT(CBS, cbs);
-  AVER(base != NULL);
-  AVER(limit > base);
+  /* parameters already checked */
 
   res = SplayTreeSearch(&splayNode, SplayTreeOfCBS(cbs), (void *)&base);
   if(res != ResOK)
@@ -549,7 +795,6 @@ Res CBSDelete(CBS cbs, Addr base, Addr limit) {
     }
   }
 
-  CBSLeave(cbs);
   return ResOK;
 
 failNew:
@@ -557,6 +802,120 @@ failDelete:
 failLimitCheck:
 failSplayTreeSearch:
   AVER(res != ResOK);
+  return res;
+}
+
+static Res CBSDeleteFromEmergencyBlockList(CBS cbs, Addr base, Addr limit)
+{
+  Res res;
+  Addr blockBase, blockLimit;
+  CBSEmergencyBlock prev, block;
+
+  /* parameters already checked in caller */
+  AVER(cbs->mayUseInline);
+
+  for(prev = NULL, block = cbs->emergencyBlockList;
+      block != NULL && CBSEmergencyBlockLimit(block) >= limit;
+      prev = block, block = block->next) 
+    NOOP;
+
+  if(block != NULL) {
+    blockBase = CBSEmergencyBlockBase(block);
+    blockLimit = CBSEmergencyBlockLimit(block);
+
+    if(blockBase <= base && limit <= blockLimit) {
+      /* remove from list */
+      if(prev == NULL) 
+        cbs->emergencyBlockList = block->next;
+      else
+        prev->next = block->next;
+      if(blockBase < base) {
+        res = CBSAddToEmergencyLists(cbs, blockBase, base);
+        if(res != ResOK)
+          return res;
+      }
+      if(limit < blockLimit) {
+        res = CBSAddToEmergencyLists(cbs, limit, blockLimit);
+        if(res != ResOK)
+          return res;
+      }
+      return ResOK;
+    }
+  } 
+  return ResFAIL;
+}
+
+
+static Res CBSDeleteFromEmergencyGrainList(CBS cbs, Addr base, Addr limit)
+{
+  Res res;
+  Addr grainBase, grainLimit;
+  CBSEmergencyGrain prev, grain;
+
+  /* parameters already checked in caller */
+  AVER(cbs->mayUseInline);
+  if(AddrOffset(base, limit) != CBSEmergencyGrainSize(cbs))
+    return ResFAIL;
+
+  for(prev = NULL, grain = cbs->emergencyGrainList;
+      grain != NULL && CBSEmergencyGrainLimit(cbs, grain) >= limit;
+      prev = grain, grain = grain->next) 
+    NOOP;
+
+  if(grain != NULL) {
+    grainBase = CBSEmergencyGrainBase(grain);
+    grainLimit = CBSEmergencyGrainLimit(cbs, grain);
+
+    if(grainBase <= base && limit <= grainLimit) {
+      /* remove from list */
+      if(prev == NULL)
+        cbs->emergencyGrainList = grain->next;
+      else
+        prev->next = grain->next;
+      if(grainBase < base) {
+        res = CBSAddToEmergencyLists(cbs, grainBase, base);
+        if(res != ResOK)
+          return res;
+      }
+      if(limit < grainLimit) {
+        res = CBSAddToEmergencyLists(cbs, limit, grainLimit);
+        if(res != ResOK)
+          return res;
+      }
+      return ResOK;
+    }
+  } 
+  return ResFAIL;
+}
+
+
+/* CBSDelete -- Remove a range from a CBS
+ *
+ * See design.mps.cbs.function.cbs.delete.
+ */
+
+Res CBSDelete(CBS cbs, Addr base, Addr limit) {
+  Res res;
+
+  CBSEnter(cbs);
+
+  AVERT(CBS, cbs);
+  AVER(base != NULL);
+  AVER(limit > base);
+  AVER(AddrIsAligned(base, cbs->alignment));
+  AVER(AddrIsAligned(limit, cbs->alignment));
+
+  res = CBSDeleteFromTree(cbs, base, limit);
+
+  if(cbs->mayUseInline) {
+    if(res == ResFAIL) { /* wasn't in tree */
+      res = CBSDeleteFromEmergencyBlockList(cbs, base, limit);
+      if(res == ResFAIL) { /* wasn't in block list */
+        res = CBSDeleteFromEmergencyGrainList(cbs, base, limit);
+      }
+    }
+  }
+
   CBSLeave(cbs);
   return res;
 }
@@ -768,6 +1127,7 @@ Bool CBSFindFirst(Addr *baseReturn, Addr *limitReturn,
   AVERT(CBS, cbs);
   AVER(size > 0);
   AVER(sizeof(unsigned long) >= sizeof(Size));
+  AVER(cbs->fastFind);
 
   found = SplayFindFirst(&node, SplayTreeOfCBS(cbs), &CBSTestNode,
                          &CBSTestTree, NULL, (unsigned long)size);
@@ -797,6 +1157,7 @@ Bool CBSFindLast(Addr *baseReturn, Addr *limitReturn,
   AVERT(CBS, cbs);
   AVER(size > 0);
   AVER(sizeof(unsigned long) >= sizeof(Size));
+  AVER(cbs->fastFind);
 
   found = SplayFindLast(&node, SplayTreeOfCBS(cbs), &CBSTestNode,
                         &CBSTestTree, NULL, (unsigned long)size);

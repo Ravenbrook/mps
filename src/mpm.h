@@ -1,6 +1,6 @@
 /* impl.h.mpm: MEMORY POOL MANAGER DEFINITIONS
  *
- * $HopeName: MMsrc!mpm.h(MMdevel_gavinm_mvff.1) $
+ * $HopeName: MMsrc!mpm.h(MMdevel_gavinm_mvff.2) $
  * Copyright (C) 1998.  Harlequin Group plc.  All rights reserved.
  */
 
@@ -79,11 +79,13 @@ extern Addr (AddrAlignDown)(Addr addr, Align align);
 
 #define AddrWord(a)             ((Word)(a))
 #define SizeWord(s)             ((Word)(s))
+#define AlignWord(s)            ((Word)(s))
 #define AddrIsAligned(p, a)     WordIsAligned(AddrWord(p), (a))
 #define AddrAlignUp(p, a)       ((Addr)WordAlignUp(AddrWord(p), (a)))
 #define SizeIsAligned(s, a)     WordIsAligned(SizeWord(s), (a))
 #define SizeAlignUp(s, a)       ((Size)WordAlignUp(SizeWord(s), (a)))
 #define SizeAlignDown(s, a)     ((Size)WordAlignDown(SizeWord(s), (a)))
+#define AlignIsAligned(a1, a2)  WordIsAligned(AlignWord(a1), (a2))
 
 /* Result codes */
 
@@ -923,7 +925,9 @@ extern Res CBSInit(Arena arena, CBS cbs,
                    CBSChangeSizeMethod grow,
                    CBSChangeSizeMethod shrink,
                    Size minSize,
-                   Bool mayUseInline); 
+                   Align alignment,
+                   Bool mayUseInline,
+                   Bool fastFind); 
 extern void CBSFinish(CBS cbs);
 extern Res CBSInsert(CBS cbs, Addr base, Addr limit);
 extern Res CBSDelete(CBS cbs, Addr base, Addr limit);

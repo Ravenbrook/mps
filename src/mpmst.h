@@ -1,6 +1,6 @@
 /* impl.h.mpmst: MEMORY POOL MANAGER DATA STRUCTURES
  *
- * $HopeName: MMsrc!mpmst.h(MMdevel_gavinm_mvff.1) $
+ * $HopeName: MMsrc!mpmst.h(MMdevel_gavinm_mvff.2) $
  * Copyright (C) 1998 Harlequin Group plc.  All rights reserved.
  *
  * .readership: MM developers.
@@ -724,7 +724,9 @@ typedef struct CBSStruct {
   CBSChangeSizeMethod grow;
   CBSChangeSizeMethod shrink;
   Size minSize;
+  Align alignment;
   Bool mayUseInline;
+  Bool fastFind;
   Bool inCBS; /* prevent reentrance */
   struct CBSEmergencyBlockStruct *emergencyBlockList;
   struct CBSEmergencyGrainStruct *emergencyGrainList;

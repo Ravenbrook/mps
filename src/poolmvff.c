@@ -1,6 +1,6 @@
 /* impl.c.poolmvff: First Fit Manual Variable Pool
  * 
- * $HopeName: MMsrc!poolmvff.c(MMdevel_gavinm_mvff.1) $
+ * $HopeName: MMsrc!poolmvff.c(MMdevel_gavinm_mvff.2) $
  * Copyright (C) 1998 Harlequin Group plc.  All rights reserved.
  *
  * .purpose: This is a pool class for manually managed objects of
@@ -16,7 +16,7 @@
 #include "mpm.h"
 #include "mpscmvff.h"
 
-SRCID(poolmvff, "$HopeName: MMsrc!poolmvff.c(MMdevel_gavinm_mvff.1) $");
+SRCID(poolmvff, "$HopeName: MMsrc!poolmvff.c(MMdevel_gavinm_mvff.2) $");
 
 
 extern PoolClass PoolClassMVFF(void);
@@ -422,7 +422,7 @@ static Res MVFFInit(Pool pool, va_list arg)
   mvff->lost = 0;
 
   CBSInit(arena, CBSOfMVFF(mvff), &MVFFNoteRange, NULL,
-          &MVFFNoteRange, NULL, mvff->extendBy, TRUE);
+          &MVFFNoteRange, NULL, mvff->extendBy, align, TRUE, TRUE);
 
   mvff->sig = MVFFSig;
   AVERT(MVFF, mvff);
