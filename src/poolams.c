@@ -1,6 +1,6 @@
 /* impl.c.poolams: AUTOMATIC MARK & SWEEP POOL CLASS
  *
- * $HopeName: MMsrc!poolams.c(MMdevel_pekka_rate.4) $
+ * $HopeName: MMsrc!poolams.c(MMdevel_pekka_rate.5) $
  * Copyright (C) 1998.  Harlequin Group plc.  All rights reserved.
  * 
  * .readership: any MPS developer.
@@ -26,7 +26,7 @@
 #include "mpm.h"
 #include <stdarg.h>
 
-SRCID(poolams, "$HopeName: MMsrc!poolams.c(MMdevel_pekka_rate.4) $");
+SRCID(poolams, "$HopeName: MMsrc!poolams.c(MMdevel_pekka_rate.5) $");
 
 
 #define AMSSig          ((Sig)0x519A3599) /* SIGnature AMS */
@@ -48,7 +48,6 @@ Bool AMSGroupCheck(AMSGroup group)
 
   CHECKL(group->grains == AMSGrains(group->ams, SegSize(group->seg)));
   CHECKL(group->grains > 0);
-  CHECKL(group->free >= 0);
   CHECKL(group->grains >= group->free);
 
   if(SegWhite(group->seg) != TraceSetEMPTY)
@@ -57,13 +56,13 @@ Bool AMSGroupCheck(AMSGroup group)
 
   CHECKL(BoolCheck(group->marked));
   CHECKL(group->allocTable != NULL);
-  CHECKL(group->markTable != NULL);
-  CHECKL(group->scanTable != NULL);
+  CHECKL(group->nongreyTable != NULL);
+  CHECKL(group->nonwhiteTable != NULL);
 
   /* design.mps.poolams.colour.check.slow */
-  for (i = 0; i < group->grains; i++) {
-    /* @@@@ colour check missing */
-  }
+  if(group->colourTablesInUse)
+    for (i = 0; i < group->grains; i++)
+      CHECKL(!AMSIsInvalidColor(group, i));
 
   return TRUE;
 }
@@ -98,13 +97,13 @@ Res AMSGroupInit(AMSGroup group, Pool pool)
   if(res != ResOK)
     goto failAlloc;
 
-  res = BTCreate(&group->markTable, arena, group->grains);
+  res = BTCreate(&group->nongreyTable, arena, group->grains);
   if(res != ResOK)
-    goto failMark;
+    goto failGrey;
 
-  res = BTCreate(&group->scanTable, arena, group->grains);
+  res = BTCreate(&group->nonwhiteTable, arena, group->grains);
   if(res != ResOK)
-    goto failScan;
+    goto failWhite;
 
   /* start off using firstFree, see design.mps.poolams.no-bit */
   group->allocTableInUse = FALSE;
@@ -123,10 +122,10 @@ Res AMSGroupInit(AMSGroup group, Pool pool)
   return ResOK;
 
   /* keep the destructions in step with AMSGroupFinish */
-failScan:
-  BTDestroy(group->markTable, arena, group->grains);
-failMark:
-  BTDestroy(group->allocTable, arena, group->grains);
+failWhite:
+  BTDestroy(group->nonwhiteTable, arena, group->grains);
+failGrey:
+  BTDestroy(group->nongreyTable, arena, group->grains);
 failAlloc:
   return res;
 }
@@ -207,8 +206,8 @@ void AMSGroupFinish(AMSGroup group)
   arena = PoolArena(AMSPool(ams));
 
   /* keep the destructions in step with AMSGroupInit failure cases */
-  BTDestroy(group->scanTable, arena, group->grains);
-  BTDestroy(group->markTable, arena, group->grains);
+  BTDestroy(group->nonwhiteTable, arena, group->grains);
+  BTDestroy(group->nongreyTable, arena, group->grains);
   BTDestroy(group->allocTable, arena, group->grains);
 }
 
@@ -539,9 +538,8 @@ static void AMSRangeCondemn(AMSGroup group, Index base, Index limit)
     AVER(limit <= group->grains);
 
     if(group->allocTableInUse) {
-      BTCopyInvertRange(group->allocTable, group->markTable,
-                        base, limit);
-      BTCopyInvertRange(group->allocTable, group->scanTable,
+      BTSetRange(group->nongreyTable, base, limit);
+      BTCopyInvertRange(group->allocTable, group->nonwhiteTable,
                         base, limit);
     } else {
       if(base < group->firstFree) {
@@ -825,9 +823,11 @@ Res AMSFix(Pool pool, ScanState ss, Seg seg, Ref *refIO)
       if(ss->rank == RankWEAK) { /* then splat the reference */
         *refIO = (Ref)0;
       } else {
-        /* @@@@ We could turn some things directly black. */
-	/* turn this object grey */
-        AMSWhiteGreyen(group, i);
+        if(SegRankSet(seg) == RankSetEMPTY)
+          /* If there are no refs, turn it directly black. */
+          AMSWhiteBlacken(group, i);
+        else /* turn this object grey */
+          AMSWhiteGreyen(group, i);
 	/* turn this segment grey */
 	SegSetGrey(seg, TraceSetUnion(SegGrey(seg), ss->traces));
 	/* mark it for scanning - design.mps.poolams.marked.fix */
@@ -1010,8 +1010,9 @@ Res AMSGroupDescribe(AMSGroup group, mps_lib_FILE *stream)
   if(res != ResOK)
     return res;
   res = WriteF(stream,
-               "  tables: mark $P, scan $P\n",
-                 (WriteFP)group->markTable, (WriteFP)group->scanTable,
+               "  tables: nongrey $P, nonwhite $P\n",
+               (WriteFP)group->nongreyTable,
+               (WriteFP)group->nonwhiteTable,
                "  map: \n",
                NULL);
   if(res != ResOK)
@@ -1032,14 +1033,14 @@ Res AMSGroupDescribe(AMSGroup group, mps_lib_FILE *stream)
 
     if(AMSAlloced(group, i)) {
       if(group->colourTablesInUse) {
-        if(AMSIsWhite(group, i))
+        if(AMSIsInvalidColor(group, i))
+          c = '!';
+        else if(AMSIsWhite(group, i))
           c = '-';
         else if(AMSIsGrey(group, i))
           c = '+';
-        else if(AMSIsBlack(group, i))
+        else /* must be black */
           c = '*';
-        else
-          c = '!';
       } else
         c = '.';
     } else
@@ -1149,7 +1150,7 @@ Bool AMSCheck(AMS ams)
   /* Can't check the class until we have a class inclusion predicate. */
   /* CHECKL(AMSPool(ams)->class == &PoolClassAMSStruct); */
   CHECKD(Format, ams->format);
-  CHECKL(PoolAlignment(AMSPool(ams)) == (1 << ams->grainShift));
+  CHECKL(PoolAlignment(AMSPool(ams)) == ((Size)1 << ams->grainShift));
   CHECKL(PoolAlignment(AMSPool(ams)) == ams->format->alignment);
   CHECKD(Action, AMSAction(ams));
   CHECKL(AMSAction(ams)->pool == AMSPool(ams));
