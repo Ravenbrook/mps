@@ -1,6 +1,6 @@
 /* impl.c.poolawl: AUTOMATIC WEAK LINKED POOL CLASS
  *
- * $HopeName: !poolawl.c(trunk.12) $
+ * $HopeName: MMsrc!poolawl.c(MMdevel_poolams.1) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  *
  * READERSHIP
@@ -16,10 +16,10 @@
 #include "mpm.h"
 #include "mpscawl.h"
 
-SRCID(poolawl, "$HopeName: !poolawl.c(trunk.12) $");
+SRCID(poolawl, "$HopeName: MMsrc!poolawl.c(MMdevel_poolams.1) $");
 
 
-#define AWLSig	((Sig)0x519b7a37)	/* SIGPooLAWL */
+#define AWLSig  ((Sig)0x519b7a37)       /* SIGPooLAWL */
 
 /* design.mps.poolawl.poolstruct */
 typedef struct AWLStruct {
@@ -31,7 +31,7 @@ typedef struct AWLStruct {
   Sig sig;
 } AWLStruct, *AWL;
 
-#define AWLGroupSig ((Sig)0x519a379b)	/* SIGAWLGrouP */
+#define AWLGroupSig ((Sig)0x519a379b)   /* SIGAWLGrouP */
 
 /* design.mps.poolawl.group */
 typedef struct AWLGroupStruct {
@@ -55,7 +55,7 @@ static Bool AWLGroupCheck(AWLGroup group);
 
 /* ActionAWL -- converts action to the enclosing AWL */
 
-#define ActionAWL(action)	PARENT(AWLStruct, actionStruct, action)
+#define ActionAWL(action)       PARENT(AWLStruct, actionStruct, action)
 
 
 static void AWLGroupDestroy(AWLGroup group)
@@ -97,7 +97,7 @@ static Res AWLGroupCreate(AWLGroup *groupReturn,
   Seg seg;
   AWLGroup group;
   void *v;
-  Count bits;	/* number of grains */
+  Count bits;   /* number of grains */
   Res res;
   Size tableSize;
   Space space;
@@ -168,7 +168,7 @@ failSegAlloc:
 static Bool AWLGroupAlloc(Addr *baseReturn, Addr *limitReturn,
                           AWLGroup group, AWL awl, Size size)
 {
-  Count n;	/* number of grains equivalent to alloc size */
+  Count n;      /* number of grains equivalent to alloc size */
   Index i, j;
   Space space;
 
@@ -282,7 +282,7 @@ static Res AWLBufferFill(Seg *segReturn, Addr *baseReturn, Addr *limitReturn,
     if(SegBuffer(seg) == NULL &&
        SegRankSet(seg) == BufferRankSet(buffer))
       if(AWLGroupAlloc(&base, &limit, group, awl, size))
-	goto found;
+        goto found;
   }
 
   /* No free space in existing groups, so create new group */
@@ -450,13 +450,13 @@ notFinished:
   finished = TRUE;
   p = base;
   while(p < limit) {
-    Index i;	/* the index into the bit tables corresponding to p */
+    Index i;    /* the index into the bit tables corresponding to p */
     Addr objectEnd;
     /* design.mps.poolawl.fun.scan.buffer */
     if(SegBuffer(seg)) {
       if(p == BufferScanLimit(SegBuffer(seg))) {
-	p = BufferLimit(SegBuffer(seg));
-	continue;
+        p = BufferLimit(SegBuffer(seg));
+        continue;
       }
     }
     i = AddrOffset(base, p) >> awl->alignShift;
@@ -478,15 +478,15 @@ notFinished:
       /* is there a dependent object that needs exposing? */
       dependent = AWLDependentObject(&dependentObj, p);
       if(dependent) {
-	Bool b;
+        Bool b;
 
-	b = SegOfAddr(&dependentSeg, space, dependentObj);
-	if(b == TRUE) {
-	  ShieldExpose(space, dependentSeg);
-	  TraceSetSummary(space, dependentSeg, RefSetUNIV);
-	} else {
-	  dependent = FALSE;
-	}
+        b = SegOfAddr(&dependentSeg, space, dependentObj);
+        if(b == TRUE) {
+          ShieldExpose(space, dependentSeg);
+          TraceSetSummary(space, dependentSeg, RefSetUNIV);
+        } else {
+          dependent = FALSE;
+        }
       }
       res = awl->format->scan(ss, p, objectEnd);
       if(dependent) {
@@ -547,10 +547,10 @@ static Res AWLFix(Pool pool, ScanState ss, Seg seg, Ref *refIO)
     if(!BTGet(group->mark, i)) {
       ss->wasMarked = FALSE;
       if(ss->rank == RankWEAK) {
-	*refIO = (Ref)0;
+        *refIO = (Ref)0;
       } else {
-	BTSet(group->mark, i);
-	TraceSegGreyen(space, seg, ss->traces);
+        BTSet(group->mark, i);
+        TraceSegGreyen(space, seg, ss->traces);
       }
     }
     break;
@@ -600,8 +600,8 @@ static void AWLReclaim(Pool pool, Trace trace, Seg seg)
 
       if(p >= BufferScanLimit(buffer)) {
         AVER(p == BufferScanLimit(buffer));
-	i = AddrOffset(base, BufferLimit(buffer)) >> awl->alignShift;
-	continue;
+        i = AddrOffset(base, BufferLimit(buffer)) >> awl->alignShift;
+        continue;
       }
     }
     j = AddrOffset(base, awl->format->skip(p)) >>
@@ -674,6 +674,7 @@ struct PoolClassStruct PoolClassAWLStruct = {
   AWLReclaim,
   PoolTrivTraceEnd,
   AWLBenefit,
+  PoolTrivAccess,
   PoolTrivDescribe,
   PoolClassSig
 };

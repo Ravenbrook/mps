@@ -1,6 +1,6 @@
 /* impl.c.pooln: NULL POOL
  *
- * $HopeName: !pooln.c(trunk.13) $
+ * $HopeName: MMsrc!pooln.c(MMdevel_poolams.1) $
  * Copyright(C) 1997 The Harlequin Group Limited.  All rights reserved.
  *
  * This is the implementation of the null pool class.  Begin null it
@@ -10,7 +10,7 @@
 #include "mpm.h"
 #include "pooln.h"
 
-SRCID(pooln, "$HopeName: !pooln.c(trunk.13) $");
+SRCID(pooln, "$HopeName: MMsrc!pooln.c(MMdevel_poolams.1) $");
 
 
 typedef struct PoolNStruct {
@@ -234,14 +234,15 @@ static PoolClassStruct PoolClassNStruct = {
   NBufferFill,                          /* bufferFill */
   NBufferEmpty,                         /* bufferEmpty */
   NBufferFinish,                        /* bufferFinish */
-  PoolNoTraceBegin,			/* traceBegin */
+  PoolNoTraceBegin,                     /* traceBegin */
   NCondemn,                             /* condemn */
   NGrey,                                /* grey */
   NScan,                                /* scan */
   NFix,                                 /* fix */
   NReclaim,                             /* reclaim */
-  PoolNoTraceEnd,			/* traceEnd */
-  PoolNoBenefit,			/* benefit */
+  PoolNoTraceEnd,                       /* traceEnd */
+  PoolNoBenefit,                        /* benefit */
+  PoolNoAccess,                         /* access */
   NDescribe,                            /* describe */
   PoolClassSig                          /* impl.h.mpmst.class.end-sig */
 };

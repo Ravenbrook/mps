@@ -2,7 +2,7 @@
  * 
  * MANUAL RANK GUARDIAN POOL
  * 
- * $HopeName: !poolmrg.c(trunk.11) $
+ * $HopeName: MMsrc!poolmrg.c(MMdevel_poolams.1) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  *
  * READERSHIP
@@ -28,7 +28,7 @@
 #include "mpm.h"
 #include "poolmrg.h"
 
-SRCID(poolmrg, "$HopeName: !poolmrg.c(trunk.11) $");
+SRCID(poolmrg, "$HopeName: MMsrc!poolmrg.c(MMdevel_poolams.1) $");
 
 
 #define MRGSig          ((Sig)0x519369B0) /* SIGnature MRG POol */
@@ -83,7 +83,7 @@ static Index indexOfLinkPart(Addr a, Space space)
 
 typedef struct MRGGroupStruct {
   Sig sig;                      /* impl.h.misc.sig */
-  RingStruct group;		/* design.mps.poolmrg.group.group */
+  RingStruct group;             /* design.mps.poolmrg.group.group */
   Seg refseg;                   /* design.mps.poolmrg.group.segs */
   Seg linkseg;                  /* design.mps.poolmrg.group.segs */
 } MRGGroupStruct;
@@ -179,7 +179,7 @@ static Res MRGGroupScan(ScanState ss, MRGGroup group, MRG mrg)
 
   space = PoolSpace(MRGPool(mrg));
 
-  guardians = mrg->extendBy / sizeof(Addr);	/* per seg */
+  guardians = mrg->extendBy / sizeof(Addr);     /* per seg */
   AVER(guardians > 0);
   base = SegBase(space, group->refseg);
   refpart = (Addr *)base;
@@ -415,14 +415,15 @@ static PoolClassStruct PoolClassMRGStruct = {
   PoolNoBufferFill,                     /* bufferFill */
   PoolNoBufferEmpty,                    /* bufferEmpty */
   PoolNoBufferFinish,                   /* bufferFinish */
-  PoolNoTraceBegin,			/* traceBegin */
+  PoolNoTraceBegin,                     /* traceBegin */
   PoolNoCondemn,                        /* condemn */
   PoolTrivGrey,                         /* grey */
   MRGScan,                              /* scan */
   PoolNoFix,                            /* fix */
   PoolNoReclaim,                        /* reclaim */
-  PoolNoTraceEnd,			/* traceEnd */
-  PoolNoBenefit,			/* benefit */
+  PoolNoTraceEnd,                       /* traceEnd */
+  PoolNoBenefit,                        /* benefit */
+  PoolTrivAccess,                       /* access */
   MRGDescribe,                          /* describe */
   PoolClassSig                          /* impl.h.mpmst.class.end-sig */
 };
