@@ -1,6 +1,6 @@
 /* impl.c.arenacl: ARENA IMPLEMENTATION USING CLIENT MEMORY
  *
- * $HopeName: !arenacl.c(trunk.15) $
+ * $HopeName: MMsrc!arenacl.c(MMdevel_alloc_replay.1) $
  * Copyright (C) 1997. Harlequin Group plc. All rights reserved.
  *
  * .readership: MM developers
@@ -17,7 +17,7 @@
 #include "mpsacl.h"
 
 
-SRCID(arenacl, "$HopeName: !arenacl.c(trunk.15) $");
+SRCID(arenacl, "$HopeName: MMsrc!arenacl.c(MMdevel_alloc_replay.1) $");
 
 
 typedef struct ClientArenaStruct *ClientArena;
@@ -338,6 +338,8 @@ static Res ClientArenaInit(Arena *arenaReturn, ArenaClass class,
   /* arena if the size is not a power of 2. */
   arena->zoneShift = SizeFloorLog2(size >> MPS_WORD_SHIFT);
   arena->alignment = clientArena->pageSize;
+  
+  EVENT_PWA(ArenaCreateCL, arena, size, base);
 
   *arenaReturn = arena;
   return ResOK;
