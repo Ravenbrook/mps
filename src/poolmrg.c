@@ -2,7 +2,7 @@
  * 
  * MANUAL RANK GUARDIAN POOL
  * 
- * $HopeName: MMsrc!poolmrg.c(MMdevel_drj_message.7) $
+ * $HopeName: MMsrc!poolmrg.c(MMdevel_drj_message.8) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  *
  * READERSHIP
@@ -31,7 +31,7 @@
 #include "mpm.h"
 #include "poolmrg.h"
 
-SRCID(poolmrg, "$HopeName: MMsrc!poolmrg.c(MMdevel_drj_message.7) $");
+SRCID(poolmrg, "$HopeName: MMsrc!poolmrg.c(MMdevel_drj_message.8) $");
 
 
 #define MRGSig          ((Sig)0x519369B0) /* SIGnature MRG POol */
@@ -40,12 +40,12 @@ SRCID(poolmrg, "$HopeName: MMsrc!poolmrg.c(MMdevel_drj_message.7) $");
 /* Types */
 
 typedef struct MRGStruct {
-  PoolStruct poolStruct;        /* generic pool structure */
-  RingStruct entry;             /* design.mps.poolmrg.poolstruct.entry */
-  RingStruct free;              /* design.mps.poolmrg.poolstruct.free */
-  RingStruct group;             /* design.mps.poolmrg.poolstruct.group */
-  Size extendBy;                /* design.mps.poolmrg.extend */
-  Sig sig;                      /* impl.h.mps.sig */
+  PoolStruct poolStruct;       /* generic pool structure */
+  RingStruct entry;            /* design.mps.poolmrg.poolstruct.entry */
+  RingStruct free;             /* design.mps.poolmrg.poolstruct.free */
+  RingStruct group;            /* design.mps.poolmrg.poolstruct.group */
+  Size extendBy;               /* design.mps.poolmrg.extend */
+  Sig sig;                     /* impl.h.mps.sig */
 } MRGStruct;
 
 #define PoolPoolMRG(pool) PARENT(MRGStruct, poolStruct, pool)
@@ -61,10 +61,10 @@ enum {
 };
 
 typedef struct LinkStruct {
-  int state;			 /* Free, Prefinal, Final, Postfinal */
+  int state;                     /* Free, Prefinal, Final, Postfinal */
   union LinkUnion {
     MessageStruct messageStruct; /* state = Final */
-    RingStruct linkRing;	 /* state e {Free, Prefinal} */
+    RingStruct linkRing;         /* state e {Free, Prefinal} */
   } the;
 } LinkStruct;
 typedef union LinkUnion LinkUnion;
@@ -167,7 +167,7 @@ static void MRGGroupDestroy(MRGGroup group, MRG mrg)
 static Res MRGGroupCreate(MRGGroup *groupReturn, MRG mrg)
 {
   Ref *refBase;
-  Count guardians;	/* guardians per seg */
+  Count guardians;       /* guardians per seg */
   Index i;
   Link linkBase;
   MRGGroup group;
@@ -520,7 +520,7 @@ static void MRGMessageDelete(Message message)
 }
 
 static void MRGMessageFinalizationRef(Ref *refReturn,
-				      Space space, Message message)
+                                      Space space, Message message)
 {
   Link link;
   Ref *ref;
@@ -540,11 +540,11 @@ static void MRGMessageFinalizationRef(Ref *refReturn,
 
 
 static MessageClassStruct MRGMessageClassStruct = {
-  MessageClassSig,              /* sig */
-  "MRGFinal",                   /* name */
-  MRGMessageDelete,             /* Delete */
-  MRGMessageFinalizationRef,	/* FinalizationRef */
-  MessageClassSig               /* design.mps.message.class.sig.double */
+  MessageClassSig,             /* sig */
+  "MRGFinal",                  /* name */
+  MRGMessageDelete,            /* Delete */
+  MRGMessageFinalizationRef,   /* FinalizationRef */
+  MessageClassSig              /* design.mps.message.class.sig.double */
 };
 
 static PoolClassStruct PoolClassMRGStruct = {

@@ -1,6 +1,6 @@
 /* impl.c.message: MPS / CLIENT MESSAGES
  *
- * $HopeName: MMsrc!message.c(MMdevel_drj_message.5) $
+ * $HopeName: MMsrc!message.c(MMdevel_drj_message.6) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All Rights Reserved.
  *
  * READERSHIP
@@ -23,7 +23,7 @@
 #include "mpm.h"
 
 
-SRCID(message, "$HopeName: MMsrc!message.c(MMdevel_drj_message.5) $");
+SRCID(message, "$HopeName: MMsrc!message.c(MMdevel_drj_message.6) $");
 
 
 /* Maps from a Ring pointer to the message */
@@ -332,7 +332,8 @@ static void MessageDelete(Message message)
 
 /* type specific dispatch methods */
 
-void MessageFinalizationRef(Ref *refReturn, Space space, Message message)
+void MessageFinalizationRef(Ref *refReturn, Space space, 
+                            Message message)
 {
   AVER(refReturn != NULL);
   AVERT(Space, space);
@@ -346,7 +347,8 @@ void MessageFinalizationRef(Ref *refReturn, Space space, Message message)
 
 /* type specific stub methods */
 
-void MessageNoFinalizationRef(Ref *refReturn, Space space, Message message)
+void MessageNoFinalizationRef(Ref *refReturn, Space space, 
+                              Message message)
 {
   AVER(refReturn != NULL);
   AVERT(Space, space);
