@@ -1,7 +1,7 @@
 /* impl.h.mps: HARLEQUIN MEMORY POOL SYSTEM C INTERFACE
  *
- * $HopeName: !mps.h(trunk.31) $
- * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
+ * $HopeName: MMsrc!mps.h(MMepcore_pilchard.1) $
+ * Copyright (C) 1997, 1998 The Harlequin Group Limited.  All rights reserved.
  *
  * .readership: customers, MPS developers.
  * .sources: design.mps.interface.c.
@@ -14,7 +14,10 @@
 #include <stddef.h>
 #include <stdarg.h>
 #include <limits.h>
-#ifdef MPS_OS_W3
+
+/* Suppress loading windows.h, since we don't need it.  This is a hack: */
+/* PROTECTION won't be defined, because we don't load config.h. */
+#if defined(MPS_OS_W3) && defined(PROTECTION)
 #include "mpswin.h"            /* needed for SEH filter type */
 #endif /* MPS_OS_W3 */
 
@@ -158,7 +161,7 @@ typedef struct mps_fmt_A_s {
 extern mps_res_t mps_ap_fill(mps_addr_t *, mps_ap_t, size_t);
 extern mps_bool_t mps_ap_trip(mps_ap_t, mps_addr_t, size_t);
 
-#ifdef MPS_OS_W3
+#if defined(MPS_OS_W3) && defined(PROTECTION)
 extern LONG mps_SEH_filter(LPEXCEPTION_POINTERS, void **, size_t *);
 extern void mps_SEH_handler(void *, size_t);
 #endif /* MPS_OS_W3 */
@@ -292,6 +295,9 @@ extern mps_res_t mps_stack_scan_ambig(mps_ss_t, mps_thr_t,
 
 /* Protection Trampoline and Thread Registration */
 
+
+#ifdef PROTECTION
+
 extern void (mps_tramp)(void **,
                         void *(*)(void *, size_t),
                         void *, size_t);
@@ -325,6 +331,8 @@ extern void (mps_tramp)(void **,
   MPS_END
 
 #endif /* MPS_OS_W3 */
+
+#endif /* PROTECTION */
 
 extern mps_res_t mps_thread_reg(mps_thr_t *, mps_arena_t);
 extern void mps_thread_dereg(mps_thr_t);
