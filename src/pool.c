@@ -1,7 +1,7 @@
 /* impl.c.pool: POOL IMPLEMENTATION
  *
- * $HopeName: MMsrc!pool.c(MMdevel_action2.8) $
- * Copyright (C) 1994,1995,1996 Harlequin Group, all rights reserved
+ * $HopeName: MMsrc!pool.c(MMdevel_action2.9) $
+ * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  *
  * This is the implementation of the generic pool interface.  The
  * functions here dispatch to pool-specific methods.
@@ -12,7 +12,7 @@
 
 #include "mpm.h"
 
-SRCID(pool, "$HopeName: MMsrc!pool.c(MMdevel_action2.8) $");
+SRCID(pool, "$HopeName: MMsrc!pool.c(MMdevel_action2.9) $");
 
 
 Bool PoolClassCheck(PoolClass class)
@@ -263,6 +263,18 @@ Res PoolScan(ScanState ss, Pool pool, Seg seg)
   AVERT(ScanState, ss);
   AVERT(Pool, pool);
   AVERT(Seg, seg);
+  AVER(ss->space == pool->space);
+
+  /* The segment must belong to the pool. */
+  AVER(pool == seg->pool);
+
+  /* Should only scan for a rank for which there are references */
+  /* in the segment. */
+  AVER(RankSetIsMember(seg->rankSet, ss->rank));
+
+  /* Should only scan segments which contain grey objects. */
+  AVER(TraceSetInter(seg->grey, ss->traces) != TraceSetEMPTY);
+
   return (*pool->class->scan)(ss, pool, seg);
 }
 
@@ -272,7 +284,12 @@ Res (PoolFix)(Pool pool, ScanState ss, Seg seg, Addr *refIO)
   AVERT(Pool, pool);
   AVERT(ScanState, ss);
   AVERT(Seg, seg);
+  AVER(pool == seg->pool);
   AVER(refIO != NULL);
+
+  /* Should only be fixing references to white segments. */
+  AVER(TraceSetInter(seg->white, ss->traces) != TraceSetEMPTY);
+
   return PoolFix(pool, ss, seg, refIO);
 }
 
@@ -283,7 +300,13 @@ void PoolReclaim(Pool pool, Trace trace, Seg seg)
   AVERT(Seg, seg);
   AVER(pool->space == trace->space);
   AVER(seg->pool == pool);
+
+  /* There shouldn't be any grey things left for this trace. */
+  AVER(!TraceSetIsMember(seg->grey, trace->ti));
+
+  /* Should only be reclaiming segments which are still white. */
   AVER(TraceSetIsMember(seg->white, trace->ti));
+
   (*pool->class->reclaim)(pool, trace, seg);
 }
 
