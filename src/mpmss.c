@@ -1,6 +1,6 @@
 /*  impl.c.mpmss: MPM STRESS TEST
  *
- * $HopeName: MMsrc!mpmss.c(MMdevel_pekka_mvbt.1) $
+ * $HopeName: MMsrc!mpmss.c(MMdevel_pekka_mvbt.2) $
  * Copyright (C) 1998. Harlequin Group plc. All rights reserved.
  */
 
@@ -132,7 +132,7 @@ static mps_pool_debug_option_s debugOptions = { (void *)"postpost", 8 };
 static int testInArena(mps_arena_t arena)
 {
   printf("MBT\n\n");
-  die(stress(mps_class_mbt(), arena, randomSize),
+  die(stress(mps_class_mbt(), arena, randomSize, (size_t)2),
       "stress MBT");
   printf("MV debug\n\n");
   die(stress(mps_class_mv_debug(), arena, randomSize,
