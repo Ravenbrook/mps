@@ -1,6 +1,6 @@
 /* impl.c.poolmv2: MANUAL VARIABLE POOL, II
  *
- * $HopeName: MMsrc!poolmv2.c(MMdevel_gavinm_splay.14) $
+ * $HopeName: MMsrc!poolmv2.c(MMdevel_gavinm_splay.17) $
  * Copyright (C) 1998 Harlequin Group plc.  All rights reserved.
  *
  * .readership: any MPS developer
@@ -17,7 +17,9 @@
 #include "abq.h"
 #include "meter.h"
 
-SRCID(poolmv2, "$HopeName: MMsrc!poolmv2.c(MMdevel_gavinm_splay.14) $");
+SRCID(poolmv2, "$HopeName: MMsrc!poolmv2.c(MMdevel_gavinm_splay.17)$");
+
+
 
 /* Signatures */
 
@@ -39,6 +41,7 @@ static void MV2BufferEmpty(Pool pool, Buffer buffer);
 static void MV2Free(Pool pool, Addr base, Size size);
 static Res MV2Describe(Pool pool, mps_lib_FILE *stream);
 static Res MV2SegAlloc(Seg *segReturn, MV2 mv2, Size size, Pool pool);
+
 static void MV2SegFree(MV2 mv2, Seg seg);
 static Bool MV2ReturnBlockSegs(MV2 mv2, CBSBlock block, Arena arena);
 static void MV2NoteNew(CBS cbs, CBSBlock block);
@@ -48,7 +51,8 @@ static Bool ABQRefillCallback(CBS cbs, CBSBlock block, void *closureP,
                               unsigned long closureS);
 static Res MV2ContingencySearch(CBSBlock *blockReturn, CBS cbs,
                                 Size min);
-static Bool MV2ContingencyCallback(CBS cbs, CBSBlock block, void *closureP,
+static Bool MV2ContingencyCallback(CBS cbs, CBSBlock block,
+                                   void *closureP,
                                    unsigned long closureS);
 static Bool MV2CheckFit(CBSBlock block, Size min, Arena arena);
 static MV2 PoolPoolMV2(Pool pool);
@@ -78,7 +82,7 @@ typedef struct MV2Struct
   /* design.mps.poolmv2:arch.ap.fill.size */
   Size fillSize;                /* Size of pool segments */
   /* design.mps.poolmv2:arch.contingency */
-  Size availLimit;              /* available >= availLimit => contingency */
+  Size availLimit;              /* Limit on available */
   /* design.mps.poolmv2:impl.c.free.merge.segment.overflow */
   Bool abqOverflow;             /* ABQ dropped some candidates */
   /* design.mps.poolmv2:arch.ap.no-fit.* */
@@ -328,9 +332,11 @@ static Res MV2Init(Pool pool, va_list arg)
   METER_INIT(mv2->secondFits, "second fits");
   METER_INIT(mv2->failures, "failures");
   METER_INIT(mv2->emergencyContingencies, "emergency contingencies");
-  METER_INIT(mv2->fragLimitContingencies, "fragmentation limit contingencies");
+  METER_INIT(mv2->fragLimitContingencies,
+             "fragmentation limit contingencies");
   METER_INIT(mv2->contingencySearches, "contingency searches");
-  METER_INIT(mv2->contingencyHardSearches, "contingency hard searches");
+  METER_INIT(mv2->contingencyHardSearches,
+             "contingency hard searches");
   METER_INIT(mv2->splinters, "splinters");
   METER_INIT(mv2->splintersUsed, "splinters used");
   METER_INIT(mv2->splintersDropped, "splinters dropped");
@@ -496,11 +502,10 @@ static Res MV2BufferFill(Seg *segReturn,
     METER_ACC(mv2->underflows, minSize);
     /* design.mps.poolmv2:arch.contingency.fragmentation-limit */
     if (mv2->available >=  mv2->availLimit) {
-        METER_ACC(mv2->fragLimitContingencies, minSize);
-        res = MV2ContingencySearch(&block, MV2CBS(mv2), minSize);
+      METER_ACC(mv2->fragLimitContingencies, minSize);
+      res = MV2ContingencySearch(&block, MV2CBS(mv2), minSize);
     }
-  }
-  else {
+  } else {
     METER_ACC(mv2->finds, minSize);
   }
 found:
@@ -519,13 +524,11 @@ found:
       if (limit <= segLimit) {
         /* perfect fit */
         METER_ACC(mv2->perfectFits, AddrOffset(base, limit));
-      }
-      else if (AddrOffset(base, segLimit) >= minSize) {
+      } else if (AddrOffset(base, segLimit) >= minSize) {
         /* fit in 1st segment */
         limit = segLimit;
         METER_ACC(mv2->firstFits, AddrOffset(base, limit));
-      }
-      else {
+      } else {
         /* fit in 2nd second segment */
         base = segLimit;
         {
@@ -645,8 +648,7 @@ static void MV2BufferEmpty(Pool pool, Buffer buffer)
       AVER(res == ResOK);
       METER_ACC(mv2->splintersDropped, size);
       return;
-    }
-    else {
+    } else {
       /* New better, drop old */
       Res res = CBSInsert(MV2CBS(mv2), mv2->splinterBase,
 			  mv2->splinterLimit);
@@ -1037,8 +1039,7 @@ static Bool ABQRefillCallback(CBS cbs, CBSBlock block, void *closureP,
     if (MV2ReturnBlockSegs(mv2, block, PoolArena(MV2Pool(mv2)))) {
       METER_ACC(mv2->refillReturns, CBSBlockSize(block));
       return TRUE;
-    }
-    else {
+    } else {
       mv2->abqOverflow = TRUE;
       METER_ACC(mv2->refillOverflows, CBSBlockSize(block));
       return FALSE;
@@ -1065,7 +1066,8 @@ typedef struct MV2ContigencyStruct
 
 /* MV2ContingencySearch -- search the CBS for a block of size min
  */
-static Res MV2ContingencySearch(CBSBlock *blockReturn, CBS cbs, Size min)
+static Res MV2ContingencySearch(CBSBlock *blockReturn, CBS cbs,
+                                Size min)
 {
   MV2ContigencyStruct cls;
 
@@ -1075,7 +1077,8 @@ static Res MV2ContingencySearch(CBSBlock *blockReturn, CBS cbs, Size min)
   cls.steps = 0;
   cls.hardSteps = 0;
   
-  CBSIterate(cbs, &MV2ContingencyCallback, (void *)&cls, (unsigned long)sizeof(cls));
+  CBSIterate(cbs, &MV2ContingencyCallback, (void *)&cls,
+             (unsigned long)sizeof(cls));
   if (cls.blockReturn != NULL) {
     AVER(CBSBlockSize(cls.blockReturn) >= min);
     METER_ACC(CBSMV2(cbs)->contingencySearches, cls.steps);
@@ -1093,7 +1096,8 @@ static Res MV2ContingencySearch(CBSBlock *blockReturn, CBS cbs, Size min)
 /* MV2ContingencyCallback -- called from CBSIterate at the behest of
  * MV2ContingencySearch
  */
-static Bool MV2ContingencyCallback(CBS cbs, CBSBlock block, void *closureP,
+static Bool MV2ContingencyCallback(CBS cbs, CBSBlock block,
+                                   void *closureP,
                                    unsigned long closureS)
 {
   MV2Contigency cl;
