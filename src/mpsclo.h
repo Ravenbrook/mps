@@ -1,8 +1,8 @@
-/* impl.h.mpscmv: MEMORY POOL SYSTEM CLASS "LO"
+/* impl.h.mpsclo: MEMORY POOL SYSTEM CLASS "LO"
  *
- * $HopeName: !mpsclo.h(trunk.1) $
+ * $HopeName: MMsrc!mpsclo.h(MM_dylan_kinglet.1) $
  *
- * Copyright (C) 1996 Harlequin Group, all rights reserved.
+ * Copyright (C) 1996 Harlequin Limited.  All rights reserved.
  */
 
 #ifndef mpsclo_h
