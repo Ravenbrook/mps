@@ -2,7 +2,7 @@
  * 
  * MANUAL RANK GUARDIAN POOL
  * 
- * $HopeName: MMsrc!poolmrg.c(MMdevel_action2.6) $
+ * $HopeName: MMsrc!poolmrg.c(MMdevel_action2.7) $
  * Copyright(C) 1995,1997 Harlequin Group, all rights reserved
  *
  * READERSHIP
@@ -29,7 +29,7 @@
 #include "poolmrg.h"
 
 
-SRCID(poolmrg, "$HopeName: MMsrc!poolmrg.c(MMdevel_action2.6) $");
+SRCID(poolmrg, "$HopeName: MMsrc!poolmrg.c(MMdevel_action2.7) $");
 
 #define MRGSig          ((Sig)0x519B0349)
 
@@ -148,7 +148,8 @@ static Res MRGGroupCreate(MRGGroup *groupReturn, MRG mrg)
   }
   AVER((Addr)(&linkpart[i]) <= SegLimit(space, linkseg));
   AVER((Addr)(&refpart[i]) <= SegLimit(space, refseg));
-  refseg->rankSet = RankSetSingle(RankFINAL);
+  refseg->rankSet = RankSetSingle(RankFINAL); /* design.mps.seg.field.rankSet.start */
+  refseg->summary = RefSetUNIV;		/* design.mps.seg.field.summary.start */
 
   group->refseg = refseg;
   group->linkseg = linkseg;
