@@ -1,12 +1,12 @@
 /* impl.c.trace: GENERIC TRACER IMPLEMENTATION
  *
- * $HopeName: MMsrc!trace.c(MMdevel_gens.8) $
+ * $HopeName: MMsrc!trace.c(MMdevel_gens.9) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  */
 
 #include "mpm.h"
 
-SRCID(trace, "$HopeName: MMsrc!trace.c(MMdevel_gens.8) $");
+SRCID(trace, "$HopeName: MMsrc!trace.c(MMdevel_gens.9) $");
 
 
 /* ScanStateCheck -- check consistency of a ScanState object */
@@ -707,10 +707,13 @@ Res TraceFix(ScanState ss, Ref *refIO)
   AVERT(ScanState, ss);
   AVER(refIO != NULL);
 
+  EVENT3(TraceFixRef, (Word)refIO, (Word)*refIO, (Word)ss->rank);
+
   ref = *refIO;
   if(SegOfAddr(&seg, ss->space, ref)) {
     if(TraceSetInter(seg->white, ss->traces) != TraceSetEMPTY) {
       pool = seg->pool;
+      EVENT2(TraceFixSeg, (Word)seg, (Word)pool);
       res = PoolFix(pool, ss, seg, refIO);
       if(res != ResOK) return res;
     }

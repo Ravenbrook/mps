@@ -1,6 +1,6 @@
 /* impl.h.mpmtypes: MEMORY POOL MANAGER TYPES
  *
- * $HopeName: MMsrc!mpmtypes.h(MMdevel_gens.4) $
+ * $HopeName: MMsrc!mpmtypes.h(MMdevel_gens.5) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights 
  * reserved.
  *
@@ -271,6 +271,8 @@ typedef Bool (*ActionClosureMethod)(Action, Word);
 #define EventAMCGenCreate  ((EventType)0xefa3c9c6) /* AMC GenCReate */
 #define EventAMCCondemn    ((EventType)0xefa3cc04) /* AMC GenCOndemn */
 #define EventAMCNail       ((EventType)0xefa3c4a7) /* AMC NAiL */
+#define EventTraceFixRef   ((EventType)0xeff1c56f) /* traceFIXReF */
+#define EventTraceFixSeg   ((EventType)0xeff1c559) /* traceFIXSeG */
 
 
 #endif /* mpmtypes_h */
