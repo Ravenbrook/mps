@@ -1,6 +1,6 @@
 /* impl.c.pooln: NULL POOL
  *
- * $HopeName: MMsrc!pooln.c(MMdevel_assertid.2) $
+ * $HopeName: MMsrc!pooln.c(MMdevel_assertid.3) $
  * Copyright(C) 1997 The Harlequin Group Limited.  All rights reserved.
  *
  * This is the implementation of the null pool class.  Begin null it
@@ -10,12 +10,14 @@
 #include "mpm.h"
 #include "pooln.h"
 
-SRCID(pooln, "$HopeName: MMsrc!pooln.c(MMdevel_assertid.2) $");
+SRCID(pooln, "$HopeName: MMsrc!pooln.c(MMdevel_assertid.3) $");
 
+#define PoolNSig        ((Sig)0x519B7499)
 
 typedef struct PoolNStruct {
   PoolStruct poolStruct;                /* generic pool structure */
-  /* and that's it */
+  /* class-specific fields go here */
+  Sig sig;				/* design.mps.sig */
 } PoolNStruct;
 
 #define PoolPoolN(pool) PARENT(PoolNStruct, poolStruct, pool)
@@ -28,6 +30,8 @@ static Res NInit(Pool pool, va_list args)
   UNUSED(args);
   
   /* Initialize pool-specific structures. */
+  
+  poolN->sig = PoolNSig;
 
   AVERT(0xB0040000, PoolN, poolN);
 
@@ -41,6 +45,8 @@ static void NFinish(Pool pool)
   AVERT(0xB0040001, Pool, pool);
   poolN = PoolPoolN(pool);
   AVERT(0xB0040002, PoolN, poolN);
+
+  poolN->sig = SigInvalid;
 
   /* Finish pool-specific structures. */
 }

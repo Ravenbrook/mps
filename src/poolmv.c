@@ -1,6 +1,6 @@
 /* impl.c.poolmv: MANUAL VARIABLE POOL
  *
- * $HopeName: MMsrc!poolmv.c(MMdevel_assertid.2) $
+ * $HopeName: MMsrc!poolmv.c(MMdevel_assertid.3) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  *
  * **** RESTRICTION: This pool may not allocate from the arena control
@@ -37,7 +37,7 @@
 #include "poolmfs.h"
 #include "mpscmv.h"
 
-SRCID(poolmv, "$HopeName: MMsrc!poolmv.c(MMdevel_assertid.2) $");
+SRCID(poolmv, "$HopeName: MMsrc!poolmv.c(MMdevel_assertid.3) $");
 
 
 #define BLOCKPOOL(mv)   (MFSPool(&(mv)->blockPoolStruct))
@@ -212,7 +212,7 @@ static void MVFinish(Pool pool)
   spans = &mv->spans;
   RING_FOR(node, spans) {
     span = RING_ELT(MVSpan, spans, node);
-    AVERT(0xB03F0018, MVSpan, span);
+    AVER(0xB03F0018, MVSpanCheck(span));
     PoolSegFree(pool, span->seg);
   }
 
@@ -236,7 +236,7 @@ static Bool MVSpanAlloc(Addr *addrReturn, MVSpan span, Size size,
   Size gap;
   MVBlock block;
 
-  AVERT(0xB03F0019, MVSpan, span);
+  AVER(0xB03F0019, MVSpanCheck(span));
   AVER(0xB03F001A, size > 0);
   AVER(0xB03F001B, addrReturn != NULL);
 
@@ -290,7 +290,7 @@ static Res MVSpanFree(MVSpan span, Addr base, Addr limit, Pool blockPool)
 {
   MVBlock *prev, block;
 
-  AVERT(0xB03F001E, MVSpan, span);
+  AVER(0xB03F001E, MVSpanCheck(span));
   AVER(0xB03F001F, span->base.base <= base && limit <= span->limit.limit);
   AVERT(0xB03F0020, Pool, blockPool);
 
@@ -302,7 +302,7 @@ static Res MVSpanFree(MVSpan span, Addr base, Addr limit, Pool blockPool)
     int isLimit = block == &span->limit;
     int isSentinel = isBase || isLimit;
 
-    AVERT(0xB03F0022, MVBlock, block);
+    AVER(0xB03F0022, MVBlockCheck(block));
 
     /* Is the freed area within the block? */
     if(block->base <= base && limit <= block->limit) {
@@ -341,11 +341,11 @@ static Res MVSpanFree(MVSpan span, Addr base, Addr limit, Pool blockPool)
           *prev = new;
         }
 
-        AVERT(0xB03F0025, MVBlock, new);
+        AVER(0xB03F0025, MVBlockCheck(new));
         ++span->blockCount;
       }
 
-      AVERT(0xB03F0026, MVBlock, block);
+      AVER(0xB03F0026, MVBlockCheck(block));
 
       span->space += AddrOffset(base, limit);
 
@@ -441,7 +441,7 @@ static Res MVAlloc(Addr *pReturn, Pool pool, Size size)
   span->base.limit = AddrAdd(span->base.limit, size);
   span->space -= size;
 
-  AVERT(0xB03F002D, MVSpan, span);
+  AVER(0xB03F002D, MVSpanCheck(span));
 
   mv->space += span->space;
   RingInsert(&mv->spans, &span->spans);
@@ -477,7 +477,7 @@ static void MVFree(Pool pool, Addr old, Size size)
   b = SegOfAddr(&seg, PoolSpace(pool), old);
   AVER(0xB03F0032, b);
   span = (MVSpan)seg->p;
-  AVERT(0xB03F0033, MVSpan, span);
+  AVER(0xB03F0033, MVSpanCheck(span));
 
   /* the to be freed area should be within the span just found */
   AVER(0xB03F0034, span->base.base <= base && limit <= span->limit.limit);
@@ -540,7 +540,7 @@ static Res MVDescribe(Pool pool, mps_lib_FILE *stream)
   spans = &mv->spans;
   RING_FOR(node, spans) {
     span = RING_ELT(MVSpan, spans, node);
-    AVERT(0xB03F003C, MVSpan, span);
+    AVER(0xB03F003C, MVSpanCheck(span));
 
     res = WriteF(stream,
                  "    span $P",   (WriteFP)span,
@@ -660,7 +660,7 @@ size_t mps_mv_free_size(mps_pool_t mps_pool)
   spans = &mv->spans;
   RING_FOR(node, spans) {
   span = RING_ELT(MVSpan, spans, node);
-    AVERT(0xB03F0041, MVSpan, span);
+    AVER(0xB03F0041, MVSpanCheck(span));
     f += span->space;
   }
 
@@ -686,7 +686,7 @@ size_t mps_mv_size(mps_pool_t mps_pool)
   spans = &mv->spans;
   RING_FOR(node, spans) {
   span = RING_ELT(MVSpan, spans, node);
-    AVERT(0xB03F0044, MVSpan, span);
+    AVER(0xB03F0044, MVSpanCheck(span));
     f += SegSize(space, span->seg);
   }
 

@@ -2,7 +2,7 @@
  * 
  * MANUAL RANK GUARDIAN POOL
  * 
- * $HopeName: MMsrc!poolmrg.c(MMdevel_assertid.2) $
+ * $HopeName: MMsrc!poolmrg.c(MMdevel_assertid.3) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  *
  * READERSHIP
@@ -28,7 +28,7 @@
 #include "mpm.h"
 #include "poolmrg.h"
 
-SRCID(poolmrg, "$HopeName: MMsrc!poolmrg.c(MMdevel_assertid.2) $");
+SRCID(poolmrg, "$HopeName: MMsrc!poolmrg.c(MMdevel_assertid.3) $");
 
 
 #define MRGSig          ((Sig)0x519369B0) /* SIGnature MRG POol */
@@ -325,7 +325,7 @@ static void MRGFree(Pool pool, Addr old, Size size)
   /* design.mps.poolmrg.guardian.ref.free */
   gi = indexOfRefPart(old, space);
 
-  AVERT(0xB3690015, Ring, &linkpart[gi]);
+  AVER(0xB3690015, RingCheck(&linkpart[gi]));
   RingRemove(&linkpart[gi]);
   RingAppend(&mrg->free, &linkpart[gi]);
   *(Addr *)old = 0;     /* design.mps.poolmrg.free.overwrite */

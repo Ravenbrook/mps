@@ -1,6 +1,6 @@
 /* impl.c.root: ROOT IMPLEMENTATION
  *
- * $HopeName: MMsrc!root.c(MMdevel_assertid.2) $
+ * $HopeName: MMsrc!root.c(MMdevel_assertid.3) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  *
  * .scope: This is the implementation of the root datatype.
@@ -10,7 +10,7 @@
 
 #include "mpm.h"
 
-SRCID(root, "$HopeName: MMsrc!root.c(MMdevel_assertid.2) $");
+SRCID(root, "$HopeName: MMsrc!root.c(MMdevel_assertid.3) $");
 
 
 /* RootCheck -- check the consistency of a root structure
@@ -74,8 +74,8 @@ static Res create(Root *rootReturn, Space space,
 
   AVER(0x6002000F, rootReturn != NULL);
   AVERT(0x60020010, Space, space);
-  AVERT(0x60020011, Rank, rank);
-  AVERT(0x60020012, RootVar, type);
+  AVER(0x60020011, RankCheck(rank));
+  AVER(0x60020012, RootVarCheck(type));
 
   res = SpaceAlloc(&p, space, sizeof(RootStruct));
   if(res != ResOK)
