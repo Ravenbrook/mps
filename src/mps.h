@@ -1,6 +1,6 @@
 /* impl.h.mps: HARLEQUIN MEMORY POOL SYSTEM C INTERFACE
  *
- * $HopeName: !mps.h(MMdevel_metrics.1) $
+ * $HopeName: MMsrc!mps.h(MMdevel_metrics_fix.1) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  *
  * .readership: customers, MPS developers.
@@ -127,6 +127,7 @@ typedef void (*mps_fmt_pad_t)(mps_addr_t, size_t);
 typedef struct mps_ss_s {
   mps_res_t (*fix)(mps_ss_t, mps_addr_t *);
   mps_word_t w0, w1, w2;
+  mps_word_t w3;
 } mps_ss_s;
 
 
@@ -392,6 +393,9 @@ extern mps_res_t mps_fix(mps_ss_t, mps_addr_t *);
    } \
    (ss)->w2 = _mps_w2; \
   MPS_END
+
+#define MPS_SS_CHECK(ss) \
+  assert(((ss)->w2 & (ss)->w3) == (ss)->w2)
 
 
 #endif /* mps_h */
