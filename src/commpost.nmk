@@ -1,7 +1,7 @@
 # ==== SECOND COMMON FRAGMENT FOR PLATFORMS USING MV AND NMAKE
 #
-# $HopeName: MMsrc!commpost.nmk(MMdevel_configura.1) $
-# Copyright (C) 1999 Harlequin Limited.  All rights reserved.
+# $HopeName: MMsrc!commpost.nmk(MMdevel_configura.2) $
+# Copyright (C) 1999, 2000 Harlequin Limited.  All rights reserved.
 #
 # DESCRIPTION
 #
@@ -211,7 +211,8 @@ $(PFM)\$(VARIETY)\mmsw.lib: $(SWOBJ)
 	$(ECHO) $@
 	$(LIBMAN) $(LIBFLAGS) /OUT:$@ $**
 
-$(PFM)\$(VARIETY)\mps.lib: $(MPMOBJ) $(AMCOBJ) $(SNCOBJ) $(MVFFOBJ) $(LOOBJ)
+$(PFM)\$(VARIETY)\mps.lib: $(MPMOBJ) $(AMCOBJ) $(SNCOBJ) $(MVFFOBJ) $(LOOBJ) \
+  $(AMSOBJ)
 	$(ECHO) $@
 	$(LIBMAN) $(LIBFLAGS) /OUT:$@ $**
 
