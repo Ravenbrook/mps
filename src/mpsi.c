@@ -1,6 +1,6 @@
 /* impl.c.mpsi: MEMORY POOL SYSTEM C INTERFACE LAYER
  *
- * $HopeName: !mpsi.c(trunk.56) $
+ * $HopeName: MMsrc!mpsi.c(MM_epcore_anchovy.1) $
  * Copyright (C) 1997. Harlequin Group plc. All rights reserved.
  *
  * .purpose: This code bridges between the MPS interface to C,
@@ -52,7 +52,7 @@
 #include "mps.h"
 #include "mpsavm.h" /* only for mps_space_create */
 
-SRCID(mpsi, "$HopeName: !mpsi.c(trunk.56) $");
+SRCID(mpsi, "$HopeName: MMsrc!mpsi.c(MM_epcore_anchovy.1) $");
 
 
 /* mpsi_check -- check consistency of interface mappings
@@ -1315,6 +1315,12 @@ mps_word_t mps_telemetry_intern(const char *label)
 void mps_telemetry_label(mps_addr_t addr, mps_word_t intern_id)
 {
   EventLabelAddr((Addr)addr, (Word)intern_id);
+}
+
+void mps_telemetry_flush(void)
+{
+  /* Telemetry does its own concurrency control, so none here. */
+  (void)EventSync();
 }
 
 
