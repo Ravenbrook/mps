@@ -1,7 +1,7 @@
 /*  impl.c.protnt
  *
  *               PROTECTION FOR WIN32
- *  $HopeName: !protnt.c(trunk.6) $
+ *  $HopeName: MMsrc!protnt.c(MM_dylan_incremental.1) $
  *
  *  Copyright (C) 1995 Harlequin Group, all rights reserved
  */
@@ -16,7 +16,7 @@
 
 #include <windows.h>
 
-SRCID("$HopeName: !protnt.c(trunk.6) $");
+SRCID("$HopeName: MMsrc!protnt.c(MM_dylan_incremental.1) $");
 
 
 void ProtSetup(void)
@@ -68,8 +68,11 @@ LONG ProtSEHfilter(LPEXCEPTION_POINTERS info)
   iswrite = er->ExceptionInformation[0]; /* 0 read; 1 write */
   AVER(iswrite == 0 || iswrite == 1);
 
+  /* If there is a write we simulate a read as well,
+   * because we cannot have a page that is only read protected
+   * (read protect => write protected) */
   if(iswrite)
-    mode = ProtWRITE; 
+    mode = ProtWRITE|ProtREAD; 
   else
     mode = ProtREAD;
 
