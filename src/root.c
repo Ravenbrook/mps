@@ -1,6 +1,6 @@
 /* impl.c.root: ROOT IMPLEMENTATION
  *
- * $HopeName: !root.c(trunk.29) $
+ * $HopeName: MMsrc!root.c(MMdevel_tony_lock.1) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  *
  * .scope: This is the implementation of the root datatype.
@@ -10,7 +10,7 @@
 
 #include "mpm.h"
 
-SRCID(root, "$HopeName: !root.c(trunk.29) $");
+SRCID(root, "$HopeName: MMsrc!root.c(MMdevel_tony_lock.1) $");
 
 
 /* RootVarCheck -- check a Root union discriminator
@@ -79,7 +79,7 @@ Bool RootCheck(Root root)
 
     case RootREG:
     CHECKL(root->the.reg.scan != NULL);
-    CHECKD(Thread, root->the.reg.thread);
+    CHECKL(ThreadCheck(root->the.reg.thread));
     break;
 
     case RootFMT:
