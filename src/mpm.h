@@ -1,6 +1,6 @@
 /* impl.h.mpm: MEMORY POOL MANAGER DEFINITIONS
  *
- * $HopeName: MMsrc!mpm.h(MMdevel_action2.9) $
+ * $HopeName: MMsrc!mpm.h(MMdevel_action2.10) $
  * Copyright (C) 1996,1997 Harlequin Group, all rights reserved.
  */
 
@@ -296,6 +296,7 @@ extern Res TraceScanAreaTagged(ScanState ss, Addr *base, Addr *limit);
 extern Bool ActionCheck(Action action);
 extern void ActionInit(Action action, Pool pool);
 extern void ActionFinish(Action action);
+extern void ActionPoll(Space space);
 
 
 /* Space Interface -- see impl.c.space */
