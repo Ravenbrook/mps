@@ -1,6 +1,6 @@
 /* impl.c.mpm: GENERAL MPM SUPPORT
  *
- * $HopeName: !mpm.c(trunk.16) $
+ * $HopeName: MMsrc!mpm.c(MMdevel_config_thread.1) $
  * Copyright (C) 1996 Harlequin Group, all rights reserved.
  *
  * .readership: MM developers.
@@ -13,7 +13,7 @@
 
 #include "mpm.h"
 
-SRCID(mpm, "$HopeName: !mpm.c(trunk.16) $");
+SRCID(mpm, "$HopeName: MMsrc!mpm.c(MMdevel_config_thread.1) $");
 
 
 /* MPMCheck -- test MPM assumptions */
@@ -308,7 +308,8 @@ static Res WriteWord(mps_lib_FILE *stream, Word w, unsigned base,
 Res WriteF(mps_lib_FILE *stream, ...)
 {
   const char *format;
-  int r, i;
+  int r;
+  size_t i;
   Res res;
   va_list args;
 
