@@ -1,6 +1,6 @@
 /* impl.c.arena: ARENA IMPLEMENTATION
  *
- * $HopeName: MMsrc!arena.c(MMdevel_tony_sunset.2) $
+ * $HopeName: MMsrc!arena.c(MMdevel_tony_sunset.3) $
  * Copyright (C) 1998. Harlequin Group plc. All rights reserved.
  *
  * .readership: Any MPS developer
@@ -36,7 +36,7 @@
 #include "poolmrg.h"
 #include "mps.h"
 
-SRCID(arena, "$HopeName: MMsrc!arena.c(MMdevel_tony_sunset.2) $");
+SRCID(arena, "$HopeName: MMsrc!arena.c(MMdevel_tony_sunset.3) $");
 
 
 /* All static data objects are declared here. See .static */
@@ -73,7 +73,6 @@ Bool TractCheck(Tract tract)
   } else {
     CHECKL(tract->white == TraceSetEMPTY);
   }
-  /* @@@@**** What else ? **** */
   return TRUE;
 }
 
