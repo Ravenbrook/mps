@@ -1,6 +1,6 @@
 /* impl.c.proti3: PROTECTION MUTATOR CONTEXT (Intel 386)
  *
- * $HopeName: !proti3.c(trunk.1) $
+ * $HopeName: MMsrc!proti3.c(trunk.1) $
  * Copyright (C) 1998, 1999. Harlequin Group plc. All rights reserved.
  *
  * READERSHIP
@@ -139,36 +139,67 @@ static Bool DecodeSimpleMov(unsigned int *regnumReturn,
   unsigned int m;
 
   DecodeModRM(&mod, &r, &m, insvec[1]);  /* .source.i486 Table 26-3 */
-  if (1 == mod) {
-    /* only know about single byte displacements, .assume.want */
-    Word base;
-    Word index;
-    Word disp;
+  switch (mod) {
+  case 0:
+    {
+      /* know about no displacements, .assume.want */
+      Word base;
+      Word index;
 
-    if (4 == m) {
-      /* There is an index */
-      unsigned int s;
-      unsigned int i;
-      unsigned int b;
+      if (4 == m) {
+        /* There is an index */
+        unsigned int s;
+        unsigned int i;
+        unsigned int b;
 
-      DecodeSIB(&s, &i, &b, insvec[2]);  /* .source.i486 Table 26-3 */
-      if (4 == i) 
-        return FALSE; /* degenerate SIB form - unused by Dylan compiler */
-      disp = SignedInsElt(insvec, 3);
-      base = RegValue(context, b);
-      index = RegValue(context, i) << s;
-      *inslenReturn = 4;
-    } else {
-      /* MOV with reg1 & [reg2+byte] parameters */
-      disp = SignedInsElt(insvec, 2);
-      base = RegValue(context, m);
-      index = 0;
-      *inslenReturn = 3;
+        DecodeSIB(&s, &i, &b, insvec[2]);  /* .source.i486 Table 26-3 */
+        if (4 == i) 
+          return FALSE; /* degenerate SIB form - unused by Dylan compiler */
+        base = RegValue(context, b);
+        index = RegValue(context, i) << s;
+        *inslenReturn = 3;
+      } else {
+        /* MOV with reg1 & [reg2] parameters */
+        base = RegValue(context, m);
+        index = 0;
+        *inslenReturn = 2;
+      }
+      *regnumReturn = r;
+      *memReturn = (MRef)(base + index);  /* .assume.i3 */
+      return TRUE;
     }
-    *regnumReturn = r;
-    *memReturn = (MRef)(base + index + disp);  /* .assume.i3 */
-    return TRUE;
-  }
+  case 1:
+    {
+     /* know about single byte displacements, .assume.want */
+     Word base;
+     Word index;
+     Word disp;
+
+     if (4 == m) {
+       /* There is an index */
+       unsigned int s;
+       unsigned int i;
+       unsigned int b;
+
+       DecodeSIB(&s, &i, &b, insvec[2]);  /* .source.i486 Table 26-3 */
+       if (4 == i) 
+         return FALSE; /* degenerate SIB form - unused by Dylan compiler */
+       disp = SignedInsElt(insvec, 3);
+       base = RegValue(context, b);
+       index = RegValue(context, i) << s;
+       *inslenReturn = 4;
+     } else {
+       /* MOV with reg1 & [reg2+byte] parameters */
+       disp = SignedInsElt(insvec, 2);
+       base = RegValue(context, m);
+       index = 0;
+       *inslenReturn = 3;
+     }
+     *regnumReturn = r;
+     *memReturn = (MRef)(base + index + disp);  /* .assume.i3 */
+     return TRUE;
+   }
+ }
 
   return FALSE;
 }
