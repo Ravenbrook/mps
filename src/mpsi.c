@@ -1,6 +1,6 @@
 /* impl.c.mpsi: MEMORY POOL SYSTEM C INTERFACE LAYER
  *
- * $HopeName: !mpsi.c(trunk.26) $
+ * $HopeName: MMsrc!mpsi.c(MM_dylan_sunflower.1) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  *
  * .purpose: This code bridges between the MPS interface to C,
@@ -52,7 +52,7 @@
 #include "mpm.h"
 #include "mps.h"
 
-SRCID(mpsi, "$HopeName: !mpsi.c(trunk.26) $");
+SRCID(mpsi, "$HopeName: MMsrc!mpsi.c(MM_dylan_sunflower.1) $");
 
 
 /* mpsi_check -- check consistency of interface mappings
@@ -220,6 +220,40 @@ size_t mps_space_committed(mps_space_t mps_space)
   SpaceLeave(space);
 
   return (size_t)size;
+}
+
+void mps_space_clamp(mps_space_t mps_space)
+{
+  Space space = (Space)mps_space;
+  SpaceEnter(space);
+  SpaceClamp(space);
+  SpaceLeave(space);
+}
+
+void mps_space_release(mps_space_t mps_space)
+{
+  Space space = (Space)mps_space;
+  SpaceEnter(space);
+  SpaceRelease(space);
+  SpaceLeave(space);
+}
+
+void mps_space_park(mps_space_t mps_space)
+{
+  Space space = (Space)mps_space;
+  SpaceEnter(space);
+  SpacePark(space);
+  SpaceLeave(space);
+}
+
+mps_res_t mps_space_collect(mps_space_t mps_space)
+{
+  Res res;
+  Space space = (Space)mps_space;
+  SpaceEnter(space);
+  res = SpaceCollect(space);
+  SpaceLeave(space);
+  return res;
 }
 
 mps_res_t mps_space_create(mps_space_t *mps_space_o)

@@ -1,6 +1,6 @@
 /* impl.h.mpm: MEMORY POOL MANAGER DEFINITIONS
  *
- * $HopeName: MMsrc!mpm.h(MM_dylan_sunflower.2) $
+ * $HopeName: MMsrc!mpm.h(MM_dylan_sunflower.3) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  */
 
@@ -263,16 +263,16 @@ extern Res PoolCreateV(Pool *poolReturn, Space space,
 extern void PoolDestroy(Pool pool);
 extern Res PoolAlloc(Addr *pReturn, Pool pool, Size size);
 extern void PoolFree(Pool pool, Addr old, Size size);
-extern Res PoolTraceBegin(Pool pool, Trace trace, Action action);
-extern Res PoolCondemn(Pool pool, Trace trace, Seg seg, Action action);
+extern Res PoolTraceBegin(Pool pool, Trace trace);
+extern Res PoolWhiten(Pool pool, Trace trace, Seg seg);
 extern void PoolGrey(Pool pool, Trace trace, Seg seg);
 extern Res PoolScan(ScanState ss, Pool pool, Seg seg);
 extern Res (PoolFix)(Pool pool, ScanState ss, Seg seg, Addr *refIO);
 #define PoolFix(pool, ss, seg, refIO) \
   ((*(pool)->class->fix)(pool, ss, seg, refIO))
 extern void PoolReclaim(Pool pool, Trace trace, Seg seg);
-extern void PoolTraceEnd(Pool pool, Trace trace, Action action);
 extern double PoolBenefit(Pool pool, Action action);
+extern Res PoolAct(Pool pool, Action action);
 
 extern void PoolTrivFinish(Pool pool);
 extern Res PoolNoAlloc(Addr *pReturn, Pool pool, Size size);
@@ -291,17 +291,18 @@ extern void PoolNoBufferEmpty(Pool pool, Buffer buffer);
 extern void PoolTrivBufferEmpty(Pool pool, Buffer buffer);
 extern Res PoolNoDescribe(Pool pool, mps_lib_FILE *stream);
 extern Res PoolTrivDescribe(Pool pool, mps_lib_FILE *stream);
-extern Res PoolNoTraceBegin(Pool pool, Trace trace, Action action);
-extern Res PoolTrivTraceBegin(Pool pool, Trace trace, Action action);
-extern Res PoolNoCondemn(Pool pool, Trace trace, Seg seg, Action action);
+extern Res PoolNoTraceBegin(Pool pool, Trace trace);
+extern Res PoolTrivTraceBegin(Pool pool, Trace trace);
+extern Res PoolNoWhiten(Pool pool, Trace trace, Seg seg);
+extern Res PoolTrivWhiten(Pool pool, Trace trace, Seg seg);
 extern void PoolNoGrey(Pool pool, Trace trace, Seg seg);
 extern void PoolTrivGrey(Pool pool, Trace trace, Seg seg);
 extern Res PoolNoScan(ScanState ss, Pool pool, Seg seg);
 extern Res PoolNoFix(Pool pool, ScanState ss, Seg seg, Ref *refIO);
 extern void PoolNoReclaim(Pool pool, Trace trace, Seg seg);
-extern void PoolNoTraceEnd(Pool pool, Trace trace, Action action);
-extern void PoolTrivTraceEnd(Pool pool, Trace trace, Action action);
 extern double PoolNoBenefit(Pool pool, Action action);
+extern Res PoolNoAct(Pool pool, Action action);
+extern Res PoolCollectAct(Pool pool, Action action);
 
 
 /* Trace Interface -- see impl.c.trace */
@@ -325,7 +326,10 @@ extern Bool TraceIdCheck(TraceId id);
 extern Bool TraceSetCheck(TraceSet ts);
 extern Bool TraceCheck(Trace trace);
 
-extern Res TraceCreate(Trace *traceReturn, Space space, Action action);
+extern Res TraceCreate(Trace *traceReturn, Space space);
+extern Res TraceAddWhite(Trace trace, Seg seg);
+extern Res TraceStart(Trace trace);
+extern Res TraceFlip(Trace trace);
 extern void TraceDestroy(Trace trace);
 extern Res TracePoll(Trace trace);
 extern void TraceAccess(Space space, Seg seg, AccessSet mode);
@@ -393,6 +397,10 @@ extern Bool SpaceAccess(Addr addr, AccessSet mode);
 extern void SpaceEnter(Space space);
 extern void SpaceLeave(Space space);
 extern void SpacePoll(Space space);
+extern void SpaceClamp(Space space);
+extern void SpaceRelease(Space space);
+extern void SpacePark(Space space);
+extern Res SpaceCollect(Space space);
 extern Res SpaceAlloc(void **baseReturn, Space space, Size size);
 extern void SpaceFree(Space space, Addr base, Size size);
 

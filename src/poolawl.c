@@ -1,6 +1,6 @@
 /* impl.c.poolawl: AUTOMATIC WEAK LINKED POOL CLASS
  *
- * $HopeName: MMsrc!poolawl.c(MM_dylan_sunflower.11) $
+ * $HopeName: MMsrc!poolawl.c(MM_dylan_sunflower.12) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  *
  * READERSHIP
@@ -16,7 +16,7 @@
 #include "mpm.h"
 #include "mpscawl.h"
 
-SRCID(poolawl, "$HopeName: MMsrc!poolawl.c(MM_dylan_sunflower.11) $");
+SRCID(poolawl, "$HopeName: MMsrc!poolawl.c(MM_dylan_sunflower.12) $");
 
 
 #define AWLSig  ((Sig)0x519b7a37)       /* SIGPooLAWL */
@@ -329,25 +329,23 @@ static void AWLBufferEmpty(Pool pool, Buffer buffer)
 }
 
 
-static Res AWLCondemn(Pool pool, Trace trace, Seg seg, Action action)
+static Res AWLWhiten(Pool pool, Trace trace, Seg seg)
 {
   Count bits;
   AWL awl;
   AWLGroup group;
 
-  /* all parameters checked by generic PoolCondemn */
+  /* all parameters checked by generic PoolWhiten */
 
-  /* can only condemn for a single trace, */
+  /* can only whiten for a single trace, */
   /* see design.mps.poolawl.fun.condemn */
   AVER(SegWhite(seg) == TraceSetEMPTY);
 
-  /* Don't condemn buffered segments, to avoid allocating non-black */
+  /* Don't whiten buffered segments, to avoid allocating non-black */
   /* objects.  See change.dylan.sunflower.7.170467. */
   if(SegBuffer(seg) == NULL) {
     awl = PoolPoolAWL(pool);
     AVERT(AWL, awl);
-    AVERT(Action, action);
-    AVER(awl == ActionAWL(action));
 
     group = (AWLGroup)SegP(seg);
     AVERT(AWLGroup, group);
@@ -502,7 +500,7 @@ notFinished:
   if(!finished)
     goto notFinished;
  
-  /* if we're not condemned, then the scan must've scanned everything */
+  /* if we're not white, then the scan must've scanned everything */
   /* and ss.summary and ss.fixed are faithful.  Otherwise we need to */
   /* spoof ss.summary and ss.fixed for TraceScan */
   /* see request.dylan.170471 */
@@ -633,7 +631,7 @@ static void AWLReclaim(Pool pool, Trace trace, Seg seg)
   SegSetWhite(seg, TraceSetDel(SegWhite(seg), trace->ti));
 }
 
-static Res AWLTraceBegin(Pool pool, Trace trace, Action action)
+static Res AWLTraceBegin(Pool pool, Trace trace)
 {
   AWL awl;
 
@@ -641,8 +639,6 @@ static Res AWLTraceBegin(Pool pool, Trace trace, Action action)
   awl = PoolPoolAWL(pool);
   AVERT(AWL, awl);
   AVERT(Trace, trace);
-  AVERT(Action, action);
-  AVER(awl == ActionAWL(action));
 
   awl->lastCollected = PoolSpace(pool)->allocTime;
   return ResOK;
@@ -682,13 +678,13 @@ struct PoolClassStruct PoolClassAWLStruct = {
   AWLBufferEmpty,
   PoolTrivBufferFinish,
   AWLTraceBegin,
-  AWLCondemn,
+  AWLWhiten,
   AWLGrey,
   AWLScan,
   AWLFix,
   AWLReclaim,
-  PoolTrivTraceEnd,
   AWLBenefit,
+  PoolCollectAct,
   PoolTrivDescribe,
   PoolClassSig
 };

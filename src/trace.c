@@ -1,12 +1,12 @@
 /* impl.c.trace: GENERIC TRACER IMPLEMENTATION
  *
- * $HopeName: MMsrc!trace.c(MM_dylan_sunflower.6) $
+ * $HopeName: MMsrc!trace.c(MM_dylan_sunflower.7) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  */
 
 #include "mpm.h"
 
-SRCID(trace, "$HopeName: MMsrc!trace.c(MM_dylan_sunflower.6) $");
+SRCID(trace, "$HopeName: MMsrc!trace.c(MM_dylan_sunflower.7) $");
 
 
 /* ScanStateCheck -- check consistency of a ScanState object */
@@ -93,6 +93,34 @@ Bool TraceCheck(Trace trace)
 }
 
 
+/* TraceAddWhite -- add a segment to the white set of a trace */
+
+Res TraceAddWhite(Trace trace, Seg seg)
+{
+  Res res;
+
+  AVERT(Trace, trace);
+  AVERT(Seg, seg);
+  AVER(!TraceSetIsMember(SegWhite(seg), trace->ti)); /* .start.black */
+
+  /* Give the pool the opportunity to turn the segment white. */
+  /* If it fails, unwind. */
+  res = PoolWhiten(SegPool(seg), trace, seg);
+  if(res != ResOK)
+    return res;
+
+  /* Add the segment to the approximation of the white set the */
+  /* pool made it white. */
+  if(TraceSetIsMember(SegWhite(seg), trace->ti)) {
+    trace->white = RefSetUnion(trace->white,
+                               RefSetOfSeg(trace->space, seg));
+    trace->condemned += SegSize(trace->space, seg);
+  }
+
+  return ResOK;
+}
+
+
 /* TraceStart -- condemn a set of objects and start collection
  *
  * TraceStart should be passed a trace with state TraceINIT, i.e.
@@ -104,57 +132,23 @@ Bool TraceCheck(Trace trace)
  * it easy to destroy traces half-way through.
  */
 
-static Res TraceStart(Trace trace, Action action)
+Res TraceStart(Trace trace)
 {
-  Res res;
   Ring ring, node;
   Space space;
   Seg seg;
-  Pool pool;
+  Res res;
 
   AVERT(Trace, trace);
-  AVERT(Action, action);
-  AVER((action->pool->class->attr & AttrGC) != 0);
   AVER(trace->state == TraceINIT);
-  AVER(trace->white == RefSetEMPTY);
 
-  /* Identify the condemned set and turn it white. */
   space = trace->space;
-  pool = action->pool;
-
-  EVENT3(TraceStart, trace, pool, action);
-  ring = PoolSegRing(pool);
-  node = RingNext(ring);
-  while(node != ring) {
-    Ring next = RingNext(node);
-    seg = SegOfPoolRing(node);
-
-    AVER(!TraceSetIsMember(SegWhite(seg), trace->ti)); /* .start.black */
-
-    /* Give the pool the opportunity to turn the segment white. */
-    /* If it fails, unwind. */
-    res = PoolCondemn(pool, trace, seg, action);
-    if(res != ResOK) goto failCondemn;
-
-    /* Add the segment to the approximation of the white set the */
-    /* pool made it white. */
-    if(TraceSetIsMember(SegWhite(seg), trace->ti)) {
-      trace->white = RefSetUnion(trace->white, RefSetOfSeg(space, seg));
-      trace->condemned += SegSize(space, seg);
-    }
-
-    node = next;
-  }
 
   /* If there is nothing white then there can be nothing grey, */
-  /* so everything is black and we can proceed straight to */
-  /* reclaim.  We have to reclaim because we want to guarantee */
-  /* to the pool that for every condemn there will be a reclaim. */
-  /* @@@@ We can also shortcut if there is nothing grey. */
-  /* @@@@ This should be in design. */
+  /* so everything is black and we can finish the trace immediately. */
   if(trace->white == RefSetEMPTY) {
     space->flippedTraces = TraceSetAdd(space->flippedTraces, trace->ti);
-    trace->state = TraceRECLAIM;
+    trace->state = TraceFINISHED;
     trace->rate = 1;
     return ResOK;
   }
@@ -225,21 +219,12 @@ static Res TraceStart(Trace trace, Action action)
 
   trace->state = TraceUNFLIPPED;
 
+  /* All traces must flip at beginning at the moment. */
+  res = TraceFlip(trace);
+  if(res != ResOK)
+    return res;
+
   return ResOK;
-
-  /* PoolCodemn failed, possibly half-way through whitening the condemned */
-  /* set.  This loop empties the white set again. */ 
-failCondemn:
-  ring = PoolSegRing(pool);
-  node = RingNext(ring);
-  while(node != ring) {
-    Ring next = RingNext(node);
-    seg = SegOfPoolRing(node);
-    SegSetWhite(seg, TraceSetDel(SegWhite(seg), trace->ti));
-    node = next;
-  }
-
-  return res;
 }
 
 
@@ -259,17 +244,15 @@ failCondemn:
  * objects dynamically.
  */
 
-Res TraceCreate(Trace *traceReturn, Space space, Action action)
+Res TraceCreate(Trace *traceReturn, Space space)
 {
   TraceId ti;
   Trace trace;
-  Res res;
 
   AVER(TRACE_MAX == 1);         /* .single-collection */
 
   AVER(traceReturn != NULL);
   AVERT(Space, space);
-  AVERT(Action, action);
 
   /* Find a free trace ID */
   for(ti = 0; ti < TRACE_MAX; ++ti)
@@ -283,7 +266,6 @@ found:
   space->busyTraces = TraceSetAdd(space->busyTraces, ti);
 
   trace->space = space;
-  trace->action = action;
   trace->white = RefSetEMPTY;
   trace->ti = ti;
   trace->state = TraceINIT;
@@ -297,22 +279,8 @@ found:
   trace->sig = TraceSig;
   AVERT(Trace, trace);
 
-  res = PoolTraceBegin(action->pool, trace, action);
-  if(res != ResOK) goto failBegin;
-  
-  res = TraceStart(trace, action);
-  if(res != ResOK) goto failStart;
-
   *traceReturn = trace;
-  EVENT4(TraceCreate, space, action, trace, ti);
   return ResOK;
-
-failStart:
-  PoolTraceEnd(action->pool, trace, action);
-failBegin:
-  trace->sig = SigInvalid;
-  space->busyTraces = TraceSetDel(space->busyTraces, ti);
-  return res;
 }
 
 
@@ -328,9 +296,8 @@ failBegin:
 void TraceDestroy(Trace trace)
 {
   AVERT(Trace, trace);
+
   AVER(trace->state == TraceFINISHED);
-  
-  PoolTraceEnd(trace->action->pool, trace, trace->action);
   
   trace->sig = SigInvalid;
   trace->space->busyTraces =
@@ -461,7 +428,7 @@ void TraceSetSummary(Space space, Seg seg, RefSet summary)
 
 /* TraceFlip -- blacken the mutator */
 
-static Res TraceFlip(Trace trace)
+Res TraceFlip(Trace trace)
 {
   Ring ring;
   Ring node;

@@ -1,6 +1,6 @@
 /* impl.h.mpmst: MEMORY POOL MANAGER DATA STRUCTURES
  *
- * $HopeName: MMsrc!mpmst.h(MM_dylan_sunflower.3) $
+ * $HopeName: MMsrc!mpmst.h(MM_dylan_sunflower.4) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  *
  * .readership: MM developers.
@@ -93,13 +93,13 @@ typedef struct PoolClassStruct {
   PoolBufferEmptyMethod bufferEmpty;
   PoolBufferFinishMethod bufferFinish;
   PoolTraceBeginMethod traceBegin;
-  PoolCondemnMethod condemn;    /* condemn (some or all) objects */
+  PoolWhitenMethod whiten;      /* whiten objects in a segment */
   PoolGreyMethod grey;          /* grey non-white objects */
   PoolScanMethod scan;          /* find references during tracing */
   PoolFixMethod fix;            /* referent reachable during tracing */
   PoolReclaimMethod reclaim;    /* reclaim dead objects after tracing */
-  PoolTraceEndMethod traceEnd;
-  PoolBenefitMethod benefit;
+  PoolBenefitMethod benefit;    /* calculate benefit of action */
+  PoolActMethod act;            /* do an action */
   PoolDescribeMethod describe;  /* describe the contents of the pool */
   Sig endSig;                   /* .class.end-sig */
 } PoolClassStruct;
@@ -581,7 +581,6 @@ typedef struct TraceStruct {
   Sig sig;			/* design.mps.sig */
   TraceId ti;			/* index into TraceSets */
   Space space;			/* owning space */
-  Action action;		/* the action that launched the trace */
   RefSet white;			/* superset of refs in white set */
   TraceState state;		/* current state of trace */
   Size condemned;               /* condemned bytes */
@@ -627,6 +626,7 @@ typedef struct SpaceStruct {
   LockStruct lockStruct;        /* space's lock */
   Size pollThreshold;           /* see impl.c.mpsi.poll and SpacePoll */
   Bool insidePoll;              /* prevent recursive polling, see SpacePoll */
+  Bool clamped;                 /* prevent background activity */
   Size actionInterval;		/* see SpacePoll */
   double allocTime;		/* "time" in allocated bytes */
 
