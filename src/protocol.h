@@ -152,7 +152,7 @@ typedef struct ProtocolStruct {
  * protocols.
  */
 
-extern ProtocolClass EnsureProtocolClass();
+extern ProtocolClass EnsureProtocolClass(void);
 
 
 /* Checking functions */
