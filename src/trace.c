@@ -1,11 +1,11 @@
 /* impl.c.trace: GENERIC TRACER IMPLEMENTATION
  *
- * $HopeName: MMsrc!trace.c(MMdevel_action2.9) $
+ * $HopeName: MMsrc!trace.c(MMdevel_action2.10) $
  */
 
 #include "mpm.h"
 
-SRCID(trace, "$HopeName: MMsrc!trace.c(MMdevel_action2.9) $");
+SRCID(trace, "$HopeName: MMsrc!trace.c(MMdevel_action2.10) $");
 
 Bool ScanStateCheck(ScanState ss)
 {
@@ -40,6 +40,7 @@ Bool TraceCheck(Trace trace)
   CHECKL(TraceSetIsMember(trace->space->busyTraces, trace->ti));
   /* Can't check trace->white -- not in O(1) anyway. */
   /* @@@@ Use trace->state to check more invarients. */
+  /* @@@@ Check trace->interval? */
   return TRUE;
 }
 
@@ -87,6 +88,7 @@ found:
   trace->white = RefSetEMPTY;
   trace->ti = ti;
   trace->state = TraceINIT;
+  trace->interval = (Size)4096; /* @@@@ should be progress control */
 
   trace->sig = TraceSig;
   AVERT(Trace, trace);
@@ -255,6 +257,9 @@ static Res TraceFlip(Trace trace)
   ShieldSuspend(space);
 
   AVER(trace->state == TraceUNFLIPPED);
+
+  /* @@@@ MUST TRIP ALL BUFFERS to make sure they don't */
+  /* contain unscanned objects. */
 
   /* Update location dependency structures.  white is */
   /* a conservative approximation of the refset of refs which */
