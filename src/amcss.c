@@ -1,6 +1,6 @@
 /* impl.c.amcss: POOL CLASS AMC STRESS TEST
  *
- * $HopeName: !amcss.c(trunk.11) $
+ * $HopeName: MMsrc!amcss.c(MMdevel_config.1) $
  * Copyright (C) 1996 Harlequin Group, all rights reserved
  */
 
@@ -14,6 +14,9 @@
 #include <math.h>
 #include <string.h>
 #include <assert.h>
+#ifdef MPS_OS_SU
+#include "ossu.h"
+#endif
 
 #define NR_EXACT_ROOTS  50
 #define NR_AMBIG_ROOTS  50
