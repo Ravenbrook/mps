@@ -1,6 +1,6 @@
 /* impl.c.seg: SEGMENTS
  *
- * $HopeName: MMsrc!seg.c(trunk.5) $
+ * $HopeName: MMsrc!seg.c(MMdevel_greylist.2) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  *
  * .design: The design for this module is design.mps.seg.
@@ -16,7 +16,7 @@
 
 #include "mpm.h"
 
-SRCID(seg, "$HopeName: MMsrc!seg.c(trunk.5) $");
+SRCID(seg, "$HopeName: MMsrc!seg.c(MMdevel_greylist.2) $");
 
 
 /* SegCheck -- check the integrity of a segment */
@@ -78,6 +78,9 @@ Bool SegCheck(Seg seg)
 
 void SegInit(Seg seg, Pool pool)
 {
+  AVER(seg != NULL);
+  AVERT(Pool, pool);
+
   seg->_pool = pool;
   seg->_p = NULL;
   seg->_rankSet = RankSetEMPTY;
@@ -93,6 +96,8 @@ void SegInit(Seg seg, Pool pool)
   seg->_single = FALSE;
 
   AVERT(Seg, seg);
+
+  RingAppend(&pool->segRing, SegPoolRing(seg));
 }
 
 
@@ -108,6 +113,17 @@ void SegFinish(Seg seg)
   
   /* Don't leave a dangling buffer allocating into hyperspace. */
   AVER(seg->_buffer == NULL);
+
+  /* See impl.c.shield.shield.flush */
+  ShieldFlush(PoolSpace(seg->_pool));
+
+  RingRemove(SegPoolRing(seg));
+
+  /* Detach the segment from the grey list if it is grey.  It is OK */
+  /* to delete a grey segment provided the objects in it have been */
+  /* proven to be unreachable by another trace. */
+  if(seg->_grey != TraceSetEMPTY)
+    RingRemove(&seg->_greyRing);
 
   RingFinish(&seg->_poolRing);
   RingFinish(&seg->_greyRing);
