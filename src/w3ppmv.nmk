@@ -1,6 +1,6 @@
 # impl.nmk.w3ppmv: WINDOWS (POWERPC) NMAKE FILE
 #
-# $HopeName: MMsrc!w3ppmv.nmk(MMdevel_tony_sunset.1) $
+# $HopeName: MMsrc!w3ppmv.nmk(MMdevel_tony_sunset.2) $
 #
 # Copyright (C) 1998 Harlequin Group plc.  All rights reserved.
 #
@@ -17,7 +17,8 @@ MPM = <assert> <ring> <mpm> <bt> <protocol> \
       <event> <action> <seg> <poolmrg> <message> <dbgpool> \
       <abq> <meter> <cbs> <poolmv2> <splay> <version>
 SW  = <assert> <ring> <mpm> <bt> <protocol> \
-      <arenavm> <arenacl> <arena> <pool> <poolabs> <poolmfs> \
+      <arenavm> <arenacl> <arena> <walk> <reserv> \
+      <pool> <poolabs> <poolmfs> \
       <poolmv> <root> <format> <buffer> <lockw3> \
       <ref> <trace> <protsw> <prmcan> <shield> <vmw3> \
       <than> <ssan> <mpsi> <ld> \
