@@ -1,7 +1,7 @@
 /* impl.h.mpm: MEMORY POOL MANAGER DEFINITIONS
  *
- * $HopeName: MMsrc!mpm.h(MMdevel_pekka_rate.1) $
- * Copyright (C) 1998. Harlequin Group plc. All rights reserved.
+ * $HopeName: MMsrc!mpm.h(MMdevel_pekka_rate.2) $
+ * Copyright (C) 1998.  Harlequin Group plc.  All rights reserved.
  */
 
 #ifndef mpm_h
@@ -55,24 +55,24 @@ extern Word (WordAlignDown)(Word word, Align align);
 
 extern Bool AlignCheck(Align align);
 
-extern Pointer (PointerAdd)(Pointer p, Size s);
-#define PointerAdd(p, s)        ((Pointer)((char *)(p) + (s)))
+extern void *(PointerAdd)(void *p, size_t s);
+#define PointerAdd(p, s) ((void *)((char *)(p) + (s)))
 
-extern Pointer (PointerSub)(Pointer p, Size s);
-#define PointerSub(p, s)        ((Pointer)((char *)(p) - (s)))
+extern void *(PointerSub)(void *p, size_t s);
+#define PointerSub(p, s) ((void *)((char *)(p) - (s)))
 
-extern Size (PointerOffset)(Pointer base, Pointer limit);
-#define PointerOffset(base, limit) \
-  ((Size)((char *)(limit) - (char *)(base)))
+extern size_t (PointerOffset)(void *base, void *limit);
+#define PointerOffset(base, limit) ((char *)(limit) - (char *)(base))
 
 extern Addr (AddrAdd)(Addr addr, Size size);
-#define AddrAdd(p, s)           ((Addr)PointerAdd((Pointer)(p), (s)))
+#define AddrAdd(p, s) ((Addr)PointerAdd((void *)(p), (s)))
 
 extern Addr (AddrSub)(Addr addr, Size size);
-#define AddrSub(p, s)           ((Addr)PointerSub((Pointer)(p), (s)))
+#define AddrSub(p, s) ((Addr)PointerSub((void *)(p), (s)))
 
 extern Size (AddrOffset)(Addr base, Addr limit);
-#define AddrOffset(b, l)        (PointerOffset((Pointer)(b), (Pointer)(l)))
+#define AddrOffset(b, l) \
+  ((Size)(PointerOffset((void *)(b), (void *)(l))))
 
 extern Addr (AddrAlignDown)(Addr addr, Align align);
 #define AddrAlignDown(p, a)     ((Addr)WordAlignDown((Word)(p), (a)))
@@ -374,6 +374,7 @@ extern void MessageNoFinalizationRef(Ref *refReturn,
 /* Trace Interface -- see impl.c.trace */
 
 #define TraceSetSingle(ti)      BS_SINGLE(TraceSet, (ti))
+#define TraceSetIsSingle(ts)    BS_IS_SINGLE(ts)
 #define TraceSetIsMember(ts, ti)BS_IS_MEMBER((ts), (ti))
 #define TraceSetAdd(ts, ti)     BS_ADD(TraceSet, (ts), (ti))
 #define TraceSetDel(ts, ti)     BS_DEL(TraceSet, (ts), (ti))
