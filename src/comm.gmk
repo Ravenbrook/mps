@@ -1,6 +1,6 @@
 # impl.gmk.comm: COMMON GNUMAKEFILE FRAGMENT
 #
-# $HopeName: MMsrc!comm.gmk(MMdevel_dropin.3) $
+# $HopeName: MMsrc!comm.gmk(MMdevel_dropin.4) $
 # Copyright (C) 1995,1996,1997 Harlequin Group, all rights reserved
 #
 # DESCRIPTION
@@ -250,7 +250,7 @@ endif
 # just a convenient set of targets to build.
 
 all: mpmss amcss awlut dwstress mpsicv lockcov poolncv mps.a \
-     lo.a mrg.a locv qs weakcv mpmconft finalcv
+     lo.a mrg.a locv qs weakcv mpmconft finalcv mallocv newcv
 
 # These convenience targets allow one to type "make foo" to build target
 # foo in all varieties.
@@ -258,7 +258,7 @@ all: mpmss amcss awlut dwstress mpsicv lockcov poolncv mps.a \
 # %%TARGET: Add a pseudo-target for the new target here.
 
 mpmss amcss awlut dwstress mpsicv lockcov poolncv \
-  locv qs weakcv mpmconft finalcv mallocv \
+  locv qs weakcv mpmconft finalcv mallocv newcv \
   mps.a lo.a mrg.a awl.a mmsw.a: phony
 ifdef VARIETY
 	$(MAKE) -f $(PFM).gmk TARGET=$@ variety
@@ -351,6 +351,10 @@ $(PFM)/$(VARIETY)/qs: $(PFM)/$(VARIETY)/qs.o \
 
 $(PFM)/$(VARIETY)/mallocv: $(PFM)/$(VARIETY)/mallocv.o \
 	 $(PFM)/$(VARIETY)/mpsmal.o $(PFM)/$(VARIETY)/mpm.a $(TESTLIBOBJ)
+
+$(PFM)/$(VARIETY)/newcv: $(PFM)/$(VARIETY)/newcv.o \
+	$(PFM)/$(VARIETY)/mpsmal.o $(PFM)/$(VARIETY)/mpsnew.o \
+        $(PFM)/$(VARIETY)/mpm.a $(TESTLIBOBJ)
 
 $(PFM)/$(VARIETY)/mps.a: $(MPMOBJ) $(AMCOBJ) $(LOOBJ) $(PFM)/$(VARIETY)/pooln.o
 
