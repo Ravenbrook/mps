@@ -1,6 +1,6 @@
 /* impl.c.arenavm: VIRTUAL MEMORY ARENA CLASS
  *
- * $HopeName: MMsrc!arenavm.c(MMdevel_pekka_locus.1) $
+ * $HopeName: MMsrc!arenavm.c(MMdevel_pekka_locus.2) $
  * Copyright (C) 1999 Harlequin Limited.  All rights reserved.
  *
  *
@@ -23,7 +23,7 @@
 #include "mpm.h"
 #include "mpsavm.h"
 
-SRCID(arenavm, "$HopeName: MMsrc!arenavm.c(MMdevel_pekka_locus.1) $");
+SRCID(arenavm, "$HopeName: MMsrc!arenavm.c(MMdevel_pekka_locus.2) $");
 
 
 /* @@@@ Arbitrary calculation for the maximum number of distinct */
@@ -35,61 +35,11 @@ SRCID(arenavm, "$HopeName: MMsrc!arenavm.c(MMdevel_pekka_locus.1) $");
 
 /* Structure Pointer types */
 
-typedef struct PageStruct *Page;
-
 typedef struct VMArenaChunkCacheEntryStruct *VMArenaChunkCacheEntry;
 
 typedef struct VMArenaChunkStruct *VMArenaChunk;
 
 typedef struct VMArenaStruct *VMArena;
-
-
-/* PageStruct -- VM page structure
- *
- * .page-table: The page table (defined as a PageStruct array)
- * is central to the design of the arena.
- * See design.mps.arena.vm.table.*.
- *
- * .page: The "pool" field must be the first field of the "tail"
- * field of this union.  See design.mps.arena.tract.field.pool.
- *
- * .states: Pages (hence PageStructs that describe them) can be in 
- * one of 3 states:
- * allocated to a pool as tracts.
- *   allocated pages are mapped
- *   BTGet(allocTable, i) == 1
- *   PageRest()->pool == pool
- * latent (free and in hysteresis fund).
- *   these pages are mapped
- *   BTGet(allocTable, i) == 0
- *   PageRest()->pool == NULL
- *   PageRest()->type == PageTypeLatent
- * free and not in the hysteresis fund.
- *   these pages are not mapped
- *   BTGet(allocTable, i) == 0
- *   PTE may itself be unmapped, but when it is (use pageTableMapped
- *     to determine whether page occupied by page table is mapped):
- *   PageRest()->pool == NULL
- *   PageRest()->type == PageTypeFree
- * 
- */
-
-/* .page.disc: PageStruct disciminator values, */
-/* see .page.is below */
-enum {PageTypeLatent=1, PageTypeFree};
-
-typedef struct PageStruct {     /* page structure */
-  union {
-    TractStruct tractStruct;    /* allocated tract */
-    struct {
-      Pool pool;                /* NULL, must be first field (.page) */
-      int type;                 /* discriminator, see .page.disc */
-      struct {                  /* use latent iff type == PageTypeLatent */
-        RingStruct arenaRing;
-      } latent;
-    } rest;                     /* other (non allocated) page */
-  } the;
-} PageStruct;
 
 
 /* VMArenaChunkStruct */
@@ -298,37 +248,13 @@ static Index indexOfAddr(VMArenaChunk chunk, Addr addr)
   (AddrAdd((Addr)(chunk)->pageTable, ((index) << (chunk)->pageShift)))
 
 
-/* PageTract -- tract descriptor of an allocated VM page */
-
-#define PageTract(page)      (&(page)->the.tractStruct)
-
-
-/* PageRest -- descriptor for non allocated VM page */
-
-#define PageRest(page)       (&(page)->the.rest)
-
-
-
-/* PageOfTract -- VM page descriptor from arena tract */
-
-#define PageOfTract(tract)   PARENT(PageStruct, the.tractStruct, (tract))
-
-
-/* PageIsAllocated -- is a page allocated?
- *
- * See design.mps.arena.vm.table.disc.
- */
-
-#define PageIsAllocated(page)    (PageRest((page))->pool != NULL)
-
-
 /* PageIsLatent -- is page latent (free and mapped)?
  *
  * @@@@ Uses argument multiple times. 
  */
 
-#define PageIsLatent(page)  (PageRest((page))->pool == NULL && \
-                                 PageRest((page))->type == PageTypeLatent)
+#define PageIsLatent(page)  ((page)->the.rest.pool == NULL && \
+                                 (page)->the.rest.type == PageTypeLatent)
 
 
 static Bool VMArenaChunkCacheEntryCheck(VMArenaChunkCacheEntry entry)
@@ -641,6 +567,9 @@ failVMCreate:
   AVER(res != ResOK);
   return res;
 }
+
+
+/* VMArenaChunkDestroy -- destroy a chunk */
 
 static void VMArenaChunkDestroy(VMArenaChunk chunk)
 {
@@ -1164,8 +1093,7 @@ static Bool VMFindFreeInRefSet(Index *baseReturn,
   arena = VMArenaArena(vmArena);
   zoneSize = (Size)1 << arena->zoneShift;
 
-  /* .improve.alloc.chunk.cache: check (non-existant) chunk cache */
-  /* first? */
+  /* .improve.alloc.chunk.cache: check chunk cache first? */
   RING_FOR(node, &vmArena->chunkRing, next) {
     VMArenaChunk chunk = RING_ELT(VMArenaChunk, arenaRing, node);
     AVERT(VMArenaChunk, chunk);
@@ -1379,6 +1307,7 @@ static Res VMExtend(VMArena vmArena, Size size)
   return res;
 }
 
+
 /* Used in abstracting allocation policy between VM and VMNZ */
 typedef Res (*VMAllocPolicyMethod)(Index *, VMArenaChunk *,
                                    VMArena, SegPref, Size);
@@ -1448,7 +1377,7 @@ static Bool VMArenaPageIsMapped(VMArenaChunk chunk, Index pi)
   /* are mapped. */
   if(BTGet(chunk->pageTableMapped, pageTableBaseIndex) &&
      BTGet(chunk->pageTableMapped, pageTableLimitIndex - 1)) {
-    pageType = PageRest(&chunk->pageTable[pi])->type;
+    pageType = PageType(&chunk->pageTable[pi]);
     if(PageTypeLatent == pageType) {
       return TRUE;
     }
@@ -1477,8 +1406,8 @@ static void VMArenaPageAlloc(VMArenaChunk chunk, Index pi, Pool pool)
 static void VMArenaPageInit(VMArenaChunk chunk, Index pi)
 {
   BTRes(chunk->allocTable, pi);
-  PageRest(&chunk->pageTable[pi])->pool = NULL;
-  PageRest(&chunk->pageTable[pi])->type = PageTypeFree;
+  PagePool(&chunk->pageTable[pi]) = NULL;
+  PageType(&chunk->pageTable[pi]) = PageTypeFree;
 
   return;
 }
@@ -1498,8 +1427,8 @@ static void VMArenaHysteresisRemovePage(VMArenaChunk chunk, Index pi)
 {
   Arena arena = VMArenaArena(chunk->vmArena);
   /* minimal checking as it's a static used only locally */
-  AVER(PageTypeLatent == PageRest(&chunk->pageTable[pi])->type);
-  RingRemove(&PageRest(&chunk->pageTable[pi])->latent.arenaRing);
+  AVER(PageTypeLatent == PageType(&chunk->pageTable[pi]));
+  RingRemove(PageLatentRing(&chunk->pageTable[pi]));
   AVER(arena->spareCommitted >= chunk->pageSize);
   arena->spareCommitted -= chunk->pageSize;
 
@@ -1887,9 +1816,7 @@ static Bool VMArenaChunkOfAddr(VMArenaChunk *chunkReturn,
 }
 
 
-
-/* VMFree - free a region in the arena
- */
+/* VMFree -- free a region in the arena */
 
 static void VMFree(Addr base, Size size, Pool pool)
 {
@@ -1934,11 +1861,10 @@ static void VMFree(Addr base, Size size, Pool pool)
     AVER(TractPool(tract) == pool);
 
     TractFinish(PageTract(page));
-    PageRest(page)->pool = NULL;
-    PageRest(page)->type = PageTypeLatent;
-    RingInit(&PageRest(page)->latent.arenaRing);
-    RingAppend(&vmArena->latentRing,
-               &PageRest(page)->latent.arenaRing);
+    PagePool(page) = NULL;
+    PageType(page) = PageTypeLatent;
+    RingInit(PageLatentRing(page));
+    RingAppend(&vmArena->latentRing, PageLatentRing(page));
   }
   arena->spareCommitted += (piLimit - piBase) << chunk->pageShift;
   BTResRange(chunk->allocTable, piBase, piLimit);
