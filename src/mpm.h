@@ -1,6 +1,6 @@
 /* impl.h.mpm: MEMORY POOL MANAGER DEFINITIONS
  *
- * $HopeName: MMsrc!mpm.h(MMdevel_restr.2) $
+ * $HopeName: MMsrc!mpm.h(MMdevel_restr.3) $
  * Copyright (C) 1996 Harlequin Group, all rights reserved.
  */
 
@@ -21,8 +21,8 @@
 #define AVER(cond)		ASSERT(cond)
 #define AVERT(type, val)	ASSERT(type ## Check(val))
 #else
-#define AVER(cond)		IGNORE(cond)
-#define AVERT(type, val)	IGNORE(type ## Check(val))
+#define AVER(cond)		NOCHECK(cond)
+#define AVERT(type, val)	NOCHECK(type ## Check(val))
 #endif
 
 
