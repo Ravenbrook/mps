@@ -1,6 +1,6 @@
 /* impl.h.mpmst: MEMORY POOL MANAGER DATA STRUCTURES
  *
- * $HopeName: MMsrc!mpmst.h(MMdevel_restr2.3) $
+ * $HopeName: MMsrc!mpmst.h(MMdevel_restr2.4) $
  * Copyright (C) 1996 Harlequin Group, all rights reserved.
  *
  * .rationale: Almost all MPM data structures are defined in this
@@ -27,7 +27,8 @@
 
 /* RingStruct -- double-ended queue structure
  *
- * See impl.c.ring.
+ * .ring: The ring structure is used as a field in other structures
+ * in order to link them together into "rings".  See impl.c.ring.
  */
 
 typedef struct RingStruct {     /* double-ended queue structure */
@@ -37,7 +38,12 @@ typedef struct RingStruct {     /* double-ended queue structure */
 
 /* PoolClassStruct -- pool class structure
  *
- * See impl.c.poolclas.
+ * .class: The pool class structure is defined by each pool class
+ * implementation in order to provide an interface between the MPM
+ * and the class (see design.mps.class-interface) via generic
+ * functions (see impl.c.pool).  A class XXX defines a function
+ * PoolClassXXX() returning a PoolClass pointing to a PoolClassStruct
+ * of methods which implement the memory management policy.
  *
  * .class.end-sig: The class structure has another copy of the
  * signature at the end.  This causes the compiler to complain
@@ -53,10 +59,10 @@ typedef struct PoolClassStruct {
   size_t size;                  /* size of instance structure */
   size_t offset;                /* offset of PoolStruct in instance */
   Attr attr;			/* attributes */
-  PoolInitMethod init;
-  PoolFinishMethod finish;
-  PoolAllocMethod alloc;
-  PoolFreeMethod free;
+  PoolInitMethod init;		/* initialize the pool descriptor */
+  PoolFinishMethod finish;	/* finish the pool descriptor */
+  PoolAllocMethod alloc;	/* allocate memory from pool */
+  PoolFreeMethod free;		/* free memory to pool */
   PoolBufferInitMethod bufferInit;
   PoolBufferFinishMethod bufferFinish;
   PoolBufferFillMethod bufferFill;
@@ -65,18 +71,22 @@ typedef struct PoolClassStruct {
   PoolBufferCoverMethod bufferCover;
   PoolCondemnMethod condemn;
   PoolGreyMethod grey;
-  PoolScanMethod scan;
-  PoolFixMethod fix;
+  PoolScanMethod scan;		/* find references during tracing */
+  PoolFixMethod fix;		/* make a referent live during tracing */
   PoolReclaimMethod reclaim;
-  PoolAccessMethod access;
-  PoolDescribeMethod describe;
+  PoolAccessMethod access;	/* handle an access to shielded memory */
+  PoolDescribeMethod describe;	/* describe the contents of the pool */
   Sig endSig;			/* .class.end-sig */
 } PoolClassStruct;
 
 
 /* PoolStruct -- pool instance structure
  *
- * See impl.c.pool.
+ * .pool: A pool instance structure is created when a pool is created
+ * and holds the generic part of the pool's state.  Each pool defines
+ * a "subclass" of the pool structure which contains PoolStruct as a
+ * a field.  The surrounding structure holds the class-specific part
+ * of the pool's state.  See impl.c.pool.
  */
 
 #define PoolSig         ((Sig)0x519B0011)
@@ -95,7 +105,7 @@ typedef struct PoolStruct {     /* Pool instance structure */
 
 /* MFSStruct -- MFS pool instance structure
  *
- * See impl.c.poolmfs.
+ * .mfs: See impl.c.poolmfs.
  *
  * The MFS pool instance structure is declared here because it is in-lined
  * in the control pool structure which is in-lined in the space.  Normally,
@@ -122,7 +132,7 @@ typedef struct MFSStruct {      /* MFS instance structure */
 
 /* MVStruct -- MV pool instance structure
  *
- * See impl.c.poolmv.
+ * .mv: See impl.c.poolmv.
  *
  * The MV pool instance structure is declared here because it is the
  * control pool structure which is in-lined in the space.  Normally,
@@ -149,7 +159,13 @@ typedef struct MVStruct {
 } MVStruct;
 
 
-/* VMStruct -- virtual memory structure */
+/* VMStruct -- virtual memory structure
+ *
+ * .vm: The VM structure is used when the MPM is configured to use a
+ * virtual-memory based arena (impl.c.arenavm) which uses memory mapping
+ * (impl.h.mpm.vm).  It holds the state information necessary to provide
+ * that mapping, and as such, is specific to the operating system.
+ */
 
 #define VMSig   ((Sig)0x519FEE33)
 
@@ -192,7 +208,7 @@ typedef struct VMStruct {       /* SunOS 4 VM structure; impl.c.vmsu */
 
 /* SegStruct -- segment structure
  *
- * .seg.def: Segments are the basic units of memory allocation from
+ * .seg: Segments are the basic units of memory allocation from
  * the arena, and also the units of scanning, shielding, and colour
  * for the MPM (pool classes may subdivide segments and have a finer
  * grained idea of colour, for example).
