@@ -1,6 +1,7 @@
 /* impl.c.assert: ASSERTION IMPLEMENTATION
  *
- * $HopeName: !assert.c(trunk.7) $
+ * $HopeName: MMsrc!assert.c(MMdevel_assertid.1) $
+ * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  *
  * This source provides the AssertFail function which is
  * invoked by the assertion macros (see impl.h.assert).
@@ -16,14 +17,16 @@
 #include "mpm.h"
 
 
-static void AssertLib(const char *cond, const char *id,
-                      const char *file, unsigned line)
+static void AssertLib(const char *cond, const char *hopename,
+                      const char *file, unsigned line,
+                      unsigned id)
 {
   WriteF(mps_lib_stderr,
          "\n"
-         "MPS ASSERTION FAILURE\n"
+         "PROBLEM DETECTED BY HARLEQUIN MPS\n"
          "\n"
-         "Id:        $S\n", id,
+         "ID:        $W\n", (WriteFW)id,        /* @@@@ Should be special format */
+         "HopeName:  $S\n", hopename,
          "File:      $S\n", file,
          "Line:      $U\n", (WriteFU)line,
          "Condition: $S\n", cond,
@@ -55,9 +58,9 @@ AssertHandler AssertInstall(AssertHandler new)
  * handler returns the progam continues.
  */
 
-void AssertFail(const char *cond, const char *id,
-                const char *file, unsigned line)
+void AssertFail(const char *cond, const char *hopename,
+                const char *file, unsigned line, unsigned id)
 {
   if(handler != NULL)
-    (*handler)(cond, id, file, line);
+    (*handler)(cond, hopename, file, line, id);
 }

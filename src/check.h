@@ -1,6 +1,7 @@
 /* impl.h.check: ASSERTION INTERFACE
  *
- * $HopeName: !check.h(trunk.2) $
+ * $HopeName: MMsrc!check.h(MMdevel_assertid.1) $
+ * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  *
  * This header defines a family of AVER and NOTREACHED macros. The
  * macros should be used to instrument and annotate code with
@@ -23,19 +24,28 @@
 #include "mpslib.h"
 
 
-typedef void (*AssertHandler)(const char *cond, const char *id,
-                              const char *file, unsigned line);
+typedef void (*AssertHandler)(const char *cond,
+                              const char *hopename,
+                              const char *file,
+                              unsigned line,
+                              unsigned id);
 extern AssertHandler AssertInstall(AssertHandler handler);
 extern AssertHandler AssertDefault(void);
 
-extern void AssertFail(const char *cond, const char *id,
-                       const char *file, unsigned line);
+extern void AssertFail(const char *cond,
+                       const char *hopename,
+                       const char *file,
+                       unsigned line,
+                       unsigned id);
 
-#define ASSERT(cond) \
+#define ASSERT(id, cond) \
   BEGIN \
     if(cond) NOOP; else \
-      AssertFail(#cond, FileSrcIdStruct.hopename, \
-                 FileSrcIdStruct.file, __LINE__); \
+      AssertFail(#cond, \
+                 FileSrcIdStruct.hopename, \
+                 FileSrcIdStruct.file, \
+                 __LINE__, \
+                 id); \
   END
 
 #define NOCHECK(cond) \
@@ -46,14 +56,22 @@ extern void AssertFail(const char *cond, const char *id,
 #define NOTREACHED \
   BEGIN \
     AssertFail("unreachable statement", \
-               FileSrcIdStruct.hopename, FileSrcIdStruct.file, \
-               __LINE__); \
+               FileSrcIdStruct.hopename, \
+               FileSrcIdStruct.file, \
+               __LINE__, \
+               id); \
   END
 
 #ifdef CHECK_ASSERT
-#define CHECKC(cond)    ASSERT(cond)
+#define CHECKC(id, cond)        ASSERT(id, cond)
 #else
-#define CHECKC(cond)    BEGIN if(cond) NOOP; else return FALSE; END
+#define CHECKC(id, cond) \
+  BEGIN \
+    if(cond) \
+      NOOP; \
+    else \
+      return FALSE; \
+  END
 #endif
 
 
@@ -63,24 +81,24 @@ extern void AssertFail(const char *cond, const char *id,
  * and design.mps.interface.c.check.space.
  */
 
-#define CHECKT(type, val)       ((val) != NULL && (val)->sig == type ## Sig)
-
+#define CHECKT(type, val) \
+  ((val) != NULL && (val)->sig == type ## Sig)
 
 #if defined(CHECK_SHALLOW)
-#define CHECKS(type, val)       CHECKC(CHECKT(type, val))
-#define CHECKL(cond)            CHECKC(cond)
-#define CHECKD(type, val)       CHECKC(CHECKT(type, val))
-#define CHECKU(type, val)       CHECKC(CHECKT(type, val))
+#define CHECKS(id, type, val)   CHECKC(id, CHECKT(type, val))
+#define CHECKL(id, cond)        CHECKC(id, cond)
+#define CHECKD(id, type, val)   CHECKC(id, CHECKT(type, val))
+#define CHECKU(id, type, val)   CHECKC(id, CHECKT(type, val))
 #elif defined(CHECK_DEEP)
-#define CHECKS(type, val)       CHECKC(CHECKT(type, val))
-#define CHECKL(cond)            CHECKC(cond)
-#define CHECKD(type, val)       CHECKC(type ## Check(val))
-#define CHECKU(type, val)       CHECKC(CHECKT(type, val))
+#define CHECKS(id, type, val)   CHECKC(id, CHECKT(type, val))
+#define CHECKL(id, cond)        CHECKC(id, cond)
+#define CHECKD(id, type, val)   CHECKC(id, type ## Check(val))
+#define CHECKU(id, type, val)   CHECKC(id, CHECKT(type, val))
 #else /* neither CHECK_DEEP nor CHECK_SHALLOW */
-#define CHECKS(type, val)       CHECKC(CHECKT(type, val))
-#define CHECKL(cond)            NOCHECK(cond)
-#define CHECKD(type, val)       NOCHECK(type ## Check(val))
-#define CHECKU(type, val)       NOCHECK(CHECKT(type, val))
+#define CHECKS(id, type, val)   CHECKC(id, CHECKT(type, val))
+#define CHECKL(id, cond)        NOCHECK(cond)
+#define CHECKD(id, type, val)   NOCHECK(type ## Check(val))
+#define CHECKU(id, type, val)   NOCHECK(CHECKT(type, val))
 #endif /* CHECK_SHALLOW or CHECK_DEEP */
 
 #endif /* check_h */
