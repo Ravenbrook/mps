@@ -1,6 +1,6 @@
 /* impl.h.mpmst: MEMORY POOL MANAGER DATA STRUCTURES
  *
- * $HopeName: MMsrc!mpmst.h(trunk.13) $
+ * $HopeName: MMsrc!mpmst.h(MMdevel_amcsimp.2) $
  * Copyright (C) 1996 Harlequin Group, all rights reserved.
  *
  * .readership: MM developers.
@@ -123,6 +123,7 @@ typedef struct PoolStruct {     /* generic structure */
   RingStruct spaceRing;         /* link in list of pools in space */
   RingStruct bufferRing;        /* allocation buffers are attached to pool */
   Serial bufferSerial;          /* serial of next buffer */
+  RingStruct segRing;           /* segs are attached to pool */
   Align alignment;              /* alignment for units */
 } PoolStruct;
 
@@ -271,6 +272,7 @@ typedef struct SegStruct {      /* segment structure */
   TraceId condemned;            /* seg condemned? for which trace? */
   TraceSet grey;                /* traces for which seg is grey */
   Buffer buffer;                /* non-NULL if seg is buffered */
+  RingStruct poolRing;          /* link in list of segs in pool */
 } SegStruct;
 
 
