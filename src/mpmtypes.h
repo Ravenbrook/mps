@@ -1,6 +1,6 @@
 /* impl.h.mpmtypes: MEMORY POOL MANAGER TYPES
  *
- * $HopeName: MMsrc!mpmtypes.h(MMdevel_gens2.3) $
+ * $HopeName: MMsrc!mpmtypes.h(MMdevel_gens2.4) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  *
  * .readership: MM developers.
@@ -244,20 +244,34 @@ typedef int WriteFC; /* Promoted */
  */
 
                                                    /* EVent ... */
-#define EventEventTime     ((EventType)0xEF213E99) /* TIME */
-#define EventSpaceCreate   ((EventType)0xEF5BCC6E) /* SPaCe CREate */
-#define EventSpaceDestroy  ((EventType)0xEF5BCDE5) /* SPaCe DEStroy */
-#define EventPoolInit      ((EventType)0xEFB07141) /* POoL INIt */
-#define EventPoolFinish    ((EventType)0xEFB07F14) /* POoL FINish */
-#define EventPoolAlloc     ((EventType)0xEFB07A77) /* POoL ALLoc */
-#define EventPoolFree      ((EventType)0xEFB07F6E) /* POoL FREe */
-#define EventArenaCreate   ((EventType)0xEFA64C6E) /* AReNa CREate */
-#define EventArenaDestroy  ((EventType)0xEFA64DE5) /* AReNa DEStroy */
-#define EventSegAlloc      ((EventType)0xEF5E9A77) /* SEG ALLoc */
-#define EventSegFree	   ((EventType)0xEF5E9F6E) /* SEG FREe */
-#define EventVMCreate      ((EventType)0xEFF3C6EA) /* VM CREAte */
-#define EventVMDestroy     ((EventType)0xEFF3DE52) /* VM DESTroy */
-#define EventVMMap         ((EventType)0xEFF33AB9) /* VM MAP */
-#define EventVMUnmap       ((EventType)0xEFF3043B) /* VM UNMaP */
+#define EventEventTime      ((EventType)0xEF213E99) /* TIME */
+#define EventSpaceCreate    ((EventType)0xEF5BCC6E) /* SPaCe CREate */
+#define EventSpaceDestroy   ((EventType)0xEF5BCDE5) /* SPaCe DEStroy */
+#define EventPoolInit       ((EventType)0xEFB07141) /* POoL INIt */
+#define EventPoolFinish     ((EventType)0xEFB07F14) /* POoL FINish */
+#define EventPoolAlloc      ((EventType)0xEFB07A77) /* POoL ALLoc */
+#define EventPoolFree       ((EventType)0xEFB07F6E) /* POoL FREe */
+#define EventArenaCreate    ((EventType)0xEFA64C6E) /* AReNa CREate */
+#define EventArenaDestroy   ((EventType)0xEFA64DE5) /* AReNa DEStroy */
+#define EventSegAlloc       ((EventType)0xEF5E9A77) /* SEG ALLoc */
+#define EventSegFree	    ((EventType)0xEF5E9F6E) /* SEG FREe */
+#define EventAMCGenCreate   ((EventType)0xEFA3C94C) /* AMC GeN Create */
+#define EventAMCGenDestroy  ((EventType)0xEFA3C94D) /* AMC GeN Destroy */
+#define EventAMCInit        ((EventType)0xEFA3C141) /* AMC INIt */
+#define EventAMCFinish      ((EventType)0xEFA3CF14) /* AMC FINish */
+#define EventAMCBufferInit  ((EventType)0xEFA3CBF1) /* AMC BuFfer Init */
+#define EventAMCBufferFill  ((EventType)0xEFA3CBFF) /* AMC BuFfer Fill */
+#define EventAMCBufferEmpty ((EventType)0xEFA3CBFE) /* AMC BuFfer Empty */
+#define EventAMCTraceBegin  ((EventType)0xEFA3C26B) /* AMC TRace Begin */
+#define EventAMCCondemn     ((EventType)0xEFA3CC04) /* AMC CONdemn */
+#define EventAMCScanBegin   ((EventType)0xEFA3C5CB) /* AMC SCan Begin */
+#define EventAMCScanEnd     ((EventType)0xEFA3C5CE) /* AMC SCan End */
+#define EventAMCFix         ((EventType)0xEFA3CF18) /* AMC FIX */
+#define EventAMCReclaim     ((EventType)0xEFA3C6EC) /* AMC REClaim */
+#define EventAMCTraceEnd    ((EventType)0xEFA3C26E) /* AMC TRace End */
+#define EventVMCreate       ((EventType)0xEFF3C6EA) /* VM CREAte */
+#define EventVMDestroy      ((EventType)0xEFF3DE52) /* VM DESTroy */
+#define EventVMMap          ((EventType)0xEFF33AB9) /* VM MAP */
+#define EventVMUnmap        ((EventType)0xEFF3043B) /* VM UNMaP */
 
 #endif /* mpmtypes_h */
