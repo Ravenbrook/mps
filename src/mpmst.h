@@ -1,6 +1,6 @@
 /* impl.h.mpmst: MEMORY POOL MANAGER DATA STRUCTURES
  *
- * $HopeName: MMsrc!mpmst.h(MMdevel_gavinm_splay.3) $
+ * $HopeName: MMsrc!mpmst.h(MMdevel_gavinm_splay.4) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  *
  * .readership: MM developers.
@@ -391,7 +391,7 @@ typedef struct ThreadStruct {   /* Win32 thread structure */
 
 #elif defined(MPS_OS_SU) || defined(MPS_OS_SO) || defined(MPS_OS_O1)\
       || defined(MPS_OS_S7) || defined(MPS_OS_I4) || defined(MPS_OS_I5)\
-      || defined(MPS_OS_IA)
+      || defined(MPS_OS_IA) || defined(MPS_OS_LI)
 /* All these platforms use the trivial ANSI locks, since nothing better */
 
 typedef struct LockStruct {     /* ANSI fake lock structure */
