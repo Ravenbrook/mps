@@ -1,7 +1,7 @@
 /* impl.h.config: MPS CONFIGURATION
  *
  * Copyright (C) 1997 Harlequin Group, all rights reserved.
- * $HopeName: !config.h(trunk.8) $
+ * $HopeName: MMsrc!config.h(MMdevel_assertid.1) $
  */
 
 #ifndef config_h
@@ -20,26 +20,22 @@
 
 #if defined(CONFIG_VAR_DF)
 #define MPS_VAR_DF              /* debug, full checking */
-#define ASSERT_MPSI             /* impl.c.mpsi */
-#define ASSERT_MPM              /* impl.h.mpm */
+#define AVER_ENABLED            /* impl.h.assert */
 #define CHECK_DEEP              /* impl.h.assert */
 #define CHECK_ASSERT            /* impl.h.assert */
 #elif defined(CONFIG_VAR_DL)    /* debug, full checking, telemetry */
 #define EVENT                   /* impl.h.event */
-#define ASSERT_MPSI             /* impl.c.mpsi */
-#define ASSERT_MPM              /* impl.h.mpm */
+#define AVER_ENABLED            /* impl.h.assert */
 #define CHECK_DEEP              /* impl.h.assert */
 #define CHECK_ASSERT            /* impl.h.assert */
 #elif defined(CONFIG_VAR_DP)    /* debug, partial checking */
 #define MPS_VAR_DP
-#define ASSERT_MPSI
-#define ASSERT_MPM
-#define CHECK_SHALLOW
+#define AVER_ENABLED            /* impl.h.assert */
+#define CHECK_SHALLOW		/* impl.h.assert */
 #define CHECK_ASSERT            /* impl.h.assert */
 #elif defined(CONFIG_VAR_DS)    /* debug, sig checking only */
 #define MPS_VAR_DS
-#define ASSERT_MPSI
-#define ASSERT_MPM
+#define AVER_ENABLED            /* impl.h.assert */
 #elif defined(CONFIG_VAR_RO)
 #define MPS_VAR_RO
 #else

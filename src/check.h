@@ -1,6 +1,6 @@
 /* impl.h.check: ASSERTION INTERFACE
  *
- * $HopeName: MMsrc!check.h(MMdevel_assertid.2) $
+ * $HopeName: MMsrc!check.h(MMdevel_assertid.3) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  *
  * This header defines a family of AVER and NOTREACHED macros. The
@@ -62,6 +62,7 @@ extern void AssertFail(const char *cond,
                id); \
   END
 
+
 #ifdef CHECK_ASSERT
 #define CHECKC(id, cond)        ASSERT(id, cond)
 #else
@@ -84,6 +85,20 @@ extern void AssertFail(const char *cond,
 #define CHECKT(type, val) \
   ((val) != NULL && (val)->sig == type ## Sig)
 
+
+#ifdef AVER_ENABLED             /* design.mps.config, impl.h.config */
+#define AVER                    ASSERT
+#if defined(CHECK_SHALLOW) || defined(CHECK_DEEP)
+#define AVERT(id, type, val)    ASSERT(id, type ## Check(val))
+#else /* neither CHECK_DEEP nor CHECK_SHALLOW */
+#define AVERT(id, type, val)    ASSERT(id, CHECKT(type, val))
+#endif /* CHECK_SHALLOW or CHECK_DEEP */
+#else /* AVER_ENABLED, not */
+#define AVER(id, cond)          NOCHECK(cond)
+#define AVERT(id, type, val)    NOCHECK(type ## Check(val))
+#endif /* AVER_ENABLED */
+
+
 #if defined(CHECK_SHALLOW)
 #define CHECKS(id, type, val)   CHECKC(id, CHECKT(type, val))
 #define CHECKL(id, cond)        CHECKC(id, cond)
@@ -100,5 +115,6 @@ extern void AssertFail(const char *cond,
 #define CHECKD(id, type, val)   NOCHECK(type ## Check(val))
 #define CHECKU(id, type, val)   NOCHECK(CHECKT(type, val))
 #endif /* CHECK_SHALLOW or CHECK_DEEP */
+
 
 #endif /* check_h */
