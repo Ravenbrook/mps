@@ -1,7 +1,7 @@
 /* impl.c.poolawl: AUTOMATIC WEAK LINKED POOL CLASS
  *
- * $HopeName: !poolawl.c(trunk.43) $
- * Copyright (C) 1997, 1998 The Harlequin Group Limited.  All rights reserved.
+ * $HopeName: MMsrc!poolawl.c(MMdevel_pekka_rate.1) $
+ * Copyright (C) 1998. Harlequin Group plc. All rights reserved.
  *
  * READERSHIP
  *
@@ -17,7 +17,7 @@
 #include "mpm.h"
 
 
-SRCID(poolawl, "$HopeName: !poolawl.c(trunk.43) $");
+SRCID(poolawl, "$HopeName: MMsrc!poolawl.c(MMdevel_pekka_rate.1) $");
 
 
 #define AWLSig	((Sig)0x519b7a37)	/* SIGPooLAWL */
@@ -660,6 +660,7 @@ static Bool AWLDependentObject(Addr *objReturn, Addr parent)
   return TRUE;
 }
 
+
 static Res awlScanObject(Arena arena, ScanState ss,
                          FormatScanMethod scan, Addr base, Addr limit)
 {
@@ -689,6 +690,7 @@ static Res awlScanObject(Arena arena, ScanState ss,
   }
 
   res = (*scan)(ss, base, limit);
+  if(res == ResOK) ss->scannedSize += AddrOffset(base, limit);
 
   if(dependent) {
     ShieldCover(arena, dependentSeg);
@@ -696,6 +698,7 @@ static Res awlScanObject(Arena arena, ScanState ss,
 
   return res;
 }
+
 
 static Res awlScanSinglePass(Bool *anyScannedReturn,
                              ScanState ss, Pool pool,
@@ -849,6 +852,7 @@ static Res AWLFix(Pool pool, ScanState ss, Seg seg, Ref *refIO)
   case RankFINAL:
   case RankWEAK:
     if(!BTGet(group->mark, i)) {
+      ++ss->forwardCount; /* slightly inaccurate terminology */
       ss->wasMarked = FALSE;
       if(ss->rank == RankWEAK) {
 	*refIO = (Ref)0;
@@ -874,6 +878,7 @@ static void AWLReclaim(Pool pool, Trace trace, Seg seg)
   AWL awl;
   AWLGroup group;
   Index i;
+  Count oldFree;
 
   AVERT(Pool, pool);
   AVERT(Trace, trace);
@@ -890,7 +895,7 @@ static void AWLReclaim(Pool pool, Trace trace, Seg seg)
 
   base = SegBase(seg);
 
-  i = 0;
+  i = 0; oldFree = group->free;
   while(i < group->grains) {
     Addr p;
     Index j;
@@ -925,8 +930,10 @@ static void AWLReclaim(Pool pool, Trace trace, Seg seg)
   }
   AVER(i == group->grains);
 
+  trace->reclaimSize += (group->free - oldFree) << awl->alignShift;
   SegSetWhite(seg, TraceSetDel(SegWhite(seg), trace->ti));
 }
+
 
 static Res AWLTraceBegin(Pool pool, Trace trace)
 {
@@ -981,13 +988,6 @@ static Res AWLAccess(Pool pool, Seg seg, Addr addr,
 }
 
 
-/* defined in impl.c.trace */
-extern unsigned long AMCGen0Frequency;
-extern unsigned long AMCGen1Frequency;
-extern unsigned long AMCGen2Frequency;
-extern unsigned long AMCGen2plusFrequencyMultiplier;
-extern Serial AMCGenFinal;
-
 static double AWLBenefit(Pool pool, Action action)
 {
   AWL awl;
@@ -1015,13 +1015,14 @@ static double AWLBenefit(Pool pool, Action action)
 
   /* When we have both AMC and AWL we want AMC to do the driving of */
   /* the collections, as that collects younger generations too. */
-  /* So we make AWLs collections a little less frequent. */
+  /* So we make AWL's collections a little less frequent. */
   f += 1;
 
   arena = PoolArena(pool);
 
   return (ArenaMutatorAllocSize(arena) - awl->lastCollected) - f * 1024*1024L;
 }
+
 
 static void AWLWalk(Pool pool, Seg seg, FormattedObjectsStepMethod f,
 	            void *p, unsigned long s)
