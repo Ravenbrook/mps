@@ -1,6 +1,6 @@
 /* impl.h.eventdef -- Event Logging Definitions
  *
- * $HopeName: !eventdef.h(trunk.7) $
+ * $HopeName: MMsrc!eventdef.h(MMdevel_drj_trace_abort.1) $
  * Copyright (C) 1997 Harlequin Group, all rights reserved.
  *
  * .readership: MPS developers.
@@ -104,4 +104,6 @@ RELATION(ArenaRetract                    , 0x0030, TRUE, Arena, PAW)
 RELATION(TraceSegGreyen                  , 0x0031, TRUE, Seg, PPU)
 /* RootScanned isn't a seg event, but so what */
 RELATION(RootScan                        , 0x0032, TRUE, Seg, PWW)
+/* TraceStep is not really seg level event */
+RELATION(TraceStep                       , 0x0033, TRUE, Seg, PP)
 
