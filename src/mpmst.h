@@ -1,6 +1,6 @@
 /* impl.h.mpmst: MEMORY POOL MANAGER DATA STRUCTURES
  *
- * $HopeName: MMsrc!mpmst.h(MMdevel_gens.5) $
+ * $HopeName: MMsrc!mpmst.h(MMdevel_gens.6) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  *
  * .readership: MM developers.
@@ -560,6 +560,7 @@ typedef struct ScanStateStruct {
   TraceSet traces;		/* traces to scan for */
   Rank rank;                    /* reference rank of scanning */
   Bool wasMarked;               /* design.mps.fix.protocol.was-ready */
+  RefSet fixed;			/* accumulated summary of fixed references */
 } ScanStateStruct;
 
 
