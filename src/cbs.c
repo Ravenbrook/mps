@@ -1,6 +1,6 @@
 /* impl.c.cbs: COALESCING BLOCK STRUCTURE IMPLEMENTATION
  *
- * $HopeName: MMsrc!cbs.c(MMdevel_gavinm_splay.8) $
+ * $HopeName: MMsrc!cbs.c(MMdevel_gavinm_splay.9) $
  * Copyright (C) 1998 Harlequin Group plc, all rights reserved.
  *
  * .readership: Any MPS developer.
@@ -18,7 +18,7 @@
 #include "mpm.h"
 
 
-SRCID(cbs, "$HopeName: MMsrc!cbs.c(MMdevel_gavinm_splay.8) $");
+SRCID(cbs, "$HopeName: MMsrc!cbs.c(MMdevel_gavinm_splay.9) $");
 
 typedef struct CBSEmergencyBlockStruct *CBSEmergencyBlock;
 typedef struct CBSEmergencyBlockStruct {
@@ -37,6 +37,7 @@ typedef struct CBSEmergencyGrainStruct {
 #define CBSBlockOfSplayNode(node) PARENT(CBSBlockStruct, splayNode, (node))
 #define SplayTreeOfCBS(tree) (&((cbs)->splayTree))
 #define SplayNodeOfCBSBlock(block) (&((block)->splayNode))
+#define KeyOfCBSBlock(block) ((void *)&((block)->base))
 
 Bool CBSCheck(CBS cbs) {
   CHECKS(CBS, cbs);
@@ -166,7 +167,7 @@ static Res CBSBlockDelete(CBS cbs, CBSBlock block) {
   oldSize = CBSBlockSize(block);
 
   res = SplayTreeDelete(SplayTreeOfCBS(cbs), SplayNodeOfCBSBlock(block), 
-                        (void *)&(block->base));
+                        KeyOfCBSBlock(block));
   if(res != ResOK)
     return res;
 
@@ -224,7 +225,7 @@ static Res CBSBlockNew(CBS cbs, Addr base, Addr limit) {
   AVERT(CBSBlock, block);
 
   res = SplayTreeInsert(SplayTreeOfCBS(cbs), SplayNodeOfCBSBlock(block),
-			(void *)&(block->base));
+			KeyOfCBSBlock(block));
   if(res != ResOK)
     goto failSplayTreeInsert;
 
@@ -426,7 +427,8 @@ void CBSIterate(CBS cbs, CBSIterateMethod iterate,
     if(!(*iterate)(cbs, cbsBlock, closureP, closureS)) {
       break;
     }
-    splayNode = SplayTreeNext(splayTree, NULL);
+    splayNode = SplayTreeNext(splayTree, splayNode, 
+			      KeyOfCBSBlock(cbsBlock));
   }
 }
 

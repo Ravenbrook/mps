@@ -1,6 +1,6 @@
 /* impl.h.mpm: MEMORY POOL MANAGER DEFINITIONS
  *
- * $HopeName: MMsrc!mpm.h(MMdevel_gavinm_splay.5) $
+ * $HopeName: MMsrc!mpm.h(MMdevel_gavinm_splay.6) $
  * Copyright (C) 1998. Harlequin Group plc. All rights reserved.
  */
 
@@ -828,7 +828,8 @@ extern Res SplayTreeNeighbours(SplayNode *leftReturn,
 			       SplayNode *rightReturn,
                                SplayTree tree, void *key);
 extern SplayNode SplayTreeFirst(SplayTree tree, void *zeroKey);
-extern SplayNode SplayTreeNext(SplayTree tree, void *oldKey);
+extern SplayNode SplayTreeNext(SplayTree tree, SplayNode oldNode, 
+			       void *oldKey);
 extern Res SplayTreeDescribe(SplayTree tree, mps_lib_FILE *stream,
 			     SplayNodeDescribeMethod nodeDescribe);
 

@@ -1,6 +1,6 @@
 /* impl.c.splay: SPLAY TREE IMPLEMENTATION
  *
- * $HopeName: MMsrc!splay.c(MMdevel_gavinm_splay.5) $
+ * $HopeName: MMsrc!splay.c(MMdevel_gavinm_splay.6) $
  * Copyright (C) 1998 Harlequin Group plc, all rights reserved.
  *
  * .readership: Any MPS developer.
@@ -21,7 +21,7 @@
 #include "mpm.h"
 
 
-SRCID(splay, "$HopeName: MMsrc!splay.c(MMdevel_gavinm_splay.5) $");
+SRCID(splay, "$HopeName: MMsrc!splay.c(MMdevel_gavinm_splay.6) $");
 
 /* Basic getter and setter methods */
 #define SplayTreeRoot(t) RVALUE((t)->root)
@@ -587,8 +587,17 @@ SplayNode SplayTreeFirst(SplayTree tree, void *zeroKey) {
   return node;
 }
 
-SplayNode SplayTreeNext(SplayTree tree, void *oldKey) {
+SplayNode SplayTreeNext(SplayTree tree, SplayNode oldNode, void *oldKey) {
+  Bool b;
+  SplayNode node;
+
   AVERT(SplayTree, tree);
+  AVERT(SplayNode, oldNode);
+
+  /* Make old node the root.  Probably already is. */
+  b = SplaySplay(&node, tree, oldKey);
+  AVER(b);
+  AVER(node == oldNode);
 
   return SplayTreeSuccessor(tree, oldKey);
 }
