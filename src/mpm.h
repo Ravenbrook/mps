@@ -1,6 +1,6 @@
 /* impl.h.mpm: MEMORY POOL MANAGER DEFINITIONS
  *
- * $HopeName: !mpm.h(trunk.43) $
+ * $HopeName: MMsrc!mpm.h(MMdevel_shieldclass.1) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  */
 
@@ -457,13 +457,17 @@ extern void SegFinish(Seg seg);
 extern void SegSetGrey(Seg seg, TraceSet grey);
 extern void SegSetSummary(Seg seg, RefSet summary);
 extern void SegSetRankSet(Seg seg, RankSet rankSet);
+extern void SegShieldRaise(Seg seg, AccessSet mode);
+extern void SegShieldLower(Seg seg, AccessSet mode);
+extern void SegShieldExpose(Seg seg);
+extern void SegShieldCover(Seg seg);
 
 #define SegPool(seg)		((seg)->_pool)
 #define SegSingle(seg)		((seg)->_single)
 #define SegRankSet(seg)		((seg)->_rankSet)
-#define SegPM(seg)		((seg)->_pm)
-#define SegSM(seg)		((seg)->_sm)
-#define SegDepth(seg)		((seg)->_depth)
+#define SegShield(seg)		(&(seg)->_shieldStruct)
+#define SegPM(seg)		ShieldProtectionMode(SegShield(seg))
+#define SegSM(seg)		ShieldMode(SegShield(seg))
 #define SegP(seg)		((seg)->_p)
 #define SegGrey(seg)		((seg)->_grey)
 #define SegWhite(seg)		((seg)->_white)
@@ -475,9 +479,6 @@ extern void SegSetRankSet(Seg seg, RankSet rankSet);
 #define SegOfGreyRing(node)	RING_ELT(Seg, _greyRing, node)
 
 #define SegSetSingle(seg, s)	((void)((seg)->_single = (s)))
-#define SegSetPM(seg, mode)	((void)((seg)->_pm = (mode)))
-#define SegSetSM(seg, mode)	((void)((seg)->_sm = (mode)))
-#define SegSetDepth(seg, d)	((void)((seg)->_depth = (d)))
 #define SegSetP(seg, pp)	((void)((seg)->_p = (pp)))
 #define SegSetWhite(seg, ts)	((void)((seg)->_white = (ts)))
 #define SegSetBuffer(seg, b)	((void)((seg)->_buffer = (b)))
@@ -565,15 +566,26 @@ extern RefSet RefSetOfSeg(Arena arena, Seg seg);
 
 /* Shield Interface -- see impl.c.shield */
 
-extern void ShieldRaise(Arena arena, Seg seg, AccessSet mode);
-extern void ShieldLower(Arena arena, Seg seg, AccessSet mode);
+extern Bool ShieldCheck(Shield shield);
+extern Bool ShieldClassCheck(ShieldClass class);
+extern void ShieldInit(Shield shield);
+extern void ShieldFinish(Shield shield);
+extern void ShieldRaise(Shield shield, ShieldClass class,
+                        Arena arena, AccessSet mode);
+extern void ShieldLower(Shield shield, ShieldClass class,
+                        Arena arena, AccessSet mode);
 extern void ShieldEnter(Arena arena);
 extern void ShieldLeave(Arena arena);
-extern void ShieldExpose(Arena arena, Seg seg);
-extern void ShieldCover(Arena arena, Seg seg);
+extern void ShieldExpose(Shield shield, ShieldClass class, Arena arena);
+extern void ShieldCover(Shield shield, ShieldClass class, Arena arena);
 extern void ShieldSuspend(Arena arena);
 extern void ShieldResume(Arena arena);
 extern void ShieldFlush(Arena arena);
+
+#define ShieldProtectionMode(shield) \
+  ((shield)->_protectionMode)
+#define ShieldMode(shield)	((shield)->_shieldMode)
+#define ShieldDepth(shield)	((shield)->_depth)
 
 
 /* Protection Interface -- see impl.c.prot* */

@@ -1,6 +1,6 @@
 /* impl.h.mpmst: MEMORY POOL MANAGER DATA STRUCTURES
  *
- * $HopeName: !mpmst.h(trunk.33) $
+ * $HopeName: MMsrc!mpmst.h(MMdevel_shieldclass.1) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  *
  * .readership: MM developers.
@@ -178,6 +178,29 @@ typedef struct MVStruct {       /* MV pool outer structure */
 } MVStruct;
 
 
+/* ShieldClassStruct -- shield class structure */
+
+#define ShieldClassSig  ((Sig)0x51958C1A) /* SIGnature SHield CLAss */
+
+typedef struct ShieldClassStruct {
+  Sig sig;
+  ShieldProtectMethod protect;
+  Sig endSig;
+} ShieldClassStruct;
+
+
+/* ShieldStruct -- shield structure
+ *
+ * .shield.no-sig: Not enough room. @@@@
+ */
+
+typedef struct ShieldStruct {
+  unsigned _depth : SHIELD_DEPTH_WIDTH;
+  AccessSet _protectionMode : AccessMAX;
+  AccessSet _shieldMode : AccessMAX;
+} ShieldStruct;
+
+
 /* SegStruct -- segment structure
  *
  * .seg: Segments are the basic units of memory allocation from
@@ -191,9 +214,7 @@ typedef struct SegStruct {      /* segment structure */
   void *_p;                     /* pointer for use of owning pool */
   Buffer _buffer;               /* non-NULL if seg is buffered */
   RefSet _summary;              /* summary of references out of seg */
-  unsigned _depth : SHIELD_DEPTH_WIDTH; /* see impl.c.shield.def.depth */
-  AccessSet _pm : AccessMAX;    /* protection mode, impl.c.shield */
-  AccessSet _sm : AccessMAX;    /* shield mode, impl.c.shield */
+  ShieldStruct _shieldStruct;   /* segment shielding */
   TraceSet _grey : TRACE_MAX;   /* traces for which seg is grey */
   TraceSet _white : TRACE_MAX;  /* traces for which seg is white */
   unsigned int _single : 1;     /* is a single page segment? */
@@ -542,7 +563,10 @@ typedef struct ArenaStruct {
   
   /* shield fields (impl.c.shield) */
   Bool insideShield;             /* TRUE if and only if inside shield */
-  Seg shCache[SHIELD_CACHE_SIZE];/* Cache of unsynced segs */
+  struct {
+    Shield shield;
+    ShieldClass class;
+  } shCache[SHIELD_CACHE_SIZE];  /* Cache of unsynced segs */
   Size shCacheI;                 /* index into cache */
   Size shDepth;                  /* sum of depths of all segs */
   Bool suspended;                /* TRUE if and only if mutator suspended */
