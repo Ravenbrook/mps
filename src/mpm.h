@@ -1,6 +1,6 @@
 /* impl.h.mpm: MEMORY POOL MANAGER DEFINITIONS
  *
- * $HopeName: MMsrc!mpm.h(MMdevel_restr.7) $
+ * $HopeName: MMsrc!mpm.h(MMdevel_restr.8) $
  * Copyright (C) 1996 Harlequin Group, all rights reserved.
  */
 
@@ -15,7 +15,15 @@
 #include "poolmv.h"
 #include "poolmfs.h"
 #include "ss.h"
+#include "lib.h"
 
+
+/* AVER, AVERT -- MPM assertions
+ *
+ * AVER and AVERT are used to assert conditions within the MPM (as
+ * opposed to in the MPS Interface layer, impl.c.mpsi).  This allows
+ * control over internal and interface checking.
+ */
 
 #ifdef TARGET_MPM_ASSERT	/* impl.h.target */
 #define AVER(cond)		ASSERT(cond)
@@ -26,7 +34,36 @@
 #endif
 
 
+/* MPMCheck -- check MPM assumptions */
+
 extern Bool MPMCheck(void);
+
+
+/* Address/Size Interface -- see impl.c.mpm */
+
+extern Bool (WordIsAligned)(Word word, Align align);
+#define WordIsAligned(w, a)	(((w) & ((a) - 1)) == 0)
+
+extern Word (WordAlignUp)(Word word, Align align);
+#define WordAlignUp(w, a)	(((w) + (a) - 1) & ~((a) - 1))
+
+extern Bool AlignCheck(Align align);
+
+extern Addr (AddrAdd)(Addr addr, Size size);
+#define AddrAdd(p, s)		((Addr)((Word)(p) + (s)))
+
+extern Size (AddrOffset)(Addr base, Addr limit);
+#define AddrOffset(p, l)	((Size)((Word)(l) - (Word)(p)))
+
+extern Bool SizeIsP2(Size size);
+extern Shift SizeLog2(Size size);
+
+#define AddrWord(a)		((Word)a)
+#define SizeWord(s)		((Word)s)
+#define AddrIsAligned(p, a)	WordIsAligned(AddrWord(p), a)
+#define AddrAlignUp(p, a)	((Addr)WordAlignUp(AddrWord(p), a))
+#define SizeIsAligned(s, a)	WordIsAligned(SizeWord(s), a)
+#define SizeAlignUp(s, a)	((Size)WordAlignUp(SizeWord(s), a))
 
 
 /* Ring Interface -- see impl.c.ring */
@@ -35,53 +72,53 @@ extern Bool RingCheck(Ring ring);
 extern Bool RingCheckSingle(Ring ring);
 
 extern void (RingInit)(Ring ring);
-#define RingInit(_ring) \
+#define RingInit(ring) \
   BEGIN \
-    AVER(NULL != (_ring)); \
-    (_ring)->next = (_ring); \
-    (_ring)->prev = (_ring); \
-    AVER(RingCheck(_ring)); \
+    AVER(NULL != (ring)); \
+    (ring)->next = (ring); \
+    (ring)->prev = (ring); \
+    AVER(RingCheck(ring)); \
   END
 
 extern void (RingFinish)(Ring ring);
-#define RingFinish(_ring) \
+#define RingFinish(ring) \
   BEGIN \
-    AVER(RingCheckSingle(_ring)); \
-    (_ring)->next = NULL; \
-    (_ring)->prev = NULL; \
+    AVER(RingCheckSingle(ring)); \
+    (ring)->next = RingNONE; \
+    (ring)->prev = RingNONE; \
   END
 
 extern void (RingAppend)(Ring ring, Ring new);
-#define RingAppend(_ring, _new) \
+#define RingAppend(ring, new) \
   BEGIN \
-    AVER(RingCheck(_ring)); \
-    AVER(RingCheckSingle(_new)); \
-    (_new)->prev = (_ring)->prev; \
-    (_new)->next = (_ring); \
-    (_ring)->prev->next = (_new); \
-    (_ring)->prev = (_new); \
+    AVER(RingCheck(ring)); \
+    AVER(RingCheckSingle(new)); \
+    (new)->prev = (ring)->prev; \
+    (new)->next = (ring); \
+    (ring)->prev->next = (new); \
+    (ring)->prev = (new); \
   END
 
 extern void (RingRemove)(Ring old);
-#define RingRemove(_old) \
+#define RingRemove(old) \
   BEGIN \
-    AVER(RingCheck(_old)); \
-    (_old)->next->prev = (_old)->prev; \
-    (_old)->prev->next = (_old)->next; \
-    (_old)->next = (_old); \
-    (_old)->prev = (_old); \
+    AVER(RingCheck(old)); \
+    (old)->next->prev = (old)->prev; \
+    (old)->prev->next = (old)->next; \
+    (old)->next = (old); \
+    (old)->prev = (old); \
   END
 
 extern Ring (RingNext)(Ring ring);
-#define RingNext(_ring)	((_ring)->next)
+#define RingNext(ring)	((ring)->next)
 
 #define RING_ELT(type, field, node) \
    ((type)((char *)(node) - (size_t)(&((type)0)->field)))
 
-#define RING_FOR(_var, _ring) \
-  for(_var = RingNext(_ring); \
-      _var != (_ring); \
-      _var = RingNext(_var))
+#define RING_FOR(var, ring) \
+  for(var = RingNext(ring); \
+      var != (ring); \
+      var = RingNext(var))
 
 
 /* Pool Interface -- see impl.c.pool */
@@ -92,11 +129,10 @@ extern Bool PoolCheck(Pool pool);
 extern Res PoolDescribe(Pool pool, Lib_FILE *stream);
 
 extern Space (PoolSpace)(Pool pool);
-#define PoolSpace(pool) ((pool)->space)
-extern PoolClass (PoolGetClass)(Pool pool);
-extern Ring (PoolSpaceRing)(Pool pool);
-extern Ring (PoolBufferRing)(Pool pool);
+#define PoolSpace(pool)		((pool)->space)
+
 extern Align (PoolAlignment)(Pool pool);
+#define PoolAlignment(pool)	((pool)->alignment)
 
 extern Res PoolSegAlloc(Seg *segReturn, Pool pool, Size size);
 extern void PoolSegFree(Pool pool, Seg seg);
@@ -114,19 +150,26 @@ extern Res PoolCondemn(RefSet *condemnedReturn, Pool pool,
 extern void PoolGrey(Pool pool, Space space, TraceId ti);
 extern Res PoolScan(ScanState ss, Pool pool, Bool *finishedReturn);
 extern Res (PoolFix)(Pool pool, ScanState ss, Seg seg, Addr *refIO);
-#define POOLFIX(pool, ss, seg, refIO) \
-  ((*(pool)->class->fix)((pool), (ss), (seg), (refIO)))
+#define PoolFix(pool, ss, seg, refIO) \
+  ((*(pool)->class->fix)(pool, ss, seg, refIO))
 
 extern void PoolReclaim(Pool pool, Space space, TraceId ti);
-extern void PoolAccess(Pool pool, Seg seg, ProtMode mode);
+extern void PoolAccess(Pool pool, Seg seg, AccessSet mode);
 extern Size PoolPoll(Pool pool);
 
 
 /* Trace Interface -- see impl.c.trace */
 
+extern TraceSet (TraceSetAdd)(TraceSet set, TraceId id);
 #define TraceSetAdd(set, id)		((set) | ((TraceSet)1 << (id)))
+
+extern TraceSet (TraceSetDelete)(TraceSet set, TraceId id);
 #define TraceSetDelete(set, id)		((set) & ~((TraceSet)1 << (id)))
+
+extern Bool (TraceSetIsMember)(TraceSet set, TraceId id);
 #define TraceSetIsMember(set, id)	(((set) >> (id)) & 1)
+
+extern TraceSet (TraceSetUnion)(TraceSet set1, TraceSet set2);
 #define TraceSetUnion(set1, set2)	((set1) | (set2))
 
 extern Res TraceCreate(TraceId *tiReturn, Space space);
@@ -144,6 +187,8 @@ extern Res TraceRun(Space space, TraceId ti, Bool *finishedReturn);
 
 extern Res TraceFix(ScanState ss, Ref *refIO);
 
+/* Equivalent to impl.h.mps MPS_SCAN_BEGIN */
+
 #define TRACE_SCAN_BEGIN(ss) \
   BEGIN \
     Shift SCANzoneShift = (ss)->zoneShift; \
@@ -152,17 +197,25 @@ extern Res TraceFix(ScanState ss, Ref *refIO);
     Word SCANt; \
     {
 
+/* Equivalent to impl.h.mps MPS_FIX1 */
+
 #define TRACE_FIX1(ss, ref) \
   (SCANt = (Word)1<<((Word)(ref)>>SCANzoneShift&(WORD_WIDTH-1)), \
    SCANsummary |= SCANt, \
    SCANcondemned & SCANt)
 
+/* Equivalent to impl.h.mps MPS_FIX2 */
+
 #define TRACE_FIX2(ss, refIO) \
   ((*(ss)->fix)((ss), (refIO)))
+
+/* Equivalent to impl.h.mps MPS_FIX */
 
 #define TRACE_FIX(ss, refIO) \
   (TRACE_FIX1((ss), *(refIO)) ? \
    TRACE_FIX2((ss), (refIO)) : ResOK)
+
+/* Equivalent to impl.h.mps MPS_SCAN_END */
 
 #define TRACE_SCAN_END(ss) \
    } \
@@ -179,7 +232,7 @@ extern Res SpaceCreate(Space *spaceReturn);
 extern void SpaceDestroy(Space space);
 extern Bool SpaceCheck(Space space);
 extern Res SpaceDescribe(Space space, Lib_FILE *stream);
-extern Bool SpaceAccess(Addr addr, ProtMode mode);
+extern Bool SpaceAccess(Addr addr, AccessSet mode);
 extern void SpaceEnter(Space space);
 extern void SpaceLeave(Space space);
 extern void SpacePoll(Space space);
@@ -231,8 +284,8 @@ extern void BufferReset(Buffer buffer);
 extern Bool BufferIsReset(Buffer buffer);
 extern Ring BufferPoolRing(Buffer buffer);
 extern Bool BufferIsReady(Buffer buffer);
-extern Ap BufferAp(Buffer buffer);
-extern Buffer BufferOfAp(Ap ap);
+extern AP BufferAP(Buffer buffer);
+extern Buffer BufferOfAP(AP ap);
 extern Space BufferSpace(Buffer buffer);
 extern Pool (BufferPool)(Buffer buffer);
 #define BufferPool(buffer) ((buffer)->pool)
@@ -260,23 +313,23 @@ extern void PoolClassInit(
   const char *name,
   size_t size,
   size_t offset,
-  PoolMethodCreate create,
-  PoolMethodDestroy destroy,
-  PoolMethodAlloc alloc,
-  PoolMethodFree free_,
-  PoolMethodBufferCreate bufferCreate,
-  PoolMethodBufferDestroy bufferDestroy,
-  PoolMethodBufferFill bufferFill,
-  PoolMethodBufferTrip bufferTrip,
-  PoolMethodBufferExpose bufferExpose,
-  PoolMethodBufferCover bufferCover,
-  PoolMethodCondemn condemn,
-  PoolMethodGrey grey,
-  PoolMethodScan scan,
-  PoolMethodFix fix,
-  PoolMethodReclaim reclaim,
-  PoolMethodAccess access,
-  PoolMethodDescribe describe
+  PoolCreateMethod create,
+  PoolDestroyMethod destroy,
+  PoolAllocMethod alloc,
+  PoolFreeMethod free_,
+  PoolBufferCreateMethod bufferCreate,
+  PoolBufferDestroyMethod bufferDestroy,
+  PoolBufferFillMethod bufferFill,
+  PoolBufferTripMethod bufferTrip,
+  PoolBufferExposeMethod bufferExpose,
+  PoolBufferCoverMethod bufferCover,
+  PoolCondemnMethod condemn,
+  PoolGreyMethod grey,
+  PoolScanMethod scan,
+  PoolFixMethod fix,
+  PoolReclaimMethod reclaim,
+  PoolAccessMethod access,
+  PoolDescribeMethod describe
 );
 
 extern void PoolClassFinish(PoolClass class);
@@ -303,8 +356,8 @@ extern RefSet RefSetOfSeg(Space space, Seg seg);
 
 /* Shield Interface -- see impl.c.shield */
 
-extern void ShieldRaise(Space space, Seg seg, ProtMode mode);
-extern void ShieldLower(Space space, Seg seg, ProtMode mode);
+extern void ShieldRaise(Space space, Seg seg, AccessSet mode);
+extern void ShieldLower(Space space, Seg seg, AccessSet mode);
 extern void ShieldEnter(Space space);
 extern void ShieldLeave(Space space);
 extern void ShieldExpose(Space space, Seg seg);
@@ -318,7 +371,7 @@ extern void ShieldFlush(Space space);
 
 extern void ProtSetup(void);
 
-extern void ProtSet(Addr base, Addr limit, ProtMode mode);
+extern void ProtSet(Addr base, Addr limit, AccessSet mode);
 extern void ProtTramp(void **resultReturn, void *(*f)(void *, size_t),
                       void *p, size_t s);
 extern void ProtSync(Space space);
@@ -366,31 +419,6 @@ extern Addr VMBase(Space space);
 extern Addr VMLimit(Space space);
 extern Res VMMap(Space space, Addr base, Addr limit);
 extern void VMUnmap(Space space, Addr base, Addr limit);
-
-
-/* Address/Size Interface -- see impl.c.mpm */
-
-extern Bool (WordIsAligned)(Word word, Align align);
-#define WordIsAligned(w, a)	(((w) & ((a) - 1)) == 0)
-
-extern Word (WordAlignUp)(Word word, Align align);
-#define WordAlignUp(w, a)	(((w) + (a) - 1) & ~((a) - 1))
-
-extern Bool AlignCheck(Align align);
-
-extern Addr (AddrAdd)(Addr addr, Size size);
-#define AddrAdd(p, s)		((Addr)((Word)(p) + (s)))
-
-extern Size (AddrOffset)(Addr base, Addr limit);
-#define AddrOffset(p, l)	((Size)((Word)(l) - (Word)(p)))
-
-extern Bool SizeIsP2(Size size);
-extern Shift SizeLog2(Size size);
-
-#define AddrIsAligned(p, a)	WordIsAligned((Word)(p), a)
-#define SizeIsAligned(s, a)	WordIsAligned((Word)(s), a)
-#define SizeAlignUp(s, a)	((Size)WordAlignUp((Word)(s), a))
-#define AddrAlignUp(p, a)	((Addr)WordAlignUp((Word)(p), a))
 
 
 #endif /* mpm_h */
