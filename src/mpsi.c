@@ -1,6 +1,6 @@
 /* impl.c.mpsi: MEMORY POOL SYSTEM C INTERFACE LAYER
  *
- * $HopeName: MMsrc!mpsi.c(MMdevel_reservoir.1) $
+ * $HopeName: MMsrc!mpsi.c(MMdevel_reservoir.2) $
  * Copyright (C) 1997. Harlequin Group plc. All rights reserved.
  *
  * .purpose: This code bridges between the MPS interface to C,
@@ -52,7 +52,7 @@
 #include "mps.h"
 #include "mpsavm.h" /* only for mps_space_create */
 
-SRCID(mpsi, "$HopeName: MMsrc!mpsi.c(MMdevel_reservoir.1) $");
+SRCID(mpsi, "$HopeName: MMsrc!mpsi.c(MMdevel_reservoir.2) $");
 
 
 /* mpsi_check -- check consistency of interface mappings
@@ -687,6 +687,25 @@ mps_res_t (mps_reserve)(mps_addr_t *p_o, mps_ap_t mps_ap, size_t size)
 
   return res;
 }
+
+
+
+mps_res_t mps_reserve_with_reservoir_permit(mps_addr_t *p_o, 
+                                            mps_ap_t mps_ap, size_t size)
+{
+  mps_res_t res;
+
+  AVER(p_o != NULL);
+  AVER(size > 0);
+  AVER(mps_ap != NULL);
+  AVER(CHECKT(Buffer, BufferOfAP((AP)mps_ap)));
+  AVER(mps_ap->init == mps_ap->alloc);
+
+  MPS_RESERVE_WITH_RESERVOIR_PERMIT_BLOCK(res, *p_o, mps_ap, size);
+
+  return res;
+}
+
 
 
 /* mps_commit -- commit initialized object, finishing allocation
@@ -1377,33 +1396,36 @@ mps_res_t mps_ap_alloc_pattern_reset(mps_ap_t mps_ap)
 
 /* Low memory reservoir */
 
-/* Null interface at the moment, i.e. trivial implementation. */
 
-
-void mps_reservoir_limit_set(mps_arena_t arena, size_t size)
+void mps_reservoir_limit_set(mps_arena_t mps_arena, size_t size)
 {
-  UNUSED(arena);
-  UNUSED(size);
+  Arena arena = (Arena)mps_arena;
+
+  ArenaEnter(arena);
+  ArenaReservoirLimitSet(arena, size);
+  ArenaLeave(arena);
 }
 
-size_t mps_reservoir_limit(mps_arena_t arena)
+size_t mps_reservoir_limit(mps_arena_t mps_arena)
 {
-  UNUSED(arena);
+  Arena arena = (Arena)mps_arena;
+  Size size;
 
-  return 0;
+  ArenaEnter(arena);
+  size = ArenaReservoirLimit(arena);
+  ArenaLeave(arena);
+
+  return size;
 }
 
-size_t mps_reservoir_available(mps_arena_t arena)
+size_t mps_reservoir_available(mps_arena_t mps_arena)
 {
-  UNUSED(arena);
+  Arena arena = (Arena)mps_arena;
+  Size size;
 
-  return 0;
-}
+  ArenaEnter(arena);
+  size = ArenaReservoirAvailable(arena);
+  ArenaLeave(arena);
 
-mps_res_t mps_reserve_with_reservoir_permit(mps_addr_t *p_o, 
-                                            mps_ap_t ap, size_t size)
-{
-  /* Implement with mps_reserve */
-  /* Let mps_reserve check input parameters. Make no assumptions here */
-  return mps_reserve(p_o, ap, size);
+  return size;
 }
