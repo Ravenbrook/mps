@@ -1,6 +1,6 @@
 /* impl.h.protocol: PROTOCOL INHERITANCE DEFINITIONS
  *
- * $HopeName: MMsrc!protocol.h(MMdevel_tony_inheritance.1) $
+ * $HopeName: MMsrc!protocol.h(MMdevel_tony_inheritance.2) $
  * Copyright (C) 1998.  Harlequin Group plc.  All rights reserved.
  */
 
@@ -30,8 +30,9 @@
 #define DEFINE_CLASS(className, var) \
   static Bool DERIVE_GUARDIAN(className) = FALSE; \
   static DERIVE_STRUCT(className) DERIVE_STATIC_STORAGE(className); \
-  void DERIVE_ENSURE_INTERNAL(className) (className); \
-  className DERIVE_ENSURE(className) (void) \
+  static void DERIVE_ENSURE_INTERNAL(className) (className); \
+  extern className DERIVE_ENSURE(className) (void); \
+  extern className DERIVE_ENSURE(className) (void) \
   { \
     if (DERIVE_GUARDIAN(className) == FALSE) { \
       LockClaimGlobalRecursive(); \
@@ -44,7 +45,7 @@
     } \
     return &DERIVE_STATIC_STORAGE(className); \
   } \
-  void DERIVE_ENSURE_INTERNAL(className) (className var)
+  static void DERIVE_ENSURE_INTERNAL(className) (className var)
 
 
 /* INHERIT_CLASS
