@@ -1,6 +1,6 @@
 # ==== W3ALMV NMAKE FILE ====
 #
-# $HopeName: !w3almv.nmk(trunk.14) $
+# $HopeName: MMsrc!w3almv.nmk(MMdevel_config_thread.1) $
 #
 # Copyright (C) 1995 Harlequin Group, all rights reserved
 #
@@ -19,7 +19,7 @@ SW  = <assert> <ring> <mpm> \
       <arenacl> <space> <pool> <poolmfs> \
       <poolmv> <root> <format> <buffer> <lockw3> \
       <ref> <trace> <protsw> <shield> \
-      <than> <ssan> <mpsisw> <mpsiw3> <ld> <poolepdl> \
+      <than> <ssan> <mpsi> <mpsiw3> <ld> <poolepdl> \
       <action> <seg>
 AMC = <amc>
 AWL = <poolawl>
