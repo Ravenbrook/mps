@@ -1,7 +1,7 @@
 /* impl.h.config: MPS CONFIGURATION
  *
  * Copyright (C) 1997 Harlequin Group, all rights reserved.
- * $HopeName: !config.h(trunk.4) $
+ * $HopeName: MMsrc!config.h(MM_dylan_buffalo.1) $
  */
 
 #ifndef config_h
@@ -53,7 +53,11 @@
 #define ARENA_SIZE              ((Size)64<<20)
 #elif defined(CONFIG_PROD_DYLAN)
 #define MPS_PROD_DYLAN
+#if defined(MPS_OS_SU)
+#define ARENA_SIZE              ((Size)64<<20)
+#else
 #define ARENA_SIZE              ((Size)1<<30)
+#endif
 #elif defined(CONFIG_PROD_MPS)
 #define MPS_PROD_MPS
 #define ARENA_SIZE              ((Size)64<<20)
