@@ -1,10 +1,10 @@
 /* impl.c.lockli: RECURSIVE LOCKS FOR POSIX SYSTEMS
  *
- * $HopeName: !lockli.c(trunk.1) $
- * Copyright (C) 2000 Harlequin Ltd.  All rights reserved.
+ * $HopeName: MMsrc!lockli.c(MM_dylan_kinglet.1) $
+ * Copyright (C) 2000 Harlequin Limited.  All rights reserved.
  *
  *  .linux: This implementation currently just supports LinuxThreads 
- *  (platform MPS_OS_LI)
+ *  (platform MPS_OS_LI), Single Unix i/f.
  *
  *  .posix: In fact, the implementation should be reusable for most POSIX
  *  implementations, but may need some customization for each. 
@@ -13,7 +13,7 @@
  *
  *  .recursive: Mutexes support both non-recursive and recursive locking, but 
  *  only at initialization time.  This doesn't match the API of MPS Lock module, 
- *  which chooses at locking time, so all locks are made (non recursive)
+ *  which chooses at locking time, so all locks are made (non-recursive)
  *  errorchecking.  Recursive locks are implemented by checking the error
  *  code.
  *
@@ -22,40 +22,48 @@
  *  while we hold the mutex.  
  */
 
-#include "mpm.h"
+#define _XOPEN_SOURCE 500
+#include <pthread.h>
+#include <semaphore.h>
+#include <errno.h>
 
-/* .linux */
+#include "mpmtypes.h"
+#include "lock.h"
+#include "config.h"
+
+
 #ifndef MPS_OS_LI
 #error "lockli.c is specific to LinuxThreads but MPS_OS_LI not defined"
 #endif
 
-#include <pthread.h>
-#include <semaphore.h>
-
-SRCID(lockli, "$HopeName: !lockli.c(trunk.1) $");
+SRCID(lockli, "$HopeName: MMsrc!lockli.c(MM_dylan_kinglet.1) $");
 
 
-/* LockAttrSetRecursive -- Set mutexattr to permimt recursive locking
+/* LockAttrSetRecursive -- Set mutexattr to permit recursive locking
  *
- * There's a standard way to do this - but LinuxThreads doesn't quite follow 
- * the standard. Some other implementations might not either. Keep the code
- * general to permit future reuse. (.posix)
+ * There's a standard way to do this - but early LinuxThreads doesn't
+ * quite follow the standard.  Some other implementations might not
+ * either.
  */
 
-#ifdef MPS_OS_LI
+#ifdef OLD_LINUXTHREADS
 
 #define LockAttrSetRecursive(attrptr) \
-  (pthread_mutexattr_setkind_np((attrptr), PTHREAD_MUTEX_ERRORCHECK_NP))
+  pthread_mutexattr_setkind_np(attrptr, PTHREAD_MUTEX_ERRORCHECK_NP)
     
 #else
 
 #define LockAttrSetRecursive(attrptr) \
-  (pthread_mutexattr_settype((attrptr), PTHREAD_MUTEX_ERRORCHECK))
+  pthread_mutexattr_settype(attrptr, PTHREAD_MUTEX_ERRORCHECK)
 
 #endif
 
 
-/* .lock.posix: Posix lock structure; uses a mutex */
+/* LockStruct -- the MPS lock structure
+ *
+ * .lock.posix: Posix lock structure; uses a mutex.
+ */
+
 typedef struct LockStruct {
   Sig sig;                      /* design.mps.sig */
   unsigned long claims;         /* # claims held by owner */
@@ -212,4 +220,3 @@ void LockReleaseGlobal(void)
 {
   LockReleaseMPM(globalLock);
 }
-
