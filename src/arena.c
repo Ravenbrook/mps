@@ -1,6 +1,6 @@
 /* impl.c.arena: ARENA IMPLEMENTATION
  *
- * $HopeName: !arena.c(trunk.49) $
+ * $HopeName: MMsrc!arena.c(MMdevel_fencepost.1) $
  * Copyright (C) 1998. Harlequin Group plc. All rights reserved.
  *
  * .readership: Any MPS developer
@@ -36,7 +36,7 @@
 #include "poolmrg.h"
 #include "mps.h"
 
-SRCID(arena, "$HopeName: !arena.c(trunk.49) $");
+SRCID(arena, "$HopeName: MMsrc!arena.c(MMdevel_fencepost.1) $");
 
 
 /* Forward declarations */
@@ -102,6 +102,7 @@ static PoolClassStruct PoolClassNSEGStruct = {
   "NSEG",                               /* name */
   sizeof(NSEGStruct),                   /* size */
   offsetof(NSEGStruct, poolStruct),     /* offset */
+  NULL,                                 /* super */
   0,                                    /* attr */
   NSEGInit,                             /* init */
   NSEGFinish,                           /* finish */
@@ -126,6 +127,7 @@ static PoolClassStruct PoolClassNSEGStruct = {
   PoolNoRampEnd,                        /* ramp end */
   PoolNoWalk,                           /* walk */
   PoolTrivDescribe,                     /* describe */
+  PoolNoDebugMixin,
   PoolClassSig                          /* impl.h.mpmst.class.end-sig */
 };
 
@@ -138,6 +140,7 @@ static Bool NSEGCheck(NSEG nseg)
 
   return TRUE;
 }
+
 
 /* ArenaReservoirIsConsistent
  *
@@ -169,6 +172,7 @@ static Bool ArenaReservoirIsConsistent(Arena arena)
 
   return res;
 }
+
 
 /* ArenaEnsureReservoir  
  * 
@@ -208,6 +212,7 @@ static Res ArenaEnsureReservoir(Arena arena)
   return ResOK;
 }
 
+
 static Seg ArenaReservoirFirstSeg(Arena arena)
 {
   Ring ring, node;
@@ -224,6 +229,7 @@ static Seg ArenaReservoirFirstSeg(Arena arena)
   seg = SegOfPoolRing(node);
   return seg;
 }
+
 
 static void ArenaShrinkReservoir(Arena arena, Size want)
 {
@@ -243,6 +249,7 @@ static void ArenaShrinkReservoir(Arena arena, Size want)
   AVER(arena->reservoirSize <= want);
   AVER(ArenaReservoirIsConsistent(arena));
 }
+
 
 static Res ArenaAllocSegFromReservoir(Seg *segReturn, Arena arena, 
                                       Size size, Pool pool)
@@ -274,6 +281,7 @@ static Res ArenaAllocSegFromReservoir(Seg *segReturn, Arena arena,
   AVER(ArenaReservoirIsConsistent(arena));  
   return ResMEMORY; /* no suitable segment in the reservoir */
 }
+
 
 static void ArenaReturnSegToReservoir(Arena arena, Seg seg)
 {
