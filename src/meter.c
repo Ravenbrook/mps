@@ -1,12 +1,13 @@
 /* impl.c.meter: METERS
  *
- * $HopeName: $
+ * $HopeName: MMsrc!meter.c(MMdevel_gavinm_splay.1) $
  * Copyright (C) 1998 Harlequin Group plc.  All rights reserved.
  *
  */
 
 #include "mpm.h"
 #include "meter.h"
+#include "math.h"
 
 void MeterInit(Meter meter, char *name) 
 {
@@ -14,6 +15,8 @@ void MeterInit(Meter meter, char *name)
   meter->count = 0;
   meter->total = 0.0;
   meter->meanSquared = 0.0;
+  meter->max = 0;
+  meter->min = (Size)-1;
 }
 
 
@@ -32,6 +35,10 @@ void MeterAccumulate(Meter meter, Size amount)
   meter->count = count;
   meter->total = total + amount;
   meter->meanSquared = weight * meanSquared + amount * amount / count;
+  if (amount > meter->max)
+    meter->max = amount;
+  if (amount < meter->min)
+    meter->min = amount;
 }
 
 
@@ -58,19 +65,29 @@ Res MeterWrite(Meter meter, mps_lib_FILE *stream)
                NULL);
   if (res != ResOK)
     return res;
-  res = WriteDouble("  total: ", meter->total, "\n", stream);
-  if (res != ResOK)
-    return res;
-  res = WriteDouble("  mean: ", meter->total / meter->count, "\n",
-                    stream);
-  if (res != ResOK)
-    return res;
-  /* --- stddev = sqrt(meanSquared - mean^2), but see
-   * .limitation.variance above
-   */
-  res = WriteDouble("  mean^2: ", meter->meanSquared, "\n", stream);
-  if (res != ResOK)
-    return res;
+  if (meter->count > 0) {
+    double mean = meter->total / (double)meter->count;
+    
+    res = WriteDouble("  total: ", meter->total, "\n", stream);
+    if (res != ResOK)
+      return res;
+    res = WriteF(stream,
+                 "  max: $U\n", meter->max,
+                 "  min: $U\n", meter->min,
+                 NULL);
+    if (res != ResOK)
+      return res;
+    res = WriteDouble("  mean: ", mean, "\n",
+                      stream);
+    if (res != ResOK)
+      return res;
+    /* --- stddev = sqrt(meanSquared - mean^2), but see
+     * .limitation.variance above
+     */
+    res = WriteDouble("  stddev: ", sqrt(fabs(meter->meanSquared - (mean * mean))), "\n", stream);
+    if (res != ResOK)
+      return res;
+  }
   res = WriteF(stream,"}\n", NULL);
   if (res != ResOK)
     return res;
