@@ -1,6 +1,6 @@
 /* impl.c.poolamc: AUTOMATIC MOSTLY-COPYING MEMORY POOL CLASS
  *
- * $HopeName: !poolamc.c(trunk.26) $
+ * $HopeName: MMsrc!poolamc.c(MMdevel_alloc_replay.1) $
  * Copyright (C) 1998.  Harlequin Group plc.  All rights reserved.
  *
  * .sources: design.mps.poolamc.
@@ -9,7 +9,7 @@
 #include "mpscamc.h"
 #include "mpm.h"
 
-SRCID(poolamc, "$HopeName: !poolamc.c(trunk.26) $");
+SRCID(poolamc, "$HopeName: MMsrc!poolamc.c(MMdevel_alloc_replay.1) $");
 
 
 /* Binary i/f used by ASG (drj 1998-06-11) */
@@ -221,11 +221,9 @@ static Res AMCGenCreate(AMCGen *genReturn, AMC amc, Serial genNum)
     goto failArenaAlloc;
   gen = (AMCGen)p;
 
-  res = BufferCreate(&buffer, pool);
+  res = BufferCreate(&buffer, pool, FALSE);
   if(res != ResOK)
     goto failBufferCreate;
-  buffer->p = NULL; /* no gen yet -- see design.mps.poolamc.forward.gen */
-  buffer->i = TRUE; /* it's a forwarding buffer */
 
   RingInit(&gen->amcRing);
   ActionInit(&gen->actionStruct, pool);
@@ -244,7 +242,6 @@ static Res AMCGenCreate(AMCGen *genReturn, AMC amc, Serial genNum)
   RingAppend(&amc->genRing, &gen->amcRing);
 
   EVENT_PP(AMCGenCreate, amc, gen);
-
   *genReturn = gen;
   return ResOK;
 
@@ -510,6 +507,10 @@ static Res AMCInitComm(Pool pool, RankSet rankSet, va_list arg)
 
   AVERT(AMC, amc);
   EVENT_PP(AMCInit, pool, amc);
+  if (rankSet == RankSetEMPTY)
+    EVENT_PP(PoolInitAMCZ, pool, format);
+  else
+    EVENT_PP(PoolInitAMC, pool, format);
   return ResOK;
 }
 
@@ -575,7 +576,7 @@ static void AMCFinish(Pool pool)
 }
 
 
-/* AMCBufferInit -- initialize a new mutator buffer */
+/* AMCBufferInit -- initialize a new buffer */
 
 static Res AMCBufferInit(Pool pool, Buffer buffer, va_list args)
 {
@@ -587,11 +588,16 @@ static Res AMCBufferInit(Pool pool, Buffer buffer, va_list args)
   UNUSED(args);
 
   buffer->rankSet = amc->rankSet;
-
-  /* Set up the buffer to be a mutator buffer allocating in */
-  /* the nursery. */
-  buffer->p = amc->nursery;
-  buffer->i = FALSE;                    /* mutator buffer */
+  if (BufferIsMutator(buffer)) {
+    /* Set up the buffer to be a mutator buffer allocating in */
+    /* the nursery. */
+    buffer->p = amc->nursery;
+    buffer->i = FALSE;                    /* mutator buffer */
+  } else {
+    buffer->p = NULL; /* no gen yet -- see design.mps.poolamc.forward.gen */
+    buffer->i = TRUE; /* it's a forwarding buffer */
+  }
+  EVENT_PPU(BufferInit, buffer, pool, !buffer->i);
   return ResOK;
 }
 
