@@ -2,7 +2,7 @@
  *
  *                  WIN32 THREAD MANAGER
  *
- *  $HopeName: !thnti3.c(trunk.12) $
+ *  $HopeName: MMsrc!thnti3.c(MMdevel_lib.1) $
  *
  *  Copyright (C) 1995 Harlequin Group, all rights reserved
  *
@@ -67,7 +67,7 @@
 
 #include <windows.h>
 
-SRCID(thnti3, "$HopeName: !thnti3.c(trunk.12) $");
+SRCID(thnti3, "$HopeName: MMsrc!thnti3.c(MMdevel_lib.1) $");
 
 Bool ThreadCheck(Thread thread)
 {
@@ -242,4 +242,20 @@ Res ThreadScan(ScanState ss, Thread thread, void *stackBot)
 Space ThreadSpace(Thread thread)
 {
   return thread->space;
+}
+
+Res ThreadDescribe(Thread thread, mps_lib_FILE *stream)
+{
+  Res res;
+  
+  res = WriteF(stream,
+               "Thread $P ($U) {\n", (void *)thread, (unsigned long)thread->serial,
+               "  space $P ($U)\n",  (void *)thread->space, (unsigned long)thread->space->serial,
+               "  handle $W\n",      (Word)thread->handle,
+               "  id $U\n",          (unsigned long)thread->id,
+               "} Thread $P ($U)\n", (void *)thread, (unsigned long)thread->serial,
+               NULL);
+  if(res != ResOK) return res;
+
+  return ResOK;
 }

@@ -2,7 +2,7 @@
  *
  *                    THREAD MANAGER
  *
- *  $HopeName: !th.h(trunk.5) $
+ *  $HopeName: MMsrc!th.h(MMdevel_lib.1) $
  *
  *  Copyright (C) 1995 Harlequin Group, all rights reserved
  *
@@ -17,6 +17,7 @@
 #include "mpm.h"
 
 extern Bool ThreadCheck(Thread thread);
+extern Res ThreadDescribe(Thread thread, mps_lib_FILE *stream);
 
 
 /*  == Register/Deregister ==
