@@ -1,11 +1,11 @@
 /* impl.c.trace: GENERIC TRACER IMPLEMENTATION
  *
- * $HopeName: MMsrc!trace.c(MMdevel_action2.1) $
+ * $HopeName: MMsrc!trace.c(MMdevel_action2.2) $
  */
 
 #include "mpm.h"
 
-SRCID(trace, "$HopeName: MMsrc!trace.c(MMdevel_action2.1) $");
+SRCID(trace, "$HopeName: MMsrc!trace.c(MMdevel_action2.2) $");
 
 Bool ScanStateCheck(ScanState ss)
 {
@@ -13,7 +13,7 @@ Bool ScanStateCheck(ScanState ss)
   CHECKU(Space, ss->space);
   CHECKL(ss->zoneShift == ss->space->zoneShift);
   CHECKL(RankCheck(ss->rank));
-  CHECKL(ss->condemned == ss->space->trace[ss->traceId].condemned);
+  CHECKL(ss->white == ss->space->trace[ss->traceId].white);
   return TRUE;
 }
 
@@ -29,8 +29,39 @@ Bool TraceSetCheck(TraceSet ts)
   return TRUE;
 }
 
+/* TraceCheck -- check consistency of Trace object */
+
+Bool TraceCheck(Trace trace)
+{
+  CHECKS(Trace, trace);
+  CHECKU(Space, trace->space);
+  CHECKL(TraceIdCheck(trace->ti));
+  CHECKL(trace == &trace->space->trace[trace->ti]);
+  CHECKL(TraceSetIsMember(trace->space->busyTraces, trace->ti));
+  /* Can't check trace->white -- not in O(1) anyway. */
+  return TRUE;
+}
+
+
+/* TraceCreate -- create a Trace object
+ *
+ * Allocates and initializes a new Trace object with a TraceId
+ * which is not currently active.
+ *
+ * Returns ResLIMIT if there aren't any available trace IDs.
+ *
+ * Trace objects are allocated directly from a small array in the
+ * space structure which is indexed by the TraceId.  This is so
+ * that it's always possible to start a trace (provided there's
+ * a free TraceId) even if there's no available memory.
+ *
+ * This code is written to be adaptable to allocating Trace
+ * objects dynamically.
+ */
+
 Res TraceCreate(TraceId *tiReturn, Space space)
 {
+  Trace trace;
   TraceId ti;
 
   /* .single-collection */
@@ -46,30 +77,64 @@ Res TraceCreate(TraceId *tiReturn, Space space)
   return ResLIMIT;
 
 found:
-  space->trace[ti].condemned = RefSetEMPTY;
+  trace = &space->trace[ti];
   space->busyTraces = TraceSetAdd(space->busyTraces, ti);
+
+  /* @@@@ Everything should be black for ti.  Could check. */
+
+  trace->space = space;
+  trace->white = RefSetEMPTY;
+  trace->ti = ti;
+  trace->state = TraceINIT;
+
+  trace->sig = TraceSig;
+  AVERT(Trace, trace);
 
   *tiReturn = ti;
   return ResOK;
 }
 
+/* TraceDestroy -- destroy a trace object
+ *
+ * Finish and deallocate a Trace object, freeing up a TraceId.
+ *
+ * This code does not allow a Trace to be destroyed while it is
+ * active.  It would be possible to allow this, but the colours
+ * of segments etc. would need to be reset to black.
+ */
+
+#if 0
+void TraceDestroy(Trace trace)
+{
+  AVERT(Trace, trace);
+  AVER(trace->state == TraceFINISHED);
+  trace->sig = SigInvalid;
+  trace->space->busyTraces =
+    TraceSetDel(trace->space->busyTraces, trace->ti);
+}
+#endif
+
 void TraceDestroy(Space space, TraceId ti)
 {
+  Trace trace;
   AVERT(Space, space);
+  trace = &space->trace[ti];
+  AVER(trace->state == TraceFINISHED);
+  trace->sig = SigInvalid;
   space->busyTraces = TraceSetDel(space->busyTraces, ti);
 }
 
-Res TraceCondemn(RefSet *condemnedReturn, Space space, TraceId ti, 
+Res TraceCondemn(RefSet *whiteReturn, Space space, TraceId ti, 
                  Pool pool)
 {
 /* @@@@ This will iterate over all segments, greying them, and */
 /* whitening all those in the condemned set.  To begin with */
 /* it just takes over from PoolCondemn by iterating over the */
 /* segments in a pool. */
-  return PoolCondemn(condemnedReturn, pool, space, ti);
+  return PoolCondemn(whiteReturn, pool, space, ti);
 }
 
-Res TraceFlip(Space space, TraceId ti, RefSet condemned)
+Res TraceFlip(Space space, TraceId ti, RefSet white)
 {
   Ring ring;
   Ring node;
@@ -82,16 +147,16 @@ Res TraceFlip(Space space, TraceId ti, RefSet condemned)
   ShieldSuspend(space);
 
   trace = &space->trace[ti];
-  AVER(trace->condemned == RefSetEMPTY);
-  trace->condemned = condemned;
+  AVER(trace->white == RefSetEMPTY);
+  trace->white = white;
 
-  /* Update location dependency structures.  condemned is
+  /* Update location dependency structures.  white is
    * a conservative approximation of the refset of refs which
    * may move during this collection.
-   * @@@@ It is too conservative.  Not everything condemned will
+   * @@@@ It is too conservative.  Not everything white will
    * necessarily move.
    */
-  LDAge(space, condemned);
+  LDAge(space, white);
 
   /* Grey all the roots and pools. */
 
@@ -102,7 +167,7 @@ Res TraceFlip(Space space, TraceId ti, RefSet condemned)
     Pool pool = RING_ELT(Pool, spaceRing, node);
 
     if((pool->class->attr & AttrSCAN) != 0)
-      PoolGrey(pool, space, ti);  /* implicitly excludes condemned set */
+      PoolGrey(pool, space, ti);  /* implicitly excludes white set */
 
     node = next;
   }
@@ -120,7 +185,7 @@ Res TraceFlip(Space space, TraceId ti, RefSet condemned)
 
   ss.fix = TraceFix;
   ss.zoneShift = space->zoneShift;
-  ss.condemned = space->trace[ti].condemned;
+  ss.white = space->trace[ti].white;
   ss.summary = RefSetEMPTY;
   ss.space = space;
   ss.traceId = ti;
@@ -187,7 +252,7 @@ Size TracePoll(Space space, TraceId ti)
 
   trace = &space->trace[ti];
 
-  if(trace->condemned != RefSetEMPTY) {
+  if(trace->white != RefSetEMPTY) {
     res = TraceRun(space, ti, &finished);
     AVER(res == ResOK); /* @@@@ */
     if(finished) {
@@ -213,7 +278,7 @@ Res TraceFix(ScanState ss, Ref *refIO)
 
   ref = *refIO;
   if(SegOfAddr(&seg, ss->space, ref))
-    if(ss->traceId == seg->condemned) {
+    if(ss->traceId == seg->white) {
       pool = seg->pool;
       return PoolFix(pool, ss, seg, refIO);
     }
@@ -298,7 +363,7 @@ Res TraceRun(Space space, TraceId ti, Bool *finishedReturn)
 
   ss.fix = TraceFix;
   ss.zoneShift = space->zoneShift;
-  ss.condemned = space->trace[ti].condemned;
+  ss.white = space->trace[ti].white;
   ss.summary = RefSetEMPTY;
   ss.space = space;
   ss.traceId = ti;
