@@ -1,6 +1,6 @@
 /* impl.c.poolawl: AUTOMATIC WEAK LINKED POOL CLASS
  *
- * $HopeName: MMsrc!poolawl.c(MM_dylan_sunflower.8) $
+ * $HopeName: MMsrc!poolawl.c(MM_dylan_sunflower.9) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  *
  * READERSHIP
@@ -16,10 +16,10 @@
 #include "mpm.h"
 #include "mpscawl.h"
 
-SRCID(poolawl, "$HopeName: MMsrc!poolawl.c(MM_dylan_sunflower.8) $");
+SRCID(poolawl, "$HopeName: MMsrc!poolawl.c(MM_dylan_sunflower.9) $");
 
 
-#define AWLSig	((Sig)0x519b7a37)	/* SIGPooLAWL */
+#define AWLSig  ((Sig)0x519b7a37)       /* SIGPooLAWL */
 
 /* design.mps.poolawl.poolstruct */
 typedef struct AWLStruct {
@@ -31,7 +31,7 @@ typedef struct AWLStruct {
   Sig sig;
 } AWLStruct, *AWL;
 
-#define AWLGroupSig ((Sig)0x519a379b)	/* SIGAWLGrouP */
+#define AWLGroupSig ((Sig)0x519a379b)   /* SIGAWLGrouP */
 
 /* design.mps.poolawl.group */
 typedef struct AWLGroupStruct {
@@ -40,7 +40,7 @@ typedef struct AWLGroupStruct {
   BT mark;
   BT scanned;
   BT alloc;
-  RefSet rememberedSummary;	/* == EMPTY unless seg is condemned */
+  RefSet rememberedSummary;     /* == EMPTY unless seg is condemned */
 } AWLGroupStruct, *AWLGroup;
 
 
@@ -53,7 +53,7 @@ static Bool AWLGroupCheck(AWLGroup group);
 #define PoolPoolAWL(pool) \
   PARENT(AWLStruct, poolStruct, (pool))
 
-#define ActionAWL(action)	PARENT(AWLStruct, actionStruct, action)
+#define ActionAWL(action)       PARENT(AWLStruct, actionStruct, action)
 
 
 static void AWLGroupDestroy(AWLGroup group)
@@ -82,13 +82,13 @@ static void AWLGroupDestroy(AWLGroup group)
   
  
 static Res AWLGroupCreate(AWLGroup *groupReturn,
-                          Buffer buffer, Pool pool, Size size)
+			  Buffer buffer, Pool pool, Size size)
 {
   AWL awl;
   Seg seg;
   AWLGroup group;
   void *v;
-  Count bits;	/* number of grains */
+  Count bits;   /* number of grains */
   Res res;
   Size tableSize;
   Space space;
@@ -156,7 +156,7 @@ failSegAlloc:
 
 
 static Bool AWLGroupAlloc(Addr *baseReturn, Addr *limitReturn,
-                          AWLGroup group, AWL awl, Size size)
+			  AWLGroup group, AWL awl, Size size)
 {
   Count n, bits;
   Index i, j;
@@ -237,7 +237,7 @@ static void AWLFinish(Pool pool)
 
 
 static Res AWLBufferFill(Seg *segReturn, Addr *baseReturn, Addr *limitReturn,
-                         Pool pool, Buffer buffer, Size size)
+			 Pool pool, Buffer buffer, Size size)
 {
   Addr base, limit;
   AWLGroup group;
@@ -282,7 +282,11 @@ static Res AWLBufferFill(Seg *segReturn, Addr *baseReturn, Addr *limitReturn,
   limit = SegLimit(space, group->seg);
 
 found:
+  /* change.dylan.sunflower.8.170464: This should be TraceSetSummary, */
+  /* and in any case, should is unnecessary. */
+#if 0
   SegSetSummary(group->seg, RefSetUNIV);
+#endif /* 0 */  
   {
     Index i, j;
     i = AddrOffset(SegBase(space, group->seg), base) >> awl->alignShift;
@@ -442,7 +446,7 @@ notFinished:
   finished = TRUE;
   p = base;
   while(p < limit) {
-    Index i;	/* the index into the bit tables corresponding to p */
+    Index i;    /* the index into the bit tables corresponding to p */
     Addr objectEnd;
 
     AVER(AddrIsAligned(p, pool->alignment));
@@ -453,7 +457,7 @@ notFinished:
       /* Only skip the buffer area if it is non-zero in length. */
       /* See change.dylan.sunflower.7.170463. */
       if(p == BufferScanLimit(buffer) &&
-         BufferScanLimit(buffer) != BufferLimit(buffer)) {
+	 BufferScanLimit(buffer) != BufferLimit(buffer)) {
 	p = BufferLimit(buffer);
 	continue;
       }
@@ -490,10 +494,10 @@ notFinished:
       }
       res = awl->format->scan(ss, p, objectEnd);
       if(dependent) {
-        ShieldCover(space, dependentSeg);
+	ShieldCover(space, dependentSeg);
       }
       if(res != ResOK) {
-        return res;
+	return res;
       }
     }
     p = objectEnd;
@@ -549,8 +553,8 @@ static Res AWLFix(Pool pool, ScanState ss, Seg seg, Ref *refIO)
 	*refIO = (Ref)0;
       } else {
 	TraceSetSummary(space, seg,
-                        RefSetUnion(group->rememberedSummary,
-			            SegSummary(seg)));
+			RefSetUnion(group->rememberedSummary,
+				    SegSummary(seg)));
 	TraceSegGreyen(space, seg, ss->traces);
 	BTSet(group->mark, i);
       }
@@ -600,18 +604,18 @@ static void AWLReclaim(Pool pool, Trace trace, Seg seg)
     if(SegBuffer(seg) != NULL) {
       Buffer buffer = SegBuffer(seg);
       AVER(p <= BufferScanLimit(buffer) ||
-           BufferLimit(buffer) <= p);
+	   BufferLimit(buffer) <= p);
       /* Only skip the buffer area if it is non-zero in length. */
       /* See change.dylan.sunflower.7.170463. */
       if(p == BufferScanLimit(buffer) &&
-         BufferScanLimit(buffer) != BufferLimit(buffer)) {
-        p = BufferLimit(buffer);
+	 BufferScanLimit(buffer) != BufferLimit(buffer)) {
+	p = BufferLimit(buffer);
 	i = AddrOffset(base, p) >> awl->alignShift;
-        continue;
+	continue;
       }
     }
     j = AddrOffset(base, awl->format->skip(p)) >>
-        awl->alignShift;
+	awl->alignShift;
     AVER(j <= bits);
     if(!BTGet(group->mark, i)) {
       BTResRange(group->alloc, i, j);
@@ -713,6 +717,6 @@ static Bool AWLGroupCheck(AWLGroup group)
   CHECKL(group->alloc != NULL);
   /* Can't check rememberedSummary because it's a RefSet */
   CHECKL(group->rememberedSummary == RefSetEMPTY ||
-         SegWhite(group->seg) != TraceSetEMPTY);
+	 SegWhite(group->seg) != TraceSetEMPTY);
   return TRUE;
 }

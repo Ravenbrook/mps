@@ -1,12 +1,12 @@
 /* impl.c.trace: GENERIC TRACER IMPLEMENTATION
  *
- * $HopeName: MMsrc!trace.c(MM_dylan_sunflower.5) $
+ * $HopeName: MMsrc!trace.c(MM_dylan_sunflower.6) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  */
 
 #include "mpm.h"
 
-SRCID(trace, "$HopeName: MMsrc!trace.c(MM_dylan_sunflower.5) $");
+SRCID(trace, "$HopeName: MMsrc!trace.c(MM_dylan_sunflower.6) $");
 
 
 /* ScanStateCheck -- check consistency of a ScanState object */
@@ -184,7 +184,7 @@ static Res TraceStart(Trace trace, Action action)
 	/* Turn the segment grey if there might be a reference in it */
 	/* to the white set.  This is done by seeing if the summary */
 	/* of references in the segment intersects with the */
-        /* approximation to the white set. */
+	/* approximation to the white set. */
 	if(RefSetInter(SegSummary(seg), trace->white) != RefSetEMPTY) {
 	  PoolGrey(SegPool(seg), trace, seg);
 	  if(TraceSetIsMember(SegGrey(seg), trace->ti))
@@ -265,7 +265,7 @@ Res TraceCreate(Trace *traceReturn, Space space, Action action)
   Trace trace;
   Res res;
 
-  AVER(TRACE_MAX == 1);		/* .single-collection */
+  AVER(TRACE_MAX == 1);         /* .single-collection */
 
   AVER(traceReturn != NULL);
   AVERT(Space, space);
@@ -276,7 +276,7 @@ Res TraceCreate(Trace *traceReturn, Space space, Action action)
     if(!TraceSetIsMember(space->busyTraces, ti))
       goto found;
 
-  return ResLIMIT;		/* no trace IDs available */
+  return ResLIMIT;              /* no trace IDs available */
 
 found:
   trace = SpaceTrace(space, ti);
@@ -692,7 +692,7 @@ static Res TraceScan(TraceSet ts, Rank rank,
 		  TraceSetUnion(ss.fixed,
 				TraceSetDiff(ss.summary, ss.white)));
 
-  ss.sig = SigInvalid;			/* just in case */
+  ss.sig = SigInvalid;                  /* just in case */
 
   /* The segment has been scanned, so remove the greyness from it. */
   SegSetGrey(seg, TraceSetDiff(SegGrey(seg), ts));
@@ -719,13 +719,21 @@ void TraceAccess(Space space, Seg seg, AccessSet mode)
   AVERT(Seg, seg);
   UNUSED(mode);
 
+  /* If it's a read access, then the segment must be grey for a trace */
+  /* which is flipped. */
+  AVER((mode & SegSM(seg) & AccessREAD) == 0 ||
+       TraceSetInter(SegGrey(seg), space->flippedTraces) !=
+       TraceSetEMPTY);
+
+  /* If it's a write acess, then the segment must have a summary that */
+  /* is smaller than the mutator's summary (which is assumed to be */
+  /* RefSetUNIV). */
+  AVER((mode & SegSM(seg) & AccessWRITE) == 0 ||
+       SegSummary(seg) != RefSetUNIV);
+
   EVENT3(TraceAccess, space, seg, mode);
 
   if((mode & SegSM(seg) & AccessREAD) != 0) {     /* read barrier? */
-    /* In this case, the segment must be grey for a trace which is */
-    /* flipped. */
-    AVER(TraceSetInter(SegGrey(seg), space->flippedTraces) != TraceSetEMPTY);
-
     /* scan.conservative: At the moment we scan at RankEXACT.  Really */
     /* we should be scanning at the "phase" of the trace, which is the */
     /* minimum rank of all grey segments. */
@@ -741,11 +749,13 @@ void TraceAccess(Space space, Seg seg, AccessSet mode)
     AVER(TraceSetInter(SegGrey(seg), space->flippedTraces) == TraceSetEMPTY);
   }
 
-  if((mode & SegSM(seg) & AccessWRITE) != 0) {    /* write barrier? */
-    AVER(SegSummary(seg) != RefSetUNIV);
+  /* The write barrier handling must come after the read barrier, */
+  /* because the latter may set the summary and raise the write barrier. */
+  
+  if((mode & SegSM(seg) & AccessWRITE) != 0)      /* write barrier? */
     TraceSetSummary(space, seg, RefSetUNIV);
-  }
 
+  /* The segment must now be accessible. */
   AVER((mode & SegSM(seg)) == AccessSetEMPTY);
 }
 
