@@ -1,13 +1,13 @@
 /* impl.h.sac: SEGREGATED ALLOCATION CACHES
  *
- * $HopeName: MMsrc!sac.c(MM_epcore_brisling.1) $
+ * $HopeName: MMsrc!sac.c(MM_epcore_brisling.2) $
  * Copyright (C) 1999 Harlequin Group plc.  All rights reserved.
  */
 
 #include "mpm.h"
 #include "sac.h"
 
-SRCID(sac, "$HopeName: MMsrc!sac.c(MM_epcore_brisling.1) $");
+SRCID(sac, "$HopeName: MMsrc!sac.c(MM_epcore_brisling.2) $");
 
 
 /* SACCheck -- check function for SACs */
@@ -70,17 +70,16 @@ static Bool SACCheck(SAC sac)
 
 /* SACSize -- calculate size of a SAC structure */
 
-static Size SACSize(Index middle, Count classesCount)
+static Size SACSize(Index middleIndex, Count classesCount)
 {
-  Index listLen; /* length of the freelist, folded 'round middle */
+  Index indexMax; /* max index for the freelist */
+  SACStruct dummy;
 
-  if (middle + 1 < classesCount - middle)
-    listLen = 2 * (classesCount - middle) - 1;
+  if (middleIndex + 1 < classesCount - middleIndex)
+    indexMax = 2 * (classesCount - middleIndex - 1);
   else
-    listLen = 2 * (middle + 1);
-
-  /* Allocate SAC */
-  return sizeof(SAC) + listLen * sizeof(SACFreeListBlock);
+    indexMax = 1 + 2 * middleIndex;
+  return PointerOffset(&dummy, &dummy.esacStruct.freelists[indexMax+1]);
 }
 
 
@@ -93,7 +92,7 @@ Res SACCreate(SAC *sacReturn, Pool pool, Count classesCount,
   SAC sac;
   Res res;
   Index i, j;
-  Index middle;  /* index of the size in the middle */
+  Index middleIndex;  /* index of the size in the middle */
   unsigned totalfreq = 0;
 
   AVER(sacReturn != NULL);
@@ -101,7 +100,7 @@ Res SACCreate(SAC *sacReturn, Pool pool, Count classesCount,
   AVER(classesCount > 0);
   for (i = 0; i < classesCount; ++i) {
     AVER(classes[i].blockSize > 0);
-    AVER(SizeIsAligned(classes[i].blockSize, pool->alignment));
+    AVER(SizeIsAligned(classes[i].blockSize, PoolAlignment(pool)));
     AVER(i == 0 || classes[i-1].blockSize < classes[i].blockSize);
     /* no restrictions on count */
     /* no restrictions on frequency */
@@ -119,19 +118,19 @@ Res SACCreate(SAC *sacReturn, Pool pool, Count classesCount,
     totalfreq -= classes[i].frequency;
   }
   if (totalfreq <= classes[i].frequency / 2)
-    middle = i;
+    middleIndex = i;
   else
-    middle = i + 1; /* there must exist another class at i+1 */
+    middleIndex = i + 1; /* there must exist another class at i+1 */
 
   /* Allocate SAC */
-  res = ArenaAlloc(&p, PoolArena(pool), SACSize(middle, classesCount));
+  res = ArenaAlloc(&p, PoolArena(pool), SACSize(middleIndex, classesCount));
   if(res != ResOK)
     goto failSACAlloc;
   sac = p;
 
   /* Move classes in place */
   /* It's important this matches SACFind. */
-  for (j = middle + 1, i = 0; j < classesCount; ++j, i += 2) {
+  for (j = middleIndex + 1, i = 0; j < classesCount; ++j, i += 2) {
     sac->esacStruct.freelists[i].size = classes[j].blockSize;
     sac->esacStruct.freelists[i].count = 0;
     sac->esacStruct.freelists[i].countMax = classes[j].cachedCount;
@@ -141,7 +140,7 @@ Res SACCreate(SAC *sacReturn, Pool pool, Count classesCount,
   sac->esacStruct.freelists[i].count = 0;
   sac->esacStruct.freelists[i].countMax = 0;
   sac->esacStruct.freelists[i].blocks = NULL;
-  for (j = middle, i = 1; j > 0; --j, i += 2) {
+  for (j = middleIndex, i = 1; j > 0; --j, i += 2) {
     sac->esacStruct.freelists[i].size = classes[j-1].blockSize;
     sac->esacStruct.freelists[i].count = 0;
     sac->esacStruct.freelists[i].countMax = classes[j].cachedCount;
@@ -154,10 +153,10 @@ Res SACCreate(SAC *sacReturn, Pool pool, Count classesCount,
 
   /* finish init */
   sac->esacStruct.trapped = FALSE;
-  sac->esacStruct.middle = classes[middle].blockSize;
+  sac->esacStruct.middle = classes[middleIndex].blockSize;
   sac->pool = pool;
   sac->classesCount = classesCount;
-  sac->middleIndex = middle;
+  sac->middleIndex = middleIndex;
   sac->sig = SACSig;
   *sacReturn = sac;
   return ResOK;
@@ -234,8 +233,9 @@ Res SACFill(Addr *p_o, SAC sac, Size size, Bool hasReservoirPermit)
   /* Fill the cache for this class, and alloc one more to return. */
   blockCount = sac->esacStruct.freelists[i].countMax;
   /* Adjust size for the overlarge class. */
-  if (blockSize == SizeMAX) blockSize = size;
-  AVER(SizeIsAligned(blockSize, sac->pool->alignment));
+  if (blockSize == SizeMAX)
+    /* .align: align 'cause some classes don't accept unaligned. */
+    blockSize = SizeAlignUp(size, PoolAlignment(sac->pool));
   for (j = 0, fl = sac->esacStruct.freelists[i].blocks;
        j <= blockCount; ++j) {
     res = PoolAlloc(&p, sac->pool, blockSize, hasReservoirPermit);
@@ -295,8 +295,9 @@ void SACEmpty(SAC sac, Addr p, Size size)
        == sac->esacStruct.freelists[i].countMax);
 
   /* Adjust size for the overlarge class. */
-  if (blockSize == SizeMAX) blockSize = size;
-  AVER(SizeIsAligned(blockSize, sac->pool->alignment));
+  if (blockSize == SizeMAX)
+    /* see .align */
+    blockSize = SizeAlignUp(size, PoolAlignment(sac->pool));
   SACClassFlush(sac, i, blockSize);
   if (sac->esacStruct.freelists[i].countMax > 0) {
     /* Leave the latest one in the cache. */
