@@ -1,14 +1,39 @@
 /* impl.c.trace: GENERIC TRACER IMPLEMENTATION
  *
- * $HopeName: MMsrc!trace.c(MMdevel_drj_trace_abort.2) $
+ * $HopeName: MMsrc!trace.c(MMdevel_drj_trace_abort.3) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  *
  * .sources: design.mps.tracer.
+ * .design: design.mps.trace.
+ *
+ * NOTES
+ *
+ * .exact.legal: Exact references should either point outside the arena
+ * (to non-managed address space) or to an allocated segment.  Exact
+ * references that are to addresses which the arena has reserved
+ * but hasn't allocated memory to are illegal (the exact reference
+ * couldn't possibly refer to a real object).  Depending on the
+ * future semantics of PoolDestroy we might need to adjust our
+ * strategy here.  See mail.dsm.1996-02-14.18-18(0) for a strategy
+ * of coping gracefully with PoolDestroy.  We check that this is the
+ * case in the fixer.  It may be sensible to make this check CRITICAL
+ * in certain configurations.
+ *
+ * .fix.fixed.all:
+ * ss->fixedSummary is accumulated (in the fixer) for all the pointers
+ * whether or not they are genuine references.  We could accumulate fewer
+ * pointers here; if a pointer fails the SegOfAddr test then we
+ * know it isn't a reference, so we needn't accumulate it into the
+ * fixed summary.  The design allows this, but it breaks a useful
+ * post-condition on scanning.  See .scan.post-condition.  (if
+ * the accumulation of ss->fixedSummary was moved the accuracy
+ * of ss->fixedSummary would vary according to the "width" of the
+ * white summary).
  */
 
 #include "mpm.h"
 
-SRCID(trace, "$HopeName: MMsrc!trace.c(MMdevel_drj_trace_abort.2) $");
+SRCID(trace, "$HopeName: MMsrc!trace.c(MMdevel_drj_trace_abort.3) $");
 
 
 /* ScanStateCheck -- check consistency of a ScanState object */
@@ -36,18 +61,21 @@ Bool ScanStateCheck(ScanState ss)
 static void ScanStateInit(ScanState ss, TraceSet ts, Arena arena,
                           Rank rank, RefSet white)
 {
+  TraceId ti;
+
   /* we are initing it, so we can't check ss */
   AVERT(Arena, arena);
   AVER(RankCheck(rank));
   /* white is arbitrary and can't be checked */
 
+  ss->fix = TraceFix;
+  for(ti = 0; ti < TRACE_MAX; ++ti) {
+    if(ArenaTrace(arena, ti)->emergency) {
+      ss->fix = TraceFixEmergency;
+    }
+  }
   ss->rank = rank;
   ss->traces = ts;
-  if(arena->traceEmergency == TRUE) {
-    ss->fix = TraceEmergencyFix;
-  } else {
-    ss->fix = TraceFix;
-  }
   ss->zoneShift = arena->zoneShift;
   ss->unfixedSummary = RefSetEMPTY;
   ss->fixedSummary = RefSetEMPTY;
@@ -134,6 +162,7 @@ Bool TraceCheck(Trace trace)
     default:
     NOTREACHED;
   }
+  CHECKL(BoolCheck(trace->emergency));
   return TRUE;
 }
 
@@ -273,7 +302,7 @@ Res TraceStart(Trace trace)
   /* set will survive, and calculates a rate of work which will */
   /* finish the collection by the time that a megabyte has been */
   /* allocated.  The 4096 is the number of bytes scanned by each */
-  /* TracePoll (approximately) and should be replaced by a parameter. */
+  /* TraceStep (approximately) and should be replaced by a parameter. */
   /* This is a temporary measure for change.dylan.honeybee.170466. */
   {
     double surviving = trace->condemned / 2;
@@ -340,6 +369,7 @@ found:
   trace->mayMove = RefSetEMPTY;
   trace->ti = ti;
   trace->state = TraceINIT;
+  trace->emergency = FALSE;
   trace->condemned = (Size)0;   /* nothing condemned yet */
   trace->foundation = (Size)0;  /* nothing grey yet */
   trace->rate = (Size)0;        /* no scanning to be done yet */
@@ -384,67 +414,9 @@ void TraceDestroy(Trace trace)
   trace->sig = SigInvalid;
   trace->arena->busyTraces =
     TraceSetDel(trace->arena->busyTraces, trace->ti);
-  if(trace->arena->busyTraces == TraceSetEMPTY) {
-    /* Emergency over once all traces completed */
-    trace->arena->traceEmergency = FALSE;
-  }
   trace->arena->flippedTraces =
     TraceSetDel(trace->arena->flippedTraces, trace->ti);
   EVENT_P(TraceDestroy, trace);
-}
-
-
-/* TraceSegGreyen -- turn a segment more grey
- *
- * Adds the trace set ts to the greyness of the segment and adjusts
- * the shielding on the segment appropriately.  (If it causes the
- * segment to become grey for a flipped trace the shield is raised.)
- * @@@@ Why does it seem to be write and a read barrier?
- */
-
-void TraceSegGreyen(Arena arena, Seg seg, TraceSet ts)
-{
-  TraceSet segGrey, newGrey;
-
-  AVERT(Arena, arena);
-  AVERT(Seg, seg);
-  AVER(TraceSetCheck(ts));
-
-  segGrey = SegGrey(seg);
-  newGrey = TraceSetUnion(segGrey, ts);
-  if(newGrey != segGrey) {
-    /* The read barrier should only really be raised when the */
-    /* segment is grey for some flipped trace, i.e. */
-    /* if(TraceSetInter(grey, space->flippedTraces) != TraceSetEMPTY) */
-    /* But this requires Flip to raise it when flippedTraces changes, */
-    /* which it does not do at present. */
-    ShieldRaise(arena, seg, AccessREAD);
-
-    /* Temporary hack to add to grey list for */
-    /* change.dylan.sunflower.7.170421. */
-    AVER(RankSetIsSingle(SegRankSet(seg)));
-    if(segGrey == TraceSetEMPTY) {
-      switch(SegRankSet(seg)) {
-      case RankSetSingle(RankAMBIG):
-        RingInsert(&arena->greyRing[RankAMBIG], SegGreyRing(seg));
-        break;
-      case RankSetSingle(RankEXACT):
-        RingInsert(&arena->greyRing[RankEXACT], SegGreyRing(seg));
-        break;
-      case RankSetSingle(RankFINAL):
-        RingInsert(&arena->greyRing[RankFINAL], SegGreyRing(seg));
-        break;
-      case RankSetSingle(RankWEAK):
-        RingInsert(&arena->greyRing[RankWEAK], SegGreyRing(seg));
-        break;
-      default:
-        NOTREACHED;
-        break;
-      }
-    }
-  }
-  SegSetGrey(seg, newGrey);
-  EVENT_PPU(TraceSegGreyen, arena, seg, ts);
 }
 
 
@@ -610,6 +582,7 @@ static void TraceReclaim(Trace trace)
       if(TraceSetIsMember(SegWhite(seg), trace->ti)) {
         AVER((SegPool(seg)->class->attr & AttrGC) != 0);
 
+        ++trace->reclaimCount;
         PoolReclaim(SegPool(seg), trace, seg);
 
         /* If the segment still exists, it should no longer be white. */
@@ -867,8 +840,8 @@ static Res TraceRun(Trace trace)
   return ResOK;
 }
 
-/* TraceExpedite -- signals an emergency condition and */
-/* moves a trace to the Finished state. */
+/* TraceExpedite -- signals an emergency on the trace and */
+/* moves it to the Finished state. */
 static void TraceExpedite(Trace trace)
 {
   AVERT(Trace, trace);
@@ -878,7 +851,7 @@ static void TraceExpedite(Trace trace)
   /* would never terminate (see .step.noprogress) */
   AVER(trace->state != TraceINIT);
 
-  trace->arena->traceEmergency = TRUE;
+  trace->emergency = TRUE;
 
   while(trace->state != TraceFINISHED) {
     Res res = TraceStep(trace);
@@ -1009,35 +982,20 @@ Res TraceFix(ScanState ss, Ref *refIO)
         return res;
     }
   } else {
-    /* Address is not in segment. */
-    /* It is illegal for exact references to point to an */
-    /* address that is currently reserved by the arena, but */
-    /* not in use.  There can't possibly be any objects at */
-    /* those addresses.  We check that here. */
-    /* This AVER might be a candidate for making CRITICAL in */
-    /* some configurations */
+    /* See .exact.legal */
     AVER(ss->rank < RankEXACT ||
 	 !ArenaIsReservedAddr(ss->arena, ref));
   }
 
 
-  /* .fix.fixed.all: */
-  /* ss->fixedSummary is accumulated for all the pointers whether */
-  /* or not they are genuine references.  We could accumulate fewer */
-  /* pointers here, if a pointer fails the SegOfAddr test then we */
-  /* know it isn't a reference, so we needn't accumulate it into the */
-  /* fixed summary.  The design allows this, but it breaks a useful */
-  /* post-condition on scanning.  See .scan.post-condition.  (if */
-  /* the accumulation of ss->fixedSummary was moved the accuracy */
-  /* of ss->fixedSummary would vary according to the "width" of the */
-  /* white summary). */
+  /* See .fix.fixed.all */
   ss->fixedSummary = RefSetAdd(ss->arena, ss->fixedSummary, *refIO);
 
   return ResOK;
 }
 
 
-Res TraceEmergencyFix(ScanState ss, Ref *refIO)
+Res TraceFixEmergency(ScanState ss, Ref *refIO)
 {
   Ref ref;
   Seg seg;
@@ -1060,33 +1018,15 @@ Res TraceEmergencyFix(ScanState ss, Ref *refIO)
       ++ss->whiteSegRefCount;
       EVENT_0(TraceFixWhite);
       pool = SegPool(seg);
-      /* Could move the rank switch here from the class-specific */
-      /* fix methods. */
-      PoolEmergencyFix(pool, ss, seg, refIO);
+      PoolFixEmergency(pool, ss, seg, refIO);
     }
   } else {
-    /* Address is not in segment. */
-    /* It is illegal for exact references to point to an */
-    /* address that is currently reserved by the arena, but */
-    /* not in use.  There can't possibly be any objects at */
-    /* those addresses.  We check that here. */
-    /* This AVER might be a candidate for making CRITICAL in */
-    /* some configurations */
+    /* See .exact.legal */
     AVER(ss->rank < RankEXACT ||
 	 !ArenaIsReservedAddr(ss->arena, ref));
   }
 
-
-  /* .fix.fixed.all: */
-  /* ss->fixedSummary is accumulated for all the pointers whether */
-  /* or not they are genuine references.  We could accumulate fewer */
-  /* pointers here, if a pointer fails the SegOfAddr test then we */
-  /* know it isn't a reference, so we needn't accumulate it into the */
-  /* fixed summary.  The design allows this, but it breaks a useful */
-  /* post-condition on scanning.  See .scan.post-condition.  (if */
-  /* the accumulation of ss->fixedSummary was moved the accuracy */
-  /* of ss->fixedSummary would vary according to the "width" of the */
-  /* white summary). */
+  /* See .fix.fixed.all */
   ss->fixedSummary = RefSetAdd(ss->arena, ss->fixedSummary, *refIO);
 
   return ResOK;
