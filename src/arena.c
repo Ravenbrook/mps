@@ -1,6 +1,6 @@
 /* impl.c.arena: ARENA IMPLEMENTATION
  *
- * $HopeName: MMsrc!arena.c(MM_epcore_brisling.1) $
+ * $HopeName: MMsrc!arena.c(MM_epcore_brisling.2) $
  * Copyright (C) 1998. Harlequin Group plc. All rights reserved.
  *
  * .readership: Any MPS developer
@@ -36,7 +36,7 @@
 #include "poolmrg.h"
 #include "mps.h"
 
-SRCID(arena, "$HopeName: MMsrc!arena.c(MM_epcore_brisling.1) $");
+SRCID(arena, "$HopeName: MMsrc!arena.c(MM_epcore_brisling.2) $");
 
 
 /* Forward declarations */
@@ -1383,6 +1383,12 @@ Size ArenaCommitted(Arena arena)
 {
   AVERT(Arena, arena);
   return (*arena->class->committed)(arena);
+}
+
+Size ArenaSpareCommitted(Arena arena)
+{
+  AVERT(Arena, arena);
+  return arena->spareCommitted;
 }
 
 Size ArenaSpareCommitLimit(Arena arena)
