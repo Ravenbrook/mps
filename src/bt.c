@@ -1,6 +1,6 @@
 /* impl.c.bt: BIT TABLES
  *
- * $HopeName: MMsrc!bt.c(MMdevel_assertid.1) $
+ * $HopeName: MMsrc!bt.c(MMdevel_assertid.2) $
  * Copyright (C) 1997 Harlequin Group, all rights reserved
  *
  * READERSHIP
@@ -22,19 +22,19 @@
 
 #include "mpm.h"
 
-SRCID(bt, "$HopeName: MMsrc!bt.c(MMdevel_assertid.1) $");
+SRCID(bt, "$HopeName: MMsrc!bt.c(MMdevel_assertid.2) $");
 
 
 Size BTSize(unsigned long n)
 {
-  AVER(0xA55E62, n+MPS_WORD_WIDTH-1 > n);
+  AVER(0xB2990000, n+MPS_WORD_WIDTH-1 > n);
 
   return (n+MPS_WORD_WIDTH-1)/MPS_WORD_WIDTH*sizeof(Word);
 }
   
 int (BTGet)(BT t, Index i)
 {
-  AVER(0xA55E62, t != NULL);
+  AVER(0xB2990001, t != NULL);
   /* Can't check i */
 
   return BTGet(t, i);
@@ -42,7 +42,7 @@ int (BTGet)(BT t, Index i)
   
 void (BTSet)(BT t, Index i)
 {
-  AVER(0xA55E62, t != NULL);
+  AVER(0xB2990002, t != NULL);
   /* Can't check i */
 
   BTSet(t, i);
@@ -50,7 +50,7 @@ void (BTSet)(BT t, Index i)
 
 void (BTRes)(BT t, Index i)
 {
-  AVER(0xA55E62, t != NULL);
+  AVER(0xB2990003, t != NULL);
   /* Can't check i */
 
   BTRes(t, i);
@@ -58,8 +58,8 @@ void (BTRes)(BT t, Index i)
 
 void BTSetRange(BT t, Index i, Index j)
 {
-  AVER(0xA55E62, t != NULL);
-  AVER(0xA55E62, i < j);
+  AVER(0xB2990004, t != NULL);
+  AVER(0xB2990005, i < j);
 
   for( ; i < j; ++i) {
     BTSet(t, i);
@@ -68,8 +68,8 @@ void BTSetRange(BT t, Index i, Index j)
 
 void BTResRange(BT t, Index i, Index j)
 {
-  AVER(0xA55E62, t != NULL);
-  AVER(0xA55E62, i < j);
+  AVER(0xB2990006, t != NULL);
+  AVER(0xB2990007, i < j);
 
   for( ; i < j; ++i) {
     BTRes(t, i);
@@ -81,11 +81,11 @@ Bool BTFindResRange(Index *iReturn, Index *jReturn,
 {
   unsigned long i = 0;
 
-  AVER(0xA55E62, iReturn != NULL);
-  AVER(0xA55E62, jReturn != NULL);
-  AVER(0xA55E62, t != NULL);
-  AVER(0xA55E62, n <= s);
-  AVER(0xA55E62, n > 0);
+  AVER(0xB2990008, iReturn != NULL);
+  AVER(0xB2990009, jReturn != NULL);
+  AVER(0xB299000A, t != NULL);
+  AVER(0xB299000B, n <= s);
+  AVER(0xB299000C, n > 0);
 
   /* remember, s is the size of the table */
   while(i < s) {
@@ -106,7 +106,7 @@ Bool BTFindResRange(Index *iReturn, Index *jReturn,
     /* wasn't long enough */
     ++i;
   }
-  AVER(0xA55E62, i == s);
+  AVER(0xB299000D, i == s);
 
   return FALSE;
 }

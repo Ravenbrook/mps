@@ -1,6 +1,6 @@
 /* impl.c.arenavm: VIRTUAL MEMORY BASED ARENA IMPLEMENTATION
  *
- * $HopeName: MMsrc!arenavm.c(MMdevel_assertid.1) $
+ * $HopeName: MMsrc!arenavm.c(MMdevel_assertid.2) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  *
  * This is the implementation of the Segment abstraction from the VM
@@ -14,7 +14,7 @@
 #include "mpm.h"
 
 
-SRCID(arenavm, "$HopeName: MMsrc!arenavm.c(MMdevel_assertid.1) $");
+SRCID(arenavm, "$HopeName: MMsrc!arenavm.c(MMdevel_assertid.2) $");
 
 
 /* Space Arena Projection
@@ -69,8 +69,8 @@ Res ArenaCreate(Space *spaceReturn, Size size, Addr base)
   Size f_words, f_size, p_size; /* see .init-tables */
   Arena arena;
   
-  AVER(0xA55E62, spaceReturn != NULL);
-  AVER(0xA55E62, size > 0);
+  AVER(0xA6F30000, spaceReturn != NULL);
+  AVER(0xA6F30001, size > 0);
   /* no restrictions on base, it's simply passed through to VMCreate */
 
   /* VMCreate requires aligned size */
@@ -84,7 +84,7 @@ Res ArenaCreate(Space *spaceReturn, Size size, Addr base)
   /* see design.mps.space.arena */
   arena->base = VMBase(space);
   arena->limit = VMLimit(space);
-  AVER(0xA55E62, AddrOffset(arena->base, arena->limit) == size);
+  AVER(0xA6F30002, AddrOffset(arena->base, arena->limit) == size);
   arena->pageSize = VMAlign();
   arena->pageShift = SizeLog2(arena->pageSize);
   arena->pages = size >> arena->pageShift;
@@ -137,7 +137,7 @@ Res ArenaCreate(Space *spaceReturn, Size size, Addr base)
   /* Sign the arena. */
   arena->sig = ArenaSig;
   
-  AVERT(0xA55E62, Arena, arena);
+  AVERT(0xA6F30003, Arena, arena);
   
   EVENT2(ArenaCreate, arena, space);
 
@@ -161,7 +161,7 @@ void ArenaDestroy(Space space)
 {
   Arena arena;
 
-  AVERT(0xA55E62, Arena, SpaceArena(space));
+  AVERT(0xA6F30004, Arena, SpaceArena(space));
   
   arena = SpaceArena(space);
   arena->sig = SigInvalid;
@@ -181,13 +181,13 @@ void ArenaDestroy(Space space)
 
 Size ArenaReserved(Space space)
 {
-  AVERT(0xA55E62, Arena, SpaceArena(space));
+  AVERT(0xA6F30005, Arena, SpaceArena(space));
   return VMReserved(space);
 }
 
 Size ArenaCommitted(Space space)
 {
-  AVERT(0xA55E62, Arena, SpaceArena(space));
+  AVERT(0xA6F30006, Arena, SpaceArena(space));
   return VMMapped(space);
 }
 
@@ -196,24 +196,24 @@ Size ArenaCommitted(Space space)
 
 Bool ArenaCheck(Arena arena)
 {
-  CHECKS(0xA55E62, Arena, arena);
-  CHECKD(0xA55E62, VM, &arena->vmStruct);
-  CHECKL(0xA55E62, arena->base != (Addr)0);
-  CHECKL(0xA55E62, arena->base < arena->limit);
-  CHECKL(0xA55E62, arena->pageShift <= MPS_WORD_WIDTH);
-  CHECKL(0xA55E62, arena->pageSize == 1uL << arena->pageShift);
-  CHECKL(0xA55E62, VMAlign() == arena->pageSize);
-  CHECKL(0xA55E62, arena->pages == 
+  CHECKS(0xA6F30007, Arena, arena);
+  CHECKD(0xA6F30008, VM, &arena->vmStruct);
+  CHECKL(0xA6F30009, arena->base != (Addr)0);
+  CHECKL(0xA6F3000A, arena->base < arena->limit);
+  CHECKL(0xA6F3000B, arena->pageShift <= MPS_WORD_WIDTH);
+  CHECKL(0xA6F3000C, arena->pageSize == 1uL << arena->pageShift);
+  CHECKL(0xA6F3000D, VMAlign() == arena->pageSize);
+  CHECKL(0xA6F3000E, arena->pages == 
            AddrOffset(arena->base, arena->limit) >> arena->pageShift);
-  CHECKL(0xA55E62, arena->tablePages <= arena->pages);
-  CHECKL(0xA55E62, arena->tablesSize == arena->tablePages << arena->pageShift);
-  CHECKL(0xA55E62, arena->pageTable != NULL);
-  CHECKL(0xA55E62, (Addr)arena->pageTable >= arena->base);
-  CHECKL(0xA55E62, (Addr)&arena->pageTable[arena->pages] <=
+  CHECKL(0xA6F3000F, arena->tablePages <= arena->pages);
+  CHECKL(0xA6F30010, arena->tablesSize == arena->tablePages << arena->pageShift);
+  CHECKL(0xA6F30011, arena->pageTable != NULL);
+  CHECKL(0xA6F30012, (Addr)arena->pageTable >= arena->base);
+  CHECKL(0xA6F30013, (Addr)&arena->pageTable[arena->pages] <=
            AddrAdd(arena->base, arena->tablesSize));
-  CHECKL(0xA55E62, arena->freeTable != NULL);
-  CHECKL(0xA55E62, (Addr)arena->freeTable >= arena->base);
-  CHECKL(0xA55E62, (Addr)&arena->freeTable[(arena->pages + MPS_WORD_WIDTH-1)>>MPS_WORD_SHIFT] <=
+  CHECKL(0xA6F30014, arena->freeTable != NULL);
+  CHECKL(0xA6F30015, (Addr)arena->freeTable >= arena->base);
+  CHECKL(0xA6F30016, (Addr)&arena->freeTable[(arena->pages + MPS_WORD_WIDTH-1)>>MPS_WORD_SHIFT] <=
            arena->limit);
   /* .improve.check-table: Could check the consistency of the tables. */
   return TRUE;
@@ -222,8 +222,8 @@ Bool ArenaCheck(Arena arena)
 
 Bool SegPrefCheck(SegPref pref)
 {
-  CHECKS(0xA55E62, SegPref, pref);
-  CHECKL(0xA55E62, BoolCheck(pref->high));
+  CHECKS(0xA6F30017, SegPref, pref);
+  CHECKL(0xA6F30018, BoolCheck(pref->high));
   /* nothing else to check */
   return TRUE;
 }
@@ -241,22 +241,22 @@ SegPref SegPrefDefault(void)
 
 Res SegPrefExpress (SegPref sp, SegPrefKind kind, void *p)
 {
-  AVERT(0xA55E62, SegPref,sp);
-  AVER(0xA55E62, sp != &segPrefDefault);
+  AVERT(0xA6F30019, SegPref,sp);
+  AVER(0xA6F3001A, sp != &segPrefDefault);
 
   switch(kind) {
   case SegPrefHigh:
-    AVER(0xA55E62, p == NULL);
+    AVER(0xA6F3001B, p == NULL);
     sp->high = TRUE;
     return ResOK;
 
   case SegPrefLow:
-    AVER(0xA55E62, p == NULL);
+    AVER(0xA6F3001C, p == NULL);
     sp->high = FALSE;
     return ResOK;
 
   case SegPrefRefSet:
-    AVER(0xA55E62, p != NULL);
+    AVER(0xA6F3001D, p != NULL);
     sp->refSet = *(RefSet *)p;
     return ResOK;
 
@@ -271,9 +271,9 @@ Res SegPrefExpress (SegPref sp, SegPrefKind kind, void *p)
 
 static Index IndexOfAddr(Arena arena, Addr addr)
 {
-  AVERT(0xA55E62, Arena, arena);
-  AVER(0xA55E62, arena->base <= addr);
-  AVER(0xA55E62, addr <= arena->limit);
+  AVERT(0xA6F3001E, Arena, arena);
+  AVER(0xA6F3001F, arena->base <= addr);
+  AVER(0xA6F30020, addr <= arena->limit);
   return AddrOffset(arena->base, addr) >> arena->pageShift;
 }
 
@@ -297,16 +297,16 @@ static Bool SegAllocInArea(Index *baseReturn,
   Index i;				/* iterator over page table */
   Index start = (Index)0;		/* base of free run, with warning suppressor */
 
-  AVER(0xA55E62, baseReturn != NULL);
-  AVERT(0xA55E62, Space, space);  
+  AVER(0xA6F30021, baseReturn != NULL);
+  AVERT(0xA6F30022, Space, space);  
   arena = SpaceArena(space);
-  AVERT(0xA55E62, Arena, arena);
-  AVER(0xA55E62, arena->base <= base);
-  AVER(0xA55E62, base < limit);
-  AVER(0xA55E62, limit <= arena->limit);
-  AVER(0xA55E62, size <= AddrOffset(base, limit));
-  AVER(0xA55E62, size > (Size)0);
-  AVER(0xA55E62, SizeIsAligned(size, arena->pageSize));
+  AVERT(0xA6F30023, Arena, arena);
+  AVER(0xA6F30024, arena->base <= base);
+  AVER(0xA6F30025, base < limit);
+  AVER(0xA6F30026, limit <= arena->limit);
+  AVER(0xA6F30027, size <= AddrOffset(base, limit));
+  AVER(0xA6F30028, size > (Size)0);
+  AVER(0xA6F30029, SizeIsAligned(size, arena->pageSize));
 
   basePage = IndexOfAddr(arena, base);
   limitPage = IndexOfAddr(arena, limit);
@@ -360,17 +360,17 @@ static Bool SegAllocWithRefSet(Index *baseReturn,
       do {
         limit = AddrAlignDown(AddrAdd(limit, zoneSize), zoneSize);
 
-        AVER(0xA55E62, limit > base || limit == (Addr)0);
+        AVER(0xA6F3002A, limit > base || limit == (Addr)0);
 
         if(limit >= arena->limit || limit < base) {
           limit = arena->limit;
           break;
         }
 
-        AVER(0xA55E62, base < limit && limit < arena->limit);
+        AVER(0xA6F3002B, base < limit && limit < arena->limit);
       } while(RefSetIsMember(space, refSet, limit));
 
-      AVER(0xA55E62, refSet != RefSetUNIV ||
+      AVER(0xA6F3002C, refSet != RefSetUNIV ||
            (base == arenaBase && limit == arena->limit));
 
       /* Try to allocate a segment in the area. */
@@ -383,7 +383,7 @@ static Bool SegAllocWithRefSet(Index *baseReturn,
       /* Adding the zoneSize might wrap round (to zero, because base */
       /* is aligned to zoneSize, which is a power of two). */
       base = AddrAlignDown(AddrAdd(base, zoneSize), zoneSize);
-      AVER(0xA55E62, base > arenaBase || base == (Addr)0);
+      AVER(0xA6F3002D, base > arenaBase || base == (Addr)0);
       if(base < arenaBase) {
         base = arena->limit;
         break;
@@ -391,7 +391,7 @@ static Bool SegAllocWithRefSet(Index *baseReturn,
     }
   }
 
-  AVER(0xA55E62, base == arena->limit);
+  AVER(0xA6F3002E, base == arena->limit);
 
   return FALSE;
 }
@@ -407,16 +407,16 @@ Res SegAlloc(Seg *segReturn, SegPref pref, Space space, Size size, Pool pool)
   Seg seg;
   Res res;
 
-  AVER(0xA55E62, segReturn != NULL);
-  AVERT(0xA55E62, SegPref, pref);
-  AVERT(0xA55E62, Arena, SpaceArena(space));
-  AVER(0xA55E62, size > 0);
-  AVERT(0xA55E62, Pool, pool);
-  AVER(0xA55E62, SizeIsAligned(size, arena->pageSize));
+  AVER(0xA6F3002F, segReturn != NULL);
+  AVERT(0xA6F30030, SegPref, pref);
+  AVERT(0xA6F30031, Arena, SpaceArena(space));
+  AVER(0xA6F30032, size > 0);
+  AVERT(0xA6F30033, Pool, pool);
+  AVER(0xA6F30034, SizeIsAligned(size, arena->pageSize));
   
   /* NULL is used as a discriminator (see design.mps.arena.vm.table.disc) */
   /* therefore the real pool must be non-NULL. */
-  AVER(0xA55E62, pool != NULL);
+  AVER(0xA6F30035, pool != NULL);
 
   if(!SegAllocWithRefSet(&base, space, size, pref->refSet) &&
      (pref->refSet == RefSetUNIV ||
@@ -441,14 +441,14 @@ Res SegAlloc(Seg *segReturn, SegPref pref, Space space, Size size, Pool pool)
   /* Allocate the first page, and, if there is more than one page, */
   /* allocate the rest of the pages and store the multi-page information */
   /* in the page table. */
-  AVER(0xA55E62, BTGet(arena->freeTable, base));
+  AVER(0xA6F30036, BTGet(arena->freeTable, base));
   BTRes(arena->freeTable, base);
   pages = size >> arena->pageShift;
   if(pages > 1) {
     Addr limit = PageBase(arena, base + pages);
     seg->single = FALSE;
     for(i = base + 1; i < base + pages; ++i) {
-      AVER(0xA55E62, BTGet(arena->freeTable, i));
+      AVER(0xA6F30037, BTGet(arena->freeTable, i));
       BTRes(arena->freeTable, i);
       arena->pageTable[i].the.tail.pool = NULL;
       arena->pageTable[i].the.tail.seg = seg;
@@ -458,7 +458,7 @@ Res SegAlloc(Seg *segReturn, SegPref pref, Space space, Size size, Pool pool)
     seg->single = TRUE;
   }
   
-  AVERT(0xA55E62, Seg, seg);
+  AVERT(0xA6F30038, Seg, seg);
   
   EVENT5(SegAlloc, arena, seg, addr, size, pool);
 
@@ -476,14 +476,14 @@ void SegFree(Space space, Seg seg)
   Index i, pl, pn;
   Addr base, limit; 
 
-  AVERT(0xA55E62, Arena, SpaceArena(space));
-  AVERT(0xA55E62, Seg, seg);
+  AVERT(0xA6F30039, Arena, SpaceArena(space));
+  AVERT(0xA6F3003A, Seg, seg);
 
   arena = SpaceArena(space);
   page = PARENT(PageStruct, the.head, seg);
   limit = SegLimit(space, seg);
   i = page - arena->pageTable;
-  AVER(0xA55E62, i <= arena->pages);
+  AVER(0xA6F3003B, i <= arena->pages);
 
   SegFinish(seg);
 
@@ -497,7 +497,7 @@ void SegFree(Space space, Seg seg)
   pl = i + pn;
   /* .free.loop: */
   while(i < pl) {
-    AVER(0xA55E62, !BTGet(arena->freeTable, i));
+    AVER(0xA6F3003C, !BTGet(arena->freeTable, i));
     BTSet(arena->freeTable, i);
     ++i;
   }
@@ -508,7 +508,7 @@ void SegFree(Space space, Seg seg)
   /* Double check that .free.loop takes us to the limit page of the
    * segment.
    */
-  AVER(0xA55E62, PageBase(arena, i) == limit);
+  AVER(0xA6F3003D, PageBase(arena, i) == limit);
 
   EVENT2(SegFree, arena, seg);
 }
@@ -519,7 +519,7 @@ void SegFree(Space space, Seg seg)
 Align ArenaAlign(Space space)
 {
   Arena arena;
-  AVERT(0xA55E62, Arena, SpaceArena(space));
+  AVERT(0xA6F3003E, Arena, SpaceArena(space));
   arena = SpaceArena(space);
   return arena->pageSize;
 }
@@ -538,8 +538,8 @@ Addr SegBase(Space space, Seg seg)
   Page page;
   Index i;
   
-  AVERT(0xA55E62, Arena, SpaceArena(space));
-  AVERT(0xA55E62, Seg, seg);
+  AVERT(0xA6F3003F, Arena, SpaceArena(space));
+  AVERT(0xA6F30040, Seg, seg);
 
   arena = SpaceArena(space);
   page = PARENT(PageStruct, the.head, seg);
@@ -561,8 +561,8 @@ Addr SegLimit(Space space, Seg seg)
   Arena arena;
   Page page;
 
-  AVERT(0xA55E62, Arena, SpaceArena(space));
-  AVERT(0xA55E62, Seg, seg);
+  AVERT(0xA6F30041, Arena, SpaceArena(space));
+  AVERT(0xA6F30042, Seg, seg);
 
   arena = SpaceArena(space);
   if(seg->single)
@@ -582,8 +582,8 @@ Addr SegLimit(Space space, Seg seg)
 
 Size SegSize(Space space, Seg seg)
 {
-  AVERT(0xA55E62, Arena, SpaceArena(space));
-  AVERT(0xA55E62, Seg, seg);
+  AVERT(0xA6F30043, Arena, SpaceArena(space));
+  AVERT(0xA6F30044, Seg, seg);
   return AddrOffset(SegBase(space, seg), SegLimit(space, seg));
 }
 
@@ -600,8 +600,8 @@ Bool SegOfAddr(Seg *segReturn, Space space, Addr addr)
 {
   Arena arena;
   
-  AVER(0xA55E62, segReturn != NULL);
-  AVERT(0xA55E62, Arena, SpaceArena(space));
+  AVER(0xA6F30045, segReturn != NULL);
+  AVERT(0xA6F30046, Arena, SpaceArena(space));
   
   arena = SpaceArena(space);
   if(arena->base <= addr && addr < arena->limit) {
@@ -643,7 +643,7 @@ static Seg SegSearch(Arena arena, Index i)
   if(i < arena->pages)
     return &arena->pageTable[i].the.head;
   
-  AVER(0xA55E62, i == arena->pages);
+  AVER(0xA6F30047, i == arena->pages);
   return NULL;
 }
 
@@ -658,7 +658,7 @@ Seg SegFirst(Space space)
 {
   Arena arena;
 
-  AVERT(0xA55E62, Arena, SpaceArena(space));
+  AVERT(0xA6F30048, Arena, SpaceArena(space));
   arena = SpaceArena(space);
 
   /* We start from tablePages, as the tables can't be a segment.
@@ -678,8 +678,8 @@ Seg SegNext(Space space, Seg seg)
   Arena arena;
   Page page;
   Index i;
-  AVERT(0xA55E62, Arena, SpaceArena(space));
-  AVERT(0xA55E62, Seg, seg);
+  AVERT(0xA6F30049, Arena, SpaceArena(space));
+  AVERT(0xA6F3004A, Seg, seg);
   page = PARENT(PageStruct, the.head, seg);
   arena = SpaceArena(space);
   i = page - arena->pageTable;

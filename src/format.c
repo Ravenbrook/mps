@@ -1,27 +1,27 @@
 /* impl.c.format: OBJECT FORMATS
  *
- *  $HopeName: MMsrc!format.c(MMdevel_assertid.1) $
+ *  $HopeName: MMsrc!format.c(MMdevel_assertid.2) $
  */
 
 #include "mpm.h"
 
-SRCID(format, "$HopeName: MMsrc!format.c(MMdevel_assertid.1) $");
+SRCID(format, "$HopeName: MMsrc!format.c(MMdevel_assertid.2) $");
 
 
 Bool FormatCheck(Format format)
 {
-  CHECKS(0xA55E62, Format, format);
-  CHECKU(0xA55E62, Space, format->space);
-  CHECKL(0xA55E62, format->serial < format->space->formatSerial);
-  CHECKL(0xA55E62, RingCheck(&format->spaceRing));
-  CHECKL(0xA55E62, AlignCheck(format->alignment));
+  CHECKS(0xF0630000, Format, format);
+  CHECKU(0xF0630001, Space, format->space);
+  CHECKL(0xF0630002, format->serial < format->space->formatSerial);
+  CHECKL(0xF0630003, RingCheck(&format->spaceRing));
+  CHECKL(0xF0630004, AlignCheck(format->alignment));
   /* @@@@ alignment should be less than maximum allowed */
-  CHECKL(0xA55E62, format->scan != NULL);
-  CHECKL(0xA55E62, format->skip != NULL);
-  CHECKL(0xA55E62, format->move != NULL);
-  CHECKL(0xA55E62, format->isMoved != NULL);
-  CHECKL(0xA55E62, format->copy != NULL);
-  CHECKL(0xA55E62, format->pad != NULL);
+  CHECKL(0xF0630005, format->scan != NULL);
+  CHECKL(0xF0630006, format->skip != NULL);
+  CHECKL(0xF0630007, format->move != NULL);
+  CHECKL(0xF0630008, format->isMoved != NULL);
+  CHECKL(0xF0630009, format->copy != NULL);
+  CHECKL(0xF063000A, format->pad != NULL);
   return TRUE;
 }
 
@@ -39,7 +39,7 @@ Res FormatCreate(Format *formatReturn, Space space,
   Res res;
   void *p;
 
-  AVER(0xA55E62, formatReturn != NULL);
+  AVER(0xF063000B, formatReturn != NULL);
 
   res = SpaceAlloc(&p, space, sizeof(FormatStruct));
   if(res != ResOK)
@@ -60,7 +60,7 @@ Res FormatCreate(Format *formatReturn, Space space,
   format->serial = space->formatSerial;
   ++space->formatSerial;
 
-  AVERT(0xA55E62, Format, format);
+  AVERT(0xF063000C, Format, format);
   
   RingAppend(&space->formatRing, &format->spaceRing);
 
@@ -71,7 +71,7 @@ Res FormatCreate(Format *formatReturn, Space space,
 
 void FormatDestroy(Format format)
 {
-  AVERT(0xA55E62, Format, format);
+  AVERT(0xF063000D, Format, format);
 
   RingRemove(&format->spaceRing);
 

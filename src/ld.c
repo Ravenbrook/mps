@@ -1,6 +1,6 @@
 /* impl.c.ld: LOCATION DEPENDENCY IMPLEMENTATION
  *
- * $HopeName: MMsrc!ld.c(MMdevel_assertid.1) $
+ * $HopeName: MMsrc!ld.c(MMdevel_assertid.2) $
  * Copyright (C) 1996 Harlequin Group, all rights reserved.
  *
  * .def: A location dependency records the fact that the bit-patterns
@@ -48,7 +48,7 @@
 
 #include "mpm.h"
 
-SRCID(ld, "$HopeName: MMsrc!ld.c(MMdevel_assertid.1) $");
+SRCID(ld, "$HopeName: MMsrc!ld.c(MMdevel_assertid.2) $");
 
 
 /* LDReset -- reset a dependency to empty
@@ -63,8 +63,8 @@ void LDReset(LD ld, Space space)
   Bool b;
   Seg seg;
 
-  AVER(0xA55E62, ld != NULL);
-  AVERT(0xA55E62, Space, space);
+  AVER(0x7D990000, ld != NULL);
+  AVERT(0x7D990001, Space, space);
 
   b = SegOfAddr(&seg, space, (Addr)ld);
   if(b) {
@@ -99,8 +99,8 @@ void LDReset(LD ld, Space space)
 
 void LDAdd(LD ld, Space space, Addr addr)
 {
-  AVER(0xA55E62, ld->epoch <= space->epoch);
-  /* AVERT(0xA55E62, Space, space) -- see .add.lock-free */
+  AVER(0x7D990002, ld->epoch <= space->epoch);
+  /* AVERT(0x7D990003, Space, space) -- see .add.lock-free */
 
   ld->rs = RefSetAdd(space, ld->rs, addr);
 }
@@ -133,8 +133,8 @@ Bool LDIsStale(LD ld, Space space, Addr addr)
 
   UNUSED(addr);
 
-  AVER(0xA55E62, ld->epoch <= space->epoch);
-  /* AVERT(0xA55E62, Space, space) -- .stale.thread-safe */
+  AVER(0x7D990004, ld->epoch <= space->epoch);
+  /* AVERT(0x7D990005, Space, space) -- .stale.thread-safe */
 
   if(space->epoch == ld->epoch) /* .stale.current */
     return FALSE;
@@ -163,8 +163,8 @@ void LDAge(Space space, RefSet rs)
 {
   Size i;
 
-  AVERT(0xA55E62, Space, space);
-  AVER(0xA55E62, rs != RefSetEMPTY);
+  AVERT(0x7D990006, Space, space);
+  AVER(0x7D990007, rs != RefSetEMPTY);
 
   /* Replace the entry for epoch - SPACE_LD_LENGTH by an empty */
   /* set which will become the set which has moved since the */
@@ -182,7 +182,7 @@ void LDAge(Space space, RefSet rs)
 
   /* Advance the epoch by one. */
   ++space->epoch;
-  AVER(0xA55E62, space->epoch != 0);      /* .epoch-size */
+  AVER(0x7D990008, space->epoch != 0);      /* .epoch-size */
 }
 
 
@@ -195,11 +195,11 @@ void LDAge(Space space, RefSet rs)
 
 void LDMerge(LD ld, Space space, LD from)
 {
-  /* AVERT(0xA55E62, Space, space); -- .merge.lock-free */
-  AVER(0xA55E62, ld != NULL);
-  AVER(0xA55E62, ld->epoch <= space->epoch);
-  AVER(0xA55E62, from != NULL);
-  AVER(0xA55E62, from->epoch <= space->epoch);
+  /* AVERT(0x7D990009, Space, space); -- .merge.lock-free */
+  AVER(0x7D99000A, ld != NULL);
+  AVER(0x7D99000B, ld->epoch <= space->epoch);
+  AVER(0x7D99000C, from != NULL);
+  AVER(0x7D99000D, from->epoch <= space->epoch);
 
   /* If a reference has been added since epoch e1 then I've */
   /* certainly added since epoch e0 where e0 < e1.  Therefore */
