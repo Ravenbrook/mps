@@ -1,9 +1,9 @@
 /* impl.c.vmxc: VIRTUAL MEMORY MAPPING FOR MacOS X
  *
- * $HopeName$
+ * $HopeName: MMsrc!vmxc.c(MM_epcore_brisling.2) $
  * Copyright (C) 2000 Harlequin Limited.  All rights reserved.
  *
- * Design: design.mps.vm
+ * .design: design.mps.vm
  *
  * .details: mmap(2) is used to reserve address space by creating a
  * mapping to the swap with page access none.  mmap(2) is used to map
@@ -37,7 +37,7 @@
 #include <errno.h>
 #include <unistd.h>
 
-SRCID(vmxc, "$HopeName$");
+SRCID(vmxc, "$HopeName: MMsrc!vmxc.c(MM_epcore_brisling.2) $");
 
 
 /* VMStruct -- virtual memory structure */
