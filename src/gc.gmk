@@ -1,7 +1,7 @@
 #
 #              GENERIC BUILD.GC MAKEFILE FRAGMENT
 #
-# $HopeName: !gc.gmk(trunk.18) $
+# $HopeName: MMsrc!gc.gmk(MMdevel_drj_swint.1) $
 #
 # Copyright (C) 1995 Harlequin Group, all rights reserved
 #
@@ -19,6 +19,7 @@
 #   AMC		as above for the "amc" part
 #   LO          as above for the "lo" part
 #   DW		as above for the "dw" part
+#   SW		as above for the "sw" part
 #   TESTLIB	as above for the "testlib" part
 #   LIBS	extra libraries to include in tests (usually "-lm")
 #   NOISY	if defined and non-empty, causes commands to be emitted
@@ -114,6 +115,8 @@ LOOBJ = $(LO:%.c=$(PFM)/$(VARIETY)/%.o)
 LODEP = $(LO:%.c=$(PFM)/$(VARIETY)/%.d)
 DWOBJ = $(DW:%.c=$(PFM)/$(VARIETY)/%.o)
 DWDEP = $(DW:%.c=$(PFM)/$(VARIETY)/%.d)
+SWOBJ = $(SW:%.c=$(PFM)/$(VARIETY)/%.o)
+SWDEP = $(SW:%.c=$(PFM)/$(VARIETY)/%.d)
 TESTLIBOBJ = $(TESTLIB:%.c=$(PFM)/$(VARIETY)/%.o)
 TESTLIBDEP = $(TESTLIB:%.c=$(PFM)/$(VARIETY)/%.d)
 endif
@@ -148,7 +151,8 @@ all: mpmss amcss dwstress mpsicv lockcov std.a poolncv lo.a locv qs weakcv
 #
 # %%TARGET: Add a pseudo-target for the new target here.
 
-mpmss amcss dwstress mpsicv lockcov std.a poolncv lo.a locv qs weakcv: phony
+mpmss amcss dwstress mpsicv lockcov std.a poolncv lo.a \
+  locv qs weakcv mmsw.a: phony
 	$(MAKE) -f $(PFM).gmk TARGET=$@ target
 
 # "clean" removes the directory containing the build results for the
@@ -225,6 +229,9 @@ $(PFM)/$(VARIETY)/qs: $(PFM)/$(VARIETY)/qs.o \
 $(PFM)/$(VARIETY)/mpm.a: $(MPMOBJ)
 
 $(PFM)/$(VARIETY)/lo.a: $(PFM)/$(VARIETY)/lo.o
+
+$(PFM)/$(VARIETY)/mmsw.a: \
+	$(SWOBJ)
 
 endif
 
