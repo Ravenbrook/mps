@@ -1,7 +1,7 @@
 /* impl.h.event -- Event Logging Interface
  *
  * Copyright (C) 1997 Harlequin Group, all rights reserved.
- * $HopeName: !event.h(trunk.5) $
+ * $HopeName: MMsrc!event.h(MMdevel_telemetry.1) $
  *
  * READERSHIP
  *
@@ -28,6 +28,7 @@
 extern Res EventFlush(void);
 extern Res EventInit(void);
 extern void EventFinish(void);
+extern Word EventControl(Word, Word);
 
 typedef Index EventKind;
 
@@ -96,7 +97,7 @@ extern EventUnion Event;
     Event.any.clock = mps_clock(); 
 
 #define EVENT_END(type, length) \
-  if(BTGet(EventKindControl, ((Index)Event ## type ## Kind))) { \
+  if(BS_IS_MEMBER(EventKindControl, ((Index)Event ## type ## Kind))) { \
     AVER(EventNext <= EventLimit); \
     if((length) > (size_t)(EventLimit - EventNext)) \
       EventFlush(); /* @@@ should pass length */ \
@@ -107,12 +108,13 @@ extern EventUnion Event;
   END
 
 extern char *EventNext, *EventLimit;
-extern BT EventKindControl;
+extern Word EventKindControl;
 
 #else /* EVENT not */
 
 #define EventInit()                        NOOP
 #define EventFinish()                      NOOP
+#define EventControl(w)                    NOOP
 
 #endif /* EVENT */
 
