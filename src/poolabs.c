@@ -37,6 +37,12 @@
 
 SRCID(poolabs, "$HopeName: MMsrc!poolabs.c(MMdevel_tony_inheritance.1) $");
 
+typedef PoolClassStruct AbstractPoolClassStruct;
+typedef PoolClassStruct AbstractAllocFreePoolClassStruct;
+typedef PoolClassStruct AbstractBufferPoolClassStruct;
+typedef PoolClassStruct AbstractScanPoolClassStruct;
+typedef PoolClassStruct AbstractCollectPoolClassStruct;
+
 
 /* Mixins:
  *
