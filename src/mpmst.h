@@ -1,6 +1,6 @@
 /* impl.h.mpmst: MEMORY POOL MANAGER DATA STRUCTURES
  *
- * $HopeName: MMsrc!mpmst.h(MMdevel_restr.4) $
+ * $HopeName: MMsrc!mpmst.h(MMdevel_restr.5) $
  * Copyright (C) 1996 Harlequin Group, all rights reserved.
  *
  * .rationale: Almost all MPM data structures are defined in this
@@ -170,6 +170,9 @@ typedef struct VMStruct {       /* SunOS 4 VM structure */
  * the arena, and also the units of scanning, shielding, and colour
  * for the MPM (pool classes may subdivide segments and have a finer
  * grained idea of colour, for example).
+ *
+ * .seg.pm: The pm field is used by both the shield (impl.c.shield)
+ * and the ANSI fake protection (impl.c.protan).
  */
 
 typedef struct SegStruct {      /* segment structure */
@@ -189,7 +192,17 @@ typedef struct SegStruct {      /* segment structure */
  * the virtual memory based arena implementation, impl.c.arenavm.
  */
 
-#define ArenaSig        ((Sig)0x519A7E9A)
+#define ArenaSig	((Sig)0x519A7E9A)
+
+#ifdef TARGET_ARENA_ANSI
+
+typedef struct ArenaStruct {	/* arena structure */
+  Sig sig;			/* impl.h.misc.sig */
+  RingStruct blockRing;		/* list of blocks in arena */
+  Size committed;		/* total allocated memory */
+} ArenaStruct;
+
+#else /* TARGET_ARENA_ANSI not */
 
 typedef struct PageStruct *Page;/* page type */
 typedef Word *BT;               /* bool table type */
@@ -207,6 +220,8 @@ typedef struct ArenaStruct {    /* arena structure */
   Size tablesSize;              /* size of area occupied by tables */
   Size tablePages;              /* number of pages occupied by tables */
 } ArenaStruct;
+
+#endif /* TARGET_ARENA_ANSI */
 
 
 /* ApStruct -- allocation point structure
