@@ -1,6 +1,6 @@
 /* impl.h.mpmst: MEMORY POOL MANAGER DATA STRUCTURES
  *
- * $HopeName: MMsrc!mpmst.h(MMdevel_action2.1) $
+ * $HopeName: MMsrc!mpmst.h(MMdevel_action2.2) $
  * Copyright (C) 1996,1997 Harlequin Group, all rights reserved.
  *
  * .readership: MM developers.
@@ -93,7 +93,7 @@ typedef struct PoolClassStruct {
   PoolBufferExposeMethod bufferExpose;  /* remove protection */
   PoolBufferCoverMethod bufferCover;    /* reinstate protection */
   PoolCondemnMethod condemn;    /* condemn (some or all) objects */
-  PoolGreyMethod grey;          /* grey uncondemned objects */
+  PoolGreyMethod grey;          /* grey non-white objects */
   PoolScanMethod scan;          /* find references during tracing */
   PoolFixMethod fix;            /* referent reachable during tracing */
   PoolReclaimMethod reclaim;    /* reclaim dead objects after tracing */
@@ -271,7 +271,7 @@ typedef struct SegStruct {      /* segment structure */
   AccessSet pm, sm;             /* protection and shield modes */
   Size depth;                   /* see impl.c.shield.def.depth */
   void *p;                      /* pointer for use of owning pool */
-  TraceId condemned;            /* seg condemned? for which trace? */
+  TraceId white;            	/* seg white? for which trace? */
   TraceSet grey;                /* traces for which seg is grey */
   Buffer buffer;                /* non-NULL if seg is buffered */
   RingStruct poolRing;          /* link in list of segs in pool */
@@ -507,7 +507,7 @@ typedef struct RootStruct {
 } RootStruct;
 
 
-/* ScanState and TraceStruct
+/* ScanState
  *
  * .ss: See impl.c.trace.
  *
@@ -515,7 +515,7 @@ typedef struct RootStruct {
  * external scan state structure (mps_ss_s) thus:
  *   ss->fix            mps_ss->fix
  *   ss->zoneShift      mps_ss->w0
- *   ss->condemned      mps_ss->w1
+ *   ss->white          mps_ss->w1
  *   ss->summary        mps_ss->w2
  * See impl.h.mps.ss and impl.c.mpsi.check.ss.  This is why the
  * Sig field is in the middle of this structure.
@@ -532,7 +532,7 @@ typedef struct RootStruct {
 typedef struct ScanStateStruct {
   Res (*fix)(ScanState, Addr *);/* fix function */
   Word zoneShift;               /* copy of space->zoneShift.  See .ss.zone */
-  RefSet condemned;             /* condemned set, for inline fix test */
+  RefSet white;                 /* white set, for inline fix test */
   RefSet summary;               /* accumulated summary of scanned references */
   Sig sig;                      /* design.mps.sig */
   Space space;                  /* owning space */
@@ -542,8 +542,17 @@ typedef struct ScanStateStruct {
   Bool wasMarked;               /* design.mps.fix.protocol.was-ready */
 } ScanStateStruct;
 
+
+/* TraceStruct -- tracer state structure */
+
+#define TraceSig	((Sig)0x51924ACE)
+
 typedef struct TraceStruct {
-  RefSet condemned;             /* summary of comdemnded set */
+  Sig sig;			/* design.mps.sig */
+  TraceId ti;			/* index into TraceSets */
+  Space space;			/* owning space */
+  RefSet white;			/* superset of refs in white set */
+  TraceState state;		/* current state of trace */
 } TraceStruct;
 
 

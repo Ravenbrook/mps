@@ -1,6 +1,6 @@
 /* impl.h.mpmtypes: MEMORY POOL MANAGER TYPES
  *
- * $HopeName: MMsrc!mpmtypes.h(MMdevel_action2.1) $
+ * $HopeName: MMsrc!mpmtypes.h(MMdevel_action2.2) $
  * Copyright (C) 1996,1997 Harlequin Group, all rights reserved.
  *
  * .readership: MM developers.
@@ -40,6 +40,7 @@ typedef unsigned Rank;                  /* design.mps.ref */
 typedef Size Epoch;                     /* design.mps.ld */
 typedef unsigned TraceId;               /* design.mps.tracer */
 typedef unsigned TraceSet;              /* design.mps.tracer */
+typedef unsigned TraceState;		/* design.mps.tracer */
 typedef unsigned AccessSet;             /* design.mps.type.access-set */
 typedef unsigned Attr;                  /* design.mps.type.attr */
 typedef int RootVar;                    /* design.mps.type.rootvar */
@@ -79,7 +80,7 @@ typedef Bool (*PoolBufferTripMethod)   (Pool pool, Buffer buffer,
 typedef void (*PoolBufferExposeMethod) (Pool pool, Buffer buffer);
 typedef void (*PoolBufferCoverMethod)  (Pool pool, Buffer buffer);
 typedef Res  (*PoolDescribeMethod)     (Pool pool, mps_lib_FILE *stream);
-typedef Res  (*PoolCondemnMethod)      (RefSet *condemnedReturn, Pool pool,
+typedef Res  (*PoolCondemnMethod)      (RefSet *whiteReturn, Pool pool,
                                         Space space, TraceId ti);
 typedef void (*PoolGreyMethod)         (Pool pool, Space space, TraceId ti);
 typedef Res  (*PoolScanMethod)         (ScanState ss, Pool pool, 
@@ -200,6 +201,17 @@ enum {
 };
 
 
+/* TraceStates -- see design.mps.tracer */
+
+enum {
+  TraceINIT,
+  TraceUNFLIPPED,
+  TraceFLIPPED,
+  TraceRECLAIM,
+  TraceFINISHED
+};
+
+
 /* Types for WriteF formats */
 /* These should be used with calls to WriteF. */
 /* These must be unpromotable types. */
@@ -212,5 +224,6 @@ typedef unsigned long WriteFU;
 typedef unsigned long WriteFB;
 typedef void *(*WriteFF)(void);
 typedef int WriteFC; /* Promoted */
+
 
 #endif /* mpmtypes_h */
