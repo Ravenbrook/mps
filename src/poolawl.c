@@ -1,6 +1,6 @@
 /* impl.c.poolawl: AUTOMATIC WEAK LINKED POOL CLASS
  *
- * $HopeName: MMsrc!poolawl.c(MM_dylan_blackbird.3) $
+ * $HopeName: MMsrc!poolawl.c(MMdevel_tony_lifetime.2) $
  * Copyright (C) 1998.  Harlequin Group plc.  All rights reserved.
  *
  * READERSHIP
@@ -46,7 +46,7 @@
 #include "mpm.h"
 
 
-SRCID(poolawl, "$HopeName: MMsrc!poolawl.c(MM_dylan_blackbird.3) $");
+SRCID(poolawl, "$HopeName: MMsrc!poolawl.c(MMdevel_tony_lifetime.2) $");
 
 
 #define AWLSig  ((Sig)0x519b7a37)       /* SIGPooLAWL */
@@ -956,6 +956,7 @@ static void AWLReclaim(Pool pool, Trace trace, Seg seg)
   AWLGroup group;
   Index i;
   Count oldFree;
+  Arena arena;
 
   AVERT(Pool, pool);
   AVERT(Trace, trace);
@@ -966,9 +967,10 @@ static void AWLReclaim(Pool pool, Trace trace, Seg seg)
   group = (AWLGroup)SegP(seg);
   AVERT(AWLGroup, group);
 
+  arena = PoolArena(pool);
   /* The following line is necessary to avoid a spurious AWL collection */
   /* after an AMC Gen1 collection */
-  awl->lastCollected = ArenaMutatorAllocSize(PoolArena(pool));
+  awl->lastCollected = ArenaMutatorAllocSize(arena);
 
   base = SegBase(seg);
 
@@ -1002,6 +1004,9 @@ static void AWLReclaim(Pool pool, Trace trace, Seg seg)
       BTSetRange(group->scanned, i, j);
       BTResRange(group->alloc, i, j);
       group->free += j - i;
+      if (arena->trackDeathtimes) {
+        ArenaTrackDeathEvent(arena, p);
+      }
     }
     i = j;
   }
