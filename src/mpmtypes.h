@@ -1,6 +1,6 @@
 /* impl.h.mpmtypes: MEMORY POOL MANAGER TYPES
  *
- * $HopeName: !mpmtypes.h(trunk.7) $
+ * $HopeName: MMsrc!mpmtypes.h(MMdevel_trace2.1) $
  * Copyright (C) 1996 Harlequin Group, all rights reserved.
  *
  * .readership: MM developers.
@@ -36,9 +36,11 @@ typedef unsigned Shift;                 /* design.mps.type.shift */
 typedef Addr Ref;                       /* design.mps.type.ref */
 typedef Word RefSet;                    /* design.mps.refset */
 typedef unsigned Rank;                  /* design.mps.ref */
+typedef Byte RankSet;                   /* NOT DOCUMENTED */
 typedef Size Epoch;                     /* design.mps.ld */
 typedef unsigned TraceId;               /* design.mps.tracer */
-typedef unsigned TraceSet;              /* design.mps.tracer */
+typedef Byte TraceSet;                  /* design.mps.tracer */
+typedef unsigned TraceState;		/* design.mps.tracer */
 typedef unsigned AccessSet;             /* design.mps.type.access-set */
 typedef unsigned Attr;                  /* design.mps.type.attr */
 typedef int RootVar;                    /* design.mps.type.rootvar */
@@ -53,12 +55,14 @@ typedef struct PoolStruct *Pool;        /* design.mps.pool */
 typedef struct SpaceStruct *Space;      /* design.mps.space */
 typedef struct PoolClassStruct *PoolClass; /* impl.c.poolclas */
 typedef struct TraceStruct *Trace;      /* design.mps.tracer */
-typedef struct ScanStateStruct *ScanState; /* design.mps.tracer */
+typedef struct FixStruct *Fix;		/* design.mps.tracer */
 typedef struct SegStruct *Seg;          /* impl.c.arena* */
 typedef struct ArenaStruct *Arena;      /* impl.c.arena* */
 typedef struct VMStruct *VM;            /* impl.c.vm* */
 typedef struct RootStruct *Root;        /* impl.c.root */
 typedef struct ThreadStruct *Thread;    /* impl.c.th* */
+typedef struct OptionStruct *Option;    /* NOT DOCUMENTED */
+typedef struct ColStruct *Col;          /* NOT DOCUMENTED */
 
 
 /* Pool*Method -- see design.mps.class-interface */
@@ -76,22 +80,17 @@ typedef Bool (*PoolBufferTripMethod)   (Pool pool, Buffer buffer,
 typedef void (*PoolBufferExposeMethod) (Pool pool, Buffer buffer);
 typedef void (*PoolBufferCoverMethod)  (Pool pool, Buffer buffer);
 typedef Res  (*PoolDescribeMethod)     (Pool pool, mps_lib_FILE *stream);
-typedef Res  (*PoolCondemnMethod)      (RefSet *condemnedReturn, Pool pool,
-                                        Space space, TraceId ti);
-typedef void (*PoolGreyMethod)         (Pool pool, Space space, TraceId ti);
-typedef Res  (*PoolScanMethod)         (ScanState ss, Pool pool, 
-                                        Bool *finishedReturn);
-typedef Res  (*PoolFixMethod)          (Pool pool, ScanState ss, Seg seg,
-                                        Ref *refIO);
-typedef void (*PoolReclaimMethod)      (Pool pool, Space space, TraceId ti);
-typedef void (*PoolAccessMethod)       (Pool pool, Seg seg, AccessSet mode);
+typedef void (*PoolCondemnMethod)      (Pool pool, Option option, Seg seg, TraceId ti);
+typedef Res  (*PoolScanMethod)         (Pool pool, Fix fix, Seg seg);
+typedef Res  (*PoolFixMethod)          (Ref *refIO, Pool pool, Fix fix, Seg seg);
+typedef void (*PoolReclaimMethod)      (Pool pool, Seg seg, TraceSet ts);
 
 
 /* Format*Method -- see design.mps.format-interface */
 /* These methods must match those defined in the MPS C Interface. */
 /* (See impl.h.mps.fmt-methods.) */
 
-typedef Res  (*FormatScanMethod)   (ScanState ss, Addr base, Addr limit);
+typedef Res  (*FormatScanMethod)   (Fix fix, Addr base, Addr limit);
 typedef Addr (*FormatSkipMethod)   (Addr object);
 typedef void (*FormatMoveMethod)   (Addr object, Addr to);
 typedef Addr (*FormatIsMovedMethod)(Addr object);
@@ -103,8 +102,8 @@ typedef void (*FormatPadMethod)    (Addr base, Size size);
 /* These methods must match those defined in the MPS C Interface. */
 /* (See impl.h.mps.fmt-methods.) */
 
-typedef Res (*RootScanMethod)   (ScanState ss, void *p, size_t s);
-typedef Res (*RootScanRegMethod)(ScanState ss, Thread thread, void *p);
+typedef Res (*RootScanMethod)   (Fix fix, void *p, size_t s);
+typedef Res (*RootScanRegMethod)(Fix fix, Thread thread, void *p);
 
 
 /* CONSTANTS */
@@ -113,9 +112,12 @@ typedef Res (*RootScanRegMethod)(ScanState ss, Thread thread, void *p);
 #define AccessSetEMPTY  ((AccessSet)0)    /* design.mps.type.access-set */
 #define AccessREAD      ((AccessSet)(1<<0))
 #define AccessWRITE     ((AccessSet)(1<<1))
-#define RingNONE        ((Ring)0)       /* design.mps.ring */
-#define TraceIdNONE     ((TraceId)-1)   /* design.mps.tracer */
-#define TraceSetEMPTY   ((TraceSet)0)   /* design.mps.tracer */
+#define RingNONE        ((Ring)0)         /* design.mps.ring */
+#define TraceSetEMPTY	BS_EMPTY(TraceSet)/* design.mps.tracer */
+#define TraceSetUNIV	BS_UNIV(TraceSet)
+#define RankSetEMPTY	BS_EMPTY(RankSet)
+#define RefSetEMPTY	BS_EMPTY(RefSet)
+#define RefSetUNIV	BS_UNIV(RefSet)
 #define AttrFMT         ((Attr)(1<<0))  /* design.mps.type.attr */
 #define AttrSCAN        ((Attr)(1<<1))
 #define AttrPM_NO_READ  ((Attr)(1<<2))
@@ -138,6 +140,7 @@ typedef Res (*RootScanRegMethod)(ScanState ss, Thread thread, void *p);
 /* This is checked by impl.c.mpsi.check. */
 
 enum {
+  RankNONE = (Rank)-1,
   RankAMBIG = 0,
   RankEXACT = 1,
   RankWEAK = 2,
@@ -176,6 +179,17 @@ enum {
   ResLIMIT,
   ResUNIMPL,
   ResIO
+};
+
+
+/* Trace States -- see design.mps.tracer */
+
+enum {
+  TraceINIT,
+  TraceUNFLIPPED,
+  TraceFLIPPED,
+  TraceRECLAIM,
+  TraceFINISHED
 };
 
 

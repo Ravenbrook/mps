@@ -1,6 +1,6 @@
 /* impl.h.mpmst: MEMORY POOL MANAGER DATA STRUCTURES
  *
- * $HopeName: !mpmst.h(trunk.10) $
+ * $HopeName: MMsrc!mpmst.h(MMdevel_trace2.1) $
  * Copyright (C) 1996 Harlequin Group, all rights reserved.
  *
  * .rationale: Almost all MPM data structures are defined in this
@@ -69,12 +69,10 @@ typedef struct PoolClassStruct {
   PoolBufferTripMethod bufferTrip;
   PoolBufferExposeMethod bufferExpose;
   PoolBufferCoverMethod bufferCover;
-  PoolCondemnMethod condemn;
-  PoolGreyMethod grey;
-  PoolScanMethod scan;          /* find references during tracing */
+  PoolCondemnMethod condemn;	/* is a segment condemend by an option? */
+  PoolScanMethod scan;          /* apply fix to references */
   PoolFixMethod fix;            /* make a referent live during tracing */
-  PoolReclaimMethod reclaim;
-  PoolAccessMethod access;      /* handle an access to shielded memory */
+  PoolReclaimMethod reclaim;    /* reclaim dead objects */
   PoolDescribeMethod describe;  /* describe the contents of the pool */
   Sig endSig;                   /* .class.end-sig */
 } PoolClassStruct;
@@ -97,7 +95,9 @@ typedef struct PoolStruct {     /* Pool instance structure */
   PoolClass class;              /* pool class structure */
   Space space;                  /* owning space */
   RingStruct spaceRing;         /* link in list of pools in space */
+  RingStruct segRing;           /* segs are attached to pool */
   RingStruct bufferRing;        /* allocation buffers are attached to pool */
+  RingStruct optionRing;        /* options for action in the pool */
   Serial bufferSerial;          /* serial of next buffer */
   Align alignment;              /* alignment for units */
 } PoolStruct;
@@ -216,6 +216,26 @@ typedef struct VMStruct {       /* SunOS 4 VM structure; impl.c.vmsu */
 #endif
 
 
+/* OptionStruct -- NOT DOCUMENTED */
+
+#define OptionSig       ((Sig)0x5190B210)
+
+typedef struct OptionStruct {   /* option structure */
+  Sig sig;                      /* design.mps.sig */
+  Pool pool;                    /* owning pool */
+  RingStruct poolRing;          /* link in list of options in pool */
+  /* more to come */
+} OptionStruct;
+
+
+/* ColStruct -- see design.mps.tracer.col */
+
+typedef struct ColStruct {      /* colour structure */
+  TraceSet black, grey, white;	/* design.mps.tracer.col.unions */
+  RefSet refs;                  /* design.mps.tracer.col.rs */
+} ColStruct;
+
+
 /* SegStruct -- segment structure
  *
  * .seg: Segments are the basic units of memory allocation from
@@ -225,17 +245,21 @@ typedef struct VMStruct {       /* SunOS 4 VM structure; impl.c.vmsu */
  *
  * .seg.pm: The pm field is used by both the shield (impl.c.shield)
  * and the ANSI fake protection (impl.c.protan).
+ *
+ * .seg.pool: The pool field indicates the owner of the segment.
+ * This field MUST BE FIRST in the structure.  See impl.c.arenavm.page.
  */
 
 typedef struct SegStruct {      /* segment structure */
-  Pool pool;                    /* .seg.pool: owner, 
-				 * MUST BE FIRST, impl.c.arenavm.page */
+  Pool pool;                    /* .seg.pool */
   Bool single;                  /* single page segment */
-  Rank rank;                    /* rank of all references in this seg */
   AccessSet pm, sm;             /* protection and shield modes */
   Size depth;                   /* see impl.c.shield.def.depth */
   void *p;                      /* pointer for use of owning pool */
-  TraceId condemned;            /* seg condemned? for which trace? */
+  Rank rank;			/* rank of references in seg */
+  ColStruct colStruct;		/* summary of colour of object in seg */
+  RingStruct poolRing;          /* link in list of segs in pool */
+  Buffer buffer;                /* buffer attached to segment, or NULL */
 } SegStruct;
 
 
@@ -316,15 +340,15 @@ typedef struct BufferStruct {
   Space space;                  /* owning space */
   Pool pool;                    /* owning pool */
   Seg seg;                      /* segment being buffered */
-  Rank rank;                    /* rank of references being created */
   Addr base;                    /* base address of allocation buffer */
   APStruct ap;                  /* the allocation point */
   Align alignment;              /* allocation alignment */
   Bool exposed;                 /* is buffer memory exposed? */
   RingStruct poolRing;          /* buffers are attached to pools */
+  Bool mutator;			/* does the mutator own this buffer? */
+  Rank rank;			/* rank of allocated objects */
   AccessSet shieldMode;         /* shielding for allocated memory */
-  TraceSet grey;                /* colour for allocated memory */
-  void *p; int i;               /* closure variables */
+  void *p; int i;               /* fields for use of owning pool */
 } BufferStruct;
 
 
@@ -424,9 +448,8 @@ typedef struct RootStruct {
   Serial serial;                /* from space->rootSerial */
   Space space;                  /* owning space */
   RingStruct spaceRing;         /* attachment to space */
-  Rank rank;                    /* rank of references in this root */
-  TraceSet grey;                /* marked but not scanned for per trace */
   RootVar var;                  /* union discriminator */
+  Rank rank;			/* rank of references in root */
   union RootUnion {
     struct {
       RootScanMethod scan;      /* the function which does the scanning */
@@ -434,8 +457,8 @@ typedef struct RootStruct {
       size_t s;                 /* environment for scan */
     } fun;
     struct {
-      Addr *base;               /* first reference in table */
-      Addr *limit;              /* last reference, plus one */
+      Addr *refs;               /* pointer to table of references */
+      size_t size;		/* size of table */
     } table;
     struct {
       RootScanRegMethod scan;
@@ -450,39 +473,59 @@ typedef struct RootStruct {
 } RootStruct;
 
 
-/* Scan State
+/* Fix -- fix function closure
  *
  * See impl.c.trace.
  *
  * The first four fields of the trace structure must match the
- * external scan state structure (mps_ss_s) thus:
- *   ss->fix            mps_ss->fix
- *   ss->zoneShift      mpm_ss->w0
- *   ss->condemned      mpm_ss->w1
- *   ss->summary        mpm_ss->w2
- * See impl.h.mps.ss and impl.c.mpsi.check.ss.  This is why the
+ * external fix structure (mps_fix_s) thus:
+ *   fix->f              mps_fix->f
+ *   fix->zoneShift      mpm_fix->w0
+ *   fix->white          mpm_fix->w1
+ *   fix->summary        mpm_fix->w2
+ * See impl.h.mps.fix and impl.c.mpsi.check.fix.  This is why the
  * Sig field is in the middle of this structure.
  *
- * .ss.zone: The zoneShift field is therefore declared as Word
+ * .fix.zone: The zoneShift field is therefore declared as Word
  * rather than Shift.
  */
 
-#define ScanStateSig    ((Sig)0x5195CA95)
+#define FixSig		((Sig)0x519FF1C5)
 
-typedef struct ScanStateStruct {
-  Res (*fix)(ScanState ss, Addr *refIO);
+typedef struct FixStruct {
+  Res (*f)(Ref *refIO, Fix fix);
   Word zoneShift;
-  RefSet condemned;             /* condemned set, for inline fix test */
+  RefSet white;                 /* approximation to set of white objects */
   RefSet summary;               /* accumulated summary of scanned references */
   Sig sig;                      /* design.mps.sig */
   Space space;                  /* owning space */
-  TraceId traceId;              /* trace ID of scan */
+  TraceSet ts;                  /* set of traces being scanned for */
   Rank rank;                    /* reference rank of scanning */
-  Addr weakSplat;               /* value of weak refs to unforwarded objects */
-} ScanStateStruct;
+} FixStruct;
+
+
+/* TraceStruct -- tracer state structure
+ *
+ * @@@@: The id of the trace is an index into all the colour structures
+ * (ColStruct) in segments, roots, and into any colour information
+ * maintained by the pools.  In effect, the tracer state is distributed
+ * throughout the MPS and keyed by the id.
+ *
+ * whiteRefSet is a conservative approximation of all the references
+ * into the white set of the trace reference partition.  It is
+ * accumulated when the trace is started and used as a very fast in-line
+ * necessary test during scanning.
+ */
+
+#define TraceSig	((Sig)0x51924ACE)
 
 typedef struct TraceStruct {
-  RefSet condemned;
+  Sig sig;                      /* design.mps.sig */
+  TraceId ti;                   /* see above */
+  Space space;			/* owning space */
+  RefSet white;                 /* superset of references in white set */
+  TraceState state;
+  /* @@@@ progress control data goes here */
 } TraceStruct;
 
 
@@ -536,6 +579,7 @@ typedef struct SpaceStruct {
   Bool suspended;                /* TRUE iff mutator suspended */
 
   /* trace fields (impl.c.trace) */
+  ColStruct mutColStruct;       /* mutator colour */
   TraceSet busyTraces;          /* set of running traces */
   TraceStruct trace[TRACE_MAX]; /* trace structures */
   Shift zoneShift;              /* see impl.c.ref */
