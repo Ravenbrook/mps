@@ -1,0 +1,16 @@
+# impl.gmk.lippgc: BUILD FOR LINUX/POWER(32)/GCC PLATFORM
+#
+# $HopeName: !lippgc.gmk(trunk.3) $
+# Copyright (C) 1998.  Harlequin Group plc.  All rights reserved.
+#
+# This is the GNU makefile for platform.lippgc.
+
+PFM = lippgc
+
+MPMPF = mpsliban.c mpsioan.c lockan.c than.c vman.c \
+        protan.c prmcan.c ssan.c span.c
+SWPF = lockan.c than.c vman.c protsw.c prmcan.c ssan.c
+
+LIBS = -lm
+
+include gc.gmk
