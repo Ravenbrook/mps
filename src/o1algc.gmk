@@ -1,7 +1,7 @@
 #
 #     BUILD FOR OSF/1, ALPHA, GCC PLATFORM
 #
-# $HopeName: !o1algc.gmk(trunk.13) $
+# $HopeName: MMsrc!o1algc.gmk(MMdevel_dropin.1) $
 #
 # Copyright (C) 1995,1997 Harlequin Group, all rights reserved
 #
@@ -30,3 +30,4 @@ TESTLIB = testlib.c
 LIBS = -lm
 
 include gc.gmk
+include ar.gmk
