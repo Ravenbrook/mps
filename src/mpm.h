@@ -1,7 +1,7 @@
 /* impl.h.mpm: MEMORY POOL MANAGER DEFINITIONS
  *
- * $HopeName: MMsrc!mpm.h(MMepcore_pilchard.1) $
- * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
+ * $HopeName: MMsrc!mpm.h(MMepcore_pilchard.2) $
+ * Copyright (C) 1997, 1998 The Harlequin Group Limited.  All rights reserved.
  */
 
 #ifndef mpm_h
@@ -765,7 +765,7 @@ extern AccessSet RootPM(Root root);
 
 /* VM Interface -- see impl.c.vm* */
 
-extern Align VMAlign(void);
+extern Align VMAlign(VM vm);
 extern Bool VMCheck(VM vm);
 extern Res VMCreate(VM *VMReturn, Size size);
 extern void VMDestroy(VM vm);
