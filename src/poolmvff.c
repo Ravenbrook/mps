@@ -1,6 +1,6 @@
 /* impl.c.poolmvff: First Fit Manual Variable Pool
  * 
- * $HopeName: MMsrc!poolmvff.c(MM_epcore_anchovy.1) $
+ * $HopeName: MMsrc!poolmvff.c(MM_epcore_anchovy.2) $
  * Copyright (C) 1998 Harlequin Group plc.  All rights reserved.
  *
  * .purpose: This is a pool class for manually managed objects of
@@ -17,7 +17,7 @@
 #include "mpscmvff.h"
 #include "dbgpool.h"
 
-SRCID(poolmvff, "$HopeName: MMsrc!poolmvff.c(MM_epcore_anchovy.1) $");
+SRCID(poolmvff, "$HopeName: MMsrc!poolmvff.c(MM_epcore_anchovy.2) $");
 
 
 extern PoolClass PoolClassMVFF(void);
@@ -67,7 +67,7 @@ typedef MVFFDebugStruct *MVFFDebug;
 
 
 #define MVFFPoolMVFFDebug(mvff) PARENT(MVFFDebugStruct, mvffStruct, mvff)
-#define MVFFDebugPoolMVFF(mvddd) (&((mvd)->mvffStruct))
+#define MVFFDebugPoolMVFF(mvffd) (&((mvffd)->mvffStruct))
 
 
 /* MVFFMinSegSize -- Minimum size of all MVFF segments */
