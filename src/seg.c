@@ -1,6 +1,6 @@
 /* impl.c.seg: SEGMENTS
  *
- * $HopeName: MMsrc!seg.c(MMdevel_reservoir.1) $
+ * $HopeName: MMsrc!seg.c(MMdevel_reservoir.2) $
  * Copyright (C) 1998 Harlequin Group plc.  All rights reserved.
  *
  * .design: The design for this module is design.mps.seg.
@@ -16,7 +16,7 @@
 
 #include "mpm.h"
 
-SRCID(seg, "$HopeName: MMsrc!seg.c(MMdevel_reservoir.1) $");
+SRCID(seg, "$HopeName: MMsrc!seg.c(MMdevel_reservoir.2) $");
 
 
 /* SegCheck -- check the integrity of a segment */
@@ -130,21 +130,6 @@ void SegFinish(Seg seg)
   RingFinish(&seg->_poolRing);
   RingFinish(&seg->_greyRing);
 }
-
-
-/* SegMove -- Move a segment from one pool to another
- *
- * The segment appears as a freshly initialized segment in the new pool.
- */
-
-void SegMove(Seg seg, Pool newpool)
-{
-  AVERT(Seg, seg);
-  AVER(seg->_pool != newpool);
-  SegFinish(seg);
-  SegInit(seg, newpool);
-}
-
 
 
 /* SegSetSummary -- change the summary on a segment
