@@ -1,6 +1,6 @@
 /* impl.c.poolmv: MANUAL VARIABLE POOL
  *
- * $HopeName: MMsrc!poolmv.c(MMdevel_sw_eq.3) $
+ * $HopeName: MMsrc!poolmv.c(MMdevel_sw_eq.4) $
  * Copyright (C) 1994, 1995 Harlequin Group, all rights reserved
  *
  * **** RESTRICTION: This pool may not allocate from the arena control
@@ -37,7 +37,7 @@
 #include "poolmfs.h"
 #include "mpscmv.h"
 
-SRCID(poolmv, "$HopeName: MMsrc!poolmv.c(MMdevel_sw_eq.3) $");
+SRCID(poolmv, "$HopeName: MMsrc!poolmv.c(MMdevel_sw_eq.4) $");
 
 
 #define BLOCKPOOL(mv)   (MFSPool(&(mv)->blockPoolStruct))
@@ -47,7 +47,7 @@ SRCID(poolmv, "$HopeName: MMsrc!poolmv.c(MMdevel_sw_eq.3) $");
 /*  == Class Structure ==  */
 
 #if 0
-static Res MVInit(Pool pool, PoolPref pref, va_list arg);
+static Res MVInit(Pool pool, va_list arg);
 static void MVFinish(Pool pool);
 static Res MVAlloc(Addr *pReturn, Pool pool, Size size);
 static void MVFree(Pool pool, Addr old, Size size);
@@ -141,7 +141,7 @@ static Bool MVSpanCheck(MVSpan span)
   return TRUE;
 }
 
-static Res MVInit(Pool pool, PoolPref pref, va_list arg)
+static Res MVInit(Pool pool, va_list arg)
 {
   Size extendBy, avgSize, maxSize, blockExtendBy, spanExtendBy;
   MV mv;
@@ -157,7 +157,6 @@ static Res MVInit(Pool pool, PoolPref pref, va_list arg)
   AVER(avgSize <= extendBy);
   AVER(maxSize > 0);
   AVER(extendBy <= maxSize);
-  AVERT(PoolPref, pref);
 
   mv = PoolPoolMV(pool);
   space = PoolSpace(pool);
@@ -166,7 +165,7 @@ static Res MVInit(Pool pool, PoolPref pref, va_list arg)
   /* allocated block, or (extendBy/avgSize)/2 descriptors.  See note 1. */
   blockExtendBy = sizeof(MVBlockStruct) * (extendBy/avgSize)/2;
 
-  res = PoolInit(&mv->blockPoolStruct.poolStruct, PoolPrefDefault(),
+  res = PoolInit(&mv->blockPoolStruct.poolStruct, 
                  PoolClassMFS(), space,
                  blockExtendBy, sizeof(MVBlockStruct));
   if(res != ResOK)
@@ -174,7 +173,7 @@ static Res MVInit(Pool pool, PoolPref pref, va_list arg)
 
   spanExtendBy = sizeof(MVSpanStruct) * (maxSize/extendBy);
 
-  res = PoolInit(&mv->spanPoolStruct.poolStruct, PoolPrefDefault(),
+  res = PoolInit(&mv->spanPoolStruct.poolStruct, 
                  PoolClassMFS(), space,
                  spanExtendBy, sizeof(MVSpanStruct));
   if(res != ResOK)
@@ -185,43 +184,6 @@ static Res MVInit(Pool pool, PoolPref pref, va_list arg)
   mv->maxSize  = maxSize;
   RingInit(&mv->spans);
     
-  if ((pref->nearPool == NULL) &&
-      (pref->farPool == NULL)) {
-    mv->high = FALSE;
-    mv->segPref = SegPrefDefault();
-  } else { /* construct our segment preference */
-    void *p;
-
-    res = SpaceAlloc(&p, space, sizeof(SegPrefStruct));
-    if (res)
-      return res;
-
-    mv->segPref = (SegPref)p;
-    *mv->segPref = *SegPrefDefault();   /* copy in the default preference */
-    
-    if (pref->nearPool != NULL) {
-      MV nearMv;
-
-      AVERT(Pool, pref->nearPool);
-      nearMv = PoolPoolMV(pref->nearPool);
-      AVERT(MV, nearMv);
-
-      mv->high = nearMv->high;
-    } else { /* we know here that pref->farPool is non-NULL */
-      MV farMv;
-
-      AVERT(Pool, pref->farPool);
-      farMv = PoolPoolMV(pref->farPool);
-      AVERT(MV, farMv);
-
-      mv->high = ! farMv->high;
-    }
-    if (mv->high)
-      SegPrefExpress(mv->segPref, SegPrefHigh, NULL);
-    else
-      SegPrefExpress(mv->segPref, SegPrefLow, NULL);
-  }
-
   mv->space = 0;
   mv->lost = 0;
 
@@ -249,10 +211,6 @@ static void MVFinish(Pool pool)
     span = RING_ELT(MVSpan, spans, node);
     AVERT(MVSpan, span);
     PoolSegFree(pool, span->seg);
-  }
-
-  if (mv->segPref != SegPrefDefault()) {
-    SpaceFree(PoolSpace(pool), (void*)mv->segPref, sizeof(SegPrefStruct));
   }
 
   mv->sig = SigInvalid;
@@ -456,10 +414,10 @@ static Res MVAlloc(Addr *pReturn, Pool pool, Size size)
   space = PoolSpace(pool);
   segSize = SizeAlignUp(segSize, ArenaAlign(space));
 
-  res = PoolSegAlloc(&span->seg, mv->segPref, pool, segSize);
+  res = PoolSegAlloc(&span->seg, SegPrefDefault(), pool, segSize);
   if(res != ResOK) { /* try again with a segment big enough for this object */
     segSize = SizeAlignUp(size, ArenaAlign(space));
-    res = PoolSegAlloc(&span->seg, mv->segPref, pool, segSize);
+    res = PoolSegAlloc(&span->seg, SegPrefDefault(), pool, segSize);
     if (res != ResOK) {
       PoolFree(SPANPOOL(mv), (Addr)span, sizeof(MVSpanStruct));
       return res;
@@ -748,12 +706,9 @@ Bool MVCheck(MV mv)
   CHECKL(mv->poolStruct.class == &PoolClassMVStruct);
   CHECKD(MFS, &mv->blockPoolStruct);
   CHECKD(MFS, &mv->spanPoolStruct);
-  CHECKD(SegPref, mv->segPref);
   CHECKL(mv->extendBy > 0);
   CHECKL(mv->avgSize > 0);
   CHECKL(mv->extendBy >= mv->avgSize);
-  CHECKL(BoolCheck(mv->high));
-  CHECKD(SegPref, mv->segPref);
   /* Could do more checks here. */
   return TRUE;
 }
