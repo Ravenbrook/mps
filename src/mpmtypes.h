@@ -1,6 +1,6 @@
 /* impl.h.mpmtypes: MEMORY POOL MANAGER TYPES
  *
- * $HopeName: MMsrc!mpmtypes.h(MMdevel_ptw_pseudoloci.1) $
+ * $HopeName: MMsrc!mpmtypes.h(MMdevel_ptw_pseudoloci.2) $
  * Copyright (C) 1997, 1998 Harlequin Group plc.  All rights reserved.
  *
  * .readership: MM developers.
@@ -122,6 +122,12 @@ typedef Res (*ArenaRetractMethod)(Arena arena, Addr base, Size size);
 typedef Bool (*ArenaIsReservedAddrMethod)(Arena arena, Addr addr);
 typedef Res (*ArenaSegAllocMethod)(Seg *segReturn, SegPref pref,
                                    Size size, Pool pool);
+typedef Res (*ArenaSegAllocInZoneRangeMethod)(Seg *segReturn,
+                                              SegPref pref, 
+                                              Size size,
+                                              Pool pool,
+                                              Addr base,
+                                              Addr limit);
 typedef void (*ArenaSegFreeMethod)(Seg seg);
 typedef Addr (*ArenaSegBaseMethod)(Seg seg);
 typedef Addr (*ArenaSegLimitMethod)(Seg seg);
