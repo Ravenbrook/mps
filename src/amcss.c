@@ -1,6 +1,6 @@
 /* impl.c.amcss: POOL CLASS AMC STRESS TEST
  *
- * $HopeName: !amcss.c(trunk.10) $
+ * $HopeName: MMsrc!amcss.c(MMdevel_remem.1) $
  * Copyright (C) 1996 Harlequin Group, all rights reserved
  */
 
@@ -49,6 +49,7 @@ static void *test(void *arg, size_t s)
   mps_root_t exact_root, ambig_root;
   mps_word_t i;
   mps_word_t collections;
+  mps_addr_t obj;
 
   space = (mps_space_t)arg;
   UNUSED(s);
@@ -89,7 +90,8 @@ static void *test(void *arg, size_t s)
       printf("\nCollection %u, %lu objects.\n",
              c, (unsigned long)i);
       for(r=0; r<NR_EXACT_ROOTS; ++r)
-        assert(dylan_check(exact_roots[r]));
+	if(exact_roots[r] != OBJNULL)
+	  assert(dylan_check(exact_roots[r]));
     }
 
     if(rnd() & 1)
@@ -97,9 +99,17 @@ static void *test(void *arg, size_t s)
     else
       ambig_roots[rnd() % NR_AMBIG_ROOTS] = make();
 
-    r = rnd() % NR_EXACT_ROOTS;
-    if(exact_roots[r] != OBJNULL)
-      assert(dylan_check(exact_roots[r]));
+    obj = exact_roots[rnd() % NR_EXACT_ROOTS];
+    if( obj != OBJNULL) {
+      exact_roots[rnd() % NR_EXACT_ROOTS] =
+	dylan_read(obj);
+    }
+
+    obj = exact_roots[rnd() % NR_EXACT_ROOTS];
+    if(obj != OBJNULL) {
+      ambig_roots[rnd() % NR_EXACT_ROOTS] =
+	dylan_read(obj);
+    }
   }
 
   mps_ap_destroy(ap);
