@@ -2,7 +2,7 @@
  *
  *                   NULL POOL COVERAGE TEST
  *
- *  $HopeName: MMsrc!poolncv.c(trunk.5) $
+ *  $HopeName: !poolncv.c(trunk.6) $
  *
  *  Copyright (C) 1995 Harlequin Group, all rights reserved
  *
