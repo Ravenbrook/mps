@@ -1,7 +1,7 @@
 /*  impl.c.qs: QUICKSORT
  *
- *  $HopeName: !qs.c(trunk.15) $
- *  Copyright (C) 1995, 1996, 1998 Harlequin Group plc, all rights reserved.
+ *  $HopeName: MMsrc!qs.c(MM_epcore_brisling.1) $
+ *  Copyright (C) 1995 Harlequin Limited.  All rights reserved.
  *
  *  The purpose of this program is to act as a "real" client of the MM.
  *  It is a test, but (hopefully) less contrived than some of the other
@@ -20,9 +20,6 @@
  *  Some registers are not nulled out when they could be.
  */
 
-#include <assert.h>
-#include <stdio.h>
-#include <stdlib.h>
 #include "testlib.h"
 #include "mps.h"
 #include "mpsavm.h"
@@ -32,6 +29,9 @@
 #ifdef MPS_OS_W3
 #include "mpsw3.h"
 #endif
+
+#include <assert.h>
+#include <stdlib.h>
 
 
 #define testArenaSIZE   ((size_t)16<<20)
