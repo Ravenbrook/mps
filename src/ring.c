@@ -1,6 +1,6 @@
 /* impl.c.ring: RING IMPLEMENTATION
  *
- * $HopeName: !ring.c(trunk.3) $
+ * $HopeName: MMsrc!ring.c(MMdevel_sw_eq.1) $
  * Copyright (C) 1995 Harlequin Group, all rights reserved.
  *
  * .def: Rings are circular doubly-linked lists of ring "nodes".  The nodes
@@ -30,7 +30,7 @@
 
 #include "mpm.h"
 
-SRCID(ring, "$HopeName: !ring.c(trunk.3) $");
+SRCID(ring, "$HopeName: MMsrc!ring.c(MMdevel_sw_eq.1) $");
 
 
 /* RingCheck, RingCheckSingle -- check the validity of a ring node
@@ -91,6 +91,19 @@ void (RingFinish)(Ring ring)
 void (RingAppend)(Ring ring, Ring new)
 {
   RingAppend(ring, new);                /* impl.h.mpm.append */
+}
+
+
+/* RingInsert -- add a ring node to the start of a ring
+ *
+ * The "new" node is added immediately after the "ring"
+ * node, so that it appears at the start of the ring.  The "new" 
+ * node must be a singleton (.def.singleton).
+ */
+
+void (RingInsert)(Ring ring, Ring new)
+{
+  RingInsert(ring, new);                /* impl.h.mpm.insert */
 }
 
 

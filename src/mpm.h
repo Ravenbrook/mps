@@ -1,6 +1,6 @@
 /* impl.h.mpm: MEMORY POOL MANAGER DEFINITIONS
  *
- * $HopeName: MMsrc!mpm.h(MMdevel_sw_eq.1) $
+ * $HopeName: MMsrc!mpm.h(MMdevel_sw_eq.2) $
  * Copyright (C) 1996 Harlequin Group, all rights reserved.
  */
 
@@ -134,6 +134,17 @@ extern void (RingAppend)(Ring ring, Ring new);
     (new)->next = (ring); \
     (ring)->prev->next = (new); \
     (ring)->prev = (new); \
+  END
+
+extern void (RingInsert)(Ring ring, Ring new);
+#define RingInsert(ring, new) \
+  BEGIN \
+    AVER(RingCheck(ring)); \
+    AVER(RingCheckSingle(new)); \
+    (new)->prev = (ring); \
+    (new)->next = (ring)->next; \
+    (ring)->next->prev = (new); \
+    (ring)->next = (new); \
   END
 
 extern void (RingRemove)(Ring old);
