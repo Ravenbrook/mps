@@ -1,6 +1,6 @@
 /* impl.c.vmli: VIRTUAL MEMORY MAPPING FOR LINUX
  *
- * $HopeName$
+ * $HopeName: MMsrc!vmli.c(MMdevel_drj_vmli.1) $
  * Copyright (C) 1995, 1997, 1998 Harlequin Group, all rights reserved
  *
  * Readership: Any MPS developer
@@ -64,7 +64,7 @@
 /* for getpagesize(2),close(2) */
 #include <unistd.h>
 
-SRCID(vmo1, "$HopeName: MMsrc!vmo1.c(trunk.6) $");
+SRCID(vmo1, "$HopeName: MMsrc!vmli.c(MMdevel_drj_vmli.1) $");
 
 
 /* VMStruct -- virtual memory structure */
@@ -127,7 +127,7 @@ Res VMCreate(VM *vmReturn, Size size)
   /* Map in a page to store the descriptor on. */
   addr = mmap(0, (size_t)SizeAlignUp(sizeof(VMStruct), align),
               PROT_READ | PROT_WRITE,
-              MAP_ANONYMOUS | MAP_PRIVATE | MAP_VARIABLE,
+              MAP_ANONYMOUS | MAP_PRIVATE,
               -1, 0);
   if(addr == (void *)-1) {
     int e = errno;
@@ -145,7 +145,7 @@ Res VMCreate(VM *vmReturn, Size size)
 
   /* See .assume.not-last. */
   addr = mmap(0, (size_t)size,
-              PROT_NONE, MAP_FILE | MAP_SHARED | MAP_VARIABLE,
+              PROT_NONE, MAP_FILE | MAP_SHARED,
               none_fd, 0);
   if(addr == (void *)-1) {
     int e = errno;
