@@ -231,7 +231,7 @@ static Res MVFFAddSeg(MVFF mvff, Size size, Bool withReservoirPermit)
   AVER(SizeIsAligned(size, pool->alignment));
 
   /* use extendBy unless it's too small.
-   * see design.mps.poolmvff.design.segSize */
+   * see design.mps.poolmvff.design.seg-size */
   if(size <= mvff->extendBy)
     segSize = mvff->extendBy;
   else
@@ -244,7 +244,7 @@ static Res MVFFAddSeg(MVFF mvff, Size size, Bool withReservoirPermit)
                  withReservoirPermit);
   if(res != ResOK) {
     /* try again for a seg just large enough for object */
-    /* see design.mps.poolmvff.design.segFail */
+    /* see design.mps.poolmvff.design.seg-fail */
     segSize = SizeAlignUp(size, align);
     res = SegAlloc(&seg, mvff->segPref, segSize, pool, 
                    withReservoirPermit);
@@ -384,8 +384,10 @@ static Res MVFFInit(Pool pool, va_list arg)
 
   AVERT(Pool, pool);
 
-  /* .arg: class-specific additional arguments; see design.mps.poolmvff.arg */
-  /* .arg.check: we do the same three checks here and in MVFFCheck */ 
+  /* .arg: class-specific additional arguments; see */
+  /* design.mps.poolmvff.method.init */
+  /* .arg.check: we do the same checks here and in MVFFCheck */ 
+  /* except for arenaHigh, which is stored only in the segPref. */
   extendBy = va_arg(arg, Size);
   avgSize = va_arg(arg, Size);
   align = va_arg(arg, Size);
@@ -533,7 +535,7 @@ mps_class_t mps_class_mvff(void)
   return (mps_class_t)(PoolClassMVFF());
 }
 
-/* Total free bytes. See design.mps.poolmvff.issue.space-enter */
+/* Total free bytes. See design.mps.poolmvff.design.arena-enter */
 
 size_t mps_mvff_free_size(mps_pool_t mps_pool)
 {
@@ -548,7 +550,7 @@ size_t mps_mvff_free_size(mps_pool_t mps_pool)
   return (size_t)mvff->free;
 }
 
-/* Total owned bytes. See design.mps.poolmvff.issue.space-enter */
+/* Total owned bytes. See design.mps.poolmvff.design.arena-enter */
 
 size_t mps_mvff_size(mps_pool_t mps_pool)
 {
