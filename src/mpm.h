@@ -1,6 +1,6 @@
 /* impl.h.mpm: MEMORY POOL MANAGER DEFINITIONS
  *
- * $HopeName: MMsrc!mpm.h(MMdevel_tony_sunset.3) $
+ * $HopeName: MMsrc!mpm.h(MMdevel_tony_sunset.4) $
  * Copyright (C) 1998.  Harlequin Group plc.  All rights reserved.
  */
 
@@ -713,7 +713,7 @@ extern Bool TractOfAddr(Tract *tractReturn, Arena arena, Addr addr);
   ((*(arena)->class->tractOfAddr)(tractReturn, arena, addr))
 extern Bool TractFirst(Tract *tractReturn, Arena arena);
 extern Bool TractNext(Tract *tractReturn, Arena arena, Addr addr);
-extern Tract TractNextContig(Tract tract);
+extern Tract TractNextContig(Arena arena, Tract tract);
 extern Bool TractCheck(Tract tract);
 extern void TractInit(Tract tract, Pool pool, Addr base);
 extern void TractFinish(Tract tract);
@@ -730,7 +730,7 @@ extern void TractFinish(Tract tract);
       tract != NULL;  \
       (addr = AddrAdd((addr),(arena)->alignment)), \
       ((addr < (limit)) ? \
-         (tract = TractNextContig(tract)) : \
+         (tract = TractNextContig((arena), tract)) : \
          (tract = NULL) /* terminate loop */))
 
 /* .tract.for: See design.mps.arena.tract.for */
@@ -739,7 +739,7 @@ extern void TractFinish(Tract tract);
       tract != NULL;  \
       (addr = AddrAdd((addr),(arena)->alignment)), \
       ((addr < (limit)) ? \
-         (tract = TractNextContig(tract)) : \
+         (tract = TractNextContig((arena), tract)) : \
          (tract = NULL) /* terminate loop */))
 
 
