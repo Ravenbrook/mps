@@ -1,6 +1,6 @@
 /* impl.h.mpm: MEMORY POOL MANAGER DEFINITIONS
  *
- * $HopeName: MMsrc!mpm.h(MMdevel_reservoir.1) $
+ * $HopeName: MMsrc!mpm.h(MMdevel_reservoir.2) $
  * Copyright (C) 1998.  Harlequin Group plc.  All rights reserved.
  */
 
@@ -84,6 +84,10 @@ extern Addr (AddrAlignDown)(Addr addr, Align align);
 #define SizeIsAligned(s, a)     WordIsAligned(SizeWord(s), (a))
 #define SizeAlignUp(s, a)       ((Size)WordAlignUp(SizeWord(s), (a)))
 #define SizeAlignDown(s, a)     ((Size)WordAlignDown(SizeWord(s), (a)))
+
+/* Result codes */
+
+extern Bool ResIsAllocFailure(Res res);
 
 
 /* Accumulator methods */
@@ -588,6 +592,10 @@ extern Res ArenaFinalize(Arena arena, Ref obj);
 
 extern Bool ArenaIsReservedAddr(Arena arena, Addr addr);
 
+extern Size ArenaReservoirLimit(Arena arena);
+extern void ArenaReservoirLimitSet(Arena arena, Size size);
+extern Size ArenaReservoirAvailable(Arena arena);
+
 extern Res SegAlloc(Seg *segReturn, SegPref pref,
                     Size size, Pool pool, Bool withReservoirPermit);
 extern void SegFree(Seg seg);
@@ -612,6 +620,7 @@ extern Res SegPrefExpress(SegPref pref, SegPrefKind kind, void *p);
 extern Bool SegCheck(Seg seg);
 extern void SegInit(Seg seg, Pool pool);
 extern void SegFinish(Seg seg);
+extern void SegMove(Seg seg, Pool newpool);
 extern void SegSetGrey(Seg seg, TraceSet grey);
 extern void SegSetSummary(Seg seg, RefSet summary);
 extern void SegSetRankSet(Seg seg, RankSet rankSet);
