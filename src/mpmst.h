@@ -1,6 +1,6 @@
 /* impl.h.mpmst: MEMORY POOL MANAGER DATA STRUCTURES
  *
- * $HopeName: MMsrc!mpmst.h(MMdevel_gens.3) $
+ * $HopeName: MMsrc!mpmst.h(MMdevel_gens.4) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  *
  * .readership: MM developers.
@@ -281,6 +281,7 @@ typedef struct SegStruct {      /* segment structure */
   RingStruct poolRing;          /* link in list of segs in pool */
 } SegStruct;
 
+
 /* SegPrefStruct -- segment preference structure
  * 
  * .seg-pref: segment users (pool class code) need a way of expressing
@@ -292,7 +293,9 @@ typedef struct SegStruct {      /* segment structure */
 typedef struct SegPrefStruct {  /* segment placement preferences */
   Sig sig;                      /* impl.h.misc.sig */
   Bool high;                    /* high or low */
+  RefSet refSet;                /* preferred RefSetOfSeg */
 } SegPrefStruct;
+
 
 /* ArenaStruct -- arena structure
  *

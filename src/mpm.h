@@ -1,6 +1,6 @@
 /* impl.h.mpm: MEMORY POOL MANAGER DEFINITIONS
  *
- * $HopeName: MMsrc!mpm.h(MMdevel_gens.2) $
+ * $HopeName: MMsrc!mpm.h(MMdevel_gens.3) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  */
 
@@ -485,6 +485,8 @@ extern Bool RankSetCheck(RankSet rankSet);
 #define RefSetIsMember(space, rs, addr) \
   BS_IS_MEMBER(rs, RefSetZone(space, addr))
 #define RefSetSuper(rs1, rs2)   BS_SUPER(rs1, rs2)
+#define RefSetDiff(rs1, rs2)	BS_DIFF(rs1, rs2)
+
 
 extern RefSet RefSetOfSeg(Space space, Seg seg);
 

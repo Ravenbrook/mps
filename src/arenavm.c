@@ -1,6 +1,6 @@
 /* impl.c.arenavm: VIRTUAL MEMORY BASED ARENA IMPLEMENTATION
  *
- * $HopeName: !arenavm.c(trunk.15) $
+ * $HopeName: MMsrc!arenavm.c(MMdevel_gens.1) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  *
  * This is the implementation of the Segment abstraction from the VM
@@ -14,7 +14,7 @@
 #include "mpm.h"
 
 
-SRCID(arenavm, "$HopeName: !arenavm.c(trunk.15) $");
+SRCID(arenavm, "$HopeName: MMsrc!arenavm.c(MMdevel_gens.1) $");
 
 
 /* Space Arena Projection
@@ -270,7 +270,11 @@ Bool SegPrefCheck(SegPref pref)
   return TRUE;
 }
 
-static SegPrefStruct segPrefDefault = {SegPrefSig, FALSE};
+static SegPrefStruct segPrefDefault = {
+  SegPrefSig,                           /* sig */
+  FALSE,                                /* high */
+  RefSetUNIV,                           /* refSet */
+};
 
 SegPref SegPrefDefault(void)
 {
@@ -293,10 +297,74 @@ Res SegPrefExpress (SegPref sp, SegPrefKind kind, void *p)
     sp->high = FALSE;
     return ResOK;
 
+  case SegPrefRefSet:
+    AVER(p != NULL);
+    sp->refSet = *(RefSet *)p;
+    return ResOK;
+
   default:
     /* see design.mps.pref.default */
     return ResOK;
   }
+}
+
+
+/* SegAllocTry -- try to allocate a segment with a certain RefSet
+ *
+ * This code was imported from David Moore's remembered set branch,
+ * MMsrc!arenavm.c(MMdevel_remem.5), and is not intended as the long
+ * term solution.  richard 1997-04-22
+ */
+
+static Res SegAllocTry(PI *baseReturn, Space space, PI pages, RefSet try)
+{
+  PI pi, count, base = 0, end;
+  Arena arena = SpaceArena(space);
+  Word z;
+
+  /* Search for a free run of pages in the free table. */
+  /* .alloc.skip: Start from arena->tablePages (.tablePages). */
+  /* .improve.bit-twiddle: This code can probably be seriously */
+  /* optimised by twiddling the bit table. */  
+  pi = arena->tablePages;
+  do {
+    end = pi;
+    do {
+      Addr a;
+      pi = end;
+      a = PageBase(arena, pi + 1);
+      z = RefSetZone(space, AddrSub(a, (Size)1));
+      /* find next zone stripe */
+      a = AddrAdd(a, (Size)1 << space->zoneShift);
+      /* move to beginning of this stripe */
+      a = (Addr)((Word)a & ~(((Size)1 << space->zoneShift) - 1));
+      end = AddrOffset(arena->base, a) >> arena->pageShift;
+      if(end > arena->pages || pi > end) {
+	end = arena->pages;
+	break;
+      }
+    } while((try & (1<<z)) == 0);
+
+    count = 0;
+    while(pi < end) {
+      if(ABTGet(arena->freeTable, pi)) {
+	if(count == 0)
+	  base = pi;
+	++count;
+	if(count == pages) {
+	  *baseReturn = base;
+	  return ResOK;
+	}
+      } else
+	count = 0;
+      ++pi;
+    }
+  } while(pi < arena->pages);
+
+  /* No space was found.  This could be because the request was */
+  /* too large, or perhaps the arena is fragmented.  Perhaps we */
+  /* should return a more meaningful code. */
+  return ResRESOURCE;
 }
 
 
@@ -305,7 +373,7 @@ Res SegPrefExpress (SegPref sp, SegPrefKind kind, void *p)
 Res SegAlloc(Seg *segReturn, SegPref pref, Space space, Size size, Pool pool)
 {
   Arena arena = SpaceArena(space);
-  PI pi, count, pages, base = 0;        /* whinge stopper */
+  PI pi, pages, base;
   Addr addr;
   Seg seg;
   Res res;
@@ -317,41 +385,27 @@ Res SegAlloc(Seg *segReturn, SegPref pref, Space space, Size size, Pool pool)
   AVERT(Pool, pool);
   AVER(SizeIsAligned(size, arena->pageSize));
   
-  /* NULL is used as a discriminator (see
-   * design.mps.arena.vm.table.disc), therefore the real pool must be
-   * non-NULL.
-   */
+  /* NULL is used as a discriminator (see design.mps.arena.vm.table.disc) */
+  /* therefore the real pool must be non-NULL. */
   AVER(pool != NULL);
 
-  /* Search for a free run of pages in the free table.
-   * .alloc.skip: Start from arena->tablePages (.tablepages).
-   * .improve.bit-twiddle:  This code can probably be seriously
-   * optimised by twiddling the bit table.
-   */
   pages = size >> arena->pageShift;
-  count = 0;
-  for(pi = arena->tablePages; pi < arena->pages; ++pi) {
-    if(ABTGet(arena->freeTable, pi)) {
-      if(count == 0)
-        base = pi;
-      ++count;
-      if(count == pages)
-        goto found;
-    } else
-      count = 0;
+  res = SegAllocTry(&base, space, pages, pref->refSet);
+  if(res != ResOK) {                    /* couldn't allocated in preferred area */
+    AVER(res == ResRESOURCE);
+    res = SegAllocTry(&base, space, pages, RefSetDiff(RefSetUNIV, pref->refSet));
+    if(res) {                           /* failed to allocate at all */
+      /* No space was found. */
+      /* .improve.alloc-fail: This could be because the request was */
+      /* too large, or perhaps the arena is fragmented.  We could return a */
+      /* more meaningful code. */
+      return res;
+    }
   }
-  
-  /* No space was found.
-   * .improve.alloc-fail: This could be because the request was
-   * too large, or perhaps the arena is fragmented.  We could return a
-   * more meaningful code.
-   */
-  return ResRESOURCE;
 
-found:
-  /* .alloc.early-map: Map in the segment memory before actually
-   * allocating the pages, because the unwind (in case of failure)
-   * is simpler. */
+  /* .alloc.early-map: Map in the segment memory before actually */
+  /* allocating the pages, because the unwind (in case of failure) */
+  /* is simpler. */
   addr = PageBase(arena, base);
   res = VMMap(space, addr, AddrAdd(addr, size));
   if(res) return res;
@@ -360,10 +414,9 @@ found:
   seg = &arena->pageTable[base].the.head;
   SegInit(seg, pool);
 
-  /* Allocate the first page, and, if there is more than one page,
-   * allocate the rest of the pages and store the multi-page information
-   * in the page table.
-   */
+  /* Allocate the first page, and, if there is more than one page, */
+  /* allocate the rest of the pages and store the multi-page information */
+  /* in the page table. */
   AVER(ABTGet(arena->freeTable, base));
   ABTSet(arena->freeTable, base, FALSE);
   if(pages > 1) {
