@@ -1,12 +1,12 @@
 /* impl.c.action: STRATEGIC ACTION
  *
  * Copyright (C) 1997 Harlequin Group, all rights reserved.
- * $HopeName: MMsrc!action.c(MMdevel_action2.1) $
+ * $HopeName: MMsrc!action.c(MMdevel_action2.2) $
  */
 
 #include "mpm.h"
 
-SRCID(action, "$HopeName: MMsrc!action.c(MMdevel_action2.1) $");
+SRCID(action, "$HopeName: MMsrc!action.c(MMdevel_action2.2) $");
 
 
 /* ActionCheck -- check consistency of an Action structure */
@@ -17,8 +17,6 @@ Bool ActionCheck(Action action)
   CHECKU(Pool, action->pool);
   CHECKL(RingCheck(&action->poolRing));
   CHECKL(action->serial <= action->pool->actionSerial);
-  CHECKL(action->var == ActionNOOP ||
-         action->var == ActionCOLLECT);
   return TRUE;
 }
 
@@ -32,7 +30,6 @@ void ActionInit(Action action, Pool pool)
 
   action->pool = pool;
   RingInit(&action->poolRing);
-  action->var = ActionCOLLECT;
 
   action->sig = ActionSig;
   action->serial = pool->actionSerial;
@@ -53,6 +50,8 @@ void ActionFinish(Action action)
   RingRemove(&action->poolRing);
 
   action->sig = SigInvalid;
+
+  RingFinish(&action->poolRing);
 }
 
 
@@ -116,4 +115,3 @@ void ActionPoll(Space space)
   if(space->busyTraces == TraceSetEMPTY)
     (void)ActionCollect(space);
 }
-

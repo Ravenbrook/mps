@@ -1,6 +1,6 @@
 /* impl.h.mpmst: MEMORY POOL MANAGER DATA STRUCTURES
  *
- * $HopeName: MMsrc!mpmst.h(MMdevel_action2.9) $
+ * $HopeName: MMsrc!mpmst.h(MMdevel_action2.10) $
  * Copyright (C) 1996,1997 Harlequin Group, all rights reserved.
  *
  * .readership: MM developers.
@@ -554,12 +554,6 @@ typedef struct ActionStruct {
   Serial serial;		/* from pool->actionSerial */
   Pool pool;			/* owning pool */
   RingStruct poolRing;		/* link in list of actions in pool */
-  ActionVar var;		/* variant of action */
-  union {
-    struct {
-      int dummy;		/* no strategy yet */
-    } collect;
-  } the;
 } ActionStruct;
 
 
