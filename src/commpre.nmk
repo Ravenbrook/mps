@@ -1,6 +1,6 @@
 # ==== FIRST COMMON FRAGMENT FOR PLATFORMS USING MV AND NMAKE
 #
-# $HopeName: !commpre.nmk(trunk.17) $
+# $HopeName: MMsrc!commpre.nmk(MMdevel_configura.1) $
 # Copyright (C) 1998 Harlequin Limited.  All rights reserved.
 #
 # DESCRIPTION
@@ -133,7 +133,7 @@ LINKFLAGSHOT = libcmt.lib
 LINKFLAGSCOOL = libcmt.lib
 
 !else
-CFLAGSTARGETPRE = /DCONFIG_PROD_MPS
+CFLAGSTARGETPRE = /DCONFIG_PROD_CONFIGURA
 CFLAGSTARGETPOST =
 CRTFLAGSW = /MT
 CRTFLAGSH = /MT
