@@ -1,6 +1,6 @@
 /* impl.h.mpm: MEMORY POOL MANAGER DEFINITIONS
  *
- * $HopeName: MMsrc!mpm.h(MMdevel_gavinm_splay.4) $
+ * $HopeName: MMsrc!mpm.h(MMdevel_gavinm_splay.5) $
  * Copyright (C) 1998. Harlequin Group plc. All rights reserved.
  */
 
@@ -853,7 +853,9 @@ extern Res CBSDescribe(CBS cbs, mps_lib_FILE *stream);
 extern Res CBSBlockDescribe(CBSBlock block, mps_lib_FILE *stream);
 #define CBSBlockBase(block) ((block)->base)
 #define CBSBlockLimit(block) ((block)->limit)
+/* ANSI C doesn't define subtraction of zero pointers. */
 #define CBSBlockSize(block) \
-  (AddrOffset(CBSBlockBase(block), CBSBlockLimit(block)))
+  (CBSBlockBase((block)) == (Addr)0 ? (Size)0 : \
+    (AddrOffset(CBSBlockBase((block)), CBSBlockLimit((block)))))
 
 #endif /* mpm_h */
