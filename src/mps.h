@@ -1,6 +1,6 @@
 /* impl.h.mps: HARLEQUIN MEMORY POOL SYSTEM INTERFACE
  *
- *  $HopeName: !mps.h(trunk.15) $
+ *  $HopeName: MMsrc!mps.h(MMdevel_sw_eq.1) $
  *  Copyright (C) 1996 Harlequin Group, all rights reserved
  */
 
@@ -29,16 +29,17 @@
  * provided in this interface, or where otherwise noted.
  */
 
-typedef struct mps_space_s  *mps_space_t;  /* space */
-typedef struct mps_pool_s   *mps_pool_t;   /* pool */
-typedef struct mps_fmt_s    *mps_fmt_t;    /* object format */
-typedef struct mps_root_s   *mps_root_t;   /* root */
-typedef struct mps_class_s  *mps_class_t;  /* pool class */
-typedef struct mps_thr_s    *mps_thr_t;    /* thread registration */
-typedef struct mps_ap_s     *mps_ap_t;     /* allocation point */
-typedef struct mps_ld_s     *mps_ld_t;     /* location dependency */
-typedef struct mps_reg_s    *mps_reg_t;    /* register file */
-typedef struct mps_ss_s     *mps_ss_t;     /* scan state */
+typedef struct mps_space_s     *mps_space_t;     /* space */
+typedef struct mps_pool_s      *mps_pool_t;      /* pool */
+typedef struct mps_pool_pref_s *mps_pool_pref_t; /* pool preferences */
+typedef struct mps_fmt_s       *mps_fmt_t;       /* object format */
+typedef struct mps_root_s      *mps_root_t;      /* root */
+typedef struct mps_class_s     *mps_class_t;     /* pool class */
+typedef struct mps_thr_s       *mps_thr_t;       /* thread registration */
+typedef struct mps_ap_s        *mps_ap_t;        /* allocation point */
+typedef struct mps_ld_s        *mps_ld_t;        /* location dependency */
+typedef struct mps_reg_s       *mps_reg_t;       /* register file */
+typedef struct mps_ss_s        *mps_ss_t;        /* scan state */
 
 
 /* Concrete Types
@@ -56,7 +57,6 @@ typedef void *mps_addr_t;       /* managed address (void *) */
 typedef int mps_mc_t;           /* message code (int) */
 typedef size_t mps_align_t;     /* alignment (size_t) */
 typedef unsigned mps_rm_t;      /* root mode */
-
 
 /* Result Code Type
  *
@@ -94,6 +94,20 @@ enum
   MPS_RANK_EXACT = 1,           /* exact reference */
   MPS_RANK_WEAK = 2,            /* weak reference */
   MPS_RANK_FINAL = 3            /* final reference */
+};
+
+/* Pool Preferences
+ * 
+ * The preference code type is an alias of int.
+ * 
+ * .pref: Keep in sync with impl.h.mpmtypes.pref
+ */
+
+typedef int mps_pool_pref_kind_t;
+enum
+{
+  MPS_POOL_PREF_NEAR = 0,       /* near to another pool */
+  MPS_POOL_PREF_FAR = 1         /* far from another pool */
 };
 
 
@@ -223,11 +237,17 @@ extern mps_assert_t mps_assert_default(void);
 
 /* Spaces */
 
-extern mps_res_t mps_space_create_wmem(mps_space_t *mps_space_o,
-                                       mps_addr_t base, size_t size);
 extern mps_res_t mps_space_create(mps_space_t *mps_space_o);
 extern void mps_space_destroy(mps_space_t mps_space);
 
+/* Client memory spaces */
+
+extern mps_res_t mps_space_create_wmem(mps_space_t *mps_space_o,
+                                       mps_addr_t base, size_t size);
+extern mps_res_t mps_space_extend(mps_space_t mps_space,
+                                  mps_addr_t base, size_t size);
+extern mps_res_t mps_space_retract(mps_space_t mps_space,
+                                   mps_addr_t base, size_t size);
 
 /* Object Formats */
 
@@ -240,13 +260,27 @@ extern void mps_fmt_destroy(mps_fmt_t mps_fmt);
 /* Pools */
 
 extern mps_res_t mps_pool_create(mps_pool_t *mps_pool_o,
+                                 mps_pool_pref_t mps_pool_pref,
+                                 mps_class_t class,
                                  mps_space_t mps_space,
-                                 mps_class_t class, ...);
+                                 ...);
 extern mps_res_t mps_pool_create_v(mps_pool_t *mps_pool_o,
-                                   mps_space_t mps_space,
+                                   mps_pool_pref_t mps_pool_pref,
                                    mps_class_t class,
+                                   mps_space_t mps_space,
                                    va_list args);
 extern void mps_pool_destroy (mps_pool_t mps_pool);
+
+extern mps_res_t mps_pool_pref_create(mps_pool_pref_t *,
+                                      mps_space_t);
+
+extern mps_res_t mps_pool_pref_express(mps_pool_pref_t,
+                                       mps_pool_pref_kind_t,
+                                       void *);
+
+extern void mps_pool_pref_destroy(mps_pool_pref_t,
+                                  mps_space_t);
+
 
 extern mps_res_t mps_alloc(mps_addr_t *p_o,
                            mps_pool_t mps_pool,
