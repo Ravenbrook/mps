@@ -1,6 +1,6 @@
 /* impl.c.arenavm: VIRTUAL MEMORY BASED ARENA IMPLEMENTATION
  *
- * $HopeName: MMsrc!arenavm.c(MMdevel_tony_sunset.5) $
+ * $HopeName: MMsrc!arenavm.c(MMdevel_tony_sunset.6) $
  * Copyright (C) 1998.  Harlequin Group plc.  All rights reserved.
  *
  * PURPOSE
@@ -32,7 +32,7 @@
 #include "mpm.h"
 #include "mpsavm.h"
 
-SRCID(arenavm, "$HopeName: MMsrc!arenavm.c(MMdevel_tony_sunset.5) $");
+SRCID(arenavm, "$HopeName: MMsrc!arenavm.c(MMdevel_tony_sunset.6) $");
 
 
 /* @@@@ Arbitrary calculation for the maximum number of distinct */
@@ -2350,7 +2350,9 @@ static Tract VMTractNextContig(Arena arena, Tract tract)
     UNUSED(ch1);
     UNUSED(ch2);
     AVER_CRITICAL(VMArenaChunkOfAddr(&ch1, vmArena, TractBase(tract)) &&
-                  VMArenaChunkOfAddr(&ch2, vmArena, TractLimit(tract)) &&
+                  VMArenaChunkOfAddr(&ch2, vmArena, 
+                                     AddrAdd(TractBase(tract), 
+                                             arena->alignment)) &&
                   (ch1 == ch2));
   }
 
