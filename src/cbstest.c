@@ -1,7 +1,7 @@
-/*  impl.c.cbstest: COALESCING BLOCK STRUCTURE TEST
+/* impl.c.cbstest: COALESCING BLOCK STRUCTURE TEST
  *
- *  $HopeName: !cbstest.c(trunk.7) $
- * Copyright (C) 1998 Harlequin Group plc.  All rights reserved.
+ * $HopeName: MMsrc!cbstest.c(MM_epcore_brisling.1) $
+ * Copyright (C) 1998 Harlequin Limited.  All rights reserved.
  */
 
 #include "cbs.h"
@@ -10,12 +10,11 @@
 #include "mps.h"
 #include "testlib.h"
 
-#include <stdio.h>
 #include <stdlib.h>
 #include <stdarg.h>
 #include <time.h>
 
-SRCID(cbstest, "$HopeName: !cbstest.c(trunk.7) $");
+SRCID(cbstest, "$HopeName: MMsrc!cbstest.c(MM_epcore_brisling.1) $");
 
 
 #define ArraySize ((Size)123456)
@@ -175,8 +174,9 @@ static void checkCBS(CBS cbs, BT allocTable, Addr dummyBlock) {
     AVER(closure.oldLimit == closure.limit);
 }
 
+
 /* Not very uniform, but never mind. */
-static Word random(Word limit) {
+static Word rndInt(Word limit) {
   return (Word)rnd() % limit;
 }
 
@@ -253,15 +253,15 @@ static void randomRange(Addr *baseReturn,
                 /* after base */
   Index limit;  /* a randomly chosen value in (base, limit]. */
 
-  base = random(ArraySize);
+  base = rndInt(ArraySize);
 
   do {
     end = nextEdge(allocTable, ArraySize, base);
-  } while(end < ArraySize && random(2) == 0); /* p=0.5 exponential */
+  } while(end < ArraySize && rndInt(2) == 0); /* p=0.5 exponential */
 
   AVER(end > base);
 
-  limit = base + 1 + random(end - base);
+  limit = base + 1 + rndInt(end - base);
 
   *baseReturn = AddrOfIndex(block, base);
   *limitReturn = AddrOfIndex(block, limit);
@@ -584,7 +584,7 @@ extern int main(int argc, char *argv[])
 
   checkCBS(cbs, allocTable, dummyBlock);
   for(i = 0; i < NOperations; i++) {
-    switch(random(3)) {
+    switch(rndInt(3)) {
     case 0: {
       randomRange(&base, &limit, allocTable, dummyBlock);
       allocate(cbs, dummyBlock, allocTable, base, limit);
@@ -594,9 +594,9 @@ extern int main(int argc, char *argv[])
       deallocate(cbs, dummyBlock, allocTable, base, limit);
     } break;
     case 2: {
-      size = random(ArraySize / 10) + 1;
-      high = random(2) ? TRUE : FALSE;
-      switch(random(6)) {
+      size = rndInt(ArraySize / 10) + 1;
+      high = rndInt(2) ? TRUE : FALSE;
+      switch(rndInt(6)) {
       case 0:
       case 1:
       case 2: findDelete = CBSFindDeleteNONE; break;
