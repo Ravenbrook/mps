@@ -1,6 +1,6 @@
 /* impl.c.buffer: ALLOCATION BUFFER IMPLEMENTATION
  *
- * $HopeName: MMsrc!buffer.c(MMdevel_restr2.1) $
+ * $HopeName: MMsrc!buffer.c(MMdevel_restr2.2) $
  * Copyright (C) 1996 Harlequin Group, all rights reserved
  *
  * This is the interface to allocation buffers.
@@ -115,7 +115,7 @@
 
 #include "mpm.h"
 
-SRCID(buffer, "$HopeName: MMsrc!buffer.c(MMdevel_restr2.1) $");
+SRCID(buffer, "$HopeName: MMsrc!buffer.c(MMdevel_restr2.2) $");
 
 
 Ring BufferPoolRing(Buffer buffer)
@@ -178,12 +178,10 @@ Res BufferCreate(Buffer *bufferReturn, Pool pool)
 
   /* Dispatch to the pool class method to perform any extra */
   /* initialization of the buffer. */
-  if(pool->class->bufferInit != NULL) {
-    res = (*pool->class->bufferInit)(pool, buffer);
-    if(res != ResOK) {
-      SpaceFree(space, (Addr)buffer, sizeof(BufferStruct));
-      return res;
-    }
+  res = (*pool->class->bufferInit)(pool, buffer);
+  if(res != ResOK) {
+    SpaceFree(space, (Addr)buffer, sizeof(BufferStruct));
+    return res;
   }
 
   /* Now that it's initialized, sign the buffer and check it. */
@@ -227,7 +225,6 @@ void BufferDestroy(Buffer buffer)
   pool = buffer->pool;
 
   AVER((pool->class->attr & AttrBUF) != 0);
-  AVER(pool->class->bufferFinish != NULL);
   AVER(BufferIsReset(buffer));
   AVER(buffer->exposed == FALSE);
 
@@ -533,7 +530,6 @@ void BufferExpose(Buffer buffer)
   Pool pool;
 
   AVERT(Buffer, buffer);
-  AVER(BufferPool(buffer)->class->bufferExpose != NULL);
 
   buffer->exposed = TRUE;
   pool = BufferPool(buffer);
@@ -545,7 +541,6 @@ void BufferCover(Buffer buffer)
   Pool pool;
 
   AVERT(Buffer, buffer);
-  AVER(BufferPool(buffer)->class->bufferCover != NULL);
 
   buffer->exposed = FALSE;
   pool = BufferPool(buffer);
