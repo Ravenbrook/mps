@@ -1,6 +1,6 @@
 /* impl.h.mpstd: HARLEQUIN MEMORY POOL SYSTEM TARGET DETECTION
  *
- * $HopeName: !mpstd.h(trunk.12) $
+ * $HopeName: MMsrc!mpstd.h(MMdevel_sw_eq.1) $
  * Copyright (C) 1996 Harlequin Group, all rights reserved
  *
  * Detect the target platform using predefined preprocessor symbols
@@ -22,10 +22,10 @@
 #define MPS_OS_IR
 #define MPS_ARCH_R4
 #define MPS_BUILD_CC
-#define MPS_T_WORD	unsigned long
-#define MPS_WORD_WIDTH	32
-#define MPS_WORD_SHIFT	5
-#define MPS_PF_ALIGN	8 /* .hack.align */
+#define MPS_T_WORD      unsigned long
+#define MPS_WORD_WIDTH  32
+#define MPS_WORD_SHIFT  5
+#define MPS_PF_ALIGN    8 /* .hack.align */
 
 /* winnt.h (D:\packages\msvc20\include\winnt.h on aaron) */
 /* really ought to check this more thoroughly */
@@ -92,10 +92,10 @@
 #define MPS_WORD_SHIFT  5
 #define MPS_PF_ALIGN    8 /* .hack.align */
 
-/* 1. MPW 3.0 C Ref, p. 43.						*/
-/* 2. MPW SC/SCpp C/C++ Compiler for 68k Macintosh, p 3-60.		*/
-/* These are the two MPW 68k compilers. They do not define anything 	*/
-/* which lets us determine the system version. 				*/
+/* 1. MPW 3.0 C Ref, p. 43.                                             */
+/* 2. MPW SC/SCpp C/C++ Compiler for 68k Macintosh, p 3-60.             */
+/* These are the two MPW 68k compilers. They do not define anything     */
+/* which lets us determine the system version.                          */
 
 #elif defined(m68k) && (defined (applec) || defined(__SC__))
 #define MPS_PF_S7M6AC
@@ -107,10 +107,10 @@
 #define MPS_WORD_SHIFT  5
 #define MPS_PF_ALIGN    8 /* .hack.align */
 
-/* 1. C++/C Compiler for Macintosh with PowerPC, p 3-36.		*/
-/* 2. MPW MrC/MrCpp C/C++ Compiler for Power Macintosh, p 3-57.		*/
-/* These are the two MPW PowerPC compilers. They do not define anything	*/
-/* which lets us determine the system version. 				*/
+/* 1. C++/C Compiler for Macintosh with PowerPC, p 3-36.                */
+/* 2. MPW MrC/MrCpp C/C++ Compiler for Power Macintosh, p 3-57.         */
+/* These are the two MPW PowerPC compilers. They do not define anything */
+/* which lets us determine the system version.                          */
 
 #elif defined(__PPCC__) || (defined(__MRC__) && defined(__POWERPC))
 #define MPS_PF_S7PPAC
