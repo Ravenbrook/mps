@@ -1,6 +1,6 @@
 /* impl.c.locus: LOCI
  *
- * $HopeName: MMsrc!locus.c(MMdevel_ptw_pseudoloci.6) $
+ * $HopeName: MMsrc!locus.c(MMdevel_ptw_pseudoloci.8) $
  * Copyright (C) 1998 Harlequin Group plc.  All rights reserved.
  *
  * .readership: any MPS developer
@@ -11,12 +11,14 @@
  * Locus according to their cohort attributes.  The Loci track their
  * clients zone usage and can offer advice to the Arena on what zones
  * to allocate segments in for each client in order to minimize mixing
- * cohorts in zones.  Two benefits accrue to Arena implementations
- * that heed this advice: 1. the segments of a zone will have more
- * uniform lifetime behavior (which should reduce segment-level
- * fragmentation), and 2. the accuracy of inter-cohort refsets will
- * improve (which should optimize garbage-collection scanning).
- *
+ * clients and cohorts in zones.  Three benefits accrue to Arena
+ * implementations that heed this advice: 1. the segments of a zone
+ * will have more uniform lifetime behavior (which should reduce
+ * segment-level fragmentation), 2. the accuracy of inter-cohort
+ * refsets will improve (which should optimize garbage-collection
+ * scanning), 3. individual clients will tend to acquire adjacent
+ * segments
+ * 
  * As side-benefits: 1. the ZoneUsage summaries maintained by the
  * LocusManager, Locus, and LocusClient objects can be used to assess
  * the effectiveness of segment placement, and 2. the higher level
@@ -35,26 +37,42 @@
 
 
 /* Signatures */
-
+/* SIGnature LOCus MaNager */
+#define LocusManagerSig ((Sig)0x51970C39)
+/* SIGnature LOCus CLient */
+#define LocusClientSig ((Sig)0x51970CC7)
+/* SIGnature LOCUS */
+#define LocusSig ((Sig)0x51970C05)
+/* SIGnature ZONeUSage */
+#define ZoneUsageSig ((Sig)0x51920405)
 
 /* Private prototypes */
 
+static void LocusManagerZoneRangeInitialize(LocusManager manager,
+                                            Locus locus,
+                                            LocusClient client);
+static Bool LocusManagerZoneRangeFinished(LocusManager manager,
+                                          Locus locus,
+                                          LocusClient client);
+static void LocusManagerZoneRangeNext(Addr *baseReturn,
+                                      Addr *limitReturn,
+                                      LocusManager manager,
+                                      Locus locus,
+                                      LocusClient client);
+static void  LocusManagerRefSetCalculate(LocusManager manager);
 static void LocusManagerNoteZoneAlloc(LocusManager manager,
                                       RefSet ref);
 static void LocusManagerNoteZoneFree(LocusManager manager,
                                      RefSet ref);
 static void LocusInit(Locus locus, LocusManager manager);
 static void LocusFinish(Locus locus);
+static void LocusActivate(Locus locus);
+static void LocusDeactivate(Locus locus);
 static void LocusEnsureReady(Locus locus);
 static void LocusClientEnsureLocus(LocusClient client);
 static void LocusLocusClientDelete(Locus locus, LocusClient client);
-static void LocusZoneRangeInitialize(Locus locus);
-static Bool LocusZoneRangeFinished(Locus locus);
-static void LocusZoneRangeNext(Addr *baseReturn, Addr
-                               *limitReturn, Locus locus);
 static void LocusNoteZoneAlloc(Locus locus, RefSet ref);
 static void LocusNoteZoneFree(Locus locus, RefSet ref);
-static void LocusRefSetNext(Locus locus);
 static Count LocusLocusClientDistance(Locus locus,
                                       LocusClient client);
 static void ZoneUsageInit(ZoneUsage desc);
@@ -109,6 +127,11 @@ static Locus LocusClientLocus(LocusClient client)
   return client->locus;
 }
 
+static LocusManager LocusClientLocusManager(LocusClient client)
+{
+  return client->manager;
+}
+
 static LocusManager LocusLocusManager(Locus locus)
 {
   return locus->manager;
@@ -129,6 +152,32 @@ static ZoneUsage LocusManagerZoneUsage(LocusManager manager)
   return &manager->zoneUsageStruct;
 }
 
+static RefSet ZoneUsageUsed(ZoneUsage desc)
+{
+  return RefSetComp(desc->free);
+}
+
+static RefSet ZoneUsageFree(ZoneUsage desc)
+{
+  return desc->free;
+}
+
+static RefSet ZoneUsageExclusive(ZoneUsage desc)
+{
+  return desc->exclusive;
+}
+
+#if 0
+static RefSet ZoneUsageShared(ZoneUsage desc)
+{
+  return desc->shared;
+}
+
+static Count* ZoneUsageUsage(ZoneUsage desc)
+{
+  return desc->usage;
+}
+#endif
 
 /* External Methods */
 
@@ -141,11 +190,21 @@ void LocusManagerInit(LocusManager manager)
 {
   Locus locus;
   
+  manager->searchCacheValid = FALSE;
+  manager->searchIndex = 0;
+  manager->searchLimit = 0;
+  manager->searchCurrent = RefSetEMPTY;
+  manager->searchZone = 0;
+  manager->searchUseFree = TRUE;
+  manager->searchExpand = TRUE;
   ZoneUsageInit(LocusManagerZoneUsage(manager));
   for (locus = &manager->locus[0];
        locus < &manager->locus[NUMLOCI];
        locus++)
     LocusInit(locus, manager);
+  manager->activeLoci = 0;
+  manager->sig = LocusManagerSig;
+  
   AVERT(LocusManager, manager);
 }
 
@@ -164,6 +223,8 @@ void LocusManagerFinish(LocusManager manager)
     LocusFinish(locus);
   deleted = ZoneUsageFinish(LocusManagerZoneUsage(manager));
   AVER(deleted == RefSetEMPTY);
+  AVER(manager->activeLoci == 0);
+  manager->sig = SigInvalid;
 }
 
 
@@ -182,10 +243,11 @@ void LocusClientInit(LocusClient client, LocusManager manager)
   client->preferred = RefSetUNIV;
   client->disdained = RefSetEMPTY;
   /* default: no lifetime */
-  client->lifetime = 0;
+  client->lifetime = LifetimeNONE;
   ZoneUsageInit(LocusClientZoneUsage(client));
   RingInit(LocusClientLocusRing(client));
   client->locusSerial = 0;
+  client->sig = LocusClientSig;
   AVERT(LocusClient, client);
 }
 
@@ -208,6 +270,7 @@ void LocusClientFinish(LocusClient client)
     client->assigned = FALSE;
     client->locus = (Locus)NULL;
   }
+  client->sig = SigInvalid;
 }
 
 /* LocusClientSetCohortParameters -- Set the cohort parameters for
@@ -219,11 +282,13 @@ void LocusClientSetCohortParameters(LocusClient client,
                                     RefSet preferred,
                                     RefSet disdained,
                                     /* @@@ cohort parameters */
-                                    Index lifetime)
+                                    Lifetime lifetime)
 {
   AVERT(LocusClient, client);
+  AVERT(RefSet, preferred);
+  AVERT(RefSet, disdained);
+  AVERT(Lifetime, lifetime);
   AVER(RefSetInter(preferred, disdained) == RefSetEMPTY);
-  /* @@@ AVER lifetime */
   AVER(! client->assigned);
 
   /* failsafe: ignore an attempt to reset cohort (not supported) */
@@ -245,26 +310,22 @@ void LocusClientSetCohortParameters(LocusClient client,
    iteration */
 void LocusClientZoneRangeInitialize(LocusClient client)
 {
-  Locus locus;
-
   AVERT(LocusClient, client);
   LocusClientEnsureLocus(client);
-  locus = LocusClientLocus(client);
   
-  LocusZoneRangeInitialize(locus);
+  LocusManagerZoneRangeInitialize(client->manager, client->locus, client);
 }
 
 
 /* LocusClientZoneRangeFinished -- Is the zone range iteration complete? */
 Bool LocusClientZoneRangeFinished(LocusClient client)
 {
-  Locus locus;
-
   AVERT(LocusClient, client);
   AVER(client->assigned);
-  locus = LocusClientLocus(client);
   
-  return LocusZoneRangeFinished(locus);
+  return LocusManagerZoneRangeFinished(client->manager, client->locus,
+                                       client);
+
 }
 
 
@@ -274,15 +335,13 @@ void LocusClientZoneRangeNext(Addr *baseReturn,
                               Addr *limitReturn,
                               LocusClient client)
 {
-  Locus locus;
-  
   AVER(baseReturn != NULL);
   AVER(limitReturn != NULL);
   AVERT(LocusClient, client);
   AVER(client->assigned);
-  locus = LocusClientLocus(client);
   
-  LocusZoneRangeNext(baseReturn, limitReturn, locus);
+  LocusManagerZoneRangeNext(baseReturn, limitReturn, client->manager,
+                            client->locus, client);
 }
 
 
@@ -306,6 +365,8 @@ void LocusClientNoteSegAlloc(LocusClient client, Arena arena, Seg seg)
 
   /* If there are new zones, update the locus */
   if (new != RefSetEMPTY) {
+    /* Zone change invalidates search cache */
+    LocusClientLocusManager(client)->searchCacheValid = FALSE;
     LocusNoteZoneAlloc(LocusClientLocus(client), new);
   }
 }
@@ -327,6 +388,8 @@ void LocusClientNoteSegFree(LocusClient client, Arena arena, Seg seg)
 
   /* If there are deleted zones, update the locus */
   if (deleted != RefSetEMPTY) {
+    /* Zone change invalidates search cache */
+    LocusClientLocusManager(client)->searchCacheValid = FALSE;
     LocusNoteZoneFree(LocusClientLocus(client), deleted);
   }
 }
@@ -338,21 +401,243 @@ void LocusClientNoteSegFree(LocusClient client, Arena arena, Seg seg)
 /* Locus Manager Methods */
 
 
+/* LocusManagerZoneRangeInitialize -- Initialize the locus zone range
+   iteration */
+static void LocusManagerZoneRangeInitialize(LocusManager manager,
+                                            Locus locus,
+                                            LocusClient client) 
+{
+  if (manager->searchCacheValid &&
+      manager->searchClient == client &&
+      manager->searchLocus == locus) {
+    /* cached search */
+  } else {
+    /* new client, or cache invalid: fill the cache */
+    manager->searchClient = client;
+    manager->searchLocus = locus;
+
+    LocusEnsureReady(locus);
+    /* These are expensive checks, only do them now, when we are about
+     to rely on the information */
+    AVERT(ZoneUsage, LocusClientZoneUsage(client));
+    AVERT(ZoneUsage, LocusZoneUsage(locus));
+    AVERT(ZoneUsage, LocusManagerZoneUsage(LocusLocusManager(locus)));
+
+    /* @@@ policy knobs, not currently turned */
+    manager->searchUseFree = TRUE;
+    manager->searchExpand = TRUE;
+    LocusManagerRefSetCalculate(manager);
+    manager->searchCacheValid = TRUE;
+  }
+  
+  manager->searchIndex = 0;
+  manager->searchCurrent = RefSetEMPTY;
+  manager->searchZone = 0;
+  return;
+}
+
+
+/* LocusManagerZoneRangeFinished -- Is the zone range iteration done?
+   */
+static Bool LocusManagerZoneRangeFinished(LocusManager manager,
+                                          Locus locus,
+                                          LocusClient client)
+{
+  AVER(manager->searchClient == client);
+
+  return (manager->searchCurrent == RefSetEMPTY &&
+          (! (manager->searchIndex < manager->searchLimit)));
+}
+
+
+/* LocusManagerZoneRangeNext -- Return the next zone range in the
+   iteration */
+static void LocusManagerZoneRangeNext(Addr *baseReturn,
+                                      Addr *limitReturn, 
+                                      LocusManager manager,
+                                      Locus locus,
+                                      LocusClient client)
+{
+  Arena arena = LocusManagerArena(manager);
+  Word zoneShift = ArenaZoneShift(arena);
+  RefSet current = manager->searchCurrent;
+  Index zone = manager->searchZone;
+  
+  AVER(locus->ready);
+  AVER(manager->searchCacheValid);
+  AVER(manager->searchClient == client);
+  AVER(manager->searchLocus == locus);
+
+  for (;;) {
+    if (current == RefSetEMPTY) {
+      current = manager->searchCache[manager->searchIndex];
+      manager->searchIndex++;
+      zone = 0;
+    }
+
+    /* @@@ Need to be able to search in opposite direction, too */
+    for (; current; current >>= 1, zone++) {
+      if (current & 01) {
+        *baseReturn = (Addr)(zone << zoneShift);
+        for (; zone < RefSetSize; current >>= 1, zone++) {
+          if (! (current & 01)) {
+            *limitReturn = (Addr)(zone << zoneShift);
+            manager->searchCurrent = current;
+            manager->searchZone = zone;
+            AVER(AddrOffset(*baseReturn, *limitReturn) > 0);
+            return;
+          }
+        }
+      }
+    }
+  }
+}
+
+
+/* LocusManagerRefSetCalculate -- Calculate the optimal RefSet for a
+   client to allocate in.  Calculates up to RefSetSize RefSet's, each
+   one broader than the previous, from the most to least desirable.
+
+   This function embodies the central policy of the locus mechanism:
+   
+   The search order attempts to minimize "zone spread" and "zone
+   pollution" by preferring zones owned by the client, shared by the
+   client within the locus, zones owned by the locus, free (if
+   permitted, by useFree), shared by the client, shared by the locus,
+   and used by other loci (if permitted, by expand).  Within each of
+   those groups, preferred zones are tried first, then "neutral" (not
+   disdained) zones.  Disdained zones are _always_ the very last
+   resort, which should tend to migrate a locus out of its disdained
+   zones as quickly as possible.
+   */
+static void LocusManagerRefSetCalculate(LocusManager manager) 
+{
+  LocusClient client = manager->searchClient;
+  Locus locus = manager->searchLocus;
+  ZoneUsage clientDesc = LocusClientZoneUsage(client);
+  ZoneUsage locusDesc = LocusZoneUsage(locus);
+  ZoneUsage managerDesc = LocusManagerZoneUsage(LocusLocusManager(locus));
+  RefSet previous = RefSetEMPTY;
+  RefSet bad, base, good;
+  RefSet next = RefSetEMPTY;
+  Index r = 0;
+  Index i = 0;
+  
+  AVER(locus->ready);
+  /* failsafe: we must have up-to-date cohort info */
+  LocusEnsureReady(locus);
+  
+  for (; i <= 2; i++) {
+    Index j = 0;
+    
+    switch (i) {
+      case 0:
+        /* bad for the locus */
+        bad = locus->disdained;
+        break;
+      case 1:
+        /* bad for the client */
+        bad = client->disdained;
+        break;
+      case 2:
+        /* last resort */
+        bad = RefSetEMPTY;
+        break;
+      default:
+        NOTREACHED;
+    }
+    for (; j <= 7; j++) {
+      Index k = 0;
+      
+      switch (j) {
+        case 0:
+          /* zones used by this client, exclusive to this client */
+          base = RefSetInter(ZoneUsageUsed(clientDesc), ZoneUsageExclusive(locusDesc));
+          break;
+        case 1:
+          /* zones used by this client, exclusive to this locus */
+          base = RefSetInter(ZoneUsageUsed(clientDesc), ZoneUsageExclusive(managerDesc));
+          break;
+        case 2:
+          /* zones used by this locus, exclusive to this locus */
+          base = RefSetInter(ZoneUsageUsed(locusDesc), ZoneUsageExclusive(managerDesc));
+          break;
+        case 3:
+          /* free zones */
+          if (manager->searchUseFree) {
+            base = ZoneUsageFree(managerDesc);
+            break;
+          }
+        case 4:
+          /* zones used by this client, shared with other loci */
+          base = ZoneUsageUsed(clientDesc);
+          break;
+        case 5:
+          /* zones used by this locus, shared with other loci */
+          base = ZoneUsageUsed(locusDesc);
+          break;
+        case 6:
+          /* zones used by other loci, exclusive to those loci (@@@
+             spread the pain?) */
+          if (manager->searchExpand) {
+            base = ZoneUsageExclusive(managerDesc);
+            break;
+          }
+        case 7:
+          /* last resort */
+          if (manager->searchExpand) {
+            base = RefSetUNIV;
+            break;
+          }
+        default:
+          NOTREACHED;
+      }
+      for (; k <= 2; k++) {
+        switch (k) {
+          case 0:
+            /* good for the client */
+            good = client->preferred;
+            break;
+          case 1:
+            /* good for the locus */
+            good = locus->preferred;
+            break;
+          case 2:
+            /* last resort */
+            good = RefSetUNIV;
+            break;
+          default:
+            NOTREACHED;
+        }
+        next = RefSetUnion(previous,
+                           RefSetInter(RefSetDiff(base, bad),
+                                       good));
+        if (RefSetDiff(next, previous) != RefSetEMPTY) {
+          manager->searchCache[r] = next;
+          r++;
+        }
+      }
+    }
+  }
+  manager->searchLimit = r;
+}
+  
+
 /* LocusManagerNoteZoneAlloc -- Note that a locus is newly using a
    zone */
 static void LocusManagerNoteZoneAlloc(LocusManager manager,
                                       RefSet ref)
 {
-  (void)ZoneUsageIncrement(LocusManagerZoneUsage(manager), ref);
+  (void) ZoneUsageIncrement(LocusManagerZoneUsage(manager), ref);
 }
 
 
 /* LocusManagerNoteZoneFree -- Note that a locus is no longer using a
    zone */
 static void LocusManagerNoteZoneFree(LocusManager manager,
-                                      RefSet ref)
+                                     RefSet ref)
 {
-  (void)ZoneUsageDecrement(LocusManagerZoneUsage(manager), ref);
+  (void) ZoneUsageDecrement(LocusManagerZoneUsage(manager), ref);
 }
 
 
@@ -363,17 +648,35 @@ static void LocusInit(Locus locus, LocusManager manager)
 {
   locus->inUse = FALSE;
   locus->ready = FALSE;
-  locus->lifetime = 0;
+  locus->lifetime = LifetimeNONE;
   locus->preferred = RefSetEMPTY;
   locus->disdained = RefSetEMPTY;
   RingInit(LocusClientRing(locus));
   locus->clientSerial = (Serial)1;
   ZoneUsageInit(LocusZoneUsage(locus));
   locus->manager = manager;
+  locus->clients = 0;
+  locus->sig = LocusSig;
 }
 
-
 static void LocusFinish(Locus locus)
+{
+  LocusDeactivate(locus);
+  locus->sig = SigInvalid;
+}
+
+static void LocusActivate(Locus locus)
+{
+  locus->ready = FALSE;
+  locus->lifetime = LifetimeNONE;
+  locus->preferred = RefSetEMPTY;
+  locus->disdained = RefSetEMPTY;
+  ZoneUsageInit(LocusZoneUsage(locus));
+  locus->clients = 0;
+  LocusLocusManager(locus)->activeLoci++;
+}
+
+static void LocusDeactivate(Locus locus)
 {
   RefSet deleted;
   
@@ -381,15 +684,19 @@ static void LocusFinish(Locus locus)
 
   locus->inUse = FALSE;
   locus->ready = FALSE;
-  locus->lifetime = 0;
+  locus->lifetime = LifetimeNONE;
   locus->preferred = RefSetEMPTY;
   locus->disdained = RefSetEMPTY;
-  /* leave clientSerial */
 
   deleted = ZoneUsageFinish(LocusZoneUsage(locus));
   /* note change */
   LocusManagerNoteZoneFree(LocusLocusManager(locus), deleted);
+  LocusLocusManager(locus)->activeLoci--;
+  AVER(locus->clients == 0);
+  locus->clients = 0;
 }
+
+
   
 
 /* LocusEnsureReady -- Validate the cached cohort attributes of the
@@ -399,9 +706,9 @@ static void LocusEnsureReady(Locus locus)
   if (locus->inUse && (! locus->ready)) {
     Ring this, next;
     RefSet preferred, disdained, used;
-    Index lifetime;
+    Lifetime lifetime = LifetimeNONE;
+    Count clients = 0;
   
-    lifetime = (Index)-1;
     preferred = RefSetUNIV;
     disdained = RefSetEMPTY;
     used = RefSetEMPTY;
@@ -410,20 +717,19 @@ static void LocusEnsureReady(Locus locus)
       {
         LocusClient client = RING_ELT(LocusClient, locusRingStruct,
                                       this);
-        if (lifetime == -1)
-          lifetime = client->lifetime;
-        else
-          lifetime = (lifetime + client->lifetime) / 2;
-        preferred = RefSetInter(preferred, client->preferred);
+        preferred = RefSetUnion(preferred, client->preferred);
         disdained = RefSetUnion(disdained, client->disdained);
+        lifetime += client->lifetime;
         /* @@@ only for AVER */
+        clients++;
         used = RefSetUnion(used, RefSetComp(LocusClientZoneUsage(client)->free));
       }
 
-    locus->lifetime = lifetime;
+    AVER(used == RefSetComp(LocusZoneUsage(locus)->free));
+    AVER(locus->clients == clients);
+    locus->lifetime = lifetime / locus->clients;
     locus->preferred = preferred;    
     locus->disdained = disdained;
-    AVER(used == RefSetComp(LocusZoneUsage(locus)->free));
     locus->ready = TRUE;
   }
 }
@@ -477,14 +783,18 @@ static void LocusClientEnsureLocus(LocusClient client)
 
     AVER(best != NULL);
     client->locus = best;
-    best->inUse = TRUE;
+    if (!best->inUse) {
+      LocusActivate(best);
+    }
     client->locusSerial = best->clientSerial;
     best->clientSerial++;
+    best->clients++;
     RingAppend(LocusClientRing(best),
                LocusClientLocusRing(client));
     client->assigned = TRUE;
 
-    best->lifetime = (best->lifetime + client->lifetime) / 2;
+    best->lifetime = (best->lifetime * locus->clients +
+                      client->lifetime) / locus->clients;
     best->preferred = RefSetUnion(locus->preferred, client->preferred);
     best->disdained = RefSetUnion(locus->disdained, client->disdained);
   }
@@ -500,75 +810,14 @@ static void LocusLocusClientDelete(Locus locus, LocusClient client)
   /* AVER client on LocusClientRing(locus) */
   RingRemove(LocusClientLocusRing(client));
   /* Leave client->serial */
-
+  locus->clients--;
+  
   /* note change in cohort constituents */
   locus->ready = FALSE;
     
   /* Decommission locus if it has no clients */
   if (RingIsSingle(LocusClientRing(locus)))
     LocusFinish(locus);
-}
-
-
-/* LocusZoneRangeInitialize -- Initialize the locus zone range
-   iteration */
-static void LocusZoneRangeInitialize(Locus locus)
-{
-  locus->search = RefSetEMPTY;
-  locus->searchIndex = RefSetSize;
-  locus->i = 0;
-  locus->j = 0;
-  locus->k = 0;
-  
-  /* Do this once, for the iteration */
-  LocusEnsureReady(locus);
-  /* These are expensive checks, only do them now, when we are about
-     to rely on the information */
-  AVERT(ZoneUsage, LocusZoneUsage(locus));
-  AVERT(ZoneUsage, LocusManagerZoneUsage(LocusLocusManager(locus)));
-}
-
-
-/* LocusZoneRangeFinished -- Is the zone range iteration done? */
-static Bool LocusZoneRangeFinished(Locus locus)
-{
-  return locus->search == RefSetUNIV && locus->searchIndex == RefSetSize;
-}
-
-
-/* LocusZoneRangeNext --  Return the next zone range in the iteration */
-static void LocusZoneRangeNext(Addr *baseReturn, Addr *limitReturn, Locus locus)
-{
-  LocusManager manager = LocusLocusManager(locus);
-  Arena arena = LocusManagerArena(manager);
-  Word zoneShift = ArenaZoneShift(arena);
-  RefSet ref = locus->search;
-  Index i = locus->searchIndex;
-  
-  AVER(locus->ready);
-  /* @@@ rewrite using RefSet_FOR */
-  for (;;) {
-    if (! (i < RefSetSize)) {
-      LocusRefSetNext(locus);
-      ref = locus->search;
-      i = 0;
-    }
-    for (; i < RefSetSize; i++) {
-      /* @@@ faster to shift ref and quit on 0 */
-      if (BS_IS_MEMBER(ref, i)) {
-        *baseReturn = (Addr)(i << zoneShift);
-        *limitReturn =
-          (Addr)(((i + 1) & RefSetMASK) << arena->zoneShift);
-        for (; i < RefSetSize; i++) {
-          if (! BS_IS_MEMBER(ref, i)) {    
-            *limitReturn = (Addr)(i << zoneShift);
-          }
-        }
-        locus->searchIndex = i;
-        return;
-      }
-    }
-  }
 }
 
 
@@ -595,85 +844,6 @@ static void LocusNoteZoneFree(Locus locus, RefSet ref)
   }
 }
 
-
-/* LocusRefSetNext -- Calculate the next most optimal RefSet for the
-   locus to allocate in.  May be called any number of times and each
-   time it will yield a larger, but less optimal RefSet.  It is
-   fruitless to call it when the search RefSet is already RefSetUNIV
-   */
-/* The search order attempts to minimize "zone spread" and "zone
-   pollution" by preferring zones "owned" by the locus over free ones
-   and free ones over "shared".  Within each of those groups,
-   preferred zones are tried first, then "neutral" (not disdained)
-   zones.  Disdained zones are _always_ the very last resort, which
-   should tend to migrate a locus out of its disdained zones as
-   quickly as possible.
-   */
-/* @@@ We could try first using the client's values and then the
-   locus's for (presumably) better performance when disparate clients
-   share a locus, but I deemed that _too_ hairy for now.
-   */
-static void LocusRefSetNext(Locus locus)
-{
-  ZoneUsage locusDesc = LocusZoneUsage(locus);
-  ZoneUsage managerDesc = LocusManagerZoneUsage(LocusLocusManager(locus));
-  RefSet used = RefSetComp(locusDesc->free);
-  RefSet previous = locus->search;
-  RefSet bad, base, good;
-  RefSet next = RefSetEMPTY;
-  Index i = locus->i;
-  
-  AVER(previous != RefSetUNIV);
-  AVER(locus->ready);
-  /* failsafe: we must have up-to-date cohort info */
-  LocusEnsureReady(locus);
-  
-  for (; i <= 1; i++) {
-    Index j = locus->j;
-    
-    switch (i) {
-      case 0: bad = locus->disdained; break;
-      case 1: bad = RefSetEMPTY; break;
-      default: NOTREACHED;
-    }
-    for (; j <= 3; j++) {
-      Index k = locus->k;
-      
-      switch (j) {
-        /* zones held exclusively by this locus */
-        case 0:
-          base = RefSetInter(used, managerDesc->exclusive);
-          break;
-        /* free zones */
-        case 1: base = managerDesc->free; break;
-        /* shared zones */
-        case 2: base = used; break;
-        /* anywhere */
-        case 3: base = RefSetUNIV; break;
-        default: NOTREACHED;
-      }
-      for (; k <= 1; k++) {
-        switch (k) {
-          case 0: good = locus->preferred; break;
-          case 1: good = RefSetUNIV; break;
-          default: NOTREACHED;
-        }
-        next = RefSetUnion(previous,
-                           RefSetInter(RefSetDiff(base, bad),
-                                       good));
-        if (RefSetDiff(next, previous) != RefSetEMPTY) {
-          locus->search = next;
-          locus->i = i;
-          locus->j = j;
-          locus->k = k;
-          return;
-        }
-      }
-    }
-  }
-  NOTREACHED;
-}
-  
 
 /* LocusLocusClientDistance -- measure the distance between the cohort
    specification of a locus and a locus client*/
@@ -707,6 +877,7 @@ static void ZoneUsageInit(ZoneUsage desc)
     {
       desc->usage[zone] = 0;
     }
+  desc->sig = ZoneUsageSig;
   AVERT(ZoneUsage, desc);
 }
 
@@ -718,6 +889,7 @@ static RefSet ZoneUsageFinish(ZoneUsage desc)
 {
   AVERT(ZoneUsage, desc);
 
+  desc->sig = SigInvalid;
   return RefSetComp(desc->free);
 }
       
@@ -829,50 +1001,79 @@ static Count LogCount(Count val)
 static Bool LocusManagerCheck(LocusManager manager) 
 {
   Locus locus;
+  Count activeLoci = 0;
 
+  CHECKS(LocusManager, manager);
+  CHECKL(BoolCheck(manager->searchCacheValid));
+  if (manager->searchCacheValid) {
+    CHECKD(LocusClient, manager->searchClient);
+    CHECKD(Locus, manager->searchLocus);
+    CHECKL(manager->searchIndex <= manager->searchLimit);
+  }
+  CHECKL(BoolCheck(manager->searchUseFree));
+  CHECKL(BoolCheck(manager->searchExpand));
   for (locus = &manager->locus[0];
        locus < &manager->locus[NUMLOCI];
        locus++) {
-    CHECKL(LocusCheck(locus));
+    CHECKD(Locus, locus);
+    if (locus->inUse)
+      activeLoci++;
   }
-  /* ZoneUsage check is expensive */
+  CHECKD(ZoneUsage, LocusManagerZoneUsage(manager));
+  CHECKL(manager->activeLoci == activeLoci);
   return TRUE;
 }
 
 
 static Bool LocusClientCheck(LocusClient client)
 {
+  CHECKS(LocusClient, client);
+  CHECKU(LocusManager, client->manager);
   CHECKL(BoolCheck(client->assigned));
   if (client->assigned) {
-    CHECKL(LocusCheck(client->locus));
+    CHECKU(Locus, client->locus);
   } else {
     CHECKL(RingCheckSingle(LocusClientLocusRing(client)));
   }
-  CHECKL(RingCheck(LocusClientLocusRing(client)));
   CHECKL(RefSetCheck(client->preferred));
   CHECKL(RefSetCheck(client->disdained));
   CHECKL(RefSetCheck(client->used));
+  CHECKD(ZoneUsage, LocusClientZoneUsage(client));
+  CHECKL(RingCheck(LocusClientLocusRing(client)));
   return TRUE;
 }
  
   
 static Bool LocusCheck(Locus locus)
 {
+  CHECKS(Locus, locus);
+  CHECKU(LocusManager, locus->manager);
   CHECKL(BoolCheck(locus->inUse));
   CHECKL(BoolCheck(locus->ready));
   if (locus->ready) {
     Ring this, next;
+    Lifetime lifetime = LifetimeNONE;
+    Count clients = 0;
+    
     CHECKL(locus->inUse);
     CHECKL(RingCheck(LocusClientRing(locus)));
     RING_FOR(this, LocusClientRing(locus), next) 
     {
       LocusClient client = RING_ELT(LocusClient, locusRingStruct,
                                     this);
+      CHECKD(LocusClient, client);
       CHECKL(RefSetSuper(locus->preferred, client->preferred));
       CHECKL(RefSetSuper(locus->disdained, client->disdained));
+      lifetime += client->lifetime;
+      clients++;
     }
+    CHECKL(locus->lifetime == lifetime / clients);
+    CHECKL(locus->clients == clients);
   }
-  /* ZoneUsage check is expensive */
+  if (! locus->inUse) {
+    CHECKL(RingCheckSingle(LocusClientRing(locus)));
+  }
+  CHECKD(ZoneUsage, LocusZoneUsage(locus));
   return TRUE;
 }
 
@@ -885,6 +1086,10 @@ static Bool ZoneUsageCheck(ZoneUsage desc)
   RefSet shared = RefSetEMPTY;
   Count *usage = desc->usage;
   
+  CHECKS(ZoneUsage, desc);
+  CHECKL(RefSetCheck(desc->free));
+  CHECKL(RefSetCheck(desc->exclusive));
+  CHECKL(RefSetCheck(desc->shared));
   RefSet_FOR(RefSetUNIV, zone, next)
     {
       switch (usage[zone]) {
@@ -900,6 +1105,7 @@ static Bool ZoneUsageCheck(ZoneUsage desc)
       }
     }
   CHECKL(RefSetComp(free) == RefSetUnion(exclusive, shared));
+  CHECKL(RefSetInter(exclusive, shared) == RefSetEMPTY);
   CHECKL(desc->free == free);
   CHECKL(desc->exclusive == exclusive);
   CHECKL(desc->shared == shared);
@@ -915,15 +1121,6 @@ Res LocusManagerDescribe(LocusManager manager, mps_lib_FILE *stream)
 {
   Res res;
   Locus locus;
-  Count numLoci = 0;
-
-  for (locus = &manager->locus[0];
-       locus < &manager->locus[NUMLOCI];
-       locus++) {
-    if (locus->inUse) {
-      numLoci++;
-    }
-  }
 
   res = WriteF(stream,
                "LocusManager $P\n{\n", (WriteFP)manager,
@@ -938,12 +1135,12 @@ Res LocusManagerDescribe(LocusManager manager, mps_lib_FILE *stream)
   
   res = WriteF(stream,
                "\n",
-               "  active loci: $U\n", (WriteFU)numLoci,
+               "  active loci: $U\n", (WriteFU)manager->activeLoci,
                NULL);
   if (res != ResOK)
     return res;
   
-  if (numLoci > 0) {
+  if (manager->activeLoci > 0) {
     /* @@@ indenting-stream(stream, "  ") */
     res = WriteF(stream,
                  "Locus",
@@ -967,6 +1164,28 @@ Res LocusManagerDescribe(LocusManager manager, mps_lib_FILE *stream)
     }
   }
   
+  if (manager->searchCacheValid) {
+    Index i;
+
+    res = WriteF(stream,
+                 "  searchClient: $P\n", (WriteFP)manager->searchClient,
+                 "  searchIndex: $U\n", (WriteFU)manager->searchIndex,
+                 "  searchLimit: $U\n", (WriteFU)manager->searchLimit,
+                 "  searchCache: ",
+                 NULL);
+    if (res != ResOK)
+      return res;
+
+    for (i = 0; i < manager->searchLimit; i++) {
+      res = WriteF(stream,
+                   "  search[$U]: $B\n", (WriteFU)i,
+                   (WriteFU)manager->searchCache[i],
+                   NULL);
+      if (res != ResOK)
+        return res;
+    }
+  }
+
   res = WriteF(stream, "}\n", NULL);
   if (res != ResOK)
     return res;
@@ -979,17 +1198,11 @@ Res LocusDescribe(Locus locus, mps_lib_FILE *stream)
 {
   Res res;
   Ring this, next;
-  Count numClients = 0;
-
-  RING_FOR(this, LocusClientRing(locus), next)
-    {
-      numClients++;
-    }
 
   res = WriteF(stream,
                "Locus $P\n{\n", (WriteFP)locus,
                "  manager: $P\n", (WriteFP)locus->manager,
-               "  clients: $U\n", (WriteFU)numClients,
+               "  clients: $U\n", (WriteFU)locus->clients,
                NULL);
   if (res != ResOK)
     return res;
@@ -1006,15 +1219,6 @@ Res LocusDescribe(Locus locus, mps_lib_FILE *stream)
       return res;
     /* @@@ indenting-stream(stream, "  ") */
     res = ZoneUsageDescribe(LocusZoneUsage(locus), stream);
-    if (res != ResOK)
-      return res;
-    res = WriteF(stream,
-                 "  search: $B\n", (WriteFB)locus->search,
-                 "  searchIndex: $U\n", (WriteFU)locus->searchIndex,
-                 "  searchState: [$U, $U, $U]\n",
-                 locus->i, locus->j, locus->k, 
-                 "  clientSerial: $U\n", (WriteFU)locus->clientSerial,
-                 NULL);
     if (res != ResOK)
       return res;
 
