@@ -384,7 +384,6 @@ extern Bool TraceCheck(Trace trace);
 
 extern Res TraceCreate(Trace *traceReturn, Space space);
 extern Res TraceAddWhite(Trace trace, Seg seg);
-extern Res TraceCondemnObjSet(Trace trace, ObjSet condemnedSet);
 extern Res TraceStart(Trace trace);
 extern Res TraceFlip(Trace trace);
 extern void TraceDestroy(Trace trace);
@@ -401,7 +400,7 @@ extern Size TraceGreyEstimate(Arena arena, RefSet refSet);
 #define TRACE_SCAN_BEGIN(ss) \
   BEGIN \
     Shift SCANzoneShift = (ss)->zoneShift; \
-    ObjSet SCANwhite = (ss)->white; \
+    RefSet SCANwhite = (ss)->white; \
     RefSet SCANsummary = (ss)->unfixedSummary; \
     Word SCANt; \
     {
@@ -692,27 +691,7 @@ extern Bool RankSetCheck(RankSet rankSet);
 #define RefSetDiff(rs1, rs2)    BS_DIFF((rs1), (rs2))
 #define RefSetSub(rs1, rs2)     BS_SUB((rs1), (rs2))
 
-extern ObjSet ObjSetOfSeg(Arena arena, Seg seg);
-#define ObjSetUnion(os1, os2)   BS_UNION((os1), (os2))
-#define ObjSetInter(os1, os2)   BS_INTER((os1), (os2))
-#define ObjSetSuper(os1, os2)   BS_SUPER((os1), (os2))
-#define ObjSetSub(os1, os2)     BS_SUB((os1), (os2))
-#define ObjSetDiff(os1, os2)    BS_DIFF((os1), (os2))
-#define ObjSetZone(arena, addr) \
-  (((Word)(addr) >> (arena)->zoneShift) & (MPS_WORD_WIDTH - 1))
-#define ObjSetIsMember(arena, os, addr) \
-  BS_IS_MEMBER((os), ObjSetZone((arena), (addr)))
-#define ObjSetAdd(arena, os, addr) \
-  BS_ADD(ObjSet, (os), ObjSetZone((arena), (addr)))
-
-/* The only link we make between RefSet's and ObjSet's is this */
-/* intersection, which detects whether the set of references might */
-/* contain a reference to an object in the set of objects. */
-/* This is the only place that knows that RefSet and ObjSet are */
-/* really the same type: a set of zones. */
-
-#define RefSetInterObjSet(rs,os) \
-  ((Bool)(BS_INTER((rs),(os)) != RefSetEMPTY))
+extern RefSet RefSetOfSeg(Arena arena, Seg seg);
 
 
 /* Shield Interface -- see impl.c.shield */

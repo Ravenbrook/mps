@@ -1,6 +1,6 @@
 /* impl.h.mpmtypes: MEMORY POOL MANAGER TYPES
  *
- * $HopeName: MMsrc!mpmtypes.h(MMdevel_gavinm_zone.1) $
+ * $HopeName: MMsrc!mpmtypes.h(MMdevel_gavinm_zone.2) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  *
  * .readership: MM developers.
@@ -39,7 +39,6 @@ typedef unsigned Shift;                 /* design.mps.type.shift */
 typedef Addr Ref;                       /* design.mps.type.ref */
 typedef void *Pointer;                  /* design.mps.type.pointer */
 typedef Word RefSet;                    /* design.mps.refset */
-typedef Word ObjSet;                    /* set of objects; cf RefSet */
 typedef unsigned Rank;                  /* design.mps.ref */
 typedef unsigned RankSet;
 typedef unsigned RootMode;
@@ -193,8 +192,6 @@ typedef Res (*RootScanRegMethod)(ScanState ss, Thread thread, void *p,
 #define TraceIdNONE     ((TraceId)-1)   /* design.mps.tracer */
 #define RefSetEMPTY     BS_EMPTY(RefSet)
 #define RefSetUNIV      BS_UNIV(RefSet)
-#define ObjSetEMPTY     BS_EMPTY(ObjSet)
-#define ObjSetUNIV      BS_UNIV(ObjSet)
 #define TraceSetEMPTY	BS_EMPTY(TraceSet) /* design.mps.tracer */
 #define RankSetEMPTY	BS_EMPTY(RankSet)
 #define RankSetUNIV	((1uL<<RankMAX)-1)
@@ -219,7 +216,7 @@ typedef Res (*RootScanRegMethod)(ScanState ss, Thread thread, void *p,
 #define FormatVarietyB  ((FormatVariety)1)
 #define SegPrefHigh     ((SegPrefKind)0)
 #define SegPrefLow      ((SegPrefKind)1)
-#define SegPrefObjSet   ((SegPrefKind)2)
+#define SegPrefRefSet   ((SegPrefKind)2)
 #define SegPrefGen      ((SegPrefKind)3)
 
 

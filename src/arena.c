@@ -1,6 +1,6 @@
 /* impl.c.arena: ARENA IMPLEMENTATION
  *
- * $HopeName: MMsrc!arena.c(MMdevel_gavinm_zone.1) $
+ * $HopeName: MMsrc!arena.c(MMdevel_gavinm_zone.2) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  *
  * .readership: Any MPS developer
@@ -36,7 +36,7 @@
 #include "poolmrg.h"
 #include "mps.h"
 
-SRCID(arena, "$HopeName: MMsrc!arena.c(MMdevel_gavinm_zone.1) $");
+SRCID(arena, "$HopeName: MMsrc!arena.c(MMdevel_gavinm_zone.2) $");
 
 
 /* All static data objects are declared here. See .static */
@@ -1077,7 +1077,7 @@ Bool SegPrefCheck(SegPref pref)
 static SegPrefStruct segPrefDefault = {
   SegPrefSig,                           /* sig */
   FALSE,                                /* high */
-  ObjSetUNIV,                           /* objSet */
+  RefSetUNIV,                           /* RefSet */
   FALSE,                                /* isGen */
   (Serial)0,                            /* gen */
 };
@@ -1106,15 +1106,16 @@ Res SegPrefExpress(SegPref pref, SegPrefKind kind, void *p)
     pref->high = FALSE;
     break;
 
-  case SegPrefObjSet:
+  case SegPrefRefSet:
     AVER(p != NULL);
-    pref->objSet = *(ObjSet *)p;
+    pref->RefSet = *(RefSet *)p;
     break;
 
   case SegPrefGen:
     AVER(p != NULL);
     pref->isGen = TRUE;
     pref->gen = *(Serial *)p;
+    break;
 
   default:
     /* Unknown kinds are ignored for binary compatibility. */

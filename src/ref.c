@@ -20,14 +20,6 @@
  * of the Fix function, and provide good discrimination of the
  * white set.  It is expected that the discrimination provided
  * will be useful for distinguishing segments and groups of segments.
- *
- * .def.objset: ObjSets are a parallel concept to RefSets and give
- * a conservative approximation to a set of objects.  It is conservative
- * in the sense that if isMember returns FALSE for an object, then it is
- * guarantees that the object is not in the set.
- *
- * For a set of objects, another object may have a reference to the set
- * if its reference set intersects with the object set.
  */
 
 #include "mpm.h"
@@ -50,25 +42,25 @@ Bool RankSetCheck(RankSet rankSet)
 }
 
 
-/* ObjSetOfSeg -- calculate the object set of segment addresses
+/* RefSetOfSeg -- calculate the reference set of segment addresses
  *
- * .osos.def: The object set of a segment is the union of the
+ * .rsos.def: The reference set of a segment is the union of the
  * set of potential references _to_ that segment, i.e. of all the
  * addresses the segment occupies.
  *
- * .osos.zones: The base and limit zones of the segment
+ * .rsos.zones: The base and limit zones of the segment
  * are calculated.  The limit zone is one plus the zone of the last
  * address in the segment, not the zone of the limit address.
  *
- * .osos.univ: If the segment is large enough to span all zones,
+ * .rsos.univ: If the segment is large enough to span all zones,
  * its reference set is universal.
  *
- * .osos.swap: If the base zone is less than the limit zone,
+ * .rsos.swap: If the base zone is less than the limit zone,
  * then the reference set looks like 000111100, otherwise it looks like
  * 111000011.
  */
 
-ObjSet ObjSetOfSeg(Space space, Seg seg)
+RefSet RefSetOfSeg(Space space, Seg seg)
 {
   Word base, limit;
 
@@ -79,14 +71,14 @@ ObjSet ObjSetOfSeg(Space space, Seg seg)
   base = (Word)SegBase(seg) >> space->zoneShift;
   limit = (((Word)SegLimit(seg)-1) >> space->zoneShift) + 1;
 
-  if(limit - base >= MPS_WORD_WIDTH)        /* .osos.univ */
-    return ObjSetUNIV;
+  if(limit - base >= MPS_WORD_WIDTH)        /* .rsos.univ */
+    return RefSetUNIV;
 
   base  &= MPS_WORD_WIDTH - 1;
   limit &= MPS_WORD_WIDTH - 1;
 
-  if(base < limit)                      /* .osos.swap */
-    return ((ObjSet)1<<limit) - ((ObjSet)1<<base);
+  if(base < limit)                      /* .rsos.swap */
+    return ((RefSet)1<<limit) - ((RefSet)1<<base);
   else
-    return ~(((ObjSet)1<<base) - ((ObjSet)1<<limit));
+    return ~(((RefSet)1<<base) - ((RefSet)1<<limit));
 }

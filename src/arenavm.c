@@ -1,6 +1,6 @@
 /* impl.c.arenavm: VIRTUAL MEMORY BASED ARENA IMPLEMENTATION
  *
- * $HopeName: MMsrc!arenavm.c(MMdevel_gavinm_zone.2) $
+ * $HopeName: MMsrc!arenavm.c(MMdevel_gavinm_zone.3) $
  * Copyright (C) 1997, 1998 The Harlequin Group Limited.  All rights reserved.
  *
  * This is the implementation of the Segment abstraction from the VM
@@ -21,7 +21,7 @@
  *
  * .improve.table.zone-zero: It would be better to make sure that the
  * page tables are in zone zero, since that zone is least useful for
- * GC. (but it would change how SegAllocWithObjSet avoids allocating
+ * GC. (but it would change how SegAllocWithRefSet avoids allocating
  * over the tables, see .alloc.skip)@@@@
  */
 
@@ -29,7 +29,7 @@
 #include "mpm.h"
 #include "mpsavm.h"
 
-SRCID(arenavm, "$HopeName: MMsrc!arenavm.c(MMdevel_gavinm_zone.2) $");
+SRCID(arenavm, "$HopeName: MMsrc!arenavm.c(MMdevel_gavinm_zone.3) $");
 
 
 typedef struct VMArenaStruct *VMArena;
@@ -48,16 +48,16 @@ typedef struct VMArenaStruct {  /* VM arena structure */
   VM vm;                        /* virtual memory handle */
   Addr base;                    /* base address of arena area */
   Addr limit;                   /* limit address of arena area */
-  Size pageSize;             /* size of block managed by PageStruct */
+  Size pageSize;                /* size of block managed by PageStruct */
   Shift pageShift;              /* log2 of page size, for shifts */
   Index pages;                  /* number of pages in table */
   Page pageTable;               /* the page table */
   BT allocTable;                /* page allocation table */
   Size tablesSize;              /* size of area occupied by tables */
   Index tablePages;             /* number of pages occupied by tables */
-  ObjSet blacklist;             /* zones to use last */
-  ObjSet genObjSet[VMArenaGenCount];  /* zones assigned to generations */
-  ObjSet freeSet;               /* unassigned zones */
+  RefSet blacklist;             /* zones to use last */
+  RefSet genRefSet[VMArenaGenCount];  /* zones assigned to generations */
+  RefSet freeSet;               /* unassigned zones */
   Sig sig;                      /* design.mps.sig */
 } VMArenaStruct;
 
@@ -149,7 +149,7 @@ static Addr VMSegLimit(Seg seg);
 static Bool VMArenaCheck(VMArena vmArena)
 {
   Index gen;
-  ObjSet allocSet;
+  RefSet allocSet;
 
   CHECKS(VMArena, vmArena);
   CHECKD(Arena, VMArenaArena(vmArena));
@@ -175,12 +175,12 @@ static Bool VMArenaCheck(VMArena vmArena)
          <= vmArena->limit);
   /* .improve.check-table: Could check the consistency of the tables. */
 
-  allocSet = ObjSetEMPTY;
+  allocSet = RefSetEMPTY;
   for(gen = (Index)0; gen < VMArenaGenCount; gen++) {
-    allocSet = ObjSetUnion(allocSet, vmArena->genObjSet[gen]);
+    allocSet = RefSetUnion(allocSet, vmArena->genRefSet[gen]);
   }
   /* Might have allocated zones to non-generational pools */
-  AVER(ObjSetInter(allocSet, vmArena->freeSet) == ObjSetEMPTY);
+  AVER(RefSetInter(allocSet, vmArena->freeSet) == RefSetEMPTY);
 
   return TRUE;
 }
@@ -276,13 +276,13 @@ static Res VMArenaInit(Arena *arenaReturn, va_list args)
   /* correspond to low integers.  */
   /* @@@@ This should be dynamic. */
   vmArena->blacklist = 
-    ObjSetAdd(arena, ObjSetAdd(arena, ObjSetEMPTY, (Addr)1), (Addr)-1);
+    RefSetAdd(arena, RefSetAdd(arena, RefSetEMPTY, (Addr)1), (Addr)-1);
 
   for(gen = (Index)0; gen < VMArenaGenCount; gen++) {
-    vmArena->genObjSet[gen] = ObjSetEMPTY;
+    vmArena->genRefSet[gen] = RefSetEMPTY;
   }
 
-  vmArena->freeSet = ObjSetUNIV; /* includes blacklist */
+  vmArena->freeSet = RefSetUNIV; /* includes blacklist */
 
   /* Sign and check the arena. */
   vmArena->sig = VMArenaSig;
@@ -413,18 +413,18 @@ static Bool findFreeInArea(Index *baseReturn,
 }
 
 
-/* findFreeInObjSet -- try to allocate a segment with a ObjSet
+/* findFreeInRefSet -- try to allocate a segment with a RefSet
  * 
- * This function finds the intersection of objSet and the set of free
+ * This function finds the intersection of RefSet and the set of free
  * pages and tries to find a free run of pages in the resulting set of
  * areas.
  *
- * In other words, it finds space for a segment whose ObjSet (see
- * ObjSetOfSeg) will be a subset of the specified ObjSet.
+ * In other words, it finds space for a segment whose RefSet (see
+ * RefSetOfSeg) will be a subset of the specified RefSet.
  */
 
-static Bool findFreeInObjSet(Index *baseReturn,
-			     VMArena vmArena, Size size, ObjSet objSet)
+static Bool findFreeInRefSet(Index *baseReturn,
+			     VMArena vmArena, Size size, RefSet RefSet)
 {
   Arena arena;
   Addr arenaBase, base, limit;
@@ -433,7 +433,7 @@ static Bool findFreeInObjSet(Index *baseReturn,
   AVER(baseReturn != NULL);
   AVERT(VMArena, vmArena);
   AVER(size > 0);
-  /* Can't check objSet */
+  /* Can't check RefSet */
 
   arena = VMArenaArena(vmArena);
   zoneSize = (Size)1 << arena->zoneShift;
@@ -444,8 +444,8 @@ static Bool findFreeInObjSet(Index *baseReturn,
   base = arenaBase;
   while(base < vmArena->limit) {
   
-    if(ObjSetIsMember(arena, objSet, base)) {
-      /* Search for a run of zone stripes which are in the ObjSet and */
+    if(RefSetIsMember(arena, RefSet, base)) {
+      /* Search for a run of zone stripes which are in the RefSet and */
       /* the arena.  Adding the zoneSize might wrap round (to zero, */
       /* because limit is aligned to zoneSize, which is a power of two). */
       limit = base;
@@ -460,11 +460,11 @@ static Bool findFreeInObjSet(Index *baseReturn,
         }
 
         AVER(base < limit && limit < vmArena->limit);
-      } while(ObjSetIsMember(arena, objSet, limit));
+      } while(RefSetIsMember(arena, RefSet, limit));
 
-      /* If the ObjSet was universal, then the area found ought to */
+      /* If the RefSet was universal, then the area found ought to */
       /* be the whole arena. */
-      AVER(objSet != ObjSetUNIV ||
+      AVER(RefSet != RefSetUNIV ||
            (base == arenaBase && limit == vmArena->limit));
 
       /* Try to allocate a segment in the area. */
@@ -623,7 +623,7 @@ static Res VMSegAlloc(Seg *segReturn, SegPref pref, Size size,
   Addr addr, unmappedPagesBase, unmappedPagesLimit;
   Seg seg;
   Res res;
-  ObjSet objSet, segObjSet;
+  RefSet RefSet, segRefSet;
   Serial gen = (Serial)0; /* avoids incorrect warning */
 
   AVER(segReturn != NULL);
@@ -645,9 +645,9 @@ static Res VMSegAlloc(Seg *segReturn, SegPref pref, Size size,
     gen = pref->gen;
     if(gen >= VMArenaGenCount)
       gen = VMArenaGenCount - 1;
-    objSet = vmArena->genObjSet[gen];
+    RefSet = vmArena->genRefSet[gen];
   } else {
-    objSet = pref->objSet;
+    RefSet = pref->RefSet;
   }
    
   /* @@@@ Some of these tests might be duplicates.  If we're about */
@@ -655,7 +655,8 @@ static Res VMSegAlloc(Seg *segReturn, SegPref pref, Size size,
   /* probably the least of our worries. */
 
   /* We look for space in the following places (in order) */
-  /*   - Zones already allocated to me (objSet); */
+  /*   - Zones already allocated to me (RefSet) but are not */
+  /*     blacklisted; */
   /*   - Zones that are either allocated to me, or are unallocated */
   /*     but not blacklisted; */
   /*   - Any non-blacklisted zone; */
@@ -663,14 +664,15 @@ static Res VMSegAlloc(Seg *segReturn, SegPref pref, Size size,
   /* Note that each is a superset of the previous, unless blacklisted */
   /* zones have been allocated (or the default is used). */
 
-  if(!findFreeInObjSet(&base, vmArena, size, objSet) &&
-     !findFreeInObjSet(&base, vmArena, size, 
-		       ObjSetUnion(objSet,
-		                   ObjSetDiff(vmArena->freeSet, 
+  if(!findFreeInRefSet(&base, vmArena, size, 
+		       RefSetDiff(RefSet, vmArena->blacklist)) &&
+     !findFreeInRefSet(&base, vmArena, size, 
+                               RefSetUnion(RefSet,
+		                   RefSetDiff(vmArena->freeSet, 
 					      vmArena->blacklist))) && 
-     !findFreeInObjSet(&base, vmArena, size, 
-		       ObjSetDiff(ObjSetUNIV, vmArena->blacklist)) && 
-     !findFreeInObjSet(&base, vmArena, size, ObjSetUNIV)) {
+     !findFreeInRefSet(&base, vmArena, size, 
+		       RefSetDiff(RefSetUNIV, vmArena->blacklist)) && 
+     !findFreeInRefSet(&base, vmArena, size, RefSetUNIV)) {
     /* .improve.alloc-fail: This could be because the request was */
     /* too large, or perhaps the arena is fragmented.  We could return a */
     /* more meaningful code. */
@@ -719,13 +721,13 @@ static Res VMSegAlloc(Seg *segReturn, SegPref pref, Size size,
   } else
     SegSetSingle(seg, TRUE);
 
-  segObjSet = ObjSetOfSeg(arena, seg);
+  segRefSet = RefSetOfSeg(arena, seg);
 
   if(pref->isGen)
-    vmArena->genObjSet[gen] = 
-      ObjSetUnion(vmArena->genObjSet[gen], segObjSet);
+    vmArena->genRefSet[gen] = 
+      RefSetUnion(vmArena->genRefSet[gen], segRefSet);
 
-  vmArena->freeSet = ObjSetDiff(vmArena->freeSet, segObjSet);
+  vmArena->freeSet = RefSetDiff(vmArena->freeSet, segRefSet);
   
   AVERT(Seg, seg);
   

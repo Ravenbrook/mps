@@ -1,6 +1,6 @@
 /* impl.c.arenacv: ARENA COVERAGE TEST
  *
- * $HopeName: MMsrc!arenacv.c(MMdevel_gavinm_zone.1) $
+ * $HopeName: MMsrc!arenacv.c(MMdevel_gavinm_zone.2) $
  * Copyright (C) 1997 Harlequin Group, all rights reserved
  *
  * .readership: MPS developers
@@ -38,7 +38,7 @@ static void testit(ArenaClass class, ...)
   Count segsPerPage, offset, gap, new;
   int i;
   SegPrefStruct pref = *SegPrefDefault();
-  ObjSet objSet = (ObjSet)2;
+  RefSet refSet = (RefSet)2;
   va_list args;
 
   va_start(args, class);
@@ -108,7 +108,7 @@ static void testit(ArenaClass class, ...)
 	SegFree(offsetSeg);
       }
     }
-    SegPrefExpress(&pref, SegPrefObjSet, &objSet);
+    SegPrefExpress(&pref, SegPrefRefSet, &refSet);
   }
 
   PoolDestroy(pool);
