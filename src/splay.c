@@ -1,6 +1,6 @@
 /* impl.c.splay: SPLAY TREE IMPLEMENTATION
  *
- * $HopeName: MMsrc!splay.c(trunk.7) $
+ * $HopeName: !splay.c(trunk.8) $
  * Copyright (C) 1998 Harlequin Group plc, all rights reserved.
  *
  * .readership: Any MPS developer.
@@ -22,7 +22,7 @@
 #include "mpm.h"
 
 
-SRCID(splay, "$HopeName: MMsrc!splay.c(trunk.7) $");
+SRCID(splay, "$HopeName: !splay.c(trunk.8) $");
 
 /* Basic getter and setter methods */
 #define SplayTreeRoot(t) RVALUE((t)->root)

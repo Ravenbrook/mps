@@ -1,6 +1,6 @@
 /*  impl.c.vmw3: VIRTUAL MEMORY MAPPING FOR WIN32
  *
- * $HopeName: MMsrc!vmw3.c(trunk.29) $
+ * $HopeName: !vmw3.c(trunk.30) $
  * Copyright (C) 1997, 1998 Harlequin Group plc.  All rights reserved.
  *
  *  Design: design.mps.vm
@@ -55,7 +55,7 @@
 
 #include "mpswin.h"
 
-SRCID(vmw3, "$HopeName: MMsrc!vmw3.c(trunk.29) $");
+SRCID(vmw3, "$HopeName: !vmw3.c(trunk.30) $");
 
 
 /* VMStruct -- virtual memory structure */

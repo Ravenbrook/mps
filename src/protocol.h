@@ -1,6 +1,6 @@
 /* impl.h.protocol: PROTOCOL INHERITANCE DEFINITIONS
  *
- * $HopeName: MMsrc!protocol.h(MMdevel_tony_inheritance.4) $
+ * $HopeName: !protocol.h(trunk.2) $
  * Copyright (C) 1998.  Harlequin Group plc.  All rights reserved.
  */
 

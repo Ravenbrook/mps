@@ -1,6 +1,6 @@
 /* impl.c.poolabs: ABSTRACT POOL CLASSES
  *
- * $HopeName: MMsrc!poolabs.c(trunk.3) $
+ * $HopeName: !poolabs.c(trunk.4) $
  * Copyright (C) 1998 Harlequin Group plc.  All rights reserved.
  *
  * READERSHIP
@@ -30,7 +30,7 @@
 
 #include "mpm.h"
 
-SRCID(poolabs, "$HopeName: MMsrc!poolabs.c(trunk.3) $");
+SRCID(poolabs, "$HopeName: !poolabs.c(trunk.4) $");
 
 typedef PoolClassStruct AbstractPoolClassStruct;
 typedef PoolClassStruct AbstractAllocFreePoolClassStruct;
