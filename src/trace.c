@@ -1,11 +1,11 @@
 /* impl.c.trace: GENERIC TRACER IMPLEMENTATION
  *
- * $HopeName: MMsrc!trace.c(MMdevel_remem.3) $
+ * $HopeName: MMsrc!trace.c(MMdevel_remem.4) $
  */
 
 #include "mpm.h"
 
-SRCID(trace, "$HopeName: MMsrc!trace.c(MMdevel_remem.3) $");
+SRCID(trace, "$HopeName: MMsrc!trace.c(MMdevel_remem.4) $");
 
 Bool ScanStateCheck(ScanState ss)
 {
@@ -32,6 +32,7 @@ Bool TraceSetCheck(TraceSet ts)
 Res TraceCreate(TraceId *tiReturn, Space space)
 {
   TraceId ti;
+  Trace trace;
 
   /* .single-collection */
   AVER(TRACE_MAX == 1);
@@ -46,7 +47,13 @@ Res TraceCreate(TraceId *tiReturn, Space space)
   return ResLIMIT;
 
 found:
-  space->trace[ti].condemned = RefSetEmpty;
+  trace = &space->trace[ti];
+  trace->condemned = RefSetEmpty;
+  trace->white = 0;
+  trace->grey = 0;
+  trace->todo = 0;
+  trace->done = 0;
+  trace->rate = 2500;
   space->busyTraces = TraceSetAdd(space->busyTraces, ti);
 
   *tiReturn = ti;
@@ -145,6 +152,9 @@ Res TraceFlip(Space space, TraceId ti, RefSet condemned)
 
   ss.sig = SigInvalid;  /* just in case */
 
+  trace->rate = (trace->grey + trace->white/3 + 4096)/
+		  ((trace->white - trace->white/3)/4096 +1);
+
   ShieldResume(space);
 
   return ResOK;
@@ -173,16 +183,17 @@ Size TracePoll(Space space, TraceId ti)
 
   trace = &space->trace[ti];
 
-  res = TraceRun(space, ti, &finished);
-  AVER(res == ResOK); /* @@@@ */
-  if(finished) {
-    TraceReclaim(space, ti);
-    TraceDestroy(space, ti);
-    return SPACE_POLL_MAX;
+  trace->todo += trace->rate;
+  if(trace->done <= trace->todo) {
+    res = TraceRun(space, ti, &finished);
+    AVER(res == ResOK); /* @@@@ */
+    if(finished) {
+      TraceReclaim(space, ti);
+      TraceDestroy(space, ti);
+      return SPACE_POLL_MAX;
+    }
   }
 
-  /* We need to calculate a rate depending on the amount of work */
-  /* remaining and the deadline for the collection to finish. */
   return (Size)4096;            /* @@@@ */
 }
 
@@ -282,6 +293,7 @@ Res TraceRun(Space space, TraceId ti, Bool *finishedReturn)
 {
   Res res;
   ScanStateStruct ss;
+  Trace trace = &space->trace[ti];
 
   AVERT(Space, space);
   AVER(finishedReturn != NULL);
@@ -295,6 +307,7 @@ Res TraceRun(Space space, TraceId ti, Bool *finishedReturn)
   ss.traceId = ti;
   ss.sig = ScanStateSig;
 
+  trace->done += (Size)4096;
   for(ss.rank = 0; ss.rank < RankMAX; ++ss.rank) {
     Ring ring;
     Ring node;

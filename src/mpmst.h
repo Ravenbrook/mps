@@ -1,6 +1,6 @@
 /* impl.h.mpmst: MEMORY POOL MANAGER DATA STRUCTURES
  *
- * $HopeName: MMsrc!mpmst.h(MMdevel_remem.1) $
+ * $HopeName: MMsrc!mpmst.h(MMdevel_remem.2) $
  * Copyright (C) 1996 Harlequin Group, all rights reserved.
  *
  * .rationale: Almost all MPM data structures are defined in this
@@ -447,6 +447,11 @@ typedef struct ScanStateStruct {
 
 typedef struct TraceStruct {
   RefSet condemned;
+  Size todo;
+  Size done;
+  Size rate;
+  Size grey;
+  Size white;
 } TraceStruct;
 
 
