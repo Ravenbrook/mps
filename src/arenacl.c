@@ -1,6 +1,6 @@
 /* impl.c.arenacl: ARENA IMPLEMENTATION USING CLIENT MEMORY
  *
- * $HopeName: !arenacl.c(trunk.2) $
+ * $HopeName: MMsrc!arenacl.c(MMdevel_lint.1) $
  * 
  * Copyright (C) 1996 Harlequin Group, all rights reserved.
  *
@@ -41,7 +41,7 @@
 #error "Client arena not configured"
 #endif
 
-SRCID(arenacl, "$HopeName: !arenacl.c(trunk.2) $");
+SRCID(arenacl, "$HopeName: MMsrc!arenacl.c(MMdevel_lint.1) $");
 
 Bool ArenaCheck(Arena arena)
 {
@@ -632,7 +632,7 @@ static Res SegChunk(Chunk *chunkReturn, PI *piReturn, Seg seg, Arena arena)
   AVERT(Seg, seg);
   AVERT(Arena, arena);
 
-  page = PARENT(PageStruct, the.head, seg);
+  page = PARENT(PageStruct, the, seg);
 
   RING_FOR(node, &arena->chunkRing) {
     Chunk chunk = RING_ELT(Chunk, arenaRing, node);
@@ -746,7 +746,7 @@ Addr SegLimit(Space space, Seg seg)
   if(seg->single)
     return AddrAdd(SegBase(space, seg), arena->pageSize);
   else {
-    page = PARENT(PageStruct, the.head, seg);
+    page = PARENT(PageStruct, the, seg);
     return page[1].the.tail.limit;
   }
 }
