@@ -1,6 +1,6 @@
 /* impl.c.poolmv: MANUAL VARIABLE POOL
  *
- * $HopeName: !poolmv.c(trunk.13) $
+ * $HopeName: MMsrc!poolmv.c(MMdevel_drj_swint.1) $
  * Copyright (C) 1994, 1995 Harlequin Group, all rights reserved
  *
  * **** RESTRICTION: This pool may not allocate from the arena control
@@ -37,7 +37,7 @@
 #include "poolmfs.h"
 #include "mpscmv.h"
 
-SRCID(poolmv, "$HopeName: !poolmv.c(trunk.13) $");
+SRCID(poolmv, "$HopeName: MMsrc!poolmv.c(MMdevel_drj_swint.1) $");
 
 
 #define BLOCKPOOL(mv)   (MFSPool(&(mv)->blockPoolStruct))
@@ -606,6 +606,59 @@ mps_class_t mps_class_mv(void)
 {
   return (mps_class_t)(PoolClassMV());
 }
+
+/* Free bytes */
+
+size_t mps_mv_free_size(mps_pool_t mps_pool)
+{
+  Pool pool;
+  MV mv;
+  MVSpan span;
+  Size f = 0;
+
+  pool = (Pool)mps_pool;
+
+  AVERT(Pool, pool);
+  mv = PoolPoolMV(pool);
+  AVERT(MV, mv);
+
+  span = mv->spans;
+  while(span != NULL) {
+    AVERT(MVSpan, span);
+    f += span->space;
+    span = span->next;
+  }
+
+  return (size_t)f;
+}
+
+size_t mps_mv_size(mps_pool_t mps_pool)
+{
+  Pool pool;
+  MV mv;
+  MVSpan span;
+  Space space;
+  Size f = 0;
+
+  pool = (Pool)mps_pool;
+
+  AVERT(Pool, pool);
+  mv = PoolPoolMV(pool);
+  AVERT(MV, mv);
+  space = PoolSpace(pool);
+
+  span = mv->spans;
+  while(span != NULL) {
+    AVERT(MVSpan, span);
+    f += SegSize(space, span->seg);
+    span = span->next;
+  }
+
+  return (size_t)f;
+} 
+
+
+
 
 
 /* MVCheck -- check the consistency of an MV structure */
