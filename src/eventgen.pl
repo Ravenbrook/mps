@@ -2,7 +2,7 @@
 # impl.pl.eventgen -- Generator for impl.h.eventgen
 #
 # Copyright (C) 1997 Harlequin Group, all rights reserved.
-# $HopeName: MMsrc!eventgen.pl(MMdevel_event_string.2) $
+# $HopeName: MMsrc!eventgen.pl(MMdevel_event_string.3) $
 #
 # Invoke this script in the src directory.
 # It works by scanning *.c for EVENT_[A-Z], 
@@ -71,7 +71,7 @@ print H "} EventUnion;\n\n\n";
 
 
 print H "#define EVENT_0(type) \\
-  EVENT_BEGIN(type, sizeof(EventStruct)) \\
+  EVENT_BEGIN(type, 0, sizeof(EventStruct)) \\
   EVENT_END(type, sizeof(EventStruct))\n\n";
 
 foreach $format (sort(keys(%Formats))) {
@@ -100,7 +100,7 @@ foreach $format (sort(keys(%Formats))) {
     print H "    size_t _length = sizeof(Event${format}Struct); \\\n";
   }
 
-  print H "    EVENT_BEGIN(type, _length); \\\n";
+  print H "    EVENT_BEGIN(type, $format, _length); \\\n";
 
   for($i = 0; $i < length($format); $i++) {
     $c = substr($format, $i, 1);
@@ -114,6 +114,12 @@ foreach $format (sort(keys(%Formats))) {
 
     print H "    EVENT_END(type, _length); \\\n";
     print H "  END\n\n";
+}
+
+$C = 0;
+foreach $format ("0", sort(keys(%Formats))) {
+  print H "#define EventFormat$format $C\n";
+  $C++;
 }
 
 print H "\n#else /* EVENT not */\n\n";

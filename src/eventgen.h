@@ -185,13 +185,13 @@ typedef union {
 
 
 #define EVENT_0(type) \
-  EVENT_BEGIN(type, sizeof(EventStruct)) \
+  EVENT_BEGIN(type, 0, sizeof(EventStruct)) \
   EVENT_END(type, sizeof(EventStruct))
 
 #define EVENT_A(type, _a0) \
   BEGIN \
     size_t _length = sizeof(EventAStruct); \
-    EVENT_BEGIN(type, _length); \
+    EVENT_BEGIN(type, A, _length); \
     Event.a.a0 = (_a0); \
     EVENT_END(type, _length); \
   END
@@ -199,7 +199,7 @@ typedef union {
 #define EVENT_P(type, _p0) \
   BEGIN \
     size_t _length = sizeof(EventPStruct); \
-    EVENT_BEGIN(type, _length); \
+    EVENT_BEGIN(type, P, _length); \
     Event.p.p0 = (_p0); \
     EVENT_END(type, _length); \
   END
@@ -207,7 +207,7 @@ typedef union {
 #define EVENT_PAA(type, _p0, _a1, _a2) \
   BEGIN \
     size_t _length = sizeof(EventPAAStruct); \
-    EVENT_BEGIN(type, _length); \
+    EVENT_BEGIN(type, PAA, _length); \
     Event.paa.p0 = (_p0); \
     Event.paa.a1 = (_a1); \
     Event.paa.a2 = (_a2); \
@@ -217,7 +217,7 @@ typedef union {
 #define EVENT_PAW(type, _p0, _a1, _w2) \
   BEGIN \
     size_t _length = sizeof(EventPAWStruct); \
-    EVENT_BEGIN(type, _length); \
+    EVENT_BEGIN(type, PAW, _length); \
     Event.paw.p0 = (_p0); \
     Event.paw.a1 = (_a1); \
     Event.paw.w2 = (_w2); \
@@ -227,7 +227,7 @@ typedef union {
 #define EVENT_PP(type, _p0, _p1) \
   BEGIN \
     size_t _length = sizeof(EventPPStruct); \
-    EVENT_BEGIN(type, _length); \
+    EVENT_BEGIN(type, PP, _length); \
     Event.pp.p0 = (_p0); \
     Event.pp.p1 = (_p1); \
     EVENT_END(type, _length); \
@@ -236,7 +236,7 @@ typedef union {
 #define EVENT_PPAA(type, _p0, _p1, _a2, _a3) \
   BEGIN \
     size_t _length = sizeof(EventPPAAStruct); \
-    EVENT_BEGIN(type, _length); \
+    EVENT_BEGIN(type, PPAA, _length); \
     Event.ppaa.p0 = (_p0); \
     Event.ppaa.p1 = (_p1); \
     Event.ppaa.a2 = (_a2); \
@@ -247,7 +247,7 @@ typedef union {
 #define EVENT_PPAU(type, _p0, _p1, _a2, _u3) \
   BEGIN \
     size_t _length = sizeof(EventPPAUStruct); \
-    EVENT_BEGIN(type, _length); \
+    EVENT_BEGIN(type, PPAU, _length); \
     Event.ppau.p0 = (_p0); \
     Event.ppau.p1 = (_p1); \
     Event.ppau.a2 = (_a2); \
@@ -258,7 +258,7 @@ typedef union {
 #define EVENT_PPAWP(type, _p0, _p1, _a2, _w3, _p4) \
   BEGIN \
     size_t _length = sizeof(EventPPAWPStruct); \
-    EVENT_BEGIN(type, _length); \
+    EVENT_BEGIN(type, PPAWP, _length); \
     Event.ppawp.p0 = (_p0); \
     Event.ppawp.p1 = (_p1); \
     Event.ppawp.a2 = (_a2); \
@@ -270,7 +270,7 @@ typedef union {
 #define EVENT_PPP(type, _p0, _p1, _p2) \
   BEGIN \
     size_t _length = sizeof(EventPPPStruct); \
-    EVENT_BEGIN(type, _length); \
+    EVENT_BEGIN(type, PPP, _length); \
     Event.ppp.p0 = (_p0); \
     Event.ppp.p1 = (_p1); \
     Event.ppp.p2 = (_p2); \
@@ -280,7 +280,7 @@ typedef union {
 #define EVENT_PPPP(type, _p0, _p1, _p2, _p3) \
   BEGIN \
     size_t _length = sizeof(EventPPPPStruct); \
-    EVENT_BEGIN(type, _length); \
+    EVENT_BEGIN(type, PPPP, _length); \
     Event.pppp.p0 = (_p0); \
     Event.pppp.p1 = (_p1); \
     Event.pppp.p2 = (_p2); \
@@ -291,7 +291,7 @@ typedef union {
 #define EVENT_PPPU(type, _p0, _p1, _p2, _u3) \
   BEGIN \
     size_t _length = sizeof(EventPPPUStruct); \
-    EVENT_BEGIN(type, _length); \
+    EVENT_BEGIN(type, PPPU, _length); \
     Event.pppu.p0 = (_p0); \
     Event.pppu.p1 = (_p1); \
     Event.pppu.p2 = (_p2); \
@@ -302,7 +302,7 @@ typedef union {
 #define EVENT_PPU(type, _p0, _p1, _u2) \
   BEGIN \
     size_t _length = sizeof(EventPPUStruct); \
-    EVENT_BEGIN(type, _length); \
+    EVENT_BEGIN(type, PPU, _length); \
     Event.ppu.p0 = (_p0); \
     Event.ppu.p1 = (_p1); \
     Event.ppu.u2 = (_u2); \
@@ -312,7 +312,7 @@ typedef union {
 #define EVENT_PPW(type, _p0, _p1, _w2) \
   BEGIN \
     size_t _length = sizeof(EventPPWStruct); \
-    EVENT_BEGIN(type, _length); \
+    EVENT_BEGIN(type, PPW, _length); \
     Event.ppw.p0 = (_p0); \
     Event.ppw.p1 = (_p1); \
     Event.ppw.w2 = (_w2); \
@@ -322,7 +322,7 @@ typedef union {
 #define EVENT_PPWAW(type, _p0, _p1, _w2, _a3, _w4) \
   BEGIN \
     size_t _length = sizeof(EventPPWAWStruct); \
-    EVENT_BEGIN(type, _length); \
+    EVENT_BEGIN(type, PPWAW, _length); \
     Event.ppwaw.p0 = (_p0); \
     Event.ppwaw.p1 = (_p1); \
     Event.ppwaw.w2 = (_w2); \
@@ -338,7 +338,7 @@ typedef union {
     size_t _length = \
       WordAlignUp(offsetof(EventSStruct, s) + \
                   _string_length + 1, sizeof(Word)); \
-    EVENT_BEGIN(type, _length); \
+    EVENT_BEGIN(type, S, _length); \
     _memcpy(Event.s.s, (_s2), _string_length + 1); \
     EVENT_END(type, _length); \
   END
@@ -346,7 +346,7 @@ typedef union {
 #define EVENT_UUPPP(type, _u0, _u1, _p2, _p3, _p4) \
   BEGIN \
     size_t _length = sizeof(EventUUPPPStruct); \
-    EVENT_BEGIN(type, _length); \
+    EVENT_BEGIN(type, UUPPP, _length); \
     Event.uuppp.u0 = (_u0); \
     Event.uuppp.u1 = (_u1); \
     Event.uuppp.p2 = (_p2); \
@@ -355,6 +355,23 @@ typedef union {
     EVENT_END(type, _length); \
   END
 
+#define EventFormat0 0
+#define EventFormatA 1
+#define EventFormatP 2
+#define EventFormatPAA 3
+#define EventFormatPAW 4
+#define EventFormatPP 5
+#define EventFormatPPAA 6
+#define EventFormatPPAU 7
+#define EventFormatPPAWP 8
+#define EventFormatPPP 9
+#define EventFormatPPPP 10
+#define EventFormatPPPU 11
+#define EventFormatPPU 12
+#define EventFormatPPW 13
+#define EventFormatPPWAW 14
+#define EventFormatS 15
+#define EventFormatUUPPP 16
 
 #else /* EVENT not */
 
