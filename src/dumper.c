@@ -1,6 +1,6 @@
 /* impl.c.dumper: Simple Event Dumper
  *
- * $HopeName$
+ * $HopeName: MMsrc!dumper.c(MMdevel_event_string.1) $
  * Copyright (C) 1997 Harlequin Group, all rights reserved.
  *
  * .readership: MM developers.
@@ -23,7 +23,7 @@ typedef struct AddrStruct *Addr;
 #include "eventcom.h"
 
 
-#define RELATION(type, code, always, format) \
+#define RELATION(type, code, always, kind, format) \
   case Event ## type: \
     readEvent(#type, #format, header[0], header[1], header[2]); \
     break; 

@@ -1,7 +1,7 @@
 /* impl.h.eventcom -- Event Logging Common Types
  *
  * Copyright (C) 1997 Harlequin Group, all rights reserved.
- * $HopeName$
+ * $HopeName: MMsrc!eventcom.h(MMdevel_event_string.1) $
  *
  * .readership: MPS developers.
  * .sources: mps.design.telemetry
@@ -14,13 +14,16 @@
 
 typedef Word EventType;
 
+
 /* Event Codes -- see design.mps.telemetry
  *
  * These names are intended to be mnemonic.  They are derived from 
  * selected letters as indicated, using the transliteration in 
  * guide.hex.trans.
+ *
+ * These definitions will be unnecessary when the event codes are
+ * changed to 16-bit.  See impl.h.eventdef.
  */
-
                                                     /* EVent ... */
 #define EventEventTime      ((EventType)0xEF213E99) /* TIME */
 #define EventSpaceCreate    ((EventType)0xEF5BCC6E) /* SPaCe CREate */

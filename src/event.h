@@ -1,7 +1,7 @@
 /* impl.h.event -- Event Logging Interface
  *
  * Copyright (C) 1997 Harlequin Group, all rights reserved.
- * $HopeName: MMsrc!event.h(MMdevel_event_string.3) $
+ * $HopeName: MMsrc!event.h(MMdevel_event_string.4) $
  *
  * .readership: MPS developers.
  * .sources: mps.design.event
@@ -11,23 +11,42 @@
 #define event_h
 
 #include "mpm.h"
+#include "eventcom.h"
+#include "eventgen.h"
 
 extern Res EventFlush(void);
 extern Res EventInit(void);
 extern void EventFinish(void);
 
-#include "eventcom.h"
-#include "eventgen.h"
+typedef Index EventKind;
+
+
+/* Event Kinds --- see design.mps.telemetry
+ *
+ * All events are classified as being of one event type.
+ * They are small enough to be able to be used as shifts within a word.
+ */
+
+#define EventKindArena      ((EventType)0) /* Per space or arena */
+#define EventKindPool       ((EventType)1) /* Per pool */
+#define EventKindTrace      ((EventType)2) /* Per trace or scan */
+#define EventKindSeg        ((EventType)3) /* Per seg */
+#define EventKindRef        ((EventType)4) /* Per ref or fix */
+#define EventKindObject     ((EventType)5) /* Per alloc or object */
+
+#define EventKindNumber     ((Count)6) /* Number of event kinds */
+
 
 #ifdef EVENT
 
 /* Note that enum values can be up to fifteen bits long portably. */
 
-#define RELATION(type, code, always, format) \
+#define RELATION(type, code, always, kind, format) \
   enum { \
-    Event ## type ## High = (code >> 8), \
+    Event ## type ## High = ((code >> 8) & 0xFF), \
     Event ## type ## Low = (code & 0xFF), \
     Event ## type ## Always = always,\
+    Event ## type ## Kind = EventKind ## kind, \
     Event ## type ## Format = EventFormat ## format \
   }; 
   
@@ -65,14 +84,17 @@ extern EventUnion Event;
     Event.any.clock = mps_clock(); 
 
 #define EVENT_END(type, length) \
-  if((length) > EventLimit - EventNext) \
-    EventFlush(); /* @@@ should pass length */ \
-  AVER((length) <= EventLimit - EventNext); \
-  _memcpy(EventNext, &Event, (length)); \
-  EventNext += (length); \
+  if(BTGet(EventKindControl, ((Index)Event ## type ## Kind))) { \
+    if((length) > EventLimit - EventNext) \
+      EventFlush(); /* @@@ should pass length */ \
+    AVER((length) <= EventLimit - EventNext); \
+    _memcpy(EventNext, &Event, (length)); \
+    EventNext += (length); \
+  } \
   END
 
 extern char *EventNext, *EventLimit;
+extern BT EventKindControl;
 
 #else /* EVENT not */
 
