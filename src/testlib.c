@@ -1,12 +1,10 @@
-/*  ==== TEST LIBRARY ====
+/* impl.c.testlib: Test library
  *
- *  $HopeName: !testlib.c(trunk.8) $
+ *  $HopeName: MMsrc!testlib.c(MMepcore_pilchard.1) $
  *
- *  Copyright (C) 1995 Harlequin Group, all rights reserved
+ *  Copyright (C) 1995, 1998 Harlequin Group, all rights reserved
  *
  *  This is a library of functions that may be of use to unit tests.
- *
- *  Notes
  */
 
 #include "mps.h"
@@ -40,8 +38,8 @@ void die(mps_res_t res, const char *s)
 {
   if(res != MPS_RES_OK)
   {
+    fflush(stdout); /* synchronize */
     fprintf(stderr, "%s: %d\n", s, res);
     exit(1);
   }
 }
-
