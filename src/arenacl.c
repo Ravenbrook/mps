@@ -1,6 +1,6 @@
 /* impl.c.arenacl: ARENA IMPLEMENTATION USING CLIENT MEMORY
  *
- * $HopeName: !arenacl.c(trunk.12) $
+ * $HopeName: MMsrc!arenacl.c(MMdevel_drj_commit_limit.1) $
  * Copyright (C) 1997. Harlequin Group plc. All rights reserved.
  *
  * .readership: MM developers
@@ -17,7 +17,7 @@
 #include "mpsacl.h"
 
 
-SRCID(arenacl, "$HopeName: !arenacl.c(trunk.12) $");
+SRCID(arenacl, "$HopeName: MMsrc!arenacl.c(MMdevel_drj_commit_limit.1) $");
 
 
 typedef struct ClientArenaStruct *ClientArena;
@@ -487,6 +487,12 @@ static Res ChunkSegAlloc(Seg *segReturn, SegPref pref, Size pages,
   
   if (!b)
     return ResRESOURCE;
+  
+  /* check commit limit */
+  if(ClientArenaCommitted(PoolArena(pool)) + pages*clientArena->pageSize >
+     PoolArena(pool)->commitLimit) {
+    return ResCOMMIT_LIMIT;
+  }
 
   /* Initialize the generic segment structure. */
   seg = PageSeg(&chunk->pageTable[baseIndex]);
