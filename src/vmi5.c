@@ -1,7 +1,7 @@
 /* impl.c.vmi5: VIRTUAL MEMORY MAPPING FOR IRIX 5 (AND 6)
  *
- * $HopeName: MMsrc!vmi5.c(MM_epcore_minnow.1) $
- * Copyright (C) 1997. Harlequin Group plc. All rights reserved.
+ * $HopeName: MMsrc!vmi5.c(MM_epcore_minnow.2) $
+ * Copyright (C) 1997, 1998 Harlequin Group plc.  All rights reserved.
  *
  * Design: design.mps.vm
  *
@@ -18,15 +18,17 @@
  * is representable.
  *
  * .assume.mmap.err: EAGAIN is the only error we really expect to get
- * from mmap when committing and ENOMEM when reserving.  The others
- * are either caused by invalid params or features we don't use.  See
+ * from mmap when committing and ENOMEM when reserving or committing (we
+ * have actually observed ENOMEM when committing).  The others are
+ * either caused by invalid params or features we don't use.  See
  * mmap(2) for details.
  *
  * TRANSGRESSIONS
  *
- * .fildes.name: VMStruct has one fields whose name violates our
- * naming conventions.  It's called zero_fd to emphasize that it's a
- * file descriptor and this fact is not reflected in the type.  */
+ * .fildes.name: VMStruct has one fields whose name violates our naming
+ * conventions.  It's called zero_fd to emphasize that it's a file
+ * descriptor and this fact is not reflected in the type.
+ */
 
 #include "mpm.h"
 
@@ -44,7 +46,7 @@
 #include <errno.h>
 #include <unistd.h> /* for _SC_PAGESIZE */
 
-SRCID(vmi5, "$HopeName: MMsrc!vmi5.c(MM_epcore_minnow.1) $");
+SRCID(vmi5, "$HopeName: MMsrc!vmi5.c(MM_epcore_minnow.2) $");
 
 
 /* VMStruct -- virtual memory structure */
@@ -108,8 +110,8 @@ Res VMCreate(VM *vmReturn, Size size)
               PROT_READ | PROT_WRITE, MAP_PRIVATE,
               zero_fd, (off_t)0);
   if(addr == (void *)-1) {
-    AVER(errno == EAGAIN); /* .assume.mmap.err */
-    res = (errno == EAGAIN) ? ResMEMORY : ResFAIL;
+    AVER(errno == ENOMEM || errno == EAGAIN); /* .assume.mmap.err */
+    res = (errno == ENOMEM || errno == EAGAIN) ? ResMEMORY : ResFAIL;
     goto failVMMap;
   }
   vm = (VM)addr;
@@ -208,6 +210,7 @@ Res VMMap(VM vm, Addr base, Addr limit)
   AVERT(VM, vm);
   AVER(base < limit);
   AVER(base >= vm->base);
+
   AVER(limit <= vm->limit);
   AVER(AddrIsAligned(base, vm->align));
   AVER(AddrIsAligned(limit, vm->align));
@@ -222,7 +225,7 @@ Res VMMap(VM vm, Addr base, Addr limit)
 	      MAP_PRIVATE | MAP_FIXED,
 	      vm->zero_fd, (off_t)0);
   if(addr == (void *)-1) {
-    AVER(errno == EAGAIN); /* .assume.mmap.err */
+    AVER(errno == ENOMEM || errno == EAGAIN); /* .assume.mmap.err */
     return ResMEMORY;
   }
   AVER(addr == (void *)base);
