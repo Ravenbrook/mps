@@ -1,6 +1,6 @@
 /* impl.h.mpmtypes: MEMORY POOL MANAGER TYPES
  *
- * $HopeName: MMsrc!mpmtypes.h(MMdevel_trace2.1) $
+ * $HopeName: MMsrc!mpmtypes.h(MMdevel_trace2.2) $
  * Copyright (C) 1996 Harlequin Group, all rights reserved.
  *
  * .readership: MM developers.
@@ -140,7 +140,7 @@ typedef Res (*RootScanRegMethod)(Fix fix, Thread thread, void *p);
 /* This is checked by impl.c.mpsi.check. */
 
 enum {
-  RankNONE = (Rank)-1,
+  RankNONE = -1,
   RankAMBIG = 0,
   RankEXACT = 1,
   RankWEAK = 2,
