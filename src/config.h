@@ -1,7 +1,7 @@
 /* impl.h.config: MPS CONFIGURATION
  *
  * Copyright (C) 1997, 1998 Harlequin Group, all rights reserved.
- * $HopeName: MMsrc!config.h(MMepcore_pilchard.2) $
+ * $HopeName: MMsrc!config.h(MMepcore_pilchard.3) $
  *
  * .readership: MPS developers.
  */
@@ -121,10 +121,14 @@
  * .segpref.default: ARENA_DEFAULT_SEG_HIGH is a Bool governing whether
  * segments default 'high' (TRUE) or 'low' (FALSE).  For EPcore, non-DL
  * segments should be high to reduce fragmentation of DL pools (see
- * request.epcore.170193).  */
+ * request.epcore.170193).  ARENA_DEFAULT_REFSET has the same role for
+ * refset-based placement; again, for EPcore, we reserve half the arena
+ * for non-DL.
+ */
 
 #define ARENA_CLIENT_PAGE_SIZE          ((Size)8192)
 #define ARENA_DEFAULT_SEG_HIGH          TRUE
+#define ARENA_DEFAULT_REFSET            BS_UPPER_HALF(RefSet)
 
 #if defined(CONFIG_PROD_EPCORE)
 #define MPS_PROD_EPCORE
