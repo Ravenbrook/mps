@@ -2,7 +2,7 @@
  *
  *                  ANSI THREADS MANAGER
  *
- *  $HopeName: MMsrc!than.c(MMdevel_assertid.1) $
+ *  $HopeName: MMsrc!than.c(MMdevel_assertid.2) $
  *
  *  Copyright (C) 1995 Harlequin Group, all rights reserved
  *
@@ -17,15 +17,15 @@
 
 #include "mpm.h"
 
-SRCID(than, "$HopeName: MMsrc!than.c(MMdevel_assertid.1) $");
+SRCID(than, "$HopeName: MMsrc!than.c(MMdevel_assertid.2) $");
 
 
 Bool ThreadCheck(Thread thread)
 {
-  CHECKS(0xA55E62, Thread, thread);
-  CHECKU(0xA55E62, Space, thread->space);
-  CHECKL(0xA55E62, thread->serial < thread->space->threadSerial);
-  CHECKL(0xA55E62, RingCheck(&thread->spaceRing));
+  CHECKS(0x28A40000, Thread, thread);
+  CHECKU(0x28A40001, Space, thread->space);
+  CHECKL(0x28A40002, thread->serial < thread->space->threadSerial);
+  CHECKL(0x28A40003, RingCheck(&thread->spaceRing));
   return TRUE;
 }
 
@@ -37,7 +37,7 @@ Res ThreadRegister(Thread *threadReturn, Space space)
   Ring ring;
   void *p;
 
-  AVER(0xA55E62, threadReturn != NULL);
+  AVER(0x28A40004, threadReturn != NULL);
 
   res = SpaceAlloc(&p, space, sizeof(ThreadStruct));
   if(res != ResOK) return res;
@@ -50,10 +50,10 @@ Res ThreadRegister(Thread *threadReturn, Space space)
   thread->serial = space->threadSerial;
   ++space->threadSerial;
 
-  AVERT(0xA55E62, Thread, thread);
+  AVERT(0x28A40005, Thread, thread);
 
   ring = SpaceThreadRing(space);
-  AVER(0xA55E62, RingCheckSingle(ring));  /* .single */
+  AVER(0x28A40006, RingCheckSingle(ring));  /* .single */
 
   RingAppend(ring, &thread->spaceRing);
 
@@ -63,8 +63,8 @@ Res ThreadRegister(Thread *threadReturn, Space space)
 
 void ThreadDeregister(Thread thread, Space space)
 {
-  AVERT(0xA55E62, Thread, thread);
-  AVERT(0xA55E62, Space, space);
+  AVERT(0x28A40007, Thread, thread);
+  AVERT(0x28A40008, Space, space);
 
   RingRemove(&thread->spaceRing);
 
@@ -77,13 +77,13 @@ void ThreadDeregister(Thread thread, Space space)
 
 void ThreadRingSuspend(Ring threadRing)
 {
-  AVERT(0xA55E62, Ring, threadRing);
+  AVERT(0x28A40009, Ring, threadRing);
   return;
 }
 
 void ThreadRingResume(Ring threadRing)
 {
-  AVERT(0xA55E62, Ring, threadRing);
+  AVERT(0x28A4000A, Ring, threadRing);
   return;
 }
 

@@ -1,6 +1,6 @@
 /* impl.c.vmo1: VIRTUAL MEMORY MAPPING FOR DIGITAL UNIX
  *
- * $HopeName: MMsrc!vmo1.c(MMdevel_assertid.1) $
+ * $HopeName: MMsrc!vmo1.c(MMdevel_assertid.2) $
  * Copyright (C) 1995,1997 Harlequin Group, all rights reserved
  *
  * Readership: Any MPS developer
@@ -62,7 +62,7 @@
 /* for getpagesize(2),close(2) */
 #include <unistd.h>
 
-SRCID(vmo1, "$HopeName: MMsrc!vmo1.c(MMdevel_assertid.1) $");
+SRCID(vmo1, "$HopeName: MMsrc!vmo1.c(MMdevel_assertid.2) $");
 
 
 /* Fix unprototyped system calls
@@ -83,7 +83,7 @@ Align VMAlign(void)
   Align align;
 
   align = (Align)getpagesize();
-  AVER(0xA55E62, SizeIsP2(align));
+  AVER(0xF3010000, SizeIsP2(align));
 
   return align;
 }
@@ -91,15 +91,15 @@ Align VMAlign(void)
 
 Bool VMCheck(VM vm)
 {
-  CHECKS(0xA55E62, VM, vm);
-  CHECKL(0xA55E62, vm->none_fd >= 0);
-  CHECKL(0xA55E62, vm->base != 0);
-  CHECKL(0xA55E62, vm->limit != 0);
-  CHECKL(0xA55E62, vm->base < vm->limit);
-  CHECKL(0xA55E62, vm->mapped <= vm->reserved);
-  CHECKL(0xA55E62, SizeIsP2(vm->align));
-  CHECKL(0xA55E62, AddrIsAligned(vm->base, vm->align));
-  CHECKL(0xA55E62, AddrIsAligned(vm->limit, vm->align));
+  CHECKS(0xF3010001, VM, vm);
+  CHECKL(0xF3010002, vm->none_fd >= 0);
+  CHECKL(0xF3010003, vm->base != 0);
+  CHECKL(0xF3010004, vm->limit != 0);
+  CHECKL(0xF3010005, vm->base < vm->limit);
+  CHECKL(0xF3010006, vm->mapped <= vm->reserved);
+  CHECKL(0xF3010007, SizeIsP2(vm->align));
+  CHECKL(0xF3010008, AddrIsAligned(vm->base, vm->align));
+  CHECKL(0xF3010009, AddrIsAligned(vm->limit, vm->align));
   return TRUE;
 }
 
@@ -114,10 +114,10 @@ Res VMCreate(Space *spaceReturn, Size size, Addr base)
 
   align = VMAlign();
 
-  AVER(0xA55E62, spaceReturn != NULL);
-  AVER(0xA55E62, SizeIsAligned(size, align));
-  AVER(0xA55E62, size != 0);
-  AVER(0xA55E62, base == NULL);
+  AVER(0xF301000A, spaceReturn != NULL);
+  AVER(0xF301000B, SizeIsAligned(size, align));
+  AVER(0xF301000C, size != 0);
+  AVER(0xF301000D, base == NULL);
 
   none_fd = open("/etc/passwd", O_RDONLY);
   if(none_fd == -1) {
@@ -131,7 +131,7 @@ Res VMCreate(Space *spaceReturn, Size size, Addr base)
               -1, 0);
   if(addr == (void *)-1) {
     int e = errno;
-    AVER(0xA55E62, e == ENOMEM); /* .assume.mmap.err */
+    AVER(0xF301000E, e == ENOMEM); /* .assume.mmap.err */
     close(none_fd);
     if(e == ENOMEM)
       return ResMEMORY;
@@ -150,7 +150,7 @@ Res VMCreate(Space *spaceReturn, Size size, Addr base)
               none_fd, 0);
   if(addr == (void *)-1) {
     int e = errno;
-    AVER(0xA55E62, e == ENOMEM); /* .assume.mmap.err */
+    AVER(0xF301000F, e == ENOMEM); /* .assume.mmap.err */
     close(none_fd);
     if(e == ENOMEM)
       return ResRESOURCE;
@@ -165,7 +165,7 @@ Res VMCreate(Space *spaceReturn, Size size, Addr base)
 
   vm->sig = VMSig;
 
-  AVERT(0xA55E62, VM, vm);
+  AVERT(0xF3010010, VM, vm);
 
   *spaceReturn = space;
   return ResOK;
@@ -177,8 +177,8 @@ void VMDestroy(Space space)
   int r;
   VM vm = SpaceVM(space);
 
-  AVERT(0xA55E62, VM, vm);
-  AVER(0xA55E62, vm->mapped == (Size)0);
+  AVERT(0xF3010011, VM, vm);
+  AVER(0xF3010012, vm->mapped == (Size)0);
 
   /* This appears to be pretty pointless, since the space descriptor */
   /* page is  about to vanish completely.  However, munmap might fail */
@@ -188,24 +188,24 @@ void VMDestroy(Space space)
 
   close(vm->none_fd);
   r = munmap((void *)vm->base, (size_t)AddrOffset(vm->base, vm->limit));
-  AVER(0xA55E62, r == 0);
+  AVER(0xF3010013, r == 0);
   r = munmap((void *)space,
              (size_t)SizeAlignUp(sizeof(SpaceStruct), vm->align));
-  AVER(0xA55E62, r == 0);
+  AVER(0xF3010014, r == 0);
 }
 
 
 Addr VMBase(Space space)
 {
   VM vm = SpaceVM(space);
-  AVERT(0xA55E62, VM, vm);
+  AVERT(0xF3010015, VM, vm);
   return vm->base;
 }
 
 Addr VMLimit(Space space)
 {
   VM vm = SpaceVM(space);
-  AVERT(0xA55E62, VM, vm);
+  AVERT(0xF3010016, VM, vm);
   return vm->limit;
 }
 
@@ -213,14 +213,14 @@ Addr VMLimit(Space space)
 Size VMReserved(Space space)
 {
   VM vm = SpaceVM(space);
-  AVERT(0xA55E62, VM, vm);
+  AVERT(0xF3010017, VM, vm);
   return vm->reserved;
 }
 
 Size VMMapped(Space space)
 {
   VM vm = SpaceVM(space);
-  AVERT(0xA55E62, VM, vm);
+  AVERT(0xF3010018, VM, vm);
   return vm->mapped;
 }
 
@@ -230,14 +230,14 @@ Res VMMap(Space space, Addr base, Addr limit)
   VM vm = SpaceVM(space);
   Size size;
 
-  AVERT(0xA55E62, VM, vm);
-  AVER(0xA55E62, sizeof(void *) == sizeof(Addr));
-  AVER(0xA55E62, base < limit);
-  AVER(0xA55E62, base >= vm->base);
-  AVER(0xA55E62, limit <= vm->limit);
-  AVER(0xA55E62, AddrOffset(base, limit) <= INT_MAX);
-  AVER(0xA55E62, AddrIsAligned(base, vm->align));
-  AVER(0xA55E62, AddrIsAligned(limit, vm->align));
+  AVERT(0xF3010019, VM, vm);
+  AVER(0xF301001A, sizeof(void *) == sizeof(Addr));
+  AVER(0xF301001B, base < limit);
+  AVER(0xF301001C, base >= vm->base);
+  AVER(0xF301001D, limit <= vm->limit);
+  AVER(0xF301001E, AddrOffset(base, limit) <= INT_MAX);
+  AVER(0xF301001F, AddrIsAligned(base, vm->align));
+  AVER(0xF3010020, AddrIsAligned(limit, vm->align));
 
   size = AddrOffset(base, limit);
 
@@ -245,7 +245,7 @@ Res VMMap(Space space, Addr base, Addr limit)
           PROT_READ | PROT_WRITE | PROT_EXEC,
           MAP_ANONYMOUS | MAP_PRIVATE | MAP_FIXED,
           -1, 0) == (void *)-1) {
-    AVER(0xA55E62, errno == ENOMEM); /* .assume.mmap.err */
+    AVER(0xF3010021, errno == ENOMEM); /* .assume.mmap.err */
     return ResMEMORY;
   }
 
@@ -262,13 +262,13 @@ void VMUnmap(Space space, Addr base, Addr limit)
   Size size;
   void *addr;
 
-  AVERT(0xA55E62, VM, vm);
-  AVER(0xA55E62, base < limit);
-  AVER(0xA55E62, base >= vm->base);
-  AVER(0xA55E62, limit <= vm->limit);
-  AVER(0xA55E62, AddrIsAligned(base, vm->align));
-  AVER(0xA55E62, AddrIsAligned(limit, vm->align));
-  AVER(0xA55E62, sizeof(off_t) == sizeof(Size));  /* .assume.off_t */
+  AVERT(0xF3010022, VM, vm);
+  AVER(0xF3010023, base < limit);
+  AVER(0xF3010024, base >= vm->base);
+  AVER(0xF3010025, limit <= vm->limit);
+  AVER(0xF3010026, AddrIsAligned(base, vm->align));
+  AVER(0xF3010027, AddrIsAligned(limit, vm->align));
+  AVER(0xF3010028, sizeof(off_t) == sizeof(Size));  /* .assume.off_t */
 
   size = AddrOffset(base, limit);
 
@@ -276,7 +276,7 @@ void VMUnmap(Space space, Addr base, Addr limit)
   addr = mmap((void *)base, (size_t)size,
               PROT_NONE, MAP_FILE | MAP_SHARED | MAP_FIXED,
               vm->none_fd, (off_t)AddrOffset(vm->base, base));
-  AVER(0xA55E62, addr != (void *)-1);
+  AVER(0xF3010029, addr != (void *)-1);
 
   vm->mapped -= size;
 }
