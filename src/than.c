@@ -2,7 +2,7 @@
  *
  *                  ANSI THREADS MANAGER
  *
- *  $HopeName: !than.c(trunk.11) $
+ *  $HopeName: MMsrc!than.c(MMdevel_trace2.1) $
  *
  *  Copyright (C) 1995 Harlequin Group, all rights reserved
  *
@@ -17,7 +17,7 @@
 
 #include "mpm.h"
 
-SRCID(than, "$HopeName: !than.c(trunk.11) $");
+SRCID(than, "$HopeName: MMsrc!than.c(MMdevel_trace2.1) $");
 
 
 Bool ThreadCheck(Thread thread)
@@ -91,9 +91,9 @@ Space ThreadSpace(Thread thread)
   return thread->space;
 }
 
-Res ThreadScan(ScanState ss, Thread thread, void *stackBot)
+Res ThreadScan(Fix fix, Thread thread, void *stackBot)
 {
-  return StackScan(ss, stackBot);
+  return StackScan(fix, stackBot);
 }
 
 Res ThreadDescribe(Thread thread, mps_lib_FILE *stream)

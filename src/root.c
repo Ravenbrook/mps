@@ -1,17 +1,15 @@
-/*  impl.c.root
+/* impl.c.root: ROOT IMPLEMENTATION
  *
- *                   ROOT IMPLEMENTATION
- *
- *  $HopeName: !root.c(trunk.15) $
- *
- *  Copyright (C) 1995 Harlequin Group, all rights reserved
- *
- *  This is the implementation of roots.
+ * $HopeName: MMsrc!root.c(MMdevel_trace2.1) $
+ * Copyright (C) 1995 Harlequin Group, all rights reserved.
  */
 
 #include "mpm.h"
 
-SRCID(root, "$HopeName: !root.c(trunk.15) $");
+SRCID(root, "$HopeName: MMsrc!root.c(MMdevel_trace2.1) $");
+
+
+/* RootCheck -- check consistency of root structure */
 
 Bool RootCheck(Root root)
 {
@@ -20,24 +18,24 @@ Bool RootCheck(Root root)
   CHECKL(root->serial < root->space->rootSerial);
   CHECKL(RingCheck(&root->spaceRing));
   CHECKL(RankCheck(root->rank));
-  switch(root->var)
-  {
+
+  switch(root->var) {
     case RootTABLE:
-    CHECKL(root->the.table.base != 0);
-    CHECKL(root->the.table.base < root->the.table.limit);
+    CHECKL(root->the.table.refs != NULL);
+    CHECKL(root->the.table.size > 0);
     break;
 
     case RootFUN:
-    CHECKL(root->the.fun.scan != NULL);
+    CHECKL(FUNCHECK(root->the.fun.scan));
     break;
 
     case RootREG:
-    CHECKL(root->the.reg.scan != NULL);
+    CHECKL(FUNCHECK(root->the.reg.scan));
     CHECKD(Thread, root->the.reg.thread);
     break;
 
     case RootFMT:
-    CHECKL(root->the.fmt.scan != NULL);
+    CHECKL(FUNCHECK(root->the.fmt.scan));
     CHECKL(root->the.fmt.base != 0);
     CHECKL(root->the.fmt.base < root->the.fmt.limit);
     break;
@@ -45,8 +43,15 @@ Bool RootCheck(Root root)
     default:
     NOTREACHED;
   }
+
   return TRUE;
 }
+
+
+/* create -- create a root of any variant
+ *
+ * This code is shared by the various RootCreate* methods below.
+ */
 
 static Res create(Root *rootReturn, Space space,
                   Rank rank, RootVar type,
@@ -64,10 +69,8 @@ static Res create(Root *rootReturn, Space space,
     return res;
 
   root->space = space;
-  root->rank = rank;
   root->var = type;
   root->the  = theUnion;
-  root->grey = TraceSetEMPTY;
 
   RingInit(&root->spaceRing);
 
@@ -83,27 +86,33 @@ static Res create(Root *rootReturn, Space space,
   return ResOK;
 }
 
+
+/* RootCreateTable -- create a root consisting of a table of refs */
+
 Res RootCreateTable(Root *rootReturn, Space space,
-                      Rank rank, Addr *base, Addr *limit)
+                    Rank rank, Addr *refs, size_t size)
 {
   union RootUnion theUnion;
 
-  AVER(base != 0);
-  AVER(base < limit);
+  AVER(refs != NULL);
+  AVER(size > 0);
 
-  theUnion.table.base = base;
-  theUnion.table.limit = limit;
+  theUnion.table.refs = refs;
+  theUnion.table.size = size;
 
   return create(rootReturn, space, rank, RootTABLE, theUnion);
 }
 
+
+/* RootCreateReg -- create a root of a thread's registers */
+
 Res RootCreateReg(Root *rootReturn, Space space,
-                    Rank rank, Thread thread,
-                    RootScanRegMethod scan, void *p)
+                  Rank rank, Thread thread,
+                  RootScanRegMethod scan, void *p)
 {
   union RootUnion theUnion;
 
-  AVER(scan != NULL);
+  AVER(FUNCHECK(scan));
   AVERT(Thread, thread);
 
   theUnion.reg.scan = scan;
@@ -113,13 +122,21 @@ Res RootCreateReg(Root *rootReturn, Space space,
   return create(rootReturn, space, rank, RootREG, theUnion);
 }
 
+
+/* RootCreateFmt -- create a root of formatted objects
+ *
+ * The root refers to an area of memory between base and limit
+ * consisting of contiguous objects formatted according to the
+ * scan method.
+ */
+
 Res RootCreateFmt(Root *rootReturn, Space space,
                   Rank rank, FormatScanMethod scan,
                   Addr base, Addr limit)
 {
   union RootUnion theUnion;
 
-  AVER(scan != NULL);
+  AVER(FUNCHECK(scan));
   AVER(base != 0);
   AVER(base < limit);
 
@@ -130,14 +147,16 @@ Res RootCreateFmt(Root *rootReturn, Space space,
   return create(rootReturn, space, rank, RootFMT, theUnion);
 }
 
+
+/* RootCreate -- create a root from a scanning function */
+
 Res RootCreate(Root *rootReturn, Space space,
-                 Rank rank,
-                 RootScanMethod scan,
-                 void *p, size_t s)
+               Rank rank, RootScanMethod scan,
+               void *p, size_t s)
 {
   union RootUnion theUnion;
 
-  AVER(scan != NULL);
+  AVER(FUNCHECK(scan));
 
   theUnion.fun.scan = scan;
   theUnion.fun.p = p;
@@ -145,6 +164,9 @@ Res RootCreate(Root *rootReturn, Space space,
 
   return create(rootReturn, space, rank, RootFUN, theUnion);
 }
+
+
+/* RootDestroy -- destroy a root */
 
 void RootDestroy(Root root)
 {
@@ -154,8 +176,6 @@ void RootDestroy(Root root)
 
   space = RootSpace(root);
 
-  AVERT(Space, space);
-
   RingRemove(&root->spaceRing);
   RingFinish(&root->spaceRing);
 
@@ -164,70 +184,64 @@ void RootDestroy(Root root)
   SpaceFree(space, (Addr)root, sizeof(RootStruct));
 }
 
+
+/* RootRank -- get the rank of a root */
+
 Rank RootRank(Root root)
 {
   AVERT(Root, root);
   return root->rank;
 }
 
-void RootGrey(Root root, Space space, TraceId ti)
-{
-  AVERT(Root, root);
-  root->grey = TraceSetAdd(root->grey, ti);
-}
 
-Res RootScan(ScanState ss, Root root)
+/* RootScan -- apply fix to references in a root */
+
+Res RootScan(Root root, Fix fix)
 {
   Res res;
 
   AVERT(Root, root);
-  AVERT(ScanState, ss);
-  AVER(root->rank == ss->rank);
-
-  if(!TraceSetIsMember(root->grey, ss->traceId))
-    return ResOK;
+  AVERT(Fix, fix);
+  
+  AVER(fix->rank == root->rank);
 
   switch(root->var) {
-    case RootTABLE:
-    TraceScanArea(ss,
-      (Addr *)root->the.table.base,
-      (Addr *)root->the.table.limit);
+    case RootFUN:
+    res = (*root->the.fun.scan)(fix, root->the.fun.p, root->the.fun.s);
+    if(res != ResOK) return res;
     break;
 
-    case RootFUN:
-    res = (*root->the.fun.scan)(ss, root->the.fun.p, root->the.fun.s);
-    if(res != ResOK)
-      return res;
+    case RootTABLE:
+    TraceScanArea(fix, root->the.table.refs,
+                  &root->the.table.refs[root->the.table.size]);
     break;
 
     case RootREG:
-    res = (*root->the.reg.scan)(ss, root->the.reg.thread,
-                              root->the.reg.p);
-    if(res != ResOK)
-      return res;
+    res = (*root->the.reg.scan)(fix, root->the.reg.thread,
+                                root->the.reg.p);
+    if(res != ResOK) return res;
     break;
 
     case RootFMT:
-    res = (*root->the.fmt.scan)(ss, root->the.fmt.base,
-                              root->the.fmt.limit);
-    if(res != ResOK)
-      return res;
+    res = (*root->the.fmt.scan)(fix, root->the.fmt.base,
+                                root->the.fmt.limit);
+    if(res != ResOK) return res;
     break;
 
     default:
     NOTREACHED;
   }
 
-  root->grey = TraceSetDelete(root->grey, ss->traceId);
-
   return ResOK;
 }
+
 
 /* Must be thread-safe.  See impl.c.mpsi.thread-safety. */
 Space RootSpace(Root root)
 {
   return root->space;
 }
+
 
 Res RootDescribe(Root root, mps_lib_FILE *stream)
 {
@@ -239,18 +253,16 @@ Res RootDescribe(Root root, mps_lib_FILE *stream)
   res = WriteF(stream,
                "Root $P ($U) {\n", (void *)root, (unsigned long)root->serial,
                "  space $P ($U)\n", (void *)root->space, (unsigned long)root->space->serial,
-               "  rank $U\n", (unsigned long)root->rank,
-               "  grey $B\n", (unsigned long)root->grey,
+               /* @@@@ Add fields back here. */
                NULL);
   if(res != ResOK) return res;
 
-  switch(root->var)
-  {
+  switch(root->var) {
     case RootTABLE:
     res = WriteF(stream,
-                 "  table base $P limit $P\n",
-                 (void *)root->the.table.base,
-                 (void *)root->the.table.limit,
+                 "  table refs $P size $U\n",
+                 (void *)root->the.table.refs,
+                 (unsigned long)root->the.table.size,
                  NULL);
     if(res != ResOK) return res;
     break;

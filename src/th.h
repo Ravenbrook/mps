@@ -2,7 +2,7 @@
  *
  *                    THREAD MANAGER
  *
- *  $HopeName: !th.h(trunk.6) $
+ *  $HopeName: MMsrc!th.h(MMdevel_trace2.1) $
  *
  *  Copyright (C) 1995 Harlequin Group, all rights reserved
  *
@@ -47,7 +47,7 @@ extern void ThreadRingResume(Ring threadRing);
 
 extern Space ThreadSpace(Thread thread);
 
-extern Res ThreadScan(ScanState ss, Thread thread, void *stackBot);
+extern Res ThreadScan(Fix fix, Thread thread, void *stackBot);
 
 
 #endif /* th_h */

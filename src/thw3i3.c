@@ -2,7 +2,7 @@
  *
  *                  WIN32 THREAD MANAGER
  *
- *  $HopeName: !thnti3.c(trunk.13) $
+ *  $HopeName: MMsrc!thnti3.c(MMdevel_trace2.1) $
  *
  *  Copyright (C) 1995 Harlequin Group, all rights reserved
  *
@@ -67,7 +67,7 @@
 
 #include <windows.h>
 
-SRCID(thnti3, "$HopeName: !thnti3.c(trunk.13) $");
+SRCID(thnti3, "$HopeName: MMsrc!thnti3.c(MMdevel_trace2.1) $");
 
 Bool ThreadCheck(Thread thread)
 {
@@ -191,7 +191,7 @@ void ThreadRingResume(Ring ring)
   mapThreadRing(ring, resume);
 }
 
-Res ThreadScan(ScanState ss, Thread thread, void *stackBot)
+Res ThreadScan(Fix fix, Thread thread, void *stackBot)
 {
   DWORD id;
   Res res;
@@ -214,7 +214,7 @@ Res ThreadScan(ScanState ss, Thread thread, void *stackBot)
     /* scan stack inclusive of current sp and exclusive of
      * stackBot (.stack.full-descend)
      */
-    res = TraceScanAreaTagged(ss, ((Addr *)context.Esp), /* .i3.sp */
+    res = TraceScanAreaTagged(fix, ((Addr *)context.Esp), /* .i3.sp */
                         stackBot);
     if(res != ResOK)
       return res;
@@ -224,13 +224,13 @@ Res ThreadScan(ScanState ss, Thread thread, void *stackBot)
      * unecessarily scans the rest of the context.  The optimisation
      * to scan only relevent parts would be machine dependent.
      */
-    res = TraceScanAreaTagged(ss, (Addr *)&context,
+    res = TraceScanAreaTagged(fix, (Addr *)&context,
            (Addr *)((char *)&context + sizeof(CONTEXT)));
     if(res != ResOK)
       return res;
 
   } else { /* scan this thread's stack */
-    res = StackScan(ss, stackBot);
+    res = StackScan(fix, stackBot);
     if(res != ResOK)
       return res;
   }

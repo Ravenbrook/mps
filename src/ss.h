@@ -1,7 +1,7 @@
 /*  impl.h.ss
  *              STACK SCANNING
  *
- *  $HopeName: !ss.h(trunk.3) $
+ *  $HopeName: MMsrc!ss.h(MMdevel_trace2.1) $
  *
  *  Copyright (C) 1995 Harlequin Group, all rights reserved
  *
@@ -30,7 +30,7 @@
  *  stack.  Full means sp points to the top of stack itself.
  */
 
-extern Res StackScan(ScanState ss, Addr *stackBot);
+extern Res StackScan(Fix fix, Addr *stackBot);
 
 
 #endif /* ss_h */

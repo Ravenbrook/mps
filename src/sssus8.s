@@ -2,7 +2,7 @@
 !
 !                      STACK SCANNING
 !
-!  $HopeName: !sssusp.s(trunk.3) $
+!  $HopeName: MMsrc!sssusp.s(MMdevel_trace2.1) $
 !
 !  Copyright (C) 1996 Harlequin Group, all rights reserved
 !
@@ -22,7 +22,7 @@
 .text
   .align 4
   .global _StackScan
-_StackScan:               !(ss, stackBot)
+_StackScan:               !(fix, stackBot)
   save %sp,-120,%sp       !23 required + 6 globals = 29 words, 8-aligned
 
   std %g6,[%fp-8]         !double stores
@@ -30,9 +30,9 @@ _StackScan:               !(ss, stackBot)
   std %g2,[%fp-24]
   ta 3                    !flushes register windows onto stack
 
-  mov %i0,%o0             !ss
+  mov %i0,%o0             !fix
   sub %fp,24,%o1          !stackTop (base)
-  call _TraceScanAreaTagged     !(ss,stackTop,stackBot) returns e
+  call _TraceScanAreaTagged     !(fix,stackTop,stackBot) returns e
   mov %i1,%o2          !ds!stackBot (limit)
 
   ret
