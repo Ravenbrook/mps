@@ -556,6 +556,9 @@ static mps_res_t my_state_scan(mps_ss_t ss, void *p, size_t size)
 
   MPS_SCAN_BEGIN(ss) {
   
+    res = MPS_FIX12(ss, (mps_addr_t *)&state->baby);
+    if(res != MPS_RES_OK) goto fail_fix;
+
     for(i = 0; i < ARRAYLEN(state->procs); ++i) {
       res = MPS_FIX12(ss, (mps_addr_t *)&state->procs[i]);
       if(res != MPS_RES_OK) goto fail_fix;
@@ -605,7 +608,7 @@ extern int register_state(state_t state)
   res = mps_root_create(&state->mms->state_root,
                         state->mms->arena,
                         MPS_RANK_EXACT, (mps_rm_t)0,
-                        my_state_scan, &state, sizeof(state_s));
+                        my_state_scan, state, sizeof(state_s));
 
   return res == MPS_RES_OK;
 }
