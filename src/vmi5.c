@@ -1,6 +1,6 @@
 /* impl.c.vmso: VIRTUAL MEMORY MAPPING FOR IRIX 5 (AND 6)
  *
- * $HopeName$
+ * $HopeName: MMsrc!vmi5.c(MMdevel_irix_vm.1) $
  * Copyright (C) 1995,1997 Harlequin Group, all rights reserved
  *
  * Design: design.mps.vm
@@ -53,7 +53,7 @@
 #include <errno.h>
 #include <unistd.h> /* for _SC_PAGESIZE */
 
-SRCID(vmi5, "$HopeName$");
+SRCID(vmi5, "$HopeName: MMsrc!vmi5.c(MMdevel_irix_vm.1) $");
 
 
 /* VMStruct -- virtual memory structure */
@@ -230,6 +230,7 @@ Size VMMapped(VM vm)
 Res VMMap(VM vm, Addr base, Addr limit)
 {
   Size size;
+  void *addr;
 
   AVERT(VM, vm);
   AVER(sizeof(int) == sizeof(Addr));
@@ -243,14 +244,15 @@ Res VMMap(VM vm, Addr base, Addr limit)
   /* Map /dev/zero onto the area with a copy-on-write policy.  This */
   /* effectively populates the area with zeroed memory. */
   size = AddrOffset(base, limit);
-  if(mmap((void *)base, (size_t)size,
-	  PROT_READ | PROT_WRITE | PROT_EXEC,
-	  MAP_PRIVATE | MAP_FIXED,
-	  vm->zero_fd, (off_t)0)
-     == (void *)-1) {
+  addr = mmap((void *)base, (size_t)size,
+	      PROT_READ | PROT_WRITE | PROT_EXEC,
+	      MAP_PRIVATE | MAP_FIXED,
+	      vm->zero_fd, (off_t)0);
+  if(addr == (void *)-1) {
     AVER(errno == EAGAIN); /* .assume.mmap.err */
     return ResMEMORY;
   }
+  AVER(addr == (void *)base);
 
   vm->mapped += size;
 
@@ -275,8 +277,9 @@ void VMUnmap(VM vm, Addr base, Addr limit)
   /* effectively depopulates the area from memory, but keeps */
   /* it "busy" as far as the OS is concerned, so that it will not */
   /* be re-used by other calls to mmap which do not specify */
-  /* MAP_FIXED.  The offset is specified to mmap so that */
-  /* the OS merges this mapping with .map.reserve. */
+  /* MAP_FIXED. */
+  /* The OS doesn't merge this mapping with .map.reserve, but it */
+  /* can keep track of at least 16K mappings, so it's good enough. */
   size = AddrOffset(base, limit);
   addr = mmap((void *)base, (size_t)size,
               PROT_NONE, MAP_SHARED | MAP_FIXED,
