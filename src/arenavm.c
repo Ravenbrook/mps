@@ -1,6 +1,6 @@
 /* impl.c.arenavm: VIRTUAL MEMORY BASED ARENA IMPLEMENTATION
  *
- * $HopeName: !arenavm.c(trunk.6) $
+ * $HopeName: MMsrc!arenavm.c(MMdevel_event.1) $
  * Copyright (C) 1996 Harlequin Group, all rights reserved.
  *
  * This is the implementation of the Segment abstraction from the VM
@@ -14,7 +14,7 @@
 #include "mpm.h"
 
 
-SRCID(arenavm, "$HopeName: !arenavm.c(trunk.6) $");
+SRCID(arenavm, "$HopeName: MMsrc!arenavm.c(MMdevel_event.1) $");
 
 
 /* Space Arena Projection
@@ -179,6 +179,8 @@ Res ArenaCreate(Space *spaceReturn, Size size, Addr base)
   arena->sig = ArenaSig;
   
   AVERT(Arena, arena);
+  
+  EVENT2(ARENA_CREATE, arena, space);
 
   *spaceReturn = space;
   return ResOK;
@@ -190,11 +192,15 @@ Res ArenaCreate(Space *spaceReturn, Size size, Addr base)
 void ArenaDestroy(Space space)
 {
   Arena arena;
+
   AVERT(Arena, SpaceArena(space));
+  
   arena = SpaceArena(space);
   arena->sig = SigInvalid;
   VMUnmap(space, arena->base, AddrAdd(arena->base, arena->tablesSize));
   VMDestroy(space);     /* .vm.create */
+
+  EVENT1(ARENA_DESTROY, arena);
 }
 
 
@@ -343,6 +349,8 @@ found:
   }
   
   AVERT(Seg, seg);
+  
+  EVENT5(SEG_ALLOC, arena, seg, addr, size, pool);
 
   *segReturn = seg;
   return ResOK;
@@ -388,6 +396,8 @@ void SegFree(Space space, Seg seg)
    * segment.
    */
   AVER(PageBase(arena, pi) == limit);
+
+  EVENT2(SEG_FREE, arena, seg);
 }
 
 
