@@ -1,6 +1,6 @@
 /* impl.c.mpsi: MEMORY POOL SYSTEM INTERFACE LAYER
  *
- * $HopeName: !mpsi.c(trunk.17) $
+ * $HopeName: MMsrc!mpsi.c(MMdevel_trace2.1) $
  * Copyright (C) 1996 Harlequin Group, all rights reserved.
  *
  * PURPOSE
@@ -60,7 +60,7 @@
 #include "mpm.h"
 #include "mps.h"
 
-SRCID(mpsi, "$HopeName: !mpsi.c(trunk.17) $");
+SRCID(mpsi, "$HopeName: MMsrc!mpsi.c(MMdevel_trace2.1) $");
 
 
 /* mpsi_check -- check consistency of interface mappings
@@ -127,12 +127,12 @@ static Bool mpsi_check(void)
   CHECKL(CHECKFIELD(mps_ap_s, alloc, APStruct, alloc));
   CHECKL(CHECKFIELD(mps_ap_s, limit, APStruct, limit));
 
-  /* Check ss_s/ScanStateStruct compatibility by hand */
-  /* .check.ss: See also impl.h.trace.ss. */
-  CHECKL(CHECKFIELDAPPROX(mps_ss_s, fix, ScanStateStruct, fix));
-  CHECKL(CHECKFIELD(mps_ss_s, w0, ScanStateStruct, zoneShift));
-  CHECKL(CHECKFIELD(mps_ss_s, w1, ScanStateStruct, condemned));
-  CHECKL(CHECKFIELD(mps_ss_s, w2, ScanStateStruct, summary));
+  /* Check fix_s/FixStruct compatibility by hand */
+  /* .check.fix: See also impl.h.trace.fix. */
+  CHECKL(CHECKFIELDAPPROX(mps_fix_s, f, FixStruct, f));
+  CHECKL(CHECKFIELD(mps_fix_s, w0, FixStruct, zoneShift));
+  CHECKL(CHECKFIELD(mps_fix_s, w1, FixStruct, white));
+  CHECKL(CHECKFIELD(mps_fix_s, w2, FixStruct, summary));
 
   /* Check ld_s/LDStruct compatibility by hand */
   /* .check.ld: See also impl.h.mpmst.ld.struct and impl.h.mps.ld */
@@ -568,13 +568,9 @@ mps_res_t mps_root_create_table(mps_root_t *mps_root_o,
   AVER(base != NULL);
   AVER((unsigned long)size > 0);
 
-  /* Note, size is the length of the array at base, not */
-  /* the size in bytes.  However, RootCreateTable expects */
-  /* base and limit pointers.  Be careful. */
-
   /* See .root-mode. */
   res = RootCreateTable(rootReturn, space, rank,
-                        (Addr *)base, (Addr *)base + size);
+                        (Addr *)base, size);
   SpaceLeave(space);
   return res;
 }
@@ -642,12 +638,12 @@ mps_res_t mps_root_create_reg(mps_root_t *mps_root_o,
  * See .reg-scan.
  */
 
-mps_res_t mps_stack_scan_ambig(mps_ss_t mps_ss,
+mps_res_t mps_stack_scan_ambig(mps_fix_t mps_fix,
                                mps_reg_t mps_reg, void *p)
 {
-  ScanState ss = (ScanState)mps_ss;
+  Fix fix = (Fix)mps_fix;
   Thread thread = (Thread)mps_reg;
-  return ThreadScan(ss, thread, p);
+  return ThreadScan(fix, thread, p);
 }
 
 
@@ -739,13 +735,13 @@ mps_bool_t mps_ld_isstale(mps_ld_t mps_ld,
   return (mps_bool_t)b;
 }
 
-mps_res_t mps_fix(mps_ss_t mps_ss, mps_addr_t *ref_io)
+mps_res_t mps_fix(mps_addr_t *ref_io, mps_fix_t mps_fix)
 {
   mps_res_t res;
 
-  MPS_SCAN_BEGIN(mps_ss) {
-    res = MPS_FIX(mps_ss, ref_io);
-  } MPS_SCAN_END(mps_ss);
+  MPS_SCAN_BEGIN(mps_fix) {
+    res = MPS_FIX(ref_io, mps_fix);
+  } MPS_SCAN_END(mps_fix);
 
   return res;
 }

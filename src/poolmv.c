@@ -1,6 +1,6 @@
 /* impl.c.poolmv: MANUAL VARIABLE POOL
  *
- * $HopeName: !poolmv.c(trunk.15) $
+ * $HopeName: MMsrc!poolmv.c(MMdevel_trace2.1) $
  * Copyright (C) 1994, 1995 Harlequin Group, all rights reserved
  *
  * **** RESTRICTION: This pool may not allocate from the arena control
@@ -37,7 +37,7 @@
 #include "poolmfs.h"
 #include "mpscmv.h"
 
-SRCID(poolmv, "$HopeName: !poolmv.c(trunk.15) $");
+SRCID(poolmv, "$HopeName: MMsrc!poolmv.c(MMdevel_trace2.1) $");
 
 
 #define BLOCKPOOL(mv)   (MFSPool(&(mv)->blockPoolStruct))
@@ -419,7 +419,7 @@ static Res MVAlloc(Addr *pReturn, Pool pool, Size size)
   }
 
   span->mv = mv;
-  span->seg->p = (void *)span;
+  SegSetP(span->seg, (void *)span);
   RingInit(&span->spans);
   span->base.base = span->base.limit = SegBase(space, span->seg);
   span->limit.base = span->limit.limit = SegLimit(space, span->seg);
@@ -466,7 +466,7 @@ static void MVFree(Pool pool, Addr old, Size size)
   /* onto the span. */
   b = SegOfAddr(&seg, PoolSpace(pool), old);
   AVER(b);
-  span = (MVSpan)seg->p;
+  span = (MVSpan)SegP(seg);
   AVERT(MVSpan, span);
 
   /* the to be freed area should be within the span just found */
@@ -611,12 +611,10 @@ static PoolClassStruct PoolClassMVStruct = {
   PoolNoBufferTrip,                     /* bufferTrip */
   PoolNoBufferExpose,                   /* bufferExpose */
   PoolNoBufferCover,                    /* bufferCover */
-  PoolNoCondemn,                        /* condemn */
-  PoolNoGrey,                           /* mark */
+  PoolNoCondemn,			/* condemn */
   PoolNoScan,                           /* scan */
   PoolNoFix,                            /* fix */
   PoolNoReclaim,                        /* relcaim */
-  PoolNoAccess,                         /* access */
   MVDescribe,                           /* describe */
   PoolClassSig                          /* impl.h.mpmst.class.end-sig */
 };

@@ -1,6 +1,6 @@
 /* impl.h.mps: HARLEQUIN MEMORY POOL SYSTEM INTERFACE
  *
- *  $HopeName: !mps.h(trunk.12) $
+ *  $HopeName: MMsrc!mps.h(MMdevel_trace2.1) $
  *  Copyright (C) 1996 Harlequin Group, all rights reserved
  */
 
@@ -38,7 +38,7 @@ typedef struct mps_thr_s    *mps_thr_t;    /* thread registration */
 typedef struct mps_ap_s     *mps_ap_t;     /* allocation point */
 typedef struct mps_ld_s     *mps_ld_t;     /* location dependency */
 typedef struct mps_reg_s    *mps_reg_t;    /* register file */
-typedef struct mps_ss_s     *mps_ss_t;     /* scan state */
+typedef struct mps_fix_s    *mps_fix_t;    /* fix closure */
 
 
 /* Concrete Types
@@ -147,12 +147,12 @@ typedef struct mps_ld_s {       /* location dependency descriptor */
 /* Format and Root Method Types */
 /* .fmt-methods: Keep in sync with impl.h.mpmty.fmt-methods */
 
-typedef mps_res_t  (*mps_root_scan_t)  (mps_ss_t mps_ss,
+typedef mps_res_t  (*mps_root_scan_t)  (mps_fix_t mps_fix,
                                         void *p, size_t s);
-typedef mps_res_t  (*mps_fmt_scan_t)   (mps_ss_t mps_ss,
+typedef mps_res_t  (*mps_fmt_scan_t)   (mps_fix_t mps_fix,
                                         mps_addr_t base,
                                         mps_addr_t limit);
-typedef mps_res_t  (*mps_reg_scan_t)   (mps_ss_t mps_ss,
+typedef mps_res_t  (*mps_reg_scan_t)   (mps_fix_t mps_fix,
                                         mps_reg_t mps_reg,
                                         void *p);
 typedef mps_addr_t (*mps_fmt_skip_t)   (mps_addr_t object);
@@ -162,18 +162,18 @@ typedef mps_addr_t (*mps_fmt_isfwd_t)  (mps_addr_t object);
 typedef void       (*mps_fmt_pad_t)    (mps_addr_t base, size_t size);
 
 
-/* Scan State
+/* Fix Closure
  *
- * The fields of the ss structure should not be accessed by the client
+ * The fields of the fix structure should not be accessed by the client
  * except via macros supplied in this interface.
  *
- * See also impl.c.mpsi.check.ss and impl.h.trace.ss.
+ * See also impl.c.mpsi.check.fix and impl.h.trace.fix.
  */
 
-typedef struct mps_ss_s {
-  mps_res_t (*fix)(mps_ss_t mps_ss, mps_addr_t *ref_io);
+typedef struct mps_fix_s {
+  mps_res_t (*f)(mps_addr_t *ref_io, mps_fix_t mps_fix);
   mps_word_t w0, w1, w2;
-} mps_ss_s;
+} mps_fix_s;
 
 
 /* Format Variants */
@@ -346,7 +346,7 @@ extern mps_res_t mps_root_create_reg(mps_root_t *mps_root_o,
                                      void *reg_scan_p);
 extern void mps_root_destroy(mps_root_t root);
 
-extern mps_res_t mps_stack_scan_ambig(mps_ss_t ss, mps_reg_t reg,
+extern mps_res_t mps_stack_scan_ambig(mps_fix_t fix, mps_reg_t reg,
                                       void *p);
 
 
@@ -426,32 +426,32 @@ extern mps_msg_handler_t
 
 /* Scanner Support */
 
-extern mps_res_t mps_fix(mps_ss_t mps_ss, mps_addr_t *ref_io);
+extern mps_res_t mps_fix(mps_addr_t *ref_io, mps_fix_t mps_fix);
 
-#define MPS_SCAN_BEGIN(ss) \
+#define MPS_SCAN_BEGIN(fix) \
   MPS_BEGIN \
-    mps_ss_t _ss = (ss); \
-    mps_word_t _mps_w0 = (_ss)->w0; \
-    mps_word_t _mps_w1 = (_ss)->w1; \
-    mps_word_t _mps_w2 = (_ss)->w2; \
+    mps_fix_t _fix = (fix); \
+    mps_word_t _mps_w0 = (_fix)->w0; \
+    mps_word_t _mps_w1 = (_fix)->w1; \
+    mps_word_t _mps_w2 = (_fix)->w2; \
     mps_word_t _mps_wt; \
     {
 
-#define MPS_FIX1(ss, ref) \
+#define MPS_FIX1(fix, ref) \
   (_mps_wt = 1uL<<((mps_word_t)(ref)>>_mps_w0&(MPS_WORD_WIDTH-1)), \
    _mps_w2 |= _mps_wt, \
    _mps_w1 & _mps_wt)
 
-#define MPS_FIX2(ss, ref_io) \
-  ((*(ss)->fix)(ss, ref_io))
+#define MPS_FIX2(ref_io, fix) \
+  ((*(fix)->f)(ref_io, fix))
 
-#define MPS_FIX(ss, ref_io) \
-  (MPS_FIX1(ss, *(ref_io)) ? \
-   MPS_FIX2(ss, ref_io) : MPS_RES_OK)
+#define MPS_FIX(ref_io, fix) \
+  (MPS_FIX1(fix, *(ref_io)) ? \
+   MPS_FIX2(ref_io, fix) : MPS_RES_OK)
 
-#define MPS_SCAN_END(ss) \
+#define MPS_SCAN_END(fix) \
    } \
-   (ss)->w2 = _mps_w2; \
+   (fix)->w2 = _mps_w2; \
   MPS_END
 
 

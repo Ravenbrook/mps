@@ -1,6 +1,6 @@
 /* impl.c.poolmfs: MANUAL FIXED SMALL UNIT POOL
  *
- * $HopeName: !poolmfs.c(trunk.13) $
+ * $HopeName: MMsrc!poolmfs.c(MMdevel_trace2.1) $
  * Copyright (C) 1994,1995,1996 Harlequin Group, all rights reserved
  *
  * This is the implementation of the MFS pool class.
@@ -35,7 +35,7 @@
 #include "mpm.h"
 #include "poolmfs.h"
 
-SRCID(poolmfs, "$HopeName: !poolmfs.c(trunk.13) $");
+SRCID(poolmfs, "$HopeName: MMsrc!poolmfs.c(MMdevel_trace2.1) $");
 
 
 /*  == Round up ==
@@ -122,7 +122,7 @@ static void MFSFinish(Pool pool)
 
   seg = mfs->segList;
   while(seg != NULL) {
-    Seg nextSeg = (Seg)seg->p;   /* .seg.chain */
+    Seg nextSeg = (Seg)SegP(seg);   /* .seg.chain */
     PoolSegFree(pool, seg);
     seg = nextSeg;
   }
@@ -169,7 +169,7 @@ static Res MFSAlloc(Addr *pReturn, Pool pool, Size size)
       return res;
 
     /* .seg.chain: chain segs through seg->p */
-    seg->p = (void *)mfs->segList;
+    SegSetP(seg, (void *)mfs->segList);
     mfs->segList = seg;
 
     /* Sew together all the new empty units in the segment, working down */
@@ -276,12 +276,10 @@ static PoolClassStruct PoolClassMFSStruct = {
   PoolNoBufferTrip,                     /* bufferTrip */
   PoolNoBufferExpose,                   /* bufferExpose */
   PoolNoBufferCover,                    /* bufferCover */
-  PoolNoCondemn,                        /* condemn */
-  PoolNoGrey,                           /* grey */
+  PoolNoCondemn,			/* condemn */
   PoolNoScan,                           /* scan */
   PoolNoFix,                            /* fix */
   PoolNoReclaim,                        /* reclaim */
-  PoolNoAccess,                         /* access */
   MFSDescribe,                          /* describe */
   PoolClassSig                          /* impl.h.mpmst.class.end-sig */
 };

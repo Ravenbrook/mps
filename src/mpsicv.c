@@ -1,6 +1,6 @@
 /* impl.c.mpsicv: MPSI COVERAGE TEST
  *
- * $HopeName: !mpsicv.c(trunk.5) $
+ * $HopeName: MMsrc!mpsicv.c(MMdevel_trace2.1) $
  * Copyright (C) 1996 Harlequin Group, all rights reserved
  */
 
@@ -92,10 +92,10 @@ static void ap_create_v_test(mps_pool_t pool, mps_rank_t rank, ...)
   mps_ap_destroy(apt);
 }
 
-static mps_res_t root_single(mps_ss_t ss, void *p, size_t s)
+static mps_res_t root_single(mps_fix_t fix, void *p, size_t s)
 {
   UNUSED(s);
-  return mps_fix(ss, (mps_addr_t)p);
+  return mps_fix(fix, (mps_addr_t)p);
 }
 
 static void *test(void *arg, size_t s)

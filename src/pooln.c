@@ -2,7 +2,7 @@
  *
  *                         NULL POOL
  *
- *  $HopeName: !pooln.c(trunk.10) $
+ *  $HopeName: MMsrc!pooln.c(MMdevel_trace2.1) $
  *
  *  Copyright(C) 1995 Harlequin Group, all rights reserved
  *
@@ -13,7 +13,7 @@
 #include "mpm.h"
 #include "pooln.h"
 
-SRCID(pooln, "$HopeName: !pooln.c(trunk.10) $");
+SRCID(pooln, "$HopeName: MMsrc!pooln.c(MMdevel_trace2.1) $");
 
 
 typedef struct PoolNStruct {
@@ -172,8 +172,7 @@ static Res NDescribe(Pool pool, mps_lib_FILE *stream)
   return ResOK;
 }
 
-static Res NCondemn(RefSet *condemnedReturn, Pool pool,
-                     Space space, TraceId ti)
+static void NCondemn(Pool pool, Option option, Seg seg, TraceId ti)
 {
   PoolN poolN;
 
@@ -181,13 +180,31 @@ static Res NCondemn(RefSet *condemnedReturn, Pool pool,
   poolN = PoolPoolN(pool);
   AVERT(PoolN, poolN);
 
-  AVER(condemnedReturn != NULL);
-  AVERT(Space, space);
+  AVERT(Option, option);
+  AVERT(Seg, seg);
+  AVER(TraceIdCheck(ti));
+
+  UNUSED(option);
+  UNUSED(seg);
+  
+  NOTREACHED;
+}
+
+static Res NScan(Pool pool, Fix fix, Seg seg)
+{
+  PoolN poolN;
+
+  AVERT(Pool, pool);
+  poolN = PoolPoolN(pool);
+  AVERT(PoolN, poolN);
+
+  AVERT(Seg, seg);
+  AVERT(Fix, fix);
 
   return ResOK;
 }
 
-static void NMark(Pool pool, Space space, TraceId ti)
+static Res NFix(Ref *refIO, Pool pool, Fix fix, Seg seg)
 {
   PoolN poolN;
 
@@ -195,39 +212,14 @@ static void NMark(Pool pool, Space space, TraceId ti)
   poolN = PoolPoolN(pool);
   AVERT(PoolN, poolN);
 
-  AVERT(Space, space);
-}
-
-static Res NScan(ScanState ss, Pool pool, Bool *finishedReturn)
-{
-  PoolN poolN;
-
-  AVERT(Pool, pool);
-  poolN = PoolPoolN(pool);
-  AVERT(PoolN, poolN);
-
-  AVER(finishedReturn != NULL);
-  AVERT(ScanState, ss);
-
-  return ResOK;
-}
-
-static Res NFix(Pool pool, ScanState ss, Seg seg, Ref *refIO)
-{
-  PoolN poolN;
-
-  AVERT(Pool, pool);
-  poolN = PoolPoolN(pool);
-  AVERT(PoolN, poolN);
-
-  AVERT(ScanState, ss);
+  AVERT(Fix, fix);
   AVERT(Seg, seg);
   NOTREACHED;  /* since we don't allocate any objects, should never
                 * be called upon to fix a reference */
   return ResFAIL;
 }
 
-static void NReclaim(Pool pool, Space space, TraceId ti)
+static void NReclaim(Pool pool, Seg seg, TraceSet ts)
 {
   PoolN poolN;
 
@@ -235,7 +227,8 @@ static void NReclaim(Pool pool, Space space, TraceId ti)
   poolN = PoolPoolN(pool);
   AVERT(PoolN, poolN);
 
-  AVERT(Space, space);
+  AVERT(Seg, seg);
+  AVER(TraceSetCheck(ts));
   /* all unmarked and condemned objects reclaimed */
 }
 
@@ -268,12 +261,10 @@ static PoolClassStruct PoolClassNStruct = {
   NBufferTrip,                          /* bufferTrip */
   NBufferExpose,                        /* bufferExpose */
   NBufferCover,                         /* bufferCover */
-  NCondemn,                             /* condemn */
-  NMark,                                /* grey */
+  NCondemn,				/* condemn */
   NScan,                                /* scan */
   NFix,                                 /* fix */
   NReclaim,                             /* reclaim */
-  NAccess,                              /* access */
   NDescribe,                            /* describe */
   PoolClassSig                          /* impl.h.mpmst.class.end-sig */
 };

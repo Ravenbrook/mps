@@ -1,6 +1,6 @@
 /* impl.c.pool: POOL IMPLEMENTATION
  *
- * $HopeName: !pool.c(trunk.17) $
+ * $HopeName: MMsrc!pool.c(MMdevel_trace2.1) $
  * Copyright (C) 1994,1995,1996 Harlequin Group, all rights reserved
  *
  * This is the implementation of the generic pool interface.  The
@@ -12,7 +12,7 @@
 
 #include "mpm.h"
 
-SRCID(pool, "$HopeName: !pool.c(trunk.17) $");
+SRCID(pool, "$HopeName: MMsrc!pool.c(MMdevel_trace2.1) $");
 
 
 Bool PoolClassCheck(PoolClass class)
@@ -34,12 +34,14 @@ Bool PoolClassCheck(PoolClass class)
   CHECKL(FUNCHECK(class->bufferTrip));
   CHECKL(FUNCHECK(class->bufferExpose));
   CHECKL(FUNCHECK(class->bufferCover));
+#if 0
   CHECKL(FUNCHECK(class->condemn));
   CHECKL(FUNCHECK(class->grey));
   CHECKL(FUNCHECK(class->scan));
   CHECKL(FUNCHECK(class->fix));
   CHECKL(FUNCHECK(class->reclaim));
   CHECKL(FUNCHECK(class->access));
+#endif /* 0 */
   CHECKL(FUNCHECK(class->describe));
   CHECKL(class->endSig == PoolClassSig);
   return TRUE;
@@ -53,7 +55,9 @@ Bool PoolCheck(Pool pool)
   CHECKL(pool->serial < pool->space->poolSerial);
   CHECKD(PoolClass, pool->class);
   CHECKL(RingCheck(&pool->spaceRing));
+  CHECKL(RingCheck(&pool->segRing));
   CHECKL(RingCheck(&pool->bufferRing));
+  CHECKL(RingCheck(&pool->optionRing));
   /* Cannot check pool->bufferSerial */
   CHECKL(AlignCheck(pool->alignment));
   return TRUE;
@@ -88,7 +92,9 @@ Res PoolInitV(Pool pool, Space space, PoolClass class, va_list args)
   pool->space = space;
   /* .ring.init: See .ring.finish */
   RingInit(&pool->spaceRing);
+  RingInit(&pool->segRing);
   RingInit(&pool->bufferRing);
+  RingInit(&pool->optionRing);
   pool->alignment = ARCH_ALIGN;
   RingAppend(SpacePoolRing(space), &pool->spaceRing);
 
@@ -108,7 +114,9 @@ Res PoolInitV(Pool pool, Space space, PoolClass class, va_list args)
 
 failInit:
   pool->sig = SigInvalid;      /* Leave space->poolSerial incremented */
+  RingFinish(&pool->optionRing);
   RingFinish(&pool->bufferRing);
+  RingFinish(&pool->segRing);
   RingRemove(&pool->spaceRing);
   RingFinish(&pool->spaceRing);
   return res;
@@ -181,7 +189,9 @@ void PoolFinish(Pool pool)
   pool->sig = SigInvalid;
   
   /* .ring.finish: Finish the generic fields.  See .ring.init */
+  RingFinish(&pool->optionRing);
   RingFinish(&pool->bufferRing);
+  RingFinish(&pool->segRing);
   RingFinish(&pool->spaceRing);
 }
 
@@ -232,59 +242,56 @@ void PoolFree(Pool pool, Addr old, Size size)
   (*pool->class->free)(pool, old, size);
 }
 
-Res PoolCondemn(RefSet *condemnedReturn, Pool pool,
-                  Space space, TraceId ti)
-{  
-  AVER(condemnedReturn != NULL);
-  AVERT(Pool, pool);
-  AVERT(Space, space);
-  AVER(pool->space == space);
-  AVERT(TraceId, ti);
-  AVER(ti != TraceIdNONE);
-  return (*pool->class->condemn)(condemnedReturn, pool, space, ti);
-}
 
-void PoolGrey(Pool pool, Space space, TraceId ti)
+/* PoolCondemn -- condemn a segment for a trace */
+
+void PoolCondemn(Pool pool, Option option, Seg seg, TraceId ti)
 {
   AVERT(Pool, pool);
-  AVERT(Space, space);
-  AVER(pool->space == space);
-  AVERT(TraceId, ti);
-  AVER(ti != TraceIdNONE);
-  (*pool->class->grey)(pool, space, ti);
-}
-
-Res PoolScan(ScanState ss, Pool pool, Bool *finishedReturn)
-{
-  AVERT(ScanState, ss);
-  AVERT(Pool, pool);
-  AVER(finishedReturn != NULL);
-  return (*pool->class->scan)(ss, pool, finishedReturn);
-}
-
-/* See impl.h.mpm for macro version; see design.mps.pool.req.fix */
-Res (PoolFix)(Pool pool, ScanState ss, Seg seg, Addr *refIO)
-{
-  AVERT(Pool, pool);
-  AVERT(ScanState, ss);
+  AVERT(Option, option);
   AVERT(Seg, seg);
+  AVER(TraceIdCheck(ti));
+  (*pool->class->condemn)(pool, option, seg, ti);
+}
+
+
+/* PoolScan -- scan the objects in a segment */
+
+Res PoolScan(Pool pool, Fix fix, Seg seg)
+{
+  AVERT(Fix, fix);
+  AVERT(Pool, pool);
+  AVERT(Seg, seg);
+  AVER(SegPool(seg) == pool);
+  return (*pool->class->scan)(pool, fix, seg);
+}
+
+
+/* PoolFix -- fix a reference to a segment
+ *
+ * See impl.h.mpm for macro version; see design.mps.pool.req.fix.
+ */
+
+Res (PoolFix)(Addr *refIO, Pool pool, Fix fix, Seg seg)
+{
+  AVERT(Pool, pool);
+  AVERT(Seg, seg);
+  AVER(SegPool(seg) == pool);
+  AVERT(Fix, fix);
   AVER(refIO != NULL);
-  return PoolFix(pool, ss, seg, refIO);
+  return PoolFix(refIO, pool, fix, seg);
 }
 
-void PoolReclaim(Pool pool, Space space, TraceId ti)
-{
-  AVERT(Pool, pool);
-  AVERT(Space, space);
-  AVER(pool->space == space);
-  (*pool->class->reclaim)(pool, space, ti);
-}
 
-void PoolAccess(Pool pool, Seg seg, AccessSet mode)
+/* PoolReclaim -- reclaim white objects in a segment */
+
+void PoolReclaim(Pool pool, Seg seg, TraceSet ts)
 {
   AVERT(Pool, pool);
   AVERT(Seg, seg);
-  (*pool->class->access)(pool, seg, mode);
+  AVER(SegPool(seg) == pool);
+  AVER(TraceSetCheck(ts));
+  (*pool->class->reclaim)(pool, seg, ts);
 }
 
 
@@ -346,6 +353,8 @@ Res PoolSegAlloc(Seg *segReturn, Pool pool, Size size)
 
   res = SegAlloc(&seg, space, size, pool);
   if(res != ResOK) return res;
+  
+  RingAppend(&pool->segRing, SegPoolRing(seg));
 
   *segReturn = seg;
   return ResOK;
@@ -358,11 +367,13 @@ void PoolSegFree(Pool pool, Seg seg)
 
   AVERT(Pool, pool);
   AVERT(Seg, seg);
-  AVER(seg->pool == pool);
+  AVER(SegPool(seg) == pool);
 
   space = PoolSpace(pool);
 
   ShieldFlush(space); /* See impl.c.shield.shield.flush */
+
+  RingRemove(SegPoolRing(seg));
 
   SegFree(space, seg);
 }
@@ -376,7 +387,7 @@ Bool PoolOfAddr(Pool *poolReturn, Space space, Addr addr)
   /* Cannot AVERT space here, because PoolOfAddr is called under SpaceCheck */
 
   if(SegOfAddr(&seg, space, addr)) {
-    *poolReturn = seg->pool;
+    *poolReturn = SegPool(seg);
     return TRUE;
   }
 
@@ -530,54 +541,38 @@ Res PoolTrivDescribe(Pool pool, mps_lib_FILE *stream)
   return WriteF(stream, "  No class-specific description available.\n", NULL);
 }
 
-Res PoolNoCondemn(RefSet *condemnedReturn, Pool pool, Space space, TraceId ti)
-{
-  AVER(condemnedReturn != NULL);
-  AVERT(Pool, pool);
-  AVERT(Space, space);
-  AVER(TraceIdCheck(ti));
-  NOTREACHED;
-  return ResUNIMPL;
-}
-
-void PoolNoGrey(Pool pool, Space space, TraceId ti)
+void PoolNoCondemn(Pool pool, Option option, Seg seg, TraceId ti)
 {
   AVERT(Pool, pool);
-  AVERT(Space, space);
-  AVER(TraceIdCheck(ti));
-  NOTREACHED;
-}
-
-Res PoolNoScan(ScanState ss, Pool pool, Bool *finishedReturn)
-{
-  AVERT(ScanState, ss);
-  AVERT(Pool, pool);
-  AVER(finishedReturn != NULL);
-  NOTREACHED;
-  return ResUNIMPL;
-}
-
-Res PoolNoFix(Pool pool, ScanState ss, Seg seg, Ref *refIO)
-{
-  AVERT(Pool, pool);
-  AVERT(ScanState, ss);
+  AVERT(Option, option);
   AVERT(Seg, seg);
+  AVER(TraceIdCheck(ti));
+  NOTREACHED;
+}
+
+Res PoolNoScan(Pool pool, Fix fix, Seg seg)
+{
+  AVERT(Pool, pool);
+  AVERT(Fix, fix);
+  AVERT(Seg, seg);
+  NOTREACHED;
+  return ResUNIMPL;
+}
+
+Res PoolNoFix(Ref *refIO, Pool pool, Fix fix, Seg seg)
+{
   AVER(refIO != NULL);
+  AVERT(Pool, pool);
+  AVERT(Fix, fix);
+  AVERT(Seg, seg);
   NOTREACHED;
   return ResUNIMPL;
 }
 
-void PoolNoReclaim(Pool pool, Space space, TraceId ti)
-{
-  AVERT(Pool, pool);
-  AVERT(Space, space);
-  AVER(TraceIdCheck(ti));
-  NOTREACHED;
-}
-
-void PoolNoAccess(Pool pool, Seg seg, AccessSet mode)
+void PoolNoReclaim(Pool pool, Seg seg, TraceSet ts)
 {
   AVERT(Pool, pool);
   AVERT(Seg, seg);
+  AVER(TraceSetCheck(ts));
   NOTREACHED;
 }
