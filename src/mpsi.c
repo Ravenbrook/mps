@@ -1,6 +1,6 @@
 /* impl.c.mpsi: MEMORY POOL SYSTEM INTERFACE LAYER
  *
- * $HopeName: MMsrc!mpsi.c(MMdevel_drj_swint.1) $
+ * $HopeName: MMsrc!mpsi.c(MMdevel_drj_swint.2) $
  * Copyright (C) 1996 Harlequin Group, all rights reserved.
  *
  * .thread-safety: Most calls through this interface lock the space
@@ -17,7 +17,7 @@
 #include "mpm.h"
 #include "mps.h"
 
-SRCID(mpsi, "$HopeName: MMsrc!mpsi.c(MMdevel_drj_swint.1) $");
+SRCID(mpsi, "$HopeName: MMsrc!mpsi.c(MMdevel_drj_swint.2) $");
 
 
 /* Check consistency of interface mappings. */
@@ -96,7 +96,8 @@ mps_assert_t mps_assert_default(void)
   return AssertDefault();
 }
 
-mps_res_t mps_space_create_base(mps_space_t *mps_space_o, mps_addr_t base)
+mps_res_t mps_space_create_wmem(mps_space_t *mps_space_o,
+     				mps_addr_t base, size_t size)
 {
   Space *spaceReturn = (Space *)mps_space_o;
   /* This is the first real call that the client will have to make, */
@@ -104,7 +105,7 @@ mps_res_t mps_space_create_base(mps_space_t *mps_space_o, mps_addr_t base)
   AVER(mpsi_check());
   AVER(spaceReturn != NULL);
   AVER(base != NULL);
-  return SpaceCreate(spaceReturn, (Addr)base);
+  return SpaceCreate(spaceReturn, (Addr)base, (Size)size);
 }
 
 mps_res_t mps_space_create(mps_space_t *mps_space_o)
@@ -114,7 +115,7 @@ mps_res_t mps_space_create(mps_space_t *mps_space_o)
   /* so check static consistency here. */
   AVER(mpsi_check());
   AVER(spaceReturn != NULL);
-  return SpaceCreate(spaceReturn, (Addr)0);
+  return SpaceCreate(spaceReturn, (Addr)0, (Size)0);
 }
 
 void mps_space_destroy(mps_space_t mps_space)
