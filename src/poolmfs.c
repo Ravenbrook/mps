@@ -1,6 +1,6 @@
 /* impl.c.poolmfs: MANUAL FIXED SMALL UNIT POOL
  *
- * $HopeName: MMsrc!poolmfs.c(MMdevel_restr2.4) $
+ * $HopeName: MMsrc!poolmfs.c(MMdevel_restr2.5) $
  * Copyright (C) 1994,1995 Harlequin Group, all rights reserved
  *
  * This is the implementation of the MFS pool class.  MFS operates
@@ -34,7 +34,7 @@
 #include "mpm.h"
 #include "poolmfs.h"
 
-SRCID(poolmfs, "$HopeName: MMsrc!poolmfs.c(MMdevel_restr2.4) $");
+SRCID(poolmfs, "$HopeName: MMsrc!poolmfs.c(MMdevel_restr2.5) $");
 
 
 /*  == Round up ==
@@ -44,7 +44,7 @@ SRCID(poolmfs, "$HopeName: MMsrc!poolmfs.c(MMdevel_restr2.4) $");
 
 #define ROUND(unit, n)  ((n)+(unit)-1 - ((n)+(unit)-1)%(unit))
 
-#define PoolPoolMFS(pool)	PARENT(MFSStruct, poolStruct, pool)
+#define PoolPoolMFS(pool)       PARENT(MFSStruct, poolStruct, pool)
 
 
 /*  == Free List Structure ==
@@ -270,28 +270,28 @@ static Res MFSDescribe(Pool pool, Lib_FILE *stream)
 
 static PoolClassStruct PoolClassMFSStruct = {
   PoolClassSig,
-  "MFS",				/* name */
-  sizeof(MFSStruct),			/* size */
-  offsetof(MFSStruct, poolStruct),	/* offset */
-  AttrALLOC | AttrFREE,			/* attr */
-  MFSInit,				/* init */
-  MFSFinish,				/* finish */
-  MFSAlloc,				/* alloc */
-  MFSFree,				/* free */
-  PoolNoBufferInit,			/* bufferInit */
-  PoolNoBufferFinish, 			/* bufferFinish */
-  PoolNoBufferFill,			/* bufferFill */
-  PoolNoBufferTrip,  			/* bufferTrip */
-  PoolNoBufferExpose,			/* bufferExpose */
-  PoolNoBufferCover,			/* bufferCover */
-  PoolNoCondemn,			/* condemn */
-  PoolNoGrey,				/* grey */
-  PoolNoScan,				/* scan */
-  PoolNoFix,				/* fix */
-  PoolNoReclaim,       			/* relcaim */
-  PoolNoAccess,				/* access */
-  MFSDescribe,				/* describe */
-  PoolClassSig				/* impl.h.mpmst.class.end-sig */
+  "MFS",                                /* name */
+  sizeof(MFSStruct),                    /* size */
+  offsetof(MFSStruct, poolStruct),      /* offset */
+  AttrALLOC | AttrFREE,                 /* attr */
+  MFSInit,                              /* init */
+  MFSFinish,                            /* finish */
+  MFSAlloc,                             /* alloc */
+  MFSFree,                              /* free */
+  PoolNoBufferInit,                     /* bufferInit */
+  PoolNoBufferFinish,                   /* bufferFinish */
+  PoolNoBufferFill,                     /* bufferFill */
+  PoolNoBufferTrip,                     /* bufferTrip */
+  PoolNoBufferExpose,                   /* bufferExpose */
+  PoolNoBufferCover,                    /* bufferCover */
+  PoolNoCondemn,                        /* condemn */
+  PoolNoGrey,                           /* grey */
+  PoolNoScan,                           /* scan */
+  PoolNoFix,                            /* fix */
+  PoolNoReclaim,                        /* relcaim */
+  PoolNoAccess,                         /* access */
+  MFSDescribe,                          /* describe */
+  PoolClassSig                          /* impl.h.mpmst.class.end-sig */
 };
 
 

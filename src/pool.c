@@ -1,6 +1,6 @@
 /* impl.c.pool: POOL IMPLEMENTATION
  *
- * $HopeName: MMsrc!pool.c(MMdevel_restr2.4) $
+ * $HopeName: MMsrc!pool.c(MMdevel_restr2.5) $
  * Copyright (C) 1994,1995,1996 Harlequin Group, all rights reserved
  *
  * This is the implementation of the generic pool interface.  The
@@ -9,7 +9,7 @@
 
 #include "mpm.h"
 
-SRCID(pool, "$HopeName: MMsrc!pool.c(MMdevel_restr2.4) $");
+SRCID(pool, "$HopeName: MMsrc!pool.c(MMdevel_restr2.5) $");
 
 
 Bool PoolClassCheck(PoolClass class)
@@ -387,7 +387,7 @@ void PoolTrivFree(Pool pool, Addr old, Size size)
   AVERT(Pool, pool);
   AVER(old != NULL);
   AVER(size > 0);
-  NOOP;				/* trivial free has no effect */
+  NOOP;                         /* trivial free has no effect */
 }
 
 Res PoolNoBufferInit(Pool pool, Buffer buf)

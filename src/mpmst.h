@@ -1,6 +1,6 @@
 /* impl.h.mpmst: MEMORY POOL MANAGER DATA STRUCTURES
  *
- * $HopeName: MMsrc!mpmst.h(MMdevel_restr2.4) $
+ * $HopeName: MMsrc!mpmst.h(MMdevel_restr2.5) $
  * Copyright (C) 1996 Harlequin Group, all rights reserved.
  *
  * .rationale: Almost all MPM data structures are defined in this
@@ -58,11 +58,11 @@ typedef struct PoolClassStruct {
   const char *name;             /* class name string */
   size_t size;                  /* size of instance structure */
   size_t offset;                /* offset of PoolStruct in instance */
-  Attr attr;			/* attributes */
-  PoolInitMethod init;		/* initialize the pool descriptor */
-  PoolFinishMethod finish;	/* finish the pool descriptor */
-  PoolAllocMethod alloc;	/* allocate memory from pool */
-  PoolFreeMethod free;		/* free memory to pool */
+  Attr attr;                    /* attributes */
+  PoolInitMethod init;          /* initialize the pool descriptor */
+  PoolFinishMethod finish;      /* finish the pool descriptor */
+  PoolAllocMethod alloc;        /* allocate memory from pool */
+  PoolFreeMethod free;          /* free memory to pool */
   PoolBufferInitMethod bufferInit;
   PoolBufferFinishMethod bufferFinish;
   PoolBufferFillMethod bufferFill;
@@ -71,12 +71,12 @@ typedef struct PoolClassStruct {
   PoolBufferCoverMethod bufferCover;
   PoolCondemnMethod condemn;
   PoolGreyMethod grey;
-  PoolScanMethod scan;		/* find references during tracing */
-  PoolFixMethod fix;		/* make a referent live during tracing */
+  PoolScanMethod scan;          /* find references during tracing */
+  PoolFixMethod fix;            /* make a referent live during tracing */
   PoolReclaimMethod reclaim;
-  PoolAccessMethod access;	/* handle an access to shielded memory */
-  PoolDescribeMethod describe;	/* describe the contents of the pool */
-  Sig endSig;			/* .class.end-sig */
+  PoolAccessMethod access;      /* handle an access to shielded memory */
+  PoolDescribeMethod describe;  /* describe the contents of the pool */
+  Sig endSig;                   /* .class.end-sig */
 } PoolClassStruct;
 
 
@@ -233,17 +233,17 @@ typedef struct SegStruct {      /* segment structure */
  * (impl.h.mpmst.space).
  */
 
-#define ArenaSig	((Sig)0x519A7E9A)
+#define ArenaSig        ((Sig)0x519A7E9A)
 
 #ifdef TARGET_ARENA_ANSI
 
 /* This is the arena structure used by the ANSI-based  */
 /* arena implementation, impl.c.arenaan. */
 
-typedef struct ArenaStruct {	/* ANSI arena structure */
-  Sig sig;			/* impl.h.misc.sig */
-  RingStruct blockRing;		/* list of blocks in arena */
-  Size committed;		/* total allocated memory */
+typedef struct ArenaStruct {    /* ANSI arena structure */
+  Sig sig;                      /* impl.h.misc.sig */
+  RingStruct blockRing;         /* list of blocks in arena */
+  Size committed;               /* total allocated memory */
 } ArenaStruct;
 
 #else /* TARGET_ARENA_ANSI not */

@@ -1,6 +1,6 @@
 /* impl.c.poolmv: MANUAL VARIABLE POOL
  *
- * $HopeName: MMsrc!poolmv.c(MMdevel_restr2.4) $
+ * $HopeName: MMsrc!poolmv.c(MMdevel_restr2.5) $
  * Copyright (C) 1994, 1995 Harlequin Group, all rights reserved
  *
  * **** RESTRICTION: This pool may not allocate from the arena control
@@ -37,12 +37,12 @@
 #include "poolmfs.h"
 #include "mpscmv.h"
 
-SRCID(poolmv, "$HopeName: MMsrc!poolmv.c(MMdevel_restr2.4) $");
+SRCID(poolmv, "$HopeName: MMsrc!poolmv.c(MMdevel_restr2.5) $");
 
 
 #define BLOCKPOOL(mv)   (MFSPool(&(mv)->blockPoolStruct))
 #define SPANPOOL(mv)    (MFSPool(&(mv)->spanPoolStruct))
-#define PoolPoolMV(pool)	PARENT(MVStruct, poolStruct, pool)
+#define PoolPoolMV(pool)        PARENT(MVStruct, poolStruct, pool)
 
 
 /*  == Class Structure ==  */
@@ -95,8 +95,8 @@ static Bool MVBlockCheck(MVBlock block)
 
 typedef struct MVSpanStruct *MVSpan;
 typedef struct MVSpanStruct {
-  MVSpan next;			/* link to next span */
-  MV mv;			/* owning MV pool */
+  MVSpan next;                  /* link to next span */
+  MV mv;                        /* owning MV pool */
   Seg seg;                      /* segment underlying the span */
   MVBlockStruct base;           /* sentinel at base of span */
   MVBlockStruct limit;          /* sentinel at limit of span */
@@ -570,28 +570,28 @@ static Res MVDescribe(Pool pool, Lib_FILE *stream)
 
 static PoolClassStruct PoolClassMVStruct = {
   PoolClassSig,
-  "MV",					/* name */
-  sizeof(MVStruct),			/* size */
-  offsetof(MVStruct, poolStruct),	/* offset */
-  AttrALLOC | AttrFREE,			/* attr */
-  MVInit,				/* init */
-  MVFinish,				/* finish */
-  MVAlloc,				/* alloc */
-  MVFree,				/* free */
-  PoolNoBufferInit,			/* bufferInit */
-  PoolNoBufferFinish,			/* bufferFinish */
-  PoolNoBufferFill,			/* bufferFill */
-  PoolNoBufferTrip,			/* bufferTrip */
-  PoolNoBufferExpose,			/* bufferExpose */
-  PoolNoBufferCover,			/* bufferCover */
-  PoolNoCondemn,			/* condemn */
-  PoolNoGrey,				/* mark */
-  PoolNoScan,             		/* scan */
-  PoolNoFix,				/* fix */
-  PoolNoReclaim,             		/* relcaim */
-  PoolNoAccess,				/* access */
-  MVDescribe,				/* describe */
-  PoolClassSig				/* impl.h.mpmst.class.end-sig */
+  "MV",                                 /* name */
+  sizeof(MVStruct),                     /* size */
+  offsetof(MVStruct, poolStruct),       /* offset */
+  AttrALLOC | AttrFREE,                 /* attr */
+  MVInit,                               /* init */
+  MVFinish,                             /* finish */
+  MVAlloc,                              /* alloc */
+  MVFree,                               /* free */
+  PoolNoBufferInit,                     /* bufferInit */
+  PoolNoBufferFinish,                   /* bufferFinish */
+  PoolNoBufferFill,                     /* bufferFill */
+  PoolNoBufferTrip,                     /* bufferTrip */
+  PoolNoBufferExpose,                   /* bufferExpose */
+  PoolNoBufferCover,                    /* bufferCover */
+  PoolNoCondemn,                        /* condemn */
+  PoolNoGrey,                           /* mark */
+  PoolNoScan,                           /* scan */
+  PoolNoFix,                            /* fix */
+  PoolNoReclaim,                        /* relcaim */
+  PoolNoAccess,                         /* access */
+  MVDescribe,                           /* describe */
+  PoolClassSig                          /* impl.h.mpmst.class.end-sig */
 };
 
 PoolClass PoolClassMV(void)

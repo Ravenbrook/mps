@@ -2,7 +2,7 @@
  *
  *                         NULL POOL
  *
- *  $HopeName: MMsrc!pooln.c(MMdevel_restr2.3) $
+ *  $HopeName: MMsrc!pooln.c(MMdevel_restr2.4) $
  *
  *  Copyright(C) 1995 Harlequin Group, all rights reserved
  *
@@ -13,7 +13,7 @@
 #include "mpm.h"
 #include "pooln.h"
 
-SRCID(pooln, "$HopeName: MMsrc!pooln.c(MMdevel_restr2.3) $");
+SRCID(pooln, "$HopeName: MMsrc!pooln.c(MMdevel_restr2.4) $");
 
 
 typedef struct PoolNStruct {
@@ -21,7 +21,7 @@ typedef struct PoolNStruct {
   /* and that's it */
 } PoolNStruct;
 
-#define PoolPoolN(pool)	PARENT(PoolNStruct, poolStruct, pool)
+#define PoolPoolN(pool) PARENT(PoolNStruct, poolStruct, pool)
 
 
 static Res NInit(Pool pool, va_list args)
@@ -118,7 +118,7 @@ static Res NBufferFill(Addr *pReturn, Pool pool, Buffer buffer, Size size)
   AVER(size > 0);
   AVER(pReturn != NULL);
 
-  NOTREACHED;	/* can't create buffers, so shouldn't fill them */
+  NOTREACHED;   /* can't create buffers, so shouldn't fill them */
   return ResUNIMPL;
 }
 
@@ -129,7 +129,7 @@ static Bool NBufferTrip(Pool pool, Buffer buffer, Addr p, Size size)
   AVER(p != 0);
   AVER(size > 0);
 
-  NOTREACHED;	/* can't create buffers, so they shouldn't trip */
+  NOTREACHED;   /* can't create buffers, so they shouldn't trip */
   return FALSE;
 }
 
@@ -143,7 +143,7 @@ static void NBufferExpose(Pool pool, Buffer buffer)
 
   AVERT(Buffer, buffer);
 
-  NOTREACHED;	/* can't create buffers, so shouldn't expose them */
+  NOTREACHED;   /* can't create buffers, so shouldn't expose them */
 }
 
 static void NBufferCover(Pool pool, Buffer buffer)
@@ -156,7 +156,7 @@ static void NBufferCover(Pool pool, Buffer buffer)
 
   AVERT(Buffer, buffer);
 
-  NOTREACHED;	/* can't create buffers, so shouldn't cover them */
+  NOTREACHED;   /* can't create buffers, so shouldn't cover them */
 }
 
 static Res NDescribe(Pool pool, Lib_FILE *stream)
@@ -253,29 +253,29 @@ static void NAccess(Pool pool, Seg seg, AccessSet mode)
 }
 
 static PoolClassStruct PoolClassNStruct = {
-  PoolClassSig,				/* sig */
-  "N",					/* name */
-  sizeof(PoolNStruct),			/* size */
-  offsetof(PoolNStruct, poolStruct),	/* offset */
+  PoolClassSig,                         /* sig */
+  "N",                                  /* name */
+  sizeof(PoolNStruct),                  /* size */
+  offsetof(PoolNStruct, poolStruct),    /* offset */
   AttrSCAN | AttrALLOC | AttrFREE | AttrBUF | AttrBUF_RESERVE | AttrGC,
-  NInit,				/* init */
-  NFinish,				/* finish */
-  NAlloc,				/* alloc */
-  NFree,				/* free */
-  NBufferInit,				/* bufferInit */
-  NBufferFinish,			/* bufferFinish */
-  NBufferFill,				/* bufferFill */
-  NBufferTrip,				/* bufferTrip */
-  NBufferExpose,			/* bufferExpose */
-  NBufferCover,				/* bufferCover */
-  NCondemn,				/* condemn */
-  NMark,				/* grey */
-  NScan,				/* scan */
-  NFix,					/* fix */
-  NReclaim,				/* reclaim */
-  NAccess,				/* access */
-  NDescribe,				/* describe */
-  PoolClassSig				/* impl.h.mpmst.class.end-sig */
+  NInit,                                /* init */
+  NFinish,                              /* finish */
+  NAlloc,                               /* alloc */
+  NFree,                                /* free */
+  NBufferInit,                          /* bufferInit */
+  NBufferFinish,                        /* bufferFinish */
+  NBufferFill,                          /* bufferFill */
+  NBufferTrip,                          /* bufferTrip */
+  NBufferExpose,                        /* bufferExpose */
+  NBufferCover,                         /* bufferCover */
+  NCondemn,                             /* condemn */
+  NMark,                                /* grey */
+  NScan,                                /* scan */
+  NFix,                                 /* fix */
+  NReclaim,                             /* reclaim */
+  NAccess,                              /* access */
+  NDescribe,                            /* describe */
+  PoolClassSig                          /* impl.h.mpmst.class.end-sig */
 };
 
 PoolClass PoolClassN(void)
