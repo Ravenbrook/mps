@@ -1,6 +1,6 @@
 # impl.gmk.comm: COMMON GNUMAKEFILE FRAGMENT
 #
-# $HopeName: !comm.gmk(trunk.7) $
+# $HopeName: MMsrc!comm.gmk(MM_dylan_buffalo.1) $
 # Copyright (C) 1995,1996 Harlequin Group, all rights reserved
 #
 # DESCRIPTION
@@ -195,7 +195,7 @@ all: mpmss amcss dwstress mpsicv lockcov poolncv mps.a \
 # %%TARGET: Add a pseudo-target for the new target here.
 
 mpmss amcss dwstress mpsicv lockcov poolncv mps.a lo.a \
-  mrg.a locv qs weakcv mmsw.a mpmconft finalcv: phony
+  mrg.a locv qs weakcv mmdw.a mmsw.a mpmconft finalcv: phony
 ifdef VARIETY
 	$(MAKE) -f $(PFM).gmk TARGET=$@ variety
 else
@@ -290,6 +290,8 @@ $(PFM)/$(VARIETY)/mrg.a: $(MRGOBJ)
 
 $(PFM)/$(VARIETY)/mmsw.a: \
 	$(SWOBJ)
+
+$(PFM)/$(VARIETY)/mmdw.a: $(MPMOBJ) $(AMCOBJ) $(LOOBJ) $(DWOBJ)
 
 endif
 
