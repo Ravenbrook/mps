@@ -1,6 +1,6 @@
 /* impl.c.ref: REFERENCES
  *
- * $HopeName: !ref.c(trunk.4) $
+ * $HopeName: MMsrc!ref.c(MMdevel_trace2.1) $
  * Copyright (C) 1995 Harlequin Group, all rights reserved
  *
  * Ref is an alias for Addr which can be used to document where
@@ -24,7 +24,7 @@
 
 #include "mpm.h"
 
-SRCID(ref, "$HopeName: !ref.c(trunk.4) $");
+SRCID(ref, "$HopeName: MMsrc!ref.c(MMdevel_trace2.1) $");
 
 Bool RankCheck(Rank rank)
 {
@@ -63,7 +63,7 @@ RefSet RefSetOfSeg(Space space, Seg seg)
   limit = (((Word)SegLimit(space, seg)-1) >> space->zoneShift) + 1;
 
   if(limit - base >= WORD_WIDTH)        /* .rsos.univ */
-    return RefSetUniv;
+    return RefSetUNIV;
 
   base  &= WORD_WIDTH - 1;
   limit &= WORD_WIDTH - 1;
@@ -72,4 +72,36 @@ RefSet RefSetOfSeg(Space space, Seg seg)
     return ((RefSet)1<<limit) - ((RefSet)1<<base);
   else
     return ~(((RefSet)1<<base) - ((RefSet)1<<limit));
+}
+
+
+/* RefSetUnion -- union of two reference sets */
+
+RefSet (RefSetUnion)(RefSet rs1, RefSet rs2)
+{
+  return RefSetUnion(rs1, rs2);
+}
+
+
+/* RefSetInter -- intersection of two reference sets */
+
+RefSet (RefSetInter)(RefSet rs1, RefSet rs2)
+{
+  return RefSetInter(rs1, rs2);
+}
+
+
+/* RefSetAdd -- add a member to a reference set */
+
+RefSet (RefSetAdd)(Space space, RefSet rs, Addr addr)
+{
+  return RefSetAdd(space, rs, addr);
+}
+
+
+/* RefSetMember -- test membership of a reference set */
+
+Bool (RefSetMember)(Space space, RefSet rs, Addr addr)
+{
+  return RefSetMember(space, rs, addr);
 }
