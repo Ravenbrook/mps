@@ -1,6 +1,6 @@
 /* impl.c.assert: ASSERTION IMPLEMENTATION
  *
- * $HopeName: MMsrc!assert.c(trunk.6) $
+ * $HopeName: !assert.c(trunk.7) $
  *
  * This source provides the AssertFail function which is
  * invoked by the assertion macros (see impl.h.assert).

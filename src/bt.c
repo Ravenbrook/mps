@@ -1,6 +1,6 @@
 /* impl.c.bt: BIT TABLES
  *
- * $HopeName: MMsrc!bt.c(trunk.5) $
+ * $HopeName: !bt.c(trunk.6) $
  * Copyright (C) 1997 Harlequin Group, all rights reserved
  *
  * READERSHIP
@@ -19,7 +19,7 @@
 
 #include "mpm.h"
 
-SRCID(bt, "$HopeName: MMsrc!bt.c(trunk.5) $");
+SRCID(bt, "$HopeName: !bt.c(trunk.6) $");
 
 
 /* design.mps.bt.fun.size */

@@ -1,6 +1,6 @@
 /* impl.c.vman: ANSI VM: MALLOC-BASED PSUEDO MEMORY MAPPING
  *
- * $HopeName: MMsrc!vman.c(MMdevel_action2.2) $
+ * $HopeName: !vman.c(trunk.15) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  */
 
@@ -13,7 +13,7 @@
 #include <stdlib.h>     /* for malloc and free */
 #include <string.h>     /* for memset */
 
-SRCID(vman, "$HopeName: MMsrc!vman.c(MMdevel_action2.2) $");
+SRCID(vman, "$HopeName: !vman.c(trunk.15) $");
 
 #define SpaceVM(_space) (&(_space)->arenaStruct.vmStruct)
 
