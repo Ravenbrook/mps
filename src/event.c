@@ -1,6 +1,6 @@
 /* impl.c.event: EVENT LOGGING
  *
- * $HopeName: !event.c(trunk.2) $
+ * $HopeName: MMsrc!event.c(MMdevel_event_format.1) $
  * Copyright (C) 1996 Harlequin Group, all rights reserved.
  *
  * .readership: MPS developers.
@@ -26,7 +26,7 @@
 #include "event.h"
 #include "mpsio.h"
 
-SRCID(event, "$HopeName: !event.c(trunk.2) $");
+SRCID(event, "$HopeName: MMsrc!event.c(MMdevel_event_format.1) $");
 
 #ifdef EVENT /* .trans.ifdef */
 
@@ -37,7 +37,7 @@ static Count eventUserCount;
 
 Word *EventNext, *EventLimit; /* Used by macros in impl.h.event */
 
-static Res EventFlush(void)
+Res EventFlush(void)
 {
   Res res;
   
