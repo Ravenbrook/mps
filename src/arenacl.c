@@ -1,6 +1,6 @@
 /* impl.c.arenacl: ARENA IMPLEMENTATION USING CLIENT MEMORY
  *
- * $HopeName: MMsrc!arenacl.c(MMdevel_tony_sunset.2) $
+ * $HopeName: MMsrc!arenacl.c(MMdevel_tony_sunset.3) $
  * Copyright (C) 1997. Harlequin Group plc. All rights reserved.
  *
  * .readership: MM developers
@@ -17,7 +17,7 @@
 #include "mpsacl.h"
 
 
-SRCID(arenacl, "$HopeName: MMsrc!arenacl.c(MMdevel_tony_sunset.2) $");
+SRCID(arenacl, "$HopeName: MMsrc!arenacl.c(MMdevel_tony_sunset.3) $");
 
 
 typedef struct ClientArenaStruct *ClientArena;
@@ -747,7 +747,9 @@ static Tract tractSearchChunk(Chunk chunk, Index index)
   AVER_CRITICAL(index <= chunk->pages);
 
   while(index < chunk->pages && !BTGet(chunk->allocTable, index)) {
-    AVER_CRITICAL(PagePool(&chunk->pageTable[index]) == NULL);
+    /* can't check that the pool is NULL because it won't have */
+    /* been initialized before the first allocation of the page */
+    /* AVER_CRITICAL(PagePool(&chunk->pageTable[index]) == NULL); */
     ++index;
   }
     
