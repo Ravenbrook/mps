@@ -1,6 +1,6 @@
 /* impl.c.poolmv2: MANUAL VARIABLE POOL, II
  *
- * $HopeName: !poolmv2.c(trunk.3) $
+ * $HopeName: MMsrc!poolmv2.c(MMdevel_mv2_rework.1) $
  * Copyright (C) 1998 Harlequin Group plc.  All rights reserved.
  *
  * .readership: any MPS developer
@@ -17,7 +17,7 @@
 #include "abq.h"
 #include "meter.h"
 
-SRCID(poolmv2, "$HopeName: !poolmv2.c(trunk.3) $");
+SRCID(poolmv2, "$HopeName: MMsrc!poolmv2.c(MMdevel_mv2_rework.1) $");
 
 
 /* Signatures */
@@ -988,8 +988,10 @@ static void MV2NoteDelete(CBS cbs, CBSBlock block)
 {
   AVERT(CBS, cbs);
   AVERT(MV2, CBSMV2(cbs));
-  AVERT(CBSBlock, block);
-  AVER(CBSBlockSize(block) < CBSMV2(cbs)->reuseSize);
+  if(CBSBlockExists(block)) { /* may be invalid in this callback */
+    AVERT(CBSBlock, block);
+    AVER(CBSBlockSize(block) < CBSMV2(cbs)->reuseSize);
+  }
   
   {
     Res res = ABQDelete(MV2ABQ(CBSMV2(cbs)), block);

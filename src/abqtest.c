@@ -1,6 +1,6 @@
 /* impl.c.abqtest: AVAILABLE BLOCK QUEUE TEST
  *
- * $HopeName: !abqtest.c(trunk.2) $
+ * $HopeName: MMsrc!abqtest.c(MMdevel_mv2_rework.1) $
  * Copyright (C) 1998. Harlequin Group plc. All rights reserved.
  */
 
@@ -18,7 +18,7 @@
 #include "testlib.h"
 
 
-SRCID(abqtest, "$HopeName: !abqtest.c(trunk.2) $");
+SRCID(abqtest, "$HopeName: MMsrc!abqtest.c(MMdevel_mv2_rework.1) $");
 
 #include "abq.h"
 
@@ -66,8 +66,9 @@ static CBSBlock CreateCBSBlock(int no)
 
   b->next = testBlocks;
   b->id = no;
-  b->cbsBlockStruct.base = 0;
-  b->cbsBlockStruct.limit = 0;
+  /* These values will keep CBSBlockCheck happy. */
+  b->cbsBlockStruct.base = (Addr)b;
+  b->cbsBlockStruct.limit = (Addr)(b+1);
   
   testBlocks = b;
 

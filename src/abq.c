@@ -1,6 +1,6 @@
 /* impl.c.abq: AVAILABLE BLOCK QUEUE
  *
- * $HopeName: !abq.c(trunk.2) $
+ * $HopeName: MMsrc!abq.c(MMdevel_mv2_rework.1) $
  * Copyright (C) 1998 Harlequin Group plc.  All rights reserved.
  *
  * .readership: Any MPS developer
@@ -14,7 +14,7 @@
 #include "meter.h"
 #include "abq.h"
 
-SRCID(abq, "$HopeName: !abq.c(trunk.2) $");
+SRCID(abq, "$HopeName: MMsrc!abq.c(MMdevel_mv2_rework.1) $");
 
 
 /* Private prototypes */
@@ -168,7 +168,8 @@ Res ABQDelete(ABQ abq, CBSBlock block)
   CBSBlock *queue;
 
   AVERT(ABQ, abq);
-  AVERT(CBSBlock, block);
+  if(CBSBlockExists(block)) /* may be called during deletion */
+    AVERT(CBSBlock, block);
 
   METER_ACC(abq->delete, ABQDepth(abq));
 

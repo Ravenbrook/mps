@@ -1,6 +1,6 @@
 /* impl.c.cbs: COALESCING BLOCK STRUCTURE IMPLEMENTATION
  *
- * $HopeName: !cbs.c(trunk.2) $
+ * $HopeName: MMsrc!cbs.c(MMdevel_mv2_rework.1) $
  * Copyright (C) 1998 Harlequin Group plc, all rights reserved.
  *
  * .readership: Any MPS developer.
@@ -18,7 +18,7 @@
 #include "mpm.h"
 
 
-SRCID(cbs, "$HopeName: !cbs.c(trunk.2) $");
+SRCID(cbs, "$HopeName: MMsrc!cbs.c(MMdevel_mv2_rework.1) $");
 
 typedef struct CBSEmergencyBlockStruct *CBSEmergencyBlock;
 typedef struct CBSEmergencyBlockStruct {
@@ -42,8 +42,8 @@ typedef struct CBSEmergencyGrainStruct {
 Bool CBSCheck(CBS cbs) {
   CHECKS(CBS, cbs);
   CHECKL(cbs != NULL);
-  /* don't check cbs->splayTree? */
-  /* don't check emergencyBlockList or emergencyGrainList */
+  CHECKL(SplayTreeCheck(SplayTreeOfCBS(cbs)));
+  /* can't check emergencyBlockList or emergencyGrainList */
   CHECKD(Pool, cbs->blockPool);
   CHECKL(BoolCheck(cbs->mayUseInline));
   CHECKL(cbs->mayUseInline || cbs->emergencyBlockList == NULL);
@@ -52,18 +52,62 @@ Bool CBSCheck(CBS cbs) {
   return TRUE;
 }
 
+/* CBSBlockCheck -- See design.mps.cbs.function.cbs.block.check */
+ 
 Bool CBSBlockCheck(CBSBlock block) {
   UNUSED(block); /* Required because there is no signature */
   CHECKL(block != NULL);
-  /* Don't check block->splayNode? */
-
-  /* If the block is about to be deleted, then both pointers will be */
-  /* null.  Otherwise, the limit must be greater than the base. */
-  CHECKL((CBSBlockBase(block) == (Addr)0 && 
-	  CBSBlockLimit(block) == (Addr)0) ||
-	 CBSBlockBase(block) < CBSBlockLimit(block));
+  CHECKL(SplayNodeCheck(SplayNodeOfCBSBlock(block)));
+ 
+  /* If the block is in the middle of being deleted, */
+  /* the pointers will be equal.  This check function */
+  /* must not be called in this case. */
+  CHECKL(CBSBlockBase(block) < CBSBlockLimit(block));
   return TRUE;
 }
+ 
+ 
+/* CBSBlockExists -- See design.mps.cbs.function.cbs.block.exists
+ *
+ * May be called on invalid blocks so only checks argument conditionally.
+ */
+ 
+Bool (CBSBlockExists)(CBSBlock block) {
+  Bool result = CBSBlockExists(block);
+ 
+  if(result)
+    AVERT(CBSBlock, block);
+ 
+  return result;
+}
+ 
+ 
+/* CBSBlockBase -- See design.mps.cbs.function.cbs.block.base */
+ 
+Addr (CBSBlockBase)(CBSBlock block) {
+  AVERT(CBSBlock, block);
+ 
+  return CBSBlockBase(block);
+}
+ 
+ 
+/* CBSBlockLimit -- See design.mps.cbs.function.cbs.block.limit */
+ 
+Addr (CBSBlockLimit)(CBSBlock block) {
+  AVERT(CBSBlock, block);
+ 
+  return CBSBlockLimit(block);
+}
+ 
+ 
+/* CBSBlockSize -- see design.mps.cbs.function.cbs.block.size */
+ 
+Size (CBSBlockSize)(CBSBlock block) {
+  AVERT(CBSBlock, block);
+ 
+  return CBSBlockSize(block);
+}
+
 
 /* CBSSplayCompare -- Compare base to [base,limit) 
  *
@@ -100,10 +144,10 @@ static Compare CBSSplayCompare(void *key, SplayNode node) {
  */
 
 Res CBSInit(Arena arena, CBS cbs, 
-	    CBSNewMethod new, 
-	    CBSDeleteMethod delete,
-	    Size minSize,
-	    Bool mayUseInline) {
+            CBSNewMethod new, 
+            CBSDeleteMethod delete,
+            Size minSize,
+            Bool mayUseInline) {
   Res res;
 
   AVERT(Arena, arena);
@@ -113,7 +157,7 @@ Res CBSInit(Arena arena, CBS cbs,
 
   SplayTreeInit(SplayTreeOfCBS(cbs), &CBSSplayCompare);
   res = PoolCreate(&(cbs->blockPool), arena, PoolClassMFS(),
-		   sizeof(CBSBlockStruct) * 64, sizeof(CBSBlockStruct));
+                   sizeof(CBSBlockStruct) * 64, sizeof(CBSBlockStruct));
   if(res != ResOK)
     return res;
 
@@ -171,8 +215,8 @@ static Res CBSBlockDelete(CBS cbs, CBSBlock block) {
   if(res != ResOK)
     return res;
 
-  block->base = (Addr)0;
-  block->limit = (Addr)0;
+  /* make invalid */
+  block->limit = block->base;
 
   if(cbs->delete != NULL && oldSize >= cbs->minSize)
     (*(cbs->delete))(cbs, block);
@@ -225,7 +269,7 @@ static Res CBSBlockNew(CBS cbs, Addr base, Addr limit) {
   AVERT(CBSBlock, block);
 
   res = SplayTreeInsert(SplayTreeOfCBS(cbs), SplayNodeOfCBSBlock(block),
-			KeyOfCBSBlock(block));
+                        KeyOfCBSBlock(block));
   if(res != ResOK)
     goto failSplayTreeInsert;
 
@@ -264,10 +308,10 @@ Res CBSInsert(CBS cbs, Addr base, Addr limit) {
     return res;
 
   leftCBS = (leftSplay == NULL) ? NULL :
-	    CBSBlockOfSplayNode(leftSplay);
+    CBSBlockOfSplayNode(leftSplay);
 
   rightCBS = (rightSplay == NULL) ? NULL :
-	     CBSBlockOfSplayNode(rightSplay);
+    CBSBlockOfSplayNode(rightSplay);
 
   /* We know that base falls outside leftCBS by the contract of */
   /* CBSSplayCompare. Now we see if limit falls within rightCBS. */
@@ -279,13 +323,26 @@ Res CBSInsert(CBS cbs, Addr base, Addr limit) {
 
   if(leftMerge) {
     if(rightMerge) {
-      Addr rightLimit = rightCBS->limit;
-      res = CBSBlockDelete(cbs, rightCBS);
-      if(res != ResOK)
-	return res;
-      oldSize = CBSBlockSize(leftCBS);
-      leftCBS->limit = rightLimit;
-      CBSBlockGrow(cbs, leftCBS, oldSize);
+      Size oldLeftSize = CBSBlockSize(leftCBS);
+      Size oldRightSize = CBSBlockSize(rightCBS);
+
+      /* must block larger neighbour and destroy smaller neighbour; */
+      /* see design.mps.cbs.function.cbs.insert.callback */
+      if(oldLeftSize >= oldRightSize) {
+        Addr rightLimit = rightCBS->limit;
+        res = CBSBlockDelete(cbs, rightCBS);
+        if(res != ResOK)
+          return res;
+        leftCBS->limit = rightLimit;
+        CBSBlockGrow(cbs, leftCBS, oldLeftSize);
+      } else { /* left block is smaller */
+        Addr leftBase = leftCBS->base;
+        res = CBSBlockDelete(cbs, leftCBS);
+        if(res != ResOK)
+          return res;
+        rightCBS->base = leftBase;
+        CBSBlockGrow(cbs, rightCBS, oldRightSize);
+      }
     } else { /* leftMerge, !rightMerge */
       oldSize = CBSBlockSize(leftCBS);
       leftCBS->limit = limit;
@@ -299,7 +356,7 @@ Res CBSInsert(CBS cbs, Addr base, Addr limit) {
     } else { /* !leftMerge, !rightMerge */
       res = CBSBlockNew(cbs, base, limit);
       if(res != ResOK)
-	return res;
+        return res;
     }
   }
 
@@ -336,7 +393,7 @@ Res CBSDelete(CBS cbs, Addr base, Addr limit) {
     if(limit == cbsBlock->limit) { /* entire block */
       res = CBSBlockDelete(cbs, cbsBlock);
       if(res != ResOK) 
-	goto failDelete;
+        goto failDelete;
     } else { /* remaining fragment at right */
       AVER(limit < cbsBlock->limit);
       oldSize = CBSBlockSize(cbsBlock);
@@ -350,15 +407,29 @@ Res CBSDelete(CBS cbs, Addr base, Addr limit) {
       cbsBlock->limit = base;
       CBSBlockShrink(cbs, cbsBlock, oldSize);
     } else { /* two remaining fragments */
-      Addr oldLimit;
-      AVER(limit < cbsBlock->limit);
-      oldSize = CBSBlockSize(cbsBlock);
-      oldLimit = cbsBlock->limit;
-      cbsBlock->limit = base;
-      CBSBlockShrink(cbs, cbsBlock, oldSize);
-      res = CBSBlockNew(cbs, limit, oldLimit);
-      if(res != ResOK)
-	goto failNew;
+      Size leftNewSize = AddrOffset(cbsBlock->base, base);
+      Size rightNewSize = AddrOffset(limit, cbsBlock->limit);
+      /* must shrink larger fragment and create smaller; */
+      /* see design.mps.cbs.function.cbs.delete.callback */
+      if(leftNewSize >= rightNewSize) {
+        Addr oldLimit = cbsBlock->limit;
+        AVER(limit < cbsBlock->limit);
+        oldSize = CBSBlockSize(cbsBlock);
+        cbsBlock->limit = base;
+        CBSBlockShrink(cbs, cbsBlock, oldSize);
+        res = CBSBlockNew(cbs, limit, oldLimit);
+        if(res != ResOK)
+          goto failNew;
+      } else { /* right fragment is larger */
+        Addr oldBase = cbsBlock->base;
+        AVER(base > cbsBlock->base);
+        oldSize = CBSBlockSize(cbsBlock);
+        cbsBlock->base = limit;
+        CBSBlockShrink(cbs, cbsBlock, oldSize);
+        res = CBSBlockNew(cbs, oldBase, base);
+        if(res != ResOK)
+          goto failNew;
+      }
     }
   }
 
@@ -377,8 +448,8 @@ Res CBSBlockDescribe(CBSBlock block, mps_lib_FILE *stream) {
   AVER(stream != NULL);
 
   res = WriteF(stream,
-	       "[$P,$P)", (WriteFP)block->base, (WriteFP)block->limit,
-	       NULL);
+               "[$P,$P)", (WriteFP)block->base, (WriteFP)block->limit,
+               NULL);
   if(res != ResOK)
     return res;
 
@@ -386,7 +457,7 @@ Res CBSBlockDescribe(CBSBlock block, mps_lib_FILE *stream) {
 }
 
 static Res CBSSplayNodeDescribe(SplayNode splayNode, 
-				mps_lib_FILE *stream) {
+                                mps_lib_FILE *stream) {
   Res res;
   CBSBlock cbsBlock;
 
@@ -412,7 +483,7 @@ static Res CBSSplayNodeDescribe(SplayNode splayNode,
  */
 
 void CBSIterate(CBS cbs, CBSIterateMethod iterate,
-		void *closureP, unsigned long closureS) {
+                void *closureP, unsigned long closureS) {
   SplayNode splayNode;
   SplayTree splayTree;
   CBSBlock cbsBlock;
@@ -428,7 +499,7 @@ void CBSIterate(CBS cbs, CBSIterateMethod iterate,
       break;
     }
     splayNode = SplayTreeNext(splayTree, splayNode, 
-			      KeyOfCBSBlock(cbsBlock));
+                              KeyOfCBSBlock(cbsBlock));
   }
 }
 
@@ -446,7 +517,7 @@ typedef struct CBSIterateLargeClosureStruct {
 } CBSIterateLargeClosureStruct, *CBSIterateLargeClosure;
 
 static Bool CBSIterateLargeAction(CBS cbs, CBSBlock block, 
-				  void *p, unsigned long s) {
+                                  void *p, unsigned long s) {
   CBSIterateLargeClosure closure;
 
   closure = (CBSIterateLargeClosure)p;
@@ -461,7 +532,7 @@ static Bool CBSIterateLargeAction(CBS cbs, CBSBlock block,
 
 
 void CBSIterateLarge(CBS cbs, CBSIterateMethod iterate,
-		     void *closureP, unsigned long closureS) {
+                     void *closureP, unsigned long closureS) {
   CBSIterateLargeClosureStruct closure;
 
   AVERT(CBS, cbs);
@@ -472,7 +543,7 @@ void CBSIterateLarge(CBS cbs, CBSIterateMethod iterate,
   closure.f = iterate;
 
   CBSIterate(cbs, &CBSIterateLargeAction, 
-	     (void *)&closure, (unsigned long)0);
+             (void *)&closure, (unsigned long)0);
 }
 
 
@@ -488,7 +559,7 @@ typedef struct {
 } CBSSetMinSizeClosureStruct, *CBSSetMinSizeClosure;
 
 static Bool CBSSetMinSizeGrow(CBS cbs, CBSBlock block,
-			      void *p, unsigned long s) {
+                              void *p, unsigned long s) {
   CBSSetMinSizeClosure closure;
   Size size;
   
@@ -503,7 +574,7 @@ static Bool CBSSetMinSizeGrow(CBS cbs, CBSBlock block,
 }
 
 static Bool CBSSetMinSizeShrink(CBS cbs, CBSBlock block,
-				void *p, unsigned long s) {
+                                void *p, unsigned long s) {
   CBSSetMinSizeClosure closure;
   Size size;
   
@@ -527,10 +598,10 @@ void CBSSetMinSize(CBS cbs, Size minSize) {
 
   if(minSize < cbs->minSize)
     CBSIterate(cbs, &CBSSetMinSizeGrow, 
-	       (void *)&closure, (unsigned long)0);
+               (void *)&closure, (unsigned long)0);
   else if(minSize > cbs->minSize)
     CBSIterate(cbs, &CBSSetMinSizeShrink, 
-	       (void *)&closure, (unsigned long)0);
+               (void *)&closure, (unsigned long)0);
 
   cbs->minSize = minSize;
 }
@@ -547,16 +618,16 @@ Res CBSDescribe(CBS cbs, mps_lib_FILE *stream) {
   AVER(stream != NULL);
 
   res = WriteF(stream,
-	       "CBS $P {\n", (WriteFP)cbs,
-	       "  blockPool: $P\n", (WriteFP)cbs->blockPool,
-	       "  new: $F ", (WriteFF)cbs->new,
-	       "  delete: $F \n", (WriteFF)cbs->delete,
-	       NULL);
+               "CBS $P {\n", (WriteFP)cbs,
+               "  blockPool: $P\n", (WriteFP)cbs->blockPool,
+               "  new: $F ", (WriteFF)cbs->new,
+               "  delete: $F \n", (WriteFF)cbs->delete,
+               NULL);
   if(res != ResOK)
     return res;
 
   res = SplayTreeDescribe(SplayTreeOfCBS(cbs), stream,
-			  &CBSSplayNodeDescribe);
+                          &CBSSplayNodeDescribe);
   if(res != ResOK)
     return res;
 
