@@ -1,6 +1,6 @@
 /* impl.c.poolawl: AUTOMATIC WEAK LINKED POOL CLASS
  *
- * $HopeName: MMsrc!poolawl.c(MM_dylan_blackbird.1) $
+ * $HopeName: MMsrc!poolawl.c(MM_dylan_blackbird.2) $
  * Copyright (C) 1998.  Harlequin Group plc.  All rights reserved.
  *
  * READERSHIP
@@ -46,7 +46,7 @@
 #include "mpm.h"
 
 
-SRCID(poolawl, "$HopeName: MMsrc!poolawl.c(MM_dylan_blackbird.1) $");
+SRCID(poolawl, "$HopeName: MMsrc!poolawl.c(MM_dylan_blackbird.2) $");
 
 
 #define AWLSig  ((Sig)0x519b7a37)       /* SIGPooLAWL */
@@ -619,12 +619,14 @@ static Res AWLWhiten(Pool pool, Trace trace, Seg seg)
     /* Check the buffer is black. */
     /* This really ought to change when we have a non-trivial */
     /* pre-flip phase. @@@@ ('coz then we'll be allocating white) */
-    AVER(BTIsSetRange(group->mark,
-                      awlIndexOfAddr(base, awl, BufferScanLimit(buffer)),
-		      awlIndexOfAddr(base, awl, BufferLimit(buffer))));
-    AVER(BTIsSetRange(group->scanned,
-                      awlIndexOfAddr(base, awl, BufferScanLimit(buffer)),
-		      awlIndexOfAddr(base, awl, BufferLimit(buffer))));
+    if(BufferScanLimit(buffer) != BufferLimit(buffer)) {
+      AVER(BTIsSetRange(group->mark,
+			awlIndexOfAddr(base, awl, BufferScanLimit(buffer)),
+			awlIndexOfAddr(base, awl, BufferLimit(buffer))));
+      AVER(BTIsSetRange(group->scanned,
+			awlIndexOfAddr(base, awl, BufferScanLimit(buffer)),
+			awlIndexOfAddr(base, awl, BufferLimit(buffer))));
+    }
     /* We didn't condemn the buffer, subtract it from the count. */
     /* @@@@ We could subtract all the free grains. */
     trace->condemned += SegSize(seg)
