@@ -1,6 +1,6 @@
 /* impl.c.seg: SEGMENTS
  *
- * $HopeName: !seg.c(trunk.6) $
+ * $HopeName: MMsrc!seg.c(MMdevel_fixfast.1) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  *
  * .design: The design for this module is design.mps.seg.
@@ -16,7 +16,7 @@
 
 #include "mpm.h"
 
-SRCID(seg, "$HopeName: !seg.c(trunk.6) $");
+SRCID(seg, "$HopeName: MMsrc!seg.c(MMdevel_fixfast.1) $");
 
 
 /* SegCheck -- check the integrity of a segment */
@@ -107,15 +107,15 @@ void SegFinish(Seg seg)
 {
   AVERT(Seg, seg);
 
+  /* See impl.c.shield.shield.flush */
+  ShieldFlush(PoolArena(seg->_pool));
+
   /* Check that the segment is not exposed, or in the shield */
   /* cache (see impl.c.shield.def.depth). */
   AVER(seg->_depth == 0);
   
   /* Don't leave a dangling buffer allocating into hyperspace. */
   AVER(seg->_buffer == NULL);
-
-  /* See impl.c.shield.shield.flush */
-  ShieldFlush(PoolArena(seg->_pool));
 
   RingRemove(SegPoolRing(seg));
 
