@@ -1,6 +1,6 @@
 /* impl.c.poolmv2: NEW MANUAL VARIABLE POOL
  *
- * $HopeName: MMsrc!poolmv2.c(MMdevel_gavinm_splay.3) $
+ * $HopeName: MMsrc!poolmv2.c(MMdevel_gavinm_splay.4) $
  * Copyright (C) 1998 Harlequin Group plc. All rights reserved.
  *
  * .purpose: The implementation of the new manual-variable pool class
@@ -18,12 +18,20 @@ extern Bool CBSBlockCheck(CBSBlock);
 extern Size CBSBlockSize(CBSBlock);
 extern Addr CBSBlockBase(CBSBlock);
 extern Addr CBSBlockLimit(CBSBlock);
+/* Like AVER, but side-effect never optimized away */
+#define ENSURE(cond) ASSERT(cond, #cond)
+/* Make metering optional */
+#define METER_DECL(decl) decl
+#define METER_INIT(meter, init) ((meter) = (init))
+#define METER_INC(meter) ((meter)++)
+#define METER_DEC(meter) ((meter)--)
+#define METER_DELTA(meter, delta) ((meter) += (delta))
 
 /* For #include "poolmv2.h" */
 
 /* For #include "mpscmv2.h" */
 
-SRCID(poolmv2, "$HopeName: MMsrc!poolmv2.c(MMdevel_gavinm_splay.3) $");
+SRCID(poolmv2, "$HopeName: MMsrc!poolmv2.c(MMdevel_gavinm_splay.4) $");
 
 /* Signatures */
 #define MV2Sig ((Sig)0x5193F299) /* SIGnature MV2 */
@@ -57,7 +65,19 @@ typedef struct MV2Struct
   Seg splinterSeg;              /* Saved splinter seg */
   Addr splinterBase;            /* Saved splinter base */
   Size splinterSize;            /* Saved splinter size */
-  Sig sig;
+
+  /* meters*/
+  METER_DECL(Size size);        /* size of segs in pool */
+  METER_DECL(Count segs);       /* number of segs in pool */
+  METER_DECL(Size available);   /* bytes available to allocate */
+  METER_DECL(Count fills);      /* total buffer fills */
+  METER_DECL(Count empties);    /* total buffer empties */
+  METER_DECL(Size allocated);   /* bytes allocated --- may wrap */
+  METER_DECL(Count frees);      /* total frees */
+  METER_DECL(Size freed);       /* bytes freed --- may wrap */
+  METER_DECL(Count overflows);  /* total abq overflows */
+  METER_DECL(Count contingencies); /* total contingencies */
+  METER_DECL(Sig sig);
 }MV2Struct;
 
 /* Macros */
@@ -68,40 +88,8 @@ typedef struct MV2Struct
 #define MV2CBS(mv2) (&(mv2)->cbsStruct)
 #define MV2segPref(mv2) (&(mv2)->segPrefStruct)
 
-/* Like AVER, but side-effect never optimized away */
-#define ENSURE(cond) ASSERT(cond, #cond)
 
 /* Methods */
-static Bool MV2Check(MV2 mv2)
-{
-  UNUSED(mv2);
-  CHECKS(MV2, mv2);
-  CHECKD(Pool, &mv2->poolStruct);
-  CHECKL(mv2->poolStruct.class == &PoolClassMV2Struct);
-  /* --- how to check these??? */
-  /* CHECKD(CBS, &mv2->cbsStruct); */
-  AVERT(CBS, &mv2->cbsStruct);
-  /* CHECKD(ABQ, &mv2->abqStruct); */
-  AVERT(ABQ, &mv2->abqStruct);
-  CHECKD(SegPref, &mv2->segPrefStruct);
-  CHECKL(mv2->minSize > 0);
-  CHECKL(mv2->reuseSize >= mv2->minSize);
-  /* AVERT(Bool, mv2->abqOverflow); */
-  CHECKL(mv2->abqOverflow == FALSE || mv2->abqOverflow == TRUE);
-  /* AVERT(Bool, mv2->contingency); */
-  CHECKL(mv2->contingency == FALSE || mv2->contingency == TRUE);
-  if (mv2->splinterSize != 0) {
-    CHECKL(mv2->splinterSize >= mv2->minSize);
-    /* --- How to check Seg ??? */
-    /* CHECKT(Seg, mv2->splinterSeg); */
-    AVERT(Seg, mv2->splinterSeg);
-    CHECKL(mv2->splinterBase >= SegBase(mv2->splinterSeg));
-    CHECKL(AddrAdd(mv2->splinterBase, mv2->splinterSize) <= SegLimit(mv2->splinterSeg));
-  }
-
-  return TRUE;
-}
-
 static Bool ABQCheck(ABQ abq)
 {
   UNUSED(abq);
@@ -118,7 +106,7 @@ static Bool ABQCheck(ABQ abq)
 
 static Size ABQqueueSize(Count count)
 {
-  return (Size)(sizeof((ABQ)NULL->queue[0]) * count);
+  return (Size)(sizeof(((ABQ)NULL)->queue[0]) * count);
 }
 
 
@@ -309,7 +297,10 @@ static void NoteNew(CBS cbs, CBSBlock block)
       segLimit = SegLimit(seg);
       if (base <= segBase && limit >= segLimit) {
         ENSURE(CBSDelete(MV2CBS(mv2), segBase, segLimit) == ResOK);
+        METER_DELTA(mv2->available, -AddrOffset(segBase, segLimit));
         SegFree(seg);
+        METER_DELTA(mv2->size, -AddrOffset(segBase, segLimit));
+        METER_DEC(mv2->segs);
       }
       base = segLimit;
     }
@@ -317,6 +308,7 @@ static void NoteNew(CBS cbs, CBSBlock block)
     res = ABQPush(MV2ABQ(CBSMV2(cbs)), block);
     if (res != ResOK) {
       CBSMV2(cbs)->abqOverflow = TRUE;
+      METER_INC(mv2->overflows);
     }
   }
 }
@@ -393,6 +385,17 @@ static Res MV2Init(Pool pool, va_list arg)
   mv2->splinterBase = (Addr)0;
   mv2->splinterSeg = NULL;
   mv2->splinterSize = 0;
+  
+  /* meters*/
+  METER_INIT(mv2->size, 0);
+  METER_INIT(mv2->available, 0);
+  METER_INIT(mv2->fills, 0);
+  METER_INIT(mv2->empties, 0);
+  METER_INIT(mv2->allocated, 0);
+  METER_INIT(mv2->frees, 0);
+  METER_INIT(mv2->freed, 0);
+  METER_INIT(mv2->overflows, 0);
+  METER_INIT(mv2->contingencies, 0);
 
   mv2->sig = MV2Sig;
 
@@ -510,6 +513,8 @@ static Res MV2BufferFill(Seg *segReturn,
       limit = AddrAdd(base, idealSize);
     }
     ENSURE(CBSDelete(MV2CBS(mv2), base, limit) == ResOK);
+
+    goto done;
   }
   
 retry:
@@ -526,12 +531,15 @@ direct:
   if (res == ResOK) {
     base = SegBase(seg);
     limit = AddrAdd(base, idealSize);
-    goto done;
+    METER_DELTA(mv2->size, idealSize);
+    METER_INC(mv2->segs);
+    goto donenew;
   }
 
   /* Enter contingency mode */
   if (!mv2->contingency) {
     mv2->contingency = TRUE;
+    METER_INC(mv2->contingencies);
     goto retry;
   }
 
@@ -545,10 +553,14 @@ fail:
   return res;
   
 done:
+  METER_DELTA(mv2->available, -AddrOffset(base, limit));
+donenew:
   /* Give the buffer the entire segment to allocate in. */
   *segReturn = seg;
   *baseReturn = base;
   *limitReturn = limit;
+  METER_DELTA(mv2->allocated, AddrOffset(base, limit));
+  METER_INC(mv2->fills);
   EVENT_PPWAW(MV2BufferFill, mv2, buffer, size, base, AddrOffset(base, limit));
   return ResOK;
 }
@@ -598,6 +610,9 @@ static void MV2BufferEmpty(Pool pool, Buffer buffer)
   else {
     ENSURE(CBSInsert(MV2CBS(mv2), base, limit) == ResOK);
   }
+  METER_DELTA(mv2->allocated, -size);
+  METER_DELTA(mv2->available, size);
+  METER_INC(mv2->empties);
 }
 
 /* MV2Free -- free a block
@@ -624,4 +639,115 @@ static void MV2Free(Pool pool, Addr base, Size size)
   /* --- return exceptional blocks directly to arena ??? */
   
   ENSURE(CBSInsert(MV2CBS(mv2), base, limit) != ResOK);
+  METER_DELTA(mv2->freed, size);
+  METER_DELTA(mv2->available, size);
+  METER_INC(mv2->frees);
 }
+
+
+static PoolClassStruct PoolClassMV2Struct =
+{
+  PoolClassSig,
+  "MV2",                        /* name */
+  sizeof(MV2Struct),            /* size */
+  offsetof(MV2Struct, poolStruct), /* offset */
+  /* --- should we implement AttrALLOC? */
+  AttrFREE | AttrBUF | AttrBUF_RESERVE,/* attr */
+  MV2Init,                      /* init */
+  MV2Finish,                    /* finish */
+  PoolNoAlloc,                  /* alloc */
+  MV2Free,                      /* free */
+  PoolTrivBufferInit,           /* bufferInit */
+  MV2BufferFill,                /* bufferFill */
+  MV2BufferEmpty,               /* bufferEmpty */
+  PoolTrivBufferFinish,         /* bufferFinish */
+  PoolNoTraceBegin,             /* traceBegin */
+  PoolNoAccess,                 /* access */
+  PoolNoWhiten,                 /* whiten */
+  PoolNoGrey,                   /* mark */
+  PoolNoBlacken,                /* blacken */
+  PoolNoScan,                   /* scan */
+  PoolNoFix,                    /* fix */
+  PoolNoFix,                    /* emergency fix */
+  PoolNoReclaim,                /* relcaim */
+  PoolNoBenefit,                /* benefit */
+  PoolNoAct,                    /* act */
+  PoolNoWalk,                   /* walk */
+  MV2Describe,                  /* describe */
+  PoolClassSig                  /* impl.h.mpmst.class.end-sig */
+};
+
+static Bool MV2Check(MV2 mv2)
+{
+  UNUSED(mv2);
+  CHECKS(MV2, mv2);
+  CHECKD(Pool, &mv2->poolStruct);
+  CHECKL(mv2->poolStruct.class == &PoolClassMV2Struct);
+  /* --- how to check these??? */
+  /* CHECKD(CBS, &mv2->cbsStruct); */
+  AVERT(CBS, &mv2->cbsStruct);
+  /* CHECKD(ABQ, &mv2->abqStruct); */
+  AVERT(ABQ, &mv2->abqStruct);
+  CHECKD(SegPref, &mv2->segPrefStruct);
+  CHECKL(mv2->minSize > 0);
+  CHECKL(mv2->reuseSize >= mv2->minSize);
+  /* AVERT(Bool, mv2->abqOverflow); */
+  CHECKL(mv2->abqOverflow == FALSE || mv2->abqOverflow == TRUE);
+  /* AVERT(Bool, mv2->contingency); */
+  CHECKL(mv2->contingency == FALSE || mv2->contingency == TRUE);
+  if (mv2->splinterSize != 0) {
+    CHECKL(mv2->splinterSize >= mv2->minSize);
+    /* --- How to check Seg ??? */
+    /* CHECKT(Seg, mv2->splinterSeg); */
+    AVERT(Seg, mv2->splinterSeg);
+    CHECKL(mv2->splinterBase >= SegBase(mv2->splinterSeg));
+    CHECKL(AddrAdd(mv2->splinterBase, mv2->splinterSize) <= SegLimit(mv2->splinterSeg));
+  }
+  /* --- check meters? */
+
+  return TRUE;
+}
+
+PoolClass PoolClassMV2(void)
+{
+  return &PoolClassMV2Struct;
+}
+
+
+/* MPS Interface Extension */
+
+mps_class_t mps_class_MV2(void)
+{
+  return (mps_class_t)(PoolClassMV2());
+}
+
+/* Free bytes */
+
+size_t mps_MV2_free_size(mps_pool_t mps_pool)
+{
+  Pool pool;
+  MV2 mv2;
+
+  pool = (Pool)mps_pool;
+
+  AVERT(Pool, pool);
+  mv2 = PoolPoolMV2(pool);
+  AVERT(MV2, mv2);
+
+  return (size_t)mv2->free;
+}
+
+size_t mps_MV2_size(mps_pool_t mps_pool)
+{
+  Pool pool;
+  MV2 mv2;
+
+  pool = (Pool)mps_pool;
+
+  AVERT(Pool, pool);
+  mv2 = PoolPoolMV2(pool);
+  AVERT(MV2, mv2);
+
+  return (size_t)mv2->size;
+} 
+
