@@ -1,6 +1,6 @@
 /* impl.h.mpmst: MEMORY POOL MANAGER DATA STRUCTURES
  *
- * $HopeName: MMsrc!mpmst.h(MMdevel_metrics.2) $
+ * $HopeName: MMsrc!mpmst.h(MMdevel_metrics.3) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  *
  * .readership: MM developers.
@@ -232,6 +232,7 @@ typedef struct SegStruct {      /* segment structure */
   TraceSet _white : TRACE_MAX;  /* traces for which seg is white */
   unsigned int _single : 1;     /* is a single page segment? */
   RankSet _rankSet : RankMAX;   /* ranks of references in this seg */
+  unsigned nailCount : 16;      /* false fixes to this seg */
 } SegStruct;
 
 
@@ -510,6 +511,8 @@ typedef struct TraceStruct {
   Count snapCount;              /* refs snapped to forwarded objs */
   Count forwardCount;           /* objects forwarded */
   Count faultCount;             /* read barrier faults */
+  Count reclaimCount;           /* segments reclaimed */
+  Count reclaimSize;            /* bytes reclaimed */
 } TraceStruct;
 
 

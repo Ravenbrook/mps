@@ -1,6 +1,6 @@
 /* impl.c.trace: GENERIC TRACER IMPLEMENTATION
  *
- * $HopeName: MMsrc!trace.c(MMdevel_metrics.4) $
+ * $HopeName: MMsrc!trace.c(MMdevel_metrics.5) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  *
  * .sources: design.mps.tracer.
@@ -17,7 +17,7 @@
 
 #include "mpm.h"
 
-SRCID(trace, "$HopeName: MMsrc!trace.c(MMdevel_metrics.4) $");
+SRCID(trace, "$HopeName: MMsrc!trace.c(MMdevel_metrics.5) $");
 
 
 /* ScanStateCheck -- check consistency of a ScanState object */
@@ -310,6 +310,8 @@ found:
   trace->snapCount = 0;
   trace->forwardCount = 0;
   trace->faultCount = 0;
+  trace->reclaimCount = 0;
+  trace->reclaimSize = 0;
 
   trace->sig = TraceSig;
   AVERT(Trace, trace);
@@ -956,6 +958,8 @@ Res TraceFix(ScanState ss, Ref *refIO)
       res = PoolFix(pool, ss, seg, refIO);
       if(res != ResOK)
         return res;
+    } else {
+      ++seg->nailCount;
     }
   }
 
