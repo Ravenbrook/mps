@@ -1,6 +1,6 @@
 /* impl.c.poolawl: AUTOMATIC WEAK LINKED POOL CLASS
  *
- * $HopeName: MMsrc!poolawl.c(MM_dylan_sunflower.10) $
+ * $HopeName: MMsrc!poolawl.c(MM_dylan_sunflower.11) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  *
  * READERSHIP
@@ -16,7 +16,7 @@
 #include "mpm.h"
 #include "mpscawl.h"
 
-SRCID(poolawl, "$HopeName: MMsrc!poolawl.c(MM_dylan_sunflower.10) $");
+SRCID(poolawl, "$HopeName: MMsrc!poolawl.c(MM_dylan_sunflower.11) $");
 
 
 #define AWLSig  ((Sig)0x519b7a37)       /* SIGPooLAWL */
@@ -505,7 +505,7 @@ notFinished:
   /* if we're not condemned, then the scan must've scanned everything */
   /* and ss.summary and ss.fixed are faithful.  Otherwise we need to */
   /* spoof ss.summary and ss.fixed for TraceScan */
-  /* see request.dylan.170473 */
+  /* see request.dylan.170471 */
   if(SegWhite(seg) != RefSetEMPTY) {
     AVER(RefSetSub(ss->summary, SegSummary(seg)));
     ss->summary = SegSummary(seg);
