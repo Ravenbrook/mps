@@ -1,6 +1,6 @@
 /* impl.c.bt: BIT TABLES
  *
- * $HopeName$
+ * $HopeName: MMsrc!bt.c(MMdevel_gavinm_bt.2) $
  * Copyright (C) 1997 Harlequin Group, all rights reserved
  *
  * READERSHIP
@@ -19,7 +19,7 @@
 
 #include "mpm.h"
 
-SRCID(bt, "$HopeName$");
+SRCID(bt, "$HopeName: MMsrc!bt.c(MMdevel_gavinm_bt.2) $");
 
 /* is the whole word of bits at this index set? */
 
@@ -53,8 +53,10 @@ SRCID(bt, "$HopeName$");
     Index actInnerLimit = BTIndexAlignDown((limit)); \
 \
     if(actInnerBase > actInnerLimit) { /* no inner range */ \
-      BIT_ACTION(BTWordIndex((base)), \
-		 BTMask(BTBitIndex((base)), BTBitIndex((limit)))); \
+      if(base < limit) \
+        BIT_ACTION(BTWordIndex((base)), \
+                   BTMask(BTBitIndex((base)), \
+                          BTBitIndex((limit)))); \
     } else { \
       Index actWordIndex, actWordBase, actWordLimit; \
 \
@@ -63,15 +65,45 @@ SRCID(bt, "$HopeName$");
 \
       if(base < actInnerBase) { \
         BIT_ACTION(actWordBase-1, \
-		   BTMask(BTBitIndex((base)), MPS_WORD_WIDTH)); \
+                   BTMask(BTBitIndex((base)), MPS_WORD_WIDTH)); \
       } \
 \
       for(actWordIndex = actWordBase; actWordIndex < actWordLimit; \
-	  ++actWordIndex) \
+        ++actWordIndex) \
         WORD_ACTION(actWordIndex); \
 \
       if(limit > actInnerLimit) \
-	BIT_ACTION(actWordLimit, BTMask(0, BTBitIndex((limit)))); \
+        BIT_ACTION(actWordLimit, BTMask(0, BTBitIndex((limit)))); \
+    } \
+  END
+
+#define ACT_ON_RANGE_HIGH(base,limit) \
+  BEGIN \
+    Index actInnerBase = BTIndexAlignUp((base)); \
+    Index actInnerLimit = BTIndexAlignDown((limit)); \
+\
+    if(actInnerBase > actInnerLimit) { /* no inner range */ \
+      if(base < limit) \
+        BIT_ACTION(BTWordIndex((base)), \
+                   BTMask(BTBitIndex((base)), \
+                   BTBitIndex((limit)))); \
+    } else { \
+      Index actWordIndex, actWordBase, actWordLimit; \
+\
+      actWordBase = BTWordIndex(actInnerBase); \
+      actWordLimit = BTWordIndex(actInnerLimit); \
+\
+      if(limit > actInnerLimit) \
+        BIT_ACTION(actWordLimit, BTMask(0, BTBitIndex((limit)))); \
+\
+      for(actWordIndex = actWordLimit; actWordIndex > actWordBase; \
+        --actWordIndex) \
+        WORD_ACTION(actWordIndex-1); \
+      if(base < actInnerBase) { \
+        BIT_ACTION(actWordBase-1, \
+		   BTMask(BTBitIndex((base)), MPS_WORD_WIDTH)); \
+      } \
+\
     } \
   END
 
@@ -250,6 +282,129 @@ void BTResRange(BT t, Index base, Index limit)
 }
 
 
+/* BTFindSetInWord -- finds the lowest set bit in a word
+ * Must be called with a non-zero word.
+ * Essentially this takes the log base two, but in such 
+ * a way that it ignore higher bits.
+ */
+ 
+static Index BTFindSetInWord(Word word)
+{
+  Index index;
+  Word mask;
+  Count maskWidth;
+  
+  AVER(word != (Word)0);
+  
+  maskWidth = MPS_WORD_WIDTH >> 1;
+  mask = ~(Word)0 >> maskWidth;
+  index = 0;
+  
+  while(maskWidth != (Count)0) {
+    if(word & mask != (Word)0) {
+      index += maskWidth;
+      word >>= maskWidth;
+    }
+    
+    maskWidth >>= 1;
+    mask >>= maskWidth;
+  }
+  
+  return index;
+}
+  
+
+/* BTFindSetInWordHigh -- finds the highest set bit in a word
+ * Must be called with a non-zero word.
+ * Essentially this takes the floor of the log base two.
+ */
+ 
+static Index BTFindSetInWordHigh(Word word)
+{
+  Index index;
+  Word mask;
+  Count maskWidth;
+  
+  AVER(word != (Word)0);
+  
+  maskWidth = MPS_WORD_WIDTH >> 1;
+  mask = ~(Word)0 << maskWidth;
+  index = 0;
+  
+  while(maskWidth != (Count)0) {
+    if(word & mask != (Word)0) 
+      index += maskWidth;
+    else
+      word <<= maskWidth;
+    
+    maskWidth >>= 1;
+    mask <<= maskWidth;
+  }
+  
+  return index;
+}
+  
+
+/* BTFindSet -- find the lowest set bit in a range in a bit table.
+ * Returns false if the range is entirely reset;
+ * in this case indexReturn is unset.
+ */
+
+static Bool BTFindSet(Index *indexReturn,
+                      BT bt, Index base, Index limit)
+{
+#define ACTION(wi,word) \
+  BEGIN \
+  if((word) != (Word)0) { \
+    *indexReturn = ((wi) << MPS_WORD_SHIFT) | \
+                    BTFindSetInWord((word)); \
+    return TRUE; \
+  } \
+  END
+
+#define BIT_ACTION(wi,mask)  ACTION((wi), (bt[(wi)] & (mask)))
+#define WORD_ACTION(wi)      ACTION((wi), (bt[(wi)]))
+  
+  ACT_ON_RANGE(base, limit);
+
+#undef ACTION  
+#undef BIT_ACTION
+#undef WORD_ACTION
+  
+  return FALSE;
+}
+
+
+/* BTFindSetHigh -- find the highest set bit in a range in a bit table.
+ * Returns false if the range is entirely reset;
+ * in this case indexReturn is unset.
+ */
+
+static Bool BTFindSetHigh(Index *indexReturn,
+                      BT bt, Index base, Index limit)
+{
+#define ACTION(wi,word) \
+  BEGIN \
+  if((word) != (Word)0) { \
+    *indexReturn = ((wi) << MPS_WORD_SHIFT) | \
+                    BTFindSetInWordHigh((word)); \
+    return TRUE; \
+  } \
+  END
+
+#define BIT_ACTION(wi,mask)  ACTION((wi), (bt[(wi)] & (mask)))
+#define WORD_ACTION(wi)      ACTION((wi), (bt[(wi)]))
+  
+  ACT_ON_RANGE_HIGH(base, limit);
+
+#undef ACTION  
+#undef BIT_ACTION
+#undef WORD_ACTION
+  
+  return FALSE;
+}
+
+
 /* BTFindResRange -- find a reset range of bits in a bit table,
  * starting at the low end of the search range.
  *
@@ -261,14 +416,13 @@ static Bool BTFindResRange(Index *baseReturn, Index *limitReturn,
                            Index searchBase, Index searchLimit,
                            unsigned long minLength, unsigned long maxLength)
 {
-  Index base;   /* base of each candidate range */
-  Index limit;  /* limit of each candidate range */
-  Index i;      /* current index to check */
-  unsigned long length; /* length of a successful candidate */
+  Index base;      /* base of each candidate range */
+  Index limit;     /* limit of each candidate range */
+  Index setIndex;  /* index of first set bit found */
 
   AVER(baseReturn != NULL);
   AVER(limitReturn != NULL);
-  AVER(bt != NULL);
+  AVERT(BT, bt);
   AVER(searchBase < searchLimit);
   AVER(minLength > 0);
   AVER(minLength <= maxLength);
@@ -277,29 +431,25 @@ static Bool BTFindResRange(Index *baseReturn, Index *limitReturn,
   base = searchBase;
   while (base <= searchLimit - minLength) {
     limit = base + minLength;
-    i = limit - 1;                      /* top index in candidate range */
-    if (BTIsWordSet(bt,i)) {            /* skip to the next word */
+    if (BTIsWordSet(bt, limit - 1)) {   /* skip to the next word */
       base = BTIndexAlignUp(limit);
       if (base < limit) /* overflow case */
-	return FALSE;
+        return FALSE;
     } else {                           /* check the candidate range */
-      while (!BTGet(bt, i)) {
-        if (i == base) {               /* candidate range succeeds */
-          length = minLength;
-	  /* try to extend to maxLength */
-	  while ((length < maxLength) &&
-		 (limit < searchLimit) &&
-                 !BTGet(bt,limit)) {
-	    ++ length;
-	    ++ limit;
-	  }
-          *baseReturn = base;
-	  *limitReturn = limit;
-          return TRUE;
-        }
-        -- i;
+      if(!BTFindSetHigh(&setIndex, bt, base, limit)) { 
+        /* found reset range of minLength [base,limit) */
+        if(searchLimit - base > maxLength)
+          searchLimit = base + maxLength; /* limit search */
+        if(!BTFindSet(&setIndex, bt, limit, searchLimit))
+          setIndex = searchLimit;
+        *baseReturn = base;
+        *limitReturn = setIndex;
+        AVER(setIndex - base >= minLength);
+        AVER(setIndex - base <= maxLength);
+        return TRUE;
+      } else {
+        base = setIndex + 1;            /* Skip to reset or unknown bit */
       }
-      base = i + 1;                 /* Skip to reset or unknown bit */
     }
   }
   /* failure */
@@ -317,16 +467,15 @@ static Bool BTFindResRangeHigh(Index *baseReturn, Index *limitReturn,
                                BT bt,
                                Index searchBase, Index searchLimit,
                                unsigned long minLength,
-			       unsigned long maxLength)
+                               unsigned long maxLength)
 {
-  Index base;   /* base of each candidate range */
-  Index limit;  /* limit of each candidate range */
-  Index i;      /* current index to check */
-  unsigned long length; /* length of a successful candidate */
+  Index base;     /* base of each candidate range */
+  Index limit;    /* limit of each candidate range */
+  Index setIndex; /* index of first set bit */
 
   AVER(baseReturn != NULL);
   AVER(limitReturn != NULL);
-  AVER(bt != NULL);
+  AVERT(BT, bt);
   AVER(searchBase < searchLimit);
   AVER(minLength > 0);
   AVER(minLength <= maxLength);
@@ -335,27 +484,23 @@ static Bool BTFindResRangeHigh(Index *baseReturn, Index *limitReturn,
   limit = searchLimit;
   while (limit >= searchBase + minLength) {
     base = limit - minLength;
-    i = base;                           /* bottom index in candidate range */
-    if (BTIsWordSet(bt,i)) {            /* skip to the next word */
+    if (BTIsWordSet(bt,base)) {            /* skip to the next word */
       limit = BTIndexAlignDown(base);
     } else {                            /* check the candidate range */
-      while (!BTGet(bt, i)) {
-	++ i;
-        if (i == limit) {               /* candidate range succeeds */
-          length = minLength;
-	  /* try to extend to maxLength */
-	  while ((length < maxLength) &&
-		 (base > searchBase) &&
-                 !BTGet(bt, base - 1)) {
-	    ++ length;
-	    -- base;
-	  }
-          *baseReturn = base;
-	  *limitReturn = limit;
-          return TRUE;
-        }
+      if(!BTFindSet(&setIndex, bt, base, limit)) { 
+        /* found reset range of minLength [base,limit) */
+        if(limit - searchBase > maxLength)
+          searchBase = limit - maxLength; /* limit search */
+        if(!BTFindSetHigh(&setIndex, bt, searchBase, base))
+          setIndex = searchBase;
+        *baseReturn = setIndex;
+        *limitReturn = limit;
+        AVER(limit - setIndex >= minLength);
+        AVER(limit - setIndex <= maxLength);
+        return TRUE;
+      } else {
+        limit = setIndex;            /* Skip to reset or unknown bit */
       }
-      limit = i;                        /* skip to reset or unknown bit */
     }
   }
   /* failure */
