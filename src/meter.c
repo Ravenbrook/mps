@@ -1,6 +1,6 @@
 /* impl.c.meter: METERS
  *
- * $HopeName: MMsrc!meter.c(MMdevel_gavinm_splay.1) $
+ * $HopeName: MMsrc!meter.c(MMdevel_gavinm_splay.2) $
  * Copyright (C) 1998 Harlequin Group plc.  All rights reserved.
  *
  */
@@ -25,7 +25,7 @@ void MeterAccumulate(Meter meter, Size amount)
   Count count = meter->count + 1;
   double total = meter->total;
   double meanSquared = meter->meanSquared;
-  double weight = (double)(count - 1) / (double)count;
+  double dcount = (double)count;
 
   /* .limitation.variance: This computation accumulates a running
    * mean^2, minimizing overflow, but sacrificing numerical stablity
@@ -34,24 +34,13 @@ void MeterAccumulate(Meter meter, Size amount)
    */
   meter->count = count;
   meter->total = total + amount;
-  meter->meanSquared = weight * meanSquared + amount * amount / count;
+  meter->meanSquared =
+    meanSquared / dcount * (dcount - 1.0)
+    + amount / dcount * amount;
   if (amount > meter->max)
     meter->max = amount;
   if (amount < meter->min)
     meter->min = amount;
-}
-
-
-/* --- crude hack */
-static Res WriteDouble(char *before, double d, char* after,
-                       mps_lib_FILE *stream)
-{
-  WriteFU i, f;
-
-  i = (WriteFU)d;
-  f = (WriteFU)((d - (double)i) * 1000);
-  return
-    WriteF(stream, "$S$U.$U$S", before, i, f, after, NULL);
 }
 
 
@@ -67,30 +56,26 @@ Res MeterWrite(Meter meter, mps_lib_FILE *stream)
     return res;
   if (meter->count > 0) {
     double mean = meter->total / (double)meter->count;
-    
-    res = WriteDouble("  total: ", meter->total, "\n", stream);
-    if (res != ResOK)
-      return res;
-    res = WriteF(stream,
-                 "  max: $U\n", meter->max,
-                 "  min: $U\n", meter->min,
-                 NULL);
-    if (res != ResOK)
-      return res;
-    res = WriteDouble("  mean: ", mean, "\n",
-                      stream);
-    if (res != ResOK)
-      return res;
     /* --- stddev = sqrt(meanSquared - mean^2), but see
      * .limitation.variance above
      */
-    res = WriteDouble("  stddev: ", sqrt(fabs(meter->meanSquared - (mean * mean))), "\n", stream);
+    double stddev = sqrt(fabs(meter->meanSquared - (mean * mean)));
+    
+    res = WriteF(stream,
+                 "  total: $D\n", meter->total,
+                 "  max: $U\n", meter->max,
+                 "  min: $U\n", meter->min,
+                 "  mean: $D\n", mean,
+                 "  stddev: $D\n", stddev,
+                 NULL);
     if (res != ResOK)
       return res;
   }
-  res = WriteF(stream,"}\n", NULL);
+  res = WriteF(stream,
+               "}\n",
+               NULL);
   if (res != ResOK)
     return res;
-  
+
   return ResOK;
 }
