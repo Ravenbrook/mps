@@ -1,6 +1,6 @@
 /*  impl.c.cbstest: COALESCING BLOCK STRUCTURE TEST
  *
- *  $HopeName: MMsrc!cbstest.c(MMdevel_mv2_rework.1) $
+ *  $HopeName: MMsrc!cbstest.c(MMdevel_mv2_rework.2) $
  * Copyright (C) 1998 Harlequin Group plc.  All rights reserved.
  */
 
@@ -16,7 +16,7 @@
 #include "testlib.h"
 
 
-SRCID(cbstest, "$HopeName: MMsrc!cbstest.c(MMdevel_mv2_rework.1) $");
+SRCID(cbstest, "$HopeName: MMsrc!cbstest.c(MMdevel_mv2_rework.2) $");
 
 #define ArraySize ((Size)123456)
 #define NOperations ((Size)125000)
@@ -26,18 +26,23 @@ SRCID(cbstest, "$HopeName: MMsrc!cbstest.c(MMdevel_mv2_rework.1) $");
 #define IndexOfAddr(block, a) AddrOffset(block, a)
 
 static Count NAllocateTried, NAllocateSucceeded, NDeallocateTried,
-  NDeallocateSucceeded, NNewBlocks;
+  NDeallocateSucceeded, NNewBlocks, NDeleteBlocks, NGrowBlocks,
+  NShrinkBlocks;
 
 
-/* These globals are used to communicate with the new and delete */
-/* callbacks.  The first two booleans indicate which (if either) */
-/* may be called.  The third boolean indicates whether the block */
-/* being deleted will exist.  The base-limit pair is the right */
-/* size of the new block */
-static Bool ShouldCallDelete = FALSE;
-static Bool ShouldCallNew = FALSE;
-static Bool CallbackExists = FALSE;
-static Addr CallbackBase, CallbackLimit;
+/* Used to predict which callbacks will be called, and with which values. */
+/* At most one callback of each type will be called. */
+typedef struct CallbackPredictionStruct {
+  Bool shouldBeCalled;
+  Size oldSize;
+  Addr base;
+  Addr limit;
+} CallbackPredictionStruct, *CallbackPrediction;
+
+static CallbackPredictionStruct CallbackNew;
+static CallbackPredictionStruct CallbackDelete;
+static CallbackPredictionStruct CallbackGrow;
+static CallbackPredictionStruct CallbackShrink;
 
 typedef struct CheckCBSClosureStruct {
   BT allocTable;
@@ -47,32 +52,64 @@ typedef struct CheckCBSClosureStruct {
 } CheckCBSClosureStruct, *CheckCBSClosure;
 
 
-static void cbsNewCallback(CBS cbs, CBSBlock cbsBlock) {
+/* This function encapsulates the common tests for the callbacks. */
+static void testCallback(CBS cbs, CBSBlock cbsBlock,
+                         Size oldSize, Size newSize,
+                         CallbackPrediction prediction) {
   AVERT(CBS, cbs);
   AVERT(CBSBlock, cbsBlock);
-  AVER(ShouldCallNew);
+  AVER(prediction->shouldBeCalled);
+  AVER(oldSize == prediction->oldSize);
 
-  AVER(CBSBlockSize(cbsBlock) >= MinSize);
-  AVER(CBSBlockBase(cbsBlock) == CallbackBase);
-  AVER(CBSBlockLimit(cbsBlock) == CallbackLimit);
+  if(newSize == 0) {
+    AVER(prediction->base == 0);
+    AVER(prediction->limit == 0);
+  } else {
+    AVER(CBSBlockSize(cbsBlock) == newSize);
+    AVER(newSize == AddrOffset(prediction->base, prediction->limit));
+    AVER(CBSBlockBase(cbsBlock) == prediction->base);
+    AVER(CBSBlockLimit(cbsBlock) == prediction->limit);
+  }
 
-  ShouldCallNew = FALSE;
+  prediction->shouldBeCalled = FALSE;
+}
+
+static void cbsNewCallback(CBS cbs, CBSBlock cbsBlock, 
+                           Size oldSize, Size newSize) {
+  testCallback(cbs, cbsBlock, oldSize, newSize, &CallbackNew);
+  AVER(oldSize < cbs->minSize);
+  AVER(newSize >= cbs->minSize);
+
   NNewBlocks++;
 }
 
-static void cbsDeleteCallback(CBS cbs, CBSBlock cbsBlock) {
-  AVERT(CBS, cbs);
-  AVER(ShouldCallDelete);
-  AVER(CallbackExists == CBSBlockExists(cbsBlock));
-  if(CallbackExists) {
-    AVERT(CBSBlock, cbsBlock);
-    AVER(CBSBlockSize(cbsBlock) < MinSize);
-    AVER(CBSBlockBase(cbsBlock) == CallbackBase);
-    AVER(CBSBlockLimit(cbsBlock) == CallbackLimit);
-  }
+static void cbsDeleteCallback(CBS cbs, CBSBlock cbsBlock, 
+                              Size oldSize, Size newSize) {
+  testCallback(cbs, cbsBlock, oldSize, newSize, &CallbackDelete);
+  AVER(oldSize >= cbs->minSize);
+  AVER(newSize < cbs->minSize);
 
-  ShouldCallDelete = FALSE;
-  NNewBlocks++;
+  NDeleteBlocks++;
+}
+
+static void cbsGrowCallback(CBS cbs, CBSBlock cbsBlock, 
+                            Size oldSize, Size newSize) {
+  testCallback(cbs, cbsBlock, oldSize, newSize, &CallbackGrow);
+  AVER(oldSize >= cbs->minSize);
+  AVER(newSize >= cbs->minSize);
+  AVER(oldSize < newSize);
+
+  NGrowBlocks++;
+}
+
+static void cbsShrinkCallback(CBS cbs, CBSBlock cbsBlock, 
+                              Size oldSize, Size newSize) {
+  testCallback(cbs, cbsBlock, oldSize, newSize, &CallbackShrink);
+  AVER(oldSize >= cbs->minSize);
+  AVER(newSize >= cbs->minSize);
+  AVER(oldSize > newSize);
+
+  NShrinkBlocks++;
 }
 
 static Bool checkCBSAction(CBS cbs, CBSBlock cbsBlock,
@@ -221,39 +258,34 @@ static void randomRange(Addr *baseReturn,
 }
 
 
-/* expect_* -- Set callback expectations */
+/* Set callback expectations */
 
-static void expect_nothing(void) {
-  AVER(!ShouldCallNew);
-  AVER(!ShouldCallDelete);
+static void clearExpectations(void) {
+  CallbackNew.shouldBeCalled = FALSE;
+  CallbackDelete.shouldBeCalled = FALSE;
+  CallbackGrow.shouldBeCalled = FALSE;
+  CallbackShrink.shouldBeCalled = FALSE;
 }
 
-static void expect_new(Addr base, Addr limit) {
-  AVER(!ShouldCallNew);
-  AVER(!ShouldCallDelete);
+static void expectCallback(CallbackPrediction prediction,
+                           Size oldSize, Addr base, Addr limit) {
+  AVER(prediction->shouldBeCalled == FALSE);
+  AVER(limit > base);
+  AVER(oldSize != (Size)0 || base != (Addr)0);
+  AVER(base != (Addr)0 || limit == (Addr)0);
 
-  ShouldCallNew = TRUE;
-  CallbackBase = base;
-  CallbackLimit = limit;
+  prediction->shouldBeCalled = TRUE;
+  prediction->oldSize = oldSize;
+  prediction->base = base;
+  prediction->limit = limit;
 }
 
-static void expect_delete(Addr base, Addr limit) {
-  AVER(!ShouldCallNew);
-  AVER(!ShouldCallDelete);
-
-  ShouldCallDelete = TRUE;
-  CallbackExists = TRUE;
-  CallbackBase = base;
-  CallbackLimit = limit;
-}
-
-static void expect_delete_entirely(void) {
-  AVER(!ShouldCallNew);
-  AVER(!ShouldCallDelete);
-
-  ShouldCallDelete = TRUE;
-  CallbackExists = FALSE;
-}
+static void checkExpectations(void) {
+  AVER(!CallbackNew.shouldBeCalled);
+  AVER(!CallbackDelete.shouldBeCalled);
+  AVER(!CallbackGrow.shouldBeCalled);
+  AVER(!CallbackShrink.shouldBeCalled);
+}  
 
 static void allocate(CBS cbs, Addr block, BT allocTable, 
                      Addr base, Addr limit) {
@@ -287,22 +319,33 @@ static void allocate(CBS cbs, Addr block, BT allocTable,
     total = AddrOffset(outerBase, outerLimit);
 
     /* based on detailed knowledge of CBS behaviour */
+    checkExpectations();
     if(total >= MinSize && left < MinSize && right < MinSize) {
       if(left == (Size)0 && right == (Size)0) {
-        expect_delete_entirely();
+        expectCallback(&CallbackDelete, total, (Addr)0, (Addr)0);
       } else if(left >= right) {
-        expect_delete(outerBase, base);
+        expectCallback(&CallbackDelete, total, outerBase, base);
       } else {
-        expect_delete(limit, outerLimit);
+        expectCallback(&CallbackDelete, total, limit, outerLimit);
       }
     } else if(left >= MinSize && right >= MinSize) {
       if(left >= right) {
-        expect_new(limit, outerLimit);
+        expectCallback(&CallbackShrink, total, outerBase, base);
+        expectCallback(&CallbackNew, (Size)0, limit, outerLimit);
       } else {
-        expect_new(outerBase, base);
+        expectCallback(&CallbackNew, (Size)0, outerBase, base);
+        expectCallback(&CallbackShrink, total, limit, outerLimit);
       }
-    } else {
-      expect_nothing();
+    } else if(total >= MinSize) {
+      if(left >= right) {
+        AVER(left >= MinSize);
+        AVER(right < MinSize);
+        expectCallback(&CallbackShrink, total, outerBase, base);
+      } else {
+        AVER(left < MinSize);
+        AVER(right >= MinSize);
+        expectCallback(&CallbackShrink, total, limit, outerLimit);
+      }
     }
   }
 
@@ -316,6 +359,7 @@ static void allocate(CBS cbs, Addr block, BT allocTable,
                "failed to delete free block");
     NAllocateSucceeded++;
     BTSetRange(allocTable, ib, il);
+    checkExpectations();
   }
 }
 
@@ -361,16 +405,30 @@ static void deallocate(CBS cbs, Addr block, BT allocTable,
     total = AddrOffset(outerBase, outerLimit);
 
     /* based on detailed knowledge of CBS behaviour */
+    checkExpectations();
     if(total >= MinSize && left < MinSize && right < MinSize) {
-      expect_new(outerBase, outerLimit);
+      if(left >= right) 
+        expectCallback(&CallbackNew, left, outerBase, outerLimit);
+      else
+        expectCallback(&CallbackNew, right, outerBase, outerLimit);
     } else if(left >= MinSize && right >= MinSize) {
       if(left >= right) {
-        expect_delete(limit, outerLimit);
+        expectCallback(&CallbackDelete, right, (Addr)0, (Addr)0);
+        expectCallback(&CallbackGrow, left, outerBase, outerLimit);
       } else {
-        expect_delete(outerBase, base);
+        expectCallback(&CallbackDelete, left, (Addr)0, (Addr)0);
+        expectCallback(&CallbackGrow, right, outerBase, outerLimit);
       }
-    } else {
-      expect_nothing();
+    } else if(total >= MinSize) {
+      if(left >= right) {
+        AVER(left >= MinSize);
+        AVER(right < MinSize);
+        expectCallback(&CallbackGrow, left, outerBase, outerLimit);
+      } else {
+        AVER(left < MinSize);
+        AVER(right >= MinSize);
+        expectCallback(&CallbackGrow, right, outerBase, outerLimit);
+      }
     }
   }
 
@@ -385,6 +443,7 @@ static void deallocate(CBS cbs, Addr block, BT allocTable,
 
     NDeallocateSucceeded++;
     BTResRange(allocTable, ib, il);
+    checkExpectations();
   }
 }
 
@@ -404,7 +463,10 @@ extern int main(int argc, char *argv[])
   testlib_unused(argv);
 
   NAllocateTried = NAllocateSucceeded = NDeallocateTried = 
-    NDeallocateSucceeded = NNewBlocks = 0;
+    NDeallocateSucceeded = NNewBlocks = NDeleteBlocks = 
+    NGrowBlocks = NShrinkBlocks = 0;
+
+  clearExpectations();
 
   die((mps_res_t)mps_arena_create(&mpsArena,
                                   mps_arena_class_an()),
@@ -415,7 +477,8 @@ extern int main(int argc, char *argv[])
       "failed to create alloc table");
 
   die((mps_res_t)CBSInit(arena, &cbsStruct, &cbsNewCallback, 
-                         &cbsDeleteCallback, MinSize, TRUE),
+                         &cbsDeleteCallback, &cbsGrowCallback,
+                         &cbsShrinkCallback, MinSize, TRUE),
     "failed to initialise CBS");
   cbs = &cbsStruct;
 
@@ -443,6 +506,8 @@ extern int main(int argc, char *argv[])
       checkCBS(cbs, allocTable, dummyBlock);
   }
 
+  checkExpectations();
+
   /* CBSDescribe prints a very long line. */
   /* CBSDescribe(cbs, mps_lib_get_stdout()); */
 
@@ -451,6 +516,9 @@ extern int main(int argc, char *argv[])
   printf("Number of deallocations attempted: %ld\n", NDeallocateTried);
   printf("Number of deallocations succeeded: %ld\n", NDeallocateSucceeded);
   printf("Number of new large blocks: %ld\n", NNewBlocks);
+  printf("Number of deleted large blocks: %ld\n", NDeleteBlocks);
+  printf("Number of grown large blocks: %ld\n", NGrowBlocks);
+  printf("Number of shrunk large blocks: %ld\n", NShrinkBlocks);
   printf("\nNo problems detected.\n");
   return 0;
 }

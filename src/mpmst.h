@@ -1,6 +1,6 @@
 /* impl.h.mpmst: MEMORY POOL MANAGER DATA STRUCTURES
  *
- * $HopeName: !mpmst.h(trunk.61) $
+ * $HopeName: MMsrc!mpmst.h(MMdevel_mv2_rework.1) $
  * Copyright (C) 1998 Harlequin Group plc.  All rights reserved.
  *
  * .readership: MM developers.
@@ -695,8 +695,10 @@ typedef struct SplayNodeStruct {
 typedef struct CBSStruct {
   SplayTreeStruct splayTree;
   Pool blockPool;
-  CBSNewMethod new;
-  CBSDeleteMethod delete;
+  CBSChangeSizeMethod new;
+  CBSChangeSizeMethod delete;
+  CBSChangeSizeMethod grow;
+  CBSChangeSizeMethod shrink;
   Size minSize;
   Bool mayUseInline;
   struct CBSEmergencyBlockStruct *emergencyBlockList;

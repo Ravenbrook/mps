@@ -1,6 +1,6 @@
 /* impl.h.mpm: MEMORY POOL MANAGER DEFINITIONS
  *
- * $HopeName: MMsrc!mpm.h(MMdevel_mv2_rework.1) $
+ * $HopeName: MMsrc!mpm.h(MMdevel_mv2_rework.2) $
  * Copyright (C) 1998.  Harlequin Group plc.  All rights reserved.
  */
 
@@ -884,8 +884,10 @@ extern Res SplayTreeDescribe(SplayTree tree, mps_lib_FILE *stream,
 extern Bool CBSCheck(CBS cbs);
 extern Bool CBSBlockCheck(CBSBlock block);
 extern Res CBSInit(Arena arena, CBS cbs,
-                   CBSNewMethod new,
-                   CBSDeleteMethod delete,
+                   CBSChangeSizeMethod new,
+                   CBSChangeSizeMethod delete,
+                   CBSChangeSizeMethod grow,
+                   CBSChangeSizeMethod shrink,
                    Size minSize,
                    Bool mayUseInline); 
 extern void CBSFinish(CBS cbs);
@@ -898,9 +900,6 @@ extern void CBSIterateLarge(CBS cbs, CBSIterateMethod iterate,
 extern void CBSSetMinSize(CBS cbs, Size minSize);
 extern Res CBSDescribe(CBS cbs, mps_lib_FILE *stream);
 extern Res CBSBlockDescribe(CBSBlock block, mps_lib_FILE *stream);
-Bool (CBSBlockExists)(CBSBlock block);
-#define CBSBlockExists(block) \
-  (CBSBlockBase((block)) != CBSBlockLimit((block)))
 Addr (CBSBlockBase)(CBSBlock block);
 #define CBSBlockBase(block) ((block)->base)
 Addr (CBSBlockLimit)(CBSBlock block);

@@ -1,6 +1,6 @@
 /* impl.c.cbs: COALESCING BLOCK STRUCTURE IMPLEMENTATION
  *
- * $HopeName: MMsrc!cbs.c(MMdevel_mv2_rework.1) $
+ * $HopeName: MMsrc!cbs.c(MMdevel_mv2_rework.2) $
  * Copyright (C) 1998 Harlequin Group plc, all rights reserved.
  *
  * .readership: Any MPS developer.
@@ -18,7 +18,7 @@
 #include "mpm.h"
 
 
-SRCID(cbs, "$HopeName: MMsrc!cbs.c(MMdevel_mv2_rework.1) $");
+SRCID(cbs, "$HopeName: MMsrc!cbs.c(MMdevel_mv2_rework.2) $");
 
 typedef struct CBSEmergencyBlockStruct *CBSEmergencyBlock;
 typedef struct CBSEmergencyBlockStruct {
@@ -46,6 +46,10 @@ Bool CBSCheck(CBS cbs) {
   /* can't check emergencyBlockList or emergencyGrainList */
   CHECKD(Pool, cbs->blockPool);
   CHECKL(BoolCheck(cbs->mayUseInline));
+  CHECKL(cbs->new == NULL || FUNCHECK(cbs->new));
+  CHECKL(cbs->delete == NULL || FUNCHECK(cbs->delete));
+  CHECKL(cbs->grow == NULL || FUNCHECK(cbs->grow));
+  CHECKL(cbs->shrink == NULL || FUNCHECK(cbs->shrink));
   CHECKL(cbs->mayUseInline || cbs->emergencyBlockList == NULL);
   CHECKL(cbs->mayUseInline || cbs->emergencyGrainList == NULL);
 
@@ -64,21 +68,6 @@ Bool CBSBlockCheck(CBSBlock block) {
   /* must not be called in this case. */
   CHECKL(CBSBlockBase(block) < CBSBlockLimit(block));
   return TRUE;
-}
- 
- 
-/* CBSBlockExists -- See design.mps.cbs.function.cbs.block.exists
- *
- * May be called on invalid blocks so only checks argument conditionally.
- */
- 
-Bool (CBSBlockExists)(CBSBlock block) {
-  Bool result = CBSBlockExists(block);
- 
-  if(result)
-    AVERT(CBSBlock, block);
- 
-  return result;
 }
  
  
@@ -144,8 +133,10 @@ static Compare CBSSplayCompare(void *key, SplayNode node) {
  */
 
 Res CBSInit(Arena arena, CBS cbs, 
-            CBSNewMethod new, 
-            CBSDeleteMethod delete,
+            CBSChangeSizeMethod new, 
+            CBSChangeSizeMethod delete,
+            CBSChangeSizeMethod grow,
+            CBSChangeSizeMethod shrink,
             Size minSize,
             Bool mayUseInline) {
   Res res;
@@ -163,6 +154,8 @@ Res CBSInit(Arena arena, CBS cbs,
 
   cbs->new = new;
   cbs->delete = delete;
+  cbs->grow = grow;
+  cbs->shrink = shrink;
   cbs->minSize = minSize;
   cbs->mayUseInline = mayUseInline;
   cbs->emergencyBlockList = NULL;
@@ -219,7 +212,7 @@ static Res CBSBlockDelete(CBS cbs, CBSBlock block) {
   block->limit = block->base;
 
   if(cbs->delete != NULL && oldSize >= cbs->minSize)
-    (*(cbs->delete))(cbs, block);
+    (*(cbs->delete))(cbs, block, oldSize, (Size)0);
 
   PoolFree(cbs->blockPool, (Addr)block, sizeof(CBSBlockStruct));
 
@@ -227,33 +220,47 @@ static Res CBSBlockDelete(CBS cbs, CBSBlock block) {
 }
 
 static void CBSBlockShrink(CBS cbs, CBSBlock block, Size oldSize) {
+  Size newSize;
+
   AVERT(CBS, cbs);
   AVERT(CBSBlock, block);
-  AVER(oldSize > CBSBlockSize(block));
+
+  newSize = CBSBlockSize(block);
+  AVER(oldSize > newSize);
 
   /* Should not affect splay tree. */
 
   if(cbs->delete != NULL && oldSize >= cbs->minSize && 
-     CBSBlockSize(block) < cbs->minSize)
-    (*(cbs->delete))(cbs, block);
+     newSize < cbs->minSize)
+    (*(cbs->delete))(cbs, block, oldSize, newSize);
+  else if(cbs->shrink != NULL && newSize >= cbs->minSize)
+    (*(cbs->shrink))(cbs, block, oldSize, newSize);
 }
 
 static void CBSBlockGrow(CBS cbs, CBSBlock block, Size oldSize) {
+  Size newSize;
+
   AVERT(CBS, cbs);
   AVERT(CBSBlock, block);
-  AVER(oldSize < CBSBlockSize(block));
+
+  newSize = CBSBlockSize(block);
+  AVER(oldSize < newSize);
+
 
   /* Should not affect splay tree. */
 
   if(cbs->new != NULL && oldSize < cbs->minSize &&
-     CBSBlockSize(block) >= cbs->minSize)
-    (*(cbs->new))(cbs, block);
+     newSize >= cbs->minSize)
+    (*(cbs->new))(cbs, block, oldSize, newSize);
+  else if(cbs->grow != NULL && oldSize >= cbs->minSize)
+    (*(cbs->grow))(cbs, block, oldSize, newSize);
 }
 
 static Res CBSBlockNew(CBS cbs, Addr base, Addr limit) {
   CBSBlock block;
   Res res;
   Addr p;
+  Size newSize;
 
   AVERT(CBS, cbs);
 
@@ -268,13 +275,15 @@ static Res CBSBlockNew(CBS cbs, Addr base, Addr limit) {
 
   AVERT(CBSBlock, block);
 
+  newSize = CBSBlockSize(block);
+
   res = SplayTreeInsert(SplayTreeOfCBS(cbs), SplayNodeOfCBSBlock(block),
                         KeyOfCBSBlock(block));
   if(res != ResOK)
     goto failSplayTreeInsert;
 
-  if(cbs->new != NULL && CBSBlockSize(block) >= cbs->minSize)
-    (*(cbs->new))(cbs, block);
+  if(cbs->new != NULL && newSize >= cbs->minSize)
+    (*(cbs->new))(cbs, block, (Size)0, newSize);
   
   return ResOK;
 
@@ -568,7 +577,7 @@ static Bool CBSSetMinSizeGrow(CBS cbs, CBSBlock block,
   AVER(closure->old > closure->new);
   size = CBSBlockSize(block);
   if(size < closure->old && size >= closure->new)
-    (*cbs->new)(cbs, block);
+    (*cbs->new)(cbs, block, size, size);
 
   return TRUE;
 }
@@ -583,7 +592,7 @@ static Bool CBSSetMinSizeShrink(CBS cbs, CBSBlock block,
   AVER(closure->old < closure->new);
   size = CBSBlockSize(block);
   if(size >= closure->old && size < closure->new)
-    (*cbs->delete)(cbs, block);
+    (*cbs->delete)(cbs, block, size, size);
 
   return TRUE;
 }
