@@ -16,10 +16,16 @@ static void LocusManagerEnsureReady(LocusManager manager);
 static void LocusInit(Locus locus, LocusManager manager);
 static void LocusFinish(Locus locus);
 static void LocusEnsureReady(Locus locus);
-static void LocusZoneRangeBest(Addr *baseReturn, Addr *limitReturn, Locus locus)
-static void LocusZoneRangeNextBest(Addr *baseReturn, Addr *limitReturn, Locus locus)
-static void LocusRefSetBest(Locus locus)
-static void LocusRefSetNextBest(locus)
+static void LocusZoneRangeBest(Addr *baseReturn, Addr *limitReturn,
+                               Locus locus);
+static void LocusZoneRangeNextBest(Addr *baseReturn, Addr
+                                   *limitReturn, Locus locus);
+static void LocusRefSetBest(Locus locus);
+static void LocusRefSetNextBest(locus);
+static Count LogCount(Count val);
+static Count LocusCohortDistance(Locus locus, RefSet preferred,
+                                 RefSet disdained, Index lifetime);
+
 
 /* Private types */
 
@@ -106,10 +112,11 @@ void LocusClientInit(LocusClient client, LocusManager manager)
   client->manager = manager;
   client->assigned = FALSE;
   client->locus = NULL;
-  client->lifetime = 0;
   /* default: everything is good, nothing is bad */
   client->preferred = RefSetUNIV;
   client->disdained = RefSetEmpty;
+  /* default: no lifetime */
+  client->lifetime = 0;
   client->used = RefSetEmpty;
   RingInit(LocusClientLocusRing(client));
   client->locusSerial = 0;
@@ -140,67 +147,124 @@ void LocusClientFinish(LocusClient client)
   }
 }
 
-/* LocusClientAssignLocus -- Called to assign a client to a locus.
-   The client passes in any a priori zone preferences it knows.  @@@
-   eventually the client will pass in cohort parameters such as
-   lifetime, allocation pattern frequency, phase, etc. */
-Res LocusClientAssignLocus(LocusClient client
-                           /* @@@ cohort parameters */
-                           RefSet preferred,
-                           RefSet disdained,
-                           Index lifetime)
+
+/* LocusClientSetCohortParameters -- Set the cohort parameters for
+   this client.  The client passes in any a priori zone preferences it
+   knows.  @@@ eventually the client will pass in cohort parameters
+   such as lifetime, allocation pattern frequency, phase, etc. */
+LocusClientSetCohortParameters(LocusClient client
+                               RefSet preferred,
+                               RefSet disdained,
+                               /* @@@ cohort parameters */
+                               Index lifetime)
 {
-  LocusManager manager = client->manager;
-  Locus free = NULL;
-  Locus best = NULL;
+  AVER(! client->assigned);
+  if (client->assigned)
+    ClientFinish(client);
   
-  for (locus = &manager->locus[0];
-       locus < &manager->locus[NUMLOCI];
-       locus++)
-  {
-    LocusEnsureReady(locus);
-    
-    /* @@@ assign locus client to an appropriate locus based on cohort
-       parameters ( possibly rearranging all existing clients?).  For
-       now just look for an exact match and otherwise assign to own
-       locus
-       */
-    if (! locus->inUse) {
-      if (free == NULL)
-        free = locus;
-    } else if (locus->lifetime == lifetime &&
-               locus->preferred == preferred &&
-               locus->disdained == disdained) {
-      if (best == NULL)
-        best = locus;
+  client->preferred = preferred;
+  client->disdained = disdained;
+  client->lifetime = lifetime;
+  client->used = RefSetEMPTY;
+}
+
+static Count LogCount(Count val) 
+{
+  /* HACKMEM #169 from MIT AI Memo 239, Feb. 29, 1972.  In order of one-ups-manship: Gosper, Mann, Lenard, [Root and Mann])
+   * 
+   * To count the ones in a PDP-6/10 word: 
+   * 
+   *         LDB B,[014300,,A]      ;or MOVE B,A then LSH B,-1
+   *         AND B,[333333,,333333]
+   *         SUB A,B
+   *         LSH B,-1
+   *         AND B,[333333,,333333]
+   *         SUBB A,B               ;each octal digit is replaced by number of 1's in it
+   *         LSH B,-3
+   *         ADD A,B
+   *         AND A,[070707,,070707]
+   *         IDIVI A,77             ;casting out 63.'s
+   * 
+   * These ten instructions, with constants extended, would work on word lengths
+   * up to 62.; eleven suffice up to 254..
+   */
+  Count temp;
+  AVER(MPS_WORD_WIDTH == 32);
+  
+  temp = (val >> 1) & 033333333333;
+  temp = val - temp - ((temp >> 1) & 033333333333);
+  return ((Count)(((temp + (temp >> 3)) & 030707070707) % 077));
+}
+
+static Count LocusCohortDistance(Locus locus, RefSet preferred,
+                                 RefSet disdained, Index lifetime)
+{
+  Count lifrdiff = locus->lifetime < lifetime ?
+    (Count)(lifetime - locus->lifetime):
+    (Count)(locus->lifetime - lifetime);
+
+  return lifediff +
+    LogCount((Count)BS_SYM_DIFF(locus->preferred, preferred)) +
+    LogCount((Count)BS_SYM_DIFF(locus->disdained, disdained));
+}
+
+  
+/* LocusClientEnsureLocus -- Called to assign a client to a locus,
+   based on the previously set parameters */
+static void LocusClientEnsureLocus(LocusClient client)
+{
+  if (! client->assigned) {
+    LocusManager manager = client->manager;
+    Locus free = NULL;
+    Locus best = NULL;
+    Count bestDistance (Count)-1;
+      
+    /* Search for free, matching, or near locus */
+    for (locus = &manager->locus[0];
+         locus < &manager->locus[NUMLOCI] &&
+           bestDistance > 0;
+         locus++)
+    {
+      LocusEnsureReady(locus);
+      if (! locus->inUse) {
+        if (free == NULL)
+          free = locus;
+      } else {
+        Count distance = LocusCohortDistance(locus, client->preferred,
+                                             client->disdained,
+                                             client->lifetime);
+        if (best == NULL || distance < bestDistance) {
+          best = locus;
+          bestDistance = locusDistance;
+        }
+      }
     }
-  }
 
-  if (best == NULL) {
-    best = free;
-  }
+    /* If no perfect match, use a free locus if you've got it */
+    if (bestDistance != 0 && free != NULL) {
+      best = free;
+      best->lifetime = client->lifetime;
+    }
 
-  if (best != NULL) {
+    AVER(best != NULL);
     client->locus = best;
     best->inUse = TRUE;
-    client->assigned = TRUE;
     client->locusSerial = best->clientSerial;
     best->clientSerial++;
     RingAppend(LocusClientRing(best),
                LocusClientLocusRing(client));
+    client->assigned = TRUE;
 
-    best->lifetime = lifetime;
-    best->preferred = RefSetUnion(locus->preferred, preferred);
-    best->disdained = RefSetUnion(locus->disdained, disdained);
+    best->lifetime = (best->lifetime + client->lifetime) / 2;
+    best->preferred = RefSetUnion(locus->preferred, client->preferred);
+    best->disdained = RefSetUnion(locus->disdained, client->disdained);
       
     /* note change */
     manager->ready = FALSE;
-      
-    return ResOK;
   }
-    
-  return ResLIMIT;
 }
+
+
 
 /* LocusClientZoneRangeBest -- Call LocusZoneRangeBest on this
    client's locus */
@@ -209,6 +273,8 @@ void LocusClientZoneRangeBest(Addr *baseReturn, Addr *limitReturn,
 {
   Locus locus = LocusClientLocus(client);
 
+  LocusClientEnsureAssinged(client);
+  
   return LocusZoneRangeBest(baseReturn, limitReturn, locus);
 }
 
