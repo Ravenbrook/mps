@@ -2,7 +2,7 @@
  * 
  * MANUAL RANK GUARDIAN POOL
  * 
- * $HopeName: MMsrc!poolmrg.c(MMdevel_drj_message.5) $
+ * $HopeName: MMsrc!poolmrg.c(MMdevel_drj_message.6) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  *
  * READERSHIP
@@ -20,13 +20,18 @@
  * rank (a guardian for RankEXACT would tell you if the object was
  * ambiguously referenced, for example).  The code that would need to be
  * modified bears this tag.
+ *
+ * .check-index: The number of guardians per segment is derived from
+ * the pool.  As most of the code doesn't have access to the pool,
+ * and knowledge of this derivation should be localised, the indexes 
+ * are often unvalidated.
  */
 
 
 #include "mpm.h"
 #include "poolmrg.h"
 
-SRCID(poolmrg, "$HopeName: MMsrc!poolmrg.c(MMdevel_drj_message.5) $");
+SRCID(poolmrg, "$HopeName: MMsrc!poolmrg.c(MMdevel_drj_message.6) $");
 
 
 #define MRGSig          ((Sig)0x519369B0) /* SIGnature MRG POol */
@@ -55,58 +60,29 @@ enum {
   MRGGuardianPostfinal
 };
 
-typedef struct LinkPartStruct {
-  int state;				/* Free, Prefinal, Final */
-  union LinkPartUnion {
-    MessageStruct messageStruct;	/* state = Final */
-    RingStruct linkRing;		/* state e {Free, Prefinal} */
+typedef struct LinkStruct {
+  int state;			 /* Free, Prefinal, Final, Postfinal */
+  union LinkUnion {
+    MessageStruct messageStruct; /* state = Final */
+    RingStruct linkRing;	 /* state e {Free, Prefinal} */
   } the;
-} LinkPartStruct;
-typedef union LinkPartUnion LinkPartUnion;
+} LinkStruct;
+typedef union LinkUnion LinkUnion;
+typedef LinkStruct *Link;
 
-#define LinkPartOfMessage(message) \
-  PARENT(LinkPartStruct, the, ((LinkPartUnion *)(message)))
-#define LinkPartOfRing(ring) \
-  PARENT(LinkPartStruct, the, ((LinkPartUnion *)(ring)))
+#define linkOfMessage(message) \
+  PARENT(LinkStruct, the, ((LinkUnion *)(message)))
+#define linkOfRing(ring) \
+  PARENT(LinkStruct, the, ((LinkUnion *)(ring)))
 
-/* design.mps.poolmrg.guardian.assoc */
-static Index indexOfRefPart(Addr a, Space space)
-{
-  Seg seg;
-  Bool b;
-  Addr base;
-  Addr *pbase, *pa;
-
-  b = SegOfAddr(&seg, space, a);
-  AVER(b);
-  base = SegBase(space, seg);
-  pbase = (Addr *)base;
-  pa = (Addr *)a;
-  return pa - pbase;
-}
-
-/* design.mps.poolmrg.guardian.assoc */
-static Index indexOfLinkPart(LinkPartStruct *linkpart, Space space)
-{
-  Seg seg;
-  Bool b;
-  Addr base;
-  LinkPartStruct *baselinkpart;
-
-  b = SegOfAddr(&seg, space, (Addr)linkpart);
-  AVER(b);
-  base = SegBase(space, seg);
-  baselinkpart = (LinkPartStruct *)base;
-  return linkpart - baselinkpart;
-}
 
 #define MRGGroupSig     ((Sig)0x5193699b) /* SIGnature MRG GrouP */
 
 typedef struct MRGGroupStruct {
   Sig sig;                      /* impl.h.misc.sig */
   RingStruct group;             /* design.mps.poolmrg.group.group */
-  Seg refseg;                   /* design.mps.poolmrg.group.segs */
-  Seg linkseg;                  /* design.mps.poolmrg.group.segs */
+  Seg refSeg;                   /* design.mps.poolmrg.group.segs */
+  Seg linkSeg;                  /* design.mps.poolmrg.group.segs */
 } MRGGroupStruct;
 typedef MRGGroupStruct *MRGGroup;
 
@@ -119,76 +95,136 @@ static Bool MRGGroupCheck(MRGGroup group);
 static Bool MRGCheck(MRG mrg);
 
 
+/* design.mps.poolmrg.guardian.assoc */
+
+static Ref *refOfLink(Link link, Space space)
+{
+  Seg seg;
+  Bool b;
+  Link linkBase;
+  Index index;
+  MRGGroup group;
+  Ref *refBase;
+
+  AVER(link != NULL); /* Better checks done by SegOfAddr */
+  AVERT(Space, space);
+
+  b = SegOfAddr(&seg, space, (Addr)link);
+  AVER(b);
+  linkBase = (Link)SegBase(space, seg);
+  index = link - linkBase; /* .check-index */
+
+  AVER(SegPool(seg)->class == &PoolClassMRGStruct);
+  group = (MRGGroup)SegP(seg);
+  AVERT(MRGGroup, group);
+  AVER(group->linkSeg == seg);
+
+  refBase = (Ref *)SegBase(space, group->refSeg);
+  return &refBase[index];
+}
+
+static Link linkOfRef(Ref *ref, Space space)
+{
+  Seg seg;
+  Bool b;
+  Ref *refBase;
+  Index index;
+  MRGGroup group;
+  Link linkBase;
+
+  AVER(ref != NULL); /* Better checks done by SegOfAddr */
+  AVERT(Space, space);
+
+  b = SegOfAddr(&seg, space, (Addr)ref);
+  AVER(b);
+  refBase = (Ref *)SegBase(space, seg);
+  index = ref - refBase; /* .check-index */
+
+  AVER(SegPool(seg)->class == &PoolClassMRGStruct);
+  group = SegP(seg);
+  AVERT(MRGGroup, group);
+  AVER(group->refSeg == seg);
+
+  linkBase = (Link)SegBase(space, group->linkSeg);
+  return &linkBase[index];
+}
+
+
 static void MRGGroupDestroy(MRGGroup group, MRG mrg)
 {
   Pool pool;
 
+  AVERT(MRGGroup, group);
+  AVERT(MRG, mrg);
+
   pool = MRGPool(mrg);
   RingRemove(&group->group);
-  PoolSegFree(pool, group->refseg);
-  PoolSegFree(pool, group->linkseg);
+  PoolSegFree(pool, group->refSeg);
+  PoolSegFree(pool, group->linkSeg);
   SpaceFree(PoolSpace(pool), (Addr)group, (Size)sizeof(MRGGroupStruct));
 }
 
 static Res MRGGroupCreate(MRGGroup *groupReturn, MRG mrg)
 {
-  Addr *refpart;
-  Addr base;
+  Ref *refBase;
   Count guardians;	/* guardians per seg */
   Index i;
-  LinkPartStruct *linkpart;
+  Link linkBase;
   MRGGroup group;
   Pool pool;
   Res res;
-  Seg linkseg;
-  Seg refseg;
-  Size linksegsize;
+  Seg linkSeg;
+  Seg refSeg;
+  Size linkSegSize;
   Space space;
   void *v;
+
+  AVER(groupReturn != NULL);
+  AVERT(MRG, mrg);
 
   pool = MRGPool(mrg);
   space = PoolSpace(pool);
   res = SpaceAlloc(&v, space, (Size)sizeof(MRGGroupStruct));
   if(res != ResOK)
     goto failSpaceAlloc;
+
   group = v;
-  res = PoolSegAlloc(&refseg, SegPrefDefault(), pool, mrg->extendBy);
+  res = PoolSegAlloc(&refSeg, SegPrefDefault(), pool, mrg->extendBy);
   if(res != ResOK)
     goto failRefSegAlloc;
 
-  guardians = mrg->extendBy / sizeof(Addr);     /* per seg */
-  linksegsize = guardians * sizeof(LinkPartStruct);
-  linksegsize = SizeAlignUp(linksegsize, ArenaAlign(space));
-  res = PoolSegAlloc(&linkseg, SegPrefDefault(), pool, linksegsize);
+  guardians = mrg->extendBy / sizeof(Ref);     /* per seg */
+  linkSegSize = guardians * sizeof(LinkStruct);
+  linkSegSize = SizeAlignUp(linkSegSize, ArenaAlign(space));
+  res = PoolSegAlloc(&linkSeg, SegPrefDefault(), pool, linkSegSize);
   if(res != ResOK)
     goto failLinkSegAlloc;
 
-  /* Link Segment is coerced to an array of LinkPartStructs, */
+  /* Link Segment is coerced to an array of LinkStructs, */
   /* each one is appended to the free Ring using the linkRing. */
   /* The ref part of each guardian is cleared. */
 
   AVER(guardians > 0);
-  base = SegBase(space, linkseg);
-  linkpart = (LinkPartStruct *)base;
-  refpart = (Addr *)SegBase(space, refseg);
+  linkBase = (Link)SegBase(space, linkSeg);
+  refBase = (Ref *)SegBase(space, refSeg);
 
   for(i=0; i<guardians; ++i) {
-    RingInit(&linkpart[i].the.linkRing);
-    linkpart[i].state = MRGGuardianFree;
-    RingAppend(&mrg->free, &linkpart[i].the.linkRing);
-    refpart[i] = 0;
+    RingInit(&linkBase[i].the.linkRing);
+    linkBase[i].state = MRGGuardianFree;
+    RingAppend(&mrg->free, &linkBase[i].the.linkRing);
+    refBase[i] = 0;
   }
-  AVER((Addr)(&linkpart[i]) <= SegLimit(space, linkseg));
-  AVER((Addr)(&refpart[i]) <= SegLimit(space, refseg));
+  AVER((Addr)(&linkBase[i]) <= SegLimit(space, linkSeg));
+  AVER((Addr)(&refBase[i]) <= SegLimit(space, refSeg));
   /* design.mps.seg.field.rankSet.start */
-  SegSetRankSet(refseg, RankSetSingle(RankFINAL));
+  SegSetRankSet(refSeg, RankSetSingle(RankFINAL));
   /* design.mps.seg.field.summary.start */
-  SegSetSummary(refseg, RefSetUNIV);
+  SegSetSummary(refSeg, RefSetUNIV);
 
-  group->refseg = refseg;
-  group->linkseg = linkseg;
-  SegSetP(refseg, group);
-  SegSetP(linkseg, group);
+  group->refSeg = refSeg;
+  group->linkSeg = linkSeg;
+  SegSetP(refSeg, group);
+  SegSetP(linkSeg, group);
   RingInit(&group->group);
   RingAppend(&mrg->group, &group->group);
   group->sig = MRGGroupSig;
@@ -196,26 +232,33 @@ static Res MRGGroupCreate(MRGGroup *groupReturn, MRG mrg)
   return ResOK;
 
 failLinkSegAlloc:
-  PoolSegFree(pool, refseg);
+  PoolSegFree(pool, refSeg);
 failRefSegAlloc:
   SpaceFree(space, (Addr)group, (Size)sizeof(MRGGroupStruct)); 
 failSpaceAlloc:
+  AVER(res != ResOK);
   return res;
 }
 
 /* finalize the indexth guardian in the group */
-static void MRGFinalize(Space space, MRGGroup group, Word index)
+static void MRGFinalize(Space space, MRGGroup group, Index index)
 {
-  LinkPartStruct *linkpart;
+  Link link, linkBase;
   Message message;
 
-  linkpart = (LinkPartStruct *)SegBase(space, group->linkseg);
+  AVERT(Space, space);
+  AVERT(MRGGroup, group);
+  /* .check-index */
+
+  linkBase = (Link)SegBase(space, group->linkSeg);
+  link = &linkBase[index];
+
   /* only finalize it if it hasn't been finalized already */
-  if(linkpart[index].state != MRGGuardianFinal) {
-    AVER(linkpart[index].state == MRGGuardianPrefinal);
-    RingRemove(&linkpart[index].the.linkRing);
-    linkpart[index].state = MRGGuardianFinal;
-    message = &linkpart[index].the.messageStruct;
+  if(link->state != MRGGuardianFinal) {
+    AVER(link->state == MRGGuardianPrefinal);
+    RingRemove(&link->the.linkRing);
+    link->state = MRGGuardianFinal;
+    message = &link->the.messageStruct;
     MessageInit(space, message, &MRGMessageClassStruct);
     MessagePost(space, message);
   }
@@ -223,26 +266,29 @@ static void MRGFinalize(Space space, MRGGroup group, Word index)
 
 static Res MRGGroupScan(ScanState ss, MRGGroup group, MRG mrg)
 {
-  Addr base;
   Res res;
   Space space;
-  Addr *refpart;
-  Word guardians, i;
+  Ref *refBase;
+  Count guardians;
+  Index i;
+
+  AVERT(ScanState, ss);
+  AVERT(MRGGroup, group);
+  AVERT(MRG, mrg);
 
   space = PoolSpace(MRGPool(mrg));
 
-  guardians = mrg->extendBy / sizeof(Addr);     /* per seg */
+  guardians = mrg->extendBy / sizeof(Ref);     /* per seg */
   AVER(guardians > 0);
-  base = SegBase(space, group->refseg);
-  refpart = (Addr *)base;
+  refBase = (Ref *)SegBase(space, group->refSeg);
   TRACE_SCAN_BEGIN(ss) {
     for(i=0; i<guardians; ++i) {
-      if(!TRACE_FIX1(ss, refpart[i]))
+      if(!TRACE_FIX1(ss, refBase[i]))
         continue;
-      res = TRACE_FIX2(ss, &refpart[i]);
-      if(res != ResOK) {
+      res = TRACE_FIX2(ss, &refBase[i]);
+      if(res != ResOK) 
         return res;
-      }
+      
       if(ss->rank == RankFINAL && !ss->wasMarked) {     /* .improve.rank */
         MRGFinalize(space, group, i);
       }
@@ -255,10 +301,13 @@ static Res MRGGroupScan(ScanState ss, MRGGroup group, MRG mrg)
 
 static Res MRGInit(Pool pool, va_list args)
 {
-  MRG mrg = PoolPoolMRG(pool);
-
+  MRG mrg;
+  
+  AVER(pool != NULL); /* Can't check more; see pool contract @@@@ */
   UNUSED(args);
   
+  mrg = PoolPoolMRG(pool);
+
   RingInit(&mrg->entry);
   RingInit(&mrg->free);
   RingInit(&mrg->group);
@@ -287,7 +336,6 @@ static void MRGFinish(Pool pool)
 
     node = next;
   }
-
   mrg->sig = SigInvalid;
 }
 
@@ -299,24 +347,20 @@ static Pool MRGPool(MRG mrg)
 
 static Res MRGAlloc(Addr *pReturn, Pool pool, Size size)
 {
-  Addr *refpart;
-  Bool b;
-  Index gi;
   MRG mrg;
-  MRGGroup group;
   MRGGroup junk;                /* .group.useless */
   Res res;
   Ring f;
-  Seg seg;
   Space space;
-  LinkPartStruct *linkPart;
-
-  AVERT(Pool, pool);
-  mrg = PoolPoolMRG(pool);
-  AVERT(MRG, mrg);
+  Link link;
+  Ref *ref;
 
   AVER(pReturn != NULL);
-  AVER(size == sizeof(Addr));   /* design.mps.poolmrg.alloc.one-size */
+  AVERT(Pool, pool);
+  AVER(size == sizeof(Ref));   /* design.mps.poolmrg.alloc.one-size */
+
+  mrg = PoolPoolMRG(pool);
+  AVERT(MRG, mrg);
 
   space = PoolSpace(pool);
 
@@ -326,74 +370,71 @@ static Res MRGAlloc(Addr *pReturn, Pool pool, Size size)
 
   if(f == &mrg->free) {                 /* (Ring has no elements) */
     res = MRGGroupCreate(&junk, mrg);   /* .group.useless: group isn't used */
-    if(res != ResOK) {
+    if(res != ResOK) 
       return res;
-    }
+    
     f = RingNext(&mrg->free);
   }
   AVER(f != &mrg->free);
 
-  linkPart = LinkPartOfRing(f);
-  AVER(linkPart->state == MRGGuardianFree);
+  link = linkOfRing(f);
+  AVER(link->state == MRGGuardianFree);
   /* design.mps.poolmrg.alloc.pop */
   RingRemove(f);
-  linkPart->state = MRGGuardianPrefinal;
+  link->state = MRGGuardianPrefinal;
   RingAppend(&mrg->entry, f);
-  gi = indexOfLinkPart(linkPart, space);
-  b = SegOfAddr(&seg, space, (Addr)f);
-  AVER(b);
-  group = SegP(seg);
-  refpart = (Addr *)SegBase(space, group->refseg);
 
   /* design.mps.poolmrg.guardian.ref.alloc */
-  *pReturn = (Addr)(&refpart[gi]);
+  ref = refOfLink(link, space);
+  AVER(*ref == 0);
+  *pReturn = (Addr)ref;
+
   return ResOK;
 }
 
 static void MRGFree(Pool pool, Addr old, Size size)
 {
   MRG mrg;
-  Index gi;
   Space space;
   Seg seg;
-  MRGGroup group;
   Bool b;
-  LinkPartStruct *linkpart;
+  Link link;
+  Ref *ref;
 
   AVERT(Pool, pool);
+  AVER(old != (Addr)0);
+  AVER(size == sizeof(Ref));
+
   mrg = PoolPoolMRG(pool);
   AVERT(MRG, mrg);
 
-  AVER(old != (Addr)0);
-  AVER(size == sizeof(Addr));
+  ref = (Ref *)old;
 
   space = PoolSpace(pool);
   b = SegOfAddr(&seg, space, old);
   AVER(b);
-  group = SegP(seg);
-  linkpart = (LinkPartStruct *)SegBase(space, group->linkseg);
 
   /* design.mps.poolmrg.guardian.ref.free */
-  gi = indexOfRefPart(old, space);
+  link = linkOfRef(ref, space);
 
-  AVER(linkpart[gi].state == MRGGuardianPostfinal);
-  RingInit(&linkpart[gi].the.linkRing);
-  linkpart[gi].state = MRGGuardianFree;
-  RingAppend(&mrg->free, &linkpart[gi].the.linkRing);
+  AVER(link->state == MRGGuardianPostfinal);
+  RingInit(&link->the.linkRing);
+  link->state = MRGGuardianFree;
+  RingAppend(&mrg->free, &(link->the.linkRing));
   {
     RefSet sum = RefSetEMPTY;
     sum = SegSummary(seg);
     sum = RefSetAdd(space, sum, (Addr)0);
     TraceSetSummary(space, seg, sum);
     ShieldExpose(space, seg);
-    *(Addr *)old = (Addr)0;     /* design.mps.poolmrg.free.overwrite */
+    *ref = 0;     /* design.mps.poolmrg.free.overwrite */
     ShieldCover(space, seg);
   }
 }
 
 /* Describe
  *
- * This could be improved by implementind MRGSegDescribe
+ * This could be improved by implementing MRGSegDescribe
  * and having MRGDescribe iterate over all the pool's segments.
  */
 static Res MRGDescribe(Pool pool, mps_lib_FILE *stream)
@@ -401,30 +442,23 @@ static Res MRGDescribe(Pool pool, mps_lib_FILE *stream)
   MRG mrg;
   Ring r;
   Space space;
-  Bool b;
-  MRGGroup group;
-  Index gi;
-  Seg seg;
-  Addr *refpart;
+  Ref *ref;
 
   AVERT(Pool, pool);
+  /* Cannot check stream */
+
   mrg = PoolPoolMRG(pool);
   AVERT(MRG, mrg);
-  /* Cannot check stream */
 
   space = PoolSpace(pool);
 
   WriteF(stream, "  extendBy $W\n", mrg->extendBy, NULL);
   WriteF(stream, "  Entry queue:\n", NULL);
   RING_FOR(r, &mrg->entry) {
-    b = SegOfAddr(&seg, space, (Addr)r);
-    AVER(b);
-    group = SegP(seg);
-    refpart = (Addr *)SegBase(space, group->refseg);
-    gi = indexOfLinkPart(LinkPartOfRing(r), space);
+    ref = refOfLink(linkOfRing(r), space);
     WriteF(stream,
            "    at $A ref $A\n",
-           (WriteFA)&refpart[gi], (WriteFA)refpart[gi],
+           (WriteFA)ref, (WriteFA)*ref,
            NULL);
   }
 
@@ -439,17 +473,19 @@ static Res MRGScan(ScanState ss, Pool pool, Seg seg)
 
   AVERT(ScanState, ss);
   AVERT(Pool, pool);
+  AVERT(Seg, seg);
+
   mrg = PoolPoolMRG(pool);
   AVERT(MRG, mrg);
-  AVERT(Seg, seg);
 
   AVER(SegRankSet(seg) == RankSetSingle(RankFINAL));
   AVER(TraceSetInter(SegGrey(seg), ss->traces) != TraceSetEMPTY);
   group = (MRGGroup)SegP(seg);
-  AVER(seg == group->refseg);
+  AVER(seg == group->refSeg);
 
   res = MRGGroupScan(ss, group, mrg);
-  if(res != ResOK) return res;
+  if(res != ResOK) 
+    return res;
 
   return ResOK;
 }
@@ -460,41 +496,33 @@ static Res MRGScan(ScanState ss, Pool pool, Seg seg)
 /* deletes the message (frees up the memory) */
 static void MRGMessageDelete(Message message)
 {
-  Addr *refpart;
-  Seg seg;
+  Ref *ref;
   Bool b;
   Space space;
-  Index index;
-  MRGGroup group;
-  LinkPartStruct *linkpart;
+  Link link;
+  Seg seg; 
 
   AVERT(Message, message);
 
   space = MessageSpace(message);
+
   b = SegOfAddr(&seg, space, (Addr)message);
   AVER(b);
   AVER(SegPool(seg)->class == &PoolClassMRGStruct);
-  group = (MRGGroup)SegP(seg);
-  AVERT(MRGGroup, group);
-  linkpart = LinkPartOfMessage(message);
+
+  link = linkOfMessage(message);
   MessageFinish(message);
-  linkpart->state = MRGGuardianPostfinal;
-
-  index = indexOfLinkPart(linkpart, space);
-  refpart = (Addr *)SegBase(space, group->refseg);
-
-  PoolFree(SegPool(seg), (Addr)&refpart[index], sizeof(Addr));
+  AVER(link->state == MRGGuardianFinal);
+  link->state = MRGGuardianPostfinal;
+  ref = refOfLink(link, space);
+  PoolFree(SegPool(seg), (Addr)ref, sizeof(Ref));
 }
 
 static void MRGMessageFinalizationRef(Ref *refReturn,
 				      Space space, Message message)
 {
-  Seg seg;
-  Bool b;
-  MRGGroup group;
-  LinkPartStruct *linkpart;
-  Index i;
-  Addr *refpart;
+  Link link;
+  Ref *ref;
 
   AVER(refReturn != NULL);
   AVERT(Space, space);
@@ -502,15 +530,11 @@ static void MRGMessageFinalizationRef(Ref *refReturn,
 
   AVER(message->type == MessageTypeFinalization);
 
-  b = SegOfAddr(&seg, space, (Addr)message);
-  AVER(b);
-  group = SegP(seg);
-  AVERT(MRGGroup, group);
-  linkpart = LinkPartOfMessage(message);
-  AVER(linkpart->state == MRGGuardianFinal);
-  i = indexOfLinkPart(linkpart, space);
-  refpart = (Addr *)SegBase(space, group->refseg);
-  *refReturn = refpart[i];
+  link = linkOfMessage(message);
+  AVER(link->state == MRGGuardianFinal);
+  ref = refOfLink(link, space);
+  AVER(*ref != 0);
+  *refReturn = *ref;
 }
 
 
@@ -577,7 +601,7 @@ static Bool MRGGroupCheck(MRGGroup group)
 {
   CHECKS(MRGGroup, group);
   CHECKL(RingCheck(&group->group));
-  CHECKL(SegCheck(group->refseg));
-  CHECKL(SegCheck(group->linkseg));
+  CHECKL(SegCheck(group->refSeg));
+  CHECKL(SegCheck(group->linkSeg));
   return TRUE;
 }

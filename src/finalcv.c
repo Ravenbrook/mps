@@ -1,6 +1,6 @@
 /* impl.c.finalcv: FINALIZATION COVERAGE TEST
  *
- * $HopeName: MMsrc!finalcv.c(MMdevel_drj_message.3) $
+ * $HopeName: MMsrc!finalcv.c(MMdevel_drj_message.4) $
  * Copyright (C) 1996,1997 Harlequin Group, all rights reserved
  *
  * READERSHIP
@@ -23,13 +23,9 @@
  * NOTES
  *
  * This code was created by first copying impl.c.weakcv
- *
- * .hack.no-interface: There is no MPS interface to PoolMRG, and there
- * is no MPS interface to finalization.  For the moment this test uses
- * PoolMRG directly.  Later it will use the MPS interface to
- * finalization.
  */
 
+/* What does the next line mean? @@@@ */
 /* .hack.order.1, .hack.order.2 */
 
 #include "testlib.h"

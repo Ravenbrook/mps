@@ -1,6 +1,6 @@
 /* impl.c.message: MPS / CLIENT MESSAGES
  *
- * $HopeName: MMsrc!message.c(MMdevel_drj_message.4) $
+ * $HopeName: MMsrc!message.c(MMdevel_drj_message.5) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All Rights Reserved.
  *
  * READERSHIP
@@ -16,17 +16,6 @@
  * .purpose: Provide the generic part of the MPS / Client message
  * interface.  Messages are instances of Message Classes; much of the
  * "real work" goes on in the modules that provide the actual messages.
- *
- * NOTES
- *
- * .name.clash: Sometimes in this module there are two functions
- * that you really want to give the same name.  An example is
- * MessageDeliver, this is both the function that dispatches to
- * the class specific deliver method and the function that
- * implements the external function mps_message_deliver.  They
- * have slightly different contracts but basically do the same
- * job.  I have generally called the function that implements the
- * external interface MessageExBlah.  drj 1997-08-19
  */
 
 
@@ -34,7 +23,7 @@
 #include "mpm.h"
 
 
-SRCID(message, "$HopeName: MMsrc!message.c(MMdevel_drj_message.4) $");
+SRCID(message, "$HopeName: MMsrc!message.c(MMdevel_drj_message.5) $");
 
 
 /* Maps from a Ring pointer to the message */
