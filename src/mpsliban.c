@@ -1,6 +1,6 @@
 /* impl.c.mpsliban: HARLEQUIN MEMORY POOL SYSTEM LIBRARY INTERFACE (ANSI)
  *
- * $HopeName: MMsrc!mpsliban.c(MMdevel_lib.1) $
+ * $HopeName: MMsrc!mpsliban.c(MMdevel_lib.2) $
  * Copyright (C) 1996 Harlequin Group, all rights reserved.
  *
  * .readership: MPS client application developers, MPS developers.
@@ -12,6 +12,11 @@
 #include <stdio.h>
 #include <stdarg.h>
 #include <string.h>
+
+#include "mpstd.h"
+#ifdef MPS_OS_SU
+#include "ossu.h"
+#endif
 
 
 int mps_lib_get_EOF(void)
