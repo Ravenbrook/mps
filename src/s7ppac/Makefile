@@ -1,8 +1,8 @@
 # impl.makefile.s7ppac: S7PPAC MPW MAKE FILE
 #
-# $HopeName: !s7ppac:Makefile(trunk.10) $
+# $HopeName: MMsrc!s7ppac:Makefile(MMdevel_pekka_rate.1) $
 #
-# Copyright (C) 1996, 1997 Harlequin Group, all rights reserved
+# Copyright (C) 1996.  Harlequin Group plc.  All rights reserved.
 #
 
 # This only knows about making the mmsw libraries for MM/EP-core.
@@ -57,6 +57,7 @@ mmsw_{Variety}.o Ä ¶
 		ld{OSffx} ¶
 		poolepdl{OSffx} ¶
 		poolepvm{OSffx} ¶
+		poolams{OSffx} ¶
 		action{OSffx} ¶
 		seg{OSffx} ¶
 		poolmrg{OSffx} ¶
