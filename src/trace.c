@@ -1,12 +1,12 @@
 /* impl.c.trace: GENERIC TRACER IMPLEMENTATION
  *
- * $HopeName: MMsrc!trace.c(MMdevel_gens.5) $
+ * $HopeName: MMsrc!trace.c(MMdevel_gens.6) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  */
 
 #include "mpm.h"
 
-SRCID(trace, "$HopeName: MMsrc!trace.c(MMdevel_gens.5) $");
+SRCID(trace, "$HopeName: MMsrc!trace.c(MMdevel_gens.6) $");
 
 
 /* ScanStateCheck -- check consistency of a ScanState object */
@@ -502,6 +502,7 @@ static Res TraceScan(TraceSet ts, Rank rank, Space space, Seg seg)
   Res res;
   ScanStateStruct ss;
   TraceId ti;
+  RefSet summary;
 
   AVER(TraceSetCheck(ts));
   AVER(RankCheck(rank));
@@ -534,9 +535,20 @@ static Res TraceScan(TraceSet ts, Rank rank, Space space, Seg seg)
     return res;
   }
 
-  seg->summary = TraceSetUnion(ss.fixed,
-                               TraceSetDiff(ss.summary, ss.white));
-  ShieldRaise(space, seg, AccessWRITE);
+  /* The summary of references seen by scan must be a subset of */
+  /* the ones we thought were there before. */
+  AVER(RefSetSub(ss.summary, seg->summary));
+  summary = TraceSetUnion(ss.fixed,
+                          TraceSetDiff(ss.summary, ss.white));
+  AVER(((seg->sm & AccessWRITE) == 0) == (seg->summary == RefSetUNIV));
+  if(summary == RefSetUNIV) {
+    if(seg->summary != RefSetUNIV)
+      ShieldLower(space, seg, AccessWRITE);
+  } else {
+    if(seg->summary == RefSetUNIV)
+      ShieldRaise(space, seg, AccessWRITE);
+  }
+  seg->summary = summary;
 
   ss.sig = SigInvalid;			/* just in case */
 
