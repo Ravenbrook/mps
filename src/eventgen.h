@@ -138,16 +138,17 @@ typedef struct {
   Word length;
   Word clock;
   void * p0;
-  Word w1;
-  Word w2;
-} EventPWWStruct;
+  unsigned u1;
+} EventPUStruct;
 
 typedef struct {
   Word code;
   Word length;
   Word clock;
-  unsigned u0;
-} EventUStruct;
+  void * p0;
+  Word w1;
+  Word w2;
+} EventPWWStruct;
 
 typedef struct {
   Word code;
@@ -184,8 +185,8 @@ typedef union {
   EventPPUStruct ppu;
   EventPPWStruct ppw;
   EventPPWAWStruct ppwaw;
+  EventPUStruct pu;
   EventPWWStruct pww;
-  EventUStruct u;
   EventUUPPPStruct uuppp;
   EventWSStruct ws;
 } EventUnion;
@@ -382,6 +383,19 @@ typedef union {
     } \
   END
 
+#define EVENT_PU(type, _p0, _u1) \
+  BEGIN \
+    if((EVENT_ALL || Event ## type ## Always) && \
+       BS_IS_MEMBER(EventKindControl, \
+                    ((Index)Event ## type ## Kind))) { \
+      size_t _length = sizeof(EventPUStruct); \
+      EVENT_BEGIN(type, PU, _length); \
+      Event.pu.p0 = (_p0); \
+      Event.pu.u1 = (_u1); \
+      EVENT_END(type, _length); \
+    } \
+  END
+
 #define EVENT_PWW(type, _p0, _w1, _w2) \
   BEGIN \
     if((EVENT_ALL || Event ## type ## Always) && \
@@ -392,18 +406,6 @@ typedef union {
       Event.pww.p0 = (_p0); \
       Event.pww.w1 = (_w1); \
       Event.pww.w2 = (_w2); \
-      EVENT_END(type, _length); \
-    } \
-  END
-
-#define EVENT_U(type, _u0) \
-  BEGIN \
-    if((EVENT_ALL || Event ## type ## Always) && \
-       BS_IS_MEMBER(EventKindControl, \
-                    ((Index)Event ## type ## Kind))) { \
-      size_t _length = sizeof(EventUStruct); \
-      EVENT_BEGIN(type, U, _length); \
-      Event.u.u0 = (_u0); \
       EVENT_END(type, _length); \
     } \
   END
@@ -458,8 +460,8 @@ typedef union {
 #define EventFormatPPU 11
 #define EventFormatPPW 12
 #define EventFormatPPWAW 13
-#define EventFormatPWW 14
-#define EventFormatU 15
+#define EventFormatPU 14
+#define EventFormatPWW 15
 #define EventFormatUUPPP 16
 #define EventFormatWS 17
 
@@ -479,8 +481,8 @@ typedef union {
 #define EVENT_PPU(type, p0, p1, p2)    NOOP
 #define EVENT_PPW(type, p0, p1, p2)    NOOP
 #define EVENT_PPWAW(type, p0, p1, p2, p3, p4)    NOOP
+#define EVENT_PU(type, p0, p1)    NOOP
 #define EVENT_PWW(type, p0, p1, p2)    NOOP
-#define EVENT_U(type, p0)    NOOP
 #define EVENT_UUPPP(type, p0, p1, p2, p3, p4)    NOOP
 #define EVENT_WS(type, p0, p1)    NOOP
 

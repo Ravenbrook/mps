@@ -1,6 +1,6 @@
 /* impl.c.arena: ARENA IMPLEMENTATION
  *
- * $HopeName: MMsrc!arena.c(MMdevel_gavinm_160033.1) $
+ * $HopeName: MMsrc!arena.c(MMdevel_gavinm_160033.2) $
  * Copyright (C) 1998. Harlequin Group plc. All rights reserved.
  *
  * .readership: Any MPS developer
@@ -36,7 +36,7 @@
 #include "poolmrg.h"
 #include "mps.h"
 
-SRCID(arena, "$HopeName: MMsrc!arena.c(MMdevel_gavinm_160033.1) $");
+SRCID(arena, "$HopeName: MMsrc!arena.c(MMdevel_gavinm_160033.2) $");
 
 
 /* Forward declarations */
@@ -773,7 +773,7 @@ void ArenaEnter(Arena arena)
   AVER(arena != NULL);
   AVER(arena->sig == ArenaSig);
 
-  EVENT_U(ArenaEnter, (WriteFU)mps_clock());
+  EVENT_PU(ArenaEnter, arena, mps_clock());
   StackProbe(STACK_PROBE_DEPTH);
   LockClaim(&arena->lockStruct);
   AVERT(Arena, arena); /* can't AVER it until we've got the lock */
@@ -799,7 +799,7 @@ void ArenaLeave(Arena arena)
   ShieldLeave(arena);
   ProtSync(arena);              /* design.mps.prot.if.sync */
   LockReleaseMPM(&arena->lockStruct);
-  EVENT_U(ArenaLeave, (WriteFU)mps_clock());
+  EVENT_PU(ArenaLeave, arena, mps_clock());
 }
 #endif
 
