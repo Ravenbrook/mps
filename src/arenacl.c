@@ -1,6 +1,6 @@
 /* impl.c.arenacl: ARENA IMPLEMENTATION USING CLIENT MEMORY
  *
- * $HopeName: MMsrc!arenacl.c(MMdevel_segabs.1) $
+ * $HopeName: MMsrc!arenacl.c(MMdevel_segabs.2) $
  * 
  * Copyright (C) 1996 Harlequin Group, all rights reserved.
  *
@@ -41,7 +41,7 @@
 #error "Client arena not configured"
 #endif
 
-SRCID(arenacl, "$HopeName: MMsrc!arenacl.c(MMdevel_segabs.1) $");
+SRCID(arenacl, "$HopeName: MMsrc!arenacl.c(MMdevel_segabs.2) $");
 
 Bool ArenaCheck(Arena arena)
 {
@@ -596,7 +596,7 @@ found:
   ABTSet(chunk->freeTable, base, FALSE);
   if(pages > 1) {
     Addr limit = PageBase(chunk, base + pages);
-    SegSingle(seg) = FALSE;
+    SegSetSingle(seg, FALSE);
     for(pi = base + 1; pi < base + pages; ++pi) {
       AVER(ABTGet(chunk->freeTable, pi));
       ABTSet(chunk->freeTable, pi, FALSE);
@@ -605,7 +605,7 @@ found:
       chunk->pageTable[pi].tail.limit = limit;
     }
   } else {
-    SegSingle(seg) = TRUE;
+    SegSetSingle(seg, TRUE);
   }
   chunk->freePages -= pages;
   

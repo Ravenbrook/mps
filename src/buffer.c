@@ -1,6 +1,6 @@
 /* impl.c.buffer: ALLOCATION BUFFER IMPLEMENTATION
  *
- * $HopeName: MMsrc!buffer.c(MMdevel_segabs.1) $
+ * $HopeName: MMsrc!buffer.c(MMdevel_segabs.2) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  *
  * This is (part of) the implementation of allocation buffers.
@@ -29,7 +29,7 @@
 
 #include "mpm.h"
 
-SRCID(buffer, "$HopeName: MMsrc!buffer.c(MMdevel_segabs.1) $");
+SRCID(buffer, "$HopeName: MMsrc!buffer.c(MMdevel_segabs.2) $");
 
 
 /* BufferCheck -- check consistency of a buffer */
@@ -242,7 +242,7 @@ static void BufferDetach(Buffer buffer, Pool pool)
     (*pool->class->bufferEmpty)(pool, buffer);
 
     /* Reset the buffer. */
-    SegBuffer(buffer->seg) = NULL;
+    SegSetBuffer(buffer->seg, NULL);
     buffer->seg = NULL;
     buffer->base = (Addr)0;
     buffer->initAtFlip = (Addr)0;
@@ -425,7 +425,7 @@ Res BufferFill(Addr *pReturn, Buffer buffer, Size size)
   /* Set up the buffer to point at the memory given by the pool */
   /* and do the allocation that was requested by the client. */
   buffer->seg = seg;
-  SegBuffer(seg) = buffer;
+  SegSetBuffer(seg, buffer);
   buffer->base = base;
   buffer->initAtFlip = base;
   buffer->apStruct.init = base;

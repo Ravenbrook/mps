@@ -1,6 +1,6 @@
 /* impl.c.arenavm: VIRTUAL MEMORY BASED ARENA IMPLEMENTATION
  *
- * $HopeName: MMsrc!arenavm.c(MMdevel_segabs.1) $
+ * $HopeName: MMsrc!arenavm.c(MMdevel_segabs.2) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  *
  * This is the implementation of the Segment abstraction from the VM
@@ -14,7 +14,7 @@
 #include "mpm.h"
 
 
-SRCID(arenavm, "$HopeName: MMsrc!arenavm.c(MMdevel_segabs.1) $");
+SRCID(arenavm, "$HopeName: MMsrc!arenavm.c(MMdevel_segabs.2) $");
 
 
 /* Space Arena Projection
@@ -458,7 +458,7 @@ Res SegAlloc(Seg *segReturn, SegPref pref, Space space, Size size, Pool pool)
   pages = size >> arena->pageShift;
   if(pages > 1) {
     Addr limit = PageBase(arena, base + pages);
-    SegSingle(seg) = FALSE;
+    SegSetSingle(seg, FALSE);
     for(i = base + 1; i < base + pages; ++i) {
       AVER(BTGet(arena->freeTable, i));
       BTRes(arena->freeTable, i);
@@ -466,9 +466,8 @@ Res SegAlloc(Seg *segReturn, SegPref pref, Space space, Size size, Pool pool)
       arena->pageTable[i].tail.seg = seg;
       arena->pageTable[i].tail.limit = limit;
     }
-  } else {
-    SegSingle(seg) = TRUE;
-  }
+  } else
+    SegSetSingle(seg, TRUE);
   
   AVERT(Seg, seg);
   
