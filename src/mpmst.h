@@ -1,6 +1,6 @@
 /* impl.h.mpmst: MEMORY POOL MANAGER DATA STRUCTURES
  *
- * $HopeName: !mpmst.h(trunk.13) $
+ * $HopeName: MMsrc!mpmst.h(MMdevel_sw_eq.1) $
  * Copyright (C) 1996 Harlequin Group, all rights reserved.
  *
  * .readership: MM developers.
@@ -291,7 +291,18 @@ typedef struct ArenaStruct {    /* ANSI arena structure */
   Size committed;               /* total committed (alloced by pools) memory */
 } ArenaStruct;
 
-#else /* TARGET_ARENA_ANSI not */
+#else
+#ifdef TARGET_ARENA_CLIENT
+
+typedef struct ArenaStruct {	/* arena structure */
+  Sig sig;			/* impl.h.misc.sig */
+  RingStruct chunkRing;		/* all the chunks */
+  Serial chunkSerial;		/* next chunk number */
+  Shift pageShift;		/* log2(pageSize), for shifts */
+  Size pageSize;		/* size of block managed by PageStruct */
+} ArenaStruct;
+
+#else  /* neither TARGET_ARENA_ANSI nor TARGET_ARENA_CLIENT */
 
 /* This is the arena structure used by the virtual memory based */
 /* arena implementation, impl.c.arenavm. */
