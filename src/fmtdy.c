@@ -1,6 +1,6 @@
 /* impl.c.fmtdy: DYLAN OBJECT FORMAT IMPLEMENTATION
  *
- *  $HopeName: MMsrc!fmtdy.c(MM_dylan_incremental.3) $
+ *  $HopeName: MMsrc!fmtdy.c(MM_dylan_incremental.4) $
  *  Copyright (C) 1996 Harlequin Group, all rights reserved.
  *
  *  All objects, B:
@@ -35,7 +35,14 @@
  *  WW+3        (0 << 3) | 0    wrappers have a non-traceable vector
  *  WW+4        (1 << 2) | 1    one pattern word follows
  *  WW+5        0b001           only field 0 is traceable
+ *
+ *  .improve.abstract.access: There are severe common subexpression
+ *  problems.  In particular, code for accessing subfields in the
+ *  fh and vh words is repeated.  It should be abstracted into
+ *  macros (or functions).  This is particularly bad for the vh
+ *  word which has 4 subfields (version, vb, es, vf).
  */
+
 
 #include "fmtdy.h"
 #include "mps.h"
@@ -43,17 +50,22 @@
 #include <string.h>
 #include <stdlib.h>
 
+
 #define notreached()    do assert(0); while(0)
 
-#define ALIGN		sizeof(mps_word_t)
+#define ALIGN           sizeof(mps_word_t)
+
 
 static int dylan_wrapper_check(mps_word_t *w)
 {
   mps_word_t *ww;
+  mps_word_t vh;
+  mps_word_t version;
+  mps_word_t reserved;
 #if 0
   mps_word_t class;
   mps_word_t fh, fl, ff;
-  mps_word_t vh, vs, vf;
+  mps_word_t vb, es, vf;
   mps_word_t vt, t;
 #endif
 
@@ -85,8 +97,15 @@ static int dylan_wrapper_check(mps_word_t *w)
   fh = w[2];            /* fixed part header word */
   fl = fh >> 2;         /* fixed part length */
   ff = fh & 3;          /* fixed part format code */
+#endif
   vh = w[3];            /* variable part header */
-  vs = vh >> 3;         /* variable part length */
+  version = (vh >> (MPS_WORD_WIDTH - 8)) & 0xff;
+  assert(version == 0 || version == 1);
+  reserved = (vh >> 8) & 0xff;
+  assert(reserved == 0);
+#if 0
+  vb = (vh >> 16) & 0xff;
+  es = (vh & 0xff) >> 3;/* element size */
   vf = vh & 7;          /* variable part format code */
   vt = w[4];            /* vector total word (Dylan-tagged) */
   t = vt >> 2;          /* vector total length */
@@ -119,12 +138,12 @@ static int dylan_wrapper_check(mps_word_t *w)
   assert(vh != 6);
 
   /* There should be no shift in word vector formats. */
-  assert((vf & 6) == 4 || vs == 0);
+  assert((vf & 6) == 4 || es == 0);
 
   /* @@@@ Dylan only uses byte vectors, so the shift should be 3. */
   /* Note that the code supports other sizes -- this check is only */
   /* for Dylan consistency. */
-  assert((vf & 6) != 4 || vs == 3);
+  assert((vf & 6) != 4 || es == 3);
 
   /* The fifth word is the number of patterns in the pattern */
   /* vector.  This can be calculated from the fixed part length. */
@@ -165,8 +184,8 @@ static mps_res_t dylan_scan_contig(mps_ss_t mps_ss,
           p = base;
     loop: if(p >= limit) goto out;
           r = *p++;
-	  if(((mps_word_t)r&3) != 0) /* pointers tagged with 0 */
-	    goto loop;             /* not a pointer */
+          if(((mps_word_t)r&3) != 0) /* pointers tagged with 0 */
+            goto loop;             /* not a pointer */
           if(!MPS_FIX1(mps_ss, r)) goto loop;
           res = MPS_FIX2(mps_ss, p-1);
           if(res == MPS_RES_OK) goto loop;
@@ -209,8 +228,8 @@ static mps_res_t dylan_scan_pat(mps_ss_t mps_ss,
           pat >>= 1;
           if(b == 0) goto loop;
           r = *(pp-1);
-	  if(((mps_word_t)r&3) != 0) /* pointers tagged with 0 */
-	    goto loop;             /* not a pointer */
+          if(((mps_word_t)r&3) != 0) /* pointers tagged with 0 */
+            goto loop;             /* not a pointer */
           if(!MPS_FIX1(mps_ss, r)) goto loop;
           res = MPS_FIX2(mps_ss, pp-1);
           if(res == MPS_RES_OK) goto loop;
@@ -222,11 +241,11 @@ static mps_res_t dylan_scan_pat(mps_ss_t mps_ss,
   return MPS_RES_OK;
 }                           
 
-#define NONWORD_LENGTH(_vt, _vs) \
-  ((_vs) < MPS_WORD_SHIFT ? \
-   ((_vt) + (1 << (MPS_WORD_SHIFT - (_vs))) - 1) >> \
-     (MPS_WORD_SHIFT - (_vs)) : \
-   (_vt) << ((_vs) - MPS_WORD_SHIFT))
+#define NONWORD_LENGTH(_vt, _es) \
+  ((_es) < MPS_WORD_SHIFT ? \
+   ((_vt) + (1 << (MPS_WORD_SHIFT - (_es))) - 1) >> \
+     (MPS_WORD_SHIFT - (_es)) : \
+   (_vt) << ((_es) - MPS_WORD_SHIFT))
 
 static mps_res_t dylan_scan1(mps_ss_t mps_ss, mps_addr_t *object_io)
 {
@@ -239,7 +258,8 @@ static mps_res_t dylan_scan1(mps_ss_t mps_ss, mps_addr_t *object_io)
   mps_word_t vh;        /* variable part header */
   mps_word_t vf;        /* variable part format */
   mps_word_t vl;        /* variable part actual length */
-  unsigned vs;          /* variable part element size (log2 of bits) */
+  unsigned vb;          /* vector bias */
+  unsigned es;          /* variable part element size (log2 of bits) */
   mps_word_t vt;        /* total vector length */
   mps_res_t res;
 
@@ -343,14 +363,18 @@ static mps_res_t dylan_scan1(mps_ss_t mps_ss, mps_addr_t *object_io)
       break;
 
       case 4:                   /* non-word */
-      vs = vh >> 3;
-      p += NONWORD_LENGTH(vt, vs);
+      es = (vh & 0xff) >> 3;
+      vb = (vh >> 16) & 0xff;
+      vt += vb;
+      p += NONWORD_LENGTH(vt, es);
       break;
     
       case 5:                   /* stretchy non-word */
       notreached();             /* DW doesn't create them yet */
-      vs = vh >> 3;
-      p += NONWORD_LENGTH(vt, vs) + 1;
+      es = (vh & 0xff) >> 3;
+      vb = (vh >> 16) & 0xff;
+      vt += vb;
+      p += NONWORD_LENGTH(vt, es) + 1;
       break;
 
       default:
@@ -386,7 +410,8 @@ static mps_addr_t dylan_skip(mps_addr_t object)
   mps_word_t vh;        /* variable part header */
   mps_word_t vf;        /* variable part format */
   mps_word_t vt;        /* total vector length */
-  unsigned vs;          /* variable part element size (log2 of bits) */
+  unsigned vb;          /* vector bias */
+  unsigned es;          /* variable part element size (log2 of bits) */
 
   p = (mps_addr_t *)object;
   assert(p != NULL);
@@ -413,20 +438,23 @@ static mps_addr_t dylan_skip(mps_addr_t object)
 
   p += w[2] >> 2;               /* skip fixed part fields */
 
-  vf = w[3] & 7;                /* get variable part format */
+  vh = w[3];
+  vf = vh & 7;                  /* get variable part format */
   if(vf != 7)
   {
-    vh = *(mps_word_t *)p;
-    assert((vh & 3) == 1);      /* check Dylan integer tag */
-    vt = vh >> 2;               /* total length */
+    vt = *(mps_word_t *)p;
+    assert((vt & 3) == 1);      /* check Dylan integer tag */
+    vt = vt >> 2;               /* total length */
     ++p;
 
     p += vf & 1;                /* stretchy vectors have an extra word */
 
     if((vf & 6) == 4)           /* non-word */
     {
-      vs = w[3] >> 3;
-      p += NONWORD_LENGTH(vt, vs);
+      es = (vh & 0xff) >> 3;
+      vb = (vh >> 16) & 0xff;
+      vt += vb;
+      p += NONWORD_LENGTH(vt, es);
     }
     else
       p += vt;
@@ -439,6 +467,8 @@ static void dylan_copy(mps_addr_t old, mps_addr_t new)
 {
   size_t length = (char *)dylan_skip(old) - (char *)old;
   assert(dylan_wrapper_check(*(mps_word_t **)old));
+  /* .improve.memcpy: Can do better here as we know that new and old
+   * will be aligned (to MPS_PF_ALIGN) */
   memcpy(new, old, length);
 }
 
