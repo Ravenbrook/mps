@@ -1,6 +1,6 @@
 /* impl.c.vmo1: VIRTUAL MEMORY MAPPING FOR DIGITAL UNIX
  *
- * $HopeName: MMsrc!vmo1.c(trunk.5) $
+ * $HopeName: !vmo1.c(trunk.6) $
  * Copyright (C) 1995, 1997, 1998 Harlequin Group, all rights reserved
  *
  * Readership: Any MPS developer
@@ -62,7 +62,7 @@
 /* for getpagesize(2),close(2) */
 #include <unistd.h>
 
-SRCID(vmo1, "$HopeName: MMsrc!vmo1.c(trunk.5) $");
+SRCID(vmo1, "$HopeName: !vmo1.c(trunk.6) $");
 
 
 /* Fix unprototyped system calls

@@ -1,7 +1,7 @@
 #
 #     BUILD FOR SOLARIS/SPARC v8/GCC PLATFORM
 #
-#  $HopeName: MMsrc!sos8gc.gmk(trunk.23) $
+#  $HopeName: !sos8gc.gmk(trunk.24) $
 #  Copyright (C) 1995,1997 Harlequin Group, all rights reserved
 #
 #  This is the GNU makefile for platform.sos8gc.
