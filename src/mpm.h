@@ -1,6 +1,6 @@
 /* impl.h.mpm: MEMORY POOL MANAGER DEFINITIONS
  *
- * $HopeName: !mpm.h(trunk.87) $
+ * $HopeName: MMsrc!mpm.h(MMdevel_pekka_rate.1) $
  * Copyright (C) 1998. Harlequin Group plc. All rights reserved.
  */
 
@@ -398,7 +398,7 @@ extern Bool TraceCheck(Trace trace);
 extern Res TraceCreate(Trace *traceReturn, Space space);
 extern Res TraceAddWhite(Trace trace, Seg seg);
 extern Res TraceCondemnRefSet(Trace trace, RefSet condemnedSet);
-extern Res TraceStart(Trace trace);
+extern Res TraceStart(Trace trace, double mortality, double finishingTime);
 extern Res TraceFlip(Trace trace);
 extern void TraceDestroy(Trace trace);
 extern Res TraceStep(Trace trace);
@@ -408,6 +408,20 @@ extern void TraceSegAccess(Arena arena, Seg seg, AccessSet mode);
 extern Res TraceFix(ScanState ss, Ref *refIO);
 extern Res TraceFixEmergency(ScanState ss, Ref *refIO);
 extern Size TraceGreyEstimate(Arena arena, RefSet refSet);
+
+/* Collection control parameters */
+/* Defined here, because they are used by more than one module (pool). */
+/* They have the wrong name because they originally came from AMC, and */
+/* binary compatibility is required. */
+
+extern unsigned long AMCGen0Frequency;
+extern unsigned long AMCGen1Frequency;
+extern unsigned long AMCGen2Frequency;
+extern unsigned long AMCGen2plusFrequencyMultiplier;
+extern Serial AMCGenFinal;
+
+extern double TraceGen0IncrementalityMultiple;
+extern double TraceMortalityEstimate;
 
 /* Equivalent to impl.h.mps MPS_SCAN_BEGIN */
 
