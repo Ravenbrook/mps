@@ -1,6 +1,6 @@
 /* impl.h.mpmst: MEMORY POOL MANAGER DATA STRUCTURES
  *
- * $HopeName: !mpmst.h(trunk.52) $
+ * $HopeName: MMsrc!mpmst.h(MMdevel_drj_amcz.1) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  *
  * .readership: MM developers.
@@ -253,7 +253,9 @@ typedef struct SegStruct {      /* segment structure */
 typedef struct SegPrefStruct {  /* segment placement preferences */
   Sig sig;                      /* impl.h.misc.sig */
   Bool high;                    /* high or low */
-  RefSet refSet;                /* preferred RefSetOfSeg */
+  ObjSet objSet;                /* preferred ObjSetOfSeg */
+  Bool isGen;                   /* whether gen is set */
+  Serial gen;                   /* associated geneation */
 } SegPrefStruct;
 
 
@@ -476,7 +478,7 @@ typedef struct RootStruct {
 typedef struct ScanStateStruct {
   TraceFixMethod fix;           /* fix function */
   Word zoneShift;               /* copy of arena->zoneShift.  See .ss.zone */
-  RefSet white;                 /* white set, for inline fix test */
+  ObjSet white;                 /* white set, for inline fix test */
   RefSet unfixedSummary;        /* accumulated summary of scanned references */
   Sig sig;                      /* design.mps.sig */
   Arena arena;                  /* owning arena */
@@ -503,8 +505,8 @@ typedef struct TraceStruct {
   Sig sig;                      /* design.mps.sig */
   TraceId ti;                   /* index into TraceSets */
   Arena arena;                  /* owning arena */
-  RefSet white;                 /* superset of refs in white set */
-  RefSet mayMove;		/* superset of refs in moving set */
+  ObjSet white;                 /* superset of objects in white set */
+  ObjSet mayMove;		/* superset of objects in moving set */
   TraceState state;             /* current state of trace */
   Bool emergency;               /* true iff ran out of memory during trace */
   Size condemned;               /* condemned bytes */

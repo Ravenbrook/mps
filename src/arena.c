@@ -1,6 +1,6 @@
 /* impl.c.arena: ARENA IMPLEMENTATION
  *
- * $HopeName: !arena.c(trunk.30) $
+ * $HopeName: MMsrc!arena.c(MMdevel_drj_amcz.1) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  *
  * .readership: Any MPS developer
@@ -36,7 +36,7 @@
 #include "poolmrg.h"
 #include "mps.h"
 
-SRCID(arena, "$HopeName: !arena.c(trunk.30) $");
+SRCID(arena, "$HopeName: MMsrc!arena.c(MMdevel_drj_amcz.1) $");
 
 
 /* All static data objects are declared here. See .static */
@@ -1066,6 +1066,8 @@ Bool SegPrefCheck(SegPref pref)
   CHECKS(SegPref, pref);
   CHECKL(BoolCheck(pref->high));
   /* refSet can't be checked because it's an arbitrary bit pattern. */
+  CHECKL(BoolCheck(pref->isGen));
+  /* gen is an arbitrary serial */
   return TRUE;
 }
 
@@ -1077,7 +1079,9 @@ Bool SegPrefCheck(SegPref pref)
 static SegPrefStruct segPrefDefault = {
   SegPrefSig,                           /* sig */
   FALSE,                                /* high */
-  RefSetUNIV,                           /* refSet */
+  ObjSetUNIV,                           /* objSet */
+  FALSE,                                /* isGen */
+  (Serial)0,                            /* gen */
 };
 
 SegPref SegPrefDefault(void)
@@ -1104,10 +1108,15 @@ Res SegPrefExpress(SegPref pref, SegPrefKind kind, void *p)
     pref->high = FALSE;
     break;
 
-  case SegPrefRefSet:
+  case SegPrefObjSet:
     AVER(p != NULL);
-    pref->refSet = *(RefSet *)p;
+    pref->objSet = *(ObjSet *)p;
     break;
+
+  case SegPrefGen:
+    AVER(p != NULL);
+    pref->isGen = TRUE;
+    pref->gen = *(Serial *)p;
 
   default:
     /* Unknown kinds are ignored for binary compatibility. */
