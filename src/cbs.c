@@ -1,6 +1,6 @@
 /* impl.c.cbs: COALESCING BLOCK STRUCTURE IMPLEMENTATION
  *
- * $HopeName: MMsrc!cbs.c(MMdevel_gavinm_splay.2) $
+ * $HopeName: MMsrc!cbs.c(MMdevel_gavinm_splay.3) $
  * Copyright (C) 1998 Harlequin Group plc, all rights reserved.
  *
  * .readership: Any MPS developer.
@@ -18,7 +18,7 @@
 #include "mpm.h"
 
 
-SRCID(cbs, "$HopeName: MMsrc!cbs.c(MMdevel_gavinm_splay.2) $");
+SRCID(cbs, "$HopeName: MMsrc!cbs.c(MMdevel_gavinm_splay.3) $");
 
 #define CBSRootOfSplayRoot(root) PARENT(CBSRootStruct, splayRoot, (root))
 #define CBSNodeOfSplayNode(node) PARENT(CBSNodeStruct, splayNode, (node))
@@ -26,6 +26,7 @@ SRCID(cbs, "$HopeName: MMsrc!cbs.c(MMdevel_gavinm_splay.2) $");
 #define SplayNodeOfCBSNode(node) (&((node)->splayNode))
 
 static Bool CBSRootCheck(CBSRoot root) {
+  UNUSED(root);
   CHECKL(root != NULL);
   /* don't check root->splayRoot? */
   CHECKD(Pool, root->nodePool);
@@ -33,6 +34,7 @@ static Bool CBSRootCheck(CBSRoot root) {
 }
 
 static Bool CBSNodeCheck(CBSNode node) {
+  UNUSED(node);
   CHECKL(node != NULL);
   /* Don't check root->spayNode? */
   /* Can't check base, limit, or p */

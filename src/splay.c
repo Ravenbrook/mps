@@ -1,6 +1,6 @@
 /* impl.c.splay: SPLAY TREE IMPLEMENTATION
  *
- * $HopeName: MMsrc!splay.c(MMdevel_gavinm_splay.1) $
+ * $HopeName: MMsrc!splay.c(MMdevel_gavinm_splay.2) $
  * Copyright (C) 1998 Harlequin Group plc, all rights reserved.
  *
  * .readership: Any MPS developer.
@@ -17,7 +17,7 @@
 #include "mpm.h"
 
 
-SRCID(splay, "$HopeName: MMsrc!splay.c(MMdevel_gavinm_splay.1) $");
+SRCID(splay, "$HopeName: MMsrc!splay.c(MMdevel_gavinm_splay.2) $");
 
 /* Basic getter and setter methods */
 #define SplayNodeLeft(node) ((node)->left)
@@ -29,12 +29,14 @@ SRCID(splay, "$HopeName: MMsrc!splay.c(MMdevel_gavinm_splay.1) $");
   (((root)->compare)((key), (node)))
 
 Bool SplayRootCheck(SplayRoot root) {
+  UNUSED(root);
   CHECKL(root != NULL);
   CHECKL(FUNCHECK(root->compare));
   return TRUE;
 }
 
 Bool SplayNodeCheck(SplayNode node) {
+  UNUSED(node);
   CHECKL(node != NULL);
   return TRUE;
 }
