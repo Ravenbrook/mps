@@ -1,6 +1,6 @@
 /* impl.c.trace: GENERIC TRACER IMPLEMENTATION
  *
- * $HopeName: MMsrc!trace.c(MMdevel_configura.1) $
+ * $HopeName: MMsrc!trace.c(MMdevel_configura.2) $
  * Copyright (C) 1999 Harlequin Limited.  All rights reserved.
  *
  * .design: design.mps.trace.
@@ -9,7 +9,7 @@
 #include "mpm.h"
 
 
-SRCID(trace, "$HopeName: MMsrc!trace.c(MMdevel_configura.1) $");
+SRCID(trace, "$HopeName: MMsrc!trace.c(MMdevel_configura.2) $");
 
 
 /* Types
@@ -367,8 +367,8 @@ unsigned long AMCGen2plusRampmodeFrequencyMultiplier = 1000;
 Serial AMCRampGenFollows = 1;
 Serial AMCGenFinal = 0; /* default: no final generation */
 
-double TraceGen0IncrementalityMultiple = 0.5;
-double TraceMortalityEstimate = 0.5;
+double TraceGen0IncrementalityMultiple = 0.0;
+double TraceMortalityEstimate = 0.0;
 
 
 /* TraceSetWhiteUnion
