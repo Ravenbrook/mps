@@ -1,6 +1,6 @@
 /* impl.h.mpmst: MEMORY POOL MANAGER DATA STRUCTURES
  *
- * $HopeName: MMsrc!mpmst.h(MMdevel_sw_eq.1) $
+ * $HopeName: MMsrc!mpmst.h(MMdevel_sw_eq.2) $
  * Copyright (C) 1996 Harlequin Group, all rights reserved.
  *
  * .readership: MM developers.
@@ -126,6 +126,21 @@ typedef struct PoolStruct {     /* generic structure */
   Align alignment;              /* alignment for units */
 } PoolStruct;
 
+/* PoolPrefStruct -- pool preferences
+ * 
+ * .pool-pref: One may express preferences for pools at pool creation time.
+ * Currently the only preferences one may express are whether a pool's
+ * segments should be near to, or far from, those of another pool.
+ */
+
+#define PoolPrefSig     ((Sig)0x519b001b)
+
+typedef struct PoolPrefStruct {
+  Sig sig;
+  Pool near;
+  Pool far;
+} PoolPrefStruct;
+
 
 /* MFSStruct -- MFS (Manual Fixed Small) pool outer structure
  *
@@ -171,6 +186,8 @@ typedef struct MVStruct {       /* MV pool outer structure */
   PoolStruct poolStruct;        /* generic structure */
   MFSStruct blockPoolStruct;    /* for managing block descriptors */
   MFSStruct spanPoolStruct;     /* for managing span descriptors */
+  Bool high;                    /* place segs high or low */
+  SegPref segPref;              /* the preferences for segments */
   Size extendBy;                /* segment size to extend pool by */
   Size avgSize;                 /* client estimate of allocation size */
   Size maxSize;                 /* client estimate of maximum size */
@@ -271,6 +288,18 @@ typedef struct SegStruct {      /* segment structure */
   TraceId condemned;            /* seg condemned? for which trace? */
 } SegStruct;
 
+/* SegPrefStruct -- segment preference structure
+ * 
+ * .seg-pref: segment users (pool class code) need a way of expressing
+ * preferences about the segments they allocate.
+ */
+
+#define SegPrefSig      ((Sig)0x5195e997)
+
+typedef struct SegPrefStruct {  /* segment placement preferences */
+  Sig sig;                      /* impl.h.misc.sig */
+  Bool high;                    /* high or low */
+} SegPrefStruct;
 
 /* ArenaStruct -- arena structure
  *
@@ -294,12 +323,12 @@ typedef struct ArenaStruct {    /* ANSI arena structure */
 #else
 #ifdef TARGET_ARENA_CLIENT
 
-typedef struct ArenaStruct {	/* arena structure */
-  Sig sig;			/* impl.h.misc.sig */
-  RingStruct chunkRing;		/* all the chunks */
-  Serial chunkSerial;		/* next chunk number */
-  Shift pageShift;		/* log2(pageSize), for shifts */
-  Size pageSize;		/* size of block managed by PageStruct */
+typedef struct ArenaStruct {    /* arena structure */
+  Sig sig;                      /* impl.h.misc.sig */
+  RingStruct chunkRing;         /* all the chunks */
+  Serial chunkSerial;           /* next chunk number */
+  Shift pageShift;              /* log2(pageSize), for shifts */
+  Size pageSize;                /* size of block managed by PageStruct */
 } ArenaStruct;
 
 #else  /* neither TARGET_ARENA_ANSI nor TARGET_ARENA_CLIENT */
@@ -325,6 +354,7 @@ typedef struct ArenaStruct {    /* VM arena structure */
   Index tablePages;             /* number of pages occupied by tables */
 } ArenaStruct;
 
+#endif /* TARGET_ARENA_CLIENT */
 #endif /* TARGET_ARENA_ANSI */
 
 
