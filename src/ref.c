@@ -1,6 +1,6 @@
 /* impl.c.ref: REFERENCES
  *
- * $HopeName: MMsrc!ref.c(MMdevel_restr.3) $
+ * $HopeName: MMsrc!ref.c(MMdevel_restr.4) $
  * Copyright (C) 1995 Harlequin Group, all rights reserved
  *
  * Ref is an alias for Addr which can be used to document where
@@ -24,11 +24,10 @@
 
 #include "mpm.h"
 
-SRCID(ref, "$HopeName: MMsrc!ref.c(MMdevel_restr.3) $");
+SRCID(ref, "$HopeName: MMsrc!ref.c(MMdevel_restr.4) $");
 
 Bool RankCheck(Rank rank)
 {
-  CHECKL(rank >= 0);
   CHECKL(rank < RankMAX);
   return TRUE;
 }
