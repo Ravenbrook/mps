@@ -1,6 +1,6 @@
 /* impl.c.pool: POOL IMPLEMENTATION
  *
- * $HopeName: MMsrc!pool.c(MMdevel_alloc_replay.1) $
+ * $HopeName: MMsrc!pool.c(MMdevel_alloc_replay.2) $
  * Copyright (C) 1997, 1999 Harlequin Group plc.  All rights reserved.
  *
  * READERSHIP
@@ -37,7 +37,7 @@
 
 #include "mpm.h"
 
-SRCID(pool, "$HopeName: MMsrc!pool.c(MMdevel_alloc_replay.1) $");
+SRCID(pool, "$HopeName: MMsrc!pool.c(MMdevel_alloc_replay.2) $");
 
 
 Bool PoolClassCheck(PoolClass class)
@@ -692,6 +692,7 @@ Res PoolTrivBufferInit(Pool pool, Buffer buffer, va_list args)
 {
   AVERT(Pool, pool);
   UNUSED(buffer); UNUSED(args);
+  EVENT_PPU(BufferInit, buffer, pool, TRUE);
   return ResOK;
 }
 
