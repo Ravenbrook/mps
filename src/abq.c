@@ -1,6 +1,6 @@
 /* impl.c.abq: AVAILABLE BLOCK QUEUE
  *
- * $HopeName: MMsrc!abq.c(MMdevel_gavinm_splay.2) $
+ * $HopeName: MMsrc!abq.c(MMdevel_gavinm_splay.3) $
  * Copyright (C) 1998 Harlequin Group plc.  All rights reserved.
  *
  * See design.mps.poolmv2.impl.c.abq
@@ -10,7 +10,7 @@
 #include "meter.h"
 #include "abq.h"
 
-SRCID(abq, "$HopeName: MMsrc!abq.c(MMdevel_gavinm_splay.2) $");
+SRCID(abq, "$HopeName: MMsrc!abq.c(MMdevel_gavinm_splay.3) $");
 
 
 /* Signatures */
@@ -84,7 +84,7 @@ Res ABQDescribe(ABQ abq, mps_lib_FILE *stream)
 }
 
 
-static Size ABQqueueSize(Count count)
+static Size ABQQueueSize(Count count)
 {
   /* strange but true: the sizeof expression calculates the size of a
      single queue element */
@@ -102,7 +102,7 @@ Res ABQInit(Arena arena, ABQ abq, Count count)
   AVER(abq != NULL);
   AVER(count > 0);
 
-  res = ArenaAlloc(&p, arena, ABQqueueSize(count));
+  res = ArenaAlloc(&p, arena, ABQQueueSize(count));
   if (res != ResOK)
     return res;
 
@@ -151,13 +151,13 @@ void ABQFinish(Arena arena, ABQ abq)
 {
   AVERT(Arena, arena);
   AVERT(ABQ, abq);
-  /* must be empty */
-  AVER(ABQIsEmpty(abq));
 
-  ArenaFree(arena, abq->queue, ABQqueueSize(abq->count));
+  ArenaFree(arena, abq->queue, ABQQueueSize(abq->count));
   
   abq->count = 0;
   abq->queue = NULL;
+
+  abq->sig = SigInvalid;
 }
 
 
