@@ -1,7 +1,7 @@
 /*  impl.c.protnt
  *
  *               PROTECTION FOR WIN32
- *  $HopeName: !protnt.c(trunk.7) $
+ *  $HopeName: MMsrc!protnt.c(MMdevel_remem.1) $
  *
  *  Copyright (C) 1995 Harlequin Group, all rights reserved
  */
@@ -14,7 +14,7 @@
 
 #include <windows.h>
 
-SRCID(protnt, "$HopeName: !protnt.c(trunk.7) $");
+SRCID(protnt, "$HopeName: MMsrc!protnt.c(MMdevel_remem.1) $");
 
 
 void ProtSetup(void)
@@ -37,7 +37,7 @@ void ProtSet(Addr base, Addr limit, AccessSet mode)
   if((mode & AccessREAD) != 0)
     newProtect = PAGE_NOACCESS;
 
-  if(VirtualProtect((LPVOID)base, (DWORD)(limit - base),
+  if(VirtualProtect((LPVOID)base, (DWORD)AddrOffset(base, limit),
                     newProtect, &oldProtect) != TRUE)
     NOTREACHED;
 }
@@ -76,7 +76,7 @@ LONG ProtSEHfilter(LPEXCEPTION_POINTERS info)
   address = er->ExceptionInformation[1];
 
   base = (Addr)address;
-  limit = (Addr)address + sizeof(Addr);
+  limit = AddrAdd((Addr)address, sizeof(Addr));
 
   AVER(base < limit);  /* nasty case (base = -1): continue search? @@@ */
 
@@ -86,6 +86,16 @@ LONG ProtSEHfilter(LPEXCEPTION_POINTERS info)
     action = EXCEPTION_CONTINUE_SEARCH;
 
   return action;
+}
+
+/* ProtSync -- synchronize protection settings with hardware
+ *
+ * This does nothing under NT.
+ */
+
+void ProtSync(Space space)
+{
+  NOOP;
 }
 
 void ProtTramp(void **resultReturn, void *(*f)(void *, size_t),
