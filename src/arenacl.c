@@ -1,6 +1,6 @@
 /* impl.c.arenacl: ARENA IMPLEMENTATION USING CLIENT MEMORY
  *
- * $HopeName: MMsrc!arenacl.c(MMdevel_sw_eq.4) $
+ * $HopeName: MMsrc!arenacl.c(MMdevel_sw_eq.5) $
  * 
  * Copyright (C) 1996 Harlequin Group, all rights reserved.
  *
@@ -41,7 +41,7 @@
 #error "Client arena not configured"
 #endif
 
-SRCID(arenacl, "$HopeName: MMsrc!arenacl.c(MMdevel_sw_eq.4) $");
+SRCID(arenacl, "$HopeName: MMsrc!arenacl.c(MMdevel_sw_eq.5) $");
 
 Bool ArenaCheck(Arena arena)
 {
@@ -488,7 +488,6 @@ static Res ChunkSegAlloc(Seg *segReturn, SegPref pref, Size pages, Pool pool,
 {
   PI pi, count, base = 0;
   Seg seg;
-  Arena arena;
 
   AVER(segReturn != NULL);
   AVERT(Chunk, chunk);
@@ -496,8 +495,6 @@ static Res ChunkSegAlloc(Seg *segReturn, SegPref pref, Size pages, Pool pool,
   if (pages > chunk->freePages)
     return ResRESOURCE;
 
-  arena = chunk->arena;
-  
   /* Search the free table for a sufficiently-long run of free pages.
    * If we succeed, we go to "found:" with the lowest page number in
    * the run in 'base'. */
