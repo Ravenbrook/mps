@@ -2,7 +2,7 @@
  *
  *            Leaf Object Pool Class Coverage Test
  *
- *  $HopeName: !locv.c(trunk.8) $
+ *  $HopeName: MMsrc!locv.c(MMdevel_trace2.1) $
  *
  *  Copyright (C) 1996 Harlequin Group, all rights reserved
  *
@@ -17,7 +17,7 @@
 #include <assert.h>
 
 
-static mps_res_t scan(mps_ss_t ss, mps_addr_t base, mps_addr_t limit);
+static mps_res_t scan(mps_fix_t fix, mps_addr_t base, mps_addr_t limit);
 static mps_addr_t skip(mps_addr_t object);
 static void move(mps_addr_t object, mps_addr_t to);
 static mps_addr_t isMoved(mps_addr_t object);
@@ -88,7 +88,7 @@ main(void)
 
 static
 mps_res_t
-scan(mps_ss_t ss, mps_addr_t base, mps_addr_t limit)
+scan(mps_fix_t fix, mps_addr_t base, mps_addr_t limit)
 {
   assert(0);
   return ResFAIL;
