@@ -1,6 +1,6 @@
 /* impl.h.mpmtypes: MEMORY POOL MANAGER TYPES
  *
- * $HopeName: MMsrc!mpmtypes.h(MMdevel_ptw_pseudoloci.3) $
+ * $HopeName: MMsrc!mpmtypes.h(MMdevel_ptw_pseudoloci.5) $
  * Copyright (C) 1997, 1998 Harlequin Group plc.  All rights reserved.
  *
  * .readership: MM developers.
@@ -377,6 +377,14 @@ typedef unsigned long WriteFB;
 typedef void *(*WriteFF)(void);
 typedef int WriteFC; /* Promoted */
 typedef double WriteFD;
+
+/* Lifetimes */
+
+typedef Word Lifetime;
+
+enum {
+  LifetimeNONE
+};
 
 
 #endif /* mpmtypes_h */
