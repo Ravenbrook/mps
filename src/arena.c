@@ -1,6 +1,6 @@
 /* impl.c.arena: ARENA IMPLEMENTATION
  *
- * $HopeName: MMsrc!arena.c(MMdevel_pekka_rate.2) $
+ * $HopeName: MMsrc!arena.c(MMdevel_pekka_rate.3) $
  * Copyright (C) 1998. Harlequin Group plc. All rights reserved.
  *
  * .readership: Any MPS developer
@@ -36,7 +36,7 @@
 #include "poolmrg.h"
 #include "mps.h"
 
-SRCID(arena, "$HopeName: MMsrc!arena.c(MMdevel_pekka_rate.2) $");
+SRCID(arena, "$HopeName: MMsrc!arena.c(MMdevel_pekka_rate.3) $");
 
 
 /* All static data objects are declared here. See .static */
@@ -788,7 +788,7 @@ Res ArenaDescribe(Arena arena, mps_lib_FILE *stream)
  * allocating so that the block can be addressed with a void*.
  */
 
-Res ArenaAlloc(void **baseReturn, Arena arena, Size size)
+Res ArenaAlloc(void **baseReturn, Arena arena, size_t size)
 {
   Addr base;
   Res res;
@@ -799,7 +799,7 @@ Res ArenaAlloc(void **baseReturn, Arena arena, Size size)
   AVER(size > 0);
 
   pool = MVPool(&arena->controlPoolStruct);
-  res = PoolAlloc(&base, pool, size);
+  res = PoolAlloc(&base, pool, (Size)size);
   if(res != ResOK) return res;
 
   *baseReturn = (void *)base; /* see .arenaalloc.addr */
@@ -809,15 +809,16 @@ Res ArenaAlloc(void **baseReturn, Arena arena, Size size)
 
 /* ArenaFree -- free a block allocated using ArenaAlloc */
 
-void ArenaFree(Arena arena, void* base, Size size)
+void ArenaFree(Arena arena, void* base, size_t size)
 {
   Pool pool;
+
   AVERT(Arena, arena);
   AVER(base != NULL);
   AVER(size > 0);
 
   pool = MVPool(&arena->controlPoolStruct);
-  PoolFree(pool, base, size);
+  PoolFree(pool, (Addr)base, (Size)size);
 }
 
 
