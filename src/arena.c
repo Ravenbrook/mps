@@ -1,6 +1,6 @@
 /* impl.c.arena: ARENA IMPLEMENTATION
  *
- * $HopeName: MMsrc!arena.c(MMdevel_drj_commit_limit.1) $
+ * $HopeName: MMsrc!arena.c(MMdevel_drj_commit_limit.2) $
  * Copyright (C) 1998. Harlequin Group plc. All rights reserved.
  *
  * .readership: Any MPS developer
@@ -36,7 +36,7 @@
 #include "poolmrg.h"
 #include "mps.h"
 
-SRCID(arena, "$HopeName: MMsrc!arena.c(MMdevel_drj_commit_limit.1) $");
+SRCID(arena, "$HopeName: MMsrc!arena.c(MMdevel_drj_commit_limit.2) $");
 
 
 /* All static data objects are declared here. See .static */
@@ -114,7 +114,9 @@ Bool ArenaCheck(Arena arena)
          arena->allocMutatorSize);
   CHECKL(arena->fillInternalSize >= 0.0);
   CHECKL(arena->emptyInternalSize >= 0.0);
-  /* commitLimit is arbitrary, can't be checked */
+  /* commitLimit is arbitrary, can't be checked. */
+  /* (it's probably >= ArenaCommitted(), but we can't call that */
+  /* due to recursion problems) */
 
   CHECKL(ShiftCheck(arena->zoneShift));
   CHECKL(AlignCheck(arena->alignment));
@@ -247,7 +249,8 @@ void ArenaInit(Arena arena, ArenaClass class)
   arena->allocMutatorSize = 0.0;
   arena->fillInternalSize = 0.0;
   arena->emptyInternalSize = 0.0;
-  /* may be overrideen by init */
+  /* commitLimit may be overrideen by init (but probably not */
+  /* as there's not much point) */
   arena->commitLimit = (Size)-1;
   /* usually overridden by init */
   arena->alignment = MPS_PF_ALIGN;
