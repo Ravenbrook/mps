@@ -1,6 +1,6 @@
 /* impl.c.arenavm: VIRTUAL MEMORY BASED ARENA IMPLEMENTATION
  *
- * $HopeName: MMsrc!arenavm.c(MMdevel_drj_coop_arena.1) $
+ * $HopeName: MMsrc!arenavm.c(MMdevel_drj_coop_arena.2) $
  * Copyright (C) 1998. Harlequin Group plc. All rights reserved.
  *
  * This is the implementation of the Segment abstraction from the VM
@@ -31,7 +31,7 @@
 #include "mpm.h"
 #include "mpsavm.h"
 
-SRCID(arenavm, "$HopeName: MMsrc!arenavm.c(MMdevel_drj_coop_arena.1) $");
+SRCID(arenavm, "$HopeName: MMsrc!arenavm.c(MMdevel_drj_coop_arena.2) $");
 
 
 typedef struct VMArenaStruct *VMArena;
@@ -54,6 +54,7 @@ typedef struct VMArenaChunkStruct {
   Size pageSize;                /* size of block managed by PageStruct */
   Shift pageShift;              /* log2 of page size, for shifts */
   VMArena vmArena;		/* parent VMarena */
+  RingStruct arenaRing;         /* ring of all chunks in arena */
   Bool primary;                 /* primary chunk contains vmArena */
   Bool inBoot;                  /* TRUE when in boot (used in checking) */
   Addr base;                    /* base address of arena area */
@@ -68,13 +69,17 @@ typedef struct VMArenaChunkStruct {
 typedef struct VMArenaChunkStruct *VMArenaChunk;
   
 
+/* VMArenaStruct
+ * See design.mps.arena.coop-vm.struct.vmarena for description of fields.
+ */
 typedef struct VMArenaStruct {  /* VM arena structure */
-  ArenaStruct arenaStruct;      /* generic arena structure */
-  VMArenaChunk chunk;           /* just one chunk for now */
+  ArenaStruct arenaStruct;
+  VMArenaChunk primary;
+  RingStruct chunkRing;
   RefSet blacklist;             /* zones to use last */
-    /* zones assigned to generations: (see also .gencount.const) */
-  RefSet genRefSet[VMArenaGenCount];
+  RefSet genRefSet[VMArenaGenCount]; /* .gencount.const */
   RefSet freeSet;               /* unassigned zones */
+  Size extendBy;
   Sig sig;                      /* design.mps.sig */
 } VMArenaStruct;
 
@@ -174,6 +179,7 @@ static Bool VMArenaChunkCheck(VMArenaChunk chunk)
   if(!chunk->inBoot) {
     CHECKU(VMArena, chunk->vmArena);
   }
+  CHECKL(RingCheck(&chunk->arenaRing));
   CHECKL(1uL << chunk->pageShift == chunk->pageSize);
   CHECKL(chunk->base != (Addr)0);
   CHECKL(chunk->base < chunk->limit);
@@ -209,7 +215,8 @@ static Bool VMArenaCheck(VMArena vmArena)
 
   CHECKS(VMArena, vmArena);
   CHECKD(Arena, VMArenaArena(vmArena)); /* .arena.check-free */
-  CHECKD(VMArenaChunk, vmArena->chunk);
+  CHECKD(VMArenaChunk, vmArena->primary);
+  CHECKL(RingCheck(&vmArena->chunkRing));
   CHECKL(RefSetCheck(vmArena->blacklist));
 
   allocSet = RefSetEMPTY;
@@ -218,7 +225,8 @@ static Bool VMArenaCheck(VMArena vmArena)
     allocSet = RefSetUnion(allocSet, vmArena->genRefSet[gen]);
   }
   CHECKL(RefSetCheck(vmArena->freeSet));
-  AVER(RefSetInter(allocSet, vmArena->freeSet) == RefSetEMPTY);
+  CHECKL(RefSetInter(allocSet, vmArena->freeSet) == RefSetEMPTY);
+  CHECKL(vmArena->extendBy > 0);
 
   return TRUE;
 }
@@ -420,6 +428,9 @@ static Res VMArenaChunkCreate(VMArenaChunk *chunkReturn, void **spareReturn,
   initChunk->primary = primary;
   initChunk->inBoot = primary;
   initChunk->vmArena = vmArena;
+  /* Can't initialise ring yet as it will create pointers to the */
+  /* wrong structure (the current copy on the stack, rather than */
+  /* the to the ultimate copy) */
   initChunk->base = VMBase(vm);
   initChunk->limit = VMLimit(vm);
   /* the VM will have aligned the userSize, so pick up the actual size */
@@ -472,6 +483,7 @@ static Res VMArenaChunkCreate(VMArenaChunk *chunkReturn, void **spareReturn,
   /* Copy the structure to its ultimate destination. */
   /* design.mps.arena.coop-vm.chunk.create.copy */
   *chunk = *initChunk;
+  RingInit(&chunk->arenaRing);
 
   /* .tablepages: pages whose page index is < tablePages are */
   /* recorded as free but never allocated as alloc starts */
@@ -512,8 +524,10 @@ static void VMArenaChunkDestroy(VMArenaChunk chunk)
   VM vm;
 
   /* Can't check chunk during destroy as its parent vmArena is invalid */
+  AVER(chunk->sig == VMArenaChunkSig);
 
   chunk->sig = SigInvalid;
+  RingFinish(&chunk->arenaRing);
   vm = chunk->vm;
   /* unmap the permanently mapped tables */
   VMUnmap(vm, chunk->base, (Addr)chunk->pageTable);
@@ -550,7 +564,9 @@ static Res VMArenaInit(Arena *arenaReturn, va_list args)
     goto failChunkCreate;
   
   vmArena = spare;
-  vmArena->chunk = chunk;
+  vmArena->primary = chunk;
+  RingInit(&vmArena->chunkRing);
+  RingAppend(&vmArena->chunkRing, &chunk->arenaRing);
   /* This chunk is special in that it hasn't got a proper vmArena */
   /* field yet. */
   chunk->vmArena = vmArena;
@@ -580,6 +596,8 @@ static Res VMArenaInit(Arena *arenaReturn, va_list args)
   }
 
   vmArena->freeSet = RefSetUNIV; /* includes blacklist */
+  /* design.mps.arena.coop-vm.struct.vmarena.extendby.init */
+  vmArena->extendBy = userSize;
 
   /* Sign and check the arena. */
   vmArena->sig = VMArenaSig;
@@ -600,15 +618,26 @@ failChunkCreate:
 static void VMArenaFinish(Arena arena)
 {
   VMArena vmArena;
-  VMArenaChunk chunk;
+  Ring node, next;
 
   vmArena = ArenaVMArena(arena);
   AVERT(VMArena, vmArena);
   
   vmArena->sig = SigInvalid;
-  chunk = vmArena->chunk;
+
   ArenaFinish(arena); /* impl.c.arena.finish.caller */
-  VMArenaChunkDestroy(chunk); /* destroys arena too */
+  /* destroy all chunks except primary (destroy primary last) */
+  RING_FOR(node, &vmArena->chunkRing, next) {
+    VMArenaChunk chunk = RING_ELT(VMArenaChunk, arenaRing, node);
+    /* Can't check chunk as vmArena is invalid during Destroy */
+
+    RingRemove(node);
+    if(chunk != vmArena->primary) {
+      VMArenaChunkDestroy(chunk);
+    }
+  }
+  RingFinish(&vmArena->chunkRing);
+  VMArenaChunkDestroy(vmArena->primary); /* destroys arena too */
 
   EVENT_P(ArenaDestroy, vmArena);
 }
@@ -622,12 +651,20 @@ static void VMArenaFinish(Arena arena)
 
 static Size VMArenaReserved(Arena arena)
 {
+  Size reserved;
+  Ring node, next;
   VMArena vmArena;
 
   vmArena = ArenaVMArena(arena);
   AVERT(VMArena, vmArena);
 
-  return VMReserved(vmArena->chunk->vm);
+  reserved = 0;
+  RING_FOR(node, &vmArena->chunkRing, next) {
+    VMArenaChunk chunk = RING_ELT(VMArenaChunk, arenaRing, node);
+    reserved += VMReserved(chunk->vm);
+  }
+
+  return reserved;
 }
 
 
@@ -639,12 +676,20 @@ static Size VMArenaReserved(Arena arena)
 
 static Size VMArenaCommitted(Arena arena)
 {
+  Size committed;
+  Ring node, next;
   VMArena vmArena;
 
   vmArena = ArenaVMArena(arena);
   AVERT(VMArena, vmArena);
 
-  return VMMapped(vmArena->chunk->vm);
+  committed = 0;
+  RING_FOR(node, &vmArena->chunkRing, next) {
+    VMArenaChunk chunk = RING_ELT(VMArenaChunk, arenaRing, node);
+    committed += VMMapped(chunk->vm);
+  }
+
+  return committed;
 }
 
 
@@ -874,9 +919,9 @@ static Bool findFreeInRefSet(Index *baseReturn, VMArenaChunk *chunkReturn,
 			     Bool downwards)
 {
   Arena arena;
-  VMArenaChunk chunk;
   Addr chunkBase, base, limit;
   Size zoneSize;
+  Ring node, next;
 
   AVER(baseReturn != NULL);
   AVERT(VMArena, vmArena);
@@ -886,61 +931,66 @@ static Bool findFreeInRefSet(Index *baseReturn, VMArenaChunk *chunkReturn,
 
   arena = VMArenaArena(vmArena);
   zoneSize = (Size)1 << arena->zoneShift;
-  /* Iterate over all chunks... not */
 
-  chunk = vmArena->chunk;
-  /* .alloc.skip: The first address available for segments, */
-  /* is just after the arena tables. */
-  chunkBase = PageIndexBase(chunk, chunk->tablePages);
+  /* .improve.alloc.chunk.cache: check (non-existant) chunk cache */
+  /* first? */
+  RING_FOR(node, &vmArena->chunkRing, next) {
+    VMArenaChunk chunk = RING_ELT(VMArenaChunk, arenaRing, node);
+    AVERT(VMArenaChunk, chunk);
 
-  base = chunkBase;
-  while(base < chunk->limit) {
-    if(RefSetIsMember(arena, refSet, base)) {
-      /* Search for a run of zone stripes which are in the RefSet and */
-      /* the arena.  Adding the zoneSize might wrap round (to zero, */
-      /* because limit is aligned to zoneSize, which is a power of two). */
-      limit = base;
-      do {
-	/* advance limit to next higher zone stripe boundary */
-        limit = AddrAlignUp(AddrAdd(limit, 1), zoneSize);
+    /* .alloc.skip: The first address available for segments, */
+    /* is just after the arena tables. */
+    chunkBase = PageIndexBase(chunk, chunk->tablePages);
 
-        AVER(limit > base || limit == (Addr)0);
+    base = chunkBase;
+    while(base < chunk->limit) {
+      if(RefSetIsMember(arena, refSet, base)) {
+	/* Search for a run of zone stripes which are in the RefSet and */
+	/* the arena.  Adding the zoneSize might wrap round (to zero, */
+	/* because limit is aligned to zoneSize, which is a power of two). */
+	limit = base;
+	do {
+	  /* advance limit to next higher zone stripe boundary */
+	  limit = AddrAlignUp(AddrAdd(limit, 1), zoneSize);
 
-        if(limit >= chunk->limit || limit < base) {
-          limit = chunk->limit;
-          break;
-        }
+	  AVER(limit > base || limit == (Addr)0);
 
-        AVER(base < limit && limit < chunk->limit);
-      } while(RefSetIsMember(arena, refSet, limit));
+	  if(limit >= chunk->limit || limit < base) {
+	    limit = chunk->limit;
+	    break;
+	  }
 
-      /* If the RefSet was universal, then the area found ought to */
-      /* be the whole chunk. */
-      AVER(refSet != RefSetUNIV ||
-           (base == chunkBase && limit == chunk->limit));
+	  AVER(base < limit && limit < chunk->limit);
+	} while(RefSetIsMember(arena, refSet, limit));
 
-      /* Try to allocate a segment in the area. */
-      if(AddrOffset(base, limit) >= size &&
-         findFreeInArea(baseReturn,
-			chunk, size, base, limit, downwards)) {
-	*chunkReturn = chunk;
-        return TRUE;
-      }
-      
-      base = limit;
-    } else {
-      /* Adding the zoneSize might wrap round (to zero, because base */
-      /* is aligned to zoneSize, which is a power of two). */
-      base = AddrAlignUp(AddrAdd(base, 1), zoneSize);
-      AVER(base > chunkBase || base == (Addr)0);
-      if(base >= chunk->limit || base < chunkBase) {
-        base = chunk->limit;
-        break;
+	/* If the RefSet was universal, then the area found ought to */
+	/* be the whole chunk. */
+	AVER(refSet != RefSetUNIV ||
+	     (base == chunkBase && limit == chunk->limit));
+
+	/* Try to allocate a segment in the area. */
+	if(AddrOffset(base, limit) >= size &&
+	   findFreeInArea(baseReturn,
+			  chunk, size, base, limit, downwards)) {
+	  *chunkReturn = chunk;
+	  return TRUE;
+	}
+	
+	base = limit;
+      } else {
+	/* Adding the zoneSize might wrap round (to zero, because base */
+	/* is aligned to zoneSize, which is a power of two). */
+	base = AddrAlignUp(AddrAdd(base, 1), zoneSize);
+	AVER(base > chunkBase || base == (Addr)0);
+	if(base >= chunk->limit || base < chunkBase) {
+	  base = chunk->limit;
+	  break;
+	}
       }
     }
-  }
 
-  AVER(base == chunk->limit);
+    AVER(base == chunk->limit);
+  }
 
   return FALSE;
 }
@@ -969,7 +1019,7 @@ static Res VMSegAlloc(Seg *segReturn, SegPref pref, Size size,
   vmArena = ArenaVMArena(arena);
   AVERT(VMArena, vmArena);
   /* Assume all chunks have same pageSize */
-  AVER(SizeIsAligned(size, vmArena->chunk->pageSize));
+  AVER(SizeIsAligned(size, vmArena->primary->pageSize));
   
   /* NULL is used as a discriminator */
   /* (see design.mps.arena.vm.table.disc) therefore the real pool */
@@ -1121,6 +1171,27 @@ failSegMap:
   return res;
 }
 
+static VMArenaChunk VMArenaChunkOfSeg(VMArena vmArena, Seg seg)
+{
+  Ring node, next;
+  /* critcal because used from critical functions */
+  AVERT_CRITICAL(VMArena, vmArena);
+  AVERT_CRITICAL(Seg, seg);
+
+  RING_FOR(node, &vmArena->chunkRing, next) {
+    VMArenaChunk chunk = RING_ELT(VMArenaChunk, arenaRing, node);
+    Page page = PageOfSeg(seg);
+
+    if(&chunk->pageTable[0] <= page &&
+       page < &chunk->pageTable[chunk->pages]) {
+      /* Gotcha! */
+      return chunk;
+    }
+  }
+  NOTREACHED;
+  return NULL;
+}
+
 
 /* VMSegFree - free a segment in the arena
  */
@@ -1138,9 +1209,7 @@ static void VMSegFree(Seg seg)
   vmArena = SegVMArena(seg);
   AVERT(VMArena, vmArena);
 
-  /* Locate chunk containing seg */
-  /* which is silly for now */
-  chunk = vmArena->chunk;
+  chunk = VMArenaChunkOfSeg(vmArena, seg);
 
   page = PageOfSeg(seg);
   limit = VMSegLimit(seg);
@@ -1191,9 +1260,12 @@ static Addr VMSegBase(Seg seg)
 
   vmArena = SegVMArena(seg);
   AVERT_CRITICAL(VMArena, vmArena);
-  chunk = vmArena->chunk;
+  chunk = VMArenaChunkOfSeg(vmArena, seg);
 
   page = PageOfSeg(seg);
+  /* .improve.segbase.subtract: This subtractions is redundant */
+  /* with the one in VMArenaChunkOfSeg.  CSE by hand? */
+
   i = page - chunk->pageTable;
 
   return PageIndexBase(chunk, i);
@@ -1217,7 +1289,7 @@ static Addr VMSegLimit(Seg seg)
 
   vmArena = SegVMArena(seg);
   AVERT_CRITICAL(VMArena, vmArena);
-  chunk = vmArena->chunk;
+  chunk = VMArenaChunkOfSeg(vmArena, seg);
 
   if(SegSingle(seg)) {
     return AddrAdd(VMSegBase(seg), chunk->pageSize);
@@ -1229,7 +1301,6 @@ static Addr VMSegLimit(Seg seg)
 
 
 /* VMSegSize -- return the size (limit - base) of a segment
- *
  */
 
 static Size VMSegSize(Seg seg)
@@ -1244,7 +1315,7 @@ static Size VMSegSize(Seg seg)
 
   vmArena = SegVMArena(seg);
   AVERT_CRITICAL(VMArena, vmArena);
-  chunk = vmArena->chunk;
+  chunk = VMArenaChunkOfSeg(vmArena, seg);
 
   page = PageOfSeg(seg);
   i = page - chunk->pageTable;
@@ -1260,6 +1331,22 @@ static Size VMSegSize(Seg seg)
   return AddrOffset(base, limit);
 }
 
+static Bool VMArenaChunkOfAddr(VMArenaChunk *chunkReturn,
+			       VMArena vmArena, Addr addr)
+
+{
+  Ring node, next;
+  /* No checks because critical */
+  RING_FOR(node, &vmArena->chunkRing, next) {
+    VMArenaChunk chunk = RING_ELT(VMArenaChunk, arenaRing, node);
+    if(chunk->base <= addr && addr < chunk->limit) {
+      /* Gotcha! */
+      *chunkReturn = chunk;
+      return TRUE;
+    }
+  }
+  return FALSE;
+}
 
 /* VMSegOfAddr -- return the segment which encloses an address
  *
@@ -1271,6 +1358,8 @@ static Size VMSegSize(Seg seg)
 
 static Bool VMSegOfAddr(Seg *segReturn, Arena arena, Addr addr)
 {
+  Bool b;
+  Index i;
   VMArena vmArena;
   VMArenaChunk chunk;
   
@@ -1278,23 +1367,23 @@ static Bool VMSegOfAddr(Seg *segReturn, Arena arena, Addr addr)
   AVER_CRITICAL(segReturn != NULL); /* .seg.critical */
   vmArena = ArenaVMArena(arena);
   AVERT_CRITICAL(VMArena, vmArena);
-  chunk = vmArena->chunk;
   
-  if(chunk->base <= addr && addr < chunk->limit) {
-    /* design.mps.trace.fix.segofaddr */
-    Index i = INDEX_OF_ADDR(chunk, addr);
-    /* .addr.free: If the page is recorded as being free then */
-    /* either the page is free or it is */
-    /* part of the arena tables (see .tablepages) */
-    if(BTGet(chunk->allocTable, i)) {
-      Page page = &chunk->pageTable[i];
+  b = VMArenaChunkOfAddr(&chunk, vmArena, addr);
+  if(!b)
+    return FALSE;
+  /* design.mps.trace.fix.segofaddr */
+  i = INDEX_OF_ADDR(chunk, addr);
+  /* .addr.free: If the page is recorded as being free then */
+  /* either the page is free or it is */
+  /* part of the arena tables (see .tablepages) */
+  if(BTGet(chunk->allocTable, i)) {
+    Page page = &chunk->pageTable[i];
 
-      if(PageIsHead(page))
-        *segReturn = PageSeg(page);
-      else
-        *segReturn = PageTail(page)->seg;
-      return TRUE;
-    }
+    if(PageIsHead(page))
+      *segReturn = PageSeg(page);
+    else
+      *segReturn = PageTail(page)->seg;
+    return TRUE;
   }
   
   return FALSE;
@@ -1303,16 +1392,15 @@ static Bool VMSegOfAddr(Seg *segReturn, Arena arena, Addr addr)
 static Bool VMIsReservedAddr(Arena arena, Addr addr)
 {
   VMArena vmArena;
-  VMArenaChunk chunk;
+  VMArenaChunk dummy;
 
   AVERT(Arena, arena);
   /* addr is arbitrary */
 
   vmArena = ArenaVMArena(arena);
   AVERT(VMArena, vmArena);
-  chunk = vmArena->chunk;
 
-  return chunk->base <= addr && addr < chunk->limit;
+  return VMArenaChunkOfAddr(&dummy, vmArena, addr);
 }
 
 
@@ -1350,6 +1438,41 @@ static Bool segSearch(Seg *segReturn, VMArenaChunk chunk, Index i)
 }
 
 
+/* VMNextChunkOfAddr
+ *
+ * Returns the next higher chunk in memory which does _not_
+ * contain addr.
+ *
+ * IE the chunks are partitioned into 3 sets (some of which are empty):
+ * The set of chunks < addr; the set of chunks containing addr (empty or
+ * singleton), the set of chunk > addr.
+ * Of the latter set, the chunk with least address is chosen.  FALSE
+ * is returned if this set is empty.
+ */
+static Bool VMNextChunkOfAddr(VMArenaChunk *chunkReturn,
+			      VMArena vmArena, Addr addr)
+{
+  Addr leastBase;
+  VMArenaChunk leastChunk;
+  Ring node, next;
+
+  leastBase = (Addr)(Word)-1;
+  leastChunk = NULL;
+  RING_FOR(node, &vmArena->chunkRing, next) {
+    VMArenaChunk chunk = RING_ELT(VMArenaChunk, arenaRing, node);
+    if(addr < chunk->base && chunk->base < leastBase) {
+      leastBase = chunk->base;
+      leastChunk = chunk;
+    }
+  }
+  if(leastChunk != NULL) {
+    *chunkReturn = leastChunk;
+    return TRUE;
+  }
+  return FALSE;
+}
+
+
 /* VMSegFirst -- return the first segment in the arena
  *
  * This is used to start an iteration over all segments in the arena.
@@ -1357,15 +1480,21 @@ static Bool segSearch(Seg *segReturn, VMArenaChunk chunk, Index i)
 
 static Bool VMSegFirst(Seg *segReturn, Arena arena)
 {
+  Bool b;
   VMArena vmArena;
+  VMArenaChunk chunk;
 
   AVER(segReturn != NULL);
   vmArena = ArenaVMArena(arena);
   AVERT(VMArena, vmArena);
 
+  b = VMNextChunkOfAddr(&chunk, vmArena, (Addr)0);
+  /* There's at least one chunk, so we must have found something */
+  AVER(b);
+
   /* We start from tablePages, as the tables can't be a segment.
    * See .tablepages */
-  return segSearch(segReturn, vmArena->chunk, vmArena->chunk->tablePages);
+  return segSearch(segReturn, chunk, chunk->tablePages);
 }
 
 
@@ -1384,20 +1513,34 @@ static Bool VMSegNext(Seg *segReturn, Arena arena, Addr addr)
   VMArena vmArena;
   VMArenaChunk chunk;
   Index i;
+  Bool b;
 
   AVER_CRITICAL(segReturn != NULL); /* .seg.critical */
   vmArena = ArenaVMArena(arena);
   AVERT_CRITICAL(VMArena, vmArena);
   AVER_CRITICAL(AddrIsAligned(addr, arena->alignment));
-  chunk = vmArena->chunk;
 
-  i = indexOfAddr(chunk, addr);
+  b = VMArenaChunkOfAddr(&chunk, vmArena, addr);
+  if(b) {
+    Seg seg;
 
-  /* There are fewer pages than addresses, therefore the */
-  /* page index can never wrap around */
-  AVER_CRITICAL(i+1 != 0);
+    i = indexOfAddr(chunk, addr);
 
-  return segSearch(segReturn, chunk, i + 1);
+    /* There are fewer pages than addresses, therefore the */
+    /* page index can never wrap around */
+    AVER_CRITICAL(i+1 != 0);
+
+    if(segSearch(&seg, chunk, i+1)) {
+      *segReturn = seg;
+      return TRUE;
+    }
+  }
+  b = VMNextChunkOfAddr(&chunk, vmArena, addr);
+  if(!b)
+    return FALSE;
+  /* We start from tablePages, as the tables can't be a segment.
+   * See .tablepages */
+  return segSearch(segReturn, chunk, chunk->tablePages);
 }
 
 
