@@ -1,6 +1,6 @@
 /* impl.c.poolamc: AUTOMATIC MOSTLY-COPYING MEMORY POOL CLASS
  *
- * $HopeName: MMsrc!poolamc.c(MMdevel_tony_sunset.3) $
+ * $HopeName: MMsrc!poolamc.c(MMdevel_tony_sunset.4) $
  * Copyright (C) 1998.  Harlequin Group plc.  All rights reserved.
  *
  * .sources: design.mps.poolamc.
@@ -9,7 +9,7 @@
 #include "mpscamc.h"
 #include "mpm.h"
 
-SRCID(poolamc, "$HopeName: MMsrc!poolamc.c(MMdevel_tony_sunset.3) $");
+SRCID(poolamc, "$HopeName: MMsrc!poolamc.c(MMdevel_tony_sunset.4) $");
 
 
 /* Binary i/f used by ASG (drj 1998-06-11) */
@@ -74,7 +74,7 @@ typedef struct AMCBufStruct {
 
 /* AMCBufCheck -- check consistency of an AMCBuf */
 
-Bool AMCBufCheck(AMCBuf amcbuf)
+static Bool AMCBufCheck(AMCBuf amcbuf)
 {
   BufferedSeg bufseg;
 
@@ -378,7 +378,6 @@ failControlAlloc:
 static void AMCGenDestroy(AMCGen gen)
 {
   Arena arena;
-  Buffer buffer;
 
   AVERT(AMCGen, gen);
   AVER(gen->segs == 0);
@@ -386,12 +385,10 @@ static void AMCGenDestroy(AMCGen gen)
 
   EVENT_P(AMCGenDestroy, gen);
   arena = gen->amc->poolStruct.arena;
-  buffer = gen->forward;
   RingRemove(&gen->amcRing);
-  AMCBufSetGen(buffer, NULL);  /* Buffer mustn't check invalid gen */
   gen->sig = SigInvalid;
   ActionFinish(&gen->actionStruct);
-  BufferDestroy(buffer);
+  BufferDestroy(gen->forward);
   RingFinish(&gen->amcRing);
   ControlFree(arena, gen, sizeof(AMCGenStruct));
 }
@@ -688,10 +685,16 @@ static void AMCFinish(Pool pool)
     SegFree(seg);
   }
 
+  /* disassociate forwarding buffers from generations before they are destroyed */
   ring = &amc->genRing;
   RING_FOR(node, ring, nextNode) {
     AMCGen gen = RING_ELT(AMCGen, amcRing, node);
+    AMCBufSetGen(gen->forward, NULL);
+  }
 
+  ring = &amc->genRing;
+  RING_FOR(node, ring, nextNode) {
+    AMCGen gen = RING_ELT(AMCGen, amcRing, node);
     AMCGenDestroy(gen);
   }
 
