@@ -1,6 +1,6 @@
 /* impl.h.mpmtypes: MEMORY POOL MANAGER TYPES
  *
- * $HopeName: !mpmtypes.h(trunk.23) $
+ * $HopeName: MMsrc!mpmtypes.h(MMdevel_assertid.1) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  *
  * .readership: MM developers.
@@ -222,9 +222,14 @@ enum {
 };
 
 
-/* Types for WriteF formats */
-/* These should be used with calls to WriteF. */
-/* These must be unpromotable types. */
+/* Types for WriteF formats -- see impl.c.mpm
+ *
+ * These should be used with calls to WriteF.
+ *
+ * .write.promote: These types must not be promoted further
+ * when used in a vararg list, because they are used as arguments
+ * to va_arg (see standard.ansic 7.8.1.2).
+ */
 
 typedef Addr WriteFA;
 typedef Pointer WriteFP;
@@ -233,7 +238,8 @@ typedef Word WriteFW;
 typedef unsigned long WriteFU;
 typedef unsigned long WriteFB;
 typedef void *(*WriteFF)(void);
-typedef int WriteFC; /* Promoted */
+typedef int WriteFC;                    /* .write.promote */
+typedef unsigned long WriteFI;
 
 
 /* Event Codes -- see design.mps.telemetry
@@ -242,7 +248,6 @@ typedef int WriteFC; /* Promoted */
  * selected letters as indicated, using the transliteration in 
  * guide.hex.trans.
  */
-
                                                    /* EVent ... */
 #define EventEventTime     ((EventType)0xEF213E99) /* TIME */
 #define EventSpaceCreate   ((EventType)0xEF5BCC6E) /* SPaCe CREate */

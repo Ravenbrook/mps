@@ -1,6 +1,6 @@
 /* impl.c.assert: ASSERTION IMPLEMENTATION
  *
- * $HopeName: MMsrc!assert.c(MMdevel_assertid.2) $
+ * $HopeName: MMsrc!assert.c(MMdevel_assertid.3) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  *
  * This source provides the AssertFail function which is
@@ -25,7 +25,7 @@ static void AssertLib(const char *cond, const char *hopename,
          "\n"
          "PROBLEM DETECTED BY HARLEQUIN MPS\n"
          "\n"
-         "ID:        $W\n", (WriteFW)id,        /* @@@@ Should be special format */
+         "ID:        $I\n", (WriteFI)id,
          "HopeName:  $S\n", hopename,
          "File:      $S\n", file,
          "Line:      $U\n", (WriteFU)line,

@@ -1,6 +1,6 @@
 /* impl.c.mpm: GENERAL MPM SUPPORT
  *
- * $HopeName: MMsrc!mpm.c(MMdevel_assertid.2) $
+ * $HopeName: MMsrc!mpm.c(MMdevel_assertid.3) $
  * Copyright (C) 1996 Harlequin Group, all rights reserved.
  *
  * .readership: MM developers.
@@ -13,7 +13,7 @@
 
 #include "mpm.h"
 
-SRCID(mpm, "$HopeName: MMsrc!mpm.c(MMdevel_assertid.2) $");
+SRCID(mpm, "$HopeName: MMsrc!mpm.c(MMdevel_assertid.3) $");
 
 
 /* MPMCheck -- test MPM assumptions */
@@ -292,6 +292,78 @@ static Res WriteWord(mps_lib_FILE *stream, Word w, unsigned base,
 }
 
 
+/* CheckDigit -- compute a check digit for a number
+ *
+ * This function computes a check digit which will detect single digit
+ * and transposition errors.  It returns a digit in the range 0 to
+ * base+1 inclusive, such that 1 * check + 2 * least digit + 3 * second
+ * digit + ... is congruent to zero modulo base+1.  Base+1 should prime
+ * and greater than the number of digits in the number for the check
+ * digit to be effective.  (Actually, it's a bit more complicated than
+ * that, but that's a sufficient condition.)
+ */
+
+static unsigned CheckDigit(unsigned long number, unsigned base)
+{
+  unsigned multiplier, sum, digit, check;
+
+  sum = 0;
+  multiplier = 2;               /* multiply least sig. digit by 2 */
+  while(number != 0) {
+    digit = number % base;
+    sum = (sum + multiplier * digit) % (base + 1);
+    number /= base;
+    ++multiplier;
+  }
+
+  check = base + 1 - sum;
+
+  AVER(0x3B390040, (sum + check) % (base + 1) == 0);
+  
+  return check;
+}
+
+
+/* WriteID -- write an ID with a check digit
+ *
+ * The ID is written out in hexadecimal, in two groups of four digits,
+ * with a check digit, e.g. "87A4-93BF-X".
+ */
+
+static Res WriteID(mps_lib_FILE *stream, unsigned long id)
+{
+  static const char digit[17] = "0123456789ABCDEFX";
+  char buf[12];                 /* 8 digits, two dashes, check, NUL */
+  unsigned i;                   /* index into buf */
+  int r;                        /* result from mps_lib_fputs */
+  
+  AVER(0x3B390039, stream != NULL);
+  AVER(0x3B390041, id < 0x100000000);
+
+  i = 11;
+  buf[i] = '\0';
+  --i;
+  buf[i] = digit[CheckDigit(id, 0x10)];
+  --i;
+  buf[i] = '-';
+  do {
+    --i;
+    if(i == 4)
+      buf[i] = '-';
+    else {
+      buf[i] = digit[id % 0x10];
+      id /= 0x10;
+    }
+  } while(i > 0);
+  
+  r = mps_lib_fputs(buf, stream);
+  if(r == mps_lib_EOF)
+    return ResIO;
+  
+  return ResOK;
+}
+
+
 /* WriteF -- write formatted output
  *
  * .writef.des: See design.mps.writef, also design.mps.lib
@@ -386,6 +458,12 @@ Res WriteF(mps_lib_FILE *stream, ...)
           case 'B': {                   /* binary, see .writef.p */
             WriteFB b = va_arg(args, WriteFB);
             res = WriteWord(stream, (Word)b, 2, sizeof(WriteFB) * CHAR_BIT);
+            if(res != ResOK) return res;
+          } break;
+          
+          case 'I': {                   /* ID with check digit */
+            WriteFI id = va_arg(args, WriteFI);
+            res = WriteID(stream, id);
             if(res != ResOK) return res;
           } break;
         
