@@ -1,6 +1,6 @@
 /* impl.h.config: MPS CONFIGURATION
  *
- * $HopeName: !config.h(trunk.27) $
+ * $HopeName: MMsrc!config.h(MMdevel_gavinm_160033.1) $
  * Copyright (C) 1998.  Harlequin Group plc.  All rights reserved.
  *
  * PURPOSE
@@ -97,6 +97,7 @@
 #elif defined(CONFIG_VAR_TI)    /* Telemetry, Internal; variety.ti */
 #define MPS_VARIETY_STRING      "ti"
 #define EVENT
+#define EVENT_ALL TRUE
 #define MPS_COOL
 #elif defined(CONFIG_VAR_HE)    /* Hot, External; variety.he */
 #define MPS_VARIETY_STRING      "he"
@@ -114,6 +115,7 @@
 #define MPS_HOT
 #define MPS_HOT_RED
 #define EVENT
+#define EVENT_ALL FALSE
 #else
 #error "No target variety configured."
 #endif

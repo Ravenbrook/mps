@@ -1,7 +1,7 @@
 /* impl.h.event -- Event Logging Interface
  *
  * Copyright (C) 1997. Harlequin Group plc. All rights reserved.
- * $HopeName: MMsrc!event.h(MMdevel_gavinm_160033.1) $
+ * $HopeName: MMsrc!event.h(MMdevel_gavinm_160033.2) $
  *
  * READERSHIP
  *
@@ -75,17 +75,15 @@ extern EventUnion Event;
     /* @@@@ Length is in words, excluding header; this will change */ \
     /* We know that _length is aligned to word size */ \
     Event.any.length = ((_length / sizeof(Word)) - 3); \
-    Event.any.clock = mps_clock(); 
+    Event.any.clock = mps_clock() 
 
 #define EVENT_END(type, length) \
-  if(BS_IS_MEMBER(EventKindControl, ((Index)Event ## type ## Kind))) { \
     AVER(EventNext <= EventLimit); \
     if((length) > (size_t)(EventLimit - EventNext)) \
       EventFlush(); /* @@@ should pass length */ \
     AVER((length) <= (size_t)(EventLimit - EventNext)); \
     MPS_MEMCPY(EventNext, &Event, (length)); \
     EventNext += (length); \
-  } \
   END
 
 extern char *EventNext, *EventLimit;
