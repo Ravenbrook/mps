@@ -1,6 +1,6 @@
 /* impl.c.arenavm: VIRTUAL MEMORY BASED ARENA IMPLEMENTATION
  *
- * $HopeName: !arenavm.c(trunk.14) $
+ * $HopeName: MMsrc!arenavm.c(MMdevel_lint.1) $
  * Copyright (C) 1996,1997 Harlequin Group, all rights reserved.
  *
  * This is the implementation of the Segment abstraction from the VM
@@ -14,7 +14,7 @@
 #include "mpm.h"
 
 
-SRCID(arenavm, "$HopeName: !arenavm.c(trunk.14) $");
+SRCID(arenavm, "$HopeName: MMsrc!arenavm.c(MMdevel_lint.1) $");
 
 
 /* Space Arena Projection
@@ -423,7 +423,11 @@ void SegFree(Space space, Seg seg)
   AVERT(Seg, seg);
 
   arena = SpaceArena(space);
+#ifdef LCLINT
+  page = PARENT(PageStruct, the, seg);
+#else
   page = PARENT(PageStruct, the.head, seg);
+#endif
   limit = SegLimit(space, seg);
   pi = page - arena->pageTable;
   AVER(pi <= arena->pages);
@@ -482,7 +486,11 @@ Addr SegBase(Space space, Seg seg)
   AVERT(Seg, seg);
 
   arena = SpaceArena(space);
+#ifdef LCLINT
+  page = PARENT(PageStruct, the, seg);
+#else
   page = PARENT(PageStruct, the.head, seg);
+#endif
   pi = page - arena->pageTable;
 
   return PageBase(arena, pi);
@@ -508,7 +516,11 @@ Addr SegLimit(Space space, Seg seg)
   if(seg->single)
     return AddrAdd(SegBase(space, seg), arena->pageSize);
   else {
+#ifdef LCLINT
+    page = PARENT(PageStruct, the, seg);
+#else
     page = PARENT(PageStruct, the.head, seg);
+#endif
     return page[1].the.tail.limit;
   }
 }
@@ -616,7 +628,11 @@ Seg SegNext(Space space, Seg seg)
   PI pi;
   AVERT(Arena, SpaceArena(space));
   AVERT(Seg, seg);
+#ifdef LCLINT
+  page = PARENT(PageStruct, the, seg);
+#else
   page = PARENT(PageStruct, the.head, seg);
+#endif
   arena = SpaceArena(space);
   pi = page - arena->pageTable;
   return SegSearch(arena, pi + 1);
