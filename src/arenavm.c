@@ -1,6 +1,6 @@
 /* impl.c.arenavm: VIRTUAL MEMORY BASED ARENA IMPLEMENTATION
  *
- * $HopeName: MMsrc!arenavm.c(MMdevel_partial_page.3) $
+ * $HopeName: MMsrc!arenavm.c(MMdevel_partial_page.4) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  *
  * This is the implementation of the Segment abstraction from the VM
@@ -37,7 +37,7 @@
 #include "mpm.h"
 
 
-SRCID(arenavm, "$HopeName: MMsrc!arenavm.c(MMdevel_partial_page.3) $");
+SRCID(arenavm, "$HopeName: MMsrc!arenavm.c(MMdevel_partial_page.4) $");
 
 
 /* Space Arena Projection
@@ -521,10 +521,13 @@ static Bool findFreeInRefSet(Index *baseReturn,
 
 static Bool tablePageInUse(Arena arena, Addr tablePage)
 {
+  Size fromStart, toEnd;
+
   AVERT(Arena, arena);
   /* Check it's in the page table. */
-  AVER(AddrOffset((Addr)&arena->pageTable[0], tablePage) >= 0 &&
-       AddrOffset(tablePage, (Addr)&arena->pageTable[arena->tablePages]) > 0);
+  fromStart = AddrOffset((Addr)&arena->pageTable[0], tablePage);
+  toEnd = AddrOffset(tablePage, (Addr)&arena->pageTable[arena->tablePages]);
+  AVER(fromStart >= 0 && toEnd > 0);
 
   return !BTIsResRange(arena->allocTable,
 		       tablePageBaseIndex(arena, tablePage),
@@ -541,17 +544,17 @@ static Bool tablePageInUse(Arena arena, Addr tablePage)
  * partially used, the rest (if any) can be assumed to be unused.
  */
 
-static Bool unusedTablePages(Addr *baseReturn, Addr *limitReturn,
+static Bool unusedTablePages(Addr *pagesBaseReturn, Addr *pagesLimitReturn,
 			     Arena arena, Index baseIndex, Index limitIndex)
 {
-  Addr firstPageBase, lastPageBase;
+  Addr firstPageBase, lastPageBase, pagesBase, pagesLimit;
 
   AVERT(Arena, arena);
   AVER(0 <= baseIndex && baseIndex < limitIndex
        && limitIndex <= arena->pages);
   AVER(BTIsResRange(arena->allocTable, baseIndex, limitIndex));
-  AVER(baseReturn != NULL);
-  AVER(limitReturn != NULL);
+  AVER(pagesBaseReturn != NULL);
+  AVER(pagesLimitReturn != NULL);
 
   /* firstPageBase is the base address of the table page that contains the */
   /* (first byte of the) page descriptor for baseIndex. */
@@ -570,8 +573,8 @@ static Bool unusedTablePages(Addr *baseReturn, Addr *limitReturn,
     if(tablePageInUse(arena, firstPageBase)) {
       return FALSE;
     } else {
-      *baseReturn = firstPageBase;
-      *limitReturn = AddrAdd(firstPageBase, arena->pageSize);
+      *pagesBaseReturn = firstPageBase;
+      *pagesLimitReturn = AddrAdd(firstPageBase, arena->pageSize);
       return TRUE;
     }
   }
@@ -579,22 +582,28 @@ static Bool unusedTablePages(Addr *baseReturn, Addr *limitReturn,
   /* If the page containing the page descriptor for baseIndex */
   /* is in use, exclude it. */
   if(tablePageInUse(arena, firstPageBase)) {
-    *baseReturn = AddrAdd(firstPageBase, arena->pageSize);
+    pagesBase = AddrAdd(firstPageBase, arena->pageSize);
   } else {
-    *baseReturn = firstPageBase;
+    pagesBase = firstPageBase;
   }
 
   /* If the page containing the page descriptor for limitIndex */
   /* is in use, exclude it. */
   if(tablePageInUse(arena, lastPageBase)) {
-    *limitReturn = lastPageBase;
+    pagesLimit = lastPageBase;
   } else {
-    *limitReturn = AddrAdd(lastPageBase, arena->pageSize);
+    pagesLimit = AddrAdd(lastPageBase, arena->pageSize);
   }
 
   /* If the pages were adjacent, and both excluded, then there */
   /* is nothing left. */
-  return (*baseReturn != *limitReturn);
+  if (pagesBase == pagesLimit) {
+    return FALSE;
+  } else {
+    *pagesBaseReturn = pagesBase;
+    *pagesLimitReturn = pagesLimit;
+    return TRUE;
+  }
 }
 
 
