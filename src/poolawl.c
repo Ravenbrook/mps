@@ -1,6 +1,6 @@
 /* impl.c.poolawl: AUTOMATIC WEAK LINKED POOL CLASS
  *
- * $HopeName: MMsrc!poolawl.c(MM_dylan_sunflower.3) $
+ * $HopeName: MMsrc!poolawl.c(MM_dylan_sunflower.4) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  *
  * READERSHIP
@@ -16,7 +16,7 @@
 #include "mpm.h"
 #include "mpscawl.h"
 
-SRCID(poolawl, "$HopeName: MMsrc!poolawl.c(MM_dylan_sunflower.3) $");
+SRCID(poolawl, "$HopeName: MMsrc!poolawl.c(MM_dylan_sunflower.4) $");
 
 
 #define AWLSig	((Sig)0x519b7a37)	/* SIGPooLAWL */
@@ -591,6 +591,7 @@ static void AWLReclaim(Pool pool, Trace trace, Seg seg)
   AVER(i == bits);
 
   BTResRange(group->mark, 0, bits);
+  SegSetWhite(seg, TraceSetDel(SegWhite(seg), trace->ti));
 }
 
 static Res AWLTraceBegin(Pool pool, Trace trace, Action action)
