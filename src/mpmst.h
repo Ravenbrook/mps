@@ -1,6 +1,6 @@
 /* impl.h.mpmst: MEMORY POOL MANAGER DATA STRUCTURES
  *
- * $HopeName: MMsrc!mpmst.h(MMdevel_ptw_pseudoloci.6) $
+ * $HopeName: MMsrc!mpmst.h(MMdevel_ptw_pseudoloci.7) $
  * Copyright (C) 1998 Harlequin Group plc.  All rights reserved.
  *
  * .readership: MM developers.
@@ -120,9 +120,9 @@ typedef struct LocusManagerStruct
   /* Zone search state */
   Bool searchUp;
   Index searchStartZone;
-  Index searchCurrentZone;
-  Index searchEndZone;
   RefSet searchRefSet;
+  Index searchCurrentZone;
+  Index searchCount;
   /* Scaffolding for future parameters */
   Bool searchUseFree;
   Bool searchExpand;
