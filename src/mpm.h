@@ -1,6 +1,6 @@
 /* impl.h.mpm: MEMORY POOL MANAGER DEFINITIONS
  *
- * $HopeName: MMsrc!mpm.h(MMdevel_action2.2) $
+ * $HopeName: MMsrc!mpm.h(MMdevel_action2.3) $
  * Copyright (C) 1996,1997 Harlequin Group, all rights reserved.
  */
 
@@ -196,7 +196,7 @@ extern Res PoolCreateV(Pool *poolReturn, PoolClass class,
 extern void PoolDestroy(Pool pool);
 extern Res PoolAlloc(Addr *pReturn, Pool pool, Size size);
 extern void PoolFree(Pool pool, Addr old, Size size);
-extern Res PoolCondemn(RefSet *condemnedReturn, Pool pool,
+extern Res PoolCondemn(RefSet *whiteReturn, Pool pool,
                          Space space, TraceId ti);
 extern void PoolGrey(Pool pool, Space space, TraceId ti);
 extern Res PoolScan(ScanState ss, Pool pool, Bool *finishedReturn);
@@ -222,7 +222,7 @@ extern void PoolNoBufferExpose(Pool pool, Buffer buffer);
 extern void PoolNoBufferCover(Pool pool, Buffer buffer);
 extern Res PoolNoDescribe(Pool pool, mps_lib_FILE *stream);
 extern Res PoolTrivDescribe(Pool pool, mps_lib_FILE *stream);
-extern Res PoolNoCondemn(RefSet *condemnedReturn, Pool pool, Space space, TraceId ti);
+extern Res PoolNoCondemn(RefSet *whiteReturn, Pool pool, Space space, TraceId ti);
 extern void PoolNoGrey(Pool pool, Space space, TraceId ti);
 extern Res PoolNoScan(ScanState ss, Pool pool, Bool *finishedReturn);
 extern Res PoolNoFix(Pool pool, ScanState ss, Seg seg, Ref *refIO);
@@ -242,16 +242,16 @@ extern TraceSet (TraceSetDel)(TraceSet ts, TraceId id);
 extern TraceSet (TraceSetUnion)(TraceSet ts1, TraceSet ts2);
 extern Bool (TraceSetIsMember)(TraceSet ts, TraceId id);
 
-extern Res TraceCreate(TraceId *tiReturn, Space space);
-extern void TraceDestroy(Space space, TraceId ti);
-
 extern Bool ScanStateCheck(ScanState ss);
 extern Bool TraceIdCheck(TraceId id);
 extern Bool TraceSetCheck(TraceSet ts);
+extern Bool TraceCheck(Trace trace);
 
-extern Res TraceCondemn(RefSet *condemnedReturn, Space space,
+extern Res TraceCreate(TraceId *tiReturn, Space space);
+extern void TraceDestroy(Space space, TraceId ti);
+extern Res TraceCondemn(RefSet *whiteReturn, Space space,
                         TraceId ti, Pool pool);
-extern Res TraceFlip(Space space, TraceId ti, RefSet condemned);
+extern Res TraceFlip(Space space, TraceId ti, RefSet white);
 extern Size TracePoll(Space space, TraceId ti);
 
 extern Res TraceRunAtomic(Space space, TraceId ti);
@@ -264,7 +264,7 @@ extern Res TraceFix(ScanState ss, Ref *refIO);
 #define TRACE_SCAN_BEGIN(ss) \
   BEGIN \
     Shift SCANzoneShift = (ss)->zoneShift; \
-    RefSet SCANcondemned = (ss)->condemned; \
+    RefSet SCANwhite = (ss)->white; \
     RefSet SCANsummary = (ss)->summary; \
     Word SCANt; \
     {
@@ -274,7 +274,7 @@ extern Res TraceFix(ScanState ss, Ref *refIO);
 #define TRACE_FIX1(ss, ref) \
   (SCANt = (Word)1<<((Word)(ref)>>SCANzoneShift&(WORD_WIDTH-1)), \
    SCANsummary |= SCANt, \
-   SCANcondemned & SCANt)
+   SCANwhite & SCANt)
 
 /* Equivalent to impl.h.mps MPS_FIX2 */
 
