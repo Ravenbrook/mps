@@ -1,6 +1,6 @@
 /* impl.c.abqtest: AVAILABLE BLOCK QUEUE TEST
  *
- * $HopeName: MMsrc!abqtest.c(trunk.2) $
+ * $HopeName: MMsrc!abqtest.c(MMdevel_gavinm_splay.1) $
  * Copyright (C) 1998. Harlequin Group plc. All rights reserved.
  */
 
@@ -14,14 +14,13 @@
 
 #include "mpm.h"
 #include "mps.h"
-#include "mpsaan.h" /* ANSI arena for ABQCreate and ABQDestroy */
+#include "mpsaan.h"             /* ANSI arena for ABQCreate and ABQDestroy */
 #include "testlib.h"
 
 
-SRCID(abqtest, "$HopeName: MMsrc!abqtest.c(trunk.2) $");
+SRCID(abqtest, "$HopeName: MMsrc!abqtest.c(MMdevel_gavinm_splay.1) $");
 
 #include "abq.h"
-
 
 static ABQStruct abq; /* the ABQ which we will use */
 static Size abqSize; /* the size of the current ABQ */
@@ -39,32 +38,79 @@ static int pushee = 1;
 static int popee = 1;
 static int deleted = 0;
 
-/* --- Override this for the test */
-Bool CBSBlockCheck(CBSBlock block) {
-  UNUSED(block);
-  CHECKL(block != NULL);
-  /* Don't check block->splayNode? */
-  /* CHECKL(block->base <= block->limit); */
-  return TRUE;
+typedef struct TestStruct *Test;
+
+typedef struct TestStruct 
+{
+  Test next;
+  int id;
+  CBSBlockStruct cbsBlockStruct;
+} TestStruct;
+
+static CBSBlock TestCBSBlock(Test t) 
+{
+  return &t->cbsBlockStruct;
+}
+
+static Test CBSBlockTest(CBSBlock c)
+{
+  return PARENT(TestStruct, cbsBlockStruct, c);
+}
+
+static Test testBlocks = NULL;
+
+static CBSBlock CreateCBSBlock(int no)
+{
+  Test b = malloc(sizeof(TestStruct));
+  AVER(b != NULL);
+
+  b->next = testBlocks;
+  b->id = no;
+  b->cbsBlockStruct.base = 0;
+  b->cbsBlockStruct.limit = 0;
+  
+  testBlocks = b;
+
+  return TestCBSBlock(b);
+}
+ 
+
+static void DestroyCBSBlock(CBSBlock c)
+{
+  Test b = CBSBlockTest(c);
+
+  if (b == testBlocks)
+    testBlocks = b->next;
+  else {
+    Test prev;
+    
+    for (prev = testBlocks; prev != 0; prev = prev->next)
+      if (prev->next == b) {
+        prev->next = b->next;
+        break;
+      }
+  }
+  
+  free(b);
 }
 
 
-static void step()
+static void step(void)
 {
   Res res;
   CBSBlock a;
   
   switch (random(9)) {
-  push:
     case 0: case 1: case 2: case 3:
-      res = ABQPush(&abq, (CBSBlock)pushee);
+  push:
+      res = ABQPush(&abq, CreateCBSBlock(pushee));
       if (res != ResOK) {
         goto pop;
       }
       pushee++;
       break;
-  pop:
     case 5: case 6: case 7: case 8:
+  pop:
       res = ABQPop(&abq, &a);
       if (res != ResOK){
         goto push;
@@ -73,13 +119,20 @@ static void step()
       	popee++;
         deleted = 0;
       }
-      AVER(a == (CBSBlock)popee);
+      AVER(CBSBlockTest(a)->id == popee);
       popee++;
+      DestroyCBSBlock(a);
       break;
     default:
-      if (!deleted & pushee > popee) {
+      if (!deleted & (pushee > popee)) {
+        Test b;
+        
         deleted = random (pushee - popee) + popee;
-        res = ABQDelete(&abq, (CBSBlock)deleted);
+        for (b = testBlocks; b != NULL; b = b->next)
+          if (b->id == deleted)
+            break;
+        AVER(b != NULL);
+        res = ABQDelete(&abq, TestCBSBlock(b));
         AVER(res == ResOK);
       }
   }
