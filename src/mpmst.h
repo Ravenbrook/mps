@@ -1,6 +1,6 @@
 /* impl.h.mpmst: MEMORY POOL MANAGER DATA STRUCTURES
  *
- * $HopeName: MMsrc!mpmst.h(MMdevel_sw_eq.3) $
+ * $HopeName: MMsrc!mpmst.h(MMdevel_sw_eq.4) $
  * Copyright (C) 1996 Harlequin Group, all rights reserved.
  *
  * .readership: MM developers.
@@ -229,7 +229,7 @@ typedef struct VMStruct {       /* Win32 VM structure; impl.c.vmnt */
   Size mapped;                  /* total mapped memory */
 } VMStruct;
 
-#elif defined(MPS_OS_O1) || defined(MPS_OS_S7) || defined(MPS_OS_IR)
+#elif defined(MPS_OS_O1) || defined(MPS_OS_S7) || defined(MPS_OS_I4) || defined (MPS_OS_I5)
 
 /* These platforms use vman, since no platform specific VM */
 
@@ -478,7 +478,7 @@ typedef struct ThreadStruct {   /* Win32 thread structure */
 } ThreadStruct;
 
 #elif defined(MPS_OS_SU) || defined(MPS_OS_O1) || \
- defined(MPS_OS_S7) || defined(MPS_OS_IR) || defined(MPS_OS_SO)
+ defined(MPS_OS_S7) || defined(MPS_OS_I4) || defined(MPS_OS_I5) || defined(MPS_OS_SO)
 
 /* All these platforms use the trivial ANSI locks, since nothing better */
 
