@@ -1,6 +1,6 @@
 /* impl.c.meter: METERS
  *
- * $HopeName: MMsrc!meter.c(MMdevel_gavinm_splay.2) $
+ * $HopeName: MMsrc!meter.c(MMdevel_gavinm_splay.3) $
  * Copyright (C) 1998 Harlequin Group plc.  All rights reserved.
  *
  */
@@ -49,8 +49,8 @@ Res MeterWrite(Meter meter, mps_lib_FILE *stream)
   Res res;
 
   res = WriteF(stream,
-               "meter $S {\n", meter->name,
-               "  count: $U\n", meter->count,
+               "meter $S {", meter->name,
+               "count: $U", meter->count,
                NULL);
   if (res != ResOK)
     return res;
@@ -62,11 +62,11 @@ Res MeterWrite(Meter meter, mps_lib_FILE *stream)
     double stddev = sqrt(fabs(meter->meanSquared - (mean * mean)));
     
     res = WriteF(stream,
-                 "  total: $D\n", meter->total,
-                 "  max: $U\n", meter->max,
-                 "  min: $U\n", meter->min,
-                 "  mean: $D\n", mean,
-                 "  stddev: $D\n", stddev,
+                 ", total: $D", meter->total,
+                 ", max: $U", meter->max,
+                 ", min: $U", meter->min,
+                 ", mean: $D", mean,
+                 ", stddev: $D", stddev,
                  NULL);
     if (res != ResOK)
       return res;
