@@ -1,6 +1,6 @@
 /* impl.c.poollo: LEAF POOL CLASS
  *
- * $HopeName: MMsrc!poollo.c(trunk.1) $
+ * $HopeName: !poollo.c(trunk.2) $
  * Copyright (C) 1997,1998 Harlequin Group plc, all rights reserved.
  *
  * READERSHIP
@@ -19,7 +19,7 @@
 #include "mps.h"
 #include "mpsclo.h"
 
-SRCID(poollo, "$HopeName: MMsrc!poollo.c(trunk.1) $");
+SRCID(poollo, "$HopeName: !poollo.c(trunk.2) $");
 
 
 /* MACROS */
