@@ -1,12 +1,12 @@
 /* impl.c.trace: GENERIC TRACER IMPLEMENTATION
  *
- * $HopeName: MMsrc!trace.c(MMdevel_gens.3) $
+ * $HopeName: MMsrc!trace.c(MMdevel_gens.4) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  */
 
 #include "mpm.h"
 
-SRCID(trace, "$HopeName: MMsrc!trace.c(MMdevel_gens.3) $");
+SRCID(trace, "$HopeName: MMsrc!trace.c(MMdevel_gens.4) $");
 
 
 /* ScanStateCheck -- check consistency of a ScanState object */
@@ -291,7 +291,7 @@ Res TraceStart(Trace trace, Action action)
    * by zero
    */
   if(trace->rate == 0) {
-    trace->rate = (trace->foundation - trace->condemned/4) /
+    trace->rate = (trace->foundation + trace->condemned/4) /
 		    (trace->condemned - trace->condemned/4 + 1);
     if(trace->rate == 0) {
       trace->rate = 1;
