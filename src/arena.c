@@ -1,6 +1,6 @@
 /* impl.c.arena: ARENA IMPLEMENTATION
  *
- * $HopeName: !arena.c(trunk.4) $
+ * $HopeName: MMsrc!arena.c(MMdevel_shieldclass.1) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  *
  * .readership: Any MPS developer
@@ -38,7 +38,7 @@
 #include "mpm.h"
 
 
-SRCID(arena, "$HopeName: !arena.c(trunk.4) $");
+SRCID(arena, "$HopeName: MMsrc!arena.c(MMdevel_shieldclass.1) $");
 
 
 /* All static data objects are declared here. See .static */
@@ -120,12 +120,15 @@ Bool ArenaCheck(Arena arena)
   CHECKL(BoolCheck(arena->suspended));
 
   depth = 0;
-  for (i=0; i < SHIELD_CACHE_SIZE; ++i) {
-    Seg seg = arena->shCache[i];
-    if (seg != (Seg)0) {
-      CHECKL(SegCheck(seg));
-      depth += SegDepth(seg);
-    }
+  for(i=0; i < SHIELD_CACHE_SIZE; ++i) {
+    Shield shield = arena->shCache[i].shield;
+    ShieldClass class = arena->shCache[i].class;
+    if(shield != NULL) {
+      CHECKL(ShieldCheck(shield));
+      CHECKL(ShieldClassCheck(class));
+      depth += ShieldDepth(shield);
+    } else
+      CHECKL(class == NULL);
   }
   CHECKL(depth <= arena->shDepth);
 
@@ -206,8 +209,10 @@ void ArenaInit(Arena arena, ArenaClass class)
   arena->shCacheI = (Size)0;
   arena->shDepth = (Size)0;
   arena->suspended = FALSE;
-  for(i = 0; i < SHIELD_CACHE_SIZE; i++)
-    arena->shCache[i] = (Seg)0;
+  for(i = 0; i < SHIELD_CACHE_SIZE; i++) {
+    arena->shCache[i].shield = NULL;
+    arena->shCache[i].class = NULL;
+  }
   arena->pollThreshold = (Size)0;
   arena->insidePoll = FALSE;
   arena->actionInterval = ARENA_POLL_MAX;  /* design.mps.arena.poll.interval */
