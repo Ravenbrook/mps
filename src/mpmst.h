@@ -1,6 +1,6 @@
 /* impl.h.mpmst: MEMORY POOL MANAGER DATA STRUCTURES
  *
- * $HopeName: MMsrc!mpmst.h(MMdevel_drj_arena_hysteresis.1) $
+ * $HopeName: MMsrc!mpmst.h(MMdevel_drj_arena_hysteresis.2) $
  * Copyright (C) 1998 Harlequin Group plc.  All rights reserved.
  *
  * .readership: MM developers.
@@ -613,6 +613,7 @@ typedef struct ArenaClassStruct {
   ArenaFinishMethod finish;
   ArenaReservedMethod reserved;
   ArenaCommittedMethod committed;
+  ArenaSpareCommitExceededMethod spareCommitExceeded;
   ArenaExtendMethod extend;
   ArenaRetractMethod retract;
   ArenaIsReservedAddrMethod isReserved;
@@ -669,6 +670,7 @@ typedef struct ArenaStruct {
   Size commitLimit;             /* Client configurable commit limit */
 
   Size spareCommitted;          /* Amount of memory in hysteresis fund */
+  Size spareCommitLimit;        /* Limit on spareCommitted */
 
   Shift zoneShift;              /* see also impl.c.ref */
   Align alignment;              /* minimum alignment of segments */
