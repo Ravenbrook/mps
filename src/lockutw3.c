@@ -1,28 +1,28 @@
 /* impl.c.lockutw3: LOCK COVERAGE TEST
  *
- * $HopeName: !lockutw3.c(trunk.8) $
+ * $HopeName: MMsrc!lockutw3.c(MM_dylan_kinglet.1) $
+ * Copyright (C) 1997 Harlequin Limited.  All rights reserved.
  */
 
 #include "mpm.h"
 #include "testlib.h"
 
+#include "mpswin.h"
+
+
 #ifndef MPS_OS_W3
 #error "Relies on Win32 threads"
 #endif
 
-#include "mpswin.h"
-
-SRCID(lockutw3, "$HopeName: !lockutw3.c(trunk.8) $");
-
 
 static Lock lock;
-unsigned long shared,tmp;
+unsigned long shared, tmp;
 
 
 void incR(unsigned long i)
 {
   LockClaimRecursive(lock);
-  if(i<100) {
+  if (i<100) {
     while(i--) {
       tmp=shared;
       shared=tmp+1;
@@ -34,11 +34,12 @@ void incR(unsigned long i)
   LockReleaseRecursive(lock);
 }
 
+
 void inc(unsigned long i)
 {
   incR(i+1>>1);
   i>>=1;
-  while(i){
+  while (i) {
     LockClaim(lock);
     if(i>10000){
       incR(5000);
@@ -51,6 +52,7 @@ void inc(unsigned long i)
   }
 }
 
+
 #define COUNT 100000l
 DWORD WINAPI thread0(void *p)
 {
@@ -59,11 +61,12 @@ DWORD WINAPI thread0(void *p)
   return 0;
 }
 
+
 int main(void)
 {
   DWORD id;
   HANDLE t[10];
-  unsigned i,nthreads;
+  unsigned i, nthreads;
 
   nthreads = 4;
 
@@ -75,7 +78,7 @@ int main(void)
   shared = 0;
 
   for(i=0;i<nthreads;i++)
-    t[i] = CreateThread(NULL,0,thread0,NULL,0,&id);
+    t[i] = CreateThread(NULL, 0, thread0, NULL, 0, &id);
 
   for(i=0;i<nthreads;i++)
     WaitForSingleObject(t[i], INFINITE);
