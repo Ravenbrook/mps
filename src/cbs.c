@@ -41,6 +41,9 @@ typedef struct CBSEmergencyGrainStruct {
 
 #define CBSEmergencyBlockBase(block) ((Addr)(block))
 #define CBSEmergencyBlockLimit(block) ((block)->limit)
+#define CBSEmergencyBlockSize(block) \
+  (AddrOffset(CBSEmergencyBlockBase((block)), \
+              CBSEmergencyBlockLimit((block))))
 #define CBSEmergencyGrainBase(grain) ((Addr)(grain))
 #define CBSEmergencyGrainSize(cbs) ((cbs)->alignment)
 #define CBSEmergencyGrainLimit(cbs, grain) \
@@ -1198,8 +1201,7 @@ Bool CBSFindFirst(Addr *baseReturn, Addr *limitReturn,
                   CBS cbs, Size size) 
 {
   Bool found;
-  SplayNode node;
-  CBSBlock block;
+  Addr base = (Addr)0, limit = (Addr)0; /* only defined when found is TRUE */
 
   AVERT(CBS, cbs);
   CBSEnter(cbs);
@@ -1213,17 +1215,55 @@ Bool CBSFindFirst(Addr *baseReturn, Addr *limitReturn,
   /* might do some good. */
   CBSFlushEmergencyLists(cbs);
 
-  found = SplayFindFirst(&node, SplayTreeOfCBS(cbs), &CBSTestNode,
-                         &CBSTestTree, NULL, (unsigned long)size);
-  if(found) {
-    block = CBSBlockOfSplayNode(node);
-    AVER(CBSBlockSize(block) >= size);
-    *baseReturn = CBSBlockBase(block);
-    *limitReturn = CBSBlockLimit(block);
+  {
+    SplayNode node;
+
+    found = SplayFindFirst(&node, SplayTreeOfCBS(cbs), &CBSTestNode,
+                           &CBSTestTree, NULL, (unsigned long)size);
+
+    if(found) {
+      CBSBlock block;
+
+      block = CBSBlockOfSplayNode(node);
+      AVER(CBSBlockSize(block) >= size);
+      base = CBSBlockBase(block);
+      limit = CBSBlockLimit(block);
+    }
   }
 
-  /* We could check the emergency lists on failure, to do a slightly */
-  /* better job.  @@@ */
+  if(cbs->emergencyBlockList != NULL) {
+    CBSEmergencyBlock block;
+
+    for(block = cbs->emergencyBlockList;
+        block != NULL &&
+        (!found || CBSEmergencyBlockBase(block) < base);
+        block = block->next) {
+      if(CBSEmergencyBlockSize(block) >= size) {
+        found = TRUE;
+        base = CBSEmergencyBlockBase(block);
+        limit = CBSEmergencyBlockLimit(block);
+        break;
+      }      
+    }
+  }
+
+  if(cbs->emergencyGrainList != NULL && 
+     size <= CBSEmergencyGrainSize(cbs)) {
+    /* Take first grain */
+    CBSEmergencyGrain grain = cbs->emergencyGrainList;
+
+    if(!found || CBSEmergencyGrainBase(grain) < base) {
+      found = TRUE;
+      base = CBSEmergencyGrainBase(grain);
+      limit = CBSEmergencyGrainLimit(cbs, grain);
+    }
+  }
+
+  if(found) {
+    AVER(AddrOffset(base, limit) >= size);
+    *baseReturn = base;
+    *limitReturn = limit;
+  }
 
   CBSLeave(cbs);
   return found;
@@ -1234,8 +1274,7 @@ Bool CBSFindLast(Addr *baseReturn, Addr *limitReturn,
                  CBS cbs, Size size) 
 {
   Bool found;
-  SplayNode node;
-  CBSBlock block;
+  Addr base = (Addr)0, limit = (Addr)0; /* only defined in found is TRUE */
 
   AVERT(CBS, cbs);
   CBSEnter(cbs);
@@ -1249,17 +1288,58 @@ Bool CBSFindLast(Addr *baseReturn, Addr *limitReturn,
   /* might do some good. */
   CBSFlushEmergencyLists(cbs);
 
-  found = SplayFindLast(&node, SplayTreeOfCBS(cbs), &CBSTestNode,
-                        &CBSTestTree, NULL, (unsigned long)size);
-  if(found) {
-    block = CBSBlockOfSplayNode(node);
-    AVER(CBSBlockSize(block) >= size);
-    *baseReturn = CBSBlockBase(block);
-    *limitReturn = CBSBlockLimit(block);
+  {
+    SplayNode node;
+
+    found = SplayFindLast(&node, SplayTreeOfCBS(cbs), &CBSTestNode,
+                          &CBSTestTree, NULL, (unsigned long)size);
+    if(found) {
+      CBSBlock block;
+
+      block = CBSBlockOfSplayNode(node);
+      AVER(CBSBlockSize(block) >= size);
+      base = CBSBlockBase(block);
+      limit = CBSBlockLimit(block);
+    }
   }
 
-  /* We could check the emergency lists on failure, to do a slightly */
-  /* better job. @@@@ */
+  if(cbs->emergencyBlockList != NULL) {
+    CBSEmergencyBlock block;
+
+    for(block = cbs->emergencyBlockList;
+        block != NULL;
+        block = block->next) {
+      if(CBSEmergencyBlockSize(block) >= size &&
+         (!found || CBSEmergencyBlockBase(block) > base)) {
+        found = TRUE;
+        base = CBSEmergencyBlockBase(block);
+        limit = CBSEmergencyBlockLimit(block);
+      }      
+    }
+  }
+
+  if(cbs->emergencyGrainList != NULL && 
+     size <= CBSEmergencyGrainSize(cbs)) {
+    CBSEmergencyGrain grain;
+
+    /* Find last grain */
+    for(grain = cbs->emergencyGrainList;
+        grain->next != NULL;
+        grain = grain->next)
+      NOOP;
+
+    if(!found || CBSEmergencyGrainBase(grain) > base) {
+      found = TRUE;
+      base = CBSEmergencyGrainBase(grain);
+      limit = CBSEmergencyGrainLimit(cbs, grain);
+    }
+  }
+
+  if(found) {
+    AVER(AddrOffset(base, limit) >= size);
+    *baseReturn = base;
+    *limitReturn = limit;
+  }
 
   CBSLeave(cbs);
   return found;
