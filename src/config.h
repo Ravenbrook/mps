@@ -1,7 +1,7 @@
 /* impl.h.config: MPS CONFIGURATION
  *
  * Copyright (C) 1997 Harlequin Group, all rights reserved.
- * $HopeName: MMsrc!config.h(MMdevel_config_thread.2) $
+ * $HopeName: MMsrc!config.h(MMdevel_config_thread.3) $
  */
 
 #ifndef config_h
@@ -71,11 +71,13 @@
  * and change 170193/trapping.beta.3
  */
 
-#if defined(CONFIG_PROD_EPCORE)
-#define MPS_PROD_EPCORE
-#define ARENA_CLIENT
 #define ARENA_CLIENT_PAGE_SIZE          ((Size)8192)
 #define ARENA_CLIENT_DEFAULT_SEG_HIGH   TRUE
+
+#if defined(CONFIG_PROD_EPCORE)
+#define MPS_PROD_EPCORE
+#define ARENA_SIZE              ((Size)2<<20)
+#define AMC_SIZE_LIMIT		ARENA_SIZE
 /* .nosync.why: ScriptWorks is single-threaded when using the MM. */
 #define THREAD_SINGLE
 #define PROTECTION_NONE
@@ -128,7 +130,6 @@
 
 #define VMAN_ALIGN              ((Align)4096)
 #define VM_JUNKBYTE             ((unsigned char)0xA9)
-#define VMRM_ALIGN              ((Align)4096)
 
 
 /* Tracer Configuration -- see impl.c.trace */
