@@ -1,6 +1,6 @@
 /* impl.c.arena: ARENA IMPLEMENTATION
  *
- * $HopeName: MMsrc!arena.c(MMdevel_pekka_rate.1) $
+ * $HopeName: MMsrc!arena.c(MMdevel_pekka_rate.2) $
  * Copyright (C) 1998. Harlequin Group plc. All rights reserved.
  *
  * .readership: Any MPS developer
@@ -36,7 +36,7 @@
 #include "poolmrg.h"
 #include "mps.h"
 
-SRCID(arena, "$HopeName: MMsrc!arena.c(MMdevel_pekka_rate.1) $");
+SRCID(arena, "$HopeName: MMsrc!arena.c(MMdevel_pekka_rate.2) $");
 
 
 /* All static data objects are declared here. See .static */
@@ -539,17 +539,14 @@ void (ArenaPoll)(Arena arena)
 void ArenaPoll(Arena arena)
 {
   double size;
-  Count i;
 
   AVERT(Arena, arena);
 
   if(arena->clamped)
     return;
-
   size = arena->fillMutatorSize;
   if(arena->insidePoll || size < arena->pollThreshold)
     return;
-  /* design.mps.arena.poll.when */
 
   arena->insidePoll = TRUE;
 
@@ -557,18 +554,14 @@ void ArenaPoll(Arena arena)
   ActionPoll(arena);
 
   /* Temporary hacky progress control added here and in trace.c */
-  /* for change.dylan.honeybee.170466. */
+  /* for change.dylan.honeybee.170466, and substantially modified */
+  /* for change.epcore.minnow.160062. */
   if(arena->busyTraces != TraceSetEMPTY) {
     Trace trace = ArenaTrace(arena, (TraceId)0);
     AVER(arena->busyTraces == TraceSetSingle((TraceId)0));
-    i = trace->rate;
-    while(i > 0 && TraceSetIsMember(arena->busyTraces, trace->ti)) {
-      TracePoll(trace);
-      if(trace->state == TraceFINISHED) {
-        /* @@@@ Pick up results and use for prediction. */
-        TraceDestroy(trace);
-      }
-      --i;
+    TracePoll(trace);
+    if(trace->state == TraceFINISHED) {
+      TraceDestroy(trace);
     }
   }
 
@@ -609,12 +602,12 @@ void ArenaPark(Arena arena)
  
         TracePoll(trace);
  
-        /* @@@@ Pick up results and use for prediction. */
         if(trace->state == TraceFINISHED)
           TraceDestroy(trace);
       }
   }
 }
+
  
 Res ArenaCollect(Arena arena)
 {
@@ -644,7 +637,6 @@ Res ArenaCollect(Arena arena)
       RING_FOR(segNode, PoolSegRing(pool), nextSegNode) {
         Seg seg = SegOfPoolRing(segNode);
  
-        /* avoid buffered segments and non-auto pools? */
         res = TraceAddWhite(trace, seg);
         if(res != ResOK)
           goto failAddWhite;
@@ -652,7 +644,7 @@ Res ArenaCollect(Arena arena)
     }
   }
  
-  res = TraceStart(trace);
+  res = TraceStart(trace, 0.0, 0.0);
   if(res != ResOK)
     goto failStart;
  
@@ -661,7 +653,6 @@ Res ArenaCollect(Arena arena)
   return ResOK;
  
 failStart:
-  NOTREACHED;
 failAddWhite:
   NOTREACHED; /* @@@@ Would leave white sets inconsistent. */
 failBegin:
