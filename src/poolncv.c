@@ -2,17 +2,19 @@
  *
  *                   NULL POOL COVERAGE TEST
  *
- *  $HopeName: !poolncv.c(trunk.4) $
+ *  $HopeName: MMsrc!poolncv.c(MMdevel_config.1) $
  *
  *  Copyright (C) 1995 Harlequin Group, all rights reserved
  *
  */
 
-
 #include "mpm.h"
 #include "pooln.h"
 #include "testlib.h"
 #include <stdio.h>
+#ifdef MPS_OS_SU
+#include "ossu.h"
+#endif
 
 int
 main(void)
