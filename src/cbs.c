@@ -1,6 +1,6 @@
 /* impl.c.cbs: COALESCING BLOCK STRUCTURE IMPLEMENTATION
  *
- * $HopeName: MMsrc!cbs.c(MMdevel_gavinm_mvff.3) $
+ * $HopeName: MMsrc!cbs.c(MMdevel_gavinm_mvff.4) $
  * Copyright (C) 1998 Harlequin Group plc, all rights reserved.
  *
  * .readership: Any MPS developer.
@@ -18,7 +18,7 @@
 #include "mpm.h"
 
 
-SRCID(cbs, "$HopeName: MMsrc!cbs.c(MMdevel_gavinm_mvff.3) $");
+SRCID(cbs, "$HopeName: MMsrc!cbs.c(MMdevel_gavinm_mvff.4) $");
 
 typedef struct CBSEmergencyBlockStruct *CBSEmergencyBlock;
 typedef struct CBSEmergencyBlockStruct {
@@ -565,6 +565,7 @@ static void CBSCoalesceWithEmergencyLists(Addr *baseIO, Addr *limitIO, CBS cbs)
         break;
       }
     }
+    /* block->next is still valid, even if it's entered the tree */
   }
   
   if(cbs->emergencyGrainList != NULL) {
@@ -593,8 +594,11 @@ static void CBSCoalesceWithEmergencyLists(Addr *baseIO, Addr *limitIO, CBS cbs)
         break;
       }
     }
+    /* grain->next is still valid, even if it's entered the tree */
   }
 
+  /* Because the lists are known to have isolated ranges, there can */
+  /* be no more than 2 coalescences. */
   AVER(nCoalescences <= 2); 
 
   *baseIO = base;
@@ -671,8 +675,9 @@ static Res CBSFlushEmergencyLists(CBS cbs)
       } else {
         AVER(ResIsAllocFailure(res));
         if(ResIsAllocFailure(res))
-          res = ResOK;
-        goto done;
+          goto succeed;
+        else
+          goto fail;
       }
     }
   }
@@ -689,13 +694,18 @@ static Res CBSFlushEmergencyLists(CBS cbs)
       } else {
         AVER(ResIsAllocFailure(res));
         if(ResIsAllocFailure(res))
-          res = ResOK;
-        goto done;
+          goto succeed;
+        else
+          goto fail;
       }
     }
   }
 
-  done:
+  succeed:
+  return ResOK;
+
+  fail:
+  AVER(res != ResOK);
   return res;
 }
 
@@ -715,17 +725,19 @@ Res CBSInsert(CBS cbs, Addr base, Addr limit) {
   AVER(AddrIsAligned(base, cbs->alignment));
   AVER(AddrIsAligned(limit, cbs->alignment));
 
-  CBSCoalesceWithEmergencyLists(&base, &limit, cbs);
+  if(cbs->mayUseInline) {
+    CBSCoalesceWithEmergencyLists(&base, &limit, cbs);
 
-  res = CBSInsertIntoTree(cbs, base, limit);
-  if(res != ResOK) {
-    if(cbs->mayUseInline) {
+    res = CBSInsertIntoTree(cbs, base, limit);
+    if(res != ResOK) {
       res = CBSAddToEmergencyLists(cbs, base, limit);
       AVER(res == ResOK);
+    } else {
+      /* Attempt to clear emergency lists */
+      res = CBSFlushEmergencyLists(cbs);
     }
-  } else if(cbs->mayUseInline) {
-    /* Attempt to clear emergency lists */
-    res = CBSFlushEmergencyLists(cbs);
+  } else {
+    res = CBSInsertIntoTree(cbs, base, limit);
   }
 
   CBSLeave(cbs);
@@ -815,7 +827,7 @@ static Res CBSDeleteFromEmergencyBlockList(CBS cbs, Addr base, Addr limit)
   AVER(cbs->mayUseInline);
 
   for(prev = NULL, block = cbs->emergencyBlockList;
-      block != NULL && CBSEmergencyBlockLimit(block) >= limit;
+      block != NULL && CBSEmergencyBlockLimit(block) < limit;
       prev = block, block = block->next) 
     NOOP;
 
@@ -840,15 +852,16 @@ static Res CBSDeleteFromEmergencyBlockList(CBS cbs, Addr base, Addr limit)
           return res;
       }
       return ResOK;
+    } else {
+      return ResFAIL; /* partly in list */
     }
   } 
-  return ResFAIL;
+  return ResFAIL; /* not in list at all */
 }
 
 
 static Res CBSDeleteFromEmergencyGrainList(CBS cbs, Addr base, Addr limit)
 {
-  Res res;
   Addr grainBase, grainLimit;
   CBSEmergencyGrain prev, grain;
 
@@ -858,7 +871,7 @@ static Res CBSDeleteFromEmergencyGrainList(CBS cbs, Addr base, Addr limit)
     return ResFAIL;
 
   for(prev = NULL, grain = cbs->emergencyGrainList;
-      grain != NULL && CBSEmergencyGrainLimit(cbs, grain) >= limit;
+      grain != NULL && CBSEmergencyGrainLimit(cbs, grain) < limit;
       prev = grain, grain = grain->next) 
     NOOP;
 
@@ -867,25 +880,19 @@ static Res CBSDeleteFromEmergencyGrainList(CBS cbs, Addr base, Addr limit)
     grainLimit = CBSEmergencyGrainLimit(cbs, grain);
 
     if(grainBase <= base && limit <= grainLimit) {
+      AVER(grainBase == base);
+      AVER(grainLimit == limit);
       /* remove from list */
       if(prev == NULL)
         cbs->emergencyGrainList = grain->next;
       else
         prev->next = grain->next;
-      if(grainBase < base) {
-        res = CBSAddToEmergencyLists(cbs, grainBase, base);
-        if(res != ResOK)
-          return res;
-      }
-      if(limit < grainLimit) {
-        res = CBSAddToEmergencyLists(cbs, limit, grainLimit);
-        if(res != ResOK)
-          return res;
-      }
       return ResOK;
+    } else {
+      return ResFAIL; /* range is partly in list */
     }
   } 
-  return ResFAIL;
+  return ResFAIL; /* range is not in list at all */
 }
 
 
@@ -913,6 +920,8 @@ Res CBSDelete(CBS cbs, Addr base, Addr limit) {
       if(res == ResFAIL) { /* wasn't in block list */
         res = CBSDeleteFromEmergencyGrainList(cbs, base, limit);
       }
+    } else {
+      res = CBSFlushEmergencyLists(cbs);
     }
   }
 
