@@ -1,6 +1,6 @@
 /* impl.c.arenacl: ARENA IMPLEMENTATION USING CLIENT MEMORY
  *
- * $HopeName: MMsrc!arenacl.c(MMdevel_sw_eq.3) $
+ * $HopeName: MMsrc!arenacl.c(MMdevel_sw_eq.4) $
  * 
  * Copyright (C) 1996 Harlequin Group, all rights reserved.
  *
@@ -41,7 +41,7 @@
 #error "Client arena not configured"
 #endif
 
-SRCID(arenacl, "$HopeName: MMsrc!arenacl.c(MMdevel_sw_eq.3) $");
+SRCID(arenacl, "$HopeName: MMsrc!arenacl.c(MMdevel_sw_eq.4) $");
 
 Bool ArenaCheck(Arena arena)
 {
@@ -449,7 +449,10 @@ Bool SegPrefCheck(SegPref pref)
   return TRUE;
 }
 
-static SegPrefStruct segPrefDefault = {SegPrefSig, FALSE};
+static SegPrefStruct segPrefDefault = {
+  SegPrefSig,
+  ARENA_CLIENT_DEFAULT_SEG_HIGH
+};
 
 SegPref SegPrefDefault(void)
 {
