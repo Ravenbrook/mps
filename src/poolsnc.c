@@ -1,6 +1,6 @@
 /* impl.c.poolsnc: STACK NO CHECKING POOL CLASS
  *
- * $HopeName: MMsrc!poolsnc.c(MMdevel_tony_sunset.2) $
+ * $HopeName: MMsrc!poolsnc.c(MMdevel_tony_sunset.3) $
  * Copyright (C) 1998.  Harlequin Group plc.  All rights reserved.
  *
  * READERSHIP
@@ -26,7 +26,7 @@
 #include "mpm.h"
 
 
-SRCID(poolsnc, "$HopeName: MMsrc!poolsnc.c(MMdevel_tony_sunset.2) $");
+SRCID(poolsnc, "$HopeName: MMsrc!poolsnc.c(MMdevel_tony_sunset.3) $");
 
 
 #define SNCSig  ((Sig)0x519b754c)       /* SIGPooLSNC */
@@ -86,7 +86,7 @@ typedef struct SNCBufStruct {
 
 /* SNCBufCheck -- check consistency of an SNCBuf */
 
-Bool SNCBufCheck(SNCBuf sncbuf)
+static Bool SNCBufCheck(SNCBuf sncbuf)
 {
   BufferedSeg bufseg;
 
