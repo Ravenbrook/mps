@@ -1,9 +1,7 @@
 /* impl.c.poolmv2: MANUAL VARIABLE POOL, II
  *
- * $HopeName: !poolmv2.c(trunk.14) $
- * Copyright (C) 1998 Harlequin Group plc.  All rights reserved.
- *
- * .readership: any MPS developer
+ * $HopeName: MMsrc!poolmv2.c(MM_dylan_kinglet.1) $
+ * Copyright (C) 1998 Harlequin Limited.  All rights reserved.
  *
  * .purpose: A manual-variable pool designed to take advantage of
  *  placement according to predicted deathtime.
@@ -18,7 +16,7 @@
 #include "cbs.h"
 #include "meter.h"
 
-SRCID(poolmv2, "$HopeName: !poolmv2.c(trunk.14) $");
+SRCID(poolmv2, "$HopeName: MMsrc!poolmv2.c(MM_dylan_kinglet.1) $");
 
 
 /* Signatures */
@@ -497,9 +495,9 @@ found:
     {
       Bool b = SegOfAddr(&seg, arena, base);
       AVER(b);
+      UNUSED(b); /* impl.c.mpm.check.unused */
     }
-    /* Only pass out segments --- may not be the best long-term policy
-     */
+    /* Only pass out segments --- may not be the best long-term policy */
     {
       Addr segLimit = SegLimit(seg);
 
@@ -516,6 +514,7 @@ found:
         {
           Bool b = SegOfAddr(&seg, arena, base);
           AVER(b);
+          UNUSED(b); /* impl.c.mpm.check.unused */
         }
         segLimit = SegLimit(seg);
         if (limit > segLimit)
@@ -526,6 +525,7 @@ found:
     {
       Res r = CBSDelete(MV2CBS(mv2), base, limit);
       AVER(r == ResOK);
+      UNUSED(r); /* impl.c.mpm.check.unused */
     }
     goto done;
   }
@@ -542,9 +542,8 @@ found:
   /* Try contingency */
   METER_ACC(mv2->emergencyContingencies, minSize);
   res = MV2ContingencySearch(&block, MV2CBS(mv2), minSize);
-  if (res == ResOK){
+  if (res == ResOK)
     goto found;
-  }
 
   /* --- ask other pools to free reserve and retry */
   METER_ACC(mv2->failures, minSize);
@@ -579,6 +578,7 @@ static void MV2BufferEmpty(Pool pool, Buffer buffer,
 {
   MV2 mv2;
   Size size;
+  Res res;
 
   AVERT(Pool, pool);
   mv2 = PoolPoolMV2(pool);
@@ -604,7 +604,7 @@ static void MV2BufferEmpty(Pool pool, Buffer buffer,
 
   /* design.mps.poolmv2:arch.ap.no-fit.splinter */
   if (size < mv2->minSize) {
-    Res res = CBSInsert(MV2CBS(mv2), base, limit);
+    res = CBSInsert(MV2CBS(mv2), base, limit);
     AVER(res == ResOK);
     METER_ACC(mv2->sawdust, size);
     return;
@@ -617,14 +617,13 @@ static void MV2BufferEmpty(Pool pool, Buffer buffer,
 
     /* Old better, drop new */
     if (size < oldSize) {
-      Res res = CBSInsert(MV2CBS(mv2), base, limit);
+      res = CBSInsert(MV2CBS(mv2), base, limit);
       AVER(res == ResOK);
       METER_ACC(mv2->splintersDropped, size);
       return;
     } else {
       /* New better, drop old */
-      Res res = CBSInsert(MV2CBS(mv2), mv2->splinterBase,
-			  mv2->splinterLimit);
+      res = CBSInsert(MV2CBS(mv2), mv2->splinterBase, mv2->splinterLimit);
       AVER(res == ResOK);
       METER_ACC(mv2->splintersDropped, oldSize);
     }
@@ -660,8 +659,7 @@ static void MV2Free(Pool pool, Addr base, Size size)
   METER_ACC(mv2->poolFrees, size);
   mv2->available += size;
   mv2->allocated -= size;
-  AVER(mv2->size == mv2->allocated + mv2->available +
-       mv2->unavailable);
+  AVER(mv2->size == mv2->allocated + mv2->available + mv2->unavailable);
   METER_ACC(mv2->poolUtilization, mv2->allocated * 100 / mv2->size);
   METER_ACC(mv2->poolUnavailable, mv2->unavailable);
   METER_ACC(mv2->poolAvailable, mv2->available);
@@ -675,6 +673,7 @@ static void MV2Free(Pool pool, Addr base, Size size)
     {
       Bool b = SegOfAddr(&seg, PoolArena(pool), base);
       AVER(b);
+      UNUSED(b); /* impl.c.mpm.check.unused */
     }
     AVER(base == SegBase(seg));
     AVER(limit <= SegLimit(seg));
@@ -692,6 +691,7 @@ static void MV2Free(Pool pool, Addr base, Size size)
   {
     Res res = CBSInsert(MV2CBS(mv2), base, limit);
     AVER(res == ResOK);
+    UNUSED(res); /* impl.c.mpm.check.unused */
   }
 }
 
@@ -965,14 +965,15 @@ static Bool MV2ReturnBlockSegs(MV2 mv2, CBSBlock block, Arena arena)
     {
       Bool b = SegOfAddr(&seg, arena, base);
       AVER(b);
+      UNUSED(b); /* impl.c.mpm.check.unused */
     }
     segBase = SegBase(seg);
     segLimit = SegLimit(seg);
     if (base <= segBase && limit >= segLimit) {
-      {
-        Res r = CBSDelete(MV2CBS(mv2), segBase, segLimit);
-        AVER(r == ResOK);
-      }
+      Res r = CBSDelete(MV2CBS(mv2), segBase, segLimit);
+
+      AVER(r == ResOK);
+      UNUSED(r); /* impl.c.mpm.check.unused */
       MV2SegFree(mv2, seg);
       success = TRUE;
     }
@@ -1003,10 +1004,9 @@ static void MV2NoteNew(CBS cbs, CBSBlock block, Size oldSize, Size newSize)
   if (res != ResOK) {
     Arena arena = PoolArena(MV2Pool(mv2));
     CBSBlock oldBlock;
-    {
-      Res r = ABQPeek(MV2ABQ(mv2), &oldBlock);
-      AVER(r == ResOK);
-    }
+
+    res = ABQPeek(MV2ABQ(mv2), &oldBlock);
+    AVER(res == ResOK);
     /* --- This should always succeed */
     (void)MV2ReturnBlockSegs(mv2, oldBlock, arena);
     res = ABQPush(MV2ABQ(CBSMV2(cbs)), block);
@@ -1020,11 +1020,12 @@ static void MV2NoteNew(CBS cbs, CBSBlock block, Size oldSize, Size newSize)
 }
 
 
-/* MV2NoteDelete -- callback invoked when a block on the CBS <=
- * reuseSize
- */
+/* MV2NoteDelete -- callback invoked when a block on the CBS <= reuseSize */
+
 static void MV2NoteDelete(CBS cbs, CBSBlock block, Size oldSize, Size newSize)
 {
+  Res res;
+
   AVERT(CBS, cbs);
   AVERT(MV2, CBSMV2(cbs));
   AVERT(CBSBlock, block);
@@ -1032,10 +1033,9 @@ static void MV2NoteDelete(CBS cbs, CBSBlock block, Size oldSize, Size newSize)
   UNUSED(oldSize);
   UNUSED(newSize);
   
-  {
-    Res res = ABQDelete(MV2ABQ(CBSMV2(cbs)), block);
-    AVER(res == ResOK || CBSMV2(cbs)->abqOverflow);
-  }
+  res = ABQDelete(MV2ABQ(CBSMV2(cbs)), block);
+  AVER(res == ResOK || CBSMV2(cbs)->abqOverflow);
+  UNUSED(res); /* impl.c.mpm.check.unused */
 }
 
 
@@ -1182,9 +1182,11 @@ static Bool MV2CheckFit(CBSBlock block, Size min, Arena arena)
   Addr limit = CBSBlockLimit(block);
   Seg seg;
   Addr segLimit;
+
   {
     Bool b = SegOfAddr(&seg, arena, base);
     AVER(b);
+    UNUSED(b); /* impl.c.mpm.check.unused */
   }
   segLimit = SegLimit(seg);
 
@@ -1200,6 +1202,7 @@ static Bool MV2CheckFit(CBSBlock block, Size min, Arena arena)
   {
     Bool b = SegOfAddr(&seg, arena, base);
     AVER(b);
+    UNUSED(b); /* impl.c.mpm.check.unused */
   }
   segLimit = SegLimit(seg);
 
