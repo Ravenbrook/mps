@@ -1,6 +1,6 @@
 /* impl.h.mpmst: MEMORY POOL MANAGER DATA STRUCTURES
  *
- * $HopeName: !mpmst.h(trunk.40) $
+ * $HopeName: MMsrc!mpmst.h(MMdevel_progress.1) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  *
  * .readership: MM developers.
@@ -472,6 +472,8 @@ typedef struct ScanStateStruct {
   Rank rank;                    /* reference rank of scanning */
   Bool wasMarked;               /* design.mps.fix.protocol.was-ready */
   RefSet fixedSummary;          /* accumulated summary of fixed references */
+  Size preserved;               /* total size of objects preserved */
+  Size scanned;                 /* total size of obejcts scanned */
 } ScanStateStruct;
 
 
@@ -487,8 +489,10 @@ typedef struct TraceStruct {
   RefSet mayMove;		/* superset of refs in moving set */
   TraceState state;             /* current state of trace */
   Size condemned;               /* condemned bytes */
-  Size foundation;              /* initial grey set size */
-  Size rate;                    /* bytes to scan per increment */
+  Size preserved;               /* total size of objects preserved */
+  Size scanned;                 /* total size of objects scanned */
+  Size greySize;                /* total grey bytes (to be scanned) */
+  Time deadline;                /* when the trace must be finished */
 } TraceStruct;
 
 
@@ -557,11 +561,11 @@ typedef struct ArenaStruct {
   Bool poolReady;               /* design.mps.arena.pool.ready */
   MVStruct controlPoolStruct;   /* design.mps.arena.pool */
   LockStruct lockStruct;        /* arena's lock */
-  Size pollThreshold;           /* design.mps.arena.poll */
   Bool insidePoll;              /* design.mps.arena.poll */
   Bool clamped;                 /* prevent background activity */
   Size actionInterval;          /* design.mps.arena.poll.interval */
-  double allocTime;             /* "time" in allocated bytes */
+  Time time;                    /* "time" in allocated bytes */
+  Time pollTime;                /* design.mps.arena.poll  @@@@ out of date? */
 
   Shift zoneShift;              /* see also impl.c.ref */
   Align alignment;		/* minimum alignment of segments */

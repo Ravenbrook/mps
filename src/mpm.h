@@ -1,6 +1,6 @@
 /* impl.h.mpm: MEMORY POOL MANAGER DEFINITIONS
  *
- * $HopeName: !mpm.h(trunk.55) $
+ * $HopeName: MMsrc!mpm.h(MMdevel_progress.1) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  */
 
@@ -378,7 +378,7 @@ extern Res TraceAddWhite(Trace trace, Seg seg);
 extern Res TraceStart(Trace trace);
 extern Res TraceFlip(Trace trace);
 extern void TraceDestroy(Trace trace);
-extern Res TracePoll(Trace trace);
+extern Res TracePoll(Trace trace, Work work);
 extern void TraceAccess(Arena arena, Seg seg, AccessSet mode);
 
 extern Res TraceFix(ScanState ss, Ref *refIO);
