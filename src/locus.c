@@ -1,6 +1,6 @@
 /* impl.c.locus: LOCI
  *
- * $HopeName: MMsrc!locus.c(MMdevel_ptw_pseudoloci.4) $
+ * $HopeName: MMsrc!locus.c(MMdevel_ptw_pseudoloci.6) $
  * Copyright (C) 1998 Harlequin Group plc.  All rights reserved.
  *
  */
@@ -14,22 +14,33 @@
 
 /* Private prototypes */
 
-static void LocusManagerEnsureReady(LocusManager manager);
+static void LocusManagerNoteZoneAlloc(LocusManager manager,
+                                      RefSet ref);
+static void LocusManagerNoteZoneFree(LocusManager manager,
+                                     RefSet ref);
 static void LocusInit(Locus locus, LocusManager manager);
 static void LocusFinish(Locus locus);
 static void LocusEnsureReady(Locus locus);
 static void LocusClientEnsureLocus(LocusClient client);
+static void LocusLocusClientDelete(Locus locus, LocusClient client);
 static void LocusZoneRangeInitialize(Locus locus);
 static Bool LocusZoneRangeFinished(Locus locus);
 static void LocusZoneRangeNext(Addr *baseReturn, Addr
                                *limitReturn, Locus locus);
+static void LocusNoteZoneAlloc(Locus locus, RefSet ref);
+static void LocusNoteZoneFree(Locus locus, RefSet ref);
 static void LocusRefSetNext(Locus locus);
 static Count LocusLocusClientDistance(Locus locus,
                                       LocusClient client);
+static void ZoneUsageInit(ZoneUsage desc);
+static RefSet ZoneUsageFinish(ZoneUsage desc);
+static RefSet ZoneUsageIncrement(ZoneUsage desc, RefSet ref);
+static RefSet ZoneUsageDecrement(ZoneUsage desc, RefSet ref);
 static Count LogCount(Count val);
 static Bool LocusManagerCheck(LocusManager manager);
 static Bool LocusClientCheck(LocusClient client);
 static Bool LocusCheck(Locus locus);
+static Bool ZoneUsageCheck(ZoneUsage desc);
 
 
 /* Private types */
@@ -101,7 +112,6 @@ void LocusManagerInit(LocusManager manager)
 {
   Locus locus;
   
-  manager->ready = FALSE;
   ZoneUsageInit(LocusManagerZoneUsage(manager));
   for (locus = &manager->locus[0];
        locus < &manager->locus[NUMLOCI];
@@ -114,7 +124,8 @@ void LocusManagerInit(LocusManager manager)
 /* LocusManagerFinish -- Finish the locus manager */
 void LocusManagerFinish(LocusManager manager)
 {
-  Ref deleted;
+  Locus locus;
+  RefSet deleted;
   
   AVERT(LocusManager, manager);
   
@@ -124,7 +135,6 @@ void LocusManagerFinish(LocusManager manager)
     LocusFinish(locus);
   deleted = ZoneUsageFinish(LocusManagerZoneUsage(manager));
   AVER(deleted == RefSetEMPTY);
-  manager->ready=FALSE;
 }
 
 
@@ -257,7 +267,7 @@ void LocusClientNoteSegAlloc(LocusClient client, Arena arena, Seg seg)
 
   /* If there are new zones, update the locus */
   if (new != RefSetEMPTY) {
-    LocusNoteZoneAlloc(LocusClient(client), new);
+    LocusNoteZoneAlloc(LocusClientLocus(client), new);
   }
 }
 
@@ -278,7 +288,7 @@ void LocusClientNoteSegFree(LocusClient client, Arena arena, Seg seg)
 
   /* If there are deleted zones, update the locus */
   if (deleted != RefSetEMPTY) {
-    LocusNoteZoneFree(LocusClient(client), deleted);
+    LocusNoteZoneFree(LocusClientLocus(client), deleted);
   }
 }
 
@@ -287,30 +297,6 @@ void LocusClientNoteSegFree(LocusClient client, Arena arena, Seg seg)
 
 
 /* Locus Manager Methods */
-
-
-/* LocusManagerEnsureReady -- Called to ensure that the cached cohort
-   information is up to date before and locus assigments are
-   attempted. */
-static void LocusManagerEnsureReady(LocusManager manager)
-{
-  if (! manager->ready) {
-    Locus locus;
-    RefSet used = RefSetEMPTY;
-    
-    for (locus = &manager->locus[0];
-         locus < &manager->locus[NUMLOCI];
-         locus++)
-      if (locus->inUse)
-      {
-        LocusEnsureReady(locus);
-        used = RefSetUnion(used,
-                           RefSetComp(LocusZoneUsage(locus)->free));
-      }
-    AVER(used == RefSetComp(LocusManagerZoneUsage(manager)->free));
-    manager->ready = TRUE;
-  }
-}
 
 
 /* LocusManagerNoteZoneAlloc -- Note that a locus is newly using a
@@ -454,9 +440,6 @@ static void LocusClientEnsureLocus(LocusClient client)
     best->lifetime = (best->lifetime + client->lifetime) / 2;
     best->preferred = RefSetUnion(locus->preferred, client->preferred);
     best->disdained = RefSetUnion(locus->disdained, client->disdained);
-      
-    /* note change */
-    manager->ready = FALSE;
   }
 }
 
@@ -486,7 +469,13 @@ static void LocusZoneRangeInitialize(Locus locus)
 {
   locus->search = RefSetEMPTY;
   locus->searchIndex = RefSetSize;
-  LocusManagerEnsureReady(LocusLocusManager(locus));
+  
+  /* Do this once, for the iteration */
+  LocusEnsureReady(locus);
+  /* These are expensive checks, only do them now, when we are about
+     to rely on the information */
+  AVERT(ZoneUsage, LocusZoneUsage(locus));
+  AVERT(ZoneUsage, LocusManagerZoneUsage(LocusLocusManager(locus)));
 }
 
 
@@ -506,8 +495,7 @@ static void LocusZoneRangeNext(Addr *baseReturn, Addr *limitReturn, Locus locus)
   RefSet ref = locus->search;
   Index i = locus->searchIndex;
   
-  AVER(manager->ready);
-
+  AVER(locus->ready);
   for (;;) {
     if (! (i < RefSetSize)) {
       LocusRefSetNext(locus);
@@ -562,63 +550,68 @@ static void LocusNoteZoneFree(Locus locus, RefSet ref)
    time it will yield a larger, but less optimal RefSet.  It is
    fruitless to call it when the search RefSet is already RefSetUNIV
    */
+/* The search order attempts to minimize "zone spread" and "zone
+   pollution" by preferring zones "owned" by the locus over free ones
+   and free ones over "shared".  Within each of those groups,
+   preferred zones are tried first, then "neutral" (not disdained)
+   zones.  Disdained zones are _always_ the very last resort, which
+   should tend to migrate a locus out of its disdained zones as
+   quickly as possible.
+   */
+/* @@@ We could try first using the client's values and then the
+   locus's for (presumably) better performance when disparate clients
+   share a locus, but I deemed that _too_ hairy for now.
+   */
 static void LocusRefSetNext(Locus locus)
 {
   ZoneUsage locusDesc = LocusZoneUsage(locus);
-  LocusManager manager = LocusLocusManager(locus);
-  ZoneUsage managerDesc = LocusManagerZoneUsage(manager);
-  /* @@@ should these come from the client? Or should we try with the
-     client values first and then the locus values? Or is that just
-     too hairy? */
-  RefSet preferred = locus->preferred;
-  RefSet disdained = locus->disdained;
-  RefSet exclusive = RefSetInter(locusDesc->used, managerDesc->single);
-  RefSet free = managerDesc->free;
-  RefSet shared = locusDesc->used;
+  ZoneUsage managerDesc = LocusManagerZoneUsage(LocusLocusManager(locus));
+  RefSet used = RefSetComp(locusDesc->free);
   RefSet previous = locus->search;
   RefSet bad, base, good;
   RefSet next = RefSetEMPTY;
   Index i;
   
   AVER(previous != RefSetUNIV);
-  LocusManagerEnsureReady(manager);
-
-  /* @@@ One could argue to change this ordering.  This order attempts
-     to minimize "zone spread" by preferring zones "owned" by the
-     locus over free ones and free ones over "shared".  Within each of
-     those groups, preferred zones are tried first, then "neutral"
-     (not disdained) zones.  Disdained zones are _always_ the very
-     last resort, which should tend to migrate a locus out of its
-     disdained zones as quickly as possible.
-     */
+  AVER(locus->ready);
+  /* failsafe: we must have up-to-date cohort info */
+  LocusEnsureReady(locus);
+  
+  /* @@@ remember search state in locus */
   for (i = 0; i <= 1; i++) {
     Index j;
     
     switch (i) {
-      case 0: bad = disdained; break;
+      case 0: bad = locus->disdained; break;
       case 1: bad = RefSetEMPTY; break;
-      default: notreached();
+      default: NOTREACHED;
     }
     for (j = 0; j <= 3; j++) {
       Index k;
       
       switch (j) {
-        case 0: base = exclusive; break;
-        case 1: base = free; break;
+        /* zones held exclusively by this locus */
+        case 0:
+          base = RefSetInter(used, managerDesc->exclusive);
+          break;
+        /* free zones */
+        case 1: base = managerDesc->free; break;
+        /* shared zones */
         case 2: base = used; break;
+        /* anywhere */
         case 3: base = RefSetUNIV; break;
-        default: notreached();
+        default: NOTREACHED;
       }
       for (k = 0; k <= 1; k++) {
         switch (k) {
-          case 0: good = preferred; break;
+          case 0: good = locus->preferred; break;
           case 1: good = RefSetUNIV; break;
-          default: notreached();
+          default: NOTREACHED;
         }
         next = RefSetUnion(previous,
                            RefSetInter(RefSetDiff(base, bad),
                                        good));
-        if (RefSetDiff(next, previous) != RefSetEmpty) {
+        if (RefSetDiff(next, previous) != RefSetEMPTY) {
           locus->search = next;
           return;
         }
@@ -654,8 +647,8 @@ static void ZoneUsageInit(ZoneUsage desc)
   
   desc->free = RefSetUNIV;
   desc->exclusive = RefSetEMPTY;
-  desc->multiple = RefSetEMPTY;
-  RefSetFOR(RefSetUNIV, zone, next)
+  desc->shared = RefSetEMPTY;
+  RefSet_FOR(RefSetUNIV, zone, next)
     {
       desc->usage[zone] = 0;
     }
@@ -679,11 +672,11 @@ static RefSet ZoneUsageFinish(ZoneUsage desc)
 static RefSet ZoneUsageIncrement(ZoneUsage desc, RefSet ref)
 {
   Count *usage = desc->usage;
-  RefSet multiple;
-  RefSet new;
+  RefSet shared = RefSetEMPTY;
+  RefSet new = RefSetEMPTY;
   Index zone, next;
 
-  RefSetFOR(ref, zone, next) 
+  RefSet_FOR(ref, zone, next) 
     {
       Count u = usage[zone];
 
@@ -693,14 +686,15 @@ static RefSet ZoneUsageIncrement(ZoneUsage desc, RefSet ref)
           new = RefSetAddZone(new, zone);
           break;
         case 1:
-          multiple = RefSetAddZone(multiple, zone);
+          shared = RefSetAddZone(shared, zone);
           break;
       }
       usage[zone] = u + 1;
     }
-  desc->multiple = RefSetUnion(desc->multiple, multiple);
-  desc->exclusive = RefSetUnion(RefSetDiff(desc->exclusive, multiple), new);
+  desc->shared = RefSetUnion(desc->shared, shared);
+  desc->exclusive = RefSetUnion(RefSetDiff(desc->exclusive, shared), new);
   desc->free = RefSetDiff(desc->free, new);
+  AVERT(ZoneUsage, desc);
 
   return new;
 }
@@ -711,11 +705,11 @@ static RefSet ZoneUsageIncrement(ZoneUsage desc, RefSet ref)
 static RefSet ZoneUsageDecrement(ZoneUsage desc, RefSet ref)
 {
   Count *usage = desc->usage;
-  RefSet single;
-  RefSet deleted;
+  RefSet single = RefSetEMPTY;
+  RefSet deleted = RefSetEMPTY;
   Index zone, next;
 
-  RefSetFOR(ref, zone, next) 
+  RefSet_FOR(ref, zone, next) 
     {
       Count u = usage[zone] - 1;
 
@@ -730,9 +724,10 @@ static RefSet ZoneUsageDecrement(ZoneUsage desc, RefSet ref)
       }
       usage[zone] = u;
     }
-  desc->multiple = RefSetDiff(desc->multiple, single);
+  desc->shared = RefSetDiff(desc->shared, single);
   desc->exclusive = RefSetUnion(RefSetDiff(desc->exclusive, deleted), single);
   desc->free = RefSetUnion(desc->free, deleted);
+  AVERT(ZoneUsage, desc);
 
   return deleted;
 }
@@ -775,13 +770,12 @@ static Bool LocusManagerCheck(LocusManager manager)
 {
   Locus locus;
 
-  CHECKL(BoolCheck(manager->ready));
-  /* @@@ validate ZoneUsage */
   for (locus = &manager->locus[0];
        locus < &manager->locus[NUMLOCI];
        locus++) {
     CHECKL(LocusCheck(locus));
   }
+  /* ZoneUsage check is expensive */
   return TRUE;
 }
 
@@ -816,22 +810,22 @@ static Bool LocusCheck(Locus locus)
                                     this);
       CHECKL(RefSetSuper(locus->preferred, client->preferred));
       CHECKL(RefSetSuper(locus->disdained, client->disdained));
-      CHECKL(RefSetSuper(locus->used, client->used));
     }
   }
+  /* ZoneUsage check is expensive */
   return TRUE;
 }
 
 
-Bool ZoneUsageCheck(ZoneUsage desc)
+static Bool ZoneUsageCheck(ZoneUsage desc)
 {
   Index zone, next;
   RefSet free = RefSetEMPTY;
   RefSet exclusive = RefSetEMPTY;
-  RefSet multiple = RefSetEMPTY;
+  RefSet shared = RefSetEMPTY;
   Count *usage = desc->usage;
   
-  RefSetFOR(RefSetUNIV, zone, next)
+  RefSet_FOR(RefSetUNIV, zone, next)
     {
       switch (usage[zone]) {
         case 0:
@@ -841,14 +835,14 @@ Bool ZoneUsageCheck(ZoneUsage desc)
           exclusive = RefSetAddZone(exclusive, zone);
           break;
         default:
-          multiple = RefSetAddZone(multiple, zone);
+          shared = RefSetAddZone(shared, zone);
           break;
       }
     }
-  CHECKL(RefSetCOMP(free) == RefSetUnion(exclusive, multiple));
+  CHECKL(RefSetComp(free) == RefSetUnion(exclusive, shared));
   CHECKL(desc->free == free);
   CHECKL(desc->exclusive == exclusive);
-  CHECKL(desc->multiple == multiple);
+  CHECKL(desc->shared == shared);
 
   return TRUE;
 }

@@ -39,7 +39,7 @@ typedef struct PageStruct *Page;
 /* object sets for generations. */
 /* .gencount.const: Must be a constant suitable for use as an */
 /* array size. */
-#define VMArenaGenCount ((Count)(MPS_WORD_WIDTH/2))
+#define VMArenaGenCount ((Count)(RefSetSize/2))
 
 
 /* VMArenaStruct -- VM Arena Structure */
