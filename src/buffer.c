@@ -1,6 +1,6 @@
 /* impl.c.buffer: ALLOCATION BUFFER IMPLEMENTATION
  *
- * $HopeName: MMsrc!buffer.c(MMdevel_tony_sunset.3) $
+ * $HopeName: MMsrc!buffer.c(MMdevel_tony_sunset.4) $
  * Copyright (C) 1997, 1998, 1999 Harlequin Group plc.  All rights reserved.
  *
  * .purpose: This is (part of) the implementation of allocation buffers.
@@ -22,7 +22,7 @@
 
 #include "mpm.h"
 
-SRCID(buffer, "$HopeName: MMsrc!buffer.c(MMdevel_tony_sunset.3) $");
+SRCID(buffer, "$HopeName: MMsrc!buffer.c(MMdevel_tony_sunset.4) $");
 
 
 /* forward declarations */
@@ -1425,6 +1425,7 @@ static Seg bufferedSegSeg (Buffer buffer)
   return bufseg->seg;
 }
 
+
 /* bufferedSegRankSet -- BufferRankSet accessor for BufferedSeg instances */
 
 static RankSet bufferedSegRankSet (Buffer buffer)
@@ -1438,7 +1439,7 @@ static RankSet bufferedSegRankSet (Buffer buffer)
 }
 
 
-/* bufferNoSetRankSet -- BufferSetRankSet setter method for BufferedSeg */
+/* bufferedSegSetRankSet -- BufferSetRankSet setter method for BufferedSeg */
 
 static void bufferedSegSetRankSet (Buffer buffer, RankSet rankset)
 {
