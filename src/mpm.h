@@ -1,10 +1,6 @@
 /* impl.h.mpm: MEMORY POOL MANAGER DEFINITIONS
  *
-<<<<<<< fleece:trunk:src:mpm.h
- * $HopeName: !mpm.h(trunk.26) $
-=======
- * $HopeName: !mpm.h(trunk.26) $
->>>>>>> 1.25.2.2
+ * $HopeName: MMsrc!mpm.h(MMdevel_remem2.1) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  */
 
@@ -321,6 +317,7 @@ extern void TraceAccess(Space space, Seg seg, AccessSet mode);
 
 extern Res TraceFix(ScanState ss, Ref *refIO);
 extern void TraceSegGreyen(Space space, Seg seg, TraceSet ts);
+extern void TraceSetSummary(Space space, Seg seg, RefSet summary);
 
 /* Equivalent to impl.h.mps MPS_SCAN_BEGIN */
 
@@ -492,6 +489,8 @@ extern Bool RankSetCheck(RankSet rankSet);
 #define RefSetIsMember(space, rs, addr) \
   BS_IS_MEMBER(rs, RefSetZone(space, addr))
 #define RefSetSuper(rs1, rs2)   BS_SUPER(rs1, rs2)
+#define RefSetDiff(rs1, rs2)	BS_DIFF(rs1, rs2)
+#define RefSetSub(rs1, rs2)	BS_SUB(rs1, rs2)
 
 extern RefSet RefSetOfSeg(Space space, Seg seg);
 

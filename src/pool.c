@@ -1,6 +1,6 @@
 /* impl.c.pool: POOL IMPLEMENTATION
  *
- * $HopeName: !pool.c(trunk.26) $
+ * $HopeName: MMsrc!pool.c(MMdevel_remem2.1) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  *
  * This is the implementation of the generic pool interface.  The
@@ -12,7 +12,7 @@
 
 #include "mpm.h"
 
-SRCID(pool, "$HopeName: !pool.c(trunk.26) $");
+SRCID(pool, "$HopeName: MMsrc!pool.c(MMdevel_remem2.1) $");
 
 
 Bool PoolClassCheck(PoolClass class)
@@ -637,7 +637,7 @@ void PoolTrivGrey(Pool pool, Trace trace, Seg seg)
 
   if(!TraceSetIsMember(seg->white, trace->ti)) {
     seg->grey = TraceSetAdd(seg->grey, trace->ti);
-    ShieldRaise(trace->space, seg, AccessREAD | AccessWRITE);
+    ShieldRaise(trace->space, seg, AccessREAD);
   }
 }
 

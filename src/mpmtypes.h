@@ -1,10 +1,6 @@
 /* impl.h.mpmtypes: MEMORY POOL MANAGER TYPES
  *
-<<<<<<< fleece:trunk:src:mpmtypes.h
- * $HopeName: !mpmtypes.h(trunk.22) $
-=======
- * $HopeName: !mpmtypes.h(trunk.22) $
->>>>>>> 1.21.3.2
+ * $HopeName: MMsrc!mpmtypes.h(MMdevel_remem2.1) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights 
  * reserved.
  *
@@ -159,11 +155,10 @@ typedef Res (*RootScanRegMethod)(ScanState ss, Thread thread, void *p,
                          AttrPM_NO_WRITE | AttrALLOC | AttrFREE | \
                          AttrBUF | AttrBUF_RESERVE | AttrBUF_ALLOC | \
                          AttrGC | AttrINCR_RB | AttrINCR_WB)
-
-/* segment preference constants */
-
 #define SegPrefHigh     ((SegPrefKind) 0)
 #define SegPrefLow      ((SegPrefKind) 1)
+#define SegPrefRefSet	((SegPrefKind)2)
+
 
 /* Rank constants -- see design.mps.type.rank */
 /* These definitions must match impl.h.mps.rank. */

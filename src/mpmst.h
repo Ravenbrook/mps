@@ -1,10 +1,6 @@
 /* impl.h.mpmst: MEMORY POOL MANAGER DATA STRUCTURES
  *
-<<<<<<< fleece:trunk:src:mpmst.h
- * $HopeName: !mpmst.h(trunk.23) $
-=======
- * $HopeName: !mpmst.h(trunk.23) $
->>>>>>> 1.22.3.2
+ * $HopeName: MMsrc!mpmst.h(MMdevel_remem2.1) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  *
  * .readership: MM developers.
@@ -284,6 +280,7 @@ typedef struct SegStruct {      /* segment structure */
   RingStruct poolRing;          /* link in list of segs in pool */
 } SegStruct;
 
+
 /* SegPrefStruct -- segment preference structure
  * 
  * .seg-pref: segment users (pool class code) need a way of expressing
@@ -295,7 +292,9 @@ typedef struct SegStruct {      /* segment structure */
 typedef struct SegPrefStruct {  /* segment placement preferences */
   Sig sig;                      /* impl.h.misc.sig */
   Bool high;                    /* high or low */
+  RefSet refSet;                /* preferred RefSetOfSeg */
 } SegPrefStruct;
+
 
 /* ArenaStruct -- arena structure
  *
@@ -562,6 +561,7 @@ typedef struct ScanStateStruct {
   TraceSet traces;		/* traces to scan for */
   Rank rank;                    /* reference rank of scanning */
   Bool wasMarked;               /* design.mps.fix.protocol.was-ready */
+  RefSet fixed;			/* accumulated summary of fixed references */
 } ScanStateStruct;
 
 
