@@ -1,7 +1,7 @@
-/* impl.c.vmi5: VIRTUAL MEMORY MAPPING FOR IRIX 5 (AND 6)
+/* impl.c.vmi5: VIRTUAL MEMORY MAPPING FOR IRIX 5
  *
- * $HopeName: !vmi5.c(trunk.5) $
- * Copyright (C) 1997, 1998 Harlequin Group plc.  All rights reserved.
+ * $HopeName: MMsrc!vmi5.c(MM_epcore_brisling.1) $
+ * Copyright (C) 1997, 1998, 1999 Harlequin Group plc.  All rights reserved.
  *
  * Design: design.mps.vm
  *
@@ -32,8 +32,8 @@
 
 #include "mpm.h"
 
-#if !defined(MPS_OS_I5) && !defined(MPS_OS_IA)
-#error "vmi5.c is IRIX-specific, but MPS_OS_I5 or MPS_OS_IA is not set"
+#if !defined(MPS_OS_I5)
+#error "vmi5.c is IRIX-5-specific, but MPS_OS_I5 is not set"
 #endif
 
 #define _POSIX_SOURCE
@@ -47,11 +47,22 @@
 #include <unistd.h>
 
 /* No constant for the mmap error return on IRIX 5, so define one. */
-#if !defined(MAP_FAILED) && defined(MPS_OS_I5)
+#if !defined(MAP_FAILED)
 #define MAP_FAILED ((void *)-1)
 #endif
 
-SRCID(vmi5, "$HopeName: !vmi5.c(trunk.5) $");
+SRCID(vmi5, "$HopeName: MMsrc!vmi5.c(MM_epcore_brisling.1) $");
+
+
+/* mapChunkSIZE -- maximum chunk to map at one time
+ *
+ * .map.chunk: IRIX 5 has a limit on the number of pages a process can
+ * have mapped at the same time.  VMMap replaces one mapping with
+ * another, and in the meanwhile, both exist.  So do large maps in small
+ * chunks.
+ */
+
+#define mapChunkSIZE ((size_t)1024u * 1024u)
 
 
 /* VMStruct -- virtual memory structure */
@@ -90,6 +101,8 @@ Bool VMCheck(VM vm)
 }
 
 
+/* VMCreate -- reserve some address space, and create a VM structure */
+
 Res VMCreate(VM *vmReturn, Size size)
 {
   void *addr;
@@ -97,6 +110,7 @@ Res VMCreate(VM *vmReturn, Size size)
   int zero_fd;
   VM vm;
   Res res;
+  size_t chunkSize;
 
   AVER(vmReturn != NULL);
 
@@ -138,6 +152,23 @@ Res VMCreate(VM *vmReturn, Size size)
   vm->reserved = size;
   vm->mapped = (Size)0;
 
+  /* Check that you can VMMap (see .map.chunk). */
+  chunkSize = (size >= mapChunkSIZE) ? mapChunkSIZE : (size_t)size;
+  addr = mmap((void *)vm->base, chunkSize,
+	      PROT_READ | PROT_WRITE | PROT_EXEC,
+	      MAP_PRIVATE | MAP_FIXED,
+	      vm->zero_fd, (off_t)0);
+  if(addr == MAP_FAILED) {
+    AVER(errno == ENOMEM); /* .assume.mmap.err */
+    res = (errno == ENOMEM) ? ResRESOURCE : ResFAIL;
+    goto failCheck;
+  }
+  /* Checked; now return the chunk. */
+  addr = mmap((void *)vm->base, chunkSize,
+              PROT_NONE, MAP_SHARED | MAP_FIXED | MAP_AUTORESRV,
+              vm->zero_fd, (off_t)0);
+  AVER(addr == (void *)vm->base);
+
   vm->sig = VMSig;
 
   AVERT(VM, vm);
@@ -147,6 +178,8 @@ Res VMCreate(VM *vmReturn, Size size)
   *vmReturn = vm;
   return ResOK;
 
+failCheck:
+  (void)munmap((void *)vm->base, (size_t)size);
 failReserve:
   (void)munmap((void *)vm, (size_t)SizeAlignUp(sizeof(VMStruct), align));
 failVMMap:
@@ -181,6 +214,8 @@ void VMDestroy(VM vm)
 }
 
 
+/* VMBase, VMLimit -- return the base & limit of the memory reserved */
+
 Addr VMBase(VM vm)
 {
   AVERT(VM, vm);
@@ -207,10 +242,16 @@ Size VMMapped(VM vm)
 }
 
 
+/* VMMap -- commit memory between base & limit */
+
 Res VMMap(VM vm, Addr base, Addr limit)
 {
   Size size;
+  void *chunkBase;
+  size_t left;
+  size_t chunkSize;
   void *addr;
+  Res res;
 
   AVERT(VM, vm);
   AVER(base < limit);
@@ -225,26 +266,54 @@ Res VMMap(VM vm, Addr base, Addr limit)
   size = AddrOffset(base, limit);
   /* Check it won't lose any bits. */
   AVER(size <= (Size)(size_t)-1);
-  addr = mmap((void *)base, (size_t)size,
-	      PROT_READ | PROT_WRITE | PROT_EXEC,
-	      MAP_PRIVATE | MAP_FIXED,
-	      vm->zero_fd, (off_t)0);
-  if(addr == MAP_FAILED) {
-    AVER(errno == ENOMEM || errno == EAGAIN); /* .assume.mmap.err */
-    return ResMEMORY;
+  /* See .map.chunk. */
+  for(chunkBase = (void *)base, left = (size_t)size;
+      left > 0;
+      chunkBase = PointerAdd(chunkBase, chunkSize), left -= chunkSize) {
+    chunkSize = (left > mapChunkSIZE) ? mapChunkSIZE : left;
+    addr = mmap(chunkBase, chunkSize,
+                PROT_READ | PROT_WRITE | PROT_EXEC,
+                MAP_PRIVATE | MAP_FIXED,
+                vm->zero_fd, (off_t)0);
+    if(addr == MAP_FAILED) {
+      AVER(errno == ENOMEM || errno == EAGAIN); /* .assume.mmap.err */
+      res = ResMEMORY;
+      goto failMap;
+    }
+    AVER(addr == chunkBase);
   }
-  AVER(addr == (void *)base);
 
   vm->mapped += size;
 
   EVENT_PAA(VMMap, vm, base, limit);
   return ResOK;
+
+failMap:
+  /* Back up 'chunkBase' and 'left', undoing in opposite order, but */
+  /* let 'left' trail by one chunk, because we can't let it pass */
+  /* 'size' and possibly overflow.  All the chunks are mapChunkSIZE, */
+  /* because the commit loop failed before it mapped the small one. */
+  for(chunkBase = PointerSub(chunkBase, mapChunkSIZE);
+      left < (size_t)size;
+      chunkBase = PointerSub(chunkBase, mapChunkSIZE),
+        left += mapChunkSIZE) {
+    addr = mmap(chunkBase, mapChunkSIZE,
+                PROT_NONE, MAP_SHARED | MAP_FIXED | MAP_AUTORESRV,
+                vm->zero_fd, (off_t)AddrOffset(vm->base, chunkBase));
+    AVER(addr == chunkBase);
+  }
+  return res;
 }
 
+
+/* VMUnmap -- decommit memory between base & limit */
 
 void VMUnmap(VM vm, Addr base, Addr limit)
 {
   Size size;
+  void *chunkBase;
+  size_t left;
+  size_t chunkSize;
   void *addr;
 
   AVERT(VM, vm);
@@ -264,10 +333,16 @@ void VMUnmap(VM vm, Addr base, Addr limit)
   size = AddrOffset(base, limit);
   /* Check it won't lose any bits. */
   AVER(size <= (Size)(size_t)-1);
-  addr = mmap((void *)base, (size_t)size,
-              PROT_NONE, MAP_SHARED | MAP_FIXED | MAP_AUTORESRV,
-              vm->zero_fd, (off_t)AddrOffset(vm->base, base));
-  AVER(addr == (void *)base);
+  /* See .map.chunk. */
+  for(chunkBase = (void *)base, left = (size_t)size;
+      left > 0;
+      chunkBase = PointerAdd(chunkBase, chunkSize), left -= chunkSize) {
+    chunkSize = (left > mapChunkSIZE) ? mapChunkSIZE : left;
+    addr = mmap(chunkBase, chunkSize,
+                PROT_NONE, MAP_SHARED | MAP_FIXED | MAP_AUTORESRV,
+                vm->zero_fd, (off_t)AddrOffset(vm->base, base));
+    AVER(addr == chunkBase);
+  }
 
   vm->mapped -= size;
 
