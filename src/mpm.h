@@ -1,6 +1,6 @@
 /* impl.h.mpm: MEMORY POOL MANAGER DEFINITIONS
  *
- * $HopeName: MMsrc!mpm.h(MMdevel_tony_sunset.2) $
+ * $HopeName: MMsrc!mpm.h(MMdevel_tony_sunset.3) $
  * Copyright (C) 1998.  Harlequin Group plc.  All rights reserved.
  */
 
@@ -776,6 +776,7 @@ extern void SegSetBuffer(Seg seg, Buffer buffer);
 extern void *SegP(Seg seg);
 extern void SegSetP(Seg seg, void *p);
 extern Bool SegCheck(Seg seg);
+extern Bool SegGCCheck(SegGC gcseg);
 extern Bool SegClassCheck(SegClass class);
 extern SegClass EnsureSegClass(void);
 extern SegClass EnsureSegGCClass(void);
