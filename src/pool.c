@@ -1,6 +1,6 @@
 /* impl.c.pool: POOL IMPLEMENTATION
  *
- * $HopeName: MMsrc!pool.c(MMdevel_restr.4) $
+ * $HopeName: MMsrc!pool.c(MMdevel_restr.5) $
  * Copyright (C) 1994,1995,1996 Harlequin Group, all rights reserved
  *
  * This is the implementation of the generic pool interface.  The
@@ -9,7 +9,7 @@
 
 #include "mpm.h"
 
-SRCID(pool, "$HopeName: MMsrc!pool.c(MMdevel_restr.4) $");
+SRCID(pool, "$HopeName: MMsrc!pool.c(MMdevel_restr.5) $");
 
 
 Bool PoolCheck(Pool pool)
@@ -216,7 +216,7 @@ void PoolSegFree(Pool pool, Seg seg)
   AVERT(Pool, pool);
 
   space = PoolSpace(pool);
-
+  ShieldFlush(space);
   SegFree(space, seg);
 }
 
