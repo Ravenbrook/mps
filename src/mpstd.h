@@ -1,6 +1,6 @@
 /* impl.h.mpstd: HARLEQUIN MEMORY POOL SYSTEM TARGET DETECTION
  *
- * $HopeName: !mpstd.h(trunk.20) $
+ * $HopeName: MMsrc!mpstd.h(MMdevel_gavinm_splay.1) $
  * Copyright (C) 1997 Harlequin Group, all rights reserved
  *
  * Detect the target platform using predefined preprocessor symbols
@@ -225,6 +225,16 @@
 #define MPS_PF_LII3GC
 #define MPS_OS_LI
 #define MPS_ARCH_I3
+#define MPS_BUILD_GC
+#define MPS_T_WORD      unsigned long
+#define MPS_WORD_WIDTH  32
+#define MPS_WORD_SHIFT  5
+#define MPS_PF_ALIGN    8 /* .hack.align */
+
+#elif defined(__linux__) && defined(__PPC__) && defined(__GNUC__)
+#define MPS_PF_LIPPGC
+#define MPS_OS_LI
+#define MPS_ARCH_PP
 #define MPS_BUILD_GC
 #define MPS_T_WORD      unsigned long
 #define MPS_WORD_WIDTH  32
