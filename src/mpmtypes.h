@@ -1,6 +1,6 @@
 /* impl.h.mpmtypes: MEMORY POOL MANAGER TYPES
  *
- * $HopeName: MMsrc!mpmtypes.h(MMdevel_sw_eq.1) $
+ * $HopeName: MMsrc!mpmtypes.h(MMdevel_sw_eq.2) $
  * Copyright (C) 1996 Harlequin Group, all rights reserved.
  *
  * .readership: MM developers.
@@ -51,8 +51,6 @@ typedef struct FormatStruct *Format;    /* design.mps.format */
 typedef struct LDStruct *LD;            /* design.mps.ld */
 typedef struct LockStruct *Lock;        /* impl.c.lock* */
 typedef struct PoolStruct *Pool;        /* design.mps.pool */
-typedef struct PoolPrefStruct *PoolPref; /* design.mps.pref */
-typedef int PoolPrefKind;               /* design.mps.pref */
 typedef struct SpaceStruct *Space;      /* design.mps.space */
 typedef struct PoolClassStruct *PoolClass; /* impl.c.poolclas */
 typedef struct TraceStruct *Trace;      /* design.mps.tracer */
@@ -68,7 +66,7 @@ typedef struct ThreadStruct *Thread;    /* impl.c.th* */
 
 /* Pool*Method -- see design.mps.class-interface */
 
-typedef Res  (*PoolInitMethod)         (Pool pool, PoolPref pref, va_list arg);
+typedef Res  (*PoolInitMethod)         (Pool pool, va_list arg);
 typedef void (*PoolFinishMethod)       (Pool pool);
 typedef Res  (*PoolAllocMethod)        (Addr *pReturn, Pool pool, Size size);
 typedef void (*PoolFreeMethod)         (Pool pool, Addr old, Size size);
@@ -143,12 +141,6 @@ typedef Res (*RootScanRegMethod)(ScanState ss, Thread thread, void *p,
 
 #define SegPrefHigh     ((SegPrefKind) 0)
 #define SegPrefLow      ((SegPrefKind) 1)
-
-/* .pref: Keep in sync with impl.h.mps.pref */
-/* checked by impl.c.mpsi.check */
-
-#define PoolPrefNear    ((PoolPrefKind) 0)
-#define PoolPrefFar     ((PoolPrefKind) 1)
 
 /* Rank constants -- see design.mps.type.rank */
 /* These definitions must match impl.h.mps.rank. */
