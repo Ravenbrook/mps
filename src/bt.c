@@ -1,6 +1,6 @@
 /* impl.c.bt: BIT TABLES
  *
- * $HopeName: MMsrc!bt.c(MM_epcore_brisling.1) $
+ * $HopeName: MMsrc!bt.c(MM_epcore_brisling.2) $
  * Copyright (C) 1998.  Harlequin Group plc.  All rights reserved.
  *
  * READERSHIP
@@ -15,7 +15,7 @@
 #include "mpm.h"
 
 
-SRCID(bt, "$HopeName: MMsrc!bt.c(MM_epcore_brisling.1) $");
+SRCID(bt, "$HopeName: MMsrc!bt.c(MM_epcore_brisling.2) $");
 
 
 /* BTIndexAlignUp, BTIndexAlignDown -- Align bit-table indices
@@ -676,9 +676,9 @@ static Bool BTFindResRange(Index *baseReturn, Index *limitReturn,
     } else {
       /* Range was too small. Try again */
       unseenBase = minLimit;
-      if ((setIndex + 1) != minLimit) {
+      resBase = setIndex + 1;
+      if (resBase != minLimit) {
         /* Already found the start of next candidate range */
-        resBase = setIndex + 1;
         minLimit = resBase + minLength;
       } else {
         foundRes = FALSE;
@@ -771,9 +771,9 @@ static Bool BTFindResRangeHigh(Index *baseReturn, Index *limitReturn,
     } else {
       /* Range was too small. Try again */
       unseenLimit = minBase;
-      if (setIndex != minBase) {
+      resLimit = setIndex;
+      if (resLimit != minBase) {
         /* Already found the start of next candidate range */
-        resLimit = setIndex;
         minBase = resLimit - minLength;
       } else {
         foundRes = FALSE;
