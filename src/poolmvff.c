@@ -1,6 +1,6 @@
 /* impl.c.poolmvff: First Fit Manual Variable Pool
  * 
- * $HopeName: MMsrc!poolmvff.c(MMdevel_gavinm_mvff.3) $
+ * $HopeName: MMsrc!poolmvff.c(MMdevel_gavinm_mvff.4) $
  * Copyright (C) 1998 Harlequin Group plc.  All rights reserved.
  *
  * .purpose: This is a pool class for manually managed objects of
@@ -16,7 +16,7 @@
 #include "mpm.h"
 #include "mpscmvff.h"
 
-SRCID(poolmvff, "$HopeName: MMsrc!poolmvff.c(MMdevel_gavinm_mvff.3) $");
+SRCID(poolmvff, "$HopeName: MMsrc!poolmvff.c(MMdevel_gavinm_mvff.4) $");
 
 
 extern PoolClass PoolClassMVFF(void);
@@ -111,6 +111,7 @@ static void MVFFNoteRange(CBS cbs, CBSBlock block, Size oldSize, Size newSize)
   AVERT(CBS, cbs);
   AVERT(CBSBlock, block);
   AVER(newSize >= MVFFMinSegSize(MVFFOfCBS(cbs)));
+  UNUSED(oldSize);
 
   mvff = MVFFOfCBS(cbs);
   AVER(!mvff->freeRangeToCheck);
