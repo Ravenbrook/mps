@@ -2,7 +2,7 @@
  * 
  *                  WIN32 THREAD MANAGER
  *
- *  $HopeName: !thnti3.c(trunk.2) $
+ *  $HopeName: MMsrc!thnti3.c(MMdevel_protoposm_1.1) $
  *
  *  Copyright (C) 1995 Harlequin Group, all rights reserved
  *
@@ -291,4 +291,30 @@ Error ThreadDequeScan(void *p, int i, Trace trace)
   }
 
   return ErrSUCCESS;
+}
+
+
+Error StackScan(Addr *stackBot, Trace trace, RefRank rank)
+{
+	__asm
+	{
+		;_StackScan proc public  ; (stackBot, trace, rank)
+  		push ebp
+  		mov  ebp, esp
+  		push edi              ;these registers are the save registers and so
+  		push esi              ;may contain roots.  They are pushed for scanning
+  		push ebx
+  		mov  ecx, esp         ;ecx == stackTop
+  		push [ebp+10h]        ;rank
+  		push [ebp+0Ch]        ;trace
+  		push [ebp+08h]        ;stackBot (limit)
+  		push ecx              ;stackTop (base)
+  		call TraceScanArea   ;(stackTop,stackBot,trace,rank) returns e
+  		leave
+  		ret                   ;return e (in eax)
+	}
+
+	NOTREACHED;  /* Return from this function happens in the above assembly code */
+
+	return ErrFAILURE;  /* Keeps the compiler from bitching */		
 }
