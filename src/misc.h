@@ -1,6 +1,6 @@
 /* impl.h.misc: MISCELLANEOUS DEFINITIONS
  *
- * $HopeName: !misc.h(trunk.7) $
+ * $HopeName: MMsrc!misc.h(MMdevel_trace2.1) $
  * Copyright (C) 1994,1995,1996 Harlequin Group, all rights reserved
  *
  * Small general things which are useful for C but aren't part of the
@@ -86,6 +86,28 @@ typedef const struct SrcIdStruct {
 
 #define PARENT(type, field, p) \
   ((type *)((char *)(p) - offsetof(type, field)))
+
+
+/* Bit Sets -- sets of integers in [0,N-1].
+ *
+ * Can be used on any unsigned integral type, ty.  These defintions
+ * are _syntactic_, hence macroid, hence upper case
+ * (guide.c.naming.macro.special).
+ */
+
+#define BS_EMPTY(ty)		((ty)0)
+#define BS_COMP(s)		(~(s))
+#define BS_UNIV(ty)		BS_COMP(BS_EMPTY(ty))
+#define BS_SINGLE(ty, i)	((ty)1 << (i))
+#define BS_MEMBER(s, i)		(((s) >> (i)) & 1) /* @@@@ does this compile well? */
+#define BS_UNION(s1, s2)	((s1) | (s2))
+#define BS_ADD(ty, s, i)	BS_UNION(s, BS_SINGLE(ty, i))
+#define BS_INTER(s1, s2)	((s1) & (s2))
+#define BS_DIFF(s1, s2)		BS_INTER(s1, BS_COMP(s2))
+#define BS_DEL(ty, s, i)	BS_DIFF(s, BS_SINGLE(ty, i))
+#define BS_SUPER(s1, s2)	(BS_INTER(s1, s2) == s2)
+#define BS_SUB(s1, s2)		BS_SUPER(s2, s1)
+#define BS_IS_SINGLE(i)		(((i) & (i)-1) == 0)
 
 
 #endif /* misc_h */
