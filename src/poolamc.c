@@ -1,6 +1,6 @@
 /* impl.c.poolamc: AUTOMATIC MOSTLY-COPYING MEMORY POOL CLASS
  *
- * $HopeName: MMsrc!poolamc.c(trunk.3) $
+ * $HopeName: !poolamc.c(trunk.4) $
  * Copyright (C) 1995,1997,1998 Harlequin Group plc, all rights reserved
  *
  * .sources: design.mps.poolamc.
@@ -10,7 +10,7 @@
 #include "amc.h"
 #include "mpscamc.h"
 
-SRCID(poolamc, "$HopeName: MMsrc!poolamc.c(trunk.3) $");
+SRCID(poolamc, "$HopeName: !poolamc.c(trunk.4) $");
 
 
 /* PType enumeration -- distinguishes AMCGen and AMCNailBoard */

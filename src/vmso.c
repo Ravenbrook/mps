@@ -1,6 +1,6 @@
 /* impl.c.vmso: VIRTUAL MEMORY MAPPING FOR SOLARIS 2.x
  *
- * $HopeName: MMsrc!vmso.c(trunk.9) $
+ * $HopeName: !vmso.c(trunk.10) $
  * Copyright (C) 1995. Harlequin Group plc. All rights reserved.
  *
  * Design: design.mps.vm
@@ -52,7 +52,7 @@
 /* unistd for _SC_PAGESIZE */
 #include <unistd.h>
 
-SRCID(vmso, "$HopeName: MMsrc!vmso.c(trunk.9) $");
+SRCID(vmso, "$HopeName: !vmso.c(trunk.10) $");
 
 
 /* Fix up unprototyped system calls.  */

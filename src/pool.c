@@ -1,6 +1,6 @@
 /* impl.c.pool: POOL IMPLEMENTATION
  *
- * $HopeName: MMsrc!pool.c(trunk.51) $
+ * $HopeName: !pool.c(trunk.52) $
  * Copyright (C) 1997. Harlequin Group plc. All rights reserved.
  *
  * READERSHIP
@@ -37,7 +37,7 @@
 
 #include "mpm.h"
 
-SRCID(pool, "$HopeName: MMsrc!pool.c(trunk.51) $");
+SRCID(pool, "$HopeName: !pool.c(trunk.52) $");
 
 
 Bool PoolClassCheck(PoolClass class)
