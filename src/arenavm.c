@@ -1,6 +1,6 @@
 /* impl.c.arenavm: VIRTUAL MEMORY BASED ARENA IMPLEMENTATION
  *
- * $HopeName: !arenavm.c(trunk.22) $
+ * $HopeName: MMsrc!arenavm.c(MMdevel_drj_message.1) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  *
  * This is the implementation of the Segment abstraction from the VM
@@ -14,7 +14,7 @@
 #include "mpm.h"
 
 
-SRCID(arenavm, "$HopeName: !arenavm.c(trunk.22) $");
+SRCID(arenavm, "$HopeName: MMsrc!arenavm.c(MMdevel_drj_message.1) $");
 
 
 /* Space Arena Projection
@@ -31,6 +31,7 @@ SRCID(arenavm, "$HopeName: !arenavm.c(trunk.22) $");
  */
 
 #define SpaceArena(space)       (&(space)->arenaStruct)
+#define SegArena(seg) SpaceArena(PoolSpace(SegPool(seg)))
 
 
 /* PageStruct -- page structure
@@ -421,9 +422,10 @@ static Bool SegAllocWithRefSet(Index *baseReturn,
 
 /* SegAlloc -- allocate a segment from the arena */
 
-Res SegAlloc(Seg *segReturn, SegPref pref, Space space, Size size, Pool pool)
+Res SegAlloc(Seg *segReturn, SegPref pref, Size size, Pool pool)
 {
-  Arena arena = SpaceArena(space);
+  Space space;
+  Arena arena;
   Index i, pages, base;
   Addr addr;
   Seg seg;
@@ -431,9 +433,13 @@ Res SegAlloc(Seg *segReturn, SegPref pref, Space space, Size size, Pool pool)
 
   AVER(segReturn != NULL);
   AVERT(SegPref, pref);
-  AVERT(Arena, SpaceArena(space));
   AVER(size > 0);
   AVERT(Pool, pool);
+
+  space = PoolSpace(pool);
+  AVERT(Space, space);
+
+  arena = SpaceArena(space);
   AVER(SizeIsAligned(size, arena->pageSize));
   
   /* NULL is used as a discriminator (see design.mps.arena.vm.table.disc) */
@@ -490,19 +496,24 @@ Res SegAlloc(Seg *segReturn, SegPref pref, Space space, Size size, Pool pool)
 
 /* SegFree - free a segment in the arena */
 
-void SegFree(Space space, Seg seg)
+void SegFree(Seg seg)
 {
   Arena arena;
+  Space space;
   Page page;
   Index i, pl, pn;
   Addr base, limit; 
 
-  AVERT(Arena, SpaceArena(space));
   AVERT(Seg, seg);
 
+  space = PoolSpace(SegPool(seg));
+  AVERT(Space, space);
+
   arena = SpaceArena(space);
+  AVERT(Arena, arena);
+
   page = PageOfSeg(seg);
-  limit = SegLimit(space, seg);
+  limit = SegLimit(seg);
   i = page - arena->pageTable;
   AVER(i <= arena->pages);
 
@@ -553,16 +564,16 @@ Align ArenaAlign(Space space)
  * by the page size and adding it to the arena base address.
  */
 
-Addr SegBase(Space space, Seg seg)
+Addr SegBase(Seg seg)
 {
   Arena arena;
   Page page;
   Index i;
   
-  AVERT(Arena, SpaceArena(space));
   AVERT(Seg, seg);
 
-  arena = SpaceArena(space);
+  arena = SegArena(seg);
+  AVERT(Arena, arena);
   page = PageOfSeg(seg);
   i = page - arena->pageTable;
 
@@ -577,17 +588,18 @@ Addr SegBase(Space space, Seg seg)
  * table entry.
  */
 
-Addr SegLimit(Space space, Seg seg)
+Addr SegLimit(Seg seg)
 {
   Arena arena;
   Page page;
 
-  AVERT(Arena, SpaceArena(space));
   AVERT(Seg, seg);
 
-  arena = SpaceArena(space);
+  arena = SegArena(seg);
+  AVERT(Arena, arena);
+
   if(SegSingle(seg))
-    return AddrAdd(SegBase(space, seg), arena->pageSize);
+    return AddrAdd(SegBase(seg), arena->pageSize);
   else {
     page = PageOfSeg(seg);
     return PageTail(page+1)->limit;
@@ -601,11 +613,10 @@ Addr SegLimit(Space space, Seg seg)
  * because both base and limit calls do roughly the same thing twice.
  */
 
-Size SegSize(Space space, Seg seg)
+Size SegSize(Seg seg)
 {
-  AVERT(Arena, SpaceArena(space));
   AVERT(Seg, seg);
-  return AddrOffset(SegBase(space, seg), SegLimit(space, seg));
+  return AddrOffset(SegBase(seg), SegLimit(seg));
 }
 
 

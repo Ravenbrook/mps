@@ -1,6 +1,6 @@
 /* impl.c.protan: ANSI MEMORY PROTECTION
  *
- * $HopeName: !protan.c(trunk.6) $
+ * $HopeName: MMsrc!protan.c(MMdevel_drj_message.1) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  *
  * READERSHIP
@@ -15,7 +15,7 @@
 
 #include "mpm.h"
 
-SRCID(protan, "$HopeName: !protan.c(trunk.6) $");
+SRCID(protan, "$HopeName: MMsrc!protan.c(MMdevel_drj_message.1) $");
 
 void ProtSetup(void)
 {
@@ -45,7 +45,7 @@ void ProtSync(Space space)
     if(SegFirst(&seg, space)) {
       Addr base;
       do {
-	base = SegBase(space, seg);
+	base = SegBase(seg);
 	if(SegPM(seg) != AccessSetEMPTY) {   /* design.mps.protan.fun.sync.seg */
 	  ShieldEnter(space);
 	  TraceAccess(space, seg, SegPM(seg));

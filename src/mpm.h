@@ -1,6 +1,6 @@
 /* impl.h.mpm: MEMORY POOL MANAGER DEFINITIONS
  *
- * $HopeName: MMsrc!mpm.h(MMdevel_drj_message.4) $
+ * $HopeName: MMsrc!mpm.h(MMdevel_drj_message.5) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  */
 
@@ -190,11 +190,11 @@ extern Ring (RingNext)(Ring ring);
 #define RING_ELT(type, field, node) \
    ((type)((char *)(node) - (size_t)(&((type)0)->field)))
 
-/* .ring.for */
-#define RING_FOR(var, ring) \
-  for(var = RingNext(ring); \
-      var != (ring); \
-      var = RingNext(var))
+/* .ring.for: Robust to permit deletion  */
+#define RING_FOR(node, ring, next)                               \
+  for(node = RingNext(ring), next = RingNext(node);             \
+      node != (ring) ;                                          \
+      node = (next), next = RingNext(node))
 
 
 /* Bit Table Interface -- see design.mps.bt.if.* for the interface doc */
@@ -448,11 +448,11 @@ extern SegPref SegPrefDefault (void);
 extern Res SegPrefExpress (SegPref, SegPrefKind, void *);
 
 extern Res SegAlloc(Seg *segReturn, SegPref pref,
-                    Space space, Size size, Pool pool);
-extern void SegFree(Space space, Seg seg);
-extern Addr SegBase(Space space, Seg seg);
-extern Addr SegLimit(Space space, Seg seg);
-extern Size SegSize(Space space, Seg seg);
+                    Size size, Pool pool);
+extern void SegFree(Seg seg);
+extern Addr SegBase(Seg seg);
+extern Addr SegLimit(Seg seg);
+extern Size SegSize(Seg seg);
 extern Bool SegOfAddr(Seg *segReturn, Space space, Addr addr);
 extern Bool SegFirst(Seg *segReturn, Space space);
 extern Bool SegNext(Seg *segReturn, Space space, Addr addr);

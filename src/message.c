@@ -1,6 +1,6 @@
 /* impl.c.message: MPS / CLIENT MESSAGES
  *
- * $HopeName: MMsrc!message.c(MMdevel_drj_message.6) $
+ * $HopeName: MMsrc!message.c(MMdevel_drj_message.7) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All Rights Reserved.
  *
  * READERSHIP
@@ -23,7 +23,7 @@
 #include "mpm.h"
 
 
-SRCID(message, "$HopeName: MMsrc!message.c(MMdevel_drj_message.6) $");
+SRCID(message, "$HopeName: MMsrc!message.c(MMdevel_drj_message.7) $");
 
 
 /* Maps from a Ring pointer to the message */
@@ -136,6 +136,7 @@ void MessageFinish(Message message)
   AVER(RingIsSingle(&message->queueRing));
 
   message->sig = SigInvalid;
+  RingFinish(&message->queueRing);
 }
 
 

@@ -1,6 +1,6 @@
 /* impl.c.poolmfs: MANUAL FIXED SMALL UNIT POOL
  *
- * $HopeName: !poolmfs.c(trunk.20) $
+ * $HopeName: MMsrc!poolmfs.c(MMdevel_drj_message.1) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  *
  * This is the implementation of the MFS pool class.
@@ -35,7 +35,7 @@
 #include "mpm.h"
 #include "poolmfs.h"
 
-SRCID(poolmfs, "$HopeName: !poolmfs.c(trunk.20) $");
+SRCID(poolmfs, "$HopeName: MMsrc!poolmfs.c(MMdevel_drj_message.1) $");
 
 
 /*  == Round up ==
@@ -180,7 +180,7 @@ static Res MFSAlloc(Addr *pReturn, Pool pool, Size size)
 
     unitsPerSeg = mfs->unitsPerSeg;
     unitSize = mfs->unitSize;
-    base = SegBase(space, seg);
+    base = SegBase(seg);
     next = NULL;
 
 #define SUB(b, s, i)    ((Header)AddrAdd(b, (s)*(i)))
@@ -189,7 +189,7 @@ static Res MFSAlloc(Addr *pReturn, Pool pool, Size size)
     {
       header = SUB(base, unitSize, unitsPerSeg-i - 1);
       AVER(AddrIsAligned(header, pool->alignment));
-      AVER(AddrAdd((Addr)header, unitSize) <= SegLimit(space, seg));
+      AVER(AddrAdd((Addr)header, unitSize) <= SegLimit(seg));
       header->next = next;
       next = header;
     }

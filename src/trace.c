@@ -1,12 +1,12 @@
 /* impl.c.trace: GENERIC TRACER IMPLEMENTATION
  *
- * $HopeName: !trace.c(trunk.32) $
+ * $HopeName: MMsrc!trace.c(MMdevel_drj_message.1) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  */
 
 #include "mpm.h"
 
-SRCID(trace, "$HopeName: !trace.c(trunk.32) $");
+SRCID(trace, "$HopeName: MMsrc!trace.c(MMdevel_drj_message.1) $");
 
 
 /* ScanStateCheck -- check consistency of a ScanState object */
@@ -168,7 +168,7 @@ static Res TraceStart(Trace trace, Action action)
   if(SegFirst(&seg, space)) {
     Addr base;
     do {
-      base = SegBase(space, seg);
+      base = SegBase(seg);
       /* Segment should be either black or white by now. */
       AVER(!TraceSetIsMember(SegGrey(seg), trace->ti));
 
@@ -503,7 +503,7 @@ static void TraceReclaim(Trace trace)
   if(SegFirst(&seg, space)) {
     Addr base;
     do {
-      base = SegBase(space, seg);
+      base = SegBase(seg);
 
       /* There shouldn't be any grey stuff left for this trace. */
       AVER(!TraceSetIsMember(SegGrey(seg), trace->ti));
@@ -547,7 +547,7 @@ static Bool FindGrey(Seg *segReturn, Rank *rankReturn,
     if(SegFirst(&seg, space)) {
       Addr base;
       do {
-	base = SegBase(space, seg);
+	base = SegBase(seg);
 	if(RankSetIsMember(SegRankSet(seg), rank) &&
 	   TraceSetIsMember(SegGrey(seg), ti)) {
 	  *segReturn = seg;

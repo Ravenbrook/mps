@@ -1,6 +1,6 @@
 /* impl.c.poolawl: AUTOMATIC WEAK LINKED POOL CLASS
  *
- * $HopeName: !poolawl.c(trunk.8) $
+ * $HopeName: MMsrc!poolawl.c(MMdevel_drj_message.1) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  *
  * READERSHIP
@@ -16,7 +16,7 @@
 #include "mpm.h"
 #include "mpscawl.h"
 
-SRCID(poolawl, "$HopeName: !poolawl.c(trunk.8) $");
+SRCID(poolawl, "$HopeName: MMsrc!poolawl.c(MMdevel_drj_message.1) $");
 
 
 #define AWLSig	((Sig)0x519b7a37)	/* SIGPooLAWL */
@@ -70,7 +70,7 @@ static void AWLGroupDestroy(AWLGroup group)
   AVERT(AWL, awl);
   space = PoolSpace(pool);
   AVERT(Space, space);
-  tableSize = BTSize(SegSize(space, seg) >> awl->alignShift);
+  tableSize = BTSize(SegSize(seg) >> awl->alignShift);
   PoolSegFree(pool, seg);
   SpaceFree(space, (Addr)group->mark, tableSize);
   SpaceFree(space, (Addr)group->scanned, tableSize);
@@ -170,14 +170,14 @@ static Bool AWLGroupAlloc(Addr *baseReturn, Addr *limitReturn,
   AVERT(Space, space);
 
 
-  if(size > SegSize(space, group->seg)) {
+  if(size > SegSize(group->seg)) {
     return FALSE;
   }
-  bits = SegSize(space, group->seg) >> awl->alignShift;
+  bits = SegSize(group->seg) >> awl->alignShift;
   n = size >> awl->alignShift;
   if(BTFindResRange(&i, &j, group->alloc, 0, bits, n)) {
-    *baseReturn = AddrAdd(SegBase(space, group->seg), i << awl->alignShift);
-    *limitReturn = AddrAdd(SegBase(space, group->seg), j << awl->alignShift);
+    *baseReturn = AddrAdd(SegBase(group->seg), i << awl->alignShift);
+    *limitReturn = AddrAdd(SegBase(group->seg), j << awl->alignShift);
     return TRUE;
   }
   return FALSE;
@@ -209,7 +209,7 @@ static Res AWLInit(Pool pool, va_list arg)
 static void AWLFinish(Pool pool)
 {
   AWL awl;
-  Ring ring, node;
+  Ring ring, node, nextNode;
 
   /* pool argument already checked by generic PoolFinish */
 
@@ -217,9 +217,7 @@ static void AWLFinish(Pool pool)
   AVERT(AWL, awl);
 
   ring = &pool->segRing;
-  node = RingNext(ring);
-  while(node != ring) {
-    Ring next = RingNext(node);
+  RING_FOR(node, ring, nextNode) {
     Seg seg = SegOfPoolRing(node);
     AWLGroup group;
 
@@ -227,7 +225,6 @@ static void AWLFinish(Pool pool)
     group = (AWLGroup)SegP(seg);
     AVERT(AWLGroup, group);
     AWLGroupDestroy(group);
-    node = next;
   }
   ActionFinish(&awl->actionStruct);
 }
@@ -240,7 +237,7 @@ static Res AWLBufferFill(Seg *segReturn, Addr *baseReturn, Addr *limitReturn,
   AWLGroup group;
   AWL awl;
   Res res;
-  Ring node;
+  Ring node, nextNode;
   Space space;
 
   AVER(baseReturn != NULL);
@@ -253,7 +250,7 @@ static Res AWLBufferFill(Seg *segReturn, Addr *baseReturn, Addr *limitReturn,
   awl = PoolPoolAWL(pool);
   AVERT(AWL, awl);
 
-  RING_FOR(node, &pool->segRing) {
+  RING_FOR(node, &pool->segRing, nextNode) {
     Seg seg;
 
     seg = SegOfPoolRing(node);
@@ -271,14 +268,14 @@ static Res AWLBufferFill(Seg *segReturn, Addr *baseReturn, Addr *limitReturn,
   if(res != ResOK) {
     return res;
   }
-  base = SegBase(space, group->seg);
-  limit = SegLimit(space, group->seg);
+  base = SegBase(group->seg);
+  limit = SegLimit(group->seg);
 
 found:
   {
     Index i, j;
-    i = AddrOffset(SegBase(space, group->seg), base) >> awl->alignShift;
-    j = AddrOffset(SegBase(space, group->seg), limit) >> awl->alignShift;
+    i = AddrOffset(SegBase(group->seg), base) >> awl->alignShift;
+    j = AddrOffset(SegBase(group->seg), limit) >> awl->alignShift;
     BTSetRange(group->alloc, i, j);
   }
   *segReturn = group->seg;
@@ -303,7 +300,7 @@ static void AWLBufferEmpty(Pool pool, Buffer buffer)
   group = (AWLGroup)SegP(BufferSeg(buffer));
   AVERT(AWLGroup, group);
 
-  segBase = SegBase(PoolSpace(pool), BufferSeg(buffer));
+  segBase = SegBase(BufferSeg(buffer));
 
   i = AddrOffset(segBase, BufferGetInit(buffer)) >> awl->alignShift;
   j = AddrOffset(segBase, BufferLimit(buffer)) >> awl->alignShift;
@@ -334,7 +331,7 @@ static Res AWLCondemn(Pool pool, Trace trace, Seg seg, Action action)
 
   group = (AWLGroup)SegP(seg);
   AVERT(AWLGroup, group);
-  bits = SegSize(PoolSpace(pool), seg) >> awl->alignShift;
+  bits = SegSize(seg) >> awl->alignShift;
   
   BTResRange(group->mark, 0, bits);
   BTResRange(group->scanned, 0, bits);
@@ -358,7 +355,7 @@ static void AWLGrey(Pool pool, Trace trace, Seg seg)
 
     SegSetGrey(seg, TraceSetAdd(SegGrey(seg), trace->ti));
     ShieldRaise(trace->space, seg, AccessREAD);
-    bits = SegSize(PoolSpace(pool), seg) >> awl->alignShift;
+    bits = SegSize(seg) >> awl->alignShift;
     BTSetRange(group->mark, 0, bits);
     BTResRange(group->scanned, 0, bits);
   }
@@ -418,9 +415,9 @@ static Res AWLScan(ScanState ss, Pool pool, Seg seg)
   AVERT(AWL, awl);
 
   space = PoolSpace(pool);
-  bits = SegSize(space, seg) >> awl->alignShift;
-  base = SegBase(space, seg);
-  limit = SegLimit(space, seg);
+  bits = SegSize(seg) >> awl->alignShift;
+  base = SegBase(seg);
+  limit = SegLimit(seg);
 
 notFinished:
   finished = TRUE;
@@ -502,7 +499,7 @@ static Res AWLFix(Pool pool, ScanState ss, Seg seg, Ref *refIO)
   AVERT(Space, space);
 
   ref = *refIO;
-  i = AddrOffset(SegBase(space, seg), ref) >> awl->alignShift;
+  i = AddrOffset(SegBase(seg), ref) >> awl->alignShift;
   
   ss->wasMarked = TRUE;
 
@@ -555,7 +552,7 @@ static void AWLReclaim(Pool pool, Trace trace, Seg seg)
   space = PoolSpace(pool);
   AVERT(Space, space);
 
-  bits = SegSize(space, seg) >> awl->alignShift;
+  bits = SegSize(seg) >> awl->alignShift;
 
   i = 0;
   while(i < bits) {
@@ -565,8 +562,8 @@ static void AWLReclaim(Pool pool, Trace trace, Seg seg)
       ++i;
       continue;
     }
-    p = AddrAdd(SegBase(space, seg), i << awl->alignShift);
-    j = AddrOffset(SegBase(space, seg), awl->format->skip(p)) >>
+    p = AddrAdd(SegBase(seg), i << awl->alignShift);
+    j = AddrOffset(SegBase(seg), awl->format->skip(p)) >>
         awl->alignShift;
     AVER(j <= bits);
     if(!BTGet(group->mark, i)) {

@@ -1,6 +1,6 @@
 /* impl.c.shield: SHIELD IMPLEMENTATION
  *
- * $HopeName: !shield.c(trunk.7) $
+ * $HopeName: MMsrc!shield.c(MMdevel_drj_message.1) $
  *
  * See: idea.shield, design.mps.shield.
  *
@@ -72,7 +72,7 @@
 
 #include "mpm.h"
 
-SRCID(shield, "$HopeName: !shield.c(trunk.7) $");
+SRCID(shield, "$HopeName: MMsrc!shield.c(MMdevel_drj_message.1) $");
 
 void ShieldSuspend(Space space)
 {
@@ -103,7 +103,7 @@ static void protLower(Space space, Seg seg, AccessSet mode)
 
   if(SegPM(seg) & mode) {
     SegSetPM(seg, SegPM(seg) & ~mode);
-    ProtSet(SegBase(space, seg), SegLimit(space, seg), SegPM(seg));
+    ProtSet(SegBase(seg), SegLimit(seg), SegPM(seg));
   }
 }
 
@@ -113,7 +113,7 @@ static void sync(Space space, Seg seg)
   AVERT(Seg, seg);
 
   if(SegPM(seg) != SegSM(seg)) {
-    ProtSet(SegBase(space, seg), SegLimit(space, seg), SegSM(seg));
+    ProtSet(SegBase(seg), SegLimit(seg), SegSM(seg));
     SegSetPM(seg, SegSM(seg));
     /* inv.prot.shield */
   }
