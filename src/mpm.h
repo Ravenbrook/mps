@@ -1,6 +1,6 @@
 /* impl.h.mpm: MEMORY POOL MANAGER DEFINITIONS
  *
- * $HopeName: !mpm.h(MMdevel_metrics.3) $
+ * $HopeName: MMsrc!mpm.h(MMdevel_metrics_fix.1) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  */
 
@@ -534,6 +534,12 @@ extern void SegFinish(Seg seg);
 extern void SegSetGrey(Seg seg, TraceSet grey);
 extern void SegSetSummary(Seg seg, RefSet summary);
 extern void SegSetRankSet(Seg seg, RankSet rankSet);
+
+/* @@@ hacky seg mark thingy */
+extern void SegSetMark(Seg seg, Addr addr);
+extern Bool SegGetMark(Seg seg, Addr addr);
+extern void SegResMark(Seg seg, Addr addr);
+extern void SegResAllMarks(Seg seg);
 
 #define SegPool(seg)            ((seg)->_pool)
 /* .bitfield.promote: The bit field accesses need to be cast to the */
