@@ -1,6 +1,6 @@
 /*  impl.c.qs:                QUICKSORT
  *
- *  $HopeName: MMsrc!qs.c(MMdevel_sw_eq.1) $
+ *  $HopeName: MMsrc!qs.c(MMdevel_sw_eq.2) $
  *
  *  Copyright (C) 1995,1996 Harlequin Group, all rights reserved
  *
@@ -365,18 +365,15 @@ static
 void *
 go(void *p, size_t s)
 {
-  mps_pool_pref_t pref;
   UNUSED(p);
   UNUSED(s);
 
-  die(mps_pool_pref_create(&pref, space), "pool_pref_create");
-  
-  die(mps_pool_create(&mpool, pref, mps_class_mv(), space,
+  die(mps_pool_create(&mpool, mps_class_mv(), space,
                       (size_t)65536, sizeof(QSCellStruct) * 1000,
                       (size_t)65536), "MVCreate");
 
   die(mps_fmt_create_A(&format, space, &fmt_A_s), "FormatCreate");
-  die(mps_pool_create(&pool, pref, mps_class_amc(), space, format),
+  die(mps_pool_create(&pool, mps_class_amc(), space, format),
       "AMCCreate");
   die(mps_ap_create(&ap, pool, MPS_RANK_EXACT), "APCreate");
   die(mps_root_create_table(&regroot, space, MPS_RANK_AMBIG, 0,
@@ -384,8 +381,6 @@ go(void *p, size_t s)
   die(mps_root_create_table(&actroot, space, MPS_RANK_AMBIG, 0,
       (mps_addr_t *)&activationStack, sizeof(QSCell)/sizeof(mps_addr_t)),
       "RootCreateTable");
-
-  mps_pool_pref_destroy(pref,space);
 
   /* makes a random list */
   makerndlist(1000);
