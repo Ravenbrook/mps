@@ -1,6 +1,6 @@
 /* impl.h.mpmst: MEMORY POOL MANAGER DATA STRUCTURES
  *
- * $HopeName: MMsrc!mpmst.h(MMdevel_remem.2) $
+ * $HopeName: MMsrc!mpmst.h(MMdevel_remem.3) $
  * Copyright (C) 1996 Harlequin Group, all rights reserved.
  *
  * .rationale: Almost all MPM data structures are defined in this
@@ -55,8 +55,10 @@ typedef struct PoolClassStruct {
   PoolBufferDestroyMethod bufferDestroy;
   PoolBufferFillMethod bufferFill;
   PoolBufferTripMethod bufferTrip;
-  PoolBufferExposeMethod bufferExpose;
-  PoolBufferCoverMethod bufferCover;
+  PoolBufferAttachMethod bufferAttach;
+  PoolBufferDetachMethod bufferDetach;
+  PoolTraceStartMethod traceStart;
+  PoolTraceEndMethod traceEnd;
   PoolCondemnMethod condemn;
   PoolGreyMethod grey;
   PoolScanMethod scan;
@@ -201,7 +203,11 @@ typedef struct SegStruct {      /* segment structure */
   Size depth;                   /* see impl.c.shield.def.depth */
   void *p;                      /* pointer for use of owning pool */
   TraceId condemned;            /* seg condemned? for which trace? */
+  TraceSet grey;                /* grey set see impl.c.trace @@@@ */
+  RingStruct traceRing;         /* used for grey-list @@@@ */
   RefSet summary;               /* refset approx of refs in seg */
+  PropSet prop;                 /* used by tracer @@@@ */
+  Buffer buffer;                /* attached buffer or NULL @@@@ */
 } SegStruct;
 
 
@@ -290,6 +296,8 @@ typedef struct BufferStruct {
   AccessSet shieldMode;         /* shielding for allocated memory */
   TraceSet grey;                /* colour for allocated memory */
   void *p; int i;               /* closure variables */
+  RingStruct traceRing;         /* used by tracer @@@@ */
+  PropSet prop;                 /* used by tracer @@@@ */
 } BufferStruct;
 
 
@@ -508,6 +516,8 @@ typedef struct SpaceStruct {
   TraceSet busyTraces;          /* set of running traces */
   TraceStruct trace[TRACE_MAX]; /* trace structures */
   Shift zoneShift;              /* see impl.c.ref */
+  RingStruct exposedRing;       /* ring of exposed buffers. @@@@ */
+  RingStruct traceSegRing;      /* ring of trace segs @@@@ */
 
   /* location dependeny fields (impl.c.ld) */
   Epoch epoch;                  /* current epoch */

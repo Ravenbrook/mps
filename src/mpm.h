@@ -1,6 +1,6 @@
 /* impl.h.mpm: MEMORY POOL MANAGER DEFINITIONS
  *
- * $HopeName: MMsrc!mpm.h(MMdevel_remem.2) $
+ * $HopeName: MMsrc!mpm.h(MMdevel_remem.3) $
  * Copyright (C) 1996 Harlequin Group, all rights reserved.
  */
 
@@ -150,12 +150,16 @@ extern void PoolFree(Pool pool, Addr old, Size size);
 extern Res PoolCondemn(RefSet *condemnedIO, Pool pool,
                          Space space, TraceId ti);
 extern void PoolGrey(Pool pool, Space space, TraceId ti);
-extern Res PoolScan(ScanState ss, Pool pool, Bool *finishedReturn);
+extern Res  PoolBufferAttach(Pool pool, Buffer buffer, Size size);
+extern void PoolBufferDetach(Pool pool, Buffer buffer);
+extern Res  PoolTraceStart(Pool pool, TraceId ti);
+extern Res  PoolTraceEnd(Pool pool, TraceId ti);
+extern Res PoolScan(Pool pool, ScanState ss, Seg seg);
 extern Res (PoolFix)(Pool pool, ScanState ss, Seg seg, Addr *refIO);
 #define PoolFix(pool, ss, seg, refIO) \
   ((*(pool)->class->fix)(pool, ss, seg, refIO))
 
-extern void PoolReclaim(Pool pool, Space space, TraceId ti);
+extern void PoolReclaim(Pool pool, Seg seg, TraceId ti);
 extern void PoolAccess(Pool pool, Seg seg, AccessSet mode);
 extern Size PoolPoll(Pool pool);
 
@@ -187,7 +191,17 @@ extern Size TracePoll(Space space, TraceId ti);
 extern Res TraceRunAtomic(Space space, TraceId ti);
 extern Res TraceRun(Space space, TraceId ti, Bool *finishedReturn);
 
+extern Res TraceSegAlloc(Seg *segReturn, Pool pool, Size size, PropSet prop);
+extern void TraceSegFree(Pool pool, Seg seg);
+extern void TraceSegGrey(Space space, ScanState ss, Seg seg);
+extern void TraceBufferDetach(Space space, Buffer buffer);
+extern Res TraceBufferFill(Addr *pReturn, Pool pool, Buffer buffer, Size size);
+extern Bool TraceBufferTrip(Pool pool, Buffer buffer, Addr p, Size size);
+extern void TraceBufferFinish(Buffer buffer);
+
 extern Res TraceFix(ScanState ss, Ref *refIO);
+extern Res TraceCollect(Space space);
+extern void TraceAccess(Pool pool, Seg seg, AccessSet mode);
 
 /* Equivalent to impl.h.mps MPS_SCAN_BEGIN */
 
@@ -279,8 +293,6 @@ extern Res BufferReserve(Addr *pReturn, Buffer buffer, Size size);
 extern Res BufferFill(Addr *pReturn, Buffer buffer, Size size);
 extern Bool BufferCommit(Buffer buffer, Addr p, Size size);
 extern Bool BufferTrip(Buffer buffer, Addr p, Size size);
-extern void BufferExpose(Buffer buffer);
-extern void BufferCover(Buffer buffer);
 extern void BufferInit(Buffer buffer, Pool pool);
 extern void BufferFinish(Buffer buffer);
 extern void BufferSet(Buffer buffer, Seg seg, Addr base, Addr init, Addr limit);
@@ -325,8 +337,10 @@ extern void PoolClassInit(
   PoolBufferDestroyMethod bufferDestroy,
   PoolBufferFillMethod bufferFill,
   PoolBufferTripMethod bufferTrip,
-  PoolBufferExposeMethod bufferExpose,
-  PoolBufferCoverMethod bufferCover,
+  PoolBufferAttachMethod bufferAttach,
+  PoolBufferDetachMethod bufferDetach,
+  PoolTraceStartMethod traceStart,
+  PoolTraceEndMethod traceEnd,
   PoolCondemnMethod condemn,
   PoolGreyMethod grey,
   PoolScanMethod scan,

@@ -1,6 +1,6 @@
 /* impl.h.mpmtypes: MEMORY POOL MANAGER TYPES
  *
- * $HopeName: MMsrc!mpmtypes.h(MMdevel_remem.1) $
+ * $HopeName: MMsrc!mpmtypes.h(MMdevel_remem.2) $
  * Copyright (C) 1996 Harlequin Group, all rights reserved.
  *
  * .rationale: Types and type constants are almost all defined
@@ -61,6 +61,7 @@ typedef unsigned Shift;			/* shift for any word */
 typedef Addr Ref;			/* reference to managed object */
 
 typedef Word RefSet;			/* see impl.c.ref */
+typedef Word PropSet;			/* used by tracer @@@@ */
 typedef unsigned Rank;			/* see impl.c.ref */
 typedef Size Epoch;			/* see impl.c.ld */
 typedef unsigned TraceId;		/* impl.c.mpm.check.ti */
@@ -99,14 +100,16 @@ typedef Res  (*PoolBufferCreateMethod) (Buffer *bufReturn, Pool pool);
 typedef void (*PoolBufferDestroyMethod)(Pool pool, Buffer buf);
 typedef Res  (*PoolBufferFillMethod)   (Addr *baseReturn, Pool pool, Buffer buffer, Size size);
 typedef Bool (*PoolBufferTripMethod)   (Pool pool, Buffer buffer, Addr base, Size size);
-typedef void (*PoolBufferExposeMethod) (Pool pool, Buffer buffer);
-typedef void (*PoolBufferCoverMethod)  (Pool pool, Buffer buffer);
+typedef Res  (*PoolBufferAttachMethod) (Pool pool, Buffer buffer, Size size);
+typedef void (*PoolBufferDetachMethod) (Pool pool, Buffer buffer);
+typedef Res  (*PoolTraceStartMethod)   (Pool pool, TraceId ti);
+typedef Res  (*PoolTraceEndMethod)     (Pool pool, TraceId ti);
 typedef Res  (*PoolDescribeMethod)     (Pool pool, Lib_FILE *stream);
 typedef Res  (*PoolCondemnMethod)      (RefSet *condemnedIO, Pool pool, Space space, TraceId ti);
 typedef void (*PoolGreyMethod)         (Pool pool, Space space, TraceId ti);
-typedef Res  (*PoolScanMethod)         (ScanState ss, Pool pool, Bool *finishedReturn);
+typedef Res  (*PoolScanMethod)         (Pool pool, ScanState ss, Seg seg);
 typedef Res  (*PoolFixMethod)          (Pool pool, ScanState ss, Seg seg, Ref *refIO);
-typedef void (*PoolReclaimMethod)      (Pool pool, Space space, TraceId ti);
+typedef void (*PoolReclaimMethod)      (Pool pool, Seg seg, TraceId ti);
 typedef void (*PoolAccessMethod)       (Pool pool, Seg seg, AccessSet mode);
 
 typedef Res  (*FormatScanMethod)   (ScanState ss, Addr base, Addr limit);
@@ -122,6 +125,7 @@ typedef void (*FormatPadMethod)    (Addr base, Size size);
 #define RingNONE	((Ring)0)
 #define TraceIdNONE	((TraceId)-1)
 #define TraceSetEMPTY	((TraceSet)0)
+#define PropFWD	        ((PropSet)1)
 
 enum {				/* rank constants */
   RankAMBIG,			/* ambiguous reference */

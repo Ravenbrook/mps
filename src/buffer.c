@@ -1,6 +1,6 @@
 /* impl.c.buffer: ALLOCATION BUFFER IMPLEMENTATION
  *
- * $HopeName: !buffer.c(trunk.9) $
+ * $HopeName: MMsrc!buffer.c(MMdevel_remem.1) $
  * Copyright (C) 1996 Harlequin Group, all rights reserved
  *
  * This is the interface to allocation buffers.
@@ -115,7 +115,7 @@
 
 #include "mpm.h"
 
-SRCID(buffer, "$HopeName: !buffer.c(trunk.9) $");
+SRCID(buffer, "$HopeName: MMsrc!buffer.c(MMdevel_remem.1) $");
 
 
 Ring BufferPoolRing(Buffer buffer)
@@ -179,6 +179,7 @@ Bool BufferCheck(Buffer buffer)
   CHECKU(Space, buffer->space);
   CHECKL(RingCheck(&buffer->poolRing));
   CHECKL(TraceSetCheck(buffer->grey));
+  CHECKL(RingCheck(&buffer->traceRing));
   CHECKL(buffer->base <= buffer->ap.init);
   CHECKL(buffer->ap.init <= buffer->ap.alloc);
   CHECKL(buffer->ap.alloc <= buffer->ap.limit || buffer->ap.limit == 0);
@@ -322,7 +323,9 @@ void BufferInit(Buffer buffer, Pool pool)
   buffer->p = NULL;
   buffer->i = 0;
   buffer->shieldMode = AccessSetEMPTY;
+  buffer->prop = 0;
   buffer->grey = TraceSetEMPTY;
+  RingInit(&buffer->traceRing);
 
   RingInit(&buffer->poolRing);
   RingAppend(&pool->bufferRing, &buffer->poolRing);
@@ -342,6 +345,7 @@ void BufferFinish(Buffer buffer)
   AVER(buffer->exposed == FALSE);
 
   RingRemove(&buffer->poolRing);
+  RingRemove(&buffer->traceRing);
 
   buffer->sig = SigInvalid;
 }
@@ -495,39 +499,6 @@ Bool BufferTrip(Buffer buffer, Addr p, Word size)
   pool = BufferPool(buffer);
   return (*pool->class->bufferTrip)(pool, buffer, p, size);
 }
-
-
-/* BufferShieldExpose/Cover -- buffer shield control
- *
- * BufferExpose guarantees that buffered memory is exposed between a
- * reserve and commit operation.  BufferCover guarantees that
- * buffered memory is covered.
- */
-
-void BufferExpose(Buffer buffer)
-{
-  Pool pool;
-
-  AVERT(Buffer, buffer);
-  AVER(BufferPool(buffer)->class->bufferExpose != NULL);
-
-  buffer->exposed = TRUE;
-  pool = BufferPool(buffer);
-  (*pool->class->bufferExpose)(pool, buffer);
-}
-
-void BufferCover(Buffer buffer)
-{
-  Pool pool;
-
-  AVERT(Buffer, buffer);
-  AVER(BufferPool(buffer)->class->bufferCover != NULL);
-
-  buffer->exposed = FALSE;
-  pool = BufferPool(buffer);
-  (*pool->class->bufferCover)(pool, buffer);
-}
-
 
 Res BufferDescribe(Buffer buffer, Lib_FILE *stream)
 {

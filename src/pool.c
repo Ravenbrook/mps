@@ -1,6 +1,6 @@
 /* impl.c.pool: POOL IMPLEMENTATION
  *
- * $HopeName: MMsrc!pool.c(MMdevel_remem.1) $
+ * $HopeName: MMsrc!pool.c(MMdevel_remem.2) $
  * Copyright (C) 1994,1995,1996 Harlequin Group, all rights reserved
  *
  * This is the implementation of the generic pool interface.  The
@@ -9,7 +9,7 @@
 
 #include "mpm.h"
 
-SRCID(pool, "$HopeName: MMsrc!pool.c(MMdevel_remem.1) $");
+SRCID(pool, "$HopeName: MMsrc!pool.c(MMdevel_remem.2) $");
 
 
 Bool PoolCheck(Pool pool)
@@ -110,6 +110,22 @@ void PoolFree(Pool pool, Addr old, Size size)
     (*pool->class->free)(pool, old, size);
 }
 
+Res PoolTraceStart(Pool pool, TraceId ti)
+{
+  if(pool->class->traceStart != NULL)
+    return (*pool->class->traceStart)(pool, ti);
+  else
+    return ResOK;
+}
+
+Res PoolTraceEnd(Pool pool, TraceId ti)
+{
+  if(pool->class->traceEnd != NULL)
+    return (*pool->class->traceEnd)(pool, ti);
+  else
+    return ResOK;
+}
+
 Res PoolCondemn(RefSet *condemnedIO, Pool pool,
                   Space space, TraceId ti)
 {
@@ -128,14 +144,26 @@ void PoolGrey(Pool pool, Space space, TraceId ti)
     (*pool->class->grey)(pool, space, ti);
 }
 
-Res PoolScan(ScanState ss, Pool pool, Bool *finishedReturn)
+Res PoolBufferAttach(Pool pool, Buffer buffer, Size size)
+{
+  if(pool->class->bufferAttach != NULL)
+    return (*pool->class->bufferAttach)(pool, buffer, size);
+  else
+    return ResOK;
+}
+
+void PoolBufferDetach(Pool pool, Buffer buffer)
+{
+  if(pool->class->bufferDetach != NULL)
+    (*pool->class->bufferDetach)(pool, buffer);
+}
+
+Res PoolScan(Pool pool, ScanState ss, Seg seg)
 {
   if(pool->class->scan != NULL)
-    return (*pool->class->scan)(ss, pool, finishedReturn);
-  else {
-    *finishedReturn = TRUE;
+    return (*pool->class->scan)(pool, ss, seg);
+  else
     return ResOK;
-  }
 }
 
 Res (PoolFix)(Pool pool, ScanState ss, Seg seg, Addr *refIO)
@@ -144,10 +172,10 @@ Res (PoolFix)(Pool pool, ScanState ss, Seg seg, Addr *refIO)
   return PoolFix(pool, ss, seg, refIO);
 }
 
-void PoolReclaim(Pool pool, Space space, TraceId ti)
+void PoolReclaim(Pool pool, Seg seg, TraceId ti)
 {
   if(pool->class->reclaim != NULL)
-    (*pool->class->reclaim)(pool, space, ti);
+    (*pool->class->reclaim)(pool, seg, ti);
 }
 
 
@@ -186,28 +214,6 @@ Res PoolDescribe(Pool pool, Lib_FILE *stream)
 Space (PoolSpace)(Pool pool)
 {
   return pool->space;
-}
-
-
-Res PoolSegAllocPref(Seg *segReturn, Pool pool, Size size, RefSet pref)
-{
-  Res res;
-  Seg seg;
-  Space space;
-
-  AVER(segReturn != NULL);
-  AVERT(Pool, pool);
-  space = PoolSpace(pool);
-  AVER(SizeIsAligned(size, ArenaAlign(space)));
-
-  res = SegAllocPref(&seg, space, size, pool, pref);
-  if(res != ResOK)
-    return res;
-
-  seg->pool = pool;
-
-  *segReturn = seg;
-  return ResOK;
 }
 
 Res PoolSegAlloc(Seg *segReturn, Pool pool, Size size)
