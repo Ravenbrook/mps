@@ -1,6 +1,6 @@
 /* impl.h.mpm: MEMORY POOL MANAGER DEFINITIONS
  *
- * $HopeName: !mpm.h(trunk.95) $
+ * $HopeName: MMsrc!mpm.h(MMdevel_fencepost.1) $
  * Copyright (C) 1998.  Harlequin Group plc.  All rights reserved.
  */
 
@@ -362,6 +362,7 @@ extern void PoolNoWalk(Pool pool, Seg seg,
                        FormattedObjectsStepMethod,
 		       void *, unsigned long);
 extern Res PoolCollectAct(Pool pool, Action action);
+extern PoolDebugMixin PoolNoDebugMixin(Pool pool);
 
 
 /* Message Interface -- see design.mps.message */
