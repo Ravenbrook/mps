@@ -1,6 +1,6 @@
 /* impl.c.poolmv2: MANUAL VARIABLE POOL, II
  *
- * $HopeName: MMsrc!poolmv2.c(MMdevel_mv2_rework.3) $
+ * $HopeName: MMsrc!poolmv2.c(MMdevel_mv2_rework.4) $
  * Copyright (C) 1998 Harlequin Group plc.  All rights reserved.
  *
  * .readership: any MPS developer
@@ -17,7 +17,7 @@
 #include "abq.h"
 #include "meter.h"
 
-SRCID(poolmv2, "$HopeName: MMsrc!poolmv2.c(MMdevel_mv2_rework.3) $");
+SRCID(poolmv2, "$HopeName: MMsrc!poolmv2.c(MMdevel_mv2_rework.4) $");
 
 
 /* Signatures */
@@ -86,7 +86,7 @@ typedef struct MV2Struct
   Size fillSize;                /* Size of pool segments */
   /* design.mps.poolmv2:arch.contingency */
   Size availLimit;              /* Limit on available */
-  /* design.mps.poolmv2:arch.ap.high-water */
+  /* design.mps.poolmv2:arch.abq.high-water */
   Size abqSize;
   Size abqLimit;
   /* design.mps.poolmv2:arch.ap.no-fit.* */
@@ -114,8 +114,9 @@ typedef struct MV2Struct
   METER_DECL(poolUnavailable);
   METER_DECL(poolUtilization);
   /* abq meters */
-  METER_DECL(finds);
-  METER_DECL(underflows);
+  METER_DECL(abqFinds);
+  METER_DECL(abqUnderflows);
+  METER_DECL(abqAvailable);
   /* fragmentation meters */
   METER_DECL(perfectFits);
   METER_DECL(firstFits);
@@ -135,6 +136,7 @@ typedef struct MV2Struct
   METER_DECL(exceptions);
   METER_DECL(exceptionSplinters);
   METER_DECL(exceptionReturns);
+  METER_DECL(exceptionErrors);
   
   Sig sig;
 } MV2Struct;
@@ -227,7 +229,7 @@ static Size MV2SegExceptionSize(MV2 mv2, Seg seg)
 static void MV2SegExceptionSizeSet(Size size, MV2 mv2, Seg seg) 
 {
   AVER(SegPool(seg) == MV2Pool(mv2));
-  AVER(SegP(seg) == 0);
+  AVER(size == 0 || SegP(seg) == 0);
   SegSetP(seg, (void*)size);
 }
 
@@ -273,11 +275,11 @@ static Res MV2Init(Pool pool, va_list arg)
   if (! (fragLimit > 0 && fragLimit <= 100))
     return ResLIMIT;
 
-  /* see design.mps.poolmv2:arch.parameters */
+  /* design.mps.poolmv2:arch.parameters */
   fillSize = SizeAlignUp(maxSize * 100 / fragLimit, ArenaAlign(arena));
-  maxSize = SizeAlignUp(maxSize, ArenaAlign(arena));
-  /* see design.mps.poolmv2:arch.fragmentation.internal */
+  /* design.mps.poolmv2:arch.fragmentation.internal */
   reuseSize = 2 * fillSize;
+  /* design.mps.poolmv2:arch.abq.high-water */
   abqLimit = SizeAlignUp(reserveDepth * meanSize, ArenaAlign(arena));
   /* + 1 to allow push, then check limit */
   abqDepth = (abqLimit + reuseSize - 1) / reuseSize + 1;
@@ -332,8 +334,9 @@ static Res MV2Init(Pool pool, va_list arg)
   METER_INIT(mv2->poolAvailable, "pool available");
   METER_INIT(mv2->poolUnavailable, "pool unavailable");
   METER_INIT(mv2->poolUtilization, "pool utilization");
-  METER_INIT(mv2->finds, "ABQ finds");
-  METER_INIT(mv2->underflows, "ABQ underflows");
+  METER_INIT(mv2->abqFinds, "ABQ finds");
+  METER_INIT(mv2->abqUnderflows, "ABQ underflows");
+  METER_INIT(mv2->abqAvailable, "ABQ available");
   METER_INIT(mv2->perfectFits, "perfect fits");
   METER_INIT(mv2->firstFits, "first fits");
   METER_INIT(mv2->secondFits, "second fits");
@@ -351,6 +354,8 @@ static Res MV2Init(Pool pool, va_list arg)
   METER_INIT(mv2->exceptions, "exceptions");
   METER_INIT(mv2->exceptionSplinters, "exception splinters");
   METER_INIT(mv2->exceptionReturns, "exception returns");
+  METER_INIT(mv2->exceptionReturns, "exception returns");
+  METER_INIT(mv2->exceptionErrors, "exception errors");
 
   mv2->sig = MV2Sig;
 
@@ -522,14 +527,14 @@ static Res MV2BufferFill(Seg *segReturn,
   /* Attempt to retrieve a free block from the ABQ */
   res = ABQPeek(MV2ABQ(mv2), &block);
   if (res != ResOK) {
-    METER_ACC(mv2->underflows, minSize);
+    METER_ACC(mv2->abqUnderflows, minSize);
     /* design.mps.poolmv2:arch.contingency.fragmentation-limit */
     if (mv2->available >=  mv2->availLimit) {
       METER_ACC(mv2->fragLimitContingencies, minSize);
       res = MV2ContingencySearch(&block, MV2CBS(mv2), minSize);
     }
   } else {
-    METER_ACC(mv2->finds, minSize);
+    METER_ACC(mv2->abqFinds, minSize);
   }
 found:
   if (res == ResOK) {
@@ -601,11 +606,16 @@ done:
   mv2->allocated += AddrOffset(base, limit);
   AVER(mv2->size == mv2->allocated + mv2->available +
        mv2->unavailable);
-  METER_ACC(mv2->poolUtilization, mv2->allocated * 100 / mv2->size);
-  METER_ACC(mv2->poolUnavailable, mv2->unavailable);
-  METER_ACC(mv2->poolAvailable, mv2->available);
-  METER_ACC(mv2->poolAllocated, mv2->allocated);
-  METER_ACC(mv2->poolSize, mv2->size);
+  /* Accumulate pool statistics, roughly on the allocation "clock" */
+  {
+    METER_ACC(mv2->poolUnavailable, mv2->unavailable);
+    METER_ACC(mv2->poolAvailable, mv2->available);
+    METER_ACC(mv2->poolAllocated, mv2->allocated);
+    METER_ACC(mv2->poolSize, mv2->size);
+    METER_ACC(mv2->abqAvailable, mv2->abqSize);
+    /* --- is that too often for this statistic? */
+    METER_ACC(mv2->poolUtilization, mv2->allocated * 100 / mv2->size);
+  }
   METER_ACC(mv2->bufferFills, AddrOffset(base, limit));
   EVENT_PPWAW(MV2BufferFill, mv2, buffer, minSize, base,
               AddrOffset(base, limit));
@@ -646,11 +656,6 @@ static void MV2BufferEmpty(Pool pool, Buffer buffer)
   mv2->allocated -= size;
   AVER(mv2->size == mv2->allocated + mv2->available +
        mv2->unavailable);
-  METER_ACC(mv2->poolUtilization, mv2->allocated * 100 / mv2->size);
-  METER_ACC(mv2->poolUnavailable, mv2->unavailable);
-  METER_ACC(mv2->poolAvailable, mv2->available);
-  METER_ACC(mv2->poolAllocated, mv2->allocated);
-  METER_ACC(mv2->poolSize, mv2->size);
   METER_ACC(mv2->bufferEmpties, size);
 
   /* design.mps.poolmv2:arch.ap.no-fit.splinter */
@@ -698,11 +703,13 @@ static void MV2Free(Pool pool, Addr base, Size size)
   MV2 mv2;
   Addr limit;
   Seg seg;
+  Size exceptionSize;
 
   AVERT(Pool, pool);
   mv2 = PoolPoolMV2(pool);
   AVERT(MV2, mv2);
   AVER(base != (Addr)0);
+  /* --- Interface AVER */
   AVER(size > 0);
 
 
@@ -714,53 +721,57 @@ static void MV2Free(Pool pool, Addr base, Size size)
   mv2->allocated -= size;
   AVER(mv2->size == mv2->allocated + mv2->available +
        mv2->unavailable);
-  METER_ACC(mv2->poolUtilization, mv2->allocated * 100 / mv2->size);
-  METER_ACC(mv2->poolUnavailable, mv2->unavailable);
-  METER_ACC(mv2->poolAvailable, mv2->available);
-  METER_ACC(mv2->poolAllocated, mv2->allocated);
-  METER_ACC(mv2->poolSize, mv2->size);
-  
   {
     Bool b = SegOfAddr(&seg, PoolArena(pool), base);
     AVER(b);
   }
   AVER(base >= SegBase(seg));
   AVER(limit <= SegLimit(seg));
+  exceptionSize = MV2SegExceptionSize(mv2, seg);
 
-  /* design.mps.poolmv2:arch.ap.no-fit.oversize.policy */
-  /* Return exceptional blocks directly to arena */
-  if (size > mv2->maxSize) {
-    Size segSize, exceptionSize;
-    
-    segSize = SegSize(seg);
-    exceptionSize = MV2SegExceptionSize(mv2, seg);
-    
-    if (exceptionSize > 0) {
-      Size splinter = segSize - exceptionSize;
-      /* --- Interface AVER */
-      AVER(size == exceptionSize);
-      AVER(base == SegBase(seg));
-      AVER(limit <= SegLimit(seg));
-      mv2->available += splinter;
-      mv2->unavailable -= splinter;
-      AVER(mv2->size == mv2->allocated + mv2->available +
-           mv2->unavailable);
-      METER_ACC(mv2->exceptionReturns, segSize);
-
-      if (SegBuffer(seg) != NULL)
-        BufferDetach(SegBuffer(seg), MV2Pool(mv2));
-      MV2SegExceptionSizeSet(0, mv2, seg);
-      MV2SegFree(mv2, seg);
-      return;
-    }
-  }
-  
-  /* --- Interface AVER */
-  AVER(MV2SegExceptionSize(mv2, seg) == 0);
-  {
+  if (exceptionSize == 0) {
     Res res = CBSInsert(MV2CBS(mv2), base, limit);
     AVER(res == ResOK);
+    return;
   }
+
+  /* --- Interface AVER */
+  AVER(size == exceptionSize);
+  /* Safe: if the client erred, leak the freed storage rather than
+     freeing the block (and possibly creating dangling references */
+  if (size != exceptionSize) {
+    AVER(size < exceptionSize);
+    mv2->available -= size;
+    mv2->unavailable += size;
+    AVER(mv2->size == mv2->allocated + mv2->available +
+         mv2->unavailable);
+    METER_ACC(mv2->exceptionErrors, size);
+    return;
+  }
+      
+  /* design.mps.poolmv2:arch.ap.no-fit.oversize.policy */
+  /* Return exceptional blocks directly to arena */
+  {
+    Size segSize = SegSize(seg);
+    Size splinter = segSize - exceptionSize;
+
+    AVER(base == SegBase(seg));
+    mv2->available += splinter;
+    mv2->unavailable -= splinter;
+    AVER(mv2->size == mv2->allocated + mv2->available +
+         mv2->unavailable);
+    METER_ACC(mv2->exceptionReturns, segSize);
+
+    /* Safe: the buffer was filled with an exact fit block (would trip
+       on any allocation after the exception) so the client cannot be
+       using the segment */
+    if (SegBuffer(seg) != NULL)
+      BufferDetach(SegBuffer(seg), MV2Pool(mv2));
+    MV2SegExceptionSizeSet(0, mv2, seg);
+    MV2SegFree(mv2, seg);
+    return;
+  }
+  
 }
 
 
@@ -799,9 +810,12 @@ static Res MV2Describe(Pool pool, mps_lib_FILE *stream)
   if(res != ResOK)
     return res;
 
+  /* --- too verbose */
+#if 0
   res = CBSDescribe(MV2CBS(mv2), stream);
   if(res != ResOK)
     return res;
+#endif
 
   res = ABQDescribe(MV2ABQ(mv2), stream);
   if(res != ResOK)
@@ -818,8 +832,9 @@ static Res MV2Describe(Pool pool, mps_lib_FILE *stream)
   METER_WRITE(mv2->poolAvailable, stream);
   METER_WRITE(mv2->poolUnavailable, stream);
   METER_WRITE(mv2->poolUtilization, stream);
-  METER_WRITE(mv2->finds, stream);
-  METER_WRITE(mv2->underflows, stream);
+  METER_WRITE(mv2->abqFinds, stream);
+  METER_WRITE(mv2->abqUnderflows, stream);
+  METER_WRITE(mv2->abqAvailable, stream);
   METER_WRITE(mv2->perfectFits, stream);
   METER_WRITE(mv2->firstFits, stream);
   METER_WRITE(mv2->secondFits, stream);
@@ -835,6 +850,7 @@ static Res MV2Describe(Pool pool, mps_lib_FILE *stream)
   METER_WRITE(mv2->exceptions, stream);
   METER_WRITE(mv2->exceptionSplinters, stream);
   METER_WRITE(mv2->exceptionReturns, stream);
+  METER_WRITE(mv2->exceptionErrors, stream);
   
   res = WriteF(stream, "}\n", NULL);
   if(res != ResOK)
@@ -1048,14 +1064,16 @@ static void MV2ReturnABQSegs(MV2 mv2)
   CBSBlock oldBlock;
 
   AVER(! (mv2->abqSize < mv2->abqLimit));
-  {
-    Res r = ABQPeek(MV2ABQ(mv2), &oldBlock);
-    AVER(r == ResOK);
-  }
-  {
-    Bool b = MV2ReturnBlockSegs(mv2, oldBlock, arena, mv2->abqSize - mv2->abqLimit);
-    AVER(b);
-  }
+  do {
+    {
+      Res r = ABQPeek(MV2ABQ(mv2), &oldBlock);
+      AVER(r == ResOK);
+    }
+    {
+      Bool b = MV2ReturnBlockSegs(mv2, oldBlock, arena, mv2->abqSize - mv2->abqLimit);
+      AVER(b);
+    }
+  } while (! (mv2->abqSize < mv2->abqLimit));
   AVER(mv2->abqSize < mv2->abqLimit);
 }
   
