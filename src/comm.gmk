@@ -1,6 +1,6 @@
 # impl.gmk.comm: COMMON GNUMAKEFILE FRAGMENT
 #
-# $HopeName: !comm.gmk(trunk.56) $
+# $HopeName: MMsrc!comm.gmk(MMdevel_pekka_locus.1) $
 # Copyright (C) 2000.  Harlequin Limited.  All rights reserved.
 #
 # DESCRIPTION
@@ -180,19 +180,20 @@ FMTPS = fmtpstst.c
 PLINTH = mpsliban.c mpsioan.c
 EVENT = event.c
 EVENTPROC = eventcnv.c eventpro.c table.c
-MPMCOMMON = assert.c mpsi.c mpm.c arenavm.c arenacl.c arena.c \
+MPMCOMMON = mpsi.c mpm.c arenavm.c arenacl.c arena.c global.c locus.c \
             tract.c walk.c reserv.c protocol.c pool.c poolabs.c \
             trace.c root.c seg.c format.c buffer.c ref.c bt.c ring.c \
-            shield.c ld.c event.c action.c message.c \
+            shield.c ld.c event.c action.c message.c assert.c \
             poolmrg.c poolmfs.c poolmv.c dbgpool.c \
-            abq.c meter.c poolmv2.c splay.c cbs.c version.c
+            meter.c splay.c cbs.c version.c
 MPM = $(MPMCOMMON) $(MPMPF)
-SWCOMMON = assert.c mpsi.c mpm.c arenavm.c arenacl.c arena.c \
+SWCOMMON = mpsi.c mpm.c arenavm.c arenacl.c arena.c global.c locus.c \
            tract.c walk.c reserv.c protocol.c pool.c poolabs.c \
            trace.c root.c seg.c format.c buffer.c ref.c bt.c ring.c \
-           shield.c ld.c event.c action.c mpsioan.c message.c poolmrg.c \
-           poolmfs.c poolmv.c poolepdl.c poolepvm.c poolams.c dbgpool.c \
-           abq.c meter.c poolmv2.c splay.c cbs.c version.c poolmvff.c
+           shield.c ld.c event.c action.c message.c assert.c \
+           poolmrg.c poolmfs.c poolmv.c dbgpool.c \
+           poolepdl.c poolepvm.c poolams.c poolmvff.c mpsioan.c \
+           meter.c splay.c cbs.c version.c
 SW = $(SWCOMMON) $(SWPF)
 
 
