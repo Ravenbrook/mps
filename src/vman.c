@@ -1,6 +1,6 @@
 /* impl.c.vman: ANSI VM: MALLOC-BASED PSUEDO MEMORY MAPPING
  *
- * $HopeName$
+ * $HopeName: MMsrc!vman.c(MMdevel_restr.2) $
  * Copyright (C) 1996 Harlequin Group, all rights reserved.
  */
 
@@ -8,15 +8,15 @@
 #include <stdlib.h>	/* for malloc and free */
 #include <string.h>	/* for memset */
 
-SRCID(vman, "$HopeName$");
+SRCID(vman, "$HopeName: MMsrc!vman.c(MMdevel_restr.2) $");
 
 #define SpaceVM(_space)	(&(_space)->arenaStruct.vmStruct)
 
 Bool VMCheck(VM vm)
 {
   CHECKS(VM, vm);
-  CHECKL(vm->base != NULL);
-  CHECKL(vm->limit != NULL);
+  CHECKL(vm->base != (Addr)0);
+  CHECKL(vm->limit != (Addr)0);
   CHECKL(vm->base < vm->limit);
   CHECKL(AddrIsAligned(vm->base, VMAN_ALIGN));
   CHECKL(AddrIsAligned(vm->limit, VMAN_ALIGN));
@@ -106,7 +106,7 @@ Res VMMap(Space space, Addr base, Addr limit)
   VM vm = SpaceVM(space);
   Size size;
 
-  AVER(base != NULL);
+  AVER(base != (Addr)0);
   AVER(vm->base <= base);
   AVER(base < limit);
   AVER(limit <= vm->limit);
@@ -126,7 +126,7 @@ void VMUnmap(Space space, Addr base, Addr limit)
   VM vm = SpaceVM(space);
   Size size;
 
-  AVER(base != NULL);
+  AVER(base != (Addr)0);
   AVER(vm->base <= base);
   AVER(base < limit);
   AVER(limit <= vm->limit);
