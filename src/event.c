@@ -1,6 +1,6 @@
 /* impl.c.event: EVENT LOGGING
  *
- * $HopeName: MMsrc!event.c(MM_epcore_anchovy.1) $
+ * $HopeName: MMsrc!event.c(MM_epcore_anchovy.2) $
  * Copyright (C) 1997, 1998 Harlequin Group plc.  All rights reserved.
  *
  * .readership: MPS developers.
@@ -26,7 +26,7 @@
 #include "event.h"
 #include "mpsio.h"
 
-SRCID(event, "$HopeName: MMsrc!event.c(MM_epcore_anchovy.1) $");
+SRCID(event, "$HopeName: MMsrc!event.c(MM_epcore_anchovy.2) $");
 
 
 #ifdef EVENT /* .trans.ifdef */
@@ -152,6 +152,12 @@ void EventLabelAddr(Addr addr, Word id)
 
 
 #else /* EVENT, not */
+
+
+Res EventSync(void)
+{
+  return(ResOK);  
+}
 
 
 Res (EventInit)(void)
