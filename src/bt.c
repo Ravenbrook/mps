@@ -1,6 +1,6 @@
 /* impl.c.bt: BIT TABLES
  *
- * $HopeName: !bt.c(trunk.8) $
+ * $HopeName: MMsrc!bt.c(MMdevel_annotation.1) $
  * Copyright (C) 1997 Harlequin Group, all rights reserved
  *
  * READERSHIP
@@ -19,7 +19,7 @@
 
 #include "mpm.h"
 
-SRCID(bt, "$HopeName: !bt.c(trunk.8) $");
+SRCID(bt, "$HopeName: MMsrc!bt.c(MMdevel_annotation.1) $");
 
 
 /* BTCheck -- check the validity of a bit table
@@ -145,8 +145,8 @@ Bool BTIsSetRange(BT bt, Index base, Index limit)
 /* design.mps.bt.fun.res-range */
 void BTResRange(BT t, Index i, Index j)
 {
-  AVER(BTCheck(t));
-  AVER(i < j);
+  AVER_COOL(BTCheck(t));
+  AVER_COOL(i < j);
 
   while(i < j) {
     BTRes(t, i);
@@ -168,15 +168,15 @@ static Bool BTFindResRange(Index *baseReturn, Index *limitReturn,
 {
   unsigned long base;
 
-  AVER(baseReturn != NULL);
-  AVER(limitReturn != NULL);
-  AVER(bt != NULL);
-  AVER(searchBase < searchLimit);
-  AVER(minLength <= maxLength);
-  AVER(minLength <= searchLimit - searchBase);
-  AVER(minLength > 0);
-  AVER(maxLength <= searchLimit - searchBase);
-  AVER(maxLength > 0);
+  AVER_COOL(baseReturn != NULL);
+  AVER_COOL(limitReturn != NULL);
+  AVER_COOL(bt != NULL);
+  AVER_COOL(searchBase < searchLimit);
+  AVER_COOL(minLength <= maxLength);
+  AVER_COOL(minLength <= searchLimit - searchBase);
+  AVER_COOL(minLength > 0);
+  AVER_COOL(maxLength <= searchLimit - searchBase);
+  AVER_COOL(maxLength > 0);
 
   /* design.mps.bt.fun.find-res.outer-loop */
   base = searchBase;
@@ -207,7 +207,7 @@ static Bool BTFindResRange(Index *baseReturn, Index *limitReturn,
       ++base;
     }
   }
-  AVER(base == searchLimit);
+  AVER_COOL(base == searchLimit);
 
   return FALSE;
 }
