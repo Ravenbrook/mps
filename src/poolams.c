@@ -1,219 +1,25 @@
 /* impl.c.poolams: AUTOMATIC MARK & SWEEP POOL CLASS
  *
- * $HopeName: MMsrc!poolams.c(MMdevel_poolams.1) $
+ * $HopeName: MMsrc!poolams.c(MMdevel_poolams.2) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  * 
  * NOTES
  * 
- * .one-condemn: This only works for a single condemnation at once,
- * because it has a single set of mark/scanned tables.
+ * .readership: any MPS developer.
  * 
- * .check-bt: The level of checking is poor because we don't have any
- * means of checking bit tables.
- * 
- * .invariants:
- * 
- * m s a state
- * 
- * 0 0 1 .invariant.white
- * 0 1 0 .invariant.free
- * 1 0 1 .invariant.grey (in condemned segments)
- * 1 1 1 .invariant.black (or grey in non-condemned segments)
- * 
- * .invariant.check: All other states are illegal, and can be
- * checked. Free is scanned and not marked because that state is
- * otherwise illegal, so will hit more AVERs.
+ * .scope: Implementation of a basic mark/sweep pool.
  *
- * .invariant.condemn: These colours apply for condemned segments. All
- * objects in a segment which is _not_ condemned (for some trace) take
- * their colour (for this trace) from the segment.
- *
- * .invariant.object: The colour of an object is the colour of its
- * first grain. The other grains of the object may be any non-free
- * colour.
+ * .purpose: A canonical mark/sweep pool to be used as the basis for
+ * other mark/sweep pools and for understanding the issues involved in
+ * doing mark/sweep collection in the MPS framework.
  * 
- * .invariant.create: New segments are created free.
- *
- * .invariant.fill: Buffers are filled black (111). Really this ought
- * to be the same colour as the mutator.
- * 
- * .invariant.empty: buffers are emptied back to free (010).
- * 
- * .method.wb: We need a new pool class method, called when the write
- * barrier is hit (or possibly any barrier hit). The generic method
- * will do the usual TraceAccess work, the trivial method will do
- * nothing.
- *
- * .scans: A segment may be scanned many times, as it may become grey
- * repeatedly.
- * 
- * .summary: There are some subtleties concerned with getting segment
- * summaries correct and in accord with assumptions made by the MPM.
- * This is not yet fully documented anywhere. For details of what we
- * do here and why, see mail.nickb.1997-08-12.15-44
- *
- * .summary.mutator: Sometimes we need to make summaries include the
- * mutator summary. This is approximated by setting the summary to
- * RefSetUNIV.
- * 
- * .summary.acc: Each time we partially scan a segment, we accumulate
- * the post-scan summary of the scanned objects into a field in the
- * group, called 'summarySoFar'.  The post-scan summary is
- * (summary \ white) U fixed.
- * 
- * .summary.acc.condemn: The cumulative summary is only meaningful
- * while the segment is condemned. Otherwise it is set to RefSetEMPTY
- * (a value which we can check).
- *
- * .summary.acc.reclaim: Then when we reclaim the segment, we set the
- * segment summary to the cumulative summary, as it is a post-scan
- * summary of all the scanned objects.
- *
- * .summary.acc.other-trace: If the segment is scanned by another
- * trace while it is condemned, the cumulative summary must be set to
- * the post-scan summary of this scan (otherwise it becomes
- * out-of-date).
- * 
- * .summary.scan: The scan summary is expected to be a summary of all
- * scanned references in the segment. We don't know this accurately
- * until we've scanned everything in the segment. So we add in the
- * segment summary each time.
- *
- * .summary.scan.fix: TraceScan also expects the scan state fixed
- * summary to include the post-scan summary of all references which
- * were white. Since we don't scan all white references, we need to
- * add in an approximation to the summary of all white references
- * which we didn't scan. This is the intersection of the segment
- * summary and the white summary.
- * 
- * .summary.acc.condemn: When we condemn a segment, we have to
- * initialize the cumulative summary to summarize any part of the
- * segment which may survive despite not being scanned in this
- * trace. Then the cumulative summary at reclaim will accurately
- * reflect the total summary of the segment.
- * 
- * .summary.acc.condemn.no-buf: For a non-buffered segment, there are
- * no such parts, so we can initialize the cumulative summary to
- * RefSetEMPTY.
- * 
- * .summary.acc.condemn.buf: For a buffered segment, the area between
- * scanLimit and Limit may survive without being scanned, and may be
- * written to by the mutator. So the cumulative summary should be
- * initialized to the mutator summary (.summary.mutator).
- *
- * .summary.acc.wb: When the write barrier is hit (.method.wb), we
- * need to correct the cumulative summary to the mutator summary
- * (.summary.mutator).
- * 
- * .marked: Each group has a 'marked' flag, indicating whether
- * anything in it has been made grey (by fixing) since the last scan
- * iteration started. In fact this flag is a conservative
- * approximation, as it is safe to scan the segment even if it
- * contains nothing grey. Note that this flag only concerns the colour
- * of objects with respect to the trace for which the group is
- * condemned, as this is the only trace for which objects in the group
- * are fixed.
- * 
- * .marked.unused: The marked flag is meaningless unless the segment
- * is condemned. We make it FALSE in these circumstances.
- * 
- * .marked.condemn: Condemnation makes all objects in a segment either
- * black or white, leaving nothing grey, so it sets the marked flag to
- * FALSE.
- *
- * .marked.reclaim: When a segment is reclaimed, it can contain
- * nothing marked as grey, so the marked flag must be FALSE.
- * 
- * .marked.fix: The marked flag is set TRUE by AMSFix when an object
- * is made grey.
- * 
- * .marked.scan: AWLScan must blacken all grey objects on the segment,
- * so it must iterate over the segment until all grey objects have
- * been seen.  Scanning an object in the segment might grey another
- * one (.marked.fix), so the scanner iterates until this flag is
- * FALSE, setting it to FALSE before each scan (as the scan is
- * at least blackening all things which are already grey).
- * 
- * .marked.scan.fail: If the format scanner fails, the trace code
- * should be able to correct the problem condition and retry the
- * scan. So in this case the marked flag is set back to TRUE, because
- * we may not have blackened all grey things. This means that if the
- * trace code restarts the scan, the scan will at least attempt to
- * scan some things (e.g. from where it left off).
- *
- * .condemn.buffer: We do not whiten objects between ScanLimit and
- * Limit of a buffer. This is because this area has the mutator's
- * colour, which is black.
- *
- * .scan.buffer: We do not scan between ScanLimit and Limit of a
- * buffer. This is because this area may contain partially-initialized
- * and uninitialized data (this is the purpose of ScanLimit, which is
- * not documented in design.mps.buffer).
- *
- * .scan.buffer.excuse: We do not need to scan this area anyway
- * because it has the mutator's colour, which is black.
- *
- * .scan.buffer.excuse.mutator: When the mutator is grey, we haven't
- * flipped, and ScanLimit == Init. An object can only avoid being
- * scanned by being partially initialized at flip time, but these are
- * exactly the objects which get discarded by trapping the buffer. See
- * BufferFlip.
- * 
- * .scan.all: When scanning a segment for any trace for which it is
- * not condemned, all the objects must be scanned, because they are
- * _all_ grey for this trace. See .invariant.condemn.
- *
- * .scan.all.iter: .marked.scan still applies in this case, as this
- * segment may also be condemned for one of the scan's traces, so
- * objects in it may still be fixed (and become grey) during the scan,
- * so the scan still has to iterate.
- *
- * .scan.once: However, if the segment is not condemned for any of the
- * scan's traces, then nothing in it may be fixed during the scan, so
- * the scan need not iterate. In this case we check that nothing in
- * the segment gets fixed during the scan.
- *
- * .fix.to-black: When fixing a reference to a white object, if the
- * segment does not refer to the white set, then the object does not
- * refer to the white set, and therefore can be marked as black
- * immediately (rather than grey).
- *
- * .reclaim: Reclaiming is a lot like scanning; we iterate over the
- * objects in the segment, finding
- *
- * .reclaim.buffer: Just as for .scan.buffer, we skip the area between
- * an active buffer's ScanLimit and Limit.
- *
- * .no-alloc: Do not support PoolAlloc, because incremental collecting
- * pools can't support one-phase allocation in our framework.
- *
- * .no-free: Do not support PoolFree, because automatic pools don't
- * need explicit free and having it encourages clients to use it (and
- * therefore to have dangling pointers, double frees, &c.
- * 
- * .triv-buffer-init: Do not need a pool-specific buffer init method, as we
- * do not use the pool slots in the buffer.
- *
- * .triv-buffer-finish: Do not need a pool-specific buffer finish
- * method, as we do not use the pool slots in the buffer.
- * 
- * .triv-trace-begin: Do not need a pool-specific trace begin
- * method.
- *
- * .triv-grey: Do not need a pool-specific grey method. Segments which
- * are not condemned are either all grey or all black, according to
- * the segment's colour (SegGrey(seg)), so we don't need to twiddle
- * any group bits.
- * 
- * .triv-trace-end: Do not need a pool-specific trace end
- * method.
+ * .design: See design.mps.poolams.
  */
 
 #include "mpm.h"
 #include "mpscams.h"
 
-SRCID(poolams, "$HopeName: MMsrc!poolams.c(MMdevel_poolams.1) $");
-
+SRCID(poolams, "$HopeName: MMsrc!poolams.c(MMdevel_poolams.2) $");
 
 #define AMSSig          ((Sig)0x519A3599) /* SIGnature AMS */
 
@@ -240,11 +46,10 @@ typedef struct AMSGroup {
   Count grains;                 /* number of grains in this group */
   BT allocTable;                /* set if grain is allocated */
 
-  /* .one-condemn */
+  /* design.mps.poolams.one-condemn */
   Bool marked;			/* has been marked since last scan */
   BT markTable;			/* set if grain marked */
   BT scanTable;			/* set if grain scanned */
-  RefSet summarySoFar;		/* .summary.acc */
 } AMSGroup;
 
 /* prototype the check function here; definition is at the end of the
@@ -329,12 +134,9 @@ static Bool AMSGroupCheck(AMSGroup group)
   CHECKL((group->grains << group->ams->grainShift) ==
 	 SegSize(PoolSpace(AMSPool(group->ams)), group->seg));
   
-  /* .bt-check */
-  /* @@@@ can now check invariants, including with buffer and marked
-     flag and summarysofar */
-  if (SegWhite(group->seg) == TraceSetEMPTY) {
-    CHECKL(group->summarySoFar == RefSetEMPTY);
-  } else {
+  /* design.mps.poolams.bt-check */
+  /* @@@@ can now check invariants, including with buffer and marked flag */
+  if (SegWhite(group->seg) != TraceSetEMPTY) {
     CHECKL(TraceSetIsSingle(SegWhite(group->seg)));
   }
 
@@ -419,8 +221,7 @@ static Res AMSGroupCreate(AMSGroup *groupReturn, Pool pool, Size size,
     SegSetSummary(seg, RefSetUNIV);
 
   group->grains = size >> pool->grainShift;
-  group->marked = FALSE; /* .marked.unused */
-  group->summarySoFar = RefSetEMPTY; /* .summary.acc.condemn */
+  group->marked = FALSE; /* design.mps.poolams.marked.unused */
 
   res = AMSBTCreate(&group->allocTable, space, group->grains);
   if (res != ResOK)
@@ -434,7 +235,7 @@ static Res AMSGroupCreate(AMSGroup *groupReturn, Pool pool, Size size,
   if (res != ResOK)
     goto failScan;
   
-  /* .invariant.create */
+  /* design.mps.poolams.invariant.create */
   BTSetRange(group->scanTable, 0, group->grains);
 
   group->ams = ams;
@@ -569,12 +370,12 @@ static Bool AMSGroupAlloc(Index *baseReturn, Index *limitReturn,
   if (!b)
     return FALSE;
 
-  /* .invariant.free */
+  /* design.mps.poolams.invariant.free */
   AVER(BTIsResRange(group->markTable, base, limit));
   AVER(BTIsSetRange(group->scanTable, base, limit));
   AVER(BTIsResRange(group->allocTable, base, limit));
 
-  /* .invariant.black */
+  /* design.mps.poolams.invariant.black */
   BTSetRange(group->allocTable, base, limit);
   BTSetRange(group->markTable, base, limit);
 
@@ -665,12 +466,12 @@ static void AMSBufferEmpty(Pool pool, Buffer buffer)
   initIndex = AMSAddrIndex(group, init);
   limitIndex = AMSAddrIndex(group, limit);
 
-  /* .invariant.black, .invariant.fill */
+  /* design.mps.poolams.invariant.black, design.mps.poolams.invariant.fill */
   AVER(BTIsSetRange(group->markTable, initIndex, limitIndex));
   AVER(BTIsSetRange(group->scanTable, initIndex, limitIndex));
   AVER(BTIsSetRange(group->allocTable, initIndex, limitIndex));
 
-  /* .invariant.free, .invariant.empty */
+  /* design.mps.poolams.invariant.free, design.mps.poolams.invariant.empty */
   BTResRange(group->markTable, initIndex, limitIndex);
   BTResRange(group->allocTable, initIndex, limitIndex);
 }
@@ -716,11 +517,11 @@ static void AMSRangeCondemn(AMSGroup group, Index base, Index limit)
     AVER(base < limit);
     AVER(limit <= group->grains);
     
-    /* either black or free, see .invariant */
+    /* either black or free, see design.mps.poolams.invariant */
     AVER(BTIsSetRange(group->scanTable, base, limit));
     AVER(AMSBTRangesSame(group->allocTable, group->markTable, base, limit));
     
-    /* black -> white, free -> free, see .invariant */
+    /* black -> white, free -> free, see design.mps.poolams.invariant */
     BTResRange(group->markTable, base, limit);
     AMSBTCopyInvRange(group->allocTable, group->scanTable, base, limit);
   }
@@ -746,20 +547,18 @@ static Res AMSCondemn(Pool pool, Trace trace, Seg seg, Action action)
   AVER(group->ams == ams);
 
   buffer = SegBuffer(seg);
-  if (buffer != NULL) { /* .condemn.buffer */
+  if (buffer != NULL) { /* design.mps.poolams.condemn.buffer */
     Index scanLimitIndex, limitIndex;
     scanLimitIndex = AMSAddrIndex(group, BufferScanLimit(buffer));
     limitIndex = AMSAddrIndex(group, BufferLimit(buffer));
     
     AMSRangeCondemn(group, 0, scanLimitIndex);
     AMSRangeCondemn(group, limitIndex, group->grains);
-    group->summarySoFar = RefSetUNIV; /* .summary.acc.condemn.buf */
   } else { /* condemn whole seg */
     AMSRangeCondemn(group, 0, group->grains);
-    group->summarySoFar = RefSetEMPTY; /* .summary.acc.condemn.no-buf */
   }
 
-  group->marked = FALSE; /* .marked.condemn */
+  group->marked = FALSE; /* design.mps.poolams.marked.condemn */
   SegSetWhite(seg, TraceSetAdd(SegWhite(seg), trace->ti));
 
   return ResOK;
@@ -787,7 +586,7 @@ static Res AMSScanGroupOnce(ScanState ss, AMS ams, AMSGroup group,
     
     if (buffer != NULL &&
 	p == BufferScanLimit(buffer) &&
-	p != BufferLimit(buffer)) { /* .scan.buffer */
+	p != BufferLimit(buffer)) { /* design.mps.poolams.scan.buffer */
       p = BufferLimit(buffer); 
     } else { /* not in the buffer */
 
@@ -820,7 +619,6 @@ static Res AMSScan(ScanState ss, Pool pool, Seg seg)
   Space space;
   AMSGroup group;
   Bool scanAllObjects;
-  RefSet afterSummary;
 
   AVERT(ScanState, ss);
   AVER(ss->summary == RefSetEMPTY); /* to make afterSummary correct */
@@ -835,9 +633,9 @@ static Res AMSScan(ScanState ss, Pool pool, Seg seg)
   group = AMSSegGroup(seg);
   AVERT(AMSGroup, group);
 
-  /* .scan.all */
+  /* design.mps.poolams.scan.all */
   scanAllObjects = (TraceSetDiff(ss->traces, SegWhite(seg)) != TraceSetEMPTY);
-  /* .scan.once */
+  /* design.mps.poolams.scan.once */
   scanOnce = (TraceSetInter(ss->traces, SegWhite(seg)) == TraceSetEMPTY);
 
   AVER(!scanOnce || scanAllObjects); /* scanOnce implies scanAllObjects */
@@ -855,11 +653,11 @@ static Res AMSScan(ScanState ss, Pool pool, Seg seg)
   } else {
 
     AVER(group->marked);
-    do { /* .marked.scan */
+    do { /* design.mps.poolams.marked.scan */
       group->marked = FALSE; 
       res = AMSScanGroupOnce(ss, ams, group, seg, space, scanAllObjects);
       if (res != ResOK) {
-	group->marked = TRUE; /* .marked.scan.fail */
+	group->marked = TRUE; /* design.mps.poolams.marked.scan.fail */
 	return res;
       }
     } while(group->marked);
@@ -868,21 +666,10 @@ static Res AMSScan(ScanState ss, Pool pool, Seg seg)
 
   AVER(RefSetSub(ss->summary, SegSummary(seg)));
 
-  /*.summary.acc */
-  afterSummary = RefSetUnion(RefSetDiff(ss->summary,
-					ss->white),
-			     ss->fixed);
-
-  if (scanAllObjects) {
-    if (SegWhite(seg) != TraceSetEMPTY) { /* the seg is condemned */
-      group->summarySoFar = afterSummary; /* .summary.acc.other-trace */
-    }
-  } else { /* we did a partial scan */
-    /* .summary.acc */
-    group->summarySoFar = RefSetUnion(group->summarySoFar, afterSummary);
-    /* .summary.scan */
+  if (!scanAllObjects) { /* design.mps.poolams.summary */
+    /* design.mps.poolams.summary.scan.part.summary */
     ss->summary = RefSetUnion(ss->summary, SegSummary(seg));
-    /* .summary.scan.fix */
+    /* design.mps.poolams.summary.scan.part.fixed */
     ss->fixed = RefSetUnion(ss->fixed, RefSetInter(SegSummary(seg),
 						   ss->white));
   }
@@ -938,10 +725,10 @@ static Res AMSFix(Pool pool, ScanState ss, Seg seg, Ref *refIO)
       } else {
 	BTSet(group->markTable, i); /* turn this object grey */
 
-	/* .fix.to-black */
+	/* design.mps.poolams.fix.to-black */
 	if (RefSetInter(SegSummary(seg), ss->white) != RefSetEMPTY) {
 	  TraceSegGreyen(space, seg, ss->traces); /* turn this segment grey */
-	  group->marked = TRUE; /* .marked.fix */
+	  group->marked = TRUE; /* design.mps.poolams.marked.fix */
 	} else {
 	  BTSet(group->scanTable, i); /* turn this object black */
 	}
@@ -972,7 +759,7 @@ static void AMSReclaim(Pool pool, Trace trace, Seg seg)
 
   group = AMSSegGroup(seg);
 
-  AVER(group->marked == FALSE); /* .marked.reclaim */
+  AVER(group->marked == FALSE); /* design.mps.poolams.marked.reclaim */
   
   space = PoolSpace(pool);
   limit = SegLimit(space, seg);
@@ -987,7 +774,7 @@ static void AMSReclaim(Pool pool, Trace trace, Seg seg)
     
     if (buffer != NULL &&
 	p == BufferScanLimit(buffer) &&
-	p != BufferLimit(buffer)) { /* .reclaim.buffer */
+	p != BufferLimit(buffer)) { /* design.mps.poolams.reclaim.buffer */
       p = BufferLimit(buffer); 
     } else { /* not in the buffer */
 
@@ -1000,7 +787,7 @@ static void AMSReclaim(Pool pool, Trace trace, Seg seg)
 	next = (*format->skip)(p);
 	if (colour == AMS_WHITE) { /* then we can free it */
 	  Index j = AMSAddrIndex(group, next);
-	  /* .invariant.free */
+	  /* design.mps.poolams.invariant.free */
 	  BTResRange(group->markTable, i, j);
 	  BTSetRange(group->scanTable, i, j);
 	  BTResRange(group->allocTable, i, j);
@@ -1016,9 +803,6 @@ static void AMSReclaim(Pool pool, Trace trace, Seg seg)
   if ((buffer == NULL) && !anySurvivors) {
     AMSGroupDestroy(group);
   } else {
-    /* .summary.acc.reclaim */
-    TraceSetSummary(space, seg, group->summarySoFar);
-    group->summarySoFar = RefSetEMPTY; /* .summary.acc.condemn */
     SegSetWhite(seg, TraceSetDel(SegWhite(seg), trace->ti));
   }
 }
@@ -1068,7 +852,6 @@ static Res AMSSegDescribe(AMS ams, Seg seg, mps_lib_FILE *stream)
 	         (WriteFP)group->allocTable,
 	         (WriteFP)group->markTable,
   	         (WriteFP)group->scanTable,
-	       "  summary so far $B\n", (WriteFB)group->summarySoFar,
 	       "  map: ",
 	       NULL);
 	       
@@ -1166,28 +949,28 @@ static Res AMSDescribe(Pool pool, mps_lib_FILE *stream)
 
 static PoolClassStruct PoolClassAMSStruct = {
   PoolClassSig,
-  "AMS",                                /* name */
-  sizeof(AMSStruct),                    /* size */
+  "AMS",                        /* name */
+  sizeof(AMSStruct),            /* size */
   offsetof(AMSStruct, poolStruct),      /* offset */
   AttrFMT | AttrSCAN | AttrBUF | AttrBUF_RESERVE | AttrGC | AttrINCR_RB,
-  AMSInit,                              /* init */
-  AMSFinish,                            /* finish */
-  AMSNoAlloc,                           /* .no-alloc */
-  AMSNoFree,                            /* .no-free */
-  PoolTrivBufferInit,                   /* .triv-buffer-init */
-  AMSBufferFill,                        /* bufferFill */
-  AMSBufferEmpty,                       /* bufferEmpty */
-  AMSBufferFinish,                      /* .triv-buffer-finish */
-  PoolTrivTraceBegin,                   /* .triv-trace-begin */
-  AMSCondemn,                           /* condemn */
-  PoolTrivGrey,                          /* .triv-grey */
-  AMSScan,                              /* scan */
-  AMSFix,                               /* fix */
-  AMSReclaim,                           /* reclaim */
-  PoolTrivTraceEnd,                     /* .triv-trace-end */
-  AMSBenefit,                           /* benefit */
-  AMSDescribe,                          /* describe */
-  PoolClassSig                          /* impl.h.mpm.class.end-sig */
+  AMSInit,                      /* init */
+  AMSFinish,                    /* finish */
+  AMSNoAlloc,                   /* design.mps.poolams.no-alloc */
+  AMSNoFree,                    /* design.mps.poolams.no-free */
+  PoolTrivBufferInit,           /* design.mps.poolams.triv-buffer-init */
+  AMSBufferFill,                /* bufferFill */
+  AMSBufferEmpty,               /* bufferEmpty */
+  AMSBufferFinish,              /* design.mps.poolams.triv-buffer-finish */
+  PoolTrivTraceBegin,           /* design.mps.poolams.triv-trace-begin */
+  AMSCondemn,                   /* condemn */
+  PoolTrivGrey,                 /* design.mps.poolams.triv-grey */
+  AMSScan,                      /* scan */
+  AMSFix,                       /* fix */
+  AMSReclaim,                   /* reclaim */
+  PoolTrivTraceEnd,             /* design.mps.poolams.triv-trace-end */
+  AMSBenefit,                   /* benefit */
+  AMSDescribe,                  /* describe */
+  PoolClassSig                  /* impl.h.mpm.class.end-sig */
 };
 
 
