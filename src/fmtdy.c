@@ -1,6 +1,6 @@
 /* impl.c.fmtdy: DYLAN OBJECT FORMAT IMPLEMENTATION
  *
- *  $HopeName: !fmtdy.c(trunk.4) $
+ *  $HopeName: MMsrc!fmtdy.c(MM_dylan_incremental.1) $
  *  Copyright (C) 1996 Harlequin Group, all rights reserved.
  *
  *  All objects, B:
@@ -69,12 +69,14 @@ static int dylan_wrapper_check(mps_word_t *w)
   assert((w[0] & 3) == 0);          /* wrapper wrapper is aligned */
   ww = (mps_word_t *)w[0];
   assert(ww[0] == w[0]);            /* wrapper wrapper is own wrapper */
+#ifdef 0
   assert(ww[1] != 0);               /* wrapper class exists */
   assert((ww[1] & 3) == 0);         /* wrapper class is aligned */
   assert(ww[2] == ((3 << 2) | 2));  /* three fields with patterns */
   assert(ww[3] == ((0 << 3) | 0));  /* non-traceable vector of pats */
   assert(ww[4] == ((1 << 2) | 1));  /* one pattern word in wrapper */
   assert(ww[5] == 1);               /* first field traceable */
+#endif
 
   /* Unpack the wrapper. */
 
