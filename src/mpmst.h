@@ -1,6 +1,6 @@
 /* impl.h.mpmst: MEMORY POOL MANAGER DATA STRUCTURES
  *
- * $HopeName: MMsrc!mpmst.h(MMdevel_drj_swint.2) $
+ * $HopeName: MMsrc!mpmst.h(MMdevel_drj_swint.3) $
  * Copyright (C) 1996 Harlequin Group, all rights reserved.
  *
  * .rationale: Almost all MPM data structures are defined in this
@@ -154,7 +154,7 @@ typedef struct MVStruct {
   Size maxSize;                 /* client estimate of maximum size */
   Size space;                   /* total free space in pool */
   Size lost;                    /* lost because free couldn't allocate(!) */
-  struct MVSpanStruct *spans;   /* span chain */
+  RingStruct spans;             /* span chain */
   Sig sig;                      /* impl.h.misc.sig */
 } MVStruct;
 
