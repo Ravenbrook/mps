@@ -1,6 +1,6 @@
 /* impl.c.poolamc: AUTOMATIC MOSTLY-COPYING MEMORY POOL CLASS
  *
- * $HopeName: MMsrc!poolamc.c(MMdevel_tony_lifetime.1) $
+ * $HopeName: MMsrc!poolamc.c(MMdevel_tony_lifetime.2) $
  * Copyright (C) 1998.  Harlequin Group plc.  All rights reserved.
  *
  * .sources: design.mps.poolamc.
@@ -10,7 +10,7 @@
 #include "mpscamc.h"
 #include "mpm.h"
 
-SRCID(poolamc, "$HopeName: MMsrc!poolamc.c(MMdevel_tony_lifetime.1) $");
+SRCID(poolamc, "$HopeName: MMsrc!poolamc.c(MMdevel_tony_lifetime.2) $");
 
 
 /* PType enumeration -- distinguishes AMCGen and AMCNailBoard */
@@ -1311,6 +1311,41 @@ adjustColour:
   trace->reclaimSize += bytesReclaimed;
 }
 
+static void AMCTrackSegDeaths(Pool pool, Seg seg)
+{
+  Arena arena;
+  /* All arguments AVERed by AMCReclaim */
+
+  arena = PoolArena(pool);
+  AVERT(Arena, arena);
+
+  if (arena->trackDeathtimes) {
+    Addr p, limit;
+    Format format;
+    AMC amc;
+
+    amc = PoolPoolAMC(pool);
+    AVERT(AMC, amc);
+    format = amc->format;
+
+    ShieldExpose(arena, seg);
+    p = SegBase(seg);
+    if(SegBuffer(seg) != NULL)
+      limit = BufferScanLimit(SegBuffer(seg));
+    else
+      limit = SegLimit(seg);
+    while(p < limit) {
+      Addr q;
+      q = (*format->skip)(p);
+      ArenaTrackDeathEvent(arena, p);
+      AVER(p < q);
+      p = q;
+    }
+    AVER(p == limit);
+    ShieldCover(arena, seg);
+  }
+}
+
 
 /* AMCReclaim -- recycle a segment if it is still white
  *
@@ -1339,6 +1374,8 @@ static void AMCReclaim(Pool pool, Trace trace, Seg seg)
     AMCReclaimNailed(pool, trace, seg);
     return;
   }
+
+  AMCTrackSegDeaths(pool, seg);
 
   --gen->segs;
   size = SegSize(seg);
