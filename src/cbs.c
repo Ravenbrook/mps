@@ -1,6 +1,6 @@
 /* impl.c.cbs: COALESCING BLOCK STRUCTURE IMPLEMENTATION
  *
- * $HopeName: MMsrc!cbs.c(MMdevel_gavinm_splay.9) $
+ * $HopeName: MMsrc!cbs.c(MMdevel_gavinm_splay.10) $
  * Copyright (C) 1998 Harlequin Group plc, all rights reserved.
  *
  * .readership: Any MPS developer.
@@ -18,7 +18,7 @@
 #include "mpm.h"
 
 
-SRCID(cbs, "$HopeName: MMsrc!cbs.c(MMdevel_gavinm_splay.9) $");
+SRCID(cbs, "$HopeName: MMsrc!cbs.c(MMdevel_gavinm_splay.10) $");
 
 typedef struct CBSEmergencyBlockStruct *CBSEmergencyBlock;
 typedef struct CBSEmergencyBlockStruct {
@@ -453,7 +453,10 @@ static Bool CBSIterateLargeAction(CBS cbs, CBSBlock block,
   AVER(closure != NULL);
   AVER(s == (unsigned long)0);
 
-  return (closure->f)(cbs, block, closure->p, closure->s);
+  if (CBSBlockSize(block) >= cbs->minSize)
+    return (closure->f)(cbs, block, closure->p, closure->s);
+  else
+    return TRUE;
 }
 
 
