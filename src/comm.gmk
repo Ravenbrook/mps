@@ -1,6 +1,6 @@
 # impl.gmk.comm: COMMON GNUMAKEFILE FRAGMENT
 #
-# $HopeName: MMsrc!comm.gmk(MMdevel_dropin.1) $
+# $HopeName: MMsrc!comm.gmk(MMdevel_dropin.2) $
 # Copyright (C) 1995,1996,1997 Harlequin Group, all rights reserved
 #
 # DESCRIPTION
@@ -377,7 +377,7 @@ endif
 $(PFM)/$(VARIETY)/%.a:
 	$(ECHO) "$(PFM): $@"
 	rm -f $@
-	ar rc $@ $^
+	$(AR) $(ARFLAGS) $@ $^
 
 # Executable
 
