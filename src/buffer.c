@@ -1,6 +1,6 @@
 /* impl.c.buffer: ALLOCATION BUFFER IMPLEMENTATION
  *
- * $HopeName: MMsrc!buffer.c(MMdevel_assertid.2) $
+ * $HopeName: MMsrc!buffer.c(MMdevel_assertid.3) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  *
  * This is (part of) the implementation of allocation buffers.
@@ -29,7 +29,7 @@
 
 #include "mpm.h"
 
-SRCID(buffer, "$HopeName: MMsrc!buffer.c(MMdevel_assertid.2) $");
+SRCID(buffer, "$HopeName: MMsrc!buffer.c(MMdevel_assertid.3) $");
 
 
 /* BufferCheck -- check consistency of a buffer */
@@ -65,7 +65,7 @@ Bool BufferCheck(Buffer buffer)
   } else {
     /* The buffer is attached to a segment.  Make sure its fields */
     /* tally with those of the segment. */
-    CHECKL(0xB0FF0010, SegCheck(buffer->seg)); /* design.mps.check.type.no-sig */
+    CHECKD(0xB0FF0010, Seg, buffer->seg);
     CHECKL(0xB0FF0011, buffer->seg->buffer == buffer);
     CHECKL(0xB0FF0012, buffer->seg->pool == buffer->pool);
     CHECKL(0xB0FF0013, buffer->rankSet == buffer->seg->rankSet);
@@ -425,7 +425,7 @@ Res BufferFill(Addr *pReturn, Buffer buffer, Size size)
                                    pool, buffer, size);
   if(res != ResOK) return res;
 
-  AVER(0xB0FF003E, SegCheck(seg));
+  AVERT(0xB0FF003E, Seg, seg);
   AVER(0xB0FF003F, seg->buffer == NULL);
   AVER(0xB0FF0040, SegBase(space, seg) <= base);
   AVER(0xB0FF0041, AddrAdd(base, size) <= limit);
