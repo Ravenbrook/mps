@@ -1,6 +1,6 @@
 /* impl.h.mpm: MEMORY POOL MANAGER DEFINITIONS
  *
- * $HopeName: MMsrc!mpm.h(MMdevel_lib.1) $
+ * $HopeName: MMsrc!mpm.h(MMdevel_lib.2) $
  * Copyright (C) 1996 Harlequin Group, all rights reserved.
  */
 
@@ -79,6 +79,10 @@ extern Shift SizeFloorLog2(Size size);
 #define AddrAlignUp(p, a)       ((Addr)WordAlignUp(AddrWord(p), a))
 #define SizeIsAligned(s, a)     WordIsAligned(SizeWord(s), a)
 #define SizeAlignUp(s, a)       ((Size)WordAlignUp(SizeWord(s), a))
+
+extern Res WriteWord(mps_lib_FILE *stream, Word word, unsigned base, unsigned width);
+extern Res WriteAddr(mps_lib_FILE *stream, Addr addr);
+extern Res WriteP(mps_lib_FILE *stream, void *p);
 
 
 /* Ring Interface -- see impl.c.ring */

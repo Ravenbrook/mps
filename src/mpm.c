@@ -1,12 +1,12 @@
 /* impl.c.mpm: GENERAL MPM SUPPORT
  *
- * $HopeName: !mpm.c(trunk.4) $
+ * $HopeName: MMsrc!mpm.c(MMdevel_lib.1) $
  * Copyright (C) 1996 Harlequin Group, all rights reserved.
  */
 
 #include "mpm.h"
 
-SRCID(mpm, "$HopeName: !mpm.c(trunk.4) $");
+SRCID(mpm, "$HopeName: MMsrc!mpm.c(MMdevel_lib.1) $");
 
 
 /* MPMCheck -- test MPM assumptions */
@@ -127,3 +127,58 @@ Size (AddrOffset)(Addr base, Addr limit)
   AVER(base <= limit);
   return (Size)((Word)limit - (Word)base);
 }
+
+
+/* WriteWord
+ *
+ * width is zero for the minimum width
+ */
+ 
+Res WriteWord(mps_lib_FILE *stream, Word w, unsigned base, unsigned width)
+{
+  static const char digit[16] = "0123456789ABCDEF";
+  char buf[MPS_WORD_WIDTH + 1]; /* enough for binary, plus one for terminator */
+  unsigned i;
+  int r;
+
+  AVER(stream != NULL);
+  AVER(2 <= base && base <= 16);
+  AVER(width <= MPS_WORD_WIDTH);
+  
+  /* Add digits to the buffer starting at the right-hand end, so that */
+  /* the buffer forms a string representing the number.  A do...while */
+  /* loop is used to ensure that at least one digit (zero) is written */
+  /* when the number is zero. */
+  i = MPS_WORD_WIDTH;
+  buf[i] = '\0';
+  do {
+    --i;
+    buf[i] = digit[w % base];
+    w /= base;
+  } while(w > 0);
+
+  /* If the number is not as wide as the requested field, pad out the */
+  /* buffer with zeros. */
+  while(i > MPS_WORD_WIDTH - width) {
+    buf[i] = digit[0];
+    --i;
+  }
+
+  r = mps_lib_fputs(&buf[i], stream);
+  if(r == mps_lib_EOF)
+    return ResIO;
+
+  return ResOK;
+}
+
+
+Res WriteAddr(mps_lib_FILE *stream, Addr addr)
+{
+  return WriteWord(stream, (Word)addr, 0x10, MPS_WORD_WIDTH / 4);
+}
+
+Res WriteP(mps_lib_FILE *stream, void *p)
+{
+  return WriteWord(stream, (Word)p, 0x10, MPS_WORD_WIDTH / 4);
+}
+
