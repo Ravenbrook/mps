@@ -1,6 +1,6 @@
 /*  impl.c.protw3: PROTECTION FOR WIN32
  *
- *  $HopeName: MMsrc!protw3.c(MMdevel_config_thread.3) $
+ *  $HopeName: !protw3.c(trunk.11) $
  *  Copyright (C) 1995, 1997 Harlequin Group, all rights reserved
  */
 
@@ -15,7 +15,7 @@
 
 #include <windows.h>
 
-SRCID(protw3, "$HopeName: MMsrc!protw3.c(MMdevel_config_thread.3) $");
+SRCID(protw3, "$HopeName: !protw3.c(trunk.11) $");
 
 
 void ProtSetup(void)

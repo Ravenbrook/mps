@@ -1,6 +1,6 @@
 /* impl.c.poolams: AUTOMATIC MARK & SWEEP POOL CLASS
  *
- * $HopeName: MMsrc!poolams.c(MMdevel_poolams.4) $
+ * $HopeName: !poolams.c(trunk.2) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  * 
  * NOTES
@@ -19,7 +19,7 @@
 #include "mpm.h"
 #include "mpscams.h"
 
-SRCID(poolams, "$HopeName: MMsrc!poolams.c(MMdevel_poolams.4) $");
+SRCID(poolams, "$HopeName: !poolams.c(trunk.2) $");
 
 /* These two BT utility functions should be in the BT module.
  * See design.mps.poolams.bt.utilities */

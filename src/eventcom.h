@@ -1,7 +1,7 @@
 /* impl.h.eventcom -- Event Logging Common Types
  *
  * Copyright (C) 1997 Harlequin Group, all rights reserved.
- * $HopeName: MMsrc!eventcom.h(trunk.2) $
+ * $HopeName: !eventcom.h(trunk.3) $
  *
  * .readership: MPS developers.
  * .sources: mps.design.telemetry
