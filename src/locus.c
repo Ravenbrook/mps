@@ -3,6 +3,31 @@
  * $HopeName: MMsrc!locus.c(MMdevel_ptw_pseudoloci.6) $
  * Copyright (C) 1998 Harlequin Group plc.  All rights reserved.
  *
+ * .readership: any MPS developer
+ *
+ * .purpose: The Locus mechanism consists of a Locus Manager, which
+ * manages a number of Loci, each of which represent a group of
+ * LocusClients.  The Locus mechanism attempts to group clients into a
+ * Locus according to their cohort attributes.  The Loci track their
+ * clients zone usage and can offer advice to the Arena on what zones
+ * to allocate segments in for each client in order to minimize mixing
+ * cohorts in zones.  Two benefits accrue to Arena implementations
+ * that heed this advice: 1. the segments of a zone will have more
+ * uniform lifetime behavior (which should reduce segment-level
+ * fragmentation), and 2. the accuracy of inter-cohort refsets will
+ * improve (which should optimize garbage-collection scanning).
+ *
+ * As side-benefits: 1. the ZoneUsage summaries maintained by the
+ * LocusManager, Locus, and LocusClient objects can be used to assess
+ * the effectiveness of segment placement, and 2. the higher level
+ * summaries may be of use to the collection strategy manager.
+ *
+ * .design: See design.mps.loci
+ *
+ * .limitation:  Presently only Pools are LocusClients.  Generational
+ * pools may wish to treat each generation as a separate cohort (and
+ * hence client).  This is not yet implemented.
+ *
  */
 
 #include "mpm.h"
@@ -42,7 +67,6 @@ static Bool LocusClientCheck(LocusClient client);
 static Bool LocusCheck(Locus locus);
 static Bool ZoneUsageCheck(ZoneUsage desc);
 
-
 /* Private types */
 
 
@@ -63,6 +87,11 @@ static Arena LocusManagerArena(LocusManager manager)
 LocusClient PoolLocusClient(Pool pool)
 {
   return &pool->locusClientStruct;
+}
+
+static Pool LocusClientPool(LocusClient client)
+{
+  return PARENT(PoolStruct, locusClientStruct, client);
 }
 
 static Ring LocusClientRing(Locus locus)
@@ -145,6 +174,7 @@ void LocusManagerFinish(LocusManager manager)
    locus manager */
 void LocusClientInit(LocusClient client, LocusManager manager)
 {
+  /* @@@ record client->parent if other than pools can be clients */
   client->manager = manager;
   client->assigned = FALSE;
   client->locus = NULL;
@@ -206,6 +236,11 @@ void LocusClientSetCohortParameters(LocusClient client,
 }
 
 
+/* ZoneRange iteration methods -- support iterating over the set of
+   zone ranges from most to least desirable.  Used by the LocusManager
+   Arena at SegAlloc time to choose the zone to allocate in
+ */
+
 /* LocusClientZoneRangeInitialize -- Initialize the zone range
    iteration */
 void LocusClientZoneRangeInitialize(LocusClient client)
@@ -251,8 +286,12 @@ void LocusClientZoneRangeNext(Addr *baseReturn,
 }
 
 
-/* LocusClientNoteSegAlloc -- Must be called by the locus client any
-   time it acquires a new segment */
+/* NoteSeg methods -- used by the LocusManager Arena to update the
+   Locus ZoneUsage summaries on each segment allocation or free
+   */
+
+/* LocusClientNoteSegAlloc -- Inform the LocusManager that a segment
+   has been allocated to a LocusClient  */
 void LocusClientNoteSegAlloc(LocusClient client, Arena arena, Seg seg)
 {
   RefSet segRefSet;
@@ -272,8 +311,8 @@ void LocusClientNoteSegAlloc(LocusClient client, Arena arena, Seg seg)
 }
 
 
-/* LocusClientNoteSegFree -- Must be called by the locus client any
-   time it frees a segment */
+/* LocusClientNoteSegFree -- Inform the LocusManager that a client is
+   no longer using a segment */
 void LocusClientNoteSegFree(LocusClient client, Arena arena, Seg seg)
 {
   RefSet segRefSet;
@@ -354,7 +393,7 @@ static void LocusFinish(Locus locus)
   
 
 /* LocusEnsureReady -- Validate the cached cohort attributes of the
-   locus's clients.  If they have changed, inform the locus manager */
+   locus's clients */
 static void LocusEnsureReady(Locus locus)
 {
   if (locus->inUse && (! locus->ready)) {
@@ -394,6 +433,14 @@ static void LocusEnsureReady(Locus locus)
    based on the previously set parameters.  @@@ This is not strictly a
    locus method, but it is the logical inverse of
    LocusLocusClientDelete (v. i.) */
+/* @@@ Clients are assigned first come, first served to the "best fit"
+   locus.  This may not yield an optimal distribution of clients among
+   loci, especially if clients are added and removed as time passes.
+   Someday write a method that computes the cohort-distance among all
+   clients and (re-)assigns them to loci to minimize the intra-locus
+   cohort distance?  Sounds NP to me... and presumably has to be
+   weighed against the cost of the resulting zone pollution from
+   moving in-use clients. */
 static void LocusClientEnsureLocus(LocusClient client)
 {
   if (! client->assigned) {
@@ -469,6 +516,9 @@ static void LocusZoneRangeInitialize(Locus locus)
 {
   locus->search = RefSetEMPTY;
   locus->searchIndex = RefSetSize;
+  locus->i = 0;
+  locus->j = 0;
+  locus->k = 0;
   
   /* Do this once, for the iteration */
   LocusEnsureReady(locus);
@@ -496,6 +546,7 @@ static void LocusZoneRangeNext(Addr *baseReturn, Addr *limitReturn, Locus locus)
   Index i = locus->searchIndex;
   
   AVER(locus->ready);
+  /* @@@ rewrite using RefSet_FOR */
   for (;;) {
     if (! (i < RefSetSize)) {
       LocusRefSetNext(locus);
@@ -570,24 +621,23 @@ static void LocusRefSetNext(Locus locus)
   RefSet previous = locus->search;
   RefSet bad, base, good;
   RefSet next = RefSetEMPTY;
-  Index i;
+  Index i = locus->i;
   
   AVER(previous != RefSetUNIV);
   AVER(locus->ready);
   /* failsafe: we must have up-to-date cohort info */
   LocusEnsureReady(locus);
   
-  /* @@@ remember search state in locus */
-  for (i = 0; i <= 1; i++) {
-    Index j;
+  for (; i <= 1; i++) {
+    Index j = locus->j;
     
     switch (i) {
       case 0: bad = locus->disdained; break;
       case 1: bad = RefSetEMPTY; break;
       default: NOTREACHED;
     }
-    for (j = 0; j <= 3; j++) {
-      Index k;
+    for (; j <= 3; j++) {
+      Index k = locus->k;
       
       switch (j) {
         /* zones held exclusively by this locus */
@@ -602,7 +652,7 @@ static void LocusRefSetNext(Locus locus)
         case 3: base = RefSetUNIV; break;
         default: NOTREACHED;
       }
-      for (k = 0; k <= 1; k++) {
+      for (; k <= 1; k++) {
         switch (k) {
           case 0: good = locus->preferred; break;
           case 1: good = RefSetUNIV; break;
@@ -613,17 +663,21 @@ static void LocusRefSetNext(Locus locus)
                                        good));
         if (RefSetDiff(next, previous) != RefSetEMPTY) {
           locus->search = next;
+          locus->i = i;
+          locus->j = j;
+          locus->k = k;
           return;
         }
       }
     }
   }
-  
+  NOTREACHED;
 }
   
 
 /* LocusLocusClientDistance -- measure the distance between the cohort
    specification of a locus and a locus client*/
+/* @@@ This is only a first cut, weighting all factors equally */
 static Count LocusLocusClientDistance(Locus locus,
                                       LocusClient client)
 {
@@ -637,7 +691,8 @@ static Count LocusLocusClientDistance(Locus locus,
 }
 
   
-/* Zone Usage Methods */
+/* Zone Usage Methods -- Tally zone usage by zone and maintain
+   summaries of unused, exclusively used, and multiply used zones.  */
 
 
 /* ZoneUsageInit -- Initialize a zone usage descriptor */
@@ -668,7 +723,8 @@ static RefSet ZoneUsageFinish(ZoneUsage desc)
       
 
 /* ZoneUsageIncrement -- Increment the usage counts for all the zones
-   in a RefSet.  Returns a summary of any new zones as a RefSet. */
+   in a RefSet.  Returns a summary of any new zones as a RefSet, which
+   can be used to propagate the changes to a higher-level summary. */
 static RefSet ZoneUsageIncrement(ZoneUsage desc, RefSet ref)
 {
   Count *usage = desc->usage;
@@ -701,7 +757,9 @@ static RefSet ZoneUsageIncrement(ZoneUsage desc, RefSet ref)
 
 
 /* ZoneUsageDecrement -- Decrement the usage counts for all the zones
-   in a RefSet.  Returns a summary of any deleted zones as a RefSet. */
+   in a RefSet.  Returns a summary of any deleted zones as a RefSet,
+   which can be used to propagate the changes to a higher-level
+   summary. */
 static RefSet ZoneUsageDecrement(ZoneUsage desc, RefSet ref)
 {
   Count *usage = desc->usage;
@@ -764,7 +822,9 @@ static Count LogCount(Count val)
   return ((Count)(((temp + (temp >> 3)) & 030707070707) % 077));
 }
 
+
 /* Check Methods */
+
 
 static Bool LocusManagerCheck(LocusManager manager) 
 {
@@ -848,3 +908,216 @@ static Bool ZoneUsageCheck(ZoneUsage desc)
 }
 
   
+/* Describe Methods */
+
+
+Res LocusManagerDescribe(LocusManager manager, mps_lib_FILE *stream)
+{
+  Res res;
+  Locus locus;
+  Count numLoci = 0;
+
+  for (locus = &manager->locus[0];
+       locus < &manager->locus[NUMLOCI];
+       locus++) {
+    if (locus->inUse) {
+      numLoci++;
+    }
+  }
+
+  res = WriteF(stream,
+               "LocusManager $P\n{\n", (WriteFP)manager,
+               "  arena: ",
+               NULL);
+  if (res != ResOK)
+    return res;
+
+  res = ArenaName(LocusManagerArena(manager), stream);
+  if (res != ResOK)
+    return res;
+  
+  res = WriteF(stream,
+               "\n",
+               "  active loci: $U\n", (WriteFU)numLoci,
+               NULL);
+  if (res != ResOK)
+    return res;
+  
+  if (numLoci > 0) {
+    /* @@@ indenting-stream(stream, "  ") */
+    res = WriteF(stream,
+                 "Locus",
+                 NULL);
+    if (res != ResOK)
+      return res;
+    
+    res = ZoneUsageDescribe(LocusManagerZoneUsage(manager), stream);
+    if (res != ResOK)
+      return res;
+
+    for (locus = &manager->locus[0];
+         locus < &manager->locus[NUMLOCI];
+         locus++) {
+      if (locus->inUse) {
+        /* @@@ indenting-stream(stream, "  ") */
+        res = LocusDescribe(locus, stream);
+        if (res != ResOK)
+          return res;
+      }
+    }
+  }
+  
+  res = WriteF(stream, "}\n", NULL);
+  if (res != ResOK)
+    return res;
+
+  return ResOK;
+}     
+
+
+Res LocusDescribe(Locus locus, mps_lib_FILE *stream)
+{
+  Res res;
+  Ring this, next;
+  Count numClients = 0;
+
+  RING_FOR(this, LocusClientRing(locus), next)
+    {
+      numClients++;
+    }
+
+  res = WriteF(stream,
+               "Locus $P\n{\n", (WriteFP)locus,
+               "  manager: $P\n", (WriteFP)locus->manager,
+               "  clients: $U\n", (WriteFU)numClients,
+               NULL);
+  if (res != ResOK)
+    return res;
+  
+  if (locus->inUse) {
+    res = WriteF(stream,
+                 "  ready: $S\n", (WriteFS)locus->ready?"yes":"no",
+                 "  preferred: $B\n", (WriteFB)locus->preferred,
+                 "  disdained: $B\n", (WriteFB)locus->disdained,
+                 "  lifetime: $U\n", (WriteFU)locus->lifetime,
+                 "Client",
+                 NULL);
+    if (res != ResOK)
+      return res;
+    /* @@@ indenting-stream(stream, "  ") */
+    res = ZoneUsageDescribe(LocusZoneUsage(locus), stream);
+    if (res != ResOK)
+      return res;
+    res = WriteF(stream,
+                 "  search: $B\n", (WriteFB)locus->search,
+                 "  searchIndex: $U\n", (WriteFU)locus->searchIndex,
+                 "  searchState: [$U, $U, $U]\n",
+                 locus->i, locus->j, locus->k, 
+                 "  clientSerial: $U\n", (WriteFU)locus->clientSerial,
+                 NULL);
+    if (res != ResOK)
+      return res;
+
+    RING_FOR(this, LocusClientRing(locus), next)
+      {
+        /* @@@ indenting-stream(stream, "  ") */
+        LocusClientDescribe(RING_ELT(LocusClient, locusRingStruct,
+                                     this),
+                            stream);
+      }
+  }
+
+  res = WriteF(stream, "}\n", NULL);
+  if (res != ResOK)
+    return res;
+
+  return ResOK;
+}
+
+
+Res LocusClientDescribe(LocusClient client, mps_lib_FILE *stream)
+{
+  Res res;
+
+  res = WriteF(stream,
+               "LocusClient $P\n{\n", (WriteFP)client,
+               "  client: ",
+               NULL);
+  if (res != ResOK)
+    return res;
+
+  /* @@@ Needs adjusting if non-pool parents */
+  res = PoolName(LocusClientPool(client), stream);
+  if (res != ResOK)
+    return res;
+
+  res = WriteF(stream,
+               "\n",  
+               "  manager: $P\n", (WriteFP)client->manager,
+               "  preferred: $B\n", (WriteFB)client->preferred,
+               "  disdained: $B\n", (WriteFB)client->disdained,
+               "  lifetime: $U\n", (WriteFU)client->lifetime,
+               NULL);
+  if (res != ResOK)
+    return res;
+  
+  if (client->assigned) {
+    res = WriteF(stream,
+                 "  locus: $P\n", (WriteFP)client->locus,
+                 "  locusSerial: $U\n", (WriteFU)client->locusSerial,
+                 "Segment",
+                 NULL);
+    if (res != ResOK)
+      return res;
+
+    /* @@@ indenting-stream(stream, "  ") */
+    res = ZoneUsageDescribe(LocusClientZoneUsage(client), stream);
+    if (res != ResOK)
+      return res;
+  }
+
+  res = WriteF(stream, "}\n", NULL);
+  if (res != ResOK)
+    return res;
+
+  return ResOK;
+}
+
+
+Res ZoneUsageDescribe(ZoneUsage desc, mps_lib_FILE *stream)
+{
+  Res res;
+  Count *usage = desc->usage;
+  Index zone, next;
+
+  AVERT(ZoneUsage, desc);
+  AVER(stream != NULL);
+
+  res = WriteF(stream,
+               "ZoneUsage $P\n{\n", (WriteFP)desc,
+               "  free     : $B\n", (WriteFB)desc->free,
+               "  shared   : $B\n", (WriteFB)desc->shared,
+               "  exclusive: $B\n", (WriteFB)desc->exclusive,
+               NULL);
+  if (res != ResOK)
+    return res;
+
+  RefSet_FOR(RefSetComp(desc->free), zone, next)
+    {
+      res = WriteF(stream,
+                   "  usage[$U]: $U",
+                   (WriteFU)zone,
+                   (WriteFU)usage[zone],
+                   NULL);
+      if (res != ResOK)
+        return res;
+    }
+
+  res = WriteF(stream, "\n}\n", NULL);
+  if (res != ResOK)
+    return res;
+
+  return ResOK;
+}
+
+
