@@ -1,6 +1,6 @@
 /* impl.h.mpm: MEMORY POOL MANAGER DEFINITIONS
  *
- * $HopeName: MMsrc!mpm.h(MMdevel_ptw_pseudoloci.6) $
+ * $HopeName: MMsrc!mpm.h(MMdevel_ptw_pseudoloci.7) $
  * Copyright (C) 1998.  Harlequin Group plc.  All rights reserved.
  */
 
@@ -284,7 +284,8 @@ extern Align (PoolAlignment)(Pool pool);
 extern double PoolMutatorAllocSize(Pool pool);
 
 extern Ring (PoolSegRing)(Pool pool);
-#define PoolSegRing(pool)       (&(pool)->segRing)
+/* @@@ compatibility: for pools with a single locus client */
+#define PoolSegRing(pool)       (LocusClientSegRing(PoolLocusClient(pool)))
 
 extern Bool PoolOfAddr(Pool *poolReturn, Arena arena, Addr addr);
 extern Bool PoolHasAddr(Pool pool, Addr addr);
@@ -513,7 +514,9 @@ extern void ActionPoll(Arena arena);
 /* Locus Interface -- see impl.c.locus */
 extern void LocusManagerInit(LocusManager manager);
 extern void LocusManagerFinish(LocusManager manager);
-extern void LocusClientInit(LocusClient client, LocusManager manager);
+extern void LocusClientInit(LocusClient client, Arena arena,
+                            Pool pool, Cohort cohort,
+                            LocusClientNameMethod clientNameMethod);
 extern void LocusClientSetCohortParameters(LocusClient client,
                                            RefSet preferred,
                                            RefSet disdained,
@@ -526,13 +529,23 @@ extern Bool LocusClientZoneRangeFinished(LocusClient client);
 extern void LocusClientZoneRangeNext(Addr *baseReturn,
                                      Addr *limitReturn,
                                      LocusClient client);
-extern void LocusClientNoteSegAlloc(LocusClient client, Arena arena,
-                                    Seg seg);
-extern void LocusClientNoteSegFree(LocusClient client, Arena arena,
-                                   Seg seg);
-extern Res LocusManagerDescribe(LocusManager manager, mps_lib_FILE *stream);
+extern void LocusClientSegInit(LocusClient client,
+                               Seg seg);
+extern void LocusClientSegFinish(LocusClient client,
+                                 Seg seg);
+extern Res LocusManagerDescribe(LocusManager manager,
+                                mps_lib_FILE *stream);
 extern Res LocusDescribe(Locus locus, mps_lib_FILE *stream);
-extern Res LocusClientDescribe(LocusClient client, mps_lib_FILE *stream);
+extern Res LocusClientDescribe(LocusClient client,
+                               mps_lib_FILE *stream);
+extern Arena (LocusClientArena)(LocusClient client);
+extern Pool (LocusClientPool)(LocusClient client);
+extern Cohort (LocusClientCohort)(LocusClient client);
+extern Serial (LocusClientSerial)(LocusClient client);
+extern Ring (LocusClientSegRing)(LocusClient client);
+extern Bool LocusManagerCheck(LocusManager manager);
+extern Bool LocusCheck(Locus locus);
+extern Bool LocusClientCheck(LocusClient client);
 extern Res ZoneUsageDescribe(ZoneUsage desc, mps_lib_FILE *stream);
 
 /* Lifetimes */
@@ -663,7 +676,9 @@ extern SegPref SegPrefDefault(void);
 extern Res SegPrefExpress(SegPref pref, SegPrefKind kind, void *p);
 
 extern Bool SegCheck(Seg seg);
+/* @@@ compatibility: for pools with a single locus client */
 extern void SegInit(Seg seg, Pool pool);
+extern void SegInitClient(Seg seg, LocusClient client);
 extern void SegFinish(Seg seg);
 extern void SegSetGrey(Seg seg, TraceSet grey);
 extern void SegSetSummary(Seg seg, RefSet summary);
@@ -671,7 +686,10 @@ extern void SegSetRankSet(Seg seg, RankSet rankSet);
 extern void SegSetRankAndSummary(Seg seg, RankSet rankSet, RefSet summary);
 extern Res SegDescribe(Seg seg, mps_lib_FILE *stream);
 
-#define SegPool(seg)            ((seg)->_pool)
+#define SegClient(seg)          ((seg)->_client)
+#define SegPool(seg)            (LocusClientPool(SegClient(seg)))
+#define SegArena(seg)           (LocusClientArena(SegClient(seg)))
+#define SegCohort(seg)          (LocusClientCohort(SegClient(seg)))
 /* .bitfield.promote: The bit field accesses need to be cast to the */
 /* right type, otherwise they'll be promoted to signed int, see */
 /* standard.ansic.6.2.1.1. */
@@ -686,8 +704,10 @@ extern Res SegDescribe(Seg seg, mps_lib_FILE *stream);
 #define SegNailed(seg)          ((seg)->_nailed)
 #define SegSummary(seg)         ((RefSet)(seg)->_summary)
 #define SegBuffer(seg)          ((seg)->_buffer)
-#define SegPoolRing(seg)        (&(seg)->_poolRing)
-#define SegOfPoolRing(node)     RING_ELT(Seg, _poolRing, (node))
+#define SegClientRing(seg)      (&(seg)->_clientRing)
+#define SegOfClientRing(node)   RING_ELT(Seg, _clientRing, (node))
+/* @@@ compatibility: for pools with a single locus client */
+#define SegOfPoolRing(node)     SegOfClientRing(node)
 #define SegGreyRing(seg)        (&(seg)->_greyRing)
 #define SegOfGreyRing(node)     RING_ELT(Seg, _greyRing, (node))
 

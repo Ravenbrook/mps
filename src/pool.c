@@ -1,6 +1,6 @@
 /* impl.c.pool: POOL IMPLEMENTATION
  *
- * $HopeName: MMsrc!pool.c(MMdevel_ptw_pseudoloci.2) $
+ * $HopeName: MMsrc!pool.c(MMdevel_ptw_pseudoloci.3) $
  * Copyright (C) 1997. Harlequin Group plc. All rights reserved.
  *
  * READERSHIP
@@ -37,7 +37,7 @@
 
 #include "mpm.h"
 
-SRCID(pool, "$HopeName: MMsrc!pool.c(MMdevel_ptw_pseudoloci.2) $");
+SRCID(pool, "$HopeName: MMsrc!pool.c(MMdevel_ptw_pseudoloci.3) $");
 
 
 Bool PoolClassCheck(PoolClass class)
@@ -80,7 +80,6 @@ Bool PoolCheck(Pool pool)
   CHECKD(PoolClass, pool->class);
   CHECKL(RingCheck(&pool->arenaRing));
   CHECKL(RingCheck(&pool->bufferRing));
-  CHECKL(RingCheck(&pool->segRing));
   CHECKL(RingCheck(&pool->actionRing));
   /* Cannot check pool->bufferSerial */
   CHECKL(AlignCheck(pool->alignment));
@@ -108,6 +107,15 @@ Res PoolInit(Pool pool, Arena arena, PoolClass class, ...)
   return res;
 }
 
+
+static Res PoolLocusClientNameMethod(LocusClient client,
+                                     mps_lib_FILE *stream)
+{
+  return PoolName(PARENT(PoolStruct, locusClientStruct, client),
+                  stream);
+}
+
+
 Res PoolInitV(Pool pool, Arena arena,
               PoolClass class, va_list args)
 {
@@ -122,7 +130,6 @@ Res PoolInitV(Pool pool, Arena arena,
   /* .ring.init: See .ring.finish */
   RingInit(&pool->arenaRing);
   RingInit(&pool->bufferRing);
-  RingInit(&pool->segRing);
   RingInit(&pool->actionRing);
   pool->bufferSerial = (Serial)0;
   pool->actionSerial = (Serial)0;
@@ -140,7 +147,7 @@ Res PoolInitV(Pool pool, Arena arena,
   AVERT(Pool, pool);
 
   /* Initialize the locus client  */
-  LocusClientInit(PoolLocusClient(pool), ArenaLocusManager(arena));
+  LocusClientInit(PoolLocusClient(pool), arena, pool, NULL, PoolLocusClientNameMethod);
   
   /* Do class-specific initialization. */
   res = (*class->init)(pool, args);
@@ -157,7 +164,6 @@ Res PoolInitV(Pool pool, Arena arena,
 failInit:
   pool->sig = SigInvalid;      /* Leave arena->poolSerial incremented */
   RingFinish(&pool->actionRing);
-  RingFinish(&pool->segRing);
   RingFinish(&pool->bufferRing);
   RingFinish(&pool->arenaRing);
   return res;
@@ -231,7 +237,6 @@ void PoolFinish(Pool pool)
   
   /* .ring.finish: Finish the generic fields.  See .ring.init */
   RingFinish(&pool->actionRing);
-  RingFinish(&pool->segRing);
   RingFinish(&pool->bufferRing);
   RingFinish(&pool->arenaRing);
   

@@ -1,6 +1,6 @@
 /* impl.h.mpmtypes: MEMORY POOL MANAGER TYPES
  *
- * $HopeName: MMsrc!mpmtypes.h(MMdevel_ptw_pseudoloci.5) $
+ * $HopeName: MMsrc!mpmtypes.h(MMdevel_ptw_pseudoloci.6) $
  * Copyright (C) 1997, 1998 Harlequin Group plc.  All rights reserved.
  *
  * .readership: MM developers.
@@ -105,10 +105,12 @@ typedef Bool (*CBSIterateMethod)(CBS cbs, CBSBlock block,
    created and managed.  Seems like it should be of the same magnitude
    as the number of Zones */
 #define NUMLOCI ((Count)(RefSetSize/2))
+typedef struct CohortStruct *Cohort;
 typedef struct LocusManagerStruct *LocusManager;
 typedef struct LocusStruct *Locus;
 typedef struct LocusClientStruct *LocusClient;
 typedef struct ZoneUsageStruct *ZoneUsage;
+typedef Res (*LocusClientNameMethod)(LocusClient client, mps_lib_FILE *stream);
 
 /* Arena*Method -- see @@@@ */
 

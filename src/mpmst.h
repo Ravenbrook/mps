@@ -1,6 +1,6 @@
 /* impl.h.mpmst: MEMORY POOL MANAGER DATA STRUCTURES
  *
- * $HopeName: MMsrc!mpmst.h(MMdevel_ptw_pseudoloci.7) $
+ * $HopeName: MMsrc!mpmst.h(MMdevel_ptw_pseudoloci.8) $
  * Copyright (C) 1998 Harlequin Group plc.  All rights reserved.
  *
  * .readership: MM developers.
@@ -51,6 +51,13 @@ typedef struct RingStruct {     /* double-ended queue structure */
 
 /* Locus structures.  See design.mps.loci */
 
+/* CohortStruct -- @@@  */
+typedef void CohortStruct;
+
+
+/* SIGnature ZONeUSage */
+#define ZoneUsageSig ((Sig)0x51920405)
+
 /* ZoneUsageStruct -- accounts and summarizes zone usage */
 typedef struct ZoneUsageStruct
 {
@@ -63,6 +70,9 @@ typedef struct ZoneUsageStruct
 } ZoneUsageStruct;
 
 
+/* SIGnature LOCus CLient */
+#define LocusClientSig ((Sig)0x51970CC7)
+
 /* LocusClientStruct -- included in any pool or generation that wants
    locus services */
 typedef struct LocusClientStruct 
@@ -71,9 +81,15 @@ typedef struct LocusClientStruct
   Bool assigned;                /* has a locus */
   Locus locus;                  /* parent */
   /* cohort description */
+  Arena arena;
+  Pool pool;
+  Cohort cohort;                /* e.g., AMCGen */
   RefSet preferred;             /* preferred zones */
   RefSet disdained;             /* disdained zones */
   Index lifetime;               /* mean object life */
+  RingStruct segRingStruct;     /* segs of this client */
+  /* for debug */
+  LocusClientNameMethod clientNameMethod;
   /* summary of zone usage */
   ZoneUsageStruct zoneUsageStruct;
   /* locus client node */
@@ -82,6 +98,9 @@ typedef struct LocusClientStruct
   Sig sig;
 } LocusClientStruct;
 
+
+/* SIGnature LOCUS */
+#define LocusSig ((Sig)0x51970C05)
 
 /* LocusStruct -- Locus manager manages an array of these to implement
    locus services */
@@ -103,6 +122,9 @@ typedef struct LocusStruct
   Sig sig;
 } LocusStruct;
 
+
+/* SIGnature LOCus MaNager */
+#define LocusManagerSig ((Sig)0x51970C34)
 
 /* LocusManagerStruct -- Included in any arena that wants to provide
    locus services */
@@ -209,7 +231,6 @@ typedef struct PoolStruct {     /* generic structure */
   RingStruct arenaRing;         /* link in list of pools in arena */
   RingStruct bufferRing;        /* allocation buffers are attached to pool */
   Serial bufferSerial;          /* serial of next buffer */
-  RingStruct segRing;           /* segs are attached to pool */
   RingStruct actionRing;        /* actions are attached to pool */
   Serial actionSerial;          /* serial of next action */
   Align alignment;              /* alignment for units */
@@ -340,8 +361,9 @@ typedef struct MessageStruct {
  */
 
 typedef struct SegStruct {      /* segment structure */
-  Pool _pool;                   /* MUST BE FIRST (design.mps.seg.field.pool) */
-  RingStruct _poolRing;         /* link in list of segs in pool */
+  /* @@@ update design.mps.seg to speak of LocusClient rather than pool */
+  LocusClient _client;          /* MUST BE FIRST (design.mps.seg.field.pool) */
+  RingStruct _clientRing;       /* link in list of segs in client */
   RingStruct _greyRing;         /* link in list of grey segs */
   void *_p;                     /* pointer for use of owning pool */
   Buffer _buffer;               /* non-NULL if seg is buffered */
