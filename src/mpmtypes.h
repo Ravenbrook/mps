@@ -1,6 +1,6 @@
 /* impl.h.mpmtypes: MEMORY POOL MANAGER TYPES
  *
- * $HopeName: !mpmtypes.h(trunk.13) $
+ * $HopeName: MMsrc!mpmtypes.h(MMdevel_drj_bt.1) $
  * Copyright (C) 1996 Harlequin Group, all rights reserved.
  *
  * .readership: MM developers.
@@ -45,6 +45,7 @@ typedef unsigned Attr;                  /* design.mps.type.attr */
 typedef int RootVar;                    /* design.mps.type.rootvar */
 typedef unsigned Serial;		/* design.mps.type.serial */
 typedef struct RingStruct *Ring;        /* design.mps.ring */
+typedef Word *BT;			/* design.mps.bt */
 typedef struct BufferStruct *Buffer;    /* design.mps.buffer */
 typedef struct APStruct *AP;            /* design.mps.buffer */
 typedef struct FormatStruct *Format;    /* design.mps.format */
