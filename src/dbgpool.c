@@ -1,6 +1,6 @@
 /* impl.c.dbgpool: POOL DEBUG MIXIN
  *
- * $HopeName: MMsrc!dbgpool.c(MMdevel_fencepost.2) $
+ * $HopeName: MMsrc!dbgpool.c(MMdevel_fencepost.3) $
  * Copyright (C) 1998 Harlequin Group plc.  All rights reserved.
  */
 
@@ -14,6 +14,7 @@
 /* tagStruct -- tags for storing info baout allocated objects */
 
 typedef struct tagStruct {
+  /* We don't want to pay the expense of a sig in every tag */
   Addr addr;
   Size size;
   SplayNodeStruct splayNode;
@@ -36,9 +37,9 @@ static void TagTrivInit(void* tag, va_list args)
 }
 
 
-/* AddrComp -- splay comparison function for address ordering of tags */
+/* TagComp -- splay comparison function for address ordering of tags */
 
-static Compare AddrComp(void *key, SplayNode node)
+static Compare TagComp(void *key, SplayNode node)
 {
   Addr addr1, addr2;
 
@@ -124,8 +125,8 @@ static Res DebugPoolInit(Pool pool, va_list args)
 
   /* fencepost init */
   /* @@@@ This parses a user argument, options, so it should really */
-  /* go through the MPS interface.  Possibly the template needs to be */
-  /* copied into Addr memory. */
+  /* go through the MPS interface.  The template needs to be copied */
+  /* into Addr memory, to avoid breaking design.mps.type.addr.use. */
   debug->fenceSize = options->fenceSize;
   if (debug->fenceSize != 0) {
     if (debug->fenceSize % PoolAlignment(pool) != 0) {
@@ -144,7 +145,6 @@ static Res DebugPoolInit(Pool pool, va_list args)
   debug->tagInit = options->tagInit;
   if (debug->tagInit != NULL) {
     debug->tagSize = options->tagSize + sizeof(tagStruct) - 1;
-    /* Should we use a separate arena? */
     /* This pool has to be like the arena control pool: the blocks */
     /* allocated must be accessible using void*. */
     res = PoolCreate(&debug->tagPool, PoolArena(pool), PoolClassMFS(),
@@ -152,7 +152,7 @@ static Res DebugPoolInit(Pool pool, va_list args)
     if (res != ResOK)
       goto tagFail;
     debug->missingTags = 0;
-    SplayTreeInit(&debug->index, AddrComp);
+    SplayTreeInit(&debug->index, TagComp);
   }
 
   debug->sig = PoolDebugMixinSig;
@@ -222,15 +222,14 @@ static Res FenceAlloc(Addr *aReturn, PoolDebugMixin debug, Pool pool,
     return res;
   clientNew = AddrAdd(new, debug->fenceSize);
   /* @@@@ shields? */
-  /* start fencepost, see .trans.memcpy to justify the casts */
-  /* @@@@ change the type of mps_lib_memcpy to Addr? */
-  mps_lib_memcpy((void *)new, debug->fenceTemplate, debug->fenceSize);
-  /* alignment slop, see .trans.memcpy to justify the casts */
-  mps_lib_memcpy((void *)AddrAdd(clientNew, size),
-                 debug->fenceTemplate, alignedSize - size);
-  /* end fencepost, see .trans.memcpy to justify the casts */
-  mps_lib_memcpy((void *)AddrAdd(clientNew, alignedSize),
-                 debug->fenceTemplate, debug->fenceSize);
+  /* start fencepost */
+  AddrCopy(new, debug->fenceTemplate, debug->fenceSize);
+  /* alignment slop */
+  AddrCopy(AddrAdd(clientNew, size),
+           debug->fenceTemplate, alignedSize - size);
+  /* end fencepost */
+  AddrCopy(AddrAdd(clientNew, alignedSize),
+           debug->fenceTemplate, debug->fenceSize);
 
   *aReturn = clientNew;
   return res;
@@ -250,13 +249,12 @@ static Bool FenceCheck(PoolDebugMixin debug, Pool pool,
 
   alignedSize = SizeAlignUp(size, PoolAlignment(pool));
   /* Compare this to the memcpy's in FenceAlloc */
-  /* @@@@ mps_lib_memcmp? */
-  return (memcmp(AddrSub(obj, debug->fenceSize), debug->fenceTemplate,
-                 debug->fenceSize) == 0
-          && memcmp(AddrAdd(obj, size), debug->fenceTemplate,
-                    alignedSize - size) == 0
-          && memcmp(AddrAdd(obj, alignedSize), debug->fenceTemplate,
-                    debug->fenceSize) == 0);
+  return (AddrComp(AddrSub(obj, debug->fenceSize), debug->fenceTemplate,
+                   debug->fenceSize) == 0
+          && AddrComp(AddrAdd(obj, size), debug->fenceTemplate,
+                      alignedSize - size) == 0
+          && AddrComp(AddrAdd(obj, alignedSize), debug->fenceTemplate,
+                      debug->fenceSize) == 0);
 }
 
 
@@ -389,8 +387,31 @@ static void DebugPoolFree(Pool pool, Addr old, Size size)
 typedef void (*ObjectsStepMethod)(Addr addr, Size size, Format fmt,
                                   Pool pool, void *tagData, void *p);
 
-static void TagWalk(Pool pool, ObjectsStepMethod walker, void *p)
+#define ObjectsStepMethodCheck(f) \
+  ((f) != NULL) /* that's the best we can do */
+
+static void TagWalk(Pool pool, ObjectsStepMethod step, void *p)
 {
+  SplayNode node;
+  PoolDebugMixin debug;
+  Addr dummy = NULL; /* Breaks design.mps.type.addr.use, but it's */
+                     /* only temporary until SplayTreeFirst is fixed. */
+
+  AVERT(Pool, pool);
+  AVERT(ObjectsStepMethod, step);
+  /* Can't check p */
+
+  debug = DebugPoolDebugMixin(pool);
+  AVER(debug != NULL);
+  AVERT(PoolDebugMixin, debug); 
+
+  node = SplayTreeFirst(&debug->index, (void *)&dummy);
+  while (node != NULL) {
+    Tag tag = SplayNode2Tag(node);
+
+    step(tag->addr, tag->size, NULL, pool, &tag->userdata, p);
+    node = SplayTreeNext(&debug->index, node, (void *)&tag->addr);
+  }
 }
 
 
