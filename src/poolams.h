@@ -1,6 +1,6 @@
 /* impl.h.poolams: AUTOMATIC MARK & SWEEP POOL CLASS INTERFACE
  *
- * $HopeName: !poolams.h(trunk.10) $
+ * $HopeName: MMsrc!poolams.h(MMdevel_alloc_replay.1) $
  * Copyright (C) 1998.  Harlequin Group plc.  All rights reserved.
  *
  * .purpose: Internal interface to AMS functionality.
@@ -181,7 +181,7 @@ typedef struct AMSGroupStruct {
    : ((group)->firstFree > (index)))
 
 
-extern Res AMSInit(Pool pool, va_list arg);
+extern Res AMSInitInternal(AMS ams, Format format);
 extern void AMSFinish(Pool pool);
 extern Bool AMSCheck(AMS ams);
 
