@@ -1,7 +1,7 @@
 /* impl.c.fmtdy: DYLAN OBJECT FORMAT IMPLEMENTATION
  *
- *  $HopeName: !fmtdy.c(trunk.20) $
- *  Copyright (C) 1996,1997 Harlequin Group, all rights reserved.
+ *  $HopeName: MMsrc!fmtdy.c(MMdevel_configura.1) $
+ *  Copyright (C) 1996,1997, 2000 Harlequin Group, all rights reserved.
  *
  * .readership: MPS developers, Dylan developers
  *
@@ -63,6 +63,12 @@
  */
 #include <stdio.h>
 #endif
+
+
+#define headerSIZE (8)
+#define realTYPE 0
+#define pad1TYPE 1
+#define pad2TYPE 2
 
 
 #define notreached()    assert(0)
@@ -336,6 +342,10 @@ static mps_res_t dylan_scan_pat(mps_ss_t mps_ss,
   return MPS_RES_OK;
 }
 
+
+#define AddHeader(p) ((mps_addr_t)((char*)(p) + headerSIZE))
+
+
 #define NONWORD_LENGTH(_vt, _es) \
   ((_es) < MPS_WORD_SHIFT ? \
    ((_vt) + (1 << (MPS_WORD_SHIFT - (_es))) - 1) >> \
@@ -357,11 +367,22 @@ static mps_res_t dylan_scan1(mps_ss_t mps_ss, mps_addr_t *object_io)
   unsigned es;          /* variable part element size (log2 of bits) */
   mps_word_t vt;        /* total vector length */
   mps_res_t res;
+  int* header;
 
   assert(object_io != NULL);
 
   p = (mps_addr_t *)*object_io;
   assert(p != NULL);
+
+  header = (int*)((char*)p - headerSIZE);
+  if (*header != realTYPE) {
+    switch (*header) {
+    case pad1TYPE: *object_io = (mps_addr_t)((char*)p + 4);
+    case pad2TYPE: *object_io = (mps_addr_t)((char*)p + 8);
+    default: assert(0 == 1);
+    }
+    return MPS_RES_OK;
+  }
 
   h = (mps_word_t)p[0];         /* load the header word */
 
@@ -379,7 +400,7 @@ static mps_res_t dylan_scan1(mps_ss_t mps_ss, mps_addr_t *object_io)
       FMTDY_COUNT(++dylan_fw_counts[1]);
     }
 
-    *object_io = l;
+    *object_io = AddHeader(l);
     return MPS_RES_OK;
   }
 
@@ -484,7 +505,7 @@ static mps_res_t dylan_scan1(mps_ss_t mps_ss, mps_addr_t *object_io)
     }
   }
 
-  *object_io = (mps_addr_t)p;
+  *object_io = AddHeader(p);
   return MPS_RES_OK;
 }
 
@@ -498,7 +519,7 @@ static mps_res_t dylan_scan(mps_ss_t mps_ss,
     if(res) return res;
   }
 
-  assert(base == limit);
+  assert(base == AddHeader(limit));
 
   return MPS_RES_OK;
 }
@@ -596,6 +617,7 @@ static mps_res_t dylan_scan_weak(mps_ss_t mps_ss,
   return MPS_RES_OK;
 }
 
+
 static mps_addr_t dylan_skip(mps_addr_t object)
 {
   mps_addr_t *p;        /* cursor in object */
@@ -606,9 +628,19 @@ static mps_addr_t dylan_skip(mps_addr_t object)
   mps_word_t vt;        /* total vector length */
   unsigned vb;          /* vector bias */
   unsigned es;          /* variable part element size (log2 of bits) */
+  int* header;
 
   p = (mps_addr_t *)object;
   assert(p != NULL);
+
+  header = (int*)((char*)object - headerSIZE);
+  if (*header != realTYPE) {
+    switch (*header) {
+    case pad1TYPE: return (mps_addr_t)((char*)object + 4);
+    case pad2TYPE: return (mps_addr_t)((char*)object + 8);
+    default: assert(0 == 1);
+    }
+  }
 
   h = (mps_word_t)p[0];         /* load the header word */
 
@@ -654,8 +686,9 @@ static mps_addr_t dylan_skip(mps_addr_t object)
       p += vt;
   }
 
-  return (mps_addr_t)p;
+  return (mps_addr_t)((char*)p + headerSIZE);
 }
+
 
 static void dylan_copy(mps_addr_t old, mps_addr_t new)
 {
@@ -715,16 +748,23 @@ static void dylan_no_fwd(mps_addr_t old, mps_addr_t new)
   notreached();
 }
 
-void dylan_pad(mps_addr_t addr, size_t size)
+void dylan_pad(mps_addr_t addr, size_t fullSize)
 {
   mps_word_t *p;
+  size_t size;
 
-  p = (mps_word_t *)addr;
-  if(size == sizeof(mps_word_t))        /* single-word object? */
-    p[0] = 1;
-  else {
-    p[0] = 2;
-    p[1] = (mps_word_t)((char *)addr + size);
+  p = (mps_word_t *)AddHeader(addr);
+  size = fullSize - headerSIZE;
+  if (fullSize <= headerSIZE) {
+    *(int*)addr = (fullSize == 4) ? pad1TYPE : pad2TYPE;
+  } else {
+    *(int*)addr = realTYPE;
+    if(size == sizeof(mps_word_t))        /* single-word object? */
+      p[0] = 1;
+    else {
+      p[0] = 2;
+      p[1] = (mps_word_t)((char *)addr + size);
+    }
   }
 }
 
@@ -739,7 +779,7 @@ static struct mps_fmt_A_s dylan_fmt_A_s =
   ALIGN,
   dylan_scan,
   dylan_skip,
-  dylan_copy,
+  dylan_no_copy,
   dylan_fwd,
   dylan_isfwd,
   dylan_pad
@@ -801,6 +841,23 @@ mps_fmt_B_s *dylan_fmt_B_weak(void)
   return &dylan_fmt_B_weak_s;
 }
 
+static struct mps_fmt_C_s dylan_fmt_C_s =
+{
+  ALIGN,
+  dylan_scan,
+  dylan_skip,
+  dylan_no_copy,
+  dylan_fwd,
+  dylan_isfwd,
+  dylan_pad,
+  (size_t)headerSIZE
+};
+
+mps_fmt_C_s *dylan_fmt_C(void)
+{
+  return &dylan_fmt_C_s;
+}
+
 
 /* Now we have format variety-independent version that pick the right 
  * format variety and create it.
@@ -808,7 +865,7 @@ mps_fmt_B_s *dylan_fmt_B_weak(void)
 
 mps_res_t dylan_fmt(mps_fmt_t *mps_fmt_o, mps_arena_t arena)
 {
-  return mps_fmt_create_B(mps_fmt_o, arena, dylan_fmt_B());
+  return mps_fmt_create_C(mps_fmt_o, arena, dylan_fmt_C());
 }
 
 mps_res_t dylan_fmt_weak(mps_fmt_t *mps_fmt_o, mps_arena_t arena)

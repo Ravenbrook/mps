@@ -1,7 +1,7 @@
 /* impl.c.amcss: POOL CLASS AMC STRESS TEST
  *
- * $HopeName: !amcss.c(trunk.30) $
- * Copyright (C) 1998 Harlequin Group plc.  All rights reserved.
+ * $HopeName: MMsrc!amcss.c(MMdevel_configura.1) $
+ * Copyright (C) 1998, 2000 Harlequin Group plc.  All rights reserved.
  */
 
 #include "fmtdy.h"
@@ -37,24 +37,28 @@ static mps_ap_t ap;
 static mps_addr_t exactRoots[exactRootsCOUNT];
 static mps_addr_t ambigRoots[ambigRootsCOUNT];
 
+#define headerSIZE (8)
+#define realTYPE 0
 
 static mps_addr_t make(void)
 {
   size_t length = rnd() % (2*avLEN);
   size_t size = (length+2) * sizeof(mps_word_t);
-  mps_addr_t p;
+  mps_addr_t p, userP;
   mps_res_t res;
 
   do {
-    MPS_RESERVE_BLOCK(res, p, ap, size);
+    MPS_RESERVE_BLOCK(res, p, ap, size + headerSIZE);
     if(res)
       die(res, "MPS_RESERVE_BLOCK");
-    res = dylan_init(p, size, exactRoots, exactRootsCOUNT);
+    userP = (mps_addr_t)((char*)p + headerSIZE);
+    res = dylan_init(userP, size, exactRoots, exactRootsCOUNT);
     if(res)
       die(res, "dylan_init");
-  } while(!mps_commit(ap, p, size));
+    *(int*)p = realTYPE;
+  } while(!mps_commit(ap, p, size + headerSIZE));
 
-  return p;
+  return userP;
 }
 
 
@@ -83,7 +87,7 @@ static void *test(void *arg, size_t s)
 
   die(dylan_fmt(&format, arena), "fmt_create");
 
-  die(mps_pool_create(&pool, arena, mps_class_amc(), format),
+  die(mps_pool_create(&pool, arena, mps_class_amch(), format),
       "pool_create(amc)");
 
   die(mps_ap_create(&ap, pool, MPS_RANK_EXACT), "BufferCreate");
