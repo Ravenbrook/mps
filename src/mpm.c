@@ -1,6 +1,6 @@
 /* impl.c.mpm: GENERAL MPM SUPPORT
  *
- * $HopeName: MMsrc!mpm.c(MMdevel_gavinm_splay.1) $
+ * $HopeName: MMsrc!mpm.c(MMdevel_gavinm_splay.2) $
  * Copyright (C) 1996, 1997 Harlequin Group, all rights reserved.
  *
  * .readership: MM developers.
@@ -13,7 +13,7 @@
 
 #include "mpm.h"
 
-SRCID(mpm, "$HopeName: MMsrc!mpm.c(MMdevel_gavinm_splay.1) $");
+SRCID(mpm, "$HopeName: MMsrc!mpm.c(MMdevel_gavinm_splay.2) $");
 
 
 /* MPMCheck -- test MPM assumptions */
@@ -293,6 +293,123 @@ static Res WriteWord(mps_lib_FILE *stream, Word w, unsigned base,
   return ResOK;
 }
 
+/*
+ * WriteDouble -- write a double float to a stream
+ *
+ * Cf.: Guy L. Steele, Jr. and Jon L. White, "How to print
+ * floating-point numbers accurately", ACM SIGPLAN Notices, Vol. 25,
+ * No. 6 (Jun. 1990), Pages 112-126
+ */
+
+static Res WriteDouble(mps_lib_FILE *stream, double d) 
+{
+  double F = d;
+  int E = 0, i, x = 0;
+  int prec = 6;                 /* C %g default */
+  int frac = -4;                /* C %g default */
+  int emax = 999;               /* --- get real constant */
+  double epsilon = .000001;     /* 10^-prec */
+  char digits[] = "0123456789";
+  /* sign, prec, '0.', 'e', '+/-', log10(emax), terminator */
+  char buf[1+6+2+1+1+3+1];
+  int j = 0;
+  
+  if (F < 0) {
+    buf[j] = '-';
+    j++;
+    F = - F;
+  }
+  
+  if (F == 0.0) {
+    if(mps_lib_fputs("0", stream) == mps_lib_EOF)
+      return ResIO;
+    return ResOK;
+  }
+
+  for ( ; F >= 1.0 ; F /= 10.0) {
+    E++;
+    if (E > emax) {
+      if(mps_lib_fputs("Infinity", stream) == mps_lib_EOF)
+        return ResIO;
+      return ResOK;
+    }
+  }
+  for ( ; F < 0.1; F *= 10)
+    E--;
+    
+  F += epsilon / 2.0;
+
+  if (F > 1.0) {
+    F /= 10;
+    E++;
+  }
+  
+  if (E > prec || E <= frac) {
+    x = E - 1;
+    E = 1;
+  }
+
+  if (E <= 0) {
+    buf[j] = '0';
+    j++;
+  }
+  if (E < 0) {
+    buf[j] = '.';
+    j++;
+  }
+  for (i = -E; i > 0; i--) {
+    buf[j] = '0';
+    j++;
+  }
+
+  do {
+    if (E == 0) {
+      buf[j] = '.';
+      j++;
+    }
+    F *= 10.0;
+    buf[j] = digits[(int)F];
+    j++;
+    F = F - (int)F;
+    epsilon *= 10.0;
+    E--;
+  } while (F > epsilon);
+  
+  for (i = E; i > 0; i--) {
+    buf[j] = '0';
+    j++;
+  }
+
+  if (x != 0) {
+    buf[j] = 'e';
+    j++;
+    if (x < 0) {
+      buf[j] = '-';
+      j++;
+      x = - x;
+    }
+    else {
+      buf[j] = '+';
+      j++;
+    }
+
+    for (i = 100; i <= x; )
+      i *= 10;
+    i /= 10;
+    do {
+      buf[j] = digits[x / i];
+      j++;
+      x %= i;
+      i /= 10;
+    } while (i > 0);
+  }
+  buf[j] = '\0';
+  
+  if(mps_lib_fputs(buf, stream) == mps_lib_EOF)
+    return ResIO;
+  return ResOK;
+}
+
 
 /* WriteF -- write formatted output
  *
@@ -400,25 +517,7 @@ Res WriteF(mps_lib_FILE *stream, ...)
 
           case 'D': {                   /* double */
             WriteFD d = va_arg(args, WriteFD);
-            Word w;
-            WriteFD f;
-              
-            if (d < 0.0) {
-              r = mps_lib_fputc('-', stream);
-              if (r == mps_lib_EOF)
-                return ResIO;
-              d = -d;
-            }
-            w = (Word)d;
-            f = d - (WriteFD)w;
-            if (f >= 1.0)
-              return ResLIMIT;
-            res = WriteWord(stream, w, 10, 0);
-            if (res != ResOK) return res;
-            r = mps_lib_fputc('.', stream);
-            if (r == mps_lib_EOF)
-              return ResIO;
-            res = WriteWord(stream, (Word)(f * 1000), 10, 3);
+            res = WriteDouble(stream, d);
             if (res != ResOK) return res;
           } break;
                
