@@ -1,6 +1,6 @@
 # ==== SECOND COMMON FRAGMENT FOR PLATFORMS USING MV AND NMAKE
 #
-# $HopeName: MMsrc!commpost.nmk(MMdevel_dropin.2) $
+# $HopeName: MMsrc!commpost.nmk(MMdevel_dropin.3) $
 # Copyright(C) 1997 Harlequin Group, all rights reserved
 #
 # DESCRIPTION
@@ -15,14 +15,14 @@
 
 all: mpmss.exe amcss.exe dwstress.exe lockutnt.exe lockcov.exe \
      mpsicv.exe poolncv.exe locv.exe qs.exe mpm.lib weakcv.exe \
-     mpmconft.exe finalcv.exe awlut.exe
+     mpmconft.exe finalcv.exe awlut.exe mallocv.exe newcv.exe
 
 # Convenience targets
 # %%TARGET: Add a pseudo-target for the new part
 
 dwstress.exe amcss.exe lockutnt.exe lockcov.exe \
      mpmss.exe protcv.exe mpsicv.exe poolncv.exe locv.exe qs.exe \
-     weakcv.exe mpmconft.exe finalcv.exe awlut.exe mallocv.exe \
+     weakcv.exe mpmconft.exe finalcv.exe awlut.exe mallocv.exe newcv.exe \
      mpm.lib mmdw.lib mmsw.lib poolawl.lib:
 !IFDEF VARIETY
 	$(MAKE) /nologo /f $(PFM).nmk TARGET=$@ variety
@@ -120,6 +120,10 @@ $(PFM)\$(VARIETY)\awlut.exe:  $(PFM)\$(VARIETY)\awlut.obj \
 $(PFM)\$(VARIETY)\mallocv.exe: $(PFM)\$(VARIETY)\mallocv.obj \
 	$(PFM)\$(VARIETY)\mpsmal.obj \
 	$(PFM)\$(VARIETY)\mpm.lib $(PLINTHOBJ) $(TESTLIBOBJ)
+
+$(PFM)\$(VARIETY)\newcv.exe: $(PFM)\$(VARIETY)\newcv.obj \
+	$(PFM)\$(VARIETY)\mpsmal.obj $(PFM)\$(VARIETY)\mpsnew.obj \
+        $(PFM)\$(VARIETY)\mpm.lib $(PLINTHOBJ) $(TESTLIBOBJ)
 
 $(PFM)\$(VARIETY)\mpm.lib: $(MPMOBJ)
 	$(ECHO) $@
