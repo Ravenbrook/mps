@@ -1,6 +1,6 @@
 /* impl.h.misc: MISCELLANEOUS DEFINITIONS
  *
- * $HopeName: !misc.h(trunk.10) $
+ * $HopeName: MMsrc!misc.h(MMdevel_lint.1) $
  * Copyright (C) 1994,1995,1996 Harlequin Group, all rights reserved
  *
  * Small general things which are useful for C but aren't part of the
@@ -48,11 +48,17 @@ typedef const struct SrcIdStruct {
   const char *build_time;
 } SrcIdStruct;
 
+#ifdef LCLINT
+#define SRCID(id, hopename) \
+  SrcIdStruct FileSrcIdStruct = \
+  {__FILE__, hopename, __DATE__, __TIME__}; \
+  SrcId id ## SrcId = &FileSrcIdStruct
+#else
 #define SRCID(id, hopename) \
   static SrcIdStruct FileSrcIdStruct = \
   {__FILE__, hopename, __DATE__, __TIME__}; \
   SrcId id ## SrcId = &FileSrcIdStruct
-
+#endif
 
 /* BEGIN and END -- statement brackets
  *
