@@ -1,6 +1,6 @@
 /* impl.c.pool: POOL IMPLEMENTATION
  *
- * $HopeName: !pool.c(trunk.20) $
+ * $HopeName: MMsrc!pool.c(MMdevel_sw_eq.1) $
  * Copyright (C) 1994,1995,1996 Harlequin Group, all rights reserved
  *
  * This is the implementation of the generic pool interface.  The
@@ -12,7 +12,7 @@
 
 #include "mpm.h"
 
-SRCID(pool, "$HopeName: !pool.c(trunk.20) $");
+SRCID(pool, "$HopeName: MMsrc!pool.c(MMdevel_sw_eq.1) $");
 
 
 Bool PoolClassCheck(PoolClass class)
@@ -59,6 +59,43 @@ Bool PoolCheck(Pool pool)
   return TRUE;
 }
 
+Bool PoolPrefCheck(PoolPref pref)
+{
+  CHECKS(PoolPref, pref);
+  CHECKL(pref->near == NULL || PoolCheck(pref->near));
+  CHECKL(pref->far == NULL || PoolCheck(pref->far));
+  /* nothing else to check */
+  return TRUE;
+}
+
+static PoolPrefStruct poolPrefDefault = {PoolPrefSig, NULL, NULL};
+
+PoolPref PoolPrefDefault(void)
+{
+  return &poolPrefDefault;
+}
+
+Res PoolPrefExpress(PoolPref pref, PoolPrefKind kind, void *p)
+{
+  AVERT(PoolPref, pref);
+  AVER(pref != &poolPrefDefault);
+
+  switch(kind) {
+  case PoolPrefNear:
+    AVERT(Pool, (Pool)p);
+    pref->near = p;
+    return ResOK;
+
+  case PoolPrefFar:
+    AVERT(Pool, (Pool)p);
+    pref->far = p;
+    return ResOK;
+
+  default:
+    /* see design.mps.pref.default */
+    return ResOK;
+  }
+}
 
 /* PoolInit, PoolInitV -- initialize a pool
  *
@@ -66,22 +103,24 @@ Bool PoolCheck(Pool pool)
  * See design.mps.pool.align
  */
 
-Res PoolInit(Pool pool, Space space, PoolClass class, ...)
+Res PoolInit(Pool pool, PoolPref pref, PoolClass class, Space space, ...)
 {
   Res res;
   va_list args;
-  va_start(args, class);
-  res = PoolInitV(pool, space, class, args);
+  va_start(args, space);
+  res = PoolInitV(pool, pref, class, space, args);
   va_end(args);
   return res;
 }
 
-Res PoolInitV(Pool pool, Space space, PoolClass class, va_list args)
+Res PoolInitV(Pool pool, PoolPref pref, PoolClass class,
+              Space space, va_list args)
 {
   Res res;
 
   AVER(pool != NULL);
   AVERT(Space, space);
+  AVERT(PoolPref, pref);
   AVERT(PoolClass, class);
 
   pool->class = class;
@@ -100,7 +139,7 @@ Res PoolInitV(Pool pool, Space space, PoolClass class, va_list args)
   AVERT(Pool, pool);
 
   /* Do class-specific initialization. */
-  res = (*class->init)(pool, args);
+  res = (*class->init)(pool, pref, args);
   if(res != ResOK)
     goto failInit;
 
@@ -116,17 +155,18 @@ failInit:
 
 /* PoolCreate, PoolCreateV: Allocate and initialise pool */
 
-Res PoolCreate(Pool *poolReturn, PoolClass class, Space space, ...)
+Res PoolCreate(Pool *poolReturn, PoolPref pref, PoolClass class,
+               Space space, ...)
 {
   Res res;
   va_list args;
   va_start(args, space);
-  res = PoolCreateV(poolReturn, class, space, args);
+  res = PoolCreateV(poolReturn, pref, class, space, args);
   va_end(args);
   return res;
 }
 
-Res PoolCreateV(Pool *poolReturn, PoolClass class,
+Res PoolCreateV(Pool *poolReturn,  PoolPref pref, PoolClass class,
                 Space space, va_list args)
 {
   Res res;
@@ -135,6 +175,7 @@ Res PoolCreateV(Pool *poolReturn, PoolClass class,
 
   AVER(poolReturn != NULL);
   AVERT(Space, space);
+  AVERT(PoolPref, pref);
   AVERT(PoolClass, class);
 
   /* .space.alloc: Allocate the pool instance structure with the size */
@@ -149,7 +190,7 @@ Res PoolCreateV(Pool *poolReturn, PoolClass class,
   pool = (Pool)PointerAdd(base, class->offset);
 
   /* Initialize the pool. */  
-  res = PoolInitV(pool, space, class, args);
+  res = PoolInitV(pool, pref, class, space, args);
   if(res != ResOK) 
     goto failPoolInit;
   
@@ -335,7 +376,7 @@ Space (PoolSpace)(Pool pool)
 }
 
 
-Res PoolSegAlloc(Seg *segReturn, Pool pool, Size size)
+Res PoolSegAlloc(Seg *segReturn, SegPref pref, Pool pool, Size size)
 {
   Res res;
   Seg seg;
@@ -343,10 +384,11 @@ Res PoolSegAlloc(Seg *segReturn, Pool pool, Size size)
 
   AVER(segReturn != NULL);
   AVERT(Pool, pool);
+  AVERT(SegPref, pref);
   space = PoolSpace(pool);
   AVER(SizeIsAligned(size, ArenaAlign(space)));
 
-  res = SegAlloc(&seg, space, size, pool);
+  res = SegAlloc(&seg, pref, space, size, pool);
   if(res != ResOK) return res;
 
   *segReturn = seg;
