@@ -1,6 +1,6 @@
 /* impl.c.arenavm: VIRTUAL MEMORY BASED ARENA IMPLEMENTATION
  *
- * $HopeName: !arenavm.c(trunk.18) $
+ * $HopeName: MMsrc!arenavm.c(MMdevel_segabs.1) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  *
  * This is the implementation of the Segment abstraction from the VM
@@ -14,7 +14,7 @@
 #include "mpm.h"
 
 
-SRCID(arenavm, "$HopeName: !arenavm.c(trunk.18) $");
+SRCID(arenavm, "$HopeName: MMsrc!arenavm.c(MMdevel_segabs.1) $");
 
 
 /* Space Arena Projection
@@ -26,6 +26,26 @@ SRCID(arenavm, "$HopeName: !arenavm.c(trunk.18) $");
 #define SpaceArena(space)       (&(space)->arenaStruct)
 
 
+/* PageUnion -- page structure
+ *
+ * The page table (defined as a PageUnion array) is central to the
+ * design of the arena.  See design.mps.arena.vm.table.*.
+ *
+ * .page: The "pool" field must be the first field of the "tail"
+ * field of this union, so that it shares a common prefix with the
+ * SegStruct.  See impl.h.mpmst.seg.pool.
+ */
+
+typedef struct PageUnion {     /* page structure */
+  SegStruct segStruct;         /* segment */
+  struct {
+    Pool pool;                 /* NULL, must be first field (.page) */
+    Seg seg;                   /* segment at base page of run */
+    Addr limit;                /* limit of segment */
+  } tail;                      /* tail page */
+} PageUnion;
+
+
 /* Page Index to Base address mapping
  *
  * See design.mps.arena.vm.table.linear
@@ -35,23 +55,15 @@ SRCID(arenavm, "$HopeName: !arenavm.c(trunk.18) $");
   AddrAdd((arena)->base, ((i) << arena->pageShift))
 
 
-/* PageStruct -- page structure
- *
- * The page table (defined as a PageStruct array) is central to the
- * design of the arena.  See design.mps.arena.vm.table.*
- */
+/* PageSeg -- segment descriptor of a page */
 
-typedef struct PageStruct {     /* page structure */
-  union {
-    SegStruct head;             /* segment */
-    struct {
-      Pool pool;                /* .page: NULL, must be first field
-                                 * see impl.h.mpmst.seg.pool */
-      Seg seg;                  /* segment at base page of run */
-      Addr limit;               /* limit of segment */
-    } tail;                     /* tail page */
-  } the;
-} PageStruct;
+#define PageSeg(page)           (&(page)->segStruct)
+
+
+/* PageOfSeg -- page descriptor from segment */
+
+#define PageOfSeg(seg)          PARENT(PageUnion, segStruct, seg)
+
 
 
 /* ArenaCreate -- create the arena
@@ -97,7 +109,7 @@ Res ArenaCreate(Space *spaceReturn, Size size, Addr base)
    * over the tables, see .alloc.skip)
    *
    * There are two tables, the free table which is a bool array, and the
-   * page table which is a PageStruct array.  Both tables are allocated
+   * page table which is a PageUnion array.  Both tables are allocated
    * contiguously in one chunk.
    *
    * f_words is the number of words required for the free table.
@@ -108,7 +120,7 @@ Res ArenaCreate(Space *spaceReturn, Size size, Addr base)
    */
   f_words = SizeAlignUp(arena->pages, MPS_WORD_WIDTH) >> MPS_WORD_SHIFT;
   f_size = SizeAlignUp(f_words * sizeof(Word), arena->pageSize);
-  p_size = SizeAlignUp(arena->pages * sizeof(PageStruct), arena->pageSize);
+  p_size = SizeAlignUp(arena->pages * sizeof(PageUnion), arena->pageSize);
   arena->tablesSize = f_size + p_size;
   res = VMMap(space, arena->base, AddrAdd(arena->base, arena->tablesSize));
   if(res) {
@@ -435,7 +447,7 @@ Res SegAlloc(Seg *segReturn, SegPref pref, Space space, Size size, Pool pool)
   if(res) return res;
 
   /* Initialize the generic segment structure. */
-  seg = &arena->pageTable[base].the.head;
+  seg = PageSeg(&arena->pageTable[base]);
   SegInit(seg, pool);
 
   /* Allocate the first page, and, if there is more than one page, */
@@ -446,16 +458,16 @@ Res SegAlloc(Seg *segReturn, SegPref pref, Space space, Size size, Pool pool)
   pages = size >> arena->pageShift;
   if(pages > 1) {
     Addr limit = PageBase(arena, base + pages);
-    seg->single = FALSE;
+    SegSingle(seg) = FALSE;
     for(i = base + 1; i < base + pages; ++i) {
       AVER(BTGet(arena->freeTable, i));
       BTRes(arena->freeTable, i);
-      arena->pageTable[i].the.tail.pool = NULL;
-      arena->pageTable[i].the.tail.seg = seg;
-      arena->pageTable[i].the.tail.limit = limit;
+      arena->pageTable[i].tail.pool = NULL;
+      arena->pageTable[i].tail.seg = seg;
+      arena->pageTable[i].tail.limit = limit;
     }
   } else {
-    seg->single = TRUE;
+    SegSingle(seg) = TRUE;
   }
   
   AVERT(Seg, seg);
@@ -480,7 +492,7 @@ void SegFree(Space space, Seg seg)
   AVERT(Seg, seg);
 
   arena = SpaceArena(space);
-  page = PARENT(PageStruct, the.head, seg);
+  page = PageOfSeg(seg);
   limit = SegLimit(space, seg);
   i = page - arena->pageTable;
   AVER(i <= arena->pages);
@@ -542,7 +554,7 @@ Addr SegBase(Space space, Seg seg)
   AVERT(Seg, seg);
 
   arena = SpaceArena(space);
-  page = PARENT(PageStruct, the.head, seg);
+  page = PageOfSeg(seg);
   i = page - arena->pageTable;
 
   return PageBase(arena, i);
@@ -565,11 +577,11 @@ Addr SegLimit(Space space, Seg seg)
   AVERT(Seg, seg);
 
   arena = SpaceArena(space);
-  if(seg->single)
+  if(SegSingle(seg))
     return AddrAdd(SegBase(space, seg), arena->pageSize);
   else {
-    page = PARENT(PageStruct, the.head, seg);
-    return page[1].the.tail.limit;
+    page = PageOfSeg(seg);
+    return page[1].tail.limit;
   }
 }
 
@@ -612,10 +624,10 @@ Bool SegOfAddr(Seg *segReturn, Space space, Addr addr)
     if(!BTGet(arena->freeTable, i)) {
       Page page = &arena->pageTable[i];
 
-      if(page->the.head.pool != NULL)
-        *segReturn = &page->the.head;
+      if(SegPool(PageSeg(page)) != NULL)
+        *segReturn = PageSeg(page);
       else
-        *segReturn = page->the.tail.seg;
+        *segReturn = page->tail.seg;
       return TRUE;
     }
   }
@@ -640,12 +652,12 @@ static Bool SegSearch(Seg *segReturn, Arena arena, Index i)
 
   while(i < arena->pages &&
         (BTGet(arena->freeTable, i) ||
-         arena->pageTable[i].the.head.pool == NULL)) {
+         SegPool(PageSeg(&arena->pageTable[i])) == NULL)) {
     ++i;
   }
   
   if(i < arena->pages) {
-    *segReturn = &arena->pageTable[i].the.head;
+    *segReturn = PageSeg(&arena->pageTable[i]);
     return TRUE;
   }
   

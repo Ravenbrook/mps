@@ -1,6 +1,6 @@
 /* impl.h.mpmst: MEMORY POOL MANAGER DATA STRUCTURES
  *
- * $HopeName: !mpmst.h(trunk.25) $
+ * $HopeName: MMsrc!mpmst.h(MMdevel_segabs.1) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  *
  * .readership: MM developers.
@@ -266,18 +266,17 @@ typedef struct VMStruct {
  */
 
 typedef struct SegStruct {      /* segment structure */
-  Pool pool;                    /* MUST BE FIRST (design.mps.seg.field.pool) */
-  Bool single;                  /* single page segment */
-  RankSet rankSet;		/* ranks of references in this seg */
-  AccessSet pm, sm;             /* protection and shield modes */
-  Size depth;                   /* see impl.c.shield.def.depth */
-  void *p;                      /* pointer for use of owning pool */
-  TraceSet black;		/* traces for which seg is black */
-  TraceSet grey;                /* traces for which seg is grey */
-  TraceSet white;            	/* traces for which seg is white */
-  RefSet summary;		/* summary of references out of seg */
-  Buffer buffer;                /* non-NULL if seg is buffered */
-  RingStruct poolRing;          /* link in list of segs in pool */
+  Pool _pool;                    /* MUST BE FIRST (design.mps.seg.field.pool) */
+  Bool _single;                  /* single page segment */
+  RankSet _rankSet;		/* ranks of references in this seg */
+  AccessSet _pm, _sm;             /* protection and shield modes */
+  Size _depth;                   /* see impl.c.shield.def.depth */
+  void *_p;                      /* pointer for use of owning pool */
+  TraceSet _grey;                /* traces for which seg is grey */
+  TraceSet _white;            	/* traces for which seg is white */
+  RefSet _summary;		/* summary of references out of seg */
+  Buffer _buffer;                /* non-NULL if seg is buffered */
+  RingStruct _poolRing;          /* link in list of segs in pool */
 } SegStruct;
 
 
@@ -331,7 +330,7 @@ typedef struct ArenaStruct {    /* arena structure */
 /* arena implementation, impl.c.arenavm. */
 
 /* Types used in ArenaStruct, but otherwise defined in impl.c.arenavm. */
-typedef struct PageStruct *Page;/* page type */
+typedef struct PageUnion *Page; /* page type */
 
 typedef struct ArenaStruct {    /* VM arena structure */
   Sig sig;                      /* design.mps.sig */
