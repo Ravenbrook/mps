@@ -1,34 +1,83 @@
 /* impl.c.abq: AVAILABLE BLOCK QUEUE
  *
- * $HopeName: MMsrc!abq.c(MMdevel_gavinm_splay.4) $
+ * $HopeName: MMsrc!abq.c(MMdevel_gavinm_splay.5) $
  * Copyright (C) 1998 Harlequin Group plc.  All rights reserved.
  *
- * See design.mps.poolmv2.impl.c.abq
+ * .readership: Any MPS developer
+ *
+ * .purpose: A FIFO queue substrate for impl.c.poolmv2
+ *
+ * .design: See design.mps.poolmv2
  */
 
 #include "mpm.h"
 #include "meter.h"
 #include "abq.h"
 
-SRCID(abq, "$HopeName: MMsrc!abq.c(MMdevel_gavinm_splay.4) $");
+SRCID(abq, "$HopeName: MMsrc!abq.c(MMdevel_gavinm_splay.5) $");
+
+
+/* Private prototypes */
+
+static Size ABQQueueSize(Count elements);
+static Index ABQNextIndex(ABQ abq, Index index);
 
 
 /* Methods */
+
+/* ABQInit -- Initialize an ABQ
+ *
+ * items is the number of items the queue can hold
+ */
+Res ABQInit(Arena arena, ABQ abq, Count items)
+{
+  Count elements;
+  void *p;
+  Res res;
+
+  AVERT(Arena, arena);
+  AVER(abq != NULL);
+  AVER(elements > 0);
+
+  elements = items + 1;
+  
+  res = ArenaAlloc(&p, arena, ABQQueueSize(elements));
+  if (res != ResOK)
+    return res;
+
+  abq->elements = elements;
+  abq->in = 0;
+  abq->out = 0;
+  abq->queue = (CBSBlock *)p;
+
+  METER_INIT(abq->push, "push");
+  METER_INIT(abq->pop, "pop");
+  METER_INIT(abq->peek, "peek");
+  METER_INIT(abq->delete, "delete");
+  
+  abq->sig = ABQSig;
+
+  AVERT(ABQ, abq);
+  return ResOK;
+}
+
+
+/* ABQCheck -- validate an ABQ */
 Bool ABQCheck(ABQ abq)
 {
   Index index;
   
   CHECKS(ABQ, abq);
-  CHECKL(abq->count > 0);
-  CHECKL(abq->head >= 0);
-  CHECKL(abq->head < abq->count);
-  CHECKL(abq->tail >= 0);
-  CHECKL(abq->tail < abq->count);
+  CHECKL(abq->elements > 0);
+  CHECKL(abq->in >= 0);
+  CHECKL(abq->in < abq->elements);
+  CHECKL(abq->out >= 0);
+  CHECKL(abq->out < abq->elements);
   CHECKL(abq->queue != NULL);
   /* Is this really a local check? */
-  for (index = abq->head; index != abq->tail; ) {
+  for (index = abq->out; index != abq->in; ) {
     CHECKL(CBSBlockCheck(abq->queue[index]));
-    if (++index == abq->count)
+    if (++index == abq->elements)
       index = 0;
   }
 
@@ -36,6 +85,122 @@ Bool ABQCheck(ABQ abq)
 }
 
 
+/* ABQFinish -- finish an ABQ */
+void ABQFinish(Arena arena, ABQ abq)
+{
+  AVERT(Arena, arena);
+  AVERT(ABQ, abq);
+
+  ArenaFree(arena, abq->queue, ABQQueueSize(abq->elements));
+  
+  abq->elements = 0;
+  abq->queue = NULL;
+
+  abq->sig = SigInvalid;
+}
+
+
+/* ABQPush -- push a block onto the tail of the ABQ */
+Res ABQPush(ABQ abq, CBSBlock block)
+{
+  AVERT(ABQ, abq);
+  AVERT(CBSBlock, block);
+
+  METER_ACC(abq->push, ABQDepth(abq));
+
+  if (ABQIsFull(abq))
+    return ResFAIL;
+  
+  abq->queue[abq->in] = block;
+  abq->in = ABQNextIndex(abq, abq->in);
+
+  AVERT(ABQ, abq);
+  return ResOK;
+}
+
+
+/* ABQPop -- pop a block from the head of the ABQ */
+Res ABQPop(ABQ abq, CBSBlock *blockReturn)
+{
+  AVER(blockReturn != NULL);
+  AVERT(ABQ, abq);
+
+  METER_ACC(abq->pop, ABQDepth(abq));
+  
+  if (ABQIsEmpty(abq))
+    return ResFAIL;
+
+  *blockReturn = abq->queue[abq->out];
+  AVERT(CBSBlock, *blockReturn);
+
+  abq->out = ABQNextIndex(abq, abq->out);
+  
+  AVERT(ABQ, abq);
+  return ResOK;
+}
+
+
+/* ABQPeek -- peek at the head of the ABQ */
+Res ABQPeek(ABQ abq, CBSBlock *blockReturn)
+{
+  AVER(blockReturn != NULL);
+  AVERT(ABQ, abq);
+
+  METER_ACC(abq->peek, ABQDepth(abq));
+
+  if (ABQIsEmpty(abq))
+    return ResFAIL;
+
+  *blockReturn = abq->queue[abq->out];
+  AVERT(CBSBlock, *blockReturn);
+
+  /* Identical to pop, but don't increment out */
+
+  AVERT(ABQ, abq);
+  return ResOK;
+}
+
+
+/* ABQDelete -- delete a block from the ABQ */
+Res ABQDelete(ABQ abq, CBSBlock block)
+{
+  Index index, next, elements, in;
+  CBSBlock *queue;
+
+  AVERT(ABQ, abq);
+  AVERT(CBSBlock, block);
+
+  METER_ACC(abq->delete, ABQDepth(abq));
+
+  index = abq->out;
+  in = abq->in;
+  elements = abq->elements;
+  queue = abq->queue;
+  
+  while (index != in) {
+    if (queue[index] == block) {
+      goto found;
+    }
+    index = ABQNextIndex(abq, index);
+  }
+
+  return ResFAIL;
+
+found:
+  /* index points to the node to be removed */
+  next = ABQNextIndex(abq, index);
+  while (next != in) {
+    queue[index] = queue[next];
+    index = next;
+    next = ABQNextIndex(abq, index);
+  }
+  abq->in = index;
+  AVERT(ABQ, abq);
+  return ResOK;
+}
+
+
+/* ABQDescribe -- Describe an ABQ */
 Res ABQDescribe(ABQ abq, mps_lib_FILE *stream)
 {
   Res res;
@@ -47,19 +212,19 @@ Res ABQDescribe(ABQ abq, mps_lib_FILE *stream)
 
   res = WriteF(stream,
 	       "ABQ $P\n{\n", (WriteFP)abq,
-	       "  count: $U \n", (WriteFU)abq->count,
-	       "  head: $U \n", (WriteFU)abq->head,
-	       "  tail: $U \n", (WriteFU)abq->tail,
+	       "  elements: $U \n", (WriteFU)abq->elements,
+	       "  in: $U \n", (WriteFU)abq->in,
+	       "  out: $U \n", (WriteFU)abq->out,
                "  queue: \n",
 	       NULL);
   if(res != ResOK)
     return res;
 
-  for (index = abq->head; index != abq->tail; ) {
+  for (index = abq->out; index != abq->in; ) {
     res = CBSBlockDescribe(abq->queue[index], stream);
     if(res != ResOK)
       return res;
-    if (++index == abq->count)
+    if (++index == abq->elements)
       index = 0;
   }
 
@@ -80,197 +245,57 @@ Res ABQDescribe(ABQ abq, mps_lib_FILE *stream)
 }
 
 
-static Size ABQQueueSize(Count count)
-{
-  /* strange but true: the sizeof expression calculates the size of a
-     single queue element */
-  return (Size)(sizeof(((ABQ)NULL)->queue[0]) * count);
-}
-
-
-/* ABQInit -- Initialize an ABQ */
-Res ABQInit(Arena arena, ABQ abq, Count count)
-{
-  void *p;
-  Res res;
-
-  AVERT(Arena, arena);
-  AVER(abq != NULL);
-  AVER(count > 0);
-
-  res = ArenaAlloc(&p, arena, ABQQueueSize(count));
-  if (res != ResOK)
-    return res;
-
-  abq->count = count;
-  abq->head = 0;
-  abq->tail = 0;
-  abq->queue = (CBSBlock *)p;
-
-  METER_INIT(abq->push, "push");
-  METER_INIT(abq->pop, "pop");
-  METER_INIT(abq->peek, "peek");
-  METER_INIT(abq->delete, "delete");
-  
-  abq->sig = ABQSig;
-
-  AVERT(ABQ, abq);
-  return ResOK;
-}
-
-
+/* ABQIsEmpty -- Is an ABQ empty? */
 Bool ABQIsEmpty(ABQ abq) 
 {
   AVERT(ABQ, abq);
 
-  return abq->head == abq->tail;
+  return abq->out == abq->in;
 }
 
 
+/* ABQIsFull -- Is an ABQ full? */
+Bool ABQIsFull(ABQ abq)
+{
+  AVERT(ABQ, abq);
+
+  return ABQNextIndex(abq, abq->in) == abq->out;
+}
+
+
+/* ABQDepth -- return the number of items in an ABQ */
 Count ABQDepth(ABQ abq)
 {
-  Index head, tail;
+  Index out, in;
   
   AVERT(ABQ, abq);
-  head = abq->head;
-  tail = abq->tail;
+  out = abq->out;
+  in = abq->in;
 
-  if (tail >= head)
-    return tail - head;
+  if (in >= out)
+    return in - out;
   else
-    return tail + abq->count - head;
+    return in + abq->elements - out;
 }
 
 
-/* ABQFinish -- finish an ABQ */
-void ABQFinish(Arena arena, ABQ abq)
+/* ABQQueueSize -- calculate the storage required for the vector to
+   store elements items */
+static Size ABQQueueSize(Count elements)
 {
-  AVERT(Arena, arena);
-  AVERT(ABQ, abq);
-
-  ArenaFree(arena, abq->queue, ABQQueueSize(abq->count));
-  
-  abq->count = 0;
-  abq->queue = NULL;
-
-  abq->sig = SigInvalid;
+  /* strange but true: the sizeof expression calculates the size of a
+     single queue element */
+  return (Size)(sizeof(((ABQ)NULL)->queue[0]) * elements);
 }
 
 
-/* ABQPop -- pop a block from the head of the ABQ */
-Res ABQPop(ABQ abq, CBSBlock *blockReturn)
+/* ABQNextIndex -- calculate the next index into the queue vector from
+   the current one */
+static Index ABQNextIndex(ABQ abq, Index index)
 {
-  Index index;
-  
-  AVER(blockReturn != NULL);
-  AVERT(ABQ, abq);
-
-  METER_ACC(abq->pop, ABQDepth(abq));
-  
-  index = abq->head;
-  if (index == abq->tail)
-    return ResFAIL;
-
-  *blockReturn = abq->queue[index];
-  AVERT(CBSBlock, *blockReturn);
-
-  if (++index == abq->count)
-    index = 0;
-  abq->head = index;
-  
-  AVERT(ABQ, abq);
-  return ResOK;
-}
-
-
-/* ABQPeek -- peek at the head of the ABQ */
-Res ABQPeek(ABQ abq, CBSBlock *blockReturn)
-{
-  Index index;
-  
-  AVER(blockReturn != NULL);
-  AVERT(ABQ, abq);
-
-  METER_ACC(abq->peek, ABQDepth(abq));
-
-  index = abq->head;
-  if (index == abq->tail)
-    return ResFAIL;
-
-  *blockReturn = abq->queue[index];
-  AVERT(CBSBlock, *blockReturn);
-
-  /* Identical to pop, but don't write index back into head */
-
-  AVERT(ABQ, abq);
-  return ResOK;
-}
-
-
-/* ABQPush -- push a block onto the tail of the ABQ */
-Res ABQPush(ABQ abq, CBSBlock block)
-{
-  Index index;
-
-  AVERT(ABQ, abq);
-  AVERT(CBSBlock, block);
-
-  METER_ACC(abq->push, ABQDepth(abq));
-
-  index = abq->tail;
-  if (++index == abq->count)
-    index = 0;
-  
-  if (index == abq->head)
-    return ResFAIL;
-
-  abq->queue[abq->tail] = block;
-  abq->tail = index;
-
-  AVERT(ABQ, abq);
-  return ResOK;
-}
-
-
-/* ABQDelete -- delete a block from the ABQ */
-Res ABQDelete(ABQ abq, CBSBlock block)
-{
-  Index index, next, count, tail;
-  CBSBlock *queue;
-
-  AVERT(ABQ, abq);
-  AVERT(CBSBlock, block);
-
-  METER_ACC(abq->delete, ABQDepth(abq));
-
-  index = abq->head;
-  tail = abq->tail;
-  count = abq->count;
-  queue = abq->queue;
-  
-  while (index != tail) {
-    if (queue[index] == block) {
-      goto found;
-    }
-    if (++index == count)
-      index = 0;
-  }
-
-  return ResFAIL;
-
-found:
-  /* index points to the node to be removed */
-  next = index;
-  if (++next == count)
+  Index next = index + 1;
+  if (next == abq->elements)
     next = 0;
-  while (next != tail) {
-    queue[index] = queue[next];
-    index = next;
-    if (++next == count)
-      next = 0;
-  }
-  abq->tail = index;
-  AVERT(ABQ, abq);
-  return ResOK;
+  return next;
 }
 

@@ -1,12 +1,14 @@
 /* impl.h.abq: ABQ INTERFACE
  *
- * $HopeName: MMsrc!abq.h(MMdevel_gavinm_splay.3) $
+ * $HopeName: MMsrc!abq.h(MMdevel_gavinm_splay.4) $
  * Copyright (C) 1998 Harlequin Group plc.  All rights reserved.
  *
+ * .readership: Any MPS developer
+ *
+ * .purpose: A FIFO queue substrate for impl.c.poolmvv2
+ *
+ * .design: See design.mps.poolmv2
  */
-
-/* temporary -- goes in mpm.h */
-
 
 #ifndef abq_h
 #define abq_h
@@ -14,26 +16,35 @@
 #include "mpm.h"
 #include "meter.h"
 
-/* mpmtypes.h */
+
+/* Signatures */
+
+#define ABQSig ((Sig)0x519AB099) /* SIGnature ABQ */
+
+
+/* Prototypes  */
+
 typedef struct ABQStruct *ABQ;
+extern Res ABQInit(Arena arena, ABQ abq, Count items);
 extern Bool ABQCheck(ABQ abq);
-extern Res ABQDescribe(ABQ abq, mps_lib_FILE *stream);
-extern Res ABQInit(Arena arena, ABQ abq, Count count);
-extern Bool ABQIsEmpty(ABQ abq);
-extern Count ABQDepth(ABQ abq);
 extern void ABQFinish(Arena arena, ABQ abq);
+extern Res ABQPush(ABQ abq, CBSBlock block);
 extern Res ABQPop(ABQ abq, CBSBlock *blockReturn);
 extern Res ABQPeek(ABQ abq, CBSBlock *blockReturn);
-extern Res ABQPush(ABQ abq, CBSBlock block);
 extern Res ABQDelete(ABQ abq, CBSBlock block);
+extern Res ABQDescribe(ABQ abq, mps_lib_FILE *stream);
+extern Bool ABQIsEmpty(ABQ abq);
+extern Bool ABQIsFull(ABQ abq);
+extern Count ABQDepth(ABQ abq);
 
-/* mpmst.h */
-#define ABQSig ((Sig)0x519AB099) /* SIGnature ABQ */
+
+/* Types */
 
 typedef struct ABQStruct
 {
-  Count count;
-  Index head, tail;
+  Count elements;
+  Index in;
+  Index out;
   CBSBlock *queue;
 
   /* Meter queue depth at each operation */
