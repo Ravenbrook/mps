@@ -1,6 +1,6 @@
 /* impl.c.buffer: ALLOCATION BUFFER IMPLEMENTATION
  *
- * $HopeName: !buffer.c(trunk.18) $
+ * $HopeName: MMsrc!buffer.c(MMdevel_sw_eq.1) $
  * Copyright (C) 1996 Harlequin Group, all rights reserved
  *
  * This is (part of) the implementation of allocation buffers.
@@ -29,7 +29,7 @@
 
 #include "mpm.h"
 
-SRCID(buffer, "$HopeName: !buffer.c(trunk.18) $");
+SRCID(buffer, "$HopeName: MMsrc!buffer.c(MMdevel_sw_eq.1) $");
 
 
 /* BufferCreate -- create an allocation buffer in a pool
@@ -148,15 +148,15 @@ Bool BufferCheck(Buffer buffer)
   CHECKU(Space, buffer->space);
   CHECKU(Pool, buffer->pool);
   /* seg and rank checked in anomalous order */
-  CHECKL(RankCheck(buffer->rank));	/* design.mps.check.type.no-sig */
+  CHECKL(RankCheck(buffer->rank));      /* design.mps.check.type.no-sig */
   if(buffer->seg != NULL) {
-    CHECKL(SegCheck(buffer->seg));	/* design.mps.check.type.no-sig */
+    CHECKL(SegCheck(buffer->seg));      /* design.mps.check.type.no-sig */
     CHECKL(buffer->rank == buffer->seg->rank);
   }
   CHECKL(buffer->base <= buffer->apStruct.init);
   CHECKL(buffer->apStruct.init <= buffer->apStruct.alloc);
   CHECKL(buffer->apStruct.alloc <= buffer->apStruct.limit ||
-	 buffer->apStruct.limit == 0);
+         buffer->apStruct.limit == 0);
   CHECKL(buffer->alignment == buffer->pool->alignment);
   CHECKL(AlignCheck(buffer->alignment));
   CHECKL(AddrIsAligned(buffer->base, buffer->alignment));
@@ -165,9 +165,9 @@ Bool BufferCheck(Buffer buffer)
   CHECKL(AddrIsAligned(buffer->apStruct.limit, buffer->alignment));
   /* .improve.bool-check: */
   CHECKL(buffer->exposed == TRUE || buffer->exposed == FALSE);
-  CHECKL(RingCheck(&buffer->poolRing));	/* design.mps.check.type.no-sig */
+  CHECKL(RingCheck(&buffer->poolRing)); /* design.mps.check.type.no-sig */
   /* .improve.accessset: There is no AccessSetCheck */
-  CHECKL(TraceSetCheck(buffer->grey));	/* design.mps.check.type.no-sig */
+  CHECKL(TraceSetCheck(buffer->grey));  /* design.mps.check.type.no-sig */
   /* buffer->p, and buffer->i are arbitrary and cannot be checked */
   return TRUE;
 }
@@ -443,16 +443,16 @@ Res BufferDescribe(Buffer buffer, mps_lib_FILE *stream)
 
   res = WriteF(stream,
          "Buffer $P ($U) {\n", (WriteFP)buffer, (WriteFU)buffer->serial,
-	 "  Space $P\n",       (WriteFP)buffer->space,
+         "  Space $P\n",       (WriteFP)buffer->space,
          "  Pool $P\n",        (WriteFP)buffer->pool,
          "  Seg $P\n",         (WriteFP)buffer->seg,
          "  rank $U\n",        (WriteFU)buffer->rank,
          "  base $A  init $A  alloc $A  limit $A\n",
            buffer->base, buffer->apStruct.init,
-	   buffer->apStruct.alloc, buffer->apStruct.limit,
+           buffer->apStruct.alloc, buffer->apStruct.limit,
          "  alignment $W\n",   (WriteFW)buffer->alignment,
-	 "  exposed $U\n",     (WriteFU)buffer->exposed,
-	 /* poolRing is uninteresting */
+         "  exposed $U\n",     (WriteFU)buffer->exposed,
+         /* poolRing is uninteresting */
          "  grey $B\n",        (WriteFB)buffer->grey,
          "  shieldMode $B\n",  (WriteFB)buffer->shieldMode,
          "  p $P  i $U\n",     buffer->p, (WriteFU)buffer->i,
