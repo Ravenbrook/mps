@@ -1,7 +1,7 @@
 /* impl.h.fmtdy: DYLAN OBJECT FORMAT
  *
- * $HopeName: !fmtdy.h(trunk.5) $
- * Copyright (C) 1997 Harlequin Group, all rights reserved
+ * $HopeName: MMsrc!fmtdy.h(MM_epcore_brisling.1) $
+ * Copyright (C) 1997 Harlequin Limited.  All rights reserved.
  */
 
 #ifndef fmtdy_h
@@ -36,7 +36,7 @@ extern int dylan_wrapper_check(mps_word_t *w);
 #define WS 5
 #define WP 6
 
-#define BASIC_WRAPPER_SIZE WS
+#define BASIC_WRAPPER_SIZE (WS + 1) /* size of wrapper with no patterns */
 
 #define ALIGN           sizeof(mps_word_t)
 
