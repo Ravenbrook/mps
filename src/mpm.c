@@ -1,6 +1,6 @@
 /* impl.c.mpm: GENERAL MPM SUPPORT
  *
- * $HopeName: !mpm.c(trunk.22) $
+ * $HopeName: MMsrc!mpm.c(MMdevel_mv2_rework.1) $
  * Copyright (C) 1996.  Harlequin Group plc.  All rights reserved.
  *
  * .readership: MM developers.
@@ -17,7 +17,7 @@
 #include <float.h>
 
 
-SRCID(mpm, "$HopeName: !mpm.c(trunk.22) $");
+SRCID(mpm, "$HopeName: MMsrc!mpm.c(MMdevel_mv2_rework.1) $");
 
 
 /* MPMCheck -- test MPM assumptions */
@@ -60,7 +60,7 @@ Bool MPMCheck(void)
   CHECKL(sizeof(WriteFU) <= sizeof(Word));
   CHECKL(sizeof(WriteFB) <= sizeof(Word));
   CHECKL(sizeof(WriteFC) <= sizeof(Word));
-  /* .check.write.double: See .write.double.check */
+  /* See .write.double.check */
   {
     int e, DBL_EXP_DIG = 1;
     for (e = DBL_MAX_10_EXP; e > 0; e /= 10)
