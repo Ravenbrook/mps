@@ -1,6 +1,6 @@
 /* impl.c.mpsi: MEMORY POOL SYSTEM C INTERFACE LAYER
  *
- * $HopeName: MMsrc!mpsi.c(MMdevel_sw_eq.3) $
+ * $HopeName: MMsrc!mpsi.c(MMdevel_sw_eq.4) $
  * Copyright (C) 1996 Harlequin Group, all rights reserved.
  *
  * .purpose: This code bridges between the MPS interface to C,
@@ -55,7 +55,7 @@
 #include "mpm.h"
 #include "mps.h"
 
-SRCID(mpsi, "$HopeName: MMsrc!mpsi.c(MMdevel_sw_eq.3) $");
+SRCID(mpsi, "$HopeName: MMsrc!mpsi.c(MMdevel_sw_eq.4) $");
 
 
 /* mpsi_check -- check consistency of interface mappings
@@ -76,7 +76,7 @@ SRCID(mpsi, "$HopeName: MMsrc!mpsi.c(MMdevel_sw_eq.3) $");
  */
 
 #define CHECKLVALUE(lv1, lv2) \
-  (sizeof((lv1) = (lv2)), sizeof((lv2) = (lv1)), TRUE)
+  ((void)sizeof((lv1) = (lv2)), (void)sizeof((lv2) = (lv1)), TRUE)
 
 #define CHECKTYPE(t1, t2) \
   (sizeof(t1) == sizeof(t2) && \
