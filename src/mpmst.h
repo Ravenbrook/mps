@@ -1,6 +1,6 @@
 /* impl.h.mpmst: MEMORY POOL MANAGER DATA STRUCTURES
  *
- * $HopeName: !mpmst.h(MMdevel_metrics.4) $
+ * $HopeName: MMsrc!mpmst.h(MMdevel_metrics_fix.1) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  *
  * .readership: MM developers.
@@ -233,6 +233,8 @@ typedef struct SegStruct {      /* segment structure */
   unsigned int _single : 1;     /* is a single page segment? */
   RankSet _rankSet : RankMAX;   /* ranks of references in this seg */
   unsigned nailCount : 16;      /* false fixes to this seg */
+  unsigned nailed : 1;          /* is nailed */
+  unsigned long mark[32];	/* @@@@ hacky mark table */
 } SegStruct;
 
 
@@ -467,6 +469,7 @@ typedef struct ScanStateStruct {
   Word zoneShift;               /* copy of arena->zoneShift.  See .ss.zone */
   RefSet white;                 /* white set, for inline fix test */
   RefSet unfixedSummary;        /* accumulated summary of scanned references */
+  RefSet maxSummary;		/* unfixedSummary <= maxSummary */
   Sig sig;                      /* design.mps.sig */
   Arena arena;                  /* owning arena */
   TraceSet traces;              /* traces to scan for */
