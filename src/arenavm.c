@@ -1,6 +1,6 @@
 /* impl.c.arenavm: VIRTUAL MEMORY BASED ARENA IMPLEMENTATION
  *
- * $HopeName: MMsrc!arenavm.c(MMdevel_drj_arena_hysteresis.7) $
+ * $HopeName: MMsrc!arenavm.c(MMdevel_drj_arena_hysteresis.8) $
  * Copyright (C) 1998.  Harlequin Group plc.  All rights reserved.
  *
  * PURPOSE
@@ -32,7 +32,7 @@
 #include "mpm.h"
 #include "mpsavm.h"
 
-SRCID(arenavm, "$HopeName: MMsrc!arenavm.c(MMdevel_drj_arena_hysteresis.7) $");
+SRCID(arenavm, "$HopeName: MMsrc!arenavm.c(MMdevel_drj_arena_hysteresis.8) $");
 
 
 /* @@@@ Arbitrary calculation for the maximum number of distinct */
@@ -182,6 +182,7 @@ typedef struct VMArenaStruct {  /* VM arena structure */
 static void VMArenaPageFree(VMArenaChunk chunk, Index pi);
 static void VMArenaPageInit(VMArenaChunk chunk, Index pi);
 static Addr VMSegLimit(Seg seg);
+static void VMArenaPurgeLatentPages(VMArena vmArena);
 
 
 static Bool VMArenaChunkCheck(VMArenaChunk chunk)
@@ -915,6 +916,8 @@ static void VMArenaFinish(Arena arena)
 
   vmArena = ArenaVMArena(arena);
   AVERT(VMArena, vmArena);
+
+  VMArenaPurgeLatentPages(vmArena);
   
   vmArena->sig = SigInvalid;
 
@@ -972,6 +975,23 @@ static Size VMArenaCommitted(Arena arena)
   AVERT(VMArena, vmArena);
 
   return vmArena->committed;
+}
+
+/* VMArenaSpareCommitExceeded
+ *
+ * Simply calls through to Purge
+ */
+
+static void VMArenaSpareCommitExceeded(Arena arena)
+{
+  VMArena vmArena;
+
+  vmArena = ArenaVMArena(arena);
+  AVERT(VMArena, vmArena);
+
+  VMArenaPurgeLatentPages(vmArena);
+
+  return;
 }
 
 
@@ -1981,6 +2001,7 @@ static void VMArenaPurgeLatentPages(VMArena vmArena)
 static void VMArenaHysteresisAddPages(VMArena vmArena, VMArenaChunk chunk,
                                       Index piBase, Index piLimit)
 {
+  Arena arena;
   Index pi;
   Index pageTableBase;
   Index pageTableLimit;
@@ -1990,6 +2011,8 @@ static void VMArenaHysteresisAddPages(VMArena vmArena, VMArenaChunk chunk,
   AVER(piBase < piLimit);
   AVER(piLimit <= chunk->pages);
 
+  arena = VMArenaArena(vmArena);
+
   /* loop from pageBase to pageLimit-1 inclusive */
   for(pi = piBase; pi < piLimit; ++pi) {
     PageRest(&chunk->pageTable[pi])->pool = NULL;
@@ -1998,15 +2021,14 @@ static void VMArenaHysteresisAddPages(VMArena vmArena, VMArenaChunk chunk,
     RingAppend(&vmArena->latentRing,
                &PageRest(&chunk->pageTable[pi])->the.latent.arenaRing);
   }
-  VMArenaArena(vmArena)->spareCommitted +=
-    (piLimit - piBase) << chunk->pageShift;
+  arena->spareCommitted += (piLimit - piBase) << chunk->pageShift;
   BTResRange(chunk->allocTable, piBase, piLimit);
 
   VMArenaTablePagesUsed(&pageTableBase, &pageTableLimit,
                         chunk, piBase, piLimit);
   BTResRange(chunk->noLatentPages, pageTableBase, pageTableLimit);
 
-  if(VMArenaArena(vmArena)->spareCommitted > 0) {
+  if(arena->spareCommitted > arena->spareCommitLimit) {
     VMArenaPurgeLatentPages(vmArena);
   }
 
@@ -2417,6 +2439,7 @@ static ArenaClassStruct ArenaClassVMStruct = {
   VMArenaFinish,                        /* finish */
   VMArenaReserved,                      /* reserved */
   VMArenaCommitted,                     /* committed */
+  VMArenaSpareCommitExceeded,
   ArenaNoExtend,                        /* extend */
   ArenaNoRetract,                       /* retract */
   VMIsReservedAddr,                     /* isReserved */
@@ -2441,6 +2464,7 @@ static ArenaClassStruct ArenaClassVMNZStruct = {
   VMArenaFinish,                        /* finish */
   VMArenaReserved,                      /* reserved */
   VMArenaCommitted,                     /* committed */
+  VMArenaSpareCommitExceeded,
   ArenaNoExtend,                        /* extend */
   ArenaNoRetract,                       /* retract */
   VMIsReservedAddr,                     /* isReserved */
