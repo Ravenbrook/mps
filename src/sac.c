@@ -1,13 +1,13 @@
 /* impl.h.sac: SEGREGATED ALLOCATION CACHES
  *
- * $HopeName: MMsrc!sac.c(MM_epcore_brisling.3) $
+ * $HopeName: MMsrc!sac.c(MM_epcore_brisling.4) $
  * Copyright (C) 1999 Harlequin Group plc.  All rights reserved.
  */
 
 #include "mpm.h"
 #include "sac.h"
 
-SRCID(sac, "$HopeName: MMsrc!sac.c(MM_epcore_brisling.3) $");
+SRCID(sac, "$HopeName: MMsrc!sac.c(MM_epcore_brisling.4) $");
 
 
 /* SACCheck -- check function for SACs */
@@ -48,18 +48,20 @@ static Bool SACCheck(SAC sac)
     CHECKL(prevSize < sac->esacStruct.freelists[i].size);
     b = SACFreeListBlockCheck(&(sac->esacStruct.freelists[i]));
     if (!b) return b;
+    prevSize = sac->esacStruct.freelists[i].size;
   }
   /* check overlarge class */
   CHECKL(sac->esacStruct.freelists[i-2].size == SizeMAX);
   CHECKL(sac->esacStruct.freelists[i-2].count == 0);
   CHECKL(sac->esacStruct.freelists[i-2].countMax == 0);
   CHECKL(sac->esacStruct.freelists[i-2].blocks == NULL);
-  /* check classes above middle */
+  /* check classes below middle */
   prevSize = sac->esacStruct.middle;
   for (j = sac->middleIndex, i = 1; j > 0; --j, i += 2) {
     CHECKL(prevSize > sac->esacStruct.freelists[i].size);
     b = SACFreeListBlockCheck(&(sac->esacStruct.freelists[i]));
     if (!b) return b;
+    prevSize = sac->esacStruct.freelists[i].size;
   }
   /* check smallest class */
   CHECKL(sac->esacStruct.freelists[i].size == 0);
@@ -93,31 +95,40 @@ Res SACCreate(SAC *sacReturn, Pool pool, Count classesCount,
   Res res;
   Index i, j;
   Index middleIndex;  /* index of the size in the middle */
-  unsigned totalfreq = 0;
+  Size prevSize;
+  unsigned totalFreq = 0;
 
   AVER(sacReturn != NULL);
   AVERT(Pool, pool);
   AVER(classesCount > 0);
+  /* In this cache type, there is no upper limit on classesCount. */
+  prevSize = sizeof(Addr) - 1; /* must large enough for freelist link */
+  /* @@@@ It would be better to dynamically adjust the smallest class */
+  /* to be large enough, but that gets complicated, if you have to */
+  /* merge classes because of the adjustment. */
   for (i = 0; i < classesCount; ++i) {
     AVER(classes[i].blockSize > 0);
     AVER(SizeIsAligned(classes[i].blockSize, PoolAlignment(pool)));
-    AVER(i == 0 || classes[i-1].blockSize < classes[i].blockSize);
+    AVER(prevSize < classes[i].blockSize);
+    prevSize = classes[i].blockSize;
     /* no restrictions on count */
     /* no restrictions on frequency */
   }
 
   /* Calculate frequency scale */
   for (i = 0; i < classesCount; ++i) {
-    totalfreq += classes[i].frequency; /* @@@@ check? */
+    unsigned oldFreq = totalFreq;
+    totalFreq += classes[i].frequency;
+    AVER(oldFreq <= totalFreq); /* check for overflow */
   }
 
   /* Find middle one */
-  totalfreq /= 2;
+  totalFreq /= 2;
   for (i = 0; i < classesCount; ++i) {
-    if (totalfreq < classes[i].frequency) break;
-    totalfreq -= classes[i].frequency;
+    if (totalFreq < classes[i].frequency) break;
+    totalFreq -= classes[i].frequency;
   }
-  if (totalfreq <= classes[i].frequency / 2)
+  if (totalFreq <= classes[i].frequency / 2)
     middleIndex = i;
   else
     middleIndex = i + 1; /* there must exist another class at i+1 */
@@ -158,6 +169,7 @@ Res SACCreate(SAC *sacReturn, Pool pool, Count classesCount,
   sac->classesCount = classesCount;
   sac->middleIndex = middleIndex;
   sac->sig = SACSig;
+  AVERT(SAC, sac);
   *sacReturn = sac;
   return ResOK;
 
@@ -225,6 +237,7 @@ Res SACFill(Addr *p_o, SAC sac, Size size, Bool hasReservoirPermit)
   AVER(p_o != NULL);
   AVERT(SAC, sac);
   AVER(size != 0);
+  AVER(BoolCheck(hasReservoirPermit));
 
   SACFind(&i, &blockSize, sac, size);
   /* Check it's empty (in the future, there will be other cases). */
