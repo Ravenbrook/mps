@@ -1,6 +1,6 @@
 /* impl.c.poolmfs: MANUAL FIXED SMALL UNIT POOL
  *
- * $HopeName: MMsrc!poolmfs.c(MMdevel_assertid.2) $
+ * $HopeName: MMsrc!poolmfs.c(MMdevel_assertid.3) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  *
  * This is the implementation of the MFS pool class.
@@ -35,7 +35,7 @@
 #include "mpm.h"
 #include "poolmfs.h"
 
-SRCID(poolmfs, "$HopeName: MMsrc!poolmfs.c(MMdevel_assertid.2) $");
+SRCID(poolmfs, "$HopeName: MMsrc!poolmfs.c(MMdevel_assertid.3) $");
 
 
 /*  == Round up ==
@@ -309,7 +309,7 @@ Bool MFSCheck(MFS mfs)
     CHECKL(0xB3F5001D, PoolHasAddr(&mfs->poolStruct, (Addr)mfs->freeList));
   }
   if(mfs->segList != (Seg)0) {
-    CHECKL(0xB3F5001E, SegCheck(mfs->segList));
+    CHECKD(0xB3F5001E, Seg, mfs->segList);
   }
   return TRUE;
 }
