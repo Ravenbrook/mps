@@ -1,6 +1,6 @@
 /* impl.h.mps: HARLEQUIN MEMORY POOL SYSTEM C INTERFACE
  *
- * $HopeName: !mps.h(trunk.45) $
+ * $HopeName: MMsrc!mps.h(MMdevel_fencepost.1) $
  * Copyright (C) 1997, 1998 The Harlequin Group Limited.  All rights reserved.
  *
  * .readership: customers, MPS developers.
@@ -423,6 +423,17 @@ typedef void (*mps_roots_stepper_t)(mps_addr_t *,
 extern void mps_arena_roots_walk(mps_arena_t,
                                  mps_roots_stepper_t,
                                  void *, size_t);
+
+
+/* Fenceposting */
+
+
+typedef struct mps_pool_debug_option_s {
+  void* fence_template;
+  size_t fence_size;
+} mps_pool_debug_option_s;
+
+extern void mps_pool_check_fenceposts(mps_pool_t);
 
 
 /* Scanner Support */
