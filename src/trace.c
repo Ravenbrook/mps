@@ -1,12 +1,12 @@
 /* impl.c.trace: GENERIC TRACER IMPLEMENTATION
  *
- * $HopeName: MMsrc!trace.c(MMdevel_control2.1) $
+ * $HopeName: MMsrc!trace.c(MMdevel_control2.2) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  */
 
 #include "mpm.h"
 
-SRCID(trace, "$HopeName: MMsrc!trace.c(MMdevel_control2.1) $");
+SRCID(trace, "$HopeName: MMsrc!trace.c(MMdevel_control2.2) $");
 
 
 /* ScanStateCheck -- check consistency of a ScanState object */
@@ -186,9 +186,9 @@ static Res TraceStart(Trace trace, Action action)
 	/* to the white set. */
 	if(RefSetInter(SegSummary(seg), trace->white) != RefSetEMPTY) {
 	  PoolGrey(SegPool(seg), trace, seg);
-          if(TraceSetIsMember(SegGrey(seg), trace->ti))
-            trace->foundation += SegSize(space, seg);
-        }
+	  if(TraceSetIsMember(SegGrey(seg), trace->ti))
+	    trace->foundation += SegSize(space, seg);
+	}
       }
     } while(SegNext(&seg, space, base));
   }
@@ -216,9 +216,9 @@ static Res TraceStart(Trace trace, Action action)
     double reclaim = trace->condemned - surviving;
     double alloc = reclaim / 2;
     if(alloc > 0)
-      trace->rate = scan * SPACE_POLL_MAX / (4096 * alloc);
+      trace->rate = (Size)(scan * SPACE_POLL_MAX / (4096 * alloc));
     else
-      trace->rate = scan / 4096;
+      trace->rate = (Size)(scan / 4096);
   }
 
   trace->state = TraceUNFLIPPED;
@@ -263,7 +263,7 @@ Res TraceCreate(Trace *traceReturn, Space space, Action action)
   Trace trace;
   Res res;
 
-  AVER(TRACE_MAX == 1);		/* .single-collection */
+  AVER(TRACE_MAX == 1);         /* .single-collection */
 
   AVER(traceReturn != NULL);
   AVERT(Space, space);
@@ -274,7 +274,7 @@ Res TraceCreate(Trace *traceReturn, Space space, Action action)
     if(!TraceSetIsMember(space->busyTraces, ti))
       goto found;
 
-  return ResLIMIT;		/* no trace IDs available */
+  return ResLIMIT;              /* no trace IDs available */
 
 found:
   trace = SpaceTrace(space, ti);
@@ -491,10 +491,10 @@ static Res TraceFlip(Trace trace)
       AVER(RootRank(root) <= RankEXACT); /* see above */
 
       if(RootRank(root) == ss.rank) {
-        res = RootScan(&ss, root);
-        if(res != ResOK) {
-          return res;
-        }
+	res = RootScan(&ss, root);
+	if(res != ResOK) {
+	  return res;
+	}
       }
 
       node = next;
@@ -556,7 +556,7 @@ static void TraceReclaim(Trace trace)
  */
 
 static Bool FindGrey(Seg *segReturn, Rank *rankReturn,
-                     Space space, TraceId ti)
+		     Space space, TraceId ti)
 {
   Rank rank;
   Seg seg;
@@ -593,7 +593,7 @@ static Bool FindGrey(Seg *segReturn, Rank *rankReturn,
  */
 
 static Res TraceScan(TraceSet ts, Rank rank,
-                     Space space, Seg seg)
+		     Space space, Seg seg)
 {
   Res res;
   ScanStateStruct ss;
@@ -637,10 +637,10 @@ static Res TraceScan(TraceSet ts, Rank rank,
   AVER((ss.summary == SegSummary(seg)) || 
        (SegSummary(seg) == RefSetUNIV));
   TraceSetSummary(space, seg,
-                  TraceSetUnion(ss.fixed,
-                                TraceSetDiff(ss.summary, ss.white)));
+		  TraceSetUnion(ss.fixed,
+				TraceSetDiff(ss.summary, ss.white)));
 
-  ss.sig = SigInvalid;			/* just in case */
+  ss.sig = SigInvalid;                  /* just in case */
 
   /* The segment has been scanned, so remove the greyness from it. */
   SegSetGrey(seg, TraceSetDiff(SegGrey(seg), ts));
@@ -677,8 +677,8 @@ void TraceAccess(Space space, Seg seg, AccessSet mode)
     /* minimum rank of all grey segments. */
     /* design.mps.poolamc.access.multi @@@@ tag correct?? */
     res = TraceScan(space->busyTraces,  /* @@@@ Should just be flipped traces? */
-                    RankEXACT,
-                    space, seg);
+		    RankEXACT,
+		    space, seg);
     AVER(res == ResOK);                 /* design.mps.poolamc.access.error */
 
     /* The pool should've done the job of removing the greyness that */
@@ -711,7 +711,7 @@ static Res TraceRun(Trace trace)
   if(FindGrey(&seg, &rank, space, trace->ti)) {
     AVER((SegPool(seg)->class->attr & AttrSCAN) != 0);
     res = TraceScan(TraceSetSingle(trace->ti), rank,
-                    space, seg);
+		    space, seg);
     if(res != ResOK) return res;
   } else
     trace->state = TraceRECLAIM;
