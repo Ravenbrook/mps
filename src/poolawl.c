@@ -1,6 +1,6 @@
 /* impl.c.poolawl: AUTOMATIC WEAK LINKED POOL CLASS
  *
- * $HopeName: !poolawl.c(trunk.12) $
+ * $HopeName: MMsrc!poolawl.c(trunk.12) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  *
  * READERSHIP
@@ -16,7 +16,7 @@
 #include "mpm.h"
 #include "mpscawl.h"
 
-SRCID(poolawl, "$HopeName: !poolawl.c(trunk.12) $");
+SRCID(poolawl, "$HopeName: MMsrc!poolawl.c(trunk.12) $");
 
 
 #define AWLSig	((Sig)0x519b7a37)	/* SIGPooLAWL */
@@ -143,8 +143,8 @@ static Res AWLGroupCreate(AWLGroup *groupReturn,
   BTResRange(group->mark, 0, bits);
   BTResRange(group->scanned, 0, bits);
   BTResRange(group->alloc, 0, bits);
-  SegSetSummary(seg, RefSetUNIV);
   SegSetRankSet(seg, BufferRankSet(buffer));
+  SegSetSummary(seg, RefSetUNIV);
   SegSetP(seg, group);
   group->seg = seg;
   group->sig = AWLGroupSig;
@@ -379,7 +379,6 @@ static void AWLGrey(Pool pool, Trace trace, Seg seg)
     AVERT(AWLGroup, group);
 
     SegSetGrey(seg, TraceSetAdd(SegGrey(seg), trace->ti));
-    ShieldRaise(trace->space, seg, AccessREAD);
     BTSetRange(group->mark, 0, group->grains);
     BTResRange(group->scanned, 0, group->grains);
   }
@@ -483,7 +482,7 @@ notFinished:
 	b = SegOfAddr(&dependentSeg, space, dependentObj);
 	if(b == TRUE) {
 	  ShieldExpose(space, dependentSeg);
-	  TraceSetSummary(space, dependentSeg, RefSetUNIV);
+          SegSetSummary(dependentSeg, RefSetUNIV);
 	} else {
 	  dependent = FALSE;
 	}
@@ -550,7 +549,7 @@ static Res AWLFix(Pool pool, ScanState ss, Seg seg, Ref *refIO)
 	*refIO = (Ref)0;
       } else {
 	BTSet(group->mark, i);
-	TraceSegGreyen(space, seg, ss->traces);
+        SegSetGrey(seg, TraceSetUnion(SegGrey(seg), ss->traces));
       }
     }
     break;

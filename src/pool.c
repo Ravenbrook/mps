@@ -1,6 +1,6 @@
 /* impl.c.pool: POOL IMPLEMENTATION
  *
- * $HopeName: !pool.c(trunk.33) $
+ * $HopeName: MMsrc!pool.c(trunk.33) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  *
  * This is the implementation of the generic pool interface.  The
@@ -12,7 +12,7 @@
 
 #include "mpm.h"
 
-SRCID(pool, "$HopeName: !pool.c(trunk.33) $");
+SRCID(pool, "$HopeName: MMsrc!pool.c(trunk.33) $");
 
 
 Bool PoolClassCheck(PoolClass class)
@@ -696,16 +696,8 @@ void PoolTrivGrey(Pool pool, Trace trace, Seg seg)
 
   /* @@@@ The trivial grey method probably shouldn't exclude */
   /* the white segments, since they might also contain grey objects. */
-  /* It's probably also the Tracer's responsibility to raise the */
-  /* shield. */
-  /* @@@@ This should be calculated by comparing colour */
-  /* with the mutator colour.  For the moment we assume */
-  /* a read-barrier collector. */
-
-  if(!TraceSetIsMember(SegWhite(seg), trace->ti)) {
-    SegGrey(seg) = TraceSetAdd(SegGrey(seg), trace->ti);
-    ShieldRaise(trace->space, seg, AccessREAD);
-  }
+  if(!TraceSetIsMember(SegWhite(seg), trace->ti))
+    SegSetGrey(seg, TraceSetSingle(trace->ti));
 }
 
 Res PoolNoScan(ScanState ss, Pool pool, Seg seg)

@@ -1,6 +1,6 @@
 /* impl.h.mpm: MEMORY POOL MANAGER DEFINITIONS
  *
- * $HopeName: !mpm.h(trunk.38) $
+ * $HopeName: MMsrc!mpm.h(trunk.38) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  */
 
@@ -345,8 +345,6 @@ extern Res TracePoll(Trace trace);
 extern void TraceAccess(Space space, Seg seg, AccessSet mode);
 
 extern Res TraceFix(ScanState ss, Ref *refIO);
-extern void TraceSegGreyen(Space space, Seg seg, TraceSet ts);
-extern void TraceSetSummary(Space space, Seg seg, RefSet summary);
 extern Size TraceGreyEstimate(Space space, RefSet refSet);
 
 /* Equivalent to impl.h.mps MPS_SCAN_BEGIN */
@@ -417,6 +415,8 @@ extern void SpaceFree(Space space, Addr base, Size size);
 #define SpaceEpoch(space)       ((space)->epoch) /* .epoch.ts */
 #define SpaceTrace(space, ti)	(&(space)->trace[ti])
 #define SpaceZoneShift(space)	((space)->zoneShift)
+#define SpaceGreyRing(space, rank) \
+  (&space->greyRing[rank])
 
 /* Arena Interface -- see impl.c.arena* */
 
@@ -446,6 +446,9 @@ extern Bool SegNext(Seg *segReturn, Space space, Addr addr);
 extern Bool SegCheck(Seg seg);
 extern void SegInit(Seg seg, Pool pool);
 extern void SegFinish(Seg seg);
+extern void SegSetGrey(Seg seg, TraceSet grey);
+extern void SegSetSummary(Seg seg, RefSet summary);
+extern void SegSetRankSet(Seg seg, RankSet rankSet);
 
 #define SegPool(seg)		((seg)->_pool)
 #define SegSingle(seg)		((seg)->_single)
@@ -460,17 +463,15 @@ extern void SegFinish(Seg seg);
 #define SegBuffer(seg)		((seg)->_buffer)
 #define SegPoolRing(seg)	(&(seg)->_poolRing)
 #define SegOfPoolRing(node)	RING_ELT(Seg, _poolRing, node)
+#define SegGreyRing(seg)	(&(seg)->_greyRing)
+#define SegOfGreyRing(node)	RING_ELT(Seg, _greyRing, node)
 
-#define SegSetPool(seg, pool)   ((void)((seg)->_pool = (pool)))
 #define SegSetSingle(seg, s)	((void)((seg)->_single = (s)))
-#define SegSetRankSet(seg, rs)	((void)((seg)->_rankSet = (rs)))
 #define SegSetPM(seg, mode)	((void)((seg)->_pm = (mode)))
 #define SegSetSM(seg, mode)	((void)((seg)->_sm = (mode)))
 #define SegSetDepth(seg, d)	((void)((seg)->_depth = (d)))
 #define SegSetP(seg, pp)	((void)((seg)->_p = (pp)))
-#define SegSetGrey(seg, ts)	((void)((seg)->_grey = (ts)))
 #define SegSetWhite(seg, ts)	((void)((seg)->_white = (ts)))
-#define SegSetSummary(seg, rs)	((void)((seg)->_summary = (rs)))
 #define SegSetBuffer(seg, b)	((void)((seg)->_buffer = (b)))
 
 

@@ -1,6 +1,6 @@
 /* impl.h.mpmst: MEMORY POOL MANAGER DATA STRUCTURES
  *
- * $HopeName: !mpmst.h(trunk.30) $
+ * $HopeName: MMsrc!mpmst.h(trunk.30) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  *
  * .readership: MM developers.
@@ -271,6 +271,7 @@ typedef struct VMStruct {
 typedef struct SegStruct {      /* segment structure */
   Pool _pool;                   /* MUST BE FIRST (design.mps.seg.field.pool) */
   RingStruct _poolRing;         /* link in list of segs in pool */
+  RingStruct _greyRing;         /* link in list of grey segs */
   void *_p;                     /* pointer for use of owning pool */
   Buffer _buffer;               /* non-NULL if seg is buffered */
   RefSet _summary;              /* summary of references out of seg */
@@ -582,7 +583,6 @@ typedef struct TraceStruct {
   Space space;                  /* owning space */
   Action action;                /* the action that launched the trace */
   RefSet white;                 /* superset of refs in white set */
-  RankSet grey;                 /* ranks for which grey segs (may) exist */
   TraceState state;             /* current state of trace */
   Size interval;                /* polling interval */
 } TraceStruct;
@@ -660,6 +660,7 @@ typedef struct SpaceStruct {
   TraceSet flippedTraces;       /* set of running and flipped traces */
   TraceStruct trace[TRACE_MAX]; /* trace structures.  See
                                    design.mps.trace.intance.limit */
+  RingStruct greyRing[RankMAX]; /* ring of grey segments at each rank */
 
   /* location dependency fields (impl.c.ld) */
   Epoch epoch;                     /* design.mps.space.ld.epoch */

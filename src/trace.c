@@ -1,12 +1,12 @@
 /* impl.c.trace: GENERIC TRACER IMPLEMENTATION
  *
- * $HopeName: !trace.c(trunk.35) $
+ * $HopeName: MMsrc!trace.c(trunk.35) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  */
 
 #include "mpm.h"
 
-SRCID(trace, "$HopeName: !trace.c(trunk.35) $");
+SRCID(trace, "$HopeName: MMsrc!trace.c(trunk.35) $");
 
 
 /* ScanStateCheck -- check consistency of a ScanState object */
@@ -59,7 +59,6 @@ Bool TraceCheck(Trace trace)
   CHECKL(TraceIdCheck(trace->ti));
   CHECKL(trace == &trace->space->trace[trace->ti]);
   CHECKL(TraceSetIsMember(trace->space->busyTraces, trace->ti));
-  CHECKL(RankSetCheck(trace->grey));
   /* Can't check trace->white -- not in O(1) anyway. */
   /* Use trace->state to check more invariants. */
   switch(trace->state) {
@@ -268,10 +267,6 @@ found:
   trace->ti = ti;
   trace->state = TraceINIT;
   trace->interval = (Size)4096; /* @@@@ should be progress control */
-  /* We conservatively assume that there may be grey segments at all */
-  /* ranks when we create the trace.  (almost certainly we could do */
-  /* better) */
-  trace->grey = RankSetUNIV;
 
   trace->sig = TraceSig;
   AVERT(Trace, trace);
@@ -308,10 +303,6 @@ void TraceDestroy(Trace trace)
 {
   AVERT(Trace, trace);
   AVER(trace->state == TraceFINISHED);
-#if 0
-  /* removed AVER for now as it is not true for the first trace */
-  AVER(trace->grey == RankSetEMPTY);
-#endif
   
   PoolTraceEnd(trace->action->pool, trace, trace->action);
   
@@ -321,38 +312,6 @@ void TraceDestroy(Trace trace)
   trace->space->flippedTraces =
     TraceSetDel(trace->space->flippedTraces, trace->ti);
   EVENT_P(TraceDestroy, trace);
-}
-
-
-/* TraceSetGreyen -- turn a segment more grey
- *
- * Adds the trace set ts to the greyness of the segment and adjusts
- * the shielding on the segment appropriately.  (If it causes the
- * segment to become grey for a flipped trace the shield is raised.)
- * @@@@ Why does it seem to be write and a read barrier?
- */
-
-void TraceSegGreyen(Space space, Seg seg, TraceSet ts)
-{
-  TraceSet grey;
-  
-  AVERT(Space, space);
-  AVERT(Seg, seg);
-  AVER(TraceSetCheck(ts));
-
-  grey = SegGrey(seg);
-  grey = TraceSetUnion(grey, ts);
-  if(grey != SegGrey(seg)) {
-    /* Currently we assume that there is only one trace.  */
-    /* This makes it simpler to greyen each trace. */
-    AVER(ts == 1); /* @@@@ Hack */
-    SpaceTrace(space, 0)->grey =
-      RankSetUnion(SpaceTrace(space, 0)->grey, SegRankSet(seg));
-    if(TraceSetInter(grey, space->flippedTraces) != TraceSetEMPTY)
-      ShieldRaise(space, seg, AccessREAD);
-  }
-  SegSetGrey(seg, grey);
-  EVENT_PPU(TraceSegGreyen, space, seg, ts);
 }
 
 
@@ -390,36 +349,6 @@ static void TraceFlipBuffers(Space space)
 }
 
 
-/* TraceSetSummary -- change the summary on a segment
- *
- * The order of setting summary and lowering shield is important.
- * This code preserves the invariant that the segment is write-
- * shielded whenever the summary is not universal.
- * See impl.c.seg.check.wb.
- *
- * @@@@ In fact, we only need to raise the write barrier if the
- * summary is strictly smaller than the summary of the unprotectable
- * data (i.e. the mutator).  We don't maintain such a summary at the
- * moment, and assume that the mutator's summary is RefSetUNIV.
- */
-
-void TraceSetSummary(Space space, Seg seg, RefSet summary)
-{
-  AVERT(Space, space);
-  AVERT(Seg, seg);
-
-  if(summary == RefSetUNIV) {
-    SegSetSummary(seg, summary);             /* NB summary == RefSetUNIV */
-    if(SegSM(seg) & AccessWRITE)
-      ShieldLower(space, seg, AccessWRITE);
-  } else {
-    if(!(SegSM(seg) & AccessWRITE))
-      ShieldRaise(space, seg, AccessWRITE);
-    SegSetSummary(seg, summary);
-  }
-}
-
-
 /* TraceFlip -- blacken the mutator */
 
 static Res TraceFlip(Trace trace)
@@ -428,6 +357,7 @@ static Res TraceFlip(Trace trace)
   Ring node;
   Space space;
   ScanStateStruct ss;
+  Rank rank;
   Res res;
 
   AVERT(Trace, trace);
@@ -447,13 +377,6 @@ static Res TraceFlip(Trace trace)
   /* @@@@ It is too conservative.  Not everything white will */
   /* necessarily move. */
   LDAge(space, trace->white);
-
-  /* The trace is marked as flipped here, apparently prematurely, */
-  /* so that TraceSegGreyen will DTRT when things are scanned below. */
-  /* @@@@ This isn't right.  When flippedTraces is changed _all_ */
-  /* grey segments should have their shield modes fixed up anyway. */
-  trace->state = TraceFLIPPED;
-  space->flippedTraces = TraceSetAdd(space->flippedTraces, trace->ti);
 
   /* At the moment we must scan all roots, because we don't have */
   /* a mechanism for shielding them.  There can't be any weak or */
@@ -496,6 +419,28 @@ static Res TraceFlip(Trace trace)
   }
 
   ss.sig = SigInvalid;  /* just in case */
+
+  /* Now that the mutator is black we must prevent it from reading */
+  /* grey objects so that it can't obtain white pointers.  This is */
+  /* achieved by read protecting all segments containing objects */
+  /* which are grey for any of the flipped traces. */
+  for(rank = 0; rank < RankMAX; ++rank)
+    RING_FOR(node, SpaceGreyRing(space, rank)) {
+      Seg seg = SegOfGreyRing(node);
+      if(TraceSetInter(SegGrey(seg),
+                       space->flippedTraces) == TraceSetEMPTY &&
+         TraceSetIsMember(SegGrey(seg), trace->ti))
+        ShieldRaise(space, seg, AccessREAD);
+    }
+
+  /* @@@@ When write barrier collection is implemented, this is where */
+  /* write protection should be removed for all segments which are */
+  /* no longer blacker than the mutator.  Possibly this can be done */
+  /* lazily as they are touched. */
+
+  /* Mark the trace as flipped. */
+  trace->state = TraceFLIPPED;
+  space->flippedTraces = TraceSetAdd(space->flippedTraces, trace->ti);
 
   EVENT_PP(TraceFlipEnd, trace, space);
 
@@ -540,7 +485,7 @@ static void TraceReclaim(Trace trace)
 }
 
 
-/* FindGrey -- find a grey segment
+/* traceFindGrey -- find a grey segment
  *
  * This function finds a segment which is grey for any of the traces
  * in ts and which does not have a higher rank than any other such
@@ -548,17 +493,14 @@ static void TraceReclaim(Trace trace)
  *
  * This is equivalent to choosing a grey node from the grey set
  * of a partition.
- *
- * @@@@ This must be optimised by using better data structures at
- * the cost of some bookkeeping elsewhere, esp. during fix.
  */
 
-static Bool FindGrey(Seg *segReturn, Rank *rankReturn,
-                     Space space, TraceId ti)
+static Bool traceFindGrey(Seg *segReturn, Rank *rankReturn,
+                          Space space, TraceId ti)
 {
   Rank rank;
   Trace trace;
-  Seg seg;
+  Ring node;
 
   AVER(segReturn != NULL);
   AVERT(Space, space);
@@ -567,24 +509,20 @@ static Bool FindGrey(Seg *segReturn, Rank *rankReturn,
   trace = SpaceTrace(space, ti);
   
   for(rank = 0; rank < RankMAX; ++rank) {
-    if(RankSetIsMember(trace->grey, rank)) {
-      if(SegFirst(&seg, space)) {
-	Addr base;
-	do {
-	  base = SegBase(space, seg);
-	  if(RankSetIsMember(SegRankSet(seg), rank) &&
-	     TraceSetIsMember(SegGrey(seg), ti)) {
-	    *segReturn = seg;
-	    *rankReturn = rank;
-	    return TRUE;
-	  }
-	} while(SegNext(&seg, space, base));
+    RING_FOR(node, SpaceGreyRing(space, rank)) {
+      Seg seg = SegOfGreyRing(node);
+      AVERT(Seg, seg);
+      AVER(SegGrey(seg) != TraceSetEMPTY);
+      AVER(RankSetIsMember(SegRankSet(seg), rank));
+      if(TraceSetIsMember(SegGrey(seg), ti)) {
+        *segReturn = seg;
+        *rankReturn = rank;
+        return TRUE;
       }
-      trace->grey = RankSetDel(trace->grey, rank);
     }
   }
 
-  AVER(trace->grey == RankSetEMPTY);
+  /* There are no grey segments for this trace. */
 
   return FALSE;
 }
@@ -632,10 +570,8 @@ static Res TraceScan(TraceSet ts, Rank rank,
   ShieldExpose(space, seg);
 
   res = PoolScan(&ss, SegPool(seg), seg);
-  if(res != ResOK) {
-    ShieldCover(space, seg);
-    return res;
-  }
+  if(res != ResOK)
+    goto failScan;
 
   /* .scan.post-condition: */ 
   /* The summary of reference seens by scan (ss.summary) is a subset */
@@ -657,23 +593,21 @@ static Res TraceScan(TraceSet ts, Rank rank,
   /* .fix.fixed.all */
 
   AVER(RefSetSub(ss.summary, SegSummary(seg)));
-  TraceSetSummary(space, seg,
-                  TraceSetUnion(ss.fixed,
-                                TraceSetDiff(ss.summary, ss.white)));
+  SegSetSummary(seg, TraceSetUnion(ss.fixed,
+                                   TraceSetDiff(ss.summary, ss.white)));
 
   ss.sig = SigInvalid;                  /* just in case */
 
   /* The segment has been scanned, so remove the greyness from it. */
   SegSetGrey(seg, TraceSetDiff(SegGrey(seg), ts));
 
-  /* If the segment is no longer grey for any flipped trace it */
-  /* doesn't need to be behind the read barrier. */  
-  if(TraceSetInter(SegGrey(seg), space->flippedTraces) == TraceSetEMPTY)
-    ShieldLower(space, seg, AccessREAD);
-
   /* Cover the segment again, now it's been scanned. */
   ShieldCover(space, seg);
 
+  return ResOK;
+
+failScan:
+  ShieldCover(space, seg);
   return res;
 }
 
@@ -710,7 +644,7 @@ void TraceAccess(Space space, Seg seg, AccessSet mode)
 
   if((mode & SegSM(seg) & AccessWRITE) != 0) {    /* write barrier? */
     AVER(SegSummary(seg) != RefSetUNIV);
-    TraceSetSummary(space, seg, RefSetUNIV);
+    SegSetSummary(seg, RefSetUNIV);
   }
 
   AVER((mode & SegSM(seg)) == AccessSetEMPTY);
@@ -729,7 +663,7 @@ static Res TraceRun(Trace trace)
 
   space = trace->space;
 
-  if(FindGrey(&seg, &rank, space, trace->ti)) {
+  if(traceFindGrey(&seg, &rank, space, trace->ti)) {
     AVER((SegPool(seg)->class->attr & AttrSCAN) != 0);
     res = TraceScan(TraceSetSingle(trace->ti), rank,
                     space, seg);
