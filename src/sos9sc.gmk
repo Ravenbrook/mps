@@ -1,7 +1,7 @@
 #
 #     BUILD FOR Solaris/SPARC v9/SunPro C PLATFORM
 #
-#  $HopeName: !sos9sc.gmk(trunk.9) $
+#  $HopeName: MMsrc!sos9sc.gmk(MMdevel_dropin.1) $
 #
 #  This is the GNU makefile for platform.sos9sc
 #
@@ -29,3 +29,4 @@ LIBS = -lm
 TESTLIB = testlib.c
 
 include sc.gmk
+include ar.gmk
