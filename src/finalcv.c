@@ -1,6 +1,6 @@
 /* impl.c.finalcv: FINALIZATION COVERAGE TEST
  *
- * $HopeName: MMsrc!finalcv.c(MMdevel_drj_message.1) $
+ * $HopeName: MMsrc!finalcv.c(MMdevel_drj_message.2) $
  * Copyright (C) 1996,1997 Harlequin Group, all rights reserved
  *
  * READERSHIP
@@ -95,12 +95,11 @@ test(void *arg, size_t s)
   mps_fmt_t fmt;
   mps_pool_t amc;
   mps_res_t e;
-  mps_root_t mps_root[3];
+  mps_root_t mps_root[2];
   mps_space_t space;
   void *p = NULL;
-  struct mps_message_finalization_s msg;
+  mps_message_t message;
   space = (mps_space_t)arg;
-  msg.ref = 0;
 
   die(mps_fmt_create_A(&fmt, space, dylan_fmt_A()), "fmt_create\n");
   die(mps_pool_create(&amc, space, mps_class_amc(), fmt),
@@ -111,9 +110,6 @@ test(void *arg, size_t s)
   die(mps_root_create_table(&mps_root[1], space,
                             MPS_RANK_EXACT, (mps_rm_t)0,
                             &p, (size_t)1), "root_create\n");
-  die(mps_root_create_table(&mps_root[2], space,
-			    MPS_RANK_EXACT, (mps_rm_t)0,
-			    &msg.ref, (size_t)1), "root_create\n");
   die(mps_ap_create(&ap, amc, MPS_RANK_EXACT), "ap_create\n");
 
 
@@ -137,42 +133,31 @@ test(void *arg, size_t s)
     }
   }
 
+  mps_message_type_enable(space, mps_message_type_finalization());
+
   /* design.mps.poolmrg.test.ut.churn */
   while(mps_collections(space) < 3) {
     churn(ap);
     while(mps_message_poll(space)) {
-      mps_message_type_t type;
       int b;
+      mps_word_t *obj;
+      mps_word_t objind;
+      mps_addr_t objaddr;
 
-      b = mps_message_type(&type, space);
+      b = mps_message_get(&message, space, mps_message_type_finalization());
       assert(b);
-      switch(type) {
-      case MPS_MESSAGE_TYPE_FINALIZATION: {
-	mps_word_t *obj;
-	mps_word_t objind;
-
-	b = mps_message_deliver(space, type, &msg, sizeof msg);
-	assert(b);
-	obj = (mps_word_t *)msg.ref;
-	objind = dylan_int_int(obj[2]);
-	printf("Finalizing: object %lu at %p\n", objind, msg.ref);
-	assert(root[objind] == NULL);
-	root[objind] = msg.ref;
-      } break;
-	
-      default:
-	printf("Discarding unknown message type: %d\n", type);
-	b = mps_message_discard(space, type);
-	assert(b);
-	break;
-      }
+      mps_message_finalization_ref(&objaddr, space, message);
+      obj = objaddr;
+      objind = dylan_int_int(obj[2]);
+      printf("Finalizing: object %lu at %p\n", objind, objaddr);
+      assert(root[objind] == NULL);
+      root[objind] = msg.ref;
     }
   }
 
   /* design.mps.poolmrg.test.ut.not */
 
   mps_ap_destroy(ap);
-  mps_root_destroy(mps_root[2]);
   mps_root_destroy(mps_root[1]);
   mps_root_destroy(mps_root[0]);
   mps_pool_destroy(amc);

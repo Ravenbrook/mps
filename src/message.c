@@ -1,6 +1,6 @@
 /* impl.c.message: MPS / CLIENT MESSAGES
  *
- * $HopeName: MMsrc!message.c(MMdevel_drj_message.3) $
+ * $HopeName: MMsrc!message.c(MMdevel_drj_message.4) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All Rights Reserved.
  *
  * READERSHIP
@@ -34,7 +34,7 @@
 #include "mpm.h"
 
 
-SRCID(message, "$HopeName: MMsrc!message.c(MMdevel_drj_message.3) $");
+SRCID(message, "$HopeName: MMsrc!message.c(MMdevel_drj_message.4) $");
 
 
 /* Maps from a Ring pointer to the message */
@@ -55,14 +55,36 @@ static Message (MessageNodeMessage)(Ring node)
 }
 #endif
 
+/* forward declarations */
+static Bool MessageTypeEnabled(Space space, MessageType type);
+static void MessageDelete(Message message);
+
+/* is the message on the queue?
+ * message on queue if and only if it's ring is not a singleton */
+static Bool MessageOnQueue(Message message)
+{
+  AVERT(Message, message);
+
+  return !RingIsSingle(&message->queueRing);
+}
+
 
 /* Checking Functions */
+
+
+Bool MessageTypeCheck(MessageType type)
+{
+  CHECKL(type < MessageTypeMAX);
+
+  return TRUE;
+}
 
 
 Bool MessageCheck(Message message)
 {
   CHECKS(Message, message);
   CHECKU(Space, message->space);
+  CHECKL(MessageTypeCheck(message->type));
   CHECKU(MessageClass, message->class);
   CHECKL(RingCheck(&message->queueRing));
 
@@ -74,18 +96,8 @@ Bool MessageClassCheck(MessageClass class)
 {
   CHECKS(MessageClass, class);
   CHECKL(class->name != NULL);
-  CHECKL(FUNCHECK(class->type));
-  CHECKL(FUNCHECK(class->deliver));
   CHECKL(FUNCHECK(class->delete));
   CHECKL(class->endSig == MessageClassSig);
-
-  return TRUE;
-}
-
-
-Bool MessageTypeCheck(MessageType type)
-{
-  CHECKL(type < MessageTypeMAX);
 
   return TRUE;
 }
@@ -125,8 +137,6 @@ void MessageInit(Space space, Message message, MessageClass class)
   message->sig = MessageSig;
 
   AVERT(Message, message);
-
-  return;
 }
 
 
@@ -148,10 +158,13 @@ void MessagePost(Space space, Message message)
 
   /* queueRing field must be a singleton, see */
   /* design.mps.message.fun.post.singleton */
-  AVER(RingIsSingle(&message->queueRing));
-  RingAppend(&space->messageRing, &message->queueRing);
-
-  return;
+  AVER(!MessageOnQueue(message));
+  if(MessageTypeEnabled(space, message->type)) {
+    RingAppend(&space->messageRing, &message->queueRing);
+  } else {
+    /* discard message immediately if client hasn't enabled that type */
+    MessageDiscard(space, message);
+  }
 }
 
 
@@ -165,33 +178,12 @@ static Message MessageHead(Space space)
 }
 
 
-/* Dispatch Methods */
-
-
 /* returns the type of a message */
-static MessageType MessageGetType(Message message)
+MessageType MessageGetType(Message message)
 {
   AVERT(Message, message);
 
-  return (*message->class->type)(message);
-}
-
-/* delivers a message */
-static void MessageDeliver(Message message, void *buffer, size_t length)
-{
-  AVERT(Message, message);
-  AVER(buffer != NULL);
-  AVER(length > 0);
-
-  (*message->class->deliver)(message, buffer, length);
-}
-
-/* deletes a message */
-static void MessageDelete(Message message)
-{
-  AVERT(Message, message);
-
-  (*message->class->delete)(message);
+  return message->type;
 }
 
 
@@ -215,7 +207,7 @@ Bool MessagePoll(Space space)
 
 
 /* Determines the type of a message at the head of the queue */
-Bool MessageExType(MessageType *typeReturn, Space space)
+Bool MessageQueueType(MessageType *typeReturn, Space space)
 {
   Message message;
   MessageType type;
@@ -248,7 +240,7 @@ static Bool MessageHeadIsType(Space space, MessageType type)
   Message message;
 
   AVERT(Space, space);
-  AVERT(MessageType, type);
+  AVER(MessageTypeCheck(type));
 
   if(!MessagePoll(space)) {
     return FALSE;
@@ -259,6 +251,19 @@ static Bool MessageHeadIsType(Space space, MessageType type)
   }
 
   return TRUE;
+}
+
+
+/* Discards a message
+ * (called from external interface) */
+void MessageDiscard(Space space, Message message)
+{
+  AVERT(Space, space);
+  AVERT(Message, message);
+
+  AVER(!MessageOnQueue(message));
+
+  MessageDelete(message);
 }
 
 
@@ -275,49 +280,9 @@ static void MessageDeleteHead(Space space)
   AVERT(Message, message);
   RingRemove(&message->queueRing);
   MessageDelete(message);
-
-  return;
 }
 
-/* Copies a message into a buffer */
-Bool MessageExDeliver(Space space, MessageType type,
-		    void *buffer, size_t length)
-{
-  Message message;
-
-  AVERT(Space, space);
-  AVERT(MessageType, type);
-  AVER(buffer != NULL);
-  /* there is a strict relation between length and type, */
-  /* but not one that this function is in a position to know */
-  AVER(length > 0);
-
-  if(!MessageHeadIsType(space, type)) {
-    return FALSE;
-  }
-  message = MessageHead(space);
-  MessageDeliver(message, buffer, length);
-  MessageDeleteHead(space);
-
-  return TRUE;
-}
-
-/* Discards a message at the head of the queue only if it has type type */
-Bool MessageDiscard(Space space, MessageType type)
-{
-  AVERT(Space, space);
-  AVERT(MessageType, type);
-
-  if(!MessageHeadIsType(space, type)) {
-    return FALSE;
-  }
-  MessageDeleteHead(space);
-
-  return TRUE;
-}
-
-
-/* Empies the queue by discarding all messages */
+/* Empties the queue by discarding all messages */
 void MessageEmpty(Space space)
 {
   AVERT(Space, space);
@@ -325,6 +290,80 @@ void MessageEmpty(Space space)
   while(!RingIsSingle(&space->messageRing)) {
     MessageDeleteHead(space);
   }
+}
 
-  return;
+Bool MessageGet(Message *messageReturn, Space space, MessageType type)
+{
+  Message message;
+
+  AVER(messageReturn != NULL);
+  AVERT(Space, space);
+  AVER(MessageTypeCheck(type));
+
+  if(MessageHeadIsType(space, type)) {
+    message = MessageHead(space);
+    RingRemove(&message->queueRing);
+    *messageReturn = message;
+    return TRUE;
+  }
+  return FALSE;
+}
+
+
+static Bool MessageTypeEnabled(Space space, MessageType type)
+{
+  AVERT(Space, space);
+  AVER(MessageTypeCheck(type));
+
+  return BTGet(space->enabledMessageTypes, type);
+}
+  
+
+void MessageTypeEnable(Space space, MessageType type)
+{
+  AVERT(Space, space);
+  AVER(MessageTypeCheck(type));
+
+  BTSet(space->enabledMessageTypes, type);
+}
+
+
+
+/* Dispatch Methods */
+
+
+/* generic message delete dispatch */
+static void MessageDelete(Message message)
+{
+  AVERT(Message, message);
+
+  (*message->class->delete)(message);
+}
+
+
+/* type specific dispatch methods */
+
+void MessageFinalizationRef(Ref *refReturn, Space space, Message message)
+{
+  AVER(refReturn != NULL);
+  AVERT(Space, space);
+  AVERT(Message, message);
+
+  AVER(message->type == MessageTypeFinalization);
+
+  (*message->class->finalizationRef)(refReturn, space, message);
+}
+
+
+/* type specific stub methods */
+
+void MessageNoFinalizationRef(Ref *refReturn, Space space, Message message)
+{
+  AVER(refReturn != NULL);
+  AVERT(Space, space);
+  AVERT(Message, message);
+
+  AVER(message->type == MessageTypeFinalization);
+
+  NOTREACHED;
 }

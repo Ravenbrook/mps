@@ -1,6 +1,6 @@
 /* impl.h.mpmtypes: MEMORY POOL MANAGER TYPES
  *
- * $HopeName: MMsrc!mpmtypes.h(MMdevel_drj_message.3) $
+ * $HopeName: MMsrc!mpmtypes.h(MMdevel_drj_message.4) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  *
  * .readership: MM developers.
@@ -106,10 +106,9 @@ typedef double (*PoolBenefitMethod)(Pool pool, Action action);
 
 /* Message*Method -- design.mps.message */
 
-typedef MessageType (*MessageTypeMethod)(Message message);
-typedef void (*MessageDeliverMethod)(Message message,
-				     void *buffer, size_t length);
 typedef void (*MessageDeleteMethod)(Message message);
+typedef void (*MessageFinalizationRefMethod)
+  (Ref *refReturn, Space space, Message message);
 
 
 /* Message Types -- design.mps.message and elsewhere */

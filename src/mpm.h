@@ -1,6 +1,6 @@
 /* impl.h.mpm: MEMORY POOL MANAGER DEFINITIONS
  *
- * $HopeName: MMsrc!mpm.h(MMdevel_drj_message.3) $
+ * $HopeName: MMsrc!mpm.h(MMdevel_drj_message.4) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  */
 
@@ -315,11 +315,19 @@ extern void MessageInit(Space space, Message message, MessageClass class);
 extern void MessageFinish(Message message);
 extern void MessagePost(Space space, Message message);
 extern Bool MessagePoll(Space space);
-extern Bool MessageExType(MessageType *typeReturn, Space space);
-extern Bool MessageExDeliver(Space space, MessageType type,
-			     void *buffer, size_t length);
-extern Bool MessageDiscard(Space space, MessageType type);
+extern MessageType MessageGetType(Message message);
+extern void MessageDiscard(Space space, Message message);
 extern void MessageEmpty(Space space);
+extern Bool MessageGet(Message *messageReturn, Space space, MessageType type);
+extern Bool MessageQueueType(MessageType *typeReturn, Space space);
+extern void MessageTypeEnable(Space space, MessageType type);
+
+/* Message methods for MessageTypeFinalization */
+
+extern void MessageFinalizationRef(Ref *refReturn,
+				   Space space, Message message);
+extern void MessageNoFinalizationRef(Ref *refReturn,
+				     Space space, Message message);
 
 
 /* Trace Interface -- see impl.c.trace */

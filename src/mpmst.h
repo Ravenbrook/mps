@@ -1,6 +1,6 @@
 /* impl.h.mpmst: MEMORY POOL MANAGER DATA STRUCTURES
  *
- * $HopeName: MMsrc!mpmst.h(MMdevel_drj_message.1) $
+ * $HopeName: MMsrc!mpmst.h(MMdevel_drj_message.3) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  *
  * .readership: MM developers.
@@ -196,9 +196,9 @@ typedef struct MVStruct {       /* MV pool outer structure */
 typedef struct MessageClassStruct {
   Sig sig;			/* design.mps.sig */
   const char *name;		/* Human readable Class name */
-  MessageTypeMethod type;	/* retreives type (of a msg) */
-  MessageDeliverMethod deliver;	/* copies a message */
   MessageDeleteMethod delete;	/* terminates a message */
+  MessageFinalizationRefMethod
+    finalizationRef; 		/* for MessageTypeFinalization */
   Sig endSig;			/* design.mps.message.class.sig.double */
 } MessageClassStruct;
 
@@ -212,23 +212,10 @@ typedef struct MessageClassStruct {
 typedef struct MessageStruct {
   Sig sig;			/* design.mps.sig */
   Space space;			/* owning space */
+  MessageType type;		/* Message Type */
   MessageClass class;		/* Message Class Structure */
   RingStruct queueRing;		/* Message queue ring */
 } MessageStruct;
-
-
-/* Message Type Structs */
-
-/* .messagetype.struct: All of the Message Type structures are
- * exposed in the external interface.  They should be kept
- * synchronised with impl.h.mps.messagetype.struct
- */
-
-/* Finalization */
-typedef struct MessageFinalizationStruct {
-  MessageType type;
-  Ref ref;
-} MessageFinalizationStruct;
 
 
 /* VMStruct -- virtual memory structure
@@ -691,6 +678,7 @@ typedef struct SpaceStruct {
 
   /* message fields (design.mps.message, impl.c.message) */
   RingStruct messageRing;	/* ring of pending messages */
+  BT enabledMessageTypes;	/* map of which types are enabled */
 
   /* finalization fields (design.mps.finalize), impl.c.space */
   Bool isFinalPool;		/* indicator for finalPool */
