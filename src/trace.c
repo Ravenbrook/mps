@@ -1,12 +1,12 @@
 /* impl.c.trace: GENERIC TRACER IMPLEMENTATION
  *
- * $HopeName: MMsrc!trace.c(MMdevel_poolams.1) $
+ * $HopeName: MMsrc!trace.c(MMdevel_poolams.2) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  */
 
 #include "mpm.h"
 
-SRCID(trace, "$HopeName: MMsrc!trace.c(MMdevel_poolams.1) $");
+SRCID(trace, "$HopeName: MMsrc!trace.c(MMdevel_poolams.2) $");
 
 
 /* ScanStateCheck -- check consistency of a ScanState object */
@@ -714,8 +714,6 @@ void TraceAccess(Space space, Seg seg, AccessSet mode)
   }
 
   AVER((mode & SegSM(seg)) == AccessSetEMPTY);
-
-  PoolAccess(SegPool(seg), seg, mode);
 }
 
 
