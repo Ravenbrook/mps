@@ -1,6 +1,6 @@
 # impl.makefile.s7ppac: S7PPAC MPW MAKE FILE
 #
-# $HopeName: !s7ppac:Makefile(trunk.19) $
+# $HopeName: MMsrc!s7ppac:Makefile(MM_epcore_brisling.1) $
 #
 # Copyright (C) 1996, 1998, 1999 Harlequin Group plc.  All rights reserved.
 #
@@ -137,9 +137,11 @@ mmsw_{Variety}.o  Ä  ¶
                 ssan{OSffx} ¶
                 mpsi{OSffx} ¶
                 ld{OSffx} ¶
+		poolabs{OSffx} ¶
                 poolepdl{OSffx} ¶
                 poolepvm{OSffx} ¶
                 poolams{OSffx} ¶
+		protocol{OSffx} ¶
                 action{OSffx} ¶
                 seg{OSffx} ¶
                 event{OSffx} ¶
