@@ -1,6 +1,6 @@
 /* impl.c.arenavm: VIRTUAL MEMORY BASED ARENA IMPLEMENTATION
  *
- * $HopeName: MMsrc!arenavm.c(MMdevel_ptw_pseudoloci.5) $
+ * $HopeName: MMsrc!arenavm.c(MMdevel_ptw_pseudoloci.8) $
  * Copyright (C) 1998. Harlequin Group plc. All rights reserved.
  *
  * This is the implementation of the Segment abstraction from the VM
@@ -29,7 +29,7 @@
 #include "mpm.h"
 #include "mpsavm.h"
 
-SRCID(arenavm, "$HopeName: MMsrc!arenavm.c(MMdevel_ptw_pseudoloci.5) $");
+SRCID(arenavm, "$HopeName: MMsrc!arenavm.c(MMdevel_ptw_pseudoloci.8) $");
 
 
 typedef struct VMArenaStruct *VMArena;
@@ -1070,7 +1070,7 @@ static Bool VMSegFind(Index *baseReturn, VMArenaChunk *chunkReturn,
 #if 0
   Word zoneMask = ZoneMASK(arena);
 #endif
-  Word zoneStep = (pref->high)?(- ZoneSTEP(arena)):ZoneSTEP(arena);
+  Word zoneStep = ZoneSTEP(arena);
 
   RING_FOR(node, &vmArena->chunkRing, next)
     {
@@ -1079,8 +1079,9 @@ static Bool VMSegFind(Index *baseReturn, VMArenaChunk *chunkReturn,
       /* is just after the arena tables. */
       Word chunkBase = (Word)PageIndexBase(chunk, chunk->tablePages);
       Word chunkLimit = (Word)chunk->limit;
-      /* zone 0 aligned address, below chunkBase */
-      Word rangeBase = (Word)((pref->high)?chunkLimit:chunkBase) & (~ (zoneSTEP)(arena) - 1));
+      /* zone 0 aligned address, below chunkBase or Limit per
+         direction*/
+      Word rangeBase = (Word)((pref->high)?chunkLimit:chunkBase) & (~ (zoneStep - 1));
 
       AVERT(VMArenaChunk, chunk);
       
@@ -1096,8 +1097,8 @@ static Bool VMSegFind(Index *baseReturn, VMArenaChunk *chunkReturn,
           /* limit of first zone stripe */
           Word nextLimit = rangeBase + (Word)zoneLimit;
           /* stripe trimmed to fit in chunk*/
-          Word stripeBase = nextBase<chunkBase ? chunkBase : nextBase;
-          Word stripeLimit = nextLimit<chunkLimit ? nextLimit : chunkLimit;
+          Word stripeBase = (nextBase<chunkBase) ? chunkBase : nextBase;
+          Word stripeLimit = (nextLimit<chunkLimit) ? nextLimit : chunkLimit;
 
 
           /* @@@ ZoneStripe_FOR */
@@ -1113,12 +1114,12 @@ static Bool VMSegFind(Index *baseReturn, VMArenaChunk *chunkReturn,
             }
                                                                         
             /* base of next zone stripe */
-            nextBase = nextBase+zoneStep;
+            nextBase = nextBase + ((pref->high)?(- zoneStep):zoneStep);
             /* limit of next zone stripe */
-            nextLimit = nextLimit+zoneStep;
+            nextLimit = nextLimit + ((pref->high)?(- zoneStep):zoneStep);
             /* stripe trimmed to fit in chunk */
-            stripeBase = nextBase<chunkBase ? chunkBase : nextBase;
-            stripeLimit = nextLimit<chunkLimit ? nextLimit : chunkLimit;
+            stripeBase = (nextBase<chunkBase) ? chunkBase : nextBase;
+            stripeLimit = (nextLimit<chunkLimit) ? nextLimit : chunkLimit;
           }
         }
       }

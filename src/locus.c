@@ -1,6 +1,6 @@
 /* impl.c.locus: LOCI
  *
- * $HopeName: MMsrc!locus.c(MMdevel_ptw_pseudoloci.10) $
+ * $HopeName: MMsrc!locus.c(MMdevel_ptw_pseudoloci.13) $
  * Copyright (C) 1998 Harlequin Group plc.  All rights reserved.
  *
  * .readership: any MPS developer
@@ -61,7 +61,9 @@ static void LocusManagerZoneRangeNext(Addr *baseReturn,
                                       LocusManager manager,
                                       Locus locus,
                                       LocusClient client);
-static void  LocusManagerRefSetCalculate(LocusManager manager);
+static void  LocusManagerRefSetCalculate(LocusManager manager,
+                                         Bool describePolicy,
+                                         mps_lib_FILE *stream);
 static void LocusManagerNoteZoneAlloc(LocusManager manager,
                                       RefSet ref);
 static void LocusManagerNoteZoneFree(LocusManager manager,
@@ -436,7 +438,7 @@ static void LocusManagerZoneRangeInitialize(LocusManager manager,
     /* @@@ policy knobs, not currently turned */
     manager->searchUseFree = TRUE;
     manager->searchExpand = TRUE;
-    LocusManagerRefSetCalculate(manager);
+    LocusManagerRefSetCalculate(manager, FALSE, NULL);
     manager->searchCacheValid = TRUE;
   }
   
@@ -496,15 +498,13 @@ static Word Rotate(Word word, int rotation);
    instruction */
 #define ROTATE(word, rotation)                                  \
   (((word) << (rotation % MPS_WORD_WIDTH)) |                      \
-    ((word) >> (MPS_WORD_WIDTH - (rotation % MPS_WORD_WIDTH))))
+    ((word) >> (( - rotation) % MPS_WORD_WIDTH)))
 
 
-#if 0
 static Word(Rotate)(Word word, int rotation) 
 {
   return ROTATE(word, rotation);
 }
-#endif
 
 static void (RefSetFind)(Index *zoneReturn,
                          RefSet refSet, Index next,
@@ -514,13 +514,13 @@ static void (RefSetFind)(Index *zoneReturn,
 BEGIN                                                                   \
   Index end = (next) + (up?RefSetSize:(- RefSetSize));                    \
   Index zone = (next);                                                  \
-  RefSet temp = ROTATE(refSet, zone);                                   \
+  RefSet temp = ROTATE(refSet, (- zone)));                                   \
                                                                         \
   /* The intent of this macro is that a decent compiler can optimize    \
      out all the (presumably constant) ?:'s and reduce this loop to a   \
      very small number of instructions. */                              \
   *(zoneReturn) = end; \
-  for (; zone != end; ROTATE(temp, (up)?1:-1), zone += (up)?1:-1) {      \
+  for (; zone != end; ROTATE(temp, (up)?-1:1), zone += (up)?1:-1) {      \
     if ((temp & 01) == (set)?((first)?1:0):((first)?0:1)) {                 \
       *(zoneReturn) = (zone + ((first)?0:((up)?-1:1))) & RefSetMASK;        \
       break;                                                            \
@@ -544,16 +544,10 @@ static void (RefSetFind)(Index *zoneReturn,
       (up ?(sizeof( RefSet ) * 8 )  :
       (- (sizeof( RefSet ) * 8 )  ));
     Index zone = (  next );
-    RefSet temp = (((   refSet  ) <<
-                    (  zone  % MPS_WORD_WIDTH)) |
-                   ((   refSet  ) >>
-                    (MPS_WORD_WIDTH - (  zone  % MPS_WORD_WIDTH)))) ;
+    RefSet temp = Rotate(refSet, (- zone)) ;
     *( zoneReturn) = end;
     for (; zone != end;
-         ((( temp ) <<
-           (  (  up )?1:-1  % MPS_WORD_WIDTH)) |
-          (( temp ) >> (MPS_WORD_WIDTH - (  (  up )?1:-1  %
-                                            MPS_WORD_WIDTH)))) ,
+         temp = Rotate(temp, (  up )?-1:1),
            zone += (  up )?1:-1) {
       if ((temp & 01) == (  set )?((  first )?1:0):((  first )?0:1)) {
         *( zoneReturn ) = (zone + ((  first )?0:((  up )?-1:1))) &
@@ -617,13 +611,17 @@ static void LocusManagerZoneRangeNext(Addr *baseReturn,
     if (start != end) {
       Arena arena = LocusManagerArena(manager);
       Word zoneShift = ArenaZoneShift(arena);
+      Count length = (end - start) & RefSetMASK;
+
+      if (length == 0) length += RefSetSize;
 
       /* save your place */
       manager->searchCurrentZone = end;
       manager->searchRefSet = current;
 
-      *baseReturn = (Addr)(start << zoneShift);
-      *limitReturn = (Addr)(end << zoneShift);
+      *baseReturn = (Addr)((start & RefSetMASK) << zoneShift);
+      *limitReturn = (Addr)(((start & RefSetMASK) + length) <<
+                            zoneShift); 
 
       /* AVER(*baseReturn < *limitReturn);  @@@ not if wrapped */
       {
@@ -658,7 +656,9 @@ static void LocusManagerZoneRangeNext(Addr *baseReturn,
    resort, which should tend to migrate a locus out of its disdained
    zones as quickly as possible.
    */
-static void LocusManagerRefSetCalculate(LocusManager manager) 
+static void LocusManagerRefSetCalculate(LocusManager manager,
+                                        Bool describePolicy,
+                                        mps_lib_FILE *stream) 
 {
   LocusClient client = manager->searchClient;
   Locus locus = manager->searchLocus;
@@ -666,6 +666,7 @@ static void LocusManagerRefSetCalculate(LocusManager manager)
   ZoneUsage locusDesc = LocusZoneUsage(locus);
   ZoneUsage managerDesc = LocusManagerZoneUsage(LocusLocusManager(locus));
   RefSet previous = RefSetEMPTY;
+  char *badDesc, *baseDesc, *goodDesc;
   RefSet bad, base, good;
   RefSet next = RefSetEMPTY;
   Index r = 0;
@@ -681,14 +682,17 @@ static void LocusManagerRefSetCalculate(LocusManager manager)
     switch (i) {
       case 0:
         /* bad for the locus */
+        badDesc = ", not disdained by the locus";
         bad = locus->disdained;
         break;
       case 1:
         /* bad for the client */
+        badDesc = ", not disdained by the client";
         bad = client->disdained;
         break;
       case 2:
         /* last resort */
+        badDesc = "";
         bad = RefSetEMPTY;
         break;
       default:
@@ -700,40 +704,48 @@ static void LocusManagerRefSetCalculate(LocusManager manager)
       switch (j) {
         case 0:
           /* zones used by this client, exclusive to this client */
+          baseDesc = "used by the client, exclusive to the client";
           base = RefSetInter(ZoneUsageUsed(clientDesc), ZoneUsageExclusive(locusDesc));
           break;
         case 1:
           /* zones used by this client, exclusive to this locus */
+          baseDesc = "used by the client, exclusive to the locus";
           base = RefSetInter(ZoneUsageUsed(clientDesc), ZoneUsageExclusive(managerDesc));
           break;
         case 2:
           /* zones used by this locus, exclusive to this locus */
+          baseDesc = "used by the locus, exclusive to the locus";
           base = RefSetInter(ZoneUsageUsed(locusDesc), ZoneUsageExclusive(managerDesc));
           break;
         case 3:
           /* free zones */
           if (manager->searchUseFree) {
+            baseDesc = "unused by any client";
             base = ZoneUsageFree(managerDesc);
             break;
           }
         case 4:
           /* zones used by this client, shared with other loci */
+          baseDesc = "used by the client, shared with other loci";
           base = ZoneUsageUsed(clientDesc);
           break;
         case 5:
           /* zones used by this locus, shared with other loci */
+          baseDesc = "used by the locus, shared with other loci";
           base = ZoneUsageUsed(locusDesc);
           break;
         case 6:
           /* zones used by other loci, exclusive to those loci (@@@
              spread the pain?) */
           if (manager->searchExpand) {
+            baseDesc = "used by other loci, exclusive to those loci";
             base = ZoneUsageExclusive(managerDesc);
             break;
           }
         case 7:
           /* last resort */
           if (manager->searchExpand) {
+            baseDesc = "anywhere";
             base = RefSetUNIV;
             break;
           }
@@ -746,18 +758,24 @@ static void LocusManagerRefSetCalculate(LocusManager manager)
         switch (k) {
           case 0:
             /* good for the client */
+            goodDesc = ", preferred by the client";
             good = client->preferred;
             break;
           case 1:
             /* good for the locus */
+            goodDesc = ", preferred by the locus";
             good = locus->preferred;
             break;
           case 2:
             /* last resort */
+            goodDesc = "";
             good = RefSetUNIV;
             break;
           default:
             NOTREACHED;
+        }
+        if (describePolicy) {
+          WriteF(stream, baseDesc, badDesc, goodDesc, "\n", NULL);
         }
         next = RefSetUnion(previous,
                            RefSetInter(RefSetDiff(base, bad),
@@ -1323,6 +1341,11 @@ Res LocusManagerDescribe(LocusManager manager, mps_lib_FILE *stream)
   
   if (manager->searchCacheValid) {
     Index i;
+
+#if 0
+    /* Describe the policy */
+    LocusManagerRefSetCalculate(manager, TRUE, stream);
+#endif
 
     res = WriteF(stream,
                  "  searchClient: ",
