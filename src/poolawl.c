@@ -1,7 +1,7 @@
 /* impl.c.poolawl: AUTOMATIC WEAK LINKED POOL CLASS
  *
- * $HopeName: MMsrc!poolawl.c(MMdevel_pekka_rate.1) $
- * Copyright (C) 1998. Harlequin Group plc. All rights reserved.
+ * $HopeName: MMsrc!poolawl.c(MMdevel_pekka_rate.2) $
+ * Copyright (C) 1998.  Harlequin Group plc.  All rights reserved.
  *
  * READERSHIP
  *
@@ -12,12 +12,11 @@
  * .design: design.mps.poolawl
  */
 
-
 #include "mpscawl.h"
 #include "mpm.h"
 
 
-SRCID(poolawl, "$HopeName: MMsrc!poolawl.c(MMdevel_pekka_rate.1) $");
+SRCID(poolawl, "$HopeName: MMsrc!poolawl.c(MMdevel_pekka_rate.2) $");
 
 
 #define AWLSig	((Sig)0x519b7a37)	/* SIGPooLAWL */
@@ -690,7 +689,8 @@ static Res awlScanObject(Arena arena, ScanState ss,
   }
 
   res = (*scan)(ss, base, limit);
-  if(res == ResOK) ss->scannedSize += AddrOffset(base, limit);
+  if(res == ResOK)
+    ss->scannedSize += AddrOffset(base, limit);
 
   if(dependent) {
     ShieldCover(arena, dependentSeg);
@@ -855,9 +855,9 @@ static Res AWLFix(Pool pool, ScanState ss, Seg seg, Ref *refIO)
       ++ss->forwardCount; /* slightly inaccurate terminology */
       ss->wasMarked = FALSE;
       if(ss->rank == RankWEAK) {
-	*refIO = (Ref)0;
+        *refIO = (Ref)0;
       } else {
-	BTSet(group->mark, i);
+        BTSet(group->mark, i);
         SegSetGrey(seg, TraceSetUnion(SegGrey(seg), ss->traces));
       }
     }
@@ -980,7 +980,7 @@ static Res AWLAccess(Pool pool, Seg seg, Addr addr,
 
   /* Have to scan the entire seg anyway. */
   res = PoolSegAccess(pool, seg, addr, mode, context);
-  if (ResOK == res) {
+  if(ResOK == res) {
     AWLStatNoteSegAccess(awl, seg, addr);
   }
 
