@@ -1,6 +1,6 @@
 /* impl.c.amcss: POOL CLASS AMC STRESS TEST
  *
- * $HopeName: MMsrc!amcss.c(trunk.29) $
+ * $HopeName: !amcss.c(trunk.30) $
  * Copyright (C) 1998 Harlequin Group plc.  All rights reserved.
  */
 

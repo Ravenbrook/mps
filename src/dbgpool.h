@@ -1,6 +1,6 @@
 /* impl.h.dbgpool: POOL DEBUG MIXIN
  *
- * $HopeName: MMsrc!dbgpool.h(MMdevel_fencepost.4) $
+ * $HopeName: !dbgpool.h(trunk.2) $
  * Copyright (C) 1998 Harlequin Group plc.  All rights reserved.
  */
 

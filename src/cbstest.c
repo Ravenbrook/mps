@@ -1,6 +1,6 @@
 /*  impl.c.cbstest: COALESCING BLOCK STRUCTURE TEST
  *
- *  $HopeName: MMsrc!cbstest.c(trunk.2) $
+ *  $HopeName: !cbstest.c(trunk.3) $
  * Copyright (C) 1998 Harlequin Group plc.  All rights reserved.
  */
 
@@ -15,7 +15,7 @@
 #include "mpsaan.h" /* ANSI arena for BTCreate and BTDestroy */
 #include "testlib.h"
 
-SRCID(cbstest, "$HopeName$");
+SRCID(cbstest, "$HopeName: !cbstest.c(trunk.3) $");
 
 #define ArraySize ((Size)123456)
 #define NOperations ((Size)125000)

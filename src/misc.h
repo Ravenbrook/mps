@@ -1,6 +1,6 @@
 /* impl.h.misc: MISCELLANEOUS DEFINITIONS
  *
- * $HopeName: MMsrc!misc.h(trunk.21) $
+ * $HopeName: !misc.h(trunk.22) $
  * Copyright (C) 1997. Harlequin Group plc. All rights reserved.
  *
  * Small general things which are useful for C but aren't part of the
