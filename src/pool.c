@@ -1,6 +1,6 @@
 /* impl.c.pool: POOL IMPLEMENTATION
  *
- * $HopeName: MMsrc!pool.c(MM_epcore_brisling.1) $
+ * $HopeName: MMsrc!pool.c(MM_epcore_brisling.2) $
  * Copyright (C) 1997, 1999 Harlequin Group plc.  All rights reserved.
  *
  * READERSHIP
@@ -37,7 +37,7 @@
 
 #include "mpm.h"
 
-SRCID(pool, "$HopeName: MMsrc!pool.c(MM_epcore_brisling.1) $");
+SRCID(pool, "$HopeName: MMsrc!pool.c(MM_epcore_brisling.2) $");
 
 
 Bool PoolClassCheck(PoolClass class)
@@ -762,7 +762,6 @@ void PoolNoBufferEmpty(Pool pool, Buffer buffer, Seg seg)
 {
   AVERT(Pool, pool);
   AVERT(Buffer, buffer);
-  AVER(!BufferIsReset(buffer));
   AVER(BufferIsReady(buffer));
   AVER(SegCheck(seg));
   NOTREACHED;
@@ -772,7 +771,6 @@ void PoolTrivBufferEmpty(Pool pool, Buffer buffer, Seg seg)
 {
   AVERT(Pool, pool);
   AVERT(Buffer, buffer);
-  AVER(!BufferIsReset(buffer));
   AVER(BufferIsReady(buffer));
   AVER(SegCheck(seg));
 }
