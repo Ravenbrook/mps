@@ -1,6 +1,6 @@
 # impl.nmk.w3i3mv: WINDOWS (INTEL) NMAKE FILE
 #
-# $HopeName: !w3i3mv.nmk(trunk.65) $
+# $HopeName: MMsrc!w3i3mv.nmk(MMdevel_configura.1) $
 #
 # Copyright (C) 1999 Harlequin Limited.  All rights reserved.
 #
@@ -8,7 +8,7 @@
 PFM = w3i3mv
 PFMDEFS = /DWIN32 /D_WINDOWS
 
-MPM = <assert> <ring> <mpm> <bt> <protocol> \
+MPM_ORIG = <assert> <ring> <mpm> <bt> <protocol> \
       <arenavm> <arenacl> <arena> <tract> <walk> <reserv> \
       <pool> <poolabs> <poolmfs> <poolmv> \
       <root> <format> <buffer> <lockw3> \
@@ -16,10 +16,27 @@ MPM = <assert> <ring> <mpm> <bt> <protocol> \
       <thw3i3> <ssw3i3> <mpsi> <mpsiw3> <ld> <spi3> \
       <event> <action> <seg> <poolmrg> <message> <dbgpool> \
       <abq> <meter> <cbs> <poolmv2> <splay> <version>
+CONFIGURA_INC = <assert> <ring> <mpm> <bt> <protocol> \
+      <arenavm> <arenacl> <arena> <tract> <walk> <reserv> \
+      <pool> <poolabs> <poolmfs> <poolmv> \
+      <root> <format> <buffer> <lockw3> \
+      <ref> <trace> <protw3> <proti3> <prmci3w3> <shield> <vmw3> \
+      <thw3i3> <ssw3i3> <mpsi> <mpsiw3> <ld> <spi3> \
+      <event> <action> <seg> <poolmrg> <message> <dbgpool> \
+      <abq> <meter> <cbs> <splay> <version>
+CONFIGURA = <assert> <ring> <mpm> <bt> <protocol> \
+      <arenavm> <arenacl> <arena> <tract> <walk> <reserv> \
+      <pool> <poolabs> <poolmfs> <poolmv> \
+      <root> <format> <buffer> <lockw3> \
+      <ref> <trace> <protsw> <prmcan> <shield> <vmw3> \
+      <thw3i3> <ssw3i3> <mpsi> <mpsiw3> <ld> <span> \
+      <event> <action> <seg> <poolmrg> <message> <dbgpool> \
+      <abq> <meter> <cbs> <splay> <version>
+MPM = $(CONFIGURA)
 SW  = <assert> <ring> <mpm> <bt> <protocol> \
       <arenavm> <arenacl> <arena> <tract> <walk> <reserv> \
-      <pool> <poolabs> <poolmfs> \
-      <poolmv> <root> <format> <buffer> <lockw3> \
+      <pool> <poolabs> <poolmfs> <poolmv> \
+      <root> <format> <buffer> <lockw3> \
       <ref> <trace> <protsw> <prmcan> <shield> <vmw3> \
       <thw3i3> <ssan> <mpsi> <ld> \
       <event> <action> <seg> <poolmrg> <message> <mpsioan> \
