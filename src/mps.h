@@ -1,6 +1,6 @@
 /* impl.h.mps: HARLEQUIN MEMORY POOL SYSTEM C INTERFACE
  *
- * $HopeName: !mps.h(trunk.50) $
+ * $HopeName: MMsrc!mps.h(MM_dylan_jackdaw.1) $
  * Copyright (C) 1997, 1998 The Harlequin Group Limited.  All rights reserved.
  *
  * .readership: customers, MPS developers.
@@ -76,6 +76,9 @@ enum {
  * This is what clients should use. */
 #define mps_message_type_finalization() MPS_MESSAGE_TYPE_FINALIZATION
 #define mps_message_type_collection_stats() \
+  MPS_MESSAGE_TYPE_COLLECTION_STATS
+/* See change.dylan.jackdaw.1.160127 */
+#define mps_message_type_gc() \
   MPS_MESSAGE_TYPE_COLLECTION_STATS
 
 
@@ -416,6 +419,18 @@ extern size_t mps_message_collection_stats_condemned_size(mps_arena_t,
 
 extern size_t mps_message_collection_stats_not_condemned_size(mps_arena_t, 
                                                               mps_message_t);
+
+
+/* MPS_MESSAGE_TYPE_COLLECTION_STATS */
+
+extern size_t mps_message_gc_live_size(mps_arena_t, 
+                                       mps_message_t);
+
+extern size_t mps_message_gc_condemned_size(mps_arena_t, 
+                                            mps_message_t);
+
+extern size_t mps_message_gc_not_condemned_size(mps_arena_t, 
+                                                mps_message_t);
 
 
 /* Finalization */

@@ -1,6 +1,6 @@
 /* impl.c.mpsi: MEMORY POOL SYSTEM C INTERFACE LAYER
  *
- * $HopeName: !mpsi.c(trunk.62) $
+ * $HopeName: MMsrc!mpsi.c(MM_dylan_jackdaw.1) $
  * Copyright (C) 1997. Harlequin Group plc. All rights reserved.
  *
  * .purpose: This code bridges between the MPS interface to C,
@@ -52,7 +52,7 @@
 #include "mps.h"
 #include "mpsavm.h" /* only for mps_space_create */
 
-SRCID(mpsi, "$HopeName: !mpsi.c(trunk.62) $");
+SRCID(mpsi, "$HopeName: MMsrc!mpsi.c(MM_dylan_jackdaw.1) $");
 
 
 /* mpsi_check -- check consistency of interface mappings
@@ -1429,6 +1429,63 @@ size_t mps_message_collection_stats_condemned_size(mps_arena_t mps_arena,
 
 size_t mps_message_collection_stats_not_condemned_size(mps_arena_t mps_arena,
                                                        mps_message_t mps_message)
+{
+  Arena arena = (Arena)mps_arena;
+  Message message = (Message)mps_message;
+  Size size;
+
+  ArenaEnter(arena);
+
+  AVERT(Arena, arena);
+  size = MessageCollectionStatsNotCondemnedSize(message);
+
+  ArenaLeave(arena);
+
+  return (size_t)size;
+}
+
+
+/* MPS_MESSAGE_TYPE_GC */
+/* Implemented using MessageTypeCollectionStats for a minimal */
+/* change.  See change.dylan.jackdaw.1.160127.  This must not */
+/* get onto the trunk. */
+
+size_t mps_message_gc_live_size(mps_arena_t mps_arena, 
+                                mps_message_t mps_message)
+{
+  Arena arena = (Arena)mps_arena;
+  Message message = (Message)mps_message;
+  Size size;
+
+  ArenaEnter(arena);
+
+  AVERT(Arena, arena);
+  size = MessageCollectionStatsLiveSize(message);
+
+  ArenaLeave(arena);
+
+  return (size_t)size;
+}
+
+size_t mps_message_gc_condemned_size(mps_arena_t mps_arena,
+                                     mps_message_t mps_message)
+{
+  Arena arena = (Arena)mps_arena;
+  Message message = (Message)mps_message;
+  Size size;
+
+  ArenaEnter(arena);
+
+  AVERT(Arena, arena);
+  size = MessageCollectionStatsCondemnedSize(message);
+
+  ArenaLeave(arena);
+
+  return (size_t)size;
+}
+
+size_t mps_message_gc_not_condemned_size(mps_arena_t mps_arena,
+                                         mps_message_t mps_message)
 {
   Arena arena = (Arena)mps_arena;
   Message message = (Message)mps_message;
