@@ -1,6 +1,6 @@
 # ==== SECOND COMMON FRAGMENT FOR PLATFORMS USING MV AND NMAKE
 #
-# $HopeName: !commpost.nmk(trunk.28) $
+# $HopeName: MMsrc!commpost.nmk(MM_epcore_brisling.1) $
 # Copyright(C) 1997 Harlequin Group, all rights reserved
 #
 # DESCRIPTION
@@ -227,5 +227,5 @@ $(PFM)\$(VARIETY)\poolawl.lib: $(AWLOBJ)
 
 {$(PFM)\$(VARIETY)}.obj{$(PFM)\$(VARIETY)}.exe:
 	$(ECHO) $@
-	$(LINKER) $(LINKFLAGS) /OUT:$@ $(**) libcmt.lib
+	$(LINKER) $(LINKFLAGS) /OUT:$@ $(**)
 #!INCLUDE depend.mak
