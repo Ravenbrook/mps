@@ -1,6 +1,6 @@
 /* impl.h.mpm: MEMORY POOL MANAGER DEFINITIONS
  *
- * $HopeName: !mpm.h(trunk.13) $
+ * $HopeName: MMsrc!mpm.h(MMdevel_sw_eq.1) $
  * Copyright (C) 1996 Harlequin Group, all rights reserved.
  */
 
@@ -45,7 +45,7 @@ extern Bool BoolCheck(Bool b);
 extern Bool FunCheck(Fun f);
 extern Bool AttrCheck(Attr attr);
 extern Bool RootVarCheck(RootVar rootVar);
-#define FUNCHECK(f)	(FunCheck((Fun)f))
+#define FUNCHECK(f)     (FunCheck((Fun)f))
 
 
 /* Address/Size Interface -- see impl.c.mpm */
@@ -160,8 +160,14 @@ extern Ring (RingNext)(Ring ring);
 
 /* Pool Interface -- see impl.c.pool */
 
-extern Res PoolInit(Pool pool, Space space, PoolClass class, ...);
-extern Res PoolInitV(Pool pool, Space space, PoolClass class, va_list args);
+extern Bool PoolPrefCheck(PoolPref);
+extern PoolPref PoolPrefDefault(void);
+extern Res PoolPrefExpress(PoolPref, PoolPrefKind, void *);
+
+extern Res PoolInit(Pool pool, PoolPref pref, PoolClass class,
+                    Space space, ...);
+extern Res PoolInitV(Pool pool, PoolPref pref, PoolClass class,
+                     Space space, va_list args);
 extern void PoolFinish(Pool pool);
 extern Bool PoolClassCheck(PoolClass class);
 extern Bool PoolCheck(Pool pool);
@@ -173,13 +179,14 @@ extern Space (PoolSpace)(Pool pool);
 extern Align (PoolAlignment)(Pool pool);
 #define PoolAlignment(pool)     ((pool)->alignment)
 
-extern Res PoolSegAlloc(Seg *segReturn, Pool pool, Size size);
+extern Res PoolSegAlloc(Seg *segReturn, SegPref pref, Pool pool, Size size);
 extern void PoolSegFree(Pool pool, Seg seg);
 extern Bool PoolOfAddr(Pool *poolReturn, Space space, Addr addr);
 extern Bool PoolHasAddr(Pool pool, Addr addr);
-extern Res PoolCreate(Pool *poolReturn, PoolClass class,
+
+extern Res PoolCreate(Pool *poolReturn, PoolPref pref, PoolClass class,
                         Space space, ...);
-extern Res PoolCreateV(Pool *poolReturn, PoolClass class,
+extern Res PoolCreateV(Pool *poolReturn, PoolPref pref, PoolClass class,
                          Space space, va_list arg);
 extern void PoolDestroy(Pool pool);
 extern Res PoolAlloc(Addr *pReturn, Pool pool, Size size);
@@ -314,7 +321,16 @@ extern Bool ArenaCheck(Arena arena);
 extern Align ArenaAlign(Space space);
 extern Size ArenaReserved(Space space);
 extern Size ArenaCommitted(Space space);
-extern Res SegAlloc(Seg *segReturn, Space space, Size size, Pool pool);
+
+extern Res ArenaExtend(Space, Addr /* base */, Size /* size */);
+extern Res ArenaRetract(Space, Addr /* base */, Size /* size */);
+
+extern Bool SegPrefCheck(SegPref pref);
+extern SegPref SegPrefDefault (void);
+extern Res SegPrefExpress (SegPref, SegPrefKind, void *);
+
+extern Res SegAlloc(Seg *segReturn, SegPref pref,
+                    Space space, Size size, Pool pool);
 extern void SegFree(Space space, Seg seg);
 extern Addr SegBase(Space space, Seg seg);
 extern Addr SegLimit(Space space, Seg seg);
