@@ -1,6 +1,6 @@
 /* impl.c.arenavm: VIRTUAL MEMORY BASED ARENA IMPLEMENTATION
  *
- * $HopeName: MMsrc!arenavm.c(MMdevel_drj_arena_hysteresis.9) $
+ * $HopeName: MMsrc!arenavm.c(MMdevel_drj_arena_hysteresis.10) $
  * Copyright (C) 1998.  Harlequin Group plc.  All rights reserved.
  *
  * PURPOSE
@@ -32,7 +32,7 @@
 #include "mpm.h"
 #include "mpsavm.h"
 
-SRCID(arenavm, "$HopeName: MMsrc!arenavm.c(MMdevel_drj_arena_hysteresis.9) $");
+SRCID(arenavm, "$HopeName: MMsrc!arenavm.c(MMdevel_drj_arena_hysteresis.10) $");
 
 
 /* @@@@ Arbitrary calculation for the maximum number of distinct */
@@ -1576,7 +1576,7 @@ static Bool VMArenaPageIsMapped(VMArenaChunk chunk, Index pi)
   int pageType;
 
   /* Note that unless the pi'th PageStruct crosses a page boundary */
-  /* Base and Limit will differ by exactly 1.
+  /* Base and Limit will differ by exactly 1. */
   /* They will differ by at most 2 assuming that */
   /* sizeof(PageStruct) <= chunk->pageSize (!) */
 
