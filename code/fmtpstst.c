@@ -2,12 +2,12 @@
  *
  *  $Id$
  *  Copyright (c) 2001 Ravenbrook Limited.
+ *  Copyright (C) 2002 Global Graphics Software.
  *
  * .readership: MPS developers, SW developers
  *
  * .purpose: This is a simplified version of the PS object format for
- * internal MM tests.  Cf. SWmm_common!src:mmps.c.
- */
+ * internal MM tests.  Cf. SWmm_common!src:mmps.c.  */
 
 #include "testlib.h"
 #include "fmtpscon.h"
@@ -61,6 +61,8 @@ mps_res_t ps_scan(mps_ss_t scan_state,
         break;
       case OSTRING:
         ref_limit = ADDR_ADD(ref, theILen(obj));
+        /* ref could point into the middle of a string, so align it. */
+        ref = (mps_addr_t)DWORD_ALIGN_DOWN(ref);
         break;
       case OFILE:
         NOTREACHED;
