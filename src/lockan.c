@@ -2,7 +2,7 @@
  *
  *                  ANSI RECURSIVE LOCKS
  *
- *  $HopeName: !lockan.c(trunk.6) $
+ *  $HopeName: MMsrc!lockan.c(MMdevel_assertid.1) $
  *
  *  Copyright (C) 1995 Harlequin Group, all rights reserved
  *
@@ -19,53 +19,53 @@
 
 #include "mpm.h"
 
-SRCID(lockan, "$HopeName: !lockan.c(trunk.6) $");
+SRCID(lockan, "$HopeName: MMsrc!lockan.c(MMdevel_assertid.1) $");
 
 Bool LockCheck(Lock lock)
 {
-  CHECKS(Lock, lock);
+  CHECKS(0xA55E62, Lock, lock);
   return TRUE;
 }
 
 void LockInit(Lock lock)
 {
-  AVER(lock != NULL);
+  AVER(0xA55E62, lock != NULL);
   lock->claims = 0;
   lock->sig = LockSig;
-  AVERT(Lock, lock);
+  AVERT(0xA55E62, Lock, lock);
 }
 
 void LockFinish(Lock lock)
 {
-  AVERT(Lock, lock);
-  AVER(lock->claims == 0);
+  AVERT(0xA55E62, Lock, lock);
+  AVER(0xA55E62, lock->claims == 0);
   lock->sig = SigInvalid;
 }
 
 void LockClaim(Lock lock)
 {
-  AVERT(Lock, lock);
-  AVER(lock->claims == 0);
+  AVERT(0xA55E62, Lock, lock);
+  AVER(0xA55E62, lock->claims == 0);
   lock->claims = 1;
 }
 
 void LockReleaseMPM(Lock lock)
 {
-  AVERT(Lock, lock);
-  AVER(lock->claims == 1);
+  AVERT(0xA55E62, Lock, lock);
+  AVER(0xA55E62, lock->claims == 1);
   lock->claims = 0;
 }
 
 void LockClaimRecursive(Lock lock)
 {
-  AVERT(Lock, lock);
+  AVERT(0xA55E62, Lock, lock);
   ++lock->claims;
-  AVER(lock->claims>0);
+  AVER(0xA55E62, lock->claims>0);
 }
 
 void LockReleaseRecursive(Lock lock)
 {
-  AVERT(Lock, lock);
-  AVER(lock->claims > 0);
+  AVERT(0xA55E62, Lock, lock);
+  AVER(0xA55E62, lock->claims > 0);
   --lock->claims;
 }

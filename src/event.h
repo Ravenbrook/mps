@@ -1,7 +1,7 @@
 /* impl.h.event -- Event Logging Interface
  *
  * Copyright (C) 1996 Harlequin Group, all rights reserved.
- * $HopeName: !event.h(trunk.2) $
+ * $HopeName: MMsrc!event.h(MMdevel_assertid.1) $
  *
  * .readership: MPS developers.
  * .sources: mps.design.event
@@ -33,10 +33,10 @@ extern Word *EventNext, *EventLimit;
       EventNext[_i++] = (type);                                \
       EventNext[_i++] = _length;                               \
       EventNext[_i++] = (Word)mps_clock();                     \
-      AVER(_i == EVENT_HEADER_SIZE);
+      AVER(0xA55E62, _i == EVENT_HEADER_SIZE);
 
 #define EVENT_END(params)                                      \
-      AVER(_i == _length + EVENT_HEADER_SIZE);                 \
+      AVER(0xA55E62, _i == _length + EVENT_HEADER_SIZE);                 \
       EventNext = _alloc;                                      \
     } else                                                     \
       EventEnter params;                                       \

@@ -1,6 +1,6 @@
 /* impl.h.check: ASSERTION INTERFACE
  *
- * $HopeName: MMsrc!check.h(MMdevel_assertid.1) $
+ * $HopeName: MMsrc!check.h(MMdevel_assertid.2) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  *
  * This header defines a family of AVER and NOTREACHED macros. The
@@ -28,7 +28,7 @@ typedef void (*AssertHandler)(const char *cond,
                               const char *hopename,
                               const char *file,
                               unsigned line,
-                              unsigned id);
+                              unsigned long id);
 extern AssertHandler AssertInstall(AssertHandler handler);
 extern AssertHandler AssertDefault(void);
 
@@ -36,7 +36,7 @@ extern void AssertFail(const char *cond,
                        const char *hopename,
                        const char *file,
                        unsigned line,
-                       unsigned id);
+                       unsigned long id);
 
 #define ASSERT(id, cond) \
   BEGIN \
@@ -53,7 +53,7 @@ extern void AssertFail(const char *cond,
     (void)sizeof(cond); \
   END
 
-#define NOTREACHED \
+#define NOTREACHED(id) \
   BEGIN \
     AssertFail("unreachable statement", \
                FileSrcIdStruct.hopename, \

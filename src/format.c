@@ -1,27 +1,27 @@
 /* impl.c.format: OBJECT FORMATS
  *
- *  $HopeName: !format.c(trunk.14) $
+ *  $HopeName: MMsrc!format.c(MMdevel_assertid.1) $
  */
 
 #include "mpm.h"
 
-SRCID(format, "$HopeName: !format.c(trunk.14) $");
+SRCID(format, "$HopeName: MMsrc!format.c(MMdevel_assertid.1) $");
 
 
 Bool FormatCheck(Format format)
 {
-  CHECKS(Format, format);
-  CHECKU(Space, format->space);
-  CHECKL(format->serial < format->space->formatSerial);
-  CHECKL(RingCheck(&format->spaceRing));
-  CHECKL(AlignCheck(format->alignment));
+  CHECKS(0xA55E62, Format, format);
+  CHECKU(0xA55E62, Space, format->space);
+  CHECKL(0xA55E62, format->serial < format->space->formatSerial);
+  CHECKL(0xA55E62, RingCheck(&format->spaceRing));
+  CHECKL(0xA55E62, AlignCheck(format->alignment));
   /* @@@@ alignment should be less than maximum allowed */
-  CHECKL(format->scan != NULL);
-  CHECKL(format->skip != NULL);
-  CHECKL(format->move != NULL);
-  CHECKL(format->isMoved != NULL);
-  CHECKL(format->copy != NULL);
-  CHECKL(format->pad != NULL);
+  CHECKL(0xA55E62, format->scan != NULL);
+  CHECKL(0xA55E62, format->skip != NULL);
+  CHECKL(0xA55E62, format->move != NULL);
+  CHECKL(0xA55E62, format->isMoved != NULL);
+  CHECKL(0xA55E62, format->copy != NULL);
+  CHECKL(0xA55E62, format->pad != NULL);
   return TRUE;
 }
 
@@ -39,7 +39,7 @@ Res FormatCreate(Format *formatReturn, Space space,
   Res res;
   void *p;
 
-  AVER(formatReturn != NULL);
+  AVER(0xA55E62, formatReturn != NULL);
 
   res = SpaceAlloc(&p, space, sizeof(FormatStruct));
   if(res != ResOK)
@@ -60,7 +60,7 @@ Res FormatCreate(Format *formatReturn, Space space,
   format->serial = space->formatSerial;
   ++space->formatSerial;
 
-  AVERT(Format, format);
+  AVERT(0xA55E62, Format, format);
   
   RingAppend(&space->formatRing, &format->spaceRing);
 
@@ -71,7 +71,7 @@ Res FormatCreate(Format *formatReturn, Space space,
 
 void FormatDestroy(Format format)
 {
-  AVERT(Format, format);
+  AVERT(0xA55E62, Format, format);
 
   RingRemove(&format->spaceRing);
 

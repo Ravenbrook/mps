@@ -1,6 +1,6 @@
 /* impl.c.mpm: GENERAL MPM SUPPORT
  *
- * $HopeName: !mpm.c(trunk.13) $
+ * $HopeName: MMsrc!mpm.c(MMdevel_assertid.1) $
  * Copyright (C) 1996 Harlequin Group, all rights reserved.
  *
  * .readership: MM developers.
@@ -13,49 +13,49 @@
 
 #include "mpm.h"
 
-SRCID(mpm, "$HopeName: !mpm.c(trunk.13) $");
+SRCID(mpm, "$HopeName: MMsrc!mpm.c(MMdevel_assertid.1) $");
 
 
 /* MPMCheck -- test MPM assumptions */
 
 Bool MPMCheck(void)
 {
-  CHECKL(sizeof(char) == 1);
-  CHECKL(sizeof(Word) * CHAR_BIT == MPS_WORD_WIDTH);
-  CHECKL(1uL << MPS_WORD_SHIFT == MPS_WORD_WIDTH);
-  CHECKL(AlignCheck(MPS_PF_ALIGN));
+  CHECKL(0xA55E62, sizeof(char) == 1);
+  CHECKL(0xA55E62, sizeof(Word) * CHAR_BIT == MPS_WORD_WIDTH);
+  CHECKL(0xA55E62, 1uL << MPS_WORD_SHIFT == MPS_WORD_WIDTH);
+  CHECKL(0xA55E62, AlignCheck(MPS_PF_ALIGN));
   /* impl.c.mpm.check.ti: Check that trace ids will fit in the */
   /* TraceId type. */
-  CHECKL(TRACE_MAX <= TraceIdNONE);
-  CHECKL(TRACE_MAX <= UINT_MAX);
+  CHECKL(0xA55E62, TRACE_MAX <= TraceIdNONE);
+  CHECKL(0xA55E62, TRACE_MAX <= UINT_MAX);
   /* impl.c.mpm.check.ts: Check that there are enough bits in */
   /* a TraceSet to store all possible trace ids. */
-  CHECKL(sizeof(TraceSet) * CHAR_BIT >= TRACE_MAX);
+  CHECKL(0xA55E62, sizeof(TraceSet) * CHAR_BIT >= TRACE_MAX);
 
-  CHECKL((SizeAlignUp(0, 2048) == 0));
-  CHECKL(!SizeIsAligned(64, (unsigned) -1));
-  CHECKL(SizeIsAligned(0, 32));
-  CHECKL((SizeAlignUp(1024, 16) == 1024));
+  CHECKL(0xA55E62, (SizeAlignUp(0, 2048) == 0));
+  CHECKL(0xA55E62, !SizeIsAligned(64, (unsigned) -1));
+  CHECKL(0xA55E62, SizeIsAligned(0, 32));
+  CHECKL(0xA55E62, (SizeAlignUp(1024, 16) == 1024));
   /* .prime: 31051 is prime */
-  CHECKL(SizeIsAligned(SizeAlignUp(31051, 256), 256));
-  CHECKL(SizeIsAligned(SizeAlignUp(31051, 512), 512));
-  CHECKL(!SizeIsAligned(31051, 1024));
-  CHECKL(!SizeIsP2(0));
-  CHECKL(SizeIsP2(128));
-  CHECKL(SizeLog2(1L) == 0);
-  CHECKL(SizeLog2(256L) == 8);
-  CHECKL(SizeLog2(65536L) == 16);
-  CHECKL(SizeLog2(131072L) == 17);
+  CHECKL(0xA55E62, SizeIsAligned(SizeAlignUp(31051, 256), 256));
+  CHECKL(0xA55E62, SizeIsAligned(SizeAlignUp(31051, 512), 512));
+  CHECKL(0xA55E62, !SizeIsAligned(31051, 1024));
+  CHECKL(0xA55E62, !SizeIsP2(0));
+  CHECKL(0xA55E62, SizeIsP2(128));
+  CHECKL(0xA55E62, SizeLog2(1L) == 0);
+  CHECKL(0xA55E62, SizeLog2(256L) == 8);
+  CHECKL(0xA55E62, SizeLog2(65536L) == 16);
+  CHECKL(0xA55E62, SizeLog2(131072L) == 17);
 
   /* .check.writef: We check that various types will fit in a Word; */
   /* See .writef.check.  Don't need to check WriteFS or WriteFF as they */
   /* should not be cast to Word. */
-  CHECKL(sizeof(WriteFA) <= sizeof(Word));
-  CHECKL(sizeof(WriteFP) <= sizeof(Word));
-  CHECKL(sizeof(WriteFW) <= sizeof(Word)); /* Should be trivial*/
-  CHECKL(sizeof(WriteFU) <= sizeof(Word));
-  CHECKL(sizeof(WriteFB) <= sizeof(Word));
-  CHECKL(sizeof(WriteFC) <= sizeof(Word));
+  CHECKL(0xA55E62, sizeof(WriteFA) <= sizeof(Word));
+  CHECKL(0xA55E62, sizeof(WriteFP) <= sizeof(Word));
+  CHECKL(0xA55E62, sizeof(WriteFW) <= sizeof(Word)); /* Should be trivial*/
+  CHECKL(0xA55E62, sizeof(WriteFU) <= sizeof(Word));
+  CHECKL(0xA55E62, sizeof(WriteFB) <= sizeof(Word));
+  CHECKL(0xA55E62, sizeof(WriteFC) <= sizeof(Word));
 
   return TRUE;  
 }
@@ -65,7 +65,7 @@ Bool MPMCheck(void)
 
 Bool BoolCheck(Bool b)
 {
-  AVER(b == TRUE || b == FALSE);
+  AVER(0xA55E62, b == TRUE || b == FALSE);
   return TRUE;
 }
 
@@ -74,7 +74,7 @@ Bool BoolCheck(Bool b)
 
 Bool FunCheck(Fun f)
 {
-  AVER(f != NULL);
+  AVER(0xA55E62, f != NULL);
   /* Could assert various platform-specific things here. */
   return TRUE;
 }
@@ -84,7 +84,7 @@ Bool FunCheck(Fun f)
 
 Bool AttrCheck(Attr attr)
 {
-  AVER(((attr) & ~AttrMASK) == 0);
+  AVER(0xA55E62, ((attr) & ~AttrMASK) == 0);
   /* Could check for legal combinations of attributes. */
   return TRUE;
 }
@@ -94,7 +94,7 @@ Bool AttrCheck(Attr attr)
 
 Bool RootVarCheck(RootVar rootVar)
 {
-  AVER(rootVar == RootTABLE || rootVar == RootFUN || rootVar == RootFMT ||
+  AVER(0xA55E62, rootVar == RootTABLE || rootVar == RootFUN || rootVar == RootFMT ||
     rootVar == RootREG);
   return(TRUE);
 }
@@ -104,7 +104,7 @@ Bool RootVarCheck(RootVar rootVar)
 
 Bool AlignCheck(Align align)
 {
-  CHECKL(align > 0 && (align & (align - 1)) == 0);
+  CHECKL(0xA55E62, align > 0 && (align & (align - 1)) == 0);
   return TRUE;
 }
 
@@ -113,7 +113,7 @@ Bool AlignCheck(Align align)
 
 Bool (WordIsAligned)(Word word, Align align)
 {
-  AVER(AlignCheck(align));
+  AVER(0xA55E62, AlignCheck(align));
   return WordIsAligned(word, align);
 }
 
@@ -122,7 +122,7 @@ Bool (WordIsAligned)(Word word, Align align)
 
 Word (WordAlignUp)(Word word, Align align)
 {
-  AVER(AlignCheck(align));
+  AVER(0xA55E62, AlignCheck(align));
   return WordAlignUp(word, align);
 }
 
@@ -131,7 +131,7 @@ Word (WordAlignUp)(Word word, Align align)
 
 Word (WordAlignDown)(Word word, Align alignment)
 {
-  AVER(AlignCheck(alignment));
+  AVER(0xA55E62, AlignCheck(alignment));
   return WordAlignDown(word, alignment);
 }
 
@@ -150,7 +150,7 @@ Shift SizeFloorLog2(Size size)
 {
   Shift l = 0;
 
-  AVER(size != 0);
+  AVER(0xA55E62, size != 0);
 
   while(size > 1) {
     ++l;
@@ -162,7 +162,7 @@ Shift SizeFloorLog2(Size size)
 
 Shift SizeLog2(Size size)
 {
-  AVER(SizeIsP2(size));
+  AVER(0xA55E62, SizeIsP2(size));
 
   return SizeFloorLog2(size);
 }
@@ -173,9 +173,9 @@ Shift SizeLog2(Size size)
 Addr (AddrAdd)(Addr addr, Size size)
 {
   Addr next;
-  AVER(addr != (Addr)0);
+  AVER(0xA55E62, addr != (Addr)0);
   next = AddrAdd(addr, size);
-  AVER(next >= addr);   /* overflow check */
+  AVER(0xA55E62, next >= addr);   /* overflow check */
   return next;
 }
 
@@ -185,9 +185,9 @@ Addr (AddrAdd)(Addr addr, Size size)
 Addr (AddrSub)(Addr addr, Size size)
 {
   Addr next;
-  AVER(addr != (Addr)0);
+  AVER(0xA55E62, addr != (Addr)0);
   next = AddrSub(addr, size);
-  AVER(next <= addr);   /* overflow check */
+  AVER(0xA55E62, next <= addr);   /* overflow check */
   return next;
 }
 
@@ -196,9 +196,9 @@ Addr (AddrSub)(Addr addr, Size size)
 
 Size (AddrOffset)(Addr base, Addr limit)
 {
-  AVER(base != 0);
-  AVER(limit != 0);
-  AVER(base <= limit);
+  AVER(0xA55E62, base != 0);
+  AVER(0xA55E62, limit != 0);
+  AVER(0xA55E62, base <= limit);
   return AddrOffset(base, limit);
 }
 
@@ -207,7 +207,7 @@ Size (AddrOffset)(Addr base, Addr limit)
 
 Addr (AddrAlignDown)(Addr addr, Align alignment)
 {
-  AVER(AlignCheck(alignment));
+  AVER(0xA55E62, AlignCheck(alignment));
   return AddrAlignDown(addr, alignment);
 }
 
@@ -217,9 +217,9 @@ Addr (AddrAlignDown)(Addr addr, Align alignment)
 Pointer (PointerAdd)(Pointer p, Size s)
 {
   Pointer next;
-  AVER(p != NULL);
+  AVER(0xA55E62, p != NULL);
   next = PointerAdd(p, s);
-  AVER(next >= p);   /* overflow check */
+  AVER(0xA55E62, next >= p);   /* overflow check */
   return next;
 }
 
@@ -229,9 +229,9 @@ Pointer (PointerAdd)(Pointer p, Size s)
 Pointer (PointerSub)(Pointer p, Size s)
 {
   Pointer next;
-  AVER(p != NULL);
+  AVER(0xA55E62, p != NULL);
   next = PointerSub(p, s);
-  AVER(next <= p);   /* overflow check */
+  AVER(0xA55E62, next <= p);   /* overflow check */
   return next;
 }
 
@@ -240,9 +240,9 @@ Pointer (PointerSub)(Pointer p, Size s)
 
 Size (PointerOffset)(Pointer base, Pointer limit)
 {
-  AVER(base != NULL);
-  AVER(limit != NULL);
-  AVER(base <= limit);
+  AVER(0xA55E62, base != NULL);
+  AVER(0xA55E62, limit != NULL);
+  AVER(0xA55E62, base <= limit);
   return PointerOffset(base, limit);
 }
 
@@ -261,9 +261,9 @@ static Res WriteWord(mps_lib_FILE *stream, Word w, unsigned base,
   unsigned i;
   int r;
 
-  AVER(stream != NULL);
-  AVER(2 <= base && base <= 16);
-  AVER(width <= MPS_WORD_WIDTH);
+  AVER(0xA55E62, stream != NULL);
+  AVER(0xA55E62, 2 <= base && base <= 16);
+  AVER(0xA55E62, width <= MPS_WORD_WIDTH);
   
   /* Add digits to the buffer starting at the right-hand end, so that */
   /* the buffer forms a string representing the number.  A do...while */
@@ -313,7 +313,7 @@ Res WriteF(mps_lib_FILE *stream, ...)
   Res res;
   va_list args;
 
-  AVER(stream != NULL);
+  AVER(0xA55E62, stream != NULL);
   
   va_start(args, stream);
   
@@ -329,7 +329,7 @@ Res WriteF(mps_lib_FILE *stream, ...)
           return ResIO;
       } else {
         ++format;
-        AVER(*format != '\0');
+        AVER(0xA55E62, *format != '\0');
 
         switch(*format) {
           case 'A': {                   /* address */
@@ -396,7 +396,7 @@ Res WriteF(mps_lib_FILE *stream, ...)
           } break;
 
           default:
-          NOTREACHED;
+          NOTREACHED(0xA55E62);
         }
       }
 

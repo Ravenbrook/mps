@@ -1,6 +1,6 @@
 /* impl.c.event: EVENT LOGGING
  *
- * $HopeName: !event.c(trunk.2) $
+ * $HopeName: MMsrc!event.c(MMdevel_assertid.1) $
  * Copyright (C) 1996 Harlequin Group, all rights reserved.
  *
  * .readership: MPS developers.
@@ -26,7 +26,7 @@
 #include "event.h"
 #include "mpsio.h"
 
-SRCID(event, "$HopeName: !event.c(trunk.2) $");
+SRCID(event, "$HopeName: MMsrc!event.c(MMdevel_assertid.1) $");
 
 #ifdef EVENT /* .trans.ifdef */
 
@@ -41,7 +41,7 @@ static Res EventFlush(void)
 {
   Res res;
   
-  AVER(eventInited);
+  AVER(0xA55E62, eventInited);
 
   res = (Res)mps_io_write(eventIO,
                           (void *)eventBuffer,
@@ -59,8 +59,8 @@ Res (EventInit)(void)
 
   /* Initialize the event system if this is the first call. */
   if(!eventInited) { /* See .trans.log */
-    AVER(EventNext == 0);
-    AVER(EventLimit == 0);
+    AVER(0xA55E62, EventNext == 0);
+    AVER(0xA55E62, EventLimit == 0);
     res = (Res)mps_io_create(&eventIO);
     if(res != ResOK) return res;
     EventNext = eventBuffer;
@@ -76,8 +76,8 @@ Res (EventInit)(void)
 
 void (EventFinish)(void)
 {
-  AVER(eventInited);
-  AVER(eventUserCount > 0);
+  AVER(0xA55E62, eventInited);
+  AVER(0xA55E62, eventUserCount > 0);
   
   (void)EventFlush();
   (void)mps_io_flush(eventIO);
@@ -92,11 +92,11 @@ Res EventEnter(EventType type, Count length, ...)
   Word *alloc;
   Count i=0, size;
 
-  AVER(eventInited);
+  AVER(0xA55E62, eventInited);
 
   size = length + EVENT_HEADER_SIZE;  /* Include header. */
 
-  AVER(size < EVENT_BUFFER_SIZE);     /* Events must fit in buffer. */
+  AVER(0xA55E62, size < EVENT_BUFFER_SIZE);     /* Events must fit in buffer. */
 
   alloc = EventNext + size;
 
@@ -106,13 +106,13 @@ Res EventEnter(EventType type, Count length, ...)
     alloc = EventNext + size;
   }
 
-  AVER(alloc <= EventLimit);
+  AVER(0xA55E62, alloc <= EventLimit);
 
   EventNext[i++] = type;
   EventNext[i++] = length;
   EventNext[i++] = (Word)mps_clock();
 
-  AVER(i == EVENT_HEADER_SIZE); 
+  AVER(0xA55E62, i == EVENT_HEADER_SIZE); 
 
   va_start(args, length);
   for(; i < size; ++i)

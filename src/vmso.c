@@ -1,6 +1,6 @@
 /* impl.c.vmso: VIRTUAL MEMORY MAPPING FOR SOLARIS 2.x
  *
- * $HopeName: !vmso.c(trunk.6) $
+ * $HopeName: MMsrc!vmso.c(MMdevel_assertid.1) $
  * Copyright (C) 1995 Harlequin Group, all rights reserved
  *
  * Design: design.mps.vm
@@ -52,7 +52,7 @@
 /* unistd for _SC_PAGESIZE */
 #include <unistd.h>
 
-SRCID(vmso, "$HopeName: !vmso.c(trunk.6) $");
+SRCID(vmso, "$HopeName: MMsrc!vmso.c(MMdevel_assertid.1) $");
 
 
 /* Fix up unprototyped system calls.  */
@@ -69,7 +69,7 @@ Align VMAlign(void)
   Align align;
 
   align = (Align)sysconf(_SC_PAGESIZE);
-  AVER(SizeIsP2(align));
+  AVER(0xA55E62, SizeIsP2(align));
 
   return align;
 }
@@ -77,17 +77,17 @@ Align VMAlign(void)
 
 Bool VMCheck(VM vm)
 {
-  CHECKS(VM, vm);
-  CHECKL(vm->zero_fd >= 0);
-  CHECKL(vm->none_fd >= 0);
-  CHECKL(vm->zero_fd != vm->none_fd);
-  CHECKL(vm->base != 0);
-  CHECKL(vm->limit != 0);
-  CHECKL(vm->base < vm->limit);
-  CHECKL(vm->mapped <= vm->reserved);
-  CHECKL(SizeIsP2(vm->align));
-  CHECKL(AddrIsAligned(vm->base, vm->align));
-  CHECKL(AddrIsAligned(vm->limit, vm->align));
+  CHECKS(0xA55E62, VM, vm);
+  CHECKL(0xA55E62, vm->zero_fd >= 0);
+  CHECKL(0xA55E62, vm->none_fd >= 0);
+  CHECKL(0xA55E62, vm->zero_fd != vm->none_fd);
+  CHECKL(0xA55E62, vm->base != 0);
+  CHECKL(0xA55E62, vm->limit != 0);
+  CHECKL(0xA55E62, vm->base < vm->limit);
+  CHECKL(0xA55E62, vm->mapped <= vm->reserved);
+  CHECKL(0xA55E62, SizeIsP2(vm->align));
+  CHECKL(0xA55E62, AddrIsAligned(vm->base, vm->align));
+  CHECKL(0xA55E62, AddrIsAligned(vm->limit, vm->align));
   return TRUE;
 }
 
@@ -103,11 +103,11 @@ Res VMCreate(Space *spaceReturn, Size size, Addr base)
 
   align = VMAlign();
 
-  AVER(spaceReturn != NULL);
-  AVER(SizeIsAligned(size, align));
-  AVER(size != 0);
-  AVER(size <= INT_MAX); /* see .assume.size */
-  AVER(base == NULL);
+  AVER(0xA55E62, spaceReturn != NULL);
+  AVER(0xA55E62, SizeIsAligned(size, align));
+  AVER(0xA55E62, size != 0);
+  AVER(0xA55E62, size <= INT_MAX); /* see .assume.size */
+  AVER(0xA55E62, base == NULL);
 
   zero_fd = open("/dev/zero", O_RDONLY);
   if(zero_fd == -1)
@@ -124,7 +124,7 @@ Res VMCreate(Space *spaceReturn, Size size, Addr base)
               zero_fd, (off_t)0);
   if((int)addr == -1) {
     int e = errno;
-    AVER(e == ENOMEM); /* .assume.mmap.err */
+    AVER(0xA55E62, e == ENOMEM); /* .assume.mmap.err */
     close(none_fd);
     close(zero_fd);
     if(e == ENOMEM)
@@ -143,7 +143,7 @@ Res VMCreate(Space *spaceReturn, Size size, Addr base)
   addr = mmap((caddr_t)0, size, PROT_NONE, MAP_SHARED, none_fd, (off_t)0);
   if((int)addr == -1) {
     int e = errno;
-    AVER(e == ENOMEM); /* .assume.mmap.err */
+    AVER(0xA55E62, e == ENOMEM); /* .assume.mmap.err */
     close(none_fd);
     close(zero_fd);
     if(e == ENOMEM)
@@ -159,7 +159,7 @@ Res VMCreate(Space *spaceReturn, Size size, Addr base)
 
   vm->sig = VMSig;
 
-  AVERT(VM, vm);
+  AVERT(0xA55E62, VM, vm);
 
   *spaceReturn = space;
   return ResOK;
@@ -171,8 +171,8 @@ void VMDestroy(Space space)
   int r;
   VM vm = SpaceVM(space);
 
-  AVERT(VM, vm);
-  AVER(vm->mapped == (Size)0);
+  AVERT(0xA55E62, VM, vm);
+  AVER(0xA55E62, vm->mapped == (Size)0);
 
   /* This appears to be pretty pointless, since the space descriptor */
   /* page is  about to vanish completely.  However, munmap might fail */
@@ -183,24 +183,24 @@ void VMDestroy(Space space)
   close(vm->zero_fd);
   close(vm->none_fd);
   r = munmap((caddr_t)vm->base, (int)AddrOffset(vm->base, vm->limit));
-  AVER(r == 0);
+  AVER(0xA55E62, r == 0);
   r = munmap((caddr_t)space,
              (int)SizeAlignUp(sizeof(SpaceStruct), vm->align));
-  AVER(r == 0);
+  AVER(0xA55E62, r == 0);
 }
 
 
 Addr VMBase(Space space)
 {
   VM vm = SpaceVM(space);
-  AVERT(VM, vm);
+  AVERT(0xA55E62, VM, vm);
   return vm->base;
 }
 
 Addr VMLimit(Space space)
 {
   VM vm = SpaceVM(space);
-  AVERT(VM, vm);
+  AVERT(0xA55E62, VM, vm);
   return vm->limit;
 }
 
@@ -208,14 +208,14 @@ Addr VMLimit(Space space)
 Size VMReserved(Space space)
 {
   VM vm = SpaceVM(space);
-  AVERT(VM, vm);
+  AVERT(0xA55E62, VM, vm);
   return vm->reserved;
 }
 
 Size VMMapped(Space space)
 {
   VM vm = SpaceVM(space);
-  AVERT(VM, vm);
+  AVERT(0xA55E62, VM, vm);
   return vm->mapped;
 }
 
@@ -225,14 +225,14 @@ Res VMMap(Space space, Addr base, Addr limit)
   VM vm = SpaceVM(space);
   Size size;
 
-  AVERT(VM, vm);
-  AVER(sizeof(int) == sizeof(Addr));
-  AVER(base < limit);
-  AVER(base >= vm->base);
-  AVER(limit <= vm->limit);
-  AVER(AddrOffset(base, limit) <= INT_MAX);
-  AVER(AddrIsAligned(base, vm->align));
-  AVER(AddrIsAligned(limit, vm->align));
+  AVERT(0xA55E62, VM, vm);
+  AVER(0xA55E62, sizeof(int) == sizeof(Addr));
+  AVER(0xA55E62, base < limit);
+  AVER(0xA55E62, base >= vm->base);
+  AVER(0xA55E62, limit <= vm->limit);
+  AVER(0xA55E62, AddrOffset(base, limit) <= INT_MAX);
+  AVER(0xA55E62, AddrIsAligned(base, vm->align));
+  AVER(0xA55E62, AddrIsAligned(limit, vm->align));
 
   /* Map /dev/zero onto the area with a copy-on-write policy.  This */
   /* effectively populates the area with zeroed memory. */
@@ -243,7 +243,7 @@ Res VMMap(Space space, Addr base, Addr limit)
                PROT_READ | PROT_WRITE | PROT_EXEC,
                MAP_PRIVATE | MAP_FIXED,
                vm->zero_fd, (off_t)0) == -1) {
-    AVER(errno == ENOMEM); /* .assume.mmap.err */
+    AVER(0xA55E62, errno == ENOMEM); /* .assume.mmap.err */
     return ResMEMORY;
   }
 
@@ -259,13 +259,13 @@ void VMUnmap(Space space, Addr base, Addr limit)
   Size size;
   caddr_t addr;
 
-  AVERT(VM, vm);
-  AVER(sizeof(int) == sizeof(Addr));
-  AVER(base < limit);
-  AVER(base >= vm->base);
-  AVER(limit <= vm->limit);
-  AVER(AddrIsAligned(base, vm->align));
-  AVER(AddrIsAligned(limit, vm->align));
+  AVERT(0xA55E62, VM, vm);
+  AVER(0xA55E62, sizeof(int) == sizeof(Addr));
+  AVER(0xA55E62, base < limit);
+  AVER(0xA55E62, base >= vm->base);
+  AVER(0xA55E62, limit <= vm->limit);
+  AVER(0xA55E62, AddrIsAligned(base, vm->align));
+  AVER(0xA55E62, AddrIsAligned(limit, vm->align));
 
   /* Map /etc/passwd onto the area, allowing no access.  This */
   /* effectively depopulates the area from memory, but keeps */
@@ -276,7 +276,7 @@ void VMUnmap(Space space, Addr base, Addr limit)
 
   addr = mmap((caddr_t)base, (int)size,
               PROT_NONE, MAP_SHARED, vm->none_fd, (off_t)0);
-  AVER((int)addr != -1);
+  AVER(0xA55E62, (int)addr != -1);
 
   vm->mapped -= size;
 }

@@ -2,7 +2,7 @@
  *
  *                  WIN32 THREAD MANAGER
  *
- *  $HopeName: !thnti3.c(trunk.16) $
+ *  $HopeName: MMsrc!thnti3.c(MMdevel_assertid.1) $
  *
  *  Copyright (C) 1995 Harlequin Group, all rights reserved
  *
@@ -67,14 +67,14 @@
 
 #include <windows.h>
 
-SRCID(thnti3, "$HopeName: !thnti3.c(trunk.16) $");
+SRCID(thnti3, "$HopeName: MMsrc!thnti3.c(MMdevel_assertid.1) $");
 
 Bool ThreadCheck(Thread thread)
 {
-  CHECKS(Thread, thread);
-  CHECKU(Space, thread->space);
-  CHECKL(thread->serial < thread->space->threadSerial);
-  CHECKL(RingCheck(&thread->spaceRing));
+  CHECKS(0xA55E62, Thread, thread);
+  CHECKU(0xA55E62, Space, thread->space);
+  CHECKL(0xA55E62, thread->serial < thread->space->threadSerial);
+  CHECKL(0xA55E62, RingCheck(&thread->spaceRing));
   return TRUE;
 }
 
@@ -87,8 +87,8 @@ Res ThreadRegister(Thread *threadReturn, Space space)
   BOOL b;
   void *p;
 
-  AVER(threadReturn != NULL);
-  AVERT(Space, space);
+  AVER(0xA55E62, threadReturn != NULL);
+  AVERT(0xA55E62, Space, space);
 
   res = SpaceAlloc(&p, space, sizeof(ThreadStruct));
   if(res != ResOK)
@@ -116,7 +116,7 @@ Res ThreadRegister(Thread *threadReturn, Space space)
   ++space->threadSerial;
   thread->space = space;
 
-  AVERT(Thread, thread);
+  AVERT(0xA55E62, Thread, thread);
 
   RingAppend(SpaceThreadRing(space), &thread->spaceRing);
 
@@ -128,8 +128,8 @@ void ThreadDeregister(Thread thread, Space space)
 {
   Bool b;
 
-  AVERT(Thread, thread);
-  AVERT(Space, space);
+  AVERT(0xA55E62, Thread, thread);
+  AVERT(0xA55E62, Space, space);
 
   RingRemove(&thread->spaceRing);
 
@@ -138,7 +138,7 @@ void ThreadDeregister(Thread thread, Space space)
   RingFinish(&thread->spaceRing);
 
   b = CloseHandle(thread->handle);
-  AVER(b); /* .error.close-handle */
+  AVER(0xA55E62, b); /* .error.close-handle */
 
   SpaceFree(space, (Addr)thread, sizeof(ThreadStruct));
 }
@@ -159,7 +159,7 @@ static void mapThreadRing(Ring ring, void (*f)(Thread thread))
     Thread thread;
 
     thread = RING_ELT(Thread, spaceRing, node);
-    AVERT(Thread, thread);
+    AVERT(0xA55E62, Thread, thread);
     if(id != thread->id) /* .thread.id */
       (*f)(thread);
 
@@ -211,7 +211,7 @@ Res ThreadScan(ScanState ss, Thread thread, void *stackBot)
     context.ContextFlags = CONTEXT_CONTROL | CONTEXT_INTEGER;
     /* .thread.handle.get-context */
     success = GetThreadContext(thread->handle, &context);
-    AVER(success); /* .error.get-context */
+    AVER(0xA55E62, success); /* .error.get-context */
 
     /* scan stack inclusive of current sp and exclusive of
      * stackBot (.stack.full-descend)

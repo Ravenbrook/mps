@@ -1,6 +1,6 @@
 /* impl.c.assert: ASSERTION IMPLEMENTATION
  *
- * $HopeName: MMsrc!assert.c(MMdevel_assertid.1) $
+ * $HopeName: MMsrc!assert.c(MMdevel_assertid.2) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  *
  * This source provides the AssertFail function which is
@@ -19,7 +19,7 @@
 
 static void AssertLib(const char *cond, const char *hopename,
                       const char *file, unsigned line,
-                      unsigned id)
+                      unsigned long id)
 {
   WriteF(mps_lib_stderr,
          "\n"
@@ -59,7 +59,7 @@ AssertHandler AssertInstall(AssertHandler new)
  */
 
 void AssertFail(const char *cond, const char *hopename,
-                const char *file, unsigned line, unsigned id)
+                const char *file, unsigned line, unsigned long id)
 {
   if(handler != NULL)
     (*handler)(cond, hopename, file, line, id);

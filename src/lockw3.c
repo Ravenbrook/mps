@@ -2,7 +2,7 @@
  *
  *                  RECURSIVE LOCKS IN WIN32
  *
- *  $HopeName: !locknt.c(trunk.8) $
+ *  $HopeName: MMsrc!locknt.c(MMdevel_assertid.1) $
  *
  *  Copyright (C) 1995 Harlequin Group, all rights reserved
  *
@@ -32,62 +32,62 @@
 
 #include <windows.h>
 
-SRCID(locknt, "$HopeName: !locknt.c(trunk.8) $");
+SRCID(locknt, "$HopeName: MMsrc!locknt.c(MMdevel_assertid.1) $");
 
 Bool LockCheck(Lock lock)
 {
-  CHECKS(Lock, lock);
+  CHECKS(0xA55E62, Lock, lock);
   return TRUE;
 }
 
 void LockInit(Lock lock)
 {
-  AVER(lock != NULL);
+  AVER(0xA55E62, lock != NULL);
   lock->claims = 0;
   InitializeCriticalSection(&lock->cs);
   lock->sig = LockSig;
-  AVERT(Lock, lock);
+  AVERT(0xA55E62, Lock, lock);
 }
 
 void LockFinish(Lock lock)
 {
-  AVERT(Lock, lock);
+  AVERT(0xA55E62, Lock, lock);
   /* Lock should not be finished while held */
-  AVER(lock->claims == 0);
+  AVER(0xA55E62, lock->claims == 0);
   DeleteCriticalSection(&lock->cs);
   lock->sig = SigInvalid;
 }
 
 void LockClaim(Lock lock)
 {
-  AVERT(Lock, lock);
+  AVERT(0xA55E62, Lock, lock);
   EnterCriticalSection(&lock->cs);
   /* This should be the first claim.  Now we are inside the
    * critical section it is ok to check this. */
-  AVER(lock->claims == 0);
+  AVER(0xA55E62, lock->claims == 0);
   lock->claims = 1;
 }
 
 void LockReleaseMPM(Lock lock)
 {
-  AVERT(Lock, lock);
-  AVER(lock->claims == 1);  /* The lock should only be held once */
+  AVERT(0xA55E62, Lock, lock);
+  AVER(0xA55E62, lock->claims == 1);  /* The lock should only be held once */
   lock->claims = 0;  /* Must set this before leaving CS */
   LeaveCriticalSection(&lock->cs);
 }
 
 void LockClaimRecursive(Lock lock)
 {
-  AVERT(Lock, lock);
+  AVERT(0xA55E62, Lock, lock);
   EnterCriticalSection(&lock->cs);
   ++lock->claims;
-  AVER(lock->claims > 0);
+  AVER(0xA55E62, lock->claims > 0);
 }
 
 void LockReleaseRecursive(Lock lock)
 {
-  AVERT(Lock, lock);
-  AVER(lock->claims > 0);
+  AVERT(0xA55E62, Lock, lock);
+  AVER(0xA55E62, lock->claims > 0);
   --lock->claims;
   LeaveCriticalSection(&lock->cs);
 }

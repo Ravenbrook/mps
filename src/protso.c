@@ -2,7 +2,7 @@
  *
  *                  PROTECTION FOR Solaris
  *
- *  $HopeName: !protso.c(trunk.4) $
+ *  $HopeName: MMsrc!protso.c(MMdevel_assertid.1) $
  *
  *  Copyright (C) 1995 Harlequin Group, all rights reserved
  *
@@ -25,7 +25,7 @@
 #error "protso.c is Solaris specific, but MPS_OS_SO is not set"
 #endif
 
-SRCID(protso, "$HopeName: !protso.c(trunk.4) $");
+SRCID(protso, "$HopeName: MMsrc!protso.c(MMdevel_assertid.1) $");
 
 /* Fix up unprototyped system calls.  */
 /* Note that these are not fixed up by std.h because that only fixes */
@@ -73,8 +73,8 @@ static struct sigaction sigNext;
  
 static void sigHandle(int sig, siginfo_t *info, void *context)
 {
-  AVER(sig == SIGSEGV);
-  AVER(info != NULL);
+  AVER(0xA55E62, sig == SIGSEGV);
+  AVER(0xA55E62, info != NULL);
 
   if(info->si_code == SEGV_ACCERR) {
     AccessSet mode;
@@ -132,7 +132,7 @@ void ProtSetup(void)
   sa.sa_flags = SA_SIGINFO;
 
   result = sigaction(SIGSEGV, &sa, &sigNext);
-  AVER(result == 0);
+  AVER(0xA55E62, result == 0);
 }
 
 
@@ -145,10 +145,10 @@ void ProtSet(Addr base, Addr limit, AccessSet mode)
 {
   int flags;
 
-  AVER(sizeof(int) == sizeof(Addr));
-  AVER(base < limit);
-  AVER(base != 0);
-  AVER(AddrOffset(base, limit) <= INT_MAX);     /* should be redundant */
+  AVER(0xA55E62, sizeof(int) == sizeof(Addr));
+  AVER(0xA55E62, base < limit);
+  AVER(0xA55E62, base != 0);
+  AVER(0xA55E62, AddrOffset(base, limit) <= INT_MAX);     /* should be redundant */
 
   flags = PROT_READ | PROT_WRITE | PROT_EXEC;
   if((mode & AccessREAD) != 0)
@@ -157,7 +157,7 @@ void ProtSet(Addr base, Addr limit, AccessSet mode)
     flags &= ~PROT_WRITE;
 
   if(mprotect((caddr_t)base, (int)AddrOffset(base, limit), flags) != 0)
-    NOTREACHED;
+    NOTREACHED(0xA55E62);
 }
 
 
@@ -184,8 +184,8 @@ void ProtSync(Space space)
 void ProtTramp(void **resultReturn, void *(*f)(void *, size_t),
                void *p, size_t s)
 {
-  AVER(f != NULL);
-  AVER(resultReturn != NULL);
+  AVER(0xA55E62, f != NULL);
+  AVER(0xA55E62, resultReturn != NULL);
 
   *resultReturn = (*f)(p, s);
 }

@@ -1,6 +1,6 @@
 /* impl.c.protan: ANSI MEMORY PROTECTION
  *
- * $HopeName: !protan.c(trunk.4) $
+ * $HopeName: MMsrc!protan.c(MMdevel_assertid.1) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  *
  * READERSHIP
@@ -15,7 +15,7 @@
 
 #include "mpm.h"
 
-SRCID(protan, "$HopeName: !protan.c(trunk.4) $");
+SRCID(protan, "$HopeName: MMsrc!protan.c(MMdevel_assertid.1) $");
 
 void ProtSetup(void)
 {
@@ -24,7 +24,7 @@ void ProtSetup(void)
 
 void ProtSet(Addr base, Addr limit, AccessSet pm)
 {
-  AVER(base < limit);
+  AVER(0xA55E62, base < limit);
   /* .improve.protset.check: There is nor AccessSetCheck, so we */
   /* don't check it. */
   UNUSED(pm);
@@ -36,7 +36,7 @@ void ProtSync(Space space)
 {
   Bool synced;
 
-  AVERT(Space, space);
+  AVERT(0xA55E62, Space, space);
 
   do {
     Seg seg;
@@ -59,8 +59,8 @@ void ProtTramp(void **rReturn,
                 void *(*f)(void *, size_t),
                 void *p, size_t s)
 {
-  AVER(rReturn != NULL);
-  AVER(FUNCHECK(f));
+  AVER(0xA55E62, rReturn != NULL);
+  AVER(0xA55E62, FUNCHECK(f));
   /* Can't check p and s as they are interpreted by the client */
 
   *(rReturn) = (*(f))(p, s);

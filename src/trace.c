@@ -1,12 +1,12 @@
 /* impl.c.trace: GENERIC TRACER IMPLEMENTATION
  *
- * $HopeName: !trace.c(trunk.23) $
+ * $HopeName: MMsrc!trace.c(MMdevel_assertid.1) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  */
 
 #include "mpm.h"
 
-SRCID(trace, "$HopeName: !trace.c(trunk.23) $");
+SRCID(trace, "$HopeName: MMsrc!trace.c(MMdevel_assertid.1) $");
 
 
 /* ScanStateCheck -- check consistency of a ScanState object */
@@ -15,19 +15,19 @@ Bool ScanStateCheck(ScanState ss)
 {
   TraceId ti;
   RefSet white;
-  CHECKS(ScanState, ss);
-  CHECKL(FUNCHECK(ss->fix));
-  CHECKU(Space, ss->space);
-  CHECKL(TraceSetCheck(ss->traces));
-  CHECKL(TraceSetSuper(ss->space->busyTraces, ss->traces));
+  CHECKS(0xA55E62, ScanState, ss);
+  CHECKL(0xA55E62, FUNCHECK(ss->fix));
+  CHECKU(0xA55E62, Space, ss->space);
+  CHECKL(0xA55E62, TraceSetCheck(ss->traces));
+  CHECKL(0xA55E62, TraceSetSuper(ss->space->busyTraces, ss->traces));
   white = RefSetEMPTY;
   for(ti = 0; ti < TRACE_MAX; ++ti)
     if(TraceSetIsMember(ss->traces, ti))
       white = RefSetUnion(white, ss->space->trace[ti].white);
-  CHECKL(ss->white == white);
-  CHECKL(ss->zoneShift == ss->space->zoneShift);
-  CHECKL(RankCheck(ss->rank));
-  CHECKL(BoolCheck(ss->wasMarked));
+  CHECKL(0xA55E62, ss->white == white);
+  CHECKL(0xA55E62, ss->zoneShift == ss->space->zoneShift);
+  CHECKL(0xA55E62, RankCheck(ss->rank));
+  CHECKL(0xA55E62, BoolCheck(ss->wasMarked));
   return TRUE;
 }
 
@@ -36,7 +36,7 @@ Bool ScanStateCheck(ScanState ss)
 
 Bool TraceIdCheck(TraceId ti)
 {
-  CHECKL(ti == TraceIdNONE || ti < TRACE_MAX);
+  CHECKL(0xA55E62, ti == TraceIdNONE || ti < TRACE_MAX);
   return TRUE;
 }
 
@@ -45,7 +45,7 @@ Bool TraceIdCheck(TraceId ti)
 
 Bool TraceSetCheck(TraceSet ts)
 {
-  CHECKL(ts < (1uL << TRACE_MAX));
+  CHECKL(0xA55E62, ts < (1uL << TRACE_MAX));
   return TRUE;
 }
 
@@ -54,11 +54,11 @@ Bool TraceSetCheck(TraceSet ts)
 
 Bool TraceCheck(Trace trace)
 {
-  CHECKS(Trace, trace);
-  CHECKU(Space, trace->space);
-  CHECKL(TraceIdCheck(trace->ti));
-  CHECKL(trace == &trace->space->trace[trace->ti]);
-  CHECKL(TraceSetIsMember(trace->space->busyTraces, trace->ti));
+  CHECKS(0xA55E62, Trace, trace);
+  CHECKU(0xA55E62, Space, trace->space);
+  CHECKL(0xA55E62, TraceIdCheck(trace->ti));
+  CHECKL(0xA55E62, trace == &trace->space->trace[trace->ti]);
+  CHECKL(0xA55E62, TraceSetIsMember(trace->space->busyTraces, trace->ti));
   /* Can't check trace->white -- not in O(1) anyway. */
   /* Use trace->state to check more invariants. */
   switch(trace->state) {
@@ -67,27 +67,27 @@ Bool TraceCheck(Trace trace)
     break;
 
     case TraceUNFLIPPED:
-    CHECKL(!TraceSetIsMember(trace->space->flippedTraces, trace->ti));
+    CHECKL(0xA55E62, !TraceSetIsMember(trace->space->flippedTraces, trace->ti));
     /* @@@@ Assert that mutator is grey for trace. */
     break;
 
     case TraceFLIPPED:
-    CHECKL(TraceSetIsMember(trace->space->flippedTraces, trace->ti));
+    CHECKL(0xA55E62, TraceSetIsMember(trace->space->flippedTraces, trace->ti));
     /* @@@@ Assert that mutator is black for trace. */
     break;
 
     case TraceRECLAIM:
-    CHECKL(TraceSetIsMember(trace->space->flippedTraces, trace->ti));
+    CHECKL(0xA55E62, TraceSetIsMember(trace->space->flippedTraces, trace->ti));
     /* @@@@ Assert that grey set is empty for trace. */
     break;
 
     case TraceFINISHED:
-    CHECKL(TraceSetIsMember(trace->space->flippedTraces, trace->ti));
+    CHECKL(0xA55E62, TraceSetIsMember(trace->space->flippedTraces, trace->ti));
     /* @@@@ Assert that grey and white sets is empty for trace. */
     break;
 
     default:
-    NOTREACHED;
+    NOTREACHED(0xA55E62);
   }
   /* @@@@ Check trace->interval? */
   return TRUE;
@@ -115,10 +115,10 @@ Res TraceCreate(Trace *traceReturn, Space space)
   TraceId ti;
   Trace trace;
 
-  AVER(TRACE_MAX == 1);		/* .single-collection */
+  AVER(0xA55E62, TRACE_MAX == 1);		/* .single-collection */
 
-  AVER(traceReturn != NULL);
-  AVERT(Space, space);
+  AVER(0xA55E62, traceReturn != NULL);
+  AVERT(0xA55E62, Space, space);
 
   /* Find a free trace ID */
   for(ti = 0; ti < TRACE_MAX; ++ti)
@@ -138,7 +138,7 @@ found:
   trace->interval = (Size)4096; /* @@@@ should be progress control */
 
   trace->sig = TraceSig;
-  AVERT(Trace, trace);
+  AVERT(0xA55E62, Trace, trace);
 
   *traceReturn = trace;
   return ResOK;
@@ -156,8 +156,8 @@ found:
 
 void TraceDestroy(Trace trace)
 {
-  AVERT(Trace, trace);
-  AVER(trace->state == TraceFINISHED);
+  AVERT(0xA55E62, Trace, trace);
+  AVER(0xA55E62, trace->state == TraceFINISHED);
   trace->sig = SigInvalid;
   trace->space->busyTraces =
     TraceSetDel(trace->space->busyTraces, trace->ti);
@@ -184,11 +184,11 @@ Res TraceStart(Trace trace, Pool pool)
   Space space;
   Seg seg;
 
-  AVERT(Trace, trace);
-  AVERT(Pool, pool);
-  AVER((pool->class->attr & AttrGC) != 0);
-  AVER(trace->state == TraceINIT);
-  AVER(trace->white == RefSetEMPTY);
+  AVERT(0xA55E62, Trace, trace);
+  AVERT(0xA55E62, Pool, pool);
+  AVER(0xA55E62, (pool->class->attr & AttrGC) != 0);
+  AVER(0xA55E62, trace->state == TraceINIT);
+  AVER(0xA55E62, trace->white == RefSetEMPTY);
 
   /* Identify the condemned set and turn it white. */
   space = trace->space;
@@ -198,7 +198,7 @@ Res TraceStart(Trace trace, Pool pool)
     Ring next = RingNext(node);
     seg = RING_ELT(Seg, poolRing, node);
 
-    AVER(!TraceSetIsMember(seg->white, trace->ti)); /* .start.black */
+    AVER(0xA55E62, !TraceSetIsMember(seg->white, trace->ti)); /* .start.black */
 
     /* Give the pool the opportunity to turn the segment white. */
     /* If it fails, unwind. */
@@ -236,14 +236,14 @@ Res TraceStart(Trace trace, Pool pool)
   seg = SegFirst(space);
   while(seg != NULL) {
     /* Segment should be either black or white by now. */
-    AVER(!TraceSetIsMember(seg->grey, trace->ti));
+    AVER(0xA55E62, !TraceSetIsMember(seg->grey, trace->ti));
 
     /* A segment can only be grey if it contains some references. */
     /* This is indicated by the rankSet begin non-empty.  Such */
     /* segments may only belong to scannable pools. */
     if(seg->rankSet != RankSetEMPTY) {
       /* Segments with ranks may only belong to scannable pools. */
-      AVER((seg->pool->class->attr & AttrSCAN) != 0);
+      AVER(0xA55E62, (seg->pool->class->attr & AttrSCAN) != 0);
 
       /* Turn the segment grey if there might be a reference in it */
       /* to the white set.  This is done by seeing if the summary */
@@ -300,9 +300,9 @@ void TraceSegGreyen(Space space, Seg seg, TraceSet ts)
 {
   TraceSet grey;
   
-  AVERT(Space, space);
-  AVERT(Seg, seg);
-  AVER(TraceSetCheck(ts));
+  AVERT(0xA55E62, Space, space);
+  AVERT(0xA55E62, Seg, seg);
+  AVER(0xA55E62, TraceSetCheck(ts));
 
   grey = seg->grey;
   grey = TraceSetUnion(grey, ts);
@@ -319,7 +319,7 @@ static void TraceFlipBuffers(Space space)
 {
   Ring poolRing, poolNode, bufferRing, bufferNode;
   
-  AVERT(Space, space);
+  AVERT(0xA55E62, Space, space);
   
   poolRing = SpacePoolRing(space);
   poolNode = RingNext(poolRing);
@@ -327,7 +327,7 @@ static void TraceFlipBuffers(Space space)
     Ring poolNext = RingNext(poolNode);
     Pool pool = RING_ELT(Pool, spaceRing, poolNode);
     
-    AVERT(Pool, pool);
+    AVERT(0xA55E62, Pool, pool);
     
     bufferRing = &pool->bufferRing;
     bufferNode = RingNext(bufferRing);
@@ -335,7 +335,7 @@ static void TraceFlipBuffers(Space space)
       Ring bufferNext = RingNext(bufferNode);
       Buffer buffer = RING_ELT(Buffer, poolRing, bufferNode);
       
-      AVERT(Buffer, buffer);
+      AVERT(0xA55E62, Buffer, buffer);
       
       BufferFlip(buffer);
       
@@ -362,8 +362,8 @@ static void TraceFlipBuffers(Space space)
 
 void TraceSetSummary(Space space, Seg seg, RefSet summary)
 {
-  AVERT(Space, space);
-  AVERT(Seg, seg);
+  AVERT(0xA55E62, Space, space);
+  AVERT(0xA55E62, Seg, seg);
 
   if(summary == RefSetUNIV) {
     seg->summary = summary;             /* NB summary == RefSetUNIV */
@@ -387,12 +387,12 @@ static Res TraceFlip(Trace trace)
   ScanStateStruct ss;
   Res res;
 
-  AVERT(Trace, trace);
+  AVERT(0xA55E62, Trace, trace);
 
   space = trace->space;
   ShieldSuspend(space);
 
-  AVER(trace->state == TraceUNFLIPPED);
+  AVER(0xA55E62, trace->state == TraceUNFLIPPED);
 
   TraceFlipBuffers(space);
  
@@ -431,13 +431,13 @@ static Res TraceFlip(Trace trace)
     ring = SpaceRootRing(space);
     node = RingNext(ring);
 
-    AVERT(ScanState, &ss);
+    AVERT(0xA55E62, ScanState, &ss);
 
     while(node != ring) {
       Ring next = RingNext(node);
       Root root = RING_ELT(Root, spaceRing, node);
 
-      AVER(RootRank(root) <= RankEXACT); /* see above */
+      AVER(0xA55E62, RootRank(root) <= RankEXACT); /* see above */
 
       if(RootRank(root) == ss.rank) {
         res = RootScan(&ss, root);
@@ -463,8 +463,8 @@ static void TraceReclaim(Trace trace)
   Space space;
   Seg seg;
 
-  AVERT(Trace, trace);
-  AVER(trace->state == TraceRECLAIM);
+  AVERT(0xA55E62, Trace, trace);
+  AVER(0xA55E62, trace->state == TraceRECLAIM);
 
   space = trace->space;
   seg = SegFirst(space);
@@ -472,10 +472,10 @@ static void TraceReclaim(Trace trace)
     Seg next = SegNext(space, seg);
 
     /* There shouldn't be any grey stuff left for this trace. */
-    AVER(!TraceSetIsMember(seg->grey, trace->ti));
+    AVER(0xA55E62, !TraceSetIsMember(seg->grey, trace->ti));
 
     if(TraceSetIsMember(seg->white, trace->ti)) {
-      AVER((seg->pool->class->attr & AttrGC) != 0);
+      AVER(0xA55E62, (seg->pool->class->attr & AttrGC) != 0);
 
       PoolReclaim(seg->pool, trace, seg);
     }
@@ -506,9 +506,9 @@ static Bool FindGrey(Seg *segReturn, Rank *rankReturn,
   Rank rank;
   Seg seg;
 
-  AVER(segReturn != NULL);
-  AVERT(Space, space);
-  AVER(TraceIdCheck(ti));
+  AVER(0xA55E62, segReturn != NULL);
+  AVERT(0xA55E62, Space, space);
+  AVER(0xA55E62, TraceIdCheck(ti));
   
   for(rank = 0; rank < RankMAX; ++rank)
     for(seg = SegFirst(space); seg != NULL; seg = SegNext(space, seg))
@@ -538,12 +538,12 @@ static Res TraceScan(TraceSet ts, Rank rank,
   ScanStateStruct ss;
   TraceId ti;
 
-  AVER(TraceSetCheck(ts));
-  AVER(RankCheck(rank));
-  AVERT(Seg, seg);
+  AVER(0xA55E62, TraceSetCheck(ts));
+  AVER(0xA55E62, RankCheck(rank));
+  AVERT(0xA55E62, Seg, seg);
   
   /* The reason for scanning a segment is that it's grey. */
-  AVER(TraceSetInter(ts, seg->grey) != TraceSetEMPTY);
+  AVER(0xA55E62, TraceSetInter(ts, seg->grey) != TraceSetEMPTY);
 
   ss.rank = rank;
   ss.traces = ts;
@@ -558,7 +558,7 @@ static Res TraceScan(TraceSet ts, Rank rank,
     if(TraceSetIsMember(ss.traces, ti))
       ss.white = RefSetUnion(ss.white, SpaceTrace(space, ti)->white);
   ss.sig = ScanStateSig;
-  AVERT(ScanState, &ss);
+  AVERT(0xA55E62, ScanState, &ss);
 
   /* Expose the segment to make sure we can scan it. */
   ShieldExpose(space, seg);
@@ -571,7 +571,7 @@ static Res TraceScan(TraceSet ts, Rank rank,
 
   /* The summary of references seen by scan must be a subset of */
   /* the ones we thought were there before. */
-  AVER(RefSetSub(ss.summary, seg->summary));
+  AVER(0xA55E62, RefSetSub(ss.summary, seg->summary));
   TraceSetSummary(space, seg,
                   TraceSetUnion(ss.fixed,
                                 TraceSetDiff(ss.summary, ss.white)));
@@ -597,33 +597,33 @@ void TraceAccess(Space space, Seg seg, AccessSet mode)
 {
   Res res;
 
-  AVERT(Space, space);
-  AVERT(Seg, seg);
+  AVERT(0xA55E62, Space, space);
+  AVERT(0xA55E62, Seg, seg);
   UNUSED(mode);
 
   if((mode & seg->sm & AccessREAD) != 0) {     /* read barrier? */
     /* In this case, the segment must be grey for a trace which is */
     /* flipped. */
-    AVER(TraceSetInter(seg->grey, space->flippedTraces) != TraceSetEMPTY);
+    AVER(0xA55E62, TraceSetInter(seg->grey, space->flippedTraces) != TraceSetEMPTY);
 
     /* design.mps.poolamc.access.multi */
     res = TraceScan(space->busyTraces,  /* @@@@ Should just be flipped traces? */
                     RankEXACT,          /* @@@@ Surely this is conservative? */
                     space, seg);
-    AVER(res == ResOK);                 /* design.mps.poolamc.access.error */
+    AVER(0xA55E62, res == ResOK);                 /* design.mps.poolamc.access.error */
 
     /* The pool should've done the job of removing the greyness that */
     /* was causing the segment to be protected, so that the mutator */
     /* can go ahead and access it. */
-    AVER(TraceSetInter(seg->grey, space->flippedTraces) == TraceSetEMPTY);
+    AVER(0xA55E62, TraceSetInter(seg->grey, space->flippedTraces) == TraceSetEMPTY);
   }
 
   if((mode & seg->sm & AccessWRITE) != 0) {    /* write barrier? */
-    AVER(seg->summary != RefSetUNIV);
+    AVER(0xA55E62, seg->summary != RefSetUNIV);
     TraceSetSummary(space, seg, RefSetUNIV);
   }
 
-  AVER((mode & seg->sm) == AccessSetEMPTY);
+  AVER(0xA55E62, (mode & seg->sm) == AccessSetEMPTY);
 }
 
 
@@ -634,13 +634,13 @@ static Res TraceRun(Trace trace)
   Seg seg;
   Rank rank;
 
-  AVERT(Trace, trace);
-  AVER(trace->state == TraceFLIPPED);
+  AVERT(0xA55E62, Trace, trace);
+  AVER(0xA55E62, trace->state == TraceFLIPPED);
 
   space = trace->space;
 
   if(FindGrey(&seg, &rank, space, trace->ti)) {
-    AVER((seg->pool->class->attr & AttrSCAN) != 0);
+    AVER(0xA55E62, (seg->pool->class->attr & AttrSCAN) != 0);
     res = TraceScan(TraceSetSingle(trace->ti), rank,
                     space, seg);
     if(res != ResOK) return res;
@@ -661,7 +661,7 @@ Res TracePoll(Trace trace)
   Space space;
   Res res;
 
-  AVERT(Trace, trace);
+  AVERT(0xA55E62, Trace, trace);
 
   space = trace->space;
 
@@ -686,7 +686,7 @@ Res TracePoll(Trace trace)
     break;
 
     default:
-    NOTREACHED;
+    NOTREACHED(0xA55E62);
     break;
   }
 
@@ -700,8 +700,8 @@ Res TraceFix(ScanState ss, Ref *refIO)
   Seg seg;
   Pool pool;
 
-  AVERT(ScanState, ss);
-  AVER(refIO != NULL);
+  AVERT(0xA55E62, ScanState, ss);
+  AVER(0xA55E62, refIO != NULL);
 
   ref = *refIO;
   if(SegOfAddr(&seg, ss->space, ref)) {
@@ -730,9 +730,9 @@ Res TraceScanArea(ScanState ss, Addr *base, Addr *limit)
   Addr *p;
   Ref ref;
 
-  AVER(base != NULL);
-  AVER(limit != NULL);
-  AVER(base < limit);
+  AVER(0xA55E62, base != NULL);
+  AVER(0xA55E62, limit != NULL);
+  AVER(0xA55E62, base < limit);
 
   TRACE_SCAN_BEGIN(ss) {
     p = base;
@@ -744,7 +744,7 @@ Res TraceScanArea(ScanState ss, Addr *base, Addr *limit)
     if(res == ResOK) goto loop;
     return res;
   out:
-    AVER(p == limit);
+    AVER(0xA55E62, p == limit);
   } TRACE_SCAN_END(ss);
 
   return ResOK;
@@ -763,9 +763,9 @@ Res TraceScanAreaTagged(ScanState ss, Addr *base, Addr *limit)
   Addr *p;
   Ref ref;
 
-  AVER(base != NULL);
-  AVER(limit != NULL);
-  AVER(base < limit);
+  AVER(0xA55E62, base != NULL);
+  AVER(0xA55E62, limit != NULL);
+  AVER(0xA55E62, base < limit);
 
   TRACE_SCAN_BEGIN(ss) {
     p = base;
@@ -779,7 +779,7 @@ Res TraceScanAreaTagged(ScanState ss, Addr *base, Addr *limit)
     if(res == ResOK) goto loop;
     return res;
   out:
-    AVER(p == limit);
+    AVER(0xA55E62, p == limit);
   } TRACE_SCAN_END(ss);
 
   return ResOK;

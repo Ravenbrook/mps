@@ -1,6 +1,6 @@
 /* impl.h.mps: HARLEQUIN MEMORY POOL SYSTEM C INTERFACE
  *
- * $HopeName: !mps.h(trunk.20) $
+ * $HopeName: MMsrc!mps.h(MMdevel_assertid.1) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  *
  * .readership: customers, MPS developers.
@@ -147,7 +147,7 @@ extern void mps_SEH_handler(void *, size_t);
 /* Assertion Handling */
 
 typedef void (*mps_assert_t)(const char *, const char *, const char *,
-                             unsigned line);
+                             unsigned, unsigned long);
 
 extern mps_assert_t mps_assert_install(mps_assert_t);
 extern mps_assert_t mps_assert_default(void);

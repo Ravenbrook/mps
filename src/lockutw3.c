@@ -1,7 +1,7 @@
 /* impl.c.lockutnt
  *                     LOCK COVERAGE TEST
  *
- * $HopeName: !lockutnt.c(trunk.6) $
+ * $HopeName: MMsrc!lockutnt.c(MMdevel_assertid.1) $
  */
 
 #include "mpm.h"
@@ -13,7 +13,7 @@
 
 #include <windows.h>
 
-SRCID(lockutnt, "$HopeName: !lockutnt.c(trunk.6) $");
+SRCID(lockutnt, "$HopeName: MMsrc!lockutnt.c(MMdevel_assertid.1) $");
 
 static LockStruct lockStruct;
 unsigned long shared,tmp;
@@ -75,7 +75,7 @@ int main(void)
   for(i=0;i<nthreads;i++)
     WaitForSingleObject(t[i], INFINITE);
 
-  AVER(shared == nthreads*COUNT);
+  AVER(0xA55E62, shared == nthreads*COUNT);
 
   LockFinish(&lockStruct);
 

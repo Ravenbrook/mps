@@ -1,6 +1,6 @@
 /* impl.c.buffer: ALLOCATION BUFFER IMPLEMENTATION
  *
- * $HopeName: !buffer.c(trunk.25) $
+ * $HopeName: MMsrc!buffer.c(MMdevel_assertid.1) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  *
  * This is (part of) the implementation of allocation buffers.
@@ -29,22 +29,22 @@
 
 #include "mpm.h"
 
-SRCID(buffer, "$HopeName: !buffer.c(trunk.25) $");
+SRCID(buffer, "$HopeName: MMsrc!buffer.c(MMdevel_assertid.1) $");
 
 
 /* BufferCheck -- check consistency of a buffer */
 
 Bool BufferCheck(Buffer buffer)
 {
-  CHECKS(Buffer, buffer);
-  CHECKL(buffer->serial < buffer->pool->bufferSerial); /* .trans.mod */
-  CHECKU(Space, buffer->space);
-  CHECKU(Pool, buffer->pool);
-  CHECKL(buffer->space == buffer->pool->space);
-  CHECKL(RingCheck(&buffer->poolRing));	/* design.mps.check.type.no-sig */
-  CHECKL(RankSetCheck(buffer->rankSet));
-  CHECKL(buffer->alignment == buffer->pool->alignment);
-  CHECKL(AlignCheck(buffer->alignment));
+  CHECKS(0xA55E62, Buffer, buffer);
+  CHECKL(0xA55E62, buffer->serial < buffer->pool->bufferSerial); /* .trans.mod */
+  CHECKU(0xA55E62, Space, buffer->space);
+  CHECKU(0xA55E62, Pool, buffer->pool);
+  CHECKL(0xA55E62, buffer->space == buffer->pool->space);
+  CHECKL(0xA55E62, RingCheck(&buffer->poolRing));	/* design.mps.check.type.no-sig */
+  CHECKL(0xA55E62, RankSetCheck(buffer->rankSet));
+  CHECKL(0xA55E62, buffer->alignment == buffer->pool->alignment);
+  CHECKL(0xA55E62, AlignCheck(buffer->alignment));
 
   /* If any of the buffer's fields indicate that it is reset, make */
   /* sure it is really reset.  Otherwise, check various properties */
@@ -55,47 +55,47 @@ Bool BufferCheck(Buffer buffer)
      buffer->apStruct.init == (Addr)0 ||
      buffer->apStruct.alloc == (Addr)0 ||
      buffer->poolLimit == (Addr)0) {
-    CHECKL(buffer->seg == NULL);
-    CHECKL(buffer->base == (Addr)0);
-    CHECKL(buffer->initAtFlip == (Addr)0);
-    CHECKL(buffer->apStruct.init == (Addr)0);
-    CHECKL(buffer->apStruct.alloc == (Addr)0);
-    CHECKL(buffer->apStruct.limit == (Addr)0);
-    CHECKL(buffer->poolLimit == (Addr)0);
+    CHECKL(0xA55E62, buffer->seg == NULL);
+    CHECKL(0xA55E62, buffer->base == (Addr)0);
+    CHECKL(0xA55E62, buffer->initAtFlip == (Addr)0);
+    CHECKL(0xA55E62, buffer->apStruct.init == (Addr)0);
+    CHECKL(0xA55E62, buffer->apStruct.alloc == (Addr)0);
+    CHECKL(0xA55E62, buffer->apStruct.limit == (Addr)0);
+    CHECKL(0xA55E62, buffer->poolLimit == (Addr)0);
   } else {
     /* The buffer is attached to a segment.  Make sure its fields */
     /* tally with those of the segment. */
-    CHECKL(SegCheck(buffer->seg)); /* design.mps.check.type.no-sig */
-    CHECKL(buffer->seg->buffer == buffer);
-    CHECKL(buffer->seg->pool == buffer->pool);
-    CHECKL(buffer->rankSet == buffer->seg->rankSet);
+    CHECKL(0xA55E62, SegCheck(buffer->seg)); /* design.mps.check.type.no-sig */
+    CHECKL(0xA55E62, buffer->seg->buffer == buffer);
+    CHECKL(0xA55E62, buffer->seg->pool == buffer->pool);
+    CHECKL(0xA55E62, buffer->rankSet == buffer->seg->rankSet);
 
     /* These fields should obey the ordering */
     /* base <= initAtFlip <= init <= alloc <= poolLimit */
-    CHECKL(buffer->base <= buffer->initAtFlip);
-    CHECKL(buffer->initAtFlip <= buffer->apStruct.init);
-    CHECKL(buffer->apStruct.init <= buffer->apStruct.alloc);
-    CHECKL(buffer->apStruct.alloc <= buffer->poolLimit);
+    CHECKL(0xA55E62, buffer->base <= buffer->initAtFlip);
+    CHECKL(0xA55E62, buffer->initAtFlip <= buffer->apStruct.init);
+    CHECKL(0xA55E62, buffer->apStruct.init <= buffer->apStruct.alloc);
+    CHECKL(0xA55E62, buffer->apStruct.alloc <= buffer->poolLimit);
 
     /* Check that the fields are aligned to the buffer alignment. */
-    CHECKL(AddrIsAligned(buffer->base, buffer->alignment));
-    CHECKL(AddrIsAligned(buffer->initAtFlip, buffer->alignment));
-    CHECKL(AddrIsAligned(buffer->apStruct.init, buffer->alignment));
-    CHECKL(AddrIsAligned(buffer->apStruct.alloc, buffer->alignment));
-    CHECKL(AddrIsAligned(buffer->apStruct.limit, buffer->alignment));
-    CHECKL(AddrIsAligned(buffer->poolLimit, buffer->alignment));
+    CHECKL(0xA55E62, AddrIsAligned(buffer->base, buffer->alignment));
+    CHECKL(0xA55E62, AddrIsAligned(buffer->initAtFlip, buffer->alignment));
+    CHECKL(0xA55E62, AddrIsAligned(buffer->apStruct.init, buffer->alignment));
+    CHECKL(0xA55E62, AddrIsAligned(buffer->apStruct.alloc, buffer->alignment));
+    CHECKL(0xA55E62, AddrIsAligned(buffer->apStruct.limit, buffer->alignment));
+    CHECKL(0xA55E62, AddrIsAligned(buffer->poolLimit, buffer->alignment));
 
     /* If the buffer isn't trapped then "limit" should be the limit */
     /* set by the owning pool.  Otherwise, "init" is either at the */
     /* same place it was at flip (.commit.before) or has been set */
     /* to "alloc" (.commit.after). */
     if(buffer->apStruct.limit != (Addr)0)
-      CHECKL(buffer->apStruct.limit == buffer->poolLimit);
+      CHECKL(0xA55E62, buffer->apStruct.limit == buffer->poolLimit);
     else {
-      CHECKL(buffer->apStruct.init == buffer->initAtFlip ||
+      CHECKL(0xA55E62, buffer->apStruct.init == buffer->initAtFlip ||
              buffer->apStruct.init == buffer->apStruct.alloc);
       /* Only buffers which allocate pointers get trapped. */
-      CHECKL(buffer->rankSet != RankSetEMPTY);
+      CHECKL(0xA55E62, buffer->rankSet != RankSetEMPTY);
     }
   }
 
@@ -115,8 +115,8 @@ Res BufferDescribe(Buffer buffer, mps_lib_FILE *stream)
 {
   int res;
 
-  AVERT(Buffer, buffer);
-  AVER(stream != NULL);
+  AVERT(0xA55E62, Buffer, buffer);
+  AVER(0xA55E62, stream != NULL);
 
   res = WriteF(stream,
                "Buffer $P ($U) {\n",
@@ -153,9 +153,9 @@ Res BufferCreate(Buffer *bufferReturn, Pool pool, Rank rank)
   Space space;
   void *p;
 
-  AVER(bufferReturn != NULL);
-  AVERT(Pool, pool);
-  AVER(RankCheck(rank));
+  AVER(0xA55E62, bufferReturn != NULL);
+  AVERT(0xA55E62, Pool, pool);
+  AVER(0xA55E62, RankCheck(rank));
 
   space = PoolSpace(pool);
 
@@ -187,11 +187,11 @@ Res BufferInit(Buffer buffer, Pool pool, Rank rank)
 {
   Res res;
 
-  AVER(buffer != NULL);
-  AVERT(Pool, pool);
+  AVER(0xA55E62, buffer != NULL);
+  AVERT(0xA55E62, Pool, pool);
   /* The PoolClass should support buffer protocols */
-  AVER((pool->class->attr & AttrBUF)); /* .trans.mod */
-  AVER(RankCheck(rank));
+  AVER(0xA55E62, (pool->class->attr & AttrBUF)); /* .trans.mod */
+  AVER(0xA55E62, RankCheck(rank));
   
   /* Initialize the buffer.  See impl.h.mpmst for a definition of */
   /* the structure.  sig and serial comes later .init.sig-serial */
@@ -220,7 +220,7 @@ Res BufferInit(Buffer buffer, Pool pool, Rank rank)
   buffer->sig = BufferSig;
   buffer->serial = pool->bufferSerial; /* .trans.mod */
   ++pool->bufferSerial;
-  AVERT(Buffer, buffer);
+  AVERT(0xA55E62, Buffer, buffer);
 
   /* Attach the initialized buffer to the pool. */
   RingAppend(&pool->bufferRing, &buffer->poolRing);
@@ -233,8 +233,8 @@ Res BufferInit(Buffer buffer, Pool pool, Rank rank)
 
 static void BufferDetach(Buffer buffer, Pool pool)
 {
-  AVERT(Buffer, buffer);
-  AVER(BufferIsReady(buffer));
+  AVERT(0xA55E62, Buffer, buffer);
+  AVER(0xA55E62, BufferIsReady(buffer));
 
   if(!BufferIsReset(buffer)) {
     /* Ask the owning pool to do whatever it needs to before the */
@@ -264,7 +264,7 @@ static void BufferDetach(Buffer buffer, Pool pool)
 void BufferDestroy(Buffer buffer)
 {
   Space space;
-  AVERT(Buffer, buffer);
+  AVERT(0xA55E62, Buffer, buffer);
   space = buffer->space;
   BufferFinish(buffer);
   SpaceFree(space, (Addr)buffer, sizeof(BufferStruct));
@@ -277,13 +277,13 @@ void BufferFinish(Buffer buffer)
 {
   Pool pool;
 
-  AVERT(Buffer, buffer);
+  AVERT(0xA55E62, Buffer, buffer);
 
   pool = BufferPool(buffer);
 
   /* The PoolClass should support buffer protocols */
-  AVER((pool->class->attr & AttrBUF)); /* .trans.mod */
-  AVER(BufferIsReady(buffer));
+  AVER(0xA55E62, (pool->class->attr & AttrBUF)); /* .trans.mod */
+  AVER(0xA55E62, BufferIsReady(buffer));
 
   BufferDetach(buffer, pool);
 
@@ -307,7 +307,7 @@ void BufferFinish(Buffer buffer)
 
 Bool BufferIsReset(Buffer buffer)
 {
-  AVERT(Buffer, buffer);
+  AVERT(0xA55E62, Buffer, buffer);
 
   /* is-reset.overkill: @@@@ It's unnecessary to check all of these */
   /* fields.  See .detach.overkill. */
@@ -334,7 +334,7 @@ Bool BufferIsReset(Buffer buffer)
 
 Bool BufferIsReady(Buffer buffer)
 {
-  AVERT(Buffer, buffer);
+  AVERT(0xA55E62, Buffer, buffer);
 
   if(buffer->apStruct.init == buffer->apStruct.alloc)
     return TRUE;
@@ -352,11 +352,11 @@ Res BufferReserve(Addr *pReturn, Buffer buffer, Size size)
 {
   Addr next;
 
-  AVER(pReturn != NULL);
-  AVERT(Buffer, buffer);
-  AVER(size > 0);
-  AVER(SizeIsAligned(size, BufferPool(buffer)->alignment));
-  AVER(BufferIsReady(buffer));
+  AVER(0xA55E62, pReturn != NULL);
+  AVERT(0xA55E62, Buffer, buffer);
+  AVER(0xA55E62, size > 0);
+  AVER(0xA55E62, SizeIsAligned(size, BufferPool(buffer)->alignment));
+  AVER(0xA55E62, BufferIsReady(buffer));
 
   /* Is there enough room in the unallocated portion of the buffer to */
   /* satisfy the request?  If so, just increase the alloc marker and */
@@ -389,11 +389,11 @@ Res BufferFill(Addr *pReturn, Buffer buffer, Size size)
   Seg seg;
   Addr base, limit, next;
 
-  AVER(pReturn != NULL);
-  AVERT(Buffer, buffer);
-  AVER(size > 0);
-  AVER(SizeIsAligned(size, BufferPool(buffer)->alignment));
-  AVER(BufferIsReady(buffer));
+  AVER(0xA55E62, pReturn != NULL);
+  AVERT(0xA55E62, Buffer, buffer);
+  AVER(0xA55E62, size > 0);
+  AVER(0xA55E62, SizeIsAligned(size, BufferPool(buffer)->alignment));
+  AVER(0xA55E62, BufferIsReady(buffer));
 
   pool = BufferPool(buffer);
   space = BufferSpace(buffer);
@@ -415,7 +415,7 @@ Res BufferFill(Addr *pReturn, Buffer buffer, Size size)
   }
 
   /* There really isn't enough room for the allocation now. */
-  AVER(AddrAdd(buffer->apStruct.alloc, size) > buffer->apStruct.limit ||
+  AVER(0xA55E62, AddrAdd(buffer->apStruct.alloc, size) > buffer->apStruct.limit ||
        AddrAdd(buffer->apStruct.alloc, size) < buffer->apStruct.alloc);
 
   BufferDetach(buffer, pool);
@@ -425,11 +425,11 @@ Res BufferFill(Addr *pReturn, Buffer buffer, Size size)
                                    pool, buffer, size);
   if(res != ResOK) return res;
 
-  AVER(SegCheck(seg));
-  AVER(seg->buffer == NULL);
-  AVER(SegBase(space, seg) <= base);
-  AVER(AddrAdd(base, size) <= limit);
-  AVER(limit <= SegLimit(space, seg));
+  AVER(0xA55E62, SegCheck(seg));
+  AVER(0xA55E62, seg->buffer == NULL);
+  AVER(0xA55E62, SegBase(space, seg) <= base);
+  AVER(0xA55E62, AddrAdd(base, size) <= limit);
+  AVER(0xA55E62, limit <= SegLimit(space, seg));
 
   /* Set up the buffer to point at the memory given by the pool */
   /* and do the allocation that was requested by the client. */
@@ -442,7 +442,7 @@ Res BufferFill(Addr *pReturn, Buffer buffer, Size size)
   buffer->apStruct.limit = limit;
   buffer->poolLimit = limit;
 
-  AVERT(Buffer, buffer);
+  AVERT(0xA55E62, Buffer, buffer);
 
   *pReturn = base;
   return res;
@@ -456,17 +456,17 @@ Res BufferFill(Addr *pReturn, Buffer buffer, Size size)
 
 Bool BufferCommit(Buffer buffer, Addr p, Size size)
 {
-  AVERT(Buffer, buffer);
-  AVER(size > 0);
-  AVER(SizeIsAligned(size, BufferPool(buffer)->alignment));
-  AVER(!BufferIsReady(buffer));
+  AVERT(0xA55E62, Buffer, buffer);
+  AVER(0xA55E62, size > 0);
+  AVER(0xA55E62, SizeIsAligned(size, BufferPool(buffer)->alignment));
+  AVER(0xA55E62, !BufferIsReady(buffer));
 
   /* See design.mps.collection.flip. */
   /* .commit.before: If a flip occurs before this point, when the */
   /* pool reads "initAtFlip" it will point below the object, so it */
   /* will be trashed and the commit must fail when trip is called.  */
-  AVER(p == buffer->apStruct.init);
-  AVER(AddrAdd(buffer->apStruct.init, size) == buffer->apStruct.alloc);
+  AVER(0xA55E62, p == buffer->apStruct.init);
+  AVER(0xA55E62, AddrAdd(buffer->apStruct.init, size) == buffer->apStruct.alloc);
 
   /* .commit.update: Atomically update the init pointer to declare */
   /* that the object is initialized (though it may be invalid if a */
@@ -495,28 +495,28 @@ Bool BufferTrip(Buffer buffer, Addr p, Size size)
 {
   Pool pool;
 
-  AVERT(Buffer, buffer);
-  AVER(p != 0);
-  AVER(size > 0);
-  AVER(SizeIsAligned(size, buffer->alignment));
+  AVERT(0xA55E62, Buffer, buffer);
+  AVER(0xA55E62, p != 0);
+  AVER(0xA55E62, size > 0);
+  AVER(0xA55E62, SizeIsAligned(size, buffer->alignment));
 
   /* The limit field should be zero, because that's how trip gets */
   /* called.  See .commit.trip. */
-  AVER(buffer->apStruct.limit == 0);
+  AVER(0xA55E62, buffer->apStruct.limit == 0);
 
   /* The init and alloc fields should be equal at this point, because */
   /* the step .commit.update has happened. */
-  AVER(buffer->apStruct.init == buffer->apStruct.alloc);
+  AVER(0xA55E62, buffer->apStruct.init == buffer->apStruct.alloc);
 
   /* The p parameter points at the base address of the allocated */
   /* block, the end of which should now coincide with the init and */
   /* alloc fields. */
-  AVER(AddrAdd(p, size) == buffer->apStruct.init);
+  AVER(0xA55E62, AddrAdd(p, size) == buffer->apStruct.init);
 
   pool = BufferPool(buffer);
 
-  AVER(PoolHasAddr(pool, p));
-  AVER(BufferSeg(buffer)->pool == pool);
+  AVER(0xA55E62, PoolHasAddr(pool, p));
+  AVER(0xA55E62, BufferSeg(buffer)->pool == pool);
 
   /* .trip.untrap: If the flip occurred before commit set "init" */
   /* to "alloc" (see .commit.before) then the object is invalid */
@@ -550,11 +550,11 @@ Bool BufferTrip(Buffer buffer, Addr p, Size size)
 
 void BufferFlip(Buffer buffer)
 {
-  AVERT(Buffer, buffer);
+  AVERT(0xA55E62, Buffer, buffer);
 
   if(buffer->rankSet != RankSetEMPTY &&
      buffer->apStruct.limit != (Addr)0) {
-    AVER(buffer->initAtFlip == buffer->base);
+    AVER(0xA55E62, buffer->initAtFlip == buffer->base);
     buffer->initAtFlip = buffer->apStruct.init;
     buffer->apStruct.limit = (Addr)0;
   }
@@ -581,7 +581,7 @@ Addr BufferScanLimit(Buffer buffer)
 
 AP (BufferAP)(Buffer buffer)
 {
-  AVERT(Buffer, buffer);
+  AVERT(0xA55E62, Buffer, buffer);
   return BufferAP(buffer);
 }
 
@@ -604,42 +604,42 @@ Space (BufferSpace)(Buffer buffer)
 
 Pool (BufferPool)(Buffer buffer)
 {
-  AVERT(Buffer, buffer);
+  AVERT(0xA55E62, Buffer, buffer);
   return BufferPool(buffer);
 }
 
 Seg (BufferSeg)(Buffer buffer)
 {
-  AVERT(Buffer, buffer);
+  AVERT(0xA55E62, Buffer, buffer);
   return BufferSeg(buffer);
 }
 
 RankSet (BufferRankSet)(Buffer buffer)
 {
-  AVERT(Buffer, buffer);
+  AVERT(0xA55E62, Buffer, buffer);
   return BufferRankSet(buffer);
 }
 
 Addr (BufferBase)(Buffer buffer)
 {
-  AVERT(Buffer, buffer);
+  AVERT(0xA55E62, Buffer, buffer);
   return BufferBase(buffer);
 }
 
 Addr (BufferGetInit)(Buffer buffer)
 {
-  AVERT(Buffer, buffer);
+  AVERT(0xA55E62, Buffer, buffer);
   return BufferGetInit(buffer);
 }
 
 Addr (BufferAlloc)(Buffer buffer)
 {
-  AVERT(Buffer, buffer);
+  AVERT(0xA55E62, Buffer, buffer);
   return BufferAlloc(buffer);
 }
 
 Addr (BufferLimit)(Buffer buffer)
 {
-  AVERT(Buffer, buffer);
+  AVERT(0xA55E62, Buffer, buffer);
   return BufferLimit(buffer);
 }

@@ -1,6 +1,6 @@
 /* impl.c.arenacl: ARENA IMPLEMENTATION USING CLIENT MEMORY
  *
- * $HopeName: !arenacl.c(trunk.4) $
+ * $HopeName: MMsrc!arenacl.c(MMdevel_assertid.1) $
  * 
  * Copyright (C) 1996 Harlequin Group, all rights reserved.
  *
@@ -41,15 +41,15 @@
 #error "Client arena not configured"
 #endif
 
-SRCID(arenacl, "$HopeName: !arenacl.c(trunk.4) $");
+SRCID(arenacl, "$HopeName: MMsrc!arenacl.c(MMdevel_assertid.1) $");
 
 Bool ArenaCheck(Arena arena)
 {
-  CHECKS(Arena,arena);
-  CHECKL(RingCheck(&arena->chunkRing));
+  CHECKS(0xA55E62, Arena,arena);
+  CHECKL(0xA55E62, RingCheck(&arena->chunkRing));
   /* no possible check on arena->chunkSerial */
-  CHECKL(arena->pageShift < MPS_WORD_WIDTH);
-  CHECKL(arena->pageSize == 1uL << arena->pageShift);
+  CHECKL(0xA55E62, arena->pageShift < MPS_WORD_WIDTH);
+  CHECKL(0xA55E62, arena->pageSize == 1uL << arena->pageShift);
   return TRUE;
 }
 
@@ -92,44 +92,44 @@ typedef struct PageStruct {     /* page structure */
 
 static Bool ChunkCheck(Chunk chunk)
 {
-  CHECKS(Chunk, chunk);
-  CHECKU(Arena, chunk->arena);
-  CHECKL(RingCheck(&chunk->arenaRing));
-  CHECKL(chunk->serial <= chunk->arena->chunkSerial);
-  CHECKL(chunk->freePages <= chunk->pages);
+  CHECKS(0xA55E62, Chunk, chunk);
+  CHECKU(0xA55E62, Arena, chunk->arena);
+  CHECKL(0xA55E62, RingCheck(&chunk->arenaRing));
+  CHECKL(0xA55E62, chunk->serial <= chunk->arena->chunkSerial);
+  CHECKL(0xA55E62, chunk->freePages <= chunk->pages);
   /* check base and limit: */
-  CHECKL(chunk->base != (Addr)0);
-  CHECKL(chunk->limit != (Addr)0);
-  CHECKL(chunk->base < chunk->limit);
+  CHECKL(0xA55E62, chunk->base != (Addr)0);
+  CHECKL(0xA55E62, chunk->limit != (Addr)0);
+  CHECKL(0xA55E62, chunk->base < chunk->limit);
   /* check the control structures are not NULL: */
-  CHECKL(chunk->pageBase != (Addr)0);
-  CHECKL(chunk->pageTable != NULL);
-  CHECKL(chunk->freeTable != NULL);
+  CHECKL(0xA55E62, chunk->pageBase != (Addr)0);
+  CHECKL(0xA55E62, chunk->pageTable != NULL);
+  CHECKL(0xA55E62, chunk->freeTable != NULL);
   /* check the control structures are between base and limit */
   /* (allowing for the case in which the chunk manages no pages): */
-  CHECKL((Addr)chunk >= chunk->base);
-  CHECKL((Addr)chunk < chunk->limit);
-  CHECKL(chunk->pageBase > chunk->base);
-  CHECKL(chunk->pageBase <= chunk->limit);
-  CHECKL((Addr)chunk->pageTable > chunk->base);
-  CHECKL((Addr)chunk->pageTable <= chunk->limit);
-  CHECKL((Addr)chunk->freeTable > chunk->base);
-  CHECKL((Addr)chunk->freeTable <= chunk->limit);
+  CHECKL(0xA55E62, (Addr)chunk >= chunk->base);
+  CHECKL(0xA55E62, (Addr)chunk < chunk->limit);
+  CHECKL(0xA55E62, chunk->pageBase > chunk->base);
+  CHECKL(0xA55E62, chunk->pageBase <= chunk->limit);
+  CHECKL(0xA55E62, (Addr)chunk->pageTable > chunk->base);
+  CHECKL(0xA55E62, (Addr)chunk->pageTable <= chunk->limit);
+  CHECKL(0xA55E62, (Addr)chunk->freeTable > chunk->base);
+  CHECKL(0xA55E62, (Addr)chunk->freeTable <= chunk->limit);
   /* check order of control structures within chunk: */
-  CHECKL((Addr)chunk < (Addr)chunk->pageTable);
-  CHECKL((Addr)chunk->pageTable <= (Addr)chunk->freeTable);
-  CHECKL((Addr)chunk->freeTable <= (Addr)chunk->pageBase);
+  CHECKL(0xA55E62, (Addr)chunk < (Addr)chunk->pageTable);
+  CHECKL(0xA55E62, (Addr)chunk->pageTable <= (Addr)chunk->freeTable);
+  CHECKL(0xA55E62, (Addr)chunk->freeTable <= (Addr)chunk->pageBase);
   /* check size of control structures within chunk: */
         /* enough size for chunk struct: */
-  CHECKL(AddrOffset(chunk, chunk->pageTable) >= sizeof(ChunkStruct));
+  CHECKL(0xA55E62, AddrOffset(chunk, chunk->pageTable) >= sizeof(ChunkStruct));
         /* enough space for page table: */
-  CHECKL(AddrOffset(chunk->pageTable, chunk->freeTable) / sizeof(PageStruct)
+  CHECKL(0xA55E62, AddrOffset(chunk->pageTable, chunk->freeTable) / sizeof(PageStruct)
          >= chunk->pages);
         /* enough space for free table: */
-  CHECKL(AddrOffset(chunk->freeTable, chunk->pageBase) / sizeof(Word)
+  CHECKL(0xA55E62, AddrOffset(chunk->freeTable, chunk->pageBase) / sizeof(Word)
          >= SizeAlignUp(chunk->pages,MPS_WORD_WIDTH) >> MPS_WORD_SHIFT);
         /* enough space for pages: */
-  CHECKL((AddrOffset(chunk->pageBase, chunk->limit) >> chunk->arena->pageShift)
+  CHECKL(0xA55E62, (AddrOffset(chunk->pageBase, chunk->limit) >> chunk->arena->pageShift)
          == chunk->pages);
   /* .check.tables: could check the consistency of the tables, but not O(1) */
   return TRUE;
@@ -205,11 +205,11 @@ static Res ChunkCreate(Chunk *chunkReturn, Addr base, Addr limit, Arena arena)
   Size freeTableWords;
   PI i;
 
-  AVERT(Arena, arena);
-  AVER(chunkReturn != NULL);
-  AVER(base != (Addr)0);
-  AVER(limit != (Addr)0);
-  AVER(limit > base);
+  AVERT(0xA55E62, Arena, arena);
+  AVER(0xA55E62, chunkReturn != NULL);
+  AVER(0xA55E62, base != (Addr)0);
+  AVER(0xA55E62, limit != (Addr)0);
+  AVER(0xA55E62, limit > base);
 
   /* allocate the chunk */
 
@@ -254,7 +254,7 @@ static Res ChunkCreate(Chunk *chunkReturn, Addr base, Addr limit, Arena arena)
 
   /* sign it, check it, return it */
   chunk->sig = ChunkSig;
-  AVERT(Chunk, chunk);
+  AVERT(0xA55E62, Chunk, chunk);
 
   *chunkReturn = chunk;
   return ResOK;
@@ -274,8 +274,8 @@ Res ArenaCreate(Space *spaceReturn, Size size, Addr base)
   Res res;
   Chunk chunk;
   
-  AVER(spaceReturn != NULL);
-  AVER(base != (Addr)0);
+  AVER(0xA55E62, spaceReturn != NULL);
+  AVER(0xA55E62, base != (Addr)0);
 
   if (size < sizeof(SpaceStruct))
     return ResMEMORY;
@@ -300,7 +300,7 @@ Res ArenaCreate(Space *spaceReturn, Size size, Addr base)
   /* have to have a valid arena before calling ChunkCreate */
   arena->sig = ArenaSig;
   
-  AVERT(Arena, arena);
+  AVERT(0xA55E62, Arena, arena);
 
   res = ChunkCreate(&chunk, base, limit, arena);
   if (res)
@@ -322,7 +322,7 @@ Res ArenaCreate(Space *spaceReturn, Size size, Addr base)
 void ArenaDestroy(Space space)
 {
   Arena arena;
-  AVERT(Arena, SpaceArena(space));
+  AVERT(0xA55E62, Arena, SpaceArena(space));
   arena = SpaceArena(space);
   arena->sig = SigInvalid;
 }
@@ -336,9 +336,9 @@ Res ArenaExtend(Space space, Addr base, Size size)
   Res res;
   Addr limit;
 
-  AVERT(Space,space);
-  AVER(base != (Addr)0);
-  AVER(size > 0);
+  AVERT(0xA55E62, Space,space);
+  AVER(0xA55E62, base != (Addr)0);
+  AVER(0xA55E62, size > 0);
   limit = AddrAdd(base,size);
   
   arena = SpaceArena(space);
@@ -356,9 +356,9 @@ Res ArenaRetract(Space space, Addr base, Size size)
   Ring node;
   Addr limit;
   
-  AVERT(Space, space);
-  AVER(base != (Addr)0);
-  AVER(size > 0);
+  AVERT(0xA55E62, Space, space);
+  AVER(0xA55E62, base != (Addr)0);
+  AVER(0xA55E62, size > 0);
 
   limit = AddrAdd(base, size);
 
@@ -366,7 +366,7 @@ Res ArenaRetract(Space space, Addr base, Size size)
 
   RING_FOR(node, &arena->chunkRing) {
     Chunk chunk = RING_ELT(Chunk, arenaRing, node);
-    AVERT(Chunk, chunk);
+    AVERT(0xA55E62, Chunk, chunk);
     if ((chunk->base == base) &&
         (chunk->limit == limit)) {
       /* check that it's empty */
@@ -396,14 +396,14 @@ Size ArenaReserved(Space space)
   Size size;
   Ring node;
 
-  AVERT(Arena, SpaceArena(space));
+  AVERT(0xA55E62, Arena, SpaceArena(space));
 
   arena = SpaceArena(space);
 
   size = 0;
   RING_FOR(node, &arena->chunkRing) { /* .req.extend.slow */
     Chunk chunk = RING_ELT(Chunk, arenaRing, node);
-    AVERT(Chunk, chunk);
+    AVERT(0xA55E62, Chunk, chunk);
     size += AddrOffset(chunk->base, chunk->limit);
   }
 
@@ -416,14 +416,14 @@ Size ArenaCommitted(Space space)
   Size size;
   Ring node;
 
-  AVERT(Arena, SpaceArena(space));
+  AVERT(0xA55E62, Arena, SpaceArena(space));
 
   arena = SpaceArena(space);
 
   size = 0;
   RING_FOR(node, &arena->chunkRing) { /* .req.extend.slow */
     Chunk chunk = RING_ELT(Chunk, arenaRing, node);
-    AVERT(Chunk, chunk);
+    AVERT(0xA55E62, Chunk, chunk);
     size += ((chunk->pages - chunk->freePages) * arena->pageSize);
   }
 
@@ -435,8 +435,8 @@ Size ArenaCommitted(Space space)
 
 Bool SegPrefCheck(SegPref pref)
 {
-  CHECKS(SegPref, pref);
-  CHECKL(BoolCheck(pref->high));
+  CHECKS(0xA55E62, SegPref, pref);
+  CHECKL(0xA55E62, BoolCheck(pref->high));
   /* nothing else to check */
   return TRUE;
 }
@@ -453,17 +453,17 @@ SegPref SegPrefDefault(void)
 
 Res SegPrefExpress (SegPref sp, SegPrefKind kind, void *p)
 {
-  AVERT(SegPref,sp);
-  AVER(sp != &segPrefDefault);
+  AVERT(0xA55E62, SegPref,sp);
+  AVER(0xA55E62, sp != &segPrefDefault);
 
   switch(kind) {
   case SegPrefHigh:
-    AVER(p == NULL);
+    AVER(0xA55E62, p == NULL);
     sp->high = TRUE;
     return ResOK;
 
   case SegPrefLow:
-    AVER(p == NULL);
+    AVER(0xA55E62, p == NULL);
     sp->high = FALSE;
     return ResOK;
 
@@ -482,8 +482,8 @@ static Res ChunkSegAlloc(Seg *segReturn, SegPref pref, Size pages, Pool pool,
   Seg seg;
   Arena arena;
 
-  AVER(segReturn != NULL);
-  AVERT(Chunk, chunk);
+  AVER(0xA55E62, segReturn != NULL);
+  AVERT(0xA55E62, Chunk, chunk);
 
   if (pages > chunk->freePages)
     return ResRESOURCE;
@@ -546,13 +546,13 @@ found:
    * allocate the rest of the pages and store the multi-page information
    * in the page table.
    */
-  AVER(ABTGet(chunk->freeTable, base));
+  AVER(0xA55E62, ABTGet(chunk->freeTable, base));
   ABTSet(chunk->freeTable, base, FALSE);
   if(pages > 1) {
     Addr limit = PageBase(chunk, base + pages);
     seg->single = FALSE;
     for(pi = base + 1; pi < base + pages; ++pi) {
-      AVER(ABTGet(chunk->freeTable, pi));
+      AVER(0xA55E62, ABTGet(chunk->freeTable, pi));
       ABTSet(chunk->freeTable, pi, FALSE);
       chunk->pageTable[pi].the.tail.pool = NULL;
       chunk->pageTable[pi].the.tail.seg = seg;
@@ -563,7 +563,7 @@ found:
   }
   chunk->freePages -= pages;
   
-  AVERT(Seg, seg);
+  AVERT(0xA55E62, Seg, seg);
 
   *segReturn = seg;
   return ResOK;
@@ -579,21 +579,21 @@ Res SegAlloc(Seg *segReturn, SegPref pref, Space space, Size size, Pool pool)
   Ring node;
   Size pages;
 
-  AVER(segReturn != NULL);
-  AVERT(SegPref, pref);
-  AVER(size > 0);
-  AVERT(Pool, pool);
+  AVER(0xA55E62, segReturn != NULL);
+  AVERT(0xA55E62, SegPref, pref);
+  AVER(0xA55E62, size > 0);
+  AVERT(0xA55E62, Pool, pool);
   
   /* NULL is used as a discriminator (see
    * design.mps.arenavm.table.disc), therefore the real pool must be
    * non-NULL.
    */
-  AVER(pool != NULL);
+  AVER(0xA55E62, pool != NULL);
 
   arena = SpaceArena(space);
 
-  AVERT(Arena, arena);
-  AVER(SizeIsAligned(size, arena->pageSize));
+  AVERT(0xA55E62, Arena, arena);
+  AVER(0xA55E62, SizeIsAligned(size, arena->pageSize));
 
   pages = size >> arena->pageShift;
 
@@ -613,9 +613,9 @@ static Res SegChunk(Chunk *chunkReturn, PI *piReturn, Seg seg, Arena arena)
   Page page;
   Ring node;
   
-  AVER(chunkReturn != NULL);
-  AVERT(Seg, seg);
-  AVERT(Arena, arena);
+  AVER(0xA55E62, chunkReturn != NULL);
+  AVERT(0xA55E62, Seg, seg);
+  AVERT(0xA55E62, Arena, arena);
 
   page = PARENT(PageStruct, the.head, seg);
 
@@ -642,13 +642,13 @@ void SegFree(Space space, Seg seg)
   Addr base, limit; 
   Res res;
 
-  AVERT(Seg, seg);
+  AVERT(0xA55E62, Seg, seg);
 
   arena = SpaceArena(space);
-  AVERT(Arena, arena);
+  AVERT(0xA55E62, Arena, arena);
 
   res = SegChunk(&chunk, &pi, seg, arena);
-  AVER(res == ResOK);
+  AVER(0xA55E62, res == ResOK);
 
   limit = SegLimit(space, seg);
 
@@ -664,7 +664,7 @@ void SegFree(Space space, Seg seg)
   pl = pi + pn;
   /* .free.loop: */
   for( ; pi < pl; ++pi) {
-    AVER(ABTGet(chunk->freeTable, pi) == FALSE);
+    AVER(0xA55E62, ABTGet(chunk->freeTable, pi) == FALSE);
     ABTSet(chunk->freeTable, pi, TRUE);
   }
 
@@ -673,7 +673,7 @@ void SegFree(Space space, Seg seg)
   /* Double check that .free.loop takes us to the limit page of the
    * segment.
    */
-  AVER(PageBase(chunk, pi) == limit);
+  AVER(0xA55E62, PageBase(chunk, pi) == limit);
 }
 
 
@@ -682,7 +682,7 @@ void SegFree(Space space, Seg seg)
 Align ArenaAlign(Space space)
 {
   Arena arena;
-  AVERT(Arena, SpaceArena(space));
+  AVERT(0xA55E62, Arena, SpaceArena(space));
   arena = SpaceArena(space);
   return arena->pageSize;
 }
@@ -701,13 +701,13 @@ Addr SegBase(Space space, Seg seg)
   Chunk chunk;
   Res res;
   
-  AVERT(Seg, seg);
+  AVERT(0xA55E62, Seg, seg);
 
   arena = SpaceArena(space);
-  AVERT(Arena, arena);
+  AVERT(0xA55E62, Arena, arena);
 
   res = SegChunk(&chunk, &pi, seg, arena);
-  AVER(res == ResOK);
+  AVER(0xA55E62, res == ResOK);
 
   return PageBase(chunk, pi);
 }
@@ -725,10 +725,10 @@ Addr SegLimit(Space space, Seg seg)
   Arena arena;
   Page page;
 
-  AVERT(Seg, seg);
+  AVERT(0xA55E62, Seg, seg);
 
   arena = SpaceArena(space);
-  AVERT(Arena, arena);
+  AVERT(0xA55E62, Arena, arena);
 
   if(seg->single)
     return AddrAdd(SegBase(space, seg), arena->pageSize);
@@ -747,8 +747,8 @@ Addr SegLimit(Space space, Seg seg)
 
 Size SegSize(Space space, Seg seg)
 {
-  AVERT(Arena, SpaceArena(space));
-  AVERT(Seg, seg);
+  AVERT(0xA55E62, Arena, SpaceArena(space));
+  AVERT(0xA55E62, Seg, seg);
   return AddrOffset(SegBase(space, seg), SegLimit(space, seg));
 }
 
@@ -766,10 +766,10 @@ Bool SegOfAddr(Seg *segReturn, Space space, Addr addr)
   Arena arena;
   Ring node;
   
-  AVER(segReturn != NULL);
+  AVER(0xA55E62, segReturn != NULL);
   
   arena = SpaceArena(space);
-  AVERT(Arena, arena);
+  AVERT(0xA55E62, Arena, arena);
 
   RING_FOR(node, &arena->chunkRing) {
     Chunk chunk = RING_ELT(Chunk, arenaRing, node);
@@ -801,8 +801,8 @@ Bool SegOfAddr(Seg *segReturn, Space space, Addr addr)
  */
 static Seg SegSearchChunk(Chunk chunk, PI pi)
 {
-  AVERT(Chunk, chunk);
-  AVER(pi <= chunk->pages);
+  AVERT(0xA55E62, Chunk, chunk);
+  AVER(0xA55E62, pi <= chunk->pages);
 
   while(pi < chunk->pages &&
         (ABTGet(chunk->freeTable, pi) ||
@@ -812,7 +812,7 @@ static Seg SegSearchChunk(Chunk chunk, PI pi)
   if(pi < chunk->pages)
     return &chunk->pageTable[pi].the.head;
   
-  AVER(pi == chunk->pages);
+  AVER(0xA55E62, pi == chunk->pages);
   return NULL;
 }
 
@@ -828,7 +828,7 @@ Seg SegFirst(Space space)
   Ring node;
 
   arena = SpaceArena(space);
-  AVERT(Arena, arena);
+  AVERT(0xA55E62, Arena, arena);
 
   /* must do the right thing for chunks with no pages */
   RING_FOR(node, &arena->chunkRing) {
@@ -856,14 +856,14 @@ Seg SegNext(Space space, Seg seg)
   Res res;
   Seg next;
 
-  AVERT(Space, space);
-  AVERT(Seg, seg);
+  AVERT(0xA55E62, Space, space);
+  AVERT(0xA55E62, Seg, seg);
 
-  AVERT(Arena, SpaceArena(space));
+  AVERT(0xA55E62, Arena, SpaceArena(space));
   arena = SpaceArena(space);
 
   res = SegChunk(&chunk, &pi, seg, arena);
-  AVER(res == ResOK);
+  AVER(0xA55E62, res == ResOK);
 
   next = SegSearchChunk(chunk, pi+1);
 

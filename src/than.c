@@ -2,7 +2,7 @@
  *
  *                  ANSI THREADS MANAGER
  *
- *  $HopeName: !than.c(trunk.14) $
+ *  $HopeName: MMsrc!than.c(MMdevel_assertid.1) $
  *
  *  Copyright (C) 1995 Harlequin Group, all rights reserved
  *
@@ -17,15 +17,15 @@
 
 #include "mpm.h"
 
-SRCID(than, "$HopeName: !than.c(trunk.14) $");
+SRCID(than, "$HopeName: MMsrc!than.c(MMdevel_assertid.1) $");
 
 
 Bool ThreadCheck(Thread thread)
 {
-  CHECKS(Thread, thread);
-  CHECKU(Space, thread->space);
-  CHECKL(thread->serial < thread->space->threadSerial);
-  CHECKL(RingCheck(&thread->spaceRing));
+  CHECKS(0xA55E62, Thread, thread);
+  CHECKU(0xA55E62, Space, thread->space);
+  CHECKL(0xA55E62, thread->serial < thread->space->threadSerial);
+  CHECKL(0xA55E62, RingCheck(&thread->spaceRing));
   return TRUE;
 }
 
@@ -37,7 +37,7 @@ Res ThreadRegister(Thread *threadReturn, Space space)
   Ring ring;
   void *p;
 
-  AVER(threadReturn != NULL);
+  AVER(0xA55E62, threadReturn != NULL);
 
   res = SpaceAlloc(&p, space, sizeof(ThreadStruct));
   if(res != ResOK) return res;
@@ -50,10 +50,10 @@ Res ThreadRegister(Thread *threadReturn, Space space)
   thread->serial = space->threadSerial;
   ++space->threadSerial;
 
-  AVERT(Thread, thread);
+  AVERT(0xA55E62, Thread, thread);
 
   ring = SpaceThreadRing(space);
-  AVER(RingCheckSingle(ring));  /* .single */
+  AVER(0xA55E62, RingCheckSingle(ring));  /* .single */
 
   RingAppend(ring, &thread->spaceRing);
 
@@ -63,8 +63,8 @@ Res ThreadRegister(Thread *threadReturn, Space space)
 
 void ThreadDeregister(Thread thread, Space space)
 {
-  AVERT(Thread, thread);
-  AVERT(Space, space);
+  AVERT(0xA55E62, Thread, thread);
+  AVERT(0xA55E62, Space, space);
 
   RingRemove(&thread->spaceRing);
 
@@ -77,13 +77,13 @@ void ThreadDeregister(Thread thread, Space space)
 
 void ThreadRingSuspend(Ring threadRing)
 {
-  AVERT(Ring, threadRing);
+  AVERT(0xA55E62, Ring, threadRing);
   return;
 }
 
 void ThreadRingResume(Ring threadRing)
 {
-  AVERT(Ring, threadRing);
+  AVERT(0xA55E62, Ring, threadRing);
   return;
 }
 

@@ -1,6 +1,6 @@
 /* impl.c.protso: PROTECTION FOR DIGITAL UNIX
  *
- *  $HopeName: !proto1.c(trunk.1) $
+ *  $HopeName: MMsrc!proto1.c(MMdevel_assertid.1) $
  *  Copyright (C) 1995,1997 Harlequin Group, all rights reserved
  *
  */
@@ -25,7 +25,7 @@
 /* for getpid() */
 #include <unistd.h>
 
-SRCID(proto1, "$HopeName: !proto1.c(trunk.1) $");
+SRCID(proto1, "$HopeName: MMsrc!proto1.c(MMdevel_assertid.1) $");
 
 
 /* The previously-installed signal action, as returned by */
@@ -56,8 +56,8 @@ static void sigHandle(int sig, siginfo_t *info, void *context)
   sigset_t sigset, oldset;
   struct sigaction sa;
 
-  AVER(sig == SIGSEGV);
-  AVER(info != NULL);
+  AVER(0xA55E62, sig == SIGSEGV);
+  AVER(0xA55E62, info != NULL);
 
   if(info->si_code == SEGV_ACCERR) {
     AccessSet mode;
@@ -88,16 +88,16 @@ static void sigHandle(int sig, siginfo_t *info, void *context)
    * Need to implement rest of the contract of sigaction */
   
   e = sigaction(SIGSEGV, &sigNext, &sa);
-  AVER(e == 0);
+  AVER(0xA55E62, e == 0);
   sigemptyset(&sigset);
   sigaddset(&sigset, SIGSEGV);
   e = sigprocmask(SIG_UNBLOCK, &sigset, &oldset);
-  AVER(e == 0);
+  AVER(0xA55E62, e == 0);
   kill(getpid(), SIGSEGV);
   e = sigprocmask(SIG_SETMASK, &oldset, NULL);
-  AVER(e == 0);
+  AVER(0xA55E62, e == 0);
   e = sigaction(SIGSEGV, &sa, NULL);
-  AVER(e == 0);
+  AVER(0xA55E62, e == 0);
 }
 
 
@@ -124,7 +124,7 @@ void ProtSetup(void)
   sa.sa_flags = SA_SIGINFO;
 
   result = sigaction(SIGSEGV, &sa, &sigNext);
-  AVER(result == 0);
+  AVER(0xA55E62, result == 0);
 }
 
 
@@ -137,10 +137,10 @@ void ProtSet(Addr base, Addr limit, AccessSet mode)
 {
   int flags;
 
-  AVER(sizeof(size_t) == sizeof(Addr));
-  AVER(base < limit);
-  AVER(base != 0);
-  AVER(AddrOffset(base, limit) <= INT_MAX);     /* should be redundant */
+  AVER(0xA55E62, sizeof(size_t) == sizeof(Addr));
+  AVER(0xA55E62, base < limit);
+  AVER(0xA55E62, base != 0);
+  AVER(0xA55E62, AddrOffset(base, limit) <= INT_MAX);     /* should be redundant */
 
   /* convert between MPS AccessSet and UNIX PROT thingies. */
   switch(mode) {
@@ -155,12 +155,12 @@ void ProtSet(Addr base, Addr limit, AccessSet mode)
     flags = PROT_READ | PROT_WRITE | PROT_EXEC;
     break;
   default:
-    NOTREACHED;
+    NOTREACHED(0xA55E62);
     flags = PROT_NONE;
   }
 
   if(mprotect((void *)base, (size_t)AddrOffset(base, limit), flags) != 0)
-    NOTREACHED;
+    NOTREACHED(0xA55E62);
 }
 
 
@@ -188,8 +188,8 @@ void ProtSync(Space space)
 void ProtTramp(void **resultReturn, void *(*f)(void *, size_t),
                void *p, size_t s)
 {
-  AVER(f != NULL);
-  AVER(resultReturn != NULL);
+  AVER(0xA55E62, f != NULL);
+  AVER(0xA55E62, resultReturn != NULL);
 
   *resultReturn = (*f)(p, s);
 }

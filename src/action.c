@@ -1,22 +1,22 @@
 /* impl.c.action: STRATEGIC ACTION
  *
  * Copyright (C) 1997 Harlequin Group, all rights reserved.
- * $HopeName: !action.c(trunk.2) $
+ * $HopeName: MMsrc!action.c(MMdevel_assertid.1) $
  */
 
 #include "mpm.h"
 
-SRCID(action, "$HopeName: !action.c(trunk.2) $");
+SRCID(action, "$HopeName: MMsrc!action.c(MMdevel_assertid.1) $");
 
 
 /* ActionCheck -- check consistency of an Action structure */
 
 Bool ActionCheck(Action action)
 {
-  CHECKS(Action, action);
-  CHECKU(Pool, action->pool);
-  CHECKL(RingCheck(&action->poolRing));
-  CHECKL(action->serial <= action->pool->actionSerial);
+  CHECKS(0xA55E62, Action, action);
+  CHECKU(0xA55E62, Pool, action->pool);
+  CHECKL(0xA55E62, RingCheck(&action->poolRing));
+  CHECKL(0xA55E62, action->serial <= action->pool->actionSerial);
   return TRUE;
 }
 
@@ -25,8 +25,8 @@ Bool ActionCheck(Action action)
 
 void ActionInit(Action action, Pool pool)
 {
-  AVER(action != NULL);
-  AVERT(Pool, pool);
+  AVER(0xA55E62, action != NULL);
+  AVERT(0xA55E62, Pool, pool);
 
   action->pool = pool;
   RingInit(&action->poolRing);
@@ -35,7 +35,7 @@ void ActionInit(Action action, Pool pool)
   action->serial = pool->actionSerial;
   ++pool->actionSerial;
 
-  AVERT(Action, action);
+  AVERT(0xA55E62, Action, action);
 
   RingAppend(&pool->actionRing, &action->poolRing);
 }
@@ -45,7 +45,7 @@ void ActionInit(Action action, Pool pool)
 
 void ActionFinish(Action action)
 {
-  AVERT(Action, action);
+  AVERT(0xA55E62, Action, action);
 
   RingRemove(&action->poolRing);
 
@@ -110,7 +110,7 @@ failTraceCreate:
 
 void ActionPoll(Space space)
 {
-  AVERT(Space, space);
+  AVERT(0xA55E62, Space, space);
 
   if(space->busyTraces == TraceSetEMPTY)
     (void)ActionCollect(space);

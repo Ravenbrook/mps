@@ -1,6 +1,6 @@
 /* impl.c.vman: ANSI VM: MALLOC-BASED PSUEDO MEMORY MAPPING
  *
- * $HopeName: !vman.c(trunk.15) $
+ * $HopeName: MMsrc!vman.c(MMdevel_assertid.1) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  */
 
@@ -13,21 +13,21 @@
 #include <stdlib.h>     /* for malloc and free */
 #include <string.h>     /* for memset */
 
-SRCID(vman, "$HopeName: !vman.c(trunk.15) $");
+SRCID(vman, "$HopeName: MMsrc!vman.c(MMdevel_assertid.1) $");
 
 #define SpaceVM(_space) (&(_space)->arenaStruct.vmStruct)
 
 Bool VMCheck(VM vm)
 {
-  CHECKS(VM, vm);
-  CHECKL(vm->base != (Addr)0);
-  CHECKL(vm->limit != (Addr)0);
-  CHECKL(vm->base < vm->limit);
-  CHECKL(AddrIsAligned(vm->base, VMAN_ALIGN));
-  CHECKL(AddrIsAligned(vm->limit, VMAN_ALIGN));
-  CHECKL(vm->block != NULL);
-  CHECKL((Addr)vm->block <= vm->base);
-  CHECKL(vm->mapped <= vm->reserved);
+  CHECKS(0xA55E62, VM, vm);
+  CHECKL(0xA55E62, vm->base != (Addr)0);
+  CHECKL(0xA55E62, vm->limit != (Addr)0);
+  CHECKL(0xA55E62, vm->base < vm->limit);
+  CHECKL(0xA55E62, AddrIsAligned(vm->base, VMAN_ALIGN));
+  CHECKL(0xA55E62, AddrIsAligned(vm->limit, VMAN_ALIGN));
+  CHECKL(0xA55E62, vm->block != NULL);
+  CHECKL(0xA55E62, (Addr)vm->block <= vm->base);
+  CHECKL(0xA55E62, vm->mapped <= vm->reserved);
   return TRUE;
 }
 
@@ -42,9 +42,9 @@ Res VMCreate(Space *spaceReturn, Size size, Addr base)
   Space space;
   VM vm;
 
-  AVER(spaceReturn != NULL);
-  AVER(size != 0);
-  AVER(base == NULL);
+  AVER(0xA55E62, spaceReturn != NULL);
+  AVER(0xA55E62, size != 0);
+  AVER(0xA55E62, base == NULL);
 
   space = (Space)malloc(sizeof(SpaceStruct));
   if(space == NULL)
@@ -64,7 +64,7 @@ Res VMCreate(Space *spaceReturn, Size size, Addr base)
 
   vm->base  = AddrAlignUp((Addr)vm->block, VMAN_ALIGN);
   vm->limit = AddrAdd(vm->base, size);
-  AVER(vm->limit < AddrAdd((Addr)vm->block, size + VMAN_ALIGN));
+  AVER(0xA55E62, vm->limit < AddrAdd((Addr)vm->block, size + VMAN_ALIGN));
 
   memset((void *)vm->base, VM_JUNKBYTE, size);
   
@@ -75,7 +75,7 @@ Res VMCreate(Space *spaceReturn, Size size, Addr base)
   
   vm->sig = VMSig;
 
-  AVERT(VM, vm);
+  AVERT(0xA55E62, VM, vm);
   
   EVENT4(VMCreate, vm, space, vm->base, vm->limit);
 
@@ -88,8 +88,8 @@ void VMDestroy(Space space)
   VM vm = SpaceVM(space);
   
   /* All vm areas should have been unmapped. */
-  AVER(vm->mapped == (Size)0);
-  AVER(vm->reserved == AddrOffset(vm->base, vm->limit));
+  AVER(0xA55E62, vm->mapped == (Size)0);
+  AVER(0xA55E62, vm->reserved == AddrOffset(vm->base, vm->limit));
 
   memset((void *)vm->base, VM_JUNKBYTE, AddrOffset(vm->base, vm->limit));
   free(vm->block);
@@ -116,14 +116,14 @@ Addr (VMLimit)(Space space)
 Size VMReserved(Space space)
 {
   VM vm = SpaceVM(space);
-  AVERT(VM, vm);
+  AVERT(0xA55E62, VM, vm);
   return vm->reserved;
 }
 
 Size VMMapped(Space space)
 {
   VM vm = SpaceVM(space);
-  AVERT(VM, vm);
+  AVERT(0xA55E62, VM, vm);
   return vm->mapped;
 }
 
@@ -133,12 +133,12 @@ Res VMMap(Space space, Addr base, Addr limit)
   VM vm = SpaceVM(space);
   Size size;
 
-  AVER(base != (Addr)0);
-  AVER(vm->base <= base);
-  AVER(base < limit);
-  AVER(limit <= vm->limit);
-  AVER(AddrIsAligned(base, VMAN_ALIGN));
-  AVER(AddrIsAligned(limit, VMAN_ALIGN));
+  AVER(0xA55E62, base != (Addr)0);
+  AVER(0xA55E62, vm->base <= base);
+  AVER(0xA55E62, base < limit);
+  AVER(0xA55E62, limit <= vm->limit);
+  AVER(0xA55E62, AddrIsAligned(base, VMAN_ALIGN));
+  AVER(0xA55E62, AddrIsAligned(limit, VMAN_ALIGN));
   
   size = AddrOffset(base, limit);
   memset((void *)base, (int)0, size);
@@ -155,17 +155,17 @@ void VMUnmap(Space space, Addr base, Addr limit)
   VM vm = SpaceVM(space);
   Size size;
 
-  AVER(base != (Addr)0);
-  AVER(vm->base <= base);
-  AVER(base < limit);
-  AVER(limit <= vm->limit);
-  AVER(AddrIsAligned(base, VMAN_ALIGN));
-  AVER(AddrIsAligned(limit, VMAN_ALIGN));
+  AVER(0xA55E62, base != (Addr)0);
+  AVER(0xA55E62, vm->base <= base);
+  AVER(0xA55E62, base < limit);
+  AVER(0xA55E62, limit <= vm->limit);
+  AVER(0xA55E62, AddrIsAligned(base, VMAN_ALIGN));
+  AVER(0xA55E62, AddrIsAligned(limit, VMAN_ALIGN));
   
   size = AddrOffset(base, limit);
   memset((void *)base, VM_JUNKBYTE, size);
 
-  AVER(vm->mapped >= size);
+  AVER(0xA55E62, vm->mapped >= size);
   vm->mapped -= size;
 
   EVENT3(VMUnmap, vm, base, limit);

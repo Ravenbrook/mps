@@ -1,6 +1,6 @@
 /* impl.c.pool: POOL IMPLEMENTATION
  *
- * $HopeName: !pool.c(trunk.27) $
+ * $HopeName: MMsrc!pool.c(MMdevel_assertid.1) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  *
  * This is the implementation of the generic pool interface.  The
@@ -12,49 +12,49 @@
 
 #include "mpm.h"
 
-SRCID(pool, "$HopeName: !pool.c(trunk.27) $");
+SRCID(pool, "$HopeName: MMsrc!pool.c(MMdevel_assertid.1) $");
 
 
 Bool PoolClassCheck(PoolClass class)
 {
-  CHECKS(PoolClass, class);
-  CHECKL(class->name != NULL); /* Should be <=6 char C identifier */
-  CHECKL(class->size >= sizeof(PoolStruct));
+  CHECKS(0xA55E62, PoolClass, class);
+  CHECKL(0xA55E62, class->name != NULL); /* Should be <=6 char C identifier */
+  CHECKL(0xA55E62, class->size >= sizeof(PoolStruct));
   /* Offset of generic Pool within class-specific instance cannot be */
   /* greater than the size of the class-specific portion of the instance */
-  CHECKL(class->offset <= (size_t)(class->size - sizeof(PoolStruct)));
-  CHECKL(AttrCheck(class->attr));
-  CHECKL(FUNCHECK(class->init));
-  CHECKL(FUNCHECK(class->finish));
-  CHECKL(FUNCHECK(class->alloc));
-  CHECKL(FUNCHECK(class->free));
-  CHECKL(FUNCHECK(class->bufferInit));
-  CHECKL(FUNCHECK(class->bufferFill));
-  CHECKL(FUNCHECK(class->bufferEmpty));
-  CHECKL(FUNCHECK(class->bufferFinish));
-  CHECKL(FUNCHECK(class->condemn));
-  CHECKL(FUNCHECK(class->grey));
-  CHECKL(FUNCHECK(class->scan));
-  CHECKL(FUNCHECK(class->fix));
-  CHECKL(FUNCHECK(class->reclaim));
-  CHECKL(FUNCHECK(class->describe));
-  CHECKL(class->endSig == PoolClassSig);
+  CHECKL(0xA55E62, class->offset <= (size_t)(class->size - sizeof(PoolStruct)));
+  CHECKL(0xA55E62, AttrCheck(class->attr));
+  CHECKL(0xA55E62, FUNCHECK(class->init));
+  CHECKL(0xA55E62, FUNCHECK(class->finish));
+  CHECKL(0xA55E62, FUNCHECK(class->alloc));
+  CHECKL(0xA55E62, FUNCHECK(class->free));
+  CHECKL(0xA55E62, FUNCHECK(class->bufferInit));
+  CHECKL(0xA55E62, FUNCHECK(class->bufferFill));
+  CHECKL(0xA55E62, FUNCHECK(class->bufferEmpty));
+  CHECKL(0xA55E62, FUNCHECK(class->bufferFinish));
+  CHECKL(0xA55E62, FUNCHECK(class->condemn));
+  CHECKL(0xA55E62, FUNCHECK(class->grey));
+  CHECKL(0xA55E62, FUNCHECK(class->scan));
+  CHECKL(0xA55E62, FUNCHECK(class->fix));
+  CHECKL(0xA55E62, FUNCHECK(class->reclaim));
+  CHECKL(0xA55E62, FUNCHECK(class->describe));
+  CHECKL(0xA55E62, class->endSig == PoolClassSig);
   return TRUE;
 }
 
 Bool PoolCheck(Pool pool)
 {
-  CHECKS(Pool, pool);
-  CHECKU(Space, pool->space);
+  CHECKS(0xA55E62, Pool, pool);
+  CHECKU(0xA55E62, Space, pool->space);
   /* Break modularity for checking efficiency */
-  CHECKL(pool->serial < pool->space->poolSerial);
-  CHECKD(PoolClass, pool->class);
-  CHECKL(RingCheck(&pool->spaceRing));
-  CHECKL(RingCheck(&pool->bufferRing));
-  CHECKL(RingCheck(&pool->segRing));
-  CHECKL(RingCheck(&pool->actionRing));
+  CHECKL(0xA55E62, pool->serial < pool->space->poolSerial);
+  CHECKD(0xA55E62, PoolClass, pool->class);
+  CHECKL(0xA55E62, RingCheck(&pool->spaceRing));
+  CHECKL(0xA55E62, RingCheck(&pool->bufferRing));
+  CHECKL(0xA55E62, RingCheck(&pool->segRing));
+  CHECKL(0xA55E62, RingCheck(&pool->actionRing));
   /* Cannot check pool->bufferSerial */
-  CHECKL(AlignCheck(pool->alignment));
+  CHECKL(0xA55E62, AlignCheck(pool->alignment));
   return TRUE;
 }
 
@@ -79,9 +79,9 @@ Res PoolInitV(Pool pool, Space space,
 {
   Res res;
 
-  AVER(pool != NULL);
-  AVERT(Space, space);
-  AVERT(PoolClass, class);
+  AVER(0xA55E62, pool != NULL);
+  AVERT(0xA55E62, Space, space);
+  AVERT(0xA55E62, PoolClass, class);
 
   pool->class = class;
   pool->space = space;
@@ -99,7 +99,7 @@ Res PoolInitV(Pool pool, Space space,
   pool->serial = space->poolSerial;
   ++(space->poolSerial);
 
-  AVERT(Pool, pool);
+  AVERT(0xA55E62, Pool, pool);
 
   /* Do class-specific initialization. */
   res = (*class->init)(pool, args);
@@ -143,9 +143,9 @@ Res PoolCreateV(Pool *poolReturn, Space space,
   Pool pool;
   void *base;
 
-  AVER(poolReturn != NULL);
-  AVERT(Space, space);
-  AVERT(PoolClass, class);
+  AVER(0xA55E62, poolReturn != NULL);
+  AVERT(0xA55E62, Space, space);
+  AVERT(0xA55E62, PoolClass, class);
 
   /* .space.alloc: Allocate the pool instance structure with the size */
   /* requested  in the pool class.  See .space.free */
@@ -176,7 +176,7 @@ failSpaceAlloc:
 
 void PoolFinish(Pool pool)
 {
-  AVERT(Pool, pool);  
+  AVERT(0xA55E62, Pool, pool);  
   
   /* Do any class-specific finishing. */
   (*pool->class->finish)(pool);
@@ -202,7 +202,7 @@ void PoolDestroy(Pool pool)
   Space space;
   Addr base;
 
-  AVERT(Pool, pool);  
+  AVERT(0xA55E62, Pool, pool);  
   
   class = pool->class; /* } In case PoolFinish changes these */
   space = pool->space; /* } */
@@ -219,16 +219,16 @@ Res PoolAlloc(Addr *pReturn, Pool pool, Size size)
 {
   Res res;
 
-  AVER(pReturn != NULL);
-  AVERT(Pool, pool);
-  AVER((pool->class->attr & AttrALLOC) != 0);
-  AVER(size > 0);
+  AVER(0xA55E62, pReturn != NULL);
+  AVERT(0xA55E62, Pool, pool);
+  AVER(0xA55E62, (pool->class->attr & AttrALLOC) != 0);
+  AVER(0xA55E62, size > 0);
 
   res = (*pool->class->alloc)(pReturn, pool, size);
   if(res != ResOK) return res;
 
   /* Make sure that the allocated address was in the pool's memory. */
-  AVER(PoolHasAddr(pool, *pReturn));
+  AVER(0xA55E62, PoolHasAddr(pool, *pReturn));
 
   EVENT3(PoolAlloc, (Word)pool, (Word)*pReturn, (Word)size);
 
@@ -237,11 +237,11 @@ Res PoolAlloc(Addr *pReturn, Pool pool, Size size)
 
 void PoolFree(Pool pool, Addr old, Size size)
 {
-  AVERT(Pool, pool);
-  AVER((pool->class->attr & AttrFREE) != 0);
-  AVER(old != NULL);
-  AVER(PoolHasAddr(pool, old));
-  AVER(size > 0);
+  AVERT(0xA55E62, Pool, pool);
+  AVER(0xA55E62, (pool->class->attr & AttrFREE) != 0);
+  AVER(0xA55E62, old != NULL);
+  AVER(0xA55E62, PoolHasAddr(pool, old));
+  AVER(0xA55E62, size > 0);
   (*pool->class->free)(pool, old, size);
   
   EVENT3(PoolFree, (Word)pool, (Word)old, (Word)size);
@@ -249,40 +249,40 @@ void PoolFree(Pool pool, Addr old, Size size)
 
 Res PoolCondemn(Pool pool, Trace trace, Seg seg)
 {  
-  AVERT(Pool, pool);
-  AVERT(Trace, trace);
-  AVERT(Seg, seg);
-  AVER(pool->space == trace->space);
-  AVER(seg->pool == pool);
+  AVERT(0xA55E62, Pool, pool);
+  AVERT(0xA55E62, Trace, trace);
+  AVERT(0xA55E62, Seg, seg);
+  AVER(0xA55E62, pool->space == trace->space);
+  AVER(0xA55E62, seg->pool == pool);
   return (*pool->class->condemn)(pool, trace, seg);
 }
 
 void PoolGrey(Pool pool, Trace trace, Seg seg)
 {
-  AVERT(Pool, pool);
-  AVERT(Trace, trace);
-  AVERT(Seg, seg);
-  AVER(pool->space == trace->space);
-  AVER(seg->pool == pool);
+  AVERT(0xA55E62, Pool, pool);
+  AVERT(0xA55E62, Trace, trace);
+  AVERT(0xA55E62, Seg, seg);
+  AVER(0xA55E62, pool->space == trace->space);
+  AVER(0xA55E62, seg->pool == pool);
   (*pool->class->grey)(pool, trace, seg);
 }
 
 Res PoolScan(ScanState ss, Pool pool, Seg seg)
 {
-  AVERT(ScanState, ss);
-  AVERT(Pool, pool);
-  AVERT(Seg, seg);
-  AVER(ss->space == pool->space);
+  AVERT(0xA55E62, ScanState, ss);
+  AVERT(0xA55E62, Pool, pool);
+  AVERT(0xA55E62, Seg, seg);
+  AVER(0xA55E62, ss->space == pool->space);
 
   /* The segment must belong to the pool. */
-  AVER(pool == seg->pool);
+  AVER(0xA55E62, pool == seg->pool);
 
   /* Should only scan for a rank for which there are references */
   /* in the segment. */
-  AVER(RankSetIsMember(seg->rankSet, ss->rank));
+  AVER(0xA55E62, RankSetIsMember(seg->rankSet, ss->rank));
 
   /* Should only scan segments which contain grey objects. */
-  AVER(TraceSetInter(seg->grey, ss->traces) != TraceSetEMPTY);
+  AVER(0xA55E62, TraceSetInter(seg->grey, ss->traces) != TraceSetEMPTY);
 
   return (*pool->class->scan)(ss, pool, seg);
 }
@@ -290,31 +290,31 @@ Res PoolScan(ScanState ss, Pool pool, Seg seg)
 /* See impl.h.mpm for macro version; see design.mps.pool.req.fix */
 Res (PoolFix)(Pool pool, ScanState ss, Seg seg, Addr *refIO)
 {
-  AVERT(Pool, pool);
-  AVERT(ScanState, ss);
-  AVERT(Seg, seg);
-  AVER(pool == seg->pool);
-  AVER(refIO != NULL);
+  AVERT(0xA55E62, Pool, pool);
+  AVERT(0xA55E62, ScanState, ss);
+  AVERT(0xA55E62, Seg, seg);
+  AVER(0xA55E62, pool == seg->pool);
+  AVER(0xA55E62, refIO != NULL);
 
   /* Should only be fixing references to white segments. */
-  AVER(TraceSetInter(seg->white, ss->traces) != TraceSetEMPTY);
+  AVER(0xA55E62, TraceSetInter(seg->white, ss->traces) != TraceSetEMPTY);
 
   return PoolFix(pool, ss, seg, refIO);
 }
 
 void PoolReclaim(Pool pool, Trace trace, Seg seg)
 {
-  AVERT(Pool, pool);
-  AVERT(Trace, trace);
-  AVERT(Seg, seg);
-  AVER(pool->space == trace->space);
-  AVER(seg->pool == pool);
+  AVERT(0xA55E62, Pool, pool);
+  AVERT(0xA55E62, Trace, trace);
+  AVERT(0xA55E62, Seg, seg);
+  AVER(0xA55E62, pool->space == trace->space);
+  AVER(0xA55E62, seg->pool == pool);
 
   /* There shouldn't be any grey things left for this trace. */
-  AVER(!TraceSetIsMember(seg->grey, trace->ti));
+  AVER(0xA55E62, !TraceSetIsMember(seg->grey, trace->ti));
 
   /* Should only be reclaiming segments which are still white. */
-  AVER(TraceSetIsMember(seg->white, trace->ti));
+  AVER(0xA55E62, TraceSetIsMember(seg->white, trace->ti));
 
   (*pool->class->reclaim)(pool, trace, seg);
 }
@@ -325,8 +325,8 @@ Res PoolDescribe(Pool pool, mps_lib_FILE *stream)
   Res res;
   Ring node;
 
-  AVERT(Pool, pool);
-  AVER(stream != NULL);
+  AVERT(0xA55E62, Pool, pool);
+  AVER(0xA55E62, stream != NULL);
   
   res = WriteF(stream,
                "Pool $P ($U) {\n", (WriteFP)pool, (WriteFU)pool->serial,
@@ -362,7 +362,7 @@ Res PoolDescribe(Pool pool, mps_lib_FILE *stream)
 /* See impl.h.mpm for macro version */
 Space (PoolSpace)(Pool pool)
 {
-  AVERT(Pool, pool);
+  AVERT(0xA55E62, Pool, pool);
   return pool->space;
 }
 
@@ -379,11 +379,11 @@ Res PoolSegAlloc(Seg *segReturn, SegPref pref, Pool pool, Size size)
   Seg seg;
   Space space;
 
-  AVER(segReturn != NULL);
-  AVERT(Pool, pool);
-  AVERT(SegPref, pref);
+  AVER(0xA55E62, segReturn != NULL);
+  AVERT(0xA55E62, Pool, pool);
+  AVERT(0xA55E62, SegPref, pref);
   space = PoolSpace(pool);
-  AVER(SizeIsAligned(size, ArenaAlign(space)));
+  AVER(0xA55E62, SizeIsAligned(size, ArenaAlign(space)));
 
   res = SegAlloc(&seg, pref, space, size, pool);
   if(res != ResOK) return res;
@@ -405,9 +405,9 @@ void PoolSegFree(Pool pool, Seg seg)
 {
   Space space;
 
-  AVERT(Pool, pool);
-  AVERT(Seg, seg);
-  AVER(seg->pool == pool);
+  AVERT(0xA55E62, Pool, pool);
+  AVERT(0xA55E62, Seg, seg);
+  AVER(0xA55E62, seg->pool == pool);
 
   space = PoolSpace(pool);
 
@@ -423,7 +423,7 @@ Bool PoolOfAddr(Pool *poolReturn, Space space, Addr addr)
 {
   Seg seg;
 
-  AVER(poolReturn != NULL);
+  AVER(0xA55E62, poolReturn != NULL);
   /* Cannot AVERT space here, because PoolOfAddr is called under SpaceCheck */
 
   if(SegOfAddr(&seg, space, addr)) {
@@ -441,7 +441,7 @@ Bool PoolHasAddr(Pool pool, Addr addr)
   Space space;
   Bool managed;
 
-  AVERT(Pool, pool);
+  AVERT(0xA55E62, Pool, pool);
 
   space = PoolSpace(pool);
   managed = PoolOfAddr(&addrPool, space, addr);
@@ -455,7 +455,7 @@ Bool PoolHasAddr(Pool pool, Addr addr)
 /* See impl.h.mpm for macro version */
 Align (PoolAlignment)(Pool pool)
 {
-  AVERT(Pool, pool);
+  AVERT(0xA55E62, Pool, pool);
   return pool->alignment;
 }
 
@@ -466,48 +466,48 @@ Align (PoolAlignment)(Pool pool)
 
 void PoolTrivFinish(Pool pool)
 {
-  AVERT(Pool, pool);
+  AVERT(0xA55E62, Pool, pool);
   NOOP;
 }
 
 Res PoolNoAlloc(Addr *pReturn, Pool pool, Size size)
 {
-  AVER(pReturn != NULL);
-  AVERT(Pool, pool);
-  AVER(size > 0);
-  NOTREACHED;
+  AVER(0xA55E62, pReturn != NULL);
+  AVERT(0xA55E62, Pool, pool);
+  AVER(0xA55E62, size > 0);
+  NOTREACHED(0xA55E62);
   return ResUNIMPL;
 }
 
 Res PoolTrivAlloc(Addr *pReturn, Pool pool, Size size)
 {
-  AVER(pReturn != NULL);
-  AVERT(Pool, pool);
-  AVER(size > 0);
+  AVER(0xA55E62, pReturn != NULL);
+  AVERT(0xA55E62, Pool, pool);
+  AVER(0xA55E62, size > 0);
   return ResLIMIT;
 }
 
 void PoolNoFree(Pool pool, Addr old, Size size)
 {
-  AVERT(Pool, pool);
-  AVER(old != NULL);
-  AVER(size > 0);
-  NOTREACHED;
+  AVERT(0xA55E62, Pool, pool);
+  AVER(0xA55E62, old != NULL);
+  AVER(0xA55E62, size > 0);
+  NOTREACHED(0xA55E62);
 }
 
 void PoolTrivFree(Pool pool, Addr old, Size size)
 {
-  AVERT(Pool, pool);
-  AVER(old != NULL);
-  AVER(size > 0);
+  AVERT(0xA55E62, Pool, pool);
+  AVER(0xA55E62, old != NULL);
+  AVER(0xA55E62, size > 0);
   NOOP;                         /* trivial free has no effect */
 }
 
 Res PoolNoBufferInit(Pool pool, Buffer buffer)
 {
-  AVERT(Pool, pool);
+  AVERT(0xA55E62, Pool, pool);
   UNUSED(buffer);
-  NOTREACHED;
+  NOTREACHED(0xA55E62);
   return ResUNIMPL;
 }
 
@@ -515,35 +515,35 @@ Res PoolNoBufferInit(Pool pool, Buffer buffer)
 /* This doesn't override any fields */
 Res PoolTrivBufferInit(Pool pool, Buffer buffer)
 {
-  AVERT(Pool, pool);
+  AVERT(0xA55E62, Pool, pool);
   UNUSED(buffer);
   return ResOK;
 }
 
 void PoolNoBufferFinish(Pool pool, Buffer buffer)
 {
-  AVERT(Pool, pool);
-  AVERT(Buffer, buffer);
-  AVER(BufferIsReset(buffer));
-  NOTREACHED;
+  AVERT(0xA55E62, Pool, pool);
+  AVERT(0xA55E62, Buffer, buffer);
+  AVER(0xA55E62, BufferIsReset(buffer));
+  NOTREACHED(0xA55E62);
 }
 
 void PoolTrivBufferFinish(Pool pool, Buffer buffer)
 {
-  AVERT(Pool, pool);
-  AVERT(Buffer, buffer);
-  AVER(BufferIsReset(buffer));
+  AVERT(0xA55E62, Pool, pool);
+  AVERT(0xA55E62, Buffer, buffer);
+  AVER(0xA55E62, BufferIsReset(buffer));
   NOOP;
 }
 
 Res PoolNoBufferFill(Seg *segReturn, Addr *baseReturn, Addr *limitReturn,
                      Pool pool, Buffer buffer, Size size)
 {
-  AVER(baseReturn != NULL);
-  AVERT(Pool, pool);
-  AVERT(Buffer, buffer);
-  AVER(size > 0);
-  NOTREACHED;
+  AVER(0xA55E62, baseReturn != NULL);
+  AVERT(0xA55E62, Pool, pool);
+  AVERT(0xA55E62, Buffer, buffer);
+  AVER(0xA55E62, size > 0);
+  NOTREACHED(0xA55E62);
   return ResUNIMPL;
 }
 
@@ -555,16 +555,16 @@ Res PoolTrivBufferFill(Seg *segReturn, Addr *baseReturn, Addr *limitReturn,
   Seg seg;
   Bool b;
 
-  AVER(baseReturn != NULL);
-  AVERT(Pool, pool);
-  AVERT(Buffer, buffer);
-  AVER(size > 0);
+  AVER(0xA55E62, baseReturn != NULL);
+  AVERT(0xA55E62, Pool, pool);
+  AVERT(0xA55E62, Buffer, buffer);
+  AVER(0xA55E62, size > 0);
 
   res = PoolAlloc(&p, pool, size);
   if(res != ResOK) return res;
   
   b = SegOfAddr(&seg, PoolSpace(pool), p);
-  AVER(b);
+  AVER(0xA55E62, b);
   
   *segReturn = seg;
   *baseReturn = p;
@@ -574,58 +574,58 @@ Res PoolTrivBufferFill(Seg *segReturn, Addr *baseReturn, Addr *limitReturn,
 
 void PoolNoBufferEmpty(Pool pool, Buffer buffer)
 {
-  AVERT(Pool, pool);
-  AVERT(Buffer, buffer);
-  AVER(!BufferIsReset(buffer));
-  AVER(BufferIsReady(buffer));
-  NOTREACHED;
+  AVERT(0xA55E62, Pool, pool);
+  AVERT(0xA55E62, Buffer, buffer);
+  AVER(0xA55E62, !BufferIsReset(buffer));
+  AVER(0xA55E62, BufferIsReady(buffer));
+  NOTREACHED(0xA55E62);
 }
 
 void PoolTrivBufferEmpty(Pool pool, Buffer buffer)
 {
-  AVERT(Pool, pool);
-  AVERT(Buffer, buffer);
-  AVER(!BufferIsReset(buffer));
-  AVER(BufferIsReady(buffer));
+  AVERT(0xA55E62, Pool, pool);
+  AVERT(0xA55E62, Buffer, buffer);
+  AVER(0xA55E62, !BufferIsReset(buffer));
+  AVER(0xA55E62, BufferIsReady(buffer));
 }
 
 Res PoolNoDescribe(Pool pool, mps_lib_FILE *stream)
 {
-  AVERT(Pool, pool);
-  AVER(stream != NULL);
-  NOTREACHED;
+  AVERT(0xA55E62, Pool, pool);
+  AVER(0xA55E62, stream != NULL);
+  NOTREACHED(0xA55E62);
   return ResUNIMPL;
 }
 
 Res PoolTrivDescribe(Pool pool, mps_lib_FILE *stream)
 {
-  AVERT(Pool, pool);
-  AVER(stream != NULL);
+  AVERT(0xA55E62, Pool, pool);
+  AVER(0xA55E62, stream != NULL);
   return WriteF(stream, "  No class-specific description available.\n", NULL);
 }
 
 Res PoolNoCondemn(Pool pool, Trace trace, Seg seg)
 {
-  AVERT(Pool, pool);
-  AVERT(Trace, trace);
-  AVERT(Seg, seg);
-  NOTREACHED;
+  AVERT(0xA55E62, Pool, pool);
+  AVERT(0xA55E62, Trace, trace);
+  AVERT(0xA55E62, Seg, seg);
+  NOTREACHED(0xA55E62);
   return ResUNIMPL;
 }
 
 void PoolNoGrey(Pool pool, Trace trace, Seg seg)
 {
-  AVERT(Pool, pool);
-  AVERT(Trace, trace);
-  AVERT(Seg, seg);
-  NOTREACHED;
+  AVERT(0xA55E62, Pool, pool);
+  AVERT(0xA55E62, Trace, trace);
+  AVERT(0xA55E62, Seg, seg);
+  NOTREACHED(0xA55E62);
 }
 
 void PoolTrivGrey(Pool pool, Trace trace, Seg seg)
 {
-  AVERT(Pool, pool);
-  AVERT(Trace, trace);
-  AVERT(Seg, seg);
+  AVERT(0xA55E62, Pool, pool);
+  AVERT(0xA55E62, Trace, trace);
+  AVERT(0xA55E62, Seg, seg);
 
   /* @@@@ The trivial grey method probably shouldn't exclude */
   /* the white segments, since they might also contain grey objects. */
@@ -643,27 +643,27 @@ void PoolTrivGrey(Pool pool, Trace trace, Seg seg)
 
 Res PoolNoScan(ScanState ss, Pool pool, Seg seg)
 {
-  AVERT(ScanState, ss);
-  AVERT(Pool, pool);
-  AVERT(Seg, seg);
-  NOTREACHED;
+  AVERT(0xA55E62, ScanState, ss);
+  AVERT(0xA55E62, Pool, pool);
+  AVERT(0xA55E62, Seg, seg);
+  NOTREACHED(0xA55E62);
   return ResUNIMPL;
 }
 
 Res PoolNoFix(Pool pool, ScanState ss, Seg seg, Ref *refIO)
 {
-  AVERT(Pool, pool);
-  AVERT(ScanState, ss);
-  AVERT(Seg, seg);
-  AVER(refIO != NULL);
-  NOTREACHED;
+  AVERT(0xA55E62, Pool, pool);
+  AVERT(0xA55E62, ScanState, ss);
+  AVERT(0xA55E62, Seg, seg);
+  AVER(0xA55E62, refIO != NULL);
+  NOTREACHED(0xA55E62);
   return ResUNIMPL;
 }
 
 void PoolNoReclaim(Pool pool, Trace trace, Seg seg)
 {
-  AVERT(Pool, pool);
-  AVERT(Trace, trace);
-  AVERT(Seg, seg);
-  NOTREACHED;
+  AVERT(0xA55E62, Pool, pool);
+  AVERT(0xA55E62, Trace, trace);
+  AVERT(0xA55E62, Seg, seg);
+  NOTREACHED(0xA55E62);
 }

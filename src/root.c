@@ -1,6 +1,6 @@
 /* impl.c.root: ROOT IMPLEMENTATION
  *
- * $HopeName: !root.c(trunk.20) $
+ * $HopeName: MMsrc!root.c(MMdevel_assertid.1) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  *
  * .scope: This is the implementation of the root datatype.
@@ -10,7 +10,7 @@
 
 #include "mpm.h"
 
-SRCID(root, "$HopeName: !root.c(trunk.20) $");
+SRCID(root, "$HopeName: MMsrc!root.c(MMdevel_assertid.1) $");
 
 
 /* RootCheck -- check the consistency of a root structure
@@ -20,37 +20,37 @@ SRCID(root, "$HopeName: !root.c(trunk.20) $");
 
 Bool RootCheck(Root root)
 {
-  CHECKS(Root, root);
-  CHECKU(Space, root->space); 
-  CHECKL(root->serial < root->space->rootSerial);
-  CHECKL(RingCheck(&root->spaceRing));
-  CHECKL(RankCheck(root->rank));
-  CHECKL(TraceSetCheck(root->grey));
+  CHECKS(0xA55E62, Root, root);
+  CHECKU(0xA55E62, Space, root->space); 
+  CHECKL(0xA55E62, root->serial < root->space->rootSerial);
+  CHECKL(0xA55E62, RingCheck(&root->spaceRing));
+  CHECKL(0xA55E62, RankCheck(root->rank));
+  CHECKL(0xA55E62, TraceSetCheck(root->grey));
   /* Don't need to check var here, because of the switch below */
   switch(root->var)
   {
     case RootTABLE:
-    CHECKL(root->the.table.base != 0);
-    CHECKL(root->the.table.base < root->the.table.limit);
+    CHECKL(0xA55E62, root->the.table.base != 0);
+    CHECKL(0xA55E62, root->the.table.base < root->the.table.limit);
     break;
 
     case RootFUN:
-    CHECKL(root->the.fun.scan != NULL);
+    CHECKL(0xA55E62, root->the.fun.scan != NULL);
     break;
 
     case RootREG:
-    CHECKL(root->the.reg.scan != NULL);
-    CHECKD(Thread, root->the.reg.thread);
+    CHECKL(0xA55E62, root->the.reg.scan != NULL);
+    CHECKD(0xA55E62, Thread, root->the.reg.thread);
     break;
 
     case RootFMT:
-    CHECKL(root->the.fmt.scan != NULL);
-    CHECKL(root->the.fmt.base != 0);
-    CHECKL(root->the.fmt.base < root->the.fmt.limit);
+    CHECKL(0xA55E62, root->the.fmt.scan != NULL);
+    CHECKL(0xA55E62, root->the.fmt.base != 0);
+    CHECKL(0xA55E62, root->the.fmt.base < root->the.fmt.limit);
     break;
 
     default:
-    NOTREACHED;
+    NOTREACHED(0xA55E62);
   }
   return TRUE;
 }
@@ -72,10 +72,10 @@ static Res create(Root *rootReturn, Space space,
   Res res;
   void *p;
 
-  AVER(rootReturn != NULL);
-  AVERT(Space, space);
-  AVERT(Rank, rank);
-  AVERT(RootVar, type);
+  AVER(0xA55E62, rootReturn != NULL);
+  AVERT(0xA55E62, Space, space);
+  AVERT(0xA55E62, Rank, rank);
+  AVERT(0xA55E62, RootVar, type);
 
   res = SpaceAlloc(&p, space, sizeof(RootStruct));
   if(res != ResOK)
@@ -96,7 +96,7 @@ static Res create(Root *rootReturn, Space space,
   ++space->rootSerial;
   root->sig = RootSig;
 
-  AVERT(Root, root);
+  AVERT(0xA55E62, Root, root);
 
   RingAppend(SpaceRootRing(space), &root->spaceRing);
 
@@ -109,11 +109,11 @@ Res RootCreateTable(Root *rootReturn, Space space,
 {
   union RootUnion theUnion;
 
-  AVER(rootReturn != NULL);
-  AVERT(Space, space);
-  AVER(RankCheck(rank));
-  AVER(base != 0);
-  AVER(base < limit);  
+  AVER(0xA55E62, rootReturn != NULL);
+  AVERT(0xA55E62, Space, space);
+  AVER(0xA55E62, RankCheck(rank));
+  AVER(0xA55E62, base != 0);
+  AVER(0xA55E62, base < limit);  
 
   theUnion.table.base = base;
   theUnion.table.limit = limit;
@@ -127,11 +127,11 @@ Res RootCreateReg(Root *rootReturn, Space space,
 {
   union RootUnion theUnion;
 
-  AVER(rootReturn != NULL);
-  AVERT(Space, space);
-  AVER(RankCheck(rank));
-  AVERT(Thread, thread);
-  AVER(scan != NULL);
+  AVER(0xA55E62, rootReturn != NULL);
+  AVERT(0xA55E62, Space, space);
+  AVER(0xA55E62, RankCheck(rank));
+  AVERT(0xA55E62, Thread, thread);
+  AVER(0xA55E62, scan != NULL);
 
   theUnion.reg.scan = scan;
   theUnion.reg.thread = thread;
@@ -147,12 +147,12 @@ Res RootCreateFmt(Root *rootReturn, Space space,
 {
   union RootUnion theUnion;
 
-  AVER(rootReturn != NULL);
-  AVERT(Space, space);
-  AVER(RankCheck(rank));
-  AVER(FUNCHECK(scan));
-  AVER(base != 0);
-  AVER(base < limit);
+  AVER(0xA55E62, rootReturn != NULL);
+  AVERT(0xA55E62, Space, space);
+  AVER(0xA55E62, RankCheck(rank));
+  AVER(0xA55E62, FUNCHECK(scan));
+  AVER(0xA55E62, base != 0);
+  AVER(0xA55E62, base < limit);
 
   theUnion.fmt.scan = scan;
   theUnion.fmt.base = base;
@@ -168,10 +168,10 @@ Res RootCreateFun(Root *rootReturn, Space space,
 {
   union RootUnion theUnion;
 
-  AVER(rootReturn != NULL);
-  AVERT(Space, space);
-  AVER(RankCheck(rank));
-  AVER(FUNCHECK(scan));
+  AVER(0xA55E62, rootReturn != NULL);
+  AVERT(0xA55E62, Space, space);
+  AVER(0xA55E62, RankCheck(rank));
+  AVER(0xA55E62, FUNCHECK(scan));
 
   theUnion.fun.scan = scan;
   theUnion.fun.p = p;
@@ -184,11 +184,11 @@ void RootDestroy(Root root)
 {
   Space space;
 
-  AVERT(Root, root);
+  AVERT(0xA55E62, Root, root);
 
   space = RootSpace(root);
 
-  AVERT(Space, space);
+  AVERT(0xA55E62, Space, space);
 
   RingRemove(&root->spaceRing);
   RingFinish(&root->spaceRing);
@@ -200,14 +200,14 @@ void RootDestroy(Root root)
 
 Rank RootRank(Root root)
 {
-  AVERT(Root, root);
+  AVERT(0xA55E62, Root, root);
   return root->rank;
 }
 
 void RootGrey(Root root, Trace trace)
 {
-  AVERT(Root, root);
-  AVERT(Trace, trace);
+  AVERT(0xA55E62, Root, root);
+  AVERT(0xA55E62, Trace, trace);
   
   root->grey = TraceSetAdd(root->grey, trace->ti);
 }
@@ -216,9 +216,9 @@ Res RootScan(ScanState ss, Root root)
 {
   Res res;
 
-  AVERT(Root, root);
-  AVERT(ScanState, ss);
-  AVER(root->rank == ss->rank);
+  AVERT(0xA55E62, Root, root);
+  AVERT(0xA55E62, ScanState, ss);
+  AVER(0xA55E62, root->rank == ss->rank);
 
   if(TraceSetInter(root->grey, ss->traces) == TraceSetEMPTY)
     return ResOK;
@@ -251,7 +251,7 @@ Res RootScan(ScanState ss, Root root)
     break;
 
     default:
-    NOTREACHED;
+    NOTREACHED(0xA55E62);
   }
 
   root->grey = TraceSetDiff(root->grey, ss->traces);
@@ -269,8 +269,8 @@ Res RootDescribe(Root root, mps_lib_FILE *stream)
 {
   Res res;
 
-  AVERT(Root, root);
-  AVER(stream != NULL);
+  AVERT(0xA55E62, Root, root);
+  AVER(0xA55E62, stream != NULL);
 
   res = WriteF(stream,
                "Root $P ($U) {\n", (WriteFP)root, (WriteFU)root->serial,
@@ -320,7 +320,7 @@ Res RootDescribe(Root root, mps_lib_FILE *stream)
     break;
            
     default:
-    NOTREACHED;
+    NOTREACHED(0xA55E62);
   }
 
   res = WriteF(stream,

@@ -1,6 +1,6 @@
 /* impl.h.mpm: MEMORY POOL MANAGER DEFINITIONS
  *
- * $HopeName: !mpm.h(trunk.29) $
+ * $HopeName: MMsrc!mpm.h(MMdevel_assertid.1) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  */
 
@@ -31,10 +31,10 @@
 
 #ifdef ASSERT_MPM               /* design.mps.config, impl.h.config */
 #define AVER                    ASSERT
-#define AVERT(type, val)        ASSERT(type ## Check(val))
+#define AVERT(id, type, val)    ASSERT(id, type ## Check(val))
 #else
-#define AVER(cond)              NOCHECK(cond)
-#define AVERT(type, val)        NOCHECK(type ## Check(val))
+#define AVER(id, cond)          NOCHECK(cond)
+#define AVERT(id, type, val)    NOCHECK(type ## Check(val))
 #endif
 
 
@@ -127,10 +127,10 @@ extern void (RingInit)(Ring ring);
 #define RingInit(ring) \
   BEGIN \
     Ring _ring = (ring); \
-    AVER(NULL != _ring); \
+    AVER(0xA55E62, NULL != _ring); \
     _ring->next = _ring; \
     _ring->prev = _ring; \
-    AVER(RingCheck(_ring)); \
+    AVER(0xA55E62, RingCheck(_ring)); \
   END
 
 /* .ring.finish: */
@@ -138,7 +138,7 @@ extern void (RingFinish)(Ring ring);
 #define RingFinish(ring) \
   BEGIN \
     Ring _ring = (ring); \
-    AVER(RingCheckSingle(_ring)); \
+    AVER(0xA55E62, RingCheckSingle(_ring)); \
     _ring->next = RingNONE; \
     _ring->prev = RingNONE; \
   END
@@ -148,8 +148,8 @@ extern void (RingAppend)(Ring ring, Ring new);
 #define RingAppend(ring, new) \
   BEGIN \
     Ring _ring = (ring), _new = (new); \
-    AVER(RingCheck(_ring)); \
-    AVER(RingCheckSingle(_new)); \
+    AVER(0xA55E62, RingCheck(_ring)); \
+    AVER(0xA55E62, RingCheckSingle(_new)); \
     _new->prev = _ring->prev; \
     _new->next = _ring; \
     _ring->prev->next = _new; \
@@ -161,8 +161,8 @@ extern void (RingInsert)(Ring ring, Ring new);
 #define RingInsert(ring, new) \
   BEGIN \
     Ring _ring = (ring), _new = (new); \
-    AVER(RingCheck(_ring)); \
-    AVER(RingCheckSingle(_new)); \
+    AVER(0xA55E62, RingCheck(_ring)); \
+    AVER(0xA55E62, RingCheckSingle(_new)); \
     _new->prev = _ring; \
     _new->next = _ring->next; \
     _ring->next->prev = _new; \
@@ -174,8 +174,8 @@ extern void (RingRemove)(Ring old);
 #define RingRemove(old) \
   BEGIN \
     Ring _old = (old); \
-    AVER(RingCheck(_old)); \
-    AVER(!RingIsSingle(_old)); \
+    AVER(0xA55E62, RingCheck(_old)); \
+    AVER(0xA55E62, !RingIsSingle(_old)); \
     _old->next->prev = _old->prev; \
     _old->prev->next = _old->next; \
     _old->next = _old; \
