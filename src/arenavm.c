@@ -1,6 +1,6 @@
 /* impl.c.arenavm: VIRTUAL MEMORY BASED ARENA IMPLEMENTATION
  *
- * $HopeName: MMsrc!arenavm.c(MMdevel_drj_arena_hysteresis.4) $
+ * $HopeName: MMsrc!arenavm.c(MMdevel_drj_arena_hysteresis.5) $
  * Copyright (C) 1998.  Harlequin Group plc.  All rights reserved.
  *
  * PURPOSE
@@ -32,7 +32,7 @@
 #include "mpm.h"
 #include "mpsavm.h"
 
-SRCID(arenavm, "$HopeName: MMsrc!arenavm.c(MMdevel_drj_arena_hysteresis.4) $");
+SRCID(arenavm, "$HopeName: MMsrc!arenavm.c(MMdevel_drj_arena_hysteresis.5) $");
 
 
 /* @@@@ Arbitrary calculation for the maximum number of distinct */
@@ -68,15 +68,19 @@ typedef struct VMArenaStruct *VMArena;
  *   allocated pages are mapped
  *   BTGet(allocTable, i) == 1
  *   PageRest()->pool == NULL
+ *   PageRest()->type == PageTypeTail
  * latent (free and in hysteresis fund).
  *   these pages are mapped
  *   BTGet(allocTable, i) == 0
  *   PageRest()->pool == NULL
- *   PageRest()->type = PageIsLatent
+ *   PageRest()->type == PageTypeLatent
  * free and not in the hysteresis fund.
  *   these pages are not mapped
  *   BTGet(allocTable, i) == 0
- *   PTE may itself be unmapped.
+ *   PTE may itself be unmapped, but when it is (use pageTableMapped
+ *     to determine whether page occupied by page table is mapped):
+ *   PageRest()->pool == NULL
+ *   PageRest()->type == PageTypeFree
  * 
  */
 
@@ -95,7 +99,7 @@ typedef struct PageStruct {     /* page structure */
 	  Seg seg;              /* segment at base page of run */
 	  Addr limit;           /* limit of segment */
 	} tail;
-	struct {                /* use latent iff type == PageIsLatent */
+	struct {                /* use latent iff type == PageTypeLatent */
 	  RingStruct arenaRing;
 	} latent;
       } the;
@@ -123,7 +127,7 @@ typedef struct VMArenaChunkStruct {
   Page pageTable;               /* the page table */
   Count pageTablePages;         /* number of pages occupied by page table */
   BT pageTableMapped;           /* indicates mapped state of page table */
-  BT latentPageSummary;         /* 1 bit per page of pageTable */
+  BT noLatentPages;             /* 1 bit per page of pageTable */
   BT allocTable;                /* page allocation table */
   Size ullageSize;              /* size unusable for segments */
   Count ullagePages;            /* number of pages occupied by ullage */
@@ -217,10 +221,10 @@ static Bool VMArenaChunkCheck(VMArenaChunk chunk)
   CHECKL(AddrAdd((Addr)chunk->pageTableMapped,
                  BTSize(chunk->pageTablePages)) <=
          AddrAdd(chunk->base, chunk->ullageSize));
-  /* check latentPageSummary table */
-  CHECKL(chunk->latentPageSummary != NULL);
-  CHECKL((Addr)chunk->latentPageSummary >= chunk->base);
-  CHECKL(AddrAdd((Addr)chunk->latentPageSummary,
+  /* check noLatentPages table */
+  CHECKL(chunk->noLatentPages != NULL);
+  CHECKL((Addr)chunk->noLatentPages >= chunk->base);
+  CHECKL(AddrAdd((Addr)chunk->noLatentPages,
                  BTSize(chunk->pageTablePages)) <=
          AddrAdd(chunk->base, chunk->ullageSize));
   /* check allocTable */
@@ -305,6 +309,12 @@ static Index indexOfAddr(VMArenaChunk chunk, Addr addr)
  */
 
 #define PageIsHead(page)        (PageRest((page))->pool != NULL)
+
+/* PageIsLatent -- is page latent (free and mapped)?
+ *
+ * @@@@ Uses argument multiple times. */
+#define PageIsLatent(page)	(PageRest((page))->pool == NULL && \
+                                 PageRest((page))->type == PageTypeLatent)
 
 
 static Bool VMArenaChunkCacheEntryCheck(VMArenaChunkCacheEntry entry)
@@ -438,46 +448,6 @@ static void VMArenaUnmap(VMArena vmArena, VM vm, Addr base, Addr limit)
   return;
 }
 
-
-/* Manage Latent Pages
- *
- * Pages with indices from pageBase up to but not including pageLimit
- * are converted to latent pages and added to the hysteresis fund.
- */
-
-static void VMArenaAddLatentPages(VMArena vmArena, VMArenaChunk chunk,
-                                  Index piBase, Index piLimit)
-{
-  Index pi;
-  Index pageTableUsedBase;
-  Index pageTableUsedLimit;
-
-  AVERT(VMArena, vmArena);
-  AVERT(VMArenaChunk, chunk);
-  AVER(piBase < piLimit);
-  AVER(piLimit <= chunk->pages);
-
-  /* loop from pageBase to pageLimit-1 inclusive */
-  for(pi = piBase; pi < piLimit; ++pi) {
-    PageRest(&chunk->pageTable[pi])->pool = NULL;
-    PageRest(&chunk->pageTable[pi])->type = PageTypeLatent;
-    RingInit(&PageRest(&chunk->pageTable[pi])->the.latent.arenaRing);
-    RingAppend(&vmArena->latentRing,
-               &PageRest(&chunk->pageTable[pi])->the.latent.arenaRing);
-  }
-  VMArenaArena(vmArena)->spareCommitted +=
-    (piLimit - piBase) << chunk->pageShift;
-  BTResRange(chunk->allocTable, piBase, piLimit);
-
-  /* pageTableUsedBase/Limit are the Base/Limit indices of the pages */
-  /* used in the pageTable */
-  pageTableUsedBase = indexOfAddr(chunk, addrOfPageDesc(chunk, piBase));
-  pageTableUsedLimit =
-    indexOfAddr(chunk, (Addr)((char *)&chunk->pageTable[piLimit] - 1)) + 1;
-  BTSetRange(chunk->latentPageSummary, pageTableUsedBase, pageTableUsedLimit);
-
-  return;
-}
 
 /* Boot Allocator
  *
@@ -646,7 +616,7 @@ static Res VMArenaChunkCreate(VMArenaChunk *chunkReturn,
                               Size size, size_t spareSize)
 {
   BT allocTable;
-  BT latentPageSummary;
+  BT noLatentPages;
   BT pageTableMapped;
   Count pages;
   Count pageTablePages;
@@ -724,8 +694,8 @@ static Res VMArenaChunkCreate(VMArenaChunk *chunkReturn,
   res = VMArenaBootAlloc(&p, boot,
                          (size_t)BTSize(pageTablePages), MPS_PF_ALIGN);
   if(res != ResOK)
-    goto failLatentPageSummary;
-  latentPageSummary = p;
+    goto failNoLatentPages;
+  noLatentPages = p;
   res = VMArenaBootAlloc(&p, boot,
                          (size_t)pageTableSize, (size_t)pageSize);
   if(res != ResOK)
@@ -760,7 +730,7 @@ static Res VMArenaChunkCreate(VMArenaChunk *chunkReturn,
   chunk->pageTable = pageTable;
   chunk->pageTablePages = pageTablePages;
   chunk->pageTableMapped = pageTableMapped;
-  chunk->latentPageSummary = latentPageSummary;
+  chunk->noLatentPages = noLatentPages;
   chunk->allocTable = allocTable;
   chunk->ullageSize = ullageSize;
   chunk->ullagePages = ullageSize >> chunk->pageShift;
@@ -776,7 +746,7 @@ static Res VMArenaChunkCreate(VMArenaChunk *chunkReturn,
   AVER((chunk->ullageSize >> chunk->pageShift) << chunk->pageShift ==
        chunk->ullageSize);
   BTResRange(chunk->pageTableMapped, 0, chunk->pageTablePages);
-  BTResRange(chunk->latentPageSummary, 0, chunk->pageTablePages);
+  BTSetRange(chunk->noLatentPages, 0, chunk->pageTablePages);
   BTResRange(chunk->allocTable, 0, chunk->pages);
 
   chunk->sig = VMArenaChunkSig;
@@ -791,7 +761,7 @@ static Res VMArenaChunkCreate(VMArenaChunk *chunkReturn,
 failTableMap:
 failBootFinish:
 failAllocPageTable:
-failLatentPageSummary:
+failNoLatentPages:
 failPageTableMapped:
 failAllocTable:
 failAllocSpare:
@@ -1029,7 +999,7 @@ static Size VMArenaCommitted(Arena arena)
  * table page.
  */
 #define tablePageWholeLimitIndex(chunk, tablePage) \
-  (AddrOffset((Addr)(chunk)->pageTable, (tablePage)+(chunk)->pageSize) \
+  ((AddrOffset((Addr)(chunk)->pageTable, (tablePage))+(chunk)->pageSize) \
    / sizeof(PageStruct))
 
 
@@ -1045,7 +1015,6 @@ static Size VMArenaCommitted(Arena arena)
  * (de)allocating.
  */
 
-#if 0
 static Bool tablePageInUse(VMArenaChunk chunk, Addr tablePage)
 {
   AVERT(VMArenaChunk, chunk);
@@ -1057,13 +1026,15 @@ static Bool tablePageInUse(VMArenaChunk chunk, Addr tablePage)
                        tablePageBaseIndex(chunk, tablePage),
                        tablePageLimitIndex(chunk, tablePage));
 }
-#endif
 
 
-static Res VMArenaMapUnusedTablePages(VMArenaChunk chunk,
-                                      Index baseIndex, Index limitIndex)
+/* Pages from baseIndex to limitIndex are about to be allocated.
+ * Ensure that the relevant pages occupied by the page table are
+ * mapped. */
+static Res VMArenaEnsurePageTableMapped(VMArenaChunk chunk,
+                                Index baseIndex, Index limitIndex)
 {
-  /* tableBAseIndex, tableLimitIndex, tableCursorIndex, */
+  /* tableBaseIndex, tableLimitIndex, tableCursorIndex, */
   /* unmappedBase, unmappedLimit are all indexes of pages occupied */
   /* by the page table. */
   Index i;
@@ -1132,6 +1103,29 @@ static Res VMArenaMapUnusedTablePages(VMArenaChunk chunk,
   return ResOK;
 }
 
+/* Of the pages occupied by the page table from tablePageBase to
+ * tablePageLimit find those which are wholly unused and unmap them.
+ */
+static void VMArenaUnmapUnusedTablePages(VMArenaChunk chunk,
+                                         Index tablePageBase,
+					 Index tablePageLimit)
+{
+  Index i;
+
+  for(i = tablePageBase; i < tablePageLimit; ++i) {
+    if(!tablePageInUse(chunk, PageIndexBase(chunk, i))) {
+      VMArenaUnmap(chunk->vmArena, chunk->vm,
+                   PageIndexBase(chunk, i),
+		   PageIndexBase(chunk, i+1));
+      AVER(BTGet(chunk->noLatentPages, i));
+      AVER(BTGet(chunk->pageTableMapped, i));
+      BTRes(chunk->pageTableMapped, i);
+    }
+  }
+
+  return;
+}
+      
 
 /* unusedTablePages
  *
@@ -1644,6 +1638,21 @@ static void VMArenaPageFree(VMArenaChunk chunk, Index pi)
 }
 
 
+/* Removes the PageStruct descriptor from the Hysteresis fund. */
+/* Temporarily leaves it in an inconsistent state. */
+static void VMArenaHysteresisRemovePage(VMArenaChunk chunk, Index pi)
+{
+  Arena arena = VMArenaArena(chunk->vmArena);
+  /* minimal checking as it's a static used only locally */
+  AVER(PageTypeLatent == PageRest(&chunk->pageTable[pi])->type);
+  RingRemove(&PageRest(&chunk->pageTable[pi])->the.latent.arenaRing);
+  AVER(arena->spareCommitted >= chunk->pageSize);
+  arena->spareCommitted -= chunk->pageSize;
+
+  return;
+}
+
+
 /* VMSegAllocComm -- allocate a segment from the arena
  *
  * Common code used by mps_arena_class_vm and
@@ -1687,14 +1696,15 @@ static Res VMSegAllocComm(Seg *segReturn,
   /* must be non-NULL. */
   AVER(pool != NULL);
 
-#if 0
-  /* SegAlloc will necessarily increase committed by size */
-  /* (possibly more) so check that first. */
-  if(vmArena->committed + size > arena->commitLimit ||
-     vmArena->committed + size < vmArena->committed) {
-    return ResCOMMIT_LIMIT;
+  /* Early check on commit limit. */
+  if(VMArenaArena(vmArena)->spareCommitted < size) {
+    Size necessaryCommitIncrease =
+      size - VMArenaArena(vmArena)->spareCommitted;
+    if(vmArena->committed + necessaryCommitIncrease > arena->commitLimit ||
+       vmArena->committed + necessaryCommitIncrease < vmArena->committed) {
+      return ResCOMMIT_LIMIT;
+    }
   }
-#endif
 
   res = (*policy)(&baseIndex, &chunk, vmArena, pref, size);
   if(res != ResOK) {
@@ -1712,7 +1722,7 @@ static Res VMSegAllocComm(Seg *segReturn,
   pages = size >> chunk->pageShift;
 
   /* Ensure that the page descriptors we need are on mapped pages. */
-  res = VMArenaMapUnusedTablePages(chunk, baseIndex, baseIndex + pages);
+  res = VMArenaEnsurePageTableMapped(chunk, baseIndex, baseIndex + pages);
   if(res != ResOK)
     goto failTableMap;
 
@@ -1730,10 +1740,7 @@ static Res VMSegAllocComm(Seg *segReturn,
     AVER(mappedLimit <= limitIndex);
     /* NB for loop will loop 0 times iff first page is not mapped */
     for(i = mappedBase; i < mappedLimit; ++i) {
-      AVER(PageTypeLatent == PageRest(&chunk->pageTable[i])->type);
-      RingRemove(&PageRest(&chunk->pageTable[i])->the.latent.arenaRing);
-      AVER(arena->spareCommitted >= chunk->pageSize);
-      arena->spareCommitted -= chunk->pageSize;
+      VMArenaHysteresisRemovePage(chunk, i);
       VMArenaPageAlloc(chunk, i, baseIndex, pages, segLimit, seg, pool);
     }
     if(mappedLimit >= limitIndex)
@@ -1790,10 +1797,10 @@ failPagesMap:
   pageTableLimitIndex = 
     indexOfAddr(chunk, AddrSub(addrOfPageDesc(chunk, limitIndex), 1)) +
     1;
-  /* Setting the latentPageSummary bits is lazy, it means that */
+  /* Resetting the noLatentPages bits is lazy, it means that */
   /* we don't have to bother trying to unmap unused portions */
   /* of the pageTable. */
-  BTSetRange(chunk->latentPageSummary,
+  BTResRange(chunk->noLatentPages,
              pageTableBaseIndex, pageTableLimitIndex);
 failTableMap:
   return res;
@@ -1845,6 +1852,187 @@ static VMArenaChunk VMArenaChunkOfSeg(VMArena vmArena, Seg seg)
 }
 
 
+/* The function f is called on the ranges of latent pages which are
+ * within the range of pages from base to limit.  PageStruct descriptors
+ * from base to limit should be mapped in the page table before calling
+ * this function. */
+static void VMArenaFindLatentRanges(
+  VMArenaChunk chunk, Index base, Index limit,
+  void (*f)(VMArenaChunk, Index, Index, void *, size_t),
+  void *p, size_t s)
+{
+  Index latentBase, latentLimit;
+
+  /* Minimal checking as static used only internally. */
+  AVER(base < limit);
+
+  latentBase = base;
+  do {
+    while(!PageIsLatent(&chunk->pageTable[latentBase])) {
+      ++latentBase;
+      if(latentBase >= limit)
+	goto done;
+    }
+    latentLimit = latentBase;
+    while(PageIsLatent(&chunk->pageTable[latentLimit])) {
+      ++latentLimit;
+      if(latentLimit >= limit)
+	break;
+    }
+    f(chunk, latentBase, latentLimit, p, s);
+    latentBase = latentLimit;
+  } while(latentBase < limit);
+done:
+  AVER(latentBase == limit);
+
+  return;
+}
+
+
+/* Takes a range of pages which are latent pages (in the hysteresis fund), */
+/* unmaps them and removes them from the hysteresis fund. */
+static void VMArenaUnmapLatentRange(VMArenaChunk chunk,
+                                    Index rangeBase, Index rangeLimit,
+				    void *p, size_t s)
+{
+  Index i;
+
+  /* The closure variable are not used */
+  UNUSED(p);
+  UNUSED(s);
+
+  for(i = rangeBase; i < rangeLimit; ++i) {
+    VMArenaHysteresisRemovePage(chunk, i);
+    VMArenaPageInit(chunk, i);
+  }
+  VMArenaUnmap(chunk->vmArena, chunk->vm,
+               PageIndexBase(chunk, rangeBase),
+	       PageIndexBase(chunk, rangeLimit));
+  
+  return;
+}
+  
+
+/* PurgeLatentPages
+ *
+ * All latent pages are found and removed from the hysteresis fund
+ * (ie they are unmapped).  Pages occupied by the page table are
+ * potentially unmapped.  This is currently the only way the hysteresis
+ * fund is prevented from growing.
+ *
+ * It uses the noLatentPages bits to determine which areas of the
+ * pageTable to examine.
+ */
+static void VMArenaPurgeLatentPages(VMArena vmArena)
+{
+  Ring node, next;
+
+  AVERT(VMArena, vmArena);
+
+  RING_FOR(node, &vmArena->chunkRing, next) {
+    VMArenaChunk chunk = RING_ELT(VMArenaChunk, arenaRing, node);
+    Index latentTablePageBase, latentTablePageLimit;
+    Index tablePageCursor = 0;
+    while(BTFindLongResRange(&latentTablePageBase, &latentTablePageLimit,
+                             chunk->noLatentPages,
+	           	     tablePageCursor, chunk->pageTablePages,
+	      	             1)) {
+      Index pageBase, pageLimit;
+      Index tablePage;
+
+      if(latentTablePageBase > 0 &&
+         !BTGet(chunk->pageTableMapped, latentTablePageBase - 1)) {
+	pageBase =
+	  tablePageWholeBaseIndex(chunk,
+	                          PageIndexBase(chunk, latentTablePageBase));
+      } else {
+        pageBase =
+	  tablePageBaseIndex(chunk,
+	                     PageIndexBase(chunk, latentTablePageBase));
+      }
+      for(tablePage = latentTablePageBase;
+          tablePage < latentTablePageLimit;
+	  ++tablePage) {
+        if(tablePage == latentTablePageLimit - 1 &&
+	   latentTablePageLimit < chunk->pageTablePages &&
+	   !BTGet(chunk->pageTableMapped, latentTablePageLimit)) {
+	  pageLimit =
+	    tablePageWholeLimitIndex(chunk,
+	                             PageIndexBase(chunk, tablePage));
+	} else if(tablePage == chunk->pageTablePages - 1) {
+	  pageLimit = chunk->pages;
+	} else {
+	  pageLimit =
+	    tablePageLimitIndex(chunk,
+	                        PageIndexBase(chunk, tablePage));
+	}
+	VMArenaFindLatentRanges(chunk, pageBase, pageLimit,
+	                        VMArenaUnmapLatentRange, NULL, 0);
+	BTSet(chunk->noLatentPages, tablePage);
+	pageBase = pageLimit;
+      }
+      VMArenaUnmapUnusedTablePages(chunk,
+                                   latentTablePageBase, latentTablePageLimit);
+      tablePageCursor = latentTablePageLimit;
+      if(tablePageCursor >= chunk->pageTablePages) {
+        AVER(tablePageCursor == chunk->pageTablePages);
+	break;
+      }
+    }
+
+  }
+
+  AVER(VMArenaArena(vmArena)->spareCommitted == 0);
+  
+  return;
+}
+
+
+/* Add Pages to Hysteresis fund.
+ *
+ * Pages with indices from pageBase up to but not including pageLimit
+ * are converted to latent pages and added to the hysteresis fund.
+ */
+
+static void VMArenaHysteresisAddPages(VMArena vmArena, VMArenaChunk chunk,
+                                      Index piBase, Index piLimit)
+{
+  Index pi;
+  Index pageTableUsedBase;
+  Index pageTableUsedLimit;
+
+  AVERT(VMArena, vmArena);
+  AVERT(VMArenaChunk, chunk);
+  AVER(piBase < piLimit);
+  AVER(piLimit <= chunk->pages);
+
+  /* loop from pageBase to pageLimit-1 inclusive */
+  for(pi = piBase; pi < piLimit; ++pi) {
+    PageRest(&chunk->pageTable[pi])->pool = NULL;
+    PageRest(&chunk->pageTable[pi])->type = PageTypeLatent;
+    RingInit(&PageRest(&chunk->pageTable[pi])->the.latent.arenaRing);
+    RingAppend(&vmArena->latentRing,
+               &PageRest(&chunk->pageTable[pi])->the.latent.arenaRing);
+  }
+  VMArenaArena(vmArena)->spareCommitted +=
+    (piLimit - piBase) << chunk->pageShift;
+  BTResRange(chunk->allocTable, piBase, piLimit);
+
+  /* pageTableUsedBase/Limit are the Base/Limit indices of the pages */
+  /* used in the pageTable */
+  pageTableUsedBase = indexOfAddr(chunk, addrOfPageDesc(chunk, piBase));
+  pageTableUsedLimit =
+    indexOfAddr(chunk, (Addr)((char *)&chunk->pageTable[piLimit] - 1)) + 1;
+  BTResRange(chunk->noLatentPages, pageTableUsedBase, pageTableUsedLimit);
+
+  if(VMArenaArena(vmArena)->spareCommitted > 0) {
+    VMArenaPurgeLatentPages(vmArena);
+  }
+
+  return;
+}
+
+
 /* VMSegFree - free a segment in the arena
  */
 
@@ -1873,7 +2061,7 @@ static void VMSegFree(Seg seg)
   base = PageIndexBase(chunk, basePage);
   /* Calculate the number of pages in the segment */
   pages = AddrOffset(base, limit) >> chunk->pageShift;
-  VMArenaAddLatentPages(vmArena, chunk, basePage, basePage + pages);
+  VMArenaHysteresisAddPages(vmArena, chunk, basePage, basePage + pages);
 
   return;
 }
