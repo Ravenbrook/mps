@@ -1,6 +1,6 @@
 /* impl.c.locus: LOCI
  *
- * $HopeName: MMsrc!locus.c(MMdevel_ptw_pseudoloci.3) $
+ * $HopeName: MMsrc!locus.c(MMdevel_ptw_pseudoloci.4) $
  * Copyright (C) 1998 Harlequin Group plc.  All rights reserved.
  *
  */
@@ -19,12 +19,11 @@ static void LocusInit(Locus locus, LocusManager manager);
 static void LocusFinish(Locus locus);
 static void LocusEnsureReady(Locus locus);
 static void LocusClientEnsureLocus(LocusClient client);
-static void LocusZoneRangeBest(Addr *baseReturn, Addr *limitReturn,
-                               Locus locus);
-static void LocusZoneRangeNextBest(Addr *baseReturn, Addr
-                                   *limitReturn, Locus locus);
-static void LocusRefSetBest(Locus locus);
-static void LocusRefSetNextBest(Locus locus);
+static void LocusZoneRangeInitialize(Locus locus);
+static Bool LocusZoneRangeFinished(Locus locus);
+static void LocusZoneRangeNext(Addr *baseReturn, Addr
+                               *limitReturn, Locus locus);
+static void LocusRefSetNext(Locus locus);
 static Count LocusLocusClientDistance(Locus locus,
                                       LocusClient client);
 static Count LogCount(Count val);
@@ -173,9 +172,37 @@ void LocusClientSetCohortParameters(LocusClient client,
 }
 
 
-/* LocusClientZoneRangeBest -- Call LocusZoneRangeBest on this
-   client's locus */
-void LocusClientZoneRangeBest(Addr *baseReturn, Addr *limitReturn,
+/* LocusClientZoneRangeInitialize -- Initialize the zone range
+   iteration */
+void LocusClientZoneRangeInitialize(LocusClient client)
+{
+  Locus locus;
+
+  AVERT(LocusClient, client);
+  LocusClientEnsureLocus(client);
+  locus = LocusClientLocus(client);
+  
+  LocusZoneRangeInitialize(locus);
+}
+
+
+/* LocusClientZoneRangeFinished -- Is the zone range iteration complete? */
+Bool LocusClientZoneRangeFinished(LocusClient client)
+{
+  Locus locus;
+
+  AVERT(LocusClient, client);
+  AVER(client->assigned);
+  locus = LocusClientLocus(client);
+  
+  return LocusZoneRangeFinished(locus);
+}
+
+
+/* LocusClientZoneRangeNext -- Return the next zone range in the
+   iteration sequence */
+void LocusClientZoneRangeNext(Addr *baseReturn,
+                              Addr *limitReturn,
                               LocusClient client)
 {
   Locus locus;
@@ -183,34 +210,12 @@ void LocusClientZoneRangeBest(Addr *baseReturn, Addr *limitReturn,
   AVER(baseReturn != NULL);
   AVER(limitReturn != NULL);
   AVERT(LocusClient, client);
-  
-  locus = LocusClientLocus(client);
-
-  LocusClientEnsureLocus(client);
-  
-  LocusZoneRangeBest(baseReturn, limitReturn, locus);
-}
-
-
-/* LocusClientZoneRangeNextBest -- Call LocusZoneRangeNextBest on this
-   client's locus */
-void LocusClientZoneRangeNextBest(Addr *baseReturn,
-                                  Addr *limitReturn,
-                                  LocusClient client)
-{
-  Locus locus;
-  
-  AVER(baseReturn != NULL);
-  AVER(limitReturn != NULL);
-  AVERT(LocusClient, client);
-  
-  locus = LocusClientLocus(client);
-
   AVER(client->assigned);
+  locus = LocusClientLocus(client);
   
-  LocusZoneRangeNextBest(baseReturn, limitReturn, locus);
+  LocusZoneRangeNext(baseReturn, limitReturn, locus);
 }
-    
+
 
 /* LocusClientSegAdd -- Must be called by the locus client any time it
    acquires a new segment */
@@ -405,40 +410,42 @@ static void LocusClientEnsureLocus(LocusClient client)
 }
 
 
-/* LocusZoneRangeBest -- Calculate the optimal zone range clients of
-   this locus can allocate in.  Must be called before each allocation
-   to determine where to allocate. */
-static void LocusZoneRangeBest(Addr *baseReturn, Addr *limitReturn, Locus locus)
+/* LocusZoneRangeInitialize -- Initialize the locus zone range
+   iteration */
+static void LocusZoneRangeInitialize(Locus locus)
 {
-  LocusRefSetBest(locus);
-  locus->searchIndex = 0;
-
-  LocusZoneRangeNextBest(baseReturn, limitReturn, locus);
+  locus->search = RefSetEMPTY;
+  locus->searchIndex = MPS_WORD_WIDTH;
+  LocusManagerEnsureReady(LocusLocusManager(locus));
 }
 
 
-/* LocusZoneRangeNextBest -- Calculate the next best zone range
-   clients of this locus can allocate in.  May be called any number of
-   times, will eventually return [0, 0), meaning "anywhere".  Should
-   be called when allocation fails in the zone range returned by
-   LocusZoneRangeBest */
-static void LocusZoneRangeNextBest(Addr *baseReturn, Addr *limitReturn, Locus locus)
+/* LocusZoneRangeFinished -- Is the zone range iteration done? */
+static Bool LocusZoneRangeFinished(Locus locus)
+{
+  return locus->search == RefSetUNIV && locus->searchIndex == MPS_WORD_WIDTH;
+}
+
+
+/* LocusZoneRangeNext --  Return the next zone range in the iteration */
+static void LocusZoneRangeNext(Addr *baseReturn, Addr *limitReturn, Locus locus)
 {
   LocusManager manager = LocusLocusManager(locus);
   Arena arena = LocusManagerArena(manager);
   Word zoneShift = ArenaZoneShift(arena);
+  RefSet ref = locus->search;
+  Index i = locus->searchIndex;
   
   AVER(manager->ready);
 
   for (;;) {
-    RefSet ref = locus->search;
-    Index i = locus->searchIndex;
-
     if (! (i < MPS_WORD_WIDTH)) {
-      LocusRefSetNextBest(locus);
-      locus->searchIndex = 0;
+      LocusRefSetNext(locus);
+      ref = locus->search;
+      i = 0;
     }
     for (; i < MPS_WORD_WIDTH; i++) {
+      /* @@@ faster to shift ref and quit on 0 */
       if (BS_IS_MEMBER(ref, i)) {
         *baseReturn = (Addr)(i << zoneShift);
         *limitReturn =
@@ -456,22 +463,12 @@ static void LocusZoneRangeNextBest(Addr *baseReturn, Addr *limitReturn, Locus lo
 }
 
 
-/* LocusRefSetBest -- Calculate the optimal RefSet for the locus to
-   allocate in.  Must be called for each allocation.  */
-static void LocusRefSetBest(Locus locus)
-{
-  locus->search = RefSetEMPTY;
-
-  LocusRefSetNextBest(locus);
-}
-
-
-/* LocusRefSetNextBest -- Calculate the next most optimal RefSet for
-   the locus to allocate in.  May be called any number of times and
-   each time it will yield a larger, but less optimal RefSet.  It is
+/* LocusRefSetNext -- Calculate the next most optimal RefSet for the
+   locus to allocate in.  May be called any number of times and each
+   time it will yield a larger, but less optimal RefSet.  It is
    fruitless to call it when the search RefSet is already RefSetUNIV
    */
-static void LocusRefSetNextBest(Locus locus)
+static void LocusRefSetNext(Locus locus)
 {
   LocusManager manager = LocusLocusManager(locus);
   RefSet previous = locus->search;
@@ -481,32 +478,32 @@ static void LocusRefSetNextBest(Locus locus)
   LocusManagerEnsureReady(manager);
 
   next = RefSetUnion(previous, RefSetInter(locus->used, locus->preferred));
-  if (! RefSetSuper(previous, next)) {
+  if (RefSetDiff(next, previous) != RefSetEMPTY) {
     locus->search = next;
     return;
   }
   next = RefSetUnion(previous, RefSetInter(manager->free, locus->preferred));
-  if (! RefSetSuper(previous, next)) {
+  if (RefSetDiff(next, previous) != RefSetEMPTY) {
     locus->search = next;
     return;
   }
   next = RefSetUnion(previous, RefSetDiff(locus->used, locus->disdained));
-  if (! RefSetSuper(previous, next)) {
+  if (RefSetDiff(next, previous) != RefSetEMPTY) {
     locus->search = next;
     return;
   }
   next = RefSetUnion(previous, RefSetDiff(manager->free, locus->disdained));
-  if (! RefSetSuper(previous, next)) {
+  if (RefSetDiff(next, previous) != RefSetEMPTY) {
     locus->search = next;
     return;
   }
   next = RefSetUnion(previous, locus->used);
-  if (! RefSetSuper(previous, next)) {
+  if (RefSetDiff(next, previous) != RefSetEMPTY) {
     locus->search = next;
     return;
   }
   next = RefSetUnion(previous, manager->free);
-  if (! RefSetSuper(previous, next)) {
+  if (RefSetDiff(next, previous) != RefSetEMPTY) {
     locus->search = next;
     return;
   }
