@@ -1,6 +1,6 @@
 /* impl.c.mpsi: MEMORY POOL SYSTEM C INTERFACE LAYER
  *
- * $HopeName: MMsrc!mpsi.c(MMdevel_config_thread.1) $
+ * $HopeName: MMsrc!mpsi.c(MMdevel_config_thread.2) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  *
  * .purpose: This code bridges between the MPS interface to C,
@@ -53,7 +53,7 @@
 #include "mpsavm.h" /* only for mps_space_create */
 
 
-SRCID(mpsi, "$HopeName: MMsrc!mpsi.c(MMdevel_config_thread.1) $");
+SRCID(mpsi, "$HopeName: MMsrc!mpsi.c(MMdevel_config_thread.2) $");
 
 
 /* mpsi_check -- check consistency of interface mappings
@@ -166,8 +166,7 @@ mps_assert_t mps_assert_default(void)
 
 
 mps_res_t mps_arena_extend(mps_arena_t mps_arena,
-                           mps_addr_t base,
-                           size_t size)
+                           mps_addr_t base, size_t size)
 {
   Arena arena = (Arena)mps_arena;
   Res res;
@@ -404,9 +403,8 @@ mps_res_t mps_alloc(mps_addr_t *p_o,
   return res;
 }
 
-mps_res_t mps_alloc_v(mps_addr_t *p_o,
-                      mps_pool_t mps_pool,
-                      size_t size, va_list args)
+mps_res_t mps_alloc_v(mps_addr_t *p_o, mps_pool_t mps_pool, size_t size,
+		      va_list args)
 {
   Pool pool = (Pool)mps_pool;
   Arena arena;
@@ -700,7 +698,7 @@ mps_res_t mps_root_create_table(mps_root_t *mps_root_o,
   /* the size in bytes.  However, RootCreateTable expects */
   /* base and limit pointers.  Be careful. */
 
-  /* See .root-mode. */
+  UNUSED(mps_rm); /* See .root-mode. */
   res = RootCreateTable(&root, arena, rank,
                         (Addr *)base, (Addr *)base + size);
 
@@ -736,7 +734,7 @@ mps_res_t mps_root_create_table_masked(mps_root_t *mps_root_o,
   /* the size in bytes.  However, RootCreateTable expects */
   /* base and limit pointers.  Be careful. */
 
-  /* See .root-mode. */
+  UNUSED(mps_rm); /* See .root-mode. */
   res = RootCreateTableMasked(&root, arena, rank,
                               (Addr *)base, (Addr *)base + size,
                               mask);
@@ -754,8 +752,7 @@ mps_res_t mps_root_create_fmt(mps_root_t *mps_root_o,
                               mps_rank_t mps_rank,
                               mps_rm_t mps_rm,
                               mps_fmt_scan_t mps_fmt_scan,
-                              mps_addr_t base,
-                              mps_addr_t limit)
+                              mps_addr_t base, mps_addr_t limit)
 {
   Arena arena = (Arena)mps_arena;
   Rank rank = (Rank)mps_rank;
@@ -771,7 +768,7 @@ mps_res_t mps_root_create_fmt(mps_root_t *mps_root_o,
   AVER(base != NULL);
   AVER(base < limit);
 
-  /* See .root-mode. */
+  UNUSED(mps_rm); /* See .root-mode. */
   res = RootCreateFmt(&root, arena, rank, scan,
                       (Addr)base, (Addr)limit);
 
@@ -831,9 +828,10 @@ mps_res_t mps_root_create_reg(mps_root_t *mps_root_o,
 mps_res_t mps_stack_scan_ambig(mps_ss_t mps_ss,
                                mps_thr_t mps_thr, void *p, size_t s)
 {
-  /* s is unused */
   ScanState ss = (ScanState)mps_ss;
   Thread thread = (Thread)mps_thr;
+
+  UNUSED(s);
   return ThreadScan(ss, thread, p);
 }
 
@@ -858,18 +856,17 @@ void mps_root_destroy(mps_root_t mps_root)
 
 void (mps_tramp)(void **r_o,
                  void *(*f)(void *p, size_t s),
-                 void *p,
-                 size_t s)
+                 void *p, size_t s)
 {
-  /* No parameter validation is possible.  We place no constraints on */
-  /* the value of these parameters. */
+  AVER(r_o != NULL);
+  AVER(FUNCHECK(f));
+  /* Can't check p and s as they are interpreted by the client */
 
   ProtTramp(r_o, f, p, s);
 }
 
 
-mps_res_t mps_thread_reg(mps_thr_t *mps_thr_o,
-                         mps_arena_t mps_arena)
+mps_res_t mps_thread_reg(mps_thr_t *mps_thr_o, mps_arena_t mps_arena)
 {
   Arena arena = (Arena)mps_arena;
   Thread thread;
@@ -952,9 +949,8 @@ void mps_ld_merge(mps_ld_t mps_ld, mps_arena_t mps_arena, mps_ld_t mps_from)
  * See design.mps.interface.c.lock-free.
  */
 
-mps_bool_t mps_ld_isstale(mps_ld_t mps_ld,
-                          mps_arena_t mps_arena,
-                          mps_addr_t addr)
+mps_bool_t mps_ld_isstale(mps_ld_t mps_ld, mps_arena_t mps_arena,
+			  mps_addr_t addr)
 {
   Arena arena = (Arena)mps_arena;
   LD ld = (LD)mps_ld;
