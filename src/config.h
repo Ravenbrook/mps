@@ -1,7 +1,7 @@
 /* impl.h.config: MPS CONFIGURATION
  *
  * Copyright (C) 1997 Harlequin Group, all rights reserved.
- * $HopeName: MMsrc!config.h(MMdevel_config_thread.1) $
+ * $HopeName: MMsrc!config.h(MMdevel_config_thread.2) $
  */
 
 #ifndef config_h
@@ -74,7 +74,6 @@
 #if defined(CONFIG_PROD_EPCORE)
 #define MPS_PROD_EPCORE
 #define ARENA_CLIENT
-#define ARENA_SIZE                      ((Size)0) /* bogus for client arena */
 #define ARENA_CLIENT_PAGE_SIZE          ((Size)8192)
 #define ARENA_CLIENT_DEFAULT_SEG_HIGH   TRUE
 /* .nosync.why: ScriptWorks is single-threaded when using the MM. */
@@ -102,16 +101,17 @@
 #endif
 
 
-/* Space Configuration -- see impl.c.space */
+/* Arena Configuration -- see impl.c.arena */
 
-#define SPACE_CONTROL_EXTENDBY  ((Size)4096)
-#define SPACE_CONTROL_AVGSIZE   ((Size)32)
-#define SPACE_CONTROL_MAXSIZE   ((Size)65536)
-#define SPACE_POLL_MAX          ((Size)262144)
-#define SPACE_LD_LENGTH         ((Size)4)
+#define ARENA_CONTROL_EXTENDBY  ((Size)4096)
+#define ARENA_CONTROL_AVGSIZE   ((Size)32)
+#define ARENA_CONTROL_MAXSIZE   ((Size)65536)
+#define ARENA_POLL_MAX          ((Size)262144)
+#define ARENA_LD_LENGTH         ((Size)4)
+#define ARENA_ZONESHIFT         ((Shift)20)
 
 
-/* Arena Configuration -- see impl.c.arena* */
+/* ANSI Arena Configuration -- see impl.c.arenaan */
 
 #define ARENA_ANSI_ALIGN        ((Align)4096)
 #define ARENA_ANSI_ZONESHIFT    ((Shift)20)
