@@ -1,6 +1,6 @@
 /* impl.c.pool: POOL IMPLEMENTATION
  *
- * $HopeName: MMsrc!pool.c(MMdevel_ptw_pseudoloci.1) $
+ * $HopeName: MMsrc!pool.c(MMdevel_ptw_pseudoloci.2) $
  * Copyright (C) 1997. Harlequin Group plc. All rights reserved.
  *
  * READERSHIP
@@ -37,7 +37,7 @@
 
 #include "mpm.h"
 
-SRCID(pool, "$HopeName: MMsrc!pool.c(MMdevel_ptw_pseudoloci.1) $");
+SRCID(pool, "$HopeName: MMsrc!pool.c(MMdevel_ptw_pseudoloci.2) $");
 
 
 Bool PoolClassCheck(PoolClass class)
@@ -132,9 +132,6 @@ Res PoolInitV(Pool pool, Arena arena,
   pool->fillInternalSize = 0.0;
   pool->emptyInternalSize = 0.0;
 
-  /* Initialize the locus client  */
-  LocusClientInit(PoolLocusClient(pool), ArenaLocusManager(arena));
-  
   /* Initialise signature last; see design.mps.sig */
   pool->sig = PoolSig;
   pool->serial = arena->poolSerial;
@@ -142,6 +139,9 @@ Res PoolInitV(Pool pool, Arena arena,
 
   AVERT(Pool, pool);
 
+  /* Initialize the locus client  */
+  LocusClientInit(PoolLocusClient(pool), ArenaLocusManager(arena));
+  
   /* Do class-specific initialization. */
   res = (*class->init)(pool, args);
   if(res != ResOK)
@@ -221,6 +221,9 @@ void PoolFinish(Pool pool)
   
   /* Do any class-specific finishing. */
   (*pool->class->finish)(pool);
+
+  /* Finish the locus client  */
+  LocusClientFinish(PoolLocusClient(pool));
 
   /* Detach the pool from the arena, and unsig it. */
   RingRemove(&pool->arenaRing);
@@ -458,6 +461,37 @@ void PoolWalk(Pool pool, Seg seg, FormattedObjectsStepMethod f,
   (*pool->class->walk)(pool, seg, f, p, s);
 }
 
+
+/* PoolName -- Name protocol for pools.  Prints a short, descriptive
+   name to stream */
+Res PoolName(Pool pool, mps_lib_FILE *stream)
+{
+  Res res;
+  
+  AVERT(Pool, pool);
+  AVER(stream != NULL);
+  
+  res = WriteF(stream,
+               "<$S ", (WriteFS)pool->class->name,
+               NULL);
+  if (res != ResOK)
+    return res;
+  
+  /* @@@
+   * res = (*pool->class->name)(pool, stream)
+   * if (res != ResOK)
+   *   return res;
+   */
+  
+  res = WriteF(stream,
+               " $P ($U)>",
+               (WriteFP)pool, (WriteFU)pool->serial,
+               NULL);
+  if (res != ResOK)
+    return res;
+  
+  return ResOK;
+}
 
 
 Res PoolDescribe(Pool pool, mps_lib_FILE *stream)
