@@ -1,12 +1,12 @@
 /* impl.c.trace: GENERIC TRACER IMPLEMENTATION
  *
- * $HopeName: !trace.c(trunk.31) $
+ * $HopeName: MMsrc!trace.c(trunk.31) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  */
 
 #include "mpm.h"
 
-SRCID(trace, "$HopeName: !trace.c(trunk.31) $");
+SRCID(trace, "$HopeName: MMsrc!trace.c(trunk.31) $");
 
 
 /* ScanStateCheck -- check consistency of a ScanState object */
@@ -59,6 +59,7 @@ Bool TraceCheck(Trace trace)
   CHECKL(TraceIdCheck(trace->ti));
   CHECKL(trace == &trace->space->trace[trace->ti]);
   CHECKL(TraceSetIsMember(trace->space->busyTraces, trace->ti));
+  CHECKL(RankSetCheck(trace->grey));
   /* Can't check trace->white -- not in O(1) anyway. */
   /* Use trace->state to check more invariants. */
   switch(trace->state) {
@@ -266,6 +267,10 @@ found:
   trace->ti = ti;
   trace->state = TraceINIT;
   trace->interval = (Size)4096; /* @@@@ should be progress control */
+  /* We conservatively assume that there may be grey segments at all */
+  /* ranks when we create the trace.  (almost certainly we could do */
+  /* better) */
+  trace->grey = RankSetUNIV;
 
   trace->sig = TraceSig;
   AVERT(Trace, trace);
@@ -302,6 +307,7 @@ void TraceDestroy(Trace trace)
 {
   AVERT(Trace, trace);
   AVER(trace->state == TraceFINISHED);
+  AVER(trace->grey == RankSetEMPTY);
   
   PoolTraceEnd(trace->action->pool, trace, trace->action);
   
@@ -332,9 +338,15 @@ void TraceSegGreyen(Space space, Seg seg, TraceSet ts)
 
   grey = SegGrey(seg);
   grey = TraceSetUnion(grey, ts);
-  if(grey != SegGrey(seg) &&
-     TraceSetInter(grey, space->flippedTraces) != TraceSetEMPTY)
-    ShieldRaise(space, seg, AccessREAD);
+  if(grey != SegGrey(seg)) {
+    /* Currently we assume that there is only one trace.  */
+    /* This makes it simpler to greyen each trace. */
+    AVER(ts == 1); /* @@@@ Hack */
+    SpaceTrace(space, 0)->grey =
+      RankSetUnion(SpaceTrace(space, 0)->grey, SegRankSet(seg));
+    if(TraceSetInter(grey, space->flippedTraces) != TraceSetEMPTY)
+      ShieldRaise(space, seg, AccessREAD);
+  }
   SegSetGrey(seg, grey);
   EVENT3(TraceSegGreyen, space, seg, ts);
 }
@@ -537,26 +549,34 @@ static Bool FindGrey(Seg *segReturn, Rank *rankReturn,
                      Space space, TraceId ti)
 {
   Rank rank;
+  Trace trace;
   Seg seg;
 
   AVER(segReturn != NULL);
   AVERT(Space, space);
   AVER(TraceIdCheck(ti));
+
+  trace = SpaceTrace(space, ti);
   
   for(rank = 0; rank < RankMAX; ++rank) {
-    if(SegFirst(&seg, space)) {
-      Addr base;
-      do {
-	base = SegBase(space, seg);
-	if(RankSetIsMember(SegRankSet(seg), rank) &&
-	   TraceSetIsMember(SegGrey(seg), ti)) {
-	  *segReturn = seg;
-	  *rankReturn = rank;
-	  return TRUE;
-	}
-      } while(SegNext(&seg, space, base));
+    if(RankSetIsMember(trace->grey, rank)) {
+      if(SegFirst(&seg, space)) {
+	Addr base;
+	do {
+	  base = SegBase(space, seg);
+	  if(RankSetIsMember(SegRankSet(seg), rank) &&
+	     TraceSetIsMember(SegGrey(seg), ti)) {
+	    *segReturn = seg;
+	    *rankReturn = rank;
+	    return TRUE;
+	  }
+	} while(SegNext(&seg, space, base));
+      }
+      trace->grey = RankSetDel(trace->grey, rank);
     }
   }
+
+  AVER(trace->grey == RankSetEMPTY);
 
   return FALSE;
 }
