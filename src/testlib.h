@@ -1,6 +1,6 @@
 /*  ==== TEST LIBRARY ====
  *
- *  $HopeName: MMsrc!testlib.h(trunk.7) $
+ *  $HopeName: !testlib.h(trunk.8) $
  *
  *  Copyright (C) 1995, 1997 Harlequin Group, all rights reserved
  *
