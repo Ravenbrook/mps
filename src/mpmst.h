@@ -1,6 +1,6 @@
 /* impl.h.mpmst: MEMORY POOL MANAGER DATA STRUCTURES
  *
- * $HopeName: MMsrc!mpmst.h(MMdevel_event.1) $
+ * $HopeName: MMsrc!mpmst.h(MMdevel_event.2) $
  * Copyright (C) 1996 Harlequin Group, all rights reserved.
  *
  * .rationale: Almost all MPM data structures are defined in this
@@ -34,16 +34,6 @@
 typedef struct RingStruct {     /* double-ended queue structure */
   Ring next, prev;              /* links to next and prev element */
 } RingStruct;
-
-
-/* EventPointStruct -- event allocation point structure
- *
- * See impl.c.event.
- */
-
-typedef struct EventPointStruct {
-  Word *base, *init, *limit;
-} EventPointStruct;
 
 
 /* PoolClassStruct -- pool class structure
@@ -518,7 +508,6 @@ typedef struct SpaceStruct {
   LockStruct lockStruct;        /* space's lock */
   Size pollThreshold;           /* see SpacePoll() */
   Bool insidePoll;              /* prevent recursive polling */
-  EventPoint eventPoint;	/* event output point */
 
   /* arena fields (impl.c.arena*) */
   ArenaStruct arenaStruct;      /* the arena */

@@ -1,6 +1,6 @@
 /* impl.c.pool: POOL IMPLEMENTATION
  *
- * $HopeName: MMsrc!pool.c(MMdevel_event.1) $
+ * $HopeName: MMsrc!pool.c(MMdevel_event.2) $
  * Copyright (C) 1994,1995,1996 Harlequin Group, all rights reserved
  *
  * This is the implementation of the generic pool interface.  The
@@ -9,7 +9,7 @@
 
 #include "mpm.h"
 
-SRCID(pool, "$HopeName: MMsrc!pool.c(MMdevel_event.1) $");
+SRCID(pool, "$HopeName: MMsrc!pool.c(MMdevel_event.2) $");
 
 
 Bool PoolClassCheck(PoolClass class)
@@ -94,7 +94,7 @@ Res PoolInitV(Pool pool, Space space, PoolClass class, va_list args)
 
   RingAppend(SpacePoolRing(space), &pool->spaceRing);
 
-  EVENT3(space, POOL_INIT, pool, space, class);
+  EVENT3(POOL_INIT, pool, space, class);
 
   return ResOK;
 
@@ -166,7 +166,7 @@ void PoolFinish(Pool pool)
   RingFinish(&pool->bufferRing);
   RingFinish(&pool->spaceRing);
   
-  EVENT1(pool->space, POOL_FINISH, pool);
+  EVENT1(POOL_FINISH, pool);
 }
 
 void PoolDestroy(Pool pool)
@@ -203,7 +203,7 @@ Res (PoolAlloc)(Addr *pReturn, Pool pool, Size size)
   /* Make sure that the allocated address was in the pool's memory. */
   AVER(PoolHasAddr(pool, *pReturn));
 
-  EVENT3(pool->space, POOL_ALLOC, (Word)pool, (Word)*pReturn, (Word)size);
+  EVENT3(POOL_ALLOC, (Word)pool, (Word)*pReturn, (Word)size);
 
   return ResOK;
 }
@@ -215,7 +215,7 @@ void (PoolFree)(Pool pool, Addr old, Size size)
   AVER(PoolHasAddr(pool, old));
   (*pool->class->free)(pool, old, size);
   
-  EVENT3(pool->space, POOL_ALLOC, (Word)pool, (Word)old, (Word)size);
+  EVENT3(POOL_FREE, (Word)pool, (Word)old, (Word)size);
 }
 
 Res (PoolCondemn)(RefSet *condemnedReturn, Pool pool,
