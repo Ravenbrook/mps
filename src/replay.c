@@ -1,7 +1,7 @@
 /* impl.c.replay: Allocation replayer
  * Copyright (C) 1999 Harlequin Group plc.  All rights reserved.
  *
- * $HopeName: MMsrc!replay.c(MMdevel_alloc_replay.1) $
+ * $HopeName: MMsrc!replay.c(MMdevel_alloc_replay.2) $
  */
 
 #include "config.h"
@@ -12,17 +12,6 @@
 #include "eventpro.h"
 #include "eventrep.h"
 #include "mpmtypes.h"
-
-#include "mps.h"
-#include "mpsavm.h"
-#include "mpsacl.h"
-#include "mpscmv.h"
-#include "mpscmvff.h"
-#include "mpscepvm.h"
-#include "fmtpstst.h"
-#include "mpscepdl.h"
-
-#include "table.h"
 
 #include <stddef.h> /* for size_t */
 #include <stdio.h> /* for printf */
@@ -175,7 +164,7 @@ int main(int argc, char *argv[])
       error("unable to open \"%s\"\n", filename);
   }
 
-  res = EventProcInit(&proc, partialLog, logReader, (void *)input);
+  res = EventProcCreate(&proc, partialLog, logReader, (void *)input);
   if (res != ResOK)
     error("Can't init EventProc module: error %d.", res);
 
@@ -186,6 +175,6 @@ int main(int argc, char *argv[])
   readLog(proc);
 
   EventRepFinish();
-  EventProcFinish(proc);
+  EventProcDestroy(proc);
   return EXIT_SUCCESS;
 }

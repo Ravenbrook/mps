@@ -1,7 +1,7 @@
 /* impl.c.eventcnv: Simple event log converter
  * Copyright (C) 1999 Harlequin Group plc.  All rights reserved.
  *
- * $HopeName: MMsrc!eventcnv.c(MMdevel_alloc_replay.1) $
+ * $HopeName: MMsrc!eventcnv.c(MMdevel_alloc_replay.2) $
  */
 
 #include "config.h"
@@ -607,12 +607,12 @@ int main(int argc, char *argv[])
       error("unable to open \"%s\"\n", filename);
   }
 
-  res = EventProcInit(&proc, partialLog, logReader, (void *)input);
+  res = EventProcCreate(&proc, partialLog, logReader, (void *)input);
   if (res != ResOK)
     error("Can't init EventProc module: error %d.", res);
 
   readLog(proc);
 
-  EventProcFinish(proc);
+  EventProcDestroy(proc);
   return EXIT_SUCCESS;
 }
