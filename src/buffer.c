@@ -1,6 +1,6 @@
 /* impl.c.buffer: ALLOCATION BUFFER IMPLEMENTATION
  *
- * $HopeName: MMsrc!buffer.c(MMdevel_action2.2) $
+ * $HopeName: MMsrc!buffer.c(MMdevel_action2.3) $
  * Copyright (C) 1996 Harlequin Group, all rights reserved
  *
  * This is (part of) the implementation of allocation buffers.
@@ -29,7 +29,7 @@
 
 #include "mpm.h"
 
-SRCID(buffer, "$HopeName: MMsrc!buffer.c(MMdevel_action2.2) $");
+SRCID(buffer, "$HopeName: MMsrc!buffer.c(MMdevel_action2.3) $");
 
 
 /* BufferCheck
@@ -127,7 +127,6 @@ Res BufferInit(Buffer buffer, Pool pool, Rank rank)
   buffer->apStruct.limit = (Addr)0;
   buffer->alignment = pool->alignment; /* .trans.mod */
   RingInit(&buffer->poolRing);
-  buffer->shieldMode = AccessSetEMPTY;
   buffer->p = NULL;
   buffer->i = 0;
 
@@ -456,7 +455,6 @@ Res BufferDescribe(Buffer buffer, mps_lib_FILE *stream)
            buffer->base, buffer->apStruct.init,
 	   buffer->apStruct.alloc, buffer->apStruct.limit,
          "  alignment $W\n",   (WriteFW)buffer->alignment,
-         "  shieldMode $B\n",  (WriteFB)buffer->shieldMode,
          "  p $P  i $U\n",     buffer->p, (WriteFU)buffer->i,
          "} Buffer $P ($U)\n", (WriteFP)buffer, (WriteFU)buffer->serial,
          NULL);

@@ -1,6 +1,6 @@
 /* impl.h.mpmst: MEMORY POOL MANAGER DATA STRUCTURES
  *
- * $HopeName: MMsrc!mpmst.h(MMdevel_action2.5) $
+ * $HopeName: MMsrc!mpmst.h(MMdevel_action2.6) $
  * Copyright (C) 1996,1997 Harlequin Group, all rights reserved.
  *
  * .readership: MM developers.
@@ -360,9 +360,8 @@ typedef struct BufferStruct {
   APStruct apStruct;            /* the allocation point */
   Align alignment;              /* allocation alignment */
   RingStruct poolRing;          /* buffers are attached to pools */
-  AccessSet shieldMode;         /* shielding for allocated memory */
-  void *p;
-  int i;                        /* (p and i) closure variables (for pool) */
+  void *p;			/* closure variable for pool */
+  int i;                        /* closure variable for pool */
 } BufferStruct;
 
 
