@@ -1,6 +1,6 @@
 /* impl.h.meter: METER INTERFACE
  *
- * $HopeName: !meter.h(trunk.2) $
+ * $HopeName: MMsrc!meter.h(MMdevel_mv2_rework.1) $
  * Copyright (C) 1998 Harlequin Group plc.  All rights reserved.
  *
  * Defines an interface for creating "meters" that accumulate the
@@ -51,7 +51,7 @@ extern Res MeterWrite(Meter meter, mps_lib_FILE *stream);
     (void)sizeof(expr); \
   END
 
-#if defined(MPS_HOT_WHITE) || defined (MPS_HOT_RED)
+#if defined(MPS_HOT_WHITE)
 
 #define METER_DECL(meter) struct MeterStruct meter
 #define METER_INIT(meter, init) \
@@ -62,7 +62,7 @@ extern Res MeterWrite(Meter meter, mps_lib_FILE *stream);
   METER_IGNORE(meter); METER_IGNORE(stream)
 
 
-#elif defined(MPS_COOL)
+#elif defined(MPS_COOL) || defined(MPS_HOT_RED)
 
 #define METER_DECL(meter) struct MeterStruct meter
 #define METER_INIT(meter, init) (MeterInit(&(meter), (init)))
