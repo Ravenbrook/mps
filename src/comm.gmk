@@ -1,6 +1,6 @@
 # impl.gmk.comm: COMMON GNUMAKEFILE FRAGMENT
 #
-# $HopeName: MMsrc!comm.gmk(MMdevel_dropin.2) $
+# $HopeName: MMsrc!comm.gmk(MMdevel_dropin.3) $
 # Copyright (C) 1995,1996,1997 Harlequin Group, all rights reserved
 #
 # DESCRIPTION
@@ -11,13 +11,23 @@
 # VARIABLES
 #
 # Assumes the following variables and definitions:
-# CFLAGSCOMPILER    a list of flags that should be passed
-#   to the compiler for all compilations.
-# CFLAGSDEBUG       a list of flags that should be passed
-#   to the compiler for debug compilations.
-# CFLAGSOPTIMIZE    a list of flags that should be passed
-#   to the compiler for optimize compilations.
 # CC                the command for the C compiler.
+# CFLAGSCOMPILER    a list of flags that should be passed
+#   to the C compiler for all compilations.
+# CFLAGSDEBUG       a list of flags that should be passed
+#   to the C compiler for debug compilations.
+# CFLAGSOPTIMIZE    a list of flags that should be passed
+#   to the C compiler for optimize compilations.
+# CPPC              the command for the C++ compiler.
+# CPPFLAGSCOMPILER  a list of flags that should be passed
+#   to the C++ compiler for all compilations.
+# CPPFLAGSDEBUG     a list of flags that should be passed
+#   to the C++ compiler for debug compilations.
+# CPPFLAGSOPTIMIZE  a list of flags that should be passed
+#   to the C++ compiler for optimize compilations.
+# AR                the command for the archiver.
+# ARFLAGS           a list of flags that should be passed
+#   to the archiver.
 # gendep            optionally defined to be a command sequence
 #   for generating the dependency file (.d) from a C file (.c)
 #   it is used in a rule of the form:
@@ -37,6 +47,7 @@
 #   SW		as above for the "sw" part
 #   TESTLIB	as above for the "testlib" part
 #   LIBS	extra libraries to include in tests (usually "-lm")
+#   CLIBS	extra libraries to include in tests (usually "-lg++")
 #   NOISY	if defined and non-empty, causes commands to be emitted
 #
 #
@@ -68,6 +79,29 @@ error "comm.gmk: CFLAGSDEBUG not defined"
 endif
 ifndef CFLAGSOPTIMIZE
 error "comm.gmk: CFLAGSOPTIMIZE not defined"
+endif
+
+ifndef CPPC
+# Can't check, until we have attempted to provide it on all platforms,
+#error "comm.gmk: CPPC not defined"
+else
+# but if it is defined, check the other variables.
+ifndef CPPFLAGSCOMPILER
+error "comm.gmk: CPPFLAGSCOMPILER not defined"
+endif
+ifndef CPPFLAGSDEBUG
+error "comm.gmk: CPPFLAGSDEBUG not defined"
+endif
+ifndef CPPFLAGSOPTIMIZE
+error "comm.gmk: CPPFLAGSOPTIMIZE not defined"
+endif
+endif
+
+ifndef AR
+error "comm.gmk: AR not defined"
+endif
+ifndef ARFLAGS
+error "comm.gmk: ARFLAGS not defined"
 endif
 
 #
@@ -123,6 +157,10 @@ endif
 CFLAGSCOMMON = \
 	$(PFMDEFS) $(CFLAGSTARGET) \
 	$(CFLAGSCOMPILER)
+
+CPPFLAGSCOMMON = \
+	$(PFMDEFS) $(CFLAGSTARGET) \
+	$(CPPFLAGSCOMPILER)
 
 # %%VARIETY: Define a macro containing the set of flags for the new
 #            variety.
@@ -180,18 +218,23 @@ endif
 # %%VARIETY: Add a test for the variety and set CFLAGS here.
 ifeq ($(VARIETY),dp)
 CFLAGS=$(CFLAGSCOMMON) $(CFDP)
+CPPFLAGS=$(CPPFLAGSCOMMON) $(CPPFLAGSDEBUG)
 else
 ifeq ($(VARIETY),dl)
 CFLAGS=$(CFLAGSCOMMON) $(CFDL)
+CPPFLAGS=$(CPPFLAGSCOMMON) $(CPPFLAGSDEBUG)
 else
 ifeq ($(VARIETY),ro)
 CFLAGS=$(CFLAGSCOMMON) $(CFRO)
+CPPFLAGS=$(CPPFLAGSCOMMON) $(CPPFLAGSOPTIMIZE)
 else
 ifeq ($(VARIETY),df)
 CFLAGS=$(CFLAGSCOMMON) $(CFDF)
+CPPFLAGS=$(CPPFLAGSCOMMON) $(CPPFLAGSDEBUG)
 else
 ifeq ($(VARIETY),ds)
 CFLAGS=$(CFLAGSCOMMON) $(CFDS)
+CPPFLAGS=$(CPPFLAGSCOMMON) $(CPPFLAGSDEBUG)
 endif
 endif
 endif
@@ -343,6 +386,16 @@ endef
 $(PFM)/$(VARIETY)/%.o: %.c
 	$(run-cc)
 
+define run-cppc
+$(ECHO) "$(PFM): $@"
+test -d $(PFM) || mkdir $(PFM)
+test -d $(PFM)/$(VARIETY) || mkdir $(PFM)/$(VARIETY)
+$(CPPC) $(CPPFLAGS) -c -o $@ $<
+endef
+
+$(PFM)/$(VARIETY)/%.o: %.cpp
+	$(run-cppc)
+
 $(PFM)/$(VARIETY)/%.o: %.s
 	$(run-cc)
 
@@ -383,6 +436,6 @@ $(PFM)/$(VARIETY)/%.a:
 
 $(PFM)/$(VARIETY)/%:
 	$(ECHO) "$(PFM): $@"
-	$(CC) -o $@ $^ $(LIBS)
+	$(CC) -o $@ $^ $(LIBS) $(CLIBS)
 
 # End of makefile.
