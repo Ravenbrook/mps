@@ -1,6 +1,6 @@
 /* impl.c.protsu: PROTECTION FOR SUNOS
  *
- * $HopeName: !protsu.c(trunk.8) $
+ * $HopeName: MMsrc!protsu.c(MMdevel_config_thread.1) $
  * Copyright (C) 1995,1996,1997 Harlequin Group, all rights reserved
  *
  * READERSHIP
@@ -22,14 +22,17 @@
 
 #include "mpm.h"
 
-#include <sys/mman.h>
-#include <signal.h>
-
 #ifndef MPS_OS_SU
 #error "protsu.c is SunOS 4 specific, but MPS_OS_SU is not set"
 #endif
+#ifndef PROTECTION
+#error "protsu.c implements protection, but PROTECTION is not set"
+#endif
 
-SRCID(protsu, "$HopeName: !protsu.c(trunk.8) $");
+#include <sys/mman.h>
+#include <signal.h>
+
+SRCID(protsu, "$HopeName: MMsrc!protsu.c(MMdevel_config_thread.1) $");
 
 
 /* Fix up unprototyped system calls. */
@@ -63,7 +66,7 @@ typedef void (*handler_t)(int, int, struct sigcontext *, char *);
 static handler_t sigNext = NULL;
 
 
-/* == sigHandle -- protection signal handler ==
+/* sigHandle -- protection signal handler
  *
  * This is the signal handler installed by ProtSetup to deal with
  * protection faults.  It is installed on the SIGSEGV signal.
@@ -227,8 +230,9 @@ void ProtSync(Space space)
 void ProtTramp(void **resultReturn, void *(*f)(void *, size_t),
                void *p, size_t s)
 {
-  AVER(f != NULL);
   AVER(resultReturn != NULL);
+  AVER(FUNCHECK(f));
+  /* Can't check p and s as they are interpreted by the client */
 
   *resultReturn = (*f)(p, s);
 }
