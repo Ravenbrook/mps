@@ -2,16 +2,16 @@
  *
  * Copyright (c) 2001 Ravenbrook Limited.
  * $Id$
- * 
+ *
  * .purpose: This is a pool class for EPcore display lists. See
  * impl.c.poolepdl.purpose.
- * 
+ *
  * .status: See impl.c.poolepdl.status.
- * 
+ *
  * .readership: MM developers
- * 
+ *
  * .design: design.mps.poolepdl
- * 
+ *
  * .req: See impl.c.poolepdl.req
  */
 

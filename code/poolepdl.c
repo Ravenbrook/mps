@@ -1,5 +1,5 @@
 /* impl.c.poolepdl: ELECTRONIC PUBLISHING DISPLAY LIST POOL
- * 
+ *
  * $Id$
  * Copyright (c) 2001 Ravenbrook Limited.
  *
@@ -166,7 +166,7 @@ static Res EPDLNewBlock(EPDLBlock *blockReturn, EPDL epdl,
   block->base = base;
   block->limit = limit;
   block->size = size;
- 
+
   AVERT(EPDLBlock, block);
 
   *blockReturn = block;
@@ -309,7 +309,7 @@ static void EPDLBlockFreeSegs(EPDL epdl, EPDLBlock block)
       SegFree(seg);
       freeLimit = segLimit;
     }
-    
+   
     EPDLRemoveAreaFromFreeList(epdl, block, freeBase, freeLimit);
   }
 }
@@ -335,7 +335,7 @@ static Res EPDLAddToFreeList(EPDLBlock *blockReturn, EPDL epdl,
   size = AddrOffset(base, limit);
 
   next = epdl->freeList;
-  
+ 
   if ((next != NULL) && (next->limit <= base)) {
     /* this is not the first block */
     do { /* find blocks immediately before and after */
@@ -343,10 +343,10 @@ static Res EPDLAddToFreeList(EPDLBlock *blockReturn, EPDL epdl,
       prev = next;
       next = prev->next;
     } while((next != NULL) && (next->limit <= base));
-    
+   
     AVER(base >= prev->limit);
     AVER((next == NULL) || (limit <= next->base));
-    
+   
     if ((next != NULL) && (limit == next->base)) { /* merge with next */
       next->base = base;
       next->size += size;
@@ -430,14 +430,14 @@ static Res EPDLAddSeg(EPDL epdl, Size size, Bool withReservoirPermit)
 
   segSize = SizeAlignUp(segSize, align);
 
-  res = SegAlloc(&seg, SegClassGet(), epdl->segPref, segSize, pool, 
+  res = SegAlloc(&seg, SegClassGet(), epdl->segPref, segSize, pool,
                  withReservoirPermit);
   if(res != ResOK) {
     DEBUG_INC(segAddFail);
     /* try again for a seg just large enough for object */
     /* see design.mps.poolepdl.design.segFail */
     segSize = SizeAlignUp(size, align);
-    res = SegAlloc(&seg, SegClassGet(), epdl->segPref, segSize, pool, 
+    res = SegAlloc(&seg, SegClassGet(), epdl->segPref, segSize, pool,
                    withReservoirPermit);
     if (res != ResOK) {
       DEBUG_INC(segAddFailTwo);
@@ -659,7 +659,7 @@ static Res EPDLInitComm(Pool pool, SegPrefKind segPrefKind, va_list arg)
   AVERT(Pool, pool);
 
   /* .arg: class-specific additional arguments; see design.mps.poolepdl.arg */
-  /* .arg.check: we do the same three checks here and in EPDLCheck */ 
+  /* .arg.check: we do the same three checks here and in EPDLCheck */
   extendBy = va_arg(arg, Size);
   avgSize = va_arg(arg, Size);
   align = va_arg(arg, Size);
@@ -678,19 +678,19 @@ static Res EPDLInitComm(Pool pool, SegPrefKind segPrefKind, va_list arg)
   /* see design.mps.poolepdl.design.blockExtend */
   blockExtendBy = sizeof(EPDLBlockStruct) * 64;
 
-  res = PoolCreate(&epdl->blockPool, 
-                   arena, PoolClassMFS(), 
+  res = PoolCreate(&epdl->blockPool,
+                   arena, PoolClassMFS(),
                    blockExtendBy, sizeof(EPDLBlockStruct));
   if(res != ResOK)
     return res;
 
-  res = ControlAlloc(&p, arena, sizeof(SegPrefStruct), 
+  res = ControlAlloc(&p, arena, sizeof(SegPrefStruct),
                      /* withReservoirPermit */ FALSE);
   if (res != ResOK) {
     PoolDestroy(epdl->blockPool);
     return res;
   }
-  
+ 
   epdl->segPref = (SegPref)p;
   *epdl->segPref = *SegPrefDefault();
   SegPrefExpress(epdl->segPref, segPrefKind, NULL);
@@ -846,7 +846,7 @@ static Res EPDLDescribe(Pool pool, mps_lib_FILE *stream)
                DEBUG_WRITE(mergeAbove)
                DEBUG_WRITE(mergeBoth)
                NULL);
-  return res;               
+  return res;              
 }
 
 
@@ -938,7 +938,7 @@ size_t mps_epdl_free_size(mps_pool_t mps_pool)
   AVERT(Pool, pool);
   epdl = PoolPoolEPDL(pool);
   AVERT(EPDL, epdl);
-  
+ 
   return (size_t)epdl->free;
 }
 
@@ -956,7 +956,7 @@ size_t mps_epdl_size(mps_pool_t mps_pool)
   AVERT(EPDL, epdl);
 
   return (size_t)epdl->total;
-} 
+}
 
 
 /* EPDLCheck -- check the consistency of an EPDL structure */
@@ -973,7 +973,7 @@ static Bool EPDLCheck(EPDL epdl)
   CHECKL(epdl->avgSize <= epdl->extendBy);      /* see .arg.check */
   /* the free and lost bytes are disjoint subsets of the total */
   CHECKL(epdl->total >= epdl->free + epdl->lost);
-  CHECKL(SizeIsAligned(epdl->free, EPDLPool(epdl)->alignment)); 
+  CHECKL(SizeIsAligned(epdl->free, EPDLPool(epdl)->alignment));
   CHECKL(SizeIsAligned(epdl->lost, EPDLPool(epdl)->alignment));
   CHECKL(SizeIsAligned(epdl->total, ArenaAlign(PoolArena(EPDLPool(epdl)))));
   /* free list is empty if and only if it has zero length */

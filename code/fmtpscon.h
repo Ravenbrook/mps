@@ -7,7 +7,7 @@
  *
  * .purpose: This contains definitions for a simplified version of the
  * PS object format for internal MM tests.
- * 
+ *
  * .history: Adapted from SWv20!export:objects.h(1.26),
  * SWv20iface!export:swvalues.h(1.2), SWv20!export:forward.h(1.7), and
  * SWstandard!export:hqtypes.h(1.17).

@@ -62,7 +62,7 @@ static mps_res_t stress(mps_class_t class, mps_arena_t arena,
       int j = rnd()%(testSetSIZE-i);
       void *tp;
       size_t ts;
-      
+     
       tp = ps[j]; ts = ss[j];
       ps[j] = ps[i]; ss[j] = ss[i];
       ps[i] = tp; ss[i] = ts;
@@ -82,7 +82,7 @@ static mps_res_t stress(mps_class_t class, mps_arena_t arena,
       if (res != MPS_RES_OK) return res;
     }
   }
-    
+   
   mps_pool_destroy(pool);
 
   return MPS_RES_OK;

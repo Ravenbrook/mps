@@ -38,7 +38,7 @@ typedef struct EPVMSegStruct {
 
 
 /* EPVMSaveStruct -- Save level info
- * 
+ *
  * See design.mps.poolepvm.arch.save.  */
 
 #define EPVMSaveSig     ((Sig)0x519EBF35) /* SIGnature EPVM Save */
@@ -154,7 +154,7 @@ static Bool EPVMSegCheck(EPVMSeg epvmSeg)
 
 /* EPVMSegInit -- initialise an epvm segment */
 
-static Res EPVMSegInit(Seg seg, Pool pool, Addr base, Size size, 
+static Res EPVMSegInit(Seg seg, Pool pool, Addr base, Size size,
                        Bool reservoirPermit, va_list args)
 {
   SegClass super;
@@ -217,7 +217,7 @@ static void EPVMSegFinish(Seg seg)
   /* finish the superclass fields last */
   super = SEG_SUPERCLASS(EPVMSegClass);
   super->finish(seg);
-}  
+} 
 
 
 /* EPVMSegDescribe -- describe an EPVM segment */
@@ -229,12 +229,12 @@ static Res EPVMSegDescribe(Seg seg, mps_lib_FILE *stream)
   SegClass super;
 
   /* .describe.check: Debugging tools don't AVER things. */
-  if (!CHECKT(Seg, seg)) 
+  if (!CHECKT(Seg, seg))
     return ResFAIL;
-  if (stream == NULL) 
+  if (stream == NULL)
     return ResFAIL;
   epvmSeg = Seg2EPVMSeg(seg);
-  if (!CHECKT(EPVMSeg, epvmSeg)) 
+  if (!CHECKT(EPVMSeg, epvmSeg))
     return ResFAIL;
 
   /* Describe the superclass fields first via next-method call */
@@ -362,7 +362,7 @@ static Res EPVMIterate(Seg seg, AMSObjectFunction f, void *closure);
 
 
 /* EPVMInit -- the pool class initialization method
- * 
+ *
  * Takes three additional arguments: the format of the objects allocated
  * in the pool, the maximum save level, and the current save level.  */
 
@@ -427,7 +427,7 @@ failAMSInit:
 
 
 /* EPVMFinish -- the pool class finishing method
- * 
+ *
  * Destroys all the segs in the pool.  Can't invalidate the EPVM until
  * we've destroyed all the segs, as it may be checked.  */
 
@@ -488,10 +488,10 @@ static Res EPVMBufferInit (Buffer buffer, Pool pool, va_list args)
 }
 
 
-/* EPVMBufferClass -- EPVMBufferClass class definition 
+/* EPVMBufferClass -- EPVMBufferClass class definition
  *
  * Like SegBufClass, but with special initialization.  */
- 
+
 DEFINE_BUFFER_CLASS(EPVMBufferClass, class)
 {
   INHERIT_CLASS(class, SegBufClass);
@@ -502,7 +502,7 @@ DEFINE_BUFFER_CLASS(EPVMBufferClass, class)
 
 
 /* EPVMIterate -- applies a function to each allocated grain in a seg
- * 
+ *
  * EPVMIterate (seg, f, closure) applies f to all the allocated grains
  * in the seg.  See design.mps.poolepvm.low.iterate.  */
 
@@ -640,7 +640,7 @@ static Res EPVMFix(Pool pool, ScanState ss, Seg seg, Ref *refIO)
 
 
 /* EPVMDescribe -- the pool class description method
- * 
+ *
  * Iterates over the segments, describing all of them.  */
 
 static Res EPVMDescribe(Pool pool, mps_lib_FILE *stream)
@@ -754,7 +754,7 @@ mps_class_t mps_class_epvm(void)
 
 
 /* mps_epvm_check -- check if a pointer points to an EPVM pool
- * 
+ *
  * See design.mps.poolepvm.low.check.  */
 
 mps_bool_t mps_epvm_check(mps_pool_t *mps_pool_o,
@@ -770,7 +770,7 @@ mps_bool_t mps_epvm_check(mps_pool_t *mps_pool_o,
   Arena arena = (Arena)mps_arena;
 
   ArenaEnter(arena);
-  
+ 
   AVER(mps_pool_o != NULL);
   AVER(mps_level_o != NULL);
   AVER(mps_addr != NULL);
@@ -779,7 +779,7 @@ mps_bool_t mps_epvm_check(mps_pool_t *mps_pool_o,
   b = SegOfAddr(&seg, arena, addr);
   if (!b)
     goto returnFalse;
-  
+ 
   pool = SegPool(seg);
   if (pool->class != EPVMPoolClassGet())
     goto returnFalse;

@@ -104,15 +104,15 @@ static int32 fSPROReadDongle(
 /* -------- Private Data -------- */
 
 static uint8 scrambled_eggs [] = {
-    /*  0 */ 0x12, 
-    /*  1 */ 0x15, 
-    /*  2 */ 0x88, 
+    /*  0 */ 0x12,
+    /*  1 */ 0x15,
+    /*  2 */ 0x88,
     /*  3 */ 0x45,
-    /*  4 */ 0x10, 
+    /*  4 */ 0x10,
     /*  5 */ 0xc7,
     /*  6 */ 0x77,
     /*  7 */ 0x64,
-    /*  8 */ 0x36, 
+    /*  8 */ 0x36,
     /*  9 */ 0xaf,
     /* 10 */ 0xc4,
     /* 11 */ 0xd6,
@@ -123,7 +123,7 @@ static uint8 scrambled_eggs [] = {
 };
 
 /* initial values not used, just there to confuse the issue */
-static uint8 ketchup [] = { 
+static uint8 ketchup [] = {
     0x10, 0xc7, 0x77, 0x64
 };
 
@@ -168,7 +168,7 @@ int32 fullTestSuperpro (int32 *quantums)
     /* is it an MPS dongle? */
     for (;;) {
       RB_WORD ProductCode = 0;
-      
+     
       if( !fSPROReadDongle(SPRO_PRODUCT_ADDRESS, &ProductCode) ) {
         return FALSE;
       }
@@ -179,7 +179,7 @@ int32 fullTestSuperpro (int32 *quantums)
           return FALSE;
 
         /* now do a pre-test on this data to see if it has at least the
-         * right customer number. If not, look for other dongles in 
+         * right customer number. If not, look for other dongles in
          * the chain.
          */
         if (DoCustomerNumberCheck(quantums, NULL, FALSE))
@@ -214,8 +214,8 @@ int32 fullTestSuperpro (int32 *quantums)
   spro_initialised += 9;
   if (spro_initialised > sizeof (scrambled_eggs))
     spro_initialised -= sizeof (scrambled_eggs);
-  if (RNBOsproQuery( &gSproApiPacket, SPRO_QUERY_ADDRESS, 
-        (RBP_VOID) input, (RBP_VOID) ketchup, & remainder, 4) 
+  if (RNBOsproQuery( &gSproApiPacket, SPRO_QUERY_ADDRESS,
+        (RBP_VOID) input, (RBP_VOID) ketchup, & remainder, 4)
       != SP_SUCCESS)
     return FALSE;
   /* sunny side up */
@@ -276,7 +276,7 @@ static int32 fSPROReadDongleData(int32 * quantums)
   for (i = 0; i < RESULT_ARRAY_SIZE; i++)
   {
     RB_WORD rbwT = 0;
-      
+     
     if( fSPROReadDongle(SPRO_DATA_BASE_ADDRESS + i, &rbwT) )
       quantums[i] = (int32)rbwT;
     else
@@ -295,9 +295,9 @@ static int32 fSPROReadDongle(
   int32     i;
 
   HQASSERT(nAddress < SPRO_MAX_ADDRESS, "Can't read out of range Spro cell");
-  
+ 
   /* Rainbow recommend several retries of a read command if it fails first time */
-  for( i = 0; 
+  for( i = 0;
        !fSuccess && (i < SPRO_READ_RETRIES); ++i ) {
     *pValue = 0;
     fSuccess = ( RNBOsproRead(&gSproApiPacket, (RB_WORD)nAddress, pValue) == SP_SUCCESS );
