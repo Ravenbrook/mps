@@ -1,6 +1,6 @@
 /* impl.c.poolams: AUTOMATIC MARK & SWEEP POOL CLASS
  *
- * $HopeName: !poolams.c(trunk.31) $
+ * $HopeName: MMsrc!poolams.c(MMdevel_fencepost.1) $
  * Copyright (C) 1998.  Harlequin Group plc.  All rights reserved.
  * 
  * .readership: any MPS developer.
@@ -23,7 +23,7 @@
 #include "mpm.h"
 #include <stdarg.h>
 
-SRCID(poolams, "$HopeName: !poolams.c(trunk.31) $");
+SRCID(poolams, "$HopeName: MMsrc!poolams.c(MMdevel_fencepost.1) $");
 
 
 #define AMSSig          ((Sig)0x519A3599) /* SIGnature AMS */
@@ -1155,6 +1155,7 @@ static PoolClassStruct PoolClassAMSStruct = {
   "AMS",
   sizeof(AMSStruct),
   offsetof(AMSStruct, poolStruct),
+  NULL,                      /* super */
   AttrFMT | AttrSCAN | AttrBUF | AttrBUF_RESERVE | AttrGC | AttrINCR_RB,
   AMSInit,
   AMSFinish,
@@ -1179,6 +1180,7 @@ static PoolClassStruct PoolClassAMSStruct = {
   PoolTrivRampEnd,
   PoolNoWalk,
   AMSDescribe,
+  PoolNoDebugMixin,
   PoolClassSig               /* impl.h.mpm.class.end-sig */
 };
 
