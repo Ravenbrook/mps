@@ -1,6 +1,6 @@
 /* impl.c.arenavm: VIRTUAL MEMORY BASED ARENA IMPLEMENTATION
  *
- * $HopeName: MMsrc!arenavm.c(MMdevel_ptw_pseudoloci.8) $
+ * $HopeName: MMsrc!arenavm.c(MMdevel_ptw_pseudoloci.9) $
  * Copyright (C) 1998. Harlequin Group plc. All rights reserved.
  *
  * This is the implementation of the Segment abstraction from the VM
@@ -29,7 +29,7 @@
 #include "mpm.h"
 #include "mpsavm.h"
 
-SRCID(arenavm, "$HopeName: MMsrc!arenavm.c(MMdevel_ptw_pseudoloci.8) $");
+SRCID(arenavm, "$HopeName: MMsrc!arenavm.c(MMdevel_ptw_pseudoloci.9) $");
 
 
 typedef struct VMArenaStruct *VMArena;
@@ -1067,9 +1067,6 @@ static Bool VMSegFind(Index *baseReturn, VMArenaChunk *chunkReturn,
   
   Ring node, next;
   Arena arena = VMArenaArena(vmArena);
-#if 0
-  Word zoneMask = ZoneMASK(arena);
-#endif
   Word zoneStep = ZoneSTEP(arena);
 
   RING_FOR(node, &vmArena->chunkRing, next)
@@ -1102,7 +1099,6 @@ static Bool VMSegFind(Index *baseReturn, VMArenaChunk *chunkReturn,
 
 
           /* @@@ ZoneStripe_FOR */
-          /* @@@ Need to be able to iterate backwards for downwards flag */
           for(; chunkBase < stripeLimit && stripeBase < chunkLimit;) {
             if(stripeBase < stripeLimit &&
                AddrOffset(stripeBase, stripeLimit) >= size &&

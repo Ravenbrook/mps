@@ -1,6 +1,6 @@
 /* impl.c.locus: LOCI
  *
- * $HopeName: MMsrc!locus.c(MMdevel_ptw_pseudoloci.13) $
+ * $HopeName: MMsrc!locus.c(MMdevel_ptw_pseudoloci.14) $
  * Copyright (C) 1998 Harlequin Group plc.  All rights reserved.
  *
  * .readership: any MPS developer
@@ -497,8 +497,8 @@ static Word Rotate(Word word, int rotation);
 /* A decent compiler should be able to compile this to a single
    instruction */
 #define ROTATE(word, rotation)                                  \
-  (((word) << (rotation % MPS_WORD_WIDTH)) |                      \
-    ((word) >> (( - rotation) % MPS_WORD_WIDTH)))
+  (((word) << (rotation & (MPS_WORD_WIDTH - 1))) |                      \
+    ((word) >> (( - rotation) & (MPS_WORD_WIDTH - 1))))
 
 
 static Word(Rotate)(Word word, int rotation) 
@@ -592,45 +592,49 @@ static void LocusManagerZoneRangeNext(Addr *baseReturn,
       /* We are in the middle of a range, find the ends */
       /* Start is from zone the down, set, last */
       RefSetFind(&start, current, zone, FALSE, TRUE, FALSE);
-      /* End is from start the up, reset, first */
-      RefSetFind(&end, current, start, TRUE, FALSE, TRUE);
+      /* End is from zone the up, reset, first */
+      RefSetFind(&end, current, zone, TRUE, FALSE, TRUE);
+      /* normalize */
+      start = start & RefSetMASK;
+      end = end & RefSetMASK;
+      /* N.B. ensure starting zone is in range */
+      if (end == start) end += RefSetSize;
+      AVER(start <= startZone);
+      AVER(startZone < end);
     } else if (manager->searchUp) {
       /* Find the next range above */
       /* Start is from zone the up, set, first */
       RefSetFind(&start, current, zone, TRUE, TRUE, TRUE);
       /* End is from start the up, reset, first */
       RefSetFind(&end, current, start, TRUE, FALSE, TRUE);
+      /* normalize */
+      start = start & RefSetMASK;
+      end = end & RefSetMASK;
+      if (end < start) end += RefSetSize;
     } else {
       /* Find the next range below */
       /* End is from zone the down, reset, last */
       RefSetFind(&end, current, zone, FALSE, FALSE, FALSE);
       /* Start is from end-1 the down, set, last */
       RefSetFind(&start, current, end - 1, FALSE, TRUE, FALSE);
+      /* normalize */
+      start = start & RefSetMASK;
+      end = end & RefSetMASK;
+      if (end < start) start -= RefSetSize;
     }
     
     if (start != end) {
       Arena arena = LocusManagerArena(manager);
       Word zoneShift = ArenaZoneShift(arena);
-      Count length = (end - start) & RefSetMASK;
-
-      if (length == 0) length += RefSetSize;
 
       /* save your place */
       manager->searchCurrentZone = end;
       manager->searchRefSet = current;
 
-      *baseReturn = (Addr)((start & RefSetMASK) << zoneShift);
-      *limitReturn = (Addr)(((start & RefSetMASK) + length) <<
-                            zoneShift); 
+      /* ZoneBaseAddr */
+      *baseReturn = (Addr)(start << zoneShift);
+      *limitReturn = (Addr)(end << zoneShift);
 
-      /* AVER(*baseReturn < *limitReturn);  @@@ not if wrapped */
-      {
-        RefSet search =
-          manager->searchCache[manager->searchCacheIndex - 1];
-        RefSet found = RefSetOfRange(arena, *baseReturn,
-                                     *limitReturn);
-        AVER(RefSetSuper(search, found));
-      }
       return;
     }
 
