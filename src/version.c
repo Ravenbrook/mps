@@ -1,7 +1,7 @@
 /* impl.c.version: VERSION INSPECTION
  *
- * $HopeName: MMsrc!version.c(MM_dylan_kinglet.2) $
- * Copyright (C) 1998 Harlequin Limited.  All rights reserved.
+ * $HopeName: MMsrc!version.c(MM_dylan_kinglet.3) $
+ * Copyright (C) 2000 Harlequin Limited.  All rights reserved.
  *
  * PURPOSE
  *
@@ -18,16 +18,33 @@
 #include "mpm.h"
 
 
-/* .release: When making a new release, change the expansion of
- * MPS_RELEASE to be a string of the form "release.dylan.crow.2"
- * or whatever. */
-#define MPS_RELEASE "$HopeName$ *** DEVELOPMENT ONLY ***"
+SRCID(version, "$HopeName$");
 
 
-/* Version String
+/* MPS_RELEASE -- the release name
  *
- * MPSVersion is a declared object comprising the concatenation of
- * various other strings.
+ * .release: When making a new release, change the expansion of
+ * MPS_RELEASE to be a string of the form "release.dylan.crow.2" or
+ * whatever.
+ */
+
+#define MPS_RELEASE "$HopeName: MMsrc!version.c(MM_dylan_kinglet.3) $ *** DEVELOPMENT ONLY ***"
+
+
+/* MPSCopyrightNotice -- copyright notice for the binary
+ *
+ * .copyright.year: This one should have the current year in it
+ * (assuming we've made any substantial changes to the library this year).
+ */
+
+char MPSCopyrightNotice[] =
+  "Copyright (C) 2000 Harlequin Limited.  All rights reserved.";
+
+
+/* MPSVersion -- return version string
+ *
+ * The value of MPSVersion is a declared object comprising the
+ * concatenation of all the version info.
  */
 
 char MPSVersionString[] =
