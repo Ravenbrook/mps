@@ -1,6 +1,6 @@
 /* impl.c.ring: RING IMPLEMENTATION
  *
- * $HopeName: MMsrc!ring.c(MMdevel_assertid.1) $
+ * $HopeName: MMsrc!ring.c(MMdevel_assertid.2) $
  * Copyright (C) 1995,1996 Harlequin Group, all rights reserved.
  *
  * .readership: Any MPS developer.
@@ -22,7 +22,7 @@
 #include "mpm.h"
 
 
-SRCID(ring, "$HopeName: MMsrc!ring.c(MMdevel_assertid.1) $");
+SRCID(ring, "$HopeName: MMsrc!ring.c(MMdevel_assertid.2) $");
 
 
 /* RingCheck, RingCheckSingle -- check the validity of a ring node
@@ -34,27 +34,27 @@ SRCID(ring, "$HopeName: MMsrc!ring.c(MMdevel_assertid.1) $");
 
 Bool RingCheck(Ring ring)
 {
-  CHECKL(0xA55E62, ring != NULL);
-  CHECKL(0xA55E62, ring->next != NULL);
-  CHECKL(0xA55E62, ring->next->prev == ring);
-  CHECKL(0xA55E62, ring->prev != NULL);
-  CHECKL(0xA55E62, ring->prev->next == ring);
+  CHECKL(0x61490000, ring != NULL);
+  CHECKL(0x61490001, ring->next != NULL);
+  CHECKL(0x61490002, ring->next->prev == ring);
+  CHECKL(0x61490003, ring->prev != NULL);
+  CHECKL(0x61490004, ring->prev->next == ring);
   return TRUE;
 }
 
 Bool RingCheckSingle(Ring ring)
 {
-  CHECKL(0xA55E62, RingCheck(ring));
-  CHECKL(0xA55E62, ring->next == ring);
-  CHECKL(0xA55E62, ring->prev == ring);
+  CHECKL(0x61490005, RingCheck(ring));
+  CHECKL(0x61490006, ring->next == ring);
+  CHECKL(0x61490007, ring->prev == ring);
   return TRUE;
 }
 
 Bool RingIsSingle(Ring ring)
 {
-  AVER(0xA55E62, RingCheck(ring));
+  AVER(0x61490008, RingCheck(ring));
   if(ring->next == ring) {
-    AVER(0xA55E62, RingCheckSingle(ring));
+    AVER(0x61490009, RingCheckSingle(ring));
     return TRUE;
   }
   return FALSE;

@@ -1,6 +1,6 @@
 /* impl.c.poolawl: AUTOMATIC WEAK LINKED POOL CLASS
  *
- * $HopeName: MMsrc!poolawl.c(MMdevel_assertid.1) $
+ * $HopeName: MMsrc!poolawl.c(MMdevel_assertid.2) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  *
  * READERSHIP
@@ -16,7 +16,7 @@
 #include "mpm.h"
 #include "mpscawl.h"
 
-SRCID(poolawl, "$HopeName: MMsrc!poolawl.c(MMdevel_assertid.1) $");
+SRCID(poolawl, "$HopeName: MMsrc!poolawl.c(MMdevel_assertid.2) $");
 
 
 #define AWLSig	((Sig)0x519b7a37)	/* SIGPooLAWL */
@@ -61,11 +61,11 @@ static void AWLGroupDestroy(AWLGroup group)
 
   seg = group->seg;
   pool = seg->pool;
-  AVERT(0xA55E62, Pool, pool);
+  AVERT(0xBA370000, Pool, pool);
   awl = PoolPoolAWL(pool);
-  AVERT(0xA55E62, AWL, awl);
+  AVERT(0xBA370001, AWL, awl);
   space = PoolSpace(pool);
-  AVERT(0xA55E62, Space, space);
+  AVERT(0xBA370002, Space, space);
   tableSize = BTSize(SegSize(space, seg) >> awl->alignShift);
   PoolSegFree(pool, seg);
   SpaceFree(space, (Addr)group->mark, tableSize);
@@ -88,15 +88,15 @@ static Res AWLGroupCreate(AWLGroup *groupReturn,
   Size tableSize;
   Space space;
 
-  AVER(0xA55E62, groupReturn != NULL);
-  AVERT(0xA55E62, Pool, pool);
-  AVER(0xA55E62, size > 0);
+  AVER(0xBA370003, groupReturn != NULL);
+  AVERT(0xBA370004, Pool, pool);
+  AVER(0xBA370005, size > 0);
 
   awl = PoolPoolAWL(pool);
-  AVERT(0xA55E62, AWL, awl);
+  AVERT(0xBA370006, AWL, awl);
 
   space = PoolSpace(pool);
-  AVERT(0xA55E62, Space, space);
+  AVERT(0xBA370007, Space, space);
 
   size = SizeAlignUp(size, ArenaAlign(space));
   /* beware of large sizes overflowing upon rounding */
@@ -131,7 +131,7 @@ static Res AWLGroupCreate(AWLGroup *groupReturn,
   seg->rankSet = BufferRankSet(buffer);
   group->seg = seg;
   group->sig = AWLGroupSig;
-  AVERT(0xA55E62, AWLGroup, group);
+  AVERT(0xBA370008, AWLGroup, group);
   *groupReturn = group;
   return ResOK;
 
@@ -155,14 +155,14 @@ static Bool AWLGroupAlloc(Addr *baseReturn, Addr *limitReturn,
   Index i, j;
   Space space;
 
-  AVER(0xA55E62, baseReturn != NULL);
-  AVER(0xA55E62, limitReturn != NULL);
-  AVERT(0xA55E62, AWLGroup, group);
-  AVERT(0xA55E62, AWL, awl);
-  AVER(0xA55E62, size > 0);
+  AVER(0xBA370009, baseReturn != NULL);
+  AVER(0xBA37000A, limitReturn != NULL);
+  AVERT(0xBA37000B, AWLGroup, group);
+  AVERT(0xBA37000C, AWL, awl);
+  AVER(0xBA37000D, size > 0);
 
   space = PoolSpace(&awl->poolStruct);
-  AVERT(0xA55E62, Space, space);
+  AVERT(0xBA37000E, Space, space);
 
 
   if(size > SegSize(space, group->seg)) {
@@ -188,12 +188,12 @@ static Res AWLInit(Pool pool, va_list arg)
 
   format = va_arg(arg, Format);
 
-  AVERT(0xA55E62, Format, format);
+  AVERT(0xBA37000F, Format, format);
   awl->format = format;
   awl->alignShift = SizeLog2(pool->alignment);
   awl->sig = AWLSig;
 
-  AVERT(0xA55E62, AWL, awl);
+  AVERT(0xBA370010, AWL, awl);
 
   return ResOK;
 }
@@ -207,7 +207,7 @@ static void AWLFinish(Pool pool)
   /* pool argument already checked by generic PoolFinish */
 
   awl = PoolPoolAWL(pool);
-  AVERT(0xA55E62, AWL, awl);
+  AVERT(0xBA370011, AWL, awl);
 
   ring = &pool->segRing;
   node = RingNext(ring);
@@ -216,9 +216,9 @@ static void AWLFinish(Pool pool)
     Seg seg = RING_ELT(Seg, poolRing, node);
     AWLGroup group;
 
-    AVERT(0xA55E62, Seg, seg);
+    AVERT(0xBA370012, Seg, seg);
     group = (AWLGroup)seg->p;
-    AVERT(0xA55E62, AWLGroup, group);
+    AVERT(0xBA370013, AWLGroup, group);
     AWLGroupDestroy(group);
     node = next;
   }
@@ -235,23 +235,23 @@ static Res AWLBufferFill(Seg *segReturn, Addr *baseReturn, Addr *limitReturn,
   Ring node;
   Space space;
 
-  AVER(0xA55E62, baseReturn != NULL);
-  AVERT(0xA55E62, Pool, pool);
-  AVERT(0xA55E62, Buffer, buffer);
-  AVER(0xA55E62, size > 0);
+  AVER(0xBA370014, baseReturn != NULL);
+  AVERT(0xBA370015, Pool, pool);
+  AVERT(0xBA370016, Buffer, buffer);
+  AVER(0xBA370017, size > 0);
 
   space = PoolSpace(pool);
 
   awl = PoolPoolAWL(pool);
-  AVERT(0xA55E62, AWL, awl);
+  AVERT(0xBA370018, AWL, awl);
 
   RING_FOR(node, &pool->segRing) {
     Seg seg;
 
     seg = RING_ELT(Seg, poolRing, node);
-    AVERT(0xA55E62, Seg, seg);
+    AVERT(0xBA370019, Seg, seg);
     group = (AWLGroup)seg->p;
-    AVERT(0xA55E62, AWLGroup, group);
+    AVERT(0xBA37001A, AWLGroup, group);
 
     if(AWLGroupAlloc(&base, &limit, group, awl, size))
       goto found;
@@ -287,19 +287,19 @@ static void AWLBufferEmpty(Pool pool, Buffer buffer)
   Addr segBase;
   Index i, j;
 
-  AVERT(0xA55E62, Pool, pool);
-  AVERT(0xA55E62, Buffer, buffer);
+  AVERT(0xBA37001B, Pool, pool);
+  AVERT(0xBA37001C, Buffer, buffer);
 
   awl = PoolPoolAWL(pool);
-  AVERT(0xA55E62, AWL, awl);
+  AVERT(0xBA37001D, AWL, awl);
   group = (AWLGroup)buffer->seg->p;
-  AVERT(0xA55E62, AWLGroup, group);
+  AVERT(0xBA37001E, AWLGroup, group);
 
   segBase = SegBase(PoolSpace(pool), BufferSeg(buffer));
 
   i = AddrOffset(segBase, BufferGetInit(buffer)) >> awl->alignShift;
   j = AddrOffset(segBase, BufferLimit(buffer)) >> awl->alignShift;
-  AVER(0xA55E62, i <= j);
+  AVER(0xBA37001F, i <= j);
   if(i < j) {
     BTResRange(group->alloc, i, j);
   }
@@ -316,13 +316,13 @@ static Res AWLCondemn(Pool pool, Trace trace, Seg seg)
 
   /* can only condemn for a single trace, */
   /* see design.mps.poolawl.fun.condemn */
-  AVER(0xA55E62, seg->white == TraceSetEMPTY);
+  AVER(0xBA370020, seg->white == TraceSetEMPTY);
 
   awl = PoolPoolAWL(pool);
-  AVERT(0xA55E62, AWL, awl);
+  AVERT(0xBA370021, AWL, awl);
 
   group = (AWLGroup)seg->p;
-  AVERT(0xA55E62, AWLGroup, group);
+  AVERT(0xBA370022, AWLGroup, group);
   bits = SegSize(PoolSpace(pool), seg) >> awl->alignShift;
 
   BTResRange(group->mark, 0, bits);
@@ -358,23 +358,23 @@ static Bool AWLDependentObject(Addr *objReturn, Addr parent)
   Word fl;
   Word ff;
 
-  AVER(0xA55E62, objReturn != NULL);
-  AVER(0xA55E62, parent != (Addr)0);
+  AVER(0xBA370023, objReturn != NULL);
+  AVER(0xBA370024, parent != (Addr)0);
 
   object = (Word *)parent;
   wrapper = (Word *)object[0];
-  AVER(0xA55E62, wrapper != NULL);
+  AVER(0xBA370025, wrapper != NULL);
   /* check wrapper wrapper is non-NULL */
-  AVER(0xA55E62, wrapper[0] != 0);
+  AVER(0xBA370026, wrapper[0] != 0);
   /* check wrapper wrapper is wrapper wrapper wrapper */
-  AVER(0xA55E62, wrapper[0] == ((Word *)wrapper[0])[0]);
+  AVER(0xBA370027, wrapper[0] == ((Word *)wrapper[0])[0]);
   fword = wrapper[2];
   ff = fword & 3;
   /* Traceable Fixed part */
-  AVER(0xA55E62, ff == 1);
+  AVER(0xBA370028, ff == 1);
   fl = fword & ~3uL;
   /* At least one fixed field */
-  AVER(0xA55E62, fl >= 1);
+  AVER(0xBA370029, fl >= 1);
   if(object[1] == 0) {
     return FALSE;
   }
@@ -396,10 +396,10 @@ static Res AWLScan(ScanState ss, Pool pool, Seg seg)
   /* parameters checked by generic PoolScan */
 
   group = (AWLGroup)seg->p;
-  AVERT(0xA55E62, AWLGroup, group);
+  AVERT(0xBA37002A, AWLGroup, group);
 
   awl = PoolPoolAWL(pool);
-  AVERT(0xA55E62, AWL, awl);
+  AVERT(0xBA37002B, AWL, awl);
 
   space = PoolSpace(pool);
   bits = SegSize(space, seg) >> awl->alignShift;
@@ -442,7 +442,7 @@ notFinished:
 	Bool b;
 
 	b = SegOfAddr(&dependentSeg, space, dependentObj);
-	AVER(0xA55E62, b == TRUE);
+	AVER(0xBA37002C, b == TRUE);
 	ShieldExpose(space, dependentSeg);
       }
       res = awl->format->scan(ss, p, objectEnd);
@@ -470,19 +470,19 @@ static Res AWLFix(Pool pool, ScanState ss, Seg seg, Ref *refIO)
   AWLGroup group;
   Space space;
 
-  AVERT(0xA55E62, Pool, pool);
-  AVERT(0xA55E62, ScanState, ss);
-  AVERT(0xA55E62, Seg, seg);
-  AVER(0xA55E62, TraceSetInter(seg->white, ss->traces) != TraceSetEMPTY);
-  AVER(0xA55E62, refIO != NULL);
+  AVERT(0xBA37002D, Pool, pool);
+  AVERT(0xBA37002E, ScanState, ss);
+  AVERT(0xBA37002F, Seg, seg);
+  AVER(0xBA370030, TraceSetInter(seg->white, ss->traces) != TraceSetEMPTY);
+  AVER(0xBA370031, refIO != NULL);
 
   awl = PoolPoolAWL(pool);
-  AVERT(0xA55E62, AWL, awl);
+  AVERT(0xBA370032, AWL, awl);
   group  = (AWLGroup)seg->p;
-  AVERT(0xA55E62, AWLGroup, group);
+  AVERT(0xBA370033, AWLGroup, group);
 
   space = PoolSpace(pool);
-  AVERT(0xA55E62, Space, space);
+  AVERT(0xBA370034, Space, space);
 
   ref = *refIO;
   i = AddrOffset(SegBase(space, seg), ref) >> awl->alignShift;
@@ -512,7 +512,7 @@ static Res AWLFix(Pool pool, ScanState ss, Seg seg, Ref *refIO)
     break;
   
   default:
-    NOTREACHED(0xA55E62);
+    NOTREACHED(0xBA370035);
     return ResUNIMPL;
   }
 
@@ -531,12 +531,12 @@ static void AWLReclaim(Pool pool, Trace trace, Seg seg)
   /* parameters checked by generic PoolReclaim */
 
   awl = PoolPoolAWL(pool);
-  AVERT(0xA55E62, AWL, awl);
+  AVERT(0xBA370036, AWL, awl);
   group = (AWLGroup)seg->p;
-  AVERT(0xA55E62, AWLGroup, group);
+  AVERT(0xBA370037, AWLGroup, group);
 
   space = PoolSpace(pool);
-  AVERT(0xA55E62, Space, space);
+  AVERT(0xBA370038, Space, space);
 
   bits = SegSize(space, seg) >> awl->alignShift;
 
@@ -551,13 +551,13 @@ static void AWLReclaim(Pool pool, Trace trace, Seg seg)
     p = AddrAdd(SegBase(space, seg), i << awl->alignShift);
     j = AddrOffset(SegBase(space, seg), awl->format->skip(p)) >>
         awl->alignShift;
-    AVER(0xA55E62, j <= bits);
+    AVER(0xBA370039, j <= bits);
     if(!BTGet(group->mark, i)) {
       BTResRange(group->alloc, i, j);
     }
     i = j;
   }
-  AVER(0xA55E62, i == bits);
+  AVER(0xBA37003A, i == bits);
 
   BTResRange(group->mark, 0, bits);
 }
@@ -594,20 +594,20 @@ mps_class_t mps_class_awl(void)
 
 static Bool AWLCheck(AWL awl)
 {
-  CHECKS(0xA55E62, AWL, awl);
-  CHECKD(0xA55E62, Pool, &awl->poolStruct);
-  CHECKL(0xA55E62, awl->poolStruct.class == &PoolClassAWLStruct);
-  CHECKL(0xA55E62, 1uL << awl->alignShift == awl->poolStruct.alignment);
+  CHECKS(0xBA37003B, AWL, awl);
+  CHECKD(0xBA37003C, Pool, &awl->poolStruct);
+  CHECKL(0xBA37003D, awl->poolStruct.class == &PoolClassAWLStruct);
+  CHECKL(0xBA37003E, 1uL << awl->alignShift == awl->poolStruct.alignment);
   return TRUE;
 }
 
 
 static Bool AWLGroupCheck(AWLGroup group)
 {
-  CHECKS(0xA55E62, AWLGroup, group);
-  CHECKD(0xA55E62, Seg, group->seg);
-  CHECKL(0xA55E62, group->mark != NULL);
-  CHECKL(0xA55E62, group->scanned != NULL);
-  CHECKL(0xA55E62, group->alloc != NULL);
+  CHECKS(0xBA37003F, AWLGroup, group);
+  CHECKD(0xBA370040, Seg, group->seg);
+  CHECKL(0xBA370041, group->mark != NULL);
+  CHECKL(0xBA370042, group->scanned != NULL);
+  CHECKL(0xBA370043, group->alloc != NULL);
   return TRUE;
 }

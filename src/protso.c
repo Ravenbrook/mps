@@ -2,7 +2,7 @@
  *
  *                  PROTECTION FOR Solaris
  *
- *  $HopeName: MMsrc!protso.c(MMdevel_assertid.1) $
+ *  $HopeName: MMsrc!protso.c(MMdevel_assertid.2) $
  *
  *  Copyright (C) 1995 Harlequin Group, all rights reserved
  *
@@ -25,7 +25,7 @@
 #error "protso.c is Solaris specific, but MPS_OS_SO is not set"
 #endif
 
-SRCID(protso, "$HopeName: MMsrc!protso.c(MMdevel_assertid.1) $");
+SRCID(protso, "$HopeName: MMsrc!protso.c(MMdevel_assertid.2) $");
 
 /* Fix up unprototyped system calls.  */
 /* Note that these are not fixed up by std.h because that only fixes */
@@ -73,8 +73,8 @@ static struct sigaction sigNext;
  
 static void sigHandle(int sig, siginfo_t *info, void *context)
 {
-  AVER(0xA55E62, sig == SIGSEGV);
-  AVER(0xA55E62, info != NULL);
+  AVER(0xB6570000, sig == SIGSEGV);
+  AVER(0xB6570001, info != NULL);
 
   if(info->si_code == SEGV_ACCERR) {
     AccessSet mode;
@@ -132,7 +132,7 @@ void ProtSetup(void)
   sa.sa_flags = SA_SIGINFO;
 
   result = sigaction(SIGSEGV, &sa, &sigNext);
-  AVER(0xA55E62, result == 0);
+  AVER(0xB6570002, result == 0);
 }
 
 
@@ -145,10 +145,10 @@ void ProtSet(Addr base, Addr limit, AccessSet mode)
 {
   int flags;
 
-  AVER(0xA55E62, sizeof(int) == sizeof(Addr));
-  AVER(0xA55E62, base < limit);
-  AVER(0xA55E62, base != 0);
-  AVER(0xA55E62, AddrOffset(base, limit) <= INT_MAX);     /* should be redundant */
+  AVER(0xB6570003, sizeof(int) == sizeof(Addr));
+  AVER(0xB6570004, base < limit);
+  AVER(0xB6570005, base != 0);
+  AVER(0xB6570006, AddrOffset(base, limit) <= INT_MAX);     /* should be redundant */
 
   flags = PROT_READ | PROT_WRITE | PROT_EXEC;
   if((mode & AccessREAD) != 0)
@@ -157,7 +157,7 @@ void ProtSet(Addr base, Addr limit, AccessSet mode)
     flags &= ~PROT_WRITE;
 
   if(mprotect((caddr_t)base, (int)AddrOffset(base, limit), flags) != 0)
-    NOTREACHED(0xA55E62);
+    NOTREACHED(0xB6570007);
 }
 
 
@@ -184,8 +184,8 @@ void ProtSync(Space space)
 void ProtTramp(void **resultReturn, void *(*f)(void *, size_t),
                void *p, size_t s)
 {
-  AVER(0xA55E62, f != NULL);
-  AVER(0xA55E62, resultReturn != NULL);
+  AVER(0xB6570008, f != NULL);
+  AVER(0xB6570009, resultReturn != NULL);
 
   *resultReturn = (*f)(p, s);
 }

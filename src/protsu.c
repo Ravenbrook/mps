@@ -1,6 +1,6 @@
 /* impl.c.protsu: PROTECTION FOR SUNOS
  *
- * $HopeName: MMsrc!protsu.c(MMdevel_assertid.1) $
+ * $HopeName: MMsrc!protsu.c(MMdevel_assertid.2) $
  * Copyright (C) 1995,1996,1997 Harlequin Group, all rights reserved
  *
  * READERSHIP
@@ -29,7 +29,7 @@
 #error "protsu.c is SunOS 4 specific, but MPS_OS_SU is not set"
 #endif
 
-SRCID(protsu, "$HopeName: MMsrc!protsu.c(MMdevel_assertid.1) $");
+SRCID(protsu, "$HopeName: MMsrc!protsu.c(MMdevel_assertid.2) $");
 
 
 /* Fix up unprototyped system calls. */
@@ -95,12 +95,12 @@ static handler_t sigNext = NULL;
 static void sigHandle(int sig, int code,
                       struct sigcontext *scp, char *addr)
 {
-  AVER(0xA55E62, sig == SIGSEGV);
-  AVER(0xA55E62, scp != NULL);
+  AVER(0xB6540000, sig == SIGSEGV);
+  AVER(0xB6540001, scp != NULL);
 
   if(code == SEGV_PROT) {
     AccessSet mode;
-    AVER(0xA55E62, addr != SIG_NOADDR);           /* .assume.addr */
+    AVER(0xB6540002, addr != SIG_NOADDR);           /* .assume.addr */
     mode = AccessREAD | AccessWRITE;    /* .sigh.decode */
     if(SpaceAccess((Addr)addr, mode))   /* .sigh.size */
       return;
@@ -108,7 +108,7 @@ static void sigHandle(int sig, int code,
 
   /* The exception was not handled by any known protection structure, */
   /* so throw it to the previously installed handler. */
-  AVER(0xA55E62, sigNext != NULL);
+  AVER(0xB6540003, sigNext != NULL);
   (*sigNext)(sig, code, scp, addr);
 }
 
@@ -128,12 +128,12 @@ static void sigDefault(int sig, int code,
   UNUSED(scp);
   UNUSED(addr);
 
-  AVER(0xA55E62, sig == SIGSEGV);
+  AVER(0xB6540004, sig == SIGSEGV);
 
   (void)sigsetmask(sigblock(0) & ~sigmask(SIGSEGV));
   (void)signal(SIGSEGV, SIG_DFL);
   (void)kill(getpid(), SIGSEGV);
-  NOTREACHED(0xA55E62);
+  NOTREACHED(0xB6540005);
   abort();
 }
 
@@ -152,11 +152,11 @@ void ProtSetup(void)
   handler_t next;
 
   /* ProtSetup is called exactly once, see design.mps.prot.if.setup */
-  AVER(0xA55E62, sigNext == NULL); 
+  AVER(0xB6540006, sigNext == NULL); 
 
   next = signal(SIGSEGV, sigHandle);
   /* should always succeed as our parameters are valid */
-  AVER(0xA55E62, next != (handler_t)-1);
+  AVER(0xB6540007, next != (handler_t)-1);
 
   if(next == SIG_DFL)           /* use the suicide function */
     sigNext = sigDefault;
@@ -177,12 +177,12 @@ void ProtSet(Addr base, Addr limit, AccessSet mode)
 {
   int flags;
 
-  AVER(0xA55E62, sizeof(int) == sizeof(Size));    /* See .assume.size */
-  AVER(0xA55E62, base < limit);
-  AVER(0xA55E62, base != (Addr)0);
+  AVER(0xB6540008, sizeof(int) == sizeof(Size));    /* See .assume.size */
+  AVER(0xB6540009, base < limit);
+  AVER(0xB654000A, base != (Addr)0);
   /* we assume that the difference between limit and base (which is */
   /* positive) will fit in an int */
-  AVER(0xA55E62, AddrOffset(base, limit) <= INT_MAX); /* should be redundant */
+  AVER(0xB654000B, AddrOffset(base, limit) <= INT_MAX); /* should be redundant */
   /* There is no AccessSetCheck, so we don't */
 
   /* convert between MPS AccessSet and SunOS PROT thingies. */
@@ -198,14 +198,14 @@ void ProtSet(Addr base, Addr limit, AccessSet mode)
     flags = PROT_READ | PROT_WRITE | PROT_EXEC;
     break;
   default:
-    NOTREACHED(0xA55E62);
+    NOTREACHED(0xB654000C);
     flags = PROT_NONE;
   }
 
   /* 2nd arg to mprotect, .assume.size */
   if(mprotect((caddr_t)base, (int)AddrOffset(base, limit), flags) != 0) {
     /* design.mps.protsu.fun.set.assume.mprotect */
-    NOTREACHED(0xA55E62);
+    NOTREACHED(0xB654000D);
   }
 }
 
@@ -215,7 +215,7 @@ void ProtSet(Addr base, Addr limit, AccessSet mode)
 
 void ProtSync(Space space)
 {
-  AVERT(0xA55E62, Space, space);
+  AVERT(0xB654000E, Space, space);
   UNUSED(space);
   NOOP;
 }
@@ -227,8 +227,8 @@ void ProtSync(Space space)
 void ProtTramp(void **resultReturn, void *(*f)(void *, size_t),
                void *p, size_t s)
 {
-  AVER(0xA55E62, f != NULL);
-  AVER(0xA55E62, resultReturn != NULL);
+  AVER(0xB654000F, f != NULL);
+  AVER(0xB6540010, resultReturn != NULL);
 
   *resultReturn = (*f)(p, s);
 }

@@ -1,6 +1,6 @@
 /* impl.c.pooln: NULL POOL
  *
- * $HopeName: MMsrc!pooln.c(MMdevel_assertid.1) $
+ * $HopeName: MMsrc!pooln.c(MMdevel_assertid.2) $
  * Copyright(C) 1997 The Harlequin Group Limited.  All rights reserved.
  *
  * This is the implementation of the null pool class.  Begin null it
@@ -10,7 +10,7 @@
 #include "mpm.h"
 #include "pooln.h"
 
-SRCID(pooln, "$HopeName: MMsrc!pooln.c(MMdevel_assertid.1) $");
+SRCID(pooln, "$HopeName: MMsrc!pooln.c(MMdevel_assertid.2) $");
 
 
 typedef struct PoolNStruct {
@@ -29,7 +29,7 @@ static Res NInit(Pool pool, va_list args)
   
   /* Initialize pool-specific structures. */
 
-  AVERT(0xA55E62, PoolN, poolN);
+  AVERT(0xB0040000, PoolN, poolN);
 
   return ResOK;
 }
@@ -38,16 +38,16 @@ static void NFinish(Pool pool)
 {
   PoolN poolN;
 
-  AVERT(0xA55E62, Pool, pool);
+  AVERT(0xB0040001, Pool, pool);
   poolN = PoolPoolN(pool);
-  AVERT(0xA55E62, PoolN, poolN);
+  AVERT(0xB0040002, PoolN, poolN);
 
   /* Finish pool-specific structures. */
 }
 
 Pool (PoolNPool)(PoolN poolN)
 {
-  AVERT(0xA55E62, PoolN, poolN);
+  AVERT(0xB0040003, PoolN, poolN);
   return &poolN->poolStruct;
 }
 
@@ -55,12 +55,12 @@ static Res NAlloc(Addr *pReturn, Pool pool, Size size)
 {
   PoolN poolN;
 
-  AVERT(0xA55E62, Pool, pool);
+  AVERT(0xB0040004, Pool, pool);
   poolN = PoolPoolN(pool);
-  AVERT(0xA55E62, PoolN, poolN);
+  AVERT(0xB0040005, PoolN, poolN);
 
-  AVER(0xA55E62, pReturn != NULL);
-  AVER(0xA55E62, size > 0);
+  AVER(0xB0040006, pReturn != NULL);
+  AVER(0xB0040007, size > 0);
 
   return ResLIMIT;  /* limit of nil blocks exceeded */
 }
@@ -69,23 +69,23 @@ static void NFree(Pool pool, Addr old, Size size)
 {
   PoolN poolN;
 
-  AVERT(0xA55E62, Pool, pool);
+  AVERT(0xB0040008, Pool, pool);
   poolN = PoolPoolN(pool);
-  AVERT(0xA55E62, PoolN, poolN);
+  AVERT(0xB0040009, PoolN, poolN);
 
-  AVER(0xA55E62, old != (Addr)0);
-  AVER(0xA55E62, size > 0);
+  AVER(0xB004000A, old != (Addr)0);
+  AVER(0xB004000B, size > 0);
 
-  NOTREACHED(0xA55E62);  /* can't allocate, should never free */
+  NOTREACHED(0xB004000C);  /* can't allocate, should never free */
 }
 
 static Res NBufferInit(Pool pool, Buffer buffer)
 {
   PoolN poolN;
 
-  AVERT(0xA55E62, Pool, pool);
+  AVERT(0xB004000D, Pool, pool);
   poolN = PoolPoolN(pool);
-  AVERT(0xA55E62, PoolN, poolN);
+  AVERT(0xB004000E, PoolN, poolN);
 
   UNUSED(buffer);
 
@@ -96,14 +96,14 @@ static void NBufferFinish(Pool pool, Buffer buffer)
 {
   PoolN poolN;
 
-  AVERT(0xA55E62, Pool, pool);
+  AVERT(0xB004000F, Pool, pool);
   poolN = PoolPoolN(pool);
-  AVERT(0xA55E62, PoolN, poolN);
+  AVERT(0xB0040010, PoolN, poolN);
 
-  AVERT(0xA55E62, Buffer, buffer);
-  AVER(0xA55E62, BufferIsReset(buffer));
+  AVERT(0xB0040011, Buffer, buffer);
+  AVER(0xB0040012, BufferIsReset(buffer));
 
-  NOTREACHED(0xA55E62);  /* can't create, so shouldn't destroy */
+  NOTREACHED(0xB0040013);  /* can't create, so shouldn't destroy */
 }
 
 static Res NBufferFill(Seg *segReturn, Addr *baseReturn, Addr *limitReturn,
@@ -111,37 +111,37 @@ static Res NBufferFill(Seg *segReturn, Addr *baseReturn, Addr *limitReturn,
 {
   PoolN poolN;
 
-  AVERT(0xA55E62, Pool, pool);
+  AVERT(0xB0040014, Pool, pool);
   poolN = PoolPoolN(pool);
-  AVERT(0xA55E62, PoolN, poolN);
-  AVER(0xA55E62, segReturn != NULL);
-  AVER(0xA55E62, baseReturn != NULL);
-  AVER(0xA55E62, limitReturn != NULL);
-  AVERT(0xA55E62, Buffer, buffer);
-  AVER(0xA55E62, BufferIsReset(buffer));
-  AVER(0xA55E62, size > 0);
+  AVERT(0xB0040015, PoolN, poolN);
+  AVER(0xB0040016, segReturn != NULL);
+  AVER(0xB0040017, baseReturn != NULL);
+  AVER(0xB0040018, limitReturn != NULL);
+  AVERT(0xB0040019, Buffer, buffer);
+  AVER(0xB004001A, BufferIsReset(buffer));
+  AVER(0xB004001B, size > 0);
 
-  NOTREACHED(0xA55E62);   /* can't create buffers, so shouldn't fill them */
+  NOTREACHED(0xB004001C);   /* can't create buffers, so shouldn't fill them */
   return ResUNIMPL;
 }
 
 static void NBufferEmpty(Pool pool, Buffer buffer)
 {
-  AVERT(0xA55E62, Pool, pool);
-  AVERT(0xA55E62, Buffer, buffer);
-  AVER(0xA55E62, !BufferIsReset(buffer));
-  AVER(0xA55E62, BufferIsReady(buffer));
+  AVERT(0xB004001D, Pool, pool);
+  AVERT(0xB004001E, Buffer, buffer);
+  AVER(0xB004001F, !BufferIsReset(buffer));
+  AVER(0xB0040020, BufferIsReady(buffer));
 
-  NOTREACHED(0xA55E62);   /* can't create buffers, so they shouldn't trip */
+  NOTREACHED(0xB0040021);   /* can't create buffers, so they shouldn't trip */
 }
 
 static Res NDescribe(Pool pool, mps_lib_FILE *stream)
 {
   PoolN poolN;
 
-  AVERT(0xA55E62, Pool, pool);
+  AVERT(0xB0040022, Pool, pool);
   poolN = PoolPoolN(pool);
-  AVERT(0xA55E62, PoolN, poolN);
+  AVERT(0xB0040023, PoolN, poolN);
 
   UNUSED(stream);
 
@@ -152,12 +152,12 @@ static Res NCondemn(Pool pool, Trace trace, Seg seg)
 {
   PoolN poolN;
 
-  AVERT(0xA55E62, Pool, pool);
+  AVERT(0xB0040024, Pool, pool);
   poolN = PoolPoolN(pool);
-  AVERT(0xA55E62, PoolN, poolN);
+  AVERT(0xB0040025, PoolN, poolN);
 
-  AVERT(0xA55E62, Trace, trace);
-  AVERT(0xA55E62, Seg, seg);
+  AVERT(0xB0040026, Trace, trace);
+  AVERT(0xB0040027, Seg, seg);
 
   return ResOK;
 }
@@ -166,24 +166,24 @@ static void NGrey(Pool pool, Trace trace, Seg seg)
 {
   PoolN poolN;
 
-  AVERT(0xA55E62, Pool, pool);
+  AVERT(0xB0040028, Pool, pool);
   poolN = PoolPoolN(pool);
-  AVERT(0xA55E62, PoolN, poolN);
+  AVERT(0xB0040029, PoolN, poolN);
 
-  AVERT(0xA55E62, Trace, trace);
-  AVERT(0xA55E62, Seg, seg);
+  AVERT(0xB004002A, Trace, trace);
+  AVERT(0xB004002B, Seg, seg);
 }
 
 static Res NScan(ScanState ss, Pool pool, Seg seg)
 {
   PoolN poolN;
 
-  AVERT(0xA55E62, Pool, pool);
+  AVERT(0xB004002C, Pool, pool);
   poolN = PoolPoolN(pool);
-  AVERT(0xA55E62, PoolN, poolN);
+  AVERT(0xB004002D, PoolN, poolN);
 
-  AVERT(0xA55E62, ScanState, ss);
-  AVERT(0xA55E62, Seg, seg);
+  AVERT(0xB004002E, ScanState, ss);
+  AVERT(0xB004002F, Seg, seg);
 
   return ResOK;
 }
@@ -192,17 +192,17 @@ static Res NFix(Pool pool, ScanState ss, Seg seg, Ref *refIO)
 {
   PoolN poolN;
 
-  AVERT(0xA55E62, Pool, pool);
+  AVERT(0xB0040030, Pool, pool);
   poolN = PoolPoolN(pool);
-  AVERT(0xA55E62, PoolN, poolN);
+  AVERT(0xB0040031, PoolN, poolN);
 
-  AVERT(0xA55E62, ScanState, ss);
+  AVERT(0xB0040032, ScanState, ss);
   UNUSED(refIO);
-  AVERT(0xA55E62, Seg, seg);
+  AVERT(0xB0040033, Seg, seg);
 
   /* since we don't allocate any objects, should never */
   /* be called upon to fix a reference */
-  NOTREACHED(0xA55E62);
+  NOTREACHED(0xB0040034);
 
   return ResFAIL;
 }
@@ -211,12 +211,12 @@ static void NReclaim(Pool pool, Trace trace, Seg seg)
 {
   PoolN poolN;
 
-  AVERT(0xA55E62, Pool, pool);
+  AVERT(0xB0040035, Pool, pool);
   poolN = PoolPoolN(pool);
-  AVERT(0xA55E62, PoolN, poolN);
+  AVERT(0xB0040036, PoolN, poolN);
 
-  AVERT(0xA55E62, Trace, trace);
-  AVERT(0xA55E62, Seg, seg);
+  AVERT(0xB0040037, Trace, trace);
+  AVERT(0xB0040038, Seg, seg);
   /* all unmarked and white objects reclaimed */
 }
 
@@ -250,9 +250,9 @@ PoolClass PoolClassN(void)
 
 Bool PoolNCheck(PoolN poolN)
 {
-  CHECKL(0xA55E62, poolN != NULL);
-  CHECKD(0xA55E62, Pool, &poolN->poolStruct);
-  CHECKL(0xA55E62, poolN->poolStruct.class == &PoolClassNStruct);
+  CHECKL(0xB0040039, poolN != NULL);
+  CHECKD(0xB004003A, Pool, &poolN->poolStruct);
+  CHECKL(0xB004003B, poolN->poolStruct.class == &PoolClassNStruct);
   return TRUE;
 }
 

@@ -2,7 +2,7 @@
  *
  *                  RECURSIVE LOCKS IN WIN32
  *
- *  $HopeName: MMsrc!locknt.c(MMdevel_assertid.1) $
+ *  $HopeName: MMsrc!locknt.c(MMdevel_assertid.2) $
  *
  *  Copyright (C) 1995 Harlequin Group, all rights reserved
  *
@@ -32,62 +32,62 @@
 
 #include <windows.h>
 
-SRCID(locknt, "$HopeName: MMsrc!locknt.c(MMdevel_assertid.1) $");
+SRCID(locknt, "$HopeName: MMsrc!locknt.c(MMdevel_assertid.2) $");
 
 Bool LockCheck(Lock lock)
 {
-  CHECKS(0xA55E62, Lock, lock);
+  CHECKS(0x7C420000, Lock, lock);
   return TRUE;
 }
 
 void LockInit(Lock lock)
 {
-  AVER(0xA55E62, lock != NULL);
+  AVER(0x7C420001, lock != NULL);
   lock->claims = 0;
   InitializeCriticalSection(&lock->cs);
   lock->sig = LockSig;
-  AVERT(0xA55E62, Lock, lock);
+  AVERT(0x7C420002, Lock, lock);
 }
 
 void LockFinish(Lock lock)
 {
-  AVERT(0xA55E62, Lock, lock);
+  AVERT(0x7C420003, Lock, lock);
   /* Lock should not be finished while held */
-  AVER(0xA55E62, lock->claims == 0);
+  AVER(0x7C420004, lock->claims == 0);
   DeleteCriticalSection(&lock->cs);
   lock->sig = SigInvalid;
 }
 
 void LockClaim(Lock lock)
 {
-  AVERT(0xA55E62, Lock, lock);
+  AVERT(0x7C420005, Lock, lock);
   EnterCriticalSection(&lock->cs);
   /* This should be the first claim.  Now we are inside the
    * critical section it is ok to check this. */
-  AVER(0xA55E62, lock->claims == 0);
+  AVER(0x7C420006, lock->claims == 0);
   lock->claims = 1;
 }
 
 void LockReleaseMPM(Lock lock)
 {
-  AVERT(0xA55E62, Lock, lock);
-  AVER(0xA55E62, lock->claims == 1);  /* The lock should only be held once */
+  AVERT(0x7C420007, Lock, lock);
+  AVER(0x7C420008, lock->claims == 1);  /* The lock should only be held once */
   lock->claims = 0;  /* Must set this before leaving CS */
   LeaveCriticalSection(&lock->cs);
 }
 
 void LockClaimRecursive(Lock lock)
 {
-  AVERT(0xA55E62, Lock, lock);
+  AVERT(0x7C420009, Lock, lock);
   EnterCriticalSection(&lock->cs);
   ++lock->claims;
-  AVER(0xA55E62, lock->claims > 0);
+  AVER(0x7C42000A, lock->claims > 0);
 }
 
 void LockReleaseRecursive(Lock lock)
 {
-  AVERT(0xA55E62, Lock, lock);
-  AVER(0xA55E62, lock->claims > 0);
+  AVERT(0x7C42000B, Lock, lock);
+  AVER(0x7C42000C, lock->claims > 0);
   --lock->claims;
   LeaveCriticalSection(&lock->cs);
 }

@@ -1,6 +1,6 @@
 /* impl.c.shield: SHIELD IMPLEMENTATION
  *
- * $HopeName: MMsrc!shield.c(MMdevel_assertid.1) $
+ * $HopeName: MMsrc!shield.c(MMdevel_assertid.2) $
  *
  * See: idea.shield, design.mps.shield.
  *
@@ -72,12 +72,12 @@
 
 #include "mpm.h"
 
-SRCID(shield, "$HopeName: MMsrc!shield.c(MMdevel_assertid.1) $");
+SRCID(shield, "$HopeName: MMsrc!shield.c(MMdevel_assertid.2) $");
 
 void ShieldSuspend(Space space)
 {
-  AVERT(0xA55E62, Space, space);
-  AVER(0xA55E62, space->insideShield);
+  AVERT(0x587D0000, Space, space);
+  AVER(0x587D0001, space->insideShield);
 
   if(!space->suspended) {
     ThreadRingSuspend(SpaceThreadRing(space));
@@ -87,9 +87,9 @@ void ShieldSuspend(Space space)
 
 void ShieldResume(Space space)
 {
-  AVERT(0xA55E62, Space, space);
-  AVER(0xA55E62, space->insideShield);
-  AVER(0xA55E62, space->suspended);
+  AVERT(0x587D0002, Space, space);
+  AVER(0x587D0003, space->insideShield);
+  AVER(0x587D0004, space->suspended);
   /* It is only correct to actually resume the mutator here if 
    * shDepth is 0
    */
@@ -98,8 +98,8 @@ void ShieldResume(Space space)
 /* This ensures actual prot mode does not include mode */
 static void protLower(Space space, Seg seg, AccessSet mode)
 {
-  AVERT(0xA55E62, Space, space);
-  AVERT(0xA55E62, Seg, seg);
+  AVERT(0x587D0005, Space, space);
+  AVERT(0x587D0006, Seg, seg);
 
   if(seg->pm & mode) {
     seg->pm &= ~mode;
@@ -109,8 +109,8 @@ static void protLower(Space space, Seg seg, AccessSet mode)
 
 static void sync(Space space, Seg seg)
 {
-  AVERT(0xA55E62, Space, space);
-  AVERT(0xA55E62, Seg, seg);
+  AVERT(0x587D0007, Space, space);
+  AVERT(0x587D0008, Seg, seg);
 
   if(seg->pm != seg->sm) {
     ProtSet(SegBase(space, seg), SegLimit(space, seg), seg->sm);
@@ -122,15 +122,15 @@ static void sync(Space space, Seg seg)
 static void flush(Space space, Size i)
 {
   Seg seg;
-  AVERT(0xA55E62, Space, space);
-  AVER(0xA55E62, i < SHIELD_CACHE_SIZE);
+  AVERT(0x587D0009, Space, space);
+  AVER(0x587D000A, i < SHIELD_CACHE_SIZE);
 
   seg = space->shCache[i];
   if(seg == (Seg)0) return;
-  AVERT(0xA55E62, Seg, seg);
+  AVERT(0x587D000B, Seg, seg);
 
-  AVER(0xA55E62, space->shDepth > 0);
-  AVER(0xA55E62, seg->depth > 0);
+  AVER(0x587D000C, space->shDepth > 0);
+  AVER(0x587D000D, seg->depth > 0);
   --space->shDepth;
   --seg->depth;
   
@@ -145,8 +145,8 @@ static void flush(Space space, Size i)
  */
 static void cache(Space space, Seg seg)
 {
-  AVERT(0xA55E62, Space, space);
-  AVERT(0xA55E62, Seg, seg);
+  AVERT(0x587D000E, Space, space);
+  AVERT(0x587D000F, Seg, seg);
 
   if(seg->sm == seg->pm) return;
   if(seg->depth > 0) {
@@ -158,9 +158,9 @@ static void cache(Space space, Seg seg)
   else {
     ++seg->depth;
     ++space->shDepth;
-    AVER(0xA55E62, space->shDepth > 0);
-    AVER(0xA55E62, seg->depth > 0);
-    AVER(0xA55E62, space->shCacheI < SHIELD_CACHE_SIZE);
+    AVER(0x587D0010, space->shDepth > 0);
+    AVER(0x587D0011, seg->depth > 0);
+    AVER(0x587D0012, space->shCacheI < SHIELD_CACHE_SIZE);
     flush(space, space->shCacheI);
     space->shCache[space->shCacheI] = seg;
     ++space->shCacheI;
@@ -171,10 +171,10 @@ static void cache(Space space, Seg seg)
 
 void ShieldRaise(Space space, Seg seg, AccessSet mode)
 {
-  AVERT(0xA55E62, Space, space);
-  AVERT(0xA55E62, Seg, seg);
+  AVERT(0x587D0013, Space, space);
+  AVERT(0x587D0014, Seg, seg);
 
-  AVER(0xA55E62, (seg->sm & mode) == AccessSetEMPTY);
+  AVER(0x587D0015, (seg->sm & mode) == AccessSetEMPTY);
   seg->sm |= mode; /* inv.prot.shield preserved */
 
   /* ensure inv.unsynced.suspended & inv.unsynced.depth */
@@ -183,10 +183,10 @@ void ShieldRaise(Space space, Seg seg, AccessSet mode)
 
 void ShieldLower(Space space, Seg seg, AccessSet mode)
 {
-  AVERT(0xA55E62, Space, space);
-  AVERT(0xA55E62, Seg, seg);
+  AVERT(0x587D0016, Space, space);
+  AVERT(0x587D0017, Seg, seg);
 
-  AVER(0xA55E62, (seg->sm & mode) == mode);
+  AVER(0x587D0018, (seg->sm & mode) == mode);
   /* synced(seg) is not changed by the following
    * preserving inv.unsynced.suspended
    * Also inv.prot.shield preserved
@@ -199,13 +199,13 @@ void ShieldEnter(Space space)
 {
   Size i;
 
-  AVERT(0xA55E62, Space, space);
-  AVER(0xA55E62, !space->insideShield);
-  AVER(0xA55E62, space->shDepth == 0);
-  AVER(0xA55E62, !space->suspended);
-  AVER(0xA55E62, space->shCacheI < SHIELD_CACHE_SIZE);
+  AVERT(0x587D0019, Space, space);
+  AVER(0x587D001A, !space->insideShield);
+  AVER(0x587D001B, space->shDepth == 0);
+  AVER(0x587D001C, !space->suspended);
+  AVER(0x587D001D, space->shCacheI < SHIELD_CACHE_SIZE);
   for(i = 0; i < SHIELD_CACHE_SIZE; i++)
-    AVER(0xA55E62, space->shCache[i] == (Seg)0);
+    AVER(0x587D001E, space->shCache[i] == (Seg)0);
 
   space->insideShield = TRUE;
 }
@@ -227,12 +227,12 @@ void ShieldFlush(Space space)
 
 void ShieldLeave(Space space)
 {
-  AVERT(0xA55E62, Space, space);
-  AVER(0xA55E62, space->insideShield);
+  AVERT(0x587D001F, Space, space);
+  AVER(0x587D0020, space->insideShield);
 
   ShieldFlush(space);
   /* Cache is empty so inv.outside.depth holds */
-  AVER(0xA55E62, space->shDepth == 0);
+  AVER(0x587D0021, space->shDepth == 0);
 
   /* Ensuring the mutator is running at this point
    * guarantees inv.outside.running */
@@ -247,13 +247,13 @@ void ShieldLeave(Space space)
 void ShieldExpose(Space space, Seg seg)
 {
   AccessSet mode = AccessREAD | AccessWRITE;
-  AVERT(0xA55E62, Space, space);
-  AVER(0xA55E62, space->insideShield);
+  AVERT(0x587D0022, Space, space);
+  AVER(0x587D0023, space->insideShield);
 
   ++seg->depth;
   ++space->shDepth;
-  AVER(0xA55E62, space->shDepth > 0);
-  AVER(0xA55E62, seg->depth > 0);
+  AVER(0x587D0024, space->shDepth > 0);
+  AVER(0x587D0025, seg->depth > 0);
   if(seg->pm & mode)
     ShieldSuspend(space);
 
@@ -263,12 +263,12 @@ void ShieldExpose(Space space, Seg seg)
 
 void ShieldCover(Space space, Seg seg)
 {
-  AVERT(0xA55E62, Space, space);
-  AVERT(0xA55E62, Seg, seg);
-  AVER(0xA55E62, seg->pm == AccessSetEMPTY);
+  AVERT(0x587D0026, Space, space);
+  AVERT(0x587D0027, Seg, seg);
+  AVER(0x587D0028, seg->pm == AccessSetEMPTY);
 
-  AVER(0xA55E62, space->shDepth > 0);
-  AVER(0xA55E62, seg->depth > 0);
+  AVER(0x587D0029, space->shDepth > 0);
+  AVER(0x587D002A, seg->depth > 0);
   --seg->depth;
   --space->shDepth;
 

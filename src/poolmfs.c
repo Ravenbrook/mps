@@ -1,6 +1,6 @@
 /* impl.c.poolmfs: MANUAL FIXED SMALL UNIT POOL
  *
- * $HopeName: MMsrc!poolmfs.c(MMdevel_assertid.1) $
+ * $HopeName: MMsrc!poolmfs.c(MMdevel_assertid.2) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  *
  * This is the implementation of the MFS pool class.
@@ -35,7 +35,7 @@
 #include "mpm.h"
 #include "poolmfs.h"
 
-SRCID(poolmfs, "$HopeName: MMsrc!poolmfs.c(MMdevel_assertid.1) $");
+SRCID(poolmfs, "$HopeName: MMsrc!poolmfs.c(MMdevel_assertid.2) $");
 
 
 /*  == Round up ==
@@ -71,7 +71,7 @@ MFSInfo MFSGetInfo(void)
 
 Pool (MFSPool)(MFS mfs)
 {
-  AVERT(0xA55E62, MFS, mfs);
+  AVERT(0xB3F50000, MFS, mfs);
   return &mfs->poolStruct;
 }
 
@@ -82,13 +82,13 @@ static Res MFSInit(Pool pool, va_list arg)
   MFS mfs;
   Space space;
 
-  AVER(0xA55E62, pool != NULL);
+  AVER(0xB3F50001, pool != NULL);
 
   extendBy = va_arg(arg, Size);
   unitSize = va_arg(arg, Size);
 
-  AVER(0xA55E62, unitSize >= UNIT_MIN);
-  AVER(0xA55E62, extendBy >= unitSize);
+  AVER(0xB3F50002, unitSize >= UNIT_MIN);
+  AVER(0xB3F50003, extendBy >= unitSize);
   
   mfs = PoolPoolMFS(pool);
   space = PoolSpace(pool);
@@ -105,7 +105,7 @@ static Res MFSInit(Pool pool, va_list arg)
   mfs->segList = (Seg)0;
   mfs->sig = MFSSig;
 
-  AVERT(0xA55E62, MFS, mfs);
+  AVERT(0xB3F50004, MFS, mfs);
 
   return ResOK;
 }
@@ -116,9 +116,9 @@ static void MFSFinish(Pool pool)
   Seg seg;
   MFS mfs;
 
-  AVERT(0xA55E62, Pool, pool);
+  AVERT(0xB3F50005, Pool, pool);
   mfs = PoolPoolMFS(pool);
-  AVERT(0xA55E62, MFS, mfs);
+  AVERT(0xB3F50006, MFS, mfs);
 
   seg = mfs->segList;
   while(seg != NULL) {
@@ -143,12 +143,12 @@ static Res MFSAlloc(Addr *pReturn, Pool pool, Size size)
   Res res;
   MFS mfs;
 
-  AVERT(0xA55E62, Pool, pool);
+  AVERT(0xB3F50007, Pool, pool);
   mfs = PoolPoolMFS(pool);
-  AVERT(0xA55E62, MFS, mfs);
+  AVERT(0xB3F50008, MFS, mfs);
 
-  AVER(0xA55E62, pReturn != NULL);
-  AVER(0xA55E62, size == mfs->unroundedUnitSize);
+  AVER(0xB3F50009, pReturn != NULL);
+  AVER(0xB3F5000A, size == mfs->unroundedUnitSize);
 
   f = mfs->freeList;
 
@@ -188,8 +188,8 @@ static Res MFSAlloc(Addr *pReturn, Pool pool, Size size)
     for(i=0; i<unitsPerSeg; ++i)
     {
       header = SUB(base, unitSize, unitsPerSeg-i - 1);
-      AVER(0xA55E62, AddrIsAligned(header, pool->alignment));
-      AVER(0xA55E62, AddrAdd((Addr)header, unitSize) <= SegLimit(space, seg));
+      AVER(0xB3F5000B, AddrIsAligned(header, pool->alignment));
+      AVER(0xB3F5000C, AddrAdd((Addr)header, unitSize) <= SegLimit(space, seg));
       header->next = next;
       next = header;
     }
@@ -200,7 +200,7 @@ static Res MFSAlloc(Addr *pReturn, Pool pool, Size size)
     f = header;
   }
 
-  AVER(0xA55E62, f != NULL);
+  AVER(0xB3F5000D, f != NULL);
 
   /* Detach the first free unit from the free list and return its address. */
 
@@ -222,12 +222,12 @@ static void MFSFree(Pool pool, Addr old, Size size)
   Header h;
   MFS mfs;
 
-  AVERT(0xA55E62, Pool, pool);
+  AVERT(0xB3F5000E, Pool, pool);
   mfs = PoolPoolMFS(pool);
-  AVERT(0xA55E62, MFS, mfs);
+  AVERT(0xB3F5000F, MFS, mfs);
 
-  AVER(0xA55E62, old != (Addr)0);
-  AVER(0xA55E62, size == mfs->unroundedUnitSize);
+  AVER(0xB3F50010, old != (Addr)0);
+  AVER(0xB3F50011, size == mfs->unroundedUnitSize);
 
   /* .freelist.fragments */
   h = (Header)old;
@@ -241,11 +241,11 @@ static Res MFSDescribe(Pool pool, mps_lib_FILE *stream)
   MFS mfs;
   Res res;
 
-  AVERT(0xA55E62, Pool, pool);
+  AVERT(0xB3F50012, Pool, pool);
   mfs = PoolPoolMFS(pool);
-  AVERT(0xA55E62, MFS, mfs);
+  AVERT(0xB3F50013, MFS, mfs);
 
-  AVER(0xA55E62, stream != NULL);
+  AVER(0xB3F50014, stream != NULL);
 
   res = WriteF(stream,
                "  unrounded unit size $W\n", (WriteFW)mfs->unroundedUnitSize,
@@ -294,22 +294,22 @@ Bool MFSCheck(MFS mfs)
 {
   Space space;
 
-  CHECKS(0xA55E62, MFS, mfs);
-  CHECKD(0xA55E62, Pool, &mfs->poolStruct);
-  CHECKL(0xA55E62, mfs->poolStruct.class == &PoolClassMFSStruct);
-  CHECKL(0xA55E62, mfs->unroundedUnitSize >= UNIT_MIN);
-  CHECKL(0xA55E62, mfs->extendBy >= UNIT_MIN);
+  CHECKS(0xB3F50015, MFS, mfs);
+  CHECKD(0xB3F50016, Pool, &mfs->poolStruct);
+  CHECKL(0xB3F50017, mfs->poolStruct.class == &PoolClassMFSStruct);
+  CHECKL(0xB3F50018, mfs->unroundedUnitSize >= UNIT_MIN);
+  CHECKL(0xB3F50019, mfs->extendBy >= UNIT_MIN);
   space = PoolSpace(&mfs->poolStruct);
-  CHECKL(0xA55E62, SizeIsAligned(mfs->extendBy, ArenaAlign(space)));
-  CHECKL(0xA55E62, SizeAlignUp(mfs->unroundedUnitSize, mfs->poolStruct.alignment) ==
+  CHECKL(0xB3F5001A, SizeIsAligned(mfs->extendBy, ArenaAlign(space)));
+  CHECKL(0xB3F5001B, SizeAlignUp(mfs->unroundedUnitSize, mfs->poolStruct.alignment) ==
          mfs->unitSize);
-  CHECKL(0xA55E62, mfs->unitsPerSeg == mfs->extendBy/mfs->unitSize);
+  CHECKL(0xB3F5001C, mfs->unitsPerSeg == mfs->extendBy/mfs->unitSize);
   if(mfs->freeList != NULL) {
     /* free list is stored in the pool's managed memory */
-    CHECKL(0xA55E62, PoolHasAddr(&mfs->poolStruct, (Addr)mfs->freeList));
+    CHECKL(0xB3F5001D, PoolHasAddr(&mfs->poolStruct, (Addr)mfs->freeList));
   }
   if(mfs->segList != (Seg)0) {
-    CHECKL(0xA55E62, SegCheck(mfs->segList));
+    CHECKL(0xB3F5001E, SegCheck(mfs->segList));
   }
   return TRUE;
 }

@@ -1,7 +1,7 @@
 /*  impl.c.protnt
  *
  *               PROTECTION FOR WIN32
- *  $HopeName: MMsrc!protnt.c(MMdevel_assertid.1) $
+ *  $HopeName: MMsrc!protnt.c(MMdevel_assertid.2) $
  *
  *  Copyright (C) 1995 Harlequin Group, all rights reserved
  */
@@ -14,7 +14,7 @@
 
 #include <windows.h>
 
-SRCID(protnt, "$HopeName: MMsrc!protnt.c(MMdevel_assertid.1) $");
+SRCID(protnt, "$HopeName: MMsrc!protnt.c(MMdevel_assertid.2) $");
 
 
 void ProtSetup(void)
@@ -27,9 +27,9 @@ void ProtSet(Addr base, Addr limit, AccessSet mode)
   DWORD newProtect;
   DWORD oldProtect;
 
-  AVER(0xA55E62, sizeof(int) == sizeof(Addr));
-  AVER(0xA55E62, base < limit);
-  AVER(0xA55E62, base != 0);
+  AVER(0xB6420000, sizeof(int) == sizeof(Addr));
+  AVER(0xB6420001, base < limit);
+  AVER(0xB6420002, base != 0);
 
   newProtect = PAGE_EXECUTE_READWRITE;
   if((mode & AccessWRITE) != 0)
@@ -39,7 +39,7 @@ void ProtSet(Addr base, Addr limit, AccessSet mode)
 
   if(VirtualProtect((LPVOID)base, (DWORD)AddrOffset(base, limit),
                     newProtect, &oldProtect) == 0)
-    NOTREACHED(0xA55E62);
+    NOTREACHED(0xB6420003);
 }
 
 LONG ProtSEHfilter(LPEXCEPTION_POINTERS info)
@@ -56,15 +56,15 @@ LONG ProtSEHfilter(LPEXCEPTION_POINTERS info)
   if(er->ExceptionCode != EXCEPTION_ACCESS_VIOLATION)
     return EXCEPTION_CONTINUE_SEARCH;
 
-  AVER(0xA55E62, er->ExceptionFlags == 0); /* continuable exception */
+  AVER(0xB6420004, er->ExceptionFlags == 0); /* continuable exception */
 
   /* er->ExceptionRecord is pointer to next exception in chain */
   /* er->ExceptionAddress is where exception occurred */
 
-  AVER(0xA55E62, er->NumberParameters >= 2);
+  AVER(0xB6420005, er->NumberParameters >= 2);
 
   iswrite = er->ExceptionInformation[0]; /* 0 read; 1 write */
-  AVER(0xA55E62, iswrite == 0 || iswrite == 1);
+  AVER(0xB6420006, iswrite == 0 || iswrite == 1);
 
   /* Pages cannot be made write-only, so an attempt to write must
    * also cause a read-access if necessary */
@@ -78,7 +78,7 @@ LONG ProtSEHfilter(LPEXCEPTION_POINTERS info)
   base = (Addr)address;
   limit = AddrAdd(address, sizeof(Addr));
 
-  AVER(0xA55E62, base < limit);  /* nasty case (base = -1): continue search? @@@ */
+  AVER(0xB6420007, base < limit);  /* nasty case (base = -1): continue search? @@@ */
 
   if(SpaceAccess(base, mode))
     action = EXCEPTION_CONTINUE_EXECUTION;
@@ -108,7 +108,7 @@ void ProtTramp(void **resultReturn, void *(*f)(void *, size_t),
   __try {
     result = f(p, s);
   } __except(ProtSEHfilter(GetExceptionInformation())) {
-    NOTREACHED(0xA55E62);
+    NOTREACHED(0xB6420008);
   }
 
   *resultReturn = result;

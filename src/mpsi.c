@@ -1,6 +1,6 @@
 /* impl.c.mpsi: MEMORY POOL SYSTEM C INTERFACE LAYER
  *
- * $HopeName: MMsrc!mpsi.c(MMdevel_assertid.1) $
+ * $HopeName: MMsrc!mpsi.c(MMdevel_assertid.2) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  *
  * .purpose: This code bridges between the MPS interface to C,
@@ -52,7 +52,7 @@
 #include "mpm.h"
 #include "mps.h"
 
-SRCID(mpsi, "$HopeName: MMsrc!mpsi.c(MMdevel_assertid.1) $");
+SRCID(mpsi, "$HopeName: MMsrc!mpsi.c(MMdevel_assertid.2) $");
 
 
 /* mpsi_check -- check consistency of interface mappings
@@ -95,40 +95,40 @@ static Bool mpsi_check(void)
   /* Check that external and internal result codes match. */
   /* See impl.h.mps.result-codes and impl.h.mpmtypes.result-codes. */
   /* Also see .check.enum.cast. */
-  CHECKL(0xA55E62, CHECKTYPE(mps_res_t, Res));
-  CHECKL(0xA55E62, (int)MPS_RES_OK == (int)ResOK);
-  CHECKL(0xA55E62, (int)MPS_RES_FAIL == (int)ResFAIL);
-  CHECKL(0xA55E62, (int)MPS_RES_RESOURCE == (int)ResRESOURCE);
-  CHECKL(0xA55E62, (int)MPS_RES_MEMORY == (int)ResMEMORY);
-  CHECKL(0xA55E62, (int)MPS_RES_LIMIT == (int)ResLIMIT);
-  CHECKL(0xA55E62, (int)MPS_RES_UNIMPL == (int)ResUNIMPL);
-  CHECKL(0xA55E62, (int)MPS_RES_IO == (int)ResIO);
+  CHECKL(0x3B510000, CHECKTYPE(mps_res_t, Res));
+  CHECKL(0x3B510001, (int)MPS_RES_OK == (int)ResOK);
+  CHECKL(0x3B510002, (int)MPS_RES_FAIL == (int)ResFAIL);
+  CHECKL(0x3B510003, (int)MPS_RES_RESOURCE == (int)ResRESOURCE);
+  CHECKL(0x3B510004, (int)MPS_RES_MEMORY == (int)ResMEMORY);
+  CHECKL(0x3B510005, (int)MPS_RES_LIMIT == (int)ResLIMIT);
+  CHECKL(0x3B510006, (int)MPS_RES_UNIMPL == (int)ResUNIMPL);
+  CHECKL(0x3B510007, (int)MPS_RES_IO == (int)ResIO);
 
   /* Check that external and internal rank numbers match. */
   /* See impl.h.mps.ranks and impl.h.mpmtypes.ranks. */
   /* Also see .check.enum.cast. */
-  CHECKL(0xA55E62, CHECKTYPE(mps_rank_t, Rank));
-  CHECKL(0xA55E62, (int)MPS_RANK_AMBIG == (int)RankAMBIG);
-  CHECKL(0xA55E62, (int)MPS_RANK_EXACT == (int)RankEXACT);
-  CHECKL(0xA55E62, (int)MPS_RANK_WEAK == (int)RankWEAK);
-  CHECKL(0xA55E62, (int)MPS_RANK_FINAL == (int)RankFINAL);
+  CHECKL(0x3B510008, CHECKTYPE(mps_rank_t, Rank));
+  CHECKL(0x3B510009, (int)MPS_RANK_AMBIG == (int)RankAMBIG);
+  CHECKL(0x3B51000A, (int)MPS_RANK_EXACT == (int)RankEXACT);
+  CHECKL(0x3B51000B, (int)MPS_RANK_WEAK == (int)RankWEAK);
+  CHECKL(0x3B51000C, (int)MPS_RANK_FINAL == (int)RankFINAL);
 
   /* The external idea of a word width and the internal one */
   /* had better match.  See design.mps.interface.c.cons. */
-  CHECKL(0xA55E62, sizeof(mps_word_t) == sizeof(void *));
-  CHECKL(0xA55E62, CHECKTYPE(mps_word_t, Word));
+  CHECKL(0x3B51000D, sizeof(mps_word_t) == sizeof(void *));
+  CHECKL(0x3B51000E, CHECKTYPE(mps_word_t, Word));
   
   /* The external idea of size and the internal one had */
   /* better match.  See design.mps.interface.c.cons.size */
   /* and design.mps.interface.c.pun.size. */
-  CHECKL(0xA55E62, CHECKTYPE(size_t, Size));
+  CHECKL(0x3B51000F, CHECKTYPE(size_t, Size));
 
   /* Check ap_s/APStruct compatibility by hand */
   /* .check.ap: See impl.h.mps.ap and impl.h.buffer.ap. */
-  CHECKL(0xA55E62, sizeof(mps_ap_s) == sizeof(APStruct));
-  CHECKL(0xA55E62, CHECKFIELD(mps_ap_s, init,  APStruct, init));
-  CHECKL(0xA55E62, CHECKFIELD(mps_ap_s, alloc, APStruct, alloc));
-  CHECKL(0xA55E62, CHECKFIELD(mps_ap_s, limit, APStruct, limit));
+  CHECKL(0x3B510010, sizeof(mps_ap_s) == sizeof(APStruct));
+  CHECKL(0x3B510011, CHECKFIELD(mps_ap_s, init,  APStruct, init));
+  CHECKL(0x3B510012, CHECKFIELD(mps_ap_s, alloc, APStruct, alloc));
+  CHECKL(0x3B510013, CHECKFIELD(mps_ap_s, limit, APStruct, limit));
 
   /* Check ss_s/ScanStateStruct compatibility by hand */
   /* .check.ss: See impl.h.mps.ss and impl.h.mpmst.ss. */
@@ -137,16 +137,16 @@ static Bool mpsi_check(void)
   /* is used on the fix field because its type is punned and */
   /* therefore isn't exactly checkable.  See */
   /* design.mps.interface.c.pun.addr. */
-  CHECKL(0xA55E62, CHECKFIELDAPPROX(mps_ss_s, fix, ScanStateStruct, fix));
-  CHECKL(0xA55E62, CHECKFIELD(mps_ss_s, w0, ScanStateStruct, zoneShift));
-  CHECKL(0xA55E62, CHECKFIELD(mps_ss_s, w1, ScanStateStruct, white));
-  CHECKL(0xA55E62, CHECKFIELD(mps_ss_s, w2, ScanStateStruct, summary));
+  CHECKL(0x3B510014, CHECKFIELDAPPROX(mps_ss_s, fix, ScanStateStruct, fix));
+  CHECKL(0x3B510015, CHECKFIELD(mps_ss_s, w0, ScanStateStruct, zoneShift));
+  CHECKL(0x3B510016, CHECKFIELD(mps_ss_s, w1, ScanStateStruct, white));
+  CHECKL(0x3B510017, CHECKFIELD(mps_ss_s, w2, ScanStateStruct, summary));
 
   /* Check ld_s/LDStruct compatibility by hand */
   /* .check.ld: See also impl.h.mpmst.ld.struct and impl.h.mps.ld */
-  CHECKL(0xA55E62, sizeof(mps_ld_s) == sizeof(LDStruct));
-  CHECKL(0xA55E62, CHECKFIELD(mps_ld_s, w0, LDStruct, epoch));
-  CHECKL(0xA55E62, CHECKFIELD(mps_ld_s, w1, LDStruct, rs));
+  CHECKL(0x3B510018, sizeof(mps_ld_s) == sizeof(LDStruct));
+  CHECKL(0x3B510019, CHECKFIELD(mps_ld_s, w0, LDStruct, epoch));
+  CHECKL(0x3B51001A, CHECKFIELD(mps_ld_s, w1, LDStruct, rs));
 
   return TRUE;
 }
@@ -154,7 +154,7 @@ static Bool mpsi_check(void)
 
 mps_assert_t mps_assert_install(mps_assert_t handler)
 {
-  AVER(0xA55E62, handler != NULL);
+  AVER(0x3B51001B, handler != NULL);
   return AssertInstall(handler);
 }
 
@@ -172,10 +172,10 @@ mps_res_t mps_space_create_wmem(mps_space_t *mps_space_o,
   
   /* This is the first real call that the client will have to make, */
   /* so check static consistency here. */
-  AVER(0xA55E62, mpsi_check());
+  AVER(0x3B51001C, mpsi_check());
 
-  AVER(0xA55E62, mps_space_o != NULL);
-  AVER(0xA55E62, base != NULL);
+  AVER(0x3B51001D, mps_space_o != NULL);
+  AVER(0x3B51001E, base != NULL);
 
   res = SpaceCreate(&space, (Addr)base, (Size)size);
   if(res != ResOK) return res;
@@ -229,9 +229,9 @@ mps_res_t mps_space_create(mps_space_t *mps_space_o)
 
   /* This is the first real call that the client will have to make, */
   /* so check static consistency here. */
-  AVER(0xA55E62, mpsi_check());
+  AVER(0x3B51001F, mpsi_check());
 
-  AVER(0xA55E62, mps_space_o != NULL);
+  AVER(0x3B510020, mps_space_o != NULL);
 
   res = SpaceCreate(&space, (Addr)0, (Size)0);
   if(res != ResOK) return res;
@@ -252,7 +252,7 @@ mps_res_t mps_space_create(mps_space_t *mps_space_o)
 void mps_space_destroy(mps_space_t mps_space)
 {
   Space space = (Space)mps_space;
-  AVERT(0xA55E62, Space, space);
+  AVERT(0x3B510021, Space, space);
   SpaceDestroy(space);
 }
 
@@ -275,7 +275,7 @@ mps_res_t mps_fmt_create_A(mps_fmt_t *mps_fmt_o,
 
   SpaceEnter(space);
 
-  AVER(0xA55E62, mps_fmt_A != NULL);
+  AVER(0x3B510022, mps_fmt_A != NULL);
 
   res = FormatCreate(&format,
                      space,
@@ -300,12 +300,12 @@ void mps_fmt_destroy(mps_fmt_t mps_fmt)
   Format format = (Format)mps_fmt;
   Space space;
   
-  AVER(0xA55E62, CHECKT(Format, format));
+  AVER(0x3B510023, CHECKT(Format, format));
   space = FormatSpace(format);
 
   SpaceEnter(space);
 
-  AVERT(0xA55E62, Format, format);
+  AVERT(0x3B510024, Format, format);
 
   FormatDestroy((Format)mps_fmt);
 
@@ -338,9 +338,9 @@ mps_res_t mps_pool_create_v(mps_pool_t *mps_pool_o,
 
   SpaceEnter(space);
 
-  AVER(0xA55E62, mps_pool_o != NULL);
-  AVERT(0xA55E62, Space, space);
-  AVERT(0xA55E62, PoolClass, class);
+  AVER(0x3B510025, mps_pool_o != NULL);
+  AVERT(0x3B510026, Space, space);
+  AVERT(0x3B510027, PoolClass, class);
 
   res = PoolCreateV(&pool, space, class, args);
 
@@ -357,12 +357,12 @@ void mps_pool_destroy(mps_pool_t mps_pool)
   Pool pool = (Pool)mps_pool;
   Space space;
   
-  AVER(0xA55E62, CHECKT(Pool, pool));
+  AVER(0x3B510028, CHECKT(Pool, pool));
   space = PoolSpace(pool);
 
   SpaceEnter(space);
 
-  AVERT(0xA55E62, Pool, pool);
+  AVERT(0x3B510029, Pool, pool);
   PoolDestroy(pool);
 
   SpaceLeave(space);
@@ -389,16 +389,16 @@ mps_res_t mps_alloc_v(mps_addr_t *p_o,
   Addr p;
   Res res;
   
-  AVER(0xA55E62, CHECKT(Pool, pool));
+  AVER(0x3B51002A, CHECKT(Pool, pool));
   space = PoolSpace(pool);
 
   SpaceEnter(space);
 
   SpacePoll(space);                     /* .poll */
 
-  AVER(0xA55E62, p_o != NULL);
-  AVERT(0xA55E62, Pool, pool);
-  AVER(0xA55E62, size > 0);
+  AVER(0x3B51002B, p_o != NULL);
+  AVERT(0x3B51002C, Pool, pool);
+  AVER(0x3B51002D, size > 0);
   UNUSED(args);
   /* Note: class may allow unaligned size, see */
   /* design.mps.class-interface.alloc.size.align. */
@@ -418,13 +418,13 @@ void mps_free(mps_pool_t mps_pool, mps_addr_t p, size_t size)
   Pool pool = (Pool)mps_pool;
   Space space;
   
-  AVER(0xA55E62, CHECKT(Pool, pool));
+  AVER(0x3B51002E, CHECKT(Pool, pool));
   space = PoolSpace(pool);
 
   SpaceEnter(space);
 
-  AVERT(0xA55E62, Pool, pool);
-  AVER(0xA55E62, size > 0);
+  AVERT(0x3B51002F, Pool, pool);
+  AVER(0x3B510030, size > 0);
   /* Note: class may allow unaligned size, see */
   /* design.mps.class-interface.alloc.size.align. */
 
@@ -443,13 +443,13 @@ mps_res_t mps_ap_create(mps_ap_t *mps_ap_o, mps_pool_t mps_pool,
   Res res;
   va_list args;
   
-  AVER(0xA55E62, CHECKT(Pool, pool));
+  AVER(0x3B510031, CHECKT(Pool, pool));
   space = PoolSpace(pool);
 
   SpaceEnter(space);
 
-  AVER(0xA55E62, mps_ap_o != NULL);
-  AVERT(0xA55E62, Pool, pool);
+  AVER(0x3B510032, mps_ap_o != NULL);
+  AVERT(0x3B510033, Pool, pool);
 
   /* See .varargs. */
   va_start(args, mps_rank);
@@ -473,13 +473,13 @@ mps_res_t mps_ap_create_v(mps_ap_t *mps_ap_o, mps_pool_t mps_pool,
   Buffer buf;
   Res res;
   
-  AVER(0xA55E62, CHECKT(Pool, pool));
+  AVER(0x3B510034, CHECKT(Pool, pool));
   space = PoolSpace(pool);
 
   SpaceEnter(space);
 
-  AVER(0xA55E62, mps_ap_o != NULL);
-  AVERT(0xA55E62, Pool, pool);
+  AVER(0x3B510035, mps_ap_o != NULL);
+  AVERT(0x3B510036, Pool, pool);
   UNUSED(args);
 
   /* See .varargs. */
@@ -498,13 +498,13 @@ void mps_ap_destroy(mps_ap_t mps_ap)
   Buffer buf = BufferOfAP((AP)mps_ap);
   Space space;
 
-  AVER(0xA55E62, mps_ap != NULL);  
-  AVER(0xA55E62, CHECKT(Buffer, buf));
+  AVER(0x3B510037, mps_ap != NULL);  
+  AVER(0x3B510038, CHECKT(Buffer, buf));
   space = BufferSpace(buf);
 
   SpaceEnter(space);
 
-  AVERT(0xA55E62, Buffer, buf);
+  AVERT(0x3B510039, Buffer, buf);
   BufferDestroy(buf);
   SpaceLeave(space);
 }
@@ -522,11 +522,11 @@ mps_res_t (mps_reserve)(mps_addr_t *p_o, mps_ap_t mps_ap, size_t size)
 {
   mps_res_t res;
 
-  AVER(0xA55E62, p_o != NULL);
-  AVER(0xA55E62, size > 0);
-  AVER(0xA55E62, mps_ap != NULL);
-  AVER(0xA55E62, CHECKT(Buffer, BufferOfAP((AP)mps_ap)));
-  AVER(0xA55E62, mps_ap->init == mps_ap->alloc);
+  AVER(0x3B51003A, p_o != NULL);
+  AVER(0x3B51003B, size > 0);
+  AVER(0x3B51003C, mps_ap != NULL);
+  AVER(0x3B51003D, CHECKT(Buffer, BufferOfAP((AP)mps_ap)));
+  AVER(0x3B51003E, mps_ap->init == mps_ap->alloc);
 
   MPS_RESERVE_BLOCK(res, *p_o, mps_ap, size);
 
@@ -545,12 +545,12 @@ mps_res_t (mps_reserve)(mps_addr_t *p_o, mps_ap_t mps_ap, size_t size)
 
 mps_bool_t (mps_commit)(mps_ap_t mps_ap, mps_addr_t p, size_t size)
 {
-  AVER(0xA55E62, mps_ap != NULL);
-  AVER(0xA55E62, CHECKT(Buffer, BufferOfAP((AP)mps_ap)));
-  AVER(0xA55E62, p != NULL);
-  AVER(0xA55E62, size > 0);
-  AVER(0xA55E62, p == mps_ap->init);
-  AVER(0xA55E62, (void *)((char *)mps_ap->init + size) == mps_ap->alloc);
+  AVER(0x3B51003F, mps_ap != NULL);
+  AVER(0x3B510040, CHECKT(Buffer, BufferOfAP((AP)mps_ap)));
+  AVER(0x3B510041, p != NULL);
+  AVER(0x3B510042, size > 0);
+  AVER(0x3B510043, p == mps_ap->init);
+  AVER(0x3B510044, (void *)((char *)mps_ap->init + size) == mps_ap->alloc);
 
   return mps_commit(mps_ap, p, size);
 }
@@ -569,18 +569,18 @@ mps_res_t mps_ap_fill(mps_addr_t *p_o, mps_ap_t mps_ap, size_t size)
   Addr p;
   Res res;
 
-  AVER(0xA55E62, mps_ap != NULL);  
-  AVER(0xA55E62, CHECKT(Buffer, buf));
+  AVER(0x3B510045, mps_ap != NULL);  
+  AVER(0x3B510046, CHECKT(Buffer, buf));
   space = BufferSpace(buf);
 
   SpaceEnter(space);
 
   SpacePoll(space);                     /* .poll */
 
-  AVER(0xA55E62, p_o != NULL);
-  AVERT(0xA55E62, Buffer, buf);
-  AVER(0xA55E62, size > 0);
-  AVER(0xA55E62, SizeIsAligned(size, BufferPool(buf)->alignment));
+  AVER(0x3B510047, p_o != NULL);
+  AVERT(0x3B510048, Buffer, buf);
+  AVER(0x3B510049, size > 0);
+  AVER(0x3B51004A, SizeIsAligned(size, BufferPool(buf)->alignment));
 
   res = BufferFill(&p, buf, size);
 
@@ -605,15 +605,15 @@ mps_bool_t mps_ap_trip(mps_ap_t mps_ap, mps_addr_t p, size_t size)
   Space space;
   Bool b;
 
-  AVER(0xA55E62, mps_ap != NULL);  
-  AVER(0xA55E62, CHECKT(Buffer, buf));
+  AVER(0x3B51004B, mps_ap != NULL);  
+  AVER(0x3B51004C, CHECKT(Buffer, buf));
   space = BufferSpace(buf);
 
   SpaceEnter(space);
 
-  AVERT(0xA55E62, Buffer, buf);
-  AVER(0xA55E62, size > 0);
-  AVER(0xA55E62, SizeIsAligned(size, BufferPool(buf)->alignment));
+  AVERT(0x3B51004D, Buffer, buf);
+  AVER(0x3B51004E, size > 0);
+  AVER(0x3B51004F, SizeIsAligned(size, BufferPool(buf)->alignment));
 
   b = BufferTrip(buf, (Addr)p, size);
 
@@ -637,10 +637,10 @@ mps_res_t mps_root_create(mps_root_t *mps_root_o,
 
   SpaceEnter(space);
 
-  AVER(0xA55E62, mps_root_o != NULL);
-  AVERT(0xA55E62, Space, space);
-  AVER(0xA55E62, mps_root_scan != NULL);
-  AVER(0xA55E62, mps_rm == (mps_rm_t)0);
+  AVER(0x3B510050, mps_root_o != NULL);
+  AVERT(0x3B510051, Space, space);
+  AVER(0x3B510052, mps_root_scan != NULL);
+  AVER(0x3B510053, mps_rm == (mps_rm_t)0);
 
   /* See .root-mode. */
   res = RootCreateFun(&root, space, rank,
@@ -667,10 +667,10 @@ mps_res_t mps_root_create_table(mps_root_t *mps_root_o,
 
   SpaceEnter(space);
 
-  AVER(0xA55E62, mps_root_o != NULL);
-  AVERT(0xA55E62, Space, space);
-  AVER(0xA55E62, base != NULL);
-  AVER(0xA55E62, (unsigned long)size > 0);
+  AVER(0x3B510054, mps_root_o != NULL);
+  AVERT(0x3B510055, Space, space);
+  AVER(0x3B510056, base != NULL);
+  AVER(0x3B510057, (unsigned long)size > 0);
 
   /* Note, size is the length of the array at base, not */
   /* the size in bytes.  However, RootCreateTable expects */
@@ -704,11 +704,11 @@ mps_res_t mps_root_create_fmt(mps_root_t *mps_root_o,
   
   SpaceEnter(space);
 
-  AVER(0xA55E62, mps_root_o != NULL);
-  AVERT(0xA55E62, Space, space);
-  AVER(0xA55E62, scan != NULL);
-  AVER(0xA55E62, base != NULL);
-  AVER(0xA55E62, base < limit);
+  AVER(0x3B510058, mps_root_o != NULL);
+  AVERT(0x3B510059, Space, space);
+  AVER(0x3B51005A, scan != NULL);
+  AVER(0x3B51005B, base != NULL);
+  AVER(0x3B51005C, base < limit);
 
   /* See .root-mode. */
   res = RootCreateFmt(&root, space, rank, scan,
@@ -739,14 +739,14 @@ mps_res_t mps_root_create_reg(mps_root_t *mps_root_o,
 
   SpaceEnter(space);
 
-  AVER(0xA55E62, mps_root_o != NULL);
-  AVERT(0xA55E62, Space, space);
-  AVERT(0xA55E62, Thread, thread);
-  AVER(0xA55E62, mps_reg_scan != NULL);
-  AVER(0xA55E62, mps_reg_scan == mps_stack_scan_ambig); /* .reg.scan */
-  AVER(0xA55E62, reg_scan_p != NULL); /* stackBot */
-  AVER(0xA55E62, rank == MPS_RANK_AMBIG);
-  AVER(0xA55E62, mps_rm == (mps_rm_t)0);
+  AVER(0x3B51005D, mps_root_o != NULL);
+  AVERT(0x3B51005E, Space, space);
+  AVERT(0x3B51005F, Thread, thread);
+  AVER(0x3B510060, mps_reg_scan != NULL);
+  AVER(0x3B510061, mps_reg_scan == mps_stack_scan_ambig); /* .reg.scan */
+  AVER(0x3B510062, reg_scan_p != NULL); /* stackBot */
+  AVER(0x3B510063, rank == MPS_RANK_AMBIG);
+  AVER(0x3B510064, mps_rm == (mps_rm_t)0);
 
   /* See .root-mode. */
   res = RootCreateReg(&root, space, rank, thread,
@@ -782,12 +782,12 @@ void mps_root_destroy(mps_root_t mps_root)
   Root root = (Root)mps_root;
   Space space;
   
-  AVER(0xA55E62, CHECKT(Root, root));
+  AVER(0x3B510065, CHECKT(Root, root));
   space = RootSpace(root);
 
   SpaceEnter(space);
 
-  AVERT(0xA55E62, Root, root);
+  AVERT(0x3B510066, Root, root);
 
   RootDestroy(root);
 
@@ -816,8 +816,8 @@ mps_res_t mps_thread_reg(mps_thr_t *mps_thr_o,
 
   SpaceEnter(space);
 
-  AVER(0xA55E62, mps_thr_o != NULL);
-  AVERT(0xA55E62, Space, space);
+  AVER(0x3B510067, mps_thr_o != NULL);
+  AVERT(0x3B510068, Space, space);
 
   res = ThreadRegister(&thread, space);
 
@@ -834,7 +834,7 @@ void mps_thread_dereg(mps_thr_t mps_thr)
   Thread thread = (Thread)mps_thr;
   Space space;
   
-  AVER(0xA55E62, CHECKT(Thread, thread));
+  AVER(0x3B510069, CHECKT(Thread, thread));
   space = ThreadSpace(thread);
 
   SpaceEnter(space);

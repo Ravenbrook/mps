@@ -1,6 +1,6 @@
 /* impl.c.seg: SEGMENTS
  *
- * $HopeName: MMsrc!seg.c(MMdevel_assertid.1) $
+ * $HopeName: MMsrc!seg.c(MMdevel_assertid.2) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  *
  * .design: The design for this module is design.mps.seg.
@@ -16,42 +16,42 @@
 
 #include "mpm.h"
 
-SRCID(seg, "$HopeName: MMsrc!seg.c(MMdevel_assertid.1) $");
+SRCID(seg, "$HopeName: MMsrc!seg.c(MMdevel_assertid.2) $");
 
 
 /* SegCheck -- check the integrity of a segment */
 
 Bool SegCheck(Seg seg)
 {
-  CHECKU(0xA55E62, Pool, seg->pool);
-  CHECKL(0xA55E62, TraceSetCheck(seg->white));
-  CHECKL(0xA55E62, TraceSetCheck(seg->grey));
-  CHECKL(0xA55E62, TraceSetCheck(seg->black));
+  CHECKU(0x5E990000, Pool, seg->pool);
+  CHECKL(0x5E990001, TraceSetCheck(seg->white));
+  CHECKL(0x5E990002, TraceSetCheck(seg->grey));
+  CHECKL(0x5E990003, TraceSetCheck(seg->black));
   if(seg->buffer != NULL) {
-    CHECKU(0xA55E62, Buffer, seg->buffer);
+    CHECKU(0x5E990004, Buffer, seg->buffer);
     /* design.mps.seg.field.buffer.owner */
-    CHECKL(0xA55E62, BufferPool(seg->buffer) == seg->pool);
+    CHECKL(0x5E990005, BufferPool(seg->buffer) == seg->pool);
   }
-  CHECKL(0xA55E62, RingCheck(&seg->poolRing));
-  CHECKL(0xA55E62, RankSetCheck(seg->rankSet));
+  CHECKL(0x5E990006, RingCheck(&seg->poolRing));
+  CHECKL(0x5E990007, RankSetCheck(seg->rankSet));
   if(seg->rankSet == RankSetEMPTY) {
     /* design.mps.seg.field.rankSet.empty: If there are no refs */
     /* in the segment then it cannot contain black or grey refs. */
-    CHECKL(0xA55E62, seg->grey == TraceSetEMPTY);
-    CHECKL(0xA55E62, seg->black == TraceSetEMPTY);
-    CHECKL(0xA55E62, seg->summary == RefSetEMPTY);
-    CHECKL(0xA55E62, seg->sm == AccessSetEMPTY);
-    CHECKL(0xA55E62, seg->pm == AccessSetEMPTY);
+    CHECKL(0x5E990008, seg->grey == TraceSetEMPTY);
+    CHECKL(0x5E990009, seg->black == TraceSetEMPTY);
+    CHECKL(0x5E99000A, seg->summary == RefSetEMPTY);
+    CHECKL(0x5E99000B, seg->sm == AccessSetEMPTY);
+    CHECKL(0x5E99000C, seg->pm == AccessSetEMPTY);
   } else {
     /* design.mps.seg.field.rankSet.single: The Tracer only permits */
     /* one rank per segment [ref?] so this field is either empty or a */
     /* singleton. */
-    CHECKL(0xA55E62, RankSetIsSingle(seg->rankSet));
+    CHECKL(0x5E99000D, RankSetIsSingle(seg->rankSet));
     /* .check.wb: If summary isn't universal then it must be Write shielded */
-    CHECKL(0xA55E62, seg->summary == RefSetUNIV || (seg->sm & AccessWRITE));
+    CHECKL(0x5E99000E, seg->summary == RefSetUNIV || (seg->sm & AccessWRITE));
   }
   /* "pm", "sm", and "depth" not checked.  See .check.shield. */
-  CHECKL(0xA55E62, BoolCheck(seg->single));
+  CHECKL(0x5E99000F, BoolCheck(seg->single));
   return TRUE;
 }
 
@@ -74,7 +74,7 @@ void SegInit(Seg seg, Pool pool)
   seg->depth = 0;
   seg->single = FALSE;
 
-  AVERT(0xA55E62, Seg, seg);
+  AVERT(0x5E990010, Seg, seg);
 }
 
 
@@ -82,14 +82,14 @@ void SegInit(Seg seg, Pool pool)
 
 void SegFinish(Seg seg)
 {
-  AVERT(0xA55E62, Seg, seg);
+  AVERT(0x5E990011, Seg, seg);
 
   /* Check that the segment is not exposed, or in the shield */
   /* cache (see impl.c.shield.def.depth). */
-  AVER(0xA55E62, seg->depth == 0);
+  AVER(0x5E990012, seg->depth == 0);
   
   /* Don't leave a dangling buffer allocating into hyperspace. */
-  AVER(0xA55E62, seg->buffer == NULL);
+  AVER(0x5E990013, seg->buffer == NULL);
 
   RingFinish(&seg->poolRing);
 }
