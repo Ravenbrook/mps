@@ -1,12 +1,12 @@
 /* impl.c.trace: GENERIC TRACER IMPLEMENTATION
  *
- * $HopeName: MMsrc!trace.c(trunk.35) $
+ * $HopeName: MMsrc!trace.c(MMdevel_greylist.2) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  */
 
 #include "mpm.h"
 
-SRCID(trace, "$HopeName: MMsrc!trace.c(trunk.35) $");
+SRCID(trace, "$HopeName: MMsrc!trace.c(MMdevel_greylist.2) $");
 
 
 /* ScanStateCheck -- check consistency of a ScanState object */
@@ -366,6 +366,7 @@ static Res TraceFlip(Trace trace)
   ShieldSuspend(space);
 
   AVER(trace->state == TraceUNFLIPPED);
+  AVER(!TraceSetIsMember(space->flippedTraces, trace->ti));
 
   EVENT_PP(TraceFlipBegin, trace, space);
 

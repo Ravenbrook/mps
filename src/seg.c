@@ -1,6 +1,6 @@
 /* impl.c.seg: SEGMENTS
  *
- * $HopeName: MMsrc!seg.c(MMdevel_greylist.2) $
+ * $HopeName: MMsrc!seg.c(MMdevel_greylist.3) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  *
  * .design: The design for this module is design.mps.seg.
@@ -16,7 +16,7 @@
 
 #include "mpm.h"
 
-SRCID(seg, "$HopeName: MMsrc!seg.c(MMdevel_greylist.2) $");
+SRCID(seg, "$HopeName: MMsrc!seg.c(MMdevel_greylist.3) $");
 
 
 /* SegCheck -- check the integrity of a segment */
@@ -42,8 +42,8 @@ Bool SegCheck(Seg seg)
 
   /* The segment should be on a grey ring if and only if it is grey. */
   CHECKL(RingCheck(&seg->_greyRing));
-  CHECKL((seg->_grey == TraceSetEMPTY) == 
-         (RingNext(&seg->_greyRing) == &seg->_greyRing));
+  CHECKL((seg->_grey == TraceSetEMPTY) ==
+         RingIsSingle(&seg->_greyRing));
 
   CHECKL(RankSetCheck(seg->_rankSet));
   if(seg->_rankSet == RankSetEMPTY) {
@@ -152,6 +152,7 @@ void SegSetSummary(Seg seg, RefSet summary)
 
   AVER(seg->_rankSet != RankSetEMPTY);
 
+  /* Note: !RefSetSuper is a test for a strict subset */
   if(!RefSetSuper(summary, RefSetUNIV)) {
     if(RefSetSuper(oldSummary, RefSetUNIV))
       ShieldRaise(space, seg, AccessWRITE);
