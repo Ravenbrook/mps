@@ -1,6 +1,6 @@
 /* impl.c.span: ANSI STACK PROBE
  *
- * $HopeName$
+ * $HopeName: !span.c(trunk.1) $
  * Copyright (C) 1997 Howard T. Duck.  All rights reserved.
  *
  * READERSHIP
@@ -21,7 +21,7 @@
 
 #include "mpm.h"
 
-SRCID(span, "$HopeName$");
+SRCID(span, "$HopeName: !span.c(trunk.1) $");
 
 void StackProbe(Word depth)
 {
