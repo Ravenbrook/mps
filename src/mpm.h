@@ -1,6 +1,6 @@
 /* impl.h.mpm: MEMORY POOL MANAGER DEFINITIONS
  *
- * $HopeName: MMsrc!mpm.h(MMdevel_pekka_locus.1) $
+ * $HopeName: MMsrc!mpm.h(MMdevel_pekka_locus.2) $
  * Copyright (C) 1999 Harlequin Limited.  All rights reserved.
  */
 
@@ -11,15 +11,14 @@
 #include "misc.h"       /* miscellaneous non-specific bits and bobs */
 #include "check.h"      /* assertion and consistency checking support */
 
-#include "mpmtypes.h"
-#include "mpmst.h"
 #include "event.h"
 #include "lock.h"
 #include "th.h"
-#include "poolmv.h"
-#include "poolmfs.h"
 #include "ss.h"
 #include "mpslib.h"
+#include "tract.h" /* only for certain Seg macros */
+#include "mpmtypes.h"
+#include "mpmst.h"
 
 
 /* CheckLevel -- Control check method behaviour; see impl.c.assert */
@@ -715,7 +714,7 @@ extern void ArenaNoSpareCommitExceeded(Arena arena);
 extern double ArenaMutatorAllocSize(Arena arena);
 
 extern Res ArenaExtend(Arena, Addr base, Size size);
-extern Res ArenaRetract(Arena, Addr base, Size size);
+
 extern Res ArenaFinalize(Arena arena, Ref obj);
 
 extern Bool ArenaIsReservedAddr(Arena arena, Addr addr);
@@ -737,69 +736,9 @@ extern Res ReservoirWithdraw(Addr *baseReturn, Tract *baseTractReturn,
 extern Res ArenaAlloc(Addr *baseReturn, SegPref pref,
                       Size size, Pool pool, Bool withReservoirPermit);
 extern void ArenaFree(Addr base, Size size, Pool pool);
-extern Addr (TractBase)(Tract tract);
-#define TractBase(tract)        ((tract)->base)
-extern Addr TractLimit(Tract tract);
-extern Tract TractOfBaseAddr(Arena arena, Addr addr);
-extern Bool TractOfAddr(Tract *tractReturn, Arena arena, Addr addr);
-/* TractOfAddr macro, see design.mps.trace.fix.tractofaddr */
-#define TRACT_OF_ADDR(tractReturn, arena, addr) \
-  ((*(arena)->class->tractOfAddr)(tractReturn, arena, addr))
-extern Bool TractFirst(Tract *tractReturn, Arena arena);
-extern Bool TractNext(Tract *tractReturn, Arena arena, Addr addr);
-extern Tract TractNextContig(Arena arena, Tract tract);
-extern Bool TractCheck(Tract tract);
-extern void TractInit(Tract tract, Pool pool, Addr base);
-extern void TractFinish(Tract tract);
-#define TractPool(tract)        ((tract)->pool)
-#define TractP(tract)           ((tract)->p)
-#define TractSetP(tract, pp)    ((void)((tract)->p = (pp)))
-#define TractHasSeg(tract)      ((Bool)(tract)->hasSeg)
-#define TractSetHasSeg(tract, b) ((void)((tract)->hasSeg = (b)))
-#define TractWhite(tract)       ((tract)->white)
-#define TractSetWhite(tract, w) ((void)((tract)->white = w))
-
-/* TRACT_*SEG -- Test / set / unset seg->tract associations
- *
- * These macros all multiply evaluate the tract parameter 
- */
-
-#define TRACT_SEG(segReturn, tract) \
-  (TractHasSeg(tract) && ((*(segReturn) = (Seg)TractP(tract)), TRUE))
-
-#define TRACT_SET_SEG(tract, seg) \
-  (TractSetHasSeg(tract, TRUE), TractSetP(tract, seg))
-
-#define TRACT_UNSET_SEG(tract) \
-  (TractSetHasSeg(tract, FALSE), TractSetP(tract, NULL))
-
-/* Macro version of TractNextContig for use in iteration macros */
-#define TRACT_NEXT_CONTIG(arena, tract) \
-  (*(arena)->class->tractNextContig)(arena, tract)
-
-/* .tract.tract.for: See design.mps.arena.tract.tract.for */
-/* paremeters arena & limit are evaluated multiple times */
-#define TRACT_TRACT_FOR(tract, addr, arena, firstTract, limit)     \
-  for((tract = (firstTract)), (addr = TractBase(tract)); \
-      tract != NULL;  \
-      (addr = AddrAdd((addr),(arena)->alignment)), \
-      ((addr < (limit)) ? \
-         (tract = TRACT_NEXT_CONTIG((arena), tract)) : \
-         (tract = NULL) /* terminate loop */))
-
-/* .tract.for: See design.mps.arena.tract.for */
-/* paremeters arena & limit are evaluated multiple times */
-#define TRACT_FOR(tract, addr, arena, base, limit)     \
-  for((tract = TractOfBaseAddr((arena), (base))), (addr = (base)); \
-      tract != NULL;  \
-      (addr = AddrAdd((addr),(arena)->alignment)), \
-      ((addr < (limit)) ? \
-         (tract = TRACT_NEXT_CONTIG((arena), tract)) : \
-         (tract = NULL) /* terminate loop */))
 
 
 extern Res ArenaNoExtend(Arena arena, Addr base, Size size);
-extern Res ArenaNoRetract(Arena arena, Addr base, Size size);
 extern Res ArenaTrivDescribe(Arena arena, mps_lib_FILE *stream);
 
 extern Bool SegPrefCheck(SegPref pref);
