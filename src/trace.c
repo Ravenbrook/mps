@@ -1,11 +1,11 @@
 /* impl.c.trace: GENERIC TRACER IMPLEMENTATION
  *
- * $HopeName: MMsrc!trace.c(MMdevel_restr.6) $
+ * $HopeName: MMsrc!trace.c(MMdevel_restr.7) $
  */
 
 #include "mpm.h"
 
-SRCID(trace, "$HopeName: MMsrc!trace.c(MMdevel_restr.6) $");
+SRCID(trace, "$HopeName: MMsrc!trace.c(MMdevel_restr.7) $");
 
 Bool ScanStateCheck(ScanState ss)
 {
@@ -19,7 +19,7 @@ Bool ScanStateCheck(ScanState ss)
 
 Bool TraceIdCheck(TraceId ti)
 {
-  CHECKL(ti == TraceIdNone || ti < TRACE_MAX);
+  CHECKL(ti == TraceIdNONE || ti < TRACE_MAX);
   return TRUE;
 }
 
@@ -201,7 +201,7 @@ Res TraceFix(ScanState ss, Ref *refIO)
   if(SegOfAddr(&seg, ss->space, ref))
     if(ss->traceId == seg->condemned) {
       pool = seg->pool;
-      return POOLFIX(pool, ss, seg, refIO);
+      return PoolFix(pool, ss, seg, refIO);
     }
 
   return ResOK;
