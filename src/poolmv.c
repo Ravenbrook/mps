@@ -1,6 +1,6 @@
 /* impl.c.poolmv: MANUAL VARIABLE POOL
  *
- * $HopeName: MMsrc!poolmv.c(MMdevel_drj_swint.2) $
+ * $HopeName: MMsrc!poolmv.c(MMdevel_drj_swint.3) $
  * Copyright (C) 1994, 1995 Harlequin Group, all rights reserved
  *
  * **** RESTRICTION: This pool may not allocate from the arena control
@@ -37,7 +37,7 @@
 #include "poolmfs.h"
 #include "mpscmv.h"
 
-SRCID(poolmv, "$HopeName: MMsrc!poolmv.c(MMdevel_drj_swint.2) $");
+SRCID(poolmv, "$HopeName: MMsrc!poolmv.c(MMdevel_drj_swint.3) $");
 
 
 #define BLOCKPOOL(mv)   (MFSPool(&(mv)->blockPoolStruct))
@@ -526,7 +526,7 @@ static Res MVDescribe(Pool pool, Lib_FILE *stream)
               "  Spans\n"
               "      desc      seg    space blockCount\n");
   spans = &mv->spans;
-  RING_FOR(spans, node) {
+  RING_FOR(node, spans) {
     span = RING_ELT(MVSpan, spans, node);
     AVERT(MVSpan, span);
 
@@ -542,7 +542,7 @@ static Res MVDescribe(Pool pool, Lib_FILE *stream)
   length = 0x40 * step;
 
   spans = &mv->spans;
-  RING_FOR(spans, node) {
+  RING_FOR(node, spans) {
     Addr i, j;
     MVBlock block;
     span = RING_ELT(MVSpan, spans, node);
@@ -637,7 +637,7 @@ size_t mps_mv_free_size(mps_pool_t mps_pool)
   AVERT(MV, mv);
 
   spans = &mv->spans;
-  RING_FOR(spans, node) {
+  RING_FOR(node, spans) {
   span = RING_ELT(MVSpan, spans, node);
     AVERT(MVSpan, span);
     f += span->space;
@@ -663,7 +663,7 @@ size_t mps_mv_size(mps_pool_t mps_pool)
   space = PoolSpace(pool);
 
   spans = &mv->spans;
-  RING_FOR(spans, node) {
+  RING_FOR(node, spans) {
   span = RING_ELT(MVSpan, spans, node);
     AVERT(MVSpan, span);
     f += SegSize(space, span->seg);
