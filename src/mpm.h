@@ -1,13 +1,16 @@
 /* impl.h.mpm: MEMORY POOL MANAGER DEFINITIONS
  *
- * $HopeName: MMsrc!mpm.h(MMdevel_config.1) $
+ * $HopeName: MMsrc!mpm.h(MMdevel_config.2) $
  * Copyright (C) 1996 Harlequin Group, all rights reserved.
  */
 
 #ifndef mpm_h
 #define mpm_h
 
-#include "mpmconf.h"
+#include "config.h"	/* this must come first: it defines target options */
+#include "misc.h"       /* miscellaneous non-specific bits and bobs */
+#include "check.h"      /* assertion and consistency checking support */
+
 #include "mpmtypes.h"
 #include "mpmst.h"
 #include "lock.h"
@@ -25,7 +28,7 @@
  * control over internal and interface checking.
  */
 
-#ifdef TARGET_MPM_ASSERT        /* impl.h.target */
+#ifdef MPM_ASSERT        /* impl.h.target */
 #define AVER                    ASSERT
 #define AVERT(type, val)        ASSERT(type ## Check(val))
 #else
