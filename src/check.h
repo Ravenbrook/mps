@@ -1,6 +1,6 @@
 /* impl.h.check: ASSERTION INTERFACE
  *
- * $HopeName: MMsrc!check.h(MMdevel_config.1) $
+ * $HopeName: !check.h(trunk.2) $
  *
  * This header defines a family of AVER and NOTREACHED macros. The
  * macros should be used to instrument and annotate code with

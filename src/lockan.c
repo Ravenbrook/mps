@@ -2,7 +2,7 @@
  *
  *                  ANSI RECURSIVE LOCKS
  *
- *  $HopeName: MMsrc!lockan.c(trunk.5) $
+ *  $HopeName: !lockan.c(trunk.6) $
  *
  *  Copyright (C) 1995 Harlequin Group, all rights reserved
  *
@@ -19,7 +19,7 @@
 
 #include "mpm.h"
 
-SRCID(lockan, "$HopeName: MMsrc!lockan.c(trunk.5) $");
+SRCID(lockan, "$HopeName: !lockan.c(trunk.6) $");
 
 Bool LockCheck(Lock lock)
 {
