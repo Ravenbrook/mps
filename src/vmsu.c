@@ -1,38 +1,35 @@
-/*  impl.c.vmsu
+/* impl.c.vmsu: VIRTUAL MEMORY MAPPING FOR SUNOS 4
  *
- *                     VIRTUAL MEMORY MAPPING FOR SUNOS 4
+ * $HopeName: MMsrc!vmsu.c(trunk.9) $
+ * Copyright (C) 1995 Harlequin Group, all rights reserved
  *
- *  $HopeName: MMsrc!vmsu.c(trunk.9) $
+ * Design: design.mps.vm
  *
- *  Copyright (C) 1995 Harlequin Group, all rights reserved
+ * This is the implementation of the virtual memory mapping interface
+ * (vm.h) for SunOS 4.
  *
- *  Design: design.mps.vm
+ * mmap(2) is used to reserve address space by creating a mapping to
+ * /etc/passwd with page access none.  mmap(2) is used to map pages
+ * onto store by creating a copy-on-write mapping to /dev/zero.
  *
- *  This is the implementation of the virtual memory mapping interface
- *  (vm.h) for SunOS 4.
+ * Experiments have shown that attempting to reserve address space
+ * by mapping /dev/zero results in swap being reserved.  This
+ * appears to be a bug, so we work round it by using /etc/passwd,
+ * the only file we can think of which is pretty much guaranteed
+ * to be around.
  *
- *  mmap(2) is used to reserve address space by creating a mapping to
- *  /etc/passwd with page access none.  mmap(2) is used to map pages
- *  onto store by creating a copy-on-write mapping to /dev/zero.
+ * .assume.not-last: The implementation of VMCreate assumes that
+ *   mmap() will not choose a region which contains the last page
+ *   in the address space, so that the limit of the mapped area
+ *   is representable.
  *
- *  Experiments have shown that attempting to reserve address space
- *  by mapping /dev/zero results in swap being reserved.  This
- *  appears to be a bug, so we work round it by using /etc/passwd,
- *  the only file we can think of which is pretty much guaranteed
- *  to be around.
+ * .assume.size: The maximum size of the reserved address space
+ *   is limited by the range of "int".  This will probably be half
+ *   of the address space.
  *
- *  .assume.not-last: The implementation of VMCreate assumes that
- *    mmap() will not choose a region which contains the last page
- *    in the address space, so that the limit of the mapped area
- *    is representable.
- *
- *  .assume.size: The maximum size of the reserved address space
- *    is limited by the range of "int".  This will probably be half
- *    of the address space.
- *
- *  .assume.mmap.err: ENOMEM is the only error we really expect to
- *    get from mmap.  The others are either caused by invalid params
- *    or features we don't use.  See mmap(2) for details.
+ * .assume.mmap.err: ENOMEM is the only error we really expect to
+ *   get from mmap.  The others are either caused by invalid params
+ *   or features we don't use.  See mmap(2) for details.
  */
 
 #include "mpm.h"
@@ -58,6 +55,7 @@ extern int close(int fd);
 extern int munmap(caddr_t addr, int len);
 extern int getpagesize(void);
 
+#define SpaceVM(space)	(&(space)->arenaStruct.vmStruct)
 
 Align VMAlign(void)
 {
@@ -79,6 +77,7 @@ Bool VMCheck(VM vm)
   CHECKL(vm->base != 0);
   CHECKL(vm->limit != 0);
   CHECKL(vm->base < vm->limit);
+  CHECKL(vm->mapped <= vm->reserved);
   CHECKL(SizeIsP2(vm->align));
   CHECKL(AddrIsAligned(vm->base, vm->align));
   CHECKL(AddrIsAligned(vm->limit, vm->align));
@@ -86,17 +85,18 @@ Bool VMCheck(VM vm)
 }
 
 
-Res VMCreate(VM *vmReturn, Size size)
+Res VMCreate(Space *spaceReturn, Size size)
 {
   caddr_t addr;
   Align align;
   int zero_fd;
   int none_fd;
+  Space space;
   VM vm;
 
   align = VMAlign();
 
-  AVER(vmReturn != NULL);
+  AVER(spaceReturn != NULL);
   AVER(SizeIsAligned(size, align));
   AVER(size != 0);
   AVER(size <= INT_MAX); /* see .assume.size */
@@ -111,7 +111,7 @@ Res VMCreate(VM *vmReturn, Size size)
   }
 
   /* Map in a page to store the descriptor on. */
-  addr = mmap((caddr_t)0, AlignUp(sizeof(VMStruct), align),
+  addr = mmap((caddr_t)0, SizeAlignUp(sizeof(SpaceStruct), align),
 	      PROT_READ | PROT_WRITE, MAP_PRIVATE,
 	      zero_fd, (off_t)0);
   if((int)addr == -1) {
@@ -124,7 +124,8 @@ Res VMCreate(VM *vmReturn, Size size)
     else
       return ResFAIL;
   }
-  vm = (VM)addr;
+  space = (Space)addr;
+  vm = SpaceVM(space);
 
   vm->zero_fd = zero_fd;
   vm->none_fd = none_fd;
@@ -145,52 +146,62 @@ Res VMCreate(VM *vmReturn, Size size)
 
   vm->base = (Addr)addr;
   vm->limit = vm->base + size;
+  vm->reserved = size;
+  vm->mapped = (Size)0;
 
   vm->sig = VMSig;
 
   AVERT(VM, vm);
 
-  *vmReturn = vm;
+  *spaceReturn = space;
   return ResOK;
 }
 
 
-void VMDestroy(VM vm)
+void VMDestroy(Space space)
 {
   int r;
+  VM vm = SpaceVM(space);
 
   AVERT(VM, vm);
+  AVER(vm->mapped == (Size)0);
 
-  /* This appears to be pretty pointless, since the vm descriptor page is */
-  /* about to vanish completely.  However, munmap might fail for some */
-  /* reason, and this would ensure that it was still discovered if sigs */
-  /* were being checked. */
+  /* This appears to be pretty pointless, since the space descriptor */
+  /* page is  about to vanish completely.  However, munmap might fail */
+  /* for some reason, and this would ensure that it was still */
+  /* discovered if sigs were being checked. */
   vm->sig = SigInvalid;
 
   close(vm->zero_fd);
   close(vm->none_fd);
   r = munmap((caddr_t)vm->base, (int)(vm->limit - vm->base));
   AVER(r == 0);
-  r = munmap((caddr_t)vm, (int)SizeAlignUp(sizeof(VMStruct), vm->align));
+  r = munmap((caddr_t)space,
+             (int)SizeAlignUp(sizeof(SpaceStruct), vm->align));
   AVER(r == 0);
 }
 
 
-Addr VMBase(VM vm)
+Addr VMBase(Space space)
 {
+  VM vm = SpaceVM(space);
   AVERT(VM, vm);
   return vm->base;
 }
 
-Addr VMLimit(VM vm)
+Addr VMLimit(Space space)
 {
+  VM vm = SpaceVM(space);
   AVERT(VM, vm);
   return vm->limit;
 }
 
 
-Res VMMap(VM vm, Addr base, Addr limit)
+Res VMMap(Space space, Addr base, Addr limit)
 {
+  VM vm = SpaceVM(space);
+  Size size;
+
   AVERT(VM, vm);
   AVER(sizeof(int) == sizeof(Addr));
   AVER(base < limit);
@@ -203,7 +214,9 @@ Res VMMap(VM vm, Addr base, Addr limit)
   /* Map /dev/zero onto the area with a copy-on-write policy.  This */
   /* effectively populates the area with zeroed memory. */
 
-  if((int)mmap((caddr_t)base, (int)(limit - base),
+  size = AddrOffset(base, limit);
+
+  if((int)mmap((caddr_t)base, (int)size,
 	       PROT_READ | PROT_WRITE | PROT_EXEC,
 	       MAP_PRIVATE | MAP_FIXED,
 	       vm->zero_fd, (off_t)0) == -1) {
@@ -211,12 +224,16 @@ Res VMMap(VM vm, Addr base, Addr limit)
     return ResMEMORY;
   }
 
+  vm->mapped += size;
+
   return ResOK;
 }
 
 
-void VMUnmap(VM vm, Addr base, Addr limit)
+void VMUnmap(Space space, Addr base, Addr limit)
 {
+  VM vm = SpaceVM(space);
+  Size size;
   caddr_t addr;
 
   AVERT(VM, vm);
@@ -232,8 +249,12 @@ void VMUnmap(VM vm, Addr base, Addr limit)
   /* it "busy" as far as the OS is concerned, so that it will not */
   /* be re-used by other calls to mmap which do not specify MAP_FIXED. */
 
-  addr = mmap((caddr_t)base, (int)(limit - base),
+  size = AddrOffset(base, limit);
+
+  addr = mmap((caddr_t)base, (int)size,
 	      PROT_NONE, MAP_SHARED, vm->none_fd, (off_t)0);
   AVER((int)addr != -1);
+
+  vm->mapped -= size;
 }
 
