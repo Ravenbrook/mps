@@ -1,12 +1,12 @@
 /* impl.c.mpm: GENERAL MPM SUPPORT
  *
- * $HopeName: MMsrc!mpm.c(MMdevel_lib.2) $
+ * $HopeName: MMsrc!mpm.c(MMdevel_lib.3) $
  * Copyright (C) 1996 Harlequin Group, all rights reserved.
  */
 
 #include "mpm.h"
 
-SRCID(mpm, "$HopeName: MMsrc!mpm.c(MMdevel_lib.2) $");
+SRCID(mpm, "$HopeName: MMsrc!mpm.c(MMdevel_lib.3) $");
 
 
 /* MPMCheck -- test MPM assumptions */
@@ -134,7 +134,7 @@ Size (AddrOffset)(Addr base, Addr limit)
  * width is zero for the minimum width
  */
  
-Res WriteWord(mps_lib_FILE *stream, Word w, unsigned base, unsigned width)
+static Res WriteWord(mps_lib_FILE *stream, Word w, unsigned base, unsigned width)
 {
   static const char digit[16] = "0123456789ABCDEF";
   char buf[MPS_WORD_WIDTH + 1]; /* enough for binary, plus one for terminator */
@@ -172,13 +172,107 @@ Res WriteWord(mps_lib_FILE *stream, Word w, unsigned base, unsigned width)
 }
 
 
-Res WriteAddr(mps_lib_FILE *stream, Addr addr)
-{
-  return WriteWord(stream, (Word)addr, 0x10, MPS_WORD_WIDTH / 4);
-}
+/* WriteF -- write formatted output
+ *
+ * .writef.p: There is an assumption that void * fits in Word in
+ * the case of $P.
+ *
+ * .writef.div: Although MPS_WORD_WIDTH/4 appears three times, there
+ * are effectively three separate decisions to format at this width.
+ */
 
-Res WriteP(mps_lib_FILE *stream, void *p)
+Res WriteF(mps_lib_FILE *stream, ...)
 {
-  return WriteWord(stream, (Word)p, 0x10, MPS_WORD_WIDTH / 4);
-}
+  const char *format;
+  char c;
+  int r;
+  Res res;
+  va_list args;
 
+  AVER(stream != NULL);
+  
+  va_start(args, stream);
+  
+  for(;;) {
+
+    format = va_arg(args, const char *);
+    if(format == NULL)
+      break;
+
+    while(*format != '\0') {
+
+      c = *format;
+
+      if(c != '$') {
+        r = mps_lib_fputc(c, stream);
+        if(r == mps_lib_EOF)
+          return ResIO;
+      } else {
+
+        ++format;
+        AVER(*format != '\0');
+
+        switch(*format) {
+          case 'A': {
+            Addr addr = va_arg(args, Addr);
+            res = WriteWord(stream, (Word)addr, 0x10, MPS_WORD_WIDTH / 4);
+            if(res != ResOK) return res;
+          } break;
+
+          case 'P': {
+            void *p = va_arg(args, void *);
+            res = WriteWord(stream, (Word)p, 0x10, MPS_WORD_WIDTH / 4);
+            if(res != ResOK) return res;
+          } break;
+
+          case 'S': {
+            char *s = va_arg(args, char *);
+            r = mps_lib_fputs(s, stream);
+            if(r == mps_lib_EOF)
+              return ResIO;
+          } break;
+        
+          case 'C': {
+            char c = va_arg(args, int);
+            r = mps_lib_fputc(c, stream);
+            if(r == mps_lib_EOF)
+              return ResIO;
+          } break;
+        
+          case 'W': {
+            Word w = va_arg(args, Word);
+            res = WriteWord(stream, w, 0x10, MPS_WORD_WIDTH / 4);
+            if(res != ResOK) return res;
+          } break;
+
+          case 'U': {
+            unsigned long u = va_arg(args, unsigned long);
+            res = WriteWord(stream, (Word)u, 10, 0);
+            if(res != ResOK) return res;
+          } break;
+
+          case 'B': {
+            unsigned long u = va_arg(args, unsigned long);
+            res = WriteWord(stream, (Word)u, 2, MPS_WORD_WIDTH);
+            if(res != ResOK) return res;
+          } break;
+        
+          case '$': {
+            r = mps_lib_fputc('$', stream);
+            if(r == mps_lib_EOF)
+              return ResIO;
+          } break;
+
+          default:
+          NOTREACHED;
+        }
+      }
+
+      ++format;
+    }
+  }
+  
+  va_end(args);
+  
+  return ResOK;
+}

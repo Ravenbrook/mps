@@ -1,6 +1,6 @@
 /* impl.h.mpm: MEMORY POOL MANAGER DEFINITIONS
  *
- * $HopeName: MMsrc!mpm.h(MMdevel_lib.2) $
+ * $HopeName: MMsrc!mpm.h(MMdevel_lib.3) $
  * Copyright (C) 1996 Harlequin Group, all rights reserved.
  */
 
@@ -80,9 +80,7 @@ extern Shift SizeFloorLog2(Size size);
 #define SizeIsAligned(s, a)     WordIsAligned(SizeWord(s), a)
 #define SizeAlignUp(s, a)       ((Size)WordAlignUp(SizeWord(s), a))
 
-extern Res WriteWord(mps_lib_FILE *stream, Word word, unsigned base, unsigned width);
-extern Res WriteAddr(mps_lib_FILE *stream, Addr addr);
-extern Res WriteP(mps_lib_FILE *stream, void *p);
+extern Res WriteF(mps_lib_FILE *stream, ...);
 
 
 /* Ring Interface -- see impl.c.ring */
@@ -345,6 +343,7 @@ extern Res FormatCreate(Format *formatReturn, Space space,
                         FormatPadMethod pad);
 extern void FormatDestroy(Format format);
 extern Space FormatSpace(Format format);
+extern Res FormatDescribe(Format format, mps_lib_FILE *stream);
 
 
 /* Reference Interface -- see impl.c.ref */
