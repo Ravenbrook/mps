@@ -1,12 +1,12 @@
 /* impl.c.arenavm: VIRTUAL MEMORY BASED ARENA IMPLEMENTATION
  *
- * $HopeName: !arenavm.c(trunk.4) $
+ * $HopeName: MMsrc!arenavm.c(MMdevel_drj_swint.1) $
  * Copyright (C) 1996 Harlequin Group, all rights reserved.
  */
 
 #include "mpm.h"
 
-SRCID(arenavm, "$HopeName: !arenavm.c(trunk.4) $");
+SRCID(arenavm, "$HopeName: MMsrc!arenavm.c(MMdevel_drj_swint.1) $");
 
 #define SpaceArena(space)       (&(space)->arenaStruct)
 
@@ -80,7 +80,7 @@ static void BTSet(BT bt, BI i, Bool b)
  * arena part.
  */
 
-Res ArenaCreate(Space *spaceReturn, Size size)
+Res ArenaCreate(Space *spaceReturn, Size size, Addr base)
 {
   Res res;
   Space space;
@@ -93,7 +93,7 @@ Res ArenaCreate(Space *spaceReturn, Size size)
 
   /* Create the space structure, initialize the VM part, and */
   /* the current attribute structure. */
-  res = VMCreate(&space, size);
+  res = VMCreate(&space, size, base);
   if(res) return res;
 
   arena = SpaceArena(space);
