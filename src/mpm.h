@@ -1,6 +1,6 @@
 /* impl.h.mpm: MEMORY POOL MANAGER DEFINITIONS
  *
- * $HopeName: !mpm.h(trunk.2) $
+ * $HopeName: MMsrc!mpm.h(MMdevel_remem.1) $
  * Copyright (C) 1996 Harlequin Group, all rights reserved.
  */
 
@@ -25,12 +25,12 @@
  * control over internal and interface checking.
  */
 
-#ifdef TARGET_MPM_ASSERT	/* impl.h.target */
-#define AVER(cond)		ASSERT(cond)
-#define AVERT(type, val)	ASSERT(type ## Check(val))
+#ifdef TARGET_MPM_ASSERT        /* impl.h.target */
+#define AVER(cond)              ASSERT(cond)
+#define AVERT(type, val)        ASSERT(type ## Check(val))
 #else
-#define AVER(cond)		NOCHECK(cond)
-#define AVERT(type, val)	NOCHECK(type ## Check(val))
+#define AVER(cond)              NOCHECK(cond)
+#define AVERT(type, val)        NOCHECK(type ## Check(val))
 #endif
 
 
@@ -42,28 +42,28 @@ extern Bool MPMCheck(void);
 /* Address/Size Interface -- see impl.c.mpm */
 
 extern Bool (WordIsAligned)(Word word, Align align);
-#define WordIsAligned(w, a)	(((w) & ((a) - 1)) == 0)
+#define WordIsAligned(w, a)     (((w) & ((a) - 1)) == 0)
 
 extern Word (WordAlignUp)(Word word, Align align);
-#define WordAlignUp(w, a)	(((w) + (a) - 1) & ~((a) - 1))
+#define WordAlignUp(w, a)       (((w) + (a) - 1) & ~((a) - 1))
 
 extern Bool AlignCheck(Align align);
 
 extern Addr (AddrAdd)(Addr addr, Size size);
-#define AddrAdd(p, s)		((Addr)((Word)(p) + (s)))
+#define AddrAdd(p, s)           ((Addr)((Word)(p) + (s)))
 
 extern Size (AddrOffset)(Addr base, Addr limit);
-#define AddrOffset(p, l)	((Size)((Word)(l) - (Word)(p)))
+#define AddrOffset(p, l)        ((Size)((Word)(l) - (Word)(p)))
 
 extern Bool SizeIsP2(Size size);
 extern Shift SizeLog2(Size size);
 
-#define AddrWord(a)		((Word)a)
-#define SizeWord(s)		((Word)s)
-#define AddrIsAligned(p, a)	WordIsAligned(AddrWord(p), a)
-#define AddrAlignUp(p, a)	((Addr)WordAlignUp(AddrWord(p), a))
-#define SizeIsAligned(s, a)	WordIsAligned(SizeWord(s), a)
-#define SizeAlignUp(s, a)	((Size)WordAlignUp(SizeWord(s), a))
+#define AddrWord(a)             ((Word)a)
+#define SizeWord(s)             ((Word)s)
+#define AddrIsAligned(p, a)     WordIsAligned(AddrWord(p), a)
+#define AddrAlignUp(p, a)       ((Addr)WordAlignUp(AddrWord(p), a))
+#define SizeIsAligned(s, a)     WordIsAligned(SizeWord(s), a)
+#define SizeAlignUp(s, a)       ((Size)WordAlignUp(SizeWord(s), a))
 
 
 /* Ring Interface -- see impl.c.ring */
@@ -110,7 +110,7 @@ extern void (RingRemove)(Ring old);
   END
 
 extern Ring (RingNext)(Ring ring);
-#define RingNext(ring)	((ring)->next)
+#define RingNext(ring)  ((ring)->next)
 
 #define RING_ELT(type, field, node) \
    ((type)((char *)(node) - (size_t)(&((type)0)->field)))
@@ -129,10 +129,10 @@ extern Bool PoolCheck(Pool pool);
 extern Res PoolDescribe(Pool pool, Lib_FILE *stream);
 
 extern Space (PoolSpace)(Pool pool);
-#define PoolSpace(pool)		((pool)->space)
+#define PoolSpace(pool)         ((pool)->space)
 
 extern Align (PoolAlignment)(Pool pool);
-#define PoolAlignment(pool)	((pool)->alignment)
+#define PoolAlignment(pool)     ((pool)->alignment)
 
 extern Res PoolSegAlloc(Seg *segReturn, Pool pool, Size size);
 extern void PoolSegFree(Pool pool, Seg seg);
@@ -161,16 +161,16 @@ extern Size PoolPoll(Pool pool);
 /* Trace Interface -- see impl.c.trace */
 
 extern TraceSet (TraceSetAdd)(TraceSet set, TraceId id);
-#define TraceSetAdd(set, id)		((set) | ((TraceSet)1 << (id)))
+#define TraceSetAdd(set, id)            ((set) | ((TraceSet)1 << (id)))
 
 extern TraceSet (TraceSetDelete)(TraceSet set, TraceId id);
-#define TraceSetDelete(set, id)		((set) & ~((TraceSet)1 << (id)))
+#define TraceSetDelete(set, id)         ((set) & ~((TraceSet)1 << (id)))
 
 extern Bool (TraceSetIsMember)(TraceSet set, TraceId id);
-#define TraceSetIsMember(set, id)	(((set) >> (id)) & 1)
+#define TraceSetIsMember(set, id)       (((set) >> (id)) & 1)
 
 extern TraceSet (TraceSetUnion)(TraceSet set1, TraceSet set2);
-#define TraceSetUnion(set1, set2)	((set1) | (set2))
+#define TraceSetUnion(set1, set2)       ((set1) | (set2))
 
 extern Res TraceCreate(TraceId *tiReturn, Space space);
 extern void TraceDestroy(Space space, TraceId ti);
@@ -239,10 +239,10 @@ extern void SpacePoll(Space space);
 extern Res SpaceAlloc(Addr *baseReturn, Space space, Size size);
 extern void SpaceFree(Space space, Addr base, Size size);
 
-#define SpacePoolRing(space)	(&(space)->poolRing)
-#define SpaceRootRing(space)	(&(space)->rootRing)
-#define SpaceTraceRing(space)	(&(space)->traceRing)
-#define SpaceThreadRing(space)	(&(space)->threadRing)
+#define SpacePoolRing(space)    (&(space)->poolRing)
+#define SpaceRootRing(space)    (&(space)->rootRing)
+#define SpaceTraceRing(space)   (&(space)->traceRing)
+#define SpaceThreadRing(space)  (&(space)->threadRing)
 #define SpaceEpoch(space)       ((space)->epoch) /* .epoch.ts */
 
 
@@ -341,10 +341,11 @@ extern Bool PoolClassCheck(PoolClass class);
 
 extern Bool RankCheck(Rank rank);
 
-#define RefSetEmpty		((RefSet)0)
-#define RefSetUniv		((RefSet)-1)
-#define RefSetUnion(rs1, rs2)	((rs1) | (rs2))
-#define RefSetInter(rs1, rs2)	((rs1) & (rs2))
+#define RefSetEmpty             ((RefSet)0)
+#define RefSetUniv              ((RefSet)-1)
+#define RefSetUnion(rs1, rs2)   ((rs1) | (rs2))
+#define RefSetInter(rs1, rs2)   ((rs1) & (rs2))
+#define RefSetDiff(rs1, rs2)    ((rs1) & ~(rs2))
 #define RefSetZone(space, addr) \
   (((Word)(addr) >> space->zoneShift) & (WORD_WIDTH - 1))
 #define RefSetAdd(space, rs, addr) \
