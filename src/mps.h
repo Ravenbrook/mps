@@ -1,6 +1,6 @@
 /* impl.h.mps: HARLEQUIN MEMORY POOL SYSTEM C INTERFACE
  *
- * $HopeName: MMsrc!mps.h(MMdevel_fencepost.1) $
+ * $HopeName: MMsrc!mps.h(MMdevel_fencepost.2) $
  * Copyright (C) 1997, 1998 The Harlequin Group Limited.  All rights reserved.
  *
  * .readership: customers, MPS developers.
@@ -59,7 +59,8 @@ enum {
   MPS_RES_LIMIT,                /* limitation reached */
   MPS_RES_UNIMPL,               /* unimplemented facility */
   MPS_RES_IO,                   /* system I/O error */
-  MPS_RES_COMMIT_LIMIT          /* arena commit limit exceeded */
+  MPS_RES_COMMIT_LIMIT,         /* arena commit limit exceeded */
+  MPS_RES_PARAM                 /* illegal user parameter value */
 };
 
 /* .message.types: Keep in sync with impl.h.mpmtypes.message.types */
