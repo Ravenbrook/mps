@@ -1,6 +1,6 @@
 /* impl.c.reserv: ARENA RESERVOIR
  *
- * $HopeName: MMsrc!reserv.c(MMdevel_tony_sunset.3) $
+ * $HopeName: !reserv.c(trunk.2) $
  * Copyright (C) 1999.  Harlequin Limited.  All rights reserved.
  *
  * .readership: Any MPS developer
@@ -17,7 +17,7 @@
 
 #include "mpm.h"
 
-SRCID(reserv, "$HopeName: MMsrc!reserv.c(MMdevel_tony_sunset.3) $");
+SRCID(reserv, "$HopeName: !reserv.c(trunk.2) $");
 
 
 /* The reservoir pool is defined here. See design.mps.reservoir */

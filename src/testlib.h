@@ -1,6 +1,6 @@
 /* impl.h.testlib: TEST LIBRARY INTERFACE
  *
- * $HopeName$
+ * $HopeName: !testlib.h(trunk.14) $
  * Copyright (C) 1995, 1998, 1999 Harlequin Group plc.  All rights reserved.
  *
  * .purpose: A library of functions that may be of use to unit tests.

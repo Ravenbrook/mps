@@ -1,6 +1,6 @@
 # impl.gmk.lii3gc: BUILD FOR LINUX/INTEL/GCC PLATFORM
 #
-# $HopeName: MMsrc!lii3gc.gmk(trunk.2) $
+# $HopeName: !lii3gc.gmk(trunk.1) $
 # Copyright (C) 2000.  Harlequin Ltd.  All rights reserved.
 #
 # This is the GNU makefile for platform.lii3gc.

@@ -1,7 +1,7 @@
 /* impl.h.eventcom -- Event Logging Common Definitions
  *
  * Copyright (C) 1999.  Harlequin Limited.  All rights reserved.
- * $HopeName: MMsrc!eventcom.h(trunk.18) $
+ * $HopeName: !eventcom.h(trunk.19) $
  *
  * .readership: MPS developers
  * .sources: mps.design.telemetry

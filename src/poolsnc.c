@@ -1,6 +1,6 @@
 /* impl.c.poolsnc: STACK NO CHECKING POOL CLASS
  *
- * $HopeName: MMsrc!poolsnc.c(trunk.10) $
+ * $HopeName: !poolsnc.c(trunk.11) $
  * Copyright (C) 1999.  Harlequin Limited.  All rights reserved.
  *
  * READERSHIP
@@ -26,7 +26,7 @@
 #include "mpm.h"
 
 
-SRCID(poolsnc, "$HopeName: MMsrc!poolsnc.c(trunk.10) $");
+SRCID(poolsnc, "$HopeName: !poolsnc.c(trunk.11) $");
 
 
 #define SNCSig  ((Sig)0x519b754c)       /* SIGPooLSNC */

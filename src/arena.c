@@ -1,6 +1,6 @@
 /* impl.c.arena: ARENA IMPLEMENTATION
  *
- * $HopeName: MMsrc!arena.c(trunk.67) $
+ * $HopeName: !arena.c(trunk.68) $
  * Copyright (C) 1999.  Harlequin Limited.  All rights reserved.
  *
  * .readership: Any MPS developer
@@ -36,7 +36,7 @@
 #include "poolmrg.h"
 #include "mps.h"
 
-SRCID(arena, "$HopeName: MMsrc!arena.c(trunk.67) $");
+SRCID(arena, "$HopeName: !arena.c(trunk.68) $");
 
 
 /* All static data objects are declared here. See .static */

@@ -1,6 +1,6 @@
 /* impl.h.mpscams: MEMORY POOL SYSTEM CLASS "AMS"
  *
- * $HopeName: MMsrc!mpscams.h(MMdevel_poolams.1) $
+ * $HopeName: !mpscams.h(trunk.2) $
  * Copyright (C) 1997 Harlequin Group, all rights reserved.
  */
 

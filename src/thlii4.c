@@ -1,6 +1,6 @@
 /*  impl.c.thlii3: Threads Manager for Intel x86 systems with LinuxThreads
  *
- *  $HopeName: $
+ *  $HopeName: !thlii3.c(trunk.1) $
  *  Copyright (C) 2000 Harlequin Ltd, all rights reserved
  *
  *  This is a pthreads implementation of the threads manager.
@@ -47,7 +47,7 @@
 #include <pthread.h>
 #include "pthrdext.h"
 
-SRCID(thlii3, "$HopeName: $");
+SRCID(thlii3, "$HopeName: !thlii3.c(trunk.1) $");
 
 
 typedef struct ThreadStruct {    /* PThreads thread structure */
