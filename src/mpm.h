@@ -1,6 +1,6 @@
 /* impl.h.mpm: MEMORY POOL MANAGER DEFINITIONS
  *
- * $HopeName: !mpm.h(trunk.132) $
+ * $HopeName: MMsrc!mpm.h(MMdevel_configura.1) $
  * Copyright (C) 1999 Harlequin Limited.  All rights reserved.
  */
 
@@ -973,7 +973,8 @@ extern Res FormatCreate(Format *formatReturn, Arena arena,
                         FormatIsMovedMethod isMoved,
                         FormatCopyMethod copy,
                         FormatPadMethod pad,
-			FormatClassMethod class);
+			FormatClassMethod class,
+                        Size headerSize);
 extern void FormatDestroy(Format format);
 extern Arena FormatArena(Format format);
 extern Res FormatDescribe(Format format, mps_lib_FILE *stream);
