@@ -1,21 +1,22 @@
-/*  impl.c.protnt: PROTECTION FOR WIN32
+/*  impl.c.protw3: PROTECTION FOR WIN32
  *
- *  $HopeName: MMsrc!protw3.c(MMdevel_config_thread.1) $
+ *  $HopeName: MMsrc!protw3.c(MMdevel_config_thread.2) $
  *  Copyright (C) 1995, 1997 Harlequin Group, all rights reserved
  */
 
 #include "mpm.h"
 
 #ifndef MPS_OS_W3
-#error "protnt.c is Win32-specific, but MPS_OS_W3 is not set"
+#error "protw3.c is Win32-specific, but MPS_OS_W3 is not set"
 #endif
 #ifndef PROTECTION
-#error "protnt.c implements protection, but PROTECTION is not set"
+#error "protw3.c implements protection, but PROTECTION is not set"
 #endif
 
 #include <windows.h>
 
-SRCID(protnt, "$HopeName: MMsrc!protw3.c(MMdevel_config_thread.1) $");
+
+SRCID(protw3, "$HopeName: MMsrc!protw3.c(MMdevel_config_thread.2) $");
 
 
 void ProtSetup(void)
@@ -86,7 +87,7 @@ LONG ProtSEHfilter(LPEXCEPTION_POINTERS info)
 
   AVER(base < limit);  /* nasty case (base = -1): continue search? @@@ */
 
-  if(SpaceAccess(base, mode))
+  if(ArenaAccess(base, mode))
     action = EXCEPTION_CONTINUE_EXECUTION;
   else
     action = EXCEPTION_CONTINUE_SEARCH;
@@ -100,7 +101,7 @@ LONG ProtSEHfilter(LPEXCEPTION_POINTERS info)
  * This does nothing under Win32.
  */
 
-void ProtSync(Space space)
+void ProtSync(Arena arena)
 {
   NOOP;
 }
