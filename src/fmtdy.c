@@ -1,6 +1,6 @@
 /* impl.c.fmtdy: DYLAN OBJECT FORMAT IMPLEMENTATION
  *
- * $HopeName: MMsrc!fmtdy.c(MMdevel_trace2.1) $
+ * $HopeName: MMsrc!fmtdy.c(MMdevel_trace2.2) $
  * Copyright (C) 1996 Harlequin Group, all rights reserved.
  *
  * .design: design.dylan.container
@@ -133,25 +133,25 @@ static int dylan_wrapper_check(mps_word_t *w)
 /* variables in the loop allocate nicely into registers.  Alter with */
 /* care. */
 
-static mps_res_t dylan_scan_contig(mps_fix_t mps_fix,
+static mps_res_t dylan_scan_contig(mps_fix_t fix,
                                    mps_addr_t *base, mps_addr_t *limit)
 {
   mps_res_t res;
   mps_addr_t *p;        /* reference cursor */
   mps_addr_t r;         /* reference to be fixed */
 
-  MPS_SCAN_BEGIN(mps_fix) {
+  MPS_SCAN_BEGIN(fix) {
           p = base;
     loop: if(p >= limit) goto out;
           r = *p++;
           if(((mps_word_t)r&3) != 0) /* pointers tagged with 0 */
             goto loop;             /* not a pointer */
-          if(!MPS_FIX1(mps_fix, r)) goto loop;
-          res = MPS_FIX2(p-1, mps_fix);
+          if(!MPS_FIX1(fix, r)) goto loop;
+          res = MPS_FIX2(p-1, fix);
           if(res == MPS_RES_OK) goto loop;
           return res;
     out:  assert(p == limit);
-  } MPS_SCAN_END(mps_fix);
+  } MPS_SCAN_END(fix);
 
   return MPS_RES_OK;
 }
@@ -163,7 +163,7 @@ static mps_res_t dylan_scan_contig(mps_fix_t mps_fix,
 /* variables in the loop allocate nicely into registers.  Alter with */
 /* care. */
 
-static mps_res_t dylan_scan_pat(mps_fix_t mps_fix,
+static mps_res_t dylan_scan_pat(mps_fix_t fix,
                                 mps_addr_t *base, mps_addr_t *limit,
                                 mps_word_t *pats, mps_word_t nr_pats)
 {
@@ -175,7 +175,7 @@ static mps_res_t dylan_scan_pat(mps_fix_t mps_fix,
   int b;                /* bit */
   mps_addr_t r;         /* reference to be fixed */
 
-  MPS_SCAN_BEGIN(mps_fix) {
+  MPS_SCAN_BEGIN(fix) {
           p = base;
           goto in;
     pat:  p += MPS_WORD_WIDTH;
@@ -190,13 +190,13 @@ static mps_res_t dylan_scan_pat(mps_fix_t mps_fix,
           r = *(pp-1);
           if(((mps_word_t)r&3) != 0) /* pointers tagged with 0 */
             goto loop;             /* not a pointer */
-          if(!MPS_FIX1(mps_fix, r)) goto loop;
-          res = MPS_FIX2(pp-1, mps_fix);
+          if(!MPS_FIX1(fix, r)) goto loop;
+          res = MPS_FIX2(pp-1, fix);
           if(res == MPS_RES_OK) goto loop;
           return res;
     out:  assert(p < limit + MPS_WORD_WIDTH);
           assert(pc == pats + nr_pats);
-  } MPS_SCAN_END(mps_fix);
+  } MPS_SCAN_END(fix);
 
   return MPS_RES_OK;
 }
