@@ -1,6 +1,6 @@
 /* impl.c.arena: ARENA IMPLEMENTATION
  *
- * $HopeName: !arena.c(trunk.50) $
+ * $HopeName: MMsrc!arena.c(MMdevel_ptw_pseudoloci.1) $
  * Copyright (C) 1998. Harlequin Group plc. All rights reserved.
  *
  * .readership: Any MPS developer
@@ -36,7 +36,7 @@
 #include "poolmrg.h"
 #include "mps.h"
 
-SRCID(arena, "$HopeName: !arena.c(trunk.50) $");
+SRCID(arena, "$HopeName: MMsrc!arena.c(MMdevel_ptw_pseudoloci.1) $");
 
 
 /* Forward declarations */
@@ -176,6 +176,8 @@ static Bool ArenaReservoirIsConsistent(Arena arena)
  * if possible.
  */
 
+/* @@@ Should the resevoir be a locus client so that it prefers to
+   fill from a particular locus? */
 static Res ArenaEnsureReservoir(Arena arena)
 {
   Size limit, alignment;
@@ -384,6 +386,7 @@ Bool ArenaClassCheck(ArenaClass class)
   CHECKL(FUNCHECK(class->extend));
   CHECKL(FUNCHECK(class->retract));
   CHECKL(FUNCHECK(class->segAlloc));
+  CHECKL(FUNCHECK(class->segAllocInZoneRange));
   CHECKL(FUNCHECK(class->segFree));
   CHECKL(FUNCHECK(class->segBase));
   CHECKL(FUNCHECK(class->segLimit));
@@ -511,6 +514,9 @@ Bool ArenaCheck(Arena arena)
   for(rank = 0; rank < RankMAX; ++rank)
     CHECKL(RingCheck(&arena->greyRing[rank]));
 
+  /* @@@
+   * CHECKL(LocusManagerCheck(ArenaLocusManager(arena)));
+   */
   return TRUE;
 }
 
@@ -584,6 +590,8 @@ void ArenaInit(Arena arena, ArenaClass class)
   arena->poolReady = FALSE;     /* design.mps.arena.pool.ready */
   for(rank = 0; rank < RankMAX; ++rank)
     RingInit(&arena->greyRing[rank]);
+  /* Initialize the Locus Manager */
+  LocusManagerInit(ArenaLocusManager(arena));
 
   arena->sig = ArenaSig;
   arena->serial = arenaSerial;  /* design.mps.arena.static.serial */
@@ -1183,6 +1191,26 @@ void SegRealloc(Seg seg, Pool newpool)
   SegInit(seg, newpool);
 }
 
+
+/* DefaultSegAllocInZoneRange -- For areanas that do not yet support
+   the new protocol */
+Res DefaultSegAllocInZoneRange(Seg *segReturn, SegPref pref,
+                               Size size, Pool pool,
+                               Addr base, Addr limit)
+{
+  Arena arena;
+
+  AVER(segReturn != NULL);
+  AVERT(SegPref, pref);
+  AVER(size > (Size)0);
+  AVERT(Pool, pool);
+  arena = PoolArena(pool);
+  AVERT(Arena, arena);
+  AVER(SizeIsAligned(size, arena->alignment));
+  return (*arena->class->segAlloc)(segReturn, pref, size, pool);
+}
+
+
 /* SegAlloc -- allocate a segment from the arena */
 
 Res SegAlloc(Seg *segReturn, SegPref pref, Size size, Pool pool,
@@ -1209,7 +1237,26 @@ Res SegAlloc(Seg *segReturn, SegPref pref, Size size, Pool pool,
       return res;
   }
 
-  res = (*arena->class->segAlloc)(&seg, pref, size, pool);
+  /* New Locus mechanism */
+  {
+    LocusClient client = PoolLocusClient(pool);
+    Addr base, limit;
+
+    LocusClientZoneRangeInitialize(client);
+    do     
+    {
+      LocusClientZoneRangeNext(&base, &limit, client);
+      res = (*arena->class->segAllocInZoneRange)(&seg, pref, size, 
+                                                 pool, base, limit);
+      if (res == ResOK) {
+        /* Note the segment */
+        LocusClientSegAdd(client, arena, seg);
+        goto goodAlloc;
+      }
+    }
+    while (! LocusClientZoneRangeFinished(client));
+  }
+    
   if(res == ResOK) {
     goto goodAlloc;
   } else if(withReservoirPermit) {
