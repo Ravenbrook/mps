@@ -1,7 +1,7 @@
 /* impl.c.poolamc: AUTOMATIC MOSTLY-COPYING MEMORY POOL CLASS
  *
- * $HopeName: MMsrc!poolamc.c(MM_epcore_brisling.1) $
- * Copyright (C) 1998.  Harlequin Group plc.  All rights reserved.
+ * $HopeName: MMsrc!poolamc.c(MM_epcore_brisling.2) $
+ * Copyright (C) 1998 Harlequin Limited.  All rights reserved.
  *
  * .sources: design.mps.poolamc.
  */
@@ -9,7 +9,7 @@
 #include "mpscamc.h"
 #include "mpm.h"
 
-SRCID(poolamc, "$HopeName: MMsrc!poolamc.c(MM_epcore_brisling.1) $");
+SRCID(poolamc, "$HopeName: MMsrc!poolamc.c(MM_epcore_brisling.2) $");
 
 
 /* Binary i/f used by ASG (drj 1998-06-11) */
@@ -1506,12 +1506,13 @@ static void AMCReclaim(Pool pool, Trace trace, Seg seg)
 
   /* This switching needs to be more complex for multiple traces. */
   AVER_CRITICAL(TraceSetIsSingle(PoolArena(pool)->busyTraces));
-  if(amc->rampMode == collectingRamp)
+  if(amc->rampMode == collectingRamp) {
      if(amc->rampCount > 0)
        /* Entered ramp mode before previous one was cleaned up */
        amc->rampMode = beginRamp;
      else
        amc->rampMode = outsideRamp;
+  }
 
   if(SegNailed(seg) != TraceSetEMPTY) {
     AMCReclaimNailed(pool, trace, seg);
