@@ -1,6 +1,6 @@
 /* impl.h.mpm: MEMORY POOL MANAGER DEFINITIONS
  *
- * $HopeName: MMsrc!mpm.h(MMdevel_assertid.2) $
+ * $HopeName: MMsrc!mpm.h(MMdevel_assertid.3) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  */
 
@@ -20,22 +20,6 @@
 #include "poolmfs.h"
 #include "ss.h"
 #include "mpslib.h"
-
-
-/* AVER, AVERT -- MPM assertions
- *
- * AVER and AVERT are used to assert conditions within the MPM (as
- * opposed to in the MPS Interface layer, impl.c.mpsi).  This allows
- * control over internal and interface checking.
- */
-
-#ifdef ASSERT_MPM               /* design.mps.config, impl.h.config */
-#define AVER                    ASSERT
-#define AVERT(id, type, val)    ASSERT(id, type ## Check(val))
-#else
-#define AVER(id, cond)          NOCHECK(cond)
-#define AVERT(id, type, val)    NOCHECK(type ## Check(val))
-#endif
 
 
 /* MPMCheck -- check MPM assumptions */
