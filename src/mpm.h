@@ -1,6 +1,6 @@
 /* impl.h.mpm: MEMORY POOL MANAGER DEFINITIONS
  *
- * $HopeName: MMsrc!mpm.h(MMdevel_metrics.1) $
+ * $HopeName: MMsrc!mpm.h(MMdevel_metrics.2) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  */
 
@@ -512,9 +512,13 @@ extern void SegFree(Seg seg);
 extern Addr SegBase(Seg seg);
 extern Addr SegLimit(Seg seg);
 extern Size SegSize(Seg seg);
-extern Bool SegOfAddr(Seg *segReturn, Space space, Addr addr);
 extern Bool SegFirst(Seg *segReturn, Space space);
 extern Bool SegNext(Seg *segReturn, Space space, Addr addr);
+
+#define SegOfAddr(segReturn, arena, addr) \
+  ((*(arena)->class->segOfAddr)(segReturn, arena, addr))
+
+extern Bool (SegOfAddr)(Seg *segReturn, Arena arena, Addr addr);
 
 extern Res ArenaNoExtend(Arena arena, Addr base, Size size);
 extern Res ArenaNoRetract(Arena arena, Addr base, Size size);
