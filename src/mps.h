@@ -1,6 +1,6 @@
 /* impl.h.mps: HARLEQUIN MEMORY POOL SYSTEM C INTERFACE
  *
- * $HopeName: !mps.h(trunk.44) $
+ * $HopeName: MMsrc!mps.h(MMdevel_tony_lifetime.1) $
  * Copyright (C) 1997, 1998 The Harlequin Group Limited.  All rights reserved.
  *
  * .readership: customers, MPS developers.
@@ -407,6 +407,12 @@ extern void mps_arena_roots_walk(mps_arena_t,
                                  mps_roots_stepper_t,
                                  void *, size_t);
 
+
+/* Deathtime tracking */
+
+extern void mps_deathtime_track_start(mps_arena_t);
+extern void mps_deathtime_track_stop(mps_arena_t);
+extern void mps_deathtime_track_frequency_set(mps_arena_t, size_t);
 
 /* Scanner Support */
 

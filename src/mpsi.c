@@ -1,6 +1,6 @@
 /* impl.c.mpsi: MEMORY POOL SYSTEM C INTERFACE LAYER
  *
- * $HopeName: !mpsi.c(trunk.52) $
+ * $HopeName: MMsrc!mpsi.c(MMdevel_tony_lifetime.1) $
  * Copyright (C) 1997. Harlequin Group plc. All rights reserved.
  *
  * .purpose: This code bridges between the MPS interface to C,
@@ -52,7 +52,7 @@
 #include "mps.h"
 #include "mpsavm.h" /* only for mps_space_create */
 
-SRCID(mpsi, "$HopeName: !mpsi.c(trunk.52) $");
+SRCID(mpsi, "$HopeName: MMsrc!mpsi.c(MMdevel_tony_lifetime.1) $");
 
 
 /* mpsi_check -- check consistency of interface mappings
@@ -1332,3 +1332,34 @@ mps_res_t mps_reserve_with_reservoir_permit(mps_addr_t *p_o,
   /* Let mps_reserve check input parameters. Make no assumptions here */
   return mps_reserve(p_o, ap, size);
 }
+
+
+/* Deathtime tracking */
+
+void mps_deathtime_track_start(mps_arena_t mps_arena)
+{
+  Arena arena = (Arena)mps_arena;
+  ArenaEnter(arena);
+  ArenaStartTrackingDeathtimes(arena);
+  ArenaLeave(arena);
+}
+
+void mps_deathtime_track_stop(mps_arena_t mps_arena)
+{
+  Arena arena = (Arena)mps_arena;
+  ArenaEnter(arena);
+  ArenaStopTrackingDeathtimes(arena);
+  ArenaLeave(arena);
+}
+
+
+void mps_deathtime_track_frequency_set(mps_arena_t mps_arena,
+                                       size_t freq)
+{
+  Arena arena = (Arena)mps_arena;
+  ArenaEnter(arena);
+  ArenaTrackFrequencySet(arena, freq);
+  ArenaLeave(arena);
+}
+
+
