@@ -1,6 +1,6 @@
 /* impl.h.mpmst: MEMORY POOL MANAGER DATA STRUCTURES
  *
- * $HopeName: MMsrc!mpmst.h(MMdevel_restr.2) $
+ * $HopeName: MMsrc!mpmst.h(MMdevel_restr.3) $
  * Copyright (C) 1996 Harlequin Group, all rights reserved.
  *
  * .rationale: Almost all MPM data structures are defined in this
@@ -14,6 +14,10 @@
 #define mpmst_h
 
 #include "mpmtypes.h"
+
+#if defined(MPS_OS_W3)
+#include <windows.h>
+#endif /* MPS_OS_w3 */
 
 
 /* RingStruct -- double-ended queue structure
@@ -129,6 +133,8 @@ typedef struct VMStruct { 	/* Win32 VM structure */
   Sig sig;			/* impl.h.misc.sig */
   Align align;			/* page size */
   Addr base, limit;	     	/* boundaries of reserved space */
+  Size reserved;		/* total reserved address space */
+  Size mapped;			/* total mapped memory */
 } VMStruct;
 
 #elif defined(MPS_OS_O1) || defined(MPS_OS_S7)
