@@ -1,6 +1,6 @@
 /* impl.c.arena: ARENA IMPLEMENTATION
  *
- * $HopeName: MMsrc!arena.c(MMdevel_ptw_pseudoloci.2) $
+ * $HopeName: MMsrc!arena.c(MMdevel_ptw_pseudoloci.4) $
  * Copyright (C) 1998. Harlequin Group plc. All rights reserved.
  *
  * .readership: Any MPS developer
@@ -36,7 +36,7 @@
 #include "poolmrg.h"
 #include "mps.h"
 
-SRCID(arena, "$HopeName: MMsrc!arena.c(MMdevel_ptw_pseudoloci.2) $");
+SRCID(arena, "$HopeName: MMsrc!arena.c(MMdevel_ptw_pseudoloci.4) $");
 
 
 /* Forward declarations */
@@ -1271,25 +1271,8 @@ Res SegAlloc(Seg *segReturn, SegPref pref, Size size, Pool pool,
       return res;
   }
 
-  /* New Locus mechanism */
-  {
-    LocusClient client = PoolLocusClient(pool);
-    Addr base, limit;
+  res = (*arena->class->segAlloc)(&seg, pref, size, pool);
 
-    LocusClientZoneRangeInitialize(client);
-    do     
-    {
-      LocusClientZoneRangeNext(&base, &limit, client);
-      res = (*arena->class->segAllocInZoneRange)(&seg, pref, size, 
-                                                 pool, base, limit);
-      if (res == ResOK) {
-        LocusClientNoteSegAlloc(client, arena, seg);
-        goto goodAlloc;
-      }
-    }
-    while (! LocusClientZoneRangeFinished(client));
-  }
-    
   if(res == ResOK) {
     goto goodAlloc;
   } else if(withReservoirPermit) {
@@ -1301,6 +1284,10 @@ Res SegAlloc(Seg *segReturn, SegPref pref, Size size, Pool pool,
   return res;
 
 goodAlloc:
+  /* @@@ Needs to be over-ridden by multi-loci pools, e.g.,
+     generational pools, or SegPool should be SegGroup?, or just pass
+     in the LocusClient to SegFree */
+  LocusClientNoteSegAlloc(PoolLocusClient(pool), arena, seg);
   EVENT_PPAWP(SegAlloc, arena, seg, SegBase(seg), size, pool);
   *segReturn = seg;
   return ResOK;

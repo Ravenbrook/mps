@@ -1,6 +1,6 @@
 /* impl.h.mpm: MEMORY POOL MANAGER DEFINITIONS
  *
- * $HopeName: MMsrc!mpm.h(MMdevel_ptw_pseudoloci.3) $
+ * $HopeName: MMsrc!mpm.h(MMdevel_ptw_pseudoloci.5) $
  * Copyright (C) 1998.  Harlequin Group plc.  All rights reserved.
  */
 
@@ -533,6 +533,8 @@ extern Res LocusDescribe(Locus locus, mps_lib_FILE *stream);
 extern Res LocusClientDescribe(LocusClient client, mps_lib_FILE *stream);
 extern Res ZoneUsageDescribe(ZoneUsage desc, mps_lib_FILE *stream);
 
+/* Lifetimes */
+#define LifetimeCheck(lifetime) TRUE
 
 /* Arena Interface -- see impl.c.arena */
 

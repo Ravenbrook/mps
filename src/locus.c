@@ -1,6 +1,6 @@
 /* impl.c.locus: LOCI
  *
- * $HopeName: MMsrc!locus.c(MMdevel_ptw_pseudoloci.8) $
+ * $HopeName: MMsrc!locus.c(MMdevel_ptw_pseudoloci.9) $
  * Copyright (C) 1998 Harlequin Group plc.  All rights reserved.
  *
  * .readership: any MPS developer
@@ -613,8 +613,10 @@ static void LocusManagerRefSetCalculate(LocusManager manager)
                            RefSetInter(RefSetDiff(base, bad),
                                        good));
         if (RefSetDiff(next, previous) != RefSetEMPTY) {
+          AVER(r < RefSetSize);
           manager->searchCache[r] = next;
           r++;
+          previous = next;
         }
       }
     }
@@ -667,6 +669,7 @@ static void LocusFinish(Locus locus)
 
 static void LocusActivate(Locus locus)
 {
+  locus->inUse = TRUE;
   locus->ready = FALSE;
   locus->lifetime = LifetimeNONE;
   locus->preferred = RefSetEMPTY;
@@ -778,25 +781,25 @@ static void LocusClientEnsureLocus(LocusClient client)
     /* If no perfect match, use a free locus if you've got it */
     if (bestDistance != 0 && free != NULL) {
       best = free;
-      best->lifetime = client->lifetime;
     }
 
     AVER(best != NULL);
-    client->locus = best;
     if (!best->inUse) {
       LocusActivate(best);
     }
+    /* update locus summaries */
+    best->lifetime = (best->lifetime * best->clients +
+                      client->lifetime) / (best->clients + 1);
+    best->preferred = RefSetUnion(best->preferred, client->preferred);
+    best->disdained = RefSetUnion(best->disdained, client->disdained);
+    /* add to locus */
+    client->locus = best;
     client->locusSerial = best->clientSerial;
     best->clientSerial++;
     best->clients++;
     RingAppend(LocusClientRing(best),
                LocusClientLocusRing(client));
     client->assigned = TRUE;
-
-    best->lifetime = (best->lifetime * locus->clients +
-                      client->lifetime) / locus->clients;
-    best->preferred = RefSetUnion(locus->preferred, client->preferred);
-    best->disdained = RefSetUnion(locus->disdained, client->disdained);
   }
 }
 
@@ -1171,7 +1174,7 @@ Res LocusManagerDescribe(LocusManager manager, mps_lib_FILE *stream)
                  "  searchClient: $P\n", (WriteFP)manager->searchClient,
                  "  searchIndex: $U\n", (WriteFU)manager->searchIndex,
                  "  searchLimit: $U\n", (WriteFU)manager->searchLimit,
-                 "  searchCache: ",
+                 "  searchCache: \n",
                  NULL);
     if (res != ResOK)
       return res;

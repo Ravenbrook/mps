@@ -1,6 +1,6 @@
 /* impl.c.arenavm: VIRTUAL MEMORY BASED ARENA IMPLEMENTATION
  *
- * $HopeName: MMsrc!arenavm.c(MMdevel_ptw_pseudoloci.1) $
+ * $HopeName: MMsrc!arenavm.c(MMdevel_ptw_pseudoloci.4) $
  * Copyright (C) 1998. Harlequin Group plc. All rights reserved.
  *
  * This is the implementation of the Segment abstraction from the VM
@@ -29,7 +29,7 @@
 #include "mpm.h"
 #include "mpsavm.h"
 
-SRCID(arenavm, "$HopeName: MMsrc!arenavm.c(MMdevel_ptw_pseudoloci.1) $");
+SRCID(arenavm, "$HopeName: MMsrc!arenavm.c(MMdevel_ptw_pseudoloci.4) $");
 
 
 typedef struct VMArenaStruct *VMArena;
@@ -1040,17 +1040,25 @@ static Bool findFreeInZoneRange(Index *baseReturn,
       VMArenaChunk chunk = RING_ELT(VMArenaChunk, arenaRing, node);
       /* .alloc.skip: The first address available for segments, */
       /* is just after the arena tables. */
-      Word rangeBase = (Word)PageIndexBase(chunk, chunk->tablePages);
-      Word rangeLimit = (Word)chunk->limit;
-      Word stripeBase, stripeLimit;
-      Word nextBase = (rangeBase&zoneMask)|(Word)zoneBase;
-      Word nextLimit = (rangeBase&zoneMask)|(Word)zoneLimit;
-    
+      Word chunkBase = (Word)PageIndexBase(chunk, chunk->tablePages);
+      Word chunkLimit = (Word)chunk->limit;
+      /* zone 0 aligned address, below chunkBase */
+      Word rangeBase = (Word)chunkBase & zoneMask;
+      /* base of first zone stripe */
+      Word nextBase = rangeBase + (Word)zoneBase;
+      /* limit of first zone stripe */
+      Word nextLimit = rangeBase + (Word)zoneLimit;
+      /* stripe trimmed to fit in chunk*/
+      Word stripeBase = nextBase<chunkBase ? chunkBase : nextBase;
+      Word stripeLimit = nextLimit<chunkLimit ? nextLimit : chunkLimit;
+
       AVERT(VMArenaChunk, chunk);
 
       /* @@@ ZoneStripe_FOR */
-      for(; stripeBase < rangeLimit;) {
-	if(AddrOffset(stripeBase, stripeLimit) >= size &&
+      /* @@@ Need to be able to iterate backwards for downwards flag */
+      for(; stripeBase < chunkLimit;) {
+	if(stripeBase < stripeLimit &&
+           AddrOffset(stripeBase, stripeLimit) >= size &&
 	   findFreeInArea(baseReturn, chunk, size,
                           (Addr)stripeBase, (Addr)stripeLimit, 
                           downwards)) {
@@ -1058,10 +1066,14 @@ static Bool findFreeInZoneRange(Index *baseReturn,
 	  return TRUE;
 	}
                                                                         
+        /* base of next zone stripe */
         nextBase = nextBase+zoneStep;
+        /* limit of next zone stripe */
         nextLimit = nextLimit+zoneStep;
-        stripeBase = nextBase;
-        stripeLimit = nextLimit>rangeLimit?rangeLimit:nextLimit;
+        /* stripe trimmed to fit in chunk */
+        stripeBase = nextBase<chunkBase ? chunkBase : nextBase;
+        stripeLimit = nextLimit<chunkLimit ? nextLimit : chunkLimit;
+
       }
     }
   return FALSE;
