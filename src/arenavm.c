@@ -1,6 +1,6 @@
 /* impl.c.arenavm: VIRTUAL MEMORY BASED ARENA IMPLEMENTATION
  *
- * $HopeName: !arenavm.c(trunk.58) $
+ * $HopeName: MMsrc!arenavm.c(MMdevel_alloc_replay.1) $
  * Copyright (C) 1998.  Harlequin Group plc.  All rights reserved.
  *
  * PURPOSE
@@ -32,7 +32,7 @@
 #include "mpm.h"
 #include "mpsavm.h"
 
-SRCID(arenavm, "$HopeName: !arenavm.c(trunk.58) $");
+SRCID(arenavm, "$HopeName: MMsrc!arenavm.c(MMdevel_alloc_replay.1) $");
 
 
 /* @@@@ Arbitrary calculation for the maximum number of distinct */
@@ -897,7 +897,10 @@ static Res VMArenaInit(Arena *arenaReturn, ArenaClass class,
   vmArena->sig = VMArenaSig;
   AVERT(VMArena, vmArena);
 
-  EVENT_PP(ArenaCreate, vmArena, chunk);
+  if ((ArenaClass)mps_arena_class_vm() == class)
+    EVENT_PWW(ArenaCreateVM, arena, userSize, chunkSize);
+  else
+    EVENT_PWW(ArenaCreateVMNZ, arena, userSize, chunkSize);
 
   *arenaReturn = arena;
   return ResOK;
