@@ -1,6 +1,6 @@
 /* impl.c.arenacv: ARENA COVERAGE TEST
  *
- * $HopeName: MMsrc!arenacv.c(MMdevel_config_thread.1) $
+ * $HopeName: MMsrc!arenacv.c(MMdevel_config_thread.2) $
  * Copyright (C) 1997 Harlequin Group, all rights reserved
  *
  * .readership: MPS developers
@@ -14,6 +14,7 @@
  */
 
 #include <stdio.h>
+#include <stdlib.h>
 #include "mpstd.h"
 #ifdef MPS_OS_SU
 #include "ossu.h"
@@ -92,7 +93,14 @@ static void testit(ArenaClass class, ...)
 
 int main(void)
 {
+  void *block;
+
   testit((ArenaClass)mps_arena_class_vm(), ARENA_SIZE);
+
+  block = malloc(ARENA_SIZE);
+  die(block == NULL ? ResFAIL : ResOK, "malloc");
+  testit((ArenaClass)mps_arena_class_cl(), ARENA_SIZE, (Addr)block);
+
   fprintf(stderr, "Conclusion:  Failed to find any defects.\n");
   return 0;
 }
