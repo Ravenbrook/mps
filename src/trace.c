@@ -1,11 +1,11 @@
 /* impl.c.trace: GENERIC TRACER IMPLEMENTATION
  *
- * $HopeName: MMsrc!trace.c(MMdevel_action2.2) $
+ * $HopeName: MMsrc!trace.c(MMdevel_action2.3) $
  */
 
 #include "mpm.h"
 
-SRCID(trace, "$HopeName: MMsrc!trace.c(MMdevel_action2.2) $");
+SRCID(trace, "$HopeName: MMsrc!trace.c(MMdevel_action2.3) $");
 
 Bool ScanStateCheck(ScanState ss)
 {
@@ -59,15 +59,15 @@ Bool TraceCheck(Trace trace)
  * objects dynamically.
  */
 
-Res TraceCreate(TraceId *tiReturn, Space space)
+Res TraceCreate(Trace *traceReturn, Space space)
 {
-  Trace trace;
   TraceId ti;
+  Trace trace;
 
   /* .single-collection */
   AVER(TRACE_MAX == 1);
 
-  AVER(tiReturn != NULL);
+  AVER(traceReturn != NULL);
   AVERT(Space, space);
 
   /* allocate free TraceId */
@@ -77,7 +77,7 @@ Res TraceCreate(TraceId *tiReturn, Space space)
   return ResLIMIT;
 
 found:
-  trace = &space->trace[ti];
+  trace = SpaceTrace(space, ti);
   space->busyTraces = TraceSetAdd(space->busyTraces, ti);
 
   /* @@@@ Everything should be black for ti.  Could check. */
@@ -90,9 +90,10 @@ found:
   trace->sig = TraceSig;
   AVERT(Trace, trace);
 
-  *tiReturn = ti;
+  *traceReturn = trace;
   return ResOK;
 }
+
 
 /* TraceDestroy -- destroy a trace object
  *
@@ -103,7 +104,6 @@ found:
  * of segments etc. would need to be reset to black.
  */
 
-#if 0
 void TraceDestroy(Trace trace)
 {
   AVERT(Trace, trace);
@@ -112,54 +112,48 @@ void TraceDestroy(Trace trace)
   trace->space->busyTraces =
     TraceSetDel(trace->space->busyTraces, trace->ti);
 }
-#endif
 
-void TraceDestroy(Space space, TraceId ti)
-{
-  Trace trace;
-  AVERT(Space, space);
-  trace = &space->trace[ti];
-  AVER(trace->state == TraceFINISHED);
-  trace->sig = SigInvalid;
-  space->busyTraces = TraceSetDel(space->busyTraces, ti);
-}
 
-Res TraceCondemn(RefSet *whiteReturn, Space space, TraceId ti, 
-                 Pool pool)
+Res TraceCondemn(RefSet *whiteReturn, Trace trace, Pool pool)
 {
 /* @@@@ This will iterate over all segments, greying them, and */
 /* whitening all those in the condemned set.  To begin with */
 /* it just takes over from PoolCondemn by iterating over the */
 /* segments in a pool. */
-  return PoolCondemn(whiteReturn, pool, space, ti);
+  AVER(whiteReturn != NULL);
+  AVERT(Trace, trace);
+  AVERT(Pool, pool);
+
+  return PoolCondemn(whiteReturn, pool, trace->space, trace->ti);
 }
 
-Res TraceFlip(Space space, TraceId ti, RefSet white)
+
+Res TraceFlip(Trace trace, RefSet white)
 {
   Ring ring;
   Ring node;
-  Trace trace;
+  Space space;
   ScanStateStruct ss;
   Res res;
 
-  AVERT(Space, space);
+  AVERT(Trace, trace);
 
+  space = trace->space;
   ShieldSuspend(space);
 
-  trace = &space->trace[ti];
+  AVER(trace->state == TraceUNFLIPPED);
   AVER(trace->white == RefSetEMPTY);
+
   trace->white = white;
 
-  /* Update location dependency structures.  white is
-   * a conservative approximation of the refset of refs which
-   * may move during this collection.
-   * @@@@ It is too conservative.  Not everything white will
-   * necessarily move.
-   */
+  /* Update location dependency structures.  white is */
+  /* a conservative approximation of the refset of refs which */
+  /* may move during this collection. */
+  /* @@@@ It is too conservative.  Not everything white will */
+  /* necessarily move. */
   LDAge(space, white);
 
   /* Grey all the roots and pools. */
-
   ring = SpacePoolRing(space);
   node = RingNext(ring);
   while(node != ring) {
@@ -167,7 +161,7 @@ Res TraceFlip(Space space, TraceId ti, RefSet white)
     Pool pool = RING_ELT(Pool, spaceRing, node);
 
     if((pool->class->attr & AttrSCAN) != 0)
-      PoolGrey(pool, space, ti);  /* implicitly excludes white set */
+      PoolGrey(pool, space, trace->ti);  /* implicitly excludes white set */
 
     node = next;
   }
@@ -178,17 +172,17 @@ Res TraceFlip(Space space, TraceId ti, RefSet white)
     Ring next = RingNext(node);
     Root root = RING_ELT(Root, spaceRing, node);
 
-    RootGrey(root, ti);
+    RootGrey(root, trace->ti);
 
     node = next;
   }
 
   ss.fix = TraceFix;
-  ss.zoneShift = space->zoneShift;
-  ss.white = space->trace[ti].white;
+  ss.zoneShift = SpaceZoneShift(space);
+  ss.white = trace->white;
   ss.summary = RefSetEMPTY;
   ss.space = space;
-  ss.traceId = ti;
+  ss.traceId = trace->ti;
   ss.weakSplat = (Addr)0xadd4badd;
   ss.sig = ScanStateSig;
 
@@ -228,36 +222,40 @@ Res TraceFlip(Space space, TraceId ti, RefSet white)
   return ResOK;
 }
 
-static void TraceReclaim(Space space, TraceId ti)
+static void TraceReclaim(Trace trace)
 {
-  Ring node;
+  Ring ring, node;
+  Space space;
 
-  node = RingNext(&space->poolRing);
-  while(node != &space->poolRing) {
+  AVERT(Trace, trace);
+
+  space = trace->space;
+  ring = SpacePoolRing(space);
+  node = RingNext(ring);
+  while(node != ring) {
     Ring next = RingNext(node);
     Pool pool = RING_ELT(Pool, spaceRing, node);
 
     if((pool->class->attr & AttrGC) != 0)
-      PoolReclaim(pool, space, ti);
+      PoolReclaim(pool, space, trace->ti);
 
     node = next;
   }
 }
 
-Size TracePoll(Space space, TraceId ti)
+Size TracePoll(Trace trace)
 {
   Res res;
   Bool finished;
-  Trace trace;
 
-  trace = &space->trace[ti];
+  AVERT(Trace, trace);
 
   if(trace->white != RefSetEMPTY) {
-    res = TraceRun(space, ti, &finished);
+    res = TraceRun(trace, &finished);
     AVER(res == ResOK); /* @@@@ */
     if(finished) {
-      TraceReclaim(space, ti);
-      TraceDestroy(space, ti);
+      TraceReclaim(trace);
+      TraceDestroy(trace);
       return SPACE_POLL_MAX;
     }
   }
@@ -353,20 +351,23 @@ Res TraceScanAreaTagged(ScanState ss, Addr *base, Addr *limit)
   return ResOK;
 }
 
-Res TraceRun(Space space, TraceId ti, Bool *finishedReturn)
+Res TraceRun(Trace trace, Bool *finishedReturn)
 {
   Res res;
   ScanStateStruct ss;
+  Space space;
 
-  AVERT(Space, space);
+  AVERT(Trace, trace);
   AVER(finishedReturn != NULL);
 
+  space = trace->space;
+
   ss.fix = TraceFix;
-  ss.zoneShift = space->zoneShift;
-  ss.white = space->trace[ti].white;
+  ss.zoneShift = SpaceZoneShift(space);
+  ss.white = trace->white;
   ss.summary = RefSetEMPTY;
   ss.space = space;
-  ss.traceId = ti;
+  ss.traceId = trace->ti;
   ss.sig = ScanStateSig;
 
   for(ss.rank = 0; ss.rank < RankMAX; ++ss.rank) {
@@ -381,7 +382,6 @@ Res TraceRun(Space space, TraceId ti, Bool *finishedReturn)
 
     ring = SpacePoolRing(space);
     node = RingNext(ring);
-
     while(node != ring) {
       Ring next = RingNext(node);
       Pool pool = RING_ELT(Pool, spaceRing, node);

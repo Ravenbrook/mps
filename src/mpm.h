@@ -1,6 +1,6 @@
 /* impl.h.mpm: MEMORY POOL MANAGER DEFINITIONS
  *
- * $HopeName: MMsrc!mpm.h(MMdevel_action2.3) $
+ * $HopeName: MMsrc!mpm.h(MMdevel_action2.4) $
  * Copyright (C) 1996,1997 Harlequin Group, all rights reserved.
  */
 
@@ -247,15 +247,14 @@ extern Bool TraceIdCheck(TraceId id);
 extern Bool TraceSetCheck(TraceSet ts);
 extern Bool TraceCheck(Trace trace);
 
-extern Res TraceCreate(TraceId *tiReturn, Space space);
-extern void TraceDestroy(Space space, TraceId ti);
-extern Res TraceCondemn(RefSet *whiteReturn, Space space,
-                        TraceId ti, Pool pool);
-extern Res TraceFlip(Space space, TraceId ti, RefSet white);
-extern Size TracePoll(Space space, TraceId ti);
+extern Res TraceCreate(Trace *traceReturn, Space space);
+extern void TraceDestroy(Trace trace);
+extern Res TraceCondemn(RefSet *whiteReturn, Trace trace, Pool pool);
+extern Res TraceFlip(Trace trace, RefSet white);
+extern Size TracePoll(Trace trace);
 
-extern Res TraceRunAtomic(Space space, TraceId ti);
-extern Res TraceRun(Space space, TraceId ti, Bool *finishedReturn);
+extern Res TraceRunAtomic(Trace trace);
+extern Res TraceRun(Trace trace, Bool *finishedReturn);
 
 extern Res TraceFix(ScanState ss, Ref *refIO);
 
@@ -323,7 +322,8 @@ extern void SpaceFree(Space space, Addr base, Size size);
 #define SpaceTraceRing(space)   (&(space)->traceRing)
 #define SpaceThreadRing(space)  (&(space)->threadRing)
 #define SpaceEpoch(space)       ((space)->epoch) /* .epoch.ts */
-
+#define SpaceTrace(space, ti)	(&(space)->trace[ti])
+#define SpaceZoneShift(space)	((space)->zoneShift)
 
 /* Arena Interface -- see impl.c.arena* */
 
