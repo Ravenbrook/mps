@@ -1,6 +1,6 @@
 /* impl.c.vmi5: VIRTUAL MEMORY MAPPING FOR IRIX 5 (AND 6)
  *
- * $HopeName: !vmi5.c(trunk.2) $
+ * $HopeName: MMsrc!vmi5.c(MM_epcore_minnow.1) $
  * Copyright (C) 1997. Harlequin Group plc. All rights reserved.
  *
  * Design: design.mps.vm
@@ -13,20 +13,20 @@
  * onto store by creating a copy-on-write mapping to /dev/zero.
  *
  * .assume.not-last: The implementation of VMCreate assumes that
- *   mmap() will not choose a region which contains the last page
- *   in the address space, so that the limit of the mapped area
- *   is representable.
+ * mmap() will not choose a region which contains the last page
+ * in the address space, so that the limit of the mapped area
+ * is representable.
  *
- * .assume.mmap.err: EAGAIN is the only error we really expect to
- *   get from mmap.  The others are either caused by invalid params
- *   or features we don't use.  See mmap(2) for details.
+ * .assume.mmap.err: EAGAIN is the only error we really expect to get
+ * from mmap when committing and ENOMEM when reserving.  The others
+ * are either caused by invalid params or features we don't use.  See
+ * mmap(2) for details.
  *
  * TRANSGRESSIONS
  *
  * .fildes.name: VMStruct has one fields whose name violates our
  * naming conventions.  It's called zero_fd to emphasize that it's a
- * file descriptor and this fact is not reflected in the type.
- */
+ * file descriptor and this fact is not reflected in the type.  */
 
 #include "mpm.h"
 
@@ -44,7 +44,7 @@
 #include <errno.h>
 #include <unistd.h> /* for _SC_PAGESIZE */
 
-SRCID(vmi5, "$HopeName: !vmi5.c(trunk.2) $");
+SRCID(vmi5, "$HopeName: MMsrc!vmi5.c(MM_epcore_minnow.1) $");
 
 
 /* VMStruct -- virtual memory structure */
@@ -121,8 +121,8 @@ Res VMCreate(VM *vmReturn, Size size)
   addr = mmap((void *)0, (size_t)size, PROT_NONE, MAP_SHARED | MAP_AUTORESRV,
 	      zero_fd, (off_t)0);
   if(addr == (void *)-1) {
-    AVER(errno == EAGAIN); /* .assume.mmap.err */
-    res = (errno == EAGAIN) ? ResRESOURCE : ResFAIL;
+    AVER(errno == ENOMEM); /* .assume.mmap.err */
+    res = (errno == ENOMEM) ? ResRESOURCE : ResFAIL;
     goto failReserve;
   }
 
