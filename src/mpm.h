@@ -1,6 +1,6 @@
 /* impl.h.mpm: MEMORY POOL MANAGER DEFINITIONS
  *
- * $HopeName: !mpm.h(trunk.96) $
+ * $HopeName: MMsrc!mpm.h(MMdevel_gavinm_mvff.1) $
  * Copyright (C) 1998.  Harlequin Group plc.  All rights reserved.
  */
 
@@ -886,47 +886,66 @@ extern void StackProbe(Word depth);
 /* Splay Trees */
 extern Bool SplayTreeCheck(SplayTree tree);
 extern Bool SplayNodeCheck(SplayNode node);
-extern void SplayTreeInit(SplayTree tree, SplayCompareMethod compare);
+extern void SplayTreeInit(SplayTree tree, SplayCompareMethod compare,
+                          SplayUpdateNodeMethod updateNode);
 extern void SplayNodeInit(SplayNode node);
 extern void SplayNodeFinish(SplayNode node);
 extern void SplayTreeFinish(SplayTree tree);
 extern Res SplayTreeInsert(SplayTree tree, SplayNode node, void *key);
 extern Res SplayTreeDelete(SplayTree tree, SplayNode node, void *key);
 extern Res SplayTreeSearch(SplayNode *nodeReturn,
-			   SplayTree tree, void *key );
+                           SplayTree tree, void *key );
 extern Res SplayTreeNeighbours(SplayNode *leftReturn, 
-			       SplayNode *rightReturn,
+                               SplayNode *rightReturn,
                                SplayTree tree, void *key);
 extern SplayNode SplayTreeFirst(SplayTree tree, void *zeroKey);
 extern SplayNode SplayTreeNext(SplayTree tree, SplayNode oldNode, 
-			       void *oldKey);
+                               void *oldKey);
+extern Bool SplayFindFirst(SplayNode *nodeReturn, SplayTree tree,
+                           SplayTestNodeMethod testNode,
+                           SplayTestTreeMethod testTree,
+                           void *closureP, unsigned long closureS);
+extern Bool SplayFindLast(SplayNode *nodeReturn, SplayTree tree,
+                          SplayTestNodeMethod testNode,
+                          SplayTestTreeMethod testTree,
+                          void *closureP, unsigned long closureS);
+extern void SplayNodeRefresh(SplayTree tree, SplayNode node, void *key);
 extern Res SplayTreeDescribe(SplayTree tree, mps_lib_FILE *stream,
-			     SplayNodeDescribeMethod nodeDescribe);
+                             SplayNodeDescribeMethod nodeDescribe);
 
 /* CBS* -- see design.mps.cbs */
 
 extern Bool CBSCheck(CBS cbs);
 extern Bool CBSBlockCheck(CBSBlock block);
 extern Res CBSInit(Arena arena, CBS cbs,
-                   CBSNewMethod new,
-		   CBSDeleteMethod delete,
-		   Size minSize,
-		   Bool mayUseInline); 
+                   CBSChangeSizeMethod new,
+                   CBSChangeSizeMethod delete,
+                   CBSChangeSizeMethod grow,
+                   CBSChangeSizeMethod shrink,
+                   Size minSize,
+                   Bool mayUseInline); 
 extern void CBSFinish(CBS cbs);
 extern Res CBSInsert(CBS cbs, Addr base, Addr limit);
 extern Res CBSDelete(CBS cbs, Addr base, Addr limit);
 extern void CBSIterate(CBS cbs, CBSIterateMethod iterate, 
-		       void *closureP, unsigned long closureS);
+                       void *closureP, unsigned long closureS);
 extern void CBSIterateLarge(CBS cbs, CBSIterateMethod iterate, 
-		       void *closureP, unsigned long closureS);
+                            void *closureP, unsigned long closureS);
 extern void CBSSetMinSize(CBS cbs, Size minSize);
 extern Res CBSDescribe(CBS cbs, mps_lib_FILE *stream);
 extern Res CBSBlockDescribe(CBSBlock block, mps_lib_FILE *stream);
 #define CBSBlockBase(block) ((block)->base)
+extern Addr (CBSBlockBase)(CBSBlock block);
 #define CBSBlockLimit(block) ((block)->limit)
+extern Addr (CBSBlockLimit)(CBSBlock block);
 /* ANSI C doesn't define subtraction of zero pointers. */
 #define CBSBlockSize(block) \
   (CBSBlockBase((block)) == (Addr)0 ? (Size)0 : \
     (AddrOffset(CBSBlockBase((block)), CBSBlockLimit((block)))))
+extern Size (CBSBlockSize)(CBSBlock block);
+extern Bool CBSFindFirst(Addr *baseReturn, Addr *limitReturn,
+                         CBS cbs, Size size);
+extern Bool CBSFindLast(Addr *baseReturn, Addr *limitReturn,
+                        CBS cbs, Size size);
 
 #endif /* mpm_h */

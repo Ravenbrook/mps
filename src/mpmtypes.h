@@ -1,6 +1,6 @@
 /* impl.h.mpmtypes: MEMORY POOL MANAGER TYPES
  *
- * $HopeName: !mpmtypes.h(trunk.54) $
+ * $HopeName: MMsrc!mpmtypes.h(MMdevel_gavinm_mvff.1) $
  * Copyright (C) 1997, 1998 Harlequin Group plc.  All rights reserved.
  *
  * .readership: MM developers.
@@ -84,6 +84,13 @@ typedef struct SplayTreeStruct *SplayTree;
 typedef struct SplayNodeStruct *SplayNode;
 typedef unsigned Compare;
 typedef Compare (*SplayCompareMethod)(void *key, SplayNode node);
+typedef Bool (*SplayTestNodeMethod)(SplayTree tree, SplayNode node,
+                                    void *closureP, unsigned long closureS);
+typedef Bool (*SplayTestTreeMethod)(SplayTree tree, SplayNode node,
+                                    void *closureP, unsigned long closureS);
+typedef void (*SplayUpdateNodeMethod)(SplayTree tree, SplayNode node,
+                                      SplayNode leftChild, 
+                                      SplayNode rightChild);
 typedef Res (*SplayNodeDescribeMethod)(SplayNode node, mps_lib_FILE *stream);
 enum {
   CompareLESS,
@@ -91,14 +98,15 @@ enum {
   CompareGREATER
 };
 
+
 /* CBS* -- See design.mps.cbs */
 
 typedef struct CBSStruct *CBS;
 typedef struct CBSBlockStruct *CBSBlock;
-typedef void (*CBSNewMethod)(CBS cbs, CBSBlock block);
-typedef void (*CBSDeleteMethod)(CBS cbs, CBSBlock block);
+typedef void (*CBSChangeSizeMethod)(CBS cbs, CBSBlock block,
+              Size oldSize, Size newSize);
 typedef Bool (*CBSIterateMethod)(CBS cbs, CBSBlock block,
-				 void *closureP, unsigned long closureS);
+                                 void *closureP, unsigned long closureS);
 
 
 /* Arena*Method -- see @@@@ */

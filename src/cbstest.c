@@ -1,6 +1,6 @@
 /*  impl.c.cbstest: COALESCING BLOCK STRUCTURE TEST
  *
- *  $HopeName: !cbstest.c(trunk.2) $
+ *  $HopeName: MMsrc!cbstest.c(MMdevel_gavinm_mvff.1) $
  * Copyright (C) 1998 Harlequin Group plc.  All rights reserved.
  */
 
@@ -20,7 +20,7 @@
 #endif /* MPS_OS_SU */
 
 
-SRCID(cbstest, "$HopeName: !cbstest.c(trunk.2) $");
+SRCID(cbstest, "$HopeName: MMsrc!cbstest.c(MMdevel_gavinm_mvff.1) $");
 
 #define ArraySize ((size_t)123456)
 #define nOperations ((size_t)125000)
@@ -43,9 +43,12 @@ typedef struct check_cbs_closure_s {
   Addr oldLimit;
 } check_cbs_closure_s, *check_cbs_closure_t;
 
-static void cbs_new_callback(CBS cbs, CBSBlock cbsBlock) {
+static void cbs_new_callback(CBS cbs, CBSBlock cbsBlock,
+  Size oldSize, Size newSize) {
   AVERT(CBS, cbs);
   AVERT(CBSBlock, cbsBlock);
+  UNUSED(oldSize);
+  UNUSED(newSize);
 
   AVER(CBSBlockSize(cbsBlock) >= minSize);
 
@@ -219,7 +222,8 @@ extern int main(int argc, char *argv[])
   if (res != MPS_RES_OK) 
     ErrorExit("failed to create bit table.");
 
-  res = CBSInit(arena, &cbsStruct, &cbs_new_callback, NULL, minSize, TRUE);
+  res = CBSInit(arena, &cbsStruct, &cbs_new_callback, NULL, NULL, NULL,
+                minSize, TRUE);
   if(res != MPS_RES_OK)
     ErrorExit("failed to initialise CBS.");
 

@@ -1,6 +1,6 @@
 /* impl.c.poolmv2: MANUAL VARIABLE POOL, II
  *
- * $HopeName: !poolmv2.c(trunk.4) $
+ * $HopeName: MMsrc!poolmv2.c(MMdevel_gavinm_mvff.1) $
  * Copyright (C) 1998 Harlequin Group plc.  All rights reserved.
  *
  * .readership: any MPS developer
@@ -17,7 +17,7 @@
 #include "abq.h"
 #include "meter.h"
 
-SRCID(poolmv2, "$HopeName: !poolmv2.c(trunk.4) $");
+SRCID(poolmv2, "$HopeName: MMsrc!poolmv2.c(MMdevel_gavinm_mvff.1) $");
 
 
 /* Signatures */
@@ -43,8 +43,8 @@ static Res MV2SegAlloc(Seg *segReturn, MV2 mv2, Size size, Pool pool,
 
 static void MV2SegFree(MV2 mv2, Seg seg);
 static Bool MV2ReturnBlockSegs(MV2 mv2, CBSBlock block, Arena arena);
-static void MV2NoteNew(CBS cbs, CBSBlock block);
-static void MV2NoteDelete(CBS cbs, CBSBlock block);
+static void MV2NoteNew(CBS cbs, CBSBlock block, Size oldSize, Size newSize);
+static void MV2NoteDelete(CBS cbs, CBSBlock block, Size oldSize, Size newSize);
 static void ABQRefillIfNecessary(MV2 mv2, Size size);
 static Bool ABQRefillCallback(CBS cbs, CBSBlock block, void *closureP,
                               unsigned long closureS);
@@ -273,7 +273,7 @@ static Res MV2Init(Pool pool, va_list arg)
     abqDepth = 3;
 
   res = CBSInit(arena, MV2CBS(mv2), &MV2NoteNew, &MV2NoteDelete,
-                reuseSize, TRUE);
+                NULL, NULL, reuseSize, TRUE);
   if (res != ResOK)
     goto failCBS;
   
@@ -954,7 +954,7 @@ static Bool MV2ReturnBlockSegs(MV2 mv2, CBSBlock block, Arena arena)
 
 /* MV2NoteNew -- callback invoked when a block on the CBS >= reuseSize
  */
-static void MV2NoteNew(CBS cbs, CBSBlock block) 
+static void MV2NoteNew(CBS cbs, CBSBlock block, Size oldSize, Size newSize) 
 {
   Res res;
   MV2 mv2;
@@ -964,6 +964,8 @@ static void MV2NoteNew(CBS cbs, CBSBlock block)
   AVERT(MV2, mv2);
   AVERT(CBSBlock, block);
   AVER(CBSBlockSize(block) >= mv2->reuseSize);
+  UNUSED(oldSize);
+  UNUSED(newSize);
 
   res = ABQPush(MV2ABQ(mv2), block);
   /* See design.mps.poolmv2:impl.c.free.merge */
@@ -990,12 +992,14 @@ static void MV2NoteNew(CBS cbs, CBSBlock block)
 /* MV2NoteDelete -- callback invoked when a block on the CBS <=
  * reuseSize
  */
-static void MV2NoteDelete(CBS cbs, CBSBlock block)
+static void MV2NoteDelete(CBS cbs, CBSBlock block, Size oldSize, Size newSize)
 {
   AVERT(CBS, cbs);
   AVERT(MV2, CBSMV2(cbs));
   AVERT(CBSBlock, block);
   AVER(CBSBlockSize(block) < CBSMV2(cbs)->reuseSize);
+  UNUSED(oldSize);
+  UNUSED(newSize);
   
   {
     Res res = ABQDelete(MV2ABQ(CBSMV2(cbs)), block);
