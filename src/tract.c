@@ -1,9 +1,9 @@
 /* impl.c.tract: PAGE TABLES
  *
- * $HopeName: MMsrc!tract.c(MMdevel_pekka_locus.1) $
+ * $HopeName: MMsrc!tract.c(MMdevel_pekka_locus.2) $
  * Copyright (C) 2000 Harlequin Limited.  All rights reserved.
  *
- * .ullagepages: pages whose page index is < ullagePages are recorded as
+ * .ullagepages: Pages whose page index is < ullagePages are recorded as
  * free but never allocated as alloc starts searching after the tables.
  * TractOfAddr uses the fact that these pages are marked as free in order
  * to detect "references" to these pages as being bogus.
@@ -12,7 +12,7 @@
 #include "mpm.h"
 #include "tract.h"
 
-SRCID(tract, "$HopeName: MMsrc!tract.c(MMdevel_pekka_locus.1) $");
+SRCID(tract, "$HopeName: MMsrc!tract.c(MMdevel_pekka_locus.2) $");
 
 
 
@@ -60,7 +60,7 @@ void TractFinish(Tract tract)
 {
   AVERT(Tract, tract);
 
-  /* Check that there's no segment - and hence no shielding */
+  /* Check that there's no segment - and hence no shielding. */
   AVER(!TractHasSeg(tract));
   tract->pool = NULL;
 }
@@ -183,8 +183,7 @@ Res ChunkInit(Chunk chunk, Arena arena,
 
   /* Put the page table as late as possible, as in VM systems we don't want */
   /* to map it. */
-  pageTableSize = SizeAlignUp(pages * sizeof(PageStruct),
-                              pageSize);
+  pageTableSize = SizeAlignUp(pages * sizeof(PageStruct), pageSize);
   res = BootAlloc(&p, boot, (size_t)pageTableSize, (size_t)pageSize);
   if (res != ResOK)
     goto failAllocPageTable;
@@ -293,41 +292,205 @@ static void ChunkDecache(Arena arena, Chunk chunk)
 }
 
 
+/* ChunkOfAddr -- return the chunk which encloses an address */
+
+static Bool ChunkOfAddr(Chunk *chunkReturn, Arena arena, Addr addr)
+{
+  Ring node, next;
+  /* No checks because critical and internal */
+
+  /* check cache first */
+  if(arena->chunkCache.base <= addr && addr < arena->chunkCache.limit) {
+    *chunkReturn = arena->chunkCache.chunk;
+    return TRUE;
+  }
+  RING_FOR(node, &arena->chunkRing, next) {
+    Chunk chunk = RING_ELT(Chunk, arenaRing, node);
+    if(chunk->base <= addr && addr < chunk->limit) {
+      /* Gotcha! */
+      ChunkEncache(arena, chunk);
+      *chunkReturn = chunk;
+      return TRUE;
+    }
+  }
+  return FALSE;
+}
+
+
+/* ChunkOfNextAddr
+ *
+ * Finds the next higher chunk in memory which does _not_ contain addr.
+ * Returns FALSE if there is none.
+ */
+
+static Bool ChunkOfNextAddr(Chunk *chunkReturn, Arena arena, Addr addr)
+{
+  Addr leastBase;
+  Chunk leastChunk;
+  Ring node, next;
+
+  leastBase = (Addr)(Word)-1;
+  leastChunk = NULL;
+  RING_FOR(node, &arena->chunkRing, next) {
+    Chunk chunk = RING_ELT(Chunk, arenaRing, node);
+    if(addr < chunk->base && chunk->base < leastBase) {
+      leastBase = chunk->base;
+      leastChunk = chunk;
+    }
+  }
+  if(leastChunk != NULL) {
+    *chunkReturn = leastChunk;
+    return TRUE;
+  }
+  return FALSE;
+}
+
+
+/* ArenaIsReservedAddr -- is address managed by this arena? */
+
+Bool ArenaIsReservedAddr(Arena arena, Addr addr)
+{
+  AVERT(Arena, arena);
+  /* addr is arbitrary */
+
+  return ChunkOfAddr(&dummy, arena, addr);
+}
+
+
 /* Page table functions */
 
-/* TractOfAddr -- return the tract the given address is in, if any */
+/* .tract.critical: These Tract functions are low-level and are on 
+ * the critical path in various ways.  The more common therefore 
+ * use AVER_CRITICAL.
+ */
+
+
+/* TractOfAddr -- return the tract the given address is in, if any
+ *
+ * If the address is within the bounds of the arena, calculate the
+ * page table index from the address and see if the page is allocated.
+ * If so, return it.
+ */
 
 Bool TractOfAddr(Tract *tractReturn, Arena arena, Addr addr)
 {
+  Bool b;
+  Index i;
+  Chunk chunk;
+  
+  /* design.mps.trace.fix.noaver */
   AVER_CRITICAL(tractReturn != NULL); /* .tract.critical */
   AVERT_CRITICAL(Arena, arena);
 
-  return (*arena->class->tractOfAddr)(tractReturn, arena, addr);
+  b = ChunkOfAddr(&chunk, arena, addr);
+  if(!b)
+    return FALSE;
+  /* design.mps.trace.fix.tractofaddr */
+  i = INDEX_OF_ADDR(chunk, addr);
+  /* .addr.free: If the page is recorded as being free then */
+  /* either the page is free or it is */
+  /* part of the arena tables (see .ullagepages). */
+  if(BTGet(chunk->allocTable, i)) {
+    Page page = &chunk->pageTable[i];
+    *tractReturn = PageTract(page);
+    return TRUE;
+  }
+
+  return FALSE;
 }
 
 
 /* TractOfBaseAddr -- return a tract given a base address
  * 
- * The address must have been allocated to some pool
+ * The address must have been allocated to some pool.
  */
 
 Tract TractOfBaseAddr(Arena arena, Addr addr)
 {
   Tract tract;
   Bool found;
+
   AVERT_CRITICAL(Arena, arena);
   AVER_CRITICAL(AddrIsAligned(addr, arena->alignment));
 
-  /* check first in the cache - design.mps.arena.tract.cache */
+  /* Check first in the cache, see design.mps.arena.tract.cache. */
   if (arena->lastTractBase == addr) {
     tract = arena->lastTract;
   } else {
-    found = (*arena->class->tractOfAddr)(&tract, arena, addr);
+    found = TractOfAddr(&tract, arena, addr);
     AVER_CRITICAL(found);
   }
 
   AVER_CRITICAL(TractBase(tract) == addr);
   return tract;
+}
+
+
+/* tractSearchInChunk -- search for a tract
+ *
+ * .tract-search: Searches for a tract in the chunk starting at page
+ * index i, return NULL if there is none.  .tract-search.private: This
+ * function is private to this module and is used in the tract iteration
+ * protocol (TractFirst and TractNext).
+ */
+
+static Bool tractSearchInChunk(Tract *tractReturn, Chunk chunk, Index i)
+{
+  AVER(tractReturn != NULL);
+  AVERT(Chunk, chunk);
+  AVER(chunk->ullagePages <= i);
+  AVER(i <= chunk->pages);
+
+  while(i < chunk->pages
+        && !(BTGet(chunk->allocTable, i)
+             && PageIsAllocated(&chunk->pageTable[i]))) {
+    ++i;
+  }
+  if(i == chunk->pages)
+    return FALSE;
+  AVER(i < chunk->pages);
+  *tractReturn = PageTract(&chunk->pageTable[i]);
+  return TRUE;
+}
+
+
+/* tractSearch
+ *
+ * Searches for the next tract in increasing address order.
+ * The tract returned is the next one along from addr (i.e.,
+ * it has a base address bigger than addr and no other tract
+ * with a base address bigger than addr has a smaller base address).
+ *
+ * Returns FALSE if there is no tract to find (end of the arena).
+ */
+
+static Bool tractSearch(Tract *tractReturn, Arena arena, Addr addr)
+{
+  Bool b;
+  Chunk chunk;
+
+  b = ChunkOfAddr(&chunk, arena, addr);
+  if(b) {
+    Index i;
+
+    i = indexOfAddr(chunk, addr);
+    /* There are fewer pages than addresses, therefore the */
+    /* page index can never wrap around */
+    AVER_CRITICAL(i+1 != 0);
+
+    if(tractSearchInChunk(tractReturn, chunk, i+1)) {
+      return TRUE;
+    }
+  }
+  while(ChunkOfNextAddr(&chunk, arena, addr)) {
+    addr = chunk->base;
+    /* We start from ullagePages, as the ullage can't be a tract. */
+    /* See .ullagepages. */
+    if(tractSearchInChunk(tractReturn, chunk, chunk->ullagePages)) {
+      return TRUE;
+    }
+  }
+  return FALSE;
 }
 
 
@@ -341,46 +504,120 @@ Bool TractFirst(Tract *tractReturn, Arena arena)
   AVER(tractReturn != NULL);
   AVERT(Arena, arena);
 
-  return (*arena->class->tractFirst)(tractReturn, arena);
+  /* .tractfirst.assume.nozero: We assume that there is no tract */
+  /* with base address (Addr)0.  Happily this assumption is sound */
+  /* for a number of reasons. */
+  return tractSearch(tractReturn, arena, (Addr)0);
 }
 
 
 /* TractNext -- return the "next" tract in the arena
  *
- * This is used as the iteration step when iterating over all
- * tracts in the arena.
- *
  * TractNext finds the tract with the lowest base address which is
  * greater than a specified address.  The address must be (or once
  * have been) the base address of a tract.
+ *
+ * This is used as the iteration step when iterating over all
+ * tracts in the arena.
  */
 
 Bool TractNext(Tract *tractReturn, Arena arena, Addr addr)
 {
   AVER_CRITICAL(tractReturn != NULL); /* .tract.critical */
   AVERT_CRITICAL(Arena, arena);
+  AVER_CRITICAL(AddrIsAligned(addr, arena->alignment));
 
-  return (*arena->class->tractNext)(tractReturn, arena, addr);
+  return tractSearch(tractReturn, vmArena, addr);
 }
 
 
 /* TractNextContig -- return the contiguously following tract
  *
- * This is used as the iteration step when iterating over all
- * tracts in a contiguous area belonging to a pool.
+ * TractNextContig finds the tract with the base address which is
+ * immediately after the supplied tract.  This is used as the iteration
+ * step when iterating over all tracts in a contiguous area belonging to
+ * a pool.  Both current and next tracts must be allocated.
  */
 
 Tract TractNextContig(Arena arena, Tract tract)
 {
-  Tract next;
+  Tract nextTract;
+  Page thisPage, nextPage;
 
+  AVERT_CRITICAL(Arena, arena);
   AVERT_CRITICAL(Tract, tract);
   AVER_CRITICAL(NULL != TractPool(tract));
 
-  next = (*arena->class->tractNextContig)(arena, tract);
+  /* check both this tract & next tract lie with the same chunk */
+  {
+    Chunk ch1, ch2;
+    UNUSED(ch1);
+    UNUSED(ch2);
+    AVER_CRITICAL(ChunkOfAddr(&ch1, arena, TractBase(tract))
+                  && ChunkOfAddr(&ch2, arena, 
+                                 AddrAdd(TractBase(tract), arena->alignment))
+                  && (ch1 == ch2));
+  }
 
-  AVER_CRITICAL(TractPool(next) == TractPool(tract));
-  AVER_CRITICAL(TractBase(next) == 
-                AddrAdd(TractBase(tract), arena->alignment));
-  return next;
+  /* the next contiguous tract is contiguous in the page table */
+  thisPage = PageOfTract(tract);
+  nextPage = thisPage + 1;
+  AVER_CRITICAL(PageIsAllocated(next));
+  nextTract = PageTract(nextPage);
+  AVERT_CRITICAL(Tract, nextTract);
+
+  AVER_CRITICAL(TractPool(nextTract) == TractPool(tract));
+  AVER_CRITICAL(TractBase(nextTract)
+                == AddrAdd(TractBase(tract), arena->alignment));
+  return nextTract;
+}
+
+
+/* PageAlloc
+ *
+ * Sets up the PageStruct for an allocated page to turn it into a Tract.
+ */
+
+void PageAlloc(Chunk chunk, Index pi, Pool pool)
+{
+  Tract tract;
+  Addr base;
+
+  AVERT(Chunk, chunk);
+  AVER(IndexCheck(pi));
+  AVER(!BTGet(chunk->allocTable, pi));
+  AVERT(Pool, pool);
+
+  tract = PageTract(&chunk->pageTable[pi]);
+  base = PageIndexBase(chunk, pi);
+  BTSet(chunk->allocTable, pi);
+  TractInit(tract, pool, base);
+  return;
+}
+
+
+/* PageInit -- initialize a page (as free) */
+
+void PageInit(Chunk chunk, Index pi)
+{
+  AVERT(Chunk, chunk);
+  AVER(IndexCheck(pi));
+
+  BTRes(chunk->allocTable, pi);
+  PagePool(&chunk->pageTable[pi]) = NULL;
+  PageType(&chunk->pageTable[pi]) = PageTypeFree;
+  return;
+}
+
+
+/* PageFree -- free an allocated page */
+
+void PageFree(Chunk chunk, Index pi)
+{
+  AVERT(Chunk, chunk);
+  AVER(IndexCheck(pi));
+  AVER(BTGet(chunk->allocTable, pi));
+
+  PageInit(chunk, pi);
+  return;
 }
