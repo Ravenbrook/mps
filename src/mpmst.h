@@ -1,6 +1,6 @@
 /* impl.h.mpmst: MEMORY POOL MANAGER DATA STRUCTURES
  *
- * $HopeName: MMsrc!mpmst.h(trunk.52) $
+ * $HopeName: !mpmst.h(trunk.54) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  *
  * .readership: MM developers.
