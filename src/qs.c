@@ -1,6 +1,6 @@
 /*  impl.c.qs:                QUICKSORT
  *
- *  $HopeName: !qs.c(trunk.11) $
+ *  $HopeName: MMsrc!qs.c(MM_dylan_sunflower.1) $
  *
  *  Copyright (C) 1995,1996 Harlequin Group, all rights reserved
  *
@@ -167,9 +167,15 @@ static
 void
 print(QSCell a, FILE *stream)
 {
+  int ctr = 0;
+
   fprintf(stream, "( ");
 
   while(a != NULL) {
+    if(ctr++ >= 20) {
+      fprintf(stream, "\n");
+      ctr = 0;
+    }
     switch(a->tag) {
     case QSInt:
       fprintf(stream, "%lu ", a->value);
@@ -307,9 +313,14 @@ void
 printlist(FILE *stream)
 {
   mps_word_t i;
+  int ctr = 0;
 
   fprintf(stream, "[ ");
   for(i = 0; i < listl; ++i) {
+    if(ctr++ >= 20) {
+      fprintf(stream, "\n");
+      ctr = 0;
+    }
     fprintf(stream, "%lu ", list[i]);
   }
   fprintf(stream, "]\n");
