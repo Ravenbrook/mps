@@ -1,6 +1,6 @@
 /* impl.c.arena: ARENA IMPLEMENTATION
  *
- * $HopeName: !arena.c(trunk.38) $
+ * $HopeName: MMsrc!arena.c(MMdevel_pekka_rate.1) $
  * Copyright (C) 1998. Harlequin Group plc. All rights reserved.
  *
  * .readership: Any MPS developer
@@ -36,7 +36,7 @@
 #include "poolmrg.h"
 #include "mps.h"
 
-SRCID(arena, "$HopeName: !arena.c(trunk.38) $");
+SRCID(arena, "$HopeName: MMsrc!arena.c(MMdevel_pekka_rate.1) $");
 
 
 /* All static data objects are declared here. See .static */
@@ -91,9 +91,6 @@ Bool ArenaCheck(Arena arena)
   RefSet rs;
   Rank rank;
 
-  /* we check the fields in order. We can't yet check the serials,
-   * pollThreshold, actionInterval, or epoch.  nickb 1997-07-21 */
-
   CHECKS(Arena, arena);
   /* design.mps.arena.static.serial */
   CHECKL(arena->serial < arenaSerial); 
@@ -109,7 +106,6 @@ Bool ArenaCheck(Arena arena)
   CHECKL(BoolCheck(arena->insidePoll));
   CHECKL(BoolCheck(arena->clamped));
 
-  /* no check on arena->actionInterval */
   CHECKL(arena->fillMutatorSize >= 0.0);
   CHECKL(arena->emptyMutatorSize >= 0.0);
   CHECKL(arena->allocMutatorSize >= 0.0);
@@ -236,11 +232,9 @@ void ArenaInit(Arena arena, ArenaClass class)
   arena->suspended = FALSE;
   for(i = 0; i < SHIELD_CACHE_SIZE; i++)
     arena->shCache[i] = (Seg)0;
-  arena->pollThreshold = (Size)0;
+  arena->pollThreshold = 0.0;
   arena->insidePoll = FALSE;
   arena->clamped = FALSE;
-  /* design.mps.arena.poll.interval */
-  arena->actionInterval = ARENA_POLL_MAX;  
   arena->epoch = (Epoch)0;              /* impl.c.ld */
   arena->prehistory = RefSetEMPTY;
   for(i = 0; i < ARENA_LD_LENGTH; ++i)
@@ -544,7 +538,7 @@ void (ArenaPoll)(Arena arena)
 #else
 void ArenaPoll(Arena arena)
 {
-  Size size;
+  double size;
   Count i;
 
   AVERT(Arena, arena);
@@ -552,7 +546,7 @@ void ArenaPoll(Arena arena)
   if(arena->clamped)
     return;
 
-  size = ArenaCommitted(arena);
+  size = arena->fillMutatorSize;
   if(arena->insidePoll || size < arena->pollThreshold)
     return;
   /* design.mps.arena.poll.when */
@@ -578,8 +572,9 @@ void ArenaPoll(Arena arena)
     }
   }
 
-  size = ArenaCommitted(arena);
+  size = arena->fillMutatorSize;
   arena->pollThreshold = size + ARENA_POLL_MAX;
+  AVER(arena->pollThreshold > size); /* enough precision? */
 
   arena->insidePoll = FALSE;
 }
@@ -681,15 +676,14 @@ failCreate:
  * See design.mps.describe.
  */
 
-
 Res ArenaDescribe(Arena arena, mps_lib_FILE *stream)
 {
   Res res;
   Ring node, nextNode;
   Index i;
 
-  AVERT(Arena, arena);
-  AVER(stream != NULL);
+  if(!CHECKT(Arena, arena)) return ResFAIL;
+  if(stream == NULL) return ResFAIL;
 
   res = WriteF(stream,
                "Arena $P ($U) {\n",    
@@ -700,24 +694,24 @@ Res ArenaDescribe(Arena arena, mps_lib_FILE *stream)
                "  controlPool $P\n",   
                (WriteFP)&arena->controlPoolStruct,
                "  lock $P\n",          (WriteFP)&arena->lockStruct,
-               "  pollThreshold $U\n", (WriteFU)arena->pollThreshold,
+               "  pollThreshold $U KB\n",
+               (WriteFU)(arena->pollThreshold / 1024),
                "  insidePoll $S\n",    arena->insidePoll ? "YES" : "NO",
-	       "  fillMutatorSize $UKb\n",
+	       "  fillMutatorSize $U KB\n",
 	         (WriteFU)(arena->fillMutatorSize / 1024),
-	       "  emptyMutatorSize $UKb\n",
+	       "  emptyMutatorSize $U KB\n",
 	         (WriteFU)(arena->emptyMutatorSize / 1024),
-	       "  allocMutatorSize $UKb\n",
+	       "  allocMutatorSize $U KB\n",
 	         (WriteFU)(arena->allocMutatorSize / 1024),
-	       "  fillInternalSize $UKb\n",
+	       "  fillInternalSize $U KB\n",
 	         (WriteFU)(arena->fillInternalSize / 1024),
-	       "  emptyInternalSize $UKb\n",
+	       "  emptyInternalSize $U KB\n",
 	         (WriteFU)(arena->emptyInternalSize / 1024),
                NULL);
   if(res != ResOK)
     return res;
 
   res = WriteF(stream,
-               "  actionInterval $U\n", (WriteFU)arena->actionInterval,
                "  zoneShift $U\n", (WriteFU)arena->zoneShift,
                "  alignment $W\n", (WriteFW)arena->alignment,
                "  poolSerial $U\n", (WriteFU)arena->poolSerial,
