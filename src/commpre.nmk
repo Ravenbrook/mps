@@ -1,6 +1,6 @@
 # ==== FIRST COMMON FRAGMENT FOR PLATFORMS USING MV AND NMAKE
 #
-# $HopeName: !commpre.nmk(trunk.5) $
+# $HopeName: MMsrc!commpre.nmk(MMdevel_drj_message.1) $
 # Copyright (C) 1995,1997 Harlequin Group, all rights reserved
 #
 # DESCRIPTION
@@ -23,7 +23,6 @@
 #   PLINTH   as above for the "plinth" part
 #   AMC      as above for the "amc" part
 #   LO       as above for the "lo" part
-#   MRG      as above for the "mrg" part
 #   DW       as above for the "amc" part
 #   SW       as above for the "sw" part
 #   TESTLIB  as above for the "testlib" part
@@ -63,9 +62,6 @@
 !ENDIF
 !IFNDEF AMC
 !ERROR mv.nmk: AMC not defined
-!ENDIF
-!IFNDEF MRG
-!ERROR mv.nmk: MRG not defined
 !ENDIF
 !IFNDEF DW
 !ERROR mv.nmk: DW not defined
