@@ -2,7 +2,7 @@
  *
  *                  ANSI THREADS MANAGER
  *
- *  $HopeName: MMsrc!than.c(MMdevel_assertid.2) $
+ *  $HopeName: MMsrc!than.c(MMdevel_assertid.3) $
  *
  *  Copyright (C) 1995 Harlequin Group, all rights reserved
  *
@@ -17,7 +17,7 @@
 
 #include "mpm.h"
 
-SRCID(than, "$HopeName: MMsrc!than.c(MMdevel_assertid.2) $");
+SRCID(than, "$HopeName: MMsrc!than.c(MMdevel_assertid.3) $");
 
 
 Bool ThreadCheck(Thread thread)
@@ -77,13 +77,13 @@ void ThreadDeregister(Thread thread, Space space)
 
 void ThreadRingSuspend(Ring threadRing)
 {
-  AVERT(0x28A40009, Ring, threadRing);
+  AVER(0x28A40009, RingCheck(threadRing));
   return;
 }
 
 void ThreadRingResume(Ring threadRing)
 {
-  AVERT(0x28A4000A, Ring, threadRing);
+  AVER(0x28A4000A, RingCheck(threadRing));
   return;
 }
 
