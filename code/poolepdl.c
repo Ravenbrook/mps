@@ -1,6 +1,7 @@
 /* impl.c.poolepdl: ELECTRONIC PUBLISHING DISPLAY LIST POOL
  * 
  * $Id$
+ * $HopeName: MMsrc!poolepdl.c(trunk.39) $
  * Copyright (c) 2001 Ravenbrook Limited.
  *
  * .purpose: This is a pool class for EPcore display lists.

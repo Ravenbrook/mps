@@ -1,6 +1,7 @@
 /* impl.c.protsw: SCRIPTWORKS MEMORY PROTECTION
  *
  * $Id$
+ * $HopeName: MMsrc!protsw.c(trunk.5) $
  * Copyright (c) 2001 Ravenbrook Limited.
  *
  * DESIGN

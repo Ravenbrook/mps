@@ -1,6 +1,7 @@
 /* impl.c.fmtpstst: POSTSCRIPT OBJECT FORMAT TEST VERSION
  *
  *  $Id$
+ *  $HopeName: MMsrc!fmtpstst.c(trunk.8) $
  *  Copyright (c) 2001 Ravenbrook Limited.
  *
  * .readership: MPS developers, SW developers
