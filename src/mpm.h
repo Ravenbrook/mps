@@ -1,6 +1,6 @@
 /* impl.h.mpm: MEMORY POOL MANAGER DEFINITIONS
  *
- * $HopeName: MMsrc!mpm.h(trunk.101) $
+ * $HopeName: !mpm.h(trunk.102) $
  * Copyright (C) 1998.  Harlequin Group plc.  All rights reserved.
  */
 

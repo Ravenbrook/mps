@@ -1,6 +1,6 @@
 /* impl.h.abq: ABQ INTERFACE
  *
- * $HopeName: MMsrc!abq.h(MMdevel_gavinm_splay.5) $
+ * $HopeName: !abq.h(trunk.2) $
  * Copyright (C) 1998 Harlequin Group plc.  All rights reserved.
  *
  * .readership: Any MPS developer

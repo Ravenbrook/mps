@@ -1,6 +1,6 @@
 /* impl.c.abqtest: AVAILABLE BLOCK QUEUE TEST
  *
- * $HopeName: MMsrc!abqtest.c(MMdevel_gavinm_splay.2) $
+ * $HopeName: !abqtest.c(trunk.2) $
  * Copyright (C) 1998. Harlequin Group plc. All rights reserved.
  */
 
@@ -18,7 +18,7 @@
 #include "testlib.h"
 
 
-SRCID(abqtest, "$HopeName: MMsrc!abqtest.c(MMdevel_gavinm_splay.2) $");
+SRCID(abqtest, "$HopeName: !abqtest.c(trunk.2) $");
 
 #include "abq.h"
 

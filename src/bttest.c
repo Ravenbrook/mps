@@ -1,6 +1,6 @@
 /*  impl.c.bttest: BIT TABLE TEST
  *
- *  $HopeName: MMsrc!bttest.c(trunk.2) $
+ *  $HopeName: !bttest.c(trunk.3) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  */
 
@@ -20,7 +20,7 @@
 #endif /* MPS_OS_SU */
 
 
-SRCID(bttest, "$HopeName: MMsrc!bttest.c(trunk.2) $");
+SRCID(bttest, "$HopeName: !bttest.c(trunk.3) $");
 
 
 static BT bt; /* the BT which we will use */
