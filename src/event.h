@@ -1,7 +1,7 @@
 /* impl.h.event -- Event Logging Interface
  *
  * Copyright (C) 1997 Harlequin Group, all rights reserved.
- * $HopeName: MMsrc!event.h(MMdevel_telemetry.1) $
+ * $HopeName: MMsrc!event.h(MMdevel_telemetry.2) $
  *
  * READERSHIP
  *
@@ -114,7 +114,6 @@ extern Word EventKindControl;
 
 #define EventInit()                        NOOP
 #define EventFinish()                      NOOP
-#define EventControl(w)                    NOOP
 
 #endif /* EVENT */
 

@@ -1,6 +1,6 @@
 /* impl.c.event: EVENT LOGGING
  *
- * $HopeName: MMsrc!event.c(MMdevel_telemetry.2) $
+ * $HopeName: MMsrc!event.c(MMdevel_telemetry.3) $
  * Copyright (C) 1997 Harlequin Group, all rights reserved.
  *
  * .readership: MPS developers.
@@ -26,7 +26,7 @@
 #include "event.h"
 #include "mpsio.h"
 
-SRCID(event, "$HopeName: MMsrc!event.c(MMdevel_telemetry.2) $");
+SRCID(event, "$HopeName: MMsrc!event.c(MMdevel_telemetry.3) $");
 
 #ifdef EVENT /* .trans.ifdef */
 
@@ -123,7 +123,7 @@ void (EventFinish)(void)
   NOOP;
 }
 
-Word (EventControl)(Word resetMask, Word flipMask)
+Word EventControl(Word resetMask, Word flipMask)
 {
   return (Word)0;
 }
