@@ -1,6 +1,6 @@
 /* impl.c.amcss: POOL CLASS AMC STRESS TEST
  *
- * $HopeName: !amcss.c(trunk.18) $
+ * $HopeName: MMsrc!amcss.c(MMdevel_gens4.1) $
  * Copyright (C) 1996 Harlequin Group, all rights reserved
  */
 
@@ -21,7 +21,7 @@
 #define NR_EXACT_ROOTS  50
 #define NR_AMBIG_ROOTS  50
 #define FIELDS_MAX      2000
-#define COLLECTIONS	5
+#define COLLECTIONS	50000
 #define OBJNULL         ((mps_addr_t)0xDECEA5ED)
 
 static mps_pool_t pool;
@@ -102,11 +102,17 @@ static void *test(void *arg, size_t s)
       exact_roots[rnd() % NR_EXACT_ROOTS] = make();
     else
       ambig_roots[rnd() % NR_AMBIG_ROOTS] = make();
-    ++i;
 
     r = rnd() % NR_EXACT_ROOTS;
     if(exact_roots[r] != OBJNULL)
       assert(dylan_check(exact_roots[r]));
+
+    if(i % 1000 == 0) {
+      putchar('.');
+      fflush(stdout);
+    }
+
+    ++i;
   }
 
   mps_ap_destroy(ap);

@@ -1,6 +1,6 @@
 /* impl.h.mpmst: MEMORY POOL MANAGER DATA STRUCTURES
  *
- * $HopeName: !mpmst.h(trunk.33) $
+ * $HopeName: MMsrc!mpmst.h(MMdevel_gens4.1) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  *
  * .readership: MM developers.
@@ -447,7 +447,9 @@ typedef struct TraceStruct {
   Action action;                /* the action that launched the trace */
   RefSet white;                 /* superset of refs in white set */
   TraceState state;             /* current state of trace */
-  Size interval;                /* polling interval */
+  Size condemned;               /* condemned set size */
+  Size foundation;              /* initial grey set size */
+  Size rate;                    /* bytes to scan per increment */
 } TraceStruct;
 
 
