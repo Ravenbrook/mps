@@ -1,7 +1,7 @@
 /* impl.c.buffer: ALLOCATION BUFFER IMPLEMENTATION
  *
- * $HopeName: !buffer.c(trunk.47) $
- * Copyright (C) 1997, 1998 Harlequin Group plc.  All rights reserved.
+ * $HopeName: MMsrc!buffer.c(MMdevel_color_pool.1) $
+ * Copyright (C) 1997, 1998, 1999 Harlequin Group plc.  All rights reserved.
  *
  * This is (part of) the implementation of allocation buffers.
  *
@@ -25,7 +25,7 @@
 
 #include "mpm.h"
 
-SRCID(buffer, "$HopeName: !buffer.c(trunk.47) $");
+SRCID(buffer, "$HopeName: MMsrc!buffer.c(MMdevel_color_pool.1) $");
 
 
 /* BufferCheck -- check consistency of a buffer */
@@ -301,14 +301,13 @@ void BufferDetach(Buffer buffer, Pool pool)
     /* Use of lightweight frames must have been disabled by now */
     AVER(BufferFrameState(buffer) == BufferFrameDISABLED);
 
-    spare = AddrOffset(buffer->apStruct.alloc, 
-                       buffer->poolLimit);
+    spare = AddrOffset(buffer->apStruct.alloc, buffer->poolLimit);
     buffer->emptySize += spare;
     if(buffer->isMutator) {
       buffer->pool->emptyMutatorSize += spare;
       buffer->arena->emptyMutatorSize += spare;
-      buffer->arena->allocMutatorSize += AddrOffset(buffer->base,
-                                                    buffer->apStruct.alloc);
+      buffer->arena->allocMutatorSize +=
+        AddrOffset(buffer->base, buffer->apStruct.alloc);
     } else {
       buffer->pool->emptyInternalSize += spare;
       buffer->arena->emptyInternalSize += spare;
@@ -325,6 +324,8 @@ void BufferDetach(Buffer buffer, Pool pool)
     buffer->poolLimit = (Addr)0;
     buffer->mode &= ~(BufferModeATTACHED|BufferModeFLIPPED);
     BufferFrameSetState(buffer, BufferFrameDISABLED);
+
+    EVENT_PW(BufferEmpty, buffer, spare);
   }
 }
 
@@ -604,7 +605,7 @@ Res BufferReserve(Addr *pReturn, Buffer buffer, Size size,
 
 /* BufferAttach -- attach a segment to a buffer
  *
- * BufferReattach is entered because of a BufferFill,
+ * BufferAttach is entered because of a BufferFill,
  * or because of a Pop operation on a lightweight frame.
  */
 
@@ -650,6 +651,7 @@ void BufferAttach(Buffer buffer, Seg seg,
   }
 
   AVERT(Buffer, buffer);
+  EVENT_PWAW(BufferFill, buffer, size, base, filled);
 }
 
 
