@@ -1,12 +1,12 @@
 /* impl.c.trace: GENERIC TRACER IMPLEMENTATION
  *
- * $HopeName: MMsrc!trace.c(MMdevel_gens2.3) $
+ * $HopeName: MMsrc!trace.c(MMdevel_gens2.4) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  */
 
 #include "mpm.h"
 
-SRCID(trace, "$HopeName: MMsrc!trace.c(MMdevel_gens2.3) $");
+SRCID(trace, "$HopeName: MMsrc!trace.c(MMdevel_gens2.4) $");
 
 
 /* ScanStateCheck -- check consistency of a ScanState object */
@@ -122,6 +122,8 @@ static Res TraceStart(Trace trace, Action action)
   /* Identify the condemned set and turn it white. */
   space = trace->space;
   pool = action->pool;
+
+  EVENT3(TraceStart, trace, pool, action);
   ring = PoolSegRing(pool);
   node = RingNext(ring);
   while(node != ring) {
@@ -274,6 +276,7 @@ found:
   if(res != ResOK) goto failStart;
 
   *traceReturn = trace;
+  EVENT4(TraceCreate, space, action, trace, ti);
   return ResOK;
 
 failStart:
@@ -306,6 +309,7 @@ void TraceDestroy(Trace trace)
     TraceSetDel(trace->space->busyTraces, trace->ti);
   trace->space->flippedTraces =
     TraceSetDel(trace->space->flippedTraces, trace->ti);
+  EVENT1(TraceDestroy, trace);
 }
 
 
@@ -331,6 +335,7 @@ void TraceSegGreyen(Space space, Seg seg, TraceSet ts)
      TraceSetInter(grey, space->flippedTraces) != TraceSetEMPTY)
     ShieldRaise(space, seg, AccessREAD | AccessWRITE);
   seg->grey = grey;
+  EVENT3(TraceSegGreyen, space, seg, ts);
 }
 
 
@@ -382,6 +387,8 @@ static Res TraceFlip(Trace trace)
   ShieldSuspend(space);
 
   AVER(trace->state == TraceUNFLIPPED);
+
+  EVENT2(TraceFlipBegin, trace, space);
 
   TraceFlipBuffers(space);
  
@@ -441,6 +448,8 @@ static Res TraceFlip(Trace trace)
 
   ss.sig = SigInvalid;  /* just in case */
 
+  EVENT2(TraceFlipEnd, trace, space);
+
   ShieldResume(space);
 
   return ResOK;
@@ -455,6 +464,8 @@ static void TraceReclaim(Trace trace)
   AVERT(Trace, trace);
   AVER(trace->state == TraceRECLAIM);
 
+
+  EVENT1(TraceReclaim, trace);
   space = trace->space;
   seg = SegFirst(space);
   while(seg != NULL) {
@@ -528,6 +539,8 @@ static Res TraceScan(TraceSet ts, Rank rank,
   /* The reason for scanning a segment is that it's grey. */
   AVER(TraceSetInter(ts, seg->grey) != TraceSetEMPTY);
 
+  EVENT5(TraceScan, ts, rank, space, seg, &ss);
+
   ss.rank = rank;
   ss.traces = ts;
   ss.fix = TraceFix;
@@ -585,6 +598,8 @@ void TraceAccess(Space space, Seg seg, AccessSet mode)
   /* flipped. */
   AVER(TraceSetInter(seg->grey, space->flippedTraces) != TraceSetEMPTY);
 
+  EVENT2(TraceAccess, space, seg);
+
   /* design.mps.poolamc.access.multi */
   res = TraceScan(space->busyTraces,	/* @@@@ Should just be flipped traces? */
                   RankEXACT,		/* @@@@ Surely this is conservative? */
@@ -635,6 +650,8 @@ Res TracePoll(Trace trace)
   AVERT(Trace, trace);
 
   space = trace->space;
+
+  EVENT2(TracePoll, trace, space);
 
   switch(trace->state) {
     case TraceUNFLIPPED: {
@@ -692,6 +709,8 @@ Res TraceFix(ScanState ss, Ref *refIO)
   AVER(refIO != NULL);
 
   ref = *refIO;
+
+  EVENT3(TraceFix, ss, refIO, ref);
   if(SegOfAddr(&seg, ss->space, ref))
     if(TraceSetInter(seg->white, ss->traces) != TraceSetEMPTY) {
       pool = seg->pool;
@@ -718,6 +737,8 @@ Res TraceScanArea(ScanState ss, Addr *base, Addr *limit)
   AVER(base != NULL);
   AVER(limit != NULL);
   AVER(base < limit);
+
+  EVENT3(TraceScanArea, ss, base, limit);
 
   TRACE_SCAN_BEGIN(ss) {
     p = base;
@@ -751,6 +772,8 @@ Res TraceScanAreaTagged(ScanState ss, Addr *base, Addr *limit)
   AVER(base != NULL);
   AVER(limit != NULL);
   AVER(base < limit);
+
+  EVENT3(TraceScanAreaTagged, ss, base, limit);
 
   TRACE_SCAN_BEGIN(ss) {
     p = base;

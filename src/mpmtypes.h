@@ -1,6 +1,6 @@
 /* impl.h.mpmtypes: MEMORY POOL MANAGER TYPES
  *
- * $HopeName: MMsrc!mpmtypes.h(MMdevel_gens2.4) $
+ * $HopeName: MMsrc!mpmtypes.h(MMdevel_gens2.5) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  *
  * .readership: MM developers.
@@ -269,6 +269,19 @@ typedef int WriteFC; /* Promoted */
 #define EventAMCFix         ((EventType)0xEFA3CF18) /* AMC FIX */
 #define EventAMCReclaim     ((EventType)0xEFA3C6EC) /* AMC REClaim */
 #define EventAMCTraceEnd    ((EventType)0xEFA3C26E) /* AMC TRace End */
+#define EventTraceStart     ((EventType)0xEF26AC52) /* TRACe STart */
+#define EventTraceCreate    ((EventType)0xEF26ACC6) /* TRACe CReate */
+#define EventTraceDestroy   ((EventType)0xEF26ACDE) /* TRACe DEstroy */
+#define EventTraceSegGreyen ((EventType)0xEF26A599) /* TRAce SeG Greyen */
+#define EventTraceFlipBegin ((EventType)0xEF26AF7B) /* TRAce FLip Begin */
+#define EventTraceFlipEnd   ((EventType)0xEF26AF7E) /* TRAce FLip End */
+#define EventTraceReclaim   ((EventType)0xEF26A6EC) /* TRAce REClaim */
+#define EventTraceScan      ((EventType)0xEF26AC5C) /* TRACe SCan */
+#define EventTraceAccess    ((EventType)0xEF26AACC) /* TRAce ACCess */
+#define EventTracePoll      ((EventType)0xEF26AB01) /* TRAce POLl */
+#define EventTraceFix       ((EventType)0xEF26AF18) /* TRAce FIX */
+#define EventTraceScanArea  ((EventType)0xEF26A5CA) /* TRAce SCan Area */
+#define EventTraceScanAreaTagged ((EventType)0xEF26A5C2) /* TRAce SCan area Tagged */
 #define EventVMCreate       ((EventType)0xEFF3C6EA) /* VM CREAte */
 #define EventVMDestroy      ((EventType)0xEFF3DE52) /* VM DESTroy */
 #define EventVMMap          ((EventType)0xEFF33AB9) /* VM MAP */
