@@ -1,6 +1,6 @@
 /* impl.c.arenavm: VIRTUAL MEMORY BASED ARENA IMPLEMENTATION
  *
- * $HopeName: MMsrc!arenavm.c(MMdevel_drj_arena_hysteresis.8) $
+ * $HopeName: MMsrc!arenavm.c(MMdevel_drj_arena_hysteresis.9) $
  * Copyright (C) 1998.  Harlequin Group plc.  All rights reserved.
  *
  * PURPOSE
@@ -32,7 +32,7 @@
 #include "mpm.h"
 #include "mpsavm.h"
 
-SRCID(arenavm, "$HopeName: MMsrc!arenavm.c(MMdevel_drj_arena_hysteresis.8) $");
+SRCID(arenavm, "$HopeName: MMsrc!arenavm.c(MMdevel_drj_arena_hysteresis.9) $");
 
 
 /* @@@@ Arbitrary calculation for the maximum number of distinct */
@@ -1790,12 +1790,14 @@ static Res VMSegAllocComm(Seg *segReturn,
 
 failPagesMap:
   /* region from baseIndex to mappedLimit needs unmapping */
-  VMArenaUnmap(vmArena, chunk->vm,
-               PageIndexBase(chunk, baseIndex),
-	       PageIndexBase(chunk, mappedLimit));
-  /* mark pages as free */
-  for(i = baseIndex; i < mappedLimit; ++i) {
-    VMArenaPageFree(chunk, i);
+  if(baseIndex < mappedLimit) {
+    VMArenaUnmap(vmArena, chunk->vm,
+		 PageIndexBase(chunk, baseIndex),
+		 PageIndexBase(chunk, mappedLimit));
+    /* mark pages as free */
+    for(i = baseIndex; i < mappedLimit; ++i) {
+      VMArenaPageFree(chunk, i);
+    }
   }
   /* find which pages of page table were affected */
   VMArenaTablePagesUsed(&pageTableBaseIndex, &pageTableLimitIndex,
