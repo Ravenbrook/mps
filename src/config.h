@@ -1,7 +1,7 @@
 /* impl.h.config: MPS CONFIGURATION
  *
  * Copyright (C) 1997 Harlequin Group, all rights reserved.
- * $HopeName: !config.h(trunk.8) $
+ * $HopeName: MMsrc!config.h(trunk.7) $
  */
 
 #ifndef config_h
@@ -59,23 +59,11 @@
  * .mac.arena-size: ARENA_SIZE is set to 2Mb when compiling on
  * os.s7 (Mac OS) with the VM Arena, in order to allow development in
  * an environment where real memory is used to simulate memory mapping.
- * 
- * ARENA_CLIENT_PAGE_SIZE is the size in bytes of a "page" (i.e. segment
- * granule) in the client arena. The number 8192 is an initial value with no
- * particular justification.
- *
- * ARENA_CLIENT_DEFAULT_SEG_HIGH is a Bool governing whether segments default
- * 'high' (TRUE) or 'low' (FALSE). For EP-core, non-DL segments should be high
- * to reduce fragmentation of DL pools (See req.epcore.attr.footprint
- * and change 170193/trapping.beta.3
  */
 
 #if defined(CONFIG_PROD_EPCORE)
 #define MPS_PROD_EPCORE
-#define ARENA_CLIENT
 #define ARENA_SIZE                      ((Size)0) /* bogus for client arena */
-#define ARENA_CLIENT_PAGE_SIZE          ((Size)8192)
-#define ARENA_CLIENT_DEFAULT_SEG_HIGH   TRUE
 #elif defined(CONFIG_PROD_DYLAN)
 #define MPS_PROD_DYLAN
 #define ARENA_SIZE              ((Size)1<<30)
@@ -91,19 +79,36 @@
 #endif
 
 
-/* Space Configuration -- see impl.c.space */
+/* Arena Configuration -- see impl.c.space */
 
-#define SPACE_CONTROL_EXTENDBY  ((Size)4096)
-#define SPACE_CONTROL_AVGSIZE   ((Size)32)
-#define SPACE_CONTROL_MAXSIZE   ((Size)65536)
-#define SPACE_POLL_MAX          ((Size)262144)
-#define SPACE_LD_LENGTH         ((Size)4)
+#define ARENA_CONTROL_EXTENDBY  ((Size)4096)
+#define ARENA_CONTROL_AVGSIZE   ((Size)32)
+#define ARENA_CONTROL_MAXSIZE   ((Size)65536)
+#define ARENA_POLL_MAX          ((Size)262144)
+#define ARENA_LD_LENGTH         ((Size)4)
+#define ARENA_ZONESHIFT         ((Shift)20)
 
 
-/* Arena Configuration -- see impl.c.arena* */
+/* ANSI Arena Configuration -- see impl.c.arenaan */
 
 #define ARENA_ANSI_ALIGN        ((Align)4096)
 #define ARENA_ANSI_ZONESHIFT    ((Shift)20)
+
+
+/* Client Arena Configuration -- see impl.c.arenacl
+ *
+ * ARENA_CLIENT_PAGE_SIZE is the size in bytes of a "page" (i.e. segment
+ * granule) in the client arena. The number 8192 is an initial value with no
+ * particular justification.
+ *
+ * ARENA_CLIENT_DEFAULT_SEG_HIGH is a Bool governing whether segments default
+ * 'high' (TRUE) or 'low' (FALSE). For EP-core, non-DL segments should be high
+ * to reduce fragmentation of DL pools (See req.epcore.attr.footprint
+ * and change 170193/trapping.beta.3
+ */
+
+#define ARENA_CLIENT_PAGE_SIZE          ((Size)8192)
+#define ARENA_CLIENT_DEFAULT_SEG_HIGH   TRUE
 
 
 /* Shield Configuration -- see impl.c.shield */

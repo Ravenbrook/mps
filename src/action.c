@@ -1,12 +1,12 @@
 /* impl.c.action: STRATEGIC ACTION
  *
  * Copyright (C) 1997 Harlequin Group, all rights reserved.
- * $HopeName: !action.c(trunk.2) $
+ * $HopeName: MMsrc!action.c(trunk.2) $
  */
 
 #include "mpm.h"
 
-SRCID(action, "$HopeName: !action.c(trunk.2) $");
+SRCID(action, "$HopeName: MMsrc!action.c(trunk.2) $");
 
 
 /* ActionCheck -- check consistency of an Action structure */
@@ -57,19 +57,19 @@ void ActionFinish(Action action)
 
 /* Noddy collection policy -- condemn first pool found */
 
-static Res ActionCollect(Space space)
+static Res ActionCollect(Arena arena)
 {
   Ring ring, node;
   Trace trace;
   Res res;
   Pool pool;
 
-  ring = SpacePoolRing(space);
+  ring = ArenaPoolRing(arena);
   node = RingNext(ring);
   while(node != ring) {
     Ring next = RingNext(node);
 
-    pool = RING_ELT(Pool, spaceRing, node);
+    pool = RING_ELT(Pool, arenaRing, node);
     if((pool->class->attr & AttrGC) != 0)
       goto found;
 
@@ -80,7 +80,7 @@ static Res ActionCollect(Space space)
   return ResOK;
 
 found:
-  res = TraceCreate(&trace, space);
+  res = TraceCreate(&trace, arena);
   if(res != ResOK) goto failTraceCreate;
 
   res = TraceStart(trace, pool);
@@ -108,10 +108,10 @@ failTraceCreate:
  * can.
  */
 
-void ActionPoll(Space space)
+void ActionPoll(Arena arena)
 {
-  AVERT(Space, space);
+  AVERT(Arena, arena);
 
-  if(space->busyTraces == TraceSetEMPTY)
-    (void)ActionCollect(space);
+  if(arena->busyTraces == TraceSetEMPTY)
+    (void)ActionCollect(arena);
 }

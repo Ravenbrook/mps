@@ -1,6 +1,6 @@
 /* impl.c.buffer: ALLOCATION BUFFER IMPLEMENTATION
  *
- * $HopeName: !buffer.c(trunk.23) $
+ * $HopeName: MMsrc!buffer.c(trunk.23) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  *
  * This is (part of) the implementation of allocation buffers.
@@ -29,7 +29,7 @@
 
 #include "mpm.h"
 
-SRCID(buffer, "$HopeName: !buffer.c(trunk.23) $");
+SRCID(buffer, "$HopeName: MMsrc!buffer.c(trunk.23) $");
 
 
 /* BufferCheck
@@ -42,7 +42,7 @@ Bool BufferCheck(Buffer buffer)
 {
   CHECKS(Buffer, buffer);
   CHECKL(buffer->serial < buffer->pool->bufferSerial); /* .trans.mod */
-  CHECKU(Space, buffer->space);
+  CHECKU(Arena, buffer->arena);
   CHECKU(Pool, buffer->pool);
   CHECKL(RankSetCheck(buffer->rankSet));
   if(buffer->seg != NULL) {
@@ -75,17 +75,17 @@ Res BufferCreate(Buffer *bufferReturn, Pool pool, Rank rank)
 {
   Res res;
   Buffer buffer;
-  Space space;
+  Arena arena;
   void *p;
 
   AVER(bufferReturn != NULL);
   AVERT(Pool, pool);
   AVER(RankCheck(rank));
 
-  space = PoolSpace(pool);
+  arena = PoolArena(pool);
 
   /* Allocate the buffer structure. */  
-  res = SpaceAlloc(&p, space, sizeof(BufferStruct));
+  res = ArenaAlloc(&p, arena, sizeof(BufferStruct));
   if(res != ResOK) goto failAlloc;
   buffer = p;
 
@@ -96,7 +96,7 @@ Res BufferCreate(Buffer *bufferReturn, Pool pool, Rank rank)
   return ResOK;
 
 failInit:
-  SpaceFree(space, (Addr)buffer, sizeof(BufferStruct));
+  ArenaFree(arena, (Addr)buffer, sizeof(BufferStruct));
 failAlloc:
   return res;
 }
@@ -116,7 +116,7 @@ Res BufferInit(Buffer buffer, Pool pool, Rank rank)
   
   /* Initialize the buffer.  See impl.h.mpmst for a definition of the */
   /* structure.  sig and serial comes later .init.sig-serial */
-  buffer->space = PoolSpace(pool);
+  buffer->arena = PoolArena(pool);
   buffer->pool = pool;
   buffer->seg = NULL;
   buffer->rankSet = RankSetSingle(rank);
@@ -155,13 +155,13 @@ Res BufferInit(Buffer buffer, Pool pool, Rank rank)
 
 void BufferDestroy(Buffer buffer)
 {
-  Space space;
+  Arena arena;
 
   AVERT(Buffer, buffer);
 
-  space = buffer->space;
+  arena = buffer->arena;
   BufferFinish(buffer);
-  SpaceFree(space, (Addr)buffer, sizeof(BufferStruct));
+  ArenaFree(arena, (Addr)buffer, sizeof(BufferStruct));
 }
 
 
@@ -214,10 +214,10 @@ void BufferSet(Buffer buffer, Seg seg, Addr base, Addr init, Addr limit)
   AVER(BufferIsReady(buffer));
   AVER(SegCheck(seg));
   AVER(seg->buffer == NULL);
-  AVER(SegBase(buffer->space, seg) <= base);
+  AVER(ArenaSegBase(buffer->arena, seg) <= base);
   AVER(base <= init);
   AVER(limit == 0 || init <= limit);
-  AVER(limit == 0 || limit <= SegLimit(buffer->space, seg));
+  AVER(limit == 0 || limit <= ArenaSegLimit(buffer->arena, seg));
 
   buffer->seg = seg;
   seg->buffer = buffer;
@@ -257,8 +257,8 @@ void BufferReset(Buffer buffer)
  * BufferOfAP is a thread-safe (design.mps.interface.c.thread-safety)
  * method of getting the buffer which owns an APStruct.
  *
- * BufferSpace is a thread-safe (design.mps.interface.c.thread-safety)
- * method of getting the space which owns a buffer.
+ * BufferArena is a thread-safe (design.mps.interface.c.thread-safety)
+ * method of getting the arena which owns a buffer.
  *
  * BufferPool returns the pool to which a buffer is attached.
  */
@@ -302,12 +302,12 @@ Buffer BufferOfAP(AP ap)
   return PARENT(BufferStruct, apStruct, ap);
 }
 
-/* design.mps.buffer.method.space */
+/* design.mps.buffer.method.arena */
 /* This method must be thread-safe.  See */
 /* design.mps.interface.c.thread-safety. */
-Space BufferSpace(Buffer buffer)
+Arena BufferArena(Buffer buffer)
 {
-  return buffer->space;
+  return buffer->arena;
 }
 
 Pool (BufferPool)(Buffer buffer)
@@ -460,7 +460,7 @@ Res BufferDescribe(Buffer buffer, mps_lib_FILE *stream)
 
   res = WriteF(stream,
          "Buffer $P ($U) {\n", (WriteFP)buffer, (WriteFU)buffer->serial,
-         "  Space $P\n",       (WriteFP)buffer->space,
+         "  Arena $P\n",       (WriteFP)buffer->arena,
          "  Pool $P\n",        (WriteFP)buffer->pool,
          "  Seg $P\n",         (WriteFP)buffer->seg,
          "  rankSet $U\n",     (WriteFU)buffer->rankSet,

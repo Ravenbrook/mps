@@ -1,6 +1,6 @@
 /* impl.c.arenavm: VIRTUAL MEMORY BASED ARENA IMPLEMENTATION
  *
- * $HopeName: !arenavm.c(trunk.15) $
+ * $HopeName: MMsrc!arenavm.c(trunk.15) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  *
  * This is the implementation of the Segment abstraction from the VM
@@ -14,36 +14,42 @@
 #include "mpm.h"
 
 
-SRCID(arenavm, "$HopeName: !arenavm.c(trunk.15) $");
+SRCID(arenavm, "$HopeName: MMsrc!arenavm.c(trunk.15) $");
 
 
-/* Space Arena Projection
- * 
- * Only the arena module needs to discuss the arena object, hence, this
- * method is private to this module.
- */
-
-#define SpaceArena(space)       (&(space)->arenaStruct)
-
-/* Page Index to Base address mapping
+/* Types
  *
- * See design.mps.arena.vm.table.linear
- */
-
-#define PageBase(arena, pi) \
-  AddrAdd((arena)->base, ((pi) << arena->pageShift))
-
-
-/* Index Types
- * 
  * PI is the type of a value used to index into the page table.
  * 
  * BI is the type of a value used to index into a bool table (See ABTGet
  * and ABTSet in this module).
  */
 
+typedef struct ArenaVMStruct *ArenaVM;
+typedef struct PageStruct *Page;
+typedef Word *ABT;
 typedef Size PI;
 typedef Size BI;
+
+
+/* ArenaVMStruct -- VM Arena Structure */
+
+#define ArenaVMSig      ((Sig)0x519A6EB3) /* SIGnature AREna VM */
+
+typedef struct ArenaVMStruct {  /* VM arena structure */
+  ArenaStruct arenaStruct;	/* generic arena structure */
+  VMStruct vmStruct;            /* virtual memory structure */
+  Addr base;                    /* base address of arena area */
+  Addr limit;                   /* limit address of arena area */
+  Size pageSize;                /* size of block managed by PageStruct */
+  Shift pageShift;              /* log2 of page size, for shifts */
+  Index pages;                  /* number of pages in table */
+  Page pageTable;               /* the page table */
+  ABT freeTable;                /* page free table */
+  Size tablesSize;              /* size of area occupied by tables */
+  Index tablePages;             /* number of pages occupied by tables */
+  Sig sig;                      /* design.mps.sig */
+} ArenaVMStruct;
 
 
 /* PageStruct -- page structure
@@ -63,6 +69,15 @@ typedef struct PageStruct {     /* page structure */
     } tail;                     /* tail page */
   } the;
 } PageStruct;
+
+
+/* Page Index to Base address mapping
+ *
+ * See design.mps.arena.vm.table.linear
+ */
+
+#define PageBase(arena, pi) \
+  AddrAdd((arena)->base, ((pi) << arena->pageShift))
 
 
 /* ABTGet -- get a bool from a bool table
@@ -96,41 +111,87 @@ static void ABTSet(ABT bt, BI i, Bool b)
 }
 
 
-/* ArenaCreate -- create the arena
- *
- * In fact, this creates the space structure and initializes the
- * arena part.
- *
- * In fact, the space structure is created by calling VMCreate.
- */
+#define ArenaArenaVM(arena) PARENT(ArenaVMStruct, arenaStruct, arena)
+#define ArenaVMVM(arena)	(&(arena)->vmStruct)
 
-Res ArenaCreate(Space *spaceReturn, Size size, Addr base)
+
+/* ArenaCheck -- check of the consistency of the arena structure */
+
+static Bool ArenaVMCheck(ArenaVM arenaVM)
+{
+  CHECKS(ArenaVM, arenaVM);
+  CHECKD(VM, ArenaVMVM(arenaVM));
+  CHECKL(arenaVM->base != (Addr)0);
+  CHECKL(arenaVM->base < arenaVM->limit);
+  CHECKL(arenaVM->pageShift <= MPS_WORD_WIDTH);
+  CHECKL(arenaVM->pageSize == 1uL << arenaVM->pageShift);
+  CHECKL(VMAlign() == arenaVM->pageSize);
+  CHECKL(arenaVM->pages == 
+         AddrOffset(arenaVM->base, arenaVM->limit) >> arenaVM->pageShift);
+  CHECKL(arenaVM->tablePages <= arenaVM->pages);
+  CHECKL(arenaVM->tablesSize == arenaVM->tablePages << arenaVM->pageShift);
+  CHECKL(arenaVM->pageTable != NULL);
+  CHECKL((Addr)arenaVM->pageTable >= arenaVM->base);
+  CHECKL((Addr)&arenaVM->pageTable[arenaVM->pages] <=
+           AddrAdd(arenaVM->base, arenaVM->tablesSize));
+  CHECKL(arenaVM->freeTable != NULL);
+  CHECKL((Addr)arenaVM->freeTable >= arenaVM->base);
+  CHECKL((Addr)&arenaVM->freeTable[(arenaVM->pages + MPS_WORD_WIDTH-1)>>MPS_WORD_SHIFT] <=
+           arenaVM->limit);
+  /* .improve.check-table: Could check the consistency of the tables. */
+  return TRUE;
+}
+
+
+/* ArenaVMAlloc -- allocate space for the arena */
+
+static Res ArenaVMAlloc(Arena *arenaReturn)
+{
+  /* @@@@ temporary */
+  extern void *malloc(size_t);
+  void *p = malloc(sizeof(ArenaVMStruct));
+  AVER(p != NULL);
+  *arenaReturn = p;
+  return ResOK;
+}
+
+
+/* ArenaVMFree -- free the arena */
+
+static void ArenaVMFree(Arena arena)
+{
+  /* @@@@ temporary */
+  extern void free(void *);
+  free(arena);
+}
+
+
+/* ArenaVMInit -- initialize the VM arena */
+
+static Res ArenaVMInit(Arena arena, Size size, Addr base)
 {
   Res res;
-  Space space;
   Size f_words, f_size, p_size; /* see .init-tables */
-  Arena arena;
+  ArenaVM arenaVM;
   PI i;
-  
-  AVER(spaceReturn != NULL);
+
+  AVERT(Arena, arena);  
   AVER(size > 0);
   /* no restrictions on base, it's simply passed through to VMCreate */
 
-  /* VMCreate requires aligned size */
+  arenaVM = ArenaArenaVM(arena);
+
   size = SizeAlignUp(size, VMAlign());
+  res = VMInit(ArenaVMVM(arenaVM), size, base);
+  if(res != ResOK) goto failVMInit;
 
-  /* .vm.create: Create the space structure, initialize the VM part */
-  res = VMCreate(&space, size, base);
-  if(res) return res;
-
-  arena = SpaceArena(space);
   /* see design.mps.space.arena */
-  arena->base = VMBase(space);
-  arena->limit = VMLimit(space);
-  AVER(AddrOffset(arena->base, arena->limit) == size);
-  arena->pageSize = VMAlign();
-  arena->pageShift = SizeLog2(arena->pageSize);
-  arena->pages = size >> arena->pageShift;
+  arenaVM->base = VMBase(ArenaVMVM(arenaVM));
+  arenaVM->limit = VMLimit(ArenaVMVM(arenaVM));
+  AVER(AddrOffset(arenaVM->base, arenaVM->limit) == size);
+  arenaVM->pageSize = VMAlign();
+  arenaVM->pageShift = SizeLog2(arenaVM->pageSize);
+  arenaVM->pages = size >> arenaVM->pageShift;
 
   /* .init-tables: Allocate the page tables at the base of the arena.
    *
@@ -149,68 +210,71 @@ Res ArenaCreate(Space *spaceReturn, Size size, Addr base)
    * 
    * p_size is the page-aligned size of the page table.
    */
-  f_words = SizeAlignUp(arena->pages, MPS_WORD_WIDTH) >> MPS_WORD_SHIFT;
-  f_size = SizeAlignUp(f_words * sizeof(Word), arena->pageSize);
-  p_size = SizeAlignUp(arena->pages * sizeof(PageStruct), arena->pageSize);
-  arena->tablesSize = f_size + p_size;
-  res = VMMap(space, arena->base, AddrAdd(arena->base, arena->tablesSize));
-  if(res) {
-    VMDestroy(space);
-    return res;
-  }
-  arena->freeTable = (ABT)arena->base;
-  arena->pageTable = (Page)AddrAdd(arena->base, f_size);
+  f_words = SizeAlignUp(arenaVM->pages, MPS_WORD_WIDTH) >> MPS_WORD_SHIFT;
+  f_size = SizeAlignUp(f_words * sizeof(Word), arenaVM->pageSize);
+  p_size = SizeAlignUp(arenaVM->pages * sizeof(PageStruct), arenaVM->pageSize);
+  arenaVM->tablesSize = f_size + p_size;
+  res = VMMap(ArenaVMVM(arenaVM),
+              arenaVM->base,
+              AddrAdd(arenaVM->base, arenaVM->tablesSize));
+  if(res != ResOK) goto failVMMap;
+  arenaVM->freeTable = (ABT)arenaVM->base;
+  arenaVM->pageTable = (Page)AddrAdd(arenaVM->base, f_size);
 
   /* .tablepages: pages whose page index is < tablePages are recorded as
    * free but never allocated as alloc starts searching after the tables
    * (see .alloc.skip)
    */
-  arena->tablePages = arena->tablesSize >> arena->pageShift;
-  for(i = 0; i < arena->pages; ++i)
-    ABTSet(arena->freeTable, i, TRUE);
+  arenaVM->tablePages = arenaVM->tablesSize >> arenaVM->pageShift;
+  for(i = 0; i < arenaVM->pages; ++i)
+    ABTSet(arenaVM->freeTable, i, TRUE);
 
   /* Set the zone shift to divide the arena into the same number of
    * zones as will fit into a reference set (the number of bits in a
    * word).  Note that some zones are discontiguous in the arena if the
    * size is not a power of 2. See design.mps.space.arena.
    */
-  space->zoneShift = SizeFloorLog2(size >> MPS_WORD_SHIFT);
+  arena->zoneShift = SizeFloorLog2(size >> MPS_WORD_SHIFT);
+  arena->alignment = arenaVM->pageSize;
 
   /* Sign the arena. */
-  arena->sig = ArenaSig;
+  arenaVM->sig = ArenaVMSig;
   
-  AVERT(Arena, arena);
+  AVERT(ArenaVM, arenaVM);
   
-  EVENT2(ArenaCreate, arena, space);
-
-  *spaceReturn = space;
   return ResOK;
+
+failVMMap:
+  VMFinish(ArenaVMVM(arenaVM));
+failVMInit:
+  return res;
 }
 
-Res ArenaExtend(Space space, Addr base, Size size)
+
+static Res ArenaVMExtend(Arena space, Addr base, Size size)
 {
   return ResUNIMPL;
 }
 
-Res ArenaRetract(Space space, Addr base, Size size)
+static Res ArenaVMRetract(Arena space, Addr base, Size size)
 {
   return ResUNIMPL;
 }
+
 
 /* ArenaDestroy -- finish the arena and destroy the space structure */
 
-void ArenaDestroy(Space space)
+static void ArenaVMFinish(Arena arena)
 {
-  Arena arena;
+  ArenaVM arenaVM;
 
-  AVERT(Arena, SpaceArena(space));
+  AVERT(Arena, arena);
+  arenaVM = ArenaArenaVM(arena);
+  AVERT(ArenaVM, arenaVM);
   
-  arena = SpaceArena(space);
   arena->sig = SigInvalid;
-  VMUnmap(space, arena->base, AddrAdd(arena->base, arena->tablesSize));
-  VMDestroy(space);     /* .vm.create */
-
-  EVENT1(ArenaDestroy, arena);
+  VMUnmap(ArenaVMVM(arenaVM), arenaVM->base, AddrAdd(arenaVM->base, arenaVM->tablesSize));
+  VMFinish(ArenaVMVM(arenaVM));     /* .vm.create */
 }
 
 
@@ -221,101 +285,48 @@ void ArenaDestroy(Space space)
  * the VM.
  */
 
-Size ArenaReserved(Space space)
+static Size ArenaVMReserved(Arena arena)
 {
-  AVERT(Arena, SpaceArena(space));
-  return VMReserved(space);
+  ArenaVM arenaVM;
+
+  AVERT(Arena, arena);
+  arenaVM = ArenaArenaVM(arena);
+  AVERT(ArenaVM, arenaVM);
+  
+  return VMReserved(ArenaVMVM(arenaVM));
 }
 
-Size ArenaCommitted(Space space)
+static Size ArenaVMCommitted(Arena arena)
 {
-  AVERT(Arena, SpaceArena(space));
-  return VMMapped(space);
-}
+  ArenaVM arenaVM;
 
-
-/* ArenaCheck -- check of the consistency of the arena structure */
-
-Bool ArenaCheck(Arena arena)
-{
-  CHECKS(Arena, arena);
-  CHECKD(VM, &arena->vmStruct);
-  CHECKL(arena->base != (Addr)0);
-  CHECKL(arena->base < arena->limit);
-  CHECKL(arena->pageShift <= MPS_WORD_WIDTH);
-  CHECKL(arena->pageSize == 1uL << arena->pageShift);
-  CHECKL(VMAlign() == arena->pageSize);
-  CHECKL(arena->pages == 
-           AddrOffset(arena->base, arena->limit) >> arena->pageShift);
-  CHECKL(arena->tablePages <= arena->pages);
-  CHECKL(arena->tablesSize == arena->tablePages << arena->pageShift);
-  CHECKL(arena->pageTable != NULL);
-  CHECKL((Addr)arena->pageTable >= arena->base);
-  CHECKL((Addr)&arena->pageTable[arena->pages] <=
-           AddrAdd(arena->base, arena->tablesSize));
-  CHECKL(arena->freeTable != NULL);
-  CHECKL((Addr)arena->freeTable >= arena->base);
-  CHECKL((Addr)&arena->freeTable[(arena->pages + MPS_WORD_WIDTH-1)>>MPS_WORD_SHIFT] <=
-           arena->limit);
-  /* .improve.check-table: Could check the consistency of the tables. */
-  return TRUE;
+  AVERT(Arena, arena);
+  arenaVM = ArenaArenaVM(arena);
+  AVERT(ArenaVM, arenaVM);
+  
+  return VMMapped(ArenaVMVM(arenaVM));
 }
 
 
-Bool SegPrefCheck(SegPref pref)
+/* ArenaVMSegAlloc -- allocate a segment from the arena */
+
+static Res ArenaVMSegAlloc(Seg *segReturn, SegPref pref, Arena arena, Size size, Pool pool)
 {
-  CHECKS(SegPref, pref);
-  CHECKL(BoolCheck(pref->high));
-  /* nothing else to check */
-  return TRUE;
-}
-
-static SegPrefStruct segPrefDefault = {SegPrefSig, FALSE};
-
-SegPref SegPrefDefault(void)
-{
-  return &segPrefDefault;
-}
-
-Res SegPrefExpress (SegPref sp, SegPrefKind kind, void *p)
-{
-  AVERT(SegPref,sp);
-  AVER(sp != &segPrefDefault);
-
-  switch(kind) {
-  case SegPrefHigh:
-    AVER(p == NULL);
-    sp->high = TRUE;
-    return ResOK;
-
-  case SegPrefLow:
-    AVER(p == NULL);
-    sp->high = FALSE;
-    return ResOK;
-
-  default:
-    /* see design.mps.pref.default */
-    return ResOK;
-  }
-}
-
-
-/* SegAlloc -- allocate a segment from the arena */
-
-Res SegAlloc(Seg *segReturn, SegPref pref, Space space, Size size, Pool pool)
-{
-  Arena arena = SpaceArena(space);
+  ArenaVM arenaVM;
   PI pi, count, pages, base = 0;        /* whinge stopper */
   Addr addr;
   Seg seg;
   Res res;
 
+  AVERT(Arena, arena);
+  arenaVM = ArenaArenaVM(arena);
+  AVERT(ArenaVM, arenaVM);
+  
   AVER(segReturn != NULL);
   AVERT(SegPref, pref);
-  AVERT(Arena, SpaceArena(space));
   AVER(size > 0);
   AVERT(Pool, pool);
-  AVER(SizeIsAligned(size, arena->pageSize));
+  AVER(SizeIsAligned(size, arenaVM->pageSize));
   
   /* NULL is used as a discriminator (see
    * design.mps.arena.vm.table.disc), therefore the real pool must be
@@ -324,14 +335,14 @@ Res SegAlloc(Seg *segReturn, SegPref pref, Space space, Size size, Pool pool)
   AVER(pool != NULL);
 
   /* Search for a free run of pages in the free table.
-   * .alloc.skip: Start from arena->tablePages (.tablepages).
+   * .alloc.skip: Start from arenaVM->tablePages (.tablepages).
    * .improve.bit-twiddle:  This code can probably be seriously
    * optimised by twiddling the bit table.
    */
-  pages = size >> arena->pageShift;
+  pages = size >> arenaVM->pageShift;
   count = 0;
-  for(pi = arena->tablePages; pi < arena->pages; ++pi) {
-    if(ABTGet(arena->freeTable, pi)) {
+  for(pi = arenaVM->tablePages; pi < arenaVM->pages; ++pi) {
+    if(ABTGet(arenaVM->freeTable, pi)) {
       if(count == 0)
         base = pi;
       ++count;
@@ -352,29 +363,29 @@ found:
   /* .alloc.early-map: Map in the segment memory before actually
    * allocating the pages, because the unwind (in case of failure)
    * is simpler. */
-  addr = PageBase(arena, base);
-  res = VMMap(space, addr, AddrAdd(addr, size));
+  addr = PageBase(arenaVM, base);
+  res = VMMap(ArenaVMVM(arenaVM), addr, AddrAdd(addr, size));
   if(res) return res;
 
   /* Initialize the generic segment structure. */
-  seg = &arena->pageTable[base].the.head;
+  seg = &arenaVM->pageTable[base].the.head;
   SegInit(seg, pool);
 
   /* Allocate the first page, and, if there is more than one page,
    * allocate the rest of the pages and store the multi-page information
    * in the page table.
    */
-  AVER(ABTGet(arena->freeTable, base));
-  ABTSet(arena->freeTable, base, FALSE);
+  AVER(ABTGet(arenaVM->freeTable, base));
+  ABTSet(arenaVM->freeTable, base, FALSE);
   if(pages > 1) {
-    Addr limit = PageBase(arena, base + pages);
+    Addr limit = PageBase(arenaVM, base + pages);
     seg->single = FALSE;
     for(pi = base + 1; pi < base + pages; ++pi) {
-      AVER(ABTGet(arena->freeTable, pi));
-      ABTSet(arena->freeTable, pi, FALSE);
-      arena->pageTable[pi].the.tail.pool = NULL;
-      arena->pageTable[pi].the.tail.seg = seg;
-      arena->pageTable[pi].the.tail.limit = limit;
+      AVER(ABTGet(arenaVM->freeTable, pi));
+      ABTSet(arenaVM->freeTable, pi, FALSE);
+      arenaVM->pageTable[pi].the.tail.pool = NULL;
+      arenaVM->pageTable[pi].the.tail.seg = seg;
+      arenaVM->pageTable[pi].the.tail.limit = limit;
     }
   } else {
     seg->single = TRUE;
@@ -389,127 +400,108 @@ found:
 }
 
 
-/* SegFree - free a segment in the arena */
-
-void SegFree(Space space, Seg seg)
-{
-  Arena arena;
-  Page page;
-  PI pi, pl, pn;
-  Addr base, limit; 
-
-  AVERT(Arena, SpaceArena(space));
-  AVERT(Seg, seg);
-
-  arena = SpaceArena(space);
-  page = PARENT(PageStruct, the.head, seg);
-  limit = SegLimit(space, seg);
-  pi = page - arena->pageTable;
-  AVER(pi <= arena->pages);
-
-  SegFinish(seg);
-
-  /* Remember the base address of the segment so it can be */
-  /* unmapped .free.unmap */
-  base = PageBase(arena, pi);
-
-  /* Calculate the number of pages in the segment, and hence the
-   * limit for .free.loop */
-  pn = AddrOffset(base, limit) >> arena->pageShift;
-  pl = pi + pn;
-  /* .free.loop: */
-  for( ; pi < pl; ++pi) {
-    AVER(ABTGet(arena->freeTable, pi) == FALSE);
-    ABTSet(arena->freeTable, pi, TRUE);
-  }
-
-  /* .free.unmap: Unmap the segment memory. */
-  VMUnmap(space, base, PageBase(arena, pi));
-
-  /* Double check that .free.loop takes us to the limit page of the
-   * segment.
-   */
-  AVER(PageBase(arena, pi) == limit);
-
-  EVENT2(SegFree, arena, seg);
-}
-
-
-/* ArenaAlign -- return the alignment of segments */
-
-Align ArenaAlign(Space space)
-{
-  Arena arena;
-  AVERT(Arena, SpaceArena(space));
-  arena = SpaceArena(space);
-  return arena->pageSize;
-}
-
-
-/* SegBase -- return the base address of a segment
+/* ArenaVMSegBase -- return the base address of a segment
  *
  * The segment base is calculated by working out the index of the
  * segment structure in the page table and then multiplying that
  * by the page size and adding it to the arena base address.
  */
 
-Addr SegBase(Space space, Seg seg)
+static Addr ArenaVMSegBase(Arena arena, Seg seg)
 {
-  Arena arena;
+  ArenaVM arenaVM;
   Page page;
   PI pi;
   
-  AVERT(Arena, SpaceArena(space));
+  AVERT(Arena, arena);
+  arenaVM = ArenaArenaVM(arena);
+  AVERT(ArenaVM, arenaVM);
   AVERT(Seg, seg);
 
-  arena = SpaceArena(space);
   page = PARENT(PageStruct, the.head, seg);
-  pi = page - arena->pageTable;
+  pi = page - arenaVM->pageTable;
 
-  return PageBase(arena, pi);
+  return PageBase(arenaVM, pi);
 }
 
 
-/* SegLimit -- return the limit address (end+1) of a segment
+/* ArenaVMSegLimit -- return the limit address (end+1) of a segment
  *
  * If the segment is a single page, then the limit is just
  * the next page, otherwise it is stored on the next page
  * table entry.
  */
 
-Addr SegLimit(Space space, Seg seg)
+static Addr ArenaVMSegLimit(Arena arena, Seg seg)
 {
-  Arena arena;
+  ArenaVM arenaVM;
   Page page;
+  Addr limit;
 
-  AVERT(Arena, SpaceArena(space));
+  AVERT(Arena, arena);
+  arenaVM = ArenaArenaVM(arena);
+  AVERT(ArenaVM, arenaVM);
   AVERT(Seg, seg);
 
-  arena = SpaceArena(space);
   if(seg->single)
-    return AddrAdd(SegBase(space, seg), arena->pageSize);
+    limit = AddrAdd(ArenaVMSegBase(arena, seg), arenaVM->pageSize);
   else {
     page = PARENT(PageStruct, the.head, seg);
-    return page[1].the.tail.limit;
+    limit = page[1].the.tail.limit;
   }
+
+  return limit;
 }
 
 
-/* SegSize -- return the size (limit - base) of a segment
- *
- * .improve.redundant-calc: There is scope for optimizing this,
- * because both base and limit calls do roughly the same thing twice.
- */
+/* ArenaVMSegFree - free a segment in the arena */
 
-Size SegSize(Space space, Seg seg)
+static void ArenaVMSegFree(Arena arena, Seg seg)
 {
-  AVERT(Arena, SpaceArena(space));
+  ArenaVM arenaVM;
+  Page page;
+  PI pi, pl, pn;
+  Addr base, limit; 
+
+  AVERT(Arena, arena);
+  arenaVM = ArenaArenaVM(arena);
+  AVERT(ArenaVM, arenaVM);
   AVERT(Seg, seg);
-  return AddrOffset(SegBase(space, seg), SegLimit(space, seg));
+
+  page = PARENT(PageStruct, the.head, seg);
+  limit = ArenaVMSegLimit(arena, seg);
+  pi = page - arenaVM->pageTable;
+  AVER(pi <= arenaVM->pages);
+
+  SegFinish(seg);
+
+  /* Remember the base address of the segment so it can be */
+  /* unmapped .free.unmap */
+  base = PageBase(arenaVM, pi);
+
+  /* Calculate the number of pages in the segment, and hence the
+   * limit for .free.loop */
+  pn = AddrOffset(base, limit) >> arenaVM->pageShift;
+  pl = pi + pn;
+  /* .free.loop: */
+  for( ; pi < pl; ++pi) {
+    AVER(ABTGet(arenaVM->freeTable, pi) == FALSE);
+    ABTSet(arenaVM->freeTable, pi, TRUE);
+  }
+
+  /* .free.unmap: Unmap the segment memory. */
+  VMUnmap(ArenaVMVM(arenaVM), base, PageBase(arenaVM, pi));
+
+  /* Double check that .free.loop takes us to the limit page of the
+   * segment.
+   */
+  AVER(PageBase(arenaVM, pi) == limit);
+
+  EVENT2(SegFree, arena, seg);
 }
 
 
-/* SegOfAddr -- return the segment which encloses an address
+/* ArenaVMSegOfAddr -- return the segment which encloses an address
  *
  * If the address is within the bounds of the arena, calculate the
  * page table index from the address and see if the page is allocated.
@@ -517,18 +509,19 @@ Size SegSize(Space space, Seg seg)
  * tail's pointer back to the segment in the head page.
  */
 
-Bool SegOfAddr(Seg *segReturn, Space space, Addr addr)
+static Bool ArenaVMSegOfAddr(Seg *segReturn, Arena arena, Addr addr)
 {
-  Arena arena;
+  ArenaVM arenaVM;
   
+  AVERT(Arena, arena);
+  arenaVM = ArenaArenaVM(arena);
+  AVERT(ArenaVM, arenaVM);
   AVER(segReturn != NULL);
-  AVERT(Arena, SpaceArena(space));
   
-  arena = SpaceArena(space);
-  if(arena->base <= addr && addr < arena->limit) {
-    PI pi = AddrOffset(arena->base, addr) >> arena->pageShift;
-    if(!ABTGet(arena->freeTable, pi)) {
-      Page page = &arena->pageTable[pi];
+  if(arenaVM->base <= addr && addr < arenaVM->limit) {
+    PI pi = AddrOffset(arenaVM->base, addr) >> arenaVM->pageShift;
+    if(!ABTGet(arenaVM->freeTable, pi)) {
+      Page page = &arenaVM->pageTable[pi];
       if(page->the.head.pool != NULL)
         *segReturn = &page->the.head;
       else
@@ -541,7 +534,7 @@ Bool SegOfAddr(Seg *segReturn, Space space, Addr addr)
 }
 
 
-/* SegSearch -- search for a segment
+/* ArenaVMSegSearch -- search for a segment
  *
  * Searches for a segment in the arena starting at page index pi,
  * return NULL if there is none.  A segment is present if it is
@@ -550,57 +543,91 @@ Bool SegOfAddr(Seg *segReturn, Space space, Addr addr)
  * This function is private to this module and is used in the segment
  * iteration protocol (SegFirst and SegNext).
  */
-static Seg SegSearch(Arena arena, PI pi)
+static Seg ArenaVMSegSearch(ArenaVM arenaVM, PI pi)
 {
-  while(pi < arena->pages &&
-        (ABTGet(arena->freeTable, pi) ||
-         arena->pageTable[pi].the.head.pool == NULL))
+  AVERT(ArenaVM, arenaVM);
+
+  while(pi < arenaVM->pages &&
+        (ABTGet(arenaVM->freeTable, pi) ||
+         arenaVM->pageTable[pi].the.head.pool == NULL))
     ++pi;
   
-  if(pi < arena->pages)
-    return &arena->pageTable[pi].the.head;
+  if(pi < arenaVM->pages)
+    return &arenaVM->pageTable[pi].the.head;
   
-  AVER(pi == arena->pages);
+  AVER(pi == arenaVM->pages);
+
   return NULL;
 }
 
 
-/* SegFirst -- return the first segment in the arena
+/* ArenaVMSegFirst -- return the first segment in the arena
  *
  * This is used to start an iteration over all segments in the arena.
  * See SEG_FOR (impl.h.mpm).
  */
 
-Seg SegFirst(Space space)
+static Seg ArenaVMSegFirst(Arena arena)
 {
-  Arena arena;
-
-  AVERT(Arena, SpaceArena(space));
-  arena = SpaceArena(space);
+  ArenaVM arenaVM;
+  
+  AVERT(Arena, arena);
+  arenaVM = ArenaArenaVM(arena);
+  AVERT(ArenaVM, arenaVM);
 
   /* We start from tablePages, as the tables can't be a segment.
    * See .tablepages */
-  return SegSearch(arena, (PI)arena->tablePages);
+  return ArenaVMSegSearch(arenaVM, (PI)arenaVM->tablePages);
 }
 
 
-/* SegNext -- return the next segment in the arena
+/* ArenaVMSegNext -- return the next segment in the arena
  *
  * This is used as the iteration step when iterating over all
  * segments in the arena.  See SEG_FOR (impl.h.mpm).
  */
 
-Seg SegNext(Space space, Seg seg)
+static Seg ArenaVMSegNext(Arena arena, Seg seg)
 {
-  Arena arena;
+  ArenaVM arenaVM;
   Page page;
   PI pi;
-  AVERT(Arena, SpaceArena(space));
+  
+  AVERT(Arena, arena);
+  arenaVM = ArenaArenaVM(arena);
+  AVERT(ArenaVM, arenaVM);
   AVERT(Seg, seg);
+
   page = PARENT(PageStruct, the.head, seg);
-  arena = SpaceArena(space);
-  pi = page - arena->pageTable;
-  return SegSearch(arena, pi + 1);
+  pi = page - arenaVM->pageTable;
+  return ArenaVMSegSearch(arenaVM, pi + 1);
 }
 
 
+static ArenaClassStruct ArenaClassVMStruct = {
+  ArenaClassSig,
+  "VM",					/* name */
+  sizeof(ArenaVMStruct),		/* size */
+  offsetof(ArenaVMStruct, arenaStruct),	/* offset */
+  ArenaVMAlloc,				/* alloc */
+  ArenaVMFree,				/* free */
+  ArenaVMInit,				/* init */
+  ArenaVMFinish,			/* finish */
+  ArenaVMReserved,			/* reserved */
+  ArenaVMCommitted,			/* committed */
+  ArenaVMExtend,			/* extend */
+  ArenaVMRetract,			/* retract */
+  ArenaVMSegAlloc,			/* segAlloc */
+  ArenaVMSegFree,			/* segFree */
+  ArenaVMSegBase,			/* segBase */
+  ArenaVMSegLimit,			/* segLimit */
+  ArenaVMSegOfAddr,			/* segOfAddr */
+  ArenaVMSegFirst,			/* segFirst */
+  ArenaVMSegNext,			/* segNext */
+  ArenaClassSig			/* @@@@ */
+};
+
+ArenaClass ArenaClassVM(void)
+{
+  return &ArenaClassVMStruct;
+}
