@@ -1,6 +1,6 @@
 /*  ==== POOLS ====
  *
- *  $HopeName: MMsrc/!pool.c(trunk.1)$
+ *  $HopeName: MMsrc/!pool.c(MMdevel_dsm_0.1)$
  *
  *  Copyright (C) 1994,1995 Harlequin Group, all rights reserved
  *
@@ -98,44 +98,69 @@ Error PoolCreate(Pool *poolReturn, PoolClass class, Space space, ...)
 Error PoolCreateV(Pool *poolReturn, PoolClass class,
                   Space space, va_list arg)
 {
+  Error e;
+
+  SpaceLockClaim(space);
   AVER(poolReturn != NULL);
   AVER(ISVALID(Space, space));
-  return (*class->create)(poolReturn, space, arg);
+  e = (*class->create)(poolReturn, space, arg);
+  SpaceLockRelease(space);
+  return e;
 }
 
 void PoolDestroy(Pool pool)
 {
+  Space space;
+
+  space = PoolSpace(pool);
+  SpaceLockClaim(space);
+
   AVER(ISVALID(Pool, pool));
   (*pool->class->destroy)(pool);
+
+  SpaceLockRelease(space);
 }
 
 
 Error (PoolAllocP)(void **pReturn, Pool pool, size_t size)
 {
   Error e;
+  Space space;
+
+  space = PoolSpace(pool);
+  SpaceLockClaim(space);
 
   AVER(pReturn != NULL);
   AVER(ISVALID(Pool, pool));
   AVER(size > 0);
 
   e = (*pool->class->allocP)(pReturn, pool, size);
-  if(e != ErrSUCCESS) return e;
+  if(e != ErrSUCCESS)
+    goto return_e;
 
   /* Make sure that the allocated address was in the pool's memory. */  
   AVER(PoolHasAddr(pool, (Addr)*pReturn));
 
-  return ErrSUCCESS;
+  e = ErrSUCCESS;
+return_e:
+  SpaceLockRelease(space);
+  return e;
 }
 
 
 void PoolFreeP(Pool pool, void *old, size_t size)
 {
+  Space space;
+
+  space = PoolSpace(pool);
+  SpaceLockClaim(space);
   AVER(ISVALID(Pool, pool));
   AVER(old != NULL);
   AVER(PoolHasAddr(pool, (Addr)old));
 
   if(pool->class->freeP != NULL)
     (*pool->class->freeP)(pool, old, size);
+  SpaceLockRelease(space);
 }
 
 
@@ -176,6 +201,11 @@ void PoolReclaim(Pool pool, Trace trace)
 
 Error PoolDescribe(Pool pool, LibStream stream)
 {
+  Space space;
+
+  space = PoolSpace(pool);
+  SpaceLockClaim(space);
+
   AVER(ISVALID(Pool, pool));
   AVER(stream != NULL);
 
@@ -206,13 +236,14 @@ Error PoolDescribe(Pool pool, LibStream stream)
 
   LibFormat(stream, "} Pool %p\n", pool);
 
+  SpaceLockRelease(space);
   return ErrSUCCESS;
 }
 
 
+/*@@@@@*/
 Space (PoolSpace)(Pool pool)
 {
-  AVER(ISVALID(Pool, pool));
   return PARENT(SpaceStruct, poolDeque,
                 DequeNodeParent(&pool->spaceDeque));
 }

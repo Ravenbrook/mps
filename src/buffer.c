@@ -2,7 +2,7 @@
  *
  *                  ALLOCATION BUFFER IMPLEMENTATION
  *
- *  $HopeName: MMsrc/!buffer.c(trunk.1)$
+ *  $HopeName: MMsrc/!buffer.c(MMdevel_dsm_0.1)$
  *
  *  Copyright (C) 1995 Harlequin Group, all rights reserved
  *
@@ -39,6 +39,7 @@
 #include "lib.h"
 #include "buffer.h"
 #include "pool.h"
+#include "space.h"
 
 
 #ifdef DEBUG_SIGN
@@ -48,7 +49,7 @@ static SigStruct BufferSigStruct;
 
 DequeNode BufferPoolDeque(Buffer buffer)
 {
-  AVER(ISVALID(Buffer, buffer));
+  /*@@@@@@*/
   return &buffer->poolDeque;
 }
 
@@ -58,7 +59,7 @@ Pool BufferPool(Buffer buffer)
   Deque deque;
   Pool pool;
 
-  AVER(ISVALID(Buffer, buffer));
+  /*@@@@@@*/
 
   deque = DequeNodeParent(BufferPoolDeque(buffer));
   pool = PARENT(PoolStruct, bufferDeque, deque);
@@ -69,18 +70,31 @@ Pool BufferPool(Buffer buffer)
 
 Error BufferCreate(Buffer *bufferReturn, Pool pool)
 {
+  Space space;
+  Error e;
+
+  space = PoolSpace(pool);
+  SpaceLockClaim(space);
+
   AVER(bufferReturn != NULL);
   AVER(ISVALID(Pool, pool));
   AVER(pool->class->bufferCreate != NULL);
   
-  return (*pool->class->bufferCreate)(bufferReturn, pool);
+  e = (*pool->class->bufferCreate)(bufferReturn, pool);
+
+  SpaceLockRelease(space);
+  return e;
 }
 
 
 void BufferDestroy(Buffer buffer)
 {
+  Space space;
   Pool pool;
 
+  pool = BufferPool(buffer);
+  space = PoolSpace(pool);
+  SpaceLockClaim(space);
   AVER(ISVALID(Buffer, buffer));
 
   pool = BufferPool(buffer);
@@ -89,6 +103,8 @@ void BufferDestroy(Buffer buffer)
   AVER(buffer->init == buffer->alloc);
 
   (*pool->class->bufferDestroy)(buffer);
+
+  SpaceLockRelease(space);
 }
 
 
@@ -96,11 +112,19 @@ void BufferDestroy(Buffer buffer)
 
 Bool BufferIsValid(Buffer buffer, ValidationType validParam)
 {
+  Pool pool;
+  Space space;
+
   AVER(buffer != NULL);
 #ifdef DEBUG_SIGN
   AVER(ISVALIDNESTED(Sig, &BufferSigStruct));
   AVER(buffer->sig == &BufferSigStruct);
 #endif
+
+  pool = BufferPool(buffer);
+  space = PoolSpace(pool);
+  SpaceLockClaim(space);
+
   AVER(ISVALIDNESTED(DequeNode, &buffer->poolDeque));
   AVER(buffer->base <= buffer->init);
   AVER(buffer->init <= buffer->alloc);
@@ -113,6 +137,8 @@ Bool BufferIsValid(Buffer buffer, ValidationType validParam)
   AVER(IsAligned(buffer->alignment, buffer->init));
   AVER(IsAligned(buffer->alignment, buffer->alloc));
   AVER(IsAligned(buffer->alignment, buffer->limit));
+
+  SpaceLockRelease(space);
   return TRUE;
 }
 
@@ -155,6 +181,7 @@ Bool BufferIsReset(Buffer buffer)
 }
 
 
+/*@@@@@*/
 Bool BufferIsReady(Buffer buffer)
 {
   AVER(ISVALID(Buffer, buffer));
@@ -167,7 +194,7 @@ Bool BufferIsReady(Buffer buffer)
 
 
 void BufferInit(Buffer buffer, Pool pool,
-                BufferFill fill, BufferTrip trip)
+                BufferFillMethod fill, BufferTripMethod trip)
 {
   AVER(ISVALID(Pool, pool));
   AVER(buffer != NULL);
@@ -205,10 +232,40 @@ void BufferFinish(Buffer buffer)
 #endif
 }
 
-
 /* This is the reserve sequence that the mutator must go through to */
 /* reserve space for a proto-object. */
 
+/* @@@@@ */
+static Error BufferFill(Addr *pReturn, Buffer buffer, Addr size)
+{
+  Error e;
+  Pool pool;
+  Space space;
+
+  pool = BufferPool(buffer);
+  space = PoolSpace(pool);
+  SpaceLockClaim(space);
+  e = (*buffer->fill)(pReturn, buffer, size);
+  SpaceLockRelease(space);
+  return e;
+}
+
+/* @@@@@ */
+static Bool BufferTrip(Buffer buffer, Addr p, Addr size)
+{
+  Bool b;
+  Pool pool;
+  Space space;
+
+  pool = BufferPool(buffer);
+  space = PoolSpace(pool);
+  SpaceLockClaim(space);
+  b = (*buffer->trip)(buffer, p, size);
+  SpaceLockRelease(space);
+  return b;
+}
+
+/*@@@@@*/
 Error BufferReserve(Addr *pReturn, Buffer buffer, Addr size)
 {
   Error e;
@@ -235,7 +292,7 @@ Error BufferReserve(Addr *pReturn, Buffer buffer, Addr size)
   /* If the buffer can't accommodate the request, fall through to the */
   /* pool-specific allocation method. */
 
-  e = (*buffer->fill)(pReturn, buffer, size);
+  e = BufferFill(pReturn, buffer, size);
   
   AVER(ISVALID(Buffer, buffer));
 
@@ -247,6 +304,7 @@ Error BufferReserve(Addr *pReturn, Buffer buffer, Addr size)
 /* tell the pool that it is valid.  Commit may return FALSE to */
 /* indicate that the client must go back and reserve again. */
 
+/*@@@@@*/
 Bool BufferCommit(Buffer buffer, Addr p, Addr size)
 {
   AVER(ISVALID(Buffer, buffer));
@@ -260,7 +318,7 @@ Bool BufferCommit(Buffer buffer, Addr p, Addr size)
 
   AVER(p == buffer->init);
   AVER(buffer->init + size == buffer->alloc);
-    
+
   /* Atomically update the init pointer to declare that the object */
   /* is initialized (though it may be invalid if a flip occurred). */
 
@@ -276,7 +334,7 @@ Bool BufferCommit(Buffer buffer, Addr p, Addr size)
   /* trip the buffer if a flip has occurred. */
 
   if(buffer->limit == 0)
-    return (*buffer->trip)(buffer, p, size);
+    return BufferTrip(buffer, p, size);
 
   /* No flip occurred, so succeed. */
 
@@ -287,6 +345,13 @@ Bool BufferCommit(Buffer buffer, Addr p, Addr size)
 
 Error BufferDescribe(Buffer buffer, LibStream stream)
 {
+  Pool pool;
+  Space space;
+
+  pool = BufferPool(buffer);
+  space = PoolSpace(pool);
+  SpaceLockClaim(space);
+
   AVER(ISVALID(Buffer, buffer));
   AVER(stream != NULL);
 
@@ -308,5 +373,6 @@ Error BufferDescribe(Buffer buffer, LibStream stream)
             (void *)buffer->trip,
             (void *)buffer);
 
+  SpaceLockRelease(space);
   return ErrSUCCESS;
 }
