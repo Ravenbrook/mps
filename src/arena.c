@@ -1,6 +1,6 @@
 /* impl.c.arena: ARENA IMPLEMENTATION
  *
- * $HopeName: MMsrc!arena.c(MMdevel_config_thread.2) $
+ * $HopeName: MMsrc!arena.c(MMdevel_config_thread.3) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  *
  * .readership: Any MPS developer
@@ -38,7 +38,7 @@
 #include "mpm.h"
 
 
-SRCID(arena, "$HopeName: MMsrc!arena.c(MMdevel_config_thread.2) $");
+SRCID(arena, "$HopeName: MMsrc!arena.c(MMdevel_config_thread.3) $");
 
 
 /* All static data objects are declared here. See .static */
@@ -329,7 +329,8 @@ void ArenaDestroy(Arena arena)
 #if defined(THREAD_SINGLE) && defined(PROTECTION_NONE)
 void (ArenaEnter)(Arena arena)
 {
-  ArenaEnter(arena);
+  /* Don't need to lock, just check. */
+  AVERT(Arena, arena);
 }
 #else
 void ArenaEnter(Arena arena)
@@ -348,7 +349,8 @@ void ArenaEnter(Arena arena)
 #if defined(THREAD_SINGLE) && defined(PROTECTION_NONE)
 void (ArenaLeave)(Arena arena)
 {
-  ArenaLeave(arena);
+  /* Don't need to lock, just check. */
+  AVERT(Arena, arena);
 }
 #else
 void ArenaLeave(Arena arena)
@@ -421,7 +423,8 @@ Bool ArenaAccess(Addr addr, AccessSet mode)
 #ifdef MPS_PROD_EPCORE
 void (ArenaPoll)(Arena arena)
 {
-  ArenaPoll(arena);
+  /* Don't poll, just check. */
+  AVERT(Arena, arena);
 }
 #else
 void ArenaPoll(Arena arena)
