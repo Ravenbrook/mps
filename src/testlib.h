@@ -1,11 +1,9 @@
 /* impl.h.testlib: TEST LIBRARY
  *
- * $HopeName: !testlib.h(trunk.12) $
- * Copyright (C) 1995, 1998 Harlequin Group plc.  All rights reserved.
+ * $HopeName: MMsrc!testlib.h(MM_epcore_brisling.2) $
+ * Copyright (C) 2000 Harlequin Limited.  All rights reserved.
  *
  * .purpose: A library of functions that may be of use to unit tests.
- *
- * .notes: There is no way to set the seed for rnd.  1995-03-14 drj
  */
 
 #ifndef testlib_h
@@ -13,12 +11,16 @@
 
 #include "mps.h"
 
-#include <stdio.h>
-/* On SunOS, need ossu.h as well */
+/* Include system header hackery. */
 #include "mpstd.h"
 #ifdef MPS_OS_SU
 #include "ossu.h"
 #endif
+#ifdef MPS_OS_XC
+#include "osxc.h"
+#endif
+
+#include <stdio.h>
 
 
 /* Suppress Visual C warnings at warning level 4, */
