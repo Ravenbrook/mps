@@ -1,6 +1,6 @@
 /* impl.h.mpmst: MEMORY POOL MANAGER DATA STRUCTURES
  *
- * $HopeName: MMsrc!mpmst.h(MMdevel_action2.4) $
+ * $HopeName: MMsrc!mpmst.h(MMdevel_action2.5) $
  * Copyright (C) 1996,1997 Harlequin Group, all rights reserved.
  *
  * .readership: MM developers.
@@ -266,7 +266,7 @@ typedef struct VMStruct {
 typedef struct SegStruct {      /* segment structure */
   Pool pool;                    /* MUST BE FIRST, see .seg.pool */
   Bool single;                  /* single page segment */
-  Rank rank;                    /* rank of all references in this seg */
+  RankSet rankSet;		/* ranks of references in this seg */
   AccessSet pm, sm;             /* protection and shield modes */
   Size depth;                   /* see impl.c.shield.def.depth */
   void *p;                      /* pointer for use of owning pool */
@@ -355,16 +355,12 @@ typedef struct BufferStruct {
   Space space;                  /* owning space */
   Pool pool;                    /* owning pool */
   Seg seg;                      /* segment being buffered */
-  Rank rank;                    /* rank of references being created */
+  Rank rankSet;                 /* ranks of references being created */
   Addr base;                    /* base address of allocation buffer */
   APStruct apStruct;            /* the allocation point */
   Align alignment;              /* allocation alignment */
   RingStruct poolRing;          /* buffers are attached to pools */
   AccessSet shieldMode;         /* shielding for allocated memory */
-#if 0
-  Bool exposed;                 /* is buffer memory exposed? */
-  TraceSet grey;                /* colour for allocated memory */
-#endif
   void *p;
   int i;                        /* (p and i) closure variables (for pool) */
 } BufferStruct;
