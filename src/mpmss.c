@@ -1,6 +1,6 @@
 /*  impl.c.mpmss: MPM STRESS TEST
  *
- *  $HopeName: !mpmss.c(trunk.11) $
+ *  $HopeName: MMsrc!mpmss.c(MMdevel_irix_vm.1) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  */
 
@@ -14,6 +14,7 @@
 #include "mpscmv.h"
 #include "mpslib.h"
 #include "testlib.h"
+#include "mpsavm.h"
 #ifdef MPS_OS_SU
 #include "ossu.h"
 #endif
@@ -26,17 +27,17 @@ extern mps_class_t PoolClassMFS(void);
 #define TEST_SET_SIZE 200
 
 
-static mps_res_t stress(mps_class_t class, mps_space_t space, size_t (*size)(int i), ...)
+static mps_res_t stress(mps_class_t class, mps_arena_t arena, size_t (*size)(int i), ...)
 {
   mps_res_t res;
   mps_pool_t pool;
   va_list arg;
   int i;
-  void *ps[TEST_SET_SIZE];
+  int *ps[TEST_SET_SIZE];
   size_t ss[TEST_SET_SIZE];
 
   va_start(arg, size);
-  res = mps_pool_create_v(&pool, space, class, arg);
+  res = mps_pool_create_v(&pool, arena, class, arg);
   va_end(arg);
   if(res != MPS_RES_OK) return res;
 
@@ -46,6 +47,7 @@ static mps_res_t stress(mps_class_t class, mps_space_t space, size_t (*size)(int
 
     res = mps_alloc((mps_addr_t *)&ps[i], pool, ss[i]);
     if(res != MPS_RES_OK) return res;
+    *ps[i] = 1; /* Write something, so it gets swap. */
 
     if(i && i%4==0) putchar('\n');
     printf("%8lX %6lX ", (unsigned long)ps[i], (unsigned long)ss[i]);
@@ -100,22 +102,23 @@ static size_t fixedSize(int i)
 
 int main(void)
 {
-  mps_space_t space;
+  mps_arena_t arena;
 
   srand(time(NULL));
 
-  die(mps_space_create(&space), "SpaceInit");
+  die(mps_arena_create(&arena, mps_arena_class_vm(), (size_t)64<<20),
+      "arena init");
 
   fixedSizeSize = 13;
   die(stress(PoolClassMFS(),
-             space, fixedSize, (size_t)100000, fixedSizeSize),
+             arena, fixedSize, (size_t)100000, fixedSizeSize),
       "stress MFS");
 
   die(stress(mps_class_mv(),
-             space, randomSize, (size_t)65536,
+             arena, randomSize, (size_t)65536,
              (size_t)32, (size_t)65536), "stress MV");
 
-  mps_space_destroy(space);
+  mps_arena_destroy(arena);
 
   return 0;
 }
