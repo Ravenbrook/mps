@@ -1,6 +1,6 @@
 /* impl.h.mps: HARLEQUIN MEMORY POOL SYSTEM C INTERFACE
  *
- * $HopeName: MMsrc!mps.h(MMepcore_pilchard.1) $
+ * $HopeName: MMsrc!mps.h(MMepcore_pilchard.2) $
  * Copyright (C) 1997, 1998 The Harlequin Group Limited.  All rights reserved.
  *
  * .readership: customers, MPS developers.
@@ -295,14 +295,11 @@ extern mps_res_t mps_stack_scan_ambig(mps_ss_t, mps_thr_t,
 
 /* Protection Trampoline and Thread Registration */
 
-
-#ifdef PROTECTION
-
 extern void (mps_tramp)(void **,
                         void *(*)(void *, size_t),
                         void *, size_t);
 
-#ifdef MPS_OS_W3
+#if defined(MPS_OS_W3) && defined(PROTECTION)
 
 #define mps_tramp(r_o, f, p, s) \
   MPS_BEGIN \
@@ -331,8 +328,6 @@ extern void (mps_tramp)(void **,
   MPS_END
 
 #endif /* MPS_OS_W3 */
-
-#endif /* PROTECTION */
 
 extern mps_res_t mps_thread_reg(mps_thr_t *, mps_arena_t);
 extern void mps_thread_dereg(mps_thr_t);
