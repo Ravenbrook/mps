@@ -1,11 +1,11 @@
 /* impl.c.trace: GENERIC TRACER IMPLEMENTATION
  *
- * $HopeName: MMsrc!trace.c(MMdevel_action2.11) $
+ * $HopeName: MMsrc!trace.c(MMdevel_action2.12) $
  */
 
 #include "mpm.h"
 
-SRCID(trace, "$HopeName: MMsrc!trace.c(MMdevel_action2.11) $");
+SRCID(trace, "$HopeName: MMsrc!trace.c(MMdevel_action2.12) $");
 
 Bool ScanStateCheck(ScanState ss)
 {
@@ -136,7 +136,8 @@ Res TraceStart(Trace trace, Pool pool)
   node = RingNext(ring);
   while(node != ring) {
     Ring next = RingNext(node);
-    Seg seg = RING_ELT(Seg, poolRing, node);
+
+    seg = RING_ELT(Seg, poolRing, node);
 
     /* Segments should start out black w.r.t. the trace. */
     /* i.e. the reference partition is (B, 0, 0). */
