@@ -1,6 +1,6 @@
 /*  impl.c.qs:                QUICKSORT
  *
- *  $HopeName: !qs.c(trunk.8) $
+ *  $HopeName: MMsrc!qs.c(MMdevel_trace2.1) $
  *
  *  Copyright (C) 1995,1996 Harlequin Group, all rights reserved
  *
@@ -33,7 +33,7 @@
 #include <stdlib.h>
 
 
-static mps_res_t scan(mps_ss_t ss, mps_addr_t base, mps_addr_t limit);
+static mps_res_t scan(mps_fix_t fix, mps_addr_t base, mps_addr_t limit);
 static mps_addr_t skip(mps_addr_t object);
 static void move(mps_addr_t object, mps_addr_t to);
 static mps_addr_t isMoved(mps_addr_t object);
@@ -436,30 +436,30 @@ pad(mps_addr_t base, size_t size)
 
 static
 mps_res_t
-scan1(mps_ss_t ss, mps_addr_t *objectIO)
+scan1(mps_fix_t fix, mps_addr_t *objectIO)
 {
   QSCell cell;
   mps_res_t res;
 
   assert(objectIO != NULL);
 
-  MPS_SCAN_BEGIN(ss) {
+  MPS_SCAN_BEGIN(fix) {
     cell = (QSCell)*objectIO;
 
     switch(cell->tag) {
     case QSRef:
-      if(!MPS_FIX1(ss, (mps_addr_t)cell->value))
+      if(!MPS_FIX1(fix, (mps_addr_t)cell->value))
         goto fixTail;
-      res = MPS_FIX2(ss, (mps_addr_t *)&cell->value);
+      res = MPS_FIX2((mps_addr_t *)&cell->value, fix);
       if(res != MPS_RES_OK)
         return res;
     /* fall */
 
     case QSInt:
     fixTail:
-      if(!MPS_FIX1(ss, (mps_addr_t)cell->tail))
+      if(!MPS_FIX1(fix, (mps_addr_t)cell->tail))
         break;
-      res = MPS_FIX2(ss, (mps_addr_t *)&cell->tail);
+      res = MPS_FIX2((mps_addr_t *)&cell->tail, fix);
       if(res != MPS_RES_OK)
         return res;
       break;
@@ -480,7 +480,7 @@ scan1(mps_ss_t ss, mps_addr_t *objectIO)
       assert(0);
       return MPS_RES_OK;
     }
-  } MPS_SCAN_END(ss);
+  } MPS_SCAN_END(fix);
 
   *objectIO = (mps_addr_t)(cell+1);
 
@@ -489,13 +489,13 @@ scan1(mps_ss_t ss, mps_addr_t *objectIO)
 
 static
 mps_res_t
-scan(mps_ss_t ss, mps_addr_t base, mps_addr_t limit)
+scan(mps_fix_t fix, mps_addr_t base, mps_addr_t limit)
 {
 
   while(base < limit) {
     mps_res_t res;
 
-    res = scan1(ss, &base);
+    res = scan1(fix, &base);
     if(res != MPS_RES_OK) {
       return res;
     }
