@@ -2,7 +2,7 @@
  *
  *                  RECURSIVE LOCKS IN WIN32
  *
- *  $HopeName: MMsrc!locknt.c(trunk.7) $
+ *  $HopeName: !lockw3.c(trunk.8) $
  *
  *  Copyright (C) 1995 Harlequin Group, all rights reserved
  *
@@ -32,7 +32,7 @@
 
 #include <windows.h>
 
-SRCID(locknt, "$HopeName: MMsrc!locknt.c(trunk.7) $");
+SRCID(locknt, "$HopeName: !lockw3.c(trunk.8) $");
 
 Bool LockCheck(Lock lock)
 {
