@@ -1,6 +1,6 @@
 /* impl.h.mpmst: MEMORY POOL MANAGER DATA STRUCTURES
  *
- * $HopeName: MMsrc!mpmst.h(MMdevel_gens.2) $
+ * $HopeName: MMsrc!mpmst.h(MMdevel_gens.3) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  *
  * .readership: MM developers.
@@ -649,6 +649,9 @@ typedef struct SpaceStruct {
   TraceSet flippedTraces;	/* set of running and flipped traces */
   TraceStruct trace[TRACE_MAX]; /* trace structures.  See
                                    design.mps.trace.intance.limit */
+
+  /* hacky fields for action @@ */
+  double allocated;		/* total amount of bytes allocated */
 
   /* location dependency fields (impl.c.ld) */
   Epoch epoch;                  /* current epoch */
