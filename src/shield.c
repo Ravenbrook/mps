@@ -1,6 +1,6 @@
 /* impl.c.shield: SHIELD IMPLEMENTATION
  *
- * $HopeName: MMsrc!shield.c(trunk.12) $
+ * $HopeName: !shield.c(trunk.13) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  *
  * See: idea.shield, design.mps.shield.
@@ -73,7 +73,7 @@
 
 #include "mpm.h"
 
-SRCID(shield, "$HopeName: MMsrc!shield.c(trunk.12) $");
+SRCID(shield, "$HopeName: !shield.c(trunk.13) $");
 
 
 void (ShieldSuspend)(Arena arena)

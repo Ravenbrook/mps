@@ -1,6 +1,6 @@
 # impl.makefile.s7ppac: S7PPAC MPW MAKE FILE
 #
-# $HopeName: MMsrc!s7ppac:Makefile(trunk.12) $
+# $HopeName: !s7ppac:Makefile(trunk.13) $
 #
 # Copyright (C) 1996.  Harlequin Group plc.  All rights reserved.
 #
