@@ -1,6 +1,6 @@
 /* impl.h.mpm: MEMORY POOL MANAGER DEFINITIONS
  *
- * $HopeName: MMsrc!mpm.h(MMdevel_restr.3) $
+ * $HopeName: MMsrc!mpm.h(MMdevel_restr.4) $
  * Copyright (C) 1996 Harlequin Group, all rights reserved.
  */
 
@@ -224,11 +224,12 @@ extern void BufferSet(Buffer buffer, Seg seg, Addr base, Addr init, Addr limit);
 extern void BufferReset(Buffer buffer);
 extern Bool BufferIsReset(Buffer buffer);
 extern Ring BufferPoolRing(Buffer buffer);
-extern Pool BufferPool(Buffer buffer);
 extern Bool BufferIsReady(Buffer buffer);
 extern Ap BufferAp(Buffer buffer);
 extern Buffer BufferOfAp(Ap ap);
 extern Space BufferSpace(Buffer buffer);
+extern Pool (BufferPool)(Buffer buffer);
+#define BufferPool(buffer) ((buffer)->pool)
 
 
 /* Format Interface -- see impl.c.format */

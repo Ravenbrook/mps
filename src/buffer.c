@@ -1,6 +1,6 @@
 /* impl.c.buffer: ALLOCATION BUFFER IMPLEMENTATION
  *
- * $HopeName: MMsrc!buffer.c(trunk.8) $
+ * $HopeName: MMsrc!buffer.c(MMdevel_restr.2) $
  * Copyright (C) 1996 Harlequin Group, all rights reserved
  *
  * This is the interface to allocation buffers.
@@ -115,7 +115,7 @@
 
 #include "mpm.h"
 
-SRCID(buffer, "$HopeName: MMsrc!buffer.c(trunk.8) $");
+SRCID(buffer, "$HopeName: MMsrc!buffer.c(MMdevel_restr.2) $");
 
 
 Ring BufferPoolRing(Buffer buffer)
@@ -124,7 +124,7 @@ Ring BufferPoolRing(Buffer buffer)
   return &buffer->poolRing;
 }
 
-Pool BufferPool(Buffer buffer)
+Pool (BufferPool)(Buffer buffer)
 {
   AVERT(Buffer, buffer);
   return buffer->pool;
