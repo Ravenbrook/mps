@@ -1,6 +1,6 @@
 /* impl.h.mpm: MEMORY POOL MANAGER DEFINITIONS
  *
- * $HopeName: MMsrc!mpm.h(MMdevel_restr.1) $
+ * $HopeName: MMsrc!mpm.h(MMdevel_restr.2) $
  * Copyright (C) 1996 Harlequin Group, all rights reserved.
  */
 
@@ -302,6 +302,8 @@ extern void ShieldEnter(Space space);
 extern void ShieldLeave(Space space);
 extern void ShieldExpose(Space space, Seg seg);
 extern void ShieldCover(Space space, Seg seg);
+extern void ShieldSuspend(Space space);
+extern void ShieldResume(Space space);
 
 
 /* Protection Interface -- see impl.c.prot* */

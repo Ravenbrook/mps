@@ -1,11 +1,11 @@
 /* impl.c.trace: GENERIC TRACER IMPLEMENTATION
  *
- * $HopeName: MMsrc!trace.c(trunk.14) $
+ * $HopeName: MMsrc!trace.c(MMdevel_restr.2) $
  */
 
 #include "mpm.h"
 
-SRCID(trace, "$HopeName: MMsrc!trace.c(trunk.14) $");
+SRCID(trace, "$HopeName: MMsrc!trace.c(MMdevel_restr.2) $");
 
 Bool ScanStateCheck(ScanState ss)
 {
@@ -68,6 +68,8 @@ Res TraceFlip(Space space, TraceId ti, RefSet condemned)
   Res res;
 
   AVERT(Space, space);
+
+  ShieldSuspend(space);
 
   trace = &space->trace[ti];
   AVER(trace->condemned == RefSetEmpty);
@@ -142,6 +144,8 @@ Res TraceFlip(Space space, TraceId ti, RefSet condemned)
   }
 
   ss.sig = SigInvalid;	/* just in case */
+
+  ShieldResume(space);
 
   return ResOK;
 }

@@ -1,6 +1,6 @@
 /* impl.c.shield: SHIELD IMPLEMENTATION
  *
- * $HopeName: MMsrc!shield.c(trunk.4) $
+ * $HopeName: MMsrc!shield.c(MMdevel_restr.3) $
  *
  * See: idea.shield, design.mps.shield.
  *
@@ -72,9 +72,9 @@
 
 #include "mpm.h"
 
-SRCID(shield, "$HopeName: MMsrc!shield.c(trunk.4) $");
+SRCID(shield, "$HopeName: MMsrc!shield.c(MMdevel_restr.3) $");
 
-static void suspend(Space space)
+void ShieldSuspend(Space space)
 {
   AVERT(Space, space);
   AVER(space->insideShield);
@@ -83,6 +83,16 @@ static void suspend(Space space)
     ThreadRingSuspend(SpaceThreadRing(space));
     space->suspended = TRUE;
   }
+}
+
+void ShieldResume(Space space)
+{
+  AVERT(Space, space);
+  AVER(space->insideShield);
+  AVER(space->suspended);
+  /* It is only correct to actually resume the mutator here if 
+   * shDepth is 0
+   */
 }
 
 /* This ensures actual prot mode does not include mode */
@@ -140,7 +150,7 @@ static void cache(Space space, Seg seg)
 
   if(seg->sm == seg->pm) return;
   if(seg->depth > 0) {
-    suspend(space);
+    ShieldSuspend(space);
     return;
   }
   if(SHIELD_CACHE_SIZE == 0 || !space->suspended)
@@ -231,7 +241,7 @@ void ShieldLeave(Space space)
 
 void ShieldExpose(Space space, Seg seg)
 {
-  ProtMode mode = ProtREAD | ProtWRITE;  /* partial expose */
+  ProtMode mode = ProtREAD | ProtWRITE;
   AVERT(Space, space);
   AVER(space->insideShield);
 
@@ -240,7 +250,7 @@ void ShieldExpose(Space space, Seg seg)
   AVER(space->shDepth > 0);
   AVER(seg->depth > 0);
   if(seg->pm & mode)
-    suspend(space);
+    ShieldSuspend(space);
 
   /* This ensures inv.expose.prot */
   protLower(space, seg, mode);
@@ -250,7 +260,7 @@ void ShieldCover(Space space, Seg seg)
 {
   AVERT(Space, space);
   AVERT(Seg, seg);
-  AVER(seg->pm == ProtNONE);  /* no partial expose */
+  AVER(seg->pm == ProtNONE);
 
   AVER(space->shDepth > 0);
   AVER(seg->depth > 0);
