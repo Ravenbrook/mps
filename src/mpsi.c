@@ -1,6 +1,6 @@
 /* impl.c.mpsi: MEMORY POOL SYSTEM C INTERFACE LAYER
  *
- * $HopeName: MMsrc!mpsi.c(MMdevel_drj_message.2) $
+ * $HopeName: MMsrc!mpsi.c(MMdevel_drj_message.3) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  *
  * .purpose: This code bridges between the MPS interface to C,
@@ -52,7 +52,7 @@
 #include "mpm.h"
 #include "mps.h"
 
-SRCID(mpsi, "$HopeName: MMsrc!mpsi.c(MMdevel_drj_message.2) $");
+SRCID(mpsi, "$HopeName: MMsrc!mpsi.c(MMdevel_drj_message.3) $");
 
 
 /* mpsi_check -- check consistency of interface mappings
@@ -988,6 +988,10 @@ void mps_definalize(mps_space_t space, mps_addr_t obj)
   NOTREACHED;
 }
 
+
+/* Messages */
+
+
 mps_bool_t mps_message_poll(mps_space_t mps_space)
 {
   Bool b;
@@ -1003,50 +1007,105 @@ mps_bool_t mps_message_poll(mps_space_t mps_space)
 }
 
 
-mps_bool_t mps_message_type(mps_message_type_t *typeReturn,
-                            mps_space_t mps_space)
+mps_message_type_t mps_message_type(mps_space_t mps_space,
+                               mps_message_t mps_message)
 {
-  Bool b;
   Space space = (Space)mps_space;
+  Message message = (Message)mps_message;
   MessageType type;
 
   SpaceEnter(space);
 
-  b = MessageExType(&type, space);
+  type = MessageGetType(message);
 
   SpaceLeave(space);
 
-  *typeReturn = type;
-  return b;
+  return (mps_message_type_t)type;
 }
 
-mps_bool_t mps_message_deliver(mps_space_t mps_space,
-                               mps_message_type_t type,
-                               void *buffer, size_t length)
+void mps_message_discard(mps_space_t mps_space, mps_message_t mps_message)
 {
-  Bool b;
   Space space = (Space)mps_space;
+  Message message = (Message)mps_message;
 
   SpaceEnter(space);
 
-  b = MessageExDeliver(space, type, buffer, length);
+  MessageDiscard(space, message);
 
   SpaceLeave(space);
+}
+
+void mps_message_type_enable(mps_space_t mps_space,
+                             mps_message_type_t mps_type)
+{
+  Space space = (Space)mps_space;
+  MessageType type = (MessageType)mps_type;
+
+  SpaceEnter(space);
+
+  MessageTypeEnable(space, type);
+
+  SpaceLeave(space);
+}
+
+mps_bool_t mps_message_get(mps_message_t *mps_message_return,
+                           mps_space_t mps_space,
+                           mps_message_type_t mps_type)
+{
+  Bool b;
+  Space space = (Space)mps_space;
+  MessageType type = (MessageType)mps_type;
+  Message message;
+
+  SpaceEnter(space);
+
+  b = MessageGet(&message, space, type);
+
+  SpaceLeave(space);
+
+  if(b) {
+    *mps_message_return = (mps_message_t)message;
+  }
 
   return b;
 }
 
-mps_bool_t mps_message_discard(mps_space_t mps_space,
-			       mps_message_type_t type)
+mps_bool_t mps_message_queue_type(mps_message_type_t *mps_message_type_return,
+				  mps_space_t mps_space)
 {
-  Bool b;
   Space space = (Space)mps_space;
+  MessageType type;
+  Bool b;
 
   SpaceEnter(space);
 
-  b = MessageDiscard(space, type);
+  b = MessageQueueType(&type, space);
 
   SpaceLeave(space);
 
+  if(b) {
+    *mps_message_type_return = (mps_message_type_t)type;
+  }
+
   return b;
+}
+
+
+/* Message Type Specific Methods */
+
+/* MPS_MESSAGE_TYPE_FINALIZATION */
+
+void mps_message_finalization_ref(mps_addr_t *mps_addr_return,
+                                  mps_space_t mps_space,
+				  mps_message_t mps_message)
+{
+  Space space = (Space)mps_space;
+  Message message = (Message)mps_message;
+
+  SpaceEnter(space);
+
+  /* Pun */
+  MessageFinalizationRef((Ref *)mps_addr_return, space, message);
+
+  SpaceLeave(space);
 }

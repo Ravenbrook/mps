@@ -2,7 +2,7 @@
  * 
  * MANUAL RANK GUARDIAN POOL
  * 
- * $HopeName: MMsrc!poolmrg.c(MMdevel_drj_message.4) $
+ * $HopeName: MMsrc!poolmrg.c(MMdevel_drj_message.5) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  *
  * READERSHIP
@@ -26,7 +26,7 @@
 #include "mpm.h"
 #include "poolmrg.h"
 
-SRCID(poolmrg, "$HopeName: MMsrc!poolmrg.c(MMdevel_drj_message.4) $");
+SRCID(poolmrg, "$HopeName: MMsrc!poolmrg.c(MMdevel_drj_message.5) $");
 
 
 #define MRGSig          ((Sig)0x519369B0) /* SIGnature MRG POol */
@@ -457,54 +457,6 @@ static Res MRGScan(ScanState ss, Pool pool, Seg seg)
 
 /* Implementation of MRG's MessageClass */
 
-
-/* returns the type of a message (this is always MessageTypeFinalization) */
-static MessageType MRGMessageType(Message message)
-{
-  Seg seg;
-  Bool b;
-  Space space;
-
-  AVERT(Message, message);
-  AVER(MessageGetClass(message) == &MRGMessageClassStruct);
-  space = MessageSpace(message);
-  b = SegOfAddr(&seg, space, (Addr)message);
-  AVER(b);
-  AVER(SegPool(seg)->class == &PoolClassMRGStruct);
-
-  return MessageTypeFinalization;
-}
-
-/* copies the message */
-static void MRGMessageDeliver(Message message, void *buffer, size_t length)
-{
-  Addr *refpart;
-  Bool b;
-  Index index;
-  MRGGroup group;
-  MessageFinalization finalizationMessage;
-  Seg seg;
-  Space space;
-
-  AVERT(Message, message);
-  AVER(MessageGetClass(message) == &MRGMessageClassStruct);
-  AVER(buffer != NULL);
-  AVER(length == sizeof(MessageFinalizationStruct));
-
-  space = MessageSpace(message);
-  b = SegOfAddr(&seg, space, (Addr)LinkPartOfMessage(message));
-  AVER(b);
-  AVER(SegPool(seg)->class == &PoolClassMRGStruct);
-  group = (MRGGroup)SegP(seg);
-
-  index = indexOfLinkPart(LinkPartOfMessage(message), space);
-  refpart = (Addr *)SegBase(space, group->refseg);
-
-  finalizationMessage = buffer;
-  finalizationMessage->type = MessageTypeFinalization;
-  finalizationMessage->ref = refpart[index];
-}
-
 /* deletes the message (frees up the memory) */
 static void MRGMessageDelete(Message message)
 {
@@ -534,13 +486,39 @@ static void MRGMessageDelete(Message message)
   PoolFree(SegPool(seg), (Addr)&refpart[index], sizeof(Addr));
 }
 
+static void MRGMessageFinalizationRef(Ref *refReturn,
+				      Space space, Message message)
+{
+  Seg seg;
+  Bool b;
+  MRGGroup group;
+  LinkPartStruct *linkpart;
+  Index i;
+  Addr *refpart;
+
+  AVER(refReturn != NULL);
+  AVERT(Space, space);
+  AVERT(Message, message);
+
+  AVER(message->type == MessageTypeFinalization);
+
+  b = SegOfAddr(&seg, space, (Addr)message);
+  AVER(b);
+  group = SegP(seg);
+  AVERT(MRGGroup, group);
+  linkpart = LinkPartOfMessage(message);
+  AVER(linkpart->state == MRGGuardianFinal);
+  i = indexOfLinkPart(linkpart, space);
+  refpart = (Addr *)SegBase(space, group->refseg);
+  *refReturn = refpart[i];
+}
+
 
 static MessageClassStruct MRGMessageClassStruct = {
   MessageClassSig,              /* sig */
   "MRGFinal",                   /* name */
-  MRGMessageType,               /* Type */
-  MRGMessageDeliver,            /* Deliver */
   MRGMessageDelete,             /* Delete */
+  MRGMessageFinalizationRef,	/* FinalizationRef */
   MessageClassSig               /* design.mps.message.class.sig.double */
 };
 
