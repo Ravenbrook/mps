@@ -1,12 +1,12 @@
 /* impl.c.trace: GENERIC TRACER IMPLEMENTATION
  *
- * $HopeName: MMsrc!trace.c(MMdevel_control3.1) $
+ * $HopeName: MMsrc!trace.c(MMdevel_control3.2) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  */
 
 #include "mpm.h"
 
-SRCID(trace, "$HopeName: MMsrc!trace.c(MMdevel_control3.1) $");
+SRCID(trace, "$HopeName: MMsrc!trace.c(MMdevel_control3.2) $");
 
 
 /* ScanStateCheck -- check consistency of a ScanState object */
@@ -178,8 +178,8 @@ static Res TraceStart(Trace trace, Action action)
       /* This is indicated by the rankSet begin non-empty.  Such */
       /* segments may only belong to scannable pools. */
       if(SegRankSet(seg) != RankSetEMPTY) {
-        /* Segments with ranks may only belong to scannable pools. */
-        AVER((SegPool(seg)->class->attr & AttrSCAN) != 0);
+	/* Segments with ranks may only belong to scannable pools. */
+	AVER((SegPool(seg)->class->attr & AttrSCAN) != 0);
 
 	/* Turn the segment grey if there might be a reference in it */
 	/* to the white set.  This is done by seeing if the summary */
@@ -187,9 +187,9 @@ static Res TraceStart(Trace trace, Action action)
 	/* to the white set. */
 	if(RefSetInter(SegSummary(seg), trace->white) != RefSetEMPTY) {
 	  PoolGrey(SegPool(seg), trace, seg);
-          if(TraceSetIsMember(SegGrey(seg), trace->ti))
-            trace->foundation += SegSize(space, seg);
-        }
+	  if(TraceSetIsMember(SegGrey(seg), trace->ti))
+	    trace->foundation += SegSize(space, seg);
+	}
       }
     } while(SegNext(&seg, space, base));
   }
@@ -217,9 +217,9 @@ static Res TraceStart(Trace trace, Action action)
     double reclaim = trace->condemned - surviving;
     double alloc = reclaim / 2;
     if(alloc > 0)
-      trace->rate = scan * SPACE_POLL_MAX / (4096 * alloc);
+      trace->rate = (Size)(scan * SPACE_POLL_MAX / (4096 * alloc));
     else
-      trace->rate = scan / 4096;
+      trace->rate = (Size)(scan / 4096);
   }
 
   trace->state = TraceUNFLIPPED;
@@ -507,10 +507,10 @@ static Res TraceFlip(Trace trace)
       AVER(RootRank(root) <= RankEXACT); /* see above */
 
       if(RootRank(root) == ss.rank) {
-        res = RootScan(&ss, root);
-        if(res != ResOK) {
-          return res;
-        }
+	res = RootScan(&ss, root);
+	if(res != ResOK) {
+	  return res;
+	}
       }
 
       node = next;
@@ -547,9 +547,9 @@ static void TraceReclaim(Trace trace)
       AVER(!TraceSetIsMember(SegGrey(seg), trace->ti));
 
       if(TraceSetIsMember(SegWhite(seg), trace->ti)) {
-        AVER((SegPool(seg)->class->attr & AttrGC) != 0);
+	AVER((SegPool(seg)->class->attr & AttrGC) != 0);
 
-        PoolReclaim(SegPool(seg), trace, seg);
+	PoolReclaim(SegPool(seg), trace, seg);
       }
     } while(SegNext(&seg, space, base));
   }
@@ -572,7 +572,7 @@ static void TraceReclaim(Trace trace)
  */
 
 static Bool FindGrey(Seg *segReturn, Rank *rankReturn,
-                     Space space, TraceId ti)
+		     Space space, TraceId ti)
 {
   Rank rank;
   Trace trace;
@@ -617,7 +617,7 @@ static Bool FindGrey(Seg *segReturn, Rank *rankReturn,
  */
 
 static Res TraceScan(TraceSet ts, Rank rank,
-                     Space space, Seg seg)
+		     Space space, Seg seg)
 {
   Res res;
   ScanStateStruct ss;
@@ -676,8 +676,8 @@ static Res TraceScan(TraceSet ts, Rank rank,
 
   AVER(RefSetSub(ss.summary, SegSummary(seg)));
   TraceSetSummary(space, seg,
-                  TraceSetUnion(ss.fixed,
-                                TraceSetDiff(ss.summary, ss.white)));
+		  TraceSetUnion(ss.fixed,
+				TraceSetDiff(ss.summary, ss.white)));
 
   ss.sig = SigInvalid;                  /* just in case */
 
@@ -716,8 +716,8 @@ void TraceAccess(Space space, Seg seg, AccessSet mode)
     /* minimum rank of all grey segments. */
     /* design.mps.poolamc.access.multi @@@@ tag correct?? */
     res = TraceScan(space->busyTraces,  /* @@@@ Should just be flipped traces? */
-                    RankEXACT,
-                    space, seg);
+		    RankEXACT,
+		    space, seg);
     AVER(res == ResOK);                 /* design.mps.poolamc.access.error */
 
     /* The pool should've done the job of removing the greyness that */
@@ -750,7 +750,7 @@ static Res TraceRun(Trace trace)
   if(FindGrey(&seg, &rank, space, trace->ti)) {
     AVER((SegPool(seg)->class->attr & AttrSCAN) != 0);
     res = TraceScan(TraceSetSingle(trace->ti), rank,
-                    space, seg);
+		    space, seg);
     if(res != ResOK) return res;
   } else
     trace->state = TraceRECLAIM;
@@ -841,7 +841,7 @@ Res TraceFix(ScanState ss, Ref *refIO)
       pool = SegPool(seg);
       res = PoolFix(pool, ss, seg, refIO);
       if (res != ResOK)
-        return res;
+	return res;
     }
   }
 
