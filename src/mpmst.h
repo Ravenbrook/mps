@@ -1,6 +1,6 @@
 /* impl.h.mpmst: MEMORY POOL MANAGER DATA STRUCTURES
  *
- * $HopeName: !mpmst.h(trunk.2) $
+ * $HopeName: MMsrc!mpmst.h(MMdevel_drjweak.1) $
  * Copyright (C) 1996 Harlequin Group, all rights reserved.
  *
  * .rationale: Almost all MPM data structures are defined in this
@@ -197,6 +197,7 @@ typedef struct VMStruct {       /* SunOS 4 VM structure; impl.c.vmsu */
 typedef struct SegStruct {      /* segment structure */
   Pool pool;                    /* owner, MUST BE FIRST, impl.c.arenvm.page */
   Bool single;                  /* single page segment */
+  Rank rank;                    /* rank of all references in this seg */
   AccessSet pm, sm;             /* protection and shield modes */
   Size depth;                   /* see impl.c.shield.def.depth */
   void *p;                      /* pointer for use of owning pool */
@@ -210,17 +211,17 @@ typedef struct SegStruct {      /* segment structure */
  * (impl.h.mpmst.space).
  */
 
-#define ArenaSig	((Sig)0x519A7E9A)
+#define ArenaSig        ((Sig)0x519A7E9A)
 
 #ifdef TARGET_ARENA_ANSI
 
 /* This is the arena structure used by the ANSI-based  */
 /* arena implementation, impl.c.arenaan. */
 
-typedef struct ArenaStruct {	/* ANSI arena structure */
-  Sig sig;			/* impl.h.misc.sig */
-  RingStruct blockRing;		/* list of blocks in arena */
-  Size committed;		/* total allocated memory */
+typedef struct ArenaStruct {    /* ANSI arena structure */
+  Sig sig;                      /* impl.h.misc.sig */
+  RingStruct blockRing;         /* list of blocks in arena */
+  Size committed;               /* total allocated memory */
 } ArenaStruct;
 
 #else /* TARGET_ARENA_ANSI not */
@@ -281,6 +282,7 @@ typedef struct BufferStruct {
   Space space;                  /* owning space */
   Pool pool;                    /* owning pool */
   Seg seg;                      /* segment being buffered */
+  Rank rank;			/* rank of references being created */
   Addr base;                    /* base address of allocation buffer */
   APStruct ap;                  /* the allocation point */
   Align alignment;              /* allocation alignment */
@@ -441,6 +443,7 @@ typedef struct ScanStateStruct {
   Space space;                  /* owning space */
   TraceId traceId;              /* trace ID of scan */
   Rank rank;                    /* reference rank of scanning */
+  Addr weakSplat;		/* value of weak refs to unforwarded objects */
 } ScanStateStruct;
 
 typedef struct TraceStruct {
