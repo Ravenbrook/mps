@@ -1,6 +1,6 @@
 /* impl.c.arena: ARENA IMPLEMENTATION
  *
- * $HopeName: MMsrc!arena.c(MMdevel_ptw_pseudoloci.4) $
+ * $HopeName: MMsrc!arena.c(MMdevel_ptw_pseudoloci.5) $
  * Copyright (C) 1998. Harlequin Group plc. All rights reserved.
  *
  * .readership: Any MPS developer
@@ -36,7 +36,7 @@
 #include "poolmrg.h"
 #include "mps.h"
 
-SRCID(arena, "$HopeName: MMsrc!arena.c(MMdevel_ptw_pseudoloci.4) $");
+SRCID(arena, "$HopeName: MMsrc!arena.c(MMdevel_ptw_pseudoloci.5) $");
 
 
 /* Forward declarations */
@@ -56,8 +56,6 @@ static RingStruct arenaRing;       /* design.mps.arena.static.ring */
 /* design.mps.arena.static.ring.lock */
 static LockStruct arenaRingLock;   
 static Serial arenaSerial;         /* design.mps.arena.static.serial */
-
-#define SegArena(seg) PoolArena(SegPool(seg))
 
 
 /* The reservoir pool is defined here. See design.mps.reservoir */
@@ -1220,7 +1218,7 @@ void ArenaFree(Arena arena, void* base, size_t size)
 void SegRealloc(Seg seg, Pool newpool)
 {
   AVERT(Seg, seg);
-  AVER(seg->_pool != newpool);
+  AVER(SegPool(seg) != newpool);
   SegFinish(seg);
   SegInit(seg, newpool);
 }
@@ -1284,10 +1282,6 @@ Res SegAlloc(Seg *segReturn, SegPref pref, Size size, Pool pool,
   return res;
 
 goodAlloc:
-  /* @@@ Needs to be over-ridden by multi-loci pools, e.g.,
-     generational pools, or SegPool should be SegGroup?, or just pass
-     in the LocusClient to SegFree */
-  LocusClientNoteSegAlloc(PoolLocusClient(pool), arena, seg);
   EVENT_PPAWP(SegAlloc, arena, seg, SegBase(seg), size, pool);
   *segReturn = seg;
   return ResOK;
@@ -1304,14 +1298,6 @@ void SegFree(Seg seg)
   AVERT(Seg, seg);
   arena = SegArena(seg);
   AVERT(Arena, arena);
-
-  /* @@@ Needs to be over-ridden by multi-loci pools, e.g.,
-     generational pools, or SegPool should be SegGroup?, or just pass
-     in the LocusClient to SegFree */
-  /* @@@ Either must run before class method, or change to
-     NoteZoneFree (and calculate the SegRefSet here.  After class
-     method runs, Seg is invalid */
-  LocusClientNoteSegFree(PoolLocusClient(SegPool(seg)), arena, seg);
 
   res = ArenaEnsureReservoir(arena);
   if (res == ResOK) {
