@@ -1,6 +1,6 @@
 /* impl.c.reserv: ARENA RESERVOIR
  *
- * $HopeName: MMsrc!reserv.c(MMdevel_tony_sunset.1) $
+ * $HopeName: MMsrc!reserv.c(MMdevel_tony_sunset.2) $
  * Copyright (C) 1998. Harlequin Group plc. All rights reserved.
  *
  * .readership: Any MPS developer
@@ -17,7 +17,7 @@
 
 #include "mpm.h"
 
-SRCID(reserv, "$HopeName: MMsrc!reserv.c(MMdevel_tony_sunset.1) $");
+SRCID(reserv, "$HopeName: MMsrc!reserv.c(MMdevel_tony_sunset.2) $");
 
 
 /* The reservoir pool is defined here. See design.mps.reservoir */
@@ -41,19 +41,14 @@ SRCID(reserv, "$HopeName: MMsrc!reserv.c(MMdevel_tony_sunset.1) $");
 
 
 /* ResPoolInit -- Reservoir pool init method */
+
 static Res ResPoolInit(Pool pool, va_list arg)
 {
-  Reservoir reservoir;
-
   UNUSED(arg);
   AVER(pool != NULL);
-  reservoir = PoolPoolReservoir(pool);
-  reservoir->reserve = NULL;
-  reservoir->sig = ReservoirSig;
-  AVERT(Reservoir, reservoir);
-
   return ResOK;
 }
+
 
 /* ResPoolFinish -- Reservoir pool finish method 
  *
@@ -62,6 +57,7 @@ static Res ResPoolInit(Pool pool, va_list arg)
  * check, insist that the reservoir is empty, by AVERing that
  * the reserve list is NULL.
  */
+
 static void ResPoolFinish(Pool pool)
 {
   Reservoir reservoir;
@@ -70,10 +66,10 @@ static void ResPoolFinish(Pool pool)
   reservoir = PoolPoolReservoir(pool);
   AVERT(Reservoir, reservoir);
   AVER(NULL == reservoir->reserve);  /* .reservoir.finish */
-
-  reservoir->sig = SigInvalid;
 }
 
+
+/* ReservoirPoolClass -- Class definition */
 
 DEFINE_POOL_CLASS(ReservoirPoolClass, this)
 {
@@ -86,16 +82,24 @@ DEFINE_POOL_CLASS(ReservoirPoolClass, this)
 }
 
 
+/* ReservoirCheck -- Reservoir check method */
+
 Bool ReservoirCheck(Reservoir reservoir)
 {
   ReservoirPoolClass reservoircl = EnsureReservoirPoolClass();
   Arena arena;
+  Tract tract;
   CHECKS(Reservoir, reservoir);
   CHECKD(Pool, &reservoir->poolStruct);
   CHECKL(reservoir->poolStruct.class == reservoircl);
   arena = reservoirArena(reservoir);
   CHECKS(Arena, arena);  /* Can't use CHECKD; circularly referenced */
   /* could call ReservoirIsConsistent, but it's costly. */
+  tract = reservoir->reserve;
+  if (tract != NULL) {
+    CHECKL(TractCheck(tract));
+    CHECKL(TractPool(tract) == &reservoir->poolStruct);
+  }
   CHECKL(SizeIsAligned(reservoir->reservoirLimit, ArenaAlign(arena)));
   CHECKL(SizeIsAligned(reservoir->reservoirSize, ArenaAlign(arena)));
 
@@ -146,7 +150,7 @@ static Bool ReservoirIsConsistent(Reservoir reservoir)
 /* ReservoirEnsureFull  
  * 
  * Ensures that the reservoir is the right size, by topping it up 
- * if possible.
+ * with fresh memory from the arena if possible.
  */
 
 Res ReservoirEnsureFull(Reservoir reservoir)
@@ -189,6 +193,8 @@ Res ReservoirEnsureFull(Reservoir reservoir)
 }
 
 
+/* ReservoirShrink -- Reduce the size of the reservoir */
+
 static void ReservoirShrink(Reservoir reservoir, Size want)
 {
   Arena arena;
@@ -218,6 +224,8 @@ static void ReservoirShrink(Reservoir reservoir, Size want)
   AVER(ReservoirIsConsistent(reservoir));
 }
 
+
+/* ReservoirWithdraw -- Attempt to supply memory from the reservoir */
 
 Res ReservoirWithdraw(Addr *baseReturn, Tract *baseTractReturn,
                       Reservoir reservoir, Size size, Pool pool)
@@ -263,6 +271,8 @@ Res ReservoirWithdraw(Addr *baseReturn, Tract *baseTractReturn,
 }
 
 
+/* ReservoirDeposit -- Top up the reservoir */
+
 void ReservoirDeposit(Reservoir reservoir, Addr base, Size size)
 {
   Pool respool;
@@ -300,6 +310,11 @@ void ReservoirDeposit(Reservoir reservoir, Addr base, Size size)
 }
 
 
+/* MutatorBufferCount
+ *
+ * Returns the number of mutator buffers for the arena. 
+ */
+
 static Count MutatorBufferCount(Arena arena)
 {
   Ring nodep, nextp;
@@ -320,6 +335,8 @@ static Count MutatorBufferCount(Arena arena)
   return count;
 }
 
+
+/* ReservoirSetLimit -- Set the reservoir limit */
 
 void ReservoirSetLimit(Reservoir reservoir, Size size)
 {
@@ -353,12 +370,18 @@ void ReservoirSetLimit(Reservoir reservoir, Size size)
   }
 }
 
+
+/* ReservoirLimit -- Return the reservoir limit */
+
 Size ReservoirLimit(Reservoir reservoir)
 {
   AVERT(Reservoir, reservoir);
   AVER(ReservoirIsConsistent(reservoir));  
   return reservoir->reservoirLimit;
 }
+
+
+/* ReservoirAvailable -- Return the amount in the reservoir */
 
 Size ReservoirAvailable(Reservoir reservoir)
 {
@@ -368,22 +391,31 @@ Size ReservoirAvailable(Reservoir reservoir)
 }
 
 
+/* ReservoirInit -- Initialize a reservoir */
+
 Res ReservoirInit(Reservoir reservoir, Arena arena)
 {
+  /* reservoir and arena are not initialized and can't be checked */
   Res res;
   reservoir->reservoirLimit = (Size)0;
   reservoir->reservoirSize = (Size)0;
+  reservoir->reserve = NULL;
+  reservoir->sig = ReservoirSig;
   /* initialize the reservoir pool, design.mps.reservoir */
   res = PoolInit(&reservoir->poolStruct, 
                  arena, EnsureReservoirPoolClass());
-  if (res != ResOK) {
-    PoolFinish(&reservoir->poolStruct);
+  if (res == ResOK) {
+    AVERT(Reservoir, reservoir);
   }
   return res;
 }
 
+
+/* ReservoirFinish -- Finish a reservoir */
+
 void ReservoirFinish (Reservoir reservoir)
 {
   PoolFinish(&reservoir->poolStruct);
+  reservoir->sig = SigInvalid;
 }
 
