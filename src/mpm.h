@@ -1,6 +1,6 @@
 /* impl.h.mpm: MEMORY POOL MANAGER DEFINITIONS
  *
- * $HopeName: MMsrc!mpm.h(MMdevel_fencepost.1) $
+ * $HopeName: MMsrc!mpm.h(MMdevel_fencepost.2) $
  * Copyright (C) 1998.  Harlequin Group plc.  All rights reserved.
  */
 
@@ -85,9 +85,25 @@ extern Addr (AddrAlignDown)(Addr addr, Align align);
 #define SizeAlignUp(s, a)       ((Size)WordAlignUp(SizeWord(s), (a)))
 #define SizeAlignDown(s, a)     ((Size)WordAlignDown(SizeWord(s), (a)))
 
+extern Addr (AddrSet)(Addr target, Byte value, Size size);
+/* This is one of the places that implements Addr, so it's allowed to */
+/* convert to void *, see design.mps.type.addr.ops.mem. */
+#define AddrSet(target, value, size) \
+  mps_lib_memset(target, (int)(value), size)
+
+extern Addr (AddrCopy)(Addr target, Addr source, Size size);
+#define AddrCopy(target, source, size) \
+  mps_lib_memcpy(target, source, size)
+
+extern int (AddrComp)(Addr a, Addr b, Size size);
+#define AddrComp(a, b, size) \
+  mps_lib_memcmp(a, b, size)
+
+
 /* Result codes */
 
 extern Bool ResIsAllocFailure(Res res);
+
 
 /* Accumulator methods */
 
