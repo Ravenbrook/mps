@@ -514,7 +514,7 @@ Bool ArenaCheck(Arena arena)
   for(rank = 0; rank < RankMAX; ++rank)
     CHECKL(RingCheck(&arena->greyRing[rank]));
 
-  /* @@@
+  /* @@@ not exported
    * CHECKL(LocusManagerCheck(ArenaLocusManager(arena)));
    */
   return TRUE;
@@ -693,6 +693,8 @@ void ArenaFinish(Arena arena)
   Rank rank;
 
   arena->sig = SigInvalid;
+  /* Finish the Locus Manager */
+  LocusManagerFinish(ArenaLocusManager(arena));
   LockFinish(&arena->lockStruct);
   RingFinish(&arena->poolRing);
   RingFinish(&arena->formatRing);
@@ -1015,6 +1017,38 @@ failCreate:
   return res;
 }
  
+
+/* ArenaName -- Name protocol for arenas.  Prints a short, descriptive
+   name to stream */
+Res ArenaName(Arena arena, mps_lib_FILE *stream)
+{
+  Res res;
+  
+  AVERT(Arena, arena);
+  AVER(stream != NULL);
+  
+  res = WriteF(stream,
+               "<$S ", (WriteFS)arena->class->name,
+               NULL);
+  if (res != ResOK)
+    return res;
+  
+  /* @@@
+   * res = (*arena->class->name)(arena, stream)
+   * if (res != ResOK)
+   *   return res;
+   */
+  
+  res = WriteF(stream,
+               " $P ($U)>",
+               (WriteFP)arena, (WriteFU)arena->serial,
+               NULL);
+  if (res != ResOK)
+    return res;
+  
+  return ResOK;
+}
+
 
 /* ArenaDescribe -- describe the arena
  *
