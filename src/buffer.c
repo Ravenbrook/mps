@@ -1,6 +1,6 @@
 /* impl.c.buffer: ALLOCATION BUFFER IMPLEMENTATION
  *
- * $HopeName: !buffer.c(trunk.9) $
+ * $HopeName: MMsrc!buffer.c(MMdevel_drjweak.1) $
  * Copyright (C) 1996 Harlequin Group, all rights reserved
  *
  * This is the interface to allocation buffers.
@@ -115,7 +115,7 @@
 
 #include "mpm.h"
 
-SRCID(buffer, "$HopeName: !buffer.c(trunk.9) $");
+SRCID(buffer, "$HopeName: MMsrc!buffer.c(MMdevel_drjweak.1) $");
 
 
 Ring BufferPoolRing(Buffer buffer)
@@ -139,11 +139,16 @@ Pool (BufferPool)(Buffer buffer)
 
 Res BufferCreate(Buffer *bufferReturn, Pool pool)
 {
+  return BufferCreateRanked(bufferReturn, pool, RankEXACT);
+}
+
+Res BufferCreateRanked(Buffer *bufferReturn, Pool pool, Rank rank)
+{
   AVER(bufferReturn != NULL);
   AVERT(Pool, pool);
   AVER(pool->class->bufferCreate != NULL);
 
-  return (*pool->class->bufferCreate)(bufferReturn, pool);
+  return (*pool->class->bufferCreate)(bufferReturn, pool, rank);
 }
 
 
@@ -188,8 +193,10 @@ Bool BufferCheck(Buffer buffer)
   CHECKL(AddrIsAligned(buffer->ap.init, buffer->alignment));
   CHECKL(AddrIsAligned(buffer->ap.alloc, buffer->alignment));
   CHECKL(AddrIsAligned(buffer->ap.limit, buffer->alignment));
-  if(buffer->seg != NULL)
+  if(buffer->seg != NULL) {
     CHECKL(SegCheck(buffer->seg));
+    CHECKL(buffer->rank == buffer->seg->rank);
+  }
   return TRUE;
 }
 
@@ -305,7 +312,7 @@ Space BufferSpace(Buffer buffer)
  * reserve operation is attempted.
  */
 
-void BufferInit(Buffer buffer, Pool pool)
+void BufferInit(Buffer buffer, Pool pool, Rank rank)
 {
   AVERT(Pool, pool);
   AVER(buffer != NULL);
@@ -319,6 +326,7 @@ void BufferInit(Buffer buffer, Pool pool)
   buffer->alignment = pool->alignment;
   buffer->exposed = FALSE;
   buffer->seg = NULL;
+  buffer->rank = rank;
   buffer->p = NULL;
   buffer->i = 0;
   buffer->shieldMode = AccessSetEMPTY;
