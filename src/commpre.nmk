@@ -1,7 +1,7 @@
 # ==== FIRST COMMON FRAGMENT FOR PLATFORMS USING MV AND NMAKE
 #
-# $HopeName: !commpre.nmk(trunk.16) $
-# Copyright (C) 1995, 1997, 1998 Harlequin Group, all rights reserved
+# $HopeName: MMsrc!commpre.nmk(MMdevel_alloc_replay.1) $
+# Copyright (C) 1995, 1997, 1998 Harlequin Group plc.  All rights reserved.
 #
 # DESCRIPTION
 #
@@ -104,6 +104,15 @@ LINKFLAGSWHITE = msvcrt.lib
 LINKFLAGSHOT = msvcrtd.lib
 LINKFLAGSCOOL = msvcrtd.lib
 !elseif "$(TARGET)" == "epvmss.exe"
+CFLAGSTARGETPRE = /DCONFIG_PROD_EPCORE
+CFLAGSTARGETPOST = 
+CRTFLAGSW = /MD
+CRTFLAGSH = /MDd
+CRTFLAGSC = /MDd
+LINKFLAGSWHITE = msvcrt.lib
+LINKFLAGSHOT = msvcrtd.lib
+LINKFLAGSCOOL = msvcrtd.lib
+!elseif "$(TARGET)" == "replaysw.exe"
 CFLAGSTARGETPRE = /DCONFIG_PROD_EPCORE
 CFLAGSTARGETPOST = 
 CRTFLAGSW = /MD
