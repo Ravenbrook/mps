@@ -1,6 +1,6 @@
 /* impl.c.locus: LOCI
  *
- * $HopeName: MMsrc!locus.c(MMdevel_ptw_pseudoloci.1) $
+ * $HopeName: MMsrc!locus.c(MMdevel_ptw_pseudoloci.3) $
  * Copyright (C) 1998 Harlequin Group plc.  All rights reserved.
  *
  */
@@ -24,10 +24,13 @@ static void LocusZoneRangeBest(Addr *baseReturn, Addr *limitReturn,
 static void LocusZoneRangeNextBest(Addr *baseReturn, Addr
                                    *limitReturn, Locus locus);
 static void LocusRefSetBest(Locus locus);
-static void LocusRefSetNextBest(locus);
+static void LocusRefSetNextBest(Locus locus);
 static Count LocusLocusClientDistance(Locus locus,
                                       LocusClient client);
 static Count LogCount(Count val);
+static Bool LocusManagerCheck(LocusManager manager);
+static Bool LocusClientCheck(LocusClient client);
+static Bool LocusCheck(Locus locus);
 
 
 /* Private types */
@@ -35,7 +38,8 @@ static Count LogCount(Count val);
 
 /* Accessors */
 
-static LocusManager ArenaLocusManager(Arena arena) 
+/* @@@ belongs in impl.c.arena */
+LocusManager ArenaLocusManager(Arena arena) 
 {
   return &arena->locusManagerStruct;
 }
@@ -43,6 +47,12 @@ static LocusManager ArenaLocusManager(Arena arena)
 static Arena LocusManagerArena(LocusManager manager)
 {
   return PARENT(ArenaStruct, locusManagerStruct, manager);
+}
+
+/* @@@ belongs in impl.c.pool */
+LocusClient PoolLocusClient(Pool pool)
+{
+  return &pool->locusClientStruct;
 }
 
 static Ring LocusClientRing(Locus locus)
@@ -60,14 +70,9 @@ static Locus LocusClientLocus(LocusClient client)
   return client->locus;
 }
 
-static LocusLocusManager(Locus locus)
+static LocusManager LocusLocusManager(Locus locus)
 {
   return locus->manager;
-}
-
-static LocusManager LocusClientLocusManager(LocusClient client)
-{
-  return LocusLocusManager(LocusClientLocus(client));
 }
 
 
@@ -77,18 +82,23 @@ static LocusManager LocusClientLocusManager(LocusClient client)
 /* LocusManagerInit -- Initialize the locus manager */
 void LocusManagerInit(LocusManager manager) 
 {
-  locusManager->ready = FALSE;
+  Locus locus;
+  
+  manager->ready = FALSE;
   
   for (locus = &manager->locus[0];
        locus < &manager->locus[NUMLOCI];
        locus++)
     LocusInit(locus, manager);
+  AVERT(LocusManager, manager);
 }
 
 
 /* LocusManagerFinish -- Finish the locus manager */
 void LocusManagerFinish(LocusManager manager)
 {
+  AVERT(LocusManager, manager);
+  
   manager->ready = FALSE;
   /* @@@ Finish the loci? */
 }
@@ -103,12 +113,13 @@ void LocusClientInit(LocusClient client, LocusManager manager)
   client->locus = NULL;
   /* default: everything is good, nothing is bad */
   client->preferred = RefSetUNIV;
-  client->disdained = RefSetEmpty;
+  client->disdained = RefSetEMPTY;
   /* default: no lifetime */
   client->lifetime = 0;
-  client->used = RefSetEmpty;
+  client->used = RefSetEMPTY;
   RingInit(LocusClientLocusRing(client));
   client->locusSerial = 0;
+  AVERT(LocusClient, client);
 }
 
 
@@ -116,8 +127,9 @@ void LocusClientInit(LocusClient client, LocusManager manager)
    typically because the pool or generation is being destroyed */
 void LocusClientFinish(LocusClient client)
 {
+  AVERT(LocusClient, client);
+  
   if (client->assigned) {
-    LocusManager manager = client->manager;
     Locus locus = LocusClientLocus(client);
     AVER(locus->inUse);
 
@@ -141,15 +153,18 @@ void LocusClientFinish(LocusClient client)
    this client.  The client passes in any a priori zone preferences it
    knows.  @@@ eventually the client will pass in cohort parameters
    such as lifetime, allocation pattern frequency, phase, etc. */
-LocusClientSetCohortParameters(LocusClient client
-                               RefSet preferred,
-                               RefSet disdained,
-                               /* @@@ cohort parameters */
-                               Index lifetime)
+void LocusClientSetCohortParameters(LocusClient client,
+                                    RefSet preferred,
+                                    RefSet disdained,
+                                    /* @@@ cohort parameters */
+                                    Index lifetime)
 {
+  AVERT(LocusClient, client);
+  AVER(RefSetInter(preferred, disdained) == RefSetEMPTY);
+  /* @@@ Lifetime */
   AVER(! client->assigned);
   if (client->assigned)
-    ClientFinish(client);
+    LocusClientFinish(client);
   
   client->preferred = preferred;
   client->disdained = disdained;
@@ -163,11 +178,17 @@ LocusClientSetCohortParameters(LocusClient client
 void LocusClientZoneRangeBest(Addr *baseReturn, Addr *limitReturn,
                               LocusClient client)
 {
-  Locus locus = LocusClientLocus(client);
-
-  LocusClientEnsureAssinged(client);
+  Locus locus;
   
-  return LocusZoneRangeBest(baseReturn, limitReturn, locus);
+  AVER(baseReturn != NULL);
+  AVER(limitReturn != NULL);
+  AVERT(LocusClient, client);
+  
+  locus = LocusClientLocus(client);
+
+  LocusClientEnsureLocus(client);
+  
+  LocusZoneRangeBest(baseReturn, limitReturn, locus);
 }
 
 
@@ -177,24 +198,36 @@ void LocusClientZoneRangeNextBest(Addr *baseReturn,
                                   Addr *limitReturn,
                                   LocusClient client)
 {
-  Locus locus = LocusClientLocus(client);
+  Locus locus;
+  
+  AVER(baseReturn != NULL);
+  AVER(limitReturn != NULL);
+  AVERT(LocusClient, client);
+  
+  locus = LocusClientLocus(client);
 
   AVER(client->assigned);
   
-  return LocusZoneRangeNextBest(baseReturn, limitReturn, locus);
+  LocusZoneRangeNextBest(baseReturn, limitReturn, locus);
 }
     
 
 /* LocusClientSegAdd -- Must be called by the locus client any time it
    acquires a new segment */
-void LocusClientSegAdd(LocusClient client, Seg seg)
+void LocusClientSegAdd(LocusClient client, Arena arena, Seg seg)
 {
-  RefSet segRefSet = RefSetOfSeg(Seg);
-  RefSet previous = client->used;
-  RefSet next = RefSetUnion(previous, segRefSet);
-  
+  RefSet segRefSet;
+  RefSet previous;
+  RefSet next;
+
+  AVERT(LocusClient, client);
+  AVERT(Seg, seg);
   AVER(client->assigned);
   
+  segRefSet = RefSetOfSeg(arena, seg);
+  previous = client->used;
+  next = RefSetUnion(previous, segRefSet);
+
   /* If this is a new zone for this client, check the locus is up to
      date */
   if (! RefSetSuper(previous, next)) {
@@ -227,6 +260,8 @@ void LocusClientSegAdd(LocusClient client, Seg seg)
 static void LocusManagerEnsureReady(LocusManager manager)
 {
   if (! manager->ready) {
+    Locus locus;
+    
     manager->free = RefSetUNIV;
     
     for (locus = &manager->locus[0];
@@ -264,7 +299,7 @@ static void LocusFinish(Locus locus)
   locus->inUse = FALSE;
   locus->ready = FALSE;
   locus->lifetime = 0;
-  locus->prefered = RefSetEMPTY;
+  locus->preferred = RefSetEMPTY;
   locus->disdained = RefSetEMPTY;
   locus->used = RefSetEMPTY;
   /* leave clientSerial */
@@ -278,13 +313,13 @@ static void LocusFinish(Locus locus)
    locus's clients.  If they have changed, inform the locus manager */
 static void LocusEnsureReady(Locus locus)
 {
-  Ring client, next;
-  RefSet preferred, disdained, used;
-  Index lifetime;
-  
   if (locus->inUse && (! locus->ready)) {
+    Ring this, next;
+    RefSet preferred, disdained, used;
+    Index lifetime;
+  
     lifetime = (Index)-1;
-    prefered = RefSetEMPTY;
+    preferred = RefSetEMPTY;
     disdained = RefSetEMPTY;
     used = RefSetEMPTY;
 
@@ -306,7 +341,7 @@ static void LocusEnsureReady(Locus locus)
     locus->lifetime = lifetime;
     locus->preferred = preferred;    
     locus->disdained = disdained;
-    if (locus->used ! = used) {
+    if (locus->used != used) {
       locus->used = used;    
       LocusLocusManager(locus)->ready = FALSE;
     }
@@ -321,9 +356,10 @@ static void LocusClientEnsureLocus(LocusClient client)
 {
   if (! client->assigned) {
     LocusManager manager = client->manager;
+    Locus locus;
     Locus free = NULL;
     Locus best = NULL;
-    Count bestDistance (Count)-1;
+    Count bestDistance = (Count)-1;
       
     /* Search for free, matching, or near locus */
     for (locus = &manager->locus[0];
@@ -374,14 +410,10 @@ static void LocusClientEnsureLocus(LocusClient client)
    to determine where to allocate. */
 static void LocusZoneRangeBest(Addr *baseReturn, Addr *limitReturn, Locus locus)
 {
-  LocusManager manager = LocusLocusManager(locus);
-  Arena arena = LocusManagerArena(manager);
-  Word zoneShift = ArenaZoneShift(arena);
-  
   LocusRefSetBest(locus);
   locus->searchIndex = 0;
-  
-  return LocusZoneRangeNextBest(baseReturn, limitReturn, locus);
+
+  LocusZoneRangeNextBest(baseReturn, limitReturn, locus);
 }
 
 
@@ -408,12 +440,12 @@ static void LocusZoneRangeNextBest(Addr *baseReturn, Addr *limitReturn, Locus lo
     }
     for (; i < MPS_WORD_WIDTH; i++) {
       if (BS_IS_MEMBER(ref, i)) {
-        *baseReturn = i << zoneShift;
+        *baseReturn = (Addr)(i << zoneShift);
         *limitReturn =
-          ((i + 1) & (MPS_WORD_WIDTH - 1)) << arena->zoneShift;
-        for (; i < MPS_WORD_WIDTH; j++) {
+          (Addr)(((i + 1) & (MPS_WORD_WIDTH - 1)) << arena->zoneShift);
+        for (; i < MPS_WORD_WIDTH; i++) {
           if (! BS_IS_MEMBER(ref, i)) {    
-            *limitReturn = i << zoneShift;
+            *limitReturn = (Addr)(i << zoneShift);
           }
         }
         locus->searchIndex = i;
@@ -430,7 +462,7 @@ static void LocusRefSetBest(Locus locus)
 {
   locus->search = RefSetEMPTY;
 
-  return LocusRefSetNextBest(locus);
+  LocusRefSetNextBest(locus);
 }
 
 
@@ -439,8 +471,9 @@ static void LocusRefSetBest(Locus locus)
    each time it will yield a larger, but less optimal RefSet.  It is
    fruitless to call it when the search RefSet is already RefSetUNIV
    */
-static void LocusRefSetNextBest(locus)
+static void LocusRefSetNextBest(Locus locus)
 {
+  LocusManager manager = LocusLocusManager(locus);
   RefSet previous = locus->search;
   RefSet next = RefSetEMPTY;
   AVER(previous != RefSetUNIV);
@@ -452,7 +485,7 @@ static void LocusRefSetNextBest(locus)
     locus->search = next;
     return;
   }
-  next = RefSetUnion(previous, RefSetInter(locus->free, locus->preferred));
+  next = RefSetUnion(previous, RefSetInter(manager->free, locus->preferred));
   if (! RefSetSuper(previous, next)) {
     locus->search = next;
     return;
@@ -462,7 +495,7 @@ static void LocusRefSetNextBest(locus)
     locus->search = next;
     return;
   }
-  next = RefSetUnion(previous, RefSetDiff(locus->free, locus->disdained));
+  next = RefSetUnion(previous, RefSetDiff(manager->free, locus->disdained));
   if (! RefSetSuper(previous, next)) {
     locus->search = next;
     return;
@@ -472,7 +505,7 @@ static void LocusRefSetNextBest(locus)
     locus->search = next;
     return;
   }
-  next = RefSetUnion(previous, locus->free);
+  next = RefSetUnion(previous, manager->free);
   if (! RefSetSuper(previous, next)) {
     locus->search = next;
     return;
@@ -523,4 +556,57 @@ static Count LogCount(Count val)
   temp = (val >> 1) & 033333333333;
   temp = val - temp - ((temp >> 1) & 033333333333);
   return ((Count)(((temp + (temp >> 3)) & 030707070707) % 077));
+}
+
+
+static Bool LocusManagerCheck(LocusManager manager) 
+{
+  Locus locus;
+
+  CHECKL(BoolCheck(manager->ready));
+  for (locus = &manager->locus[0];
+       locus < &manager->locus[NUMLOCI];
+       locus++) {
+    CHECKL(LocusCheck(locus));
+    if (locus->inUse && locus->ready)
+      CHECKL(RefSetInter(manager->free, locus->used) == RefSetEMPTY);
+  }
+  return TRUE;
+}
+
+
+static Bool LocusClientCheck(LocusClient client)
+{
+  CHECKL(BoolCheck(client->assigned));
+  if (client->assigned) {
+    CHECKL(LocusCheck(client->locus));
+  } else {
+    CHECKL(RingCheckSingle(LocusClientLocusRing(client)));
+  }
+  CHECKL(RingCheck(LocusClientLocusRing(client)));
+  CHECKL(RefSetCheck(client->preferred));
+  CHECKL(RefSetCheck(client->disdained));
+  CHECKL(RefSetCheck(client->used));
+  return TRUE;
+}
+ 
+  
+static Bool LocusCheck(Locus locus)
+{
+  CHECKL(BoolCheck(locus->inUse));
+  CHECKL(BoolCheck(locus->ready));
+  if (locus->ready) {
+    Ring this, next;
+    CHECKL(locus->inUse);
+    CHECKL(RingCheck(LocusClientRing(locus)));
+    RING_FOR(this, LocusClientRing(locus), next) 
+    {
+      LocusClient client = RING_ELT(LocusClient, locusRingStruct,
+                                    this);
+      CHECKL(RefSetSuper(locus->preferred, client->preferred));
+      CHECKL(RefSetSuper(locus->disdained, client->disdained));
+      CHECKL(RefSetSuper(locus->used, client->used));
+    }
+  }
+  return TRUE;
 }
