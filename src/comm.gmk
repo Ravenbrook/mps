@@ -1,6 +1,6 @@
 # impl.gmk.comm: COMMON GNUMAKEFILE FRAGMENT
 #
-# $HopeName: !comm.gmk(trunk.4) $
+# $HopeName: MMsrc!comm.gmk(MMdevel_sw_eq.1) $
 # Copyright (C) 1995,1996 Harlequin Group, all rights reserved
 #
 # DESCRIPTION
@@ -109,7 +109,7 @@ endif
 # Some flags depend on the target.  Alas.
 ifdef TARGET
 ifeq ($(TARGET),mmsw.a)
-CFLAGSTARGET = -DTARGET_VM_RM
+CFLAGSTARGET = -DTARGET_ARENA_CLIENT
 else
 CFLAGSTARGET =
 endif
@@ -181,7 +181,7 @@ endif
 # %%TARGET: Add the target to the all dependencies.
 
 all: mpmss amcss dwstress mpsicv lockcov poolncv mps.a \
-     lo.a locv qs weakcv
+     lo.a locv qs weakcv mmsw.a
 
 # These convenience targets allow one to type "make foo" to build target
 # foo in all varieties.
@@ -320,7 +320,7 @@ $(PFM)/$(VARIETY)/%.d: %.c
 ifdef VARIETY
 ifdef TARGET
 # %%PART: Add the dependency file macro for the new part here.
-include $(MPMDEP) $(AMCDEP) $(LODEP)
+include $(MPMDEP) $(AMCDEP) $(LODEP) $(SWDEP)
 endif
 endif
 
