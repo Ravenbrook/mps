@@ -1,6 +1,6 @@
 # impl.gmk.dc: GNUMAKEFILE FRAGMENT FOR DIGITAL C COMPILER (DEC UNIX/OSF)
 #
-# $HopeName: MMsrc!dc.gmk(MMdevel_annotation.1) $
+# $HopeName: MMsrc!dc.gmk(MMdevel_annotation.2) $
 # Copyright(C) 1997 Harlequin Group, all rights reserved
 #
 # See design.buildsys.unix
@@ -16,11 +16,16 @@
 # as the last statement.  We would need to cleam our code in order to use
 # the option.
 
+# We need a symbol for a non-empty defintion with empty value
+ifdef MPS_EMPTY
+error "dc.gmk: MPS_EMPTY defined"
+endif
+
 CC = cc
 CFLAGSCOMPILER = -std1 -w2 -warnprotos -portable -readonly_strings
 CFLAGSHOT = -O2
-CFLAGSCOOL = $(EMPTY)
-CFLAGSEXTERNAL = $(EMPTY)
+CFLAGSCOOL = $(MPS_EMPTY)
+CFLAGSEXTERNAL = $(MPS_EMPTY)
 CFLAGSINTERNAL = -g2
 
 # -M for a dependency file

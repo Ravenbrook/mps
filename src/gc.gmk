@@ -1,11 +1,17 @@
 # impl.gmk.gc: GNUMAKEFILE FRAGMENT FOR GNU CC
 #
-# $HopeName: MMsrc!gc.gmk(MMdevel_annotation.1) $
+# $HopeName: MMsrc!gc.gmk(MMdevel_annotation.2) $
 # Copyright (C) 1996 Harlequin Group, all rights reserved
 #
 # This file is included by platform makefiles that use the GNU CC
 # compiler.  It defines the compiler specific variables that the
 # common makefile fragment (impl.gmk.comm) requires.
+
+
+# We need a symbol for a non-empty defintion with empty value
+ifdef MPS_EMPTY
+error "gc.gmk: MPS_EMPTY defined"
+endif
 
 CC = gcc
 CFLAGSCOMPILER = \
@@ -14,9 +20,9 @@ CFLAGSCOMPILER = \
 	-Winline -Waggregate-return -Wnested-externs \
 	-Wcast-qual -Wshadow
 CFLAGSINTERNAL = -g -ggdb3
-CFLAGSCOOL = $(EMPTY)
+CFLAGSCOOL = $(MPS_EMPTY)
 CFLAGSHOT = -O
-CFLAGSEXTERNAL = $(EMPTY)
+CFLAGSEXTERNAL = $(MPS_EMPTY)
 
 # gcc -MM generates a dependency line of the form:
 #   thing.o : thing.c ...
