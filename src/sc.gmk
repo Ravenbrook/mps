@@ -1,0 +1,14 @@
+# impl.gmk.sc: GNUMAKEFILE FRAGMENT FOR SunPro C
+#
+# $HopeName$
+#
+# This file is included by platform makefiles that use the SunPro C
+# compiler.  It defines the compiler specific variables that the
+# common makefile fragment (impl.gmk.comm) requires.
+
+CC = /opt/SUNWspro/SC4.0/bin/cc
+CFLAGSCOMPILER = -v -Xc
+CFLAGSDEBUG = -g
+CFLAGSOPTIMIZE = -O
+
+include comm.gmk
