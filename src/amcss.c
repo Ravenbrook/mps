@@ -1,6 +1,6 @@
 /* impl.c.amcss: POOL CLASS AMC STRESS TEST
  *
- * $HopeName: MMsrc!amcss.c(trunk.9) $
+ * $HopeName: MMsrc!amcss.c(MMdevel_restr.2) $
  * Copyright (C) 1996 Harlequin Group, all rights reserved
  */
 
@@ -106,6 +106,7 @@ static void *test(void *arg, size_t s)
   mps_root_destroy(exact_root);
   mps_root_destroy(ambig_root);
   mps_pool_destroy(pool);
+  mps_fmt_destroy(format);
 
   return NULL;
 }

@@ -79,6 +79,7 @@ main(void)
 
   mps_ap_destroy(ap);
   mps_pool_destroy(pool);
+  mps_fmt_destroy(format);
   mps_root_destroy(root);
   mps_space_destroy(space);
 
