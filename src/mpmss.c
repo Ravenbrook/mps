@@ -1,9 +1,16 @@
 /*  impl.c.mpmss: MPM STRESS TEST
  *
- * $HopeName: !mpmss.c(trunk.20) $
+ * $HopeName: MMsrc!mpmss.c(MMdevel_pekka_mvbt.1) $
  * Copyright (C) 1998. Harlequin Group plc. All rights reserved.
  */
 
+#include "mpscmv.h"
+#include "mpscmbt.h"
+#include "mpslib.h"
+#include "mpsavm.h"
+#include "mps.h"
+
+#include "testlib.h"
 
 #include <stdio.h>
 #include "mpstd.h"
@@ -16,12 +23,6 @@
 struct itimerspec; /* stop complaints from time.h */
 #endif
 #include <time.h>
-
-#include "mpscmv.h"
-#include "mpslib.h"
-#include "mpsavm.h"
-#include "testlib.h"
-#include "mps.h"
 
 
 /* @@@@ Hack due to missing mpscmfs.h */
@@ -130,19 +131,22 @@ static mps_pool_debug_option_s debugOptions = { (void *)"postpost", 8 };
 
 static int testInArena(mps_arena_t arena)
 {
+  printf("MBT\n\n");
+  die(stress(mps_class_mbt(), arena, randomSize),
+      "stress MBT");
+  printf("MV debug\n\n");
   die(stress(mps_class_mv_debug(), arena, randomSize,
              &debugOptions, (size_t)65536, (size_t)32, (size_t)65536),
       "stress MV");
-
   fixedSizeSize = 13;
+  printf("MFS\n\n");
   die(stress(PoolClassMFS(),
              arena, fixedSize, (size_t)100000, fixedSizeSize),
       "stress MFS");
-
+  printf("MV\n\n");
   die(stress(mps_class_mv(), arena, randomSize,
              (size_t)65536, (size_t)32, (size_t)65536),
       "stress MV");
-
   return 0;
 }
 
@@ -163,7 +167,7 @@ int main(void)
   mps_arena_destroy(arena);
 
   die(mps_arena_create(&arena, mps_arena_class_vm(), smallArenaSIZE),
-      "mps_arena_create");
+      "mps_arena_create (small)");
 
   testInArena(arena);
 
