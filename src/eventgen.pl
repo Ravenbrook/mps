@@ -2,7 +2,7 @@
 # impl.pl.eventgen -- Generator for impl.h.eventgen
 #
 # Copyright (C) 1997 Harlequin Group, all rights reserved.
-# $HopeName: !eventgen.pl(trunk.3) $
+# $HopeName: MMsrc!eventgen.pl(MMdevel_telemetry_intern2.1) $
 #
 # Invoke this script in the src directory.
 # It works by scanning *.c for EVENT_[A-Z], 
@@ -62,7 +62,7 @@ foreach $format ("", sort(keys(%Formats))) {
   for($i = 0; $i < length($format); $i++) {
     $c = substr($format, $i, 1);
     if($c eq "S") {
-      die "String must be at end of format" if($1+1 != length($format));
+      die "String must be at end of format" if($i+1 != length($format));
       print H "  char s[EventMaxStringLength];\n";
     } elsif(!defined($Types{$c})) {
       die "Can't find type for format code >$c<.";
