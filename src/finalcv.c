@@ -1,6 +1,6 @@
 /* impl.c.finalcv: FINALIZATION COVERAGE TEST
  *
- * $HopeName: !finalcv.c(trunk.5) $
+ * $HopeName: MMsrc!finalcv.c(MMdevel_drj_message.1) $
  * Copyright (C) 1996,1997 Harlequin Group, all rights reserved
  *
  * READERSHIP
@@ -28,21 +28,9 @@
  * is no MPS interface to finalization.  For the moment this test uses
  * PoolMRG directly.  Later it will use the MPS interface to
  * finalization.
- *
- * .hack.order.1: poolmrg.h must be included before ossu.h.  The reason
- * for this is that they both attempt to define offsetof (poolmrg.h
- * indirectly via the MPM file misc.h).  The definition in misc.h falls
- * over if offsetof is already defined whereas the one in ossu.h simply
- * does not define offsetof if it is already defined.
- *
- * .hack.order.2: poolmrg.h must be included before mps.h.  This is
- * to prevent a parse error in mpmtypes.h (in the declaration of TRUE
- * and FALSE).  This happens because windows.h (#included in mps.h)
- * defines TRUE and FALSE as macros.
  */
 
 /* .hack.order.1, .hack.order.2 */
-#include "poolmrg.h" /* .hack.no-interface */
 
 #include "testlib.h"
 #include "mps.h"
@@ -61,7 +49,6 @@
 #define N_ROOTS 20
 #define CHURN_FACTOR 1000
 #define ONE_SLOT_SIZE (3*sizeof(mps_word_t))
-#define MAGIC_0 36      /* source is person.richard */
 /* The number that a half of all numbers generated from rnd are less
  * than.  Hence, probability a-half, or P a-half */
 /* see impl.h.testlib */
@@ -73,10 +60,10 @@ static mps_word_t dylan_int(mps_word_t x)
   return (x << 2)|1;
 }
 
-/* .hack.no-interface */
-static mps_class_t mps_class_mrg(void)
+/* converts a dylan format int to an int (untags) */
+static mps_word_t dylan_int_int(mps_word_t x)
 {
-  return (mps_class_t)PoolClassMRG();
+  return x >> 2;
 }
 
 static void *root[N_ROOTS];
@@ -107,97 +94,28 @@ test(void *arg, size_t s)
   mps_ap_t ap;
   mps_fmt_t fmt;
   mps_pool_t amc;
-  mps_pool_t mrg;
   mps_res_t e;
-  mps_root_t mps_root[2];
+  mps_root_t mps_root[3];
   mps_space_t space;
-  void *mrg_obj[N_ROOTS];
   void *p = NULL;
-
+  struct mps_message_finalization_s msg;
   space = (mps_space_t)arg;
+  msg.ref = 0;
 
   die(mps_fmt_create_A(&fmt, space, dylan_fmt_A()), "fmt_create\n");
   die(mps_pool_create(&amc, space, mps_class_amc(), fmt),
       "pool_create amc\n");
-  die(mps_pool_create(&mrg, space, mps_class_mrg()), /* .hack.no-interface */
-      "pool_create mrg\n");
   die(mps_root_create_table(&mps_root[0], space,
-                             MPS_RANK_EXACT, (mps_rm_t)0,
-                             root, (size_t)N_ROOTS), "root_create\n");
+                            MPS_RANK_EXACT, (mps_rm_t)0,
+                            root, (size_t)N_ROOTS), "root_create\n");
   die(mps_root_create_table(&mps_root[1], space,
-                             MPS_RANK_EXACT, (mps_rm_t)0,
-                             &p, (size_t)1), "root_create\n");
+                            MPS_RANK_EXACT, (mps_rm_t)0,
+                            &p, (size_t)1), "root_create\n");
+  die(mps_root_create_table(&mps_root[2], space,
+			    MPS_RANK_EXACT, (mps_rm_t)0,
+			    &msg.ref, (size_t)1), "root_create\n");
   die(mps_ap_create(&ap, amc, MPS_RANK_EXACT), "ap_create\n");
 
-  /* design.mps.poolmrg.test.alloc */
-  for(i = 0; i < N_ROOTS; ++i) {
-    e = mps_alloc(&mrg_obj[i], mrg, sizeof(mps_addr_t));
-    assert(e == MPS_RES_OK);
-  }
-  /* design.mps.poolmrg.test.free */
-  for(i = 0; i < N_ROOTS; ++i) {
-    mps_free(mrg, mrg_obj[i], sizeof(mps_addr_t));
-  }
-
-  /* design.mps.poolmrg.test.rw.a */
-  do {
-    MPS_RESERVE_BLOCK(e, p, ap, ONE_SLOT_SIZE);
-    assert(e == MPS_RES_OK);
-    dylan_init(p, ONE_SLOT_SIZE, root, 1);
-  } while(!mps_commit(ap, p, ONE_SLOT_SIZE));
-
-  /* design.mps.poolmrg.test.rw.alloc */
-  for(i = 0; i < N_ROOTS; ++i) {
-    e = mps_alloc(&mrg_obj[i], mrg, sizeof(mps_addr_t));
-    assert(e == MPS_RES_OK);
-    /* design.mps.poolmrg.test.rw.write */
-    *(mps_addr_t *)mrg_obj[i] = p;
-  }
-  /* design.mps.poolmrg.test.rw.read */
-  for(i = 0; i < N_ROOTS; ++i) {
-    if(*(mps_addr_t *)mrg_obj[i] != p) {
-      printf("Couldn't correctly read reference in guardian object.\n");
-      ++rc;
-    }
-  }
-  /* design.mps.poolmrg.test.rw.free */
-  for(i = 0; i < N_ROOTS; ++i) {
-    mps_free(mrg, mrg_obj[i], sizeof(mps_addr_t));
-  }
-  /* design.mps.poolmrg.test.rw.drop */
-  p = NULL;
-
-  /* design.mps.poolmrg.test.fl.alloc */
-  for(i = 0; i < N_ROOTS; ++i) {
-    do {
-      MPS_RESERVE_BLOCK(e, p, ap, ONE_SLOT_SIZE);
-      assert(e == MPS_RES_OK);
-      dylan_init(p, ONE_SLOT_SIZE, root, 1);
-    } while(!mps_commit(ap, p, ONE_SLOT_SIZE));
-    root[i] = p;
-    /* design.mps.poolmrg.test.fl.tag */
-    ((mps_word_t *)p)[2] = dylan_int(MAGIC_0 ^ i);
-    e = mps_alloc(&mrg_obj[i], mrg, sizeof(mps_addr_t));
-    assert(e == MPS_RES_OK);
-    /* design.mps.poolmrg.test.fl.refer */
-    *(mps_addr_t *)mrg_obj[i] = p;
-  }
-  p = NULL;
-
-  /* design.mps.poolmrg.test.fl.churn */
-  churn(ap);
-  for(i = 0; i < N_ROOTS; ++i) {
-    mps_word_t *o;
-    o = *(mps_addr_t *)mrg_obj[i];
-    if(o[2] != dylan_int(MAGIC_0 ^ i)) {
-      printf("Reference in guardian object has been corrupted or "
-             "referent has been corrupted.\n");
-      ++rc;
-    }
-  }
-  for(i = 0; i < N_ROOTS; ++i) {
-    mps_free(mrg, mrg_obj[i], sizeof(mps_addr_t));
-  }
 
   /* design.mps.poolmrg.test.ut.alloc */
   for(i = 0; i < N_ROOTS; ++i) {
@@ -206,10 +124,8 @@ test(void *arg, size_t s)
       assert(e == MPS_RES_OK);
       dylan_init(p, ONE_SLOT_SIZE, root, 1);
     } while(!mps_commit(ap, p, ONE_SLOT_SIZE));
-    e = mps_alloc(&mrg_obj[i], mrg, sizeof(mps_addr_t));
-    assert(e == MPS_RES_OK);
-    /* design.mps.poolmrg.test.ut.refer */
-    *(mps_addr_t *)mrg_obj[i] = p;
+    ((mps_word_t *)p)[2] = dylan_int(i);
+    die(mps_finalize(space, p), "finalize\n");
     root[i] = p;
   }
   p = NULL;
@@ -220,16 +136,46 @@ test(void *arg, size_t s)
       root[i] = NULL;
     }
   }
+
   /* design.mps.poolmrg.test.ut.churn */
-  churn(ap);
+  while(mps_collections(space) < 3) {
+    churn(ap);
+    while(mps_message_poll(space)) {
+      mps_message_type_t type;
+      int b;
+
+      b = mps_message_type(&type, space);
+      assert(b);
+      switch(type) {
+      case MPS_MESSAGE_TYPE_FINALIZATION: {
+	mps_word_t *obj;
+	mps_word_t objind;
+
+	b = mps_message_deliver(space, type, &msg, sizeof msg);
+	assert(b);
+	obj = (mps_word_t *)msg.ref;
+	objind = dylan_int_int(obj[2]);
+	printf("Finalizing: object %lu at %p\n", objind, msg.ref);
+	assert(root[objind] == NULL);
+	root[objind] = msg.ref;
+      } break;
+	
+      default:
+	printf("Discarding unknown message type: %d\n", type);
+	b = mps_message_discard(space, type);
+	assert(b);
+	break;
+      }
+    }
+  }
 
   /* design.mps.poolmrg.test.ut.not */
 
   mps_ap_destroy(ap);
-  mps_root_destroy(mps_root[0]);
+  mps_root_destroy(mps_root[2]);
   mps_root_destroy(mps_root[1]);
+  mps_root_destroy(mps_root[0]);
   mps_pool_destroy(amc);
-  mps_pool_destroy(mrg);
   mps_fmt_destroy(fmt);
 
   return NULL;
