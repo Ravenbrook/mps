@@ -1,6 +1,6 @@
 /* impl.c.poolawl: AUTOMATIC WEAK LINKED POOL CLASS
  *
- * $HopeName: MMsrc!poolawl.c(MM_dylan_sunflower.7) $
+ * $HopeName: MMsrc!poolawl.c(MM_dylan_sunflower.8) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  *
  * READERSHIP
@@ -16,7 +16,7 @@
 #include "mpm.h"
 #include "mpscawl.h"
 
-SRCID(poolawl, "$HopeName: MMsrc!poolawl.c(MM_dylan_sunflower.7) $");
+SRCID(poolawl, "$HopeName: MMsrc!poolawl.c(MM_dylan_sunflower.8) $");
 
 
 #define AWLSig	((Sig)0x519b7a37)	/* SIGPooLAWL */
@@ -197,6 +197,7 @@ static Res AWLInit(Pool pool, va_list arg)
 
   AVERT(Format, format);
   awl->format = format;
+  pool->alignment = format->alignment;
   awl->alignShift = SizeLog2(pool->alignment);
   ActionInit(&awl->actionStruct, pool);
   awl->lastCollected = PoolSpace(pool)->allocTime;
@@ -287,6 +288,11 @@ found:
     i = AddrOffset(SegBase(space, group->seg), base) >> awl->alignShift;
     j = AddrOffset(SegBase(space, group->seg), limit) >> awl->alignShift;
     BTSetRange(group->alloc, i, j);
+
+    /* Objects allocated must be black.  See */
+    /* change.dylan.sunflower.7.170467. */
+    BTSetRange(group->mark, i, j);
+    BTSetRange(group->scanned, i, j);
   }
   *segReturn = group->seg;
   *baseReturn = base;
@@ -333,20 +339,23 @@ static Res AWLCondemn(Pool pool, Trace trace, Seg seg, Action action)
   /* see design.mps.poolawl.fun.condemn */
   AVER(SegWhite(seg) == TraceSetEMPTY);
 
-  awl = PoolPoolAWL(pool);
-  AVERT(AWL, awl);
+  /* Don't condemn buffered segments, to avoid allocating non-black */
+  /* objects.  See change.dylan.sunflower.7.170467. */
+  if(SegBuffer(seg) == NULL) {
+    awl = PoolPoolAWL(pool);
+    AVERT(AWL, awl);
+    AVERT(Action, action);
+    AVER(awl == ActionAWL(action));
 
-  AVERT(Action, action);
-  AVER(awl == ActionAWL(action));
-
-  group = (AWLGroup)SegP(seg);
-  AVERT(AWLGroup, group);
-  bits = SegSize(PoolSpace(pool), seg) >> awl->alignShift;
-  
-  BTResRange(group->mark, 0, bits);
-  BTResRange(group->scanned, 0, bits);
-  group->rememberedSummary = SegSummary(seg);
-  SegSetWhite(seg, TraceSetAdd(SegWhite(seg), trace->ti));
+    group = (AWLGroup)SegP(seg);
+    AVERT(AWLGroup, group);
+    bits = SegSize(PoolSpace(pool), seg) >> awl->alignShift;
+    
+    BTResRange(group->mark, 0, bits);
+    BTResRange(group->scanned, 0, bits);
+    group->rememberedSummary = SegSummary(seg);
+    SegSetWhite(seg, TraceSetAdd(SegWhite(seg), trace->ti));
+  }
   
   return ResOK;
 }
@@ -364,8 +373,7 @@ static void AWLGrey(Pool pool, Trace trace, Seg seg)
     group = (AWLGroup)SegP(seg);
     AVERT(AWLGroup, group);
 
-    SegSetGrey(seg, TraceSetAdd(SegGrey(seg), trace->ti));
-    ShieldRaise(trace->space, seg, AccessREAD);
+    TraceSegGreyen(PoolSpace(pool), seg, TraceSetSingle(trace->ti));
     bits = SegSize(PoolSpace(pool), seg) >> awl->alignShift;
     BTSetRange(group->mark, 0, bits);
     BTResRange(group->scanned, 0, bits);
@@ -436,10 +444,17 @@ notFinished:
   while(p < limit) {
     Index i;	/* the index into the bit tables corresponding to p */
     Addr objectEnd;
+
+    AVER(AddrIsAligned(p, pool->alignment));
+
     /* design.mps.poolawl.fun.scan.buffer */
     if(SegBuffer(seg)) {
-      if(p == BufferScanLimit(SegBuffer(seg))) {
-	p = BufferLimit(SegBuffer(seg));
+      Buffer buffer = SegBuffer(seg);
+      /* Only skip the buffer area if it is non-zero in length. */
+      /* See change.dylan.sunflower.7.170463. */
+      if(p == BufferScanLimit(buffer) &&
+         BufferScanLimit(buffer) != BufferLimit(buffer)) {
+	p = BufferLimit(buffer);
 	continue;
       }
     }
@@ -481,7 +496,7 @@ notFinished:
         return res;
       }
     }
-    p = AddrAlignUp(objectEnd, pool->alignment);
+    p = objectEnd;
   }
   if(!finished)
     goto notFinished;
@@ -584,13 +599,16 @@ static void AWLReclaim(Pool pool, Trace trace, Seg seg)
     p = AddrAdd(base, i << awl->alignShift);
     if(SegBuffer(seg) != NULL) {
       Buffer buffer = SegBuffer(seg);
-
-      if(p == BufferScanLimit(buffer)) {
+      AVER(p <= BufferScanLimit(buffer) ||
+           BufferLimit(buffer) <= p);
+      /* Only skip the buffer area if it is non-zero in length. */
+      /* See change.dylan.sunflower.7.170463. */
+      if(p == BufferScanLimit(buffer) &&
+         BufferScanLimit(buffer) != BufferLimit(buffer)) {
         p = BufferLimit(buffer);
 	i = AddrOffset(base, p) >> awl->alignShift;
+        continue;
       }
-      AVER(p < BufferScanLimit(buffer) ||
-           BufferLimit(buffer) <= p);
     }
     j = AddrOffset(base, awl->format->skip(p)) >>
         awl->alignShift;
