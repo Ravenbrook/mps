@@ -1,6 +1,6 @@
 /* impl.c.trace: GENERIC TRACER IMPLEMENTATION
  *
- * $HopeName: !trace.c(trunk.60) $
+ * $HopeName: MMsrc!trace.c(MMdevel_drj_trace_abort.1) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  *
  * .sources: design.mps.tracer.
@@ -8,7 +8,7 @@
 
 #include "mpm.h"
 
-SRCID(trace, "$HopeName: !trace.c(trunk.60) $");
+SRCID(trace, "$HopeName: MMsrc!trace.c(MMdevel_drj_trace_abort.1) $");
 
 
 /* ScanStateCheck -- check consistency of a ScanState object */
@@ -43,7 +43,11 @@ static void ScanStateInit(ScanState ss, TraceSet ts, Arena arena,
 
   ss->rank = rank;
   ss->traces = ts;
-  ss->fix = TraceFix;
+  if(arena->traceEmergency == TRUE) {
+    ss->fix = TraceEmergencyFix;
+  } else {
+    ss->fix = TraceFix;
+  }
   ss->zoneShift = arena->zoneShift;
   ss->unfixedSummary = RefSetEMPTY;
   ss->fixedSummary = RefSetEMPTY;
@@ -376,10 +380,14 @@ void TraceDestroy(Trace trace)
   AVERT(Trace, trace);
 
   AVER(trace->state == TraceFINISHED);
-  
+
   trace->sig = SigInvalid;
   trace->arena->busyTraces =
     TraceSetDel(trace->arena->busyTraces, trace->ti);
+  if(trace->arena->busyTraces == TraceSetEMPTY) {
+    /* Emergency over once all traces completed */
+    trace->arena->traceEmergency = FALSE;
+  }
   trace->arena->flippedTraces =
     TraceSetDel(trace->arena->flippedTraces, trace->ti);
   EVENT_P(TraceDestroy, trace);
@@ -397,11 +405,11 @@ void TraceDestroy(Trace trace)
 void TraceSegGreyen(Arena arena, Seg seg, TraceSet ts)
 {
   TraceSet segGrey, newGrey;
- 
+
   AVERT(Arena, arena);
   AVERT(Seg, seg);
   AVER(TraceSetCheck(ts));
- 
+
   segGrey = SegGrey(seg);
   newGrey = TraceSetUnion(segGrey, ts);
   if(newGrey != segGrey) {
@@ -411,7 +419,7 @@ void TraceSegGreyen(Arena arena, Seg seg, TraceSet ts)
     /* But this requires Flip to raise it when flippedTraces changes, */
     /* which it does not do at present. */
     ShieldRaise(arena, seg, AccessREAD);
- 
+
     /* Temporary hack to add to grey list for */
     /* change.dylan.sunflower.7.170421. */
     AVER(RankSetIsSingle(SegRankSet(seg)));
@@ -445,30 +453,30 @@ void TraceSegGreyen(Arena arena, Seg seg, TraceSet ts)
 static void TraceFlipBuffers(Arena arena)
 {
   Ring poolRing, poolNode, bufferRing, bufferNode;
-  
+
   AVERT(Arena, arena);
-  
+
   poolRing = ArenaPoolRing(arena);
   poolNode = RingNext(poolRing);
   while(poolNode != poolRing) {
     Ring poolNext = RingNext(poolNode);
     Pool pool = RING_ELT(Pool, arenaRing, poolNode);
-    
+
     AVERT(Pool, pool);
-    
+
     bufferRing = &pool->bufferRing;
     bufferNode = RingNext(bufferRing);
     while(bufferNode != bufferRing) {
       Ring bufferNext = RingNext(bufferNode);
       Buffer buffer = RING_ELT(Buffer, poolRing, bufferNode);
-      
+
       AVERT(Buffer, buffer);
-      
+
       BufferFlip(buffer);
-      
+
       bufferNode = bufferNext;
     }
-    
+
     poolNode = poolNext;
   }
 }
@@ -496,7 +504,7 @@ Res TraceFlip(Trace trace)
   EVENT_PP(TraceFlipBegin, trace, arena);
 
   TraceFlipBuffers(arena);
- 
+
   /* Update location dependency structures. */
   /* mayMove is a conservative approximation of the refset of refs */
   /* which may move during this collection. */
@@ -646,7 +654,7 @@ static Bool traceFindGrey(Seg *segReturn, Rank *rankReturn,
   AVER(TraceIdCheck(ti));
 
   trace = ArenaTrace(arena, ti);
-  
+
   for(rank = 0; rank < RankMAX; ++rank) {
     RING_FOR(node, ArenaGreyRing(arena, rank), nextNode) {
       Seg seg = SegOfGreyRing(node);
@@ -712,15 +720,16 @@ RefSet ScanStateSummary(ScanState ss)
 static Res TraceScan(TraceSet ts, Rank rank,
                      Arena arena, Seg seg)
 {
-  Res res;
-  TraceId ti;
+  Bool wasTotal;
   RefSet white;
+  Res res;
   ScanStateStruct ss;
+  TraceId ti;
 
   AVER(TraceSetCheck(ts));
   AVER(RankCheck(rank));
   AVERT(Seg, seg);
-  
+
   /* The reason for scanning a segment is that it's grey. */
   AVER(TraceSetInter(ts, SegGrey(seg)) != TraceSetEMPTY);
   EVENT_UUPPP(TraceScan, ts, rank, arena, seg, &ss);
@@ -731,30 +740,34 @@ static Res TraceScan(TraceSet ts, Rank rank,
       white = RefSetUnion(white, ArenaTrace(arena, ti)->white);
 
   /* only scan a segment if it refers to the white set */
-  if (RefSetInter(white, SegSummary(seg)) == RefSetEMPTY) { /* blacken it */
+  if(RefSetInter(white, SegSummary(seg)) == RefSetEMPTY) { /* blacken it */
     PoolBlacken(SegPool(seg), ts, seg);
+    /* setup result code to return later */
+    res = ResOK;
   } else {  /* scan it */
     ScanStateInit(&ss, ts, arena, rank, white);
 
     /* Expose the segment to make sure we can scan it. */
     ShieldExpose(arena, seg);
 
-    res = PoolScan(&ss, SegPool(seg), seg);
-
-    if(res != ResOK) {
-      ShieldCover(arena, seg);
-      return res;
-    }
-    
-    /* Cover the segment again, now it's been scanned. */
+    res = PoolScan(&wasTotal, &ss, SegPool(seg), seg);
+    /* Cover, regardless of result */
     ShieldCover(arena, seg);
 
+    /* following is true whether or not scan was total */
     /* See design.mps.scan.summary.subset. */
     AVER(RefSetSub(ss.unfixedSummary, SegSummary(seg)));
-    
-    /* All objects on the segment have been scanned, so the scanned */
-    /* summary should replace the segment summary. */
-    SegSetSummary(seg, ScanStateSummary(&ss));
+
+    if(res != ResOK || !wasTotal) {
+      /* scan was partial, so... */
+      /* scanned summary should be ORed into segment summary. */
+      SegSetSummary(seg, RefSetUnion(SegSummary(seg),
+                                     ScanStateSummary(&ss)));
+    } else {
+      /* all objects on segment have been scanned, so... */
+      /* scanned summary should replace the segment summary. */
+      SegSetSummary(seg, ScanStateSummary(&ss));
+    }
 
     for(ti = 0; ti < TRACE_MAX; ++ti)
       if(TraceSetIsMember(ts, ti)) {
@@ -766,11 +779,13 @@ static Res TraceScan(TraceSet ts, Rank rank,
     ScanStateFinish(&ss);
   }
 
-  /* The segment is now black, so remove the greyness from it. */
-  SegSetGrey(seg, TraceSetDiff(SegGrey(seg), ts));
+  if(res == ResOK) {
+    /* The segment is now black only if scan was successful. */
+    /* Remove the greyness from it. */
+    SegSetGrey(seg, TraceSetDiff(SegGrey(seg), ts));
+  }
 
-  return ResOK;
-
+  return res;
 }
 
 
@@ -819,7 +834,7 @@ void TraceAccess(Arena arena, Seg seg, AccessSet mode)
 
   /* The write barrier handling must come after the read barrier, */
   /* because the latter may set the summary and raise the write barrier. */
-  
+
   if((mode & SegSM(seg) & AccessWRITE) != 0)      /* write barrier? */
     SegSetSummary(seg, RefSetUNIV);
 
@@ -844,20 +859,36 @@ static Res TraceRun(Trace trace)
     AVER((SegPool(seg)->class->attr & AttrSCAN) != 0);
     res = TraceScan(TraceSetSingle(trace->ti), rank,
                     arena, seg);
-    if(res != ResOK) return res;
+    if(res != ResOK)
+      return res;
   } else
     trace->state = TraceRECLAIM;
 
   return ResOK;
 }
 
+/* TraceExpedite -- moves a trace to the Finished state */
+static void TraceExpedite(Trace trace)
+{
+  AVERT(Trace, trace);
 
-/* TracePoll -- make some progress in tracing
+  AVER(trace->state != TraceINIT);
+
+  trace->arena->traceEmergency = TRUE;
+
+  while(trace->state != TraceFINISHED) {
+    Res res = TraceStep(trace);
+    /* This AVER really is sound now, because we're using EmergencyFix */
+    AVER(res == ResOK);
+  }
+}
+
+
+/* TraceStep -- progresses a trace by some small amount
  *
- * @@@@ This should accept some sort of progress control.
  */
 
-Res TracePoll(Trace trace)
+Res TraceStep(Trace trace)
 {
   Arena arena;
   Res res;
@@ -866,7 +897,7 @@ Res TracePoll(Trace trace)
 
   arena = trace->arena;
 
-  EVENT_PP(TracePoll, trace, arena);
+  EVENT_PP(TraceStep, trace, arena);
 
   switch(trace->state) {
   case TraceUNFLIPPED:
@@ -898,6 +929,25 @@ Res TracePoll(Trace trace)
   }
 
   return ResOK;
+}
+
+
+/* TracePoll -- progresses a trace, without returning errors */
+
+void TracePoll(Trace trace)
+{
+  Res res;
+
+  AVERT(Trace, trace);
+
+  res = TraceStep(trace);
+  if(res != ResOK) {
+    /* check res is expected failure code */
+    AVER(res == ResMEMORY ||
+         res == ResRESOURCE);
+    TraceExpedite(trace);
+    AVER(trace->state == TraceFINISHED);
+  }
 }
 
 
@@ -950,6 +1000,62 @@ Res TraceFix(ScanState ss, Ref *refIO)
       res = PoolFix(pool, ss, seg, refIO);
       if(res != ResOK)
         return res;
+    }
+  } else {
+    /* Address is not in segment. */
+    /* It is illegal for exact references to point to an */
+    /* address that is currently reserved by the arena, but */
+    /* not in use.  There can't possibly be any objects at */
+    /* those addresses.  We check that here. */
+    /* This AVER might be a candidate for making CRITICAL in */
+    /* some configurations */
+    AVER(ss->rank < RankEXACT ||
+	 !ArenaIsReservedAddr(ss->arena, ref));
+  }
+
+
+  /* .fix.fixed.all: */
+  /* ss->fixedSummary is accumulated for all the pointers whether */
+  /* or not they are genuine references.  We could accumulate fewer */
+  /* pointers here, if a pointer fails the SegOfAddr test then we */
+  /* know it isn't a reference, so we needn't accumulate it into the */
+  /* fixed summary.  The design allows this, but it breaks a useful */
+  /* post-condition on scanning.  See .scan.post-condition.  (if */
+  /* the accumulation of ss->fixedSummary was moved the accuracy */
+  /* of ss->fixedSummary would vary according to the "width" of the */
+  /* white summary). */
+  ss->fixedSummary = RefSetAdd(ss->arena, ss->fixedSummary, *refIO);
+
+  return ResOK;
+}
+
+
+Res TraceEmergencyFix(ScanState ss, Ref *refIO)
+{
+  Ref ref;
+  Seg seg;
+  Pool pool;
+
+  AVERT(ScanState, ss);
+  AVER(refIO != NULL);
+
+  ref = *refIO;
+
+  ++ss->fixRefCount;
+
+  EVENT_PPAU(TraceFix, ss, refIO, ref, ss->rank);
+
+  /* SegOfAddr is inlined, see design.mps.trace.fix.segofaddr */
+  if(SEG_OF_ADDR(&seg, ss->arena, ref)) {
+    ++ss->segRefCount;
+    EVENT_P(TraceFixSeg, seg);
+    if(TraceSetInter(SegWhite(seg), ss->traces) != TraceSetEMPTY) {
+      ++ss->whiteSegRefCount;
+      EVENT_0(TraceFixWhite);
+      pool = SegPool(seg);
+      /* Could move the rank switch here from the class-specific */
+      /* fix methods. */
+      PoolEmergencyFix(pool, ss, seg, refIO);
     }
   } else {
     /* Address is not in segment. */
