@@ -1,6 +1,6 @@
 /*  impl.c.mpmss: MPM STRESS TEST
  *
- * $HopeName: MMsrc!mpmss.c(trunk.16) $
+ * $HopeName: !mpmss.c(trunk.17) $
  * Copyright (C) 1998. Harlequin Group plc. All rights reserved.
  */
 

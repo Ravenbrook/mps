@@ -1,6 +1,6 @@
 /* impl.c.vmi5: VIRTUAL MEMORY MAPPING FOR IRIX 5 (AND 6)
  *
- * $HopeName: MMsrc!vmi5.c(MMdevel_irix_vm.4) $
+ * $HopeName: !vmi5.c(trunk.2) $
  * Copyright (C) 1997. Harlequin Group plc. All rights reserved.
  *
  * Design: design.mps.vm
@@ -44,7 +44,7 @@
 #include <errno.h>
 #include <unistd.h> /* for _SC_PAGESIZE */
 
-SRCID(vmi5, "$HopeName: MMsrc!vmi5.c(MMdevel_irix_vm.4) $");
+SRCID(vmi5, "$HopeName: !vmi5.c(trunk.2) $");
 
 
 /* VMStruct -- virtual memory structure */
