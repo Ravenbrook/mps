@@ -1,9 +1,11 @@
 /* impl.c.fmtdy: DYLAN OBJECT FORMAT IMPLEMENTATION
  *
- *  $HopeName: !fmtdy.c(trunk.5) $
- *  Copyright (C) 1996 Harlequin Group, all rights reserved.
+ * $HopeName: MMsrc!fmtdy.c(MMdevel_trace2.1) $
+ * Copyright (C) 1996 Harlequin Group, all rights reserved.
  *
- *  All objects, B:
+ * .design: design.dylan.container
+ *
+ *  Natural object, B:
  *
  *  B           W               pointer to wrapper
  *  B+1         object body
@@ -16,25 +18,6 @@
  *
  *  B           N | 0b10        new address | 2
  *  B+1         L               limit of object (addr of end + 1)
- *
- *  Wrappers, W:
- *
- *  W           WW              pointer to wrapper wrapper
- *  W+1         class           DylanWorks class pointer (traceable)
- *  W+2         (FL << 2) | FF  fixed part length and format
- *  W+3         (VS << 3) | VF  variable part format and element size
- *  W+4         (WT << 2) | 1   tagged pattern vector length
- *  W+5         pattern 0       patterns for fixed part fields
- *  W+5+WT-1    pattern WT-1
- *
- *  The wrapper wrapper, WW:
- *
- *  WW          WW              WW is it's own wrapper
- *  WW+1        class           DylanWorks class of wrappers
- *  WW+2        (3 << 2) | 2    wrappers have three patterned fields
- *  WW+3        (0 << 3) | 0    wrappers have a non-traceable vector
- *  WW+4        (1 << 2) | 1    one pattern word follows
- *  WW+5        0b001           only field 0 is traceable
  */
 
 #include "fmtdy.h"
@@ -150,25 +133,25 @@ static int dylan_wrapper_check(mps_word_t *w)
 /* variables in the loop allocate nicely into registers.  Alter with */
 /* care. */
 
-static mps_res_t dylan_scan_contig(mps_ss_t mps_ss,
+static mps_res_t dylan_scan_contig(mps_fix_t mps_fix,
                                    mps_addr_t *base, mps_addr_t *limit)
 {
   mps_res_t res;
   mps_addr_t *p;        /* reference cursor */
   mps_addr_t r;         /* reference to be fixed */
 
-  MPS_SCAN_BEGIN(mps_ss) {
+  MPS_SCAN_BEGIN(mps_fix) {
           p = base;
     loop: if(p >= limit) goto out;
           r = *p++;
           if(((mps_word_t)r&3) != 0) /* pointers tagged with 0 */
             goto loop;             /* not a pointer */
-          if(!MPS_FIX1(mps_ss, r)) goto loop;
-          res = MPS_FIX2(mps_ss, p-1);
+          if(!MPS_FIX1(mps_fix, r)) goto loop;
+          res = MPS_FIX2(p-1, mps_fix);
           if(res == MPS_RES_OK) goto loop;
           return res;
     out:  assert(p == limit);
-  } MPS_SCAN_END(mps_ss);
+  } MPS_SCAN_END(mps_fix);
 
   return MPS_RES_OK;
 }
@@ -180,7 +163,7 @@ static mps_res_t dylan_scan_contig(mps_ss_t mps_ss,
 /* variables in the loop allocate nicely into registers.  Alter with */
 /* care. */
 
-static mps_res_t dylan_scan_pat(mps_ss_t mps_ss,
+static mps_res_t dylan_scan_pat(mps_fix_t mps_fix,
                                 mps_addr_t *base, mps_addr_t *limit,
                                 mps_word_t *pats, mps_word_t nr_pats)
 {
@@ -192,7 +175,7 @@ static mps_res_t dylan_scan_pat(mps_ss_t mps_ss,
   int b;                /* bit */
   mps_addr_t r;         /* reference to be fixed */
 
-  MPS_SCAN_BEGIN(mps_ss) {
+  MPS_SCAN_BEGIN(mps_fix) {
           p = base;
           goto in;
     pat:  p += MPS_WORD_WIDTH;
@@ -207,13 +190,13 @@ static mps_res_t dylan_scan_pat(mps_ss_t mps_ss,
           r = *(pp-1);
           if(((mps_word_t)r&3) != 0) /* pointers tagged with 0 */
             goto loop;             /* not a pointer */
-          if(!MPS_FIX1(mps_ss, r)) goto loop;
-          res = MPS_FIX2(mps_ss, pp-1);
+          if(!MPS_FIX1(mps_fix, r)) goto loop;
+          res = MPS_FIX2(pp-1, mps_fix);
           if(res == MPS_RES_OK) goto loop;
           return res;
     out:  assert(p < limit + MPS_WORD_WIDTH);
           assert(pc == pats + nr_pats);
-  } MPS_SCAN_END(mps_ss);
+  } MPS_SCAN_END(mps_fix);
 
   return MPS_RES_OK;
 }
@@ -224,7 +207,7 @@ static mps_res_t dylan_scan_pat(mps_ss_t mps_ss,
      (MPS_WORD_SHIFT - (_vs)) : \
    (_vt) << ((_vs) - MPS_WORD_SHIFT))
 
-static mps_res_t dylan_scan1(mps_ss_t mps_ss, mps_addr_t *object_io)
+static mps_res_t dylan_scan1(mps_fix_t fix, mps_addr_t *object_io)
 {
   mps_addr_t *p;        /* cursor in object */
   mps_addr_t *q;        /* cursor limit for loops */
@@ -261,7 +244,7 @@ static mps_res_t dylan_scan1(mps_ss_t mps_ss, mps_addr_t *object_io)
     return MPS_RES_OK;
   }
 
-  mps_fix(mps_ss, p);           /* fix the wrapper */
+  mps_fix(p, fix);              /* fix the wrapper */
   w = (mps_word_t *)p[0];       /* wrapper is header word */
   assert(dylan_wrapper_check(w));
 
@@ -283,12 +266,12 @@ static mps_res_t dylan_scan1(mps_ss_t mps_ss, mps_addr_t *object_io)
       break;
 
       case 1:                   /* all traceable fields */
-      res = dylan_scan_contig(mps_ss, p, q);
+      res = dylan_scan_contig(fix, p, q);
       if(res) return res;
       break;
 
       case 2:                   /* patterns */
-      res = dylan_scan_pat(mps_ss, p, q, &w[5], w[4]>>2);
+      res = dylan_scan_pat(fix, p, q, &w[5], w[4]>>2);
       if(res) return res;
       break;
 
@@ -322,7 +305,7 @@ static mps_res_t dylan_scan1(mps_ss_t mps_ss, mps_addr_t *object_io)
 
       case 2:                   /* non-stretchy traceable */
       q = p + vt;
-      res = dylan_scan_contig(mps_ss, p, q);
+      res = dylan_scan_contig(fix, p, q);
       if(res) return res;
       p = q;
       break;
@@ -333,7 +316,7 @@ static mps_res_t dylan_scan1(mps_ss_t mps_ss, mps_addr_t *object_io)
       assert((vl & 3) == 1);    /* check Dylan integer tag */
       vl >>= 2;                 /* untag it */
       ++p;
-      res = dylan_scan_contig(mps_ss, p, p + vl);
+      res = dylan_scan_contig(fix, p, p + vl);
       if(res) return res;
       p += vt;                  /* skip to end of whole vector */
       break;
@@ -359,13 +342,13 @@ static mps_res_t dylan_scan1(mps_ss_t mps_ss, mps_addr_t *object_io)
   return MPS_RES_OK;
 }
 
-static mps_res_t dylan_scan(mps_ss_t mps_ss,
+static mps_res_t dylan_scan(mps_fix_t fix,
                             mps_addr_t base, mps_addr_t limit)
 {
   mps_res_t res;
 
   while(base < limit) {
-    res = dylan_scan1(mps_ss, &base);
+    res = dylan_scan1(fix, &base);
     if(res) return res;
   }
 
