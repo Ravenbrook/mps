@@ -1,14 +1,32 @@
 /* impl.h.cbs: CBS -- Coalescing Block Structure
  *
- * $HopeName: !cbs.h(trunk.1) $
+ * $HopeName: MMsrc!cbs.h(MMdevel_color_pool.1) $
  * Copyright (C) 1998 Harlequin Group plc.  All rights reserved.
  *
  * .source: design.mps.cbs.
  */
 
+#ifndef cbs_h
+#define cbs_h
+
 #include "mpmtypes.h"
 #include "meter.h"
 #include "mpmst.h" /* just for SplayTreeStruct */
+
+
+typedef struct CBSStruct *CBS;
+typedef struct CBSBlockStruct *CBSBlock;
+typedef void (*CBSChangeSizeMethod)(CBS cbs, CBSBlock block,
+              Size oldSize, Size newSize);
+typedef Bool (*CBSIterateMethod)(CBS cbs, CBSBlock block,
+                                 void *closureP, unsigned long closureS);
+
+
+/* See design.mps.cbs.impl.low-mem.inline.block */
+typedef void **CBSEmergencyBlock; /* next, limit */
+
+/* See design.mps.cbs.impl.low-mem.inline.block */
+typedef void **CBSEmergencyGrain; /* next */
 
 
 #define CBSSig ((Sig)0x519CB599) /* SIGnature CBS */
@@ -82,7 +100,17 @@ extern Addr (CBSBlockLimit)(CBSBlock block);
     (AddrOffset(CBSBlockBase((block)), CBSBlockLimit((block)))))
 extern Size (CBSBlockSize)(CBSBlock block);
 
+typedef unsigned CBSFindDelete;
+enum {
+  CBSFindDeleteNONE,    /* don't delete after finding */
+  CBSFindDeleteLOW,     /* delete precise size from low end */
+  CBSFindDeleteHIGH,    /* delete precise size from high end */
+  CBSFindDeleteENTIRE   /* delete entire range */
+};
 extern Bool CBSFindFirst(Addr *baseReturn, Addr *limitReturn,
                          CBS cbs, Size size, CBSFindDelete findDelete);
 extern Bool CBSFindLast(Addr *baseReturn, Addr *limitReturn,
                         CBS cbs, Size size, CBSFindDelete findDelete);
+
+
+#endif /* cbs_h */
