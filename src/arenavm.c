@@ -1,6 +1,6 @@
 /* impl.c.arenavm: VIRTUAL MEMORY BASED ARENA IMPLEMENTATION
  *
- * $HopeName: MMsrc!arenavm.c(MMdevel_drj_arena_hysteresis.6) $
+ * $HopeName: MMsrc!arenavm.c(MMdevel_drj_arena_hysteresis.7) $
  * Copyright (C) 1998.  Harlequin Group plc.  All rights reserved.
  *
  * PURPOSE
@@ -32,7 +32,7 @@
 #include "mpm.h"
 #include "mpsavm.h"
 
-SRCID(arenavm, "$HopeName: MMsrc!arenavm.c(MMdevel_drj_arena_hysteresis.6) $");
+SRCID(arenavm, "$HopeName: MMsrc!arenavm.c(MMdevel_drj_arena_hysteresis.7) $");
 
 
 /* @@@@ Arbitrary calculation for the maximum number of distinct */
@@ -1041,14 +1041,23 @@ static Size VMArenaCommitted(Arena arena)
 
 static Bool tablePageInUse(VMArenaChunk chunk, Addr tablePage)
 {
+  Index limitIndex;
+
   AVERT(VMArenaChunk, chunk);
   /* Check it's in the page table. */
   AVER((Addr)&chunk->pageTable[0] <= tablePage);
   AVER(tablePage < addrOfPageDesc(chunk, chunk->pages));
 
+  if(tablePage == addrPageBase(chunk, addrOfPageDesc(chunk, chunk->pages))) {
+    limitIndex = chunk->pages;
+  } else {
+    limitIndex = tablePageLimitIndex(chunk, tablePage);
+  }
+  AVER(limitIndex <= chunk->pages);
+
   return !BTIsResRange(chunk->allocTable,
                        tablePageBaseIndex(chunk, tablePage),
-                       tablePageLimitIndex(chunk, tablePage));
+                       limitIndex);
 }
 
 
@@ -1163,7 +1172,7 @@ static void VMArenaUnmapUnusedTablePages(VMArenaChunk chunk,
   AVER(AddrIsAligned(tablePageLimit, pageSize));
 
 
-  /* for loop index over base addresses of pages occupied by page table */
+  /* for loop indexes over base addresses of pages occupied by page table */
   for(cursor = tablePageBase;
       cursor < tablePageLimit;
       cursor = AddrAdd(cursor, pageSize)) {
@@ -1924,7 +1933,6 @@ static void VMArenaPurgeLatentPages(VMArena vmArena)
       } else {
         pageBase = tablePageBaseIndex(chunk, latentTableBase);
       }
-      /* tablePage indexes over base addresses of page table pages */
       for(tablePage = latentBaseIndex;
           tablePage < latentLimitIndex;
 	  ++tablePage) {
