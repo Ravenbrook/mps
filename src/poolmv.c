@@ -1,6 +1,6 @@
 /* impl.c.poolmv: MANUAL VARIABLE POOL
  *
- * $HopeName: MMsrc!poolmv.c(MMdevel_fencepost.2) $
+ * $HopeName: MMsrc!poolmv.c(MMdevel_fencepost.3) $
  * Copyright (C) 1997, 1998 Harlequin Group plc.  All rights reserved.
  *
  * **** RESTRICTION: This pool may not allocate from the arena control
@@ -30,7 +30,7 @@
 #include "poolmfs.h"
 #include "mpm.h"
 
-SRCID(poolmv, "$HopeName: MMsrc!poolmv.c(MMdevel_fencepost.2) $");
+SRCID(poolmv, "$HopeName: MMsrc!poolmv.c(MMdevel_fencepost.3) $");
 
 
 #define BLOCKPOOL(mv)   (MFSPool(&(mv)->blockPoolStruct))
@@ -746,7 +746,7 @@ static PoolClassStruct poolClassMVStruct = {
   PoolNoRampEnd,
   PoolNoWalk,                           /* walk */
   MVDescribe,                           /* describe */
-  MVDebugMixin,
+  PoolNoDebugMixin,
   PoolClassSig                          /* impl.h.mpmst.class.end-sig */
 };
 
@@ -766,6 +766,7 @@ static PoolClass poolClassMVDebug(void)
   EnsureDebugClass(&poolClassMVDebugStruct, PoolClassMV());
   poolClassMVDebugStruct.name = "MVDBG";
   poolClassMVDebugStruct.size = sizeof(MVDebugStruct);
+  poolClassMVDebugStruct.debugMixin = MVDebugMixin;
   return &poolClassMVDebugStruct;
 }
 
