@@ -1,6 +1,6 @@
 /* impl.h.mpmtypes: MEMORY POOL MANAGER TYPES
  *
- * $HopeName: MMsrc!mpmtypes.h(MMdevel_remem.2) $
+ * $HopeName: MMsrc!mpmtypes.h(MMdevel_remem.3) $
  * Copyright (C) 1996 Harlequin Group, all rights reserved.
  *
  * .rationale: Types and type constants are almost all defined
@@ -89,17 +89,14 @@ typedef struct ThreadStruct *Thread;	/* impl.c.th* */
 typedef Res (*RootScanMethod)   (ScanState ss, void *p, size_t s);
 typedef Res (*RootScanRegMethod)(ScanState ss, Thread thread, void *p);
 
-typedef Res  (*BufferFillMethod)(Addr *pReturn, Buffer buffer, Size size);
-typedef Bool (*BufferTripMethod)(Buffer buffer, Addr p, Size size);
-
 typedef Res  (*PoolCreateMethod)       (Pool *poolReturn, Space space, va_list arg);
 typedef void (*PoolDestroyMethod)      (Pool pool);
 typedef Res  (*PoolAllocMethod)        (Addr *pReturn, Pool pool, Size size);
 typedef void (*PoolFreeMethod)         (Pool pool, Addr old, Size size);
 typedef Res  (*PoolBufferCreateMethod) (Buffer *bufReturn, Pool pool);
 typedef void (*PoolBufferDestroyMethod)(Pool pool, Buffer buf);
-typedef Res  (*PoolBufferFillMethod)   (Addr *baseReturn, Pool pool, Buffer buffer, Size size);
-typedef Bool (*PoolBufferTripMethod)   (Pool pool, Buffer buffer, Addr base, Size size);
+typedef Res  (*PoolBufferFillMethod)   (Pool pool, Buffer buffer, Size size);
+typedef void (*PoolBufferTripMethod)   (Pool pool, Buffer buffer);
 typedef Res  (*PoolBufferAttachMethod) (Pool pool, Buffer buffer, Size size);
 typedef void (*PoolBufferDetachMethod) (Pool pool, Buffer buffer);
 typedef Res  (*PoolTraceStartMethod)   (Pool pool, TraceId ti);
