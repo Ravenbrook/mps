@@ -1,6 +1,6 @@
 # ==== SECOND COMMON FRAGMENT FOR PLATFORMS USING MV AND NMAKE
 #
-# $HopeName: MMsrc!commpost.nmk(MMdevel_dropin.3) $
+# $HopeName: MMsrc!commpost.nmk(MMdevel_dropin.4) $
 # Copyright(C) 1997 Harlequin Group, all rights reserved
 #
 # DESCRIPTION
@@ -156,13 +156,13 @@ $(PFM)\$(VARIETY)\poolawl.lib: $(AWLOBJ)
 	$(ECHO) $@
 	@if not exist $(PFM) mkdir $(PFM)
 	@if not exist $(PFM)\$(VARIETY) mkdir $(PFM)\$(VARIETY)
-	cl /c $(CFLAGS) /Fd$(PFM)\$(VARIETY)\$(<:.obj=.pdb) /Fo$@ $<
+	cl /c /nologo /W3 /WX $(CFLAGS) /Fd$(PFM)\$(VARIETY)\$(<:.obj=.pdb) /Fo$@ $<
 
 {}.cpp{$(PFM)\$(VARIETY)}.obj:
 	$(ECHO) $@
 	@if not exist $(PFM) mkdir $(PFM)
 	@if not exist $(PFM)\$(VARIETY) mkdir $(PFM)\$(VARIETY)
-	cl /c $(CFLAGS) /Fd$(PFM)\$(VARIETY)\$(<:.obj=.pdb) /Fo$@ $<
+	cl /c /nologo /W3 /WX /GX $(CFLAGS) /Fd$(PFM)\$(VARIETY)\$(<:.obj=.pdb) /Fo$@ $<
 
 {}.asm{$(PFM)\$(VARIETY)}.obj:
 	$(ECHO) $@
