@@ -1,6 +1,7 @@
-/*  ==== MPM STRESS TEST ====
+/* impl.c.mpmss: MPM STRESS TEST
  *
- *  $HopeName: MMsrc!mpmss.c(MMdevel_sw_eq.3) $
+ * $HopeName: MMsrc!mpmss.c(MMdevel_sw_eq.4) $
+ * Copyright (C) 1997.  Harlequin Group plc.  All rights reserved.
  */
 
 
@@ -14,17 +15,19 @@
 #include "mpslib.h"
 
 
+#define TEST_ARENA_SIZE         ((Size)16<<20)
 #define TEST_SET_SIZE           500
 #define TEST_LOOPS              10
 
 
-static mps_res_t stress(mps_class_t class, mps_space_t space, size_t (*size)(int i), ...)
+static mps_res_t stress(mps_class_t class, mps_space_t space,
+                        size_t (*size)(int i), ...)
 {
   mps_res_t res;
   mps_pool_t pool;
   va_list arg;
-  int i,k;
-  void *ps[TEST_SET_SIZE];
+  int i, k;
+  int *ps[TEST_SET_SIZE];
   size_t ss[TEST_SET_SIZE];
 
   va_start(arg, size);
@@ -32,15 +35,15 @@ static mps_res_t stress(mps_class_t class, mps_space_t space, size_t (*size)(int
   va_end(arg);
   if(res != MPS_RES_OK) return res;
 
-  for(i=0; i<TEST_SET_SIZE; ++i)
-  {
+  for(i=0; i<TEST_SET_SIZE; ++i) {
     ss[i] = (*size)(i);
 
     res = mps_alloc((mps_addr_t *)&ps[i], pool, ss[i]);
     if(res != MPS_RES_OK) return res;
+    *ps[i] = 1; /* Write something, so it gets swap. */
 
-    if(i && i%5==0) putchar('\n');
-    printf("%8lX %4lu ", (unsigned long)ps[i], (unsigned long)ss[i]);
+    if(i && i%4 == 0) putchar('\n');
+    printf("%8lX %6lX ", (unsigned long)ps[i], (unsigned long)ss[i]);
   }
   putchar('\n');
 
@@ -99,8 +102,7 @@ static size_t fixedSize(int i)
 
 static void die(mps_res_t res, const char *s)
 {
-  if(res != MPS_RES_OK)
-  {
+  if(res != MPS_RES_OK) {
     fprintf(stderr, "%s: %d\n", s, res);
     exit(1);
   }
@@ -110,15 +112,20 @@ static void die(mps_res_t res, const char *s)
 int main(void)
 {
   mps_space_t space;
+  void *block;
 
-  die(mps_space_create(&space), "SpaceInit");
+  block = malloc(TEST_ARENA_SIZE);
+  die(block == NULL ? ResFAIL : ResOK, "malloc");
+  die(mps_space_create_wmem(&space, (Addr)block, TEST_ARENA_SIZE), "SpaceInit");
+
   die(stress((mps_class_t)PoolClassMV(),
-      space, randomSize, (size_t)65536,
-      (size_t)32, (size_t)65536), "stress MV");
+             space, randomSize, (size_t)65536,
+             (size_t)32, (size_t)65536),
+      "stress MV");
   fixedSizeSize = 13;
   die(stress((mps_class_t)PoolClassMFS(),
-      space, fixedSize, (size_t)100000, fixedSizeSize),
-    "stress MFS");
+             space, fixedSize, (size_t)100000, fixedSizeSize),
+      "stress MFS");
 
   mps_space_destroy(space);
 
