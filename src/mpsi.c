@@ -1,6 +1,6 @@
 /* impl.c.mpsi: MEMORY POOL SYSTEM C INTERFACE LAYER
  *
- * $HopeName: !mpsi.c(trunk.68) $
+ * $HopeName: MMsrc!mpsi.c(MMdevel_tony_sunset.1) $
  * Copyright (C) 1997. Harlequin Group plc. All rights reserved.
  *
  * .purpose: This code bridges between the MPS interface to C,
@@ -53,7 +53,7 @@
 #include "mps.h"
 #include "mpsavm.h" /* only for mps_space_create */
 
-SRCID(mpsi, "$HopeName: !mpsi.c(trunk.68) $");
+SRCID(mpsi, "$HopeName: MMsrc!mpsi.c(MMdevel_tony_sunset.1) $");
 
 
 /* mpsi_check -- check consistency of interface mappings
@@ -1594,19 +1594,23 @@ mps_res_t mps_ap_alloc_pattern_reset(mps_ap_t mps_ap)
 void mps_reservoir_limit_set(mps_arena_t mps_arena, size_t size)
 {
   Arena arena = (Arena)mps_arena;
+  Reservoir reservoir;
 
   ArenaEnter(arena);
-  ArenaReservoirLimitSet(arena, size);
+  reservoir = ArenaReservoir(arena);
+  ReservoirSetLimit(reservoir, size);
   ArenaLeave(arena);
 }
 
 size_t mps_reservoir_limit(mps_arena_t mps_arena)
 {
   Arena arena = (Arena)mps_arena;
+  Reservoir reservoir;
   Size size;
 
   ArenaEnter(arena);
-  size = ArenaReservoirLimit(arena);
+  reservoir = ArenaReservoir(arena);
+  size = ReservoirLimit(reservoir);
   ArenaLeave(arena);
 
   return size;
@@ -1615,10 +1619,12 @@ size_t mps_reservoir_limit(mps_arena_t mps_arena)
 size_t mps_reservoir_available(mps_arena_t mps_arena)
 {
   Arena arena = (Arena)mps_arena;
+  Reservoir reservoir;
   Size size;
 
   ArenaEnter(arena);
-  size = ArenaReservoirAvailable(arena);
+  reservoir = ArenaReservoir(arena);
+  size = ReservoirAvailable(reservoir);
   ArenaLeave(arena);
 
   return size;

@@ -1,6 +1,6 @@
 # impl.gmk.comm: COMMON GNUMAKEFILE FRAGMENT
 #
-# $HopeName: !comm.gmk(trunk.49) $
+# $HopeName: MMsrc!comm.gmk(MMdevel_tony_sunset.1) $
 # Copyright (C) 1997.  Harlequin Group plc.  All rights reserved.
 #
 # DESCRIPTION
@@ -182,14 +182,14 @@ FMTPS = fmtpstst.c
 PLINTH = mpsliban.c mpsioan.c
 EVENT = event.c
 MPMCOMMON = assert.c mpsi.c mpm.c arenavm.c arenacl.c arena.c \
-            protocol.c pool.c poolabs.c \
+            walk.c reserv.c protocol.c pool.c poolabs.c \
             trace.c root.c seg.c format.c buffer.c ref.c bt.c ring.c \
             shield.c ld.c event.c action.c message.c \
             poolmrg.c poolmfs.c poolmv.c dbgpool.c \
             abq.c meter.c poolmv2.c splay.c cbs.c version.c
 MPM = $(MPMCOMMON) $(MPMPF)
 SWCOMMON = assert.c mpsi.c mpm.c arenavm.c arenacl.c arena.c \
-           protocol.c pool.c poolabs.c \
+           walk.c reserv.c protocol.c pool.c poolabs.c \
            trace.c root.c seg.c format.c buffer.c ref.c bt.c ring.c \
            shield.c ld.c event.c action.c mpsioan.c message.c poolmrg.c \
            poolmfs.c poolmv.c poolepdl.c poolepvm.c poolams.c dbgpool.c \
