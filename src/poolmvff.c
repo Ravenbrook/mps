@@ -1,7 +1,7 @@
 /* impl.c.poolmvff: First Fit Manual Variable Pool
  * 
- * $HopeName: MMsrc!poolmvff.c(MMdevel_color_pool.2) $
- * Copyright (C) 1998 Harlequin Group plc.  All rights reserved.
+ * $HopeName: MMsrc!poolmvff.c(MMdevel_color_pool.3) $
+ * Copyright (C) 1998, 1999 Harlequin Group plc.  All rights reserved.
  *
  * .purpose: This is a pool class for manually managed objects of
  * variable size where address-ordered first fit is an appropriate
@@ -11,6 +11,12 @@
  * .readership: MM developers
  * 
  * .design: design.mps.poolmvff
+ *
+ *
+ * TRANSGRESSIONS
+ *
+ * .trans.stat: mps_mvff_stat is a temporary hack for measurement purposes,
+ * see .stat below.
  */
 
 #include "mpscmvff.h"
@@ -18,7 +24,7 @@
 #include "cbs.h"
 #include "mpm.h"
 
-SRCID(poolmvff, "$HopeName: MMsrc!poolmvff.c(MMdevel_color_pool.2) $");
+SRCID(poolmvff, "$HopeName: MMsrc!poolmvff.c(MMdevel_color_pool.3) $");
 
 
 /* Would go in poolmvff.h if the class had any MPS-internal clients. */
@@ -707,4 +713,29 @@ static Bool MVFFCheck(MVFF mvff)
   CHECKL(BoolCheck(mvff->firstFit));
   CHECKL(BoolCheck(mvff->TSBA));
   return TRUE;
+}
+
+
+/* mps_mvff_stat -- a hack to get statistics emitted
+ *
+ * .stat: The SW temp pool cannot be destroyed, so we're providing this
+ * to get the statistics.  It breaks modularity to access CBS internals.
+ */
+
+#include "meter.h"
+extern void mps_mvff_stat(mps_pool_t pool);
+
+void mps_mvff_stat(mps_pool_t mps_pool)
+{
+  Pool pool;
+  MVFF mvff;
+
+  pool = (Pool)mps_pool;
+  AVERT(Pool, pool);
+  mvff = PoolPoolMVFF(pool);
+  AVERT(MVFF, mvff);
+
+  METER_EMIT(&CBSOfMVFF(mvff)->splaySearch);
+  METER_EMIT(&CBSOfMVFF(mvff)->eblSearch);
+  METER_EMIT(&CBSOfMVFF(mvff)->eglSearch);
 }
