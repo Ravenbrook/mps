@@ -1,6 +1,6 @@
 /* impl.h.mpmtypes: MEMORY POOL MANAGER TYPES
  *
- * $HopeName: !mpmtypes.h(trunk.2) $
+ * $HopeName: MMsrc!mpmtypes.h(MMdevel_drjweak.1) $
  * Copyright (C) 1996 Harlequin Group, all rights reserved.
  *
  * .rationale: Types and type constants are almost all defined
@@ -95,7 +95,8 @@ typedef Res  (*PoolCreateMethod)       (Pool *poolReturn, Space space, va_list a
 typedef void (*PoolDestroyMethod)      (Pool pool);
 typedef Res  (*PoolAllocMethod)        (Addr *pReturn, Pool pool, Size size);
 typedef void (*PoolFreeMethod)         (Pool pool, Addr old, Size size);
-typedef Res  (*PoolBufferCreateMethod) (Buffer *bufReturn, Pool pool);
+typedef Res  (*PoolBufferCreateMethod) (Buffer *bufReturn, Pool pool,
+					Rank rank);
 typedef void (*PoolBufferDestroyMethod)(Pool pool, Buffer buf);
 typedef Res  (*PoolBufferFillMethod)   (Addr *baseReturn, Pool pool, Buffer buffer, Size size);
 typedef Bool (*PoolBufferTripMethod)   (Pool pool, Buffer buffer, Addr base, Size size);
