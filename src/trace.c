@@ -1,6 +1,6 @@
 /* impl.c.trace: GENERIC TRACER IMPLEMENTATION
  *
- * $HopeName: MMsrc!trace.c(trunk.72) $
+ * $HopeName: !trace.c(trunk.73) $
  * Copyright (C) 1998.  Harlequin Group plc.  All rights reserved.
  *
  * .design: design.mps.trace.
@@ -10,7 +10,7 @@
 #include <limits.h>
 
 
-SRCID(trace, "$HopeName: MMsrc!trace.c(trunk.72) $");
+SRCID(trace, "$HopeName: !trace.c(trunk.73) $");
 
 
 /* Types

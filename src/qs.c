@@ -1,6 +1,6 @@
 /*  impl.c.qs: QUICKSORT
  *
- *  $HopeName: MMsrc!qs.c(trunk.13) $
+ *  $HopeName: !qs.c(trunk.14) $
  *
  *  Copyright (C) 1995, 1996, 1998 Harlequin Group, all rights reserved
  *

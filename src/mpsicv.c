@@ -1,6 +1,6 @@
 /* impl.c.mpsicv: MPSI COVERAGE TEST
  *
- * $HopeName: MMsrc!mpsicv.c(trunk.13) $
+ * $HopeName: !mpsicv.c(trunk.14) $
  * Copyright (C) 1996, 1997 Harlequin Group, all rights reserved
  */
 

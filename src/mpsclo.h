@@ -1,6 +1,6 @@
 /* impl.h.mpscmv: MEMORY POOL SYSTEM CLASS "LO"
  *
- * $HopeName$
+ * $HopeName: !mpsclo.h(trunk.1) $
  *
  * Copyright (C) 1996 Harlequin Group, all rights reserved.
  */
