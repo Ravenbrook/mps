@@ -1,12 +1,12 @@
 /* impl.c.arenavm: VIRTUAL MEMORY BASED ARENA IMPLEMENTATION
  *
- * $HopeName: MMsrc!arenavm.c(MMdevel_restr.4) $
+ * $HopeName: MMsrc!arenavm.c(MMdevel_restr.5) $
  * Copyright (C) 1996 Harlequin Group, all rights reserved.
  */
 
 #include "mpm.h"
 
-SRCID(arenavm, "$HopeName: MMsrc!arenavm.c(MMdevel_restr.4) $");
+SRCID(arenavm, "$HopeName: MMsrc!arenavm.c(MMdevel_restr.5) $");
 
 #define SpaceArena(space)	(&(space)->arenaStruct)
 
@@ -74,7 +74,7 @@ Res ArenaCreate(Space *spaceReturn, Size size)
 {
   Res res;
   Space space;
-  Size f_words, f_size, p_size, t_pages;
+  Size f_words, f_size, p_size;
   Arena arena;
   PI i;
   
@@ -108,17 +108,13 @@ Res ArenaCreate(Space *spaceReturn, Size size)
   arena->freeTable = (Word *)arena->base;
   arena->pageTable = (Page)(arena->base + f_size);
 
-  /* Mark the pages that are occupied by the tables as allocated, and */
-  /* the rest as free. */
-  /* .seg.null: for the moment preallocated pages are marked with
-   * a null page and seg
+  /* .tablePages: pages numbered < tablePages are recorded as free
+   * but never allocated as segments as they contain the arena's
+   * tables, but have no associated pool.
    */
-  t_pages = (f_size + p_size) >> arena->pageShift;
-  for(i = 0; i < arena->pages; ++i) {
-    BTSet(arena->freeTable, i, i >= t_pages);
-    arena->pageTable[i].the.tail.pool = NULL;
-    arena->pageTable[i].the.tail.seg = NULL;
-  }
+  arena->tablePages = (f_size + p_size) >> arena->pageShift;
+  for(i = 0; i < arena->pages; ++i)
+    BTSet(arena->freeTable, i, TRUE);
 
   /* Set the zone shift to divide the arena into the same number of */
   /* zones as will fit into a reference set (the number of bits in */
@@ -202,11 +198,12 @@ Res SegAlloc(Seg *segReturn, Space space, Size size, Pool pool)
   AVER(pool != NULL);
 
   /* Search for a free run of pages in the free table. */
+  /* Start from arena->tablePages (.tablePages). */
   /* @@@@ This code can probably be seriously optimised by */
   /* twiddling the bit table. */  
   pages = size >> arena->pageShift;
   count = 0;
-  for(pi = 0; pi < arena->pages; ++pi) {
+  for(pi = arena->tablePages; pi < arena->pages; ++pi) {
     if(BTGet(arena->freeTable, pi)) {
       if(count == 0)
         base = pi;
@@ -233,6 +230,7 @@ found:
   seg->pool = pool;
   seg->p = NULL;
   seg->single = TRUE;
+  seg->condemned = TraceIdNone;
 
   seg->pm = ProtNONE; /* see impl.c.shield */
   seg->sm = ProtNONE;
@@ -400,10 +398,7 @@ Bool SegOfAddr(Seg *segReturn, Space space, Addr addr)
       if(page->the.head.pool != NULL)
         *segReturn = &page->the.head;
       else
-	if(page->the.tail.seg == NULL)    /* .seg.null */
-	  return FALSE;
-	else
-	  *segReturn = page->the.tail.seg;
+	*segReturn = page->the.tail.seg;
       return TRUE;
     }
   }
