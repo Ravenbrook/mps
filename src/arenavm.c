@@ -1,6 +1,6 @@
 /* impl.c.arenavm: VIRTUAL MEMORY BASED ARENA IMPLEMENTATION
  *
- * $HopeName: MMsrc!arenavm.c(MMdevel_ptw_pseudoloci.9) $
+ * $HopeName: MMsrc!arenavm.c(MMdevel_ptw_pseudoloci.10) $
  * Copyright (C) 1998. Harlequin Group plc. All rights reserved.
  *
  * This is the implementation of the Segment abstraction from the VM
@@ -29,7 +29,7 @@
 #include "mpm.h"
 #include "mpsavm.h"
 
-SRCID(arenavm, "$HopeName: MMsrc!arenavm.c(MMdevel_ptw_pseudoloci.9) $");
+SRCID(arenavm, "$HopeName: MMsrc!arenavm.c(MMdevel_ptw_pseudoloci.10) $");
 
 
 typedef struct VMArenaStruct *VMArena;
@@ -111,7 +111,7 @@ typedef struct VMArenaStruct {  /* VM arena structure */
 
 /* SegVMArena -- find the VMArena given a segment */
 
-#define SegVMArena(seg) ArenaVMArena(PoolArena(SegPool(seg)))
+#define SegVMArena(seg) ArenaVMArena(SegArena(seg))
 
 
 /* PageStruct -- page structure
@@ -120,19 +120,19 @@ typedef struct VMArenaStruct {  /* VM arena structure */
  * is central to the design of the arena.
  * See design.mps.arena.vm.table.*.
  *
- * .page: The "pool" field must be the first field of the "tail"
+ * .page: The "client" field must be the first field of the "tail"
  * field of this union, so that it shares a common prefix with the
  * SegStruct.  See impl.h.mpmst.seg.pool.
  */
 
 typedef struct PageStruct {     /* page structure */
   union {
-    SegStruct segStruct;         /* segment */
+    SegStruct segStruct;        /* segment */
     struct {
-      Pool pool;                 /* NULL, must be first field (.page) */
-      Seg seg;                   /* segment at base page of run */
-      Addr limit;                /* limit of segment */
-    } tail;                      /* tail page */
+      LocusClient client;       /* NULL, must be first field (.page) */
+      Seg seg;                  /* segment at base page of run */
+      Addr limit;               /* limit of segment */
+    } tail;                     /* tail page */
   } the;
 } PageStruct;
 
@@ -166,7 +166,7 @@ typedef struct PageStruct {     /* page structure */
  * See design.mps.arena.vm.table.disc.
  */
 
-#define PageIsHead(page)        (PageTail((page))->pool != NULL)
+#define PageIsHead(page)        (PageTail((page))->client != NULL)
 
 
 /* addrPageBase -- the base of the page this address is on */
@@ -1128,7 +1128,7 @@ static Bool VMSegFind(Index *baseReturn, VMArenaChunk *chunkReturn,
 /* VMSegAlloc -- allocate a segment from the arena */
 
 static Res VMSegAlloc(Seg *segReturn, SegPref pref, Size size,
-		      Pool pool)
+		      LocusClient client)
 {
   Addr addr, unmappedPagesBase, unmappedPagesLimit;
   Arena arena;
@@ -1142,20 +1142,20 @@ static Res VMSegAlloc(Seg *segReturn, SegPref pref, Size size,
   AVER(segReturn != NULL);
   AVERT(SegPref, pref);
   AVER(size > (Size)0);
-  AVERT(Pool, pool);
+  AVERT(LocusClient, client);
 
-  arena = PoolArena(pool);
+  arena = LocusClientArena(client);
   vmArena = ArenaVMArena(arena);
   AVERT(VMArena, vmArena);
   /* Assume all chunks have same pageSize */
   AVER(SizeIsAligned(size, vmArena->primary->pageSize));
   
   /* NULL is used as a discriminator */
-  /* (see design.mps.arena.vm.table.disc) therefore the real pool */
+  /* (see design.mps.arena.vm.table.disc) therefore the real client */
   /* must be non-NULL. */
-  AVER(pool != NULL);
+  AVER(client != NULL);
 
-  if(!VMSegFind(&base, &chunk, vmArena, PoolLocusClient(pool), pref,
+  if(!VMSegFind(&base, &chunk, vmArena, client, pref,
                 size, FALSE)) {
     VMArenaChunk newChunk;
     Size chunkSize;
@@ -1169,7 +1169,7 @@ static Res VMSegAlloc(Seg *segReturn, SegPref pref, Size size,
       return res;
     }
     RingAppend(&vmArena->chunkRing, &newChunk->arenaRing);
-    if(!VMSegFind(&base, &chunk, vmArena, PoolLocusClient(pool), pref,
+    if(!VMSegFind(&base, &chunk, vmArena, client, pref,
                   size, TRUE)) { 
       /* even with new chunk didn't work... */
       /* @@@@ .improve.debug: If the tables of the new chunk */
@@ -1207,7 +1207,7 @@ static Res VMSegAlloc(Seg *segReturn, SegPref pref, Size size,
 
   /* Initialize the generic segment structure. */
   seg = PageSeg(&chunk->pageTable[base]);
-  SegInit(seg, pool);
+  SegInitClient(seg, client);
 
   /* Allocate the first page, and, if there is more than one page, */
   /* allocate the rest of the pages and store the multi-page information */
@@ -1221,7 +1221,7 @@ static Res VMSegAlloc(Seg *segReturn, SegPref pref, Size size,
     for(i = base + 1; i < base + pages; ++i) {
       AVER(!BTGet(chunk->allocTable, i));
       BTSet(chunk->allocTable, i);
-      PageTail(&chunk->pageTable[i])->pool = NULL;
+      PageTail(&chunk->pageTable[i])->client = NULL;
       PageTail(&chunk->pageTable[i])->seg = seg;
       PageTail(&chunk->pageTable[i])->limit = limit;
     }
@@ -1503,7 +1503,7 @@ static Bool VMIsReservedAddr(Arena arena, Addr addr)
  * .seg-search: Searches for a segment in the arena starting at page
  * index i, return NULL if there is none.  A page is the first page
  * of a segment if it is marked allocated in the allocTable, and
- * its pool is not NULL.
+ * its client is not NULL.
  *
  * .seg-search.private: This function is private to this module and
  * is used in the segment iteration protocol (SegFirst and SegNext).
@@ -1516,6 +1516,9 @@ static Bool segSearchInChunk(Seg *segReturn, VMArenaChunk chunk, Index i)
   AVER(chunk->tablePages <= i);
   AVER(i <= chunk->pages);
 
+  /* This could be improved by using the page limit field to advance
+     over allocated segments.  There should be a BT function for
+     finding next set/unset index */
   while(i < chunk->pages &&
         !(BTGet(chunk->allocTable, i) &&
           PageIsHead(&chunk->pageTable[i]))) {

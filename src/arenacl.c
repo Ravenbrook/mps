@@ -1,6 +1,6 @@
 /* impl.c.arenacl: ARENA IMPLEMENTATION USING CLIENT MEMORY
  *
- * $HopeName: MMsrc!arenacl.c(MMdevel_ptw_pseudoloci.1) $
+ * $HopeName: MMsrc!arenacl.c(MMdevel_ptw_pseudoloci.2) $
  * Copyright (C) 1997. Harlequin Group plc. All rights reserved.
  *
  * .readership: MM developers
@@ -17,7 +17,7 @@
 #include "mpsacl.h"
 
 
-SRCID(arenacl, "$HopeName: MMsrc!arenacl.c(MMdevel_ptw_pseudoloci.1) $");
+SRCID(arenacl, "$HopeName: MMsrc!arenacl.c(MMdevel_ptw_pseudoloci.2) $");
 
 
 typedef struct ClientArenaStruct *ClientArena;
@@ -52,7 +52,7 @@ typedef struct ClientArenaStruct {
 
 /* SegClientArena -- find the client arena given a segment */
 
-#define SegClientArena(seg) ArenaClientArena(PoolArena(SegPool(seg)))
+#define SegClientArena(seg) ArenaClientArena(SegArena(seg))
 
 /* ChunkStruct -- chunk structure */
 
@@ -78,18 +78,18 @@ typedef struct ChunkStruct { /* chunk structure */
  * The page table is lifted entirely from arenavm. See
  * design.mps.arenavm.table.*.
  *
- * .page: The "pool" field must be the first field of the "tail"
+ * .page: The "client" field must be the first field of the "tail"
  * field of this union, so that it shares a common prefix with the
  * SegStruct.  See impl.h.mpmst.seg.pool.
  */
 
-typedef struct PageStruct {   /* page structure */
+typedef struct PageStruct {     /* page structure */
   union {
-    SegStruct segStruct;      /* segment */
+    SegStruct segStruct;        /* segment */
     struct {
-      Pool pool;              /* NULL, must be first field (.page) */
-      Seg seg;                /* segment at base page of run */
-      Addr limit;             /* limit of segment */
+      LocusClient client;       /* NULL, must be first field (.page) */
+      Seg seg;                  /* segment at base page of run */
+      Addr limit;               /* limit of segment */
     } tail;
   } the;
 } PageStruct;
@@ -459,7 +459,7 @@ static Size ClientArenaCommitted(Arena arena)
 /* ChunkSegAlloc: allocate a segment in a chunk */
 
 static Res ChunkSegAlloc(Seg *segReturn, SegPref pref, Size pages, 
-                         Pool pool, Chunk chunk)
+                         LocusClient client, Chunk chunk)
 {
   Index baseIndex, limitIndex, index;
   Bool b;
@@ -491,14 +491,14 @@ static Res ChunkSegAlloc(Seg *segReturn, SegPref pref, Size pages,
   /* check commit limit, note that if there are multiple reasons */
   /* for failing the allocation we attempt to return other result codes */
   /* in preference to ResCOMMIT_LIMIT.  See design.mps.arena.commit-limit */
-  if(ClientArenaCommitted(PoolArena(pool)) + pages*clientArena->pageSize >
-     PoolArena(pool)->commitLimit) {
+  if(ClientArenaCommitted(ClientArenaArena(clientArena)) + pages*clientArena->pageSize >
+     ClientArenaArena(clientArena)->commitLimit) {
     return ResCOMMIT_LIMIT;
   }
 
   /* Initialize the generic segment structure. */
   seg = PageSeg(&chunk->pageTable[baseIndex]);
-  SegInit(seg, pool);
+  SegInitClient(seg, client);
 
   /* Allocate the first page, and, if there is more than one page, */
   /* allocate the rest of the pages and store the multi-page */
@@ -511,7 +511,7 @@ static Res ChunkSegAlloc(Seg *segReturn, SegPref pref, Size pages,
     for(index = baseIndex + 1; index < limitIndex; ++index) {
       AVER(!BTGet(chunk->allocTable, index));
       BTSet(chunk->allocTable, index);
-      PageTail(&chunk->pageTable[index])->pool = NULL;
+      PageTail(&chunk->pageTable[index])->client = NULL;
       PageTail(&chunk->pageTable[index])->seg = seg;
       PageTail(&chunk->pageTable[index])->limit = limit;
     }
@@ -530,7 +530,7 @@ static Res ChunkSegAlloc(Seg *segReturn, SegPref pref, Size pages,
 /* ClientSegAlloc -- allocate a segment from the arena */
 
 static Res ClientSegAlloc(Seg *segReturn, SegPref pref,
-                          Size size, Pool pool)
+                          Size size, LocusClient client)
 {
   ClientArena clientArena;
   Res res;
@@ -540,22 +540,22 @@ static Res ClientSegAlloc(Seg *segReturn, SegPref pref,
   AVER(segReturn != NULL);
   AVERT(SegPref, pref);
   AVER(size > 0);
-  AVERT(Pool, pool);
+  AVERT(LocusClient, client);
 
-  clientArena = ArenaClientArena(PoolArena(pool));
+  clientArena = ArenaClientArena(LocusClientArena(client));
   AVERT(ClientArena, clientArena);
   AVER(SizeIsAligned(size, clientArena->pageSize));
   /* NULL is used as a discriminator (see */
-  /* design.mps.arenavm.table.disc), therefore the real pool */
+  /* design.mps.arenavm.table.disc), therefore the real client */
   /* must be non-NULL. */
-  AVER(pool != NULL);
+  AVER(client != NULL);
 
   pages = size >> clientArena->pageShift;
 
   /* .req.extend.slow */
   RING_FOR(node, &clientArena->chunkRing, nextNode) { 
     Chunk chunk = RING_ELT(Chunk, arenaRing, node);
-    res = ChunkSegAlloc(segReturn, pref, pages, pool, chunk);
+    res = ChunkSegAlloc(segReturn, pref, pages, client, chunk);
     if(res == ResOK || res == ResCOMMIT_LIMIT) {
       return res;
     }
@@ -720,7 +720,7 @@ static Bool ClientSegOfAddr(Seg *segReturn, Arena arena, Addr addr)
               clientArena->pageShift;
       if(BTGet(chunk->allocTable, index)) {
         Page page = &chunk->pageTable[index];
-        if(SegPool(PageSeg(page)) != NULL)
+        if(SegClient(PageSeg(page)) != NULL)
           *segReturn = PageSeg(page);
         else
           *segReturn = PageTail(page)->seg;
@@ -756,7 +756,7 @@ static Bool ClientIsReserved(Arena arena, Addr addr)
  *
  * Searches for a segment in the chunk starting at page 'index',
  * return NULL if there is none.  A segment is present if it is
- * not free, and its pool is not NULL.
+ * not free, and its client is not NULL.
  *
  * This function is private to this module and is used in the segment
  * iteration protocol (SegFirst and SegNext).
@@ -766,9 +766,12 @@ static Seg SegSearchChunk(Chunk chunk, Index index)
   AVERT_CRITICAL(Chunk, chunk);
   AVER_CRITICAL(index <= chunk->pages);
 
+  /* This could be improved by using the page limit field to advance
+     over allocated segments.  There should be a BT function for
+     finding next set/unset index */
   while(index < chunk->pages &&
         (!BTGet(chunk->allocTable, index) ||
-         SegPool(PageSeg(&chunk->pageTable[index])) == NULL))
+         SegClient(PageSeg(&chunk->pageTable[index])) == NULL))
     ++index;
   
   if(index < chunk->pages)
