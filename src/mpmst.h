@@ -1,6 +1,6 @@
 /* impl.h.mpmst: MEMORY POOL MANAGER DATA STRUCTURES
  *
- * $HopeName: MMsrc!mpmst.h(MMdevel_action2.8) $
+ * $HopeName: MMsrc!mpmst.h(MMdevel_action2.9) $
  * Copyright (C) 1996,1997 Harlequin Group, all rights reserved.
  *
  * .readership: MM developers.
@@ -469,7 +469,8 @@ typedef struct RootStruct {
   Space space;                  /* owning space */
   RingStruct spaceRing;         /* attachment to space */
   Rank rank;                    /* rank of references in this root */
-  TraceSet grey;                /* marked but not scanned for per trace */
+  TraceSet grey;                /* traces for which root is grey */
+  RefSet summary;		/* summary of references in root */
   RootVar var;                  /* union discriminator */
   union RootUnion {
     struct {
@@ -510,9 +511,6 @@ typedef struct RootStruct {
  *
  * .ss.zone: The zoneShift field is therefore declared as Word
  * rather than Shift.
- *
- * The weakSplat field forms part of the design for weakness.
- * See design.mps.weakness.
  */
 
 #define ScanStateSig    ((Sig)0x5195CA95)
@@ -526,7 +524,6 @@ typedef struct ScanStateStruct {
   Space space;                  /* owning space */
   TraceSet traces;		/* traces to scan for */
   Rank rank;                    /* reference rank of scanning */
-  Addr weakSplat;               /* value of weak refs to unforwarded objects */
   Bool wasMarked;               /* design.mps.fix.protocol.was-ready */
 } ScanStateStruct;
 
