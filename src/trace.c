@@ -1,12 +1,12 @@
 /* impl.c.trace: GENERIC TRACER IMPLEMENTATION
  *
- * $HopeName: !trace.c(MM_dylan_honeybee.2) $
+ * $HopeName: MMsrc!trace.c(MMdevel_honeybee_ambig.1) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  */
 
 #include "mpm.h"
 
-SRCID(trace, "$HopeName: !trace.c(MM_dylan_honeybee.2) $");
+SRCID(trace, "$HopeName: MMsrc!trace.c(MMdevel_honeybee_ambig.1) $");
 
 
 /* ScanStateCheck -- check consistency of a ScanState object */
@@ -464,6 +464,8 @@ Res TraceFlip(Trace trace)
       AVER(RootRank(root) <= RankEXACT); /* see above */
 
       if(RootRank(root) == ss.rank) {
+        ScanStateSetSummary(&ss, RefSetEMPTY);
+	ss.maxSummary = root->summary;
         res = RootScan(&ss, root);
         if(res != ResOK) {
           return res;
@@ -611,8 +613,8 @@ void ScanStateSetSummary(ScanState ss, RefSet summary)
 {
   AVERT(ScanState, ss);
 
-  ss->fixedSummary = RefSetInter(summary, ss->white);
-  ss->unfixedSummary = summary;
+  ss->fixedSummary = summary;
+  ss->unfixedSummary = RefSetEMPTY;
   AVER(ScanStateSummary(ss) == summary);
 }
 
@@ -673,6 +675,7 @@ static Res TraceScan(TraceSet ts, Rank rank,
     ss.zoneShift = arena->zoneShift;
     ss.unfixedSummary = RefSetEMPTY;
     ss.fixedSummary = RefSetEMPTY;
+    ss.maxSummary = SegSummary(seg);
     ss.arena = arena;
     ss.wasMarked = TRUE;
     ss.white = white;

@@ -1,6 +1,6 @@
 /* impl.c.seg: SEGMENTS
  *
- * $HopeName: !seg.c(MM_dylan_honeybee.2) $
+ * $HopeName: MMsrc!seg.c(MMdevel_honeybee_ambig.1) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  *
  * .design: The design for this module is design.mps.seg.
@@ -16,7 +16,7 @@
 
 #include "mpm.h"
 
-SRCID(seg, "$HopeName: !seg.c(MM_dylan_honeybee.2) $");
+SRCID(seg, "$HopeName: MMsrc!seg.c(MMdevel_honeybee_ambig.1) $");
 
 
 /* SegCheck -- check the integrity of a segment */
@@ -94,6 +94,14 @@ void SegInit(Seg seg, Pool pool)
   seg->_sm = AccessSetEMPTY;
   seg->_depth = 0;
   seg->_single = FALSE;
+  seg->nailCount = 0;
+  seg->nailed = 0;
+  {
+    int i;
+    for(i=0; i<32; ++i) {
+      seg->mark[i] = 0;
+    }
+  }
 
   AVERT(Seg, seg);
 
@@ -256,3 +264,76 @@ void SegSetRankSet(Seg seg, RankSet rankSet)
     }
   }
 }
+
+/* @@@@ hacky mark table stuff */
+
+Bool SegGetMark(Seg seg, Addr addr)
+{
+  Index i;
+  Index si;
+  Index bi;
+
+  AVERT_CRITICAL(Seg, seg);
+  AVER_CRITICAL(addr < SegLimit(seg));
+  AVER_CRITICAL(SegBase(seg) <= addr);
+  
+  i = AddrOffset(SegBase(seg), addr) >> 2;
+  /* i is word offset */
+  si = i / 1024;
+  bi = i % 1024;
+  seg += si; /* @@@@ extremely alarming */
+  return BTGet(seg->mark, bi);
+}
+
+void SegSetMark(Seg seg, Addr addr)
+{
+  Index i;
+  Index si;
+  Index bi;
+
+  AVERT_CRITICAL(Seg, seg);
+  AVER_CRITICAL(addr < SegLimit(seg));
+  AVER_CRITICAL(SegBase(seg) <= addr);
+
+  i = AddrOffset(SegBase(seg), addr) >> 2;
+  /* i is word offset */
+  si = i / 1024;
+  bi = i % 1024;
+  seg += si; /* @@@@ extremely alarming */
+  BTSet(seg->mark, bi);
+}
+
+void SegResMark(Seg seg, Addr addr)
+{
+  Index i;
+  Index si;
+  Index bi;
+
+  AVERT_CRITICAL(Seg, seg);
+  AVER_CRITICAL(addr < SegLimit(seg));
+  AVER_CRITICAL(SegBase(seg) <= addr);
+
+  i = AddrOffset(SegBase(seg), addr) >> 2;
+  /* i is word offset */
+  si = i / 1024;
+  bi = i % 1024;
+  seg += si; /* @@@@ extremely alarming */
+  BTRes(seg->mark, bi);
+}
+
+void SegResAllMarks(Seg seg)
+{
+  Index i;
+  Size size;
+  Count s;
+
+  AVERT(Seg, seg);
+
+  size = SegSize(seg);
+  s = size / 4096;
+  for(i=0; i<s; ++i) {
+    BTResRange(seg->mark, 0, 1023);
+    ++seg;
+  }
+}
+

@@ -1,6 +1,6 @@
 /* impl.h.mpm: MEMORY POOL MANAGER DEFINITIONS
  *
- * $HopeName: !mpm.h(MM_dylan_honeybee.2) $
+ * $HopeName: MMsrc!mpm.h(MMdevel_honeybee_ambig.1) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  */
 
@@ -547,6 +547,12 @@ extern void SegSetRankSet(Seg seg, RankSet rankSet);
 #define SegSetP(seg, pp)	((void)((seg)->_p = (pp)))
 #define SegSetWhite(seg, ts)	((void)((seg)->_white = (ts)))
 #define SegSetBuffer(seg, b)	((void)((seg)->_buffer = (b)))
+
+/* @@@ hacky seg mark thingy */
+extern void SegSetMark(Seg seg, Addr addr);
+extern Bool SegGetMark(Seg seg, Addr addr);
+extern void SegResMark(Seg seg, Addr addr);
+extern void SegResAllMarks(Seg seg);
 
 
 /* Buffer Interface -- see impl.c.buffer */

@@ -1,6 +1,6 @@
 /* impl.c.fmtdy: DYLAN OBJECT FORMAT IMPLEMENTATION
  *
- *  $HopeName: !fmtdy.c(MM_dylan_honeybee.3) $
+ *  $HopeName: MMsrc!fmtdy.c(MMdevel_honeybee_ambig.1) $
  *  Copyright (C) 1996,1997 Harlequin Group, all rights reserved.
  *
  *  All objects, B:
@@ -48,6 +48,7 @@
 
 #include "fmtdy.h"
 #include "mps.h"
+
 #include <assert.h>
 #include <string.h>
 #include <stdlib.h>
@@ -199,6 +200,7 @@ static mps_res_t dylan_scan_contig(mps_ss_t mps_ss,
   MPS_SCAN_BEGIN(mps_ss) {
           p = base;
     loop: if(p >= limit) goto out;
+	  MPS_SS_CHECK(mps_ss);
           r = *p++;
           if(((mps_word_t)r&3) != 0) /* pointers tagged with 0 */
             goto loop;             /* not a pointer */
@@ -287,6 +289,7 @@ static mps_res_t dylan_scan_pat(mps_ss_t mps_ss,
     in:   pp = p;
           pat = *pc++;
     loop: if(pat == 0) goto pat;
+	  MPS_SS_CHECK(mps_ss);
           ++pp;
           b = pat & 1;
           pat >>= 1;
@@ -350,6 +353,7 @@ static mps_res_t dylan_scan1(mps_ss_t mps_ss, mps_addr_t *object_io)
   }
 
   mps_fix(mps_ss, p);           /* fix the wrapper */
+  MPS_SS_CHECK(mps_ss);
   w = (mps_word_t *)p[0];       /* wrapper is header word */
   assert(dylan_wrapper_check(w));
 
