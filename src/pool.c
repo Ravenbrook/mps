@@ -1,6 +1,6 @@
 /* impl.c.pool: POOL IMPLEMENTATION
  *
- * $HopeName: MMsrc!pool.c(MMdevel_action2.5) $
+ * $HopeName: MMsrc!pool.c(MMdevel_action2.6) $
  * Copyright (C) 1994,1995,1996 Harlequin Group, all rights reserved
  *
  * This is the implementation of the generic pool interface.  The
@@ -12,7 +12,7 @@
 
 #include "mpm.h"
 
-SRCID(pool, "$HopeName: MMsrc!pool.c(MMdevel_action2.5) $");
+SRCID(pool, "$HopeName: MMsrc!pool.c(MMdevel_action2.6) $");
 
 
 Bool PoolClassCheck(PoolClass class)
@@ -54,6 +54,7 @@ Bool PoolCheck(Pool pool)
   CHECKL(RingCheck(&pool->spaceRing));
   CHECKL(RingCheck(&pool->bufferRing));
   CHECKL(RingCheck(&pool->segRing));
+  CHECKL(RingCheck(&pool->actionRing));
   /* Cannot check pool->bufferSerial */
   CHECKL(AlignCheck(pool->alignment));
   return TRUE;
@@ -90,8 +91,10 @@ Res PoolInitV(Pool pool, Space space, PoolClass class, va_list args)
   RingInit(&pool->spaceRing);
   RingInit(&pool->bufferRing);
   RingInit(&pool->segRing);
+  RingInit(&pool->actionRing);
+  pool->bufferSerial = (Serial)0;
+  pool->actionSerial = (Serial)0;
   pool->alignment = ARCH_ALIGN;
-  RingAppend(SpacePoolRing(space), &pool->spaceRing);
 
   /* Initialise signature last; see design.mps.sig */
   pool->sig = PoolSig;
@@ -105,10 +108,14 @@ Res PoolInitV(Pool pool, Space space, PoolClass class, va_list args)
   if(res != ResOK)
     goto failInit;
 
+  /* Add initialized pool to list of pools in space. */
+  RingAppend(SpacePoolRing(space), &pool->spaceRing);
+
   return ResOK;
 
 failInit:
   pool->sig = SigInvalid;      /* Leave space->poolSerial incremented */
+  RingFinish(&pool->actionRing);
   RingFinish(&pool->segRing);
   RingFinish(&pool->bufferRing);
   RingRemove(&pool->spaceRing);
@@ -173,21 +180,12 @@ void PoolFinish(Pool pool)
   /* Do any class-specific finishing. */
   (*pool->class->finish)(pool);
 
-  /* There must be no buffers attached to the pool at */
-  /* this point.  The class-specific finish method is */
-  /* allowed to remove them. */
-  AVER(RingCheckSingle(&pool->bufferRing)); 
-
-  /* There must be no segments attached to the pool at */
-  /* this point.  The class-specific finish method is */
-  /* allowed to remove them. */
-  AVER(RingCheckSingle(&pool->segRing));
-  
   /* Detach the pool from the space, and unsig it. */
   RingRemove(&pool->spaceRing);
   pool->sig = SigInvalid;
   
   /* .ring.finish: Finish the generic fields.  See .ring.init */
+  RingFinish(&pool->actionRing);
   RingFinish(&pool->segRing);
   RingFinish(&pool->bufferRing);
   RingFinish(&pool->spaceRing);
