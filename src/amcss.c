@@ -1,6 +1,6 @@
 /* impl.c.amcss: POOL CLASS AMC STRESS TEST
  *
- * $HopeName: !amcss.c(trunk.21) $
+ * $HopeName: MMsrc!amcss.c(MMdevel_telemetry_fmt.1) $
  * Copyright (C) 1996, 1998 Harlequin Group, all rights reserved
  */
 
@@ -64,7 +64,7 @@ static void *test(void *arg, size_t s)
   arena = (mps_arena_t)arg;
   (void)s; /* unused */
 
-  die(mps_fmt_create_A(&format, arena, dylan_fmt_A()), "fmt_create");
+  die(dylan_fmt(&format, arena), "fmt_create");
 
   die(mps_pool_create(&pool, arena, mps_class_amc(), format),
       "pool_create(amc)");
