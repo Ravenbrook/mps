@@ -1,6 +1,6 @@
 /* impl.c.mpsi: MEMORY POOL SYSTEM INTERFACE LAYER
  *
- * $HopeName: !mpsi.c(trunk.12) $
+ * $HopeName: MMsrc!mpsi.c(MM_dylan_incremental.1) $
  * Copyright (C) 1996 Harlequin Group, all rights reserved.
  *
  * .thread-safety: Most calls through this interface lock the space
@@ -30,7 +30,9 @@
 #include <stdarg.h>
 #include <stddef.h>
 
-SRCID("$HopeName: !mpsi.c(trunk.12) $");
+#include "exch.h" /* MM PrEv request 170008 */
+
+SRCID("$HopeName: MMsrc!mpsi.c(MM_dylan_incremental.1) $");
 
 
 /* Check consistency of interface mappings. */
@@ -300,13 +302,16 @@ mps_res_t mps_ap_create(mps_ap_t *mps_ap_o, mps_pool_t mps_pool, ...)
 
   /* Varargs are ignored at the moment -- none of the pool */
   /* implementations use them, and they're not passed through. */
-  e = BufferCreate(&buf, pool);
+  EXCH_BEGIN
+    e = BufferCreate(&buf, pool);
+  EXCH_END
   if(e != ErrSUCCESS)
-    return e;
+    goto failBufferCreate;
 
   *apReturn = BufferAp(buf);
+failBufferCreate:
   SpaceLockRelease(space);
-  return MPS_RES_OK;
+  return e;
 }
 
 mps_res_t mps_ap_create_v(mps_ap_t *mps_ap_o,
@@ -329,11 +334,12 @@ mps_res_t mps_ap_create_v(mps_ap_t *mps_ap_o,
   /* implementations use them, and they're not passed through. */
   e = BufferCreate(&buf, pool);
   if(e != ErrSUCCESS)
-    return e;
+    goto failBufferCreate;
 
   *apReturn = BufferAp(buf);
+failBufferCreate:
   SpaceLockRelease(space);
-  return MPS_RES_OK;
+  return e;
 }
 
 void mps_ap_destroy(mps_ap_t mps_ap)
@@ -392,14 +398,18 @@ mps_res_t mps_ap_fill(mps_addr_t *p_o, mps_ap_t mps_ap, size_t size)
   SpaceLockClaim(space);
 
   /* Give the space the opportunity to steal CPU time. */
-  SpacePoll(space);
+  EXCH_BEGIN
+    SpacePoll(space);
+  EXCH_END
 
   AVER(p_o != NULL);
   AVER(ISVALID(Buffer, buf));
   AVER(size > 0);
   AVER(IsAligned(BufferPool(buf)->alignment, size));
 
-  e = BufferFill((Addr *)p_o, buf, size);
+  EXCH_BEGIN
+    e = BufferFill((Addr *)p_o, buf, size);
+  EXCH_END
 
   SpaceLockRelease(space);
   return e;
@@ -417,7 +427,9 @@ mps_bool_t mps_ap_trip(mps_ap_t mps_ap, mps_addr_t p, size_t size)
   AVER(size > 0);
   AVER(IsAligned(BufferPool(buf)->alignment, size));
 
-  b = BufferTrip(buf, (Addr)p, size);
+  EXCH_BEGIN
+    b = BufferTrip(buf, (Addr)p, size);
+  EXCH_END
   SpaceLockRelease(space);
   return b;
 }
