@@ -1,6 +1,6 @@
 /* impl.c.pool: POOL IMPLEMENTATION
  *
- * $HopeName: MMsrc!pool.c(MMdevel_restr2.6) $
+ * $HopeName: MMsrc!pool.c(MMdevel_restr2.7) $
  * Copyright (C) 1994,1995,1996 Harlequin Group, all rights reserved
  *
  * This is the implementation of the generic pool interface.  The
@@ -9,7 +9,7 @@
 
 #include "mpm.h"
 
-SRCID(pool, "$HopeName: MMsrc!pool.c(MMdevel_restr2.6) $");
+SRCID(pool, "$HopeName: MMsrc!pool.c(MMdevel_restr2.7) $");
 
 
 Bool PoolClassCheck(PoolClass class)
@@ -179,7 +179,7 @@ void PoolDestroy(Pool pool)
   PoolFinish(pool);
 
   /* Free the pool instance structure. */
-  base = AddrAdd((Addr)pool, -class->offset);
+  base = AddrSub((Addr)pool, class->offset);
   SpaceFree(space, base, class->size);
 }
 
