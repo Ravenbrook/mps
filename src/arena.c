@@ -1,6 +1,6 @@
 /* impl.c.arena: ARENA IMPLEMENTATION
  *
- * $HopeName: !arena.c(trunk.65) $
+ * $HopeName: MMsrc!arena.c(MMdevel_alloc_replay.1) $
  * Copyright (C) 1998. Harlequin Group plc. All rights reserved.
  *
  * .readership: Any MPS developer
@@ -36,7 +36,7 @@
 #include "poolmrg.h"
 #include "mps.h"
 
-SRCID(arena, "$HopeName: !arena.c(trunk.65) $");
+SRCID(arena, "$HopeName: MMsrc!arena.c(MMdevel_alloc_replay.1) $");
 
 
 /* Forward declarations */
@@ -72,7 +72,7 @@ static Res NSEGInit(Pool pool, va_list arg)
   nseg = PoolPoolNSEG(pool);
   nseg->sig = NSEGSig;
   AVERT(NSEG, nseg);
-
+  EVENT_PPP(PoolInit, pool, PoolArena(pool), ClassOfPool(pool));
   return ResOK;
 }
 
@@ -333,6 +333,7 @@ void ArenaReservoirLimitSet(Arena arena, Size size)
   }
 
   AVER(SizeIsAligned(needed, arena->alignment));
+  EVENT_PW(ReservoirLimitSet, arena, size);
 
   if (needed > arena->reservoirSize) {
     /* Try to grow the reservoir */
@@ -345,6 +346,7 @@ void ArenaReservoirLimitSet(Arena arena, Size size)
     AVER(ArenaReservoirIsConsistent(arena));  
   }
 }
+
 
 Size ArenaReservoirLimit(Arena arena)
 {
@@ -1411,6 +1413,7 @@ void ArenaSetSpareCommitLimit(Arena arena, Size limit)
     arena->class->spareCommitExceeded(arena);
   }
 
+  EVENT_PW(SpareCommitLimitSet, arena, limit);
   return;
 }
 
@@ -1431,6 +1434,7 @@ Size ArenaCommitLimit(Arena arena)
 Res ArenaSetCommitLimit(Arena arena, Size limit)
 {
   Size committed;
+  Res res;
 
   AVERT(Arena, arena);
   AVER(ArenaCommitted(arena) <= arena->commitLimit);
@@ -1442,12 +1446,17 @@ Res ArenaSetCommitLimit(Arena arena, Size limit)
       /* could set the limit by flushing any spare committed memory */
       arena->class->spareCommitExceeded(arena);
       AVER(limit >= ArenaCommitted(arena));
+      arena->commitLimit = limit;
+      res = ResOK;
     } else {
-      return ResFAIL;
+      res = ResFAIL;
     }
+  } else {
+    arena->commitLimit = limit;
+    res = ResOK;
   }
-  arena->commitLimit = limit;
-  return ResOK;
+  EVENT_PWU(CommitLimitSet, arena, limit, (res == ResOK));
+  return res;
 }
 
 double ArenaMutatorAllocSize(Arena arena)
