@@ -1,6 +1,6 @@
 /* impl.c.poolamc: AUTOMATIC MOSTLY-COPYING MEMORY POOL CLASS
  *
- * $HopeName: !poolamc.c(trunk.14) $
+ * $HopeName: MMsrc!poolamc.c(MMdevel_fencepost.1) $
  * Copyright (C) 1998.  Harlequin Group plc.  All rights reserved.
  *
  * .sources: design.mps.poolamc.
@@ -10,7 +10,7 @@
 #include "mpscamc.h"
 #include "mpm.h"
 
-SRCID(poolamc, "$HopeName: !poolamc.c(trunk.14) $");
+SRCID(poolamc, "$HopeName: MMsrc!poolamc.c(MMdevel_fencepost.1) $");
 
 
 /* Binary i/f used by ASG (drj 1998-06-11) */
@@ -1342,7 +1342,7 @@ static Res AMCFix(Pool pool, ScanState ss, Seg seg, Ref *refIO)
       }
 
       /* design.mps.trace.fix.copy */
-      (void)MPS_MEMCPY(newRef, ref, length);
+      (void)AddrCopy(newRef, ref, length);
 
       ShieldCover(arena, toSeg);
     } while(!BUFFER_COMMIT(buffer, newRef, length));
@@ -1692,6 +1692,7 @@ static PoolClassStruct PoolClassAMCStruct = {
   "AMC",                                /* name */
   sizeof(AMCStruct),                    /* size */
   offsetof(AMCStruct, poolStruct),      /* offset */
+  NULL,                                 /* super */
   AttrFMT | AttrSCAN | AttrBUF | AttrBUF_RESERVE |
     AttrGC | AttrMOVINGGC | AttrINCR_RB,
   AMCInit,                              /* init */
@@ -1717,6 +1718,7 @@ static PoolClassStruct PoolClassAMCStruct = {
   AMCRampEnd,
   AMCWalk,                              /* walk */
   AMCDescribe,                          /* describe */
+  PoolNoDebugMixin,
   PoolClassSig                          /* impl.h.mpm.class.end-sig */
 };
 
@@ -1728,6 +1730,7 @@ static PoolClassStruct PoolClassAMCZStruct = {
   "AMCZ",                               /* name */
   sizeof(AMCStruct),                    /* size */
   offsetof(AMCStruct, poolStruct),      /* offset */
+  NULL,                                 /* super */
   AttrFMT | AttrBUF | AttrBUF_RESERVE |
     AttrGC | AttrMOVINGGC,
   AMCZInit,                             /* init */
@@ -1753,6 +1756,7 @@ static PoolClassStruct PoolClassAMCZStruct = {
   AMCRampEnd,
   AMCWalk,                              /* walk */
   AMCDescribe,                          /* describe */
+  PoolNoDebugMixin,
   PoolClassSig                          /* impl.h.mpm.class.end-sig */
 };
 
