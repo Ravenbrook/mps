@@ -1,6 +1,6 @@
 /* impl.h.mpm: MEMORY POOL MANAGER DEFINITIONS
  *
- * $HopeName: !mpm.h(trunk.96) $
+ * $HopeName: MMsrc!mpm.h(MMdevel_ptw_pseudoloci.1) $
  * Copyright (C) 1998.  Harlequin Group plc.  All rights reserved.
  */
 
@@ -362,6 +362,7 @@ extern void PoolNoWalk(Pool pool, Seg seg,
                        FormattedObjectsStepMethod,
 		       void *, unsigned long);
 extern Res PoolCollectAct(Pool pool, Action action);
+extern LocusClient PoolLocusClient(Pool pool);
 
 
 /* Message Interface -- see design.mps.message */
@@ -508,6 +509,24 @@ extern void ActionFinish(Action action);
 extern void ActionPoll(Arena arena);
 
 
+/* Locus Interface -- see impl.c.locus */
+extern void LocusManagerInit(LocusManager manager);
+extern void LocusManagerFinish(LocusManager manager);
+extern void LocusClientInit(LocusClient client, LocusManager manager);
+extern void LocusClientSetCohortParameters(LocusClient client,
+                                           RefSet preferred,
+                                           RefSet disdained,
+                                           Index lifetime);
+extern void LocusClientFinish(LocusClient client);
+extern void LocusClientZoneRangeBest(Addr *baseReturn,
+                                     Addr *limitReturn,
+                                     LocusClient client);
+extern void LocusClientZoneRangeNextBest(Addr *baseReturn,
+                                         Addr *limitReturn,
+                                         LocusClient client);
+extern void LocusClientSegAdd(LocusClient client, Arena arena, Seg seg);
+
+
 /* Arena Interface -- see impl.c.arena */
 
 extern Bool ArenaClassCheck(ArenaClass class);
@@ -620,6 +639,8 @@ extern Bool SegNext(Seg *segReturn, Arena arena, Addr addr);
 extern Res ArenaNoExtend(Arena arena, Addr base, Size size);
 extern Res ArenaNoRetract(Arena arena, Addr base, Size size);
 extern Res ArenaTrivDescribe(Arena arena, mps_lib_FILE *stream);
+
+extern LocusManager ArenaLocusManager(Arena arena);
 
 extern Bool SegPrefCheck(SegPref pref);
 extern SegPref SegPrefDefault(void);
