@@ -1,6 +1,6 @@
 # ==== SECOND COMMON FRAGMENT FOR PLATFORMS USING MV AND NMAKE
 #
-# $HopeName: MMsrc!commpost.nmk(MMdevel_alloc_replay.1) $
+# $HopeName: MMsrc!commpost.nmk(MMdevel_alloc_replay.2) $
 # Copyright(C) 1997, 1999 Harlequin Group plc.  All rights reserved.
 #
 # DESCRIPTION
@@ -165,9 +165,10 @@ $(PFM)\$(VARIETY)\eventcnv.exe: $(PFM)\$(VARIETY)\eventcnv.obj \
 	$(PFM)\$(VARIETY)\eventpro.obj $(PFM)\$(VARIETY)\table.obj
 
 $(PFM)\$(VARIETY)\replay.exe: $(PFM)\$(VARIETY)\replay.obj \
-	$(PFM)\$(VARIETY)\eventpro.obj $(PFM)\$(VARIETY)\table.obj \
-	$(MPMOBJ) $(AWLOBJ) $(AMSOBJ) $(POOLNOBJ) $(AMCOBJ) $(SNCOBJ) \
-	$(PFM)\$(VARIETY)\poolmvff.obj
+  $(PFM)\$(VARIETY)\eventrep.obj \
+  $(PFM)\$(VARIETY)\eventpro.obj $(PFM)\$(VARIETY)\table.obj \
+  $(MPMOBJ) $(AWLOBJ) $(AMSOBJ) $(POOLNOBJ) $(AMCOBJ) $(SNCOBJ) \
+  $(PFM)\$(VARIETY)\poolmvff.obj
 
 # Have to rename the object file, because the names must match, or
 # the template rule for .exe.obj won't be used.
@@ -176,6 +177,7 @@ $(PFM)\$(VARIETY)\replaysw.obj: $(PFM)\$(VARIETY)\replay.obj
 	copy $** $@ >nul:
 
 $(PFM)\$(VARIETY)\replaysw.exe: $(PFM)\$(VARIETY)\replaysw.obj \
+  $(PFM)\$(VARIETY)\eventrep.obj \
   $(PFM)\$(VARIETY)\eventpro.obj $(PFM)\$(VARIETY)\table.obj \
   $(PFM)\$(VARIETY)\fmtpstst.obj $(TESTLIBOBJ) \
   $(PFM)\$(VARIETY)\mpsliban.obj $(SWOBJ)
