@@ -1,6 +1,6 @@
 /* impl.c.mpsi: MEMORY POOL SYSTEM C INTERFACE LAYER
  *
- * $HopeName: !mpsi.c(trunk.26) $
+ * $HopeName: MMsrc!mpsi.c(MMdevel_drj_message.1) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  *
  * .purpose: This code bridges between the MPS interface to C,
@@ -52,7 +52,7 @@
 #include "mpm.h"
 #include "mps.h"
 
-SRCID(mpsi, "$HopeName: !mpsi.c(trunk.26) $");
+SRCID(mpsi, "$HopeName: MMsrc!mpsi.c(MMdevel_drj_message.1) $");
 
 
 /* mpsi_check -- check consistency of interface mappings
@@ -956,4 +956,91 @@ mps_word_t mps_collections(mps_space_t mps_space)
 {
   Space space = (Space)mps_space;
   return SpaceEpoch(space);  /* thread safe: see impl.h.space.epoch.ts */
+}
+
+
+/* mps_finalize -- register for finalize
+ */
+
+mps_res_t mps_finalize(mps_space_t mps_space, mps_addr_t obj)
+{
+  Res res;
+  Space space = (Space)mps_space;
+
+  SpaceEnter(space);
+
+  res = SpaceFinalize(space, (Addr)obj);
+
+  SpaceLeave(space);
+
+  return res;
+}
+
+void mps_definalize(mps_space_t space, mps_addr_t obj)
+{
+  /* Not yet implemented */
+  NOTREACHED;
+}
+
+mps_bool_t mps_message_poll(mps_space_t mps_space)
+{
+  Bool b;
+  Space space = (Space)mps_space;
+
+  SpaceEnter(space);
+
+  b = MessagePoll(space);
+
+  SpaceLeave(space);
+
+  return b;
+}
+
+
+mps_bool_t mps_message_type(mps_message_type_t *typeReturn,
+                            mps_space_t mps_space)
+{
+  Bool b;
+  Space space = (Space)mps_space;
+  MessageType type;
+
+  SpaceEnter(space);
+
+  b = MessageExType(&type, space);
+
+  SpaceLeave(space);
+
+  *typeReturn = type;
+  return b;
+}
+
+mps_bool_t mps_message_deliver(mps_space_t mps_space,
+                               mps_message_type_t type,
+                               void *buffer, size_t length)
+{
+  Bool b;
+  Space space = (Space)mps_space;
+
+  SpaceEnter(space);
+
+  b = MessageExDeliver(space, type, buffer, length);
+
+  SpaceLeave(space);
+
+  return b;
+}
+
+mps_bool_t mps_message_discard(mps_space_t mps_space,
+			       mps_message_type_t type)
+{
+  Bool b;
+  Space space = (Space)mps_space;
+
+  SpaceEnter(space);
+
+  b = MessageDiscard(space, type);
+
+  SpaceLeave(space);
+
+  return b;
 }

@@ -1,6 +1,6 @@
 /* impl.h.mps: HARLEQUIN MEMORY POOL SYSTEM C INTERFACE
  *
- * $HopeName: !mps.h(trunk.21) $
+ * $HopeName: MMsrc!mps.h(MMdevel_drj_message.1) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  *
  * .readership: customers, MPS developers.
@@ -42,6 +42,7 @@ typedef void *mps_addr_t;       /* managed address (void *) */
 typedef size_t mps_align_t;     /* alignment (size_t) */
 typedef unsigned mps_rm_t;      /* root mode (unsigned) */
 typedef unsigned mps_rank_t;    /* ranks (unsigned) */
+typedef unsigned mps_message_type_t;	/* message type (unsigned) */
 
 /* Result Codes */
 /* .result-codes: Keep in sync with impl.h.mpmtypes.result-codes */
@@ -55,6 +56,18 @@ enum {
   MPS_RES_UNIMPL,               /* unimplemented facility */
   MPS_RES_IO                    /* system I/O error */
 };
+
+/* Message Types and Structures */
+/* .message.types: Keep in sync with impl.h.mpmtypes.message.types */
+enum {
+  MPS_MESSAGE_TYPE_FINALIZATION
+};
+
+/* .messagetype.struct: Keep in sync with impl.h.mpmst.messagetype.struct */
+typedef struct mps_message_finalization_s {
+  mps_message_type_t type;
+  mps_addr_t ref;
+} mps_message_finalization_s;
 
 
 /* Reference Ranks */
@@ -303,6 +316,21 @@ extern void mps_ld_merge(mps_ld_t, mps_space_t, mps_ld_t);
 extern mps_bool_t mps_ld_isstale(mps_ld_t, mps_space_t, mps_addr_t);
 
 extern mps_word_t mps_collections(mps_space_t);
+
+
+/* Messages */
+
+extern mps_bool_t mps_message_poll(mps_space_t);
+extern mps_bool_t mps_message_type(mps_message_type_t *, mps_space_t);
+extern mps_bool_t mps_message_deliver(mps_space_t, mps_message_type_t,
+				      void *, size_t);
+extern mps_bool_t mps_message_discard(mps_space_t, mps_message_type_t);
+
+
+/* Finalization */
+
+extern mps_res_t mps_finalize(mps_space_t, mps_addr_t);
+extern void mps_definalize(mps_space_t, mps_addr_t);
 
 
 /* Scanner Support */
