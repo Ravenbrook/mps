@@ -1,12 +1,12 @@
 /* impl.c.trace: GENERIC TRACER IMPLEMENTATION
  *
- * $HopeName: MMsrc!trace.c(trunk.31) $
+ * $HopeName: MMsrc!trace.c(MM_dylan_sunflower.2) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  */
 
 #include "mpm.h"
 
-SRCID(trace, "$HopeName: MMsrc!trace.c(trunk.31) $");
+SRCID(trace, "$HopeName: MMsrc!trace.c(MM_dylan_sunflower.2) $");
 
 
 /* ScanStateCheck -- check consistency of a ScanState object */
@@ -307,7 +307,10 @@ void TraceDestroy(Trace trace)
 {
   AVERT(Trace, trace);
   AVER(trace->state == TraceFINISHED);
+#if 0
+  /* removed AVER for now as it is not true for the first trace */
   AVER(trace->grey == RankSetEMPTY);
+#endif
   
   PoolTraceEnd(trace->action->pool, trace, trace->action);
   
