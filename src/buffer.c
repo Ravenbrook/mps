@@ -1,6 +1,6 @@
 /* impl.c.buffer: ALLOCATION BUFFER IMPLEMENTATION
  *
- * $HopeName: MMsrc!buffer.c(MMdevel_restr.3) $
+ * $HopeName: MMsrc!buffer.c(MMdevel_restr.4) $
  * Copyright (C) 1996 Harlequin Group, all rights reserved
  *
  * This is the interface to allocation buffers.
@@ -115,7 +115,7 @@
 
 #include "mpm.h"
 
-SRCID(buffer, "$HopeName: MMsrc!buffer.c(MMdevel_restr.3) $");
+SRCID(buffer, "$HopeName: MMsrc!buffer.c(MMdevel_restr.4) $");
 
 
 Ring BufferPoolRing(Buffer buffer)
@@ -243,10 +243,10 @@ void BufferReset(Buffer buffer)
  * not currently using the buffer, since it may update the alloc and
  * init pointers asynchronously.
  *
- * BufferAp returns the ApStruct substructure of a buffer.
+ * BufferAP returns the APStruct substructure of a buffer.
  *
- * BufferOfAp is a thread-safe (impl.c.mpsi.thread-safety) method of
- * getting the buffer which owns an ApStruct.
+ * BufferOfAP is a thread-safe (impl.c.mpsi.thread-safety) method of
+ * getting the buffer which owns an APStruct.
  *
  * BufferSpace is a thread-safe (impl.c.mpsi.thread-safety) method of
  * getting the space which owns a buffer.
@@ -276,14 +276,14 @@ Bool BufferIsReady(Buffer buffer)
   return FALSE;
 }
 
-Ap BufferAp(Buffer buffer)
+AP BufferAP(Buffer buffer)
 {
   AVERT(Buffer, buffer);
   return &buffer->ap;
 }
 
 /* This method must be thread-safe.  See impl.c.mpsi.thread-safety. */
-Buffer BufferOfAp(Ap ap)
+Buffer BufferOfAP(AP ap)
 {
   return PARENT(BufferStruct, ap, ap);
 }
@@ -321,8 +321,8 @@ void BufferInit(Buffer buffer, Pool pool)
   buffer->seg = NULL;
   buffer->p = NULL;
   buffer->i = 0;
-  buffer->shieldMode = ProtNONE;
-  buffer->grey = TraceSetEmpty;
+  buffer->shieldMode = AccessSetEMPTY;
+  buffer->grey = TraceSetEMPTY;
 
   RingInit(&buffer->poolRing);
   RingAppend(&pool->bufferRing, &buffer->poolRing);
@@ -351,7 +351,7 @@ void BufferFinish(Buffer buffer)
  *
  * This is a provided version of the reserve procedure described
  * above.  The size must be aligned according to the buffer
- * alignment modulus.  Iff successful, ResOK is returned and
+ * alignment.  Iff successful, ResOK is returned and
  * *pReturn updated with a pointer to the reserved memory.
  * Otherwise *pReturn it not touched.  The reserved memory is not
  * guaranteed to have any particular contents.  The memory must be

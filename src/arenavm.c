@@ -1,12 +1,12 @@
 /* impl.c.arenavm: VIRTUAL MEMORY BASED ARENA IMPLEMENTATION
  *
- * $HopeName: MMsrc!arenavm.c(MMdevel_restr.8) $
+ * $HopeName: MMsrc!arenavm.c(MMdevel_restr.9) $
  * Copyright (C) 1996 Harlequin Group, all rights reserved.
  */
 
 #include "mpm.h"
 
-SRCID(arenavm, "$HopeName: MMsrc!arenavm.c(MMdevel_restr.8) $");
+SRCID(arenavm, "$HopeName: MMsrc!arenavm.c(MMdevel_restr.9) $");
 
 #define SpaceArena(space)	(&(space)->arenaStruct)
 
@@ -260,10 +260,10 @@ found:
   seg->pool = pool;
   seg->p = NULL;
   seg->single = TRUE;
-  seg->condemned = TraceIdNone;
+  seg->condemned = TraceIdNONE;
 
-  seg->pm = ProtNONE; /* see impl.c.shield */
-  seg->sm = ProtNONE;
+  seg->pm = AccessSetEMPTY; /* see impl.c.shield */
+  seg->sm = AccessSetEMPTY;
   seg->depth = 0;
 
   /* Allocate the first page, and, if there is more than one page, */
