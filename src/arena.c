@@ -1,6 +1,6 @@
 /* impl.c.arena: ARENA IMPLEMENTATION
  *
- * $HopeName: MMsrc!arena.c(MMdevel_reservoir.2) $
+ * $HopeName: MMsrc!arena.c(MMdevel_reservoir.3) $
  * Copyright (C) 1998. Harlequin Group plc. All rights reserved.
  *
  * .readership: Any MPS developer
@@ -36,7 +36,14 @@
 #include "poolmrg.h"
 #include "mps.h"
 
-SRCID(arena, "$HopeName: MMsrc!arena.c(MMdevel_reservoir.2) $");
+SRCID(arena, "$HopeName: MMsrc!arena.c(MMdevel_reservoir.3) $");
+
+
+/* Forward declarations */
+
+void SegRealloc(Seg seg, Pool newpool);
+
+static Bool NSEGCheck(NSEG nseg);
 
 
 /* All static data objects are declared here. See .static */
@@ -56,8 +63,6 @@ static Serial arenaSerial;         /* design.mps.arena.static.serial */
 typedef struct NSEGStruct *NSEG;
 
 #define PoolPoolNSEG(pool)       PARENT(NSEGStruct, poolStruct, pool)
-
-static Bool NSEGCheck(NSEG nseg);
 
 /* NSEGInit -- initialize the reservoir NSEG pool */
 static Res NSEGInit(Pool pool, va_list arg)
@@ -134,12 +139,12 @@ static Bool NSEGCheck(NSEG nseg)
   return TRUE;
 }
 
-/* ArenaReservoirConsistent
+/* ArenaReservoirIsConsistent
  *
  * Returns FALSE if the reservoir is corrupt.
  */
 
-static Bool ArenaReservoirConsistent(Arena arena)
+static Bool ArenaReservoirIsConsistent(Arena arena)
 {
   Bool res;
   Size size = 0;
@@ -193,13 +198,13 @@ static Res ArenaEnsureReservoir(Arena arena)
     res = (*arena->class->segAlloc)(&seg, SegPrefDefault(), 
                                     alignment, reservoir);
     if (res != ResOK) {
-      AVER(ArenaReservoirConsistent(arena));
+      AVER(ArenaReservoirIsConsistent(arena));
       return res;
     }
     AVER(SegSize(seg) == alignment);
     arena->reservoirSize += alignment;
   }
-  AVER(ArenaReservoirConsistent(arena));
+  AVER(ArenaReservoirIsConsistent(arena));
   return ResOK;
 }
 
@@ -236,7 +241,7 @@ static void ArenaShrinkReservoir(Arena arena, Size want)
     arena->reservoirSize -= size;
   }
   AVER(arena->reservoirSize <= want);
-  AVER(ArenaReservoirConsistent(arena));
+  AVER(ArenaReservoirIsConsistent(arena));
 }
 
 static Res ArenaAllocSegFromReservoir(Seg *segReturn, Arena arena, 
@@ -260,13 +265,13 @@ static Res ArenaAllocSegFromReservoir(Seg *segReturn, Arena arena,
     Size segSize = SegSize(seg);
     if (segSize >= size) {
       arena->reservoirSize -= segSize;
-      SegMove(seg, pool);
-      AVER(ArenaReservoirConsistent(arena));
+      SegRealloc(seg, pool);
+      AVER(ArenaReservoirIsConsistent(arena));
       *segReturn = seg;
       return ResOK;
     }
   }
-  AVER(ArenaReservoirConsistent(arena));  
+  AVER(ArenaReservoirIsConsistent(arena));  
   return ResMEMORY; /* no suitable segment in the reservoir */
 }
 
@@ -288,10 +293,10 @@ static void ArenaReturnSegToReservoir(Arena arena, Seg seg)
     (*arena->class->segFree)(seg);
   } else {
     /* Reassign the segment to the reservoir pool */
-    SegMove(seg, reservoir);
+    SegRealloc(seg, reservoir);
     arena->reservoirSize += new; 
   }
-  AVER(ArenaReservoirConsistent(arena));
+  AVER(ArenaReservoirIsConsistent(arena));
 }
 
 
@@ -341,14 +346,14 @@ void ArenaReservoirLimitSet(Arena arena, Size size)
     /* Shrink the reservoir */
     ArenaShrinkReservoir(arena, needed);
     arena->reservoirLimit = needed;
-    AVER(ArenaReservoirConsistent(arena));  
+    AVER(ArenaReservoirIsConsistent(arena));  
   }
 }
 
 Size ArenaReservoirLimit(Arena arena)
 {
   AVERT(Arena, arena);
-  AVER(ArenaReservoirConsistent(arena));  
+  AVER(ArenaReservoirIsConsistent(arena));  
   return arena->reservoirLimit;
 }
 
@@ -1159,6 +1164,19 @@ void ArenaFree(Arena arena, void* base, size_t size)
   PoolFree(pool, (Addr)base, (Size)size);
 }
 
+
+/* SegRealloc -- Reallocate a segment from one pool to another
+ *
+ * The segment appears as a freshly initialized segment in the new pool.
+ */
+
+void SegRealloc(Seg seg, Pool newpool)
+{
+  AVERT(Seg, seg);
+  AVER(seg->_pool != newpool);
+  SegFinish(seg);
+  SegInit(seg, newpool);
+}
 
 /* SegAlloc -- allocate a segment from the arena */
 
