@@ -1,6 +1,6 @@
 /* impl.c.protsu: PROTECTION FOR SUNOS
  *
- * $HopeName: MMsrc!protsu.c(MMdevel_restr.3) $
+ * $HopeName: MMsrc!protsu.c(MMdevel_restr.4) $
  *
  * Copyright (C) 1995 Harlequin Group, all rights reserved
  *
@@ -19,7 +19,7 @@
 #error "protsu.c is SunOS 4 specific, but MPS_OS_SU is not set"
 #endif
 
-SRCID(protsu, "$HopeName: MMsrc!protsu.c(MMdevel_restr.3) $");
+SRCID(protsu, "$HopeName: MMsrc!protsu.c(MMdevel_restr.4) $");
 
 
 /* .hack.sigdfl */
@@ -156,10 +156,10 @@ void ProtSet(Addr base, Addr limit, ProtMode mode)
   AVER(AddrOffset(base, limit) <= INT_MAX); /* should be redundant */
 
   flags = PROT_READ | PROT_WRITE | PROT_EXEC;
-  if((mode & ProtREAD) != 0)
-    flags &= ~(PROT_READ | PROT_EXEC);
   if((mode & ProtWRITE) != 0)
-    flags &= ~PROT_WRITE;
+    flags = PROT_READ | PROT_EXEC;
+  if((mode & ProtREAD) != 0)
+    flags = PROT_NONE;
 
   if(mprotect((caddr_t)base, (int)AddrOffset(base, limit), flags) != 0)
     NOTREACHED;
