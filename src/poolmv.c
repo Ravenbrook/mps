@@ -1,6 +1,6 @@
 /* impl.c.poolmv: MANUAL VARIABLE POOL
  *
- * $HopeName: MMsrc!poolmv.c(MMdevel_segabs.1) $
+ * $HopeName: MMsrc!poolmv.c(MMdevel_segabs.2) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  *
  * **** RESTRICTION: This pool may not allocate from the arena control
@@ -37,7 +37,7 @@
 #include "poolmfs.h"
 #include "mpscmv.h"
 
-SRCID(poolmv, "$HopeName: MMsrc!poolmv.c(MMdevel_segabs.1) $");
+SRCID(poolmv, "$HopeName: MMsrc!poolmv.c(MMdevel_segabs.2) $");
 
 
 #define BLOCKPOOL(mv)   (MFSPool(&(mv)->blockPoolStruct))
@@ -428,7 +428,7 @@ static Res MVAlloc(Addr *pReturn, Pool pool, Size size)
   }
 
   span->mv = mv;
-  SegP(span->seg) = (void *)span;
+  SegSetP(span->seg, (void *)span);
   RingInit(&span->spans);
   span->base.base = span->base.limit = SegBase(space, span->seg);
   span->limit.base = span->limit.limit = SegLimit(space, span->seg);

@@ -1,12 +1,12 @@
 /* impl.c.trace: GENERIC TRACER IMPLEMENTATION
  *
- * $HopeName: MMsrc!trace.c(MMdevel_segabs.1) $
+ * $HopeName: MMsrc!trace.c(MMdevel_segabs.2) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  */
 
 #include "mpm.h"
 
-SRCID(trace, "$HopeName: MMsrc!trace.c(MMdevel_segabs.1) $");
+SRCID(trace, "$HopeName: MMsrc!trace.c(MMdevel_segabs.2) $");
 
 
 /* ScanStateCheck -- check consistency of a ScanState object */
@@ -281,7 +281,7 @@ failCondemn:
   while(node != ring) {
     Ring next = RingNext(node);
     seg = SegOfPoolRing(node);
-    SegWhite(seg) = TraceSetDel(SegWhite(seg), trace->ti);
+    SegSetWhite(seg, TraceSetDel(SegWhite(seg), trace->ti));
     node = next;
   }
 
@@ -310,7 +310,7 @@ void TraceSegGreyen(Space space, Seg seg, TraceSet ts)
   if(grey != SegGrey(seg) &&
      TraceSetInter(grey, space->flippedTraces) != TraceSetEMPTY)
     ShieldRaise(space, seg, AccessREAD);
-  SegGrey(seg) = grey;
+  SegSetGrey(seg, grey);
 }
 
 
@@ -367,13 +367,13 @@ void TraceSetSummary(Space space, Seg seg, RefSet summary)
   AVERT(Seg, seg);
 
   if(summary == RefSetUNIV) {
-    SegSummary(seg) = summary;             /* NB summary == RefSetUNIV */
+    SegSetSummary(seg, summary);             /* NB summary == RefSetUNIV */
     if(SegSM(seg) & AccessWRITE)
       ShieldLower(space, seg, AccessWRITE);
   } else {
     if(!(SegSM(seg) & AccessWRITE))
       ShieldRaise(space, seg, AccessWRITE);
-    SegSummary(seg) = summary;
+    SegSetSummary(seg, summary);
   }
 }
 
@@ -586,7 +586,7 @@ static Res TraceScan(TraceSet ts, Rank rank,
   ss.sig = SigInvalid;			/* just in case */
 
   /* The segment has been scanned, so remove the greyness from it. */
-  SegGrey(seg) = TraceSetDiff(SegGrey(seg), ts);
+  SegSetGrey(seg, TraceSetDiff(SegGrey(seg), ts));
 
   /* If the segment is no longer grey for any flipped trace it */
   /* doesn't need to be behind the read barrier. */  

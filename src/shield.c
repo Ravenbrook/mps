@@ -1,6 +1,6 @@
 /* impl.c.shield: SHIELD IMPLEMENTATION
  *
- * $HopeName: MMsrc!shield.c(MMdevel_segabs.1) $
+ * $HopeName: MMsrc!shield.c(MMdevel_segabs.2) $
  *
  * See: idea.shield, design.mps.shield.
  *
@@ -72,7 +72,7 @@
 
 #include "mpm.h"
 
-SRCID(shield, "$HopeName: MMsrc!shield.c(MMdevel_segabs.1) $");
+SRCID(shield, "$HopeName: MMsrc!shield.c(MMdevel_segabs.2) $");
 
 void ShieldSuspend(Space space)
 {
@@ -102,7 +102,7 @@ static void protLower(Space space, Seg seg, AccessSet mode)
   AVERT(Seg, seg);
 
   if(SegPM(seg) & mode) {
-    SegPM(seg) &= ~mode;
+    SegSetPM(seg, SegPM(seg) & ~mode);
     ProtSet(SegBase(space, seg), SegLimit(space, seg), SegPM(seg));
   }
 }
@@ -114,7 +114,7 @@ static void sync(Space space, Seg seg)
 
   if(SegPM(seg) != SegSM(seg)) {
     ProtSet(SegBase(space, seg), SegLimit(space, seg), SegSM(seg));
-    SegPM(seg) = SegSM(seg);
+    SegSetPM(seg, SegSM(seg));
     /* inv.prot.shield */
   }
 }
@@ -132,7 +132,7 @@ static void flush(Space space, Size i)
   AVER(space->shDepth > 0);
   AVER(SegDepth(seg) > 0);
   --space->shDepth;
-  --SegDepth(seg);
+  SegSetDepth(seg, SegDepth(seg) - 1);
   
   if(SegDepth(seg) == 0)
     sync(space, seg);
@@ -156,7 +156,7 @@ static void cache(Space space, Seg seg)
   if(SHIELD_CACHE_SIZE == 0 || !space->suspended)
     sync(space, seg);
   else {
-    ++SegDepth(seg);
+    SegSetDepth(seg, SegDepth(seg) + 1);
     ++space->shDepth;
     AVER(space->shDepth > 0);
     AVER(SegDepth(seg) > 0);
@@ -175,7 +175,7 @@ void ShieldRaise(Space space, Seg seg, AccessSet mode)
   AVERT(Seg, seg);
 
   AVER((SegSM(seg) & mode) == AccessSetEMPTY);
-  SegSM(seg) |= mode; /* inv.prot.shield preserved */
+  SegSetSM(seg, SegSM(seg) | mode); /* inv.prot.shield preserved */
 
   /* ensure inv.unsynced.suspended & inv.unsynced.depth */
   cache(space, seg);
@@ -191,7 +191,7 @@ void ShieldLower(Space space, Seg seg, AccessSet mode)
    * preserving inv.unsynced.suspended
    * Also inv.prot.shield preserved
    */
-  SegSM(seg) &= ~mode;
+  SegSetSM(seg, SegSM(seg) & ~mode);
   protLower(space, seg, mode);
 }
 
@@ -250,7 +250,7 @@ void ShieldExpose(Space space, Seg seg)
   AVERT(Space, space);
   AVER(space->insideShield);
 
-  ++SegDepth(seg);
+  SegSetDepth(seg, SegDepth(seg) + 1);
   ++space->shDepth;
   AVER(space->shDepth > 0);
   AVER(SegDepth(seg) > 0);
@@ -269,7 +269,7 @@ void ShieldCover(Space space, Seg seg)
 
   AVER(space->shDepth > 0);
   AVER(SegDepth(seg) > 0);
-  --SegDepth(seg);
+  SegSetDepth(seg, SegDepth(seg) - 1);
   --space->shDepth;
 
   /* ensure inv.unsynced.depth */

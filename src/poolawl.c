@@ -1,6 +1,6 @@
 /* impl.c.poolawl: AUTOMATIC WEAK LINKED POOL CLASS
  *
- * $HopeName: MMsrc!poolawl.c(MMdevel_segabs.1) $
+ * $HopeName: MMsrc!poolawl.c(MMdevel_segabs.2) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  *
  * READERSHIP
@@ -16,7 +16,7 @@
 #include "mpm.h"
 #include "mpscawl.h"
 
-SRCID(poolawl, "$HopeName: MMsrc!poolawl.c(MMdevel_segabs.1) $");
+SRCID(poolawl, "$HopeName: MMsrc!poolawl.c(MMdevel_segabs.2) $");
 
 
 #define AWLSig	((Sig)0x519b7a37)	/* SIGPooLAWL */
@@ -127,9 +127,9 @@ static Res AWLGroupCreate(AWLGroup *groupReturn,
   BTResRange(group->mark, 0, bits);
   BTResRange(group->scanned, 0, bits);
   BTResRange(group->alloc, 0, bits);
-  SegSummary(seg) = RefSetUNIV;
-  SegRankSet(seg) = BufferRankSet(buffer);
-  SegP(seg) = group;
+  SegSetSummary(seg, RefSetUNIV);
+  SegSetRankSet(seg, BufferRankSet(buffer));
+  SegSetP(seg, group);
   group->seg = seg;
   group->sig = AWLGroupSig;
   AVERT(AWLGroup, group);
@@ -327,7 +327,7 @@ static Res AWLCondemn(Pool pool, Trace trace, Seg seg)
   bits = SegSize(PoolSpace(pool), seg) >> awl->alignShift;
 
   BTResRange(group->mark, 0, bits);
-  SegWhite(seg) = TraceSetAdd(SegWhite(seg), trace->ti);
+  SegSetWhite(seg, TraceSetAdd(SegWhite(seg), trace->ti));
   
   return ResOK;
 }
@@ -345,7 +345,7 @@ static void AWLGrey(Pool pool, Trace trace, Seg seg)
     group = (AWLGroup)SegP(seg);
     AVERT(AWLGroup, group);
 
-    SegGrey(seg) = TraceSetAdd(SegGrey(seg), trace->ti);
+    SegSetGrey(seg, TraceSetAdd(SegGrey(seg), trace->ti));
     ShieldRaise(trace->space, seg, AccessREAD);
     bits = SegSize(PoolSpace(pool), seg) >> awl->alignShift;
     BTSetRange(group->mark, 0, bits);

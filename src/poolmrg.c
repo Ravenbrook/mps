@@ -2,7 +2,7 @@
  * 
  * MANUAL RANK GUARDIAN POOL
  * 
- * $HopeName: MMsrc!poolmrg.c(MMdevel_segabs.1) $
+ * $HopeName: MMsrc!poolmrg.c(MMdevel_segabs.2) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  *
  * READERSHIP
@@ -28,7 +28,7 @@
 #include "mpm.h"
 #include "poolmrg.h"
 
-SRCID(poolmrg, "$HopeName: MMsrc!poolmrg.c(MMdevel_segabs.1) $");
+SRCID(poolmrg, "$HopeName: MMsrc!poolmrg.c(MMdevel_segabs.2) $");
 
 
 #define MRGSig          ((Sig)0x519369B0) /* SIGnature MRG POol */
@@ -148,13 +148,13 @@ static Res MRGGroupCreate(MRGGroup *groupReturn, MRG mrg)
   }
   AVER((Addr)(&linkpart[i]) <= SegLimit(space, linkseg));
   AVER((Addr)(&refpart[i]) <= SegLimit(space, refseg));
-  SegRankSet(refseg) = RankSetSingle(RankFINAL); /* design.mps.seg.field.rankSet.start */
-  SegSummary(refseg) = RefSetUNIV;		/* design.mps.seg.field.summary.start */
+  SegSetRankSet(refseg, RankSetSingle(RankFINAL)); /* design.mps.seg.field.rankSet.start */
+  SegSetSummary(refseg, RefSetUNIV);               /* design.mps.seg.field.summary.start */
 
   group->refseg = refseg;
   group->linkseg = linkseg;
-  SegP(refseg) = group;
-  SegP(linkseg) = group;
+  SegSetP(refseg, group);
+  SegSetP(linkseg, group);
   RingInit(&group->group);
   RingAppend(&mrg->group, &group->group);
   group->sig = MRGGroupSig;
