@@ -60,6 +60,10 @@ static void BTSet(BT bt, BI i, Bool b)
 }
 
 
+#define PageBase(arena, pi) \
+  ((arena)->base + ((pi) << arena->pageShift))
+
+
 /* ArenaCreate -- create the arena
  *
  * In fact, this creates the space structure and initialize the
@@ -174,8 +178,10 @@ Bool SegCheck(Seg seg)
 Res SegAlloc(Seg *segReturn, Space space, Size size, Pool pool)
 {
   Arena arena = SpaceArena(space);
-  PI pi, base = 0, count, pages;
+  PI pi, count, pages, base = 0; 
+  Addr addr;
   Seg seg;
+  Res res;
 
   AVER(segReturn != NULL);
   AVERT(Arena, SpaceArena(space));
@@ -211,6 +217,11 @@ Res SegAlloc(Seg *segReturn, Space space, Size size, Pool pool)
   return ResRESOURCE;
 
 found:
+  /* Map in the segment memory before actually allocating the pages */
+  addr = PageBase(arena, base);
+  res = VMMap(space, addr, AddrAdd(addr, size));
+  if(res) return res;
+
   /* Initialize the generic segment structure. */
   seg = &arena->pageTable[base].the.head;
   seg->pool = pool;
@@ -220,11 +231,11 @@ found:
   seg->single = TRUE;
 
   /* Allocate the first page, and, if there is more than one page, */
-  /* allocate the rest of the pages and store the multi-page information */
-  /* in the page table. */
+  /* allocate the rest of the pages and store the multi-page */
+  /* information in the page table. */
   BTSet(arena->freeTable, base, FALSE);
   if(pages > 1) {
-    Addr limit = arena->base + ((base + pages) << arena->pageShift);
+    Addr limit = PageBase(arena, base + pages);
     seg->single = FALSE;
     for(pi = base + 1; pi < base + pages; ++pi) {
       AVER(BTGet(arena->freeTable, pi));
@@ -250,10 +261,15 @@ void SegFree(Space space, Seg seg)
   Page page = PARENT(PageStruct, the.head, seg);
   PI pi = page - arena->pageTable;
   Size size;
+  Addr base; 
   Addr limit = SegLimit(space, seg);
 
   AVERT(Arena, SpaceArena(space));
   AVERT(Seg, seg);
+
+  /* Remember the base address of the segment so it can be */
+  /* unmapped later. */
+  base = PageBase(arena, pi);
 
   /* Set the free bit on the first page, and all subsequent */
   /* pages which are allocated and have a NULL pool field -- */
@@ -270,9 +286,12 @@ void SegFree(Space space, Seg seg)
   } while(!BTGet(arena->freeTable, pi) &&
           arena->pageTable[pi].the.tail.pool == NULL);
 
+  /* Unmap the segment memory. */
+  VMUnmap(space, base, PageBase(arena, pi));
+
   /* Double check that the loop above takes us to the limit page */
   /* of the segment. */
-  AVER(arena->base + (pi << arena->pageShift) == limit);
+  AVER(PageBase(arena, pi) == limit);
 }
 
 
@@ -307,7 +326,7 @@ Addr SegBase(Space space, Seg seg)
   page = PARENT(PageStruct, the.head, seg);
   pi = page - arena->pageTable;
 
-  return arena->base + (pi << arena->pageShift);
+  return PageBase(arena, pi);
 }
 
 
