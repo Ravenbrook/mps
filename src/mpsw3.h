@@ -1,6 +1,6 @@
 /* impl.h.mpsw3: HARLEQUIN MEMORY POOL SYSTEM C INTERFACE, WINDOWS PART
  *
- * $HopeName$
+ * $HopeName: !mpsw3.h(trunk.1) $
  * Copyright (C) 1998 The Harlequin Group Limited.  All rights reserved.
  *
  * .readership: customers, MPS developers.
