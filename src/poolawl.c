@@ -1,6 +1,6 @@
 /* impl.c.poolawl: AUTOMATIC WEAK LINKED POOL CLASS
  *
- * $HopeName: MMsrc!poolawl.c(MM_dylan_sunflower.9) $
+ * $HopeName: MMsrc!poolawl.c(MM_dylan_sunflower.10) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  *
  * READERSHIP
@@ -16,7 +16,7 @@
 #include "mpm.h"
 #include "mpscawl.h"
 
-SRCID(poolawl, "$HopeName: MMsrc!poolawl.c(MM_dylan_sunflower.9) $");
+SRCID(poolawl, "$HopeName: MMsrc!poolawl.c(MM_dylan_sunflower.10) $");
 
 
 #define AWLSig  ((Sig)0x519b7a37)       /* SIGPooLAWL */
@@ -40,7 +40,6 @@ typedef struct AWLGroupStruct {
   BT mark;
   BT scanned;
   BT alloc;
-  RefSet rememberedSummary;     /* == EMPTY unless seg is condemned */
 } AWLGroupStruct, *AWLGroup;
 
 
@@ -135,7 +134,6 @@ static Res AWLGroupCreate(AWLGroup *groupReturn,
   SegSetSummary(seg, RefSetUNIV);
   SegSetRankSet(seg, BufferRankSet(buffer));
   SegSetP(seg, group);
-  group->rememberedSummary = RefSetEMPTY;
   group->seg = seg;
   group->sig = AWLGroupSig;
   AVERT(AWLGroup, group);
@@ -357,7 +355,6 @@ static Res AWLCondemn(Pool pool, Trace trace, Seg seg, Action action)
     
     BTResRange(group->mark, 0, bits);
     BTResRange(group->scanned, 0, bits);
-    group->rememberedSummary = SegSummary(seg);
     SegSetWhite(seg, TraceSetAdd(SegWhite(seg), trace->ti));
   }
   
@@ -504,6 +501,17 @@ notFinished:
   }
   if(!finished)
     goto notFinished;
+ 
+  /* if we're not condemned, then the scan must've scanned everything */
+  /* and ss.summary and ss.fixed are faithful.  Otherwise we need to */
+  /* spoof ss.summary and ss.fixed for TraceScan */
+  /* see request.dylan.170473 */
+  if(SegWhite(seg) != RefSetEMPTY) {
+    AVER(RefSetSub(ss->summary, SegSummary(seg)));
+    ss->summary = SegSummary(seg);
+    ss->fixed = RefSetUnion(ss->fixed,
+                            RefSetInter(SegSummary(seg), ss->white));
+  }
   
   return ResOK;
 }
@@ -552,9 +560,6 @@ static Res AWLFix(Pool pool, ScanState ss, Seg seg, Ref *refIO)
       if(ss->rank == RankWEAK) {
 	*refIO = (Ref)0;
       } else {
-	TraceSetSummary(space, seg,
-			RefSetUnion(group->rememberedSummary,
-				    SegSummary(seg)));
 	TraceSegGreyen(space, seg, ss->traces);
 	BTSet(group->mark, i);
       }
@@ -625,7 +630,6 @@ static void AWLReclaim(Pool pool, Trace trace, Seg seg)
   AVER(i == bits);
 
   BTResRange(group->mark, 0, bits);
-  group->rememberedSummary = RefSetEMPTY;
   SegSetWhite(seg, TraceSetDel(SegWhite(seg), trace->ti));
 }
 
@@ -715,8 +719,5 @@ static Bool AWLGroupCheck(AWLGroup group)
   CHECKL(group->mark != NULL);
   CHECKL(group->scanned != NULL);
   CHECKL(group->alloc != NULL);
-  /* Can't check rememberedSummary because it's a RefSet */
-  CHECKL(group->rememberedSummary == RefSetEMPTY ||
-	 SegWhite(group->seg) != TraceSetEMPTY);
   return TRUE;
 }
