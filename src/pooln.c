@@ -2,7 +2,7 @@
  *
  *                         NULL POOL
  *
- *  $HopeName: MMsrc!pooln.c(MMdevel_action2.5) $
+ *  $HopeName: MMsrc!pooln.c(MMdevel_action2.6) $
  *
  *  Copyright(C) 1995 Harlequin Group, all rights reserved
  *
@@ -13,7 +13,7 @@
 #include "mpm.h"
 #include "pooln.h"
 
-SRCID(pooln, "$HopeName: MMsrc!pooln.c(MMdevel_action2.5) $");
+SRCID(pooln, "$HopeName: MMsrc!pooln.c(MMdevel_action2.6) $");
 
 
 typedef struct PoolNStruct {
@@ -188,7 +188,7 @@ static Res NCondemn(Pool pool, Trace trace, Seg seg)
   return ResOK;
 }
 
-static void NMark(Pool pool, Trace trace)
+static void NGrey(Pool pool, Trace trace, Seg seg)
 {
   PoolN poolN;
 
@@ -197,6 +197,7 @@ static void NMark(Pool pool, Trace trace)
   AVERT(PoolN, poolN);
 
   AVERT(Trace, trace);
+  AVERT(Seg, seg);
 }
 
 static Res NScan(ScanState ss, Pool pool, Seg seg)
@@ -229,7 +230,7 @@ static Res NFix(Pool pool, ScanState ss, Seg seg, Ref *refIO)
   return ResFAIL;
 }
 
-static void NReclaim(Pool pool, Trace trace)
+static void NReclaim(Pool pool, Trace trace, Seg seg)
 {
   PoolN poolN;
 
@@ -238,6 +239,7 @@ static void NReclaim(Pool pool, Trace trace)
   AVERT(PoolN, poolN);
 
   AVERT(Trace, trace);
+  AVERT(Seg, seg);
   /* all unmarked and white objects reclaimed */
 }
 
@@ -258,7 +260,7 @@ static PoolClassStruct PoolClassNStruct = {
   NBufferExpose,                        /* bufferExpose */
   NBufferCover,                         /* bufferCover */
   NCondemn,                             /* condemn */
-  NMark,                                /* grey */
+  NGrey,                                /* grey */
   NScan,                                /* scan */
   NFix,                                 /* fix */
   NReclaim,                             /* reclaim */
