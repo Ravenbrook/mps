@@ -1,6 +1,6 @@
 /*  ==== MPM STRESS TEST ====
  *
- *  $HopeName: !mpmss.c(trunk.6) $
+ *  $HopeName: MMsrc!mpmss.c(MMdevel_config.1) $
  */
 
 
@@ -12,6 +12,9 @@
 #include "poolmv.h"
 #include "mps.h"
 #include "mpslib.h"
+#ifdef MPS_OS_SU
+#include "ossu.h"
+#endif
 
 
 #define TEST_SET_SIZE           500
