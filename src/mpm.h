@@ -273,6 +273,7 @@ extern void PoolFinish(Pool pool);
 extern Bool PoolClassCheck(PoolClass class);
 extern Bool PoolCheck(Pool pool);
 extern Res PoolDescribe(Pool pool, mps_lib_FILE *stream);
+extern Res PoolName(Pool pool, mps_lib_FILE *stream);
 
 extern Arena (PoolArena)(Pool pool);
 #define PoolArena(pool)         ((pool)->arena)
@@ -527,6 +528,10 @@ extern void LocusClientNoteSegAlloc(LocusClient client, Arena arena,
                                     Seg seg);
 extern void LocusClientNoteSegFree(LocusClient client, Arena arena,
                                    Seg seg);
+extern Res LocusManagerDescribe(LocusManager manager, mps_lib_FILE *stream);
+extern Res LocusDescribe(Locus locus, mps_lib_FILE *stream);
+extern Res LocusClientDescribe(LocusClient client, mps_lib_FILE *stream);
+extern Res ZoneUsageDescribe(ZoneUsage desc, mps_lib_FILE *stream);
 
 
 /* Arena Interface -- see impl.c.arena */
@@ -540,6 +545,7 @@ extern void ArenaDestroy(Arena arena);
 extern void ArenaInit(Arena arena, ArenaClass class);
 extern void ArenaFinish(Arena arena);
 extern Res ArenaDescribe(Arena arena, mps_lib_FILE *stream);
+extern Res ArenaName(Arena arena, mps_lib_FILE *stream);
 extern Bool ArenaAccess(Addr addr, AccessSet mode,
 			MutatorFaultContext context);
 
