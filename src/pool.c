@@ -1,6 +1,6 @@
 /* impl.c.pool: POOL IMPLEMENTATION
  *
- * $HopeName: !pool.c(trunk.31) $
+ * $HopeName: MMsrc!pool.c(MM_dylan_sunflower.1) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  *
  * This is the implementation of the generic pool interface.  The
@@ -12,7 +12,7 @@
 
 #include "mpm.h"
 
-SRCID(pool, "$HopeName: !pool.c(trunk.31) $");
+SRCID(pool, "$HopeName: MMsrc!pool.c(MM_dylan_sunflower.1) $");
 
 
 Bool PoolClassCheck(PoolClass class)
@@ -702,10 +702,8 @@ void PoolTrivGrey(Pool pool, Trace trace, Seg seg)
   /* with the mutator colour.  For the moment we assume */
   /* a read-barrier collector. */
 
-  if(!TraceSetIsMember(SegWhite(seg), trace->ti)) {
-    SegGrey(seg) = TraceSetAdd(SegGrey(seg), trace->ti);
-    ShieldRaise(trace->space, seg, AccessREAD);
-  }
+  if(!TraceSetIsMember(SegWhite(seg), trace->ti))
+    TraceSegGreyen(PoolSpace(pool), seg, TraceSetSingle(trace->ti));
 }
 
 Res PoolNoScan(ScanState ss, Pool pool, Seg seg)

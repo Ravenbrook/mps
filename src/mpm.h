@@ -1,6 +1,6 @@
 /* impl.h.mpm: MEMORY POOL MANAGER DEFINITIONS
  *
- * $HopeName: MMsrc!mpm.h(MM_dylan_sunflower.1) $
+ * $HopeName: MMsrc!mpm.h(MM_dylan_sunflower.2) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  */
 
@@ -446,6 +446,8 @@ extern void SegFinish(Seg seg);
 #define SegBuffer(seg)		((seg)->_buffer)
 #define SegPoolRing(seg)	(&(seg)->_poolRing)
 #define SegOfPoolRing(node)	RING_ELT(Seg, _poolRing, node)
+#define SegGreyRing(seg)	(&(seg)->_greyRing)
+#define SegOfGreyRing(node)	RING_ELT(Seg, _greyRing, node)
 
 #define SegSetPool(seg, pool)   ((void)((seg)->_pool = (pool)))
 #define SegSetSingle(seg, s)	((void)((seg)->_single = (s)))

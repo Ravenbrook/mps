@@ -1,12 +1,12 @@
 /* impl.c.trace: GENERIC TRACER IMPLEMENTATION
  *
- * $HopeName: MMsrc!trace.c(MM_dylan_sunflower.4) $
+ * $HopeName: MMsrc!trace.c(MM_dylan_sunflower.5) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  */
 
 #include "mpm.h"
 
-SRCID(trace, "$HopeName: MMsrc!trace.c(MM_dylan_sunflower.4) $");
+SRCID(trace, "$HopeName: MMsrc!trace.c(MM_dylan_sunflower.5) $");
 
 
 /* ScanStateCheck -- check consistency of a ScanState object */
@@ -59,7 +59,6 @@ Bool TraceCheck(Trace trace)
   CHECKL(TraceIdCheck(trace->ti));
   CHECKL(trace == &trace->space->trace[trace->ti]);
   CHECKL(TraceSetIsMember(trace->space->busyTraces, trace->ti));
-  CHECKL(RankSetCheck(trace->grey));
   /* Can't check trace->white -- not in O(1) anyway. */
   /* Use trace->state to check more invariants. */
   switch(trace->state) {
@@ -291,7 +290,6 @@ found:
   /* We conservatively assume that there may be grey segments at all */
   /* ranks when we create the trace.  (almost certainly we could do */
   /* better) */
-  trace->grey = RankSetUNIV;
   trace->condemned = (Size)0;   /* nothing condemned yet */
   trace->foundation = (Size)0;  /* nothing grey yet */
   trace->rate = (Size)0;        /* no scanning to be done yet */
@@ -331,10 +329,6 @@ void TraceDestroy(Trace trace)
 {
   AVERT(Trace, trace);
   AVER(trace->state == TraceFINISHED);
-#if 0
-  /* removed AVER for now as it is not true for the first trace */
-  AVER(trace->grey == RankSetEMPTY);
-#endif
   
   PoolTraceEnd(trace->action->pool, trace, trace->action);
   
@@ -357,24 +351,46 @@ void TraceDestroy(Trace trace)
 
 void TraceSegGreyen(Space space, Seg seg, TraceSet ts)
 {
-  TraceSet grey;
+  TraceSet segGrey, newGrey;
   
   AVERT(Space, space);
   AVERT(Seg, seg);
   AVER(TraceSetCheck(ts));
 
-  grey = SegGrey(seg);
-  grey = TraceSetUnion(grey, ts);
-  if(grey != SegGrey(seg)) {
-    /* Currently we assume that there is only one trace.  */
-    /* This makes it simpler to greyen each trace. */
-    AVER(ts == 1); /* @@@@ Hack */
-    SpaceTrace(space, 0)->grey =
-      RankSetUnion(SpaceTrace(space, 0)->grey, SegRankSet(seg));
-    if(TraceSetInter(grey, space->flippedTraces) != TraceSetEMPTY)
-      ShieldRaise(space, seg, AccessREAD);
+  segGrey = SegGrey(seg);
+  newGrey = TraceSetUnion(segGrey, ts);
+  if(newGrey != segGrey) {
+    /* The read barrier should only really be raised when the */
+    /* segment is grey for some flipped trace, i.e. */
+    /* if(TraceSetInter(grey, space->flippedTraces) != TraceSetEMPTY) */
+    /* But this requires Flip to raise it when flippedTraces changes, */
+    /* which it does not do at present. */
+    ShieldRaise(space, seg, AccessREAD);
+ 
+    /* Temporary hack to add to grey list for */
+    /* change.dylan.sunflower.7.170421. */
+    AVER(RankSetIsSingle(SegRankSet(seg)));
+    if(segGrey == RefSetEMPTY) {
+      switch(SegRankSet(seg)) {
+      case RankSetSingle(RankAMBIG):
+	RingInsert(&space->greyRing[RankAMBIG], SegGreyRing(seg));
+	break;
+      case RankSetSingle(RankEXACT):
+	RingInsert(&space->greyRing[RankEXACT], SegGreyRing(seg));
+	break;
+      case RankSetSingle(RankFINAL):
+	RingInsert(&space->greyRing[RankFINAL], SegGreyRing(seg));
+	break;
+      case RankSetSingle(RankWEAK):
+	RingInsert(&space->greyRing[RankWEAK], SegGreyRing(seg));
+	break;
+      default:
+	NOTREACHED;
+	break;
+      }
+    }
   }
-  SegSetGrey(seg, grey);
+  SegSetGrey(seg, newGrey);
   EVENT3(TraceSegGreyen, space, seg, ts);
 }
 
@@ -567,9 +583,6 @@ static void TraceReclaim(Trace trace)
  *
  * This is equivalent to choosing a grey node from the grey set
  * of a partition.
- *
- * @@@@ This must be optimised by using better data structures at
- * the cost of some bookkeeping elsewhere, esp. during fix.
  */
 
 static Bool FindGrey(Seg *segReturn, Rank *rankReturn,
@@ -577,7 +590,6 @@ static Bool FindGrey(Seg *segReturn, Rank *rankReturn,
 {
   Rank rank;
   Trace trace;
-  Seg seg;
 
   AVER(segReturn != NULL);
   AVERT(Space, space);
@@ -586,24 +598,24 @@ static Bool FindGrey(Seg *segReturn, Rank *rankReturn,
   trace = SpaceTrace(space, ti);
   
   for(rank = 0; rank < RankMAX; ++rank) {
-    if(RankSetIsMember(trace->grey, rank)) {
-      if(SegFirst(&seg, space)) {
-	Addr base;
-	do {
-	  base = SegBase(space, seg);
-	  if(RankSetIsMember(SegRankSet(seg), rank) &&
-	     TraceSetIsMember(SegGrey(seg), ti)) {
-	    *segReturn = seg;
-	    *rankReturn = rank;
-	    return TRUE;
-	  }
-	} while(SegNext(&seg, space, base));
+    Ring ring = &space->greyRing[rank];
+    Ring node = RingNext(ring);
+    while(node != ring) {
+      Ring next = RingNext(node);
+      Seg seg = SegOfGreyRing(node);
+      AVERT(Seg, seg);
+      AVER(SegGrey(seg) != TraceSetEMPTY);
+      AVER(RankSetIsMember(SegRankSet(seg), rank));
+      if(TraceSetIsMember(SegGrey(seg), ti)) {
+	*segReturn = seg;
+	*rankReturn = rank;
+	return TRUE;
       }
-      trace->grey = RankSetDel(trace->grey, rank);
+      node = next;
     }
   }
 
-  AVER(trace->grey == RankSetEMPTY);
+  /* There are no grey segments for this trace. */
 
   return FALSE;
 }
@@ -684,6 +696,8 @@ static Res TraceScan(TraceSet ts, Rank rank,
 
   /* The segment has been scanned, so remove the greyness from it. */
   SegSetGrey(seg, TraceSetDiff(SegGrey(seg), ts));
+  if(SegGrey(seg) == TraceSetEMPTY)
+    RingRemove(SegGreyRing(seg));
 
   /* If the segment is no longer grey for any flipped trace it */
   /* doesn't need to be behind the read barrier. */  

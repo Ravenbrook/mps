@@ -1,6 +1,6 @@
 /* impl.h.mpmst: MEMORY POOL MANAGER DATA STRUCTURES
  *
- * $HopeName: MMsrc!mpmst.h(MM_dylan_sunflower.2) $
+ * $HopeName: MMsrc!mpmst.h(MM_dylan_sunflower.3) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  *
  * .readership: MM developers.
@@ -274,6 +274,7 @@ typedef struct SegStruct {      /* segment structure */
   void *_p;			/* pointer for use of owning pool */
   Buffer _buffer;		/* non-NULL if seg is buffered */
   RefSet _summary;		/* summary of references out of seg */
+  RingStruct _greyRing;         /* link in list of grey segments */
   unsigned _depth : SHIELD_DEPTH_WIDTH; /* see impl.c.shield.def.depth */
   AccessSet _pm : AccessMAX;    /* protection mode, impl.c.shield */
   AccessSet _sm : AccessMAX;    /* shield mode, impl.c.shield */
@@ -583,7 +584,6 @@ typedef struct TraceStruct {
   Action action;		/* the action that launched the trace */
   RefSet white;			/* superset of refs in white set */
   TraceState state;		/* current state of trace */
-  RankSet grey;                 /* ranks for which grey segs (may) exist */
   Size condemned;               /* condemned bytes */
   Size foundation;              /* initial grey set size */
   Size rate;                    /* bytes to scan per increment */
@@ -662,6 +662,7 @@ typedef struct SpaceStruct {
   TraceSet flippedTraces;	/* set of running and flipped traces */
   TraceStruct trace[TRACE_MAX]; /* trace structures.  See
                                    design.mps.trace.intance.limit */
+  RingStruct greyRing[RankMAX]; /* list of grey segs at each rank */
 
   /* location dependency fields (impl.c.ld) */
   Epoch epoch;                  /* current epoch */

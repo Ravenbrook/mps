@@ -1,6 +1,6 @@
 /* impl.c.seg: SEGMENTS
  *
- * $HopeName: !seg.c(trunk.5) $
+ * $HopeName: MMsrc!seg.c(MM_dylan_sunflower.1) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  *
  * .design: The design for this module is design.mps.seg.
@@ -16,7 +16,7 @@
 
 #include "mpm.h"
 
-SRCID(seg, "$HopeName: !seg.c(trunk.5) $");
+SRCID(seg, "$HopeName: MMsrc!seg.c(MM_dylan_sunflower.1) $");
 
 
 /* SegCheck -- check the integrity of a segment */
@@ -33,6 +33,7 @@ Bool SegCheck(Seg seg)
   }
   CHECKL(RingCheck(SegPoolRing(seg)));
   CHECKL(RankSetCheck(SegRankSet(seg)));
+  CHECKL(RingCheck(SegGreyRing(seg)));
   if(SegRankSet(seg) == RankSetEMPTY) {
     /* design.mps.seg.field.rankSet.empty: If there are no refs */
     /* in the segment then it cannot contain black or grey refs. */
@@ -70,6 +71,7 @@ void SegInit(Seg seg, Pool pool)
   SegSetSM(seg, AccessSetEMPTY);
   SegSetDepth(seg, 0);
   SegSetSingle(seg, FALSE);
+  RingInit(SegGreyRing(seg));
 
   AVERT(Seg, seg);
 }
@@ -88,5 +90,6 @@ void SegFinish(Seg seg)
   /* Don't leave a dangling buffer allocating into hyperspace. */
   AVER(SegBuffer(seg) == NULL);
 
+  RingFinish(SegGreyRing(seg));
   RingFinish(SegPoolRing(seg));
 }
