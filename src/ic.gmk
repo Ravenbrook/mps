@@ -1,0 +1,14 @@
+# impl.gmk.ic: GNUMAKEFILE FRAGMENT FOR IRIX CC (IRIX 4 OR 5)
+#
+# $HopeName: !ic.gmk(trunk.2) $
+# Copyright (C) 1996 Harlequin Group, all rights reserved
+#
+# This file is included by platform makefiles that use the IRIX CC
+# compiler.  It defines the compiler specific variables that the
+# common makefile fragment (impl.gmk.comm) requires.
+
+CC = cc
+CFLAGSDEBUG = -g
+CFLAGSOPTIMIZE = -O
+
+include comm.gmk
