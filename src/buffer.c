@@ -1,6 +1,6 @@
 /* impl.c.buffer: ALLOCATION BUFFER IMPLEMENTATION
  *
- * $HopeName: MMsrc!buffer.c(MMdevel_restr.2) $
+ * $HopeName: MMsrc!buffer.c(MMdevel_restr.3) $
  * Copyright (C) 1996 Harlequin Group, all rights reserved
  *
  * This is the interface to allocation buffers.
@@ -115,7 +115,7 @@
 
 #include "mpm.h"
 
-SRCID(buffer, "$HopeName: MMsrc!buffer.c(MMdevel_restr.2) $");
+SRCID(buffer, "$HopeName: MMsrc!buffer.c(MMdevel_restr.3) $");
 
 
 Ring BufferPoolRing(Buffer buffer)
@@ -376,7 +376,7 @@ Res BufferReserve(Addr *pReturn, Buffer buffer, Word size)
   /* satisfy the request?  If so, just increase the alloc marker and */
   /* return a pointer to the area below it. */
 
-  next = buffer->ap.alloc + size;
+  next = AddrAdd(buffer->ap.alloc, size);
   if(next > buffer->ap.alloc && next <= buffer->ap.limit)
   {
     buffer->ap.alloc = next;
@@ -451,7 +451,7 @@ Bool BufferCommit(Buffer buffer, Addr p, Word size)
   /* a pointer p which points to the invalid object at init. */
 
   AVER(p == buffer->ap.init);
-  AVER(buffer->ap.init + size == buffer->ap.alloc);
+  AVER(AddrAdd(buffer->ap.init, size) == buffer->ap.alloc);
 
   /* Atomically update the init pointer to declare that the object */
   /* is initialized (though it may be invalid if a flip occurred). */
