@@ -1,6 +1,6 @@
 /* impl.c.poollo: LEAF POOL CLASS
  *
- * $HopeName: !poollo.c(trunk.11) $
+ * $HopeName: MMsrc!poollo.c(MMdevel_alloc_replay.1) $
  * Copyright (C) 1997,1998 Harlequin Group plc, all rights reserved.
  *
  * READERSHIP
@@ -19,7 +19,7 @@
 #include "mpm.h"
 #include "mps.h"
 
-SRCID(poollo, "$HopeName: !poollo.c(trunk.11) $");
+SRCID(poollo, "$HopeName: MMsrc!poollo.c(MMdevel_alloc_replay.1) $");
 
 
 /* MACROS */
@@ -460,7 +460,7 @@ static Res LOInit(Pool pool, va_list arg)
   lo->sig = LOSig;
 
   AVERT(LO, lo);
-
+  EVENT_PP(PoolInitLO, pool, format);
   return ResOK;
 }
 

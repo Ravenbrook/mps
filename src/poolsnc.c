@@ -1,6 +1,6 @@
 /* impl.c.poolsnc: STACK NO CHECKING POOL CLASS
  *
- * $HopeName: !poolsnc.c(trunk.4) $
+ * $HopeName: MMsrc!poolsnc.c(MMdevel_alloc_replay.1) $
  * Copyright (C) 1998.  Harlequin Group plc.  All rights reserved.
  *
  * READERSHIP
@@ -26,7 +26,7 @@
 #include "mpm.h"
 
 
-SRCID(poolsnc, "$HopeName: !poolsnc.c(trunk.4) $");
+SRCID(poolsnc, "$HopeName: MMsrc!poolsnc.c(MMdevel_alloc_replay.1) $");
 
 
 #define SNCSig  ((Sig)0x519b754c)       /* SIGPooLSNC */
@@ -184,8 +184,9 @@ static Res SNCInit(Pool pool, va_list arg)
   /* clashes with collected pools */
   snc->segPrefStruct = *SegPrefDefault();
   snc->sig = SNCSig;
-  AVERT(SNC, snc);
 
+  AVERT(SNC, snc);
+  EVENT_PP(PoolInitSNC, pool, format);
   return ResOK;
 }
 
@@ -223,6 +224,8 @@ static Res SNCBufferInit(Pool pool, Buffer buffer, va_list args)
   buffer->rankSet = RankSetSingle(rank);
   /* Initialize buffer's segment chain to empty */
   sncBufferSetTopSeg(buffer, NULL);
+  /* No point to emit the rank. */
+  EVENT_PPU(BufferInit, buffer, pool, TRUE);
   return ResOK;
 }
 
