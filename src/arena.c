@@ -1,6 +1,6 @@
 /* impl.c.arena: ARENA IMPLEMENTATION
  *
- * $HopeName: MMsrc!arena.c(MMdevel_drj_trace_abort.1) $
+ * $HopeName: MMsrc!arena.c(MMdevel_drj_trace_abort.2) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  *
  * .readership: Any MPS developer
@@ -35,7 +35,7 @@
 /* finalization */
 #include "poolmrg.h"
 
-SRCID(arena, "$HopeName: MMsrc!arena.c(MMdevel_drj_trace_abort.1) $");
+SRCID(arena, "$HopeName: MMsrc!arena.c(MMdevel_drj_trace_abort.2) $");
 
 
 /* All static data objects are declared here. See .static */
@@ -222,7 +222,6 @@ void ArenaInit(Arena arena, ArenaClass class)
   arena->finalPool = NULL;
   arena->busyTraces = TraceSetEMPTY;    /* impl.c.trace */
   arena->flippedTraces = TraceSetEMPTY; /* impl.c.trace */
-  arena->traceEmergency = FALSE;
   for (i=0; i < TRACE_MAX; i++) {
     /* design.mps.arena.trace.invalid */
     arena->trace[i].sig = SigInvalid;   
@@ -563,7 +562,7 @@ void ArenaPoll(Arena arena)
     Trace trace = ArenaTrace(arena, (TraceId)0);
     AVER(arena->busyTraces == TraceSetSingle((TraceId)0));
     i = trace->rate;
-    while(i > 0 && arena->busyTraces != TraceSetEMPTY) {
+    while(i > 0 && TraceSetIsMember(arena->busyTraces, trace->ti)) {
       TracePoll(trace);
       if(trace->state == TraceFINISHED) {
         /* @@@@ Pick up results and use for prediction. */

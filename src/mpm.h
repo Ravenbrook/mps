@@ -1,6 +1,6 @@
 /* impl.h.mpm: MEMORY POOL MANAGER DEFINITIONS
  *
- * $HopeName: MMsrc!mpm.h(MMdevel_drj_trace_abort.1) $
+ * $HopeName: MMsrc!mpm.h(MMdevel_drj_trace_abort.2) $
  * Copyright (C) 1997, 1998 The Harlequin Group Limited.  All rights reserved.
  */
 
@@ -285,7 +285,7 @@ extern Res PoolScan(Bool *totalReturn, ScanState ss, Pool pool, Seg seg);
 extern Res (PoolFix)(Pool pool, ScanState ss, Seg seg, Addr *refIO);
 #define PoolFix(pool, ss, seg, refIO) \
   ((*(pool)->class->fix)((pool), (ss), (seg), (refIO)))
-extern void PoolEmergencyFix(Pool pool, ScanState ss, Seg seg, Addr *refIO);
+extern void PoolFixEmergency(Pool pool, ScanState ss, Seg seg, Addr *refIO);
 extern void PoolReclaim(Pool pool, Trace trace, Seg seg);
 extern double PoolBenefit(Pool pool, Action action);
 extern Res PoolAct(Pool pool, Action action);
@@ -389,8 +389,7 @@ extern void TracePoll(Trace trace);
 extern void TraceAccess(Arena arena, Seg seg, AccessSet mode);
 
 extern Res TraceFix(ScanState ss, Ref *refIO);
-extern Res TraceEmergencyFix(ScanState ss, Ref *refIO);
-extern void TraceSegGreyen(Arena arena, Seg seg, TraceSet ts);
+extern Res TraceFixEmergency(ScanState ss, Ref *refIO);
 extern Size TraceGreyEstimate(Arena arena, RefSet refSet);
 
 /* Equivalent to impl.h.mps MPS_SCAN_BEGIN */

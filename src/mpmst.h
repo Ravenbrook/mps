@@ -1,6 +1,6 @@
 /* impl.h.mpmst: MEMORY POOL MANAGER DATA STRUCTURES
  *
- * $HopeName: MMsrc!mpmst.h(MMdevel_drj_trace_abort.1) $
+ * $HopeName: MMsrc!mpmst.h(MMdevel_drj_trace_abort.2) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  *
  * .readership: MM developers.
@@ -83,7 +83,7 @@ typedef struct PoolClassStruct {
   PoolFreeMethod free;          /* free memory to pool */
   PoolBufferInitMethod bufferInit;      /* additional buffer init */
   PoolBufferFillMethod bufferFill;      /* out-of-line reserve */
-  PoolBufferEmptyMethod bufferEmpty;      /* out-of-line commit */
+  PoolBufferEmptyMethod bufferEmpty;    /* out-of-line commit */
   PoolBufferFinishMethod bufferFinish;  /* additional buffer finish */
   PoolTraceBeginMethod traceBegin;
   PoolWhitenMethod whiten;      /* whiten objects in a segment */
@@ -91,7 +91,7 @@ typedef struct PoolClassStruct {
   PoolBlackenMethod blacken;    /* blacken grey objects without scanning */
   PoolScanMethod scan;          /* find references during tracing */
   PoolFixMethod fix;            /* referent reachable during tracing */
-  PoolEmergencyFixMethod emergencyFix; /* as fix, no failure allowed */
+  PoolFixEmergencyMethod fixEmergency;  /* as fix, no failure allowed */
   PoolReclaimMethod reclaim;    /* reclaim dead objects after tracing */
   PoolBenefitMethod benefit;    /* calculate benefit of action */
   PoolActMethod act;            /* do an action */
@@ -503,6 +503,7 @@ typedef struct TraceStruct {
   RefSet white;                 /* superset of refs in white set */
   RefSet mayMove;		/* superset of refs in moving set */
   TraceState state;             /* current state of trace */
+  Bool emergency;               /* true iff ran out of memory during trace */
   Size condemned;               /* condemned bytes */
   Size foundation;              /* initial grey set size */
   Size rate;                    /* bytes to scan per increment */
@@ -638,7 +639,6 @@ typedef struct ArenaStruct {
   /* trace fields (impl.c.trace) */
   TraceSet busyTraces;          /* set of running traces */
   TraceSet flippedTraces;       /* set of running and flipped traces */
-  Bool traceEmergency;          /* out of memory during trace? */
   TraceStruct trace[TRACE_MAX]; /* trace structures.  See
                                    design.mps.trace.intance.limit */
   RingStruct greyRing[RankMAX]; /* ring of grey segments at each rank */
