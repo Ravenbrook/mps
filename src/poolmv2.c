@@ -1,6 +1,6 @@
 /* impl.c.poolmv2: MANUAL VARIABLE POOL, II
  *
- * $HopeName: !poolmv2.c(trunk.4) $
+ * $HopeName: MMsrc!poolmv2.c(MMdevel_ptw_pseudoloci.1) $
  * Copyright (C) 1998 Harlequin Group plc.  All rights reserved.
  *
  * .readership: any MPS developer
@@ -17,7 +17,7 @@
 #include "abq.h"
 #include "meter.h"
 
-SRCID(poolmv2, "$HopeName: !poolmv2.c(trunk.4) $");
+SRCID(poolmv2, "$HopeName: MMsrc!poolmv2.c(MMdevel_ptw_pseudoloci.1) $");
 
 
 /* Signatures */
@@ -289,6 +289,13 @@ static Res MV2Init(Pool pool, va_list arg)
     /* +++ Get own RefSet */
     refset = RefSetComp(ARENA_DEFAULT_REFSET);
     SegPrefExpress(MV2SegPref(mv2), SegPrefRefSet, (void *)&refset);
+
+    LocusClientSetCohortParameters(PoolLocusClient(pool),
+                                   RefSetUNIV,
+                                   RefSetEMPTY,
+                                   /* @@@ cohort parameters */
+                                   (Lifetime)reuseSize);
+    
   }
 
   mv2->reuseSize = reuseSize;
