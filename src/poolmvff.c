@@ -1,6 +1,6 @@
 /* impl.c.poolmvff: First Fit Manual Variable Pool
  * 
- * $HopeName: MMsrc!poolmvff.c(MMdevel_color_pool.1) $
+ * $HopeName: MMsrc!poolmvff.c(MMdevel_color_pool.2) $
  * Copyright (C) 1998 Harlequin Group plc.  All rights reserved.
  *
  * .purpose: This is a pool class for manually managed objects of
@@ -18,7 +18,7 @@
 #include "cbs.h"
 #include "mpm.h"
 
-SRCID(poolmvff, "$HopeName: MMsrc!poolmvff.c(MMdevel_color_pool.1) $");
+SRCID(poolmvff, "$HopeName: MMsrc!poolmvff.c(MMdevel_color_pool.2) $");
 
 
 /* Would go in poolmvff.h if the class had any MPS-internal clients. */
@@ -354,7 +354,7 @@ static void MVFFFree(Pool pool, Addr old, Size size)
 
 /* MVFFBufferFill -- Fill the buffer
  *
- * We'll try using the first block we can find.
+ * Fill it with the largest block we can find.
  */
 
 static Res MVFFBufferFill(Seg *segReturn,
@@ -378,18 +378,23 @@ static Res MVFFBufferFill(Seg *segReturn,
   AVER(SizeIsAligned(size, PoolAlignment(pool)));
   AVERT(Bool, withReservoirPermit);
 
-  foundBlock = CBSFindFirst(&base, &limit, CBSOfMVFF(mvff), size,
-                            CBSFindDeleteENTIRE);
+  /* Hoping the largest is big enough, delete it and return if small. */
+  foundBlock = CBSFindLargest(&base, &limit, CBSOfMVFF(mvff),
+                              CBSFindDeleteENTIRE);
+  if(foundBlock && AddrOffset(base, limit) < size) {
+    foundBlock = FALSE;
+    res = CBSInsert(CBSOfMVFF(mvff), base, limit);
+    AVER(res == ResOK);
+  }
   if(!foundBlock) {
     Seg seg;
 
     res = MVFFAddSeg(&seg, mvff, size, withReservoirPermit);
     if(res != ResOK) 
       return res;
-    foundBlock = CBSFindFirst(&base, &limit, CBSOfMVFF(mvff), size,
-                              CBSFindDeleteENTIRE);
-
-    AVER(foundBlock);
+    foundBlock = CBSFindLargest(&base, &limit, CBSOfMVFF(mvff),
+                                CBSFindDeleteENTIRE);
+    AVER(foundBlock); /* We will find the new seg, perhaps more. */
     /* The found range must intersect the new segment, but it */
     /* doesn't necessarily lie entirely within it. */
     /* The next three AVERs test for intersection of two intervals. */
@@ -404,6 +409,33 @@ static Res MVFFBufferFill(Seg *segReturn,
   *baseReturn = base; *limitReturn = limit;
 
   return ResOK;
+}
+
+
+/* MVFFBufferEmpty -- return unused portion of this buffer */
+
+static void MVFFBufferEmpty(Pool pool, Buffer buffer)
+{
+  MVFF mvff;
+  Addr base, limit;
+
+  AVERT(Pool, pool);
+  mvff = PoolPoolMVFF(pool);
+  AVERT(MVFF, mvff);
+  AVERT(Buffer, buffer);
+  AVER(!BufferIsReset(buffer));
+  AVER(BufferIsReady(buffer));
+
+  base = BufferGetInit(buffer);
+  limit = BufferLimit(buffer);
+
+  if (base == limit)
+    return;
+
+  MVFFAddToFreeList(&base, &limit, mvff);
+  MVFFFreeSegs(mvff, base, limit);
+
+  return;
 }
 
 
@@ -582,6 +614,7 @@ DEFINE_POOL_CLASS(MVFFPoolClass, this)
   this->free = MVFFFree;
   this->bufferInit = MVFFBufferInit;
   this->bufferFill = MVFFBufferFill;
+  this->bufferEmpty = MVFFBufferEmpty;
   this->describe = MVFFDescribe;
 }
 
