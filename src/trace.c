@@ -1,11 +1,34 @@
 /* impl.c.trace: GENERIC TRACER IMPLEMENTATION
  *
- * $HopeName: MMsrc!trace.c(MMdevel_remem.6) $
+ * $HopeName: MMsrc!trace.c(MMdevel_remem.7) $
+ *
+ * .flipped-traces: flipped traces is the set of traces for which
+ * the mutator always sees black.
+ *
+ * .flipped-white: a seg is flipped white if it is white for any
+ * flipped trace.
+ *
+ * .flipped-black: a seg is flipped black if it is black (neither grey
+ * nor white) for each flipped trace.
+ *
+ * .flipped-grey: a seg is flipped grey if it is neither flipped-black
+ * nor flipped-white.
+ *
+ * Any flipped-grey segment or root must be read-protected while the
+ * mutator is not suspended.
+ *
+ * A flipped-grey segment should be write-protected during scanning.
+ * In fact, all grey segs are maintained as write protected.
+ *
+ * The pools expect old-space segments to be readable and writeable
+ * after the trace it is white for is flipped.
+ * Flipped-white segments are maintained as unprotected.
+ * 
  */
 
 #include "mpm.h"
 
-SRCID(trace, "$HopeName: MMsrc!trace.c(MMdevel_remem.6) $");
+SRCID(trace, "$HopeName: MMsrc!trace.c(MMdevel_remem.7) $");
 
 Bool ScanStateCheck(ScanState ss)
 {
@@ -13,7 +36,7 @@ Bool ScanStateCheck(ScanState ss)
   CHECKU(Space, ss->space);
   CHECKL(ss->zoneShift == ss->space->zoneShift);
   CHECKL(RankCheck(ss->rank));
-  CHECKL(ss->condemned == ss->space->trace[ss->traceId].condemned);
+/* CHECKL(ss->condemned == ss->space->trace[ss->traceId].condemned); */
   return TRUE;
 }
 
@@ -33,9 +56,6 @@ Res TraceCreate(TraceId *tiReturn, Space space)
 {
   TraceId ti;
   Trace trace;
-
-  /* .single-collection */
-  AVER(TRACE_MAX == 1);
 
   AVER(tiReturn != NULL);
   AVERT(Space, space);
@@ -64,10 +84,10 @@ void TraceDestroy(Space space, TraceId ti)
 {
   AVERT(Space, space);
   space->busyTraces = TraceSetDelete(space->busyTraces, ti);
+  space->flippedTraces = TraceSetDelete(space->flippedTraces, ti);
 }
 
-/*
- * @@@@
+/* TraceCondemn
  *
  * Condemns all segs in the condemned RefSet by setting their seg's
  * condemned value to that of the TraceId.  This also accumulates a
@@ -87,6 +107,68 @@ void TraceDestroy(Space space, TraceId ti)
  * greyness to the seg's, so that fixExact doesn't need to look
  * at the buffer.  See .fixExact.grey.old.
  */
+static Res TraceCondemn(RefSet *condemnedIO, Space space, TraceId ti)
+{
+  Ring node;
+  RefSet condemnedIn, condemnedOut;
+  Trace trace;
+
+  AVER(condemnedIO != NULL);
+
+  condemnedIn = *condemnedIO;
+  trace = &space->trace[ti];
+
+  condemnedOut = RefSetEmpty;
+
+  node = RingNext(&space->traceSegRing);
+  while(node != &space->traceSegRing) {
+    Ring next = RingNext(node);
+    Seg seg = RING_ELT(Seg, traceRing, node);
+    Pool pool = seg->pool;
+    Buffer buffer;
+
+    AVERT(Seg, seg);
+    AVERT(Pool, pool);
+
+    /* .condemn.buf, .condemn.buf.grey */
+    buffer = seg->buffer;
+    if(buffer != NULL) { /* TraceBufferTrap?? @@@@ */
+      if(BufferIsSet(buffer))
+        BufferTrap(buffer);
+      /* buffer sync */
+      seg->grey = TraceSetUnion(seg->grey, buffer->grey);
+    }
+
+    /* @@@@ Condemn if segment falls entirely within condemned RefSet */
+    /* intersects? lowest zone in and not already condemned */
+    if(RefSetDiff(RefSetOfSeg(space, seg), condemnedIn) ==
+        RefSetEmpty && seg->white == TraceSetEMPTY)
+    {
+      AVER((seg->white & (1<<ti)) == TraceSetEMPTY);
+      AVER(!TraceSetIsMember(seg->grey, ti));
+      seg->white = 1<<ti;
+
+      if(seg->buffer != NULL) {
+        if(!BufferIsTrapped(seg->buffer))
+          BufferTrap(seg->buffer);
+      }
+
+    /* @@@@
+    res = PoolCondemn(&c, pool, ti, seg);
+    if(res != ResOK) goto failCondemn;
+    */
+
+      condemnedOut = RefSetUnion(condemnedOut, RefSetOfSeg(space, seg));
+
+      trace->white += SegSize(space, seg);
+    }
+
+    node = next;
+  }
+  *condemnedIO = condemnedOut;
+  return ResOK;
+}
+
 Res TraceCollect(Space space)
 {
   Ring node, ring;
@@ -111,67 +193,13 @@ Res TraceCollect(Space space)
     node = next;
   }
 
-
   zone = RefSetZone(space, AddrAdd((Addr)&space, sizeof(SpaceStruct)));
 
   condemnedIn = (RefSet)0x00030003 << ((space->epoch & 7)<<1);
 
-/*
-  t = space->epoch & 0xff;
-  if(t == 0xff)
-    t = 0x7f;
-  condemnedIn = (RefSet)((((t+1) & ~t)|1) * 0x1010101);
-*/ /*
-  condemnedIn = (condemnedIn << space->zoneShift) |
-      (condemnedIn >> (WORD_WIDTH - space->zoneShift));
- */
 /* move to flip */
-  condemnedOut = RefSetEmpty;
-
-  node = RingNext(&space->traceSegRing);
-  while(node != &space->traceSegRing) {
-    Ring next = RingNext(node);
-    Seg seg = RING_ELT(Seg, traceRing, node);
-    Pool pool = seg->pool;
-    Buffer buffer;
-
-    AVERT(Seg, seg);
-    AVERT(Pool, pool);
-
-    /* @@@@ Condemn if segment falls entirely within condemned RefSet */
-    /* intersects? lowest zone in */
-    if(RefSetDiff(RefSetOfSeg(space, seg), condemnedIn) ==
-        RefSetEmpty)
-    {
-      AVER(seg->condemned == TraceIdNONE);
-      AVER(!TraceSetIsMember(seg->grey, ti));
-      seg->condemned = ti;
-
-      /* Segments in old space are not protected, so remove the
-       * write barrier if there is one (see @@@@.barrier.write) */
-      /* @@@@ this should happen at flip time */
-      if(seg->summary != RefSetUniv)
-        ShieldLower(space, seg, AccessWRITE);
-
-      condemnedOut = RefSetUnion(condemnedOut, RefSetOfSeg(space, seg));
-
-      trace->white += SegSize(space, seg);
-    }
-
-    /* .condemn.buf, .condemn.buf.grey */
-    buffer = seg->buffer;
-    if(buffer != NULL) { /* TraceBufferTrap?? @@@@ */
-      buffer->ap.limit = 0;
-      seg->grey = TraceSetUnion(seg->grey, buffer->grey);
-    }
-
-    /*
-    res = PoolCondemn(&c, pool, ti, seg);
-    if(res != ResOK) goto failCondemn;
-    */
-
-    node = next;
-  }
+  condemnedOut = condemnedIn;
+  TraceCondemn(&condemnedOut, space, ti);
 
   res = TraceFlip(space, ti, condemnedOut);
   if(res != ResOK) goto failTraceFlip;
@@ -179,9 +207,6 @@ Res TraceCollect(Space space)
   return ResOK;
 
 failTraceFlip:
-/*
-failCondemn:
-*/
   /* Undo condemnation by aborting? @@@@ */
   TraceDestroy(space, ti);
 failTraceCreate:
@@ -199,7 +224,7 @@ static void TraceCover(Space space)
     Buffer buffer = RING_ELT(Buffer, traceRing, node);
 
     ShieldCover(space, buffer->seg);
-    buffer->ap.limit = 0;
+    BufferTrap(buffer);
     RingRemove(&buffer->traceRing);  /* removing while iterating  @@@@? */
 
     node = next;
@@ -224,11 +249,12 @@ Res TraceFlip(Space space, TraceId ti, RefSet condemned)
   /* Update location dependency structures.  condemned is
    * a conservative approximation of the refset of refs which
    * may move during this collection.
-   * @@@@ It is too conservative.  Not everything condemned will
+   * @@@@ It is conservative.  Not everything condemned will
    * necessarily move.
    */
   LDAge(space, condemned);
 
+  space->flippedTraces = TraceSetAdd(space->flippedTraces, ti);
 
   /* Grey the relevant segs */
 
@@ -237,22 +263,36 @@ Res TraceFlip(Space space, TraceId ti, RefSet condemned)
     Ring next = RingNext(node);
     Seg seg = RING_ELT(Seg, traceRing, node);
 
-    if(seg->condemned != ti &&
+    /* If the seg is not white grey it if we cannot
+     * deduce it does not refer to the condemned set
+     */
+    if((seg->white & (1<<ti)) == 0 &&
        RefSetInter(seg->summary, condemned) != RefSetEmpty) {
       AccessSet mode;
 
     /* @@@@ 
     PoolGrey(seg->pool, seg, ti);
     */
-
+      /* @@@@ to SegGrey??
+      */
       seg->grey = TraceSetAdd(seg->grey, ti);
-      /* .barrier.read-write */
-      mode = AccessREAD;
-      if(seg->summary == RefSetUniv)
-        mode |= AccessWRITE;
-      ShieldRaise(space, seg, mode);
+      mode = (AccessREAD | AccessWRITE) & ~seg->sm;
+      if(mode != 0) {
+        if((space->flippedTraces & seg->white) == 0)
+            /* not flipped-white */
+          ShieldRaise(space, seg, mode);
+      }
       trace->grey += SegSize(space, seg);
     }
+    if(seg->white & space->flippedTraces) { /* flipped-white */
+      /* Remove barrier from any flipped traces
+       * The reference set summary does not need to change
+       * as the segment is not mutator writeable.
+       */
+      if(seg->sm != 0)
+        ShieldLower(space, seg, seg->sm);
+    }
+
 
     node = next;
   }
@@ -276,7 +316,7 @@ Res TraceFlip(Space space, TraceId ti, RefSet condemned)
   ss.summary = RefSetEmpty;
   ss.fixed = RefSetEmpty;
   ss.space = space;
-  ss.traceId = ti;
+  ss.traceSet = TraceSetAdd(TraceSetEMPTY, ti);
   ss.sig = ScanStateSig;
 
   /* At the moment we must scan all roots, because we don't have */
@@ -319,8 +359,10 @@ Res TraceFlip(Space space, TraceId ti, RefSet condemned)
    * So (G + W/4)/(W - W/4) gives the scanning rate.
    * Formula below has one added to top and bottom of fraction to avoid
    * 0 and infinity.
+   *
+   * divide this rate by number of traces allowed
    */
-  trace->rate = (trace->grey + trace->white/4 + 4096)/
+  trace->rate = ((trace->grey + trace->white/4)/TRACE_MAX + 4096)/
                   ((trace->white - trace->white/4)/4096 +1);
 
   ShieldResume(space);
@@ -329,16 +371,16 @@ Res TraceFlip(Space space, TraceId ti, RefSet condemned)
 }
 
 /* TraceReclaim
- * @@@@
  *
- * After a trace, destroy any segs which are still condemned for the
+ * After a trace, reclaim any segs which are still condemned for the
  * trace, because they must be dead.
  *
  * .reclaim.grey: Note that this might delete things which are grey
  * for other collections.  This is OK, because we have conclusively
- * proved that they are dead -- the other collection must have
- * assumed they were alive.  There might be a problem with the
- * accounting of grey segs, however.
+ * proved that they are dead and since the seg cannot be white for a
+ * different trace -- the other collection must have assumed they were
+ * alive.  There might be a problem with the accounting of grey segs,
+ * however.
  *
  * .reclaim.buf: If a condemned seg still has a buffer attached, we
  * can't destroy it, even though we know that there are no live objects
@@ -350,6 +392,8 @@ static void TraceReclaim(Space space, TraceId ti)
 {
   Ring node, ring;
 
+  space->flippedTraces = TraceSetDelete(space->flippedTraces, ti);
+
   node = RingNext(&space->traceSegRing);
   while(node != &space->traceSegRing) {
     Ring next = RingNext(node);
@@ -358,7 +402,8 @@ static void TraceReclaim(Space space, TraceId ti)
     /* There shouldn't be any grey things left for this trace. */
     AVER(!TraceSetIsMember(seg->grey, ti));
 
-    if(seg->condemned == ti) {
+    if(seg->white & (1<<ti)) {
+      AVER(seg->white == (1<<ti));
       PoolReclaim(seg->pool, seg, ti);
     }
     node = next;
@@ -399,47 +444,80 @@ Size TracePoll(Space space, TraceId ti)
 }
 
 /* TraceSegScan -- scan a single seg, turning it black
- *
- * @@@@.groupscan.blacken: One a group is scanned it is turned black, i.e.
- * the ti is removed from the grey TraceSet.  However, if the
- * forwarding buffer is still pointing at the group it could
- * make it grey again when something is fixed, and cause the
- * group to be scanned again.  We can't tolerate this at present,
- * the the buffer is flushed.  The solution might be to scan buffers
- * explicitly.
  */
 
 static Res TraceSegScan(Space space, ScanState ss, Seg seg)
 {
+  TraceId ti;
   Res res;
 
   AVERT(ScanState, ss);
 
+  AVER(seg->white != TraceSetEMPTY ||
+    seg->sm == (AccessREAD | AccessWRITE));
+
   ShieldExpose(space, seg);
 
+  /* Want to synchronise with buffer here
+   * could detach/attach but relies on pool being clever
+   * pool might want to decree a buffer is less grey than it seems
+   */
+  if(seg->buffer != NULL)
+    seg->grey = TraceSetUnion(seg->grey, seg->buffer->grey);
+  /* it would be logical to move buffer->base up */
+
+  /* PoolScan should
+   * fix references in that seg until there are no references left that
+   * are grey for ss->traceSet.
+   */
   res = PoolScan(seg->pool, ss, seg);
   if(res) {
     ShieldCover(space, seg); /* Cover seg before returning error */
     return res;
   }
 
-  /* @@@@.groupscan.blacken */
   if(seg->buffer != NULL)
-    TraceBufferDetach(space, seg->buffer);
-  AVER(seg->buffer == NULL);
+    seg->buffer->grey = TraceSetEMPTY;
 
-  /* The segment is no longer grey for this collection, so
+  seg->grey &= ~ss->traceSet;
+
+  /* The segment is now scanned and the summary should contain
+   * the refset of what is referenced by this seg.  The seg
+   * will contain the unfixed references (old summary \ condemned)
+   * unioned with the new ones (fixed).  See .fix.condemned.
+   */
+  seg->summary = RefSetUnion(ss->fixed,
+      RefSetDiff(ss->summary, ss->condemned));
+  
+  /* If the seg is marked grey for a flipped trace, we may be
+   * be able to deduce that it doesn't in fact point to that
+   * traces white set and remove the greyness even though
+   * we were not scanning for that trace.
+   */
+  for(ti = 0; ti <TRACE_MAX; ti++) {
+    Trace trace = &space->trace[ti];
+    if(TraceSetIsMember(space->flippedTraces & seg->grey , ti))
+      if(RefSetInter(trace->condemned, seg->summary) ==
+	  RefSetEmpty)
+	seg->grey &= ~(1<<ti);
+  }
+
+  /* The segment is now less grey than it was.
+   * @@@@
    * it no longer needs to be shielded. .barrier.read-write 
    * however, we can now use the write barrier for the
    * remembered set. .barrier.write
    */
 
-  seg->grey = TraceSetDelete(seg->grey, ss->traceId);
-  ShieldLower(space, seg, AccessREAD);
-  seg->summary = RefSetUnion(ss->fixed,
-      RefSetDiff(ss->summary, ss->condemned));
-  if(seg->summary == RefSetUniv)
-    ShieldLower(space, seg, AccessWRITE);
+  if((space->flippedTraces & seg->white) == 0) {
+    /* not flipped-white
+     * lower read-barrier if now flipped-black
+     */
+    if((seg->grey & space->flippedTraces) == 0)
+      /* not grey for any flipped trace */
+      ShieldLower(space, seg, AccessREAD);
+    AVER(seg->sm & AccessWRITE);
+  }
 
   /* Cover the segment again, now it's been scanned. */
   ShieldCover(space, seg);
@@ -451,15 +529,17 @@ static Res TraceSegScan(Space space, ScanState ss, Seg seg)
  *
  * This is effectively the barrier fault handler.
  *
+ * .barrier: There are barriers on some segments.  seg->sm can be
+ * read to determine what barrier is in place.
+ *
  * .barrier.read-write: There is a read and write barrier on all grey
- * segments and forwarding buffers.
+ * segments.
  * This is rather conservative as we only need a write barrier
  * on grey segments as they are scanned (as fix is not atomic).
  *
- * .barrier.write: There is also a write barrier on scanned segments
- * iff seg->summary != RefSetUniv
+ * .barrier.white.none: There is no barrier on flipped white segments
  *
-@@@@
+ @@@@
  * .access.buffer: If the page accessed had and still has the
  * forwarding buffer attached, then trip it.  The seg will now
  * be black, and the mutator needs to access it.  The forwarding
@@ -478,6 +558,7 @@ void TraceAccess(Pool pool, Seg seg, AccessSet mode)
   Space space;
   ScanStateStruct ss;
   Res res;
+  TraceId ti;
 
   AVERT(Pool, pool);
   AVERT(Seg, seg);
@@ -485,8 +566,11 @@ void TraceAccess(Pool pool, Seg seg, AccessSet mode)
 
   space = PoolSpace(pool);
 
-  if((seg->buffer && seg->buffer->grey != TraceSetEMPTY) ||
-     seg->grey != TraceSetEMPTY) {
+  /* sync buffer */
+  if(seg->buffer)
+    seg->grey = TraceSetUnion(seg->grey, seg->buffer->grey);
+
+  if(seg->grey != TraceSetEMPTY) {
     ss.fix = TraceFix;
     ss.zoneShift = space->zoneShift;
     ss.summary = RefSetEmpty;
@@ -494,14 +578,15 @@ void TraceAccess(Pool pool, Seg seg, AccessSet mode)
     ss.space = space;
     ss.sig = ScanStateSig;
     ss.rank = RankEXACT;
+    ss.traceSet = space->flippedTraces;
 
     /* .access.multi */
-    for(ss.traceId = 0; ss.traceId < TRACE_MAX; ++ss.traceId)
-      if(TraceSetIsMember(space->busyTraces, ss.traceId)) {
-	ss.condemned = space->trace[ss.traceId].condemned;
-	res = TraceSegScan(space, &ss, seg);
-	AVER(res == ResOK);       /* .access.error */
-      }
+    ss.condemned = TraceSetEMPTY;
+    for(ti = 0; ti < TRACE_MAX; ++ti)
+      if(ss.traceSet & (1<<ti))
+        ss.condemned |= space->trace[ti].condemned;
+    res = TraceSegScan(space, &ss, seg);
+    AVER(res == ResOK);       /* .access.error */
 
     /* @@@@ There used to be a check here to see if it was
      * the forwarding buffer being scanned. 
@@ -511,28 +596,55 @@ void TraceAccess(Pool pool, Seg seg, AccessSet mode)
      */
 
     TraceCover(space);
-
-    /* The segment is now scanned, and no longer has a read-barrier.
-     * If the access was a write then a access may happen again
-     * immediately. */
-    return;
   }
+  mode &= seg->sm; /* set of remaining barriers */
 
-  AVER((mode & AccessREAD) == 0);
+  /* seg should now be flipped black and therefore
+   * any remaining barriers may be removed.
+   */
 
-  if(mode & AccessWRITE) {
-    AVER(seg->summary != RefSetUniv);
+  if((mode & AccessWRITE) != 0) {
+    /* seg will become mutator writeable so update summary
+     * conservatively
+     */
     seg->summary = RefSetUniv;
-    ShieldLower(space, seg, AccessWRITE);
   }
+
+  if(mode != 0) {
+    ShieldLower(space, seg, mode & seg->sm);
+  }
+
 }
 
-static void TraceBufferReady(Space space, Buffer buffer)
+/* TraceBufferExpose - perhaps should be called UnTrap
+ *
+ * Readies the buffer for forwarding, exposing if necessary.
+ * Seg is read and write protected if not already.
+ * .exposedRing: exposed buffers this is a list of all buffers
+ * that have been exposed as a result of forwarding.
+ */
+
+static void TraceBufferExpose(Space space, Buffer buffer)
 {
-                     /* @@@@ buffer->limit ??? */
-  buffer->ap.limit = SegLimit(space, buffer->seg);  /* @@@@ BufferSet?? */
-  if((buffer->prop & PropFWD) != 0) {
-    ShieldExpose(space, buffer->seg);
+  AccessSet mode;
+  Seg seg = buffer->seg;
+
+  AVER(BufferIsSet(buffer));
+
+  if((buffer->prop & PropFWD) != 0) { /* PropExposed ?? */
+    ShieldExpose(space, seg);
+    /* sync buffer */
+    seg->grey = TraceSetUnion(seg->grey, buffer->grey);
+
+    buffer->grey = TraceSetEMPTY;
+
+    mode = (AccessREAD | AccessWRITE) & ~seg->sm;
+    if(mode != 0) {
+      if((space->flippedTraces & seg->white) == 0)
+          /* not flipped-white */
+        ShieldRaise(space, seg, mode);
+      else NOTREACHED; /* @@@@ ?? detach buffer */
+    }
     RingAppend(&space->exposedRing, &buffer->traceRing);
   }
 }
@@ -541,102 +653,71 @@ void TraceBufferDetach(Space space, Buffer buffer)
 {
   Seg seg;
 
-  AVER(buffer->ap.limit !=0); /* @@@@ BufferIsReady? */
+  AVER(BufferIsSet(buffer));
+
   seg = buffer->seg;
 
-  if((buffer->prop & PropFWD) == 0) /* not fwding buf */
+  if((buffer->prop & PropFWD) == 0) /* not fwding buf PropExpose@@@@ */
     ShieldExpose(space, seg); /* for flip-trapped @@@@ */
   else
     RingRemove(&buffer->traceRing);
 
-  PoolBufferDetach(buffer->pool, buffer);
-  ShieldCover(space, seg);
+  PoolBufferDetach(buffer->pool, buffer); /* expects set buffer */
 
-  buffer->ap.limit = 0;
-  /* @@@@ BufferReset ?? */
+  /* @@@@.flush.grey */
+  seg->grey = TraceSetUnion(seg->grey, buffer->grey);
+
+  seg->buffer = NULL;           /* detach buffer from seg */ 
+  BufferReset(buffer);          /* put into reset state */
+
+  ShieldCover(space, seg);
 }
 
 /* TraceBufferFill -- refill an allocation buffer
-@@@@
-  The forwarding buffer may have been scanned; but will not
-   have been detached from the segment.
-
-@@@@
  *
- * Reserve was called on an allocation buffer which was reset,
- * or there wasn't enough room left in the buffer.  Allocate a seg
- * for the new object and attach it to the buffer.
+ * Reserve was called on an allocation buffer which was reset, trapped,
+ * or there wasn't enough room left in the buffer.
+ * A buffer can be trapped for two different reasons:
+ *   The buffer's seg was condemned.
+ *     detach buffer is this case
+ *   The buffer is a forwarding buffer.
+ *     call TraceBufferExpose after untrapping before attempting
+ *     allocation of object.
+ * Except in the case of a non-full forwarding buffer the request
+ * is passed through to the pool.
  *
- * @@@@.fill.expose: If the buffer is being used for forwarding it may
- * be exposed, in which case the seg attached to it should be
- * exposed.  See @@@@.flush.cover.
- *
- * @@@@ This takes no account of the generation that the buffer should
- *      allocate in.  Forwarding buffers would need to be differently
- *      treated.
  */
-Res TraceBufferFill(Addr *pReturn, Pool pool, Buffer buffer, Size size)
+Res TraceBufferFill(Pool pool, Buffer buffer, Size size)
 {
-  Addr p;
   Space space;
-  Seg seg;
   Res res;
 
-  AVER(pReturn != NULL);
   AVERT(Pool, pool);
   AVERT(Buffer, buffer);
   AVER(size > 0);
 
   space = PoolSpace(pool);
 
-  if(!BufferIsReset(buffer)) {  /* not reset  */
-    /* is buffer (exposure) trapped or not */
-    if(buffer->ap.limit == 0 && (buffer->prop & PropFWD) != 0) {
-      /* @@@@ ready buffer: attach and expose */
-      ShieldExpose(space, buffer->seg);
-      RingAppend(&space->exposedRing, &buffer->traceRing);
-      buffer->ap.limit = SegLimit(space, buffer->seg);
+  if(BufferIsSet(buffer))
+    TraceBufferDetach(space, buffer);
 
-      if(size <= AddrOffset(buffer->ap.init, buffer->ap.limit))
-        goto reserve;
-    }
-    /* ordinary fill or flip trapped: should detach */
-    seg = buffer->seg;
-    if((buffer->prop & PropFWD) == 0) /* not fwding buf */
-      ShieldExpose(space, seg); /* for flip-trapped @@@@ */
-    else
-      RingRemove(&buffer->traceRing);
+  AVER(BufferIsReset(buffer));
 
-    PoolBufferDetach(pool, buffer); /* must be ready before detach */
-    ShieldCover(space, seg);
-  }
-
-  space = BufferSpace(buffer);
   res = PoolBufferAttach(pool, buffer, size);
+  if(res) return res;
 
-  if(res != ResOK) return res;
   /* buffer now set up.  Protect & expose appropriately */
 
-  buffer->grey = TraceSetEMPTY;
+  TraceBufferExpose(space, buffer);
 
-  if(buffer->prop & PropFWD) { /* potential security problem @@@@ */
-    ShieldExpose(space, buffer->seg);
-    ShieldRaise(space, buffer->seg, AccessREAD | AccessWRITE);
-    RingAppend(&space->exposedRing, &buffer->traceRing);
-  }
-
-reserve:
-  p = buffer->ap.init;          /* actually do the reserve */
-  buffer->ap.alloc = AddrAdd(buffer->ap.alloc, size);
-
-  *pReturn = p;
   return ResOK;
 }
 
 
 /* pcAMCBufferTrip -- deal with a tripped buffer
-@@@@
  *
+ * The buffer has been trapped during an allocation.  It must therefore be
+ * a non-forwarding buffer.
  * A flip occurred between a reserve and commit on a buffer, and
  * the buffer was "tripped" (limit set to zero).  The object wasn't
  * scanned, and must therefore be assumed to be invalid, so the
@@ -644,29 +725,25 @@ reserve:
  * buffer from the seg completely.  The next allocation in the
  * buffer will cause a refill, and reach pcAMCFill.
  */
-Bool TraceBufferTrip(Pool pool, Buffer buffer, Addr p, Size size)
+void TraceBufferTrip(Pool pool, Buffer buffer)
 {
   Space space;
 
   AVERT(Buffer, buffer);
-  AVER(p != 0);                 /* address of object */
-  AVER(size > 0);               /* size of object */
-  AVER(PoolHasAddr(pool, p));
   AVER(!BufferIsReset(buffer));
   AVER(BufferIsReady(buffer));
-  AVER(buffer->ap.limit == 0);  /* buffer has been tripped */
 
   space = PoolSpace(pool);
 
-/*
-  @@@@ should be in flipped state
-  @@@@ could seg be protected??? yes?
-  PoolDetach(@@@@);
-*/
-  TraceBufferReady(space, buffer);
-  TraceBufferDetach(space, buffer);
+  BufferUntrap(buffer);
+  if((buffer->prop & PropFWD) != 0) {
+    TraceBufferExpose(space, buffer);
+    /* don't detach seg from forwarding buffer unless it is white */
+    if((space->flippedTraces & buffer->seg->white) == TraceSetEMPTY)
+      return;
+  }
 
-  return FALSE;                 /* cause commit to fail */
+  TraceBufferDetach(space, buffer);
 }
 
 void TraceBufferFinish(Buffer buffer)
@@ -676,10 +753,11 @@ void TraceBufferFinish(Buffer buffer)
   if(BufferIsReset(buffer)) 
     return;
 
-  TraceBufferReady(space, buffer);
+  if(BufferIsTrapped(buffer))
+    BufferUntrap(buffer);
+  TraceBufferExpose(space, buffer);
   TraceBufferDetach(space, buffer);
 }
-
 
 /* allocates unprotected seg */
 Res TraceSegAlloc(Seg *segReturn, Pool pool, Size size, PropSet prop)
@@ -701,6 +779,7 @@ Res TraceSegAlloc(Seg *segReturn, Pool pool, Size size, PropSet prop)
     return res;
 
   seg->pool = pool;
+  seg->grey = TraceSetEMPTY;
 
   RingAppend(&space->traceSegRing, &seg->traceRing);
 
@@ -721,17 +800,26 @@ void TraceSegFree(Pool pool, Seg seg)
   SegFree(space, seg);
 }
 
-/* TraceSegGrey - turn all white into all grey */
+/* TraceSegGrey - turn a segment that is white for the current trace
+ * 
+ */
 void TraceSegGrey(Space space, ScanState ss, Seg seg)
 {
-  seg->condemned = TraceIdNONE;     /* remove seg from old-space */
-  seg->grey =                       /* mark it for later scanning */
-    TraceSetAdd(seg->grey, ss->traceId);
-  /* @@@@.barrier.read-write */
-  /* @@@@ + only if not white for any trace */
-  ShieldRaise(space, seg, AccessREAD | AccessWRITE);
+  AVER((seg->white & ss->traceSet) != TraceSetEMPTY);
+
+  seg->grey |= seg->white & ss->traceSet;    /* mark for scanning */
+  seg->white &= ~ss->traceSet;       /* remove seg from old-space */
+
+  /* Must now be white, but check no longer white for any trace
+   * before raising shield
+   */
+  if((seg->white & space->flippedTraces) == 0)
+    ShieldRaise(space, seg, AccessREAD | AccessWRITE);
 }
 
+/* TraceFix - fix a reference
+ * .fix.condemn: This only gets called if the reference is in condemned.
+ */
 Res TraceFix(ScanState ss, Ref *refIO)
 {
   Ref ref;
@@ -745,12 +833,13 @@ Res TraceFix(ScanState ss, Ref *refIO)
   ref = *refIO;
   space = ss->space;
   if(SegOfAddr(&seg, space, ref)) {
-    if(ss->traceId == seg->condemned) {
+    if(ss->traceSet & seg->white) {
       Res res;
       pool = seg->pool;
       res = PoolFix(pool, ss, seg, refIO);
       if(res) return res;
     }
+    /* .fix.fixed: record the refset of the new reference */
     ss->fixed = RefSetAdd(space, ss->fixed, *refIO);
   }
 
@@ -839,7 +928,7 @@ Res TraceRun(Space space, TraceId ti, Bool *finishedReturn)
   ss.summary = RefSetEmpty;
   ss.fixed = RefSetEmpty;
   ss.space = space;
-  ss.traceId = ti;
+  ss.traceSet = TraceSetAdd(TraceSetEMPTY, ti);
   ss.sig = ScanStateSig;
 
   trace->done += (Size)4096;
