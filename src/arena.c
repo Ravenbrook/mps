@@ -1,6 +1,6 @@
 /* impl.c.arena: ARENA IMPLEMENTATION
  *
- * $HopeName: !arena.c(trunk.12) $
+ * $HopeName: MMsrc!arena.c(MMdevel_progress.1) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  *
  * .readership: Any MPS developer
@@ -40,7 +40,7 @@
 /* finalization */
 #include "poolmrg.h"
 
-SRCID(arena, "$HopeName: !arena.c(trunk.12) $");
+SRCID(arena, "$HopeName: MMsrc!arena.c(MMdevel_progress.1) $");
 
 
 /* All static data objects are declared here. See .static */
@@ -95,7 +95,7 @@ Bool ArenaCheck(Arena arena)
   Rank rank;
 
   /* we check the fields in order. We can't yet check the serials,
-   * pollThreshold, actionInterval, or epoch.  nickb 1997-07-21 */
+   * pollTime, actionInterval, or epoch.  nickb 1997-07-21 */
 
   CHECKS(Arena, arena);
   /* design.mps.arena.static.serial */
@@ -108,12 +108,12 @@ Bool ArenaCheck(Arena arena)
     CHECKD(MV, &arena->controlPoolStruct);
   CHECKD(Lock, &arena->lockStruct);
 
-  /* no check possible on arena->pollThreshold */
+  /* no check possible on arena->pollTime */
   CHECKL(BoolCheck(arena->insidePoll));
   CHECKL(BoolCheck(arena->clamped));
 
   /* no check on arena->actionInterval */
-  CHECKL(arena->allocTime >= 0.0);
+  CHECKL(arena->time >= (Time)0);
 
   CHECKL(ShiftCheck(arena->zoneShift));
   CHECKL(AlignCheck(arena->alignment));
@@ -231,7 +231,6 @@ void ArenaInit(Arena arena, ArenaClass class)
   arena->suspended = FALSE;
   for(i = 0; i < SHIELD_CACHE_SIZE; i++)
     arena->shCache[i] = (Seg)0;
-  arena->pollThreshold = (Size)0;
   arena->insidePoll = FALSE;
   arena->clamped = FALSE;
   /* design.mps.arena.poll.interval */
@@ -240,7 +239,8 @@ void ArenaInit(Arena arena, ArenaClass class)
   arena->prehistory = RefSetEMPTY;
   for(i = 0; i < ARENA_LD_LENGTH; ++i)
     arena->history[i] = RefSetEMPTY;
-  arena->allocTime = 0.0;
+  arena->time = (Time)0;
+  arena->pollTime = (Time)0;
   /* usually overridden by init */
   arena->alignment = MPS_PF_ALIGN;
   /* usually overridden by init */
@@ -522,19 +522,16 @@ void (ArenaPoll)(Arena arena)
 #else
 void ArenaPoll(Arena arena)
 {
-  Size size;
   Res res;
-  Count i;
 
   AVERT(Arena, arena);
 
   if(arena->clamped)
     return;
 
-  size = ArenaCommitted(arena);
-  if(arena->insidePoll || size < arena->pollThreshold)
+  if(arena->insidePoll || arena->time < arena->pollTime)
     return;
-  /* design.mps.arena.poll.when */
+  /* design.mps.arena.poll.when  @@@@ out of date? */
 
   arena->insidePoll = TRUE;
 
@@ -544,22 +541,50 @@ void ArenaPoll(Arena arena)
   /* Temporary hacky progress control added here and in trace.c */
   /* for change.dylan.honeybee.170466. */
   if(arena->busyTraces != TraceSetEMPTY) {
-    Trace trace = ArenaTrace(arena, (TraceId)0);
+    Trace trace;
+
     AVER(arena->busyTraces == TraceSetSingle((TraceId)0));
-    i = trace->rate;
-    while(i > 0 && arena->busyTraces != TraceSetEMPTY) {
-      res = TracePoll(trace);
+    trace = ArenaTrace(arena, (TraceId)0);
+
+    do {
+      double rate;
+      Work work;
+
+      res = TracePoll(trace, ARENA_POLL_PAUSE);
       AVER(res == ResOK); /* @@@@ */
       if(trace->state == TraceFINISHED) {
-        /* @@@@ Pick up results and use for prediction. */
-        TraceDestroy(trace);
+	/* @@@@ Pick up results and use for prediction. */
+	TraceDestroy(trace);
+        arena->pollTime = arena->time + ARENA_POLL_MAX;
+        break;
       }
-      --i;
-    }
-  }
 
-  size = ArenaCommitted(arena);
-  arena->pollThreshold = size + ARENA_POLL_MAX;
+      /* Estimate the amount of work remaining as the length of the */
+      /* grey list (which will definitely need scanning) plus half */
+      /* of what remains in the white set.  This is conservative, */
+      /* of course. */
+      work = ARENA_SCAN_COST * trace->greySize +
+             (ARENA_SCAN_COST + ARENA_PRESERVE_COST) *
+             (trace->condemned - trace->preserved) / 2;
+
+      /* If the trace hasn't finished there must be work to do. */
+      /* In particular, the grey list will be non-empty. */
+      AVER(work > 0);
+
+      /* Calculate the rate of allocation we can allow per unit */
+      /* of work so that we finish on time. */
+      rate = (trace->deadline - arena->pollTime) / work;
+
+      /* Work out when we need to come back and do another */
+      /* ARENA_POLL_PAUSE worth of work in order to finish on time. */
+      arena->pollTime += ARENA_POLL_PAUSE * rate;
+
+      /* If that is sooner than we can do using the polling mechanism */
+      /* then do the work immediately. */
+    } while(arena->pollTime < arena->time + ARENA_POLL_MIN);
+  } else
+    arena->pollTime = arena->time + ARENA_POLL_MAX;
+    
 
   arena->insidePoll = FALSE;
 }
@@ -593,7 +618,7 @@ void ArenaPark(Arena arena)
       if(TraceSetIsMember(arena->busyTraces, ti)) {
         Trace trace = ArenaTrace(arena, ti);
  
-        res = TracePoll(trace);
+        res = TracePoll(trace, 1024 * 1024); /* @@@@ */
         AVER(res == ResOK); /* @@@@ */
  
         /* @@@@ Pick up results and use for prediction. */
@@ -682,17 +707,17 @@ Res ArenaDescribe(Arena arena, mps_lib_FILE *stream)
                "  controlPool $P\n",   
                (WriteFP)&arena->controlPoolStruct,
                "  lock $P\n",          (WriteFP)&arena->lockStruct,
-               "  pollThreshold $U\n", (WriteFU)arena->pollThreshold,
+               "  pollTime $U\n", (WriteFU)arena->pollTime,
                "  insidePoll $S\n",    arena->insidePoll ? "YES" : "NO",
                NULL);
   if(res != ResOK) return res;
 
-  megs = (Word)(arena->allocTime / 1048576.0); /* @@@@ */
+  megs = (Word)(arena->time / 1048576.0); /* @@@@ */
 
   res = WriteF(stream,
-               "  allocTime $UM+$U\n",
+               "  time $UM+$U\n",
                (WriteFU)megs,
-               (WriteFU)(arena->allocTime - megs * 1048576.0),
+               (WriteFU)(arena->time - megs * 1048576.0),
                NULL);
   if(res != ResOK) return res;
   
