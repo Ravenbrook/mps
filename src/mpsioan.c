@@ -1,6 +1,6 @@
 /* impl.c.mpsioan: HARLEQUIN MEMORY POOL SYSTEM I/O IMPLEMENTATION (ANSI)
  *
- * $HopeName: MMsrc!mpsioan.c(trunk.2) $
+ * $HopeName: !mpsioan.c(trunk.3) $
  * Copyright (C) 1996, 1997 Harlequin Group, all rights reserved.
  *
  * .readership: MPS developers.
