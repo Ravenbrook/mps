@@ -1,6 +1,6 @@
 /*  ==== SUNOS ANSI COMPATABILITY HEADER ====
  *
- *  $HopeName: !ossu.h(trunk.2) $
+ *  $HopeName: MMsrc!ossu.h(MMdevel_protoposm_1.1) $
  *
  *  Copyright (C) 1994,1995 Harlequin Group, all rights reserved
  *
@@ -35,6 +35,7 @@ extern int fgetc (FILE *stream);
 extern int ungetc (int c, FILE *stram);
 extern int fputc (int c, FILE *stream);
 extern int printf (const char *format, ...);
+extern int vprintf (const char *format, va_list arg);
 extern int fprintf (FILE *stream, const char *format, ...);
 extern int vfprintf (FILE *stream, const char *format, va_list arg);
 extern int vsprintf (char *s, const char *format, va_list arg);
@@ -45,6 +46,7 @@ extern int fseek (FILE *stream, long int offset, int whence);
 extern size_t fread (void *ptr, size_t size, size_t nmemb, FILE *stream);
 extern size_t fwrite (const void *ptr, size_t size, size_t nmemb,
 		      FILE *stream);
+extern void rewind(FILE *stream);
 
 /* these functions are used in the macro definitions of putc and getc
 but not declared in stdio.h */
