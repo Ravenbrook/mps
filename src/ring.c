@@ -1,6 +1,6 @@
 /* impl.c.ring: RING IMPLEMENTATION
  *
- * $HopeName: MMsrc!ring.c(trunk.4) $
+ * $HopeName: !ring.c(trunk.5) $
  * Copyright (C) 1995,1996 Harlequin Group, all rights reserved.
  *
  * .readership: Any MPS developer.
@@ -22,7 +22,7 @@
 #include "mpm.h"
 
 
-SRCID(ring, "$HopeName: MMsrc!ring.c(trunk.4) $");
+SRCID(ring, "$HopeName: !ring.c(trunk.5) $");
 
 
 /* RingCheck, RingCheckSingle -- check the validity of a ring node
