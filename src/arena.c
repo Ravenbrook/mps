@@ -1,16 +1,23 @@
 /* impl.c.arena: ARENA ALLOCATION FEATURES
  *
- * $HopeName: MMsrc!arena.c(MMdevel_pekka_locus.1) $
- * Copyright (C) 1999 Harlequin Limited.  All rights reserved.
+ * $HopeName: MMsrc!arena.c(MMdevel_pekka_locus.2) $
+ * Copyright (C) 2000 Harlequin Limited.  All rights reserved.
  * 
  * .sources: design.mps.arena is the main design document.
+ *
+ * .improve.modular: The allocation stuff should be in a separate
+ * structure.  We don't need to AVERT the whole Arena here (or
+ * anywhere else, for that matter), but if everything's in the same
+ * structure, then that's the rule.
  */
 
 
+#include "tract.h"
+#include "poolmv.h"
 #include "mpm.h"
 
 
-SRCID(arena, "$HopeName: MMsrc!arena.c(MMdevel_pekka_locus.1) $");
+SRCID(arena, "$HopeName: MMsrc!arena.c(MMdevel_pekka_locus.2) $");
 
 
 /* ArenaReservoir - return the reservoir for the arena */
@@ -39,16 +46,13 @@ DEFINE_CLASS(AbstractArenaClass, class)
   class->init = NULL;
   class->finish = NULL;
   class->reserved = NULL;
-  class->committed = NULL;
   class->spareCommitExceeded = ArenaNoSpareCommitExceeded;
   class->extend = ArenaNoExtend;
-  class->isReserved = NULL;
   class->alloc = NULL;
   class->free = NULL;
-  class->tractOfAddr = NULL;
-  class->tractFirst = NULL;
-  class->tractNext = NULL;
-  class->tractNextContig = NULL;
+  class->chunkInit = NULL;
+  class->chunkFinish = NULL;
+  class->chunkDestroy = NULL;
   class->describe = ArenaTrivDescribe;
   class->sig = ArenaClassSig;
 }
@@ -63,18 +67,18 @@ Bool ArenaClassCheck(ArenaClass class)
   CHECKL(class->size >= sizeof(ArenaStruct));
   /* Offset of generic Pool within class-specific instance cannot be */
   /* greater than the size of the class-specific portion of the */
-  /* instance */
+  /* instance. */
   CHECKL(class->offset <= (size_t)(class->size - sizeof(ArenaStruct)));
   CHECKL(FUNCHECK(class->init));
   CHECKL(FUNCHECK(class->finish));
   CHECKL(FUNCHECK(class->reserved));
-  CHECKL(FUNCHECK(class->committed));
+  CHECKL(FUNCHECK(class->spareCommitExceeded));
   CHECKL(FUNCHECK(class->extend));
   CHECKL(FUNCHECK(class->alloc));
   CHECKL(FUNCHECK(class->free));
-  CHECKL(FUNCHECK(class->tractOfAddr));
-  CHECKL(FUNCHECK(class->tractFirst));
-  CHECKL(FUNCHECK(class->tractNext));
+  CHECKL(FUNCHECK(class->chunkInit));
+  CHECKL(FUNCHECK(class->chunkFinish));
+  CHECKL(FUNCHECK(class->chunkDestroy));
   CHECKL(FUNCHECK(class->describe));
   CHECKS(ArenaClass, class);
   return TRUE;
@@ -103,18 +107,29 @@ Bool ArenaAllocCheck(Arena arena)
          arena->allocMutatorSize);
   CHECKL(arena->fillInternalSize >= 0.0);
   CHECKL(arena->emptyInternalSize >= 0.0);
-  /* commitLimit is arbitrary, can't be checked. */
-  /* (it's probably >= ArenaCommitted(), but we can't call that */
-  /* due to recursion problems) */
+  CHECKL(arena->committed < arena->commitLimit);
+  CHECKL(arena->spareCommitted <= arena->committed);
+  CHECKL(arena->spareCommitted < arena->spareCommitLimit);
 
   CHECKL(ShiftCheck(arena->zoneShift));
   CHECKL(AlignCheck(arena->alignment));
+  /* Tract allocation must be platform-aligned. */
+  CHECKL(arena->alignment >= MPS_PF_ALIGN);
+  /* Stripes can't be smaller than pages. */
+  CHECKL(1 << arena->zoneShift >= arena->alignment);
 
-  if (NULL == arena->lastTract) {
-    CHECKL(NULL == arena->lastTractBase);
+  if (arena->lastTract == NULL) {
+    CHECKL(arena->lastTractBase == (Addr)0);
   } else {
     CHECKL(TractBase(arena->lastTract) == arena->lastTractBase);
   }
+
+  if (arena->primary != NULL) {
+    CHECKD(Chunk, arena->primary);
+  }
+  CHECKL(RingCheck(&arena->chunkRing));
+  /* nothing to check for chunkSerial */
+  CHECKD(ChunkCacheEntry, &arena->chunkCache);
 
   return TRUE;
 }
@@ -122,28 +137,37 @@ Bool ArenaAllocCheck(Arena arena)
 
 /* ArenaAllocInit -- initialize the allocation fields */
 
-void ArenaAllocInit(Arena arena)
+void ArenaAllocInit(Arena arena, ArenaClass class)
 {
   /* We do not check the arena argument, because it's _supposed_ to */
   /* point to an uninitialized block of memory. */
+  AVERT(ArenaClass, class);
+
+  arena->class = class;
 
   arena->fillMutatorSize = 0.0;
   arena->emptyMutatorSize = 0.0;
   arena->allocMutatorSize = 0.0;
   arena->fillInternalSize = 0.0;
   arena->emptyInternalSize = 0.0;
+  arena->committed = (Size)0;
   /* commitLimit may be overridden by init (but probably not */
   /* as there's not much point) */
   arena->commitLimit = (Size)-1;
   arena->spareCommitted = (Size)0;
   arena->spareCommitLimit = ARENA_INIT_SPARE_COMMIT_LIMIT;
   /* alignment is usually overridden by init */
-  arena->alignment = MPS_PF_ALIGN;
-  /* usually overridden by init */
+  arena->alignment = 1 << ARENA_ZONESHIFT;
+  /* zoneShift is usually overridden by init */
   arena->zoneShift = ARENA_ZONESHIFT;
   arena->poolReady = FALSE;     /* design.mps.arena.pool.ready */
   arena->lastTract = NULL;
   arena->lastTractBase = NULL;
+
+  arena->primary = NULL;
+  RingInit(&arena->chunkRing);
+  arena->chunkSerial = (Serial)0;
+  ChunkCacheEntryInit(&arena->chunkCache);
 }
 
 
@@ -151,7 +175,48 @@ void ArenaAllocInit(Arena arena)
 
 void ArenaAllocFinish(Arena arena)
 {
-  NOOP; /* nothing to do */
+  RingFinish(&arena->chunkRing);
+}
+
+
+/* ArenaAllocCreate -- create the arena and call initializers */
+
+Res ArenaAllocCreate(Arena *arenaReturn, ArenaClass class, va_list args)
+{
+  Arena arena;
+  Res res;
+
+  /* Do initialization.  This will call ArenaInit (see .init.caller). */
+  res = (*class->init)(&arena, class, args);
+  if (res != ResOK)
+    goto failInit;
+
+  arena->alignment = ChunkPageSize(arena->primary);
+  if (arena->alignment > 1 << arena->zoneShift) {
+    res = ResMEMORY; /* size was too small */
+    goto failStripeSize;
+  }
+
+  /* load cache */
+  ChunkEncache(arena, arena->primary);
+
+  AVERT(Arena, arena);
+  *arenaReturn = arena;
+  return ResOK;
+
+failStripeSize:
+  (*class->finish)(arena);
+failInit:
+  return res;
+}
+
+
+/* ArenaAllocDestroy -- destroy the arena */
+
+void ArenaAllocDestroy(Arena arena)
+{
+  /* Call class-specific finishing.  This will call ArenaFinish. */
+  (*arena->class->finish)(arena);
 }
 
 
@@ -295,8 +360,7 @@ Res ControlAlloc(void **baseReturn, Arena arena, size_t size,
   AVER(arena->poolReady);
 
   pool = MVPool(&arena->controlPoolStruct);
-  res = PoolAlloc(&base, pool, (Size)size,
-                  withReservoirPermit);
+  res = PoolAlloc(&base, pool, (Size)size, withReservoirPermit);
   if(res != ResOK) 
     return res;
 
@@ -397,7 +461,7 @@ void ArenaFree(Addr base, Size size, Pool pool)
   limit = AddrAdd(base, size);
   if ((arena->lastTractBase >= base) && (arena->lastTractBase < limit)) {
     arena->lastTract = NULL;
-    arena->lastTractBase = NULL;
+    arena->lastTractBase = (Addr)0;
   }
 
   res = ReservoirEnsureFull(reservoir);
@@ -419,11 +483,10 @@ Size ArenaReserved(Arena arena)
   return (*arena->class->reserved)(arena);
 }
 
-
 Size ArenaCommitted(Arena arena)
 {
   AVERT(Arena, arena);
-  return (*arena->class->committed)(arena);
+  return arena->committed;
 }
 
 Size ArenaSpareCommitted(Arena arena)
@@ -488,12 +551,16 @@ Res ArenaSetCommitLimit(Arena arena, Size limit)
 }
 
 
+/* ArenaMutatorAllocSize -- total amount allocated by the mutator */
+
 double ArenaMutatorAllocSize(Arena arena)
 {
   AVERT(Arena, arena);
   return arena->fillMutatorSize - arena->emptyMutatorSize;
 }
 
+
+/* ArenaExtend -- Add a new chunk in the arena */
 
 Res ArenaExtend(Arena arena, Addr base, Size size)
 {
@@ -506,19 +573,9 @@ Res ArenaExtend(Arena arena, Addr base, Size size)
   res = (*arena->class->extend)(arena, base, size);
   if(res != ResOK) 
     return res;
-  
+
   EVENT_PAW(ArenaExtend, arena, base, size);
-
   return ResOK;
-}
-
-
-Bool ArenaIsReservedAddr(Arena arena, Addr addr)
-{
-  AVERT(Arena, arena);
-  /* addr is arbitrary */
-
-  return (*arena->class->isReserved)(arena, addr);
 }
 
 
