@@ -1,6 +1,6 @@
 /* impl.c.arenavm: VIRTUAL MEMORY BASED ARENA IMPLEMENTATION
  *
- * $HopeName: !arenavm.c(trunk.30) $
+ * $HopeName: MMsrc!arenavm.c(MMdevel_metrics.1) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  *
  * This is the implementation of the Segment abstraction from the VM
@@ -29,7 +29,7 @@
 #include "mpm.h"
 #include "mpsavm.h"
 
-SRCID(arenavm, "$HopeName: !arenavm.c(trunk.30) $");
+SRCID(arenavm, "$HopeName: MMsrc!arenavm.c(MMdevel_metrics.1) $");
 
 
 typedef struct VMArenaStruct *VMArena;
@@ -337,7 +337,8 @@ static Size VMArenaCommitted(Arena arena)
 
 static Index indexOfAddr(VMArena vmArena, Addr addr)
 {
-  AVERT(VMArena, vmArena);
+  /* impl.c.trace.fix.critical.1 */
+  AVERT_CRITICAL(VMArena, vmArena);
   AVER(vmArena->base <= addr);
   AVER(addr <= vmArena->limit);   /* .index.addr */
 
@@ -797,7 +798,8 @@ static Bool VMSegOfAddr(Seg *segReturn, Arena arena, Addr addr)
   
   AVER(segReturn != NULL);
   vmArena = ArenaVMArena(arena);
-  AVERT(VMArena, vmArena);
+  /* impl.c.trace.fix.critical.1 */
+  AVERT_CRITICAL(VMArena, vmArena);
   
   if(vmArena->base <= addr && addr < vmArena->limit) {
     Index i = indexOfAddr(vmArena, addr);

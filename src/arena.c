@@ -1,6 +1,6 @@
 /* impl.c.arena: ARENA IMPLEMENTATION
  *
- * $HopeName: !arena.c(trunk.12) $
+ * $HopeName: MMsrc!arena.c(MMdevel_metrics.1) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  *
  * .readership: Any MPS developer
@@ -40,7 +40,7 @@
 /* finalization */
 #include "poolmrg.h"
 
-SRCID(arena, "$HopeName: !arena.c(trunk.12) $");
+SRCID(arena, "$HopeName: MMsrc!arena.c(MMdevel_metrics.1) $");
 
 
 /* All static data objects are declared here. See .static */
@@ -943,7 +943,8 @@ Size SegSize(Seg seg)
 Bool SegOfAddr(Seg *segReturn, Arena arena, Addr addr)
 {
   AVER(segReturn != NULL);
-  AVERT(Arena, arena);
+  /* impl.c.trace.fix.critical.1 */
+  AVERT_CRITICAL(Arena, arena);
 
   return (*arena->class->segOfAddr)(segReturn, arena, addr);
 }
