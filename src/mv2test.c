@@ -248,14 +248,18 @@ static mps_res_t stress(mps_class_t class, mps_arena_t arena,
     /* free some of the objects */
     
     for(i=x; i<TEST_SET_SIZE; ++i) {
-      mps_free(pool, (mps_addr_t)ps[i], ss[i]);
+      if (ss[i] > 0) {
+        mps_free(pool, (mps_addr_t)ps[i], ss[i]);
+        ss[i] = 0;
+      }
     }
     /* allocate some new objects */
     for(i=x; i<TEST_SET_SIZE; ++i) {
-      ss[i] = (*size)(i);
-      res = make((mps_addr_t *)&ps[i], ap, ss[i]);
+      size_t s = (*size)(i);
+      res = make((mps_addr_t *)&ps[i], ap, s);
       if(res != MPS_RES_OK)
         break;
+      ss[i] = s;
       
       if (verbose) {
         if(i && i%4==0) putchar('\n');
