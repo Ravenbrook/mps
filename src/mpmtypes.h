@@ -1,6 +1,6 @@
 /* impl.h.mpmtypes: MEMORY POOL MANAGER TYPES
  *
- * $HopeName: MMsrc!mpmtypes.h(MMdevel_gens2.5) $
+ * $HopeName: MMsrc!mpmtypes.h(MMdevel_gens2.6) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  *
  * .readership: MM developers.
@@ -267,6 +267,8 @@ typedef int WriteFC; /* Promoted */
 #define EventAMCScanBegin   ((EventType)0xEFA3C5CB) /* AMC SCan Begin */
 #define EventAMCScanEnd     ((EventType)0xEFA3C5CE) /* AMC SCan End */
 #define EventAMCFix         ((EventType)0xEFA3CF18) /* AMC FIX */
+#define EventAMCFixAmbig    ((EventType)0xEFA3CF8A) /* AMC FiX Ambig */
+#define EventAMCFixForward  ((EventType)0xEFA3CF8F) /* AMC FiX Forward */
 #define EventAMCReclaim     ((EventType)0xEFA3C6EC) /* AMC REClaim */
 #define EventAMCTraceEnd    ((EventType)0xEFA3C26E) /* AMC TRace End */
 #define EventTraceStart     ((EventType)0xEF26AC52) /* TRACe STart */
