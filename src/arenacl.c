@@ -1,6 +1,6 @@
 /* impl.c.arenacl: ARENA IMPLEMENTATION USING CLIENT MEMORY
  *
- * $HopeName$
+ * $HopeName: MMsrc!arenacl.c(MMdevel_sw_eq.1) $
  * 
  * Copyright (C) 1996 Harlequin Group, all rights reserved.
  *
@@ -26,6 +26,13 @@
  *   chunks of memory. 
  *
  * .req.place: Allow preferential placement of segments.
+ * 
+ * .improve: There are various possible improvements:
+ *
+ * .improve.twiddle: There are several places in which many bits in a bit
+ * table are checked or set in sequence. These could all be made much faster
+ * with suitable bit-twiddling code.
+ *
  */
 
 #include "mpm.h"
@@ -34,7 +41,7 @@
 #error "Client arena not configured"
 #endif
 
-SRCID(arenacl, "$HopeName$");
+SRCID(arenacl, "$HopeName: MMsrc!arenacl.c(MMdevel_sw_eq.1) $");
 
 Bool ArenaCheck(Arena arena)
 {
@@ -46,17 +53,17 @@ Bool ArenaCheck(Arena arena)
   return TRUE;
 }
 
-typedef struct ChunkStruct *Chunk;	/* chunk type */
-typedef struct PageStruct *Page;	/* page type */
-typedef Word *BT;               	/* bool table type */
+typedef struct ChunkStruct *Chunk;      /* chunk type */
+typedef struct PageStruct *Page;        /* page type */
+typedef Word *BT;                       /* bool table type */
 
-#define ChunkSig	((Sig)0x519C409c)
+#define ChunkSig        ((Sig)0x519C409c)
 
 typedef struct ChunkStruct {    /* chunk structure */
   Sig sig;                      /* impl.h.misc.sig */
-  Arena arena;			/* the arena */
-  RingStruct arenaRing;		/* ring of chunks within the arena */
-  Serial serial;		/* serial within the arena */
+  Arena arena;                  /* the arena */
+  RingStruct arenaRing;         /* ring of chunks within the arena */
+  Serial serial;                /* serial within the arena */
   Size pages;                   /* number of pages in chunk */
   Addr base;                    /* base address of chunk */
   Addr limit;                   /* limit address of chunk */
@@ -65,13 +72,29 @@ typedef struct ChunkStruct {    /* chunk structure */
   BT freeTable;                 /* page free table */
 } ChunkStruct;
 
+/* PageStruct -- page structure
+ *
+ * The page table is lifted entirely from arenavm. See
+ * design.mps.arenavm.table.* */
+
+typedef struct PageStruct {     /* page structure */
+  union {
+    SegStruct head;             /* segment */
+    struct {
+      Pool pool;                /* .page: NULL, must be first field
+                                 * see impl.h.mpmst.seg.pool */
+      Seg seg;                  /* segment at base page of run */
+      Addr limit;               /* limit of segment */
+    } tail;                     /* tail page */
+  } the;
+} PageStruct;
+
 static Bool ChunkCheck(Chunk chunk)
 {
   CHECKS(Chunk, chunk);
   CHECKU(Arena, chunk->arena);
   CHECKL(RingCheck(&chunk->arenaRing));
   CHECKL(chunk->serial <= chunk->arena->chunkSerial);
-  CHECKL(chunk->pages >= 0);
   /* check base and limit: */
   CHECKL(chunk->base != (Addr)0);
   CHECKL(chunk->limit != (Addr)0);
@@ -95,36 +118,20 @@ static Bool ChunkCheck(Chunk chunk)
   CHECKL((Addr)chunk->pageTable <= (Addr)chunk->freeTable);
   CHECKL((Addr)chunk->freeTable <= (Addr)chunk->pageBase);
   /* check size of control structures within chunk: */
-  CHECKL(AddrSub((Addr)chunk->pageTable, (Addr)chunk) >= sizeof(ChunkStruct));
-  	/* enough space for page table: */
-  CHECKL(AddrSub((Addr)chunk->freeTable, (Addr)chunk->pageTable) /
-	 sizeof(PageStruct) >= chunk->pages);
-	/* enough space for free table: */
-  CHECKL(AddrSub(chunk->pageBase, (Addr)chunk->freeTable) / sizeof(Word) >=
-	 SizeAlignUp(chunk->pages,WORD_WIDTH) >> WORD_SHIFT);
-  	/* enough space for pages */
-  CHECKL((AddrSub(chunk->limit, chunk->pageBase) >> chunk->arena->pageShift)
-	 == chunk->pages);
+        /* enough size for chunk struct: */
+  CHECKL(AddrOffset(chunk, chunk->pageTable) >= sizeof(ChunkStruct));
+        /* enough space for page table: */
+  CHECKL(AddrOffset(chunk->pageTable, chunk->freeTable) / sizeof(PageStruct)
+         >= chunk->pages);
+        /* enough space for free table: */
+  CHECKL(AddrOffset(chunk->freeTable, chunk->pageBase) / sizeof(Word)
+         >= SizeAlignUp(chunk->pages,WORD_WIDTH) >> WORD_SHIFT);
+        /* enough space for pages: */
+  CHECKL((AddrOffset(chunk->pageBase, chunk->limit) >> chunk->arena->pageShift)
+         == chunk->pages);
   /* .check.tables: could check the consistency of the tables, but not O(1) */
   return TRUE;
 }
-
-/* PageStruct -- page structure
- *
- * The page table is lifted entirely from arenavm. See
- * design.mps.arenavm.table.* */
-
-typedef struct PageStruct {     /* page structure */
-  union {
-    SegStruct head;             /* segment */
-    struct {
-      Pool pool;                /* .page: NULL, must be first field
-                                 * see impl.h.mpmst.seg.pool */
-      Seg seg;                  /* segment at base page of run */
-      Addr limit;               /* limit of segment */
-    } tail;                     /* tail page */
-  } the;
-} PageStruct;
 
 /* would like to be able to write a PageCheck, but Pages don't even
  * have a signature */
@@ -211,9 +218,9 @@ static Res ChunkCreate(Chunk *chunkReturn, Addr base, Addr limit, Arena arena)
   a = AddrAlignUp(AddrAdd(a,sizeof(ChunkStruct)), ARCH_ALIGN);
 
   if (a > limit) /* the chunk is too small */
-    return ResRESOURCE;
+    return ResMEMORY;
 
-  tablePages = AddrSub(limit,a) >> arena->pageShift;
+  tablePages = AddrOffset(a,limit) >> arena->pageShift;
 
   chunk->pageTable = (Page) a;
   a = AddrAlignUp(AddrAdd(a,sizeof(PageStruct) * tablePages), ARCH_ALIGN);
@@ -228,7 +235,7 @@ static Res ChunkCreate(Chunk *chunkReturn, Addr base, Addr limit, Arena arena)
   /* initialize the remaining slots */
   chunk->base = base;
   chunk->limit = limit;
-  chunk->pages = AddrSub(chunk->limit, chunk->pageBase) >> arena->pageShift;
+  chunk->pages = AddrOffset(chunk->pageBase, chunk->limit) >> arena->pageShift;
   chunk->arena = arena;
 
   /* initialize the freeTable */
@@ -265,8 +272,10 @@ Res ArenaCreate(Space *spaceReturn, Size size, Addr base)
   Chunk chunk;
   
   AVER(spaceReturn != NULL);
-  AVER(size > 0);
   AVER(base != (Addr)0);
+
+  if (size < sizeof(SpaceStruct))
+    return ResMEMORY;
 
   limit = AddrAdd(base,size);
 
@@ -275,8 +284,11 @@ Res ArenaCreate(Space *spaceReturn, Size size, Addr base)
   space = (Space) base;
   base = AddrAlignUp(AddrAdd(base,sizeof(SpaceStruct)),ARCH_ALIGN);
 
+  if (base > limit)
+    return ResMEMORY;
+
   arena = SpaceArena(space);
-  arena->pageSize = ArenaClientPageSize;
+  arena->pageSize = ARENA_CLIENT_PAGE_SIZE;
   arena->pageShift = SizeLog2(arena->pageSize);
 
   RingInit(&arena->chunkRing);
@@ -314,16 +326,17 @@ void ArenaDestroy(Space space)
 
 /* ArenaExtend: this extends the arena */
 
-res ArenaExtend(Space space, Addr base, Addr limit)
+Res ArenaExtend(Space space, Addr base, Size size)
 {
   Arena arena;
   Chunk chunk;
   Res res;
+  Addr limit;
 
   AVERT(Space,space);
   AVER(base != (Addr)0);
-  AVER(limit != (Addr)0);
-  AVER(limit > base);
+  AVER(size > 0);
+  limit = AddrAdd(base,size);
   
   arena = SpaceArena(space);
   res = ChunkCreate(&chunk, base, limit, arena);
@@ -331,18 +344,20 @@ res ArenaExtend(Space space, Addr base, Addr limit)
 }
 
 /* ArenaRetract returns ResFAIL if there is no such chunk, or if it
-   exists but is not fully free. */
+ * exists but is not fully free. [This is really part of the interface
+ * design]. */
 
-res ArenaRetract(Space space, Addr base, Addr limit)
+Res ArenaRetract(Space space, Addr base, Size size)
 {
   Arena arena;
-  Chunk chunk;
   Ring node;
+  Addr limit;
   
   AVERT(Space, space);
   AVER(base != (Addr)0);
-  AVER(limit != (Addr)0);
-  AVER(limit > base);
+  AVER(size > 0);
+
+  limit = AddrAdd(base, size);
 
   arena = SpaceArena(space);
 
@@ -350,18 +365,18 @@ res ArenaRetract(Space space, Addr base, Addr limit)
     Chunk chunk = RING_ELT(Chunk, arenaRing, node);
     AVERT(Chunk, chunk);
     if ((chunk->base == base) &&
-	(chunk->limit == limit)) {
+        (chunk->limit == limit)) {
       /* check that it's empty */
       PI pi;
       for (pi = 0; pi < chunk->pages; pi++) {
-	if (BTGet(chunk->freeTable, pi) != FALSE)
-	  return ResFAIL;
+        if (BTGet(chunk->freeTable, pi) == FALSE)
+          return ResFAIL;
       }
       return ResOK;
     }
   }
 
-  return ResFAIL;	/* no such chunk */
+  return ResFAIL;       /* no such chunk */
 }
 
 
@@ -385,8 +400,10 @@ Size ArenaReserved(Space space)
   RING_FOR(node, &arena->chunkRing) { /* .req.extend.slow */
     Chunk chunk = RING_ELT(Chunk, arenaRing, node);
     AVERT(Chunk, chunk);
-    size += AddrSub(chunk->limit, chunk->base);
+    size += AddrOffset(chunk->base, chunk->limit);
   }
+
+  return size;
 }
 
 Size ArenaCommitted(Space space)
@@ -405,81 +422,37 @@ Bool SegCheck(Seg seg)
 
 /* preferences... */
 
-#define SegPrefSig	((Sig)0x5195e997)
-
-struct SegPrefStruct {	/* segment placement preferences */
-  Sig sig;		/* impl.h.misc.sig */
-  Space space;		/* the owning space */
-  Bool high;		/* high or low */
-} SegPrefStruct;
-
-typedef struct SegPrefStruct *SegPref;
-
-typedef int SegPrefKind;
-
-enum {
-  SegPrefHigh = 0,	/* allocate segments downwards from top of chunk */
-  SegPrefLow		/* allocate segments upwards from bottom of chunk */
-};
-
 Bool SegPrefCheck(SegPref pref)
 {
   CHECKS(SegPref, pref);
-  CHECKU(Space, pref->space);
-  CHECKD(Bool, pref->high);
+  CHECKL(BoolCheck(pref->high));
   /* nothing else to check */
   return TRUE;
 }
 
-/* SegPrefCreate */
+static SegPrefStruct segPrefDefault = {SegPrefSig, FALSE};
 
-Res SegPrefCreate (SegPref *prefReturn, Space space)
+SegPref SegPrefDefault(void)
 {
-  void *p;
-  Res res;
-  SegPref pref;
-
-  AVERT(Space, space);
-  AVER(sp != NULL);
-
-  res = SpaceAlloc(&p, space, sizeof(SegPrefStruct));
-  if (res)
-    return res;
-
-  pref = (SegPref)res;
-
-  pref->space = space;
-  pref->high = FALSE;
-
-  pref->sig = SegPrefSig;
-  AVERT(SegPref, pref);
-  *prefReturn = pref;
-  return ResOK;
-}
-
-void SegPrefDestroy (SegPref sp)
-{
-  Space space;
-
-  AVERT(SegPref, sp);
-  space = sp->space;
-
-  sp->Sig = SigInvalid;
-  SpaceFree(space, (void*)sp, sizeof(SegPrefStruct));
+  return &segPrefDefault;
 }
 
 Res SegPrefExpress (SegPref sp, SegPrefKind kind, void *p)
 {
   AVERT(SegPref,sp);
+  AVER(sp != &segPrefDefault);
+
   switch(kind) {
   case SegPrefHigh:
     AVER(p == NULL);
     sp->high = TRUE;
     return ResOK;
+
   case SegPrefLow:
     AVER(p == NULL);
     sp->high = FALSE;
     return ResOK;
+
   default:
     /* see design.mps.pref.default */
     return ResOK;
@@ -489,57 +462,58 @@ Res SegPrefExpress (SegPref sp, SegPrefKind kind, void *p)
 /* ChunkSegAlloc: allocate a segment in a chunk */
 
 static Res ChunkSegAlloc(Seg *segReturn, SegPref pref, Size pages, Pool pool,
-			 Chunk chunk)
+                         Chunk chunk)
 {
-  PI pi, count, base;
+  PI pi, count, base = 0;
   Seg seg;
-  Res res;
   Arena arena;
 
   AVER(segReturn != NULL);
   AVERT(Chunk, chunk);
 
-  if (chunk->pages == 0)
-    return ResRESOURCE;
-  
   arena = chunk->arena;
 
-  /* Search for a free run of pages in the free table.
-   * .improve.bit-twiddle:  This code can probably be seriously
-   * optimised by twiddling the bit table.
-   */
+  /* Search the free table for a sufficiently-long run of free pages.
+   * If we succeed, we go to "found:" with the lowest page number in
+   * the run in 'base'. */
 
-  count = 0;
+  /* .improve.twiddle.search: This code could go a lot faster with
+   * twiddling the bit table. */
 
-  if (pref->high) {
+  /* .improve.clear: I have tried to make this code clear, with
+   *  comments &c, but there's room for further clarification. */
+
+  count = 0; /* the number of free pages found in the current run */
+
+  if (pref->high) { /* search down from the top of the chunk */
     pi = chunk->pages;
     while (pi != 0) {
       pi--;
       if (BTGet(chunk->freeTable,pi)) {
-	++count;
-	if (count == pages) {
-	  base = pi;
-	  goto found;
-	}
+        ++count;
+        if (count == pages) { /* then we're done, take the base of this run */
+          base = pi;
+          goto found;
+        }
       } else
-	count = 0;
+        count = 0;
     }
-  } else {
+  } else { /* search up from the bottom of the chunk */
     pi = 0;
     while (pi != chunk->pages) {
       if(BTGet(chunk->freeTable, pi)) {
-	if(count == 0)
-	  base = pi;
-	++count;
-	if(count == pages)
-	  goto found;
+        if(count == 0)
+          base = pi; /* remember the base of this run */
+        ++count;
+        if(count == pages) /* now we're done */
+          goto found;
       } else
-	count = 0;
+        count = 0;
       pi++;
     }
   }
   
-  /* No space was found.
+  /* No adequate run was found.
    * .improve.alloc-fail: This could be because the request was
    * too large, or perhaps because of fragmentation.  We could return a
    * more meaningful code.
@@ -623,7 +597,7 @@ Res SegAlloc(Seg *segReturn, SegPref pref, Space space, Size size, Pool pool)
 
 /* SegChunk: identify the chunk (and index) in which a segment resides */
 
-static Res SegChunk(chunk *chunkReturn, PI *piReturn, Seg seg, Arena arena)
+static Res SegChunk(Chunk *chunkReturn, PI *piReturn, Seg seg, Arena arena)
 {
   Page page;
   Ring node;
@@ -634,10 +608,10 @@ static Res SegChunk(chunk *chunkReturn, PI *piReturn, Seg seg, Arena arena)
 
   page = PARENT(PageStruct, the.head, seg);
 
-  RING_FOR(node, arena->chunkRing) {
+  RING_FOR(node, &arena->chunkRing) {
     Chunk chunk = RING_ELT(Chunk, arenaRing, node);
     if ((page >= chunk->pageTable) &&
-	(page < (chunk->pageTable + chunk->pages))) {
+        (page < (chunk->pageTable + chunk->pages))) {
       *piReturn = page - chunk->pageTable;
       *chunkReturn = chunk;
       return ResOK;
@@ -653,7 +627,6 @@ void SegFree(Space space, Seg seg)
 {
   Arena arena;
   Chunk chunk;
-  Page page;
   PI pi, pl, pn;
   Addr base, limit; 
   Res res;
@@ -735,6 +708,7 @@ Addr SegBase(Space space, Seg seg)
 Addr SegLimit(Space space, Seg seg)
 {
   Arena arena;
+  Page page;
 
   AVERT(Seg, seg);
 
@@ -782,17 +756,17 @@ Bool SegOfAddr(Seg *segReturn, Space space, Addr addr)
   arena = SpaceArena(space);
   AVERT(Arena, arena);
 
-  RING_FOR(node, &arena-chunkRing) {
+  RING_FOR(node, &arena->chunkRing) {
     Chunk chunk = RING_ELT(Chunk, arenaRing, node);
     if(chunk->base <= addr && addr < chunk->limit) {
       PI pi = AddrOffset(chunk->pageBase, addr) >> arena->pageShift;
       if(!BTGet(chunk->freeTable, pi)) {
-	Page page = &chunk->pageTable[pi];
-	if(page->the.head.pool != NULL)
-	  *segReturn = &page->the.head;
-	else
-	  *segReturn = page->the.tail.seg;
-	return TRUE;
+        Page page = &chunk->pageTable[pi];
+        if(page->the.head.pool != NULL)
+          *segReturn = &page->the.head;
+        else
+          *segReturn = page->the.tail.seg;
+        return TRUE;
       }
     }
   }
@@ -836,7 +810,6 @@ static Seg SegSearchChunk(Chunk chunk, PI pi)
 Seg SegFirst(Space space)
 {
   Arena arena;
-  Chunk chunk;
   Ring node;
 
   arena = SpaceArena(space);
@@ -864,7 +837,6 @@ Seg SegNext(Space space, Seg seg)
 {
   Arena arena;
   Chunk chunk;
-  Page page;
   PI pi;
   Res res;
   Seg next;
