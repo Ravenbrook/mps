@@ -1,11 +1,11 @@
 /* impl.c.trace: GENERIC TRACER IMPLEMENTATION
  *
- * $HopeName: MMsrc!trace.c(MMdevel_action2.10) $
+ * $HopeName: MMsrc!trace.c(MMdevel_action2.11) $
  */
 
 #include "mpm.h"
 
-SRCID(trace, "$HopeName: MMsrc!trace.c(MMdevel_action2.10) $");
+SRCID(trace, "$HopeName: MMsrc!trace.c(MMdevel_action2.11) $");
 
 Bool ScanStateCheck(ScanState ss)
 {
@@ -122,6 +122,7 @@ Res TraceStart(Trace trace, Pool pool)
   Res res;
   Ring ring, node;
   Space space;
+  Seg seg;
 
   AVERT(Trace, trace);
   AVERT(Pool, pool);
@@ -136,6 +137,10 @@ Res TraceStart(Trace trace, Pool pool)
   while(node != ring) {
     Ring next = RingNext(node);
     Seg seg = RING_ELT(Seg, poolRing, node);
+
+    /* Segments should start out black w.r.t. the trace. */
+    /* i.e. the reference partition is (B, 0, 0). */
+    AVER(seg->white == TraceIdNONE);
 
     res = PoolCondemn(pool, trace, seg);
     if(res != ResOK) {
@@ -161,7 +166,6 @@ Res TraceStart(Trace trace, Pool pool)
     return ResOK;
   }
 
-#if 0
   /* Turn everything else grey. */
 
   /* @@@@ Instead of iterating over all the segments, we could */
@@ -172,58 +176,24 @@ Res TraceStart(Trace trace, Pool pool)
 
   seg = SegFirst(space);
   while(seg != NULL) {
-    /* Segments should start out black w.r.t. the trace. */
-    /* i.e. the reference partition is (B, 0, 0). */
-    AVER(seg->white == TraceIdNONE);
+    /* Segment should be either black or white by now. */
     AVER(!TraceSetIsMember(seg->grey, trace->ti));
 
     /* A segment can only be grey if it contains some references. */
-    /* This is indicated by the rank not being RankNONE.  Such */
+    /* This is indicated by the rankSet begin non-empty.  Such */
     /* segments may only belong to scannable pools. */
-    if(seg->rank != RankNONE) {
+    if(seg->rankSet != RankSetEMPTY) {
+      /* Segments with ranks may only belong to scannable pools. */
       AVER((seg->pool->class->attr & AttrSCAN) != 0);
-      seg->grey = TraceSetAdd(seg->grey, trace->ti);
 
-      /* @@@@ This should be calculated by comparing colour */
-      /* with the mutator colour.  For the moment we assume */
-      /* a read-barrier collector. */
-      ShieldRaise(space, seg, AccessREAD | AccessWRITE);
+      /* @@@@ This is where we should look at the remembered set */
+      /* (summary) stored in the segment to see if it might */
+      /* possibly refer to the condemned set. */
+
+      PoolGrey(pool, trace, seg);
     }
-
-    /* If the segment belongs to the condemned pool (later, to */
-    /* the condemned action) then allow the pool to make it */
-    /* white. */
-    if(seg->pool == pool) {
-      res = PoolCondemn(pool, trace, seg);
-      if(res != ResOK) goto failCondemn;
-    }
-
 
     seg = SegNext(space, seg);
-  }
-
-  /* @@@@ Refine here. */
-#endif /* 0 */
-
-  /* Grey all the roots and pools. */
-  /* @@@@ This will iterate over all segments, greying them, and */
-  /* whitening all those in the condemned set.  To begin with */
-  /* it just takes over from PoolCondemn by iterating over the */
-  /* segments in a pool.  Scannables which can be proven not */
-  /* to refer to the white set can be left black. */
-
-  space = trace->space;
-
-  ring = SpacePoolRing(space);
-  node = RingNext(ring);
-  while(node != ring) {
-    Ring next = RingNext(node);
-    Pool pool = RING_ELT(Pool, spaceRing, node);
-
-    if((pool->class->attr & AttrSCAN) != 0)
-      PoolGrey(pool, trace);  /* implicitly excludes white set */
-
-    node = next;
   }
 
   ring = SpaceRootRing(space);
@@ -231,6 +201,10 @@ Res TraceStart(Trace trace, Pool pool)
   while(node != ring) {
     Ring next = RingNext(node);
     Root root = RING_ELT(Root, spaceRing, node);
+
+    /* @@@@ This is where we should look at the remembered set */
+    /* (summary) stored in the root to see if it might */
+    /* possibly refer to the condemned set. */
 
     RootGrey(root, trace);
 
@@ -318,23 +292,25 @@ static Res TraceFlip(Trace trace)
 
 static void TraceReclaim(Trace trace)
 {
-  Ring ring, node;
   Space space;
+  Seg seg;
 
   AVERT(Trace, trace);
   AVER(trace->state == TraceRECLAIM);
 
   space = trace->space;
-  ring = SpacePoolRing(space);
-  node = RingNext(ring);
-  while(node != ring) {
-    Ring next = RingNext(node);
-    Pool pool = RING_ELT(Pool, spaceRing, node);
+  seg = SegFirst(space);
+  while(seg != NULL) {
+    /* There shouldn't be any grey stuff left for this trace. */
+    AVER(!TraceSetIsMember(seg->grey, trace->ti));
 
-    if((pool->class->attr & AttrGC) != 0)
-      PoolReclaim(pool, trace);
+    if(seg->white == trace->ti) {
+      AVER((seg->pool->class->attr & AttrGC) != 0);
 
-    node = next;
+      PoolReclaim(seg->pool, trace, seg);
+    }
+
+    seg = SegNext(space, seg);
   }
 
   trace->state = TraceFINISHED;
@@ -354,7 +330,8 @@ static void TraceReclaim(Trace trace)
  * the cost of some bookkeeping elsewhere, esp. during fix.
  */
 
-static Bool FindGrey(Seg *segReturn, Space space, TraceId ti)
+static Bool FindGrey(Seg *segReturn, Rank *rankReturn,
+                     Space space, TraceId ti)
 {
   Rank rank;
   Seg seg;
@@ -365,8 +342,10 @@ static Bool FindGrey(Seg *segReturn, Space space, TraceId ti)
   
   for(rank = 0; rank < RankMAX; ++rank)
     for(seg = SegFirst(space); seg != NULL; seg = SegNext(space, seg))
-      if(seg->rank == rank && TraceSetIsMember(seg->grey, ti)) {
+      if(RankSetIsMember(seg->rankSet, rank) &&
+         TraceSetIsMember(seg->grey, ti)) {
 	*segReturn = seg;
+        *rankReturn = rank;
 	return TRUE;
       }
 
@@ -413,6 +392,7 @@ static Res TraceRun(Trace trace)
   ScanStateStruct ss;
   Space space;
   Seg seg;
+  Rank rank;
   Pool pool;
 
   AVERT(Trace, trace);
@@ -420,14 +400,14 @@ static Res TraceRun(Trace trace)
 
   space = trace->space;
 
-  if(FindGrey(&seg, space, trace->ti)) {
+  if(FindGrey(&seg, &rank, space, trace->ti)) {
     ss.fix = TraceFix;
     ss.zoneShift = SpaceZoneShift(space);
     ss.white = trace->white;
     ss.summary = RefSetEMPTY;
     ss.space = space;
     ss.traceId = trace->ti;
-    ss.rank = seg->rank;
+    ss.rank = rank;
     ss.sig = ScanStateSig;
 
     /* @@@@ This must go. */
