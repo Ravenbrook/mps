@@ -1,6 +1,6 @@
 /* impl.c.protsu: PROTECTION FOR SUNOS
  *
- * $HopeName: MMsrc!protsu.c(MMdevel_config_thread.1) $
+ * $HopeName: MMsrc!protsu.c(MMdevel_config_thread.2) $
  * Copyright (C) 1995,1996,1997 Harlequin Group, all rights reserved
  *
  * READERSHIP
@@ -32,7 +32,7 @@
 #include <sys/mman.h>
 #include <signal.h>
 
-SRCID(protsu, "$HopeName: MMsrc!protsu.c(MMdevel_config_thread.1) $");
+SRCID(protsu, "$HopeName: MMsrc!protsu.c(MMdevel_config_thread.2) $");
 
 
 /* Fix up unprototyped system calls. */
@@ -71,7 +71,7 @@ static handler_t sigNext = NULL;
  * This is the signal handler installed by ProtSetup to deal with
  * protection faults.  It is installed on the SIGSEGV signal.
  * It decodes the protection fault details from the signal context
- * and passes them to SpaceAccess, which attempts to handle the
+ * and passes them to ArenaAccess, which attempts to handle the
  * fault and remove its cause.  If the fault is handled, then
  * the handler returns and execution resumes.
  *
@@ -105,7 +105,7 @@ static void sigHandle(int sig, int code,
     AccessSet mode;
     AVER(addr != SIG_NOADDR);           /* .assume.addr */
     mode = AccessREAD | AccessWRITE;    /* .sigh.decode */
-    if(SpaceAccess((Addr)addr, mode))   /* .sigh.size */
+    if(ArenaAccess((Addr)addr, mode))   /* .sigh.size */
       return;
   }
 
@@ -216,10 +216,10 @@ void ProtSet(Addr base, Addr limit, AccessSet mode)
 /* ProtSync -- synchronize protection settings with hardware
  */
 
-void ProtSync(Space space)
+void ProtSync(Arena arena)
 {
-  AVERT(Space, space);
-  UNUSED(space);
+  AVERT(Arena, arena);
+  UNUSED(arena);
   NOOP;
 }
 
