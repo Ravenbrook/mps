@@ -2,7 +2,7 @@
  * 
  * MANUAL RANK GUARDIAN POOL
  * 
- * $HopeName: MMsrc!poolmrg.c(MMdevel_bufferscan.2) $
+ * $HopeName: !poolmrg.c(trunk.9) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  *
  * READERSHIP
@@ -28,7 +28,7 @@
 #include "mpm.h"
 #include "poolmrg.h"
 
-SRCID(poolmrg, "$HopeName: MMsrc!poolmrg.c(MMdevel_bufferscan.2) $");
+SRCID(poolmrg, "$HopeName: !poolmrg.c(trunk.9) $");
 
 
 #define MRGSig          ((Sig)0x519369B0) /* SIGnature MRG POol */

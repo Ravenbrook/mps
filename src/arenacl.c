@@ -1,6 +1,6 @@
 /* impl.c.arenacl: ARENA IMPLEMENTATION USING CLIENT MEMORY
  *
- * $HopeName: MMsrc!arenacl.c(trunk.4) $
+ * $HopeName: !arenacl.c(trunk.5) $
  * 
  * Copyright (C) 1996 Harlequin Group, all rights reserved.
  *
@@ -41,7 +41,7 @@
 #error "Client arena not configured"
 #endif
 
-SRCID(arenacl, "$HopeName: MMsrc!arenacl.c(trunk.4) $");
+SRCID(arenacl, "$HopeName: !arenacl.c(trunk.5) $");
 
 Bool ArenaCheck(Arena arena)
 {

@@ -1,6 +1,6 @@
 /*  impl.c.vmnt: VIRTUAL MEMORY MAPPING FOR WIN32
  *
- *  $HopeName: MMsrc!vmnt.c(trunk.15) $
+ *  $HopeName: !vmw3.c(trunk.16) $
  *  Copyright (C) 1995 Harlequin Group, all rights reserved
  *
  *  Design: design.mps.vm
@@ -55,7 +55,7 @@
 
 #include <windows.h>
 
-SRCID(vmnt, "$HopeName: MMsrc!vmnt.c(trunk.15) $");
+SRCID(vmnt, "$HopeName: !vmw3.c(trunk.16) $");
 
 
 #define SpaceVM(space)  (&(space)->arenaStruct.vmStruct)
