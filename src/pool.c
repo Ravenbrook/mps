@@ -1,6 +1,6 @@
 /* impl.c.pool: POOL IMPLEMENTATION
  *
- * $HopeName: !pool.c(trunk.25) $
+ * $HopeName: MMsrc!pool.c(trunk.25) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  *
  * This is the implementation of the generic pool interface.  The
@@ -12,7 +12,7 @@
 
 #include "mpm.h"
 
-SRCID(pool, "$HopeName: !pool.c(trunk.25) $");
+SRCID(pool, "$HopeName: MMsrc!pool.c(trunk.25) $");
 
 
 Bool PoolClassCheck(PoolClass class)
@@ -247,14 +247,15 @@ void PoolFree(Pool pool, Addr old, Size size)
   EVENT3(PoolFree, (Word)pool, (Word)old, (Word)size);
 }
 
-Res PoolCondemn(Pool pool, Trace trace, Seg seg)
+Res PoolCondemn(Pool pool, Trace trace, Seg seg, Action action)
 {  
   AVERT(Pool, pool);
   AVERT(Trace, trace);
   AVERT(Seg, seg);
+  AVERT(Action, action);
   AVER(pool->space == trace->space);
   AVER(seg->pool == pool);
-  return (*pool->class->condemn)(pool, trace, seg);
+  return (*pool->class->condemn)(pool, trace, seg, action);
 }
 
 void PoolGrey(Pool pool, Trace trace, Seg seg)
@@ -583,11 +584,12 @@ Res PoolTrivDescribe(Pool pool, mps_lib_FILE *stream)
   return WriteF(stream, "  No class-specific description available.\n", NULL);
 }
 
-Res PoolNoCondemn(Pool pool, Trace trace, Seg seg)
+Res PoolNoCondemn(Pool pool, Trace trace, Seg seg, Action action)
 {
   AVERT(Pool, pool);
   AVERT(Trace, trace);
   AVERT(Seg, seg);
+  AVERT(Action, action);
   NOTREACHED;
   return ResUNIMPL;
 }

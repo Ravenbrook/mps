@@ -1,6 +1,6 @@
 /* impl.h.mpmtypes: MEMORY POOL MANAGER TYPES
  *
- * $HopeName: !mpmtypes.h(trunk.21) $
+ * $HopeName: MMsrc!mpmtypes.h(trunk.21) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights 
  * reserved.
  *
@@ -93,7 +93,7 @@ typedef void (*PoolBufferCoverMethod)  (Pool pool, Buffer buffer);
 typedef Res  (*PoolDescribeMethod)     (Pool pool, mps_lib_FILE 
                                         *stream);
 typedef Res  (*PoolCondemnMethod)      (Pool pool, Trace trace, 
-                                        Seg seg);
+                                        Seg seg, Action action);
 typedef void (*PoolGreyMethod)         (Pool pool, Trace trace, 
                                         Seg seg);
 typedef Res  (*PoolScanMethod)         (ScanState ss, Pool pool, 

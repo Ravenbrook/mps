@@ -1,12 +1,12 @@
 /* impl.c.action: STRATEGIC ACTION
  *
  * Copyright (C) 1997 Harlequin Group, all rights reserved.
- * $HopeName: !action.c(trunk.2) $
+ * $HopeName: MMsrc!action.c(trunk.2) $
  */
 
 #include "mpm.h"
 
-SRCID(action, "$HopeName: !action.c(trunk.2) $");
+SRCID(action, "$HopeName: MMsrc!action.c(trunk.2) $");
 
 
 /* ActionCheck -- check consistency of an Action structure */
@@ -55,35 +55,18 @@ void ActionFinish(Action action)
 }
 
 
-/* Noddy collection policy -- condemn first pool found */
-
-static Res ActionCollect(Space space)
+static Res ActionCollect(Action action)
 {
-  Ring ring, node;
   Trace trace;
   Res res;
-  Pool pool;
+  Space space;
 
-  ring = SpacePoolRing(space);
-  node = RingNext(ring);
-  while(node != ring) {
-    Ring next = RingNext(node);
+  space = PoolSpace(action->pool);
 
-    pool = RING_ELT(Pool, spaceRing, node);
-    if((pool->class->attr & AttrGC) != 0)
-      goto found;
-
-    node = next;
-  }
-
-  /* No GC-able pool found. */
-  return ResOK;
-
-found:
   res = TraceCreate(&trace, space);
   if(res != ResOK) goto failTraceCreate;
 
-  res = TraceStart(trace, pool);
+  res = TraceStart(trace, action);
   if(res != ResOK) goto failStart;
 
   return ResOK;
@@ -110,8 +93,27 @@ failTraceCreate:
 
 void ActionPoll(Space space)
 {
+  Ring poolnode;
+  Action chosen = NULL;
+
   AVERT(Space, space);
 
-  if(space->busyTraces == TraceSetEMPTY)
-    (void)ActionCollect(space);
+  if(space->busyTraces != TraceSetEMPTY) {
+    return;
+  }
+
+  RING_FOR(poolnode, &space->poolRing) {
+    Pool pool = RING_ELT(Pool, spaceRing, poolnode);
+    Ring actionnode;
+
+    RING_FOR(actionnode, &pool->actionRing) {
+      Action action = RING_ELT(Action, poolRing, actionnode);
+      AVERT(Action, action);
+
+      if(chosen == NULL && (action->pool->class->attr & AttrGC)) {
+	chosen = action;
+      }
+    }
+  }
+  (void)ActionCollect(chosen);
 }
