@@ -1,6 +1,6 @@
 /* impl.h.mpm: MEMORY POOL MANAGER DEFINITIONS
  *
- * $HopeName: MMsrc!mpm.h(MMdevel_reservoir.2) $
+ * $HopeName: MMsrc!mpm.h(MMdevel_reservoir.3) $
  * Copyright (C) 1998.  Harlequin Group plc.  All rights reserved.
  */
 
@@ -620,7 +620,6 @@ extern Res SegPrefExpress(SegPref pref, SegPrefKind kind, void *p);
 extern Bool SegCheck(Seg seg);
 extern void SegInit(Seg seg, Pool pool);
 extern void SegFinish(Seg seg);
-extern void SegMove(Seg seg, Pool newpool);
 extern void SegSetGrey(Seg seg, TraceSet grey);
 extern void SegSetSummary(Seg seg, RefSet summary);
 extern void SegSetRankSet(Seg seg, RankSet rankSet);
