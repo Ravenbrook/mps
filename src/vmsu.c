@@ -1,6 +1,6 @@
 /* impl.c.vmsu: VIRTUAL MEMORY MAPPING FOR SUNOS 4
  *
- * $HopeName: MMsrc!vmsu.c(trunk.9) $
+ * $HopeName: MMsrc!vmsu.c(MMdevel_restr.3) $
  * Copyright (C) 1995 Harlequin Group, all rights reserved
  *
  * Design: design.mps.vm
@@ -44,7 +44,7 @@
 #include <errno.h>
 #include <sys/errno.h>
 
-SRCID(vmsu, "$HopeName: MMsrc!vmsu.c(trunk.9) $");
+SRCID(vmsu, "$HopeName: MMsrc!vmsu.c(MMdevel_restr.3) $");
 
 
 /* Fix up unprototyped system calls.  */
@@ -145,7 +145,7 @@ Res VMCreate(Space *spaceReturn, Size size)
   }
 
   vm->base = (Addr)addr;
-  vm->limit = vm->base + size;
+  vm->limit = AddrAdd(vm->base, size);
   vm->reserved = size;
   vm->mapped = (Size)0;
 
@@ -174,7 +174,7 @@ void VMDestroy(Space space)
 
   close(vm->zero_fd);
   close(vm->none_fd);
-  r = munmap((caddr_t)vm->base, (int)(vm->limit - vm->base));
+  r = munmap((caddr_t)vm->base, (int)AddrOffset(vm->base, vm->limit));
   AVER(r == 0);
   r = munmap((caddr_t)space,
              (int)SizeAlignUp(sizeof(SpaceStruct), vm->align));
@@ -207,7 +207,7 @@ Res VMMap(Space space, Addr base, Addr limit)
   AVER(base < limit);
   AVER(base >= vm->base);
   AVER(limit <= vm->limit);
-  AVER((limit - base) <= INT_MAX); /* This should be redundant. */
+  AVER(AddrOffset(base, limit) <= INT_MAX);
   AVER(AddrIsAligned(base, vm->align));
   AVER(AddrIsAligned(limit, vm->align));
 
