@@ -1,6 +1,6 @@
 /* impl.c.mpm: GENERAL MPM SUPPORT
  *
- * $HopeName: !mpm.c(trunk.7) $
+ * $HopeName: MMsrc!mpm.c(MMdevel_trace2.1) $
  * Copyright (C) 1996 Harlequin Group, all rights reserved.
  *
  * .readership: MM developers.
@@ -13,7 +13,7 @@
 
 #include "mpm.h"
 
-SRCID(mpm, "$HopeName: !mpm.c(trunk.7) $");
+SRCID(mpm, "$HopeName: MMsrc!mpm.c(MMdevel_trace2.1) $");
 
 
 /* MPMCheck -- test MPM assumptions */
@@ -26,7 +26,6 @@ Bool MPMCheck(void)
   CHECKL(AlignCheck(ARCH_ALIGN));
   /* impl.c.mpm.check.ti: Check that trace ids will fit in the */
   /* TraceId type. */
-  CHECKL(TRACE_MAX <= TraceIdNONE);
   CHECKL(TRACE_MAX <= UINT_MAX);
   /* impl.c.mpm.check.ts: Check that there are enough bits in */
   /* a TraceSet to store all possible trace ids. */
