@@ -1,6 +1,6 @@
 # ==== NTI3MV NMAKE FILE ====
 #
-# $HopeName: !ntalmv.nmk(trunk.4) $
+# $HopeName: MMsrc!ntalmv.nmk(MMdevel_event.1) $
 #
 # Copyright (C) 1995 Harlequin Group, all rights reserved
 #
@@ -11,7 +11,7 @@ MPM = <assert> <ring> <mpsliban> <mpm> \
       <arenavm> <vmnt> <space> <pool> <poolmfs> \
       <poolmv> <root> <format> <buffer> <locknt> \
       <ref> <trace> <protnt> <shield> \
-      <than> <ssan> <mpsi> <mpsint> <ld>
+      <than> <ssan> <mpsi> <mpsint> <ld> <event>
 SW  = <assert> <ring> <mpsliban> <mpm> \
       <arenavm> <vmrm> <space> <pool> <poolmfs> \
       <poolmv> <root> <format> <buffer> <locknt> \
@@ -26,7 +26,7 @@ TESTLIB = <testlib>
 
 # ==== ALMOST GENERIC PRODUCT BUILD FOR NMAKE ====
 #
-# $HopeName: !ntalmv.nmk(trunk.4) $
+# $HopeName: MMsrc!ntalmv.nmk(MMdevel_event.1) $
 #
 # Copyright (C) 1995 Harlequin Group, all rights reserved
 #
