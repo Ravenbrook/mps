@@ -24,7 +24,7 @@
 SRCID(poolsnc, "$Id$");
 
 
-#define SNCGen  ((Serial)1) /* "generation" for SNC pools */
+#define SNCGen  ((Gen)1) /* "generation" for SNC pools */
 
 
 /* SNCStruct -- structure for an SNC pool

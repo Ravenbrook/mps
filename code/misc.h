@@ -17,10 +17,8 @@
 
 
 typedef int Bool;                       /* <design/type/#bool> */
-enum {
-  FALSE = 0,
-  TRUE = 1
-};
+#define FALSE ((Bool)0)
+#define TRUE  ((Bool)1)
 
 
 /* SrcId -- source identification

@@ -886,9 +886,9 @@ static Bool pagesFindFreeInZones(Index *baseReturn, VMChunk *chunkReturn,
 
 /* vmGenOfSegPref -- return generation specified by a segment preference */
 
-static Serial vmGenOfSegPref(VMArena vmArena, SegPref pref)
+static Gen vmGenOfSegPref(VMArena vmArena, SegPref pref)
 {
-  Serial gen;
+  Gen gen;
 
   AVER(pref->isGen);
   UNUSED(vmArena);
@@ -923,7 +923,7 @@ static Bool pagesFindFreeWithSegPref(Index *baseReturn, VMChunk *chunkReturn,
   ZoneSet preferred;
 
   if (pref->isGen) {
-    Serial gen = vmGenOfSegPref(vmArena, pref);
+    Gen gen = vmGenOfSegPref(vmArena, pref);
     preferred = vmArena->genZoneSet[gen];
   } else {
     preferred = pref->zones;
@@ -1265,7 +1265,7 @@ static Res vmAllocComm(Addr *baseReturn, Tract *baseTractReturn,
   zones = ZoneSetOfRange(arena, base, limit);
 
   if (pref->isGen) {
-    Serial gen = vmGenOfSegPref(vmArena, pref);
+    Gen gen = vmGenOfSegPref(vmArena, pref);
     vmArena->genZoneSet[gen] = ZoneSetUnion(vmArena->genZoneSet[gen], zones);
   }
 

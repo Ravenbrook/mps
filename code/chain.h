@@ -82,7 +82,7 @@ extern size_t ChainGens(Chain chain);
 
 
 extern Bool PoolGenCheck(PoolGen gen);
-extern Res PoolGenInit(PoolGen gen, Chain chain, Serial nr, Pool pool);
+extern Res PoolGenInit(PoolGen gen, Chain chain, Gen nr, Pool pool);
 extern void PoolGenFinish(PoolGen gen);
 extern void PoolGenFlip(PoolGen gen);
 #define PoolGenNr(gen) ((gen)->nr)

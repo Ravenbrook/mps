@@ -15,7 +15,7 @@
 SRCID(poollo, "$Id$");
 
 
-#define LOGen ((Serial)1)
+#define LOGen ((Gen)1)
 
 
 /* LOStruct -- leaf object pool instance structure */
@@ -27,9 +27,9 @@ typedef struct LOStruct *LO;
 typedef struct LOStruct {
   PoolStruct poolStruct;        /* generic pool structure */
   Shift alignShift;             /* log_2 of pool alignment */
-  Serial gen;                   /* generation for placement */
+  Gen gen;                      /* generation for placement */
   Chain chain;                  /* chain used by this pool */
-  PoolGenStruct pgen;           /* generation representing the pool */
+  PoolGenStruct gen;            /* generation representing the pool */
   Sig sig;
 } LOStruct;
 
@@ -289,7 +289,7 @@ static Res loSegCreate(LOSeg *loSegReturn, Pool pool, Size size,
   Seg seg;
   Res res;
   SegPrefStruct segPrefStruct;
-  Serial gen;
+  Gen gen;
   Arena arena;
   Size asize;           /* aligned size */
 

@@ -27,7 +27,7 @@ Bool SegPrefCheck(SegPref pref)
   /* zones can't be checked because it's arbitrary. */
   CHECKL(BoolCheck(pref->isGen));
   CHECKL(BoolCheck(pref->isCollected));
-  /* gen is an arbitrary serial */
+  /* gen is an arbitrary number */
   return TRUE;
 }
 
@@ -73,7 +73,7 @@ void SegPrefExpress(SegPref pref, SegPrefKind kind, void *p)
   case SegPrefGen:
     AVER(p != NULL);
     pref->isGen = TRUE;
-    pref->gen = *(Serial *)p;
+    pref->gen = *(Gen *)p;
     break;
 
   default:
@@ -263,7 +263,7 @@ double ChainDeferral(Chain chain)
 Res ChainCondemnAuto(double *mortalityReturn, Chain chain, Trace trace)
 {
   Res res;
-  Serial topCondemnedGenSerial, currGenSerial;
+  Gen topCondemnedGenNumber, currGenNumber;
   GenDesc gen;
   ZoneSet condemnedSet = ZoneSetEMPTY;
   Size condemnedSize = 0, survivorSize = 0, genNewSize, genTotalSize;
@@ -271,14 +271,14 @@ Res ChainCondemnAuto(double *mortalityReturn, Chain chain, Trace trace)
   AVERT(Chain, chain);
   AVERT(Trace, trace);
 
-  /* Find lowest gen within its capacity, set topCondemnedGenSerial to the */
+  /* Find lowest gen within its capacity, set topCondemnedGenNumber to the */
   /* preceeding one. */
-  currGenSerial = 0;
+  currGenNumber = 0;
   gen = &chain->gens[0];
   AVERT(GenDesc, gen);
   genNewSize = GenDescNewSize(gen);
-  do { /* At this point, we've decided to collect currGenSerial. */
-    topCondemnedGenSerial = currGenSerial;
+  do { /* At this point, we've decided to collect currGenNumber. */
+    topCondemnedGenNumber = currGenNumber;
     condemnedSet = ZoneSetUnion(condemnedSet, gen->zones);
     genTotalSize = GenDescTotalSize(gen);
     condemnedSize += genTotalSize;
@@ -286,9 +286,9 @@ Res ChainCondemnAuto(double *mortalityReturn, Chain chain, Trace trace)
                     /* predict survivors will survive again */
                     + (genTotalSize - genNewSize);
 
-    if (++currGenSerial >= chain->genCount)
+    if (++currGenNumber >= chain->genCount)
       break; /* reached the top */
-    gen = &chain->gens[currGenSerial];
+    gen = &chain->gens[currGenNumber];
     AVERT(GenDesc, gen);
     genNewSize = GenDescNewSize(gen);
   } while (genNewSize >= gen->capacity * (Size)1024);
@@ -364,7 +364,7 @@ void ChainEndGC(Chain chain, Trace trace)
 
 /* PoolGenInit -- initialize a PoolGen */
 
-Res PoolGenInit(PoolGen gen, Chain chain, Serial nr, Pool pool)
+Res PoolGenInit(PoolGen gen, Chain chain, Gen nr, Pool pool)
 {
   /* Can't check gen, because it's not been initialized. */
   AVERT(Chain, chain);

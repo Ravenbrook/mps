@@ -48,7 +48,7 @@ SRCID(poolawl, "$Id$");
 
 #define AWLSig ((Sig)0x519B7A37) /* SIGnature PooL AWL */
 
-#define AWLGen ((Serial)1) /* "generation" for AWL pools */
+#define AWLGen ((Gen)1) /* "generation" for AWL pools */
 /* This and the dynamic criterion are the only ways AWL will get collected. */
 
 
@@ -90,7 +90,7 @@ typedef struct AWLStruct {
   Chain chain;              /* dummy chain */
   PoolGenStruct pgen;       /* generation representing the pool */
   Size size;                /* allocated size in bytes */
-  Serial gen;               /* associated generation (for SegAlloc) */
+  Gen gen;                  /* associated generation (for SegAlloc) */
   Count succAccesses;       /* number of successive single accesses */
   FindDependentMethod findDependent; /*  to find a dependent object */
   awlStatTotalStruct stats;

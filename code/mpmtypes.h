@@ -38,6 +38,7 @@ typedef Word Index;                     /* <design/type/#index> */
 typedef Word Align;                     /* <design/type/#align> */
 typedef unsigned Shift;                 /* <design/type/#shift> */
 typedef unsigned Serial;                /* <design/type/#serial> */
+typedef Word Gen;
 typedef Addr Ref;                       /* <design/type/#ref> */
 typedef void *Pointer;                  /* <design/type/#pointer> */
 

@@ -465,7 +465,7 @@ DEFINE_BUFFER_CLASS(amcBufClass, class)
 
 /* amcGenCreate -- create a generation */
 
-static Res amcGenCreate(amcGen *genReturn, AMC amc, Serial genNr)
+static Res amcGenCreate(amcGen *genReturn, AMC amc, Gen genNr)
 {
   Arena arena;
   Buffer buffer;
@@ -765,7 +765,7 @@ static Res amcInitComm(Pool pool, RankSet rankSet, va_list arg)
       goto failGensAlloc;
     amc->gen = p;
     for(i = 0; i < genCount + 1; ++i) {
-      res = amcGenCreate(&amc->gen[i], amc, (Serial)i);
+      res = amcGenCreate(&amc->gen[i], amc, (Gen)i);
       if (res != ResOK) {
         goto failGenAlloc;
       }
@@ -880,7 +880,7 @@ static Res AMCBufferFill(Addr *baseReturn, Addr *limitReturn,
   Arena arena;
   Size alignedSize;
   amcGen gen;
-  Serial genNr;
+  Gen genNr;
   SegPrefStruct segPrefStruct;
 
   AVERT(Pool, pool);
