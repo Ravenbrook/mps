@@ -1,6 +1,6 @@
 /* impl.c.pool: POOL IMPLEMENTATION
  *
- * $HopeName: MMsrc!pool.c(MMdevel_restr.3) $
+ * $HopeName: MMsrc!pool.c(MMdevel_restr.4) $
  * Copyright (C) 1994,1995,1996 Harlequin Group, all rights reserved
  *
  * This is the implementation of the generic pool interface.  The
@@ -9,7 +9,7 @@
 
 #include "mpm.h"
 
-SRCID(pool, "$HopeName: MMsrc!pool.c(MMdevel_restr.3) $");
+SRCID(pool, "$HopeName: MMsrc!pool.c(MMdevel_restr.4) $");
 
 
 Bool PoolCheck(Pool pool)
@@ -18,7 +18,6 @@ Bool PoolCheck(Pool pool)
   CHECKU(Space, pool->space);
   CHECKL(pool->serial < pool->space->poolSerial);
   CHECKL(RingCheck(&pool->spaceRing));
-  CHECKL(RingCheck(&pool->segRing));
   CHECKL(RingCheck(&pool->bufferRing));
   CHECKL(AlignCheck(pool->alignment));
   return TRUE;
@@ -33,7 +32,6 @@ void PoolInit(Pool pool, Space space, PoolClass class)
   pool->class = class;
   pool->space = space;
   RingInit(&pool->spaceRing);
-  RingInit(&pool->segRing);
   RingInit(&pool->bufferRing);
   pool->alignment = ARCH_ALIGN;
 
@@ -55,7 +53,6 @@ void PoolFinish(Pool pool)
   RingFinish(&pool->spaceRing);
 
   RingFinish(&pool->bufferRing);
-  RingFinish(&pool->segRing);
 
   pool->sig = SigInvalid;
 }
@@ -142,7 +139,7 @@ Res PoolScan(ScanState ss, Pool pool, Bool *finishedReturn)
 Res (PoolFix)(Pool pool, ScanState ss, Seg seg, Addr *refIO)
 {
   AVERT(Pool, pool);
-  return (*pool->class->fix)(pool, ss, seg, refIO);
+  return PoolFix(pool, ss, seg, refIO);
 }
 
 void PoolReclaim(Pool pool, Space space, TraceId ti)
@@ -152,7 +149,7 @@ void PoolReclaim(Pool pool, Space space, TraceId ti)
 }
 
 
-void PoolAccess(Pool pool, Seg seg, ProtMode mode)
+void PoolAccess(Pool pool, Seg seg, AccessSet mode)
 {
   if(pool->class->access != NULL)
     (*pool->class->access)(pool, seg, mode);
@@ -187,12 +184,6 @@ Res PoolDescribe(Pool pool, Lib_FILE *stream)
 Space (PoolSpace)(Pool pool)
 {
   return pool->space;
-}
-
-PoolClass (PoolGetClass)(Pool pool)
-{
-  AVERT(Pool, pool);
-  return pool->class;
 }
 
 
@@ -259,19 +250,6 @@ Bool PoolHasAddr(Pool pool, Addr addr)
     return FALSE;
 }
 
-
-Ring (PoolSpaceRing)(Pool pool)
-{
-  AVERT(Pool, pool);
-
-  return &pool->spaceRing;
-}
-
-Ring (PoolBufferRing)(Pool pool)
-{
-  AVERT(Pool, pool);
-  return &pool->bufferRing;
-}
 
 Align (PoolAlignment)(Pool pool)
 {
