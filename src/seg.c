@@ -1,7 +1,7 @@
 /* impl.c.seg: SEGMENTS
  *
- * $HopeName: !seg.c(trunk.23) $
- * Copyright (C) 2000.  Harlequin Limited.  All rights reserved.
+ * $HopeName: MMsrc!seg.c(MMdevel_pekka_locus.1) $
+ * Copyright (C) 2000 Harlequin Limited.  All rights reserved.
  *
  * .design: The design for this module is design.mps.seg.
  *
@@ -26,9 +26,10 @@
  * etc. richard 1997-04-03
  */
 
+#include "tract.h"
 #include "mpm.h"
 
-SRCID(seg, "$HopeName: !seg.c(trunk.23) $");
+SRCID(seg, "$HopeName: MMsrc!seg.c(MMdevel_pekka_locus.1) $");
 
 
 /* SegGCSeg -- convert generic Seg to GCSeg */
