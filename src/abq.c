@@ -1,6 +1,6 @@
 /* impl.c.abq: AVAILABLE BLOCK QUEUE
  *
- * $HopeName: MMsrc!abq.c(trunk.3) $
+ * $HopeName: !abq.c(trunk.4) $
  * Copyright (C) 1998 Harlequin Group plc.  All rights reserved.
  *
  * .readership: Any MPS developer
@@ -15,7 +15,7 @@
 #include "cbs.h"
 #include "mpm.h"
 
-SRCID(abq, "$HopeName: MMsrc!abq.c(trunk.3) $");
+SRCID(abq, "$HopeName: !abq.c(trunk.4) $");
 
 
 /* Private prototypes */

@@ -1,6 +1,6 @@
 # impl.gmk.o1algc: BUILD FOR OSF/1, ALPHA, GCC PLATFORM
 #
-# $HopeName$
+# $HopeName: !o1algc.gmk(trunk.21) $
 # Copyright (C) 1998.  Harlequin Group plc.  All rights reserved.
 #
 # This is the GNU makefile for platform.o1algc.

@@ -1,6 +1,6 @@
 /* impl.c.thw3i3: WIN32 THREAD MANAGER
  *
- * $HopeName: MMsrc!thw3i3.c(MM_dylan_salamander.2) $
+ * $HopeName: !thw3i3.c(trunk.21) $
  * Copyright (C) 1995,1998.  Harlequin Group plc.  All rights reserved.
  *
  * Implements thread registration, suspension, and stack
@@ -70,7 +70,7 @@
 
 #include "mpswin.h"
 
-SRCID(thw3i3, "$HopeName: MMsrc!thw3i3.c(trunk.20) $");
+SRCID(thw3i3, "$HopeName: !thw3i3.c(trunk.21) $");
 
 
 Bool ThreadCheck(Thread thread)

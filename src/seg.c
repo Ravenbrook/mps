@@ -1,6 +1,6 @@
 /* impl.c.seg: SEGMENTS
  *
- * $HopeName: MMsrc!seg.c(trunk.12) $
+ * $HopeName: !seg.c(trunk.13) $
  * Copyright (C) 1998 Harlequin Group plc.  All rights reserved.
  *
  * .design: The design for this module is design.mps.seg.
@@ -16,7 +16,7 @@
 
 #include "mpm.h"
 
-SRCID(seg, "$HopeName: MMsrc!seg.c(trunk.12) $");
+SRCID(seg, "$HopeName: !seg.c(trunk.13) $");
 
 
 /* SegCheck -- check the integrity of a segment */
