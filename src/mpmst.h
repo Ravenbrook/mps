@@ -217,6 +217,20 @@ typedef struct MessageStruct {
 } MessageStruct;
 
 
+/* Message Type Structs */
+
+/* .messagetype.struct: All of the Message Type structures are
+ * exposed in the external interface.  They should be kept
+ * synchronised with impl.h.mps.messagetype.struct
+ */
+
+/* Finalization */
+typedef struct MessageFinalizationStruct {
+  MessageType type;
+  Ref ref;
+} MessageFinalizationStruct;
+
+
 /* VMStruct -- virtual memory structure
  *
  * .vm: The VM structure is used when the MPM is configured to use a
@@ -677,6 +691,10 @@ typedef struct SpaceStruct {
 
   /* message fields (design.mps.message, impl.c.message) */
   RingStruct messageRing;	/* ring of pending messages */
+
+  /* finalization fields (design.mps.finalize), impl.c.space */
+  Bool isFinalPool;		/* indicator for finalPool */
+  Pool finalPool;		/* either NULL or an MRG pool */
 
   /* thread fields (impl.c.thread) */
   RingStruct threadRing;        /* ring of attached threads */
