@@ -1,6 +1,6 @@
 /* impl.c.awlut: POOL CLASS AWL UNIT TEST
  *
- * $HopeName: !awlut.c(trunk.5) $
+ * $HopeName: MMsrc!awlut.c(MMdevel_event_format.1) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  *
  * READERSHIP
@@ -22,7 +22,9 @@
 #include <string.h>
 #include <assert.h>
 #include <stdio.h>
-
+#ifdef MPS_OS_SU
+#include "ossu.h"
+#endif
 
 #define TABLE_SLOTS 50
 #define ITERATIONS 5000
