@@ -1,6 +1,6 @@
 /* impl.h.mpm: MEMORY POOL MANAGER DEFINITIONS
  *
- * $HopeName: MMsrc!mpm.h(MM_dylan_honeybee.1) $
+ * $HopeName: MMsrc!mpm.h(MM_dylan_honeybee.2) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  */
 
@@ -533,6 +533,7 @@ extern void SegSetRankSet(Seg seg, RankSet rankSet);
 #define SegP(seg)		((seg)->_p)
 #define SegGrey(seg)		((seg)->_grey)
 #define SegWhite(seg)		((seg)->_white)
+#define SegNailed(seg)          ((seg)->_nailed)
 #define SegSummary(seg)		((seg)->_summary)
 #define SegBuffer(seg)		((seg)->_buffer)
 #define SegPoolRing(seg)	(&(seg)->_poolRing)
@@ -546,6 +547,7 @@ extern void SegSetRankSet(Seg seg, RankSet rankSet);
 #define SegSetDepth(seg, d)	((void)((seg)->_depth = (d)))
 #define SegSetP(seg, pp)	((void)((seg)->_p = (pp)))
 #define SegSetWhite(seg, ts)	((void)((seg)->_white = (ts)))
+#define SegSetNailed(seg, ts)   ((void)((seg)->_nailed = (ts)))
 #define SegSetBuffer(seg, b)	((void)((seg)->_buffer = (b)))
 
 

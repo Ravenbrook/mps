@@ -1,12 +1,12 @@
 /* impl.c.trace: GENERIC TRACER IMPLEMENTATION
  *
- * $HopeName: MMsrc!trace.c(MM_dylan_honeybee.1) $
+ * $HopeName: MMsrc!trace.c(MM_dylan_honeybee.2) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  */
 
 #include "mpm.h"
 
-SRCID(trace, "$HopeName: MMsrc!trace.c(MM_dylan_honeybee.1) $");
+SRCID(trace, "$HopeName: MMsrc!trace.c(MM_dylan_honeybee.2) $");
 
 
 /* ScanStateCheck -- check consistency of a ScanState object */
@@ -611,8 +611,8 @@ void ScanStateSetSummary(ScanState ss, RefSet summary)
 {
   AVERT(ScanState, ss);
 
-  ss->fixedSummary = RefSetInter(summary, ss->white);
-  ss->unfixedSummary = summary;
+  ss->unfixedSummary = RefSetEMPTY;
+  ss->fixedSummary = summary;
   AVER(ScanStateSummary(ss) == summary);
 }
 
