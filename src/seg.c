@@ -1,6 +1,6 @@
 /* impl.c.seg: SEGMENTS
  *
- * $HopeName: MMsrc!seg.c(MMdevel_tony_sunset.3) $
+ * $HopeName: MMsrc!seg.c(MMdevel_tony_sunset.4) $
  * Copyright (C) 1998 Harlequin Group plc.  All rights reserved.
  *
  * .design: The design for this module is design.mps.seg.
@@ -28,7 +28,7 @@
 
 #include "mpm.h"
 
-SRCID(seg, "$HopeName: MMsrc!seg.c(MMdevel_tony_sunset.3) $");
+SRCID(seg, "$HopeName: MMsrc!seg.c(MMdevel_tony_sunset.4) $");
 
 
 /* SegSegGC -- convert generic Seg to SegGC */
@@ -379,19 +379,19 @@ Res SegDescribe(Seg seg, mps_lib_FILE *stream)
 
 /* SegBase -- return the base address of a seg */
 
-Addr SegBase(Seg seg)
+Addr (SegBase)(Seg seg)
 {
-  AVERT_CRITICAL(Seg, seg); /* .seg.critical */
-  return TractBase(seg->firstTract);
+  AVERT(Seg, seg);
+  return SegBase(seg);
 }
 
 
 /* SegLimit -- return the limit address of a segment */
 
-Addr SegLimit(Seg seg)
+Addr (SegLimit)(Seg seg)
 {
-  AVERT_CRITICAL(Seg, seg); /* .seg.critical */
-  return seg->limit;
+  AVERT(Seg, seg);
+  return SegLimit(seg);
 }
 
 
@@ -399,8 +399,8 @@ Addr SegLimit(Seg seg)
 
 Size SegSize(Seg seg)
 {
-  AVERT_CRITICAL(Seg, seg); /* .seg.critcial */
-  return AddrOffset(TractBase(seg->firstTract), seg->limit);
+  AVERT_CRITICAL(Seg, seg);
+  return AddrOffset(SegBase(seg), SegLimit(seg));
 }
 
 

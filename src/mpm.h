@@ -1,6 +1,6 @@
 /* impl.h.mpm: MEMORY POOL MANAGER DEFINITIONS
  *
- * $HopeName: MMsrc!mpm.h(MMdevel_tony_sunset.4) $
+ * $HopeName: MMsrc!mpm.h(MMdevel_tony_sunset.5) $
  * Copyright (C) 1998.  Harlequin Group plc.  All rights reserved.
  */
 
@@ -756,9 +756,6 @@ extern Res SegAlloc(Seg *segReturn, SegPref pref,
 extern Res SegOfClassAlloc(Seg *segReturn, SegClass class, SegPref pref,
                            Size size, Pool pool, Bool withReservoirPermit);
 extern void SegFree(Seg seg);
-extern Addr SegBase(Seg seg);
-extern Addr SegLimit(Seg seg);
-extern Size SegSize(Seg seg);
 extern Bool SegOfAddr(Seg *segReturn, Arena arena, Addr addr);
 extern Bool SegFirst(Seg *segReturn, Arena arena);
 extern Bool SegNext(Seg *segReturn, Arena arena, Addr addr);
@@ -788,7 +785,12 @@ extern SegClass EnsureSegGCClass(void);
 #define DEFINE_SEG_CLASS(className, var) \
   DEFINE_ALIAS_CLASS(className, SegClass, var)
 
-#define SegPool(seg)            (TractPool(seg->firstTract))
+extern Size SegSize(Seg seg);
+extern Addr (SegBase)(Seg seg);
+extern Addr (SegLimit)(Seg seg);
+#define SegBase(seg)            (TractBase((seg)->firstTract))
+#define SegLimit(seg)           ((seg)->limit)
+#define SegPool(seg)            (TractPool((seg)->firstTract))
 /* .bitfield.promote: The bit field accesses need to be cast to the */
 /* right type, otherwise they'll be promoted to signed int, see */
 /* standard.ansic.6.2.1.1. */
