@@ -1,6 +1,6 @@
 /* impl.h.mpmtypes: MEMORY POOL MANAGER TYPES
  *
- * $HopeName: MMsrc!mpmtypes.h(MMdevel_restr2.2) $
+ * $HopeName: MMsrc!mpmtypes.h(MMdevel_restr2.3) $
  * Copyright (C) 1996 Harlequin Group, all rights reserved.
  *
  * .rationale: Types and type constants are almost all defined
@@ -16,6 +16,8 @@
 #include "std.h"
 #include "lib.h"
 
+
+/* TYPES */
 
 /* Word, Byte, Index, Addr, etc. -- machine types
  *
@@ -86,11 +88,15 @@ typedef struct VMStruct *VM;		/* impl.c.vm* */
 typedef struct RootStruct *Root;	/* impl.c.root */
 typedef struct ThreadStruct *Thread;	/* impl.c.th* */
 
-typedef Res (*RootScanMethod)   (ScanState ss, void *p, size_t s);
-typedef Res (*RootScanRegMethod)(ScanState ss, Thread thread, void *p);
 
-typedef Res  (*BufferFillMethod)(Addr *pReturn, Buffer buffer, Size size);
-typedef Bool (*BufferTripMethod)(Buffer buffer, Addr p, Size size);
+/* Pool*Method -- Pool Class Interface types
+ *
+ * These methods are provided by pool classes as part of the PoolClass
+ * object (see impl.h.mpmst.class).  They form the interface which
+ * allows the MPM to treat pools in a uniform manner.
+ *
+ * See design.mps.class-interface.
+ */
 
 typedef Res  (*PoolInitMethod)         (Pool pool, va_list arg);
 typedef void (*PoolFinishMethod)       (Pool pool);
@@ -110,6 +116,16 @@ typedef Res  (*PoolFixMethod)          (Pool pool, ScanState ss, Seg seg, Ref *r
 typedef void (*PoolReclaimMethod)      (Pool pool, Space space, TraceId ti);
 typedef void (*PoolAccessMethod)       (Pool pool, Seg seg, AccessSet mode);
 
+
+/* Format*Method -- Object Format Interface types
+ *
+ * These methods are provided by clients in order to describe to
+ * a pool class how to manage objects in client-specific formats.  They
+ * are part of the Format object (see impl.h.mpmst.format).
+ *
+ * See design.mps.format-interface.
+ */
+
 typedef Res  (*FormatScanMethod)   (ScanState ss, Addr base, Addr limit);
 typedef Addr (*FormatSkipMethod)   (Addr object);
 typedef void (*FormatMoveMethod)   (Addr object, Addr to);
@@ -117,10 +133,25 @@ typedef Addr (*FormatIsMovedMethod)(Addr object);
 typedef void (*FormatCopyMethod)   (Addr object, Addr to);
 typedef void (*FormatPadMethod)    (Addr base, Size size);
 
+
+/* Root*Method -- Root Interface types
+ *
+ * These methods are provided by the client so that the MPS can locate
+ * the root set.
+ *
+ * See design.mps.root-interface.
+ */
+
+typedef Res (*RootScanMethod)   (ScanState ss, void *p, size_t s);
+typedef Res (*RootScanRegMethod)(ScanState ss, Thread thread, void *p);
+
+
+/* CONSTANTS */
+
 #define AccessSetEMPTY  ((AccessSet)0)
 #define AccessREAD      ((AccessSet)(1<<0))
 #define AccessWRITE     ((AccessSet)(1<<1))
-#define RingNONE	((Ring)0)
+#define RingNONE	((Ring)0)	/* impl.c.ring */
 #define TraceIdNONE	((TraceId)-1)
 #define TraceSetEMPTY	((TraceSet)0)
 #define AttrFMT		((Attr)0x0001)	/* is formatted */
