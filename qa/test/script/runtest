@@ -1,5 +1,5 @@
 #!/usr/local/perl
-# $HopeName: MMQA_harness!script:runtest(trunk.21) $
+# $HopeName: MMQA_harness!script:runtest(MMQA_harness_dev.2) $
 #
 # provides subroutines to run tests and testsets
 #
@@ -50,6 +50,9 @@ sub run_exe {
  &mpslibvers($exefile.$exesuff);
  &log_system($exefile, $interact, $testlogfile, $stdin);
  &read_results($testlogfile);
+ if ($compoutput) {
+  $real_results{'cl_out'} = $compoutput;
+ }
  &verdict;
 }
 
@@ -118,6 +121,7 @@ sub run_test {
      %real_output = 
       ("seconds", 0,
        "error", "true",
+       "cl_out", $compoutput,
        "errtext", "compilation failed");
      $testtimeline = "*";
      $testconclusion = "FAIL";
@@ -191,6 +195,7 @@ sub run_from_testset {
     %real_output = 
      ("seconds", 0,
       "error", "true",
+      "cl_out", $compoutput,
       "errtext", "compilation failed");
     $testtimeline = "*";
     $testconclusion = "FAIL";
