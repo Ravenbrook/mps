@@ -1,6 +1,6 @@
 /* impl.c.buffer: ALLOCATION BUFFER IMPLEMENTATION
  *
- * $HopeName: MMsrc!buffer.c(MMdevel_tony_sunset.1) $
+ * $HopeName: MMsrc!buffer.c(MMdevel_tony_sunset.2) $
  * Copyright (C) 1997, 1998, 1999 Harlequin Group plc.  All rights reserved.
  *
  * .purpose: This is (part of) the implementation of allocation buffers.
@@ -22,7 +22,7 @@
 
 #include "mpm.h"
 
-SRCID(buffer, "$HopeName: MMsrc!buffer.c(MMdevel_tony_sunset.1) $");
+SRCID(buffer, "$HopeName: MMsrc!buffer.c(MMdevel_tony_sunset.2) $");
 
 
 /* forward declarations */
@@ -45,7 +45,6 @@ Bool BufferCheck(Buffer buffer)
   CHECKL(buffer->fillSize >= 0.0);
   CHECKL(buffer->emptySize >= 0.0);
   CHECKL(buffer->emptySize <= buffer->fillSize);
-  CHECKL(RankSetCheck(buffer->rankSet));
   CHECKL(buffer->alignment == buffer->pool->alignment);
   CHECKL(AlignCheck(buffer->alignment));
   CHECKL(BoolCheck(buffer->apStruct.lwPopPending));
@@ -66,7 +65,6 @@ Bool BufferCheck(Buffer buffer)
      buffer->apStruct.alloc == (Addr)0 ||
      buffer->poolLimit == (Addr)0) {
     CHECKL((buffer->mode & BufferModeATTACHED) == 0);
-    CHECKL(buffer->seg == NULL);
     CHECKL(buffer->base == (Addr)0);
     CHECKL(buffer->initAtFlip == (Addr)0);
     CHECKL(buffer->apStruct.init == (Addr)0);
@@ -78,18 +76,6 @@ Bool BufferCheck(Buffer buffer)
     /* The buffer is attached to a region of memory.   */
     /* Check consistency. */
     CHECKL(buffer->mode & BufferModeATTACHED);
-
-    if(buffer->seg != NULL) {
-      /* The buffer is attached to a segment.  Make sure */
-      /* its fields tally with those of the segment. */
-      CHECKL(SegCheck(buffer->seg)); /* design.mps.check.type.no-sig */
-      CHECKL(SegBuffer(buffer->seg) == buffer);
-      CHECKL(SegPool(buffer->seg) == buffer->pool);
-      CHECKL(buffer->rankSet == SegRankSet(buffer->seg));
-    } else {
-      /* No segment, so no support for ranks */
-      CHECKL(buffer->rankSet == RankSetEMPTY);
-    }
 
     /* These fields should obey the ordering */
     /* base <= init <= alloc <= poolLimit */
@@ -123,8 +109,6 @@ Bool BufferCheck(Buffer buffer)
                buffer->apStruct.init == buffer->apStruct.alloc);
         CHECKL(buffer->base <= buffer->initAtFlip);
         CHECKL(buffer->initAtFlip <= buffer->apStruct.init);
-        /* Only buffers that allocate pointers get flipped. */
-        CHECKL(buffer->rankSet != RankSetEMPTY);
       }
       if(buffer->mode & BufferModeLOGGED) {
         /* Nothing special to check in the logged mode */
@@ -133,11 +117,6 @@ Bool BufferCheck(Buffer buffer)
       /* Nothing reliable to check for lightweight frame state */
     }
   }
-
-  /* buffer->p, and buffer->i are arbitrary values determined by the */
-  /* owning pool and cannot be checked */
-  /* .improve.check.class: Add a Pool Class methd so that the pool */
-  /* class can check these fields in the buffer. */
 
   return TRUE;
 }
@@ -150,7 +129,7 @@ Bool BufferCheck(Buffer buffer)
 
 Res BufferDescribe(Buffer buffer, mps_lib_FILE *stream)
 {
-  int res;
+  Res res;
 
   AVERT(Buffer, buffer);
   AVER(stream != NULL);
@@ -158,6 +137,8 @@ Res BufferDescribe(Buffer buffer, mps_lib_FILE *stream)
   res = WriteF(stream,
                "Buffer $P ($U) {\n",
                (WriteFP)buffer, (WriteFU)buffer->serial,
+               "  class $P (\"$S\")\n", 
+               (WriteFP)buffer->class, buffer->class->name,
                "  Arena $P\n",       (WriteFP)buffer->arena,
                "  Pool $P\n",        (WriteFP)buffer->pool,
                buffer->isMutator ?
@@ -165,8 +146,6 @@ Res BufferDescribe(Buffer buffer, mps_lib_FILE *stream)
                "  Mode $B\n",        (WriteFB)(buffer->mode),
                "  fillSize $UKb\n",  (WriteFU)(buffer->fillSize / 1024),
                "  emptySize $UKb\n", (WriteFU)(buffer->emptySize / 1024),
-               "  Seg $P\n",         (WriteFP)buffer->seg,
-               "  rankSet $U\n",     (WriteFU)buffer->rankSet,
                "  alignment $W\n",   (WriteFW)buffer->alignment,
                "  base $A\n",        buffer->base,
                "  initAtFlip $A\n",  buffer->initAtFlip,
@@ -174,8 +153,16 @@ Res BufferDescribe(Buffer buffer, mps_lib_FILE *stream)
                "  alloc $A\n",       buffer->apStruct.alloc,
                "  limit $A\n",       buffer->apStruct.limit,
                "  poolLimit $A\n",   buffer->poolLimit,
-               "  p $P  i $U\n",     buffer->p, (WriteFU)buffer->i,
-               "} Buffer $P ($U)\n",
+               NULL);
+
+  if(res != ResOK)
+    return res;
+
+  res = buffer->class->describe(buffer, stream);
+  if(res != ResOK)
+    return res;
+
+  res = WriteF(stream, "} Buffer $P ($U)\n",
                (WriteFP)buffer, (WriteFU)buffer->serial,
                NULL);
 
@@ -185,12 +172,14 @@ Res BufferDescribe(Buffer buffer, mps_lib_FILE *stream)
 
 /* BufferInitV -- initialize an allocation buffer */
 
-static Res BufferInitV(Buffer buffer, Pool pool, Bool isMutator, va_list args)
+static Res BufferInitV(Buffer buffer, BufferClass class,
+                       Pool pool, Bool isMutator, va_list args)
 {
   Arena arena;
   Res res;
 
   AVER(buffer != NULL);
+  AVERT(BufferClass, class);
   AVERT(Pool, pool);
   /* The PoolClass should support buffer protocols */
   AVER((pool->class->attr & AttrBUF)); /* .trans.mod */
@@ -199,6 +188,7 @@ static Res BufferInitV(Buffer buffer, Pool pool, Bool isMutator, va_list args)
   /* Initialize the buffer.  See impl.h.mpmst for a definition of */
   /* the structure.  sig and serial comes later .init.sig-serial */
   buffer->arena = arena;
+  buffer->class = class;
   buffer->pool = pool;
   RingInit(&buffer->poolRing);
   buffer->isMutator = isMutator;
@@ -210,8 +200,6 @@ static Res BufferInitV(Buffer buffer, Pool pool, Bool isMutator, va_list args)
   buffer->fillSize = 0.0;
   buffer->emptySize = 0.0;
   buffer->alignment = pool->alignment; /* .trans.mod */
-  buffer->seg = NULL;
-  buffer->rankSet = RankSetEMPTY;
   buffer->base = (Addr)0;
   buffer->initAtFlip = (Addr)0;
   buffer->apStruct.init = (Addr)0;
@@ -222,21 +210,26 @@ static Res BufferInitV(Buffer buffer, Pool pool, Bool isMutator, va_list args)
   buffer->apStruct.lwPopPending = FALSE;
   buffer->poolLimit = (Addr)0;
   buffer->rampCount = 0;
-  buffer->p = NULL;
-  buffer->i = 0;
+
+  /* .init.sig-serial: Now the vanilla stuff is initialized, */
+  /* sign the buffer and give it a serial number. It can */
+  /* then be safely checked in subclass methods. */
+  buffer->sig = BufferSig;
+  buffer->serial = pool->bufferSerial; /* .trans.mod */
+  ++pool->bufferSerial;
+  AVERT(Buffer, buffer);
+
+  /* Dispatch to the buffer class method to perform any  */
+  /* class-specific initialization of the buffer. */
+  res = (*class->init)(buffer, pool);
+  if(res != ResOK)
+    goto failSpecialInit;
 
   /* Dispatch to the pool class method to perform any extra */
   /* initialization of the buffer. */
   res = (*pool->class->bufferInit)(pool, buffer, args);
   if(res != ResOK)
-    return res;
-
-  /* .init.sig-serial: Now that it's initialized, sign the buffer, */
-  /* give it a serial number, and check it. */
-  buffer->sig = BufferSig;
-  buffer->serial = pool->bufferSerial; /* .trans.mod */
-  ++pool->bufferSerial;
-  AVERT(Buffer, buffer);
+    goto failSpecialInit;
 
   /* Attach the initialized buffer to the pool. */
   RingAppend(&pool->bufferRing, &buffer->poolRing);
@@ -244,6 +237,10 @@ static Res BufferInitV(Buffer buffer, Pool pool, Bool isMutator, va_list args)
   EVENT_PPU(BufferInit, buffer, pool, (unsigned)isMutator);
 
   return ResOK;
+
+failSpecialInit:
+  --pool->bufferSerial;  /* reset the serial number */
+  return res;
 }
 
 
@@ -252,13 +249,14 @@ static Res BufferInitV(Buffer buffer, Pool pool, Bool isMutator, va_list args)
  * See design.mps.buffer.method.create.
  */
 
-Res BufferCreate(Buffer *bufferReturn, Pool pool, ...)
+Res BufferCreate(Buffer *bufferReturn, BufferClass class, 
+                 Pool pool, Bool isMutator, ...)
 {
   Res res;
   va_list args;
 
   va_start(args, pool);
-  res = BufferCreateV(bufferReturn, pool, FALSE, args);
+  res = BufferCreateV(bufferReturn, class, pool, isMutator, args);
   va_end(args);
   return res;
 }
@@ -269,7 +267,7 @@ Res BufferCreate(Buffer *bufferReturn, Pool pool, ...)
  * See design.mps.buffer.method.create.
  */
 
-Res BufferCreateV(Buffer *bufferReturn,
+Res BufferCreateV(Buffer *bufferReturn, BufferClass class, 
                   Pool pool, Bool isMutator, va_list args)
 {
   Res res;
@@ -278,19 +276,20 @@ Res BufferCreateV(Buffer *bufferReturn,
   void *p;
 
   AVER(bufferReturn != NULL);
+  AVERT(BufferClass, class);
   AVERT(Pool, pool);
 
   arena = PoolArena(pool);
 
   /* Allocate memory for the buffer descriptor structure. */
-  res = ControlAlloc(&p, arena, sizeof(BufferStruct), 
+  res = ControlAlloc(&p, arena, class->size, 
                      /* withReservoirPermit */ FALSE);
   if(res != ResOK)
     goto failAlloc;
   buffer = p;
 
   /* Initialize the buffer descriptor structure. */
-  res = BufferInitV(buffer, pool, isMutator, args);
+  res = BufferInitV(buffer, class, pool, isMutator, args);
   if(res != ResOK)
     goto failInit;
 
@@ -298,7 +297,7 @@ Res BufferCreateV(Buffer *bufferReturn,
   return ResOK;
 
 failInit:
-  ControlFree(arena, buffer, sizeof(BufferStruct));
+  ControlFree(arena, buffer, class->size);
 failAlloc:
   return res;
 }
@@ -312,21 +311,20 @@ void BufferDetach(Buffer buffer, Pool pool)
   AVER(BufferIsReady(buffer));
 
   if(!BufferIsReset(buffer)) {
-    Seg seg = BufferSeg(buffer);
     Addr init, limit;
     Size spare;
 
-    if (seg != NULL)
-      SegSetBuffer(seg, NULL);
-    buffer->seg = NULL;
     buffer->mode |= BufferModeTRANSITION;
     init = buffer->apStruct.init;
     limit = buffer->poolLimit;
     /* Ask the owning pool to do whatever it needs to before the */
     /* buffer is detached (e.g. copy buffer state into pool state). */
-    (*pool->class->bufferEmpty)(pool, buffer, seg, init, limit);
+    (*pool->class->bufferEmpty)(pool, buffer, init, limit);
     /* Use of lightweight frames must have been disabled by now */
     AVER(BufferFrameState(buffer) == BufferFrameDISABLED);
+
+    /* run any class-specific detachment method */
+    buffer->class->detach(buffer);
 
     spare = AddrOffset(init, limit);
     buffer->emptySize += spare;
@@ -364,11 +362,14 @@ void BufferDetach(Buffer buffer, Pool pool)
 void BufferDestroy(Buffer buffer)
 {
   Arena arena;
+  BufferClass class;
 
   AVERT(Buffer, buffer);
   arena = buffer->arena;
+  class = buffer->class;
+  AVERT(BufferClass, class);
   BufferFinish(buffer);
-  ControlFree(arena, buffer, sizeof(BufferStruct));
+  ControlFree(arena, buffer, class->size);
 }
 
 
@@ -395,6 +396,10 @@ void BufferFinish(Buffer buffer)
 
   /* Ask the pool to do any pool-specific finishing. */
   (*pool->class->bufferFinish)(pool, buffer);
+
+  /* Dispatch to the buffer class method to perform any  */
+  /* class-specific finishing of the buffer. */
+  (*buffer->class->finish)(buffer);
 
   /* Detach the buffer from its owning pool and unsig it. */
   RingRemove(&buffer->poolRing);
@@ -448,6 +453,7 @@ Bool BufferIsReady(Buffer buffer)
  * returns TRUE iff mutator was created at mutator request (ie a
  * mutator buffer).
  */
+
 Bool BufferIsMutator(Buffer buffer)
 {
   AVERT(Buffer, buffer);
@@ -516,7 +522,7 @@ void BufferFrameSetState(Buffer buffer, FrameState state)
 
 /* BufferSetAllocAddr
  *
- * Sets the init & alloc pointers of a buffer, without changing segment.
+ * Sets the init & alloc pointers of a buffer
  */
 
 void BufferSetAllocAddr(Buffer buffer, Addr addr)
@@ -637,14 +643,14 @@ Res BufferReserve(Addr *pReturn, Buffer buffer, Size size,
 }
 
 
-/* BufferAttach -- attach a region to a buffer, and optionally a segment
+/* BufferAttach -- attach a region to a buffer
  *
  * BufferAttach is entered because of a BufferFill,
  * or because of a Pop operation on a lightweight frame.
  */
 
-void BufferAttach(Buffer buffer, Seg seg, 
-                  Addr base, Addr limit, Addr init, Size size)
+void BufferAttach(Buffer buffer, Addr base, Addr limit, 
+                  Addr init, Size size)
 {
   Size filled;
 
@@ -653,18 +659,6 @@ void BufferAttach(Buffer buffer, Seg seg,
   AVER(AddrAdd(base, size) <= limit);
   AVER(base <= init);
   AVER(init <= limit);
-
-  if (seg != NULL) {
-    AVER(SegCheck(seg));
-    AVER(SegBuffer(seg) == NULL);
-    AVER(SegBase(seg) <= base);
-    AVER(limit <= SegLimit(seg));
-    /* attach the buffer to the segment */
-    SegSetBuffer(seg, buffer);
-    buffer->seg = seg;
-  } else {
-    buffer->seg = NULL;
-  }
 
   /* Set up the buffer to point at the supplied region */
   buffer->mode |= BufferModeATTACHED;
@@ -683,12 +677,19 @@ void BufferAttach(Buffer buffer, Seg seg,
   filled = AddrOffset(init, limit);
   buffer->fillSize += filled;
   if(buffer->isMutator) {
+    if (base != init) { /* see design.mps.buffer.count.alloc.how */
+      Size prealloc = AddrOffset(base, init);
+      buffer->arena->allocMutatorSize -= prealloc;
+    }
     buffer->pool->fillMutatorSize += filled;
     buffer->arena->fillMutatorSize += filled;
   } else {
     buffer->pool->fillInternalSize += filled;
     buffer->arena->fillInternalSize += filled;
   }
+
+  /* run any class-specific attachment method */
+  buffer->class->attach(buffer, base, limit, init, size);
 
   AVERT(Buffer, buffer);
   EVENT_PWAW(BufferFill, buffer, size, base, filled);
@@ -708,7 +709,6 @@ Res BufferFill(Addr *pReturn, Buffer buffer, Size size,
 {
   Res res;
   Pool pool;
-  Seg seg;
   Addr base, limit, next;
 
   AVER(pReturn != NULL);
@@ -751,8 +751,8 @@ Res BufferFill(Addr *pReturn, Buffer buffer, Size size,
 
   BufferDetach(buffer, pool);
 
-  /* Ask the pool for some memory and possibly a segment. */
-  res = (*pool->class->bufferFill)(&seg, &base, &limit,
+  /* Ask the pool for some memory. */
+  res = (*pool->class->bufferFill)(&base, &limit,
                                    pool, buffer, size,
                                    withReservoirPermit);
   if(res != ResOK)
@@ -760,7 +760,7 @@ Res BufferFill(Addr *pReturn, Buffer buffer, Size size,
 
   /* Set up the buffer to point at the memory given by the pool */
   /* and do the allocation that was requested by the client. */
-  BufferAttach(buffer, seg, base, limit, base, size);
+  BufferAttach(buffer, base, limit, base, size);
 
   if(buffer->mode & BufferModeLOGGED) {
     EVENT_PAW(BufferReserve, buffer, buffer->apStruct.init, size);
@@ -851,8 +851,6 @@ Bool BufferTrip(Buffer buffer, Addr p, Size size)
   pool = BufferPool(buffer);
 
   AVER(PoolHasAddr(pool, p));
-  AVER(BufferSeg(buffer) == NULL ||
-       SegPool(BufferSeg(buffer)) == pool);
 
   /* .trip.unflip: If the flip occurred before commit set "init" */
   /* to "alloc" (see .commit.before) then the object is invalid */
@@ -915,11 +913,10 @@ void BufferFlip(Buffer buffer)
 {
   AVERT(Buffer, buffer);
 
-  if(buffer->rankSet != RankSetEMPTY &&
+  if(BufferRankSet(buffer) != RankSetEMPTY &&
      (buffer->mode & BufferModeFLIPPED) == 0 &&
      !BufferIsReset(buffer)) {
     AVER(buffer->initAtFlip == (Addr)0);
-    AVER(BufferSeg(buffer) != NULL); /* must use segments for GC */
     buffer->initAtFlip = buffer->apStruct.init;
     /* Memory Barrier here? @@@@ */
     buffer->apStruct.limit = (Addr)0;
@@ -980,16 +977,23 @@ Pool (BufferPool)(Buffer buffer)
   return BufferPool(buffer);
 }
 
-Seg (BufferSeg)(Buffer buffer)
+Seg BufferSeg(Buffer buffer)
 {
   AVERT(Buffer, buffer);
-  return BufferSeg(buffer);
+  return buffer->class->seg(buffer);
 }
 
-RankSet (BufferRankSet)(Buffer buffer)
+RankSet BufferRankSet(Buffer buffer)
 {
   AVERT(Buffer, buffer);
-  return BufferRankSet(buffer);
+  return buffer->class->rankSet(buffer);
+}
+
+void BufferSetRankSet(Buffer buffer, RankSet rankset)
+{
+  AVERT(Buffer, buffer);
+  AVERT(RankSet, rankset);
+  buffer->class->setRankSet(buffer, rankset);
 }
 
 Addr (BufferBase)(Buffer buffer)
@@ -1131,4 +1135,367 @@ void BufferRampReset(Buffer buffer)
   do
     (*pool->class->rampEnd)(pool, buffer);
   while(--buffer->rampCount > 0);
+}
+
+
+
+/* BufferClass -- support for the basic Buffer class 
+ */
+
+
+/* bufferTrivInit -- basic buffer init method */
+
+static Res bufferTrivInit (Buffer buffer, Pool pool)
+{
+  /* initialization happens in BufferInitV so checks are safe */
+  AVERT(Buffer, buffer);
+  AVERT(Pool, pool);
+  return ResOK;
+}
+
+
+/* bufferTrivFinish -- basic buffer finish method */
+
+
+static void bufferTrivFinish (Buffer buffer)
+{
+  /* No special finish for simple buffers */
+  AVERT(Buffer, buffer);
+}
+
+
+/* bufferTrivAttach -- basic buffer attach method */
+
+static void bufferTrivAttach(Buffer buffer, Addr base, Addr limit, 
+                             Addr init, Size size)
+{
+  /* No special attach method for simple buffers */
+  AVERT(Buffer, buffer);
+  /* Other parameters are consistency checked in BufferAttach */
+  UNUSED(base);
+  UNUSED(limit);
+  UNUSED(init);
+  UNUSED(size);
+}
+
+
+/* bufferTrivDetach -- basic buffer detach method */
+
+static void bufferTrivDetach(Buffer buffer)
+{
+  /* No special detach method for simple buffers */
+  AVERT(Buffer, buffer);
+}
+
+
+/* bufferNoSeg -- basic buffer BufferSeg accessor method 
+ *
+ * .noseg: basic buffers don't support segments, so this 
+ * method should not be called.
+ */
+
+static Seg bufferNoSeg (Buffer buffer)
+{
+  AVERT(Buffer, buffer);
+  NOTREACHED;  /* .noseg */
+  return NULL;
+}
+
+
+
+/* bufferTrivRankSet -- basic BufferRankSet accessor method */
+
+static RankSet bufferTrivRankSet (Buffer buffer)
+{
+  AVERT(Buffer, buffer);
+  /* vanilla buffers can only have empty rank set */
+  return RankSetEMPTY;
+}
+
+
+/* bufferNoSetRankSet -- basic BufferSetRankSet setter method 
+ *
+ * .norank: basic buffers don't support ranksets, so this 
+ * method should not be called.
+ */
+
+static void bufferNoSetRankSet (Buffer buffer, RankSet rankset)
+{
+  AVERT(Buffer, buffer);
+  AVERT(RankSet, rankset);
+  NOTREACHED; /* .norank */
+}
+
+
+/* bufferTrivDescribe -- basic Buffer describe method */
+
+static Res bufferTrivDescribe(Buffer buffer, mps_lib_FILE *stream)
+{
+  /* dispatching function does it all */
+  AVERT(Buffer, buffer); 
+  UNUSED(stream);
+  return ResOK;
+}
+
+
+/* BufferClassCheck -- check the consistency of a BufferClass */
+
+Bool BufferClassCheck(BufferClass class)
+{
+  CHECKL(ProtocolClassCheck(&class->protocol));
+  CHECKL(class->name != NULL); /* Should be <=6 char C identifier */
+  CHECKL(class->size >= sizeof(BufferStruct));
+  CHECKL(FUNCHECK(class->init));
+  CHECKL(FUNCHECK(class->finish));
+  CHECKL(FUNCHECK(class->attach));
+  CHECKL(FUNCHECK(class->detach));
+  CHECKL(FUNCHECK(class->rankSet));
+  CHECKL(FUNCHECK(class->setRankSet));
+  CHECKL(FUNCHECK(class->describe));
+  CHECKS(BufferClass, class);
+  return TRUE;
+} 
+
+
+/* BufferClass -- the vanilla buffer class definition 
+ *
+ * See design.mps.buffer.class.hierarchy.buffer.
+ */
+
+DEFINE_CLASS(BufferClass, class)
+{
+  INHERIT_CLASS(&class->protocol, ProtocolClass);
+  class->name = "BUFFER";
+  class->size = sizeof(BufferStruct);
+  class->init = bufferTrivInit;
+  class->finish = bufferTrivFinish;
+  class->attach = bufferTrivAttach;
+  class->detach = bufferTrivDetach;
+  class->describe = bufferTrivDescribe;
+  class->seg = bufferNoSeg;
+  class->rankSet = bufferTrivRankSet;
+  class->setRankSet = bufferNoSetRankSet;
+  class->sig = BufferClassSig;
+}
+
+
+
+/* BufferedSegClass -- support for the BufferedSeg subclass 
+ */
+
+
+/* BufferBufferedSeg -- convert generic Buffer to a BufferedSeg */
+
+#define BufferBufferedSeg(buffer) ((BufferedSeg)(buffer))
+
+
+/* BufferedSegCheck -- check consistency of a BufferedSeg */
+
+Bool BufferedSegCheck(BufferedSeg bufseg)
+{
+  Buffer buffer;
+
+  CHECKS(BufferedSeg, bufseg);
+  buffer = &bufseg->bufferStruct;
+  CHECKL(BufferCheck(buffer));
+  CHECKL(RankSetCheck(bufseg->rankSet));
+
+  if(buffer->mode & BufferModeTRANSITION) {
+    /* nothing to check */
+  } else if((buffer->mode & BufferModeATTACHED) == 0) {
+    CHECKL(bufseg->seg == NULL);
+  } else {
+    /* The buffer is attached to a segment. */
+    CHECKL(bufseg->seg != NULL);
+    CHECKL(SegCheck(bufseg->seg));
+    /* To avoid recursive checking, leave it to SegCheck to make */
+    /* sure the buffer and segment fields tally. */
+    
+    if(buffer->mode & BufferModeFLIPPED) {
+      /* Only buffers that allocate pointers get flipped. */
+      CHECKL(bufseg->rankSet != RankSetEMPTY);
+    }
+  }
+
+  return TRUE;
+}
+
+
+/* bufferedSegInit -- BufferedSeg init method */
+
+static Res bufferedSegInit (Buffer buffer, Pool pool)
+{
+  BufferClass super;
+  BufferedSeg bufseg;
+
+  AVERT(Buffer, buffer);
+  AVERT(Pool, pool);
+  bufseg = BufferBufferedSeg(buffer);
+
+  /* Initialize the superclass fields first via next-method call */
+  super = EnsureBufferClass();
+  super->init(buffer, pool);
+
+  bufseg->seg = NULL;
+  bufseg->sig = BufferedSegSig;
+  bufseg->rankSet = RankSetEMPTY;
+  AVERT(BufferedSeg, bufseg);
+  return ResOK;
+}
+
+
+/* bufferedSegFinish -- BufferedSeg finish method */
+
+static void bufferedSegFinish (Buffer buffer)
+{
+  BufferClass super;
+  BufferedSeg bufseg;
+
+  AVERT(Buffer, buffer);
+  bufseg = BufferBufferedSeg(buffer);
+  AVERT(BufferedSeg, bufseg);
+
+  bufseg->sig = SigInvalid;
+
+  /* finish the superclass fields last */
+  super = EnsureBufferClass();
+  super->finish(buffer);
+}
+
+
+/* bufferedSegAttach -- BufferedSeg attach method */
+
+static void bufferedSegAttach(Buffer buffer, Addr base, Addr limit, 
+                              Addr init, Size size)
+{
+  BufferedSeg bufseg;
+  Seg seg;
+  Arena arena;
+  Bool found;
+
+  AVERT(Buffer, buffer);
+  /* Other parameters are consistency checked in BufferAttach */
+  UNUSED(init);
+  UNUSED(size);
+
+  bufseg = BufferBufferedSeg(buffer);
+  arena = BufferArena(buffer);
+  found = SegOfAddr(&seg, arena, base);
+  AVER(found);
+  AVER(bufseg->seg == NULL);
+  AVER(SegBuffer(seg) == NULL);
+  AVER(SegBase(seg) <= base);
+  AVER(limit <= SegLimit(seg));
+
+  /* attach the buffer to the segment */
+  SegSetBuffer(seg, buffer);
+  bufseg->seg = seg;
+
+  AVERT(BufferedSeg, bufseg);
+}
+
+
+/* bufferedSegDetach -- BufferedSeg detach method */
+
+static void bufferedSegDetach(Buffer buffer)
+{
+  BufferedSeg bufseg;
+  Seg seg;
+
+  AVERT(Buffer, buffer);
+  bufseg = BufferBufferedSeg(buffer);
+  AVERT(BufferedSeg, bufseg);
+
+  seg = bufseg->seg;
+  AVER(seg != NULL);
+  SegSetBuffer(seg, NULL);
+  bufseg->seg = NULL;
+}
+
+
+/* bufferedSegSeg -- BufferSeg accessor method for BufferedSeg instances */
+
+static Seg bufferedSegSeg (Buffer buffer)
+{
+  BufferedSeg bufseg;
+
+  AVERT(Buffer, buffer);
+  bufseg = BufferBufferedSeg(buffer);
+  AVERT(BufferedSeg, bufseg);
+  return bufseg->seg;
+}
+
+/* bufferedSegRankSet -- BufferRankSet accessor for BufferedSeg instances */
+
+static RankSet bufferedSegRankSet (Buffer buffer)
+{
+  BufferedSeg bufseg;
+
+  AVERT(Buffer, buffer);
+  bufseg = BufferBufferedSeg(buffer);
+  AVERT(BufferedSeg, bufseg);
+  return bufseg->rankSet;
+}
+
+
+/* bufferNoSetRankSet -- BufferSetRankSet setter method for BufferedSeg */
+
+static void bufferedSegSetRankSet (Buffer buffer, RankSet rankset)
+{
+  BufferedSeg bufseg;
+
+  AVERT(Buffer, buffer);
+  AVERT(RankSet, rankset);
+  bufseg = BufferBufferedSeg(buffer);
+  AVERT(BufferedSeg, bufseg);
+  bufseg->rankSet = rankset;
+}
+
+
+/* bufferedSegDescribe --  describe method for BufferedSeg */
+
+static Res bufferedSegDescribe(Buffer buffer, mps_lib_FILE *stream)
+{
+  BufferedSeg bufseg;
+  BufferClass super;
+  Res res;
+
+  AVERT(Buffer, buffer);
+  bufseg = BufferBufferedSeg(buffer);
+  AVERT(BufferedSeg, bufseg);
+
+  /* Describe the superclass fields first via next-method call */
+  super = EnsureBufferClass();
+  res = super->describe(buffer, stream);
+  if(res != ResOK)
+    return res;
+
+  res = WriteF(stream,
+               "  Seg $P\n",         (WriteFP)bufseg->seg,
+               "  rankSet $U\n",     (WriteFU)bufseg->rankSet,
+               NULL);
+
+  return res;
+}
+
+
+/* BufferedSegClass -- BufferedSeg class definition 
+ *
+ * Supports an association with a single segment when attached.
+ * See design.mps.buffer.class.hierarchy.bufferedseg.
+ */
+ 
+DEFINE_BUFFER_CLASS(BufferedSegClass, class)
+{
+  INHERIT_CLASS(class, BufferClass);
+  class->name = "BUFSEG";
+  class->size = sizeof(BufferedSegStruct);
+  class->init = bufferedSegInit;
+  class->finish = bufferedSegFinish;
+  class->attach = bufferedSegAttach;
+  class->detach = bufferedSegDetach;
+  class->describe = bufferedSegDescribe;
+  class->seg = bufferedSegSeg;
+  class->rankSet = bufferedSegRankSet;
+  class->setRankSet = bufferedSegSetRankSet;
 }
