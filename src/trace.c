@@ -1,11 +1,11 @@
 /* impl.c.trace: GENERIC TRACER IMPLEMENTATION
  *
- * $HopeName: !trace.c(trunk.19) $
+ * $HopeName: MMsrc!trace.c(MMdevel_action2.1) $
  */
 
 #include "mpm.h"
 
-SRCID(trace, "$HopeName: !trace.c(trunk.19) $");
+SRCID(trace, "$HopeName: MMsrc!trace.c(MMdevel_action2.1) $");
 
 Bool ScanStateCheck(ScanState ss)
 {
@@ -57,6 +57,16 @@ void TraceDestroy(Space space, TraceId ti)
 {
   AVERT(Space, space);
   space->busyTraces = TraceSetDel(space->busyTraces, ti);
+}
+
+Res TraceCondemn(RefSet *condemnedReturn, Space space, TraceId ti, 
+                 Pool pool)
+{
+/* @@@@ This will iterate over all segments, greying them, and */
+/* whitening all those in the condemned set.  To begin with */
+/* it just takes over from PoolCondemn by iterating over the */
+/* segments in a pool. */
+  return PoolCondemn(condemnedReturn, pool, space, ti);
 }
 
 Res TraceFlip(Space space, TraceId ti, RefSet condemned)

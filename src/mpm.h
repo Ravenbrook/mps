@@ -1,6 +1,6 @@
 /* impl.h.mpm: MEMORY POOL MANAGER DEFINITIONS
  *
- * $HopeName: MMsrc!mpm.h(MMdevel_action2.1) $
+ * $HopeName: MMsrc!mpm.h(MMdevel_action2.2) $
  * Copyright (C) 1996,1997 Harlequin Group, all rights reserved.
  */
 
@@ -249,6 +249,8 @@ extern Bool ScanStateCheck(ScanState ss);
 extern Bool TraceIdCheck(TraceId id);
 extern Bool TraceSetCheck(TraceSet ts);
 
+extern Res TraceCondemn(RefSet *condemnedReturn, Space space,
+                        TraceId ti, Pool pool);
 extern Res TraceFlip(Space space, TraceId ti, RefSet condemned);
 extern Size TracePoll(Space space, TraceId ti);
 
