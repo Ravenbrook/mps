@@ -2,7 +2,7 @@
  *
  *                         NULL POOL
  *
- *  $HopeName: !pooln.c(trunk.8) $
+ *  $HopeName: MMsrc!pooln.c(MMdevel_drjweak.1) $
  *
  *  Copyright(C) 1995 Harlequin Group, all rights reserved
  *
@@ -13,7 +13,7 @@
 #include "mpm.h"
 #include "pooln.h"
 
-SRCID(pooln, "$HopeName: !pooln.c(trunk.8) $");
+SRCID(pooln, "$HopeName: MMsrc!pooln.c(MMdevel_drjweak.1) $");
 
 
 typedef struct PoolNStruct {
@@ -28,7 +28,7 @@ static Res create(Pool *poolReturn, Space space, va_list arg);
 static void destroy(Pool pool);
 static Res alloc(Addr *pReturn, Pool pool, Size size);
 static void free_(Pool pool, Addr old, Size size);
-static Res bufferCreate(Buffer *bufReturn, Pool pool);
+static Res bufferCreate(Buffer *bufReturn, Pool pool, Rank rank);
 static void bufferDestroy(Pool pool, Buffer buf);
 static Res bufferFill(Addr *pReturn, Pool pool, Buffer buffer, Size size);
 static Bool bufferTrip(Pool pool, Buffer buffer, Addr p, Size size);
@@ -176,7 +176,7 @@ static void free_(Pool pool, Addr old, Size size)
   NOTREACHED;  /* can't allocate, should never free */
 }
 
-static Res bufferCreate(Buffer *bufReturn, Pool pool)
+static Res bufferCreate(Buffer *bufReturn, Pool pool, Rank rank)
 {
   AVER(bufReturn != NULL);
   AVERT(Pool, pool);
