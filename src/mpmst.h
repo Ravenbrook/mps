@@ -1,6 +1,6 @@
 /* impl.h.mpmst: MEMORY POOL MANAGER DATA STRUCTURES
  *
- * $HopeName: !mpmst.h(trunk.72) $
+ * $HopeName: MMsrc!mpmst.h(MM_dylan_jackdaw.1) $
  * Copyright (C) 1998 Harlequin Group plc.  All rights reserved.
  *
  * .readership: MM developers.
@@ -320,6 +320,7 @@ typedef struct APStruct {
   Addr limit;                   /* limit of allocation buffer */
   Addr frameptr;                /* lightweight frame pointer */
   Bool enabled;                 /* lightweight frame status */
+  Bool lwPopPending;            /* lightweight pop pending? */
 } APStruct;
 
 
