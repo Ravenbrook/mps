@@ -1,6 +1,6 @@
 /*  ==== SUNOS ANSI COMPATABILITY HEADER ====
  *
- *  $HopeName: !ossu.h(trunk.5) $
+ *  $HopeName: MMsrc!ossu.h(MMdevel_event_format.1) $
  *
  *  Copyright (C) 1994,1995 Harlequin Group, all rights reserved
  *
@@ -48,6 +48,7 @@ extern int fprintf (FILE *stream, const char *format, ...);
 extern int vfprintf (FILE *stream, const char *format, va_list arg);
 extern int vsprintf (char *s, const char *format, va_list arg);
 extern int fputs (const char *s, FILE *stream);
+extern int puts(const char *);
 extern int fscanf (FILE *stream, const char *format, ...);
 extern int sscanf (const char *s, const char *format, ...);
 extern int fseek (FILE *stream, long int offset, int whence);
