@@ -1,6 +1,6 @@
 /* impl.c.poolmvff: First Fit Manual Variable Pool
  * 
- * $HopeName: MMsrc!poolmvff.c(MMdevel_color_pool.3) $
+ * $HopeName: MMsrc!poolmvff.c(MMdevel_color_pool.4) $
  * Copyright (C) 1998, 1999 Harlequin Group plc.  All rights reserved.
  *
  * .purpose: This is a pool class for manually managed objects of
@@ -24,7 +24,7 @@
 #include "cbs.h"
 #include "mpm.h"
 
-SRCID(poolmvff, "$HopeName: MMsrc!poolmvff.c(MMdevel_color_pool.3) $");
+SRCID(poolmvff, "$HopeName: MMsrc!poolmvff.c(MMdevel_color_pool.4) $");
 
 
 /* Would go in poolmvff.h if the class had any MPS-internal clients. */
@@ -181,10 +181,9 @@ static void MVFFFreeSegs(MVFF mvff, Addr base, Addr limit)
 
 /* MVFFAddSeg -- Allocates a new segment from the arena
  *
- * Allocates a new segment from the arena (with the given 
- * withReservoirPermit flag) of at least the specified size.
- * The specified size should be pool aligned.  Adds it to
- * the free list.
+ * Allocates a new segment from the arena (with the given
+ * withReservoirPermit flag) of at least the specified size.  The
+ * specified size should be pool-aligned.  Adds it to the free list.
  */
 
 static Res MVFFAddSeg(Seg *segReturn, 
@@ -208,8 +207,13 @@ static Res MVFFAddSeg(Seg *segReturn,
 
   AVER(SizeIsAligned(size, PoolAlignment(pool)));
 
-  /* use extendBy unless it's too small.
-   * see design.mps.poolmvff.design.seg-size */
+
+  if(mvff->TSBA)
+    /* Make sure we have an extra grain to spare, see */
+    /* design.mps.poolmvff.impl.trans-seg-buffers. */
+    size += PoolAlignment(pool);
+  /* Use extendBy unless it's too small (see */
+  /* design.mps.poolmvff.design.seg-size). */
   if(size <= mvff->extendBy)
     segSize = mvff->extendBy;
   else
@@ -233,8 +237,7 @@ static Res MVFFAddSeg(Seg *segReturn,
   SegSetP(seg, (void*)0);
 
   mvff->total += segSize;
-  if(!mvff->TSBA)
-    /* Prevent TSBA by not putting the tail onto the free list. */
+  if(!mvff->TSBA) /* see design.mps.poolmvff.impl.trans-seg-buffers */
     segSize -= PoolAlignment(pool);
   base = SegBase(seg); limit = AddrAdd(base, segSize);
   MVFFAddToFreeList(&base, &limit, mvff);
@@ -372,6 +375,7 @@ static Res MVFFBufferFill(Seg *segReturn,
   MVFF mvff;
   Addr base, limit;
   Bool foundBlock;
+  Seg seg = NULL;
 
   AVER(segReturn != NULL);
   AVER(baseReturn != NULL);
@@ -393,27 +397,22 @@ static Res MVFFBufferFill(Seg *segReturn,
     AVER(res == ResOK);
   }
   if(!foundBlock) {
-    Seg seg;
-
     res = MVFFAddSeg(&seg, mvff, size, withReservoirPermit);
     if(res != ResOK) 
       return res;
     foundBlock = CBSFindLargest(&base, &limit, CBSOfMVFF(mvff),
                                 CBSFindDeleteENTIRE);
-    AVER(foundBlock); /* We will find the new seg, perhaps more. */
-    /* The found range must intersect the new segment, but it */
-    /* doesn't necessarily lie entirely within it. */
-    /* The next three AVERs test for intersection of two intervals. */
-    AVER(base >= SegBase(seg) || limit <= SegLimit(seg));
-    AVER(base < SegLimit(seg));
-    AVER(SegBase(seg) < limit);
+    AVER(foundBlock); /* We will find the new segment. */
   }
 
   AVER(AddrOffset(base, limit) >= size);
   mvff->free -= AddrOffset(base, limit);
-  (void)SegOfAddr(segReturn, PoolArena(pool), base);
-  *baseReturn = base; *limitReturn = limit;
+  if(seg == NULL)
+    (void)SegOfAddr(&seg, PoolArena(pool), base);
+  /* Check that the range lies within the segment. */
+  AVER(base >= SegBase(seg) && limit <= SegLimit(seg));
 
+  *segReturn = seg; *baseReturn = base; *limitReturn = limit;
   return ResOK;
 }
 
@@ -555,7 +554,9 @@ static Res MVFFBufferInit(Pool pool, Buffer buf, va_list args)
   /* Can't check buffer yet */
   UNUSED(buf); UNUSED(args);
 
-  AVER(mvff->total == 0); /* only allowed before anything's allocated */
+  /* If something's allocated, it's too late to turn TSBA off. */
+  if(mvff->TSBA && mvff->total != 0)
+    return ResFAIL;
   mvff->TSBA = FALSE;
   return ResOK;
 }
