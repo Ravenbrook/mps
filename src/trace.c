@@ -1,6 +1,6 @@
 /* impl.c.trace: TRACER
  *
- * $HopeName$
+ * $HopeName: MMsrc!trace.c(MMdevel_trace2.2) $
  * Copyright (C) 1996 Harlequin Group, all rights reserved.
  *
  * NOTES
@@ -39,7 +39,7 @@
 
 #include "mpm.h"
 
-SRCID(trace, "$HopeName$");
+SRCID(trace, "$HopeName: MMsrc!trace.c(MMdevel_trace2.2) $");
 
 
 /* TraceCheck -- check consistency of Trace object */
@@ -256,6 +256,39 @@ static RefSet UnionWhite(Space space, TraceSet ts)
 }
   
 
+/* TraceFix -- fix up a reference
+ *
+ * TraceFix is called from a scanner, which is called from TraceScan.
+ * If *refIO is white for any trace being scanned for (fix->ts), it makes
+ * it non-white by asking the pool to sort it out.
+ */
+
+static Res TraceFix(Ref *refIO, Fix fix)
+{
+  Ref ref;
+  Seg seg;
+  Pool pool;
+  Res res;
+
+  AVERT(Fix, fix);
+  AVER(refIO != NULL);
+
+  ref = *refIO;
+  if(SegOfAddr(&seg, fix->space, ref))
+    if(ColIsWhite(SegCol(seg), fix->ts)) {
+      pool = SegPool(seg);
+      res = PoolFix(refIO, pool, fix, seg);
+      if(res != ResOK) return res;
+    }
+
+/* @@@@
+  AVER(!PoolIsWhite(pool, *refIO));
+ */
+
+  return ResOK;
+}
+
+
 /* TraceScanSeg -- scan a segment for a set of traces
  *
  * .scan.seg.purpose: The purpose of scanning a segment is to remove
@@ -318,10 +351,9 @@ static Seg FindGrey(Space space, TraceSet ts)
   AVER(TraceSetCheck(ts));
   
   for(rank = 0; rank < RankMAX; ++rank)
-    for(seg = SegFirst(space); seg != NULL; seg = SegNext(space, seg)) {
+    for(seg = SegFirst(space); seg != NULL; seg = SegNext(space, seg))
       if(seg->rank == rank && ColIsGrey(SegCol(seg), ts))
         return seg;
-    }
 
   return NULL;
 }
@@ -352,6 +384,14 @@ static Res TraceScan(Trace trace)
   if(res != ResOK) return res;
   
   return ResOK;
+}
+
+
+/* TraceAccess -- handle a mutator access to a shielded segment */
+
+void TraceAccess(Space space, Seg seg, AccessSet mode)
+{
+  NOTREACHED;
 }
 
 
@@ -400,39 +440,6 @@ static Res TraceFlip(Space space, TraceSet ts)
       SpaceTrace(space, ti)->state = TraceFLIPPED;
 
   return ResOK;    
-}
-
-
-/* TraceFix -- fix up a reference
- *
- * TraceFix is called from a scanner, which is called from TraceScan.
- * If *refIO is white for any trace being scanned for (fix->ts), it makes
- * it non-white by asking the pool to sort it out.
- */
-
-static Res TraceFix(Ref *refIO, Fix fix)
-{
-  Ref ref;
-  Seg seg;
-  Pool pool;
-  Res res;
-
-  AVERT(Fix, fix);
-  AVER(refIO != NULL);
-
-  ref = *refIO;
-  if(SegOfAddr(&seg, fix->space, ref))
-    if(ColIsWhite(SegCol(seg), fix->ts)) {
-      pool = SegPool(seg);
-      res = PoolFix(refIO, pool, fix, seg);
-      if(res != ResOK) return res;
-    }
-
-/* @@@@
-  AVER(!PoolIsWhite(pool, *refIO));
- */
-
-  return ResOK;
 }
 
 
@@ -626,3 +633,42 @@ Res TraceStart(Trace trace, Option option)
 
   return ResOK;
 }
+
+
+/* TraceScanAreaTagged -- scan aligned words
+ *
+ * The words between base and limit are fixed if they are multiples
+ * of four, i.e. look like 4-byte aligned pointers.
+ *
+ * This function shouldn't be here.  It is used by stack scanners
+ * and is rather Dylan specific.
+ */
+
+Res TraceScanAreaTagged(Fix fix, Addr *base, Addr *limit)
+{
+  Res res;
+  Addr *p;
+  Ref ref;
+
+  AVER(base != NULL);
+  AVER(limit != NULL);
+  AVER(base < limit);
+
+  TRACE_SCAN_BEGIN(fix) {
+    p = base;
+  loop:
+    if(p >= limit) goto out;
+    ref = *p++;
+    if(((Word)ref&3) != 0)   /* only fix 4-aligned pointers */
+      goto loop;             /* not a pointer */
+    if(!TRACE_FIX1(fix, ref)) goto loop;
+    res = TRACE_FIX2(p-1, fix);
+    if(res == ResOK) goto loop;
+    return res;
+  out:
+    AVER(p == limit);
+  } TRACE_SCAN_END(fix);
+
+  return ResOK;
+}
+
