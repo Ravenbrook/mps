@@ -1,6 +1,6 @@
 /* impl.c.poolmv2: MANUAL VARIABLE POOL, II
  *
- * $HopeName: MMsrc!poolmv2.c(MMdevel_mv2_rework.4) $
+ * $HopeName: MMsrc!poolmv2.c(MMdevel_mv2_rework.5) $
  * Copyright (C) 1998 Harlequin Group plc.  All rights reserved.
  *
  * .readership: any MPS developer
@@ -17,7 +17,7 @@
 #include "abq.h"
 #include "meter.h"
 
-SRCID(poolmv2, "$HopeName: MMsrc!poolmv2.c(MMdevel_mv2_rework.4) $");
+SRCID(poolmv2, "$HopeName: MMsrc!poolmv2.c(MMdevel_mv2_rework.5) $");
 
 
 /* Signatures */
@@ -1006,6 +1006,7 @@ static void MV2NoteGrow(CBS cbs, CBSBlock block, Size oldSize, Size newSize)
   AVER(newSize >= mv2->reuseSize);
   AVER(newSize > oldSize);
   /* --- AVER block is on ABQ */
+  UNUSED(block);
   
   mv2->abqSize += newSize - oldSize;
   if (! (mv2->abqSize < mv2->abqLimit)) {
@@ -1050,6 +1051,7 @@ static void MV2NoteShrink(CBS cbs, CBSBlock block, Size oldSize, Size newSize)
   AVER(newSize >= mv2->reuseSize);
   AVER(newSize < oldSize);
   /* --- AVER block is on ABQ */
+  UNUSED(block);
   
   AVER(oldSize - newSize <= mv2->abqSize);
   mv2->abqSize -= oldSize - newSize;
@@ -1084,7 +1086,7 @@ static void MV2ReturnABQSegs(MV2 mv2)
 static Bool MV2ReturnBlockSegs(MV2 mv2, CBSBlock block, Arena arena,
                                Size returnSize) 
 {
-  Addr base, limit, baseFirst, limitLast;
+  Addr base, limit, baseFirst = 0, limitLast = 0;
   Seg seg, segList;
   Bool success = FALSE;
     
