@@ -1,6 +1,6 @@
 /* impl.c.poolamc: AUTOMATIC MOSTLY-COPYING MEMORY POOL CLASS
  *
- * $HopeName: MMsrc!poolamc.c(MMdevel_tony_sunset.2) $
+ * $HopeName: MMsrc!poolamc.c(MMdevel_tony_sunset.3) $
  * Copyright (C) 1998.  Harlequin Group plc.  All rights reserved.
  *
  * .sources: design.mps.poolamc.
@@ -9,7 +9,7 @@
 #include "mpscamc.h"
 #include "mpm.h"
 
-SRCID(poolamc, "$HopeName: MMsrc!poolamc.c(MMdevel_tony_sunset.2) $");
+SRCID(poolamc, "$HopeName: MMsrc!poolamc.c(MMdevel_tony_sunset.3) $");
 
 
 /* Binary i/f used by ASG (drj 1998-06-11) */
@@ -378,6 +378,7 @@ failControlAlloc:
 static void AMCGenDestroy(AMCGen gen)
 {
   Arena arena;
+  Buffer buffer;
 
   AVERT(AMCGen, gen);
   AVER(gen->segs == 0);
@@ -385,10 +386,12 @@ static void AMCGenDestroy(AMCGen gen)
 
   EVENT_P(AMCGenDestroy, gen);
   arena = gen->amc->poolStruct.arena;
+  buffer = gen->forward;
   RingRemove(&gen->amcRing);
+  AMCBufSetGen(buffer, NULL);  /* Buffer mustn't check invalid gen */
   gen->sig = SigInvalid;
   ActionFinish(&gen->actionStruct);
-  BufferDestroy(gen->forward);
+  BufferDestroy(buffer);
   RingFinish(&gen->amcRing);
   ControlFree(arena, gen, sizeof(AMCGenStruct));
 }
