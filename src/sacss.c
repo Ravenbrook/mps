@@ -1,6 +1,6 @@
 /* impl.c.sacss: SAC MANUAL ALLOC STRESS TEST
  *
- * $HopeName$
+ * $HopeName: MMsrc!sacss.c(MM_epcore_brisling.1) $
  * Copyright (C) 1999 Harlequin Group plc.  All rights reserved.
  */
 
@@ -35,6 +35,7 @@ struct itimerspec; /* stop complaints from time.h */
 
 #define topClassSIZE 512
 #define classCOUNT 3
+
 
 static mps_res_t make(mps_addr_t *p, mps_sac_t sac, size_t size)
 {
@@ -97,18 +98,28 @@ static mps_res_t stress(mps_class_t class, mps_arena_t arena,
     /* free half of the objects */
     /* upper half, as when allocating them again we want smaller objects */
     /* see randomSize() */
-    if (k % 2 == 0)
-      for (i=testSetSIZE/2; i<testSetSIZE; ++i)
-        mps_free(pool, (mps_addr_t)ps[i], ss[i]);
-    else
+    switch (k % 2) {
+    case 0: {
       for (i=testSetSIZE/2; i<testSetSIZE; ++i)
         MPS_SAC_FREE(sac, (mps_addr_t)ps[i], ss[i]);
+    } break;
+    case 1: {
+      for (i=testSetSIZE/2; i<testSetSIZE; ++i)
+        mps_sac_free(sac, (mps_addr_t)ps[i], ss[i]);
+    } break;
+    }
     /* allocate some new objects */
     for (i=testSetSIZE/2; i<testSetSIZE; ++i) {
       ss[i] = (*size)(i);
-      res = make((mps_addr_t *)&ps[i], sac, ss[i]);
+      switch (k % 2) {
+      case 0: {
+        res = make((mps_addr_t *)&ps[i], sac, ss[i]);
+      } break;
+      case 1: {
+        res = mps_sac_alloc((mps_addr_t *)&ps[i], sac, ss[i], FALSE);
+      } break;
+      }      
       if (res != MPS_RES_OK) return res;
-      
       if (i && i%4==0) putchar('\n');
       printf("%8lX %6lX ", (unsigned long)ps[i], (unsigned long)ss[i]);
     }
@@ -168,9 +179,11 @@ int main(void)
 {
   mps_arena_t arena;
   int i;
+  static int randomTweak;
 
   /* Randomize the random number generator a bit. */
-  for (i = time(NULL) % 67; i > 0; --i) rnd();
+  randomTweak = time(NULL) % 67;
+  for (i = randomTweak; i > 0; --i) rnd();
 
   die(mps_arena_create(&arena, mps_arena_class_vmnz(), testArenaSIZE),
       "mps_arena_create");
