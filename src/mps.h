@@ -1,6 +1,6 @@
 /* impl.h.mps: HARLEQUIN MEMORY POOL SYSTEM C INTERFACE
  *
- * $HopeName: !mps.h(trunk.54) $
+ * $HopeName: MMsrc!mps.h(MM_epcore_brisling.1) $
  * Copyright (C) 1997, 1998 The Harlequin Group Limited.  All rights reserved.
  *
  * .readership: customers, MPS developers.
@@ -212,6 +212,8 @@ extern void mps_space_destroy(mps_space_t);
 
 extern size_t mps_arena_reserved(mps_arena_t);
 extern size_t mps_arena_committed(mps_arena_t);
+extern size_t mps_arena_spare_committed(mps_arena_t);
+
 extern size_t mps_arena_commit_limit(mps_arena_t);
 extern mps_res_t mps_arena_commit_limit_set(mps_arena_t, size_t);
 extern void mps_arena_spare_commit_limit_set(mps_arena_t, size_t);
