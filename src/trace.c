@@ -1,6 +1,6 @@
 /* impl.c.trace: GENERIC TRACER IMPLEMENTATION
  *
- * $HopeName: !trace.c(trunk.78) $
+ * $HopeName: MMsrc!trace.c(MMdevel_tony_inheritance.1) $
  * Copyright (C) 1998.  Harlequin Group plc.  All rights reserved.
  *
  * .design: design.mps.trace.
@@ -9,7 +9,7 @@
 #include "mpm.h"
 
 
-SRCID(trace, "$HopeName: !trace.c(trunk.78) $");
+SRCID(trace, "$HopeName: MMsrc!trace.c(MMdevel_tony_inheritance.1) $");
 
 
 /* Types
@@ -957,7 +957,7 @@ static Res TraceScanSeg(TraceSet ts, Rank rank,
 
   /* The reason for scanning a segment is that it's grey. */
   AVER(TraceSetInter(ts, SegGrey(seg)) != TraceSetEMPTY);
-  EVENT_UUPPP(TraceScan, ts, rank, arena, seg, &ss);
+  /* EVENT_UUPPP(TraceScan, ts, rank, arena, seg, &ss); */
 
   white = TraceSetWhiteUnion(ts, arena);
 
