@@ -1,6 +1,6 @@
 /* impl.h.poolams: AUTOMATIC MARK & SWEEP POOL CLASS INTERFACE
  *
- * $HopeName: MMsrc!poolams.h(MMdevel_pekka_rate.1) $
+ * $HopeName: MMsrc!poolams.h(MMdevel_pekka_rate.2) $
  * Copyright (C) 1998. Harlequin Group plc. All rights reserved.
  *
  * .purpose: Internal interface to AMS functionality.
@@ -72,7 +72,8 @@ typedef struct AMSGroupStruct {
   Index firstFree;       /* 1st free grain, if allocTable is not used */
   BT allocTable;         /* set if grain is allocated */
   /* design.mps.poolams.colour.single */
-  Bool marked;           /* has been marked since last scan */
+  Bool marksChanged;     /* has been marked since last scan */
+  Bool ambiguousFixes;   /* has been ambiguously marked since last scan */
   Bool colourTablesInUse;/* whether we use the colour tables */
   BT nongreyTable;       /* set if grain not grey */
   BT nonwhiteTable;      /* set if grain not white */
@@ -140,6 +141,11 @@ typedef struct AMSGroupStruct {
     BTSet((group)->nonwhiteTable, (index)); \
   END
 
+#define AMSRangeWhiteBlacken(group, base, limit) \
+  BEGIN \
+    BTSetRange((group)->nonwhiteTable, (base), (limit)); \
+  END
+
 #define AMSRangeWhiten(group, base, limit) \
   BEGIN \
     BTResRange((group)->nonwhiteTable, (base), (limit)); \
@@ -152,21 +158,13 @@ typedef struct AMSGroupStruct {
     BTSetRange((group)->nongreyTable, (base), (limit)); \
   END
 
-#define AMSFindGrey(pos, group, base, limit) \
-  BEGIN \
-    Index _dummy; \
-    \
-    BTFindShortResRange((pos), &_dummy, (group)->nongreyTable, \
-                        (base), (limit), 1); \
-  END
+#define AMSFindGrey(pos, dummy, group, base, limit) \
+  BTFindShortResRange((pos), (dummy), (group)->nongreyTable, \
+                      (base), (limit), 1) \
 
-#define AMSFindWhite(pos, group, base, limit) \
-  BEGIN \
-    Index _dummy; \
-    \
-    BTFindShortResRange((pos), &_dummy, (group)->nonwhiteTable, \
-                        (base), (limit), 1); \
-  END
+#define AMSFindWhite(pos, dummy, group, base, limit) \
+  BTFindShortResRange((pos), (dummy), (group)->nonwhiteTable, \
+                      (base), (limit), 1) \
 
 
 #define AMSAlloced(group, index) \
