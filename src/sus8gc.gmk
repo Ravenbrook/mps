@@ -1,7 +1,7 @@
 #
 #     BUILD FOR SUNOS/SPARC/GCC PLATFORM
 #
-#  $HopeName: MMsrc!suspgc.gmk(MMdevel_protoposm_1.5) $
+#  $HopeName: MMsrc!suspgc.gmk(MMdevel_protoposm_1.6) $
 #
 #  Copyright (C) 1995 Harlequin Group, all rights reserved
 #
@@ -22,7 +22,8 @@ DB = poolps.c db.c \
      barreg.c barrier.c cache.c cluster.c gc.c iohigh.c \
      iolow.c iomid.c mpm.c segment.c xaction.c list.c dbpool.c \
      db.c dbm.c mapping.c chunk.c chunktbl.c clustbl.c\
-     assoc.c broker.c element.c stretchy.c support.c tables.c 
+     assoc.c broker.c element.c stretchy.c support.c tables.c \
+     memdump.c
 LIBS = -lm
 
 TESTLIB = testlib.c
