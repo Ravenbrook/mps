@@ -1,6 +1,6 @@
 /* impl.c.walk: OBJECT WALKER
  *
- * $HopeName: MMsrc!walk.c(MMdevel_tony_segments.1) $
+ * $HopeName: MMsrc!walk.c(MMdevel_tony_sunset.1) $
  * Copyright (C) 1998. Harlequin Group plc. All rights reserved.
  *
  * .readership: Any MPS developer
@@ -11,7 +11,7 @@
 #include "mpm.h"
 #include "mps.h"
 
-SRCID(walk, "$HopeName: MMsrc!walk.c(MMdevel_tony_segments.1) $");
+SRCID(walk, "$HopeName: MMsrc!walk.c(MMdevel_tony_sunset.1) $");
 
 
 
@@ -271,7 +271,7 @@ static void RootsWalkTraceFinish(Trace trace)
 /* RootsWalkFix -- the fix method used during root walking */
 /* This doesn't cause further scanning of transitive references, */
 /* it just calls the client closure */
-static Res RootsWalkFix(ScanState ss, Ref *refptr)
+static Res RootsWalkFix(ScanState ss, Ref *refIO)
 {
   RootsStepClosure rsc;
   Root root;
@@ -280,7 +280,7 @@ static Res RootsWalkFix(ScanState ss, Ref *refptr)
   Arena arena;
   
   AVERT(ScanState, ss);
-  AVER(refptr != NULL);
+  AVER(refIO != NULL);
 
   rsc = ScanStateRootsStepClosure(ss);
   AVERT(RootsStepClosure, rsc);
@@ -289,17 +289,16 @@ static Res RootsWalkFix(ScanState ss, Ref *refptr)
   AVERT(Root, root);
 
   arena = ss->arena;
-  ref = *refptr;
+  ref = *refIO;
 
   /* Check that the reference is to a valid segment */
-  /* SegOfAddr is inlined, see design.mps.trace.fix.segofaddr */
-  if(SEG_OF_ADDR(&seg, arena, ref)) {
+  if(SegOfAddr(&seg, arena, ref)) {
     /* Test if the segment belongs to a GCable pool */
     /* If it isn't then it's not in the heap, and the reference */
     /* shouldn't be passed to the client */
     if ((SegPool(seg)->class->attr & AttrGC) != 0) {
       /* Call the client closure - .assume.rootaddr */
-      rsc->f((mps_addr_t*)refptr, 
+      rsc->f((mps_addr_t*)refIO, 
              (mps_root_t)root, 
              rsc->p, rsc->s);
     }
@@ -310,7 +309,9 @@ static Res RootsWalkFix(ScanState ss, Ref *refptr)
   }
 
   /* See design.mps.trace.fix.fixed.all */
-  ss->fixedSummary = RefSetAdd(ss->arena, ss->fixedSummary, *refptr);
+  ss->fixedSummary = RefSetAdd(ss->arena, ss->fixedSummary, *refIO);
+
+  AVER(ref == *refIO);  /* can walk object graph - but not modify it */
 
   return ResOK;
 }
