@@ -1,6 +1,6 @@
 # ==== NTI3MV NMAKE FILE ====
 #
-# $HopeName: !nti3mv.nmk(trunk.10) $
+# $HopeName: MMsrc!nti3mv.nmk(MMdevel_protoposm_1.1) $
 #
 # Copyright (C) 1995 Harlequin Group, all rights reserved
 #
@@ -14,13 +14,18 @@ MPM = <poolarvm> <vmnt> <space> <pool> <poolclas> <poolmfs> \
       <thnti3> <ssnti3>
 AMC = <amc> <amcgroup>
 DW  = <dw> <dwformat>
+DB = <poolps> \
+     <barreg> <barrier> <cache> <cluster> <gc> <iohigh> \
+     <iolow> <iomid> <mpm> <segment> <xaction> <list> <dbpool> \
+     <db> <dbm> \
+     <assoc> <database> <element> <stretchy> <support> <tables>
 TESTLIB = <testlib>
 
 #!INCLUDE mv.nmk
 
 # ==== ALMOST GENERIC PRODUCT BUILD FOR NMAKE ====
 #
-# $HopeName: !nti3mv.nmk(trunk.10) $
+# $HopeName: MMsrc!nti3mv.nmk(MMdevel_protoposm_1.1) $
 #
 # Copyright (C) 1995 Harlequin Group, all rights reserved
 #
@@ -42,7 +47,8 @@ TESTLIB = <testlib>
 #            and surrounded in angle brackets (<>)
 #   MPM      as above for the "mpm" part
 #   AMC      as above for the "amc" part
-#   DW      as above for the "amc" part
+#   DW       as above for the "dw" part
+#   DB       as above for the "db" part
 #   TESTLIB  as above for the "testlib" part
 #   NOISY    if defined, causes command to be emitted
 #
@@ -80,6 +86,9 @@ TESTLIB = <testlib>
 !ENDIF
 !IFNDEF DW
 !ERROR mv.nmk: DW not defined
+!ENDIF
+!IFNDEF DB
+!ERROR mv.nmk: DB not defined
 !ENDIF
 !IFNDEF TESTLIB
 !ERROR mv.nmk: TESTLIB not defined
@@ -164,6 +173,8 @@ AMCOBJ0 = $(AMC:<=nti3mv\debug\)
 AMCOBJ = $(AMCOBJ0:>=.obj)
 DWOBJ0 = $(DW:<=nti3mv\debug\)
 DWOBJ = $(DWOBJ0:>=.obj)
+DBOBJ0 = $(DB:<=nti3mv\debug\)
+DBOBJ = $(DBOBJ0:>=.obj)
 TESTLIBOBJ0 = $(TESTLIB:<=nti3mv\debug\)
 TESTLIBOBJ = $(TESTLIBOBJ0:>=.obj)
 
@@ -179,6 +190,8 @@ AMCOBJ0 = $(AMC:<=nti3mv\release\)
 AMCOBJ = $(AMCOBJ0:>=.obj)
 DWOBJ0 = $(DW:<=nti3mv\release\)
 DWOBJ = $(DWOBJ0:>=.obj)
+DBOBJ0 = $(DB:<=nti3mv\release\)
+DBOBJ = $(DBOBJ0:>=.obj)
 TESTLIBOBJ0 = $(TESTLIB:<=nti3mv\release\)
 TESTLIBOBJ = $(TESTLIBOBJ0:>=.obj)
 
@@ -194,6 +207,8 @@ AMCOBJ0 = $(AMC:<=nti3mv\devel\)
 AMCOBJ = $(AMCOBJ0:>=.obj)
 DWOBJ0 = $(DW:<=nti3mv\devel\)
 DWOBJ = $(DWOBJ0:>=.obj)
+DBOBJ0 = $(DB:<=nti3mv\devel\)
+DBOBJ = $(DBOBJ0:>=.obj)
 TESTLIBOBJ0 = $(TESTLIB:<=nti3mv\devel\)
 TESTLIBOBJ = $(TESTLIBOBJ0:>=.obj)
 
@@ -217,13 +232,13 @@ TESTLIBOBJ = $(TESTLIBOBJ0:>=.obj)
 # "all" builds all the varieties of all targets
 # %%TARGET: Add the target  to the all dependencies
 
-all: dwstress.exe amcdev.exe lockutnt.exe lockcov.exe stdcover.exe \
-    mpmstres.exe protcv.exe poolncv.exe std.lib mpm.lib
+all: poolpscv.exe amcdev.exe lockutnt.exe lockcov.exe stdcover.exe \
+    mpmstres.exe protcv.exe poolpscv.exe poolncv.exe std.lib mpm.lib
 
 # Convenience targets
 # %%TARGET: Add a pseudo-target for the new part
 
-dwstress.exe amcdev.exe lockutnt.exe lockcov.exe stdcover.exe \
+poolpscv.exe amcdev.exe lockutnt.exe lockcov.exe stdcover.exe \
 	mpmstres.exe protcv.exe poolncv.exe std.lib mpm.lib:
 	$(MAKE) /nologo /f $(PFM).nmk TARGET=$@ target
 
@@ -292,6 +307,9 @@ $(PFM)\$(VARIETY)\protcv.exe:  $(PFM)\$(VARIETY)\protcv.obj \
 $(PFM)\$(VARIETY)\poolncv.exe:  $(PFM)\$(VARIETY)\poolncv.obj \
 	$(MPMOBJ) $(STDOBJ) $(TESTLIBOBJ) $(PFM)\$(VARIETY)\pooln.obj
 
+$(PFM)\$(VARIETY)\poolpscv.exe:  $(PFM)\$(VARIETY)\poolpscv.obj \
+	$(DBOBJ) $(MPMOBJ) $(STDOBJ) $(TESTLIBOBJ)
+
 $(PFM)\$(VARIETY)\std.lib: $(STDOBJ)
 	$(LIBMAN) $(LIBFLAGS) /OUT:$@ $**
 
@@ -338,6 +356,7 @@ $(PFM)\$(VARIETY)\amc.lib: $(STDOBJ) $(MPMOBJ) $(AMCOBJ)
 
 {$(PFM)\$(VARIETY)}.obj{$(PFM)\$(VARIETY)}.exe:
 	$(ECHO) $@
-	$(LINKER) $(LINKFLAGS) /OUT:$@ $(**) libcmt.lib
+	$(LINKER) $(LINKFLAGS) /OUT:$@ @<<
+  $(**) libcmt.lib
+<<
 #!INCLUDE depend.mak
-
