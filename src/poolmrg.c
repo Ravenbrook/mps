@@ -1,6 +1,6 @@
 /* impl.c.poolmrg: MANUAL RANK GUARDIAN POOL
  * 
- * $HopeName: !poolmrg.c(trunk.34) $
+ * $HopeName: MMsrc!poolmrg.c(MMdevel_alloc_replay.1) $
  * Copyright (C) 1997 Harlequin Group plc.  All rights reserved.
  *
  * READERSHIP
@@ -34,7 +34,7 @@
 #include "mpm.h"
 #include "poolmrg.h"
 
-SRCID(poolmrg, "$HopeName: !poolmrg.c(trunk.34) $");
+SRCID(poolmrg, "$HopeName: MMsrc!poolmrg.c(MMdevel_alloc_replay.1) $");
 
 
 /* Types */
@@ -47,7 +47,9 @@ enum {
   MRGGuardianPOSTFINAL
 };
 
+
 /* Link -- Unprotectable part of guardian */
+
 typedef struct LinkStruct *Link;
 typedef struct LinkStruct {
   int state;                     /* Free, Prefinal, Final, Postfinal */
@@ -62,6 +64,7 @@ typedef struct LinkStruct {
 
 #define linkOfRing(ring) \
   PARENT(LinkStruct, the.linkRing, (ring))
+
 
 /* RefPart -- Protectable part of guardian 
  *
@@ -135,6 +138,7 @@ typedef struct MRGGroupStruct {
 } MRGGroupStruct;
 typedef MRGGroupStruct *MRGGroup;
 
+
 static Bool MRGGroupCheck(MRGGroup group)
 {
   CHECKS(MRGGroup, group);
@@ -144,6 +148,7 @@ static Bool MRGGroupCheck(MRGGroup group)
   CHECKL(SegCheck(group->linkSeg));
   return TRUE;
 }
+
 
 /* .check.norecurse: the expression &mrg->poolStruct is used instead */
 /* of the more natural MRGPool(mrg).  The latter results in infinite */
@@ -175,6 +180,7 @@ static Count MRGGuardiansPerSeg(MRG mrg)
 
   return(nGuardians);
 }
+
 
 /* design.mps.poolmrg.guardian.assoc */
 
@@ -253,8 +259,8 @@ static void MRGGuardianInit(MRG mrg, Link link, RefPart refPart)
 }
 
 
-/* MRGMessage* -- Implementation of MRG's MessageClass 
- */
+/* MRGMessage* -- Implementation of MRG's MessageClass */
+
 
 /* deletes the message (frees up the memory) */
 static void MRGMessageDelete(Message message)
@@ -287,6 +293,7 @@ static void MRGMessageDelete(Message message)
   PoolFree(pool, (Addr)refPart, sizeof(RefPartStruct));
 }
 
+
 static void MRGMessageFinalizationRef(Ref *refReturn,
                                       Arena arena, Message message)
 {
@@ -314,6 +321,7 @@ static void MRGMessageFinalizationRef(Ref *refReturn,
   *refReturn = ref;
 }
 
+
 static MessageClassStruct MRGMessageClassStruct = {
   MessageClassSig,             /* sig */
   "MRGFinal",                  /* name */
@@ -333,7 +341,7 @@ static Pool MRGPool(MRG mrg)
 }
 
 
-/* MRGGroupDestroy --- Destroys Group
+/* MRGGroupDestroy --- destroys group
  *
  * .group.destroy:  We don't worry about the effect that destroying
  * this group has on any of the pool rings.
@@ -354,6 +362,9 @@ static void MRGGroupDestroy(MRGGroup group, MRG mrg)
   SegFree(group->linkSeg);
   ArenaFree(PoolArena(pool), (Addr)group, (Size)sizeof(MRGGroupStruct));
 }
+
+
+/* MRGGroupCreate -- creates group */
 
 static Res MRGGroupCreate(MRGGroup *groupReturn, MRG mrg,
                           Bool withReservoirPermit)
@@ -425,8 +436,8 @@ failArenaAlloc:
 }
 
 
-/* MRGFinalise -- finalize the indexth guardian in the group 
- */
+/* MRGFinalise -- finalize the indexth guardian in the group */
+
 static void MRGFinalize(Arena arena, MRGGroup group, Index index)
 {
   Link link;
@@ -495,6 +506,8 @@ static Res MRGGroupScan(ScanState ss, MRGGroup group, MRG mrg)
 }
 
 
+/* MRGInit -- init method for MRG */
+
 static Res MRGInit(Pool pool, va_list args)
 {
   MRG mrg;
@@ -511,9 +524,10 @@ static Res MRGInit(Pool pool, va_list args)
   mrg->sig = MRGSig;
 
   AVERT(MRG, mrg);
-
+  EVENT_PPP(PoolInit, pool, PoolArena(pool), ClassOfPool(pool));
   return ResOK;
 }
+
 
 static void MRGFinish(Pool pool)
 {
@@ -559,6 +573,7 @@ static void MRGFinish(Pool pool)
   /* design.mps.poolmrg.trans.no-finish */
 }
 
+
 Res MRGRegister(Pool pool, Ref ref)
 {
   Ring freeNode;
@@ -603,6 +618,7 @@ Res MRGRegister(Pool pool, Ref ref)
   return ResOK;
 }
 
+
 static void MRGFree(Pool pool, Addr old, Size size)
 {
   MRG mrg;
@@ -630,7 +646,7 @@ static void MRGFree(Pool pool, Addr old, Size size)
 }
 
 
-/* Describe
+/* MRGDescribe
  *
  * This could be improved by implementing MRGSegDescribe
  * and having MRGDescribe iterate over all the pool's segments.
@@ -664,6 +680,7 @@ static Res MRGDescribe(Pool pool, mps_lib_FILE *stream)
 
   return ResOK;
 }
+
 
 static Res MRGScan(Bool *totalReturn, ScanState ss, Pool pool, Seg seg)
 {
