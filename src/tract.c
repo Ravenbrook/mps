@@ -1,20 +1,25 @@
 /* impl.c.tract: PAGE TABLES
  *
- * $HopeName: MMsrc!tract.c(MMdevel_pekka_locus.2) $
+ * $HopeName: MMsrc!tract.c(MMdevel_pekka_locus.3) $
  * Copyright (C) 2000 Harlequin Limited.  All rights reserved.
  *
- * .ullagepages: Pages whose page index is < ullagePages are recorded as
+ * .ullagepages: Pages whose page index is < allocBase are recorded as
  * free but never allocated as alloc starts searching after the tables.
  * TractOfAddr uses the fact that these pages are marked as free in order
  * to detect "references" to these pages as being bogus.
  */
 
-#include "mpm.h"
 #include "tract.h"
+#include "boot.h"
+#include "mpm.h"
 
-SRCID(tract, "$HopeName: MMsrc!tract.c(MMdevel_pekka_locus.2) $");
+SRCID(tract, "$HopeName: MMsrc!tract.c(MMdevel_pekka_locus.3) $");
 
 
+static void ChunkDecache(Arena arena, Chunk chunk);
+
+
+/* TractArena -- get the arena of a tract */
 
 #define TractArena(seg) PoolArena(TractPool(tract))
 
@@ -106,7 +111,7 @@ Bool ChunkCheck(Chunk chunk)
 {
   CHECKS(Chunk, chunk);
   CHECKU(Arena, chunk->arena);
-  CHECKL(chunk<-serial < chunk->arena->chunkSerial);
+  CHECKL(chunk->serial < chunk->arena->chunkSerial);
   CHECKL(RingCheck(&chunk->chunkRing));
   CHECKL(ChunkPagesToSize(chunk, 1) == ChunkPageSize(chunk));
   CHECKL(ShiftCheck(ChunkPageShift(chunk)));
@@ -123,18 +128,29 @@ Bool ChunkCheck(Chunk chunk)
   /* check that the two notions of ullage size are consistent */
   CHECKL(chunk->ullageSize == ChunkPagesToSize(chunk, chunk->ullagePages));
 
-  CHECKL(chunk->pageTable != NULL);
-  /* check that pageTable is in the chunk ullage */
-  CHECKL((Addr)chunk->pageTable >= chunk->base);
-  CHECKL((Addr)&chunk->pageTable[chunk->pageTablePages]
-         <= AddrAdd(chunk->base, chunk->ullageSize));
+  CHECKL(chunk->allocBase >= chunk->pageTablePages);
 
-  /* check allocTable */
   CHECKL(chunk->allocTable != NULL);
+  /* check that allocTable is in the chunk ullage */
   CHECKL((Addr)chunk->allocTable >= chunk->base);
   CHECKL(AddrAdd((Addr)chunk->allocTable, BTSize(chunk->pages))
          <= AddrAdd(chunk->base, chunk->ullageSize));
 
+  /* check they don't overlap (knowing the order) */
+  CHECKL(AddrAdd((Addr)chunk->allocTable, BTSize(chunk->pages))
+         <= (Addr)chunk->pageTable);
+
+  CHECKL(chunk->pageTable != NULL);
+  CHECKL((Addr)chunk->pageTable >= chunk->base);
+  CHECKL((Addr)&chunk->pageTable[chunk->pageTablePages]
+         <= AddrAdd(chunk->base, chunk->ullageSize));
+  /* check there's enough space in the page table */
+  CHECKL(INDEX_OF_ADDR(chunk, (Addr)chunk->pageTable) >= 0);
+  CHECKL(INDEX_OF_ADDR(chunk, AddrSub(chunk->limit, 1))
+         < chunk->pages);
+  CHECKL(chunk->pageTablePages < chunk->pages);
+
+  /* Could check the consistency of the tables, but not O(1). */
   return TRUE;
 }
 
@@ -142,22 +158,23 @@ Bool ChunkCheck(Chunk chunk)
 /* ChunkInit -- initialize generic part of chunk */
 
 Res ChunkInit(Chunk chunk, Arena arena,
-              Addr base, Size size, Size pageSize, BootBlock boot)
+              Addr base, Addr limit, Align pageSize, BootBlock boot)
 {
-  Addr limit;
-  BT allocTable;
+  Size size;
   Count pages;
-  Count pageTablePages;
   PageStruct *pageTable;
   Shift pageShift;
-  Size pageTableSize;
+  Size pageTableSize, ullageSize;
   void *p;
   Res res;
 
   /* chunk is supposed to be uninitialized, so don't check it. */
   AVERT(Arena, arena);
   AVER(base != NULL);
-  AVER(size > 0);
+  AVER(AddrIsAligned(base, pageSize));
+  AVER(base < limit);
+  AVER(AddrIsAligned(limit, pageSize));
+  AVERT(Align, pageSize);
   AVER(pageSize > MPS_PF_ALIGN);
   AVERT(BootBlock, boot);
 
@@ -169,7 +186,8 @@ Res ChunkInit(Chunk chunk, Arena arena,
   chunk->pageSize = pageSize;
   chunk->pageShift = pageShift = SizeLog2(pageSize);
   chunk->base = base;
-  chunk->limit = AddrAdd(base, size);
+  chunk->limit = limit;
+  size = AddrOffset(base, limit);
 
   chunk->pages = pages = size >> pageShift;
   res = BootAlloc(&p, boot, (size_t)BTSize(pages), MPS_PF_ALIGN);
@@ -177,22 +195,24 @@ Res ChunkInit(Chunk chunk, Arena arena,
     goto failAllocTable;
   chunk->allocTable = p;
 
+  pageTableSize = SizeAlignUp(pages * sizeof(PageStruct), pageSize);
+  chunk->pageTablePages = pageTableSize >> pageShift;
+
   res = (arena->class->chunkInit)(chunk, boot);
   if (res != ResOK)
     goto failClassInit;
 
   /* Put the page table as late as possible, as in VM systems we don't want */
   /* to map it. */
-  pageTableSize = SizeAlignUp(pages * sizeof(PageStruct), pageSize);
   res = BootAlloc(&p, boot, (size_t)pageTableSize, (size_t)pageSize);
   if (res != ResOK)
     goto failAllocPageTable;
   chunk->pageTable = pageTable = p;
-  chunk->pageTablePages = pageTableSize >> pageShift;
 
   ullageSize = BootAllocated(boot);
   chunk->ullageSize = ullageSize;
   chunk->ullagePages = ullageSize >> pageShift;
+  chunk->allocBase = (Index)(ullageSize >> pageShift);
 
   /* Init allocTable after class init, because it might be mapped there. */
   BTResRange(chunk->allocTable, 0, pages);
@@ -217,8 +237,10 @@ void ChunkFinish(Chunk chunk)
   AVERT(Chunk, chunk);
   ChunkDecache(chunk->arena, chunk);
   chunk->sig = SigInvalid;
-  (chunk->arena->class->chunkFinish)(chunk);
   RingRemove(&chunk->chunkRing);
+  /* Finish all other fields before class finish, because they might be */
+  /* unmapped there. */
+  (chunk->arena->class->chunkFinish)(chunk);
 }
 
 
@@ -275,7 +297,7 @@ void ChunkEncache(Arena arena, Chunk chunk)
   arena->chunkCache.pageTableBase = &chunk->pageTable[0];
   arena->chunkCache.pageTableLimit = &chunk->pageTable[chunk->pages];
 
-  AVERT(arenaChunkCacheEntry, &arena->chunkCache);
+  AVERT(ChunkCacheEntry, &arena->chunkCache);
   return;
 }
 
@@ -284,8 +306,6 @@ void ChunkEncache(Arena arena, Chunk chunk)
 
 static void ChunkDecache(Arena arena, Chunk chunk)
 {
-  /* static function called internally, hence no checking */
-
   if (arena->chunkCache.chunk == chunk) {
     arena->chunkCache.chunk = NULL;
   }
@@ -294,10 +314,13 @@ static void ChunkDecache(Arena arena, Chunk chunk)
 
 /* ChunkOfAddr -- return the chunk which encloses an address */
 
-static Bool ChunkOfAddr(Chunk *chunkReturn, Arena arena, Addr addr)
+Bool ChunkOfAddr(Chunk *chunkReturn, Arena arena, Addr addr)
 {
   Ring node, next;
-  /* No checks because critical and internal */
+
+  AVER_CRITICAL(chunkReturn != NULL);
+  AVERT_CRITICAL(Arena, arena);
+  /* addr is arbitrary */
 
   /* check cache first */
   if(arena->chunkCache.base <= addr && addr < arena->chunkCache.limit) {
@@ -305,7 +328,7 @@ static Bool ChunkOfAddr(Chunk *chunkReturn, Arena arena, Addr addr)
     return TRUE;
   }
   RING_FOR(node, &arena->chunkRing, next) {
-    Chunk chunk = RING_ELT(Chunk, arenaRing, node);
+    Chunk chunk = RING_ELT(Chunk, chunkRing, node);
     if(chunk->base <= addr && addr < chunk->limit) {
       /* Gotcha! */
       ChunkEncache(arena, chunk);
@@ -332,7 +355,7 @@ static Bool ChunkOfNextAddr(Chunk *chunkReturn, Arena arena, Addr addr)
   leastBase = (Addr)(Word)-1;
   leastChunk = NULL;
   RING_FOR(node, &arena->chunkRing, next) {
-    Chunk chunk = RING_ELT(Chunk, arenaRing, node);
+    Chunk chunk = RING_ELT(Chunk, chunkRing, node);
     if(addr < chunk->base && chunk->base < leastBase) {
       leastBase = chunk->base;
       leastChunk = chunk;
@@ -350,10 +373,26 @@ static Bool ChunkOfNextAddr(Chunk *chunkReturn, Arena arena, Addr addr)
 
 Bool ArenaIsReservedAddr(Arena arena, Addr addr)
 {
+  Chunk dummy;
+
   AVERT(Arena, arena);
   /* addr is arbitrary */
 
   return ChunkOfAddr(&dummy, arena, addr);
+}
+
+
+/* IndexOfAddr -- return the index of the page containing an address
+ *
+ * Function version of INDEX_OF_ADDR, for debugging purposes.
+ */
+
+Index IndexOfAddr(Chunk chunk, Addr addr)
+{
+  AVERT(Chunk, chunk);
+  /* addr is arbitrary */
+
+  return INDEX_OF_ADDR(chunk, addr);
 }
 
 
@@ -436,10 +475,8 @@ Tract TractOfBaseAddr(Arena arena, Addr addr)
 
 static Bool tractSearchInChunk(Tract *tractReturn, Chunk chunk, Index i)
 {
-  AVER(tractReturn != NULL);
-  AVERT(Chunk, chunk);
-  AVER(chunk->ullagePages <= i);
-  AVER(i <= chunk->pages);
+  AVER_CRITICAL(chunk->allocBase <= i);
+  AVER_CRITICAL(i <= chunk->pages);
 
   while(i < chunk->pages
         && !(BTGet(chunk->allocTable, i)
@@ -473,7 +510,7 @@ static Bool tractSearch(Tract *tractReturn, Arena arena, Addr addr)
   if(b) {
     Index i;
 
-    i = indexOfAddr(chunk, addr);
+    i = INDEX_OF_ADDR(chunk, addr);
     /* There are fewer pages than addresses, therefore the */
     /* page index can never wrap around */
     AVER_CRITICAL(i+1 != 0);
@@ -483,10 +520,10 @@ static Bool tractSearch(Tract *tractReturn, Arena arena, Addr addr)
     }
   }
   while(ChunkOfNextAddr(&chunk, arena, addr)) {
+    /* If the ring was kept in address order, this could be improved. */
     addr = chunk->base;
-    /* We start from ullagePages, as the ullage can't be a tract. */
-    /* See .ullagepages. */
-    if(tractSearchInChunk(tractReturn, chunk, chunk->ullagePages)) {
+    /* Start from allocBase to skip the tables. */
+    if(tractSearchInChunk(tractReturn, chunk, chunk->allocBase)) {
       return TRUE;
     }
   }
@@ -496,7 +533,8 @@ static Bool tractSearch(Tract *tractReturn, Arena arena, Addr addr)
 
 /* TractFirst -- return the first tract in the arena
  *
- * This is used to start an iteration over all tracts in the arena.
+ * This is used to start an iteration over all tracts in the arena, not
+ * including the ones used for page tables and other arena structures.
  */
 
 Bool TractFirst(Tract *tractReturn, Arena arena)
@@ -527,7 +565,7 @@ Bool TractNext(Tract *tractReturn, Arena arena, Addr addr)
   AVERT_CRITICAL(Arena, arena);
   AVER_CRITICAL(AddrIsAligned(addr, arena->alignment));
 
-  return tractSearch(tractReturn, vmArena, addr);
+  return tractSearch(tractReturn, arena, addr);
 }
 
 
@@ -562,7 +600,7 @@ Tract TractNextContig(Arena arena, Tract tract)
   /* the next contiguous tract is contiguous in the page table */
   thisPage = PageOfTract(tract);
   nextPage = thisPage + 1;
-  AVER_CRITICAL(PageIsAllocated(next));
+  AVER_CRITICAL(PageIsAllocated(nextPage));
   nextTract = PageTract(nextPage);
   AVERT_CRITICAL(Tract, nextTract);
 
@@ -584,7 +622,8 @@ void PageAlloc(Chunk chunk, Index pi, Pool pool)
   Addr base;
 
   AVERT(Chunk, chunk);
-  AVER(IndexCheck(pi));
+  AVER(pi >= chunk->allocBase);
+  AVER(pi < chunk->pages);
   AVER(!BTGet(chunk->allocTable, pi));
   AVERT(Pool, pool);
 
@@ -601,7 +640,7 @@ void PageAlloc(Chunk chunk, Index pi, Pool pool)
 void PageInit(Chunk chunk, Index pi)
 {
   AVERT(Chunk, chunk);
-  AVER(IndexCheck(pi));
+  AVER(pi < chunk->pages);
 
   BTRes(chunk->allocTable, pi);
   PagePool(&chunk->pageTable[pi]) = NULL;
@@ -615,7 +654,8 @@ void PageInit(Chunk chunk, Index pi)
 void PageFree(Chunk chunk, Index pi)
 {
   AVERT(Chunk, chunk);
-  AVER(IndexCheck(pi));
+  AVER(pi >= chunk->allocBase);
+  AVER(pi < chunk->pages);
   AVER(BTGet(chunk->allocTable, pi));
 
   PageInit(chunk, pi);
