@@ -1,0 +1,40 @@
+;;; define-structure name field ...
+
+(define-macro (define-structure name . fields)
+  (if (not (and (symbol? name)
+                (apply1 and (map symbol? fields))))
+    (error "define-structure: structure name and fields must be symbols"))
+  (define name-string (symbol->string name))
+  (define maker-name (string->symbol (string-append "make-" name-string)))
+  (define (getter-name field-string)
+    (string->symbol (string-append name-string "-" field-string)))
+  (define (setter-name field-string)
+    (string->symbol (string-append "set-" name-string "-" field-string "!")))
+;  (write maker-name) (newline)
+  (define indexes
+    (let loop ((n 1) (fields fields) (indexes '()))
+      (if (null? fields)
+        indexes
+        (loop (+ n 1) (cdr fields) (cons (cons n (symbol->string (car fields))) indexes)))))
+;  (write indexes) (newline)
+  (define (type-check proc-name)
+    `(if (not (eq? (vector-ref structure 0) ',name))
+      (error ,(string-append (symbol->string proc-name) ": applied to wrong type"))))
+  (define field-definitions
+    (list-fold
+      (lambda (definitions index)
+        (define getter (getter-name (cdr index)))
+        (define setter (setter-name (cdr index)))
+        (cons `(define (,getter structure)
+                 ,(type-check getter)
+                 (vector-ref structure ,(car index)))
+              (cons `(define (,setter structure object)
+                      ,(type-check setter)
+                      (vector-set! structure ,(car index) object))
+                     definitions)))
+      '()
+      indexes))
+;  (write field-definitions) (newline)
+  `(begin
+    (define (,maker-name ,@fields) (vector ',name ,@fields))
+    ,@field-definitions))

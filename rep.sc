@@ -1,0 +1,40 @@
+(define (backtrace continuation)
+  (if (procedure? continuation)
+    (if (eq? continuation (procedure-continuation continuation))
+      (values)
+      (begin
+        (display "backtrace ")
+        (display (procedure-name continuation))
+        (case (procedure-name continuation)
+          ((eval define)
+            (display " ")
+            (write (procedure-local continuation 1))))
+        (newline)
+        (backtrace (procedure-continuation continuation))))
+    (error "backtrace of non-procedure")))
+
+(define (read-eval-print env)
+  (display "SC> ")
+  (define form (read))
+  (if (not (eof-object? form))
+    (begin
+      (catch
+        (lambda (exception continuation)
+          (display "exception> ")
+          (write exception)
+          (newline)
+          (backtrace continuation))
+        (call-with-values
+          (lambda () (eval form env))
+          (lambda results
+            (let loop ((results results)
+                       (index 0))
+              (if (not (null? results))
+                (begin
+                  (display "=")
+                  (display index)
+                  (display "> ")
+                  (write (car results))
+                  (newline)
+                  (loop (cdr results) (+ index 1))))))))
+      (read-eval-print env))))

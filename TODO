@@ -1,0 +1,53 @@
+2004-08-01 01:23 Make symbol sets (as used by "intern") first class.
+
+2004-08-01 01:24 Implement weak pointers and use them in symbol sets.  See [RB 2000-05-14].
+
+2004-08-01 01:25 Store the symbol table only in string->symbol's closure?  See [RB 2000-05-14].
+
+2004-08-01 01:33 Go through the document index and insert references to relevant documents from the source code.
+
+2004-08-01 01:37 A trace hook in the driver loop could be used to implement a debugger, tracer, profiler, etc.  The hook should call SC code.
+
+2004-08-01 01:42 Detect overflows in number operations and use C's number parser to avoid overflows when reading.  See [RB 2001-11-30].
+
+2004-08-01 01:50 Make a proper "require" like depency system for units, perhaps by extending "load".
+
+2004-08-01 01:51 Implement the module system described in [RB 2002-01-10].  But first investigate existing Scheme module systems.
+
+2004-08-04 01:15 Need to sort out constency between "unspecified" result in compiled code and no-result in interpreter, e.g. in "if" without alternative.
+
+2004-08-04 13:19 Talking with NB.  Do recursive functions at top level get the right binding pairs for themselves (i.e. the top-level ones), or the ones defined locally in the top-level-form lambda?  What about mutually recursive top-level functions?  e.g. (begin (define (f x) ... (g x) ...) (define (g y) ... (f y) ...)) at top level.  The local environment in a top-level function is a fiction, and nothing should be compiled in it.
+
+2004-08-05 18:10 Compilation of "init.sc" almost works, except for "do", because the compiler doesn't compile the macro-expander for "do" or bind it in the top-level syntax environment.  To fix this the compiler needs to spot top-level macro definitions, compile their expanders, and bind them in the unit linking procedure, as well as incorporating the expander into the compilation syntax environment.  Of course, this means that macro redefinition won't work, but there's not much I can do about that.
+
+2004-08-05 20:05 Can finish compilation of "init.sc" by writing a "do" expander in the compiler to parallel the one in "init.sc".  I can then worry about macro compilation later.
+
+2004-08-05 20:07 Clearly a load of a compiled module can't respect macro definitions in the environment of the load operation.  So we must define it that loaded modules start in the initial macro environment (i.e. the one the compiler knows about).  However, they can load other modules explicitly because then the compiler can get those modules' macros.
+
+2004-08-05 20:12 I had hoped to support local "load" operations, but compiled code doesn't have a local environment that can be passed to the loaded module (or evaluator).  Perhaps it's time to revisit the idea of the compiled environment being compatible with the intepreted environment: allowing frames to be vectors, for example, and chaining them.  This would allow local "eval" and could be very handy for debugging backtrace, though it might also prevent GC of lots of stuff.
+
+2004-08-05 20:21 There are lots of places where the compiler makes assumptions about the meaning of syntax, or the existence and meaning of symbols such as "make-promise".  These need to be weeded out, or at least documented.
+
+2004-08-05 20:27 R5RS says "The syntactic keyword of a macro may shadow variable bindings, and local variable bindings may shadow keyword bindings."  What does this mean exactly?  Does it mean my pair of environments is invalid?
+
+2004-08-05 20:29 R5RS defines a separate pattern language for macro expansion which I don't implement.
+
+2004-08-05 20:33 Can "dynamic-wind" be implemented with a stack of wind contexts?
+
+2004-08-08 20:16 Operators can be divided into two classes: evaluators and expanders.  The built-in operators evaluate, but most user-define macros expand their arguments into something which is then evaluated, or, more importantly, can be fed to the compiler.  So we need to have the syntax environment map to two kinds of object: evaluator or expander.  The compiler can call the latter, but reports an error if it hasn't got an built-in definition for the former.  In some cases we can have both.
+
+2004-08-03 23:13 Exception handling conventions.  Use symbols to denote exceptions.  Restartable "warning" type exceptions.
+
+2004-08-03 23:14 Unit loading system which works for interpreted or compiled code consistently, but avoids reloading bundles.
+
+2004-08-07 23:00 Improving environments.  Each frame could be a hashtable stored in a vector.  Frames for compiled code couldn't be rehashed, but could still be extended by interpreted code if we reserved a slot for a second frame for interpreted variables.  This would allow "load" and "eval" to work on the local environment, but it would mean that the global environment would have to be available to all compiled code.
+
+2004-08-08 15:34 Could alter compilation of variable lookup to search for free variables in the environment when it's available in a register, but this would make top-level code less efficient than other compiled code.
+
+2004-08-04 23:11 Separate the stuff that's needed for the machine itself from the language stuff, with one on top of the other.  For example, where does "intern" belong?
+
+2004-08-09 22:38 The compiler goes wrong if there are characters like "*/" in string constants etc.  The output code for "comment" needs to escape such sequences.
+
+2004-08-11 09:21 Avoiding consing argument lists.  Create an array of pairs in the "state" object and allocate arguments from them rather than from the heap.  This has the advantage that the argument list still looks like a list.  Argument lists will need to be built with special operations, not just "cons".  Perhaps START_ARGS(n) followed by n PUSH_ARG(a).
+
+2004-08-11 23:21 The GC could check that non-read-only functions have only one reference to them by asserting that there's never a snap-out to one.
