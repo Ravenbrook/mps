@@ -1024,68 +1024,6 @@ static Bool findFreeInArea(Index *baseReturn,
  */
 #define ZoneMASK(arena) (RefSetMASK<<(arena)->zoneShift)
 #define ZoneSTEP(arena) (RefSetSize<<(arena)->zoneShift)
-static Bool findFreeInZoneRange(Index *baseReturn,
-                                VMArenaChunk *chunkReturn,
-                                VMArena vmArena, Size size,
-                                Addr zoneBase, Addr zoneLimit,
-                                Bool downwards)
-{
-  Ring node, next;
-  Arena arena = VMArenaArena(vmArena);
-#if 0
-  Word zoneMask = ZoneMASK(arena);
-#endif
-  Word zoneStep = ZoneSTEP(arena);
-
-  RING_FOR(node, &vmArena->chunkRing, next)
-    {
-      VMArenaChunk chunk = RING_ELT(VMArenaChunk, arenaRing, node);
-      /* .alloc.skip: The first address available for segments, */
-      /* is just after the arena tables. */
-      Word chunkBase = (Word)PageIndexBase(chunk, chunk->tablePages);
-      Word chunkLimit = (Word)chunk->limit;
-      /* zone 0 aligned address, below chunkBase */
-      Word rangeBase = (Word)chunkBase & (~ (zoneStep - 1));
-      /* base of first zone stripe */
-      Word nextBase = rangeBase + (Word)zoneBase;
-      /* limit of first zone stripe */
-      Word nextLimit = rangeBase + (Word)zoneLimit;
-      /* stripe trimmed to fit in chunk*/
-      Word stripeBase = nextBase<chunkBase ? chunkBase : nextBase;
-      Word stripeLimit = nextLimit<chunkLimit ? nextLimit : chunkLimit;
-
-      AVERT(VMArenaChunk, chunk);
-      AVER(chunkBase <= stripeBase);
-      AVER(chunkBase <= stripeLimit);
-      AVER(stripeBase <= chunkLimit);
-      AVER(stripeLimit <= chunkLimit);
-      
-
-      /* @@@ ZoneStripe_FOR */
-      /* @@@ Need to be able to iterate backwards for downwards flag */
-      for(; stripeBase < chunkLimit;) {
-	if(stripeBase < stripeLimit &&
-           AddrOffset(stripeBase, stripeLimit) >= size &&
-	   findFreeInArea(baseReturn, chunk, size,
-                          (Addr)stripeBase, (Addr)stripeLimit, 
-                          downwards)) {
-	  *chunkReturn = chunk;
-	  return TRUE;
-	}
-                                                                        
-        /* base of next zone stripe */
-        nextBase = nextBase+zoneStep;
-        /* limit of next zone stripe */
-        nextLimit = nextLimit+zoneStep;
-        /* stripe trimmed to fit in chunk */
-        stripeBase = nextBase<chunkBase ? chunkBase : nextBase;
-        stripeLimit = nextLimit<chunkLimit ? nextLimit : chunkLimit;
-      }
-    }
-  return FALSE;
-}
-
-
 
 static Serial vmGenOfSegPref(VMArena vmArena, SegPref pref)
 {
@@ -1127,18 +1065,71 @@ static Bool VMSegFind(Index *baseReturn, VMArenaChunk *chunkReturn,
 {
   Addr zoneBase, zoneLimit;
   
-  /* @@@ does not pay attention to the barge flag */
-  LocusClientZoneRangeInitialize(client);
-  for (; ! LocusClientZoneRangeFinished(client);) {
-    LocusClientZoneRangeNext(&zoneBase, &zoneLimit, client);
+  Ring node, next;
+  Arena arena = VMArenaArena(vmArena);
+#if 0
+  Word zoneMask = ZoneMASK(arena);
+#endif
+  Word zoneStep = ZoneSTEP(arena);
 
-    if (findFreeInZoneRange(baseReturn, chunkReturn, vmArena, size,
-                            zoneBase, zoneLimit, pref->high)) {
-      return TRUE;
+  RING_FOR(node, &vmArena->chunkRing, next)
+    {
+      VMArenaChunk chunk = RING_ELT(VMArenaChunk, arenaRing, node);
+      /* .alloc.skip: The first address available for segments, */
+      /* is just after the arena tables. */
+      Word chunkBase = (Word)PageIndexBase(chunk, chunk->tablePages);
+      Word chunkLimit = (Word)chunk->limit;
+      /* zone 0 aligned address, below chunkBase */
+      Word rangeBase = (Word)chunkBase & (~ (zoneStep - 1));
+
+      AVERT(VMArenaChunk, chunk);
+      
+      /* @@@ does not pay attention to the barge flag */
+      LocusClientZoneRangeInitialize(client,
+                                     RefSetZone(arena, chunkBase),
+                                     (! pref->high));
+      for (; ! LocusClientZoneRangeFinished(client);) {
+        LocusClientZoneRangeNext(&zoneBase, &zoneLimit, client);
+        {
+          /* base of first zone stripe */
+          Word nextBase = rangeBase + (Word)zoneBase;
+          /* limit of first zone stripe */
+          Word nextLimit = rangeBase + (Word)zoneLimit;
+          /* stripe trimmed to fit in chunk*/
+          Word stripeBase = nextBase<chunkBase ? chunkBase : nextBase;
+          Word stripeLimit = nextLimit<chunkLimit ? nextLimit : chunkLimit;
+
+          AVER(chunkBase <= stripeBase);
+          AVER(chunkBase <= stripeLimit);
+          AVER(stripeBase <= chunkLimit);
+          AVER(stripeLimit <= chunkLimit);
+
+          /* @@@ ZoneStripe_FOR */
+          /* @@@ Need to be able to iterate backwards for downwards flag */
+          for(; stripeBase < chunkLimit;) {
+            if(stripeBase < stripeLimit &&
+               AddrOffset(stripeBase, stripeLimit) >= size &&
+               findFreeInArea(baseReturn, chunk, size,
+                              (Addr)stripeBase, (Addr)stripeLimit, 
+                              pref->high)) {
+              *chunkReturn = chunk;
+              return TRUE;
+            }
+                                                                        
+            /* base of next zone stripe */
+            nextBase = nextBase+zoneStep;
+            /* limit of next zone stripe */
+            nextLimit = nextLimit+zoneStep;
+            /* stripe trimmed to fit in chunk */
+            stripeBase = nextBase<chunkBase ? chunkBase : nextBase;
+            stripeLimit = nextLimit<chunkLimit ? nextLimit : chunkLimit;
+          }
+        }
+      }
     }
-  }
   return FALSE;
 }
+
 
 
 /* VMSegAlloc -- allocate a segment from the arena */
