@@ -1,6 +1,6 @@
 # impl.gmk.sc: GNUMAKEFILE FRAGMENT FOR SunPro C
 #
-# $HopeName: !sc.gmk(trunk.2) $
+# $HopeName: MMsrc!sc.gmk(MMdevel_annotation.1) $
 #
 # This file is included by platform makefiles that use the SunPro C
 # compiler.  It defines the compiler specific variables that the
@@ -9,7 +9,9 @@
 
 CC = /opt/SUNWspro/SC4.0/bin/cc
 CFLAGSCOMPILER = -v -Xc
-CFLAGSDEBUG = -g
-CFLAGSOPTIMIZE = -O
+CFLAGSHOT = -O
+CFLAGSCOOL = $(EMPTY)
+CFLAGSINTERNAL = -g
+CFLAGSEXTERNAL = $(EMPTY)
 
 include comm.gmk

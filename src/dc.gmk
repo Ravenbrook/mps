@@ -1,6 +1,6 @@
 # impl.gmk.dc: GNUMAKEFILE FRAGMENT FOR DIGITAL C COMPILER (DEC UNIX/OSF)
 #
-# $HopeName: !dc.gmk(trunk.1) $
+# $HopeName: MMsrc!dc.gmk(MMdevel_annotation.1) $
 # Copyright(C) 1997 Harlequin Group, all rights reserved
 #
 # See design.buildsys.unix
@@ -18,8 +18,10 @@
 
 CC = cc
 CFLAGSCOMPILER = -std1 -w2 -warnprotos -portable -readonly_strings
-CFLAGSDEBUG = -g2
-CFLAGSOPTIMIZE = -O2
+CFLAGSHOT = -O2
+CFLAGSCOOL = $(EMPTY)
+CFLAGSEXTERNAL = $(EMPTY)
+CFLAGSINTERNAL = -g2
 
 # -M for a dependency file
 

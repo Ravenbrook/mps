@@ -1,6 +1,6 @@
 # impl.gmk.ic: GNUMAKEFILE FRAGMENT FOR IRIX CC (IRIX 4 OR 5)
 #
-# $HopeName: !ic.gmk(trunk.2) $
+# $HopeName: MMsrc!ic.gmk(MMdevel_annotation.1) $
 # Copyright (C) 1996 Harlequin Group, all rights reserved
 #
 # This file is included by platform makefiles that use the IRIX CC
@@ -8,7 +8,9 @@
 # common makefile fragment (impl.gmk.comm) requires.
 
 CC = cc
-CFLAGSDEBUG = -g
-CFLAGSOPTIMIZE = -O
+CFLAGSHOT = -O
+CFLAGSCOOL = $(EMPTY)
+CFLAGSINTERNAL = -g
+CFLAGSEXTERNAL = $(EMPTY)
 
 include comm.gmk

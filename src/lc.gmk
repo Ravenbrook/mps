@@ -1,6 +1,6 @@
 # impl.gmk.lc: GNUMAKEFILE FRAGMENT FOR LCC
 #
-# $HopeName: !lc.gmk(trunk.1) $
+# $HopeName: MMsrc!lc.gmk(MMdevel_annotation.1) $
 # Copyright (C) 1996,1997 Harlequin Group, all rights reserved
 #
 # This file is included by platform makefiles that use the LCC
@@ -13,7 +13,9 @@
 
 CC = lcc
 CFLAGSCOMPILER = -I/usr/include
-CFLAGSDEBUG = -g
-CFLAGSOPTIMIZE = ""
+CFLAGSHOT = ""
+CFLAGSCOOL = ""
+CFLAGSINTERNAL = -g
+CFLAGSEXTERNAL = ""
 
 include comm.gmk
