@@ -1,6 +1,6 @@
 # ==== NTI3MV NMAKE FILE ====
 #
-# $HopeName: !nti3mv.nmk(trunk.20) $
+# $HopeName: MMsrc!nti3mv.nmk(MMdevel_restr.1) $
 #
 # Copyright (C) 1995 Harlequin Group, all rights reserved
 #
@@ -21,7 +21,7 @@ TESTLIB = <testlib>
 
 # ==== ALMOST GENERIC PRODUCT BUILD FOR NMAKE ====
 #
-# $HopeName: !nti3mv.nmk(trunk.20) $
+# $HopeName: MMsrc!nti3mv.nmk(MMdevel_restr.1) $
 #
 # Copyright (C) 1995 Harlequin Group, all rights reserved
 #
@@ -114,34 +114,39 @@ CFLAGSCOMMON = /nologo /W3 /WX $(PFMDEFS) /MT
 # [Used to use /Zi instead of /Z7.  /Z7 generates debugging output in the
 #  object and linked files themselves, whereas /Zi generated debugging
 #  output in a .PDB file.]
-CFDEBUG = /DDEBUG /DVALID_NONESTED /Z7
+CFDF = /DTARGET_VAR_DF /Z7
+
+CFDP = /DTARGET_VAR_DP /Z7
+
+CFDS = /DTARGET_VAR_DS /Z7
 
 # "release" variety flags
-CFRELEASE = /DVALID_NONE /O2
-
-# "devel" variety flags
-CFDEVEL = /DDEBUG /DVALID_ALL /Z7
+# Microsoft documentation is not very clear on the point of using bothing
+# optimzation and debug information
+CFRO = /DTARGET_VAR_RO /Z7 /O2
 
 # "cover" variety flags
-CFCOVER = /DDEBUG /DVALID_NONESTED /Z7
+CFCV = /DTARGET_VAR_DP /Z7
 
 # LINKER FLAGS
 # %%VARIETY: define a macro containing the flags for the new variety
 LINKER = link
 LINKFLAGSCOMMON = /nologo
-LFDEBUG = /DEBUG:full /DEBUGTYPE:cv
-LFRELEASE = /RELEASE
-LFDEVEL = $(LFDEBUG)
-LFCOVER = /PROFILE /DEBUG:full /DEBUGTYPE:cv
+LFDF = /DEBUG:full /DEBUGTYPE:cv
+LFDP = /DEBUG:full /DEBUGTYPE:cv
+LFDS = /DEBUG:full /DEBUGTYPE:cv
+LFRO = /RELEASE /DEBUG:full /DEBUGTYPE:cv
+LFCV = /PROFILE /DEBUG:full /DEBUGTYPE:cv
 
 # Library manager
 # %%VARIETY: define a macro containing the flags for the new variety
-LIBMAN = lib                    # can't call this LIB -- it screws the environment
+LIBMAN = lib                  # can't call this LIB - it screws the environment
 LIBFLAGSCOMMON = /nologo
-LIBFLAGSDEB = 
-LIBFLAGSREL = 
-LIBFLAGSDEV =
-LIBFLAGSCOV =
+LIBFLAGSDF = 
+LIBFLAGSDP = 
+LIBFLAGSDS = 
+LIBFLAGSRO = 
+LIBFLAGSCV =
 
 # Browser database manager [not used at present]
 #BSC = bscmake
@@ -157,73 +162,92 @@ LIBFLAGSCOV =
 # flags that the variety should use when building executables.  And a LIBFLAGS
 # macro which expands to the flags that the variety should use when builing
 # libraries
-!IF "$(VARIETY)" == "debug"
-CFLAGS=$(CFLAGSCOMMON) $(CFDEBUG)
-LINKFLAGS=$(LINKFLAGSCOMMON) $(LFDEBUG)
-LIBFLAGS=$(LIBFLAGSCOMMON) $(LIBFLAGSDEB)
-STDOBJ0 = $(STD:<=nti3mv\debug\)
+
+!IF "$(VARIETY)" == "df"
+CFLAGS=$(CFLAGSCOMMON) $(CFDF)
+LINKFLAGS=$(LINKFLAGSCOMMON) $(LFDF)
+LIBFLAGS=$(LIBFLAGSCOMMON) $(LIBFLAGSDF)
+STDOBJ0 = $(STD:<=nti3mv\df\)
 STDOBJ = $(STDOBJ0:>=.obj)
-MPMOBJ0 = $(MPM:<=nti3mv\debug\)
+MPMOBJ0 = $(MPM:<=nti3mv\df\)
 MPMOBJ = $(MPMOBJ0:>=.obj)
-AMCOBJ0 = $(AMC:<=nti3mv\debug\)
+AMCOBJ0 = $(AMC:<=nti3mv\df\)
 AMCOBJ = $(AMCOBJ0:>=.obj)
-LOOBJ0 = $(LO:<=nti3mv\debug\)
+LOOBJ0 = $(LO:<=nti3mv\df\)
 LOOBJ = $(LOOBJ0:>=.obj)
-DWOBJ0 = $(DW:<=nti3mv\debug\)
+DWOBJ0 = $(DW:<=nti3mv\df\)
 DWOBJ = $(DWOBJ0:>=.obj)
-TESTLIBOBJ0 = $(TESTLIB:<=nti3mv\debug\)
+TESTLIBOBJ0 = $(TESTLIB:<=nti3mv\df\)
 TESTLIBOBJ = $(TESTLIBOBJ0:>=.obj)
 
-!ELSEIF "$(VARIETY)" == "release"
-CFLAGS=$(CFLAGSCOMMON) $(CFRELEASE)
-LINKFLAGS=$(LINKFLAGSCOMMON) $(LFRELEASE)
-LIBFLAGS=$(LIBFLAGSCOMMON) $(LIBFLAGSREL)
-STDOBJ0 = $(STD:<=nti3mv\release\)
+!ELSEIF "$(VARIETY)" == "dp"
+CFLAGS=$(CFLAGSCOMMON) $(CFDP)
+LINKFLAGS=$(LINKFLAGSCOMMON) $(LFDP)
+LIBFLAGS=$(LIBFLAGSCOMMON) $(LIBFLAGSDP)
+STDOBJ0 = $(STD:<=nti3mv\dp\)
 STDOBJ = $(STDOBJ0:>=.obj)
-MPMOBJ0 = $(MPM:<=nti3mv\release\)
+MPMOBJ0 = $(MPM:<=nti3mv\dp\)
 MPMOBJ = $(MPMOBJ0:>=.obj)
-AMCOBJ0 = $(AMC:<=nti3mv\release\)
+AMCOBJ0 = $(AMC:<=nti3mv\dp\)
 AMCOBJ = $(AMCOBJ0:>=.obj)
-DWOBJ0 = $(DW:<=nti3mv\release\)
-DWOBJ = $(DWOBJ0:>=.obj)
-LOOBJ0 = $(LO:<=nti3mv\release\)
+LOOBJ0 = $(LO:<=nti3mv\dp\)
 LOOBJ = $(LOOBJ0:>=.obj)
-TESTLIBOBJ0 = $(TESTLIB:<=nti3mv\release\)
+DWOBJ0 = $(DW:<=nti3mv\dp\)
+DWOBJ = $(DWOBJ0:>=.obj)
+TESTLIBOBJ0 = $(TESTLIB:<=nti3mv\dp\)
 TESTLIBOBJ = $(TESTLIBOBJ0:>=.obj)
 
-!ELSEIF "$(VARIETY)" == "devel"
-CFLAGS=$(CFLAGSCOMMON) $(CFDEVEL)
-LINKFLAGS=$(LINKFLAGSCOMMON) $(LFDEVEL)
-LIBFLAGS=$(LIBFLAGSCOMMON) $(LIBFLAGSDEV)
-STDOBJ0 = $(STD:<=nti3mv\devel\)
+!ELSEIF "$(VARIETY)" == "ds"
+CFLAGS=$(CFLAGSCOMMON) $(CFDS)
+LINKFLAGS=$(LINKFLAGSCOMMON) $(LFDS)
+LIBFLAGS=$(LIBFLAGSCOMMON) $(LIBFLAGSDS)
+STDOBJ0 = $(STD:<=nti3mv\ds\)
 STDOBJ = $(STDOBJ0:>=.obj)
-MPMOBJ0 = $(MPM:<=nti3mv\devel\)
+MPMOBJ0 = $(MPM:<=nti3mv\ds\)
 MPMOBJ = $(MPMOBJ0:>=.obj)
-AMCOBJ0 = $(AMC:<=nti3mv\devel\)
+AMCOBJ0 = $(AMC:<=nti3mv\ds\)
 AMCOBJ = $(AMCOBJ0:>=.obj)
-DWOBJ0 = $(DW:<=nti3mv\devel\)
-DWOBJ = $(DWOBJ0:>=.obj)
-LOOBJ0 = $(LO:<=nti3mv\devel\)
+LOOBJ0 = $(LO:<=nti3mv\ds\)
 LOOBJ = $(LOOBJ0:>=.obj)
-TESTLIBOBJ0 = $(TESTLIB:<=nti3mv\devel\)
+DWOBJ0 = $(DW:<=nti3mv\ds\)
+DWOBJ = $(DWOBJ0:>=.obj)
+TESTLIBOBJ0 = $(TESTLIB:<=nti3mv\ds\)
 TESTLIBOBJ = $(TESTLIBOBJ0:>=.obj)
 
-!ELSEIF "$(VARIETY)" == "cover"
-CFLAGS=$(CFLAGSCOMMON) $(CFCOVER)
-LINKFLAGS=$(LINKFLAGSCOMMON) $(LFCOVER)
-LIBFLAGS=$(LIBFLAGSCOMMON) $(LIBFLAGSCOV)
-STDOBJ0 = $(STD:<=nti3mv\cover\)
+!ELSEIF "$(VARIETY)" == "ro"
+CFLAGS=$(CFLAGSCOMMON) $(CFRO)
+LINKFLAGS=$(LINKFLAGSCOMMON) $(LFRO)
+LIBFLAGS=$(LIBFLAGSCOMMON) $(LIBFLAGSRO)
+STDOBJ0 = $(STD:<=nti3mv\ro\)
 STDOBJ = $(STDOBJ0:>=.obj)
-MPMOBJ0 = $(MPM:<=nti3mv\cover\)
+MPMOBJ0 = $(MPM:<=nti3mv\ro\)
 MPMOBJ = $(MPMOBJ0:>=.obj)
-AMCOBJ0 = $(AMC:<=nti3mv\cover\)
+AMCOBJ0 = $(AMC:<=nti3mv\ro\)
 AMCOBJ = $(AMCOBJ0:>=.obj)
-DWOBJ0 = $(DW:<=nti3mv\devel\)
-DWOBJ = $(DWOBJ0:>=.obj)
-LOOBJ0 = $(LO:<=nti3mv\devel\)
+LOOBJ0 = $(LO:<=nti3mv\ro\)
 LOOBJ = $(LOOBJ0:>=.obj)
-TESTLIBOBJ0 = $(TESTLIB:<=nti3mv\cover\)
+DWOBJ0 = $(DW:<=nti3mv\ro\)
+DWOBJ = $(DWOBJ0:>=.obj)
+TESTLIBOBJ0 = $(TESTLIB:<=nti3mv\ro\)
 TESTLIBOBJ = $(TESTLIBOBJ0:>=.obj)
+
+!ELSEIF "$(VARIETY)" == "cv"
+CFLAGS=$(CFLAGSCOMMON) $(CFCV)
+LINKFLAGS=$(LINKFLAGSCOMMON) $(LFCV)
+LIBFLAGS=$(LIBFLAGSCOMMON) $(LIBFLAGSCV)
+STDOBJ0 = $(STD:<=nti3mv\cv\)
+STDOBJ = $(STDOBJ0:>=.obj)
+MPMOBJ0 = $(MPM:<=nti3mv\cv\)
+MPMOBJ = $(MPMOBJ0:>=.obj)
+AMCOBJ0 = $(AMC:<=nti3mv\cv\)
+AMCOBJ = $(AMCOBJ0:>=.obj)
+LOOBJ0 = $(LO:<=nti3mv\cv\)
+LOOBJ = $(LOOBJ0:>=.obj)
+DWOBJ0 = $(DW:<=nti3mv\cv\)
+DWOBJ = $(DWOBJ0:>=.obj)
+TESTLIBOBJ0 = $(TESTLIB:<=nti3mv\cv\)
+TESTLIBOBJ = $(TESTLIBOBJ0:>=.obj)
+
 !ENDIF
 
 
@@ -244,7 +268,7 @@ dwstress.exe amcss.exe lockutnt.exe lockcov.exe stdcover.exe \
 	$(MAKE) /nologo /f $(PFM).nmk TARGET=$@ target
 
 mpsicv.cov:
-	$(MAKE) /nologo /f $(PFM).nmk TARGET=$@ VARIETY=cover variety
+	$(MAKE) /nologo /f $(PFM).nmk TARGET=$@ VARIETY=cv variety
 
 # "clean" removes the directory containing the build results for the platform
 
@@ -259,9 +283,10 @@ clean:
 !IFDEF TARGET
 !IFNDEF VARIETY
 target:
-	$(MAKE) /nologo /f $(PFM).nmk VARIETY=devel variety
-	$(MAKE) /nologo /f $(PFM).nmk VARIETY=debug variety
-	$(MAKE) /nologo /f $(PFM).nmk VARIETY=release variety
+	$(MAKE) /nologo /f $(PFM).nmk VARIETY=df variety
+	$(MAKE) /nologo /f $(PFM).nmk VARIETY=dp variety
+	$(MAKE) /nologo /f $(PFM).nmk VARIETY=ds variety
+	$(MAKE) /nologo /f $(PFM).nmk VARIETY=ro variety
 !ENDIF
 !ENDIF
 
