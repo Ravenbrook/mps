@@ -1,6 +1,6 @@
 /* impl.c.message: MPS / CLIENT MESSAGES
  *
- * $HopeName: MMsrc!message.c(MMdevel_drj_message.2) $
+ * $HopeName: MMsrc!message.c(MMdevel_drj_message.3) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All Rights Reserved.
  *
  * READERSHIP
@@ -19,27 +19,29 @@
  *
  * NOTES
  *
- * Sometimes in this module there are two functions that you really
- * want to give the same name.  An example is MessageDeliver, this is
- * both the function that dispatches to the class specific deliver
- * method and the function that implements the external function
- * mps_message_deliver.  They have slightly different contracts but
- * basically do the same job.  I have generally called the function
- * that implements the external interface MessageExBlah.
- * drj 1997-08-19
+ * .name.clash: Sometimes in this module there are two functions
+ * that you really want to give the same name.  An example is
+ * MessageDeliver, this is both the function that dispatches to
+ * the class specific deliver method and the function that
+ * implements the external function mps_message_deliver.  They
+ * have slightly different contracts but basically do the same
+ * job.  I have generally called the function that implements the
+ * external interface MessageExBlah.  drj 1997-08-19
  */
+
 
 
 #include "mpm.h"
 
 
-SRCID(message, "$HopeName: MMsrc!message.c(MMdevel_drj_message.2) $");
+SRCID(message, "$HopeName: MMsrc!message.c(MMdevel_drj_message.3) $");
 
 
 /* Maps from a Ring pointer to the message */
 #define MessageNodeMessage(node) \
   PARENT(MessageStruct, queueRing, node)
 
+/* commented out as it causes compiler warnings */
 #if 0
 static Message (MessageNodeMessage)(Ring node)
 {
@@ -260,6 +262,23 @@ static Bool MessageHeadIsType(Space space, MessageType type)
 }
 
 
+/* Deletes the message at the head of the queue.
+ * Internal function. */
+static void MessageDeleteHead(Space space)
+{
+  Message message;
+
+  AVERT(Space, space);
+  AVER(!RingIsSingle(&space->messageRing));
+
+  message = MessageHead(space);
+  AVERT(Message, message);
+  RingRemove(&message->queueRing);
+  MessageDelete(message);
+
+  return;
+}
+
 /* Copies a message into a buffer */
 Bool MessageExDeliver(Space space, MessageType type,
 		    void *buffer, size_t length)
@@ -278,27 +297,9 @@ Bool MessageExDeliver(Space space, MessageType type,
   }
   message = MessageHead(space);
   MessageDeliver(message, buffer, length);
-  RingRemove(&message->queueRing);
-  MessageDelete(message);
+  MessageDeleteHead(space);
 
   return TRUE;
-}
-
-/* Deletes the message at the head of the queue.
- * Internal function. */
-static void MessageDeleteHead(Space space)
-{
-  Message message;
-
-  AVERT(Space, space);
-  AVER(!RingIsSingle(&space->messageRing));
-
-  message = MessageHead(space);
-  AVERT(Message, message);
-  RingRemove(&message->queueRing);
-  MessageDelete(message);
-
-  return;
 }
 
 /* Discards a message at the head of the queue only if it has type type */
@@ -327,4 +328,3 @@ void MessageEmpty(Space space)
 
   return;
 }
-
