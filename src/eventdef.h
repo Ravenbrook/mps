@@ -1,7 +1,7 @@
 /* impl.h.eventdef -- Event Logging Definitions
  *
  * Copyright (C) 1997 Harlequin Group, all rights reserved.
- * $HopeName: MMsrc!eventdef.h(MMdevel_config_thread.1) $
+ * $HopeName: MMsrc!eventdef.h(MMdevel_config_thread.2) $
  *
  * .readership: MPS developers.
  * .source: design.mps.telemetry
@@ -91,7 +91,7 @@ RELATION(TraceFixWhite                   , 0x0028, TRUE, Ref, 0)
 /* TraceScanArea{Tagged,}'s kind isn't really Trace, but not Seg either */
 RELATION(TraceScanArea                   , 0x0029, TRUE, Trace, PPP)
 RELATION(TraceScanAreaTagged             , 0x002a, TRUE, Trace, PPP)
-RELATION(VMCreate                        , 0x002b, TRUE, Arena, PPAA)
+RELATION(VMCreate                        , 0x002b, TRUE, Arena, PAA)
 RELATION(VMDestroy                       , 0x002c, TRUE, Arena, P)
 RELATION(VMMap                           , 0x002d, TRUE, Seg, PAA)
 RELATION(VMUnmap                         , 0x002e, TRUE, Seg, PAA)
