@@ -123,11 +123,11 @@ typedef Res (*ArenaExtendMethod)(Arena arena, Addr base, Size size);
 typedef Res (*ArenaRetractMethod)(Arena arena, Addr base, Size size);
 typedef Bool (*ArenaIsReservedAddrMethod)(Arena arena, Addr addr);
 typedef Res (*ArenaSegAllocMethod)(Seg *segReturn, SegPref pref,
-                                   Size size, Pool pool);
+                                   Size size, LocusClient client);
 typedef Res (*ArenaSegAllocInZoneRangeMethod)(Seg *segReturn,
                                               SegPref pref, 
                                               Size size,
-                                              Pool pool,
+                                              LocusClient client,
                                               Addr base,
                                               Addr limit);
 typedef void (*ArenaSegFreeMethod)(Seg seg);

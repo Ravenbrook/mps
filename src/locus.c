@@ -376,13 +376,29 @@ void LocusClientZoneRangeNext(Addr *baseReturn,
 }
 
 
-/* NoteSeg methods -- used by the LocusManager Arena to update the
-   Locus ZoneUsage summaries on each segment allocation or free
+/* LocusClientSeg methods -- used by the LocusManager Arena to apprise
+   the LocusManager of segment allocations and frees.
    */
 
 /* LocusClientSegInit -- Inform the LocusManager that a segment
    has been allocated to a LocusClient  */
 void LocusClientSegInit(LocusClient client, Seg seg)
+{
+  AVERT(LocusClient, client);
+  AVERT(Seg, seg);
+  AVER(client->assigned);
+  AVER(client == SegClient(seg));
+  
+  /* add the segment to the client ring */
+  AVER(RingIsSingle(SegClientRing(seg)));
+  RingAppend(LocusClientSegRing(client), SegClientRing(seg));
+}
+
+
+/* LocusClientSegValid -- Inform the LocusManager that a segment is
+   valid, in particular, SegBase and SegLimit are valid, so the
+   segment's RefSet can be accumulated */
+void LocusClientSegValid(LocusClient client, Seg seg)
 {
   RefSet segRefSet;
   RefSet new;
@@ -390,6 +406,7 @@ void LocusClientSegInit(LocusClient client, Seg seg)
   AVERT(LocusClient, client);
   AVERT(Seg, seg);
   AVER(client->assigned);
+  AVER(client == SegClient(seg));
   
   segRefSet = RefSetOfSeg(LocusClientArena(client), seg);
   /* Should have chosen a seg in the currently being searched RefSet
@@ -404,14 +421,11 @@ void LocusClientSegInit(LocusClient client, Seg seg)
     LocusClientLocusManager(client)->searchCacheValid = FALSE;
     LocusNoteZoneAlloc(LocusClientLocus(client), new);
   }
-  /* add the segment to the client ring */
-  AVER(RingIsSingle(SegClientRing(seg)));
-  RingAppend(LocusClientSegRing(client), SegClientRing(seg));
 }
 
 
-/* LocusClientSegFinish -- Inform the LocusManager that a client is
-   no longer using a segment */
+/* LocusClientSegFinish -- Inform the LocusManager that a LocusClient
+   is no longer using a segment */
 void LocusClientSegFinish(LocusClient client, Seg seg)
 {
   RefSet segRefSet;
@@ -420,6 +434,7 @@ void LocusClientSegFinish(LocusClient client, Seg seg)
   AVERT(LocusClient, client);
   AVERT(Seg, seg);
   AVER(client->assigned);
+  AVER(client == SegClient(seg));
   
   segRefSet = RefSetOfSeg(LocusClientArena(client), seg);
   deleted = ZoneUsageDecrement(LocusClientZoneUsage(client), segRefSet);

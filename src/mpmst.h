@@ -358,6 +358,12 @@ typedef struct MessageStruct {
  *   of finding and removing some modularity-breaking accesses of SegStruct 
  *   fields.  There is no reason not to revert these names at some point in 
  *   the future.  richardk19980312.
+ * .seg.fieldnames.otoh: OTOH, any use of these underscored field
+ * names outside of seg.c is a modularity violation.  I have found and
+ * repaired a number of these.  DO NOT USE SEG FIELDS DIRECTLY.  Use the
+ * accessors.  It will make is sooo much easier when we reorganize the
+ * seg data structure to be column-major instead of row-major. 
+ * --ptw 1998-09-15 
  */
 
 typedef struct SegStruct {      /* segment structure */

@@ -531,6 +531,8 @@ extern void LocusClientZoneRangeNext(Addr *baseReturn,
                                      LocusClient client);
 extern void LocusClientSegInit(LocusClient client,
                                Seg seg);
+extern void LocusClientSegValid(LocusClient client,
+                                Seg seg);
 extern void LocusClientSegFinish(LocusClient client,
                                  Seg seg);
 extern Res LocusManagerDescribe(LocusManager manager,
@@ -648,11 +650,16 @@ extern Size ArenaReservoirLimit(Arena arena);
 extern void ArenaReservoirLimitSet(Arena arena, Size size);
 extern Size ArenaReservoirAvailable(Arena arena);
 
+/* @@@ compatibility: for pools with a single locus client */
 extern Res SegAlloc(Seg *segReturn, SegPref pref,
-                    Size size, Pool pool, Bool withReservoirPermit);
+                    Size size, Pool pool,
+                    Bool withReservoirPermit);
+extern Res SegAllocClient(Seg *segReturn, SegPref pref,
+                          Size size, LocusClient client,
+                          Bool withReservoirPermit);
 
 extern Res DefaultSegAllocInZoneRange(Seg *segReturn, SegPref pref,
-                                      Size size, Pool pool,
+                                      Size size, LocusClient client,
                                       Addr base, Addr limit);
 extern void SegFree(Seg seg);
 extern Addr SegBase(Seg seg);
@@ -676,8 +683,6 @@ extern SegPref SegPrefDefault(void);
 extern Res SegPrefExpress(SegPref pref, SegPrefKind kind, void *p);
 
 extern Bool SegCheck(Seg seg);
-/* @@@ compatibility: for pools with a single locus client */
-extern void SegInit(Seg seg, Pool pool);
 extern void SegInitClient(Seg seg, LocusClient client);
 extern void SegFinish(Seg seg);
 extern void SegSetGrey(Seg seg, TraceSet grey);

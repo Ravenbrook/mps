@@ -75,15 +75,6 @@ Bool SegCheck(Seg seg)
 }
 
 
-/* SegInit -- initialize the generic part of a segment */
-
-/* @@@ compatibility: for pools with a single locus client */
-void SegInit(Seg seg, Pool pool) 
-{
-  SegInitClient(seg, PoolLocusClient(pool));
-}
-
-
 /* SegInitClient -- Initialize a segment, assigning it to a particular
    LocusClient and updating the clients zone information */
 void SegInitClient(Seg seg, LocusClient client)
