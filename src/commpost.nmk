@@ -1,6 +1,6 @@
 # ==== SECOND COMMON FRAGMENT FOR PLATFORMS USING MV AND NMAKE
 #
-# $HopeName: !commpost.nmk(trunk.11) $
+# $HopeName: MMsrc!commpost.nmk(MM_dylan_honeybee.1) $
 # Copyright(C) 1997 Harlequin Group, all rights reserved
 #
 # DESCRIPTION
@@ -14,7 +14,7 @@
 # %%TARGET: Add the target  to the all dependencies
 
 all: mpmss.exe amcss.exe amsss.exe lockutw3.exe lockcov.exe \
-     mpsicv.exe poolncv.exe locv.exe qs.exe mpm.lib weakcv.exe \
+     mpsicv.exe poolncv.exe locv.exe qs.exe mpm.lib \
      mpmconft.exe finalcv.exe awlut.exe arenacv.exe
 
 # Convenience targets
@@ -22,7 +22,7 @@ all: mpmss.exe amcss.exe amsss.exe lockutw3.exe lockcov.exe \
 
 dwstress.exe amcss.exe amsss.exe lockutw3.exe lockcov.exe \
      mpmss.exe protcv.exe mpsicv.exe poolncv.exe locv.exe qs.exe \
-     weakcv.exe mpmconft.exe finalcv.exe awlut.exe arenacv.exe \
+     mpmconft.exe finalcv.exe awlut.exe arenacv.exe \
      mpm.lib mmdw.lib mmsw.lib poolawl.lib mpsplan.lib:
 !IFDEF VARIETY
 	$(MAKE) /nologo /f $(PFM).nmk TARGET=$@ variety
@@ -73,9 +73,6 @@ variety: $(PFM)\$(VARIETY)\$(TARGET)
 
 !IFDEF VARIETY
 
-$(PFM)\$(VARIETY)\weakcv.exe: $(PFM)\$(VARIETY)\weakcv.obj \
-	$(MPMOBJ) $(PLINTHOBJ) $(AMCOBJ) $(DWOBJ) $(TESTLIBOBJ)
-
 $(PFM)\$(VARIETY)\finalcv.exe: $(PFM)\$(VARIETY)\finalcv.obj \
 	$(MPMOBJ) $(PLINTHOBJ) $(AMCOBJ) $(DWOBJ) $(MRGOBJ) $(TESTLIBOBJ)
 
@@ -110,7 +107,7 @@ $(PFM)\$(VARIETY)\protcv.exe:  $(PFM)\$(VARIETY)\protcv.obj \
 	$(MPMOBJ) $(PLINTHOBJ) 
 
 $(PFM)\$(VARIETY)\poolncv.exe:  $(PFM)\$(VARIETY)\poolncv.obj \
-	$(MPMOBJ) $(PLINTHOBJ) $(TESTLIBOBJ) $(PFM)\$(VARIETY)\pooln.obj
+	$(MPMOBJ) $(PLINTHOBJ) $(TESTLIBOBJ) $(ARENAANOBJ) $(POOLNOBJ)
 
 $(PFM)\$(VARIETY)\locv.exe:  $(PFM)\$(VARIETY)\locv.obj \
 	$(MPMOBJ) $(PLINTHOBJ) $(TESTLIBOBJ) $(LOOBJ)
@@ -120,7 +117,7 @@ $(PFM)\$(VARIETY)\awlut.exe:  $(PFM)\$(VARIETY)\awlut.obj \
 	$(MPMOBJ) $(PLINTHOBJ) $(TESTLIBOBJ) $(LOOBJ) $(AWLOBJ)
 
 $(PFM)\$(VARIETY)\arenacv.exe:  $(PFM)\$(VARIETY)\arenacv.obj \
-	$(MPMOBJ) $(PLINTHOBJ) $(TESTLIBOBJ)
+	$(MPMOBJ) $(PLINTHOBJ) $(TESTLIBOBJ) $(ARENAANOBJ)
 
 $(PFM)\$(VARIETY)\mpm.lib: $(MPMOBJ)
 	$(ECHO) $@
