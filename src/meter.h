@@ -1,6 +1,6 @@
 /* impl.h.meter: METER INTERFACE
  *
- * $HopeName: MMsrc!meter.h(MMdevel_mv2_rework.1) $
+ * $HopeName: MMsrc!meter.h(MMdevel_mv2_rework.2) $
  * Copyright (C) 1998 Harlequin Group plc.  All rights reserved.
  *
  * Defines an interface for creating "meters" that accumulate the
@@ -46,33 +46,9 @@ extern Res MeterWrite(Meter meter, mps_lib_FILE *stream);
 #include "misc.h"
 #include "mpslib.h"
 
-#define METER_IGNORE(expr) \
-  BEGIN \
-    (void)sizeof(expr); \
-  END
-
-#if defined(MPS_HOT_WHITE)
-
 #define METER_DECL(meter) struct MeterStruct meter
-#define METER_INIT(meter, init) \
-  METER_IGNORE(meter); METER_IGNORE(init)
-#define METER_ACC(meter, delta) \
-  METER_IGNORE(meter); METER_IGNORE(delta)
-#define METER_WRITE(meter, stream) \
-  METER_IGNORE(meter); METER_IGNORE(stream)
-
-
-#elif defined(MPS_COOL) || defined(MPS_HOT_RED)
-
-#define METER_DECL(meter) struct MeterStruct meter
-#define METER_INIT(meter, init) (MeterInit(&(meter), (init)))
-#define METER_ACC(meter, delta) (MeterAccumulate(&(meter), (delta)))
-#define METER_WRITE(meter, stream) (MeterWrite(&(meter), (stream)))
-
-#else
-
-#error "No heat defined."
-
-#endif
+#define METER_INIT(meter, init) STATISTIC(MeterInit(&(meter), (init)))
+#define METER_ACC(meter, delta) STATISTIC(MeterAccumulate(&(meter), (delta)))
+#define METER_WRITE(meter, stream) STATISTIC(MeterWrite(&(meter), (stream)))
 
 #endif /* meter_h */
