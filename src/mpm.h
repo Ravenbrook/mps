@@ -1,6 +1,6 @@
 /* impl.h.mpm: MEMORY POOL MANAGER DEFINITIONS
  *
- * $HopeName: MMsrc!mpm.h(MMdevel_pekka_locus.3) $
+ * $HopeName: MMsrc!mpm.h(MMdevel_pekka_locus.4) $
  * Copyright (C) 1999 Harlequin Limited.  All rights reserved.
  */
 
@@ -543,7 +543,9 @@ extern Bool ArenaAccess(Addr addr, AccessSet mode,
 			MutatorFaultContext context);
 
 extern Bool ArenaAllocCheck(Arena arena);
+extern Res ArenaAllocCreate(Arena *arenaReturn, ArenaClass class, va_list args);
 extern void ArenaAllocInit(Arena arena, ArenaClass class);
+extern void ArenaAllocDestroy(Arena arena);
 extern void ArenaAllocFinish(Arena arena);
 extern Bool ArenaClassCheck(ArenaClass class);
 extern Res ArenaAllocDescribe(Arena arena, mps_lib_FILE *stream);
