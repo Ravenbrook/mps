@@ -1,6 +1,6 @@
 /* impl.h.mpmst: MEMORY POOL MANAGER DATA STRUCTURES
  *
- * $HopeName: !mpmst.h(trunk.28) $
+ * $HopeName: MMsrc!mpmst.h(MMdevel_drj_message.1) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  *
  * .readership: MM developers.
@@ -183,6 +183,38 @@ typedef struct MVStruct {       /* MV pool outer structure */
   RingStruct spans;             /* span chain */
   Sig sig;                      /* design.mps.sig */
 } MVStruct;
+
+
+/* MessageClassStruct -- Message Class structure 
+ *
+ * see design.mps.message.class.struct (and design.mps.message.message,
+ * and design.mps.message.class).
+ */
+
+#define MessageClassSig	((Sig)0x519359c1) /* SIGnature MeSsaGe CLass */
+
+typedef struct MessageClassStruct {
+  Sig sig;			/* design.mps.sig */
+  const char *name;		/* Human readable Class name */
+  MessageTypeMethod type;	/* retreives type (of a msg) */
+  MessageDeliverMethod deliver;	/* copies a message */
+  MessageDeleteMethod delete;	/* terminates a message */
+  Sig endSig;			/* design.mps.message.class.sig.double */
+} MessageClassStruct;
+
+#define MessageSig	((Sig)0x5193e559) /* SIG MESSaGe */
+
+/* MessageStruct -- Message structure
+ *
+ * see design.mps.message.message.struct.
+ */
+
+typedef struct MessageStruct {
+  Sig sig;			/* design.mps.sig */
+  Space space;			/* owning space */
+  MessageClass class;		/* Message Class Structure */
+  RingStruct queueRing;		/* Message queue ring */
+} MessageStruct;
 
 
 /* VMStruct -- virtual memory structure
@@ -642,6 +674,9 @@ typedef struct SpaceStruct {
   /* format fields (impl.c.format) */
   RingStruct formatRing;        /* ring of formats attached to space */
   Serial formatSerial;          /* serial of next format */
+
+  /* message fields (design.mps.message, impl.c.message) */
+  RingStruct messageRing;	/* ring of pending messages */
 
   /* thread fields (impl.c.thread) */
   RingStruct threadRing;        /* ring of attached threads */

@@ -1,6 +1,6 @@
 /* impl.h.mpm: MEMORY POOL MANAGER DEFINITIONS
  *
- * $HopeName: !mpm.h(trunk.35) $
+ * $HopeName: MMsrc!mpm.h(MMdevel_drj_message.1) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  */
 
@@ -302,6 +302,21 @@ extern void PoolNoReclaim(Pool pool, Trace trace, Seg seg);
 extern void PoolNoTraceEnd(Pool pool, Trace trace, Action action);
 extern void PoolTrivTraceEnd(Pool pool, Trace trace, Action action);
 extern double PoolNoBenefit(Pool pool, Action action);
+
+
+/* Message Interface -- see design.mps.message */
+
+extern Bool MessageCheck(Message message);
+extern Bool MessageClassCheck(MessageClass class);
+extern Bool MessageTypeCheck(MessageType type);
+extern void MessageInit(Space space, Message message, MessageClass class);
+extern void MessageFinish(Message message);
+extern void MessagePost(Space space, Message message);
+extern Bool MessagePoll(Space space);
+extern Bool MessageExType(MessageType *typeReturn, Space space);
+extern Bool MessageExDeliver(Space space, MessageType type,
+			     void *buffer, size_t length);
+extern Bool MessageDiscard(Space space, MessageType type);
 
 
 /* Trace Interface -- see impl.c.trace */
