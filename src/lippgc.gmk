@@ -1,6 +1,6 @@
 # impl.gmk.lippgc: BUILD FOR LINUX/POWER(32)/GCC PLATFORM
 #
-# $HopeName: MMsrc!lippgc.gmk(MMdevel_drj_vmli.1) $
+# $HopeName: MMsrc!lippgc.gmk(MMdevel_drj_vmli.2) $
 # Copyright (C) 1998.  Harlequin Group plc.  All rights reserved.
 #
 # This is the GNU makefile for platform.lippgc.
@@ -13,4 +13,4 @@ SWPF = lockan.c than.c vman.c protsw.c prmcan.c ssan.c
 
 LIBS = -lm
 
-include gc.gmk
+include gcmkli.gmk
