@@ -1,7 +1,7 @@
 /* impl.c.poolawl: AUTOMATIC WEAK LINKED POOL CLASS
  *
- * $HopeName: !poolawl.c(trunk.57) $
- * Copyright (C) 1998.  Harlequin Group plc.  All rights reserved.
+ * $HopeName: MMsrc!poolawl.c(MMdevel_alloc_replay.1) $
+ * Copyright (C) 1998 Harlequin Group plc.  All rights reserved.
  *
  * READERSHIP
  *
@@ -45,7 +45,7 @@
 #include "mpm.h"
 
 
-SRCID(poolawl, "$HopeName: !poolawl.c(trunk.57) $");
+SRCID(poolawl, "$HopeName: MMsrc!poolawl.c(MMdevel_alloc_replay.1) $");
 
 
 #define AWLSig  ((Sig)0x519b7a37)       /* SIGPooLAWL */
@@ -427,7 +427,7 @@ static Res AWLInit(Pool pool, va_list arg)
   AWLStatTotalInit(awl);
 
   AVERT(AWL, awl);
-
+  EVENT_PP(PoolInitAWL, pool, format);
   return ResOK;
 }
 
@@ -471,13 +471,13 @@ static Res AWLBufferInit(Pool pool, Buffer buffer, va_list args)
   /* Assumes pun compatibility between Rank and mps_rank_t */
   /* Which is checkd by mpsi_check in impl.c.mpsi */
   rank = va_arg(args, Rank);
-
   AVER(RankCheck(rank));
   /* .assume.samerank */
   /* AWL only accepts two ranks */
   AVER(rank == RankEXACT || rank == RankWEAK);
 
   buffer->rankSet = RankSetSingle(rank);
+  EVENT_PPU(BufferInitAWL, buffer, pool, rank);
   return ResOK;
 }
 
