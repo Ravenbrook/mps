@@ -1,7 +1,7 @@
 /* impl.h.mpscepvm: MEMORY POOL SYSTEM CLASS "EPVM"
  *
  * $Id$
- * Copyright (C) 1997, 1998 The Harlequin Group Limited.  All rights reserved.
+ * Copyright (c) 2001 Ravenbrook Limited.
  */
 
 #ifndef mpscepvm_h

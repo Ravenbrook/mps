@@ -1,7 +1,7 @@
 /* impl.c.poolepvm: ELECTRONIC PUBLISHING "VIRTUAL MEMORY" CLASS
  *
  * $Id$
- * Copyright (C) 2001 Harlequin Limited.  All rights reserved.
+ * Copyright (c) 2001 Ravenbrook Limited.
  *
  * .purpose: This is the implementation of the PostScript Virtual Memory
  * pool class for MM/EP-core.

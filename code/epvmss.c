@@ -1,7 +1,7 @@
 /* impl.c.epvmss: EPVM POOL CLASS STRESS TEST
  *
  * $Id$
- * Copyright (C) 1998 Harlequin Limited.  All rights reserved.
+ * Copyright (c) 2001 Ravenbrook Limited.
  *
  * .limitations: This tests GC on tangles of PS arrays and strings only.
  */

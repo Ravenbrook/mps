@@ -1,7 +1,7 @@
 /* impl.c.fmtpstst: POSTSCRIPT OBJECT FORMAT TEST VERSION
  *
  *  $Id$
- *  Copyright (C) 1998 Harlequin Limited.  All rights reserved.
+ *  Copyright (c) 2001 Ravenbrook Limited.
  *
  * .readership: MPS developers, SW developers
  *

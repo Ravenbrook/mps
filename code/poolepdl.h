@@ -1,6 +1,6 @@
 /*  impl.h.poolepdl: ELECTRONIC PUBLISHING DISPLAY LIST POOL
  *
- * Copyright (C) 1997 Harlequin Group Limited, all rights reserved
+ * Copyright (c) 2001 Ravenbrook Limited.
  * $Id$
  * 
  * .purpose: This is a pool class for EPcore display lists. See

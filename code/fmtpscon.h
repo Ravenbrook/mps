@@ -1,7 +1,7 @@
 /* impl.h.fmtpscon: POSTSCRIPT OBJECT FORMAT CONSTANTS
  *
  * $Id$
- * Copyright (C) 1997 Harlequin Group, all rights reserved
+ * Copyright (c) 2001 Ravenbrook Limited.
  *
  * .readership: MPS developers, SW developers
  *

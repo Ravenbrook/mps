@@ -1,7 +1,7 @@
 /* impl.h.mpscepdl: MEMORY POOL SYSTEM CLASS "EPDL"
  *
  * $Id$
- * Copyright (C) 1997, 1998 Harlequin Group plc.  All rights reserved.
+ * Copyright (c) 2001 Ravenbrook Limited.
  */
 
 #ifndef mpscepdl_h

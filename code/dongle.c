@@ -1,7 +1,7 @@
 /* impl.c.dongle: SENTINEL SUPERPRO DONGLE INTERFACE
  *
  * $Id$
- * Copyright (C) 2000 Harlequin Limited.  All rights reserved.
+ * Copyright (c) 2001 Ravenbrook Limited.
  *
  * .readership: NOTE: This file contains the secret IDs and formats for
  * ScriptWorks and MPS dongles.  It must not be given to outsiders, not
