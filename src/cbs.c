@@ -1,6 +1,6 @@
 /* impl.c.cbs: COALESCING BLOCK STRUCTURE IMPLEMENTATION
  *
- * $HopeName: MMsrc!cbs.c(MMdevel_gavinm_mvff.5) $
+ * $HopeName: MMsrc!cbs.c(MMdevel_gavinm_mvff.6) $
  * Copyright (C) 1998 Harlequin Group plc, all rights reserved.
  *
  * .readership: Any MPS developer.
@@ -18,7 +18,7 @@
 #include "mpm.h"
 
 
-SRCID(cbs, "$HopeName: MMsrc!cbs.c(MMdevel_gavinm_mvff.5) $");
+SRCID(cbs, "$HopeName: MMsrc!cbs.c(MMdevel_gavinm_mvff.6) $");
 
 typedef struct CBSEmergencyBlockStruct *CBSEmergencyBlock;
 typedef struct CBSEmergencyBlockStruct {
@@ -304,9 +304,8 @@ Res CBSInit(Arena arena, CBS cbs,
  */
 
 void CBSFinish(CBS cbs) {
-  CBSEnter(cbs);
-
   AVERT(CBS, cbs);
+  CBSEnter(cbs);
 
   cbs->sig = SigInvalid;
 
@@ -721,9 +720,9 @@ static void CBSFlushEmergencyLists(CBS cbs)
 Res CBSInsert(CBS cbs, Addr base, Addr limit) {
   Res res;
 
+  AVERT(CBS, cbs);
   CBSEnter(cbs);
 
-  AVERT(CBS, cbs);
   AVER(base != (Addr)0);
   AVER(base < limit);
   AVER(AddrIsAligned(base, cbs->alignment));
@@ -908,9 +907,9 @@ static Res CBSDeleteFromEmergencyGrainList(CBS cbs, Addr base, Addr limit)
 Res CBSDelete(CBS cbs, Addr base, Addr limit) {
   Res res;
 
+  AVERT(CBS, cbs);
   CBSEnter(cbs);
 
-  AVERT(CBS, cbs);
   AVER(base != NULL);
   AVER(limit > base);
   AVER(AddrIsAligned(base, cbs->alignment));
@@ -1045,9 +1044,9 @@ void CBSIterateLarge(CBS cbs, CBSIterateMethod iterate,
                      void *closureP, unsigned long closureS) {
   CBSIterateLargeClosureStruct closure;
 
+  AVERT(CBS, cbs);
   CBSEnter(cbs);
 
-  AVERT(CBS, cbs);
   AVER(FUNCHECK(iterate));
 
   closure.p = closureP;
@@ -1106,9 +1105,8 @@ static Bool CBSSetMinSizeShrink(CBS cbs, CBSBlock block,
 void CBSSetMinSize(CBS cbs, Size minSize) {
   CBSSetMinSizeClosureStruct closure;
 
-  CBSEnter(cbs);
-
   AVERT(CBS, cbs);
+  CBSEnter(cbs);
 
   closure.old = cbs->minSize;
   closure.new = minSize;
@@ -1133,11 +1131,11 @@ Bool CBSFindFirst(Addr *baseReturn, Addr *limitReturn,
   SplayNode node;
   CBSBlock block;
 
+  AVERT(CBS, cbs);
   CBSEnter(cbs);
 
   AVER(baseReturn != NULL);
   AVER(limitReturn != NULL);
-  AVERT(CBS, cbs);
   AVER(size > 0);
   AVER(sizeof(unsigned long) >= sizeof(Size));
   AVER(cbs->fastFind);
@@ -1169,11 +1167,11 @@ Bool CBSFindLast(Addr *baseReturn, Addr *limitReturn,
   SplayNode node;
   CBSBlock block;
 
+  AVERT(CBS, cbs);
   CBSEnter(cbs);
 
   AVER(baseReturn != NULL);
   AVER(limitReturn != NULL);
-  AVERT(CBS, cbs);
   AVER(size > 0);
   AVER(sizeof(unsigned long) >= sizeof(Size));
   AVER(cbs->fastFind);
