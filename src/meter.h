@@ -1,6 +1,6 @@
 /* impl.h.meter: METER INTERFACE
  *
- * $HopeName: MMsrc!meter.h(MMdevel_gavinm_splay.2) $
+ * $HopeName: !meter.h(trunk.2) $
  * Copyright (C) 1998 Harlequin Group plc.  All rights reserved.
  *
  * Defines an interface for creating "meters" that accumulate the

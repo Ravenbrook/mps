@@ -1,6 +1,6 @@
 /* impl.c.arenavmx: STUB FOR ARENAVM
  *
- * $HopeName: MMsrc!arenavmx.c(trunk.1) $
+ * $HopeName: !arenavmx.c(trunk.2) $
  * Copyright (C) 1998 Harlequin Group plc.  All rights reserved.
  *
  * This is a stub-file, providing stub-functions to take the place of 
@@ -29,7 +29,7 @@
 #include "mpm.h"
 #include "mpsavm.h"
 
-SRCID(arenavmx, "$HopeName: MMsrc!arenavmx.c(trunk.1) $");
+SRCID(arenavmx, "$HopeName: !arenavmx.c(trunk.2) $");
 
 /* mps_arena_class_vm -- return the arena class VM
  * Run-time asserting stub-function.

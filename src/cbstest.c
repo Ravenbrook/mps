@@ -1,6 +1,6 @@
 /*  impl.c.cbstest: COALESCING BLOCK STRUCTURE TEST
  *
- *  $HopeName: MMsrc!cbstest.c(MMdevel_gavinm_splay.5) $
+ *  $HopeName: !cbstest.c(trunk.2) $
  * Copyright (C) 1998 Harlequin Group plc.  All rights reserved.
  */
 
@@ -20,7 +20,7 @@
 #endif /* MPS_OS_SU */
 
 
-SRCID(cbstest, "$HopeName: MMsrc!cbstest.c(MMdevel_gavinm_splay.5) $");
+SRCID(cbstest, "$HopeName: !cbstest.c(trunk.2) $");
 
 #define ArraySize ((size_t)123456)
 #define nOperations ((size_t)125000)

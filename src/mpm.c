@@ -1,6 +1,6 @@
 /* impl.c.mpm: GENERAL MPM SUPPORT
  *
- * $HopeName: MMsrc!mpm.c(trunk.22) $
+ * $HopeName: !mpm.c(trunk.23) $
  * Copyright (C) 1996.  Harlequin Group plc.  All rights reserved.
  *
  * .readership: MM developers.
@@ -17,7 +17,7 @@
 #include <float.h>
 
 
-SRCID(mpm, "$HopeName: MMsrc!mpm.c(trunk.22) $");
+SRCID(mpm, "$HopeName: !mpm.c(trunk.23) $");
 
 
 /* MPMCheck -- test MPM assumptions */

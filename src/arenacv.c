@@ -1,6 +1,6 @@
 /* impl.c.arenacv: ARENA COVERAGE TEST
  *
- * $HopeName: MMsrc!arenacv.c(trunk.7) $
+ * $HopeName: !arenacv.c(trunk.8) $
  * Copyright (C) 1997 Harlequin Group, all rights reserved
  *
  * .readership: MPS developers
