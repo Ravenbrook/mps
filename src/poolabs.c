@@ -1,6 +1,6 @@
 /* impl.c.poolabs: ABSTRACT POOL CLASSES
  *
- * $HopeName: MMsrc!poolabs.c(MMdevel_tony_inheritance.1) $
+ * $HopeName: MMsrc!poolabs.c(MMdevel_tony_inheritance.2) $
  * Copyright (C) 1998. Harlequin Group plc. All rights reserved.
  *
  * READERSHIP
@@ -35,7 +35,7 @@
 
 #include "mpm.h"
 
-SRCID(poolabs, "$HopeName: MMsrc!poolabs.c(MMdevel_tony_inheritance.1) $");
+SRCID(poolabs, "$HopeName: MMsrc!poolabs.c(MMdevel_tony_inheritance.2) $");
 
 typedef PoolClassStruct AbstractPoolClassStruct;
 typedef PoolClassStruct AbstractAllocFreePoolClassStruct;
@@ -143,7 +143,7 @@ void PoolClassMixInCollect(PoolClass class)
 }
 
 
-DEFINE_POOL_CLASS(AbstractPoolClass, class)
+DEFINE_CLASS(AbstractPoolClass, class)
 {
   INHERIT_CLASS(&class->protocol, ProtocolClass);
   class->name = "ABSTRACT";
@@ -177,25 +177,25 @@ DEFINE_POOL_CLASS(AbstractPoolClass, class)
   class->sig = PoolClassSig;
 }
 
-DEFINE_POOL_CLASS(AbstractAllocFreePoolClass, class)
+DEFINE_CLASS(AbstractAllocFreePoolClass, class)
 {
   INHERIT_CLASS(class, AbstractPoolClass);
   PoolClassMixInAllocFree(class);
 }
 
-DEFINE_POOL_CLASS(AbstractBufferPoolClass, class)
+DEFINE_CLASS(AbstractBufferPoolClass, class)
 {
   INHERIT_CLASS(class, AbstractPoolClass);
   PoolClassMixInBuffer(class);
 }
 
-DEFINE_POOL_CLASS(AbstractScanPoolClass, class)
+DEFINE_CLASS(AbstractScanPoolClass, class)
 {
   INHERIT_CLASS(class, AbstractBufferPoolClass);
   PoolClassMixInScan(class);
 }
 
-DEFINE_POOL_CLASS(AbstractCollectPoolClass, class)
+DEFINE_CLASS(AbstractCollectPoolClass, class)
 {
   INHERIT_CLASS(class, AbstractScanPoolClass);
   PoolClassMixInCollect(class);
