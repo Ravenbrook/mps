@@ -1,17 +1,10 @@
 /* impl.c.mpsicv: MPSI COVERAGE TEST
  *
- * $HopeName: !mpsicv.c(trunk.14) $
- * Copyright (C) 1996, 1997 Harlequin Group, all rights reserved
+ * $HopeName: MMsrc!mpsicv.c(MMdevel_ramp_alloc.1) $
+ * Copyright (C) 1996, 1997.  Harlequin Group plc.  All rights reserved.
  */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <stdarg.h>
-#include <math.h>
-#include <string.h>
-#include <assert.h>
 #include "testlib.h"
-#include "mps.h"
 #include "mpscamc.h"
 #include "mpsavm.h"
 #include "mpscmv.h"
@@ -20,14 +13,25 @@
 #ifdef MPS_OS_W3
 #include "mpsw3.h"
 #endif
+#include "mps.h"
 #ifdef MPS_OS_SU
 #include "ossu.h"
 #endif
+#include <stdio.h>
+#include <stdlib.h>
+#include <stdarg.h>
+#include <math.h>
+#include <string.h>
+#include <assert.h>
 
 #define exactRootsCOUNT  50
 #define ambigRootsCOUNT  50
-#define OBJECTS         4000
+#define OBJECTS          4000
+#define patternFREQ      100
+
+/* objNULL needs to be odd so that it's ignored in exactRoots. */
 #define objNULL         ((mps_addr_t)0xDECEA5ED)
+
 
 static mps_pool_t amcpool;
 static mps_ap_t ap;
@@ -115,13 +119,15 @@ static void *test(void *arg, size_t s)
   mps_arena_t arena;
   mps_fmt_t format;
   mps_root_t exactRoot, ambigRoot, singleRoot, fmtRoot;
-  mps_word_t i;
+  unsigned long i;
+  size_t j;
   mps_word_t collections;
   mps_pool_t mv;
   mps_addr_t alloced_obj;
   size_t asize = 32;  /* size of alloced obj */
   mps_addr_t obj;
   mps_ld_s ld;
+  mps_alloc_pattern_t ramp = mps_alloc_pattern_ramp();
 
   arena = (mps_arena_t)arg;
   testlib_unused(s);
@@ -137,18 +143,16 @@ static void *test(void *arg, size_t s)
 
   die(mps_ap_create(&ap, amcpool), "ap_create");
 
-  for(i=0; i<exactRootsCOUNT; ++i)
-    exactRoots[i] = objNULL;
+  for(j = 0; j < exactRootsCOUNT; ++j)
+    exactRoots[j] = objNULL;
+  for(j = 0; j < ambigRootsCOUNT; ++j)
+    ambigRoots[j] = (mps_addr_t)rnd();
 
-  for(i=0; i<ambigRootsCOUNT; ++i)
-    ambigRoots[i] = (mps_addr_t)rnd();
-
-
-  die(mps_root_create_table(&exactRoot, arena,
-                            MPS_RANK_EXACT, (mps_rm_t)0,
-                            &exactRoots[0], exactRootsCOUNT),
+  die(mps_root_create_table_masked(&exactRoot, arena,
+                                   MPS_RANK_EXACT, (mps_rm_t)0,
+                                   &exactRoots[0], exactRootsCOUNT,
+                                   (mps_word_t)1),
       "root_create_table(exact)");
-
   die(mps_root_create_table(&ambigRoot, arena,
                             MPS_RANK_AMBIG, (mps_rm_t)0,
                             &ambigRoots[0], ambigRootsCOUNT),
@@ -165,7 +169,6 @@ static void *test(void *arg, size_t s)
   obj = make_no_inline();
 
   die(mps_alloc(&alloced_obj, mv, asize), "mps_alloc");
-
   die(dylan_init(alloced_obj, asize, exactRoots, exactRootsCOUNT),
       "dylan_init(alloced_obj)");
 
@@ -184,9 +187,9 @@ static void *test(void *arg, size_t s)
     mps_ld_add(&ld, arena, obj);
   }
 
-  collections = 0;
+  collections = mps_collections(arena);
 
-  for(i=0; i<OBJECTS; ++i) {
+  for(i = 0; i < OBJECTS; ++i) {
     unsigned c;
     size_t r;
 
@@ -194,11 +197,17 @@ static void *test(void *arg, size_t s)
 
     if(collections != c) {
       collections = c;
-      printf("\nCollection %u, %lu objects.\n",
-             c, (unsigned long)i);
-      for(r=0; r<exactRootsCOUNT; ++r)
-        assert(dylan_check(exactRoots[r]));
+      printf("\nCollection %u, %lu objects.\n", c, i);
+      for(r = 0; r < exactRootsCOUNT; ++r)
+        assert(exactRoots[r] == objNULL || dylan_check(exactRoots[r]));
     }
+
+    if(rnd() % patternFREQ == 0)
+      switch(rnd() % 4) {
+      case 0: case 1: mps_ap_alloc_pattern_begin(ap, ramp); break;
+      case 2: mps_ap_alloc_pattern_end(ap, ramp); break;
+      case 3: mps_ap_alloc_pattern_reset(ap); break;
+      }
 
     if(rnd() & 1)
       exactRoots[rnd() % exactRootsCOUNT] = make();
@@ -209,6 +218,8 @@ static void *test(void *arg, size_t s)
     if(exactRoots[r] != objNULL)
       assert(dylan_check(exactRoots[r]));
   }
+
+  mps_arena_collect(arena);
 
   mps_free(mv, alloced_obj, 32);
   alloc_v_test(mv);
