@@ -1,6 +1,6 @@
 /* impl.c.arenavm: VIRTUAL MEMORY BASED ARENA IMPLEMENTATION
  *
- * $HopeName: MMsrc!arenavm.c(MMdevel_config_thread.1) $
+ * $HopeName: MMsrc!arenavm.c(MMdevel_config_thread.2) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  *
  * This is the implementation of the Segment abstraction from the VM
@@ -30,7 +30,7 @@
 #include "mpsavm.h"
 
 
-SRCID(arenavm, "$HopeName: MMsrc!arenavm.c(MMdevel_config_thread.1) $");
+SRCID(arenavm, "$HopeName: MMsrc!arenavm.c(MMdevel_config_thread.2) $");
 
 
 typedef struct VMArenaStruct *VMArena;
@@ -131,7 +131,7 @@ static Bool VMArenaCheck(VMArena vmArena)
 {
   CHECKS(VMArena, vmArena);
   CHECKD(Arena, VMArenaArena(vmArena));
-  CHECKD(VM, vmArena->vm);
+  CHECKL(VMCheck(vmArena->vm));
   CHECKL(vmArena->base != (Addr)0);
   CHECKL(vmArena->base < vmArena->limit);
   CHECKL(ShiftCheck(vmArena->pageShift));
@@ -249,7 +249,6 @@ static Res VMArenaInit(Arena *arenaReturn, va_list args)
   return ResOK;
 
 failTableMap:
-  ArenaFinish(arena);
   VMDestroy(vm);
 failVMCreate:
   return res;
