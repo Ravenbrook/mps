@@ -1,7 +1,7 @@
 /* impl.c.vmso: VIRTUAL MEMORY MAPPING FOR SOLARIS 2.x
  *
- * $HopeName: !vmso.c(trunk.8) $
- * Copyright (C) 1995 Harlequin Group, all rights reserved
+ * $HopeName: MMsrc!vmso.c(MMdevel_irix_vm.1) $
+ * Copyright (C) 1995, 1997 Harlequin Group, all rights reserved
  *
  * Design: design.mps.vm
  *
@@ -22,10 +22,6 @@
  *   mmap() will not choose a region which contains the last page
  *   in the address space, so that the limit of the mapped area
  *   is representable.
- *
- * .assume.size: The maximum size of the reserved address space
- *   is limited by the range of "int".  This will probably be half
- *   of the address space.
  *
  * .assume.mmap.err: ENOMEM is the only error we really expect to
  *   get from mmap.  The others are either caused by invalid params
@@ -56,15 +52,7 @@
 /* unistd for _SC_PAGESIZE */
 #include <unistd.h>
 
-SRCID(vmso, "$HopeName: !vmso.c(trunk.8) $");
-
-
-/* Fix up unprototyped system calls.  */
-/* Note that these are not fixed up by std.h because that only fixes */
-/* up discrepancies with ANSI. */
-
-extern int close(int fd);
-extern int munmap(caddr_t addr, size_t len);
+SRCID(vmso, "$HopeName: MMsrc!vmso.c(MMdevel_irix_vm.1) $");
 
 
 /* VMStruct -- virtual memory structure */
@@ -124,7 +112,7 @@ Res VMCreate(VM *vmReturn, Size size)
   AVER(vmReturn != NULL);
   AVER(SizeIsAligned(size, align));
   AVER(size != 0);
-  AVER(size <= INT_MAX); /* see .assume.size */
+  AVER(size <= (Size)(size_t)-1);
 
   zero_fd = open("/dev/zero", O_RDONLY);
   if(zero_fd == -1)
@@ -136,7 +124,7 @@ Res VMCreate(VM *vmReturn, Size size)
   }
 
   /* Map in a page to store the descriptor on. */
-  addr = mmap((caddr_t)0, SizeAlignUp(sizeof(VMStruct), align),
+  addr = mmap((caddr_t)0, (size_t)SizeAlignUp(sizeof(VMStruct), align),
               PROT_READ | PROT_WRITE, MAP_PRIVATE,
               zero_fd, (off_t)0);
   if(addr == (caddr_t)-1) {
@@ -156,7 +144,8 @@ Res VMCreate(VM *vmReturn, Size size)
   vm->align = align;
 
   /* .map.reserve: See .assume.not-last. */
-  addr = mmap((caddr_t)0, size, PROT_NONE, MAP_SHARED, none_fd, (off_t)0);
+  addr = mmap((caddr_t)0, (size_t)size, PROT_NONE, MAP_SHARED,
+              none_fd, (off_t)0);
   if(addr == (caddr_t)-1) {
     int e = errno;
     AVER(e == ENOMEM); /* .assume.mmap.err */
@@ -199,10 +188,10 @@ void VMDestroy(VM vm)
 
   close(vm->zero_fd);
   close(vm->none_fd);
-  r = munmap((caddr_t)vm->base, (int)AddrOffset(vm->base, vm->limit));
+  r = munmap((caddr_t)vm->base, (size_t)AddrOffset(vm->base, vm->limit));
   AVER(r == 0);
   r = munmap((caddr_t)vm,
-             (int)SizeAlignUp(sizeof(VMStruct), vm->align));
+             (size_t)SizeAlignUp(sizeof(VMStruct), vm->align));
   AVER(r == 0);
 
   EVENT_P(VMDestroy, vm);
@@ -238,13 +227,12 @@ Size VMMapped(VM vm)
 Res VMMap(VM vm, Addr base, Addr limit)
 {
   Size size;
+  caddr_t addr;
 
   AVERT(VM, vm);
-  AVER(sizeof(int) == sizeof(Addr));
   AVER(base < limit);
   AVER(base >= vm->base);
   AVER(limit <= vm->limit);
-  AVER(AddrOffset(base, limit) <= INT_MAX);
   AVER(AddrIsAligned(base, vm->align));
   AVER(AddrIsAligned(limit, vm->align));
 
@@ -252,15 +240,18 @@ Res VMMap(VM vm, Addr base, Addr limit)
   /* effectively populates the area with zeroed memory. */
 
   size = AddrOffset(base, limit);
+  /* Check it won't lose any bits. */
+  AVER(size <= (Size)(size_t)-1);
 
-  if((int)mmap((caddr_t)base, (int)size,
-               PROT_READ | PROT_WRITE | PROT_EXEC,
-               MAP_PRIVATE | MAP_FIXED,
-               vm->zero_fd, (off_t)0)
-     == -1) {
+  addr = mmap((caddr_t)base, (size_t)size,
+              PROT_READ | PROT_WRITE | PROT_EXEC,
+              MAP_PRIVATE | MAP_FIXED,
+              vm->zero_fd, (off_t)0);
+  if (addr == (caddr_t)-1) {
     AVER(errno == ENOMEM); /* .assume.mmap.err */
     return ResMEMORY;
   }
+  AVER(addr == (caddr_t)base);
 
   vm->mapped += size;
 
@@ -274,7 +265,6 @@ void VMUnmap(VM vm, Addr base, Addr limit)
   caddr_t addr;
 
   AVERT(VM, vm);
-  AVER(sizeof(int) == sizeof(Addr));
   AVER(base < limit);
   AVER(base >= vm->base);
   AVER(limit <= vm->limit);
@@ -288,7 +278,9 @@ void VMUnmap(VM vm, Addr base, Addr limit)
   /* MAP_FIXED.  The offset is specified to mmap so that */
   /* the OS merges this mapping with .map.reserve. */
   size = AddrOffset(base, limit);
-  addr = mmap((caddr_t)base, (int)size,
+  /* Check it won't lose any bits. */
+  AVER(size <= (Size)(size_t)-1);
+  addr = mmap((caddr_t)base, (size_t)size,
               PROT_NONE, MAP_SHARED | MAP_FIXED,
               vm->none_fd, (off_t)AddrOffset(vm->base, base));
   AVER(addr == (caddr_t)base);
