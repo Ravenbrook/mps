@@ -1,6 +1,6 @@
 /* impl.h.mpm: MEMORY POOL MANAGER DEFINITIONS
  *
- * $HopeName: MMsrc!mpm.h(MMdevel_drjweak.1) $
+ * $HopeName: MMsrc!mpm.h(MMdevel_drjweak.2) $
  * Copyright (C) 1996 Harlequin Group, all rights reserved.
  */
 
@@ -267,8 +267,7 @@ extern Bool SegCheck(Seg seg);
 
 /* Buffer Interface -- see impl.c.buffer */
 
-extern Res BufferCreateRanked(Buffer *bufferReturn, Pool pool, Rank rank);
-extern Res BufferCreate(Buffer *bufferReturn, Pool pool);
+extern Res BufferCreate(Buffer *bufferReturn, Pool pool, Rank rank);
 extern void BufferDestroy(Buffer buffer);
 extern Bool BufferCheck(Buffer buffer);
 extern Res BufferDescribe(Buffer buffer, Lib_FILE *stream);
