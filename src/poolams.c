@@ -1,6 +1,6 @@
 /* impl.c.poolams: AUTOMATIC MARK & SWEEP POOL CLASS
  *
- * $HopeName: !poolams.c(trunk.15) $
+ * $HopeName: MMsrc!poolams.c(MMdevel_drj_trace_abort.1) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  * 
  * .readership: any MPS developer.
@@ -17,7 +17,7 @@
 #include "mpm.h"
 #include "mpscams.h"
 
-SRCID(poolams, "$HopeName: !poolams.c(trunk.15) $");
+SRCID(poolams, "$HopeName: MMsrc!poolams.c(MMdevel_drj_trace_abort.1) $");
 
 
 #define AMSSig          ((Sig)0x519A3599) /* SIGnature AMS */
@@ -823,7 +823,7 @@ static Res AMSScanObject(AMSGroup group,
  * See design.mps.poolams.scan
  */
 
-static Res AMSScan(ScanState ss, Pool pool, Seg seg)
+static Res AMSScan(Bool *totalReturn, ScanState ss, Pool pool, Seg seg)
 {
   Res res;
   AMS ams;
@@ -831,6 +831,7 @@ static Res AMSScan(ScanState ss, Pool pool, Seg seg)
   AMSGroup group;
   struct AMSScanClosureStruct closureStruct;
 
+  AVER(totalReturn != NULL);
   AVERT(ScanState, ss);
 
   AVERT(Pool, pool);
@@ -851,8 +852,10 @@ static Res AMSScan(ScanState ss, Pool pool, Seg seg)
 
     res = AMSIterate(ams, group, seg, arena, AMSScanObject,
 		     &closureStruct);
-    if(res != ResOK)
+    if(res != ResOK) {
+      *totalReturn = FALSE;
       return res;
+    }
     group->marked = FALSE;
     
   } else { /* design.mps.poolams.scan.iter */
@@ -864,20 +867,14 @@ static Res AMSScan(ScanState ss, Pool pool, Seg seg)
 		       &closureStruct);
       if(res != ResOK) {
         group->marked = TRUE; /* design.mps.poolams.marked.scan.fail */
+	*totalReturn = FALSE;
         return res;
       }
     } while(group->marked);
 
   }
 
-  /* If the scanner didn't scan all the objects then the */
-  /* summary of the unscanned objects must be added into the scan */
-  /* state summary, so that it's a valid summary of the entire */
-  /* segment on return.  See design.mps.poolams.summary.scan.part. */
-  if(!closureStruct.scanAllObjects)
-    ScanStateSetSummary(ss, RefSetUnion(ScanStateSummary(ss),
-                                        SegSummary(seg)));
-
+  *totalReturn = closureStruct.scanAllObjects;
   return ResOK;
 }
 
@@ -1245,6 +1242,7 @@ static PoolClassStruct PoolClassAMSStruct = {
   AMSBlacken,                /* blacken */
   AMSScan,                   /* scan */
   AMSFix,                    /* fix */
+  AMSFix,                    /* Emergency Fix */
   AMSReclaim,                /* reclaim */
   AMSBenefit,                /* benefit */
   PoolCollectAct,            /* act */
