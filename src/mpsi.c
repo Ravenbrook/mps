@@ -1,6 +1,6 @@
 /* impl.c.mpsi: MEMORY POOL SYSTEM C INTERFACE LAYER
  *
- * $HopeName: !mpsi.c(trunk.48) $
+ * $HopeName: MMsrc!mpsi.c(MMdevel_drj_commit_limit.1) $
  * Copyright (C) 1997. Harlequin Group plc. All rights reserved.
  *
  * .purpose: This code bridges between the MPS interface to C,
@@ -52,7 +52,7 @@
 #include "mps.h"
 #include "mpsavm.h" /* only for mps_space_create */
 
-SRCID(mpsi, "$HopeName: !mpsi.c(trunk.48) $");
+SRCID(mpsi, "$HopeName: MMsrc!mpsi.c(MMdevel_drj_commit_limit.1) $");
 
 
 /* mpsi_check -- check consistency of interface mappings
@@ -214,6 +214,41 @@ size_t mps_space_committed(mps_space_t mps_space)
   return mps_arena_committed(mps_space);
 }
 
+size_t mps_arena_commit_limit(mps_arena_t mps_arena)
+{
+  Arena arena = (Arena)mps_arena;
+  Size size;
+
+  ArenaEnter(arena);
+  size = ArenaCommitLimit(arena);
+  ArenaLeave(arena);
+
+  return size;
+}
+  
+mps_res_t mps_arena_commit_limit_set(mps_arena_t mps_arena, size_t limit)
+{
+  Res res;
+  Arena arena = (Arena)mps_arena;
+
+  ArenaEnter(arena);
+  res = ArenaSetCommitLimit(arena, limit);
+  ArenaLeave(arena);
+
+  return res;
+}
+
+mps_res_t mps_arena_commit_limit_add(mps_arena_t mps_arena, long delta)
+{
+  Res res;
+  Arena arena = (Arena)mps_arena;
+
+  ArenaEnter(arena);
+  res = ArenaAddCommitLimit(arena, delta);
+  ArenaLeave(arena);
+
+  return res;
+}
 
 void mps_arena_clamp(mps_arena_t mps_arena)
 {

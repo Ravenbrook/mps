@@ -1,6 +1,6 @@
 /* impl.h.mpmst: MEMORY POOL MANAGER DATA STRUCTURES
  *
- * $HopeName: !mpmst.h(trunk.58) $
+ * $HopeName: MMsrc!mpmst.h(MMdevel_drj_commit_limit.1) $
  * Copyright (C) 1998 Harlequin Group plc.  All rights reserved.
  *
  * .readership: MM developers.
@@ -614,6 +614,8 @@ typedef struct ArenaStruct {
   double allocMutatorSize;      /* fill-empty, only asymptotically accurate */
   double fillInternalSize;      /* total bytes filled, internal buffers */
   double emptyInternalSize;     /* total bytes emptied, internal buffers */
+
+  Size commitLimit;             /* Client configurable commit limit */
 
   Shift zoneShift;              /* see also impl.c.ref */
   Align alignment;		/* minimum alignment of segments */

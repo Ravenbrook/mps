@@ -1,6 +1,6 @@
 /* impl.c.arena: ARENA IMPLEMENTATION
  *
- * $HopeName: !arena.c(trunk.40) $
+ * $HopeName: MMsrc!arena.c(MMdevel_drj_commit_limit.1) $
  * Copyright (C) 1998. Harlequin Group plc. All rights reserved.
  *
  * .readership: Any MPS developer
@@ -36,7 +36,7 @@
 #include "poolmrg.h"
 #include "mps.h"
 
-SRCID(arena, "$HopeName: !arena.c(trunk.40) $");
+SRCID(arena, "$HopeName: MMsrc!arena.c(MMdevel_drj_commit_limit.1) $");
 
 
 /* All static data objects are declared here. See .static */
@@ -114,6 +114,7 @@ Bool ArenaCheck(Arena arena)
          arena->allocMutatorSize);
   CHECKL(arena->fillInternalSize >= 0.0);
   CHECKL(arena->emptyInternalSize >= 0.0);
+  /* commitLimit is arbitrary, can't be checked */
 
   CHECKL(ShiftCheck(arena->zoneShift));
   CHECKL(AlignCheck(arena->alignment));
@@ -246,6 +247,8 @@ void ArenaInit(Arena arena, ArenaClass class)
   arena->allocMutatorSize = 0.0;
   arena->fillInternalSize = 0.0;
   arena->emptyInternalSize = 0.0;
+  /* may be overrideen by init */
+  arena->commitLimit = (Size)-1;
   /* usually overridden by init */
   arena->alignment = MPS_PF_ALIGN;
   /* usually overridden by init */
@@ -705,6 +708,7 @@ Res ArenaDescribe(Arena arena, mps_lib_FILE *stream)
     return res;
 
   res = WriteF(stream,
+               "  commitLimit $W\n", (WriteFW)arena->commitLimit,
                "  zoneShift $U\n", (WriteFU)arena->zoneShift,
                "  alignment $W\n", (WriteFW)arena->alignment,
                "  poolSerial $U\n", (WriteFU)arena->poolSerial,
@@ -959,6 +963,49 @@ Size ArenaCommitted(Arena arena)
 {
   AVERT(Arena, arena);
   return (*arena->class->committed)(arena);
+}
+
+Size ArenaCommitLimit(Arena arena)
+{
+  AVERT(Arena, arena);
+  return arena->commitLimit;
+}
+
+Res ArenaSetCommitLimit(Arena arena, Size limit)
+{
+  AVERT(Arena, arena);
+  AVER(ArenaCommitted(arena) <= arena->commitLimit);
+
+  if(limit < ArenaCommitted(arena)) {
+    /* Attempt to set the limit below current committed */
+    return ResFAIL;
+  }
+  arena->commitLimit = limit;
+  return ResOK;
+}
+
+Res ArenaAddCommitLimit(Arena arena, long delta)
+{
+  AVERT(Arena, arena);
+  AVER(ArenaCommitted(arena) <= arena->commitLimit);
+
+  if(delta >= 0) {
+    if((Size)(arena->commitLimit + delta) < arena->commitLimit) {
+      /* overflowed by increasing */
+      return ResFAIL;
+    }
+  } else {
+    if((Size)(arena->commitLimit + delta) > arena->commitLimit) {
+      /* overflowed by decreasing */
+      return ResFAIL;
+    }
+  }
+  if((Size)(arena->commitLimit + delta) < ArenaCommitted(arena)) {
+    return ResFAIL;
+  }
+
+  arena->commitLimit += delta;
+  return ResOK;
 }
 
 

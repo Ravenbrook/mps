@@ -1,6 +1,6 @@
 /* impl.h.mps: HARLEQUIN MEMORY POOL SYSTEM C INTERFACE
  *
- * $HopeName: !mps.h(trunk.39) $
+ * $HopeName: MMsrc!mps.h(MMdevel_drj_commit_limit.1) $
  * Copyright (C) 1997, 1998 The Harlequin Group Limited.  All rights reserved.
  *
  * .readership: customers, MPS developers.
@@ -54,7 +54,8 @@ enum {
   MPS_RES_MEMORY,               /* unable to obtain memory */
   MPS_RES_LIMIT,                /* limitation reached */
   MPS_RES_UNIMPL,               /* unimplemented facility */
-  MPS_RES_IO                    /* system I/O error */
+  MPS_RES_IO,                   /* system I/O error */
+  MPS_RES_COMMIT_LIMIT          /* arena commit limit exceeded */
 };
 
 /* .message.types: Keep in sync with impl.h.mpmtypes.message.types */
@@ -200,6 +201,9 @@ extern void mps_space_destroy(mps_space_t);
 
 extern size_t mps_arena_reserved(mps_arena_t);
 extern size_t mps_arena_committed(mps_arena_t);
+extern size_t mps_arena_commit_limit(mps_arena_t);
+extern mps_res_t mps_arena_commit_limit_set(mps_arena_t, size_t);
+extern mps_res_t mps_arena_commit_limit_add(mps_arena_t, long);
  
 extern size_t mps_space_reserved(mps_space_t);
 extern size_t mps_space_committed(mps_space_t);
