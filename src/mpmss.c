@@ -1,6 +1,6 @@
 /*  impl.c.mpmss: MPM STRESS TEST
  *
- *  $HopeName: MMsrc!mpmss.c(MMdevel_irix_vm.1) $
+ *  $HopeName: MMsrc!mpmss.c(MMdevel_irix_vm.2) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  */
 
@@ -103,8 +103,10 @@ static size_t fixedSize(int i)
 int main(void)
 {
   mps_arena_t arena;
+  int i;
 
-  srand(time(NULL));
+  /* Randomize the random number generator a bit. */
+  for(i = time(NULL) % 67; i > 0; --i) rnd();
 
   die(mps_arena_create(&arena, mps_arena_class_vm(), (size_t)64<<20),
       "arena init");
