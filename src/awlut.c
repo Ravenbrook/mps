@@ -1,6 +1,6 @@
 /* impl.c.awlut: POOL CLASS AWL UNIT TEST
  *
- * $HopeName: !awlut.c(trunk.5) $
+ * $HopeName: MMsrc!awlut.c(MM_dylan_sunflower.1) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  *
  * READERSHIP
@@ -25,6 +25,7 @@
 
 
 #define TABLE_SLOTS 50
+#define TABLES 100
 #define ITERATIONS 5000
 #define CHATTER 100
 /* The number that a half of all numbers generated from rnd are less
@@ -61,7 +62,7 @@ static mps_word_t table_wrapper[] = {
   1				/* VL */
 };
 
-#define DYLAN_ALIGN 4 /* depends on value defined in fmtdy.c */
+#define DYLAN_ALIGN sizeof(mps_word_t) /* depends on value defined in fmtdy.c */
 
 /* create a dylan string object (byte vector) whose contents
  * are the string s (including the terminating NUL)
@@ -103,7 +104,7 @@ static mps_word_t *alloc_table(unsigned long n, mps_ap_t ap)
   void *p;
   mps_word_t *object;
   objsize = (3 + n) * sizeof(mps_word_t);
-  objsize = (objsize + MPS_PF_ALIGN-1)/MPS_PF_ALIGN*MPS_PF_ALIGN;
+  objsize = (objsize + DYLAN_ALIGN-1)/DYLAN_ALIGN*DYLAN_ALIGN;
   do {
     unsigned long i;
 
@@ -154,47 +155,49 @@ static void test(mps_ap_t leafap, mps_ap_t exactap, mps_ap_t weakap)
   mps_word_t *exacttable;
   mps_word_t *preserve[TABLE_SLOTS];	/* preserves objects in the weak */
 				        /* table by referring to them */
-  unsigned long i, j;
+  unsigned long i, j, k;
 
-  exacttable = alloc_table(TABLE_SLOTS, exactap);
-  weaktable = alloc_table(TABLE_SLOTS, weakap);
-  table_link(exacttable, weaktable);
+  for(k = 0; k < TABLES; ++k) {
+    exacttable = alloc_table(TABLE_SLOTS, exactap);
+    weaktable = alloc_table(TABLE_SLOTS, weakap);
+    table_link(exacttable, weaktable);
 
-  for(i = 0; i < TABLE_SLOTS; ++i) {
-    mps_word_t *string;
-    if(rnd() < P_A_HALF) {
-      string = alloc_string("iamalive", leafap);
-      preserve[i] = string;
-    } else {
-      string = alloc_string("iamdead", leafap);
-      preserve[i] = 0;
-    }
-    set_table_slot(weaktable, i, string);
-    string = alloc_string("iamexact", leafap);
-    set_table_slot(exacttable, i, string);
-  }
-
-  for(j = 0; j < ITERATIONS; ++j) {
     for(i = 0; i < TABLE_SLOTS; ++i) {
       mps_word_t *string;
-
-      string = alloc_string("spong", leafap);
-    }
-  }
-
-  for(i = 0; i < TABLE_SLOTS; ++i) {
-    if(preserve[i] == 0) {
-      if(table_slot(weaktable, i)) {
-	fprintf(stdout,
-		"Strongly unreachable weak table entry found, "
-	        "slot %lu.\n",
-		i);
+      if(rnd() < P_A_HALF) {
+	string = alloc_string("iamalive", leafap);
+	preserve[i] = string;
       } else {
-	if(table_slot(exacttable, i) != 0) {
+	string = alloc_string("iamdead", leafap);
+	preserve[i] = 0;
+      }
+      set_table_slot(weaktable, i, string);
+      string = alloc_string("iamexact", leafap);
+      set_table_slot(exacttable, i, string);
+    }
+
+    for(j = 0; j < ITERATIONS; ++j) {
+      for(i = 0; i < TABLE_SLOTS; ++i) {
+	mps_word_t *string;
+
+	string = alloc_string("spong", leafap);
+      }
+    }
+
+    for(i = 0; i < TABLE_SLOTS; ++i) {
+      if(preserve[i] == 0) {
+	if(table_slot(weaktable, i)) {
 	  fprintf(stdout,
-		  "Weak table entry deleted, but corresponding "
-		  "exact table entry not deleted, slot %lu.\n",
+		  "Strongly unreachable weak table entry found, "
+		  "slot %lu.\n",
 		  i);
+	} else {
+	  if(table_slot(exacttable, i) != 0) {
+	    fprintf(stdout,
+		    "Weak table entry deleted, but corresponding "
+		    "exact table entry not deleted, slot %lu.\n",
+		    i);
+	  }
 	}
       }
     }
