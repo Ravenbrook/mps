@@ -1,6 +1,6 @@
 /* impl.h.mps: HARLEQUIN MEMORY POOL SYSTEM INTERFACE
  *
- *  $HopeName: MMsrc!mps.h(MMdevel_sw_eq.1) $
+ *  $HopeName: MMsrc!mps.h(MMdevel_sw_eq.2) $
  *  Copyright (C) 1996 Harlequin Group, all rights reserved
  */
 
@@ -248,6 +248,9 @@ extern mps_res_t mps_space_extend(mps_space_t mps_space,
                                   mps_addr_t base, size_t size);
 extern mps_res_t mps_space_retract(mps_space_t mps_space,
                                    mps_addr_t base, size_t size);
+
+extern size_t mps_space_reserved(mps_space_t mps_space);
+extern size_t mps_space_committed(mps_space_t mps_space);
 
 /* Object Formats */
 

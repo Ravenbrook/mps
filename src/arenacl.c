@@ -1,6 +1,6 @@
 /* impl.c.arenacl: ARENA IMPLEMENTATION USING CLIENT MEMORY
  *
- * $HopeName: MMsrc!arenacl.c(MMdevel_sw_eq.1) $
+ * $HopeName: MMsrc!arenacl.c(MMdevel_sw_eq.2) $
  * 
  * Copyright (C) 1996 Harlequin Group, all rights reserved.
  *
@@ -41,7 +41,7 @@
 #error "Client arena not configured"
 #endif
 
-SRCID(arenacl, "$HopeName: MMsrc!arenacl.c(MMdevel_sw_eq.1) $");
+SRCID(arenacl, "$HopeName: MMsrc!arenacl.c(MMdevel_sw_eq.2) $");
 
 Bool ArenaCheck(Arena arena)
 {
@@ -65,6 +65,7 @@ typedef struct ChunkStruct {    /* chunk structure */
   RingStruct arenaRing;         /* ring of chunks within the arena */
   Serial serial;                /* serial within the arena */
   Size pages;                   /* number of pages in chunk */
+  Size freePages;               /* number of free pages in chunk */
   Addr base;                    /* base address of chunk */
   Addr limit;                   /* limit address of chunk */
   Addr pageBase;                /* base of first managed page in chunk */
@@ -95,6 +96,7 @@ static Bool ChunkCheck(Chunk chunk)
   CHECKU(Arena, chunk->arena);
   CHECKL(RingCheck(&chunk->arenaRing));
   CHECKL(chunk->serial <= chunk->arena->chunkSerial);
+  CHECKL(chunk->freePages <= chunk->pages);
   /* check base and limit: */
   CHECKL(chunk->base != (Addr)0);
   CHECKL(chunk->limit != (Addr)0);
@@ -236,6 +238,7 @@ static Res ChunkCreate(Chunk *chunkReturn, Addr base, Addr limit, Arena arena)
   chunk->base = base;
   chunk->limit = limit;
   chunk->pages = AddrOffset(chunk->pageBase, chunk->limit) >> arena->pageShift;
+  chunk->freePages = chunk->pages;
   chunk->arena = arena;
 
   /* initialize the freeTable */
@@ -383,7 +386,8 @@ Res ArenaRetract(Space space, Addr base, Size size)
 /* ArenaReserved -- return the amount of reserved address space
  * ArenaCommitted -- return the amount of committed virtual memory
  * 
- * since this uses real client memory, these two numbers are both the same.
+ * (actually for the client arena, ArenaCommitted returns the amount allocated
+ *  in segments).
  */
 
 Size ArenaReserved(Space space)
@@ -408,7 +412,22 @@ Size ArenaReserved(Space space)
 
 Size ArenaCommitted(Space space)
 {
-  return ArenaReserved(space);
+  Arena arena;
+  Size size;
+  Ring node;
+
+  AVERT(Arena, SpaceArena(space));
+
+  arena = SpaceArena(space);
+
+  size = 0;
+  RING_FOR(node, &arena->chunkRing) { /* .req.extend.slow */
+    Chunk chunk = RING_ELT(Chunk, arenaRing, node);
+    AVERT(Chunk, chunk);
+    size += (chunk->freePages * arena->pageSize);
+  }
+
+  return size;
 }
 
 /* SegCheck -- check the consistency of a segment structure */  
@@ -471,8 +490,11 @@ static Res ChunkSegAlloc(Seg *segReturn, SegPref pref, Size pages, Pool pool,
   AVER(segReturn != NULL);
   AVERT(Chunk, chunk);
 
-  arena = chunk->arena;
+  if (pages > chunk->freePages)
+    return ResRESOURCE;
 
+  arena = chunk->arena;
+  
   /* Search the free table for a sufficiently-long run of free pages.
    * If we succeed, we go to "found:" with the lowest page number in
    * the run in 'base'. */
@@ -551,6 +573,7 @@ found:
   } else {
     seg->single = TRUE;
   }
+  chunk->freePages -= pages;
   
   AVERT(Seg, seg);
 
@@ -654,6 +677,8 @@ void SegFree(Space space, Seg seg)
     AVER(BTGet(chunk->freeTable, pi) == FALSE);
     BTSet(chunk->freeTable, pi, TRUE);
   }
+
+  chunk->freePages += pn;
 
   /* Double check that .free.loop takes us to the limit page of the
    * segment.

@@ -1,6 +1,6 @@
 /* impl.c.mpsi: MEMORY POOL SYSTEM C INTERFACE LAYER
  *
- * $HopeName: MMsrc!mpsi.c(MMdevel_sw_eq.1) $
+ * $HopeName: MMsrc!mpsi.c(MMdevel_sw_eq.2) $
  * Copyright (C) 1996 Harlequin Group, all rights reserved.
  *
  * .purpose: This code bridges between the MPS interface to C,
@@ -55,7 +55,7 @@
 #include "mpm.h"
 #include "mps.h"
 
-SRCID(mpsi, "$HopeName: MMsrc!mpsi.c(MMdevel_sw_eq.1) $");
+SRCID(mpsi, "$HopeName: MMsrc!mpsi.c(MMdevel_sw_eq.2) $");
 
 
 /* mpsi_check -- check consistency of interface mappings
@@ -203,18 +203,28 @@ mps_res_t mps_space_extend(mps_space_t mps_space,
   return (mps_res_t)res;
 }
 
-mps_res_t mps_space_retract(mps_space_t mps_space,
-                            mps_addr_t base,
-                            size_t size)
+size_t mps_space_reserved(mps_space_t mps_space)
 {
   Space space = (Space)mps_space;
-  Res res;
+  Size size;
 
   SpaceEnter(space);
-  res = ArenaRetract(space, (Addr)base, (Size)size);
+  size = ArenaReserved(space);
   SpaceLeave(space);
 
-  return (mps_res_t)res;
+  return (size_t)size;
+}
+
+size_t mps_space_committed(mps_space_t mps_space)
+{
+  Space space = (Space)mps_space;
+  Size size;
+
+  SpaceEnter(space);
+  size = ArenaCommitted(space);
+  SpaceLeave(space);
+
+  return (size_t)size;
 }
 
 mps_res_t mps_space_create(mps_space_t *mps_space_o)
