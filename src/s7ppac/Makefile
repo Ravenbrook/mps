@@ -1,6 +1,6 @@
 # ==== S7PPAC MPW MAKE FILE ====
 #
-# $HopeName: !s7ppac:Makefile(trunk.2) $
+# $HopeName: MMsrc!s7ppac:Makefile(MMdevel_sw_eq.1) $
 #
 # Copyright (C) 1996 Harlequin Group, all rights reserved
 #
@@ -18,7 +18,7 @@
 #  BuildProgram -d Variety clean
 
 COptions    = -ansi strict -proto strict -typecheck strict -w error ¶
-              -d TARGET_VAR_{Variety} -d TARGET_VM_RM -sym full
+              -d TARGET_VAR_{Variety} -d TARGET_ARENA_CLIENT -sym full
 
 ":" Ä "::"
 
@@ -27,12 +27,12 @@ OSffx     = .c.{Variety}.o
 {OSffx} 	Ä	.c
 	MrC {DepDir}{Default}.c -o {TargDir}{Default}{OSffx} {COptions}
 
-mmsw_{Variety}.o Ä assert{OSffx} ring{OSffx} liban{OSffx} mpm{OSffx} ¶
-                   arenavm{OSffx} space{OSffx} pool{OSffx} poolmfs{OSffx} ¶
+mmsw_{Variety}.o Ä assert{OSffx} ring{OSffx} mpsliban{OSffx} mpm{OSffx} ¶
+                   arenacl{OSffx} space{OSffx} pool{OSffx} poolmfs{OSffx} ¶
                    poolmv{OSffx} root{OSffx} format{OSffx} buffer{OSffx} ¶
                    lockan{OSffx} ref{OSffx} trace{OSffx} than{OSffx} ¶
                    protan{OSffx} shield{OSffx} mpsi{OSffx} ld{OSffx} ¶
-                   vmrm{OSffx} ssan{OSffx}
+                   ssan{OSffx}
 	PPCLink {Deps} -xm l -o {Targ} -sym on
 
 cleanall Ä
