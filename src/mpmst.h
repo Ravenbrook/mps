@@ -1,6 +1,6 @@
 /* impl.h.mpmst: MEMORY POOL MANAGER DATA STRUCTURES
  *
- * $HopeName: MMsrc!mpmst.h(MMdevel_tony_sunset.4) $
+ * $HopeName: MMsrc!mpmst.h(MMdevel_tony_sunset.5) $
  * Copyright (C) 1998 Harlequin Group plc.  All rights reserved.
  *
  * .readership: MM developers.
@@ -265,10 +265,8 @@ typedef struct MessageStruct {
  * .tract: Tracts represent the grains of memory allocation from
  * the arena.  See design.mps.arena.
  * 
- * .bool: The hasSeg field is a boolean, stored as a bit-field 
- * of size 1 for compactness. It must be represented as an unsigned
- * type to preserve the value of TRUE. The Bool type is not 
- * sufficient.
+ * .bool: The hasSeg field is a boolean, but can't be represented
+ * as type Bool. See design.mps.arena.tract.field.hasSeg.
  */
 
 typedef struct TractStruct { /* Tract structure */
