@@ -1,6 +1,6 @@
 /* impl.c.trace: GENERIC TRACER IMPLEMENTATION
  *
- * $HopeName: MMsrc!trace.c(MMdevel_gavinm_zone.3) $
+ * $HopeName: MMsrc!trace.c(MMdevel_gavinm_zone.4) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  *
  * .sources: design.mps.tracer.
@@ -33,7 +33,7 @@
 
 #include "mpm.h"
 
-SRCID(trace, "$HopeName: MMsrc!trace.c(MMdevel_gavinm_zone.3) $");
+SRCID(trace, "$HopeName: MMsrc!trace.c(MMdevel_gavinm_zone.4) $");
 
 /* Types
  *
@@ -285,9 +285,12 @@ Res TraceCondemnRefSet(Trace trace, RefSet condemnedSet)
 
       /* A segment can only be white if it is GC-able. */
       /* This is indicated by the pool having the GC attribute */
+      /* We only condemn segments that fall entirely within */
+      /* the requested zone set.  Otherwise, we would bloat the */
+      /* foundation to no gain.  Note that this doesn't exclude */
+      /* any segments from which the condemned set was derived, */
       if((SegPool(seg)->class->attr & AttrGC) != 0 &&
-         RefSetInter(RefSetOfSeg(arena, seg), condemnedSet) 
-	   != RefSetEMPTY) {
+         RefSetSuper(condemnedSet, RefSetOfSeg(arena, seg))) {
         res = TraceAddWhite(trace, seg);
 	if(res != ResOK)
 	  return res;
