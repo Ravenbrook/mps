@@ -1,7 +1,7 @@
 /* impl.h.eventcom -- Event Logging Common Definitions
  *
  * Copyright (C) 1997, 1998, 1999 Harlequin Group plc.  All rights reserved.
- * $HopeName: MMsrc!eventcom.h(MMdevel_alloc_replay.1) $
+ * $HopeName: MMsrc!eventcom.h(MMdevel_alloc_replay.2) $
  *
  * .readership: MPS developers
  * .sources: mps.design.telemetry
@@ -37,6 +37,13 @@ typedef EventStringStruct *EventString;
 
 /* eventgen.h is just the automatically generated part of this file */
 #include "eventgen.h"
+
+
+#ifdef EVENT
+
+typedef EventUnion *Event;
+
+#endif
 
 
 /* Event types -- see design.mps.telemetry
