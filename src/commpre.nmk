@@ -1,6 +1,6 @@
 # ==== FIRST COMMON FRAGMENT FOR PLATFORMS USING MV AND NMAKE
 #
-# $HopeName: !commpre.nmk(trunk.11) $
+# $HopeName: MMsrc!commpre.nmk(MMepcore_pilchard.1) $
 # Copyright (C) 1995,1997 Harlequin Group, all rights reserved
 #
 # DESCRIPTION
@@ -48,30 +48,6 @@
 !ENDIF
 !IFNDEF PFMDEFS
 !ERROR commpre.nmk: PFMDEFS not defined
-!ENDIF
-!IFNDEF MPMOBJ
-!ERROR commpre.nmk: MPM not defined
-!ENDIF
-!IFNDEF PLINTHOBJ
-!ERROR commpre.nmk: PLINTH not defined
-!ENDIF
-!IFNDEF LOOBJ
-!ERROR commpre.nmk: LO not defined
-!ENDIF
-!IFNDEF AMCOBJ
-!ERROR commpre.nmk: AMC not defined
-!ENDIF
-!IFNDEF AMSOBJ
-!ERROR commpre.nmk: AMS not defined
-!ENDIF
-!IFNDEF DWOBJ
-!ERROR commpre.nmk: DW not defined
-!ENDIF
-!IFNDEF SWOBJ
-!ERROR commpre.nmk: SW not defined
-!ENDIF
-!IFNDEF TESTLIBOBJ
-!ERROR commpre.nmk: TESTLIB not defined
 !ENDIF
 
 
