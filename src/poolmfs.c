@@ -1,6 +1,6 @@
 /* impl.c.poolmfs: MANUAL FIXED SMALL UNIT POOL
  *
- * $HopeName: MMsrc!poolmfs.c(MMdevel_tony_sunset.1) $
+ * $HopeName: MMsrc!poolmfs.c(MMdevel_tony_sunset.2) $
  * Copyright (C) 1997 Harlequin Group plc.  All rights reserved.
  *
  * This is the implementation of the MFS pool class.
@@ -35,7 +35,7 @@
 #include "poolmfs.h"
 #include "mpm.h"
 
-SRCID(poolmfs, "$HopeName: MMsrc!poolmfs.c(MMdevel_tony_sunset.1) $");
+SRCID(poolmfs, "$HopeName: MMsrc!poolmfs.c(MMdevel_tony_sunset.2) $");
 
 
 /* ROUND -- Round up
@@ -102,7 +102,7 @@ static Res MFSInit(Pool pool, va_list arg)
   mfs->unitSize = unitSize;
   mfs->unitsPerExtent = extendBy/unitSize;
   mfs->freeList = NULL;
-  mfs->tractList = (Tract)0;
+  mfs->tractList = NULL;
   mfs->sig = MFSSig;
 
   AVERT(MFS, mfs);
@@ -296,7 +296,7 @@ Bool MFSCheck(MFS mfs)
   CHECKL(SizeAlignUp(mfs->unroundedUnitSize, mfs->poolStruct.alignment) ==
          mfs->unitSize);
   CHECKL(mfs->unitsPerExtent == mfs->extendBy/mfs->unitSize);
-  if(mfs->tractList != (Tract)0) {
+  if(mfs->tractList != NULL) {
     CHECKL(TractCheck(mfs->tractList));
   }
   return TRUE;
