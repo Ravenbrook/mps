@@ -1,6 +1,6 @@
 /* impl.c.arenavm: VIRTUAL MEMORY BASED ARENA IMPLEMENTATION
  *
- * $HopeName: MMsrc!arenavm.c(MMdevel_lclint_23h.1) $
+ * $HopeName: MMsrc!arenavm.c(MMdevel_lclint_23h.2) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  *
  * This is the implementation of the Segment abstraction from the VM
@@ -29,7 +29,7 @@
 #include "mpm.h"
 #include "mpsavm.h"
 
-SRCID(arenavm, "$HopeName: MMsrc!arenavm.c(MMdevel_lclint_23h.1) $");
+SRCID(arenavm, "$HopeName: MMsrc!arenavm.c(MMdevel_lclint_23h.2) $");
 
 
 typedef struct VMArenaStruct *VMArena;
@@ -78,7 +78,7 @@ typedef struct VMArenaStruct {  /* VM arena structure */
  */
 
 typedef struct PageStruct {     /* page structure */
-  union {
+  union PageStructUnion {
     SegStruct segStruct;         /* segment */
     struct {
       Pool pool;                 /* NULL, must be first field (.page) */
@@ -110,7 +110,9 @@ typedef struct PageStruct {     /* page structure */
 
 /* PageOfSeg -- page descriptor from segment */
 
-#define PageOfSeg(seg)          PARENT(PageStruct, the, (seg))
+#define PageOfSeg(seg) \
+  PARENT(PageStruct, the, \
+    PARENT(union PageStructUnion, segStruct, (seg)))
 
 
 /* PageIsHead -- is a page a head (contains segment descriptor)?
