@@ -1,6 +1,6 @@
 /* impl.h.mpm: MEMORY POOL MANAGER DEFINITIONS
  *
- * $HopeName: MMsrc!mpm.h(MMdevel_segabs.1) $
+ * $HopeName: MMsrc!mpm.h(MMdevel_segabs.2) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  */
 
@@ -436,6 +436,17 @@ extern void SegFinish(Seg seg);
 #define SegBuffer(seg)		((seg)->_buffer)
 #define SegPoolRing(seg)	(&(seg)->_poolRing)
 #define SegOfPoolRing(node)	RING_ELT(Seg, _poolRing, node)
+
+#define SegSetSingle(seg, s)	((void)((seg)->_single = (s)))
+#define SegSetPM(seg, mode)	((void)((seg)->_pm = (mode)))
+#define SegSetSM(seg, mode)	((void)((seg)->_sm = (mode)))
+#define SegSetDepth(seg, d)	((void)((seg)->_depth = (d)))
+#define SegSetP(seg, pp)	((void)((seg)->_p = (pp)))
+#define SegSetGrey(seg, ts)	((void)((seg)->_grey = (ts)))
+#define SegSetWhite(seg, ts)	((void)((seg)->_white = (ts)))
+#define SegSetSummary(seg, rs)	((void)((seg)->_summary = (rs)))
+#define SegSetBuffer(seg, b)	((void)((seg)->_buffer = (b)))
+#define SegSetRankSet(seg, rs)	((void)((seg)->_rankSet = (rs)))
 
 
 /* Buffer Interface -- see impl.c.buffer */
