@@ -1,6 +1,6 @@
 # impl.gmk.comm: COMMON GNUMAKEFILE FRAGMENT
 #
-# $HopeName: MMsrc!comm.gmk(MMdevel_dropin.4) $
+# $HopeName: MMsrc!comm.gmk(MMdevel_dropin.5) $
 # Copyright (C) 1995,1996,1997 Harlequin Group, all rights reserved
 #
 # DESCRIPTION
@@ -249,8 +249,12 @@ endif
 # Not all targets need be specified in the "all" target.  It is
 # just a convenient set of targets to build.
 
+ifdef CPPC
+CPPTARGETS=newcv
+endif
+
 all: mpmss amcss awlut dwstress mpsicv lockcov poolncv mps.a \
-     lo.a mrg.a locv qs weakcv mpmconft finalcv mallocv newcv
+     lo.a mrg.a locv qs weakcv mpmconft finalcv mallocv $(CPPTARGETS)
 
 # These convenience targets allow one to type "make foo" to build target
 # foo in all varieties.
@@ -258,7 +262,7 @@ all: mpmss amcss awlut dwstress mpsicv lockcov poolncv mps.a \
 # %%TARGET: Add a pseudo-target for the new target here.
 
 mpmss amcss awlut dwstress mpsicv lockcov poolncv \
-  locv qs weakcv mpmconft finalcv mallocv newcv \
+  locv qs weakcv mpmconft finalcv mallocv $(CPPTARGETS) \
   mps.a lo.a mrg.a awl.a mmsw.a: phony
 ifdef VARIETY
 	$(MAKE) -f $(PFM).gmk TARGET=$@ variety
