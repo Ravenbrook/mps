@@ -1,6 +1,6 @@
 /* impl.c.protan: ANSI MEMORY PROTECTION
  *
- * $HopeName: !protan.c(trunk.4) $
+ * $HopeName: MMsrc!protan.c(MMdevel_segiter.1) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  *
  * READERSHIP
@@ -15,7 +15,7 @@
 
 #include "mpm.h"
 
-SRCID(protan, "$HopeName: !protan.c(trunk.4) $");
+SRCID(protan, "$HopeName: MMsrc!protan.c(MMdevel_segiter.1) $");
 
 void ProtSetup(void)
 {
@@ -42,15 +42,17 @@ void ProtSync(Space space)
     Seg seg;
 
     synced = TRUE;
-    seg = SegFirst(space);
-    while(seg != NULL) {
-      if(seg->pm != AccessSetEMPTY) {   /* design.mps.protan.fun.sync.seg */
-        ShieldEnter(space);
-        TraceAccess(space, seg, seg->pm);
-        ShieldLeave(space);
-        synced = FALSE;
-      }
-      seg = SegNext(space, seg);
+    if(SegFirst(&seg, space)) {
+      Addr base;
+      do {
+	base = SegBase(space, seg);
+	if(seg->pm != AccessSetEMPTY) {   /* design.mps.protan.fun.sync.seg */
+	  ShieldEnter(space);
+	  TraceAccess(space, seg, seg->pm);
+	  ShieldLeave(space);
+	  synced = FALSE;
+	}
+      } while(SegNext(&seg, space, base));
     }
   } while(!synced);
 }
