@@ -1,6 +1,6 @@
 /* impl.c.locus: LOCI
  *
- * $HopeName: MMsrc!locus.c(MMdevel_ptw_pseudoloci.15) $
+ * $HopeName: MMsrc!locus.c(MMdevel_ptw_pseudoloci.16) $
  * Copyright (C) 1998 Harlequin Group plc.  All rights reserved.
  *
  * .readership: any MPS developer
@@ -35,16 +35,6 @@
 #include "mpm.h"
 #include "locus.h"
 
-
-/* Signatures */
-/* SIGnature LOCus MaNager */
-#define LocusManagerSig ((Sig)0x51970C34)
-/* SIGnature LOCus CLient */
-#define LocusClientSig ((Sig)0x51970CC7)
-/* SIGnature LOCUS */
-#define LocusSig ((Sig)0x51970C05)
-/* SIGnature ZONeUSage */
-#define ZoneUsageSig ((Sig)0x51920405)
 
 /* Private prototypes */
 
@@ -85,9 +75,6 @@ static RefSet ZoneUsageIncrement(ZoneUsage desc, RefSet ref);
 static RefSet ZoneUsageDecrement(ZoneUsage desc, RefSet ref);
 static Count LogCount(Count val);
 static Res LocusClientName(LocusClient client, mps_lib_FILE *stream);
-extern Bool LocusManagerCheck(LocusManager manager);
-extern Bool LocusClientCheck(LocusClient client);
-extern Bool LocusCheck(Locus locus);
 static Bool ZoneUsageCheck(ZoneUsage desc);
 
 /* Private types */
@@ -110,11 +97,6 @@ static Arena LocusManagerArena(LocusManager manager)
 LocusClient PoolLocusClient(Pool pool)
 {
   return &pool->locusClientStruct;
-}
-
-static Pool LocusClientPool(LocusClient client)
-{
-  return PARENT(PoolStruct, locusClientStruct, client);
 }
 
 static Ring LocusClientRing(Locus locus)
@@ -239,19 +221,54 @@ void LocusManagerFinish(LocusManager manager)
 /* Locus Client Methods */
 
 
+/* Accessors */
+
+Arena (LocusClientArena)(LocusClient client)
+{
+  return client->arena;
+}
+
+Pool (LocusClientPool)(LocusClient client) 
+{
+  return client->pool;
+}
+
+Cohort (LocusClientCohort)(LocusClient client)
+{
+  return client->cohort;
+}
+
+Serial (LocusClientSerial)(LocusClient client)
+{
+  return client->locusSerial;
+}
+
+Ring (LocusClientSegRing)(LocusClient client)
+{
+  return &client->segRingStruct;
+}
+
+
 /* LocusClientInit -- Initialize a locus client and assign it to a
    locus manager */
-void LocusClientInit(LocusClient client, LocusManager manager)
+void LocusClientInit(LocusClient client, Arena arena,
+                     Pool pool, Cohort cohort,
+                     LocusClientNameMethod clientNameMethod)
 {
-  /* @@@ record client->parent if other than pools can be clients */
-  client->manager = manager;
+  client->manager = ArenaLocusManager(arena);
   client->assigned = FALSE;
   client->locus = NULL;
+  client->arena = arena;
+  client->pool = pool;
+  client->cohort = cohort;
   /* default: everything is good, nothing is bad */
   client->preferred = RefSetUNIV;
   client->disdained = RefSetEMPTY;
   /* default: no lifetime */
   client->lifetime = LifetimeNONE;
+  RingInit(LocusClientSegRing(client));
+  /* diagnostic -- clients don't need to know their parent */
+  client->clientNameMethod = clientNameMethod;
   ZoneUsageInit(LocusClientZoneUsage(client));
   RingInit(LocusClientLocusRing(client));
   client->locusSerial = 0;
@@ -285,7 +302,8 @@ void LocusClientFinish(LocusClient client)
    this client.  The client passes in any a priori zone preferences it
    knows and a representation of its mean object lifetime.  @@@
    eventually the client will pass in more cohort parameters such as
-   allocation pattern, frequency, phase, etc. */
+   allocation pattern, frequency, phase, etc. (perhaps collectable,
+   scannable, rank, etc.?) */
 void LocusClientSetCohortParameters(LocusClient client,
                                     RefSet preferred,
                                     RefSet disdained,
@@ -362,9 +380,9 @@ void LocusClientZoneRangeNext(Addr *baseReturn,
    Locus ZoneUsage summaries on each segment allocation or free
    */
 
-/* LocusClientNoteSegAlloc -- Inform the LocusManager that a segment
+/* LocusClientSegInit -- Inform the LocusManager that a segment
    has been allocated to a LocusClient  */
-void LocusClientNoteSegAlloc(LocusClient client, Arena arena, Seg seg)
+void LocusClientSegInit(LocusClient client, Seg seg)
 {
   RefSet segRefSet;
   RefSet new;
@@ -373,7 +391,7 @@ void LocusClientNoteSegAlloc(LocusClient client, Arena arena, Seg seg)
   AVERT(Seg, seg);
   AVER(client->assigned);
   
-  segRefSet = RefSetOfSeg(arena, seg);
+  segRefSet = RefSetOfSeg(LocusClientArena(client), seg);
   /* Should have chosen a seg in the currently being searched RefSet
      */
   AVER(RefSetSuper(LocusClientLocusManager(client)->searchRefSet, segRefSet));
@@ -386,12 +404,15 @@ void LocusClientNoteSegAlloc(LocusClient client, Arena arena, Seg seg)
     LocusClientLocusManager(client)->searchCacheValid = FALSE;
     LocusNoteZoneAlloc(LocusClientLocus(client), new);
   }
+  /* add the segment to the client ring */
+  AVER(RingIsSingle(SegClientRing(seg)));
+  RingAppend(LocusClientSegRing(client), SegClientRing(seg));
 }
 
 
-/* LocusClientNoteSegFree -- Inform the LocusManager that a client is
+/* LocusClientSegFinish -- Inform the LocusManager that a client is
    no longer using a segment */
-void LocusClientNoteSegFree(LocusClient client, Arena arena, Seg seg)
+void LocusClientSegFinish(LocusClient client, Seg seg)
 {
   RefSet segRefSet;
   RefSet deleted;
@@ -400,7 +421,7 @@ void LocusClientNoteSegFree(LocusClient client, Arena arena, Seg seg)
   AVERT(Seg, seg);
   AVER(client->assigned);
   
-  segRefSet = RefSetOfSeg(arena, seg);
+  segRefSet = RefSetOfSeg(LocusClientArena(client), seg);
   deleted = ZoneUsageDecrement(LocusClientZoneUsage(client), segRefSet);
 
   /* If there are deleted zones, update the locus */
@@ -409,6 +430,8 @@ void LocusClientNoteSegFree(LocusClient client, Arena arena, Seg seg)
     LocusClientLocusManager(client)->searchCacheValid = FALSE;
     LocusNoteZoneFree(LocusClientLocus(client), deleted);
   }
+  /* remove the segment from the client ring */
+  RingRemove(SegClientRing(seg));
 }
 
 
@@ -1438,26 +1461,29 @@ Res LocusDescribe(Locus locus, mps_lib_FILE *stream)
   return ResOK;
 }
 
-
 static Res LocusClientName(LocusClient client, mps_lib_FILE *stream)
 {
-  return PoolName(LocusClientPool(client), stream);
+  return WriteF(stream,
+                "<LocusClient $P ($U)>",
+               (WriteFP)client, (WriteFU)LocusClientSerial(client),
+               NULL);
 }
-
+  
 
 Res LocusClientDescribe(LocusClient client, mps_lib_FILE *stream)
 {
   Res res;
 
   res = WriteF(stream,
-               "LocusClient $P\n{\n", (WriteFP)client,
+               "LocusClient $P ($U)\n{\n",
+               (WriteFP)client, (WriteFU)client->locusSerial,
                "  client: ",
                NULL);
   if (res != ResOK)
     return res;
 
-  /* @@@ Needs adjusting if non-pool parents */
-  res = PoolName(LocusClientPool(client), stream);
+  /* describe parent */
+  res = (*client->clientNameMethod)(client, stream);
   if (res != ResOK)
     return res;
 
@@ -1474,7 +1500,6 @@ Res LocusClientDescribe(LocusClient client, mps_lib_FILE *stream)
   if (client->assigned) {
     res = WriteF(stream,
                  "  locus: $P\n", (WriteFP)client->locus,
-                 "  locusSerial: $U\n", (WriteFU)client->locusSerial,
                  "Segment",
                  NULL);
     if (res != ResOK)
