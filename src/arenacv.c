@@ -1,7 +1,7 @@
 /* impl.c.arenacv: ARENA COVERAGE TEST
  *
- * $HopeName: !arenacv.c(trunk.10) $
- * Copyright (C) 1997, 1998 Harlequin Group plc.  All rights reserved.
+ * $HopeName: MMsrc!arenacv.c(MM_epcore_brisling.1) $
+ * Copyright (C) 1998 Harlequin Limited.  All rights reserved.
  *
  * .readership: MPS developers
  * .coverage: At the moment, we're only trying to cover the new code
@@ -13,18 +13,14 @@
  * being allocated; this requires using two adjacent zones.
  */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include "mpstd.h"
-
-#include "mpm.h"
 #include "testlib.h"
 #include "mpsavm.h"
 #include "mpsacl.h"
 #include "mpsaan.h"
-#ifdef MPS_OS_SU
-#include "ossu.h"
-#endif
+#include "mpm.h"
+
+#include <stdio.h>
+#include <stdlib.h>
 
 
 #define segsSIZE 500
