@@ -1,6 +1,6 @@
 /* impl.h.mpstd: HARLEQUIN MEMORY POOL SYSTEM TARGET DETECTION
  *
- * $HopeName: MMsrc!mpstd.h(MMdevel_sw_eq.1) $
+ * $HopeName: MMsrc!mpstd.h(MMdevel_sw_eq.2) $
  * Copyright (C) 1996 Harlequin Group, all rights reserved
  *
  * Detect the target platform using predefined preprocessor symbols
@@ -143,6 +143,21 @@
 #define MPS_OS_SO
 #define MPS_ARCH_SP
 #define MPS_BUILD_GC
+#define MPS_T_WORD      unsigned long
+#define MPS_WORD_WIDTH  32
+#define MPS_WORD_SHIFT  5
+#define MPS_PF_ALIGN    8
+
+/* SunPro C, man cc (confirmed by grep). Note that this doesn't
+ * actually nail down UltraSPARCs; there are no compiler predefined
+ * macros for that. */
+
+#elif defined(__sun) && defined(__SUNPRO_C) && defined(__SVR4) && defined(__sparc)
+
+#define MPS_PF_SOUSSC
+#define MPS_OS_SO
+#define MPS_ARCH_US
+#define MPS_BUILD_SC
 #define MPS_T_WORD      unsigned long
 #define MPS_WORD_WIDTH  32
 #define MPS_WORD_SHIFT  5
