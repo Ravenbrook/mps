@@ -1,6 +1,6 @@
 /* impl.h.mpmst: MEMORY POOL MANAGER DATA STRUCTURES
  *
- * $HopeName: MMsrc!mpmst.h(MMdevel_config_thread.1) $
+ * $HopeName: MMsrc!mpmst.h(MMdevel_config_thread.2) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  *
  * .readership: MM developers.
@@ -248,7 +248,7 @@ typedef struct BufferStruct {
   Arena arena;                  /* owning arena */
   Pool pool;                    /* owning pool */
   RingStruct poolRing;          /* buffers are attached to pools */
-  Rank rankSet;                 /* ranks of references being created */
+  RankSet rankSet;              /* ranks of references being created */
   Seg seg;                      /* segment being buffered */
   Addr base;                    /* base address of allocation buffer */
   Addr initAtFlip;              /* limit of initialized data at flip */
