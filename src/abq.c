@@ -1,6 +1,6 @@
 /* impl.c.abq: AVAILABLE BLOCK QUEUE
  *
- * $HopeName: $
+ * $HopeName: MMsrc!abq.c(MMdevel_gavinm_splay.1) $
  * Copyright (C) 1998 Harlequin Group plc.  All rights reserved.
  *
  * See design.mps.poolmv2.impl.c.abq
@@ -8,35 +8,13 @@
 
 #include "mpm.h"
 #include "meter.h"
+#include "abq.h"
 
-SRCID(abq, "$HopeName: $");
+SRCID(abq, "$HopeName: MMsrc!abq.c(MMdevel_gavinm_splay.1) $");
 
 
 /* Signatures */
 #define ABQSig ((Sig)0x519AB099) /* SIGnature ABQ */
-
-
-/* Prototypes */
-typedef struct ABQStruct *ABQ;
-extern Bool ABQCheck(ABQ abq);
-extern Res ABQDescribe(ABQ abq, mps_lib_FILE *stream);
-extern Res ABQInit(Arena arena, ABQ abq, Count count);
-extern Bool ABQIsEmpty(ABQ abq);
-extern void ABQFinish(Arena arena, ABQ abq);
-extern Res ABQPop(ABQ abq, CBSBlock *blockReturn);
-extern Res ABQPeek(ABQ abq, CBSBlock *blockReturn);
-extern Res ABQPush(ABQ abq, CBSBlock block);
-extern Res ABQDelete(ABQ abq, CBSBlock block);
-
-
-/* Structures */
-typedef struct ABQStruct
-{
-  Count count;
-  Index head, tail;
-  CBSBlock *queue;
-  Sig sig;
-}ABQStruct;
 
 
 /* Methods */
@@ -89,6 +67,12 @@ Res ABQDescribe(ABQ abq, mps_lib_FILE *stream)
       index = 0;
   }
 
+  res = WriteF(stream, "\n", NULL);
+  if(res != ResOK)
+    return res;
+
+  METER_WRITE(abq->depth, stream);
+  
   res = WriteF(stream, "}\n", NULL);
   if(res != ResOK)
     return res;
@@ -123,6 +107,8 @@ Res ABQInit(Arena arena, ABQ abq, Count count)
   abq->head = 0;
   abq->tail = 0;
   abq->queue = (CBSBlock *)p;
+
+  METER_INIT(abq->depth, "depth");
   
   abq->sig = ABQSig;
 
@@ -136,6 +122,21 @@ Bool ABQIsEmpty(ABQ abq)
   AVERT(ABQ, abq);
 
   return abq->head == abq->tail;
+}
+
+
+static Count ABQDepth(ABQ abq)
+{
+  Index head, tail;
+  
+  AVERT(ABQ, abq);
+  head = abq->head;
+  tail = abq->tail;
+
+  if (tail >= head)
+    return tail - head;
+  else
+    return tail + abq->count - head;
 }
 
 
@@ -162,6 +163,8 @@ Res ABQPop(ABQ abq, CBSBlock *blockReturn)
   AVER(blockReturn != NULL);
   AVERT(ABQ, abq);
 
+  METER_ACC(abq->depth, ABQDepth(abq));
+  
   index = abq->head;
   if (index == abq->tail)
     return ResFAIL;
@@ -186,6 +189,8 @@ Res ABQPeek(ABQ abq, CBSBlock *blockReturn)
   AVER(blockReturn != NULL);
   AVERT(ABQ, abq);
 
+  METER_ACC(abq->depth, ABQDepth(abq));
+
   index = abq->head;
   if (index == abq->tail)
     return ResFAIL;
@@ -208,6 +213,8 @@ Res ABQPush(ABQ abq, CBSBlock block)
   AVERT(ABQ, abq);
   AVERT(CBSBlock, block);
 
+  METER_ACC(abq->depth, ABQDepth(abq));
+
   index = abq->tail;
   if (++index == abq->count)
     index = 0;
@@ -228,10 +235,11 @@ Res ABQDelete(ABQ abq, CBSBlock block)
 {
   Index index, next, count, tail;
   CBSBlock *queue;
-  Bool found = FALSE;
 
   AVERT(ABQ, abq);
   AVERT(CBSBlock, block);
+
+  METER_ACC(abq->depth, ABQDepth(abq));
 
   index = abq->head;
   tail = abq->tail;
