@@ -1,7 +1,7 @@
 /* impl.c.poolamc: AUTOMATIC MOSTLY-COPYING MEMORY POOL CLASS
  *
- * $HopeName: !poolamc.c(trunk.33) $
- * Copyright (C) 1999 Harlequin Limited.  All rights reserved.
+ * $HopeName: MMsrc!poolamc.c(MMdevel_configura.1) $
+ * Copyright (C) 1999, 2000 Harlequin Limited.  All rights reserved.
  *
  * .sources: design.mps.poolamc.
  */
@@ -9,7 +9,7 @@
 #include "mpscamc.h"
 #include "mpm.h"
 
-SRCID(poolamc, "$HopeName: !poolamc.c(trunk.33) $");
+SRCID(poolamc, "$HopeName: MMsrc!poolamc.c(MMdevel_configura.1) $");
 
 
 /* Binary i/f used by ASG (drj 1998-06-11) */
@@ -1207,7 +1207,7 @@ static Res AMCScanNailedOnce(Bool *totalReturn, Bool *moreReturn,
   format = pool->format;
   AMCSegNailBoard(seg)->newMarks = FALSE;
 
-  p = SegBase(seg);
+  p = AddrAdd(SegBase(seg), format->headerSize);
   while(SegBuffer(seg) != NULL) {
     limit = BufferScanLimit(SegBuffer(seg));
     if(p >= limit) {
@@ -1237,6 +1237,7 @@ static Res AMCScanNailedOnce(Bool *totalReturn, Bool *moreReturn,
   /* to abstract common code. */
 
   limit = SegLimit(seg);
+  /* @@@@ Shouldn't p be set to BufferLimit here?! */
   while(p < limit) {
     Addr q;
     q = (*format->skip)(p);
@@ -1321,7 +1322,7 @@ static Res AMCScan(Bool *totalReturn, ScanState ss, Pool pool, Seg seg)
 
   EVENT_PPP(AMCScanBegin, amc, seg, ss);
 
-  base = SegBase(seg);
+  base = AddrAdd(SegBase(seg), format->headerSize);
   while(SegBuffer(seg) != NULL) {  /* design.mps.poolamc.scan.loop */
     limit = BufferScanLimit(SegBuffer(seg));
     if(base >= limit) {
@@ -1335,10 +1336,10 @@ static Res AMCScan(Bool *totalReturn, ScanState ss, Pool pool, Seg seg)
       return res;
     }
     ss->scannedSize += AddrOffset(base, limit);
-    base = limit;
+    base = AddrAdd(limit, format->headerSize);
   }
 
-  /* design.mps.poolamc.scan.finish */
+  /* design.mps.poolamc.scan.finish @@@@ base? */
   limit = SegLimit(seg);
   AVER(SegBase(seg) <= base && base <= SegLimit(seg));
   if(base < limit) {
@@ -1606,6 +1607,177 @@ returnRes:
 }
 
 
+/* AMCHFix -- fix a reference to the pool
+ *
+ * See design.mps.poolamc.fix.
+ */
+
+static Res AMCHFix(Pool pool, ScanState ss, Seg seg, Ref *refIO)
+{
+  Arena arena;
+  AMC amc;
+  Res res;
+  Format format;        /* cache of pool->format */
+  Ref ref;              /* reference to be fixed */
+  Ref newRef;           /* new location, if moved */
+  Addr newBase;         /* base address of new copy */
+  Size length;          /* length of object to be relocated */
+  Buffer buffer;        /* buffer to allocate new copy into */
+  AMCGen gen;           /* generation of old copy of object */
+  TraceSet grey;        /* greyness of object being relocated */
+  TraceSet toGrey;      /* greyness of object's destination */
+  RefSet summary;       /* summary of object being relocated */
+  RefSet toSummary;     /* summary of object's destination */
+  Seg toSeg;            /* segment to which object is being relocated */
+
+  /* design.mps.trace.fix.noaver */
+  AVERT_CRITICAL(Pool, pool);
+  AVERT_CRITICAL(ScanState, ss);
+  AVERT_CRITICAL(Seg, seg);
+  AVER_CRITICAL(refIO != NULL);
+  EVENT_0(AMCFix);
+
+  /* For the moment, assume that the object was already marked. */
+  /* (See design.mps.fix.protocol.was-marked.) */
+  ss->wasMarked = TRUE;
+
+  /* If the reference is ambiguous, set up the datastructures for */
+  /* managing a nailed segment.  This involves marking the segment */
+  /* as nailed, and setting up a per-word mark table */
+  if(ss->rank == RankAMBIG) {
+    /* .nail.new: Check to see whether we need a NailBoard for */
+    /* this seg.  We use "SegNailed(seg) == TraceSetEMPTY" */
+    /* rather than "!AMCSegHasNailBoard(seg)" because this avoids */
+    /* setting up a new nail board when the segment was nailed, but had */
+    /* no nail board.  This must be avoided because otherwise */
+    /* assumptions in AMCFixEmergency will be wrong (essentially */
+    /* we will lose some pointer fixes because we introduced a */
+    /* nail board). */
+    if(SegNailed(seg) == TraceSetEMPTY) {
+      res = AMCSegCreateNailBoard(seg, pool);
+      if(res != ResOK)
+        return res;
+      ++ss->nailCount;
+      SegSetNailed(seg, TraceSetUnion(SegNailed(seg), ss->traces));
+    }
+    AMCFixInPlace(pool, seg, ss, refIO);
+    return ResOK;
+  }
+
+  amc = PoolPoolAMC(pool);
+  AVERT_CRITICAL(AMC, amc);
+  format = pool->format;
+  ref = *refIO;
+
+  arena = pool->arena;
+
+  if(SegNailed(seg) != TraceSetEMPTY) {
+    /* If segment is nailed then may have grey and white */
+    /* objects on same segment, hence segment may be protected */
+    /* hence we need to expose it to examine the broken heart. */
+    /* @@@@ This assumes a particular style of barrier. */
+    ShieldExpose(arena, seg);
+  } else {
+    AVER_CRITICAL((SegPM(seg) & AccessREAD) == AccessSetEMPTY);
+  }
+  /* .fix.ismoved: test for a broken heart */
+  newRef = (*format->isMoved)(ref);
+
+  if(newRef == (Addr)0) {
+    /* If object is nailed already then we mustn't copy it: */
+    if(SegNailed(seg) != TraceSetEMPTY
+       && (!AMCSegHasNailBoard(seg) || AMCNailGetMark(seg, ref))) {
+      /* Segment only needs greying if there are new traces for which */
+      /* we are nailing. */
+      if(!TraceSetSub(ss->traces, SegNailed(seg))) {
+        if(SegRankSet(seg) != RankSetEMPTY) {
+          SegSetGrey(seg, TraceSetUnion(SegGrey(seg), ss->traces));
+        }
+        SegSetNailed(seg, TraceSetUnion(SegNailed(seg), ss->traces));
+      }
+      res = ResOK;
+      goto returnRes;
+    } else if(ss->rank == RankWEAK) {
+      /* object is not preserved (neither moved, nor nailed) */
+      /* hence, reference should be splatted */
+      goto updateReference;
+    }
+    /* object is not preserved yet (neither moved, nor nailed) */
+    /* so should be preserved by forwarding */
+    EVENT_A(AMCFixForward, newRef);
+    /* design.mps.fix.protocol.was-marked */
+    ss->wasMarked = FALSE;
+
+    /* Get the forwarding buffer from the object's generation. */
+    gen = AMCSegGen(seg);
+    buffer = gen->forward;
+    AVER_CRITICAL(buffer != NULL);
+
+    length = AddrOffset(ref, (*format->skip)(ref));
+
+    ++ss->forwardedCount;
+    ss->forwardedSize += length;
+
+    do {
+      Size headerSize = format->headerSize;
+
+      res = BUFFER_RESERVE(&newBase, buffer, length,
+                           /* withReservoirPermit */ FALSE);
+      if(res != ResOK)
+        goto returnRes;
+      newRef = AddrAdd(newBase, headerSize);
+
+      toSeg = BufferSeg(buffer);
+      ShieldExpose(arena, toSeg);
+
+      /* Since we're moving an object from one segment to another, */
+      /* union the greyness and the summaries together. */
+      grey = TraceSetUnion(ss->traces, SegGrey(seg));
+      toGrey = SegGrey(toSeg);
+      if(TraceSetDiff(grey, toGrey) != TraceSetEMPTY &&
+         SegRankSet(seg) != RankSetEMPTY) {
+        SegSetGrey(toSeg, TraceSetUnion(toGrey, grey));
+      }
+      summary = SegSummary(seg);
+      toSummary = SegSummary(toSeg);
+      if(RefSetDiff(summary, toSummary) != RefSetEMPTY) {
+        SegSetSummary(toSeg, RefSetUnion(toSummary, summary));
+      }
+
+      /* design.mps.trace.fix.copy */
+      (void)AddrCopy(newBase, AddrSub(ref, headerSize), length);
+
+      ShieldCover(arena, toSeg);
+    } while(!BUFFER_COMMIT(buffer, newBase, length));
+    ss->copiedSize += length;
+
+    /* @@@@ Must expose the old segment because it might be */
+    /* write protected.  However, in the read barrier phase */
+    /* nothing white is accessible, so this could be optimized */
+    /* away. */
+    ShieldExpose(arena, seg);
+    (*format->move)(ref, newRef);       /* install broken heart */
+    ShieldCover(arena, seg);
+  } else {
+    /* reference to broken heart (which should be snapped out -- */
+    /* consider adding to (non-existant) snap-out cache here) */
+    ++ss->snapCount;
+  }
+
+  /* .fix.update: update the reference to whatever the above code */
+  /* decided it should be */
+updateReference:
+  *refIO = newRef;
+  res = ResOK;
+
+returnRes:
+  if(SegNailed(seg) != TraceSetEMPTY) {
+    ShieldCover(arena, seg);
+  }
+  return res;
+}
+
+
 /* AMCReclaimNailed -- reclaim what you can from a nailed segment */
 
 static void AMCReclaimNailed(Pool pool, Trace trace, Seg seg)
@@ -1636,7 +1808,7 @@ static void AMCReclaimNailed(Pool pool, Trace trace, Seg seg)
 
   /* see design.mps.poolamc.nailboard.limitations for improvements */
   ShieldExpose(arena, seg);
-  p = SegBase(seg);
+  p = AddrAdd(SegBase(seg), format->headerSize);
   if(SegBuffer(seg) != NULL)
     limit = BufferScanLimit(SegBuffer(seg));
   else
@@ -1756,7 +1928,8 @@ static Res AMCSegDescribe(AMC amc, Seg seg, mps_lib_FILE *stream)
   if(res != ResOK)
     return res;
 
-  for(i = base; i < limit; i = AddrAdd(i, row)) {
+  for(i = AddrAdd(base, AMCPool(amc)->format->headerSize); i < limit;
+      i = AddrAdd(i, row)) {
     Addr j;
     char c;
 
@@ -1813,7 +1986,7 @@ static void AMCWalk(Pool pool, Seg seg,
   if(SegWhite(seg) == TraceSetEMPTY &&
      SegGrey(seg) == TraceSetEMPTY &&
      SegNailed(seg) == TraceSetEMPTY) {
-    Addr object = SegBase(seg);
+    Addr object;
     Addr nextObject;
     Addr limit;
     AMC amc;
@@ -1830,6 +2003,7 @@ static void AMCWalk(Pool pool, Seg seg,
     else
       limit = SegLimit(seg);
 
+    object = AddrAdd(SegBase(seg), format->headerSize);
     while(object < limit) {
       /* Check not a broken heart. */
       AVER((*format->isMoved)(object) == NULL);
@@ -1965,6 +2139,27 @@ DEFINE_POOL_CLASS(AMCZPoolClass, this)
   this->grey = PoolNoGrey;
   this->scan = PoolNoScan;
 }
+
+
+/* AMCHPoolClass -- the class definition */
+
+DEFINE_POOL_CLASS(AMCHPoolClass, this)
+{
+  INHERIT_CLASS(this, AMCPoolClass);
+  this->name = "AMCH";
+  /* @@@@ need an init method to check that the format is right */
+  this->fix = AMCHFix;
+}
+
+
+/* AMCZHPoolClass -- the class definition */
+
+DEFINE_POOL_CLASS(AMCHZPoolClass, this)
+{
+  INHERIT_CLASS(this, AMCZPoolClass);
+  this->name = "AMCHZ";
+  this->fix = AMCHFix;
+}
   
 
 /* mps_class_amc -- return the pool class descriptor to the client */
@@ -1979,6 +2174,20 @@ mps_class_t mps_class_amc(void)
 mps_class_t mps_class_amcz(void)
 {
   return (mps_class_t)(EnsureAMCZPoolClass());
+}
+
+/* mps_class_amch -- return the pool class descriptor to the client */
+
+mps_class_t mps_class_amch(void)
+{
+  return (mps_class_t)(EnsureAMCHPoolClass());
+}
+
+/* mps_class_amchz -- return the pool class descriptor to the client */
+
+mps_class_t mps_class_amchz(void)
+{
+  return (mps_class_t)(EnsureAMCHZPoolClass());
 }
 
 
