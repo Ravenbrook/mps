@@ -1,14 +1,14 @@
 # ==== NTI3MV NMAKE FILE ====
 #
-# $HopeName: MMsrc!nti3mv.nmk(MMdevel_restr.1) $
+# $HopeName: MMsrc!nti3mv.nmk(MMdevel_restr.2) $
 #
 # Copyright (C) 1995 Harlequin Group, all rights reserved
 #
 PFM = nti3mv
 PFMDEFS = /DWIN32 /D_WINDOWS
 
-STD = <assert> <deque> <error> <liban> <meter> <misc>
-MPM = <poolarvm> <vmnt> <space> <pool> <poolclas> <poolmfs> \
+MPM = <assert> <ring> <liban> <mpm> \
+      <arenavm> <vmnt> <space> <pool> <poolclas> <poolmfs> \
       <poolmv> <root> <format> <buffer> <locknt> \
       <ref> <trace> <protnt> <shield> \
       <thnti3> <ssnti3> <mpsi> <mpsint> <ld>
@@ -21,7 +21,7 @@ TESTLIB = <testlib>
 
 # ==== ALMOST GENERIC PRODUCT BUILD FOR NMAKE ====
 #
-# $HopeName: MMsrc!nti3mv.nmk(MMdevel_restr.1) $
+# $HopeName: MMsrc!nti3mv.nmk(MMdevel_restr.2) $
 #
 # Copyright (C) 1995 Harlequin Group, all rights reserved
 #
@@ -38,10 +38,9 @@ TESTLIB = <testlib>
 #   PFM      platform code, e.g. "nti3mv"
 #   PFMDEFS  /D options to define platforms preprocessor symbols
 #            to the compiler.  Eg "/DOS_NT /DARCH_386 /DBUILD_MVC"
-#   STD      list of sources which make up the "std" part for this
+#   MPM      list of sources which make up the "mpm" part for this
 #            platform.  Each source is stripped of its .c extension
 #            and surrounded in angle brackets (<>)
-#   MPM      as above for the "mpm" part
 #   AMC      as above for the "amc" part
 #   LO      as above for the "lo" part
 #   DW      as above for the "amc" part
@@ -70,9 +69,6 @@ TESTLIB = <testlib>
 !ENDIF
 !IFNDEF PFMDEFS
 !ERROR mv.nmk: PFMDEFS not defined
-!ENDIF
-!IFNDEF STD
-!ERROR mv.nmk: STD not defined
 !ENDIF
 !IFNDEF MPM
 !ERROR mv.nmk: MPM not defined
@@ -167,8 +163,6 @@ LIBFLAGSCV =
 CFLAGS=$(CFLAGSCOMMON) $(CFDF)
 LINKFLAGS=$(LINKFLAGSCOMMON) $(LFDF)
 LIBFLAGS=$(LIBFLAGSCOMMON) $(LIBFLAGSDF)
-STDOBJ0 = $(STD:<=nti3mv\df\)
-STDOBJ = $(STDOBJ0:>=.obj)
 MPMOBJ0 = $(MPM:<=nti3mv\df\)
 MPMOBJ = $(MPMOBJ0:>=.obj)
 AMCOBJ0 = $(AMC:<=nti3mv\df\)
@@ -184,8 +178,6 @@ TESTLIBOBJ = $(TESTLIBOBJ0:>=.obj)
 CFLAGS=$(CFLAGSCOMMON) $(CFDP)
 LINKFLAGS=$(LINKFLAGSCOMMON) $(LFDP)
 LIBFLAGS=$(LIBFLAGSCOMMON) $(LIBFLAGSDP)
-STDOBJ0 = $(STD:<=nti3mv\dp\)
-STDOBJ = $(STDOBJ0:>=.obj)
 MPMOBJ0 = $(MPM:<=nti3mv\dp\)
 MPMOBJ = $(MPMOBJ0:>=.obj)
 AMCOBJ0 = $(AMC:<=nti3mv\dp\)
@@ -201,8 +193,6 @@ TESTLIBOBJ = $(TESTLIBOBJ0:>=.obj)
 CFLAGS=$(CFLAGSCOMMON) $(CFDS)
 LINKFLAGS=$(LINKFLAGSCOMMON) $(LFDS)
 LIBFLAGS=$(LIBFLAGSCOMMON) $(LIBFLAGSDS)
-STDOBJ0 = $(STD:<=nti3mv\ds\)
-STDOBJ = $(STDOBJ0:>=.obj)
 MPMOBJ0 = $(MPM:<=nti3mv\ds\)
 MPMOBJ = $(MPMOBJ0:>=.obj)
 AMCOBJ0 = $(AMC:<=nti3mv\ds\)
@@ -218,8 +208,6 @@ TESTLIBOBJ = $(TESTLIBOBJ0:>=.obj)
 CFLAGS=$(CFLAGSCOMMON) $(CFRO)
 LINKFLAGS=$(LINKFLAGSCOMMON) $(LFRO)
 LIBFLAGS=$(LIBFLAGSCOMMON) $(LIBFLAGSRO)
-STDOBJ0 = $(STD:<=nti3mv\ro\)
-STDOBJ = $(STDOBJ0:>=.obj)
 MPMOBJ0 = $(MPM:<=nti3mv\ro\)
 MPMOBJ = $(MPMOBJ0:>=.obj)
 AMCOBJ0 = $(AMC:<=nti3mv\ro\)
@@ -235,8 +223,6 @@ TESTLIBOBJ = $(TESTLIBOBJ0:>=.obj)
 CFLAGS=$(CFLAGSCOMMON) $(CFCV)
 LINKFLAGS=$(LINKFLAGSCOMMON) $(LFCV)
 LIBFLAGS=$(LIBFLAGSCOMMON) $(LIBFLAGSCV)
-STDOBJ0 = $(STD:<=nti3mv\cv\)
-STDOBJ = $(STDOBJ0:>=.obj)
 MPMOBJ0 = $(MPM:<=nti3mv\cv\)
 MPMOBJ = $(MPMOBJ0:>=.obj)
 AMCOBJ0 = $(AMC:<=nti3mv\cv\)
@@ -257,14 +243,14 @@ TESTLIBOBJ = $(TESTLIBOBJ0:>=.obj)
 # %%TARGET: Add the target  to the all dependencies
 
 all: mpmss.exe amcss.exe dwstress.exe lockutnt.exe lockcov.exe \
-     stdcover.exe mpsicv.exe poolncv.exe locv.exe qs.exe std.lib mpm.lib
+     mpsicv.exe poolncv.exe locv.exe qs.exe mpm.lib
 
 # Convenience targets
 # %%TARGET: Add a pseudo-target for the new part
 
-dwstress.exe amcss.exe lockutnt.exe lockcov.exe stdcover.exe \
+dwstress.exe amcss.exe lockutnt.exe lockcov.exe \
      mpmss.exe protcv.exe mpsicv.exe poolncv.exe locv.exe qs.exe \
-     std.lib mpm.lib mmdw.lib:
+     mpm.lib mmdw.lib:
 	$(MAKE) /nologo /f $(PFM).nmk TARGET=$@ target
 
 mpsicv.cov:
@@ -310,8 +296,6 @@ variety: $(PFM)\$(VARIETY)\$(TARGET)
 
 !IFDEF VARIETY
 
-$(PFM)\$(VARIETY)\stdcover.exe: $(PFM)\$(VARIETY)\stdcover.obj $(STDOBJ)
-
 $(PFM)\$(VARIETY)\mpmss.exe: $(PFM)\$(VARIETY)\mpmss.obj \
 	$(MPMOBJ) $(STDOBJ)
 
@@ -341,9 +325,6 @@ $(PFM)\$(VARIETY)\poolncv.exe:  $(PFM)\$(VARIETY)\poolncv.obj \
 
 $(PFM)\$(VARIETY)\locv.exe:  $(PFM)\$(VARIETY)\locv.obj \
 	$(MPMOBJ) $(STDOBJ) $(TESTLIBOBJ) $(LOOBJ)
-
-$(PFM)\$(VARIETY)\std.lib: $(STDOBJ)
-	$(LIBMAN) $(LIBFLAGS) /OUT:$@ $**
 
 $(PFM)\$(VARIETY)\mpm.lib: $(STDOBJ) $(MPMOBJ)
 	$(ECHO) $@
@@ -386,7 +367,7 @@ $(PFM)\$(VARIETY)\mmdw.lib: $(STDOBJ) $(MPMOBJ) $(AMCOBJ) $(DWOBJ)
 	plist /nologo /D ..\.. $(<B) > $(@F)
 
 
-# Depenencies
+# Dependencies
 # [we can't build these at the moment]
 
 # Executables
