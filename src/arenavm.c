@@ -1,6 +1,6 @@
 /* impl.c.arenavm: VIRTUAL MEMORY ARENA CLASS
  *
- * $HopeName: MMsrc!arenavm.c(MMdevel_pekka_locus.4) $
+ * $HopeName: MMsrc!arenavm.c(MMdevel_pekka_locus.5) $
  * Copyright (C) 2000 Harlequin Limited.  All rights reserved.
  *
  *
@@ -27,7 +27,7 @@
 #include "mpm.h"
 #include "mpsavm.h"
 
-SRCID(arenavm, "$HopeName: MMsrc!arenavm.c(MMdevel_pekka_locus.4) $");
+SRCID(arenavm, "$HopeName: MMsrc!arenavm.c(MMdevel_pekka_locus.5) $");
 
 
 /* @@@@ Arbitrary calculation for the maximum number of distinct */
@@ -262,8 +262,8 @@ static void VMArenaUnmap(VMArena vmArena, VM vm, Addr base, Addr limit)
 static Res VMChunkCreate(Chunk *chunkReturn, VMArena vmArena, Size size)
 {
   Res res;
-  Addr base, chunkStructLimit;
-  Size vmSize, pageSize;
+  Addr base, limit, chunkStructLimit;
+  Align pageSize;
   VM vm;
   BootBlockStruct bootStruct;
   BootBlock boot = &bootStruct;
@@ -281,9 +281,9 @@ static Res VMChunkCreate(Chunk *chunkReturn, VMArena vmArena, Size size)
   pageSize = VMAlign(vm);
   /* The VM will have aligned the userSize; pick up the actual size. */
   base = VMBase(vm);
-  vmSize = AddrOffset(base, VMLimit(vm));
+  limit = VMLimit(vm);
 
-  res = BootBlockInit(boot, (void *)base, (void *)VMLimit(vm));
+  res = BootBlockInit(boot, (void *)base, (void *)limit);
   if (res != ResOK)
     goto failBootInit;
 
@@ -302,7 +302,7 @@ static Res VMChunkCreate(Chunk *chunkReturn, VMArena vmArena, Size size)
 
   vmChunk->vm = vm;
   res = ChunkInit(VMChunkChunk(vmChunk), VMArenaArena(vmArena),
-                  base, vmSize, pageSize, boot);
+                  base, limit, pageSize, boot);
   if (res != ResOK)
     goto failChunkInit;
 
@@ -351,11 +351,12 @@ static Res VMChunkInit(Chunk chunk, BootBlock boot)
   /* Actually commit all the tables. design.mps.arena.@@@@ */
   ullageLimit = AddrAdd(chunk->base, (Size)BootAllocated(boot));
   if (vmChunk->mapLimit < ullageLimit) {
+    ullageLimit = AddrAlignUp(ullageLimit, ChunkPageSize(chunk));
     res = VMArenaMap(VMChunkVMArena(vmChunk), vmChunk->vm,
-                     vmChunk->mapLimit,
-                     AddrAlignUp(ullageLimit, ChunkPageSize(chunk)));
+                     vmChunk->mapLimit, ullageLimit);
     if (res != ResOK)
       goto failTableMap;
+    vmChunk->mapLimit = ullageLimit;
   }
 
   BTResRange(vmChunk->pageTableMapped, 0, chunk->pageTablePages);
@@ -392,9 +393,11 @@ static void VMChunkDestroy(Chunk chunk)
 
 static void VMChunkFinish(Chunk chunk)
 {
-  /* Can't check chunk as it's not valid anymore. */
-  /* No point in unmapping since we will destroy the VM. */
-  UNUSED(chunk); NOOP;
+  VMChunk vmChunk = ChunkVMChunk(chunk);
+
+  VMArenaUnmap(VMChunkVMArena(vmChunk), vmChunk->vm,
+               VMBase(vmChunk->vm), vmChunk->mapLimit);
+  /* No point in finishing the other fields, since they are unmapped. */
 }
 
 
@@ -443,6 +446,21 @@ static Res VMArenaInit(Arena *arenaReturn, ArenaClass class,
   RingInit(&vmArena->latentRing);
   vmArena->latentSize = 0;
 
+  /* .blacklist: We blacklist the first and last zones because */
+  /* they commonly correspond to low integers. */
+  vmArena->blacklist = 
+    RefSetAdd(arena, RefSetAdd(arena, RefSetEMPTY, (Addr)1), (Addr)-1);
+
+  for(gen = (Index)0; gen < VMArenaGenCount; gen++) {
+    vmArena->genRefSet[gen] = RefSetEMPTY;
+  }
+  vmArena->freeSet = RefSetUNIV; /* includes blacklist */
+  /* design.mps.arena.coop-vm.struct.vmarena.extendby.init */
+  vmArena->extendBy = userSize;
+
+  /* have to have a valid arena before calling ChunkCreate */
+  vmArena->sig = VMArenaSig;
+
   res = VMChunkCreate(&chunk, vmArena, userSize);
   if (res != ResOK)
     goto failChunkCreate;
@@ -457,35 +475,12 @@ static Res VMArenaInit(Arena *arenaReturn, ArenaClass class,
   /* design.mps.arena.class.fields. */
   chunkSize = AddrOffset(chunk->base, chunk->limit);
   arena->zoneShift = SizeFloorLog2(chunkSize >> MPS_WORD_SHIFT);
-  arena->alignment = ChunkPageSize(chunk);
-  if (arena->alignment > 1 << arena->zoneShift) {
-    res = ResMEMORY; /* userSize was too small */
-    goto failStripeSize;
-  }
 
-  /* .blacklist: We blacklist the first and last zones because */
-  /* they commonly correspond to low integers. */
-  vmArena->blacklist = 
-    RefSetAdd(arena, RefSetAdd(arena, RefSetEMPTY, (Addr)1), (Addr)-1);
-
-  for(gen = (Index)0; gen < VMArenaGenCount; gen++) {
-    vmArena->genRefSet[gen] = RefSetEMPTY;
-  }
-  vmArena->freeSet = RefSetUNIV; /* includes blacklist */
-  /* design.mps.arena.coop-vm.struct.vmarena.extendby.init */
-  vmArena->extendBy = userSize;
-
-  /* load cache */
-  ChunkEncache(arena, chunk);
-
-  vmArena->sig = VMArenaSig;
   AVERT(VMArena, vmArena);
   EVENT_PP(ArenaCreate, vmArena, chunk);
   *arenaReturn = arena;
   return ResOK;
 
-failStripeSize:
-  VMChunkDestroy(chunk);
 failChunkCreate:
 failVMMap:
   VMDestroy(arenaVM);
@@ -499,16 +494,25 @@ failVMCreate:
 static void VMArenaFinish(Arena arena)
 {
   VMArena vmArena;
+  Ring node, next;
+  VM arenaVM;
 
   vmArena = ArenaVMArena(arena);
   AVERT(VMArena, vmArena);
 
   VMArenaPurgeLatentPages(vmArena);
-  
+  /* destroy all chunks */
+  RING_FOR(node, &arena->chunkRing, next) {
+    Chunk chunk = RING_ELT(Chunk, chunkRing, node);
+    (arena->class->chunkDestroy)(chunk);
+  }
+
   vmArena->sig = SigInvalid;
 
   ArenaFinish(arena); /* impl.c.arena.finish.caller */
-  VMDestroy(vmArena->vm);
+  arenaVM = vmArena->vm;
+  VMUnmap(arenaVM, VMBase(arenaVM), VMLimit(arenaVM));
+  VMDestroy(arenaVM);
   EVENT_P(ArenaDestroy, vmArena);
 }
 
@@ -1313,11 +1317,9 @@ static Res VMAllocComm(Addr *baseReturn, Tract *baseTractReturn,
   if(res != ResOK) {
     if(arena->spareCommitted > 0) {
       VMArenaPurgeLatentPages(vmArena);
-      res =
-	VMArenaPagesMap(vmArena, vmChunk, baseIndex, pages, pool);
-      if(res != ResOK) {
+      res = VMArenaPagesMap(vmArena, vmChunk, baseIndex, pages, pool);
+      if(res != ResOK)
 	goto failPagesMap;
-      }
       /* win! */
     } else {
       goto failPagesMap;
@@ -1377,7 +1379,6 @@ static void VMArenaFindLatentRanges(
   Index latentBase, latentLimit;
   Chunk chunk = VMChunkChunk(vmChunk);
 
-  /* Minimal checking as static used only internally. */
   AVER(base < limit);
 
   latentBase = base;
@@ -1542,7 +1543,7 @@ static void VMFree(Addr base, Size size, Pool pool)
   AVER(SizeIsAligned(size, ChunkPageSize(arena->primary)));
   AVER(AddrIsAligned(base, ChunkPageSize(arena->primary)));
 
-  foundChunk = ChunkOfAddr(&chunk, vmArena, base);
+  foundChunk = ChunkOfAddr(&chunk, arena, base);
   AVER(foundChunk);
   vmChunk = ChunkVMChunk(chunk);
 
