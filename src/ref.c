@@ -1,6 +1,6 @@
 /* impl.c.ref: REFERENCES
  *
- * $HopeName: MMsrc!ref.c(trunk.3) $
+ * $HopeName: MMsrc!ref.c(MMdevel_restr.2) $
  * Copyright (C) 1995 Harlequin Group, all rights reserved
  *
  * Ref is an alias for Addr which can be used to document where
@@ -24,11 +24,53 @@
 
 #include "mpm.h"
 
-SRCID(ref, "$HopeName: MMsrc!ref.c(trunk.3) $");
+SRCID(ref, "$HopeName: MMsrc!ref.c(MMdevel_restr.2) $");
 
 Bool RankCheck(Rank rank)
 {
   CHECKL(rank >= 0);
   CHECKL(rank < RankMAX);
   return TRUE;
+}
+
+
+/* RefSetOfSeg -- calculate the reference set of segment addresses
+ *
+ * .rsos.def: The reference set of a segment is the union of the
+ * set of potential references _to_ that segment, i.e. of all the
+ * addresses the segment occupies.
+ *
+ * .rsos.zones: The base and limit zones of the segment
+ * are calculated.  The limit zone is one plus the zone of the last
+ * address in the segment, not the zone of the limit address.
+ *
+ * .rsos.univ: If the segment is large enough to span all zones,
+ * its reference set is universal.
+ *
+ * .rsos.swap: If the base zone is less than the limit zone,
+ * then the reference set looks like 000111100, otherwise it looks like
+ * 111000011.
+ */
+
+RefSet RefSetOfSeg(Space space, Seg seg)
+{
+  Word base, limit;
+
+  AVERT(Space, space);
+  AVERT(Seg, seg);
+
+  /* .rsos.zones */
+  base = SegBase(space, seg) >> space->zoneShift;
+  limit = ((SegLimit(space, seg)-1) >> space->zoneShift) + 1;
+
+  if(limit - base >= WORD_WIDTH) 	/* .rsos.univ */
+    return RefSetUniv;
+
+  base  &= WORD_WIDTH - 1;
+  limit &= WORD_WIDTH - 1;
+
+  if(base < limit)			/* .rsos.swap */
+    return ((RefSet)1<<limit) - ((RefSet)1<<base);
+  else
+    return ~(((RefSet)1<<base) - ((RefSet)1<<limit));
 }
