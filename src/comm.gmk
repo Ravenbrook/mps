@@ -1,0 +1,407 @@
+# impl.gmk.comm: COMMON GNUMAKEFILE FRAGMENT
+#
+# $HopeName: !comm.gmk(MMdevel_metrics.1) $
+# Copyright (C) 1995,1996,1997 Harlequin Group, all rights reserved
+#
+# DESCRIPTION
+#
+# This makefile fragment is included in more specific makefiles for
+# platforms which use GNU make.
+#
+# VARIABLES
+#
+# Assumes the following variables and definitions:
+# CFLAGSCOMPILER    a list of flags that should be passed
+#                   to the compiler for all compilations.
+# CFLAGSHOT         a list of flags that should be passed
+#                   to the compiler for hot varieties
+# CFLAGSCOOL        a list of flags that should be passed
+#                   to the compiler for cool varieties
+# CFLAGSINTERNAL    a list of flags that should be passed
+#                   to the compiler for internal varieties
+# CFLAGSEXTERNAL    a list of flags that should be passed
+#                   to the compiler for external varieties
+# CC                the command for the C compiler.
+# gendep            optionally defined to be a command sequence
+#   for generating the dependency file (.d) from a C file (.c)
+#   it is used in a rule of the form:
+#   $(PFM)/$(VARIETY)/%.d: %.c
+# 
+#
+# %%PART: Add a new parameter for the files included in the part.
+# Parameters:
+#   PFM		platform code, e.g. "sus8gc"
+#   MPM		as above for the "mpm" part
+#   MPMS	assembler sources for the "mpm" part (.s files)
+#   MPMPS	pre-processor assembler sources for the "mpm" part (.S files)
+#   AMC		as above for the "amc" part
+#   AMS         as above for the "ams" part
+#   LO          as above for the "lo" part
+#   DW		as above for the "dw" part
+#   SW		as above for the "sw" part
+#   TESTLIB	as above for the "testlib" part
+#   LIBS	extra libraries to include in tests (usually "-lm")
+#   NOISY	if defined and non-empty, causes commands to be emitted
+#
+#
+# EDITING
+#
+# To add new targets, varieties, and parts:
+# Search for the string "%%TARGET", "%%VARIETY", or "%%PART" in this
+# makefile and follow the instructions.  If you're adding a part, you'll
+# have to change the makefiles for all the platforms which use this
+# makefile to define the source list for that part, and the GNUmakefile
+# to include a recursive call to the name of that part.
+# 
+# CHECK PARAMETERS
+#
+# GNU make doesn't really have an "error" directive, but these lines
+# will cause it to exit with an error.
+#
+# [These only test to see whether the symbol is defined.  We could be
+#  more thorough and test the syntax and content. -- richard 1995-09-07]
+
+ifndef CC
+error "comm.gmk: CC not defined"
+endif
+ifndef CFLAGSCOMPILER
+error "comm.gmk: CFLAGSCOMPILER not defined"
+endif
+ifndef CFLAGSHOT
+error "comm.gmk: CFLAGSHOT not defined"
+endif
+ifndef CFLAGSCOOL
+error "comm.gmk: CFLAGSCOOL not defined"
+endif
+ifndef CFLAGSINTERNAL
+error "comm.gmk: CFLAGSINTERNAL not defined"
+endif
+ifndef CFLAGSEXTERNAL
+error "comm.gmk: CFLAGSEXTERNAL not defined"
+endif
+
+#
+# %%PART: Add checks for the parameter with the sources for the new
+#         part.
+
+ifndef PFM
+error "comm.gmk: PFM not defined"
+endif
+ifndef MPM
+error "comm.gmk: MPM not defined"
+endif
+ifndef AMC
+error "comm.gmk: AMC not defined"
+endif
+ifndef AMS
+error "comm.gmk: AMS not defined"
+endif
+ifndef LO
+error "comm.gmk: LO not defined"
+endif
+ifndef DW
+error "comm.gmk: DW not defined"
+endif
+ifndef TESTLIB
+error "comm.gmk: TESTLIB not defined"
+endif
+
+
+# DECLARATIONS
+
+ifdef NOISY
+ECHO = :
+else
+.SILENT:
+ECHO = echo
+endif
+
+.PHONY: phony
+
+# C FLAGS
+
+# Some flags depend on the target.  Alas.
+ifdef TARGET
+ifeq ($(TARGET),mmsw.a)
+CFLAGSTARGET = -DCONFIG_PROD_EPCORE
+else
+CFLAGSTARGET = -DCONFIG_PROD_MPS
+endif
+endif
+
+# These flags are included in all compilations.
+CFLAGSCOMMON = \
+	$(PFMDEFS) $(CFLAGSTARGET) \
+	$(CFLAGSCOMPILER)
+
+# %%VARIETY: Define a macro containing the set of flags for the new
+#            variety.
+
+# These flags are added to compilations for the indicated variety.
+CFHI = -DCONFIG_VAR_HI -DNDEBUG $(CFLAGSHOT)  $(CFLAGSINTERNAL)
+CFCI = -DCONFIG_VAR_CI          $(CFLAGSCOOL) $(CFLAGSINTERNAL)
+CFTI = -DCONFIG_VAR_TI          $(CFLAGSCOOL) $(CFLAGSINTERNAL)
+CFHE = -DCONFIG_VAR_HE -DNDEBUG $(CFLAGSHOT)  $(CFLAGSEXTERNAL) 
+CFCE = -DCONFIG_VAR_CE          $(CFLAGSCOOL) $(CFLAGSEXTERNAL)
+CFWI = -DCONFIG_VAR_WI -DNDEBUG $(CFLAGSHOT)  $(CFLAGSINTERNAL)
+
+
+# == Common definitions ==
+# %%PART: Add your part here, unless it's platform-specific
+# These values are defined here because they have no variation between
+# platforms.
+ 
+FMTDY = fmtdy.c fmtdytst.c
+  
+   
+# These map the source file lists onto object files and dependency files
+# in the platform/variety directory.
+# 
+# %%PART: Add a new macro which expands to the files included in the
+#         part.
+
+ifdef VARIETY
+MPMOBJ = $(MPM:%.c=$(PFM)/$(VARIETY)/%.o) \
+	$(MPMS:%.s=$(PFM)/$(VARIETY)/%.o)
+MPMDEP = $(MPM:%.c=$(PFM)/$(VARIETY)/%.d)
+AMCOBJ = $(AMC:%.c=$(PFM)/$(VARIETY)/%.o)
+AMCDEP = $(AMC:%.c=$(PFM)/$(VARIETY)/%.d)
+AMSOBJ = $(AMS:%.c=$(PFM)/$(VARIETY)/%.o)
+AMSDEP = $(AMS:%.c=$(PFM)/$(VARIETY)/%.d)
+AWLOBJ = $(AWL:%.c=$(PFM)/$(VARIETY)/%.o)
+AWLDEP = $(AWL:%.c=$(PFM)/$(VARIETY)/%.d)
+LOOBJ = $(LO:%.c=$(PFM)/$(VARIETY)/%.o)
+LODEP = $(LO:%.c=$(PFM)/$(VARIETY)/%.d)
+DWOBJ = $(DW:%.c=$(PFM)/$(VARIETY)/%.o)
+DWDEP = $(DW:%.c=$(PFM)/$(VARIETY)/%.d)
+POOLNOBJ = $(POOLN:%.c=$(PFM)/$(VARIETY)/%.o)
+POOLNDEP = $(POOLN:%.c=$(PFM)/$(VARIETY)/%.d)
+ARENAANOBJ = $(ARENAAN:%.c=$(PFM)/$(VARIETY)/%.o)
+ARENAANDEP = $(ARENAAN:%.c=$(PFM)/$(VARIETY)/%.d)
+SWOBJ = $(SW:%.c=$(PFM)/$(VARIETY)/%.o)
+# The following hack for SWDEP only creates those dependencies when
+# mmsw.a is being built.
+ifdef TARGET
+ifeq ($(TARGET),mmsw.a)
+SWDEP = $(SW:%.c=$(PFM)/$(VARIETY)/%.d)
+else
+SWDEP =
+endif
+endif
+TESTLIBOBJ = $(TESTLIB:%.c=$(PFM)/$(VARIETY)/%.o)
+TESTLIBDEP = $(TESTLIB:%.c=$(PFM)/$(VARIETY)/%.d)
+FMTDYOBJ = $(FMTDY:%.c=$(PFM)/$(VARIETY)/%.o)
+FMTDYDEP = $(FMTDY:%.c=$(PFM)/$(VARIETY)/%.d)
+endif
+
+# Bind CFLAGS to the appropriate set of flags for the variety.
+# %%VARIETY: Add a test for the variety and set CFLAGS here.
+ifeq ($(VARIETY),ci)
+CFLAGS=$(CFLAGSCOMMON) $(CFCI)
+else
+ifeq ($(VARIETY),hi)
+CFLAGS=$(CFLAGSCOMMON) $(CFHI)
+else
+ifeq ($(VARIETY),ti)
+CFLAGS=$(CFLAGSCOMMON) $(CFTI)
+else
+ifeq ($(VARIETY),ce)
+CFLAGS=$(CFLAGSCOMMON) $(CFCE)
+else
+ifeq ($(VARIETY),he)
+CFLAGS=$(CFLAGSCOMMON) $(CFHE)
+else
+ifeq ($(VARIETY),wi)
+CFLAGS=$(CFLAGSCOMMON) $(CFWI)
+endif
+endif
+endif
+endif
+endif
+endif
+
+
+# == Pseudo-targets ==
+
+# "all" builds all varieties of all targets
+# %%TARGET: Add the target to the all dependencies.
+# Not all targets need be specified in the "all" target.  It is
+# just a convenient set of targets to build.
+
+all: mpmss amcss amsss awlut dwstress mpsicv lockcov poolncv mps.a \
+     lo.a locv qs mpmconft finalcv arenacv bttest
+
+# These convenience targets allow one to type "make foo" to build target
+# foo in all varieties.
+#
+# %%TARGET: Add a pseudo-target for the new target here.
+
+mpmss amcss amsss awlut dwstress mpsicv lockcov poolncv \
+  locv qs mpmconft finalcv arenacv bttest\
+  mps.a lo.a awl.a mmsw.a: phony
+ifdef VARIETY
+	$(MAKE) -f $(PFM).gmk TARGET=$@ variety
+else
+	$(MAKE) -f $(PFM).gmk TARGET=$@ target
+endif
+
+# "clean" removes the directory containing the build results for the
+# platform.
+
+clean: phony
+	$(ECHO) "$(PFM): $@"
+	rm -rf "$(PFM)"
+
+# "target" builds all varieties of the target named in the TARGET macro.
+# %%VARIETY: Add a recursive make call for the new variety.
+# In fact, it builds all varieties needed for development and
+# internal customers.
+
+ifdef TARGET
+ifndef VARIETY
+target: phony
+	$(MAKE) -f $(PFM).gmk VARIETY=hi variety
+	$(MAKE) -f $(PFM).gmk VARIETY=ci variety
+	$(MAKE) -f $(PFM).gmk VARIETY=ti variety
+endif
+endif
+
+
+# "variety" builds the target named in the TARGET macro using the
+# variety named in the VARIETY macro.
+
+ifdef VARIETY
+ifdef TARGET
+variety: $(PFM)/$(VARIETY)/$(TARGET)
+endif
+endif
+
+
+# GENUINE TARGETS
+#
+# Each line defines an executable or library target to be built and the
+# object files it is built from.  These lines add dependencies to the
+# generic rules below, and should not include commands to execute.
+#
+# %%TARGET: Add the dependencies for the new target here.
+
+ifdef VARIETY
+
+$(PFM)/$(VARIETY)/mpmconft: $(PFM)/$(VARIETY)/mpmconft.o \
+	$(MPMOBJ)
+
+$(PFM)/$(VARIETY)/finalcv: $(PFM)/$(VARIETY)/finalcv.o \
+	$(FMTDYOBJ) $(MPMOBJ) $(AMCOBJ) $(TESTLIBOBJ)
+
+$(PFM)/$(VARIETY)/locv: $(PFM)/$(VARIETY)/locv.o \
+	$(MPMOBJ) $(LOOBJ) $(TESTLIBOBJ)
+
+$(PFM)/$(VARIETY)/mpmss: $(PFM)/$(VARIETY)/mpmss.o \
+	$(MPMOBJ) $(TESTLIBOBJ)
+
+$(PFM)/$(VARIETY)/bttest: $(PFM)/$(VARIETY)/bttest.o \
+	$(MPMOBJ) $(ARENAANOBJ)
+
+$(PFM)/$(VARIETY)/lockcov: $(PFM)/$(VARIETY)/lockcov.o \
+	$(MPMOBJ)
+
+$(PFM)/$(VARIETY)/mpsicv: $(PFM)/$(VARIETY)/mpsicv.o \
+	$(FMTDYOBJ) $(MPMOBJ) $(AMCOBJ) $(TESTLIBOBJ)
+
+$(PFM)/$(VARIETY)/amcss: $(PFM)/$(VARIETY)/amcss.o \
+	$(FMTDYOBJ) $(MPMOBJ) $(AMCOBJ) $(TESTLIBOBJ)
+
+$(PFM)/$(VARIETY)/amsss: $(PFM)/$(VARIETY)/amsss.o \
+	$(FMTDYOBJ) $(MPMOBJ) $(AMSOBJ) $(TESTLIBOBJ)
+
+$(PFM)/$(VARIETY)/awlut: $(PFM)/$(VARIETY)/awlut.o \
+	$(FMTDYOBJ) $(MPMOBJ) $(LOOBJ) $(AWLOBJ) $(TESTLIBOBJ)
+
+$(PFM)/$(VARIETY)/dwstress: $(PFM)/$(VARIETY)/dwstress.o \
+	$(FMTDYOBJ) $(MPMOBJ) $(AMCOBJ) $(DWOBJ) $(TESTLIBOBJ)
+
+$(PFM)/$(VARIETY)/poolncv: $(PFM)/$(VARIETY)/poolncv.o \
+	$(MPMOBJ) $(TESTLIBOBJ) $(POOLNOBJ) $(ARENAANOBJ)
+
+$(PFM)/$(VARIETY)/qs: $(PFM)/$(VARIETY)/qs.o \
+	$(AMCOBJ) $(MPMOBJ) $(TESTLIBOBJ)
+
+$(PFM)/$(VARIETY)/arenacv: $(PFM)/$(VARIETY)/arenacv.o \
+	$(MPMOBJ) $(TESTLIBOBJ) $(ARENAANOBJ)
+
+$(PFM)/$(VARIETY)/mps.a: $(MPMOBJ) $(AMCOBJ) $(LOOBJ) $(POOLNOBJ)
+
+$(PFM)/$(VARIETY)/mpm.a: $(MPMOBJ)
+
+$(PFM)/$(VARIETY)/lo.a: $(LOOBJ)
+
+$(PFM)/$(VARIETY)/awl.a: $(AWLOBJ)
+
+$(PFM)/$(VARIETY)/mmsw.a: \
+	$(SWOBJ)
+
+endif
+
+
+# GENERIC RULES
+#
+# These generate build output in the <pfm>/<variety> directory.
+# Note that we can't used "mkdir -p" to create this directory because
+# it's broken (w.r.t. the man page) under OSF/1.
+
+# Object files
+
+define run-cc
+$(ECHO) "$(PFM): $@"
+test -d $(PFM) || mkdir $(PFM)
+test -d $(PFM)/$(VARIETY) || mkdir $(PFM)/$(VARIETY)
+$(CC) $(CFLAGS) -c -o $@ $<
+endef
+
+$(PFM)/$(VARIETY)/%.o: %.c
+	$(run-cc)
+
+$(PFM)/$(VARIETY)/%.o: %.s
+	$(run-cc)
+
+$(PFM)/$(VARIETY)/%.o: %.S
+	$(run-cc)
+
+# Dependencies
+#
+# These are included into _this_ makefile (see below).  GNU make does the
+# right thing as long as it knows how to make the dependency files before
+# including them.
+
+ifdef gendep
+
+$(PFM)/$(VARIETY)/%.d: %.c
+	$(ECHO) "$(PFM): $@"
+	test -d $(PFM) || mkdir $(PFM)
+	test -d $(PFM)/$(VARIETY) || mkdir $(PFM)/$(VARIETY)
+	$(gendep)
+
+ifdef VARIETY
+ifdef TARGET
+# %%PART: Add the dependency file macro for the new part here.
+include $(MPMDEP) $(AMSDEP) $(AMCDEP) $(LODEP) $(SWDEP) \
+  $(AWLDEP) $(DWDEP) $(POOLNDEP) $(TESTLIBDEP) $(FMTDYDEP) $(ARENAANDEP)
+endif
+endif
+
+endif
+
+# Library
+
+$(PFM)/$(VARIETY)/%.a:
+	$(ECHO) "$(PFM): $@"
+	rm -f $@
+	ar rc $@ $^
+
+# Executable
+
+$(PFM)/$(VARIETY)/%:
+	$(ECHO) "$(PFM): $@"
+	$(CC) -o $@ $^ $(LIBS)
+
+# End of makefile.

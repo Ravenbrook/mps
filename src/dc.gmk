@@ -1,0 +1,33 @@
+# impl.gmk.dc: GNUMAKEFILE FRAGMENT FOR DIGITAL C COMPILER (DEC UNIX/OSF)
+#
+# $HopeName: !dc.gmk(MMdevel_metrics.1) $
+# Copyright(C) 1997 Harlequin Group, all rights reserved
+#
+# See design.buildsys.unix
+#
+# This file is included by platform makefiles that use the Digital C
+# compiler.
+#
+# Options are derived from man cc on schiele
+#
+# There is a potentially useful option -check
+# Unfortunately it produces warnings about non casting printf to void
+# and bogus warnings about non-void functions not having a return statement
+# as the last statement.  We would need to cleam our code in order to use
+# the option.
+
+# We need a symbol for a non-empty defintion with empty value
+ifdef MPS_EMPTY
+error "dc.gmk: MPS_EMPTY defined"
+endif
+
+CC = cc
+CFLAGSCOMPILER = -std1 -w2 -warnprotos -portable -readonly_strings
+CFLAGSHOT = -O2
+CFLAGSCOOL = $(MPS_EMPTY)
+CFLAGSEXTERNAL = $(MPS_EMPTY)
+CFLAGSINTERNAL = -g2
+
+# -M for a dependency file
+
+include comm.gmk
