@@ -1,0 +1,160 @@
+# ==== W3ALMV NMAKE FILE ====
+#
+# $HopeName: !w3almv.nmk(MM_dylan_sunflower.1) $
+#
+# Copyright (C) 1995 Harlequin Group, all rights reserved
+#
+
+PFM = w3almv
+PFMDEFS = /DWIN32 /D_WINDOWS
+
+MPM = <assert> <ring> <mpm> <bt> \
+      <arenavm> <vmw3> <space> <pool> <poolmfs> \
+      <poolmv> <root> <format> <buffer> <lockw3> \
+      <ref> <trace> <protw3> <shield> \
+      <than> <ssan> <mpsi> <mpsiw3> <ld> \
+      <event> <action> <seg>
+PLINTH = <mpsioan> <mpsliban>
+SW  = <assert> <ring> <mpm> \
+      <arenacl> <space> <pool> <poolmfs> \
+      <poolmv> <root> <format> <buffer> <lockw3> \
+      <ref> <trace> <protsw> <shield> \
+      <than> <ssan> <mpsisw> <mpsiw3> <ld> <poolepdl> \
+      <action> <seg>
+AMC = <amc>
+LO  = <lo>
+MRG = <poolmrg>
+DW  = <dw> <fmtdy>
+TESTLIB = <testlib>
+
+
+!INCLUDE commpre.nmk
+
+# Source to object file mappings
+# and CFLAGS amalgamation
+# %%VARIETY %%PART: Add new macros which expand to the files included 
+# in the part for each variety
+# %%VARIETY: Add a CFLAGS macro which expands to the flags that that variety
+# should use when compiling C.  And a LINKFLAGS macro which expands to the
+# flags that the variety should use when building executables.  And a LIBFLAGS
+# macro which expands to the flags that the variety should use when builing
+# libraries
+
+!IF "$(VARIETY)" == "df"
+CFLAGS=$(CFLAGSCOMMON) $(CFDF)
+LINKFLAGS=$(LINKFLAGSCOMMON) $(LFDF)
+LIBFLAGS=$(LIBFLAGSCOMMON) $(LIBFLAGSDF)
+MPMOBJ0 = $(MPM:<=w3almv\df\)
+MPMOBJ = $(MPMOBJ0:>=.obj)
+SWOBJ0 = $(SW:<=w3almv\df\)
+SWOBJ = $(SWOBJ0:>=.obj)
+AMCOBJ0 = $(AMC:<=w3almv\df\)
+AMCOBJ = $(AMCOBJ0:>=.obj)
+LOOBJ0 = $(LO:<=w3almv\df\)
+LOOBJ = $(LOOBJ0:>=.obj)
+MRGOBJ0 = $(MRG:<=w3almv\df\)
+MRGOBJ = $(MRGOBJ0:>=.obj)
+DWOBJ0 = $(DW:<=w3almv\df\)
+DWOBJ = $(DWOBJ0:>=.obj)
+TESTLIBOBJ0 = $(TESTLIB:<=w3almv\df\)
+TESTLIBOBJ = $(TESTLIBOBJ0:>=.obj)
+
+!ELSEIF "$(VARIETY)" == "dp"
+CFLAGS=$(CFLAGSCOMMON) $(CFDP)
+LINKFLAGS=$(LINKFLAGSCOMMON) $(LFDP)
+LIBFLAGS=$(LIBFLAGSCOMMON) $(LIBFLAGSDP)
+MPMOBJ0 = $(MPM:<=w3almv\dp\)
+MPMOBJ = $(MPMOBJ0:>=.obj)
+SWOBJ0 = $(SW:<=w3almv\dp\)
+SWOBJ = $(SWOBJ0:>=.obj)
+AMCOBJ0 = $(AMC:<=w3almv\dp\)
+AMCOBJ = $(AMCOBJ0:>=.obj)
+LOOBJ0 = $(LO:<=w3almv\dp\)
+LOOBJ = $(LOOBJ0:>=.obj)
+MRGOBJ0 = $(MRG:<=w3almv\dp\)
+MRGOBJ = $(MRGOBJ0:>=.obj)
+DWOBJ0 = $(DW:<=w3almv\dp\)
+DWOBJ = $(DWOBJ0:>=.obj)
+TESTLIBOBJ0 = $(TESTLIB:<=w3almv\dp\)
+TESTLIBOBJ = $(TESTLIBOBJ0:>=.obj)
+
+!ELSEIF "$(VARIETY)" == "ds"
+CFLAGS=$(CFLAGSCOMMON) $(CFDS)
+LINKFLAGS=$(LINKFLAGSCOMMON) $(LFDS)
+LIBFLAGS=$(LIBFLAGSCOMMON) $(LIBFLAGSDS)
+MPMOBJ0 = $(MPM:<=w3almv\ds\)
+MPMOBJ = $(MPMOBJ0:>=.obj)
+SWOBJ0 = $(SW:<=w3almv\ds\)
+SWOBJ = $(SWOBJ0:>=.obj)
+AMCOBJ0 = $(AMC:<=w3almv\ds\)
+AMCOBJ = $(AMCOBJ0:>=.obj)
+LOOBJ0 = $(LO:<=w3almv\ds\)
+LOOBJ = $(LOOBJ0:>=.obj)
+MRGOBJ0 = $(MRG:<=w3almv\ds\)
+MRGOBJ = $(MRGOBJ0:>=.obj)
+DWOBJ0 = $(DW:<=w3almv\ds\)
+DWOBJ = $(DWOBJ0:>=.obj)
+TESTLIBOBJ0 = $(TESTLIB:<=w3almv\ds\)
+TESTLIBOBJ = $(TESTLIBOBJ0:>=.obj)
+
+!ELSEIF "$(VARIETY)" == "dl"
+CFLAGS=$(CFLAGSCOMMON) $(CFDL)
+LINKFLAGS=$(LINKFLAGSCOMMON) $(LFDL)
+LIBFLAGS=$(LIBFLAGSCOMMON) $(LIBFLAGSDL)
+MPMOBJ0 = $(MPM:<=w3almv\dl\)
+MPMOBJ = $(MPMOBJ0:>=.obj)
+SWOBJ0 = $(SW:<=w3almv\dl\)
+SWOBJ = $(SWOBJ0:>=.obj)
+AMCOBJ0 = $(AMC:<=w3almv\dl\)
+AMCOBJ = $(AMCOBJ0:>=.obj)
+LOOBJ0 = $(LO:<=w3almv\dl\)
+LOOBJ = $(LOOBJ0:>=.obj)
+MRGOBJ0 = $(MRG:<=w3almv\dl\)
+MRGOBJ = $(MRGOBJ0:>=.obj)
+DWOBJ0 = $(DW:<=w3almv\dl\)
+DWOBJ = $(DWOBJ0:>=.obj)
+TESTLIBOBJ0 = $(TESTLIB:<=w3almv\dl\)
+TESTLIBOBJ = $(TESTLIBOBJ0:>=.obj)
+
+!ELSEIF "$(VARIETY)" == "ro"
+CFLAGS=$(CFLAGSCOMMON) $(CFRO)
+LINKFLAGS=$(LINKFLAGSCOMMON) $(LFRO)
+LIBFLAGS=$(LIBFLAGSCOMMON) $(LIBFLAGSRO)
+MPMOBJ0 = $(MPM:<=w3almv\ro\)
+MPMOBJ = $(MPMOBJ0:>=.obj)
+SWOBJ0 = $(SW:<=w3almv\ro\)
+SWOBJ = $(SWOBJ0:>=.obj)
+AMCOBJ0 = $(AMC:<=w3almv\ro\)
+AMCOBJ = $(AMCOBJ0:>=.obj)
+LOOBJ0 = $(LO:<=w3almv\ro\)
+LOOBJ = $(LOOBJ0:>=.obj)
+MRGOBJ0 = $(MRG:<=w3almv\ro\)
+MRGOBJ = $(MRGOBJ0:>=.obj)
+DWOBJ0 = $(DW:<=w3almv\ro\)
+DWOBJ = $(DWOBJ0:>=.obj)
+TESTLIBOBJ0 = $(TESTLIB:<=w3almv\ro\)
+TESTLIBOBJ = $(TESTLIBOBJ0:>=.obj)
+
+!ELSEIF "$(VARIETY)" == "cv"
+CFLAGS=$(CFLAGSCOMMON) $(CFCV)
+LINKFLAGS=$(LINKFLAGSCOMMON) $(LFCV)
+LIBFLAGS=$(LIBFLAGSCOMMON) $(LIBFLAGSCV)
+MPMOBJ0 = $(MPM:<=w3almv\cv\)
+MPMOBJ = $(MPMOBJ0:>=.obj)
+SWOBJ0 = $(SW:<=w3almv\cv\)
+SWOBJ = $(SWOBJ0:>=.obj)
+AMCOBJ0 = $(AMC:<=w3almv\cv\)
+AMCOBJ = $(AMCOBJ0:>=.obj)
+LOOBJ0 = $(LO:<=w3almv\cv\)
+LOOBJ = $(LOOBJ0:>=.obj)
+MRGOBJ0 = $(MRG:<=w3almv\cv\)
+MRGOBJ = $(MRGOBJ0:>=.obj)
+DWOBJ0 = $(DW:<=w3almv\cv\)
+DWOBJ = $(DWOBJ0:>=.obj)
+TESTLIBOBJ0 = $(TESTLIB:<=w3almv\cv\)
+TESTLIBOBJ = $(TESTLIBOBJ0:>=.obj)
+
+!ENDIF
+
+
+!INCLUDE commpost.nmk

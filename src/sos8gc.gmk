@@ -1,0 +1,31 @@
+#
+#     BUILD FOR SOLARIS/SPARC v8/GCC PLATFORM
+#
+#  $HopeName: !sos8gc.gmk(MM_dylan_sunflower.1) $
+#  Copyright (C) 1995,1997 Harlequin Group, all rights reserved
+#
+#  This is the GNU makefile for platform.sos8gc.
+#
+
+PFM = sos8gc
+
+MPM = assert.c ring.c mpsliban.c mpm.c bt.c \
+      arenavm.c vmso.c space.c pool.c poolmfs.c \
+      poolmv.c root.c format.c buffer.c lockan.c ref.c \
+      trace.c than.c protso.c shield.c mpsi.c ld.c \
+      mpsioan.c event.c action.c seg.c
+MPMPS = sssos8.S
+AMC = amc.c
+AWL = poolawl.c
+LO = lo.c
+MRG = poolmrg.c
+DW = fmtdy.c dw.c
+SW = assert.c ring.c mpm.c arenacl.c space.c pool.c poolmfs.c \
+     poolmv.c root.c format.c buffer.c lockan.c ref.c \
+     trace.c than.c protsw.c shield.c mpsisw.c ld.c ssan.c poolepdl.c \
+     action.c seg.c
+LIBS = -lm
+
+TESTLIB = testlib.c
+
+include gc.gmk
