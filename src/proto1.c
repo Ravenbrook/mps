@@ -1,6 +1,6 @@
 /* impl.c.proto1: PROTECTION FOR DIGITAL UNIX
  *
- *  $HopeName: MMsrc!proto1.c(MMdevel_config_thread.1) $
+ *  $HopeName: MMsrc!proto1.c(MMdevel_config_thread.2) $
  *  Copyright (C) 1995,1997 Harlequin Group, all rights reserved
  */
 
@@ -27,7 +27,7 @@
 /* for getpid() */
 #include <unistd.h>
 
-SRCID(proto1, "$HopeName: MMsrc!proto1.c(MMdevel_config_thread.1) $");
+SRCID(proto1, "$HopeName: MMsrc!proto1.c(MMdevel_config_thread.2) $");
 
 
 /* The previously-installed signal action, as returned by */
@@ -41,7 +41,7 @@ static struct sigaction sigNext;
  * This is the signal handler installed by ProtSetup to deal with
  * protection faults.  It is installed on the SIGSEGV signal.
  * It decodes the protection fault details from the signal context
- * and passes them to SpaceAccess, which attempts to handle the
+ * and passes them to ArenaAccess, which attempts to handle the
  * fault and remove its cause.  If the fault is handled, then
  * the handler returns and execution resumes.  If it isn't handled,
  * then sigHandle does its best to pass the signal on to the
@@ -79,7 +79,7 @@ static void sigHandle(int sig, siginfo_t *info, void *context)
     /* Offer each protection structure the opportunity to handle the */
     /* exception.  If it succeeds, then allow the mutator to continue. */
 
-    if(SpaceAccess(base, mode))
+    if(ArenaAccess(base, mode))
       return;
   }
 
@@ -171,12 +171,11 @@ void ProtSet(Addr base, Addr limit, AccessSet mode)
  * This does nothing under Solaris.
  */
 
-void ProtSync(Space space)
+void ProtSync(Arena arena)
 {
-  UNUSED(space);
+  UNUSED(arena);
   NOOP;
 }
-
 
 
 /* ProtTramp -- protection trampoline
