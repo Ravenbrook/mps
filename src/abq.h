@@ -1,6 +1,6 @@
 /* impl.h.abq: ABQ INTERFACE
  *
- * $HopeName: !abq.h(trunk.2) $
+ * $HopeName: MMsrc!abq.h(MMdevel_mv2_rework.1) $
  * Copyright (C) 1998 Harlequin Group plc.  All rights reserved.
  *
  * .readership: Any MPS developer
@@ -36,6 +36,11 @@ extern Res ABQDescribe(ABQ abq, mps_lib_FILE *stream);
 extern Bool ABQIsEmpty(ABQ abq);
 extern Bool ABQIsFull(ABQ abq);
 extern Count ABQDepth(ABQ abq);
+typedef Res (*ABQMapMethod)(CBSBlock block, void* closureP,
+                            unsigned long closureS);
+Res ABQMap(ABQ abq, ABQMapMethod method, void* closureP,
+           unsigned long closureS);
+
 
 
 /* Types */
