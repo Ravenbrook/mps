@@ -1,6 +1,6 @@
 /* impl.c.vmso: VIRTUAL MEMORY MAPPING FOR IRIX 5 (AND 6)
  *
- * $HopeName: MMsrc!vmi5.c(MMdevel_irix_vm.1) $
+ * $HopeName: MMsrc!vmi5.c(MMdevel_irix_vm.2) $
  * Copyright (C) 1995,1997 Harlequin Group, all rights reserved
  *
  * Design: design.mps.vm
@@ -9,13 +9,8 @@
  * (vm.h) for IRIX 5.x.
  *
  * mmap(2) is used to reserve address space by creating a mapping to
- * /etc/passwd with page access none.  mmap(2) is used to map pages
+ * /dev/zero with page access none.  mmap(2) is used to map pages
  * onto store by creating a copy-on-write mapping to /dev/zero.
- *
- * Attempting to reserve address space by mapping /dev/zero results in
- * swap being reserved.  So, we use a shared mapping of /etc/passwd,
- * the only file we can think of which is pretty much guaranteed to be
- * around.
  *
  * .assume.not-last: The implementation of VMCreate assumes that
  *   mmap() will not choose a region which contains the last page
@@ -24,7 +19,7 @@
  *
  * .assume.size: The maximum size of the reserved address space
  *   is limited by the range of "int".  This will probably be half
- *   of the address space.@@@@
+ *   of the address space.
  *
  * .assume.mmap.err: EAGAIN is the only error we really expect to
  *   get from mmap.  The others are either caused by invalid params
@@ -32,10 +27,10 @@
  *
  * TRANSGRESSIONS
  *
- * .fildes.name: VMStruct has two fields whose names violate our
- * naming conventions.  They are called none_fd and zero_fd to
- * emphasize that they are file descriptors and this fact is not
- * reflected in their type.  */
+ * .fildes.name: VMStruct has one fields whose name violates our
+ * naming conventions.  It's called zero_fd to emphasize that it's a
+ * file descriptor and this fact is not reflected in the type.
+ */
 
 #include "mpm.h"
 
@@ -43,7 +38,7 @@
 #error "vmi5.c is IRIX 5 specific, but MPS_OS_I5 is not set"
 #endif
 
-/* Open sesame magic @@@@ */
+/* Open sesame magic */
 #define _POSIX_SOURCE
 
 #include <sys/types.h>
@@ -53,18 +48,17 @@
 #include <errno.h>
 #include <unistd.h> /* for _SC_PAGESIZE */
 
-SRCID(vmi5, "$HopeName: MMsrc!vmi5.c(MMdevel_irix_vm.1) $");
+SRCID(vmi5, "$HopeName: MMsrc!vmi5.c(MMdevel_irix_vm.2) $");
 
 
 /* VMStruct -- virtual memory structure */
 
 #define VMSig           ((Sig)0x519B3999) /* SIGnature VM */
 
-/* The names of zero_fd and none_fd are transgressions, see .fildes.name */
+/* The name zero_fd is a transgression, see .fildes.name. */
 typedef struct VMStruct {
   Sig sig;                      /* design.mps.sig */
   int zero_fd;                  /* fildes for mmap */
-  int none_fd;                  /* fildes for mmap */
   Align align;                  /* page size */
   Addr base, limit;             /* boundaries of reserved space */
   Size reserved;                /* total reserved address space */
@@ -87,8 +81,6 @@ Bool VMCheck(VM vm)
 {
   CHECKS(VM, vm);
   CHECKL(vm->zero_fd >= 0);
-  CHECKL(vm->none_fd >= 0);
-  CHECKL(vm->zero_fd != vm->none_fd);
   CHECKL(vm->base != 0);
   CHECKL(vm->limit != 0);
   CHECKL(vm->base < vm->limit);
@@ -104,7 +96,7 @@ Res VMCreate(VM *vmReturn, Size size)
 {
   void *addr;
   Align align;
-  int zero_fd, none_fd;
+  int zero_fd;
   VM vm;
   Res res;
 
@@ -118,11 +110,6 @@ Res VMCreate(VM *vmReturn, Size size)
   zero_fd = open("/dev/zero", O_RDONLY);
   if(zero_fd == -1)
     return ResFAIL;
-  none_fd = open("/etc/passwd", O_RDONLY);
-  if(none_fd == -1) {
-    res = ResFAIL;
-    goto failNoneFd;
-  }
 
   /* Map in a page to store the descriptor on. */
   addr = mmap((void *)0, (size_t)SizeAlignUp(sizeof(VMStruct), align),
@@ -136,12 +123,11 @@ Res VMCreate(VM *vmReturn, Size size)
   vm = (VM)addr;
 
   vm->zero_fd = zero_fd;
-  vm->none_fd = none_fd;
   vm->align = align;
 
-  /* .map.reserve: See .assume.not-last. */
-  addr = mmap((void *)0, (size_t)size, PROT_NONE, MAP_SHARED,
-	      none_fd, (off_t)0);
+  /* .map.reserve: MAP_AUTORESRV is necessary to avoid reserving swap. */
+  addr = mmap((void *)0, (size_t)size, PROT_NONE, MAP_SHARED | MAP_AUTORESRV,
+	      zero_fd, (off_t)0);
   if(addr == (void *)-1) {
     AVER(errno == EAGAIN); /* .assume.mmap.err */
     res = (errno == EAGAIN) ? ResRESOURCE : ResFAIL;
@@ -165,8 +151,6 @@ Res VMCreate(VM *vmReturn, Size size)
 failReserve:
   (void)munmap((void *)vm, (size_t)SizeAlignUp(sizeof(VMStruct), align));
 failVMMap:
-  (void)close(none_fd);
-failNoneFd:
   (void)close(zero_fd);
   return res;
 }
@@ -175,7 +159,7 @@ failNoneFd:
 void VMDestroy(VM vm)
 {
   int r;
-  int zero_fd, none_fd;
+  int zero_fd;
 
   AVERT(VM, vm);
   AVER(vm->mapped == (Size)0);
@@ -186,13 +170,10 @@ void VMDestroy(VM vm)
   /* discovered if sigs were being checked. */
   vm->sig = SigInvalid;
 
-  none_fd = vm->none_fd;
   zero_fd = vm->zero_fd;
   r = munmap((void *)vm->base, (size_t)AddrOffset(vm->base, vm->limit));
   AVER(r == 0);
   r = munmap((void *)vm, (size_t)SizeAlignUp(sizeof(VMStruct), vm->align));
-  AVER(r == 0);
-  r = close(none_fd);
   AVER(r == 0);
   r = close(zero_fd);
   AVER(r == 0);
@@ -273,17 +254,17 @@ void VMUnmap(VM vm, Addr base, Addr limit)
   AVER(AddrIsAligned(base, vm->align));
   AVER(AddrIsAligned(limit, vm->align));
 
-  /* Map /etc/passwd onto the area, allowing no access.  This */
-  /* effectively depopulates the area from memory, but keeps */
+  /* .unmap.reserve: Map /dev/zero onto the area, allowing no access. */
+  /* This effectively depopulates the area from memory, but keeps */
   /* it "busy" as far as the OS is concerned, so that it will not */
   /* be re-used by other calls to mmap which do not specify */
-  /* MAP_FIXED. */
-  /* The OS doesn't merge this mapping with .map.reserve, but it */
+  /* MAP_FIXED.  See also .map.reserve. */
+  /* The OS doesn't merge this mapping with any neighbours, but it */
   /* can keep track of at least 16K mappings, so it's good enough. */
   size = AddrOffset(base, limit);
   addr = mmap((void *)base, (size_t)size,
-              PROT_NONE, MAP_SHARED | MAP_FIXED,
-              vm->none_fd, (off_t)AddrOffset(vm->base, base));
+              PROT_NONE, MAP_SHARED | MAP_FIXED | MAP_AUTORESRV,
+              vm->zero_fd, (off_t)AddrOffset(vm->base, base));
   AVER(addr == (void *)base);
 
   vm->mapped -= size;
