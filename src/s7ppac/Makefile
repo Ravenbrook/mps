@@ -1,6 +1,6 @@
 # ==== S7PPAC MPW MAKE FILE ====
 #
-# $HopeName: MMsrc!s7ppac:Makefile(trunk.3) $
+# $HopeName: !s7ppac:Makefile(trunk.4) $
 #
 # Copyright (C) 1996 Harlequin Group, all rights reserved
 #

@@ -1,6 +1,6 @@
 /* impl.c.protso: PROTECTION FOR DIGITAL UNIX
  *
- *  $HopeName$
+ *  $HopeName: !proto1.c(trunk.1) $
  *  Copyright (C) 1995,1997 Harlequin Group, all rights reserved
  *
  */
@@ -25,7 +25,7 @@
 /* for getpid() */
 #include <unistd.h>
 
-SRCID(proto1, "$HopeName$");
+SRCID(proto1, "$HopeName: !proto1.c(trunk.1) $");
 
 
 /* The previously-installed signal action, as returned by */

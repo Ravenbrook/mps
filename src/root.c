@@ -1,6 +1,6 @@
 /* impl.c.root: ROOT IMPLEMENTATION
  *
- * $HopeName: MMsrc!root.c(trunk.21) $
+ * $HopeName: !root.c(trunk.22) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  *
  * .scope: This is the implementation of the root datatype.
@@ -10,7 +10,7 @@
 
 #include "mpm.h"
 
-SRCID(root, "$HopeName: MMsrc!root.c(trunk.21) $");
+SRCID(root, "$HopeName: !root.c(trunk.22) $");
 
 
 /* RootVarCheck -- check a Root union discriminator
