@@ -1,6 +1,6 @@
 /* impl.c.mpsi: MEMORY POOL SYSTEM INTERFACE LAYER
  *
- * $HopeName: !mpsi.c(trunk.13) $
+ * $HopeName: MMsrc!mpsi.c(MMdevel_drjweak.1) $
  * Copyright (C) 1996 Harlequin Group, all rights reserved.
  *
  * .thread-safety: Most calls through this interface lock the space
@@ -17,7 +17,7 @@
 #include "mpm.h"
 #include "mps.h"
 
-SRCID(mpsi, "$HopeName: !mpsi.c(trunk.13) $");
+SRCID(mpsi, "$HopeName: MMsrc!mpsi.c(MMdevel_drjweak.1) $");
 
 
 /* Check consistency of interface mappings. */
@@ -279,6 +279,7 @@ mps_res_t mps_ap_create(mps_ap_t *mps_ap_o, mps_pool_t mps_pool, ...)
   Space space = PoolSpace(pool);
   Buffer buf;
   Res res;
+  va_list args;
 
   SpaceEnter(space);
 
@@ -287,7 +288,39 @@ mps_res_t mps_ap_create(mps_ap_t *mps_ap_o, mps_pool_t mps_pool, ...)
 
   /* Varargs are ignored at the moment -- none of the pool */
   /* implementations use them, and they're not passed through. */
+  va_start(args, pool);
   res = BufferCreate(&buf, pool);
+  va_end(args);
+  if(res != ResOK)
+    return res;
+
+  *apReturn = BufferAP(buf);
+  SpaceLeave(space);
+  return MPS_RES_OK;
+}
+  
+
+mps_res_t mps_ap_create_ranked(mps_ap_t *mps_ap_o, mps_pool_t mps_pool,
+			       mps_rank_t mps_rank, ...)
+{
+  AP *apReturn = (AP *)mps_ap_o;
+  Pool pool = (Pool)mps_pool;
+  Rank rank = (Rank)mps_rank;
+  Space space = PoolSpace(pool);
+  Buffer buf;
+  Res res;
+  va_list args;
+
+  SpaceEnter(space);
+
+  AVER(apReturn != NULL);
+  AVERT(Pool, pool);
+
+  /* Varargs are ignored at the moment -- none of the pool */
+  /* implementations use them, and they're not passed through. */
+  va_start(args, mps_rank);
+  res = BufferCreateRanked(&buf, pool, rank);
+  va_end(args);
   if(res != ResOK)
     return res;
 
