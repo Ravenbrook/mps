@@ -1,6 +1,6 @@
 /* impl.c.meter: METERS
  *
- * $HopeName: MMsrc!meter.c(MMdevel_gavinm_splay.4) $
+ * $HopeName: !meter.c(trunk.4) $
  * Copyright (C) 1998 Harlequin Group plc.  All rights reserved.
  *
  */

@@ -1,6 +1,6 @@
 /* impl.c.poolawl: AUTOMATIC WEAK LINKED POOL CLASS
  *
- * $HopeName: MMsrc!poolawl.c(trunk.53) $
+ * $HopeName: !poolawl.c(trunk.54) $
  * Copyright (C) 1998.  Harlequin Group plc.  All rights reserved.
  *
  * READERSHIP
@@ -45,7 +45,7 @@
 #include "mpm.h"
 
 
-SRCID(poolawl, "$HopeName: MMsrc!poolawl.c(trunk.53) $");
+SRCID(poolawl, "$HopeName: !poolawl.c(trunk.54) $");
 
 
 #define AWLSig  ((Sig)0x519b7a37)       /* SIGPooLAWL */

@@ -1,5 +1,5 @@
 @REM impl.bat.hqbuild
-@REM $HopeName: MMsrc!hqbuild:tools:hqbuild.bat(trunk.3) $
+@REM $HopeName: !hqbuild:tools:hqbuild.bat(trunk.4) $
 @REM Copyright (C) 1996,1997 Harlequin Group, all rights reserved
 @REM Called by SWIG autobuild system
 @

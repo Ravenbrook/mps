@@ -1,6 +1,6 @@
 /*  impl.c.than: ANSI THREADS MANAGER
  *
- *  $HopeName: MMsrc!than.c(trunk.17) $
+ *  $HopeName: !than.c(trunk.18) $
  *  Copyright (C) 1995, 1997 Harlequin Group, all rights reserved
  *
  *  This is a single-threaded implementation of the threads manager.
@@ -14,7 +14,7 @@
 
 #include "mpm.h"
 
-SRCID(than, "$HopeName: MMsrc!than.c(trunk.17) $");
+SRCID(than, "$HopeName: !than.c(trunk.18) $");
 
 
 Bool ThreadCheck(Thread thread)
