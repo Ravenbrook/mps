@@ -1,6 +1,6 @@
 /*  impl.c.bttest: BIT TABLE TEST
  *
- *  $HopeName$
+ *  $HopeName: !bttest.c(trunk.1) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  */
 
@@ -14,7 +14,7 @@
 #include "mps.h"
 #include "mpsaan.h" /* ANSI arena for BTCreate and BTDestroy */
 
-SRCID(bttest, "$HopeName$");
+SRCID(bttest, "$HopeName: !bttest.c(trunk.1) $");
 
 static BT bt; /* the BT which we will use */
 static Size btSize; /* the size of the current BT */

@@ -1,6 +1,6 @@
 /*  impl.c.protw3: PROTECTION FOR WIN32
  *
- *  $HopeName: MMsrc!protw3.c(trunk.11) $
+ *  $HopeName: !protw3.c(trunk.12) $
  *  Copyright (C) 1995, 1997 Harlequin Group, all rights reserved
  */
 
@@ -15,7 +15,7 @@
 
 #include "mpswin.h"
 
-SRCID(protw3, "$HopeName: MMsrc!protw3.c(trunk.11) $");
+SRCID(protw3, "$HopeName: !protw3.c(trunk.12) $");
 
 
 void ProtSetup(void)
