@@ -1,6 +1,6 @@
 /* impl.h.mpm: MEMORY POOL MANAGER DEFINITIONS
  *
- * $HopeName: MMsrc!mpm.h(MMdevel_trace2.1) $
+ * $HopeName: MMsrc!mpm.h(MMdevel_trace2.2) $
  * Copyright (C) 1996 Harlequin Group, all rights reserved.
  */
 
@@ -255,10 +255,10 @@ extern Res TraceCreate(Trace *traceReturn, Space space);
 extern Res TraceStart(Trace trace, Option option);
 extern Res TraceStep(Trace trace);
 extern void TraceDestroy(Trace trace);
+extern void TraceAccess(Space space, Seg seg, AccessSet mode);
 
 extern Res TraceComplete(Space space, Option option); /* @@@@ */
 
-extern Res TraceFix(Ref *refIO, Fix fix);
 extern RefSet TraceWhite(Trace trace);
 
 /* Equivalent to impl.h.mps MPS_SCAN_BEGIN */
@@ -296,7 +296,6 @@ extern RefSet TraceWhite(Trace trace);
    (fix)->summary = SCANsummary; \
   END
 
-extern Res TraceScanArea(Fix fix, Addr *base, Addr *limit);
 extern Res TraceScanAreaTagged(Fix fix, Addr *base, Addr *limit);
 
 
@@ -358,6 +357,9 @@ extern Col SegCol(Seg seg);
 #define SegP(seg)		((seg)->p)
 #define SegSetP(seg, pp)	((void)((seg)->p = (pp)))
 #define SegCol(seg)		(&(seg)->colStruct)
+#define SegProtMode(seg)	((seg)->pm)
+#define SegShieldMode(seg)	((seg)->sm)
+#define SegShieldDepth(seg)	((seg)->depth)
 
 extern Pool (SegPool)(Seg seg);
 extern Ring (SegPoolRing)(Seg seg);
