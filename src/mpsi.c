@@ -1,6 +1,6 @@
 /* impl.c.mpsi: MEMORY POOL SYSTEM C INTERFACE LAYER
  *
- * $HopeName: MMsrc!mpsi.c(MM_epcore_brisling.3) $
+ * $HopeName: MMsrc!mpsi.c(MM_epcore_brisling.4) $
  * Copyright (C) 1997, 1999 Harlequin Group plc.  All rights reserved.
  *
  * .purpose: This code bridges between the MPS interface to C,
@@ -54,7 +54,7 @@
 #include "mpsavm.h" /* only for mps_space_create */
 #include "sac.h"
 
-SRCID(mpsi, "$HopeName: MMsrc!mpsi.c(MM_epcore_brisling.3) $");
+SRCID(mpsi, "$HopeName: MMsrc!mpsi.c(MM_epcore_brisling.4) $");
 
 
 /* mpsi_check -- check consistency of interface mappings
@@ -1056,10 +1056,10 @@ void mps_sac_flush(mps_sac_t mps_sac)
 }
 
 
-/* _mps_sac_fill -- alloc an object, and perhaps fill the cache */
+/* mps_sac_fill -- alloc an object, and perhaps fill the cache */
 
-mps_res_t _mps_sac_fill(mps_addr_t *p_o, mps_sac_t mps_sac, size_t size,
-                        mps_bool_t has_reservoir_permit)
+mps_res_t mps_sac_fill(mps_addr_t *p_o, mps_sac_t mps_sac, size_t size,
+                       mps_bool_t has_reservoir_permit)
 {
   SAC sac = SACOfExternalSAC((ExternalSAC)mps_sac);
   Arena arena;
@@ -1082,9 +1082,9 @@ mps_res_t _mps_sac_fill(mps_addr_t *p_o, mps_sac_t mps_sac, size_t size,
 }
 
 
-/* _mps_sac_empty -- free an object, and perhaps empty the cache */
+/* mps_sac_empty -- free an object, and perhaps empty the cache */
 
-void _mps_sac_empty(mps_sac_t mps_sac, mps_addr_t p, size_t size)
+void mps_sac_empty(mps_sac_t mps_sac, mps_addr_t p, size_t size)
 {
   SAC sac = SACOfExternalSAC((ExternalSAC)mps_sac);
   Arena arena;
