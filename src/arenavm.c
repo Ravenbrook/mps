@@ -1,6 +1,6 @@
 /* impl.c.arenavm: VIRTUAL MEMORY BASED ARENA IMPLEMENTATION
  *
- * $HopeName: MMsrc!arenavm.c(MMdevel_partial_page.2) $
+ * $HopeName: MMsrc!arenavm.c(MMdevel_partial_page.3) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  *
  * This is the implementation of the Segment abstraction from the VM
@@ -37,7 +37,7 @@
 #include "mpm.h"
 
 
-SRCID(arenavm, "$HopeName: MMsrc!arenavm.c(MMdevel_partial_page.2) $");
+SRCID(arenavm, "$HopeName: MMsrc!arenavm.c(MMdevel_partial_page.3) $");
 
 
 /* Space Arena Projection
@@ -114,6 +114,8 @@ typedef struct PageStruct {     /* page structure */
 /* addrPageBase -- the base of the page this address is on */
 
 #define addrPageBase(arena, addr)  AddrAlignDown((addr), (arena)->pageSize)
+
+#define addrOfPageDesc(arena, index)  ((Addr)&(arena)->pageTable[index])
 
 
 /* ArenaCreate -- create the arena
@@ -481,74 +483,119 @@ static Bool findFreeInRefSet(Index *baseReturn,
 }
 
 
-/* tablePageIsUsed -- check whether a given page of the page table is used
+/* tablePageBaseIndex -- index of the first page descriptor falling
+ *                       (at least partially) on this table page
  *
- * .division: We calculate the indexes corresponding to the first and
- * last byte of the page by dividing the offset from the beginning of
- * the table by the size a table element.  This relies on
- * ArenaCreate.vm.Addr-is-star.
+ * .repr.table-page: Table pages are passed as the base address of the page.
  *
- * .improve.limits: We don't need to check the bits were (de)allocating.
+ * .division: We calculate it by dividing the offset from the beginning
+ * of the page table by the size of a table element.  This relies on
+ * .vm.Addr-is-star.
  */
 
-static Bool tablePageIsUsed(Arena arena, Addr page)
-{
-  Size pageOffset;
+#define tablePageBaseIndex(arena, tablePage) \
+  (AddrOffset((Addr)(arena)->pageTable, (tablePage)) \
+   / sizeof(PageStruct))
 
+
+/* tablePageLimitIndex -- index of the first page descriptor falling
+ *                        (wholly) the next table page
+ *
+ * Similar to tablePageBaseIndex, see .repr.table-page and .division.
+ */
+
+#define tablePageLimitIndex(arena, tablePage) \
+  ((AddrOffset((Addr)(arena)->pageTable, (tablePage)) + (arena)->pageSize - 1) \
+   / sizeof(PageStruct) \
+   + 1)
+
+
+/* tablePageInUse -- check whether a given page of the page table is in use
+ *
+ * Returns TRUE if and only if the table page given is in use, i.e., if any
+ * of the page descriptors falling on it (even partially) are being used.
+ * Relies on .repr.table-page and .vm.Addr-is-star.
+ *
+ * .improve.limits: We don't need to check the parts we're (de)allocating.
+ */
+
+static Bool tablePageInUse(Arena arena, Addr tablePage)
+{
   AVERT(Arena, arena);
   /* Check it's in the page table. */
-  pageOffset = AddrOffset((Addr)&arena->pageTable[0], page);
-  AVER(pageOffset >= 0 &&
-       AddrOffset(page, (Addr)&arena->pageTable[arena->tablePages]) > 0);
+  AVER(AddrOffset((Addr)&arena->pageTable[0], tablePage) >= 0 &&
+       AddrOffset(tablePage, (Addr)&arena->pageTable[arena->tablePages]) > 0);
 
-  return BTIsResRange(arena->allocTable,
-		      pageOffset / sizeof(PageStruct),
-		      ((pageOffset+arena->pageSize-1) / sizeof(PageStruct)) + 1);
+  return !BTIsResRange(arena->allocTable,
+		       tablePageBaseIndex(arena, tablePage),
+		       tablePageLimitIndex(arena, tablePage));
 }
 
 
-/* unusedTablePages -- find any unused pages occupied by the entries given
+/* unusedTablePages -- find any unused pages occupied by the descriptors given
  *
- * .unused: The caller guarantees the entries between base and limit are unused.
- * .used.first-and-last: Since the entries given are not being used at the
- * moment, only the first page and the last page could be partially used,
- * the rest (if any) can be assumed to be unused.
+ * .unused: The caller guarantees the pages between baseIndex and
+ * limitIndex are free, so those descriptors aren't being used.
+ * .used.first-and-last: Since the descriptors given are not being used
+ * at the moment, only the first page and the last page could be
+ * partially used, the rest (if any) can be assumed to be unused.
  */
 
-static void unusedTablePages(Arena arena, Index base, Index limit,
-			     Addr *unusedPagesBaseReturn,
-			     Addr *unusedPagesLimitReturn)
+static Bool unusedTablePages(Addr *baseReturn, Addr *limitReturn,
+			     Arena arena, Index baseIndex, Index limitIndex)
 {
-  Addr firstPage, lastPage, unusedPagesBase, unusedPagesLimit;
+  Addr firstPageBase, lastPageBase;
 
   AVERT(Arena, arena);
-  AVER(0 <= base && base < limit && limit <= arena->pages);
-  AVER(BTIsResRange(arena->allocTable, base, limit));
-  AVER(unusedPagesBaseReturn != NULL && unusedPagesLimitReturn != NULL);
+  AVER(0 <= baseIndex && baseIndex < limitIndex
+       && limitIndex <= arena->pages);
+  AVER(BTIsResRange(arena->allocTable, baseIndex, limitIndex));
+  AVER(baseReturn != NULL);
+  AVER(limitReturn != NULL);
 
-  /* First, compute first page needed (using ArenaCreate.vm.Addr-is-star). */
-  firstPage = addrPageBase(arena, (Addr)&arena->pageTable[base]);
-  if(tablePageIsUsed(arena, firstPage)) {
-    unusedPagesBase = firstPage;
-  } else {
-    unusedPagesBase = AddrAdd(firstPage, arena->pageSize);
-  }
-  /* Then, compute last page needed (page of last byte of last entry). */
-  lastPage = addrPageBase(arena, AddrAdd((Addr)&arena->pageTable[limit], -1));
-  if(firstPage == lastPage) {
-    /* No need to look in allocTable -- the info about this page has */
-    /* already been computed and stored in unusedPagesBase above. */
-    unusedPagesLimit = AddrAdd(lastPage, arena->pageSize);
-  } else {
-    if(tablePageIsUsed(arena, lastPage)) {
-      unusedPagesLimit = AddrAdd(lastPage, arena->pageSize);
+  /* firstPageBase is the base address of the table page that contains the */
+  /* (first byte of the) page descriptor for baseIndex. */
+  firstPageBase = addrPageBase(arena, addrOfPageDesc(arena, baseIndex));
+
+  /* lastPageBase is the base address of the table page that contains the */
+  /* (last byte of the) page descriptor for the page before limitIndex. */
+  lastPageBase = addrPageBase(arena,
+			      AddrAdd(addrOfPageDesc(arena, limitIndex-1),
+				      sizeof(PageStruct) - 1));
+
+  /* If there is only one page involved, just check whether it is */
+  /* used.  This is the common case, since it's unlikely that */
+  /* many page descriptors will be allocated or freed at once. */
+  if(firstPageBase == lastPageBase) {
+    if(tablePageInUse(arena, firstPageBase)) {
+      return FALSE;
     } else {
-      unusedPagesLimit = lastPage;
+      *baseReturn = firstPageBase;
+      *limitReturn = AddrAdd(firstPageBase, arena->pageSize);
+      return TRUE;
     }
   }
-  *unusedPagesBaseReturn = unusedPagesBase;
-  *unusedPagesLimitReturn = unusedPagesLimit;
+
+  /* If the page containing the page descriptor for baseIndex */
+  /* is in use, exclude it. */
+  if(tablePageInUse(arena, firstPageBase)) {
+    *baseReturn = AddrAdd(firstPageBase, arena->pageSize);
+  } else {
+    *baseReturn = firstPageBase;
   }
+
+  /* If the page containing the page descriptor for limitIndex */
+  /* is in use, exclude it. */
+  if(tablePageInUse(arena, lastPageBase)) {
+    *limitReturn = lastPageBase;
+  } else {
+    *limitReturn = AddrAdd(lastPageBase, arena->pageSize);
+  }
+
+  /* If the pages were adjacent, and both excluded, then there */
+  /* is nothing left. */
+  return (*baseReturn != *limitReturn);
+}
 
 
 /* SegAlloc -- allocate a segment from the arena */
@@ -592,11 +639,9 @@ Res SegAlloc(Seg *segReturn, SegPref pref, Space space, Size size, Pool pool)
   /* Compute number of pages to be allocated. */
   pages = size >> arena->pageShift;
 
-  /* Ensure that the page table entries we need are on mapped pages. */
-  unusedTablePages(arena, base, base + pages,
-		   &unmappedPagesBase, &unmappedPagesLimit);
-  /* Now map it, if necessary. */
-  if(unmappedPagesBase < unmappedPagesLimit) {
+  /* Ensure that the page descriptors we need are on mapped pages. */
+  if(unusedTablePages(&unmappedPagesBase, &unmappedPagesLimit,
+		      arena, base, base + pages)) {
     res = VMMap(space, unmappedPagesBase, unmappedPagesLimit);
     if(res) goto failTableMap;
   }
@@ -674,10 +719,9 @@ void SegFree(Space space, Seg seg)
   AVER(BTIsSetRange(arena->allocTable, basePage, basePage + pages));
   BTResRange(arena->allocTable, basePage, basePage + pages);
 
-  /* Unmap any pages that have become unused in the page table */
-  unusedTablePages(arena, basePage, basePage + pages,
-		   &unusedPagesBase, &unusedPagesLimit);
-  if(unusedPagesBase < unusedPagesLimit)
+  /* Unmap any pages that became unused in the page table */
+  if(unusedTablePages(&unusedPagesBase, &unusedPagesLimit,
+		      arena, basePage, basePage + pages))
     VMUnmap(space, unusedPagesBase, unusedPagesLimit);
 
   EVENT_PP(SegFree, arena, seg);
