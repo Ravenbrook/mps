@@ -1,6 +1,6 @@
 /* impl.c.arenacl: ARENA IMPLEMENTATION USING CLIENT MEMORY
  *
- * $HopeName: MMsrc!arenacl.c(MMdevel_segiter.1) $
+ * $HopeName: MMsrc!arenacl.c(MMdevel_segiter.2) $
  * 
  * Copyright (C) 1996 Harlequin Group, all rights reserved.
  *
@@ -41,7 +41,7 @@
 #error "Client arena not configured"
 #endif
 
-SRCID(arenacl, "$HopeName: MMsrc!arenacl.c(MMdevel_segiter.1) $");
+SRCID(arenacl, "$HopeName: MMsrc!arenacl.c(MMdevel_segiter.2) $");
 
 Bool ArenaCheck(Arena arena)
 {
@@ -165,6 +165,11 @@ typedef Size BI;
 
 static PI ChunkPageIndexOfAddr(Chunk chunk, Addr addr)
 {
+  AVERT(Chunk, chunk);
+  AVER(chunk->pageBase <= addr);
+  AVER(addr < AddrAdd(chunk->pageBase,
+                      (Size)(chunk->pages << chunk->arena->pageShift)));
+
   return (PI)(AddrOffset(chunk->pageBase, addr) >>
 	      chunk->arena->pageShift);
 }
@@ -880,10 +885,11 @@ Bool SegNext(Seg *segReturn, Space space, Addr addr)
     Chunk chunk = RING_ELT(Chunk, arenaRing, node);
     PI pi;
 
-    if(addr < chunk->limit) {
+    if(addr < AddrAdd(chunk->pageBase,
+		      (Size)(chunk->pages << arena->pageShift))) {
       Seg seg;
 
-      if(addr < chunk->base) {
+      if(addr < chunk->pageBase) {
 	/* The address is not in this chunk, so we want */
 	/* to start looking at the beginning of the chunk */
 	pi = 0;
