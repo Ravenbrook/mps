@@ -1,6 +1,6 @@
 /* impl.c.arena: ARENA IMPLEMENTATION
  *
- * $HopeName: MMsrc!arena.c(MMdevel_ptw_pseudoloci.1) $
+ * $HopeName: MMsrc!arena.c(MMdevel_ptw_pseudoloci.2) $
  * Copyright (C) 1998. Harlequin Group plc. All rights reserved.
  *
  * .readership: Any MPS developer
@@ -36,7 +36,7 @@
 #include "poolmrg.h"
 #include "mps.h"
 
-SRCID(arena, "$HopeName: MMsrc!arena.c(MMdevel_ptw_pseudoloci.1) $");
+SRCID(arena, "$HopeName: MMsrc!arena.c(MMdevel_ptw_pseudoloci.2) $");
 
 
 /* Forward declarations */
@@ -1249,8 +1249,7 @@ Res SegAlloc(Seg *segReturn, SegPref pref, Size size, Pool pool,
       res = (*arena->class->segAllocInZoneRange)(&seg, pref, size, 
                                                  pool, base, limit);
       if (res == ResOK) {
-        /* Note the segment */
-        LocusClientSegAdd(client, arena, seg);
+        LocusClientNoteSegAlloc(client, arena, seg);
         goto goodAlloc;
       }
     }
@@ -1284,6 +1283,14 @@ void SegFree(Seg seg)
   AVERT(Seg, seg);
   arena = SegArena(seg);
   AVERT(Arena, arena);
+
+  /* @@@ Needs to be over-ridden by multi-loci pools, e.g.,
+     generational pools, or SegPool should be SegGroup?, or just pass
+     in the LocusClient to SegFree */
+  /* @@@ Either must run before class method, or change to
+     NoteZoneFree (and calculate the SegRefSet here.  After class
+     method runs, Seg is invalid */
+  LocusClientNoteSegFree(PoolLocusClient(SegPool(seg)), arena, seg);
 
   res = ArenaEnsureReservoir(arena);
   if (res == ResOK) {
