@@ -1,7 +1,7 @@
 /* impl.c.seg: SEGMENTS
  *
- * $HopeName: !seg.c(trunk.23) $
- * Copyright (C) 2000.  Harlequin Limited.  All rights reserved.
+ * $HopeName: MMsrc!seg.c(MMdevel_configura.1) $
+ * Copyright (C) 2000 Harlequin Limited.  All rights reserved.
  *
  * .design: The design for this module is design.mps.seg.
  *
@@ -28,7 +28,7 @@
 
 #include "mpm.h"
 
-SRCID(seg, "$HopeName: !seg.c(trunk.23) $");
+SRCID(seg, "$HopeName: MMsrc!seg.c(MMdevel_configura.1) $");
 
 
 /* SegGCSeg -- convert generic Seg to GCSeg */
@@ -313,6 +313,10 @@ RefSet SegSummary(Seg seg)
 void SegSetSummary(Seg seg, RefSet summary)
 {
   AVERT(Seg, seg);
+#if defined(PROTECTION_NONE)
+  /* If there's no protection, summaries cannot be maintained. */
+  summary = RefSetUNIV;
+#endif
   seg->class->setSummary(seg, summary);
 }
 
