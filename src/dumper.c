@@ -2,7 +2,7 @@
  *
  *                   TEST DATABASE DUMPER
  *
- *  $HopeName: MMsrc!poolpscv.c(MMdevel_protoposm_1.4) $
+ *  $HopeName: MMsrc!dumper.c(MMdevel_protoposm_1.1) $
  *
  *  Copyright (C) 1995 Harlequin Group, all rights reserved
  *
@@ -19,6 +19,7 @@
 
 #include "dbm.h"
 #include "db.h"
+#include "mapping.h"
 
 #include "fmtcv.h"
 
@@ -62,7 +63,7 @@ static void dump_object(Addr *objectIO, Format format, FILE *fp)
   s.base = object;
   for (i = 0; (i < length); i++)
     s.offsets[i] = 0;
-  (*format->scan)(objectIO, dump_object_fix,(Env) &s);
+  (*format->scan)(objectIO, dump_object_fix,(Env) &s, FALSE);
 
   for (i = 0; i < length; i++) {
     if (! (i % 4)) fprintf(fp,"\n");
@@ -84,7 +85,7 @@ static void dump_area(Addr base, Addr limit, Format format, FILE* fp)
     dump_object(&object,format,fp);
 }
 
-static void dump_pages(database_t *db, PoolPS poolps, FILE *fp)
+static void dump_chunks(database_t *db, PoolPS poolps, FILE *fp)
 {
   Addr i;
   Space space;
@@ -97,16 +98,16 @@ static void dump_pages(database_t *db, PoolPS poolps, FILE *fp)
   arena = SpaceArena(space);
   shield = SpaceShield(space);
 
-  for(i=0; i<poolps->pages;i++)
+  for (i=0; i<poolps->chunkCount;i++)
   {
-    PoolPSPage page = &poolps->pageTable[i];
+    PoolPSChunk chunk = db_GetChunkUsingChunkOffset(poolps, i);
 
-    if(page->identity != kUndefinedPage)
-      fprintf(fp, "\nDISK PAGE %6lX", i);
-    switch(page->identity)
+    if (db_GetChunkIdentity(chunk) != kUndefinedChunk)
+      fprintf(fp, "\nDISK  CHUNK %6lX", i);
+    switch(db_GetChunkIdentity(chunk))
     {
-    case kDataPage:
-      if(page->state != PoolPSPageStateFREE)
+    case kDataChunk:
+      if (db_GetChunkState(chunk) != PoolPSChunkStateFREE)
       {
 	Addr seg;
 	Addr size, limit;
@@ -114,11 +115,11 @@ static void dump_pages(database_t *db, PoolPS poolps, FILE *fp)
 
 	ShieldEnter(shield);
 
-        ensureSwizzled(poolps, i);
+        ensureSwizzled(poolps, chunk);
 
 	ShieldLeave(shield);
 
-	seg = page->seg;
+	seg = db_GetChunkSegment(chunk);
 	size = ArenaSegSize(arena, seg);
 	limit = seg + size;
 	                   /* @@@@ should be disk page size */
@@ -135,11 +136,11 @@ static void dump_pages(database_t *db, PoolPS poolps, FILE *fp)
 	dump_area(seg, limit, poolps->format, fp);
       }
       break;
-    case kControlPage:
-      fprintf(fp, ": Control Page");
+    case kControlChunk:
+      fprintf(fp, ": Control Chunk");
       /* @@@@ could call header page dump functions here */
       break;
-    case kUndefinedPage:
+    case kUndefinedChunk:
       break;
     default:
       NOTREACHED;
@@ -152,7 +153,7 @@ void dump_db(database_t *db, PoolPS poolPS, FILE *fp)
 {
   fprintf(fp, "\nDump of database: %s\n", db->name);
   /* @@@@ more info here */
-  dump_pages(db, poolPS, fp);
+  dump_chunks(db, poolPS, fp);
 }
 
 struct args
@@ -160,6 +161,7 @@ struct args
   Space space;
   char *name;
 };
+
 
 static void *trampfn(void *p, size_t s)
 {
