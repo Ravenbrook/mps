@@ -1,6 +1,6 @@
 /* impl.c.arena: ARENA IMPLEMENTATION
  *
- * $HopeName: MMsrc!arena.c(MMdevel_gavinm_zone.3) $
+ * $HopeName: MMsrc!arena.c(MMdevel_gavinm_zone.4) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  *
  * .readership: Any MPS developer
@@ -36,7 +36,7 @@
 #include "poolmrg.h"
 #include "mps.h"
 
-SRCID(arena, "$HopeName: MMsrc!arena.c(MMdevel_gavinm_zone.3) $");
+SRCID(arena, "$HopeName: MMsrc!arena.c(MMdevel_gavinm_zone.4) $");
 
 
 /* All static data objects are declared here. See .static */
@@ -1065,6 +1065,7 @@ Bool SegPrefCheck(SegPref pref)
   CHECKL(BoolCheck(pref->high));
   /* refSet can't be checked because it's an arbitrary bit pattern. */
   CHECKL(BoolCheck(pref->isGen));
+  CHECKL(BoolCheck(pref->isCollected));
   /* gen is an arbitrary serial */
   return TRUE;
 }
@@ -1078,6 +1079,7 @@ static SegPrefStruct segPrefDefault = {
   SegPrefSig,                           /* sig */
   FALSE,                                /* high */
   RefSetUNIV,                           /* refSet */
+  FALSE,                                /* isCollected */
   FALSE,                                /* isGen */
   (Serial)0,                            /* gen */
 };
@@ -1109,6 +1111,11 @@ Res SegPrefExpress(SegPref pref, SegPrefKind kind, void *p)
   case SegPrefRefSet:
     AVER(p != NULL);
     pref->refSet = *(RefSet *)p;
+    break;
+
+  case SegPrefCollected:
+    AVER(p == NULL);
+    pref->isCollected = TRUE;
     break;
 
   case SegPrefGen:

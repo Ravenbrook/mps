@@ -1,6 +1,6 @@
 /* impl.h.mpmst: MEMORY POOL MANAGER DATA STRUCTURES
  *
- * $HopeName: MMsrc!mpmst.h(MMdevel_gavinm_zone.2) $
+ * $HopeName: MMsrc!mpmst.h(MMdevel_gavinm_zone.3) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  *
  * .readership: MM developers.
@@ -254,6 +254,7 @@ typedef struct SegPrefStruct {  /* segment placement preferences */
   Sig sig;                      /* impl.h.misc.sig */
   Bool high;                    /* high or low */
   RefSet refSet;                /* preferred RefSetOfSeg */
+  Bool isCollected;             /* whether segment will be collected */
   Bool isGen;                   /* whether gen is set */
   Serial gen;                   /* associated geneation */
 } SegPrefStruct;

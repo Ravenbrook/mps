@@ -1,6 +1,6 @@
 /* impl.c.poolams: AUTOMATIC MARK & SWEEP POOL CLASS
  *
- * $HopeName: !poolams.c(trunk.18) $
+ * $HopeName: MMsrc!poolams.c(MMdevel_gavinm_zone.1) $
  * Copyright (C) 1997, 1998 The Harlequin Group Limited.  All rights reserved.
  * 
  * .readership: any MPS developer.
@@ -17,7 +17,7 @@
 #include "mpm.h"
 #include "mpscams.h"
 
-SRCID(poolams, "$HopeName: !poolams.c(trunk.18) $");
+SRCID(poolams, "$HopeName: MMsrc!poolams.c(MMdevel_gavinm_zone.1) $");
 
 
 #define AMSSig          ((Sig)0x519A3599) /* SIGnature AMS */
@@ -204,6 +204,7 @@ static Res AMSGroupCreate(AMSGroup *groupReturn, Pool pool, Size size,
   Arena arena;
   Seg seg;
   void *p;                      /* for allocating the group header */
+  SegPrefStruct segPrefStruct;
   
   AVER(groupReturn != NULL);
   AVERT(Pool, pool);
@@ -224,7 +225,9 @@ static Res AMSGroupCreate(AMSGroup *groupReturn, Pool pool, Size size,
     goto failGroup;
   group = (AMSGroup)p;
 
-  res = SegAlloc(&seg, SegPrefDefault(), size, pool);
+  segPrefStruct = *SegPrefDefault();
+  SegPrefExpress(&segPrefStruct, SegPrefCollected, NULL);
+  res = SegAlloc(&seg, &segPrefStruct, size, pool);
   if(res != ResOK)
     goto failSeg;
   

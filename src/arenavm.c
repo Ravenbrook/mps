@@ -1,6 +1,6 @@
 /* impl.c.arenavm: VIRTUAL MEMORY BASED ARENA IMPLEMENTATION
  *
- * $HopeName: MMsrc!arenavm.c(MMdevel_gavinm_zone.4) $
+ * $HopeName: MMsrc!arenavm.c(MMdevel_gavinm_zone.5) $
  * Copyright (C) 1997, 1998 The Harlequin Group Limited.  All rights reserved.
  *
  * This is the implementation of the Segment abstraction from the VM
@@ -29,7 +29,7 @@
 #include "mpm.h"
 #include "mpsavm.h"
 
-SRCID(arenavm, "$HopeName: MMsrc!arenavm.c(MMdevel_gavinm_zone.4) $");
+SRCID(arenavm, "$HopeName: MMsrc!arenavm.c(MMdevel_gavinm_zone.5) $");
 
 
 typedef struct VMArenaStruct *VMArena;
@@ -664,19 +664,25 @@ static Res VMSegAlloc(Seg *segReturn, SegPref pref, Size size,
   /* Note that each is a superset of the previous, unless blacklisted */
   /* zones have been allocated (or the default is used). */
 
-  if(!findFreeInRefSet(&base, vmArena, size, 
-		       RefSetDiff(refSet, vmArena->blacklist)) &&
-     !findFreeInRefSet(&base, vmArena, size, 
-                               RefSetUnion(refSet,
-		                   RefSetDiff(vmArena->freeSet, 
-					      vmArena->blacklist))) && 
-     !findFreeInRefSet(&base, vmArena, size, 
-		       RefSetDiff(RefSetUNIV, vmArena->blacklist)) && 
-     !findFreeInRefSet(&base, vmArena, size, RefSetUNIV)) {
-    /* .improve.alloc-fail: This could be because the request was */
-    /* too large, or perhaps the arena is fragmented.  We could return a */
-    /* more meaningful code. */
-    return ResRESOURCE;
+  if(pref->isCollected) { /* GC'd segment */
+    if(!findFreeInRefSet(&base, vmArena, size, 
+			 RefSetDiff(refSet, vmArena->blacklist)) &&
+       !findFreeInRefSet(&base, vmArena, size, 
+				 RefSetUnion(refSet,
+				     RefSetDiff(vmArena->freeSet, 
+						vmArena->blacklist))) && 
+       !findFreeInRefSet(&base, vmArena, size, 
+			 RefSetDiff(RefSetUNIV, vmArena->blacklist)) && 
+       !findFreeInRefSet(&base, vmArena, size, RefSetUNIV)) {
+      /* .improve.alloc-fail: This could be because the request was */
+      /* too large, or perhaps the arena is fragmented.  We could return a */
+      /* more meaningful code. */
+      return ResRESOURCE;
+    }
+  } else { /* non-GC'd segment */
+    if(!findFreeInRefSet(&base, vmArena, size, RefSetUNIV)) {
+      return ResRESOURCE;
+    }
   }
   
   /* .alloc.early-map: Map in the segment memory before actually */
