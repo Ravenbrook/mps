@@ -1,7 +1,7 @@
 /* impl.h.mpm: MEMORY POOL MANAGER DEFINITIONS
  *
- * $HopeName: MMsrc!mpm.h(MMepcore_pilchard.2) $
- * Copyright (C) 1997, 1998 The Harlequin Group Limited.  All rights reserved.
+ * $HopeName: MMsrc!mpm.h(MMepcore_pilchard.3) $
+ * Copyright (C) 1998. Harlequin Group plc. All rights reserved.
  */
 
 #ifndef mpm_h
@@ -678,6 +678,7 @@ extern Bool RankSetCheck(RankSet rankSet);
 #define RefSetSuper(rs1, rs2)   BS_SUPER((rs1), (rs2))
 #define RefSetDiff(rs1, rs2)    BS_DIFF((rs1), (rs2))
 #define RefSetSub(rs1, rs2)     BS_SUB((rs1), (rs2))
+#define RefSetComp(rs)          BS_COMP(rs)
 
 extern RefSet RefSetOfSeg(Arena arena, Seg seg);
 
