@@ -1,6 +1,6 @@
 /* impl.h.config: MPS CONFIGURATION
  *
- * $HopeName: !config.h(trunk.23) $
+ * $HopeName: MMsrc!config.h(MMdevel_pekka_rate.1) $
  * Copyright (C) 1998. Harlequin Group plc. All rights reserved.
  *
  * .readership: MPS developers.
@@ -167,7 +167,7 @@
 #define ARENA_CONTROL_EXTENDBY  ((Size)4096)
 #define ARENA_CONTROL_AVGSIZE   ((Size)32)
 #define ARENA_CONTROL_MAXSIZE   ((Size)65536)
-#define ARENA_POLL_MAX          ((Size)65536)
+#define ARENA_POLL_MAX          (65536.0)
 #define ARENA_LD_LENGTH         ((Size)4)
 #define ARENA_ZONESHIFT         ((Shift)20)
 
