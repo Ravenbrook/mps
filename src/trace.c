@@ -1,12 +1,12 @@
 /* impl.c.trace: GENERIC TRACER IMPLEMENTATION
  *
- * $HopeName: MMsrc!trace.c(MMdevel_event_format.1) $
+ * $HopeName: MMsrc!trace.c(MMdevel_event_format.2) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  */
 
 #include "mpm.h"
 
-SRCID(trace, "$HopeName: MMsrc!trace.c(MMdevel_event_format.1) $");
+SRCID(trace, "$HopeName: MMsrc!trace.c(MMdevel_event_format.2) $");
 
 
 /* ScanStateCheck -- check consistency of a ScanState object */
@@ -336,7 +336,7 @@ void TraceSegGreyen(Space space, Seg seg, TraceSet ts)
      TraceSetInter(grey, space->flippedTraces) != TraceSetEMPTY)
     ShieldRaise(space, seg, AccessREAD);
   SegSetGrey(seg, grey);
-  EVENT_PPP(TraceSegGreyen, space, seg, ts);
+  EVENT_PPU(TraceSegGreyen, space, seg, ts);
 }
 
 
@@ -771,7 +771,7 @@ Res TraceFix(ScanState ss, Ref *refIO)
 
   ref = *refIO;
 
-  EVENT_PAAU(TraceFix, ss, refIO, ref, ss->rank);
+  EVENT_PPAU(TraceFix, ss, refIO, ref, ss->rank);
   if(SegOfAddr(&seg, ss->space, ref)) {
     EVENT_P(TraceFixSeg, seg);
     if(TraceSetInter(SegWhite(seg), ss->traces) != TraceSetEMPTY) {
@@ -806,7 +806,7 @@ Res TraceScanArea(ScanState ss, Addr *base, Addr *limit)
   AVER(limit != NULL);
   AVER(base < limit);
 
-  EVENT_PAA(TraceScanArea, ss, base, limit);
+  EVENT_PPP(TraceScanArea, ss, base, limit);
 
   TRACE_SCAN_BEGIN(ss) {
     p = base;
@@ -854,7 +854,7 @@ Res TraceScanAreaMasked(ScanState ss, Addr *base, Addr *limit, Word mask)
   AVER(limit != NULL);
   AVER(base < limit);
 
-  EVENT_PAA(TraceScanAreaTagged, ss, base, limit);
+  EVENT_PPP(TraceScanAreaTagged, ss, base, limit);
 
   TRACE_SCAN_BEGIN(ss) {
     p = base;

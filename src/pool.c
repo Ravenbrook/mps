@@ -1,6 +1,6 @@
 /* impl.c.pool: POOL IMPLEMENTATION
  *
- * $HopeName: MMsrc!pool.c(MMdevel_event_format.1) $
+ * $HopeName: MMsrc!pool.c(MMdevel_event_format.2) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  *
  * This is the implementation of the generic pool interface.  The
@@ -12,7 +12,7 @@
 
 #include "mpm.h"
 
-SRCID(pool, "$HopeName: MMsrc!pool.c(MMdevel_event_format.1) $");
+SRCID(pool, "$HopeName: MMsrc!pool.c(MMdevel_event_format.2) $");
 
 
 Bool PoolClassCheck(PoolClass class)
@@ -233,7 +233,7 @@ Res PoolAlloc(Addr *pReturn, Pool pool, Size size)
   /* Make sure that the allocated address was in the pool's memory. */
   AVER(PoolHasAddr(pool, *pReturn));
 
-  EVENT_PPU(PoolAlloc, (Word)pool, (Word)*pReturn, (Word)size);
+  EVENT_PAU(PoolAlloc, pool, *pReturn, size);
 
   return ResOK;
 }
@@ -247,7 +247,7 @@ void PoolFree(Pool pool, Addr old, Size size)
   AVER(size > 0);
   (*pool->class->free)(pool, old, size);
   
-  EVENT_PPU(PoolFree, (Word)pool, (Word)old, (Word)size);
+  EVENT_PAU(PoolFree, pool, old, size);
 }
 
 Res PoolTraceBegin(Pool pool, Trace trace, Action action)
