@@ -1,6 +1,6 @@
 /* impl.c.poolmv2: MANUAL VARIABLE POOL, II
  *
- * $HopeName: MMsrc!poolmv2.c(MMdevel_gavinm_splay.7) $
+ * $HopeName: MMsrc!poolmv2.c(MMdevel_gavinm_splay.8) $
  * Copyright (C) 1998 Harlequin Group plc.  All rights reserved.
  *
  * .limitation.seg : MV2BufferFill may fill a buffer with a range that
@@ -15,7 +15,7 @@
 #include "abq.h"
 #include "meter.h"
 
-SRCID(poolmv2, "$HopeName: MMsrc!poolmv2.c(MMdevel_gavinm_splay.7) $");
+SRCID(poolmv2, "$HopeName: MMsrc!poolmv2.c(MMdevel_gavinm_splay.8) $");
 
 /* Signatures */
 #define MV2Sig ((Sig)0x5193F299) /* SIGnature MV2 */
@@ -47,15 +47,26 @@ typedef struct MV2Struct
   Size size;                    /* size of segs in pool */
   Size available;               /* bytes available for allocation */
   
-  /* meters*/
-  METER_DECL(segAllocs);        /* segs allocated */
-  METER_DECL(segFrees);         /* segs freed */
-  METER_DECL(bufferFills);      /* buffer fills */
-  METER_DECL(bufferEmpties);    /* buffer empties */
-  METER_DECL(poolFrees);        /* block frees */
-  METER_DECL(overflows);        /* abq overflows */
-  METER_DECL(contingencies);    /* contingencies */
-  METER_DECL(splinters);        /* splinters */
+  /* pool meters*/
+  METER_DECL(segAllocs);
+  METER_DECL(segFrees);
+  METER_DECL(bufferFills);
+  METER_DECL(bufferEmpties);
+  METER_DECL(poolFrees);
+  /* abq meters */
+  METER_DECL(overflows);
+  METER_DECL(refills);
+  METER_DECL(refillPushes);
+  METER_DECL(refillOverflows);
+  METER_DECL(contingencies);
+  /* splinter meters */
+  METER_DECL(splinters);
+  METER_DECL(splintersUsed);
+  METER_DECL(splintersDropped);
+  METER_DECL(sawdust);
+  /* exception meters */
+  METER_DECL(exceptions);
+  METER_DECL(exceptionSplinters);
   
   Sig sig;
 }MV2Struct;
@@ -70,7 +81,7 @@ typedef struct MV2Struct
 #define MV2segPref(mv2) (&(mv2)->segPrefStruct)
 /* .trans.something the C language sucks */
 #define unless(cond) if (!(cond))
-#define when(cond) if(cond)
+#define when(cond) if (cond)
 
 
 /* Methods */
@@ -153,7 +164,7 @@ static void MV2NoteDelete(CBS cbs, CBSBlock block)
   
   {
     Res res = ABQDelete(MV2ABQ(CBSMV2(cbs)), block);
-    AVER(res == ResOK);
+    AVER(res == ResOK || CBSMV2(cbs)->abqOverflow);
   }
 }
 
@@ -235,8 +246,16 @@ static Res MV2Init(Pool pool, va_list arg)
   METER_INIT(mv2->bufferEmpties, "buffer empties");
   METER_INIT(mv2->poolFrees, "pool frees");
   METER_INIT(mv2->overflows, "ABQ overflows");
+  METER_INIT(mv2->refills, "ABQ refills");
+  METER_INIT(mv2->refillPushes, "ABQ refill pushes");
+  METER_INIT(mv2->refillOverflows, "ABQ refill overflows");
   METER_INIT(mv2->contingencies, "contingencies");
   METER_INIT(mv2->splinters, "splinters");
+  METER_INIT(mv2->splintersUsed, "splinters used");
+  METER_INIT(mv2->splintersDropped, "splinters dropped");
+  METER_INIT(mv2->sawdust, "sawdust");
+  METER_INIT(mv2->exceptions, "exceptions");
+  METER_INIT(mv2->exceptionSplinters, "exception splinters");
 
   mv2->sig = MV2Sig;
 
@@ -287,26 +306,35 @@ static Bool ABQRefillCallback(CBS cbs, CBSBlock block, void *closureP,
                               unsigned long closureS)
 {
   Res res;
+  MV2 mv2;
   
   AVERT(CBS, cbs);
-  AVERT(MV2, CBSMV2(cbs));
-  AVERT(ABQ, MV2ABQ(CBSMV2(cbs)));
+  mv2 = CBSMV2(cbs);
+  AVERT(MV2, mv2);
+  AVERT(ABQ, MV2ABQ(mv2));
   AVERT(CBSBlock, block);
-  AVER(CBSBlockSize(block) >= CBSMV2(cbs)->reuseSize);
+  AVER(CBSBlockSize(block) >= mv2->reuseSize);
   UNUSED(closureP);
   UNUSED(closureS);
 
-  res = ABQPush(MV2ABQ(CBSMV2(cbs)), block);
+  METER_ACC(mv2->refillPushes, ABQDepth(MV2ABQ(mv2)));
+  res = ABQPush(MV2ABQ(mv2), block);
+  if (res != ResOK) {
+    mv2->abqOverflow = TRUE;
+    METER_ACC(mv2->refillOverflows, CBSBlockSize(block));
+  }
+
   return res == ResOK;
 }
   
 
-static void ABQRefillIfNecessary(MV2 mv2) 
+static void ABQRefillIfNecessary(MV2 mv2, Size size) 
 {
   AVERT(MV2, mv2);
 
   if (mv2->abqOverflow && ABQIsEmpty(MV2ABQ(mv2))) {
     mv2->abqOverflow = FALSE;
+    METER_ACC(mv2->refills, size);
     CBSIterateLarge(MV2CBS(mv2), ABQRefillCallback, NULL, 0);
   }
 }
@@ -358,6 +386,9 @@ static Res MV2BufferFill(Seg *segReturn,
   /* Allocate oversize blocks exactly, directly from the arena */
   if (alignedSize > reuseSize) {
     idealSize = minSize;
+    res = SegAlloc(&seg, MV2segPref(mv2), alignedSize, pool);
+    METER_ACC(mv2->exceptions, minSize);
+    METER_ACC(mv2->exceptionSplinters, alignedSize - minSize);
     goto direct;
   }
 
@@ -369,12 +400,13 @@ static Res MV2BufferFill(Seg *segReturn,
     if(AddrOffset(base, limit) >= minSize) {
       seg = mv2->splinterSeg;
       mv2->splinter = FALSE;
+      METER_ACC(mv2->splintersUsed, AddrOffset(base, limit));
       goto done;
     }
   }
   
   /* Attempt to retrieve a free block from the ABQ */
-  ABQRefillIfNecessary(mv2);
+  ABQRefillIfNecessary(mv2, idealSize);
   res = ABQPeek(MV2ABQ(mv2), &block);
   if (res == ResOK) {
     base = CBSBlockBase(block);
@@ -396,7 +428,7 @@ static Res MV2BufferFill(Seg *segReturn,
     goto done;
   }
   
-retry:
+contingency:
   /* If contingency mode, search the CBS using oldest-fit */
   if (mv2->contingency) {
     res = ContingencySearch(MV2CBS(mv2), &seg, &base, &limit, minSize);
@@ -404,9 +436,10 @@ retry:
       goto done;
   }
 
-direct:
   /* Attempt to request a block from the arena */
+retry:
   res = SegAlloc(&seg, MV2segPref(mv2), idealSize, pool);
+direct:
   if (res == ResOK) {
     base = SegBase(seg);
     limit = AddrAdd(base, idealSize);
@@ -420,13 +453,13 @@ direct:
   if (!mv2->contingency) {
     mv2->contingency = TRUE;
     METER_ACC(mv2->contingencies, idealSize);
-    goto retry;
+    goto contingency;
   }
 
   /* Try minimum */
   if (idealSize > alignedSize) {
     idealSize = alignedSize;
-    goto direct;
+    goto retry;
   }
   
   AVER(res != ResOK);
@@ -472,36 +505,52 @@ static void MV2BufferEmpty(Pool pool, Buffer buffer)
   size = AddrOffset(base, limit);
   
   EVENT_PPW(MV2BufferEmpty, mv2, buffer, size);
+  mv2->available += size;
+  METER_ACC(mv2->bufferEmpties, size);
 
   if (size == 0)
     return;
-  
-  /* put splinter > minSize at (effective) head of ABQ */
-  if (size >= mv2->minSize) {
-    /* discard any previous splinter */
-    if (mv2->splinter) {
-      Res res = CBSInsert(MV2CBS(mv2), mv2->splinterBase,
-                          mv2->splinterLimit);
-      AVER(res == ResOK);
-    }
-    /* MV2 may put more than one segment in a buffer, so find the
-       (base) segment of the splinter */
-    {
-      Bool b = SegOfAddr(&seg, PoolArena(pool), base);
-      AVER(b);
-    }
-    mv2->splinter = TRUE;
-    mv2->splinterSeg = seg;
-    mv2->splinterBase = base;
-    mv2->splinterLimit = limit;
-    METER_ACC(mv2->splinters, size);
-  }
-  else {
+
+  /* discard sawdust */
+  if (size < mv2->minSize) {
     Res res = CBSInsert(MV2CBS(mv2), base, limit);
     AVER(res == ResOK);
+    METER_ACC(mv2->sawdust, size);
+    return;
   }
-  mv2->available += size;
-  METER_ACC(mv2->bufferEmpties, size);
+
+  METER_ACC(mv2->splinters, size);
+  /* put the splinter at the effective head of the ABQ, unless there is
+     already one there that is larger */
+  if (mv2->splinter) {
+    Size oldSize = AddrOffset(mv2->splinterBase, mv2->splinterLimit);
+
+    /* Old better, drop new */
+    if (size < oldSize) {
+      Res res = CBSInsert(MV2CBS(mv2), base, limit);
+      AVER(res == ResOK);
+      METER_ACC(mv2->splintersDropped, size);
+      return;
+    }
+    else {
+      /* New better, drop old */
+      Res res = CBSInsert(MV2CBS(mv2), mv2->splinterBase,
+			  mv2->splinterLimit);
+      AVER(res == ResOK);
+      METER_ACC(mv2->splintersDropped, oldSize);
+    }
+  }
+
+  /* --- MV2 may put more than one segment in a buffer, so find the
+     (base) segment of the splinter */
+  {
+    Bool b = SegOfAddr(&seg, PoolArena(pool), base);
+    AVER(b);
+  }
+  mv2->splinter = TRUE;
+  mv2->splinterSeg = seg;
+  mv2->splinterBase = base;
+  mv2->splinterLimit = limit;
 }
 
 
@@ -581,8 +630,16 @@ static Res MV2Describe(Pool pool, mps_lib_FILE *stream)
   METER_WRITE(mv2->bufferEmpties, stream);
   METER_WRITE(mv2->poolFrees, stream);
   METER_WRITE(mv2->overflows, stream);
+  METER_WRITE(mv2->refills, stream);
+  METER_WRITE(mv2->refillPushes, stream);
+  METER_WRITE(mv2->refillOverflows, stream);
   METER_WRITE(mv2->contingencies, stream);
   METER_WRITE(mv2->splinters, stream);
+  METER_WRITE(mv2->splintersUsed, stream);
+  METER_WRITE(mv2->splintersDropped, stream);
+  METER_WRITE(mv2->sawdust, stream);
+  METER_WRITE(mv2->exceptions, stream);
+  METER_WRITE(mv2->exceptionSplinters, stream);
   
   res = WriteF(stream, "}\n", NULL);
   if(res != ResOK)
