@@ -2,7 +2,7 @@
  * 
  * MANUAL RANK GUARDIAN POOL
  * 
- * $HopeName: MMsrc!poolmrg.c(MMdevel_action2.2) $
+ * $HopeName: MMsrc!poolmrg.c(MMdevel_action2.3) $
  * Copyright(C) 1995,1997 Harlequin Group, all rights reserved
  *
  * READERSHIP
@@ -29,7 +29,7 @@
 #include "poolmrg.h"
 
 
-SRCID(poolmrg, "$HopeName: MMsrc!poolmrg.c(MMdevel_action2.2) $");
+SRCID(poolmrg, "$HopeName: MMsrc!poolmrg.c(MMdevel_action2.3) $");
 
 #define MRGSig          ((Sig)0x519B0349)
 
@@ -84,7 +84,6 @@ static Index indexOfLinkPart(Addr a, Space space)
 typedef struct MRGGroupStruct {
   Sig sig;                      /* impl.h.misc.sig */
   RingStruct group;		/* design.mps.poolmrg.group.group */
-  TraceSet grey;                /* design.mps.poolmrg.group.grey */
   Seg refseg;                   /* design.mps.poolmrg.group.segs */
   Seg linkseg;                  /* design.mps.poolmrg.group.segs */
 } MRGGroupStruct;
@@ -155,7 +154,6 @@ static Res MRGGroupCreate(MRGGroup *groupReturn, MRG mrg)
   group->linkseg = linkseg;
   refseg->p = group;
   linkseg->p = group;
-  group->grey = TraceSetEMPTY;
   RingInit(&group->group);
   RingAppend(&mrg->group, &group->group);
   group->sig = MRGGroupSig;
@@ -202,7 +200,7 @@ static Res MRGGroupScan(ScanState ss, MRGGroup group, MRG mrg)
     }
   } TRACE_SCAN_END(ss);
 
-  group->grey = TraceSetDel(group->grey, ss->traceId);
+  group->refseg->grey = TraceSetDel(group->refseg->grey, ss->traceId);
   ShieldLower(space, group->refseg, AccessREAD | AccessWRITE);
   ShieldCover(space, group->refseg);
 
@@ -399,41 +397,31 @@ static void MRGGrey(Pool pool, Trace trace)
     MRGGroup group;
 
     group = RING_ELT(MRGGroup, group, r);
-    group->grey = TraceSetAdd(group->grey, trace->ti);
+    group->refseg->grey = TraceSetAdd(group->refseg->grey, trace->ti);
     ShieldRaise(trace->space, group->refseg, AccessREAD | AccessWRITE);
   }
 }
 
-static Res MRGScan(ScanState ss, Pool pool, Bool *finishedReturn)
+static Res MRGScan(ScanState ss, Pool pool, Seg seg)
 {
   MRG mrg;
   Res res;
+  MRGGroup group;
 
   AVERT(ScanState, ss);
   AVERT(Pool, pool);
   mrg = PoolPoolMRG(pool);
   AVERT(MRG, mrg);
-  AVER(finishedReturn != NULL);
+  AVERT(Seg, seg);
 
-  if(ss->rank == RankFINAL) {
-    Ring r;
+  AVER(seg->rank == RankFINAL);
+  AVER(TraceSetIsMember(seg->grey, ss->traceId));
+  group = (MRGGroup)seg->p;
+  AVER(seg == group->refseg);
 
-    RING_FOR(r, &mrg->group) {
-      MRGGroup group;
+  res = MRGGroupScan(ss, group, mrg);
+  if(res != ResOK) return res;
 
-      group = RING_ELT(MRGGroup, group, r);
-      if(TraceSetIsMember(group->grey, ss->traceId)) {
-	res = MRGGroupScan(ss, group, mrg);
-	if(res != ResOK) {
-	  return res;
-	}
-	*finishedReturn = FALSE;
-	return ResOK;
-      }
-    }
-  }
-
-  *finishedReturn = TRUE;
   return ResOK;
 }
 

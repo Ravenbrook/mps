@@ -1,6 +1,6 @@
 /* impl.h.mpm: MEMORY POOL MANAGER DEFINITIONS
  *
- * $HopeName: MMsrc!mpm.h(MMdevel_action2.7) $
+ * $HopeName: MMsrc!mpm.h(MMdevel_action2.8) $
  * Copyright (C) 1996,1997 Harlequin Group, all rights reserved.
  */
 
@@ -198,7 +198,7 @@ extern Res PoolAlloc(Addr *pReturn, Pool pool, Size size);
 extern void PoolFree(Pool pool, Addr old, Size size);
 extern Res PoolCondemn(Pool pool, Trace trace, Seg seg);
 extern void PoolGrey(Pool pool, Trace trace);
-extern Res PoolScan(ScanState ss, Pool pool, Bool *finishedReturn);
+extern Res PoolScan(ScanState ss, Pool pool, Seg seg);
 extern Res (PoolFix)(Pool pool, ScanState ss, Seg seg, Addr *refIO);
 #define PoolFix(pool, ss, seg, refIO) \
   ((*(pool)->class->fix)(pool, ss, seg, refIO))
@@ -223,7 +223,7 @@ extern Res PoolNoDescribe(Pool pool, mps_lib_FILE *stream);
 extern Res PoolTrivDescribe(Pool pool, mps_lib_FILE *stream);
 extern Res PoolNoCondemn(Pool pool, Trace trace, Seg seg);
 extern void PoolNoGrey(Pool pool, Trace trace);
-extern Res PoolNoScan(ScanState ss, Pool pool, Bool *finishedReturn);
+extern Res PoolNoScan(ScanState ss, Pool pool, Seg seg);
 extern Res PoolNoFix(Pool pool, ScanState ss, Seg seg, Ref *refIO);
 extern void PoolNoReclaim(Pool pool, Trace trace);
 extern void PoolNoAccess(Pool pool, Seg seg, AccessSet mode);

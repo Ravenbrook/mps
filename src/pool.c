@@ -1,6 +1,6 @@
 /* impl.c.pool: POOL IMPLEMENTATION
  *
- * $HopeName: MMsrc!pool.c(MMdevel_action2.3) $
+ * $HopeName: MMsrc!pool.c(MMdevel_action2.4) $
  * Copyright (C) 1994,1995,1996 Harlequin Group, all rights reserved
  *
  * This is the implementation of the generic pool interface.  The
@@ -12,7 +12,7 @@
 
 #include "mpm.h"
 
-SRCID(pool, "$HopeName: MMsrc!pool.c(MMdevel_action2.3) $");
+SRCID(pool, "$HopeName: MMsrc!pool.c(MMdevel_action2.4) $");
 
 
 Bool PoolClassCheck(PoolClass class)
@@ -259,12 +259,12 @@ void PoolGrey(Pool pool, Trace trace)
   (*pool->class->grey)(pool, trace);
 }
 
-Res PoolScan(ScanState ss, Pool pool, Bool *finishedReturn)
+Res PoolScan(ScanState ss, Pool pool, Seg seg)
 {
   AVERT(ScanState, ss);
   AVERT(Pool, pool);
-  AVER(finishedReturn != NULL);
-  return (*pool->class->scan)(ss, pool, finishedReturn);
+  AVERT(Seg, seg);
+  return (*pool->class->scan)(ss, pool, seg);
 }
 
 /* See impl.h.mpm for macro version; see design.mps.pool.req.fix */
@@ -559,11 +559,11 @@ void PoolNoGrey(Pool pool, Trace trace)
   NOTREACHED;
 }
 
-Res PoolNoScan(ScanState ss, Pool pool, Bool *finishedReturn)
+Res PoolNoScan(ScanState ss, Pool pool, Seg seg)
 {
   AVERT(ScanState, ss);
   AVERT(Pool, pool);
-  AVER(finishedReturn != NULL);
+  AVERT(Seg, seg);
   NOTREACHED;
   return ResUNIMPL;
 }

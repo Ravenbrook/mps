@@ -2,7 +2,7 @@
  *
  *                         NULL POOL
  *
- *  $HopeName: MMsrc!pooln.c(MMdevel_action2.3) $
+ *  $HopeName: MMsrc!pooln.c(MMdevel_action2.4) $
  *
  *  Copyright(C) 1995 Harlequin Group, all rights reserved
  *
@@ -13,7 +13,7 @@
 #include "mpm.h"
 #include "pooln.h"
 
-SRCID(pooln, "$HopeName: MMsrc!pooln.c(MMdevel_action2.3) $");
+SRCID(pooln, "$HopeName: MMsrc!pooln.c(MMdevel_action2.4) $");
 
 
 typedef struct PoolNStruct {
@@ -199,7 +199,7 @@ static void NMark(Pool pool, Trace trace)
   AVERT(Trace, trace);
 }
 
-static Res NScan(ScanState ss, Pool pool, Bool *finishedReturn)
+static Res NScan(ScanState ss, Pool pool, Seg seg)
 {
   PoolN poolN;
 
@@ -207,8 +207,8 @@ static Res NScan(ScanState ss, Pool pool, Bool *finishedReturn)
   poolN = PoolPoolN(pool);
   AVERT(PoolN, poolN);
 
-  AVER(finishedReturn != NULL);
   AVERT(ScanState, ss);
+  AVERT(Seg, seg);
 
   return ResOK;
 }

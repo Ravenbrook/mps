@@ -1,11 +1,11 @@
 /* impl.c.trace: GENERIC TRACER IMPLEMENTATION
  *
- * $HopeName: MMsrc!trace.c(MMdevel_action2.7) $
+ * $HopeName: MMsrc!trace.c(MMdevel_action2.8) $
  */
 
 #include "mpm.h"
 
-SRCID(trace, "$HopeName: MMsrc!trace.c(MMdevel_action2.7) $");
+SRCID(trace, "$HopeName: MMsrc!trace.c(MMdevel_action2.8) $");
 
 Bool ScanStateCheck(ScanState ss)
 {
@@ -336,60 +336,79 @@ static void TraceReclaim(Trace trace)
 }
 
 
+/* FindGrey -- find a grey segment
+ *
+ * This function finds a segment which is grey for any of the traces
+ * in ts and which does not have a higher rank than any other such
+ * segment (i.e. a next segment to scan).
+ *
+ * This is equivalent to choosing a grey node from the grey set
+ * of a partition.
+ *
+ * @@@@ This must be optimised by using better data structures at
+ * the cost of some bookkeeping elsewhere, esp. during fix.
+ */
+
+static Bool FindGrey(Seg *segReturn, Space space, TraceId ti)
+{
+  Rank rank;
+  Seg seg;
+
+  AVER(segReturn != NULL);
+  AVERT(Space, space);
+  AVER(TraceIdCheck(ti));
+  
+  for(rank = 0; rank < RankMAX; ++rank)
+    for(seg = SegFirst(space); seg != NULL; seg = SegNext(space, seg))
+      if(seg->rank == rank && TraceSetIsMember(seg->grey, ti)) {
+	*segReturn = seg;
+	return TRUE;
+      }
+
+  return FALSE;
+}
+
+
 static Res TraceRun(Trace trace)
 {
   Res res;
   ScanStateStruct ss;
   Space space;
+  Seg seg;
+  Pool pool;
 
   AVERT(Trace, trace);
   AVER(trace->state == TraceFLIPPED);
 
   space = trace->space;
 
-  ss.fix = TraceFix;
-  ss.zoneShift = SpaceZoneShift(space);
-  ss.white = trace->white;
-  ss.summary = RefSetEMPTY;
-  ss.space = space;
-  ss.traceId = trace->ti;
-  ss.sig = ScanStateSig;
+  if(FindGrey(&seg, space, trace->ti)) {
+    ss.fix = TraceFix;
+    ss.zoneShift = SpaceZoneShift(space);
+    ss.white = trace->white;
+    ss.summary = RefSetEMPTY;
+    ss.space = space;
+    ss.traceId = trace->ti;
+    ss.rank = seg->rank;
+    ss.sig = ScanStateSig;
 
-  for(ss.rank = 0; ss.rank < RankMAX; ++ss.rank) {
-    Ring ring;
-    Ring node;
-
+    /* @@@@ This must go. */
     if(ss.rank == RankWEAK) {
       ss.weakSplat = (Addr)0;
     } else {
       ss.weakSplat = (Addr)0xadd4badd;
     }
 
-    ring = SpacePoolRing(space);
-    node = RingNext(ring);
-    while(node != ring) {
-      Ring next = RingNext(node);
-      Pool pool = RING_ELT(Pool, spaceRing, node);
-      Bool finished;
+    pool = seg->pool;
 
-      if((pool->class->attr & AttrSCAN) != 0) {
-        res = PoolScan(&ss, pool, &finished);
-        if(res != ResOK) return res;
+    AVER((pool->class->attr & AttrSCAN) != 0);
 
-        /* @@@@ Pool sets "finished" if there's nothing to scan. */
-        /* If it didn't set it, then it did some scanning, and */
-        /* we must come back later. */
-        if(!finished)
-          return ResOK;
-      }
+    res = PoolScan(&ss, pool, seg);
+    if(res != ResOK) return res;
 
-      node = next;
-    }
-  }
-
-  ss.sig = SigInvalid;  /* just in case */
-
-  trace->state = TraceRECLAIM;
+    ss.sig = SigInvalid;  /* just in case */
+  } else
+    trace->state = TraceRECLAIM;
 
   return ResOK;
 }
