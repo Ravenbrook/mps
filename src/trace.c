@@ -1,11 +1,11 @@
 /* impl.c.trace: GENERIC TRACER IMPLEMENTATION
  *
- * $HopeName: MMsrc!trace.c(MMdevel_action2.4) $
+ * $HopeName: MMsrc!trace.c(MMdevel_action2.5) $
  */
 
 #include "mpm.h"
 
-SRCID(trace, "$HopeName: MMsrc!trace.c(MMdevel_action2.4) $");
+SRCID(trace, "$HopeName: MMsrc!trace.c(MMdevel_action2.5) $");
 
 Bool ScanStateCheck(ScanState ss)
 {
@@ -39,6 +39,7 @@ Bool TraceCheck(Trace trace)
   CHECKL(trace == &trace->space->trace[trace->ti]);
   CHECKL(TraceSetIsMember(trace->space->busyTraces, trace->ti));
   /* Can't check trace->white -- not in O(1) anyway. */
+  /* @@@@ Use trace->state to check more invarients. */
   return TRUE;
 }
 
@@ -114,21 +115,43 @@ void TraceDestroy(Trace trace)
 }
 
 
-Res TraceCondemn(RefSet *whiteReturn, Trace trace, Pool pool)
-{
 /* @@@@ This will iterate over all segments, greying them, and */
 /* whitening all those in the condemned set.  To begin with */
 /* it just takes over from PoolCondemn by iterating over the */
 /* segments in a pool. */
-  AVER(whiteReturn != NULL);
+
+Res TraceStart(Trace trace, Pool pool)
+{
+  Res res;
+  RefSet white;
+
   AVERT(Trace, trace);
   AVERT(Pool, pool);
 
-  return PoolCondemn(whiteReturn, pool, trace);
+  AVER(trace->state == TraceINIT);
+  AVER(trace->white == RefSetEMPTY);
+
+  res = PoolCondemn(&white, pool, trace);
+  if(res != ResOK) return res;
+
+  /* @@@@ This should go in the pool. */
+  trace->white = white;
+
+  /* If there is nothing white then there can be nothing grey, */
+  /* so everything is black and we can proceed straight to */
+  /* reclaim.  We have to reclaim because we want to guarantee */
+  /* to the pool that for every condemn there will be a reclaim. */
+  /* @@@@ This should be in design. */
+  if(trace->white != RefSetEMPTY)
+    trace->state = TraceUNFLIPPED;
+  else
+    trace->state = TraceRECLAIM;
+
+  return ResOK;
 }
 
 
-Res TraceFlip(Trace trace, RefSet white)
+static Res TraceFlip(Trace trace)
 {
   Ring ring;
   Ring node;
@@ -142,16 +165,13 @@ Res TraceFlip(Trace trace, RefSet white)
   ShieldSuspend(space);
 
   AVER(trace->state == TraceUNFLIPPED);
-  AVER(trace->white == RefSetEMPTY);
-
-  trace->white = white;
 
   /* Update location dependency structures.  white is */
   /* a conservative approximation of the refset of refs which */
   /* may move during this collection. */
   /* @@@@ It is too conservative.  Not everything white will */
   /* necessarily move. */
-  LDAge(space, white);
+  LDAge(space, trace->white);
 
   /* Grey all the roots and pools. */
   ring = SpacePoolRing(space);
@@ -217,10 +237,13 @@ Res TraceFlip(Trace trace, RefSet white)
 
   ss.sig = SigInvalid;  /* just in case */
 
+  trace->state = TraceFLIPPED;
+
   ShieldResume(space);
 
   return ResOK;
 }
+
 
 static void TraceReclaim(Trace trace)
 {
@@ -228,6 +251,7 @@ static void TraceReclaim(Trace trace)
   Space space;
 
   AVERT(Trace, trace);
+  AVER(trace->state == TraceRECLAIM);
 
   space = trace->space;
   ring = SpacePoolRing(space);
@@ -241,8 +265,114 @@ static void TraceReclaim(Trace trace)
 
     node = next;
   }
+
+  trace->state = TraceFINISHED;
 }
 
+
+static Res TraceRun(Trace trace)
+{
+  Res res;
+  ScanStateStruct ss;
+  Space space;
+
+  AVERT(Trace, trace);
+  AVER(trace->state == TraceFLIPPED);
+
+  space = trace->space;
+
+  ss.fix = TraceFix;
+  ss.zoneShift = SpaceZoneShift(space);
+  ss.white = trace->white;
+  ss.summary = RefSetEMPTY;
+  ss.space = space;
+  ss.traceId = trace->ti;
+  ss.sig = ScanStateSig;
+
+  for(ss.rank = 0; ss.rank < RankMAX; ++ss.rank) {
+    Ring ring;
+    Ring node;
+
+    if(ss.rank == RankWEAK) {
+      ss.weakSplat = (Addr)0;
+    } else {
+      ss.weakSplat = (Addr)0xadd4badd;
+    }
+
+    ring = SpacePoolRing(space);
+    node = RingNext(ring);
+    while(node != ring) {
+      Ring next = RingNext(node);
+      Pool pool = RING_ELT(Pool, spaceRing, node);
+      Bool finished;
+
+      if((pool->class->attr & AttrSCAN) != 0) {
+        res = PoolScan(&ss, pool, &finished);
+        if(res != ResOK) return res;
+
+        /* @@@@ Pool sets "finished" if there's nothing to scan. */
+        /* If it didn't set it, then it did some scanning, and */
+        /* we must come back later. */
+        if(!finished)
+          return ResOK;
+      }
+
+      node = next;
+    }
+  }
+
+  ss.sig = SigInvalid;  /* just in case */
+
+  trace->state = TraceRECLAIM;
+
+  return ResOK;
+}
+
+
+/* TracePoll -- make some progress in tracing
+ *
+ * @@@@ This should accept some sort of progress control.
+ */
+
+Res TracePoll(Trace trace)
+{
+  Space space;
+  Res res;
+
+  AVERT(Trace, trace);
+
+  space = trace->space;
+
+  switch(trace->state) {
+    case TraceUNFLIPPED: {
+      res = TraceFlip(trace);
+      if(res != ResOK) return res;
+    } break;
+
+    case TraceFLIPPED: {
+      res = TraceRun(trace);
+      if(res != ResOK) return res;
+    } break;
+
+    case TraceRECLAIM: {
+      TraceReclaim(trace);
+    } break;
+
+    case TraceFINISHED:
+    case TraceINIT:
+    NOOP;
+    break;
+
+    default:
+    NOTREACHED;
+    break;
+  }
+
+  return ResOK;
+}
+
+
+#if 0
 Size TracePoll(Trace trace)
 {
   Res res;
@@ -264,6 +394,8 @@ Size TracePoll(Trace trace)
   /* remaining and the deadline for the collection to finish. */
   return (Size)4096;            /* @@@@ */
 }
+#endif /* 0 */
+
 
 Res TraceFix(ScanState ss, Ref *refIO)
 {
@@ -283,6 +415,7 @@ Res TraceFix(ScanState ss, Ref *refIO)
 
   return ResOK;
 }
+
 
 /*  == Scan Area ==
  *
@@ -351,58 +484,3 @@ Res TraceScanAreaTagged(ScanState ss, Addr *base, Addr *limit)
   return ResOK;
 }
 
-Res TraceRun(Trace trace, Bool *finishedReturn)
-{
-  Res res;
-  ScanStateStruct ss;
-  Space space;
-
-  AVERT(Trace, trace);
-  AVER(finishedReturn != NULL);
-
-  space = trace->space;
-
-  ss.fix = TraceFix;
-  ss.zoneShift = SpaceZoneShift(space);
-  ss.white = trace->white;
-  ss.summary = RefSetEMPTY;
-  ss.space = space;
-  ss.traceId = trace->ti;
-  ss.sig = ScanStateSig;
-
-  for(ss.rank = 0; ss.rank < RankMAX; ++ss.rank) {
-    Ring ring;
-    Ring node;
-
-    if(ss.rank == RankWEAK) {
-      ss.weakSplat = (Addr)0;
-    } else {
-      ss.weakSplat = (Addr)0xadd4badd;
-    }
-
-    ring = SpacePoolRing(space);
-    node = RingNext(ring);
-    while(node != ring) {
-      Ring next = RingNext(node);
-      Pool pool = RING_ELT(Pool, spaceRing, node);
-      Bool finished;
-
-      if((pool->class->attr & AttrSCAN) != 0) {
-        res = PoolScan(&ss, pool, &finished);
-        if(res != ResOK) return res;
-
-        if(!finished) {
-          *finishedReturn = FALSE;
-          return ResOK;
-        }
-      }
-
-      node = next;
-    }
-  }
-
-  ss.sig = SigInvalid;  /* just in case */
-
-  *finishedReturn = TRUE;
-  return ResOK;
-}
