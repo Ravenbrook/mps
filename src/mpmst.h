@@ -1,7 +1,7 @@
 /* impl.h.mpmst: MEMORY POOL MANAGER DATA STRUCTURES
  *
- * $HopeName: MMsrc!mpmst.h(MMdevel_pekka_locus.2) $
- * Copyright (C) 1999 Harlequin Limited.  All rights reserved.
+ * $HopeName: MMsrc!mpmst.h(MMdevel_pekka_locus.3) $
+ * Copyright (C) 1999, 2000 Harlequin Limited.  All rights reserved.
  *
  * .design: This header file crosses module boundaries.  The relevant
  * design a module's structures should be found in that module's design
@@ -114,6 +114,7 @@ typedef struct PoolStruct {     /* generic structure */
   double fillInternalSize;      /* bytes filled, internal buffers */
   double emptyInternalSize;     /* bytes emptied, internal buffers */
 } PoolStruct;
+
 
 /* MFSStruct -- MFS (Manual Fixed Small) pool outer structure
  *
@@ -626,6 +627,21 @@ typedef struct ActionStruct {
 } ActionStruct;
 
 
+/* ChunkCacheEntryStruct */
+
+/* SIGnature Arena VM Chunk Cache */
+#define ChunkCacheEntrySig ((Sig)0x519C80CE) /* SIGnature CHUnk Cache Entry */
+
+typedef struct ChunkCacheEntryStruct {
+  Sig sig;
+  Chunk chunk;
+  Addr base;
+  Addr limit;
+  Page pageTableBase;
+  Page pageTableLimit;
+} ChunkCacheEntryStruct;
+
+
 /* ArenaClassStruct -- generic arena class interface */
 
 #define ArenaClassSig   ((Sig)0x519A6C1A) /* SIGnature ARena CLAss */
@@ -638,16 +654,13 @@ typedef struct ArenaClassStruct {
   ArenaInitMethod init;
   ArenaFinishMethod finish;
   ArenaReservedMethod reserved;
-  ArenaCommittedMethod committed;
   ArenaSpareCommitExceededMethod spareCommitExceeded;
   ArenaExtendMethod extend;
-  ArenaIsReservedAddrMethod isReserved;
   ArenaAllocMethod alloc;
   ArenaFreeMethod free;
-  ArenaTractOfAddrMethod tractOfAddr;
-  ArenaTractFirstMethod tractFirst;
-  ArenaTractNextMethod tractNext;
-  ArenaTractNextContigMethod tractNextContig;
+  ArenaChunkInitMethod chunkInit;
+  ArenaChunkFinishMethod chunkFinish;
+  ArenaChunkDestroyMethod chunkDestroy;
   ArenaDescribeMethod describe;
   Sig sig;
 } ArenaClassStruct;
@@ -680,7 +693,7 @@ typedef struct ArenaStruct {
 
   Bool bufferLogging;           /* design.mps.buffer.logging.control */
 
-  /* arena fields (impl.c.arena) */
+  /* arena allocation fields (impl.c.arena) */
   ArenaClass class;             /* arena class structure */
   Bool poolReady;               /* design.mps.arena.pool.ready */
   MVStruct controlPoolStruct;   /* design.mps.arena.pool */
@@ -692,7 +705,8 @@ typedef struct ArenaStruct {
   double fillInternalSize;      /* total bytes filled, internal buffers */
   double emptyInternalSize;     /* total bytes emptied, internal buffers */
 
-  Size commitLimit;             /* Client configurable commit limit */
+  Size committed;               /* amount of committed RAM */
+  Size commitLimit;             /* client-configurable commit limit */
 
   Size spareCommitted;          /* Amount of memory in hysteresis fund */
   Size spareCommitLimit;        /* Limit on spareCommitted */
@@ -702,6 +716,11 @@ typedef struct ArenaStruct {
 
   Tract lastTract;              /* most recently allocated tract */
   Addr lastTractBase;           /* base address of lastTract */
+
+  Chunk primary;                /* the primary chunk */
+  RingStruct chunkRing;         /* all the chunks */
+  Serial chunkSerial;           /* next chunk number */
+  ChunkCacheEntryStruct chunkCache; /* just one entry */
 
   /* pool fields (impl.c.pool) */
   RingStruct poolRing;          /* ring of pools in arena */
