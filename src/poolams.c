@@ -1,6 +1,6 @@
 /* impl.c.poolams: AUTOMATIC MARK & SWEEP POOL CLASS
  *
- * $HopeName: !poolams.c(trunk.25) $
+ * $HopeName: MMsrc!poolams.c(MM_epcore_minnow.1) $
  * Copyright (C) 1998.  Harlequin Group plc.  All rights reserved.
  * 
  * .readership: any MPS developer.
@@ -26,7 +26,7 @@
 #include "mpm.h"
 #include <stdarg.h>
 
-SRCID(poolams, "$HopeName: !poolams.c(trunk.25) $");
+SRCID(poolams, "$HopeName: MMsrc!poolams.c(MM_epcore_minnow.1) $");
 
 
 #define AMSSig          ((Sig)0x519A3599) /* SIGnature AMS */
@@ -117,9 +117,9 @@ Res AMSGroupInit(AMSGroup group, Pool pool)
 
   /* keep the destructions in step with AMSGroupFinish */
 failWhite:
-  BTDestroy(group->nonwhiteTable, arena, group->grains);
-failGrey:
   BTDestroy(group->nongreyTable, arena, group->grains);
+failGrey:
+  BTDestroy(group->allocTable, arena, group->grains);
 failAlloc:
   return res;
 }
