@@ -1,6 +1,6 @@
 /* impl.h.mpm: MEMORY POOL MANAGER DEFINITIONS
  *
- * $HopeName: MMsrc!mpm.h(MMdevel_restr2.1) $
+ * $HopeName: MMsrc!mpm.h(MMdevel_restr2.2) $
  * Copyright (C) 1996 Harlequin Group, all rights reserved.
  */
 
@@ -126,6 +126,7 @@ extern Ring (RingNext)(Ring ring);
 extern Res PoolInit(Pool pool, Space space, PoolClass class, ...);
 extern Res PoolInitV(Pool pool, Space space, PoolClass class, va_list args);
 extern void PoolFinish(Pool pool);
+extern Bool PoolClassCheck(PoolClass class);
 extern Bool PoolCheck(Pool pool);
 extern Res PoolDescribe(Pool pool, Lib_FILE *stream);
 
@@ -305,37 +306,6 @@ extern Res FormatCreate(Format *formatReturn, Space space,
                         FormatPadMethod pad);
 extern void FormatDestroy(Format format);
 extern Space FormatSpace(Format format);
-
-
-/* Pool Class Interface -- see impl.c.poolclas */
-
-extern void PoolClassInit(
-  PoolClass class,
-  const char *name,
-  size_t size,
-  size_t offset,
-  PoolInitMethod init,
-  PoolFinishMethod finish,
-  PoolAllocMethod alloc,
-  PoolFreeMethod free_,
-  PoolBufferCreateMethod bufferCreate,
-  PoolBufferDestroyMethod bufferDestroy,
-  PoolBufferFillMethod bufferFill,
-  PoolBufferTripMethod bufferTrip,
-  PoolBufferExposeMethod bufferExpose,
-  PoolBufferCoverMethod bufferCover,
-  PoolCondemnMethod condemn,
-  PoolGreyMethod grey,
-  PoolScanMethod scan,
-  PoolFixMethod fix,
-  PoolReclaimMethod reclaim,
-  PoolAccessMethod access,
-  PoolDescribeMethod describe
-);
-
-extern void PoolClassFinish(PoolClass class);
-
-extern Bool PoolClassCheck(PoolClass class);
 
 
 /* Reference Interface -- see impl.c.ref */
