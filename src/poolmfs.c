@@ -1,6 +1,6 @@
 /* impl.c.poolmfs: MANUAL FIXED SMALL UNIT POOL
  *
- * $HopeName: !poolmfs.c(trunk.14) $
+ * $HopeName: MMsrc!poolmfs.c(MMdevel_sw_eq.1) $
  * Copyright (C) 1994,1995,1996 Harlequin Group, all rights reserved
  *
  * This is the implementation of the MFS pool class.
@@ -35,7 +35,7 @@
 #include "mpm.h"
 #include "poolmfs.h"
 
-SRCID(poolmfs, "$HopeName: !poolmfs.c(trunk.14) $");
+SRCID(poolmfs, "$HopeName: MMsrc!poolmfs.c(MMdevel_sw_eq.1) $");
 
 
 /*  == Round up ==
@@ -76,13 +76,14 @@ Pool (MFSPool)(MFS mfs)
 }
 
 
-static Res MFSInit(Pool pool, va_list arg)
+static Res MFSInit(Pool pool, PoolPref pref, va_list arg)
 {
   Size extendBy, unitSize;
   MFS mfs;
   Space space;
 
   AVER(pool != NULL);
+  AVERT(PoolPref, pref);
 
   extendBy = va_arg(arg, Size);
   unitSize = va_arg(arg, Size);
@@ -163,8 +164,10 @@ static Res MFSAlloc(Addr *pReturn, Pool pool, Size size)
     Header header = NULL, next;
     Space space;
 
+    space = PoolSpace(pool);
+
     /* Create a new segment and attach it to the pool. */
-    res = PoolSegAlloc(&seg, pool, mfs->extendBy);
+    res = PoolSegAlloc(&seg, SegPrefDefault(), pool, mfs->extendBy);
     if(res != ResOK)
       return res;
 
@@ -176,7 +179,6 @@ static Res MFSAlloc(Addr *pReturn, Pool pool, Size size)
     /* from the top so that they are in ascending order of address on the */
     /* free list. */
 
-    space = PoolSpace(pool);
     unitsPerSeg = mfs->unitsPerSeg;
     unitSize = mfs->unitSize;
     base = SegBase(space, seg);
@@ -304,7 +306,7 @@ Bool MFSCheck(MFS mfs)
   space = PoolSpace(&mfs->poolStruct);
   CHECKL(SizeIsAligned(mfs->extendBy, ArenaAlign(space)));
   CHECKL(SizeAlignUp(mfs->unroundedUnitSize, mfs->poolStruct.alignment) ==
-	 mfs->unitSize);
+         mfs->unitSize);
   CHECKL(mfs->unitsPerSeg == mfs->extendBy/mfs->unitSize);
   if(mfs->freeList != NULL) {
     /* free list is stored in the pool's managed memory */
