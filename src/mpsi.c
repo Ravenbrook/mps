@@ -1,7 +1,7 @@
 /* impl.c.mpsi: MEMORY POOL SYSTEM C INTERFACE LAYER
  *
- * $HopeName: MMsrc!mpsi.c(MMepcore_pilchard.1) $
- * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
+ * $HopeName: MMsrc!mpsi.c(MMepcore_pilchard.2) $
+ * Copyright (C) 1997, 1998 The Harlequin Group Limited.  All rights reserved.
  *
  * .purpose: This code bridges between the MPS interface to C,
  * impl.h.mps, and the internal MPM interfaces, as defined by
@@ -52,7 +52,7 @@
 #include "mps.h"
 #include "mpsavm.h" /* only for mps_space_create */
 
-SRCID(mpsi, "$HopeName: MMsrc!mpsi.c(MMepcore_pilchard.1) $");
+SRCID(mpsi, "$HopeName: MMsrc!mpsi.c(MMepcore_pilchard.2) $");
 
 
 /* mpsi_check -- check consistency of interface mappings
@@ -491,6 +491,7 @@ void mps_free(mps_pool_t mps_pool, mps_addr_t p, size_t size)
   ArenaEnter(arena);
 
   AVERT(Pool, pool);
+  AVER(PoolHasAddr(pool, p));
   AVER(size > 0);
   /* Note: class may allow unaligned size, see */
   /* design.mps.class-interface.alloc.size.align. */
