@@ -1,8 +1,7 @@
-/* impl.c.protso: PROTECTION FOR DIGITAL UNIX
+/* impl.c.proto1: PROTECTION FOR DIGITAL UNIX
  *
- *  $HopeName: !proto1.c(trunk.1) $
+ *  $HopeName: MMsrc!proto1.c(MMdevel_config_thread.1) $
  *  Copyright (C) 1995,1997 Harlequin Group, all rights reserved
- *
  */
 
 
@@ -13,7 +12,10 @@
 #include "mpm.h"
 
 #ifndef MPS_OS_O1
-#error "proto1.c is DIGITAL UNIX specific, but MPS_OS_O1 is not set"
+#error "proto1.c is OSF/1-specific, but MPS_OS_O1 is not set"
+#endif
+#ifndef PROTECTION
+#error "proto1.c implements protection, but PROTECTION is not set"
 #endif
 
 #include <limits.h>
@@ -25,7 +27,7 @@
 /* for getpid() */
 #include <unistd.h>
 
-SRCID(proto1, "$HopeName: !proto1.c(trunk.1) $");
+SRCID(proto1, "$HopeName: MMsrc!proto1.c(MMdevel_config_thread.1) $");
 
 
 /* The previously-installed signal action, as returned by */
@@ -101,7 +103,7 @@ static void sigHandle(int sig, siginfo_t *info, void *context)
 }
 
 
-/* == Global Protection Setup ==
+/* ProtSetup -- global protection setup
  *
  * Under DIGITAL UNIX, the global setup involves installing a signal handler
  * on SIGSEGV to catch and handle protection faults (see sigHandle).
@@ -128,7 +130,7 @@ void ProtSetup(void)
 }
 
 
-/* == Set Protection ==
+/* ProtSet -- set protection
  *
  * This is just a thin veneer on top of mprotect(2).
  */
@@ -177,7 +179,7 @@ void ProtSync(Space space)
 
 
 
-/* == Protection Trampoline ==
+/* ProtTramp -- protection trampoline
  *
  * The protection trampoline is trivial under DIGITAL UNIX, as there is
  * nothing that needs to be done in the dynamic context of the mutator in
@@ -188,8 +190,9 @@ void ProtSync(Space space)
 void ProtTramp(void **resultReturn, void *(*f)(void *, size_t),
                void *p, size_t s)
 {
-  AVER(f != NULL);
   AVER(resultReturn != NULL);
+  AVER(FUNCHECK(f));
+  /* Can't check p and s as they are interpreted by the client */
 
   *resultReturn = (*f)(p, s);
 }
