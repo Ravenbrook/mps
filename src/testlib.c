@@ -1,6 +1,6 @@
 /*  impl.c.testlib: Test library
  *
- *  $HopeName: MMsrc!testlib.c(trunk.8) $
+ *  $HopeName: !testlib.c(trunk.9) $
  *
  *  Copyright (C) 1995, 1998 Harlequin Group, all rights reserved
  *
