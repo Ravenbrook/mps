@@ -1,6 +1,6 @@
 /* impl.h.mpm: MEMORY POOL MANAGER DEFINITIONS
  *
- * $HopeName: !mpm.h(trunk.29) $
+ * $HopeName: MMsrc!mpm.h(MMdevel_segiter.1) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  */
 
@@ -416,8 +416,8 @@ extern Addr SegBase(Space space, Seg seg);
 extern Addr SegLimit(Space space, Seg seg);
 extern Size SegSize(Space space, Seg seg);
 extern Bool SegOfAddr(Seg *segReturn, Space space, Addr addr);
-extern Seg SegFirst(Space space);
-extern Seg SegNext(Space space, Seg seg);
+extern Bool SegFirst(Seg *segReturn, Space space);
+extern Bool SegNext(Seg *segReturn, Space space, Addr addr);
 extern Bool SegCheck(Seg seg);
 extern void SegInit(Seg seg, Pool pool);
 extern void SegFinish(Seg seg);
