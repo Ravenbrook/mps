@@ -1,6 +1,6 @@
 /*  impl.c.teletest: TELEMETRY TEST
  *
- *  $HopeName$
+ *  $HopeName: MMsrc!teletest.c(MMdevel_telemetry_intern2.1) $
  * Copyright (C) 1998 Harlequin Group plc, all rights reserved.
  */
 
@@ -20,13 +20,14 @@
 #endif /* MPS_OS_SU */
 
 
-SRCID(bttest, "$HopeName$");
+SRCID(bttest, "$HopeName: MMsrc!teletest.c(MMdevel_telemetry_intern2.1) $");
 
 
 static mps_arena_t arena; /* the ANSI arena which we use to allocate the BT */
 
 
 #define MAX_ARGS 3
+#define INPUT_BUFFER_SIZE 512
 
 #if (MPS_WORD_WIDTH == 32)
 #define WORD_FORMAT "0x%08lx"
@@ -189,7 +190,7 @@ static void obeyCommand(char *command)
       ++ shape; /* try next command */
     }
   }
-  printf("command not understood\n");
+  printf("command not understood\n> %s\n", command);
   doHelp();
 }
       
@@ -209,10 +210,10 @@ extern int main(int argc, char *argv[])
   }
   doHelp();
   while(1) {
-    char input[100];
+    char input[INPUT_BUFFER_SIZE];
     printf("telemetry test> ");
     fflush(stdout);
-    if (fgets(input, 100, stdin)) {
+    if (fgets(input, INPUT_BUFFER_SIZE , stdin)) {
       obeyCommand(input);
     } else {
       doQuit();

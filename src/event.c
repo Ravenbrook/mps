@@ -1,6 +1,6 @@
 /* impl.c.event: EVENT LOGGING
  *
- * $HopeName: MMsrc!event.c(MMdevel_telemetry_intern2.1) $
+ * $HopeName: MMsrc!event.c(MMdevel_telemetry_intern2.2) $
  * Copyright (C) 1997 Harlequin Group, all rights reserved.
  *
  * .readership: MPS developers.
@@ -26,7 +26,7 @@
 #include "event.h"
 #include "mpsio.h"
 
-SRCID(event, "$HopeName: MMsrc!event.c(MMdevel_telemetry_intern2.1) $");
+SRCID(event, "$HopeName: MMsrc!event.c(MMdevel_telemetry_intern2.2) $");
 
 #ifdef EVENT /* .trans.ifdef */
 
@@ -126,6 +126,8 @@ Word EventInternString(char *label)
 
 void EventLabelAddr(Addr addr, Word id)
 {
+  AVER((Serial)id < EventInternSerial);
+
   EVENT_AW(Label, addr, id);
 }
 

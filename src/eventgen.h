@@ -318,9 +318,12 @@ typedef union {
 
 #define EVENT_WS(type, _w0, _s) \
   BEGIN \
-    char *_s2 = (_s); \
-    size_t _string_length = StringLength((_s2)); \
-    size_t _length = \
+    char *_s2;\
+    size_t _string_length, _length;\
+    _s2 = (_s); \
+    _string_length = StringLength((_s2)); \
+    AVER(_string_length < EventMaxStringLength);\
+    _length = \
       WordAlignUp(offsetof(EventWSStruct, s) + \
                   _string_length + 1, sizeof(Word)); \
     EVENT_BEGIN(type, WS, _length); \

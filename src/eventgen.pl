@@ -2,7 +2,7 @@
 # impl.pl.eventgen -- Generator for impl.h.eventgen
 #
 # Copyright (C) 1997 Harlequin Group, all rights reserved.
-# $HopeName: MMsrc!eventgen.pl(MMdevel_telemetry_intern2.1) $
+# $HopeName: MMsrc!eventgen.pl(MMdevel_telemetry_intern2.2) $
 #
 # Invoke this script in the src directory.
 # It works by scanning *.c for EVENT_[A-Z], 
@@ -102,9 +102,12 @@ foreach $format (sort(keys(%Formats))) {
   print H "  BEGIN \\\n";
 
   if(index($format, "S") != -1) {
-    print H "    char *_s2 = (_s); \\\n"; # May be literal
-    print H "    size_t _string_length = StringLength((_s2)); \\\n";
-    print H "    size_t _length = \\\n";
+    print H "    char *_s2;\\\n";
+    print H "    size_t _string_length, _length;\\\n";
+    print H "    _s2 = (_s); \\\n"; # May be literal
+    print H "    _string_length = StringLength((_s2)); \\\n";
+    print H "    AVER(_string_length < EventMaxStringLength);\\\n";
+    print H "    _length = \\\n";
     print H "      WordAlignUp(offsetof(Event${format}Struct, s) + \\\n";
     print H "                  _string_length + 1, sizeof(Word)); \\\n";
   } else {
