@@ -36,8 +36,10 @@ static size_t obj_size(obj_t obj)
     return ALIGN_UP(sizeof(port_s));
   case TYPE_CHARACTER:
     return ALIGN_UP(sizeof(character_s));
+#if 0
   case TYPE_FORWARD:
     return ALIGN_UP(sizeof(forward_s));
+#endif
   case TYPE_EXCEPTION:
     return ALIGN_UP(sizeof(exception_s));
   case TYPE_SYMBOL:
@@ -172,11 +174,6 @@ extern void stats(state_t state, void *base, void *limit)
 #endif
 }
 
-extern void gc(state_t state, size_t size)
-{
-}
-
-
 /* MPS format */
 
 typedef struct mms_s {
@@ -194,6 +191,21 @@ typedef struct pad_s {
   size_t size;
 } pad_s;
   
+#define TYPE_FORWARD	((type_t)0x21BEF063)
+
+typedef struct big_forward_s {
+  header_s header;		/* type = TYPE_FORWARD */
+  obj_t object;			/* new copy of object */
+  size_t size;                  /* size of replaced object */
+} forward_s;
+
+#define TYPE_SMALL_FORWARD	((type_t)0x21BE53F3)
+
+typedef struct small_forward_s {
+  header_s header;		/* type = TYPE_FORWARD */
+  obj_t object;			/* new copy of object */
+} small_forward_s;
+
 
 /* Copied from <mps/version/1.105/manual/reference/index.html#mps_fmt_scan_t> */
 
@@ -274,10 +286,14 @@ static mps_res_t my_scan(mps_ss_t ss, mps_addr_t base, mps_addr_t limit)
         }
         break;
     
-      /* The scan function shouldn't be applied to forwarding */
-      /* pointers, because they should only exist in from-space. */
+      /* The scan function might well be applied to forwarding objects, */
+      /* according to <mps/version/1.105/manual/reference/#mps_fmt_fwd_t>. */
       case TYPE_FORWARD:
-        ASSERT(0);
+        size = ((forward_s *)obj)->size;
+        break;
+
+      case TYPE_SMALL_FORWARD:
+        size = sizeof(small_forward_s);
         break;
 
       case TYPE_PAD:
@@ -305,10 +321,15 @@ static mps_res_t my_scan(mps_ss_t ss, mps_addr_t base, mps_addr_t limit)
 static size_t my_size(mps_addr_t base)
 {
   obj_t obj = (obj_t)base;
-  if(TYPE(obj) == TYPE_PAD)
+  switch(TYPE(obj)) {
+  case TYPE_PAD:
     return ((pad_s *)obj)->size;
-  else
-    return obj_size(obj);
+  case TYPE_FORWARD:
+    return ((forward_s *)obj)->size;
+  case TYPE_SMALL_FORWARD:
+    return sizeof(small_forward_s);
+  }
+  return obj_size(obj);
 }
 
 static mps_addr_t my_skip(mps_addr_t base)
@@ -324,18 +345,30 @@ static void my_copy(mps_addr_t old, mps_addr_t new)
 
 static void my_fwd(mps_addr_t old, mps_addr_t new)
 {
-  obj_t obj = (obj_t)old;
-  TYPE(obj) = TYPE_FORWARD;
-  obj->forward.object = (obj_t)new;
+  size_t size = obj_size(old); /* @@@@ What about pads, forwards? */
+  ASSERT(size >= sizeof(small_forward_s));
+  if(size > sizeof(small_forward_s)) {
+    forward_s *forward = (forward_s *)old;
+    forward->header.type = TYPE_FORWARD;
+    forward->object = (obj_t)new;
+    forward->size = size;
+  } else {
+    small_forward_s *forward = (small_forward_s *)old;
+    forward->header.type = TYPE_SMALL_FORWARD;
+    forward->object = (obj_t)new;
+  }
 }
 
 static mps_addr_t my_isfwd(mps_addr_t base)
 {
   obj_t obj = (obj_t)base;
-  if(TYPE(obj) == TYPE_FORWARD)
-    return obj->forward.object;
-  else
-    return NULL;
+  switch(TYPE(obj)) {
+  case TYPE_FORWARD:
+    return ((forward_s *)obj)->object;
+  case TYPE_SMALL_FORWARD:
+    return ((small_forward_s *)obj)->object;
+  }
+  return NULL;
 }
 
 static void my_pad(mps_addr_t base, size_t size)
@@ -712,3 +745,11 @@ extern void *mms_alloc(mms_t mms, size_t size)
 
   return p;
 }
+
+
+extern void gc(state_t state)
+{
+  mps_arena_collect(state->mms->arena);
+}
+
+

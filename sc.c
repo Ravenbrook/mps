@@ -114,7 +114,6 @@ extern const char *type_name(type_t type)
   case TYPE_VECTOR: return "vector";
   case TYPE_EXCEPTION: return "exception";
   case TYPE_CHARACTER: return "character";
-  case TYPE_FORWARD: return "forward";
   }
   ASSERT(0);			/* not reached */
   return "[unknown type]";
@@ -439,7 +438,7 @@ extern void intern(state_t state)
 static void gc_entry(state_t state)
 {
   check_args(state, 0);
-  gc(state, 0);
+  gc(state);
   RET0();
 }
 

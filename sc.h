@@ -201,13 +201,6 @@ typedef struct character_s {
   char c;			/* the character */
 } character_s;
 
-#define TYPE_FORWARD	((type_t)0x21BEF063)
-
-typedef struct forward_s {
-  header_s header;		/* type = TYPE_FORWARD */
-  obj_t object;			/* new copy of object */
-} forward_s;
-
 typedef union obj_u {
   header_s header;
   proc_s proc;
@@ -220,7 +213,6 @@ typedef union obj_u {
   vector_s vector;
   exception_s exception;
   character_s character;
-  forward_s forward;
 } obj_u;
 
 
@@ -1017,7 +1009,7 @@ extern void define_entry(state_t);
 extern mms_t mms_create(void);
 extern void *mms_alloc(mms_t, size_t);
 extern void heap_check(state_t);
-extern void gc(state_t, size_t);
+extern void gc(state_t);
 extern void stats(state_t, void *, void *);
 extern int register_state(state_t);
 extern void make_pair(state_t);

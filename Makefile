@@ -29,7 +29,7 @@ CFLAGS = -ansi -std=iso9899:1990 -pedantic -Wall -Wpointer-arith \
 	 -Wnested-externs -Wunreachable-code -Winline -Wno-long-double \
 	 -Wlong-long -Wdisabled-optimization \
 	 -Wno-unused-label \
-	 -g -ggdb3 -O2
+	 -g -ggdb3
 
 #  	 -Wconversion 
 #	 -Wpadded
