@@ -1,6 +1,6 @@
 /* impl.h.mpmst: MEMORY POOL MANAGER DATA STRUCTURES
  *
- * $HopeName: !mpmst.h(trunk.59) $
+ * $HopeName: MMsrc!mpmst.h(MMdevel_tony_lifetime.1) $
  * Copyright (C) 1998 Harlequin Group plc.  All rights reserved.
  *
  * .readership: MM developers.
@@ -607,6 +607,9 @@ typedef struct ArenaStruct {
   double pollThreshold;         /* design.mps.arena.poll */
   Bool insidePoll;
   Bool clamped;                 /* prevent background activity */
+  Bool trackDeathtimes;         /* enable policy to track object deaths */
+  double trackThreshold;        /* when to track object deaths */
+  double trackFreq;             /* frequency for tracking obj deaths */
 
   Bool bufferLogging;           /* design.mps.buffer.logging.control */
   double fillMutatorSize;       /* total bytes filled, mutator buffers */
