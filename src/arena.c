@@ -1,6 +1,6 @@
 /* impl.c.arena: ARENA IMPLEMENTATION
  *
- * $HopeName: MMsrc!arena.c(MMdevel_drj_arena_hysteresis.1) $
+ * $HopeName: MMsrc!arena.c(MMdevel_drj_arena_hysteresis.2) $
  * Copyright (C) 1998. Harlequin Group plc. All rights reserved.
  *
  * .readership: Any MPS developer
@@ -36,7 +36,7 @@
 #include "poolmrg.h"
 #include "mps.h"
 
-SRCID(arena, "$HopeName: MMsrc!arena.c(MMdevel_drj_arena_hysteresis.1) $");
+SRCID(arena, "$HopeName: MMsrc!arena.c(MMdevel_drj_arena_hysteresis.2) $");
 
 
 /* Forward declarations */
@@ -576,6 +576,7 @@ void ArenaInit(Arena arena, ArenaClass class)
   /* as there's not much point) */
   arena->commitLimit = (Size)-1;
   arena->spareCommitted = (Size)0;
+  arena->spareCommitLimit = ARENA_INIT_SPARE_COMMIT_LIMIT;
   /* alignment is usually overridden by init */
   arena->alignment = MPS_PF_ALIGN;
   /* usually overridden by init */
@@ -1049,6 +1050,7 @@ Res ArenaDescribe(Arena arena, mps_lib_FILE *stream)
   res = WriteF(stream,
                "  commitLimit $W\n", (WriteFW)arena->commitLimit,
 	       "  spareCommitted $W\n", (WriteFW)arena->spareCommitted,
+	       "  spareCommitLimit $W\n", (WriteFW)arena->spareCommitLimit,
                "  zoneShift $U\n", (WriteFU)arena->zoneShift,
                "  alignment $W\n", (WriteFW)arena->alignment,
                "  poolSerial $U\n", (WriteFU)arena->poolSerial,
@@ -1382,6 +1384,33 @@ Size ArenaCommitted(Arena arena)
   AVERT(Arena, arena);
   return (*arena->class->committed)(arena);
 }
+
+Size ArenaSpareCommitLimit(Arena arena)
+{
+  AVERT(Arena, arena);
+  return arena->spareCommitLimit;
+}
+
+void ArenaSetSpareCommitLimit(Arena arena, Size limit)
+{
+  AVERT(Arena, arena);
+  AVER(0 < limit);
+
+  arena->spareCommitLimit = limit;
+  if(arena->spareCommitLimit < arena->spareCommitted) {
+    arena->class->spareCommitExceeded(arena);
+  }
+
+  return;
+}
+
+/* Used by arenas which don't use spare committed memory */
+void ArenaNoSpareCommitExceeded(Arena arena)
+{
+  AVERT(Arena, arena);
+  return;
+}
+
 
 Size ArenaCommitLimit(Arena arena)
 {
