@@ -1,6 +1,6 @@
 /* impl.c.arenavm: VIRTUAL MEMORY BASED ARENA IMPLEMENTATION
  *
- * $HopeName: !arenavm.c(trunk.6) $
+ * $HopeName: MMsrc!arenavm.c(MMdevel_trace2.1) $
  * Copyright (C) 1996 Harlequin Group, all rights reserved.
  *
  * This is the implementation of the Segment abstraction from the VM
@@ -14,7 +14,7 @@
 #include "mpm.h"
 
 
-SRCID(arenavm, "$HopeName: !arenavm.c(trunk.6) $");
+SRCID(arenavm, "$HopeName: MMsrc!arenavm.c(MMdevel_trace2.1) $");
 
 
 /* Space Arena Projection
@@ -315,12 +315,12 @@ found:
   seg = &arena->pageTable[base].the.head;
   seg->pool = pool;
   seg->p = NULL;
-  seg->rank = RankEXACT;    /*  exact by default */
-  seg->condemned = TraceIdNONE;
-
   seg->pm = AccessSetEMPTY; /* see impl.c.shield */
   seg->sm = AccessSetEMPTY;
   seg->depth = 0;
+  seg->rank = RankNONE;
+  ColInit(&seg->colStruct);
+  RingInit(&seg->poolRing);
 
   /* Allocate the first page, and, if there is more than one page,
    * allocate the rest of the pages and store the multi-page information
