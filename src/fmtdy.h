@@ -1,7 +1,7 @@
 /* impl.h.fmtdy: DYLAN OBJECT FORMAT
  *
- * $HopeName: !fmtdy.h(trunk.7) $
- * Copyright (C) 1997 Harlequin Group, all rights reserved
+ * $HopeName: MMsrc!fmtdy.h(MMdevel_configura.1) $
+ * Copyright (C) 1997 Harlequin Limited.  All rights reserved.
  */
 
 #ifndef fmtdy_h
@@ -14,6 +14,7 @@ extern mps_fmt_A_s *dylan_fmt_A(void);
 extern mps_fmt_A_s *dylan_fmt_A_weak(void);
 extern mps_fmt_B_s *dylan_fmt_B(void);
 extern mps_fmt_B_s *dylan_fmt_B_weak(void);
+extern mps_fmt_C_s *dylan_fmt_C(void);
 extern mps_res_t dylan_fmt(mps_fmt_t *, mps_arena_t);
 extern mps_res_t dylan_fmt_weak(mps_fmt_t *, mps_arena_t);
 
