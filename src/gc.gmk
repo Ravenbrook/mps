@@ -1,7 +1,7 @@
 #
 #              GENERIC BUILD.GC MAKEFILE FRAGMENT
 #
-# $HopeName: MMsrc!gc.gmk(MMdevel_protoposm_1.5) $
+# $HopeName: MMsrc!gc.gmk(MMdevel_protoposm_1.6) $
 #
 # Copyright (C) 1995 Harlequin Group, all rights reserved
 #
@@ -248,11 +248,16 @@ $(PFM)/$(VARIETY)/dumper: $(PFM)/$(VARIETY)/dumper.o \
 	$(PFM)/$(VARIETY)/trformat.o \
 	$(DBOBJ) $(MPMOBJ) $(STDOBJ) $(TESTLIBOBJ)
 
+
+# wpd: added link line directly since the generic rule is not sufficiently 
+# flexible to handle an exe without a same named .o
 $(PFM)/$(VARIETY)/dumperdw: $(PFM)/$(VARIETY)/dumper.o \
 	$(PFM)/$(VARIETY)/poolps.o \
 	$(PFM)/$(VARIETY)/fmtcvdw.o \
 	$(PFM)/$(VARIETY)/dwformat.o \
 	$(DBOBJ) $(MPMOBJ) $(STDOBJ) $(TESTLIBOBJ)
+	$(ECHO) "$(PFM): $@"
+	gcc -o $@ $^ $(LIBS)
 
 $(PFM)/$(VARIETY)/std.a: $(STDOBJ)
 
