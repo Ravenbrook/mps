@@ -1,6 +1,6 @@
 /* impl.c.thw3i3: WIN32 THREAD MANAGER
  *
- * $HopeName: !thw3i3.c(trunk.21) $
+ * $HopeName: MMsrc!thw3i3.c(MMdevel_tony_sunset.1) $
  * Copyright (C) 1995,1998.  Harlequin Group plc.  All rights reserved.
  *
  * Implements thread registration, suspension, and stack
@@ -70,7 +70,7 @@
 
 #include "mpswin.h"
 
-SRCID(thw3i3, "$HopeName: !thw3i3.c(trunk.21) $");
+SRCID(thw3i3, "$HopeName: MMsrc!thw3i3.c(MMdevel_tony_sunset.1) $");
 
 
 Bool ThreadCheck(Thread thread)
@@ -94,7 +94,8 @@ Res ThreadRegister(Thread *threadReturn, Arena arena)
   AVER(threadReturn != NULL);
   AVERT(Arena, arena);
 
-  res = ArenaAlloc(&p, arena, sizeof(ThreadStruct));
+  res = ControlAlloc(&p, arena, sizeof(ThreadStruct), 
+                     /* withReservoirPermit */ FALSE);
   if(res != ResOK)
     return res;
   thread = (Thread)p; /* avoid pun */
@@ -144,7 +145,7 @@ void ThreadDeregister(Thread thread, Arena arena)
   b = CloseHandle(thread->handle);
   AVER(b); /* .error.close-handle */
 
-  ArenaFree(arena, thread, sizeof(ThreadStruct));
+  ControlFree(arena, thread, sizeof(ThreadStruct));
 }
 
 

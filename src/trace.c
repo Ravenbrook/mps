@@ -1,6 +1,6 @@
 /* impl.c.trace: GENERIC TRACER IMPLEMENTATION
  *
- * $HopeName: !trace.c(trunk.85) $
+ * $HopeName: MMsrc!trace.c(MMdevel_tony_sunset.1) $
  * Copyright (C) 1998.  Harlequin Group plc.  All rights reserved.
  *
  * .design: design.mps.trace.
@@ -9,7 +9,7 @@
 #include "mpm.h"
 
 
-SRCID(trace, "$HopeName: !trace.c(trunk.85) $");
+SRCID(trace, "$HopeName: MMsrc!trace.c(MMdevel_tony_sunset.1) $");
 
 
 /* Types
@@ -59,7 +59,7 @@ static void TraceMessageDelete(Message message)
   AVERT(TraceMessage, traceMessage);
 
   arena = MessageArena(message);
-  ArenaFree(arena, (void *)traceMessage, sizeof(TraceMessageStruct));
+  ControlFree(arena, (void *)traceMessage, sizeof(TraceMessageStruct));
 }
 
 static Size TraceMessageLiveSize(Message message) 
@@ -887,7 +887,8 @@ static void TracePostMessage(Trace trace)
   AVER(trace->state == TraceFINISHED);
 
   arena = trace->arena;
-  res = ArenaAlloc(&p, arena, sizeof(TraceMessageStruct));
+  res = ControlAlloc(&p, arena, sizeof(TraceMessageStruct), 
+                     /* withReservoirPermit */ FALSE);
   if(res == ResOK) {
     traceMessage = (TraceMessage)p;
     TraceMessageInit(arena, traceMessage);
@@ -1307,7 +1308,7 @@ Size TraceGreyEstimate(Arena arena, RefSet refSet)
 Res TraceFix(ScanState ss, Ref *refIO)
 {
   Ref ref;
-  Seg seg;
+  Tract tract;
   Pool pool;
 
   /* See design.mps.trace.fix.noaver */
@@ -1320,16 +1321,17 @@ Res TraceFix(ScanState ss, Ref *refIO)
 
   EVENT_PPAU(TraceFix, ss, refIO, ref, ss->rank);
 
-  /* SegOfAddr is inlined, see design.mps.trace.fix.segofaddr */
-  if(SEG_OF_ADDR(&seg, ss->arena, ref)) {
+  /* TractOfAddr is inlined, see design.mps.trace.fix.tractofaddr */
+  if(TRACT_OF_ADDR(&tract, ss->arena, ref) && TractHasSeg(tract)) {
     ++ss->segRefCount;
-    EVENT_P(TraceFixSeg, seg);
-    if(TraceSetInter(SegWhite(seg), ss->traces) != TraceSetEMPTY) {
+    EVENT_P(TraceFixSeg, TractSeg(tract));
+    if(TraceSetInter(TractWhite(tract), ss->traces) != TraceSetEMPTY) {
+      Seg seg = TractSeg(tract);
       Res res;
 
       ++ss->whiteSegRefCount;
       EVENT_0(TraceFixWhite);
-      pool = SegPool(seg);
+      pool = TractPool(tract);
       /* Could move the rank switch here from the class-specific */
       /* fix methods. */
       res = PoolFix(pool, ss, seg, refIO);
@@ -1353,7 +1355,7 @@ Res TraceFix(ScanState ss, Ref *refIO)
 Res TraceFixEmergency(ScanState ss, Ref *refIO)
 {
   Ref ref;
-  Seg seg;
+  Tract tract;
   Pool pool;
 
   AVERT(ScanState, ss);
@@ -1365,14 +1367,15 @@ Res TraceFixEmergency(ScanState ss, Ref *refIO)
 
   EVENT_PPAU(TraceFix, ss, refIO, ref, ss->rank);
 
-  /* SegOfAddr is inlined, see design.mps.trace.fix.segofaddr */
-  if(SEG_OF_ADDR(&seg, ss->arena, ref)) {
+  /* TractOfAddr is inlined, see design.mps.trace.fix.tractofaddr */
+  if(TRACT_OF_ADDR(&tract, ss->arena, ref) && TractHasSeg(tract)) {
     ++ss->segRefCount;
-    EVENT_P(TraceFixSeg, seg);
-    if(TraceSetInter(SegWhite(seg), ss->traces) != TraceSetEMPTY) {
+    EVENT_P(TraceFixSeg, TractSeg(tract));
+    if(TraceSetInter(TractWhite(tract), ss->traces) != TraceSetEMPTY) {
+      Seg seg = TractSeg(tract);
       ++ss->whiteSegRefCount;
       EVENT_0(TraceFixWhite);
-      pool = SegPool(seg);
+      pool = TractPool(tract);
       PoolFixEmergency(pool, ss, seg, refIO);
     }
   } else {

@@ -1,6 +1,6 @@
 /*  impl.c.than: ANSI THREADS MANAGER
  *
- *  $HopeName: !than.c(trunk.18) $
+ *  $HopeName: MMsrc!than.c(MMdevel_tony_sunset.1) $
  *  Copyright (C) 1995, 1997 Harlequin Group, all rights reserved
  *
  *  This is a single-threaded implementation of the threads manager.
@@ -14,7 +14,7 @@
 
 #include "mpm.h"
 
-SRCID(than, "$HopeName: !than.c(trunk.18) $");
+SRCID(than, "$HopeName: MMsrc!than.c(MMdevel_tony_sunset.1) $");
 
 
 Bool ThreadCheck(Thread thread)
@@ -36,7 +36,8 @@ Res ThreadRegister(Thread *threadReturn, Arena arena)
 
   AVER(threadReturn != NULL);
 
-  res = ArenaAlloc(&p, arena, sizeof(ThreadStruct));
+  res = ControlAlloc(&p, arena, sizeof(ThreadStruct), 
+                     /* withReservoirPermit */ FALSE);
   if(res != ResOK) return res;
   thread = (Thread)p;
 
@@ -70,7 +71,7 @@ void ThreadDeregister(Thread thread, Arena arena)
 
   RingFinish(&thread->arenaRing);
 
-  ArenaFree(arena, thread, sizeof(ThreadStruct));
+  ControlFree(arena, thread, sizeof(ThreadStruct));
 }
 
 
