@@ -1,6 +1,6 @@
 /* impl.h.mps: HARLEQUIN MEMORY POOL SYSTEM C INTERFACE
  *
- * $HopeName: MMsrc!mps.h(MMdevel_reservoir.1) $
+ * $HopeName: MMsrc!mps.h(MMdevel_reservoir.2) $
  * Copyright (C) 1997, 1998 The Harlequin Group Limited.  All rights reserved.
  *
  * .readership: customers, MPS developers.
@@ -295,6 +295,20 @@ extern mps_res_t mps_reserve_with_reservoir_permit(mps_addr_t *p_o,
     } else \
       (_res_v) = mps_ap_fill(&(_p_v), _mps_ap, _size); \
   MPS_END
+
+
+#define MPS_RESERVE_WITH_RESERVOIR_PERMIT_BLOCK(_res_v, _p_v, _mps_ap, _size) \
+  MPS_BEGIN \
+    char *_alloc = (char *)(_mps_ap)->alloc; \
+    char *_next = _alloc + (_size); \
+    if(_next > _alloc && _next <= (char *)(_mps_ap)->limit) { \
+      (_mps_ap)->alloc = (mps_addr_t)_next; \
+      (_p_v) = (_mps_ap)->init; \
+      (_res_v) = MPS_RES_OK; \
+    } else \
+      (_res_v) = mps_ap_fill_with_reservoir_permit(&(_p_v), _mps_ap, _size); \
+  MPS_END
+
 
 /* Commit Macros */
 /* .commit: Keep in sync with impl.c.buffer.commit. */
