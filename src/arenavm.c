@@ -1,6 +1,6 @@
 /* impl.c.arenavm: VIRTUAL MEMORY BASED ARENA IMPLEMENTATION
  *
- * $HopeName: MMsrc!arenavm.c(MMdevel_drj_arena_hysteresis.2) $
+ * $HopeName: MMsrc!arenavm.c(MMdevel_drj_arena_hysteresis.3) $
  * Copyright (C) 1998.  Harlequin Group plc.  All rights reserved.
  *
  * PURPOSE
@@ -32,7 +32,7 @@
 #include "mpm.h"
 #include "mpsavm.h"
 
-SRCID(arenavm, "$HopeName: MMsrc!arenavm.c(MMdevel_drj_arena_hysteresis.2) $");
+SRCID(arenavm, "$HopeName: MMsrc!arenavm.c(MMdevel_drj_arena_hysteresis.3) $");
 
 
 /* @@@@ Arbitrary calculation for the maximum number of distinct */
@@ -58,13 +58,15 @@ typedef struct VMArenaChunkStruct {
   RingStruct arenaRing;         /* ring of all chunks in arena */
   Bool primary;                 /* primary chunk contains vmArena */
   Bool inBoot;                  /* TRUE in boot (used in checking) */
-  Addr base;                    /* base address of arena area */
-  Addr limit;                   /* limit address of arena area */
-  Count pages;                  /* number of pages in table */
+  Addr base;                    /* base address of chunk */
+  Addr limit;                   /* limit address of chunk */
+  Count pages;                  /* number of pages in chunk */
   Page pageTable;               /* the page table */
+  Count pageTablePages;         /* number of pages occupied by page table */
+  BT latentPageSummary;         /* 1 bit per page of pageTable */
   BT allocTable;                /* page allocation table */
-  Size tablesSize;              /* size of area occupied by tables */
-  Count tablePages;             /* number of pages occupied by tables */
+  Size ullageSize;              /* size unusable for segments */
+  Count ullagePages;            /* number of pages occupied by ullage */
 } VMArenaChunkStruct;
 
 typedef struct VMArenaChunkStruct *VMArenaChunk;
@@ -244,20 +246,18 @@ static Bool VMArenaChunkCheck(VMArenaChunk chunk)
   CHECKL(chunk->base <= (Addr)chunk);
   CHECKL((Addr)(chunk+1) <= chunk->limit);
   /* check that the tables fit in the chunk */
-  CHECKL(chunk->tablePages <= chunk->pages);
-  /* check that the two notions of table size are consistent */
-  CHECKL(chunk->tablesSize == chunk->tablePages << chunk->pageShift);
+  CHECKL(chunk->ullagePages <= chunk->pages);
+  /* check that the two notions of ullage size are consistent */
+  CHECKL(chunk->ullageSize == chunk->ullagePages << chunk->pageShift);
   CHECKL(chunk->pageTable != NULL);
   /* check that pageTable is in the chunk ... */
   CHECKL((Addr)chunk->pageTable >= chunk->base);
-  /* and is in fact no bigger than we said it would be */
-  CHECKL((Addr)&chunk->pageTable[chunk->pages] <=
-         AddrAdd(chunk->base, chunk->tablesSize));
+  /* and is in fact no bigger than we said it would be. */
   /* check allocTable */
   CHECKL(chunk->allocTable != NULL);
   CHECKL((Addr)chunk->allocTable >= chunk->base);
   CHECKL(AddrAdd((Addr)chunk->allocTable, BTSize(chunk->pages)) <= 
-         AddrAdd(chunk->base, chunk->tablesSize));
+         AddrAdd(chunk->base, chunk->ullageSize));
   /* .improve.check-table: Could check the consistency of the tables. */
   CHECKL(chunk->pages == 
          AddrOffset(chunk->base, chunk->limit) >> 
@@ -569,7 +569,7 @@ static Res VMArenaChunkCreate(VMArenaChunk *chunkReturn,
   Res res;
   Size pageSize;        /* cache of VMAlign() */
   Size pageTableSize;
-  Size tablesSize;
+  Size ullageSize;
   Size vmSize;
   VM vm;
   VMArenaBootStruct bootStruct;
@@ -600,8 +600,8 @@ static Res VMArenaChunkCreate(VMArenaChunk *chunkReturn,
   vmSize = AddrOffset(VMBase(vm), VMLimit(vm));
   pages = vmSize >> SizeLog2(pageSize);
 
-  /* Allocate and map the descriptor and tables.  See */
-  /* design.mps.arena.coop-vm:chunk.create.tables */
+  /* Allocate and map the descriptor and tables (comprising the ullage) */
+  /* See design.mps.arena.coop-vm:chunk.create.tables */
 
   res = VMArenaBootInit(boot,
                         (void *)VMBase(vm),
@@ -632,7 +632,7 @@ static Res VMArenaChunkCreate(VMArenaChunk *chunkReturn,
   if(res != ResOK)
     goto failAllocPageTable;
   pageTable = p;
-  tablesSize = VMArenaBootAllocated(boot);
+  ullageSize = VMArenaBootAllocated(boot);
   res = VMArenaBootFinish(boot);
   if(res != ResOK)
     goto failBootFinish;
@@ -660,20 +660,19 @@ static Res VMArenaChunkCreate(VMArenaChunk *chunkReturn,
   chunk->pages = pages;
   chunk->pageTable = pageTable;
   chunk->allocTable = allocTable;
-  chunk->tablesSize = tablesSize;
-  chunk->tablePages = tablesSize >> chunk->pageShift;
+  chunk->ullageSize = ullageSize;
+  chunk->ullagePages = ullageSize >> chunk->pageShift;
 
-  /* .tablepages: pages whose page index is < tablePages are */
+  /* .ullagepages: pages whose page index is < ullagePages are */
   /* recorded as free but never allocated as alloc starts */
   /* searching after the tables (see .alloc.skip).  SegOfAddr */
   /* uses the fact that these pages are marked as free in order */
   /* to detect "references" to these pages as  being bogus see */
   /* .addr.free. */
 
-  /* chunk->tablesSize is expected to be page aligned */
-  AVER((chunk->tablesSize >> chunk->pageShift) << chunk->pageShift ==
-       chunk->tablesSize);
-  chunk->tablePages = chunk->tablesSize >> chunk->pageShift;
+  /* chunk->ullageSize is expected to be page aligned */
+  AVER((chunk->ullageSize >> chunk->pageShift) << chunk->pageShift ==
+       chunk->ullageSize);
   BTResRange(chunk->allocTable, 0, chunk->pages);
 
   chunk->sig = VMArenaChunkSig;
@@ -1133,7 +1132,7 @@ static Bool VMFindFreeInRefSet(Index *baseReturn,
 
     /* .alloc.skip: The first address available for segments, */
     /* is just after the arena tables. */
-    chunkBase = PageIndexBase(chunk, chunk->tablePages);
+    chunkBase = PageIndexBase(chunk, chunk->ullagePages);
 
     base = chunkBase;
     while(base < chunk->limit) {
@@ -1743,7 +1742,7 @@ static Bool VMSegOfAddr(Seg *segReturn, Arena arena, Addr addr)
   i = INDEX_OF_ADDR(chunk, addr);
   /* .addr.free: If the page is recorded as being free then */
   /* either the page is free or it is */
-  /* part of the arena tables (see .tablepages) */
+  /* part of the arena tables (see .ullagepages) */
   if(BTGet(chunk->allocTable, i)) {
     Page page = &chunk->pageTable[i];
 
@@ -1790,7 +1789,7 @@ static Bool segSearchInChunk(Seg *segReturn,
 {
   AVER(segReturn != NULL);
   AVERT(VMArenaChunk, chunk);
-  AVER(chunk->tablePages <= i);
+  AVER(chunk->ullagePages <= i);
   AVER(i <= chunk->pages);
 
   while(i < chunk->pages &&
@@ -1858,7 +1857,6 @@ static Bool segSearch(Seg *segReturn, VMArena vmArena, Addr addr)
 {
   Bool b;
   VMArenaChunk chunk;
-  Seg seg;
 
   b = VMArenaChunkOfAddr(&chunk, vmArena, addr);
   if(b) {
@@ -1870,17 +1868,15 @@ static Bool segSearch(Seg *segReturn, VMArena vmArena, Addr addr)
     /* page index can never wrap around */
     AVER_CRITICAL(i+1 != 0);
 
-    if(segSearchInChunk(&seg, chunk, i+1)) {
-      *segReturn = seg;
+    if(segSearchInChunk(segReturn, chunk, i+1)) {
       return TRUE;
     }
   }
   while(VMNextChunkOfAddr(&chunk, vmArena, addr)) {
     addr = chunk->base;
-    /* We start from tablePages, as the tables can't be a segment. */
-    /* See .tablepages */
-    if(segSearchInChunk(&seg, chunk, chunk->tablePages)) {
-      *segReturn = seg;
+    /* We start from ullagePages, as the ullage can't be a segment. */
+    /* See .ullagepages */
+    if(segSearchInChunk(segReturn, chunk, chunk->ullagePages)) {
       return TRUE;
     }
   }
@@ -1896,7 +1892,6 @@ static Bool segSearch(Seg *segReturn, VMArena vmArena, Addr addr)
 static Bool VMSegFirst(Seg *segReturn, Arena arena)
 {
   Bool b;
-  Seg seg;
   VMArena vmArena;
 
   AVER(segReturn != NULL);
@@ -1906,9 +1901,8 @@ static Bool VMSegFirst(Seg *segReturn, Arena arena)
   /* .segfirst.assume.nozero: We assume that there is no segment */
   /* with base address (Addr)0.  Happily this assumption is sound */
   /* for a number of reasons. */
-  b = segSearch(&seg, vmArena, (Addr)0);
+  b = segSearch(segReturn, vmArena, (Addr)0);
   if(b) {
-    *segReturn = seg;
     return TRUE;
   }
   return FALSE;
@@ -1928,7 +1922,6 @@ static Bool VMSegFirst(Seg *segReturn, Arena arena)
 static Bool VMSegNext(Seg *segReturn, Arena arena, Addr addr)
 {
   Bool b;
-  Seg seg;
   VMArena vmArena;
 
   AVER_CRITICAL(segReturn != NULL); /* .seg.critical */
@@ -1936,9 +1929,8 @@ static Bool VMSegNext(Seg *segReturn, Arena arena, Addr addr)
   AVERT_CRITICAL(VMArena, vmArena);
   AVER_CRITICAL(AddrIsAligned(addr, arena->alignment));
 
-  b = segSearch(&seg, vmArena, addr);
+  b = segSearch(segReturn, vmArena, addr);
   if(b) {
-    *segReturn = seg;
     return TRUE;
   }
   return FALSE;
