@@ -1,6 +1,6 @@
 /* impl.h.mpm: MEMORY POOL MANAGER DEFINITIONS
  *
- * $HopeName: MMsrc!mpm.h(MMdevel_pekka_locus.2) $
+ * $HopeName: MMsrc!mpm.h(MMdevel_pekka_locus.3) $
  * Copyright (C) 1999 Harlequin Limited.  All rights reserved.
  */
 
@@ -16,14 +16,10 @@
 #include "th.h"
 #include "ss.h"
 #include "mpslib.h"
+#include "ring.h"
 #include "tract.h" /* only for certain Seg macros */
 #include "mpmtypes.h"
 #include "mpmst.h"
-
-
-/* CheckLevel -- Control check method behaviour; see impl.c.assert */
-
-extern Word CheckLevel;
 
 
 /* MPMCheck -- check MPM assumptions */
@@ -37,11 +33,13 @@ extern Bool MPMCheck(void);
 extern Bool (BoolCheck)(Bool b);
 /* design.mps.type.bool.check.inline */
 #define BoolCheck(b) ((unsigned)(b) <= 1)
+
 extern Bool FunCheck(Fun f);
+#define FUNCHECK(f)     (FunCheck((Fun)f))
+
 extern Bool ShiftCheck(Shift shift);
 extern Bool AttrCheck(Attr attr);
 extern Bool RootVarCheck(RootVar rootVar);
-#define FUNCHECK(f)     (FunCheck((Fun)f))
 
 
 /* Address/Size Interface -- see impl.c.mpm */
@@ -123,6 +121,7 @@ extern int (AddrComp)(Addr a, Addr b, Size size);
 
 #define AlignIsAligned(a1, a2)  WordIsAligned(AlignWord(a1), (a2))
 
+
 /* Result codes */
 
 extern Bool ResIsAllocFailure(Res res);
@@ -154,93 +153,10 @@ extern Res WriteF(mps_lib_FILE *stream, ...);
 extern size_t StringLength(const char *s);
 
 
-/* Ring Interface -- see design.mps.ring, impl.c.ring */
-
-extern Bool RingCheck(Ring ring);
-extern Bool RingCheckSingle(Ring ring);
-extern Bool RingIsSingle(Ring ring);
-
-/* .ring.init: */
-extern void (RingInit)(Ring ring);
-#define RingInit(ring) \
-  BEGIN \
-    Ring _ring = (ring); \
-    AVER(NULL != _ring); \
-    _ring->next = _ring; \
-    _ring->prev = _ring; \
-    AVER(RingCheck(_ring)); \
-  END
-
-/* .ring.finish: */
-extern void (RingFinish)(Ring ring);
-#define RingFinish(ring) \
-  BEGIN \
-    Ring _ring = (ring); \
-    AVER(RingCheckSingle(_ring)); \
-    _ring->next = RingNONE; \
-    _ring->prev = RingNONE; \
-  END
-
-/* .ring.append: */
-extern void (RingAppend)(Ring ring, Ring new);
-#define RingAppend(ring, new) \
-  BEGIN \
-    Ring _ring = (ring), _new = (new); \
-    AVER(RingCheck(_ring)); \
-    AVER(RingCheckSingle(_new)); \
-    _new->prev = _ring->prev; \
-    _new->next = _ring; \
-    _ring->prev->next = _new; \
-    _ring->prev = _new; \
-  END
-
-/* .ring.insert: */
-extern void (RingInsert)(Ring ring, Ring new);
-#define RingInsert(ring, new) \
-  BEGIN \
-    Ring _ring = (ring), _new = (new); \
-    AVER(RingCheck(_ring)); \
-    AVER(RingCheckSingle(_new)); \
-    _new->prev = _ring; \
-    _new->next = _ring->next; \
-    _ring->next->prev = _new; \
-    _ring->next = _new; \
-  END
-
-/* .ring.remove: */
-extern void (RingRemove)(Ring old);
-#define RingRemove(old) \
-  BEGIN \
-    Ring _old = (old); \
-    AVER(RingCheck(_old)); \
-    AVER(!RingIsSingle(_old)); \
-    _old->next->prev = _old->prev; \
-    _old->prev->next = _old->next; \
-    _old->next = _old; \
-    _old->prev = _old; \
-  END
-
-/* .ring.next: */
-extern Ring (RingNext)(Ring ring);
-#define RingNext(ring)  ((ring)->next)
-
-/* .ring.elt: See design.mps.ring.elt */
-#define RING_ELT(type, field, node) \
-   ((type)((char *)(node) - (size_t)(&((type)0)->field)))
-
-/* .ring.for: See design.mps.ring.for */
-#define RING_FOR(node, ring, next)                              \
-  for(node = RingNext(ring), next = RingNext(node);             \
-      node != (ring) ;                                          \
-      node = (next), next = RingNext(node))
-
-
 /* Version Determination
  *
  * See design.mps.version-library.
  */
-
-/* Defined in impl.c.version */
 extern char *MPSVersion(void);
 
 
@@ -303,7 +219,6 @@ extern void BTCopyRange(BT fromBT, BT toBT,
 extern void BTCopyOffsetRange(BT fromBT, BT toBT,
                               Index fromBase, Index fromLimit,
                               Index toBase, Index toLimit);
-
 
 
 /* Pool Interface -- see impl.c.pool */
@@ -628,7 +543,7 @@ extern Bool ArenaAccess(Addr addr, AccessSet mode,
 			MutatorFaultContext context);
 
 extern Bool ArenaAllocCheck(Arena arena);
-extern void ArenaAllocInit(Arena arena);
+extern void ArenaAllocInit(Arena arena, ArenaClass class);
 extern void ArenaAllocFinish(Arena arena);
 extern Bool ArenaClassCheck(ArenaClass class);
 extern Res ArenaAllocDescribe(Arena arena, mps_lib_FILE *stream);
@@ -689,6 +604,7 @@ extern void ArenaPokeSeg(Arena arena, Seg seg, Addr addr, Ref ref);
  */
 
 Ref ArenaRead(Arena arena, Addr addr);
+
 
 #define ArenaPoolRing(arena)    (&(arena)->poolRing)
 #define ArenaRootRing(arena)    (&(arena)->rootRing)
