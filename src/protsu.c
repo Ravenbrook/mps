@@ -1,6 +1,6 @@
 /* impl.c.protsu: PROTECTION FOR SUNOS
  *
- * $HopeName: MMsrc!protsu.c(trunk.7) $
+ * $HopeName: !protsu.c(trunk.8) $
  * Copyright (C) 1995,1996,1997 Harlequin Group, all rights reserved
  *
  * READERSHIP
@@ -29,7 +29,7 @@
 #error "protsu.c is SunOS 4 specific, but MPS_OS_SU is not set"
 #endif
 
-SRCID(protsu, "$HopeName: MMsrc!protsu.c(trunk.7) $");
+SRCID(protsu, "$HopeName: !protsu.c(trunk.8) $");
 
 
 /* Fix up unprototyped system calls. */
