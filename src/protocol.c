@@ -1,6 +1,6 @@
 /* impl.c.pool: PROTOCOL IMPLEMENTATION
  *
- * $HopeName: MMsrc!protocol.c(MMdevel_tony_inheritance.1) $
+ * $HopeName: MMsrc!protocol.c(MMdevel_tony_inheritance.2) $
  * Copyright (C) 1998. Harlequin Group plc. All rights reserved.
  *
  * READERSHIP
@@ -16,7 +16,7 @@
 #include "mpm.h"
 
 
-SRCID(protocol, "$HopeName: MMsrc!protocol.c(MMdevel_tony_inheritance.1) $");
+SRCID(protocol, "$HopeName: MMsrc!protocol.c(MMdevel_tony_inheritance.2) $");
 
 
 Bool ProtocolClassCheck(ProtocolClass class)
@@ -28,10 +28,10 @@ Bool ProtocolClassCheck(ProtocolClass class)
   return TRUE;
 }
 
-Bool ProtocolCheck(Protocol pro)
+Bool ProtocolInstCheck(ProtocolInst inst)
 {
-  CHECKS(Protocol, pro);
-  CHECKL(ProtocolClassCheck(pro->class));
+  CHECKS(ProtocolInst, inst);
+  CHECKL(ProtocolClassCheck(inst->class));
   return TRUE;
 }
 
@@ -60,7 +60,7 @@ Bool ProtocolIsSubclass(ProtocolClass sub, ProtocolClass super)
 }
 
 
-/* ProtocolClassInstMethod
+/* ProtocolCoerceClassMethod
  *
  * This default method must be inherited by any subclass
  * which does not perform a multiple inheritance.
@@ -89,20 +89,20 @@ static Bool ProtocolCoerceClass(ProtocolClass *coerceResult,
 }
 
 
-/* CoerceInstMethod
+/* ProtocolCoerceInstMethod
  *
  * This default method must be inherited by any subclass
  * which does not perform a multiple inheritance.
  */
 
-static Bool ProtocolCoerceInst(Protocol *coerceResult, 
-                               Protocol pro,
+static Bool ProtocolCoerceInst(ProtocolInst *coerceResult, 
+                               ProtocolInst proInst,
                                ProtocolClass super)
 {
-  ProtocolClass p = pro->class;
+  ProtocolClass p = proInst->class;
   ProtocolClass root = (ProtocolClass)EnsureProtocolClass();
 
-  AVERT(Protocol, pro);
+  AVERT(ProtocolInst, proInst);
   AVERT(ProtocolClass, super);
   AVERT(ProtocolClass, root);
 
@@ -112,7 +112,7 @@ static Bool ProtocolCoerceInst(Protocol *coerceResult,
       return FALSE;
     p = p->superclass;
   }
-  *coerceResult = pro;
+  *coerceResult = proInst;
   return TRUE;
 }
 

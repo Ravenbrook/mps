@@ -1,6 +1,6 @@
 /* impl.h.protocol: PROTOCOL INHERITANCE DEFINITIONS
  *
- * $HopeName: MMsrc!protocol.h(MMdevel_tony_inheritance.2) $
+ * $HopeName: MMsrc!protocol.h(MMdevel_tony_inheritance.3) $
  * Copyright (C) 1998.  Harlequin Group plc.  All rights reserved.
  */
 
@@ -14,12 +14,12 @@
 /* Name derivation macros. These are not intended to be used */
 /* outside of this file */
 
-#define DERIVE_LOCAL(name) l_ ## name
+#define DERIVE_LOCAL(name) protocol ## name
 #define DERIVE_STRUCT(name) name ## Struct
 #define DERIVE_ENSURE(name) Ensure ## name 
-#define DERIVE_ENSURE_INTERNAL(name) Ensure ## name ## _internal
-#define DERIVE_GUARDIAN(name) name ## _Guardian
-#define DERIVE_STATIC_STORAGE(name) canonical ## name ## Struct
+#define DERIVE_ENSURE_INTERNAL(name) protocol ## Ensure ## name
+#define DERIVE_GUARDIAN(name) protocol ## name ## Guardian
+#define DERIVE_STATIC_STORAGE(name) protocol ## name ## Struct
 
 
 /* DEFINE_CLASS
@@ -57,7 +57,7 @@
   BEGIN \
     parentName DERIVE_LOCAL(parentName) = DERIVE_ENSURE(parentName)(); \
     *this = *(DERIVE_LOCAL(parentName)); \
-    ProtocolClassSuperclassSetter(this, DERIVE_LOCAL(parentName)); \
+    ProtocolClassSetSuperclass(this, DERIVE_LOCAL(parentName)); \
   END
 
 
@@ -74,19 +74,9 @@
   DEFINE_CLASS(className, var)
 
 
-/* DEFINE_POOL_CLASS
- *
- * A convenience macro. Aliases the structure and pointer types
- * for className to be the same as PoolClass, and then defines
- * the class className.
- */
-
-#define DEFINE_POOL_CLASS(className, var) \
-  DEFINE_ALIAS_CLASS(className, PoolClass, var)
-
 
 #define ProtocolClassSig ((Sig)0x519B60C7) /* SIGnature PROtocol CLass */
-#define ProtocolSig      ((Sig)0x519B6020) /* SIGnature PROTOcol */
+#define ProtocolInstSig  ((Sig)0x519B6020) /* SIGnature PROTOcol */
 
 
 /* ProtocolClass
@@ -98,13 +88,13 @@
 typedef struct ProtocolClassStruct *ProtocolClass;
 
 
-/* Protocol
+/* ProtocolInst
  *
  * The structure which supports instances for the inheritance 
  * protocol.
  */
 
-typedef struct ProtocolStruct *Protocol;
+typedef struct ProtocolInstStruct *ProtocolInst;
 
 
 /* ProtocolCoerceInstMethod
@@ -115,8 +105,8 @@ typedef struct ProtocolStruct *Protocol;
  * which contains the slots for "interface" 
  */
 
-typedef Bool (*ProtocolCoerceInstMethod)(Protocol *coerceResult,
-                                         Protocol pro, 
+typedef Bool (*ProtocolCoerceInstMethod)(ProtocolInst *coerceResult,
+                                         ProtocolInst pro, 
                                          ProtocolClass interface);
 
 /* ProtocolCoerceClassMethod
@@ -140,10 +130,10 @@ typedef struct ProtocolClassStruct {
 } ProtocolClassStruct;
 
 
-typedef struct ProtocolStruct {
+typedef struct ProtocolInstStruct {
   Sig sig;                      /* design.mps.sig */
   ProtocolClass class;          /* the class  */
-} ProtocolStruct;
+} ProtocolInstStruct;
 
 
 /* EnsureProtocolClass
@@ -159,7 +149,7 @@ extern ProtocolClass EnsureProtocolClass(void);
 /* Checking functions */
 
 extern Bool ProtocolClassCheck(ProtocolClass class);
-extern Bool ProtocolCheck(Protocol pro);
+extern Bool ProtocolInstCheck(ProtocolInst pro);
 
 
 /* ProtocolIsSubclass - use macro IsSubclass to access this.
@@ -170,21 +160,23 @@ extern Bool ProtocolCheck(Protocol pro);
 
 extern Bool ProtocolIsSubclass(ProtocolClass sub, ProtocolClass super);
 
-/* Protocol interface */
 
+/* Protocol introspection interface */
 
 /* The following a macros because of the need to cast */
-/* subtypes of ProtocolClass */
+/* subtypes of ProtocolClass. Nevertheless they are named */
+/* as functions. See design.mps.protocol.introspect.c-lang */
 
-#define ProtocolClassSuperclassSetter(class, super) \
+#define ProtocolClassSetSuperclass(class, super) \
   (((ProtocolClass)(class))->superclass) = (ProtocolClass)(super)
 
 #define ProtocolClassSuperclass(class) \
   (((ProtocolClass)(class))->superclass)
 
-#define ClassOf(protocol) ((Protocol)(protocol)->class)
+#define ClassOf(inst) ((ProtocolInst)(inst)->class)
 
 #define IsSubclass(sub, super) \
    ProtocolIsSubclass((ProtocolClass)(sub), (ProtocolClass)(super))
+
 
 #endif /* protocol_h */

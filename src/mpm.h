@@ -1,6 +1,6 @@
 /* impl.h.mpm: MEMORY POOL MANAGER DEFINITIONS
  *
- * $HopeName: MMsrc!mpm.h(MMdevel_tony_inheritance.1) $
+ * $HopeName: MMsrc!mpm.h(MMdevel_tony_inheritance.2) $
  * Copyright (C) 1998.  Harlequin Group plc.  All rights reserved.
  */
 
@@ -417,6 +417,13 @@ extern AbstractAllocFreePoolClass EnsureAbstractAllocFreePoolClass(void);
 extern AbstractBufferPoolClass EnsureAbstractBufferPoolClass(void);
 extern AbstractScanPoolClass EnsureAbstractScanPoolClass(void);
 extern AbstractCollectPoolClass EnsureAbstractCollectPoolClass(void);
+
+/* DEFINE_POOL_CLASS
+ * convenience macro -- see design.mps.protocol.int.define-special 
+ */
+#define DEFINE_POOL_CLASS(className, var) \
+  DEFINE_ALIAS_CLASS(className, PoolClass, var)
+
 
 /* Message Interface -- see design.mps.message */
 
