@@ -1,6 +1,6 @@
-/* impl.h.tract: TRACT INTERFACE
+/* impl.h.tract: PAGE TABLE INTERFACE
  *
- * $HopeName: MMsrc!tract.h(MMdevel_pekka_locus.1) $
+ * $HopeName: MMsrc!tract.h(MMdevel_pekka_locus.2) $
  * Copyright (C) 2000 Harlequin Limited.  All rights reserved.
  */
 
@@ -42,6 +42,24 @@ extern Addr TractLimit(Tract tract);
 #define TractWhite(tract)       ((tract)->white)
 #define TractSetWhite(tract, w) ((void)((tract)->white = w))
 
+extern Bool TractCheck(Tract tract);
+extern void TractInit(Tract tract, Pool pool, Addr base);
+extern void TractFinish(Tract tract);
+
+/* TRACT_*SEG -- Test / set / unset seg->tract associations
+ *
+ * These macros all multiply evaluate the tract parameter 
+ */
+
+#define TRACT_SEG(segReturn, tract) \
+  (TractHasSeg(tract) && ((*(segReturn) = (Seg)TractP(tract)), TRUE))
+
+#define TRACT_SET_SEG(tract, seg) \
+  (TractSetHasSeg(tract, TRUE), TractSetP(tract, seg))
+
+#define TRACT_UNSET_SEG(tract) \
+  (TractSetHasSeg(tract, FALSE), TractSetP(tract, NULL))
+
 
 /* PageStruct -- Page structure
  *
@@ -54,16 +72,16 @@ extern Addr TractLimit(Tract tract);
  *
  * .states: Pages (hence PageStructs that describe them) can be in 
  * one of 3 states:
- * allocated (to a pool as tracts).
+ *  allocated (to a pool as tracts)
  *   allocated pages are mapped
  *   BTGet(allocTable, i) == 1
  *   PageRest()->pool == pool
- * latent (in hysteresis fund).
+ *  latent (in hysteresis fund)
  *   these pages are mapped
  *   BTGet(allocTable, i) == 0
  *   PageRest()->pool == NULL
  *   PageRest()->type == PageTypeLatent
- * free (not in the hysteresis fund).
+ *  free (not in the hysteresis fund)
  *   these pages are not mapped
  *   BTGet(allocTable, i) == 0
  *   PTE may itself be unmapped, but when it is (use pageTableMapped
@@ -84,7 +102,6 @@ typedef struct PageStruct {     /* page structure */
     } rest;                     /* other (non-allocated) page */
   } the;
 } PageStruct;
-typedef struct PageStruct *Page;
 
 
 /* PageTract -- tract descriptor of an allocated page */
@@ -115,60 +132,113 @@ typedef struct PageStruct *Page;
 #define PageLatentRing(page) (&(page)->the.rest.latentRing)
 
 
-/* Tract functions */
+/* Chunks */
+
+
+#define ChunkSig ((Sig)0x519C804C) /* SIGnature CHUNK */
+
+typedef struct ChunkStruct {
+  Sig sig;              /* design.mps.sig */
+  Serial serial;        /* serial within the arena */
+  Arena arena;          /* parent arena */
+  RingStruct chunkRing; /* ring of all chunks in arena */
+  Size pageSize;        /* size of pages */
+  Shift pageShift;      /* log2 of page size, for shifts */
+  Addr base;            /* base address of chunk */
+  Addr limit;           /* limit address of chunk */
+  Size ullageSize;      /* size unusable for allocation to pools X */
+  Count ullagePages;    /* number of pages occupied by ullage X */
+  Index allocBase;      /* index of first page allocatable to clients */
+  Index pages;          /* index of the page after the last allocatable page */
+  BT allocTable;        /* page allocation table */
+  PageStruct* pageTable; /* the page table */
+  Count pageTablePages; /* number of pages occupied by page table */
+} ChunkStruct;
+
+
+#define ChunkArena(chunk) ((chunk)->arena)
+#define ChunkPageSize(chunk) ((chunk)->pageSize)
+#define ChunkPageShift(chunk) ((chunk)->pageShift)
+#define ChunkPagesToSize(chunk, pages) ((Size)(pages) << (chunk)->pageShift)
+#define ChunkSizeToPages(chunk, size) ((Count)((size) >> (chunk)->pageShift))
+
+extern Bool ChunkCheck(Chunk chunk);
+extern Res ChunkInit(Chunk chunk, Arena arena,
+                     Addr base, Addr limit, Align pageSize, BootBlock boot);
+extern void ChunkFinish(Chunk chunk);
+
+extern Bool ChunkCacheEntryCheck(ChunkCacheEntry entry);
+extern void ChunkCacheEntryInit(ChunkCacheEntry entry);
+extern void ChunkEncache(Arena arena, Chunk chunk);
+
+extern Bool ChunkOfAddr(Chunk *chunkReturn, Arena arena, Addr addr);
+
+
+/* AddrPageBase -- the base of the page this address is on */
+
+#define AddrPageBase(chunk, addr) \
+  AddrAlignDown((addr), ChunkPageSize(chunk))
+
+
+/* Page table functions */
 
 extern Tract TractOfBaseAddr(Arena arena, Addr addr);
 extern Bool TractOfAddr(Tract *tractReturn, Arena arena, Addr addr);
-/* TractOfAddr macro, see design.mps.trace.fix.tractofaddr */
+/* @@@@ make it a real macro, and update design.mps.trace.fix.tractofaddr? */
 #define TRACT_OF_ADDR(tractReturn, arena, addr) \
-  ((*(arena)->class->tractOfAddr)(tractReturn, arena, addr))
+  TractOfAddr(tractReturn, arena, addr)
+
+
+/* INDEX_OF_ADDR -- return the index of the page containing an address
+ *
+ * .index.addr: The address passed may be equal to the limit of the
+ * arena, in which case the last page index plus one is returned.  (It
+ * is, in a sense, the limit index of the page table.)
+ */
+
+#define INDEX_OF_ADDR(chunk, addr) \
+  ((Index)ChunkSizeToPages(chunk, AddrOffset((chunk)->base, (addr))))
+
+extern Index IndexOfAddr(Chunk chunk, Addr addr);
+
+
+/* PageIndexBase -- map page index to base address of page
+ *
+ * See design.mps.arena.vm.table.linear
+ */
+
+#define PageIndexBase(chunk, i) \
+  AddrAdd((chunk)->base, ChunkPagesToSize(chunk, i))
+
 
 extern Bool TractFirst(Tract *tractReturn, Arena arena);
 extern Bool TractNext(Tract *tractReturn, Arena arena, Addr addr);
 extern Tract TractNextContig(Arena arena, Tract tract);
-/* Macro version of TractNextContig for use in iteration macros */
-#define TRACT_NEXT_CONTIG(arena, tract) \
-  (*(arena)->class->tractNextContig)(arena, tract)
-
-extern Bool TractCheck(Tract tract);
-extern void TractInit(Tract tract, Pool pool, Addr base);
-extern void TractFinish(Tract tract);
-
-
-/* TRACT_*SEG -- Test / set / unset seg->tract associations
- *
- * These macros all multiply evaluate the tract parameter 
- */
-
-#define TRACT_SEG(segReturn, tract) \
-  (TractHasSeg(tract) && ((*(segReturn) = (Seg)TractP(tract)), TRUE))
-
-#define TRACT_SET_SEG(tract, seg) \
-  (TractSetHasSeg(tract, TRUE), TractSetP(tract, seg))
-
-#define TRACT_UNSET_SEG(tract) \
-  (TractSetHasSeg(tract, FALSE), TractSetP(tract, NULL))
-
 
 /* .tract.tract.for: See design.mps.arena.tract.tract.for */
 /* paremeters arena & limit are evaluated multiple times */
 #define TRACT_TRACT_FOR(tract, addr, arena, firstTract, limit)     \
   for((tract = (firstTract)), (addr = TractBase(tract)); \
       tract != NULL;  \
-      (addr = AddrAdd((addr),(arena)->alignment)), \
+      (addr = AddrAdd(addr, (arena)->alignment)), \
       ((addr < (limit)) ? \
-         (tract = TRACT_NEXT_CONTIG((arena), tract)) : \
+         (tract = TractNextContig(arena, tract)) : \
          (tract = NULL) /* terminate loop */))
 
 /* .tract.for: See design.mps.arena.tract.for */
 /* paremeters arena & limit are evaluated multiple times */
 #define TRACT_FOR(tract, addr, arena, base, limit)     \
-  for((tract = TractOfBaseAddr((arena), (base))), (addr = (base)); \
+  for((tract = TractOfBaseAddr(arena, base)), (addr = (base)); \
       tract != NULL;  \
-      (addr = AddrAdd((addr),(arena)->alignment)), \
+      (addr = AddrAdd(addr, (arena)->alignment)), \
       ((addr < (limit)) ? \
-         (tract = TRACT_NEXT_CONTIG((arena), tract)) : \
+         (tract = TractNextContig(arena, tract)) : \
          (tract = NULL) /* terminate loop */))
+
+
+extern void PageAlloc(Chunk chunk, Index pi, Pool pool);
+extern void PageInit(Chunk chunk, Index pi);
+extern void PageFree(Chunk chunk, Index pi);
 
 
 #endif /* tract_h */
