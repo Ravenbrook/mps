@@ -1,6 +1,6 @@
 /* impl.c.fmtdy: DYLAN OBJECT FORMAT IMPLEMENTATION
  *
- *  $HopeName: MMsrc!fmtdy.c(MM_dylan_incremental.2) $
+ *  $HopeName: MMsrc!fmtdy.c(MM_dylan_incremental.3) $
  *  Copyright (C) 1996 Harlequin Group, all rights reserved.
  *
  *  All objects, B:
@@ -50,10 +50,12 @@
 static int dylan_wrapper_check(mps_word_t *w)
 {
   mps_word_t *ww;
+#if 0
   mps_word_t class;
   mps_word_t fh, fl, ff;
   mps_word_t vh, vs, vf;
   mps_word_t vt, t;
+#endif
 
   assert(w != NULL);
   assert(((mps_word_t)w & 3) == 0);
@@ -76,7 +78,6 @@ static int dylan_wrapper_check(mps_word_t *w)
   assert(ww[3] == ((0 << 3) | 0));  /* non-traceable vector of pats */
   assert(ww[4] == ((1 << 2) | 1));  /* one pattern word in wrapper */
   assert(ww[5] == 1);               /* first field traceable */
-#endif
 
   /* Unpack the wrapper. */
 
@@ -142,6 +143,7 @@ static int dylan_wrapper_check(mps_word_t *w)
   /* the left-over bits in the last pattern should be zero. */
   
   assert(ff != 2 || (w[4+t] >> ((fh>>2) & (MPS_WORD_WIDTH-1))) == 0);
+#endif
   
   return 1;
 }
