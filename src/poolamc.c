@@ -1,6 +1,6 @@
 /* impl.c.poolamc: AUTOMATIC MOSTLY COPYING POOL CLASS
  *
- * $HopeName$
+ * $HopeName: MMsrc!poolamc.c(MMdevel_trace2.1) $
  * Copyright (C) 1996 Harlequin Group, all rights reserved.
  */
 
@@ -8,7 +8,7 @@
 #include "poolamc.h"
 #include "mpscamc.h"
 
-SRCID(poolamc, "$HopeName$");
+SRCID(poolamc, "$HopeName: MMsrc!poolamc.c(MMdevel_trace2.1) $");
 
 #define GEN_MAX         ((Size)4)
 
@@ -49,6 +49,7 @@ typedef struct PoolAMCStruct {
 #define PoolPoolAMC(pool) PARENT(PoolAMCStruct, poolStruct, pool)
 
 
+#if 0
 /* GenIndex -- return the number of a generation
  *
  * This function returns the number of a generation within a pool.
@@ -60,6 +61,7 @@ static Index GenIndex(PoolAMC amc, Gen gen)
   AVER(gen < &amc->gen[GEN_MAX]);
   return gen - amc->gen;
 }
+#endif /* 0 */
 
 
 /* AMCInit -- initialize the class-specific pool structure
