@@ -1,6 +1,6 @@
 /* impl.c.assert: ASSERTION IMPLEMENTATION
  *
- * $HopeName: MMsrc!assert.c(MMdevel_lib.1) $
+ * $HopeName: MMsrc!assert.c(MMdevel_lib.2) $
  *
  * This source provides the AssertFail function which is
  * invoked by the assertion macros (see impl.h.assert).
@@ -13,21 +13,22 @@
  * even if printing fails.  richard 1994-11-15
  */
 
-#include "std.h"
-#include "assert.h"
-#include "mpslib.h"
+#include "mpm.h"
 
 
 static void AssertLib(const char *cond, const char *id,
                       const char *file, unsigned line)
 {
-  mps_lib_fprintf(mps_lib_stderr,
-                  "\nMPS ASSERTION FAILURE\n\n"
-                  "Id:        %s\n"
-                  "File:      %s\n"
-                  "Line:      %u\n"
-                  "Condition: %s\n\n",
-                  id, file, line, cond);
+  mps_lib_fputs("\nMPS ASSERTION FAILURE\n"
+                "\nId:        ", mps_lib_stderr);
+  mps_lib_fputs(id, mps_lib_stderr);
+  mps_lib_fputs("\nFile:      ", mps_lib_stderr);
+  mps_lib_fputs(file, mps_lib_stderr);
+  mps_lib_fputs("\nLine:      ", mps_lib_stderr);
+  WriteWord(mps_lib_stderr, (Word)line, 10, 0);
+  mps_lib_fputs("\nCondition: ", mps_lib_stderr);
+  mps_lib_fputs(cond, mps_lib_stderr);
+  mps_lib_fputs("\n\n", mps_lib_stderr);
   mps_lib_abort();
 }
 
