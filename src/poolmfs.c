@@ -1,6 +1,6 @@
 /* impl.c.poolmfs: MANUAL FIXED SMALL UNIT POOL
  *
- * $HopeName: MMsrc!poolmfs.c(trunk.8) $
+ * $HopeName: !poolmfs.c(trunk.9) $
  * Copyright (C) 1994,1995 Harlequin Group, all rights reserved
  *
  * This is the implementation of the MFS pool class.  PoolMFS operates
@@ -43,7 +43,7 @@
 #include <stdarg.h>
 #include <stddef.h>
 
-SRCID("$HopeName: MMsrc!poolmfs.c(trunk.8) $");
+SRCID("$HopeName: !poolmfs.c(trunk.9) $");
 
 
 /*  == Round up ==
