@@ -1,7 +1,7 @@
 #
 #     BUILD FOR Solaris/UltraSPARC/SunPro C PLATFORM
 #
-#  $HopeName: !soussc.gmk(trunk.7) $
+#  $HopeName: MMsrc!soussc.gmk(trunk.7) $
 #
 #  This is the GNU makefile for platform.soussc
 #
@@ -10,7 +10,8 @@ PFM = soussc
 PFMDEFS = -D_POSIX_SOURCE -D__EXTENSIONS__
 
 MPM = assert.c ring.c mpsliban.c mpm.c bt.c \
-      arenavm.c vmso.c space.c pool.c poolmfs.c \
+      vmso.c arena.c arenaan.c arenacl.c arenavm.c \
+      pool.c poolmfs.c \
       poolmv.c root.c format.c buffer.c lockan.c ref.c \
       trace.c than.c protso.c shield.c mpsi.c ld.c \
       mpsioan.c event.c action.c seg.c
@@ -19,7 +20,7 @@ AMC = amc.c
 MRG = poolmrg.c
 LO = lo.c
 DW = fmtdy.c dw.c
-SW = assert.c ring.c mpm.c arenacl.c space.c pool.c poolmfs.c \
+SW = assert.c ring.c mpm.c arenacl.c arena.c pool.c poolmfs.c \
      poolmv.c root.c format.c buffer.c lockan.c ref.c \
      trace.c than.c protsw.c shield.c mpsisw.c ld.c ssan.c poolepdl.c \
      action.c seg.c

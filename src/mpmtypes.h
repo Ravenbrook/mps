@@ -1,6 +1,6 @@
 /* impl.h.mpmtypes: MEMORY POOL MANAGER TYPES
  *
- * $HopeName: !mpmtypes.h(trunk.21) $
+ * $HopeName: MMsrc!mpmtypes.h(trunk.21) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights 
  * reserved.
  *
@@ -58,7 +58,6 @@ typedef struct FormatStruct *Format;    /* design.mps.format */
 typedef struct LDStruct *LD;            /* design.mps.ld */
 typedef struct LockStruct *Lock;        /* impl.c.lock* */
 typedef struct PoolStruct *Pool;        /* design.mps.pool */
-typedef struct SpaceStruct *Space;      /* design.mps.space */
 typedef struct PoolClassStruct *PoolClass; /* impl.c.poolclas */
 typedef struct TraceStruct *Trace;      /* design.mps.tracer */
 typedef struct ScanStateStruct *ScanState; /* design.mps.tracer */
@@ -67,12 +66,34 @@ typedef struct SegPrefStruct *SegPref;  /* design.mps.pref, */
                                         /* impl.c.arena* */
 typedef int SegPrefKind;                /* design.mps.pref, */
                                         /* impl.c.arena* */
-typedef struct ArenaStruct *Arena;      /* impl.c.arena* */
-typedef struct VMStruct *VM;            /* impl.c.vm* */
 typedef struct RootStruct *Root;        /* impl.c.root */
 typedef struct ThreadStruct *Thread;    /* impl.c.th* */
 typedef Word EventType;                 /* impl.c.event */
 typedef struct ActionStruct *Action;	/* design.mps.action */
+
+typedef struct ArenaClassStruct *ArenaClass;
+typedef struct ArenaStruct *Arena;
+typedef struct VMStruct *VM;
+
+
+/* Arena*Method -- see @@@@ */
+
+typedef Res (*ArenaAllocMethod)(Arena *arenaReturn);
+typedef void (*ArenaFreeMethod)(Arena arena);
+typedef Res (*ArenaInitMethod)(Arena arena, Size size, Addr base);
+typedef void (*ArenaFinishMethod)(Arena arena);
+typedef Size (*ArenaReservedMethod)(Arena arena);
+typedef Size (*ArenaCommittedMethod)(Arena arena);
+typedef Res (*ArenaExtendMethod)(Arena arena, Addr base, Size size);
+typedef Res (*ArenaRetractMethod)(Arena arena, Addr base, Size size);
+typedef Res (*ArenaSegAllocMethod)(Seg *segReturn, SegPref pref,
+                                    Arena arena, Size size, Pool pool);
+typedef void (*ArenaSegFreeMethod)(Arena arena, Seg seg);
+typedef Addr (*ArenaSegBaseMethod)(Arena arena, Seg seg);
+typedef Addr (*ArenaSegLimitMethod)(Arena arena, Seg seg);
+typedef Bool (*ArenaSegOfAddrMethod)(Seg *segReturn, Arena arena, Addr addr);
+typedef Seg (*ArenaSegFirstMethod)(Arena arena);
+typedef Seg (*ArenaSegNextMethod)(Arena arena, Seg seg);
 
 
 /* Pool*Method -- see design.mps.class-interface */
@@ -249,14 +270,16 @@ typedef int WriteFC; /* Promoted */
 
                                                    /* EVent ... */
 #define EventEventTime     ((EventType)0xEF213E99) /* TIME */
-#define EventSpaceCreate   ((EventType)0xEF5BCC6E) /* SPaCe CREate */
-#define EventSpaceDestroy  ((EventType)0xEF5BCDE5) /* SPaCe DEStroy */
 #define EventPoolInit      ((EventType)0xEFB07141) /* POoL INIt */
 #define EventPoolFinish    ((EventType)0xEFB07F14) /* POoL FINish */
 #define EventPoolAlloc     ((EventType)0xEFB07A77) /* POoL ALLoc */
 #define EventPoolFree      ((EventType)0xEFB07F6E) /* POoL FREe */
+#if 0 /* @@@@ */
+#define EventArenaCreate   ((EventType)0xEF5BCC6E) /* SPaCe CREate */
+#define EventArenaDestroy  ((EventType)0xEF5BCDE5) /* SPaCe DEStroy */
 #define EventArenaCreate   ((EventType)0xEFA64C6E) /* AReNa CREate */
 #define EventArenaDestroy  ((EventType)0xEFA64DE5) /* AReNa DEStroy */
+#endif
 #define EventSegAlloc      ((EventType)0xEF5E9A77) /* SEG ALLoc */
 #define EventSegFree	   ((EventType)0xEF5E9F6E) /* SEG FREe */
 #define EventVMCreate      ((EventType)0xEFF3C6EA) /* VM CREAte */

@@ -2,7 +2,7 @@
  *
  *                    THREAD MANAGER
  *
- *  $HopeName: !th.h(trunk.6) $
+ *  $HopeName: MMsrc!th.h(trunk.6) $
  *
  *  Copyright (C) 1995 Harlequin Group, all rights reserved
  *
@@ -29,9 +29,9 @@ extern Res ThreadDescribe(Thread thread, mps_lib_FILE *stream);
  *  Threads must not be multiply registered in the same space.
  */
 
-extern Res ThreadRegister(Thread *threadReturn, Space space);
+extern Res ThreadRegister(Thread *threadReturn, Arena space);
 
-extern void ThreadDeregister(Thread thread, Space space);
+extern void ThreadDeregister(Thread thread, Arena space);
 
 
 /*  == ThreadRingSuspend/Resume ==
@@ -45,7 +45,7 @@ extern void ThreadRingSuspend(Ring threadRing);
 extern void ThreadRingResume(Ring threadRing);
 
 
-extern Space ThreadSpace(Thread thread);
+extern Arena ThreadArena(Thread thread);
 
 extern Res ThreadScan(ScanState ss, Thread thread, void *stackBot);
 

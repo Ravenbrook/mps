@@ -1,6 +1,6 @@
 /* impl.h.mpm: MEMORY POOL MANAGER DEFINITIONS
  *
- * $HopeName: !mpm.h(trunk.25) $
+ * $HopeName: MMsrc!mpm.h(trunk.25) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  */
 
@@ -225,17 +225,17 @@ Bool BTFindResRange(Index *, unsigned long *,
 
 /* Pool Interface -- see impl.c.pool */
 
-extern Res PoolInit(Pool pool, Space space,
+extern Res PoolInit(Pool pool, Arena arena,
                     PoolClass class, ...);
-extern Res PoolInitV(Pool pool, Space space, 
+extern Res PoolInitV(Pool pool, Arena arena, 
                      PoolClass class, va_list args);
 extern void PoolFinish(Pool pool);
 extern Bool PoolClassCheck(PoolClass class);
 extern Bool PoolCheck(Pool pool);
 extern Res PoolDescribe(Pool pool, mps_lib_FILE *stream);
 
-extern Space (PoolSpace)(Pool pool);
-#define PoolSpace(pool)         ((pool)->space)
+extern Arena (PoolArena)(Pool pool);
+#define PoolArena(pool)         ((pool)->arena)
 
 extern Align (PoolAlignment)(Pool pool);
 #define PoolAlignment(pool)     ((pool)->alignment)
@@ -245,12 +245,12 @@ extern Ring (PoolSegRing)(Pool pool);
 
 extern Res PoolSegAlloc(Seg *segReturn, SegPref pref, Pool pool, Size size);
 extern void PoolSegFree(Pool pool, Seg seg);
-extern Bool PoolOfAddr(Pool *poolReturn, Space space, Addr addr);
+extern Bool PoolOfAddr(Pool *poolReturn, Arena arena, Addr addr);
 extern Bool PoolHasAddr(Pool pool, Addr addr);
 
-extern Res PoolCreate(Pool *poolReturn, Space space, 
+extern Res PoolCreate(Pool *poolReturn, Arena arena, 
                       PoolClass class, ...);
-extern Res PoolCreateV(Pool *poolReturn, Space space,
+extern Res PoolCreateV(Pool *poolReturn, Arena arena,
                        PoolClass class, va_list arg);
 extern void PoolDestroy(Pool pool);
 extern Res PoolAlloc(Addr *pReturn, Pool pool, Size size);
@@ -307,14 +307,14 @@ extern Bool TraceIdCheck(TraceId id);
 extern Bool TraceSetCheck(TraceSet ts);
 extern Bool TraceCheck(Trace trace);
 
-extern Res TraceCreate(Trace *traceReturn, Space space);
+extern Res TraceCreate(Trace *traceReturn, Arena arena);
 extern void TraceDestroy(Trace trace);
 extern Res TraceStart(Trace trace, Pool pool);
 extern Res TracePoll(Trace trace);
-extern void TraceAccess(Space space, Seg seg, AccessSet mode);
+extern void TraceAccess(Arena arena, Seg seg, AccessSet mode);
 
 extern Res TraceFix(ScanState ss, Ref *refIO);
-extern void TraceSegGreyen(Space space, Seg seg, TraceSet ts);
+extern void TraceSegGreyen(Arena arena, Seg seg, TraceSet ts);
 
 /* Equivalent to impl.h.mps MPS_SCAN_BEGIN */
 
@@ -360,58 +360,7 @@ extern Res TraceScanAreaTagged(ScanState ss, Addr *base, Addr *limit);
 extern Bool ActionCheck(Action action);
 extern void ActionInit(Action action, Pool pool);
 extern void ActionFinish(Action action);
-extern void ActionPoll(Space space);
-
-
-/* Space Interface -- see impl.c.space */
-
-extern Res SpaceCreate(Space *spaceReturn, Addr base, Size size);
-extern void SpaceDestroy(Space space);
-extern Bool SpaceCheck(Space space);
-extern Res SpaceDescribe(Space space, mps_lib_FILE *stream);
-extern Bool SpaceAccess(Addr addr, AccessSet mode);
-extern void SpaceEnter(Space space);
-extern void SpaceLeave(Space space);
-extern void SpacePoll(Space space);
-extern Res SpaceAlloc(void **baseReturn, Space space, Size size);
-extern void SpaceFree(Space space, Addr base, Size size);
-
-#define SpacePoolRing(space)    (&(space)->poolRing)
-#define SpaceRootRing(space)    (&(space)->rootRing)
-#define SpaceTraceRing(space)   (&(space)->traceRing)
-#define SpaceThreadRing(space)  (&(space)->threadRing)
-#define SpaceEpoch(space)       ((space)->epoch) /* .epoch.ts */
-#define SpaceTrace(space, ti)	(&(space)->trace[ti])
-#define SpaceZoneShift(space)	((space)->zoneShift)
-
-/* Arena Interface -- see impl.c.arena* */
-
-extern Res ArenaCreate(Space *spaceReturn, Size size, Addr base);
-extern void ArenaDestroy(Space space);
-extern Bool ArenaCheck(Arena arena);
-extern Align ArenaAlign(Space space);
-extern Size ArenaReserved(Space space);
-extern Size ArenaCommitted(Space space);
-
-extern Res ArenaExtend(Space, Addr /* base */, Size /* size */);
-extern Res ArenaRetract(Space, Addr /* base */, Size /* size */);
-
-extern Bool SegPrefCheck(SegPref pref);
-extern SegPref SegPrefDefault (void);
-extern Res SegPrefExpress (SegPref, SegPrefKind, void *);
-
-extern Res SegAlloc(Seg *segReturn, SegPref pref,
-                    Space space, Size size, Pool pool);
-extern void SegFree(Space space, Seg seg);
-extern Addr SegBase(Space space, Seg seg);
-extern Addr SegLimit(Space space, Seg seg);
-extern Size SegSize(Space space, Seg seg);
-extern Bool SegOfAddr(Seg *segReturn, Space space, Addr addr);
-extern Seg SegFirst(Space space);
-extern Seg SegNext(Space space, Seg seg);
-extern Bool SegCheck(Seg seg);
-extern void SegInit(Seg seg, Pool pool);
-extern void SegFinish(Seg seg);
+extern void ActionPoll(Arena arena);
 
 
 /* Buffer Interface -- see impl.c.buffer */
@@ -433,7 +382,7 @@ extern Bool BufferIsReady(Buffer buffer);
 extern AP (BufferAP)(Buffer buffer);
 #define BufferAP(buffer)        (&(buffer)->apStruct)
 extern Buffer BufferOfAP(AP ap);
-extern Space BufferSpace(Buffer buffer);
+extern Arena BufferArena(Buffer buffer);
 extern Pool (BufferPool)(Buffer buffer);
 #define BufferPool(buffer)      ((buffer)->pool)
 extern Seg (BufferSeg)(Buffer buffer);
@@ -453,7 +402,7 @@ extern Addr (BufferLimit)(Buffer buffer);
 /* Format Interface -- see impl.c.format */
 
 extern Bool FormatCheck(Format format);
-extern Res FormatCreate(Format *formatReturn, Space space,
+extern Res FormatCreate(Format *formatReturn, Arena arena,
                         Align alignment,
                         FormatScanMethod scan,
                         FormatSkipMethod skip,
@@ -462,7 +411,7 @@ extern Res FormatCreate(Format *formatReturn, Space space,
                         FormatCopyMethod copy,
                         FormatPadMethod pad);
 extern void FormatDestroy(Format format);
-extern Space FormatSpace(Format format);
+extern Arena FormatArena(Format format);
 extern Res FormatDescribe(Format format, mps_lib_FILE *stream);
 
 
@@ -475,30 +424,30 @@ extern Bool RankSetCheck(RankSet rankSet);
 #define RankSetSingle(r)	BS_SINGLE(RankSet, r)
 #define RankSetIsSingle(r)	BS_IS_SINGLE(r)
 
-#define RefSetZone(space, addr) \
-  (((Word)(addr) >> space->zoneShift) & (MPS_WORD_WIDTH - 1))
+#define RefSetZone(arena, addr) \
+  (((Word)(addr) >> arena->zoneShift) & (MPS_WORD_WIDTH - 1))
 #define RefSetUnion(rs1, rs2)   BS_UNION(rs1, rs2)
 #define RefSetInter(rs1, rs2)   BS_INTER(rs1, rs2)
-#define RefSetAdd(space, rs, addr) \
-  BS_ADD(RefSet, rs, RefSetZone(space, addr))
-#define RefSetIsMember(space, rs, addr) \
-  BS_IS_MEMBER(rs, RefSetZone(space, addr))
+#define RefSetAdd(arena, rs, addr) \
+  BS_ADD(RefSet, rs, RefSetZone(arena, addr))
+#define RefSetIsMember(arena, rs, addr) \
+  BS_IS_MEMBER(rs, RefSetZone(arena, addr))
 #define RefSetSuper(rs1, rs2)   BS_SUPER(rs1, rs2)
 
-extern RefSet RefSetOfSeg(Space space, Seg seg);
+extern RefSet RefSetOfSeg(Arena arena, Seg seg);
 
 
 /* Shield Interface -- see impl.c.shield */
 
-extern void ShieldRaise(Space space, Seg seg, AccessSet mode);
-extern void ShieldLower(Space space, Seg seg, AccessSet mode);
-extern void ShieldEnter(Space space);
-extern void ShieldLeave(Space space);
-extern void ShieldExpose(Space space, Seg seg);
-extern void ShieldCover(Space space, Seg seg);
-extern void ShieldSuspend(Space space);
-extern void ShieldResume(Space space);
-extern void ShieldFlush(Space space);
+extern void ShieldRaise(Arena arena, Seg seg, AccessSet mode);
+extern void ShieldLower(Arena arena, Seg seg, AccessSet mode);
+extern void ShieldEnter(Arena arena);
+extern void ShieldLeave(Arena arena);
+extern void ShieldExpose(Arena arena, Seg seg);
+extern void ShieldCover(Arena arena, Seg seg);
+extern void ShieldSuspend(Arena arena);
+extern void ShieldResume(Arena arena);
+extern void ShieldFlush(Arena arena);
 
 
 /* Protection Interface -- see impl.c.prot* */
@@ -508,30 +457,30 @@ extern void ProtSetup(void);
 extern void ProtSet(Addr base, Addr limit, AccessSet mode);
 extern void ProtTramp(void **resultReturn, void *(*f)(void *, size_t),
                       void *p, size_t s);
-extern void ProtSync(Space space);
+extern void ProtSync(Arena arena);
 
 
 /* Location Dependency -- see impl.c.ld */
 
-extern void LDReset(LD ld, Space space);
-extern void LDAdd(LD ld, Space space, Addr addr);
-extern Bool LDIsStale(LD ld, Space space, Addr addr);
-extern void LDAge(Space space, RefSet moved);
-extern void LDMerge(LD ld, Space space, LD from);
+extern void LDReset(LD ld, Arena arena);
+extern void LDAdd(LD ld, Arena arena, Addr addr);
+extern Bool LDIsStale(LD ld, Arena arena, Addr addr);
+extern void LDAge(Arena arena, RefSet moved);
+extern void LDMerge(LD ld, Arena arena, LD from);
 
 
 /* Root Interface -- see impl.c.root */
 
-extern Res RootCreateTable(Root *rootReturn, Space space,
+extern Res RootCreateTable(Root *rootReturn, Arena arena,
                              Rank rank, Addr *base, Addr *limit);
-extern Res RootCreateReg(Root *rootReturn, Space space,
+extern Res RootCreateReg(Root *rootReturn, Arena arena,
                            Rank rank, Thread thread,
                            RootScanRegMethod scan,
                            void *p, size_t s);
-extern Res RootCreateFmt(Root *rootReturn, Space space,
+extern Res RootCreateFmt(Root *rootReturn, Arena arena,
                            Rank rank, FormatScanMethod scan,
                            Addr base, Addr limit);
-extern Res RootCreateFun(Root *rootReturn, Space space,
+extern Res RootCreateFun(Root *rootReturn, Arena arena,
                         Rank rank, RootScanMethod scan,
                         void *p, size_t s);
 extern void RootDestroy(Root root);
@@ -541,20 +490,71 @@ extern Bool RootIsAtomic(Root root);
 extern Rank RootRank(Root root);
 extern void RootGrey(Root root, Trace trace);
 extern Res RootScan(ScanState ss, Root root);
-extern Space RootSpace(Root root);
+extern Arena RootArena(Root root);
 
 
 /* VM Interface -- see impl.c.vm* */
 
 extern Align VMAlign(void);
 extern Bool VMCheck(VM vm);
-extern Res VMCreate(Space *spaceReturn, Size size, Addr base);
-extern void VMDestroy(Space space);
-extern Addr VMBase(Space space);
-extern Addr VMLimit(Space space);
-extern Res VMMap(Space space, Addr base, Addr limit);
-extern void VMUnmap(Space space, Addr base, Addr limit);
-extern Size VMReserved(Space space);
-extern Size VMMapped(Space space);
+extern Res VMInit(VM vm, Size size, Addr base);
+extern void VMFinish(VM vm);
+extern Addr VMBase(VM vm);
+extern Addr VMLimit(VM vm);
+extern Res VMMap(VM vm, Addr base, Addr limit);
+extern void VMUnmap(VM vm, Addr base, Addr limit);
+extern Size VMReserved(VM vm);
+extern Size VMMapped(VM vm);
+
+
+/* Arena Interface -- see impl.c.arena */
+
+extern Bool ArenaClassCheck(ArenaClass class);
+extern Bool ArenaCheck(Arena arena);
+extern Res ArenaCreate(Arena *arenaReturn, ArenaClass class, Addr base, Size size);
+extern void ArenaDestroy(Arena arena);
+extern void ArenaEnter(Arena arena);
+extern void ArenaLeave(Arena arena);
+extern Bool ArenaAccess(Addr addr, AccessSet mode);
+extern void ArenaPoll(Arena arena);
+extern Res ArenaAlloc(void **baseReturn, Arena arena, Size size);
+extern void ArenaFree(Arena arena, Addr base, Size size);
+extern Size ArenaReserved(Arena arena);
+extern Size ArenaCommitted(Arena arena);
+extern Res ArenaExtend(Arena arena, Addr base, Size size);
+extern Res ArenaRetract(Arena arena, Addr base, Size size);
+extern Res ArenaSegAlloc(Seg *segReturn, SegPref pref, Arena arena, Size size, Pool pool);
+extern void ArenaSegFree(Arena arena, Seg seg);
+extern Addr ArenaSegBase(Arena arena, Seg seg);
+extern Addr ArenaSegLimit(Arena arena, Seg seg);
+extern Size ArenaSegSize(Arena arena, Seg seg);
+extern Bool ArenaSegOfAddr(Seg *segReturn, Arena arena, Addr addr);
+extern Seg ArenaSegFirst(Arena arena);
+extern Seg ArenaSegNext(Arena arena, Seg seg);
+
+#define ArenaPoolRing(arena)    (&(arena)->poolRing)
+#define ArenaRootRing(arena)    (&(arena)->rootRing)
+#define ArenaTraceRing(arena)   (&(arena)->traceRing)
+#define ArenaThreadRing(arena)  (&(arena)->threadRing)
+#define ArenaEpoch(arena)       ((arena)->epoch) /* .epoch.ts */
+#define ArenaTrace(arena, ti)   (&(arena)->trace[ti])
+#define ArenaZoneShift(arena)   ((arena)->zoneShift)
+#define ArenaAlignment(arena)   ((arena)->alignment)
+
+extern Bool SegPrefCheck(SegPref pref);
+extern SegPref SegPrefDefault(void);
+extern Res SegPrefExpress(SegPref, SegPrefKind, void *);
+
+extern Res ArenaAlloc(void **baseReturn, Arena arena, Size size);
+extern void ArenaFree(Arena arena, Addr base, Size size);
+
+extern Bool SegCheck(Seg seg);
+extern void SegInit(Seg seg, Pool pool);
+extern void SegFinish(Seg seg);
+
+extern ArenaClass ArenaClassVM(void);
+extern ArenaClass ArenaClassCL(void);
+extern ArenaClass ArenaClassAN(void);
+
 
 #endif /* mpm_h */

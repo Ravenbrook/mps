@@ -1,6 +1,6 @@
 /* impl.c.vman: ANSI VM: MALLOC-BASED PSUEDO MEMORY MAPPING
  *
- * $HopeName: !vman.c(trunk.15) $
+ * $HopeName: MMsrc!vman.c(trunk.15) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  */
 
@@ -13,9 +13,7 @@
 #include <stdlib.h>     /* for malloc and free */
 #include <string.h>     /* for memset */
 
-SRCID(vman, "$HopeName: !vman.c(trunk.15) $");
-
-#define SpaceVM(_space) (&(_space)->arenaStruct.vmStruct)
+SRCID(vman, "$HopeName: MMsrc!vman.c(trunk.15) $");
 
 Bool VMCheck(VM vm)
 {
@@ -37,19 +35,11 @@ Align VMAlign()
 }
 
 
-Res VMCreate(Space *spaceReturn, Size size, Addr base)
+Res VMInit(VM vm, Size size, Addr base)
 {
-  Space space;
-  VM vm;
-
-  AVER(spaceReturn != NULL);
+  AVER(vm != NULL);
   AVER(size != 0);
   AVER(base == NULL);
-
-  space = (Space)malloc(sizeof(SpaceStruct));
-  if(space == NULL)
-    return ResMEMORY;
-  vm = SpaceVM(space);
 
   /* Note that because we add VMAN_ALIGN rather than */
   /* VMAN_ALIGN-1 we are not in danger of overflowing */
@@ -57,10 +47,8 @@ Res VMCreate(Space *spaceReturn, Size size, Addr base)
   /* a block at the end of memory. */
 
   vm->block = malloc((Size)(size + VMAN_ALIGN));
-  if(vm->block == NULL) {
-    free(space);
+  if(vm->block == NULL)
     return ResMEMORY;
-  }
 
   vm->base  = AddrAlignUp((Addr)vm->block, VMAN_ALIGN);
   vm->limit = AddrAdd(vm->base, size);
@@ -77,16 +65,15 @@ Res VMCreate(Space *spaceReturn, Size size, Addr base)
 
   AVERT(VM, vm);
   
-  EVENT4(VMCreate, vm, space, vm->base, vm->limit);
+  EVENT4(VMCreate, vm, arena, vm->base, vm->limit);
 
-  *spaceReturn = space;  
   return ResOK;
 }
 
-void VMDestroy(Space space)
+void VMFinish(VM vm)
 {
-  VM vm = SpaceVM(space);
-  
+  AVERT(VM, vm);
+
   /* All vm areas should have been unmapped. */
   AVER(vm->mapped == (Size)0);
   AVER(vm->reserved == AddrOffset(vm->base, vm->limit));
@@ -95,44 +82,41 @@ void VMDestroy(Space space)
   free(vm->block);
   
   vm->sig = SigInvalid;
-  free(space);
   
   EVENT1(VMDestroy, vm);
 }
 
-Addr (VMBase)(Space space)
+Addr (VMBase)(VM vm)
 {
-  VM vm = SpaceVM(space);
+  AVERT(VM, vm);
   return vm->base;
 }
 
-Addr (VMLimit)(Space space)
+Addr (VMLimit)(VM vm)
 {
-  VM vm = SpaceVM(space);
+  AVERT(VM, vm);
   return vm->limit;
 }
 
 
-Size VMReserved(Space space)
+Size VMReserved(VM vm)
 {
-  VM vm = SpaceVM(space);
   AVERT(VM, vm);
   return vm->reserved;
 }
 
-Size VMMapped(Space space)
+Size VMMapped(VM vm)
 {
-  VM vm = SpaceVM(space);
   AVERT(VM, vm);
   return vm->mapped;
 }
 
 
-Res VMMap(Space space, Addr base, Addr limit)
+Res VMMap(VM vm, Addr base, Addr limit)
 {
-  VM vm = SpaceVM(space);
   Size size;
 
+  AVERT(VM, vm);
   AVER(base != (Addr)0);
   AVER(vm->base <= base);
   AVER(base < limit);
@@ -150,11 +134,11 @@ Res VMMap(Space space, Addr base, Addr limit)
   return ResOK;
 }
 
-void VMUnmap(Space space, Addr base, Addr limit)
+void VMUnmap(VM vm, Addr base, Addr limit)
 {
-  VM vm = SpaceVM(space);
   Size size;
 
+  AVERT(VM, vm);
   AVER(base != (Addr)0);
   AVER(vm->base <= base);
   AVER(base < limit);

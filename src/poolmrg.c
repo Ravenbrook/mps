@@ -2,7 +2,7 @@
  * 
  * MANUAL RANK GUARDIAN POOL
  * 
- * $HopeName: !poolmrg.c(trunk.8) $
+ * $HopeName: MMsrc!poolmrg.c(trunk.8) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  *
  * READERSHIP
@@ -29,7 +29,7 @@
 #include "poolmrg.h"
 
 
-SRCID(poolmrg, "$HopeName: !poolmrg.c(trunk.8) $");
+SRCID(poolmrg, "$HopeName: MMsrc!poolmrg.c(trunk.8) $");
 
 #define MRGSig          ((Sig)0x519369B0) /* SIGnature MRG POol */
 
@@ -48,32 +48,32 @@ typedef struct MRGStruct {
 static Pool MRGPool(MRG mrg);
 
 /* design.mps.poolmrg.guardian.assoc */
-static Index indexOfRefPart(Addr a, Space space)
+static Index indexOfRefPart(Addr a, Arena arena)
 {
   Seg seg;
   Bool b;
   Addr base;
   Addr *pbase, *pa;
 
-  b = SegOfAddr(&seg, space, a);
+  b = ArenaSegOfAddr(&seg, arena, a);
   AVER(b);
-  base = SegBase(space, seg);
+  base = ArenaSegBase(arena, seg);
   pbase = (Addr *)base;
   pa = (Addr *)a;
   return pa - pbase;
 }
 
 /* design.mps.poolmrg.guardian.assoc */
-static Index indexOfLinkPart(Addr a, Space space)
+static Index indexOfLinkPart(Addr a, Arena arena)
 {
   Seg seg;
   Bool b;
   Addr base ;
   RingStruct *pbase, *pa;
 
-  b = SegOfAddr(&seg, space, a);
+  b = ArenaSegOfAddr(&seg, arena, a);
   AVER(b);
-  base = SegBase(space, seg);
+  base = ArenaSegBase(arena, seg);
   pbase = (RingStruct *)base;
   pa = (RingStruct *)a;
   return pa - pbase;
@@ -97,7 +97,7 @@ static void MRGGroupDestroy(MRGGroup group, MRG mrg)
   RingRemove(&group->group);
   PoolSegFree(pool, group->refseg);
   PoolSegFree(pool, group->linkseg);
-  SpaceFree(PoolSpace(pool), (Addr)group, (Size)sizeof(MRGGroupStruct));
+  ArenaFree(PoolArena(pool), (Addr)group, (Size)sizeof(MRGGroupStruct));
 }
 
 static Res MRGGroupCreate(MRGGroup *groupReturn, MRG mrg)
@@ -110,16 +110,16 @@ static Res MRGGroupCreate(MRGGroup *groupReturn, MRG mrg)
   Seg linkseg;
   Seg refseg;
   Size linksegsize;
-  Space space;
+  Arena arena;
   Addr *refpart;
   Word i, guardians;
   void *v;
 
   pool = MRGPool(mrg);
-  space = PoolSpace(pool);
-  res = SpaceAlloc(&v, space, (Size)sizeof(MRGGroupStruct));
+  arena = PoolArena(pool);
+  res = ArenaAlloc(&v, arena, (Size)sizeof(MRGGroupStruct));
   if(res != ResOK)
-    goto failSpaceAlloc;
+    goto failArenaAlloc;
   group = v;
   res = PoolSegAlloc(&refseg, SegPrefDefault(), pool, mrg->extendBy);
   if(res != ResOK)
@@ -127,7 +127,7 @@ static Res MRGGroupCreate(MRGGroup *groupReturn, MRG mrg)
 
   guardians = mrg->extendBy / sizeof(Addr);     /* per seg */
   linksegsize = guardians * sizeof(RingStruct);
-  linksegsize = SizeAlignUp(linksegsize, ArenaAlign(space));
+  linksegsize = SizeAlignUp(linksegsize, ArenaAlignment(arena));
   res = PoolSegAlloc(&linkseg, SegPrefDefault(), pool, linksegsize);
   if(res != ResOK)
     goto failLinkSegAlloc;
@@ -137,17 +137,17 @@ static Res MRGGroupCreate(MRGGroup *groupReturn, MRG mrg)
   /* The ref part of each guardian is cleared. */
 
   AVER(guardians > 0);
-  base = SegBase(space, linkseg);
+  base = ArenaSegBase(arena, linkseg);
   linkpart = (RingStruct *)base;
-  refpart = (Addr *)SegBase(space, refseg);
+  refpart = (Addr *)ArenaSegBase(arena, refseg);
 
   for(i=0; i<guardians; ++i) {
     RingInit(&linkpart[i]);
     RingAppend(&mrg->free, &linkpart[i]);
     refpart[i] = 0;
   }
-  AVER((Addr)(&linkpart[i]) <= SegLimit(space, linkseg));
-  AVER((Addr)(&refpart[i]) <= SegLimit(space, refseg));
+  AVER((Addr)(&linkpart[i]) <= ArenaSegLimit(arena, linkseg));
+  AVER((Addr)(&refpart[i]) <= ArenaSegLimit(arena, refseg));
   refseg->rankSet = RankSetSingle(RankFINAL); /* design.mps.seg.field.rankSet.start */
   refseg->summary = RefSetUNIV;		/* design.mps.seg.field.summary.start */
 
@@ -164,8 +164,8 @@ static Res MRGGroupCreate(MRGGroup *groupReturn, MRG mrg)
 failLinkSegAlloc:
   PoolSegFree(pool, refseg);
 failRefSegAlloc:
-  SpaceFree(space, (Addr)group, (Size)sizeof(MRGGroupStruct)); 
-failSpaceAlloc:
+  ArenaFree(arena, (Addr)group, (Size)sizeof(MRGGroupStruct)); 
+failArenaAlloc:
   return res;
 }
 
@@ -173,15 +173,15 @@ static Res MRGGroupScan(ScanState ss, MRGGroup group, MRG mrg)
 {
   Addr base;
   Res res;
-  Space space;
+  Arena arena;
   Addr *refpart;
   Word guardians, i;
 
-  space = PoolSpace(MRGPool(mrg));
+  arena = PoolArena(MRGPool(mrg));
 
   guardians = mrg->extendBy / sizeof(Addr);	/* per seg */
   AVER(guardians > 0);
-  base = SegBase(space, group->refseg);
+  base = ArenaSegBase(arena, group->refseg);
   refpart = (Addr *)base;
   TRACE_SCAN_BEGIN(ss) {
     for(i=0; i<guardians; ++i) {
@@ -192,7 +192,7 @@ static Res MRGGroupScan(ScanState ss, MRGGroup group, MRG mrg)
       }
       if(ss->rank == RankFINAL && !ss->wasMarked) {     /* .improve.rank */
         RingStruct *linkpart =
-          (RingStruct *)SegBase(space, group->linkseg);
+          (RingStruct *)ArenaSegBase(arena, group->linkseg);
         RingRemove(&linkpart[i]);
         RingAppend(&mrg->exit, &linkpart[i]);
       }
@@ -215,7 +215,7 @@ static Res MRGInit(Pool pool, va_list args)
   RingInit(&mrg->exit);
   RingInit(&mrg->free);
   RingInit(&mrg->group);
-  mrg->extendBy = ArenaAlign(PoolSpace(pool));
+  mrg->extendBy = ArenaAlignment(PoolArena(pool));
   mrg->sig = MRGSig;
 
   AVERT(MRG, mrg);
@@ -261,7 +261,7 @@ static Res MRGAlloc(Addr *pReturn, Pool pool, Size size)
   Res res;
   Ring f;
   Seg seg;
-  Space space;
+  Arena arena;
 
   AVERT(Pool, pool);
   mrg = PoolPoolMRG(pool);
@@ -270,7 +270,7 @@ static Res MRGAlloc(Addr *pReturn, Pool pool, Size size)
   AVER(pReturn != NULL);
   AVER(size == sizeof(Addr));   /* design.mps.poolmrg.alloc.one-size */
 
-  space = PoolSpace(pool);
+  arena = PoolArena(pool);
 
   f = RingNext(&mrg->free);
 
@@ -288,11 +288,11 @@ static Res MRGAlloc(Addr *pReturn, Pool pool, Size size)
   /* design.mps.poolmrg.alloc.pop */
   RingRemove(f);
   RingAppend(&mrg->entry, f);
-  gi = indexOfLinkPart((Addr)f, space);
-  b = SegOfAddr(&seg, space, (Addr)f);
+  gi = indexOfLinkPart((Addr)f, arena);
+  b = ArenaSegOfAddr(&seg, arena, (Addr)f);
   AVER(b);
   group = seg->p;
-  refpart = (Addr *)SegBase(space, group->refseg);
+  refpart = (Addr *)ArenaSegBase(arena, group->refseg);
 
   /* design.mps.poolmrg.guardian.ref.alloc */
   *pReturn = (Addr)(&refpart[gi]);
@@ -303,7 +303,7 @@ static void MRGFree(Pool pool, Addr old, Size size)
 {
   MRG mrg;
   Index gi;
-  Space space;
+  Arena arena;
   Seg seg;
   MRGGroup group;
   Bool b;
@@ -316,14 +316,14 @@ static void MRGFree(Pool pool, Addr old, Size size)
   AVER(old != (Addr)0);
   AVER(size == sizeof(Addr));
 
-  space = PoolSpace(pool);
-  b = SegOfAddr(&seg, space, old);
+  arena = PoolArena(pool);
+  b = ArenaSegOfAddr(&seg, arena, old);
   AVER(b);
   group = seg->p;
-  linkpart = (RingStruct *)SegBase(space, group->linkseg);
+  linkpart = (RingStruct *)ArenaSegBase(arena, group->linkseg);
 
   /* design.mps.poolmrg.guardian.ref.free */
-  gi = indexOfRefPart(old, space);
+  gi = indexOfRefPart(old, arena);
 
   AVERT(Ring, &linkpart[gi]);
   RingRemove(&linkpart[gi]);
@@ -335,7 +335,7 @@ static Res MRGDescribe(Pool pool, mps_lib_FILE *stream)
 {
   MRG mrg;
   Ring r;
-  Space space;
+  Arena arena;
   Bool b;
   MRGGroup group;
   Index gi;
@@ -347,16 +347,16 @@ static Res MRGDescribe(Pool pool, mps_lib_FILE *stream)
   AVERT(MRG, mrg);
   /* Cannot check stream */
 
-  space = PoolSpace(pool);
+  arena = PoolArena(pool);
 
   WriteF(stream, "  extendBy $W\n", mrg->extendBy, NULL);
   WriteF(stream, "  Entry queue:\n", NULL);
   RING_FOR(r, &mrg->entry) {
-    b = SegOfAddr(&seg, space, (Addr)r);
+    b = ArenaSegOfAddr(&seg, arena, (Addr)r);
     AVER(b);
     group = seg->p;
-    refpart = (Addr *)SegBase(space, group->refseg);
-    gi = indexOfLinkPart((Addr)r, space);
+    refpart = (Addr *)ArenaSegBase(arena, group->refseg);
+    gi = indexOfLinkPart((Addr)r, arena);
     WriteF(stream,
            "    at $A ref $A\n",
            (WriteFA)&refpart[gi], (WriteFA)refpart[gi],
@@ -364,11 +364,11 @@ static Res MRGDescribe(Pool pool, mps_lib_FILE *stream)
   }
   WriteF(stream, "  Exit queue:\n", NULL);
   RING_FOR(r, &mrg->exit) {
-    b = SegOfAddr(&seg, space, (Addr)r);
+    b = ArenaSegOfAddr(&seg, arena, (Addr)r);
     AVER(b);
     group = seg->p;
-    refpart = (Addr *)SegBase(space, group->refseg);
-    gi = indexOfLinkPart((Addr)r, space);
+    refpart = (Addr *)ArenaSegBase(arena, group->refseg);
+    gi = indexOfLinkPart((Addr)r, arena);
     WriteF(stream,
            "    at $A ref $A\n",
            (WriteFA)&refpart[gi], (WriteFA)refpart[gi],
@@ -437,7 +437,7 @@ PoolClass PoolClassMRG(void)
  */
 static Bool MRGCheck(MRG mrg)
 {
-  Space space;
+  Arena arena;
 
   CHECKS(MRG, mrg);
   CHECKD(Pool, &mrg->poolStruct);
@@ -446,7 +446,7 @@ static Bool MRGCheck(MRG mrg)
   CHECKL(RingCheck(&mrg->exit));
   CHECKL(RingCheck(&mrg->free));
   CHECKL(RingCheck(&mrg->group));
-  space = PoolSpace(&mrg->poolStruct);  /* .check.norecurse */
-  CHECKL(mrg->extendBy == ArenaAlign(space));
+  arena = PoolArena(&mrg->poolStruct);  /* .check.norecurse */
+  CHECKL(mrg->extendBy == ArenaAlignment(arena));
   return TRUE;
 }

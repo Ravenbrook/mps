@@ -1,6 +1,6 @@
 # impl.gmk.suspgc: BUILD FOR SUNOS/SPARC/GCC PLATFORM
 #
-# $HopeName: !suspgc.gmk(trunk.26) $
+# $HopeName: MMsrc!suspgc.gmk(trunk.26) $
 # Copyright (C) 1995,1996,1997 Harlequin Group, all rights reserved.
 #
 # This is the GNU makefile for platform.suspgc.
@@ -8,7 +8,8 @@
 PFM = suspgc
 
 MPM = assert.c ring.c mpsliban.c mpm.c bt.c \
-      arenavm.c vmsu.c space.c pool.c poolmfs.c \
+      vmsu.c arena.c arenaan.c arenacl.c arenavm.c \
+      pool.c poolmfs.c \
       poolmv.c root.c format.c buffer.c lockan.c ref.c \
       trace.c than.c protsu.c shield.c mpsi.c ld.c \
       mpsioan.c event.c action.c seg.c
@@ -17,7 +18,7 @@ AMC = amc.c
 LO = lo.c
 MRG = poolmrg.c
 DW = fmtdy.c dw.c
-SW = assert.c ring.c mpm.c arenacl.c space.c pool.c poolmfs.c \
+SW = assert.c ring.c mpm.c arenacl.c arena.c pool.c poolmfs.c \
      poolmv.c root.c format.c buffer.c lockan.c ref.c \
      trace.c than.c protsw.c shield.c mpsisw.c ld.c ssan.c \
      poolepdl.c action.c seg.c

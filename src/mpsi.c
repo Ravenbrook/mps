@@ -1,13 +1,13 @@
 /* impl.c.mpsi: MEMORY POOL SYSTEM C INTERFACE LAYER
  *
- * $HopeName: !mpsi.c(trunk.25) $
+ * $HopeName: MMsrc!mpsi.c(trunk.25) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  *
  * .purpose: This code bridges between the MPS interface to C,
  * impl.h.mps, and the internal MPM interfaces, as defined by
  * impl.h.mpm.  .purpose.check: It performs checking of the C client's
  * usage of the MPS Interface.  .purpose.thread: It excludes multiple
- * threads from the MPM by locking the Space (see .thread-safety).
+ * threads from the MPM by locking the arena (see .thread-safety).
  *
  * .readership: MPS developers
  * .design: design.mps.interface.c
@@ -15,8 +15,8 @@
  *
  * NOTES
  *
- * @@@@: Take care not to return when "inside" the Space (between SpaceEnter
- * and SpaceLeave) as this will leave the Space in an unsuitable state
+ * @@@@: Take care not to return when "inside" the arena (between ArenaEnter
+ * and ArenaLeave) as this will leave the arena in an unsuitable state
  * for re-entry.
  *
  *
@@ -31,7 +31,7 @@
  * implementations use them, and they're not passed through.
  *
  * .poll: (rule.universal.complete) Various allocation methods call
- * SpacePoll to allow the MPM to "steal" CPU time and get on with
+ * ArenaPoll to allow the MPM to "steal" CPU time and get on with
  * background tasks such as incremental GC.  This mechanism hasn't been
  * well thought out.
  *
@@ -52,7 +52,7 @@
 #include "mpm.h"
 #include "mps.h"
 
-SRCID(mpsi, "$HopeName: !mpsi.c(trunk.25) $");
+SRCID(mpsi, "$HopeName: MMsrc!mpsi.c(trunk.25) $");
 
 
 /* mpsi_check -- check consistency of interface mappings
@@ -167,7 +167,7 @@ mps_assert_t mps_assert_default(void)
 mps_res_t mps_space_create_wmem(mps_space_t *mps_space_o,
                                 mps_addr_t base, size_t size)
 {
-  Space space;
+  Arena arena;
   Res res;
   
   /* This is the first real call that the client will have to make, */
@@ -177,10 +177,11 @@ mps_res_t mps_space_create_wmem(mps_space_t *mps_space_o,
   AVER(mps_space_o != NULL);
   AVER(base != NULL);
 
-  res = SpaceCreate(&space, (Addr)base, (Size)size);
+  /* @@@@ How to decide on the arena class? */
+  res = ArenaCreate(&arena, ArenaClassVM(), (Addr)base, (Size)size);
   if(res != ResOK) return res;
   
-  *mps_space_o = (mps_space_t)space;
+  *mps_space_o = (mps_space_t)arena;
   return MPS_RES_OK;
 }
 
@@ -188,43 +189,43 @@ mps_res_t mps_space_extend(mps_space_t mps_space,
                            mps_addr_t base,
                            size_t size)
 {
-  Space space = (Space)mps_space;
+  Arena arena = (Arena)mps_space;
   Res res;
 
-  SpaceEnter(space);
-  res = ArenaExtend(space, (Addr)base, (Size)size);
-  SpaceLeave(space);
+  ArenaEnter(arena);
+  res = ArenaExtend(arena, (Addr)base, (Size)size);
+  ArenaLeave(arena);
 
   return (mps_res_t)res;
 }
 
 size_t mps_space_reserved(mps_space_t mps_space)
 {
-  Space space = (Space)mps_space;
+  Arena arena = (Arena)mps_space;
   Size size;
 
-  SpaceEnter(space);
-  size = ArenaReserved(space);
-  SpaceLeave(space);
+  ArenaEnter(arena);
+  size = ArenaReserved(arena);
+  ArenaLeave(arena);
 
   return (size_t)size;
 }
 
 size_t mps_space_committed(mps_space_t mps_space)
 {
-  Space space = (Space)mps_space;
+  Arena arena = (Arena)mps_space;
   Size size;
 
-  SpaceEnter(space);
-  size = ArenaCommitted(space);
-  SpaceLeave(space);
+  ArenaEnter(arena);
+  size = ArenaCommitted(arena);
+  ArenaLeave(arena);
 
   return (size_t)size;
 }
 
 mps_res_t mps_space_create(mps_space_t *mps_space_o)
 {
-  Space space;
+  Arena arena;
   Res res;
 
   /* This is the first real call that the client will have to make, */
@@ -233,27 +234,29 @@ mps_res_t mps_space_create(mps_space_t *mps_space_o)
 
   AVER(mps_space_o != NULL);
 
-  res = SpaceCreate(&space, (Addr)0, (Size)0);
+  /* @@@@ How to decide on the arena class? */
+/*  res = ArenaCreate(&arena, ArenaClassVM(), (Addr)0, ARENA_SIZE); */
+  res = ArenaCreate(&arena, ArenaClassAN(), (Addr)0, ARENA_SIZE);
   if(res != ResOK) return res;
   
-  *mps_space_o = (mps_space_t)space;
+  *mps_space_o = (mps_space_t)arena;
   return MPS_RES_OK;
 }
 
 
-/* mps_space_destroy -- destroy a space object
+/* mps_space_destroy -- destroy an arena object
  *
- * .space.destroy: This function has no locking of the space,
+ * .space.destroy: This function has no locking of the arena,
  * and cannot have any, since it destroys the thing which contains
  * the lock.  In any case, any other thread which is using the
- * space at the time it is destroyed will fall over.
+ * arena at the time it is destroyed will fall over.
  */
 
 void mps_space_destroy(mps_space_t mps_space)
 {
-  Space space = (Space)mps_space;
-  AVERT(Space, space);
-  SpaceDestroy(space);
+  Arena arena = (Arena)mps_space;
+  AVERT(Arena, arena);
+  ArenaDestroy(arena);
 }
 
 
@@ -269,16 +272,16 @@ mps_res_t mps_fmt_create_A(mps_fmt_t *mps_fmt_o,
                            mps_space_t mps_space,
                            mps_fmt_A_t mps_fmt_A)
 {
-  Space space = (Space)mps_space;
+  Arena arena = (Arena)mps_space;
   Format format;
   Res res;
 
-  SpaceEnter(space);
+  ArenaEnter(arena);
 
   AVER(mps_fmt_A != NULL);
 
   res = FormatCreate(&format,
-                     space,
+                     arena,
                      (Align)mps_fmt_A->align,
                      (FormatScanMethod)mps_fmt_A->scan,
                      (FormatSkipMethod)mps_fmt_A->skip,
@@ -287,7 +290,7 @@ mps_res_t mps_fmt_create_A(mps_fmt_t *mps_fmt_o,
                      (FormatCopyMethod)mps_fmt_A->copy,
                      (FormatPadMethod)mps_fmt_A->pad);
 
-  SpaceLeave(space);
+  ArenaLeave(arena);
 
   if(res != ResOK) return res;
 
@@ -298,18 +301,18 @@ mps_res_t mps_fmt_create_A(mps_fmt_t *mps_fmt_o,
 void mps_fmt_destroy(mps_fmt_t mps_fmt)
 {
   Format format = (Format)mps_fmt;
-  Space space;
+  Arena arena;
   
   AVER(CHECKT(Format, format));
-  space = FormatSpace(format);
+  arena = FormatArena(format);
 
-  SpaceEnter(space);
+  ArenaEnter(arena);
 
   AVERT(Format, format);
 
   FormatDestroy((Format)mps_fmt);
 
-  SpaceLeave(space);
+  ArenaLeave(arena);
 }
 
 
@@ -331,20 +334,20 @@ mps_res_t mps_pool_create_v(mps_pool_t *mps_pool_o,
                             mps_class_t mps_class,
                             va_list args)
 {
-  Space space = (Space)mps_space;
+  Arena arena = (Arena)mps_space;
   Pool pool;
   PoolClass class = (PoolClass)mps_class;
   Res res;
 
-  SpaceEnter(space);
+  ArenaEnter(arena);
 
   AVER(mps_pool_o != NULL);
-  AVERT(Space, space);
+  AVERT(Arena, arena);
   AVERT(PoolClass, class);
 
-  res = PoolCreateV(&pool, space, class, args);
+  res = PoolCreateV(&pool, arena, class, args);
 
-  SpaceLeave(space);
+  ArenaLeave(arena);
   
   if(res != ResOK) return res;
   
@@ -355,17 +358,17 @@ mps_res_t mps_pool_create_v(mps_pool_t *mps_pool_o,
 void mps_pool_destroy(mps_pool_t mps_pool)
 {
   Pool pool = (Pool)mps_pool;
-  Space space;
+  Arena arena;
   
   AVER(CHECKT(Pool, pool));
-  space = PoolSpace(pool);
+  arena = PoolArena(pool);
 
-  SpaceEnter(space);
+  ArenaEnter(arena);
 
   AVERT(Pool, pool);
   PoolDestroy(pool);
 
-  SpaceLeave(space);
+  ArenaLeave(arena);
 }
 
 mps_res_t mps_alloc(mps_addr_t *p_o,
@@ -385,16 +388,16 @@ mps_res_t mps_alloc_v(mps_addr_t *p_o,
                       size_t size, va_list args)
 {
   Pool pool = (Pool)mps_pool;
-  Space space;
+  Arena arena;
   Addr p;
   Res res;
   
   AVER(CHECKT(Pool, pool));
-  space = PoolSpace(pool);
+  arena = PoolArena(pool);
 
-  SpaceEnter(space);
+  ArenaEnter(arena);
 
-  SpacePoll(space);                     /* .poll */
+  ArenaPoll(arena);                     /* .poll */
 
   AVER(p_o != NULL);
   AVERT(Pool, pool);
@@ -406,7 +409,7 @@ mps_res_t mps_alloc_v(mps_addr_t *p_o,
   /* See .varargs. */
   res = PoolAlloc(&p, pool, size);
 
-  SpaceLeave(space);
+  ArenaLeave(arena);
   if(res != ResOK) return res;
   
   *p_o = (mps_addr_t)p;
@@ -416,12 +419,12 @@ mps_res_t mps_alloc_v(mps_addr_t *p_o,
 void mps_free(mps_pool_t mps_pool, mps_addr_t p, size_t size)
 {
   Pool pool = (Pool)mps_pool;
-  Space space;
+  Arena arena;
   
   AVER(CHECKT(Pool, pool));
-  space = PoolSpace(pool);
+  arena = PoolArena(pool);
 
-  SpaceEnter(space);
+  ArenaEnter(arena);
 
   AVERT(Pool, pool);
   AVER(size > 0);
@@ -429,7 +432,7 @@ void mps_free(mps_pool_t mps_pool, mps_addr_t p, size_t size)
   /* design.mps.class-interface.alloc.size.align. */
 
   PoolFree(pool, (Addr)p, size);
-  SpaceLeave(space);
+  ArenaLeave(arena);
 }
 
 
@@ -438,15 +441,15 @@ mps_res_t mps_ap_create(mps_ap_t *mps_ap_o, mps_pool_t mps_pool,
 {
   Pool pool = (Pool)mps_pool;
   Rank rank = (Rank)mps_rank;
-  Space space;
+  Arena arena;
   Buffer buf;
   Res res;
   va_list args;
   
   AVER(CHECKT(Pool, pool));
-  space = PoolSpace(pool);
+  arena = PoolArena(pool);
 
-  SpaceEnter(space);
+  ArenaEnter(arena);
 
   AVER(mps_ap_o != NULL);
   AVERT(Pool, pool);
@@ -456,7 +459,7 @@ mps_res_t mps_ap_create(mps_ap_t *mps_ap_o, mps_pool_t mps_pool,
   res = BufferCreate(&buf, pool, rank);
   va_end(args);
 
-  SpaceLeave(space);
+  ArenaLeave(arena);
 
   if(res != ResOK) return res;
 
@@ -469,14 +472,14 @@ mps_res_t mps_ap_create_v(mps_ap_t *mps_ap_o, mps_pool_t mps_pool,
 {
   Pool pool = (Pool)mps_pool;
   Rank rank = (Rank)mps_rank;
-  Space space;
+  Arena arena;
   Buffer buf;
   Res res;
   
   AVER(CHECKT(Pool, pool));
-  space = PoolSpace(pool);
+  arena = PoolArena(pool);
 
-  SpaceEnter(space);
+  ArenaEnter(arena);
 
   AVER(mps_ap_o != NULL);
   AVERT(Pool, pool);
@@ -485,7 +488,7 @@ mps_res_t mps_ap_create_v(mps_ap_t *mps_ap_o, mps_pool_t mps_pool,
   /* See .varargs. */
   res = BufferCreate(&buf, pool, rank);
 
-  SpaceLeave(space);
+  ArenaLeave(arena);
 
   if(res != ResOK) return res;
 
@@ -496,17 +499,17 @@ mps_res_t mps_ap_create_v(mps_ap_t *mps_ap_o, mps_pool_t mps_pool,
 void mps_ap_destroy(mps_ap_t mps_ap)
 {
   Buffer buf = BufferOfAP((AP)mps_ap);
-  Space space;
+  Arena arena;
 
   AVER(mps_ap != NULL);  
   AVER(CHECKT(Buffer, buf));
-  space = BufferSpace(buf);
+  arena = BufferArena(buf);
 
-  SpaceEnter(space);
+  ArenaEnter(arena);
 
   AVERT(Buffer, buf);
   BufferDestroy(buf);
-  SpaceLeave(space);
+  ArenaLeave(arena);
 }
 
 
@@ -514,7 +517,7 @@ void mps_ap_destroy(mps_ap_t mps_ap)
  *
  * .reserve.call: mps_reserve does not call BufferReserve, but instead
  * uses the in-line macro from impl.h.mps.  This is so that it calls
- * mps_ap_fill and thence SpacePoll (.poll).  The consistency checks here
+ * mps_ap_fill and thence ArenaPoll (.poll).  The consistency checks here
  * are the ones which can be done outside the MPM.  See also .commit.call.
  */
 
@@ -538,7 +541,7 @@ mps_res_t (mps_reserve)(mps_addr_t *p_o, mps_ap_t mps_ap, size_t size)
  *
  * .commit.call: mps_commit does not call BufferCommit, but instead
  * uses the in-line commit macro from impl.h.mps.  This is so that it
- * calls mps_ap_trip and thence SpacePoll in future (.poll).  The
+ * calls mps_ap_trip and thence ArenaPoll in future (.poll).  The
  * consistency checks here are the ones which can be done outside the
  * MPM.  See also .reserve.call.
  */
@@ -565,17 +568,17 @@ mps_bool_t (mps_commit)(mps_ap_t mps_ap, mps_addr_t p, size_t size)
 mps_res_t mps_ap_fill(mps_addr_t *p_o, mps_ap_t mps_ap, size_t size)
 {
   Buffer buf = BufferOfAP((AP)mps_ap);
-  Space space;
+  Arena arena;
   Addr p;
   Res res;
 
   AVER(mps_ap != NULL);  
   AVER(CHECKT(Buffer, buf));
-  space = BufferSpace(buf);
+  arena = BufferArena(buf);
 
-  SpaceEnter(space);
+  ArenaEnter(arena);
 
-  SpacePoll(space);                     /* .poll */
+  ArenaPoll(arena);                     /* .poll */
 
   AVER(p_o != NULL);
   AVERT(Buffer, buf);
@@ -584,7 +587,7 @@ mps_res_t mps_ap_fill(mps_addr_t *p_o, mps_ap_t mps_ap, size_t size)
 
   res = BufferFill(&p, buf, size);
 
-  SpaceLeave(space);
+  ArenaLeave(arena);
   
   if(res != ResOK) return res;
   
@@ -602,14 +605,14 @@ mps_res_t mps_ap_fill(mps_addr_t *p_o, mps_ap_t mps_ap, size_t size)
 mps_bool_t mps_ap_trip(mps_ap_t mps_ap, mps_addr_t p, size_t size)
 {
   Buffer buf = BufferOfAP((AP)mps_ap);
-  Space space;
+  Arena arena;
   Bool b;
 
   AVER(mps_ap != NULL);  
   AVER(CHECKT(Buffer, buf));
-  space = BufferSpace(buf);
+  arena = BufferArena(buf);
 
-  SpaceEnter(space);
+  ArenaEnter(arena);
 
   AVERT(Buffer, buf);
   AVER(size > 0);
@@ -617,7 +620,7 @@ mps_bool_t mps_ap_trip(mps_ap_t mps_ap, mps_addr_t p, size_t size)
 
   b = BufferTrip(buf, (Addr)p, size);
 
-  SpaceLeave(space);
+  ArenaLeave(arena);
 
   return b;
 }
@@ -630,23 +633,23 @@ mps_res_t mps_root_create(mps_root_t *mps_root_o,
                           mps_root_scan_t mps_root_scan,
                           void *p, size_t s)
 {
-  Space space = (Space)mps_space;
+  Arena arena = (Arena)mps_space;
   Rank rank = (Rank)mps_rank;
   Root root;
   Res res;
 
-  SpaceEnter(space);
+  ArenaEnter(arena);
 
   AVER(mps_root_o != NULL);
-  AVERT(Space, space);
+  AVERT(Arena, arena);
   AVER(mps_root_scan != NULL);
   AVER(mps_rm == (mps_rm_t)0);
 
   /* See .root-mode. */
-  res = RootCreateFun(&root, space, rank,
+  res = RootCreateFun(&root, arena, rank,
                    (RootScanMethod)mps_root_scan, p, s);
 
-  SpaceLeave(space);
+  ArenaLeave(arena);
   
   if(res != ResOK) return res;
   
@@ -660,15 +663,15 @@ mps_res_t mps_root_create_table(mps_root_t *mps_root_o,
                                 mps_rm_t mps_rm,
                                 mps_addr_t *base, size_t size)
 {
-  Space space = (Space)mps_space;
+  Arena arena = (Arena)mps_space;
   Rank rank = (Rank)mps_rank;
   Root root;
   Res res;
 
-  SpaceEnter(space);
+  ArenaEnter(arena);
 
   AVER(mps_root_o != NULL);
-  AVERT(Space, space);
+  AVERT(Arena, arena);
   AVER(base != NULL);
   AVER((unsigned long)size > 0);
 
@@ -677,10 +680,10 @@ mps_res_t mps_root_create_table(mps_root_t *mps_root_o,
   /* base and limit pointers.  Be careful. */
 
   /* See .root-mode. */
-  res = RootCreateTable(&root, space, rank,
+  res = RootCreateTable(&root, arena, rank,
                         (Addr *)base, (Addr *)base + size);
 
-  SpaceLeave(space);
+  ArenaLeave(arena);
   
   if(res != ResOK) return res;
   
@@ -696,25 +699,25 @@ mps_res_t mps_root_create_fmt(mps_root_t *mps_root_o,
                               mps_addr_t base,
                               mps_addr_t limit)
 {
-  Space space = (Space)mps_space;
+  Arena arena = (Arena)mps_space;
   Rank rank = (Rank)mps_rank;
   FormatScanMethod scan = (FormatScanMethod)mps_fmt_scan;
   Root root;
   Res res;
   
-  SpaceEnter(space);
+  ArenaEnter(arena);
 
   AVER(mps_root_o != NULL);
-  AVERT(Space, space);
+  AVERT(Arena, arena);
   AVER(scan != NULL);
   AVER(base != NULL);
   AVER(base < limit);
 
   /* See .root-mode. */
-  res = RootCreateFmt(&root, space, rank, scan,
+  res = RootCreateFmt(&root, arena, rank, scan,
                       (Addr)base, (Addr)limit);
 
-  SpaceLeave(space);
+  ArenaLeave(arena);
   
   if(res != ResOK) return res;
 
@@ -731,16 +734,16 @@ mps_res_t mps_root_create_reg(mps_root_t *mps_root_o,
                               void *reg_scan_p,
                               size_t mps_size)
 {
-  Space space = (Space)mps_space;
+  Arena arena = (Arena)mps_space;
   Rank rank = (Rank)mps_rank;
   Thread thread = (Thread)mps_thr;
   Root root;
   Res res;
 
-  SpaceEnter(space);
+  ArenaEnter(arena);
 
   AVER(mps_root_o != NULL);
-  AVERT(Space, space);
+  AVERT(Arena, arena);
   AVERT(Thread, thread);
   AVER(mps_reg_scan != NULL);
   AVER(mps_reg_scan == mps_stack_scan_ambig); /* .reg.scan */
@@ -749,11 +752,11 @@ mps_res_t mps_root_create_reg(mps_root_t *mps_root_o,
   AVER(mps_rm == (mps_rm_t)0);
 
   /* See .root-mode. */
-  res = RootCreateReg(&root, space, rank, thread,
+  res = RootCreateReg(&root, arena, rank, thread,
                       (RootScanRegMethod)mps_reg_scan,
                       reg_scan_p, mps_size);
 
-  SpaceLeave(space);
+  ArenaLeave(arena);
   
   if(res != ResOK) return res;
   
@@ -780,18 +783,18 @@ mps_res_t mps_stack_scan_ambig(mps_ss_t mps_ss,
 void mps_root_destroy(mps_root_t mps_root)
 {
   Root root = (Root)mps_root;
-  Space space;
+  Arena arena;
   
   AVER(CHECKT(Root, root));
-  space = RootSpace(root);
+  arena = RootArena(root);
 
-  SpaceEnter(space);
+  ArenaEnter(arena);
 
   AVERT(Root, root);
 
   RootDestroy(root);
 
-  SpaceLeave(space);
+  ArenaLeave(arena);
 }
 
 
@@ -810,18 +813,18 @@ void (mps_tramp)(void **r_o,
 mps_res_t mps_thread_reg(mps_thr_t *mps_thr_o,
                          mps_space_t mps_space)
 {
-  Space space = (Space)mps_space;
+  Arena arena = (Arena)mps_space;
   Thread thread;
   Res res;
 
-  SpaceEnter(space);
+  ArenaEnter(arena);
 
   AVER(mps_thr_o != NULL);
-  AVERT(Space, space);
+  AVERT(Arena, arena);
 
-  res = ThreadRegister(&thread, space);
+  res = ThreadRegister(&thread, arena);
 
-  SpaceLeave(space);
+  ArenaLeave(arena);
   
   if(res != ResOK) return res;
   
@@ -832,28 +835,28 @@ mps_res_t mps_thread_reg(mps_thr_t *mps_thr_o,
 void mps_thread_dereg(mps_thr_t mps_thr)
 {
   Thread thread = (Thread)mps_thr;
-  Space space;
+  Arena arena;
   
   AVER(CHECKT(Thread, thread));
-  space = ThreadSpace(thread);
+  arena = ThreadArena(thread);
 
-  SpaceEnter(space);
+  ArenaEnter(arena);
 
-  ThreadDeregister(thread, space);
+  ThreadDeregister(thread, arena);
 
-  SpaceLeave(space);
+  ArenaLeave(arena);
 }
 
 void mps_ld_reset(mps_ld_t mps_ld, mps_space_t mps_space)
 {
-  Space space = (Space)mps_space;
+  Arena arena = (Arena)mps_space;
   LD ld = (LD)mps_ld;
 
-  SpaceEnter(space);
+  ArenaEnter(arena);
 
-  LDReset(ld, space);
+  LDReset(ld, arena);
 
-  SpaceLeave(space);
+  ArenaLeave(arena);
 }
 
 
@@ -864,10 +867,10 @@ void mps_ld_reset(mps_ld_t mps_ld, mps_space_t mps_space)
 
 void mps_ld_add(mps_ld_t mps_ld, mps_space_t mps_space, mps_addr_t addr)
 {
-  Space space = (Space)mps_space;
+  Arena arena = (Arena)mps_space;
   LD ld = (LD)mps_ld;
 
-  LDAdd(ld, space, (Addr)addr);
+  LDAdd(ld, arena, (Addr)addr);
 }
 
 
@@ -878,11 +881,11 @@ void mps_ld_add(mps_ld_t mps_ld, mps_space_t mps_space, mps_addr_t addr)
 
 void mps_ld_merge(mps_ld_t mps_ld, mps_space_t mps_space, mps_ld_t mps_from)
 {
-  Space space = (Space)mps_space;
+  Arena arena = (Arena)mps_space;
   LD ld = (LD)mps_ld;
   LD from = (LD)mps_from;
 
-  LDMerge(ld, space, from);
+  LDMerge(ld, arena, from);
 }
 
 
@@ -895,11 +898,11 @@ mps_bool_t mps_ld_isstale(mps_ld_t mps_ld,
                           mps_space_t mps_space,
                           mps_addr_t addr)
 {
-  Space space = (Space)mps_space;
+  Arena arena = (Arena)mps_space;
   LD ld = (LD)mps_ld;
   Bool b;
 
-  b = LDIsStale(ld, space, (Addr)addr);
+  b = LDIsStale(ld, arena, (Addr)addr);
 
   return (mps_bool_t)b;
 }
@@ -917,6 +920,6 @@ mps_res_t mps_fix(mps_ss_t mps_ss, mps_addr_t *ref_io)
 
 mps_word_t mps_collections(mps_space_t mps_space)
 {
-  Space space = (Space)mps_space;
-  return SpaceEpoch(space);  /* thread safe: see impl.h.space.epoch.ts */
+  Arena arena = (Arena)mps_space;
+  return ArenaEpoch(arena);  /* thread safe: see impl.h.space.epoch.ts */
 }

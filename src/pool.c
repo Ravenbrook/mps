@@ -1,6 +1,6 @@
 /* impl.c.pool: POOL IMPLEMENTATION
  *
- * $HopeName: !pool.c(trunk.25) $
+ * $HopeName: MMsrc!pool.c(trunk.25) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  *
  * This is the implementation of the generic pool interface.  The
@@ -12,7 +12,7 @@
 
 #include "mpm.h"
 
-SRCID(pool, "$HopeName: !pool.c(trunk.25) $");
+SRCID(pool, "$HopeName: MMsrc!pool.c(trunk.25) $");
 
 
 Bool PoolClassCheck(PoolClass class)
@@ -47,11 +47,11 @@ Bool PoolClassCheck(PoolClass class)
 Bool PoolCheck(Pool pool)
 {
   CHECKS(Pool, pool);
-  CHECKU(Space, pool->space);
+  CHECKU(Arena, pool->arena);
   /* Break modularity for checking efficiency */
-  CHECKL(pool->serial < pool->space->poolSerial);
+  CHECKL(pool->serial < pool->arena->poolSerial);
   CHECKD(PoolClass, pool->class);
-  CHECKL(RingCheck(&pool->spaceRing));
+  CHECKL(RingCheck(&pool->arenaRing));
   CHECKL(RingCheck(&pool->bufferRing));
   CHECKL(RingCheck(&pool->segRing));
   CHECKL(RingCheck(&pool->actionRing));
@@ -66,29 +66,29 @@ Bool PoolCheck(Pool pool)
  * See design.mps.pool.align
  */
 
-Res PoolInit(Pool pool, Space space, PoolClass class, ...)
+Res PoolInit(Pool pool, Arena arena, PoolClass class, ...)
 {
   Res res;
   va_list args;
   va_start(args, class);
-  res = PoolInitV(pool, space, class, args);
+  res = PoolInitV(pool, arena, class, args);
   va_end(args);
   return res;
 }
 
-Res PoolInitV(Pool pool, Space space,
+Res PoolInitV(Pool pool, Arena arena,
               PoolClass class, va_list args)
 {
   Res res;
 
   AVER(pool != NULL);
-  AVERT(Space, space);
+  AVERT(Arena, arena);
   AVERT(PoolClass, class);
 
   pool->class = class;
-  pool->space = space;
+  pool->arena = arena;
   /* .ring.init: See .ring.finish */
-  RingInit(&pool->spaceRing);
+  RingInit(&pool->arenaRing);
   RingInit(&pool->bufferRing);
   RingInit(&pool->segRing);
   RingInit(&pool->actionRing);
@@ -98,8 +98,8 @@ Res PoolInitV(Pool pool, Space space,
 
   /* Initialise signature last; see design.mps.sig */
   pool->sig = PoolSig;
-  pool->serial = space->poolSerial;
-  ++(space->poolSerial);
+  pool->serial = arena->poolSerial;
+  ++arena->poolSerial;
 
   AVERT(Pool, pool);
 
@@ -108,37 +108,37 @@ Res PoolInitV(Pool pool, Space space,
   if(res != ResOK)
     goto failInit;
 
-  /* Add initialized pool to list of pools in space. */
-  RingAppend(SpacePoolRing(space), &pool->spaceRing);
+  /* Add initialized pool to list of pools in arena. */
+  RingAppend(ArenaPoolRing(arena), &pool->arenaRing);
 
-  EVENT3(PoolInit, pool, space, class);
+  EVENT3(PoolInit, pool, arena, class);
 
   return ResOK;
 
 failInit:
-  pool->sig = SigInvalid;      /* Leave space->poolSerial incremented */
+  pool->sig = SigInvalid;      /* Leave arena->poolSerial incremented */
   RingFinish(&pool->actionRing);
   RingFinish(&pool->segRing);
   RingFinish(&pool->bufferRing);
-  RingRemove(&pool->spaceRing);
-  RingFinish(&pool->spaceRing);
+  RingRemove(&pool->arenaRing);
+  RingFinish(&pool->arenaRing);
   return res;
 }
 
 /* PoolCreate, PoolCreateV: Allocate and initialise pool */
 
-Res PoolCreate(Pool *poolReturn, Space space, 
+Res PoolCreate(Pool *poolReturn, Arena arena, 
                PoolClass class, ...)
 {
   Res res;
   va_list args;
   va_start(args, class);
-  res = PoolCreateV(poolReturn, space, class, args);
+  res = PoolCreateV(poolReturn, arena, class, args);
   va_end(args);
   return res;
 }
 
-Res PoolCreateV(Pool *poolReturn, Space space,  
+Res PoolCreateV(Pool *poolReturn, Arena arena,  
                 PoolClass class, va_list args)
 {
   Res res;
@@ -146,14 +146,14 @@ Res PoolCreateV(Pool *poolReturn, Space space,
   void *base;
 
   AVER(poolReturn != NULL);
-  AVERT(Space, space);
+  AVERT(Arena, arena);
   AVERT(PoolClass, class);
 
-  /* .space.alloc: Allocate the pool instance structure with the size */
-  /* requested  in the pool class.  See .space.free */
-  res = SpaceAlloc(&base, space, class->size); 
+  /* .arena.alloc: Allocate the pool instance structure with the size */
+  /* requested  in the pool class.  See .arena.free */
+  res = ArenaAlloc(&base, arena, class->size); 
   if(res != ResOK)
-      goto failSpaceAlloc;
+      goto failArenaAlloc;
 
   /* base is the address of the class-specific pool structure. */
   /* We calculate the address of the generic pool structure within the */
@@ -161,7 +161,7 @@ Res PoolCreateV(Pool *poolReturn, Space space,
   pool = (Pool)PointerAdd(base, class->offset);
 
   /* Initialize the pool. */  
-  res = PoolInitV(pool, space, class, args);
+  res = PoolInitV(pool, arena, class, args);
   if(res != ResOK) 
     goto failPoolInit;
   
@@ -169,8 +169,8 @@ Res PoolCreateV(Pool *poolReturn, Space space,
   return ResOK;
 
 failPoolInit:
-  SpaceFree(space, base, class->size);
-failSpaceAlloc:
+  ArenaFree(arena, base, class->size);
+failArenaAlloc:
   return res;
 }
 
@@ -183,15 +183,15 @@ void PoolFinish(Pool pool)
   /* Do any class-specific finishing. */
   (*pool->class->finish)(pool);
 
-  /* Detach the pool from the space, and unsig it. */
-  RingRemove(&pool->spaceRing);
+  /* Detach the pool from the arena, and unsig it. */
+  RingRemove(&pool->arenaRing);
   pool->sig = SigInvalid;
   
   /* .ring.finish: Finish the generic fields.  See .ring.init */
   RingFinish(&pool->actionRing);
   RingFinish(&pool->segRing);
   RingFinish(&pool->bufferRing);
-  RingFinish(&pool->spaceRing);
+  RingFinish(&pool->arenaRing);
   
   EVENT1(PoolFinish, pool);
 }
@@ -201,20 +201,20 @@ void PoolFinish(Pool pool)
 void PoolDestroy(Pool pool)
 {
   PoolClass class;
-  Space space;
+  Arena arena;
   Addr base;
 
   AVERT(Pool, pool);  
   
   class = pool->class; /* } In case PoolFinish changes these */
-  space = pool->space; /* } */
+  arena = pool->arena; /* } */
 
   /* Finish the pool instance structure. */
   PoolFinish(pool);
 
-  /* .space.free: Free the pool instance structure.  See .space.alloc */
+  /* .arena.free: Free the pool instance structure.  See .arena.alloc */
   base = AddrSub((Addr)pool, (Size)(class->offset));
-  SpaceFree(space, base, (Size)(class->size));
+  ArenaFree(arena, base, (Size)(class->size));
 }
 
 Res PoolAlloc(Addr *pReturn, Pool pool, Size size)
@@ -252,7 +252,7 @@ Res PoolCondemn(Pool pool, Trace trace, Seg seg)
   AVERT(Pool, pool);
   AVERT(Trace, trace);
   AVERT(Seg, seg);
-  AVER(pool->space == trace->space);
+  AVER(pool->arena == trace->arena);
   AVER(seg->pool == pool);
   return (*pool->class->condemn)(pool, trace, seg);
 }
@@ -262,7 +262,7 @@ void PoolGrey(Pool pool, Trace trace, Seg seg)
   AVERT(Pool, pool);
   AVERT(Trace, trace);
   AVERT(Seg, seg);
-  AVER(pool->space == trace->space);
+  AVER(pool->arena == trace->arena);
   AVER(seg->pool == pool);
   (*pool->class->grey)(pool, trace, seg);
 }
@@ -272,7 +272,7 @@ Res PoolScan(ScanState ss, Pool pool, Seg seg)
   AVERT(ScanState, ss);
   AVERT(Pool, pool);
   AVERT(Seg, seg);
-  AVER(ss->space == pool->space);
+  AVER(ss->arena == pool->arena);
 
   /* The segment must belong to the pool. */
   AVER(pool == seg->pool);
@@ -307,7 +307,7 @@ void PoolReclaim(Pool pool, Trace trace, Seg seg)
   AVERT(Pool, pool);
   AVERT(Trace, trace);
   AVERT(Seg, seg);
-  AVER(pool->space == trace->space);
+  AVER(pool->arena == trace->arena);
   AVER(seg->pool == pool);
 
   /* There shouldn't be any grey things left for this trace. */
@@ -332,8 +332,8 @@ Res PoolDescribe(Pool pool, mps_lib_FILE *stream)
                "Pool $P ($U) {\n", (WriteFP)pool, (WriteFU)pool->serial,
                "  class $P (\"$S\")\n", 
                (WriteFP)pool->class, pool->class->name,
-               "  space $P ($U)\n", 
-               (WriteFP)pool->space, (WriteFU)pool->space->serial,
+               "  arena $P ($U)\n", 
+               (WriteFP)pool->arena, (WriteFU)pool->arena->serial,
                "  alignment $W\n", (WriteFW)pool->alignment,
                NULL);
   if(res != ResOK) return res;
@@ -358,12 +358,12 @@ Res PoolDescribe(Pool pool, mps_lib_FILE *stream)
 }
 
 
-/* .pool.space: Thread safe; see design.mps.interface.c.thread-safety */
+/* .pool.arena: Thread safe; see design.mps.interface.c.thread-safety */
 /* See impl.h.mpm for macro version */
-Space (PoolSpace)(Pool pool)
+Arena (PoolArena)(Pool pool)
 {
   AVERT(Pool, pool);
-  return pool->space;
+  return pool->arena;
 }
 
 
@@ -377,15 +377,15 @@ Res PoolSegAlloc(Seg *segReturn, SegPref pref, Pool pool, Size size)
 {
   Res res;
   Seg seg;
-  Space space;
+  Arena arena;
 
   AVER(segReturn != NULL);
   AVERT(Pool, pool);
   AVERT(SegPref, pref);
-  space = PoolSpace(pool);
-  AVER(SizeIsAligned(size, ArenaAlign(space)));
+  arena = PoolArena(pool);
+  AVER(SizeIsAligned(size, ArenaAlignment(arena)));
 
-  res = SegAlloc(&seg, pref, space, size, pool);
+  res = ArenaSegAlloc(&seg, pref, arena, size, pool);
   if(res != ResOK) return res;
 
   RingAppend(&pool->segRing, &seg->poolRing);
@@ -403,30 +403,30 @@ Res PoolSegAlloc(Seg *segReturn, SegPref pref, Pool pool, Size size)
 
 void PoolSegFree(Pool pool, Seg seg)
 {
-  Space space;
+  Arena arena;
 
   AVERT(Pool, pool);
   AVERT(Seg, seg);
   AVER(seg->pool == pool);
 
-  space = PoolSpace(pool);
+  arena = PoolArena(pool);
 
-  ShieldFlush(space); /* See impl.c.shield.shield.flush */
+  ShieldFlush(arena); /* See impl.c.shield.shield.flush */
 
   RingRemove(&seg->poolRing);
 
-  SegFree(space, seg);
+  ArenaSegFree(arena, seg);
 }
 
 
-Bool PoolOfAddr(Pool *poolReturn, Space space, Addr addr)
+Bool PoolOfAddr(Pool *poolReturn, Arena arena, Addr addr)
 {
   Seg seg;
 
   AVER(poolReturn != NULL);
-  /* Cannot AVERT space here, because PoolOfAddr is called under SpaceCheck */
+  AVERT(Arena, arena);
 
-  if(SegOfAddr(&seg, space, addr)) {
+  if(ArenaSegOfAddr(&seg, arena, addr)) {
     *poolReturn = seg->pool;
     return TRUE;
   }
@@ -438,13 +438,13 @@ Bool PoolOfAddr(Pool *poolReturn, Space space, Addr addr)
 Bool PoolHasAddr(Pool pool, Addr addr)
 {
   Pool addrPool;
-  Space space;
+  Arena arena;
   Bool managed;
 
   AVERT(Pool, pool);
 
-  space = PoolSpace(pool);
-  managed = PoolOfAddr(&addrPool, space, addr);
+  arena = PoolArena(pool);
+  managed = PoolOfAddr(&addrPool, arena, addr);
   if(managed && addrPool == pool)
     return TRUE;
   else
@@ -616,7 +616,7 @@ void PoolTrivGrey(Pool pool, Trace trace, Seg seg)
 
   if(!TraceSetIsMember(seg->white, trace->ti)) {
     seg->grey = TraceSetAdd(seg->grey, trace->ti);
-    ShieldRaise(trace->space, seg, AccessREAD | AccessWRITE);
+    ShieldRaise(trace->arena, seg, AccessREAD | AccessWRITE);
   }
 }
 
