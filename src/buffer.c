@@ -1,7 +1,7 @@
 /* impl.c.buffer: ALLOCATION BUFFER IMPLEMENTATION
  *
- * $HopeName: !buffer.c(trunk.19) $
- * Copyright (C) 1996 Harlequin Group, all rights reserved
+ * $HopeName: MMsrc!buffer.c(MM_dylan_buffalo.1) $
+ * Copyright (C) 1996,1997 Harlequin Group, all rights reserved
  *
  * This is (part of) the implementation of allocation buffers.
  *
@@ -29,7 +29,7 @@
 
 #include "mpm.h"
 
-SRCID(buffer, "$HopeName: !buffer.c(trunk.19) $");
+SRCID(buffer, "$HopeName: MMsrc!buffer.c(MM_dylan_buffalo.1) $");
 
 
 /* BufferCreate -- create an allocation buffer in a pool
@@ -392,10 +392,12 @@ Bool BufferTrip(Buffer buffer, Addr p, Size size)
   Pool pool;
 
   AVERT(Buffer, buffer);
-  AVER(p == buffer->apStruct.init);
   AVER(size > 0);
   AVER(SizeIsAligned(size, buffer->alignment));
-  AVER(AddrAdd(buffer->apStruct.init, size) == buffer->apStruct.alloc);
+  /* new AVERs.  see change.dylan.buffalo.patch.1.170211 */
+  AVER(buffer->apStruct.init == buffer->apStruct.alloc);
+  AVER(AddrAdd(p, size) == buffer->apStruct.init);
+  AVER(buffer->apStruct.limit == 0);
 
   pool = BufferPool(buffer);
   return (*pool->class->bufferTrip)(pool, buffer, p, size);
