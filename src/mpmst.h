@@ -1,6 +1,6 @@
 /* impl.h.mpmst: MEMORY POOL MANAGER DATA STRUCTURES
  *
- * $HopeName: MMsrc!mpmst.h(MMdevel_restr2.1) $
+ * $HopeName: MMsrc!mpmst.h(MMdevel_restr2.2) $
  * Copyright (C) 1996 Harlequin Group, all rights reserved.
  *
  * .rationale: Almost all MPM data structures are defined in this
@@ -38,6 +38,11 @@ typedef struct RingStruct {     /* double-ended queue structure */
 /* PoolClassStruct -- pool class structure
  *
  * See impl.c.poolclas.
+ *
+ * .class.end-sig: The class structure has another copy of the
+ * signature at the end.  This causes the compiler to complain
+ * if the class structure is extended without modifying static
+ * initializers.
  */
 
 #define PoolClassSig    ((Sig)0x519C1A55)
@@ -64,6 +69,7 @@ typedef struct PoolClassStruct {
   PoolReclaimMethod reclaim;
   PoolAccessMethod access;
   PoolDescribeMethod describe;
+  Sig endSig;			/* .class.end-sig */
 } PoolClassStruct;
 
 
