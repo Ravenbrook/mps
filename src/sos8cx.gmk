@@ -1,6 +1,6 @@
 # impl.gmk.sos8cx: BUILD FOR SOLARIS/SPARC v8/CXREF PLATFORM
 #
-# $HopeName$
+# $HopeName: !sos8cx.gmk(trunk.8) $
 # Copyright (C) 1998.  Harlequin Group plc.  All rights reserved.
 #
 # Instead of compiling object files, this platform (using the cxref
