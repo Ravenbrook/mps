@@ -1,13 +1,13 @@
 /* impl.h.sac: SEGREGATED ALLOCATION CACHES
  *
- * $HopeName$
- * Copyright (C) 1999, Harlequin Group plc.  All rights reserved.
+ * $HopeName: MMsrc!sac.c(MM_epcore_brisling.1) $
+ * Copyright (C) 1999 Harlequin Group plc.  All rights reserved.
  */
 
 #include "mpm.h"
 #include "sac.h"
 
-SRCID(sac, "$HopeName$");
+SRCID(sac, "$HopeName: MMsrc!sac.c(MM_epcore_brisling.1) $");
 
 
 /* SACCheck -- check function for SACs */
@@ -221,7 +221,7 @@ Res SACFill(Addr *p_o, SAC sac, Size size, Bool hasReservoirPermit)
   Count blockCount, j;
   Size blockSize;
   Addr p, fl;
-  Res res;
+  Res res = ResOK; /* stop compiler complaining */
 
   AVER(p_o != NULL);
   AVERT(SAC, sac);
