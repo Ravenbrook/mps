@@ -2,7 +2,7 @@
  *
  *                         NULL POOL
  *
- *  $HopeName: MMsrc!pooln.c(MMdevel_restr2.2) $
+ *  $HopeName: MMsrc!pooln.c(MMdevel_restr2.3) $
  *
  *  Copyright(C) 1995 Harlequin Group, all rights reserved
  *
@@ -13,7 +13,7 @@
 #include "mpm.h"
 #include "pooln.h"
 
-SRCID(pooln, "$HopeName: MMsrc!pooln.c(MMdevel_restr2.2) $");
+SRCID(pooln, "$HopeName: MMsrc!pooln.c(MMdevel_restr2.3) $");
 
 
 typedef struct PoolNStruct {
@@ -82,20 +82,18 @@ static void NFree(Pool pool, Addr old, Size size)
   NOTREACHED;  /* can't allocate, should never free */
 }
 
-static Res NBufferCreate(Buffer *bufReturn, Pool pool)
+static Res NBufferInit(Pool pool, Buffer buffer)
 {
   PoolN poolN;
 
   AVERT(Pool, pool);
   poolN = PoolPoolN(pool);
   AVERT(PoolN, poolN);
-
-  AVER(bufReturn != NULL);
 
   return ResLIMIT;  /* limit of nil buffers exceeded */
 }
 
-static void NBufferDestroy(Pool pool, Buffer buf)
+static void NBufferFinish(Pool pool, Buffer buffer)
 {
   PoolN poolN;
 
@@ -103,7 +101,7 @@ static void NBufferDestroy(Pool pool, Buffer buf)
   poolN = PoolPoolN(pool);
   AVERT(PoolN, poolN);
 
-  AVERT(Buffer, buf);
+  AVERT(Buffer, buffer);
 
   NOTREACHED;  /* can't create, so shouldn't destroy */
 }
@@ -259,12 +257,13 @@ static PoolClassStruct PoolClassNStruct = {
   "N",					/* name */
   sizeof(PoolNStruct),			/* size */
   offsetof(PoolNStruct, poolStruct),	/* offset */
+  AttrSCAN | AttrALLOC | AttrFREE | AttrBUF | AttrBUF_RESERVE | AttrGC,
   NInit,				/* init */
   NFinish,				/* finish */
   NAlloc,				/* alloc */
   NFree,				/* free */
-  NBufferCreate,			/* bufferCreate */
-  NBufferDestroy,			/* bufferDestroy */
+  NBufferInit,				/* bufferInit */
+  NBufferFinish,			/* bufferFinish */
   NBufferFill,				/* bufferFill */
   NBufferTrip,				/* bufferTrip */
   NBufferExpose,			/* bufferExpose */

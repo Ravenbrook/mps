@@ -1,6 +1,6 @@
 /* impl.c.poolmfs: MANUAL FIXED SMALL UNIT POOL
  *
- * $HopeName: MMsrc!poolmfs.c(MMdevel_restr2.2) $
+ * $HopeName: MMsrc!poolmfs.c(MMdevel_restr2.3) $
  * Copyright (C) 1994,1995 Harlequin Group, all rights reserved
  *
  * This is the implementation of the MFS pool class.  MFS operates
@@ -34,7 +34,7 @@
 #include "mpm.h"
 #include "poolmfs.h"
 
-SRCID(poolmfs, "$HopeName: MMsrc!poolmfs.c(MMdevel_restr2.2) $");
+SRCID(poolmfs, "$HopeName: MMsrc!poolmfs.c(MMdevel_restr2.3) $");
 
 
 /*  == Round up ==
@@ -273,12 +273,13 @@ static PoolClassStruct PoolClassMFSStruct = {
   "MFS",				/* name */
   sizeof(MFSStruct),			/* size */
   offsetof(MFSStruct, poolStruct),	/* offset */
+  AttrALLOC | AttrFREE,			/* attr */
   MFSInit,				/* init */
   MFSFinish,				/* finish */
   MFSAlloc,				/* alloc */
   MFSFree,				/* free */
-  NULL,					/* bufferCreate */
-  NULL,             			/* bufferDestroy */
+  NULL,					/* bufferInit */
+  NULL,             			/* bufferFinish */
   NULL,					/* bufferFill */
   NULL,             			/* bufferTrip */
   NULL,					/* bufferExpose */
