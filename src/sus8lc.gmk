@@ -1,7 +1,7 @@
 #
 #     BUILD FOR SUNOS/SPARC v8/LCC PLATFORM
 #
-#  $HopeName: !sus8lc.gmk(trunk.8) $
+#  $HopeName: MMsrc!sus8lc.gmk(MMdevel_dropin.1) $
 #  Copyright (C) 1996,1997 Harlequin Group, all rights reserved
 #
 #  This is the GNU makefile for platform.sus8lc.
@@ -28,3 +28,4 @@ SW = assert.c ring.c mpm.c arenacl.c space.c pool.c poolmfs.c \
 TESTLIB = testlib.c
 
 include lc.gmk
+include 5ar.gmk
