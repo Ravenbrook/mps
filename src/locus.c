@@ -1,6 +1,6 @@
 /* impl.c.locus: LOCI
  *
- * $HopeName: MMsrc!locus.c(MMdevel_ptw_pseudoloci.16) $
+ * $HopeName: MMsrc!locus.c(MMdevel_ptw_pseudoloci.18) $
  * Copyright (C) 1998 Harlequin Group plc.  All rights reserved.
  *
  * .readership: any MPS developer
@@ -1040,7 +1040,7 @@ static void LocusLocusClientDelete(Locus locus, LocusClient client)
     
   /* Decommission locus if it has no clients */
   if (RingIsSingle(LocusClientRing(locus)))
-    LocusFinish(locus);
+    LocusDeactivate(locus);
 }
 
 
