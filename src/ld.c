@@ -1,12 +1,13 @@
 /* impl.c.ld: LOCATION DEPENDENCY IMPLEMENTATION
  *
- * $HopeName: MMsrc!ld.c(MM_dylan_incremental.1) $
+ * $HopeName: MMsrc!ld.c(MM_dylan_incremental.2) $
  * Copyright (C) 1996 Harlequin Group, all rights reserved.
  *
  * .def: A location dependency records the fact that the bit-patterns
- * of some references have been used directly (most likely for
+ * of some references will be used directly (most likely for
  * hashing), and provides a protocol for finding out whether that
- * dependency has become stale because a reference has been changed.
+ * dependency has become stale because a reference has been changed (by
+ * a moving memory manager).
  *
  * .rationale: The client may build hash-tables using pointer hashing.
  * The collector may change the values of the pointers transparently,
@@ -45,7 +46,7 @@
 #include "ld.h"
 #include "ref.h"
 
-SRCID("$HopeName: MMsrc!ld.c(MM_dylan_incremental.1) $");
+SRCID("$HopeName: MMsrc!ld.c(MM_dylan_incremental.2) $");
 
 
 /* LDReset -- reset a dependency to empty
@@ -68,10 +69,10 @@ void LDReset(LD ld, Space space)
     ShieldExpose(space, seg);
   }
   ld->epoch = space->epoch;
+  ld->rs = RefSetEmpty;
   if(b) {
     ShieldCover(space, seg);
   }
-  ld->rs = RefSetEmpty;
 }
 
 
