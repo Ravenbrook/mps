@@ -1,6 +1,6 @@
 /* impl.h.mpmtypes: MEMORY POOL MANAGER TYPES
  *
- * $HopeName: MMsrc!mpmtypes.h(trunk.21) $
+ * $HopeName: MMsrc!mpmtypes.h(MMdevel_arenaclass.2) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights 
  * reserved.
  *
@@ -274,14 +274,14 @@ typedef int WriteFC; /* Promoted */
 #define EventPoolFinish    ((EventType)0xEFB07F14) /* POoL FINish */
 #define EventPoolAlloc     ((EventType)0xEFB07A77) /* POoL ALLoc */
 #define EventPoolFree      ((EventType)0xEFB07F6E) /* POoL FREe */
-#if 0 /* @@@@ */
-#define EventArenaCreate   ((EventType)0xEF5BCC6E) /* SPaCe CREate */
-#define EventArenaDestroy  ((EventType)0xEF5BCDE5) /* SPaCe DEStroy */
 #define EventArenaCreate   ((EventType)0xEFA64C6E) /* AReNa CREate */
 #define EventArenaDestroy  ((EventType)0xEFA64DE5) /* AReNa DEStroy */
-#endif
-#define EventSegAlloc      ((EventType)0xEF5E9A77) /* SEG ALLoc */
-#define EventSegFree	   ((EventType)0xEF5E9F6E) /* SEG FREe */
+#define EventArenaSegAlloc ((EventType)0xEF5E9A77) /* arena SEG ALLoc */
+#define EventArenaSegFree  ((EventType)0xEF5E9F6E) /* arena SEG FREe */
+#define EventArenaAccess   ((EventType)0xEFA64ACC) /* AReNa ACCess */
+#define EventArenaExtend   ((EventType)0xEFA64E12) /* AReNa EXTend */
+#define EventArenaRetract  ((EventType)0xEFA646E2) /* AReNa RETract */
+#define EventArenaPoll     ((EventType)0xEFA64B07) /* AReNa POLl */
 #define EventVMCreate      ((EventType)0xEFF3C6EA) /* VM CREAte */
 #define EventVMDestroy     ((EventType)0xEFF3DE52) /* VM DESTroy */
 #define EventVMMap         ((EventType)0xEFF33AB9) /* VM MAP */
