@@ -1,6 +1,6 @@
 /* impl.h.mpstd: HARLEQUIN MEMORY POOL SYSTEM TARGET DETECTION
  *
- * $HopeName: MMsrc!mpstd.h(MMdevel_sw_eq.2) $
+ * $HopeName: MMsrc!mpstd.h(MMdevel_sw_eq.3) $
  * Copyright (C) 1996 Harlequin Group, all rights reserved
  *
  * Detect the target platform using predefined preprocessor symbols
@@ -15,11 +15,23 @@
 #ifndef mpstd_h
 #define mpstd_h
 
-/* Some random pickings from cc(1) on a mips IRIX 5.2 machine (atilla) */
+/* Irix 5 man cc */
 
-#if defined(__DSO__) && defined(__sgi) && defined(__unix) && defined(__mips)
-#define MPS_PF_IRR4CC
-#define MPS_OS_IR
+#if defined(__sgi) && defined(__unix) && defined(__mips) && defined(_SYSTYPE_SVR4)
+#define MPS_PF_I5R4CC
+#define MPS_OS_I5
+#define MPS_ARCH_R4
+#define MPS_BUILD_CC
+#define MPS_T_WORD      unsigned long
+#define MPS_WORD_WIDTH  32
+#define MPS_WORD_SHIFT  5
+#define MPS_PF_ALIGN    8 /* .hack.align */
+
+/* Irix 4 man cc */
+
+#elif defined(__sgi) && defined(__unix) && defined(__mips) && defined(_SYSTYPE_SYSV)
+#define MPS_PF_I4R4CC
+#define MPS_OS_I4
 #define MPS_ARCH_R4
 #define MPS_BUILD_CC
 #define MPS_T_WORD      unsigned long
