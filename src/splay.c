@@ -1,6 +1,6 @@
 /* impl.c.splay: SPLAY TREE IMPLEMENTATION
  *
- * $HopeName: !splay.c(trunk.4) $
+ * $HopeName: MMsrc!splay.c(MM_epcore_anchovy.1) $
  * Copyright (C) 1998 Harlequin Group plc, all rights reserved.
  *
  * .readership: Any MPS developer.
@@ -21,7 +21,7 @@
 #include "mpm.h"
 
 
-SRCID(splay, "$HopeName: !splay.c(trunk.4) $");
+SRCID(splay, "$HopeName: MMsrc!splay.c(MM_epcore_anchovy.1) $");
 
 /* Basic getter and setter methods */
 #define SplayTreeRoot(t) RVALUE((t)->root)
@@ -394,7 +394,7 @@ static Bool SplaySplay(SplayNode *nodeReturn, SplayTree tree, void *key) {
             SplayLinkLeft(&top, &leftLast);
             found = TRUE;
             goto assemble;
-        } break;
+        } /* break; */
 
         case CompareGREATER: {               /* zag-zag */
           if(SplayNodeRightChild(topRight) == NULL)
@@ -426,7 +426,7 @@ static Bool SplaySplay(SplayNode *nodeReturn, SplayTree tree, void *key) {
       NOTREACHED;
     } break;
     }
-  }; /* end while(TRUE) */
+  } /* end while(TRUE) */
       
 terminalZig:
   SplayLinkRight(&top, &rightFirst);
