@@ -1,6 +1,6 @@
 /* impl.c.poolmv2: MANUAL VARIABLE POOL, II
  *
- * $HopeName: MMsrc!poolmv2.c(MMdevel_gavinm_splay.6) $
+ * $HopeName: MMsrc!poolmv2.c(MMdevel_gavinm_splay.7) $
  * Copyright (C) 1998 Harlequin Group plc.  All rights reserved.
  *
  * .limitation.seg : MV2BufferFill may fill a buffer with a range that
@@ -10,116 +10,19 @@
  */
 
 #include "mpm.h"
-
-/* --- Meters should be a substrate available to all pools. */
-typedef struct MeterStruct *Meter;
-
-typedef struct MeterStruct 
-{
-  char *name;
-  Count count;
-  double mean;
-  double meanSquared;
-}MeterStruct;
-
-static void MeterInit(Meter meter, char *name) 
-{
-  meter->name = name;
-  meter->count = 0;
-  meter->mean = 0.0;
-  meter->meanSquared = 0.0;
-}
-
-static void MeterAccumulate(Meter meter, Size amount)
-{
-  Count count = meter->count + 1;
-  double mean = meter->mean;
-  double meanSquared = meter->meanSquared;
-  double weight = (double)(count - 1) / (double)count;
-
-  /* .limitation.variance: This computation accumulates a running mean
-   * and mean^2, minimizing overflow, but sacrificing numerical
-   * stablity for small variances.  For more accuracy, the data set
-   * should be emitted using a telemetry stream and analyzed off
-   * line.
-   */
-  meter->count = count;
-  meter->mean = weight * mean + amount / count;
-  meter->meanSquared = weight * meanSquared + amount * amount / count;
-}
-
-/* --- crude hack */
-static Res WriteDouble(char *before, char* indent, double d,
-                       char* after, mps_lib_FILE *stream)
-{
-  WriteFU i, f;
-
-  i = (WriteFU)d;
-  f = (WriteFU)((d - (double)i) * 1000);
-  return
-    WriteF(stream, "$S$U.$U$S", before, indent, i, f, after, NULL);
-}
-
-static Res MeterWrite(Meter meter, char *indent, mps_lib_FILE *stream)
-{
-  Res res;
-
-  res = WriteF(stream,
-               "$Smeter $S {\n", indent, meter->name,
-               "$S  count $U\n", indent, meter->count,
-               "$S  total $U\n", indent,
-               (WriteFU)(meter->count * meter->mean),
-               NULL);
-  if (res != ResOK)
-    return res;
-  res = WriteDouble("$S  mean ", indent, meter->mean, "\n", stream);
-  if (res != ResOK)
-    return res;
-  /* --- stddev = sqrt(meanSquared - mean^2), but see
-   * .limitation.variance above
-   */
-  res = WriteDouble("$S  mean^2 ", indent, meter->meanSquared,
-                    "\n", stream);
-  if (res != ResOK)
-    return res;
-  res = WriteF(stream,"}\n", NULL);
-  if (res != ResOK)
-    return res;
-  
-  return ResOK;
-}
-  
-/* Make metering optional */
-#define METER_DECL(meter) struct MeterStruct meter
-#define METER_INIT(meter, init) (MeterInit(&(meter), (init)))
-#define METER_ACC(meter, delta) (MeterAccumulate(&(meter), (delta)))
-#define METER_WRITE(meter, indent, stream) (MeterWrite(&(meter),  \
-                                                       (indent),  \
-                                                       (stream)))
-     
 #include "poolmv2.h"
-
 #include "mpscmv2.h"
+#include "abq.h"
+#include "meter.h"
 
-SRCID(poolmv2, "$HopeName: MMsrc!poolmv2.c(MMdevel_gavinm_splay.6) $");
+SRCID(poolmv2, "$HopeName: MMsrc!poolmv2.c(MMdevel_gavinm_splay.7) $");
 
 /* Signatures */
 #define MV2Sig ((Sig)0x5193F299) /* SIGnature MV2 */
 
 /* Prototypes */
 typedef struct MV2Struct *MV2;
-typedef struct ABQStruct *ABQ;
 static Bool MV2Check(MV2 mv2);
-static Bool ABQCheck(ABQ abq);
-
-/* Structures */
-
-typedef struct ABQStruct
-{
-  Count count;
-  Index head, tail;
-  CBSBlock *queue;
-}ABQStruct;
 
 typedef struct MV2Struct 
 {
@@ -128,11 +31,13 @@ typedef struct MV2Struct
   ABQStruct abqStruct;          /* The available block queue */
   SegPrefStruct segPrefStruct;  /* The preferences for segments */
   Size reuseSize;               /* Size at which blocks are recycled */
+  Size minSize;
+  Size medianSize;
+  Size maxSize;
   Bool abqOverflow;             /* ABQ dropped some candidates */
   Bool contingency;             /* High fragmentation mode */
   /* A splinter >= minSize returned from a buffer will be used ASAP */
   /* See design.mps.poolmv2.arch.ap.no-fit.* */
-  Size minSize;
   Bool splinter;                /* Saved splinter */
   Seg splinterSeg;              /* Saved splinter seg */
   Addr splinterBase;            /* Saved splinter base */
@@ -150,8 +55,11 @@ typedef struct MV2Struct
   METER_DECL(poolFrees);        /* block frees */
   METER_DECL(overflows);        /* abq overflows */
   METER_DECL(contingencies);    /* contingencies */
+  METER_DECL(splinters);        /* splinters */
+  
   Sig sig;
 }MV2Struct;
+
 
 /* Macros */
 #define PoolPoolMV2(pool) PARENT(MV2Struct, poolStruct, (pool))
@@ -166,220 +74,7 @@ typedef struct MV2Struct
 
 
 /* Methods */
-static Bool ABQCheck(ABQ abq)
-{
-  Index index;
-  
-  CHECKL(abq->count > 0);
-  CHECKL(abq->head >= 0);
-  CHECKL(abq->head < abq->count);
-  CHECKL(abq->tail >= 0);
-  CHECKL(abq->tail < abq->count);
-  CHECKL(abq->queue != NULL);
-  /* Is this really a local check? */
-  for (index = abq->head; index != abq->tail; ) {
-    CHECKL(CBSBlockCheck(abq->queue[index]));
-    if (++index == abq->count)
-      index = 0;
-  }
 
-  return TRUE;
-}
-
-static Res ABQDescribe(ABQ abq, mps_lib_FILE *stream)
-{
-  Res res;
-  Index index;
-
-  AVERT(ABQ, abq);
-
-  AVER(stream != NULL);
-
-  res = WriteF(stream,
-	       "ABQ $P\n{\n", (WriteFP)abq,
-	       "  count: $U \n", (WriteFU)abq->count,
-	       "  head: $U \n", (WriteFU)abq->head,
-	       "  tail: $U \n", (WriteFU)abq->tail,
-               "  queue: \n",
-	       NULL);
-  if(res != ResOK)
-    return res;
-
-  for (index = abq->head; index != abq->tail; ) {
-    res = CBSBlockDescribe(abq->queue[index], stream);
-    if(res != ResOK)
-      return res;
-    if (++index == abq->count)
-      index = 0;
-  }
-
-  res = WriteF(stream, "}\n", NULL);
-  if(res != ResOK)
-    return res;
-  
-  return ResOK;
-}
-
-
-static Size ABQqueueSize(Count count)
-{
-  /* strange but true: the sizeof expression calculates the size of a
-     single queue element */
-  return (Size)(sizeof(((ABQ)NULL)->queue[0]) * count);
-}
-
-
-/* ABQInit -- Initialize an ABQ */
-static Res ABQInit(Arena arena, ABQ abq, Count count)
-{
-  void *p;
-  Res res;
-
-  AVERT(Arena, arena);
-  AVER(abq != NULL);
-  AVER(count > 0);
-
-  res = ArenaAlloc(&p, arena, ABQqueueSize(count));
-  if (res != ResOK)
-    return res;
-
-  abq->count = count;
-  abq->head = 0;
-  abq->tail = 0;
-  abq->queue = (CBSBlock *)p;
-
-  AVERT(ABQ, abq);
-  return ResOK;
-}
-
-static Bool ABQIsEmpty(ABQ abq) 
-{
-  AVERT(ABQ, abq);
-
-  return abq->head == abq->tail;
-}
-
-
-/* ABQFinish -- finish an ABQ */
-static void ABQFinish(Arena arena, ABQ abq)
-{
-  AVERT(Arena, arena);
-  AVERT(ABQ, abq);
-  /* must be empty */
-  AVER(ABQIsEmpty(abq));
-
-  ArenaFree(arena, abq->queue, ABQqueueSize(abq->count));
-  
-  abq->count = 0;
-  abq->queue = NULL;
-}
-
-/* ABQPop -- pop a block from the head of the ABQ */
-static Res ABQPop(ABQ abq, CBSBlock *blockReturn)
-{
-  Index index;
-  
-  AVER(blockReturn != NULL);
-  AVERT(ABQ, abq);
-
-  index = abq->head;
-  if (index == abq->tail)
-    return ResFAIL;
-
-  *blockReturn = abq->queue[index];
-  AVERT(CBSBlock, *blockReturn);
-
-  if (++index == abq->count)
-    index = 0;
-  abq->head = index;
-  
-  AVERT(ABQ, abq);
-  return ResOK;
-}
-
-/* ABQPeek -- peek at the head of the ABQ */
-static Res ABQPeek(ABQ abq, CBSBlock *blockReturn)
-{
-  Index index;
-  
-  AVER(blockReturn != NULL);
-  AVERT(ABQ, abq);
-
-  index = abq->head;
-  if (index == abq->tail)
-    return ResFAIL;
-
-  *blockReturn = abq->queue[index];
-  AVERT(CBSBlock, *blockReturn);
-
-  /* Identical to pop, but don't write index back into head */
-
-  AVERT(ABQ, abq);
-  return ResOK;
-}
-
-/* ABQPush -- push a block onto the tail of the ABQ */
-static Res ABQPush(ABQ abq, CBSBlock block)
-{
-  Index index;
-
-  AVERT(ABQ, abq);
-  AVERT(CBSBlock, block);
-
-  index = abq->tail;
-  if (++index == abq->count)
-    index = 0;
-  
-  if (index == abq->head)
-    return ResFAIL;
-
-  abq->queue[abq->tail] = block;
-  abq->tail = index;
-
-  AVERT(ABQ, abq);
-  return ResOK;
-}
-
-/* ABQDelete -- delete a block from the ABQ */
-static Res ABQDelete(ABQ abq, CBSBlock block)
-{
-  Index index, next, count, tail;
-  CBSBlock *queue;
-  Bool found = FALSE;
-
-  AVERT(ABQ, abq);
-  AVERT(CBSBlock, block);
-
-  index = abq->head;
-  tail = abq->tail;
-  count = abq->count;
-  queue = abq->queue;
-  
-  while (index != tail) {
-    if (queue[index] == block) {
-      goto found;
-    }
-    if (++index == count)
-      index = 0;
-  }
-
-  return ResFAIL;
-
-found:
-  /* index points to the node to be removed */
-  next = index;
-  if (++next == count)
-    next = 0;
-  while (next != tail) {
-    queue[index] = queue[next];
-    index = next;
-    if (++next == count)
-      next = 0;
-  }
-  abq->tail = index;
-  AVERT(ABQ, abq);
-  return ResOK;
-}
 
 /*
  * MV2NoteNew -- Callback invoked when a block on the CBS >= reuseSize
@@ -405,8 +100,8 @@ static void MV2NoteNew(CBS cbs, CBSBlock block)
     Addr base, limit;
     
     {
-      Res res = ABQPeek(MV2ABQ(mv2), &oldBlock);
-      AVER(res == ResOK);
+      Res r = ABQPeek(MV2ABQ(mv2), &oldBlock);
+      AVER(r == ResOK);
     }
     base = CBSBlockBase(oldBlock);
     limit = CBSBlockLimit(oldBlock);
@@ -425,8 +120,8 @@ static void MV2NoteNew(CBS cbs, CBSBlock block)
         Size size = AddrOffset(segBase, segLimit);
         
         {
-          Res res = CBSDelete(MV2CBS(mv2), segBase, segLimit);
-          AVER(res == ResOK);
+          Res r = CBSDelete(MV2CBS(mv2), segBase, segLimit);
+          AVER(r == ResOK);
         }
         mv2->available -= size;
         SegFree(seg);
@@ -444,6 +139,7 @@ static void MV2NoteNew(CBS cbs, CBSBlock block)
   }
 }
 
+
 /*
  * MV2NoteDelete -- Callback invoked when a block on the CBS <=
  * reuseSize
@@ -460,6 +156,7 @@ static void MV2NoteDelete(CBS cbs, CBSBlock block)
     AVER(res == ResOK);
   }
 }
+
   
 /*
  * MV2Init -- Initialize an MV2 pool
@@ -524,6 +221,8 @@ static Res MV2Init(Pool pool, va_list arg)
   mv2->abqOverflow = FALSE;
   mv2->contingency = FALSE;
   mv2->minSize = minSize;
+  mv2->medianSize = medianSize;
+  mv2->maxSize = maxSize;
   mv2->splinter = FALSE;
   mv2->splinterSeg = NULL;
   mv2->splinterBase = (Addr)0;
@@ -537,6 +236,7 @@ static Res MV2Init(Pool pool, va_list arg)
   METER_INIT(mv2->poolFrees, "pool frees");
   METER_INIT(mv2->overflows, "ABQ overflows");
   METER_INIT(mv2->contingencies, "contingencies");
+  METER_INIT(mv2->splinters, "splinters");
 
   mv2->sig = MV2Sig;
 
@@ -582,6 +282,7 @@ static void MV2Finish(Pool pool)
   mv2->sig = SigInvalid;
 }
 
+
 static Bool ABQRefillCallback(CBS cbs, CBSBlock block, void *closureP,
                               unsigned long closureS)
 {
@@ -608,6 +309,15 @@ static void ABQRefillIfNecessary(MV2 mv2)
     mv2->abqOverflow = FALSE;
     CBSIterateLarge(MV2CBS(mv2), ABQRefillCallback, NULL, 0);
   }
+}
+
+static Res ContingencySearch(CBS cbs, Seg *seg, Addr *base, Addr* limit, Size min)
+{
+  UNUSED(cbs); UNUSED(seg); UNUSED(base); UNUSED(limit); UNUSED(min);
+
+  /* ---+++--- */
+  
+  return ResFAIL;
 }
 
 
@@ -679,8 +389,8 @@ static Res MV2BufferFill(Seg *segReturn,
       limit = AddrAdd(base, idealSize);
     }
     {
-      Res res = CBSDelete(MV2CBS(mv2), base, limit);
-      AVER(res == ResOK);
+      Res r = CBSDelete(MV2CBS(mv2), base, limit);
+      AVER(r == ResOK);
     }
 
     goto done;
@@ -719,7 +429,6 @@ direct:
     goto direct;
   }
   
-fail:
   AVER(res != ResOK);
   return res;
   
@@ -736,6 +445,7 @@ donenew:
               AddrOffset(base, limit));
   return ResOK;
 }
+
 
 /* MV2BufferEmpty -- detach a buffer from a segment
  *
@@ -774,10 +484,17 @@ static void MV2BufferEmpty(Pool pool, Buffer buffer)
                           mv2->splinterLimit);
       AVER(res == ResOK);
     }
+    /* MV2 may put more than one segment in a buffer, so find the
+       (base) segment of the splinter */
+    {
+      Bool b = SegOfAddr(&seg, PoolArena(pool), base);
+      AVER(b);
+    }
     mv2->splinter = TRUE;
     mv2->splinterSeg = seg;
     mv2->splinterBase = base;
     mv2->splinterLimit = limit;
+    METER_ACC(mv2->splinters, size);
   }
   else {
     Res res = CBSInsert(MV2CBS(mv2), base, limit);
@@ -786,6 +503,7 @@ static void MV2BufferEmpty(Pool pool, Buffer buffer)
   mv2->available += size;
   METER_ACC(mv2->bufferEmpties, size);
 }
+
 
 /* MV2Free -- free a block
  *
@@ -818,6 +536,7 @@ static void MV2Free(Pool pool, Addr base, Size size)
   mv2->available += size;
 }
 
+
 static Res MV2Describe(Pool pool, mps_lib_FILE *stream)
 {
   Res res;
@@ -833,6 +552,8 @@ static Res MV2Describe(Pool pool, mps_lib_FILE *stream)
 	       "MV2 $P\n{\n", (WriteFP)mv2,
 	       "  reuseSize: $U \n", (WriteFU)mv2->reuseSize,
 	       "  minSize: $U \n", (WriteFU)mv2->minSize,
+	       "  medianSize: $U \n", (WriteFU)mv2->medianSize,
+	       "  maxSize: $U \n", (WriteFU)mv2->maxSize,
 	       "  size: $U \n", (WriteFU)mv2->size,
 	       "  available: $U \n", (WriteFU)mv2->available,
 	       "  abqOverflow: $S \n", mv2->abqOverflow?"TRUE":"FALSE",
@@ -854,13 +575,14 @@ static Res MV2Describe(Pool pool, mps_lib_FILE *stream)
     return res;
 
   /* --- how to deal with non-Ok res's */
-  METER_WRITE(mv2->segAllocs, "  ", stream);
-  METER_WRITE(mv2->segFrees, "  ", stream);
-  METER_WRITE(mv2->bufferFills, "  ", stream);
-  METER_WRITE(mv2->bufferEmpties, "  ", stream);
-  METER_WRITE(mv2->poolFrees, "  ", stream);
-  METER_WRITE(mv2->overflows, "  ", stream);
-  METER_WRITE(mv2->contingencies, "  ", stream);
+  METER_WRITE(mv2->segAllocs, stream);
+  METER_WRITE(mv2->segFrees, stream);
+  METER_WRITE(mv2->bufferFills, stream);
+  METER_WRITE(mv2->bufferEmpties, stream);
+  METER_WRITE(mv2->poolFrees, stream);
+  METER_WRITE(mv2->overflows, stream);
+  METER_WRITE(mv2->contingencies, stream);
+  METER_WRITE(mv2->splinters, stream);
   
   res = WriteF(stream, "}\n", NULL);
   if(res != ResOK)
@@ -868,6 +590,7 @@ static Res MV2Describe(Pool pool, mps_lib_FILE *stream)
 
   return ResOK;               
 }
+
 
 static PoolClassStruct PoolClassMV2Struct =
 {
@@ -901,6 +624,7 @@ static PoolClassStruct PoolClassMV2Struct =
   PoolClassSig                  /* impl.h.mpmst.class.end-sig */
 };
 
+
 static Bool MV2Check(MV2 mv2)
 {
   CHECKS(MV2, mv2);
@@ -919,16 +643,17 @@ static Bool MV2Check(MV2 mv2)
   if (mv2->splinter) {
     CHECKL(AddrOffset(mv2->splinterBase, mv2->splinterLimit) >=
            mv2->minSize);
-    /* --- How to check Seg ??? */
     /* CHECKT(Seg, mv2->splinterSeg); */
     CHECKL(SegCheck(mv2->splinterSeg));
     CHECKL(mv2->splinterBase >= SegBase(mv2->splinterSeg));
-    CHECKL(mv2->splinterLimit <= SegLimit(mv2->splinterSeg));
+    /* --- even a splinter may consist of more than one seg */
+    /* CHECKL(mv2->splinterLimit <= SegLimit(mv2->splinterSeg)); */
   }
   /* --- check meters? */
 
   return TRUE;
 }
+
 
 PoolClass PoolClassMV2(void)
 {
@@ -942,6 +667,7 @@ mps_class_t mps_class_mv2(void)
 {
   return (mps_class_t)(PoolClassMV2());
 }
+
 
 /* Free bytes */
 
@@ -958,6 +684,7 @@ size_t mps_mv2_free_size(mps_pool_t mps_pool)
 
   return (size_t)mv2->available;
 }
+
 
 size_t mps_mv2_size(mps_pool_t mps_pool)
 {
