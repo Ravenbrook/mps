@@ -1,14 +1,23 @@
 /* impl.c.trace: GENERIC TRACER IMPLEMENTATION
  *
- * $HopeName: MMsrc!trace.c(MMdevel_metrics.1) $
+ * $HopeName: MMsrc!trace.c(MMdevel_metrics.2) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  *
  * .sources: design.mps.tracer.
+ *
+ * NOTES
+ *
+ * .fix.critical: "fix" is on the critical for GCed applications.
+ * (in particular dylan).  Many of the functions on this path have
+ * had their AVERs removed in the "hot" variety (using AVER_CRITICAL).
+ *
+ * .fix.critical.1: Removing these AVERs results in a 6% speed-up to
+ * the dylan compiler.
  */
 
 #include "mpm.h"
 
-SRCID(trace, "$HopeName: MMsrc!trace.c(MMdevel_metrics.1) $");
+SRCID(trace, "$HopeName: MMsrc!trace.c(MMdevel_metrics.2) $");
 
 
 /* ScanStateCheck -- check consistency of a ScanState object */
@@ -910,7 +919,8 @@ Res TraceFix(ScanState ss, Ref *refIO)
   Seg seg;
   Pool pool;
 
-  AVERT(ScanState, ss);
+  /* .fix.critical.1 */
+  AVERT_CRITICAL(ScanState, ss);
   AVER(refIO != NULL);
 
   ref = *refIO;
