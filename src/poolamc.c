@@ -1,6 +1,6 @@
 /* impl.c.poolamc: AUTOMATIC MOSTLY-COPYING MEMORY POOL CLASS
  *
- * $HopeName: MMsrc!poolamc.c(MMdevel_ramp_alloc.1) $
+ * $HopeName: MMsrc!poolamc.c(MMdevel_ramp_alloc.2) $
  * Copyright (C) 1998.  Harlequin Group plc.  All rights reserved.
  *
  * .sources: design.mps.poolamc.
@@ -10,7 +10,7 @@
 #include "mpscamc.h"
 #include "mpm.h"
 
-SRCID(poolamc, "$HopeName: MMsrc!poolamc.c(MMdevel_ramp_alloc.1) $");
+SRCID(poolamc, "$HopeName: MMsrc!poolamc.c(MMdevel_ramp_alloc.2) $");
 
 
 /* Binary i/f used by ASG (drj 1998-06-11) */
@@ -455,8 +455,11 @@ static Res AMCInitComm(Pool pool, RankSet rankSet, va_list arg)
   /* amc gets checked before the nursery gets created, but the */
   /* nursery gets created later in this function. */
   amc->nursery = NULL;
-  /* The ramp generation gets created when needed. */
+  /* The other generations get created when only needed. */
+  amc->beforeRampGen = NULL;
   amc->rampGen = NULL; amc->afterRampGen = NULL;
+
+  amc->rampCount = 0; amc->rampMode = outsideRamp;
 
   amc->sig = AMCSig;
   AVERT(AMC, amc);
@@ -609,6 +612,8 @@ static Res AMCBufferFill(Seg *segReturn,
   SegSetP(seg, &gen->type); /* design.mps.poolamc.fix.nail.distinguish */
   ++gen->segs;
   gen->size += alignedSize;
+  /* If the generation was empty, restart the collection clock. */
+  if(gen->segs == 1) gen->collected = ArenaMutatorAllocSize(arena);
 
   /* Give the buffer the entire segment to allocate in. */
   *segReturn = seg;
@@ -684,9 +689,9 @@ static double AMCBenefit(Pool pool, Action action)
       f = 1e99; /* Don't ever collect the final generation. */
     } else if(gen->serial == AMCRampGen) {
       if(amc->rampMode == finishRamp)
-       return 1.0;
+        return 1e99; /* do it now */
       else
-        f = AMCRampGenFrequency;
+        f = gen->size != 0 ? AMCRampGenFrequency : 1e99;
     } else {
       f = inRampMode
             ? (AMCGen2RampmodeFrequency
@@ -810,28 +815,33 @@ static Res AMCWhiten(Pool pool, Trace trace, Seg seg)
   SegSetWhite(seg, TraceSetAdd(SegWhite(seg), trace->ti));
   trace->condemned += SegSize(seg);
 
+  /* ensure we are forwarding into the right generation */
+
   gen = AMCSegGen(seg);
   AVERT(AMCGen, gen);
   amc = PoolPoolAMC(pool);
   AVERT(AMC, amc);
-  /* see design.mps.poolamc.gen.ramp.before */
+  /* see design.mps.poolamc.gen.ramp */
   /* This switching needs to be more complex for multiple traces. */
   AVER(TraceSetIsSingle(PoolArena(pool)->busyTraces));
   if(amc->rampMode == beginRamp && gen->serial == AMCRampGenFollows) {
-    /* Assuming gen 1 is condemned if the ram gen is */
     if(amc->rampGen == NULL) {
       res = AMCGenCreate(&newGen, amc, AMCRampGen);
       if(res != ResOK)
         return res; /* @@@@ should we clean up? */
     }
+    BufferDetach(gen->forward, pool);
     AMCBufferSetGen(gen->forward, amc->rampGen);
+    BufferDetach(amc->rampGen->forward, pool);
     AMCBufferSetGen(amc->rampGen->forward, amc->rampGen);
     amc->rampMode = ramping;
   } else
-    if(amc->rampMode == finishRamp && gen->serial == AMCRampGen) {
+    if(amc->rampMode == finishRamp && gen->serial == AMCRampGenFollows) {
+      BufferDetach(amc->beforeRampGen->forward, pool);
       AMCBufferSetGen(amc->beforeRampGen->forward, amc->afterRampGen);
-      if(amc->rampGen != NULL)
-        AMCBufferSetGen(amc->rampGen->forward, amc->afterRampGen);
+      AVER(amc->rampGen != NULL);
+      BufferDetach(amc->rampGen->forward, pool);
+      AMCBufferSetGen(amc->rampGen->forward, amc->afterRampGen);
       amc->rampMode = collectingRamp;
     }
 
@@ -841,10 +851,10 @@ static Res AMCWhiten(Pool pool, Trace trace, Seg seg)
       /* top generation forwards into itself */
       AMCBufferSetGen(gen->forward, gen);
     } else {
-        res = AMCGenCreate(&newGen, amc, gen->serial + 1);
-        if(res != ResOK)
-          return res;
-        AMCBufferSetGen(gen->forward, newGen);
+      res = AMCGenCreate(&newGen, amc, gen->serial + 1);
+      if(res != ResOK)
+        return res;
+      AMCBufferSetGen(gen->forward, newGen);
     }
   }
 
@@ -1482,7 +1492,8 @@ static Res AMCSegDescribe(AMC amc, Seg seg, mps_lib_FILE *stream)
     init = limit;
 
   res = WriteF(stream,
-               "AMC Seg $P {\n", (WriteFP)seg, "  base  $A\n", base,
+               "AMC seg $P [$A,$A){\n",
+               (WriteFP)seg, (WriteFA)base, (WriteFA)limit,
                "  Map\n",
                NULL);
   if(res != ResOK)
@@ -1614,17 +1625,34 @@ static Res AMCDescribe(Pool pool, mps_lib_FILE *stream)
   Res res;
   AMC amc;
   Ring ring, node, nextNode;
+  char *rampmode;
 
   if(!CHECKT(Pool, pool)) return ResFAIL;
   amc = PoolPoolAMC(pool);
   if(!CHECKT(AMC, amc)) return ResFAIL;
 
   res = WriteF(stream,
-               "AMC $P {\n", (WriteFP)amc,
-               "  pool $P ($U)  ",
+               (amc->rankSet == RankSetEMPTY) ? "AMCZ" : "AMC",
+               " $P {\n", (WriteFP)amc, "  pool $P ($U)  ",
                (WriteFP)AMCPool(amc), (WriteFU)AMCPool(amc)->serial,
                "  format $P ($U)\n",
                (WriteFP)amc->format, (WriteFU)amc->format->serial,
+               NULL);
+  if(res != ResOK)
+    return res;
+
+  /* @@@@ should add something about generations */
+
+  switch(amc->rampMode) {
+  case outsideRamp: rampmode = "outside ramp"; break;
+  case beginRamp: rampmode = "begin ramp"; break;
+  case ramping: rampmode = "ramping"; break;
+  case finishRamp: rampmode = "finish ramp"; break;
+  case collectingRamp: rampmode = "collecting ramp"; break;
+  default: rampmode = "unknown ramp mode"; break;
+  }
+  res = WriteF(stream,
+               "  ", rampmode, " ($U)", (WriteFU)amc->rampCount,
                NULL);
   if(res != ResOK)
     return res;
