@@ -1,9 +1,7 @@
-/* impl.c.arenacl: ARENA IMPLEMENTATION USING CLIENT MEMORY
+/* impl.c.arenacl: ARENA CLASS USING CLIENT MEMORY
  *
- * $HopeName: !arenacl.c(trunk.17) $
- * Copyright (C) 1999.  Harlequin Limited.  All rights reserved.
- *
- * .readership: MM developers
+ * $HopeName: MMsrc!arenacl.c(MMdevel_pekka_locus.1) $
+ * Copyright (C) 1999 Harlequin Limited.  All rights reserved.
  * 
  * .design: See design.mps.arena.client.
  * 
@@ -13,16 +11,15 @@
  * in ChunkAlloc. See request.epcore.170534.
  */
 
+#include "tract.h"
 #include "mpm.h"
 #include "mpsacl.h"
 
-
-SRCID(arenacl, "$HopeName: !arenacl.c(trunk.17) $");
+SRCID(arenacl, "$HopeName: MMsrc!arenacl.c(MMdevel_pekka_locus.1) $");
 
 
 typedef struct ClientArenaStruct *ClientArena;
 typedef struct ChunkStruct *Chunk;
-typedef struct PageStruct *Page;
 
 
 /* ClientArenaStruct -- Client Arena Structure */
@@ -71,25 +68,6 @@ typedef struct ChunkStruct { /* chunk structure */
   Page pageTable;            /* the page table */
   BT allocTable;             /* page allocated table */
 } ChunkStruct;
-
-
-/* PageStruct -- page structure
- *
- * The page table is lifted entirely from arenavm. See
- * design.mps.arenavm.table.*.
- *
- * .page: The "pool" field must be the first field of the "tail"
- * field of this union.  See design.mps.arena.tract.field.pool.
- */
-
-typedef struct PageStruct {   /* page structure */
-  union {
-    TractStruct tractStruct;  /* tract */
-    struct {
-      Pool pool;              /* NULL, must be first field (.page) */
-    } tail;
-  } the;
-} PageStruct;
 
 
 static Bool ClientTractNext(Tract *tractReturn, Arena arena, Addr addr);
@@ -157,22 +135,6 @@ static Bool ChunkCheck(Chunk chunk)
 
 #define PageBase(chunk, index) \
   AddrAdd((chunk)->pageBase, ((index) << (chunk)->arena->pageShift))
-
-/* PageTract -- tract descriptor of a page */
-
-#define PageTract(page)         (&(page)->the.tractStruct)
-
-/* PageTail -- tail descriptor of a page */
-
-#define PageTail(page)          (&(page)->the.tail)
-
-/* PagePool -- pool field of a page */
-
-#define PagePool(page)          ((page)->the.tail.pool)
-
-/* PageOfTract -- page descriptor from arena tract */
-
-#define PageOfTract(tract)      PARENT(PageStruct, the.tractStruct, tract)
 
 
 /* ChunkPageIndexOfAddr -- base address to page index (within a chunk) 
@@ -380,39 +342,6 @@ static Res ClientArenaExtend(Arena arena, Addr base, Size size)
   clientArena = ArenaClientArena(arena);
   res = ChunkCreate(&chunk, base, limit, clientArena);
   return res;
-}
-
-
-/* ClientArenaRetract -- retract a chunk from the arena
- *
- * Returns ResFAIL if there is no such chunk, or if it exists but is
- * not fully free.
- */
-
-static Res ClientArenaRetract(Arena arena, Addr base, Size size)
-{
-  ClientArena clientArena;
-  Ring node, nextNode;
-  Addr limit;
-  
-  clientArena = ArenaClientArena(arena);
-  AVERT(ClientArena, clientArena);
-  AVER(base != (Addr)0);
-  AVER(size > 0);
-
-  limit = AddrAdd(base, size);
-
-  RING_FOR(node, &clientArena->chunkRing, nextNode) {
-    Chunk chunk = RING_ELT(Chunk, arenaRing, node);
-    AVERT(Chunk, chunk);
-    if ((chunk->base == base) && (chunk->limit == limit)) {
-      /* check that it's empty */
-      if (!BTIsResRange(chunk->allocTable, 0, chunk->pages))
-          return ResFAIL;
-      return ResOK;
-    }
-  }
-  return ResFAIL;       /* no such chunk */
 }
 
 
@@ -830,7 +759,6 @@ DEFINE_ARENA_CLASS(ClientArenaClass, this)
   this->reserved = ClientArenaReserved;
   this->committed = ClientArenaCommitted;
   this->extend = ClientArenaExtend;
-  this->retract = ClientArenaRetract;
   this->isReserved = ClientIsReserved;
   this->alloc = ClientAlloc;
   this->free = ClientFree;
