@@ -1,7 +1,7 @@
 /* impl.h.mpstd: HARLEQUIN MEMORY POOL SYSTEM TARGET DETECTION
  *
- * $HopeName: MMsrc!mpstd.h(MMdevel_sw_eq.5) $
- * Copyright (C) 1996 Harlequin Group, all rights reserved
+ * $HopeName: MMsrc!mpstd.h(MMdevel_sw_eq.6) $
+ * Copyright (C) 1997 Harlequin Group, all rights reserved
  *
  * Detect the target platform using predefined preprocessor symbols
  * defined by the build environment.  The symbols are derived from the
@@ -15,11 +15,14 @@
 #ifndef mpstd_h
 #define mpstd_h
 
-/* Irix 5/6 man cc and man abi. Note that we check for _ABIO32, as os.i5
- * is defined to be the O32 ABI. When we support other ABIs, we need a
- * new OS name for them. */
+/* Irix 5/6 man cc and man abi. We can't check for _ABIO32 (see
+ * os.i5), as we have to support Irix 5.2, which doesn't define it. We
+ * check the value of _MIPS_FPSET, as it is defined across all Irix 5
+ * and 6 platforms, and on Irix 6 distinguishes O32 from the other two
+ * ABIs. When we support the other ABIs, we need a new OS name for
+ * them. See analysis.irix-cpp. */
 
-#if defined(__sgi) && defined(__unix) && defined(__mips) && defined(_SYSTYPE_SVR4) && defined(_ABIO32)
+#if defined(__sgi) && defined(__unix) && defined(__mips) && defined(_SYSTYPE_SVR4) && (_MIPS_FPSET == 16)
 #define MPS_PF_I5R4CC
 #define MPS_OS_I5
 #define MPS_ARCH_R4
@@ -29,9 +32,9 @@
 #define MPS_WORD_SHIFT  5
 #define MPS_PF_ALIGN    8 /* .hack.align */
 
-/* Irix 4 man cc */
+/* Irix 4 man cc. See analysis.irix-cpp */
 
-#elif defined(__sgi) && defined(__unix) && defined(__mips) && defined(_SYSTYPE_SYSV)
+#elif defined(__sgi) && defined(__unix) && defined(__mips) && defined(_SYSTYPE_SYSV) && defined(__SVR3)
 #define MPS_PF_I4R4CC
 #define MPS_OS_I4
 #define MPS_ARCH_R4
@@ -161,6 +164,19 @@
 #define MPS_WORD_SHIFT  5
 #define MPS_PF_ALIGN    8
 
+/* LCC 3.4 (ish), man page */
+
+#elif defined(sun) && defined(sparc) && defined(__LCC__) && \
+      !defined(__svr4__)
+#define MPS_PF_SUSPLC
+#define MPS_OS_SU
+#define MPS_ARCH_SP
+#define MPS_BUILD_LC
+#define MPS_T_WORD      unsigned long
+#define MPS_WORD_WIDTH  32
+#define MPS_WORD_SHIFT  5
+#define MPS_PF_ALIGN    8
+
 /* GCC 2.5.8, gcc -E -dM */
 
 #elif defined(__sun__) && defined(__sparc__) && defined(__GNUC__) && \
@@ -196,6 +212,19 @@
 #define MPS_OS_O1
 #define MPS_ARCH_AL
 #define MPS_BUILD_GC
+#define MPS_T_WORD      unsigned long
+#define MPS_T_SHORT     unsigned
+#define MPS_WORD_WIDTH  64
+#define MPS_WORD_SHIFT  6
+#define MPS_PF_ALIGN    8
+
+/* From the cc(1) man page on schiele */
+
+#elif defined(__osf__) && defined(__alpha) && defined(__DECC)
+#define MPS_PF_O1ALCC
+#define MPS_OS_O1
+#define MPS_ARCH_AL
+#define MPS_BUILD_CC
 #define MPS_T_WORD      unsigned long
 #define MPS_T_SHORT     unsigned
 #define MPS_WORD_WIDTH  64
