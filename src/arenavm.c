@@ -1,42 +1,33 @@
-/* impl.c.arenavm: VIRTUAL MEMORY BASED ARENA IMPLEMENTATION
+/* impl.c.arenavm: VIRTUAL MEMORY ARENA CLASS
  *
- * $HopeName: !arenavm.c(trunk.61) $
- * Copyright (C) 1999.  Harlequin Limited.  All rights reserved.
+ * $HopeName: MMsrc!arenavm.c(MMdevel_pekka_locus.1) $
+ * Copyright (C) 1999 Harlequin Limited.  All rights reserved.
  *
- * PURPOSE
- *
- * This is the implementation of the Tract abstraction from the VM
- * abstraction.  Use of this arena implies use of a VM.  This module
- * implements an Arena Class: The VM Arena Class.
  *
  * DESIGN
  *
  * See design.mps.arena.vm, and design.mps.arena.coop-vm
  *
  *
- * TRANSGRESSIONS
- *
- * .trans.zone-shift: The VM arena pokes around with arena->zoneShift.
- * In fact, the arena implementation really owns this field.
- *
- *
  * IMPROVEMENTS
  *
  * .improve.table.zone-zero: It would be better to make sure that the
  * page tables are in zone zero, since that zone is least useful for
- * GC. (but it would change how VMFindFreeInRefSet avoids allocating
- * over the tables, see .alloc.skip)@@@@
+ * GC.  (But it would change how VMFindFreeInRefSet avoids allocating
+ * over the tables, see .alloc.skip.)
  */
 
 
+#include "boot.h"
+#include "tract.h"
 #include "mpm.h"
 #include "mpsavm.h"
 
-SRCID(arenavm, "$HopeName: !arenavm.c(trunk.61) $");
+SRCID(arenavm, "$HopeName: MMsrc!arenavm.c(MMdevel_pekka_locus.1) $");
 
 
 /* @@@@ Arbitrary calculation for the maximum number of distinct */
-/* object sets for generations. */
+/* object sets for generations.  Should be in config.h. */
 /* .gencount.const: Must be a constant suitable for use as an */
 /* array size. */
 #define VMArenaGenCount ((Count)(MPS_WORD_WIDTH/2))
@@ -323,7 +314,7 @@ static Index indexOfAddr(VMArenaChunk chunk, Addr addr)
 #define PageOfTract(tract)   PARENT(PageStruct, the.tractStruct, (tract))
 
 
-/* PageIsAllocated -- is a page a allocated?
+/* PageIsAllocated -- is a page allocated?
  *
  * See design.mps.arena.vm.table.disc.
  */
@@ -473,148 +464,7 @@ static void VMArenaUnmap(VMArena vmArena, VM vm, Addr base, Addr limit)
 }
 
 
-/* Boot Allocator
- *
- * A structure and associated protocols for allocating memory
- * during the boot sequence.
- *
- * .boot.c: The Boot Allocator is used to allocate C structures
- * for use in this implementation, not client objects.  Therefore
- * we use "C types" (void *, size_t) not "client types" (Addr, Size).
- *
- * .improve.module: Split into separate module? @@@@
- */
-
-#define VMArenaBootSig ((Sig)0x519A6B3B) /* SIGnature ARena VM Boot */
-
-typedef struct VMArenaBootStruct
-{
-  Sig sig;
-  void *base;
-  void *alloc;
-  void *limit;
-} VMArenaBootStruct;
-typedef VMArenaBootStruct *VMArenaBoot;
-
-static Bool VMArenaBootCheck(VMArenaBoot boot)
-{
-  CHECKS(VMArenaBoot, boot);
-  CHECKL(boot->base != NULL);
-  CHECKL(boot->alloc != NULL);
-  CHECKL(boot->limit != NULL);
-  CHECKL(boot->base <= boot->alloc);
-  CHECKL(boot->alloc <= boot->limit);
-  CHECKL(boot->alloc < boot->limit);
-
-  return TRUE;
-}
-
-
-/* VMArenaBootInit 
- *
- * Initializes the BootStruct for later use with BootAlloc.
- *
- * .bootinit.arg.boot: a pointer to the structure to be initialized
- *   (must have been allocated by the caller, probably on the stack).
- * .bootinit.arg.base: a pointer to the base of the memory to be
- *   allocated from (the memory need not be committed) (see .boot.c).
- * .bootinit.arg.limit: a pointer to the limit of the memory to be
- *   allocated from (this is used to check for over-allocation) (see
- *   .boot.c).
- */
-
-static Res VMArenaBootInit(VMArenaBootStruct *boot,
-                           void *base, void *limit)
-{
-  /* Can't check boot as we are supposed to be initializing it */
-  AVER(boot != NULL);
-  AVER(base != NULL);
-  AVER(limit != NULL);
-  AVER(base < limit);
-
-  boot->base = base;
-  boot->alloc = base;
-  boot->limit = limit;
-  boot->sig = VMArenaBootSig;
-
-  AVERT(VMArenaBoot, boot);
-  return ResOK;
-}
-
-static Res VMArenaBootFinish(VMArenaBoot boot)
-{
-  AVERT(VMArenaBoot, boot);
-
-  boot->base = boot->alloc = boot->limit = NULL;
-  boot->sig = SigInvalid;
-
-  return ResOK;
-}
-
-
-/* VMArenaBootAllocated
- *
- * Returns the total amount allocated using this descriptor
- */
-static size_t VMArenaBootAllocated(VMArenaBoot boot)
-{
-  AVERT(VMArenaBoot, boot);
-
-  return PointerOffset(boot->base, boot->alloc);
-}
-
-/* VMArenaBootAlloc
- *
- * A simple allocator used in the Chunk and Arena boot sequences.
- * (It basically just increments a single pointer)
- *
- * Arguments
- *
- * .bootalloc.arg.preturn: The returned pointer, see .boot.c.
- * .bootalloc.arg.boot: must have been initialized with
- * VMArenaBootInit()
- * .bootalloc.arg.size: size of requested object, see .boot.c.
- * .bootalloc.arg.align: required alignment of object, see .boot.c.
- */
-
-static Res VMArenaBootAlloc(void **pReturn, VMArenaBoot boot,
-                            size_t size, size_t align)
-{
-  void *blockBase, *blockLimit;  /* base, limit of candidate block */
-
-  AVER(pReturn != NULL);
-  AVERT(VMArenaBoot, boot);
-  AVER(size > 0);
-  AVER(AlignCheck((Align)align));
-
-  /* Align alloc pointer up and bounds check. */
-  /* There's no PointerAlignUp, so we use AddrAlignUp @@@@ */
-  /* .vm.addr-is-star: In this file, Addr is compatible with C */
-  /* pointers. */
-  blockBase = PointerAlignUp(boot->alloc, align);
-  if(boot->limit <= blockBase || blockBase < boot->alloc) {
-    return ResMEMORY;
-  }
-  blockLimit = PointerAdd(blockBase, size);
-  /* Following checks that the ordering constraint holds: */
-  /* boot->alloc <= blockBase < blockLimit <= boot->limit */
-  /* (if it doesn't hold then something overallocated/wrapped round) */
-  if(blockBase < boot->alloc ||
-     blockLimit <= blockBase ||
-     boot->limit < blockLimit) {
-    return ResMEMORY;
-  }
-
-  /* Fits!  So allocate it */
-  boot->alloc = blockLimit;
-  *pReturn = blockBase;
-  return ResOK;
-}
-
-
 /* VMArenaChunkCreate
- *
- * Arguments
  *
  * Creates a chunk and also allocates a "spare" block of memory (which
  * can be trivial, i.e. 0 size).
@@ -622,20 +472,19 @@ static Res VMArenaBootAlloc(void **pReturn, VMArenaBoot boot,
  * The spare block feature is used by the VMArenaCreate to allocate
  * space for the VMArenaStruct during the boot sequence.
  *
- * .chunkcreate.arg.chunkreturn: chunkReturn, the obvious return
+ * chunkReturn, the obvious return
  *   parameter for the created chunk.
- * .chunkcreate.arg.spareReturn: spareReturn, the return parameter for
+ * spareReturn, the return parameter for
  *   a spare block of memory of at least spareSize (see
  *   .chunkcreate.arg.sparesize below) bytes.
- * .chunkcreate.arg.primary: TRUE iff primary.  Primary chunk contains
- *   arena.
- * .chunkcreate.arg.vmarena: vmArena, the parent VMArena.
- * .chunkcreate.arg.size: size, approximate amount of virtual address
- * that the chunk should reserve.  In practice this will be rounded up
- * to a page size (by the VM).
- * .chunkcreate.arg.sparesize: spareSize, the requested size of a block
- * which should be allocated in the chunk to be used by the caller.
- * Can be specified as 0 to indicate no block desired.
+ * primary: TRUE iff primary chunk
+ * vmArena, the parent VMArena.
+ * size, approximate amount of virtual address
+ *   that the chunk should reserve.  In practice, this will be rounded up
+ *   to a page size (by the VM).
+ * spareSize, the requested size of a block
+ *   which should be allocated in the chunk to be used by the caller.
+ *   Can be specified as 0 to indicate no block desired.
  */
 
 static Res VMArenaChunkCreate(VMArenaChunk *chunkReturn,
@@ -656,8 +505,8 @@ static Res VMArenaChunkCreate(VMArenaChunk *chunkReturn,
   Size ullageSize;
   Size vmSize;
   VM vm;
-  VMArenaBootStruct bootStruct;
-  VMArenaBoot boot = &bootStruct;
+  BootBlockStruct bootStruct;
+  BootBlock boot = &bootStruct;
   VMArenaChunk chunk;
   void *p;
   void *spare = NULL;
@@ -692,47 +541,40 @@ static Res VMArenaChunkCreate(VMArenaChunk *chunkReturn,
   /* Allocate and map the descriptor and tables (comprising the ullage) */
   /* See design.mps.arena.coop-vm.chunk.create.tables */
 
-  res = VMArenaBootInit(boot,
-                        (void *)VMBase(vm),
-                        (void *)VMLimit(vm));
+  res = BootBlockInit(boot, (void *)VMBase(vm), (void *)VMLimit(vm));
   if(res != ResOK)
     goto failBootInit;
 
-  res = VMArenaBootAlloc(&p, boot,
-                         sizeof(VMArenaChunkStruct), MPS_PF_ALIGN);
+  res = BootAlloc(&p, boot, sizeof(VMArenaChunkStruct), MPS_PF_ALIGN);
   if(res != ResOK)
     goto failAllocChunk;
   chunk = p;  /* chunk now allocated, but not initialised */
   if(spareSize != 0) {
-    res = VMArenaBootAlloc(&p, boot, spareSize, MPS_PF_ALIGN);
+    res = BootAlloc(&p, boot, spareSize, MPS_PF_ALIGN);
     if(res != ResOK)
       goto failAllocSpare;
     spare = p;
   }
-  res = VMArenaBootAlloc(&p, boot,
-                         (size_t)BTSize(pages), MPS_PF_ALIGN);
+  res = BootAlloc(&p, boot, (size_t)BTSize(pages), MPS_PF_ALIGN);
   if(res != ResOK)
     goto failAllocTable;
   allocTable = p;
-  res = VMArenaBootAlloc(&p, boot,
-                         (size_t)BTSize(pageTablePages), MPS_PF_ALIGN);
+  res = BootAlloc(&p, boot, (size_t)BTSize(pageTablePages),
+                  MPS_PF_ALIGN);
   if(res != ResOK)
     goto failPageTableMapped;
   pageTableMapped = p;
-  res = VMArenaBootAlloc(&p, boot,
-                         (size_t)BTSize(pageTablePages), MPS_PF_ALIGN);
+  res = BootAlloc(&p, boot, (size_t)BTSize(pageTablePages),
+                  MPS_PF_ALIGN);
   if(res != ResOK)
     goto failNoLatentPages;
   noLatentPages = p;
-  res = VMArenaBootAlloc(&p, boot,
-                         (size_t)pageTableSize, (size_t)pageSize);
+  res = BootAlloc(&p, boot, (size_t)pageTableSize, (size_t)pageSize);
   if(res != ResOK)
     goto failAllocPageTable;
   pageTable = p;
-  ullageSize = VMArenaBootAllocated(boot);
-  res = VMArenaBootFinish(boot);
-  if(res != ResOK)
-    goto failBootFinish;
+  ullageSize = BootAllocated(boot);
+  BootBlockFinish(boot);
 
   /* Actually commit the necessary addresses. */
   /* design.mps.arena.coop-vm.chunk.create.tables.map */
@@ -787,7 +629,6 @@ static Res VMArenaChunkCreate(VMArenaChunk *chunkReturn,
   return ResOK;
 
 failTableMap:
-failBootFinish:
 failAllocPageTable:
 failNoLatentPages:
 failPageTableMapped:
@@ -1403,27 +1244,27 @@ static Serial vmGenOfSegPref(VMArena vmArena, SegPref pref)
   return gen;
 }
 
+
 /* VMRegionFind
  *
  * Finds space for the pages (note it does not create or allocate any
  * pages).
  *
- * .vmfind.arg.basereturn: return parameter for the index in the
+ * basereturn: return parameter for the index in the
  *   chunk's page table of the base of the free area found.
- * .vmfind.arg.chunkreturn: return parameter for the chunk in which
+ * chunkreturn: return parameter for the chunk in which
  *   the free space has been found.
- * .vmfind.arg.vmarena:
- * .vmfind.arg.pref: the SegPref object to be used when considering
+ * pref: the SegPref object to be used when considering
  *   which zones to try.
- * .vmfind.arg.size: Size to find space for.
- * .vmfind.arg.barge: TRUE iff stealing space in zones used
+ * size: Size to find space for.
+ * barge: TRUE iff stealing space in zones used
  *   by other SegPrefs should be considered (if it's FALSE then only
  * zones already used by this segpref or free zones will be used).
  */
 
 static Bool VMRegionFind(Index *baseReturn, VMArenaChunk *chunkReturn,
-                      VMArena vmArena, SegPref pref, Size size,
-                      Bool barge)
+                         VMArena vmArena, SegPref pref, Size size,
+                         Bool barge)
 {
   RefSet refSet;
 
@@ -1506,11 +1347,11 @@ static Bool VMRegionFind(Index *baseReturn, VMArenaChunk *chunkReturn,
   return FALSE;
 }
 
+
 /* VMExtend -- Extend the arena by making a new chunk
  *
- * .extend.arg.vmarena: vmArena.  The VMArena obviously.
- * .extend.arg.size: size.  size of region that we wish
- *   to allocate after the extension.
+ * The size arg specifies how much we wish to allocate after the
+ * extension.
  */
 
 static Res VMExtend(VMArena vmArena, Size size)
