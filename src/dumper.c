@@ -2,7 +2,7 @@
  *
  *                   TEST DATABASE DUMPER
  *
- *  $HopeName: MMsrc!dumper.c(MMdevel_protoposm_1.2) $
+ *  $HopeName: MMsrc!dumper.c(MMdevel_protoposm_1.3) $
  *
  *  Copyright (C) 1995 Harlequin Group, all rights reserved
  *
@@ -159,7 +159,7 @@ static void dump_data_chuck(PoolPSChunk chunk, Shield shield, PoolPS poolps,
 
   ShieldLeave(shield);
 
-  seg = db_GetChunkSegment(chunk);
+  seg = chunk_GetSegment(chunk);
   size = ArenaSegSize(arena, seg);
   limit = seg + size;
   /* @@@@ should be disk page size */
@@ -222,12 +222,12 @@ static void old_dump_chunks(database_t *db, PoolPS poolps, FILE *fp)
 
 fprintf(stderr,"\n\n****** old_dump_chunks %x\n",(int) i);
 
-    if (db_GetChunkIdentity(chunk) != kUndefinedChunk)
+    if (chunk_GetIdentity(chunk) != kUndefinedChunk)
       fprintf(fp, "\nDISK  CHUNK %6lX", i);
-    switch(db_GetChunkIdentity(chunk))
+    switch(chunk_GetIdentity(chunk))
     {
     case kDataChunk:
-      if (db_GetChunkState(chunk) != PoolPSChunkStateFREE)
+      if (chunk_GetState(chunk) != PoolPSChunkStateFREE)
 	dump_data_chuck(chunk,shield,poolps,arena,fp);
       break;
     case kControlChunk:
@@ -299,7 +299,7 @@ static void dump_db_cluster_table (database_t *db, PoolPS poolps, FILE *fp,
 {
   int size;
   int fillPointer;
-  int buffCount;
+  int buffCount = 0;  
   char *ct_buffer;
   fileClusterTable_t* ct;
   int		readStatus;
