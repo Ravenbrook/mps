@@ -1,6 +1,6 @@
 /* impl.h.mpm: MEMORY POOL MANAGER DEFINITIONS
  *
- * $HopeName: !mpm.h(trunk.23) $
+ * $HopeName: MMsrc!mpm.h(MMdevel_lint.1) $
  * Copyright (C) 1996,1997 Harlequin Group, all rights reserved.
  */
 
@@ -181,8 +181,13 @@ extern Ring (RingNext)(Ring ring);
 #define RingNext(ring)  ((ring)->next)
 
 /* .ring.elt: */
+#ifdef LCLINT
+#define RING_ELT(type, field, node) \
+  PARENT(type, field, node)
+#else
 #define RING_ELT(type, field, node) \
    ((type)((char *)(node) - (size_t)(&((type)0)->field)))
+#endif
 
 /* .ring.for */
 #define RING_FOR(var, ring) \
