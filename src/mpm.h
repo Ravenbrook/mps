@@ -1,6 +1,6 @@
 /* impl.h.mpm: MEMORY POOL MANAGER DEFINITIONS
  *
- * $HopeName: MMsrc!mpm.h(MMdevel_event.2) $
+ * $HopeName: MMsrc!mpm.h(MMdevel_event.3) $
  * Copyright (C) 1996 Harlequin Group, all rights reserved.
  */
 
@@ -10,6 +10,7 @@
 #include "mpmconf.h"
 #include "mpmtypes.h"
 #include "mpmst.h"
+#include "event.h"
 #include "lock.h"
 #include "th.h"
 #include "poolmv.h"
@@ -32,18 +33,6 @@
 #define AVER(cond)              NOCHECK(cond)
 #define AVERT(type, val)        NOCHECK(type ## Check(val))
 #endif
-
-
-/* EVENT -- event annotation and logging */
-
-extern Res EventEnter(EventType type, Size length, ...);
-extern Res EventFlush(void);
-#define EVENT0(type)			EventEnter(Event ## type, 0)
-#define EVENT1(type, p0)		EventEnter(Event ## type, 1, p0)
-#define EVENT2(type, p0, p1)		EventEnter(Event ## type, 2, p0, p1)
-#define EVENT3(type, p0, p1, p2)	EventEnter(Event ## type, 3, p0, p1, p2)
-#define EVENT4(type, p0, p1, p2, p3)	EventEnter(Event ## type, 4, p0, p1, p2, p3)
-#define EVENT5(type, p0, p1, p2, p3, p4) EventEnter(Event ## type, 5, p0, p1, p2, p3, p4)
 
 
 /* MPMCheck -- check MPM assumptions */

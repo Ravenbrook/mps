@@ -1,6 +1,6 @@
 /* impl.c.event: EVENT LOGGING
  *
- * $HopeName: MMsrc!event.c(MMdevel_event.1) $
+ * $HopeName: MMsrc!event.c(MMdevel_event.2) $
  * Copyright (C) 1996 Harlequin Group, all rights reserved.
  *
  * .readership: MPS developers.
@@ -8,46 +8,70 @@
  *
  * TRANSGRESSIONS (rule.impl.trans)
  *
- * There's no way this meets requirments yet.
+ * The reference counting used to destroy the mps_io object isn't right.
+ * The log file will be re-created if the lifetimes of spaces don't
+ * overlap, but shared if they do.
  */
 
 #include "mpm.h"
+#include "event.h"
 #include "mpsio.h"
 
-SRCID(event, "$HopeName: MMsrc!event.c(MMdevel_event.1) $");
-
-#define EVENT_BUFFER		(size_t)4096
+SRCID(event, "$HopeName: MMsrc!event.c(MMdevel_event.2) $");
 
 static Bool eventInited = FALSE;
 static mps_io_t eventIO;
-static Word eventBuffer[EVENT_BUFFER];
-static Word *eventBase, *eventInit, *eventLimit;
+static Word eventBuffer[EVENT_BUFFER_SIZE];
+static unsigned eventUserCount;
 
-static void EventReset(void)
-{
-  AVER(eventInited);
-  eventBase = &eventBuffer[0];
-  eventInit = eventBase;
-  eventLimit = &eventBuffer[EVENT_BUFFER];
-  eventInit[0] = EventEVENT_TIME;
-  eventInit[1] = (Word)mps_clock();
-  eventInit = eventInit + 2;
-}
+Word *EventNext, *EventLimit;
 
-Res EventFlush(void)
+static Res EventFlush(void)
 {
   Res res;
   
   AVER(eventInited);
 
-  res = (Res)mps_io_flush(eventIO,
-                          (void *)eventBase,
-                          (char *)eventInit - (char *)eventBase);
+  res = (Res)mps_io_write(eventIO,
+                          (void *)eventBuffer,
+                          (char *)EventNext - (char *)eventBuffer);
   if(res != ResOK) return res;
 
-  EventReset();
+  EventNext = eventBuffer;
 
   return ResOK;
+}
+
+Res EventInit(void)
+{
+  Res res;
+
+  /* Initialize the event system if this is the first call. */
+  if(!eventInited) {
+    AVER(EventNext == 0);
+    AVER(EventLimit == 0);
+    res = (Res)mps_io_create(&eventIO);
+    if(res != ResOK) return res;
+    EventNext = eventBuffer;
+    EventLimit = &eventBuffer[EVENT_BUFFER_SIZE];
+    eventUserCount = 0;
+    eventInited = TRUE;
+  }
+
+  ++eventUserCount;
+
+  return ResOK;
+}
+
+void EventFinish(void)
+{
+  AVER(eventInited);
+  AVER(eventUserCount > 0);
+  
+  (void)EventFlush();
+  (void)mps_io_flush(eventIO);
+
+  --eventUserCount;
 }
 
 Res EventEnter(EventType type, Size length, ...)
@@ -57,34 +81,29 @@ Res EventEnter(EventType type, Size length, ...)
   Word *alloc;
   Size i, size;
 
-  size = length + 2;                  /* include header and timestamp */
+  AVER(eventInited);
 
-  AVER(size < EVENT_BUFFER);          /* @@@@ assumes event will fit in buffer */
+  size = length + 2;                  /* Include header and timestamp. */
 
-  if(!eventInited) {
-    res = (Res)mps_io_create(&eventIO);
-    if(res != ResOK) return res;
-    eventInited = TRUE;
-    EventReset();
-  }
+  AVER(size < EVENT_BUFFER_SIZE);     /* Events must fit in buffer. */
 
-  alloc = eventInit + size;
+  alloc = EventNext + size;
 
-  if(alloc > eventLimit) {
+  if(alloc > EventLimit) {
     res = EventFlush();
     if(res != ResOK) return res;
-    alloc = eventInit + size;
+    alloc = EventNext + size;
   }
 
-  AVER(alloc <= eventLimit);
+  AVER(alloc <= EventLimit);
 
-  eventInit[0] = type | (length << 16);
-  eventInit[1] = (Word)mps_clock();
+  EventNext[0] = type | (length << 16);
+  EventNext[1] = (Word)mps_clock();
   va_start(args, length);
   for(i=0; i<length; ++i)
-    eventInit[i+2] = va_arg(args, Word);
+    EventNext[i+2] = va_arg(args, Word);
   va_end(args);
-  eventInit = alloc;
+  EventNext = alloc;
   
   return ResOK;
 }
