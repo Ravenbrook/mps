@@ -1,6 +1,6 @@
 /* impl.h.mpm: MEMORY POOL MANAGER DEFINITIONS
  *
- * $HopeName: MMsrc!mpm.h(MMdevel_lint.1) $
+ * $HopeName: MMsrc!mpm.h(MMdevel_lint.2) $
  * Copyright (C) 1996,1997 Harlequin Group, all rights reserved.
  */
 
@@ -178,7 +178,11 @@ extern void (RingRemove)(Ring old);
 
 /* .ring.next: */
 extern Ring (RingNext)(Ring ring);
+#ifdef LCLINT
+#define RingNext(ring)  (((Ring)ring)->next)
+#else
 #define RingNext(ring)  ((ring)->next)
+#endif
 
 /* .ring.elt: */
 #ifdef LCLINT
@@ -240,7 +244,11 @@ extern Bool PoolCheck(Pool pool);
 extern Res PoolDescribe(Pool pool, mps_lib_FILE *stream);
 
 extern Space (PoolSpace)(Pool pool);
+#ifdef LCLINT
+#define PoolSpace(pool)         (((Pool)pool)->space)
+#else
 #define PoolSpace(pool)         ((pool)->space)
+#endif
 
 extern Align (PoolAlignment)(Pool pool);
 #define PoolAlignment(pool)     ((pool)->alignment)
