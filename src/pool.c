@@ -1,6 +1,6 @@
 /* impl.c.pool: POOL IMPLEMENTATION
  *
- * $HopeName: MMsrc!pool.c(MMdevel_action2.2) $
+ * $HopeName: MMsrc!pool.c(MMdevel_action2.3) $
  * Copyright (C) 1994,1995,1996 Harlequin Group, all rights reserved
  *
  * This is the implementation of the generic pool interface.  The
@@ -12,7 +12,7 @@
 
 #include "mpm.h"
 
-SRCID(pool, "$HopeName: MMsrc!pool.c(MMdevel_action2.2) $");
+SRCID(pool, "$HopeName: MMsrc!pool.c(MMdevel_action2.3) $");
 
 
 Bool PoolClassCheck(PoolClass class)
@@ -241,13 +241,14 @@ void PoolFree(Pool pool, Addr old, Size size)
   (*pool->class->free)(pool, old, size);
 }
 
-Res PoolCondemn(RefSet *whiteReturn, Pool pool, Trace trace)
+Res PoolCondemn(Pool pool, Trace trace, Seg seg)
 {  
-  AVER(whiteReturn != NULL);
   AVERT(Pool, pool);
   AVERT(Trace, trace);
+  AVERT(Seg, seg);
   AVER(pool->space == trace->space);
-  return (*pool->class->condemn)(whiteReturn, pool, trace);
+  AVER(seg->pool == pool);
+  return (*pool->class->condemn)(pool, trace, seg);
 }
 
 void PoolGrey(Pool pool, Trace trace)
@@ -462,32 +463,34 @@ void PoolTrivFree(Pool pool, Addr old, Size size)
   NOOP;                         /* trivial free has no effect */
 }
 
-Res PoolNoBufferInit(Pool pool, Buffer buf)
+Res PoolNoBufferInit(Pool pool, Buffer buffer)
 {
   AVERT(Pool, pool);
+  UNUSED(buffer);
   NOTREACHED;
   return ResUNIMPL;
 }
 
 /* The generic method initialised all generic fields; */
 /* This doesn't override any fields */
-Res PoolTrivBufferInit(Pool pool, Buffer buf)
+Res PoolTrivBufferInit(Pool pool, Buffer buffer)
 {
   AVERT(Pool, pool);
+  UNUSED(buffer);
   return ResOK;
 }
 
-void PoolNoBufferFinish(Pool pool, Buffer buf)
+void PoolNoBufferFinish(Pool pool, Buffer buffer)
 {
   AVERT(Pool, pool);
-  AVERT(Buffer, buf);
+  AVERT(Buffer, buffer);
   NOTREACHED;
 }
 
-void PoolTrivBufferFinish(Pool pool, Buffer buf)
+void PoolTrivBufferFinish(Pool pool, Buffer buffer)
 {
   AVERT(Pool, pool);
-  AVERT(Buffer, buf);
+  AVERT(Buffer, buffer);
   NOOP;
 }
 
@@ -540,11 +543,11 @@ Res PoolTrivDescribe(Pool pool, mps_lib_FILE *stream)
   return WriteF(stream, "  No class-specific description available.\n", NULL);
 }
 
-Res PoolNoCondemn(RefSet *whiteReturn, Pool pool, Trace trace)
+Res PoolNoCondemn(Pool pool, Trace trace, Seg seg)
 {
-  AVER(whiteReturn != NULL);
   AVERT(Pool, pool);
   AVERT(Trace, trace);
+  AVERT(Seg, seg);
   NOTREACHED;
   return ResUNIMPL;
 }
@@ -586,5 +589,6 @@ void PoolNoAccess(Pool pool, Seg seg, AccessSet mode)
 {
   AVERT(Pool, pool);
   AVERT(Seg, seg);
+  UNUSED(mode);
   NOTREACHED;
 }

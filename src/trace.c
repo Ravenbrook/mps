@@ -1,11 +1,11 @@
 /* impl.c.trace: GENERIC TRACER IMPLEMENTATION
  *
- * $HopeName: MMsrc!trace.c(MMdevel_action2.6) $
+ * $HopeName: MMsrc!trace.c(MMdevel_action2.7) $
  */
 
 #include "mpm.h"
 
-SRCID(trace, "$HopeName: MMsrc!trace.c(MMdevel_action2.6) $");
+SRCID(trace, "$HopeName: MMsrc!trace.c(MMdevel_action2.7) $");
 
 Bool ScanStateCheck(ScanState ss)
 {
@@ -118,31 +118,90 @@ void TraceDestroy(Trace trace)
 Res TraceStart(Trace trace, Pool pool)
 {
   Res res;
-  RefSet white;
   Ring ring, node;
   Space space;
 
   AVERT(Trace, trace);
   AVERT(Pool, pool);
-
+  AVER((pool->class->attr & AttrGC) != 0);
   AVER(trace->state == TraceINIT);
   AVER(trace->white == RefSetEMPTY);
 
-  res = PoolCondemn(&white, pool, trace);
-  if(res != ResOK) return res;
+  /* Identify the condemned set and turn it white. */
+  space = trace->space;
+  ring = PoolSegRing(pool);
+  node = RingNext(ring);
+  while(node != ring) {
+    Ring next = RingNext(node);
+    Seg seg = RING_ELT(Seg, poolRing, node);
 
-  /* @@@@ This should go in the pool. */
-  trace->white = white;
+    res = PoolCondemn(pool, trace, seg);
+    if(res != ResOK) {
+      /* @@@@ Ought to unwind. */
+      return res;
+    }
+
+    /* Add the segment to the white set if it's now white. */
+    if(seg->white == trace->ti)
+      trace->white = RefSetUnion(trace->white, RefSetOfSeg(space, seg));
+
+    node = next;
+  }
 
   /* If there is nothing white then there can be nothing grey, */
   /* so everything is black and we can proceed straight to */
   /* reclaim.  We have to reclaim because we want to guarantee */
   /* to the pool that for every condemn there will be a reclaim. */
+  /* @@@@ We can also shortcut if there is nothing grey. */
   /* @@@@ This should be in design. */
   if(trace->white == RefSetEMPTY) {
     trace->state = TraceRECLAIM;
     return ResOK;
   }
+
+#if 0
+  /* Turn everything else grey. */
+
+  /* @@@@ Instead of iterating over all the segments, we could */
+  /* iterate over all pools which are scannable and thence over */
+  /* all their segments.  This might be better if the minority */
+  /* of segments are scannable.  Perhaps we should choose */
+  /* dynamically which method to use. */
+
+  seg = SegFirst(space);
+  while(seg != NULL) {
+    /* Segments should start out black w.r.t. the trace. */
+    /* i.e. the reference partition is (B, 0, 0). */
+    AVER(seg->white == TraceIdNONE);
+    AVER(!TraceSetIsMember(seg->grey, trace->ti));
+
+    /* A segment can only be grey if it contains some references. */
+    /* This is indicated by the rank not being RankNONE.  Such */
+    /* segments may only belong to scannable pools. */
+    if(seg->rank != RankNONE) {
+      AVER((seg->pool->class->attr & AttrSCAN) != 0);
+      seg->grey = TraceSetAdd(seg->grey, trace->ti);
+
+      /* @@@@ This should be calculated by comparing colour */
+      /* with the mutator colour.  For the moment we assume */
+      /* a read-barrier collector. */
+      ShieldRaise(space, seg, AccessREAD | AccessWRITE);
+    }
+
+    /* If the segment belongs to the condemned pool (later, to */
+    /* the condemned action) then allow the pool to make it */
+    /* white. */
+    if(seg->pool == pool) {
+      res = PoolCondemn(pool, trace, seg);
+      if(res != ResOK) goto failCondemn;
+    }
+
+
+    seg = SegNext(space, seg);
+  }
+
+  /* @@@@ Refine here. */
+#endif /* 0 */
 
   /* Grey all the roots and pools. */
   /* @@@@ This will iterate over all segments, greying them, and */
