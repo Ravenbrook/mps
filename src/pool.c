@@ -1,6 +1,6 @@
 /* impl.c.pool: POOL IMPLEMENTATION
  *
- * $HopeName: !pool.c(trunk.67) $
+ * $HopeName: MMsrc!pool.c(MMdevel_alloc_replay.1) $
  * Copyright (C) 1997, 1999 Harlequin Group plc.  All rights reserved.
  *
  * READERSHIP
@@ -37,7 +37,7 @@
 
 #include "mpm.h"
 
-SRCID(pool, "$HopeName: !pool.c(trunk.67) $");
+SRCID(pool, "$HopeName: MMsrc!pool.c(MMdevel_alloc_replay.1) $");
 
 
 Bool PoolClassCheck(PoolClass class)
@@ -172,8 +172,6 @@ Res PoolInitV(Pool pool, Arena arena,
 
   /* Add initialized pool to list of pools in arena. */
   RingAppend(ArenaPoolRing(arena), &pool->arenaRing);
-
-  EVENT_PPP(PoolInit, pool, arena, class);
 
   return ResOK;
 
