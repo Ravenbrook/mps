@@ -18,12 +18,6 @@
 #error "protan.c is ANSI specific, but ANSI_VM is not set"
 #endif
 
-/*
- * Sane handler_t
- */
- 
-typedef void (*handler_t)(int, char*);
-
 /*  == Protection Granularity ==
  *
  *  The granularity of protection is one page under SunOS.
@@ -34,12 +28,8 @@ Addr ProtGrain(void)
   return(VMGrain());
 }
 
-
-/* Pointer to the previously-installed signal handler, as returned by */
-/* signal(3).  See ProtSetup. */
-
-static handler_t sigNext = NULL;
 static Bool fault_pending = FALSE;
+static Bool in_progress = FALSE;
 
 
 /*  == Protection Signal Handler ==
@@ -86,26 +76,9 @@ static void sigHandle(int sig, char *addr)
   /* The exception was not handled by any known protection structure, */
   /* so throw it to the previously installed handler. */
 
-  (*sigNext)(sig, addr);
-}
-
-
-/*  == Default Signal Handler ==
- *
- *  This is a signal handler used as sigNext if the previous handler
- *  returned by signal(3) was SIG_DFL.  It does its best to get to
- *  the default handler, which will probably dump core.
- */
-
-static void sigDefault(int sig, char *addr)
-{
-  UNUSED(sig);
-  UNUSED(addr);
-
-  (void)signal(SIGSEGV, SIG_DFL);
-  raise(SIGSEGV);
   NOTREACHED;
 }
+
 
 
 /*  == Global Protection Setup ==
@@ -124,14 +97,7 @@ static void sigDefault(int sig, char *addr)
 
 void ProtSetup(void)
 {
-  _Sigfun* next;
 
-  next = signal(SIGSEGV, (_Sigfun*)sigHandle);
-
-  if(next == SIG_DFL)           /* suicide function */
-    sigNext = sigDefault;
-  else if(sigNext != sigHandle) /* already installed? */
-    sigNext = (handler_t)next;
 }
 
 
@@ -145,32 +111,16 @@ void ProtSet(Addr base, Addr limit, ProtMode mode)
 #ifdef DEBUG_ASSERT
   Addr grain = ProtGrain();
 #endif
-  int flags;
 
-/* What are this INT checks for? */
-/*  AVER(sizeof(int) == sizeof(Addr)); */
   AVER(base < limit);
   AVER(base != 0);
-/*  AVER((limit - base) <= INT_MAX);	/* should be redundant */
   AVER(IsAligned(grain, base));
   AVER(IsAligned(grain, limit));
 
-  /*
-  flags = PROT_READ | PROT_WRITE | PROT_EXEC;
-  if((mode & ProtREAD) != 0)
-    flags &= ~PROT_READ;
-  if((mode & ProtWRITE) != 0)
-    flags &= ~PROT_WRITE;
-   */
-   
   /* Just handle it now please! */
   if (mode != ProtNONE)
     fault_pending |= TRUE;
 
-  /*
-  if(mprotect((caddr_t)base, (int)(limit - base), flags) != 0)
-    NOTREACHED;
-   */
 }
 
 
@@ -212,12 +162,15 @@ void ProtShieldLeave(Space space)
 {
   AVER(ISVALID(Space, space));
 
-  if (fault_pending != FALSE) {
+  /* So, hack me:  touch all protected pages when you leave, but don't recurse */
+  while (fault_pending != FALSE  && in_progress == FALSE) {
      Arena arena = SpaceArena(space);
      
      fault_pending = FALSE;
+     in_progress = TRUE;
      /* @@@ brute force */
      ArenaMapSegs(arena, mapFn, (Env)arena);
+     in_progress = FALSE;
   }
   /* Since we don't know how to give per-thread access */
   ThreadDequeResume(SpaceThreadDeque(space));
