@@ -1,6 +1,6 @@
 /* impl.c.poolamc: AUTOMATIC MOSTLY-COPYING MEMORY POOL CLASS
  *
- * $HopeName: MMsrc!poolamc.c(MMdevel_ramp_alloc.2) $
+ * $HopeName: MMsrc!poolamc.c(MMdevel_ramp_alloc.3) $
  * Copyright (C) 1998.  Harlequin Group plc.  All rights reserved.
  *
  * .sources: design.mps.poolamc.
@@ -10,7 +10,7 @@
 #include "mpscamc.h"
 #include "mpm.h"
 
-SRCID(poolamc, "$HopeName: MMsrc!poolamc.c(MMdevel_ramp_alloc.2) $");
+SRCID(poolamc, "$HopeName: MMsrc!poolamc.c(MMdevel_ramp_alloc.3) $");
 
 
 /* Binary i/f used by ASG (drj 1998-06-11) */
@@ -126,7 +126,6 @@ typedef struct AMCStruct {      /* design.mps.poolamc.struct */
   RankSet rankSet;              /* rankSet for entire pool */
   RingStruct genRing;           /* ring of generations */
   AMCGen nursery;               /* the default mutator generation */
-  AMCGen beforeRampGen;         /* the generation before rampGen */
   AMCGen rampGen;               /* the ramp generation */
   AMCGen afterRampGen;          /* the generation after rampGen */
   unsigned rampCount;           /* see .ramp.hack */
@@ -239,8 +238,6 @@ static Res AMCGenCreate(AMCGen *genReturn, AMC amc, Serial genNum)
   AVERT(AMCGen, gen);
 
   RingAppend(&amc->genRing, &gen->amcRing);
-  if(genNum == AMCRampGenFollows)
-    amc->beforeRampGen = gen;
   if(genNum == AMCRampGenFollows + 1)
     amc->afterRampGen = gen;
   if(genNum == AMCRampGen)
@@ -456,7 +453,6 @@ static Res AMCInitComm(Pool pool, RankSet rankSet, va_list arg)
   /* nursery gets created later in this function. */
   amc->nursery = NULL;
   /* The other generations get created when only needed. */
-  amc->beforeRampGen = NULL;
   amc->rampGen = NULL; amc->afterRampGen = NULL;
 
   amc->rampCount = 0; amc->rampMode = outsideRamp;
@@ -837,8 +833,13 @@ static Res AMCWhiten(Pool pool, Trace trace, Seg seg)
     amc->rampMode = ramping;
   } else
     if(amc->rampMode == finishRamp && gen->serial == AMCRampGenFollows) {
-      BufferDetach(amc->beforeRampGen->forward, pool);
-      AMCBufferSetGen(amc->beforeRampGen->forward, amc->afterRampGen);
+      if(amc->afterRampGen == NULL) {
+        res = AMCGenCreate(&newGen, amc, AMCRampGenFollows + 1);
+        if(res != ResOK)
+          return res;
+      }
+      BufferDetach(gen->forward, pool);
+      AMCBufferSetGen(gen->forward, amc->afterRampGen);
       AVER(amc->rampGen != NULL);
       BufferDetach(amc->rampGen->forward, pool);
       AMCBufferSetGen(amc->rampGen->forward, amc->afterRampGen);
@@ -851,6 +852,10 @@ static Res AMCWhiten(Pool pool, Trace trace, Seg seg)
       /* top generation forwards into itself */
       AMCBufferSetGen(gen->forward, gen);
     } else {
+      /* Because we switch when condemning AMCRampGenFollows, the gen */
+      /* that AMCRampGen is set to forward into must already exist */
+      /* when we come to condemn it. */
+      AVER(gen->serial != AMCRampGen);
       res = AMCGenCreate(&newGen, amc, gen->serial + 1);
       if(res != ResOK)
         return res;
