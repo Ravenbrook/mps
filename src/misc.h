@@ -1,6 +1,6 @@
 /* impl.h.misc: MISCELLANEOUS DEFINITIONS
  *
- * $HopeName: !misc.h(trunk.22) $
+ * $HopeName: MMsrc!misc.h(MMdevel_ptw_pseudoloci.1) $
  * Copyright (C) 1997. Harlequin Group plc. All rights reserved.
  *
  * Small general things which are useful for C but aren't part of the
@@ -129,8 +129,9 @@ typedef const struct SrcIdStruct {
 #define BS_EMPTY(ty)            ((ty)0)
 #define BS_COMP(s)              (~(s))
 #define BS_UNIV(ty)             BS_COMP(BS_EMPTY(ty))
+#define BS_SIZE(ty)             (sizeof(ty) * CHAR_BIT)
 #define BS_UPPER_HALF(ty)       ((ty)(BS_UNIV(ty) \
-                                      << (sizeof(ty) * CHAR_BIT / 2)))
+                                      << (BS_SIZE(ty) / 2)))
 #define BS_SINGLE(ty, i)        ((ty)1 << (i))
 #define BS_IS_MEMBER(s, i)      (((s) >> (i)) & 1)
 #define BS_UNION(s1, s2)        ((s1) | (s2))
