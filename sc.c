@@ -611,29 +611,35 @@ static state_t state_create(void)
   size_t i;
   mps_res_t res;
   mps_arena_t arena;
-  mps_pool_t pool;
+  mps_pool_t state_pool, obj_pool;
 
   /* What on earth is 64<<20? */
   res = mps_arena_create(&arena, mps_arena_class_vm(), 64<<20);
   if(res != MPS_RES_OK)
     goto fail_arena;
 
+  obj_pool = create_pool(arena);
+  if(obj_pool == NULL)
+    goto fail_pool;
+
   /* What do these parameters mean? */
-  res = mps_pool_create(&pool, arena, mps_class_mv(), HEAP, HEAP, HEAP);
+  res = mps_pool_create(&state_pool, arena, mps_class_mv(),
+                        sizeof(state_s), sizeof(state_s), sizeof(state_s));
   if(res != MPS_RES_OK)
     goto fail_pool;
-  
-  res = mps_alloc(&p, pool, sizeof(state_s));
+
+  res = mps_alloc(&p, state_pool, sizeof(state_s));
   if(res != MPS_RES_OK)
     goto fail_state;
   state = (state_t)p;
 
-  res = mps_alloc(&heap, pool, HEAP);
+  res = mps_alloc(&heap, state_pool, HEAP);
   if(res != MPS_RES_OK)
     goto fail_heap;
 
   state->arena = arena;
-  state->pool = pool;
+  state->state_pool = state_pool;
+  state->obj_pool = obj_pool;
 
   state->trace = 0;		/* don't trace by default */
   state->heap_checking = 0;	/* don't heap check by default */
@@ -674,9 +680,9 @@ static state_t state_create(void)
   return state;
 
 fail_heap:
-  mps_free(pool, state, sizeof(state_s));
+  mps_free(state_pool, state, sizeof(state_s)); /* @@@@ won't pool_destroy do this? */
 fail_state:
-  mps_pool_destroy(pool);
+  mps_pool_destroy(state_pool); /* @@@@ won't arena_destroy do this? */
 fail_pool:
   mps_arena_destroy(arena);
 fail_arena:

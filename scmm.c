@@ -10,6 +10,8 @@
  */
 
 #include "sc.h"
+#include "mps.h"
+#include "mpscamc.h"
 
 #include <stddef.h>
 #include <stdlib.h>
@@ -332,7 +334,7 @@ extern void gc(state_t state, size_t size)
     (void)fprintf(stdout, "gc new size %lub\n", state->heap_size);
   }
 
-  res = mps_alloc(&p, state->pool, state->heap_size);
+  res = mps_alloc(&p, state->state_pool, state->heap_size);
   if(res != MPS_RES_OK) {
     (void)fprintf(stdout, "Can't allocate new heap.\n");
     exit(EXIT_FAILURE);
@@ -360,7 +362,7 @@ extern void gc(state_t state, size_t size)
 #ifdef GC_CHECKING
   memset(state->old_base, 0xF5, old_size);
 #endif
-  mps_free(state->pool, state->old_base, old_size);
+  mps_free(state->state_pool, state->old_base, old_size);
 
 #ifdef GC_CHECKING
   heap_check(state);
@@ -403,4 +405,217 @@ extern obj_t alloc(state_t state, size_t size)
   COUNT(GC_ALLOC);
 
   return obj;
+}
+
+
+/* MPS format */
+
+#define TYPE_PAD        ((type_t)0x21BEBADD)
+
+typedef struct pad_s {
+  header_s header;      /* @@@@ too big if AGE_STATS defined? */
+  size_t size;
+} pad_s;
+  
+
+/* Copied from <mps/version/1.105/manual/reference/index.html#mps_fmt_scan_t> */
+
+static mps_res_t my_scan(mps_ss_t ss, mps_addr_t base, mps_addr_t limit)
+{
+  mps_res_t res;
+  mps_addr_t next;
+
+  MPS_SCAN_BEGIN(ss) {
+    next = base;
+    while(next < limit) {
+      obj_t obj = (obj_t)next;
+      size_t size;
+
+      switch(TYPE(obj)) {
+      case TYPE_INTEGER:
+        size = sizeof(integer_s);
+        break;
+    
+      case TYPE_SPECIAL:
+        size = sizeof(special_s);
+        break;
+    
+      case TYPE_INPORT:
+      case TYPE_OUTPORT:
+        size = sizeof(port_s);
+        break;
+    
+      case TYPE_CHARACTER:
+        size = sizeof(character_s);
+        break;
+    
+      case TYPE_SYMBOL:
+        size = offsetof(symbol_s, string[obj->symbol.length + 1]);
+        break;
+    
+      case TYPE_STRING:
+        size = offsetof(string_s, string[obj->string.length + 1]);
+        break;
+    
+      case TYPE_PROC:
+        {
+          size_t i, regs = obj->proc.regs;
+          res = MPS_FIX12(ss, (mps_addr_t *)&obj->proc.name);
+          if(res != MPS_RES_OK) return res;
+          res = MPS_FIX12(ss, (mps_addr_t *)&obj->proc.cont);
+          if(res != MPS_RES_OK) return res;
+          for(i = 0; i < regs; ++i) {
+            res = MPS_FIX12(ss, (mps_addr_t *)&obj->proc.locs[i]);
+            if(res != MPS_RES_OK) return res;
+          }
+          size = offsetof(proc_s, locs[regs]);
+        }
+        break;
+    
+      case TYPE_PAIR:
+        res = MPS_FIX12(ss, (mps_addr_t *)&obj->pair.car);
+        if(res != MPS_RES_OK) return res;
+        res = MPS_FIX12(ss, (mps_addr_t *)&obj->pair.cdr);
+        if(res != MPS_RES_OK) return res;
+        size = sizeof(pair_s);
+        break;
+    
+      case TYPE_EXCEPTION:
+        res = MPS_FIX12(ss, (mps_addr_t *)&obj->exception.object);
+        if(res != MPS_RES_OK) return res;
+        size = sizeof(exception_s);
+        break;
+    
+      case TYPE_VECTOR:
+        {
+          veclen_t i, length = VECLEN(obj);
+          for(i = 0; i < length; ++i) {
+            res = MPS_FIX12(ss, (mps_addr_t *)&obj->vector.elements[i]);
+            if(res != MPS_RES_OK) return res;
+          }
+          size = offsetof(vector_s, elements[length]);
+        }
+        break;
+    
+      /* The scan function shouldn't be applied to forwarding */
+      /* pointers, because they should only exist in from-space. */
+      case TYPE_FORWARD:
+        ASSERT(0);
+        break;
+
+      case TYPE_PAD:
+        size = ((pad_s *)obj)->size;
+        break;
+    
+      default:			/* unknown object type */
+        ASSERT(0);
+#ifdef NDEBUG                   /* avoids "never executed" warning */
+        (void)fprintf(stderr,
+                      "\n*** GC discovered corrupt heap during scanning.  "
+                      "Object at 0x%lx has unknown type 0x%lX.\n",
+                      (ulong)obj, (ulong)TYPE(obj));
+        abort();
+#endif
+      }
+
+      next = (mps_addr_t)((ulong)obj + ALIGN_UP(size));
+    }
+  } MPS_SCAN_END(ss);
+
+  return MPS_RES_OK;
+}
+
+static size_t my_size(mps_addr_t base)
+{
+  obj_t obj = (obj_t)base;
+  if(TYPE(obj) == TYPE_PAD)
+    return ((pad_s *)obj)->size;
+  else
+    return obj_size(obj);
+}
+
+static mps_addr_t my_skip(mps_addr_t base)
+{
+  return (mps_addr_t)((ulong)base + my_size(base));
+}
+
+static void my_copy(mps_addr_t old, mps_addr_t new)
+{
+  size_t size = obj_size((obj_t)old);
+  memcpy(new, old, size);
+}
+
+static void my_fwd(mps_addr_t old, mps_addr_t new)
+{
+  obj_t obj = (obj_t)old;
+  TYPE(obj) = TYPE_FORWARD;
+  obj->forward.object = (obj_t)new;
+}
+
+static mps_addr_t my_isfwd(mps_addr_t base)
+{
+  obj_t obj = (obj_t)base;
+  if(TYPE(obj) == TYPE_FORWARD)
+    return obj->forward.object;
+  else
+    return NULL;
+}
+
+static void my_pad(mps_addr_t base, size_t size)
+{
+  obj_t obj = (obj_t)base;
+  ASSERT(size >= sizeof(header_s));     /* @@@@ what if AGE_STATS defined? */
+  TYPE(obj) = TYPE_PAD;
+  ((pad_s *)obj)->size = size;
+}
+
+
+/* Copied from <mps/version/1.105/manual/reference/index.html#mps_fmt_A_s> */
+
+static mps_fmt_t create_format(mps_arena_t arena)
+{
+  mps_fmt_t my_format;
+  mps_res_t res;
+  mps_fmt_A_s my_format_A = {
+    8, /* @@@@ */
+    &my_scan,
+    &my_skip,
+    &my_copy,
+    &my_fwd,
+    &my_isfwd,
+    &my_pad
+  };
+
+  res = mps_fmt_create_A(&my_format, arena, &my_format_A);
+  if(res != MPS_RES_OK)
+    return NULL;
+
+  return my_format;
+}
+
+extern mps_pool_t create_pool(mps_arena_t arena)
+{
+  mps_pool_t pool;
+  mps_fmt_t format;
+  mps_res_t res;
+  mps_chain_t chain;
+  static mps_gen_param_s testChain[] = {
+    { 6000, 0.90 }, { 8000, 0.65 }, { 16000, 0.50 } };
+  
+  format = create_format(arena);
+  if(format == NULL)
+    return NULL;
+  
+  res = mps_chain_create(&chain,
+                         arena,
+                         sizeof(testChain) / sizeof(testChain[0]),
+                         testChain);
+  if(res != MPS_RES_OK)
+    return NULL;
+
+  res = mps_pool_create(&pool, arena, mps_class_amc(), format, chain);
+  if(res != MPS_RES_OK)
+    return NULL;
+
+  return pool;
 }

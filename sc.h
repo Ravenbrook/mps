@@ -298,7 +298,7 @@ typedef struct state_s {
 
   /* MPS integration */
   mps_arena_t arena;
-  mps_pool_t pool;
+  mps_pool_t state_pool, obj_pool;
 
   /* Procedures
    *
@@ -1073,6 +1073,7 @@ extern void define_entry(state_t);
 extern void heap_check(state_t);
 extern void gc(state_t, size_t);
 extern void stats(state_t, void *, void *);
+extern mps_pool_t create_pool(mps_arena_t);
 
 
 extern void intern(state_t);
