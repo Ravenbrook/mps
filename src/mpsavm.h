@@ -1,6 +1,6 @@
 /* impl.h.mpsavm: MEMORY POOL SYSTEM ARENA CLASS "VM"
  *
- * $HopeName: MMsrc!mpsavm.h(MMdevel_config_thread.1) $
+ * $HopeName: !mpsavm.h(trunk.2) $
  * Copyright (C) 1997 The Harlequin Group.  All rights reserved.
  */
 
