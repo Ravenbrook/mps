@@ -1,6 +1,6 @@
 /*  impl.c.poolmv2ss: POOLMV2 STRESS TEST
  *
- * $HopeName: MMsrc!mv2test.c(MMdevel_gavinm_splay.3) $
+ * $HopeName: MMsrc!mv2test.c(MMdevel_gavinm_splay.4) $
  * Copyright (C) 1998. Harlequin Group plc. All rights reserved.
  */
 
@@ -181,8 +181,8 @@ static size_t randomSize(int i)
 
 
 #define testArenaSIZE   ((size_t)64<<20)
-#define TEST_SET_SIZE 800
-#define TEST_LOOPS 50
+#define TEST_SET_SIZE 1234
+#define TEST_LOOPS 27
 
 static mps_res_t make(mps_addr_t *p, mps_ap_t ap, size_t size)
 {
@@ -292,13 +292,14 @@ int main(void)
 
   min = 8;
   mean = 42;
-  max = testArenaSIZE/(TEST_SET_SIZE/4);
+  max = 8192;
   
   die(stress(mps_class_mv2(), arena, randomSize,
-             min,         /* min_size */
-             mean,        /* median_size */
-             max,      /* maximum_size */
-             (mps_count_t)8000  /* reserve_depth */
+             min,               /* min_size */
+             mean,              /* median_size */
+             max,               /* maximum_size */
+             (mps_count_t)TEST_SET_SIZE/2, /* reserve_depth */
+             30                 /* fragmentation_limit */
              ),
       "stress MV2");
 
