@@ -1,6 +1,6 @@
 /* impl.c.poolams: AUTOMATIC MARK & SWEEP POOL CLASS
  *
- * $HopeName: MMsrc!poolams.c(MMdevel_pekka_rate.3) $
+ * $HopeName: MMsrc!poolams.c(MMdevel_pekka_rate.4) $
  * Copyright (C) 1998.  Harlequin Group plc.  All rights reserved.
  * 
  * .readership: any MPS developer.
@@ -26,7 +26,7 @@
 #include "mpm.h"
 #include <stdarg.h>
 
-SRCID(poolams, "$HopeName: MMsrc!poolams.c(MMdevel_pekka_rate.3) $");
+SRCID(poolams, "$HopeName: MMsrc!poolams.c(MMdevel_pekka_rate.4) $");
 
 
 #define AMSSig          ((Sig)0x519A3599) /* SIGnature AMS */
@@ -433,8 +433,8 @@ Res AMSBufferFill(Seg *segReturn, Addr *baseReturn, Addr *limitReturn,
   AVER(size > 0);
   AVER(SizeIsAligned(size, PoolAlignment(pool)));
 
-  ring = (ams->allocRing)(ams, rankSet, size);
   rankSet = BufferRankSet(buffer);
+  ring = (ams->allocRing)(ams, rankSet, size);
 
   /* design.mps.poolams.fill.slow */
   RING_FOR(node, ring, nextNode) {
@@ -984,6 +984,7 @@ Res AMSGroupDescribe(AMSGroup group, mps_lib_FILE *stream)
   Index i;
 
   if(!CHECKT(AMSGroup, group)) return ResFAIL;
+  if(stream == NULL) return ResFAIL;
 
   seg = group->seg;
   buffer = SegBuffer(seg);
