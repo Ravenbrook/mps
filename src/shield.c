@@ -1,6 +1,6 @@
 /* impl.c.shield: SHIELD IMPLEMENTATION
  *
- * $HopeName: !shield.c(trunk.8) $
+ * $HopeName: MMsrc!shield.c(MMdevel_shieldclass.1) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  *
  * See: idea.shield, design.mps.shield.
@@ -73,7 +73,49 @@
 
 #include "mpm.h"
 
-SRCID(shield, "$HopeName: !shield.c(trunk.8) $");
+SRCID(shield, "$HopeName: MMsrc!shield.c(MMdevel_shieldclass.1) $");
+
+
+Bool ShieldCheck(Shield shield)
+{
+  CHECKL(shield != NULL);
+  /* @@@@ what else? */
+  return TRUE;
+}
+
+
+Bool ShieldClassCheck(ShieldClass class)
+{
+  CHECKS(ShieldClass, class);
+  CHECKL(FUNCHECK(class->protect));
+  CHECKL(class->endSig == ShieldClassSig);
+  return TRUE;
+}
+
+
+void ShieldInit(Shield shield)
+{
+  AVER(shield != NULL);
+
+  shield->_protectionMode = AccessSetEMPTY;
+  shield->_shieldMode = AccessSetEMPTY;
+  shield->_depth = 0;
+
+  AVERT(Shield, shield);
+}
+
+
+void ShieldFinish(Shield shield)
+{
+  AVERT(Shield, shield);
+
+  /* Check that the thing is not exposed, or in the shield */
+  /* cache (see .def.depth). */
+  AVER(shield->_depth == 0);
+
+  AVER(shield->_protectionMode == AccessSetEMPTY);
+  AVER(shield->_shieldMode == AccessSetEMPTY);
+}
 
 
 void ShieldSuspend(Arena arena)
@@ -98,103 +140,121 @@ void ShieldResume(Arena arena)
 }
 
 /* This ensures actual prot mode does not include mode */
-static void protLower(Arena arena, Seg seg, AccessSet mode)
+static void protLower(Shield shield, ShieldClass class,
+                      Arena arena, AccessSet mode)
 {
   AVERT(Arena, arena);
-  AVERT(Seg, seg);
+  AVERT(Shield, shield);
+  AVERT(ShieldClass, class);
 
-  if(SegPM(seg) & mode) {
-    SegSetPM(seg, SegPM(seg) & ~mode);
-    ProtSet(SegBase(arena, seg), SegLimit(arena, seg), SegPM(seg));
+  if(shield->_protectionMode & mode) {
+    shield->_protectionMode &= ~mode;
+    (*class->protect)(shield, shield->_protectionMode);
   }
 }
 
-static void sync(Arena arena, Seg seg)
+static void sync(Arena arena, Shield shield, ShieldClass class)
 {
   AVERT(Arena, arena);
-  AVERT(Seg, seg);
+  AVERT(Shield, shield);
+  AVERT(ShieldClass, class);
 
-  if(SegPM(seg) != SegSM(seg)) {
-    ProtSet(SegBase(arena, seg), SegLimit(arena, seg), SegSM(seg));
-    SegSetPM(seg, SegSM(seg));
-    /* inv.prot.shield */
+  if(shield->_protectionMode != shield->_shieldMode) {
+    (*class->protect)(shield, shield->_shieldMode);
+    shield->_protectionMode = shield->_shieldMode;
+    /* .inv.prot.shield */
   }
 }
 
 static void flush(Arena arena, Size i)
 {
-  Seg seg;
+  Shield shield;
+  ShieldClass class;
+
   AVERT(Arena, arena);
   AVER(i < SHIELD_CACHE_SIZE);
 
-  seg = arena->shCache[i];
-  if(seg == (Seg)0) return;
-  AVERT(Seg, seg);
+  shield = arena->shCache[i].shield;
+  class = arena->shCache[i].class;
+  if(shield != NULL) {
+    AVERT(Shield, shield);
+    AVERT(ShieldClass, class);
 
-  AVER(arena->shDepth > 0);
-  AVER(SegDepth(seg) > 0);
-  --arena->shDepth;
-  SegSetDepth(seg, SegDepth(seg) - 1);
-  
-  if(SegDepth(seg) == 0)
-    sync(arena, seg);
+    AVER(arena->shDepth > 0);
+    AVER(shield->_depth > 0);
+    --arena->shDepth;
+    --shield->_depth;
+    
+    if(shield->_depth == 0)
+      sync(arena, shield, class);
 
-  arena->shCache[i] = (Seg)0;
+    arena->shCache[i].shield = NULL;
+    arena->shCache[i].class = NULL;
+  } else
+    AVER(class == NULL);
 }
 
 /* If the segment is out of sync, either sync it, or ensure
  * depth > 0, and the arena is suspended.
  */
-static void cache(Arena arena, Seg seg)
+static void cache(Arena arena, Shield shield, ShieldClass class)
 {
   AVERT(Arena, arena);
-  AVERT(Seg, seg);
+  AVERT(Shield, shield);
+  AVERT(ShieldClass, class);
 
-  if(SegSM(seg) == SegPM(seg)) return;
-  if(SegDepth(seg) > 0) {
-    ShieldSuspend(arena);
-    return;
-  }
-  if(SHIELD_CACHE_SIZE == 0 || !arena->suspended)
-    sync(arena, seg);
-  else {
-    SegSetDepth(seg, SegDepth(seg) + 1);
-    ++arena->shDepth;
-    AVER(arena->shDepth > 0);
-    AVER(SegDepth(seg) > 0);
-    AVER(arena->shCacheI < SHIELD_CACHE_SIZE);
-    flush(arena, arena->shCacheI);
-    arena->shCache[arena->shCacheI] = seg;
-    ++arena->shCacheI;
-    if(arena->shCacheI == SHIELD_CACHE_SIZE)
-      arena->shCacheI = 0;
+  if(shield->_shieldMode != shield->_protectionMode) {
+    if(shield->_depth > 0)
+      ShieldSuspend(arena);
+    else if(SHIELD_CACHE_SIZE == 0 || !arena->suspended)
+      sync(arena, shield, class);
+    else {
+      ++shield->_depth;
+      ++arena->shDepth;
+
+      AVER(arena->shDepth > 0);
+      AVER(shield->_depth > 0); /* check for overflow */
+      AVER(arena->shCacheI < SHIELD_CACHE_SIZE);
+
+      flush(arena, arena->shCacheI);
+      arena->shCache[arena->shCacheI].shield = shield;
+      arena->shCache[arena->shCacheI].class = class;
+      ++arena->shCacheI;
+      if(arena->shCacheI == SHIELD_CACHE_SIZE)
+	arena->shCacheI = 0;
+    }
   }
 }
 
-void ShieldRaise(Arena arena, Seg seg, AccessSet mode)
+void ShieldRaise(Shield shield, ShieldClass class,
+                 Arena arena, AccessSet mode)
 {
   AVERT(Arena, arena);
-  AVERT(Seg, seg);
+  AVERT(Shield, shield);
+  AVERT(ShieldClass, class);
 
-  AVER((SegSM(seg) & mode) == AccessSetEMPTY);
-  SegSetSM(seg, SegSM(seg) | mode); /* inv.prot.shield preserved */
+  AVER((shield->_shieldMode & mode) == AccessSetEMPTY);
+  shield->_shieldMode |= mode; /* .inv.prot.shield preserved */
 
-  /* ensure inv.unsynced.suspended & inv.unsynced.depth */
-  cache(arena, seg);
+  /* ensure .inv.unsynced.suspended and .inv.unsynced.depth */
+  cache(arena, shield, class);
 }
 
-void ShieldLower(Arena arena, Seg seg, AccessSet mode)
+void ShieldLower(Shield shield, ShieldClass class,
+                 Arena arena, AccessSet mode)
 {
   AVERT(Arena, arena);
-  AVERT(Seg, seg);
+  AVERT(Shield, shield);
+  AVERT(ShieldClass, class);
+  UNUSED(arena);
 
-  AVER((SegSM(seg) & mode) == mode);
-  /* synced(seg) is not changed by the following
-   * preserving inv.unsynced.suspended
-   * Also inv.prot.shield preserved
-   */
-  SegSetSM(seg, SegSM(seg) & ~mode);
-  protLower(arena, seg, mode);
+  AVER((shield->_shieldMode & mode) == mode);
+
+  /* synced(seg) is not changed by the following */
+  /* preserving .inv.unsynced.suspended */
+  /* Also .inv.prot.shield preserved */
+  shield->_shieldMode &= ~mode;
+  protLower(shield, class, arena, mode);
 }
 
 void ShieldEnter(Arena arena)
@@ -206,8 +266,10 @@ void ShieldEnter(Arena arena)
   AVER(arena->shDepth == 0);
   AVER(!arena->suspended);
   AVER(arena->shCacheI < SHIELD_CACHE_SIZE);
-  for(i = 0; i < SHIELD_CACHE_SIZE; i++)
-    AVER(arena->shCache[i] == (Seg)0);
+  for(i = 0; i < SHIELD_CACHE_SIZE; i++) {
+    AVER(arena->shCache[i].shield == NULL);
+    AVER(arena->shCache[i].class == NULL);
+  }
 
   arena->insideShield = TRUE;
 }
@@ -233,7 +295,7 @@ void ShieldLeave(Arena arena)
   AVER(arena->insideShield);
 
   ShieldFlush(arena);
-  /* Cache is empty so inv.outside.depth holds */
+  /* Cache is empty so .inv.outside.depth holds */
   AVER(arena->shDepth == 0);
 
   /* Ensuring the mutator is running at this point
@@ -246,34 +308,38 @@ void ShieldLeave(Arena arena)
 }
 
 
-void ShieldExpose(Arena arena, Seg seg)
+void ShieldExpose(Shield shield, ShieldClass class, Arena arena)
 {
   AccessSet mode = AccessREAD | AccessWRITE;
+
   AVERT(Arena, arena);
+  AVERT(Shield, shield);
+  AVERT(ShieldClass, class);
   AVER(arena->insideShield);
 
-  SegSetDepth(seg, SegDepth(seg) + 1);
+  ++shield->_depth;
   ++arena->shDepth;
   AVER(arena->shDepth > 0);
-  AVER(SegDepth(seg) > 0);
-  if(SegPM(seg) & mode)
+  AVER(shield->_depth > 0); /* check for overflow */
+  if(shield->_protectionMode & mode)
     ShieldSuspend(arena);
 
   /* This ensures inv.expose.prot */
-  protLower(arena, seg, mode);
+  protLower(shield, class, arena, mode);
 }
 
-void ShieldCover(Arena arena, Seg seg)
+void ShieldCover(Shield shield, ShieldClass class, Arena arena)
 {
   AVERT(Arena, arena);
-  AVERT(Seg, seg);
-  AVER(SegPM(seg) == AccessSetEMPTY);
+  AVERT(Shield, shield);
+  AVERT(ShieldClass, class);
+  AVER(shield->_protectionMode == AccessSetEMPTY);
 
   AVER(arena->shDepth > 0);
-  AVER(SegDepth(seg) > 0);
-  SegSetDepth(seg, SegDepth(seg) - 1);
+  AVER(shield->_depth > 0);
+  --shield->_depth;
   --arena->shDepth;
 
   /* ensure inv.unsynced.depth */
-  cache(arena, seg);
+  cache(arena, shield, class);
 }

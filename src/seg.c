@@ -1,6 +1,6 @@
 /* impl.c.seg: SEGMENTS
  *
- * $HopeName: !seg.c(trunk.6) $
+ * $HopeName: MMsrc!seg.c(MMdevel_shieldclass.1) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  *
  * .design: The design for this module is design.mps.seg.
@@ -16,7 +16,7 @@
 
 #include "mpm.h"
 
-SRCID(seg, "$HopeName: !seg.c(trunk.6) $");
+SRCID(seg, "$HopeName: MMsrc!seg.c(MMdevel_shieldclass.1) $");
 
 
 /* SegCheck -- check the integrity of a segment */
@@ -51,8 +51,7 @@ Bool SegCheck(Seg seg)
     /* in the segment then it cannot contain black or grey refs. */
     CHECKL(seg->_grey == TraceSetEMPTY);
     CHECKL(seg->_summary == RefSetEMPTY);
-    CHECKL(seg->_sm == AccessSetEMPTY);
-    CHECKL(seg->_pm == AccessSetEMPTY);
+    CHECKL(ShieldMode(&seg->_shieldStruct) == AccessSetEMPTY);
   } else {
     /* design.mps.seg.field.rankSet.single: The Tracer only permits */
     /* one rank per segment [ref?] so this field is either empty or a */
@@ -90,9 +89,7 @@ void SegInit(Seg seg, Pool pool)
   seg->_buffer = NULL;
   RingInit(&seg->_poolRing);
   RingInit(&seg->_greyRing);
-  seg->_pm = AccessSetEMPTY;
-  seg->_sm = AccessSetEMPTY;
-  seg->_depth = 0;
+  ShieldInit(&seg->_shieldStruct);
   seg->_single = FALSE;
 
   AVERT(Seg, seg);
@@ -107,15 +104,11 @@ void SegFinish(Seg seg)
 {
   AVERT(Seg, seg);
 
-  /* Check that the segment is not exposed, or in the shield */
-  /* cache (see impl.c.shield.def.depth). */
-  AVER(seg->_depth == 0);
-  
-  /* Don't leave a dangling buffer allocating into hyperspace. */
-  AVER(seg->_buffer == NULL);
-
   /* See impl.c.shield.shield.flush */
   ShieldFlush(PoolArena(seg->_pool));
+
+  /* Don't leave a dangling buffer allocating into hyperspace. */
+  AVER(seg->_buffer == NULL);
 
   RingRemove(SegPoolRing(seg));
 
@@ -125,8 +118,58 @@ void SegFinish(Seg seg)
   if(seg->_grey != TraceSetEMPTY)
     RingRemove(&seg->_greyRing);
 
+  ShieldFinish(&seg->_shieldStruct);
   RingFinish(&seg->_poolRing);
   RingFinish(&seg->_greyRing);
+}
+
+
+static void SegShieldProtect(Shield shield, AccessSet mode)
+{
+  Seg seg;
+  Arena arena;
+
+  AVERT(Shield, shield);
+
+  seg = PARENT(SegStruct, _shieldStruct, shield);
+  arena = PoolArena(seg->_pool);
+  ProtSet(SegBase(arena, seg), SegLimit(arena, seg), mode);
+}
+
+
+static ShieldClassStruct segShieldClass = {
+  ShieldClassSig,
+  SegShieldProtect,
+  ShieldClassSig
+};
+
+
+void SegShieldRaise(Seg seg, AccessSet mode)
+{
+  AVERT(Seg, seg);
+  ShieldRaise(&seg->_shieldStruct, &segShieldClass,
+              PoolArena(seg->_pool), mode);
+}
+
+void SegShieldLower(Seg seg, AccessSet mode)
+{
+  AVERT(Seg, seg);
+  ShieldLower(&seg->_shieldStruct, &segShieldClass,
+              PoolArena(seg->_pool), mode);
+}
+
+void SegShieldExpose(Seg seg)
+{
+  AVERT(Seg, seg);
+  ShieldExpose(&seg->_shieldStruct, &segShieldClass,
+               PoolArena(seg->_pool));
+}
+
+void SegShieldCover(Seg seg)
+{
+  AVERT(Seg, seg);
+  ShieldCover(&seg->_shieldStruct, &segShieldClass,
+              PoolArena(seg->_pool));
 }
 
 
@@ -142,11 +185,9 @@ void SegFinish(Seg seg)
 void SegSetSummary(Seg seg, RefSet summary)
 {
   RefSet oldSummary;
-  Arena arena;
 
   AVERT(Seg, seg);
 
-  arena = PoolArena(seg->_pool);
   oldSummary = seg->_summary;
   seg->_summary = summary;
 
@@ -155,10 +196,10 @@ void SegSetSummary(Seg seg, RefSet summary)
   /* Note: !RefSetSuper is a test for a strict subset */
   if(!RefSetSuper(summary, RefSetUNIV)) {
     if(RefSetSuper(oldSummary, RefSetUNIV))
-      ShieldRaise(arena, seg, AccessWRITE);
+      SegShieldRaise(seg, AccessWRITE);
   } else {
     if(!RefSetSuper(oldSummary, RefSetUNIV))
-      ShieldLower(arena, seg, AccessWRITE);
+      SegShieldLower(seg, AccessWRITE);
   }
 }
 
@@ -208,10 +249,10 @@ void SegSetGrey(Seg seg, TraceSet grey)
   flippedTraces = arena->flippedTraces;
   if(TraceSetInter(oldGrey, flippedTraces) == TraceSetEMPTY) {
     if(TraceSetInter(grey, flippedTraces) != TraceSetEMPTY)
-      ShieldRaise(arena, seg, AccessREAD);
+      SegShieldRaise(seg, AccessREAD);
   } else {
     if(TraceSetInter(grey, flippedTraces) == TraceSetEMPTY)
-      ShieldLower(arena, seg, AccessREAD);
+      SegShieldLower(seg, AccessREAD);
   }
 
   EVENT_PPU(SegSetGrey, arena, seg, grey);
@@ -247,12 +288,12 @@ void SegSetRankSet(Seg seg, RankSet rankSet)
   if(oldRankSet == RankSetEMPTY) {
     if(rankSet != RankSetEMPTY) {
       AVER(seg->_summary == RefSetEMPTY);
-      ShieldRaise(arena, seg, AccessWRITE);
+      SegShieldRaise(seg, AccessWRITE);
     }
   } else {
     if(rankSet == RankSetEMPTY) {
       AVER(seg->_summary == RefSetEMPTY);
-      ShieldLower(arena, seg, AccessWRITE);
+      SegShieldLower(seg, AccessWRITE);
     }
   }
 }

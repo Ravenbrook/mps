@@ -1,12 +1,12 @@
 /* impl.c.trace: GENERIC TRACER IMPLEMENTATION
  *
- * $HopeName: !trace.c(trunk.41) $
+ * $HopeName: MMsrc!trace.c(MMdevel_shieldclass.1) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  */
 
 #include "mpm.h"
 
-SRCID(trace, "$HopeName: !trace.c(trunk.41) $");
+SRCID(trace, "$HopeName: MMsrc!trace.c(MMdevel_shieldclass.1) $");
 
 
 /* ScanStateCheck -- check consistency of a ScanState object */
@@ -430,7 +430,7 @@ static Res TraceFlip(Trace trace)
       if(TraceSetInter(SegGrey(seg),
                        arena->flippedTraces) == TraceSetEMPTY &&
          TraceSetIsMember(SegGrey(seg), trace->ti))
-        ShieldRaise(arena, seg, AccessREAD);
+        SegShieldRaise(seg, AccessREAD);
     }
 
   /* @@@@ When write barrier collection is implemented, this is where */
@@ -607,7 +607,7 @@ static Res TraceScan(TraceSet ts, Rank rank,
   AVERT(ScanState, &ss);
 
   /* Expose the segment to make sure we can scan it. */
-  ShieldExpose(arena, seg);
+  SegShieldExpose(seg);
 
   res = PoolScan(&ss, SegPool(seg), seg);
   if(res != ResOK)
@@ -626,12 +626,12 @@ static Res TraceScan(TraceSet ts, Rank rank,
   SegSetGrey(seg, TraceSetDiff(SegGrey(seg), ts));
 
   /* Cover the segment again, now it's been scanned. */
-  ShieldCover(arena, seg);
+  SegShieldCover(seg);
 
   return ResOK;
 
 failScan:
-  ShieldCover(arena, seg);
+  SegShieldCover(seg);
   return res;
 }
 
