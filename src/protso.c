@@ -1,14 +1,19 @@
-/*  impl.c.protso
+/*  impl.c.protso: PROTECTION FOR SOLARIS
  *
- *                  PROTECTION FOR Solaris
+ *  $HopeName: MMsrc!protso.c(MMdevel_config_thread.1) $
  *
- *  $HopeName: !protso.c(trunk.4) $
- *
- *  Copyright (C) 1995 Harlequin Group, all rights reserved
+ *  Copyright (C) 1995,1997 Harlequin Group, all rights reserved
  *
  */
 
 #include "mpm.h"
+
+#ifndef MPS_OS_SO
+#error "protso.c is Solaris specific, but MPS_OS_SO is not set"
+#endif
+#ifndef PROTECTION
+#error "protso.c implements protection, but PROTECTION is not set"
+#endif
 
 /* open sesame magic */
 #define _POSIX_SOURCE
@@ -21,11 +26,7 @@
 #include <siginfo.h>
 #include <sys/mman.h>
 
-#ifndef MPS_OS_SO
-#error "protso.c is Solaris specific, but MPS_OS_SO is not set"
-#endif
-
-SRCID(protso, "$HopeName: !protso.c(trunk.4) $");
+SRCID(protso, "$HopeName: MMsrc!protso.c(MMdevel_config_thread.1) $");
 
 /* Fix up unprototyped system calls.  */
 /* Note that these are not fixed up by std.h because that only fixes */
@@ -48,14 +49,13 @@ extern int kill(pid_t, int);
 #define NSIGSEGV        2
 
 
-
 /* The previously-installed signal action, as returned by */
 /* sigaction(3).  See ProtSetup. */
 
 static struct sigaction sigNext;
 
 
-/*  == Protection Signal Handler ==
+/* sigHandle -- protection signal handler
  *
  *  This is the signal handler installed by ProtSetup to deal with
  *  protection faults.  It is installed on the SIGSEGV signal.
@@ -109,7 +109,7 @@ static void sigHandle(int sig, siginfo_t *info, void *context)
 }
 
 
-/*  == Global Protection Setup ==
+/*  ProtSetup -- global protection setup
  *
  *  Under Solaris, the global setup involves installing a signal handler
  *  on SIGSEGV to catch and handle protection faults (see sigHandle).
@@ -136,9 +136,9 @@ void ProtSetup(void)
 }
 
 
-/*  == Set Protection ==
+/* ProtSet -- set protection
  *
- *  This is just a thin veneer on top of mprotect(2).
+ * This is just a thin veneer on top of mprotect(2).
  */
 
 void ProtSet(Addr base, Addr limit, AccessSet mode)
@@ -173,19 +173,20 @@ void ProtSync(Space space)
 
 
 
-/*  == Protection Trampoline ==
+/* ProtTramp -- protection trampoline
  *
- *  The protection trampoline is trivial under Solaris, as there is nothing
- *  that needs to be done in the dynamic context of the mutator in order
- *  to catch faults.  (Contrast this with Win32 Structured Exception
- *  Handling.)
+ * The protection trampoline is trivial under Solaris, as there is nothing
+ * that needs to be done in the dynamic context of the mutator in order
+ * to catch faults.  (Contrast this with Win32 Structured Exception
+ * Handling.)
  */
 
 void ProtTramp(void **resultReturn, void *(*f)(void *, size_t),
                void *p, size_t s)
 {
-  AVER(f != NULL);
   AVER(resultReturn != NULL);
+  AVER(FUNCHECK(f));
+  /* Can't check p and s as they are interpreted by the client */
 
   *resultReturn = (*f)(p, s);
 }
