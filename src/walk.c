@@ -1,6 +1,6 @@
 /* impl.c.walk: OBJECT WALKER
  *
- * $HopeName: MMsrc!walk.c(MMdevel_tony_sunset.1) $
+ * $HopeName: MMsrc!walk.c(MMdevel_tony_sunset.2) $
  * Copyright (C) 1998. Harlequin Group plc. All rights reserved.
  *
  * .readership: Any MPS developer
@@ -11,7 +11,7 @@
 #include "mpm.h"
 #include "mps.h"
 
-SRCID(walk, "$HopeName: MMsrc!walk.c(MMdevel_tony_sunset.1) $");
+SRCID(walk, "$HopeName: MMsrc!walk.c(MMdevel_tony_sunset.2) $");
 
 
 
@@ -22,12 +22,14 @@ SRCID(walk, "$HopeName: MMsrc!walk.c(MMdevel_tony_sunset.1) $");
 #define FormattedObjectsStepClosureSig ((Sig)0x519F05C1)
 
 typedef struct FormattedObjectsStepClosureStruct *FormattedObjectsStepClosure;
+
 typedef struct FormattedObjectsStepClosureStruct {
   Sig sig;
   mps_formatted_objects_stepper_t f;
   void *p;
   size_t s;
 } FormattedObjectsStepClosureStruct;
+
 
 static Bool FormattedObjectsStepClosureCheck(FormattedObjectsStepClosure c)
 {
@@ -52,7 +54,12 @@ static void ArenaFormattedObjectsStep(Addr object, Format format, Pool pool,
           c->p, c->s);
 }
 
-/* so called because it walk all formatted objects in an arena */
+
+/* ArenaFormattedObjectsWalk -- iterate over all objects
+ *
+ * so called because it walks all formatted objects in an arena 
+ */
+
 static void ArenaFormattedObjectsWalk(Arena arena,
                                       FormattedObjectsStepMethod f,
                                           void *p, Size s)
@@ -86,6 +93,12 @@ static void ArenaFormattedObjectsWalk(Arena arena,
     } while(SegNext(&seg, arena, base));
   }
 }
+
+
+/* mps_arena_formatted_objects_walk -- iterate over all objects
+ *
+ * Client interface to ArenaFormattedObjectsWalk
+ */
 
 void mps_arena_formatted_objects_walk(mps_arena_t mps_arena,
                                       mps_formatted_objects_stepper_t f,
@@ -140,7 +153,10 @@ void mps_arena_formatted_objects_walk(mps_arena_t mps_arena,
  */
 
 
-/* Define RootsStepClosure as a subclass of ScanState */
+/* RootsStepClosure -- closure environment for root walker
+ *
+ * Defined as a subclass of ScanState 
+ */
 
 /* SIGnature Roots Step CLOsure */
 #define RootsStepClosureSig ((Sig)0x51965C10)  
@@ -181,7 +197,12 @@ static RootsStepClosure ScanStateRootsStepClosure(ScanState ss)
   return PARENT(RootsStepClosureStruct, ssStruct, ss);
 }
 
-/* Initialize a RootsStepClosure, including the parent ScanState */
+
+/* RootsStepClosureInit -- Initialize a RootsStepClosure
+ *
+ * Initialize the parent ScanState too.
+ */
+
 static void RootsStepClosureInit(RootsStepClosure rsc, 
                                  Arena arena,
                                  Trace trace,
@@ -217,7 +238,12 @@ static void RootsStepClosureInit(RootsStepClosure rsc,
   AVERT(RootsStepClosure, rsc);
 }
 
-/* Finish a RootsStepClosure, including the parent ScanState */ 
+
+/* RootsStepClosureFinish -- Finish a RootsStepClosure
+ *
+ * Finish the parent ScanState too.
+ */ 
+
 static void RootsStepClosureFinish(RootsStepClosure rsc)
 {
   ScanState ss;
@@ -229,7 +255,9 @@ static void RootsStepClosureFinish(RootsStepClosure rsc)
   ScanStateFinish(ss);
 }
 
-/* Initialize a minimal trace for root walking */
+/* RootsWalkTraceStart -- Initialize a minimal trace for root walking 
+ */
+
 static Res RootsWalkTraceStart(Trace trace)
 {
   Ring ring, node, next;
@@ -252,7 +280,10 @@ static Res RootsWalkTraceStart(Trace trace)
   return ResOK;
 } 
 
-/* Finish a minimal trace for root walking */
+
+/* RootsWalkTraceFinish -- Finish a minimal trace for root walking 
+ */
+
 static void RootsWalkTraceFinish(Trace trace)
 {
   Arena arena;
@@ -268,9 +299,13 @@ static void RootsWalkTraceFinish(Trace trace)
   TraceDestroy(trace);
 }
 
-/* RootsWalkFix -- the fix method used during root walking */
-/* This doesn't cause further scanning of transitive references, */
-/* it just calls the client closure */
+
+/* RootsWalkFix -- the fix method used during root walking
+ *
+ * This doesn't cause further scanning of transitive references, 
+ * it just calls the client closure.
+ */
+
 static Res RootsWalkFix(ScanState ss, Ref *refIO)
 {
   RootsStepClosure rsc;
@@ -316,7 +351,10 @@ static Res RootsWalkFix(ScanState ss, Ref *refIO)
   return ResOK;
 }
 
-/* ArenaRootsWalk -- starts the trace and scans the roots */
+
+/* ArenaRootsWalk -- starts the trace and scans the roots 
+ */
+
 static Res ArenaRootsWalk(Arena arena, 
                           mps_roots_stepper_t f,
                           void *p, size_t s)
@@ -381,7 +419,9 @@ static Res ArenaRootsWalk(Arena arena,
 }
 
 
-/* mps_arena_roots_walk -- Client interface */
+/* mps_arena_roots_walk -- Client interface 
+ */
+
 void mps_arena_roots_walk(mps_arena_t mps_arena,
                           mps_roots_stepper_t f,
                           void *p,
