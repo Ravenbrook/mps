@@ -1,6 +1,6 @@
 /* impl.c.buffer: ALLOCATION BUFFER IMPLEMENTATION
  *
- * $HopeName: MMsrc!buffer.c(MMdevel_tony_sunset.2) $
+ * $HopeName: MMsrc!buffer.c(MMdevel_tony_sunset.3) $
  * Copyright (C) 1997, 1998, 1999 Harlequin Group plc.  All rights reserved.
  *
  * .purpose: This is (part of) the implementation of allocation buffers.
@@ -22,7 +22,7 @@
 
 #include "mpm.h"
 
-SRCID(buffer, "$HopeName: MMsrc!buffer.c(MMdevel_tony_sunset.2) $");
+SRCID(buffer, "$HopeName: MMsrc!buffer.c(MMdevel_tony_sunset.3) $");
 
 
 /* forward declarations */
@@ -255,7 +255,7 @@ Res BufferCreate(Buffer *bufferReturn, BufferClass class,
   Res res;
   va_list args;
 
-  va_start(args, pool);
+  va_start(args, isMutator);
   res = BufferCreateV(bufferReturn, class, pool, isMutator, args);
   va_end(args);
   return res;
@@ -1485,7 +1485,9 @@ static Res bufferedSegDescribe(Buffer buffer, mps_lib_FILE *stream)
  * See design.mps.buffer.class.hierarchy.bufferedseg.
  */
  
-DEFINE_BUFFER_CLASS(BufferedSegClass, class)
+typedef BufferClassStruct BufferedSegClassStruct;
+
+DEFINE_CLASS(BufferedSegClass, class)
 {
   INHERIT_CLASS(class, BufferClass);
   class->name = "BUFSEG";
