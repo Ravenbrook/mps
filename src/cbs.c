@@ -1,6 +1,6 @@
 /* impl.c.cbs: COALESCING BLOCK STRUCTURE IMPLEMENTATION
  *
- * $HopeName: MMsrc!cbs.c(MMdevel_mv2_rework.2) $
+ * $HopeName: MMsrc!cbs.c(MMdevel_mv2_rework.3) $
  * Copyright (C) 1998 Harlequin Group plc, all rights reserved.
  *
  * .readership: Any MPS developer.
@@ -18,7 +18,7 @@
 #include "mpm.h"
 
 
-SRCID(cbs, "$HopeName: MMsrc!cbs.c(MMdevel_mv2_rework.2) $");
+SRCID(cbs, "$HopeName: MMsrc!cbs.c(MMdevel_mv2_rework.3) $");
 
 typedef struct CBSEmergencyBlockStruct *CBSEmergencyBlock;
 typedef struct CBSEmergencyBlockStruct {
@@ -64,9 +64,8 @@ Bool CBSBlockCheck(CBSBlock block) {
   CHECKL(SplayNodeCheck(SplayNodeOfCBSBlock(block)));
  
   /* If the block is in the middle of being deleted, */
-  /* the pointers will be equal.  This check function */
-  /* must not be called in this case. */
-  CHECKL(CBSBlockBase(block) < CBSBlockLimit(block));
+  /* the pointers will be equal. */
+  CHECKL(CBSBlockBase(block) <= CBSBlockLimit(block));
   return TRUE;
 }
  
