@@ -1,6 +1,6 @@
 # ==== NTI3MV NMAKE FILE ====
 #
-# $HopeName: MMsrc!nti3mv.nmk(MMdevel_sw_eq.2) $
+# $HopeName: MMsrc!nti3mv.nmk(MMdevel_sw_eq.3) $
 #
 # Copyright (C) 1995 Harlequin Group, all rights reserved
 #
@@ -26,7 +26,7 @@ TESTLIB = <testlib>
 
 # ==== ALMOST GENERIC PRODUCT BUILD FOR NMAKE ====
 #
-# $HopeName: MMsrc!nti3mv.nmk(MMdevel_sw_eq.2) $
+# $HopeName: MMsrc!nti3mv.nmk(MMdevel_sw_eq.3) $
 #
 # Copyright (C) 1995 Harlequin Group, all rights reserved
 #
@@ -117,7 +117,7 @@ ECHO = echo
 
 !ifdef TARGET
 !if "$(TARGET)" == "mmsw.lib"
-CFLAGSTARGET = /ML /DTARGET_VM_RM
+CFLAGSTARGET = /ML /DTARGET_ARENA_CLIENT
 !else
 CFLAGSTARGET = /MT
 !endif
