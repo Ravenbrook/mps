@@ -1,6 +1,6 @@
 /* impl.c.arenavmx: STUB FOR ARENAVM
  *
- * $HopeName: !arenavmx.c(trunk.2) $
+ * $HopeName: MMsrc!arenavmx.c(MM_epcore_anchovy.1) $
  * Copyright (C) 1998 Harlequin Group plc.  All rights reserved.
  *
  * This is a stub-file, providing stub-functions to take the place of 
@@ -29,7 +29,7 @@
 #include "mpm.h"
 #include "mpsavm.h"
 
-SRCID(arenavmx, "$HopeName: !arenavmx.c(trunk.2) $");
+SRCID(arenavmx, "$HopeName: MMsrc!arenavmx.c(MM_epcore_anchovy.1) $");
 
 /* mps_arena_class_vm -- return the arena class VM
  * Run-time asserting stub-function.
@@ -38,6 +38,18 @@ SRCID(arenavmx, "$HopeName: !arenavmx.c(trunk.2) $");
  */
 
 mps_arena_class_t mps_arena_class_vm(void)
+{
+  NOTREACHED;
+  return (mps_arena_class_t)NULL;
+}
+
+/* mps_arena_class_vmnz -- return the arena class VMNZ
+ * Run-time asserting stub-function.
+ * The purpose is to allow links against this symbol to succeed.
+ * Don't actually call it -- it will cause a run-time assert.
+ */
+
+mps_arena_class_t mps_arena_class_vmnz(void)
 {
   NOTREACHED;
   return (mps_arena_class_t)NULL;
