@@ -1,6 +1,6 @@
 /* impl.h.mpmtypes: MEMORY POOL MANAGER TYPES
  *
- * $HopeName: !mpmtypes.h(trunk.28) $
+ * $HopeName: MMsrc!mpmtypes.h(MMdevel_poolams.1) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  *
  * .readership: MM developers.
@@ -44,7 +44,7 @@ typedef unsigned RankSet;
 typedef Size Epoch;                     /* design.mps.ld */
 typedef unsigned TraceId;               /* design.mps.tracer */
 typedef unsigned TraceSet;              /* design.mps.tracer */
-typedef unsigned TraceState;		/* design.mps.tracer */
+typedef unsigned TraceState;            /* design.mps.tracer */
 typedef unsigned AccessSet;           /* design.mps.type.access-set */
 typedef unsigned Attr;                  /* design.mps.type.attr */
 typedef int RootVar;                    /* design.mps.type.rootvar */
@@ -70,7 +70,7 @@ typedef struct ArenaStruct *Arena;      /* impl.c.arena* */
 typedef struct VMStruct *VM;            /* impl.c.vm* */
 typedef struct RootStruct *Root;        /* impl.c.root */
 typedef struct ThreadStruct *Thread;    /* impl.c.th* */
-typedef struct ActionStruct *Action;	/* design.mps.action */
+typedef struct ActionStruct *Action;    /* design.mps.action */
 
 
 /* Pool*Method -- see design.mps.class-interface */
@@ -97,6 +97,7 @@ typedef Res (*PoolFixMethod)(Pool pool, ScanState ss, Seg seg,
 typedef void (*PoolReclaimMethod)(Pool pool, Trace trace, Seg seg);
 typedef void (*PoolTraceEndMethod)(Pool pool, Trace trace,
                                    Action action);
+typedef void (*PoolAccessMethod)(Pool pool, Seg seg, AccessSet mode);
 typedef double (*PoolBenefitMethod)(Pool pool, Action action);
 
 
@@ -130,14 +131,14 @@ typedef Res (*RootScanRegMethod)(ScanState ss, Thread thread, void *p,
 #define AccessSetEMPTY  ((AccessSet)0) /* design.mps.type.access-set */
 #define AccessREAD      ((AccessSet)(1<<0))
 #define AccessWRITE     ((AccessSet)(1<<1))
-#define AccessMAX	((Size)2)
+#define AccessMAX       ((Size)2)
 #define RingNONE        ((Ring)0)       /* design.mps.ring */
 #define TraceIdNONE     ((TraceId)-1)   /* design.mps.tracer */
 #define RefSetEMPTY     BS_EMPTY(RefSet)
 #define RefSetUNIV      BS_UNIV(RefSet)
-#define TraceSetEMPTY	BS_EMPTY(TraceSet) /* design.mps.tracer */
-#define RankSetEMPTY	BS_EMPTY(RankSet)
-#define RankSetUNIV	((1uL<<RankMAX)-1)
+#define TraceSetEMPTY   BS_EMPTY(TraceSet) /* design.mps.tracer */
+#define RankSetEMPTY    BS_EMPTY(RankSet)
+#define RankSetUNIV     ((1uL<<RankMAX)-1)
 #define AttrFMT         ((Attr)(1<<0))  /* design.mps.type.attr */
 #define AttrSCAN        ((Attr)(1<<1))
 #define AttrPM_NO_READ  ((Attr)(1<<2))
@@ -156,7 +157,7 @@ typedef Res (*RootScanRegMethod)(ScanState ss, Thread thread, void *p,
                          AttrGC | AttrINCR_RB | AttrINCR_WB)
 #define SegPrefHigh     ((SegPrefKind)0)
 #define SegPrefLow      ((SegPrefKind)1)
-#define SegPrefRefSet	((SegPrefKind)2)
+#define SegPrefRefSet   ((SegPrefKind)2)
 
 
 /* Rank constants -- see design.mps.type.rank */
