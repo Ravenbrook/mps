@@ -1,8 +1,11 @@
 /* impl.h.dbgpool: POOL DEBUG MIXIN
  *
- * $HopeName: MMsrc!dbgpool.h(MMdevel_fencepost.2) $
+ * $HopeName: MMsrc!dbgpool.h(MMdevel_fencepost.3) $
  * Copyright (C) 1998 Harlequin Group plc.  All rights reserved.
  */
+
+#ifndef dbgpool_h
+#define dbgpool_h
 
 #include "mpm.h"
 #include <stdarg.h>
@@ -21,8 +24,8 @@ typedef void (*TagInitMethod)(void* tag, va_list args);
 typedef struct PoolDebugOptionsStruct {
   void* fenceTemplate;
   Size  fenceSize;
-  TagInitMethod tagInit;
-  Size  tagSize;
+  /* TagInitMethod tagInit; */
+  /* Size  tagSize; */
 } PoolDebugOptionsStruct;
 
 typedef PoolDebugOptionsStruct *PoolDebugOptions;
@@ -48,3 +51,6 @@ extern Bool PoolDebugMixinCheck(PoolDebugMixin dbg);
 
 
 extern void EnsureDebugClass(PoolClassStruct *class, PoolClass super);
+
+
+#endif /* dbgpool_h */
