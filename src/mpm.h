@@ -1,6 +1,6 @@
 /* impl.h.mpm: MEMORY POOL MANAGER DEFINITIONS
  *
- * $HopeName: !mpm.h(trunk.64) $
+ * $HopeName: MMsrc!mpm.h(MMepcore_pilchard.1) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  */
 
@@ -202,8 +202,9 @@ extern Size (BTSize)(unsigned long length);
 
 /* design.mps.bt.if.get */
 extern int (BTGet)(BT bt, Index index);
-#define BTGet(a, i) ((a)[((i)>>MPS_WORD_SHIFT)] >> \
-                     ((i)&~((Word)-1<<MPS_WORD_SHIFT)) & (Word)1)
+#define BTGet(a, i) (int)((a)[((i)>>MPS_WORD_SHIFT)] >> \
+                          ((i)&~((Word)-1<<MPS_WORD_SHIFT)) \
+                          & (Word)1)
 
 /* design.mps.bt.if.set */
 extern void (BTSet)(BT bt, Index index);
