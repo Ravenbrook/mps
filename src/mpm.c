@@ -1,6 +1,6 @@
 /* impl.c.mpm: GENERAL MPM SUPPORT
  *
- * $HopeName: MMsrc!mpm.c(MMdevel_remem2.1) $
+ * $HopeName: MMsrc!mpm.c(MMdevel_remem2.2) $
  * Copyright (C) 1996 Harlequin Group, all rights reserved.
  *
  * .readership: MM developers.
@@ -13,7 +13,7 @@
 
 #include "mpm.h"
 
-SRCID(mpm, "$HopeName: MMsrc!mpm.c(MMdevel_remem2.1) $");
+SRCID(mpm, "$HopeName: MMsrc!mpm.c(MMdevel_remem2.2) $");
 
 
 /* MPMCheck -- test MPM assumptions */
@@ -129,7 +129,7 @@ Word (WordAlignUp)(Word word, Align align)
 
 /* WordAlignUp -- round a word down to the nearest aligned value */
 
-static Word (WordAlignDown)(Word word, Align alignment)
+Word (WordAlignDown)(Word word, Align alignment)
 {
   AVER(AlignCheck(alignment));
   return WordAlignDown(word, alignment);
