@@ -1,6 +1,6 @@
 # ==== NTI3MV NMAKE FILE ====
 #
-# $HopeName: MMsrc!nti3mv.nmk(MMdevel_sw_eq.3) $
+# $HopeName: MMsrc!nti3mv.nmk(MMdevel_sw_eq.4) $
 #
 # Copyright (C) 1995 Harlequin Group, all rights reserved
 #
@@ -15,7 +15,7 @@ MPM = <assert> <ring> <mpsliban> <mpm> \
 SW  = <assert> <ring> <mpm> \
       <arenacl> <space> <pool> <poolmfs> \
       <poolmv> <root> <format> <buffer> <locknt> \
-      <ref> <trace> <protnt> <shield> \
+      <ref> <trace> <protsw> <shield> \
       <thnti3> <ssnti3> <mpsi> <mpsint> <ld>
 AMC = <amc>
 LO = <lo>
@@ -26,7 +26,7 @@ TESTLIB = <testlib>
 
 # ==== ALMOST GENERIC PRODUCT BUILD FOR NMAKE ====
 #
-# $HopeName: MMsrc!nti3mv.nmk(MMdevel_sw_eq.3) $
+# $HopeName: MMsrc!nti3mv.nmk(MMdevel_sw_eq.4) $
 #
 # Copyright (C) 1995 Harlequin Group, all rights reserved
 #
