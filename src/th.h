@@ -2,7 +2,7 @@
  *
  *                    THREAD MANAGER
  *
- *  $HopeName: MMsrc!th.h(MMdevel_lib.2) $
+ *  $HopeName: !th.h(trunk.6) $
  *
  *  Copyright (C) 1995 Harlequin Group, all rights reserved
  *
