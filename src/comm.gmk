@@ -1,6 +1,6 @@
 # impl.gmk.comm: COMMON GNUMAKEFILE FRAGMENT
 #
-# $HopeName: MMsrc!comm.gmk(MMdevel_alloc_replay.2) $
+# $HopeName: MMsrc!comm.gmk(MMdevel_alloc_replay.3) $
 # Copyright (C) 1997, 1999 Harlequin Group plc.  All rights reserved.
 #
 # DESCRIPTION
@@ -397,10 +397,12 @@ $(PFM)/$(VARIETY)/eventcnv: $(PFM)/$(VARIETY)/eventcnv.o \
   $(PFM)/$(VARIETY)/eventpro.o $(PFM)/$(VARIETY)/table.o
 
 $(PFM)/$(VARIETY)/replay: $(PFM)/$(VARIETY)/replay.o \
+  $(PFM)/$(VARIETY)/eventrep.o \
   $(PFM)/$(VARIETY)/eventpro.o $(PFM)/$(VARIETY)/table.o \
   $(MPMOBJ) $(AWLOBJ) $(AMSOBJ) $(POOLNOBJ) $(AMCOBJ) $(SNCOBJ) $(MVFFOBJ)
 
 $(PFM)/$(VARIETY)/replaysw: $(PFM)/$(VARIETY)/replay.o \
+  $(PFM)/$(VARIETY)/eventrep.o \
   $(PFM)/$(VARIETY)/eventpro.o $(PFM)/$(VARIETY)/table.o \
   $(FMTPSOBJ) $(TESTLIBOBJ) $(PFM)/$(VARIETY)/mpsliban.o $(SWOBJ)
 
