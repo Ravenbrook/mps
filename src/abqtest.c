@@ -1,6 +1,6 @@
 /* impl.c.abqtest: AVAILABLE BLOCK QUEUE TEST
  *
- * $HopeName: !abqtest.c(trunk.4) $
+ * $HopeName: MMsrc!abqtest.c(MM_epcore_brisling.1) $
  * Copyright (C) 1998. Harlequin Group plc. All rights reserved.
  */
 
@@ -17,7 +17,7 @@
 #include <math.h>
 
 
-SRCID(abqtest, "$HopeName: !abqtest.c(trunk.4) $");
+SRCID(abqtest, "$HopeName: MMsrc!abqtest.c(MM_epcore_brisling.1) $");
 
 
 static ABQStruct abq; /* the ABQ which we will use */
@@ -27,7 +27,7 @@ static Size abqSize; /* the size of the current ABQ */
 #define TEST_ITER 10000
 
 
-static unsigned long random(unsigned long n)
+static unsigned long abqRnd(unsigned long n)
 {
   return rnd()%n;
 }
@@ -98,7 +98,7 @@ static void step(void)
   Res res;
   CBSBlock a;
 
-  switch (random(9)) {
+  switch (abqRnd(9)) {
     case 0: case 1: case 2: case 3:
   push:
       res = ABQPush(&abq, CreateCBSBlock(pushee));
@@ -125,7 +125,7 @@ static void step(void)
       if (!deleted & (pushee > popee)) {
         Test b;
       
-        deleted = random (pushee - popee) + popee;
+        deleted = abqRnd (pushee - popee) + popee;
         for (b = testBlocks; b != NULL; b = b->next)
           if (b->id == deleted)
             break;
