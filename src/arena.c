@@ -1,6 +1,6 @@
 /* impl.c.arena: ARENA IMPLEMENTATION
  *
- * $HopeName: !arena.c(trunk.44) $
+ * $HopeName: MMsrc!arena.c(MMdevel_reservoir.1) $
  * Copyright (C) 1998. Harlequin Group plc. All rights reserved.
  *
  * .readership: Any MPS developer
@@ -36,7 +36,7 @@
 #include "poolmrg.h"
 #include "mps.h"
 
-SRCID(arena, "$HopeName: !arena.c(trunk.44) $");
+SRCID(arena, "$HopeName: MMsrc!arena.c(MMdevel_reservoir.1) $");
 
 
 /* All static data objects are declared here. See .static */
@@ -808,7 +808,8 @@ Res ArenaAlloc(void **baseReturn, Arena arena, size_t size)
   AVER(size > 0);
 
   pool = MVPool(&arena->controlPoolStruct);
-  res = PoolAlloc(&base, pool, (Size)size);
+  res = PoolAlloc(&base, pool, (Size)size,
+                  /* withReservoirPermit */ FALSE);
   if(res != ResOK) return res;
 
   *baseReturn = (void *)base; /* see .arenaalloc.addr */
@@ -833,7 +834,8 @@ void ArenaFree(Arena arena, void* base, size_t size)
 
 /* SegAlloc -- allocate a segment from the arena */
 
-Res SegAlloc(Seg *segReturn, SegPref pref, Size size, Pool pool)
+Res SegAlloc(Seg *segReturn, SegPref pref, Size size, Pool pool,
+             Bool withReservoirPermit)
 {
   Res res;
   Seg seg;
@@ -843,11 +845,13 @@ Res SegAlloc(Seg *segReturn, SegPref pref, Size size, Pool pool)
   AVERT(SegPref, pref);
   AVER(size > (Size)0);
   AVERT(Pool, pool);
+  AVER(BoolCheck(withReservoirPermit));
 
   arena = PoolArena(pool);
   AVERT(Arena, arena);
   AVER(SizeIsAligned(size, arena->alignment));
 
+  /* @@@@ withReservoirPermit is unused */
   res = (*arena->class->segAlloc)(&seg, pref, size, pool);
   if(res != ResOK) return res;
 

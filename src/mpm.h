@@ -1,6 +1,6 @@
 /* impl.h.mpm: MEMORY POOL MANAGER DEFINITIONS
  *
- * $HopeName: !mpm.h(trunk.93) $
+ * $HopeName: MMsrc!mpm.h(MMdevel_reservoir.1) $
  * Copyright (C) 1998.  Harlequin Group plc.  All rights reserved.
  */
 
@@ -281,7 +281,8 @@ extern Res PoolCreate(Pool *poolReturn, Arena arena,
 extern Res PoolCreateV(Pool *poolReturn, Arena arena,
                        PoolClass class, va_list arg);
 extern void PoolDestroy(Pool pool);
-extern Res PoolAlloc(Addr *pReturn, Pool pool, Size size);
+extern Res PoolAlloc(Addr *pReturn, Pool pool, Size size, 
+                     Bool withReservoirPermit);
 extern void PoolFree(Pool pool, Addr old, Size size);
 extern Res PoolTraceBegin(Pool pool, Trace trace);
 extern Res PoolAccess(Pool pool, Seg seg, Addr addr,
@@ -300,8 +301,10 @@ extern Res PoolAct(Pool pool, Action action);
 extern void PoolWalk(Pool pool, Seg seg, FormattedObjectsStepMethod f,
                      void *v, unsigned long s);
 extern void PoolTrivFinish(Pool pool);
-extern Res PoolNoAlloc(Addr *pReturn, Pool pool, Size size);
-extern Res PoolTrivAlloc(Addr *pReturn, Pool pool, Size size);
+extern Res PoolNoAlloc(Addr *pReturn, Pool pool, Size size,
+                       Bool withReservoirPermit);
+extern Res PoolTrivAlloc(Addr *pReturn, Pool pool, Size size,
+                         Bool withReservoirPermit);
 extern void PoolNoFree(Pool pool, Addr old, Size size);
 extern void PoolTrivFree(Pool pool, Addr old, Size size);
 extern Res PoolNoBufferInit(Pool pool, Buffer buf, va_list args);
@@ -310,10 +313,12 @@ extern void PoolNoBufferFinish(Pool pool, Buffer buf);
 extern void PoolTrivBufferFinish(Pool pool, Buffer buf);
 extern Res PoolNoBufferFill(Seg *segReturn,
                             Addr *baseReturn, Addr *limitReturn,
-                            Pool pool, Buffer buffer, Size size);
+                            Pool pool, Buffer buffer, Size size,
+                            Bool withReservoirPermit);
 extern Res PoolTrivBufferFill(Seg *segReturn,
                               Addr *baseReturn, Addr *limitReturn,
-                              Pool pool, Buffer buffer, Size size);
+                              Pool pool, Buffer buffer, Size size,
+                              Bool withReservoirPermit);
 extern void PoolNoBufferEmpty(Pool pool, Buffer buffer);
 extern void PoolTrivBufferEmpty(Pool pool, Buffer buffer);
 extern Res PoolNoDescribe(Pool pool, mps_lib_FILE *stream);
@@ -584,7 +589,7 @@ extern Res ArenaFinalize(Arena arena, Ref obj);
 extern Bool ArenaIsReservedAddr(Arena arena, Addr addr);
 
 extern Res SegAlloc(Seg *segReturn, SegPref pref,
-                    Size size, Pool pool);
+                    Size size, Pool pool, Bool withReservoirPermit);
 extern void SegFree(Seg seg);
 extern Addr SegBase(Seg seg);
 extern Addr SegLimit(Seg seg);
@@ -651,18 +656,20 @@ extern Res BufferCreateV(Buffer *bufferReturn,
 extern void BufferDestroy(Buffer buffer);
 extern Bool BufferCheck(Buffer buffer);
 extern Res BufferDescribe(Buffer buffer, mps_lib_FILE *stream);
-extern Res BufferReserve(Addr *pReturn, Buffer buffer, Size size);
+extern Res BufferReserve(Addr *pReturn, Buffer buffer, Size size,
+                         Bool withReservoirPermit);
 /* macro equivalent for BufferReserve, keep in sync with 
  * impl.c.buffer */
-#define BUFFER_RESERVE(pReturn, buffer, size) \
+#define BUFFER_RESERVE(pReturn, buffer, size, withReservoirPermit) \
   (AddrAdd(BufferAlloc(buffer), size) > BufferAlloc(buffer) && \
    AddrAdd(BufferAlloc(buffer), size) <= BufferAP(buffer)->limit ? \
      (*(pReturn) = BufferAlloc(buffer), \
       BufferAP(buffer)->alloc = AddrAdd(BufferAlloc(buffer), size), \
       ResOK) : \
-   BufferFill(pReturn, buffer, size))
+   BufferFill(pReturn, buffer, size, withReservoirPermit))
 
-extern Res BufferFill(Addr *pReturn, Buffer buffer, Size size);
+extern Res BufferFill(Addr *pReturn, Buffer buffer, Size size,
+                      Bool withReservoirPermit);
 extern Bool BufferCommit(Buffer buffer, Addr p, Size size);
 /* macro equivalent for BufferCommit, keep in sync with
  * impl.c.buffer */

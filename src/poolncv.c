@@ -1,6 +1,6 @@
 /*  impl.c.poolncv: NULL POOL COVERAGE TEST
  *
- *  $HopeName: !poolncv.c(trunk.7) $
+ *  $HopeName: MMsrc!poolncv.c(MMdevel_reservoir.1) $
  *  Copyright (C) 1995,1997 Harlequin Group, all rights reserved
  */
 
@@ -28,7 +28,7 @@ static Bool testit(ArenaClass class, ...)
   va_end(args);
 
   die(PoolCreate(&pool, arena, PoolClassN()), "PoolNCreate");
-  res = PoolAlloc(&p, pool, 1);
+  res = PoolAlloc(&p, pool, 1, /* withReservoirPermit */ FALSE);
   if(res == ResOK) {
     fprintf(stderr,
             "Error:  Unexpectedly succeeded in"

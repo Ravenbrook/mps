@@ -1,6 +1,6 @@
 /* impl.c.mpsi: MEMORY POOL SYSTEM C INTERFACE LAYER
  *
- * $HopeName: !mpsi.c(trunk.55) $
+ * $HopeName: MMsrc!mpsi.c(MMdevel_reservoir.1) $
  * Copyright (C) 1997. Harlequin Group plc. All rights reserved.
  *
  * .purpose: This code bridges between the MPS interface to C,
@@ -52,7 +52,7 @@
 #include "mps.h"
 #include "mpsavm.h" /* only for mps_space_create */
 
-SRCID(mpsi, "$HopeName: !mpsi.c(trunk.55) $");
+SRCID(mpsi, "$HopeName: MMsrc!mpsi.c(MMdevel_reservoir.1) $");
 
 
 /* mpsi_check -- check consistency of interface mappings
@@ -556,7 +556,9 @@ mps_res_t mps_alloc_v(mps_addr_t *p_o, mps_pool_t mps_pool, size_t size,
   /* design.mps.class-interface.alloc.size.align. */
 
   /* See .varargs. */
-  res = PoolAlloc(&p, pool, size);
+  /* @@@@ There is currently no requirement for reservoirs to work */
+  /* with unbuffered allocation. */
+  res = PoolAlloc(&p, pool, size, /* withReservoirPermit */ FALSE);
 
   ArenaLeave(arena);
 
@@ -735,7 +737,39 @@ mps_res_t mps_ap_fill(mps_addr_t *p_o, mps_ap_t mps_ap, size_t size)
   AVER(size > 0);
   AVER(SizeIsAligned(size, BufferPool(buf)->alignment));
 
-  res = BufferFill(&p, buf, size);
+  res = BufferFill(&p, buf, size, /* withReservoirPermit */ FALSE);
+
+  ArenaLeave(arena);
+  
+  if(res != ResOK) return res;
+  *p_o = (mps_addr_t)p;
+  return MPS_RES_OK;
+}
+
+
+mps_res_t mps_ap_fill_with_reservoir_permit(mps_addr_t *p_o, 
+                                            mps_ap_t mps_ap, 
+                                            size_t size)
+{
+  Buffer buf = BufferOfAP((AP)mps_ap);
+  Arena arena;
+  Addr p;
+  Res res;
+
+  AVER(mps_ap != NULL);  
+  AVER(CHECKT(Buffer, buf));
+  arena = BufferArena(buf);
+
+  ArenaEnter(arena);
+
+  ArenaPoll(arena);                     /* .poll */
+
+  AVER(p_o != NULL);
+  AVERT(Buffer, buf);
+  AVER(size > 0);
+  AVER(SizeIsAligned(size, BufferPool(buf)->alignment));
+
+  res = BufferFill(&p, buf, size, /* withReservoirPermit */ TRUE);
 
   ArenaLeave(arena);
   
