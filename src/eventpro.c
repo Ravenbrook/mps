@@ -1,7 +1,7 @@
 /* impl.c.eventpro: Event processing routines
  * Copyright (C) 1999 Harlequin Group plc.  All rights reserved.
  *
- * $HopeName: MMsrc!eventpro.c(MMdevel_alloc_replay.2) $
+ * $HopeName: MMsrc!eventpro.c(MMdevel_alloc_replay.3) $
  */
 
 #include "config.h"
@@ -187,6 +187,12 @@ static Res eventStringCopy(EventString *str_o, EventString str)
 }
 
 
+static void eventStringDestroy(EventString str)
+{
+  free(str);
+}
+
+
 /* Labels */
 
 
@@ -366,10 +372,10 @@ void EventDestroy(EventProc proc, Event event)
    CHECKLVALUE(((s1 *)0)->f1, ((s2 *)0)->f2))
 
 
-/* EventProcInit -- initialize the module */
+/* EventProcCreate -- initialize the module */
 
-Res EventProcInit(EventProc *procReturn, Bool partial,
-                  EventProcReader reader, void *readerP)
+Res EventProcCreate(EventProc *procReturn, Bool partial,
+                    EventProcReader reader, void *readerP)
 {
   Res res;
   EventProc proc = malloc(sizeof(struct EventProcStruct));
@@ -400,7 +406,7 @@ failIntern:
 }
 
 
-/* EventProcFinish -- finish the module */
+/* EventProcDestroy -- finish the module */
 
 static void deallocItem(Word key, void *value)
 {
@@ -408,10 +414,17 @@ static void deallocItem(Word key, void *value)
   free(value);
 }
 
-void EventProcFinish(EventProc proc)
+static void deallocSym(Word key, void *value)
+{
+  UNUSED(key);
+  eventStringDestroy(((Symbol)value)->name);
+  free(value);
+}
+
+void EventProcDestroy(EventProc proc)
 {
   TableMap(proc->labelTable, deallocItem);
-  TableMap(proc->internTable, deallocItem);
+  TableMap(proc->internTable, deallocSym);
   TableDestroy(proc->labelTable);
   TableDestroy(proc->internTable);
   if (proc->cachedEvent != NULL)
