@@ -1,6 +1,6 @@
 /* impl.c.poolmvff: First Fit Manual Variable Pool
  * 
- * $HopeName: MMsrc!poolmvff.c(MMdevel_gavinm_mvff.2) $
+ * $HopeName: MMsrc!poolmvff.c(MMdevel_gavinm_mvff.3) $
  * Copyright (C) 1998 Harlequin Group plc.  All rights reserved.
  *
  * .purpose: This is a pool class for manually managed objects of
@@ -16,7 +16,7 @@
 #include "mpm.h"
 #include "mpscmvff.h"
 
-SRCID(poolmvff, "$HopeName: MMsrc!poolmvff.c(MMdevel_gavinm_mvff.2) $");
+SRCID(poolmvff, "$HopeName: MMsrc!poolmvff.c(MMdevel_gavinm_mvff.3) $");
 
 
 extern PoolClass PoolClassMVFF(void);
@@ -255,9 +255,14 @@ static Res MVFFAddSeg(MVFF mvff, Size size, Bool withReservoirPermit)
 
   SegSetP(seg, (void*)0);
 
+  /* There shouldn't be any possible free segments hanging around */
+  /* here. */
+  AVER(!mvff->freeRangeToCheck);
+
   res = MVFFAddToFreeList(mvff, SegBase(seg), SegLimit(seg));
+  /* We don't want to remove the entirely free segment from the */
+  /* free list. */
   if(mvff->freeRangeToCheck) {
-    /* We know there can't be any whole segs. */
     mvff->freeRangeToCheck = FALSE;
     mvff->freeRangeBase = mvff->freeRangeLimit = (Addr)0;
   }
@@ -435,25 +440,24 @@ static void MVFFFinish(Pool pool)
   MVFF mvff;
   Arena arena;
   Seg seg;
+  Ring ring, node, nextNode;
 
   AVERT(Pool, pool);
   mvff = PoolPoolMVFF(pool);
   AVERT(MVFF, mvff);
 
-  arena = PoolArena(pool);
-
-  /* this is the only way we have in this branch of iterating over all  */
-  /* segments in the pool. When we merge into the trunk, we can use     */
-  /* the pool's segRing. See design.mps.poolmvff.issue.segRing.         */
-  if(SegFirst(&seg, arena)) {
-    Addr base;
-    do {
-      base = SegBase(seg);
-      if(SegPool(seg) == pool)
-        SegFree(seg);
-    } while(SegNext(&seg, arena, base));
+  ring = PoolSegRing(pool);
+  RING_FOR(node, ring, nextNode) {
+    seg = SegOfPoolRing(node);
+    AVER(SegPool(seg) == pool);
+    SegFree(seg);
   }
+  
+  /* Could maintain mvff->total here and check it falls to zero, */
+  /* but that would just make the function slow.  If only we had */
+  /* a way to do operations only if AVERs are turned on. */
 
+  arena = PoolArena(pool);
   ArenaFree(arena, mvff->segPref, sizeof(SegPrefStruct));
 
   CBSFinish(CBSOfMVFF(mvff));
