@@ -1,6 +1,6 @@
 /* impl.c.poolmrg: MANUAL RANK GUARDIAN POOL
  * 
- * $HopeName: MMsrc!poolmrg.c(trunk.33) $
+ * $HopeName: !poolmrg.c(trunk.34) $
  * Copyright (C) 1997 Harlequin Group plc.  All rights reserved.
  *
  * READERSHIP
@@ -34,7 +34,7 @@
 #include "mpm.h"
 #include "poolmrg.h"
 
-SRCID(poolmrg, "$HopeName: MMsrc!poolmrg.c(trunk.33) $");
+SRCID(poolmrg, "$HopeName: !poolmrg.c(trunk.34) $");
 
 
 /* Types */

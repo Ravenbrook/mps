@@ -1,6 +1,6 @@
 /* impl.c.lockutw3: LOCK COVERAGE TEST
  *
- * $HopeName: MMsrc!lockutw3.c(trunk.6) $
+ * $HopeName: !lockutw3.c(trunk.7) $
  */
 
 #include "mpm.h"
@@ -12,7 +12,7 @@
 
 #include "mpswin.h"
 
-SRCID(lockutw3, "$HopeName: MMsrc!lockutw3.c(trunk.6) $");
+SRCID(lockutw3, "$HopeName: !lockutw3.c(trunk.7) $");
 
 
 static LockStruct lockStruct;

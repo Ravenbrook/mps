@@ -1,6 +1,6 @@
 /* impl.c.cbs: COALESCING BLOCK STRUCTURE IMPLEMENTATION
  *
- * $HopeName: MMsrc!cbs.c(trunk.16) $
+ * $HopeName: !cbs.c(trunk.17) $
  * Copyright (C) 1998 Harlequin Group plc, all rights reserved.
  *
  * .intro: This is a portable implementation of coalescing block
@@ -17,7 +17,7 @@
 #include "mpm.h"
 
 
-SRCID(cbs, "$HopeName: MMsrc!cbs.c(trunk.16) $");
+SRCID(cbs, "$HopeName: !cbs.c(trunk.17) $");
 
 
 /* See design.mps.cbs.align */
