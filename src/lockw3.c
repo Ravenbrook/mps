@@ -1,12 +1,10 @@
-/*  impl.c.lockw3
+/* impl.c.lockw3: RECURSIVE LOCKS IN WIN32
  *
- *                  RECURSIVE LOCKS IN WIN32
+ * $HopeName: MMsrc!lockw3.c(MM_epcore_brisling.1) $
  *
- *  $HopeName: !lockw3.c(trunk.10) $
+ * Copyright (C) 1995, 1997, 1998 Harlequin Group plc.  All rights reserved.
  *
- *  Copyright (C) 1995, 1997 Harlequin Group, all rights reserved
- *
- *  These are implemented using critical sections.
+ * .design: These are implemented using critical sections.
  *  See the section titled "Synchronization functions" in the Groups
  *  chapter of the Microsoft Win32 API Programmer's Reference.
  *  The "Synchronization" section of the Overview is also relevant.
@@ -32,7 +30,7 @@
 
 #include "mpswin.h"
 
-SRCID(lockw3, "$HopeName: !lockw3.c(trunk.10) $");
+SRCID(lockw3, "$HopeName: MMsrc!lockw3.c(MM_epcore_brisling.1) $");
 
 
 Bool LockCheck(Lock lock)
@@ -100,7 +98,7 @@ static LockStruct globalLockStruct;
 static Lock globalLock = &globalLockStruct;
 static Bool globalLockInit = FALSE; /* TRUE iff globalLock initialized */
 
-void LockClaimGlobalRecursive()
+void LockClaimGlobalRecursive(void)
 {
   /* Ensure the global lock has been initialized */
   /* There is a race condition initializing the lock. */
@@ -112,9 +110,8 @@ void LockClaimGlobalRecursive()
   LockClaimRecursive(globalLock);
 }
 
-void LockReleaseGlobalRecursive()
+void LockReleaseGlobalRecursive(void)
 {
   AVER(globalLockInit);
   LockReleaseRecursive(globalLock);
 }
-
