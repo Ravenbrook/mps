@@ -1,6 +1,6 @@
 /* impl.h.mpmst: MEMORY POOL MANAGER DATA STRUCTURES
  *
- * $HopeName: MMsrc!mpmst.h(MMdevel_gens2.1) $
+ * $HopeName: MMsrc!mpmst.h(MMdevel_gens2.2) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  *
  * .readership: MM developers.
@@ -92,11 +92,13 @@ typedef struct PoolClassStruct {
   PoolBufferFillMethod bufferFill;
   PoolBufferEmptyMethod bufferEmpty;
   PoolBufferFinishMethod bufferFinish;
+  PoolTraceBeginMethod traceBegin;
   PoolCondemnMethod condemn;    /* condemn (some or all) objects */
   PoolGreyMethod grey;          /* grey non-white objects */
   PoolScanMethod scan;          /* find references during tracing */
   PoolFixMethod fix;            /* referent reachable during tracing */
   PoolReclaimMethod reclaim;    /* reclaim dead objects after tracing */
+  PoolTraceEndMethod traceEnd;
   PoolDescribeMethod describe;  /* describe the contents of the pool */
   Sig endSig;                   /* .class.end-sig */
 } PoolClassStruct;
@@ -569,6 +571,7 @@ typedef struct TraceStruct {
   Sig sig;			/* design.mps.sig */
   TraceId ti;			/* index into TraceSets */
   Space space;			/* owning space */
+  Action action;		/* the action that launched the trace */
   RefSet white;			/* superset of refs in white set */
   TraceState state;		/* current state of trace */
   Size interval;		/* polling interval */

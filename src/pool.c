@@ -1,6 +1,6 @@
 /* impl.c.pool: POOL IMPLEMENTATION
  *
- * $HopeName: MMsrc!pool.c(MMdevel_gens2.1) $
+ * $HopeName: MMsrc!pool.c(MMdevel_gens2.2) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  *
  * This is the implementation of the generic pool interface.  The
@@ -12,7 +12,7 @@
 
 #include "mpm.h"
 
-SRCID(pool, "$HopeName: MMsrc!pool.c(MMdevel_gens2.1) $");
+SRCID(pool, "$HopeName: MMsrc!pool.c(MMdevel_gens2.2) $");
 
 
 Bool PoolClassCheck(PoolClass class)
@@ -32,11 +32,13 @@ Bool PoolClassCheck(PoolClass class)
   CHECKL(FUNCHECK(class->bufferFill));
   CHECKL(FUNCHECK(class->bufferEmpty));
   CHECKL(FUNCHECK(class->bufferFinish));
+  CHECKL(FUNCHECK(class->traceBegin));
   CHECKL(FUNCHECK(class->condemn));
   CHECKL(FUNCHECK(class->grey));
   CHECKL(FUNCHECK(class->scan));
   CHECKL(FUNCHECK(class->fix));
   CHECKL(FUNCHECK(class->reclaim));
+  CHECKL(FUNCHECK(class->traceEnd));
   CHECKL(FUNCHECK(class->describe));
   CHECKL(class->endSig == PoolClassSig);
   return TRUE;
@@ -247,6 +249,17 @@ void PoolFree(Pool pool, Addr old, Size size)
   EVENT3(PoolFree, (Word)pool, (Word)old, (Word)size);
 }
 
+Res PoolTraceBegin(Pool pool, Trace trace, Action action)
+{
+  AVERT(Pool, pool);
+  AVERT(Trace, trace);
+  AVERT(Action, action);
+  AVER(trace->action == action);
+  AVER(action->pool == pool);
+  AVER(pool->space == trace->space);
+  return (*pool->class->traceBegin)(pool, trace, action);
+}
+
 Res PoolCondemn(Pool pool, Trace trace, Seg seg, Action action)
 {  
   AVERT(Pool, pool);
@@ -318,6 +331,17 @@ void PoolReclaim(Pool pool, Trace trace, Seg seg)
   AVER(TraceSetIsMember(seg->white, trace->ti));
 
   (*pool->class->reclaim)(pool, trace, seg);
+}
+
+void PoolTraceEnd(Pool pool, Trace trace, Action action)
+{
+  AVERT(Pool, pool);
+  AVERT(Trace, trace);
+  AVERT(Action, action);
+  AVER(trace->action == action);
+  AVER(action->pool == pool);
+  AVER(pool->space == trace->space);
+  (*pool->class->traceEnd)(pool, trace, action);
 }
 
 
@@ -605,6 +629,18 @@ Res PoolTrivDescribe(Pool pool, mps_lib_FILE *stream)
   return WriteF(stream, "  No class-specific description available.\n", NULL);
 }
 
+Res PoolNoTraceBegin(Pool pool, Trace trace, Action action)
+{
+  AVERT(Pool, pool);
+  AVERT(Trace, trace);
+  AVERT(Action, action);
+  AVER(trace->action == action);
+  AVER(action->pool == pool);
+  AVER(pool->space == trace->space);
+  NOTREACHED;
+  return ResUNIMPL;
+}
+
 Res PoolNoCondemn(Pool pool, Trace trace, Seg seg, Action action)
 {
   AVERT(Pool, pool);
@@ -667,5 +703,16 @@ void PoolNoReclaim(Pool pool, Trace trace, Seg seg)
   AVERT(Pool, pool);
   AVERT(Trace, trace);
   AVERT(Seg, seg);
+  NOTREACHED;
+}
+
+void PoolNoTraceEnd(Pool pool, Trace trace, Action action)
+{
+  AVERT(Pool, pool);
+  AVERT(Trace, trace);
+  AVERT(Action, action);
+  AVER(trace->action == action);
+  AVER(action->pool == pool);
+  AVER(pool->space == trace->space);
   NOTREACHED;
 }

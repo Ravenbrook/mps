@@ -1,6 +1,6 @@
 /* impl.h.mpm: MEMORY POOL MANAGER DEFINITIONS
  *
- * $HopeName: MMsrc!mpm.h(MMdevel_gens2.1) $
+ * $HopeName: MMsrc!mpm.h(MMdevel_gens2.2) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  */
 
@@ -255,6 +255,7 @@ extern Res PoolCreateV(Pool *poolReturn, Space space,
 extern void PoolDestroy(Pool pool);
 extern Res PoolAlloc(Addr *pReturn, Pool pool, Size size);
 extern void PoolFree(Pool pool, Addr old, Size size);
+extern Res PoolTraceBegin(Pool pool, Trace trace, Action action);
 extern Res PoolCondemn(Pool pool, Trace trace, Seg seg, Action action);
 extern void PoolGrey(Pool pool, Trace trace, Seg seg);
 extern Res PoolScan(ScanState ss, Pool pool, Seg seg);
@@ -262,6 +263,7 @@ extern Res (PoolFix)(Pool pool, ScanState ss, Seg seg, Addr *refIO);
 #define PoolFix(pool, ss, seg, refIO) \
   ((*(pool)->class->fix)(pool, ss, seg, refIO))
 extern void PoolReclaim(Pool pool, Trace trace, Seg seg);
+extern void PoolTraceEnd(Pool pool, Trace trace, Action action);
 
 extern void PoolTrivFinish(Pool pool);
 extern Res PoolNoAlloc(Addr *pReturn, Pool pool, Size size);
@@ -280,12 +282,14 @@ extern void PoolNoBufferEmpty(Pool pool, Buffer buffer);
 extern void PoolTrivBufferEmpty(Pool pool, Buffer buffer);
 extern Res PoolNoDescribe(Pool pool, mps_lib_FILE *stream);
 extern Res PoolTrivDescribe(Pool pool, mps_lib_FILE *stream);
+extern Res PoolNoTraceBegin(Pool pool, Trace trace, Action action);
 extern Res PoolNoCondemn(Pool pool, Trace trace, Seg seg, Action action);
 extern void PoolNoGrey(Pool pool, Trace trace, Seg seg);
 extern void PoolTrivGrey(Pool pool, Trace trace, Seg seg);
 extern Res PoolNoScan(ScanState ss, Pool pool, Seg seg);
 extern Res PoolNoFix(Pool pool, ScanState ss, Seg seg, Ref *refIO);
 extern void PoolNoReclaim(Pool pool, Trace trace, Seg seg);
+extern void PoolNoTraceEnd(Pool pool, Trace trace, Action action);
 
 
 /* Trace Interface -- see impl.c.trace */
@@ -309,9 +313,8 @@ extern Bool TraceIdCheck(TraceId id);
 extern Bool TraceSetCheck(TraceSet ts);
 extern Bool TraceCheck(Trace trace);
 
-extern Res TraceCreate(Trace *traceReturn, Space space);
+extern Res TraceCreate(Trace *traceReturn, Space space, Action action);
 extern void TraceDestroy(Trace trace);
-extern Res TraceStart(Trace trace, Action action);
 extern Res TracePoll(Trace trace);
 extern void TraceAccess(Space space, Seg seg, AccessSet mode);
 
