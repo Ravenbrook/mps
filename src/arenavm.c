@@ -1,6 +1,6 @@
 /* impl.c.arenavm: VIRTUAL MEMORY ARENA CLASS
  *
- * $HopeName: MMsrc!arenavm.c(MMdevel_pekka_locus.3) $
+ * $HopeName: MMsrc!arenavm.c(MMdevel_pekka_locus.4) $
  * Copyright (C) 2000 Harlequin Limited.  All rights reserved.
  *
  *
@@ -19,8 +19,6 @@
  * page tables are in zone zero, since that zone is least useful for
  * GC.  (But it would change how VMFindFreeInRefSet avoids allocating
  * over the tables, see .alloc.skip.)
- *
- * @@@@ Uses argument multiple times. 
  */
 
 
@@ -29,7 +27,7 @@
 #include "mpm.h"
 #include "mpsavm.h"
 
-SRCID(arenavm, "$HopeName: MMsrc!arenavm.c(MMdevel_pekka_locus.3) $");
+SRCID(arenavm, "$HopeName: MMsrc!arenavm.c(MMdevel_pekka_locus.4) $");
 
 
 /* @@@@ Arbitrary calculation for the maximum number of distinct */
@@ -39,27 +37,34 @@ SRCID(arenavm, "$HopeName: MMsrc!arenavm.c(MMdevel_pekka_locus.3) $");
 #define VMArenaGenCount ((Count)(MPS_WORD_WIDTH/2))
 
 
-typedef struct VMArenaStruct *VMArena;
+/* VMChunk -- chunks for VM arenas */
 
+typedef struct VMChunkStruct *VMChunk;
 
-#define VMArenaChunkSig ((Sig)0x519A6B3C) /* SIGnature ARena VM Chunk */
+#define VMChunkSig ((Sig)0x519A6B3C) /* SIGnature ARena VM Chunk */
 
-typedef struct VMArenaChunkStruct {
+typedef struct VMChunkStruct {
   ChunkStruct chunkStruct;      /* generic chunk */
   VM vm;                        /* virtual memory handle */
   Addr mapLimit;                /* limit of mapped pages (during init) */
   BT pageTableMapped;           /* indicates mapped state of page table */
   BT noLatentPages;             /* 1 bit per page of pageTable */
   Sig sig;                      /* design.mps.sig */
-} VMArenaChunkStruct;
+} VMChunkStruct;
 
-#define VMArenaChunkChunk(vmchunk) (&(vmchunk)->chunkStruct)
-#define ChunkVMArenaChunk(chunk) PARENT(VMArenaChunkStruct, chunkStruct, chunk)
+#define VMChunkChunk(vmchunk) (&(vmchunk)->chunkStruct)
+#define ChunkVMChunk(chunk) PARENT(VMChunkStruct, chunkStruct, chunk)
+
+#define VMChunkVMArena(vmchunk) \
+  ArenaVMArena(ChunkArena(VMChunkChunk(vmchunk)))
 
 
-/* VMArenaStruct
+/* VMArena
+ *
  * See design.mps.arena.coop-vm.struct.vmarena for description.
  */
+
+typedef struct VMArenaStruct *VMArena;
 
 #define VMArenaSig      ((Sig)0x519A6EB3) /* SIGnature AREna VM */
 
@@ -87,17 +92,19 @@ typedef struct VMArenaStruct {  /* VM arena structure */
 
 
 /* Forward declarations */
-static void VMArenaPageFree(VMArenaChunk chunk, Index pi);
-static void VMArenaPageInit(VMArenaChunk chunk, Index pi);
+
+
 static void VMArenaPurgeLatentPages(VMArena vmArena);
 
 
-static Bool VMArenaChunkCheck(VMArenaChunk vmchunk)
+/* VMChunkCheck -- check the consistency of a VM chunk */
+
+static Bool VMChunkCheck(VMChunk vmchunk)
 {
   Chunk chunk;
 
-  CHECKS(VMArenaChunk, vmchunk);
-  chunk = VMArenaChunkChunk(vmchunk);
+  CHECKS(VMChunk, vmchunk);
+  chunk = VMChunkChunk(vmchunk);
   CHECKL(ChunkCheck(chunk));
   CHECKL(VMCheck(vmchunk->vm));
   CHECKL(VMAlign(vmchunk->vm) == ChunkPageSize(chunk));
@@ -155,7 +162,7 @@ static Bool VMArenaChunkCheck(VMArenaChunk vmchunk)
 
 /* PageIsLatent -- is page latent (free and mapped)? */
 
-#define PageIsLatent(page)
+#define PageIsLatent(page) \
   ((page)->the.rest.pool == NULL && (page)->the.rest.type == PageTypeLatent)
 
 
@@ -166,14 +173,14 @@ static Bool VMArenaCheck(VMArena vmArena)
   Index gen;
   RefSet allocSet;
   Arena arena;
-  VMArenaChunk primary;
+  VMChunk primary;
 
   CHECKS(VMArena, vmArena);
   arena = VMArenaArena(vmArena);
   CHECKD(Arena, arena);
   CHECKL(RingCheck(&vmArena->latentRing));
   /* latent pages are committed, so must be less latent than committed. */
-  CHECKL(vmArena->latentSize <= vmArena->committed);
+  CHECKL(vmArena->latentSize <= arena->committed);
   CHECKL(RefSetCheck(vmArena->blacklist));
 
   allocSet = RefSetEMPTY;
@@ -186,8 +193,8 @@ static Bool VMArenaCheck(VMArena vmArena)
   CHECKL(vmArena->extendBy > 0);
 
   if (arena->primary != NULL) {
-    primary = ChunkVMArenaChunk(arena->primary);
-    CHECKD(VMArenaChunk, primary);
+    primary = ChunkVMChunk(arena->primary);
+    CHECKD(VMChunk, primary);
     /* We could iterate over all chunks accumulating an accurate */
     /* count of committed, but we don't have all day. */
     CHECKL(VMMapped(primary->vm) <= arena->committed);
@@ -211,54 +218,56 @@ static Res VMArenaMap(VMArena vmArena, VM vm, Addr base, Addr limit)
 
   /* no checking as function is local to module */
 
-  arena = &vmArena->arenaStruct;
+  arena = VMArenaArena(vmArena);
   size = AddrOffset(base, limit);
   /* committed can't overflow (since we can't commit more memory than */
   /* address space), but we're paranoid. */
-  AVER(vmArena->committed < vmArena->committed + size);
+  AVER(arena->committed < arena->committed + size);
   /* check against commit limit */
-  if(arena->commitLimit < vmArena->committed + size)
+  if(arena->commitLimit < arena->committed + size)
     return ResCOMMIT_LIMIT;
   
   res = VMMap(vm, base, limit);
   if(res != ResOK)
     return res;
-  vmArena->committed += size;
+  arena->committed += size;
   return ResOK;
 }
 
 
 static void VMArenaUnmap(VMArena vmArena, VM vm, Addr base, Addr limit)
 {
+  Arena arena;
   Size size;
 
   /* no checking as function is local to module */
 
+  arena = VMArenaArena(vmArena);
   size = AddrOffset(base, limit);
-  AVER(size <= vmArena->committed);
+  AVER(size <= arena->committed);
 
   VMUnmap(vm, base, limit);
-  vmArena->committed -= size;
+  arena->committed -= size;
   return;
 }
 
 
-/* VMArenaChunkCreate -- create a chunk
+/* VMChunkCreate -- create a chunk
  *
  * chunkReturn, return parameter for the created chunk.
  * vmArena, the parent VMArena.
  * size, approximate amount of virtual address that the chunk should reserve.
  */
 
-static Res VMArenaChunkCreate(Chunk *chunkReturn, VMArena vmArena, Size size)
+static Res VMChunkCreate(Chunk *chunkReturn, VMArena vmArena, Size size)
 {
   Res res;
   Addr base, chunkStructLimit;
-  Size vmSize;
+  Size vmSize, pageSize;
   VM vm;
   BootBlockStruct bootStruct;
   BootBlock boot = &bootStruct;
-  VMArenaChunk vmChunk;
+  VMChunk vmChunk;
   void *p;
 
   AVER(chunkReturn != NULL);
@@ -280,7 +289,7 @@ static Res VMArenaChunkCreate(Chunk *chunkReturn, VMArena vmArena, Size size)
 
   /* Allocate and map the descriptor. */
   /* See design.mps.arena.@@@@ */
-  res = BootAlloc(&p, boot, sizeof(VMArenaChunkStruct), MPS_PF_ALIGN);
+  res = BootAlloc(&p, boot, sizeof(VMChunkStruct), MPS_PF_ALIGN);
   if (res != ResOK)
     goto failChunkAlloc;
   vmChunk = p;
@@ -292,16 +301,16 @@ static Res VMArenaChunkCreate(Chunk *chunkReturn, VMArena vmArena, Size size)
   vmChunk->mapLimit = chunkStructLimit;
 
   vmChunk->vm = vm;
-  res = ChunkInit(VMArenaChunkChunk(vmChunk), VMArenaArena(vmArena),
+  res = ChunkInit(VMChunkChunk(vmChunk), VMArenaArena(vmArena),
                   base, vmSize, pageSize, boot);
   if (res != ResOK)
     goto failChunkInit;
 
   BootBlockFinish(boot);
 
-  vmChunk->sig = VMArenaChunkSig;
-  AVERT(VMArenaChunk, vmChunk);
-  *chunkReturn = VMArenaChunkChunk(vmChunk);
+  vmChunk->sig = VMChunkSig;
+  AVERT(VMChunk, vmChunk);
+  *chunkReturn = VMChunkChunk(vmChunk);
   return ResOK;
 
 failChunkInit:
@@ -315,17 +324,18 @@ failVMCreate:
 }
 
 
-/* VMChunkInit -- initialize a VMArenaChunk */
+/* VMChunkInit -- initialize a VMChunk */
 
 static Res VMChunkInit(Chunk chunk, BootBlock boot)
 {
   size_t btSize;
-  VMArenaChunk vmChunk;
+  VMChunk vmChunk;
   Addr ullageLimit;
   void *p;
+  Res res;
 
   /* chunk is supposed to be uninitialized, so don't check it. */
-  vmChunk = ChunkVMArenaChunk(chunk);
+  vmChunk = ChunkVMChunk(chunk);
   AVERT(BootBlock, boot);
 
   btSize = (size_t)BTSize(chunk->pageTablePages);
@@ -341,8 +351,9 @@ static Res VMChunkInit(Chunk chunk, BootBlock boot)
   /* Actually commit all the tables. design.mps.arena.@@@@ */
   ullageLimit = AddrAdd(chunk->base, (Size)BootAllocated(boot));
   if (vmChunk->mapLimit < ullageLimit) {
-    res = VMArenaMap(vmArena, vmChunk->vm, vmChunk->mapLimit,
-                     AddrAlignUp(ullageLimit, chunk->pageSize));
+    res = VMArenaMap(VMChunkVMArena(vmChunk), vmChunk->vm,
+                     vmChunk->mapLimit,
+                     AddrAlignUp(ullageLimit, ChunkPageSize(chunk)));
     if (res != ResOK)
       goto failTableMap;
   }
@@ -359,16 +370,16 @@ failPageTableMapped:
 }
 
 
-/* VMArenaChunkDestroy -- destroy a VMArenaChunk */
+/* VMChunkDestroy -- destroy a VMChunk */
 
-static void VMArenaChunkDestroy(Chunk chunk)
+static void VMChunkDestroy(Chunk chunk)
 {
   VM vm;
-  VMArenaChunk vmChunk;
+  VMChunk vmChunk;
 
   AVERT(Chunk, chunk);
-  vmChunk = ChunkVMArenaChunk(chunk);
-  AVERT(VMArenaChunk, vmChunk);
+  vmChunk = ChunkVMChunk(chunk);
+  AVERT(VMChunk, vmChunk);
 
   vmChunk->sig = SigInvalid;
   vm = vmChunk->vm;
@@ -377,7 +388,7 @@ static void VMArenaChunkDestroy(Chunk chunk)
 }
 
 
-/* VMChunkFinish -- finish a VMArenaChunk */
+/* VMChunkFinish -- finish a VMChunk */
 
 static void VMChunkFinish(Chunk chunk)
 {
@@ -432,11 +443,11 @@ static Res VMArenaInit(Arena *arenaReturn, ArenaClass class,
   RingInit(&vmArena->latentRing);
   vmArena->latentSize = 0;
 
-  res = VMArenaChunkCreate(&chunk, vmArena, userSize);
+  res = VMChunkCreate(&chunk, vmArena, userSize);
   if (res != ResOK)
     goto failChunkCreate;
   arena->primary = chunk;
-  arena->committed = VMMapped(ChunkVMArenaChunk(chunk)->vm);
+  arena->committed = VMMapped(ChunkVMChunk(chunk)->vm);
 
   /* .zoneshift: Set the zone shift to divide the chunk into the same */
   /* number of stripes as will fit into a reference set (the number of */
@@ -474,7 +485,7 @@ static Res VMArenaInit(Arena *arenaReturn, ArenaClass class,
   return ResOK;
 
 failStripeSize:
-  VMArenaChunkDestroy(chunk);
+  VMChunkDestroy(chunk);
 failChunkCreate:
 failVMMap:
   VMDestroy(arenaVM);
@@ -488,7 +499,6 @@ failVMCreate:
 static void VMArenaFinish(Arena arena)
 {
   VMArena vmArena;
-  Ring node, next;
 
   vmArena = ArenaVMArena(arena);
   AVERT(VMArena, vmArena);
@@ -516,7 +526,7 @@ static Size VMArenaReserved(Arena arena)
 
   reserved = 0;
   RING_FOR(node, &arena->chunkRing, next) {
-    VMArenaChunk vmChunk = RING_ELT(VMArenaChunk, arenaRing, node);
+    VMChunk vmChunk = ChunkVMChunk(RING_ELT(Chunk, chunkRing, node));
     reserved += VMReserved(vmChunk->vm);
   }
   return reserved;
@@ -597,23 +607,20 @@ static void VMArenaSpareCommitExceeded(Arena arena)
    / sizeof(PageStruct))
 
 
-/* tablePageInUse
- *
- * Check whether a given page of the page table is in use.
+/* tablePageInUse -- Check whether a given page of the page table is in use
  *
  * Returns TRUE if and only if the table page given is in use, i.e., if
  * any of the page descriptors falling on it (even partially) are being
  * used.  Relies on .repr.table-page and .vm.addr-is-star.
  *
- * .improve.limits: We don't need to check the parts we're
- * (de)allocating.
+ * .improve.limits: We don't need to check the parts we're (de)allocating.
  */
 
-static Bool tablePageInUse(VMArenaChunk chunk, Addr tablePage)
+static Bool tablePageInUse(Chunk chunk, Addr tablePage)
 {
   Index limitIndex;
 
-  AVERT(VMArenaChunk, chunk);
+  /* static used only internally, so minimal checking */
   /* Check it's in the page table. */
   AVER((Addr)&chunk->pageTable[0] <= tablePage);
   AVER(tablePage < addrOfPageDesc(chunk, chunk->pages));
@@ -626,22 +633,20 @@ static Bool tablePageInUse(VMArenaChunk chunk, Addr tablePage)
   AVER(limitIndex <= chunk->pages);
 
   return !BTIsResRange(chunk->allocTable,
-                       tablePageBaseIndex(chunk, tablePage),
-                       limitIndex);
+                       tablePageBaseIndex(chunk, tablePage), limitIndex);
 }
 
 
-/* Table Pages Used
+/* tablePagesUsed
  *
  * Takes a range of pages identified by [pageBase, pageLimit), and
  * returns the pages occupied by the page table which store the
  * PageStruct descriptors for those pages.
  */
 
-static void VMArenaTablePagesUsed(Index *tableBaseReturn,
-                                  Index *tableLimitReturn,
-				  VMArenaChunk chunk,
-				  Index pageBase, Index pageLimit) {
+static void tablePagesUsed(Index *tableBaseReturn, Index *tableLimitReturn,
+                           Chunk chunk, Index pageBase, Index pageLimit)
+{
   /* static used only internally, so minimal checking */
   *tableBaseReturn =
     PageTablePageIndex(chunk,
@@ -650,7 +655,6 @@ static void VMArenaTablePagesUsed(Index *tableBaseReturn,
     PageTablePageIndex(chunk,
                        AddrAlignUp(addrOfPageDesc(chunk, pageLimit),
 		                   ChunkPageSize(chunk)));
-  
   return;
 }
 
@@ -661,25 +665,29 @@ static void VMArenaTablePagesUsed(Index *tableBaseReturn,
  * Ensure that the relevant pages occupied by the page table are mapped. 
  */
 
-static Res VMArenaEnsurePageTableMapped(VMArenaChunk chunk,
+static Res VMArenaEnsurePageTableMapped(VMChunk vmChunk,
                                         Index baseIndex, Index limitIndex)
 {
   /* tableBaseIndex, tableLimitIndex, tableCursorIndex, */
   /* unmappedBase, unmappedLimit are all indexes of pages occupied */
   /* by the page table. */
-  Index i;
   Index tableBaseIndex, tableLimitIndex;
   Index tableCursorIndex;
   Index unmappedBaseIndex, unmappedLimitIndex;
+  Index i;
+  Chunk chunk;
   Res res;
 
-  VMArenaTablePagesUsed(&tableBaseIndex, &tableLimitIndex,
-                        chunk, baseIndex, limitIndex);
+  /* static used only internally, so minimal checking */
+  chunk = VMChunkChunk(vmChunk);
+
+  tablePagesUsed(&tableBaseIndex, &tableLimitIndex,
+                 chunk, baseIndex, limitIndex);
 
   tableCursorIndex = tableBaseIndex;
   
   while(BTFindLongResRange(&unmappedBaseIndex, &unmappedLimitIndex,
-                           chunk->pageTableMapped,
+                           vmChunk->pageTableMapped,
 		           tableCursorIndex, tableLimitIndex,
 		           1)) {
     Addr unmappedBase = TablePageIndexBase(chunk, unmappedBaseIndex);
@@ -689,7 +697,7 @@ static Res VMArenaEnsurePageTableMapped(VMArenaChunk chunk,
     /* We need to work out whether we should touch it. */
     if (unmappedBaseIndex == tableBaseIndex
         && unmappedBaseIndex > 0
-        && !BTGet(chunk->pageTableMapped, unmappedBaseIndex - 1)) {
+        && !BTGet(vmChunk->pageTableMapped, unmappedBaseIndex - 1)) {
       /* Start with first descriptor wholly on page */
       baseIndex = tablePageWholeBaseIndex(chunk, unmappedBase);
     } else {
@@ -700,7 +708,7 @@ static Res VMArenaEnsurePageTableMapped(VMArenaChunk chunk,
     /* at the end. */
     if (unmappedLimitIndex == tableLimitIndex
         && unmappedLimitIndex < chunk->pageTablePages
-        && !BTGet(chunk->pageTableMapped, unmappedLimitIndex)) {
+        && !BTGet(vmChunk->pageTableMapped, unmappedLimitIndex)) {
       /* Finish with last descriptor wholly on page */
       limitIndex = tablePageBaseIndex(chunk, unmappedLimit);
     } else if(unmappedLimitIndex == chunk->pageTablePages) {
@@ -710,13 +718,14 @@ static Res VMArenaEnsurePageTableMapped(VMArenaChunk chunk,
       /* Finish with last descriptor partially on page */
       limitIndex = tablePageWholeBaseIndex(chunk, unmappedLimit);
     }
-    res = VMArenaMap(chunk->vmArena, chunk->vm, unmappedBase, unmappedLimit);
+    res = VMArenaMap(VMChunkVMArena(vmChunk),
+                     vmChunk->vm, unmappedBase, unmappedLimit);
     if(res != ResOK) {
       return res;
     }
-    BTSetRange(chunk->pageTableMapped, unmappedBaseIndex, unmappedLimitIndex);
+    BTSetRange(vmChunk->pageTableMapped, unmappedBaseIndex, unmappedLimitIndex);
     for(i = baseIndex; i < limitIndex; ++i) {
-      VMArenaPageInit(chunk, i);
+      PageInit(chunk, i);
     }
     tableCursorIndex = unmappedLimitIndex;
     if(tableCursorIndex == tableLimitIndex)
@@ -726,35 +735,37 @@ static Res VMArenaEnsurePageTableMapped(VMArenaChunk chunk,
   return ResOK;
 }
 
-/* Of the pages occupied by the page table from tablePageBase to
+
+/* VMArenaUnmapUnusedTablePages
+ *
+ * Of the pages occupied by the page table from tablePageBase to
  * tablePageLimit find those which are wholly unused and unmap them.
  */
 
-static void VMArenaUnmapUnusedTablePages(VMArenaChunk chunk,
+static void VMArenaUnmapUnusedTablePages(VMChunk vmChunk,
                                          Addr tablePageBase,
 					 Addr tablePageLimit)
 {
+  Chunk chunk;
   Addr cursor;
   Size pageSize;
 
+  /* static used only internally, so minimal checking */
+  chunk = VMChunkChunk(vmChunk);
   pageSize = ChunkPageSize(chunk);
-
-  /* minimal checking as static function only called locally */
   AVER(AddrIsAligned(tablePageBase, pageSize));
   AVER(AddrIsAligned(tablePageLimit, pageSize));
-
 
   /* for loop indexes over base addresses of pages occupied by page table */
   for(cursor = tablePageBase;
       cursor < tablePageLimit;
       cursor = AddrAdd(cursor, pageSize)) {
     if(!tablePageInUse(chunk, cursor)) {
-      VMArenaUnmap(chunk->vmArena, chunk->vm,
-                   cursor,
-		   AddrAdd(cursor, pageSize));
-      AVER(BTGet(chunk->noLatentPages, PageTablePageIndex(chunk, cursor)));
-      AVER(BTGet(chunk->pageTableMapped, PageTablePageIndex(chunk, cursor)));
-      BTRes(chunk->pageTableMapped, PageTablePageIndex(chunk, cursor));
+      VMArenaUnmap(VMChunkVMArena(vmChunk), vmChunk->vm,
+                   cursor, AddrAdd(cursor, pageSize));
+      AVER(BTGet(vmChunk->noLatentPages, PageTablePageIndex(chunk, cursor)));
+      AVER(BTGet(vmChunk->pageTableMapped, PageTablePageIndex(chunk, cursor)));
+      BTRes(vmChunk->pageTableMapped, PageTablePageIndex(chunk, cursor));
     }
   }
   AVER(cursor == tablePageLimit);
@@ -777,17 +788,14 @@ static void VMArenaUnmapUnusedTablePages(VMArenaChunk chunk,
  * SegPrefHigh.
  */
 
-static Bool findFreeInArea(Index *baseReturn,
-                           VMArenaChunk chunk, Size size,
-                           Addr base, Addr limit,
-                           Bool downwards)
+static Bool findFreeInArea(Index *baseReturn, Chunk chunk, Size size,
+                           Addr base, Addr limit, Bool downwards)
 {
   Word pages;                   /* number of pages equiv. to size */
   Index basePage, limitPage;    /* Index equiv. to base and limit */
   Index start, end;             /* base and limit of free run */
 
-  AVER(baseReturn != NULL);
-  AVERT(VMArenaChunk, chunk);
+  /* static used only internally, so minimal checking */
   AVER(AddrIsAligned(base, ChunkPageSize(chunk)));
   AVER(AddrIsAligned(limit, ChunkPageSize(chunk)));
   AVER(chunk->base <= base);
@@ -796,24 +804,19 @@ static Bool findFreeInArea(Index *baseReturn,
   AVER(size <= AddrOffset(base, limit));
   AVER(size > (Size)0);
   AVER(SizeIsAligned(size, ChunkPageSize(chunk)));
-  AVER(BoolCheck(downwards));
 
-  basePage = indexOfAddr(chunk, base);
-  limitPage = indexOfAddr(chunk, limit);
+  basePage = INDEX_OF_ADDR(chunk, base);
+  limitPage = INDEX_OF_ADDR(chunk, limit);
   pages = ChunkSizeToPages(chunk, size);
 
   if(downwards) {
-    if(!BTFindShortResRangeHigh(&start, &end,
-                                chunk->allocTable,
-                                basePage, limitPage,
-                                pages)) {
+    if(!BTFindShortResRangeHigh(&start, &end, chunk->allocTable,
+                                basePage, limitPage, pages)) {
       return FALSE;
     }
   } else {
-    if(!BTFindShortResRange(&start, &end,
-                            chunk->allocTable,
-                            basePage, limitPage,
-                            pages)) {
+    if(!BTFindShortResRange(&start, &end, chunk->allocTable,
+                            basePage, limitPage, pages)) {
       return FALSE;
     }
   }
@@ -839,7 +842,7 @@ static Bool findFreeInArea(Index *baseReturn,
  */
 
 static Bool VMFindFreeInRefSet(Index *baseReturn,
-                               VMArenaChunk *chunkReturn,
+                               VMChunk *chunkReturn,
                                VMArena vmArena, Size size, RefSet refSet,
                                Bool downwards)
 {
@@ -848,20 +851,16 @@ static Bool VMFindFreeInRefSet(Index *baseReturn,
   Size zoneSize;
   Ring node, next;
 
-  AVER(baseReturn != NULL);
-  AVER(chunkReturn != NULL);
-  AVERT(VMArena, vmArena);
-  AVER(size > 0);
+  /* static used only internally, so minimal checking */
   AVER(RefSetCheck(refSet));
-  AVER(BoolCheck(downwards));
 
   arena = VMArenaArena(vmArena);
   zoneSize = (Size)1 << arena->zoneShift;
 
-  /* .improve.alloc.chunk.cache: check chunk cache first? */
-  RING_FOR(node, &vmArena->chunkRing, next) {
-    VMArenaChunk chunk = RING_ELT(VMArenaChunk, arenaRing, node);
-    AVERT(VMArenaChunk, chunk);
+  /* Should we check chunk cache first? */
+  RING_FOR(node, &arena->chunkRing, next) {
+    Chunk chunk = RING_ELT(Chunk, chunkRing, node);
+    AVERT(Chunk, chunk);
 
     /* .alloc.skip: The first address available for arena allocation, */
     /* is just after the arena tables. */
@@ -891,14 +890,13 @@ static Bool VMFindFreeInRefSet(Index *baseReturn,
 
         /* If the RefSet was universal, then the area found ought to */
         /* be the whole chunk. */
-        AVER(refSet != RefSetUNIV ||
-             (base == chunkBase && limit == chunk->limit));
+        AVER(refSet != RefSetUNIV
+             || (base == chunkBase && limit == chunk->limit));
 
         /* Try to allocate a page in the area. */
-        if(AddrOffset(base, limit) >= size &&
-           findFreeInArea(baseReturn,
-                          chunk, size, base, limit, downwards)) {
-          *chunkReturn = chunk;
+        if(AddrOffset(base, limit) >= size
+           && findFreeInArea(baseReturn, chunk, size, base, limit, downwards)) {
+          *chunkReturn = ChunkVMChunk(chunk);
           return TRUE;
         }
         
@@ -955,7 +953,7 @@ static Serial vmGenOfSegPref(VMArena vmArena, SegPref pref)
  * zones already used by this segpref or free zones will be used).
  */
 
-static Bool VMRegionFind(Index *baseReturn, VMArenaChunk *chunkReturn,
+static Bool VMRegionFind(Index *baseReturn, VMChunk *chunkReturn,
                          VMArena vmArena, SegPref pref, Size size,
                          Bool barge)
 {
@@ -992,29 +990,25 @@ static Bool VMRegionFind(Index *baseReturn, VMArenaChunk *chunkReturn,
     /* blacklisted zones have been allocated (or the default */
     /* is used). */
     if(VMFindFreeInRefSet(baseReturn, chunkReturn, vmArena, size, 
-                        RefSetDiff(refSet, vmArena->blacklist),
-                        pref->high) ||
-       VMFindFreeInRefSet(baseReturn, chunkReturn, vmArena, size, 
-                        RefSetUnion(refSet,
-                                    RefSetDiff(vmArena->freeSet, 
-                                               vmArena->blacklist)),
-                                               pref->high))
-    {
-      /* found */
-      return TRUE;
+                          RefSetDiff(refSet, vmArena->blacklist),
+                          pref->high)
+       || VMFindFreeInRefSet(baseReturn, chunkReturn, vmArena, size, 
+                             RefSetUnion(refSet,
+                                         RefSetDiff(vmArena->freeSet, 
+                                                    vmArena->blacklist)),
+                             pref->high)) {
+      return TRUE; /* found */
     }
     if(!barge) {
       /* do not barge into other zones, give up now */
       return FALSE;
     }
     if(VMFindFreeInRefSet(baseReturn, chunkReturn, vmArena, size, 
-                        RefSetDiff(RefSetUNIV, vmArena->blacklist),
-                        pref->high) ||
-       VMFindFreeInRefSet(baseReturn, chunkReturn, vmArena, size,
-                        RefSetUNIV, pref->high))
-    {
-      /* found */
-      return TRUE;
+                          RefSetDiff(RefSetUNIV, vmArena->blacklist),
+                          pref->high)
+       || VMFindFreeInRefSet(baseReturn, chunkReturn, vmArena, size,
+                             RefSetUNIV, pref->high)) {
+      return TRUE; /* found */
     }
   } else { /* non-GC'd memory */
     /* We look for space in the following places (in order) */
@@ -1025,15 +1019,15 @@ static Bool VMRegionFind(Index *baseReturn, VMArenaChunk *chunkReturn,
     /* Note that each is a superset of the previous, unless */
     /* blacklisted zones have been allocated. */
     if(VMFindFreeInRefSet(baseReturn, chunkReturn, vmArena, size, 
-                         RefSetInter(refSet, vmArena->blacklist),
-                         pref->high) ||
-       VMFindFreeInRefSet(baseReturn, chunkReturn, vmArena, size,
-                         refSet, pref->high) ||
-       VMFindFreeInRefSet(baseReturn, chunkReturn, vmArena, size, 
-                         RefSetUnion(refSet, vmArena->blacklist),
-                         pref->high) ||
-       VMFindFreeInRefSet(baseReturn, chunkReturn, vmArena, size,
-                         RefSetUNIV, pref->high)) {
+                          RefSetInter(refSet, vmArena->blacklist),
+                          pref->high)
+       || VMFindFreeInRefSet(baseReturn, chunkReturn, vmArena, size,
+                             refSet, pref->high)
+       || VMFindFreeInRefSet(baseReturn, chunkReturn, vmArena, size, 
+                             RefSetUnion(refSet, vmArena->blacklist),
+                             pref->high)
+       || VMFindFreeInRefSet(baseReturn, chunkReturn, vmArena, size,
+                             RefSetUNIV, pref->high)) {
       return TRUE;
     }
   }
@@ -1060,19 +1054,22 @@ static Res VMExtend(VMArena vmArena, Size size)
   /* more than vmArena->extendBy (because there will be fewer than */
   /* size bytes free in the new chunk).  Fix this. */
   chunkSize = vmArena->extendBy + size;
-  res = VMArenaChunkCreate(&newChunk, vmArena, chunkSize);
+  res = VMChunkCreate(&newChunk, vmArena, chunkSize);
   /* .improve.chunk-create.fail: If we fail we could try again */
   /* (with a smaller size, say).  We don't do this. */
   return res;
 }
 
 
+/* Allocation policy methods */
+
+
 /* Used in abstracting allocation policy between VM and VMNZ */
-typedef Res (*VMAllocPolicyMethod)(Index *, VMArenaChunk *,
+typedef Res (*VMAllocPolicyMethod)(Index *, VMChunk *,
                                    VMArena, SegPref, Size);
 
 static Res VMZoneAllocPolicy(Index *baseIndexReturn,
-                             VMArenaChunk *chunkReturn,
+                             VMChunk *chunkReturn,
                              VMArena vmArena,
                              SegPref pref,
                              Size size)
@@ -1100,7 +1097,7 @@ static Res VMZoneAllocPolicy(Index *baseIndexReturn,
 }
 
 static Res VMNZAllocPolicy(Index *baseIndexReturn,
-                           VMArenaChunk *chunkReturn,
+                           VMChunk *chunkReturn,
                            VMArena vmArena,
                            SegPref pref,
                            Size size)
@@ -1108,104 +1105,76 @@ static Res VMNZAllocPolicy(Index *baseIndexReturn,
   /* internal and static, no checking */
 
   if(VMFindFreeInRefSet(baseIndexReturn, chunkReturn, vmArena, size, 
-                      RefSetUNIV,
-                      pref->high)) {
+                        RefSetUNIV, pref->high)) {
     return ResOK;
   }
   return ResRESOURCE;
 }
 
-/* Checks whether a free page is mapped or not. */
-static Bool VMArenaPageIsMapped(VMArenaChunk chunk, Index pi)
+
+/* VMArenaPageIsMapped -- checks whether a free page is mapped or not. */
+
+static Bool VMArenaPageIsMapped(VMChunk vmChunk, Index pi)
 {
   Index pageTableBaseIndex;
   Index pageTableLimitIndex;
   int pageType;
+  Chunk chunk = VMChunkChunk(vmChunk);
 
   /* Note that unless the pi'th PageStruct crosses a page boundary */
   /* Base and Limit will differ by exactly 1. */
   /* They will differ by at most 2 assuming that */
   /* sizeof(PageStruct) <= ChunkPageSize(chunk) (!) */
-
-  VMArenaTablePagesUsed(&pageTableBaseIndex, &pageTableLimitIndex,
-                        chunk, pi, pi+1);
+  tablePagesUsed(&pageTableBaseIndex, &pageTableLimitIndex, chunk, pi, pi+1);
   /* using unsigned arithmetic overflow to use just one comparison */
   AVER(pageTableLimitIndex - pageTableBaseIndex - 1 < 2);
 
   /* We can examine the PageStruct descriptor iff both table pages */
   /* are mapped. */
-  if(BTGet(chunk->pageTableMapped, pageTableBaseIndex) &&
-     BTGet(chunk->pageTableMapped, pageTableLimitIndex - 1)) {
+  if(BTGet(vmChunk->pageTableMapped, pageTableBaseIndex)
+     && BTGet(vmChunk->pageTableMapped, pageTableLimitIndex - 1)) {
     pageType = PageType(&chunk->pageTable[pi]);
-    if(PageTypeLatent == pageType) {
+    if(pageType == PageTypeLatent) {
       return TRUE;
     }
-    AVER(PageTypeFree == pageType);
+    AVER(pageType == PageTypeFree);
   }
   return FALSE;
 }
 
 
-/* Used internally by VMAllocComm.  Sets up the PageStruct 
- * descriptors for allocated page to turn it into a Tract.
+/* VMArenaHysteresisRemovePage
+ *
+ * Removes the page descriptor from the hysteresis fund.
+ * Temporarily leaves it in an inconsistent state.
  */
-static void VMArenaPageAlloc(VMArenaChunk chunk, Index pi, Pool pool)
+
+static void VMArenaHysteresisRemovePage(VMChunk vmChunk, Index pi)
 {
-  Tract tract;
-  Addr base;
-  /* static called only locally, so minimal checking */
-  AVER(!BTGet(chunk->allocTable, pi));
-  tract = PageTract(&chunk->pageTable[pi]);
-  base = PageIndexBase(chunk, pi);
-  BTSet(chunk->allocTable, pi);
-  TractInit(tract, pool, base);
-  return;
-}
+  Chunk chunk = VMChunkChunk(vmChunk);
+  Arena arena = ChunkArena(chunk);
 
-static void VMArenaPageInit(VMArenaChunk chunk, Index pi)
-{
-  BTRes(chunk->allocTable, pi);
-  PagePool(&chunk->pageTable[pi]) = NULL;
-  PageType(&chunk->pageTable[pi]) = PageTypeFree;
-
-  return;
-}
-
-static void VMArenaPageFree(VMArenaChunk chunk, Index pi)
-{
-  AVER(BTGet(chunk->allocTable, pi));
-  VMArenaPageInit(chunk, pi);
-
-  return;
-}
-
-
-/* Removes the PageStruct descriptor from the Hysteresis fund. */
-/* Temporarily leaves it in an inconsistent state. */
-static void VMArenaHysteresisRemovePage(VMArenaChunk chunk, Index pi)
-{
-  Arena arena = VMArenaArena(chunk->vmArena);
   /* minimal checking as it's a static used only locally */
   AVER(PageTypeLatent == PageType(&chunk->pageTable[pi]));
   RingRemove(PageLatentRing(&chunk->pageTable[pi]));
   AVER(arena->spareCommitted >= ChunkPageSize(chunk));
   arena->spareCommitted -= ChunkPageSize(chunk);
-
   return;
 }
 
 
-static Res VMArenaPagesMap(VMArena vmArena, VMArenaChunk chunk,
+static Res VMArenaPagesMap(VMArena vmArena, VMChunk vmChunk,
                            Index baseIndex, Count pages, Pool pool)
 {
   Index i;
   Index limitIndex;
   Index mappedBase, mappedLimit;
   Index unmappedBase, unmappedLimit;
+  Chunk chunk = VMChunkChunk(vmChunk);
   Res res;
 
   /* Ensure that the page descriptors we need are on mapped pages. */
-  res = VMArenaEnsurePageTableMapped(chunk, baseIndex, baseIndex + pages);
+  res = VMArenaEnsurePageTableMapped(vmChunk, baseIndex, baseIndex + pages);
   if(res != ResOK)
     goto failTableMap;
 
@@ -1214,7 +1183,7 @@ static Res VMArenaPagesMap(VMArena vmArena, VMArenaChunk chunk,
   limitIndex = baseIndex + pages;
 
   do {
-    while(VMArenaPageIsMapped(chunk, mappedLimit)) {
+    while(VMArenaPageIsMapped(vmChunk, mappedLimit)) {
       ++mappedLimit;
       if(mappedLimit >= limitIndex) {
 	break;
@@ -1223,28 +1192,28 @@ static Res VMArenaPagesMap(VMArena vmArena, VMArenaChunk chunk,
     AVER(mappedLimit <= limitIndex);
     /* NB for loop will loop 0 times iff first page is not mapped */
     for(i = mappedBase; i < mappedLimit; ++i) {
-      VMArenaHysteresisRemovePage(chunk, i);
-      VMArenaPageAlloc(chunk, i, pool);
+      VMArenaHysteresisRemovePage(vmChunk, i);
+      PageAlloc(chunk, i, pool);
     }
     if(mappedLimit >= limitIndex)
       break;
     unmappedBase = mappedLimit;
     unmappedLimit = unmappedBase;
-    while(!VMArenaPageIsMapped(chunk, unmappedLimit)) {
+    while(!VMArenaPageIsMapped(vmChunk, unmappedLimit)) {
       ++unmappedLimit;
       if(unmappedLimit >= limitIndex) {
         break;
       }
     }
     AVER(unmappedLimit <= limitIndex);
-    res = VMArenaMap(vmArena, chunk->vm, 
+    res = VMArenaMap(vmArena, vmChunk->vm, 
 		     PageIndexBase(chunk, unmappedBase),
 		     PageIndexBase(chunk, unmappedLimit));
     if(res != ResOK) {
       goto failPagesMap;
     }
     for(i = unmappedBase; i < unmappedLimit; ++i) {
-      VMArenaPageAlloc(chunk, i, pool);
+      PageAlloc(chunk, i, pool);
     }
     mappedBase = unmappedLimit;
     mappedLimit = mappedBase;
@@ -1256,24 +1225,24 @@ static Res VMArenaPagesMap(VMArena vmArena, VMArenaChunk chunk,
 failPagesMap:
   /* region from baseIndex to mappedLimit needs unmapping */
   if(baseIndex < mappedLimit) {
-    VMArenaUnmap(vmArena, chunk->vm,
+    VMArenaUnmap(vmArena, vmChunk->vm,
 		 PageIndexBase(chunk, baseIndex),
 		 PageIndexBase(chunk, mappedLimit));
     /* mark pages as free */
     for(i = baseIndex; i < mappedLimit; ++i) {
       TractFinish(PageTract(&chunk->pageTable[i]));
-      VMArenaPageFree(chunk, i);
+      PageFree(chunk, i);
     }
   }
   {
     Index pageTableBaseIndex, pageTableLimitIndex;
     /* find which pages of page table were affected */
-    VMArenaTablePagesUsed(&pageTableBaseIndex, &pageTableLimitIndex,
-			  chunk, baseIndex, limitIndex);
+    tablePagesUsed(&pageTableBaseIndex, &pageTableLimitIndex,
+                   chunk, baseIndex, limitIndex);
     /* Resetting the noLatentPages bits is lazy, it means that */
     /* we don't have to bother trying to unmap unused portions */
     /* of the pageTable. */
-    BTResRange(chunk->noLatentPages,
+    BTResRange(vmChunk->noLatentPages,
 	       pageTableBaseIndex, pageTableLimitIndex);
   }
 failTableMap:
@@ -1289,9 +1258,7 @@ failTableMap:
 
 static Res VMAllocComm(Addr *baseReturn, Tract *baseTractReturn,
                        VMAllocPolicyMethod policy,
-                       SegPref pref,
-                       Size size,
-                       Pool pool)
+                       SegPref pref, Size size, Pool pool)
 {
   Addr base, limit;
   Tract baseTract;
@@ -1301,7 +1268,8 @@ static Res VMAllocComm(Addr *baseReturn, Tract *baseTractReturn,
   RefSet refSet;
   Res res;
   VMArena vmArena;
-  VMArenaChunk chunk;
+  VMChunk vmChunk;
+  Chunk chunk;
 
   AVER(baseReturn != NULL);
   AVER(baseTractReturn != NULL);
@@ -1313,9 +1281,8 @@ static Res VMAllocComm(Addr *baseReturn, Tract *baseTractReturn,
   arena = PoolArena(pool);
   vmArena = ArenaVMArena(arena);
   AVERT(VMArena, vmArena);
-  /* Assume all chunks have same pageSize (see */
-  /* design.mps.arena.coop-vm.struct.chunk.pagesize.assume) */
-  AVER(SizeIsAligned(size, vmArena->primary->pageSize));
+  /* All chunks have same pageSize. */
+  AVER(SizeIsAligned(size, ChunkPageSize(arena->primary)));
   
   /* NULL is used as a discriminator */
   /* (see design.mps.arena.vm.table.disc) therefore the real pool */
@@ -1323,32 +1290,31 @@ static Res VMAllocComm(Addr *baseReturn, Tract *baseTractReturn,
   AVER(pool != NULL);
 
   /* Early check on commit limit. */
-  if(VMArenaArena(vmArena)->spareCommitted < size) {
-    Size necessaryCommitIncrease =
-      size - VMArenaArena(vmArena)->spareCommitted;
-    if(vmArena->committed + necessaryCommitIncrease > arena->commitLimit ||
-       vmArena->committed + necessaryCommitIncrease < vmArena->committed) {
+  if(arena->spareCommitted < size) {
+    Size necessaryCommitIncrease = size - arena->spareCommitted;
+    if(arena->committed + necessaryCommitIncrease > arena->commitLimit
+       || arena->committed + necessaryCommitIncrease < arena->committed) {
       return ResCOMMIT_LIMIT;
     }
   }
 
-  res = (*policy)(&baseIndex, &chunk, vmArena, pref, size);
+  res = (*policy)(&baseIndex, &vmChunk, vmArena, pref, size);
   if(res != ResOK) {
     return res;
   }
-
   /* chunk (and baseIndex) should be initialised by policy */
-  AVERT(VMArenaChunk, chunk);
+  AVERT(VMChunk, vmChunk);
+  chunk = VMChunkChunk(vmChunk);
 
   /* Compute number of pages to be allocated. */
   pages = ChunkSizeToPages(chunk, size);
 
-  res = VMArenaPagesMap(vmArena, chunk, baseIndex, pages, pool);
+  res = VMArenaPagesMap(vmArena, vmChunk, baseIndex, pages, pool);
   if(res != ResOK) {
     if(arena->spareCommitted > 0) {
       VMArenaPurgeLatentPages(vmArena);
       res =
-	VMArenaPagesMap(vmArena, chunk, baseIndex, pages, pool);
+	VMArenaPagesMap(vmArena, vmChunk, baseIndex, pages, pool);
       if(res != ResOK) {
 	goto failPagesMap;
       }
@@ -1404,11 +1370,12 @@ static Res VMNZAlloc(Addr *baseReturn, Tract *baseTractReturn,
  */
 
 static void VMArenaFindLatentRanges(
-  VMArenaChunk chunk, Index base, Index limit,
-  void (*f)(VMArenaChunk, Index, Index, void *, size_t),
+  VMChunk vmChunk, Index base, Index limit,
+  void (*f)(VMChunk, Index, Index, void *, size_t),
   void *p, size_t s)
 {
   Index latentBase, latentLimit;
+  Chunk chunk = VMChunkChunk(vmChunk);
 
   /* Minimal checking as static used only internally. */
   AVER(base < limit);
@@ -1426,7 +1393,7 @@ static void VMArenaFindLatentRanges(
       if(latentLimit >= limit)
 	break;
     }
-    f(chunk, latentBase, latentLimit, p, s);
+    f(vmChunk, latentBase, latentLimit, p, s);
     latentBase = latentLimit;
   } while(latentBase < limit);
 done:
@@ -1436,23 +1403,28 @@ done:
 }
 
 
-/* Takes a range of pages which are latent pages (in the hysteresis fund), */
-/* unmaps them and removes them from the hysteresis fund. */
-static void VMArenaUnmapLatentRange(VMArenaChunk chunk,
+/* VMArenaUnmapLatentRange
+ *
+ * Takes a range of pages which are latent pages (in the hysteresis fund),
+ * unmaps them and removes them from the hysteresis fund.
+ */
+
+static void VMArenaUnmapLatentRange(VMChunk vmChunk,
                                     Index rangeBase, Index rangeLimit,
 				    void *p, size_t s)
 {
   Index i;
+  Chunk chunk = VMChunkChunk(vmChunk);
 
-  /* The closure variable are not used */
+  /* The closure variables are not used */
   UNUSED(p);
   UNUSED(s);
 
   for(i = rangeBase; i < rangeLimit; ++i) {
-    VMArenaHysteresisRemovePage(chunk, i);
-    VMArenaPageInit(chunk, i);
+    VMArenaHysteresisRemovePage(vmChunk, i);
+    PageInit(chunk, i);
   }
-  VMArenaUnmap(chunk->vmArena, chunk->vm,
+  VMArenaUnmap(VMChunkVMArena(vmChunk), vmChunk->vm,
                PageIndexBase(chunk, rangeBase),
 	       PageIndexBase(chunk, rangeLimit));
   
@@ -1463,7 +1435,7 @@ static void VMArenaUnmapLatentRange(VMArenaChunk chunk,
 /* PurgeLatentPages
  *
  * All latent pages are found and removed from the hysteresis fund
- * (ie they are unmapped).  Pages occupied by the page table are
+ * (i.e., they are unmapped).  Pages occupied by the page table are
  * potentially unmapped.  This is currently the only way the hysteresis
  * fund is prevented from growing.
  *
@@ -1474,15 +1446,16 @@ static void VMArenaUnmapLatentRange(VMArenaChunk chunk,
 static void VMArenaPurgeLatentPages(VMArena vmArena)
 {
   Ring node, next;
+  Arena arena = VMArenaArena(vmArena);
 
-  AVERT(VMArena, vmArena);
-
-  RING_FOR(node, &vmArena->chunkRing, next) {
-    VMArenaChunk chunk = RING_ELT(VMArenaChunk, arenaRing, node);
+  RING_FOR(node, &arena->chunkRing, next) {
+    Chunk chunk = RING_ELT(Chunk, chunkRing, node);
+    VMChunk vmChunk = ChunkVMChunk(chunk);
     Index latentBaseIndex, latentLimitIndex;
     Index tablePageCursor = 0;
+
     while(BTFindLongResRange(&latentBaseIndex, &latentLimitIndex,
-                             chunk->noLatentPages,
+                             vmChunk->noLatentPages,
 	           	     tablePageCursor, chunk->pageTablePages,
 	      	             1)) {
       Addr latentTableBase, latentTableLimit;
@@ -1492,8 +1465,8 @@ static void VMArenaPurgeLatentPages(VMArena vmArena)
       latentTableBase = TablePageIndexBase(chunk, latentBaseIndex);
       latentTableLimit = TablePageIndexBase(chunk, latentLimitIndex);
       /* Determine whether to use initial overlapping PageStruct. */
-      if(latentBaseIndex > 0 &&
-         !BTGet(chunk->pageTableMapped, latentBaseIndex - 1)) {
+      if(latentBaseIndex > 0
+         && !BTGet(vmChunk->pageTableMapped, latentBaseIndex - 1)) {
 	pageBase = tablePageWholeBaseIndex(chunk, latentTableBase);
       } else {
         pageBase = tablePageBaseIndex(chunk, latentTableBase);
@@ -1502,9 +1475,9 @@ static void VMArenaPurgeLatentPages(VMArena vmArena)
           tablePage < latentLimitIndex;
 	  ++tablePage) {
 	/* Determine whether to use final overlapping PageStruct. */
-        if(tablePage == latentLimitIndex - 1 &&
-	   latentLimitIndex < chunk->pageTablePages &&
-	   !BTGet(chunk->pageTableMapped, latentLimitIndex)) {
+        if(tablePage == latentLimitIndex - 1
+	   && latentLimitIndex < chunk->pageTablePages
+	   && !BTGet(vmChunk->pageTableMapped, latentLimitIndex)) {
 	  pageLimit =
 	    tablePageWholeLimitIndex(chunk,
 	                             TablePageIndexBase(chunk, tablePage));
@@ -1516,7 +1489,7 @@ static void VMArenaPurgeLatentPages(VMArena vmArena)
 	                        TablePageIndexBase(chunk, tablePage));
 	}
 	if(pageBase < pageLimit) {
-	  VMArenaFindLatentRanges(chunk, pageBase, pageLimit,
+	  VMArenaFindLatentRanges(vmChunk, pageBase, pageLimit,
 				  VMArenaUnmapLatentRange, NULL, 0);
 	} else {
 	  /* Only happens for last page occupied by the page table */
@@ -1525,11 +1498,10 @@ static void VMArenaPurgeLatentPages(VMArena vmArena)
 	  AVER(pageBase == pageLimit);
 	  AVER(tablePage == chunk->pageTablePages - 1);
 	}
-	BTSet(chunk->noLatentPages, tablePage);
+	BTSet(vmChunk->noLatentPages, tablePage);
 	pageBase = pageLimit;
       }
-      VMArenaUnmapUnusedTablePages(chunk,
-                                   latentTableBase, latentTableLimit);
+      VMArenaUnmapUnusedTablePages(vmChunk, latentTableBase, latentTableLimit);
       tablePageCursor = latentLimitIndex;
       if(tablePageCursor >= chunk->pageTablePages) {
         AVER(tablePageCursor == chunk->pageTablePages);
@@ -1540,38 +1512,7 @@ static void VMArenaPurgeLatentPages(VMArena vmArena)
   }
 
   AVER(VMArenaArena(vmArena)->spareCommitted == 0);
-  
   return;
-}
-
-
-/* VMArenaChunkOfAddr -- return the chunk which encloses an address
- *
- */
-
-static Bool VMArenaChunkOfAddr(VMArenaChunk *chunkReturn,
-                               VMArena vmArena, Addr addr)
-
-{
-  Ring node, next;
-  /* No checks because critical and internal */
-
-  /* check cache first */
-  if(vmArena->chunkCache.base <= addr &&
-     addr < vmArena->chunkCache.limit) {
-    *chunkReturn = vmArena->chunkCache.chunk;
-    return TRUE;
-  }
-  RING_FOR(node, &vmArena->chunkRing, next) {
-    VMArenaChunk chunk = RING_ELT(VMArenaChunk, arenaRing, node);
-    if(chunk->base <= addr && addr < chunk->limit) {
-      /* Gotcha! */
-      VMArenaChunkEncache(vmArena, chunk);
-      *chunkReturn = chunk;
-      return TRUE;
-    }
-  }
-  return FALSE;
 }
 
 
@@ -1581,7 +1522,8 @@ static void VMFree(Addr base, Size size, Pool pool)
 {
   Arena arena;
   VMArena vmArena;
-  VMArenaChunk chunk;
+  VMChunk vmChunk;
+  Chunk chunk;
   Count pages;
   Index pi, piBase, piLimit;
   Index pageTableBase;
@@ -1596,13 +1538,13 @@ static void VMFree(Addr base, Size size, Pool pool)
   vmArena = ArenaVMArena(arena);
   AVERT(VMArena, vmArena);
 
-  /* Assume all chunks have same pageSize (see */
-  /* design.mps.arena.coop-vm.struct.chunk.pagesize.assume) */
-  AVER(SizeIsAligned(size, vmArena->primary->pageSize));
-  AVER(AddrIsAligned(base, vmArena->primary->pageSize));
+  /* All chunks have same pageSize. */
+  AVER(SizeIsAligned(size, ChunkPageSize(arena->primary)));
+  AVER(AddrIsAligned(base, ChunkPageSize(arena->primary)));
 
-  foundChunk = VMArenaChunkOfAddr(&chunk, vmArena, base);
+  foundChunk = ChunkOfAddr(&chunk, vmArena, base);
   AVER(foundChunk);
+  vmChunk = ChunkVMChunk(chunk);
 
   /* Calculate the number of pages in the region */
   pages = ChunkSizeToPages(chunk, size);
@@ -1628,9 +1570,8 @@ static void VMFree(Addr base, Size size, Pool pool)
   arena->spareCommitted += ChunkPagesToSize(chunk, piLimit - piBase);
   BTResRange(chunk->allocTable, piBase, piLimit);
 
-  VMArenaTablePagesUsed(&pageTableBase, &pageTableLimit,
-                        chunk, piBase, piLimit);
-  BTResRange(chunk->noLatentPages, pageTableBase, pageTableLimit);
+  tablePagesUsed(&pageTableBase, &pageTableLimit, chunk, piBase, piLimit);
+  BTResRange(vmChunk->noLatentPages, pageTableBase, pageTableLimit);
 
   if(arena->spareCommitted > arena->spareCommitLimit) {
     VMArenaPurgeLatentPages(vmArena);
@@ -1639,276 +1580,6 @@ static void VMFree(Addr base, Size size, Pool pool)
 
   return;
 }
-
-
-/* .tract.critical: These Tract functions are low-level and are on 
- * the critical path in various ways.  The more common therefore 
- * use AVER_CRITICAL
- */
-
-
-/* VMTractOfAddr -- return the tract which encloses an address
- *
- * If the address is within the bounds of the arena, calculate the
- * page table index from the address and see if the page is allocated.
- * If so, return it.
- */
-
-static Bool VMTractOfAddr(Tract *tractReturn, Arena arena, Addr addr)
-{
-  Bool b;
-  Index i;
-  VMArena vmArena;
-  VMArenaChunk chunk;
-  
-  /* design.mps.trace.fix.noaver */
-  AVER_CRITICAL(tractReturn != NULL); /* .tract.critical */
-  vmArena = ArenaVMArena(arena);
-  AVERT_CRITICAL(VMArena, vmArena);
-  
-  b = VMArenaChunkOfAddr(&chunk, vmArena, addr);
-  if(!b)
-    return FALSE;
-  /* design.mps.trace.fix.tractofaddr */
-  i = INDEX_OF_ADDR(chunk, addr);
-  /* .addr.free: If the page is recorded as being free then */
-  /* either the page is free or it is */
-  /* part of the arena tables (see .ullagepages) */
-  if(BTGet(chunk->allocTable, i)) {
-    Page page = &chunk->pageTable[i];
-    *tractReturn = PageTract(page);
-    return TRUE;
-  }
-  
-  return FALSE;
-}
-
-
-/* VMIsReservedAddr -- is address managed by this arena? */
-
-static Bool VMIsReservedAddr(Arena arena, Addr addr)
-{
-  VMArena vmArena;
-  VMArenaChunk dummy;
-
-  AVERT(Arena, arena);
-  /* addr is arbitrary */
-
-  vmArena = ArenaVMArena(arena);
-  AVERT(VMArena, vmArena);
-
-  return VMArenaChunkOfAddr(&dummy, vmArena, addr);
-}
-
-
-/* tractSearchInChunk -- search for a tract
- *
- * .tract-search: Searches for a tract in the chunk starting at page
- * index i, return NULL if there is none.  A page is a tract
- * if it is marked allocated in the allocTable, and
- * its pool is not NULL.
- *
- * .tract-search.private: This function is private to this module and
- * is used in the tract iteration protocol (TractFirst and TractNext).
- */
-
-static Bool tractSearchInChunk(Tract *tractReturn,
-                               VMArenaChunk chunk, Index i)
-{
-  AVER(tractReturn != NULL);
-  AVERT(VMArenaChunk, chunk);
-  AVER(chunk->ullagePages <= i);
-  AVER(i <= chunk->pages);
-
-  while(i < chunk->pages &&
-        !(BTGet(chunk->allocTable, i) &&
-          PageIsAllocated(&chunk->pageTable[i]))) {
-    ++i;
-  }
-
-  if(i == chunk->pages)
-    return FALSE;
-  
-  AVER(i < chunk->pages);
-  
-  *tractReturn = PageTract(&chunk->pageTable[i]);
-  return TRUE;
-}
-
-
-
-/* VMNextChunkOfAddr
- *
- * Returns the next higher chunk in memory which does _not_
- * contain addr.
- *
- * IE the chunks are partitioned into 3 sets (some of which are empty):
- * The set of chunks < addr; the set of chunks containing addr (empty or
- * singleton), the set of chunk > addr.
- * Of the latter set, the chunk with least address is chosen.  FALSE
- * is returned if this set is empty.
- */
-
-static Bool VMNextChunkOfAddr(VMArenaChunk *chunkReturn,
-                              VMArena vmArena, Addr addr)
-{
-  Addr leastBase;
-  VMArenaChunk leastChunk;
-  Ring node, next;
-
-  leastBase = (Addr)(Word)-1;
-  leastChunk = NULL;
-  RING_FOR(node, &vmArena->chunkRing, next) {
-    VMArenaChunk chunk = RING_ELT(VMArenaChunk, arenaRing, node);
-    if(addr < chunk->base && chunk->base < leastBase) {
-      leastBase = chunk->base;
-      leastChunk = chunk;
-    }
-  }
-  if(leastChunk != NULL) {
-    *chunkReturn = leastChunk;
-    return TRUE;
-  }
-  return FALSE;
-}
-
-
-/* tractSearch (internal to impl.c.arenavm)
- *
- * Searches for the next tract in increasing address order.
- * The tract returned is the next one along from addr (ie
- * it has a base address bigger than addr and no other tract
- * with a base address bigger than addr has a smaller base address).
- *
- * Returns FALSE if there is no tract to find (end of the arena).
- */
-
-static Bool tractSearch(Tract *tractReturn, VMArena vmArena, Addr addr)
-{
-  Bool b;
-  VMArenaChunk chunk;
-
-  b = VMArenaChunkOfAddr(&chunk, vmArena, addr);
-  if(b) {
-    Index i;
-
-    i = indexOfAddr(chunk, addr);
-
-    /* There are fewer pages than addresses, therefore the */
-    /* page index can never wrap around */
-    AVER_CRITICAL(i+1 != 0);
-
-    if(tractSearchInChunk(tractReturn, chunk, i+1)) {
-      return TRUE;
-    }
-  }
-  while(VMNextChunkOfAddr(&chunk, vmArena, addr)) {
-    addr = chunk->base;
-    /* We start from ullagePages, as the ullage can't be a tract. */
-    /* See .ullagepages */
-    if(tractSearchInChunk(tractReturn, chunk, chunk->ullagePages)) {
-      return TRUE;
-    }
-  }
-  return FALSE;
-}
-
-
-/* VMTractFirst -- return the first tract in the arena
- *
- * This is used to start an iteration over all tracts in the arena.
- */
-
-static Bool VMTractFirst(Tract *tractReturn, Arena arena)
-{
-  Bool b;
-  VMArena vmArena;
-
-  AVER(tractReturn != NULL);
-  vmArena = ArenaVMArena(arena);
-  AVERT(VMArena, vmArena);
-
-  /* .tractfirst.assume.nozero: We assume that there is no tract */
-  /* with base address (Addr)0.  Happily this assumption is sound */
-  /* for a number of reasons. */
-  b = tractSearch(tractReturn, vmArena, (Addr)0);
-  if(b) {
-    return TRUE;
-  }
-  return FALSE;
-}
-
-
-/* VMTractNext -- return the "next" tract in the arena
- *
- * This is used as the iteration step when iterating over all
- * tracts in the arena.
- *
- * VMTractNext finds the tract with the lowest base address which is
- * greater than a specified address.  The address must be (or must once
- * have been) the base address of a tract.
- */
-
-static Bool VMTractNext(Tract *tractReturn, Arena arena, Addr addr)
-{
-  Bool b;
-  VMArena vmArena;
-
-  AVER_CRITICAL(tractReturn != NULL); /* .tract.critical */
-  vmArena = ArenaVMArena(arena);
-  AVERT_CRITICAL(VMArena, vmArena);
-  AVER_CRITICAL(AddrIsAligned(addr, arena->alignment));
-
-  b = tractSearch(tractReturn, vmArena, addr);
-  if(b) {
-    return TRUE;
-  }
-  return FALSE;
-}
-
-
-/* VMTractNextContig -- return the next contiguous tract in the arena
- *
- * This is used as the iteration step when iterating over all
- * a contiguous range of tracts owned by a pool. Both current
- * and next tracts must be allocated.
- *
- * VMTractNextContig finds the tract with the base address which is
- * immediately after the supplied tract.  
- */
-
-static Tract VMTractNextContig(Arena arena, Tract tract)
-{
-  VMArena vmArena;
-  Tract nextTract;
-  Page page, next;
-
-  vmArena = ArenaVMArena(arena);
-  AVERT_CRITICAL(VMArena, vmArena);
-  AVERT_CRITICAL(Tract, tract);
-
-  /* check both this tract & next tract lie with the same chunk */
-  {
-    VMArenaChunk ch1, ch2;
-    UNUSED(ch1);
-    UNUSED(ch2);
-    AVER_CRITICAL(VMArenaChunkOfAddr(&ch1, vmArena, TractBase(tract)) &&
-                  VMArenaChunkOfAddr(&ch2, vmArena, 
-                                     AddrAdd(TractBase(tract), 
-                                             arena->alignment)) &&
-                  (ch1 == ch2));
-  }
-
-  /* the next contiguous tract is contiguous in the page table */
-  page = PageOfTract(tract);
-  next = page + 1;  
-
-  AVER_CRITICAL(PageIsAllocated(next));
-  nextTract = PageTract(next);
-  AVERT_CRITICAL(Tract, nextTract);
-  return nextTract;
-}
-
 
 
 /* VMArenaClass  -- The VM arena class definition */
@@ -1923,15 +1594,10 @@ DEFINE_ARENA_CLASS(VMArenaClass, this)
   this->finish = VMArenaFinish;
   this->reserved = VMArenaReserved;
   this->spareCommitExceeded = VMArenaSpareCommitExceeded;
-  this->isReserved = VMIsReservedAddr;
   this->alloc = VMAlloc;
   this->free = VMFree;
-  this->tractOfAddr = VMTractOfAddr;
-  this->tractFirst = VMTractFirst;
-  this->tractNext = VMTractNext;
-  this->tractNextContig = VMTractNextContig;
   this->chunkInit = VMChunkInit;
-  this->chunkDestroy = VMArenaChunkDestroy;
+  this->chunkDestroy = VMChunkDestroy;
   this->chunkFinish = VMChunkFinish;
 }
 
