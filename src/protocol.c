@@ -67,9 +67,9 @@ Bool ProtocolIsSubclass(ProtocolClass sub, ProtocolClass super)
  */
 
 
-Bool ProtocolCoerceClass(ProtocolClass *coerceResult, 
-                         ProtocolClass proClass,
-                         ProtocolClass super)
+static Bool ProtocolCoerceClass(ProtocolClass *coerceResult, 
+                                ProtocolClass proClass,
+                                ProtocolClass super)
 {
   ProtocolClass p = proClass;
   ProtocolClass root = (ProtocolClass)EnsureProtocolClass();
@@ -95,9 +95,9 @@ Bool ProtocolCoerceClass(ProtocolClass *coerceResult,
  * which does not perform a multiple inheritance.
  */
 
-Bool ProtocolCoerceInst(Protocol *coerceResult, 
-                        Protocol pro,
-                        ProtocolClass super)
+static Bool ProtocolCoerceInst(Protocol *coerceResult, 
+                               Protocol pro,
+                               ProtocolClass super)
 {
   ProtocolClass p = pro->class;
   ProtocolClass root = (ProtocolClass)EnsureProtocolClass();
