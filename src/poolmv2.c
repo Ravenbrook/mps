@@ -1,6 +1,6 @@
 /* impl.c.poolmv2: MANUAL VARIABLE POOL, II
  *
- * $HopeName: MMsrc!poolmv2.c(MMdevel_gavinm_splay.12) $
+ * $HopeName: MMsrc!poolmv2.c(MMdevel_gavinm_splay.13) $
  * Copyright (C) 1998 Harlequin Group plc.  All rights reserved.
  *
  * .limitation.seg : MV2BufferFill may fill a buffer with a range that
@@ -15,7 +15,7 @@
 #include "abq.h"
 #include "meter.h"
 
-SRCID(poolmv2, "$HopeName: MMsrc!poolmv2.c(MMdevel_gavinm_splay.12) $");
+SRCID(poolmv2, "$HopeName: MMsrc!poolmv2.c(MMdevel_gavinm_splay.13) $");
 
 /* Signatures */
 #define MV2Sig ((Sig)0x5193F299) /* SIGnature MV2 */
@@ -45,9 +45,11 @@ typedef struct MV2Struct
   Addr splinterBase;            /* Saved splinter base */
   Addr splinterLimit;           /* Saved splinter size */
 
-  /* pool accounting */
+  /* pool accounting --- one of these first four is redundant */
   Size size;                    /* size of segs in pool */
+  Size allocated;               /* bytes allocated to mutator */
   Size available;               /* bytes available for allocation */
+  Size unavailable;             /* bytes lost to fragmentation */
   
   /* pool meters*/
   METER_DECL(segAllocs);
@@ -56,7 +58,9 @@ typedef struct MV2Struct
   METER_DECL(bufferEmpties);
   METER_DECL(poolFrees);
   METER_DECL(poolSize);
+  METER_DECL(poolAllocated);
   METER_DECL(poolAvailable);
+  METER_DECL(poolUnavailable);
   /* abq meters */
   METER_DECL(overflows);
   METER_DECL(underflows);
@@ -109,9 +113,9 @@ static Res MV2SegAlloc(Seg *segReturn, MV2 mv2, Size size, Pool pool)
     /* see design.mps.poolmv2.arch.fragmentation.internal */
     AVER(segSize >= mv2->allocSize);
     mv2->size += segSize;
-    METER_ACC(mv2->poolSize, mv2->size);
     mv2->available += segSize;
-    METER_ACC(mv2->poolAvailable, mv2->available);
+    AVER(mv2->size == mv2->allocated + mv2->available +
+         mv2->unavailable);
     METER_ACC(mv2->segAllocs, segSize);
   }
   return res;
@@ -127,9 +131,9 @@ static void MV2SegFree(MV2 mv2, Seg seg)
   Size size = SegSize(seg);
 
   mv2->available -= size;
-  METER_ACC(mv2->poolAvailable, mv2->available);
   mv2->size -= size;
-  METER_ACC(mv2->poolSize, mv2->size);
+  AVER(mv2->size == mv2->allocated + mv2->available +
+       mv2->unavailable);
   SegFree(seg);
   METER_ACC(mv2->segFrees, size);
 }
@@ -287,6 +291,12 @@ static Res MV2Init(Pool pool, va_list arg)
   mv2->splinterBase = (Addr)0;
   mv2->splinterLimit = (Addr)0;
   
+  /* accounting */
+  mv2->size = 0;
+  mv2->allocated = 0;
+  mv2->available = 0;
+  mv2->unavailable = 0;
+  
   /* meters*/
   METER_INIT(mv2->segAllocs, "segment allocations");
   METER_INIT(mv2->segFrees, "segment frees");
@@ -294,7 +304,9 @@ static Res MV2Init(Pool pool, va_list arg)
   METER_INIT(mv2->bufferEmpties, "buffer empties");
   METER_INIT(mv2->poolFrees, "pool frees");
   METER_INIT(mv2->poolSize, "pool size");
+  METER_INIT(mv2->poolAllocated, "pool allocated");
   METER_INIT(mv2->poolAvailable, "pool available");
+  METER_INIT(mv2->poolUnavailable, "pool unavailable");
   METER_INIT(mv2->overflows, "ABQ overflows");
   METER_INIT(mv2->underflows, "ABQ underflows");
   METER_INIT(mv2->refills, "ABQ refills");
@@ -510,7 +522,9 @@ static Res MV2ContingencySearch(CBSBlock *blockReturn, CBS cbs, Size min)
   if (cls.blockReturn != NULL) {
     AVER(CBSBlockSize(cls.blockReturn) >= min);
     METER_ACC(CBSMV2(cbs)->contingencySearches, cls.steps);
-    METER_ACC(CBSMV2(cbs)->contingencyHardSearches, cls.hardSteps);
+    if (cls.hardSteps) {
+      METER_ACC(CBSMV2(cbs)->contingencyHardSearches, cls.hardSteps);
+    }
     *blockReturn = cls.blockReturn;
     return ResOK;
   }
@@ -561,6 +575,9 @@ static Res MV2BufferFill(Seg *segReturn,
       /* only allocate this block in the segment */
       limit = AddrAdd(base, minSize);
       mv2->available -= alignedSize - minSize;
+      mv2->unavailable += alignedSize - minSize;
+      AVER(mv2->size == mv2->allocated + mv2->available +
+           mv2->unavailable);
       METER_ACC(mv2->exceptions, minSize);
       METER_ACC(mv2->exceptionSplinters, alignedSize - minSize);
       goto done;
@@ -668,7 +685,13 @@ done:
   *baseReturn = base;
   *limitReturn = limit;
   mv2->available -= AddrOffset(base, limit);
+  mv2->allocated += AddrOffset(base, limit);
+  AVER(mv2->size == mv2->allocated + mv2->available +
+       mv2->unavailable);
+  METER_ACC(mv2->poolUnavailable, mv2->unavailable);
   METER_ACC(mv2->poolAvailable, mv2->available);
+  METER_ACC(mv2->poolAllocated, mv2->allocated);
+  METER_ACC(mv2->poolSize, mv2->size);
   METER_ACC(mv2->bufferFills, AddrOffset(base, limit));
   EVENT_PPWAW(MV2BufferFill, mv2, buffer, minSize, base,
               AddrOffset(base, limit));
@@ -703,7 +726,13 @@ static void MV2BufferEmpty(Pool pool, Buffer buffer)
   
   EVENT_PPW(MV2BufferEmpty, mv2, buffer, size);
   mv2->available += size;
+  mv2->allocated -= size;
+  AVER(mv2->size == mv2->allocated + mv2->available +
+       mv2->unavailable);
+  METER_ACC(mv2->poolUnavailable, mv2->unavailable);
   METER_ACC(mv2->poolAvailable, mv2->available);
+  METER_ACC(mv2->poolAllocated, mv2->allocated);
+  METER_ACC(mv2->poolSize, mv2->size);
   METER_ACC(mv2->bufferEmpties, size);
 
   if (size == 0)
@@ -768,7 +797,13 @@ static void MV2Free(Pool pool, Addr base, Size size)
   limit = AddrAdd(base, size);
   METER_ACC(mv2->poolFrees, size);
   mv2->available += size;
+  mv2->allocated -= size;
+  AVER(mv2->size == mv2->allocated + mv2->available +
+       mv2->unavailable);
+  METER_ACC(mv2->poolUnavailable, mv2->unavailable);
   METER_ACC(mv2->poolAvailable, mv2->available);
+  METER_ACC(mv2->poolAllocated, mv2->allocated);
+  METER_ACC(mv2->poolSize, mv2->size);
   
   /* design.mps.poolmv2.arch.ap.no-fit.oversize */
   /* Return exceptional blocks directly to arena */
@@ -780,6 +815,10 @@ static void MV2Free(Pool pool, Addr base, Size size)
     }
     AVER(base == SegBase(seg));
     AVER(limit <= SegLimit(seg));
+    mv2->available += SegSize(seg) - size;
+    mv2->unavailable -= SegSize(seg) - size;
+    AVER(mv2->size == mv2->allocated + mv2->available +
+         mv2->unavailable);
     METER_ACC(mv2->exceptionReturns, SegSize(seg));
     if (SegBuffer(seg) != NULL)
       BufferDetach(SegBuffer(seg), MV2Pool(mv2));
@@ -816,7 +855,9 @@ static Res MV2Describe(Pool pool, mps_lib_FILE *stream)
 	       "  medianSize: $U \n", (WriteFU)mv2->medianSize,
 	       "  maxSize: $U \n", (WriteFU)mv2->maxSize,
 	       "  size: $U \n", (WriteFU)mv2->size,
+	       "  allocated: $U \n", (WriteFU)mv2->allocated,
 	       "  available: $U \n", (WriteFU)mv2->available,
+	       "  unavailable: $U \n", (WriteFU)mv2->unavailable,
 	       "  abqOverflow: $S \n", mv2->abqOverflow?"TRUE":"FALSE",
 	       "  contingency: $S \n", mv2->contingency?"TRUE":"FALSE",
 	       "  splinter: $S \n", mv2->splinter?"TRUE":"FALSE",
@@ -842,7 +883,9 @@ static Res MV2Describe(Pool pool, mps_lib_FILE *stream)
   METER_WRITE(mv2->bufferEmpties, stream);
   METER_WRITE(mv2->poolFrees, stream);
   METER_WRITE(mv2->poolSize, stream);
+  METER_WRITE(mv2->poolAllocated, stream);
   METER_WRITE(mv2->poolAvailable, stream);
+  METER_WRITE(mv2->poolUnavailable, stream);
   METER_WRITE(mv2->overflows, stream);
   METER_WRITE(mv2->underflows, stream);
   METER_WRITE(mv2->refills, stream);
@@ -927,6 +970,8 @@ static Bool MV2Check(MV2 mv2)
     CHECKL(mv2->splinterBase >= SegBase(mv2->splinterSeg));
     CHECKL(mv2->splinterLimit <= SegLimit(mv2->splinterSeg));
   }
+  CHECKL(mv2->size == mv2->allocated + mv2->available +
+         mv2->unavailable);
   /* --- check meters? */
 
   return TRUE;
