@@ -940,7 +940,8 @@ Res CBSBlockDescribe(CBSBlock block, mps_lib_FILE *stream) {
   AVER(stream != NULL);
 
   res = WriteF(stream,
-               "[$P,$P)", (WriteFP)block->base, (WriteFP)block->limit,
+               "[$P,$P) {$U}", (WriteFP)block->base, (WriteFP)block->limit,
+               (WriteFU)block->maxSize,
                NULL);
   if(res != ResOK)
     return res;

@@ -52,6 +52,7 @@ Bool SplayNodeCheck(SplayNode node)
   return TRUE;
 }
 
+
 void SplayTreeInit(SplayTree tree, SplayCompareMethod compare,
                    SplayUpdateNodeMethod updateNode) 
 {
@@ -304,6 +305,9 @@ static void SplayAssemble(SplayTree tree, SplayNode top,
     }
   }
   /* otherwise leave top->right alone */
+
+  if(tree->updateNode != NULL) 
+    SplayNodeUpdate(tree, top);
 }
 
 /* SplaySplay -- Splay the tree (top-down) around a given key
@@ -487,10 +491,11 @@ Res SplayTreeInsert(SplayTree tree, SplayNode node, void *key) {
       NOTREACHED;
     } break;
     }
-  }
 
-  if(tree->updateNode != NULL) {
-    SplayNodeUpdate(tree, node);
+    if(tree->updateNode != NULL) {
+      SplayNodeUpdate(tree, neighbour);
+      SplayNodeUpdate(tree, node);
+    }
   }
 
   return ResOK;
@@ -588,6 +593,11 @@ static SplayNode SplayTreePredecessor(SplayTree tree, void *key) {
       AVER(SplayNodeRightChild(newRoot) == NULL);
       SplayNodeSetRightChild(newRoot, oldRoot);
     }
+
+    if(tree->updateNode != NULL) {
+      SplayNodeUpdate(tree, oldRoot);
+      SplayNodeUpdate(tree, newRoot);
+    }
   }
 
   return newRoot;
@@ -619,6 +629,11 @@ static SplayNode SplayTreeSuccessor(SplayTree tree, void *key) {
     } else {
       AVER(SplayNodeLeftChild(newRoot) == NULL);
       SplayNodeSetLeftChild(newRoot, oldRoot);
+    }
+
+    if(tree->updateNode != NULL) {
+      SplayNodeUpdate(tree, oldRoot);
+      SplayNodeUpdate(tree, newRoot);
     }
   }
 
