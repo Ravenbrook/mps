@@ -1,6 +1,6 @@
 /* impl.h.mpm: MEMORY POOL MANAGER DEFINITIONS
  *
- * $HopeName: !mpm.h(trunk.116) $
+ * $HopeName: MMsrc!mpm.h(MMdevel_tony_segments.1) $
  * Copyright (C) 1998.  Harlequin Group plc.  All rights reserved.
  */
 
@@ -675,9 +675,20 @@ extern Res ArenaFinalize(Arena arena, Ref obj);
 
 extern Bool ArenaIsReservedAddr(Arena arena, Addr addr);
 
-extern Size ArenaReservoirLimit(Arena arena);
-extern void ArenaReservoirLimitSet(Arena arena, Size size);
-extern Size ArenaReservoirAvailable(Arena arena);
+
+extern Reservoir ArenaReservoir(Arena arena);
+
+extern Bool ReservoirCheck(Reservoir reservoir);
+extern Res ReservoirInit(Reservoir reservoir, Arena arena);
+extern void ReservoirFinish (Reservoir reservoir);
+extern Size ReservoirLimit(Reservoir reservoir);
+extern void ReservoirSetLimit(Reservoir reservoir, Size size);
+extern Size ReservoirAvailable(Reservoir reservoir);
+extern Res ReservoirEnsureFull(Reservoir reservoir);
+extern void ReservoirDeposit(Reservoir reservoir, Seg seg);
+extern Res ReservoirWithdraw(Seg *segReturn, Reservoir reservoir, 
+                             Size size, Pool pool);
+
 
 extern Res SegAlloc(Seg *segReturn, SegPref pref,
                     Size size, Pool pool, Bool withReservoirPermit);

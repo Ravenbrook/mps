@@ -1,6 +1,6 @@
 /* impl.c.arena: ARENA IMPLEMENTATION
  *
- * $HopeName: !arena.c(trunk.60) $
+ * $HopeName: MMsrc!arena.c(MMdevel_tony_segments.1) $
  * Copyright (C) 1998. Harlequin Group plc. All rights reserved.
  *
  * .readership: Any MPS developer
@@ -36,14 +36,7 @@
 #include "poolmrg.h"
 #include "mps.h"
 
-SRCID(arena, "$HopeName: !arena.c(trunk.60) $");
-
-
-/* Forward declarations */
-
-typedef struct NSEGStruct *NSEG;
-
-static Bool NSEGCheck(NSEG nseg);
+SRCID(arena, "$HopeName: MMsrc!arena.c(MMdevel_tony_segments.1) $");
 
 
 /* All static data objects are declared here. See .static */
@@ -58,308 +51,13 @@ static Serial arenaSerial;         /* design.mps.arena.static.serial */
 #define SegArena(seg) PoolArena(SegPool(seg))
 
 
-/* The reservoir pool is defined here. See design.mps.reservoir */
+/* ArenaReservoir - return the reservoir for the arena */
 
-#define PoolPoolNSEG(pool)       PARENT(NSEGStruct, poolStruct, pool)
-
-/* NSEGInit -- initialize the reservoir NSEG pool */
-static Res NSEGInit(Pool pool, va_list arg)
-{
-  NSEG nseg;
-
-  UNUSED(arg);
-  AVER(pool != NULL);
-  nseg = PoolPoolNSEG(pool);
-  nseg->sig = NSEGSig;
-  AVERT(NSEG, nseg);
-
-  return ResOK;
-}
-
-/* NSEGFinish -- finish the reservoir NSEG pool 
- *
- * .reservoir.finish: This might be called from ArenaFinish, so the 
- * arena cannot be checked at this time. In order to avoid the 
- * check, insist that the arena must have previously emptied the
- * reservoir, by AVERing that the seg ring is empty.
- */
-static void NSEGFinish(Pool pool)
-{
-  NSEG nseg;
-
-  AVERT(Pool, pool);
-  nseg = PoolPoolNSEG(pool);
-  AVERT(NSEG, nseg);
-  AVER(RingCheckSingle(PoolSegRing(pool)));  /* .reservoir.finish */
-
-  nseg->sig = SigInvalid;
-}
-
-
-DEFINE_POOL_CLASS(NSEGPoolClass, this)
-{
-  INHERIT_CLASS(this, AbstractPoolClass);
-  this->name = "NSEG";
-  this->size = sizeof(NSEGStruct);
-  this->offset = offsetof(NSEGStruct, poolStruct);
-  this->init = NSEGInit;
-  this->finish = NSEGFinish;
-}
-
-
-static Bool NSEGCheck(NSEG nseg)
-{
-  NSEGPoolClass nsegcl = EnsureNSEGPoolClass();
-  CHECKS(NSEG, nseg);
-  CHECKD(Pool, &nseg->poolStruct);
-  CHECKL(nseg->poolStruct.class == nsegcl);
-
-  return TRUE;
-}
-
-
-/* ArenaReservoirIsConsistent
- *
- * Returns FALSE if the reservoir is corrupt.
- */
-
-static Bool ArenaReservoirIsConsistent(Arena arena)
-{
-  Bool res;
-  Size size = 0;
-  Ring node, nextNode;
-  Pool pool;
-  AVERT(Arena, arena);
-  pool = &arena->reservoirStruct.poolStruct;
-  AVERT(Pool, pool);
-
-  /* Check the the size of the segments matches reservoirSize */
-  RING_FOR(node, PoolSegRing(pool), nextNode) {
-    Seg seg = SegOfPoolRing(node);
-    Size segSize = SegSize(seg);
-    AVER(segSize == ArenaAlign(arena));
-    size += segSize;
-  }
-  if (size != arena->reservoirSize)
-    return FALSE;
-
-  /* design.mps.reservoir.align */
-  res = SizeIsAligned(arena->reservoirLimit, arena->alignment) &&
-        SizeIsAligned(arena->reservoirSize, arena->alignment) &&
-        (arena->reservoirLimit >= arena->reservoirSize);
-
-  return res;
-}
-
-
-/* ArenaEnsureReservoir  
- * 
- * Ensures that the reservoir is the right size, by topping it up 
- * if possible.
- */
-
-static Res ArenaEnsureReservoir(Arena arena)
-{
-  Size limit, alignment;
-  Pool reservoir;
-
-  AVERT(Arena, arena);
-  alignment = arena->alignment;
-  limit = arena->reservoirLimit;
-
-  /* optimize the common case of a full reservoir */
-  if (arena->reservoirSize == limit)
-    return ResOK; 
-
-  reservoir = &arena->reservoirStruct.poolStruct;
-  AVERT(Pool, reservoir);
-
-  while (arena->reservoirSize < limit) {
-    Res res;
-    Seg seg;
-    res = (*arena->class->segAlloc)(&seg, SegPrefDefault(), 
-                                    alignment, reservoir);
-    if (res != ResOK) {
-      AVER(ArenaReservoirIsConsistent(arena));
-      return res;
-    }
-    AVER(SegSize(seg) == alignment);
-    arena->reservoirSize += alignment;
-  }
-  AVER(ArenaReservoirIsConsistent(arena));
-  return ResOK;
-}
-
-
-static Seg ArenaReservoirFirstSeg(Arena arena)
-{
-  Ring ring, node;
-  Pool pool;
-  Seg seg;
-  
-  AVERT(Arena, arena);
-  pool = &arena->reservoirStruct.poolStruct;
-  AVERT(Pool, pool);
-
-  ring = PoolSegRing(pool);
-  node = RingNext(ring);
-  AVER(node != ring);  /* check there is at least 1 segment */
-  seg = SegOfPoolRing(node);
-  return seg;
-}
-
-
-static void ArenaShrinkReservoir(Arena arena, Size want)
-{
-  AVER(SizeIsAligned(want, arena->alignment));
-  AVER(arena->reservoirSize >= want);
-
-  if (arena->reservoirSize == want)
-    return;
-
-  /* Iterate over reservoir segs, freeing them while reservoir is too big */
-  while (arena->reservoirSize > want) {
-    Seg seg = ArenaReservoirFirstSeg(arena);
-    Size size = SegSize(seg);
-    (*arena->class->segFree)(seg);
-    arena->reservoirSize -= size;
-  }
-  AVER(arena->reservoirSize <= want);
-  AVER(ArenaReservoirIsConsistent(arena));
-}
-
-
-static Res ArenaAllocSegFromReservoir(Seg *segReturn, Arena arena, 
-                                      Size size, Pool pool)
-{
-  Ring ring;
-  Ring node, nextNode;
-  Pool reservoir;
-  
-  AVER(segReturn != NULL);
-  AVERT(Arena, arena);
-  AVER(SizeIsAligned(size, arena->alignment));
-  AVERT(Pool, pool);
-  reservoir = &arena->reservoirStruct.poolStruct;
-  AVERT(Pool, reservoir);
-
-  /* @@@ As a short-term measure, we only permit the reservoir to */
-  /* hold or allocate single-page segments. */
-  /* See change.dylan.jackdaw.160125 */
-  if(size != ArenaAlign(arena))
-    return ResMEMORY;
-
-  /* Return the first segment which is big enough */
-  ring = PoolSegRing(reservoir);
-  RING_FOR(node, ring, nextNode) {
-    Seg seg = SegOfPoolRing(node);
-    Size segSize = SegSize(seg);
-    if (segSize == size) {
-      arena->reservoirSize -= segSize;
-      SegFinish(seg);
-      SegInit(seg, pool);
-      AVER(ArenaReservoirIsConsistent(arena));
-      *segReturn = seg;
-      return ResOK;
-    }
-  }
-  AVER(ArenaReservoirIsConsistent(arena));  
-  return ResMEMORY; /* no suitable segment in the reservoir */
-}
-
-
-static void ArenaReturnSegToReservoir(Arena arena, Seg seg)
-{
-  Pool reservoir;
-  Size have, limit, new;
-  AVERT(Arena, arena);
-  reservoir = &arena->reservoirStruct.poolStruct;
-  AVERT(Pool, reservoir);
-
-  have = arena->reservoirSize;
-  limit = arena->reservoirLimit;
-  new = SegSize(seg);
-  AVER(have < limit); /* The reservoir mustn't be full */
-
-  /* @@@ Short-term fix that multi-page segments aren't put */
-  /* directly into the reservoir.  See change.dylan.jackdaw.160125 */
-  if(new != ArenaAlign(arena)) {
-    (*arena->class->segFree)(seg);
-    (void)ArenaEnsureReservoir(arena);
-  } else {
-    /* Reassign the segment to the reservoir pool */
-    SegFinish(seg);
-    SegInit(seg, reservoir);
-    arena->reservoirSize += new; 
-  }
-  AVER(ArenaReservoirIsConsistent(arena));
-}
-
-
-static Count ArenaMutatorBufferCount(Arena arena)
-{
-  Ring nodep, nextp;
-  Count count = 0;
-
-  AVERT(Arena, arena);
-  
-  /* Iterate over all pools, and count the mutator buffers in each */
-  RING_FOR(nodep, &arena->poolRing, nextp) {
-    Pool pool = RING_ELT(Pool, arenaRing, nodep);
-    Ring nodeb, nextb;
-    RING_FOR(nodeb, &pool->bufferRing, nextb) {
-      Buffer buff = RING_ELT(Buffer, poolRing, nodeb);
-      if (buff->isMutator)
-        count++;
-    }
-  }
-  return count;
-}
-
-
-void ArenaReservoirLimitSet(Arena arena, Size size)
-{
-  Size needed;
-  AVERT(Arena, arena);
-
-  if (size > 0) {
-    Size wastage;
-    /* design.mps.reservoir.wastage */
-    wastage = ArenaAlign(arena) * ArenaMutatorBufferCount(arena);
-    /* design.mps.reservoir.align */
-    needed = SizeAlignUp(size, ArenaAlign(arena)) + wastage;
-  } else {
-    needed = 0; /* design.mps.reservoir.really-empty */
-  }
-
-  AVER(SizeIsAligned(needed, arena->alignment));
-
-  if (needed > arena->reservoirSize) {
-    /* Try to grow the reservoir */
-    arena->reservoirLimit = needed;
-    ArenaEnsureReservoir(arena);
-  } else {
-    /* Shrink the reservoir */
-    ArenaShrinkReservoir(arena, needed);
-    arena->reservoirLimit = needed;
-    AVER(ArenaReservoirIsConsistent(arena));  
-  }
-}
-
-Size ArenaReservoirLimit(Arena arena)
+Reservoir ArenaReservoir(Arena arena)
 {
   AVERT(Arena, arena);
-  AVER(ArenaReservoirIsConsistent(arena));  
-  return arena->reservoirLimit;
+  return &arena->reservoirStruct;
 }
-
-Size ArenaReservoirAvailable(Arena arena)
-{
-  AVERT(Arena, arena);
-  ArenaEnsureReservoir(arena);
-  return arena->reservoirSize;
-}
-
 
 
 /* ArenaClassCheck -- check the consistency of an arena class */
@@ -412,11 +110,8 @@ Bool ArenaCheck(Arena arena)
   CHECKL(BoolCheck(arena->poolReady));
   if(arena->poolReady) {               /* design.mps.arena.pool.ready */
     CHECKD(MV, &arena->controlPoolStruct);
-    CHECKD(NSEG, &arena->reservoirStruct);
+    CHECKD(Reservoir, &arena->reservoirStruct);
   }
-  /* could call ArenaReservoirIsConsistent, but it's costly. */
-  CHECKL(SizeIsAligned(arena->reservoirLimit, ArenaAlign(arena)));
-  CHECKL(SizeIsAligned(arena->reservoirSize, ArenaAlign(arena)));
   /* Can't check that limit>=size because we may call ArenaCheck */
   /* while the size is being adjusted. */
 
@@ -549,8 +244,6 @@ void ArenaInit(Arena arena, ArenaClass class)
     /* design.mps.arena.trace.invalid */
     arena->trace[i].sig = SigInvalid;   
   }
-  arena->reservoirLimit = (Size)0;
-  arena->reservoirSize = (Size)0;
   LockInit(&arena->lockStruct);
   arena->insideShield = FALSE;          /* impl.c.shield */
   arena->shCacheI = (Size)0;
@@ -626,8 +319,7 @@ Res ArenaCreateV(Arena *arenaReturn, ArenaClass class, va_list args)
   AVERT(Arena, arena);
 
   /* initialize the reservoir, design.mps.reservoir */
-  res = PoolInit(&arena->reservoirStruct.poolStruct, 
-                 arena, EnsureNSEGPoolClass());
+  res = ReservoirInit(&arena->reservoirStruct, arena);
   if(res != ResOK) 
     goto failReservoirInit;
 
@@ -661,7 +353,6 @@ Res ArenaCreateV(Arena *arenaReturn, ArenaClass class, va_list args)
 failEnabledBTAlloc:
   PoolFinish(&arena->controlPoolStruct.poolStruct);
 failControlInit:
-  PoolFinish(&arena->reservoirStruct.poolStruct);
 failReservoirInit:
   (*class->finish)(arena);
 failInit:
@@ -700,12 +391,15 @@ void ArenaFinish(Arena arena)
 void ArenaDestroy(Arena arena)
 {
   ArenaClass class;
+  Reservoir reservoir;
 
   AVERT(Arena, arena);
   AVER(!arena->insidePoll);
+  reservoir = ArenaReservoir(arena);
+  AVERT(Reservoir, reservoir);
 
   /* Empty the reservoir - see .reservoir.finish */
-  ArenaReservoirLimitSet(arena, 0);
+  ReservoirSetLimit(reservoir, 0);
 
   /* Detach the arena from the global list. */
   LockClaim(&arenaRingLock);
@@ -743,8 +437,8 @@ void ArenaDestroy(Arena arena)
 
   /* Destroy the control pool & reservoir pool. */
   arena->poolReady = FALSE;
-  PoolFinish(&arena->reservoirStruct.poolStruct);
   PoolFinish(&arena->controlPoolStruct.poolStruct);
+  ReservoirFinish(reservoir);
 
   ArenaLeave(arena);
 
@@ -1221,6 +915,7 @@ Res SegAlloc(Seg *segReturn, SegPref pref, Size size, Pool pool,
   Res res;
   Arena arena;
   Seg seg;
+  Reservoir reservoir;
 
   AVER(segReturn != NULL);
   AVERT(SegPref, pref);
@@ -1231,8 +926,10 @@ Res SegAlloc(Seg *segReturn, SegPref pref, Size size, Pool pool,
   arena = PoolArena(pool);
   AVERT(Arena, arena);
   AVER(SizeIsAligned(size, arena->alignment));
+  reservoir = ArenaReservoir(arena);
+  AVERT(Reservoir, reservoir);
 
-  res = ArenaEnsureReservoir(arena);
+  res = ReservoirEnsureFull(reservoir);
   if (res != ResOK) {
     AVER(ResIsAllocFailure(res));
     if (!withReservoirPermit)
@@ -1244,7 +941,7 @@ Res SegAlloc(Seg *segReturn, SegPref pref, Size size, Pool pool,
     goto goodAlloc;
   } else if(withReservoirPermit) {
     AVER(ResIsAllocFailure(res));
-    res = ArenaAllocSegFromReservoir(&seg, arena, size, pool);
+    res = ReservoirWithdraw(&seg, reservoir, size, pool);
     if(res == ResOK)
       goto goodAlloc;
   }
@@ -1263,18 +960,21 @@ goodAlloc:
 void SegFree(Seg seg)
 {
   Arena arena;
+  Reservoir reservoir;
   Res res;
 
   AVERT(Seg, seg);
   arena = SegArena(seg);
   AVERT(Arena, arena);
+  reservoir = ArenaReservoir(arena);
+  AVERT(Reservoir, reservoir);
 
-  res = ArenaEnsureReservoir(arena);
+  res = ReservoirEnsureFull(reservoir);
   if (res == ResOK) {
     (*arena->class->segFree)(seg);
   } else {
     AVER(ResIsAllocFailure(res));
-    ArenaReturnSegToReservoir(arena, seg);
+    ReservoirDeposit(reservoir, seg);
   }
 
   EVENT_PP(SegFree, arena, seg);
@@ -1702,397 +1402,4 @@ Ref ArenaRead(Arena arena, Addr addr)
                      seg, (Ref *)addr);
   /* get the possibly fixed reference */
   return ArenaPeekSeg(arena, seg, addr);
-}
-
-
-/* Heap Walking
- *
- * .trans.mod: There's no particular reason these functions belong in
- * arena.c, it's just a matter of convenience.
- */
-
-#define FormattedObjectsStepClosureSig ((Sig)0x519F05C1)
-
-typedef struct FormattedObjectsStepClosureStruct *FormattedObjectsStepClosure;
-typedef struct FormattedObjectsStepClosureStruct {
-  Sig sig;
-  mps_formatted_objects_stepper_t f;
-  void *p;
-  size_t s;
-} FormattedObjectsStepClosureStruct;
-
-static Bool FormattedObjectsStepClosureCheck(FormattedObjectsStepClosure c)
-{
-  CHECKS(FormattedObjectsStepClosure, c);
-  CHECKL(FUNCHECK(c->f));
-  /* p and s fields are arbitrary closures which cannot be checked */
-  return TRUE;
-}
-
-static void ArenaFormattedObjectsStep(Addr object, Format format, Pool pool,
-                                      void *p, Size s)
-{
-  FormattedObjectsStepClosure c;
-  /* Can't check object */
-  AVERT(Format, format);
-  AVERT(Pool, pool);
-  c = p;
-  AVERT(FormattedObjectsStepClosure, c);
-  AVER(s == 0);
-
-  (*c->f)((mps_addr_t)object, (mps_fmt_t)format, (mps_pool_t)pool, 
-          c->p, c->s);
-}
-
-/* so called because it walk all formatted objects in an arena */
-static void ArenaFormattedObjectsWalk(Arena arena,
-                                      FormattedObjectsStepMethod f,
-                                          void *p, Size s)
-{
-  Seg seg;
-  FormattedObjectsStepClosure c;
-
-  AVERT(Arena, arena);
-  AVER(FUNCHECK(f));
-  AVER(f == ArenaFormattedObjectsStep);
-  /* p and s are arbitrary closures. */
-  /* Know that p is a FormattedObjectsStepClosure  */
-  /* Know that s is 0 */
-  AVER(p != NULL);
-  AVER(s == 0);
-
-  c = p;
-  AVERT(FormattedObjectsStepClosure, c);
-
-  if(SegFirst(&seg, arena)) {
-    Addr base;
-    do {
-      Pool pool;
-      base = SegBase(seg);
-      pool = SegPool(seg);
-      if(pool->class->attr & AttrFMT) {
-        ShieldExpose(arena, seg);
-        PoolWalk(pool, seg, f, p, s);
-        ShieldCover(arena, seg);
-      }
-    } while(SegNext(&seg, arena, base));
-  }
-}
-
-void mps_arena_formatted_objects_walk(mps_arena_t mps_arena,
-                                      mps_formatted_objects_stepper_t f,
-                                      void *p,
-                                      size_t s)
-{
-  Arena arena = (Arena)mps_arena;
-  FormattedObjectsStepClosureStruct c;
-
-  ArenaEnter(arena);
-  AVERT(Arena, arena);
-  AVER(FUNCHECK(f));
-  /* p and s are arbitrary closures, hence can't be checked */
-  c.sig = FormattedObjectsStepClosureSig;
-  c.f = f;
-  c.p = p;
-  c.s = s;
-  ArenaFormattedObjectsWalk(arena, ArenaFormattedObjectsStep, &c, 0);
-  ArenaLeave(arena);
-}
-
-
-
-/* Root Walking
- *
- * .trans.mod: There's no particular reason these functions belong in
- * arena.c, it's just a matter of convenience.
- *
- * This involves more code than it should. The roots are walked 
- * by scanning them. But there's no direct support for
- * invoking the scanner without there being a trace, and there's
- * no direct support for creating a trace without also condemning
- * part of the heap. (@@@@ This looks like a useful canditate for
- * inclusion in the future). For now, the root walker contains 
- * its own code for creating a minimal trace and scan state.
- *
- * ASSUMPTIONS
- *
- * .assume.parked: The root walker must be invoked with a parked
- * arena. It's only strictly necessary for there to be no current 
- * trace, but the client has no way to ensure this apart from
- * parking the arena.
- *
- * .assume.rootaddr: The client closure is called with a parameter
- * which is the address of a reference to an object referenced from 
- * a root. The client may desire this address to be the address of
- * the actual reference in the root (so that the debugger can be 
- * used to determine details about the root). This is not always 
- * possible, since the root might actually be a register, or the 
- * format scan method might not pass this address directly to the 
- * fix method. If the format code does pass on the address, the 
- * client can be sure to be passed the address of any root other
- * than a register or stack.
- * 
- */
-
-
-/* Define RootsStepClosure as a subclass of ScanState */
-
-/* SIGnature Roots Step CLOsure */
-#define RootsStepClosureSig ((Sig)0x51965C10)  
-
-typedef struct RootsStepClosureStruct *RootsStepClosure;
-typedef struct RootsStepClosureStruct {
-  ScanStateStruct ssStruct;          /* generic scan state object */
-  mps_roots_stepper_t f;             /* client closure function */
-  void *p;                           /* client closure data */
-  size_t s;                          /* client closure data */
-  Root root;                         /* current root, or NULL */
-  Sig sig;                           /* impl.h.misc.sig */
-} RootsStepClosureStruct;
-
-static Bool RootsStepClosureCheck(RootsStepClosure rsc)
-{
-  CHECKS(RootsStepClosure, rsc);
-  CHECKD(ScanState, &rsc->ssStruct);
-  CHECKL(FUNCHECK(rsc->f));
-  /* p and s fields are arbitrary closures which cannot be checked */
-  if (rsc->root != NULL) {
-    CHECKL(RootCheck(rsc->root));
-  }
-  return TRUE;
-}
-
-static ScanState RootsStepClosureScanState(RootsStepClosure rsc)
-{
-  AVERT(RootsStepClosure, rsc);
-
-  return &rsc->ssStruct;
-}
-
-static RootsStepClosure ScanStateRootsStepClosure(ScanState ss)
-{
-  AVERT(ScanState, ss);
-
-  return PARENT(RootsStepClosureStruct, ssStruct, ss);
-}
-
-/* Initialize a RootsStepClosure, including the parent ScanState */
-static void RootsStepClosureInit(RootsStepClosure rsc, 
-                                 Arena arena,
-                                 Trace trace,
-                                 TraceFixMethod rootFix,
-                                 mps_roots_stepper_t f,
-                                 void *p, Size s)
-{
-  ScanState ss;
-
-  /* we are initing it, so we can't check rsc */
-  AVERT(Arena, arena);
-  AVERT(Trace, trace);
-  AVER(FUNCHECK(rootFix));
-  AVER(FUNCHECK(f));
-  /* p and s are arbitrary client-provided closure data. */
-
-  /* First initialize the ScanState superclass */
-  ss = &rsc->ssStruct;
-  ScanStateInit(ss, TraceSetSingle(trace->ti),
-                arena, RankAMBIG, trace->white);
-
-  /* Initialize the fix method in the ScanState */
-  ss->fix = rootFix;
-
-  /* Initialize subclass specific data */
-  rsc->f = f;
-  rsc->p = p;
-  rsc->s = s;
-  rsc->root = NULL;
-
-  rsc->sig = RootsStepClosureSig;
-
-  AVERT(RootsStepClosure, rsc);
-}
-
-/* Finish a RootsStepClosure, including the parent ScanState */ 
-static void RootsStepClosureFinish(RootsStepClosure rsc)
-{
-  ScanState ss;
-
-  AVERT(RootsStepClosure, rsc);
-
-  ss = RootsStepClosureScanState(rsc);
-  rsc->sig = SigInvalid;
-  ScanStateFinish(ss);
-}
-
-/* Initialize a minimal trace for root walking */
-static Res RootsWalkTraceStart(Trace trace)
-{
-  Ring ring, node, next;
-  Arena arena;
-
-  AVERT(Trace, trace);
-  arena = trace->arena;
-
-  /* Set the white ref set to universal so that the scanner */
-  /* doesn't filter out any references from roots into the arena */
-  trace->white = RefSetUNIV; 
-
-  /* Make the roots grey so that they are scanned */
-  ring = ArenaRootRing(arena);
-  RING_FOR(node, ring, next) {
-    Root root = RING_ELT(Root, arenaRing, node);
-    RootGrey(root, trace);
-  }
-
-  return ResOK;
-} 
-
-/* Finish a minimal trace for root walking */
-static void RootsWalkTraceFinish(Trace trace)
-{
-  Arena arena;
-
-  AVERT(Trace, trace);
-
-  /* Make this trace look like any other finished trace. */
-  /* Need to set the state of the trace, and add it to the  */
-  /* arena's set of flipped traces */
-  arena = trace->arena;
-  arena->flippedTraces = TraceSetAdd(arena->flippedTraces, trace->ti);
-  trace->state = TraceFINISHED;
-  TraceDestroy(trace);
-}
-
-/* RootsWalkFix -- the fix method used during root walking */
-/* This doesn't cause further scanning of transitive references, */
-/* it just calls the client closure */
-static Res RootsWalkFix(ScanState ss, Ref *refptr)
-{
-  RootsStepClosure rsc;
-  Root root;
-  Ref ref;
-  Seg seg;
-  Arena arena;
-  
-  AVERT(ScanState, ss);
-  AVER(refptr != NULL);
-
-  rsc = ScanStateRootsStepClosure(ss);
-  AVERT(RootsStepClosure, rsc);
-
-  root = rsc->root;
-  AVERT(Root, root);
-
-  arena = ss->arena;
-  ref = *refptr;
-
-  /* Check that the reference is to a valid segment */
-  /* SegOfAddr is inlined, see design.mps.trace.fix.segofaddr */
-  if(SEG_OF_ADDR(&seg, arena, ref)) {
-    /* Test if the segment belongs to a GCable pool */
-    /* If it isn't then it's not in the heap, and the reference */
-    /* shouldn't be passed to the client */
-    if ((SegPool(seg)->class->attr & AttrGC) != 0) {
-      /* Call the client closure - .assume.rootaddr */
-      rsc->f((mps_addr_t*)refptr, 
-             (mps_root_t)root, 
-             rsc->p, rsc->s);
-    }
-  } else {
-    /* See design.mps.trace.exact.legal */
-    AVER(ss->rank < RankEXACT
-         || !ArenaIsReservedAddr(arena, ref));
-  }
-
-  /* See design.mps.trace.fix.fixed.all */
-  ss->fixedSummary = RefSetAdd(ss->arena, ss->fixedSummary, *refptr);
-
-  return ResOK;
-}
-
-/* ArenaRootsWalk -- starts the trace and scans the roots */
-static Res ArenaRootsWalk(Arena arena, 
-                          mps_roots_stepper_t f,
-                          void *p, size_t s)
-{
-  RootsStepClosureStruct rscStruct;
-  RootsStepClosure rsc = &rscStruct;
-  Trace trace;
-  ScanState ss;
-  Rank rank;
-  Res res;
-
-  AVERT(Arena, arena);
-  AVER(FUNCHECK(f));
-  /* p and s are arbitrary client-provided closure data. */
-
-  /* Scan all the roots with a minimal trace. */
-  /* Invoke the scanner with a RootsStepClosure, which */
-  /* is a subclass of ScanState and contains the client */
-  /* provided closure. Supply a special fix method */
-  /* in order to call the client closure. This fix method */
-  /* must perform no tracing operations of its own */
-
-  res = TraceCreate(&trace, arena);
-  /* Have to fail if no trace available. Unlikely due to .assume.parked */
-  if(res != ResOK)
-    return res;
-
-  res = RootsWalkTraceStart(trace);
-  if(res != ResOK)
-    return res;
- 
-  RootsStepClosureInit(rsc, arena, trace, RootsWalkFix, f, p, s);
-  ss = RootsStepClosureScanState(rsc);
-
-  for(rank = RankAMBIG; rank < RankMAX; ++rank) {
-    Ring ring = ArenaRootRing(arena);
-    Ring node, next;
-    ss->rank = rank;
-
-    AVERT(ScanState, ss);
-
-    RING_FOR(node, ring, next) {
-      Root root = RING_ELT(Root, arenaRing, node);
-
-      if(RootRank(root) == ss->rank) {
-        /* set the root for the benefit of the fix method */
-        rsc->root = root;
-        /* Scan it */
-        ScanStateSetSummary(ss, RefSetEMPTY);
-        res = RootScan(ss, root);
-        if(res != ResOK) {
-          return res;
-        }
-      }
-    }
-  }
-
-  RootsStepClosureFinish(rsc);
-  RootsWalkTraceFinish(trace);
-
-  return ResOK;
-}
-
-
-/* mps_arena_roots_walk -- Client interface */
-void mps_arena_roots_walk(mps_arena_t mps_arena,
-                          mps_roots_stepper_t f,
-                          void *p,
-                          size_t s)
-{
-  Arena arena = (Arena)mps_arena;
-  Res res;
-
-  ArenaEnter(arena);
-  AVERT(Arena, arena);
-  AVER(FUNCHECK(f));
-  /* p and s are arbitrary closures, hence can't be checked */
-
-  AVER(TRUE == arena->clamped);                /* .assume.parked */
-  AVER(arena->busyTraces == TraceSetEMPTY);    /* .assume.parked */
-
-  res = ArenaRootsWalk(arena, f, p, s);
-  AVER(res == ResOK);
-  ArenaLeave(arena);
 }

@@ -1,6 +1,6 @@
 # impl.nmk.w3almv: WINDOWS (ALPHA) NMAKE FILE
 #
-# $HopeName: !w3almv.nmk(trunk.37) $
+# $HopeName: MMsrc!w3almv.nmk(MMdevel_tony_segments.1) $
 #
 # Copyright (C) 1998 Harlequin Group plc.  All rights reserved.
 #
@@ -9,8 +9,9 @@ PFM = w3almv
 PFMDEFS = /DWIN32 /D_WINDOWS
 
 MPM = <assert> <ring> <mpm> <bt> <protocol> \
-      <arenavm> <arenacl> <arena> <pool> <poolabs> <poolmfs> \
-      <poolmv> <root> <format> <buffer> <lockw3> \
+      <arenavm> <arenacl> <arena> <walk> <reserv> \
+      <pool> <poolabs> <poolmfs> <poolmv> \
+      <root> <format> <buffer> <lockw3> \
       <ref> <trace> <protw3> <prmcan> <shield> <vmw3> \
       <than> <ssan> <mpsi> <mpsiw3> <ld> <span> \
       <event> <action> <seg> <poolmrg> <message> <dbgpool> \

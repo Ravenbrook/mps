@@ -1,6 +1,6 @@
 /* impl.h.mpmst: MEMORY POOL MANAGER DATA STRUCTURES
  *
- * $HopeName: !mpmst.h(trunk.77) $
+ * $HopeName: MMsrc!mpmst.h(MMdevel_tony_segments.1) $
  * Copyright (C) 1998 Harlequin Group plc.  All rights reserved.
  *
  * .readership: MM developers.
@@ -191,24 +191,28 @@ typedef struct MVStruct {       /* MV pool outer structure */
 } MVStruct;
 
 
-/* NSEGStruct -- NSEG (Non-allocating SEGment) pool outer structure
+/* ReservoirStruct -- Reservoir structure
  *
- * .nseg: See impl.c.arena, design.mps.poolnseg.
+ * .reservoir: See impl.c.reserv, design.mps.reservoir.
  *
- * The NSEG outer structure is declared here because it is in-lined 
+ * The Reservoir structure is declared here because it is in-lined 
  * in the arena for storing segments for the low-memory reservoir.
- * Normally, pool outer structures are declared with the pools.
+ * It is implemented as a pool - but doesn't follow the normal
+ * pool naming conventions because it's not intended for general use
+ * and the use of a pool is an incidental detail.
  *
  * The signature is placed at the end, see
  * design.mps.pool.outer-structure.sig
  */
 
-#define NSEGSig          ((Sig)0x51945e99) /* SIGnature NSEG */ 
+#define ReservoirSig ((Sig)0x5196e599) /* SIGnature REServoir */ 
 
-typedef struct NSEGStruct {     /* NSEG outer structure */
-  PoolStruct poolStruct;        /* generic structure */
+typedef struct ReservoirStruct {   /* Reservoir structure */
+  PoolStruct poolStruct;        /* generic pool structure */
+  Size reservoirLimit;          /* desired reservoir size */
+  Size reservoirSize;           /* actual reservoir size */
   Sig sig;                      /* design.mps.sig */
-} NSEGStruct;
+} ReservoirStruct;
 
 
 /* MessageClassStruct -- Message Class structure 
@@ -651,9 +655,7 @@ typedef struct ArenaStruct {
 
   Bool poolReady;               /* design.mps.arena.pool.ready */
   MVStruct controlPoolStruct;   /* design.mps.arena.pool */
-  NSEGStruct reservoirStruct;   /* design.mps.reservoir */
-  Size reservoirLimit;          /* desired reservoir size */
-  Size reservoirSize;           /* actual reservoir size */
+  ReservoirStruct reservoirStruct; /* design.mps.reservoir */
   LockStruct lockStruct;        /* arena's lock */
   double pollThreshold;         /* design.mps.arena.poll */
   Bool insidePoll;

@@ -1,6 +1,6 @@
 /* impl.h.mpmtypes: MEMORY POOL MANAGER TYPES
  *
- * $HopeName: !mpmtypes.h(trunk.70) $
+ * $HopeName: MMsrc!mpmtypes.h(MMdevel_tony_segments.1) $
  * Copyright (C) 1997, 1998 Harlequin Group plc.  All rights reserved.
  *
  * .readership: MM developers.
@@ -84,6 +84,7 @@ typedef struct MutatorFaultContextStruct
 typedef struct PoolDebugMixinStruct *PoolDebugMixin;
 typedef struct AllocPatternStruct *AllocPattern;
 typedef struct AllocFrameStruct *AllocFrame; /* design.mps.alloc-frame */
+typedef struct ReservoirStruct *Reservoir;   /* design.mps.reservoir */
 
 
 /* Splay* -- See design.mps.splay */
