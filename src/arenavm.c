@@ -1,6 +1,6 @@
 /* impl.c.arenavm: VIRTUAL MEMORY BASED ARENA IMPLEMENTATION
  *
- * $HopeName: MMsrc!arenavm.c(MMdevel_action2.1) $
+ * $HopeName: MMsrc!arenavm.c(MMdevel_action2.2) $
  * Copyright (C) 1996 Harlequin Group, all rights reserved.
  *
  * This is the implementation of the Segment abstraction from the VM
@@ -14,7 +14,7 @@
 #include "mpm.h"
 
 
-SRCID(arenavm, "$HopeName: MMsrc!arenavm.c(MMdevel_action2.1) $");
+SRCID(arenavm, "$HopeName: MMsrc!arenavm.c(MMdevel_action2.2) $");
 
 
 /* Space Arena Projection
@@ -312,10 +312,11 @@ found:
   if(res) return res;
 
   /* Initialize the generic segment structure. */
+  /* @@@@ This code should be shared with other arenas. */
   seg = &arena->pageTable[base].the.head;
   seg->pool = pool;
   seg->p = NULL;
-  seg->rank = RankEXACT;    /*  exact by default */
+  seg->rankSet = RankSetEMPTY;
   seg->white = TraceIdNONE;
   seg->grey = TraceSetEMPTY;
   seg->buffer = NULL;

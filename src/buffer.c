@@ -1,6 +1,6 @@
 /* impl.c.buffer: ALLOCATION BUFFER IMPLEMENTATION
  *
- * $HopeName: !buffer.c(trunk.19) $
+ * $HopeName: MMsrc!buffer.c(MMdevel_action2.1) $
  * Copyright (C) 1996 Harlequin Group, all rights reserved
  *
  * This is (part of) the implementation of allocation buffers.
@@ -29,7 +29,7 @@
 
 #include "mpm.h"
 
-SRCID(buffer, "$HopeName: !buffer.c(trunk.19) $");
+SRCID(buffer, "$HopeName: MMsrc!buffer.c(MMdevel_action2.1) $");
 
 
 /* BufferCreate -- create an allocation buffer in a pool
@@ -63,7 +63,7 @@ Res BufferCreate(Buffer *bufferReturn, Pool pool, Rank rank)
   buffer->space = space;
   buffer->pool = pool;
   buffer->seg = NULL;
-  buffer->rank = rank;
+  buffer->rankSet = RankSetSingle(rank);
   buffer->base = (Addr)0;
   buffer->apStruct.init = (Addr)0;
   buffer->apStruct.alloc = (Addr)0;
@@ -146,11 +146,11 @@ Bool BufferCheck(Buffer buffer)
   CHECKU(Space, buffer->space);
   CHECKU(Pool, buffer->pool);
   /* seg and rank checked in anomalous order */
-  CHECKL(RankCheck(buffer->rank));	/* design.mps.check.type.no-sig */
+  /* @@@@ Can't check rank set yet. */
   if(buffer->seg != NULL) {
     CHECKL(SegCheck(buffer->seg));	/* design.mps.check.type.no-sig */
     CHECKL(buffer->seg->buffer == buffer);
-    CHECKL(buffer->rank == buffer->seg->rank);
+    CHECKL(buffer->rankSet == buffer->seg->rankSet);
   }
   CHECKL(buffer->base <= buffer->apStruct.init);
   CHECKL(buffer->apStruct.init <= buffer->apStruct.alloc);
@@ -415,7 +415,7 @@ Res BufferDescribe(Buffer buffer, mps_lib_FILE *stream)
 	 "  Space $P\n",       (WriteFP)buffer->space,
          "  Pool $P\n",        (WriteFP)buffer->pool,
          "  Seg $P\n",         (WriteFP)buffer->seg,
-         "  rank $U\n",        (WriteFU)buffer->rank,
+         "  rankSet $U\n",     (WriteFU)buffer->rankSet,
          "  base $A  init $A  alloc $A  limit $A\n",
            buffer->base, buffer->apStruct.init,
 	   buffer->apStruct.alloc, buffer->apStruct.limit,
