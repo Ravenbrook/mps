@@ -1,12 +1,12 @@
 /* impl.c.trace: GENERIC TRACER IMPLEMENTATION
  *
- * $HopeName: MMsrc!trace.c(MM_dylan_sunflower.2) $
+ * $HopeName: MMsrc!trace.c(MM_dylan_sunflower.3) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  */
 
 #include "mpm.h"
 
-SRCID(trace, "$HopeName: MMsrc!trace.c(MM_dylan_sunflower.2) $");
+SRCID(trace, "$HopeName: MMsrc!trace.c(MM_dylan_sunflower.3) $");
 
 
 /* ScanStateCheck -- check consistency of a ScanState object */
@@ -632,11 +632,26 @@ static Res TraceScan(TraceSet ts, Rank rank,
     return res;
   }
 
-  /* The summary of references seen by scan must be equal to those */
-  /* which we saw before, unless there's been a write barrier hit */
-  /* in which case the segment summary is set to RefSetUNIV */
-  AVER((ss.summary == SegSummary(seg)) || 
-       (SegSummary(seg) == RefSetUNIV));
+  /* .scan.post-condition: */ 
+  /* The summary of reference seens by scan (ss.summary) is a subset */
+  /* of the summary previously computed (SegSummary).  There are two */
+  /* reasons that it is not an equality relation: */
+
+  /* 1. if the segment has had objects forwarded onto it then its summary */
+  /* will get unioned with the summary of the segment that the object was */
+  /* forwarded from.  This may increase the summary.  The forwarded object */
+  /* of course may have a smaller summary (if such a thing were to be */
+  /* computed) and so subsequent scanning of the segment may reduce the */
+  /* summmary.  (The forwarding process may erroneously introduce zones */
+  /* into the destination's summary). */
+
+  /* 2. A write barrier hit will set the summary to RefSetUNIV. */
+
+  /* The reason that ss.summary is always a subset of the previous summary */
+  /* is due to an "optimization" which has not been made in TraceFix.  See */
+  /* .fix.fixed.all */
+
+  AVER(RefSetSub(ss.summary, SegSummary(seg)));
   TraceSetSummary(space, seg,
                   TraceSetUnion(ss.fixed,
                                 TraceSetDiff(ss.summary, ss.white)));
@@ -806,6 +821,17 @@ Res TraceFix(ScanState ss, Ref *refIO)
 	return res;
     }
   }
+
+  /* .fix.fixed.all: */
+  /* ss->fixed is accumulated for all the pointers whether or not they are */
+  /* genuine references.  We could accumulate fewer pointers here, if a */
+  /* pointer fails the SegOfAddr test then we know it isn't a reference, so */
+  /* we needn't accumulate it into the fixed summary.  The design allows */
+  /* this, but it breaks a useful post-condition on scanning.  See */
+  /* .scan.post-condition.  (if the accumulation of ss->fixed was moved the */
+  /* accuracy of ss->fixed would vary according to the "width" of the white */
+  /* summary). */
+
   ss->fixed = RefSetAdd(ss->space, ss->fixed, *refIO);
 
   return ResOK;
