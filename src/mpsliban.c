@@ -1,6 +1,6 @@
 /* impl.c.mpsliban: HARLEQUIN MEMORY POOL SYSTEM LIBRARY INTERFACE (ANSI)
  *
- * $HopeName: MMsrc!mpsliban.c(MMdevel_lib.3) $
+ * $HopeName: MMsrc!mpsliban.c(MMdevel_lib.4) $
  * Copyright (C) 1996 Harlequin Group, all rights reserved.
  *
  * PURPOSE
@@ -47,23 +47,6 @@ mps_lib_FILE *mps_lib_get_stderr(void)
 mps_lib_FILE *mps_lib_get_stdout(void)
 {
   return (mps_lib_FILE *)stdout;
-}
-
-int mps_lib_fprintf(mps_lib_FILE *stream, const char *format, ...)
-{
-  int result;
-  va_list args;
-  va_start(args, format);
-  result = vfprintf((FILE *)stream, format, args);
-  va_end(args);
-  return result;
-}
-
-int mps_lib_vfprintf(mps_lib_FILE *stream,
-                     const char *format,
-                     va_list args)
-{
-  return vfprintf((FILE *)stream, format, args);
 }
 
 int mps_lib_fputc(int c, mps_lib_FILE *stream)
