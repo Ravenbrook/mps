@@ -1,6 +1,6 @@
 /* impl.h.mpm: MEMORY POOL MANAGER DEFINITIONS
  *
- * $HopeName: MMsrc!mpm.h(MMdevel_action2.5) $
+ * $HopeName: MMsrc!mpm.h(MMdevel_action2.6) $
  * Copyright (C) 1996,1997 Harlequin Group, all rights reserved.
  */
 
@@ -248,12 +248,8 @@ extern Bool TraceCheck(Trace trace);
 
 extern Res TraceCreate(Trace *traceReturn, Space space);
 extern void TraceDestroy(Trace trace);
-extern Res TraceCondemn(RefSet *whiteReturn, Trace trace, Pool pool);
-extern Res TraceFlip(Trace trace, RefSet white);
-extern Size TracePoll(Trace trace);
-
-extern Res TraceRunAtomic(Trace trace);
-extern Res TraceRun(Trace trace, Bool *finishedReturn);
+extern Res TraceStart(Trace trace, Pool pool);
+extern Res TracePoll(Trace trace);
 
 extern Res TraceFix(ScanState ss, Ref *refIO);
 
