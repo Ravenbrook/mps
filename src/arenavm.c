@@ -1,12 +1,12 @@
 /* impl.c.arenavm: VIRTUAL MEMORY BASED ARENA IMPLEMENTATION
  *
- * $HopeName: MMsrc!arenavm.c(MMdevel_remem.1) $
+ * $HopeName: MMsrc!arenavm.c(MMdevel_remem.2) $
  * Copyright (C) 1996 Harlequin Group, all rights reserved.
  */
 
 #include "mpm.h"
 
-SRCID(arenavm, "$HopeName: MMsrc!arenavm.c(MMdevel_remem.1) $");
+SRCID(arenavm, "$HopeName: MMsrc!arenavm.c(MMdevel_remem.2) $");
 
 #define SpaceArena(space)	(&(space)->arenaStruct)
 
@@ -209,8 +209,64 @@ Bool SegCheck(Seg seg)
 
 Res SegAlloc(Seg *segReturn, Space space, Size size, Pool pool)
 {
+  return SegAllocPref(segReturn, space, size, pool, RefSetUniv);
+}
+
+static Res SegAllocTry(PI *baseReturn, Space space, PI pages, RefSet try)
+{
+  PI pi, count, base = 0, end;
   Arena arena = SpaceArena(space);
-  PI pi, count, pages, base = 0; 
+  Word z;
+
+  /* Search for a free run of pages in the free table. */
+  /* Start from arena->tablePages (.tablePages). */
+  /* @@@@ This code can probably be seriously optimised by */
+  /* twiddling the bit table. */  
+  pi = arena->tablePages;
+  do {
+    end = pi;
+    do {
+      Addr a;
+      pi = end;
+      a = PageBase(arena, pi + 1);
+      z = RefSetZone(space, AddrAdd(a, (Size)-1));
+      /* find next zone stripe */
+      a = AddrAdd(a, (Size)1<<space->zoneShift);
+      /* move to beginning of this stripe */
+      a = (Addr)((Word)a & ~(((Size)1<<space->zoneShift) - 1));
+      end = AddrOffset(arena->base, a) >> arena->pageShift;
+      if(end > arena->pages || pi > end) {
+	end = arena->pages;
+	break;
+      }
+    } while((try & (1<<z)) == 0);
+
+    count = 0;
+    while(pi < end) {
+      if(BTGET(arena->freeTable, pi)) {
+	if(count == 0)
+	  base = pi;
+	++count;
+	if(count == pages) {
+	  *baseReturn = base;
+	  return ResOK;
+	}
+      } else
+	count = 0;
+      ++pi;
+    }
+  } while(pi < arena->pages);
+
+  /* No space was found.  This could be because the request was */
+  /* too large, or perhaps the arena is fragmented.  Perhaps we */
+  /* should return a more meaningful code. */
+  return ResRESOURCE;
+}
+
+Res SegAllocPref(Seg *segReturn, Space space, Size size, Pool pool, RefSet pref)
+{
+  Arena arena = SpaceArena(space);
+  PI pi, pages, base; 
   Addr addr;
   Seg seg;
   Res res;
@@ -227,29 +283,14 @@ Res SegAlloc(Seg *segReturn, Space space, Size size, Pool pool)
   /* therefore be non-NULL. */
   AVER(pool != NULL);
 
-  /* Search for a free run of pages in the free table. */
-  /* Start from arena->tablePages (.tablePages). */
-  /* @@@@ This code can probably be seriously optimised by */
-  /* twiddling the bit table. */  
   pages = size >> arena->pageShift;
-  count = 0;
-  for(pi = arena->tablePages; pi < arena->pages; ++pi) {
-    if(BTGET(arena->freeTable, pi)) {
-      if(count == 0)
-        base = pi;
-      ++count;
-      if(count == pages)
-        goto found;
-    } else
-      count = 0;
-  }
-  
-  /* No space was found.  This could be because the request was */
-  /* too large, or perhaps the arena is fragmented.  Perhaps we */
-  /* should return a more meaningful code. */
-  return ResRESOURCE;
 
-found:
+  res = SegAllocTry(&base, space, pages, pref);
+  if(res != ResOK) { /* couldn't allocated in preferred area */
+    res = SegAllocTry(&base, space, pages, RefSetDiff(RefSetUniv, pref));
+    if(res) return res; /* failed to allocate at all */
+  }
+
   /* Map in the segment memory before actually allocating the pages */
   addr = PageBase(arena, base);
   res = VMMap(space, addr, AddrAdd(addr, size));
