@@ -1,6 +1,6 @@
 # impl.gmk.comm: COMMON GNUMAKEFILE FRAGMENT
 #
-# $HopeName: !comm.gmk(trunk.2) $
+# $HopeName: MMsrc!comm.gmk(MMdevel_event.1) $
 # Copyright (C) 1995,1996 Harlequin Group, all rights reserved
 #
 # DESCRIPTION
@@ -135,6 +135,8 @@ CFDS = -DTARGET_VAR_DS $(CFLAGSDEBUG)
 # These flags are added to compilations for the "ro" variety.
 CFRO = -DTARGET_VAR_RO $(CFLAGSOPTIMIZE)
 
+CFDL = -DTARGET_VAR_DL $(CFLAGSDEBUG)
+
 # These map the source file lists onto object files and dependency files
 # in the platform/variety directory.
 # 
@@ -158,6 +160,7 @@ TESTLIBDEP = $(TESTLIB:%.c=$(PFM)/$(VARIETY)/%.d)
 endif
 
 # Bind CFLAGS to the appropriate set of flags for the variety.
+# %%VARIETY: Add a test for the variety and set CFLAGS here.
 ifeq ($(VARIETY),dp)
 CFLAGS=$(CFLAGSCOMMON) $(CFDP)
 else
@@ -169,6 +172,10 @@ CFLAGS=$(CFLAGSCOMMON) $(CFDF)
 else
 ifeq ($(VARIETY),ds)
 CFLAGS=$(CFLAGSCOMMON) $(CFDS)
+else
+ifeq ($(VARIETY),dl)
+CFLAGS=$(CFLAGSCOMMON) $(CFDL)
+endif
 endif
 endif
 endif
@@ -208,6 +215,7 @@ target: phony
 	$(MAKE) -f $(PFM).gmk VARIETY=dp variety
 	$(MAKE) -f $(PFM).gmk VARIETY=ds variety
 	$(MAKE) -f $(PFM).gmk VARIETY=ro variety
+	$(MAKE) -f $(PFM).gmk VARIETY=dl variety
 endif
 endif
 
