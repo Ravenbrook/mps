@@ -2,7 +2,7 @@
  *
  *                         NULL POOL
  *
- *  $HopeName: MMsrc!pooln.c(MMdevel_action2.4) $
+ *  $HopeName: MMsrc!pooln.c(MMdevel_action2.5) $
  *
  *  Copyright(C) 1995 Harlequin Group, all rights reserved
  *
@@ -13,7 +13,7 @@
 #include "mpm.h"
 #include "pooln.h"
 
-SRCID(pooln, "$HopeName: MMsrc!pooln.c(MMdevel_action2.4) $");
+SRCID(pooln, "$HopeName: MMsrc!pooln.c(MMdevel_action2.5) $");
 
 
 typedef struct PoolNStruct {
@@ -241,19 +241,6 @@ static void NReclaim(Pool pool, Trace trace)
   /* all unmarked and white objects reclaimed */
 }
 
-static void NAccess(Pool pool, Seg seg, AccessSet mode)
-{
-  PoolN poolN;
-
-  AVERT(Pool, pool);
-  poolN = PoolPoolN(pool);
-  AVERT(PoolN, poolN);
-
-  AVERT(Seg, seg);
-  UNUSED(mode);
-  /* deal with access to segment */
-}
-
 static PoolClassStruct PoolClassNStruct = {
   PoolClassSig,                         /* sig */
   "N",                                  /* name */
@@ -275,7 +262,6 @@ static PoolClassStruct PoolClassNStruct = {
   NScan,                                /* scan */
   NFix,                                 /* fix */
   NReclaim,                             /* reclaim */
-  NAccess,                              /* access */
   NDescribe,                            /* describe */
   PoolClassSig                          /* impl.h.mpmst.class.end-sig */
 };

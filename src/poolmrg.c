@@ -2,7 +2,7 @@
  * 
  * MANUAL RANK GUARDIAN POOL
  * 
- * $HopeName: MMsrc!poolmrg.c(MMdevel_action2.3) $
+ * $HopeName: MMsrc!poolmrg.c(MMdevel_action2.4) $
  * Copyright(C) 1995,1997 Harlequin Group, all rights reserved
  *
  * READERSHIP
@@ -29,7 +29,7 @@
 #include "poolmrg.h"
 
 
-SRCID(poolmrg, "$HopeName: MMsrc!poolmrg.c(MMdevel_action2.3) $");
+SRCID(poolmrg, "$HopeName: MMsrc!poolmrg.c(MMdevel_action2.4) $");
 
 #define MRGSig          ((Sig)0x519B0349)
 
@@ -425,46 +425,6 @@ static Res MRGScan(ScanState ss, Pool pool, Seg seg)
   return ResOK;
 }
 
-/* .amc.copy: This code is an almost exact copy of the analogous
- * method in impl.c.amc.  This is worrying.
- */
-static void MRGAccess(Pool pool, Seg seg, AccessSet mode)
-{
-  Space space;
-  MRG mrg;
-  MRGGroup group;
-  Res res;
-  ScanStateStruct ss;
-
-  AVERT(Pool, pool);
-  mrg = PoolPoolMRG(pool);
-  AVERT(MRG, mrg);
-  AVERT(Seg, seg);
-  AVER(seg->pool == pool);
-  /* Cannot check AccessSet */
-
-  space = PoolSpace(pool);
-
-  group = (MRGGroup)seg->p;
-
-  ss.fix = TraceFix;
-  ss.zoneShift = space->zoneShift;
-  ss.summary = RefSetEMPTY;
-  ss.space = space;
-  ss.sig = ScanStateSig;
-  ss.rank = RankEXACT;  /* .access.exact */
-  ss.weakSplat = (Addr)0xadd4badd;
-
-  /* impl.c.amc.access.multi (!) */
-  for(ss.traceId = 0; ss.traceId < TRACE_MAX; ++ss.traceId) {
-    if(TraceSetIsMember(space->busyTraces, ss.traceId)) {
-      ss.white = space->trace[ss.traceId].white;
-      res = MRGGroupScan(&ss, group, mrg);
-      AVER(res == ResOK);       /* impl.c.amc.access.error (!) */
-    }
-  }
-}
-
 static PoolClassStruct PoolClassMRGStruct = {
   PoolClassSig,                         /* sig */
   "MRG",                                /* name */
@@ -486,7 +446,6 @@ static PoolClassStruct PoolClassMRGStruct = {
   MRGScan,                              /* scan */
   PoolNoFix,                            /* fix */
   PoolNoReclaim,                        /* reclaim */
-  MRGAccess,                            /* access */
   MRGDescribe,                          /* describe */
   PoolClassSig                          /* impl.h.mpmst.class.end-sig */
 };

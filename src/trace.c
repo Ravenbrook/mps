@@ -1,11 +1,11 @@
 /* impl.c.trace: GENERIC TRACER IMPLEMENTATION
  *
- * $HopeName: MMsrc!trace.c(MMdevel_action2.8) $
+ * $HopeName: MMsrc!trace.c(MMdevel_action2.9) $
  */
 
 #include "mpm.h"
 
-SRCID(trace, "$HopeName: MMsrc!trace.c(MMdevel_action2.8) $");
+SRCID(trace, "$HopeName: MMsrc!trace.c(MMdevel_action2.9) $");
 
 Bool ScanStateCheck(ScanState ss)
 {
@@ -366,6 +366,39 @@ static Bool FindGrey(Seg *segReturn, Space space, TraceId ti)
       }
 
   return FALSE;
+}
+
+
+void TraceAccess(Space space, Seg seg, AccessSet mode)
+{
+  Res res;
+  ScanStateStruct ss;
+  Pool pool;
+
+  AVERT(Space, space);
+  AVERT(Seg, seg);
+  UNUSED(mode);
+
+  pool = seg->pool;
+
+  ss.fix = TraceFix;
+  ss.zoneShift = space->zoneShift;
+  ss.summary = RefSetEMPTY;
+  ss.space = space;
+  ss.sig = ScanStateSig;
+  ss.rank = RankEXACT;  /* Surely this is conservative?  @@ */
+  ss.weakSplat = (Addr)0xadd4badd;
+
+  /* design.mps.poolamc.access.multi */
+  /* @@@@ Change ss to hold a trace set. */
+  for(ss.traceId = 0; ss.traceId < TRACE_MAX; ++ss.traceId)
+    if(TraceSetIsMember(space->busyTraces, ss.traceId)) {
+      ss.white = space->trace[ss.traceId].white;
+      res = PoolScan(&ss, pool, seg);
+      AVER(res == ResOK);       /* design.mps.poolamc.access.error */
+    }
+
+  ss.sig = SigInvalid;		/* just in case */
 }
 
 

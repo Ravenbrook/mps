@@ -1,6 +1,6 @@
 /* impl.c.pool: POOL IMPLEMENTATION
  *
- * $HopeName: MMsrc!pool.c(MMdevel_action2.4) $
+ * $HopeName: MMsrc!pool.c(MMdevel_action2.5) $
  * Copyright (C) 1994,1995,1996 Harlequin Group, all rights reserved
  *
  * This is the implementation of the generic pool interface.  The
@@ -12,7 +12,7 @@
 
 #include "mpm.h"
 
-SRCID(pool, "$HopeName: MMsrc!pool.c(MMdevel_action2.4) $");
+SRCID(pool, "$HopeName: MMsrc!pool.c(MMdevel_action2.5) $");
 
 
 Bool PoolClassCheck(PoolClass class)
@@ -39,7 +39,6 @@ Bool PoolClassCheck(PoolClass class)
   CHECKL(FUNCHECK(class->scan));
   CHECKL(FUNCHECK(class->fix));
   CHECKL(FUNCHECK(class->reclaim));
-  CHECKL(FUNCHECK(class->access));
   CHECKL(FUNCHECK(class->describe));
   CHECKL(class->endSig == PoolClassSig);
   return TRUE;
@@ -283,13 +282,6 @@ void PoolReclaim(Pool pool, Trace trace)
   AVERT(Trace, trace);
   AVER(pool->space == trace->space);
   (*pool->class->reclaim)(pool, trace);
-}
-
-void PoolAccess(Pool pool, Seg seg, AccessSet mode)
-{
-  AVERT(Pool, pool);
-  AVERT(Seg, seg);
-  (*pool->class->access)(pool, seg, mode);
 }
 
 
@@ -582,13 +574,5 @@ void PoolNoReclaim(Pool pool, Trace trace)
 {
   AVERT(Pool, pool);
   AVERT(Trace, trace);
-  NOTREACHED;
-}
-
-void PoolNoAccess(Pool pool, Seg seg, AccessSet mode)
-{
-  AVERT(Pool, pool);
-  AVERT(Seg, seg);
-  UNUSED(mode);
   NOTREACHED;
 }

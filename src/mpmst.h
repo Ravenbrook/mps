@@ -1,6 +1,6 @@
 /* impl.h.mpmst: MEMORY POOL MANAGER DATA STRUCTURES
  *
- * $HopeName: MMsrc!mpmst.h(MMdevel_action2.2) $
+ * $HopeName: MMsrc!mpmst.h(MMdevel_action2.3) $
  * Copyright (C) 1996,1997 Harlequin Group, all rights reserved.
  *
  * .readership: MM developers.
@@ -97,7 +97,6 @@ typedef struct PoolClassStruct {
   PoolScanMethod scan;          /* find references during tracing */
   PoolFixMethod fix;            /* referent reachable during tracing */
   PoolReclaimMethod reclaim;    /* reclaim dead objects after tracing */
-  PoolAccessMethod access;      /* handle an access to shielded memory */
   PoolDescribeMethod describe;  /* describe the contents of the pool */
   Sig endSig;                   /* .class.end-sig */
 } PoolClassStruct;
