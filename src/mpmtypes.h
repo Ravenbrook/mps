@@ -1,6 +1,6 @@
 /* impl.h.mpmtypes: MEMORY POOL MANAGER TYPES
  *
- * $HopeName: !mpmtypes.h(trunk.78) $
+ * $HopeName: MMsrc!mpmtypes.h(MMdevel_pekka_locus.1) $
  * Copyright (C) 1999.  Harlequin Limited.  All rights reserved.
  *
  * .readership: MM developers.
@@ -51,7 +51,6 @@ typedef unsigned Attr;                  /* design.mps.type.attr */
 typedef unsigned FormatVariety;         
 typedef int RootVar;                    /* design.mps.type.rootvar */
 typedef unsigned Serial;                /* design.mps.type.serial */
-typedef struct RingStruct *Ring;        /* design.mps.ring */
 typedef Word *BT;                       /* design.mps.bt */
 typedef struct BufferStruct *Buffer;    /* design.mps.buffer */
 typedef struct SegBufStruct *SegBuf;    /* design.mps.buffer */
@@ -106,7 +105,6 @@ typedef Size (*ArenaReservedMethod)(Arena arena);
 typedef Size (*ArenaCommittedMethod)(Arena arena);
 typedef void (*ArenaSpareCommitExceededMethod)(Arena arena);
 typedef Res (*ArenaExtendMethod)(Arena arena, Addr base, Size size);
-typedef Res (*ArenaRetractMethod)(Arena arena, Addr base, Size size);
 typedef Bool (*ArenaIsReservedAddrMethod)(Arena arena, Addr addr);
 typedef Res (*ArenaAllocMethod)(Addr *baseReturn, 
                                 Tract *baseTractReturn,
@@ -261,6 +259,14 @@ typedef Res (*RootScanRegMethod)(ScanState ss, Thread thread, void *p,
 
 /* CONSTANTS */
 
+
+/* Boolean Constants -- see design.mps.type.bool */
+
+enum {
+  FALSE = 0,
+  TRUE = 1
+};
+
 /* design.mps.sig SIGnature IS BAD */
 #define SigInvalid      ((Sig)0x51915BAD) 
 
@@ -268,7 +274,6 @@ typedef Res (*RootScanRegMethod)(ScanState ss, Thread thread, void *p,
 #define AccessREAD      ((AccessSet)(1<<0))
 #define AccessWRITE     ((AccessSet)(1<<1))
 #define AccessMAX       ((Size)2)
-#define RingNONE        ((Ring)0)       /* design.mps.ring */
 #define TraceIdNONE     ((TraceId)-1)   /* design.mps.tracer */
 #define RefSetEMPTY     BS_EMPTY(RefSet)
 #define RefSetUNIV      BS_UNIV(RefSet)
@@ -349,13 +354,6 @@ enum {
   RootTABLE_MASKED,
   RootREG,
   RootFMT
-};
-
-/* Boolean Constants -- see design.mps.type.bool */
-
-enum {
-  FALSE = 0,
-  TRUE = 1
 };
 
 
