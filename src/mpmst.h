@@ -1,6 +1,6 @@
 /* impl.h.mpmst: MEMORY POOL MANAGER DATA STRUCTURES
  *
- * $HopeName: !mpmst.h(trunk.22) $
+ * $HopeName: MMsrc!mpmst.h(MMdevel_gens.1) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  *
  * .readership: MM developers.
@@ -585,6 +585,8 @@ typedef struct ActionStruct {
   Sig sig;			/* design.mps.sig */
   Serial serial;		/* from pool->actionSerial */
   Pool pool;			/* owning pool */
+  ActionClosureMethod f;	/* closure for testing when to act */
+  Word w;			/* closure variable for above */
   RingStruct poolRing;		/* link in list of actions in pool */
 } ActionStruct;
 
