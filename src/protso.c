@@ -2,7 +2,7 @@
  *
  *                  PROTECTION FOR Solaris
  *
- *  $HopeName: MMsrc!protso.c(MMdevel_protoposm_1.2) $
+ *  $HopeName: MMsrc!protso.c(MMdevel_protoposm_1.1) $
  *
  *  Copyright (C) 1995 Harlequin Group, all rights reserved
  *
@@ -31,6 +31,19 @@
 extern int getpagesize(void);
 extern pid_t getpid(void);
 extern int kill(pid_t, int);
+
+/* Crap that can't be included via "open sesame" */
+/* definitions for the sa_flags field */
+#define	SA_SIGINFO	0x00000008
+/*
+ * SIGSEGV signal codes
+ */
+
+#define	SEGV_MAPERR	1	/* address not mapped to object */
+#define	SEGV_ACCERR	2	/* invalid permissions */
+#define	NSIGSEGV	2
+
+
 
 /*  == Protection Granularity ==
  *

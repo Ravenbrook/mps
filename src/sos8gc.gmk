@@ -9,13 +9,13 @@
 #
 
 PFM = sospgc
-PFMDEFS = -DOS_SOLARIS -DARCH_SPARC -DBUILD_GCC -D__EXTENSIONS__
+PFMDEFS = -DOS_SOLARIS -DARCH_SPARC -DBUILD_GCC -D_POSIX_SOURCE -D__EXTENSIONS__
 
 STD = asrtosan.c assert.c deque.c error.c liban.c meter.c misc.c sig.c
 MPM = poolarvm.c vmso.c space.c pool.c poolclas.c poolmfs.c \
       poolmv.c root.c format.c buffer.c lockan.c coll.c ref.c \
       trace.c than.c protso.c fault.c shield.c sched.c
-MPMS = sssusp.s
+MPMS = sssusp.S
 AMC = amc.c amcgroup.c
 DW = dwformat.c dw.c
 DB = poolps.c db.c \

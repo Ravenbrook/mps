@@ -1,7 +1,7 @@
 #
 #              GENERIC BUILD.GC MAKEFILE FRAGMENT
 #
-# $HopeName: MMsrc!gc.gmk(MMdevel_protoposm_1.7) $
+# $HopeName: MMsrc!gc.gmk(MMdevel_protoposm_1.8) $
 #
 # Copyright (C) 1995 Harlequin Group, all rights reserved
 #
@@ -116,7 +116,7 @@ CFDEVEL = \
 ifdef VARIETY
 STDOBJ = $(STD:%.c=$(PFM)/$(VARIETY)/%.o)
 STDDEP = $(STD:%.c=$(PFM)/$(VARIETY)/%.d)
-MPMOBJ = $(MPM:%.c=$(PFM)/$(VARIETY)/%.o) $(MPMS:%.s=$(PFM)/$(VARIETY)/%.o)
+MPMOBJ = $(MPM:%.c=$(PFM)/$(VARIETY)/%.o) $(MPMS:%.S=$(PFM)/$(VARIETY)/%.o)
 MPMDEP = $(MPM:%.c=$(PFM)/$(VARIETY)/%.d)
 AMCOBJ = $(AMC:%.c=$(PFM)/$(VARIETY)/%.o)
 AMCDEP = $(AMC:%.c=$(PFM)/$(VARIETY)/%.d)
@@ -282,7 +282,7 @@ $(PFM)/$(VARIETY)/%.o: %.c
 	test -d $(PFM)/$(VARIETY) || mkdir $(PFM)/$(VARIETY)
 	gcc $(CFLAGS) -c -o $@ $<
 
-$(PFM)/$(VARIETY)/%.o: %.s
+$(PFM)/$(VARIETY)/%.o: %.S
 	$(ECHO) "$(PFM): $@"
 	test -d $(PFM) || mkdir $(PFM)
 	test -d $(PFM)/$(VARIETY) || mkdir $(PFM)/$(VARIETY)
