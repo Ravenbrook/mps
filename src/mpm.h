@@ -1,6 +1,6 @@
 /* impl.h.mpm: MEMORY POOL MANAGER DEFINITIONS
  *
- * $HopeName: !mpm.h(trunk.43) $
+ * $HopeName: MMsrc!mpm.h(MMdevel_gens4.1) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  */
 
@@ -305,6 +305,14 @@ extern void PoolTrivTraceEnd(Pool pool, Trace trace, Action action);
 extern double PoolNoBenefit(Pool pool, Action action);
 
 
+/* Collection Interface -- see impl.c.collect */
+
+extern Bool CollectionCheck(Collection collection);
+extern Res CollectionCreate(Collection *collectionReturn,
+                            Arena arena, Action action);
+extern void CollectionDestroy(Collection collection);
+
+
 /* Trace Interface -- see impl.c.trace */
 
 #define TraceSetSingle(ti)	BS_SINGLE(TraceSet, ti)
@@ -384,6 +392,17 @@ extern void ActionFinish(Action action);
 extern void ActionPoll(Arena arena);
 
 
+/* Task Interface -- see impl.c.task */
+
+extern Bool TaskCheck(Task task);
+extern Bool TaskClassCheck(TaskClass class);
+extern void TaskInit(Task task, Arena arena, TaskClass class);
+extern void TaskFinish(Task task);
+extern void TaskWork(Arena arena);
+
+#define TaskOfArenaRing(node)   PARENT(TaskStruct, arenaRing, node)
+
+
 /* Arena Interface -- see impl.c.arena */
 
 extern Bool ArenaClassCheck(ArenaClass class);
@@ -426,6 +445,7 @@ extern void ArenaFree(Arena arena, void *base, Size size);
 #define ArenaAlign(arena)       ((arena)->alignment)
 #define ArenaGreyRing(arena, rank) \
   (&arena->greyRing[rank])
+#define ArenaTaskRing(arena)    (&(arena)->taskRing)
 
 extern Size ArenaReserved(Arena arena);
 extern Size ArenaCommitted(Arena arena);

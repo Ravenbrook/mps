@@ -1,6 +1,6 @@
 /* impl.c.arena: ARENA IMPLEMENTATION
  *
- * $HopeName: MMsrc!arena.c(MMdevel_gens4.1) $
+ * $HopeName: MMsrc!arena.c(MMdevel_gens4.2) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  *
  * .readership: Any MPS developer
@@ -38,7 +38,7 @@
 #include "mpm.h"
 
 
-SRCID(arena, "$HopeName: MMsrc!arena.c(MMdevel_gens4.1) $");
+SRCID(arena, "$HopeName: MMsrc!arena.c(MMdevel_gens4.2) $");
 
 
 /* All static data objects are declared here. See .static */
@@ -114,6 +114,7 @@ Bool ArenaCheck(Arena arena)
   CHECKL(RingCheck(&arena->rootRing));
   CHECKL(RingCheck(&arena->formatRing));
   CHECKL(RingCheck(&arena->threadRing));
+  CHECKL(RingCheck(&arena->taskRing));
 
   CHECKL(BoolCheck(arena->insideShield));
   CHECKL(arena->shCacheI < SHIELD_CACHE_SIZE);
@@ -197,6 +198,8 @@ void ArenaInit(Arena arena, ArenaClass class)
   arena->threadSerial = (Serial)0;
   RingInit(&arena->formatRing);
   arena->formatSerial = (Serial)0;
+  RingInit(&arena->taskRing);
+  arena->taskSerial = (Serial)0;
   arena->busyTraces = TraceSetEMPTY;    /* impl.c.trace */
   arena->flippedTraces = TraceSetEMPTY; /* impl.c.trace */
   for (i=0; i < TRACE_MAX; i++)
@@ -441,8 +444,6 @@ void (ArenaPoll)(Arena arena)
 void ArenaPoll(Arena arena)
 {
   Size size;
-  Res res;
-  Count i;
 
   AVERT(Arena, arena);
 
@@ -456,6 +457,9 @@ void ArenaPoll(Arena arena)
   /* Poll actions to see if any new action is to be taken. */
   ActionPoll(arena);
 
+#if 0
+  Res res;
+  Count i;
   /* Temporary hacky progress control added here and in trace.c */
   /* for change.dylan.sunflower.7.170466. */
   if(arena->busyTraces != TraceSetEMPTY) {
@@ -472,6 +476,9 @@ void ArenaPoll(Arena arena)
       --i;
     }
   }
+#endif /* 0 */
+
+  TaskWork(arena);
 
   size = ArenaCommitted(arena);
   arena->pollThreshold = size + ARENA_POLL_MAX;

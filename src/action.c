@@ -1,13 +1,13 @@
 /* impl.c.action: STRATEGIC ACTION
  *
  * Copyright (C) 1997 Harlequin Group, all rights reserved.
- * $HopeName: !action.c(trunk.4) $
+ * $HopeName: MMsrc!action.c(MMdevel_gens4.1) $
  */
 
 #include "mpm.h"
 #include <float.h>	/* @@@@ for DBL_MAX */
 
-SRCID(action, "$HopeName: !action.c(trunk.4) $");
+SRCID(action, "$HopeName: MMsrc!action.c(MMdevel_gens4.1) $");
 
 
 /* ActionCheck -- check consistency of an Action structure */
@@ -56,17 +56,15 @@ void ActionFinish(Action action)
 }
 
 
-/* Noddy collection policy -- condemn first pool found */
-
 static Res ActionCollect(Action action)
 {
-  Trace trace;
+  Collection collection;
   Res res;
   Arena arena;
 
   arena = PoolArena(action->pool);
 
-  res = TraceCreate(&trace, arena, action);
+  res = CollectionCreate(&collection, arena, action);
   if(res != ResOK) return res;
 
   return ResOK;

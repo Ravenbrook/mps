@@ -1,6 +1,6 @@
 /* impl.h.mpmtypes: MEMORY POOL MANAGER TYPES
  *
- * $HopeName: !mpmtypes.h(trunk.30) $
+ * $HopeName: MMsrc!mpmtypes.h(MMdevel_gens4.1) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  *
  * .readership: MM developers.
@@ -70,6 +70,9 @@ typedef struct VMStruct *VM;            /* impl.c.vm* */
 typedef struct RootStruct *Root;        /* impl.c.root */
 typedef struct ThreadStruct *Thread;    /* impl.c.th* */
 typedef struct ActionStruct *Action;	/* design.mps.action */
+typedef struct TaskStruct *Task;
+typedef struct TaskClassStruct *TaskClass;
+typedef struct CollectionStruct *Collection;
 
 
 /* Arena*Method -- see @@@@ */
@@ -140,6 +143,11 @@ typedef void (*FormatPadMethod)    (Addr base, Size size);
 typedef Res (*RootScanMethod)   (ScanState ss, void *p, size_t s);
 typedef Res (*RootScanRegMethod)(ScanState ss, Thread thread, void *p, 
                                  size_t s);
+
+
+/* Task*Method */
+
+typedef void (*TaskPollMethod)(Task task);
 
 
 /* CONSTANTS */

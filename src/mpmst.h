@@ -1,6 +1,6 @@
 /* impl.h.mpmst: MEMORY POOL MANAGER DATA STRUCTURES
  *
- * $HopeName: MMsrc!mpmst.h(MMdevel_gens4.1) $
+ * $HopeName: MMsrc!mpmst.h(MMdevel_gens4.2) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  *
  * .readership: MM developers.
@@ -403,6 +403,31 @@ typedef struct RootStruct {
 } RootStruct;
 
 
+/* TaskClassStruct -- task class structure */
+
+#define TaskClassSig	((Sig)0x5192AC1A) /* SIGnature TAsk CLAss */
+
+typedef struct TaskClassStruct {
+  Sig sig;			/* design.mps.sig */
+  char *name;                   /* class name */
+  TaskPollMethod poll;          /* poll */
+  Sig endSig;                   /* .class.end-sig */
+} TaskClassStruct;
+
+
+/* TaskStruct -- task structure */
+
+#define TaskSig		((Sig)0x5192A5C9) /* SIGnature TASK */
+
+typedef struct TaskStruct {
+  Sig sig;			/* design.mps.sig */
+  Serial serial;                /* from arena->taskSerial */
+  TaskClass class;		/* task class */
+  Arena arena;			/* owning arena */
+  RingStruct arenaRing;		/* link in list of tasks in arena */
+} TaskStruct;
+
+
 /* ScanState
  *
  * .ss: See impl.c.trace.
@@ -451,6 +476,17 @@ typedef struct TraceStruct {
   Size foundation;              /* initial grey set size */
   Size rate;                    /* bytes to scan per increment */
 } TraceStruct;
+
+
+/* CollectionStruct -- collection state structure */
+
+#define CollectionSig	((Sig)0x519C011E) /* SIGnature COLLEction */
+
+typedef struct CollectionStruct {
+  TaskStruct taskStruct;
+  Trace trace;
+  Sig sig;
+} CollectionStruct;
 
 
 /* ActionStruct -- action structure
@@ -548,6 +584,10 @@ typedef struct ArenaStruct {
   Size shCacheI;                 /* index into cache */
   Size shDepth;                  /* sum of depths of all segs */
   Bool suspended;                /* TRUE if and only if mutator suspended */
+
+  /* task fields (impl.c.task) */
+  RingStruct taskRing;      	/* ring of tasks attached to arena */
+  Serial taskSerial;            /* serial of next task */
 
   /* trace fields (impl.c.trace) */
   TraceSet busyTraces;          /* set of running traces */
