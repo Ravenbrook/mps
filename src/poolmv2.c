@@ -1,6 +1,6 @@
 /* impl.c.poolmv2: MANUAL VARIABLE POOL, II
  *
- * $HopeName: MMsrc!poolmv2.c(MMdevel_mv2_rework.5) $
+ * $HopeName: MMsrc!poolmv2.c(MMdevel_mv2_rework.6) $
  * Copyright (C) 1998 Harlequin Group plc.  All rights reserved.
  *
  * .readership: any MPS developer
@@ -17,7 +17,7 @@
 #include "abq.h"
 #include "meter.h"
 
-SRCID(poolmv2, "$HopeName: MMsrc!poolmv2.c(MMdevel_mv2_rework.5) $");
+SRCID(poolmv2, "$HopeName: MMsrc!poolmv2.c(MMdevel_mv2_rework.6) $");
 
 
 /* Signatures */
@@ -75,20 +75,20 @@ typedef struct MV2Struct
   CBSStruct cbsStruct;          /* The coalescing block structure */
   ABQStruct abqStruct;          /* The available block queue */
   SegPrefStruct segPrefStruct;  /* The preferences for segments */
-  /* design.mps.poolmv2:arch.parameters */
+  /* design.mps.poolmv2:impl.c.parameters */
   Size minSize;                 /* Pool parameter */
   Size meanSize;                /* Pool parameter */
   Size maxSize;                 /* Pool parameter */
   Count fragLimit;              /* Pool parameter */
-  /* design.mps.poolmv2:arch.overview.abq.reuse.size */
+  /* design.mps.poolmv2:impl.c.parameter.reuse-size */
   Size reuseSize;               /* Size at which blocks are recycled */
-  /* design.mps.poolmv2:arch.ap.fill.size */
+  /* design.mps.poolmv2:impl.c.parameter.fill-size */
   Size fillSize;                /* Size of pool segments */
-  /* design.mps.poolmv2:arch.contingency */
-  Size availLimit;              /* Limit on available */
-  /* design.mps.poolmv2:arch.abq.high-water */
-  Size abqSize;
-  Size abqLimit;
+  /* design.mps.poolmv2:impl.c.parameter.avail-limit */
+  Size availLimit;              /* CBS high-water */
+  /* design.mps.poolmv2:impl.c.parameter.abq-limit */
+  Size abqSize;                 /* Amount in ABQ */
+  Size abqLimit;                /* ABQ high-water */
   /* design.mps.poolmv2:arch.ap.no-fit.* */
   Bool splinter;                /* Saved splinter */
   Seg splinterSeg;              /* Saved splinter seg */
@@ -275,11 +275,11 @@ static Res MV2Init(Pool pool, va_list arg)
   if (! (fragLimit > 0 && fragLimit <= 100))
     return ResLIMIT;
 
-  /* design.mps.poolmv2:arch.parameters */
+  /* design.mps.poolmv2:impl.c.parameters.fill-size */
   fillSize = SizeAlignUp(maxSize * 100 / fragLimit, ArenaAlign(arena));
-  /* design.mps.poolmv2:arch.fragmentation.internal */
+  /* design.mps.poolmv2:impl.c.parameters.reuse-size */
   reuseSize = 2 * fillSize;
-  /* design.mps.poolmv2:arch.abq.high-water */
+  /* design.mps.poolmv2:impl.c.parameters.abq-limit */
   abqLimit = SizeAlignUp(reserveDepth * meanSize, ArenaAlign(arena));
   /* + 1 to allow push, then check limit */
   abqDepth = (abqLimit + reuseSize - 1) / reuseSize + 1;
