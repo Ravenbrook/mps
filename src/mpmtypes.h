@@ -1,6 +1,6 @@
 /* impl.h.mpmtypes: MEMORY POOL MANAGER TYPES
  *
- * $HopeName: MMsrc!mpmtypes.h(MMdevel_tony_sunset.4) $
+ * $HopeName: MMsrc!mpmtypes.h(MMdevel_tony_sunset.5) $
  * Copyright (C) 1997, 1998 Harlequin Group plc.  All rights reserved.
  *
  * .readership: MM developers.
@@ -56,7 +56,7 @@ typedef Word *BT;                       /* design.mps.bt */
 typedef struct BufferStruct *Buffer;    /* design.mps.buffer */
 typedef struct BufferedSegStruct *BufferedSeg; /* design.mps.buffer */
 typedef struct BufferClassStruct *BufferClass; /* design.mps.buffer */
-typedef BufferClass BufferedSegClass;   /* impl.c.poolabs */
+typedef BufferClass BufferedSegClass;   /* design.mps.buffer */
 typedef unsigned BufferMode;            /* design.mps.buffer */
 typedef unsigned FrameState;            /* design.mps.alloc-frame */
 typedef struct APStruct *AP;            /* design.mps.buffer */
@@ -77,7 +77,7 @@ typedef struct TractStruct *Tract;      /* design.mps.arena */
 typedef struct SegStruct *Seg;          /* impl.c.seg */
 typedef struct SegGCStruct *SegGC;      /* impl.c.seg */
 typedef struct SegClassStruct *SegClass; /* impl.c.seg */
-typedef SegClass SegGCClass;            /* impl.c.poolabs */
+typedef SegClass SegGCClass;            /* impl.c.seg */
 typedef struct SegPrefStruct *SegPref;  /* design.mps.pref, impl.c.arena* */
 typedef int SegPrefKind;                /* design.mps.pref, impl.c.arena* */
 typedef struct ArenaClassStruct *ArenaClass; /* design.mps.arena */
