@@ -1,6 +1,6 @@
 /* impl.c.trace: GENERIC TRACER IMPLEMENTATION
  *
- * $HopeName: MMsrc!trace.c(MMdevel_metrics.3) $
+ * $HopeName: MMsrc!trace.c(MMdevel_metrics.4) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  *
  * .sources: design.mps.tracer.
@@ -17,7 +17,7 @@
 
 #include "mpm.h"
 
-SRCID(trace, "$HopeName: MMsrc!trace.c(MMdevel_metrics.3) $");
+SRCID(trace, "$HopeName: MMsrc!trace.c(MMdevel_metrics.4) $");
 
 
 /* ScanStateCheck -- check consistency of a ScanState object */
@@ -926,17 +926,20 @@ Res TraceFix(ScanState ss, Ref *refIO)
   Ref ref;
   Seg seg;
   Pool pool;
+  Arena arena;
 
-  /* .fix.critical.1 */
+  /* .fix.critical */
   AVERT_CRITICAL(ScanState, ss);
-  AVER(refIO != NULL);
+  AVER_CRITICAL(refIO != NULL);
 
   ref = *refIO;
 
   EVENT_PPAU(TraceFix, ss, refIO, ref, ss->rank);
   ++ss->fixRefCount;
 
-  if(SegOfAddr(&seg, ss->arena, ref)) {
+  arena = ss->arena;
+
+  if(SegOfAddr(&seg, arena, ref)) {
 
     EVENT_P(TraceFixSeg, seg);
     ++ss->segRefCount;
@@ -951,7 +954,7 @@ Res TraceFix(ScanState ss, Ref *refIO)
       /* Could move the rank switch here from the class-specific
        * fix methods. */
       res = PoolFix(pool, ss, seg, refIO);
-      if (res != ResOK)
+      if(res != ResOK)
         return res;
     }
   }
@@ -966,7 +969,7 @@ Res TraceFix(ScanState ss, Ref *refIO)
   /* the accumulation of ss->fixedSummary was moved the accuracy */
   /* of ss->fixedSummary would vary according to the "width" of the */
   /* white summary). */
-  ss->fixedSummary = RefSetAdd(ss->arena, ss->fixedSummary, *refIO);
+  ss->fixedSummary = RefSetAdd(arena, ss->fixedSummary, *refIO);
 
   return ResOK;
 }
