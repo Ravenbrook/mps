@@ -1129,23 +1129,44 @@ Res ArenaDescribeSegs(Arena arena, mps_lib_FILE *stream)
   Res res;
   Seg seg;
   Bool b;
+  Addr oldLimit, base, limit;
+  Size size;
 
   if(!CHECKT(Arena, arena)) return ResFAIL;
   if(stream == NULL) return ResFAIL;
 
   b = SegFirst(&seg, arena); 
+  oldLimit = SegBase(seg);
   while(b) {
+    base = SegBase(seg);
+    limit = SegLimit(seg);
+    size = SegSize(seg);
+
+    if(SegBase(seg) > oldLimit) {
+      res = WriteF(stream,
+                   "[$P, $P) $W $U   ---\n",
+                   (WriteFP)oldLimit,
+                   (WriteFP)base,
+                   (WriteFW)AddrOffset(oldLimit, base),
+                   (WriteFU)AddrOffset(oldLimit, base),
+                   NULL);
+      if(res != ResOK)
+        return res;
+    }
+
     res = WriteF(stream,
-                 "[$P, $P) $U   $P ($S)\n",
-                 (WriteFP)SegBase(seg),
-                 (WriteFP)SegLimit(seg),
-                 (WriteFU)SegSize(seg),
+                 "[$P, $P) $W $U   $P ($S)\n",
+                 (WriteFP)base,
+                 (WriteFP)limit,
+                 (WriteFW)size,
+                 (WriteFW)size,
                  (WriteFP)SegPool(seg),
                  (WriteFS)(SegPool(seg)->class->name),
                  NULL);
     if(res != ResOK)
       return res;
     b = SegNext(&seg, arena, SegBase(seg));
+    oldLimit = limit;
   }
   return ResOK;
 }
