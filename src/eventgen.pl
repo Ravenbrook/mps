@@ -2,21 +2,16 @@
 # impl.pl.eventgen -- Generator for impl.h.eventgen
 #
 # Copyright (C) 1997 Harlequin Group, all rights reserved.
-# $HopeName: !eventgen.pl(trunk.2) $
+# $HopeName: MMsrc!eventgen.pl(MMdevel_event_string.1) $
 #
 # Invoke this script in the src directory.
-# It works by scanning *.c for EVENT_[PUAD], 
+# It works by scanning *.c for EVENT_[A-Z], 
 # and then creating a file eventgen.h that includes the
-# necessary types and macros.
+# necessary types and macros.  If the format letter doesn't
+# exist as a WriteF format type, then the subsequent compile
+# will fail.
 
 %Formats = ();
-
-%Types = (
-  "P", "void *",
-  "U", "unsigned ",
-  "D", "double ",
-  "A", "Addr ",
-);
 
 while(<*.c>) {
   open(C, "<$_") || die "Can't open $_";
@@ -24,7 +19,7 @@ while(<*.c>) {
   print STDERR "$_ ... ";
 
   while(<C>) {
-    if(/EVENT_([PUAD]+)\(/) { 
+    if(/EVENT_([A-Z]+)\(/) { 
       $Formats{$1} = 1 if(!defined($Formats{$1}));
     }
   }
@@ -52,7 +47,7 @@ foreach $format ("", sort(keys(%Formats))) {
   print H "  Word code;\n  Word length;\n  Word clock;\n";
   for($i = 0; $i < length($format); $i++) {
     $c = substr($format, $i, 1);
-    print H "  ", $Types{$c}, "\l$c$i;\n";
+    print H "  WriteF$c \l$c$i;\n";
   }
   print H "} Event", $format, "Struct;\n\n";
 }
