@@ -1,6 +1,6 @@
 /* impl.c.arenacl: ARENA IMPLEMENTATION USING CLIENT MEMORY
  *
- * $HopeName: MMsrc!arenacl.c(MMdevel_tony_sunset.1) $
+ * $HopeName: MMsrc!arenacl.c(MMdevel_tony_sunset.2) $
  * Copyright (C) 1997. Harlequin Group plc. All rights reserved.
  *
  * .readership: MM developers
@@ -17,7 +17,7 @@
 #include "mpsacl.h"
 
 
-SRCID(arenacl, "$HopeName: MMsrc!arenacl.c(MMdevel_tony_sunset.1) $");
+SRCID(arenacl, "$HopeName: MMsrc!arenacl.c(MMdevel_tony_sunset.2) $");
 
 
 typedef struct ClientArenaStruct *ClientArena;
@@ -93,7 +93,6 @@ typedef struct PageStruct {   /* page structure */
 } PageStruct;
 
 
-static Addr ClientTractLimit(Tract tract);
 static Bool ClientTractNext(Tract *tractReturn, Arena arena, Addr addr);
 
 
