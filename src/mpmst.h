@@ -1,6 +1,6 @@
 /* impl.h.mpmst: MEMORY POOL MANAGER DATA STRUCTURES
  *
- * $HopeName: !mpmst.h(trunk.62) $
+ * $HopeName: MMsrc!mpmst.h(MMdevel_ptw_pseudoloci.1) $
  * Copyright (C) 1998 Harlequin Group plc.  All rights reserved.
  *
  * .readership: MM developers.
@@ -47,6 +47,55 @@
 typedef struct RingStruct {     /* double-ended queue structure */
   Ring next, prev;              /* links to next and prev element */
 } RingStruct;
+
+
+/* LocusManagerStruct, LocusClientStruct, LocusStruct -- Locus
+   structures.  See design.mps.loci */
+
+/* LocusClientStruct -- included in any pool or generation that wants
+   locus services */
+typedef struct LocusClientStruct 
+{
+  LocusManager manager;         /* backpointer */
+  Bool assigned;                /* has a locus */
+  Locus locus;                  /* backpointer */
+  RingStruct locusRingStruct;
+  Serial locusSerial;
+  RefSet preferred;
+  RefSet disdained;
+  /* @@@ cohort description */
+  Index lifetime;
+  RefSet used;
+} LocusClientStruct;
+
+/* LocusStruct -- Locus manager manages an array of these to implement
+   locus services */
+typedef struct LocusStruct 
+{
+  Bool inUse;                   /* active */
+  Bool ready;                   /* client summary valid */
+  /* summary of client's cohort descriptions */
+  Index lifetime;               /* lifetime estimate */
+  RefSet preferred;             /* preferred zones */
+  RefSet disdained;             /* disdained zones */
+  RefSet used;                  /* zones in use by this locus */
+  /* Support for refset search policy */
+  RefSet search;
+  Index searchIndex;
+  LocusManager manager;         /* backpointer */
+  RingStruct clientRingStruct;  /* clients */
+  Serial clientSerial;
+  /* @@@ placement description */
+} LocusStruct;
+
+/* LocusManagerStruct -- Included in any arena that wants to provide
+   locus services */
+typedef struct LocusManagerStruct 
+{
+  Bool ready;                   /* free is up to date */
+  RefSet free;                  /* free zones in arena cache */
+  LocusStruct locus[NUMLOCI];   /* the loci */
+} LocusManagerStruct;
 
 
 /* PoolClassStruct -- pool class structure
@@ -129,6 +178,8 @@ typedef struct PoolStruct {     /* generic structure */
   double emptyMutatorSize;      /* bytes emptied, mutator buffers */
   double fillInternalSize;      /* bytes filled, internal buffers */
   double emptyInternalSize;     /* bytes emptied, internal buffers */
+  /* The locus client structure for the pool */
+  LocusClientStruct locusClientStruct;
 } PoolStruct;
 
 /* MFSStruct -- MFS (Manual Fixed Small) pool outer structure
@@ -689,6 +740,9 @@ typedef struct ArenaStruct {
   Epoch epoch;                     /* design.mps.arena.ld.epoch */
   RefSet prehistory;               /* design.mps.arena.ld.prehistory */
   RefSet history[ARENA_LD_LENGTH]; /* design.mps.arena.ld.history */
+
+  /* loci (impl.c.locus) */
+  LocusManagerStruct locusManagerStruct;
 } ArenaStruct;
 
 
