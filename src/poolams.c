@@ -1,7 +1,7 @@
 /* impl.c.poolams: AUTOMATIC MARK & SWEEP POOL CLASS
  *
- * $HopeName: MMsrc!poolams.c(MMdevel_pekka_rate.2) $
- * Copyright (C) 1998. Harlequin Group plc. All rights reserved.
+ * $HopeName: MMsrc!poolams.c(MMdevel_pekka_rate.3) $
+ * Copyright (C) 1998.  Harlequin Group plc.  All rights reserved.
  * 
  * .readership: any MPS developer.
  * 
@@ -26,7 +26,7 @@
 #include "mpm.h"
 #include <stdarg.h>
 
-SRCID(poolams, "$HopeName: MMsrc!poolams.c(MMdevel_pekka_rate.2) $");
+SRCID(poolams, "$HopeName: MMsrc!poolams.c(MMdevel_pekka_rate.3) $");
 
 
 #define AMSSig          ((Sig)0x519A3599) /* SIGnature AMS */
@@ -166,7 +166,7 @@ static Res AMSGroupCreate(AMSGroup *groupReturn, Pool pool, Size size,
   res = SegAlloc(&seg, segPref, size, pool);
   if(res != ResOK)
     goto failSeg;
-  
+
   group->seg = seg;
   SegSetP(seg, (void*)group);
   /* see design.mps.seg.field.rankset */
@@ -183,7 +183,7 @@ static Res AMSGroupCreate(AMSGroup *groupReturn, Pool pool, Size size,
 
   *groupReturn = group;
   return ResOK;
-  
+
   /* keep the destructions in step with AMSGroupDestroy */
 failInit:
   SegFree(seg);
@@ -279,7 +279,7 @@ static Res AMSIterate(AMSGroup group,
  *  Takes one additional argument: the format of the objects
  *  allocated in the pool.  See design.mps.poolams.init.
  */
-  
+
 Res AMSInit(Pool pool, va_list arg)
 {
   AMS ams;
@@ -458,7 +458,7 @@ Res AMSBufferFill(Seg *segReturn, Addr *baseReturn, Addr *limitReturn,
   if(res != ResOK)
     return res;
   b = AMSGroupAlloc(&base, &limit, group, size);
-  
+
 found:
   AVER(b);
   *segReturn = group->seg;
@@ -487,12 +487,12 @@ void AMSBufferEmpty(Pool pool, Buffer buffer)
   AVERT(Buffer,buffer);
   AVER(!BufferIsReset(buffer));
   AVER(BufferIsReady(buffer));
-  
+
   seg = BufferSeg(buffer);
   group = AMSSegGroup(seg);
   AVERT(AMSGroup, group);
   AVER(group->seg == seg);
-  
+
   init = BufferGetInit(buffer);
   limit = BufferLimit(buffer);
 
@@ -504,7 +504,6 @@ void AMSBufferEmpty(Pool pool, Buffer buffer)
 
   initIndex = AMSAddrIndex(group, init);
   limitIndex = AMSAddrIndex(group, limit);
-
 
   if(group->allocTableInUse) {
     /* check that it's allocated */
@@ -538,18 +537,18 @@ static void AMSRangeCondemn(AMSGroup group, Index base, Index limit)
   if(base != limit) {
     AVER(base < limit);
     AVER(limit <= group->grains);
-    
+
     if(group->allocTableInUse) {
       BTCopyInvertRange(group->allocTable, group->markTable,
                         base, limit);
       BTCopyInvertRange(group->allocTable, group->scanTable,
                         base, limit);
     } else {
-      if(0 < group->firstFree) {
-        AMSRangeWhiten(group, 0, group->firstFree);
+      if(base < group->firstFree) {
+        AMSRangeWhiten(group, base, group->firstFree);
       }
-      if(group->firstFree < group->grains) {
-        AMSRangeBlacken(group, group->firstFree, group->grains);
+      if(group->firstFree < limit) {
+        AMSRangeBlacken(group, group->firstFree, limit);
       }
     }
   }
@@ -585,7 +584,7 @@ Res AMSCondemn(Pool pool, Trace trace, Seg seg)
     Index scanLimitIndex, limitIndex;
     scanLimitIndex = AMSAddrIndex(group, BufferScanLimit(buffer));
     limitIndex = AMSAddrIndex(group, BufferLimit(buffer));
-    
+
     AMSRangeCondemn(group, 0, scanLimitIndex);
     if(scanLimitIndex < limitIndex)
       AMSRangeBlacken(group, scanLimitIndex, limitIndex);
@@ -804,7 +803,7 @@ Res AMSFix(Pool pool, ScanState ss, Seg seg, Ref *refIO)
 
   ref = *refIO;
   i = AMSAddrIndex(group, ref);
-  
+
   ss->wasMarked = TRUE;
 
   switch (ss->rank) {
@@ -866,9 +865,9 @@ static Res AMSReclaimObject(AMSGroup group,
   AVERT(Bool, *anySurvivorsP);
 
   j = AMSAddrIndex(group, next);
-  
+
   if(AMSIsWhite(group, i)) { /* then we can free it */
-    BTRes(group->allocTable, i);
+    BTResRange(group->allocTable, i, j);
     group->free += j - i;
   } else { /* the object survived collection */
     AVER(AMSIsBlack(group, i));
@@ -899,7 +898,7 @@ void AMSReclaim(Pool pool, Trace trace, Seg seg)
   /* It's a white seg, so it must have colour tables. */
   AVER(group->colourTablesInUse);
 
-  AVER(group->marked == FALSE); /* there must be nothing grey */
+  AVER(!group->marked); /* there must be nothing grey */
 
   anySurvivors = FALSE;
   /* This assumes there's only one reclaim (or restore) at a time. */
