@@ -1,6 +1,6 @@
 /* impl.c.arena: ARENA IMPLEMENTATION
  *
- * $HopeName: MMsrc!arena.c(MMdevel_tony_sunset.1) $
+ * $HopeName: MMsrc!arena.c(MMdevel_tony_sunset.2) $
  * Copyright (C) 1998. Harlequin Group plc. All rights reserved.
  *
  * .readership: Any MPS developer
@@ -36,7 +36,7 @@
 #include "poolmrg.h"
 #include "mps.h"
 
-SRCID(arena, "$HopeName: MMsrc!arena.c(MMdevel_tony_sunset.1) $");
+SRCID(arena, "$HopeName: MMsrc!arena.c(MMdevel_tony_sunset.2) $");
 
 
 /* All static data objects are declared here. See .static */
@@ -48,7 +48,7 @@ static RingStruct arenaRing;       /* design.mps.arena.static.ring */
 static LockStruct arenaRingLock;   
 static Serial arenaSerial;         /* design.mps.arena.static.serial */
 
-#define SegArena(seg) PoolArena(SegPool(seg))
+#define TractArena(seg) PoolArena(TractPool(tract))
 
 
 /* ArenaReservoir - return the reservoir for the arena */
@@ -57,6 +57,54 @@ Reservoir ArenaReservoir(Arena arena)
 {
   AVERT(Arena, arena);
   return &arena->reservoirStruct;
+}
+
+
+/* TractCheck -- check the integrity of a tract */
+
+Bool TractCheck(Tract tract)
+{
+  CHECKU(Pool, tract->pool);
+  CHECKL(AddrIsAligned(tract->base, 
+                       ArenaAlign(PoolArena(tract->pool))));
+  if (tract->hasSeg) {
+    CHECKL(TraceSetCheck(tract->white));
+    CHECKU(Seg, (Seg)tract->p); 
+  } else {
+    CHECKL(tract->white == TraceSetEMPTY);
+  }
+  /* @@@@**** What else ? **** */
+  return TRUE;
+}
+
+
+/* TractInit -- initialize a tract */
+
+void TractInit(Tract tract, Pool pool, Addr base)
+{
+  AVER(tract != NULL);
+  AVERT(Pool, pool);
+
+  tract->pool = pool;
+  tract->base = base;
+  tract->p = NULL;
+  tract->white = TraceSetEMPTY;
+  tract->hasSeg = 0;
+
+  AVERT(Tract, tract);
+
+}
+
+
+/* TractFinish -- finish a tract */
+
+void TractFinish(Tract tract)
+{
+  AVERT(Tract, tract);
+
+  /* Check that there's no segment - and hence no shielding */
+  AVER(tract->hasSeg == 0);
+  tract->pool = NULL;
 }
 
 
@@ -77,13 +125,12 @@ Bool ArenaClassCheck(ArenaClass class)
   CHECKL(FUNCHECK(class->committed));
   CHECKL(FUNCHECK(class->extend));
   CHECKL(FUNCHECK(class->retract));
-  CHECKL(FUNCHECK(class->segAlloc));
-  CHECKL(FUNCHECK(class->segFree));
-  CHECKL(FUNCHECK(class->segBase));
-  CHECKL(FUNCHECK(class->segLimit));
-  CHECKL(FUNCHECK(class->segOfAddr));
-  CHECKL(FUNCHECK(class->segFirst));
-  CHECKL(FUNCHECK(class->segNext));
+  CHECKL(FUNCHECK(class->alloc));
+  CHECKL(FUNCHECK(class->free));
+  CHECKL(FUNCHECK(class->tractBase));
+  CHECKL(FUNCHECK(class->tractOfAddr));
+  CHECKL(FUNCHECK(class->tractFirst));
+  CHECKL(FUNCHECK(class->tractNext));
   CHECKL(FUNCHECK(class->describe));
   CHECKL(class->endSig == ArenaClassSig);
   return TRUE;
@@ -203,6 +250,12 @@ Bool ArenaCheck(Arena arena)
   for(rank = 0; rank < RankMAX; ++rank)
     CHECKL(RingCheck(&arena->greyRing[rank]));
 
+  if (NULL == arena->lastTract) {
+    CHECKL((Addr)0 == arena->lastTractBase);
+  } else {
+    CHECKL(arena->lastTract->base == arena->lastTractBase);
+  }
+
   return TRUE;
 }
 
@@ -277,6 +330,8 @@ void ArenaInit(Arena arena, ArenaClass class)
   arena->poolReady = FALSE;     /* design.mps.arena.pool.ready */
   for(rank = 0; rank < RankMAX; ++rank)
     RingInit(&arena->greyRing[rank]);
+  arena->lastTract = NULL;
+  arena->lastTractBase = (Addr)0;
 
   arena->sig = ArenaSig;
   arena->serial = arenaSerial;  /* design.mps.arena.static.serial */
@@ -338,7 +393,8 @@ Res ArenaCreateV(Arena *arenaReturn, ArenaClass class, va_list args)
   {
     void *v;
 
-    res = ArenaAlloc(&v, arena, BTSize(MessageTypeMAX));
+    res = ControlAlloc(&v, arena, BTSize(MessageTypeMAX), 
+                       /* withReservoirPermit */ FALSE);
     if(res != ResOK)
       goto failEnabledBTAlloc;
     arena->enabledMessageTypes = v;
@@ -412,8 +468,8 @@ void ArenaDestroy(Arena arena)
 
   /* throw away the BT used by messages */
   if(arena->enabledMessageTypes != NULL) {
-    ArenaFree(arena, (void *)arena->enabledMessageTypes, 
-              BTSize(MessageTypeMAX));
+    ControlFree(arena, (void *)arena->enabledMessageTypes, 
+                BTSize(MessageTypeMAX));
     arena->enabledMessageTypes = NULL;
   }
 
@@ -819,10 +875,10 @@ Res ArenaDescribe(Arena arena, mps_lib_FILE *stream)
   return ResOK;
 }
 
-Res ArenaDescribeSegs(Arena arena, mps_lib_FILE *stream)
+Res ArenaDescribeTracts(Arena arena, mps_lib_FILE *stream)
 {
   Res res;
-  Seg seg;
+  Tract tract;
   Bool b;
   Addr oldLimit, base, limit;
   Size size;
@@ -830,14 +886,14 @@ Res ArenaDescribeSegs(Arena arena, mps_lib_FILE *stream)
   if(!CHECKT(Arena, arena)) return ResFAIL;
   if(stream == NULL) return ResFAIL;
 
-  b = SegFirst(&seg, arena); 
-  oldLimit = SegBase(seg);
+  b = TractFirst(&tract, arena); 
+  oldLimit = TractBase(tract);
   while(b) {
-    base = SegBase(seg);
-    limit = SegLimit(seg);
-    size = SegSize(seg);
+    base = TractBase(tract);
+    limit = TractLimit(tract);
+    size = ArenaAlign(arena);
 
-    if(SegBase(seg) > oldLimit) {
+    if(TractBase(tract) > oldLimit) {
       res = WriteF(stream,
                    "[$P, $P) $W $U   ---\n",
                    (WriteFP)oldLimit,
@@ -855,28 +911,29 @@ Res ArenaDescribeSegs(Arena arena, mps_lib_FILE *stream)
                  (WriteFP)limit,
                  (WriteFW)size,
                  (WriteFW)size,
-                 (WriteFP)SegPool(seg),
-                 (WriteFS)(SegPool(seg)->class->name),
+                 (WriteFP)TractPool(tract),
+                 (WriteFS)(TractPool(tract)->class->name),
                  NULL);
     if(res != ResOK)
       return res;
-    b = SegNext(&seg, arena, SegBase(seg));
+    b = TractNext(&tract, arena, TractBase(tract));
     oldLimit = limit;
   }
   return ResOK;
 }
 
-/* ArenaAlloc -- allocate a small block directly from the arena
+/* ControlAlloc -- allocate a small block directly from the control pool
  *
  * .arena.control-pool: Actually the block will be allocated from the
  * control pool, which is an MV pool embedded in the arena itself.
  *
- * .arenaalloc.addr: In implementations where Addr is not compatible
- * with void* (design.mps.type.addr.use), ArenaAlloc must take care of
+ * .controlalloc.addr: In implementations where Addr is not compatible
+ * with void* (design.mps.type.addr.use), ControlAlloc must take care of
  * allocating so that the block can be addressed with a void*.
  */
 
-Res ArenaAlloc(void **baseReturn, Arena arena, size_t size)
+Res ControlAlloc(void **baseReturn, Arena arena, size_t size, 
+                 Bool withReservoirPermit)
 {
   Addr base;
   Res res;
@@ -884,21 +941,22 @@ Res ArenaAlloc(void **baseReturn, Arena arena, size_t size)
 
   AVERT(Arena, arena);
   AVER(baseReturn != NULL);
-  AVER(size > 0);
+  AVER(size > 0);;
+  AVER(BoolCheck(withReservoirPermit));
 
   pool = MVPool(&arena->controlPoolStruct);
   res = PoolAlloc(&base, pool, (Size)size,
-                  /* withReservoirPermit */ FALSE);
+                  withReservoirPermit);
   if(res != ResOK) return res;
 
-  *baseReturn = (void *)base; /* see .arenaalloc.addr */
+  *baseReturn = (void *)base; /* see .controlalloc.addr */
   return ResOK;
 }
 
 
-/* ArenaFree -- free a block allocated using ArenaAlloc */
+/* ControlFree -- free a block allocated using ControlAlloc */
 
-void ArenaFree(Arena arena, void* base, size_t size)
+void ControlFree(Arena arena, void* base, size_t size)
 {
   Pool pool;
 
@@ -910,18 +968,54 @@ void ArenaFree(Arena arena, void* base, size_t size)
   PoolFree(pool, (Addr)base, (Size)size);
 }
 
+/* arenaRangeIsAlloc  -- test whether a range is owned by a pool
+ *
+ * Returns TRUE iff the range corresponds to a number of contiguous
+ * tracts all owned by the pool
+ */
 
-/* SegAlloc -- allocate a segment from the arena */
+static Bool arenaRangeIsAlloc(Arena arena, Pool pool, 
+                              Addr base, Size size)
+{
+  AVERT(Arena, arena);
+  AVERT(Pool, pool);
+  AVER(base != NULL);
+  AVER(size > 0);
+  AVER(PoolArena(pool) == arena);
 
-Res SegAlloc(Seg *segReturn, SegPref pref, Size size, Pool pool,
-             Bool withReservoirPermit)
+  if (AddrIsAligned(base, arena->alignment) &&
+      SizeIsAligned(size, arena->alignment)) {
+    Tract tract;
+    Addr addr;
+    Addr limit = AddrAdd(base, size);
+
+    TRACT_FOR(tract, addr, arena, base, limit) {
+      if (TractPool(tract) != pool) {
+        return FALSE;         /* failure: tract not owned by pool */
+      }
+    }
+    if (addr == limit) {
+      return TRUE;            /* success: all tracts owned by the pool */
+    } else
+      return FALSE;           /* failure: not all tract allocated */
+  } else {
+    return FALSE;             /* failure: range not contiguous tracts */
+  }
+}
+
+
+/* ArenaAlloc -- allocate some tracts from the arena */
+
+Res ArenaAlloc(Addr *baseReturn, SegPref pref, Size size, Pool pool,
+               Bool withReservoirPermit)
 {
   Res res;
   Arena arena;
-  Seg seg;
+  Addr base;
+  Tract baseTract;
   Reservoir reservoir;
 
-  AVER(segReturn != NULL);
+  AVER(baseReturn != NULL);
   AVERT(SegPref, pref);
   AVER(size > (Size)0);
   AVERT(Pool, pool);
@@ -940,135 +1034,194 @@ Res SegAlloc(Seg *segReturn, SegPref pref, Size size, Pool pool,
       return res;
   }
 
-  res = (*arena->class->segAlloc)(&seg, pref, size, pool);
+  res = (*arena->class->alloc)(&base, &baseTract, pref, size, pool);
   if(res == ResOK) {
     goto goodAlloc;
   } else if(withReservoirPermit) {
     AVER(ResIsAllocFailure(res));
-    res = ReservoirWithdraw(&seg, reservoir, size, pool);
+    res = ReservoirWithdraw(&base, &baseTract, reservoir, size, pool);
     if(res == ResOK)
       goto goodAlloc;
   }
-  EVENT_PWP(SegAllocFail, arena, size, pool);
+  EVENT_PWP(ArenaAllocFail, arena, size, pool);
   return res;
 
 goodAlloc:
-  EVENT_PPAWP(SegAlloc, arena, seg, SegBase(seg), size, pool);
-  *segReturn = seg;
+  /* cache the tract - design.mps.arena.tract.cache */
+  arena->lastTract = baseTract;
+  arena->lastTractBase = base;
+
+  AVER(arenaRangeIsAlloc(arena, pool, base, size));
+  EVENT_PPAWP(ArenaAlloc, arena, baseTract, base, size, pool);
+  *baseReturn = base;
   return ResOK;
 }
 
 
-/* SegFree -- free a segment to the arena */
+/* ArenaFree -- free some tracts to the arena */
 
-void SegFree(Seg seg)
+void ArenaFree(Addr base, Size size, Pool pool)
 {
   Arena arena;
+  Addr limit;
   Reservoir reservoir;
   Res res;
 
-  AVERT(Seg, seg);
-  arena = SegArena(seg);
+  AVERT(Pool, pool);
+  AVER(base != NULL);
+  AVER(size > (Size)0);
+  arena = PoolArena(pool);
   AVERT(Arena, arena);
   reservoir = ArenaReservoir(arena);
   AVERT(Reservoir, reservoir);
+  AVER(AddrIsAligned(base, arena->alignment));
+  AVER(SizeIsAligned(size, arena->alignment));
+  AVER(arenaRangeIsAlloc(arena, pool, base, size));
+
+  /* uncache the tract if in range - design.mps.arena.tract.uncache */
+  limit = AddrAdd(base, size);
+  if ((arena->lastTractBase >= base) && (arena->lastTractBase < limit)) {
+    arena->lastTract = NULL;
+    arena->lastTractBase = (Addr)0;
+  }
 
   res = ReservoirEnsureFull(reservoir);
   if (res == ResOK) {
-    (*arena->class->segFree)(seg);
+    (*arena->class->free)(base, size, pool);
   } else {
     AVER(ResIsAllocFailure(res));
-    ReservoirDeposit(reservoir, seg);
+    ReservoirDeposit(reservoir, base, size);
   }
 
-  EVENT_PP(SegFree, arena, seg);
+  EVENT_PAW(ArenaFree, arena, base, size);
   return;
 }
 
 
-/* .seg.critical: These segment functions are low-level and used 
+/* .tract.critical: These tract functions are low-level and used 
  * through-out. They are therefore on the critical path and their 
  * AVERs are so-marked.
  */
 
-/* SegBase -- return the base address of a segment */
+/* TractBase -- return the base address of a tract */
 
-Addr SegBase(Seg seg)
+Addr (TractBase)(Tract tract)
 {
-  Arena arena;
+  Addr base;
+  AVERT_CRITICAL(Tract, tract); /* .tract.critical */
 
-  AVERT_CRITICAL(Seg, seg); /* .seg.critical */
-  arena = SegArena(seg);
-  AVERT_CRITICAL(Arena, arena);
-  return (*arena->class->segBase)(seg);
+  base = tract->base;
+  AVER_CRITICAL((*(TractArena(tract)->class->tractBase))(tract) == base);
+  return base;
 }
 
 
-/* SegLimit -- return the limit address of a segment */
+/* TractLimit -- return the limit address of a segment */
 
-Addr SegLimit(Seg seg)
+Addr TractLimit(Tract tract)
 {
   Arena arena;
-  AVERT_CRITICAL(Seg, seg); /* .seg.critical */
-  arena = SegArena(seg);
+  AVERT_CRITICAL(Tract, tract); /* .tract.critical */
+  arena = TractArena(tract);
   AVERT_CRITICAL(Arena, arena);
-  return (*arena->class->segLimit)(seg);
+  return AddrAdd(TractBase(tract), arena->alignment);
 }
 
 
-/* SegSize -- return the size of a segment */
+/* TractOfAddr -- return the tract the given address is in, if any */
 
-Size SegSize(Seg seg)
+Bool TractOfAddr(Tract *tractReturn, Arena arena, Addr addr)
 {
-  Arena arena;
-  AVERT_CRITICAL(Seg, seg); /* .seg.critcial */
-  arena = SegArena(seg);
-  AVERT_CRITICAL(Arena, arena);
-  return (*arena->class->segSize)(seg);
-}
-
-
-/* SegOfAddr -- return the segment the given address is in, if any */
-
-Bool SegOfAddr(Seg *segReturn, Arena arena, Addr addr)
-{
-  AVER(segReturn != NULL);
+  AVER(tractReturn != NULL);
   AVERT(Arena, arena);
 
-  return (*arena->class->segOfAddr)(segReturn, arena, addr);
+  return (*arena->class->tractOfAddr)(tractReturn, arena, addr);
 }
 
 
-/* SegFirst -- return the first segment in the arena
- *
- * This is used to start an iteration over all segments in the arena.
+/* TractOfBaseAddr -- return a tract given a base address
+ * 
+ * The tract must exist.
  */
 
-Bool SegFirst(Seg *segReturn, Arena arena)
+Tract TractOfBaseAddr(Arena arena, Addr addr)
 {
-  AVER(segReturn != NULL);
+  Tract tract;
+  Bool found;
   AVERT(Arena, arena);
+  AVER(AddrIsAligned(addr, arena->alignment));
 
-  return (*arena->class->segFirst)(segReturn, arena);
+  /* check first in the cache - design.mps.arena.tract.cache */
+  if (arena->lastTractBase == addr) {
+    tract = arena->lastTract;
+  } else {
+    found = (*arena->class->tractOfAddr)(&tract, arena, addr);
+    AVER(found);
+  }
+
+  AVER(TractBase(tract) == addr);
+  return tract;
 }
 
 
-/* SegNext -- return the "next" segment in the arena
+/* TractFirst -- return the first tract in the arena
+ *
+ * This is used to start an iteration over all tracts in the arena.
+ */
+
+Bool TractFirst(Tract *tractReturn, Arena arena)
+{
+  AVER(tractReturn != NULL);
+  AVERT(Arena, arena);
+
+  return (*arena->class->tractFirst)(tractReturn, arena);
+}
+
+
+/* TractNext -- return the "next" tract in the arena
  *
  * This is used as the iteration step when iterating over all
- * segments in the arena.
+ * tracts in the arena.
  *
- * SegNext finds the segment with the lowest base address which is
+ * TractNext finds the tract with the lowest base address which is
  * greater than a specified address.  The address must be (or once
- * have been) the base address of a segment.
+ * have been) the base address of a tract.
  */
 
-Bool SegNext(Seg *segReturn, Arena arena, Addr addr)
+Bool TractNext(Tract *tractReturn, Arena arena, Addr addr)
 {
-  AVER_CRITICAL(segReturn != NULL); /* .seg.critical */
+  AVER_CRITICAL(tractReturn != NULL); /* .tract.critical */
   AVERT_CRITICAL(Arena, arena);
 
-  return (*arena->class->segNext)(segReturn, arena, addr);
+  return (*arena->class->tractNext)(tractReturn, arena, addr);
+}
+
+/* TractNextContig -- return the contiguously following tract
+ *
+ * This is used as the iteration step when iterating over all
+ * tracts in a contiguous area belonging to a pool.
+ */
+
+Tract TractNextContig(Tract tract)
+{
+  Tract next;
+  Pool pool;
+  Arena arena;
+  Addr base;
+  Bool found;
+
+  AVERT(Tract, tract);
+  pool = TractPool(tract);
+  AVER(NULL != pool);
+  arena = PoolArena(pool);
+
+  base = TractBase(tract);
+  found = (*arena->class->tractNext)(&next, arena, base);
+
+  AVER(found);
+  AVER(TractPool(next) == pool);
+  AVER(TractBase(next) == AddrAdd(base, arena->alignment));
+  return next;
 }
 
 
