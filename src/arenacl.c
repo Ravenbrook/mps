@@ -1,6 +1,6 @@
 /* impl.c.arenacl: ARENA IMPLEMENTATION USING CLIENT MEMORY
  *
- * $HopeName: MMsrc!arenacl.c(MMdevel_drj_commit_limit.1) $
+ * $HopeName: MMsrc!arenacl.c(MMdevel_drj_commit_limit.2) $
  * Copyright (C) 1997. Harlequin Group plc. All rights reserved.
  *
  * .readership: MM developers
@@ -17,7 +17,7 @@
 #include "mpsacl.h"
 
 
-SRCID(arenacl, "$HopeName: MMsrc!arenacl.c(MMdevel_drj_commit_limit.1) $");
+SRCID(arenacl, "$HopeName: MMsrc!arenacl.c(MMdevel_drj_commit_limit.2) $");
 
 
 typedef struct ClientArenaStruct *ClientArena;
@@ -554,8 +554,9 @@ static Res ClientSegAlloc(Seg *segReturn, SegPref pref,
   RING_FOR(node, &clientArena->chunkRing, nextNode) { 
     Chunk chunk = RING_ELT(Chunk, arenaRing, node);
     res = ChunkSegAlloc(segReturn, pref, pages, pool, chunk);
-    if (res == ResOK)
+    if(res == ResOK || res == ResCOMMIT_LIMIT) {
       return res;
+    }
   }
   return ResRESOURCE;
 }
