@@ -1,6 +1,6 @@
 /* impl.c.event: EVENT LOGGING
  *
- * $HopeName$
+ * $HopeName: MMsrc!event.c(MMdevel_event.1) $
  * Copyright (C) 1996 Harlequin Group, all rights reserved.
  *
  * .readership: MPS developers.
@@ -14,90 +14,77 @@
 #include "mpm.h"
 #include "mpsio.h"
 
-SRCID(event, "$HopeName$");
+SRCID(event, "$HopeName: MMsrc!event.c(MMdevel_event.1) $");
 
 #define EVENT_BUFFER		(size_t)4096
 
-static Bool eventInit = FALSE;
-static unsigned eventPointCount = 0;
+static Bool eventInited = FALSE;
 static mps_io_t eventIO;
 static Word eventBuffer[EVENT_BUFFER];
-static EventPointStruct eventPointStruct;
+static Word *eventBase, *eventInit, *eventLimit;
 
-Res EventPointCreate(EventPoint *pointReturn)
+static void EventReset(void)
 {
-  Res res;
-
-  AVER(pointReturn != NULL);
-
-  if(!eventInit) {
-    AVER(eventPointCount == 0);
-    res = (Res)mps_io_create(&eventIO);
-    if(res != ResOK) return res;
-    eventPointStruct.base = &eventBuffer[0];
-    eventPointStruct.init = eventPointStruct.base;
-    eventPointStruct.limit = &eventBuffer[EVENT_BUFFER];
-    eventInit = TRUE;
-  }
-  
-  ++eventPointCount;
-
-  *pointReturn = &eventPointStruct;
-  return ResOK;
+  AVER(eventInited);
+  eventBase = &eventBuffer[0];
+  eventInit = eventBase;
+  eventLimit = &eventBuffer[EVENT_BUFFER];
+  eventInit[0] = EventEVENT_TIME;
+  eventInit[1] = (Word)mps_clock();
+  eventInit = eventInit + 2;
 }
 
-static Res EventPointFlush(EventPoint point)
+Res EventFlush(void)
 {
   Res res;
+  
+  AVER(eventInited);
 
   res = (Res)mps_io_flush(eventIO,
-                          (void *)point->base,
-                          (char *)point->init - (char *)point->base);
+                          (void *)eventBase,
+                          (char *)eventInit - (char *)eventBase);
   if(res != ResOK) return res;
 
-  point->init = point->base;
+  EventReset();
+
   return ResOK;
 }
 
-void EventPointDestroy(EventPoint point)
-{
-  AVER(point == &eventPointStruct);
-  AVER(eventPointCount > 0);
-
-  /* @@@@ Nasty hack to flush last few events.  This will turn into a */
-  /* proper hack later. */  
-  --eventPointCount;
-  if(eventPointCount == 0)
-    EventPointFlush(&eventPointStruct);
-}
-
-Res EventEnter(EventPoint point, EventType type, Size length, ...)
+Res EventEnter(EventType type, Size length, ...)
 {
   Res res;
   va_list args;
   Word *alloc;
-  Size i;
+  Size i, size;
 
-  AVER(eventInit);
-  AVER(point == &eventPointStruct);
-  AVER(length + 1 < EVENT_BUFFER);  /* @@@@ assumes event will fit in buffer */
+  size = length + 2;                  /* include header and timestamp */
 
-  alloc = point->init + length + 1;   /* one word for event header */
+  AVER(size < EVENT_BUFFER);          /* @@@@ assumes event will fit in buffer */
 
-  if(alloc > point->limit) {
-    res = EventPointFlush(point);
+  if(!eventInited) {
+    res = (Res)mps_io_create(&eventIO);
     if(res != ResOK) return res;
-    alloc = point->init + length + 1;
+    eventInited = TRUE;
+    EventReset();
   }
 
-  AVER(alloc <= point->limit);
+  alloc = eventInit + size;
 
-  point->init[0] = type | (length << 16);
+  if(alloc > eventLimit) {
+    res = EventFlush();
+    if(res != ResOK) return res;
+    alloc = eventInit + size;
+  }
+
+  AVER(alloc <= eventLimit);
+
+  eventInit[0] = type | (length << 16);
+  eventInit[1] = (Word)mps_clock();
   va_start(args, length);
   for(i=0; i<length; ++i)
-    point->init[i+1] = va_arg(args, Word);
+    eventInit[i+2] = va_arg(args, Word);
   va_end(args);
-  point->init = alloc;
+  eventInit = alloc;
   
   return ResOK;
 }
