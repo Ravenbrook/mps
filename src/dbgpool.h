@@ -1,6 +1,6 @@
 /* impl.h.dbgpool: POOL DEBUG MIXIN
  *
- * $HopeName: !dbgpool.h(trunk.2) $
+ * $HopeName: MMsrc!dbgpool.h(MMdevel_tony_inheritance.1) $
  * Copyright (C) 1998 Harlequin Group plc.  All rights reserved.
  */
 
@@ -50,7 +50,7 @@ typedef struct PoolDebugMixinStruct {
 extern Bool PoolDebugMixinCheck(PoolDebugMixin dbg);
 
 
-extern void EnsureDebugClass(PoolClassStruct *class, PoolClass super);
+extern void PoolClassMixInDebug(PoolClass class);
 
 
 #endif /* dbgpool_h */
