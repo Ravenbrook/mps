@@ -1,23 +1,32 @@
 /* impl.c.mpsioan: HARLEQUIN MEMORY POOL SYSTEM I/O IMPLEMENTATION (ANSI)
  *
- * $HopeName: !mpsioan.c(trunk.3) $
- * Copyright (C) 1996, 1997 Harlequin Group, all rights reserved.
+ * $HopeName: MMsrc!mpsioan.c(MM_epcore_brisling.1) $
+ * Copyright (C) 1997 Harlequin Limited.  All rights reserved.
  *
  * .readership: MPS developers.
  *
+ *
  * TRANSGRESSIONS (rule.impl.trans)
  *
- * There's no way this meets all the requirements yet.
+ * .trans.gen: There's no way this meets all the requirements yet.
+ *
+ * .sunos.warn: The MPM core header, ossu.h, is included so that this
+ * file will compile without warnings under SunOS 4.1.  In order to
+ * test whether to include it mpstd.h is included.  This hack must be
+ * removed before the code is shipped.  .warn: Likewise, osxc.h.
  */
 
 #include "mpsio.h"
-#include <stdio.h>
 
 #include "mpstd.h"   /* .sunos.warn */
 #ifdef MPS_OS_SU
 #include "ossu.h"
 #endif
+#ifdef MPS_OS_XC
+#include "osxc.h"
+#endif
 
+#include <stdio.h>
 #include "config.h"  /* to get platform configurations */
 
 
