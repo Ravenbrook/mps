@@ -1,6 +1,6 @@
 /* impl.c.pool: POOL IMPLEMENTATION
  *
- * $HopeName: MMsrc!pool.c(MMdevel_drj_trace_abort.1) $
+ * $HopeName: MMsrc!pool.c(MMdevel_drj_trace_abort.2) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  *
  * This is the implementation of the generic pool interface.  The
@@ -12,7 +12,7 @@
 
 #include "mpm.h"
 
-SRCID(pool, "$HopeName: MMsrc!pool.c(MMdevel_drj_trace_abort.1) $");
+SRCID(pool, "$HopeName: MMsrc!pool.c(MMdevel_drj_trace_abort.2) $");
 
 
 Bool PoolClassCheck(PoolClass class)
@@ -337,8 +337,10 @@ Res (PoolFix)(Pool pool, ScanState ss, Seg seg, Addr *refIO)
   return PoolFix(pool, ss, seg, refIO);
 }
 
-void PoolEmergencyFix(Pool pool, ScanState ss, Seg seg, Addr *refIO)
+void PoolFixEmergency(Pool pool, ScanState ss, Seg seg, Addr *refIO)
 {
+  Res res;
+
   AVERT(Pool, pool);
   AVERT(ScanState, ss);
   AVERT(Seg, seg);
@@ -348,7 +350,8 @@ void PoolEmergencyFix(Pool pool, ScanState ss, Seg seg, Addr *refIO)
   /* Should only be fixing references to white segments. */
   AVER(TraceSetInter(SegWhite(seg), ss->traces) != TraceSetEMPTY);
 
-  (pool->class->emergencyFix)(pool, ss, seg, refIO);
+  res = (pool->class->fixEmergency)(pool, ss, seg, refIO);
+  AVER(res == ResOK);
 }
 
 void PoolReclaim(Pool pool, Trace trace, Seg seg)
