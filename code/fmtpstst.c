@@ -1,6 +1,6 @@
 /* impl.c.fmtpstst: POSTSCRIPT OBJECT FORMAT TEST VERSION
  *
- *  $HopeName: MMsrc!fmtpstst.c(trunk.7) $
+ *  $HopeName: MMsrc!fmtpstst.c(trunk.8) $
  *  Copyright (C) 1998 Harlequin Limited.  All rights reserved.
  *
  * .readership: MPS developers, SW developers

@@ -1,6 +1,6 @@
 /* impl.c.dongle: SENTINEL SUPERPRO DONGLE INTERFACE
  *
- * $HopeName: MMsrc!dongle.c(trunk.5) $
+ * $HopeName: MMsrc!dongle.c(trunk.6) $
  * Copyright (C) 2000 Harlequin Limited.  All rights reserved.
  *
  * .readership: NOTE: This file contains the secret IDs and formats for
@@ -20,7 +20,7 @@
 #include <SPROMEPS.H>              /* SuperPro API function prototypes     */
 #include <time.h> /* for time */
 
-SRCID(dongle, "$HopeName$");
+SRCID(dongle, "$HopeName: MMsrc!dongle.c(trunk.6) $");
 
 
 /* MPS-specific part of dongle format */

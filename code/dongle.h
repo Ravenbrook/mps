@@ -1,6 +1,6 @@
 /* impl.h.dongle: DONGLE INTERFACE
  *
- * $HopeName: MMsrc!dongle.h(trunk.1) $
+ * $HopeName: MMsrc!dongle.h(trunk.2) $
  * Copyright (C) 2000 Harlequin Limited.  All rights reserved.
  */
 

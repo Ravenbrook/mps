@@ -1,6 +1,6 @@
 /* impl.h.mpscepvm: MEMORY POOL SYSTEM CLASS "EPVM"
  *
- * $HopeName: MMsrc!mpscepvm.h(trunk.2) $
+ * $HopeName: MMsrc!mpscepvm.h(trunk.3) $
  * Copyright (C) 1997, 1998 The Harlequin Group Limited.  All rights reserved.
  */
 

@@ -1,6 +1,6 @@
 /* impl.h.mpscepdl: MEMORY POOL SYSTEM CLASS "EPDL"
  *
- * $HopeName$
+ * $HopeName: MMsrc!mpscepdl.h(trunk.4) $
  * Copyright (C) 1997, 1998 Harlequin Group plc.  All rights reserved.
  */
 

@@ -1,6 +1,6 @@
 /* impl.h.fmtpscon: POSTSCRIPT OBJECT FORMAT CONSTANTS
  *
- * $HopeName$
+ * $HopeName: MMsrc!fmtpscon.h(trunk.1) $
  * Copyright (C) 1997 Harlequin Group, all rights reserved
  *
  * .readership: MPS developers, SW developers

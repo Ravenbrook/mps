@@ -1,6 +1,6 @@
 /* impl.c.epvmss: EPVM POOL CLASS STRESS TEST
  *
- * $HopeName: MMsrc!epvmss.c(trunk.6) $
+ * $HopeName: MMsrc!epvmss.c(trunk.7) $
  * Copyright (C) 1998 Harlequin Limited.  All rights reserved.
  *
  * .limitations: This tests GC on tangles of PS arrays and strings only.

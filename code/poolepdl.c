@@ -1,6 +1,6 @@
 /* impl.c.poolepdl: ELECTRONIC PUBLISHING DISPLAY LIST POOL
  * 
- * $HopeName: MMsrc!poolepdl.c(trunk.38) $
+ * $HopeName: MMsrc!poolepdl.c(trunk.39) $
  * Copyright (C) 1999 Harlequin Limited.  All rights reserved.
  *
  * .purpose: This is a pool class for EPcore display lists.
@@ -16,7 +16,7 @@
 #include "mpscepdl.h"
 #include "mpm.h"
 
-SRCID(poolepdl, "$HopeName: MMsrc!poolepdl.c(trunk.38) $");
+SRCID(poolepdl, "$HopeName: MMsrc!poolepdl.c(trunk.39) $");
 
 
 /* EPDLBlockStruct -- block structure
