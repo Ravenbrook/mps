@@ -1,6 +1,6 @@
 /* impl.h.mpmtypes: MEMORY POOL MANAGER TYPES
  *
- * $HopeName: MMsrc!mpmtypes.h(MMdevel_drj_message.1) $
+ * $HopeName: MMsrc!mpmtypes.h(MMdevel_drj_message.2) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  *
  * .readership: MM developers.
@@ -72,7 +72,7 @@ typedef struct RootStruct *Root;        /* impl.c.root */
 typedef struct ThreadStruct *Thread;    /* impl.c.th* */
 typedef Word EventType;                 /* impl.c.event */
 typedef struct ActionStruct *Action;    /* design.mps.action */
-typedef Word MessageType;               /* design.mps.message */
+typedef unsigned MessageType;           /* design.mps.message */
 typedef struct MessageStruct *Message;  /* design.mps.message */
 typedef struct MessageClassStruct *MessageClass; /* design.mps.message */
 
@@ -110,6 +110,11 @@ typedef MessageType (*MessageTypeMethod)(Message message);
 typedef void (*MessageDeliverMethod)(Message message,
 				     void *buffer, size_t length);
 typedef void (*MessageDeleteMethod)(Message message);
+
+
+/* Message Types -- design.mps.message and elsewhere */
+
+typedef struct MessageFinalizationStruct *MessageFinalization;
 
 
 /* Format*Method -- see design.mps.format-interface */
@@ -233,6 +238,13 @@ enum {
   TraceFLIPPED,
   TraceRECLAIM,
   TraceFINISHED
+};
+
+/* MessageTypes -- see design.mps.message */
+/* .message.types: Keep in sync with impl.h.mps.message.types */
+
+enum {
+  MessageTypeFinalization
 };
 
 
