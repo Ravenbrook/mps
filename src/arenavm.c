@@ -1070,7 +1070,7 @@ static Bool VMSegFind(Index *baseReturn, VMArenaChunk *chunkReturn,
 #if 0
   Word zoneMask = ZoneMASK(arena);
 #endif
-  Word zoneStep = ZoneSTEP(arena);
+  Word zoneStep = (pref->high)?(- ZoneSTEP(arena)):ZoneSTEP(arena);
 
   RING_FOR(node, &vmArena->chunkRing, next)
     {
@@ -1080,7 +1080,7 @@ static Bool VMSegFind(Index *baseReturn, VMArenaChunk *chunkReturn,
       Word chunkBase = (Word)PageIndexBase(chunk, chunk->tablePages);
       Word chunkLimit = (Word)chunk->limit;
       /* zone 0 aligned address, below chunkBase */
-      Word rangeBase = (Word)chunkBase & (~ (zoneStep - 1));
+      Word rangeBase = (Word)((pref->high)?chunkLimit:chunkBase) & (~ (zoneSTEP)(arena) - 1));
 
       AVERT(VMArenaChunk, chunk);
       
@@ -1099,14 +1099,10 @@ static Bool VMSegFind(Index *baseReturn, VMArenaChunk *chunkReturn,
           Word stripeBase = nextBase<chunkBase ? chunkBase : nextBase;
           Word stripeLimit = nextLimit<chunkLimit ? nextLimit : chunkLimit;
 
-          AVER(chunkBase <= stripeBase);
-          AVER(chunkBase <= stripeLimit);
-          AVER(stripeBase <= chunkLimit);
-          AVER(stripeLimit <= chunkLimit);
 
           /* @@@ ZoneStripe_FOR */
           /* @@@ Need to be able to iterate backwards for downwards flag */
-          for(; stripeBase < chunkLimit;) {
+          for(; chunkBase < stripeLimit && stripeBase < chunkLimit;) {
             if(stripeBase < stripeLimit &&
                AddrOffset(stripeBase, stripeLimit) >= size &&
                findFreeInArea(baseReturn, chunk, size,

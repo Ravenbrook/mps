@@ -512,14 +512,15 @@ static void (RefSetFind)(Index *zoneReturn,
 
 #define REFSETFIND(zoneReturn, refSet, next, up, set, first)            \
 BEGIN                                                                   \
-  Index end = (next) + up?RefSetSize:(- RefSetSize);                    \
+  Index end = (next) + (up?RefSetSize:(- RefSetSize));                    \
   Index zone = (next);                                                  \
   RefSet temp = ROTATE(refSet, zone);                                   \
                                                                         \
   /* The intent of this macro is that a decent compiler can optimize    \
      out all the (presumably constant) ?:'s and reduce this loop to a   \
      very small number of instructions. */                              \
-  for (; zone != end; ROTATE(temp, (up)?1:-1), zone = (up)?1:-1) {      \
+  *(zoneReturn) = end; \
+  for (; zone != end; ROTATE(temp, (up)?1:-1), zone += (up)?1:-1) {      \
     if ((temp & 01) == (set)?((first)?1:0):((first)?0:1)) {                 \
       *(zoneReturn) = (zone + ((first)?0:((up)?-1:1))) & RefSetMASK;        \
       break;                                                            \
@@ -537,7 +538,31 @@ static void (RefSetFind)(Index *zoneReturn,
 {
   /* The functional version will necessarily be slow because of all
      the non-constant ?:'s */
-  REFSETFIND(zoneReturn, refSet, next, up, set, first);
+  /* REFSETFIND(zoneReturn, refSet, next, up, set, first); */
+  do {
+    Index end = (  next ) +
+      (up ?(sizeof( RefSet ) * 8 )  :
+      (- (sizeof( RefSet ) * 8 )  ));
+    Index zone = (  next );
+    RefSet temp = (((   refSet  ) <<
+                    (  zone  % MPS_WORD_WIDTH)) |
+                   ((   refSet  ) >>
+                    (MPS_WORD_WIDTH - (  zone  % MPS_WORD_WIDTH)))) ;
+    *( zoneReturn) = end;
+    for (; zone != end;
+         ((( temp ) <<
+           (  (  up )?1:-1  % MPS_WORD_WIDTH)) |
+          (( temp ) >> (MPS_WORD_WIDTH - (  (  up )?1:-1  %
+                                            MPS_WORD_WIDTH)))) ,
+           zone += (  up )?1:-1) {
+      if ((temp & 01) == (  set )?((  first )?1:0):((  first )?0:1)) {
+        *( zoneReturn ) = (zone + ((  first )?0:((  up )?-1:1))) &
+          ((sizeof( RefSet ) * 8 )   - 1) ;
+        break;
+      }
+    }
+  }
+  while(0)  ;
 }
 
 
@@ -573,8 +598,8 @@ static void LocusManagerZoneRangeNext(Addr *baseReturn,
       /* We are in the middle of a range, find the ends */
       /* Start is from zone the down, set, last */
       RefSetFind(&start, current, zone, FALSE, TRUE, FALSE);
-      /* End is from zone the up, reset, first */
-      RefSetFind(&end, current, zone, TRUE, FALSE, TRUE);
+      /* End is from start the up, reset, first */
+      RefSetFind(&end, current, start, TRUE, FALSE, TRUE);
     } else if (manager->searchUp) {
       /* Find the next range above */
       /* Start is from zone the up, set, first */
@@ -600,7 +625,7 @@ static void LocusManagerZoneRangeNext(Addr *baseReturn,
       *baseReturn = (Addr)(start << zoneShift);
       *limitReturn = (Addr)(end << zoneShift);
 
-      AVER(*baseReturn < *limitReturn);
+      /* AVER(*baseReturn < *limitReturn);  @@@ not if wrapped */
       {
         RefSet search =
           manager->searchCache[manager->searchCacheIndex - 1];
