@@ -1,6 +1,6 @@
 /* impl.h.mpmst: MEMORY POOL MANAGER DATA STRUCTURES
  *
- * $HopeName: MMsrc!mpmst.h(MMdevel_segabs.1) $
+ * $HopeName: MMsrc!mpmst.h(MMdevel_segabs.2) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  *
  * .readership: MM developers.
@@ -266,17 +266,18 @@ typedef struct VMStruct {
  */
 
 typedef struct SegStruct {      /* segment structure */
-  Pool _pool;                    /* MUST BE FIRST (design.mps.seg.field.pool) */
-  Bool _single;                  /* single page segment */
-  RankSet _rankSet;		/* ranks of references in this seg */
-  AccessSet _pm, _sm;             /* protection and shield modes */
-  Size _depth;                   /* see impl.c.shield.def.depth */
-  void *_p;                      /* pointer for use of owning pool */
-  TraceSet _grey;                /* traces for which seg is grey */
-  TraceSet _white;            	/* traces for which seg is white */
+  Pool _pool;			/* MUST BE FIRST (design.mps.seg.field.pool) */
+  RingStruct _poolRing;		/* link in list of segs in pool */
+  void *_p;			/* pointer for use of owning pool */
+  Buffer _buffer;		/* non-NULL if seg is buffered */
   RefSet _summary;		/* summary of references out of seg */
-  Buffer _buffer;                /* non-NULL if seg is buffered */
-  RingStruct _poolRing;          /* link in list of segs in pool */
+  unsigned _depth : SHIELD_DEPTH_WIDTH; /* see impl.c.shield.def.depth */
+  AccessSet _pm : AccessMAX;    /* protection mode, impl.c.shield */
+  AccessSet _sm : AccessMAX;    /* shield mode, impl.c.shield */
+  TraceSet _grey : TRACE_MAX;   /* traces for which seg is grey */
+  TraceSet _white : TRACE_MAX;  /* traces for which seg is white */
+  Bool _single : 1;		/* is a single page segment? */
+  RankSet _rankSet : RankMAX;	/* ranks of references in this seg */
 } SegStruct;
 
 
