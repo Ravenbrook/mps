@@ -1,6 +1,6 @@
 /* impl.c.arenacl: ARENA IMPLEMENTATION USING CLIENT MEMORY
  *
- * $HopeName: MMsrc!arenacl.c(MMdevel_sw_eq.5) $
+ * $HopeName: MMsrc!arenacl.c(MMdevel_sw_eq.6) $
  * 
  * Copyright (C) 1996 Harlequin Group, all rights reserved.
  *
@@ -41,7 +41,7 @@
 #error "Client arena not configured"
 #endif
 
-SRCID(arenacl, "$HopeName: MMsrc!arenacl.c(MMdevel_sw_eq.5) $");
+SRCID(arenacl, "$HopeName: MMsrc!arenacl.c(MMdevel_sw_eq.6) $");
 
 Bool ArenaCheck(Arena arena)
 {
@@ -186,6 +186,73 @@ static void BTSet(BT bt, BI i, Bool b)
   Size wi = i >> WORD_SHIFT;            /* word index */
   bt[wi] = (bt[wi] & mask) | ((Word)b << bi);
 }
+
+/* is the whole word of bits at this index clear? */
+
+#define BTWordRes(bt,i) ((bt)[(i)>>WORD_SHIFT] == 0)
+
+static Bool BTFindShortSetRangeLow(BI *baseReturn, BT bt,
+				   BI searchBase, BI searchLimit,
+				   unsigned long length)
+{
+  BI base;   /* the base of each candidate range */
+
+  AVER(baseReturn != NULL);
+  AVER(bt != NULL);
+  AVER(searchBase < searchLimit);
+  AVER(length > 0);
+  AVER(length <= searchLimit - searchBase);
+
+  base = searchBase;
+  while (base < searchLimit - length + 1) {
+    BI i = base + length - 1;       /* top index in candidate range */
+    if (BTWordRes(bt,i))            /* skip a whole word of the table */
+      base = (BI)SizeAlignUp(i+1, WORD_WIDTH);
+    else {                          /* check the candidate range */
+      while (BTGet(bt, i)) {
+	if (i == base) {            /* then we're done */
+	  *baseReturn = base;
+	  return TRUE;
+	}
+	-- i;
+      }
+      base = i + 1;                 /* skip to first trailing set bit */
+    }
+  }
+  return FALSE;
+}
+
+static Bool BTFindShortSetRangeHigh(BI *baseReturn, BT bt,
+				    BI searchBase, BI searchLimit,
+				    unsigned long length)
+{
+  BI limit;   /* the limit of each candidate range */
+
+  AVER(baseReturn != NULL);
+  AVER(bt != NULL);
+  AVER(searchBase < searchLimit);
+  AVER(length > 0);
+  AVER(length <= searchLimit - searchBase);
+
+  limit = searchLimit;
+  while (limit > searchBase + length - 1) {
+    BI i = limit - length;         /* bottom index in candidate range */
+    if (BTWordRes(bt,i))           /* skip a whole word of the table */
+      limit = (BI)SizeAlignDown(i, WORD_WIDTH);
+    else {                         /* check the candidate range */
+      while (BTGet(bt, i)) {
+	++ i;
+	if (i == limit) {          /* then we're done */
+	  *baseReturn = limit-length;
+	  return TRUE;
+	}
+      }
+      limit = i;                   /* skip to last leading set bit */
+    }
+  }
+  return FALSE;
+}
+
 
 /* Space Arena Projection
  * 
@@ -486,8 +553,9 @@ Res SegPrefExpress (SegPref sp, SegPrefKind kind, void *p)
 static Res ChunkSegAlloc(Seg *segReturn, SegPref pref, Size pages, Pool pool,
                          Chunk chunk)
 {
-  PI pi, count, base = 0;
+  PI base;
   Seg seg;
+  Bool b;
 
   AVER(segReturn != NULL);
   AVERT(Chunk, chunk);
@@ -495,54 +563,23 @@ static Res ChunkSegAlloc(Seg *segReturn, SegPref pref, Size pages, Pool pool,
   if (pages > chunk->freePages)
     return ResRESOURCE;
 
-  /* Search the free table for a sufficiently-long run of free pages.
-   * If we succeed, we go to "found:" with the lowest page number in
-   * the run in 'base'. */
+  if (pref->high)
+    b = BTFindShortSetRangeHigh(&base, chunk->freeTable,
+				0, chunk->pages, pages);
+  else
+    b = BTFindShortSetRangeLow(&base, chunk->freeTable,
+			       0, chunk->pages, pages);
 
-  /* .improve.twiddle.search: This code could go a lot faster with
-   * twiddling the bit table. */
-
-  /* .improve.clear: I have tried to make this code clear, with
-   *  comments &c, but there's room for further clarification. */
-
-  count = 0; /* the number of free pages found in the current run */
-
-  if (pref->high) { /* search down from the top of the chunk */
-    pi = chunk->pages;
-    while (pi != 0) {
-      pi--;
-      if (BTGet(chunk->freeTable,pi)) {
-        ++count;
-        if (count == pages) { /* then we're done, take the base of this run */
-          base = pi;
-          goto found;
-        }
-      } else
-        count = 0;
-    }
-  } else { /* search up from the bottom of the chunk */
-    pi = 0;
-    while (pi != chunk->pages) {
-      if(BTGet(chunk->freeTable, pi)) {
-        if(count == 0)
-          base = pi; /* remember the base of this run */
-        ++count;
-        if(count == pages) /* now we're done */
-          goto found;
-      } else
-        count = 0;
-      pi++;
-    }
+  if (!b) {
+    /* No adequate range was found.
+     *
+     * .improve.alloc-fail: This could be because the request was
+     * too large, or perhaps because of fragmentation.  We could return
+     * a more meaningful code.
+     */
+    return ResRESOURCE;
   }
-  
-  /* No adequate run was found.
-   * .improve.alloc-fail: This could be because the request was
-   * too large, or perhaps because of fragmentation.  We could return a
-   * more meaningful code.
-   */
-  return ResRESOURCE;
 
-found:
   /* Initialize the generic segment structure. */
   seg = &chunk->pageTable[base].the.head;
   seg->pool = pool;
@@ -561,6 +598,7 @@ found:
   AVER(BTGet(chunk->freeTable, base));
   BTSet(chunk->freeTable, base, FALSE);
   if(pages > 1) {
+    PI pi;
     Addr limit = PageBase(chunk, base + pages);
     seg->single = FALSE;
     for(pi = base + 1; pi < base + pages; ++pi) {
