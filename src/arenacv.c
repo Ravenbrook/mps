@@ -1,10 +1,19 @@
 /* impl.c.arenacv: ARENA COVERAGE TEST
  *
- * $HopeName$
+ * $HopeName: MMsrc!arenacv.c(MMdevel_partial_page.1) $
  * Copyright (C) 1997 Harlequin Group, all rights reserved
  *
- * At the moment, we're only trying to cover the new code (partial mapping
- * of the page table).
+ * .readership: MPS developers
+ * .coverage: At the moment, we're only trying to cover the new code
+ * (partial mapping of the page table).
+ * .note.seg-size: If the page size is divisible by sizeof(SegStruct), many
+ * test cases end up being essentially identical -- there just aren't that
+ * many different cases then.
+ * .improve.gap-below: Could test different-sized gaps below the segment
+ * being allocated; this requires using two adjacent zones.
+ * .warning.sunOS: Allocating and deallocating too many segments will cause
+ * SunOS (4.1.2) to start to return -1 from vmunmap.  I didn't do exhaustive
+ * tests, but going over 1000 is dangerous.
  */
 
 #include <stdio.h>
@@ -22,11 +31,13 @@
 
 int main(void)
 {
-  Space space;
-  Pool pool;
-  Seg segs[segsSIZE];
+  Space space; Pool pool;
+  Seg offsetSeg, gapSeg, newSeg, topSeg;
   Size pageSize;
-  Count segsPerPage, gap, i;
+  Count segsPerPage, offset, gap, new;
+  int i;
+  SegPrefStruct pref = *SegPrefDefault();
+  RefSet refSet = (RefSet)2;
 
   die(SpaceCreate(&space, (Addr)0, ARENA_SIZE), "SpaceCreate");
   die(PoolCreate(&pool, space, PoolClassMV(),
@@ -38,25 +49,38 @@ int main(void)
   printf("%ld segments per page in the page table.\n", (long)segsPerPage);
 
   /* Testing the behaviour with various sizes of gaps in the page table. */
-  /* Assume the allocation strategy is first-fit.  Allocate a range of */
-  /* segments, then deallocate a gap in the middle, then allocate a segment. */
-  die((3 * segsPerPage + 5 > segsSIZE) ? ResFAIL : ResOK, "Table size");
-  die(SegAlloc(&segs[0], SegPrefDefault(), space, pageSize, pool),
-      "SegAlloc");
-  for(gap = 1; gap < 3 * segsPerPage + 6; gap += 3) {
-    for(i = 1; i < gap + 2; ++i) {
-      die(SegAlloc(&segs[i], SegPrefDefault(), space, pageSize, pool),
-	  "SegAlloc");
+
+  /* Assume the allocation strategy is first-fit.  The idea of the tests is */
+  /* to allocate a range of pages, then deallocate a gap in the middle, */
+  /* then allocate a new segment that fits in the gap with various amounts */
+  /* left over.  Like this: */
+  /* |-offsetSeg-||----gapSeg----||-topSeg-| */
+  /* |-offsetSeg-||-newSeg-|      |-topSeg-| */
+  /* This is done with three different sizes of offsetSeg, in two different */
+  /* zones to ensure that all page boundary cases are tested. */
+  for(i = 0; i < 2; ++i) { /* zone loop */
+    for(offset = 0; offset <= 2*segsPerPage; offset += segsPerPage) {
+      if(offset != 0)
+	die(SegAlloc(&offsetSeg, &pref, space, offset * pageSize, pool),
+	    "offsetSeg");
+      for(gap = segsPerPage+1; gap <= 3 * (segsPerPage+1);
+	  gap += (segsPerPage+1)) {
+	die(SegAlloc(&gapSeg, &pref, space, gap * pageSize, pool),
+	    "gapSeg");
+	die(SegAlloc(&topSeg, &pref, space, pageSize, pool),
+	    "topSeg");
+	SegFree(space, gapSeg);
+	for(new = 1; new <= gap; new += segsPerPage) {
+	  die(SegAlloc(&newSeg, &pref, space, new * pageSize, pool),
+	      "newSeg");
+	  SegFree(space, newSeg);
+	}
+	SegFree(space, topSeg);
+      }
+      if(offset != 0) SegFree(space, offsetSeg);
     }
-    for(i = 1; i < gap + 1; ++i) {
-      SegFree(space, segs[i]);
-    }
-    die(SegAlloc(&segs[1], SegPrefDefault(), space, pageSize, pool),
-	"SegAlloc");
-    SegFree(space, segs[1]);
-    SegFree(space, segs[gap+1]);
+    SegPrefExpress(&pref, SegPrefRefSet, &refSet);
   }
-  SegFree(space, segs[0]);
 
   PoolDestroy(pool);
   SpaceDestroy(space);
