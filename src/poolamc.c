@@ -1,6 +1,6 @@
 /* impl.c.poolamc: AUTOMATIC MOSTLY-COPYING MEMORY POOL CLASS
  *
- * $HopeName: !poolamc.c(trunk.14) $
+ * $HopeName: MMsrc!poolamc.c(MM_dylan_dove.1) $
  * Copyright (C) 1998.  Harlequin Group plc.  All rights reserved.
  *
  * .sources: design.mps.poolamc.
@@ -10,7 +10,7 @@
 #include "mpscamc.h"
 #include "mpm.h"
 
-SRCID(poolamc, "$HopeName: !poolamc.c(trunk.14) $");
+SRCID(poolamc, "$HopeName: MMsrc!poolamc.c(MM_dylan_dove.1) $");
 
 
 /* Binary i/f used by ASG (drj 1998-06-11) */
@@ -567,7 +567,7 @@ static Res AMCBufferFill(Seg *segReturn,
   Seg seg;
   AMC amc;
   Res res;
-  Addr base;
+  Addr base, limit;
   Arena arena;
   Size alignedSize;
   AMCGen gen;
@@ -618,7 +618,9 @@ static Res AMCBufferFill(Seg *segReturn,
   *segReturn = seg;
   base = SegBase(seg);
   *baseReturn = base;
-  *limitReturn = AddrAdd(base, alignedSize);
+  limit = AddrAdd(base, alignedSize);
+  AVER(limit == SegLimit(seg));
+  *limitReturn = limit;
   EVENT_PPWAW(AMCBufferFill, amc, buffer, size, base, alignedSize);
   return ResOK;
 }

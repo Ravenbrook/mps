@@ -1,6 +1,6 @@
 /* impl.c.seg: SEGMENTS
  *
- * $HopeName: !seg.c(trunk.12) $
+ * $HopeName: MMsrc!seg.c(MM_dylan_dove.1) $
  * Copyright (C) 1998 Harlequin Group plc.  All rights reserved.
  *
  * .design: The design for this module is design.mps.seg.
@@ -16,7 +16,7 @@
 
 #include "mpm.h"
 
-SRCID(seg, "$HopeName: !seg.c(trunk.12) $");
+SRCID(seg, "$HopeName: MMsrc!seg.c(MM_dylan_dove.1) $");
 
 
 /* SegCheck -- check the integrity of a segment */
@@ -95,7 +95,7 @@ void SegInit(Seg seg, Pool pool)
   seg->_pm = AccessSetEMPTY;
   seg->_sm = AccessSetEMPTY;
   seg->_depth = 0;
-  seg->_single = FALSE;
+  seg->_single = TRUE;
 
   AVERT(Seg, seg);
 
