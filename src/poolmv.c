@@ -1,6 +1,6 @@
 /* impl.c.poolmv: MANUAL VARIABLE POOL
  *
- * $HopeName: MMsrc!poolmv.c(trunk.11) $
+ * $HopeName: MMsrc!poolmv.c(MMdevel_restr.2) $
  * Copyright (C) 1994, 1995 Harlequin Group, all rights reserved
  *
  * **** RESTRICTION: This pool may not allocate from the arena control
@@ -37,7 +37,7 @@
 #include "poolmfs.h"
 #include "mpscmv.h"
 
-SRCID(poolmv, "$HopeName: MMsrc!poolmv.c(trunk.11) $");
+SRCID(poolmv, "$HopeName: MMsrc!poolmv.c(MMdevel_restr.2) $");
 
 
 #define BLOCKPOOL(mv)   (MFSPool(&(mv)->blockPoolStruct))
@@ -153,7 +153,7 @@ static Bool MVSpanCheck(MVSpan span)
   /* The sentinels mustn't overlap. */
   CHECKL(span->base.limit <= span->limit.base);
   /* The remaining space can't be more than the gap between the sentinels. */
-  CHECKL(span->space <= span->limit.base - span->base.limit);
+  CHECKL(span->space <= AddrOffset(span->base.limit, span->limit.base));
   /* Check that it is in the span pool.  See note 7. */
   return TRUE;
 }
@@ -340,7 +340,7 @@ static Bool MVSpanAlloc(Addr *addrReturn, MVSpan span, Size size,
   do {
     AVER(block->next != NULL);
 
-    gap = block->next->base - block->limit;
+    gap = AddrOffset(block->limit, block->next->base);
 
     if(gap >= size) {
       Addr new = block->limit;
@@ -355,7 +355,7 @@ static Bool MVSpanAlloc(Addr *addrReturn, MVSpan span, Size size,
         PoolFree(blockPool, (Addr)old, sizeof(MVBlockStruct));
         --span->blockCount;
       } else
-        block->limit += size;
+        block->limit = AddrAdd(block->limit, size);
 
       span->space -= size;
       *addrReturn = new;
@@ -439,7 +439,7 @@ static Res MVSpanFree(MVSpan span, Addr base, Addr limit, Pool blockPool)
 
       AVERT(MVBlock, block);
 
-      span->space += limit - base;
+      span->space += AddrOffset(base, limit);
 
       return ResOK;
     }
@@ -521,13 +521,13 @@ static Res alloc(Addr *pReturn, Pool pool, Size size)
   span->next = mv->spans;
   span->base.base = span->base.limit = SegBase(space, span->seg);
   span->limit.base = span->limit.limit = SegLimit(space, span->seg);
-  span->space = span->limit.base - span->base.limit;
+  span->space = AddrOffset(span->base.limit, span->limit.base);
   span->limit.next = NULL;
   span->base.next = &span->limit;
   span->blocks = &span->base;
   span->blockCount = 2;
 
-  span->base.limit += size;
+  span->base.limit = AddrAdd(span->base.limit, size);
   span->space -= size;
 
   AVERT(MVSpan, span);
@@ -557,7 +557,7 @@ static void free_(Pool pool, Addr old, Size size)
   mv = PARENT(MVStruct, poolStruct, pool);
   size = SizeAlignUp(size, pool->alignment);
   base = old;
-  limit = base + size;
+  limit = AddrAdd(base, size);
 
   /* Map the pointer onto the segment which contains it, and thence */
   /* onto the span. */
@@ -635,16 +635,16 @@ static Res describe(Pool pool, Lib_FILE *stream)
     block = span->blocks;
     AVER(block == &span->base); /* should be start sentinel */
 
-    for(i=span->base.base; i<span->limit.limit; i+=length) {
+    for(i = span->base.base; i < span->limit.limit; i = AddrAdd(i, length)) {
       Lib_fprintf(stream, "    %8lX ", (unsigned long)i);
 
-      for(j=i; j<i+length && j<span->limit.limit; j+=step) {
+      for(j = i; j < AddrAdd(i, length) && j < span->limit.limit; j = AddrAdd(j, step)) {
         if(j == block->base) {
-          if(j+step == block->limit)
+          if(AddrAdd(j, step) == block->limit)
             Lib_fputc('@', stream);
           else
             Lib_fputc('[', stream);
-        } else if(j+step == block->limit)
+        } else if(AddrAdd(j, step) == block->limit)
           Lib_fputc(']', stream);
         else if(j > block->base && j < block->limit)
           Lib_fputc('=', stream);

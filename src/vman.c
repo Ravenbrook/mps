@@ -1,6 +1,6 @@
 /* impl.c.vman: ANSI VM: MALLOC-BASED PSUEDO MEMORY MAPPING
  *
- * $HopeName: MMsrc!vman.c(MMdevel_restr.2) $
+ * $HopeName: MMsrc!vman.c(MMdevel_restr.3) $
  * Copyright (C) 1996 Harlequin Group, all rights reserved.
  */
 
@@ -8,7 +8,7 @@
 #include <stdlib.h>	/* for malloc and free */
 #include <string.h>	/* for memset */
 
-SRCID(vman, "$HopeName: MMsrc!vman.c(MMdevel_restr.2) $");
+SRCID(vman, "$HopeName: MMsrc!vman.c(MMdevel_restr.3) $");
 
 #define SpaceVM(_space)	(&(_space)->arenaStruct.vmStruct)
 
@@ -56,8 +56,8 @@ Res VMCreate(Space *spaceReturn, Size size)
   }
 
   vm->base  = AddrAlignUp((Addr)vm->block, VMAN_ALIGN);
-  vm->limit = vm->base + size;
-  AVER(vm->limit < (Addr)vm->block + size + VMAN_ALIGN);
+  vm->limit = AddrAdd(vm->base, size);
+  AVER(vm->limit < AddrAdd((Addr)vm->block, size + VMAN_ALIGN));
 
   memset((void *)vm->base, VM_JUNKBYTE, size);
   
@@ -80,9 +80,9 @@ void VMDestroy(Space space)
   
   /* All vm areas should have been unmapped. */
   AVER(vm->mapped == (Size)0);
-  AVER(vm->reserved == vm->limit - vm->base);
+  AVER(vm->reserved == AddrOffset(vm->base, vm->limit));
 
-  memset((void *)vm->base, VM_JUNKBYTE, vm->limit - vm->base);
+  memset((void *)vm->base, VM_JUNKBYTE, AddrOffset(vm->base, vm->limit));
   free(vm->block);
   
   vm->sig = SigInvalid;
@@ -113,7 +113,7 @@ Res VMMap(Space space, Addr base, Addr limit)
   AVER(AddrIsAligned(base, VMAN_ALIGN));
   AVER(AddrIsAligned(limit, VMAN_ALIGN));
   
-  size = limit - base;
+  size = AddrOffset(base, limit);
   memset((void *)base, (int)0, size);
   
   vm->mapped += size;
@@ -133,7 +133,7 @@ void VMUnmap(Space space, Addr base, Addr limit)
   AVER(AddrIsAligned(base, VMAN_ALIGN));
   AVER(AddrIsAligned(limit, VMAN_ALIGN));
   
-  size = limit - base;
+  size = AddrOffset(base, limit);
   memset((void *)base, VM_JUNKBYTE, size);
 
   AVER(vm->mapped >= size);
