@@ -1,6 +1,6 @@
 /* impl.c.mpm: GENERAL MPM SUPPORT
  *
- * $HopeName: MMsrc!mpm.c(MMdevel_mv2_rework.1) $
+ * $HopeName: MMsrc!mpm.c(MMdevel_mv2_rework.2) $
  * Copyright (C) 1996.  Harlequin Group plc.  All rights reserved.
  *
  * .readership: MM developers.
@@ -17,7 +17,7 @@
 #include <float.h>
 
 
-SRCID(mpm, "$HopeName: MMsrc!mpm.c(MMdevel_mv2_rework.1) $");
+SRCID(mpm, "$HopeName: MMsrc!mpm.c(MMdevel_mv2_rework.2) $");
 
 
 /* MPMCheck -- test MPM assumptions */
@@ -60,7 +60,7 @@ Bool MPMCheck(void)
   CHECKL(sizeof(WriteFU) <= sizeof(Word));
   CHECKL(sizeof(WriteFB) <= sizeof(Word));
   CHECKL(sizeof(WriteFC) <= sizeof(Word));
-  /* See .write.double.check */
+  /* .check.write.double: See .write.double.check */
   {
     int e, DBL_EXP_DIG = 1;
     for (e = DBL_MAX_10_EXP; e > 0; e /= 10)
@@ -334,7 +334,7 @@ static Res WriteWord(mps_lib_FILE *stream, Word w, unsigned base,
  * here.
  *
  * .write.double.check: There being no DBL_EXP_DIG, we assume that it
- * is less than DBL_DIG.
+ * is less than DBL_DIG. See .check.write.double.
  */
 
 static Res WriteDouble(mps_lib_FILE *stream, double d) 
