@@ -1,6 +1,6 @@
 /* impl.h.mpmst: MEMORY POOL MANAGER DATA STRUCTURES
  *
- * $HopeName: MMsrc!mpmst.h(MMdevel_remem2.1) $
+ * $HopeName: MMsrc!mpmst.h(MMdevel_remem2.2) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  *
  * .readership: MM developers.
@@ -332,7 +332,6 @@ typedef struct ArenaStruct {    /* arena structure */
 
 /* Types used in ArenaStruct, but otherwise defined in impl.c.arenavm. */
 typedef struct PageStruct *Page;/* page type */
-typedef Word *ABT;              /* Arena bool table type */
 
 typedef struct ArenaStruct {    /* VM arena structure */
   Sig sig;                      /* design.mps.sig */
@@ -343,7 +342,7 @@ typedef struct ArenaStruct {    /* VM arena structure */
   Shift pageShift;              /* log2 of page size, for shifts */
   Index pages;                  /* number of pages in table */
   Page pageTable;               /* the page table */
-  ABT freeTable;                /* page free table */
+  BT freeTable;                 /* page free table */
   Size tablesSize;              /* size of area occupied by tables */
   Index tablePages;             /* number of pages occupied by tables */
 } ArenaStruct;

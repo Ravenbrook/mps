@@ -1,6 +1,6 @@
 /* impl.c.arenavm: VIRTUAL MEMORY BASED ARENA IMPLEMENTATION
  *
- * $HopeName: MMsrc!arenavm.c(MMdevel_remem2.2) $
+ * $HopeName: MMsrc!arenavm.c(MMdevel_remem2.3) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  *
  * This is the implementation of the Segment abstraction from the VM
@@ -14,7 +14,7 @@
 #include "mpm.h"
 
 
-SRCID(arenavm, "$HopeName: MMsrc!arenavm.c(MMdevel_remem2.2) $");
+SRCID(arenavm, "$HopeName: MMsrc!arenavm.c(MMdevel_remem2.3) $");
 
 
 /* Space Arena Projection
@@ -25,25 +25,14 @@ SRCID(arenavm, "$HopeName: MMsrc!arenavm.c(MMdevel_remem2.2) $");
 
 #define SpaceArena(space)       (&(space)->arenaStruct)
 
+
 /* Page Index to Base address mapping
  *
  * See design.mps.arena.vm.table.linear
  */
 
-#define PageBase(arena, pi) \
-  AddrAdd((arena)->base, ((pi) << arena->pageShift))
-
-
-/* Index Types
- * 
- * PI is the type of a value used to index into the page table.
- * 
- * BI is the type of a value used to index into a bool table (See ABTGet
- * and ABTSet in this module).
- */
-
-typedef Size PI;
-typedef Size BI;
+#define PageBase(arena, i) \
+  AddrAdd((arena)->base, ((i) << arena->pageShift))
 
 
 /* PageStruct -- page structure
@@ -65,37 +54,6 @@ typedef struct PageStruct {     /* page structure */
 } PageStruct;
 
 
-/* ABTGet -- get a bool from a bool table
- *
- * Note: The function version of ABTGet isn't used anywhere in
- * this source, but is left here in case we want to revert from
- * the macro.
- */
-
-#if 0
-static Bool (ABTGet)(ABT bt, BI i)
-{
-  Size wi = i >> MPS_WORD_SHIFT;            /* word index */
-  Size bi = i & (MPS_WORD_WIDTH - 1);       /* bit index */
-  return (bt[wi] >> bi) & 1;
-}
-#endif /* 0 */
-
-#define ABTGet(bt, i) \
-  (((bt)[(i)>>MPS_WORD_SHIFT] >> ((i)&(MPS_WORD_WIDTH-1))) & 1)
-
-
-/* ABTSet -- set a bool in a bool table */
-
-static void ABTSet(ABT bt, BI i, Bool b)
-{
-  Size bi = i & (MPS_WORD_WIDTH - 1);       /* bit index */
-  Word mask = ~((Word)1 << bi);
-  Size wi = i >> MPS_WORD_SHIFT;            /* word index */
-  bt[wi] = (bt[wi] & mask) | ((Word)b << bi);
-}
-
-
 /* ArenaCreate -- create the arena
  *
  * In fact, this creates the space structure and initializes the
@@ -110,7 +68,6 @@ Res ArenaCreate(Space *spaceReturn, Size size, Addr base)
   Space space;
   Size f_words, f_size, p_size; /* see .init-tables */
   Arena arena;
-  PI i;
   
   AVER(spaceReturn != NULL);
   AVER(size > 0);
@@ -158,7 +115,7 @@ Res ArenaCreate(Space *spaceReturn, Size size, Addr base)
     VMDestroy(space);
     return res;
   }
-  arena->freeTable = (ABT)arena->base;
+  arena->freeTable = (BT)arena->base;
   arena->pageTable = (Page)AddrAdd(arena->base, f_size);
 
   /* .tablepages: pages whose page index is < tablePages are recorded as
@@ -166,8 +123,8 @@ Res ArenaCreate(Space *spaceReturn, Size size, Addr base)
    * (see .alloc.skip)
    */
   arena->tablePages = arena->tablesSize >> arena->pageShift;
-  for(i = 0; i < arena->pages; ++i)
-    ABTSet(arena->freeTable, i, TRUE);
+  BTResRange(arena->freeTable, 0, arena->tablePages);
+  BTSetRange(arena->freeTable, arena->tablePages, arena->pages);
 
   /* Set the zone shift to divide the arena into the same number of
    * zones as will fit into a reference set (the number of bits in a
@@ -309,9 +266,9 @@ Res SegPrefExpress (SegPref sp, SegPrefKind kind, void *p)
 }
 
 
-/* PIOfAddr -- return the page index of the page containing an address */
+/* IndexOfAddr -- return the page index of the page containing an address */
 
-static PI PIOfAddr(Arena arena, Addr addr)
+static Index IndexOfAddr(Arena arena, Addr addr)
 {
   AVERT(Arena, arena);
   AVER(arena->base <= addr);
@@ -329,14 +286,14 @@ static PI PIOfAddr(Arena arena, Addr addr)
  * optimised by twiddling the bit table.
  */
 
-static Bool SegAllocInArea(PI *baseReturn, Space space, Size size, Addr base, Addr limit)
+static Bool SegAllocInArea(Index *baseReturn, Space space, Size size, Addr base, Addr limit)
 {
   Arena arena;
   Word pages;				/* number of pages equiv. to size */
   Word count;				/* pages so far in free run */
-  PI basePage, limitPage;		/* PI equiv. to base and limit */
-  PI pi;				/* iterator over page table */
-  PI start = (PI)0;			/* base of free run, with warning suppressor */
+  Index basePage, limitPage;		/* Index equiv. to base and limit */
+  Index i;				/* iterator over page table */
+  Index start = (Index)0;		/* base of free run, with warning suppressor */
 
   AVER(baseReturn != NULL);
   AVERT(Space, space);  
@@ -349,15 +306,15 @@ static Bool SegAllocInArea(PI *baseReturn, Space space, Size size, Addr base, Ad
   AVER(size > (Size)0);
   AVER(SizeIsAligned(size, arena->pageSize));
 
-  basePage = PIOfAddr(arena, base);
-  limitPage = PIOfAddr(arena, limit);
+  basePage = IndexOfAddr(arena, base);
+  limitPage = IndexOfAddr(arena, limit);
 
   pages = size >> arena->pageShift;
   count = 0;
-  for(pi = basePage; pi < limitPage; ++pi) {
-    if(ABTGet(arena->freeTable, pi)) {
+  for(i = basePage; i < limitPage; ++i) {
+    if(BTGet(arena->freeTable, i)) {
       if(count == 0)
-        start = pi;
+        start = i;
       ++count;
       if(count == pages) {
         *baseReturn = start;
@@ -377,7 +334,7 @@ static Bool SegAllocInArea(PI *baseReturn, Space space, Size size, Addr base, Ad
  * and tries to allocate a segment in the resulting set of areas.
  */
 
-static Bool SegAllocWithRefSet(PI *baseReturn, Space space, Size size, RefSet refSet)
+static Bool SegAllocWithRefSet(Index *baseReturn, Space space, Size size, RefSet refSet)
 {
   Arena arena = SpaceArena(space);
   Addr arenaBase, base, limit;
@@ -440,7 +397,7 @@ static Bool SegAllocWithRefSet(PI *baseReturn, Space space, Size size, RefSet re
 Res SegAlloc(Seg *segReturn, SegPref pref, Space space, Size size, Pool pool)
 {
   Arena arena = SpaceArena(space);
-  PI pi, pages, base;
+  Index i, pages, base;
   Addr addr;
   Seg seg;
   Res res;
@@ -479,18 +436,18 @@ Res SegAlloc(Seg *segReturn, SegPref pref, Space space, Size size, Pool pool)
   /* Allocate the first page, and, if there is more than one page, */
   /* allocate the rest of the pages and store the multi-page information */
   /* in the page table. */
-  AVER(ABTGet(arena->freeTable, base));
-  ABTSet(arena->freeTable, base, FALSE);
+  AVER(BTGet(arena->freeTable, base));
+  BTRes(arena->freeTable, base);
   pages = size >> arena->pageShift;
   if(pages > 1) {
     Addr limit = PageBase(arena, base + pages);
     seg->single = FALSE;
-    for(pi = base + 1; pi < base + pages; ++pi) {
-      AVER(ABTGet(arena->freeTable, pi));
-      ABTSet(arena->freeTable, pi, FALSE);
-      arena->pageTable[pi].the.tail.pool = NULL;
-      arena->pageTable[pi].the.tail.seg = seg;
-      arena->pageTable[pi].the.tail.limit = limit;
+    for(i = base + 1; i < base + pages; ++i) {
+      AVER(BTGet(arena->freeTable, i));
+      BTRes(arena->freeTable, i);
+      arena->pageTable[i].the.tail.pool = NULL;
+      arena->pageTable[i].the.tail.seg = seg;
+      arena->pageTable[i].the.tail.limit = limit;
     }
   } else {
     seg->single = TRUE;
@@ -511,7 +468,7 @@ void SegFree(Space space, Seg seg)
 {
   Arena arena;
   Page page;
-  PI pi, pl, pn;
+  Index i, pl, pn;
   Addr base, limit; 
 
   AVERT(Arena, SpaceArena(space));
@@ -520,32 +477,33 @@ void SegFree(Space space, Seg seg)
   arena = SpaceArena(space);
   page = PARENT(PageStruct, the.head, seg);
   limit = SegLimit(space, seg);
-  pi = page - arena->pageTable;
-  AVER(pi <= arena->pages);
+  i = page - arena->pageTable;
+  AVER(i <= arena->pages);
 
   SegFinish(seg);
 
   /* Remember the base address of the segment so it can be */
   /* unmapped .free.unmap */
-  base = PageBase(arena, pi);
+  base = PageBase(arena, i);
 
   /* Calculate the number of pages in the segment, and hence the
    * limit for .free.loop */
   pn = AddrOffset(base, limit) >> arena->pageShift;
-  pl = pi + pn;
+  pl = i + pn;
   /* .free.loop: */
-  for( ; pi < pl; ++pi) {
-    AVER(ABTGet(arena->freeTable, pi) == FALSE);
-    ABTSet(arena->freeTable, pi, TRUE);
+  while(i < pl) {
+    AVER(!BTGet(arena->freeTable, i));
+    BTSet(arena->freeTable, i);
+    ++i;
   }
 
   /* .free.unmap: Unmap the segment memory. */
-  VMUnmap(space, base, PageBase(arena, pi));
+  VMUnmap(space, base, PageBase(arena, i));
 
   /* Double check that .free.loop takes us to the limit page of the
    * segment.
    */
-  AVER(PageBase(arena, pi) == limit);
+  AVER(PageBase(arena, i) == limit);
 
   EVENT2(SegFree, arena, seg);
 }
@@ -573,16 +531,16 @@ Addr SegBase(Space space, Seg seg)
 {
   Arena arena;
   Page page;
-  PI pi;
+  Index i;
   
   AVERT(Arena, SpaceArena(space));
   AVERT(Seg, seg);
 
   arena = SpaceArena(space);
   page = PARENT(PageStruct, the.head, seg);
-  pi = page - arena->pageTable;
+  i = page - arena->pageTable;
 
-  return PageBase(arena, pi);
+  return PageBase(arena, i);
 }
 
 
@@ -642,9 +600,9 @@ Bool SegOfAddr(Seg *segReturn, Space space, Addr addr)
   
   arena = SpaceArena(space);
   if(arena->base <= addr && addr < arena->limit) {
-    PI pi = AddrOffset(arena->base, addr) >> arena->pageShift;
-    if(!ABTGet(arena->freeTable, pi)) {
-      Page page = &arena->pageTable[pi];
+    Index i = IndexOfAddr(arena, addr);
+    if(!BTGet(arena->freeTable, i)) {
+      Page page = &arena->pageTable[i];
       if(page->the.head.pool != NULL)
         *segReturn = &page->the.head;
       else
@@ -659,24 +617,24 @@ Bool SegOfAddr(Seg *segReturn, Space space, Addr addr)
 
 /* SegSearch -- search for a segment
  *
- * Searches for a segment in the arena starting at page index pi,
+ * Searches for a segment in the arena starting at page index i,
  * return NULL if there is none.  A segment is present if it is
  * not free, and its pool is not NULL.
  *
  * This function is private to this module and is used in the segment
  * iteration protocol (SegFirst and SegNext).
  */
-static Seg SegSearch(Arena arena, PI pi)
+static Seg SegSearch(Arena arena, Index i)
 {
-  while(pi < arena->pages &&
-        (ABTGet(arena->freeTable, pi) ||
-         arena->pageTable[pi].the.head.pool == NULL))
-    ++pi;
+  while(i < arena->pages &&
+        (BTGet(arena->freeTable, i) ||
+         arena->pageTable[i].the.head.pool == NULL))
+    ++i;
   
-  if(pi < arena->pages)
-    return &arena->pageTable[pi].the.head;
+  if(i < arena->pages)
+    return &arena->pageTable[i].the.head;
   
-  AVER(pi == arena->pages);
+  AVER(i == arena->pages);
   return NULL;
 }
 
@@ -696,7 +654,7 @@ Seg SegFirst(Space space)
 
   /* We start from tablePages, as the tables can't be a segment.
    * See .tablepages */
-  return SegSearch(arena, (PI)arena->tablePages);
+  return SegSearch(arena, (Index)arena->tablePages);
 }
 
 
@@ -710,13 +668,13 @@ Seg SegNext(Space space, Seg seg)
 {
   Arena arena;
   Page page;
-  PI pi;
+  Index i;
   AVERT(Arena, SpaceArena(space));
   AVERT(Seg, seg);
   page = PARENT(PageStruct, the.head, seg);
   arena = SpaceArena(space);
-  pi = page - arena->pageTable;
-  return SegSearch(arena, pi + 1);
+  i = page - arena->pageTable;
+  return SegSearch(arena, i + 1);
 }
 
 
