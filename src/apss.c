@@ -1,7 +1,7 @@
-/*  impl.c.mpmss: MPM STRESS TEST
+/* impl.c.apss: AP MANUAL ALLOC STRESS TEST
  *
- * $HopeName$
- * Copyright (C) 1998. Harlequin Group plc. All rights reserved.
+ * $HopeName: MMsrc!apss.c(MMdevel_color_pool.1) $
+ * Copyright (C) 1999 Harlequin Group plc.  All rights reserved.
  */
 
 
