@@ -1,6 +1,6 @@
 /* impl.c.poolams: AUTOMATIC MARK & SWEEP POOL CLASS
  *
- * $HopeName: !poolams.c(trunk.22) $
+ * $HopeName: MMsrc!poolams.c(MMdevel_pekka_rate.1) $
  * Copyright (C) 1998. Harlequin Group plc. All rights reserved.
  * 
  * .readership: any MPS developer.
@@ -17,7 +17,7 @@
 #include "mpm.h"
 #include "mpscams.h"
 
-SRCID(poolams, "$HopeName: !poolams.c(trunk.22) $");
+SRCID(poolams, "$HopeName: MMsrc!poolams.c(MMdevel_pekka_rate.1) $");
 
 
 #define AMSSig          ((Sig)0x519A3599) /* SIGnature AMS */
@@ -800,6 +800,7 @@ static Res AMSScanObject(AMSGroup group,
     Res res = (*format->scan)(closure->ss, p, next);
     if(res != ResOK)
       return res;
+    closure->ss->scannedSize += AddrOffset(p, next);
   }
 
   if(colour == AMS_GREY) /* blacken the object */
@@ -922,6 +923,7 @@ static Res AMSFix(Pool pool, ScanState ss, Seg seg, Ref *refIO)
     AVER(AddrIsAligned((Addr)ref, PoolAlignment(pool)));
     AVER(colour != AMS_FREE);
     if(colour == AMS_WHITE) {
+      ++ss->forwardCount; /* slightly inaccurate terminology */
       ss->wasMarked = FALSE;
       if(ss->rank == RankWEAK) { /* then splat the reference */
         *refIO = (Ref)0;
@@ -1007,8 +1009,7 @@ static void AMSReclaim(Pool pool, Trace trace, Seg seg)
 
   AVER(group->marked == FALSE); /* there must be nothing grey */
 
-  anySurvivors = FALSE;
-  oldFree = group->free;
+  anySurvivors = FALSE; oldFree = group->free;
 
   res = AMSIterate(ams, group, seg, arena, AMSReclaimObject,
 		   &anySurvivors);
@@ -1070,17 +1071,8 @@ static Res AMSSegDescribe(AMS ams, Seg seg, mps_lib_FILE *stream)
   Buffer buffer;               /* the segment's buffer, if it has one */
   Index i;
 
-  AVERT(AMS, ams);
-  AVER(SegCheck(seg));
   group = AMSSegGroup(seg);
-  AVERT(AMSGroup, group);
-  AVER(group->ams == ams);
-  /* can't check stream, as there are no conditions on mps_lib_FILE * */
-
   buffer = SegBuffer(seg);
-
-  if(buffer != NULL)
-    AVERT(Buffer, buffer);
 
   res = WriteF(stream,
                "AMS Group $P {\n", (WriteFP)group,
@@ -1129,7 +1121,6 @@ static Res AMSSegDescribe(AMS ams, Seg seg, mps_lib_FILE *stream)
     }
 
     colour = AMSGrainColour(group, i);
-    AVER(AMSColourIsValid(colour));
     switch(colour) {
     case AMS_FREE:
       c = '.';
@@ -1147,7 +1138,8 @@ static Res AMSSegDescribe(AMS ams, Seg seg, mps_lib_FILE *stream)
       c = '!';
       break;
     default:
-      NOTREACHED;
+      c = '?';
+      break;
     }
     res = WriteF(stream, "$C", c, NULL);
     if(res != ResOK)
@@ -1173,10 +1165,10 @@ static Res AMSDescribe(Pool pool, mps_lib_FILE *stream)
   Ring node, nextNode;
   Res res;
 
-  AVERT(Pool, pool);
+  if(!CHECKT(Pool, pool)) return ResFAIL;
   ams = PoolPoolAMS(pool);
-  AVERT(AMS, ams);
-  /* can't check stream, as there are no conditions on mps_lib_FILE * */
+  if(!CHECKT(AMS, ams)) return ResFAIL;
+  if(stream == NULL) return ResFAIL;
 
   res = WriteF(stream,
                "AMS $P {\n", (WriteFP)ams,
