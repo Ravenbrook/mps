@@ -1,6 +1,6 @@
 /* impl.h.mpmtypes: MEMORY POOL MANAGER TYPES
  *
- * $HopeName: MMsrc!mpmtypes.h(MMdevel_gavinm_splay.4) $
+ * $HopeName: MMsrc!mpmtypes.h(MMdevel_gavinm_splay.5) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  *
  * .readership: MM developers.
@@ -345,5 +345,7 @@ typedef unsigned long WriteFU;
 typedef unsigned long WriteFB;
 typedef void *(*WriteFF)(void);
 typedef int WriteFC; /* Promoted */
+typedef double WriteFD;
+
 
 #endif /* mpmtypes_h */
