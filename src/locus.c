@@ -1,6 +1,6 @@
 /* impl.c.locus: LOCI
  *
- * $HopeName: MMsrc!locus.c(MMdevel_ptw_pseudoloci.9) $
+ * $HopeName: MMsrc!locus.c(MMdevel_ptw_pseudoloci.10) $
  * Copyright (C) 1998 Harlequin Group plc.  All rights reserved.
  *
  * .readership: any MPS developer
@@ -38,7 +38,7 @@
 
 /* Signatures */
 /* SIGnature LOCus MaNager */
-#define LocusManagerSig ((Sig)0x51970C39)
+#define LocusManagerSig ((Sig)0x51970C34)
 /* SIGnature LOCus CLient */
 #define LocusClientSig ((Sig)0x51970CC7)
 /* SIGnature LOCUS */
@@ -80,6 +80,7 @@ static RefSet ZoneUsageFinish(ZoneUsage desc);
 static RefSet ZoneUsageIncrement(ZoneUsage desc, RefSet ref);
 static RefSet ZoneUsageDecrement(ZoneUsage desc, RefSet ref);
 static Count LogCount(Count val);
+static Res LocusClientName(LocusClient client, mps_lib_FILE *stream);
 static Bool LocusManagerCheck(LocusManager manager);
 static Bool LocusClientCheck(LocusClient client);
 static Bool LocusCheck(Locus locus);
@@ -450,6 +451,32 @@ static Bool LocusManagerZoneRangeFinished(LocusManager manager,
 }
 
 
+extern RefSet RefSetOfRange(Space space, Addr rangeBase, Addr
+                            rangeLimit);
+
+RefSet RefSetOfRange(Space space, Addr rangeBase, Addr rangeLimit)
+{
+  Word base, limit;
+
+  AVERT(Space, space);
+
+  /* .rsos.zones */
+  base = (Word)rangeBase >> space->zoneShift;
+  limit = (((Word)rangeLimit-1) >> space->zoneShift) + 1;
+
+  if(limit - base >= MPS_WORD_WIDTH)        /* .rsos.univ */
+    return RefSetUNIV;
+
+  base  &= MPS_WORD_WIDTH - 1;
+  limit &= MPS_WORD_WIDTH - 1;
+
+  if(base < limit)                      /* .rsos.swap */
+    return ((RefSet)1<<limit) - ((RefSet)1<<base);
+  else
+    return ~(((RefSet)1<<base) - ((RefSet)1<<limit));
+}
+
+
 /* LocusManagerZoneRangeNext -- Return the next zone range in the
    iteration */
 static void LocusManagerZoneRangeNext(Addr *baseReturn,
@@ -479,12 +506,20 @@ static void LocusManagerZoneRangeNext(Addr *baseReturn,
     for (; current; current >>= 1, zone++) {
       if (current & 01) {
         *baseReturn = (Addr)(zone << zoneShift);
-        for (; zone < RefSetSize; current >>= 1, zone++) {
+        /* Note: top zone represented by 1 << zoneShift + 1 */
+        for (; zone <= RefSetSize; current >>= 1, zone++) {
           if (! (current & 01)) {
             *limitReturn = (Addr)(zone << zoneShift);
             manager->searchCurrent = current;
             manager->searchZone = zone;
-            AVER(AddrOffset(*baseReturn, *limitReturn) > 0);
+            AVER(*baseReturn < *limitReturn);
+            {
+              RefSet search =
+                manager->searchCache[manager->searchIndex - 1];
+              RefSet found = RefSetOfRange(arena, *baseReturn,
+                                           *limitReturn);
+              AVER(RefSetSuper(search, found));
+            }
             return;
           }
         }
@@ -590,7 +625,9 @@ static void LocusManagerRefSetCalculate(LocusManager manager)
             break;
           }
         default:
-          NOTREACHED;
+          /* can be reached if ! manager->searchExpand */
+          base = RefSetEMPTY;
+          break;
       }
       for (; k <= 2; k++) {
         switch (k) {
@@ -722,15 +759,15 @@ static void LocusEnsureReady(Locus locus)
                                       this);
         preferred = RefSetUnion(preferred, client->preferred);
         disdained = RefSetUnion(disdained, client->disdained);
-        lifetime += client->lifetime;
-        /* @@@ only for AVER */
         clients++;
+        lifetime = lifetime / clients * (clients - 1) +
+          client->lifetime / clients;
         used = RefSetUnion(used, RefSetComp(LocusClientZoneUsage(client)->free));
       }
 
     AVER(used == RefSetComp(LocusZoneUsage(locus)->free));
     AVER(locus->clients == clients);
-    locus->lifetime = lifetime / locus->clients;
+    locus->lifetime = lifetime;
     locus->preferred = preferred;    
     locus->disdained = disdained;
     locus->ready = TRUE;
@@ -741,8 +778,9 @@ static void LocusEnsureReady(Locus locus)
 /* LocusClientEnsureLocus -- Called to assign a client to a locus,
    based on the previously set parameters.  @@@ This is not strictly a
    locus method, but it is the logical inverse of
-   LocusLocusClientDelete (v. i.) */
-/* @@@ Clients are assigned first come, first served to the "best fit"
+   LocusLocusClientDelete (v. i.)
+   
+   @@@ Clients are assigned first come, first served to the "best fit"
    locus.  This may not yield an optimal distribution of clients among
    loci, especially if clients are added and removed as time passes.
    Someday write a method that computes the cohort-distance among all
@@ -788,15 +826,16 @@ static void LocusClientEnsureLocus(LocusClient client)
       LocusActivate(best);
     }
     /* update locus summaries */
-    best->lifetime = (best->lifetime * best->clients +
-                      client->lifetime) / (best->clients + 1);
+    best->clients++;
+    best->lifetime = best->lifetime / best->clients *
+      (best->clients - 1) +
+      client->lifetime / best->clients;
     best->preferred = RefSetUnion(best->preferred, client->preferred);
     best->disdained = RefSetUnion(best->disdained, client->disdained);
     /* add to locus */
     client->locus = best;
     client->locusSerial = best->clientSerial;
     best->clientSerial++;
-    best->clients++;
     RingAppend(LocusClientRing(best),
                LocusClientLocusRing(client));
     client->assigned = TRUE;
@@ -849,8 +888,9 @@ static void LocusNoteZoneFree(Locus locus, RefSet ref)
 
 
 /* LocusLocusClientDistance -- measure the distance between the cohort
-   specification of a locus and a locus client*/
-/* @@@ This is only a first cut, weighting all factors equally */
+   specification of a locus and a locus client
+
+   @@@ This is only a first cut, weighting all factors equally */
 static Count LocusLocusClientDistance(Locus locus,
                                       LocusClient client)
 {
@@ -1067,10 +1107,11 @@ static Bool LocusCheck(Locus locus)
       CHECKD(LocusClient, client);
       CHECKL(RefSetSuper(locus->preferred, client->preferred));
       CHECKL(RefSetSuper(locus->disdained, client->disdained));
-      lifetime += client->lifetime;
       clients++;
+      lifetime = lifetime / clients * (clients - 1) +
+        client->lifetime / clients;
     }
-    CHECKL(locus->lifetime == lifetime / clients);
+    CHECKL(locus->lifetime == lifetime);
     CHECKL(locus->clients == clients);
   }
   if (! locus->inUse) {
@@ -1171,7 +1212,15 @@ Res LocusManagerDescribe(LocusManager manager, mps_lib_FILE *stream)
     Index i;
 
     res = WriteF(stream,
-                 "  searchClient: $P\n", (WriteFP)manager->searchClient,
+                 "  searchClient: ",
+                 NULL);
+    if (res != ResOK)
+      return res;
+    res = LocusClientName(manager->searchClient, stream);
+    if (res != ResOK)
+      return res;
+    res = WriteF(stream,
+                 "\n",
                  "  searchIndex: $U\n", (WriteFU)manager->searchIndex,
                  "  searchLimit: $U\n", (WriteFU)manager->searchLimit,
                  "  searchCache: \n",
@@ -1239,6 +1288,12 @@ Res LocusDescribe(Locus locus, mps_lib_FILE *stream)
     return res;
 
   return ResOK;
+}
+
+
+static Res LocusClientName(LocusClient client, mps_lib_FILE *stream)
+{
+  return PoolName(LocusClientPool(client), stream);
 }
 
 

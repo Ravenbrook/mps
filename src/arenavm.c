@@ -1,6 +1,6 @@
 /* impl.c.arenavm: VIRTUAL MEMORY BASED ARENA IMPLEMENTATION
  *
- * $HopeName: MMsrc!arenavm.c(MMdevel_ptw_pseudoloci.4) $
+ * $HopeName: MMsrc!arenavm.c(MMdevel_ptw_pseudoloci.5) $
  * Copyright (C) 1998. Harlequin Group plc. All rights reserved.
  *
  * This is the implementation of the Segment abstraction from the VM
@@ -29,7 +29,7 @@
 #include "mpm.h"
 #include "mpsavm.h"
 
-SRCID(arenavm, "$HopeName: MMsrc!arenavm.c(MMdevel_ptw_pseudoloci.4) $");
+SRCID(arenavm, "$HopeName: MMsrc!arenavm.c(MMdevel_ptw_pseudoloci.5) $");
 
 
 typedef struct VMArenaStruct *VMArena;
@@ -1022,7 +1022,7 @@ static Bool findFreeInArea(Index *baseReturn,
  * 
  * @@@ does not completely implement the downwards flag
  */
-#define ZoneMASK(arena) (~(RefSetMASK<<(arena)->zoneShift))
+#define ZoneMASK(arena) (RefSetMASK<<(arena)->zoneShift)
 #define ZoneSTEP(arena) (RefSetSize<<(arena)->zoneShift)
 static Bool findFreeInZoneRange(Index *baseReturn,
                                 VMArenaChunk *chunkReturn,
@@ -1032,7 +1032,9 @@ static Bool findFreeInZoneRange(Index *baseReturn,
 {
   Ring node, next;
   Arena arena = VMArenaArena(vmArena);
+#if 0
   Word zoneMask = ZoneMASK(arena);
+#endif
   Word zoneStep = ZoneSTEP(arena);
 
   RING_FOR(node, &vmArena->chunkRing, next)
@@ -1043,7 +1045,7 @@ static Bool findFreeInZoneRange(Index *baseReturn,
       Word chunkBase = (Word)PageIndexBase(chunk, chunk->tablePages);
       Word chunkLimit = (Word)chunk->limit;
       /* zone 0 aligned address, below chunkBase */
-      Word rangeBase = (Word)chunkBase & zoneMask;
+      Word rangeBase = (Word)chunkBase & (~ (zoneStep - 1));
       /* base of first zone stripe */
       Word nextBase = rangeBase + (Word)zoneBase;
       /* limit of first zone stripe */
@@ -1053,6 +1055,11 @@ static Bool findFreeInZoneRange(Index *baseReturn,
       Word stripeLimit = nextLimit<chunkLimit ? nextLimit : chunkLimit;
 
       AVERT(VMArenaChunk, chunk);
+      AVER(chunkBase <= stripeBase);
+      AVER(chunkBase <= stripeLimit);
+      AVER(stripeBase <= chunkLimit);
+      AVER(stripeLimit <= chunkLimit);
+      
 
       /* @@@ ZoneStripe_FOR */
       /* @@@ Need to be able to iterate backwards for downwards flag */
@@ -1073,7 +1080,6 @@ static Bool findFreeInZoneRange(Index *baseReturn,
         /* stripe trimmed to fit in chunk */
         stripeBase = nextBase<chunkBase ? chunkBase : nextBase;
         stripeLimit = nextLimit<chunkLimit ? nextLimit : chunkLimit;
-
       }
     }
   return FALSE;
