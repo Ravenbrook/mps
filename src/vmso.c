@@ -1,7 +1,7 @@
 /* impl.c.vmso: VIRTUAL MEMORY MAPPING FOR SOLARIS 2.x
  *
- * $HopeName: !vmso.c(trunk.8) $
- * Copyright (C) 1995 Harlequin Group, all rights reserved
+ * $HopeName: MMsrc!vmso.c(MMepcore_pilchard.1) $
+ * Copyright (C) 1995, 1998 Harlequin Group, all rights reserved
  *
  * Design: design.mps.vm
  *
@@ -56,7 +56,7 @@
 /* unistd for _SC_PAGESIZE */
 #include <unistd.h>
 
-SRCID(vmso, "$HopeName: !vmso.c(trunk.8) $");
+SRCID(vmso, "$HopeName: MMsrc!vmso.c(MMepcore_pilchard.1) $");
 
 
 /* Fix up unprototyped system calls.  */
@@ -83,14 +83,9 @@ typedef struct VMStruct {
 } VMStruct;
 
 
-Align VMAlign(void)
+Align VMAlign(VM vm)
 {
-  Align align;
-
-  align = (Align)sysconf(_SC_PAGESIZE);
-  AVER(SizeIsP2(align));
-
-  return align;
+  return vm->align;
 }
 
 
@@ -119,7 +114,8 @@ Res VMCreate(VM *vmReturn, Size size)
   int none_fd;
   VM vm;
 
-  align = VMAlign();
+  align = (Align)sysconf(_SC_PAGESIZE);
+  AVER(SizeIsP2(align));
 
   AVER(vmReturn != NULL);
   AVER(SizeIsAligned(size, align));
@@ -253,11 +249,11 @@ Res VMMap(VM vm, Addr base, Addr limit)
 
   size = AddrOffset(base, limit);
 
-  if((int)mmap((caddr_t)base, (int)size,
-               PROT_READ | PROT_WRITE | PROT_EXEC,
-               MAP_PRIVATE | MAP_FIXED,
-               vm->zero_fd, (off_t)0)
-     == -1) {
+  if(mmap((caddr_t)base, (int)size,
+          PROT_READ | PROT_WRITE | PROT_EXEC,
+          MAP_PRIVATE | MAP_FIXED,
+          vm->zero_fd, (off_t)0)
+     == (caddr_t)-1) {
     AVER(errno == ENOMEM); /* .assume.mmap.err */
     return ResMEMORY;
   }
@@ -295,4 +291,3 @@ void VMUnmap(VM vm, Addr base, Addr limit)
 
   vm->mapped -= size;
 }
-
