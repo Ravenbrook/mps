@@ -1,6 +1,6 @@
 /* impl.c.arena: ARENA IMPLEMENTATION
  *
- * $HopeName: MMsrc!arena.c(MMdevel_tony_sunset.4) $
+ * $HopeName: MMsrc!arena.c(MMdevel_tony_sunset.5) $
  * Copyright (C) 1998. Harlequin Group plc. All rights reserved.
  *
  * .readership: Any MPS developer
@@ -36,7 +36,7 @@
 #include "poolmrg.h"
 #include "mps.h"
 
-SRCID(arena, "$HopeName: MMsrc!arena.c(MMdevel_tony_sunset.4) $");
+SRCID(arena, "$HopeName: MMsrc!arena.c(MMdevel_tony_sunset.5) $");
 
 
 /* All static data objects are declared here. See .static */
@@ -48,7 +48,6 @@ static RingStruct arenaRing;       /* design.mps.arena.static.ring */
 static LockStruct arenaRingLock;   
 static Serial arenaSerial;         /* design.mps.arena.static.serial */
 
-#define TractArena(seg) PoolArena(TractPool(tract))
 
 
 /* ArenaReservoir - return the reservoir for the arena */
@@ -60,58 +59,45 @@ Reservoir ArenaReservoir(Arena arena)
 }
 
 
-/* TractCheck -- check the integrity of a tract */
+/* AbstractArenaClass  -- The abstact arena class definition
+ *
+ * .null: Most abstract class methods are set to NULL.
+ * See design.mps.arena.class.abstract.null.
+ */
 
-Bool TractCheck(Tract tract)
+typedef ArenaClassStruct AbstractArenaClassStruct;
+
+DEFINE_CLASS(AbstractArenaClass, class)
 {
-  CHECKU(Pool, tract->pool);
-  CHECKL(AddrIsAligned(tract->base, 
-                       ArenaAlign(PoolArena(tract->pool))));
-  if (tract->hasSeg) {
-    CHECKL(TraceSetCheck(tract->white));
-    CHECKU(Seg, (Seg)tract->p); 
-  } else {
-    CHECKL(tract->white == TraceSetEMPTY);
-  }
-  return TRUE;
+  INHERIT_CLASS(&class->protocol, ProtocolClass);
+  class->name = "ABSARENA";
+  class->size = 0;
+  class->offset = 0;
+  class->init = NULL;
+  class->finish = NULL;
+  class->reserved = NULL;
+  class->committed = NULL;
+  class->spareCommitExceeded = ArenaNoSpareCommitExceeded;
+  class->extend = ArenaNoExtend;
+  class->retract = ArenaNoRetract;
+  class->isReserved = NULL;
+  class->alloc = NULL;
+  class->free = NULL;
+  class->tractOfAddr = NULL;
+  class->tractFirst = NULL;
+  class->tractNext = NULL;
+  class->tractNextContig = NULL;
+  class->describe = ArenaTrivDescribe;
+  class->sig = ArenaClassSig;
 }
 
-
-/* TractInit -- initialize a tract */
-
-void TractInit(Tract tract, Pool pool, Addr base)
-{
-  AVER(tract != NULL);
-  AVERT(Pool, pool);
-
-  tract->pool = pool;
-  tract->base = base;
-  tract->p = NULL;
-  tract->white = TraceSetEMPTY;
-  tract->hasSeg = 0;
-
-  AVERT(Tract, tract);
-
-}
-
-
-/* TractFinish -- finish a tract */
-
-void TractFinish(Tract tract)
-{
-  AVERT(Tract, tract);
-
-  /* Check that there's no segment - and hence no shielding */
-  AVER(tract->hasSeg == 0);
-  tract->pool = NULL;
-}
 
 
 /* ArenaClassCheck -- check the consistency of an arena class */
 
 Bool ArenaClassCheck(ArenaClass class)
 {
-  CHECKS(ArenaClass, class);
+  CHECKL(ProtocolClassCheck(&class->protocol));
   CHECKL(class->name != NULL); /* Should be <=6 char C identifier */
   CHECKL(class->size >= sizeof(ArenaStruct));
   /* Offset of generic Pool within class-specific instance cannot be */
@@ -126,12 +112,11 @@ Bool ArenaClassCheck(ArenaClass class)
   CHECKL(FUNCHECK(class->retract));
   CHECKL(FUNCHECK(class->alloc));
   CHECKL(FUNCHECK(class->free));
-  CHECKL(FUNCHECK(class->tractBase));
   CHECKL(FUNCHECK(class->tractOfAddr));
   CHECKL(FUNCHECK(class->tractFirst));
   CHECKL(FUNCHECK(class->tractNext));
   CHECKL(FUNCHECK(class->describe));
-  CHECKL(class->endSig == ArenaClassSig);
+  CHECKS(ArenaClass, class);
   return TRUE;
 }
 
@@ -250,9 +235,9 @@ Bool ArenaCheck(Arena arena)
     CHECKL(RingCheck(&arena->greyRing[rank]));
 
   if (NULL == arena->lastTract) {
-    CHECKL((Addr)0 == arena->lastTractBase);
+    CHECKL(NULL == arena->lastTractBase);
   } else {
-    CHECKL(arena->lastTract->base == arena->lastTractBase);
+    CHECKL(TractBase(arena->lastTract) == arena->lastTractBase);
   }
 
   return TRUE;
@@ -330,7 +315,7 @@ void ArenaInit(Arena arena, ArenaClass class)
   for(rank = 0; rank < RankMAX; ++rank)
     RingInit(&arena->greyRing[rank]);
   arena->lastTract = NULL;
-  arena->lastTractBase = (Addr)0;
+  arena->lastTractBase = NULL;
 
   arena->sig = ArenaSig;
   arena->serial = arenaSerial;  /* design.mps.arena.static.serial */
@@ -410,6 +395,7 @@ Res ArenaCreateV(Arena *arenaReturn, ArenaClass class, va_list args)
 failEnabledBTAlloc:
   PoolFinish(&arena->controlPoolStruct.poolStruct);
 failControlInit:
+  ReservoirFinish(&arena->reservoirStruct);
 failReservoirInit:
   (*class->finish)(arena);
 failInit:
@@ -765,8 +751,10 @@ Res ArenaDescribe(Arena arena, mps_lib_FILE *stream)
   Ring node, nextNode;
   Index i;
 
-  if(!CHECKT(Arena, arena)) return ResFAIL;
-  if(stream == NULL) return ResFAIL;
+  if(!CHECKT(Arena, arena)) 
+    return ResFAIL;
+  if(stream == NULL) 
+    return ResFAIL;
 
   res = WriteF(stream,
                "Arena $P ($U) {\n",    
@@ -813,23 +801,27 @@ Res ArenaDescribe(Arena arena, mps_lib_FILE *stream)
                "    (no TraceDescribe function)\n",
                "  epoch $U\n",         (WriteFU)arena->epoch,
                NULL);
-  if(res != ResOK) return res;
+  if(res != ResOK) 
+    return res;
 
   res = (*arena->class->describe)(arena, stream);
-  if(res != ResOK) return res;
+  if(res != ResOK) 
+    return res;
 
   for(i=0; i < ARENA_LD_LENGTH; ++ i) {
     res = WriteF(stream,
                  "    history[$U] = $B\n", i, arena->history[i],
                  NULL);
-    if(res != ResOK) return res;
+    if(res != ResOK) 
+      return res;
   }
   
   res = WriteF(stream,
                "    [note: indices are raw, not rotated]\n"
                "    prehistory = $B\n",    (WriteFB)arena->prehistory,
                NULL);
-  if(res != ResOK) return res;
+  if(res != ResOK) 
+    return res;
 
   res = WriteF(stream,
                "  suspended $S\n", arena->suspended ? "YES" : "NO",
@@ -837,30 +829,35 @@ Res ArenaDescribe(Arena arena, mps_lib_FILE *stream)
                "  shCacheI $U\n", arena->shCacheI,
                "    (no SegDescribe function)\n",
                NULL);
-  if(res != ResOK) return res;
+  if(res != ResOK) 
+    return res;
 
   RING_FOR(node, &arena->rootRing, nextNode) {
     Root root = RING_ELT(Root, arenaRing, node);
     res = RootDescribe(root, stream);
-    if(res != ResOK) return res;
+    if(res != ResOK) 
+      return res;
   }
 
   RING_FOR(node, &arena->poolRing, nextNode) {
     Pool pool = RING_ELT(Pool, arenaRing, node);
     res = PoolDescribe(pool, stream);
-    if(res != ResOK) return res;
+    if(res != ResOK) 
+      return res;
   }
 
   RING_FOR(node, &arena->formatRing, nextNode) {
     Format format = RING_ELT(Format, arenaRing, node);
     res = FormatDescribe(format, stream);
-    if(res != ResOK) return res;
+    if(res != ResOK) 
+      return res;
   }
 
   RING_FOR(node, &arena->threadRing, nextNode) {
     Thread thread = RING_ELT(Thread, arenaRing, node);
     res = ThreadDescribe(thread, stream);
-    if(res != ResOK) return res;
+    if(res != ResOK) 
+      return res;
   }
 
   /* @@@@ What about grey rings? */
@@ -869,7 +866,8 @@ Res ArenaDescribe(Arena arena, mps_lib_FILE *stream)
                "} Arena $P ($U)\n", (WriteFP)arena, 
                (WriteFU)arena->serial,
                NULL);
-  if(res != ResOK) return res;
+  if(res != ResOK) 
+    return res;
 
   return ResOK;
 }
@@ -882,8 +880,10 @@ Res ArenaDescribeTracts(Arena arena, mps_lib_FILE *stream)
   Addr oldLimit, base, limit;
   Size size;
 
-  if(!CHECKT(Arena, arena)) return ResFAIL;
-  if(stream == NULL) return ResFAIL;
+  if(!CHECKT(Arena, arena)) 
+    return ResFAIL;
+  if(stream == NULL) 
+    return ResFAIL;
 
   b = TractFirst(&tract, arena); 
   oldLimit = TractBase(tract);
@@ -946,7 +946,8 @@ Res ControlAlloc(void **baseReturn, Arena arena, size_t size,
   pool = MVPool(&arena->controlPoolStruct);
   res = PoolAlloc(&base, pool, (Size)size,
                   withReservoirPermit);
-  if(res != ResOK) return res;
+  if(res != ResOK) 
+    return res;
 
   *baseReturn = (void *)base; /* see .controlalloc.addr */
   return ResOK;
@@ -1044,7 +1045,7 @@ void ArenaFree(Addr base, Size size, Pool pool)
   limit = AddrAdd(base, size);
   if ((arena->lastTractBase >= base) && (arena->lastTractBase < limit)) {
     arena->lastTract = NULL;
-    arena->lastTractBase = (Addr)0;
+    arena->lastTractBase = NULL;
   }
 
   res = ReservoirEnsureFull(reservoir);
@@ -1057,127 +1058,6 @@ void ArenaFree(Addr base, Size size, Pool pool)
 
   EVENT_PAW(ArenaFree, arena, base, size);
   return;
-}
-
-
-/* .tract.critical: These tract functions are low-level and used 
- * through-out. They are therefore on the critical path and their 
- * AVERs are so-marked.
- */
-
-/* TractBase -- return the base address of a tract */
-
-Addr (TractBase)(Tract tract)
-{
-  Addr base;
-  AVERT_CRITICAL(Tract, tract); /* .tract.critical */
-
-  base = tract->base;
-  AVER_CRITICAL((*(TractArena(tract)->class->tractBase))(tract) == base);
-  return base;
-}
-
-
-/* TractLimit -- return the limit address of a segment */
-
-Addr TractLimit(Tract tract)
-{
-  Arena arena;
-  AVERT_CRITICAL(Tract, tract); /* .tract.critical */
-  arena = TractArena(tract);
-  AVERT_CRITICAL(Arena, arena);
-  return AddrAdd(TractBase(tract), arena->alignment);
-}
-
-
-/* TractOfAddr -- return the tract the given address is in, if any */
-
-Bool TractOfAddr(Tract *tractReturn, Arena arena, Addr addr)
-{
-  AVER(tractReturn != NULL);
-  AVERT(Arena, arena);
-
-  return (*arena->class->tractOfAddr)(tractReturn, arena, addr);
-}
-
-
-/* TractOfBaseAddr -- return a tract given a base address
- * 
- * The tract must exist.
- */
-
-Tract TractOfBaseAddr(Arena arena, Addr addr)
-{
-  Tract tract;
-  Bool found;
-  AVERT(Arena, arena);
-  AVER(AddrIsAligned(addr, arena->alignment));
-
-  /* check first in the cache - design.mps.arena.tract.cache */
-  if (arena->lastTractBase == addr) {
-    tract = arena->lastTract;
-  } else {
-    found = (*arena->class->tractOfAddr)(&tract, arena, addr);
-    AVER(found);
-  }
-
-  AVER(TractBase(tract) == addr);
-  return tract;
-}
-
-
-/* TractFirst -- return the first tract in the arena
- *
- * This is used to start an iteration over all tracts in the arena.
- */
-
-Bool TractFirst(Tract *tractReturn, Arena arena)
-{
-  AVER(tractReturn != NULL);
-  AVERT(Arena, arena);
-
-  return (*arena->class->tractFirst)(tractReturn, arena);
-}
-
-
-/* TractNext -- return the "next" tract in the arena
- *
- * This is used as the iteration step when iterating over all
- * tracts in the arena.
- *
- * TractNext finds the tract with the lowest base address which is
- * greater than a specified address.  The address must be (or once
- * have been) the base address of a tract.
- */
-
-Bool TractNext(Tract *tractReturn, Arena arena, Addr addr)
-{
-  AVER_CRITICAL(tractReturn != NULL); /* .tract.critical */
-  AVERT_CRITICAL(Arena, arena);
-
-  return (*arena->class->tractNext)(tractReturn, arena, addr);
-}
-
-
-/* TractNextContig -- return the contiguously following tract
- *
- * This is used as the iteration step when iterating over all
- * tracts in a contiguous area belonging to a pool.
- */
-
-Tract TractNextContig(Arena arena, Tract tract)
-{
-  Tract next;
-
-  AVERT_CRITICAL(Tract, tract);
-  AVER_CRITICAL(NULL != TractPool(tract));
-
-  next = (*arena->class->tractNextContig)(arena, tract);
-
-  AVER_CRITICAL(TractPool(next) == TractPool(tract));
-  AVER_CRITICAL(TractBase(next) == 
-                AddrAdd(TractBase(tract), arena->alignment));
-  return next;
 }
 
 
@@ -1271,7 +1151,8 @@ Res ArenaExtend(Arena arena, Addr base, Size size)
   AVER(size > 0);
 
   res = (*arena->class->extend)(arena, base, size);
-  if(res != ResOK) return res;
+  if(res != ResOK) 
+    return res;
   
   EVENT_PAW(ArenaExtend, arena, base, size);
 
@@ -1288,7 +1169,8 @@ Res ArenaRetract(Arena arena, Addr base, Size size)
   AVER(size > 0);
 
   res = (*arena->class->retract)(arena, base, size);
-  if(res != ResOK) return res;
+  if(res != ResOK) 
+    return res;
   
   EVENT_PAW(ArenaRetract, arena, base, size);
 
