@@ -1,6 +1,6 @@
 /* impl.c.dbgpool: POOL DEBUG MIXIN
  *
- * $HopeName: MMsrc!dbgpool.c(MMdevel_fencepost.3) $
+ * $HopeName: MMsrc!dbgpool.c(MMdevel_fencepost.4) $
  * Copyright (C) 1998 Harlequin Group plc.  All rights reserved.
  */
 
@@ -95,26 +95,29 @@ static Bool PoolDebugOptionsCheck(PoolDebugOptions opt)
     CHECKL(opt->fenceTemplate != NULL);
     /* Nothing to check about fenceSize */
   }
-  if (opt->tagInit != NULL) {
-    CHECKL(TagInitMethodCheck(opt->tagInit));
-    /* Nothing to check about tagSize */
-  }
   return TRUE;
 }
 
 
-/* DebugPoolInit -- init method for a debug pool */
+/* DebugPoolInit -- init method for a debug pool
+ *
+ * Someday, this could be split into fence and tag init methods.
+ */
 
 static Res DebugPoolInit(Pool pool, va_list args)
 {
   Res res;
   PoolDebugOptions options;
   PoolDebugMixin debug;
+  TagInitMethod tagInit;
+  Size tagSize;
 
   AVERT(Pool, pool);
   options = va_arg(args, PoolDebugOptions);
-  options->tagInit = NULL; /* @@@@ tags not published yet */
   AVERT(PoolDebugOptions, options);
+  /* @@@@ Tag parameters should be taken from options, but tags have */
+  /* not been published yet. */
+  tagInit = NULL; tagSize = 0;
 
   res = (pool->class->super->init)(pool, args);
   if (res != ResOK)
@@ -134,17 +137,17 @@ static Res DebugPoolInit(Pool pool, va_list args)
       goto alignFail;
     }
     /* Fenceposting turns on tagging */
-    if (options->tagInit == NULL) {
-      options->tagSize = 0;
-      options->tagInit = TagTrivInit;
+    if (tagInit == NULL) {
+      tagSize = 0;
+      tagInit = TagTrivInit;
     }
     debug->fenceTemplate = options->fenceTemplate;
   }
   
   /* tag init */
-  debug->tagInit = options->tagInit;
+  debug->tagInit = tagInit;
   if (debug->tagInit != NULL) {
-    debug->tagSize = options->tagSize + sizeof(tagStruct) - 1;
+    debug->tagSize = tagSize + sizeof(tagStruct) - 1;
     /* This pool has to be like the arena control pool: the blocks */
     /* allocated must be accessible using void*. */
     res = PoolCreate(&debug->tagPool, PoolArena(pool), PoolClassMFS(),
