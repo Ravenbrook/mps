@@ -1,6 +1,6 @@
 /* impl.c.arenacl: ARENA IMPLEMENTATION USING CLIENT MEMORY
  *
- * $HopeName: !arenacl.c(trunk.8) $
+ * $HopeName: MMsrc!arenacl.c(MMdevel_lclint_23h.1) $
  * 
  * Copyright (C) 1996,1997 Harlequin Group, all rights reserved.
  *
@@ -36,7 +36,7 @@
 #include "mpsacl.h"
 
 
-SRCID(arenacl, "$HopeName: !arenacl.c(trunk.8) $");
+SRCID(arenacl, "$HopeName: MMsrc!arenacl.c(MMdevel_lclint_23h.1) $");
 
 
 typedef struct ClientArenaStruct *ClientArena;
@@ -185,7 +185,7 @@ static Bool ChunkCheck(Chunk chunk)
 
 /* PageOfSeg -- page descriptor from segment */
 
-#define PageOfSeg(seg)          PARENT(PageStruct, the.segStruct, seg)
+#define PageOfSeg(seg)          PARENT(PageStruct, the, seg)
 
 
 /* Index Types
