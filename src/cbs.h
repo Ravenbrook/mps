@@ -1,6 +1,6 @@
 /* impl.h.cbs: CBS -- Coalescing Block Structure
  *
- * $HopeName: MMsrc!cbs.h(MMdevel_color_pool.1) $
+ * $HopeName: MMsrc!cbs.h(MMdevel_color_pool.2) $
  * Copyright (C) 1998 Harlequin Group plc.  All rights reserved.
  *
  * .source: design.mps.cbs.
@@ -9,9 +9,9 @@
 #ifndef cbs_h
 #define cbs_h
 
-#include "mpmtypes.h"
 #include "meter.h"
-#include "mpmst.h" /* just for SplayTreeStruct */
+#include "splay.h"
+#include "mpmtypes.h"
 
 
 typedef struct CBSStruct *CBS;
@@ -111,6 +111,9 @@ extern Bool CBSFindFirst(Addr *baseReturn, Addr *limitReturn,
                          CBS cbs, Size size, CBSFindDelete findDelete);
 extern Bool CBSFindLast(Addr *baseReturn, Addr *limitReturn,
                         CBS cbs, Size size, CBSFindDelete findDelete);
+
+extern Bool CBSFindLargest(Addr *baseReturn, Addr *limitReturn,
+                           CBS cbs, CBSFindDelete findDelete);
 
 
 #endif /* cbs_h */
