@@ -1,6 +1,6 @@
 /* impl.c.seg: SEGMENTS
  *
- * $HopeName: MMsrc!seg.c(MMdevel_tony_sunset.1) $
+ * $HopeName: MMsrc!seg.c(MMdevel_tony_sunset.2) $
  * Copyright (C) 1998 Harlequin Group plc.  All rights reserved.
  *
  * .design: The design for this module is design.mps.seg.
@@ -28,7 +28,7 @@
 
 #include "mpm.h"
 
-SRCID(seg, "$HopeName: MMsrc!seg.c(MMdevel_tony_sunset.1) $");
+SRCID(seg, "$HopeName: MMsrc!seg.c(MMdevel_tony_sunset.2) $");
 
 
 /* SegSegGC -- convert generic Seg to SegGC */
@@ -362,10 +362,13 @@ Res SegDescribe(Seg seg, mps_lib_FILE *stream)
   if(res != ResOK)
     return res;
 
-  seg->class->describe(seg, stream);
+  res = seg->class->describe(seg, stream);
+  if(res != ResOK)
+    return res;
 
   res = WriteF(stream, "\n",
                "} Segment $P\n", (WriteFP)seg, NULL);
+  return res;
 }
 
 
@@ -933,7 +936,7 @@ static void segGCSetGrey(Seg seg, TraceSet grey)
  * Sets the segment whiteness to the trace set ts.
  */
 
-void segGCSetWhite(Seg seg, TraceSet white)
+static void segGCSetWhite(Seg seg, TraceSet white)
 {
   SegGC gcseg;
   Tract tract;
