@@ -12,6 +12,8 @@
  */
 
 #include "mpm.h"
+/* Get some floating constants for WriteDouble */
+#include "float.h"
 
 SRCID(mpm, "$HopeName: MMsrc!mpm.c(MMdevel_gavinm_splay.3) $");
 
@@ -56,6 +58,14 @@ Bool MPMCheck(void)
   CHECKL(sizeof(WriteFU) <= sizeof(Word));
   CHECKL(sizeof(WriteFB) <= sizeof(Word));
   CHECKL(sizeof(WriteFC) <= sizeof(Word));
+  /* .check.write.double: See .write.double.check */
+  {
+    int e, DBL_EXP_DIG = 1;
+    for (e = DBL_MAX_10_EXP; e > 0; e /= 10)
+      DBL_EXP_DIG++;
+    CHECKL(DBL_EXP_DIG < DBL_DIG);
+    CHECKL(-DBL_MIN_10_EXP <= DBL_MAX_10_EXP);
+  }
 
   return TRUE;  
 }
@@ -300,7 +310,11 @@ static Res WriteWord(mps_lib_FILE *stream, Word w, unsigned base,
  * floating-point numbers accurately", ACM SIGPLAN Notices, Vol. 25,
  * No. 6 (Jun. 1990), Pages 112-126
  *
- * .limitation: Only the "simple" printer is implemented here
+ * .write.double.limitation: Only the "simple" printer is implemented
+ * here.
+ *
+ * .write.double.check: There being no DBL_EXP_DIG, we assume that it
+ * is less than DBL_DIG.
  */
 
 static Res WriteDouble(mps_lib_FILE *stream, double d) 
@@ -321,8 +335,7 @@ static Res WriteDouble(mps_lib_FILE *stream, double d)
   double epsilon = DBL_EPSILON / 2;
   char digits[] = "0123456789";
   /* sign, DBL_DIG, '0.', 'e', '+/-', log10(DBL_MAX_10_EXP),
-     terminator.  There being no DBL_EXP_DIG, we assume that it is
-     less than DBL_DIG */
+     terminator.  See .write.double.check */
   char buf[1+DBL_DIG+2+1+1+DBL_DIG+1];
   int j = 0;
   
