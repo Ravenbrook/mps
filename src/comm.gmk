@@ -1,6 +1,6 @@
 # impl.gmk.comm: COMMON GNUMAKEFILE FRAGMENT
 #
-# $HopeName: !comm.gmk(trunk.13) $
+# $HopeName: MMsrc!comm.gmk(MMdevel_dropin.1) $
 # Copyright (C) 1995,1996,1997 Harlequin Group, all rights reserved
 #
 # DESCRIPTION
@@ -215,7 +215,7 @@ all: mpmss amcss awlut dwstress mpsicv lockcov poolncv mps.a \
 # %%TARGET: Add a pseudo-target for the new target here.
 
 mpmss amcss awlut dwstress mpsicv lockcov poolncv \
-  locv qs weakcv mpmconft finalcv \
+  locv qs weakcv mpmconft finalcv mallocv \
   mps.a lo.a mrg.a awl.a mmsw.a: phony
 ifdef VARIETY
 	$(MAKE) -f $(PFM).gmk TARGET=$@ variety
@@ -305,6 +305,9 @@ $(PFM)/$(VARIETY)/poolncv: $(PFM)/$(VARIETY)/poolncv.o \
 
 $(PFM)/$(VARIETY)/qs: $(PFM)/$(VARIETY)/qs.o \
 	$(AMCOBJ) $(MPMOBJ) $(TESTLIBOBJ)
+
+$(PFM)/$(VARIETY)/mallocv: $(PFM)/$(VARIETY)/mallocv.o \
+	 $(PFM)/$(VARIETY)/mpsmal.o $(PFM)/$(VARIETY)/mpm.a $(TESTLIBOBJ)
 
 $(PFM)/$(VARIETY)/mps.a: $(MPMOBJ) $(AMCOBJ) $(LOOBJ) $(PFM)/$(VARIETY)/pooln.o
 
