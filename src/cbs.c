@@ -1,6 +1,6 @@
 /* impl.c.cbs: COALESCING BLOCK STRUCTURE IMPLEMENTATION
  *
- * $HopeName: MMsrc!cbs.c(MMdevel_gavinm_splay.5) $
+ * $HopeName: MMsrc!cbs.c(MMdevel_gavinm_splay.6) $
  * Copyright (C) 1998 Harlequin Group plc, all rights reserved.
  *
  * .readership: Any MPS developer.
@@ -18,7 +18,7 @@
 #include "mpm.h"
 
 
-SRCID(cbs, "$HopeName: MMsrc!cbs.c(MMdevel_gavinm_splay.5) $");
+SRCID(cbs, "$HopeName: MMsrc!cbs.c(MMdevel_gavinm_splay.6) $");
 
 typedef struct CBSNodeStruct {
   SplayNodeStruct splayNode;
@@ -59,7 +59,10 @@ static Compare CBSSplayCompare(void *key, SplayNode node) {
   Addr base1, base2, limit2;
   CBSNode cbsNode;
 
-  AVER(key != NULL);
+  /* NULL key compares less than everything. */
+  if(key == NULL)
+    return CompareLESS;
+
   AVER(node != NULL);
 
   base1 = *(Addr *)key;
@@ -373,6 +376,95 @@ static Res CBSSplayNodeDescribe(SplayNode splayNode,
   return ResOK;
 }
 
+
+/* CBSIterate -- Iterate all nodes in CBS
+ *
+ * This is not necessarily efficient.
+ *
+ * See design.mps.cbs.function.cbs.iterate.
+ */
+
+void CBSIterate(CBS cbs, CBSIterateMethod iterate,
+		void *closureP, unsigned long closureS) {
+  SplayNode splayNode;
+  SplayTree splayTree;
+  CBSNode cbsNode;
+
+  AVERT(CBS, cbs);
+  AVER(FUNCHECK(iterate));
+
+  splayTree = SplayTreeOfCBS(cbs);
+  splayNode = SplayTreeFirst(splayTree, NULL);
+  while(splayNode != NULL) {
+    cbsNode = CBSNodeOfSplayNode(splayNode);
+    if(!(*iterate)(&(cbsNode->p), cbs, cbsNode->base, cbsNode->limit,
+		   closureP, closureS)) {
+      break;
+    }
+    splayNode = SplayTreeNext(splayTree, NULL);
+  }
+}
+
+
+/* CBSSetMinSize -- Set minimum interesting size for cbs
+ *
+ * This function may invoke the shrink and grow methods as
+ * appropriate.  See design.mps.cbs.function.cbs.set.min-size.
+ */
+
+typedef struct {
+  Size old;
+  Size new;
+} CBSSetMinSizeClosureStruct, *CBSSetMinSizeClosure;
+
+static Bool CBSSetMinSizeGrow(void **clientPIO, CBS cbs, 
+		              Addr base, Addr limit, 
+			      void *closureP, unsigned long closureS) {
+  CBSSetMinSizeClosure closure;
+  Size size;
+  
+  if(*clientPIO ==  NULL) {
+    closure = (CBSSetMinSizeClosure)closureP;
+    AVER(closure->old > closure->new);
+    size = AddrOffset(base, limit);
+    if(size < closure->old && size >= closure->new)
+    (*cbs->grow)(clientPIO, cbs, base, limit);
+  }
+
+  return TRUE;
+}
+
+static Bool CBSSetMinSizeShrink(void **clientPIO, CBS cbs, 
+				Addr base, Addr limit, 
+				void *closureP, unsigned long closureS) {
+  CBSSetMinSizeClosure closure;
+  Size size;
+  
+  if(*clientPIO !=  NULL) {
+    closure = (CBSSetMinSizeClosure)closureP;
+    AVER(closure->old < closure->new);
+    size = AddrOffset(base, limit);
+    if(size >= closure->old && size < closure->new)
+    (*cbs->shrink)(clientPIO, cbs, base, limit);
+  }
+
+  return TRUE;
+}
+void CBSSetMinSize(CBS cbs, Size minSize) {
+  CBSSetMinSizeClosureStruct closure;
+
+  AVERT(CBS, cbs);
+
+  closure.old = cbs->minSize;
+  closure.new = minSize;
+
+  if(minSize < cbs->minSize)
+    CBSIterate(cbs, &CBSSetMinSizeGrow, (void *)&closure, 0);
+  else if(minSize > cbs->minSize)
+    CBSIterate(cbs, &CBSSetMinSizeShrink, (void *)&closure, 0);
+
+  cbs->minSize = minSize;
+}
 
 /* CBSDescribe -- Describe a CBS
  *

@@ -1,6 +1,6 @@
 /* impl.c.splay: SPLAY TREE IMPLEMENTATION
  *
- * $HopeName: MMsrc!splay.c(MMdevel_gavinm_splay.3) $
+ * $HopeName: MMsrc!splay.c(MMdevel_gavinm_splay.4) $
  * Copyright (C) 1998 Harlequin Group plc, all rights reserved.
  *
  * .readership: Any MPS developer.
@@ -21,7 +21,7 @@
 #include "mpm.h"
 
 
-SRCID(splay, "$HopeName: MMsrc!splay.c(MMdevel_gavinm_splay.3) $");
+SRCID(splay, "$HopeName: MMsrc!splay.c(MMdevel_gavinm_splay.4) $");
 
 /* Basic getter and setter methods */
 #define SplayTreeRoot(t) RVALUE((t)->root)
@@ -447,6 +447,70 @@ Res SplayTreeSearch(SplayNode *nodeReturn, SplayTree tree, void *key) {
 }
 
 
+/* SplayTreePredecessor -- Splays a tree at the root's predecessor 
+ *
+ * Must not be called on en empty tree.  Predecessor need not exist,
+ * in which case NULL is returned, and the tree is unchanged.
+ */
+
+static SplayNode SplayTreePredecessor(SplayTree tree, void *key) {
+  SplayNode oldRoot, newRoot;
+
+  AVERT(SplayTree, tree);
+
+  oldRoot = SplayTreeRoot(tree);
+  AVERT(SplayNode, oldRoot);
+
+  if(SplayNodeLeftChild(oldRoot) == NULL) {
+    newRoot = NULL; /* No predecessor */
+  } else {
+    /* temporarily chop off the right half-tree, inclusive of root */
+    SplayTreeSetRoot(tree, SplayNodeLeftChild(oldRoot));
+    SplayNodeSetLeftChild(oldRoot, NULL);
+    if(SplaySplay(&newRoot, tree, key)) {
+      NOTREACHED; /* Another matching node found */
+    } else {
+      AVER(SplayNodeRightChild(newRoot) == NULL);
+      SplayNodeSetRightChild(newRoot, oldRoot);
+    }
+  }
+
+  return newRoot;
+}
+
+
+/* SplayTreeSuccessor -- Splays a tree at the root's successor 
+ *
+ * Must not be called on en empty tree.  Successor need not exist,
+ * in which case NULL is returned, and the tree is unchanged.
+ */
+
+static SplayNode SplayTreeSuccessor(SplayTree tree, void *key) {
+  SplayNode oldRoot, newRoot;
+
+  AVERT(SplayTree, tree);
+
+  oldRoot = SplayTreeRoot(tree);
+  AVERT(SplayNode, oldRoot);
+
+  if(SplayNodeRightChild(oldRoot) == NULL) {
+    newRoot = NULL; /* No successor */
+  } else {
+    /* temporarily chop off the left half-tree, inclusive of root */
+    SplayTreeSetRoot(tree, SplayNodeRightChild(oldRoot));
+    SplayNodeSetRightChild(oldRoot, NULL);
+    if(SplaySplay(&newRoot, tree, key)) {
+      NOTREACHED; /* Another matching node found */
+    } else {
+      AVER(SplayNodeLeftChild(newRoot) == NULL);
+      SplayNodeSetLeftChild(newRoot, oldRoot);
+    }
+  }
+
+  return newRoot;
+}
+
+
 /* SplayTreeNeighbours
  *
  * Search for the two nodes in a splay tree neighbouring a key.
@@ -458,55 +522,27 @@ Res SplayTreeSearch(SplayNode *nodeReturn, SplayTree tree, void *key) {
 
 Res SplayTreeNeighbours(SplayNode *leftReturn, SplayNode *rightReturn,
                         SplayTree tree, void *key) {
-  SplayNode firstNeighbour, secondNeighbour;
+  SplayNode neighbour;
 
   AVERT(SplayTree, tree);
   AVER(leftReturn != NULL);
   AVER(rightReturn != NULL);
 
-  if(SplaySplay(&firstNeighbour, tree, key)) {
+  if(SplaySplay(&neighbour, tree, key)) {
     return ResFAIL;
-  } else if(firstNeighbour == NULL) {
+  } else if(neighbour == NULL) {
     *leftReturn = *rightReturn = NULL;
   } else {
-    switch(SplayCompare(tree, key, firstNeighbour)) {
+    switch(SplayCompare(tree, key, neighbour)) {
 
     case CompareLESS: {
-      if(SplayNodeLeftChild(firstNeighbour) == NULL) {
-	*leftReturn = NULL;
-	*rightReturn = firstNeighbour;
-      } else {
-	/* temporarily chop off the right half-tree, inclusive of root */
-	SplayTreeSetRoot(tree, SplayNodeLeftChild(firstNeighbour));
-	SplayNodeSetLeftChild(firstNeighbour, NULL);
-	if(SplaySplay(&secondNeighbour, tree, key)) {
-	  NOTREACHED;
-	} else {
-	  AVER(SplayNodeRightChild(secondNeighbour) == NULL);
-	  SplayNodeSetRightChild(secondNeighbour, firstNeighbour);
-	  *leftReturn = secondNeighbour;
-	  *rightReturn = firstNeighbour;
-	}
-      }
+      *rightReturn = neighbour;
+      *leftReturn = SplayTreePredecessor(tree, key);
     } break;
 
     case CompareGREATER: {
-      if(SplayNodeRightChild(firstNeighbour) == NULL) {
-	*leftReturn = firstNeighbour;
-	*rightReturn = NULL;
-      } else {
-	/* temporarily chop off the left half-tree, inclusive of root */
-	SplayTreeSetRoot(tree, SplayNodeRightChild(firstNeighbour));
-	SplayNodeSetRightChild(firstNeighbour, NULL);
-	if(SplaySplay(&secondNeighbour, tree, key)) {
-	  NOTREACHED;
-	} else {
-	  AVER(SplayNodeLeftChild(secondNeighbour) == NULL);
-	  SplayNodeSetLeftChild(secondNeighbour, firstNeighbour);
-	  *leftReturn = firstNeighbour;
-	  *rightReturn = secondNeighbour;
-	}
-      }
+      *leftReturn = neighbour;
+      *rightReturn = SplayTreeSuccessor(tree, key);
     } break;
 
     case CompareEQUAL:
@@ -516,6 +552,41 @@ Res SplayTreeNeighbours(SplayNode *leftReturn, SplayNode *rightReturn,
     }
   }
   return ResOK;
+}
+
+
+/* SplayTreeFirst, SplayTreeNext -- Iterators
+ *
+ * SplayTreeFirst receives a key that must precede all 
+ * nodes in the tree.  It returns NULL if the tree is empty.  
+ * Otherwise, it splays the tree to the first node, and returns the 
+ * new root.  See design.mps.splay.function.splay.tree.first.
+ *
+ * SplayTreeNext takes a tree and splays it to the successor of the 
+ * old root, and returns the new root.  Returns NULL is there are 
+ * no successors.  It takes a key for the old root.  See 
+ * design.mps.splay.function.splay.tree.next.
+ */
+
+SplayNode SplayTreeFirst(SplayTree tree, void *zeroKey) {
+  SplayNode node;
+  AVERT(SplayTree, tree);
+
+  if(SplayTreeRoot(tree) == NULL) {
+    node = NULL;
+  } else if(SplaySplay(&node, tree, zeroKey)) {
+    NOTREACHED;
+  } else {
+    AVER(SplayNodeLeftChild(node) == NULL);
+  }
+
+  return node;
+}
+
+SplayNode SplayTreeNext(SplayTree tree, void *oldKey) {
+  AVERT(SplayTree, tree);
+
+  return SplayTreeSuccessor(tree, oldKey);
 }
 
 

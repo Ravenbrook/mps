@@ -1,6 +1,6 @@
 /*  impl.c.cbstest: COALESCING BLOCK STRUCTURE TEST
  *
- *  $HopeName: MMsrc!cbstest.c(MMdevel_gavinm_splay.2) $
+ *  $HopeName: MMsrc!cbstest.c(MMdevel_gavinm_splay.3) $
  * Copyright (C) 1998 Harlequin Group plc.  All rights reserved.
  */
 
@@ -20,7 +20,7 @@
 #endif /* MPS_OS_SU */
 
 
-SRCID(cbstest, "$HopeName: MMsrc!cbstest.c(MMdevel_gavinm_splay.2) $");
+SRCID(cbstest, "$HopeName: MMsrc!cbstest.c(MMdevel_gavinm_splay.3) $");
 
 #define ArraySize ((size_t)123456)
 #define nOperations ((size_t)125000)
@@ -31,10 +31,61 @@ SRCID(cbstest, "$HopeName: MMsrc!cbstest.c(MMdevel_gavinm_splay.2) $");
 
 static BT alloc; /* the BT which we will use for alloc */
 static Arena arena; /* the ANSI arena which we use to allocate the BT */
-static CBSStruct cbs;
+static CBSStruct cbsStruct;
 static void *block;
 static long nAllocateTried, nAllocateSucceeded, nDeallocateTried,
   nDeallocateSucceeded;
+
+typedef struct check_cbs_closure_s {
+  Addr base;
+  Addr limit;
+  Addr oldLimit;
+} check_cbs_closure_s, *check_cbs_closure_t;
+
+static Bool check_cbs_action(void **clientPIO, CBS cbs, 
+			     Addr base, Addr limit,
+			     void *closureP, unsigned long closureS) {
+  check_cbs_closure_t closure = (check_cbs_closure_t)closureP;
+
+  AVER(closure != NULL);
+  AVER(closureS == 0);
+
+  AVER(clientPIO != NULL);
+  AVER(*clientPIO == NULL);
+  AVER(limit > base);
+
+  if(closure->oldLimit == NULL) {
+    if(base > closure->base)
+      AVER(BTIsSetRange(alloc, 0, index_of_addr(base)));
+    AVER(base >= closure->base);
+  } else {
+    AVER(base > closure->oldLimit);
+    AVER(BTIsSetRange(alloc, index_of_addr(closure->oldLimit), 
+		      index_of_addr(base)));
+  }
+  AVER(BTIsResRange(alloc, index_of_addr(base), index_of_addr(limit)));
+
+
+  closure->oldLimit = limit;
+
+  return TRUE;
+}
+
+static void check_cbs(CBS cbs) {
+  check_cbs_closure_s closure;
+
+  closure.base = (Addr)block;
+  closure.limit = AddrAdd(closure.base, ArraySize);
+  closure.oldLimit = NULL;
+
+  CBSIterate(cbs, check_cbs_action, (void *)&closure, 0);
+
+  if(closure.oldLimit ==NULL)
+    AVER(BTIsSetRange(alloc, 0, index_of_addr(closure.limit)));
+  else if(closure.limit > closure.oldLimit)
+    AVER(BTIsSetRange(alloc, index_of_addr(closure.oldLimit),
+		      index_of_addr(closure.limit)));
+}
 
 /* Not very uniform, but never mind. */
 static long random(long limit) {
@@ -73,7 +124,7 @@ static void allocate(mps_addr_t base, mps_addr_t limit) {
 
   nAllocateTried++;
 
-  res = CBSDelete(&cbs, base, limit);
+  res = CBSDelete(&cbsStruct, base, limit);
 
   if(res == ResOK) {
     if(!isRes)  
@@ -105,7 +156,7 @@ static void deallocate(mps_addr_t base, mps_addr_t limit) {
 
   nDeallocateTried++;
 
-  res = CBSInsert(&cbs, base, limit);
+  res = CBSInsert(&cbsStruct, base, limit);
 
   if(res == ResOK) {
     if(!isSet)  
@@ -141,7 +192,7 @@ extern int main(int argc, char *argv[])
   if (res != MPS_RES_OK) 
     ErrorExit("failed to create bit table.");
 
-  res = CBSInit(arena, &cbs, NULL, NULL, NULL, NULL, 0);
+  res = CBSInit(arena, &cbsStruct, NULL, NULL, NULL, NULL, 0);
   if(res != MPS_RES_OK)
     ErrorExit("failed to initialise CBS.");
 
@@ -160,9 +211,11 @@ extern int main(int argc, char *argv[])
     } else {
       deallocate(base, limit);
     }
+    if(i % 5000 == 0)
+      check_cbs(&cbsStruct);
   }
 
-  CBSDescribe(&cbs, mps_lib_get_stdout());
+  CBSDescribe(&cbsStruct, mps_lib_get_stdout());
 
   printf("Number of allocations attempted: %ld\n", nAllocateTried);
   printf("Number of allocations succeeded: %ld\n", nAllocateSucceeded);

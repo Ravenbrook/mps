@@ -1,6 +1,6 @@
 /* impl.h.mpmtypes: MEMORY POOL MANAGER TYPES
  *
- * $HopeName: MMsrc!mpmtypes.h(MMdevel_gavinm_splay.2) $
+ * $HopeName: MMsrc!mpmtypes.h(MMdevel_gavinm_splay.3) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  *
  * .readership: MM developers.
@@ -96,6 +96,9 @@ typedef void (*CBSNewMethod)(void **pReturn, CBS cbs, Addr base, Addr limit);
 typedef void (*CBSShrinkMethod)(void **pIO, CBS cbs, Addr base, Addr limit);
 typedef void (*CBSGrowMethod)(void **pIO, CBS cbs, Addr base, Addr limit);
 typedef void (*CBSDeleteMethod)(void *p, CBS cbs);
+typedef Bool (*CBSIterateMethod)(void **clientPIO, CBS cbs, 
+				 Addr base, Addr limit, 
+				 void *closureP, unsigned long closureS);
 
 
 /* Arena*Method -- see @@@@ */

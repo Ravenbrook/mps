@@ -1,6 +1,6 @@
 /* impl.h.mpm: MEMORY POOL MANAGER DEFINITIONS
  *
- * $HopeName: MMsrc!mpm.h(MMdevel_gavinm_splay.2) $
+ * $HopeName: MMsrc!mpm.h(MMdevel_gavinm_splay.3) $
  * Copyright (C) 1998. Harlequin Group plc. All rights reserved.
  */
 
@@ -827,6 +827,8 @@ extern Res SplayTreeSearch(SplayNode *nodeReturn,
 extern Res SplayTreeNeighbours(SplayNode *leftReturn, 
 			       SplayNode *rightReturn,
                                SplayTree tree, void *key);
+extern SplayNode SplayTreeFirst(SplayTree tree, void *zeroKey);
+extern SplayNode SplayTreeNext(SplayTree tree, void *oldKey);
 extern Res SplayTreeDescribe(SplayTree tree, mps_lib_FILE *stream,
 			     SplayNodeDescribeMethod nodeDescribe);
 
@@ -839,6 +841,9 @@ extern Res CBSInit(Arena arena, CBS cbs,
 extern void CBSFinish(CBS cbs);
 extern Res CBSInsert(CBS cbs, Addr base, Addr limit);
 extern Res CBSDelete(CBS cbs, Addr base, Addr limit);
+extern void CBSIterate(CBS cbs, CBSIterateMethod iterate, 
+		       void *closureP, unsigned long closureS);
+extern void CBSSetMinSize(CBS cbs, Size minSize);
 extern Res CBSDescribe(CBS cbs, mps_lib_FILE *stream);
 
 #endif /* mpm_h */
