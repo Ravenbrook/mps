@@ -1,6 +1,6 @@
 /* impl.c.cbs: COALESCING BLOCK STRUCTURE IMPLEMENTATION
  *
- * $HopeName: MMsrc!cbs.c(MMdevel_color_pool.1) $
+ * $HopeName: MMsrc!cbs.c(MMdevel_color_pool.2) $
  * Copyright (C) 1998 Harlequin Group plc, all rights reserved.
  *
  * .intro: This is a portable implementation of coalescing block
@@ -18,7 +18,7 @@
 #include "mpm.h"
 
 
-SRCID(cbs, "$HopeName: MMsrc!cbs.c(MMdevel_color_pool.1) $");
+SRCID(cbs, "$HopeName: MMsrc!cbs.c(MMdevel_color_pool.2) $");
 
 
 /* See design.mps.cbs.align */
@@ -99,6 +99,8 @@ static void CBSLeave(CBS cbs) {
   return;
 }
 
+
+/* CBSCheck -- Check CBS */
 
 Bool CBSCheck(CBS cbs) {
   /* See .enter-leave.simple. */
@@ -195,6 +197,7 @@ static Compare CBSSplayCompare(void *key, SplayNode node) {
     return CompareEQUAL;
 }
 
+
 static Bool CBSTestNode(SplayTree tree, SplayNode node, 
                         void *closureP, unsigned long closureS)
 {
@@ -230,6 +233,7 @@ static Bool CBSTestTree(SplayTree tree, SplayNode node,
 
   return block->maxSize >= size;
 }
+
 
 static void CBSUpdateNode(SplayTree tree, SplayNode node,
                           SplayNode leftChild, SplayNode rightChild)
@@ -1333,7 +1337,7 @@ static Bool CBSFindDeleteCheck(CBSFindDelete findDelete)
   return TRUE;
 }
 
-typedef (*CBSDeleteMethod)(CBS cbs, Addr base, Addr limit);
+typedef Res (*CBSDeleteMethod)(CBS cbs, Addr base, Addr limit);
 
 static void CBSFindDeleteRange(Addr *baseReturn, Addr *limitReturn, 
                                CBS cbs, Addr base, Addr limit, Size size, 
