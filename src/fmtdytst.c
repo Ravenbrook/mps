@@ -100,11 +100,3 @@ mps_addr_t dylan_read(mps_addr_t addr)
 
   return addr;
 }
-
-mps_bool_t dylan_check(mps_addr_t addr)
-{
-  assert(addr != 0);
-  assert(((mps_word_t)addr & (ALIGN-1)) == 0);
-  assert(dylan_wrapper_check((mps_word_t *)((mps_word_t *)addr)[0]));
-  return 1;
-}

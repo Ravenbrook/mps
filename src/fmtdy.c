@@ -1,6 +1,6 @@
 /* impl.c.fmtdy: DYLAN OBJECT FORMAT IMPLEMENTATION
  *
- *  $HopeName: MMsrc!fmtdy.c(MM_dylan_sunflower.1) $
+ *  $HopeName: MMsrc!fmtdy.c(MM_dylan_honeybee.2) $
  *  Copyright (C) 1996,1997 Harlequin Group, all rights reserved.
  *
  *  All objects, B:
@@ -709,3 +709,12 @@ mps_fmt_A_s *dylan_fmt_A_weak(void)
 {
   return &dylan_fmt_A_weak_s;
 }
+
+mps_bool_t dylan_check(mps_addr_t addr)
+{
+  assert(addr != 0);
+  assert(((mps_word_t)addr & (ALIGN-1)) == 0);
+  assert(dylan_wrapper_check((mps_word_t *)((mps_word_t *)addr)[0]));
+  return 1;
+}
+
