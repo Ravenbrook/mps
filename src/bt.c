@@ -1,6 +1,6 @@
 /* impl.c.bt: BIT TABLES
  *
- * $HopeName: MMsrc!bt.c(MMdevel_gavinm_bt.2) $
+ * $HopeName: MMsrc!bt.c(MMdevel_gavinm_bt.3) $
  * Copyright (C) 1997 Harlequin Group, all rights reserved
  *
  * READERSHIP
@@ -19,7 +19,7 @@
 
 #include "mpm.h"
 
-SRCID(bt, "$HopeName: MMsrc!bt.c(MMdevel_gavinm_bt.2) $");
+SRCID(bt, "$HopeName: MMsrc!bt.c(MMdevel_gavinm_bt.3) $");
 
 /* is the whole word of bits at this index set? */
 
@@ -27,8 +27,10 @@ SRCID(bt, "$HopeName: MMsrc!bt.c(MMdevel_gavinm_bt.2) $");
 
 /* align bit-table indices up and down */
 
-#define BTIndexAlignUp(index) ((Index)SizeAlignUp((index), MPS_WORD_WIDTH))
-#define BTIndexAlignDown(index) ((Index)SizeAlignDown((index), MPS_WORD_WIDTH))
+#define BTIndexAlignUp(index) \
+  ((Index)SizeAlignUp((index), MPS_WORD_WIDTH))
+#define BTIndexAlignDown(index) \
+  ((Index)SizeAlignDown((index), MPS_WORD_WIDTH))
 
 /* return a word mask of bits set only in requested range */
 
@@ -53,10 +55,11 @@ SRCID(bt, "$HopeName: MMsrc!bt.c(MMdevel_gavinm_bt.2) $");
     Index actInnerLimit = BTIndexAlignDown((limit)); \
 \
     if(actInnerBase > actInnerLimit) { /* no inner range */ \
-      if(base < limit) \
+      if(base < limit) { \
         BIT_ACTION(BTWordIndex((base)), \
                    BTMask(BTBitIndex((base)), \
                           BTBitIndex((limit)))); \
+      } \
     } else { \
       Index actWordIndex, actWordBase, actWordLimit; \
 \
@@ -69,11 +72,13 @@ SRCID(bt, "$HopeName: MMsrc!bt.c(MMdevel_gavinm_bt.2) $");
       } \
 \
       for(actWordIndex = actWordBase; actWordIndex < actWordLimit; \
-        ++actWordIndex) \
+        ++actWordIndex) { \
         WORD_ACTION(actWordIndex); \
+      } \
 \
-      if(limit > actInnerLimit) \
+      if(limit > actInnerLimit) { \
         BIT_ACTION(actWordLimit, BTMask(0, BTBitIndex((limit)))); \
+      } \
     } \
   END
 
@@ -83,22 +88,25 @@ SRCID(bt, "$HopeName: MMsrc!bt.c(MMdevel_gavinm_bt.2) $");
     Index actInnerLimit = BTIndexAlignDown((limit)); \
 \
     if(actInnerBase > actInnerLimit) { /* no inner range */ \
-      if(base < limit) \
+      if(base < limit) { \
         BIT_ACTION(BTWordIndex((base)), \
                    BTMask(BTBitIndex((base)), \
-                   BTBitIndex((limit)))); \
+                          BTBitIndex((limit)))); \
+      } \
     } else { \
       Index actWordIndex, actWordBase, actWordLimit; \
 \
       actWordBase = BTWordIndex(actInnerBase); \
       actWordLimit = BTWordIndex(actInnerLimit); \
 \
-      if(limit > actInnerLimit) \
+      if(limit > actInnerLimit) { \
         BIT_ACTION(actWordLimit, BTMask(0, BTBitIndex((limit)))); \
+      } \
 \
       for(actWordIndex = actWordLimit; actWordIndex > actWordBase; \
-        --actWordIndex) \
+        --actWordIndex) { \
         WORD_ACTION(actWordIndex-1); \
+      } \
       if(base < actInnerBase) { \
         BIT_ACTION(actWordBase-1, \
 		   BTMask(BTBitIndex((base)), MPS_WORD_WIDTH)); \
@@ -301,7 +309,7 @@ static Index BTFindSetInWord(Word word)
   index = 0;
   
   while(maskWidth != (Count)0) {
-    if(word & mask != (Word)0) {
+    if((word & mask) == (Word)0) {
       index += maskWidth;
       word >>= maskWidth;
     }
@@ -332,7 +340,7 @@ static Index BTFindSetInWordHigh(Word word)
   index = 0;
   
   while(maskWidth != (Count)0) {
-    if(word & mask != (Word)0) 
+    if((word & mask) != (Word)0) 
       index += maskWidth;
     else
       word <<= maskWidth;
