@@ -1,6 +1,6 @@
 /* impl.h.mpm: MEMORY POOL MANAGER DEFINITIONS
  *
- * $HopeName: !mpm.h(trunk.38) $
+ * $HopeName: MMsrc!mpm.h(MMdevel_config_thread.1) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  */
 
@@ -404,9 +404,23 @@ extern void SpaceDestroy(Space space);
 extern Bool SpaceCheck(Space space);
 extern Res SpaceDescribe(Space space, mps_lib_FILE *stream);
 extern Bool SpaceAccess(Addr addr, AccessSet mode);
-extern void SpaceEnter(Space space);
-extern void SpaceLeave(Space space);
-extern void SpacePoll(Space space);
+
+extern void (SpaceEnter)(Space space);
+#if defined(THREAD_SINGLE) && defined(PROTECTION_NONE)
+#define SpaceEnter(space)  NOOP
+#endif
+extern void (SpaceLeave)(Space space);
+#if defined(THREAD_SINGLE) && defined(PROTECTION_NONE)
+#define SpaceLeave(space)  NOOP
+#endif
+
+extern void (SpacePoll)(Space space);
+#ifdef MPS_PROD_EPCORE
+#define SpacePoll(space)  NOOP
+#endif
+/* .nogc.why: ScriptWorks doesn't use MM-provided incremental GC, so */
+/* doesn't need to poll when allocating. */
+
 extern Res SpaceAlloc(void **baseReturn, Space space, Size size);
 extern void SpaceFree(Space space, Addr base, Size size);
 
