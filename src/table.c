@@ -1,7 +1,7 @@
 /* impl.h.table: A dictionary mapping a Word to a void*
  * Copyright (C) 1997, 1999 Harlequin Group plc.  All rights reserved.
  *
- * $HopeName: MMsrc!table.c(trunk.1) $
+ * $HopeName: !table.c(trunk.2) $
  */
 
 #include "table.h"

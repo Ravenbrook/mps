@@ -2,7 +2,7 @@
  *
  *                          RECURSIVE LOCKS
  *
- *  $HopeName: MMsrc!lock.h(trunk.3) $
+ *  $HopeName: !lock.h(trunk.4) $
  *
  *  Copyright (C) 1995 Harlequin Group, all rights reserved
  *

@@ -1,6 +1,6 @@
 /* impl.c.vmli: VIRTUAL MEMORY MAPPING FOR LINUX
  *
- * $HopeName: MMsrc!vmli.c(trunk.3) $
+ * $HopeName: !vmli.c(trunk.4) $
  * Copyright (C) 1995, 1997, 1998 Harlequin Group, all rights reserved
  *
  * Readership: Any MPS developer
@@ -64,7 +64,7 @@
 /* for sysconf(2),close(2) */
 #include <unistd.h>
 
-SRCID(vmli, "$HopeName: MMsrc!vmli.c(trunk.3) $");
+SRCID(vmli, "$HopeName: !vmli.c(trunk.4) $");
 
 
 /* VMStruct -- virtual memory structure */
