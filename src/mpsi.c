@@ -1,6 +1,6 @@
 /* impl.c.mpsi: MEMORY POOL SYSTEM C INTERFACE LAYER
  *
- * $HopeName: !mpsi.c(trunk.72) $
+ * $HopeName: MMsrc!mpsi.c(MMdevel_configura.1) $
  * Copyright (C) 1999 Harlequin Limited.  All rights reserved.
  *
  * .purpose: This code bridges between the MPS interface to C,
@@ -52,7 +52,7 @@
 #include "mps.h"
 #include "mpsavm.h" /* only for mps_space_create */
 
-SRCID(mpsi, "$HopeName: !mpsi.c(trunk.72) $");
+SRCID(mpsi, "$HopeName: MMsrc!mpsi.c(MMdevel_configura.1) $");
 
 
 /* mpsi_check -- check consistency of interface mappings
@@ -443,7 +443,8 @@ mps_res_t mps_fmt_create_A(mps_fmt_t *mps_fmt_o,
                      (FormatIsMovedMethod)mps_fmt_A->isfwd,
                      (FormatCopyMethod)mps_fmt_A->copy,
                      (FormatPadMethod)mps_fmt_A->pad,
-                     NULL);
+                     NULL,
+                     (Size)0);
 
   ArenaLeave(arena);
 
@@ -451,6 +452,7 @@ mps_res_t mps_fmt_create_A(mps_fmt_t *mps_fmt_o,
   *mps_fmt_o = (mps_fmt_t)format;
   return MPS_RES_OK;
 }
+
 
 /* mps_fmt_create_B -- create an object format of variant B
  *
@@ -480,7 +482,8 @@ mps_res_t mps_fmt_create_B(mps_fmt_t *mps_fmt_o,
                      (FormatIsMovedMethod)mps_fmt_B->isfwd,
                      (FormatCopyMethod)mps_fmt_B->copy,
                      (FormatPadMethod)mps_fmt_B->pad,
-                     (FormatClassMethod)mps_fmt_B->class);
+                     (FormatClassMethod)mps_fmt_B->xclass,
+                     (Size)0);
 
   ArenaLeave(arena);
 
@@ -488,6 +491,48 @@ mps_res_t mps_fmt_create_B(mps_fmt_t *mps_fmt_o,
   *mps_fmt_o = (mps_fmt_t)format;
   return MPS_RES_OK;
 }
+
+
+/* mps_fmt_create_C -- create an object format of variant C
+ *
+ * .fmt.create..purpose: This function converts an object format
+ * spec of variant "" into an MPM Format object.  See
+ * design.mps.interface.c.fmt.extend for justification of the
+ * way that the format structure is declared as "mps_fmt_".
+ */ 
+
+mps_res_t mps_fmt_create_C(mps_fmt_t *mps_fmt_o,
+                           mps_arena_t mps_arena,
+                           mps_fmt_C_t mps_fmt)
+{
+  Arena arena = (Arena)mps_arena;
+  Format format;
+  Res res;
+
+  ArenaEnter(arena);
+
+  AVER(mps_fmt != NULL);
+
+  res = FormatCreate(&format,
+                     arena,
+                     (Align)mps_fmt->align,
+                     FormatVarietyC,
+                     (FormatScanMethod)mps_fmt->scan,
+                     (FormatSkipMethod)mps_fmt->skip,
+                     (FormatMoveMethod)mps_fmt->fwd,
+                     (FormatIsMovedMethod)mps_fmt->isfwd,
+                     (FormatCopyMethod)mps_fmt->copy,
+                     (FormatPadMethod)mps_fmt->pad,
+                     NULL,
+                     (Size)mps_fmt->headerSize);
+
+  ArenaLeave(arena);
+
+  if(res != ResOK) return res;
+  *mps_fmt_o = (mps_fmt_t)format;
+  return MPS_RES_OK;
+}
+
 
 void mps_fmt_destroy(mps_fmt_t mps_fmt)
 {

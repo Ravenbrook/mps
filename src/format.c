@@ -1,6 +1,6 @@
 /* impl.c.format: OBJECT FORMATS
  *
- * $HopeName: !format.c(trunk.20) $
+ * $HopeName: MMsrc!format.c(MMdevel_configura.1) $
  * Copyright (C) 1999.  Harlequin Limited.  All rights reserved.
  *
  * DESIGN
@@ -10,7 +10,7 @@
 
 #include "mpm.h"
 
-SRCID(format, "$HopeName: !format.c(trunk.20) $");
+SRCID(format, "$HopeName: MMsrc!format.c(MMdevel_configura.1) $");
 
 
 Bool FormatCheck(Format format)
@@ -18,8 +18,9 @@ Bool FormatCheck(Format format)
   CHECKS(Format, format);
   CHECKU(Arena, format->arena);
   CHECKL(format->serial < format->arena->formatSerial);
-  CHECKL(format->variety == FormatVarietyA || 
-	 format->variety == FormatVarietyB);
+  CHECKL(format->variety == FormatVarietyA
+         || format->variety == FormatVarietyB
+         || format->variety == FormatVarietyC);
   CHECKL(RingCheck(&format->arenaRing));
   CHECKL(AlignCheck(format->alignment));
   /* @@@@ alignment should be less than maximum allowed */
@@ -50,7 +51,8 @@ Res FormatCreate(Format *formatReturn, Arena arena,
                  FormatIsMovedMethod isMoved,
                  FormatCopyMethod copy,
                  FormatPadMethod pad,
-		 FormatClassMethod class)
+		 FormatClassMethod class,
+                 Size headerSize)
 {
   Format format;
   Res res;
@@ -75,10 +77,16 @@ Res FormatCreate(Format *formatReturn, Arena arena,
   format->copy = copy;
   format->pad = pad;
   if(class == NULL) {
-    AVER(variety == FormatVarietyA); 
     format->class = &FormatDefaultClass;
   } else {
+    AVER(variety == FormatVarietyB); 
     format->class = class;
+  }
+  if(headerSize != 0) {
+    AVER(variety == FormatVarietyC);
+    format->headerSize = headerSize;
+  } else {
+    format->headerSize = 0;
   }
 
   format->sig = FormatSig;
