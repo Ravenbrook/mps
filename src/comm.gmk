@@ -1,6 +1,6 @@
 # impl.gmk.comm: COMMON GNUMAKEFILE FRAGMENT
 #
-# $HopeName: !comm.gmk(trunk.16) $
+# $HopeName: MMsrc!comm.gmk(MMdevel_lclint_23h.1) $
 # Copyright (C) 1995,1996,1997 Harlequin Group, all rights reserved
 #
 # DSCRIPTION
@@ -111,6 +111,19 @@ error "comm.gmk: TESTLIB not defined"
 endif
 
 
+# INPUTS WITH DEFAULTS
+# COUTPUT is the flag for setting the output of the compiler.
+# For any normal compiler, this is "-o".
+ifndef COUTPUT
+COUTPUT = -o
+endif
+# CSUPPRESSLINK is the flag for suppressing the link stage of
+# the compiler.  For any normal compiler, this is "-c".
+ifndef CSUPPRESSLINK
+CSUPPRESSLINK = -c
+endif
+ 
+  
 # DECLARATIONS
 
 ifdef NOISY
@@ -356,7 +369,7 @@ define run-cc
 $(ECHO) "$(PFM): $@"
 test -d $(PFM) || mkdir $(PFM)
 test -d $(PFM)/$(VARIETY) || mkdir $(PFM)/$(VARIETY)
-$(CC) $(CFLAGS) -c -o $@ $<
+$(CC) $(CFLAGS) $(CSUPPRESSLINK) $(COUTPUT) $@ $<
 endef
 
 $(PFM)/$(VARIETY)/%.o: %.c
