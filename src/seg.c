@@ -1,7 +1,7 @@
 /* impl.c.seg: SEGMENTS
  *
- * $HopeName: !seg.c(trunk.13) $
- * Copyright (C) 1998 Harlequin Group plc.  All rights reserved.
+ * $HopeName: MMsrc!seg.c(MM_epcore_brisling.1) $
+ * Copyright (C) 1998, 1999 Harlequin Limited.  All rights reserved.
  *
  * .design: The design for this module is design.mps.seg.
  *
@@ -16,7 +16,7 @@
 
 #include "mpm.h"
 
-SRCID(seg, "$HopeName: !seg.c(trunk.13) $");
+SRCID(seg, "$HopeName: MMsrc!seg.c(MM_epcore_brisling.1) $");
 
 
 /* SegCheck -- check the integrity of a segment */
@@ -148,6 +148,10 @@ void SegSetSummary(Seg seg, RefSet summary)
 
   AVERT(Seg, seg);
 
+#ifdef PROTECTION_NONE
+  summary = RefSetUNIV;
+#endif
+
   arena = PoolArena(seg->_pool);
   oldSummary = seg->_summary;
   seg->_summary = summary;
@@ -270,6 +274,12 @@ void SegSetRankAndSummary(Seg seg, RankSet rankSet, RefSet summary)
 
   /* rankSet == RankSetEMPTY implies summary == RefSetEMPTY */
   AVER(rankSet != RankSetEMPTY || summary == RefSetEMPTY);
+
+#ifdef PROTECTION_NONE
+  if (rankSet != RankSetEMPTY) {
+    summary = RefSetUNIV;
+  }
+#endif
 
   arena = PoolArena(seg->_pool);
 
