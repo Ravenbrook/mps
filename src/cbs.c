@@ -1,7 +1,7 @@
 /* impl.c.cbs: COALESCING BLOCK STRUCTURE IMPLEMENTATION
  *
- * $HopeName: MMsrc!cbs.c(MMdevel_color_pool.2) $
- * Copyright (C) 1998 Harlequin Group plc, all rights reserved.
+ * $HopeName: MMsrc!cbs.c(MMdevel_color_pool.3) $
+ * Copyright (C) 1998, 1999 Harlequin Group plc.  All rights reserved.
  *
  * .intro: This is a portable implementation of coalescing block
  * structures.
@@ -18,7 +18,7 @@
 #include "mpm.h"
 
 
-SRCID(cbs, "$HopeName: MMsrc!cbs.c(MMdevel_color_pool.2) $");
+SRCID(cbs, "$HopeName: MMsrc!cbs.c(MMdevel_color_pool.3) $");
 
 
 /* See design.mps.cbs.align */
@@ -1389,6 +1389,8 @@ static void CBSFindDeleteRange(Addr *baseReturn, Addr *limitReturn,
 }
 
 
+/* CBSFindFirst -- find the first block of at least the given size */
+
 Bool CBSFindFirst(Addr *baseReturn, Addr *limitReturn,
                   CBS cbs, Size size, CBSFindDelete findDelete) 
 {
@@ -1470,6 +1472,8 @@ Bool CBSFindFirst(Addr *baseReturn, Addr *limitReturn,
   return found;
 }
 
+
+/* CBSFindLast -- find the last block of at least the given size */
 
 Bool CBSFindLast(Addr *baseReturn, Addr *limitReturn,
                  CBS cbs, Size size, CBSFindDelete findDelete) 
@@ -1558,6 +1562,8 @@ Bool CBSFindLast(Addr *baseReturn, Addr *limitReturn,
 }
 
 
+/* CBSFindLargest -- find the largest block in the CBS */
+
 Bool CBSFindLargest(Addr *baseReturn, Addr *limitReturn,
                     CBS cbs, CBSFindDelete findDelete)
 {
@@ -1608,7 +1614,7 @@ Bool CBSFindLargest(Addr *baseReturn, Addr *limitReturn,
     for(block = cbs->emergencyBlockList;
         block != NULL;
         block = CBSEmergencyBlockNext(block)) {
-      if(!found || CBSEmergencyBlockSize(block) >= size) {
+      if(CBSEmergencyBlockSize(block) >= size) {
         /* .pref: >= so that it prefers the emerg. list to the tree */
         found = TRUE;
         size = CBSEmergencyBlockSize(block);
@@ -1620,8 +1626,8 @@ Bool CBSFindLargest(Addr *baseReturn, Addr *limitReturn,
     }
   }
 
-  if(cbs->emergencyGrainList != NULL && 
-     size <= CBSEmergencyGrainSize(cbs)) { /* see .pref */
+  /* If something was found, it will be larger than an emerg. grain. */
+  if(!found && cbs->emergencyGrainList != NULL) {
     /* Take first grain */
     CBSEmergencyGrain grain = cbs->emergencyGrainList;
 
