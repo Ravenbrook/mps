@@ -2,7 +2,7 @@
  *
  *                   TEST DATABASE DUMPER
  *
- *  $HopeName: MMsrc!dumper.c(MMdevel_protoposm_1.3) $
+ *  $HopeName: MMsrc!dumper.c(MMdevel_protoposm_1.4) $
  *
  *  Copyright (C) 1995 Harlequin Group, all rights reserved
  *
@@ -277,7 +277,7 @@ static headerPage1_t* dump_db_header_page1(database_t *db, PoolPS poolps,
 	  (unsigned long) page1->dataClusterTable);  /* @@@@ */
   fprintf(fp, "\n dataClusterTableSize:  %lx",
 	  (unsigned long) page1->dataClusterTableSize);  /* @@@@ */
-  fprintf(fp, "\n usedSpace:  %d", (int) page1->usedSpace);  /* @@@@ */
+  fprintf(fp, "\n freeSpace:  %d", (int) page1->freeSpace);  /* @@@@ */
   fprintf(fp, "\n schemaVersion:  %d", (int) page1->schemaVersion);  /* @@@@ */
   fprintf(fp, "\n currentLogUid:  %d", (int) page1->currentLogUid);  /* @@@@ */
   fprintf(fp, "\n currentLogName:  %d", (int) page1->currentLogName);  /* @@@@ */
