@@ -1,6 +1,6 @@
 /* impl.c.poolawl: AUTOMATIC WEAK LINKED POOL CLASS
  *
- * $HopeName: MMsrc!poolawl.c(MM_dylan_sunflower.2) $
+ * $HopeName: MMsrc!poolawl.c(MM_dylan_sunflower.3) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  *
  * READERSHIP
@@ -16,7 +16,7 @@
 #include "mpm.h"
 #include "mpscawl.h"
 
-SRCID(poolawl, "$HopeName: MMsrc!poolawl.c(MM_dylan_sunflower.2) $");
+SRCID(poolawl, "$HopeName: MMsrc!poolawl.c(MM_dylan_sunflower.3) $");
 
 
 #define AWLSig	((Sig)0x519b7a37)	/* SIGPooLAWL */
@@ -542,6 +542,7 @@ static Res AWLFix(Pool pool, ScanState ss, Seg seg, Ref *refIO)
 
 static void AWLReclaim(Pool pool, Trace trace, Seg seg)
 {
+  Addr base;
   AWL awl;
   AWLGroup group;
   Count bits;
@@ -559,6 +560,7 @@ static void AWLReclaim(Pool pool, Trace trace, Seg seg)
   AVERT(Space, space);
 
   bits = SegSize(space, seg) >> awl->alignShift;
+  base = SegBase(space, seg);
 
   i = 0;
   while(i < bits) {
@@ -568,8 +570,17 @@ static void AWLReclaim(Pool pool, Trace trace, Seg seg)
       ++i;
       continue;
     }
-    p = AddrAdd(SegBase(space, seg), i << awl->alignShift);
-    j = AddrOffset(SegBase(space, seg), awl->format->skip(p)) >>
+    p = AddrAdd(base, i << awl->alignShift);
+    if(SegBuffer(seg) != NULL) {
+      Buffer buffer = SegBuffer(seg);
+
+      if(p >= BufferScanLimit(buffer)) {
+        AVER(p == BufferScanLimit(buffer));
+	i = AddrOffset(base, BufferLimit(buffer)) >> awl->alignShift;
+	continue;
+      }
+    }
+    j = AddrOffset(base, awl->format->skip(p)) >>
         awl->alignShift;
     AVER(j <= bits);
     if(!BTGet(group->mark, i)) {
