@@ -1,7 +1,7 @@
 /* impl.c.arenavm: VIRTUAL MEMORY BASED ARENA IMPLEMENTATION
  *
- * $HopeName: !arenavm.c(trunk.62) $
- * Copyright (C) 1999.  Harlequin Limited.  All rights reserved.
+ * $HopeName: MMsrc!arenavm.c(MM_dylan_kinglet.1) $
+ * Copyright (C) 1999 Harlequin Limited.  All rights reserved.
  *
  * PURPOSE
  *
@@ -32,7 +32,7 @@
 #include "mpm.h"
 #include "mpsavm.h"
 
-SRCID(arenavm, "$HopeName: !arenavm.c(trunk.62) $");
+SRCID(arenavm, "$HopeName: MMsrc!arenavm.c(MM_dylan_kinglet.1) $");
 
 
 /* @@@@ Arbitrary calculation for the maximum number of distinct */
@@ -2095,12 +2095,11 @@ static void VMFree(Addr base, Size size, Pool pool)
     Tract tract = PageTract(page);
     AVER(TractPool(tract) == pool);
 
-    TractFinish(PageTract(page));
+    TractFinish(tract);
     PageRest(page)->pool = NULL;
     PageRest(page)->type = PageTypeLatent;
     RingInit(&PageRest(page)->latent.arenaRing);
-    RingAppend(&vmArena->latentRing,
-               &PageRest(page)->latent.arenaRing);
+    RingAppend(&vmArena->latentRing, &PageRest(page)->latent.arenaRing);
   }
   arena->spareCommitted += (piLimit - piBase) << chunk->pageShift;
   BTResRange(chunk->allocTable, piBase, piLimit);

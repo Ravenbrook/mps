@@ -1,9 +1,7 @@
 /* impl.c.arenacl: ARENA IMPLEMENTATION USING CLIENT MEMORY
  *
- * $HopeName: !arenacl.c(trunk.18) $
- * Copyright (C) 1999.  Harlequin Limited.  All rights reserved.
- *
- * .readership: MM developers
+ * $HopeName: MMsrc!arenacl.c(MM_dylan_kinglet.1) $
+ * Copyright (C) 1999 Harlequin Limited.  All rights reserved.
  * 
  * .design: See design.mps.arena.client.
  * 
@@ -17,7 +15,7 @@
 #include "mpsacl.h"
 
 
-SRCID(arenacl, "$HopeName: !arenacl.c(trunk.18) $");
+SRCID(arenacl, "$HopeName: MMsrc!arenacl.c(MM_dylan_kinglet.1) $");
 
 
 typedef struct ClientArenaStruct *ClientArena;
@@ -619,6 +617,8 @@ static void ClientFree(Addr base, Size size, Pool pool)
   for(pi = baseIndex; pi < limitIndex; pi++) {
     Page page = &chunk->pageTable[pi];
     Tract tract = PageTract(page);
+
+    UNUSED(tract); /* impl.c.mpm.check.unused */
     AVER(TractPool(tract) == pool);
     TractFinish(PageTract(page));
   }

@@ -1,6 +1,6 @@
 /* impl.c.arena: ARENA IMPLEMENTATION
  *
- * $HopeName: !arena.c(trunk.69) $
+ * $HopeName: MMsrc!arena.c(MM_dylan_kinglet.1) $
  * Copyright (C) 1999 Harlequin Limited.  All rights reserved.
  *
  * .intro: This is the implementation of Arenas.
@@ -34,7 +34,7 @@
 #include "poolmrg.h"
 #include "mps.h"
 
-SRCID(arena, "$HopeName: !arena.c(trunk.69) $");
+SRCID(arena, "$HopeName: MMsrc!arena.c(MM_dylan_kinglet.1) $");
 
 
 /* All static data objects are declared here. See .static */
@@ -209,7 +209,8 @@ Bool ArenaCheck(Arena arena)
     /* design.mps.arena.trace */
     if(TraceSetIsMember(arena->busyTraces, ti)) {
       Trace trace = ArenaTrace(arena, ti);
-      CHECKD(Trace,trace);
+      UNUSED(trace); /* impl.c.mpm.check.unused */
+      CHECKD(Trace, trace);
     } else {
       /* design.mps.arena.trace.invalid */
       CHECKL(ArenaTrace(arena,ti)->sig == SigInvalid);

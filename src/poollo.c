@@ -1,25 +1,18 @@
 /* impl.c.poollo: LEAF POOL CLASS
  *
- * $HopeName: !poollo.c(trunk.16) $
- * Copyright (C) 1999.  Harlequin Limited.  All rights reserved.
- *
- * READERSHIP
- *
- * .readership: Any MPS developer
+ * $HopeName: MMsrc!poollo.c(MM_dylan_kinglet.1) $
+ * Copyright (C) 1999 Harlequin Limited.  All rights reserved.
  *
  * DESIGN
  *
  * .design: see design.mps.poollo
- *
- * This is the implementation of the leaf pool class.
  */
-
 
 #include "mpsclo.h"
 #include "mpm.h"
 #include "mps.h"
 
-SRCID(poollo, "$HopeName: !poollo.c(trunk.16) $");
+SRCID(poollo, "$HopeName: MMsrc!poollo.c(MM_dylan_kinglet.1) $");
 
 
 /* MACROS */
@@ -497,6 +490,9 @@ static Res LOInit(Pool pool, va_list arg)
   return ResOK;
 }
 
+
+/* LOFinish -- finish an LO pool */
+
 static void LOFinish(Pool pool)
 {
   LO lo;
@@ -509,7 +505,9 @@ static void LOFinish(Pool pool)
   RING_FOR(node, &pool->segRing, nextNode) {
     Seg seg = SegOfPoolRing(node);
     LOSeg loseg = SegLOSeg(seg);
+
     AVERT(LOSeg, loseg);
+    UNUSED(loseg); /* impl.c.mpm.check.unused */
     SegFree(seg);
   }
 
