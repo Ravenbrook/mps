@@ -1,6 +1,6 @@
 /* impl.c.arenavm: VIRTUAL MEMORY BASED ARENA IMPLEMENTATION
  *
- * $HopeName: MMsrc!arenavm.c(MMdevel_drj_coop_arena.3) $
+ * $HopeName: MMsrc!arenavm.c(MMdevel_drj_coop_arena.4) $
  * Copyright (C) 1998. Harlequin Group plc. All rights reserved.
  *
  * This is the implementation of the Segment abstraction from the VM
@@ -31,7 +31,7 @@
 #include "mpm.h"
 #include "mpsavm.h"
 
-SRCID(arenavm, "$HopeName: MMsrc!arenavm.c(MMdevel_drj_coop_arena.3) $");
+SRCID(arenavm, "$HopeName: MMsrc!arenavm.c(MMdevel_drj_coop_arena.4) $");
 
 
 typedef struct VMArenaStruct *VMArena;
@@ -1115,9 +1115,23 @@ static Res VMSegAlloc(Seg *segReturn, SegPref pref, Size size,
   AVER(pool != NULL);
 
   if(!VMSegFind(&base, &chunk, vmArena, pref, size)) {
-    /* @@@@ extend arena with new chunk */
+    VMArenaChunk newChunk;
+    Size chunkSize;
+    chunkSize = vmArena->extendBy + size;
+    res = VMArenaChunkCreate(&newChunk, NULL /* spare */,
+			     FALSE /* primary */, vmArena,
+			     chunkSize, 0 /* spareSize */);
+    if(res != ResOK) {
+      /* We could trim chunkSize down to size and try again (but */
+      /* don't). */
+      return res;
+    }
+    RingAppend(&vmArena->chunkRing, &newChunk->arenaRing);
     if(!VMSegFind(&base, &chunk, vmArena, pref, size)) {
       /* even with new chunk didn't work... */
+      /* @@@@ .improve.debug: If the tables of the new chunk */
+      /* were more than vmArena->extendBy then we will have failed */
+      /* to allocate the seg anyway. */
       /* .improve.alloc-fail: This could be because the request was */
       /* too large, or perhaps the arena is fragmented.  We could return a */
       /* more meaningful code. */
