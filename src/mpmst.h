@@ -1,6 +1,6 @@
 /* impl.h.mpmst: MEMORY POOL MANAGER DATA STRUCTURES
  *
- * $HopeName: MMsrc!mpmst.h(MMdevel_action2.3) $
+ * $HopeName: MMsrc!mpmst.h(MMdevel_action2.4) $
  * Copyright (C) 1996,1997 Harlequin Group, all rights reserved.
  *
  * .readership: MM developers.
@@ -552,6 +552,7 @@ typedef struct TraceStruct {
   Space space;			/* owning space */
   RefSet white;			/* superset of refs in white set */
   TraceState state;		/* current state of trace */
+  Size interval;		/* polling interval */
 } TraceStruct;
 
 
@@ -598,6 +599,7 @@ typedef struct SpaceStruct {
   LockStruct lockStruct;        /* space's lock */
   Size pollThreshold;           /* see impl.c.mpsi.poll and SpacePoll */
   Bool insidePoll;              /* prevent recursive polling, see SpacePoll */
+  Size actionInterval;		/* see SpacePoll */
 
   /* arena fields (impl.c.arena*) */
   ArenaStruct arenaStruct;      /* the arena */
