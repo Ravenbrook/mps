@@ -1,6 +1,6 @@
 /* impl.h.mpmst: MEMORY POOL MANAGER DATA STRUCTURES
  *
- * $HopeName: MMsrc!mpmst.h(MMdevel_gens2.2) $
+ * $HopeName: MMsrc!mpmst.h(MMdevel_gens2.3) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  *
  * .readership: MM developers.
@@ -99,6 +99,7 @@ typedef struct PoolClassStruct {
   PoolFixMethod fix;            /* referent reachable during tracing */
   PoolReclaimMethod reclaim;    /* reclaim dead objects after tracing */
   PoolTraceEndMethod traceEnd;
+  PoolBenefitMethod benefit;
   PoolDescribeMethod describe;  /* describe the contents of the pool */
   Sig endSig;                   /* .class.end-sig */
 } PoolClassStruct;
@@ -590,8 +591,6 @@ typedef struct ActionStruct {
   Serial serial;		/* from pool->actionSerial */
   Pool pool;			/* owning pool */
   RingStruct poolRing;		/* link in list of actions in pool */
-  Size size;			/* size of set */
-  double sigmaBirthTime;	/* total birth time of bytes in set */
 } ActionStruct;
 
 

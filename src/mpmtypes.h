@@ -1,8 +1,7 @@
 /* impl.h.mpmtypes: MEMORY POOL MANAGER TYPES
  *
- * $HopeName: MMsrc!mpmtypes.h(MMdevel_gens2.2) $
- * Copyright (C) 1997 The Harlequin Group Limited.  All rights 
- * reserved.
+ * $HopeName: MMsrc!mpmtypes.h(MMdevel_gens2.3) $
+ * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  *
  * .readership: MM developers.
  * .design: design.mps.type
@@ -77,32 +76,29 @@ typedef struct ActionStruct *Action;	/* design.mps.action */
 
 /* Pool*Method -- see design.mps.class-interface */
 
-typedef Res  (*PoolInitMethod)         (Pool pool, va_list arg);
-typedef void (*PoolFinishMethod)       (Pool pool);
-typedef Res  (*PoolAllocMethod)        (Addr *pReturn, Pool pool, 
-                                        Size size);
-typedef void (*PoolFreeMethod)         (Pool pool, Addr old, Size size);
-typedef Res  (*PoolBufferInitMethod)   (Pool pool, Buffer buf);
-typedef void (*PoolBufferFinishMethod) (Pool pool, Buffer buf);
-typedef Res  (*PoolBufferFillMethod)   (Seg *segReturn,
-                                        Addr *baseReturn, Addr *limitReturn,
-                                        Pool pool, Buffer buffer, Size size);
-typedef void (*PoolBufferEmptyMethod)  (Pool pool, Buffer buffer);
-typedef Res  (*PoolDescribeMethod)     (Pool pool, mps_lib_FILE 
-                                        *stream);
-typedef Res  (*PoolTraceBeginMethod)   (Pool pool, Trace trace, Action action);
-typedef Res  (*PoolCondemnMethod)      (Pool pool, Trace trace, 
-                                        Seg seg, Action action);
-typedef void (*PoolGreyMethod)         (Pool pool, Trace trace, 
-                                        Seg seg);
-typedef Res  (*PoolScanMethod)         (ScanState ss, Pool pool, 
-                                        Seg seg);
-typedef Res  (*PoolFixMethod)          (Pool pool, ScanState ss, 
-                                        Seg seg,
-                                        Ref *refIO);
-typedef void (*PoolReclaimMethod)      (Pool pool, Trace trace, 
-                                        Seg seg);
-typedef void (*PoolTraceEndMethod)     (Pool pool, Trace trace, Action action);
+typedef Res (*PoolInitMethod)(Pool pool, va_list arg);
+typedef void (*PoolFinishMethod)(Pool pool);
+typedef Res (*PoolAllocMethod)(Addr *pReturn, Pool pool, Size size);
+typedef void (*PoolFreeMethod)(Pool pool, Addr old, Size size);
+typedef Res (*PoolBufferInitMethod)(Pool pool, Buffer buf);
+typedef void (*PoolBufferFinishMethod)(Pool pool, Buffer buf);
+typedef Res (*PoolBufferFillMethod)(Seg *segReturn,
+                                    Addr *baseReturn, Addr *limitReturn,
+                                    Pool pool, Buffer buffer, Size size);
+typedef void (*PoolBufferEmptyMethod)(Pool pool, Buffer buffer);
+typedef Res (*PoolDescribeMethod)(Pool pool, mps_lib_FILE *stream);
+typedef Res (*PoolTraceBeginMethod)(Pool pool, Trace trace,
+                                    Action action);
+typedef Res (*PoolCondemnMethod)(Pool pool, Trace trace, 
+                                 Seg seg, Action action);
+typedef void (*PoolGreyMethod)(Pool pool, Trace trace, Seg seg);
+typedef Res (*PoolScanMethod)(ScanState ss, Pool pool, Seg seg);
+typedef Res (*PoolFixMethod)(Pool pool, ScanState ss, Seg seg,
+                             Ref *refIO);
+typedef void (*PoolReclaimMethod)(Pool pool, Trace trace, Seg seg);
+typedef void (*PoolTraceEndMethod)(Pool pool, Trace trace,
+                                   Action action);
+typedef double (*PoolBenefitMethod)(Pool pool, Action action);
 
 
 /* Format*Method -- see design.mps.format-interface */
