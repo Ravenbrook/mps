@@ -1,6 +1,6 @@
 /* impl.c.arena: ARENA IMPLEMENTATION
  *
- * $HopeName: MMsrc!arena.c(MMdevel_progress.1) $
+ * $HopeName: MMsrc!arena.c(MMdevel_progress.2) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  *
  * .readership: Any MPS developer
@@ -40,7 +40,7 @@
 /* finalization */
 #include "poolmrg.h"
 
-SRCID(arena, "$HopeName: MMsrc!arena.c(MMdevel_progress.1) $");
+SRCID(arena, "$HopeName: MMsrc!arena.c(MMdevel_progress.2) $");
 
 
 /* All static data objects are declared here. See .static */
@@ -234,7 +234,7 @@ void ArenaInit(Arena arena, ArenaClass class)
   arena->insidePoll = FALSE;
   arena->clamped = FALSE;
   /* design.mps.arena.poll.interval */
-  arena->actionInterval = ARENA_POLL_MAX;  
+  arena->actionInterval = (Size)ARENA_POLL_MAX;  /* @@@@ bogus cast */
   arena->epoch = (Epoch)0;              /* impl.c.ld */
   arena->prehistory = RefSetEMPTY;
   for(i = 0; i < ARENA_LD_LENGTH; ++i)
