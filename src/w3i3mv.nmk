@@ -1,6 +1,6 @@
 # ==== NTI3MV NMAKE FILE ====
 #
-# $HopeName: MMsrc!nti3mv.nmk(MMdevel_protoposm_1.2) $
+# $HopeName: MMsrc!nti3mv.nmk(MMdevel_protoposm_1.3) $
 #
 # Copyright (C) 1995 Harlequin Group, all rights reserved
 #
@@ -11,21 +11,20 @@ STD = <asrtosan> <assert> <deque> <error> <liban> <meter> <misc> <sig>
 MPM = <poolarvm> <vmnt> <space> <pool> <poolclas> <poolmfs> \
       <poolmv> <root> <format> <buffer> <locknt> \
       <coll> <ref> <trace> <fault> <protnt> <shield> <sched> \
-      <thnti3> <ssnti3>
+      <thnti3>
 AMC = <amc> <amcgroup>
 DW  = <dw> <dwformat>
-DB = <poolps> \
-     <barreg> <barrier> <cache> <cluster> <gc> <iohigh> \
-     <iolow> <iomid> <mpm> <segment> <xaction> <list> <dbpool> \
-     <db> <dbm> \
-     <assoc> <broker> <element> <stretchy> <support> <tables>
+DB = <poolps> <db>\
+	 <cluster> <iohigh> <iolow> <dbm> <mapping> <chunk> \
+	 <chunktbl> <clustbl> <swizzle> <assoc> <broker> <element> \
+	 <stretchy> <support> <tables>
 TESTLIB = <testlib>
 
 #!INCLUDE mv.nmk
 
 # ==== ALMOST GENERIC PRODUCT BUILD FOR NMAKE ====
 #
-# $HopeName: MMsrc!nti3mv.nmk(MMdevel_protoposm_1.2) $
+# $HopeName: MMsrc!nti3mv.nmk(MMdevel_protoposm_1.3) $
 #
 # Copyright (C) 1995 Harlequin Group, all rights reserved
 #
@@ -121,7 +120,7 @@ CFLAGSCOMMON = /nologo /W3 /WX $(PFMDEFS) /MT
 CFDEBUG = /DDEBUG /DVALID_NONESTED /Z7
 
 # "release" variety flags
-CFRELEASE = /DVALID_NONE /O2
+CFRELEASE = /DVALID_NONE /O1 /Zi
 
 # "devel" variety flags
 CFDEVEL = /DDEBUG /DVALID_ALL /Z7
@@ -233,12 +232,14 @@ TESTLIBOBJ = $(TESTLIBOBJ0:>=.obj)
 # %%TARGET: Add the target  to the all dependencies
 
 all: poolpscv.exe amcdev.exe lockutnt.exe lockcov.exe stdcover.exe \
-    mpmstres.exe protcv.exe poolpscv.exe poolncv.exe std.lib mpm.lib
+    mpmstres.exe protcv.exe poolpscv.exe poolncv.exe std.lib mpm.lib \
+	fmtcvtr.exe
 
 # Convenience targets
 # %%TARGET: Add a pseudo-target for the new part
 
-poolpscv.exe amcdev.exe lockutnt.exe lockcov.exe stdcover.exe \
+fmtcvtr.exe fmtcvdw.exe poolpscv.exe amcdev.exe lockutnt.exe lockcov.exe \
+    stdcover.exe \
 	mpmstres.exe protcv.exe poolncv.exe std.lib mpm.lib:
 	$(MAKE) /nologo /f $(PFM).nmk TARGET=$@ target
 
@@ -283,6 +284,18 @@ variety: $(PFM)\$(VARIETY)\$(TARGET)
 # %%TARGET: Add your new target here
 
 !IFDEF VARIETY
+
+$(PFM)\$(VARIETY)\fmtcvtr.exe: $(PFM)\$(VARIETY)\poolpscv.obj \
+	$(PFM)\$(VARIETY)\trformat.obj \
+	$(PFM)\$(VARIETY)\fmtcvtr.obj \
+	$(PFM)\$(VARIETY)\memdump.obj \
+	$(DBOBJ) $(MPMOBJ) $(STDOBJ) $(TESTLIBOBJ)
+
+$(PFM)\$(VARIETY)\fmtcvdw.exe: $(PFM)\$(VARIETY)\poolpscv.obj \
+	$(PFM)\$(VARIETY)\dwformat.obj \
+	$(PFM)\$(VARIETY)\fmtcvdw.obj \
+	$(PFM)\$(VARIETY)\memdump.obj \
+	$(DBOBJ) $(MPMOBJ) $(STDOBJ) $(TESTLIBOBJ)
 
 $(PFM)\$(VARIETY)\stdcover.exe: $(PFM)\$(VARIETY)\stdcover.obj $(STDOBJ)
 
