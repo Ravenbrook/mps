@@ -1,6 +1,6 @@
 /* impl.h.mpm: MEMORY POOL MANAGER DEFINITIONS
  *
- * $HopeName: !mpm.h(trunk.20) $
+ * $HopeName: MMsrc!mpm.h(MM_dylan_buffalo.1) $
  * Copyright (C) 1996,1997 Harlequin Group, all rights reserved.
  */
 
@@ -28,7 +28,7 @@
  * control over internal and interface checking.
  */
 
-#ifdef MPM_ASSERT        /* impl.h.target */
+#ifdef ASSERT_MPM               /* see design.mps.config, impl.h.config */
 #define AVER                    ASSERT
 #define AVERT(type, val)        ASSERT(type ## Check(val))
 #else
