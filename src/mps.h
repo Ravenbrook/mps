@@ -1,6 +1,6 @@
 /* impl.h.mps: HARLEQUIN MEMORY POOL SYSTEM C INTERFACE
  *
- * $HopeName: MMsrc!mps.h(MMdevel_drj_commit_limit.1) $
+ * $HopeName: MMsrc!mps.h(MMdevel_drj_commit_limit.2) $
  * Copyright (C) 1997, 1998 The Harlequin Group Limited.  All rights reserved.
  *
  * .readership: customers, MPS developers.
@@ -46,6 +46,7 @@ typedef unsigned mps_message_type_t;	/* message type (unsigned) */
 
 /* Result Codes */
 /* .result-codes: Keep in sync with impl.h.mpmtypes.result-codes */
+/* and the check in impl.c.mpsi.check.rc */
 
 enum {
   MPS_RES_OK = 0,               /* success (always zero) */
