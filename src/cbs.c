@@ -732,7 +732,7 @@ Res CBSInsert(CBS cbs, Addr base, Addr limit) {
     CBSCoalesceWithEmergencyLists(&base, &limit, cbs);
 
     res = CBSInsertIntoTree(cbs, base, limit);
-    if(res != ResOK) {
+    if(res != ResOK && res != ResFAIL) {
       res = CBSAddToEmergencyLists(cbs, base, limit);
       AVER(res == ResOK);
     } else {
