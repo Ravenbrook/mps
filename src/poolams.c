@@ -1,6 +1,6 @@
 /* impl.c.poolams: AUTOMATIC MARK & SWEEP POOL CLASS
  *
- * $HopeName: !poolams.c(trunk.13) $
+ * $HopeName: MMsrc!poolams.c(MMdevel_progress.1) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  * 
  * .readership: any MPS developer.
@@ -17,7 +17,7 @@
 #include "mpm.h"
 #include "mpscams.h"
 
-SRCID(poolams, "$HopeName: !poolams.c(trunk.13) $");
+SRCID(poolams, "$HopeName: MMsrc!poolams.c(MMdevel_progress.1) $");
 
 
 #define AMSSig          ((Sig)0x519A3599) /* SIGnature AMS */
@@ -805,6 +805,13 @@ static Res AMSScanObject(AMSGroup group,
 
   if (colour == AMS_GREY) /* blacken the object */
     BTSet(group->scanTable, i); /* design.mps.poolams.invariant.black */
+
+  /* The object is only added to the preserved size when it is */
+  /* scanned because the size isn't known when it's fixed.  This */
+  /* results in a conservative over-estimation of the amount of */
+  /* work remaining. */
+  ss->preserved += AddrOffset(p, next);
+  ss->scanned += AddrOffset(p, next);
 
   return ResOK;
 }

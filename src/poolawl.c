@@ -1,6 +1,6 @@
 /* impl.c.poolawl: AUTOMATIC WEAK LINKED POOL CLASS
  *
- * $HopeName: MMsrc!poolawl.c(MMdevel_progress.1) $
+ * $HopeName: MMsrc!poolawl.c(MMdevel_progress.2) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  *
  * READERSHIP
@@ -16,7 +16,7 @@
 #include "mpm.h"
 #include "mpscawl.h"
 
-SRCID(poolawl, "$HopeName: MMsrc!poolawl.c(MMdevel_progress.1) $");
+SRCID(poolawl, "$HopeName: MMsrc!poolawl.c(MMdevel_progress.2) $");
 
 
 #define AWLSig	((Sig)0x519b7a37)	/* SIGPooLAWL */
@@ -486,6 +486,16 @@ static Res awlScanObject(Arena arena, ScanState ss,
     ShieldCover(arena, dependentSeg);
   }
 
+  if(res != ResOK)
+    return res;
+
+  /* The object is only added to the preserved size when it is */
+  /* scanned because the size isn't known when it's fixed.  This */
+  /* results in a conservative over-estimation of the amount of */
+  /* work remaining. */
+  ss->preserved += AddrOffset(base, limit);
+  ss->scanned += AddrOffset(base, limit);
+
   return res;
 }
 
@@ -646,7 +656,7 @@ static Res AWLFix(Pool pool, ScanState ss, Seg seg, Ref *refIO)
 	*refIO = (Ref)0;
       } else {
 	BTSet(group->mark, i);
-        SegSetGrey(seg, TraceSetUnion(SegGrey(seg), ss->traces));
+	SegSetGrey(seg, TraceSetUnion(SegGrey(seg), ss->traces));
       }
     }
     break;
