@@ -1,6 +1,6 @@
 /* impl.c.arenacl: ARENA IMPLEMENTATION USING CLIENT MEMORY
  *
- * $HopeName: MMsrc!arenacl.c(MMdevel_config_thread.1) $
+ * $HopeName: MMsrc!arenacl.c(MMdevel_config_thread.2) $
  * 
  * Copyright (C) 1996,1997 Harlequin Group, all rights reserved.
  *
@@ -36,10 +36,13 @@
 #include "mpsacl.h"
 
 
-SRCID(arenacl, "$HopeName: MMsrc!arenacl.c(MMdevel_config_thread.1) $");
+SRCID(arenacl, "$HopeName: MMsrc!arenacl.c(MMdevel_config_thread.2) $");
 
 
 typedef struct ClientArenaStruct *ClientArena;
+typedef struct ChunkStruct *Chunk;
+typedef struct PageStruct *Page;
+typedef Word *ABT;                      /* bool table type */
 
 
 /* ClientArenaStruct -- Client Arena Structure */
@@ -66,9 +69,7 @@ typedef struct ClientArenaStruct {
 #define ClientArenaArena(ClientArena) (&(ClientArena)->arenaStruct)
 
 
-typedef struct ChunkStruct *Chunk;      /* chunk type */
-typedef struct PageStruct *Page;         /* page type */
-typedef Word *ABT;                      /* bool table type */
+/* ChunkStruct -- chunk structure */
 
 #define ChunkSig        ((Sig)0x519C804c) /* SIGnature CHUNK */
 
@@ -113,6 +114,8 @@ static Addr ClientSegLimit(Arena arena, Seg seg);
 static Bool ClientSegNext(Seg *segReturn, Arena arena, Addr addr);
 
 
+/* ChunkCheck -- check the consistency of a chunk */
+
 static Bool ChunkCheck(Chunk chunk)
 {
   CHECKS(Chunk, chunk);
@@ -150,7 +153,7 @@ static Bool ChunkCheck(Chunk chunk)
          >= chunk->pages);
         /* enough space for free table: */
   CHECKL(AddrOffset(chunk->freeTable, chunk->pageBase) / sizeof(Word)
-         >= SizeAlignUp(chunk->pages,MPS_WORD_WIDTH) >> MPS_WORD_SHIFT);
+         >= SizeAlignUp(chunk->pages, MPS_WORD_WIDTH) >> MPS_WORD_SHIFT);
         /* enough space for pages: */
   CHECKL((AddrOffset(chunk->pageBase, chunk->limit) >> chunk->arena->pageShift)
          == chunk->pages);
@@ -158,11 +161,12 @@ static Bool ChunkCheck(Chunk chunk)
   return TRUE;
 }
 
+
 /* would like to be able to write a PageCheck, but Pages don't even
  * have a signature */
 
 
-/* Page Index to Base address mapping
+/* PageBase -- Page Index to Base address mapping
  *
  * See design.mps.arenavm.table.linear
  */
@@ -196,9 +200,7 @@ typedef Size PI;
 typedef Size BI;
 
 
-/* Base address to Page Index (within a chunk) mapping
- *
- */
+/* ChunkPageIndexOfAddr -- base address to page index (within a chunk) mapping */
 
 static PI ChunkPageIndexOfAddr(Chunk chunk, Addr addr)
 {
@@ -243,6 +245,8 @@ static void ABTSet(ABT bt, BI i, Bool b)
 }
 
 
+/* ClientArenaCheck -- check the consistency of a client arena */
+
 static Bool ClientArenaCheck(ClientArena clientArena)
 {
   CHECKS(ClientArena, clientArena);
@@ -273,7 +277,6 @@ static Res ChunkCreate(Chunk *chunkReturn, Addr base, Addr limit,
   AVER(limit > base);
 
   /* allocate the chunk */
-
   a = AddrAlignUp(base, MPS_PF_ALIGN);
   chunk = (Chunk)a;
 
@@ -290,7 +293,8 @@ static Res ChunkCreate(Chunk *chunkReturn, Addr base, Addr limit,
 
   chunk->freeTable = (ABT)a;
   freeTableWords = SizeAlignUp(tablePages, MPS_WORD_WIDTH) >> MPS_WORD_SHIFT;
-  a = AddrAlignUp(AddrAdd(a, freeTableWords * sizeof(Word)), MPS_PF_ALIGN);
+  a = AddrAlignUp(AddrAdd(a, freeTableWords * sizeof(Word)),
+		  ARENA_CLIENT_PAGE_SIZE);
 
   /* the rest is in managed pages; there may be some wastage at the end */
   chunk->pageBase = a;
@@ -349,7 +353,7 @@ static Res ClientArenaInit(Arena *arenaReturn, va_list args)
   Arena arena;
   ClientArena clientArena;
   Size size;
-  Addr base, limit;
+  Addr base, limit, chunkBase;
   Res res;
   Chunk chunk;
   
@@ -365,8 +369,9 @@ static Res ClientArenaInit(Arena *arenaReturn, va_list args)
   /* allocate the arena */
   base = AddrAlignUp(base, MPS_PF_ALIGN);
   clientArena = (ClientArena)base;
-  base = AddrAlignUp(AddrAdd(base, sizeof(ClientArenaStruct)), MPS_PF_ALIGN);
-  if (base > limit) return ResMEMORY;
+  chunkBase = AddrAlignUp(AddrAdd(base, sizeof(ClientArenaStruct)),
+			  MPS_PF_ALIGN);
+  if (chunkBase > limit) return ResMEMORY;
 
   arena = ClientArenaArena(clientArena);
   /* impl.c.arena.init.caller */
@@ -382,13 +387,13 @@ static Res ClientArenaInit(Arena *arenaReturn, va_list args)
   
   AVERT(ClientArena, clientArena);
 
-  res = ChunkCreate(&chunk, base, limit, clientArena);
+  res = ChunkCreate(&chunk, chunkBase, limit, clientArena);
   if (res) return res;
   
-  /* Set the zone shift to divide the initial chunk into the same
-   * number of zones as will fit into a reference set (the number of
-   * bits in a word). Note that some zones are discontiguous in the
-   * arena if the size is not a power of 2. */
+  /* Set the zone shift to divide the initial chunk into the same */
+  /* number of zones as will fit into a reference set (the number of */
+  /* bits in a word). Note that some zones are discontiguous in the */
+  /* arena if the size is not a power of 2. */
   arena->zoneShift = SizeFloorLog2(size >> MPS_WORD_SHIFT);
   arena->alignment = clientArena->pageSize;
 
@@ -529,20 +534,20 @@ static Res ChunkSegAlloc(Seg *segReturn, SegPref pref, Size pages, Pool pool,
 
   clientArena = chunk->arena;
   
-  /* Search the free table for a sufficiently-long run of free pages.
-   * If we succeed, we go to "found:" with the lowest page number in
-   * the run in 'base'. */
-  /* .improve.twiddle.search: This code could go a lot faster with
-   * twiddling the bit table. */
-  /* .improve.clear: I have tried to make this code clear, with
-   *  comments &c, but there's room for further clarification. */
+  /* Search the free table for a sufficiently-long run of free pages. */
+  /* If we succeed, we go to "found:" with the lowest page number in */
+  /* the run in 'base'. */
+  /* .improve.twiddle.search: This code could go a lot faster with */
+  /* twiddling the bit table. */
+  /* .improve.clear: I have tried to make this code clear, with */
+  /* comments &c, but there's room for further clarification. */
 
   count = 0; /* the number of free pages found in the current run */
   if (pref->high) { /* search down from the top of the chunk */
     pi = chunk->pages;
     while (pi != 0) {
       pi--;
-      if (ABTGet(chunk->freeTable,pi)) {
+      if (ABTGet(chunk->freeTable, pi)) {
         ++count;
         if (count == pages) { /* then we're done, take the base of this run */
           base = pi;
@@ -566,11 +571,10 @@ static Res ChunkSegAlloc(Seg *segReturn, SegPref pref, Size pages, Pool pool,
     }
   }
   
-  /* No adequate run was found.
-   * .improve.alloc-fail: This could be because the request was
-   * too large, or perhaps because of fragmentation.  We could return a
-   * more meaningful code.
-   */
+  /* No adequate run was found. */
+  /* .improve.alloc-fail: This could be because the request was */
+  /* too large, or perhaps because of fragmentation.  We could return a */
+  /* more meaningful code. */
   return ResRESOURCE;
 
 found:
@@ -578,10 +582,9 @@ found:
   seg = PageSeg(&chunk->pageTable[base]);
   SegInit(seg, pool);
 
-  /* Allocate the first page, and, if there is more than one page,
-   * allocate the rest of the pages and store the multi-page information
-   * in the page table.
-   */
+  /* Allocate the first page, and, if there is more than one page, */
+  /* allocate the rest of the pages and store the multi-page information */
+  /* in the page table. */
   AVER(ABTGet(chunk->freeTable, base));
   ABTSet(chunk->freeTable, base, FALSE);
   if(pages > 1) {
@@ -623,10 +626,8 @@ static Res ClientSegAlloc(Seg *segReturn, SegPref pref, Arena arena,
   AVER(SizeIsAligned(size, clientArena->pageSize));
   AVER(size > 0);
   AVERT(Pool, pool);
-  /* NULL is used as a discriminator (see
-   * design.mps.arenavm.table.disc), therefore the real pool must be
-   * non-NULL.
-   */
+  /* NULL is used as a discriminator (see design.mps.arenavm.table.disc), */
+  /* therefore the real pool must be non-NULL. */
   AVER(pool != NULL);
 
   pages = size >> clientArena->pageShift;
@@ -693,8 +694,8 @@ static void ClientSegFree(Arena arena, Seg seg)
   /* unmapped .free.unmap */
   base = PageBase(chunk, pi);
 
-  /* Calculate the number of pages in the segment, and hence the
-   * limit for .free.loop */
+  /* Calculate the number of pages in the segment, and hence the */
+  /* limit for .free.loop */
   pn = AddrOffset(base, limit) >> clientArena->pageShift;
   pl = pi + pn;
   /* .free.loop: */
@@ -705,9 +706,8 @@ static void ClientSegFree(Arena arena, Seg seg)
 
   chunk->freePages += pn;
 
-  /* Double check that .free.loop takes us to the limit page of the
-   * segment.
-   */
+  /* Double check that .free.loop takes us to the limit page of the */
+  /* segment. */
   AVER(PageBase(chunk, pi) == limit);
 }
 
@@ -866,9 +866,9 @@ static Bool ClientSegNext(Seg *segReturn, Arena arena, Addr addr)
   AVER(AddrIsAligned(addr, ArenaAlign(arena)));
 
   /* For each chunk, search for a segment whose base is bigger than */
-  /* addr.  Chunks whose limit is less then add are not considered. */
+  /* addr.  Chunks whose limit is less than addr are not considered. */
   /* Chunks are on the ring in address order, so this finds the first */
-  /* segment whose base is bigger than addr */
+  /* segment whose base is bigger than addr. */
   RING_FOR(node, &clientArena->chunkRing) {
     Chunk chunk = RING_ELT(Chunk, arenaRing, node);
     PI pi;
@@ -879,14 +879,14 @@ static Bool ClientSegNext(Seg *segReturn, Arena arena, Addr addr)
 
       if(addr < chunk->pageBase) {
 	/* The address is not in this chunk, so we want */
-	/* to start looking at the beginning of the chunk */
+	/* to start looking at the beginning of the chunk. */
 	pi = 0;
       } else {
-	/* The address is in this chunk, so we want */
-	/* to start looking just after the page at this address */
+	/* The address is in this chunk, so we want to start */
+	/* looking just after the page at this address. */
 	pi = ChunkPageIndexOfAddr(chunk, addr);
 	/* There are fewer pages than addresses so the page index will */
-	/* not wrap */
+	/* not wrap. */
 	AVER(pi + 1 != 0);
 	++pi;
       }
@@ -897,14 +897,14 @@ static Bool ClientSegNext(Seg *segReturn, Arena arena, Addr addr)
 	return TRUE;
       }
     }
-    /* This chunk didn't have any more segs, so try the next one */
+    /* This chunk didn't have any more segs, so try the next one. */
   }
-  /* if there are no more chunks, then we are done */
+  /* If there are no more chunks, then we are done. */
   return FALSE;
 }
 
 
-/* mps_arena_class_an -- return the arena class CL */
+/* mps_arena_class_cl -- return the arena class CL */
 
 static ArenaClassStruct ArenaClassCLStruct = {
   ArenaClassSig,
