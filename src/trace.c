@@ -1,6 +1,6 @@
 /* impl.c.trace: GENERIC TRACER IMPLEMENTATION
  *
- * $HopeName: !trace.c(trunk.73) $
+ * $HopeName: MMsrc!trace.c(MM_dylan_blackbird.2) $
  * Copyright (C) 1998.  Harlequin Group plc.  All rights reserved.
  *
  * .design: design.mps.trace.
@@ -10,7 +10,7 @@
 #include <limits.h>
 
 
-SRCID(trace, "$HopeName: !trace.c(trunk.73) $");
+SRCID(trace, "$HopeName: MMsrc!trace.c(MM_dylan_blackbird.2) $");
 
 
 /* Types
@@ -477,6 +477,11 @@ found:
   trace->reclaimSize = (Size)0;
   trace->sig = TraceSig;
   AVERT(Trace, trace);
+
+  /* so that *Whiten can calculate white sets without mutator */
+  /* allocating in buffers under our feet.  @@@@ a hack for */
+  /* change.dylan.blackbird.1.160098 */
+  ShieldSuspend(arena);
 
   *traceReturn = trace;
   return ResOK;
