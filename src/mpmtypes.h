@@ -1,7 +1,7 @@
 /* impl.h.mpmtypes: MEMORY POOL MANAGER TYPES
  *
- * $HopeName: !mpmtypes.h(trunk.13) $
- * Copyright (C) 1996 Harlequin Group, all rights reserved.
+ * $HopeName: MMsrc!mpmtypes.h(MMdevel_action2.1) $
+ * Copyright (C) 1996,1997 Harlequin Group, all rights reserved.
  *
  * .readership: MM developers.
  * .design: design.mps.type
@@ -60,6 +60,8 @@ typedef struct ArenaStruct *Arena;      /* impl.c.arena* */
 typedef struct VMStruct *VM;            /* impl.c.vm* */
 typedef struct RootStruct *Root;        /* impl.c.root */
 typedef struct ThreadStruct *Thread;    /* impl.c.th* */
+typedef struct ActionStruct *Action;	/* design.mps.action */
+typedef int ActionVar;			/* design.mps.action */
 
 
 /* Pool*Method -- see design.mps.class-interface */
@@ -164,6 +166,14 @@ enum {
   RootTABLE,
   RootREG,
   RootFMT
+};
+
+
+/* Action Variants -- see design.mps.action */
+
+enum {
+  ActionNOOP,
+  ActionCOLLECT
 };
 
 

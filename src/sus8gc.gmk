@@ -1,12 +1,9 @@
+# impl.gmk.suspgc: BUILD FOR SUNOS/SPARC/GCC PLATFORM
 #
-#     BUILD FOR SUNOS/SPARC/GCC PLATFORM
+# $HopeName: MMsrc!suspgc.gmk(MMdevel_action2.1) $
+# Copyright (C) 1995,1996,1997 Harlequin Group, all rights reserved.
 #
-#  $HopeName: !suspgc.gmk(trunk.21) $
-#
-#  Copyright (C) 1995 Harlequin Group, all rights reserved
-#
-#  This is the GNU makefile for platform.suspgc.
-#
+# This is the GNU makefile for platform.suspgc.
 
 PFM = suspgc
 
