@@ -1,6 +1,6 @@
 /* impl.h.mpmst: MEMORY POOL MANAGER DATA STRUCTURES
  *
- * $HopeName: !mpmst.h(trunk.13) $
+ * $HopeName: MMsrc!mpmst.h(trunk.13) $
  * Copyright (C) 1996 Harlequin Group, all rights reserved.
  *
  * .readership: MM developers.
@@ -269,6 +269,8 @@ typedef struct SegStruct {      /* segment structure */
   Size depth;                   /* see impl.c.shield.def.depth */
   void *p;                      /* pointer for use of owning pool */
   TraceId condemned;            /* seg condemned? for which trace? */
+  TraceSet grey;                /* traces for which seg is grey */
+  Buffer buffer;                /* non-NULL if seg is buffered */
 } SegStruct;
 
 
