@@ -1,10 +1,10 @@
-/*  impl.c.testlib: Test library
+/* impl.c.testlib: Test library
  *
- *  $HopeName: !testlib.c(trunk.9) $
+ * $HopeName: MMsrc!testlib.c(MMdevel_ramp_alloc.1) $
  *
- *  Copyright (C) 1995, 1998 Harlequin Group, all rights reserved
+ * Copyright (C) 1995, 1998 Harlequin Group, all rights reserved
  *
- *  .purpose: A library of functions that may be of use to unit tests.
+ * .purpose: A library of functions that may be of use to unit tests.
  */
 
 #include "mps.h"
@@ -12,6 +12,7 @@
 #ifdef MPS_OS_SU
 #include "ossu.h"
 #endif
+#include "mpm.h"
 
 #include <math.h>
 #include <stdio.h>
@@ -46,4 +47,24 @@ void die(mps_res_t res, const char *s)
     fprintf(stderr, "\n%s: %d\n", s, res);
     exit(1);
   }
+}
+
+
+/* adjust_collection_freq -- multiply all collection frequencies by
+ *                           a given factor
+ */
+
+void adjust_collection_freq(double multiplier)
+{
+  AMCGen0Frequency *= multiplier;
+  if(AMCGen0Frequency == 0) AMCGen0Frequency = 1;
+  AMCGen1Frequency *= multiplier;
+  AMCGen2Frequency *= multiplier;
+  AMCGen2plusFrequencyMultiplier *= multiplier;
+  AMCGen0RampmodeFrequency *= multiplier;
+  if(AMCGen0RampmodeFrequency == 0) AMCGen0RampmodeFrequency = 1;
+  AMCGen1RampmodeFrequency *= multiplier;
+  AMCRampGenFrequency *= multiplier;
+  AMCGen2RampmodeFrequency *= multiplier;
+  AMCGen2plusRampmodeFrequencyMultiplier *= multiplier;
 }
