@@ -12,10 +12,11 @@
 #include "sc.h"
 #include "mps.h"
 #include "mpscamc.h"
+#include "mpsavm.h"
+#include "mpscmv.h"
 
 #include <stddef.h>
 #include <stdlib.h>
-
 
 typedef obj_t (*fix_t)(state_t, obj_t);
 
@@ -57,117 +58,7 @@ static size_t obj_size(obj_t obj)
 #endif
 }
 
-static obj_t obj_scan(state_t state, fix_t fix, obj_t obj)
-{
-  size_t size;
-
-  switch(TYPE(obj)) {
-  case TYPE_INTEGER:
-    size = sizeof(integer_s);
-    break;
-
-  case TYPE_SPECIAL:
-    size = sizeof(special_s);
-    break;
-
-  case TYPE_INPORT:
-  case TYPE_OUTPORT:
-    size = sizeof(port_s);
-    break;
-
-  case TYPE_CHARACTER:
-    size = sizeof(character_s);
-    break;
-
-  case TYPE_SYMBOL:
-    size = offsetof(symbol_s, string[obj->symbol.length + 1]);
-    break;
-
-  case TYPE_STRING:
-    size = offsetof(string_s, string[obj->string.length + 1]);
-    break;
-
-  case TYPE_PROC:
-    {
-      size_t i, regs = obj->proc.regs;
-      obj->proc.name = (*fix)(state, obj->proc.name);
-      obj->proc.cont = (*fix)(state, obj->proc.cont);
-      for(i = 0; i < regs; ++i)
-	LOC(obj, i) = (*fix)(state, LOC(obj, i));
-      size = offsetof(proc_s, locs[regs]);
-    }
-    break;
-
-  case TYPE_PAIR:
-    SETCAR(obj, (*fix)(state, CAR(obj)));
-    SETCDR(obj, (*fix)(state, CDR(obj)));
-    size = sizeof(pair_s);
-    break;
-
-  case TYPE_EXCEPTION:
-    obj->exception.object = (*fix)(state, obj->exception.object);
-    size = sizeof(exception_s);
-    break;
-
-  case TYPE_VECTOR:
-    {
-      veclen_t i, length = VECLEN(obj);
-      for(i = 0; i < length; ++i)
-	VECSET(obj, i, (*fix)(state, VECREF(obj, i)));
-      size = offsetof(vector_s, elements[length]);
-    }
-    break;
-
-  /* The scan function shouldn't be applied to forwarding */
-  /* pointers, because they should only exist in from-space. */
-  case TYPE_FORWARD:
-    ASSERT(0);
-    break;
-
-  default:			/* unknown object type */
-    ASSERT(0);
-#ifdef NDEBUG                   /* avoids "never executed" warning */
-    (void)fprintf(stderr,
-	          "\n*** GC discovered corrupt heap during scanning.  "
-	          "Object at 0x%lx has unknown type 0x%lX.\n",
-	          (ulong)obj, (ulong)TYPE(obj));
-    abort();
-#endif
-}
-
-  return (obj_t)((ulong)obj + ALIGN_UP(size));
-}
-
-static void state_scan(state_t state, fix_t fix)
-{
-  size_t i;
-
-  for(i = 0; i < ARRAYLEN(state->procs); ++i)
-    state->procs[i] = (*fix)(state, state->procs[i]);
-
-  state->here = (*fix)(state, state->here);
-  state->cont = (*fix)(state, state->cont);
-  state->argl = (*fix)(state, state->argl);
-
-  for(i = 0; i < TEMPS; ++i)
-    state->temp[i] = (*fix)(state, state->temp[i]);
-
-  state->errproc = (*fix)(state, state->errproc);
-
-  state->inport = (*fix)(state, state->inport);
-  state->outport = (*fix)(state, state->outport);
-  state->errport = (*fix)(state, state->errport);
-
-  state->obj_symtab = (*fix)(state, state->obj_symtab);
-
-  state->units = (*fix)(state, state->units);
-}
-
-static int is_dynamic(state_t state, obj_t obj)
-{
-  return state->heap_base <= (void *)obj && (void *)obj < state->heap_next;
-}
-
+#if 0
 static int is_static(obj_t obj)
 {
   void *p = (void *)obj;
@@ -179,15 +70,18 @@ static int is_static(obj_t obj)
 
 static obj_t pointer_check(state_t state, obj_t obj)
 {
-  ASSERT(is_dynamic(state, obj) || is_static(obj));
+  ASSERT(mps_arena_has_addr(state->mms->arena, (mps_addr_t)obj) ||
+         is_static(obj));
   if(!is_static(obj)) /* @@@@ because we had to align too much */
     ASSERT(ALIGN_UP((ulong)obj) == (ulong)obj);
   ASSERT(!ISNTTYPE(TYPE(obj)));
   return obj;
 }
+#endif
 
 extern void heap_check(state_t state)
 {
+#if 0 /* @@@@ Can be done with mps_amc_apply? */
   obj_t obj;
 
   if(state->inited)
@@ -198,10 +92,12 @@ extern void heap_check(state_t state)
     (void)pointer_check(state, obj);
     obj = obj_scan(state, pointer_check, obj);
   }
+#endif
 }
 
 extern void stats(state_t state, void *base, void *limit)
 {
+#if 0 /* @@@@ Can be done with mps_amc_apply? */
   obj_t obj;
   ulong total;
   size_t i;
@@ -273,143 +169,23 @@ extern void stats(state_t state, void *base, void *limit)
     putchar('\n');
   }
 #endif
-}
-
-static obj_t gc_fix(state_t state, obj_t obj)
-{
-  if(state->old_base <= (void *)obj && (void *)obj < state->old_limit)
-    if(TYPE(obj) == TYPE_FORWARD) {
-      obj = obj->forward.object;
-      COUNT(GC_SNAP);
-    } else {
-      size_t size = obj_size(obj);
-      obj_t copy = alloc(state, size);
-      memcpy(copy, obj, size);
-      TYPE(obj) = TYPE_FORWARD;
-      obj->forward.object = copy;
-      obj = copy;
-      COUNT(GC_COPY);
-    }
-  else
-    ASSERT(is_dynamic(state, obj) || is_static(obj));
-  return obj;
+#endif
 }
 
 extern void gc(state_t state, size_t size)
 {
-  static int in_gc = 0;
-  obj_t obj;
-  size_t old_size;
-  mps_res_t res;
-  void *p;
-
-  UNUSED(size);
-
-  ASSERT(state->inited);
-
-  ASSERT(!in_gc);		/* Prevent recursive GC */
-  in_gc = 1;
-
-  (void)fprintf(stdout,
-	        "gc start step %lu size %lub\n",
-	        state->step,
-	        (ulong)state->heap_next - (ulong)state->heap_base);
-
-#ifdef GC_CHECKING
-  heap_check(state);
-#endif
-
-#ifdef GC_STATS
-  stats(state, state->heap_base, state->heap_next);
-#endif
-
-  state->old_base = state->heap_base;
-  state->old_limit = state->heap_limit;
-  old_size = state->heap_size;
-
-  /* Simple growth policy: We allow twice the amount of space in use at */
-  /* the last GC, provided that's more than the current usage. */
-  /* @@@@ This means the heap never shrinks. */
-  if(state->heap_last * 2 > state->heap_size) {
-    state->heap_size = state->heap_last * 2;
-    (void)fprintf(stdout, "gc new size %lub\n", state->heap_size);
-  }
-
-  res = mps_alloc(&p, state->state_pool, state->heap_size);
-  if(res != MPS_RES_OK) {
-    (void)fprintf(stdout, "Can't allocate new heap.\n");
-    exit(EXIT_FAILURE);
-  }
-  state->heap_base = p;
-  state->heap_next = state->heap_base;
-  state->heap_limit = (void *)((ulong)state->heap_base + state->heap_size);
-
-#ifdef GC_CHECKING
-  memset(state->heap_base, 0x25, state->heap_size);	/* debugging help */
-#endif
-
-  /* Scan the roots */
-  state_scan(state, gc_fix);
-
-  /* Scan the to-space */
-  obj = (obj_t)state->heap_base;
-  while((void *)obj < state->heap_next)
-    obj = obj_scan(state, gc_fix, obj);
-  ASSERT(obj == state->heap_next);
-
-  state->heap_last = (ulong)state->heap_next - (ulong)state->heap_base;
-
-  /* Delete the from-space */
-#ifdef GC_CHECKING
-  memset(state->old_base, 0xF5, old_size);
-#endif
-  mps_free(state->state_pool, state->old_base, old_size);
-
-#ifdef GC_CHECKING
-  heap_check(state);
-#endif
-
-#ifdef GC_STATS
-  stats(state, state->heap_base, state->heap_next);
-#endif
-
-  (void)fprintf(stdout, "gc end %lub\n", state->heap_last);
-
-  in_gc = 0;
-
-  COUNT(GC_GC);
-}
-
-extern obj_t alloc(state_t state, size_t size)
-{
-  void *after;
-  obj_t obj;
-
-  size = ALIGN_UP(size);
-
-  after = (void *)((ulong)state->heap_next + size);
-
-  if(after > state->heap_limit || after < state->heap_next) {
-    gc(state, size);
-    after = (void *)((ulong)state->heap_next + size);
-    if(after > state->heap_limit || after < state->heap_next) {
-      /* @@@@ Not very satisfactory outcome. */
-      (void)fprintf(stdout, "GC failed to release enough memory\n");
-      exit(EXIT_FAILURE);
-    }
-  }
-
-  obj = (obj_t)state->heap_next;
-  state->heap_next = after;
-  state->heap_total += size;
-
-  COUNT(GC_ALLOC);
-
-  return obj;
 }
 
 
 /* MPS format */
+
+typedef struct mms_s {
+  mps_arena_t arena;
+  mps_pool_t misc_pool, obj_pool;
+  mps_ap_t obj_ap;
+  mps_root_t state_root;
+} mms_s;
+
 
 #define TYPE_PAD        ((type_t)0x21BEBADD)
 
@@ -571,56 +347,6 @@ static void my_pad(mps_addr_t base, size_t size)
 }
 
 
-/* Copied from <mps/version/1.105/manual/reference/index.html#mps_fmt_A_s> */
-
-static mps_fmt_t create_format(mps_arena_t arena)
-{
-  mps_fmt_t my_format;
-  mps_res_t res;
-  mps_fmt_A_s my_format_A = {
-    8, /* @@@@ */
-    &my_scan,
-    &my_skip,
-    &my_copy,
-    &my_fwd,
-    &my_isfwd,
-    &my_pad
-  };
-
-  res = mps_fmt_create_A(&my_format, arena, &my_format_A);
-  if(res != MPS_RES_OK)
-    return NULL;
-
-  return my_format;
-}
-
-extern mps_pool_t create_pool(mps_arena_t arena)
-{
-  mps_pool_t pool;
-  mps_fmt_t format;
-  mps_res_t res;
-  mps_chain_t chain;
-  static mps_gen_param_s testChain[] = {
-    { 6000, 0.90 }, { 8000, 0.65 }, { 16000, 0.50 } };
-  
-  format = create_format(arena);
-  if(format == NULL)
-    return NULL;
-  
-  res = mps_chain_create(&chain,
-                         arena,
-                         sizeof(testChain) / sizeof(testChain[0]),
-                         testChain);
-  if(res != MPS_RES_OK)
-    return NULL;
-
-  res = mps_pool_create(&pool, arena, mps_class_amc(), format, chain);
-  if(res != MPS_RES_OK)
-    return NULL;
-
-  return pool;
-}
-
 static void fail_alloc(void) __attribute__((noreturn));
 
 static void fail_alloc(void)
@@ -635,14 +361,14 @@ extern void make_pair(state_t state)
   size_t size = ALIGN_UP(sizeof(pair_s));
   do {
     obj_t obj;
-    mps_res_t res = mps_reserve(&p, state->obj_ap, size);
+    mps_res_t res = mps_reserve(&p, state->mms->obj_ap, size);
     if(res != MPS_RES_OK) fail_alloc();
     obj = p;
     obj->header.type = TYPE_PAIR;
     obj->pair.car = obj_uninit;
     obj->pair.cdr = obj_uninit;
     state->baby = obj;
-  } while(!mps_commit(state->obj_ap, p, size));
+  } while(!mps_commit(state->mms->obj_ap, p, size));
   COUNT(MAKE_PAIR);
 }
 
@@ -652,13 +378,13 @@ extern void make_integer(state_t state)
   size_t size = ALIGN_UP(sizeof(integer_s));
   do {
     obj_t obj;
-    mps_res_t res = mps_reserve(&p, state->obj_ap, size);
+    mps_res_t res = mps_reserve(&p, state->mms->obj_ap, size);
     if(res != MPS_RES_OK) fail_alloc();
     obj = p;
     obj->header.type = TYPE_INTEGER;
     obj->integer.integer = 0;
     state->baby = obj;
-  } while(!mps_commit(state->obj_ap, p, size));
+  } while(!mps_commit(state->mms->obj_ap, p, size));
   COUNT(MAKE_INTEGER);
 }
 
@@ -669,7 +395,7 @@ extern void make_vector(state_t state, size_t length)
   do {
     obj_t obj;
     size_t i;
-    mps_res_t res = mps_reserve(&p, state->obj_ap, size);
+    mps_res_t res = mps_reserve(&p, state->mms->obj_ap, size);
     if(res != MPS_RES_OK) fail_alloc();
     obj = p;
     obj->header.type = TYPE_VECTOR;
@@ -677,7 +403,7 @@ extern void make_vector(state_t state, size_t length)
     for(i = 0; i < length; ++i)
       obj->vector.elements[i] = obj_uninit;
     state->baby = obj;
-  } while(!mps_commit(state->obj_ap, p, size));
+  } while(!mps_commit(state->mms->obj_ap, p, size));
   COUNT(MAKE_VECTOR);
 }
 
@@ -687,14 +413,14 @@ extern void make_symbol(state_t state, size_t length, char *string)
   size_t size = ALIGN_UP(offsetof(symbol_s, string[length + 1]));
   do {
     obj_t obj;
-    mps_res_t res = mps_reserve(&p, state->obj_ap, size);
+    mps_res_t res = mps_reserve(&p, state->mms->obj_ap, size);
     if(res != MPS_RES_OK) fail_alloc();
     obj = p;
     obj->header.type = TYPE_SYMBOL;
     obj->symbol.length = length;
     memcpy(obj->symbol.string, string, length + 1);
     state->baby = obj;
-  } while(!mps_commit(state->obj_ap, p, size));
+  } while(!mps_commit(state->mms->obj_ap, p, size));
   COUNT(MAKE_SYMBOL);
 }
 
@@ -704,13 +430,13 @@ extern void make_string_uninit(state_t state, size_t length)
   size_t size = ALIGN_UP(offsetof(symbol_s, string[length + 1]));
   do {
     obj_t obj;
-    mps_res_t res = mps_reserve(&p, state->obj_ap, size);
+    mps_res_t res = mps_reserve(&p, state->mms->obj_ap, size);
     if(res != MPS_RES_OK) fail_alloc();
     obj = p;
     obj->header.type = TYPE_STRING;
     obj->string.length = length;
     state->baby = obj;
-  } while(!mps_commit(state->obj_ap, p, size));
+  } while(!mps_commit(state->mms->obj_ap, p, size));
   COUNT(MAKE_STRING);
 }
 
@@ -721,7 +447,7 @@ extern void make_proc_regs(state_t state, size_t length)
   do {
     obj_t obj;
     size_t i;
-    mps_res_t res = mps_reserve(&p, state->obj_ap, size);
+    mps_res_t res = mps_reserve(&p, state->mms->obj_ap, size);
     if(res != MPS_RES_OK) fail_alloc();
     obj = p;
     obj->header.type = TYPE_PROC;
@@ -734,7 +460,7 @@ extern void make_proc_regs(state_t state, size_t length)
     for(i = 0; i < length; ++i)
       obj->proc.locs[i] = obj_uninit;
     state->baby = obj;
-  } while(!mps_commit(state->obj_ap, p, size));
+  } while(!mps_commit(state->mms->obj_ap, p, size));
   COUNT(MAKE_PROC);
 }
 
@@ -744,13 +470,13 @@ extern void make_special(state_t state, char *string)
   size_t size = ALIGN_UP(sizeof(special_s));
   do {
     obj_t obj;
-    mps_res_t res = mps_reserve(&p, state->obj_ap, size);
+    mps_res_t res = mps_reserve(&p, state->mms->obj_ap, size);
     if(res != MPS_RES_OK) fail_alloc();
     obj = p;
     obj->header.type = TYPE_SPECIAL;
     obj->special.name = string;
     state->baby = obj;
-  } while(!mps_commit(state->obj_ap, p, size));
+  } while(!mps_commit(state->mms->obj_ap, p, size));
   COUNT(MAKE_SPECIAL);
 }
 
@@ -760,13 +486,13 @@ extern void make_inport(state_t state, FILE *stream)
   size_t size = ALIGN_UP(sizeof(port_s));
   do {
     obj_t obj;
-    mps_res_t res = mps_reserve(&p, state->obj_ap, size);
+    mps_res_t res = mps_reserve(&p, state->mms->obj_ap, size);
     if(res != MPS_RES_OK) fail_alloc();
     obj = p;
     obj->header.type = TYPE_INPORT;
     obj->port.stream = stream;
     state->baby = obj;
-  } while(!mps_commit(state->obj_ap, p, size));
+  } while(!mps_commit(state->mms->obj_ap, p, size));
   COUNT(MAKE_INPORT);
 }
 
@@ -776,13 +502,13 @@ extern void make_outport(state_t state, FILE *stream)
   size_t size = ALIGN_UP(sizeof(port_s));
   do {
     obj_t obj;
-    mps_res_t res = mps_reserve(&p, state->obj_ap, size);
+    mps_res_t res = mps_reserve(&p, state->mms->obj_ap, size);
     if(res != MPS_RES_OK) fail_alloc();
     obj = p;
     obj->header.type = TYPE_OUTPORT;
     obj->port.stream = stream;
     state->baby = obj;
-  } while(!mps_commit(state->obj_ap, p, size));
+  } while(!mps_commit(state->mms->obj_ap, p, size));
   COUNT(MAKE_OUTPORT);
 }
 
@@ -792,13 +518,13 @@ extern void make_exception(state_t state)
   size_t size = ALIGN_UP(sizeof(exception_s));
   do {
     obj_t obj;
-    mps_res_t res = mps_reserve(&p, state->obj_ap, size);
+    mps_res_t res = mps_reserve(&p, state->mms->obj_ap, size);
     if(res != MPS_RES_OK) fail_alloc();
     obj = p;
     obj->header.type = TYPE_EXCEPTION;
     obj->exception.object = obj_uninit;
     state->baby = obj;
-  } while(!mps_commit(state->obj_ap, p, size));
+  } while(!mps_commit(state->mms->obj_ap, p, size));
   COUNT(MAKE_EXCEPTION);
 }
 
@@ -808,13 +534,13 @@ extern void make_character(state_t state, char c)
   size_t size = ALIGN_UP(sizeof(special_s));
   do {
     obj_t obj;
-    mps_res_t res = mps_reserve(&p, state->obj_ap, size);
+    mps_res_t res = mps_reserve(&p, state->mms->obj_ap, size);
     if(res != MPS_RES_OK) fail_alloc();
     obj = p;
     obj->header.type = TYPE_CHARACTER;
     obj->character.c = c;
     state->baby = obj;
-  } while(!mps_commit(state->obj_ap, p, size));
+  } while(!mps_commit(state->mms->obj_ap, p, size));
   COUNT(MAKE_CHARACTER);
 }
 
@@ -871,18 +597,115 @@ fail_fix:
   return res;
 }
 
-extern mps_root_t create_root(mps_arena_t arena, state_t state)
+extern int register_state(state_t state)
 {
   mps_res_t res;
-  mps_root_t root;
 
   /* @@@@ Anything other than (mps_rm_t)0 asserts out! */
-  res = mps_root_create(&root, arena,
+  res = mps_root_create(&state->mms->state_root,
+                        state->mms->arena,
                         MPS_RANK_EXACT, (mps_rm_t)0,
-                        my_state_scan, &state, sizeof(state));
+                        my_state_scan, &state, sizeof(state_s));
+
+  return res == MPS_RES_OK;
+}
+
+
+extern mms_t mms_create(void)
+{
+  mps_res_t res;
+  mps_arena_t arena;
+  mps_pool_t misc_pool;
+  void *p;
+  mms_t mms;
+  mps_chain_t chain;
+  /* @@@@ Copied from a random MPS test */
+  static mps_gen_param_s testChain[] = {
+    { 6000, 0.90 }, { 8000, 0.65 }, { 16000, 0.50 } };
+  /* Copied from <mps/version/1.105/manual/reference/index.html#mps_fmt_A_s> */
+  mps_fmt_t my_format;
+  mps_fmt_A_s my_format_A = {
+    ALIGN, /* @@@@ Not really right for PPC, but MPS secretly wants 8! */
+    &my_scan,
+    &my_skip,
+    &my_copy,
+    &my_fwd,
+    &my_isfwd,
+    &my_pad
+  };
+
+  /* @@@@ What on earth is 64<<20? */
+  res = mps_arena_create(&arena, mps_arena_class_vm(), 64<<20);
+  if(res != MPS_RES_OK)
+    goto fail_arena;
+
+  /* @@@@ What do these parameters mean? */
+  res = mps_pool_create(&misc_pool, arena, mps_class_mv(),
+                        sizeof(state_s), sizeof(state_s), sizeof(state_s));
+  if(res != MPS_RES_OK)
+    goto fail_misc_pool;
+
+  res = mps_alloc(&p, misc_pool, sizeof(mms_s));
+  if(res != MPS_RES_OK)
+    goto fail_mms_alloc;
+
+  mms = (mms_t)p;
+  mms->arena = arena;
+  mms->misc_pool = misc_pool;
+
+  res = mps_chain_create(&chain,
+                         arena,
+                         sizeof(testChain) / sizeof(testChain[0]),
+                         testChain);
+  if(res != MPS_RES_OK)
+    goto fail_chain;
+
+  res = mps_fmt_create_A(&my_format, arena, &my_format_A);
+  if(res != MPS_RES_OK)
+    goto fail_format;
+
+  res = mps_pool_create(&mms->obj_pool,
+                        arena,
+                        mps_class_amc(),
+                        my_format,
+                        chain);
+  if(res != MPS_RES_OK)
+    goto fail_obj_pool;
+
+  /* @@@@ Can we free either the format or the chain at this point? */
+
+  res = mps_ap_create(&mms->obj_ap, mms->obj_pool, MPS_RANK_EXACT);
+  if(res != MPS_RES_OK)
+    goto fail_ap;
+
+  return mms;
+
+/*  mps_ap_destroy(mms->obj_ap); */
+fail_ap:
+  mps_pool_destroy(mms->obj_pool);
+fail_obj_pool:
+  mps_fmt_destroy(my_format);
+fail_format:
+  mps_chain_destroy(chain);
+fail_chain:
+  mps_free(misc_pool, mms, sizeof(mms_s));
+fail_mms_alloc:
+  mps_pool_destroy(misc_pool);
+fail_misc_pool:
+  mps_arena_destroy(arena);
+fail_arena:
+  return NULL;
+}
+
+
+extern void *mms_alloc(mms_t mms, size_t size)
+{
+  mps_res_t res;
+  void *p;
+  
+  res = mps_alloc(&p, mms->misc_pool, size);
   if(res != MPS_RES_OK)
     return NULL;
 
-  return root;
+  return p;
 }
-

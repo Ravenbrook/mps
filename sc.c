@@ -59,8 +59,6 @@
  */
 
 #include "sc.h"
-#include "mpsavm.h"
-#include "mpscmv.h"
 
 #include <stddef.h>
 #include <stdio.h>
@@ -452,7 +450,7 @@ static void stats_entry(state_t state)
 {
   veclen_t i;
   check_args(state, 0);
-  stats(state, state->heap_base, state->heap_next);
+  /* @@@@ stats(state, state->heap_base, state->heap_next); */
 #ifdef COUNT_STATS
   MAKE_VECTOR(T0, COUNT_MAX, obj_uninit);
   for(i = 0; i < COUNT_MAX; ++i) {
@@ -607,56 +605,23 @@ extern void bind_procs(state_t state,
 static state_t state_create(void)
 {
   state_t state;
-  void *heap, *p;
   size_t i;
-  mps_res_t res;
-  mps_arena_t arena;
-  mps_pool_t state_pool, obj_pool;
-
-  /* What on earth is 64<<20? */
-  res = mps_arena_create(&arena, mps_arena_class_vm(), 64<<20);
-  if(res != MPS_RES_OK)
-    goto fail_arena;
-
-  obj_pool = create_pool(arena);
-  if(obj_pool == NULL)
-    goto fail_pool;
+  mms_t mms;
   
-  /* What do these parameters mean? */
-  res = mps_pool_create(&state_pool, arena, mps_class_mv(),
-                        sizeof(state_s), sizeof(state_s), sizeof(state_s));
-  if(res != MPS_RES_OK)
-    goto fail_pool;
+  mms = mms_create();
+  if(mms == NULL)
+    return NULL;
 
-  res = mps_alloc(&p, state_pool, sizeof(state_s));
-  if(res != MPS_RES_OK)
-    goto fail_state;
-  state = (state_t)p;
+  state = mms_alloc(mms, sizeof(state_s));
+  if(state == NULL)
+    return NULL;
 
-  res = mps_alloc(&heap, state_pool, HEAP);
-  if(res != MPS_RES_OK)
-    goto fail_heap;
-
-  state->arena = arena;
-  state->state_pool = state_pool;
-  state->obj_pool = obj_pool;
-
-  res = mps_ap_create(&state->obj_ap, obj_pool, MPS_RANK_EXACT);
-  if(res != MPS_RES_OK)
-    goto fail_ap;
+  state->mms = mms;
 
   state->trace = 0;		/* don't trace by default */
   state->heap_checking = 0;	/* don't heap check by default */
   state->step = 0;		/* the machine step is zero */
   state->inited = 0;		/* the state is not yet initialized */
-  state->heap_size = HEAP;
-  state->heap_total = 0;
-  state->heap_last = 0;
-  state->heap_base = heap;
-  state->heap_next = heap;
-  state->heap_limit = (void *)((char *)heap + state->heap_size);
-  state->old_base = NULL;
-  state->old_limit = NULL;
   for(i = 0; i < ARRAYLEN(state->procs); ++i)
     state->procs[i] = obj_uninit;
   state->here = obj_uninit;
@@ -680,31 +645,18 @@ static state_t state_create(void)
   /* The roots should all now be initialized. */
   state->inited = 1;
 
-  if(create_root(arena, state) == NULL)
-    goto fail_root;
+  if(!register_state(state))
+    return NULL;
 
   heap_check(state);
 
   return state;
-
-fail_root:
-  mps_ap_destroy(state->obj_ap);
-fail_ap:
-  mps_free(state_pool, state_pool, HEAP);
-fail_heap:
-  mps_free(state_pool, state, sizeof(state_s)); /* @@@@ won't pool_destroy do this? */
-fail_state:
-  mps_pool_destroy(state_pool); /* @@@@ won't arena_destroy do this? */
-fail_pool:
-  mps_arena_destroy(arena);
-fail_arena:
-  return NULL;
 }
 
 static void state_destroy(state_t state)
 {
   ASSERT(state != NULL);
-  free(state->heap_base);
+  /* @@@@ What about the MMS? */
   free(state);
 }
 

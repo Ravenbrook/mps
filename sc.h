@@ -42,8 +42,6 @@
 #include <setjmp.h>
 #include <string.h>
 
-#include "mps.h"
-
 
 /* OPTIONS */
 
@@ -104,6 +102,7 @@
 
 typedef unsigned long ulong;
 
+typedef struct mms_s *mms_t;            /* memory management state */
 typedef struct state_s *state_t;	/* abstract machine state */
 typedef union obj_u *obj_t;		/* Scheme object type */
 typedef unsigned type_t;		/* run-time Scheme type */
@@ -279,28 +278,15 @@ enum {
 
 typedef struct state_s {
 
+  mms_t mms;            /* memory management state */
+  obj_t baby;           /* newly allocated object */
+
   /* Debugging Data */
 
   int trace;		/* print tracing information? */
   int heap_checking;	/* heap checking in driver loop? */
   ulong step;		/* step count (see machine loop) */
   int inited;		/* have the fields in the state been initialized? */
-
-  /* Memory allocation and garbage collection */
-  size_t heap_size;     /* size of heap */
-  size_t heap_total;    /* total bytes allocated since state was created */
-  size_t heap_last;     /* total size of object remaining after last gc */
-  void *heap_base;
-  void *heap_next;
-  void *heap_limit;
-  void *old_base;
-  void *old_limit;
-
-  /* MPS integration */
-  mps_arena_t arena;
-  mps_pool_t state_pool, obj_pool;
-  mps_ap_t obj_ap;
-  obj_t baby;
 
   /* Procedures
    *
@@ -1028,11 +1014,12 @@ extern void eval_entry(state_t);
 extern void define_entry(state_t);
 
 /* from scmm.c */
+extern mms_t mms_create(void);
+extern void *mms_alloc(mms_t, size_t);
 extern void heap_check(state_t);
 extern void gc(state_t, size_t);
 extern void stats(state_t, void *, void *);
-extern mps_pool_t create_pool(mps_arena_t);
-extern mps_root_t create_root(mps_arena_t, state_t);
+extern int register_state(state_t);
 extern void make_pair(state_t);
 extern void make_integer(state_t);
 extern void make_vector(state_t, size_t);
