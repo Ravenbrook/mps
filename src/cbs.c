@@ -1,6 +1,6 @@
 /* impl.c.cbs: COALESCING BLOCK STRUCTURE IMPLEMENTATION
  *
- * $HopeName: MMsrc!cbs.c(MMdevel_gavinm_splay.4) $
+ * $HopeName: MMsrc!cbs.c(MMdevel_gavinm_splay.5) $
  * Copyright (C) 1998 Harlequin Group plc, all rights reserved.
  *
  * .readership: Any MPS developer.
@@ -18,30 +18,42 @@
 #include "mpm.h"
 
 
-SRCID(cbs, "$HopeName: MMsrc!cbs.c(MMdevel_gavinm_splay.4) $");
+SRCID(cbs, "$HopeName: MMsrc!cbs.c(MMdevel_gavinm_splay.5) $");
 
-#define CBSRootOfSplayRoot(root) PARENT(CBSRootStruct, splayRoot, (root))
+typedef struct CBSNodeStruct {
+  SplayNodeStruct splayNode;
+  Addr base;
+  Addr limit;
+  void *p;
+} CBSNodeStruct;
+typedef struct CBSNodeStruct *CBSNode;
+
+#define CBSOfSplayTree(tree) PARENT(CBSStruct, splayTree, (tree))
 #define CBSNodeOfSplayNode(node) PARENT(CBSNodeStruct, splayNode, (node))
-#define SplayRootOfCBSRoot(root) (&((root)->splayRoot))
+#define SplayTreeOfCBS(tree) (&((cbs)->splayTree))
 #define SplayNodeOfCBSNode(node) (&((node)->splayNode))
 
-static Bool CBSRootCheck(CBSRoot root) {
-  UNUSED(root);
-  CHECKL(root != NULL);
-  /* don't check root->splayRoot? */
-  CHECKD(Pool, root->nodePool);
+static Bool CBSCheck(CBS cbs) {
+  UNUSED(cbs);
+  CHECKL(cbs != NULL);
+  /* don't check cbs->splayTree? */
+  CHECKD(Pool, cbs->nodePool);
+
   return TRUE;
 }
 
 static Bool CBSNodeCheck(CBSNode node) {
   UNUSED(node);
   CHECKL(node != NULL);
-  /* Don't check root->spayNode? */
+  /* Don't check node->splayNode? */
   /* Can't check base, limit, or p */
   return TRUE;
 }
 
-/* CBSSplayCompare -- Compare base to [base,limit) */
+/* CBSSplayCompare -- Compare base to [base,limit) 
+ *
+ * See design.mps.splay.type.splay.compare.method
+ */
 
 static Compare CBSSplayCompare(void *key, SplayNode node) {
   Addr base1, base2, limit2;
@@ -63,7 +75,13 @@ static Compare CBSSplayCompare(void *key, SplayNode node) {
     return CompareEQUAL;
 }
 
-Res CBSRootInit(Arena arena, CBSRoot root, 
+
+/* CBSInit -- Initialise a CBS structure
+ *
+ * See design.mps.cbs.function.cbs.init.
+ */
+
+Res CBSInit(Arena arena, CBS cbs, 
 		CBSNewMethod new, CBSShrinkMethod shrink,
 		CBSGrowMethod grow, CBSDeleteMethod delete,
 		Size minSize) {
@@ -71,39 +89,45 @@ Res CBSRootInit(Arena arena, CBSRoot root,
 
   AVERT(Arena, arena);
 
-  SplayRootInit(SplayRootOfCBSRoot(root), &CBSSplayCompare);
-  res = PoolCreate(&(root->nodePool), arena, PoolClassMFS(), 
+  SplayTreeInit(SplayTreeOfCBS(cbs), &CBSSplayCompare);
+  res = PoolCreate(&(cbs->nodePool), arena, PoolClassMFS(), 
 		  sizeof(CBSNodeStruct) * 64, sizeof(CBSNodeStruct));
   if(res != ResOK)
     return res;
 
-  root->new = new;
-  root->shrink = shrink;
-  root->grow = grow;
-  root->delete = delete;
-  root->minSize = minSize;
+  cbs->new = new;
+  cbs->shrink = shrink;
+  cbs->grow = grow;
+  cbs->delete = delete;
+  cbs->minSize = minSize;
 
-  AVERT(CBSRoot, root);
+  AVERT(CBS, cbs);
 
   return ResOK;
 }
 
-void CBSRootFinish(CBSRoot root) {
-  AVERT(CBSRoot, root);
 
-  SplayRootFinish(SplayRootOfCBSRoot(root));
-  PoolDestroy(root->nodePool);
+/* CBSFinish -- Finish a CBS structure
+ *
+ * See design.mps.cbs.function.cbs.finish.
+ */
+
+void CBSFinish(CBS cbs) {
+  AVERT(CBS, cbs);
+
+  SplayTreeFinish(SplayTreeOfCBS(cbs));
+  PoolDestroy(cbs->nodePool);
 }
 
 static Res CBSNodeCreate(CBSNode *nodeReturn,
-			 CBSRoot root, Addr base, Addr limit) {
+			 CBS cbs, Addr base, Addr limit) {
   Res res;
   Addr p;
   CBSNode node;
 
-  AVERT(CBSRoot, root);
+  AVERT(CBS, cbs);
 
-  res = PoolAlloc(&p, root->nodePool, sizeof(CBSNodeStruct));
+  res = PoolAlloc(&p, cbs->nodePool, sizeof(CBSNodeStruct));
   if(res != ResOK)
     goto failPoolAlloc;
 
@@ -116,7 +140,7 @@ static Res CBSNodeCreate(CBSNode *nodeReturn,
 
   AVERT(CBSNode, node);
 
-  res = SplayTreeInsert(SplayRootOfCBSRoot(root), SplayNodeOfCBSNode(node),
+  res = SplayTreeInsert(SplayTreeOfCBS(cbs), SplayNodeOfCBSNode(node),
 			(void *)&(node->base));
   if(res != ResOK)
     goto failSplayTreeInsert;
@@ -125,18 +149,18 @@ static Res CBSNodeCreate(CBSNode *nodeReturn,
   return ResOK;
 
 failSplayTreeInsert:
-  PoolFree(root->nodePool, (Addr)node, sizeof(CBSNodeStruct));
+  PoolFree(cbs->nodePool, (Addr)node, sizeof(CBSNodeStruct));
 failPoolAlloc:
   return res;
 }
 
-static Res CBSNodeDestroy(CBSRoot root, CBSNode node) {
+static Res CBSNodeDestroy(CBS cbs, CBSNode node) {
   Res res;
 
-  AVERT(CBSRoot, root);
+  AVERT(CBS, cbs);
   AVERT(CBSNode, node);
 
-  res = SplayTreeDelete(SplayRootOfCBSRoot(root), SplayNodeOfCBSNode(node), 
+  res = SplayTreeDelete(SplayTreeOfCBS(cbs), SplayNodeOfCBSNode(node), 
                         (void *)&(node->base));
   if(res != ResOK)
     return res;
@@ -145,7 +169,7 @@ static Res CBSNodeDestroy(CBSRoot root, CBSNode node) {
   node->limit = (Addr)0;
   node->p = NULL;
 
-  PoolFree(root->nodePool, (Addr)node, sizeof(CBSNodeStruct));
+  PoolFree(cbs->nodePool, (Addr)node, sizeof(CBSNodeStruct));
 
   return ResOK;
 }
@@ -162,68 +186,74 @@ static Res CBSNodeDestroy(CBSRoot root, CBSNode node) {
  * the assignment inside these operators.
  */
 
-static Res CBSNodeDelete(CBSRoot root, CBSNode node) {
+static Res CBSNodeDelete(CBS cbs, CBSNode node) {
   Res res;
 
-  AVERT(CBSRoot, root);
+  AVERT(CBS, cbs);
   AVERT(CBSNode, node);
 
-  if(root->delete != NULL && node->p != NULL)
-    (*(root->delete))(node->p);
+  if(cbs->delete != NULL && node->p != NULL)
+    (*(cbs->delete))(node->p, cbs);
 
-  res = CBSNodeDestroy(root, node);
+  res = CBSNodeDestroy(cbs, node);
   if(res != ResOK)
     return res;
 
   return ResOK;
 }
 
-static void CBSNodeShrink(CBSRoot root, CBSNode node) {
-  AVERT(CBSRoot, root);
+static void CBSNodeShrink(CBS cbs, CBSNode node) {
+  AVERT(CBS, cbs);
   AVERT(CBSNode, node);
 
-  if(root->shrink != NULL && node->p != NULL)
-    (*(root->shrink))(&(node->p), node->base, node->limit);
+  if(cbs->shrink != NULL && node->p != NULL)
+    (*(cbs->shrink))(&(node->p), cbs, node->base, node->limit);
 }
 
-static void CBSNodeGrow(CBSRoot root, CBSNode node) {
-  AVERT(CBSRoot, root);
+static void CBSNodeGrow(CBS cbs, CBSNode node) {
+  AVERT(CBS, cbs);
   AVERT(CBSNode, node);
 
-  if(root->grow != NULL && (node->p != NULL ||
-     AddrOffset(node->base, node->limit) >= root->minSize))
-    (*(root->grow))(&(node->p), node->base, node->limit);
+  if(cbs->grow != NULL && (node->p != NULL ||
+     AddrOffset(node->base, node->limit) >= cbs->minSize))
+    (*(cbs->grow))(&(node->p), cbs, node->base, node->limit);
 }
 
-static Res CBSNodeNew(CBSRoot root, Addr base, Addr limit) {
+static Res CBSNodeNew(CBS cbs, Addr base, Addr limit) {
   CBSNode node;
   Res res;
 
-  AVERT(CBSRoot, root);
+  AVERT(CBS, cbs);
 
-  res = CBSNodeCreate(&node, root, base, limit);
+  res = CBSNodeCreate(&node, cbs, base, limit);
   if(res != ResOK)
     return res;
   
-  if(root->new != NULL && 
-     AddrOffset(base, limit) >= root->minSize)
-    (*(root->new))(&(node->p), base, limit);
+  if(cbs->new != NULL && 
+     AddrOffset(base, limit) >= cbs->minSize)
+    (*(cbs->new))(&(node->p), cbs, base, limit);
   
   return ResOK;
 }
 
-Res CBSInsert(CBSRoot root, Addr base, Addr limit) {
+
+/* CBSInsert -- Insert a range into the CBS
+ *
+ * See design.mps.cbs.functions.cbs.insert.
+ */
+
+Res CBSInsert(CBS cbs, Addr base, Addr limit) {
   Res res;
   SplayNode leftSplay, rightSplay;
   CBSNode leftCBS, rightCBS;
   Bool leftMerge, rightMerge;
 
-  AVERT(CBSRoot, root);
+  AVERT(CBS, cbs);
   AVER(base != (Addr)0);
   AVER(base < limit);
 
   res = SplayTreeNeighbours(&leftSplay, &rightSplay,
-                            SplayRootOfCBSRoot(root), (void *)&base);
+                            SplayTreeOfCBS(cbs), (void *)&base);
   if(res != ResOK)
     return res;
 
@@ -241,20 +271,20 @@ Res CBSInsert(CBSRoot root, Addr base, Addr limit) {
   if(leftMerge) {
     if(rightMerge) {
       leftCBS->limit = rightCBS->limit;
-      CBSNodeGrow(root, leftCBS);
-      res = CBSNodeDelete(root, rightCBS);
+      CBSNodeGrow(cbs, leftCBS);
+      res = CBSNodeDelete(cbs, rightCBS);
       if(res != ResOK)
 	return res;
     } else { /* leftMerge, !rightMerge */
       leftCBS->limit = limit;
-      CBSNodeGrow(root, leftCBS);
+      CBSNodeGrow(cbs, leftCBS);
     }
   } else { /* !leftMerge */
     if(rightMerge) {
       rightCBS->base = base;
-      CBSNodeGrow(root, rightCBS);
+      CBSNodeGrow(cbs, rightCBS);
     } else { /* !leftMerge, !rightMerge */
-      res = CBSNodeNew(root, base, limit);
+      res = CBSNodeNew(cbs, base, limit);
       if(res != ResOK)
 	return res;
     }
@@ -263,16 +293,22 @@ Res CBSInsert(CBSRoot root, Addr base, Addr limit) {
   return ResOK;
 }
 
-Res CBSDelete(CBSRoot root, Addr base, Addr limit) {
+
+/* CBSDelete -- Remove a range from a CBS
+ *
+ * See design.mps.cbs.function.cbs.delete.
+ */
+
+Res CBSDelete(CBS cbs, Addr base, Addr limit) {
   Res res;
   CBSNode cbsNode;
   SplayNode splayNode;
 
-  AVERT(CBSRoot, root);
+  AVERT(CBS, cbs);
   AVER(base != NULL);
   AVER(limit > base);
 
-  res = SplayTreeSearch(&splayNode, SplayRootOfCBSRoot(root), (void *)&base);
+  res = SplayTreeSearch(&splayNode, SplayTreeOfCBS(cbs), (void *)&base);
   if(res != ResOK)
     goto failSplayTreeSearch;
   cbsNode = CBSNodeOfSplayNode(splayNode);
@@ -284,26 +320,26 @@ Res CBSDelete(CBSRoot root, Addr base, Addr limit) {
 
   if(base == cbsNode->base) {
     if(limit == cbsNode->limit) { /* entire block */
-      res = CBSNodeDelete(root, cbsNode);
+      res = CBSNodeDelete(cbs, cbsNode);
       if(res != ResOK) 
 	goto failDelete;
     } else { /* remaining fragment at right */
       AVER(limit < cbsNode->limit);
       cbsNode->base = limit;
-      CBSNodeShrink(root, cbsNode);
+      CBSNodeShrink(cbs, cbsNode);
     }
   } else {
     AVER(base > cbsNode->base);
     if(limit == cbsNode->limit) { /* remaining fragment at left */
       cbsNode->limit = base;
-      CBSNodeShrink(root, cbsNode);
+      CBSNodeShrink(cbs, cbsNode);
     } else { /* two remaining fragments */
       Addr oldLimit;
       AVER(limit < cbsNode->limit);
       oldLimit = cbsNode->limit;
       cbsNode->limit = base;
-      CBSNodeShrink(root, cbsNode);
-      res = CBSNodeNew(root, limit, oldLimit);
+      CBSNodeShrink(cbs, cbsNode);
+      res = CBSNodeNew(cbs, limit, oldLimit);
       if(res != ResOK)
 	goto failNew;
     }
@@ -337,24 +373,30 @@ static Res CBSSplayNodeDescribe(SplayNode splayNode,
   return ResOK;
 }
 
-Res CBSDescribe(CBSRoot root, mps_lib_FILE *stream) {
+
+/* CBSDescribe -- Describe a CBS
+ *
+ * See design.mps.cbs.function.cbs.describe.
+ */
+
+Res CBSDescribe(CBS cbs, mps_lib_FILE *stream) {
   Res res;
 
-  AVERT(CBSRoot, root);
+  AVERT(CBS, cbs);
   AVER(stream != NULL);
 
   res = WriteF(stream,
-	       "CBSRoot $P {\n", (WriteFP)root,
-	       "  nodePool: $P\n", (WriteFP)root->nodePool,
-	       "  new: $F ", (WriteFF)root->new,
-	       "  grow $F ", (WriteFF)root->grow,
-	       "  shrink: $F ", (WriteFF)root->shrink,
-	       "  delete: $F \n", (WriteFF)root->delete,
+	       "CBS $P {\n", (WriteFP)cbs,
+	       "  nodePool: $P\n", (WriteFP)cbs->nodePool,
+	       "  new: $F ", (WriteFF)cbs->new,
+	       "  grow $F ", (WriteFF)cbs->grow,
+	       "  shrink: $F ", (WriteFF)cbs->shrink,
+	       "  delete: $F \n", (WriteFF)cbs->delete,
 	       NULL);
   if(res != ResOK)
     return res;
 
-  res = SplayTreeDescribe(SplayRootOfCBSRoot(root), stream,
+  res = SplayTreeDescribe(SplayTreeOfCBS(cbs), stream,
 			  &CBSSplayNodeDescribe);
   if(res != ResOK)
     return res;

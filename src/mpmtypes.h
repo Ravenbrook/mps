@@ -1,6 +1,6 @@
 /* impl.h.mpmtypes: MEMORY POOL MANAGER TYPES
  *
- * $HopeName: MMsrc!mpmtypes.h(trunk.47) $
+ * $HopeName: MMsrc!mpmtypes.h(MMdevel_gavinm_splay.2) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  *
  * .readership: MM developers.
@@ -78,7 +78,7 @@ typedef struct MutatorFaultContextStruct
 
 /* Splay* -- See design.mps.splay */
 
-typedef struct SplayRootStruct *SplayRoot;
+typedef struct SplayTreeStruct *SplayTree;
 typedef struct SplayNodeStruct *SplayNode;
 typedef unsigned Compare;
 typedef Compare (*SplayCompareMethod)(void *key, SplayNode node);
@@ -91,12 +91,11 @@ enum {
 
 /* CBS* -- See design.mps.cbs */
 
-typedef struct CBSRootStruct *CBSRoot;
-typedef struct CBSNodeStruct *CBSNode;
-typedef void (*CBSNewMethod)(void **pReturn, Addr base, Addr limit);
-typedef void (*CBSShrinkMethod)(void **pIO, Addr base, Addr limit);
-typedef void (*CBSGrowMethod)(void **pIO, Addr base, Addr limit);
-typedef void (*CBSDeleteMethod)(void *p);
+typedef struct CBSStruct *CBS;
+typedef void (*CBSNewMethod)(void **pReturn, CBS cbs, Addr base, Addr limit);
+typedef void (*CBSShrinkMethod)(void **pIO, CBS cbs, Addr base, Addr limit);
+typedef void (*CBSGrowMethod)(void **pIO, CBS cbs, Addr base, Addr limit);
+typedef void (*CBSDeleteMethod)(void *p, CBS cbs);
 
 
 /* Arena*Method -- see @@@@ */

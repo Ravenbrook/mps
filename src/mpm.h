@@ -1,6 +1,6 @@
 /* impl.h.mpm: MEMORY POOL MANAGER DEFINITIONS
  *
- * $HopeName: MMsrc!mpm.h(trunk.84) $
+ * $HopeName: MMsrc!mpm.h(MMdevel_gavinm_splay.2) $
  * Copyright (C) 1998. Harlequin Group plc. All rights reserved.
  */
 
@@ -814,31 +814,31 @@ extern Size VMMapped(VM vm);
 extern void StackProbe(Word depth);
 
 /* Splay Trees */
-extern Bool SplayRootCheck(SplayRoot root);
+extern Bool SplayTreeCheck(SplayTree tree);
 extern Bool SplayNodeCheck(SplayNode node);
-extern void SplayRootInit(SplayRoot root, SplayCompareMethod compare);
+extern void SplayTreeInit(SplayTree tree, SplayCompareMethod compare);
 extern void SplayNodeInit(SplayNode node);
 extern void SplayNodeFinish(SplayNode node);
-extern void SplayRootFinish(SplayRoot root);
-extern Res SplayTreeInsert(SplayRoot root, SplayNode node, void *key);
-extern Res SplayTreeDelete(SplayRoot root, SplayNode node, void *key);
+extern void SplayTreeFinish(SplayTree tree);
+extern Res SplayTreeInsert(SplayTree tree, SplayNode node, void *key);
+extern Res SplayTreeDelete(SplayTree tree, SplayNode node, void *key);
 extern Res SplayTreeSearch(SplayNode *nodeReturn,
-			   SplayRoot root, void *key );
+			   SplayTree tree, void *key );
 extern Res SplayTreeNeighbours(SplayNode *leftReturn, 
 			       SplayNode *rightReturn,
-                               SplayRoot root, void *key);
-extern Res SplayTreeDescribe(SplayRoot root, mps_lib_FILE *stream,
+                               SplayTree tree, void *key);
+extern Res SplayTreeDescribe(SplayTree tree, mps_lib_FILE *stream,
 			     SplayNodeDescribeMethod nodeDescribe);
 
 /* CBS* -- see design.mps.cbs */
 
-extern Res CBSRootInit(Arena arena, CBSRoot root,
-		       CBSNewMethod new, CBSShrinkMethod shrink,
-		       CBSGrowMethod grow, CBSDeleteMethod delete,
-		       Size minSize); 
-extern void CBSRootFinish(CBSRoot root);
-extern Res CBSInsert(CBSRoot root, Addr base, Addr limit);
-extern Res CBSDelete(CBSRoot root, Addr base, Addr limit);
-extern Res CBSDescribe(CBSRoot root, mps_lib_FILE *stream);
+extern Res CBSInit(Arena arena, CBS cbs,
+                   CBSNewMethod new, CBSShrinkMethod shrink,
+		   CBSGrowMethod grow, CBSDeleteMethod delete,
+		   Size minSize); 
+extern void CBSFinish(CBS cbs);
+extern Res CBSInsert(CBS cbs, Addr base, Addr limit);
+extern Res CBSDelete(CBS cbs, Addr base, Addr limit);
+extern Res CBSDescribe(CBS cbs, mps_lib_FILE *stream);
 
 #endif /* mpm_h */

@@ -1,6 +1,6 @@
 /*  impl.c.cbstest: COALESCING BLOCK STRUCTURE TEST
  *
- *  $HopeName: MMsrc!cbstest.c(MMdevel_gavinm_splay.1) $
+ *  $HopeName: MMsrc!cbstest.c(MMdevel_gavinm_splay.2) $
  * Copyright (C) 1998 Harlequin Group plc.  All rights reserved.
  */
 
@@ -20,18 +20,21 @@
 #endif /* MPS_OS_SU */
 
 
-SRCID(cbstest, "$HopeName: MMsrc!cbstest.c(MMdevel_gavinm_splay.1) $");
+SRCID(cbstest, "$HopeName: MMsrc!cbstest.c(MMdevel_gavinm_splay.2) $");
 
-#define ArraySize ((size_t)4096)
-#define nOperations ((size_t)10000)
+#define ArraySize ((size_t)123456)
+#define nOperations ((size_t)125000)
+#define SuccessRatio ((long)200) /* Ratio of failures attempted */
 #define addr_of_index(i) ((mps_addr_t)((char *)block + (i)))
 #define index_of_addr(a) ((long)((char *)(a) - (char *)block))
 #define ErrorExit(message) MPS_BEGIN printf(message "\n"); exit(1); MPS_END
 
 static BT alloc; /* the BT which we will use for alloc */
 static Arena arena; /* the ANSI arena which we use to allocate the BT */
-static CBSRootStruct cbs;
+static CBSStruct cbs;
 static void *block;
+static long nAllocateTried, nAllocateSucceeded, nDeallocateTried,
+  nDeallocateSucceeded;
 
 /* Not very uniform, but never mind. */
 static long random(long limit) {
@@ -58,20 +61,29 @@ static void random_range(mps_addr_t *base_return, mps_addr_t *limit_return) {
 static void allocate(mps_addr_t base, mps_addr_t limit) {
   mps_res_t res;
   long ib, il;
+  Bool isRes;
 
   ib = index_of_addr(base);
   il = index_of_addr(limit);
 
+  isRes = BTIsResRange(alloc, ib, il);
+
+  if(!isRes && random(SuccessRatio) != 0)
+    return;
+
+  nAllocateTried++;
+
   res = CBSDelete(&cbs, base, limit);
 
   if(res == ResOK) {
-    printf("> allocate %p%p\n", base, limit);
-    if(!BTIsResRange(alloc, ib, il))  
+    if(!isRes)  
       ErrorExit("succeeded in deleting non-alloced block");
-    else
+    else {
+      nAllocateSucceeded++;
       BTSetRange(alloc, ib, il);
+    }
   } else if(res == ResFAIL) {
-    if(BTIsResRange(alloc, ib, il))
+    if(isRes)
       ErrorExit("failed to delete alloced block");
   } else {
     ErrorExit("Unexpected result");
@@ -81,20 +93,29 @@ static void allocate(mps_addr_t base, mps_addr_t limit) {
 static void deallocate(mps_addr_t base, mps_addr_t limit) {
   mps_res_t res;
   long ib, il;
+  Bool isSet;
 
   ib = index_of_addr(base);
   il = index_of_addr(limit);
 
+  isSet = BTIsSetRange(alloc, ib, il);
+
+  if(!isSet && random(SuccessRatio) != 0)
+    return;
+
+  nDeallocateTried++;
+
   res = CBSInsert(&cbs, base, limit);
 
   if(res == ResOK) {
-    printf("> deallocate %p%p\n", base, limit);
-    if(!BTIsSetRange(alloc, ib, il))  
+    if(!isSet)  
       ErrorExit("succeeded in inserting non-free block");
-    else
+    else {
+      nDeallocateSucceeded++;
       BTResRange(alloc, ib, il);
+    }
   } else if(res == ResFAIL) {
-    if(BTIsSetRange(alloc, ib, il))
+    if(isSet)
       ErrorExit("failed to insert free block");
   } else {
     ErrorExit("Unexpected result");
@@ -109,6 +130,9 @@ extern int main(int argc, char *argv[])
 
   testlib_unused(argc); testlib_unused(argv);
 
+  nAllocateTried = nAllocateSucceeded = nDeallocateTried = 
+    nDeallocateSucceeded = 0;
+
   res = mps_arena_create((mps_arena_t *)&arena,
                          mps_arena_class_an());
   if (res != MPS_RES_OK) 
@@ -117,7 +141,7 @@ extern int main(int argc, char *argv[])
   if (res != MPS_RES_OK) 
     ErrorExit("failed to create bit table.");
 
-  res = CBSRootInit(arena, &cbs, NULL, NULL, NULL, NULL, 0);
+  res = CBSInit(arena, &cbs, NULL, NULL, NULL, NULL, 0);
   if(res != MPS_RES_OK)
     ErrorExit("failed to initialise CBS.");
 
@@ -127,7 +151,7 @@ extern int main(int argc, char *argv[])
   res = ArenaAlloc(&block, arena, ArraySize);
   if(res != MPS_RES_OK)
     ErrorExit("failed to allocate block");
-  printf("block %p %p\n", block, (char *)block + ArraySize);
+  printf("Allocated block [%p, %p)\n", block, (char *)block + ArraySize);
 
   for(i = 0; i < nOperations; i++) {
     random_range(&base, &limit);
@@ -136,9 +160,14 @@ extern int main(int argc, char *argv[])
     } else {
       deallocate(base, limit);
     }
-    if(i % (nOperations / 10) == 0)
-      CBSDescribe(&cbs, mps_lib_get_stdout());
   }
 
+  CBSDescribe(&cbs, mps_lib_get_stdout());
+
+  printf("Number of allocations attempted: %ld\n", nAllocateTried);
+  printf("Number of allocations succeeded: %ld\n", nAllocateSucceeded);
+  printf("Number of deallocations attempted: %ld\n", nDeallocateTried);
+  printf("Number of deallocations succeeded: %ld\n", nDeallocateSucceeded);
+  printf("\nNo problems detected.\n");
   return 0;
 }
