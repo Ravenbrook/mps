@@ -1,6 +1,6 @@
 /* impl.h.mpsio: HARLEQUIN MEMORY POOL SYSTEM I/O INTERFACE
  *
- * $HopeName$
+ * $HopeName: MMsrc!mpsio.h(MMdevel_event.1) $
  * Copyright (C) 1996 Harlequin Group, all rights reserved.
  *
  * .readership: MPS client application developers, MPS developers.
@@ -21,6 +21,7 @@ typedef struct mps_io_s *mps_io_t;
 extern mps_res_t mps_io_create(mps_io_t *mps_io_r);
 extern void mps_io_destroy(mps_io_t mps_io);
 
-extern mps_res_t mps_io_flush(mps_io_t mps_io, void *mps_buf, size_t mps_size);
+extern mps_res_t mps_io_write(mps_io_t mps_io, void *mps_buf, size_t mps_size);
+extern mps_res_t mps_io_flush(mps_io_t mps_io);
 
 #endif /* mpsio_h */

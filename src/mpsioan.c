@@ -1,6 +1,6 @@
 /* impl.c.mpsioan: HARLEQUIN MEMORY POOL SYSTEM I/O IMPLEMENTATION (ANSI)
  *
- * $HopeName: MMsrc!mpsioan.c(MMdevel_event.1) $
+ * $HopeName: MMsrc!mpsioan.c(MMdevel_event.2) $
  * Copyright (C) 1996 Harlequin Group, all rights reserved.
  *
  * .readership: MPS developers.
@@ -37,13 +37,25 @@ void mps_io_destroy(mps_io_t mps_io)
   (void)fclose(f);
 }
 
-mps_res_t mps_io_flush(mps_io_t mps_io, void *mps_buf, size_t mps_size)
+mps_res_t mps_io_write(mps_io_t mps_io, void *mps_buf, size_t mps_size)
 {
   FILE *f = (FILE *)mps_io;
   size_t n;
 
   n = fwrite(mps_buf, mps_size, 1, f);
   if(n != 1)
+    return MPS_RES_IO;
+  
+  return MPS_RES_OK;
+}
+
+mps_res_t mps_io_flush(mps_io_t mps_io)
+{
+  FILE *f = (FILE *)mps_io;
+  int e;
+  
+  e = fflush(f);
+  if(e == EOF)
     return MPS_RES_IO;
   
   return MPS_RES_OK;
