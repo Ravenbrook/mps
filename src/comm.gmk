@@ -1,6 +1,6 @@
 # impl.gmk.comm: COMMON GNUMAKEFILE FRAGMENT
 #
-# $HopeName: !comm.gmk(trunk.13) $
+# $HopeName: MMsrc!comm.gmk(MMdevel_drj_message.1) $
 # Copyright (C) 1995,1996,1997 Harlequin Group, all rights reserved
 #
 # DESCRIPTION
@@ -32,7 +32,6 @@
 #   MPMPS	pre-processor assembler sources for the "mpm" part (.S files)
 #   AMC		as above for the "amc" part
 #   LO          as above for the "lo" part
-#   MRG         as above for the "mrg" part
 #   DW		as above for the "dw" part
 #   SW		as above for the "sw" part
 #   TESTLIB	as above for the "testlib" part
@@ -85,9 +84,6 @@ error "comm.gmk: AMC not defined"
 endif
 ifndef LO
 error "comm.gmk: LO not defined"
-endif
-ifndef MRG
-error "comm.gmk: MRG not defined"
 endif
 ifndef DW
 error "comm.gmk: DW not defined"
@@ -158,8 +154,6 @@ AWLOBJ = $(AWL:%.c=$(PFM)/$(VARIETY)/%.o)
 AWLDEP = $(AWL:%.c=$(PFM)/$(VARIETY)/%.d)
 LOOBJ = $(LO:%.c=$(PFM)/$(VARIETY)/%.o)
 LODEP = $(LO:%.c=$(PFM)/$(VARIETY)/%.d)
-MRGOBJ = $(MRG:%.c=$(PFM)/$(VARIETY)/%.o)
-MRGDEP = $(MRG:%.c=$(PFM)/$(VARIETY)/%.d)
 DWOBJ = $(DW:%.c=$(PFM)/$(VARIETY)/%.o)
 DWDEP = $(DW:%.c=$(PFM)/$(VARIETY)/%.d)
 SWOBJ = $(SW:%.c=$(PFM)/$(VARIETY)/%.o)
@@ -207,7 +201,7 @@ endif
 # just a convenient set of targets to build.
 
 all: mpmss amcss awlut dwstress mpsicv lockcov poolncv mps.a \
-     lo.a mrg.a locv qs weakcv mpmconft finalcv
+     lo.a locv qs weakcv mpmconft finalcv
 
 # These convenience targets allow one to type "make foo" to build target
 # foo in all varieties.
@@ -216,7 +210,7 @@ all: mpmss amcss awlut dwstress mpsicv lockcov poolncv mps.a \
 
 mpmss amcss awlut dwstress mpsicv lockcov poolncv \
   locv qs weakcv mpmconft finalcv \
-  mps.a lo.a mrg.a awl.a mmsw.a: phony
+  mps.a lo.a awl.a mmsw.a: phony
 ifdef VARIETY
 	$(MAKE) -f $(PFM).gmk TARGET=$@ variety
 else
@@ -273,7 +267,7 @@ $(PFM)/$(VARIETY)/weakcv: $(PFM)/$(VARIETY)/weakcv.o \
 
 $(PFM)/$(VARIETY)/finalcv: $(PFM)/$(VARIETY)/finalcv.o \
 	$(PFM)/$(VARIETY)/fmtdy.o \
-	$(MPMOBJ) $(AMCOBJ) $(MRGOBJ) $(TESTLIBOBJ)
+	$(MPMOBJ) $(AMCOBJ) $(TESTLIBOBJ)
 
 $(PFM)/$(VARIETY)/locv: $(PFM)/$(VARIETY)/locv.o \
 	$(MPMOBJ) $(LOOBJ) $(TESTLIBOBJ)
@@ -311,8 +305,6 @@ $(PFM)/$(VARIETY)/mps.a: $(MPMOBJ) $(AMCOBJ) $(LOOBJ) $(PFM)/$(VARIETY)/pooln.o
 $(PFM)/$(VARIETY)/mpm.a: $(MPMOBJ)
 
 $(PFM)/$(VARIETY)/lo.a: $(LOOBJ)
-
-$(PFM)/$(VARIETY)/mrg.a: $(MRGOBJ)
 
 $(PFM)/$(VARIETY)/awl.a: $(AWLOBJ)
 
@@ -363,7 +355,7 @@ $(PFM)/$(VARIETY)/%.d: %.c
 ifdef VARIETY
 ifdef TARGET
 # %%PART: Add the dependency file macro for the new part here.
-include $(MPMDEP) $(AMCDEP) $(LODEP) $(MRGDEP) $(SWDEP)
+include $(MPMDEP) $(AMCDEP) $(LODEP) $(SWDEP)
 endif
 endif
 
