@@ -1,6 +1,6 @@
 /* impl.h.mpmst: MEMORY POOL MANAGER DATA STRUCTURES
  *
- * $HopeName: !mpmst.h(trunk.24) $
+ * $HopeName: MMsrc!mpmst.h(MMdevel_assertid.1) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  *
  * .readership: MM developers.
@@ -265,8 +265,11 @@ typedef struct VMStruct {
  * the arena.  See design.mps.seg.
  */
 
+#define SegSig          ((Sig)0x5195E93E)
+
 typedef struct SegStruct {      /* segment structure */
   Pool pool;                    /* MUST BE FIRST (design.mps.seg.field.pool) */
+  Sig sig;			/* design.mps.sig */
   Bool single;                  /* single page segment */
   RankSet rankSet;		/* ranks of references in this seg */
   AccessSet pm, sm;             /* protection and shield modes */
