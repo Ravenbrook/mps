@@ -2,7 +2,7 @@
  *
  *                         NULL POOL
  *
- *  $HopeName: MMsrc!pooln.c(MMdevel_sw_eq.2) $
+ *  $HopeName: MMsrc!pooln.c(MMdevel_sw_eq.3) $
  *
  *  Copyright(C) 1995 Harlequin Group, all rights reserved
  *
@@ -13,7 +13,7 @@
 #include "mpm.h"
 #include "pooln.h"
 
-SRCID(pooln, "$HopeName: MMsrc!pooln.c(MMdevel_sw_eq.2) $");
+SRCID(pooln, "$HopeName: MMsrc!pooln.c(MMdevel_sw_eq.3) $");
 
 
 typedef struct PoolNStruct {
@@ -28,7 +28,6 @@ static Res NInit(Pool pool, va_list args)
 {
   PoolN poolN = PoolPoolN(pool);
 
-  UNUSED(pref);
   UNUSED(args);
   
   /* Initialize pool-specific structures. */
