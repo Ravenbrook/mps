@@ -1,6 +1,6 @@
 /* impl.c.arenavm: VIRTUAL MEMORY BASED ARENA IMPLEMENTATION
  *
- * $HopeName: !arenavm.c(trunk.56) $
+ * $HopeName: MMsrc!arenavm.c(MMdevel_drj_arena_hysteresis.1) $
  * Copyright (C) 1998.  Harlequin Group plc.  All rights reserved.
  *
  * PURPOSE
@@ -32,7 +32,7 @@
 #include "mpm.h"
 #include "mpsavm.h"
 
-SRCID(arenavm, "$HopeName: !arenavm.c(trunk.56) $");
+SRCID(arenavm, "$HopeName: MMsrc!arenavm.c(MMdevel_drj_arena_hysteresis.1) $");
 
 
 /* @@@@ Arbitrary calculation for the maximum number of distinct */
@@ -125,17 +125,50 @@ typedef struct VMArenaStruct {  /* VM arena structure */
  *
  * .page: The "pool" field must be the first field of the "tail"
  * field of this union, so that it shares a common prefix with the
- * SegStruct.  See impl.h.mpmst.seg.pool.
+ * SegStruct.  See design.mps.seg.field.pool.
+ *
+ * Pages (hence PageStructs that describe them) can be in one of
+ * 4 states:
+ * allocated to initial page of segment.
+ *   allocated pages are mapped
+ *   BTGet(allocTable, i) == 1
+ *   PageRest()->pool == pool
+ * allocated to non-initial page of segment.
+ *   allocated pages are mapped
+ *   BTGet(allocTable, i) == 1
+ *   PageRest()->pool == NULL
+ * latent (free and in hysteresis fund).
+ *   these pages are mapped
+ *   BTGet(allocTable, i) == 0
+ *   PageRest()->pool == NULL
+ *   PageRest()->type = PageIsLatent
+ * free and not in the hysteresis fund.
+ *   these pages are not mapped
+ *   BTGet(allocTable, i) == 0
+ *   PTE may itself be unmapped.
+ * 
  */
+
+/* .page.disc: PageStruct disciminator values, */
+/* see .page.is below */
+enum {PageTypeTail, PageTypeLatent, PageTypeFree};
 
 typedef struct PageStruct {     /* page structure */
   union {
-    SegStruct segStruct;         /* segment */
+    SegStruct segStruct;        /* segment */
     struct {
-      Pool pool;                 /* NULL, must be first field (.page) */
-      Seg seg;                   /* segment at base page of run */
-      Addr limit;                /* limit of segment */
-    } tail;                      /* tail page */
+      Pool pool;                /* NULL, must be first field (.page) */
+      int type;                 /* discriminator, see .page.disc */
+      union {
+        struct {                /* use tail iff type == PageTypeTail */
+	  Seg seg;              /* segment at base page of run */
+	  Addr limit;           /* limit of segment */
+	} tail;
+	struct {                /* use latent iff type == PageIsLatent */
+	  RingStruct latentRing;
+	} latent;
+      } the;
+    } rest;                     /* other (non initial segment) page */
   } the;
 } PageStruct;
 
@@ -153,10 +186,14 @@ typedef struct PageStruct {     /* page structure */
 
 #define PageSeg(page)           (&(page)->the.segStruct)
 
+/* PageRest -- descriptor for non initial segment pages */
+
+#define PageRest(page)          (&(page)->the.rest)
+
 
 /* PageTail -- tail descriptor of a page */
 
-#define PageTail(page)          (&(page)->the.tail)
+#define PageTail(page)          (&PageRest((page))->the.tail)
 
 
 /* PageOfSeg -- page descriptor from segment */
@@ -169,7 +206,7 @@ typedef struct PageStruct {     /* page structure */
  * See design.mps.arena.vm:table.disc.
  */
 
-#define PageIsHead(page)        (PageTail((page))->pool != NULL)
+#define PageIsHead(page)        (PageRest((page))->pool != NULL)
 
 
 /* addrPageBase -- the base of the page this address is on */
@@ -1433,7 +1470,8 @@ static Res VMSegAllocComm(Seg *segReturn,
     for(i = baseIndex + 1; i < baseIndex + pages; ++i) {
       AVER(!BTGet(chunk->allocTable, i));
       BTSet(chunk->allocTable, i);
-      PageTail(&chunk->pageTable[i])->pool = NULL;
+      PageRest(&chunk->pageTable[i])->pool = NULL;
+      PageRest(&chunk->pageTable[i])->type = PageTypeTail;
       PageTail(&chunk->pageTable[i])->seg = seg;
       PageTail(&chunk->pageTable[i])->limit = limit;
     }
@@ -1702,10 +1740,12 @@ static Bool VMSegOfAddr(Seg *segReturn, Arena arena, Addr addr)
   if(BTGet(chunk->allocTable, i)) {
     Page page = &chunk->pageTable[i];
 
-    if(PageIsHead(page))
+    if(PageIsHead(page)) {
       *segReturn = PageSeg(page);
-    else
+    } else {
+      AVER_CRITICAL(PageRest(page)->type == PageTypeTail);
       *segReturn = PageTail(page)->seg;
+    }
     return TRUE;
   }
   
