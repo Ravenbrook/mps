@@ -1,6 +1,6 @@
 # impl.gmk.sus8lc: BUILD FOR SUNOS/SPARC v8/LCC PLATFORM
 #
-# $HopeName: MMsrc!sus8lc.gmk(trunk.19) $
+# $HopeName: !sus8lc.gmk(trunk.20) $
 # Copyright (C) 2000.  Harlequin Ltd.  All rights reserved.
 #
 # This is the GNU makefile for platform.sus8lc.

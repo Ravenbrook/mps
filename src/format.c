@@ -1,6 +1,6 @@
 /* impl.c.format: OBJECT FORMATS
  *
- * $HopeName: MMsrc!format.c(trunk.19) $
+ * $HopeName: !format.c(trunk.20) $
  * Copyright (C) 1999.  Harlequin Limited.  All rights reserved.
  *
  * DESIGN
@@ -10,7 +10,7 @@
 
 #include "mpm.h"
 
-SRCID(format, "$HopeName: MMsrc!format.c(trunk.19) $");
+SRCID(format, "$HopeName: !format.c(trunk.20) $");
 
 
 Bool FormatCheck(Format format)
