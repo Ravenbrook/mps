@@ -1,14 +1,18 @@
-/* impl.c.tract: TRACTS
+/* impl.c.tract: PAGE TABLES
  *
- * $HopeName: !tract.c(trunk.2) $
- * Copyright (C) 1999.  Harlequin Limited.  All rights reserved.
+ * $HopeName: MMsrc!tract.c(MMdevel_pekka_locus.1) $
+ * Copyright (C) 2000 Harlequin Limited.  All rights reserved.
  *
- * .readership: Any MPS developer
+ * .ullagepages: pages whose page index is < ullagePages are recorded as
+ * free but never allocated as alloc starts searching after the tables.
+ * TractOfAddr uses the fact that these pages are marked as free in order
+ * to detect "references" to these pages as being bogus.
  */
 
 #include "mpm.h"
+#include "tract.h"
 
-SRCID(tract, "$HopeName: !tract.c(trunk.2) $");
+SRCID(tract, "$HopeName: MMsrc!tract.c(MMdevel_pekka_locus.1) $");
 
 
 
@@ -93,11 +97,209 @@ Addr TractLimit(Tract tract)
 }
 
 
+/* Chunk functions */
+
+
+/* ChunkCheck -- check a chunk */
+
+Bool ChunkCheck(Chunk chunk)
+{
+  CHECKS(Chunk, chunk);
+  CHECKU(Arena, chunk->arena);
+  CHECKL(chunk<-serial < chunk->arena->chunkSerial);
+  CHECKL(RingCheck(&chunk->chunkRing));
+  CHECKL(ChunkPagesToSize(chunk, 1) == ChunkPageSize(chunk));
+  CHECKL(ShiftCheck(ChunkPageShift(chunk)));
+
+  CHECKL(chunk->base != (Addr)0);
+  CHECKL(chunk->base < chunk->limit);
+  /* check chunk is in itself */
+  CHECKL(chunk->base <= (Addr)chunk);
+  CHECKL((Addr)(chunk+1) <= chunk->limit);
+  CHECKL(ChunkSizeToPages(chunk, AddrOffset(chunk->base, chunk->limit))
+         == chunk->pages);
+  /* check that the tables fit in the chunk */
+  CHECKL(chunk->ullagePages <= chunk->pages);
+  /* check that the two notions of ullage size are consistent */
+  CHECKL(chunk->ullageSize == ChunkPagesToSize(chunk, chunk->ullagePages));
+
+  CHECKL(chunk->pageTable != NULL);
+  /* check that pageTable is in the chunk ullage */
+  CHECKL((Addr)chunk->pageTable >= chunk->base);
+  CHECKL((Addr)&chunk->pageTable[chunk->pageTablePages]
+         <= AddrAdd(chunk->base, chunk->ullageSize));
+
+  /* check allocTable */
+  CHECKL(chunk->allocTable != NULL);
+  CHECKL((Addr)chunk->allocTable >= chunk->base);
+  CHECKL(AddrAdd((Addr)chunk->allocTable, BTSize(chunk->pages))
+         <= AddrAdd(chunk->base, chunk->ullageSize));
+
+  return TRUE;
+}
+
+
+/* ChunkInit -- initialize generic part of chunk */
+
+Res ChunkInit(Chunk chunk, Arena arena,
+              Addr base, Size size, Size pageSize, BootBlock boot)
+{
+  Addr limit;
+  BT allocTable;
+  Count pages;
+  Count pageTablePages;
+  PageStruct *pageTable;
+  Shift pageShift;
+  Size pageTableSize;
+  void *p;
+  Res res;
+
+  /* chunk is supposed to be uninitialized, so don't check it. */
+  AVERT(Arena, arena);
+  AVER(base != NULL);
+  AVER(size > 0);
+  AVER(pageSize > MPS_PF_ALIGN);
+  AVERT(BootBlock, boot);
+
+  chunk->serial = (arena->chunkSerial)++;
+  chunk->arena = arena;
+  RingInit(&chunk->chunkRing);
+  RingAppend(&arena->chunkRing, &chunk->chunkRing);
+
+  chunk->pageSize = pageSize;
+  chunk->pageShift = pageShift = SizeLog2(pageSize);
+  chunk->base = base;
+  chunk->limit = AddrAdd(base, size);
+
+  chunk->pages = pages = size >> pageShift;
+  res = BootAlloc(&p, boot, (size_t)BTSize(pages), MPS_PF_ALIGN);
+  if (res != ResOK)
+    goto failAllocTable;
+  chunk->allocTable = p;
+
+  res = (arena->class->chunkInit)(chunk, boot);
+  if (res != ResOK)
+    goto failClassInit;
+
+  /* Put the page table as late as possible, as in VM systems we don't want */
+  /* to map it. */
+  pageTableSize = SizeAlignUp(pages * sizeof(PageStruct),
+                              pageSize);
+  res = BootAlloc(&p, boot, (size_t)pageTableSize, (size_t)pageSize);
+  if (res != ResOK)
+    goto failAllocPageTable;
+  chunk->pageTable = pageTable = p;
+  chunk->pageTablePages = pageTableSize >> pageShift;
+
+  ullageSize = BootAllocated(boot);
+  chunk->ullageSize = ullageSize;
+  chunk->ullagePages = ullageSize >> pageShift;
+
+  /* Init allocTable after class init, because it might be mapped there. */
+  BTResRange(chunk->allocTable, 0, pages);
+
+  chunk->sig = ChunkSig;
+  AVERT(Chunk, chunk);
+  return ResOK;
+
+  /* .no-clean: No clean-ups needed for boot, as we will discard the chunk. */
+failAllocPageTable:
+  (arena->class->chunkFinish)(chunk);
+failClassInit:
+failAllocTable:
+  return res;
+}
+
+
+/* ChunkFinish -- finish the generic fields of a chunk */
+
+void ChunkFinish(Chunk chunk)
+{
+  AVERT(Chunk, chunk);
+  ChunkDecache(chunk->arena, chunk);
+  chunk->sig = SigInvalid;
+  (chunk->arena->class->chunkFinish)(chunk);
+  RingRemove(&chunk->chunkRing);
+}
+
+
+/* Chunk Cache
+ *
+ * Functions for manipulating the chunk cache in the arena.
+ */
+
+
+/* ChunkCacheEntryCheck -- check a chunk cache entry */
+
+Bool ChunkCacheEntryCheck(ChunkCacheEntry entry)
+{
+  CHECKS(ChunkCacheEntry, entry);
+  if (entry->chunk != NULL) {
+    CHECKD(Chunk, entry->chunk);
+    CHECKL(entry->base == entry->chunk->base);
+    CHECKL(entry->limit == entry->chunk->limit);
+    CHECKL(entry->pageTableBase == &entry->chunk->pageTable[0]);
+    CHECKL(entry->pageTableLimit
+           == &entry->chunk->pageTable[entry->chunk->pages]);
+  }
+  return TRUE;
+}
+
+
+/* ChunkCacheEntryInit -- initialize a chunk cache entry */
+
+void ChunkCacheEntryInit(ChunkCacheEntry entry)
+{
+  entry->chunk = NULL;
+  /* No need to init other fields. */
+  entry->sig = ChunkCacheEntrySig;
+  return;
+}
+
+
+/* ChunkEncache -- cache a chunk */
+
+void ChunkEncache(Arena arena, Chunk chunk)
+{
+  AVERT(Arena, arena);
+  AVERT(Chunk, chunk);
+  AVER(arena == chunk->arena);
+
+  /* check chunk already in cache first */
+  if (arena->chunkCache.chunk == chunk) {
+    return;
+  }
+
+  arena->chunkCache.chunk = chunk;
+  arena->chunkCache.base = chunk->base;
+  arena->chunkCache.limit = chunk->limit;
+  arena->chunkCache.pageTableBase = &chunk->pageTable[0];
+  arena->chunkCache.pageTableLimit = &chunk->pageTable[chunk->pages];
+
+  AVERT(arenaChunkCacheEntry, &arena->chunkCache);
+  return;
+}
+
+
+/* ChunkDecache -- make sure a chunk is not in the cache */
+
+static void ChunkDecache(Arena arena, Chunk chunk)
+{
+  /* static function called internally, hence no checking */
+
+  if (arena->chunkCache.chunk == chunk) {
+    arena->chunkCache.chunk = NULL;
+  }
+}
+
+
+/* Page table functions */
+
 /* TractOfAddr -- return the tract the given address is in, if any */
 
 Bool TractOfAddr(Tract *tractReturn, Arena arena, Addr addr)
 {
-  AVER_CRITICAL(tractReturn != NULL);
+  AVER_CRITICAL(tractReturn != NULL); /* .tract.critical */
   AVERT_CRITICAL(Arena, arena);
 
   return (*arena->class->tractOfAddr)(tractReturn, arena, addr);
@@ -182,8 +384,3 @@ Tract TractNextContig(Arena arena, Tract tract)
                 AddrAdd(TractBase(tract), arena->alignment));
   return next;
 }
-
-
-
-
-
