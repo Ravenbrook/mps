@@ -1,7 +1,7 @@
 /*  impl.h.poolepdl: ELECTRONIC PUBLISHING DISPLAY LIST POOL
  *
  * Copyright (C) 1997 Harlequin Group Limited, all rights reserved
- * $HopeName: MMsrc!poolepdl.h(trunk.3) $
+ * $Id$
  * 
  * .purpose: This is a pool class for EPcore display lists. See
  * impl.c.poolepdl.purpose.

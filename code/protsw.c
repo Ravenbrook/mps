@@ -1,6 +1,6 @@
 /* impl.c.protsw: SCRIPTWORKS MEMORY PROTECTION
  *
- * $HopeName: MMsrc!protsw.c(trunk.5) $
+ * $Id$
  * Copyright (C) 1997 Harlequin Limited.  All rights reserved.
  *
  * DESIGN
@@ -14,7 +14,7 @@
 #error "protsw.c implements no protection, but PROTECTION_NONE is not set"
 #endif
 
-SRCID(protsw, "$HopeName: MMsrc!protsw.c(trunk.5) $");
+SRCID(protsw, "$Id$");
 
 
 /* ProtSetup -- global protection setup */

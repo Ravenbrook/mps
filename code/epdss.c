@@ -1,6 +1,6 @@
 /* impl.c.epdss: EPDL/R STRESS TEST
  *
- * $HopeName: MMsrc!epdss.c(trunk.1) $
+ * $Id$
  * Copyright (C) 2000 Harlequin Limited.  All rights reserved.
  */
 

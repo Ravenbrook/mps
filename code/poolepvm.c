@@ -1,6 +1,6 @@
 /* impl.c.poolepvm: ELECTRONIC PUBLISHING "VIRTUAL MEMORY" CLASS
  *
- * $HopeName: MMsrc!poolepvm.c(trunk.45) $
+ * $Id$
  * Copyright (C) 2001 Harlequin Limited.  All rights reserved.
  *
  * .purpose: This is the implementation of the PostScript Virtual Memory
@@ -15,7 +15,7 @@
 #include "chain.h"
 #include <stdarg.h>
 
-SRCID(poolepvm, "$HopeName: MMsrc!poolepvm.c(trunk.45) $");
+SRCID(poolepvm, "$Id$");
 
 
 /* structures */

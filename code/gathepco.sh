@@ -1,6 +1,6 @@
 #! /usr/local/bin/bash
 #
-# $HopeName: MMsrc!gathepco.sh(trunk.1) $
+# $Id$
 # Copyright (C) 2000 Harlequin Limited.  All rights reserved.
 
 mkdir release
