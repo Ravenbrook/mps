@@ -1,12 +1,12 @@
 /* impl.c.root: ROOT IMPLEMENTATION
  *
- * $HopeName: MMsrc!root.c(MMdevel_trace2.1) $
+ * $HopeName: MMsrc!root.c(MMdevel_trace2.2) $
  * Copyright (C) 1995 Harlequin Group, all rights reserved.
  */
 
 #include "mpm.h"
 
-SRCID(root, "$HopeName: MMsrc!root.c(MMdevel_trace2.1) $");
+SRCID(root, "$HopeName: MMsrc!root.c(MMdevel_trace2.2) $");
 
 
 /* RootCheck -- check consistency of root structure */
@@ -194,6 +194,31 @@ Rank RootRank(Root root)
 }
 
 
+static Res ScanArea(Fix fix, Addr *base, Addr *limit)
+{
+  Res res;
+  Addr *p;
+  Ref ref;
+
+  AVER(base != NULL);
+  AVER(limit != NULL);
+  AVER(base < limit);
+
+  TRACE_SCAN_BEGIN(fix) {
+          p = base;
+  loop:   if(p >= limit) goto out;
+          ref = *p++;
+          if(!TRACE_FIX1(fix, ref)) goto loop;
+          res = TRACE_FIX2(p-1, fix);
+          if(res == ResOK) goto loop;
+          return res;
+  out:    AVER(p == limit);
+  } TRACE_SCAN_END(fix);
+
+  return ResOK;
+}
+
+
 /* RootScan -- apply fix to references in a root */
 
 Res RootScan(Root root, Fix fix)
@@ -212,8 +237,9 @@ Res RootScan(Root root, Fix fix)
     break;
 
     case RootTABLE:
-    TraceScanArea(fix, root->the.table.refs,
-                  &root->the.table.refs[root->the.table.size]);
+    res = ScanArea(fix, root->the.table.refs,
+                   &root->the.table.refs[root->the.table.size]);
+    if(res != ResOK) return res;
     break;
 
     case RootREG:
