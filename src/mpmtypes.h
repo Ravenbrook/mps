@@ -1,6 +1,6 @@
 /* impl.h.mpmtypes: MEMORY POOL MANAGER TYPES
  *
- * $HopeName: MMsrc!mpmtypes.h(MMdevel_tony_sunset.1) $
+ * $HopeName: MMsrc!mpmtypes.h(MMdevel_tony_sunset.2) $
  * Copyright (C) 1997, 1998 Harlequin Group plc.  All rights reserved.
  *
  * .readership: MM developers.
@@ -69,7 +69,10 @@ typedef PoolClass AbstractScanPoolClass; /* impl.c.poolabs */
 typedef PoolClass AbstractCollectPoolClass; /* impl.c.poolabs */
 typedef struct TraceStruct *Trace;      /* design.mps.tracer */
 typedef struct ScanStateStruct *ScanState; /* design.mps.tracer */
+typedef struct TractStruct *Tract;     /* design.mps.arena */
 typedef struct SegStruct *Seg;          /* impl.c.seg */
+typedef struct SegGCStruct *SegGC;      /* impl.c.seg */
+typedef struct SegClassStruct *SegClass; /* impl.c.seg */
 typedef struct SegPrefStruct *SegPref;  /* design.mps.pref, impl.c.arena* */
 typedef int SegPrefKind;                /* design.mps.pref, impl.c.arena* */
 typedef struct ArenaClassStruct *ArenaClass; /* design.mps.arena */
@@ -98,15 +101,16 @@ typedef void (*ArenaSpareCommitExceededMethod)(Arena arena);
 typedef Res (*ArenaExtendMethod)(Arena arena, Addr base, Size size);
 typedef Res (*ArenaRetractMethod)(Arena arena, Addr base, Size size);
 typedef Bool (*ArenaIsReservedAddrMethod)(Arena arena, Addr addr);
-typedef Res (*ArenaSegAllocMethod)(Seg *segReturn, SegPref pref,
-                                   Size size, Pool pool);
-typedef void (*ArenaSegFreeMethod)(Seg seg);
-typedef Addr (*ArenaSegBaseMethod)(Seg seg);
-typedef Addr (*ArenaSegLimitMethod)(Seg seg);
-typedef Size (*ArenaSegSizeMethod)(Seg seg);
-typedef Bool (*ArenaSegOfAddrMethod)(Seg *segReturn, Arena arena, Addr addr);
-typedef Bool (*ArenaSegFirstMethod)(Seg *segReturn, Arena arena);
-typedef Bool (*ArenaSegNextMethod)(Seg *segReturn, Arena arena, Addr addr);
+typedef Res (*ArenaAllocMethod)(Addr *baseReturn, 
+                                Tract *baseTractReturn,
+                                SegPref pref, Size size, Pool pool);
+typedef void (*ArenaFreeMethod)(Addr base, Size size, Pool pool);
+typedef Addr (*ArenaTractBaseMethod)(Tract tract);
+typedef Bool (*ArenaTractOfAddrMethod)(Tract *tractReturn, 
+                                       Arena arena, Addr addr);
+typedef Bool (*ArenaTractFirstMethod)(Tract *tractReturn, Arena arena);
+typedef Bool (*ArenaTractNextMethod)(Tract *tractReturn, 
+                                     Arena arena, Addr addr);
 typedef Res (*ArenaDescribeMethod)(Arena arena, mps_lib_FILE *stream);
 
 
@@ -130,6 +134,23 @@ typedef Res (*TraceFixMethod)(ScanState ss, Ref *refIO);
 typedef void (*FormattedObjectsStepMethod)(Addr, Format, Pool,
                                            void *, Size);
 
+/* Seg*Method -- see design.mps.seg */
+
+typedef void (*SegInitMethod)(Seg seg, Pool pool, Addr base, Size size);
+typedef void (*SegFinishMethod)(Seg seg);
+typedef void (*SegSetGreyMethod)(Seg seg, TraceSet grey);
+typedef void (*SegSetWhiteMethod)(Seg seg, TraceSet white);
+typedef void (*SegSetRankSetMethod)(Seg seg, RankSet rankSet);
+typedef void (*SegSetRankSummaryMethod)(Seg seg, RankSet rankSet, 
+                                        RefSet summary);
+typedef RefSet (*SegSummaryMethod)(Seg seg);
+typedef void (*SegSetSummaryMethod)(Seg seg, RefSet summary);
+typedef Buffer (*SegBufferMethod)(Seg seg);
+typedef void (*SegSetBufferMethod)(Seg seg, Buffer buffer);
+typedef void* (*SegPMethod)(Seg seg);
+typedef void (*SegSetPMethod)(Seg seg, void *p);
+typedef Res (*SegDescribeMethod)(Seg seg, mps_lib_FILE *stream);
+
 
 /* Pool*Method -- see design.mps.class-interface */
 
@@ -145,7 +166,8 @@ typedef Res (*PoolBufferFillMethod)(Seg *segReturn,
                                     Addr *baseReturn, Addr *limitReturn,
                                     Pool pool, Buffer buffer, Size size,
                                     Bool withReservoirPermit);
-typedef void (*PoolBufferEmptyMethod)(Pool pool, Buffer buffer, Seg seg);
+typedef void (*PoolBufferEmptyMethod)(Pool pool, Buffer buffer, 
+                                      Seg seg, Addr init, Addr limit);
 typedef void (*PoolBufferFinishMethod)(Pool pool, Buffer buf);
 typedef Res (*PoolTraceBeginMethod)(Pool pool, Trace trace);
 typedef Res (*PoolAccessMethod)(Pool pool, Seg seg, Addr addr,

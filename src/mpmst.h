@@ -1,6 +1,6 @@
 /* impl.h.mpmst: MEMORY POOL MANAGER DATA STRUCTURES
  *
- * $HopeName: MMsrc!mpmst.h(MMdevel_tony_sunset.1) $
+ * $HopeName: MMsrc!mpmst.h(MMdevel_tony_sunset.2) $
  * Copyright (C) 1998 Harlequin Group plc.  All rights reserved.
  *
  * .readership: MM developers.
@@ -155,11 +155,11 @@ typedef struct PoolStruct {     /* generic structure */
 typedef struct MFSStruct {      /* MFS outer structure */
   PoolStruct poolStruct;        /* generic structure */
   Size unroundedUnitSize;       /* the unit size requested */
-  Size extendBy;                /* segment size rounded using unitSize */
+  Size extendBy;                /* arena alloc size rounded using unitSize */
   Size unitSize;                /* rounded for management purposes */
-  Word unitsPerSeg;             /* number of units per segment */
+  Word unitsPerExtent;          /* number of units per arena alloc */
   struct MFSHeaderStruct *freeList; /* head of the free list */
-  Seg segList;                  /* the first segment */
+  Tract tractList;              /* the first tract */
   Sig sig;                      /* design.mps.sig */
 } MFSStruct;
 
@@ -210,6 +210,7 @@ typedef struct MVStruct {       /* MV pool outer structure */
 
 typedef struct ReservoirStruct {   /* Reservoir structure */
   PoolStruct poolStruct;        /* generic pool structure */
+  Tract reserve;                /* linked list of reserve tracts */
   Size reservoirLimit;          /* desired reservoir size */
   Size reservoirSize;           /* actual reservoir size */
   Sig sig;                      /* design.mps.sig */
@@ -258,39 +259,104 @@ typedef struct MessageStruct {
 } MessageStruct;
 
 
-/* SegStruct -- segment structure
+/* TractStruct -- tract structure
  *
- * .seg: Segments are the basic units of memory allocation from
- * the arena.  See design.mps.seg.
- * .seg.fieldnames: @@@@ Fieldnames all begin with underscore, for no 
- *   documented reason.  GavinM tells me this was done by Richard as part 
- *   of finding and removing some modularity-breaking accesses of SegStruct 
- *   fields.  There is no reason not to revert these names at some point in 
- *   the future.  richardk19980312.
+ * .tract: Tracts represent the grains of memory allocation from
+ * the arena.  See design.mps.arena.
  */
 
+typedef struct TractStruct { /* Tract structure */
+  Pool pool;           /* MUST BE FIRST (design.mps.arena.tract.pool) */
+  void *p;                    /* pointer for use of owning pool */
+  Addr base;                  /* Base address of the tract */
+  TraceSet white : TRACE_MAX; /* traces for which tract is white */
+  unsigned int hasSeg : 1;    /* does tract have a seg in p? */
+} TractStruct;
+
+
+/* SegClassStruct -- segment class structure
+ *
+ * See design.mps.seg & design.mps.protocol
+ *
+ * .seg.class: The segment class structure is defined by each 
+ * segment class implementation in order to provide an generic 
+ * interface to segments.
+ */
+
+#define SegClassSig    ((Sig)0x5195E9C7) /* SIGnature SEG CLass */
+
+typedef struct SegClassStruct {
+  ProtocolClassStruct protocol;
+  const char *name;             /* class name string */
+  size_t size;                  /* size of outer structure */
+  SegInitMethod init;           /* initialize the segment */
+  SegFinishMethod finish;       /* finish the segment */
+  SegSummaryMethod summary;     /* get the segment summary  */
+  SegSetSummaryMethod setSummary; /* set the segment summary  */
+  SegBufferMethod buffer;       /* get the segment buffer  */
+  SegSetBufferMethod setBuffer; /* set the segment buffer  */
+  SegSetGreyMethod setGrey;     /* change greyness of segment */
+  SegSetWhiteMethod setWhite;   /* change whiteness of segment */
+  SegSetRankSetMethod setRankSet; /* change rank set of segment */
+  SegSetRankSummaryMethod setRankSummary; /* change rank set & summary */
+  SegDescribeMethod describe;   /* describe the contents of the seg */
+  SegPMethod p;                 /* get P field of segment */
+  SegSetPMethod setP;           /* set P field of segment */
+  Sig sig;                      /* .class.end-sig */
+} SegClassStruct;
+
+
+/* SegStruct -- segment structure
+ *
+ * .seg: Segments are the basic units of protection and tracer
+ * activity for allocated memory.  See design.mps.seg.
+ */
+
+#define SegSig      ((Sig)0x5195E999) /* SIGnature SEG  */ 
+
 typedef struct SegStruct {      /* segment structure */
-  Pool _pool;                   /* MUST BE FIRST (design.mps.seg.field.pool) */
-  RingStruct _poolRing;         /* link in list of segs in pool */
-  RingStruct _greyRing;         /* link in list of grey segs */
-  void *_p;                     /* pointer for use of owning pool */
-  Buffer _buffer;               /* non-NULL if seg is buffered */
-  RefSet _summary;              /* summary of references out of seg */
-  unsigned _depth : SHIELD_DEPTH_WIDTH; /* see impl.c.shield.def.depth */
-  AccessSet _pm : AccessMAX;    /* protection mode, impl.c.shield */
-  AccessSet _sm : AccessMAX;    /* shield mode, impl.c.shield */
-  TraceSet _grey : TRACE_MAX;   /* traces for which seg is grey */
-  TraceSet _white : TRACE_MAX;  /* traces for which seg is white */
-  TraceSet _nailed : TRACE_MAX; /* traces for which seg has nailed objects */
-  unsigned int _single : 1;     /* is a single page segment? */
-  RankSet _rankSet : RankMAX;   /* ranks of references in this seg */
+  Sig sig;                      /* impl.h.misc.sig */
+  SegClass class;               /* segment class structure */
+  Tract firstTract;             /* first tract of segment */
+  Addr limit;                   /* limit of segment */
+  unsigned depth : SHIELD_DEPTH_WIDTH; /* see impl.c.shield.def.depth */
+  AccessSet pm : AccessMAX;     /* protection mode, impl.c.shield */
+  AccessSet sm : AccessMAX;     /* shield mode, impl.c.shield */
+  TraceSet grey : TRACE_MAX;    /* traces for which seg is grey */
+  TraceSet white : TRACE_MAX;   /* traces for which seg is white */
+  TraceSet nailed : TRACE_MAX;  /* traces for which seg has nailed objects */
+  RankSet rankSet : RankMAX;    /* ranks of references in this seg */
 } SegStruct;
+
+
+/* SegGCStruct -- GCable segment structure
+ *
+ * .seggc: SegGC is a subclass of Seg with support for
+ * buffered allocation and GC.  See design.mps.seg.
+ */
+
+#define SegGCSig      ((Sig)0x5195E99C) /* SIGnature SEG GC  */ 
+
+typedef struct SegGCStruct {    /* GC segment structure */
+  SegStruct segStruct;          /* superclass fields must come first */
+  RingStruct poolRing;          /* link in list of segs in pool */
+  RingStruct greyRing;          /* link in list of grey segs */
+  RefSet summary;               /* summary of references out of seg */
+  Buffer buffer;                /* non-NULL if seg is buffered */
+  void *p;                      /* pointer for use of owning pool */
+  Sig sig;                      /* design.mps.sig */
+} SegGCStruct;
+
+
 
 
 /* SegPrefStruct -- segment preference structure
  * 
- * .seg-pref: segment users (pool class code) need a way of expressing
- * preferences about the segments they allocate.
+ * .seg-pref: arena memory users (pool class code) need a way of 
+ * expressing preferences about the segments they allocate.
+ * 
+ * .seg-pref.misleading: The name is historical and misleading. SegPref
+ * objects need have nothing to do with segments. @@@@
  */
 
 #define SegPrefSig      ((Sig)0x5195E9B6) /* SIGnature SEG PRef */ 
@@ -346,7 +412,7 @@ typedef struct BufferStruct {
   double fillSize;              /* bytes filled in this buffer */
   double emptySize;             /* bytes emptied from this buffer */
   RankSet rankSet;              /* ranks of references being created */
-  Seg seg;                      /* segment being buffered */
+  Seg seg;                      /* segment being buffered - if any */
   Addr base;                    /* base address of allocation buffer */
   Addr initAtFlip;              /* limit of initialized data at flip */
   APStruct apStruct;            /* the allocation point */
@@ -623,14 +689,12 @@ typedef struct ArenaClassStruct {
   ArenaExtendMethod extend;
   ArenaRetractMethod retract;
   ArenaIsReservedAddrMethod isReserved;
-  ArenaSegAllocMethod segAlloc;
-  ArenaSegFreeMethod segFree;
-  ArenaSegBaseMethod segBase;
-  ArenaSegLimitMethod segLimit;
-  ArenaSegSizeMethod segSize;
-  ArenaSegOfAddrMethod segOfAddr;
-  ArenaSegFirstMethod segFirst;
-  ArenaSegNextMethod segNext;
+  ArenaAllocMethod alloc;
+  ArenaFreeMethod free;
+  ArenaTractBaseMethod tractBase;
+  ArenaTractOfAddrMethod tractOfAddr;
+  ArenaTractFirstMethod tractFirst;
+  ArenaTractNextMethod tractNext;
   ArenaDescribeMethod describe;
   Sig endSig;
 } ArenaClassStruct;
@@ -677,7 +741,7 @@ typedef struct ArenaStruct {
   Size spareCommitLimit;        /* Limit on spareCommitted */
 
   Shift zoneShift;              /* see also impl.c.ref */
-  Align alignment;              /* minimum alignment of segments */
+  Align alignment;              /* minimum alignment of tracts */
 
   /* pool fields (impl.c.pool) */
   RingStruct poolRing;          /* ring of pools in arena */
@@ -722,6 +786,10 @@ typedef struct ArenaStruct {
   Epoch epoch;                     /* design.mps.arena.ld.epoch */
   RefSet prehistory;               /* design.mps.arena.ld.prehistory */
   RefSet history[ARENA_LD_LENGTH]; /* design.mps.arena.ld.history */
+
+  /* last allocated tract cache fields (impl.c.arena) */
+  Tract lastTract;              /* most recently allocated tract */
+  Addr lastTractBase;           /* base address of lastTract */
 } ArenaStruct;
 
 
