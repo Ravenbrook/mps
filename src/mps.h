@@ -1,6 +1,6 @@
 /* impl.h.mps: HARLEQUIN MEMORY POOL SYSTEM C INTERFACE
  *
- * $HopeName: MMsrc!mps.h(MM_epcore_brisling.2) $
+ * $HopeName: MMsrc!mps.h(MM_epcore_brisling.3) $
  * Copyright (C) 1997, 1998, 1999 The Harlequin Group Limited.  All rights reserved.
  *
  * .readership: customers, MPS developers.
@@ -119,23 +119,23 @@ typedef struct mps_sac_s *mps_sac_t;
 #define MPS_SAC_CLASS_LIMIT ((size_t)8)
 
 typedef struct mps_sac_freelist_block_s {
-  size_t size;
-  size_t count;
-  size_t count_max;
-  mps_addr_t blocks;
+  size_t mps_size;
+  size_t mps_count;
+  size_t mps_count_max;
+  mps_addr_t mps_blocks;
 } mps_sac_freelist_block_s;
 
 typedef struct mps_sac_s {
-  size_t middle;
-  mps_bool_t trapped;
-  mps_sac_freelist_block_s freelists[2 * MPS_SAC_CLASS_LIMIT];
+  size_t mps_middle;
+  mps_bool_t mps_trapped;
+  mps_sac_freelist_block_s mps_freelists[2 * MPS_SAC_CLASS_LIMIT];
 } mps_sac_s;
 
 /* .sacc: Keep in sync with impl.h.sac. */
 typedef struct mps_sac_classes_s {
-  size_t block_size;
-  size_t cached_count;
-  unsigned frequency;
+  size_t mps_block_size;
+  size_t mps_cached_count;
+  unsigned mps_frequency;
 } mps_sac_classes_s;
 
 typedef mps_sac_classes_s mps_sac_classes_t[MPS_SAC_CLASS_LIMIT];
@@ -315,51 +315,55 @@ extern mps_res_t mps_sac_alloc(mps_addr_t *, mps_sac_t, size_t, mps_bool_t);
 extern void mps_sac_free(mps_sac_t, mps_addr_t, size_t);
 extern void mps_sac_flush(mps_sac_t);
 
-/* Direct access to mps_sac_fill and mps_sac_empty is not supported. */
-extern mps_res_t mps_sac_fill(mps_addr_t *, mps_sac_t, size_t, mps_bool_t);
-extern void mps_sac_empty(mps_sac_t, mps_addr_t, size_t);
+/* Direct access to _mps_sac_fill and _mps_sac_empty is not supported. */
+extern mps_res_t _mps_sac_fill(mps_addr_t *, mps_sac_t, size_t, mps_bool_t);
+extern void _mps_sac_empty(mps_sac_t, mps_addr_t, size_t);
 
-#define MPS_SAC_ALLOC(_res_o, _p_o, _sac, _size, _has_reservoir_permit) \
+#define MPS_SAC_ALLOC(res_o, p_o, sac, size, has_reservoir_permit) \
   MPS_BEGIN \
     size_t _mps_i, _mps_s; \
     \
-    _mps_s = (_size); \
-    if (_mps_s > (_sac)->middle) { \
+    _mps_s = (size); \
+    if (_mps_s > (sac)->mps_middle) { \
       _mps_i = 0; \
-      while (_mps_s > (_sac)->freelists[_mps_i].size) _mps_i += 2; \
+      while (_mps_s > (sac)->mps_freelists[_mps_i].mps_size) \
+        _mps_i += 2; \
     } else { \
       _mps_i = 1; \
-      while (_mps_s <= (_sac)->freelists[_mps_i].size) _mps_i += 2; \
+      while (_mps_s <= (sac)->mps_freelists[_mps_i].mps_size) \
+        _mps_i += 2; \
     } \
-    if ((_sac)->freelists[_mps_i].count != 0) { \
-      (_p_o) = (_sac)->freelists[_mps_i].blocks; \
-      (_sac)->freelists[_mps_i].blocks = *(mps_addr_t *)(_p_o); \
-      --(_sac)->freelists[_mps_i].count; \
-      (_res_o) = MPS_RES_OK; \
+    if ((sac)->mps_freelists[_mps_i].mps_count != 0) { \
+      (p_o) = (sac)->mps_freelists[_mps_i].mps_blocks; \
+      (sac)->mps_freelists[_mps_i].mps_blocks = *(mps_addr_t *)(p_o); \
+      --(sac)->mps_freelists[_mps_i].mps_count; \
+      (res_o) = MPS_RES_OK; \
     } else \
-      (_res_o) = mps_sac_fill(&(_p_o), _sac, _mps_s, \
-                              _has_reservoir_permit); \
+      (res_o) = _mps_sac_fill(&(p_o), sac, _mps_s, \
+                              has_reservoir_permit); \
   MPS_END
 
-#define MPS_SAC_FREE(_sac, _p, _size) \
+#define MPS_SAC_FREE(sac, _p, size) \
   MPS_BEGIN \
     size_t _mps_i, _mps_s; \
     \
-    _mps_s = (_size); \
-    if (_mps_s > (_sac)->middle) { \
+    _mps_s = (size); \
+    if (_mps_s > (sac)->mps_middle) { \
       _mps_i = 0; \
-      while (_mps_s > (_sac)->freelists[_mps_i].size) _mps_i += 2; \
+      while (_mps_s > (sac)->mps_freelists[_mps_i].mps_size) \
+        _mps_i += 2; \
     } else { \
       _mps_i = 1; \
-      while (_mps_s <= (_sac)->freelists[_mps_i].size) _mps_i += 2; \
+      while (_mps_s <= (sac)->mps_freelists[_mps_i].mps_size) \
+        _mps_i += 2; \
     } \
-    if ((_sac)->freelists[_mps_i].count \
-        < (_sac)->freelists[_mps_i].count_max) { \
-       *(mps_addr_t *)(_p) = (_sac)->freelists[_mps_i].blocks; \
-      (_sac)->freelists[_mps_i].blocks = (_p); \
-      ++(_sac)->freelists[_mps_i].count; \
+    if ((sac)->mps_freelists[_mps_i].mps_count \
+        < (sac)->mps_freelists[_mps_i].mps_count_max) { \
+       *(mps_addr_t *)(_p) = (sac)->mps_freelists[_mps_i].mps_blocks; \
+      (sac)->mps_freelists[_mps_i].mps_blocks = (_p); \
+      ++(sac)->mps_freelists[_mps_i].mps_count; \
     } else \
-      mps_sac_empty(_sac, _p, _mps_s); \
+      _mps_sac_empty(sac, _p, _mps_s); \
   MPS_END
 
 
