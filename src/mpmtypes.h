@@ -1,6 +1,6 @@
 /* impl.h.mpmtypes: MEMORY POOL MANAGER TYPES
  *
- * $HopeName$
+ * $HopeName: MMsrc!mpmtypes.h(MMdevel_restr.1) $
  * Copyright (C) 1996 Harlequin Group, all rights reserved.
  *
  * .rationale: Types and type constants are almost all defined
@@ -18,7 +18,7 @@
 
 typedef MPS_T_WORD Word;		/* machine word */
 typedef unsigned char Byte;		/* byte */
-typedef Word Addr;
+typedef struct AddrStruct *Addr;
 typedef Word Size;
 typedef Word Align;
 typedef unsigned Shift;
@@ -33,7 +33,7 @@ typedef struct PoolStruct *Pool;
 typedef struct SpaceStruct *Space;
 typedef struct PoolClassStruct *PoolClass;
 typedef Addr Ref;
-typedef Addr RefSet;
+typedef Word RefSet;
 typedef int Rank;
 typedef struct TraceStruct *Trace;
 typedef unsigned int TraceId;
