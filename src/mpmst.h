@@ -1,6 +1,6 @@
 /* impl.h.mpmst: MEMORY POOL MANAGER DATA STRUCTURES
  *
- * $HopeName: MMsrc!mpmst.h(MMdevel_sw_eq.2) $
+ * $HopeName: MMsrc!mpmst.h(MMdevel_sw_eq.3) $
  * Copyright (C) 1996 Harlequin Group, all rights reserved.
  *
  * .readership: MM developers.
@@ -137,8 +137,8 @@ typedef struct PoolStruct {     /* generic structure */
 
 typedef struct PoolPrefStruct {
   Sig sig;
-  Pool near;
-  Pool far;
+  Pool nearPool;                 /* not called 'near' because VC barfs */
+  Pool farPool;                  /* not called 'far' because VC barfs */
 } PoolPrefStruct;
 
 

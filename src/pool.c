@@ -1,6 +1,6 @@
 /* impl.c.pool: POOL IMPLEMENTATION
  *
- * $HopeName: MMsrc!pool.c(MMdevel_sw_eq.1) $
+ * $HopeName: MMsrc!pool.c(MMdevel_sw_eq.2) $
  * Copyright (C) 1994,1995,1996 Harlequin Group, all rights reserved
  *
  * This is the implementation of the generic pool interface.  The
@@ -12,7 +12,7 @@
 
 #include "mpm.h"
 
-SRCID(pool, "$HopeName: MMsrc!pool.c(MMdevel_sw_eq.1) $");
+SRCID(pool, "$HopeName: MMsrc!pool.c(MMdevel_sw_eq.2) $");
 
 
 Bool PoolClassCheck(PoolClass class)
@@ -62,8 +62,8 @@ Bool PoolCheck(Pool pool)
 Bool PoolPrefCheck(PoolPref pref)
 {
   CHECKS(PoolPref, pref);
-  CHECKL(pref->near == NULL || PoolCheck(pref->near));
-  CHECKL(pref->far == NULL || PoolCheck(pref->far));
+  CHECKL(pref->nearPool == NULL || PoolCheck(pref->nearPool));
+  CHECKL(pref->farPool == NULL || PoolCheck(pref->farPool));
   /* nothing else to check */
   return TRUE;
 }
@@ -83,12 +83,12 @@ Res PoolPrefExpress(PoolPref pref, PoolPrefKind kind, void *p)
   switch(kind) {
   case PoolPrefNear:
     AVERT(Pool, (Pool)p);
-    pref->near = p;
+    pref->nearPool = p;
     return ResOK;
 
   case PoolPrefFar:
     AVERT(Pool, (Pool)p);
-    pref->far = p;
+    pref->farPool = p;
     return ResOK;
 
   default:

@@ -1,6 +1,6 @@
 /* impl.c.poolmv: MANUAL VARIABLE POOL
  *
- * $HopeName: MMsrc!poolmv.c(MMdevel_sw_eq.1) $
+ * $HopeName: MMsrc!poolmv.c(MMdevel_sw_eq.2) $
  * Copyright (C) 1994, 1995 Harlequin Group, all rights reserved
  *
  * **** RESTRICTION: This pool may not allocate from the arena control
@@ -37,7 +37,7 @@
 #include "poolmfs.h"
 #include "mpscmv.h"
 
-SRCID(poolmv, "$HopeName: MMsrc!poolmv.c(MMdevel_sw_eq.1) $");
+SRCID(poolmv, "$HopeName: MMsrc!poolmv.c(MMdevel_sw_eq.2) $");
 
 
 #define BLOCKPOOL(mv)   (MFSPool(&(mv)->blockPoolStruct))
@@ -185,8 +185,8 @@ static Res MVInit(Pool pool, PoolPref pref, va_list arg)
   mv->maxSize  = maxSize;
   RingInit(&mv->spans);
     
-  if ((pref->near == NULL) &&
-      (pref->far == NULL)) {
+  if ((pref->nearPool == NULL) &&
+      (pref->farPool == NULL)) {
     mv->high = FALSE;
     mv->segPref = SegPrefDefault();
   } else { /* construct our segment preference */
@@ -199,19 +199,19 @@ static Res MVInit(Pool pool, PoolPref pref, va_list arg)
     mv->segPref = (SegPref)p;
     *mv->segPref = *SegPrefDefault();   /* copy in the default preference */
     
-    if (pref->near != NULL) {
+    if (pref->nearPool != NULL) {
       MV nearMv;
 
-      AVERT(Pool, pref->near);
-      nearMv = PoolPoolMV(pref->near);
+      AVERT(Pool, pref->nearPool);
+      nearMv = PoolPoolMV(pref->nearPool);
       AVERT(MV, nearMv);
 
       mv->high = nearMv->high;
-    } else { /* we know here that pref->far is non-NULL */
+    } else { /* we know here that pref->farPool is non-NULL */
       MV farMv;
 
-      AVERT(Pool, pref->far);
-      farMv = PoolPoolMV(pref->far);
+      AVERT(Pool, pref->farPool);
+      farMv = PoolPoolMV(pref->farPool);
       AVERT(MV, farMv);
 
       mv->high = ! farMv->high;
