@@ -1,16 +1,12 @@
-/* impl.c.version: Version Inspection
+/* impl.c.version: VERSION INSPECTION
  *
- * $HopeName: !version.c(trunk.2) $
- * Copyright (C) 1998.  Harlequin Group plc.  All rights reserved.
+ * $HopeName: MMsrc!version.c(MM_dylan_kinglet.1) $
+ * Copyright (C) 1998 Harlequin Limited.  All rights reserved.
  *
  * PURPOSE
  *
  * The purpose of this module is to provide a means by which the
  * version of the MM library being used can be determined.
- *
- * READERSHIP
- *
- * .readership: Any MPS developers.
  *
  * DESIGN
  *
@@ -21,15 +17,19 @@
 
 #include "mpm.h"
 
+
 /* .release: When making a new release, change the expansion of
  * MPS_RELEASE to be a string of the form "release.dylan.crow.2"
  * or whatever. */
-#define MPS_RELEASE "$HopeName: !version.c(trunk.2) $ *** DEVELOPMENT ONLY ***"
+#define MPS_RELEASE "release.dylan.kinglet"
+
 
 /* Version String
  *
  * MPSVersion is a declared object comprising the concatenation of
- * various other strings. */
+ * various other strings.
+ */
+
 char MPSVersionString[] =
   "@(#)HQNMPS, "
   "product." MPS_PROD_STRING ", " MPS_RELEASE ", platform." MPS_PF_STRING
