@@ -1,6 +1,6 @@
 /* impl.h.misc: MISCELLANEOUS DEFINITIONS
  *
- * $HopeName: !misc.h(trunk.17) $
+ * $HopeName: MMsrc!misc.h(MM_dylan_cottonwood.1) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  *
  * Small general things which are useful for C but aren't part of the
@@ -84,9 +84,10 @@ typedef const struct SrcIdStruct {
 
 /* UNUSED -- declare parameter unused
  *
- * This macro supresses warnings about unused parameters.  It should be
- * applied to the parameter at the beginning of the body of the 
- * procedure.
+ * These macros supresses warnings about unused parameters.  They 
+ * should be applied to the parameter at the beginning of the body 
+ * of the procedure.  The checking flavours are for parameters that
+ * are used only in checking and critical checking.
  *
  * The cast to void appears to work for GCC, MSVC, and CodeWarrior.
  * It's a shame there's no way to ensure that the parameter won't be
@@ -94,7 +95,29 @@ typedef const struct SrcIdStruct {
  * versions.
  */
 
-#define UNUSED(param)   ((void)param)
+#if defined(MPS_HOT_WHITE)
+
+#define UNUSED(param)                            ((void)param)
+#define UNUSED_OUTSIDE_CHECKING(param)           ((void)param)
+#define UNUSED_OUTSIDE_CRITICAL_CHECKING(param)  ((void)param)
+
+#elif defined(MPS_HOT_RED)
+
+#define UNUSED(param)                            ((void)param)
+#define UNUSED_OUTSIDE_CHECKING(param)           NOOP 
+#define UNUSED_OUTSIDE_CRITICAL_CHECKING(param)  ((void)param)
+ 
+#elif defined(MPS_COOL)
+  
+#define UNUSED(param)                            ((void)param)
+#define UNUSED_OUTSIDE_CHECKING(param)           NOOP
+#define UNUSED_OUTSIDE_CRITICAL_CHECKING(param)  NOOP
+
+#else
+ 
+#error "No heat defined."
+  
+#endif
 
 
 /* PARENT -- parent structure
