@@ -1,6 +1,6 @@
 /* impl.h.mpm: MEMORY POOL MANAGER DEFINITIONS
  *
- * $HopeName: MMsrc!mpm.h(MMdevel_drj_swint.1) $
+ * $HopeName: MMsrc!mpm.h(MMdevel_drj_swint.2) $
  * Copyright (C) 1996 Harlequin Group, all rights reserved.
  */
 
@@ -253,7 +253,7 @@ extern Res TraceScanAreaTagged(ScanState ss, Addr *base, Addr *limit);
 
 /* Space Interface -- see impl.c.space */
 
-extern Res SpaceCreate(Space *spaceReturn, Addr base);
+extern Res SpaceCreate(Space *spaceReturn, Addr base, Size size);
 extern void SpaceDestroy(Space space);
 extern Bool SpaceCheck(Space space);
 extern Res SpaceDescribe(Space space, Lib_FILE *stream);
