@@ -1,13 +1,15 @@
-/* impl.c.lockcov
- *                     LOCK COVERAGE TEST
+/* impl.c.lockcov: LOCK COVERAGE TEST
  *
- * $HopeName: !lockcov.c(trunk.4) $
+ * $HopeName: MMsrc!lockcov.c(MM_dylan_kinglet.1) $
+ * Copyright (C) 1997 Harlequin Limited.  All rights reserved.
  */
 
 #include "mpm.h"
 #include <stdlib.h>             /* for malloc & free */
 
-int main(void){
+
+int main(void)
+{
   Lock a = malloc(LockSize());
   Lock b = malloc(LockSize());
 
