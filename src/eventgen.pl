@@ -2,7 +2,7 @@
 # impl.pl.eventgen -- Generator for impl.h.eventgen
 #
 # Copyright (C) 1997 Harlequin Group, all rights reserved.
-# $HopeName$
+# $HopeName: !eventgen.pl(trunk.2) $
 #
 # Invoke this script in the src directory.
 # It works by scanning *.c for EVENT_[PUAD], 
