@@ -1,6 +1,6 @@
 /*  impl.c.mpmss: MPM STRESS TEST
  *
- * $HopeName: MMsrc!mpmss.c(MMdevel_drj_arena_hysteresis.2) $
+ * $HopeName: !mpmss.c(trunk.21) $
  * Copyright (C) 1998. Harlequin Group plc. All rights reserved.
  */
 

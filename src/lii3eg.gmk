@@ -1,6 +1,6 @@
 # impl.gmk.lii3eg: BUILD FOR LINUX/INTEL/EGCS PLATFORM
 #
-# $HopeName$
+# $HopeName: !lii3eg.gmk(trunk.1) $
 # Copyright (C) 1998.  Harlequin Group plc.  All rights reserved.
 #
 # This is the GNU makefile for platform.lii3eg.

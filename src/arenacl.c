@@ -1,6 +1,6 @@
 /* impl.c.arenacl: ARENA IMPLEMENTATION USING CLIENT MEMORY
  *
- * $HopeName: MMsrc!arenacl.c(MMdevel_drj_arena_hysteresis.2) $
+ * $HopeName: !arenacl.c(trunk.15) $
  * Copyright (C) 1997. Harlequin Group plc. All rights reserved.
  *
  * .readership: MM developers
@@ -17,7 +17,7 @@
 #include "mpsacl.h"
 
 
-SRCID(arenacl, "$HopeName: MMsrc!arenacl.c(MMdevel_drj_arena_hysteresis.2) $");
+SRCID(arenacl, "$HopeName: !arenacl.c(trunk.15) $");
 
 
 typedef struct ClientArenaStruct *ClientArena;
