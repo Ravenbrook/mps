@@ -1,6 +1,6 @@
 /* impl.h.mpmst: MEMORY POOL MANAGER DATA STRUCTURES
  *
- * $HopeName: MMsrc!mpmst.h(MMdevel_restr.5) $
+ * $HopeName: MMsrc!mpmst.h(MMdevel_restr.6) $
  * Copyright (C) 1996 Harlequin Group, all rights reserved.
  *
  * .rationale: Almost all MPM data structures are defined in this
@@ -8,6 +8,11 @@
  * already been partially declared in impl.h.mpmtypes.  This
  * organization means that there is an easily browsable view of the
  * data structures, and that it is easy to experiment.
+ *
+ * .rationale.sig: Object signatures (PoolSig, etc.) are defined
+ * here, along with the structures, so that any code which can see
+ * a structure can also check its signature before using any of its
+ * fields.
  */
 
 #ifndef mpmst_h
@@ -30,7 +35,10 @@ typedef struct RingStruct {     /* double-ended queue structure */
 } RingStruct;
 
 
-/* PoolClassStruct -- pool class structure */
+/* PoolClassStruct -- pool class structure
+ *
+ * See impl.c.poolclas.
+ */
 
 #define PoolClassSig    ((Sig)0x519C1A55)
 
@@ -39,29 +47,29 @@ typedef struct PoolClassStruct {
   const char *name;             /* class name string */
   size_t size;                  /* size of instance structure */
   size_t offset;                /* offset of PoolStruct in instance */
-  PoolMethodCreate create;
-  PoolMethodDestroy destroy;
-  PoolMethodAlloc alloc;
-  PoolMethodFree free;
-  PoolMethodBufferCreate bufferCreate;
-  PoolMethodBufferDestroy bufferDestroy;
-  PoolMethodBufferFill bufferFill;
-  PoolMethodBufferTrip bufferTrip;
-  PoolMethodBufferExpose bufferExpose;
-  PoolMethodBufferCover bufferCover;
-  PoolMethodCondemn condemn;
-  PoolMethodGrey grey;
-  PoolMethodScan scan;
-  PoolMethodFix fix;
-  PoolMethodReclaim reclaim;
-  PoolMethodAccess access;
-  PoolMethodDescribe describe;
+  PoolCreateMethod create;
+  PoolDestroyMethod destroy;
+  PoolAllocMethod alloc;
+  PoolFreeMethod free;
+  PoolBufferCreateMethod bufferCreate;
+  PoolBufferDestroyMethod bufferDestroy;
+  PoolBufferFillMethod bufferFill;
+  PoolBufferTripMethod bufferTrip;
+  PoolBufferExposeMethod bufferExpose;
+  PoolBufferCoverMethod bufferCover;
+  PoolCondemnMethod condemn;
+  PoolGreyMethod grey;
+  PoolScanMethod scan;
+  PoolFixMethod fix;
+  PoolReclaimMethod reclaim;
+  PoolAccessMethod access;
+  PoolDescribeMethod describe;
 } PoolClassStruct;
 
 
 /* PoolStruct -- pool instance structure
  *
- * Each pool is owned by a space, and owns buffers and segments.
+ * See impl.c.pool.
  */
 
 #define PoolSig         ((Sig)0x519B0011)
@@ -72,18 +80,23 @@ typedef struct PoolStruct {     /* Pool instance structure */
   PoolClass class;              /* pool class structure */
   Space space;                  /* owning space */
   RingStruct spaceRing;         /* link in list of pools in space */
-  RingStruct segRing;           /* segs can be attached to the pool */
   RingStruct bufferRing;        /* allocation buffers are attached to pool */
   Serial bufferSerial;          /* serial of next buffer */
-  Align alignment;              /* alignment modulus for units */
+  Align alignment;              /* alignment for units */
 } PoolStruct;
 
 
 /* MFSStruct -- MFS pool instance structure
  *
+ * See impl.c.poolmfs.
+ *
  * The MFS pool instance structure is declared here because it is in-lined
  * in the control pool structure which is in-lined in the space.  Normally,
  * pool instance structures are declared with the pools.
+ *
+ * Note that the signature appears at the end.  There's already one at the
+ * beginning (in the poolStruct) so putting it at the end gives some extra
+ * fencepost checking.
  */
 
 #define MFSSig          ((Sig)0x5193F5B1)
@@ -102,9 +115,15 @@ typedef struct MFSStruct {      /* MFS instance structure */
 
 /* MVStruct -- MV pool instance structure
  *
+ * See impl.c.poolmv.
+ *
  * The MV pool instance structure is declared here because it is the
  * control pool structure which is in-lined in the space.  Normally,
  * pool instance structures are declared with the pools.
+ *
+ * Note that the signature appears at the end.  There's already one at the
+ * beginning (in the poolStruct) so putting it at the end gives some extra
+ * fencepost checking.
  */
 
 #define MVSig           ((Sig)0x519E3FEE)
@@ -129,7 +148,7 @@ typedef struct MVStruct {
 
 #if defined(MPS_OS_W3)
 
-typedef struct VMStruct {       /* Win32 VM structure */
+typedef struct VMStruct {       /* Win32 VM structure; impl.c.vmnt */
   Sig sig;                      /* impl.h.misc.sig */
   Align align;                  /* page size */
   Addr base, limit;             /* boundaries of reserved space */
@@ -139,7 +158,7 @@ typedef struct VMStruct {       /* Win32 VM structure */
 
 #elif defined(MPS_OS_O1) || defined(MPS_OS_S7)
 
-typedef struct VMStruct {       /* ANSI fake VM structure */
+typedef struct VMStruct {       /* ANSI fake VM structure; impl.c.vman */
   Sig sig;                      /* impl.h.misc.sig */
   Addr base, limit;             /* boundaries of malloc'd memory */
   void *block;                  /* pointer to malloc'd block, for free() */
@@ -149,10 +168,10 @@ typedef struct VMStruct {       /* ANSI fake VM structure */
 
 #elif defined(MPS_OS_SU)
 
-typedef struct VMStruct {       /* SunOS 4 VM structure */
+typedef struct VMStruct {       /* SunOS 4 VM structure; impl.c.vmsu */
   Sig sig;                      /* impl.h.misc.sig */
-  int zero_fd;                  /* file descriptor for /dev/zero */
-  int none_fd;                  /* fildes used for PROT_NONE (/etc/passwd) */
+  int zero_fd;                  /* see impl.c.vmsu */
+  int none_fd;                  /* see impl.c.vmsu */
   Align align;                  /* page size */
   Addr base, limit;             /* boundaries of reserved space */
   Size reserved;                /* total reserved address space */
@@ -178,9 +197,9 @@ typedef struct VMStruct {       /* SunOS 4 VM structure */
 typedef struct SegStruct {      /* segment structure */
   Pool pool;                    /* owner, MUST BE FIRST, impl.c.arenvm.page */
   Bool single;                  /* single page segment */
-  ProtMode pm, sm;              /* protection and shield modes */
+  AccessSet pm, sm;             /* protection and shield modes */
   Size depth;                   /* see impl.c.shield.def.depth */
-  void *p;                      /* pointer for use of pool */
+  void *p;                      /* pointer for use of owning pool */
   TraceId condemned;            /* seg condemned? for which trace? */
 } SegStruct;
 
@@ -188,15 +207,17 @@ typedef struct SegStruct {      /* segment structure */
 /* ArenaStruct -- arena structure
  *
  * .def: The arena structure is in-lined in the space structure
- * (impl.h.mpmst.space).  This is the arena structure used by
- * the virtual memory based arena implementation, impl.c.arenavm.
+ * (impl.h.mpmst.space).
  */
 
 #define ArenaSig	((Sig)0x519A7E9A)
 
 #ifdef TARGET_ARENA_ANSI
 
-typedef struct ArenaStruct {	/* arena structure */
+/* This is the arena structure used by the ANSI-based  */
+/* arena implementation, impl.c.arenaan. */
+
+typedef struct ArenaStruct {	/* ANSI arena structure */
   Sig sig;			/* impl.h.misc.sig */
   RingStruct blockRing;		/* list of blocks in arena */
   Size committed;		/* total allocated memory */
@@ -204,15 +225,18 @@ typedef struct ArenaStruct {	/* arena structure */
 
 #else /* TARGET_ARENA_ANSI not */
 
+/* This is the arena structure used by the virtual memory based */
+/* arena implementation, impl.c.arenavm. */
+
 typedef struct PageStruct *Page;/* page type */
 typedef Word *BT;               /* bool table type */
 
-typedef struct ArenaStruct {    /* arena structure */
+typedef struct ArenaStruct {    /* VM arena structure */
   Sig sig;                      /* impl.h.misc.sig */
   VMStruct vmStruct;            /* virtual memory structure */
   Addr base;                    /* base address of arena area */
   Addr limit;                   /* limit address of arena area */
-  Size pageSize;                /* size of block managed by page_s */
+  Size pageSize;                /* size of block managed by PageStruct */
   Shift pageShift;              /* log2 of page size, for shifts */
   Size pages;                   /* number of pages in table */
   Page pageTable;               /* the page table */
@@ -224,7 +248,9 @@ typedef struct ArenaStruct {    /* arena structure */
 #endif /* TARGET_ARENA_ANSI */
 
 
-/* ApStruct -- allocation point structure
+/* APStruct -- allocation point structure
+ *
+ * See impl.c.buffer.
  *
  * The allocation point is exported to the client code so that it can
  * in-line buffered allocation.
@@ -233,16 +259,18 @@ typedef struct ArenaStruct {    /* arena structure */
  * See also impl.c.mpsi.check.ap.
  */
 
-typedef struct ApStruct {
+typedef struct APStruct {
   Addr init;                    /* limit of initialized area */
   Addr alloc;                   /* limit of allocated area */
   Addr limit;                   /* limit of allocation buffer */
-} ApStruct;
+} APStruct;
 
 
 /* BufferStruct -- allocation buffer structure
  *
- * The buffer contains an AP which is exported to the client.
+ * See impl.c.buffer.
+ *
+ * The buffer contains an AP which may be exported to the client.
  */
 
 #define BufferSig       ((Sig)0x519B0FFA)
@@ -254,17 +282,24 @@ typedef struct BufferStruct {
   Pool pool;                    /* owning pool */
   Seg seg;                      /* segment being buffered */
   Addr base;                    /* base address of allocation buffer */
-  ApStruct ap;                  /* the allocation point */
+  APStruct ap;                  /* the allocation point */
   Align alignment;              /* allocation alignment */
   Bool exposed;                 /* is buffer memory exposed? */
   RingStruct poolRing;          /* buffers are attached to pools */
-  ProtMode shieldMode;          /* shielding for allocated memory */
+  AccessSet shieldMode;         /* shielding for allocated memory */
   TraceSet grey;                /* colour for allocated memory */
   void *p; int i;               /* closure variables */
 } BufferStruct;
 
 
-/* FormatStruct -- object format structure */
+/* FormatStruct -- object format structure
+ *
+ * See impl.c.format.
+ *
+ * The only format actually implemented is variant "A" described by
+ * the MPS Interface.  In future, when more variants are added, the
+ * FormatStruct will have to be adapted in some way to cope.
+ */
 
 #define FormatSig       ((Sig)0x519F43A2)
 
@@ -284,6 +319,8 @@ typedef struct FormatStruct {
 
 
 /* LDStruct -- location dependency structure
+ *
+ * See impl.c.ld.
  *
  * A version of this structure is exported to the client.
  * See impl.h.mps.ld and impl.c.mpsi.check.ld.
@@ -313,7 +350,7 @@ typedef struct ThreadStruct {   /* Win32 thread structure */
   Serial serial;                /* from space->threadSerial */
   Space space;                  /* owning space */
   RingStruct spaceRing;         /* threads attached to space */
-  HANDLE handle;                /* Handle of thread .thread.handle */
+  HANDLE handle;                /* Handle of thread impl.c.thnti3.thread.handle */
   DWORD id;                     /* Thread id of thread */
 } ThreadStruct;
 
@@ -336,7 +373,12 @@ typedef struct ThreadStruct {   /* ANSI fake thread structure */
 #endif
 
 
-/* RootStruct -- tracing root structure */
+/* RootStruct -- tracing root structure
+ *
+ * See impl.c.root.
+ *
+ * .root: The discriminator for the union is of type RootVar.
+ */
 
 #define RootSig         ((Sig)0x51940022)
 
@@ -346,13 +388,13 @@ typedef struct RootStruct {
   Space space;                  /* owning space */
   RingStruct spaceRing;         /* attachment to space */
   Rank rank;                    /* rank of references in this root */
-  TraceSet marked;              /* marked but not scanned for per trace */
+  TraceSet grey;                /* marked but not scanned for per trace */
   RootVar var;                  /* union discriminator */
   union RootUnion {
     struct {
       RootScanMethod scan;      /* the function which does the scanning */
-      void *p;                  /* environment for f */
-      size_t s;                 /* environment for f */
+      void *p;                  /* environment for scan */
+      size_t s;                 /* environment for scan */
     } fun;
     struct {
       Addr *base;               /* first reference in table */
@@ -373,13 +415,17 @@ typedef struct RootStruct {
 
 /* Scan State
  *
+ * See impl.c.trace.
+ *
  * The first four fields of the trace structure must match the
  * external scan state structure (mps_ss_s) thus:
  *   ss->fix            mps_ss->fix
  *   ss->zoneShift      mpm_ss->w0
  *   ss->condemned      mpm_ss->w1
  *   ss->summary        mpm_ss->w2
- * See impl.h.mps.ss and impl.c.mpsi.check.ss.
+ * See impl.h.mps.ss and impl.c.mpsi.check.ss.  This is why the
+ * Sig field is in the middle of this structure.
+ *
  * .ss.zone: The zoneShift field is therefore declared as Word
  * rather than Shift.
  */
@@ -387,7 +433,7 @@ typedef struct RootStruct {
 #define ScanStateSig    ((Sig)0x5195CA95)
 
 typedef struct ScanStateStruct {
-  Res (*fix)(ScanState mps_ss, Addr *ref_io);
+  Res (*fix)(ScanState ss, Addr *refIO);
   Word zoneShift;
   RefSet condemned;             /* condemned set, for inline fix test */
   RefSet summary;               /* accumulated summary of scanned references */
@@ -404,6 +450,8 @@ typedef struct TraceStruct {
 
 /* SpaceStruct -- the space structure
  *
+ * See impl.c.space.
+ *
  * .space: The space structure is the top-level state of the
  * MPS, and as such contains a lot of fields which are considered
  * "global".  These fields belong to different modules.  The module
@@ -417,7 +465,7 @@ typedef struct SpaceStruct {
   Sig sig;                      /* impl.h.misc.sig */
   Serial serial;                /* from static spaceSerial */
   RingStruct globalRing;        /* node in global ring of spaces */
-  Bool poolReady;               /* has pool been initialized? */
+  Bool poolReady;               /* has control pool been initialized? */
   MVStruct controlPoolStruct;   /* pool for miscellaneous items */
   LockStruct lockStruct;        /* space's lock */
   Size pollThreshold;           /* see SpacePoll() */
@@ -442,17 +490,17 @@ typedef struct SpaceStruct {
   RingStruct threadRing;        /* ring of attached threads */
   Serial threadSerial;          /* serial of next thread */
   
-  /* sheild fields (impl.c.shield) */
-  Bool insideShield;             /* TRUE if inside shield */
+  /* shield fields (impl.c.shield) */
+  Bool insideShield;             /* TRUE iff inside shield */
   Seg shCache[SHIELD_CACHE_SIZE];/* Cache of unsynced segs */
   Size shCacheI;                 /* index into cache */
   Size shDepth;                  /* sum of depths of all segs */
-  Bool suspended;                /* TRUE if mutator suspended */
+  Bool suspended;                /* TRUE iff mutator suspended */
 
   /* trace fields (impl.c.trace) */
   TraceSet busyTraces;          /* set of running traces */
   TraceStruct trace[TRACE_MAX]; /* trace structures */
-  Shift zoneShift;              /* see ref.h */
+  Shift zoneShift;              /* see impl.c.ref */
 
   /* location dependeny fields (impl.c.ld) */
   Epoch epoch;                  /* current epoch */
