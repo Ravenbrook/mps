@@ -1,6 +1,6 @@
 /* impl.c.arenacl: ARENA IMPLEMENTATION USING CLIENT MEMORY
  *
- * $HopeName: MMsrc!arenacl.c(MMdevel_sw_eq.7) $
+ * $HopeName: MMsrc!arenacl.c(MMdevel_sw_eq.8) $
  * 
  * Copyright (C) 1996 Harlequin Group, all rights reserved.
  *
@@ -32,7 +32,10 @@
  * .improve.twiddle: There are several places in which many bits in a bit
  * table are checked or set in sequence. These could all be made much faster
  * with suitable bit-twiddling code.
- *
+ * 
+ * .improve.remember: Remember (a conservative approximation to) the
+ * indices of the first and last free pages in each chunk, and start
+ * searching from these in ChunkSegAlloc. See request.epcore.170534.
  */
 
 #include "mpm.h"
@@ -41,7 +44,7 @@
 #error "Client arena not configured"
 #endif
 
-SRCID(arenacl, "$HopeName: MMsrc!arenacl.c(MMdevel_sw_eq.7) $");
+SRCID(arenacl, "$HopeName: MMsrc!arenacl.c(MMdevel_sw_eq.8) $");
 
 Bool ArenaCheck(Arena arena)
 {
@@ -190,6 +193,28 @@ static void BTSet(BT bt, BI i, Bool b)
 /* is the whole word of bits at this index clear? */
 
 #define BTWordRes(bt,i) ((bt)[(i)>>WORD_SHIFT] == 0)
+
+/* two functions to find a range of set bits in a bit table, starting
+ * from one end or the other of the table. Added in response to
+ * request.epcore.170534, q.v. Possible future improvements:
+ * 
+ * .improve.step.partial: When the top index in a candidate range
+ * fails, skip partial words as well as whole words, using e.g. lookup
+ * tables.
+ * 
+ * .improve.word: When scanning the bit table, get a whole word into a
+ * variable at once, then test bits of that variable. Compilers are
+ * unlikely to do this optimization for us.
+ * 
+ * .improve.lookup: When testing a candidate run, examine multiple bits
+ * at once (e.g. 8), using lookup tables for (e.g) index of first
+ * unset bit, index of last unset bit, number of set bits, length of
+ * maximum run of set bits.
+ *
+ * .improve.test: Shortcut when about to succeed, to avoid testing any
+ * bit more than once. i.e. when shortcutting after a candidate run
+ * fails, remember that some bits have been examined already).
+ */
 
 static Bool BTFindShortSetRangeLow(BI *baseReturn, BT bt,
                                    BI searchBase, BI searchLimit,
