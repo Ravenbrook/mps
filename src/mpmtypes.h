@@ -370,7 +370,7 @@ enum {
 
 typedef Addr WriteFA;
 typedef Pointer WriteFP;
-typedef char *WriteFS;
+typedef const char *WriteFS;
 typedef Word WriteFW;
 typedef unsigned long WriteFU;
 typedef unsigned long WriteFB;
