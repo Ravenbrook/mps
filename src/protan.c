@@ -1,12 +1,12 @@
 /* impl.c.protan: ANSI MEMORY PROTECTION
  *
- * $HopeName: !protan.c(trunk.2) $
+ * $HopeName: MMsrc!protan.c(MMdevel_action2.1) $
  * Copyright (C) 1996 Harlequin Group, all rights reserved.
  */
 
 #include "mpm.h"
 
-SRCID(protan, "$HopeName: !protan.c(trunk.2) $");
+SRCID(protan, "$HopeName: MMsrc!protan.c(MMdevel_action2.1) $");
 
 void ProtSetup(void)
 {
@@ -31,7 +31,7 @@ void ProtSync(Space space)
     while(seg != NULL) {
       if(seg->pm != AccessSetEMPTY) {
         ShieldEnter(space);
-        PoolAccess(seg->pool, seg, seg->pm);
+        TraceAccess(space, seg, seg->pm);
         ShieldLeave(space);
         synced = TRUE;
       }
