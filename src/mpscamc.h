@@ -1,6 +1,6 @@
 /* impl.h.mpscamc: MEMORY POOL SYSTEM CLASS "AMC"
  *
- * $HopeName: !mpscamc.h(trunk.4) $
+ * $HopeName: MMsrc!mpscamc.h(MMdevel_configura.1) $
  * Copyright (C) 1996 Harlequin Group, all rights reserved.
  */
 
@@ -11,6 +11,8 @@
 
 extern mps_class_t mps_class_amc(void);
 extern mps_class_t mps_class_amcz(void);
+extern mps_class_t mps_class_amch(void);
+extern mps_class_t mps_class_amchz(void);
 
 extern void mps_amc_apply(mps_pool_t,
                           void (*)(mps_addr_t, void *, size_t),
