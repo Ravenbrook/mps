@@ -1,6 +1,6 @@
 /* impl.h.mpmst: MEMORY POOL MANAGER DATA STRUCTURES
  *
- * $HopeName: !mpmst.h(trunk.47) $
+ * $HopeName: MMsrc!mpmst.h(MMdevel_drj_trace_abort.1) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  *
  * .readership: MM developers.
@@ -91,6 +91,7 @@ typedef struct PoolClassStruct {
   PoolBlackenMethod blacken;    /* blacken grey objects without scanning */
   PoolScanMethod scan;          /* find references during tracing */
   PoolFixMethod fix;            /* referent reachable during tracing */
+  PoolEmergencyFixMethod emergencyFix; /* as fix, no failure allowed */
   PoolReclaimMethod reclaim;    /* reclaim dead objects after tracing */
   PoolBenefitMethod benefit;    /* calculate benefit of action */
   PoolActMethod act;            /* do an action */
@@ -470,7 +471,7 @@ typedef struct RootStruct {
 #define ScanStateSig    ((Sig)0x5195CA45) /* SIGnature SCAN State */
 
 typedef struct ScanStateStruct {
-  Res (*fix)(ScanState, Addr *);/* fix function */
+  TraceFixMethod fix;           /* fix function */
   Word zoneShift;               /* copy of arena->zoneShift.  See .ss.zone */
   RefSet white;                 /* white set, for inline fix test */
   RefSet unfixedSummary;        /* accumulated summary of scanned references */
@@ -637,6 +638,7 @@ typedef struct ArenaStruct {
   /* trace fields (impl.c.trace) */
   TraceSet busyTraces;          /* set of running traces */
   TraceSet flippedTraces;       /* set of running and flipped traces */
+  Bool traceEmergency;          /* out of memory during trace? */
   TraceStruct trace[TRACE_MAX]; /* trace structures.  See
                                    design.mps.trace.intance.limit */
   RingStruct greyRing[RankMAX]; /* ring of grey segments at each rank */

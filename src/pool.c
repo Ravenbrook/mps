@@ -1,6 +1,6 @@
 /* impl.c.pool: POOL IMPLEMENTATION
  *
- * $HopeName: !pool.c(trunk.41) $
+ * $HopeName: MMsrc!pool.c(MMdevel_drj_trace_abort.1) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  *
  * This is the implementation of the generic pool interface.  The
@@ -12,7 +12,7 @@
 
 #include "mpm.h"
 
-SRCID(pool, "$HopeName: !pool.c(trunk.41) $");
+SRCID(pool, "$HopeName: MMsrc!pool.c(MMdevel_drj_trace_abort.1) $");
 
 
 Bool PoolClassCheck(PoolClass class)
@@ -295,8 +295,9 @@ void PoolBlacken(Pool pool, TraceSet traceSet, Seg seg)
   (*pool->class->blacken)(pool, traceSet, seg);
 }
 
-Res PoolScan(ScanState ss, Pool pool, Seg seg)
+Res PoolScan(Bool *totalReturn, ScanState ss, Pool pool, Seg seg)
 {
+  AVER(totalReturn != NULL);
   AVERT(ScanState, ss);
   AVERT(Pool, pool);
   AVERT(Seg, seg);
@@ -318,7 +319,7 @@ Res PoolScan(ScanState ss, Pool pool, Seg seg)
   /* Should only scan segments which contain grey objects. */
   AVER(TraceSetInter(SegGrey(seg), ss->traces) != TraceSetEMPTY);
 
-  return (*pool->class->scan)(ss, pool, seg);
+  return (*pool->class->scan)(totalReturn, ss, pool, seg);
 }
 
 /* See impl.h.mpm for macro version; see design.mps.pool.req.fix */
@@ -334,6 +335,20 @@ Res (PoolFix)(Pool pool, ScanState ss, Seg seg, Addr *refIO)
   AVER(TraceSetInter(SegWhite(seg), ss->traces) != TraceSetEMPTY);
 
   return PoolFix(pool, ss, seg, refIO);
+}
+
+void PoolEmergencyFix(Pool pool, ScanState ss, Seg seg, Addr *refIO)
+{
+  AVERT(Pool, pool);
+  AVERT(ScanState, ss);
+  AVERT(Seg, seg);
+  AVER(pool == SegPool(seg));
+  AVER(refIO != NULL);
+
+  /* Should only be fixing references to white segments. */
+  AVER(TraceSetInter(SegWhite(seg), ss->traces) != TraceSetEMPTY);
+
+  (pool->class->emergencyFix)(pool, ss, seg, refIO);
 }
 
 void PoolReclaim(Pool pool, Trace trace, Seg seg)
@@ -711,8 +726,9 @@ void PoolTrivBlacken(Pool pool, TraceSet traceSet, Seg seg)
   NOOP;
 }
 
-Res PoolNoScan(ScanState ss, Pool pool, Seg seg)
+Res PoolNoScan(Bool *totalReturn, ScanState ss, Pool pool, Seg seg)
 {
+  AVER(totalReturn != NULL);
   AVERT(ScanState, ss);
   AVERT(Pool, pool);
   AVERT(Seg, seg);
@@ -794,7 +810,7 @@ Res PoolCollectAct(Pool pool, Action action)
       goto failAddWhite;
   }
 
-  TraceStart(trace);
+  res = TraceStart(trace);
   if(res != ResOK)
     goto failStart;
 
