@@ -1,7 +1,7 @@
 /* impl.h.config: MPS CONFIGURATION
  *
  * Copyright (C) 1997 Harlequin Group, all rights reserved.
- * $HopeName: !config.h(trunk.7) $
+ * $HopeName: MMsrc!config.h(MMdevel_gens.1) $
  */
 
 #ifndef config_h
@@ -28,8 +28,6 @@
 #define EVENT                   /* impl.h.event */
 #define ASSERT_MPSI             /* impl.c.mpsi */
 #define ASSERT_MPM              /* impl.h.mpm */
-#define CHECK_DEEP              /* impl.h.assert */
-#define CHECK_ASSERT            /* impl.h.assert */
 #elif defined(CONFIG_VAR_DP)    /* debug, partial checking */
 #define MPS_VAR_DP
 #define ASSERT_MPSI
