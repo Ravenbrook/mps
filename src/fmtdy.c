@@ -1,6 +1,6 @@
 /* impl.c.fmtdy: DYLAN OBJECT FORMAT IMPLEMENTATION
  *
- *  $HopeName: MMsrc!fmtdy.c(MM_dylan_incremental.4) $
+ *  $HopeName: MMsrc!fmtdy.c(MM_dylan_incremental.5) $
  *  Copyright (C) 1996 Harlequin Group, all rights reserved.
  *
  *  All objects, B:
@@ -62,12 +62,10 @@ static int dylan_wrapper_check(mps_word_t *w)
   mps_word_t vh;
   mps_word_t version;
   mps_word_t reserved;
-#if 0
   mps_word_t class;
   mps_word_t fh, fl, ff;
   mps_word_t vb, es, vf;
   mps_word_t vt, t;
-#endif
 
   assert(w != NULL);
   assert(((mps_word_t)w & 3) == 0);
@@ -83,7 +81,6 @@ static int dylan_wrapper_check(mps_word_t *w)
   assert((w[0] & 3) == 0);          /* wrapper wrapper is aligned */
   ww = (mps_word_t *)w[0];
   assert(ww[0] == w[0]);            /* wrapper wrapper is own wrapper */
-#if 0
   assert(ww[1] != 0);               /* wrapper class exists */
   assert((ww[1] & 3) == 0);         /* wrapper class is aligned */
   assert(ww[2] == ((3 << 2) | 2));  /* three fields with patterns */
@@ -97,13 +94,11 @@ static int dylan_wrapper_check(mps_word_t *w)
   fh = w[2];            /* fixed part header word */
   fl = fh >> 2;         /* fixed part length */
   ff = fh & 3;          /* fixed part format code */
-#endif
   vh = w[3];            /* variable part header */
   version = (vh >> (MPS_WORD_WIDTH - 8)) & 0xff;
   assert(version == 0 || version == 1);
   reserved = (vh >> 8) & 0xff;
   assert(reserved == 0);
-#if 0
   vb = (vh >> 16) & 0xff;
   es = (vh & 0xff) >> 3;/* element size */
   vf = vh & 7;          /* variable part format code */
@@ -162,7 +157,6 @@ static int dylan_wrapper_check(mps_word_t *w)
   /* the left-over bits in the last pattern should be zero. */
   
   assert(ff != 2 || (w[4+t] >> ((fh>>2) & (MPS_WORD_WIDTH-1))) == 0);
-#endif
   
   return 1;
 }
