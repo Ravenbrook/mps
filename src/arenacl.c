@@ -1,6 +1,6 @@
 /* impl.c.arenacl: ARENA IMPLEMENTATION USING CLIENT MEMORY
  *
- * $HopeName: MMsrc!arenacl.c(MMdevel_tony_sunset.4) $
+ * $HopeName: MMsrc!arenacl.c(MMdevel_tony_sunset.5) $
  * Copyright (C) 1997. Harlequin Group plc. All rights reserved.
  *
  * .readership: MM developers
@@ -17,7 +17,7 @@
 #include "mpsacl.h"
 
 
-SRCID(arenacl, "$HopeName: MMsrc!arenacl.c(MMdevel_tony_sunset.4) $");
+SRCID(arenacl, "$HopeName: MMsrc!arenacl.c(MMdevel_tony_sunset.5) $");
 
 
 typedef struct ClientArenaStruct *ClientArena;
@@ -79,8 +79,7 @@ typedef struct ChunkStruct { /* chunk structure */
  * design.mps.arenavm.table.*.
  *
  * .page: The "pool" field must be the first field of the "tail"
- * field of this union, so that it shares a common prefix with the
- * TractStruct.  See impl.h.mpmst.tract.
+ * field of this union.  See design.mps.arena.tract.field.pool.
  */
 
 typedef struct PageStruct {   /* page structure */
@@ -558,37 +557,6 @@ static Res ClientAlloc(Addr *baseReturn, Tract *baseTractReturn,
 }
 
 
-/* TractChunk -- identify the chunk (and index) in which a tract
- *               resides 
- */
-
-static Res TractChunk(Chunk *chunkReturn, Index *indexReturn, Tract tract)
-{
-  Page page;
-  Ring node, nextNode;
-  ClientArena clientArena;
-  
-  AVER(chunkReturn != NULL);
-  AVERT(Tract, tract);
-
-  clientArena = TractClientArena(tract);
-  AVERT(ClientArena, clientArena);
-
-  page = PageOfTract(tract);
-
-  RING_FOR(node, &clientArena->chunkRing, nextNode) {
-    Chunk chunk = RING_ELT(Chunk, arenaRing, node);
-    if ((page >= chunk->pageTable) &&
-        (page < (chunk->pageTable + chunk->pages))) {
-      *indexReturn = page - chunk->pageTable;
-      *chunkReturn = chunk;
-      return ResOK;
-    }
-  }
-  return ResFAIL;
-}
-
-
 /* ClientChunkOfAddr -- return the chunk which encloses an address
  *
  */
@@ -661,31 +629,6 @@ static void ClientFree(Addr base, Size size, Pool pool)
  */
 
 
-/* ClientTractBase -- return the base address of a tract
- *
- * The tract base is calculated by identifying the chunk and page
- * index, then multiplying that by the page size and adding it to
- * the chunk base address.
- */
-
-static Addr ClientTractBase(Tract tract)
-{
-  ClientArena clientArena;
-  Index index;
-  Chunk chunk;
-  Res res;
-  
-  AVERT_CRITICAL(Tract, tract);
-  clientArena = TractClientArena(tract);
-  AVERT_CRITICAL(ClientArena, clientArena);
-
-  res = TractChunk(&chunk, &index, tract);
-  AVER(res == ResOK);
-
-  return PageBase(chunk, index);
-}
-
-
 /* ClientTractOfAddr -- return the tract which encloses an address
  *
  * If the address is within the bounds of the arena, calculate the
@@ -733,9 +676,9 @@ static Bool ClientIsReserved(Arena arena, Addr addr)
 
 /* tractSearchChunk -- search for a tract in a given chunk
  *
- * Searches for a tract in the chunk starting at page 'index',
- * return NULL if there is none.  A tract is present if its page is
- * not free, and its pool is not NULL.
+ * .tract-search: Searches for a tract in the chunk starting at page 
+ * 'index', return NULL if there is none.  A tract is present if its 
+ * page is not free, and its pool is not NULL.
  *
  * This function is private to this module and is used in the tract
  * iteration protocol (TractFirst and TractNext).
@@ -818,7 +761,7 @@ static Bool ClientTractNext(Tract *tractReturn, Arena arena, Addr addr)
       }
       tract = tractSearchChunk(chunk, index);
       if(tract != NULL) {
-        AVER_CRITICAL(addr < ClientTractBase(tract));
+        AVER_CRITICAL(addr < TractBase(tract));
         *tractReturn = tract;
         return TRUE;
       }
@@ -833,63 +776,67 @@ static Bool ClientTractNext(Tract *tractReturn, Arena arena, Addr addr)
 /* ClientTractNextContig -- return the next contiguous tract
  *
  * This is used as the iteration step when iterating over all
- * a contiguous range of tracts owned by a pool. The tract 
- * must exist.
+ * a contiguous range of tracts owned by a pool. Both current
+ * and next tracts must be allocated.
  */
 
 static Tract ClientTractNextContig(Arena arena, Tract tract)
 {
-  ClientArena clientArena;
+  ClientArena clArena;
   Page page, next;
   Tract tnext;
-  Chunk chunk;
-  Index index;
 
-  clientArena = ArenaClientArena(arena);
-  AVERT_CRITICAL(ClientArena, clientArena);
+  clArena = ArenaClientArena(arena);
+  AVERT_CRITICAL(ClientArena, clArena);
   AVERT_CRITICAL(Tract, tract);
+
+  /* check both this tract & next tract lie with the same chunk */
+  {
+    Chunk ch1, ch2;
+    UNUSED(ch1);
+    UNUSED(ch2);
+    AVER_CRITICAL(ClientChunkOfAddr(&ch1, clArena, TractBase(tract)) &&
+                  ClientChunkOfAddr(&ch2, clArena, TractLimit(tract)) &&
+                  (ch1 == ch2));
+  }
 
   /* the next contiguous tract is contiguous in the page table */
   page = PageOfTract(tract);
   next = page + 1;  
   tnext = PageTract(next);
-
-  /* check that the next tract is in a chunk and allocated */
-  AVER_CRITICAL(ResOK == TractChunk(&chunk, &index, tnext));
+  AVERT_CRITICAL(Tract, tnext);
   AVER_CRITICAL(PagePool(next) != NULL);
-  AVER_CRITICAL(PagePool(next) == PagePool(page));
-  UNUSED(chunk); UNUSED(index);
   return tnext;
 }
 
 
-/* mps_arena_class_cl -- return the arena class CL */
+/* ClientArenaClass  -- The Client arena class definition */
 
-static ArenaClassStruct ArenaClassCLStruct = {
-  ArenaClassSig,
-  "CL",                                     /* name */
-  sizeof(ClientArenaStruct),                /* size */
-  offsetof(ClientArenaStruct, arenaStruct), /* offset */
-  ClientArenaInit,                          /* init */
-  ClientArenaFinish,                        /* finish */
-  ClientArenaReserved,                      /* reserved */
-  ClientArenaCommitted,                     /* committed */
-  ArenaNoSpareCommitExceeded,
-  ClientArenaExtend,                        /* extend */
-  ClientArenaRetract,                       /* retract */
-  ClientIsReserved,                         /* isReserved */
-  ClientAlloc,                              /* alloc */
-  ClientFree,                               /* free */
-  ClientTractBase,                          /* tractBase */
-  ClientTractOfAddr,                        /* tractOfAddr */
-  ClientTractFirst,                         /* tractFirst */
-  ClientTractNext,                          /* tractNext */
-  ClientTractNextContig,                    /* tractNextContig */
-  ArenaTrivDescribe,                        /* describe */
-  ArenaClassSig
+DEFINE_ARENA_CLASS(ClientArenaClass, this)
+{
+  INHERIT_CLASS(this, AbstractArenaClass);
+  this->name = "CL";
+  this->size = sizeof(ClientArenaStruct);
+  this->offset = offsetof(ClientArenaStruct, arenaStruct);
+  this->init = ClientArenaInit;
+  this->finish = ClientArenaFinish;
+  this->reserved = ClientArenaReserved;
+  this->committed = ClientArenaCommitted;
+  this->extend = ClientArenaExtend;
+  this->retract = ClientArenaRetract;
+  this->isReserved = ClientIsReserved;
+  this->alloc = ClientAlloc;
+  this->free = ClientFree;
+  this->tractOfAddr = ClientTractOfAddr;
+  this->tractFirst = ClientTractFirst;
+  this->tractNext = ClientTractNext;
+  this->tractNextContig = ClientTractNextContig;
 };
+
+
+/* mps_arena_class_cl -- return the arena class CL */
 
 mps_arena_class_t mps_arena_class_cl(void)
 {
-  return (mps_arena_class_t)&ArenaClassCLStruct;
+  return (mps_arena_class_t)EnsureClientArenaClass();
 }
