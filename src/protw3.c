@@ -1,7 +1,7 @@
 /*  impl.c.protnt
  *
  *               PROTECTION FOR WIN32
- *  $HopeName: MMsrc!protnt.c(trunk.6) $
+ *  $HopeName: MMsrc!protnt.c(MMdevel_restr.2) $
  *
  *  Copyright (C) 1995 Harlequin Group, all rights reserved
  */
@@ -14,7 +14,7 @@
 
 #include <windows.h>
 
-SRCID(protnt, "$HopeName: MMsrc!protnt.c(trunk.6) $");
+SRCID(protnt, "$HopeName: MMsrc!protnt.c(MMdevel_restr.2) $");
 
 
 void ProtSetup(void)
@@ -66,8 +66,10 @@ LONG ProtSEHfilter(LPEXCEPTION_POINTERS info)
   iswrite = er->ExceptionInformation[0]; /* 0 read; 1 write */
   AVER(iswrite == 0 || iswrite == 1);
 
+  /* Pages cannot be made write-only, so an attempt to write must
+   * also cause a read-access if necessary */
   if(iswrite)
-    mode = ProtWRITE;
+    mode = ProtREAD | ProtWRITE;
   else
     mode = ProtREAD;
 
