@@ -1,6 +1,6 @@
 /* impl.h.mpmst: MEMORY POOL MANAGER DATA STRUCTURES
  *
- * $HopeName: MMsrc!mpmst.h(MMdevel_remem.3) $
+ * $HopeName: MMsrc!mpmst.h(MMdevel_remem.4) $
  * Copyright (C) 1996 Harlequin Group, all rights reserved.
  *
  * .rationale: Almost all MPM data structures are defined in this
@@ -202,7 +202,7 @@ typedef struct SegStruct {      /* segment structure */
   AccessSet pm, sm;             /* protection and shield modes */
   Size depth;                   /* see impl.c.shield.def.depth */
   void *p;                      /* pointer for use of owning pool */
-  TraceId condemned;            /* seg condemned? for which trace? */
+  TraceSet white;               /* seg condemned? for which trace? */
   TraceSet grey;                /* grey set see impl.c.trace @@@@ */
   RingStruct traceRing;         /* used for grey-list @@@@ */
   RefSet summary;               /* refset approx of refs in seg */
@@ -290,10 +290,11 @@ typedef struct BufferStruct {
   Seg seg;                      /* segment being buffered */
   Addr base;                    /* base address of allocation buffer */
   APStruct ap;                  /* the allocation point */
+  Addr init;                    /* init of trapped buffer */
+  Addr limit;                   /* limit address of allocation buffer */
+  TraceSet scanned;             /* @@@@ extra traces scanned in [base, scan) */
   Align alignment;              /* allocation alignment */
-  Bool exposed;                 /* is buffer memory exposed? */
   RingStruct poolRing;          /* buffers are attached to pools */
-  AccessSet shieldMode;         /* shielding for allocated memory */
   TraceSet grey;                /* colour for allocated memory */
   void *p; int i;               /* closure variables */
   RingStruct traceRing;         /* used by tracer @@@@ */
@@ -449,7 +450,7 @@ typedef struct ScanStateStruct {
   Sig sig;                      /* impl.h.misc.sig */
   RefSet fixed;                 /* accumulated summary of fixed references */
   Space space;                  /* owning space */
-  TraceId traceId;              /* trace ID of scan */
+  TraceSet traceSet;            /* trace set of scan */
   Rank rank;                    /* reference rank of scanning */
 } ScanStateStruct;
 
@@ -514,6 +515,7 @@ typedef struct SpaceStruct {
 
   /* trace fields (impl.c.trace) */
   TraceSet busyTraces;          /* set of running traces */
+  TraceSet flippedTraces;       /* set of flipped traces */
   TraceStruct trace[TRACE_MAX]; /* trace structures */
   Shift zoneShift;              /* see impl.c.ref */
   RingStruct exposedRing;       /* ring of exposed buffers. @@@@ */

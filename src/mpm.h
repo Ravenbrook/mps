@@ -1,6 +1,6 @@
 /* impl.h.mpm: MEMORY POOL MANAGER DEFINITIONS
  *
- * $HopeName: MMsrc!mpm.h(MMdevel_remem.3) $
+ * $HopeName: MMsrc!mpm.h(MMdevel_remem.4) $
  * Copyright (C) 1996 Harlequin Group, all rights reserved.
  */
 
@@ -195,8 +195,8 @@ extern Res TraceSegAlloc(Seg *segReturn, Pool pool, Size size, PropSet prop);
 extern void TraceSegFree(Pool pool, Seg seg);
 extern void TraceSegGrey(Space space, ScanState ss, Seg seg);
 extern void TraceBufferDetach(Space space, Buffer buffer);
-extern Res TraceBufferFill(Addr *pReturn, Pool pool, Buffer buffer, Size size);
-extern Bool TraceBufferTrip(Pool pool, Buffer buffer, Addr p, Size size);
+extern Res TraceBufferFill(Pool pool, Buffer buffer, Size size);
+extern void TraceBufferTrip(Pool pool, Buffer buffer);
 extern void TraceBufferFinish(Buffer buffer);
 
 extern Res TraceFix(ScanState ss, Ref *refIO);
@@ -297,9 +297,14 @@ extern void BufferInit(Buffer buffer, Pool pool);
 extern void BufferFinish(Buffer buffer);
 extern void BufferSet(Buffer buffer, Seg seg, Addr base, Addr init, Addr limit);
 extern void BufferReset(Buffer buffer);
+extern void BufferTrap(Buffer buffer);
+extern void BufferUntrap(Buffer buffer);
+extern Bool BufferIsSet(Buffer buffer);
 extern Bool BufferIsReset(Buffer buffer);
+extern Bool BufferIsTrapped(Buffer buffer);
 extern Ring BufferPoolRing(Buffer buffer);
 extern Bool BufferIsReady(Buffer buffer);
+extern Addr BufferGetInit(Buffer buffer);
 extern AP BufferAP(Buffer buffer);
 extern Buffer BufferOfAP(AP ap);
 extern Space BufferSpace(Buffer buffer);
