@@ -1,6 +1,6 @@
 /* impl.c.poolmfs: MANUAL FIXED SMALL UNIT POOL
  *
- * $HopeName: !poolmfs.c(trunk.11) $
+ * $HopeName: MMsrc!poolmfs.c(MMdevel_lib.1) $
  * Copyright (C) 1994,1995 Harlequin Group, all rights reserved
  *
  * This is the implementation of the MFS pool class.  MFS operates
@@ -34,7 +34,7 @@
 #include "mpm.h"
 #include "poolmfs.h"
 
-SRCID(poolmfs, "$HopeName: !poolmfs.c(trunk.11) $");
+SRCID(poolmfs, "$HopeName: MMsrc!poolmfs.c(MMdevel_lib.1) $");
 
 
 /*  == Round up ==
@@ -237,7 +237,7 @@ static void MFSFree(Pool pool, Addr old, Size size)
 }
 
 
-static Res MFSDescribe(Pool pool, Lib_FILE *stream)
+static Res MFSDescribe(Pool pool, mps_lib_FILE *stream)
 {
   MFS mfs;
   int e;
@@ -248,18 +248,18 @@ static Res MFSDescribe(Pool pool, Lib_FILE *stream)
 
   AVER(stream != NULL);
 
-  e = Lib_fprintf(stream,
-                  "  unrounded unit size %lu\n"
-                  "  unit size %lu  segment size %lu\n"
-                  "  units per segment %u\n"
-                  "  free list begins at %p\n"
-                  "  seg list begin at %08lx\n",
-                  (unsigned long)mfs->unroundedUnitSize,
-                  (unsigned long)mfs->unitSize,
-                  (unsigned long)mfs->extendBy,
-                  mfs->unitsPerSeg,
-                  mfs->freeList,
-                  mfs->segList);
+  e = mps_lib_fprintf(stream,
+                      "  unrounded unit size %lu\n"
+                      "  unit size %lu  segment size %lu\n"
+                      "  units per segment %u\n"
+                      "  free list begins at %p\n"
+                      "  seg list begin at %08lx\n",
+                      (unsigned long)mfs->unroundedUnitSize,
+                      (unsigned long)mfs->unitSize,
+                      (unsigned long)mfs->extendBy,
+                      mfs->unitsPerSeg,
+                      mfs->freeList,
+                      mfs->segList);
 
   if(e < 0)             /* standard.ansic 7.9.6.1 */
     return ResIO;

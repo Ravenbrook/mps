@@ -1,6 +1,6 @@
 /* impl.c.pool: POOL IMPLEMENTATION
  *
- * $HopeName: !pool.c(trunk.14) $
+ * $HopeName: MMsrc!pool.c(MMdevel_lib.1) $
  * Copyright (C) 1994,1995,1996 Harlequin Group, all rights reserved
  *
  * This is the implementation of the generic pool interface.  The
@@ -9,7 +9,7 @@
 
 #include "mpm.h"
 
-SRCID(pool, "$HopeName: !pool.c(trunk.14) $");
+SRCID(pool, "$HopeName: MMsrc!pool.c(MMdevel_lib.1) $");
 
 
 Bool PoolClassCheck(PoolClass class)
@@ -247,26 +247,26 @@ void (PoolAccess)(Pool pool, Seg seg, AccessSet mode)
 }
 
 
-Res PoolDescribe(Pool pool, Lib_FILE *stream)
+Res PoolDescribe(Pool pool, mps_lib_FILE *stream)
 {
   int e;
   Res res;
   AVERT(Pool, pool);
   AVER(stream != NULL);
 
-  e = Lib_fprintf(stream,
-                  "Pool %p {\n"
-                  "  Class %s\n"
-                  "  alignment %lu\n",
-                  pool,
-                  pool->class->name,
-                  (unsigned long)pool->alignment);
+  e = mps_lib_fprintf(stream,
+                      "Pool %p {\n"
+                      "  Class %s\n"
+                      "  alignment %lu\n",
+                      pool,
+                      pool->class->name,
+                      (unsigned long)pool->alignment);
   if(e < 0) return ResIO;
 
   res = (*pool->class->describe)(pool, stream);
   if(res != ResOK) return res;
 
-  e = Lib_fprintf(stream, "} Pool %p\n", pool);
+  e = mps_lib_fprintf(stream, "} Pool %p\n", pool);
   if(e < 0) return ResIO;
 
   return ResOK;
@@ -449,7 +449,7 @@ void PoolNoBufferCover(Pool pool, Buffer buffer)
   NOTREACHED;
 }
 
-Res PoolNoDescribe(Pool pool, Lib_FILE *stream)
+Res PoolNoDescribe(Pool pool, mps_lib_FILE *stream)
 {
   AVERT(Pool, pool);
   AVER(stream != NULL);
@@ -457,12 +457,12 @@ Res PoolNoDescribe(Pool pool, Lib_FILE *stream)
   return ResUNIMPL;
 }
 
-Res PoolTrivDescribe(Pool pool, Lib_FILE *stream)
+Res PoolTrivDescribe(Pool pool, mps_lib_FILE *stream)
 {
   int e;
   AVERT(Pool, pool);
   AVER(stream != NULL);
-  e = Lib_fprintf(stream, "  No class-specific description available.\n");
+  e = mps_lib_fprintf(stream, "  No class-specific description available.\n");
   if(e < 0)
     return ResIO;
   return ResOK;

@@ -1,6 +1,6 @@
 /* impl.c.poolmv: MANUAL VARIABLE POOL
  *
- * $HopeName: !poolmv.c(trunk.14) $
+ * $HopeName: MMsrc!poolmv.c(MMdevel_lib.1) $
  * Copyright (C) 1994, 1995 Harlequin Group, all rights reserved
  *
  * **** RESTRICTION: This pool may not allocate from the arena control
@@ -37,7 +37,7 @@
 #include "poolmfs.h"
 #include "mpscmv.h"
 
-SRCID(poolmv, "$HopeName: !poolmv.c(trunk.14) $");
+SRCID(poolmv, "$HopeName: MMsrc!poolmv.c(MMdevel_lib.1) $");
 
 
 #define BLOCKPOOL(mv)   (MFSPool(&(mv)->blockPoolStruct))
@@ -52,7 +52,7 @@ static Res MVInit(Pool pool, va_list arg);
 static void MVFinish(Pool pool);
 static Res MVAlloc(Addr *pReturn, Pool pool, Size size);
 static void MVFree(Pool pool, Addr old, Size size);
-static Res MVDescribe(Pool pool, Lib_FILE *stream);
+static Res MVDescribe(Pool pool, mps_lib_FILE *stream);
 #endif /* 0 */
 
 
@@ -496,7 +496,7 @@ static void MVFree(Pool pool, Addr old, Size size)
 }
 
 
-static Res MVDescribe(Pool pool, Lib_FILE *stream)
+static Res MVDescribe(Pool pool, mps_lib_FILE *stream)
 {
   MV mv;
   MVSpan span;
@@ -510,33 +510,33 @@ static Res MVDescribe(Pool pool, Lib_FILE *stream)
 
   AVER(stream != NULL);
 
-  Lib_fprintf(stream,
-              "  blockPool = %p  spanPool = %p\n"
-              "  extendBy = %lX\n"
-              "  avgSize  = %lX\n"
-              "  maxSize  = %lX\n"
-              "  space    = %lX\n",
-              BLOCKPOOL(mv), SPANPOOL(mv),
-              (unsigned long)mv->extendBy,
-              (unsigned long)mv->avgSize,
-              (unsigned long)mv->maxSize,
-              mv->space);
+  mps_lib_fprintf(stream,
+                  "  blockPool = %p  spanPool = %p\n"
+                  "  extendBy = %lX\n"
+                  "  avgSize  = %lX\n"
+                  "  maxSize  = %lX\n"
+                  "  space    = %lX\n",
+                  BLOCKPOOL(mv), SPANPOOL(mv),
+                  (unsigned long)mv->extendBy,
+                  (unsigned long)mv->avgSize,
+                  (unsigned long)mv->maxSize,
+                  mv->space);
 
-  Lib_fprintf(stream,
-              "  Spans\n"
-              "      desc      seg    space blockCount\n");
+  mps_lib_fprintf(stream,
+                  "  Spans\n"
+                  "      desc      seg    space blockCount\n");
   spans = &mv->spans;
   RING_FOR(node, spans) {
     span = RING_ELT(MVSpan, spans, node);
     AVERT(MVSpan, span);
 
-    Lib_fprintf(stream, "  %8lX %8lX %8lX %d\n",
-                (unsigned long)span,
-                (unsigned long)span->seg,
-                span->space, span->blockCount);
+    mps_lib_fprintf(stream, "  %8lX %8lX %8lX %d\n",
+                    (unsigned long)span,
+                    (unsigned long)span->seg,
+                    span->space, span->blockCount);
   }
 
-  Lib_fprintf(stream, "  Span allocation maps\n");
+  mps_lib_fprintf(stream, "  Span allocation maps\n");
 
   step = pool->alignment;
   length = 0x40 * step;
@@ -546,34 +546,34 @@ static Res MVDescribe(Pool pool, Lib_FILE *stream)
     Addr i, j;
     MVBlock block;
     span = RING_ELT(MVSpan, spans, node);
-    Lib_fprintf(stream, "    MVSpan %8lX\n", (unsigned long)span);
+    mps_lib_fprintf(stream, "    MVSpan %8lX\n", (unsigned long)span);
 
     block = span->blocks;
     AVER(block == &span->base); /* should be start sentinel */
 
     for(i = span->base.base; i < span->limit.limit; i = AddrAdd(i, length)) {
-      Lib_fprintf(stream, "    %8lX ", (unsigned long)i);
+      mps_lib_fprintf(stream, "    %8lX ", (unsigned long)i);
 
       for(j = i; j < AddrAdd(i, length) && j < span->limit.limit;
 		 j = AddrAdd(j, step)) {
         if(j == block->base) {
           if(AddrAdd(j, step) == block->limit)
-            Lib_fputc('@', stream);
+            mps_lib_fputc('@', stream);
           else
-            Lib_fputc('[', stream);
+            mps_lib_fputc('[', stream);
         } else if(AddrAdd(j, step) == block->limit)
-          Lib_fputc(']', stream);
+          mps_lib_fputc(']', stream);
         else if(j > block->base && j < block->limit)
-          Lib_fputc('=', stream);
+          mps_lib_fputc('=', stream);
         else
-          Lib_fputc('.', stream);
+          mps_lib_fputc('.', stream);
 
         if(j >= block->limit) {
           block = block->next;
           AVER(block != NULL);  /* shouldn't pass limit sentinel */
         }
       }
-      Lib_fputc('\n', stream);
+      mps_lib_fputc('\n', stream);
     }
   }
 

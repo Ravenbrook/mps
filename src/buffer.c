@@ -1,6 +1,6 @@
 /* impl.c.buffer: ALLOCATION BUFFER IMPLEMENTATION
  *
- * $HopeName: !buffer.c(trunk.11) $
+ * $HopeName: MMsrc!buffer.c(MMdevel_lib.1) $
  * Copyright (C) 1996 Harlequin Group, all rights reserved
  *
  * This is the interface to allocation buffers.
@@ -115,7 +115,7 @@
 
 #include "mpm.h"
 
-SRCID(buffer, "$HopeName: !buffer.c(trunk.11) $");
+SRCID(buffer, "$HopeName: MMsrc!buffer.c(MMdevel_lib.1) $");
 
 
 Ring BufferPoolRing(Buffer buffer)
@@ -551,28 +551,28 @@ void BufferCover(Buffer buffer)
 }
 
 
-Res BufferDescribe(Buffer buffer, Lib_FILE *stream)
+Res BufferDescribe(Buffer buffer, mps_lib_FILE *stream)
 {
   AVERT(Buffer, buffer);
   AVER(stream != NULL);
 
-  Lib_fprintf(stream,
-             "Buffer %p {\n"
-             "  Pool %p\n"
-             "  alignment %lu\n"
-             "  base 0x%lX  init 0x%lX  alloc 0x%lX  limit 0x%lX\n"
-             "  grey 0x%lX  shieldMode %lu"
-             "} Buffer %p\n",
-             (void *)buffer,
-             (void *)BufferPool(buffer),
-             (unsigned long)buffer->alignment,
-             (unsigned long)buffer->base,
-             (unsigned long)buffer->ap.init,
-             (unsigned long)buffer->ap.alloc,
-             (unsigned long)buffer->ap.limit,
-             (unsigned long)buffer->grey,
-             (unsigned long)buffer->shieldMode,
-             (void *)buffer);
+  mps_lib_fprintf(stream,
+                  "Buffer %p {\n"
+                  "  Pool %p\n"
+                  "  alignment %lu\n"
+                  "  base 0x%lX  init 0x%lX  alloc 0x%lX  limit 0x%lX\n"
+                  "  grey 0x%lX  shieldMode %lu"
+                  "} Buffer %p\n",
+                  (void *)buffer,
+                  (void *)BufferPool(buffer),
+                  (unsigned long)buffer->alignment,
+                  (unsigned long)buffer->base,
+                  (unsigned long)buffer->ap.init,
+                  (unsigned long)buffer->ap.alloc,
+                  (unsigned long)buffer->ap.limit,
+                  (unsigned long)buffer->grey,
+                  (unsigned long)buffer->shieldMode,
+                  (void *)buffer);
 
   return ResOK;
 }

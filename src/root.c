@@ -2,7 +2,7 @@
  *
  *                   ROOT IMPLEMENTATION
  *
- *  $HopeName: !root.c(trunk.14) $
+ *  $HopeName: MMsrc!root.c(MMdevel_lib.1) $
  *
  *  Copyright (C) 1995 Harlequin Group, all rights reserved
  *
@@ -11,7 +11,7 @@
 
 #include "mpm.h"
 
-SRCID(root, "$HopeName: !root.c(trunk.14) $");
+SRCID(root, "$HopeName: MMsrc!root.c(MMdevel_lib.1) $");
 
 Bool RootCheck(Root root)
 {
@@ -229,48 +229,48 @@ Space RootSpace(Root root)
   return root->space;
 }
 
-Res RootDescribe(Root root, Lib_FILE *stream)
+Res RootDescribe(Root root, mps_lib_FILE *stream)
 {
   TraceId id;
 
   AVERT(Root, root);
   AVER(stream != NULL);
 
-  Lib_fprintf(stream,
-             "Root %lX {\n"
-             "  rank %d\n",
-             (unsigned long)root,
-             root->rank);
+  mps_lib_fprintf(stream,
+                 "Root %lX {\n"
+                 "  rank %d\n",
+                 (unsigned long)root,
+                 root->rank);
 
-  Lib_fprintf(stream, "  Trace status\n");
+  mps_lib_fprintf(stream, "  Trace status\n");
   for(id = 0; id < TRACE_MAX; ++id)
-    Lib_fprintf(stream, "    %2lu %s\n",
-               (unsigned long)id,
-               TraceSetIsMember(root->grey, id) ?
-                 "grey" : "not grey");
+    mps_lib_fprintf(stream, "    %2lu %s\n",
+                    (unsigned long)id,
+                    TraceSetIsMember(root->grey, id) ?
+                      "grey" : "not grey");
 
   switch(root->var)
   {
     case RootTABLE:
-    Lib_fprintf(stream, "  table base 0x%lX limit 0x%lX\n",
+    mps_lib_fprintf(stream, "  table base 0x%lX limit 0x%lX\n",
                 (unsigned long)root->the.table.base,
                 (unsigned long)root->the.table.limit);
     break;
 
     case RootFUN:
-    Lib_fprintf(stream,
-                "  scan function 0x%lX\n"
-                "  environment p 0x%lX s 0x%lX\n",
-                (unsigned long)root->the.fun.scan,
-                (unsigned long)root->the.fun.p,
-                root->the.fun.s);
+    mps_lib_fprintf(stream,
+                    "  scan function 0x%lX\n"
+                    "  environment p 0x%lX s 0x%lX\n",
+                    (unsigned long)root->the.fun.scan,
+                    (unsigned long)root->the.fun.p,
+                    root->the.fun.s);
     break;
 
     default:
     NOTREACHED;
   }
 
-  Lib_fprintf(stream, "} Root 0x%lX\n", (unsigned long)root);
+  mps_lib_fprintf(stream, "} Root 0x%lX\n", (unsigned long)root);
 
   return ResOK;
 }
