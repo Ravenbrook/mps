@@ -1,7 +1,7 @@
 /* impl.h.config: MPS CONFIGURATION
  *
  * Copyright (C) 1997 Harlequin Group, all rights reserved.
- * $HopeName: !config.h(trunk.14) $
+ * $HopeName: MMsrc!config.h(MMdevel_lclint_23h.1) $
  */
 
 #ifndef config_h
@@ -123,7 +123,7 @@
 /* Shield Configuration -- see impl.c.shield */
 
 #define SHIELD_CACHE_SIZE       ((Size)2)
-#define SHIELD_DEPTH_WIDTH	((Size)4)
+#define SHIELD_DEPTH_WIDTH	4 /* Cast confused LCLint */
 #define SHIELD_DEPTH		((Count)1<<SHIELD_DEPTH_WIDTH)
 
 
@@ -135,7 +135,7 @@
 
 /* Tracer Configuration -- see impl.c.trace */
 
-#define TRACE_MAX               ((Size)1)
+#define TRACE_MAX                1 /* Cast confused LCLint */
 
 
 /*  impl.c.event
