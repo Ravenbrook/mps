@@ -2,7 +2,7 @@
  * 
  * MANUAL RANK GUARDIAN POOL
  * 
- * $HopeName: MMsrc!poolmrg.c(MMdevel_action2.4) $
+ * $HopeName: MMsrc!poolmrg.c(MMdevel_action2.5) $
  * Copyright(C) 1995,1997 Harlequin Group, all rights reserved
  *
  * READERSHIP
@@ -29,7 +29,7 @@
 #include "poolmrg.h"
 
 
-SRCID(poolmrg, "$HopeName: MMsrc!poolmrg.c(MMdevel_action2.4) $");
+SRCID(poolmrg, "$HopeName: MMsrc!poolmrg.c(MMdevel_action2.5) $");
 
 #define MRGSig          ((Sig)0x519B0349)
 
@@ -148,7 +148,7 @@ static Res MRGGroupCreate(MRGGroup *groupReturn, MRG mrg)
   }
   AVER((Addr)(&linkpart[i]) <= SegLimit(space, linkseg));
   AVER((Addr)(&refpart[i]) <= SegLimit(space, refseg));
-  refseg->rank = RankFINAL;
+  refseg->rankSet = RankSetSingle(RankFINAL);
 
   group->refseg = refseg;
   group->linkseg = linkseg;
@@ -383,25 +383,6 @@ static Res MRGDescribe(Pool pool, mps_lib_FILE *stream)
   return ResOK;
 }
 
-static void MRGGrey(Pool pool, Trace trace)
-{
-  MRG mrg;
-  Ring r;
-
-  AVERT(Pool, pool);
-  mrg = PoolPoolMRG(pool);
-  AVERT(MRG, mrg);
-  AVERT(Trace, trace);
-
-  RING_FOR(r, &mrg->group) {
-    MRGGroup group;
-
-    group = RING_ELT(MRGGroup, group, r);
-    group->refseg->grey = TraceSetAdd(group->refseg->grey, trace->ti);
-    ShieldRaise(trace->space, group->refseg, AccessREAD | AccessWRITE);
-  }
-}
-
 static Res MRGScan(ScanState ss, Pool pool, Seg seg)
 {
   MRG mrg;
@@ -414,7 +395,7 @@ static Res MRGScan(ScanState ss, Pool pool, Seg seg)
   AVERT(MRG, mrg);
   AVERT(Seg, seg);
 
-  AVER(seg->rank == RankFINAL);
+  AVER(seg->rankSet == RankSetSingle(RankFINAL));
   AVER(TraceSetIsMember(seg->grey, ss->traceId));
   group = (MRGGroup)seg->p;
   AVER(seg == group->refseg);
@@ -442,7 +423,7 @@ static PoolClassStruct PoolClassMRGStruct = {
   PoolNoBufferExpose,                   /* bufferExpose */
   PoolNoBufferCover,                    /* bufferCover */
   PoolNoCondemn,                        /* condemn */
-  MRGGrey,                              /* grey */
+  PoolTrivGrey,                         /* grey */
   MRGScan,                              /* scan */
   PoolNoFix,                            /* fix */
   PoolNoReclaim,                        /* reclaim */

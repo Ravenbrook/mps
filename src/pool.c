@@ -1,6 +1,6 @@
 /* impl.c.pool: POOL IMPLEMENTATION
  *
- * $HopeName: MMsrc!pool.c(MMdevel_action2.6) $
+ * $HopeName: MMsrc!pool.c(MMdevel_action2.7) $
  * Copyright (C) 1994,1995,1996 Harlequin Group, all rights reserved
  *
  * This is the implementation of the generic pool interface.  The
@@ -12,7 +12,7 @@
 
 #include "mpm.h"
 
-SRCID(pool, "$HopeName: MMsrc!pool.c(MMdevel_action2.6) $");
+SRCID(pool, "$HopeName: MMsrc!pool.c(MMdevel_action2.7) $");
 
 
 Bool PoolClassCheck(PoolClass class)
@@ -248,12 +248,14 @@ Res PoolCondemn(Pool pool, Trace trace, Seg seg)
   return (*pool->class->condemn)(pool, trace, seg);
 }
 
-void PoolGrey(Pool pool, Trace trace)
+void PoolGrey(Pool pool, Trace trace, Seg seg)
 {
   AVERT(Pool, pool);
   AVERT(Trace, trace);
+  AVERT(Seg, seg);
   AVER(pool->space == trace->space);
-  (*pool->class->grey)(pool, trace);
+  AVER(seg->pool == pool);
+  (*pool->class->grey)(pool, trace, seg);
 }
 
 Res PoolScan(ScanState ss, Pool pool, Seg seg)
@@ -274,12 +276,15 @@ Res (PoolFix)(Pool pool, ScanState ss, Seg seg, Addr *refIO)
   return PoolFix(pool, ss, seg, refIO);
 }
 
-void PoolReclaim(Pool pool, Trace trace)
+void PoolReclaim(Pool pool, Trace trace, Seg seg)
 {
   AVERT(Pool, pool);
   AVERT(Trace, trace);
+  AVERT(Seg, seg);
   AVER(pool->space == trace->space);
-  (*pool->class->reclaim)(pool, trace);
+  AVER(seg->pool == pool);
+  AVER(seg->white == trace->ti);
+  (*pool->class->reclaim)(pool, trace, seg);
 }
 
 
@@ -542,11 +547,32 @@ Res PoolNoCondemn(Pool pool, Trace trace, Seg seg)
   return ResUNIMPL;
 }
 
-void PoolNoGrey(Pool pool, Trace trace)
+void PoolNoGrey(Pool pool, Trace trace, Seg seg)
 {
   AVERT(Pool, pool);
   AVERT(Trace, trace);
+  AVERT(Seg, seg);
   NOTREACHED;
+}
+
+void PoolTrivGrey(Pool pool, Trace trace, Seg seg)
+{
+  AVERT(Pool, pool);
+  AVERT(Trace, trace);
+  AVERT(Seg, seg);
+
+  /* @@@@ The trivial grey method probably shouldn't exclude */
+  /* the white segments, since they might also contain grey objects. */
+  /* It's probably also the Tracer's responsibility to raise the */
+  /* shield. */
+  /* @@@@ This should be calculated by comparing colour */
+  /* with the mutator colour.  For the moment we assume */
+  /* a read-barrier collector. */
+
+  if(seg->white != trace->ti) {
+    seg->grey = TraceSetAdd(seg->grey, trace->ti);
+    ShieldRaise(trace->space, seg, AccessREAD | AccessWRITE);
+  }
 }
 
 Res PoolNoScan(ScanState ss, Pool pool, Seg seg)
@@ -568,9 +594,10 @@ Res PoolNoFix(Pool pool, ScanState ss, Seg seg, Ref *refIO)
   return ResUNIMPL;
 }
 
-void PoolNoReclaim(Pool pool, Trace trace)
+void PoolNoReclaim(Pool pool, Trace trace, Seg seg)
 {
   AVERT(Pool, pool);
   AVERT(Trace, trace);
+  AVERT(Seg, seg);
   NOTREACHED;
 }

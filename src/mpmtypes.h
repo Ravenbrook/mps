@@ -1,6 +1,6 @@
 /* impl.h.mpmtypes: MEMORY POOL MANAGER TYPES
  *
- * $HopeName: MMsrc!mpmtypes.h(MMdevel_action2.6) $
+ * $HopeName: MMsrc!mpmtypes.h(MMdevel_action2.7) $
  * Copyright (C) 1996,1997 Harlequin Group, all rights reserved.
  *
  * .readership: MM developers.
@@ -37,6 +37,7 @@ typedef Addr Ref;                       /* design.mps.type.ref */
 typedef void *Pointer;                  /* design.mps.type.pointer */
 typedef Word RefSet;                    /* design.mps.refset */
 typedef unsigned Rank;                  /* design.mps.ref */
+typedef unsigned RankSet;
 typedef Size Epoch;                     /* design.mps.ld */
 typedef unsigned TraceId;               /* design.mps.tracer */
 typedef unsigned TraceSet;              /* design.mps.tracer */
@@ -81,11 +82,11 @@ typedef void (*PoolBufferExposeMethod) (Pool pool, Buffer buffer);
 typedef void (*PoolBufferCoverMethod)  (Pool pool, Buffer buffer);
 typedef Res  (*PoolDescribeMethod)     (Pool pool, mps_lib_FILE *stream);
 typedef Res  (*PoolCondemnMethod)      (Pool pool, Trace trace, Seg seg);
-typedef void (*PoolGreyMethod)         (Pool pool, Trace trace);
+typedef void (*PoolGreyMethod)         (Pool pool, Trace trace, Seg seg);
 typedef Res  (*PoolScanMethod)         (ScanState ss, Pool pool, Seg seg);
 typedef Res  (*PoolFixMethod)          (Pool pool, ScanState ss, Seg seg,
                                         Ref *refIO);
-typedef void (*PoolReclaimMethod)      (Pool pool, Trace trace);
+typedef void (*PoolReclaimMethod)      (Pool pool, Trace trace, Seg seg);
 
 
 /* Format*Method -- see design.mps.format-interface */
@@ -120,6 +121,7 @@ typedef Res (*RootScanRegMethod)(ScanState ss, Thread thread, void *p,
 #define RefSetEMPTY     BS_EMPTY(RefSet)
 #define RefSetUNIV      BS_UNIV(RefSet)
 #define TraceSetEMPTY	BS_EMPTY(TraceSet) /* design.mps.tracer */
+#define RankSetEMPTY	BS_EMPTY(RankSet)
 #define AttrFMT         ((Attr)(1<<0))  /* design.mps.type.attr */
 #define AttrSCAN        ((Attr)(1<<1))
 #define AttrPM_NO_READ  ((Attr)(1<<2))
