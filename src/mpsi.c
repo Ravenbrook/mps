@@ -1,7 +1,7 @@
 /* impl.c.mpsi: MEMORY POOL SYSTEM C INTERFACE LAYER
  *
- * $HopeName: !mpsi.c(trunk.68) $
- * Copyright (C) 1997. Harlequin Group plc. All rights reserved.
+ * $HopeName$
+ * Copyright (C) 1997, 1999 Harlequin Group plc.  All rights reserved.
  *
  * .purpose: This code bridges between the MPS interface to C,
  * impl.h.mps, and the internal MPM interfaces, as defined by
@@ -52,8 +52,9 @@
 #include "mpm.h"
 #include "mps.h"
 #include "mpsavm.h" /* only for mps_space_create */
+#include "sac.h"
 
-SRCID(mpsi, "$HopeName: !mpsi.c(trunk.68) $");
+SRCID(mpsi, "$HopeName: MMsrc!mpsi.c(MMdevel_alloc_replay.1) $");
 
 
 /* mpsi_check -- check consistency of interface mappings
@@ -96,6 +97,10 @@ static Bool mpsi_check(void)
   /* had better match.  See design.mps.interface.c.cons. */
   CHECKL(sizeof(mps_word_t) == sizeof(void *));
   CHECKL(CHECKTYPE(mps_word_t, Word));
+
+  /* The external idea of an address and the internal one */
+  /* had better match. */
+  CHECKL(CHECKTYPE(mps_addr_t, Addr));
   
   /* The external idea of size and the internal one had */
   /* better match.  See design.mps.interface.c.cons.size */
@@ -108,6 +113,35 @@ static Bool mpsi_check(void)
   CHECKL(CHECKFIELD(mps_ap_s, init,  APStruct, init));
   CHECKL(CHECKFIELD(mps_ap_s, alloc, APStruct, alloc));
   CHECKL(CHECKFIELD(mps_ap_s, limit, APStruct, limit));
+
+  /* Check sac_s/ExternalSACStruct compatibility by hand */
+  /* See impl.h.mps.sac and impl.h.sac.sac. */
+  CHECKL(sizeof(mps_sac_s) == sizeof(ExternalSACStruct));
+  CHECKL(CHECKFIELD(mps_sac_s, mps_middle, ExternalSACStruct, middle));
+  CHECKL(CHECKFIELD(mps_sac_s, mps_trapped,
+                    ExternalSACStruct, trapped));
+  CHECKL(CHECKFIELDAPPROX(mps_sac_s, mps_freelists,
+                          ExternalSACStruct, freelists));
+  CHECKL(sizeof(mps_sac_freelist_block_s)
+         == sizeof(SACFreeListBlockStruct));
+  CHECKL(CHECKFIELD(mps_sac_freelist_block_s, mps_size,
+                    SACFreeListBlockStruct, size));
+  CHECKL(CHECKFIELD(mps_sac_freelist_block_s, mps_count,
+                    SACFreeListBlockStruct, count));
+  CHECKL(CHECKFIELD(mps_sac_freelist_block_s, mps_count_max,
+                    SACFreeListBlockStruct, countMax));
+  CHECKL(CHECKFIELD(mps_sac_freelist_block_s, mps_blocks,
+                    SACFreeListBlockStruct, blocks));
+
+  /* Check sac_classes_s/SACClassesStruct compatibility by hand */
+  /* See impl.h.mps.sacc and impl.h.sac.sacc. */
+  CHECKL(sizeof(mps_sac_classes_s) == sizeof(SACClassesStruct));
+  CHECKL(CHECKFIELD(mps_sac_classes_s, mps_block_size,
+                    SACClassesStruct, blockSize));
+  CHECKL(CHECKFIELD(mps_sac_classes_s, mps_cached_count,
+                    SACClassesStruct, cachedCount));
+  CHECKL(CHECKFIELD(mps_sac_classes_s, mps_frequency,
+                    SACClassesStruct, frequency));
 
   /* Check ss_s/ScanStateStruct compatibility by hand */
   /* .check.ss: See impl.h.mps.ss and impl.h.mpmst.ss. */
@@ -715,10 +749,10 @@ mps_res_t (mps_reserve)(mps_addr_t *p_o, mps_ap_t mps_ap, size_t size)
   mps_res_t res;
 
   AVER(p_o != NULL);
-  AVER(size > 0);
   AVER(mps_ap != NULL);
   AVER(CHECKT(Buffer, BufferOfAP((AP)mps_ap)));
   AVER(mps_ap->init == mps_ap->alloc);
+  AVER(size > 0);
 
   MPS_RESERVE_BLOCK(res, *p_o, mps_ap, size);
 
@@ -858,7 +892,6 @@ mps_res_t (mps_ap_frame_pop)(mps_ap_t mps_ap, mps_frame_t frame)
 }
 
 
-
 /* mps_ap_fill -- called by mps_reserve when an AP hasn't enough arena
  *
  * .ap.fill.internal: Note that mps_ap_fill should never be "called"
@@ -927,7 +960,7 @@ mps_res_t mps_ap_fill_with_reservoir_permit(mps_addr_t *p_o,
 }
 
 
-/* mps_trip -- called by mps_commit when an AP is tripped
+/* mps_ap_trip -- called by mps_commit when an AP is tripped
  *
  * .ap.trip.internal: Note that mps_ap_trip should never be "called"
  * directly by the client code.  It is invoked by the mps_commit macro.
@@ -956,6 +989,144 @@ mps_bool_t mps_ap_trip(mps_ap_t mps_ap, mps_addr_t p, size_t size)
   return b;
 }
 
+
+/* mps_sac_create -- create an SAC object */
+
+mps_res_t mps_sac_create(mps_sac_t *mps_sac_o, mps_pool_t mps_pool,
+                         size_t classes_count, mps_sac_classes_t mps_classes)
+{
+  Pool pool = (Pool)mps_pool;
+  Arena arena;
+  SACClasses classes;
+  SAC sac;
+  Res res;
+
+  AVER(mps_sac_o != NULL);
+  AVER(CHECKT(Pool, pool));
+  arena = PoolArena(pool);
+
+  ArenaEnter(arena);
+
+  classes = (SACClasses)mps_classes;
+  res = SACCreate(&sac, pool, (Count)classes_count, classes);
+
+  ArenaLeave(arena);
+  
+  if (res != ResOK) return (mps_res_t)res;
+  *mps_sac_o = (mps_sac_t)ExternalSACOfSAC(sac);
+  return (mps_res_t)res;
+}
+
+
+/* mps_sac_destroy -- destroy an SAC object */
+
+void mps_sac_destroy(mps_sac_t mps_sac)
+{
+  SAC sac = SACOfExternalSAC((ExternalSAC)mps_sac);
+  Arena arena;
+
+  AVER(CHECKT(SAC, sac));
+  arena = SACArena(sac);
+
+  ArenaEnter(arena);
+
+  SACDestroy(sac);
+
+  ArenaLeave(arena);
+}
+
+
+/* mps_sac_flush -- flush an SAC, releasing all memory held in it */
+
+void mps_sac_flush(mps_sac_t mps_sac)
+{
+  SAC sac = SACOfExternalSAC((ExternalSAC)mps_sac);
+  Arena arena;
+
+  AVER(CHECKT(SAC, sac));
+  arena = SACArena(sac);
+
+  ArenaEnter(arena);
+
+  SACFlush(sac);
+
+  ArenaLeave(arena);
+}
+
+
+/* mps_sac_fill -- alloc an object, and perhaps fill the cache */
+
+mps_res_t mps_sac_fill(mps_addr_t *p_o, mps_sac_t mps_sac, size_t size,
+                       mps_bool_t has_reservoir_permit)
+{
+  SAC sac = SACOfExternalSAC((ExternalSAC)mps_sac);
+  Arena arena;
+  Addr p;
+  Res res;
+
+  AVER(p_o != NULL);
+  AVER(CHECKT(SAC, sac));
+  arena = SACArena(sac);
+
+  ArenaEnter(arena);
+
+  res = SACFill(&p, sac, (Size)size, (Bool)has_reservoir_permit);
+
+  ArenaLeave(arena);
+
+  if (res != ResOK) return (mps_res_t)res;
+  *p_o = (mps_addr_t)p;
+  return (mps_res_t)res;
+}
+
+
+/* mps_sac_empty -- free an object, and perhaps empty the cache */
+
+void mps_sac_empty(mps_sac_t mps_sac, mps_addr_t p, size_t size)
+{
+  SAC sac = SACOfExternalSAC((ExternalSAC)mps_sac);
+  Arena arena;
+
+  AVER(CHECKT(SAC, sac));
+  arena = SACArena(sac);
+
+  ArenaEnter(arena);
+
+  SACEmpty(sac, (Addr)p, (Size)size);
+
+  ArenaLeave(arena);
+}
+
+
+/* mps_sac_alloc -- alloc an object, using cached space if possible */
+
+mps_res_t mps_sac_alloc(mps_addr_t *p_o, mps_sac_t mps_sac, size_t size,
+                        mps_bool_t has_reservoir_permit)
+{
+  Res res;
+
+  AVER(p_o != NULL);
+  AVER(CHECKT(SAC, SACOfExternalSAC((ExternalSAC)mps_sac)));
+  AVER(size > 0);
+
+  MPS_SAC_ALLOC(res, *p_o, mps_sac, size, has_reservoir_permit);
+  return res;
+}
+
+
+/* mps_sac_free -- free an object, to the cache if possible */
+
+void mps_sac_free(mps_sac_t mps_sac, mps_addr_t p, size_t size)
+{
+  AVER(CHECKT(SAC, SACOfExternalSAC((ExternalSAC)mps_sac)));
+  /* Can't check p outside arena lock */
+  AVER(size > 0);
+
+  MPS_SAC_FREE(mps_sac, p, size);
+}
+
+
+/* Roots */
 
 mps_res_t mps_root_create(mps_root_t *mps_root_o,
                           mps_arena_t mps_arena,
