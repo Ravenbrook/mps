@@ -1,6 +1,6 @@
 /* impl.c.seg: SEGMENTS
  *
- * $HopeName: MMsrc!seg.c(MMdevel_assertid.2) $
+ * $HopeName: MMsrc!seg.c(MMdevel_assertid.3) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  *
  * .design: The design for this module is design.mps.seg.
@@ -16,13 +16,14 @@
 
 #include "mpm.h"
 
-SRCID(seg, "$HopeName: MMsrc!seg.c(MMdevel_assertid.2) $");
+SRCID(seg, "$HopeName: MMsrc!seg.c(MMdevel_assertid.3) $");
 
 
 /* SegCheck -- check the integrity of a segment */
 
 Bool SegCheck(Seg seg)
 {
+  CHECKS(0x5E990014, Seg, seg);
   CHECKU(0x5E990000, Pool, seg->pool);
   CHECKL(0x5E990001, TraceSetCheck(seg->white));
   CHECKL(0x5E990002, TraceSetCheck(seg->grey));
@@ -73,6 +74,8 @@ void SegInit(Seg seg, Pool pool)
   seg->sm = AccessSetEMPTY;
   seg->depth = 0;
   seg->single = FALSE;
+  
+  seg->sig = SegSig;
 
   AVERT(0x5E990010, Seg, seg);
 }
@@ -90,6 +93,8 @@ void SegFinish(Seg seg)
   
   /* Don't leave a dangling buffer allocating into hyperspace. */
   AVER(0x5E990013, seg->buffer == NULL);
+  
+  seg->sig = SigInvalid;
 
   RingFinish(&seg->poolRing);
 }
