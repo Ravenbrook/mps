@@ -2,7 +2,7 @@
  *
  *                   ROOT IMPLEMENTATION
  *
- *  $HopeName: !root.c(trunk.19) $
+ *  $HopeName: MMsrc!root.c(MMdevel_action2.1) $
  *
  *  Copyright (C) 1995,1996 Harlequin Group, all rights reserved
  *
@@ -13,7 +13,7 @@
 
 #include "mpm.h"
 
-SRCID(root, "$HopeName: !root.c(trunk.19) $");
+SRCID(root, "$HopeName: MMsrc!root.c(MMdevel_action2.1) $");
 
 /* .rootcheck: Keep synchonized with impl.h.mpmst.root */
 Bool RootCheck(Root root)
@@ -201,12 +201,12 @@ Rank RootRank(Root root)
   return root->rank;
 }
 
-void RootGrey(Root root, TraceId ti)
+void RootGrey(Root root, Trace trace)
 {
   AVERT(Root, root);
-  AVER(TraceIdCheck(ti));
+  AVERT(Trace, trace);
   
-  root->grey = TraceSetAdd(root->grey, ti);
+  root->grey = TraceSetAdd(root->grey, trace->ti);
 }
 
 Res RootScan(ScanState ss, Root root)

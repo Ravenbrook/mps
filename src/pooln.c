@@ -2,7 +2,7 @@
  *
  *                         NULL POOL
  *
- *  $HopeName: MMsrc!pooln.c(MMdevel_action2.1) $
+ *  $HopeName: MMsrc!pooln.c(MMdevel_action2.2) $
  *
  *  Copyright(C) 1995 Harlequin Group, all rights reserved
  *
@@ -13,7 +13,7 @@
 #include "mpm.h"
 #include "pooln.h"
 
-SRCID(pooln, "$HopeName: MMsrc!pooln.c(MMdevel_action2.1) $");
+SRCID(pooln, "$HopeName: MMsrc!pooln.c(MMdevel_action2.2) $");
 
 
 typedef struct PoolNStruct {
@@ -172,8 +172,7 @@ static Res NDescribe(Pool pool, mps_lib_FILE *stream)
   return ResOK;
 }
 
-static Res NCondemn(RefSet *whiteReturn, Pool pool,
-                     Space space, TraceId ti)
+static Res NCondemn(RefSet *whiteReturn, Pool pool, Trace trace)
 {
   PoolN poolN;
 
@@ -182,12 +181,12 @@ static Res NCondemn(RefSet *whiteReturn, Pool pool,
   AVERT(PoolN, poolN);
 
   AVER(whiteReturn != NULL);
-  AVERT(Space, space);
+  AVERT(Trace, trace);
 
   return ResOK;
 }
 
-static void NMark(Pool pool, Space space, TraceId ti)
+static void NMark(Pool pool, Trace trace)
 {
   PoolN poolN;
 
@@ -195,7 +194,7 @@ static void NMark(Pool pool, Space space, TraceId ti)
   poolN = PoolPoolN(pool);
   AVERT(PoolN, poolN);
 
-  AVERT(Space, space);
+  AVERT(Trace, trace);
 }
 
 static Res NScan(ScanState ss, Pool pool, Bool *finishedReturn)
@@ -227,7 +226,7 @@ static Res NFix(Pool pool, ScanState ss, Seg seg, Ref *refIO)
   return ResFAIL;
 }
 
-static void NReclaim(Pool pool, Space space, TraceId ti)
+static void NReclaim(Pool pool, Trace trace)
 {
   PoolN poolN;
 
@@ -235,7 +234,7 @@ static void NReclaim(Pool pool, Space space, TraceId ti)
   poolN = PoolPoolN(pool);
   AVERT(PoolN, poolN);
 
-  AVERT(Space, space);
+  AVERT(Trace, trace);
   /* all unmarked and white objects reclaimed */
 }
 

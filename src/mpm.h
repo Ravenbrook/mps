@@ -1,6 +1,6 @@
 /* impl.h.mpm: MEMORY POOL MANAGER DEFINITIONS
  *
- * $HopeName: MMsrc!mpm.h(MMdevel_action2.4) $
+ * $HopeName: MMsrc!mpm.h(MMdevel_action2.5) $
  * Copyright (C) 1996,1997 Harlequin Group, all rights reserved.
  */
 
@@ -196,15 +196,14 @@ extern Res PoolCreateV(Pool *poolReturn, PoolClass class,
 extern void PoolDestroy(Pool pool);
 extern Res PoolAlloc(Addr *pReturn, Pool pool, Size size);
 extern void PoolFree(Pool pool, Addr old, Size size);
-extern Res PoolCondemn(RefSet *whiteReturn, Pool pool,
-                         Space space, TraceId ti);
-extern void PoolGrey(Pool pool, Space space, TraceId ti);
+extern Res PoolCondemn(RefSet *whiteReturn, Pool pool, Trace trace);
+extern void PoolGrey(Pool pool, Trace trace);
 extern Res PoolScan(ScanState ss, Pool pool, Bool *finishedReturn);
 extern Res (PoolFix)(Pool pool, ScanState ss, Seg seg, Addr *refIO);
 #define PoolFix(pool, ss, seg, refIO) \
   ((*(pool)->class->fix)(pool, ss, seg, refIO))
 
-extern void PoolReclaim(Pool pool, Space space, TraceId ti);
+extern void PoolReclaim(Pool pool, Trace trace);
 extern void PoolAccess(Pool pool, Seg seg, AccessSet mode);
 
 extern void PoolTrivFinish(Pool pool);
@@ -222,11 +221,11 @@ extern void PoolNoBufferExpose(Pool pool, Buffer buffer);
 extern void PoolNoBufferCover(Pool pool, Buffer buffer);
 extern Res PoolNoDescribe(Pool pool, mps_lib_FILE *stream);
 extern Res PoolTrivDescribe(Pool pool, mps_lib_FILE *stream);
-extern Res PoolNoCondemn(RefSet *whiteReturn, Pool pool, Space space, TraceId ti);
-extern void PoolNoGrey(Pool pool, Space space, TraceId ti);
+extern Res PoolNoCondemn(RefSet *whiteReturn, Pool pool, Trace trace);
+extern void PoolNoGrey(Pool pool, Trace trace);
 extern Res PoolNoScan(ScanState ss, Pool pool, Bool *finishedReturn);
 extern Res PoolNoFix(Pool pool, ScanState ss, Seg seg, Ref *refIO);
-extern void PoolNoReclaim(Pool pool, Space space, TraceId ti);
+extern void PoolNoReclaim(Pool pool, Trace trace);
 extern void PoolNoAccess(Pool pool, Seg seg, AccessSet mode);
 
 
@@ -463,7 +462,7 @@ extern Bool RootCheck(Root root);
 extern Res RootDescribe(Root root, mps_lib_FILE *stream);
 extern Bool RootIsAtomic(Root root);
 extern Rank RootRank(Root root);
-extern void RootGrey(Root root, TraceId ti);
+extern void RootGrey(Root root, Trace trace);
 extern Res RootScan(ScanState ss, Root root);
 extern Space RootSpace(Root root);
 

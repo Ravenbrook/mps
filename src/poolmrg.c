@@ -2,7 +2,7 @@
  * 
  * MANUAL RANK GUARDIAN POOL
  * 
- * $HopeName: MMsrc!poolmrg.c(MMdevel_action2.1) $
+ * $HopeName: MMsrc!poolmrg.c(MMdevel_action2.2) $
  * Copyright(C) 1995,1997 Harlequin Group, all rights reserved
  *
  * READERSHIP
@@ -29,7 +29,7 @@
 #include "poolmrg.h"
 
 
-SRCID(poolmrg, "$HopeName: MMsrc!poolmrg.c(MMdevel_action2.1) $");
+SRCID(poolmrg, "$HopeName: MMsrc!poolmrg.c(MMdevel_action2.2) $");
 
 #define MRGSig          ((Sig)0x519B0349)
 
@@ -385,7 +385,7 @@ static Res MRGDescribe(Pool pool, mps_lib_FILE *stream)
   return ResOK;
 }
 
-static void MRGGrey(Pool pool, Space space, TraceId ti)
+static void MRGGrey(Pool pool, Trace trace)
 {
   MRG mrg;
   Ring r;
@@ -393,15 +393,14 @@ static void MRGGrey(Pool pool, Space space, TraceId ti)
   AVERT(Pool, pool);
   mrg = PoolPoolMRG(pool);
   AVERT(MRG, mrg);
-  AVERT(Space, space);
-  AVERT(TraceId, ti);
+  AVERT(Trace, trace);
 
   RING_FOR(r, &mrg->group) {
     MRGGroup group;
 
     group = RING_ELT(MRGGroup, group, r);
-    group->grey = TraceSetAdd(group->grey, ti);
-    ShieldRaise(space, group->refseg, AccessREAD | AccessWRITE);
+    group->grey = TraceSetAdd(group->grey, trace->ti);
+    ShieldRaise(trace->space, group->refseg, AccessREAD | AccessWRITE);
   }
 }
 

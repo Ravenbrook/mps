@@ -1,6 +1,6 @@
 /* impl.c.pool: POOL IMPLEMENTATION
  *
- * $HopeName: MMsrc!pool.c(MMdevel_action2.1) $
+ * $HopeName: MMsrc!pool.c(MMdevel_action2.2) $
  * Copyright (C) 1994,1995,1996 Harlequin Group, all rights reserved
  *
  * This is the implementation of the generic pool interface.  The
@@ -12,7 +12,7 @@
 
 #include "mpm.h"
 
-SRCID(pool, "$HopeName: MMsrc!pool.c(MMdevel_action2.1) $");
+SRCID(pool, "$HopeName: MMsrc!pool.c(MMdevel_action2.2) $");
 
 
 Bool PoolClassCheck(PoolClass class)
@@ -241,26 +241,21 @@ void PoolFree(Pool pool, Addr old, Size size)
   (*pool->class->free)(pool, old, size);
 }
 
-Res PoolCondemn(RefSet *whiteReturn, Pool pool,
-                  Space space, TraceId ti)
+Res PoolCondemn(RefSet *whiteReturn, Pool pool, Trace trace)
 {  
   AVER(whiteReturn != NULL);
   AVERT(Pool, pool);
-  AVERT(Space, space);
-  AVER(pool->space == space);
-  AVERT(TraceId, ti);
-  AVER(ti != TraceIdNONE);
-  return (*pool->class->condemn)(whiteReturn, pool, space, ti);
+  AVERT(Trace, trace);
+  AVER(pool->space == trace->space);
+  return (*pool->class->condemn)(whiteReturn, pool, trace);
 }
 
-void PoolGrey(Pool pool, Space space, TraceId ti)
+void PoolGrey(Pool pool, Trace trace)
 {
   AVERT(Pool, pool);
-  AVERT(Space, space);
-  AVER(pool->space == space);
-  AVERT(TraceId, ti);
-  AVER(ti != TraceIdNONE);
-  (*pool->class->grey)(pool, space, ti);
+  AVERT(Trace, trace);
+  AVER(pool->space == trace->space);
+  (*pool->class->grey)(pool, trace);
 }
 
 Res PoolScan(ScanState ss, Pool pool, Bool *finishedReturn)
@@ -281,12 +276,12 @@ Res (PoolFix)(Pool pool, ScanState ss, Seg seg, Addr *refIO)
   return PoolFix(pool, ss, seg, refIO);
 }
 
-void PoolReclaim(Pool pool, Space space, TraceId ti)
+void PoolReclaim(Pool pool, Trace trace)
 {
   AVERT(Pool, pool);
-  AVERT(Space, space);
-  AVER(pool->space == space);
-  (*pool->class->reclaim)(pool, space, ti);
+  AVERT(Trace, trace);
+  AVER(pool->space == trace->space);
+  (*pool->class->reclaim)(pool, trace);
 }
 
 void PoolAccess(Pool pool, Seg seg, AccessSet mode)
@@ -545,21 +540,19 @@ Res PoolTrivDescribe(Pool pool, mps_lib_FILE *stream)
   return WriteF(stream, "  No class-specific description available.\n", NULL);
 }
 
-Res PoolNoCondemn(RefSet *whiteReturn, Pool pool, Space space, TraceId ti)
+Res PoolNoCondemn(RefSet *whiteReturn, Pool pool, Trace trace)
 {
   AVER(whiteReturn != NULL);
   AVERT(Pool, pool);
-  AVERT(Space, space);
-  AVER(TraceIdCheck(ti));
+  AVERT(Trace, trace);
   NOTREACHED;
   return ResUNIMPL;
 }
 
-void PoolNoGrey(Pool pool, Space space, TraceId ti)
+void PoolNoGrey(Pool pool, Trace trace)
 {
   AVERT(Pool, pool);
-  AVERT(Space, space);
-  AVER(TraceIdCheck(ti));
+  AVERT(Trace, trace);
   NOTREACHED;
 }
 
@@ -582,11 +575,10 @@ Res PoolNoFix(Pool pool, ScanState ss, Seg seg, Ref *refIO)
   return ResUNIMPL;
 }
 
-void PoolNoReclaim(Pool pool, Space space, TraceId ti)
+void PoolNoReclaim(Pool pool, Trace trace)
 {
   AVERT(Pool, pool);
-  AVERT(Space, space);
-  AVER(TraceIdCheck(ti));
+  AVERT(Trace, trace);
   NOTREACHED;
 }
 

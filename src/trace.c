@@ -1,11 +1,11 @@
 /* impl.c.trace: GENERIC TRACER IMPLEMENTATION
  *
- * $HopeName: MMsrc!trace.c(MMdevel_action2.3) $
+ * $HopeName: MMsrc!trace.c(MMdevel_action2.4) $
  */
 
 #include "mpm.h"
 
-SRCID(trace, "$HopeName: MMsrc!trace.c(MMdevel_action2.3) $");
+SRCID(trace, "$HopeName: MMsrc!trace.c(MMdevel_action2.4) $");
 
 Bool ScanStateCheck(ScanState ss)
 {
@@ -124,7 +124,7 @@ Res TraceCondemn(RefSet *whiteReturn, Trace trace, Pool pool)
   AVERT(Trace, trace);
   AVERT(Pool, pool);
 
-  return PoolCondemn(whiteReturn, pool, trace->space, trace->ti);
+  return PoolCondemn(whiteReturn, pool, trace);
 }
 
 
@@ -161,7 +161,7 @@ Res TraceFlip(Trace trace, RefSet white)
     Pool pool = RING_ELT(Pool, spaceRing, node);
 
     if((pool->class->attr & AttrSCAN) != 0)
-      PoolGrey(pool, space, trace->ti);  /* implicitly excludes white set */
+      PoolGrey(pool, trace);  /* implicitly excludes white set */
 
     node = next;
   }
@@ -172,7 +172,7 @@ Res TraceFlip(Trace trace, RefSet white)
     Ring next = RingNext(node);
     Root root = RING_ELT(Root, spaceRing, node);
 
-    RootGrey(root, trace->ti);
+    RootGrey(root, trace);
 
     node = next;
   }
@@ -237,7 +237,7 @@ static void TraceReclaim(Trace trace)
     Pool pool = RING_ELT(Pool, spaceRing, node);
 
     if((pool->class->attr & AttrGC) != 0)
-      PoolReclaim(pool, space, trace->ti);
+      PoolReclaim(pool, trace);
 
     node = next;
   }
