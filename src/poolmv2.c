@@ -1,6 +1,6 @@
 /* impl.c.poolmv2: MANUAL VARIABLE POOL, II
  *
- * $HopeName: !poolmv2.c(trunk.10) $
+ * $HopeName: MMsrc!poolmv2.c(MMdevel_tony_sunset.1) $
  * Copyright (C) 1998 Harlequin Group plc.  All rights reserved.
  *
  * .readership: any MPS developer
@@ -18,7 +18,7 @@
 #include "cbs.h"
 #include "meter.h"
 
-SRCID(poolmv2, "$HopeName: !poolmv2.c(trunk.10) $");
+SRCID(poolmv2, "$HopeName: MMsrc!poolmv2.c(MMdevel_tony_sunset.1) $");
 
 
 /* Signatures */
@@ -36,7 +36,8 @@ static Res MV2BufferFill(Seg *segReturn,
                          Addr *baseReturn, Addr *limitReturn,
                          Pool pool, Buffer buffer, Size minSize,
                          Bool withReservoirPermit);
-static void MV2BufferEmpty(Pool pool, Buffer buffer, Seg seg);
+static void MV2BufferEmpty(Pool pool, Buffer buffer, 
+                           Seg seg, Addr base, Addr limit);
 static void MV2Free(Pool pool, Addr base, Size size);
 static Res MV2Describe(Pool pool, mps_lib_FILE *stream);
 static Res MV2SegAlloc(Seg *segReturn, MV2 mv2, Size size, Pool pool,
@@ -552,7 +553,7 @@ found:
   return res;
   
 done:
-  *segReturn = seg;
+  *segReturn = seg;  /* @@@@ actually no need to associate buffer with seg */
   *baseReturn = base;
   *limitReturn = limit;
   mv2->available -= AddrOffset(base, limit);
@@ -575,10 +576,10 @@ done:
  *
  * See design.mps.poolmv2:impl.c.ap.empty
  */
-static void MV2BufferEmpty(Pool pool, Buffer buffer, Seg seg)
+static void MV2BufferEmpty(Pool pool, Buffer buffer, 
+                           Seg seg, Addr base, Addr limit)
 {
   MV2 mv2;
-  Addr base, limit;
   Size size;
 
   AVERT(Pool, pool);
@@ -586,12 +587,11 @@ static void MV2BufferEmpty(Pool pool, Buffer buffer, Seg seg)
   AVERT(MV2, mv2);
   AVERT(Buffer, buffer);
   AVER(BufferIsReady(buffer));
-  AVER(SegCheck(seg));
+  AVER(seg == NULL ||
+       SegCheck(seg));
+  AVER(base <= limit);
 
-  base = BufferGetInit(buffer);
-  limit = BufferLimit(buffer);
   size = AddrOffset(base, limit);
-  
   if (size == 0)
     return;
 
