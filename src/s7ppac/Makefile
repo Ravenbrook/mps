@@ -1,6 +1,6 @@
 # ==== S7PPAC MPW MAKE FILE ====
 #
-# $HopeName: MMsrc!s7ppac:Makefile(MMdevel_sw_eq.1) $
+# $HopeName: MMsrc!s7ppac:Makefile(MMdevel_sw_eq.2) $
 #
 # Copyright (C) 1996 Harlequin Group, all rights reserved
 #
@@ -27,7 +27,7 @@ OSffx     = .c.{Variety}.o
 {OSffx} 	Ä	.c
 	MrC {DepDir}{Default}.c -o {TargDir}{Default}{OSffx} {COptions}
 
-mmsw_{Variety}.o Ä assert{OSffx} ring{OSffx} mpsliban{OSffx} mpm{OSffx} ¶
+mmsw_{Variety}.o Ä assert{OSffx} ring{OSffx} mpm{OSffx} ¶
                    arenacl{OSffx} space{OSffx} pool{OSffx} poolmfs{OSffx} ¶
                    poolmv{OSffx} root{OSffx} format{OSffx} buffer{OSffx} ¶
                    lockan{OSffx} ref{OSffx} trace{OSffx} than{OSffx} ¶
