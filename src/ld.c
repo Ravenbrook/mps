@@ -1,6 +1,6 @@
 /* impl.c.ld: LOCATION DEPENDENCY IMPLEMENTATION
  *
- * $HopeName: !ld.c(trunk.2) $
+ * $HopeName: MMsrc!ld.c(MM_dylan_incremental.1) $
  * Copyright (C) 1996 Harlequin Group, all rights reserved.
  *
  * .def: A location dependency records the fact that the bit-patterns
@@ -45,7 +45,7 @@
 #include "ld.h"
 #include "ref.h"
 
-SRCID("$HopeName: !ld.c(trunk.2) $");
+SRCID("$HopeName: MMsrc!ld.c(MM_dylan_incremental.1) $");
 
 
 /* LDReset -- reset a dependency to empty
@@ -57,10 +57,20 @@ SRCID("$HopeName: !ld.c(trunk.2) $");
 
 void LDReset(LD ld, Space space)
 {
+  Bool b;
+  Addr seg;
+
   AVER(ld != NULL);
   AVER(ISVALID(Space, space));
 
+  b = ArenaSegBase(&seg, SpaceArena(space), (Addr)ld);
+  if(b) {
+    ShieldExpose(space, seg);
+  }
   ld->epoch = space->epoch;
+  if(b) {
+    ShieldCover(space, seg);
+  }
   ld->rs = RefSetEmpty;
 }
 
