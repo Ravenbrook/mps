@@ -2,7 +2,7 @@
  *
  *                         NULL POOL
  *
- *  $HopeName: MMsrc!pooln.c(MMdevel_sw_eq.1) $
+ *  $HopeName: MMsrc!pooln.c(MMdevel_sw_eq.2) $
  *
  *  Copyright(C) 1995 Harlequin Group, all rights reserved
  *
@@ -13,7 +13,7 @@
 #include "mpm.h"
 #include "pooln.h"
 
-SRCID(pooln, "$HopeName: MMsrc!pooln.c(MMdevel_sw_eq.1) $");
+SRCID(pooln, "$HopeName: MMsrc!pooln.c(MMdevel_sw_eq.2) $");
 
 
 typedef struct PoolNStruct {
@@ -24,7 +24,7 @@ typedef struct PoolNStruct {
 #define PoolPoolN(pool) PARENT(PoolNStruct, poolStruct, pool)
 
 
-static Res NInit(Pool pool, PoolPref pref, va_list args)
+static Res NInit(Pool pool, va_list args)
 {
   PoolN poolN = PoolPoolN(pool);
 
