@@ -20,8 +20,10 @@ CFLAGSCOMPILER = \
 	-Winline -Waggregate-return -Wnested-externs \
 	-Wcast-qual -Wshadow
 CFLAGSINTERNAL = -g -ggdb3
-CFLAGSCOOL = $(MPS_EMPTY)
-CFLAGSHOT = -O
+# -O may make it harder to debug cool versions.
+# May take it out later.
+CFLAGSCOOL = -O
+CFLAGSHOT = -O2
 CFLAGSEXTERNAL = $(MPS_EMPTY)
 
 # gcc -MM generates a dependency line of the form:
