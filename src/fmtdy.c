@@ -1,6 +1,6 @@
 /* impl.c.fmtdy: DYLAN OBJECT FORMAT IMPLEMENTATION
  *
- *  $HopeName: MMsrc!fmtdy.c(trunk.16) $
+ *  $HopeName: !fmtdy.c(trunk.17) $
  *  Copyright (C) 1996,1997 Harlequin Group, all rights reserved.
  *
  * .readership: MPS developers, Dylan developers

@@ -1,7 +1,7 @@
 /* impl.h.config: MPS CONFIGURATION
  *
  * Copyright (C) 1997 Harlequin Group, all rights reserved.
- * $HopeName: MMsrc!config.h(trunk.17) $
+ * $HopeName: !config.h(trunk.18) $
  *
  * .readership: MPS developers.
  */

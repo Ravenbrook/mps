@@ -1,6 +1,6 @@
 /*  ==== SUNOS ANSI COMPATABILITY HEADER ====
  *
- *  $HopeName: MMsrc!ossu.h(trunk.7) $
+ *  $HopeName: !ossu.h(trunk.8) $
  *
  *  Copyright (C) 1994,1995,1997 Harlequin Group, all rights reserved
  *

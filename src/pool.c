@@ -1,6 +1,6 @@
 /* impl.c.pool: POOL IMPLEMENTATION
  *
- * $HopeName: MMsrc!pool.c(trunk.39) $
+ * $HopeName: !pool.c(trunk.40) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  *
  * This is the implementation of the generic pool interface.  The
@@ -12,7 +12,7 @@
 
 #include "mpm.h"
 
-SRCID(pool, "$HopeName: MMsrc!pool.c(trunk.39) $");
+SRCID(pool, "$HopeName: !pool.c(trunk.40) $");
 
 
 Bool PoolClassCheck(PoolClass class)

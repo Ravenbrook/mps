@@ -1,6 +1,6 @@
 /* impl.c.amsss: POOL CLASS AMS STRESS TEST
  *
- * $HopeName: MMsrc!amsss.c(trunk.3) $
+ * $HopeName: !amsss.c(trunk.4) $
  * Copyright (C) 1996, 1997 Harlequin Group, all rights reserved
  *
  * A direct copy of amcss.c, with trivial changes.  nickb 1997-08-14
