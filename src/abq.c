@@ -1,6 +1,6 @@
 /* impl.c.abq: AVAILABLE BLOCK QUEUE
  *
- * $HopeName: MMsrc!abq.c(MMdevel_gavinm_splay.1) $
+ * $HopeName: MMsrc!abq.c(MMdevel_gavinm_splay.2) $
  * Copyright (C) 1998 Harlequin Group plc.  All rights reserved.
  *
  * See design.mps.poolmv2.impl.c.abq
@@ -10,7 +10,7 @@
 #include "meter.h"
 #include "abq.h"
 
-SRCID(abq, "$HopeName: MMsrc!abq.c(MMdevel_gavinm_splay.1) $");
+SRCID(abq, "$HopeName: MMsrc!abq.c(MMdevel_gavinm_splay.2) $");
 
 
 /* Signatures */
@@ -71,7 +71,10 @@ Res ABQDescribe(ABQ abq, mps_lib_FILE *stream)
   if(res != ResOK)
     return res;
 
-  METER_WRITE(abq->depth, stream);
+  METER_WRITE(abq->push, stream);
+  METER_WRITE(abq->pop, stream);
+  METER_WRITE(abq->peek, stream);
+  METER_WRITE(abq->delete, stream);
   
   res = WriteF(stream, "}\n", NULL);
   if(res != ResOK)
@@ -108,7 +111,10 @@ Res ABQInit(Arena arena, ABQ abq, Count count)
   abq->tail = 0;
   abq->queue = (CBSBlock *)p;
 
-  METER_INIT(abq->depth, "depth");
+  METER_INIT(abq->push, "push");
+  METER_INIT(abq->pop, "pop");
+  METER_INIT(abq->peek, "peek");
+  METER_INIT(abq->delete, "delete");
   
   abq->sig = ABQSig;
 
@@ -125,7 +131,7 @@ Bool ABQIsEmpty(ABQ abq)
 }
 
 
-static Count ABQDepth(ABQ abq)
+Count ABQDepth(ABQ abq)
 {
   Index head, tail;
   
@@ -163,7 +169,7 @@ Res ABQPop(ABQ abq, CBSBlock *blockReturn)
   AVER(blockReturn != NULL);
   AVERT(ABQ, abq);
 
-  METER_ACC(abq->depth, ABQDepth(abq));
+  METER_ACC(abq->pop, ABQDepth(abq));
   
   index = abq->head;
   if (index == abq->tail)
@@ -189,7 +195,7 @@ Res ABQPeek(ABQ abq, CBSBlock *blockReturn)
   AVER(blockReturn != NULL);
   AVERT(ABQ, abq);
 
-  METER_ACC(abq->depth, ABQDepth(abq));
+  METER_ACC(abq->peek, ABQDepth(abq));
 
   index = abq->head;
   if (index == abq->tail)
@@ -213,7 +219,7 @@ Res ABQPush(ABQ abq, CBSBlock block)
   AVERT(ABQ, abq);
   AVERT(CBSBlock, block);
 
-  METER_ACC(abq->depth, ABQDepth(abq));
+  METER_ACC(abq->push, ABQDepth(abq));
 
   index = abq->tail;
   if (++index == abq->count)
@@ -239,7 +245,7 @@ Res ABQDelete(ABQ abq, CBSBlock block)
   AVERT(ABQ, abq);
   AVERT(CBSBlock, block);
 
-  METER_ACC(abq->depth, ABQDepth(abq));
+  METER_ACC(abq->delete, ABQDepth(abq));
 
   index = abq->head;
   tail = abq->tail;
