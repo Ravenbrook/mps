@@ -1,6 +1,6 @@
 /* impl.h.mpm: MEMORY POOL MANAGER DEFINITIONS
  *
- * $HopeName: MMsrc!mpm.h(MMdevel_tony_inheritance.2) $
+ * $HopeName: MMsrc!mpm.h(MMdevel_tony_inheritance.3) $
  * Copyright (C) 1998.  Harlequin Group plc.  All rights reserved.
  */
 
@@ -402,7 +402,7 @@ extern Res PoolCollectAct(Pool pool, Action action);
 extern PoolDebugMixin PoolNoDebugMixin(Pool pool);
 
 #define ClassOfPool(pool) ((pool)->class)
-#define SuperlassOfPool(pool) \
+#define SuperclassOfPool(pool) \
   ((PoolClass)ProtocolClassSuperclass((pool)->class))
 
 

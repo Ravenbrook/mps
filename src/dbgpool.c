@@ -1,6 +1,6 @@
 /* impl.c.dbgpool: POOL DEBUG MIXIN
  *
- * $HopeName: MMsrc!dbgpool.c(MMdevel_tony_inheritance.1) $
+ * $HopeName: MMsrc!dbgpool.c(MMdevel_tony_inheritance.2) $
  * Copyright (C) 1998 Harlequin Group plc.  All rights reserved.
  *
  * .source: design.mps.object-debug
@@ -122,7 +122,7 @@ static Res DebugPoolInit(Pool pool, va_list args)
   /* not been published yet. */
   tagInit = NULL; tagSize = 0;
 
-  res = ((SuperlassOfPool(pool))->init)(pool, args);
+  res = SuperclassOfPool(pool)->init(pool, args);
   if (res != ResOK)
     return res;
 
@@ -167,7 +167,7 @@ static Res DebugPoolInit(Pool pool, va_list args)
 
 tagFail:
 alignFail:
-  ((SuperlassOfPool(pool))->finish)(pool);
+  SuperclassOfPool(pool)->finish(pool);
   return res;
 }
 
@@ -187,7 +187,7 @@ static void DebugPoolFinish(Pool pool)
     SplayTreeFinish(&debug->index);
     PoolDestroy(debug->tagPool);
   }
-  ((SuperlassOfPool(pool))->finish)(pool);
+  SuperclassOfPool(pool)->finish(pool);
 }
 
 
@@ -221,9 +221,9 @@ static Res FenceAlloc(Addr *aReturn, PoolDebugMixin debug, Pool pool,
   AVERT(Bool, withReservoir);
 
   alignedSize = SizeAlignUp(size, PoolAlignment(pool));
-  res = ((SuperlassOfPool(pool))->alloc)(&new, pool,
-                                         alignedSize + 2*debug->fenceSize,
-                                         withReservoir);
+  res = SuperclassOfPool(pool)->alloc(&new, pool,
+                                      alignedSize + 2*debug->fenceSize,
+                                      withReservoir);
   if (res != ResOK)
     return res;
   clientNew = AddrAdd(new, debug->fenceSize);
@@ -279,8 +279,8 @@ static void FenceFree(PoolDebugMixin debug,
   AVER(FenceCheck(debug, pool, old, size));
 
   alignedSize = SizeAlignUp(size, PoolAlignment(pool));
-  ((SuperlassOfPool(pool))->free)(pool, AddrSub(old, debug->fenceSize),
-                                  alignedSize + 2*debug->fenceSize);
+  SuperclassOfPool(pool)->free(pool, AddrSub(old, debug->fenceSize),
+                               alignedSize + 2*debug->fenceSize);
 }
 
 
