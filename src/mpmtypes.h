@@ -1,6 +1,6 @@
 /* impl.h.mpmtypes: MEMORY POOL MANAGER TYPES
  *
- * $HopeName: !mpmtypes.h(trunk.54) $
+ * $HopeName: MMsrc!mpmtypes.h(MMdevel_ptw_pseudoloci.1) $
  * Copyright (C) 1997, 1998 Harlequin Group plc.  All rights reserved.
  *
  * .readership: MM developers.
@@ -99,6 +99,15 @@ typedef void (*CBSNewMethod)(CBS cbs, CBSBlock block);
 typedef void (*CBSDeleteMethod)(CBS cbs, CBSBlock block);
 typedef Bool (*CBSIterateMethod)(CBS cbs, CBSBlock block,
 				 void *closureP, unsigned long closureS);
+
+/* Locus* -- See design.mps.locus */
+/* @@@ Arbitrary constant defining the number of Loci that will be
+   created and managed.  Seems like it should be of the same magnitude
+   as the number of Zones */
+#define NUMLOCI ((Count)(MPS_WORD_WIDTH/2))
+typedef struct LocusManagerStruct *LocusManager;
+typedef struct LocusStruct *Locus;
+typedef struct LocusClientStruct *LocusClient;
 
 
 /* Arena*Method -- see @@@@ */
