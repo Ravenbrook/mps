@@ -1,6 +1,6 @@
 /* impl.c.bt: BIT TABLES
  *
- * $HopeName: !bt.c(trunk.14) $
+ * $HopeName$
  * Copyright (C) 1997 Harlequin Group, all rights reserved
  *
  * READERSHIP
@@ -19,7 +19,7 @@
 
 #include "mpm.h"
 
-SRCID(bt, "$HopeName: !bt.c(trunk.14) $");
+SRCID(bt, "$HopeName$");
 
 /* is the whole word of bits at this index set? */
 
@@ -30,8 +30,53 @@ SRCID(bt, "$HopeName: !bt.c(trunk.14) $");
 #define BTIndexAlignUp(index) ((Index)SizeAlignUp((index), MPS_WORD_WIDTH))
 #define BTIndexAlignDown(index) ((Index)SizeAlignDown((index), MPS_WORD_WIDTH))
 
+/* return a word mask of bits set only in requested range */
 
-/* AMSBTCreate -- allocate a BT from the control pool
+#define BTMask(base,limit) \
+  ((~(Word)0 >> (MPS_WORD_WIDTH - ((limit) - (base)))) << (base))
+
+/* return word and bit indexes from index */
+
+#define BTWordIndex(index) ((index) >> MPS_WORD_SHIFT)
+#define BTBitIndex(index) ((index) & (MPS_WORD_WIDTH - 1))
+
+/* macro to act on a base-limit range/
+ * Two actions should be provided:
+ *   - BIT_ACTION(wordIndex, mask) -- operates on part-words
+ *   - WORD_ACTION(wordIndex) -- Operates on full words in range
+ * WORD_ACTIONs should not use break or continue.
+ */
+
+#define ACT_ON_RANGE(base,limit) \
+  BEGIN \
+    Index actInnerBase = BTIndexAlignUp((base)); \
+    Index actInnerLimit = BTIndexAlignDown((limit)); \
+\
+    if(actInnerBase > actInnerLimit) { /* no inner range */ \
+      BIT_ACTION(BTWordIndex((base)), \
+		 BTMask(BTBitIndex((base)), BTBitIndex((limit)))); \
+    } else { \
+      Index actWordIndex, actWordBase, actWordLimit; \
+\
+      actWordBase = BTWordIndex(actInnerBase); \
+      actWordLimit = BTWordIndex(actInnerLimit); \
+\
+      if(base < actInnerBase) { \
+        BIT_ACTION(actWordBase-1, \
+		   BTMask(BTBitIndex((base)), MPS_WORD_WIDTH)); \
+      } \
+\
+      for(actWordIndex = actWordBase; actWordIndex < actWordLimit; \
+	  ++actWordIndex) \
+        WORD_ACTION(actWordIndex); \
+\
+      if(limit > actInnerLimit) \
+	BIT_ACTION(actWordLimit, BTMask(0, BTBitIndex((limit)))); \
+    } \
+  END
+
+
+/* BTCreate -- allocate a BT from the control pool
  * 
  * See design.mps.bt.if.create
  */
@@ -132,10 +177,13 @@ void BTSetRange(BT t, Index i, Index j)
   AVER(BTCheck(t));
   AVER(i < j);
 
-  while(i < j) {
-    BTSet(t, i);
-    ++i;
-  }
+#define BIT_ACTION(i,mask) t[(i)] |= (mask)
+#define WORD_ACTION(i) t[(i)] = ~(Word)(0)
+ 
+  ACT_ON_RANGE(i, j);
+    
+#undef BIT_ACTION
+#undef WORD_ACTION
 }
 
 
@@ -146,19 +194,17 @@ void BTSetRange(BT t, Index i, Index j)
 
 Bool BTIsResRange(BT bt, Index base, Index limit)
 {
-  Index i;
-
   AVER(BTCheck(bt));
   AVER(base < limit);
   /* Can't check range of base or limit */
 
-  i = base;
-  while(i < limit) {
-    if(BTGet(bt, i))
-      return FALSE;
-    ++i;
-  }
-  AVER(i == limit);
+#define BIT_ACTION(i,mask) if((bt[(i)] & (mask)) != (Word)0) return FALSE
+#define WORD_ACTION(i) if(bt[(i)] != (Word)0) return FALSE
+ 
+  ACT_ON_RANGE(base, limit);
+    
+#undef BIT_ACTION
+#undef WORD_ACTION
 
   return TRUE;
 }
@@ -171,19 +217,17 @@ Bool BTIsResRange(BT bt, Index base, Index limit)
 
 Bool BTIsSetRange(BT bt, Index base, Index limit)
 {
-  Index i;
-
   AVER(BTCheck(bt));
   AVER(base < limit);
   /* Can't check range of base or limit */
 
-  i = base;
-  while(i < limit) {
-    if(!BTGet(bt, i))
-      return FALSE;
-    ++i;
-  }
-  AVER(i == limit);
+#define BIT_ACTION(i,mask) if((bt[(i)] & (mask)) != (mask)) return FALSE
+#define WORD_ACTION(i) if(bt[(i)] != ~(Word)0) return FALSE
+
+  ACT_ON_RANGE(base, limit);
+
+#undef BIT_ACTION
+#undef WORD_ACTION
 
   return TRUE;
 }
@@ -192,36 +236,17 @@ Bool BTIsSetRange(BT bt, Index base, Index limit)
 /* design.mps.bt.fun.res-range */
 void BTResRange(BT t, Index base, Index limit)
 {
-  Index bitIndex, innerBase, innerLimit;
-
   AVER(BTCheck(t));
   AVER(base < limit);
 
-  /* We determine the maximal inner range that has word-aligned */
-  /* base and limit.  We then reset the lead and trailing bits as */
-  /* bits, and the rest as words. */
-     
-  innerBase = BTIndexAlignUp(base);
-  innerLimit = BTIndexAlignDown(limit);
+#define BIT_ACTION(i,mask) t[(i)] &= ~(mask)
+#define WORD_ACTION(i) t[(i)] = (Word)(0)
 
-  if(innerBase >= innerLimit) { /* no inner range */
-    for(bitIndex = base; bitIndex < limit; ++bitIndex)
-      BTRes(t, bitIndex);
-  } else {
-    Index wordIndex, wordBase, wordLimit;
+  ACT_ON_RANGE(base, limit);
 
-    wordBase = innerBase >> MPS_WORD_SHIFT;
-    wordLimit = innerLimit >> MPS_WORD_SHIFT;
+#undef BIT_ACTION
+#undef WORD_ACTION
 
-    for(bitIndex = base; bitIndex < innerBase; ++bitIndex) 
-      BTRes(t, bitIndex);
-
-    for(wordIndex = wordBase; wordIndex < wordLimit; ++wordIndex)
-      t[wordIndex] = (Word)0;
-
-    for(bitIndex = innerLimit; bitIndex < limit; ++bitIndex)
-      BTRes(t, bitIndex);
-  }
 }
 
 
@@ -398,17 +423,21 @@ Bool BTFindShortResRangeHigh(Index *baseReturn, Index *limitReturn,
  
 Bool BTRangesSame(BT comparand, BT comparator, Index base, Index limit)
 {
-  Index i;
-
   AVER(BTCheck(comparand));
   AVER(BTCheck(comparator));
   AVER(base < limit);
-  i = base;
-  while(i < limit) {
-    if(BTGet(comparand, i) != BTGet(comparator, i))
-      return FALSE;
-    ++ i;
-  }
+
+#define BIT_ACTION(i,mask) \
+  if((comparand[(i)] & (mask)) != (comparator[(i)] & (mask))) \
+    return FALSE
+#define WORD_ACTION(i) \
+  if(comparand[(i)] != comparator[(i)]) return FALSE
+ 
+  ACT_ON_RANGE(base, limit);
+    
+#undef BIT_ACTION
+#undef WORD_ACTION
+
   return TRUE;
 }
 
@@ -420,48 +449,18 @@ Bool BTRangesSame(BT comparand, BT comparator, Index base, Index limit)
 
 void BTCopyInvertRange(BT fromBT, BT toBT, Index base, Index limit)
 {
-  Index bitIndex, innerBase, innerLimit;
-
   AVER(BTCheck(fromBT));
   AVER(BTCheck(toBT));
   AVER(fromBT != toBT);
   AVER(base < limit);
 
-  /* We determine the maximal inner range that has word-aligned */
-  /* base and limit.  We then copy the lead and trailing bits as */
-  /* bits, and the rest as words. */
-
-  innerBase = BTIndexAlignUp(base);
-  innerLimit = BTIndexAlignDown(limit); 
-
-  if(innerBase >= innerLimit) { /* no inner range */
-    for(bitIndex = base; bitIndex < limit; ++bitIndex)
-     if(BTGet(fromBT, bitIndex))
-       BTRes(toBT, bitIndex);
-     else
-       BTSet(toBT, bitIndex);
-  } else {
-    Index wordIndex, wordBase, wordLimit;
-  
-    wordBase = innerBase >> MPS_WORD_SHIFT;
-    wordLimit = innerLimit >> MPS_WORD_SHIFT;
-
-    for(bitIndex = base; bitIndex < innerBase; ++bitIndex) {
-      if(BTGet(fromBT, bitIndex))
-        BTRes(toBT, bitIndex);
-      else
-        BTSet(toBT, bitIndex);
-    }
-
-    for(wordIndex = wordBase; wordIndex < wordLimit; ++wordIndex)
-      toBT[wordIndex] = ~fromBT[wordIndex];
-      
-    for(bitIndex = innerLimit; bitIndex < limit; ++bitIndex) {
-      if(BTGet(fromBT, bitIndex))
-        BTRes(toBT, bitIndex);
-      else
-        BTSet(toBT, bitIndex);
-    }
-  }
+#define BIT_ACTION(i,mask) \
+  toBT[(i)] = (toBT[(i)] & ~(mask)) | (~fromBT[(i)] & (mask))
+#define WORD_ACTION(i) toBT[(i)] = ~fromBT[(i)]
+ 
+  ACT_ON_RANGE(base, limit);
+    
+#undef BIT_ACTION
+#undef WORD_ACTION
 }
 
