@@ -1,6 +1,6 @@
 /* impl.h.mpmst: MEMORY POOL MANAGER DATA STRUCTURES
  *
- * $HopeName: !mpmst.h(trunk.77) $
+ * $HopeName: MMsrc!mpmst.h(MMdevel_drj_arena_hysteresis.1) $
  * Copyright (C) 1998 Harlequin Group plc.  All rights reserved.
  *
  * .readership: MM developers.
@@ -667,6 +667,8 @@ typedef struct ArenaStruct {
   double emptyInternalSize;     /* total bytes emptied, internal buffers */
 
   Size commitLimit;             /* Client configurable commit limit */
+
+  Size spareCommitted;          /* Amount of memory in hysteresis fund */
 
   Shift zoneShift;              /* see also impl.c.ref */
   Align alignment;              /* minimum alignment of segments */
