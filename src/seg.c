@@ -1,6 +1,6 @@
 /* impl.c.seg: SEGMENTS
  *
- * $HopeName: MMsrc!seg.c(MMdevel_tony_sunset.5) $
+ * $HopeName: MMsrc!seg.c(MMdevel_tony_sunset.6) $
  * Copyright (C) 1998 Harlequin Group plc.  All rights reserved.
  *
  * .design: The design for this module is design.mps.seg.
@@ -28,7 +28,7 @@
 
 #include "mpm.h"
 
-SRCID(seg, "$HopeName: MMsrc!seg.c(MMdevel_tony_sunset.5) $");
+SRCID(seg, "$HopeName: MMsrc!seg.c(MMdevel_tony_sunset.6) $");
 
 
 /* SegSegGC -- convert generic Seg to SegGC */
@@ -1232,7 +1232,9 @@ DEFINE_CLASS(SegClass, class)
 
 /* SegGCClass -- GC-supporting segment class definition */
  
-DEFINE_SEG_CLASS(SegGCClass, class)
+typedef SegClassStruct SegGCClassStruct;
+
+DEFINE_CLASS(SegGCClass, class)
 {
   INHERIT_CLASS(class, SegClass);
   class->name = "SEGGC";
