@@ -1,6 +1,6 @@
 /* impl.h.mpmtypes: MEMORY POOL MANAGER TYPES
  *
- * $HopeName: MMsrc!mpmtypes.h(MMdevel_gens3.1) $
+ * $HopeName: MMsrc!mpmtypes.h(MMdevel_gens3.2) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  *
  * .readership: MM developers.
@@ -284,6 +284,8 @@ typedef int WriteFC; /* Promoted */
 #define EventTraceAccess    ((EventType)0xEF26AACC) /* TRAce ACCess */
 #define EventTracePoll      ((EventType)0xEF26AB01) /* TRAce POLl */
 #define EventTraceFix       ((EventType)0xEF26AF18) /* TRAce FIX */
+#define EventTraceFixSeg    ((EventType)0xEF26AF85) /* TRAce FiX Seg */
+#define EventTraceFixWhite  ((EventType)0xEF26AF83) /* TRAce FiX White */
 #define EventTraceScanArea  ((EventType)0xEF26A5CA) /* TRAce SCan Area */
 #define EventTraceScanAreaTagged ((EventType)0xEF26A5C2) /* TRAce SCan area Tagged */
 #define EventVMCreate       ((EventType)0xEFF3C6EA) /* VM CREAte */
