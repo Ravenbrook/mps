@@ -1,12 +1,13 @@
 /* impl.c.dbgpool: POOL DEBUG MIXIN
  *
- * $HopeName: MMsrc!dbgpool.c(MMdevel_fencepost.1) $
+ * $HopeName: MMsrc!dbgpool.c(MMdevel_fencepost.2) $
  * Copyright (C) 1998 Harlequin Group plc.  All rights reserved.
  */
 
 #include "dbgpool.h"
 #include "mpslib.h"
 #include "mpm.h"
+#include "mps.h"
 #include <stdarg.h>
 
 
@@ -15,7 +16,7 @@
 typedef struct tagStruct {
   Addr addr;
   Size size;
-  SplayNode splayNode;
+  SplayNodeStruct splayNode;
   char userdata[1 /* actually variable length */];
 } tagStruct;
 
@@ -65,8 +66,22 @@ Bool PoolDebugMixinCheck(PoolDebugMixin debug)
   CHECKD(Pool, debug->tagPool);
   CHECKL(CHECKTYPE(Addr, void*)); /* tagPool relies on this */
   /* Nothing to check about missingTags */
-  CHECKL(SplayTreeCheck(debug->index));
+  CHECKL(SplayTreeCheck(&debug->index));
   return TRUE;
+}
+
+
+/* DebugPoolDebugMixin -- gets the debug mixin, if any */
+
+#define DebugPoolDebugMixin(pool) (((pool)->class->debugMixin)(pool))
+
+
+/* PoolNoDebugMixin -- debug mixin methods for pools with no mixin */
+
+PoolDebugMixin PoolNoDebugMixin(Pool pool)
+{
+  AVERT(Pool, pool);
+  return NULL;
 }
 
 
@@ -75,34 +90,44 @@ Bool PoolDebugMixinCheck(PoolDebugMixin debug)
 static Bool PoolDebugOptionsCheck(PoolDebugOptions opt)
 {
   CHECKL(opt != NULL);
-  CHECKL(opt->fenceTemplate != NULL);
-  /* Nothing to check about fenceSize */
-  CHECKL(TagInitMethodCheck(opt->tagInit));
+  if (opt->fenceSize != 0) {
+    CHECKL(opt->fenceTemplate != NULL);
+    /* Nothing to check about fenceSize */
+  }
+  if (opt->tagInit != NULL) {
+    CHECKL(TagInitMethodCheck(opt->tagInit));
+    /* Nothing to check about tagSize */
+  }
   return TRUE;
 }
 
 
-/* DebugPoolInit -- init wrapper for a debug pool */
+/* DebugPoolInit -- init method for a debug pool */
 
-Res DebugPoolInit(PoolDebugMixin debug, Pool pool, va_list args)
+static Res DebugPoolInit(Pool pool, va_list args)
 {
   Res res;
   PoolDebugOptions options;
+  PoolDebugMixin debug;
 
-  AVERT(PoolDebugMixin, debug);
   AVERT(Pool, pool);
   options = va_arg(args, PoolDebugOptions);
+  options->tagInit = NULL; /* @@@@ tags not published yet */
   AVERT(PoolDebugOptions, options);
 
   res = (pool->class->super->init)(pool, args);
-  if(res != ResOK)
+  if (res != ResOK)
     return res;
+
+  debug = DebugPoolDebugMixin(pool);
+  AVER(debug != NULL);
 
   /* fencepost init */
   /* @@@@ This parses a user argument, options, so it should really */
   /* go through the MPS interface.  Possibly the template needs to be */
   /* copied into Addr memory. */
-  if (options->fenceSize != 0) {
+  debug->fenceSize = options->fenceSize;
+  if (debug->fenceSize != 0) {
     if (debug->fenceSize % PoolAlignment(pool) != 0) {
       res = ResPARAM;
       goto alignFail;
@@ -112,23 +137,22 @@ Res DebugPoolInit(PoolDebugMixin debug, Pool pool, va_list args)
       options->tagSize = 0;
       options->tagInit = TagTrivInit;
     }
-    debug->fenceSize = options->fenceSize;
     debug->fenceTemplate = options->fenceTemplate;
   }
   
   /* tag init */
-  if (options->tagInit != NULL) {
-    debug->tagInit = options->tagInit;
+  debug->tagInit = options->tagInit;
+  if (debug->tagInit != NULL) {
     debug->tagSize = options->tagSize + sizeof(tagStruct) - 1;
     /* Should we use a separate arena? */
     /* This pool has to be like the arena control pool: the blocks */
     /* allocated must be accessible using void*. */
     res = PoolCreate(&debug->tagPool, PoolArena(pool), PoolClassMFS(),
                      debug->tagSize, debug->tagSize);
-    if(res != ResOK)
+    if (res != ResOK)
       goto tagFail;
     debug->missingTags = 0;
-    SplayTreeInit(debug->index, AddrComp);
+    SplayTreeInit(&debug->index, AddrComp);
   }
 
   debug->sig = PoolDebugMixinSig;
@@ -142,14 +166,21 @@ alignFail:
 }
 
 
-/* DebugPoolFinish -- finish wrapper for a debug pool */
+/* DebugPoolFinish -- finish method for a debug pool */
 
-void DebugPoolFinish(PoolDebugMixin debug, Pool pool)
+static void DebugPoolFinish(Pool pool)
 {
-  AVERT(PoolDebugMixin, debug);
+  PoolDebugMixin debug;
+
   AVERT(Pool, pool);
 
-  SplayTreeFinish(debug->index);
+  debug = DebugPoolDebugMixin(pool);
+  AVER(debug != NULL);
+  AVERT(PoolDebugMixin, debug);
+  if (debug->tagInit != NULL) {
+    SplayTreeFinish(&debug->index);
+    PoolDestroy(debug->tagPool);
+  }
   (pool->class->super->finish)(pool);
 }
 
@@ -187,7 +218,7 @@ static Res FenceAlloc(Addr *aReturn, PoolDebugMixin debug, Pool pool,
   res = (pool->class->super->alloc)(&new, pool,
                                     alignedSize + 2*debug->fenceSize,
                                     withReservoirPermit);
-  if(res != ResOK)
+  if (res != ResOK)
     return res;
   clientNew = AddrAdd(new, debug->fenceSize);
   /* @@@@ shields? */
@@ -218,11 +249,14 @@ static Bool FenceCheck(PoolDebugMixin debug, Pool pool,
   /* Can't check obj */
 
   alignedSize = SizeAlignUp(size, PoolAlignment(pool));
+  /* Compare this to the memcpy's in FenceAlloc */
   /* @@@@ mps_lib_memcmp? */
-  return (memcmp(AddrAdd(obj, -debug->fenceSize), debug->fenceTemplate,
-                 debug->fenceSize)
+  return (memcmp(AddrSub(obj, debug->fenceSize), debug->fenceTemplate,
+                 debug->fenceSize) == 0
+          && memcmp(AddrAdd(obj, size), debug->fenceTemplate,
+                    alignedSize - size) == 0
           && memcmp(AddrAdd(obj, alignedSize), debug->fenceTemplate,
-                    debug->fenceSize));
+                    debug->fenceSize) == 0);
 }
 
 
@@ -241,7 +275,7 @@ static void FenceFree(PoolDebugMixin debug,
   AVER(FenceCheck(debug, pool, old, size));
 
   alignedSize = SizeAlignUp(size, PoolAlignment(pool));
-  (pool->class->super->free)(pool, AddrAdd(old, -debug->fenceSize),
+  (pool->class->super->free)(pool, AddrSub(old, debug->fenceSize),
                              alignedSize + 2*debug->fenceSize);
 }
 
@@ -269,7 +303,7 @@ static Res TagAlloc(PoolDebugMixin debug,
     }
   tag->addr = new; tag->size = size;
   (debug->tagInit)((void *)tag->userdata, tagData);
-  res = SplayTreeInsert(debug->index, tag->splayNode, (void *)&new);
+  res = SplayTreeInsert(&debug->index, &tag->splayNode, (void *)&new);
   AVER(res == ResOK);
   return ResOK;
 }
@@ -285,7 +319,7 @@ static void TagFree(PoolDebugMixin debug, Pool pool, Addr old, Size size)
   AVERT(Pool, pool);
   AVER(size > 0);
 
-  res = SplayTreeSearch(&node, debug->index, (void *)&old);
+  res = SplayTreeSearch(&node, &debug->index, (void *)&old);
   if (res != ResOK) {
     AVER(debug->missingTags > 0);
     debug->missingTags--;
@@ -293,26 +327,29 @@ static void TagFree(PoolDebugMixin debug, Pool pool, Addr old, Size size)
   }
   tag = SplayNode2Tag(node);
   AVER(tag->size == size);
-  res = SplayTreeDelete(debug->index, node, (void *)&old);
+  res = SplayTreeDelete(&debug->index, node, (void *)&old);
   AVER(res == ResOK);
   PoolFree(debug->tagPool, (Addr)tag, debug->tagSize);
 }
 
 
-/* DebugPoolAlloc -- allocation wrapper for a debug pool */
+/* DebugPoolAlloc -- alloc method for a debug pool */
 
-Res DebugPoolAlloc(Addr *aReturn, PoolDebugMixin debug, Pool pool,
-                   Size size, Bool withReservoirPermit)
+static Res DebugPoolAlloc(Addr *aReturn,
+                          Pool pool, Size size, Bool withReservoirPermit)
 {
   Res res;
   Addr new;
+  PoolDebugMixin debug;
 
   AVER(aReturn != NULL);
-  AVERT(PoolDebugMixin, debug);
   AVERT(Pool, pool);
   AVER(size > 0);
   AVERT(Bool, withReservoirPermit);
 
+  debug = DebugPoolDebugMixin(pool);
+  AVER(debug != NULL);
+  AVERT(PoolDebugMixin, debug);
   res = FenceAlloc(&new, debug, pool, size, withReservoirPermit);
   if (res != ResOK)
     return res;
@@ -329,15 +366,88 @@ tagFail:
 }
 
 
-/* DebugPoolFree -- freeing wrapper for a debug pool */
+/* DebugPoolFree -- free method for a debug pool */
 
-void DebugPoolFree(PoolDebugMixin debug, Pool pool, Addr old, Size size)
+static void DebugPoolFree(Pool pool, Addr old, Size size)
 {
-  AVERT(PoolDebugMixin, debug);
+  PoolDebugMixin debug;
+
   AVERT(Pool, pool);
   /* Can't check old */
   AVER(size > 0);
 
+  debug = DebugPoolDebugMixin(pool);
+  AVER(debug != NULL);
+  AVERT(PoolDebugMixin, debug);
   TagFree(debug, pool, old, size);
   FenceFree(debug, pool, old, size);
+}
+
+
+/* TagWalk -- walk all object in the pool using tags */
+
+typedef void (*ObjectsStepMethod)(Addr addr, Size size, Format fmt,
+                                  Pool pool, void *tagData, void *p);
+
+static void TagWalk(Pool pool, ObjectsStepMethod walker, void *p)
+{
+}
+
+
+/* FenceCheckingStep -- step function for DebugPoolCheckFences */
+
+static void FenceCheckingStep(Addr addr, Size size, Format fmt,
+                              Pool pool, void *tagData, void *p)
+{
+  /* no need to check arguments checked in the caller */
+  UNUSED(fmt); UNUSED(tagData);
+  FenceCheck((PoolDebugMixin)p, pool, addr, size);
+}
+
+
+/* DebugPoolCheckFences -- check all the fenceposts in the pool */
+
+static void DebugPoolCheckFences(Pool pool)
+{
+  PoolDebugMixin debug;
+
+  AVERT(Pool, pool);
+  debug = DebugPoolDebugMixin(pool);
+  if (debug == NULL)
+    return;
+  AVERT(PoolDebugMixin, debug);
+
+  TagWalk(pool, FenceCheckingStep, (void *)debug);
+}
+
+
+/* EnsureDebugClass -- make a debug subclass of the given class */
+
+void EnsureDebugClass(PoolClassStruct *class, PoolClass super)
+{
+  *class = *super;  /* @@@@ this doesn't work multi-threaded! */
+  class->super = super;
+  class->init = DebugPoolInit;
+  class->finish = DebugPoolFinish;
+  class->alloc = DebugPoolAlloc;
+  class->free = DebugPoolFree;
+}
+
+
+/* mps_pool_check_fenceposts -- check all the fenceposts in the pool */
+
+void mps_pool_check_fenceposts(mps_pool_t mps_pool)
+{
+  Pool pool = (Pool)mps_pool;
+  Arena arena;
+  
+  AVER(CHECKT(Pool, pool));
+  arena = PoolArena(pool);
+
+  ArenaEnter(arena);
+
+  AVERT(Pool, pool);
+  DebugPoolCheckFences(pool);
+
+  ArenaLeave(arena);
 }
