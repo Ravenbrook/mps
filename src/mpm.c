@@ -1,12 +1,12 @@
 /* impl.c.mpm: GENERAL MPM SUPPORT
  *
- * $HopeName: MMsrc!mpm.c(MMdevel_restr2.1) $
+ * $HopeName: MMsrc!mpm.c(MMdevel_restr2.2) $
  * Copyright (C) 1996 Harlequin Group, all rights reserved.
  */
 
 #include "mpm.h"
 
-SRCID(mpm, "$HopeName: MMsrc!mpm.c(MMdevel_restr2.1) $");
+SRCID(mpm, "$HopeName: MMsrc!mpm.c(MMdevel_restr2.2) $");
 
 
 /* MPMCheck -- test MPM assumptions */
@@ -104,6 +104,16 @@ Addr (AddrAdd)(Addr addr, Size size)
 {
   Addr next = (Addr)((Word)addr + size);
   AVER(next >= addr);   /* overflow check */
+  return next;
+}
+
+
+/* AddrSub -- subtract a size from an address */
+
+Addr (AddrSub)(Addr addr, Size size)
+{
+  Addr next = (Addr)((Word)addr - size);
+  AVER(next <= addr);   /* overflow check */
   return next;
 }
 

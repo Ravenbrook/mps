@@ -1,6 +1,6 @@
 /* impl.h.mpm: MEMORY POOL MANAGER DEFINITIONS
  *
- * $HopeName: MMsrc!mpm.h(MMdevel_restr2.4) $
+ * $HopeName: MMsrc!mpm.h(MMdevel_restr2.5) $
  * Copyright (C) 1996 Harlequin Group, all rights reserved.
  */
 
@@ -51,6 +51,9 @@ extern Bool AlignCheck(Align align);
 
 extern Addr (AddrAdd)(Addr addr, Size size);
 #define AddrAdd(p, s)           ((Addr)((Word)(p) + (s)))
+
+extern Addr (AddrSub)(Addr addr, Size size);
+#define AddrSub(p, s)           ((Addr)((Word)(p) - (s)))
 
 extern Size (AddrOffset)(Addr base, Addr limit);
 #define AddrOffset(p, l)        ((Size)((Word)(l) - (Word)(p)))
