@@ -1,6 +1,6 @@
 /* impl.c.arenavm: VIRTUAL MEMORY BASED ARENA IMPLEMENTATION
  *
- * $HopeName: MMsrc!arenavm.c(MMdevel_tony_sunset.1) $
+ * $HopeName: MMsrc!arenavm.c(MMdevel_tony_sunset.2) $
  * Copyright (C) 1998.  Harlequin Group plc.  All rights reserved.
  *
  * PURPOSE
@@ -32,7 +32,7 @@
 #include "mpm.h"
 #include "mpsavm.h"
 
-SRCID(arenavm, "$HopeName: MMsrc!arenavm.c(MMdevel_tony_sunset.1) $");
+SRCID(arenavm, "$HopeName: MMsrc!arenavm.c(MMdevel_tony_sunset.2) $");
 
 
 /* @@@@ Arbitrary calculation for the maximum number of distinct */
@@ -170,7 +170,6 @@ typedef struct VMArenaStruct {  /* VM arena structure */
 /* Forward declarations */
 static void VMArenaPageFree(VMArenaChunk chunk, Index pi);
 static void VMArenaPageInit(VMArenaChunk chunk, Index pi);
-static Addr VMTractLimit(Tract tract);
 static void VMArenaPurgeLatentPages(VMArena vmArena);
 
 
