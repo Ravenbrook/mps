@@ -1,6 +1,6 @@
 /* impl.c.ref: REFERENCES
  *
- * $HopeName: !ref.c(trunk.4) $
+ * $HopeName: MMsrc!ref.c(MMdevel_bitset.1) $
  * Copyright (C) 1995 Harlequin Group, all rights reserved
  *
  * Ref is an alias for Addr which can be used to document where
@@ -24,7 +24,7 @@
 
 #include "mpm.h"
 
-SRCID(ref, "$HopeName: !ref.c(trunk.4) $");
+SRCID(ref, "$HopeName: MMsrc!ref.c(MMdevel_bitset.1) $");
 
 Bool RankCheck(Rank rank)
 {
@@ -63,7 +63,7 @@ RefSet RefSetOfSeg(Space space, Seg seg)
   limit = (((Word)SegLimit(space, seg)-1) >> space->zoneShift) + 1;
 
   if(limit - base >= WORD_WIDTH)        /* .rsos.univ */
-    return RefSetUniv;
+    return RefSetUNIV;
 
   base  &= WORD_WIDTH - 1;
   limit &= WORD_WIDTH - 1;
