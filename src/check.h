@@ -1,6 +1,6 @@
 /* impl.h.check: ASSERTION INTERFACE
  *
- * $HopeName: !check.h(trunk.11) $
+ * $HopeName: MMsrc!check.h(MMdevel_tony_sunset.1) $
  *
  * This header defines a family of AVER and NOTREACHED macros. The
  * macros should be used to instrument and annotate code with
@@ -80,10 +80,17 @@ extern void AssertFail1(const char *s);
       AssertFail1(condstring "\n" __FILE__ "\n" STR(__LINE__)); \
   END
 
-		 
+
+/* NOCHECK -- Ignore a check
+ *
+ * .nocheck: NOCHECK uses sizeof so that the expression is not evaluated
+ * and yet the compiler will check that it is a valid expression. The 
+ * conditional is compared with zero so it can designate a bitfield object.
+ */
+
 #define NOCHECK(cond) \
   BEGIN \
-    (void)sizeof(cond); \
+    (void)sizeof((cond)!=0); \
   END
 
     
