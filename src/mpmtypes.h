@@ -1,6 +1,6 @@
 /* impl.h.mpmtypes: MEMORY POOL MANAGER TYPES
  *
- * $HopeName: MMsrc!mpmtypes.h(trunk.21) $
+ * $HopeName: MMsrc!mpmtypes.h(MMdevel_gens.2) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights 
  * reserved.
  *
@@ -240,6 +240,11 @@ typedef void *(*WriteFF)(void);
 typedef int WriteFC; /* Promoted */
 
 
+/* Action Closure type */
+
+typedef Bool (*ActionClosureMethod)(Action, Word);
+
+
 /* Event Codes -- see design.mps.telemetry
  *
  * These names are intended to be mnemonic.  They are derived from 
@@ -263,5 +268,9 @@ typedef int WriteFC; /* Promoted */
 #define EventVMDestroy     ((EventType)0xEFF3DE52) /* VM DESTroy */
 #define EventVMMap         ((EventType)0xEFF33AB9) /* VM MAP */
 #define EventVMUnmap       ((EventType)0xEFF3043B) /* VM UNMaP */
+
+#define EventAMCGenCreate  ((EventType)0xefa3c9c6) /* AMC GenCReate */
+#define EventAMCCondemn    ((EventType)0xefa3cc04) /* AMC GenCOndemn */
+
 
 #endif /* mpmtypes_h */
