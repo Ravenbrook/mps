@@ -1,6 +1,6 @@
 /* impl.c.mpsi: MEMORY POOL SYSTEM C INTERFACE LAYER
  *
- * $HopeName: MMsrc!mpsi.c(MMdevel_drj_commit_limit.2) $
+ * $HopeName: MMsrc!mpsi.c(MMdevel_drj_commit_limit.3) $
  * Copyright (C) 1997. Harlequin Group plc. All rights reserved.
  *
  * .purpose: This code bridges between the MPS interface to C,
@@ -52,7 +52,7 @@
 #include "mps.h"
 #include "mpsavm.h" /* only for mps_space_create */
 
-SRCID(mpsi, "$HopeName: MMsrc!mpsi.c(MMdevel_drj_commit_limit.2) $");
+SRCID(mpsi, "$HopeName: MMsrc!mpsi.c(MMdevel_drj_commit_limit.3) $");
 
 
 /* mpsi_check -- check consistency of interface mappings
@@ -234,18 +234,6 @@ mps_res_t mps_arena_commit_limit_set(mps_arena_t mps_arena, size_t limit)
 
   ArenaEnter(arena);
   res = ArenaSetCommitLimit(arena, limit);
-  ArenaLeave(arena);
-
-  return res;
-}
-
-mps_res_t mps_arena_commit_limit_add(mps_arena_t mps_arena, long delta)
-{
-  Res res;
-  Arena arena = (Arena)mps_arena;
-
-  ArenaEnter(arena);
-  res = ArenaAddCommitLimit(arena, delta);
   ArenaLeave(arena);
 
   return res;
