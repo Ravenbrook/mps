@@ -1,11 +1,11 @@
 /* impl.c.trace: GENERIC TRACER IMPLEMENTATION
  *
- * $HopeName: MMsrc!trace.c(MMdevel_action2.5) $
+ * $HopeName: MMsrc!trace.c(MMdevel_action2.6) $
  */
 
 #include "mpm.h"
 
-SRCID(trace, "$HopeName: MMsrc!trace.c(MMdevel_action2.5) $");
+SRCID(trace, "$HopeName: MMsrc!trace.c(MMdevel_action2.6) $");
 
 Bool ScanStateCheck(ScanState ss)
 {
@@ -115,15 +115,12 @@ void TraceDestroy(Trace trace)
 }
 
 
-/* @@@@ This will iterate over all segments, greying them, and */
-/* whitening all those in the condemned set.  To begin with */
-/* it just takes over from PoolCondemn by iterating over the */
-/* segments in a pool. */
-
 Res TraceStart(Trace trace, Pool pool)
 {
   Res res;
   RefSet white;
+  Ring ring, node;
+  Space space;
 
   AVERT(Trace, trace);
   AVERT(Pool, pool);
@@ -142,10 +139,44 @@ Res TraceStart(Trace trace, Pool pool)
   /* reclaim.  We have to reclaim because we want to guarantee */
   /* to the pool that for every condemn there will be a reclaim. */
   /* @@@@ This should be in design. */
-  if(trace->white != RefSetEMPTY)
-    trace->state = TraceUNFLIPPED;
-  else
+  if(trace->white == RefSetEMPTY) {
     trace->state = TraceRECLAIM;
+    return ResOK;
+  }
+
+  /* Grey all the roots and pools. */
+  /* @@@@ This will iterate over all segments, greying them, and */
+  /* whitening all those in the condemned set.  To begin with */
+  /* it just takes over from PoolCondemn by iterating over the */
+  /* segments in a pool.  Scannables which can be proven not */
+  /* to refer to the white set can be left black. */
+
+  space = trace->space;
+
+  ring = SpacePoolRing(space);
+  node = RingNext(ring);
+  while(node != ring) {
+    Ring next = RingNext(node);
+    Pool pool = RING_ELT(Pool, spaceRing, node);
+
+    if((pool->class->attr & AttrSCAN) != 0)
+      PoolGrey(pool, trace);  /* implicitly excludes white set */
+
+    node = next;
+  }
+
+  ring = SpaceRootRing(space);
+  node = RingNext(ring);
+  while(node != ring) {
+    Ring next = RingNext(node);
+    Root root = RING_ELT(Root, spaceRing, node);
+
+    RootGrey(root, trace);
+
+    node = next;
+  }
+
+  trace->state = TraceUNFLIPPED;
 
   return ResOK;
 }
@@ -173,29 +204,13 @@ static Res TraceFlip(Trace trace)
   /* necessarily move. */
   LDAge(space, trace->white);
 
-  /* Grey all the roots and pools. */
-  ring = SpacePoolRing(space);
-  node = RingNext(ring);
-  while(node != ring) {
-    Ring next = RingNext(node);
-    Pool pool = RING_ELT(Pool, spaceRing, node);
+  /* At the moment we must scan all roots, because we don't have */
+  /* a mechanism for shielding them.  There can't be any weak or */
+  /* final roots either, since we must protect these in order to */
+  /* avoid scanning them too early, before the pool contents. */
 
-    if((pool->class->attr & AttrSCAN) != 0)
-      PoolGrey(pool, trace);  /* implicitly excludes white set */
-
-    node = next;
-  }
-
-  ring = SpaceRootRing(space);
-  node = RingNext(ring);
-  while(node != ring) {
-    Ring next = RingNext(node);
-    Root root = RING_ELT(Root, spaceRing, node);
-
-    RootGrey(root, trace);
-
-    node = next;
-  }
+  /* @@@@ This isn't correct if there are higher ranking roots than */
+  /* data in pools. */
 
   ss.fix = TraceFix;
   ss.zoneShift = SpaceZoneShift(space);
@@ -205,14 +220,6 @@ static Res TraceFlip(Trace trace)
   ss.traceId = trace->ti;
   ss.weakSplat = (Addr)0xadd4badd;
   ss.sig = ScanStateSig;
-
-  /* At the moment we must scan all roots, because we don't have */
-  /* a mechanism for shielding them.  There can't be any weak or */
-  /* final roots either, since we must protect these in order to */
-  /* avoid scanning them too early, before the pool contents. */
-
-  /* @@@@ This isn't correct if there are higher ranking roots than */
-  /* data in pools. */
 
   for(ss.rank = RankAMBIG; ss.rank <= RankEXACT; ++ss.rank) {
     ring = SpaceRootRing(space);
