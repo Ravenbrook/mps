@@ -1,7 +1,7 @@
 /* impl.c.trace: GENERIC TRACER IMPLEMENTATION
  *
- * $HopeName: !trace.c(trunk.88) $
- * Copyright (C) 1999.  Harlequin Limited.  All rights reserved.
+ * $HopeName: MMsrc!trace.c(MMdevel_configura.1) $
+ * Copyright (C) 1999 Harlequin Limited.  All rights reserved.
  *
  * .design: design.mps.trace.
  */
@@ -9,7 +9,7 @@
 #include "mpm.h"
 
 
-SRCID(trace, "$HopeName: !trace.c(trunk.88) $");
+SRCID(trace, "$HopeName: MMsrc!trace.c(MMdevel_configura.1) $");
 
 
 /* Types
@@ -1321,7 +1321,12 @@ void TracePoll(Trace trace)
 
   AVERT(Trace, trace);
 
+#if defined(PROTECTION_NONE)
+  /* If there's no protection, we can't do it incrementally. */
+  pollEnd = SizeMAX;
+#else
   pollEnd = TraceWorkClock(trace) + trace->rate;
+#endif
   do {
     res = TraceStep(trace);
     if(res != ResOK) {
