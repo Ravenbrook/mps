@@ -1,0 +1,28 @@
+# impl.gmk.lii4gc: BUILD FOR LINUX/INTEL/GCC PLATFORM
+#
+# $HopeName: MMsrc!lii4gc.gmk(trunk.5) $
+# Copyright (C) 2000 Harlequin Limited.  All rights reserved.
+
+PFM = lii4gc
+
+THREADSRC = lockli.c thlii4.c pthrdext.c
+THREADLIB = -lpthread
+
+PFMDEFS = -D_REENTRANT
+
+MPMPF = mpsliban.c mpsioan.c ${THREADSRC} vmli.c \
+        protli.c protlii3.c proti3.c prmci3li.c sslii3.c span.c
+SWPF = than.c vmli.c protsw.c prmcan.c ssan.c
+
+LIBS = -lm ${THREADLIB}
+
+include gc.gmk
+
+CC = cc
+
+# Suppress some warnings (SuSE).
+#   .void: -Wpointer-arith cannot be used because the string.h header does
+#   arithmetic on void*.
+CFLAGSCOMPILER := $(subst -Wpointer-arith,,$(CFLAGSCOMPILER))
+
+include comm.gmk
