@@ -1,8 +1,8 @@
 /*  impl.c.qs:                QUICKSORT
  *
- *  $HopeName: MMsrc!qs.c(MMdevel_sw_eq.2) $
+ *  $HopeName: MMsrc!qs.c(MMdevel_sw_eq.3) $
  *
- *  Copyright (C) 1995,1996 Harlequin Group, all rights reserved
+ *  Copyright (C) 1995, 1996.  Harlequin Group plc.  All rights reserved.
  *
  *  The purpose of this program is to act as a "real" client of the MM.
  *  It is a test, but (hopefully) less contrived than some of the other
@@ -19,7 +19,6 @@
  *  list length 1000 makes 40404 conses (by experiment).
  *
  *  Some registers are not nulled out when they could be.
- *
  */
 
 
@@ -72,6 +71,7 @@ static mps_root_t actroot;
 static mps_word_t *list;
 static mps_word_t listl;
 
+
 /*  Machine State
  *
  *  The machine consists of a stack and 3 registers.
@@ -93,9 +93,7 @@ static mps_word_t regtag[NREGS];
  */
 
 /* should cons return in reg[0] or should it return via C? */
-static
-void
-cons(mps_word_t tag0, mps_word_t value0, QSCell tail)
+static void cons(mps_word_t tag0, mps_word_t value0, QSCell tail)
 {
   mps_addr_t p;
   QSCell new;
@@ -119,9 +117,7 @@ cons(mps_word_t tag0, mps_word_t value0, QSCell tail)
  * append x::xs, y = x::append xs, y
  * append x,y = (if (null x) y (cons (car x) (append (cdr x) y)))
  */
-static
-void
-append(void)
+static void append(void)
 {
   assert(regtag[0] == QSRef);
   assert(regtag[1] == QSRef);
@@ -161,13 +157,17 @@ append(void)
 }
 
 
-static
-void
-print(QSCell a, FILE *stream)
+static void print(QSCell a, FILE *stream)
 {
+  int ctr = 0;
+
   fprintf(stream, "( ");
 
   while(a != NULL) {
+    if(ctr++ >= 20) {
+      fprintf(stream, "\n");
+      ctr = 0;
+    }
     switch(a->tag) {
     case QSInt:
       fprintf(stream, "%lu ", a->value);
@@ -184,10 +184,9 @@ print(QSCell a, FILE *stream)
   fprintf(stream, ")\n");
 }
 
+
 /* swaps reg[0] with reg[1], destroys reg[2] */
-static
-void
-swap(void)
+static void swap(void)
 {
   regtag[2]=regtag[0];
   reg[2]=reg[0];
@@ -199,9 +198,8 @@ swap(void)
   reg[2]=(mps_word_t)0;
 }
 
-static
-void
-makerndlist(int l)
+
+static void makerndlist(int l)
 {
   int i;
   mps_word_t r;
@@ -223,12 +221,11 @@ makerndlist(int l)
   }
 }
 
+
 /* reg[0] is split into two lists: those elements less than p, and
  * those elements >= p.  The two lists are returned in reg[0] and reg[1]
  */
-static
-void
-part(mps_word_t p)
+static void part(mps_word_t p)
 {
   regtag[2]=regtag[0];
   reg[2]=reg[0];
@@ -256,10 +253,9 @@ part(mps_word_t p)
   }
 }
 
+
 /* applies the quicksort algorithm to sort reg[0] */
-static
-void
-qs(void)
+static void qs(void)
 {
   mps_word_t pivot;
 
@@ -300,14 +296,18 @@ qs(void)
   append();
 }
 
-static
-void
-printlist(FILE *stream)
+
+static void printlist(FILE *stream)
 {
   mps_word_t i;
+  int ctr = 0;
 
   fprintf(stream, "[ ");
   for(i = 0; i < listl; ++i) {
+    if(ctr++ >= 20) {
+      fprintf(stream, "\n");
+      ctr = 0;
+    }
     fprintf(stream, "%lu ", list[i]);
   }
   fprintf(stream, "]\n");
@@ -318,9 +318,7 @@ printlist(FILE *stream)
  *
  *  Used as an argument to qsort()
  */
-static
-int
-compare(const void *a, const void *b)
+static int compare(const void *a, const void *b)
 {
   mps_word_t aa, bb;
 
@@ -337,9 +335,7 @@ compare(const void *a, const void *b)
 
 
 /*  compares the qsort'ed list with our quicksorted list  */
-static
-void
-validate(void)
+static void validate(void)
 {
   mps_word_t i;
 
@@ -361,25 +357,25 @@ validate(void)
 }
 
 
-static
-void *
-go(void *p, size_t s)
+static void *go(void *p, size_t s)
 {
   UNUSED(p);
   UNUSED(s);
 
   die(mps_pool_create(&mpool, mps_class_mv(), space,
                       (size_t)65536, sizeof(QSCellStruct) * 1000,
-                      (size_t)65536), "MVCreate");
-
+                      (size_t)65536),
+      "MVCreate");
   die(mps_fmt_create_A(&format, space, &fmt_A_s), "FormatCreate");
   die(mps_pool_create(&pool, mps_class_amc(), space, format),
       "AMCCreate");
   die(mps_ap_create(&ap, pool, MPS_RANK_EXACT), "APCreate");
   die(mps_root_create_table(&regroot, space, MPS_RANK_AMBIG, 0,
-      (mps_addr_t *)reg, NREGS), "RootCreateTable");
+                            (mps_addr_t *)reg, NREGS),
+      "RootCreateTable");
   die(mps_root_create_table(&actroot, space, MPS_RANK_AMBIG, 0,
-      (mps_addr_t *)&activationStack, sizeof(QSCell)/sizeof(mps_addr_t)),
+                            (mps_addr_t *)&activationStack,
+                            sizeof(QSCell)/sizeof(mps_addr_t)),
       "RootCreateTable");
 
   /* makes a random list */
@@ -405,22 +401,10 @@ go(void *p, size_t s)
   return NULL;
 }
 
-int
-main(void)
-{
-  void *r;
-  die(mps_space_create(&space), "SpaceCreate");
-  mps_tramp(&r, &go, NULL, 0);
-  mps_space_destroy(space);
-
-  return 0;
-}
 
 /*  Machine Object Format  */
 
-static
-void
-pad(mps_addr_t base, size_t size)
+static void pad(mps_addr_t base, size_t size)
 {
   mps_word_t *object = base;
   assert(size >= sizeof(mps_word_t));
@@ -434,9 +418,8 @@ pad(mps_addr_t base, size_t size)
   return;
 }
 
-static
-mps_res_t
-scan1(mps_ss_t ss, mps_addr_t *objectIO)
+
+static mps_res_t scan1(mps_ss_t ss, mps_addr_t *objectIO)
 {
   QSCell cell;
   mps_res_t res;
@@ -487,9 +470,8 @@ scan1(mps_ss_t ss, mps_addr_t *objectIO)
   return MPS_RES_OK;
 }
 
-static
-mps_res_t
-scan(mps_ss_t ss, mps_addr_t base, mps_addr_t limit)
+
+static mps_res_t scan(mps_ss_t ss, mps_addr_t base, mps_addr_t limit)
 {
 
   while(base < limit) {
@@ -506,9 +488,8 @@ scan(mps_ss_t ss, mps_addr_t base, mps_addr_t limit)
   return MPS_RES_OK;
 }
 
-static
-mps_addr_t
-skip(mps_addr_t object)
+
+static mps_addr_t skip(mps_addr_t object)
 {
   QSCell cell = (QSCell)object;
   switch(cell->tag)
@@ -522,9 +503,8 @@ skip(mps_addr_t object)
   }
 }
 
-static
-void
-move(mps_addr_t object, mps_addr_t to)
+
+static void move(mps_addr_t object, mps_addr_t to)
 {
   QSCell cell;
 
@@ -534,9 +514,8 @@ move(mps_addr_t object, mps_addr_t to)
   cell->value = (mps_word_t)to;
 }
 
-static
-mps_addr_t
-isMoved(mps_addr_t object)
+
+static mps_addr_t isMoved(mps_addr_t object)
 {
   QSCell cell;
 
@@ -548,6 +527,7 @@ isMoved(mps_addr_t object)
   return (mps_addr_t)0;
 }
 
+
 static void copy(mps_addr_t object, mps_addr_t to)
 {
   QSCell cells, celld;
@@ -556,4 +536,15 @@ static void copy(mps_addr_t object, mps_addr_t to)
   celld = (QSCell)to;
 
   *celld = *cells;
+}
+
+
+int main(void)
+{
+  void *r;
+  die(mps_space_create(&space), "SpaceCreate");
+  mps_tramp(&r, &go, NULL, 0);
+  mps_space_destroy(space);
+
+  return 0;
 }
