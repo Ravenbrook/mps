@@ -1,17 +1,15 @@
-/*  impl.c.poolncv: NULL POOL COVERAGE TEST
+/* impl.c.poolncv: NULL POOL COVERAGE TEST
  *
- *  $HopeName: !poolncv.c(trunk.8) $
- *  Copyright (C) 1995,1997 Harlequin Group, all rights reserved
+ * $HopeName: MMsrc!poolncv.c(MM_epcore_brisling.1) $
+ * Copyright (C) 1997 Harlequin Limited.  All rights reserved.
  */
 
-#include <stdio.h>
-#include "mpm.h"
 #include "pooln.h"
 #include "mpsaan.h"
+#include "mpm.h"
 #include "testlib.h"
-#ifdef MPS_OS_SU
-#include "ossu.h"
-#endif
+
+#include <stdio.h>
 
 
 static Bool testit(ArenaClass class, ...)
