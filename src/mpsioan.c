@@ -1,6 +1,6 @@
 /* impl.c.mpsioan: HARLEQUIN MEMORY POOL SYSTEM I/O IMPLEMENTATION (ANSI)
  *
- * $HopeName: MMsrc!mpsioan.c(MMdevel_event.2) $
+ * $HopeName: MMsrc!mpsioan.c(MMdevel_event.3) $
  * Copyright (C) 1996 Harlequin Group, all rights reserved.
  *
  * .readership: MPS developers.
@@ -18,28 +18,34 @@
 #include "ossu.h"
 #endif
 
+static FILE *ioFile = NULL;
+
 mps_res_t mps_io_create(mps_io_t *mps_io_r)
 {
   FILE *f;
-  
+
+  if(ioFile)
+    return MPS_RES_LIMIT; /* Cannot currently open more than one log */
+
   f = fopen("mpsio.log", "wb");
   if(f == NULL)
     return MPS_RES_IO;
   
   *mps_io_r = (mps_io_t)f;
+  ioFile = f;
   return MPS_RES_OK;
 }
 
 void mps_io_destroy(mps_io_t mps_io)
 {
   FILE *f = (FILE *)mps_io;
-
+  ioFile = NULL; /* Should check f == ioFile */
   (void)fclose(f);
 }
 
 mps_res_t mps_io_write(mps_io_t mps_io, void *mps_buf, size_t mps_size)
 {
-  FILE *f = (FILE *)mps_io;
+  FILE *f = (FILE *)mps_io; /* Should check f == ioFile */
   size_t n;
 
   n = fwrite(mps_buf, mps_size, 1, f);
@@ -51,7 +57,7 @@ mps_res_t mps_io_write(mps_io_t mps_io, void *mps_buf, size_t mps_size)
 
 mps_res_t mps_io_flush(mps_io_t mps_io)
 {
-  FILE *f = (FILE *)mps_io;
+  FILE *f = (FILE *)mps_io; /* Should check f == ioFile */
   int e;
   
   e = fflush(f);

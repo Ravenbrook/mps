@@ -1,6 +1,6 @@
 /* impl.c.event: EVENT LOGGING
  *
- * $HopeName: MMsrc!event.c(MMdevel_event.2) $
+ * $HopeName: MMsrc!event.c(MMdevel_event.3) $
  * Copyright (C) 1996 Harlequin Group, all rights reserved.
  *
  * .readership: MPS developers.
@@ -17,14 +17,14 @@
 #include "event.h"
 #include "mpsio.h"
 
-SRCID(event, "$HopeName: MMsrc!event.c(MMdevel_event.2) $");
+SRCID(event, "$HopeName: MMsrc!event.c(MMdevel_event.3) $");
 
 static Bool eventInited = FALSE;
 static mps_io_t eventIO;
 static Word eventBuffer[EVENT_BUFFER_SIZE];
-static unsigned eventUserCount;
+static Count eventUserCount;
 
-Word *EventNext, *EventLimit;
+Word *EventNext, *EventLimit; /* Used by macros in impl.h.event */
 
 static Res EventFlush(void)
 {
@@ -74,16 +74,16 @@ void EventFinish(void)
   --eventUserCount;
 }
 
-Res EventEnter(EventType type, Size length, ...)
+Res EventEnter(EventType type, Count length, ...)
 {
   Res res;
   va_list args;
   Word *alloc;
-  Size i, size;
+  Count i=0, size;
 
   AVER(eventInited);
 
-  size = length + 2;                  /* Include header and timestamp. */
+  size = length + EVENT_HEADER_SIZE;  /* Include header. */
 
   AVER(size < EVENT_BUFFER_SIZE);     /* Events must fit in buffer. */
 
@@ -97,11 +97,16 @@ Res EventEnter(EventType type, Size length, ...)
 
   AVER(alloc <= EventLimit);
 
-  EventNext[0] = type | (length << 16);
-  EventNext[1] = (Word)mps_clock();
+  EventNext[i++] = type;
+  EventNext[i++] = length;
+  EventNext[i++] = (Word)mps_clock();
+
+  AVER(i == EVENT_HEADER_SIZE); 
+
   va_start(args, length);
-  for(i=0; i<length; ++i)
-    EventNext[i+2] = va_arg(args, Word);
+  for(; i < size; ++i)
+    EventNext[i] = va_arg(args, Word);
+
   va_end(args);
   EventNext = alloc;
   

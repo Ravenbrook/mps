@@ -1,6 +1,6 @@
 /* impl.h.mpmtypes: MEMORY POOL MANAGER TYPES
  *
- * $HopeName: MMsrc!mpmtypes.h(MMdevel_event.2) $
+ * $HopeName: MMsrc!mpmtypes.h(MMdevel_event.3) $
  * Copyright (C) 1996 Harlequin Group, all rights reserved.
  *
  * .rationale: Types and type constants are almost all defined
@@ -57,6 +57,7 @@ typedef MPS_T_WORD Word;                /* machine word */
 typedef unsigned char Byte;             /* units of size */
 typedef struct AddrStruct *Addr;        /* managed address */
 typedef Word Size;                      /* size of managed object */
+typedef Word Count;                     /* design.mps.type.count */
 typedef Word Index;                     /* index for any array */
 typedef Word Align;                     /* alignment (power of two) */
 typedef unsigned Shift;                 /* shift for any word */
@@ -87,7 +88,7 @@ typedef struct ArenaStruct *Arena;      /* impl.c.arena* */
 typedef struct VMStruct *VM;            /* impl.c.vm* */
 typedef struct RootStruct *Root;        /* impl.c.root */
 typedef struct ThreadStruct *Thread;    /* impl.c.th* */
-typedef unsigned EventType;		/* impl.c.event */
+typedef Word EventType;                 /* impl.c.event */
 
 
 /* Pool*Method -- Pool Class Interface types
@@ -189,25 +190,24 @@ enum {                          /* root variants, see impl.h.mpmst.root */
 };
 
 
-/* @@@@ These codes are pure names, but we may want to use impure names. */
-/* i.e. we may want to encode information in them.  Don't treat them as final. */
+/* These names are intended to be mnemonic. They are derived from selected
+ * letters as indicated, using the transliteration in design.mps.sig. 
+ */
 
-enum {
-  EventEVENT_TIME	= 0x0001,
-  EventSPACE_CREATE	= 0x1000,
-  EventSPACE_DESTROY	= 0x1001,
-  EventPOOL_INIT	= 0x2000,
-  EventPOOL_FINISH	= 0x2001,
-  EventPOOL_ALLOC	= 0x2010,
-  EventPOOL_FREE	= 0x2011,
-  EventARENA_CREATE	= 0x3000,
-  EventARENA_DESTROY	= 0x3001,
-  EventSEG_ALLOC	= 0x3010,
-  EventSEG_FREE		= 0x3011,
-  EventVM_CREATE	= 0x4000,
-  EventVM_DESTROY	= 0x4001,
-  EventVM_MAP		= 0x4010,
-  EventVM_UNMAP		= 0x4011
-};
+#define EventEventTime     ((EventType)0xEF213E77) /* EVent TIME */
+#define EventSpaceCreate   ((EventType)0xEF5BCC4E) /* EVent SPaCe CREate */
+#define EventSpaceDestroy  ((EventType)0xEF5BCDE5) /* EVent SPaCe DEStroy */
+#define EventPoolInit      ((EventType)0xEFB01191) /* EVent POoL INIt */
+#define EventPoolFinish    ((EventType)0xEFB01F19) /* EVent POoL FINish */
+#define EventPoolAlloc     ((EventType)0xEFB01A11) /* EVent POoL ALLoc */
+#define EventPoolFree      ((EventType)0xEFB01F4E) /* EVent POoL FREe */
+#define EventArenaCreate   ((EventType)0xEFA49C4E) /* EVent AReNa CREate */
+#define EventArenaDestroy  ((EventType)0xEFA49DE5) /* EVent AReNa DEStroy */
+#define EventSegAlloc      ((EventType)0xEF5E9A11) /* EVent SEG ALLoc */
+#define EventSegFree	   ((EventType)0xEF5E9F4E) /* EVent SEG FREe */
+#define EventVMCreate      ((EventType)0xEFF3C4EA) /* EVent VM CREAte */
+#define EventVMDestroy     ((EventType)0xEFF3DE52) /* EVent VM DESTroy */
+#define EventVMMap         ((EventType)0xEFF33AB7) /* EVent VM MAP */
+#define EventVMUnmap       ((EventType)0xEFF3093B) /* EVent VM UNMaP */
 
 #endif /* mpmtypes_h */

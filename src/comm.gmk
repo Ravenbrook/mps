@@ -1,6 +1,6 @@
 # impl.gmk.comm: COMMON GNUMAKEFILE FRAGMENT
 #
-# $HopeName: MMsrc!comm.gmk(MMdevel_event.1) $
+# $HopeName: MMsrc!comm.gmk(MMdevel_event.2) $
 # Copyright (C) 1995,1996 Harlequin Group, all rights reserved
 #
 # DESCRIPTION
@@ -196,7 +196,11 @@ all: mpmss amcss dwstress mpsicv lockcov poolncv lo.a locv qs weakcv
 
 mpmss amcss dwstress mpsicv lockcov poolncv lo.a \
   locv qs weakcv mmsw.a: phony
+ifdef VARIETY
+	$(MAKE) -f $(PFM).gmk TARGET=$@ variety
+else
 	$(MAKE) -f $(PFM).gmk TARGET=$@ target
+endif
 
 # "clean" removes the directory containing the build results for the
 # platform.
