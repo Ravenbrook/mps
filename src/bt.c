@@ -1,6 +1,6 @@
 /* impl.c.bt: BIT TABLES
  *
- * $HopeName: !bt.c(trunk.22) $
+ * $HopeName: MMsrc!bt.c(MM_epcore_brisling.1) $
  * Copyright (C) 1998.  Harlequin Group plc.  All rights reserved.
  *
  * READERSHIP
@@ -15,7 +15,7 @@
 #include "mpm.h"
 
 
-SRCID(bt, "$HopeName: !bt.c(trunk.22) $");
+SRCID(bt, "$HopeName: MMsrc!bt.c(MM_epcore_brisling.1) $");
 
 
 /* BTIndexAlignUp, BTIndexAlignDown -- Align bit-table indices
@@ -632,11 +632,11 @@ static Bool BTFindResRange(Index *baseReturn, Index *limitReturn,
 
   foundRes = FALSE;     /* don't know first reset bit */
   minLimit = 0;         /* avoid spurious compiler warning */
-  resBase = 0;          /* avoid spurious compiler warning */
+  resBase = searchBase; /* haven't seen anything yet */
   unseenBase = searchBase;  /* haven't seen anything yet */
   resLimit = searchLimit - minLength + 1;
 
-  while (unseenBase < resLimit) {
+  while (resBase < resLimit) {
     Index setIndex;  /* index of last set bit found */
     Bool foundSet = FALSE; /* true if a set bit is found */
 
@@ -721,11 +721,11 @@ static Bool BTFindResRangeHigh(Index *baseReturn, Index *limitReturn,
 
   foundRes = FALSE;     /* don't know first reset bit */
   minBase = 0;          /* avoid spurious compiler warning */
-  resLimit = 0;         /* avoid spurious compiler warning */
+  resLimit = searchLimit;    /* haven't seen anything yet */
   unseenLimit = searchLimit; /* haven't seen anything yet */
   resBase = searchBase + minLength -1;
 
-  while (unseenLimit > resBase) { 
+  while (resLimit > resBase) { 
     Index setIndex;  /* index of first set bit found */
     Bool foundSet = FALSE; /* true if a set bit is found */
  
