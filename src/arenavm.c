@@ -1,6 +1,6 @@
 /* impl.c.arenavm: VIRTUAL MEMORY BASED ARENA IMPLEMENTATION
  *
- * $HopeName: MMsrc!arenavm.c(MMdevel_metrics.1) $
+ * $HopeName: MMsrc!arenavm.c(MMdevel_metrics.2) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  *
  * This is the implementation of the Segment abstraction from the VM
@@ -29,7 +29,7 @@
 #include "mpm.h"
 #include "mpsavm.h"
 
-SRCID(arenavm, "$HopeName: MMsrc!arenavm.c(MMdevel_metrics.1) $");
+SRCID(arenavm, "$HopeName: MMsrc!arenavm.c(MMdevel_metrics.2) $");
 
 
 typedef struct VMArenaStruct *VMArena;
@@ -335,14 +335,16 @@ static Size VMArenaCommitted(Arena arena)
  * is, in a sense, the limit index of the page table.)
  */
 
-static Index indexOfAddr(VMArena vmArena, Addr addr)
+#define indexOfAddr(vmArena, addr) \
+  (AddrOffset((vmArena)->base, addr) >> (vmArena)->pageShift)
+
+static Index (indexOfAddr)(VMArena vmArena, Addr addr)
 {
-  /* impl.c.trace.fix.critical.1 */
-  AVERT_CRITICAL(VMArena, vmArena);
+  AVERT(VMArena, vmArena);
   AVER(vmArena->base <= addr);
   AVER(addr <= vmArena->limit);   /* .index.addr */
 
-  return AddrOffset(vmArena->base, addr) >> vmArena->pageShift;
+  return indexOfAddr(vmArena, addr);
 }
 
 
@@ -371,8 +373,8 @@ static Bool findFreeInArea(Index *baseReturn,
   AVER(size > (Size)0);
   AVER(SizeIsAligned(size, vmArena->pageSize));
 
-  basePage = indexOfAddr(vmArena, base);
-  limitPage = indexOfAddr(vmArena, limit);
+  basePage = (indexOfAddr)(vmArena, base);
+  limitPage = (indexOfAddr)(vmArena, limit);
   pages = size >> vmArena->pageShift;
 
   if(!BTFindShortResRange(&start, &end,
@@ -796,9 +798,9 @@ static Bool VMSegOfAddr(Seg *segReturn, Arena arena, Addr addr)
 {
   VMArena vmArena;
   
-  AVER(segReturn != NULL);
+  /* impl.c.trace.fix.critical */
+  AVER_CRITICAL(segReturn != NULL);
   vmArena = ArenaVMArena(arena);
-  /* impl.c.trace.fix.critical.1 */
   AVERT_CRITICAL(VMArena, vmArena);
   
   if(vmArena->base <= addr && addr < vmArena->limit) {
