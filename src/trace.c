@@ -1,12 +1,12 @@
 /* impl.c.trace: GENERIC TRACER IMPLEMENTATION
  *
- * $HopeName: MMsrc!trace.c(MMdevel_event_format.2) $
+ * $HopeName: MMsrc!trace.c(MMdevel_event_format.3) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  */
 
 #include "mpm.h"
 
-SRCID(trace, "$HopeName: MMsrc!trace.c(MMdevel_event_format.2) $");
+SRCID(trace, "$HopeName: MMsrc!trace.c(MMdevel_event_format.3) $");
 
 
 /* ScanStateCheck -- check consistency of a ScanState object */
@@ -583,7 +583,7 @@ static Res TraceScan(TraceSet ts, Rank rank,
   
   /* The reason for scanning a segment is that it's grey. */
   AVER(TraceSetInter(ts, SegGrey(seg)) != TraceSetEMPTY);
-  EVENT_PUPPP(TraceScan, ts, rank, space, seg, &ss);
+  EVENT_UUPPP(TraceScan, ts, rank, space, seg, &ss);
 
   ss.rank = rank;
   ss.traces = ts;
