@@ -1,11 +1,11 @@
 /* impl.c.trace: GENERIC TRACER IMPLEMENTATION
  *
- * $HopeName: MMsrc!trace.c(MMdevel_remem.4) $
+ * $HopeName: MMsrc!trace.c(MMdevel_remem.5) $
  */
 
 #include "mpm.h"
 
-SRCID(trace, "$HopeName: MMsrc!trace.c(MMdevel_remem.4) $");
+SRCID(trace, "$HopeName: MMsrc!trace.c(MMdevel_remem.5) $");
 
 Bool ScanStateCheck(ScanState ss)
 {
@@ -152,8 +152,17 @@ Res TraceFlip(Space space, TraceId ti, RefSet condemned)
 
   ss.sig = SigInvalid;  /* just in case */
 
-  trace->rate = (trace->grey + trace->white/3 + 4096)/
-		  ((trace->white - trace->white/3)/4096 +1);
+  /* Assume that 3/4 of white dies, then calculate rate to collect
+   * allowing allocation during collection to be the expected amount
+   * reclaimed.
+   * Will need to scan all grey stuff and amount of living white
+   * a net amount of 3/4 of the white space will be reclaimed.
+   * So (G + W/4)/(W - W/4) gives the scanning rate.
+   * Formula below has one added to top and bottom of fraction to avoid
+   * 0 and infinity.
+   */
+  trace->rate = (trace->grey + trace->white/4 + 4096)/
+		  ((trace->white - trace->white/4)/4096 +1);
 
   ShieldResume(space);
 
