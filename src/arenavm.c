@@ -1,6 +1,6 @@
 /* impl.c.arenavm: VIRTUAL MEMORY BASED ARENA IMPLEMENTATION
  *
- * $HopeName: !arenavm.c(trunk.48) $
+ * $HopeName: MMsrc!arenavm.c(MM_dylan_dove.1) $
  * Copyright (C) 1998. Harlequin Group plc. All rights reserved.
  *
  * This is the implementation of the Segment abstraction from the VM
@@ -29,7 +29,7 @@
 #include "mpm.h"
 #include "mpsavm.h"
 
-SRCID(arenavm, "$HopeName: !arenavm.c(trunk.48) $");
+SRCID(arenavm, "$HopeName: MMsrc!arenavm.c(MM_dylan_dove.1) $");
 
 
 typedef struct VMArenaStruct *VMArena;
@@ -1635,6 +1635,7 @@ static Bool VMNextChunkOfAddr(VMArenaChunk *chunkReturn,
 
 static Bool VMSegFirst(Seg *segReturn, Arena arena)
 {
+  Addr addr;
   Bool b;
   VMArena vmArena;
   VMArenaChunk chunk;
@@ -1647,9 +1648,19 @@ static Bool VMSegFirst(Seg *segReturn, Arena arena)
   /* There's at least one chunk, so we must have found something */
   AVER(b);
 
-  /* We start from tablePages, as the tables can't be a segment.
-   * See .tablepages */
-  return segSearch(segReturn, chunk, chunk->tablePages);
+  do {
+    Seg seg;
+
+    /* We start from tablePages, as the tables can't be a segment. */
+    /* See .tablepages */
+    if(segSearch(&seg, chunk, chunk->tablePages)) {
+      *segReturn = seg;
+      return TRUE;
+    }
+    addr = chunk->base;
+  } while(VMNextChunkOfAddr(&chunk, vmArena, addr));
+
+  return FALSE;
 }
 
 
