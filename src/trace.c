@@ -1,12 +1,12 @@
 /* impl.c.trace: GENERIC TRACER IMPLEMENTATION
  *
- * $HopeName: MMsrc!trace.c(MMdevel_gens.2) $
+ * $HopeName: MMsrc!trace.c(MMdevel_gens.3) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  */
 
 #include "mpm.h"
 
-SRCID(trace, "$HopeName: MMsrc!trace.c(MMdevel_gens.2) $");
+SRCID(trace, "$HopeName: MMsrc!trace.c(MMdevel_gens.3) $");
 
 
 /* ScanStateCheck -- check consistency of a ScanState object */
@@ -138,6 +138,7 @@ found:
   trace->interval = (Size)4096; /* @@@@ should be progress control */
   trace->condemned = (Size)0;
   trace->foundation = (Size)0;
+  trace->rate = (Word)0;
 
   trace->sig = TraceSig;
   AVERT(Trace, trace);
@@ -273,6 +274,28 @@ Res TraceStart(Trace trace, Action action)
       RootGrey(root, trace);
 
     node = next;
+  }
+
+  /* We calculate what rate the trace should proceed at here.
+   * If the trace->rate is 0 then the pool didn't specify a rate.
+   * If the trace->rate is not 0 the we assume the pool specifies a rate.
+   * We collect at a rate such that during the collection the mutator
+   * allocates as much as we expect to reclaim.
+   * Amount of scanning to be done is:
+   *  Foundation + live-stuff
+   * Amount we reclaim is
+   *  condemned - live-stuff
+   * Foundation and Condemned have been calculate in the trace.
+   * We approximate live-stuff by .25 (1/4) * condemned
+   * In the calculation below we add 1 to the divisor to avoid divide
+   * by zero
+   */
+  if(trace->rate == 0) {
+    trace->rate = (trace->foundation - trace->condemned/4) /
+		    (trace->condemned - trace->condemned/4 + 1);
+    if(trace->rate == 0) {
+      trace->rate = 1;
+    }
   }
 
   trace->state = TraceUNFLIPPED;
@@ -596,8 +619,14 @@ Res TracePoll(Trace trace)
     } break;
 
     case TraceFLIPPED: {
-      res = TraceRun(trace);
-      if(res != ResOK) return res;
+      Word i;
+      for(i = 0; i < trace->rate; ++i) {
+	res = TraceRun(trace);
+	if(res != ResOK) return res;
+	if(trace->state != TraceFLIPPED) {
+	  break;
+	}
+      }
     } break;
 
     case TraceRECLAIM: {
