@@ -1,6 +1,6 @@
 /* impl.c.ld: LOCATION DEPENDENCY IMPLEMENTATION
  *
- * $HopeName: !ld.c(trunk.8) $
+ * $HopeName: MMsrc!ld.c(MMdevel_shieldclass.1) $
  * Copyright (C) 1996 Harlequin Group, all rights reserved.
  *
  * .def: A location dependency records the fact that the bit-patterns
@@ -48,7 +48,7 @@
 
 #include "mpm.h"
 
-SRCID(ld, "$HopeName: !ld.c(trunk.8) $");
+SRCID(ld, "$HopeName: MMsrc!ld.c(MMdevel_shieldclass.1) $");
 
 
 /* LDReset -- reset a dependency to empty
@@ -68,12 +68,12 @@ void LDReset(LD ld, Arena arena)
 
   b = SegOfAddr(&seg, arena, (Addr)ld);
   if(b) {
-    ShieldExpose(arena, seg);   /* .ld.access */
+    SegShieldExpose(seg);   /* .ld.access */
   }
   ld->epoch = arena->epoch;
   ld->rs = RefSetEMPTY;
   if(b) {
-    ShieldCover(arena, seg);
+    SegShieldCover(seg);
   }
 }
 
