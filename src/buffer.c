@@ -1,6 +1,6 @@
 /* impl.c.buffer: ALLOCATION BUFFER IMPLEMENTATION
  *
- * $HopeName: !buffer.c(trunk.51) $
+ * $HopeName: MMsrc!buffer.c(MMdevel_alloc_replay.1) $
  * Copyright (C) 1997, 1998, 1999 Harlequin Group plc.  All rights reserved.
  *
  * .purpose: This is (part of) the implementation of allocation buffers.
@@ -22,7 +22,7 @@
 
 #include "mpm.h"
 
-SRCID(buffer, "$HopeName: !buffer.c(trunk.51) $");
+SRCID(buffer, "$HopeName: MMsrc!buffer.c(MMdevel_alloc_replay.1) $");
 
 
 /* forward declarations */
@@ -178,7 +178,8 @@ Res BufferDescribe(Buffer buffer, mps_lib_FILE *stream)
 
 /* BufferInitV -- initialize an allocation buffer */
 
-static Res BufferInitV(Buffer buffer, Pool pool, Bool isMutator, va_list args)
+static Res BufferInitV(Buffer buffer, Pool pool, Bool isMutator,
+                       va_list args)
 {
   Arena arena;
   Res res;
@@ -233,8 +234,6 @@ static Res BufferInitV(Buffer buffer, Pool pool, Bool isMutator, va_list args)
 
   /* Attach the initialized buffer to the pool. */
   RingAppend(&pool->bufferRing, &buffer->poolRing);
-
-  EVENT_PPU(BufferInit, buffer, pool, (unsigned)isMutator);
 
   return ResOK;
 }
@@ -860,10 +859,6 @@ Bool BufferTrip(Buffer buffer, Addr p, Size size)
     b = PoolFormat(&format, buffer->pool);
     if(b) {
       clientClass = format->class(p);
-    } else if(sizeof(Addr) <= size) {
-      /* hack to get the class of an object for unformatted pools. */
-      /* .trip.assume.align: Assume p is Addr * aligned. */
-      clientClass = *(Addr *)p;
     } else {
       clientClass = (Addr)0;
     }
