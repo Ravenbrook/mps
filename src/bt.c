@@ -1,7 +1,7 @@
 /* impl.c.bt: BIT TABLES
  *
- * $HopeName: !bt.c(trunk.15) $
- * Copyright (C) 1997, 1998 Harlequin Group, all rights reserved
+ * $HopeName: MMsrc!bt.c(MMdevel_pekka_rate.1) $
+ * Copyright (C) 1998.  Harlequin Group plc.  All rights reserved.
  *
  * READERSHIP
  *
@@ -10,16 +10,13 @@
  * DESIGN
  *
  * .design: see design.mps.bt
- *
- * PURPOSE
- *
- * .purpose: see design.mps.bt
  */
-
 
 #include "mpm.h"
 
-SRCID(bt, "$HopeName: !bt.c(trunk.15) $");
+
+SRCID(bt, "$HopeName: MMsrc!bt.c(MMdevel_pekka_rate.1) $");
+
 
 /* is the whole word of bits at this index set? */
 
@@ -84,7 +81,7 @@ static Bool BTCheck(BT bt)
 
 
 /* design.mps.bt.fun.size */
-Size (BTSize)(unsigned long n)
+size_t (BTSize)(unsigned long n)
 {
   /* check that the expression used in rounding up doesn't overflow */
   AVER(n+MPS_WORD_WIDTH-1 > n);
