@@ -1,6 +1,6 @@
 /* impl.c.mpm: GENERAL MPM SUPPORT
  *
- * $HopeName: !mpm.c(trunk.19) $
+ * $HopeName: MMsrc!mpm.c(MMdevel_gavinm_splay.1) $
  * Copyright (C) 1996, 1997 Harlequin Group, all rights reserved.
  *
  * .readership: MM developers.
@@ -13,7 +13,7 @@
 
 #include "mpm.h"
 
-SRCID(mpm, "$HopeName: !mpm.c(trunk.19) $");
+SRCID(mpm, "$HopeName: MMsrc!mpm.c(MMdevel_gavinm_splay.1) $");
 
 
 /* MPMCheck -- test MPM assumptions */
@@ -398,6 +398,30 @@ Res WriteF(mps_lib_FILE *stream, ...)
               return ResIO;
           } break;
 
+          case 'D': {                   /* double */
+            WriteFD d = va_arg(args, WriteFD);
+            Word w;
+            WriteFD f;
+              
+            if (d < 0.0) {
+              r = mps_lib_fputc('-', stream);
+              if (r == mps_lib_EOF)
+                return ResIO;
+              d = -d;
+            }
+            w = (Word)d;
+            f = d - (WriteFD)w;
+            if (f >= 1.0)
+              return ResLIMIT;
+            res = WriteWord(stream, w, 10, 0);
+            if (res != ResOK) return res;
+            r = mps_lib_fputc('.', stream);
+            if (r == mps_lib_EOF)
+              return ResIO;
+            res = WriteWord(stream, (Word)(f * 1000), 10, 3);
+            if (res != ResOK) return res;
+          } break;
+               
           default:
           NOTREACHED;
         }
