@@ -1,6 +1,6 @@
 /* impl.h.mpmtypes: MEMORY POOL MANAGER TYPES
  *
- * $HopeName: MMsrc!mpmtypes.h(MMdevel_drj_message.2) $
+ * $HopeName: MMsrc!mpmtypes.h(MMdevel_drj_message.3) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  *
  * .readership: MM developers.
@@ -244,7 +244,8 @@ enum {
 /* .message.types: Keep in sync with impl.h.mps.message.types */
 
 enum {
-  MessageTypeFinalization
+  MessageTypeFinalization,
+  MessageTypeMAX
 };
 
 
