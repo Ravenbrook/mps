@@ -1,6 +1,6 @@
 /* impl.h.config: MPS CONFIGURATION
  *
- * $HopeName: !config.h(trunk.38) $
+ * $HopeName: MMsrc!config.h(MMdevel_configura.1) $
  * Copyright (C) 1999 Harlequin Limited.  All rights reserved.
  *
  * PURPOSE
@@ -189,6 +189,22 @@
 #define ARENA_SIZE              ((Size)1<<30)
 #define ARENA_INIT_SPARE_COMMIT_LIMIT   ((Size)10uL*1024uL*1024uL)
 #define THREAD_MULTI
+#define PROTECTION
+
+#elif defined(CONFIG_PROD_CONFIGURA)
+#define MPS_PROD_STRING         "configura"
+#define MPS_PROD_CONFIGURA
+#define ARENA_SIZE              ((Size)64<<20)
+#define ARENA_INIT_SPARE_COMMIT_LIMIT   ((Size)10uL*1024uL*1024uL)
+#define THREAD_SINGLE
+#define PROTECTION_NONE
+
+#elif defined(CONFIG_PROD_CONFIGURA_INC)
+#define MPS_PROD_STRING         "configura"
+#define MPS_PROD_CONFIGURA
+#define ARENA_SIZE              ((Size)64<<20)
+#define ARENA_INIT_SPARE_COMMIT_LIMIT   ((Size)10uL*1024uL*1024uL)
+#define THREAD_SINGLE
 #define PROTECTION
 
 #elif defined(CONFIG_PROD_MPS)
