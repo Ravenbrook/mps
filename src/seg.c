@@ -1,6 +1,6 @@
 /* impl.c.seg: SEGMENTS
  *
- * $HopeName: MMsrc!seg.c(MMdevel_tony_sunset.2) $
+ * $HopeName: MMsrc!seg.c(MMdevel_tony_sunset.3) $
  * Copyright (C) 1998 Harlequin Group plc.  All rights reserved.
  *
  * .design: The design for this module is design.mps.seg.
@@ -28,7 +28,7 @@
 
 #include "mpm.h"
 
-SRCID(seg, "$HopeName: MMsrc!seg.c(MMdevel_tony_sunset.2) $");
+SRCID(seg, "$HopeName: MMsrc!seg.c(MMdevel_tony_sunset.3) $");
 
 
 /* SegSegGC -- convert generic Seg to SegGC */
@@ -218,7 +218,7 @@ void SegFinish(Seg seg)
 
   base = SegBase(seg);
   limit = SegLimit(seg);
-  TRACT_FOR(tract, addr, arena, base, limit) {
+  TRACT_TRACT_FOR(tract, addr, arena, seg->firstTract, limit) {
     tract->white = TraceSetEMPTY;
     tract->hasSeg = 0;
     TractSetP(tract, NULL);
@@ -283,7 +283,7 @@ void SegSetRankSet(Seg seg, RankSet rankSet)
 
 RefSet SegSummary(Seg seg)
 {
-  AVERT(Seg, seg);
+  AVERT_CRITICAL(Seg, seg);  /* .seg.critical */
   return seg->class->summary(seg);
 }
 
@@ -301,7 +301,7 @@ void SegSetSummary(Seg seg, RefSet summary)
 
 void SegSetRankAndSummary(Seg seg, RankSet rankSet, RefSet summary)
 {
-  AVERT(Seg, seg);
+  AVERT(Seg, seg);  
   AVER(RankSetCheck(rankSet));
   seg->class->setRankSummary(seg, rankSet, summary);
 }
@@ -311,7 +311,7 @@ void SegSetRankAndSummary(Seg seg, RankSet rankSet, RefSet summary)
 
 Buffer SegBuffer(Seg seg)
 {
-  AVERT(Seg, seg);
+  AVERT_CRITICAL(Seg, seg);  /* .seg.critical */
   return seg->class->buffer(seg);
 }
 
@@ -331,7 +331,7 @@ void SegSetBuffer(Seg seg, Buffer buffer)
 
 void *SegP(Seg seg)
 {
-  AVERT(Seg, seg);
+  AVERT_CRITICAL(Seg, seg); /* .seg.critical */
   return seg->class->p(seg);
 }
 
@@ -340,7 +340,7 @@ void *SegP(Seg seg)
 
 void SegSetP(Seg seg, void *p)
 {
-  AVERT(Seg, seg);
+  AVERT_CRITICAL(Seg, seg); /* .seg.critical */
   seg->class->setP(seg, p);
 }
 
@@ -408,8 +408,8 @@ Size SegSize(Seg seg)
 
 static Bool SegOfTract(Seg *segReturn, Tract tract)
 {
-  AVERT_CRITICAL(Tract, tract);
-  AVER_CRITICAL(segReturn != NULL);
+  AVERT_CRITICAL(Tract, tract); /* .seg.critcial */
+  AVER_CRITICAL(segReturn != NULL);  /* .seg.critcial */
   if (TractHasSeg(tract)) {
     Seg seg = TractSeg(tract);
     AVERT_CRITICAL(Seg, seg);
@@ -426,8 +426,8 @@ static Bool SegOfTract(Seg *segReturn, Tract tract)
 Bool SegOfAddr(Seg *segReturn, Arena arena, Addr addr)
 {
   Tract tract;
-  AVER(segReturn != NULL);
-  AVERT(Arena, arena);
+  AVER_CRITICAL(segReturn != NULL);   /* .seg.critcial */
+  AVERT_CRITICAL(Arena, arena);       /* .seg.critcial */
   if (TractOfAddr(&tract, arena, addr)) {
     return SegOfTract(segReturn, tract);
   } else {
@@ -486,11 +486,11 @@ Bool SegNext(Seg *segReturn, Arena arena, Addr addr)
       } else {
         /* found the next tract in a large segment */
         /* base & addr must be the base of this segment */
-        AVER(TractBase(seg->firstTract) == addr);
-        AVER(addr == base);
+        AVER_CRITICAL(TractBase(seg->firstTract) == addr);
+        AVER_CRITICAL(addr == base);
         /* set base to the last tract in the segment */
         base = AddrSub(seg->limit, ArenaAlign(arena));
-        AVER(base > addr);
+        AVER_CRITICAL(base > addr);
       }
     } else {
       base = TractBase(tract);
@@ -502,6 +502,11 @@ Bool SegNext(Seg *segReturn, Arena arena, Addr addr)
 
 
 /* Class Seg -- The most basic segment class
+ *
+ * .seg.method.check: Many seg methods are lightweight and used 
+ * frequently. Their parameters are checked by the corresponding
+ * dispatching function, and so the their parameter AVERs are 
+ * marked as critical. 
  */
 
 
@@ -885,12 +890,12 @@ static void segGCSetGrey(Seg seg, TraceSet grey)
   TraceSet oldGrey, flippedTraces;
   Rank rank;
   
-  AVERT(Seg, seg);
-  AVER(TraceSetCheck(grey));
+  AVERT_CRITICAL(Seg, seg);            /* .seg.method.check */
+  AVER_CRITICAL(TraceSetCheck(grey));  /* .seg.method.check */
   AVER(seg->rankSet != RankSetEMPTY);
   gcseg = SegSegGC(seg);
-  AVERT(SegGC, gcseg);
-  AVER(&gcseg->segStruct == seg);
+  AVERT_CRITICAL(SegGC, gcseg);
+  AVER_CRITICAL(&gcseg->segStruct == seg);
 
   arena = PoolArena(SegPool(seg));
   oldGrey = seg->grey;
@@ -943,11 +948,11 @@ static void segGCSetWhite(Seg seg, TraceSet white)
   Arena arena;
   Addr addr, limit;
 
-  AVERT(Seg, seg);
-  AVER(TraceSetCheck(white));
+  AVERT_CRITICAL(Seg, seg);            /* .seg.method.check */
+  AVER_CRITICAL(TraceSetCheck(white)); /* .seg.method.check */
   gcseg = SegSegGC(seg);
-  AVERT(SegGC, gcseg);
-  AVER(&gcseg->segStruct == seg);
+  AVERT_CRITICAL(SegGC, gcseg);
+  AVER_CRITICAL(&gcseg->segStruct == seg);
 
   arena = PoolArena(SegPool(seg));
   limit = SegLimit(seg);
@@ -982,12 +987,13 @@ static void segGCSetRankSet(Seg seg, RankSet rankSet)
   RankSet oldRankSet;
   Arena arena;
 
-  AVERT(Seg, seg);
-  AVER(RankSetCheck(rankSet));
-  AVER(rankSet == RankSetEMPTY || RankSetIsSingle(rankSet));
+  AVERT_CRITICAL(Seg, seg);                /* .seg.method.check */
+  AVER_CRITICAL(RankSetCheck(rankSet));    /* .seg.method.check */
+  AVER_CRITICAL(rankSet == RankSetEMPTY ||
+                RankSetIsSingle(rankSet)); /* .seg.method.check */
   gcseg = SegSegGC(seg);
-  AVERT(SegGC, gcseg);
-  AVER(&gcseg->segStruct == seg);
+  AVERT_CRITICAL(SegGC, gcseg);
+  AVER_CRITICAL(&gcseg->segStruct == seg);
 
   arena = PoolArena(SegPool(seg));
   oldRankSet = seg->rankSet;
@@ -1013,10 +1019,10 @@ static RefSet segGCSummary(Seg seg)
 {
   SegGC gcseg;
 
-  AVERT(Seg, seg);
+  AVERT_CRITICAL(Seg, seg);                 /* .seg.method.check */
   gcseg = SegSegGC(seg);
-  AVERT(SegGC, gcseg);
-  AVER(&gcseg->segStruct == seg);
+  AVERT_CRITICAL(SegGC, gcseg);             /* .seg.method.check */
+  AVER_CRITICAL(&gcseg->segStruct == seg);  /* .seg.method.check */
 
   return gcseg->summary;
 }
@@ -1036,10 +1042,10 @@ static void segGCSetSummary(Seg seg, RefSet summary)
   RefSet oldSummary;
   Arena arena;
 
-  AVERT(Seg, seg);
+  AVERT_CRITICAL(Seg, seg);                 /* .seg.method.check */
   gcseg = SegSegGC(seg);
-  AVERT(SegGC, gcseg);
-  AVER(&gcseg->segStruct == seg);
+  AVERT_CRITICAL(SegGC, gcseg);
+  AVER_CRITICAL(&gcseg->segStruct == seg);
 
   arena = PoolArena(SegPool(seg));
   oldSummary = gcseg->summary;
@@ -1068,12 +1074,13 @@ static void segGCSetRankSummary(Seg seg, RankSet rankSet, RefSet summary)
   Bool wasShielded, willbeShielded;
   Arena arena;
 
-  AVERT(Seg, seg);
-  AVER(RankSetCheck(rankSet));
-  AVER(rankSet == RankSetEMPTY || RankSetIsSingle(rankSet));
+  AVERT_CRITICAL(Seg, seg);                    /* .seg.method.check */
+  AVER_CRITICAL(RankSetCheck(rankSet));        /* .seg.method.check */
+  AVER_CRITICAL(rankSet == RankSetEMPTY || 
+                RankSetIsSingle(rankSet));     /* .seg.method.check */
   gcseg = SegSegGC(seg);
-  AVERT(SegGC, gcseg);
-  AVER(&gcseg->segStruct == seg);
+  AVERT_CRITICAL(SegGC, gcseg);
+  AVER_CRITICAL(&gcseg->segStruct == seg);
 
   /* rankSet == RankSetEMPTY implies summary == RefSetEMPTY */
   AVER(rankSet != RankSetEMPTY || summary == RefSetEMPTY);
@@ -1109,10 +1116,10 @@ static Buffer segGCBuffer(Seg seg)
 {
   SegGC gcseg;
 
-  AVERT(Seg, seg);
+  AVERT_CRITICAL(Seg, seg);               /* .seg.method.check */
   gcseg = SegSegGC(seg);
-  AVERT(SegGC, gcseg);
-  AVER(&gcseg->segStruct == seg);
+  AVERT_CRITICAL(SegGC, gcseg);           /* .seg.method.check */
+  AVER_CRITICAL(&gcseg->segStruct == seg);
 
   return gcseg->buffer;
 }
@@ -1124,12 +1131,13 @@ static void segGCSetBuffer(Seg seg, Buffer buffer)
 {
   SegGC gcseg;
 
-  AVERT(Seg, seg);
-  if (buffer != NULL)
-    AVERT(Buffer, buffer);
+  AVERT_CRITICAL(Seg, seg);              /* .seg.method.check */
+  if (buffer != NULL) {
+    AVERT_CRITICAL(Buffer, buffer);
+  }
   gcseg = SegSegGC(seg);
-  AVERT(SegGC, gcseg);
-  AVER(&gcseg->segStruct == seg);
+  AVERT_CRITICAL(SegGC, gcseg);
+  AVER_CRITICAL(&gcseg->segStruct == seg);
 
   gcseg->buffer = buffer;
 }
@@ -1141,10 +1149,10 @@ static void *segGCP(Seg seg)
 {
   SegGC gcseg;
 
-  AVERT(Seg, seg);
+  AVERT_CRITICAL(Seg, seg);             /* .seg.method.check */
   gcseg = SegSegGC(seg);
-  AVERT(SegGC, gcseg);
-  AVER(&gcseg->segStruct == seg);
+  AVERT_CRITICAL(SegGC, gcseg);
+  AVER_CRITICAL(&gcseg->segStruct == seg);
 
   return gcseg->p;
 }
@@ -1156,10 +1164,10 @@ static void segGCSetP(Seg seg, void *p)
 {
   SegGC gcseg;
 
-  AVERT(Seg, seg);
+  AVERT_CRITICAL(Seg, seg);             /* .seg.method.check */
   gcseg = SegSegGC(seg);
-  AVERT(SegGC, gcseg);
-  AVER(&gcseg->segStruct == seg);
+  AVERT_CRITICAL(SegGC, gcseg);
+  AVER_CRITICAL(&gcseg->segStruct == seg);
 
   gcseg->p = p;
 }
