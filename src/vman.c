@@ -1,7 +1,7 @@
 /* impl.c.vman: ANSI VM: MALLOC-BASED PSEUDO MEMORY MAPPING
  *
- * $HopeName: !vman.c(trunk.17) $
- * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
+ * $HopeName: MMsrc!vman.c(MMepcore_pilchard.1) $
+ * Copyright (C) 1997, 1998 The Harlequin Group Limited.  All rights reserved.
  */
 
 #include "mpm.h"
@@ -9,7 +9,7 @@
 #include <stdlib.h>     /* for malloc and free */
 #include <string.h>     /* for memset */
 
-SRCID(vman, "$HopeName: !vman.c(trunk.17) $");
+SRCID(vman, "$HopeName: MMsrc!vman.c(MMepcore_pilchard.1) $");
 
 
 /* VMStruct -- virtual memory structure */
@@ -40,8 +40,10 @@ Bool VMCheck(VM vm)
   return TRUE;
 }
 
-Align VMAlign()
+
+Align VMAlign(VM vm)
 {
+  UNUSED(vm);
   return VMAN_ALIGN;
 }
 
@@ -151,6 +153,7 @@ Res VMMap(VM vm, Addr base, Addr limit)
 
   return ResOK;
 }
+
 
 void VMUnmap(VM vm, Addr base, Addr limit)
 {
