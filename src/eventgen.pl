@@ -2,7 +2,7 @@
 # impl.pl.eventgen -- Generator for impl.h.eventgen
 #
 # Copyright (C) 1997 Harlequin Group, all rights reserved.
-# $HopeName: MMsrc!eventgen.pl(MMdevel_event_string.3) $
+# $HopeName: MMsrc!eventgen.pl(MMdevel_event_string.4) $
 #
 # Invoke this script in the src directory.
 # It works by scanning *.c for EVENT_[A-Z], 
@@ -17,6 +17,15 @@
 # @@@@ This tool is supported on UNIX only. 
 
 %Formats = ();
+
+%Types = (
+  "D", "double",
+  "S", "char *",
+  "U", "unsigned",
+  "W", "Word",
+  "A", "struct AddrStruct *",
+  "P", "void *",
+	  );
 
 while(<*.c>) {
   open(C, "<$_") || die "Can't open $_";
@@ -54,9 +63,11 @@ foreach $format ("", sort(keys(%Formats))) {
     $c = substr($format, $i, 1);
     if($c eq "S") {
       die "String must be at end of format" if($1+1 != length($format));
-      print H "  char s[1];\n";
+      print H "  char s[EventMaxStringLength];\n";
+    } elsif(!defined($Types{$c})) {
+      die "Can't find type for format code >$c<.";
     } else {
-      print H "  WriteF$c \l$c$i;\n";
+      print H "  ", $Types{$c}, " \l$c$i;\n";
     }
   }
   print H "} Event", $format, "Struct;\n\n";

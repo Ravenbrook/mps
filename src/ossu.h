@@ -1,6 +1,6 @@
 /*  ==== SUNOS ANSI COMPATABILITY HEADER ====
  *
- *  $HopeName: !ossu.h(trunk.6) $
+ *  $HopeName: MMsrc!ossu.h(MMdevel_event_string.1) $
  *
  *  Copyright (C) 1994,1995,1997 Harlequin Group, all rights reserved
  *
@@ -73,6 +73,8 @@ extern clock_t clock(void);
 /* stdlib.h things */
 
 extern int system(const char *string);
+#define EXIT_FAILURE 1
+#define EXIT_SUCCESS 0
 
 /* string.h things */
 

@@ -1,7 +1,7 @@
 /* impl.h.event -- Event Logging Interface
  *
  * Copyright (C) 1997 Harlequin Group, all rights reserved.
- * $HopeName: MMsrc!event.h(MMdevel_event_string.2) $
+ * $HopeName: MMsrc!event.h(MMdevel_event_string.3) $
  *
  * .readership: MPS developers.
  * .sources: mps.design.event
@@ -16,6 +16,7 @@ extern Res EventFlush(void);
 extern Res EventInit(void);
 extern void EventFinish(void);
 
+#include "eventcom.h"
 #include "eventgen.h"
 
 #ifdef EVENT

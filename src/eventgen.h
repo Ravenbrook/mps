@@ -19,147 +19,140 @@ typedef struct {
   Word code;
   Word length;
   Word clock;
-  WriteFA a0;
+  struct AddrStruct * a0;
 } EventAStruct;
 
 typedef struct {
   Word code;
   Word length;
   Word clock;
-  WriteFP p0;
+  void * p0;
 } EventPStruct;
 
 typedef struct {
   Word code;
   Word length;
   Word clock;
-  WriteFP p0;
-  WriteFA a1;
-  WriteFA a2;
+  void * p0;
+  struct AddrStruct * a1;
+  struct AddrStruct * a2;
 } EventPAAStruct;
 
 typedef struct {
   Word code;
   Word length;
   Word clock;
-  WriteFP p0;
-  WriteFA a1;
-  WriteFW w2;
+  void * p0;
+  struct AddrStruct * a1;
+  Word w2;
 } EventPAWStruct;
 
 typedef struct {
   Word code;
   Word length;
   Word clock;
-  WriteFP p0;
-  WriteFP p1;
+  void * p0;
+  void * p1;
 } EventPPStruct;
 
 typedef struct {
   Word code;
   Word length;
   Word clock;
-  WriteFP p0;
-  WriteFP p1;
-  WriteFA a2;
-  WriteFA a3;
+  void * p0;
+  void * p1;
+  struct AddrStruct * a2;
+  struct AddrStruct * a3;
 } EventPPAAStruct;
 
 typedef struct {
   Word code;
   Word length;
   Word clock;
-  WriteFP p0;
-  WriteFP p1;
-  WriteFA a2;
-  WriteFU u3;
+  void * p0;
+  void * p1;
+  struct AddrStruct * a2;
+  unsigned u3;
 } EventPPAUStruct;
 
 typedef struct {
   Word code;
   Word length;
   Word clock;
-  WriteFP p0;
-  WriteFP p1;
-  WriteFA a2;
-  WriteFW w3;
-  WriteFP p4;
+  void * p0;
+  void * p1;
+  struct AddrStruct * a2;
+  Word w3;
+  void * p4;
 } EventPPAWPStruct;
 
 typedef struct {
   Word code;
   Word length;
   Word clock;
-  WriteFP p0;
-  WriteFP p1;
-  WriteFP p2;
+  void * p0;
+  void * p1;
+  void * p2;
 } EventPPPStruct;
 
 typedef struct {
   Word code;
   Word length;
   Word clock;
-  WriteFP p0;
-  WriteFP p1;
-  WriteFP p2;
-  WriteFP p3;
+  void * p0;
+  void * p1;
+  void * p2;
+  void * p3;
 } EventPPPPStruct;
 
 typedef struct {
   Word code;
   Word length;
   Word clock;
-  WriteFP p0;
-  WriteFP p1;
-  WriteFP p2;
-  WriteFU u3;
+  void * p0;
+  void * p1;
+  void * p2;
+  unsigned u3;
 } EventPPPUStruct;
 
 typedef struct {
   Word code;
   Word length;
   Word clock;
-  WriteFP p0;
-  WriteFP p1;
-  WriteFU u2;
+  void * p0;
+  void * p1;
+  unsigned u2;
 } EventPPUStruct;
 
 typedef struct {
   Word code;
   Word length;
   Word clock;
-  WriteFP p0;
-  WriteFP p1;
-  WriteFW w2;
+  void * p0;
+  void * p1;
+  Word w2;
 } EventPPWStruct;
 
 typedef struct {
   Word code;
   Word length;
   Word clock;
-  WriteFP p0;
-  WriteFP p1;
-  WriteFW w2;
-  WriteFA a3;
-  WriteFW w4;
+  void * p0;
+  void * p1;
+  Word w2;
+  struct AddrStruct * a3;
+  Word w4;
 } EventPPWAWStruct;
 
 typedef struct {
   Word code;
   Word length;
   Word clock;
-  char s[1];
-} EventSStruct;
-
-typedef struct {
-  Word code;
-  Word length;
-  Word clock;
-  WriteFU u0;
-  WriteFU u1;
-  WriteFP p2;
-  WriteFP p3;
-  WriteFP p4;
+  unsigned u0;
+  unsigned u1;
+  void * p2;
+  void * p3;
+  void * p4;
 } EventUUPPPStruct;
 
 
@@ -179,7 +172,6 @@ typedef union {
   EventPPUStruct ppu;
   EventPPWStruct ppw;
   EventPPWAWStruct ppwaw;
-  EventSStruct s;
   EventUUPPPStruct uuppp;
 } EventUnion;
 
@@ -331,18 +323,6 @@ typedef union {
     EVENT_END(type, _length); \
   END
 
-#define EVENT_S(type, _s) \
-  BEGIN \
-    char *_s2 = (_s); \
-    size_t _string_length = StringLength((_s2)); \
-    size_t _length = \
-      WordAlignUp(offsetof(EventSStruct, s) + \
-                  _string_length + 1, sizeof(Word)); \
-    EVENT_BEGIN(type, S, _length); \
-    _memcpy(Event.s.s, (_s2), _string_length + 1); \
-    EVENT_END(type, _length); \
-  END
-
 #define EVENT_UUPPP(type, _u0, _u1, _p2, _p3, _p4) \
   BEGIN \
     size_t _length = sizeof(EventUUPPPStruct); \
@@ -370,8 +350,7 @@ typedef union {
 #define EventFormatPPU 12
 #define EventFormatPPW 13
 #define EventFormatPPWAW 14
-#define EventFormatS 15
-#define EventFormatUUPPP 16
+#define EventFormatUUPPP 15
 
 #else /* EVENT not */
 
@@ -390,7 +369,6 @@ typedef union {
 #define EVENT_PPU(type, p0, p1, p2)    NOOP
 #define EVENT_PPW(type, p0, p1, p2)    NOOP
 #define EVENT_PPWAW(type, p0, p1, p2, p3, p4)    NOOP
-#define EVENT_S(type, p0)    NOOP
 #define EVENT_UUPPP(type, p0, p1, p2, p3, p4)    NOOP
 
 #endif /* EVENT */
