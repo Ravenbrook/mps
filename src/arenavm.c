@@ -1,6 +1,6 @@
 /* impl.c.arenavm: VIRTUAL MEMORY BASED ARENA IMPLEMENTATION
  *
- * $HopeName: !arenavm.c(trunk.25) $
+ * $HopeName: MMsrc!arenavm.c(MMdevel_partial_page.1) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  *
  * This is the implementation of the Segment abstraction from the VM
@@ -37,7 +37,7 @@
 #include "mpm.h"
 
 
-SRCID(arenavm, "$HopeName: !arenavm.c(trunk.25) $");
+SRCID(arenavm, "$HopeName: MMsrc!arenavm.c(MMdevel_partial_page.1) $");
 
 
 /* Space Arena Projection
@@ -79,13 +79,13 @@ typedef struct PageStruct {     /* page structure */
 } PageStruct;
 
 
-/* PageBase -- map page index to base address of page
+/* PageIndexBase -- map page index to base address of page
  *
  * See design.mps.arena.vm.table.linear
  */
 
-#define PageBase(arena, i) \
-  AddrAdd((arena)->base, ((i) << arena->pageShift))
+#define PageIndexBase(arena, i) \
+  AddrAdd((arena)->base, ((i) << (arena)->pageShift))
 
 
 /* PageSeg -- segment descriptor of a page */
@@ -100,7 +100,7 @@ typedef struct PageStruct {     /* page structure */
 
 /* PageOfSeg -- page descriptor from segment */
 
-#define PageOfSeg(seg)          PARENT(PageStruct, the.segStruct, seg)
+#define PageOfSeg(seg)          PARENT(PageStruct, the.segStruct, (seg))
 
 
 /* PageIsHead -- is a page a head (contains segment descriptor)?
@@ -109,6 +109,17 @@ typedef struct PageStruct {     /* page structure */
  */
 
 #define PageIsHead(page)        (PageTail(page)->pool != NULL)
+
+
+/* baseOfPageInPageTable -- the base of this page in the page table
+ *
+ * Given a page index, finds the page that the corresponding page table
+ * entry is on.
+ */
+#define pageEntry(arena, page) \
+  ((arena)->pageTable[page])
+#define addrPageBase(arena, addr) \
+  AddrAlignDown((addr), (arena)->pageSize)
 
 
 /* ArenaCreate -- create the arena
@@ -165,6 +176,7 @@ Res ArenaCreate(Space *spaceReturn, Size size, Addr base)
   if(res != ResOK)
     goto failTableMap;
   arena->allocTable = (BT)arena->base;
+  /* .vm.Addr-is-star: In this file, Addr is compatible with C pointers. */
   arena->pageTable = (Page)AddrAdd(arena->base, allocTableSize);
 
   /* .tablepages: pages whose page index is < tablePages are recorded as */
@@ -425,7 +437,7 @@ static Bool findFreeInRefSet(Index *baseReturn,
 
   /* .alloc.skip: The first address available for segments, */
   /* is just after the arena tables. */
-  arenaBase = PageBase(arena, arena->tablePages);
+  arenaBase = PageIndexBase(arena, arena->tablePages);
 
   base = arenaBase;
   while(base < arena->limit) {
@@ -477,13 +489,36 @@ static Bool findFreeInRefSet(Index *baseReturn,
 }
 
 
+/* tablePageIsMapped -- check whether a given page of the page table is mapped
+ *
+ * We calculate the indexes corresponding to the first and last byte of the
+ * page by dividing the offset from the beginning of the table by the size
+ * a table element.  This relies on ArenaCreate.vm.Addr-is-star.
+ */
+
+static Bool tablePageIsMapped(Arena arena, Addr page)
+{
+  Size pageOffset;
+
+  AVERT(Arena, arena);
+  /* Check it's in the page table. */
+  pageOffset = AddrOffset((Addr)&arena->pageTable[0], page);
+  AVER(pageOffset > 0 &&
+       AddrOffset(page, (Addr)&arena->pageTable[arena->tablePages]) > 0);
+
+  return BTIsResRange(arena->allocTable,
+		      pageOffset / sizeof(Page),
+		      (pageOffset + arena->pageSize - 1) / sizeof(Page));
+}
+
+
 /* SegAlloc -- allocate a segment from the arena */
 
 Res SegAlloc(Seg *segReturn, SegPref pref, Space space, Size size, Pool pool)
 {
   Arena arena = SpaceArena(space);
   Index i, pages, base;
-  Addr addr;
+  Addr addr, firstPage, lastPage, unmappedPagesBase, unmappedPagesLimit;
   Seg seg;
   Res res;
 
@@ -510,10 +545,45 @@ Res SegAlloc(Seg *segReturn, SegPref pref, Space space, Size size, Pool pool)
   
   /* .alloc.early-map: Map in the segment memory before actually */
   /* allocating the pages, so that we can exit straight away if */
-  /* we fail.  After this point, there can be no failure. */
-  addr = PageBase(arena, base);
+  /* we fail. */
+  addr = PageIndexBase(arena, base);
   res = VMMap(space, addr, AddrAdd(addr, size));
-  if(res) return res;
+  if(res) goto failSegMap;
+
+  /* Compute number of pages to be allocated. */
+  pages = size >> arena->pageShift;
+
+  /* Ensure that the page table entries we need are on mapped pages. */
+  /* .mapped.first-and-last: Since the entries are not being used at */
+  /* the moment, only the first page and the last page could be */
+  /* mapped, the rest must be unmapped. */
+  /* First, compute first page needed (using ArenaCreate.vm.Addr-is-star). */
+  firstPage = addrPageBase(arena, &arena->pageTable[base]);
+  /* If it's already mapped, start mapping from next page. */
+  if(tablePageIsMapped(arena, firstPage)) {
+    unmappedPagesBase = firstPage;
+  } else {
+    unmappedPagesBase = AddrAdd(firstPage, arena->pageSize);
+  }
+  /* Then, compute last page needed (page of last byte of last entry). */
+  lastPage = addrPageBase(arena, (char*)&arena->pageTable[base + pages] - 1);
+  /* If it's already mapped, end mapping at previous page. */
+  if(firstPage == lastPage) {
+    /* No need to look in allocTable -- map this one page, or nothing, */
+    /* depending on how we set unmappedPagesBase above. */
+    unmappedPagesLimit = AddrAdd(firstPage, arena->pageSize);
+  } else {
+    if(tablePageIsMapped(arena, lastPage)) {
+      unmappedPagesLimit = AddrAdd(lastPage, arena->pageSize);
+    } else {
+      unmappedPagesLimit = lastPage;
+    }
+  }
+  /* Now map it, if necessary. */
+  if(unmappedPagesBase < unmappedPagesLimit) {
+    res = VMMap(space, unmappedPagesBase, unmappedPagesLimit);
+    if(res) goto failTableMap;
+  }
 
   /* Initialize the generic segment structure. */
   seg = PageSeg(&arena->pageTable[base]);
@@ -524,9 +594,8 @@ Res SegAlloc(Seg *segReturn, SegPref pref, Space space, Size size, Pool pool)
   /* in the page table. */
   AVER(!BTGet(arena->allocTable, base));
   BTSet(arena->allocTable, base);
-  pages = size >> arena->pageShift;
   if(pages > 1) {
-    Addr limit = PageBase(arena, base + pages);
+    Addr limit = PageIndexBase(arena, base + pages);
     SegSetSingle(seg, FALSE);
     for(i = base + 1; i < base + pages; ++i) {
       AVER(!BTGet(arena->allocTable, i));
@@ -544,6 +613,11 @@ Res SegAlloc(Seg *segReturn, SegPref pref, Space space, Size size, Pool pool)
 
   *segReturn = seg;
   return ResOK;
+
+failTableMap:
+  VMUnmap(space, addr, AddrAdd(addr, size));
+failSegMap:
+  return res;
 }
 
 
@@ -573,7 +647,7 @@ void SegFree(Space space, Seg seg)
 
   SegFinish(seg);
 
-  base = PageBase(arena, basePage);
+  base = PageIndexBase(arena, basePage);
   VMUnmap(space, base, limit);
 
   /* Calculate the number of pages in the segment */
@@ -619,7 +693,7 @@ Addr SegBase(Space space, Seg seg)
   page = PageOfSeg(seg);
   i = page - arena->pageTable;
 
-  return PageBase(arena, i);
+  return PageIndexBase(arena, i);
 }
 
 
@@ -716,9 +790,6 @@ static Bool segSearch(Seg *segReturn, Arena arena, Index i)
   AVER(arena->tablePages <= i);
   AVER(i <= arena->pages);
 
-  /* This is a static function called with checked arguments, */
-  /* so we don't bother checking them here as well. */
-
   while(i < arena->pages &&
         !(BTGet(arena->allocTable, i) &&
           PageIsHead(&arena->pageTable[i])))
@@ -783,5 +854,3 @@ Bool SegNext(Seg *segReturn, Space space, Addr addr)
 
   return segSearch(segReturn, arena, i + 1);
 }
-
-
