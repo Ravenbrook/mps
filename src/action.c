@@ -1,12 +1,12 @@
 /* impl.c.action: STRATEGIC ACTION
  *
  * Copyright (C) 1997 Harlequin Group, all rights reserved.
- * $HopeName: MMsrc!action.c(MMdevel_action2.3) $
+ * $HopeName: !action.c(trunk.2) $
  */
 
 #include "mpm.h"
 
-SRCID(action, "$HopeName: MMsrc!action.c(MMdevel_action2.3) $");
+SRCID(action, "$HopeName: !action.c(trunk.2) $");
 
 
 /* ActionCheck -- check consistency of an Action structure */
