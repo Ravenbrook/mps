@@ -1,6 +1,6 @@
 /* impl.c.sacss: SAC MANUAL ALLOC STRESS TEST
  *
- * $HopeName: MMsrc!sacss.c(MM_epcore_brisling.1) $
+ * $HopeName: MMsrc!sacss.c(MM_epcore_brisling.2) $
  * Copyright (C) 1999 Harlequin Group plc.  All rights reserved.
  */
 
@@ -144,13 +144,11 @@ static size_t randomSize8(int i)
 
   /* Reduce by a factor of 2 every 10 cycles.  Total allocation about 40 MB. */
   size = rnd() % max((maxSize >> (i / 10)), 2) + 1;
-  return (size > topClassSIZE) ? alignUp(size, 8) : size;
+  return size;
 }
 
 
-#if 0
 static mps_pool_debug_option_s debugOptions = { (void *)"postpost", 8 };
-#endif
 
 static mps_sac_classes_t classes = { {8, 3, 1}, {136, 9, 3},
                                      {topClassSIZE, 4, 1} };
@@ -161,12 +159,10 @@ static int testInArena(mps_arena_t arena)
   die(stress(mps_class_mvff(), arena, classCOUNT, classes, randomSize8,
              (size_t)65536, (size_t)32, (size_t)4, TRUE, TRUE, TRUE),
       "stress MVFF");
-#if 0
   printf("MV debug\n\n");
   die(stress(mps_class_mv_debug(), arena, classCOUNT, classes, randomSize8,
              &debugOptions, (size_t)65536, (size_t)32, (size_t)65536),
       "stress MV debug");
-#endif
   printf("MV\n\n");
   die(stress(mps_class_mv(), arena, classCOUNT, classes, randomSize8,
              (size_t)65536, (size_t)32, (size_t)65536),
