@@ -1,6 +1,6 @@
 /* impl.c.mpsi: MEMORY POOL SYSTEM C INTERFACE LAYER
  *
- * $HopeName: MMsrc!mpsi.c(MMdevel_sw_eq.2) $
+ * $HopeName: MMsrc!mpsi.c(MMdevel_sw_eq.3) $
  * Copyright (C) 1996 Harlequin Group, all rights reserved.
  *
  * .purpose: This code bridges between the MPS interface to C,
@@ -55,7 +55,7 @@
 #include "mpm.h"
 #include "mps.h"
 
-SRCID(mpsi, "$HopeName: MMsrc!mpsi.c(MMdevel_sw_eq.2) $");
+SRCID(mpsi, "$HopeName: MMsrc!mpsi.c(MMdevel_sw_eq.3) $");
 
 
 /* mpsi_check -- check consistency of interface mappings
@@ -111,12 +111,6 @@ static Bool mpsi_check(void)
   CHECKL(MPS_RANK_WEAK == RankWEAK);
   CHECKL(MPS_RANK_FINAL == RankFINAL);
 
-  /* check that external and internal pool preference codes match */
-  /* see impl.h.mps.pref and impl.h.mpmtypes.pref */
-  CHECKL(CHECKTYPE(mps_pool_pref_kind_t, PoolPrefKind));
-  CHECKL(MPS_POOL_PREF_NEAR == PoolPrefNear);
-  CHECKL(MPS_POOL_PREF_FAR  == PoolPrefFar);
-  
   /* The external idea of a word width and the internal one */
   /* had better match.  See design.mps.interface.c.cons. */
   CHECKL(MPS_WORD_WIDTH == WORD_WIDTH);
@@ -319,7 +313,6 @@ void mps_fmt_destroy(mps_fmt_t mps_fmt)
 
 
 mps_res_t mps_pool_create(mps_pool_t *mps_pool_o,
-                          mps_pool_pref_t mps_pool_pref,
                           mps_class_t mps_class,
                           mps_space_t mps_space,
                           ...)
@@ -327,14 +320,13 @@ mps_res_t mps_pool_create(mps_pool_t *mps_pool_o,
   mps_res_t res;
   va_list args;
   va_start(args, mps_space);
-  res = mps_pool_create_v(mps_pool_o, mps_pool_pref, mps_class,
+  res = mps_pool_create_v(mps_pool_o, mps_class,
                           mps_space, args);
   va_end(args);
   return res;
 }
 
 mps_res_t mps_pool_create_v(mps_pool_t *mps_pool_o,
-                            mps_pool_pref_t mps_pool_pref,
                             mps_class_t mps_class,
                             mps_space_t mps_space,
                             va_list args)
@@ -342,7 +334,6 @@ mps_res_t mps_pool_create_v(mps_pool_t *mps_pool_o,
   Space space = (Space)mps_space;
   Pool pool;
   PoolClass class = (PoolClass)mps_class;
-  PoolPref pref = (PoolPref)mps_pool_pref;
   Res res;
 
   SpaceEnter(space);
@@ -350,9 +341,8 @@ mps_res_t mps_pool_create_v(mps_pool_t *mps_pool_o,
   AVER(mps_pool_o != NULL);
   AVERT(Space, space);
   AVERT(PoolClass, class);
-  AVERT(PoolPref, pref);
 
-  res = PoolCreateV(&pool, pref, class, space, args);
+  res = PoolCreateV(&pool, class, space, args);
 
   SpaceLeave(space);
   
@@ -374,54 +364,6 @@ void mps_pool_destroy(mps_pool_t mps_pool)
 
   AVERT(Pool, pool);
   PoolDestroy(pool);
-
-  SpaceLeave(space);
-}
-
-mps_res_t mps_pool_pref_create(mps_pool_pref_t *pref_out,
-                               mps_space_t mps_space)
-{
-  Space space = (Space)mps_space;
-  PoolPref pref = NULL; /* avoids compiler warning */
-  Res res;
-  void *p;
-
-  SpaceEnter(space);
-
-  res = SpaceAlloc(&p, space, sizeof(PoolPrefStruct));
-  if (res == ResOK) {
-    pref = (PoolPref)p;
-    *pref = *PoolPrefDefault();
-  }
-
-  SpaceLeave(space);
-
-  if (res != ResOK) return res;
-  *pref_out = (mps_pool_pref_t)pref;
-  return res;
-}
-
-mps_res_t mps_pool_pref_express(mps_pool_pref_t mps_pref,
-                                mps_pool_pref_kind_t kind,
-                                void *p)
-{
-  Res res;
-  PoolPref pref = (PoolPref)mps_pref;
-  /* fill in here */
-  AVER(CHECKT(PoolPref, pref));
-  res = PoolPrefExpress(pref, kind, p);
-
-  return res;
-}
-
-void mps_pool_pref_destroy(mps_pool_pref_t pref,
-                           mps_space_t mps_space)
-{
-  Space space = (Space)mps_space;
-
-  SpaceEnter(space);
-
-  SpaceFree(space, (Addr)pref, sizeof(PoolPrefStruct));
 
   SpaceLeave(space);
 }

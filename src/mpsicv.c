@@ -1,6 +1,6 @@
 /* impl.c.mpsicv: MPSI COVERAGE TEST
  *
- * $HopeName: MMsrc!mpsicv.c(MMdevel_sw_eq.1) $
+ * $HopeName: MMsrc!mpsicv.c(MMdevel_sw_eq.2) $
  * Copyright (C) 1996 Harlequin Group, all rights reserved
  */
 
@@ -74,13 +74,10 @@ static void alloc_v_test(mps_pool_t pool, ...)
 static void pool_create_v_test(mps_space_t space, ...)
 {
   va_list args;
-  mps_pool_pref_t pref;
 
   va_start(args, space);
-  die(mps_pool_pref_create(&pref, space), "pool_pref_create");
-  die(mps_pool_create_v(&amcpool, pref, mps_class_amc(), space, args),
+  die(mps_pool_create_v(&amcpool, mps_class_amc(), space, args),
       "pool_create_v(amc)");
-  mps_pool_pref_destroy(pref,space);
   va_end(args);
 }
 
@@ -105,7 +102,6 @@ static void *test(void *arg, size_t s)
 {
   mps_space_t space;
   mps_fmt_t format;
-  mps_pool_pref_t pref;
   mps_root_t exact_root, ambig_root;
   mps_root_t single_root, fmt_root;
   mps_word_t i;
@@ -121,13 +117,9 @@ static void *test(void *arg, size_t s)
 
   die(mps_fmt_create_A(&format, space, dylan_fmt_A()), "fmt_create");
 
-  die(mps_pool_pref_create(&pref, space), "pool_pref_create");
-
-  die(mps_pool_create(&mv, pref, mps_class_mv(), space, 0x10000, 32, 0x10000),
+  die(mps_pool_create(&mv, mps_class_mv(), space, 0x10000, 32, 0x10000),
       "pool_create(mv)");
   
-  mps_pool_pref_destroy(pref, space);
-
   pool_create_v_test(space, format); /* creates amc pool */
 
   ap_create_v_test(amcpool, MPS_RANK_WEAK);

@@ -1,6 +1,6 @@
 /* impl.h.mpm: MEMORY POOL MANAGER DEFINITIONS
  *
- * $HopeName: MMsrc!mpm.h(MMdevel_sw_eq.2) $
+ * $HopeName: MMsrc!mpm.h(MMdevel_sw_eq.3) $
  * Copyright (C) 1996 Harlequin Group, all rights reserved.
  */
 
@@ -171,13 +171,9 @@ extern Ring (RingNext)(Ring ring);
 
 /* Pool Interface -- see impl.c.pool */
 
-extern Bool PoolPrefCheck(PoolPref);
-extern PoolPref PoolPrefDefault(void);
-extern Res PoolPrefExpress(PoolPref, PoolPrefKind, void *);
-
-extern Res PoolInit(Pool pool, PoolPref pref, PoolClass class,
+extern Res PoolInit(Pool pool, PoolClass class,
                     Space space, ...);
-extern Res PoolInitV(Pool pool, PoolPref pref, PoolClass class,
+extern Res PoolInitV(Pool pool, PoolClass class,
                      Space space, va_list args);
 extern void PoolFinish(Pool pool);
 extern Bool PoolClassCheck(PoolClass class);
@@ -195,9 +191,9 @@ extern void PoolSegFree(Pool pool, Seg seg);
 extern Bool PoolOfAddr(Pool *poolReturn, Space space, Addr addr);
 extern Bool PoolHasAddr(Pool pool, Addr addr);
 
-extern Res PoolCreate(Pool *poolReturn, PoolPref pref, PoolClass class,
+extern Res PoolCreate(Pool *poolReturn, PoolClass class,
                         Space space, ...);
-extern Res PoolCreateV(Pool *poolReturn, PoolPref pref, PoolClass class,
+extern Res PoolCreateV(Pool *poolReturn, PoolClass class,
                          Space space, va_list arg);
 extern void PoolDestroy(Pool pool);
 extern Res PoolAlloc(Addr *pReturn, Pool pool, Size size);

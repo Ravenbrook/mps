@@ -1,6 +1,6 @@
 /* impl.c.pool: POOL IMPLEMENTATION
  *
- * $HopeName: MMsrc!pool.c(MMdevel_sw_eq.2) $
+ * $HopeName: MMsrc!pool.c(MMdevel_sw_eq.3) $
  * Copyright (C) 1994,1995,1996 Harlequin Group, all rights reserved
  *
  * This is the implementation of the generic pool interface.  The
@@ -12,7 +12,7 @@
 
 #include "mpm.h"
 
-SRCID(pool, "$HopeName: MMsrc!pool.c(MMdevel_sw_eq.2) $");
+SRCID(pool, "$HopeName: MMsrc!pool.c(MMdevel_sw_eq.3) $");
 
 
 Bool PoolClassCheck(PoolClass class)
@@ -59,68 +59,29 @@ Bool PoolCheck(Pool pool)
   return TRUE;
 }
 
-Bool PoolPrefCheck(PoolPref pref)
-{
-  CHECKS(PoolPref, pref);
-  CHECKL(pref->nearPool == NULL || PoolCheck(pref->nearPool));
-  CHECKL(pref->farPool == NULL || PoolCheck(pref->farPool));
-  /* nothing else to check */
-  return TRUE;
-}
-
-static PoolPrefStruct poolPrefDefault = {PoolPrefSig, NULL, NULL};
-
-PoolPref PoolPrefDefault(void)
-{
-  return &poolPrefDefault;
-}
-
-Res PoolPrefExpress(PoolPref pref, PoolPrefKind kind, void *p)
-{
-  AVERT(PoolPref, pref);
-  AVER(pref != &poolPrefDefault);
-
-  switch(kind) {
-  case PoolPrefNear:
-    AVERT(Pool, (Pool)p);
-    pref->nearPool = p;
-    return ResOK;
-
-  case PoolPrefFar:
-    AVERT(Pool, (Pool)p);
-    pref->farPool = p;
-    return ResOK;
-
-  default:
-    /* see design.mps.pref.default */
-    return ResOK;
-  }
-}
-
 /* PoolInit, PoolInitV -- initialize a pool
  *
  * Initialize the generic fields of the pool and calls class-specific init. 
  * See design.mps.pool.align
  */
 
-Res PoolInit(Pool pool, PoolPref pref, PoolClass class, Space space, ...)
+Res PoolInit(Pool pool, PoolClass class, Space space, ...)
 {
   Res res;
   va_list args;
   va_start(args, space);
-  res = PoolInitV(pool, pref, class, space, args);
+  res = PoolInitV(pool, class, space, args);
   va_end(args);
   return res;
 }
 
-Res PoolInitV(Pool pool, PoolPref pref, PoolClass class,
+Res PoolInitV(Pool pool, PoolClass class,
               Space space, va_list args)
 {
   Res res;
 
   AVER(pool != NULL);
   AVERT(Space, space);
-  AVERT(PoolPref, pref);
   AVERT(PoolClass, class);
 
   pool->class = class;
@@ -139,7 +100,7 @@ Res PoolInitV(Pool pool, PoolPref pref, PoolClass class,
   AVERT(Pool, pool);
 
   /* Do class-specific initialization. */
-  res = (*class->init)(pool, pref, args);
+  res = (*class->init)(pool, args);
   if(res != ResOK)
     goto failInit;
 
@@ -155,18 +116,18 @@ failInit:
 
 /* PoolCreate, PoolCreateV: Allocate and initialise pool */
 
-Res PoolCreate(Pool *poolReturn, PoolPref pref, PoolClass class,
+Res PoolCreate(Pool *poolReturn, PoolClass class,
                Space space, ...)
 {
   Res res;
   va_list args;
   va_start(args, space);
-  res = PoolCreateV(poolReturn, pref, class, space, args);
+  res = PoolCreateV(poolReturn, class, space, args);
   va_end(args);
   return res;
 }
 
-Res PoolCreateV(Pool *poolReturn,  PoolPref pref, PoolClass class,
+Res PoolCreateV(Pool *poolReturn, PoolClass class,
                 Space space, va_list args)
 {
   Res res;
@@ -175,7 +136,6 @@ Res PoolCreateV(Pool *poolReturn,  PoolPref pref, PoolClass class,
 
   AVER(poolReturn != NULL);
   AVERT(Space, space);
-  AVERT(PoolPref, pref);
   AVERT(PoolClass, class);
 
   /* .space.alloc: Allocate the pool instance structure with the size */
@@ -190,7 +150,7 @@ Res PoolCreateV(Pool *poolReturn,  PoolPref pref, PoolClass class,
   pool = (Pool)PointerAdd(base, class->offset);
 
   /* Initialize the pool. */  
-  res = PoolInitV(pool, pref, class, space, args);
+  res = PoolInitV(pool, class, space, args);
   if(res != ResOK) 
     goto failPoolInit;
   

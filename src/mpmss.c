@@ -1,6 +1,6 @@
 /*  ==== MPM STRESS TEST ====
  *
- *  $HopeName: MMsrc!mpmss.c(MMdevel_sw_eq.1) $
+ *  $HopeName: MMsrc!mpmss.c(MMdevel_sw_eq.2) $
  */
 
 
@@ -21,21 +21,15 @@ static mps_res_t stress(mps_class_t class, mps_space_t space, size_t (*size)(int
 {
   mps_res_t res;
   mps_pool_t pool;
-  mps_pool_pref_t pref;
   va_list arg;
   int i;
   void *ps[TEST_SET_SIZE];
   size_t ss[TEST_SET_SIZE];
 
-  res = mps_pool_pref_create(&pref, space);
-  if (res != MPS_RES_OK) return res;
-  
   va_start(arg, size);
-  res = mps_pool_create_v(&pool, pref, class, space, arg);
+  res = mps_pool_create_v(&pool, class, space, arg);
   va_end(arg);
   if(res != MPS_RES_OK) return res;
-
-  mps_pool_pref_destroy(pref, space);
 
   for(i=0; i<TEST_SET_SIZE; ++i)
   {
