@@ -1,12 +1,12 @@
 /* impl.c.trace: GENERIC TRACER IMPLEMENTATION
  *
- * $HopeName: MMsrc!trace.c(MM_dylan_sunflower.3) $
+ * $HopeName: MMsrc!trace.c(MM_dylan_sunflower.4) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  */
 
 #include "mpm.h"
 
-SRCID(trace, "$HopeName: MMsrc!trace.c(MM_dylan_sunflower.3) $");
+SRCID(trace, "$HopeName: MMsrc!trace.c(MM_dylan_sunflower.4) $");
 
 
 /* ScanStateCheck -- check consistency of a ScanState object */
@@ -90,7 +90,6 @@ Bool TraceCheck(Trace trace)
     default:
     NOTREACHED;
   }
-  /* @@@@ Check trace->interval? */
   return TRUE;
 }
 
@@ -140,8 +139,10 @@ static Res TraceStart(Trace trace, Action action)
 
     /* Add the segment to the approximation of the white set the */
     /* pool made it white. */
-    if(TraceSetIsMember(SegWhite(seg), trace->ti))
+    if(TraceSetIsMember(SegWhite(seg), trace->ti)) {
       trace->white = RefSetUnion(trace->white, RefSetOfSeg(space, seg));
+      trace->condemned += SegSize(space, seg);
+    }
 
     node = next;
   }
@@ -155,6 +156,7 @@ static Res TraceStart(Trace trace, Action action)
   if(trace->white == RefSetEMPTY) {
     space->flippedTraces = TraceSetAdd(space->flippedTraces, trace->ti);
     trace->state = TraceRECLAIM;
+    trace->rate = 1;
     return ResOK;
   }
 
@@ -182,10 +184,13 @@ static Res TraceStart(Trace trace, Action action)
 
 	/* Turn the segment grey if there might be a reference in it */
 	/* to the white set.  This is done by seeing if the summary */
-	/* of references in the segment intersects with the approximation */
-	/* to the white set. */
-	if(RefSetInter(SegSummary(seg), trace->white) != RefSetEMPTY)
+	/* of references in the segment intersects with the */
+        /* approximation to the white set. */
+	if(RefSetInter(SegSummary(seg), trace->white) != RefSetEMPTY) {
 	  PoolGrey(SegPool(seg), trace, seg);
+	  if(TraceSetIsMember(SegGrey(seg), trace->ti))
+	    trace->foundation += SegSize(space, seg);
+	}
       }
     } while(SegNext(&seg, space, base));
   }
@@ -200,6 +205,23 @@ static Res TraceStart(Trace trace, Action action)
       RootGrey(root, trace);
 
     node = next;
+  }
+
+  /* Calculate the rate of working.  Assumes that half the condemned */
+  /* set will survive, and calculates a rate of work which will */
+  /* finish the collection by the time that a megabyte has been */
+  /* allocagted.  The 4096 is the number of bytes scanned by each */
+  /* TracePoll (approximately) and should be replaced by a parameter. */
+  /* This is a temporary measure for change.dylan.sunflower.7.170466. */
+  {
+    double surviving = trace->condemned / 2;
+    double scan = trace->foundation + surviving;
+    /* double reclaim = trace->condemned - surviving; */
+    double alloc = 1024*1024; /* reclaim / 2; */
+    if(alloc > 0)
+      trace->rate = 1 + (Size)(scan * SPACE_POLL_MAX / (4096 * alloc));
+    else
+      trace->rate = 1 + (Size)(scan / 4096);
   }
 
   trace->state = TraceUNFLIPPED;
@@ -266,11 +288,13 @@ found:
   trace->white = RefSetEMPTY;
   trace->ti = ti;
   trace->state = TraceINIT;
-  trace->interval = (Size)4096; /* @@@@ should be progress control */
   /* We conservatively assume that there may be grey segments at all */
   /* ranks when we create the trace.  (almost certainly we could do */
   /* better) */
   trace->grey = RankSetUNIV;
+  trace->condemned = (Size)0;   /* nothing condemned yet */
+  trace->foundation = (Size)0;  /* nothing grey yet */
+  trace->rate = (Size)0;        /* no scanning to be done yet */
 
   trace->sig = TraceSig;
   AVERT(Trace, trace);
@@ -484,10 +508,10 @@ static Res TraceFlip(Trace trace)
       AVER(RootRank(root) <= RankEXACT); /* see above */
 
       if(RootRank(root) == ss.rank) {
-        res = RootScan(&ss, root);
-        if(res != ResOK) {
-          return res;
-        }
+	res = RootScan(&ss, root);
+	if(res != ResOK) {
+	  return res;
+	}
       }
 
       node = next;
@@ -549,7 +573,7 @@ static void TraceReclaim(Trace trace)
  */
 
 static Bool FindGrey(Seg *segReturn, Rank *rankReturn,
-                     Space space, TraceId ti)
+		     Space space, TraceId ti)
 {
   Rank rank;
   Trace trace;
@@ -594,7 +618,7 @@ static Bool FindGrey(Seg *segReturn, Rank *rankReturn,
  */
 
 static Res TraceScan(TraceSet ts, Rank rank,
-                     Space space, Seg seg)
+		     Space space, Seg seg)
 {
   Res res;
   ScanStateStruct ss;
@@ -653,8 +677,8 @@ static Res TraceScan(TraceSet ts, Rank rank,
 
   AVER(RefSetSub(ss.summary, SegSummary(seg)));
   TraceSetSummary(space, seg,
-                  TraceSetUnion(ss.fixed,
-                                TraceSetDiff(ss.summary, ss.white)));
+		  TraceSetUnion(ss.fixed,
+				TraceSetDiff(ss.summary, ss.white)));
 
   ss.sig = SigInvalid;			/* just in case */
 
@@ -693,8 +717,8 @@ void TraceAccess(Space space, Seg seg, AccessSet mode)
     /* minimum rank of all grey segments. */
     /* design.mps.poolamc.access.multi @@@@ tag correct?? */
     res = TraceScan(space->busyTraces,  /* @@@@ Should just be flipped traces? */
-                    RankEXACT,
-                    space, seg);
+		    RankEXACT,
+		    space, seg);
     AVER(res == ResOK);                 /* design.mps.poolamc.access.error */
 
     /* The pool should've done the job of removing the greyness that */
@@ -727,7 +751,7 @@ static Res TraceRun(Trace trace)
   if(FindGrey(&seg, &rank, space, trace->ti)) {
     AVER((SegPool(seg)->class->attr & AttrSCAN) != 0);
     res = TraceScan(TraceSetSingle(trace->ti), rank,
-                    space, seg);
+		    space, seg);
     if(res != ResOK) return res;
   } else
     trace->state = TraceRECLAIM;
