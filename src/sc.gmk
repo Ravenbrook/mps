@@ -1,6 +1,6 @@
 # impl.gmk.sc: GNUMAKEFILE FRAGMENT FOR SunPro C
 #
-# $HopeName: MMsrc!sc.gmk(MMdevel_sw_eq.1) $
+# $HopeName: MMsrc!sc.gmk(MMdevel_sw_eq.2) $
 #
 # This file is included by platform makefiles that use the SunPro C
 # compiler.  It defines the compiler specific variables that the
@@ -8,7 +8,7 @@
 # discussion of the various flags.
 
 CC = /opt/SUNWspro/SC4.0/bin/cc
-CFLAGSCOMPILER = -v -Xc -erroff=E_LOOP_NOT_ENTERED_AT_TOP
+CFLAGSCOMPILER = -v -Xc
 CFLAGSDEBUG = -g
 CFLAGSOPTIMIZE = -O
 
