@@ -1,6 +1,6 @@
 /* impl.c.mpsi: MEMORY POOL SYSTEM INTERFACE LAYER
  *
- * $HopeName: MMsrc!mpsi.c(MMdevel_restr.2) $
+ * $HopeName: MMsrc!mpsi.c(MMdevel_restr.3) $
  * Copyright (C) 1996 Harlequin Group, all rights reserved.
  *
  * .thread-safety: Most calls through this interface lock the space
@@ -17,7 +17,7 @@
 #include "mpm.h"
 #include "mps.h"
 
-SRCID(mpsi, "$HopeName: MMsrc!mpsi.c(MMdevel_restr.2) $");
+SRCID(mpsi, "$HopeName: MMsrc!mpsi.c(MMdevel_restr.3) $");
 
 
 /* Check consistency of interface mappings. */
@@ -62,12 +62,12 @@ static Bool mpsi_check(void)
   CHECKL(sizeof(mps_word_t) == sizeof(void *));
   CHECKL(CHECKTYPE(mps_word_t, Word));
 
-  /* Check ap_s/ApStruct compatibility by hand */
+  /* Check ap_s/APStruct compatibility by hand */
   /* .check.ap: See also impl.h.buffer.ap. */
-  CHECKL(sizeof(mps_ap_s) == sizeof(ApStruct));
-  CHECKL(CHECKFIELDAPPROX(mps_ap_s, init,  ApStruct, init));
-  CHECKL(CHECKFIELDAPPROX(mps_ap_s, alloc, ApStruct, alloc));
-  CHECKL(CHECKFIELDAPPROX(mps_ap_s, limit, ApStruct, limit));
+  CHECKL(sizeof(mps_ap_s) == sizeof(APStruct));
+  CHECKL(CHECKFIELD(mps_ap_s, init,  APStruct, init));
+  CHECKL(CHECKFIELD(mps_ap_s, alloc, APStruct, alloc));
+  CHECKL(CHECKFIELD(mps_ap_s, limit, APStruct, limit));
 
   /* Check ss_s/ScanStateStruct compatibility by hand */
   /* .check.ss: See also impl.h.trace.ss. */
@@ -274,7 +274,7 @@ void mps_free(mps_pool_t mps_pool, mps_addr_t p, size_t size)
 
 mps_res_t mps_ap_create(mps_ap_t *mps_ap_o, mps_pool_t mps_pool, ...)
 {
-  Ap *apReturn = (Ap *)mps_ap_o;
+  AP *apReturn = (AP *)mps_ap_o;
   Pool pool = (Pool)mps_pool;
   Space space = PoolSpace(pool);
   Buffer buf;
@@ -291,7 +291,7 @@ mps_res_t mps_ap_create(mps_ap_t *mps_ap_o, mps_pool_t mps_pool, ...)
   if(res != ResOK)
     return res;
 
-  *apReturn = BufferAp(buf);
+  *apReturn = BufferAP(buf);
   SpaceLeave(space);
   return MPS_RES_OK;
 }
@@ -300,7 +300,7 @@ mps_res_t mps_ap_create_v(mps_ap_t *mps_ap_o,
                           mps_pool_t mps_pool,
                           va_list args)
 {
-  Ap *apReturn = (Ap *)mps_ap_o;
+  AP *apReturn = (AP *)mps_ap_o;
   Pool pool = (Pool)mps_pool;
   Space space = PoolSpace(pool);
   Buffer buf;
@@ -318,14 +318,14 @@ mps_res_t mps_ap_create_v(mps_ap_t *mps_ap_o,
   if(res != ResOK)
     return res;
 
-  *apReturn = BufferAp(buf);
+  *apReturn = BufferAP(buf);
   SpaceLeave(space);
   return MPS_RES_OK;
 }
 
 void mps_ap_destroy(mps_ap_t mps_ap)
 {
-  Buffer buf = BufferOfAp((Ap)mps_ap);
+  Buffer buf = BufferOfAP((AP)mps_ap);
   Space space = BufferSpace(buf);
 
   SpaceEnter(space);
@@ -372,7 +372,7 @@ mps_bool_t (mps_commit)(mps_ap_t mps_ap, mps_addr_t p, size_t size)
 
 mps_res_t mps_ap_fill(mps_addr_t *p_o, mps_ap_t mps_ap, size_t size)
 {
-  Buffer buf = BufferOfAp((Ap)mps_ap);
+  Buffer buf = BufferOfAP((AP)mps_ap);
   Space space = BufferSpace(buf);
   Res res;
 
@@ -394,7 +394,7 @@ mps_res_t mps_ap_fill(mps_addr_t *p_o, mps_ap_t mps_ap, size_t size)
 
 mps_bool_t mps_ap_trip(mps_ap_t mps_ap, mps_addr_t p, size_t size)
 {
-  Buffer buf = BufferOfAp((Ap)mps_ap);
+  Buffer buf = BufferOfAP((AP)mps_ap);
   Space space = BufferSpace(buf);
   Bool b;
 
