@@ -1,6 +1,6 @@
 /*  impl.c.poolmv2ss: POOLMV2 STRESS TEST
  *
- * $HopeName: MMsrc!mv2test.c(MMdevel_gavinm_splay.1) $
+ * $HopeName: MMsrc!mv2test.c(MMdevel_gavinm_splay.3) $
  * Copyright (C) 1998. Harlequin Group plc. All rights reserved.
  */
 
@@ -161,16 +161,17 @@ static size_t randomSize(int i)
   /* Distribution centered on mean.  Verify that allocations
      below min and above max are handled correctly */
   static long seed = 7472366;
-  size_t s = (max - min)/8;
+  size_t s = (max - mean)/4;
   size_t m = mean;
   double r;
   double x;
 
   testlib_unused(i);
 
+  /* per SGR */
   do {
     r = expdev(&seed);
-    x = (double)s * r;
+    x = (double)s * sqrt(2 * r);
     x += (double)m;
   } while (x <= 1.0);
 
@@ -221,8 +222,10 @@ static mps_res_t stress(mps_class_t class, mps_arena_t arena,
     ss[i] = (*size)(i);
 
     res = make((mps_addr_t *)&ps[i], ap, ss[i]);
-    if(res != MPS_RES_OK) return res;
-    *ps[i] = 1; /* Write something, so it gets swap. */
+    if(res != MPS_RES_OK)
+      ss[i] = 0;
+    else
+      *ps[i] = 1; /* Write something, so it gets swap. */
 
     if (verbose) {
       if(i && i%4==0) putchar('\n');
