@@ -1,6 +1,6 @@
 /* impl.h.mpm: MEMORY POOL MANAGER DEFINITIONS
  *
- * $HopeName$
+ * $HopeName: MMsrc!mpm.h(MMdevel_restr.1) $
  * Copyright (C) 1996 Harlequin Group, all rights reserved.
  */
 
@@ -203,14 +203,7 @@ extern Size SegSize(Space space, Seg seg);
 extern Bool SegOfAddr(Seg *segReturn, Space space, Addr addr);
 extern Seg SegFirst(Space space);
 extern Seg SegNext(Space space, Seg seg);
-
-
-/* Segment Interface -- see impl.c.seg */
-
 extern Bool SegCheck(Seg seg);
-extern void SegInit(Seg seg, Pool pool);
-extern void SegFinish(Seg seg);
-extern RefSet SegRefSet(Space space, Seg seg);
 
 
 /* Buffer Interface -- see impl.c.buffer */
@@ -298,6 +291,7 @@ extern Bool RankCheck(Rank rank);
   ((rs) | ((RefSet)1 << RefSetZone(space, addr)))
 #define RefSetIsMember(space, rs, addr) \
   (((rs) >> RefSetZone(space, addr)) & 1)
+extern RefSet RefSetOfSeg(Space space, Seg seg);
 
 
 /* Shield Interface -- see impl.c.shield */
