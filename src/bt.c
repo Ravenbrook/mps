@@ -1,6 +1,6 @@
 /* impl.c.bt: BIT TABLES
  *
- * $HopeName: !bt.c(trunk.16) $
+ * $HopeName: MMsrc!bt.c(MMdevel_gavinm_mvff.1) $
  * Copyright (C) 1998.  Harlequin Group plc.  All rights reserved.
  *
  * READERSHIP
@@ -15,7 +15,7 @@
 #include "mpm.h"
 
 
-SRCID(bt, "$HopeName: !bt.c(trunk.16) $");
+SRCID(bt, "$HopeName: MMsrc!bt.c(MMdevel_gavinm_mvff.1) $");
 
 
 /* is the whole word of bits at this index set? */
@@ -350,6 +350,24 @@ Bool BTFindLongResRange(Index *baseReturn, Index *limitReturn,
                         bt,
                         searchBase, searchLimit,
                         length, searchLimit - searchBase);
+}
+
+
+/* BTFindLongResRangeHigh -- find long range of reset bits in a bit table
+ *
+ * See design.mps.bt.fun.find-long-res-range-high.
+ */
+
+Bool BTFindLongResRangeHigh(Index *baseReturn, Index *limitReturn,
+                            BT bt,
+                            Index searchBase, Index searchLimit,
+                          unsigned long length)
+{
+  /* All parameters are checked by BTFindResRangeHigh. */
+  return BTFindResRangeHigh(baseReturn, limitReturn,
+                            bt,
+                            searchBase, searchLimit,
+                            length, searchLimit - searchBase);
 }
 
 

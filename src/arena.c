@@ -1,6 +1,6 @@
 /* impl.c.arena: ARENA IMPLEMENTATION
  *
- * $HopeName: !arena.c(trunk.50) $
+ * $HopeName: MMsrc!arena.c(MMdevel_gavinm_mvff.1) $
  * Copyright (C) 1998. Harlequin Group plc. All rights reserved.
  *
  * .readership: Any MPS developer
@@ -36,7 +36,7 @@
 #include "poolmrg.h"
 #include "mps.h"
 
-SRCID(arena, "$HopeName: !arena.c(trunk.50) $");
+SRCID(arena, "$HopeName: MMsrc!arena.c(MMdevel_gavinm_mvff.1) $");
 
 
 /* Forward declarations */
@@ -1124,6 +1124,31 @@ Res ArenaDescribe(Arena arena, mps_lib_FILE *stream)
   return ResOK;
 }
 
+Res ArenaDescribeSegs(Arena arena, mps_lib_FILE *stream)
+{
+  Res res;
+  Seg seg;
+  Bool b;
+
+  if(!CHECKT(Arena, arena)) return ResFAIL;
+  if(stream == NULL) return ResFAIL;
+
+  b = SegFirst(&seg, arena); 
+  while(b) {
+    res = WriteF(stream,
+                 "[$P, $P) $U   $P ($S)\n",
+                 (WriteFP)SegBase(seg),
+                 (WriteFP)SegLimit(seg),
+                 (WriteFU)SegSize(seg),
+                 (WriteFP)SegPool(seg),
+                 (WriteFS)(SegPool(seg)->class->name),
+                 NULL);
+    if(res != ResOK)
+      return res;
+    b = SegNext(&seg, arena, SegBase(seg));
+  }
+  return ResOK;
+}
 
 /* ArenaAlloc -- allocate a small block directly from the arena
  *

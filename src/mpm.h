@@ -1,6 +1,6 @@
 /* impl.h.mpm: MEMORY POOL MANAGER DEFINITIONS
  *
- * $HopeName: MMsrc!mpm.h(MMdevel_gavinm_mvff.2) $
+ * $HopeName: MMsrc!mpm.h(MMdevel_gavinm_mvff.3) $
  * Copyright (C) 1998.  Harlequin Group plc.  All rights reserved.
  */
 
@@ -260,6 +260,10 @@ extern Bool BTFindLongResRange(Index *baseReturn, Index *limitReturn,
                                BT bt,
                                Index searchBase, Index searchLimit,
                                unsigned long length);
+extern Bool BTFindLongResRangeHigh(Index *baseReturn, Index *limitReturn,
+                                   BT bt,
+                                   Index searchBase, Index searchLimit,
+                                   unsigned long length);
 extern Bool BTRangesSame(BT BTx, BT BTy, Index base, Index limit);
 extern void BTCopyInvertRange(BT fromBT, BT toBT,
                               Index base, Index limit);
@@ -521,6 +525,7 @@ extern void ArenaDestroy(Arena arena);
 extern void ArenaInit(Arena arena, ArenaClass class);
 extern void ArenaFinish(Arena arena);
 extern Res ArenaDescribe(Arena arena, mps_lib_FILE *stream);
+extern Res ArenaDescribeSegs(Arena arena, mps_lib_FILE *stream);
 extern Bool ArenaAccess(Addr addr, AccessSet mode,
 			MutatorFaultContext context);
 

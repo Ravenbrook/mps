@@ -1,6 +1,6 @@
 /* impl.h.mpmtypes: MEMORY POOL MANAGER TYPES
  *
- * $HopeName: MMsrc!mpmtypes.h(MMdevel_gavinm_mvff.1) $
+ * $HopeName: MMsrc!mpmtypes.h(MMdevel_gavinm_mvff.2) $
  * Copyright (C) 1997, 1998 Harlequin Group plc.  All rights reserved.
  *
  * .readership: MM developers.
@@ -361,7 +361,7 @@ enum {
 
 typedef Addr WriteFA;
 typedef Pointer WriteFP;
-typedef char *WriteFS;
+typedef const char *WriteFS;
 typedef Word WriteFW;
 typedef unsigned long WriteFU;
 typedef unsigned long WriteFB;
