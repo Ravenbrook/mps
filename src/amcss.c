@@ -1,6 +1,6 @@
 /* impl.c.amcss: POOL CLASS AMC STRESS TEST
  *
- * $HopeName: !amcss.c(trunk.27) $
+ * $HopeName: MMsrc!amcss.c(MMdevel_ramp_alloc.1) $
  * Copyright (C) 1998.  Harlequin Group plc.  All rights reserved.
  */
 
@@ -23,9 +23,12 @@
 
 
 #define testArenaSIZE     ((size_t)64<<20)
-#define exactRootsCOUNT   50
-#define ambigRootsCOUNT   100
-#define collectionsCOUNT  5
+#define avLEN             20
+#define exactRootsCOUNT   20
+#define ambigRootsCOUNT   40
+#define collectionsCOUNT  50
+#define rampSTART         10
+#define rampEND           45
 #define initTestFREQ      6000
 /* objNULL needs to be odd so that it's ignored in exactRoots. */
 #define objNULL           ((mps_addr_t)0xDECEA5ED)
@@ -38,7 +41,7 @@ static mps_addr_t ambigRoots[ambigRootsCOUNT];
 
 static mps_addr_t make(void)
 {
-  size_t length = rnd() % 20, size = (length+2)*sizeof(mps_word_t);
+  size_t length = rnd() % avLEN, size = (length+2)*sizeof(mps_word_t);
   mps_addr_t p;
   mps_res_t res;
 
@@ -53,6 +56,7 @@ static mps_addr_t make(void)
 
   return p;
 }
+
 
 static void test_stepper(mps_addr_t object, void *p, size_t s)
 {
@@ -123,6 +127,18 @@ static void *test(void *arg, size_t s)
 	mps_arena_release(arena);
 	printf("mps_amc_apply stepped on %lu objects.\n", object_count);
       }
+      if(collections == rampSTART) {
+        mps_alloc_pattern_t ramp = mps_alloc_pattern_ramp();
+
+        mps_ap_alloc_pattern_begin(ap, ramp);
+        mps_ap_alloc_pattern_begin(busy_ap, ramp);
+      }
+      if(collections == rampEND) {
+        mps_alloc_pattern_t ramp = mps_alloc_pattern_ramp();
+
+        mps_ap_alloc_pattern_end(ap, ramp);
+        mps_ap_alloc_pattern_end(busy_ap, ramp);
+      }
     }
 
     if(rnd() & 1)
@@ -169,6 +185,7 @@ int main(void)
 
   die(mps_arena_create(&arena, mps_arena_class_vm(), testArenaSIZE),
       "arena_create\n");
+  adjust_collection_freq(0.1);
   die(mps_thread_reg(&thread, arena), "thread_reg");
   mps_tramp(&r, test, arena, 0);
   mps_thread_dereg(thread);
