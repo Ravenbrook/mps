@@ -1,6 +1,6 @@
 /* impl.h.mpmtypes: MEMORY POOL MANAGER TYPES
  *
- * $HopeName: MMsrc!mpmtypes.h(MMdevel_tony_sunset.2) $
+ * $HopeName: MMsrc!mpmtypes.h(MMdevel_tony_sunset.3) $
  * Copyright (C) 1997, 1998 Harlequin Group plc.  All rights reserved.
  *
  * .readership: MM developers.
@@ -111,6 +111,7 @@ typedef Bool (*ArenaTractOfAddrMethod)(Tract *tractReturn,
 typedef Bool (*ArenaTractFirstMethod)(Tract *tractReturn, Arena arena);
 typedef Bool (*ArenaTractNextMethod)(Tract *tractReturn, 
                                      Arena arena, Addr addr);
+typedef Tract (*ArenaTractNextContigMethod)(Arena arena, Tract tract);
 typedef Res (*ArenaDescribeMethod)(Arena arena, mps_lib_FILE *stream);
 
 

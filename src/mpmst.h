@@ -1,6 +1,6 @@
 /* impl.h.mpmst: MEMORY POOL MANAGER DATA STRUCTURES
  *
- * $HopeName: MMsrc!mpmst.h(MMdevel_tony_sunset.2) $
+ * $HopeName: MMsrc!mpmst.h(MMdevel_tony_sunset.3) $
  * Copyright (C) 1998 Harlequin Group plc.  All rights reserved.
  *
  * .readership: MM developers.
@@ -695,6 +695,7 @@ typedef struct ArenaClassStruct {
   ArenaTractOfAddrMethod tractOfAddr;
   ArenaTractFirstMethod tractFirst;
   ArenaTractNextMethod tractNext;
+  ArenaTractNextContigMethod tractNextContig;
   ArenaDescribeMethod describe;
   Sig endSig;
 } ArenaClassStruct;
