@@ -1,6 +1,6 @@
 /* impl.h.mpmst: MEMORY POOL MANAGER DATA STRUCTURES
  *
- * $HopeName: MMsrc!mpmst.h(MMdevel_sw_eq.4) $
+ * $HopeName: MMsrc!mpmst.h(MMdevel_sw_eq.5) $
  * Copyright (C) 1996 Harlequin Group, all rights reserved.
  *
  * .readership: MM developers.
@@ -126,22 +126,6 @@ typedef struct PoolStruct {     /* generic structure */
   Align alignment;              /* alignment for units */
 } PoolStruct;
 
-/* PoolPrefStruct -- pool preferences
- * 
- * .pool-pref: One may express preferences for pools at pool creation time.
- * Currently the only preferences one may express are whether a pool's
- * segments should be near to, or far from, those of another pool.
- */
-
-#define PoolPrefSig     ((Sig)0x519b001b)
-
-typedef struct PoolPrefStruct {
-  Sig sig;
-  Pool nearPool;                 /* not called 'near' because VC barfs */
-  Pool farPool;                  /* not called 'far' because VC barfs */
-} PoolPrefStruct;
-
-
 /* MFSStruct -- MFS (Manual Fixed Small) pool outer structure
  *
  * .mfs: See impl.c.poolmfs, design.mps.poolmfs.
@@ -186,8 +170,6 @@ typedef struct MVStruct {       /* MV pool outer structure */
   PoolStruct poolStruct;        /* generic structure */
   MFSStruct blockPoolStruct;    /* for managing block descriptors */
   MFSStruct spanPoolStruct;     /* for managing span descriptors */
-  Bool high;                    /* place segs high or low */
-  SegPref segPref;              /* the preferences for segments */
   Size extendBy;                /* segment size to extend pool by */
   Size avgSize;                 /* client estimate of allocation size */
   Size maxSize;                 /* client estimate of maximum size */
