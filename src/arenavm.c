@@ -1,6 +1,6 @@
 /* impl.c.arenavm: VIRTUAL MEMORY BASED ARENA IMPLEMENTATION
  *
- * $HopeName: MMsrc!arenavm.c(MMdevel_drj_arena_hysteresis.10) $
+ * $HopeName: MMsrc!arenavm.c(MMdevel_drj_arena_hysteresis.11) $
  * Copyright (C) 1998.  Harlequin Group plc.  All rights reserved.
  *
  * PURPOSE
@@ -32,7 +32,7 @@
 #include "mpm.h"
 #include "mpsavm.h"
 
-SRCID(arenavm, "$HopeName: MMsrc!arenavm.c(MMdevel_drj_arena_hysteresis.10) $");
+SRCID(arenavm, "$HopeName: MMsrc!arenavm.c(MMdevel_drj_arena_hysteresis.11) $");
 
 
 /* @@@@ Arbitrary calculation for the maximum number of distinct */
@@ -1606,6 +1606,7 @@ static void VMArenaPageAlloc(VMArenaChunk chunk, Index pi,
                              Index piBase, Count pages,
 			     Addr segLimit, Seg seg, Pool pool)
 {
+  /* static called only locally, so minimal checking */
   AVER(!BTGet(chunk->allocTable, pi));
   BTSet(chunk->allocTable, pi);
   if(pi == piBase) {
@@ -1795,6 +1796,7 @@ failPagesMap:
 		 PageIndexBase(chunk, baseIndex),
 		 PageIndexBase(chunk, mappedLimit));
     /* mark pages as free */
+    SegFinish(PageSeg(&chunk->pageTable[baseIndex]));
     for(i = baseIndex; i < mappedLimit; ++i) {
       VMArenaPageFree(chunk, i);
     }
@@ -2071,23 +2073,6 @@ static void VMSegFree(Seg seg)
   return;
 }
 
-#if 0 /* the old SegFree code */
-  VMArenaUnmap(vmArena, chunk->vm, base, limit);
-
-
-  /* There shouldn't be any pages marked free within the segment's */
-  /* area of the alloc table. */
-  AVER(BTIsSetRange(chunk->allocTable, basePage, basePage + pages));
-  BTResRange(chunk->allocTable, basePage, basePage + pages);
-
-  /* Unmap any pages that became unused in the page table */
-  if(unusedTablePages(&unusedPagesBase, &unusedPagesLimit,
-                      chunk, basePage, basePage + pages))
-    VMArenaUnmap(vmArena, chunk->vm, unusedPagesBase, unusedPagesLimit);
-
-  return;
-}
-#endif
 
 /* .seg.critical: These Seg functions are low-level and are on 
  * the critical path in various ways.  The more common therefore 
