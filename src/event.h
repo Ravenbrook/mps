@@ -1,7 +1,7 @@
 /* impl.h.event -- Event Logging Interface
  *
  * Copyright (C) 1996 Harlequin Group, all rights reserved.
- * $HopeName: MMsrc!event.h(MMdevel_event.1) $
+ * $HopeName: MMsrc!event.h(MMdevel_event.2) $
  *
  * .readership: MPS developers.
  * .sources: mps.design.event
@@ -109,6 +109,9 @@ extern Word *EventNext, *EventLimit;
 
 #endif /* TARGET_EVENT_INLINE */
 
+#define EVENT_INIT()                       EventInit()
+#define EVENT_FINISH()                     EventFinish()
+
 #else /* TARGET_EVENT not */
 
 #define EVENT0(type)                       NOOP
@@ -117,6 +120,9 @@ extern Word *EventNext, *EventLimit;
 #define EVENT3(type, p0, p1, p2)           NOOP
 #define EVENT4(type, p0, p1, p2, p3)       NOOP
 #define EVENT5(type, p0, p1, p2, p3, p4)   NOOP
+
+#define EVENT_INIT()                       NOOP
+#define EVENT_FINISH()                     NOOP
 
 #endif /* TARGET_EVENT */
 
