@@ -1,6 +1,6 @@
 /* impl.c.arenacl: ARENA IMPLEMENTATION USING CLIENT MEMORY
  *
- * $HopeName: MMsrc!arenacl.c(MMdevel_sw_eq.2) $
+ * $HopeName: MMsrc!arenacl.c(MMdevel_sw_eq.3) $
  * 
  * Copyright (C) 1996 Harlequin Group, all rights reserved.
  *
@@ -41,7 +41,7 @@
 #error "Client arena not configured"
 #endif
 
-SRCID(arenacl, "$HopeName: MMsrc!arenacl.c(MMdevel_sw_eq.2) $");
+SRCID(arenacl, "$HopeName: MMsrc!arenacl.c(MMdevel_sw_eq.3) $");
 
 Bool ArenaCheck(Arena arena)
 {
@@ -424,7 +424,7 @@ Size ArenaCommitted(Space space)
   RING_FOR(node, &arena->chunkRing) { /* .req.extend.slow */
     Chunk chunk = RING_ELT(Chunk, arenaRing, node);
     AVERT(Chunk, chunk);
-    size += (chunk->freePages * arena->pageSize);
+    size += ((chunk->pages - chunk->freePages) * arena->pageSize);
   }
 
   return size;
