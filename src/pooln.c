@@ -1,6 +1,6 @@
 /* impl.c.pooln: NULL POOL CLASS
  *
- * $HopeName: MMsrc!pooln.c(trunk.17) $
+ * $HopeName: !pooln.c(trunk.18) $
  * Copyright(C) 1997 The Harlequin Group Limited.  All rights reserved.
  *
  * .readership: MPS developers
@@ -9,7 +9,7 @@
 #include "mpm.h"
 #include "pooln.h"
 
-SRCID(pooln, "$HopeName: MMsrc!pooln.c(trunk.17) $");
+SRCID(pooln, "$HopeName: !pooln.c(trunk.18) $");
 
 
 typedef struct PoolNStruct {

@@ -1,6 +1,6 @@
 /* impl.c.poolams: AUTOMATIC MARK & SWEEP POOL CLASS
  *
- * $HopeName: MMsrc!poolams.c(trunk.16) $
+ * $HopeName: !poolams.c(trunk.17) $
  * Copyright (C) 1997, 1998 The Harlequin Group Limited.  All rights reserved.
  * 
  * .readership: any MPS developer.
@@ -17,7 +17,7 @@
 #include "mpm.h"
 #include "mpscams.h"
 
-SRCID(poolams, "$HopeName: MMsrc!poolams.c(trunk.16) $");
+SRCID(poolams, "$HopeName: !poolams.c(trunk.17) $");
 
 
 #define AMSSig          ((Sig)0x519A3599) /* SIGnature AMS */
