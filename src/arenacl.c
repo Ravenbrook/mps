@@ -1,6 +1,6 @@
 /* impl.c.arenacl: ARENA IMPLEMENTATION USING CLIENT MEMORY
  *
- * $HopeName: MMsrc!arenacl.c(MMdevel_tony_sunset.3) $
+ * $HopeName: MMsrc!arenacl.c(MMdevel_tony_sunset.4) $
  * Copyright (C) 1997. Harlequin Group plc. All rights reserved.
  *
  * .readership: MM developers
@@ -17,7 +17,7 @@
 #include "mpsacl.h"
 
 
-SRCID(arenacl, "$HopeName: MMsrc!arenacl.c(MMdevel_tony_sunset.3) $");
+SRCID(arenacl, "$HopeName: MMsrc!arenacl.c(MMdevel_tony_sunset.4) $");
 
 
 typedef struct ClientArenaStruct *ClientArena;
@@ -830,6 +830,39 @@ static Bool ClientTractNext(Tract *tractReturn, Arena arena, Addr addr)
 }
 
 
+/* ClientTractNextContig -- return the next contiguous tract
+ *
+ * This is used as the iteration step when iterating over all
+ * a contiguous range of tracts owned by a pool. The tract 
+ * must exist.
+ */
+
+static Tract ClientTractNextContig(Arena arena, Tract tract)
+{
+  ClientArena clientArena;
+  Page page, next;
+  Tract tnext;
+  Chunk chunk;
+  Index index;
+
+  clientArena = ArenaClientArena(arena);
+  AVERT_CRITICAL(ClientArena, clientArena);
+  AVERT_CRITICAL(Tract, tract);
+
+  /* the next contiguous tract is contiguous in the page table */
+  page = PageOfTract(tract);
+  next = page + 1;  
+  tnext = PageTract(next);
+
+  /* check that the next tract is in a chunk and allocated */
+  AVER_CRITICAL(ResOK == TractChunk(&chunk, &index, tnext));
+  AVER_CRITICAL(PagePool(next) != NULL);
+  AVER_CRITICAL(PagePool(next) == PagePool(page));
+  UNUSED(chunk); UNUSED(index);
+  return tnext;
+}
+
+
 /* mps_arena_class_cl -- return the arena class CL */
 
 static ArenaClassStruct ArenaClassCLStruct = {
@@ -851,6 +884,7 @@ static ArenaClassStruct ArenaClassCLStruct = {
   ClientTractOfAddr,                        /* tractOfAddr */
   ClientTractFirst,                         /* tractFirst */
   ClientTractNext,                          /* tractNext */
+  ClientTractNextContig,                    /* tractNextContig */
   ArenaTrivDescribe,                        /* describe */
   ArenaClassSig
 };

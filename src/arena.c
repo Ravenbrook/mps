@@ -1,6 +1,6 @@
 /* impl.c.arena: ARENA IMPLEMENTATION
  *
- * $HopeName: MMsrc!arena.c(MMdevel_tony_sunset.3) $
+ * $HopeName: MMsrc!arena.c(MMdevel_tony_sunset.4) $
  * Copyright (C) 1998. Harlequin Group plc. All rights reserved.
  *
  * .readership: Any MPS developer
@@ -36,7 +36,7 @@
 #include "poolmrg.h"
 #include "mps.h"
 
-SRCID(arena, "$HopeName: MMsrc!arena.c(MMdevel_tony_sunset.3) $");
+SRCID(arena, "$HopeName: MMsrc!arena.c(MMdevel_tony_sunset.4) $");
 
 
 /* All static data objects are declared here. See .static */
@@ -967,41 +967,6 @@ void ControlFree(Arena arena, void* base, size_t size)
   PoolFree(pool, (Addr)base, (Size)size);
 }
 
-/* arenaRangeIsAlloc  -- test whether a range is owned by a pool
- *
- * Returns TRUE iff the range corresponds to a number of contiguous
- * tracts all owned by the pool
- */
-
-static Bool arenaRangeIsAlloc(Arena arena, Pool pool, 
-                              Addr base, Size size)
-{
-  AVERT(Arena, arena);
-  AVERT(Pool, pool);
-  AVER(base != NULL);
-  AVER(size > 0);
-  AVER(PoolArena(pool) == arena);
-
-  if (AddrIsAligned(base, arena->alignment) &&
-      SizeIsAligned(size, arena->alignment)) {
-    Tract tract;
-    Addr addr;
-    Addr limit = AddrAdd(base, size);
-
-    TRACT_FOR(tract, addr, arena, base, limit) {
-      if (TractPool(tract) != pool) {
-        return FALSE;         /* failure: tract not owned by pool */
-      }
-    }
-    if (addr == limit) {
-      return TRUE;            /* success: all tracts owned by the pool */
-    } else
-      return FALSE;           /* failure: not all tract allocated */
-  } else {
-    return FALSE;             /* failure: range not contiguous tracts */
-  }
-}
-
 
 /* ArenaAlloc -- allocate some tracts from the arena */
 
@@ -1050,7 +1015,6 @@ goodAlloc:
   arena->lastTract = baseTract;
   arena->lastTractBase = base;
 
-  AVER(arenaRangeIsAlloc(arena, pool, base, size));
   EVENT_PPAWP(ArenaAlloc, arena, baseTract, base, size, pool);
   *baseReturn = base;
   return ResOK;
@@ -1075,7 +1039,6 @@ void ArenaFree(Addr base, Size size, Pool pool)
   AVERT(Reservoir, reservoir);
   AVER(AddrIsAligned(base, arena->alignment));
   AVER(SizeIsAligned(size, arena->alignment));
-  AVER(arenaRangeIsAlloc(arena, pool, base, size));
 
   /* uncache the tract if in range - design.mps.arena.tract.uncache */
   limit = AddrAdd(base, size);
@@ -1195,31 +1158,25 @@ Bool TractNext(Tract *tractReturn, Arena arena, Addr addr)
   return (*arena->class->tractNext)(tractReturn, arena, addr);
 }
 
+
 /* TractNextContig -- return the contiguously following tract
  *
  * This is used as the iteration step when iterating over all
  * tracts in a contiguous area belonging to a pool.
  */
 
-Tract TractNextContig(Tract tract)
+Tract TractNextContig(Arena arena, Tract tract)
 {
   Tract next;
-  Pool pool;
-  Arena arena;
-  Addr base;
-  Bool found;
 
-  AVERT(Tract, tract);
-  pool = TractPool(tract);
-  AVER(NULL != pool);
-  arena = PoolArena(pool);
+  AVERT_CRITICAL(Tract, tract);
+  AVER_CRITICAL(NULL != TractPool(tract));
 
-  base = TractBase(tract);
-  found = (*arena->class->tractNext)(&next, arena, base);
+  next = (*arena->class->tractNextContig)(arena, tract);
 
-  AVER(found);
-  AVER(TractPool(next) == pool);
-  AVER(TractBase(next) == AddrAdd(base, arena->alignment));
+  AVER_CRITICAL(TractPool(next) == TractPool(tract));
+  AVER_CRITICAL(TractBase(next) == 
+                AddrAdd(TractBase(tract), arena->alignment));
   return next;
 }
 

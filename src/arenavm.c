@@ -1,6 +1,6 @@
 /* impl.c.arenavm: VIRTUAL MEMORY BASED ARENA IMPLEMENTATION
  *
- * $HopeName: MMsrc!arenavm.c(MMdevel_tony_sunset.2) $
+ * $HopeName: MMsrc!arenavm.c(MMdevel_tony_sunset.3) $
  * Copyright (C) 1998.  Harlequin Group plc.  All rights reserved.
  *
  * PURPOSE
@@ -32,7 +32,7 @@
 #include "mpm.h"
 #include "mpsavm.h"
 
-SRCID(arenavm, "$HopeName: MMsrc!arenavm.c(MMdevel_tony_sunset.2) $");
+SRCID(arenavm, "$HopeName: MMsrc!arenavm.c(MMdevel_tony_sunset.3) $");
 
 
 /* @@@@ Arbitrary calculation for the maximum number of distinct */
@@ -2347,6 +2347,37 @@ static Bool VMTractNext(Tract *tractReturn, Arena arena, Addr addr)
 }
 
 
+/* VMTractNextContig -- return the next contiguous tract in the arena
+ *
+ * This is used as the iteration step when iterating over all
+ * a contiguous range of tracts owned by a pool. The tract 
+ * must exist.
+ *
+ * VMTractNextContig finds the tract with the base address which is
+ * immediately after the supplied tract.  
+ */
+
+static Tract VMTractNextContig(Arena arena, Tract tract)
+{
+  VMArena vmArena;
+  Page page, next;
+
+  vmArena = ArenaVMArena(arena);
+  AVERT_CRITICAL(VMArena, vmArena);
+  AVERT_CRITICAL(Tract, tract);
+
+  /* the next contiguous tract is contiguous in the page table */
+  page = PageOfTract(tract);
+  next = page + 1;  
+
+  /* check that the next tract is in the appropriate chunk */
+  AVER_CRITICAL(VMArenaChunkOfTract(vmArena, tract) == 
+                VMArenaChunkOfTract(vmArena, PageTract(next)));
+  AVER_CRITICAL(PageIsAllocated(next));
+  return PageTract(next);
+}
+
+
 /* mps_arena_class_vm -- return the arena class VM */
 
 static ArenaClassStruct ArenaClassVMStruct = {
@@ -2368,6 +2399,7 @@ static ArenaClassStruct ArenaClassVMStruct = {
   VMTractOfAddr,                        /* tractOfAddr */
   VMTractFirst,                         /* tractFirst */
   VMTractNext,                          /* tractNext */
+  VMTractNextContig,                    /* tractNextContig */
   ArenaTrivDescribe,                    /* describe */
   ArenaClassSig
 };
@@ -2391,6 +2423,7 @@ static ArenaClassStruct ArenaClassVMNZStruct = {
   VMTractOfAddr,                        /* tractOfAddr */
   VMTractFirst,                         /* tractFirst */
   VMTractNext,                          /* tractNext */
+  VMTractNextContig,                    /* tractNextContig */
   ArenaTrivDescribe,                    /* describe */
   ArenaClassSig
 };
