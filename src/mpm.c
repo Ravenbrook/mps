@@ -1,12 +1,12 @@
 /* impl.c.mpm: GENERAL MPM SUPPORT
  *
- * $HopeName: MMsrc!mpm.c(MMdevel_lib.1) $
+ * $HopeName: MMsrc!mpm.c(MMdevel_lib.2) $
  * Copyright (C) 1996 Harlequin Group, all rights reserved.
  */
 
 #include "mpm.h"
 
-SRCID(mpm, "$HopeName: MMsrc!mpm.c(MMdevel_lib.1) $");
+SRCID(mpm, "$HopeName: MMsrc!mpm.c(MMdevel_lib.2) $");
 
 
 /* MPMCheck -- test MPM assumptions */
@@ -160,8 +160,8 @@ Res WriteWord(mps_lib_FILE *stream, Word w, unsigned base, unsigned width)
   /* If the number is not as wide as the requested field, pad out the */
   /* buffer with zeros. */
   while(i > MPS_WORD_WIDTH - width) {
-    buf[i] = digit[0];
     --i;
+    buf[i] = digit[0];
   }
 
   r = mps_lib_fputs(&buf[i], stream);
