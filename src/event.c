@@ -1,6 +1,6 @@
 /* impl.c.event: EVENT LOGGING
  *
- * $HopeName: MMsrc!event.c(MMdevel_event.3) $
+ * $HopeName: MMsrc!event.c(MMdevel_event.4) $
  * Copyright (C) 1996 Harlequin Group, all rights reserved.
  *
  * .readership: MPS developers.
@@ -17,12 +17,15 @@
 #include "event.h"
 #include "mpsio.h"
 
-SRCID(event, "$HopeName: MMsrc!event.c(MMdevel_event.3) $");
+SRCID(event, "$HopeName: MMsrc!event.c(MMdevel_event.4) $");
 
 static Bool eventInited = FALSE;
 static mps_io_t eventIO;
 static Word eventBuffer[EVENT_BUFFER_SIZE];
+
+#ifdef EVENT
 static Count eventUserCount;
+#endif
 
 Word *EventNext, *EventLimit; /* Used by macros in impl.h.event */
 
@@ -44,6 +47,8 @@ static Res EventFlush(void)
 
 Res EventInit(void)
 {
+
+#ifdef EVENT
   Res res;
 
   /* Initialize the event system if this is the first call. */
@@ -59,12 +64,15 @@ Res EventInit(void)
   }
 
   ++eventUserCount;
+#endif
 
   return ResOK;
 }
 
 void EventFinish(void)
 {
+
+#ifdef EVENT
   AVER(eventInited);
   AVER(eventUserCount > 0);
   
@@ -72,6 +80,7 @@ void EventFinish(void)
   (void)mps_io_flush(eventIO);
 
   --eventUserCount;
+#endif
 }
 
 Res EventEnter(EventType type, Count length, ...)
