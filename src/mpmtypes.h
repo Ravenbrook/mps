@@ -1,6 +1,6 @@
 /* impl.h.mpmtypes: MEMORY POOL MANAGER TYPES
  *
- * $HopeName: !mpmtypes.h(trunk.49) $
+ * $HopeName: MMsrc!mpmtypes.h(MMdevel_drj_commit_limit.1) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  *
  * .readership: MM developers.
@@ -289,7 +289,8 @@ enum {
   ResMEMORY,
   ResLIMIT,
   ResUNIMPL,
-  ResIO
+  ResIO,
+  ResCOMMIT_LIMIT
 };
 
 
