@@ -1,6 +1,6 @@
 /* impl.c.mpsicv: MPSI COVERAGE TEST
  *
- * $HopeName: !mpsicv.c(trunk.3) $
+ * $HopeName: MMsrc!mpsicv.c(MMdevel_remem.1) $
  * Copyright (C) 1996 Harlequin Group, all rights reserved
  */
 
@@ -186,7 +186,8 @@ static void *test(void *arg, size_t s)
       printf("\nCollection %u, %lu objects.\n",
              c, (unsigned long)i);
       for(r=0; r<NR_EXACT_ROOTS; ++r)
-        assert(dylan_check(exact_roots[r]));
+	if(exact_roots[r] != OBJNULL)
+	  assert(dylan_check(exact_roots[r]));
     }
 
     if(rnd() & 1)
