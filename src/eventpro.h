@@ -1,7 +1,7 @@
 /* impl.h.eventpro: Interface for event processing routines
  * Copyright (C) 1999 Harlequin Group plc.  All rights reserved.
  *
- * $HopeName: !eventpro.h(trunk.3) $
+ * $HopeName: MMsrc!eventpro.h(MMdevel_alloc_replay.1) $
  */
 
 #ifndef eventpro_h
@@ -13,9 +13,6 @@
 
 #include "eventcom.h"
 #include "mpmtypes.h"
-
-
-typedef EventUnion *Event;
 
 
 typedef struct EventProcStruct *EventProc;
