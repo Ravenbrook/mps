@@ -1,12 +1,12 @@
 /* impl.c.trace: GENERIC TRACER IMPLEMENTATION
  *
- * $HopeName: !trace.c(trunk.50) $
+ * $HopeName: MMsrc!trace.c(MM_dylan_honeybee.1) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  */
 
 #include "mpm.h"
 
-SRCID(trace, "$HopeName: !trace.c(trunk.50) $");
+SRCID(trace, "$HopeName: MMsrc!trace.c(MM_dylan_honeybee.1) $");
 
 
 /* ScanStateCheck -- check consistency of a ScanState object */
@@ -851,13 +851,15 @@ Res TraceFix(ScanState ss, Ref *refIO)
   Seg seg;
   Pool pool;
 
-  AVERT(ScanState, ss);
-  AVER(refIO != NULL);
+  /* See design.mps.trace.fix.noaver */
+  AVERT_CRITICAL(ScanState, ss);
+  AVER_CRITICAL(refIO != NULL);
 
   ref = *refIO;
 
   EVENT_PPAU(TraceFix, ss, refIO, ref, ss->rank);
-  if(SegOfAddr(&seg, ss->arena, ref)) {
+  /* SegOfAddr is inlined, see design.mps.trace.fix.segofaddr */
+  if(SEG_OF_ADDR(&seg, ss->arena, ref)) {
     EVENT_P(TraceFixSeg, seg);
     if(TraceSetInter(SegWhite(seg), ss->traces) != TraceSetEMPTY) {
       Res res;
