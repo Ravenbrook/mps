@@ -1,6 +1,6 @@
 /* impl.c.poolams: AUTOMATIC MARK & SWEEP POOL CLASS
  *
- * $HopeName$
+ * $HopeName: MMsrc!poolams.c(MMdevel_poolams.1) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  * 
  * NOTES
@@ -212,7 +212,7 @@
 #include "mpm.h"
 #include "mpscams.h"
 
-SRCID(poolams, "$HopeName$");
+SRCID(poolams, "$HopeName: MMsrc!poolams.c(MMdevel_poolams.1) $");
 
 
 #define AMSSig          ((Sig)0x519A3599) /* SIGnature AMS */
@@ -1039,21 +1039,6 @@ static double AMSBenefit(Pool pool, Action action)
     return 0.0;
 }
 
-static void AMSAccess(Pool pool, Seg seg, AccessSet mode)
-{
-  AMSGroup group;
-
-  AVERT(Pool, pool);
-  AVER(SegCheck(seg));
-  AVER(SegPool(seg) == pool);
-
-  group = AMSSegGroup(seg);
-  AVERT(AMSGroup, group);
-
-  if (mode & AccessWRITE)
-    group->summarySoFar = RefSetUNIV; /* .summary.acc.wb */
-}
-
 static Res AMSSegDescribe(AMS ams, Seg seg, mps_lib_FILE *stream)
 {
   Res res;
@@ -1201,8 +1186,7 @@ static PoolClassStruct PoolClassAMSStruct = {
   AMSReclaim,                           /* reclaim */
   PoolTrivTraceEnd,                     /* .triv-trace-end */
   AMSBenefit,                           /* benefit */
-  AMSAccess,				/* access */
-   AMSDescribe,                          /* describe */
+  AMSDescribe,                          /* describe */
   PoolClassSig                          /* impl.h.mpm.class.end-sig */
 };
 

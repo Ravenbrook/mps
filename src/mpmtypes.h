@@ -1,6 +1,6 @@
 /* impl.h.mpmtypes: MEMORY POOL MANAGER TYPES
  *
- * $HopeName: MMsrc!mpmtypes.h(MMdevel_poolams.1) $
+ * $HopeName: MMsrc!mpmtypes.h(MMdevel_poolams.2) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  *
  * .readership: MM developers.
@@ -97,7 +97,6 @@ typedef Res (*PoolFixMethod)(Pool pool, ScanState ss, Seg seg,
 typedef void (*PoolReclaimMethod)(Pool pool, Trace trace, Seg seg);
 typedef void (*PoolTraceEndMethod)(Pool pool, Trace trace,
                                    Action action);
-typedef void (*PoolAccessMethod)(Pool pool, Seg seg, AccessSet mode);
 typedef double (*PoolBenefitMethod)(Pool pool, Action action);
 
 

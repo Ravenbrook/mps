@@ -1,6 +1,6 @@
 /* impl.c.pool: POOL IMPLEMENTATION
  *
- * $HopeName: MMsrc!pool.c(MMdevel_poolams.1) $
+ * $HopeName: MMsrc!pool.c(MMdevel_poolams.2) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  *
  * This is the implementation of the generic pool interface.  The
@@ -12,7 +12,7 @@
 
 #include "mpm.h"
 
-SRCID(pool, "$HopeName: MMsrc!pool.c(MMdevel_poolams.1) $");
+SRCID(pool, "$HopeName: MMsrc!pool.c(MMdevel_poolams.2) $");
 
 
 Bool PoolClassCheck(PoolClass class)
@@ -349,14 +349,6 @@ void PoolTraceEnd(Pool pool, Trace trace, Action action)
   AVER(action->pool == pool);
   AVER(pool->space == trace->space);
   (*pool->class->traceEnd)(pool, trace, action);
-}
-
-void PoolAccess(Pool pool, Seg seg, AccessSet mode)
-{
-  AVERT(Pool, pool);
-  AVER(SegCheck(seg);
-  AVER(SegPool(seg) == pool);
-  (*pool->class->access)(pool, seg, mode);
 }
 
 double PoolBenefit(Pool pool, Action action)
@@ -763,23 +755,6 @@ void PoolTrivTraceEnd(Pool pool, Trace trace, Action action)
   AVER(pool->space == trace->space);
   NOOP;
 }
-
-void PoolTrivAccess(Pool pool, Seg seg, AccessSet mode)
-{
-  AVERT(Pool, pool);
-  AVER(SegCheck(seg));
-  AVER(SegPool(seg) == pool);
-  NOOP;
-}
-
-void PoolNoAccess(Pool pool, Seg seg, AccessSet mode)
-{
-  AVERT(Pool, pool);
-  AVER(SegCheck(seg));
-  AVER(SegPool(seg) == pool);
-  NOTREACHED;
-}
-
 
 double PoolNoBenefit(Pool pool, Action action)
 {
