@@ -1,6 +1,6 @@
 /* impl.c.arenacv: ARENA COVERAGE TEST
  *
- * $HopeName: MMsrc!arenacv.c(MMdevel_tony_sunset.1) $
+ * $HopeName: MMsrc!arenacv.c(MMdevel_tony_sunset.2) $
  * Copyright (C) 1997, 1998 Harlequin Group plc.  All rights reserved.
  *
  * .readership: MPS developers
@@ -30,15 +30,319 @@
 #define tractsSIZE 500
 
 
+
+/* testAllocAndIterate  -- Test arena allocation and iteration
+ *
+ * .tract-seg: Test allocation and iteration, using both low-level 
+ * tracts and higher-level segments. To do this, contrive a set of 
+ * allocation and iteration functions which are interchangeable.
+ * 
+ */
+
+/* Type definitions for the interchangability interface */
+
+
+/* AllocInfo -- interchangeable info about  allocated regions */ 
+
+typedef struct AllocInfoStruct *AllocInfo;
+
+typedef struct AllocInfoStruct {
+  union {
+    struct {
+      Addr base;
+      Size size;
+      Pool pool;
+    } tractData;
+    struct {
+      Seg seg;
+    } segData;
+  } the;
+} AllocInfoStruct;
+
+typedef Res (*AllocFun)(AllocInfoStruct *aiReturn, SegPref pref,
+                        Size size, Pool pool);
+
+typedef void (*FreeFun)(AllocInfo ai);
+
+typedef Bool (*FirstFun)(AllocInfoStruct *aiReturn, Arena arena);
+
+typedef Bool (*NextFun)(AllocInfoStruct *nextReturn, AllocInfo ai, 
+                        Arena arena);
+
+typedef Count (*UnitsFun)(Count pages);
+
+typedef void (*TestFun)(AllocInfo ai, Arena arena);
+
+typedef void (*CopyFun)(AllocInfoStruct *toReturn, AllocInfo from);
+
+
+/*  AllocatorClass -- encapsulates an allocation mechanism */
+
+typedef struct AllocatorClassStruct *AllocatorClass;
+
+typedef struct AllocatorClassStruct {
+  AllocFun alloc;         /* allocation method */
+  FreeFun free;           /* deallocation method */
+  FirstFun first;         /* find first block for iteration */
+  NextFun next;           /* find next block for iteration */
+  UnitsFun units;         /* number of iteration objects for pages */
+  TestFun test;           /* consistency check a region */
+  CopyFun copy;           /* copy an AllocationInfo object */
+} AllocatorClassStruct;
+
+
+/* Implementation of the tract-based interchangability interface */
+
+static Res allocAsTract(AllocInfoStruct *aiReturn, SegPref pref,
+                        Size size, Pool pool)
+{
+  Res res;
+  Addr base;
+  res = ArenaAlloc(&base, pref, size, pool, FALSE);
+  if (ResOK == res) {
+    aiReturn->the.tractData.base = base;
+    aiReturn->the.tractData.size = size;
+    aiReturn->the.tractData.pool = pool;
+  }
+  return res;
+}
+
+static void freeAsTract(AllocInfo ai)
+{
+  ArenaFree(ai->the.tractData.base, 
+            ai->the.tractData.size, 
+            ai->the.tractData.pool);
+}
+
+static Bool firstAsTract(AllocInfoStruct *aiReturn, Arena arena)
+{
+  Bool res;
+  Tract tract;
+  res = TractFirst(&tract, arena);
+  if (res) {
+    aiReturn->the.tractData.base = TractBase(tract);
+    aiReturn->the.tractData.size = ArenaAlign(arena);;
+    aiReturn->the.tractData.pool = TractPool(tract);
+  }
+  return res;
+}
+
+static Bool nextAsTract(AllocInfoStruct *nextReturn, AllocInfo ai, 
+                        Arena arena)
+{
+  Bool res;
+  Tract tract;
+  res = TractNext(&tract, arena, ai->the.tractData.base);
+  if (res) {
+    nextReturn->the.tractData.base = TractBase(tract);
+    nextReturn->the.tractData.size = ArenaAlign(arena);;
+    nextReturn->the.tractData.pool = TractPool(tract);
+  }
+  return res;
+}
+
+static Count unitsAsTract(Count pages)
+{
+  return pages; /* one tract for each page */
+}
+
+
+static void testAsTract(AllocInfo ai, Arena arena)
+{
+  /* Test TractOfAddr */
+  Tract tract;
+  Addr base;
+  Bool found;
+
+  found = TractOfAddr(&tract, arena, ai->the.tractData.base);
+  die(found ? ResOK : ResFAIL, "TractOfAddr");
+  base = TractBase(tract);
+  die(base == ai->the.tractData.base ? ResOK : ResFAIL, "base");
+  
+}
+
+static void copyAsTract(AllocInfoStruct *toReturn, AllocInfo from)
+{
+  toReturn->the.tractData.base = from->the.tractData.base;
+  toReturn->the.tractData.size = from->the.tractData.size;
+  toReturn->the.tractData.pool = from->the.tractData.pool;
+}
+
+static AllocatorClassStruct allocatorTractStruct = {
+  allocAsTract,
+  freeAsTract,
+  firstAsTract,
+  nextAsTract,
+  unitsAsTract,
+  testAsTract,
+  copyAsTract
+};
+
+
+/* Implementation of the segment-based interchangability interface */
+
+static Res allocAsSeg(AllocInfoStruct *aiReturn, SegPref pref,
+                      Size size, Pool pool)
+{
+  Res res;
+  Seg seg;
+  res = SegAlloc(&seg, pref, size, pool, FALSE);
+  if (ResOK == res) {
+    aiReturn->the.segData.seg = seg;
+  }
+  return res;
+}
+
+static void freeAsSeg(AllocInfo ai)
+{
+  SegFree(ai->the.segData.seg);
+}
+
+static Bool firstAsSeg(AllocInfoStruct *aiReturn, Arena arena)
+{
+  Bool res;
+  Seg seg;
+  res = SegFirst(&seg, arena);
+  if (res) {
+    aiReturn->the.segData.seg = seg;
+  }
+  return res;
+}
+
+static Bool nextAsSeg(AllocInfoStruct *nextReturn, AllocInfo ai, 
+                      Arena arena)
+{
+  Bool res;
+  Seg seg;
+  res = SegNext(&seg, arena, SegBase(ai->the.segData.seg));
+  if (res) {
+    nextReturn->the.segData.seg = seg;
+  }
+  return res;
+}
+
+static Count unitsAsSeg(Count pages)
+{
+  if (0 == pages)
+    return 0; /* can't have a zero length seg */
+  else
+    return 1; /* one seg no matter how many pages */
+}
+
+static void testAsSeg(AllocInfo ai, Arena arena)
+{
+  /* Test size functions */
+  Seg seg = ai->the.segData.seg;
+  Addr base, limit;
+  Size size;
+  
+  UNUSED(arena);
+  base = SegBase(seg);
+  limit = SegLimit(seg);
+  size = SegSize(seg);
+  die(size == AddrOffset(base, limit) ? ResOK : ResFAIL, "size");
+}
+
+static void copyAsSeg(AllocInfoStruct *toReturn, AllocInfo from)
+{
+  toReturn->the.segData.seg = from->the.segData.seg;
+}
+
+static AllocatorClassStruct allocatorSegStruct = {
+  allocAsSeg,
+  freeAsSeg,
+  firstAsSeg,
+  nextAsSeg,
+  unitsAsSeg,
+  testAsSeg,
+  copyAsSeg
+};
+
+
+/* The main function can use either tracts or segs */
+
+static void testAllocAndIterate(Arena arena, Pool pool, 
+                                Size pageSize, Count numPerPage,
+                                AllocatorClass allocator)
+{
+  AllocInfoStruct offsetRegion, gapRegion, newRegion, topRegion;
+  SegPrefStruct pref = *SegPrefDefault();
+  Count offset, gap, new;
+  RefSet refSet = (RefSet)2;
+  int i;
+
+  /* Testing the behaviour with various sizes of gaps in the page table. */
+
+  /* Assume the allocation strategy is first-fit.  The idea of the tests is */
+  /* to allocate a region of memory, then deallocate a gap in the middle, */
+  /* then allocate a new region that fits in the gap with various amounts */
+  /* left over.  Like this: */
+  /* |-offsetRegion-||----gapRegion----||-topRegion-| */
+  /* |-offsetRegion-||-newRegion-|      |-topRegion-| */
+  /* This is done with three different sizes of offsetRegion, in two */
+  /*  different zones to ensure that all page boundary cases are tested. */
+  for(i = 0; i < 2; ++i) { /* zone loop */
+    for(offset = 0; offset <= 2*numPerPage; offset += numPerPage) {
+      if(offset != 0)
+        die(allocator->alloc(&offsetRegion, &pref, offset * pageSize, pool),
+            "offsetRegion");
+      for(gap = numPerPage+1; gap <= 3 * (numPerPage+1);
+          gap += (numPerPage+1)) {
+        die(allocator->alloc(&gapRegion, &pref, gap * pageSize, pool),
+            "gapRegion");
+        die(allocator->alloc(&topRegion, &pref, pageSize, pool),
+            "topRegion");
+        allocator->free(&gapRegion);
+        for(new = 1; new <= gap; new += numPerPage) {
+          AllocInfoStruct thisRegion, nextRegion;
+          Count regionNum, expected;
+          Res enoughRegions;
+
+          die(allocator->alloc(&newRegion, &pref, new * pageSize, pool),
+              "newRegion");
+
+          /* Test iterators */
+          die(allocator->first(&thisRegion, arena) ? ResOK : ResFAIL, "first");
+          regionNum = 1;
+          while (allocator->next(&nextRegion, &thisRegion, arena)) {
+            regionNum++;
+            allocator->copy(&thisRegion, &nextRegion);
+          }
+
+          /* Should be able to iterate over at least offset, new, top */
+          expected = 
+            allocator->units(offset) +
+            allocator->units(new) + 
+            allocator->units(1);
+
+          if (regionNum >= expected) 
+            enoughRegions = ResOK;
+          else
+            enoughRegions = ResFAIL;
+
+          die(enoughRegions, "Not enough regions");
+
+          allocator->free(&newRegion);
+        }
+
+      allocator->free(&topRegion);
+      }
+      if(offset != 0) {
+        allocator->test(&offsetRegion, arena);
+	allocator->free(&offsetRegion);
+      }
+    }
+    SegPrefExpress(&pref, SegPrefRefSet, &refSet);
+  }
+
+}
+
+
 static void testPageTable(ArenaClass class, ...)
 {
   Arena arena; Pool pool;
-  Addr offsetBase, gapBase, newBase, topBase;
   Size pageSize;
-  Count tractsPerPage, offset, gap, new;
-  int i;
-  SegPrefStruct pref = *SegPrefDefault();
-  RefSet refSet = (RefSet)2;
+  Count tractsPerPage;
   va_list args;
 
   va_start(args, class);
@@ -53,76 +357,13 @@ static void testPageTable(ArenaClass class, ...)
   tractsPerPage = pageSize / sizeof(TractStruct);
   printf("%ld tracts per page in the page table.\n", (long)tractsPerPage);
 
-  /* Testing the behaviour with various sizes of gaps in the page table. */
+  /* test tract allocation and iteration */
+  testAllocAndIterate(arena, pool, pageSize, tractsPerPage, 
+                      &allocatorTractStruct);
 
-  /* Assume the allocation strategy is first-fit.  The idea of the tests is */
-  /* to allocate a region of memory, then deallocate a gap in the middle, */
-  /* then allocate a new region that fits in the gap with various amounts */
-  /* left over.  Like this: */
-  /* |-offsetRegion-||----gapRegion----||-topRegion-| */
-  /* |-offsetRegion-||-newRegion-|      |-topRegion-| */
-  /* This is done with three different sizes of offsetRegion, in two */
-  /*  different zones to ensure that all page boundary cases are tested. */
-  for(i = 0; i < 2; ++i) { /* zone loop */
-    for(offset = 0; offset <= 2*tractsPerPage; offset += tractsPerPage) {
-      if(offset != 0)
-        die(ArenaAlloc(&offsetBase, &pref, offset * pageSize, pool,
-                       /* withReservoirPermit */ FALSE),
-            "offsetRegion");
-      for(gap = tractsPerPage+1; gap <= 3 * (tractsPerPage+1);
-          gap += (tractsPerPage+1)) {
-        die(ArenaAlloc(&gapBase, &pref, gap * pageSize, pool,
-                       /* withReservoirPermit */ FALSE),
-            "gapRegion");
-        die(ArenaAlloc(&topBase, &pref, pageSize, pool,
-                       /* withReservoirPermit */ FALSE),
-            "topRegion");
-        ArenaFree(gapBase, gap * pageSize, pool);
-        for(new = 1; new <= gap; new += tractsPerPage) {
-          Tract tract;
-          Count tractNum, expected;
-          Res enoughTracts;
-
-          die(ArenaAlloc(&newBase, &pref, new * pageSize, pool,
-                         /* withReservoirPermit */ FALSE),
-              "newRegion");
-
-          /* Test tract iterators */
-          die(TractFirst(&tract, arena) ? ResOK : ResFAIL, "first");
-          tractNum = 1;
-          while (TractNext(&tract, arena, TractBase(tract)))
-            tractNum++;
-
-          /* There are at least offset+new+top tracts */
-          expected = offset + new + 1;
-          if (tractNum >= expected) 
-            enoughTracts = ResOK;
-          else
-            enoughTracts = ResFAIL;
-
-          die(enoughTracts, "Not enough tracts");
-
-          ArenaFree(newBase, new * pageSize, pool);
-        }
-
-      ArenaFree(topBase, pageSize, pool);
-      }
-      if(offset != 0) {
-	/* Test TractOfAddr */
-        Tract tract;
-	Addr base;
-        Bool found;
-
-        found = TractOfAddr(&tract, arena, offsetBase);
-        die(found ? ResOK : ResFAIL, "TractOfAddr");
-	base = TractBase(tract);
-	die(base == offsetBase ? ResOK : ResFAIL, "base");
-
-	ArenaFree(offsetBase, offset * pageSize, pool);
-      }
-    }
-    SegPrefExpress(&pref, SegPrefRefSet, &refSet);
-  }
+  /* test segment allocation and iteration */
+  testAllocAndIterate(arena, pool, pageSize, tractsPerPage, 
+                      &allocatorSegStruct);
 
   PoolDestroy(pool);
   ArenaDestroy(arena);
