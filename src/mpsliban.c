@@ -1,6 +1,6 @@
 /* impl.c.mpsliban: HARLEQUIN MEMORY POOL SYSTEM LIBRARY INTERFACE (ANSI)
  *
- * $HopeName: MMsrc!mpsliban.c(trunk.4) $
+ * $HopeName: !mpsliban.c(trunk.5) $
  * Copyright (C) 1996,1997 Harlequin Group, all rights reserved.
  *
  * PURPOSE
