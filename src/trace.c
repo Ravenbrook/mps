@@ -1,6 +1,6 @@
 /* impl.c.trace: GENERIC TRACER IMPLEMENTATION
  *
- * $HopeName: MMsrc!trace.c(MMdevel_drj_trace_abort.3) $
+ * $HopeName: MMsrc!trace.c(MMdevel_drj_trace_abort.4) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  *
  * .sources: design.mps.tracer.
@@ -33,7 +33,7 @@
 
 #include "mpm.h"
 
-SRCID(trace, "$HopeName: MMsrc!trace.c(MMdevel_drj_trace_abort.3) $");
+SRCID(trace, "$HopeName: MMsrc!trace.c(MMdevel_drj_trace_abort.4) $");
 
 
 /* ScanStateCheck -- check consistency of a ScanState object */
@@ -70,7 +70,8 @@ static void ScanStateInit(ScanState ss, TraceSet ts, Arena arena,
 
   ss->fix = TraceFix;
   for(ti = 0; ti < TRACE_MAX; ++ti) {
-    if(ArenaTrace(arena, ti)->emergency) {
+    if(TraceSetIsMember(ts, ti) &&
+       ArenaTrace(arena, ti)->emergency) {
       ss->fix = TraceFixEmergency;
     }
   }
@@ -790,10 +791,21 @@ void TraceAccess(Arena arena, Seg seg, AccessSet mode)
     /* we should be scanning at the "phase" of the trace, which is the */
     /* minimum rank of all grey segments. */
     /* design.mps.poolamc.access.multi @@@@ tag correct?? */
-    res = TraceScan(arena->busyTraces,  /* @@@@ Should just be flipped traces? */
-                    RankEXACT,
-                    arena, seg);
-    AVER(res == ResOK);                 /* design.mps.poolamc.access.error */
+
+    /* Pick set of traces to scan for: */
+    /* @@@@ Should just be flipped traces? */
+    TraceSet traces = arena->busyTraces;
+    res = TraceScan(traces, RankEXACT, arena, seg);
+    if(res != ResOK) {
+      /* enter emergency tracing mode */
+      for(ti = 0; ti < TRACE_MAX; ++ti) {
+        if(TraceSetIsMember(traces, ti)) {
+	  ArenaTrace(arena, ti)->emergency = TRUE;
+	}
+      }
+      res = TraceScan(traces, RankEXACT, arena, seg);
+      AVER(res == ResOK);
+    }
 
     /* The pool should've done the job of removing the greyness that */
     /* was causing the segment to be protected, so that the mutator */
