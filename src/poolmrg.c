@@ -2,16 +2,18 @@
  * 
  * MANUAL RANK GUARDIAN POOL
  * 
- * $HopeName: MMsrc!poolmrg.c(MMdevel_drj_message.2) $
+ * $HopeName: MMsrc!poolmrg.c(MMdevel_drj_message.3) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  *
  * READERSHIP
  *
- * Any MPS developer.  It will help to read design.mps.poolmrg.
+ * .readership: Any MPS developer.
  * 
  * DESIGN
  * 
- * See design.mps.poolmrg.
+ * .design: See design.mps.poolmrg.
+ *
+ * NOTES
  * 
  * .improve.rank: At the moment, the pool is a guardian for the final
  * rank.  It could be generalized to be a guardian for an arbitrary
@@ -24,7 +26,7 @@
 #include "mpm.h"
 #include "poolmrg.h"
 
-SRCID(poolmrg, "$HopeName: MMsrc!poolmrg.c(MMdevel_drj_message.2) $");
+SRCID(poolmrg, "$HopeName: MMsrc!poolmrg.c(MMdevel_drj_message.3) $");
 
 
 #define MRGSig          ((Sig)0x519369B0) /* SIGnature MRG POol */
@@ -86,7 +88,7 @@ static Index indexOfLinkPart(Addr a, Space space)
 
 typedef struct MRGGroupStruct {
   Sig sig;                      /* impl.h.misc.sig */
-  RingStruct group;		/* design.mps.poolmrg.group.group */
+  RingStruct group;             /* design.mps.poolmrg.group.group */
   Seg refseg;                   /* design.mps.poolmrg.group.segs */
   Seg linkseg;                  /* design.mps.poolmrg.group.segs */
 } MRGGroupStruct;
@@ -160,8 +162,10 @@ static Res MRGGroupCreate(MRGGroup *groupReturn, MRG mrg)
   }
   AVER((Addr)(&linkpart[i]) <= SegLimit(space, linkseg));
   AVER((Addr)(&refpart[i]) <= SegLimit(space, refseg));
-  SegSetRankSet(refseg, RankSetSingle(RankFINAL)); /* design.mps.seg.field.rankSet.start */
-  SegSetSummary(refseg, RefSetUNIV);               /* design.mps.seg.field.summary.start */
+  /* design.mps.seg.field.rankSet.start */
+  SegSetRankSet(refseg, RankSetSingle(RankFINAL));
+  /* design.mps.seg.field.summary.start */
+  SegSetSummary(refseg, RefSetUNIV);
 
   group->refseg = refseg;
   group->linkseg = linkseg;
@@ -206,20 +210,20 @@ static Res MRGGroupScan(ScanState ss, MRGGroup group, MRG mrg)
 
   space = PoolSpace(MRGPool(mrg));
 
-  guardians = mrg->extendBy / sizeof(Addr);	/* per seg */
+  guardians = mrg->extendBy / sizeof(Addr);     /* per seg */
   AVER(guardians > 0);
   base = SegBase(space, group->refseg);
   refpart = (Addr *)base;
   TRACE_SCAN_BEGIN(ss) {
     for(i=0; i<guardians; ++i) {
       if(!TRACE_FIX1(ss, refpart[i]))
-	continue;
+        continue;
       res = TRACE_FIX2(ss, &refpart[i]);
       if(res != ResOK) {
         return res;
       }
       if(ss->rank == RankFINAL && !ss->wasMarked) {     /* .improve.rank */
-	MRGFinalize(space, group, i);
+        MRGFinalize(space, group, i);
       }
     }
   } TRACE_SCAN_END(ss);
@@ -394,20 +398,6 @@ static Res MRGDescribe(Pool pool, mps_lib_FILE *stream)
            (WriteFA)&refpart[gi], (WriteFA)refpart[gi],
            NULL);
   }
-#if 0
-  WriteF(stream, "  Exit queue:\n", NULL);
-  RING_FOR(r, &mrg->exit) {
-    b = SegOfAddr(&seg, space, (Addr)r);
-    AVER(b);
-    group = SegP(seg);
-    refpart = (Addr *)SegBase(space, group->refseg);
-    gi = indexOfLinkPart((Addr)r, space);
-    WriteF(stream,
-           "    at $A ref $A\n",
-           (WriteFA)&refpart[gi], (WriteFA)refpart[gi],
-           NULL);
-  }
-#endif
 
   return ResOK;
 }
@@ -516,12 +506,12 @@ static void MRGMessageDelete(Message message)
 
 
 static MessageClassStruct MRGMessageClassStruct = {
-  MessageClassSig,			/* sig */
-  "MRGFinal",				/* name */
-  MRGMessageType,			/* Type */
-  MRGMessageDeliver,			/* Deliver */
-  MRGMessageDelete,			/* Delete */
-  MessageClassSig			/* endSig */
+  MessageClassSig,                      /* sig */
+  "MRGFinal",                           /* name */
+  MRGMessageType,                       /* Type */
+  MRGMessageDeliver,                    /* Deliver */
+  MRGMessageDelete,                     /* Delete */
+  MessageClassSig                       /* endSig */
 };
 
 static PoolClassStruct PoolClassMRGStruct = {
@@ -538,14 +528,14 @@ static PoolClassStruct PoolClassMRGStruct = {
   PoolNoBufferFill,                     /* bufferFill */
   PoolNoBufferEmpty,                    /* bufferEmpty */
   PoolNoBufferFinish,                   /* bufferFinish */
-  PoolNoTraceBegin,			/* traceBegin */
+  PoolNoTraceBegin,                     /* traceBegin */
   PoolNoCondemn,                        /* condemn */
   PoolTrivGrey,                         /* grey */
   MRGScan,                              /* scan */
   PoolNoFix,                            /* fix */
   PoolNoReclaim,                        /* reclaim */
-  PoolNoTraceEnd,			/* traceEnd */
-  PoolNoBenefit,			/* benefit */
+  PoolNoTraceEnd,                       /* traceEnd */
+  PoolNoBenefit,                        /* benefit */
   MRGDescribe,                          /* describe */
   PoolClassSig                          /* impl.h.mpmst.class.end-sig */
 };
