@@ -1,6 +1,6 @@
 /* impl.c.vmli: VIRTUAL MEMORY MAPPING FOR LINUX
  *
- * $HopeName: !vmli.c(trunk.6) $
+ * $HopeName: MMsrc!vmli.c(MM_dylan_kinglet.1) $
  * Copyright (C) 2000 Harlequin Limited.  All rights reserved.
  *
  * .purpose: This is the implementation of the virtual memory mapping 
@@ -25,33 +25,36 @@
  * in the off_t type (define by the system (POSIX?)).  In fact we test
  * the more stringent requirement that they are the same size.  This
  * assumption is made in VMUnmap.
+ *
+ * .remap: Possibly this should use mremap to redice the number of
+ * distinct mappings.
  */
 
-#include "mpm.h"
-
-#ifndef MPS_OS_LI
-#error "vmli.c is LINUX specific, but MPS_OS_LI is not set"
-#endif
-
-/* open sesame magic, see standards(5) */
-#define _POSIX_C_SOURCE 199309L
-#define _XOPEN_SOURCE_EXTENDED 1
+/* Use all extensions */
+#define _GNU_SOURCE 1
 
 /* for open(2) */
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <fcntl.h>
 
-/* for mmap(2),munmap(2) */
+/* for mmap(2), munmap(2) */
 #include <sys/mman.h>
 
 /* for errno(2) */
 #include <errno.h>
 
-/* for sysconf(2),close(2) */
+/* for sysconf(2), close(2) */
 #include <unistd.h>
 
-SRCID(vmli, "$HopeName: !vmli.c(trunk.6) $");
+#include "mpm.h"
+
+
+#ifndef MPS_OS_LI
+#error "vmli.c is LINUX specific, but MPS_OS_LI is not set"
+#endif
+
+SRCID(vmli, "$HopeName: MMsrc!vmli.c(MM_dylan_kinglet.1) $");
 
 
 /* VMStruct -- virtual memory structure */
