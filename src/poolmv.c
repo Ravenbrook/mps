@@ -1,6 +1,6 @@
 /* impl.c.poolmv: MANUAL VARIABLE POOL
  *
- * $HopeName: !poolmv.c(trunk.12) $
+ * $HopeName: MMsrc!poolmv.c(MMdevel_remem.1) $
  * Copyright (C) 1994, 1995 Harlequin Group, all rights reserved
  *
  * **** RESTRICTION: This pool may not allocate from the arena control
@@ -37,7 +37,7 @@
 #include "poolmfs.h"
 #include "mpscmv.h"
 
-SRCID(poolmv, "$HopeName: !poolmv.c(trunk.12) $");
+SRCID(poolmv, "$HopeName: MMsrc!poolmv.c(MMdevel_remem.1) $");
 
 
 #define BLOCKPOOL(mv)   (MFSPool(&(mv)->blockPoolStruct))
@@ -63,7 +63,8 @@ PoolClass PoolClassMV(void)
                 alloc, free_,
                 NULL, NULL,             /* bufferCreate, bufferDestroy */
                 NULL, NULL,             /* bufferFill, bufferTrip */
-                NULL, NULL,             /* bufferExpose, bufferCover */
+                NULL, NULL,             /* bufferAttach, bufferDetach */
+                NULL, NULL,             /* traceStart, traceEnd */
                 NULL, NULL,             /* mark, scan */
                 NULL, NULL,             /* fix, relcaim */
                 NULL, NULL,             /* access, poll */
