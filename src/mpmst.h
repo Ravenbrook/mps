@@ -1,10 +1,6 @@
 /* impl.h.mpmst: MEMORY POOL MANAGER DATA STRUCTURES
  *
-<<<<<<< fleece:trunk:src:mpmst.h
- * $HopeName: !mpmst.h(trunk.23) $
-=======
- * $HopeName: !mpmst.h(trunk.23) $
->>>>>>> 1.22.3.2
+ * $HopeName: MMsrc!mpmst.h(MMdevel_gens2.1) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  *
  * .readership: MM developers.
@@ -591,6 +587,8 @@ typedef struct ActionStruct {
   Serial serial;		/* from pool->actionSerial */
   Pool pool;			/* owning pool */
   RingStruct poolRing;		/* link in list of actions in pool */
+  Size size;			/* size of set */
+  double sigmaBirthTime;	/* total birth time of bytes in set */
 } ActionStruct;
 
 
@@ -617,6 +615,7 @@ typedef struct SpaceStruct {
   Size pollThreshold;           /* see impl.c.mpsi.poll and SpacePoll */
   Bool insidePoll;              /* prevent recursive polling, see SpacePoll */
   Size actionInterval;		/* see SpacePoll */
+  double allocTime;		/* "time" in allocated bytes */
 
   /* arena fields (impl.c.arena*) */
   ArenaStruct arenaStruct;      /* the arena */
