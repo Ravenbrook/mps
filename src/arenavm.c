@@ -1018,102 +1018,55 @@ static Bool findFreeInArea(Index *baseReturn,
   return TRUE;
 }
 
-
-/* findFreeInRefSet -- try to allocate a segment with a RefSet
+/* findFreeInZoneRange -- try to allocate a segment in a zone range
  * 
- * This function finds the intersection of refSet and the set of free
- * pages and tries to find a free run of pages in the resulting set of
- * areas.
- *
- * In other words, it finds space for a segment whose RefSet (see
- * RefSetOfSeg) will be a subset of the specified RefSet.
- *
- * For meaning of downwards arg see findFreeInArea.
- * .improve.findfreeinrefset.downwards: This
- * should be improved so that it allocates segments from top down
- * globally, as opposed to (currently) just within an interval.
+ * @@@ does not completely implement the downwards flag
  */
-
-static Bool findFreeInRefSet(Index *baseReturn, VMArenaChunk *chunkReturn,
-			     VMArena vmArena, Size size, RefSet refSet,
-			     Bool downwards)
+#define ZoneMASK(arena) (~(RefSetMASK<<(arena)->zoneShift))
+#define ZoneSTEP(arena) (RefSetSize<<(arena)->zoneShift)
+static Bool findFreeInZoneRange(Index *baseReturn,
+                                VMArenaChunk *chunkReturn,
+                                VMArena vmArena, Size size,
+                                Addr zoneBase, Addr zoneLimit,
+                                Bool downwards)
 {
-  Arena arena;
-  Addr chunkBase, base, limit;
-  Size zoneSize;
   Ring node, next;
+  Arena arena = VMArenaArena(vmArena);
+  Word zoneMask = ZoneMASK(arena);
+  Word zoneStep = ZoneSTEP(arena);
 
-  AVER(baseReturn != NULL);
-  AVERT(VMArena, vmArena);
-  AVER(size > 0);
-  AVER(RefSetCheck(refSet));
-  AVER(BoolCheck(downwards));
+  RING_FOR(node, &vmArena->chunkRing, next)
+    {
+      VMArenaChunk chunk = RING_ELT(VMArenaChunk, arenaRing, node);
+      /* .alloc.skip: The first address available for segments, */
+      /* is just after the arena tables. */
+      Word rangeBase = (Word)PageIndexBase(chunk, chunk->tablePages);
+      Word rangeLimit = (Word)chunk->limit;
+      Word stripeBase, stripeLimit;
+      Word nextBase = (rangeBase&zoneMask)|(Word)zoneBase;
+      Word nextLimit = (rangeBase&zoneMask)|(Word)zoneLimit;
+    
+      AVERT(VMArenaChunk, chunk);
 
-  arena = VMArenaArena(vmArena);
-  zoneSize = (Size)1 << arena->zoneShift;
-
-  /* .improve.alloc.chunk.cache: check (non-existant) chunk cache */
-  /* first? */
-  RING_FOR(node, &vmArena->chunkRing, next) {
-    VMArenaChunk chunk = RING_ELT(VMArenaChunk, arenaRing, node);
-    AVERT(VMArenaChunk, chunk);
-
-    /* .alloc.skip: The first address available for segments, */
-    /* is just after the arena tables. */
-    chunkBase = PageIndexBase(chunk, chunk->tablePages);
-
-    base = chunkBase;
-    while(base < chunk->limit) {
-      if(RefSetIsMember(arena, refSet, base)) {
-	/* Search for a run of zone stripes which are in the RefSet and */
-	/* the arena.  Adding the zoneSize might wrap round (to zero, */
-	/* because limit is aligned to zoneSize, which is a power of two). */
-	limit = base;
-	do {
-	  /* advance limit to next higher zone stripe boundary */
-	  limit = AddrAlignUp(AddrAdd(limit, 1), zoneSize);
-
-	  AVER(limit > base || limit == (Addr)0);
-
-	  if(limit >= chunk->limit || limit < base) {
-	    limit = chunk->limit;
-	    break;
-	  }
-
-	  AVER(base < limit && limit < chunk->limit);
-	} while(RefSetIsMember(arena, refSet, limit));
-
-	/* If the RefSet was universal, then the area found ought to */
-	/* be the whole chunk. */
-	AVER(refSet != RefSetUNIV ||
-	     (base == chunkBase && limit == chunk->limit));
-
-	/* Try to allocate a segment in the area. */
-	if(AddrOffset(base, limit) >= size &&
-	   findFreeInArea(baseReturn,
-			  chunk, size, base, limit, downwards)) {
+      /* @@@ ZoneStripe_FOR */
+      for(; stripeBase < rangeLimit;) {
+	if(AddrOffset(stripeBase, stripeLimit) >= size &&
+	   findFreeInArea(baseReturn, chunk, size,
+                          (Addr)stripeBase, (Addr)stripeLimit, 
+                          downwards)) {
 	  *chunkReturn = chunk;
 	  return TRUE;
 	}
-	
-	base = limit;
-      } else {
-	/* Adding the zoneSize might wrap round (to zero, because base */
-	/* is aligned to zoneSize, which is a power of two). */
-	base = AddrAlignUp(AddrAdd(base, 1), zoneSize);
-	AVER(base > chunkBase || base == (Addr)0);
-	if(base >= chunk->limit || base < chunkBase) {
-	  base = chunk->limit;
-	  break;
-	}
+                                                                        
+        nextBase = nextBase+zoneStep;
+        nextLimit = nextLimit+zoneStep;
+        stripeBase = nextBase;
+        stripeLimit = nextLimit>rangeLimit?rangeLimit:nextLimit;
       }
     }
-
-    AVER(base == chunk->limit);
-  }
-
   return FALSE;
 }
+
 
 
 static Serial vmGenOfSegPref(VMArena vmArena, SegPref pref)
@@ -1141,6 +1094,7 @@ static Serial vmGenOfSegPref(VMArena vmArena, SegPref pref)
  * .vmsegfind.arg.chunkreturn: return parameter for the chunk in which
  *   the free space has been found.
  * .vmsegfind.arg.vmarena:
+ * .vmsegfine.arg.client: LocusClient seg is for
  * .vmsegfind.arg.pref: the SegPref object to be used when considering
  *   which zones to try.
  * .vmsegfind.arg.size: Size of segment to find space for.
@@ -1150,82 +1104,18 @@ static Serial vmGenOfSegPref(VMArena vmArena, SegPref pref)
  */
 
 static Bool VMSegFind(Index *baseReturn, VMArenaChunk *chunkReturn,
-                      VMArena vmArena, SegPref pref, Size size, Bool barge)
+                      VMArena vmArena, LocusClient client,
+                      SegPref pref, Size size, Bool barge)
 {
-  RefSet refSet;
+  Addr zoneBase, zoneLimit;
+  
+  /* @@@ does not pay attention to the barge flag */
+  LocusClientZoneRangeInitialize(client);
+  for (; ! LocusClientZoneRangeFinished(client);) {
+    LocusClientZoneRangeNext(&zoneBase, &zoneLimit, client);
 
-  /* This function is local to VMSegAlloc, so */
-  /* no checking required */
-
-  if(pref->isGen) {
-    Serial gen = vmGenOfSegPref(vmArena, pref);
-    refSet = vmArena->genRefSet[gen];
-  } else {
-    refSet = pref->refSet;
-  }
-
-  /* @@@@ Some of these tests might be duplicates.  If we're about */
-  /* to run out of virtual address space, then slow allocation is */
-  /* probably the least of our worries. */
-
-  /* .segalloc.improve.map: Define a function that takes a list */
-  /* (say 4 long) of RefSets and tries findFreeInRefSet on */
-  /* each one in turn.  Extra RefSet args that weren't needed */
-  /* could be RefSetEMPTY */
-
-  if(pref->isCollected) { /* GC'd segment */
-    /* We look for space in the following places (in order) */
-    /*   - Zones already allocated to me (refSet) but are not */
-    /*     blacklisted; */
-    /*   - Zones that are either allocated to me, or are unallocated */
-    /*     but not blacklisted; */
-    /*   - Any non-blacklisted zone; */
-    /*   - Any zone; */
-    /* Note that each is a superset of the previous, unless blacklisted */
-    /* zones have been allocated (or the default is used). */
-    if(findFreeInRefSet(baseReturn, chunkReturn, vmArena, size, 
-		        RefSetDiff(refSet, vmArena->blacklist),
-		        pref->high) ||
-       findFreeInRefSet(baseReturn, chunkReturn, vmArena, size, 
-                        RefSetUnion(refSet,
-				    RefSetDiff(vmArena->freeSet, 
-					       vmArena->blacklist)),
-					       pref->high))
-    {
-      /* found */
-      return TRUE;
-    }
-    if(!barge) {
-      /* do not barge into other zones, give up now */
-      return FALSE;
-    }
-    if(findFreeInRefSet(baseReturn, chunkReturn, vmArena, size, 
-		        RefSetDiff(RefSetUNIV, vmArena->blacklist),
-		        pref->high) ||
-       findFreeInRefSet(baseReturn, chunkReturn, vmArena, size,
-		        RefSetUNIV, pref->high))
-    {
-      /* found */
-      return TRUE;
-    }
-  } else { /* non-GC'd segment */
-    /* We look for space in the following places (in order) */
-    /*   - Zones preferred (refSet) and blacklisted; */
-    /*   - Zones preferred; */
-    /*   - Zones preferred or blacklisted zone; */
-    /*   - Any zone. */
-    /* Note that each is a superset of the previous, unless blacklisted */
-    /* zones have been allocated. */
-    if(findFreeInRefSet(baseReturn, chunkReturn, vmArena, size, 
-			 RefSetInter(refSet, vmArena->blacklist),
-			 pref->high) ||
-       findFreeInRefSet(baseReturn, chunkReturn, vmArena, size,
-			 refSet, pref->high) ||
-       findFreeInRefSet(baseReturn, chunkReturn, vmArena, size, 
-			 RefSetUnion(refSet, vmArena->blacklist),
-			 pref->high) ||
-       findFreeInRefSet(baseReturn, chunkReturn, vmArena, size,
-			 RefSetUNIV, pref->high)) {
+    if (findFreeInZoneRange(baseReturn, chunkReturn, vmArena, size,
+                            zoneBase, zoneLimit, pref->high)) {
       return TRUE;
     }
   }
@@ -1263,7 +1153,8 @@ static Res VMSegAlloc(Seg *segReturn, SegPref pref, Size size,
   /* must be non-NULL. */
   AVER(pool != NULL);
 
-  if(!VMSegFind(&base, &chunk, vmArena, pref, size, FALSE)) {
+  if(!VMSegFind(&base, &chunk, vmArena, PoolLocusClient(pool), pref,
+                size, FALSE)) {
     VMArenaChunk newChunk;
     Size chunkSize;
     chunkSize = vmArena->extendBy + size;
@@ -1276,7 +1167,8 @@ static Res VMSegAlloc(Seg *segReturn, SegPref pref, Size size,
       return res;
     }
     RingAppend(&vmArena->chunkRing, &newChunk->arenaRing);
-    if(!VMSegFind(&base, &chunk, vmArena, pref, size, TRUE)) {
+    if(!VMSegFind(&base, &chunk, vmArena, PoolLocusClient(pool), pref,
+                  size, TRUE)) { 
       /* even with new chunk didn't work... */
       /* @@@@ .improve.debug: If the tables of the new chunk */
       /* were more than vmArena->extendBy then we will have failed */
