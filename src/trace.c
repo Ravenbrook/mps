@@ -1,12 +1,12 @@
 /* impl.c.trace: GENERIC TRACER IMPLEMENTATION
  *
- * $HopeName: MMsrc!trace.c(trunk.33) $
+ * $HopeName: !trace.c(trunk.34) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  */
 
 #include "mpm.h"
 
-SRCID(trace, "$HopeName: MMsrc!trace.c(trunk.33) $");
+SRCID(trace, "$HopeName: !trace.c(trunk.34) $");
 
 
 /* ScanStateCheck -- check consistency of a ScanState object */
