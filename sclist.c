@@ -125,6 +125,7 @@ static const proctab_s proctab[] = {
   {"length",			length_entry},
   {"set-car!",			setcar_entry},
   {"set-cdr!",			setcdr_entry},
+  {NULL, NULL},
 };
 
 

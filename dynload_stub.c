@@ -29,64 +29,6 @@
 #include <string.h>
 
 
-/* On Mac OS X 10.3.4, at least, there are header which use a non-standard */
-/* declaration "inline".  Fortunately, we can switch it off by defining */
-/* OS_INLINE as blank, and so keep all our strict compiler warnings. */
-
-#define OS_INLINE
-#include <mach-o/dyld.h>
-#undef OS_INLINE
-
-
-/* load-compiled-unit -- loads a bundle and returns its top-level linker
- *
- * (load-compiled-unit <symbol> <string>)
- */
-
-static void load_compiled_unit_entry(state_t state)
-{
-  NSObjectFileImageReturnCode rc;
-  NSObjectFileImage image;
-  NSModule module;
-  NSSymbol symbol;
-  label_t *unit;
-
-  check_args(state, 2, TYPE_SYMBOL, TYPE_STRING);
-
-  rc = NSCreateObjectFileImageFromFile(STR(A1), &image);
-  if(rc != NSObjectFileImageSuccess)
-    /* @@@@ Need to decode return code and produce better messages. */
-    error(state, "couldn't create image object: %d", rc);
-
-  module = NSLinkModule(image, STR(A1),
-                        NSLINKMODULE_OPTION_BINDNOW |
-                        NSLINKMODULE_OPTION_RETURN_ON_ERROR |
-                        NSLINKMODULE_OPTION_PRIVATE);
-  if(module == NULL)
-    /* @@@@ Need to decode "errno" thingy and produce better messages. */
-    error(state, "couldn't link module");
-
-  /* The name of the file's entry point is determined by its symbolic name. */
-  /* See "opcodes.h" macro "UNIT_BEGIN". */
-  /* @@@@ Should perhaps have a scheme for translating funny characters in */
-  /* the symbol. */
-  MAKE_STRING_UNINIT(T1, sizeof "_sc_unit_" - 1 + SYMLEN(A0));
-  strcpy(STR(T1), "_sc_unit_");
-  strncat(STR(T1), SYMSTR(A0), SYMLEN(A0));
-
-  symbol = NSLookupSymbolInModule(module, STR(T1));
-  if(symbol == NULL)
-    error(state, "couldn't find entry point");
-
-  unit = NSAddressOfSymbol(symbol);
-
-  /* Make a procedure to run the unit top-level linker. */
-  MAKE_PROC(T0, A0, *unit);
-
-  RET1(T0);
-}
-
-
 /* proctab -- initial procedure table
  *
  * The procedures listed in this table are initialized and added
@@ -94,7 +36,6 @@ static void load_compiled_unit_entry(state_t state)
  */
 
 static const proctab_s proctab[] = {
-  {"load-compiled-unit", load_compiled_unit_entry},
   {NULL, NULL}
 };
 
@@ -136,6 +77,9 @@ const label_t sc_unit_scdynload = &unit_entry;
  *
  * 2004-08-11  RB  Changing "dynload" operator to "load-compiled-unit"
  * function which can be used to implement stuff in Scheme rather than C.
+ *
+ * 2005-03-02  NB  Stubbed out for non-MacOSX platforms (for testing
+ * MPS).
  *
  *
  * C. COPYRIGHT AND LICENCE

@@ -936,6 +936,7 @@ static const proctab_s proctab[] = {
   {"read",		read_entry},
   {"write",			write_entry},
   {"write-string",		write_string_entry},
+  { NULL, NULL},
 };
 
 

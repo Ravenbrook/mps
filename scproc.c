@@ -168,7 +168,7 @@ static void proc_loc_entry(state_t state)
   check_args(state, 2, TYPE_PROC, TYPE_INTEGER);
   unless(0 <= INT(A1) && (size_t)INT(A1) < A0->proc.regs)
     error(state, "reference to local %ld is out of range of locals [0, %lu)",
-	  (ulong)INT(A1), A0->proc.regs);
+	  (ulong)INT(A1), (ulong)(A0->proc.regs));
   T0 = LOC(A0, INT(A1));
   RET1(T0);
 }
