@@ -1,6 +1,6 @@
 /* impl.c.arena: ARENA IMPLEMENTATION
  *
- * $HopeName: MMsrc!arena.c(MMdevel_drj_commit_limit.2) $
+ * $HopeName: MMsrc!arena.c(MMdevel_drj_commit_limit.3) $
  * Copyright (C) 1998. Harlequin Group plc. All rights reserved.
  *
  * .readership: Any MPS developer
@@ -36,7 +36,7 @@
 #include "poolmrg.h"
 #include "mps.h"
 
-SRCID(arena, "$HopeName: MMsrc!arena.c(MMdevel_drj_commit_limit.2) $");
+SRCID(arena, "$HopeName: MMsrc!arena.c(MMdevel_drj_commit_limit.3) $");
 
 
 /* All static data objects are declared here. See .static */
@@ -986,31 +986,6 @@ Res ArenaSetCommitLimit(Arena arena, Size limit)
   arena->commitLimit = limit;
   return ResOK;
 }
-
-Res ArenaAddCommitLimit(Arena arena, long delta)
-{
-  AVERT(Arena, arena);
-  AVER(ArenaCommitted(arena) <= arena->commitLimit);
-
-  if(delta >= 0) {
-    if((Size)(arena->commitLimit + delta) < arena->commitLimit) {
-      /* overflowed by increasing */
-      return ResFAIL;
-    }
-  } else {
-    if((Size)(arena->commitLimit + delta) > arena->commitLimit) {
-      /* overflowed by decreasing */
-      return ResFAIL;
-    }
-  }
-  if((Size)(arena->commitLimit + delta) < ArenaCommitted(arena)) {
-    return ResFAIL;
-  }
-
-  arena->commitLimit += delta;
-  return ResOK;
-}
-
 
 double ArenaMutatorAllocSize(Arena arena)
 {
