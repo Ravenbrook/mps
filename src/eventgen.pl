@@ -2,7 +2,7 @@
 # impl.pl.eventgen -- Generator for impl.h.eventgen
 #
 # Copyright (C) 1998 Harlequin Group plc.  All rights reserved.
-# $HopeName: MMsrc!eventgen.pl(trunk.5) $
+# $HopeName: !eventgen.pl(trunk.6) $
 #
 # Invoke this script in the src directory.
 # It works by scanning *.c for EVENT_[A-Z], 
@@ -14,7 +14,7 @@
 # You will need to have eventgen.h claimed, and you should
 # remember to check it in afterwards.
 
-$HopeName = '$HopeName: MMsrc!eventgen.pl(trunk.5) $';
+$HopeName = '$HopeName: !eventgen.pl(trunk.6) $';
 
 %Formats = ();
 
