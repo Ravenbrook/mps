@@ -1,6 +1,6 @@
 /* impl.c.pool: POOL IMPLEMENTATION
  *
- * $HopeName: MMsrc!pool.c(MMdevel_action2.7) $
+ * $HopeName: MMsrc!pool.c(MMdevel_action2.8) $
  * Copyright (C) 1994,1995,1996 Harlequin Group, all rights reserved
  *
  * This is the implementation of the generic pool interface.  The
@@ -12,7 +12,7 @@
 
 #include "mpm.h"
 
-SRCID(pool, "$HopeName: MMsrc!pool.c(MMdevel_action2.7) $");
+SRCID(pool, "$HopeName: MMsrc!pool.c(MMdevel_action2.8) $");
 
 
 Bool PoolClassCheck(PoolClass class)
@@ -283,7 +283,7 @@ void PoolReclaim(Pool pool, Trace trace, Seg seg)
   AVERT(Seg, seg);
   AVER(pool->space == trace->space);
   AVER(seg->pool == pool);
-  AVER(seg->white == trace->ti);
+  AVER(TraceSetIsMember(seg->white, trace->ti));
   (*pool->class->reclaim)(pool, trace, seg);
 }
 
@@ -335,6 +335,12 @@ Space (PoolSpace)(Pool pool)
 }
 
 
+/* PoolSegAlloc -- allocate a segment in a pool
+ *
+ * @@@@ There's no need for this routine.  The segment could be
+ * attached in SegInit.
+ */
+
 Res PoolSegAlloc(Seg *segReturn, Pool pool, Size size)
 {
   Res res;
@@ -355,6 +361,12 @@ Res PoolSegAlloc(Seg *segReturn, Pool pool, Size size)
   return ResOK;
 }
 
+
+/* PoolSegFree -- free a segment from a pool
+ *
+ * @@@@ There's no need for this routine.  The segment could be
+ * detached in SegFinish.
+ */
 
 void PoolSegFree(Pool pool, Seg seg)
 {
@@ -569,7 +581,7 @@ void PoolTrivGrey(Pool pool, Trace trace, Seg seg)
   /* with the mutator colour.  For the moment we assume */
   /* a read-barrier collector. */
 
-  if(seg->white != trace->ti) {
+  if(!TraceSetIsMember(seg->white, trace->ti)) {
     seg->grey = TraceSetAdd(seg->grey, trace->ti);
     ShieldRaise(trace->space, seg, AccessREAD | AccessWRITE);
   }

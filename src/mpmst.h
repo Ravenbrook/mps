@@ -270,8 +270,9 @@ typedef struct SegStruct {      /* segment structure */
   AccessSet pm, sm;             /* protection and shield modes */
   Size depth;                   /* see impl.c.shield.def.depth */
   void *p;                      /* pointer for use of owning pool */
-  TraceId white;            	/* seg white? for which trace? */
+  TraceSet white;            	/* seg white? for which traces? */
   TraceSet grey;                /* traces for which seg is grey */
+  RefSet summary;		/* summary of references out of seg */
   Buffer buffer;                /* non-NULL if seg is buffered */
   RingStruct poolRing;          /* link in list of segs in pool */
 } SegStruct;
@@ -530,7 +531,7 @@ typedef struct ScanStateStruct {
   RefSet summary;               /* accumulated summary of scanned references */
   Sig sig;                      /* design.mps.sig */
   Space space;                  /* owning space */
-  TraceId traceId;              /* trace ID of scan */
+  TraceSet traces;		/* traces to scan for */
   Rank rank;                    /* reference rank of scanning */
   Addr weakSplat;               /* value of weak refs to unforwarded objects */
   Bool wasMarked;               /* design.mps.fix.protocol.was-ready */
@@ -625,6 +626,7 @@ typedef struct SpaceStruct {
 
   /* trace fields (impl.c.trace) */
   TraceSet busyTraces;          /* set of running traces */
+  TraceSet flippedTraces;	/* set of running and flipped traces */
   TraceStruct trace[TRACE_MAX]; /* trace structures.  See
                                    design.mps.trace.intance.limit */
 

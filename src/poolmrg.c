@@ -2,7 +2,7 @@
  * 
  * MANUAL RANK GUARDIAN POOL
  * 
- * $HopeName: MMsrc!poolmrg.c(MMdevel_action2.5) $
+ * $HopeName: MMsrc!poolmrg.c(MMdevel_action2.6) $
  * Copyright(C) 1995,1997 Harlequin Group, all rights reserved
  *
  * READERSHIP
@@ -29,7 +29,7 @@
 #include "poolmrg.h"
 
 
-SRCID(poolmrg, "$HopeName: MMsrc!poolmrg.c(MMdevel_action2.5) $");
+SRCID(poolmrg, "$HopeName: MMsrc!poolmrg.c(MMdevel_action2.6) $");
 
 #define MRGSig          ((Sig)0x519B0349)
 
@@ -178,8 +178,6 @@ static Res MRGGroupScan(ScanState ss, MRGGroup group, MRG mrg)
 
   space = PoolSpace(MRGPool(mrg));
 
-  ShieldExpose(space, group->refseg);
-
   guardians = mrg->extendBy / sizeof(Addr);	/* per seg */
   AVER(guardians > 0);
   base = SegBase(space, group->refseg);
@@ -199,10 +197,6 @@ static Res MRGGroupScan(ScanState ss, MRGGroup group, MRG mrg)
       }
     }
   } TRACE_SCAN_END(ss);
-
-  group->refseg->grey = TraceSetDel(group->refseg->grey, ss->traceId);
-  ShieldLower(space, group->refseg, AccessREAD | AccessWRITE);
-  ShieldCover(space, group->refseg);
 
   return ResOK;
 }
@@ -396,7 +390,7 @@ static Res MRGScan(ScanState ss, Pool pool, Seg seg)
   AVERT(Seg, seg);
 
   AVER(seg->rankSet == RankSetSingle(RankFINAL));
-  AVER(TraceSetIsMember(seg->grey, ss->traceId));
+  AVER(TraceSetInter(seg->grey, ss->traces) != TraceSetEMPTY);
   group = (MRGGroup)seg->p;
   AVER(seg == group->refseg);
 

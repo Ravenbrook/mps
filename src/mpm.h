@@ -1,6 +1,6 @@
 /* impl.h.mpm: MEMORY POOL MANAGER DEFINITIONS
  *
- * $HopeName: MMsrc!mpm.h(MMdevel_action2.12) $
+ * $HopeName: MMsrc!mpm.h(MMdevel_action2.13) $
  * Copyright (C) 1996,1997 Harlequin Group, all rights reserved.
  */
 
@@ -229,10 +229,14 @@ extern void PoolNoReclaim(Pool pool, Trace trace, Seg seg);
 
 /* Trace Interface -- see impl.c.trace */
 
+#define TraceSetSingle(ti)	BS_SINGLE(TraceSet, ti)
 #define TraceSetIsMember(ts, ti)BS_IS_MEMBER(ts, ti)
 #define TraceSetAdd(ts, ti)     BS_ADD(TraceSet, ts, ti)
 #define TraceSetDel(ts, ti)     BS_DEL(TraceSet, ts, ti)
 #define TraceSetUnion(ts1, ts2) BS_UNION(ts1, ts2)
+#define TraceSetInter(ts1, ts2)	BS_INTER(ts1, ts2)
+#define TraceSetDiff(ts1, ts2)	BS_DIFF(ts1, ts2)
+#define TraceSetSuper(ts1, ts2)	BS_SUPER(ts1, ts2)
 
 extern TraceSet (TraceSetAdd)(TraceSet ts, TraceId id);
 extern TraceSet (TraceSetDel)(TraceSet ts, TraceId id);
@@ -251,6 +255,7 @@ extern Res TracePoll(Trace trace);
 extern void TraceAccess(Space space, Seg seg, AccessSet mode);
 
 extern Res TraceFix(ScanState ss, Ref *refIO);
+extern void TraceSegGreyen(Space space, Seg seg, TraceSet ts);
 
 /* Equivalent to impl.h.mps MPS_SCAN_BEGIN */
 
@@ -337,6 +342,8 @@ extern Bool SegOfAddr(Seg *segReturn, Space space, Addr addr);
 extern Seg SegFirst(Space space);
 extern Seg SegNext(Space space, Seg seg);
 extern Bool SegCheck(Seg seg);
+extern void SegInit(Seg seg, Pool pool);
+extern void SegFinish(Seg seg);
 
 
 /* Buffer Interface -- see impl.c.buffer */
