@@ -1,6 +1,6 @@
 /* impl.h.mpm: MEMORY POOL MANAGER DEFINITIONS
  *
- * $HopeName: !mpm.h(trunk.54) $
+ * $HopeName: MMsrc!mpm.h(MMdevel_metrics.1) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  */
 
@@ -565,15 +565,15 @@ extern Res BufferCreate(Buffer *bufferReturn, Pool pool, Rank rank);
 extern void BufferDestroy(Buffer buffer);
 extern Bool BufferCheck(Buffer buffer);
 extern Res BufferDescribe(Buffer buffer, mps_lib_FILE *stream);
-extern Res BufferReserve(Addr *pReturn, Buffer buffer, Size size);
+extern Res (BufferReserve)(Addr *pReturn, Buffer buffer, Size size);
 extern Res BufferFill(Addr *pReturn, Buffer buffer, Size size);
-extern Bool BufferCommit(Buffer buffer, Addr p, Size size);
+extern Bool (BufferCommit)(Buffer buffer, Addr p, Size size);
 extern Bool BufferTrip(Buffer buffer, Addr p, Size size);
 extern Res BufferInit(Buffer buffer, Pool pool, Rank rank);
 extern void BufferFinish(Buffer buffer);
 extern Bool BufferIsReset(Buffer buffer);
 extern Bool BufferIsReady(Buffer buffer);
-extern void BufferDetach(Buffer buffer, Pool pool);
+extern void BufferDetach(Buffer buffer);
 extern void BufferFlip(Buffer buffer);
 extern Addr BufferScanLimit(Buffer buffer);
 extern AP (BufferAP)(Buffer buffer);
@@ -596,6 +596,36 @@ extern Addr (BufferAlloc)(Buffer buffer);
 #define BufferAlloc(buffer)     (BufferAP(buffer)->alloc)
 extern Addr (BufferLimit)(Buffer buffer);
 #define BufferLimit(buffer)     ((buffer)->poolLimit)
+
+/* Reserve Macros */
+/* .reserve: Keep in sync with impl.c.buffer.reserve. */
+  
+#define BufferReserve(pReturn, buffer, size) \
+  (AddrAdd(BufferAlloc(buffer), size) > BufferAlloc(buffer) && \
+   AddrAdd(BufferAlloc(buffer), size) <= BufferAP(buffer)->limit ? \
+     (*(pReturn) = BufferAlloc(buffer), \
+      BufferAP(buffer)->alloc = AddrAdd(BufferAlloc(buffer), size), \
+      ResOK) : \
+   BufferFill(pReturn, buffer, size))
+
+#define BUFFER_RESERVE_BLOCK(resVar, pVar, buffer, size) \
+  BEGIN \
+    Addr alloc = BufferAlloc(buffer); \
+    Addr next = AddrAdd(alloc, size); \
+    if(next > alloc && next <= BufferAP(buffer)->limit) { \
+      (pVar) = alloc; \
+      BufferAP(buffer)->alloc = next; \
+      (resVar) = ResOK; \
+    } else \
+      (resVar) = BufferFill(&(pVar), buffer, size); \
+  END
+
+/* Commit Macros */
+/* .commit: Keep in sync with impl.c.buffer.commit. */
+
+#define BufferCommit(buffer, p, size) \
+  (BufferAP(buffer)->init = BufferAlloc(buffer), \
+   BufferAP(buffer)->limit != 0 || BufferTrip(buffer, p, size))
 
 
 /* Format Interface -- see impl.c.format */

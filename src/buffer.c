@@ -1,6 +1,6 @@
 /* impl.c.buffer: ALLOCATION BUFFER IMPLEMENTATION
  *
- * $HopeName: !buffer.c(trunk.34) $
+ * $HopeName: MMsrc!buffer.c(MMdevel_metrics.1) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  *
  * This is (part of) the implementation of allocation buffers.
@@ -25,7 +25,7 @@
 
 #include "mpm.h"
 
-SRCID(buffer, "$HopeName: !buffer.c(trunk.34) $");
+SRCID(buffer, "$HopeName: MMsrc!buffer.c(MMdevel_metrics.1) $");
 
 
 /* BufferCheck -- check consistency of a buffer */
@@ -232,7 +232,7 @@ Res BufferInit(Buffer buffer, Pool pool, Rank rank)
 
 /* BufferDetach -- detach a buffer from a segment */
 
-void BufferDetach(Buffer buffer, Pool pool)
+void BufferDetach(Buffer buffer)
 {
   AVERT(Buffer, buffer);
   AVER(BufferIsReady(buffer));
@@ -240,7 +240,7 @@ void BufferDetach(Buffer buffer, Pool pool)
   if(!BufferIsReset(buffer)) {
     /* Ask the owning pool to do whatever it needs to before the */
     /* buffer is detached (e.g. copy buffer state into pool state). */
-    (*pool->class->bufferEmpty)(pool, buffer);
+    (*buffer->pool->class->bufferEmpty)(buffer->pool, buffer);
 
     /* Reset the buffer. */
     SegSetBuffer(buffer->seg, NULL);
@@ -284,7 +284,7 @@ void BufferFinish(Buffer buffer)
   AVER((pool->class->attr & AttrBUF)); /* .trans.mod */
   AVER(BufferIsReady(buffer));
 
-  BufferDetach(buffer, pool);
+  BufferDetach(buffer);
 
   /* Ask the pool to do any pool-specific finishing. */
   (*pool->class->bufferFinish)(pool, buffer);
@@ -338,9 +338,10 @@ Bool BufferIsReady(Buffer buffer)
 /* BufferReserve -- reserve memory from an allocation buffer
  *
  * .reserve: Keep in sync with impl.h.mps.reserve.
+ *           And with impl.h.mpm.reserve.
  */
 
-Res BufferReserve(Addr *pReturn, Buffer buffer, Size size)
+Res (BufferReserve)(Addr *pReturn, Buffer buffer, Size size)
 {
   Addr next;
 
@@ -409,7 +410,7 @@ Res BufferFill(Addr *pReturn, Buffer buffer, Size size)
   AVER(AddrAdd(buffer->apStruct.alloc, size) > buffer->apStruct.limit ||
        AddrAdd(buffer->apStruct.alloc, size) < buffer->apStruct.alloc);
 
-  BufferDetach(buffer, pool);
+  BufferDetach(buffer);
 
   /* Ask the pool for a segment and some memory. */
   res = (*pool->class->bufferFill)(&seg, &base, &limit,
@@ -443,9 +444,10 @@ Res BufferFill(Addr *pReturn, Buffer buffer, Size size)
 /* BufferCommit -- commit memory previously reserved
  *
  * .commit: Keep in sync with impl.h.mps.commit.
+ *          And with impl.h.mpm.commit.
  */
 
-Bool BufferCommit(Buffer buffer, Addr p, Size size)
+Bool (BufferCommit)(Buffer buffer, Addr p, Size size)
 {
   AVERT(Buffer, buffer);
   AVER(size > 0);
