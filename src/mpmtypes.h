@@ -1,6 +1,6 @@
 /* impl.h.mpmtypes: MEMORY POOL MANAGER TYPES
  *
- * $HopeName: MMsrc!mpmtypes.h(MMdevel_restr2.1) $
+ * $HopeName: MMsrc!mpmtypes.h(MMdevel_restr2.2) $
  * Copyright (C) 1996 Harlequin Group, all rights reserved.
  *
  * .rationale: Types and type constants are almost all defined
@@ -66,6 +66,7 @@ typedef Size Epoch;			/* see impl.c.ld */
 typedef unsigned TraceId;		/* impl.c.mpm.check.ti */
 typedef unsigned TraceSet;		/* impl.c.mpm.check.ts */
 typedef unsigned AccessSet;
+typedef unsigned Attr;			/* impl.h.mpmst.class */
 typedef int RootVar;			/* impl.h.mpmst.root */
 typedef unsigned Serial;
 typedef struct RingStruct *Ring;	/* impl.c.ring */
@@ -95,8 +96,8 @@ typedef Res  (*PoolInitMethod)         (Pool pool, va_list arg);
 typedef void (*PoolFinishMethod)       (Pool pool);
 typedef Res  (*PoolAllocMethod)        (Addr *pReturn, Pool pool, Size size);
 typedef void (*PoolFreeMethod)         (Pool pool, Addr old, Size size);
-typedef Res  (*PoolBufferCreateMethod) (Buffer *bufReturn, Pool pool);
-typedef void (*PoolBufferDestroyMethod)(Pool pool, Buffer buf);
+typedef Res  (*PoolBufferInitMethod)   (Pool pool, Buffer buf);
+typedef void (*PoolBufferFinishMethod) (Pool pool, Buffer buf);
 typedef Res  (*PoolBufferFillMethod)   (Addr *baseReturn, Pool pool, Buffer buffer, Size size);
 typedef Bool (*PoolBufferTripMethod)   (Pool pool, Buffer buffer, Addr base, Size size);
 typedef void (*PoolBufferExposeMethod) (Pool pool, Buffer buffer);
@@ -122,6 +123,18 @@ typedef void (*FormatPadMethod)    (Addr base, Size size);
 #define RingNONE	((Ring)0)
 #define TraceIdNONE	((TraceId)-1)
 #define TraceSetEMPTY	((TraceSet)0)
+#define AttrFMT		((Attr)0x0001)	/* is formatted */
+#define AttrSCAN	((Attr)0x0002)	/* is scannable */
+#define AttrPM_NO_READ	((Attr)0x0004)	/* may not be read-protected */
+#define AttrPM_NO_WRITE	((Attr)0x0008)	/* may not be write-protected */
+#define AttrALLOC	((Attr)0x0010)	/* has alloc */
+#define AttrFREE	((Attr)0x0020)	/* has free */
+#define AttrBUF		((Attr)0x0100)	/* supports allocation points */
+#define AttrBUF_RESERVE	((Attr)0x0200)	/* has reserve/commit */
+#define AttrBUF_ALLOC	((Attr)0x0400)	/* has buf_alloc */
+#define AttrGC		((Attr)0x1000)	/* garbage collecting */
+#define AttrINCR_RB	((Attr)0x2000)	/* read-barrier incremental */
+#define AttrINCR_WB	((Attr)0x4000)	/* write-barrier incremental */
 
 enum {				/* rank constants */
   RankAMBIG,			/* ambiguous reference */

@@ -1,6 +1,6 @@
 /* impl.c.pool: POOL IMPLEMENTATION
  *
- * $HopeName: MMsrc!pool.c(MMdevel_restr2.2) $
+ * $HopeName: MMsrc!pool.c(MMdevel_restr2.3) $
  * Copyright (C) 1994,1995,1996 Harlequin Group, all rights reserved
  *
  * This is the implementation of the generic pool interface.  The
@@ -9,7 +9,7 @@
 
 #include "mpm.h"
 
-SRCID(pool, "$HopeName: MMsrc!pool.c(MMdevel_restr2.2) $");
+SRCID(pool, "$HopeName: MMsrc!pool.c(MMdevel_restr2.3) $");
 
 
 Bool PoolClassCheck(PoolClass class)
@@ -24,7 +24,7 @@ Bool PoolClassCheck(PoolClass class)
   /* if there's a free there must be an alloc */
   CHECKL(class->alloc != NULL || class->free == NULL);
   /* if theres a bufferCreate there must be other buffer methods */
-  if(class->bufferCreate != NULL) {
+  if((class->attr & AttrBUF) != 0) {
     CHECKL(class->bufferFill != NULL);
     CHECKL(class->bufferTrip != NULL);
   }
