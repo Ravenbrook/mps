@@ -1,6 +1,6 @@
 /* impl.h.mpmst: MEMORY POOL MANAGER DATA STRUCTURES
  *
- * $HopeName: !mpmst.h(trunk.87) $
+ * $HopeName: MMsrc!mpmst.h(MMdevel_configura.1) $
  * Copyright (C) 1999.  Harlequin Limited.  All rights reserved.
  *
  * .readership: MM developers.
@@ -489,6 +489,7 @@ typedef struct FormatStruct {
   FormatCopyMethod copy;
   FormatPadMethod pad;
   FormatClassMethod class;      /* pointer indicating class */
+  Size headerSize;              /* size of header */
 } FormatStruct;
 
 
