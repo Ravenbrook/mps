@@ -1,6 +1,6 @@
 /* impl.c.seg: SEGMENTS
  *
- * $HopeName: !seg.c(trunk.12) $
+ * $HopeName: MMsrc!seg.c(MMdevel_ptw_pseudoloci.1) $
  * Copyright (C) 1998 Harlequin Group plc.  All rights reserved.
  *
  * .design: The design for this module is design.mps.seg.
@@ -16,14 +16,14 @@
 
 #include "mpm.h"
 
-SRCID(seg, "$HopeName: !seg.c(trunk.12) $");
+SRCID(seg, "$HopeName: MMsrc!seg.c(MMdevel_ptw_pseudoloci.1) $");
 
 
 /* SegCheck -- check the integrity of a segment */
 
 Bool SegCheck(Seg seg)
 {
-  CHECKU(Pool, seg->_pool);
+  CHECKU(LocusClient, SegClient(seg));
   CHECKL(TraceSetCheck(seg->_white));
   CHECKL(TraceSetSub(seg->_nailed, seg->_white));
   CHECKL(TraceSetCheck(seg->_grey));
@@ -31,15 +31,15 @@ Bool SegCheck(Seg seg)
   if(seg->_buffer != NULL) {
     CHECKU(Buffer, seg->_buffer);
     /* design.mps.seg.field.buffer.owner */
-    CHECKL(BufferPool(seg->_buffer) == seg->_pool);
+    CHECKL(BufferPool(seg->_buffer) == SegPool(seg));
   }
 
-  CHECKL(RingCheck(&seg->_poolRing));
+  CHECKL(RingCheck(SegClientRing(seg)));
 
   /* The segment must belong to some pool, so it should be on a */
   /* pool's segment ring.  (Actually, this isn't true just after */
   /* the segment is initialized.) */
-  /*  CHECKL(RingNext(&seg->_poolRing) != &seg->_poolRing); */
+  /*  CHECKL(!RingIsSingle(SegClientRing(seg))); */
 
   /* The segment should be on a grey ring if and only if it is grey. */
   CHECKL(RingCheck(&seg->_greyRing));
@@ -77,12 +77,21 @@ Bool SegCheck(Seg seg)
 
 /* SegInit -- initialize the generic part of a segment */
 
-void SegInit(Seg seg, Pool pool)
+/* @@@ compatibility: for pools with a single locus client */
+void SegInit(Seg seg, Pool pool) 
+{
+  SegInitClient(seg, PoolLocusClient(pool));
+}
+
+
+/* SegInitClient -- Initialize a segment, assigning it to a particular
+   LocusClient and updating the clients zone information */
+void SegInitClient(Seg seg, LocusClient client)
 {
   AVER(seg != NULL);
-  AVERT(Pool, pool);
+  AVERT(LocusClient, client);
 
-  seg->_pool = pool;
+  seg->_client = client;
   seg->_p = NULL;
   seg->_rankSet = RankSetEMPTY;
   seg->_white = TraceSetEMPTY;
@@ -90,7 +99,7 @@ void SegInit(Seg seg, Pool pool)
   seg->_grey = TraceSetEMPTY;
   seg->_summary = RefSetEMPTY;
   seg->_buffer = NULL;
-  RingInit(&seg->_poolRing);
+  RingInit(&seg->_clientRing);
   RingInit(&seg->_greyRing);
   seg->_pm = AccessSetEMPTY;
   seg->_sm = AccessSetEMPTY;
@@ -99,7 +108,7 @@ void SegInit(Seg seg, Pool pool)
 
   AVERT(Seg, seg);
 
-  RingAppend(&pool->segRing, SegPoolRing(seg));
+  LocusClientSegInit(client, seg);
 }
 
 
@@ -110,7 +119,7 @@ void SegFinish(Seg seg)
   AVERT(Seg, seg);
 
   /* See impl.c.shield.shield.flush */
-  ShieldFlush(PoolArena(seg->_pool));
+  ShieldFlush(LocusClientArena(seg->_client));
 
   /* Check that the segment is not exposed, or in the shield */
   /* cache (see impl.c.shield.def.depth). */
@@ -119,15 +128,15 @@ void SegFinish(Seg seg)
   /* Don't leave a dangling buffer allocating into hyperspace. */
   AVER(seg->_buffer == NULL);
 
-  RingRemove(SegPoolRing(seg));
-
+  LocusClientSegFinish(SegClient(seg), seg);
+                                 
   /* Detach the segment from the grey list if it is grey.  It is OK */
   /* to delete a grey segment provided the objects in it have been */
   /* proven to be unreachable by another trace. */
   if(seg->_grey != TraceSetEMPTY)
     RingRemove(&seg->_greyRing);
 
-  RingFinish(&seg->_poolRing);
+  RingFinish(&seg->_clientRing);
   RingFinish(&seg->_greyRing);
 }
 
@@ -148,7 +157,7 @@ void SegSetSummary(Seg seg, RefSet summary)
 
   AVERT(Seg, seg);
 
-  arena = PoolArena(seg->_pool);
+  arena = SegArena(seg);
   oldSummary = seg->_summary;
   seg->_summary = summary;
 
@@ -162,6 +171,7 @@ void SegSetSummary(Seg seg, RefSet summary)
     if(!RefSetSuper(oldSummary, RefSetUNIV))
       ShieldLower(arena, seg, AccessWRITE);
   }
+  /* @@@ accumulate the summary to SegClient(seg) */
 }
 
 
@@ -181,7 +191,7 @@ void SegSetGrey(Seg seg, TraceSet grey)
   AVER(TraceSetCheck(grey));
   AVER(seg->_rankSet != RankSetEMPTY);
 
-  arena = PoolArena(seg->_pool);
+  arena = SegArena(seg);
   oldGrey = seg->_grey;
   seg->_grey = grey;
 
@@ -242,7 +252,7 @@ void SegSetRankSet(Seg seg, RankSet rankSet)
   AVER(RankSetCheck(rankSet));
   AVER(rankSet == RankSetEMPTY || RankSetIsSingle(rankSet));
 
-  arena = PoolArena(seg->_pool);
+  arena = SegArena(seg);
   oldRankSet = seg->_rankSet;
   seg->_rankSet = rankSet;
 
@@ -271,7 +281,7 @@ void SegSetRankAndSummary(Seg seg, RankSet rankSet, RefSet summary)
   /* rankSet == RankSetEMPTY implies summary == RefSetEMPTY */
   AVER(rankSet != RankSetEMPTY || summary == RefSetEMPTY);
 
-  arena = PoolArena(seg->_pool);
+  arena = SegArena(seg);
 
   if(seg->_rankSet != RankSetEMPTY && seg->_summary != RefSetUNIV) {
     wasShielded = TRUE;
@@ -307,8 +317,9 @@ Res SegDescribe(Seg seg, mps_lib_FILE *stream)
   res = WriteF(stream,
                "Segment $P [$A,$A) {\n", (WriteFP)seg,
                (WriteFA)SegBase(seg), (WriteFA)SegLimit(seg),
-               "  pool $P ($U)\n",
-               (WriteFP)seg->_pool, (WriteFU)seg->_pool->serial,
+               /* @@@ ObjectName */
+               "  client: <LocusClient $P ($U)>\n",
+               (WriteFP)SegClient(seg), (WriteFU)LocusClientSerial(SegClient(seg)),
                "  p $P\n", (WriteFP)seg->_p,
                NULL);
   if(res != ResOK)
