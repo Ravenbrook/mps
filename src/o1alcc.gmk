@@ -1,7 +1,7 @@
 #
 #     BUILD FOR OSF/1, ALPHA, DIGITAL C PLATFORM
 #
-# $HopeName: !o1alcc.gmk(trunk.15) $
+# $HopeName: MMsrc!o1alcc.gmk(MMdevel_gavinm_splay.1) $
 #
 # Copyright (C) 1995,1997 Harlequin Group, all rights reserved
 #
@@ -19,7 +19,7 @@ MPM = assert.c ring.c mpsliban.c mpm.c bt.c \
       poolmv.c root.c format.c buffer.c lockan.c ref.c \
       trace.c than.c proto1.c prmcan.c shield.c mpsi.c ld.c vmo1.c \
       mpsioan.c event.c action.c seg.c poolmrg.c message.c \
-      span.c
+      span.c cbs.c splay.c
 MPMS = sso1al.s
 DW = dw.c fmtdy.c
 
