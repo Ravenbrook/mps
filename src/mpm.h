@@ -1,6 +1,6 @@
 /* impl.h.mpm: MEMORY POOL MANAGER DEFINITIONS
  *
- * $HopeName: !mpm.h(trunk.17) $
+ * $HopeName: MMsrc!mpm.h(MMdevel_config.1) $
  * Copyright (C) 1996 Harlequin Group, all rights reserved.
  */
 
@@ -270,7 +270,7 @@ extern Res TraceFix(ScanState ss, Ref *refIO);
 /* Equivalent to impl.h.mps MPS_FIX1 */
 
 #define TRACE_FIX1(ss, ref) \
-  (SCANt = (Word)1<<((Word)(ref)>>SCANzoneShift&(WORD_WIDTH-1)), \
+  (SCANt = (Word)1<<((Word)(ref)>>SCANzoneShift&(MPS_WORD_WIDTH-1)), \
    SCANsummary |= SCANt, \
    SCANcondemned & SCANt)
 
@@ -392,7 +392,7 @@ extern Res FormatDescribe(Format format, mps_lib_FILE *stream);
 extern Bool RankCheck(Rank rank);
 
 #define RefSetZone(space, addr) \
-  (((Word)(addr) >> space->zoneShift) & (WORD_WIDTH - 1))
+  (((Word)(addr) >> space->zoneShift) & (MPS_WORD_WIDTH - 1))
 #define RefSetUnion(rs1, rs2)   BS_UNION(rs1, rs2)
 #define RefSetInter(rs1, rs2)   BS_INTER(rs1, rs2)
 #define RefSetAdd(space, rs, addr) \

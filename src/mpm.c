@@ -1,6 +1,6 @@
 /* impl.c.mpm: GENERAL MPM SUPPORT
  *
- * $HopeName: !mpm.c(trunk.10) $
+ * $HopeName: MMsrc!mpm.c(MMdevel_config.1) $
  * Copyright (C) 1996 Harlequin Group, all rights reserved.
  *
  * .readership: MM developers.
@@ -13,7 +13,7 @@
 
 #include "mpm.h"
 
-SRCID(mpm, "$HopeName: !mpm.c(trunk.10) $");
+SRCID(mpm, "$HopeName: MMsrc!mpm.c(MMdevel_config.1) $");
 
 
 /* MPMCheck -- test MPM assumptions */
@@ -21,9 +21,9 @@ SRCID(mpm, "$HopeName: !mpm.c(trunk.10) $");
 Bool MPMCheck(void)
 {
   CHECKL(sizeof(char) == 1);
-  CHECKL(sizeof(Word) * CHAR_BIT == WORD_WIDTH);
-  CHECKL(1uL << WORD_SHIFT == WORD_WIDTH);
-  CHECKL(AlignCheck(ARCH_ALIGN));
+  CHECKL(sizeof(Word) * CHAR_BIT == MPS_WORD_WIDTH);
+  CHECKL(1uL << MPS_WORD_SHIFT == MPS_WORD_WIDTH);
+  CHECKL(AlignCheck(MPS_PF_ALIGN));
   /* impl.c.mpm.check.ti: Check that trace ids will fit in the */
   /* TraceId type. */
   CHECKL(TRACE_MAX <= TraceIdNONE);
