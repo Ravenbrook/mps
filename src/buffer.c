@@ -1,6 +1,6 @@
 /* impl.c.buffer: ALLOCATION BUFFER IMPLEMENTATION
  *
- * $HopeName: !buffer.c(trunk.51) $
+ * $HopeName: MMsrc!buffer.c(MMdevel_tony_sunset.1) $
  * Copyright (C) 1997, 1998, 1999 Harlequin Group plc.  All rights reserved.
  *
  * .purpose: This is (part of) the implementation of allocation buffers.
@@ -22,7 +22,7 @@
 
 #include "mpm.h"
 
-SRCID(buffer, "$HopeName: !buffer.c(trunk.51) $");
+SRCID(buffer, "$HopeName: MMsrc!buffer.c(MMdevel_tony_sunset.1) $");
 
 
 /* forward declarations */
@@ -61,7 +61,6 @@ Bool BufferCheck(Buffer buffer)
   if(buffer->mode & BufferModeTRANSITION) {
     /* nothing to check */
   } else if((buffer->mode & BufferModeATTACHED) == 0 ||
-     buffer->seg == NULL ||
      buffer->base == (Addr)0 ||
      buffer->apStruct.init == (Addr)0 ||
      buffer->apStruct.alloc == (Addr)0 ||
@@ -76,13 +75,21 @@ Bool BufferCheck(Buffer buffer)
     /* Nothing reliable to check for lightweight frame state */
     CHECKL(buffer->poolLimit == (Addr)0);
   } else {
-    /* The buffer is attached to a segment.  Make sure its fields */
-    /* tally with those of the segment. */
+    /* The buffer is attached to a region of memory.   */
+    /* Check consistency. */
     CHECKL(buffer->mode & BufferModeATTACHED);
-    CHECKL(SegCheck(buffer->seg)); /* design.mps.check.type.no-sig */
-    CHECKL(SegBuffer(buffer->seg) == buffer);
-    CHECKL(SegPool(buffer->seg) == buffer->pool);
-    CHECKL(buffer->rankSet == SegRankSet(buffer->seg));
+
+    if(buffer->seg != NULL) {
+      /* The buffer is attached to a segment.  Make sure */
+      /* its fields tally with those of the segment. */
+      CHECKL(SegCheck(buffer->seg)); /* design.mps.check.type.no-sig */
+      CHECKL(SegBuffer(buffer->seg) == buffer);
+      CHECKL(SegPool(buffer->seg) == buffer->pool);
+      CHECKL(buffer->rankSet == SegRankSet(buffer->seg));
+    } else {
+      /* No segment, so no support for ranks */
+      CHECKL(buffer->rankSet == RankSetEMPTY);
+    }
 
     /* These fields should obey the ordering */
     /* base <= init <= alloc <= poolLimit */
@@ -276,7 +283,8 @@ Res BufferCreateV(Buffer *bufferReturn,
   arena = PoolArena(pool);
 
   /* Allocate memory for the buffer descriptor structure. */
-  res = ArenaAlloc(&p, arena, sizeof(BufferStruct));
+  res = ControlAlloc(&p, arena, sizeof(BufferStruct), 
+                     /* withReservoirPermit */ FALSE);
   if(res != ResOK)
     goto failAlloc;
   buffer = p;
@@ -290,13 +298,13 @@ Res BufferCreateV(Buffer *bufferReturn,
   return ResOK;
 
 failInit:
-  ArenaFree(arena, buffer, sizeof(BufferStruct));
+  ControlFree(arena, buffer, sizeof(BufferStruct));
 failAlloc:
   return res;
 }
 
 
-/* BufferDetach -- detach a buffer from a segment */
+/* BufferDetach -- detach a buffer from a region  */
 
 void BufferDetach(Buffer buffer, Pool pool)
 {
@@ -305,24 +313,28 @@ void BufferDetach(Buffer buffer, Pool pool)
 
   if(!BufferIsReset(buffer)) {
     Seg seg = BufferSeg(buffer);
+    Addr init, limit;
     Size spare;
 
-    SegSetBuffer(seg, NULL);
+    if (seg != NULL)
+      SegSetBuffer(seg, NULL);
     buffer->seg = NULL;
     buffer->mode |= BufferModeTRANSITION;
+    init = buffer->apStruct.init;
+    limit = buffer->poolLimit;
     /* Ask the owning pool to do whatever it needs to before the */
     /* buffer is detached (e.g. copy buffer state into pool state). */
-    (*pool->class->bufferEmpty)(pool, buffer, seg);
+    (*pool->class->bufferEmpty)(pool, buffer, seg, init, limit);
     /* Use of lightweight frames must have been disabled by now */
     AVER(BufferFrameState(buffer) == BufferFrameDISABLED);
 
-    spare = AddrOffset(buffer->apStruct.alloc, buffer->poolLimit);
+    spare = AddrOffset(init, limit);
     buffer->emptySize += spare;
     if(buffer->isMutator) {
       buffer->pool->emptyMutatorSize += spare;
       buffer->arena->emptyMutatorSize += spare;
       buffer->arena->allocMutatorSize +=
-        AddrOffset(buffer->base, buffer->apStruct.alloc);
+        AddrOffset(buffer->base, init);
     } else {
       buffer->pool->emptyInternalSize += spare;
       buffer->arena->emptyInternalSize += spare;
@@ -356,7 +368,7 @@ void BufferDestroy(Buffer buffer)
   AVERT(Buffer, buffer);
   arena = buffer->arena;
   BufferFinish(buffer);
-  ArenaFree(arena, buffer, sizeof(BufferStruct));
+  ControlFree(arena, buffer, sizeof(BufferStruct));
 }
 
 
@@ -397,8 +409,8 @@ void BufferFinish(Buffer buffer)
 
 /* BufferIsReset -- test whether a buffer is in the "reset" state
  *
- * A buffer is "reset" when it is not attached to a segment.  In this
- * state all of the pointers into the segment are zero.  This condition
+ * A buffer is "reset" when it is not attached.  In this state
+ * all of the pointers into the region are zero.  This condition
  * is checked by BufferCheck.
  */
 
@@ -406,10 +418,10 @@ Bool BufferIsReset(Buffer buffer)
 {
   AVERT(Buffer, buffer);
 
-  if(buffer->seg == NULL)
-    return TRUE;
+  if(buffer->mode & BufferModeATTACHED)
+    return FALSE;
 
-  return FALSE;
+  return TRUE;
 }
 
 
@@ -625,31 +637,37 @@ Res BufferReserve(Addr *pReturn, Buffer buffer, Size size,
 }
 
 
-/* BufferAttach -- attach a segment to a buffer
+/* BufferAttach -- attach a region to a buffer, and optionally a segment
  *
  * BufferAttach is entered because of a BufferFill,
  * or because of a Pop operation on a lightweight frame.
  */
 
 void BufferAttach(Buffer buffer, Seg seg, 
-                   Addr base, Addr limit, Addr init, Size size)
+                  Addr base, Addr limit, Addr init, Size size)
 {
   Size filled;
 
   AVERT(Buffer, buffer);
   AVER(BufferIsReset(buffer));
-  AVER(SegCheck(seg));
-  AVER(SegBuffer(seg) == NULL);
-  AVER(SegBase(seg) <= base);
   AVER(AddrAdd(base, size) <= limit);
   AVER(base <= init);
   AVER(init <= limit);
-  AVER(limit <= SegLimit(seg));
 
-  /* Set up the buffer to point at the supplied segment */
+  if (seg != NULL) {
+    AVER(SegCheck(seg));
+    AVER(SegBuffer(seg) == NULL);
+    AVER(SegBase(seg) <= base);
+    AVER(limit <= SegLimit(seg));
+    /* attach the buffer to the segment */
+    SegSetBuffer(seg, buffer);
+    buffer->seg = seg;
+  } else {
+    buffer->seg = NULL;
+  }
+
+  /* Set up the buffer to point at the supplied region */
   buffer->mode |= BufferModeATTACHED;
-  buffer->seg = seg;
-  SegSetBuffer(seg, buffer);
   buffer->base = base;
   buffer->apStruct.init = init;
   buffer->apStruct.alloc = AddrAdd(init, size);
@@ -662,7 +680,7 @@ void BufferAttach(Buffer buffer, Seg seg,
   AVER(buffer->initAtFlip == (Addr)0);
   buffer->poolLimit = limit;
 
-  filled = AddrOffset(base, limit);
+  filled = AddrOffset(init, limit);
   buffer->fillSize += filled;
   if(buffer->isMutator) {
     buffer->pool->fillMutatorSize += filled;
@@ -733,7 +751,7 @@ Res BufferFill(Addr *pReturn, Buffer buffer, Size size,
 
   BufferDetach(buffer, pool);
 
-  /* Ask the pool for a segment and some memory. */
+  /* Ask the pool for some memory and possibly a segment. */
   res = (*pool->class->bufferFill)(&seg, &base, &limit,
                                    pool, buffer, size,
                                    withReservoirPermit);
@@ -833,7 +851,8 @@ Bool BufferTrip(Buffer buffer, Addr p, Size size)
   pool = BufferPool(buffer);
 
   AVER(PoolHasAddr(pool, p));
-  AVER(SegPool(BufferSeg(buffer)) == pool);
+  AVER(BufferSeg(buffer) == NULL ||
+       SegPool(BufferSeg(buffer)) == pool);
 
   /* .trip.unflip: If the flip occurred before commit set "init" */
   /* to "alloc" (see .commit.before) then the object is invalid */
@@ -900,6 +919,7 @@ void BufferFlip(Buffer buffer)
      (buffer->mode & BufferModeFLIPPED) == 0 &&
      !BufferIsReset(buffer)) {
     AVER(buffer->initAtFlip == (Addr)0);
+    AVER(BufferSeg(buffer) != NULL); /* must use segments for GC */
     buffer->initAtFlip = buffer->apStruct.init;
     /* Memory Barrier here? @@@@ */
     buffer->apStruct.limit = (Addr)0;
