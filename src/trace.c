@@ -1,6 +1,6 @@
 /* impl.c.trace: GENERIC TRACER IMPLEMENTATION
  *
- * $HopeName: !trace.c(trunk.63) $
+ * $HopeName: MMsrc!trace.c(MMdevel_gavinm_zone.1) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  *
  * .sources: design.mps.tracer.
@@ -33,7 +33,7 @@
 
 #include "mpm.h"
 
-SRCID(trace, "$HopeName: !trace.c(trunk.63) $");
+SRCID(trace, "$HopeName: MMsrc!trace.c(MMdevel_gavinm_zone.1) $");
 
 /* Types
  *
@@ -51,16 +51,16 @@ typedef int TraceAccountingPhase;
 Bool ScanStateCheck(ScanState ss)
 {
   TraceId ti;
-  RefSet white;
+  ObjSet white;
   CHECKS(ScanState, ss);
   CHECKL(FUNCHECK(ss->fix));
   CHECKU(Arena, ss->arena);
   CHECKL(TraceSetCheck(ss->traces));
   CHECKL(TraceSetSuper(ss->arena->busyTraces, ss->traces));
-  white = RefSetEMPTY;
+  white = ObjSetEMPTY;
   for(ti = 0; ti < TRACE_MAX; ++ti)
     if(TraceSetIsMember(ss->traces, ti))
-      white = RefSetUnion(white, ss->arena->trace[ti].white);
+      white = ObjSetUnion(white, ss->arena->trace[ti].white);
   CHECKL(ss->white == white);
   CHECKL(ss->zoneShift == ss->arena->zoneShift);
   CHECKL(RankCheck(ss->rank));
@@ -69,7 +69,7 @@ Bool ScanStateCheck(ScanState ss)
 }
 
 static void ScanStateInit(ScanState ss, TraceSet ts, Arena arena,
-                          Rank rank, RefSet white)
+                          Rank rank, ObjSet white)
 {
   TraceId ti;
 
@@ -143,7 +143,7 @@ Bool TraceCheck(Trace trace)
   CHECKL(trace == &trace->arena->trace[trace->ti]);
   CHECKL(TraceSetIsMember(trace->arena->busyTraces, trace->ti));
   /* Can't check trace->white -- not in O(1) anyway. */
-  CHECKL(RefSetSub(trace->mayMove, trace->white));
+  CHECKL(ObjSetSub(trace->mayMove, trace->white));
   /* Use trace->state to check more invariants. */
   switch(trace->state) {
     case TraceINIT:
@@ -234,19 +234,71 @@ Res TraceAddWhite(Trace trace, Seg seg)
   /* Add the segment to the approximation of the white set the */
   /* pool made it white. */
   if(TraceSetIsMember(SegWhite(seg), trace->ti)) {
-    trace->white = RefSetUnion(trace->white,
-                               RefSetOfSeg(trace->arena, seg));
+    trace->white = ObjSetUnion(trace->white,
+                               ObjSetOfSeg(trace->arena, seg));
     trace->condemned += SegSize(seg);
     /* if the pool is a moving GC, then condemned objects may move */
     if(pool->class->attr & AttrMOVINGGC) {
-      trace->mayMove = RefSetUnion(trace->mayMove, 
-                                   RefSetOfSeg(PoolArena(pool), seg));
+      trace->mayMove = ObjSetUnion(trace->mayMove, 
+                                   ObjSetOfSeg(PoolArena(pool), seg));
     }
   }
 
   return ResOK;
 }
 
+
+/* TraceCondemnObjSet -- condemn a set of objects
+ *
+ * TraceCondemnObjSet is passed a trace in state TraceINIT,
+ * and a set of objects to condemn.
+ *
+ * @@@@ For efficiency, we ought to find the condemned set and
+ * the foundation in one set of the segment ring.  This hasn't
+ * been done because some pools still use TraceAddWhite for the
+ * condemned set.
+ *
+ * @@@@ To make this function more efficient, the arena should
+ * keep segments on one ring per zone.
+ */
+
+Res TraceCondemnObjSet(Trace trace, ObjSet condemnedSet)
+{
+  Seg seg;
+  Arena arena;
+  Res res;
+
+  AVERT(Trace, trace);
+  AVER(condemnedSet != ObjSetEMPTY);
+  AVER(trace->state == TraceINIT);
+
+  arena = trace->arena;
+
+  if(SegFirst(&seg, arena)) {
+    Addr base;
+    do {
+      base = SegBase(seg);
+      /* Segment should be black now. */
+      AVER(!TraceSetIsMember(SegGrey(seg), trace->ti));
+      AVER(!TraceSetIsMember(SegWhite(seg), trace->ti));
+
+      /* A segment can only be white if it is GC-able. */
+      /* This is indicated by the pool having the GC attribute */
+      if((SegPool(seg)->class->attr & AttrGC) != 0 &&
+         ObjSetInter(ObjSetOfSeg(arena, seg), condemnedSet) 
+	   != ObjSetEMPTY) {
+        res = TraceAddWhite(trace, seg);
+	if(res != ResOK)
+	  return res;
+      }
+    } while(SegNext(&seg, arena, base));
+  }
+
+  /* The trace's white set must be a subset of the condemned set */
+  AVER(ObjSetSuper(condemnedSet, trace->white));
+
+  return ResOK;
+}
 
 /* TraceStart -- condemn a set of objects and start collection
  *
@@ -273,7 +325,7 @@ Res TraceStart(Trace trace)
 
   /* If there is nothing white then there can be nothing grey, */
   /* so everything is black and we can finish the trace immediately. */
-  if(trace->white == RefSetEMPTY) {
+  if(trace->white == ObjSetEMPTY) {
     arena->flippedTraces = TraceSetAdd(arena->flippedTraces, trace->ti);
     trace->state = TraceFINISHED;
     trace->rate = (Size)1;
@@ -306,7 +358,7 @@ Res TraceStart(Trace trace)
         /* to the white set.  This is done by seeing if the summary */
         /* of references in the segment intersects with the approximation */
         /* to the white set. */
-        if(RefSetInter(SegSummary(seg), trace->white) != RefSetEMPTY) {
+        if(RefSetInterObjSet(SegSummary(seg), trace->white)) {
           PoolGrey(SegPool(seg), trace, seg);
 	  if(TraceSetIsMember(SegGrey(seg), trace->ti))
 	    trace->foundation += SegSize(seg);
@@ -321,7 +373,7 @@ Res TraceStart(Trace trace)
     Ring next = RingNext(node);
     Root root = RING_ELT(Root, arenaRing, node);
 
-    if(RefSetInter(root->summary, trace->white) != RefSetEMPTY)
+    if(RefSetInterObjSet(root->summary, trace->white))
       RootGrey(root, trace);
 
     node = next;
@@ -394,8 +446,8 @@ found:
   arena->busyTraces = TraceSetAdd(arena->busyTraces, ti);
 
   trace->arena = arena;
-  trace->white = RefSetEMPTY;
-  trace->mayMove = RefSetEMPTY;
+  trace->white = ObjSetEMPTY;
+  trace->mayMove = ObjSetEMPTY;
   trace->ti = ti;
   trace->state = TraceINIT;
   trace->emergency = FALSE;
@@ -512,7 +564,7 @@ Res TraceFlip(Trace trace)
   /* Update location dependency structures. */
   /* mayMove is a conservative approximation of the refset of refs */
   /* which may move during this collection. */
-  if(trace->mayMove != RefSetEMPTY) {
+  if(trace->mayMove != ObjSetEMPTY) {
     LDAge(arena, trace->mayMove);
   }
 
@@ -726,7 +778,7 @@ static Res TraceScan(TraceSet ts, Rank rank,
                      Arena arena, Seg seg)
 {
   Bool wasTotal;
-  RefSet white;
+  ObjSet white;
   Res res;
   ScanStateStruct ss;
   TraceId ti;
@@ -739,13 +791,13 @@ static Res TraceScan(TraceSet ts, Rank rank,
   AVER(TraceSetInter(ts, SegGrey(seg)) != TraceSetEMPTY);
   EVENT_UUPPP(TraceScan, ts, rank, arena, seg, &ss);
 
-  white = RefSetEMPTY;
+  white = ObjSetEMPTY;
   for(ti = 0; ti < TRACE_MAX; ++ti)
     if(TraceSetIsMember(ts, ti))
-      white = RefSetUnion(white, ArenaTrace(arena, ti)->white);
+      white = ObjSetUnion(white, ArenaTrace(arena, ti)->white);
 
   /* only scan a segment if it refers to the white set */
-  if(RefSetInter(white, SegSummary(seg)) == RefSetEMPTY) { /* blacken it */
+  if(RefSetInterObjSet(SegSummary(seg), white)) { /* blacken it */
     PoolBlacken(SegPool(seg), ts, seg);
     /* setup result code to return later */
     res = ResOK;
@@ -1080,7 +1132,7 @@ Res TraceScanSingleRef(TraceSet ts, Arena arena,
                        Seg seg, Rank rank, Ref *refIO)
 {
   RefSet summary;
-  RefSet white;
+  ObjSet white;
   ScanStateStruct ss;
   TraceId ti;
   Res res;
@@ -1091,14 +1143,14 @@ Res TraceScanSingleRef(TraceSet ts, Arena arena,
   AVER(RankCheck(rank));
   AVER(refIO != NULL);
 
-  white = RefSetEMPTY;
+  white = ObjSetEMPTY;
   for(ti = 0; ti < TRACE_MAX; ++ti) {
     if(TraceSetIsMember(ts, ti)) {
-      white = RefSetUnion(white, ArenaTrace(arena, ti)->white);
+      white = ObjSetUnion(white, ArenaTrace(arena, ti)->white);
     }
   }
 
-  if(RefSetInter(SegSummary(seg), white) == RefSetEMPTY) {
+  if(RefSetInterObjSet(SegSummary(seg), white)) {
     return ResOK;
   }
 
