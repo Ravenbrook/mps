@@ -2,7 +2,7 @@
  *
  *                         SHIELDING
  *
- *  $HopeName: !shield.c(trunk.2) $
+ *  $HopeName: MMsrc!shield.c(MMdevel_protoposm_1.1) $
  *
  *  Copyright (C) 1995 Harlequin Group, all rights reserved
  *
@@ -118,7 +118,7 @@ void ShieldEnter(Shield shield)
   AVER(ISVALID(Shield, shield));
   AVER(!shield->inside);
 
-  ThreadDequeSuspend(SpaceThreadDeque(shield->space));
+  ProtShieldEnter(shield->space);
   shield->inside = TRUE;
 }
 
@@ -132,9 +132,8 @@ void ShieldLeave(Shield shield)
     protect(arena, base, ArenaShieldMode(arena, base));
   }
  */
-
-  ThreadDequeResume(SpaceThreadDeque(shield->space));
   shield->inside = FALSE;
+  ProtShieldLeave(shield->space);
 }
 
 

@@ -2,7 +2,7 @@
  *
  *                  PROTECTION FOR SUNOS
  *
- *  $HopeName: !protsu.c(trunk.2) $
+ *  $HopeName: MMsrc!protsu.c(MMdevel_protoposm_1.1) $
  *
  *  Copyright (C) 1995 Harlequin Group, all rights reserved
  *
@@ -215,3 +215,26 @@ void ProtTramp(void **resultReturn, void *(*f)(void *, size_t),
 
   *resultReturn = (*f)(p, s);
 }
+
+/*  == Protection Shield Entry ==
+ */
+
+void ProtShieldEnter(Space space)
+{
+  AVER(ISVALID(Space, space));
+
+  /* Since we don't know how to give per-thread access */
+  ThreadDequeSuspend(SpaceThreadDeque(space));
+}
+
+/*  == Protection Shield Exit ==
+ */
+
+void ProtShieldLeave(Space space)
+{
+  AVER(ISVALID(Space, space));
+
+  /* Since we don't know how to give per-thread access */
+  ThreadDequeResume(SpaceThreadDeque(space));
+}
+
