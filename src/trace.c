@@ -1,6 +1,6 @@
 /* impl.c.trace: GENERIC TRACER IMPLEMENTATION
  *
- * $HopeName: MMsrc!trace.c(MMdevel_metrics.2) $
+ * $HopeName: MMsrc!trace.c(MMdevel_metrics.3) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  *
  * .sources: design.mps.tracer.
@@ -17,7 +17,7 @@
 
 #include "mpm.h"
 
-SRCID(trace, "$HopeName: MMsrc!trace.c(MMdevel_metrics.2) $");
+SRCID(trace, "$HopeName: MMsrc!trace.c(MMdevel_metrics.3) $");
 
 
 /* ScanStateCheck -- check consistency of a ScanState object */
@@ -309,6 +309,7 @@ found:
   trace->nailCount = 0;
   trace->snapCount = 0;
   trace->forwardCount = 0;
+  trace->faultCount = 0;
 
   trace->sig = TraceSig;
   AVERT(Trace, trace);
@@ -780,6 +781,7 @@ static Res TraceScan(TraceSet ts, Rank rank,
 void TraceAccess(Arena arena, Seg seg, AccessSet mode)
 {
   Res res;
+  TraceId ti;
 
   AVERT(Arena, arena);
   AVERT(Seg, seg);
@@ -808,6 +810,12 @@ void TraceAccess(Arena arena, Seg seg, AccessSet mode)
                     RankEXACT,
                     arena, seg);
     AVER(res == ResOK);                 /* design.mps.poolamc.access.error */
+
+    for(ti = 0; ti < TRACE_MAX; ++ti)
+      if(TraceSetIsMember(arena->busyTraces, ti)) {
+        Trace trace = ArenaTrace(arena, ti);
+        ++trace->faultCount;
+      }
 
     /* The pool should've done the job of removing the greyness that */
     /* was causing the segment to be protected, so that the mutator */
