@@ -2,20 +2,16 @@
  *
  *                   NULL POOL COVERAGE TEST
  *
- *  $HopeName: !poolncv.c(trunk.2) $
+ *  $HopeName: MMsrc!poolncv.c(trunk.2) $
  *
  *  Copyright (C) 1995 Harlequin Group, all rights reserved
  *
  */
 
 
-#include "std.h"
-#include "pool.h"
+#include "mpm.h"
 #include "pooln.h"
-#include "space.h"
-
 #include "testlib.h"
-
 #include <stdio.h>
 
 int
@@ -24,14 +20,14 @@ main(void)
   Bool eflag = FALSE;
   Space space;
   Pool pool;
-  Error e;
+  Res res;
   Addr p;
 
   die(SpaceCreate(&space), "SpaceCreate");
 
   die(PoolCreate(&pool, PoolClassN(), space), "PoolNCreate");
-  e = PoolAlloc(&p, pool, 1);
-  if(e == ErrSUCCESS) {
+  res = PoolAlloc(&p, pool, 1);
+  if(res == ResOK) {
     fprintf(stderr,
 	    "Error:  Unexpectedly succeeded in"
 	    "allocating block from PoolN\n");

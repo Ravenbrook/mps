@@ -2,7 +2,7 @@
  *
  *                  PROTECTION FOR SUNOS
  *
- *  $HopeName: !protsu.c(trunk.5) $
+ *  $HopeName: MMsrc!protsu.c(trunk.5) $
  *
  *  Copyright (C) 1995 Harlequin Group, all rights reserved
  *
@@ -12,13 +12,7 @@
  *  that would break SunOS binaries.  *sigh*
  */
 
-#include "std.h"
-#include "space.h"
-#include "prot.h"
-#include "lock.h"
-#include "lockst.h"
-#include <limits.h>
-#include <stddef.h>
+#include "mpm.h"
 #include <stdlib.h>
 #include <sys/mman.h>
 #include <signal.h>
@@ -27,7 +21,7 @@
 #error "protsu.c is SunOS 4 specific, but MPS_OS_SU is not set"
 #endif
 
-SRCID("$HopeName: !protsu.c(trunk.5) $");
+SRCID(protsu, "$HopeName: MMsrc!protsu.c(trunk.5) $");
 
 
 /* .hack.sigdfl */

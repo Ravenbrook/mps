@@ -1,12 +1,12 @@
 /*  ==== SUNOS ANSI COMPATABILITY HEADER ====
  *
- *  $HopeName: !ossu.h(trunk.2) $
+ *  $HopeName: MMsrc!ossu.h(trunk.2) $
  *
  *  Copyright (C) 1994,1995 Harlequin Group, all rights reserved
  *
  *  This header defines some things which are part of the ANSI standard but
  *  missing from the C compiler / environment.
- * 
+ *
  *  See also syscalls.h, which contains prototypes for system calls
  *  which are not prototyped in include files
  *

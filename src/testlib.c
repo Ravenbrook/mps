@@ -33,11 +33,11 @@ unsigned long rnd(void)
   return seed;
 }
 
-void die(Error e, const char *s)
+void die(Res res, const char *s)
 {
-  if(e != ErrSUCCESS)
+  if(res != ResOK)
   {
-    fprintf(stderr, "%s: %s\n", s, ErrorName(e));
+    fprintf(stderr, "%s: %d\n", s, res);
     exit(1);
   }
 }

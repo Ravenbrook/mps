@@ -1,12 +1,10 @@
 /* impl.c.lockcov
  *                     LOCK COVERAGE TEST
  *
- * $HopeName: !lockcov.c(trunk.1) $
+ * $HopeName: MMsrc!lockcov.c(trunk.1) $
  */
 
-#include "std.h"
-#include "lock.h"
-#include "lockst.h"
+#include "mpm.h"
 
 int main(void){
   LockStruct a,b;

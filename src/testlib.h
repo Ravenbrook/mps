@@ -19,14 +19,14 @@
 
 /*  == SUCCEED OR DIE ==
  *
- *  If the first argument is not ErrSUCCESS then prints the second
+ *  If the first argument is not ResOK then prints the second
  *  argument on stderr and exits the program.  Otherwise does nothing.
- *  
+ *
  *  Typical use:
  *   die(SpaceInit(space), "SpaceInit");
  */
 
-extern void die(Error e, const char *s);
+extern void die(Res res, const char *s);
 
 /*  == RANDOM NUMBER GENERATOR ==
  *

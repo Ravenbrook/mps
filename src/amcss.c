@@ -1,6 +1,6 @@
 /* impl.c.amcss: POOL CLASS AMC STRESS TEST
  *
- * $HopeName: !amcss.c(trunk.9) $
+ * $HopeName: MMsrc!amcss.c(trunk.9) $
  * Copyright (C) 1996 Harlequin Group, all rights reserved
  */
 
@@ -75,7 +75,7 @@ static void *test(void *arg, size_t s)
 
   for(i=0; i<NR_AMBIG_ROOTS; ++i)
     ambig_roots[i] = (mps_addr_t)rnd();
-    
+
   collections = 0;
 
   for(i=0; i<OBJECTS; ++i) {
@@ -101,7 +101,7 @@ static void *test(void *arg, size_t s)
     if(exact_roots[r] != OBJNULL)
       assert(dylan_check(exact_roots[r]));
   }
-  
+
   mps_ap_destroy(ap);
   mps_root_destroy(exact_root);
   mps_root_destroy(ambig_root);
@@ -115,12 +115,12 @@ int main(void)
   mps_space_t space;
   mps_thr_t thread;
   void *r;
-  
+
   die(mps_space_create(&space), "space_create");
   die(mps_thread_reg(&thread, space), "thread_reg");
   mps_tramp(&r, test, space, 0);
   mps_thread_dereg(thread);
   mps_space_destroy(space);
-  
+
   return 0;
 }

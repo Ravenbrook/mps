@@ -1,14 +1,12 @@
 /*  impl.c.protnt
  *
  *               PROTECTION FOR WIN32
- *  $HopeName: !protnt.c(trunk.6) $
+ *  $HopeName: MMsrc!protnt.c(trunk.6) $
  *
  *  Copyright (C) 1995 Harlequin Group, all rights reserved
  */
 
-#include "std.h"
-#include "prot.h"
-#include "space.h"
+#include "mpm.h"
 
 #ifndef MPS_OS_W3
 #error "protnt.c is Win32 specific, but MPS_OS_W3 is not set"
@@ -16,7 +14,7 @@
 
 #include <windows.h>
 
-SRCID("$HopeName: !protnt.c(trunk.6) $");
+SRCID(protnt, "$HopeName: MMsrc!protnt.c(trunk.6) $");
 
 
 void ProtSetup(void)
@@ -57,7 +55,7 @@ LONG ProtSEHfilter(LPEXCEPTION_POINTERS info)
 
   if(er->ExceptionCode != EXCEPTION_ACCESS_VIOLATION)
     return EXCEPTION_CONTINUE_SEARCH;
-   
+
   AVER(er->ExceptionFlags == 0); /* continuable exception */
 
   /* er->ExceptionRecord is pointer to next exception in chain */
@@ -69,7 +67,7 @@ LONG ProtSEHfilter(LPEXCEPTION_POINTERS info)
   AVER(iswrite == 0 || iswrite == 1);
 
   if(iswrite)
-    mode = ProtWRITE; 
+    mode = ProtWRITE;
   else
     mode = ProtREAD;
 
@@ -82,7 +80,7 @@ LONG ProtSEHfilter(LPEXCEPTION_POINTERS info)
 
   if(SpaceAccess(base, mode))
     action = EXCEPTION_CONTINUE_EXECUTION;
-  else 
+  else
     action = EXCEPTION_CONTINUE_SEARCH;
 
   return action;

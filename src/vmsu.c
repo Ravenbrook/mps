@@ -2,7 +2,7 @@
  *
  *                     VIRTUAL MEMORY MAPPING FOR SUNOS 4
  *
- *  $HopeName: !vmsu.c(trunk.9) $
+ *  $HopeName: MMsrc!vmsu.c(trunk.9) $
  *
  *  Copyright (C) 1995 Harlequin Group, all rights reserved
  *
@@ -35,21 +35,19 @@
  *    or features we don't use.  See mmap(2) for details.
  */
 
-#include "std.h"
-#include "vm.h"
+#include "mpm.h"
 
 #ifndef MPS_OS_SU
 #error "vmsu.c is SunOS 4 specific, but MPS_OS_SU is not set"
 #endif
 
-#include <limits.h>
 #include <sys/types.h>
 #include <sys/mman.h>
 #include <fcntl.h>
 #include <errno.h>
 #include <sys/errno.h>
 
-SRCID("$HopeName: !vmsu.c(trunk.9) $");
+SRCID(vmsu, "$HopeName: MMsrc!vmsu.c(trunk.9) $");
 
 
 /* Fix up unprototyped system calls.  */
@@ -60,76 +58,60 @@ extern int close(int fd);
 extern int munmap(caddr_t addr, int len);
 extern int getpagesize(void);
 
-#define VMSig	((Sig)0x519FEE33)
 
-typedef struct VMStruct
+Align VMAlign(void)
 {
-  Sig sig;
-  int zero_fd;		/* file descriptor for /dev/zero */
-  int none_fd;          /* fildes used for PROT_NONE (/etc/passwd) */
-  Addr grain;		/* page size */
-  Addr base, limit;	/* boundaries of reserved space */
-} VMStruct;
+  Align align;
 
+  align = (Align)getpagesize();
+  AVER(SizeIsP2(align));
 
-Addr VMGrain(void)
-{
-  Addr grain;
-
-  grain = (Addr)getpagesize();
-  AVER(IsPoT(grain));
-
-  return(grain);
+  return align;
 }
 
 
-#ifdef DEBUG
-
-Bool VMIsValid(VM vm, ValidationType validParam)
+Bool VMCheck(VM vm)
 {
-  AVER(vm != NULL);
-  AVER(vm->sig == VMSig);
-  AVER(vm->zero_fd >= 0);
-  AVER(vm->none_fd >= 0);
-  AVER(vm->zero_fd != vm->none_fd);
-  AVER(vm->base != 0);
-  AVER(vm->limit != 0);
-  AVER(vm->base < vm->limit);
-  AVER(IsPoT(vm->grain));
-  AVER(IsAligned(vm->grain, vm->base));
-  AVER(IsAligned(vm->grain, vm->limit));
-  return(TRUE);
+  CHECKS(VM, vm);
+  CHECKL(vm->zero_fd >= 0);
+  CHECKL(vm->none_fd >= 0);
+  CHECKL(vm->zero_fd != vm->none_fd);
+  CHECKL(vm->base != 0);
+  CHECKL(vm->limit != 0);
+  CHECKL(vm->base < vm->limit);
+  CHECKL(SizeIsP2(vm->align));
+  CHECKL(AddrIsAligned(vm->base, vm->align));
+  CHECKL(AddrIsAligned(vm->limit, vm->align));
+  return TRUE;
 }
 
-#endif /* DEBUG */
 
-
-Error VMCreate(VM *vmReturn, Addr size)
+Res VMCreate(VM *vmReturn, Size size)
 {
   caddr_t addr;
-  Addr grain;
+  Align align;
   int zero_fd;
   int none_fd;
   VM vm;
 
-  grain = VMGrain();
+  align = VMAlign();
 
   AVER(vmReturn != NULL);
-  AVER(IsAligned(grain, size));
+  AVER(SizeIsAligned(size, align));
   AVER(size != 0);
   AVER(size <= INT_MAX); /* see .assume.size */
 
   zero_fd = open("/dev/zero", O_RDONLY);
   if(zero_fd == -1)
-    return(ErrFAILURE);
+    return ResFAIL;
   none_fd = open("/etc/passwd", O_RDONLY);
   if(none_fd == -1) {
     close(zero_fd);
-    return(ErrFAILURE);
+    return ResFAIL;
   }
 
   /* Map in a page to store the descriptor on. */
-  addr = mmap((caddr_t)0, AlignUp(grain, sizeof(VMStruct)),
+  addr = mmap((caddr_t)0, AlignUp(sizeof(VMStruct), align),
 	      PROT_READ | PROT_WRITE, MAP_PRIVATE,
 	      zero_fd, (off_t)0);
   if((int)addr == -1) {
@@ -138,15 +120,15 @@ Error VMCreate(VM *vmReturn, Addr size)
     close(none_fd);
     close(zero_fd);
     if(e == ENOMEM)
-      return ErrRESMEM;
+      return ResMEMORY;
     else
-      return ErrFAILURE;
+      return ResFAIL;
   }
   vm = (VM)addr;
 
   vm->zero_fd = zero_fd;
   vm->none_fd = none_fd;
-  vm->grain = grain;
+  vm->align = align;
 
   /* See .assume.not-last. */
   addr = mmap((caddr_t)0, size, PROT_NONE, MAP_SHARED, none_fd, (off_t)0);
@@ -156,9 +138,9 @@ Error VMCreate(VM *vmReturn, Addr size)
     close(none_fd);
     close(zero_fd);
     if(e == ENOMEM)
-      return ErrRESOURCE;
+      return ResRESOURCE;
     else
-      return ErrFAILURE;
+      return ResFAIL;
   }
 
   vm->base = (Addr)addr;
@@ -166,10 +148,10 @@ Error VMCreate(VM *vmReturn, Addr size)
 
   vm->sig = VMSig;
 
-  AVER(ISVALID(VM, vm));
+  AVERT(VM, vm);
 
   *vmReturn = vm;
-  return(ErrSUCCESS);
+  return ResOK;
 }
 
 
@@ -177,7 +159,7 @@ void VMDestroy(VM vm)
 {
   int r;
 
-  AVER(ISVALID(VM, vm));
+  AVERT(VM, vm);
 
   /* This appears to be pretty pointless, since the vm descriptor page is */
   /* about to vanish completely.  However, munmap might fail for some */
@@ -189,34 +171,34 @@ void VMDestroy(VM vm)
   close(vm->none_fd);
   r = munmap((caddr_t)vm->base, (int)(vm->limit - vm->base));
   AVER(r == 0);
-  r = munmap((caddr_t)vm, (int)AlignUp(vm->grain, sizeof(VMStruct)));
+  r = munmap((caddr_t)vm, (int)SizeAlignUp(sizeof(VMStruct), vm->align));
   AVER(r == 0);
 }
 
 
 Addr VMBase(VM vm)
 {
-  AVER(ISVALID(VM, vm));
-  return(vm->base);
+  AVERT(VM, vm);
+  return vm->base;
 }
 
 Addr VMLimit(VM vm)
 {
-  AVER(ISVALID(VM, vm));
-  return(vm->limit);
+  AVERT(VM, vm);
+  return vm->limit;
 }
 
 
-Error VMMap(VM vm, Addr base, Addr limit)
+Res VMMap(VM vm, Addr base, Addr limit)
 {
-  AVER(ISVALID(VM, vm));
+  AVERT(VM, vm);
   AVER(sizeof(int) == sizeof(Addr));
   AVER(base < limit);
   AVER(base >= vm->base);
   AVER(limit <= vm->limit);
   AVER((limit - base) <= INT_MAX); /* This should be redundant. */
-  AVER(IsAligned(vm->grain, base));
-  AVER(IsAligned(vm->grain, limit));
+  AVER(AddrIsAligned(base, vm->align));
+  AVER(AddrIsAligned(limit, vm->align));
 
   /* Map /dev/zero onto the area with a copy-on-write policy.  This */
   /* effectively populates the area with zeroed memory. */
@@ -226,10 +208,10 @@ Error VMMap(VM vm, Addr base, Addr limit)
 	       MAP_PRIVATE | MAP_FIXED,
 	       vm->zero_fd, (off_t)0) == -1) {
     AVER(errno == ENOMEM); /* .assume.mmap.err */
-    return(ErrRESMEM);
+    return ResMEMORY;
   }
 
-  return(ErrSUCCESS);
+  return ResOK;
 }
 
 
@@ -237,13 +219,13 @@ void VMUnmap(VM vm, Addr base, Addr limit)
 {
   caddr_t addr;
 
-  AVER(ISVALID(VM, vm));
+  AVERT(VM, vm);
   AVER(sizeof(int) == sizeof(Addr));
   AVER(base < limit);
   AVER(base >= vm->base);
   AVER(limit <= vm->limit);
-  AVER(IsAligned(vm->grain, base));
-  AVER(IsAligned(vm->grain, limit));
+  AVER(AddrIsAligned(base, vm->align));
+  AVER(AddrIsAligned(limit, vm->align));
 
   /* Map /etc/passwd onto the area, allowing no access.  This */
   /* effectively depopulates the area from memory, but keeps */
