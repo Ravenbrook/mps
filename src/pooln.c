@@ -1,6 +1,6 @@
 /* impl.c.pooln: NULL POOL CLASS
  *
- * $HopeName: MMsrc!pooln.c(MMdevel_tony_sunset.1) $
+ * $HopeName: MMsrc!pooln.c(MMdevel_tony_sunset.2) $
  * Copyright (C) 1997 Harlequin Group plc.  All rights reserved.
  *
  * .readership: MPS developers
@@ -9,7 +9,7 @@
 #include "pooln.h"
 #include "mpm.h"
 
-SRCID(pooln, "$HopeName: MMsrc!pooln.c(MMdevel_tony_sunset.1) $");
+SRCID(pooln, "$HopeName: MMsrc!pooln.c(MMdevel_tony_sunset.2) $");
 
 
 typedef struct PoolNStruct {
@@ -114,7 +114,7 @@ static void NBufferFinish(Pool pool, Buffer buffer)
 }
 
 
-static Res NBufferFill(Seg *segReturn, Addr *baseReturn, Addr *limitReturn,
+static Res NBufferFill(Addr *baseReturn, Addr *limitReturn,
                        Pool pool, Buffer buffer, Size size,
                        Bool withReservoirPermit)
 {
@@ -123,7 +123,6 @@ static Res NBufferFill(Seg *segReturn, Addr *baseReturn, Addr *limitReturn,
   AVERT(Pool, pool);
   poolN = PoolPoolN(pool);
   AVERT(PoolN, poolN);
-  AVER(segReturn != NULL);
   AVER(baseReturn != NULL);
   AVER(limitReturn != NULL);
   AVERT(Buffer, buffer);
@@ -137,12 +136,11 @@ static Res NBufferFill(Seg *segReturn, Addr *baseReturn, Addr *limitReturn,
 
 
 static void NBufferEmpty(Pool pool, Buffer buffer, 
-                         Seg seg, Addr init, Addr limit)
+                         Addr init, Addr limit)
 {
   AVERT(Pool, pool);
   AVERT(Buffer, buffer);
   AVER(BufferIsReady(buffer));
-  AVER((NULL == seg) || SegCheck(seg));
   AVER(init <= limit);
 
   NOTREACHED;   /* can't create buffers, so they shouldn't trip */

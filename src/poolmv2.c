@@ -1,6 +1,6 @@
 /* impl.c.poolmv2: MANUAL VARIABLE POOL, II
  *
- * $HopeName: MMsrc!poolmv2.c(MMdevel_tony_sunset.1) $
+ * $HopeName: MMsrc!poolmv2.c(MMdevel_tony_sunset.2) $
  * Copyright (C) 1998 Harlequin Group plc.  All rights reserved.
  *
  * .readership: any MPS developer
@@ -18,7 +18,7 @@
 #include "cbs.h"
 #include "meter.h"
 
-SRCID(poolmv2, "$HopeName: MMsrc!poolmv2.c(MMdevel_tony_sunset.1) $");
+SRCID(poolmv2, "$HopeName: MMsrc!poolmv2.c(MMdevel_tony_sunset.2) $");
 
 
 /* Signatures */
@@ -32,12 +32,11 @@ typedef struct MV2Struct *MV2;
 static Res MV2Init(Pool pool, va_list arg);
 static Bool MV2Check(MV2 mv2);
 static void MV2Finish(Pool pool);
-static Res MV2BufferFill(Seg *segReturn,
-                         Addr *baseReturn, Addr *limitReturn,
+static Res MV2BufferFill(Addr *baseReturn, Addr *limitReturn,
                          Pool pool, Buffer buffer, Size minSize,
                          Bool withReservoirPermit);
 static void MV2BufferEmpty(Pool pool, Buffer buffer, 
-                           Seg seg, Addr base, Addr limit);
+                           Addr base, Addr limit);
 static void MV2Free(Pool pool, Addr base, Size size);
 static Res MV2Describe(Pool pool, mps_lib_FILE *stream);
 static Res MV2SegAlloc(Seg *segReturn, MV2 mv2, Size size, Pool pool,
@@ -144,7 +143,7 @@ typedef struct MV2Struct
 
 DEFINE_POOL_CLASS(MV2PoolClass, this)
 {
-  INHERIT_CLASS(this, AbstractBufferPoolClass);
+  INHERIT_CLASS(this, AbstractBufferedSegPoolClass);
   this->name = "MV2";
   this->size = sizeof(MV2Struct);
   this->offset = offsetof(MV2Struct, poolStruct);
@@ -413,8 +412,7 @@ static void MV2Finish(Pool pool)
  *
  * See design.mps.poolmv2:impl.c.ap.fill
  */
-static Res MV2BufferFill(Seg *segReturn,
-                         Addr *baseReturn, Addr *limitReturn,
+static Res MV2BufferFill(Addr *baseReturn, Addr *limitReturn,
                          Pool pool, Buffer buffer, Size minSize,
                          Bool withReservoirPermit)
 {
@@ -426,7 +424,6 @@ static Res MV2BufferFill(Seg *segReturn,
   Size alignedSize, fillSize;
   CBSBlock block;
 
-  AVER(segReturn != NULL);
   AVER(baseReturn != NULL);
   AVER(limitReturn != NULL);
   AVERT(Pool, pool);
@@ -553,7 +550,6 @@ found:
   return res;
   
 done:
-  *segReturn = seg;  /* @@@@ actually no need to associate buffer with seg */
   *baseReturn = base;
   *limitReturn = limit;
   mv2->available -= AddrOffset(base, limit);
@@ -577,7 +573,7 @@ done:
  * See design.mps.poolmv2:impl.c.ap.empty
  */
 static void MV2BufferEmpty(Pool pool, Buffer buffer, 
-                           Seg seg, Addr base, Addr limit)
+                           Addr base, Addr limit)
 {
   MV2 mv2;
   Size size;
@@ -587,8 +583,6 @@ static void MV2BufferEmpty(Pool pool, Buffer buffer,
   AVERT(MV2, mv2);
   AVERT(Buffer, buffer);
   AVER(BufferIsReady(buffer));
-  AVER(seg == NULL ||
-       SegCheck(seg));
   AVER(base <= limit);
 
   size = AddrOffset(base, limit);
@@ -635,7 +629,7 @@ static void MV2BufferEmpty(Pool pool, Buffer buffer,
   }
 
   mv2->splinter = TRUE;
-  mv2->splinterSeg = seg;
+  mv2->splinterSeg = BufferSeg(buffer);
   mv2->splinterBase = base;
   mv2->splinterLimit = limit;
 }

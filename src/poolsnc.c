@@ -1,6 +1,6 @@
 /* impl.c.poolsnc: STACK NO CHECKING POOL CLASS
  *
- * $HopeName: MMsrc!poolsnc.c(MMdevel_tony_sunset.1) $
+ * $HopeName: MMsrc!poolsnc.c(MMdevel_tony_sunset.2) $
  * Copyright (C) 1998.  Harlequin Group plc.  All rights reserved.
  *
  * READERSHIP
@@ -26,7 +26,7 @@
 #include "mpm.h"
 
 
-SRCID(poolsnc, "$HopeName: MMsrc!poolsnc.c(MMdevel_tony_sunset.1) $");
+SRCID(poolsnc, "$HopeName: MMsrc!poolsnc.c(MMdevel_tony_sunset.2) $");
 
 
 #define SNCSig  ((Sig)0x519b754c)       /* SIGPooLSNC */
@@ -57,16 +57,130 @@ static Bool SNCCheck(SNC snc);
 /* Management of segment chains
  *
  * Each buffer has an associated segment chain in stack order
- * (top of stack first). The free segments are also stored 
- * as a segment chain.
- * Segments are chained using the SegP field.
+ * (top of stack first). We subclass the buffer to maintain the
+ * head of the chain. Segments are chained using the SegP field.
  */
+
+
+
+/* SNCBufStruct -- SNC Buffer subclass
+ *
+ * This subclass of BufferedSeg hold a segment chain.
+ */
+
+#define SNCBufSig ((Sig)0x51954CBF) /* SIGnature SNC BuFfer  */ 
+
+typedef struct SNCBufStruct *SNCBuf;
+
+typedef struct SNCBufStruct {
+  BufferedSegStruct bufSegStruct; /* superclass fields must come first */
+  Seg topseg;                     /* The segment chain head */
+  Sig sig;                        /* design.mps.sig */
+} SNCBufStruct;
+
+
+/* BufferSNCBuf -- convert generic Buffer to an SNCBuf */
+
+#define BufferSNCBuf(buffer) ((SNCBuf)(buffer))
+
+
+/* SNCBufCheck -- check consistency of an SNCBuf */
+
+Bool SNCBufCheck(SNCBuf sncbuf)
+{
+  BufferedSeg bufseg;
+
+  CHECKS(SNCBuf, sncbuf);
+  bufseg = &sncbuf->bufSegStruct;
+  CHECKL(BufferedSegCheck(bufseg));
+  if (sncbuf->topseg != NULL) {
+    CHECKL(SegCheck(sncbuf->topseg));
+  }
+  return TRUE;
+}
+
+
+/* sncBufferTopSeg -- return the head of segment chain from an SNCBuf */
+
+static Seg sncBufferTopSeg(Buffer buffer)
+{
+  SNCBuf sncbuf;
+  AVERT(Buffer, buffer);
+  sncbuf = BufferSNCBuf(buffer);
+  AVERT(SNCBuf, sncbuf);
+  return sncbuf->topseg;
+}
+
+
+/* sncBufferSetTopSeg -- set the head of segment chain from an SNCBuf */
+
+static void sncBufferSetTopSeg(Buffer buffer, Seg seg)
+{
+  SNCBuf sncbuf;
+  AVERT(Buffer, buffer);
+  AVERT(Seg, seg);
+  sncbuf = BufferSNCBuf(buffer);
+  AVERT(SNCBuf, sncbuf);
+  sncbuf->topseg = seg;
+}
+
+
+/* SNCBufInit -- Initialize an SNCBuf */
+
+static Res SNCBufInit (Buffer buffer, Pool pool)
+{
+  SNCBuf sncbuf;
+  BufferClass superclass = EnsureBufferedSegClass();
+
+  AVERT(Buffer, buffer);
+  AVERT(Pool, pool);
+
+  /* call next method */
+  (*superclass->init)(buffer, pool);
+
+  sncbuf = BufferSNCBuf(buffer);
+  sncbuf->topseg = NULL;
+  sncbuf->sig = SNCBufSig;
+
+  AVERT(SNCBuf, sncbuf);
+  return ResOK;
+}
+
+
+/* SNCBufFinish -- Finish an SNCBuf */
+
+static void SNCBufFinish(Buffer buffer)
+{
+  BufferClass super;
+  SNCBuf sncbuf;
+
+  AVERT(Buffer, buffer);
+  sncbuf = BufferSNCBuf(buffer);
+  AVERT(SNCBuf, sncbuf);
+
+  sncbuf->sig = SigInvalid;
+
+  /* finish the superclass fields last */
+  super = EnsureBufferedSegClass();
+  super->finish(buffer);
+}
+
+
+/* SNCBufClass -- The class definition */
+
+DEFINE_BUFFER_CLASS(SNCBufClass, class)
+{
+  INHERIT_CLASS(class, BufferedSegClass);
+  class->name = "SNCBUF";
+  class->size = sizeof(SNCBufStruct);
+  class->init = SNCBufInit;
+  class->finish = SNCBufFinish;
+}
+
 
 #define sncSegNext(seg) ((Seg)SegP((seg)))
 #define sncSegSetNext(seg, next) (SegSetP((seg), (void*)(next)))
 
-#define sncBufferTopSeg(buffer) ((Seg)((buffer)->p))
-#define sncBufferSetTopSeg(buffer, seg) ((buffer)->p = (void*)(seg))
 
 
 /* sncRecordAllocatedSeg  - stores a segment on the buffer chain */
@@ -220,14 +334,14 @@ static Res SNCBufferInit(Pool pool, Buffer buffer, va_list args)
   AVER(rank == RankEXACT);  /* SNC only accepts RankEXACT */
   snc = PoolPoolSNC(pool);
   AVERT(SNC, snc);
-  buffer->rankSet = RankSetSingle(rank);
+  BufferSetRankSet(buffer, RankSetSingle(rank));
   /* Initialize buffer's segment chain to empty */
   sncBufferSetTopSeg(buffer, NULL);
   return ResOK;
 }
 
 
-static Res SNCBufferFill(Seg *segReturn, Addr *baseReturn, Addr *limitReturn,
+static Res SNCBufferFill(Addr *baseReturn, Addr *limitReturn,
                          Pool pool, Buffer buffer, Size size,
                          Bool withReservoirPermit)
 {
@@ -237,7 +351,6 @@ static Res SNCBufferFill(Seg *segReturn, Addr *baseReturn, Addr *limitReturn,
   Seg seg;
   Size asize;           /* aligned size */
 
-  AVER(segReturn != NULL);
   AVER(baseReturn != NULL);
   AVER(limitReturn != NULL);
   AVERT(Pool, pool);
@@ -277,7 +390,6 @@ found:
   sncRecordAllocatedSeg(buffer, seg);
   /* Permit the use of lightweight frames - .lw-frame-state */
   BufferFrameSetState(buffer, BufferFrameVALID);
-  *segReturn = seg;
   *baseReturn = SegBase(seg);
   *limitReturn = SegLimit(seg);
   return ResOK;
@@ -285,15 +397,16 @@ found:
 
 
 static void SNCBufferEmpty(Pool pool, Buffer buffer, 
-                           Seg seg, Addr init, Addr limit)
+                           Addr init, Addr limit)
 {
   SNC snc;
+  Seg seg;
   Arena arena;
   Size size;
 
   AVERT(Pool, pool);
   AVERT(Buffer, buffer);
-  AVER(SegCheck(seg));
+  seg = BufferSeg(buffer);
   AVER(init <= limit);
   AVER(SegLimit(seg) == limit);
   snc = PoolPoolSNC(pool);
@@ -444,8 +557,7 @@ static void SNCFramePopPending(Pool pool, Buffer buf, AllocFrame frame)
       /* need to change segment  */
       BufferDetach(buf, pool);
       sncPopPartialSegChain(snc, buf, seg);
-      BufferAttach(buf, seg, 
-                   SegBase(seg), SegLimit(seg), addr, (Size)0);
+      BufferAttach(buf, SegBase(seg), SegLimit(seg), addr, (Size)0);
       /* Permit the use of lightweight frames - .lw-frame-state */
       BufferFrameSetState(buf, BufferFrameVALID);
     }
@@ -513,6 +625,7 @@ DEFINE_POOL_CLASS(SNCPoolClass, this)
   this->framePop = SNCFramePop;
   this->framePopPending = SNCFramePopPending;
   this->walk = SNCWalk;
+  this->bufferClass = EnsureSNCBufClass;
 }
 
 

@@ -1,6 +1,6 @@
 /* impl.c.poolmvff: First Fit Manual Variable Pool
  * 
- * $HopeName: MMsrc!poolmvff.c(MMdevel_tony_sunset.1) $
+ * $HopeName: MMsrc!poolmvff.c(MMdevel_tony_sunset.2) $
  * Copyright (C) 1998, 1999 Harlequin Group plc.  All rights reserved.
  *
  * .purpose: This is a pool class for manually managed objects of
@@ -24,7 +24,7 @@
 #include "cbs.h"
 #include "mpm.h"
 
-SRCID(poolmvff, "$HopeName: MMsrc!poolmvff.c(MMdevel_tony_sunset.1) $");
+SRCID(poolmvff, "$HopeName: MMsrc!poolmvff.c(MMdevel_tony_sunset.2) $");
 
 
 /* Would go in poolmvff.h if the class had any MPS-internal clients. */
@@ -146,7 +146,6 @@ static void MVFFFreeSegs(MVFF mvff, Addr base, Addr limit)
       AVER(res == ResOK);
       mvff->free -= AddrOffset(segBase, segLimit);
       mvff->total -= AddrOffset(segBase, segLimit);
-      AVER(SegBuffer(seg) == NULL);  /* MVFF doesn't attach segs */
       SegFree(seg);
     }
     
@@ -346,8 +345,7 @@ static void MVFFFree(Pool pool, Addr old, Size size)
  * Fill it with the largest block we can find.
  */
 
-static Res MVFFBufferFill(Seg *segReturn,
-                          Addr *baseReturn, Addr *limitReturn,
+static Res MVFFBufferFill(Addr *baseReturn, Addr *limitReturn,
                           Pool pool, Buffer buffer, Size size,
                           Bool withReservoirPermit)
 {
@@ -357,7 +355,6 @@ static Res MVFFBufferFill(Seg *segReturn,
   Bool foundBlock;
   Seg seg = NULL;
 
-  AVER(segReturn != NULL);
   AVER(baseReturn != NULL);
   AVER(limitReturn != NULL);
   AVERT(Pool, pool);
@@ -388,7 +385,6 @@ static Res MVFFBufferFill(Seg *segReturn,
   AVER(AddrOffset(base, limit) >= size);
   mvff->free -= AddrOffset(base, limit);
 
-  *segReturn = NULL; /* manual pool, so buffer doesn't need seg */
   *baseReturn = base; 
   *limitReturn = limit;
   return ResOK;
@@ -398,7 +394,7 @@ static Res MVFFBufferFill(Seg *segReturn,
 /* MVFFBufferEmpty -- return unused portion of this buffer */
 
 static void MVFFBufferEmpty(Pool pool, Buffer buffer, 
-                            Seg seg, Addr base, Addr limit)
+                            Addr base, Addr limit)
 {
   MVFF mvff;
 
@@ -407,7 +403,6 @@ static void MVFFBufferEmpty(Pool pool, Buffer buffer,
   AVERT(MVFF, mvff);
   AVERT(Buffer, buffer);
   AVER(BufferIsReady(buffer));
-  AVER(seg == NULL); /* manual pool, so buffer doesn't use seg */
   AVER(base <= limit);
 
   if (base == limit)
