@@ -1,6 +1,6 @@
 /* impl.c.vmso: VIRTUAL MEMORY MAPPING FOR SOLARIS 2.x
  *
- * $HopeName: !vmso.c(trunk.5) $
+ * $HopeName: MMsrc!vmso.c(MM_dylan_buffalo.1) $
  * Copyright (C) 1995 Harlequin Group, all rights reserved
  *
  * Design: design.mps.vm
@@ -41,13 +41,18 @@
 #error "vmso.c compiled with VM_RM set"
 #endif /* VM_RM */
 
+/* Open sesame magic */
+#define _POSIX_SOURCE
+
 #include <sys/types.h>
 #include <sys/mman.h>
 #include <fcntl.h>
 #include <errno.h>
 #include <sys/errno.h>
+/* unistd for _SC_PAGESIZE */
+#include <unistd.h>
 
-SRCID(vmso, "$HopeName: !vmso.c(trunk.5) $");
+SRCID(vmso, "$HopeName: MMsrc!vmso.c(MM_dylan_buffalo.1) $");
 
 
 /* Fix up unprototyped system calls.  */
@@ -56,7 +61,6 @@ SRCID(vmso, "$HopeName: !vmso.c(trunk.5) $");
 
 extern int close(int fd);
 extern int munmap(caddr_t addr, size_t len);
-extern int getpagesize(void);
 
 #define SpaceVM(space)  (&(space)->arenaStruct.vmStruct)
 
@@ -64,7 +68,7 @@ Align VMAlign(void)
 {
   Align align;
 
-  align = (Align)getpagesize();
+  align = (Align)sysconf(_SC_PAGESIZE);
   AVER(SizeIsP2(align));
 
   return align;
