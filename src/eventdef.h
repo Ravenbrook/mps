@@ -1,6 +1,6 @@
 /* impl.h.eventdef -- Event Logging Definitions
  *
- * $HopeName: MMsrc!eventdef.h(MMdevel_drj_trace_abort.1) $
+ * $HopeName: MMsrc!eventdef.h(MMdevel_drj_trace_abort.2) $
  * Copyright (C) 1997 Harlequin Group, all rights reserved.
  *
  * .readership: MPS developers.
@@ -64,7 +64,7 @@ RELATION(AMCCondemn                      , 0x0009, TRUE, Seg, PPPP)
 RELATION(AMCScanBegin                    , 0x000a, TRUE, Trace, PPP)
 RELATION(AMCScanEnd                      , 0x000b, TRUE, Trace, PPP)
 RELATION(AMCFix                          , 0x000c, TRUE, Ref, 0)
-RELATION(AMCFixAmbig                     , 0x000d, TRUE, Ref, 0)
+RELATION(AMCFixInPlace                   , 0x000d, TRUE, Ref, 0)
 RELATION(AMCFixForward                   , 0x000e, TRUE, Ref, A)
 RELATION(AMCReclaim                      , 0x000f, TRUE, Seg, PPP)
 RELATION(AMCTraceEnd                     , 0x0010, TRUE, Trace, PPP)

@@ -1,7 +1,7 @@
 /* impl.h.eventcom -- Event Logging Common Types
  *
  * Copyright (C) 1997 Harlequin Group, all rights reserved.
- * $HopeName: MMsrc!eventcom.h(MMdevel_drj_trace_abort.1) $
+ * $HopeName: MMsrc!eventcom.h(MMdevel_drj_trace_abort.2) $
  *
  * .readership: MPS developers.
  * .sources: mps.design.telemetry
@@ -46,7 +46,7 @@ typedef Word EventType;
 #define EventAMCScanBegin   ((EventType)0xEFA3C5CB) /* AMC SCan Begin */
 #define EventAMCScanEnd     ((EventType)0xEFA3C5CE) /* AMC SCan End */
 #define EventAMCFix         ((EventType)0xEFA3CF18) /* AMC FIX */
-#define EventAMCFixAmbig    ((EventType)0xEFA3CF8A) /* AMC FiX Ambig */
+#define EventAMCFixInPlace  ((EventType)0xEFA3CF8A) /* AMC FiX Ambig */
 #define EventAMCFixForward  ((EventType)0xEFA3CF8F) /* AMC FiX Forward */
 #define EventAMCReclaim     ((EventType)0xEFA3C6EC) /* AMC REClaim */
 #define EventAMCTraceEnd    ((EventType)0xEFA3C26E) /* AMC TRace End */
