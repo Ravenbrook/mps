@@ -1,6 +1,6 @@
 /*  impl.c.poolmv2ss: POOLMV2 STRESS TEST
  *
- * $HopeName: MMsrc!poolmv2ss.c(MMdevel_gavinm_splay.1) $
+ * $HopeName: MMsrc!mv2test.c(MMdevel_gavinm_splay.1) $
  * Copyright (C) 1998. Harlequin Group plc. All rights reserved.
  */
 
@@ -145,6 +145,16 @@ accept:
 static size_t min;
 static size_t mean;
 static size_t max;
+static int verbose = 0;
+static mps_pool_t pool;
+
+extern void DescribeIt(void);
+
+void DescribeIt(void) 
+{
+  PoolDescribe((Pool)pool, (mps_lib_FILE *)stderr);
+}
+
 
 static size_t randomSize(int i)
 {
@@ -169,11 +179,9 @@ static size_t randomSize(int i)
 }
 
 
-
-
-#define testArenaSIZE   ((size_t)64<<14 /*20*/)
+#define testArenaSIZE   ((size_t)64<<20)
 #define TEST_SET_SIZE 800
-#define TEST_LOOPS 10
+#define TEST_LOOPS 50
 
 static mps_res_t make(mps_addr_t *p, mps_ap_t ap, size_t size)
 {
@@ -195,7 +203,6 @@ static mps_res_t stress(mps_class_t class, mps_arena_t arena,
                         size_t (*size)(int i), ...)
 {
   mps_res_t res;
-  mps_pool_t pool;
   mps_ap_t ap;
   va_list arg;
   int i, k;
@@ -217,12 +224,17 @@ static mps_res_t stress(mps_class_t class, mps_arena_t arena,
     if(res != MPS_RES_OK) return res;
     *ps[i] = 1; /* Write something, so it gets swap. */
 
-    if(i && i%4==0) putchar('\n');
-    printf("%8lX %6lX ", (unsigned long)ps[i], (unsigned long)ss[i]);
+    if (verbose) {
+      if(i && i%4==0) putchar('\n');
+      printf("%8lX %6lX ", (unsigned long)ps[i], (unsigned long)ss[i]);
+    }
   }
-  putchar('\n');
+  if (verbose) {
+    putchar('\n');
+  }
 
   for (k=0; k<TEST_LOOPS; ++k) {
+    int x = rand()%(TEST_SET_SIZE-1);
     /* shuffle all the objects */
     for(i=0; i<TEST_SET_SIZE; ++i) {
       int j = rand()%(TEST_SET_SIZE-i);
@@ -233,24 +245,25 @@ static mps_res_t stress(mps_class_t class, mps_arena_t arena,
       ps[j] = ps[i]; ss[j] = ss[i];
       ps[i] = tp; ss[i] = ts;
     }
-    /* free half of the objects */
-    /* upper half, as when allocating them again we want smaller objects */
-    /* see randomSize() */
-    for(i=TEST_SET_SIZE/2; i<TEST_SET_SIZE; ++i) {
+    /* free some of the objects */
+    
+    for(i=x; i<TEST_SET_SIZE; ++i) {
       mps_free(pool, (mps_addr_t)ps[i], ss[i]);
-      /*    if(i == TEST_SET_SIZE/2)
-            PoolDescribe((Pool)pool, mps_lib_stdout); */
     }
     /* allocate some new objects */
-    for(i=TEST_SET_SIZE/2; i<TEST_SET_SIZE; ++i) {
+    for(i=x; i<TEST_SET_SIZE; ++i) {
       ss[i] = (*size)(i);
       res = make((mps_addr_t *)&ps[i], ap, ss[i]);
-      if(res != MPS_RES_OK) return res;
+      if(res != MPS_RES_OK)
+        break;
       
-      if(i && i%4==0) putchar('\n');
-      printf("%8lX %6lX ", (unsigned long)ps[i], (unsigned long)ss[i]);
+      if (verbose) {
+        if(i && i%4==0) putchar('\n');
+        printf("%8lX %6lX ", (unsigned long)ps[i], (unsigned long)ss[i]);
+      }
     }
-    putchar('\n');
+    if (verbose)
+      putchar('\n');
   }
     
   PoolDescribe((Pool)pool, mps_lib_stdout);
@@ -265,10 +278,6 @@ static mps_res_t stress(mps_class_t class, mps_arena_t arena,
 int main(void)
 {
   mps_arena_t arena;
-  int i;
-
-  /* Randomize the random number generator a bit. */
-  for(i = time(NULL) % 67; i > 0; --i) rnd();
 
   /* mps_arena_class_an? */
   die(mps_arena_create(&arena, mps_arena_class_vm(), testArenaSIZE),
@@ -276,7 +285,7 @@ int main(void)
 
   min = 8;
   mean = 42;
-  max = testArenaSIZE/TEST_SET_SIZE;
+  max = testArenaSIZE/(TEST_SET_SIZE/4);
   
   die(stress(mps_class_mv2(), arena, randomSize,
              min,         /* min_size */
