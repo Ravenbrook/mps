@@ -1,7 +1,7 @@
 /* impl.h.event -- Event Logging Interface
  *
- * Copyright (C) 1997. Harlequin Group plc. All rights reserved.
- * $HopeName: MMsrc!event.h(MMdevel_gavinm_160033.2) $
+ * Copyright (C) 1997, 1999 Harlequin Group plc.  All rights reserved.
+ * $HopeName: MMsrc!event.h(MMdevel_gavinm_160033.3) $
  *
  * READERSHIP
  *
@@ -67,23 +67,24 @@ typedef Index EventKind;
 
 extern EventUnion Event;
 
-#define EVENT_BEGIN(type, format, _length) \
-  BEGIN \
+#define EVENT_BEGIN(type) \
+  if((EVENT_ALL || Event ## type ## Always) && \
+     BS_IS_MEMBER(EventKindControl, (Index)Event ## type ## Kind)) BEGIN
+
+#define EVENT_END(type, format, _length) \
     AVER(EventFormat ## format == Event ## type ## Format); \
     /* @@@@ As an interim measure, send the old event codes */ \
     Event.any.code = Event ## type; \
     /* @@@@ Length is in words, excluding header; this will change */ \
     /* We know that _length is aligned to word size */ \
-    Event.any.length = ((_length / sizeof(Word)) - 3); \
-    Event.any.clock = mps_clock() 
-
-#define EVENT_END(type, length) \
+    Event.any.length = ((_length) / sizeof(Word) - 3); \
+    Event.any.clock = mps_clock(); \
     AVER(EventNext <= EventLimit); \
-    if((length) > (size_t)(EventLimit - EventNext)) \
+    if((_length) > (size_t)(EventLimit - EventNext)) \
       EventFlush(); /* @@@ should pass length */ \
-    AVER((length) <= (size_t)(EventLimit - EventNext)); \
-    MPS_MEMCPY(EventNext, &Event, (length)); \
-    EventNext += (length); \
+    AVER((_length) <= (size_t)(EventLimit - EventNext)); \
+    MPS_MEMCPY(EventNext, &Event, (_length)); \
+    EventNext += (_length); \
   END
 
 extern char *EventNext, *EventLimit;
