@@ -1,6 +1,6 @@
 /* impl.c.pooln: NULL POOL CLASS
  *
- * $HopeName: !pooln.c(trunk.22) $
+ * $HopeName: MMsrc!pooln.c(MMdevel_fencepost.1) $
  * Copyright (C) 1997 Harlequin Group plc.  All rights reserved.
  *
  * .readership: MPS developers
@@ -9,7 +9,7 @@
 #include "pooln.h"
 #include "mpm.h"
 
-SRCID(pooln, "$HopeName: !pooln.c(trunk.22) $");
+SRCID(pooln, "$HopeName: MMsrc!pooln.c(MMdevel_fencepost.1) $");
 
 
 typedef struct PoolNStruct {
@@ -251,9 +251,10 @@ static void NReclaim(Pool pool, Trace trace, Seg seg)
 
 static PoolClassStruct PoolClassNStruct = {
   PoolClassSig,
-  "N",                                  /* name */
+  "N",
   sizeof(PoolNStruct),                  /* size */
   offsetof(PoolNStruct, poolStruct),    /* offset */
+  NULL,                                 /* super */
   AttrSCAN | AttrALLOC | AttrFREE | AttrBUF | AttrBUF_RESERVE | AttrGC,
   NInit,
   NFinish,
@@ -278,6 +279,7 @@ static PoolClassStruct PoolClassNStruct = {
   PoolNoRampEnd,
   PoolNoWalk,
   NDescribe,
+  PoolNoDebugMixin,
   PoolClassSig                          /* impl.h.mpmst.class.end-sig */
 };
 
