@@ -1,6 +1,6 @@
 /* impl.c.abq: AVAILABLE BLOCK QUEUE
  *
- * $HopeName: MMsrc!abq.c(MMdevel_gavinm_splay.3) $
+ * $HopeName: MMsrc!abq.c(MMdevel_gavinm_splay.4) $
  * Copyright (C) 1998 Harlequin Group plc.  All rights reserved.
  *
  * See design.mps.poolmv2.impl.c.abq
@@ -10,11 +10,7 @@
 #include "meter.h"
 #include "abq.h"
 
-SRCID(abq, "$HopeName: MMsrc!abq.c(MMdevel_gavinm_splay.3) $");
-
-
-/* Signatures */
-#define ABQSig ((Sig)0x519AB099) /* SIGnature ABQ */
+SRCID(abq, "$HopeName: MMsrc!abq.c(MMdevel_gavinm_splay.4) $");
 
 
 /* Methods */

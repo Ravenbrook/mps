@@ -1,6 +1,6 @@
 /* impl.h.abq: ABQ INTERFACE
  *
- * $HopeName: MMsrc!abq.h(MMdevel_gavinm_splay.2) $
+ * $HopeName: MMsrc!abq.h(MMdevel_gavinm_splay.3) $
  * Copyright (C) 1998 Harlequin Group plc.  All rights reserved.
  *
  */
@@ -28,6 +28,8 @@ extern Res ABQPush(ABQ abq, CBSBlock block);
 extern Res ABQDelete(ABQ abq, CBSBlock block);
 
 /* mpmst.h */
+#define ABQSig ((Sig)0x519AB099) /* SIGnature ABQ */
+
 typedef struct ABQStruct
 {
   Count count;
