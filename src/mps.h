@@ -1,6 +1,6 @@
 /* impl.h.mps: HARLEQUIN MEMORY POOL SYSTEM C INTERFACE
  *
- * $HopeName: MMsrc!mps.h(MMdevel_drj_message.1) $
+ * $HopeName: MMsrc!mps.h(MMdevel_drj_message.2) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  *
  * .readership: customers, MPS developers.
@@ -21,16 +21,17 @@
 
 /* Abstract Types */
 
-typedef struct mps_space_s  *mps_space_t;  /* space */
-typedef struct mps_pool_s   *mps_pool_t;   /* pool */
-typedef struct mps_fmt_s    *mps_fmt_t;    /* object format */
-typedef struct mps_root_s   *mps_root_t;   /* root */
-typedef struct mps_class_s  *mps_class_t;  /* pool class */
-typedef struct mps_thr_s    *mps_thr_t;    /* thread registration */
-typedef struct mps_ap_s     *mps_ap_t;     /* allocation point */
-typedef struct mps_ld_s     *mps_ld_t;     /* location dependency */
-typedef struct mps_reg_s    *mps_reg_t;    /* register file */
-typedef struct mps_ss_s     *mps_ss_t;     /* scan state */
+typedef struct mps_space_s   *mps_space_t;   /* space */
+typedef struct mps_pool_s    *mps_pool_t;    /* pool */
+typedef struct mps_fmt_s     *mps_fmt_t;     /* object format */
+typedef struct mps_root_s    *mps_root_t;    /* root */
+typedef struct mps_class_s   *mps_class_t;   /* pool class */
+typedef struct mps_thr_s     *mps_thr_t;     /* thread registration */
+typedef struct mps_ap_s      *mps_ap_t;      /* allocation point */
+typedef struct mps_ld_s      *mps_ld_t;      /* location dependency */
+typedef struct mps_reg_s     *mps_reg_t;     /* register file */
+typedef struct mps_ss_s      *mps_ss_t;      /* scan state */
+typedef struct mps_message_s *mps_message_t; /* message */
 
 /* Concrete Types */
 
@@ -57,17 +58,15 @@ enum {
   MPS_RES_IO                    /* system I/O error */
 };
 
-/* Message Types and Structures */
 /* .message.types: Keep in sync with impl.h.mpmtypes.message.types */
+/* These are not visible to our clients */
 enum {
   MPS_MESSAGE_TYPE_FINALIZATION
 };
 
-/* .messagetype.struct: Keep in sync with impl.h.mpmst.messagetype.struct */
-typedef struct mps_message_finalization_s {
-  mps_message_type_t type;
-  mps_addr_t ref;
-} mps_message_finalization_s;
+/* Message Types
+ * these are visible to our clients */
+#define mps_message_type_finalization() MPS_MESSAGE_TYPE_FINALIZATION
 
 
 /* Reference Ranks */
@@ -321,10 +320,19 @@ extern mps_word_t mps_collections(mps_space_t);
 /* Messages */
 
 extern mps_bool_t mps_message_poll(mps_space_t);
-extern mps_bool_t mps_message_type(mps_message_type_t *, mps_space_t);
-extern mps_bool_t mps_message_deliver(mps_space_t, mps_message_type_t,
-				      void *, size_t);
-extern mps_bool_t mps_message_discard(mps_space_t, mps_message_type_t);
+extern void mps_message_type_enable(mps_space_t, mps_message_type_t);
+extern mps_bool_t mps_message_get(mps_message_t *,
+                                  mps_space_t, mps_message_type_t);
+extern void mps_message_discard(mps_space_t, mps_message_t);
+extern mps_bool_t mps_message_queue_type(mps_message_type_t *, mps_space_t);
+extern mps_message_type_t mps_message_type(mps_space_t, mps_message_t);
+
+/* Message Type Specific Methods */
+
+/* MPS_MESSAGE_TYPE_FINALIZATION */
+
+extern void mps_message_finalization_ref(mps_addr_t *,
+					 mps_space_t, mps_message_t);
 
 
 /* Finalization */
