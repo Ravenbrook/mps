@@ -1,6 +1,6 @@
 /* impl.c.shield: SHIELD IMPLEMENTATION
  *
- * $HopeName: MMsrc!shield.c(MMdevel_metrics.1) $
+ * $HopeName: MMsrc!shield.c(MMdevel_metrics.2) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  *
  * See: idea.shield, design.mps.shield.
@@ -73,7 +73,7 @@
 
 #include "mpm.h"
 
-SRCID(shield, "$HopeName: MMsrc!shield.c(MMdevel_metrics.1) $");
+SRCID(shield, "$HopeName: MMsrc!shield.c(MMdevel_metrics.2) $");
 
 
 void (ShieldSuspend)(Arena arena)
@@ -102,6 +102,9 @@ static void protLower(Arena arena, Seg seg, AccessSet mode)
 {
   AVERT_CRITICAL(Arena, arena);
   AVERT_CRITICAL(Seg, seg);
+  /* Actually, it's unused if and only if the above AVER */
+  /* isn't compiled in */
+  UNUSED(arena);
 
   if(SegPM(seg) & mode) {
     SegSetPM(seg, SegPM(seg) & ~mode);
