@@ -1,7 +1,7 @@
 /* impl.h.tract: TRACT INTERFACE
  *
- * $HopeName$
- * Copyright (C) 1999 Harlequin Limited.  All rights reserved.
+ * $HopeName: MMsrc!tract.h(MMdevel_pekka_locus.1) $
+ * Copyright (C) 2000 Harlequin Limited.  All rights reserved.
  */
 
 
@@ -9,6 +9,7 @@
 #define tract_h
 
 #include "mpmtypes.h"
+#include "ring.h"
 
 
 /* TractStruct -- tract structure
@@ -33,6 +34,89 @@ extern Addr (TractBase)(Tract tract);
 #define TractBase(tract)        ((tract)->base)
 extern Addr TractLimit(Tract tract);
 
+#define TractPool(tract)        ((tract)->pool)
+#define TractP(tract)           ((tract)->p)
+#define TractSetP(tract, pp)    ((void)((tract)->p = (pp)))
+#define TractHasSeg(tract)      ((Bool)(tract)->hasSeg)
+#define TractSetHasSeg(tract, b) ((void)((tract)->hasSeg = (b)))
+#define TractWhite(tract)       ((tract)->white)
+#define TractSetWhite(tract, w) ((void)((tract)->white = w))
+
+
+/* PageStruct -- Page structure
+ *
+ * .page-table: The page table (defined as a PageStruct array)
+ * is central to the design of the arena.
+ * See design.mps.arena.vm.table.*.
+ *
+ * .page: The "pool" field must be the first field of the "tail"
+ * field of this union.  See design.mps.arena.tract.field.pool.
+ *
+ * .states: Pages (hence PageStructs that describe them) can be in 
+ * one of 3 states:
+ * allocated (to a pool as tracts).
+ *   allocated pages are mapped
+ *   BTGet(allocTable, i) == 1
+ *   PageRest()->pool == pool
+ * latent (in hysteresis fund).
+ *   these pages are mapped
+ *   BTGet(allocTable, i) == 0
+ *   PageRest()->pool == NULL
+ *   PageRest()->type == PageTypeLatent
+ * free (not in the hysteresis fund).
+ *   these pages are not mapped
+ *   BTGet(allocTable, i) == 0
+ *   PTE may itself be unmapped, but when it is (use pageTableMapped
+ *     to determine whether page occupied by page table is mapped):
+ *   PageRest()->pool == NULL
+ *   PageRest()->type == PageTypeFree
+ */
+
+enum {PageTypeLatent=1, PageTypeFree};
+
+typedef struct PageStruct {     /* page structure */
+  union {
+    TractStruct tractStruct;    /* allocated tract */
+    struct {
+      Pool pool;                /* NULL, must be first field (.page) */
+      int type;                 /* see .states */
+      RingStruct latentRing;    /* latent pages iff PageTypeLatent */
+    } rest;                     /* other (non-allocated) page */
+  } the;
+} PageStruct;
+typedef struct PageStruct *Page;
+
+
+/* PageTract -- tract descriptor of an allocated page */
+
+#define PageTract(page) (&(page)->the.tractStruct)
+
+/* PageOfTract -- VM page descriptor from arena tract */
+
+#define PageOfTract(tract) PARENT(PageStruct, the.tractStruct, (tract))
+
+/* PagePool -- pool field of a page */
+
+#define PagePool(page) ((page)->the.rest.pool)
+
+/* PageIsAllocated -- is a page allocated?
+ *
+ * See design.mps.arena.vm.table.disc.
+ */
+
+#define PageIsAllocated(page) ((page)->the.rest.pool != NULL)
+
+/* PageType -- type of page */
+
+#define PageType(page) ((page)->the.rest.type)
+
+/* PageLatentRing -- hfundRing of a page */
+
+#define PageLatentRing(page) (&(page)->the.rest.latentRing)
+
+
+/* Tract functions */
+
 extern Tract TractOfBaseAddr(Arena arena, Addr addr);
 extern Bool TractOfAddr(Tract *tractReturn, Arena arena, Addr addr);
 /* TractOfAddr macro, see design.mps.trace.fix.tractofaddr */
@@ -49,14 +133,6 @@ extern Tract TractNextContig(Arena arena, Tract tract);
 extern Bool TractCheck(Tract tract);
 extern void TractInit(Tract tract, Pool pool, Addr base);
 extern void TractFinish(Tract tract);
-
-#define TractPool(tract)        ((tract)->pool)
-#define TractP(tract)           ((tract)->p)
-#define TractSetP(tract, pp)    ((void)((tract)->p = (pp)))
-#define TractHasSeg(tract)      ((Bool)(tract)->hasSeg)
-#define TractSetHasSeg(tract, b) ((void)((tract)->hasSeg = (b)))
-#define TractWhite(tract)       ((tract)->white)
-#define TractSetWhite(tract, w) ((void)((tract)->white = w))
 
 
 /* TRACT_*SEG -- Test / set / unset seg->tract associations
