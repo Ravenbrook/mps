@@ -1,6 +1,6 @@
 /* impl.c.message: MPS / CLIENT MESSAGES
  *
- * $HopeName$
+ * $HopeName: MMsrc!message.c(MMdevel_drj_message.1) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All Rights Reserved.
  *
  * READERSHIP
@@ -33,7 +33,7 @@
 #include "mpm.h"
 
 
-SRCID(message, "$HopeName$");
+SRCID(message, "$HopeName: MMsrc!message.c(MMdevel_drj_message.1) $");
 
 
 /* Maps from a Ring pointer to the message */
@@ -92,6 +92,24 @@ Bool MessageTypeCheck(MessageType type)
 /* Internal Functions */
 
 
+/* returns the space associated with a message */
+Space MessageSpace(Message message)
+{
+  AVERT(Message, message);
+
+  return message->space;
+}
+
+
+/* return the class of a message */
+MessageClass MessageGetClass(Message message)
+{
+  AVERT(Message, message);
+
+  return message->class;
+}
+
+
 /* Initialises a message */
 void MessageInit(Space space, Message message, MessageClass class)
 {
@@ -99,6 +117,7 @@ void MessageInit(Space space, Message message, MessageClass class)
   /* we are initialising the message so we can't check it */
   AVERT(MessageClass, class);
 
+  message->space = space;
   message->class = class;
   RingInit(&message->queueRing);
   message->sig = MessageSig;

@@ -1,6 +1,6 @@
 /* impl.h.mpm: MEMORY POOL MANAGER DEFINITIONS
  *
- * $HopeName: MMsrc!mpm.h(MMdevel_drj_message.1) $
+ * $HopeName: MMsrc!mpm.h(MMdevel_drj_message.2) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  */
 
@@ -309,6 +309,8 @@ extern double PoolNoBenefit(Pool pool, Action action);
 extern Bool MessageCheck(Message message);
 extern Bool MessageClassCheck(MessageClass class);
 extern Bool MessageTypeCheck(MessageType type);
+extern MessageClass MessageGetClass(Message message);
+extern Space MessageSpace(Message message);
 extern void MessageInit(Space space, Message message, MessageClass class);
 extern void MessageFinish(Message message);
 extern void MessagePost(Space space, Message message);
@@ -410,6 +412,7 @@ extern void SpaceLeave(Space space);
 extern void SpacePoll(Space space);
 extern Res SpaceAlloc(void **baseReturn, Space space, Size size);
 extern void SpaceFree(Space space, Addr base, Size size);
+extern Res SpaceFinalize(Space space, Addr obj);
 
 #define SpacePoolRing(space)    (&(space)->poolRing)
 #define SpaceRootRing(space)    (&(space)->rootRing)
