@@ -1,12 +1,12 @@
 /* impl.c.trace: GENERIC TRACER IMPLEMENTATION
  *
- * $HopeName: MMsrc!trace.c(MMdevel_gens.6) $
+ * $HopeName: MMsrc!trace.c(MMdevel_gens.7) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  */
 
 #include "mpm.h"
 
-SRCID(trace, "$HopeName: MMsrc!trace.c(MMdevel_gens.6) $");
+SRCID(trace, "$HopeName: MMsrc!trace.c(MMdevel_gens.7) $");
 
 
 /* ScanStateCheck -- check consistency of a ScanState object */
@@ -540,15 +540,18 @@ static Res TraceScan(TraceSet ts, Rank rank, Space space, Seg seg)
   AVER(RefSetSub(ss.summary, seg->summary));
   summary = TraceSetUnion(ss.fixed,
                           TraceSetDiff(ss.summary, ss.white));
-  AVER(((seg->sm & AccessWRITE) == 0) == (seg->summary == RefSetUNIV));
+  AVER(seg->summary == RefSetUNIV || (seg->sm & AccessWRITE));
   if(summary == RefSetUNIV) {
-    if(seg->summary != RefSetUNIV)
+    /* order of setting summary and lowering shield is important. */
+    /* there is an invariant to preserve (see impl.c.seg.check.wb) */
+    seg->summary = summary;	/* NB summary == RefSetUNIV */
+    if(seg->sm & AccessWRITE)
       ShieldLower(space, seg, AccessWRITE);
   } else {
-    if(seg->summary == RefSetUNIV)
+    if(!(seg->sm & AccessWRITE))
       ShieldRaise(space, seg, AccessWRITE);
+    seg->summary = summary;
   }
-  seg->summary = summary;
 
   ss.sig = SigInvalid;			/* just in case */
 
