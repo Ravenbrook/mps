@@ -1,6 +1,6 @@
 /* impl.c.buffer: ALLOCATION BUFFER IMPLEMENTATION
  *
- * $HopeName: !buffer.c(trunk.22) $
+ * $HopeName: MMsrc!buffer.c(MMdevel_gens.1) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  *
  * This is (part of) the implementation of allocation buffers.
@@ -29,7 +29,7 @@
 
 #include "mpm.h"
 
-SRCID(buffer, "$HopeName: !buffer.c(trunk.22) $");
+SRCID(buffer, "$HopeName: MMsrc!buffer.c(MMdevel_gens.1) $");
 
 
 /* BufferCheck
@@ -367,6 +367,9 @@ Res BufferFill(Addr *pReturn, Buffer buffer, Size size)
 
   pool = BufferPool(buffer);
   res = (*pool->class->bufferFill)(pReturn, pool, buffer, size);
+
+  buffer->space->allocated +=
+    AddrOffset(buffer->base, buffer->apStruct.limit);
 
   AVERT(Buffer, buffer);
 
