@@ -1,6 +1,6 @@
 /* impl.h.mps: HARLEQUIN MEMORY POOL SYSTEM C INTERFACE
  *
- * $HopeName: MMsrc!mps.h(MM_dylan_jackdaw.1) $
+ * $HopeName: MMsrc!mps.h(MM_dylan_jackdaw.2) $
  * Copyright (C) 1997, 1998 The Harlequin Group Limited.  All rights reserved.
  *
  * .readership: customers, MPS developers.
@@ -112,6 +112,7 @@ typedef struct mps_ap_s {       /* allocation point descriptor */
   mps_addr_t limit;             /* limit of available memory */
   mps_addr_t frameptr;          /* lightweight frame pointer */
   mps_bool_t enabled;           /* lightweight frame status */
+  mps_bool_t lwpoppending;      /* lightweight pop pending? */
 } mps_ap_s;
 
 
