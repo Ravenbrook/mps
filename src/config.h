@@ -1,7 +1,7 @@
 /* impl.h.config: MPS CONFIGURATION
  *
  * Copyright (C) 1997 Harlequin Group, all rights reserved.
- * $HopeName: !config.h(trunk.16) $
+ * $HopeName: MMsrc!config.h(MMdevel_progress.1) $
  *
  * .readership: MPS developers.
  */
@@ -142,7 +142,11 @@
 #define ARENA_CONTROL_EXTENDBY  ((Size)4096)
 #define ARENA_CONTROL_AVGSIZE   ((Size)32)
 #define ARENA_CONTROL_MAXSIZE   ((Size)65536)
-#define ARENA_POLL_MAX          ((Size)65536)
+#define ARENA_POLL_MAX          ((Time)65536)
+#define ARENA_POLL_MIN          ((Time)4096)
+#define ARENA_POLL_PAUSE        ((Work)128*1024)
+#define ARENA_SCAN_COST         ((Work)1)
+#define ARENA_PRESERVE_COST     ((Work)1)
 #define ARENA_LD_LENGTH         ((Size)4)
 #define ARENA_ZONESHIFT         ((Shift)20)
 
