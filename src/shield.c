@@ -1,6 +1,6 @@
 /* impl.c.shield: SHIELD IMPLEMENTATION
  *
- * $HopeName: MMsrc!shield.c(trunk.6) $
+ * $HopeName: !shield.c(trunk.7) $
  *
  * See: idea.shield, design.mps.shield.
  *
@@ -72,7 +72,7 @@
 
 #include "mpm.h"
 
-SRCID(shield, "$HopeName: MMsrc!shield.c(trunk.6) $");
+SRCID(shield, "$HopeName: !shield.c(trunk.7) $");
 
 void ShieldSuspend(Space space)
 {

@@ -1,7 +1,7 @@
 /* impl.h.eventdef -- Event Logging Definitions
  *
  * Copyright (C) 1997 Harlequin Group, all rights reserved.
- * $HopeName: MMsrc!eventdef.h(MMdevel_event_string.2) $
+ * $HopeName: !eventdef.h(trunk.2) $
  *
  * .readership: MPS developers.
  * .source: design.mps.telemetry

@@ -1,6 +1,6 @@
 # impl.gmk.sc: GNUMAKEFILE FRAGMENT FOR SunPro C
 #
-# $HopeName: MMsrc!sc.gmk(MMdevel_sw_eq.3) $
+# $HopeName: !sc.gmk(trunk.2) $
 #
 # This file is included by platform makefiles that use the SunPro C
 # compiler.  It defines the compiler specific variables that the

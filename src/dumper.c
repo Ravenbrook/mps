@@ -1,6 +1,6 @@
 /* impl.c.dumper: Simple Event Dumper
  *
- * $HopeName: MMsrc!dumper.c(MMdevel_event_string.2) $
+ * $HopeName: !dumper.c(trunk.2) $
  * Copyright (C) 1997 Harlequin Group, all rights reserved.
  *
  * .readership: MM developers.

@@ -2,7 +2,7 @@
  *
  *                  ANSI THREADS MANAGER
  *
- *  $HopeName: MMsrc!than.c(trunk.14) $
+ *  $HopeName: !than.c(trunk.15) $
  *
  *  Copyright (C) 1995 Harlequin Group, all rights reserved
  *
@@ -17,7 +17,7 @@
 
 #include "mpm.h"
 
-SRCID(than, "$HopeName: MMsrc!than.c(trunk.14) $");
+SRCID(than, "$HopeName: !than.c(trunk.15) $");
 
 
 Bool ThreadCheck(Thread thread)

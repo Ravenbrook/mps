@@ -1,6 +1,6 @@
 /* impl.c.bt: BIT TABLES
  *
- * $HopeName: MMsrc!bt.c(trunk.7) $
+ * $HopeName: !bt.c(trunk.8) $
  * Copyright (C) 1997 Harlequin Group, all rights reserved
  *
  * READERSHIP
@@ -19,7 +19,7 @@
 
 #include "mpm.h"
 
-SRCID(bt, "$HopeName: MMsrc!bt.c(trunk.7) $");
+SRCID(bt, "$HopeName: !bt.c(trunk.8) $");
 
 
 /* BTCheck -- check the validity of a bit table

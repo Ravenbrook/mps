@@ -1,11 +1,11 @@
 /* impl.c.format: OBJECT FORMATS
  *
- *  $HopeName: MMsrc!format.c(trunk.14) $
+ *  $HopeName: !format.c(trunk.15) $
  */
 
 #include "mpm.h"
 
-SRCID(format, "$HopeName: MMsrc!format.c(trunk.14) $");
+SRCID(format, "$HopeName: !format.c(trunk.15) $");
 
 
 Bool FormatCheck(Format format)
