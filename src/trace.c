@@ -1,7 +1,7 @@
-/*23456789012345678901234567890123456789012345678901234567890123456789*/
 /* impl.c.trace: GENERIC TRACER IMPLEMENTATION
  *
- * $HopeName: MMsrc!trace.c(MMdevel_action2.13) $
+ * $HopeName: MMsrc!trace.c(MMdevel_action2.14) $
+ * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  *
  * NOTES
  *
@@ -9,7 +9,7 @@
 
 #include "mpm.h"
 
-SRCID(trace, "$HopeName: MMsrc!trace.c(MMdevel_action2.13) $");
+SRCID(trace, "$HopeName: MMsrc!trace.c(MMdevel_action2.14) $");
 
 
 /* ScanStateCheck -- check consistency of a ScanState object */
@@ -86,7 +86,7 @@ Bool TraceCheck(Trace trace)
 
     case TraceFINISHED:
     CHECKL(TraceSetIsMember(trace->space->flippedTraces, trace->ti));
-    /* @@@@ Assert that gray and white sets is empty for trace. */
+    /* @@@@ Assert that grey and white sets is empty for trace. */
     break;
 
     default:
@@ -265,11 +265,8 @@ Res TraceStart(Trace trace, Pool pool)
     Ring next = RingNext(node);
     Root root = RING_ELT(Root, spaceRing, node);
 
-    /* @@@@ This is where we should look at the remembered set */
-    /* (summary) stored in the root to see if it might */
-    /* possibly refer to the condemned set. */
-
-    RootGrey(root, trace);
+    if(RefSetInter(root->summary, trace->white) != RefSetEMPTY)
+      RootGrey(root, trace);
 
     node = next;
   }
@@ -365,7 +362,6 @@ static Res TraceFlip(Trace trace)
   ss.summary = RefSetEMPTY;
   ss.space = space;
   ss.traces = TraceSetSingle(trace->ti);
-  ss.weakSplat = (Addr)0xadd4badd;
   ss.wasMarked = TRUE;
   ss.sig = ScanStateSig;
 
@@ -487,13 +483,6 @@ static Res TraceScan(TraceSet ts, Rank rank,
   ss.zoneShift = space->zoneShift;
   ss.summary = RefSetEMPTY;
   ss.space = space;
-
-  /* @@@@ This must go. */
-  if(ss.rank == RankWEAK)
-    ss.weakSplat = (Addr)0;
-  else
-    ss.weakSplat = (Addr)0xadd4badd;
-
   ss.wasMarked = TRUE;
   ss.white = RefSetEMPTY;
   for(ti = 0; ti < TRACE_MAX; ++ti)
