@@ -1,6 +1,6 @@
 /* impl.c.trace: GENERIC TRACER IMPLEMENTATION
  *
- * $HopeName: MMsrc!trace.c(MMdevel_tony_sunset.1) $
+ * $HopeName: MMsrc!trace.c(MMdevel_tony_sunset.2) $
  * Copyright (C) 1998.  Harlequin Group plc.  All rights reserved.
  *
  * .design: design.mps.trace.
@@ -9,7 +9,7 @@
 #include "mpm.h"
 
 
-SRCID(trace, "$HopeName: MMsrc!trace.c(MMdevel_tony_sunset.1) $");
+SRCID(trace, "$HopeName: MMsrc!trace.c(MMdevel_tony_sunset.2) $");
 
 
 /* Types
@@ -1322,21 +1322,23 @@ Res TraceFix(ScanState ss, Ref *refIO)
   EVENT_PPAU(TraceFix, ss, refIO, ref, ss->rank);
 
   /* TractOfAddr is inlined, see design.mps.trace.fix.tractofaddr */
-  if(TRACT_OF_ADDR(&tract, ss->arena, ref) && TractHasSeg(tract)) {
-    ++ss->segRefCount;
-    EVENT_P(TraceFixSeg, TractSeg(tract));
-    if(TraceSetInter(TractWhite(tract), ss->traces) != TraceSetEMPTY) {
-      Seg seg = TractSeg(tract);
-      Res res;
-
-      ++ss->whiteSegRefCount;
-      EVENT_0(TraceFixWhite);
-      pool = TractPool(tract);
-      /* Could move the rank switch here from the class-specific */
-      /* fix methods. */
-      res = PoolFix(pool, ss, seg, refIO);
-      if(res != ResOK)
-        return res;
+  if(TRACT_OF_ADDR(&tract, ss->arena, ref)) {
+    Seg seg;
+    if (TRACT_SEG(&seg, tract)) {
+      ++ss->segRefCount;
+      EVENT_P(TraceFixSeg, seg);
+      if(TraceSetInter(TractWhite(tract), ss->traces) != TraceSetEMPTY) {
+        Res res;
+        
+        ++ss->whiteSegRefCount;
+        EVENT_0(TraceFixWhite);
+        pool = TractPool(tract);
+        /* Could move the rank switch here from the class-specific */
+        /* fix methods. */
+        res = PoolFix(pool, ss, seg, refIO);
+        if(res != ResOK)
+          return res;
+      }
     }
   } else {
     /* See design.mps.trace.exact.legal */
@@ -1368,15 +1370,17 @@ Res TraceFixEmergency(ScanState ss, Ref *refIO)
   EVENT_PPAU(TraceFix, ss, refIO, ref, ss->rank);
 
   /* TractOfAddr is inlined, see design.mps.trace.fix.tractofaddr */
-  if(TRACT_OF_ADDR(&tract, ss->arena, ref) && TractHasSeg(tract)) {
-    ++ss->segRefCount;
-    EVENT_P(TraceFixSeg, TractSeg(tract));
-    if(TraceSetInter(TractWhite(tract), ss->traces) != TraceSetEMPTY) {
-      Seg seg = TractSeg(tract);
-      ++ss->whiteSegRefCount;
-      EVENT_0(TraceFixWhite);
-      pool = TractPool(tract);
-      PoolFixEmergency(pool, ss, seg, refIO);
+  if(TRACT_OF_ADDR(&tract, ss->arena, ref)) {
+    Seg seg;
+    if (TRACT_SEG(&seg, tract)) {
+      ++ss->segRefCount;
+      EVENT_P(TraceFixSeg, seg);
+      if(TraceSetInter(TractWhite(tract), ss->traces) != TraceSetEMPTY) {
+        ++ss->whiteSegRefCount;
+        EVENT_0(TraceFixWhite);
+        pool = TractPool(tract);
+        PoolFixEmergency(pool, ss, seg, refIO);
+      }
     }
   } else {
     /* See design.mps.trace.exact.legal */
