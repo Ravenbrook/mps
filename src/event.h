@@ -1,7 +1,7 @@
 /* impl.h.event -- Event Logging Interface
  *
  * Copyright (C) 1997. Harlequin Group plc. All rights reserved.
- * $HopeName: !event.h(trunk.9) $
+ * $HopeName: MMsrc!event.h(MMdevel_gavinm_160033.1) $
  *
  * READERSHIP
  *
@@ -42,8 +42,9 @@ typedef Index EventKind;
 #define EventKindRef        ((EventType)4) /* Per ref or fix */
 #define EventKindObject     ((EventType)5) /* Per alloc or object */
 #define EventKindUser       ((EventType)6) /* User-invoked */
+#define EventKindCall       ((EventType)7) /* Per interface call */
 
-#define EventKindNumber     ((Count)7) /* Number of event kinds */
+#define EventKindNumber     ((Count)8) /* Number of event kinds */
 
 
 #ifdef EVENT

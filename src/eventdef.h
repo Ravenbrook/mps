@@ -1,6 +1,6 @@
 /* impl.h.eventdef -- Event Logging Definitions
  *
- * $HopeName: !eventdef.h(trunk.11) $
+ * $HopeName: MMsrc!eventdef.h(MMdevel_gavinm_160033.1) $
  * Copyright (C) 1997 Harlequin Group, all rights reserved.
  *
  * .readership: MPS developers.
@@ -31,7 +31,7 @@
 
 #define EVENT_VERSION_MAJOR  ((unsigned)0)
 #define EVENT_VERSION_MEDIAN ((unsigned)0)
-#define EVENT_VERSION_MINOR  ((unsigned)0)
+#define EVENT_VERSION_MINOR  ((unsigned)1)
 
 
 /* Relations -- Generic definitions of events
@@ -116,3 +116,6 @@ RELATION(BufferFinish                    , 0x0037, TRUE, Pool, P)
 RELATION(MV2Finish                       , 0x0038, TRUE, Pool, P)
 RELATION(MV2BufferFill                   , 0x0039, TRUE, Seg, PPWAW)
 RELATION(MV2BufferEmpty                  , 0x003A, TRUE, Seg, PPW)
+RELATION(ArenaEnter                      , 0x003B, TRUE, Call, U)
+RELATION(ArenaLeave                      , 0x003C, TRUE, Call, U)
+
