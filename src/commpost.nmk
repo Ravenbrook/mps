@@ -1,6 +1,6 @@
 # ==== SECOND COMMON FRAGMENT FOR PLATFORMS USING MV AND NMAKE
 #
-# $HopeName: !commpost.nmk(trunk.36) $
+# $HopeName: MMsrc!commpost.nmk(MMdevel_configura.1) $
 # Copyright (C) 1999 Harlequin Limited.  All rights reserved.
 #
 # DESCRIPTION
@@ -28,7 +28,7 @@ mpmss.exe amcss.exe amsss.exe segsmss.exe awlut.exe dwstress.exe mpsicv.exe \
      finalcv.exe arenacv.exe bttest.exe teletest.exe protcv.exe \
      thw3susp.exe abqtest.exe cbstest.exe btcv.exe mv2eptst.exe \
      mv2test.exe epvmss.exe messtest.exe eventcnv.exe replay.exe replaysw.exe \
-     mpm.lib mmdw.lib mmsw.lib poolawl.lib mpsplan.lib:
+     mpm.lib mmdw.lib mmsw.lib mps.lib mpsplan.lib:
 !IFDEF VARIETY
 	$(MAKE) /nologo /f $(PFM).nmk TARGET=$@ variety
 !ELSE
@@ -202,11 +202,8 @@ $(PFM)\$(VARIETY)\mpm.lib: $(MPMOBJ)
 	$(ECHO) $@
 	$(LIBMAN) $(LIBFLAGS) /OUT:$@ $**
 
-$(PFM)\$(VARIETY)\amc.lib: $(MPMOBJ) $(AMCOBJ)
-	$(ECHO) $@
-	$(LIBMAN) $(LIBFLAGS) /OUT:$@ $**
-
-$(PFM)\$(VARIETY)\ams.lib: $(MPMOBJ) $(AMSOBJ)
+$(PFM)\$(VARIETY)\mmdw.lib: $(MPMOBJ) $(AMCOBJ) $(DWOBJ) \
+        $(AWLOBJ) $(LOOBJ) $(SNCOBJ)
 	$(ECHO) $@
 	$(LIBMAN) $(LIBFLAGS) /OUT:$@ $**
 
@@ -214,16 +211,11 @@ $(PFM)\$(VARIETY)\mmsw.lib: $(SWOBJ)
 	$(ECHO) $@
 	$(LIBMAN) $(LIBFLAGS) /OUT:$@ $**
 
-$(PFM)\$(VARIETY)\mmdw.lib: $(MPMOBJ) $(AMCOBJ) $(DWOBJ) \
-        $(AWLOBJ) $(LOOBJ) $(SNCOBJ)
+$(PFM)\$(VARIETY)\mps.lib: $(MPMOBJ) $(AMCOBJ) $(SNCOBJ) $(MVFFOBJ) $(LOOBJ)
 	$(ECHO) $@
 	$(LIBMAN) $(LIBFLAGS) /OUT:$@ $**
 
 $(PFM)\$(VARIETY)\mpsplan.lib: $(PLINTHOBJ)
-	$(ECHO) $@
-	$(LIBMAN) $(LIBFLAGS) /OUT:$@ $**
-
-$(PFM)\$(VARIETY)\poolawl.lib: $(AWLOBJ)
 	$(ECHO) $@
 	$(LIBMAN) $(LIBFLAGS) /OUT:$@ $**
 
