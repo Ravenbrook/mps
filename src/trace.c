@@ -1,12 +1,12 @@
 /* impl.c.trace: GENERIC TRACER IMPLEMENTATION
  *
- * $HopeName: MMsrc!trace.c(MMdevel_gens.7) $
+ * $HopeName: MMsrc!trace.c(MMdevel_gens.8) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  */
 
 #include "mpm.h"
 
-SRCID(trace, "$HopeName: MMsrc!trace.c(MMdevel_gens.7) $");
+SRCID(trace, "$HopeName: MMsrc!trace.c(MMdevel_gens.8) $");
 
 
 /* ScanStateCheck -- check consistency of a ScanState object */
@@ -343,6 +343,38 @@ void TraceSegGreyen(Space space, Seg seg, TraceSet ts)
 }
 
 
+/* TraceSetSummary -- change the summary on a segment
+ *
+ * The order of setting summary and lowering shield is important.
+ * This code preserves the invariant that the segment is write-
+ * shielded whenever the summary is not universal.
+ * See impl.c.seg.check.wb.
+ *
+ * @@@@ In fact, we only need to raise the write barrier if the
+ * summary is strictly smaller than the summary of the unprotectable
+ * data (i.e. the mutator).  We don't maintain such a summary at the
+ * moment, and assume that the mutator's summary is RefSetUNIV.
+ */
+
+void TraceSetSummary(Space space, Seg seg, RefSet summary)
+{
+  AVERT(Space, space);
+  AVERT(Seg, seg);
+
+  if(summary == RefSetUNIV) {
+    seg->summary = summary;             /* NB summary == RefSetUNIV */
+    if(seg->sm & AccessWRITE)
+      ShieldLower(space, seg, AccessWRITE);
+  } else {
+    if(!(seg->sm & AccessWRITE))
+      ShieldRaise(space, seg, AccessWRITE);
+    seg->summary = summary;
+  }
+}
+
+
+/* TraceFlip -- blacken the mutator */
+
 static Res TraceFlip(Trace trace)
 {
   Ring ring;
@@ -502,7 +534,6 @@ static Res TraceScan(TraceSet ts, Rank rank, Space space, Seg seg)
   Res res;
   ScanStateStruct ss;
   TraceId ti;
-  RefSet summary;
 
   AVER(TraceSetCheck(ts));
   AVER(RankCheck(rank));
@@ -538,20 +569,9 @@ static Res TraceScan(TraceSet ts, Rank rank, Space space, Seg seg)
   /* The summary of references seen by scan must be a subset of */
   /* the ones we thought were there before. */
   AVER(RefSetSub(ss.summary, seg->summary));
-  summary = TraceSetUnion(ss.fixed,
-                          TraceSetDiff(ss.summary, ss.white));
-  AVER(seg->summary == RefSetUNIV || (seg->sm & AccessWRITE));
-  if(summary == RefSetUNIV) {
-    /* order of setting summary and lowering shield is important. */
-    /* there is an invariant to preserve (see impl.c.seg.check.wb) */
-    seg->summary = summary;	/* NB summary == RefSetUNIV */
-    if(seg->sm & AccessWRITE)
-      ShieldLower(space, seg, AccessWRITE);
-  } else {
-    if(!(seg->sm & AccessWRITE))
-      ShieldRaise(space, seg, AccessWRITE);
-    seg->summary = summary;
-  }
+  TraceSetSummary(space, seg,
+                  TraceSetUnion(ss.fixed,
+                                TraceSetDiff(ss.summary, ss.white)));
 
   ss.sig = SigInvalid;			/* just in case */
 
@@ -597,8 +617,7 @@ void TraceAccess(Space space, Seg seg, AccessSet mode)
 
   if((mode & seg->sm & AccessWRITE) != 0) {    /* write barrier? */
     AVER(seg->summary != RefSetUNIV);
-    seg->summary = RefSetUNIV;
-    ShieldLower(space, seg, AccessWRITE);
+    TraceSetSummary(space, seg, RefSetUNIV);
   }
 
   AVER((mode & seg->sm) == AccessSetEMPTY);
