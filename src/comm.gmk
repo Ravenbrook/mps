@@ -1,6 +1,6 @@
 # impl.gmk.comm: COMMON GNUMAKEFILE FRAGMENT
 #
-# $HopeName: MMsrc!comm.gmk(MMdevel_sw_eq.2) $
+# $HopeName: MMsrc!comm.gmk(MMdevel_sw_eq.3) $
 # Copyright (C) 1995,1996 Harlequin Group, all rights reserved
 #
 # DESCRIPTION
@@ -337,6 +337,6 @@ $(PFM)/$(VARIETY)/%.a:
 
 $(PFM)/$(VARIETY)/%:
 	$(ECHO) "$(PFM): $@"
-	$(CC) -o $@ $^ $(LIBS)
+	$(CC) $(LINKFLAGS) -o $@ $^ $(LIBS)
 
 # End of makefile.
