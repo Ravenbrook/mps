@@ -1,6 +1,6 @@
 /* impl.h.mpmst: MEMORY POOL MANAGER DATA STRUCTURES
  *
- * $HopeName: MMsrc!mpmst.h(MMdevel_gens4.2) $
+ * $HopeName: MMsrc!mpmst.h(MMdevel_gens4.3) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  *
  * .readership: MM developers.
@@ -467,8 +467,10 @@ typedef struct ScanStateStruct {
 
 typedef struct TraceStruct {
   Sig sig;                      /* design.mps.sig */
+  Serial serial;                /* from arena->traceSerial */
   TraceId ti;                   /* index into TraceSets */
   Arena arena;                  /* owning arena */
+  RingStruct arenaRing;         /* link in list of traces in arena */
   Action action;                /* the action that launched the trace */
   RefSet white;                 /* superset of refs in white set */
   TraceState state;             /* current state of trace */
@@ -483,8 +485,9 @@ typedef struct TraceStruct {
 #define CollectionSig	((Sig)0x519C011E) /* SIGnature COLLEction */
 
 typedef struct CollectionStruct {
-  TaskStruct taskStruct;
-  Trace trace;
+  Arena arena;			/* owning arena */
+  TaskStruct taskStruct;	/* task of running the collection */
+  TraceStruct traceStruct;	/* graph trace state */
   Sig sig;
 } CollectionStruct;
 
@@ -592,8 +595,8 @@ typedef struct ArenaStruct {
   /* trace fields (impl.c.trace) */
   TraceSet busyTraces;          /* set of running traces */
   TraceSet flippedTraces;       /* set of running and flipped traces */
-  TraceStruct trace[TRACE_MAX]; /* trace structures.  See
-                                   design.mps.trace.intance.limit */
+  RingStruct traceRing;         /* ring of traces in arena */
+  Serial traceSerial;           /* serial of next trace */
   RingStruct greyRing[RankMAX]; /* ring of grey segments at each rank */
 
   /* location dependency fields (impl.c.ld) */

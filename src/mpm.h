@@ -1,6 +1,6 @@
 /* impl.h.mpm: MEMORY POOL MANAGER DEFINITIONS
  *
- * $HopeName: MMsrc!mpm.h(MMdevel_gens4.1) $
+ * $HopeName: MMsrc!mpm.h(MMdevel_gens4.2) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  */
 
@@ -336,10 +336,12 @@ extern Bool TraceIdCheck(TraceId id);
 extern Bool TraceSetCheck(TraceSet ts);
 extern Bool TraceCheck(Trace trace);
 
-extern Res TraceCreate(Trace *traceReturn, Arena arena, Action action);
-extern void TraceDestroy(Trace trace);
+extern Res TraceInit(Trace trace, Arena arena, Action action);
+extern void TraceFinish(Trace trace);
 extern Res TracePoll(Trace trace);
 extern void TraceAccess(Arena arena, Seg seg, AccessSet mode);
+#define TraceOfArenaRing(node) \
+  PARENT(TraceStruct, arenaRing, node)
 
 extern Res TraceFix(ScanState ss, Ref *refIO);
 extern Size TraceGreyEstimate(Arena arena, RefSet refSet);
@@ -440,7 +442,6 @@ extern void ArenaFree(Arena arena, void *base, Size size);
 #define ArenaTraceRing(arena)   (&(arena)->traceRing)
 #define ArenaThreadRing(arena)  (&(arena)->threadRing)
 #define ArenaEpoch(arena)       ((arena)->epoch) /* .epoch.ts */
-#define ArenaTrace(arena, ti)	(&(arena)->trace[ti])
 #define ArenaZoneShift(arena)	((arena)->zoneShift)
 #define ArenaAlign(arena)       ((arena)->alignment)
 #define ArenaGreyRing(arena, rank) \

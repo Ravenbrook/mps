@@ -1,6 +1,6 @@
 /* impl.c.arena: ARENA IMPLEMENTATION
  *
- * $HopeName: MMsrc!arena.c(MMdevel_gens4.2) $
+ * $HopeName: MMsrc!arena.c(MMdevel_gens4.3) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  *
  * .readership: Any MPS developer
@@ -38,7 +38,7 @@
 #include "mpm.h"
 
 
-SRCID(arena, "$HopeName: MMsrc!arena.c(MMdevel_gens4.2) $");
+SRCID(arena, "$HopeName: MMsrc!arena.c(MMdevel_gens4.3) $");
 
 
 /* All static data objects are declared here. See .static */
@@ -82,7 +82,6 @@ Bool ArenaClassCheck(ArenaClass class)
 
 Bool ArenaCheck(Arena arena)
 {
-  TraceId ti;
   Index i;
   Size depth;
   RefSet rs;
@@ -115,6 +114,7 @@ Bool ArenaCheck(Arena arena)
   CHECKL(RingCheck(&arena->formatRing));
   CHECKL(RingCheck(&arena->threadRing));
   CHECKL(RingCheck(&arena->taskRing));
+  CHECKL(RingCheck(&arena->traceRing));
 
   CHECKL(BoolCheck(arena->insideShield));
   CHECKL(arena->shCacheI < SHIELD_CACHE_SIZE);
@@ -133,17 +133,6 @@ Bool ArenaCheck(Arena arena)
   CHECKL(TraceSetCheck(arena->busyTraces));
   CHECKL(TraceSetCheck(arena->flippedTraces));
   CHECKL(TraceSetSuper(arena->busyTraces, arena->flippedTraces));
-
-  for(ti = 0; ti < TRACE_MAX; ++ti) {
-    /* design.mps.arena.trace */
-    if(TraceSetIsMember(arena->busyTraces, ti)) {
-      Trace trace = ArenaTrace(arena, ti);
-      CHECKD(Trace,trace);
-    } else {
-      /* design.mps.arena.trace.invalid */
-      CHECKL(ArenaTrace(arena,ti)->sig == SigInvalid);
-    }
-  }
 
   /* can't write a check for arena->epoch */
 
@@ -200,10 +189,10 @@ void ArenaInit(Arena arena, ArenaClass class)
   arena->formatSerial = (Serial)0;
   RingInit(&arena->taskRing);
   arena->taskSerial = (Serial)0;
+  RingInit(&arena->traceRing);
+  arena->traceSerial = (Serial)0;
   arena->busyTraces = TraceSetEMPTY;    /* impl.c.trace */
   arena->flippedTraces = TraceSetEMPTY; /* impl.c.trace */
-  for (i=0; i < TRACE_MAX; i++)
-    arena->trace[i].sig = SigInvalid;   /* design.mps.arena.trace.invalid */
   LockInit(&arena->lockStruct);
   arena->insideShield = FALSE;          /* impl.c.shield */
   arena->shCacheI = (Size)0;
@@ -456,27 +445,6 @@ void ArenaPoll(Arena arena)
 
   /* Poll actions to see if any new action is to be taken. */
   ActionPoll(arena);
-
-#if 0
-  Res res;
-  Count i;
-  /* Temporary hacky progress control added here and in trace.c */
-  /* for change.dylan.sunflower.7.170466. */
-  if(arena->busyTraces != TraceSetEMPTY) {
-    Trace trace = ArenaTrace(arena, (TraceId)0);
-    AVER(arena->busyTraces == TraceSetSingle((TraceId)0));
-    i = trace->rate;
-    while(i > 0 && arena->busyTraces != TraceSetEMPTY) {
-      res = TracePoll(trace);
-      AVER(res == ResOK); /* @@@@ */
-      if(trace->state == TraceFINISHED) {
-	/* @@@@ Pick up results and use for prediction. */
-	TraceDestroy(trace);
-      }
-      --i;
-    }
-  }
-#endif /* 0 */
 
   TaskWork(arena);
 

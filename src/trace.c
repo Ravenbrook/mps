@@ -1,30 +1,24 @@
 /* impl.c.trace: GENERIC TRACER IMPLEMENTATION
  *
- * $HopeName: MMsrc!trace.c(MMdevel_gens4.1) $
+ * $HopeName: MMsrc!trace.c(MMdevel_gens4.2) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  */
 
 #include "mpm.h"
 
-SRCID(trace, "$HopeName: MMsrc!trace.c(MMdevel_gens4.1) $");
+SRCID(trace, "$HopeName: MMsrc!trace.c(MMdevel_gens4.2) $");
 
 
 /* ScanStateCheck -- check consistency of a ScanState object */
 
 Bool ScanStateCheck(ScanState ss)
 {
-  TraceId ti;
-  RefSet white;
   CHECKS(ScanState, ss);
   CHECKL(FUNCHECK(ss->fix));
   CHECKU(Arena, ss->arena);
   CHECKL(TraceSetCheck(ss->traces));
   CHECKL(TraceSetSuper(ss->arena->busyTraces, ss->traces));
-  white = RefSetEMPTY;
-  for(ti = 0; ti < TRACE_MAX; ++ti)
-    if(TraceSetIsMember(ss->traces, ti))
-      white = RefSetUnion(white, ss->arena->trace[ti].white);
-  CHECKL(ss->white == white);
+  /* can't check white easily */
   CHECKL(ss->zoneShift == ss->arena->zoneShift);
   CHECKL(RankCheck(ss->rank));
   CHECKL(BoolCheck(ss->wasMarked));
@@ -57,7 +51,6 @@ Bool TraceCheck(Trace trace)
   CHECKS(Trace, trace);
   CHECKU(Arena, trace->arena);
   CHECKL(TraceIdCheck(trace->ti));
-  CHECKL(trace == &trace->arena->trace[trace->ti]);
   CHECKL(TraceSetIsMember(trace->arena->busyTraces, trace->ti));
   /* Can't check trace->white -- not in O(1) anyway. */
   /* Use trace->state to check more invariants. */
@@ -90,6 +83,38 @@ Bool TraceCheck(Trace trace)
     NOTREACHED;
   }
   return TRUE;
+}
+
+
+/* traceAddWhite -- add a segment to the white set of a trace */
+
+static Res traceAddWhite(Trace trace, Seg seg, Action action)
+{
+  Res res;
+  Arena arena;
+
+  AVERT(Trace, trace);
+  AVERT(Seg, seg);
+  AVERT(Action, action);
+  AVER(trace->state == TraceINIT);
+  AVER(action->pool == SegPool(seg));
+  AVER((SegPool(seg)->class->attr & AttrGC) != 0);
+  AVER(!TraceSetIsMember(SegWhite(seg), trace->ti)); /* .start.black */
+
+  /* Ask the pool to condemn the segment. */
+  res = PoolCondemn(SegPool(seg), trace, seg, action);
+  if(res != ResOK)
+    return res;
+
+  /* Add the segment to the approximation of the white set if the */
+  /* pool made it white. */
+  if(TraceSetIsMember(SegWhite(seg), trace->ti)) {
+    arena = PoolArena(SegPool(seg));
+    trace->white = RefSetUnion(trace->white, RefSetOfSeg(arena, seg));
+    trace->condemned += SegSize(arena, seg);
+  }
+
+  return ResOK;
 }
 
 
@@ -129,19 +154,11 @@ static Res TraceStart(Trace trace, Action action)
     Ring next = RingNext(node);
     seg = SegOfPoolRing(node);
 
-    AVER(!TraceSetIsMember(SegWhite(seg), trace->ti)); /* .start.black */
-
     /* Give the pool the opportunity to turn the segment white. */
     /* If it fails, unwind. */
-    res = PoolCondemn(pool, trace, seg, action);
-    if(res != ResOK) goto failCondemn;
-
-    /* Add the segment to the approximation of the white set the */
-    /* pool made it white. */
-    if(TraceSetIsMember(SegWhite(seg), trace->ti)) {
-      trace->white = RefSetUnion(trace->white, RefSetOfSeg(arena, seg));
-      trace->condemned += SegSize(arena, seg);
-    }
+    res = traceAddWhite(trace, seg, action);
+    if(res != ResOK)
+      goto failWhiten;
 
     node = next;
   }
@@ -229,7 +246,7 @@ static Res TraceStart(Trace trace, Action action)
 
   /* PoolCodemn failed, possibly half-way through whitening the condemned */
   /* set.  This loop empties the white set again. */ 
-failCondemn:
+failWhiten:
   ring = PoolSegRing(pool);
   node = RingNext(ring);
   while(node != ring) {
@@ -243,31 +260,19 @@ failCondemn:
 }
 
 
-/* TraceCreate -- create a Trace object
- *
- * Allocates and initializes a new Trace object with a TraceId
- * which is not currently active.
+/* TraceInit -- initialize a trace
  *
  * Returns ResLIMIT if there aren't any available trace IDs.
- *
- * Trace objects are allocated directly from a small array in the
- * arena structure which is indexed by the TraceId.  This is so
- * that it's always possible to start a trace (provided there's
- * a free TraceId) even if there's no available memory.
- *
- * This code is written to be adaptable to allocating Trace
- * objects dynamically.
  */
 
-Res TraceCreate(Trace *traceReturn, Arena arena, Action action)
+Res TraceInit(Trace trace, Arena arena, Action action)
 {
   TraceId ti;
-  Trace trace;
   Res res;
 
   AVER(TRACE_MAX == 1);         /* .single-collection */
 
-  AVER(traceReturn != NULL);
+  AVER(trace != NULL);
   AVERT(Arena, arena);
   AVERT(Action, action);
 
@@ -279,10 +284,6 @@ Res TraceCreate(Trace *traceReturn, Arena arena, Action action)
   return ResLIMIT;              /* no trace IDs available */
 
 found:
-  trace = ArenaTrace(arena, ti);
-  AVER(trace->sig == SigInvalid);       /* design.mps.arena.trace.invalid */
-  arena->busyTraces = TraceSetAdd(arena->busyTraces, ti);
-
   trace->arena = arena;
   trace->action = action;
   trace->white = RefSetEMPTY;
@@ -291,9 +292,15 @@ found:
   trace->condemned = (Size)0;   /* nothing condemned yet */
   trace->foundation = (Size)0;  /* nothing grey yet */
   trace->rate = (Size)0;        /* no scanning to be done yet */
+  RingInit(&trace->arenaRing);
 
   trace->sig = TraceSig;
+  trace->serial = arena->traceSerial;
+  ++arena->traceSerial;
   AVERT(Trace, trace);
+
+  RingAppend(ArenaTraceRing(arena), &trace->arenaRing);
+  arena->busyTraces = TraceSetAdd(arena->busyTraces, ti);
 
   res = PoolTraceBegin(action->pool, trace, action);
   if(res != ResOK) goto failBegin;
@@ -301,40 +308,44 @@ found:
   res = TraceStart(trace, action);
   if(res != ResOK) goto failStart;
 
-  *traceReturn = trace;
   EVENT_PPPU(TraceCreate, arena, action, trace, ti);
+
   return ResOK;
 
 failStart:
   PoolTraceEnd(action->pool, trace, action);
 failBegin:
-  trace->sig = SigInvalid;              /* design.mps.arena.trace.invalid */
+  trace->sig = SigInvalid;
   arena->busyTraces = TraceSetDel(arena->busyTraces, ti);
   return res;
 }
 
 
-/* TraceDestroy -- destroy a trace object
+/* TraceFinish -- finish a trace
  *
- * Finish and deallocate a Trace object, freeing up a TraceId.
+ * Finish a Trace object, freeing up a TraceId.
  *
- * This code does not allow a Trace to be destroyed while it is
+ * This code does not allow a Trace to be finished while it is
  * active.  It would be possible to allow this, but the colours
  * of segments etc. would need to be reset to black.
  */
 
-void TraceDestroy(Trace trace)
+void TraceFinish(Trace trace)
 {
   AVERT(Trace, trace);
   AVER(trace->state == TraceFINISHED);
   
   PoolTraceEnd(trace->action->pool, trace, trace->action);
   
-  trace->sig = SigInvalid;              /* design.mps.arena.trace.invalid */
+  RingRemove(&trace->arenaRing);
   trace->arena->busyTraces =
     TraceSetDel(trace->arena->busyTraces, trace->ti);
   trace->arena->flippedTraces =
     TraceSetDel(trace->arena->flippedTraces, trace->ti);
+
+  trace->sig = SigInvalid;
+  RingFinish(&trace->arenaRing);
+
   EVENT_P(TraceDestroy, trace);
 }
 
@@ -533,25 +544,22 @@ static void TraceReclaim(Trace trace)
  */
 
 static Bool traceFindGrey(Seg *segReturn, Rank *rankReturn,
-                          Arena arena, TraceId ti)
+                          Arena arena, Trace trace)
 {
   Rank rank;
-  Trace trace;
   Ring node;
 
   AVER(segReturn != NULL);
   AVERT(Arena, arena);
-  AVER(TraceIdCheck(ti));
+  AVERT(Trace, trace);
 
-  trace = ArenaTrace(arena, ti);
-  
   for(rank = 0; rank < RankMAX; ++rank) {
     RING_FOR(node, ArenaGreyRing(arena, rank)) {
       Seg seg = SegOfGreyRing(node);
       AVERT(Seg, seg);
       AVER(SegGrey(seg) != TraceSetEMPTY);
       AVER(RankSetIsMember(SegRankSet(seg), rank));
-      if(TraceSetIsMember(SegGrey(seg), ti)) {
+      if(TraceSetIsMember(SegGrey(seg), trace->ti)) {
         *segReturn = seg;
         *rankReturn = rank;
         return TRUE;
@@ -599,6 +607,32 @@ RefSet ScanStateSummary(ScanState ss)
 }
 
 
+/* traceWhiteUnion -- calculate union of white sets of traces
+ *
+ * Returns the union of all the white refsets of the traces in
+ * the given trace set.
+ */
+
+static RefSet traceWhiteUnion(TraceSet ts, Arena arena)
+{
+  Ring node;
+  RefSet white;
+  Trace trace;
+
+  AVERT(Arena, arena);
+  AVERT(TraceSet, ts);
+
+  white = RefSetEMPTY;
+  RING_FOR(node, ArenaTraceRing(arena)) {
+    trace = TraceOfArenaRing(node);
+    if(TraceSetIsMember(ts, trace->ti))
+      white = RefSetUnion(white, trace->white);
+  }
+
+  return white;
+}
+
+    
 /* TraceScan -- scan a segment to remove greyness
  *
  * @@@@ During scanning, the segment should be write-shielded to
@@ -612,7 +646,6 @@ static Res TraceScan(TraceSet ts, Rank rank,
 {
   Res res;
   ScanStateStruct ss;
-  TraceId ti;
 
   AVER(TraceSetCheck(ts));
   AVER(RankCheck(rank));
@@ -630,10 +663,7 @@ static Res TraceScan(TraceSet ts, Rank rank,
   ss.fixedSummary = RefSetEMPTY;
   ss.arena = arena;
   ss.wasMarked = TRUE;
-  ss.white = RefSetEMPTY;
-  for(ti = 0; ti < TRACE_MAX; ++ti)
-    if(TraceSetIsMember(ss.traces, ti))
-      ss.white = RefSetUnion(ss.white, ArenaTrace(arena, ti)->white);
+  ss.white = traceWhiteUnion(ts, arena);
   ss.sig = ScanStateSig;
   AVERT(ScanState, &ss);
 
@@ -728,7 +758,7 @@ static Res TraceRun(Trace trace)
 
   arena = trace->arena;
 
-  if(traceFindGrey(&seg, &rank, arena, trace->ti)) {
+  if(traceFindGrey(&seg, &rank, arena, trace)) {
     AVER((SegPool(seg)->class->attr & AttrSCAN) != 0);
     res = TraceScan(TraceSetSingle(trace->ti), rank,
                     arena, seg);
