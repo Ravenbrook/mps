@@ -384,6 +384,7 @@ extern Bool TraceCheck(Trace trace);
 
 extern Res TraceCreate(Trace *traceReturn, Space space);
 extern Res TraceAddWhite(Trace trace, Seg seg);
+extern Res TraceCondemnRefSet(Trace trace, RefSet condemnedSet);
 extern Res TraceStart(Trace trace);
 extern Res TraceFlip(Trace trace);
 extern void TraceDestroy(Trace trace);

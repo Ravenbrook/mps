@@ -1,6 +1,6 @@
 /* impl.c.arenavm: VIRTUAL MEMORY BASED ARENA IMPLEMENTATION
  *
- * $HopeName: MMsrc!arenavm.c(MMdevel_gavinm_zone.3) $
+ * $HopeName: MMsrc!arenavm.c(MMdevel_gavinm_zone.4) $
  * Copyright (C) 1997, 1998 The Harlequin Group Limited.  All rights reserved.
  *
  * This is the implementation of the Segment abstraction from the VM
@@ -29,7 +29,7 @@
 #include "mpm.h"
 #include "mpsavm.h"
 
-SRCID(arenavm, "$HopeName: MMsrc!arenavm.c(MMdevel_gavinm_zone.3) $");
+SRCID(arenavm, "$HopeName: MMsrc!arenavm.c(MMdevel_gavinm_zone.4) $");
 
 
 typedef struct VMArenaStruct *VMArena;
@@ -415,7 +415,7 @@ static Bool findFreeInArea(Index *baseReturn,
 
 /* findFreeInRefSet -- try to allocate a segment with a RefSet
  * 
- * This function finds the intersection of RefSet and the set of free
+ * This function finds the intersection of refSet and the set of free
  * pages and tries to find a free run of pages in the resulting set of
  * areas.
  *
@@ -424,7 +424,7 @@ static Bool findFreeInArea(Index *baseReturn,
  */
 
 static Bool findFreeInRefSet(Index *baseReturn,
-			     VMArena vmArena, Size size, RefSet RefSet)
+			     VMArena vmArena, Size size, RefSet refSet)
 {
   Arena arena;
   Addr arenaBase, base, limit;
@@ -433,7 +433,7 @@ static Bool findFreeInRefSet(Index *baseReturn,
   AVER(baseReturn != NULL);
   AVERT(VMArena, vmArena);
   AVER(size > 0);
-  /* Can't check RefSet */
+  /* Can't check refSet */
 
   arena = VMArenaArena(vmArena);
   zoneSize = (Size)1 << arena->zoneShift;
@@ -444,7 +444,7 @@ static Bool findFreeInRefSet(Index *baseReturn,
   base = arenaBase;
   while(base < vmArena->limit) {
   
-    if(RefSetIsMember(arena, RefSet, base)) {
+    if(RefSetIsMember(arena, refSet, base)) {
       /* Search for a run of zone stripes which are in the RefSet and */
       /* the arena.  Adding the zoneSize might wrap round (to zero, */
       /* because limit is aligned to zoneSize, which is a power of two). */
@@ -460,11 +460,11 @@ static Bool findFreeInRefSet(Index *baseReturn,
         }
 
         AVER(base < limit && limit < vmArena->limit);
-      } while(RefSetIsMember(arena, RefSet, limit));
+      } while(RefSetIsMember(arena, refSet, limit));
 
       /* If the RefSet was universal, then the area found ought to */
       /* be the whole arena. */
-      AVER(RefSet != RefSetUNIV ||
+      AVER(refSet != RefSetUNIV ||
            (base == arenaBase && limit == vmArena->limit));
 
       /* Try to allocate a segment in the area. */
@@ -623,7 +623,7 @@ static Res VMSegAlloc(Seg *segReturn, SegPref pref, Size size,
   Addr addr, unmappedPagesBase, unmappedPagesLimit;
   Seg seg;
   Res res;
-  RefSet RefSet, segRefSet;
+  RefSet refSet, segRefSet;
   Serial gen = (Serial)0; /* avoids incorrect warning */
 
   AVER(segReturn != NULL);
@@ -645,9 +645,9 @@ static Res VMSegAlloc(Seg *segReturn, SegPref pref, Size size,
     gen = pref->gen;
     if(gen >= VMArenaGenCount)
       gen = VMArenaGenCount - 1;
-    RefSet = vmArena->genRefSet[gen];
+    refSet = vmArena->genRefSet[gen];
   } else {
-    RefSet = pref->RefSet;
+    refSet = pref->refSet;
   }
    
   /* @@@@ Some of these tests might be duplicates.  If we're about */
@@ -655,7 +655,7 @@ static Res VMSegAlloc(Seg *segReturn, SegPref pref, Size size,
   /* probably the least of our worries. */
 
   /* We look for space in the following places (in order) */
-  /*   - Zones already allocated to me (RefSet) but are not */
+  /*   - Zones already allocated to me (refSet) but are not */
   /*     blacklisted; */
   /*   - Zones that are either allocated to me, or are unallocated */
   /*     but not blacklisted; */
@@ -665,9 +665,9 @@ static Res VMSegAlloc(Seg *segReturn, SegPref pref, Size size,
   /* zones have been allocated (or the default is used). */
 
   if(!findFreeInRefSet(&base, vmArena, size, 
-		       RefSetDiff(RefSet, vmArena->blacklist)) &&
+		       RefSetDiff(refSet, vmArena->blacklist)) &&
      !findFreeInRefSet(&base, vmArena, size, 
-                               RefSetUnion(RefSet,
+                               RefSetUnion(refSet,
 		                   RefSetDiff(vmArena->freeSet, 
 					      vmArena->blacklist))) && 
      !findFreeInRefSet(&base, vmArena, size, 
