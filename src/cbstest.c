@@ -1,6 +1,6 @@
 /*  impl.c.cbstest: COALESCING BLOCK STRUCTURE TEST
  *
- *  $HopeName: MMsrc!cbstest.c(MMdevel_gavinm_splay.3) $
+ *  $HopeName: MMsrc!cbstest.c(MMdevel_gavinm_splay.4) $
  * Copyright (C) 1998 Harlequin Group plc.  All rights reserved.
  */
 
@@ -20,11 +20,12 @@
 #endif /* MPS_OS_SU */
 
 
-SRCID(cbstest, "$HopeName: MMsrc!cbstest.c(MMdevel_gavinm_splay.3) $");
+SRCID(cbstest, "$HopeName: MMsrc!cbstest.c(MMdevel_gavinm_splay.4) $");
 
 #define ArraySize ((size_t)123456)
 #define nOperations ((size_t)125000)
 #define SuccessRatio ((long)200) /* Ratio of failures attempted */
+#define minSize ((Size)120) /* Arbitrary size */
 #define addr_of_index(i) ((mps_addr_t)((char *)block + (i)))
 #define index_of_addr(a) ((long)((char *)(a) - (char *)block))
 #define ErrorExit(message) MPS_BEGIN printf(message "\n"); exit(1); MPS_END
@@ -34,7 +35,7 @@ static Arena arena; /* the ANSI arena which we use to allocate the BT */
 static CBSStruct cbsStruct;
 static void *block;
 static long nAllocateTried, nAllocateSucceeded, nDeallocateTried,
-  nDeallocateSucceeded;
+  nDeallocateSucceeded, nNewBlocks;
 
 typedef struct check_cbs_closure_s {
   Addr base;
@@ -42,17 +43,25 @@ typedef struct check_cbs_closure_s {
   Addr oldLimit;
 } check_cbs_closure_s, *check_cbs_closure_t;
 
-static Bool check_cbs_action(void **clientPIO, CBS cbs, 
-			     Addr base, Addr limit,
-			     void *closureP, unsigned long closureS) {
-  check_cbs_closure_t closure = (check_cbs_closure_t)closureP;
+static void cbs_new_callback(CBS cbs, CBSBlock cbsBlock) {
+  AVERT(CBS, cbs);
+  AVERT(CBSBlock, cbsBlock);
+
+  AVER(CBSBlockSize(cbsBlock) >= minSize);
+
+  nNewBlocks++;
+}
+
+static Bool check_cbs_action(CBS cbs, CBSBlock cbsBlock,
+			     void *p, unsigned long s) {
+  Addr base, limit;
+  check_cbs_closure_t closure = (check_cbs_closure_t)p;
 
   AVER(closure != NULL);
-  AVER(closureS == 0);
+  AVER(s == 0);
 
-  AVER(clientPIO != NULL);
-  AVER(*clientPIO == NULL);
-  AVER(limit > base);
+  base = CBSBlockBase(cbsBlock);
+  limit = CBSBlockLimit(cbsBlock);
 
   if(closure->oldLimit == NULL) {
     if(base > closure->base)
@@ -78,7 +87,7 @@ static void check_cbs(CBS cbs) {
   closure.limit = AddrAdd(closure.base, ArraySize);
   closure.oldLimit = NULL;
 
-  CBSIterate(cbs, check_cbs_action, (void *)&closure, 0);
+  CBSIterate(cbs, check_cbs_action, (void *)&closure, (unsigned long)0);
 
   if(closure.oldLimit ==NULL)
     AVER(BTIsSetRange(alloc, 0, index_of_addr(closure.limit)));
@@ -92,21 +101,43 @@ static long random(long limit) {
   return rnd() % limit;
 }
 
+static long next_edge(BT bt, size_t size, long base) {
+  long end;
+  Bool baseValue;
+
+  AVER(bt != NULL);
+  AVER(base < size);
+
+  baseValue = BTGet(bt, base);
+
+  for(end = base + 1; end < size && BTGet(bt, end) == baseValue; end++) 
+    NOOP;
+
+  return end;
+}
+
 static void random_range(mps_addr_t *base_return, mps_addr_t *limit_return) {
-  long i1, i2;
+  /* base will be the start of our range */
+  /* end is an edge (i.e. different from its predecessor) after base */
+  /* such that there are an exponentially distributed number of edges */
+  /* between base and end. */
+  /* limit is a randomly chosen value in (base, limit]. */
+  /* The returned range is the addresses corresponding to [base, limit). */
 
-  i1 = random(ArraySize);
+  long base, end, limit;
+
+  base = random(ArraySize);
+
   do {
-    i2 = random(ArraySize);
-  } while (i1 == i2);
+    end = next_edge(alloc, ArraySize, base);
+  } while(end < ArraySize && random(2) == 0); /* p=0.5 exponential */
 
-  if(i1 > i2) {
-    *base_return = addr_of_index(i2);
-    *limit_return = addr_of_index(i1);
-  } else {
-    *base_return = addr_of_index(i1);
-    *limit_return = addr_of_index(i2);
-  }
+  AVER(end > base);
+
+  limit = base + 1 + random(end - base);
+
+  *base_return = addr_of_index(base);
+  *limit_return = addr_of_index(limit);
 }
 
 static void allocate(mps_addr_t base, mps_addr_t limit) {
@@ -118,9 +149,6 @@ static void allocate(mps_addr_t base, mps_addr_t limit) {
   il = index_of_addr(limit);
 
   isRes = BTIsResRange(alloc, ib, il);
-
-  if(!isRes && random(SuccessRatio) != 0)
-    return;
 
   nAllocateTried++;
 
@@ -151,9 +179,6 @@ static void deallocate(mps_addr_t base, mps_addr_t limit) {
 
   isSet = BTIsSetRange(alloc, ib, il);
 
-  if(!isSet && random(SuccessRatio) != 0)
-    return;
-
   nDeallocateTried++;
 
   res = CBSInsert(&cbsStruct, base, limit);
@@ -182,7 +207,7 @@ extern int main(int argc, char *argv[])
   testlib_unused(argc); testlib_unused(argv);
 
   nAllocateTried = nAllocateSucceeded = nDeallocateTried = 
-    nDeallocateSucceeded = 0;
+    nDeallocateSucceeded = nNewBlocks = 0;
 
   res = mps_arena_create((mps_arena_t *)&arena,
                          mps_arena_class_an());
@@ -192,7 +217,7 @@ extern int main(int argc, char *argv[])
   if (res != MPS_RES_OK) 
     ErrorExit("failed to create bit table.");
 
-  res = CBSInit(arena, &cbsStruct, NULL, NULL, NULL, NULL, 0);
+  res = CBSInit(arena, &cbsStruct, &cbs_new_callback, NULL, minSize, TRUE);
   if(res != MPS_RES_OK)
     ErrorExit("failed to initialise CBS.");
 
@@ -217,10 +242,11 @@ extern int main(int argc, char *argv[])
 
   CBSDescribe(&cbsStruct, mps_lib_get_stdout());
 
-  printf("Number of allocations attempted: %ld\n", nAllocateTried);
+  printf("\nNumber of allocations attempted: %ld\n", nAllocateTried);
   printf("Number of allocations succeeded: %ld\n", nAllocateSucceeded);
   printf("Number of deallocations attempted: %ld\n", nDeallocateTried);
   printf("Number of deallocations succeeded: %ld\n", nDeallocateSucceeded);
+  printf("Number of new large blocks: %ld\n", nNewBlocks);
   printf("\nNo problems detected.\n");
   return 0;
 }

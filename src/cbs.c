@@ -1,6 +1,6 @@
 /* impl.c.cbs: COALESCING BLOCK STRUCTURE IMPLEMENTATION
  *
- * $HopeName: MMsrc!cbs.c(MMdevel_gavinm_splay.6) $
+ * $HopeName: MMsrc!cbs.c(MMdevel_gavinm_splay.7) $
  * Copyright (C) 1998 Harlequin Group plc, all rights reserved.
  *
  * .readership: Any MPS developer.
@@ -18,35 +18,44 @@
 #include "mpm.h"
 
 
-SRCID(cbs, "$HopeName: MMsrc!cbs.c(MMdevel_gavinm_splay.6) $");
+SRCID(cbs, "$HopeName: MMsrc!cbs.c(MMdevel_gavinm_splay.7) $");
 
-typedef struct CBSNodeStruct {
-  SplayNodeStruct splayNode;
-  Addr base;
+typedef struct CBSEmergencyBlockStruct *CBSEmergencyBlock;
+typedef struct CBSEmergencyBlockStruct {
+  CBSEmergencyBlock next;
   Addr limit;
-  void *p;
-} CBSNodeStruct;
-typedef struct CBSNodeStruct *CBSNode;
+} CBSEmergencyBlockStruct;
+
+
+typedef struct CBSEmergencyGrainStruct *CBSEmergencyGrain;
+typedef struct CBSEmergencyGrainStruct {
+  CBSEmergencyGrain next;
+} CBSEmergencyGrainStruct;
+
 
 #define CBSOfSplayTree(tree) PARENT(CBSStruct, splayTree, (tree))
-#define CBSNodeOfSplayNode(node) PARENT(CBSNodeStruct, splayNode, (node))
+#define CBSBlockOfSplayNode(node) PARENT(CBSBlockStruct, splayNode, (node))
 #define SplayTreeOfCBS(tree) (&((cbs)->splayTree))
-#define SplayNodeOfCBSNode(node) (&((node)->splayNode))
+#define SplayNodeOfCBSBlock(block) (&((block)->splayNode))
 
-static Bool CBSCheck(CBS cbs) {
-  UNUSED(cbs);
+Bool CBSCheck(CBS cbs) {
+  CHECKS(CBS, cbs);
   CHECKL(cbs != NULL);
   /* don't check cbs->splayTree? */
-  CHECKD(Pool, cbs->nodePool);
+  /* don't check emergencyBlockList or emergencyGrainList */
+  CHECKD(Pool, cbs->blockPool);
+  CHECKL(BoolCheck(cbs->mayUseInline));
+  CHECKL(cbs->mayUseInline || cbs->emergencyBlockList == NULL);
+  CHECKL(cbs->mayUseInline || cbs->emergencyGrainList == NULL);
 
   return TRUE;
 }
 
-static Bool CBSNodeCheck(CBSNode node) {
-  UNUSED(node);
-  CHECKL(node != NULL);
-  /* Don't check node->splayNode? */
-  /* Can't check base, limit, or p */
+Bool CBSBlockCheck(CBSBlock block) {
+  UNUSED(block);
+  CHECKL(block != NULL);
+  /* Don't check block->splayNode? */
+  CHECKL(block->base <= block->limit);
   return TRUE;
 }
 
@@ -57,7 +66,7 @@ static Bool CBSNodeCheck(CBSNode node) {
 
 static Compare CBSSplayCompare(void *key, SplayNode node) {
   Addr base1, base2, limit2;
-  CBSNode cbsNode;
+  CBSBlock cbsBlock;
 
   /* NULL key compares less than everything. */
   if(key == NULL)
@@ -66,9 +75,9 @@ static Compare CBSSplayCompare(void *key, SplayNode node) {
   AVER(node != NULL);
 
   base1 = *(Addr *)key;
-  cbsNode = CBSNodeOfSplayNode(node);
-  base2 = cbsNode->base;
-  limit2 = cbsNode->limit;
+  cbsBlock = CBSBlockOfSplayNode(node);
+  base2 = cbsBlock->base;
+  limit2 = cbsBlock->limit;
 
   if(base1 < base2) 
     return CompareLESS;
@@ -85,24 +94,31 @@ static Compare CBSSplayCompare(void *key, SplayNode node) {
  */
 
 Res CBSInit(Arena arena, CBS cbs, 
-		CBSNewMethod new, CBSShrinkMethod shrink,
-		CBSGrowMethod grow, CBSDeleteMethod delete,
-		Size minSize) {
+	    CBSNewMethod new, 
+	    CBSDeleteMethod delete,
+	    Size minSize,
+	    Bool mayUseInline) {
   Res res;
 
   AVERT(Arena, arena);
+  AVER(new == NULL || FUNCHECK(new));
+  AVER(delete == NULL || FUNCHECK(delete));
+  AVER(BoolCheck(mayUseInline));
 
   SplayTreeInit(SplayTreeOfCBS(cbs), &CBSSplayCompare);
-  res = PoolCreate(&(cbs->nodePool), arena, PoolClassMFS(), 
-		  sizeof(CBSNodeStruct) * 64, sizeof(CBSNodeStruct));
+  res = PoolCreate(&(cbs->blockPool), arena, PoolClassMFS(),
+		   sizeof(CBSBlockStruct) * 64, sizeof(CBSBlockStruct));
   if(res != ResOK)
     return res;
 
   cbs->new = new;
-  cbs->shrink = shrink;
-  cbs->grow = grow;
   cbs->delete = delete;
   cbs->minSize = minSize;
+  cbs->mayUseInline = mayUseInline;
+  cbs->emergencyBlockList = NULL;
+  cbs->emergencyGrainList = NULL;
+
+  cbs->sig = CBSSig;
 
   AVERT(CBS, cbs);
 
@@ -118,123 +134,123 @@ Res CBSInit(Arena arena, CBS cbs,
 void CBSFinish(CBS cbs) {
   AVERT(CBS, cbs);
 
+  cbs->sig = SigInvalid;
+
   SplayTreeFinish(SplayTreeOfCBS(cbs));
-  PoolDestroy(cbs->nodePool);
+  PoolDestroy(cbs->blockPool);
+  cbs->emergencyBlockList = NULL;
+  cbs->emergencyGrainList = NULL;
 }
 
-static Res CBSNodeCreate(CBSNode *nodeReturn,
+static Res CBSBlockCreate(CBSBlock *blockReturn,
 			 CBS cbs, Addr base, Addr limit) {
   Res res;
   Addr p;
-  CBSNode node;
+  CBSBlock block;
 
   AVERT(CBS, cbs);
 
-  res = PoolAlloc(&p, cbs->nodePool, sizeof(CBSNodeStruct));
+  res = PoolAlloc(&p, cbs->blockPool, sizeof(CBSBlockStruct));
   if(res != ResOK)
     goto failPoolAlloc;
 
-  node = (CBSNode)p;
+  block = (CBSBlock)p;
 
-  SplayNodeInit(SplayNodeOfCBSNode(node));
-  node->base = base;
-  node->limit = limit;
-  node->p = NULL;
+  SplayNodeInit(SplayNodeOfCBSBlock(block));
+  block->base = base;
+  block->limit = limit;
 
-  AVERT(CBSNode, node);
+  AVERT(CBSBlock, block);
 
-  res = SplayTreeInsert(SplayTreeOfCBS(cbs), SplayNodeOfCBSNode(node),
-			(void *)&(node->base));
+  res = SplayTreeInsert(SplayTreeOfCBS(cbs), SplayNodeOfCBSBlock(block),
+			(void *)&(block->base));
   if(res != ResOK)
     goto failSplayTreeInsert;
 
-  *nodeReturn = node;
+  *blockReturn = block;
   return ResOK;
 
 failSplayTreeInsert:
-  PoolFree(cbs->nodePool, (Addr)node, sizeof(CBSNodeStruct));
+  PoolFree(cbs->blockPool, (Addr)block, sizeof(CBSBlockStruct));
 failPoolAlloc:
   return res;
 }
 
-static Res CBSNodeDestroy(CBS cbs, CBSNode node) {
+static Res CBSBlockDestroy(CBS cbs, CBSBlock block) {
   Res res;
 
   AVERT(CBS, cbs);
-  AVERT(CBSNode, node);
+  AVERT(CBSBlock, block);
 
-  res = SplayTreeDelete(SplayTreeOfCBS(cbs), SplayNodeOfCBSNode(node), 
-                        (void *)&(node->base));
+  res = SplayTreeDelete(SplayTreeOfCBS(cbs), SplayNodeOfCBSBlock(block), 
+                        (void *)&(block->base));
   if(res != ResOK)
     return res;
 
-  node->base = (Addr)0;
-  node->limit = (Addr)0;
-  node->p = NULL;
+  block->base = (Addr)0;
+  block->limit = (Addr)0;
 
-  PoolFree(cbs->nodePool, (Addr)node, sizeof(CBSNodeStruct));
+  PoolFree(cbs->blockPool, (Addr)block, sizeof(CBSBlockStruct));
 
   return ResOK;
 }
 
 /* Node change operators
  *
- * These four functions are called whenever nodes are created,
+ * These two functions are called whenever blocks are created,
  * destroyed, grow, or shrink.  They report to the client, and
  * perform the necessary memory management.  They are responsible
  * for the client interaction logic.
- *
- * This logic could be extended to use both the old and new sizes.
- * This would be best done by passing in the new range and making
- * the assignment inside these operators.
  */
 
-static Res CBSNodeDelete(CBS cbs, CBSNode node) {
+static Res CBSBlockDelete(CBS cbs, CBSBlock block) {
   Res res;
 
   AVERT(CBS, cbs);
-  AVERT(CBSNode, node);
+  AVERT(CBSBlock, block);
 
-  if(cbs->delete != NULL && node->p != NULL)
-    (*(cbs->delete))(node->p, cbs);
+  if(cbs->delete != NULL && CBSBlockSize(block) >= cbs->minSize)
+    (*(cbs->delete))(cbs, block);
 
-  res = CBSNodeDestroy(cbs, node);
+  res = CBSBlockDestroy(cbs, block);
   if(res != ResOK)
     return res;
 
   return ResOK;
 }
 
-static void CBSNodeShrink(CBS cbs, CBSNode node) {
+static void CBSBlockShrink(CBS cbs, CBSBlock block, Size oldSize) {
   AVERT(CBS, cbs);
-  AVERT(CBSNode, node);
+  AVERT(CBSBlock, block);
+  AVER(oldSize > CBSBlockSize(block));
 
-  if(cbs->shrink != NULL && node->p != NULL)
-    (*(cbs->shrink))(&(node->p), cbs, node->base, node->limit);
+  if(cbs->delete != NULL && oldSize >= cbs->minSize && 
+     CBSBlockSize(block) < cbs->minSize)
+    (*(cbs->delete))(cbs, block);
 }
 
-static void CBSNodeGrow(CBS cbs, CBSNode node) {
+static void CBSBlockGrow(CBS cbs, CBSBlock block, Size oldSize) {
   AVERT(CBS, cbs);
-  AVERT(CBSNode, node);
+  AVERT(CBSBlock, block);
+  AVER(oldSize < CBSBlockSize(block));
 
-  if(cbs->grow != NULL && (node->p != NULL ||
-     AddrOffset(node->base, node->limit) >= cbs->minSize))
-    (*(cbs->grow))(&(node->p), cbs, node->base, node->limit);
+  if(cbs->new != NULL && oldSize < cbs->minSize &&
+     CBSBlockSize(block) >= cbs->minSize)
+    (*(cbs->new))(cbs, block);
 }
 
-static Res CBSNodeNew(CBS cbs, Addr base, Addr limit) {
-  CBSNode node;
+static Res CBSBlockNew(CBS cbs, Addr base, Addr limit) {
+  CBSBlock block;
   Res res;
 
   AVERT(CBS, cbs);
 
-  res = CBSNodeCreate(&node, cbs, base, limit);
+  res = CBSBlockCreate(&block, cbs, base, limit);
   if(res != ResOK)
     return res;
   
-  if(cbs->new != NULL && 
-     AddrOffset(base, limit) >= cbs->minSize)
-    (*(cbs->new))(&(node->p), cbs, base, limit);
+  if(cbs->new != NULL && CBSBlockSize(block) >= cbs->minSize)
+    (*(cbs->new))(cbs, block);
   
   return ResOK;
 }
@@ -248,8 +264,9 @@ static Res CBSNodeNew(CBS cbs, Addr base, Addr limit) {
 Res CBSInsert(CBS cbs, Addr base, Addr limit) {
   Res res;
   SplayNode leftSplay, rightSplay;
-  CBSNode leftCBS, rightCBS;
+  CBSBlock leftCBS, rightCBS;
   Bool leftMerge, rightMerge;
+  Size oldSize;
 
   AVERT(CBS, cbs);
   AVER(base != (Addr)0);
@@ -260,8 +277,11 @@ Res CBSInsert(CBS cbs, Addr base, Addr limit) {
   if(res != ResOK)
     return res;
 
-  leftCBS = (leftSplay == NULL) ? NULL : CBSNodeOfSplayNode(leftSplay);
-  rightCBS = (rightSplay == NULL) ? NULL : CBSNodeOfSplayNode(rightSplay);
+  leftCBS = (leftSplay == NULL) ? NULL :
+	    CBSBlockOfSplayNode(leftSplay);
+
+  rightCBS = (rightSplay == NULL) ? NULL :
+	     CBSBlockOfSplayNode(rightSplay);
 
   /* We know that base falls outside leftCBS by the contract of */
   /* CBSSplayCompare. Now we see if limit falls within rightCBS. */
@@ -273,21 +293,25 @@ Res CBSInsert(CBS cbs, Addr base, Addr limit) {
 
   if(leftMerge) {
     if(rightMerge) {
-      leftCBS->limit = rightCBS->limit;
-      CBSNodeGrow(cbs, leftCBS);
-      res = CBSNodeDelete(cbs, rightCBS);
+      Addr rightLimit = rightCBS->limit;
+      res = CBSBlockDelete(cbs, rightCBS);
       if(res != ResOK)
 	return res;
+      oldSize = CBSBlockSize(leftCBS);
+      leftCBS->limit = rightLimit;
+      CBSBlockGrow(cbs, leftCBS, oldSize);
     } else { /* leftMerge, !rightMerge */
+      oldSize = CBSBlockSize(leftCBS);
       leftCBS->limit = limit;
-      CBSNodeGrow(cbs, leftCBS);
+      CBSBlockGrow(cbs, leftCBS, oldSize);
     }
   } else { /* !leftMerge */
     if(rightMerge) {
+      oldSize = CBSBlockSize(rightCBS);
       rightCBS->base = base;
-      CBSNodeGrow(cbs, rightCBS);
+      CBSBlockGrow(cbs, rightCBS, oldSize);
     } else { /* !leftMerge, !rightMerge */
-      res = CBSNodeNew(cbs, base, limit);
+      res = CBSBlockNew(cbs, base, limit);
       if(res != ResOK)
 	return res;
     }
@@ -304,8 +328,9 @@ Res CBSInsert(CBS cbs, Addr base, Addr limit) {
 
 Res CBSDelete(CBS cbs, Addr base, Addr limit) {
   Res res;
-  CBSNode cbsNode;
+  CBSBlock cbsBlock;
   SplayNode splayNode;
+  Size oldSize;
 
   AVERT(CBS, cbs);
   AVER(base != NULL);
@@ -314,35 +339,38 @@ Res CBSDelete(CBS cbs, Addr base, Addr limit) {
   res = SplayTreeSearch(&splayNode, SplayTreeOfCBS(cbs), (void *)&base);
   if(res != ResOK)
     goto failSplayTreeSearch;
-  cbsNode = CBSNodeOfSplayNode(splayNode);
+  cbsBlock = CBSBlockOfSplayNode(splayNode);
 
-  if(limit > cbsNode->limit) {
+  if(limit > cbsBlock->limit) {
     res = ResFAIL;
     goto failLimitCheck;
   }
 
-  if(base == cbsNode->base) {
-    if(limit == cbsNode->limit) { /* entire block */
-      res = CBSNodeDelete(cbs, cbsNode);
+  if(base == cbsBlock->base) {
+    if(limit == cbsBlock->limit) { /* entire block */
+      res = CBSBlockDelete(cbs, cbsBlock);
       if(res != ResOK) 
 	goto failDelete;
     } else { /* remaining fragment at right */
-      AVER(limit < cbsNode->limit);
-      cbsNode->base = limit;
-      CBSNodeShrink(cbs, cbsNode);
+      AVER(limit < cbsBlock->limit);
+      oldSize = CBSBlockSize(cbsBlock);
+      cbsBlock->base = limit;
+      CBSBlockShrink(cbs, cbsBlock, oldSize);
     }
   } else {
-    AVER(base > cbsNode->base);
-    if(limit == cbsNode->limit) { /* remaining fragment at left */
-      cbsNode->limit = base;
-      CBSNodeShrink(cbs, cbsNode);
+    AVER(base > cbsBlock->base);
+    if(limit == cbsBlock->limit) { /* remaining fragment at left */
+      oldSize = CBSBlockSize(cbsBlock);
+      cbsBlock->limit = base;
+      CBSBlockShrink(cbs, cbsBlock, oldSize);
     } else { /* two remaining fragments */
       Addr oldLimit;
-      AVER(limit < cbsNode->limit);
-      oldLimit = cbsNode->limit;
-      cbsNode->limit = base;
-      CBSNodeShrink(cbs, cbsNode);
-      res = CBSNodeNew(cbs, limit, oldLimit);
+      AVER(limit < cbsBlock->limit);
+      oldSize = CBSBlockSize(cbsBlock);
+      oldLimit = cbsBlock->limit;
+      cbsBlock->limit = base;
+      CBSBlockShrink(cbs, cbsBlock, oldSize);
+      res = CBSBlockNew(cbs, limit, oldLimit);
       if(res != ResOK)
 	goto failNew;
     }
@@ -357,18 +385,13 @@ failSplayTreeSearch:
   return res;
 }
 
-static Res CBSSplayNodeDescribe(SplayNode splayNode, 
-				mps_lib_FILE *stream) {
+Res CBSBlockDescribe(CBSBlock block, mps_lib_FILE *stream) {
   Res res;
-  CBSNode cbsNode;
 
-  AVER(splayNode != NULL);
   AVER(stream != NULL);
 
-  cbsNode = CBSNodeOfSplayNode(splayNode);
-
   res = WriteF(stream,
-	       "[$P,$P)", (WriteFP)cbsNode->base, (WriteFP)cbsNode->limit,
+	       "[$P,$P)", (WriteFP)block->base, (WriteFP)block->limit,
 	       NULL);
   if(res != ResOK)
     return res;
@@ -376,8 +399,26 @@ static Res CBSSplayNodeDescribe(SplayNode splayNode,
   return ResOK;
 }
 
+static Res CBSSplayNodeDescribe(SplayNode splayNode, 
+				mps_lib_FILE *stream) {
+  Res res;
+  CBSBlock cbsBlock;
 
-/* CBSIterate -- Iterate all nodes in CBS
+  AVER(splayNode != NULL);
+  AVER(stream != NULL);
+
+  cbsBlock = CBSBlockOfSplayNode(splayNode);
+
+  res = CBSBlockDescribe(cbsBlock, stream);
+
+  if(res != ResOK)
+    return res;
+
+  return ResOK;
+}
+
+
+/* CBSIterate -- Iterate all blocks in CBS
  *
  * This is not necessarily efficient.
  *
@@ -388,7 +429,7 @@ void CBSIterate(CBS cbs, CBSIterateMethod iterate,
 		void *closureP, unsigned long closureS) {
   SplayNode splayNode;
   SplayTree splayTree;
-  CBSNode cbsNode;
+  CBSBlock cbsBlock;
 
   AVERT(CBS, cbs);
   AVER(FUNCHECK(iterate));
@@ -396,13 +437,52 @@ void CBSIterate(CBS cbs, CBSIterateMethod iterate,
   splayTree = SplayTreeOfCBS(cbs);
   splayNode = SplayTreeFirst(splayTree, NULL);
   while(splayNode != NULL) {
-    cbsNode = CBSNodeOfSplayNode(splayNode);
-    if(!(*iterate)(&(cbsNode->p), cbs, cbsNode->base, cbsNode->limit,
-		   closureP, closureS)) {
+    cbsBlock = CBSBlockOfSplayNode(splayNode);
+    if(!(*iterate)(cbs, cbsBlock, closureP, closureS)) {
       break;
     }
     splayNode = SplayTreeNext(splayTree, NULL);
   }
+}
+
+
+/* CBSIterateLarge -- Iterate only large blocks
+ *
+ * This function iterates only blocks that are larger than or equal
+ * to the minimum size.
+ */
+
+typedef struct CBSIterateLargeClosureStruct {
+  void *p;
+  unsigned long s;
+  CBSIterateMethod f;
+} CBSIterateLargeClosureStruct, *CBSIterateLargeClosure;
+
+static Bool CBSIterateLargeAction(CBS cbs, CBSBlock block, 
+				  void *p, unsigned long s) {
+  CBSIterateLargeClosure closure;
+
+  closure = (CBSIterateLargeClosure)p;
+  AVER(closure != NULL);
+  AVER(s == (unsigned long)0);
+
+  return (closure->f)(cbs, block, closure->p, closure->s);
+}
+
+
+void CBSIterateLarge(CBS cbs, CBSIterateMethod iterate,
+		     void *closureP, unsigned long closureS) {
+  CBSIterateLargeClosureStruct closure;
+
+  AVERT(CBS, cbs);
+  AVER(FUNCHECK(iterate));
+
+  closure.p = closureP;
+  closure.s = closureS;
+  closure.f = iterate;
+
+  CBSIterate(cbs, &CBSIterateLargeAction, 
+	     (void *)&closure, (unsigned long)0);
 }
 
 
@@ -417,39 +497,34 @@ typedef struct {
   Size new;
 } CBSSetMinSizeClosureStruct, *CBSSetMinSizeClosure;
 
-static Bool CBSSetMinSizeGrow(void **clientPIO, CBS cbs, 
-		              Addr base, Addr limit, 
-			      void *closureP, unsigned long closureS) {
+static Bool CBSSetMinSizeGrow(CBS cbs, CBSBlock block,
+			      void *p, unsigned long s) {
   CBSSetMinSizeClosure closure;
   Size size;
   
-  if(*clientPIO ==  NULL) {
-    closure = (CBSSetMinSizeClosure)closureP;
-    AVER(closure->old > closure->new);
-    size = AddrOffset(base, limit);
-    if(size < closure->old && size >= closure->new)
-    (*cbs->grow)(clientPIO, cbs, base, limit);
-  }
+  closure = (CBSSetMinSizeClosure)p;
+  AVER(closure->old > closure->new);
+  size = CBSBlockSize(block);
+  if(size < closure->old && size >= closure->new)
+    (*cbs->new)(cbs, block);
 
   return TRUE;
 }
 
-static Bool CBSSetMinSizeShrink(void **clientPIO, CBS cbs, 
-				Addr base, Addr limit, 
-				void *closureP, unsigned long closureS) {
+static Bool CBSSetMinSizeShrink(CBS cbs, CBSBlock block,
+				void *p, unsigned long s) {
   CBSSetMinSizeClosure closure;
   Size size;
   
-  if(*clientPIO !=  NULL) {
-    closure = (CBSSetMinSizeClosure)closureP;
-    AVER(closure->old < closure->new);
-    size = AddrOffset(base, limit);
-    if(size >= closure->old && size < closure->new)
-    (*cbs->shrink)(clientPIO, cbs, base, limit);
-  }
+  closure = (CBSSetMinSizeClosure)p;
+  AVER(closure->old < closure->new);
+  size = CBSBlockSize(block);
+  if(size >= closure->old && size < closure->new)
+    (*cbs->delete)(cbs, block);
 
   return TRUE;
 }
+
 void CBSSetMinSize(CBS cbs, Size minSize) {
   CBSSetMinSizeClosureStruct closure;
 
@@ -459,9 +534,11 @@ void CBSSetMinSize(CBS cbs, Size minSize) {
   closure.new = minSize;
 
   if(minSize < cbs->minSize)
-    CBSIterate(cbs, &CBSSetMinSizeGrow, (void *)&closure, 0);
+    CBSIterate(cbs, &CBSSetMinSizeGrow, 
+	       (void *)&closure, (unsigned long)0);
   else if(minSize > cbs->minSize)
-    CBSIterate(cbs, &CBSSetMinSizeShrink, (void *)&closure, 0);
+    CBSIterate(cbs, &CBSSetMinSizeShrink, 
+	       (void *)&closure, (unsigned long)0);
 
   cbs->minSize = minSize;
 }
@@ -479,10 +556,8 @@ Res CBSDescribe(CBS cbs, mps_lib_FILE *stream) {
 
   res = WriteF(stream,
 	       "CBS $P {\n", (WriteFP)cbs,
-	       "  nodePool: $P\n", (WriteFP)cbs->nodePool,
+	       "  blockPool: $P\n", (WriteFP)cbs->blockPool,
 	       "  new: $F ", (WriteFF)cbs->new,
-	       "  grow $F ", (WriteFF)cbs->grow,
-	       "  shrink: $F ", (WriteFF)cbs->shrink,
 	       "  delete: $F \n", (WriteFF)cbs->delete,
 	       NULL);
   if(res != ResOK)

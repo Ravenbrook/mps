@@ -1,6 +1,6 @@
 /* impl.h.mpm: MEMORY POOL MANAGER DEFINITIONS
  *
- * $HopeName: MMsrc!mpm.h(MMdevel_gavinm_splay.3) $
+ * $HopeName: MMsrc!mpm.h(MMdevel_gavinm_splay.4) $
  * Copyright (C) 1998. Harlequin Group plc. All rights reserved.
  */
 
@@ -834,16 +834,26 @@ extern Res SplayTreeDescribe(SplayTree tree, mps_lib_FILE *stream,
 
 /* CBS* -- see design.mps.cbs */
 
+extern Bool CBSCheck(CBS cbs);
+extern Bool CBSBlockCheck(CBSBlock block);
 extern Res CBSInit(Arena arena, CBS cbs,
-                   CBSNewMethod new, CBSShrinkMethod shrink,
-		   CBSGrowMethod grow, CBSDeleteMethod delete,
-		   Size minSize); 
+                   CBSNewMethod new,
+		   CBSDeleteMethod delete,
+		   Size minSize,
+		   Bool mayUseInline); 
 extern void CBSFinish(CBS cbs);
 extern Res CBSInsert(CBS cbs, Addr base, Addr limit);
 extern Res CBSDelete(CBS cbs, Addr base, Addr limit);
 extern void CBSIterate(CBS cbs, CBSIterateMethod iterate, 
 		       void *closureP, unsigned long closureS);
+extern void CBSIterateLarge(CBS cbs, CBSIterateMethod iterate, 
+		       void *closureP, unsigned long closureS);
 extern void CBSSetMinSize(CBS cbs, Size minSize);
 extern Res CBSDescribe(CBS cbs, mps_lib_FILE *stream);
+extern Res CBSBlockDescribe(CBSBlock block, mps_lib_FILE *stream);
+#define CBSBlockBase(block) ((block)->base)
+#define CBSBlockLimit(block) ((block)->limit)
+#define CBSBlockSize(block) \
+  (AddrOffset(CBSBlockBase(block), CBSBlockLimit(block)))
 
 #endif /* mpm_h */

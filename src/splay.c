@@ -1,6 +1,6 @@
 /* impl.c.splay: SPLAY TREE IMPLEMENTATION
  *
- * $HopeName: MMsrc!splay.c(MMdevel_gavinm_splay.4) $
+ * $HopeName: MMsrc!splay.c(MMdevel_gavinm_splay.5) $
  * Copyright (C) 1998 Harlequin Group plc, all rights reserved.
  *
  * .readership: Any MPS developer.
@@ -21,7 +21,7 @@
 #include "mpm.h"
 
 
-SRCID(splay, "$HopeName: MMsrc!splay.c(MMdevel_gavinm_splay.4) $");
+SRCID(splay, "$HopeName: MMsrc!splay.c(MMdevel_gavinm_splay.5) $");
 
 /* Basic getter and setter methods */
 #define SplayTreeRoot(t) RVALUE((t)->root)
@@ -397,11 +397,15 @@ Res SplayTreeInsert(SplayTree tree, SplayNode node, void *key) {
 
 Res SplayTreeDelete(SplayTree tree, SplayNode node, void *key) {
   SplayNode rightHalf, del, leftLast;
+  Bool found;
 
   AVERT(SplayTree, tree);
   AVERT(SplayNode, node);
 
-  if(!SplaySplay(&del, tree, key) || del != node) {
+  found = SplaySplay(&del, tree, key);
+  AVER(!found || del == node);
+
+  if(!found) {
     return ResFAIL;
   } else if(SplayNodeLeftChild(node) == NULL) {
     SplayTreeSetRoot(tree, SplayNodeRightChild(node));

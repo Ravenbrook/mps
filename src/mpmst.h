@@ -1,6 +1,6 @@
 /* impl.h.mpmst: MEMORY POOL MANAGER DATA STRUCTURES
  *
- * $HopeName: MMsrc!mpmst.h(MMdevel_gavinm_splay.2) $
+ * $HopeName: MMsrc!mpmst.h(MMdevel_gavinm_splay.3) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  *
  * .readership: MM developers.
@@ -687,14 +687,24 @@ typedef struct SplayNodeStruct {
  * See design.mps.cbs.
  */
 
+#define CBSSig	((Sig)0x519CB599) /* SIGnature CBS */
+
 typedef struct CBSStruct {
   SplayTreeStruct splayTree;
-  Pool nodePool;
+  Pool blockPool;
   CBSNewMethod new;
-  CBSGrowMethod grow;
-  CBSShrinkMethod shrink;
   CBSDeleteMethod delete;
   Size minSize;
+  Bool mayUseInline;
+  struct CBSEmergencyBlockStruct *emergencyBlockList;
+  struct CBSEmergencyGrainStruct *emergencyGrainList;
+  Sig sig; /* sig at end because embeded */
 } CBSStruct;
+
+typedef struct CBSBlockStruct {
+  SplayNodeStruct splayNode;
+  Addr base;
+  Addr limit;
+} CBSBlockStruct;
 
 #endif /* mpmst_h */

@@ -1,6 +1,6 @@
 /* impl.h.mpmtypes: MEMORY POOL MANAGER TYPES
  *
- * $HopeName: MMsrc!mpmtypes.h(MMdevel_gavinm_splay.3) $
+ * $HopeName: MMsrc!mpmtypes.h(MMdevel_gavinm_splay.4) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  *
  * .readership: MM developers.
@@ -92,12 +92,10 @@ enum {
 /* CBS* -- See design.mps.cbs */
 
 typedef struct CBSStruct *CBS;
-typedef void (*CBSNewMethod)(void **pReturn, CBS cbs, Addr base, Addr limit);
-typedef void (*CBSShrinkMethod)(void **pIO, CBS cbs, Addr base, Addr limit);
-typedef void (*CBSGrowMethod)(void **pIO, CBS cbs, Addr base, Addr limit);
-typedef void (*CBSDeleteMethod)(void *p, CBS cbs);
-typedef Bool (*CBSIterateMethod)(void **clientPIO, CBS cbs, 
-				 Addr base, Addr limit, 
+typedef struct CBSBlockStruct *CBSBlock;
+typedef void (*CBSNewMethod)(CBS cbs, CBSBlock block);
+typedef void (*CBSDeleteMethod)(CBS cbs, CBSBlock block);
+typedef Bool (*CBSIterateMethod)(CBS cbs, CBSBlock block,
 				 void *closureP, unsigned long closureS);
 
 
