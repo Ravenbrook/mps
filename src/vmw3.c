@@ -2,7 +2,7 @@
  *
  *                 VIRTUAL MEMORY MAPPING FOR WIN32
  *
- *  $HopeName: MMsrc!vmnt.c(trunk.8) $
+ *  $HopeName: MMsrc!vmnt.c(MMdevel_restr.2) $
  *
  *  Copyright (C) 1995 Harlequin Group, all rights reserved
  *
@@ -55,8 +55,10 @@
 
 #include <windows.h>
 
-SRCID(vmnt, "$HopeName: MMsrc!vmnt.c(trunk.8) $");
+SRCID(vmnt, "$HopeName: MMsrc!vmnt.c(MMdevel_restr.2) $");
 
+
+#define SpaceVM(space)	(&(space)->arenaStruct.vmStruct)
 
 Align VMAlign(void)
 {
@@ -80,19 +82,21 @@ Bool VMCheck(VM vm)
   CHECKL(vm->base != 0);
   CHECKL(vm->limit != 0);
   CHECKL(vm->base < vm->limit);
+  CHECKL(vm->mapped <= vm->reserved);
   CHECKL(AddrIsAligned(vm->base, vm->align));
   CHECKL(AddrIsAligned(vm->limit, vm->align));
   return TRUE;
 }
 
 
-Res VMCreate(VM *vmReturn, Size size)
+Res VMCreate(Space *spaceReturn, size_t size)
 {
   LPVOID base;
   Align align;
   VM vm;
+  Space space;
 
-  AVER(vmReturn != NULL);
+  AVER(spaceReturn != NULL);
   AVER(sizeof(LPVOID) == sizeof(Addr));  /* .assume.lpvoid-addr */
 
   /* See .assume.dword-addr */
@@ -103,13 +107,14 @@ Res VMCreate(VM *vmReturn, Size size)
 
   AVER(SizeIsAligned(size, align));
 
-  /* Allocate some store for the descriptor.
+  /* Allocate some store for the space descriptor.
    * This is likely to be wasteful see issue.vmnt.waste */
-  base = VirtualAlloc(NULL, AlignUp(sizeof(VMStruct), align),
+  base = VirtualAlloc(NULL, SizeAlignUp(sizeof(SpaceStruct), align),
           MEM_COMMIT, PAGE_READWRITE);
   if(base == NULL)
     return ResMEMORY;
-  vm = (VM)base;
+  space = (Space)base;
+  vm = SpaceVM(space);
 
   /* Allocate the address space. */
   base = VirtualAlloc(NULL, size, MEM_RESERVE, PAGE_NOACCESS);
@@ -121,23 +126,28 @@ Res VMCreate(VM *vmReturn, Size size)
   vm->align = align;
   vm->base = (Addr)base;
   vm->limit = (Addr)base + size;
+  vm->reserved = size;
+  vm->mapped = 0;
   AVER(vm->base < vm->limit);  /* .assume.not-last */
 
   vm->sig = VMSig;
 
   AVERT(VM, vm);
 
-  *vmReturn = vm;
+  *spaceReturn = space;
   return ResOK;
 }
 
 
-void VMDestroy(VM vm)
+void VMDestroy(Space space)
 {
   BOOL b;
   Align align;
+  VM vm;
 
+  vm = SpaceVM(space);
   AVERT(VM, vm);
+  AVER(vm->mapped == 0);
 
   align = vm->align;
 
@@ -149,26 +159,31 @@ void VMDestroy(VM vm)
   b = VirtualFree((LPVOID)vm->base, (DWORD)0, MEM_RELEASE);
   AVER(b == TRUE);
 
-  b = VirtualFree((LPVOID)vm, (DWORD)0, MEM_RELEASE);
+  b = VirtualFree((LPVOID)space, (DWORD)0, MEM_RELEASE);
   AVER(b == TRUE);
 }
 
 
-Addr VMBase(VM vm)
+Addr VMBase(Space space)
 {
+  VM vm = SpaceVM(space);
+
   AVERT(VM, vm);
   return vm->base;
 }
 
-Addr VMLimit(VM vm)
+Addr VMLimit(Space space)
 {
+  VM vm = SpaceVM(space);
+
   AVERT(VM, vm);
   return vm->limit;
 }
 
 
-Res VMMap(VM vm, Addr base, Addr limit)
+Res VMMap(Space space, Addr base, Addr limit)
 {
+  VM vm = SpaceVM(space);
   LPVOID b;
   Align align = vm->align;
 
@@ -188,12 +203,15 @@ Res VMMap(VM vm, Addr base, Addr limit)
 
   AVER((Addr)b == base);        /* base should've been aligned */
 
+  vm->mapped += (limit - base);
+
   return ResOK;
 }
 
 
-void VMUnmap(VM vm, Addr base, Addr limit)
+void VMUnmap(Space space, Addr base, Addr limit)
 {
+  VM vm = SpaceVM(space);
   Align align = vm->align;
   BOOL b;
 
@@ -208,4 +226,5 @@ void VMUnmap(VM vm, Addr base, Addr limit)
 
   b = VirtualFree((LPVOID)base, (DWORD)(limit - base), MEM_DECOMMIT);
   AVER(b == TRUE);  /* .assume.free.success */
+  vm->mapped -= (limit - base);
 }
