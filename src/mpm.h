@@ -1,6 +1,6 @@
 /* impl.h.mpm: MEMORY POOL MANAGER DEFINITIONS
  *
- * $HopeName: !mpm.h(trunk.103) $
+ * $HopeName: MMsrc!mpm.h(MMdevel_tony_inheritance.1) $
  * Copyright (C) 1998.  Harlequin Group plc.  All rights reserved.
  */
 
@@ -297,6 +297,7 @@ extern void BTCopyInvertRange(BT fromBT, BT toBT,
                               Index base, Index limit);
 
 
+
 /* Pool Interface -- see impl.c.pool */
 
 extern Res PoolInit(Pool pool, Arena arena,
@@ -347,6 +348,7 @@ extern double PoolBenefit(Pool pool, Action action);
 extern Res PoolAct(Pool pool, Action action);
 extern void PoolWalk(Pool pool, Seg seg, FormattedObjectsStepMethod f,
                      void *v, unsigned long s);
+extern Res PoolTrivInit(Pool pool, va_list arg);
 extern void PoolTrivFinish(Pool pool);
 extern Res PoolNoAlloc(Addr *pReturn, Pool pool, Size size,
                        Bool withReservoirPermit);
@@ -399,6 +401,22 @@ extern void PoolNoWalk(Pool pool, Seg seg,
 extern Res PoolCollectAct(Pool pool, Action action);
 extern PoolDebugMixin PoolNoDebugMixin(Pool pool);
 
+#define ClassOfPool(pool) ((pool)->class)
+#define SuperlassOfPool(pool) \
+  ((PoolClass)ProtocolClassSuperclass((pool)->class))
+
+
+/* Abstract Pool Classes Interface -- see impl.c.poolabs */
+extern void PoolClassMixInAllocFree(PoolClass class);
+extern void PoolClassMixInBuffer(PoolClass class);
+extern void PoolClassMixInScan(PoolClass class);
+extern void PoolClassMixInFormat(PoolClass class);
+extern void PoolClassMixInCollect(PoolClass class);
+extern AbstractPoolClass EnsureAbstractPoolClass(void);
+extern AbstractAllocFreePoolClass EnsureAbstractAllocFreePoolClass(void);
+extern AbstractBufferPoolClass EnsureAbstractBufferPoolClass(void);
+extern AbstractScanPoolClass EnsureAbstractScanPoolClass(void);
+extern AbstractCollectPoolClass EnsureAbstractCollectPoolClass(void);
 
 /* Message Interface -- see design.mps.message */
 
