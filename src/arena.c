@@ -43,7 +43,7 @@ SRCID(arena, "$HopeName: MMsrc!arena.c(MMdevel_ptw_pseudoloci.5) $");
 
 typedef struct NSEGStruct *NSEG;
 
-void SegRealloc(Seg seg, Pool newpool);
+void SegRealloc(Seg seg, LocusClient newClient);
 
 static Bool NSEGCheck(NSEG nseg);
 
@@ -73,6 +73,8 @@ static Res NSEGInit(Pool pool, va_list arg)
   nseg->sig = NSEGSig;
   AVERT(NSEG, nseg);
 
+  /* @@@ set cohort parameters for reserve -- presumably its segments
+     are extremely long-lived */
   return ResOK;
 }
 
@@ -196,7 +198,7 @@ static Res ArenaEnsureReservoir(Arena arena)
     Res res;
     Seg seg;
     res = (*arena->class->segAlloc)(&seg, SegPrefDefault(), 
-                                    alignment, reservoir);
+                                    alignment, PoolLocusClient(reservoir));
     if (res != ResOK) {
       AVER(ArenaReservoirIsConsistent(arena));
       return res;
@@ -245,7 +247,7 @@ static void ArenaShrinkReservoir(Arena arena, Size want)
 }
 
 static Res ArenaAllocSegFromReservoir(Seg *segReturn, Arena arena, 
-                                      Size size, Pool pool)
+                                      Size size, LocusClient client)
 {
   Ring ring;
   Ring node, nextNode;
@@ -254,7 +256,7 @@ static Res ArenaAllocSegFromReservoir(Seg *segReturn, Arena arena,
   AVER(segReturn != NULL);
   AVERT(Arena, arena);
   AVER(SizeIsAligned(size, arena->alignment));
-  AVERT(Pool, pool);
+  AVERT(LocusClient, client);
   reservoir = &arena->reservoirStruct.poolStruct;
   AVERT(Pool, reservoir);
 
@@ -265,7 +267,7 @@ static Res ArenaAllocSegFromReservoir(Seg *segReturn, Arena arena,
     Size segSize = SegSize(seg);
     if (segSize >= size) {
       arena->reservoirSize -= segSize;
-      SegRealloc(seg, pool);
+      SegRealloc(seg, client);
       AVER(ArenaReservoirIsConsistent(arena));
       *segReturn = seg;
       return ResOK;
@@ -293,7 +295,7 @@ static void ArenaReturnSegToReservoir(Arena arena, Seg seg)
     (*arena->class->segFree)(seg);
   } else {
     /* Reassign the segment to the reservoir pool */
-    SegRealloc(seg, reservoir);
+    SegRealloc(seg, PoolLocusClient(reservoir));
     arena->reservoirSize += new; 
   }
   AVER(ArenaReservoirIsConsistent(arena));
@@ -1213,21 +1215,24 @@ void ArenaFree(Arena arena, void* base, size_t size)
 /* SegRealloc -- Reallocate a segment from one pool to another
  *
  * The segment appears as a freshly initialized segment in the new pool.
+ * This thwarts the locus manager's policies, but presumably we have
+ * no choice at this point.
  */
 
-void SegRealloc(Seg seg, Pool newpool)
+void SegRealloc(Seg seg, LocusClient newClient)
 {
   AVERT(Seg, seg);
-  AVER(SegPool(seg) != newpool);
+  AVER(SegClient(seg) != newClient);
   SegFinish(seg);
-  SegInit(seg, newpool);
+  SegInitClient(seg, newClient);
+  LocusClientSegValid(newClient, seg);
 }
 
 
 /* DefaultSegAllocInZoneRange -- For areanas that do not yet support
    the new protocol */
 Res DefaultSegAllocInZoneRange(Seg *segReturn, SegPref pref,
-                               Size size, Pool pool,
+                               Size size, LocusClient client,
                                Addr base, Addr limit)
 {
   Arena arena;
@@ -1235,18 +1240,26 @@ Res DefaultSegAllocInZoneRange(Seg *segReturn, SegPref pref,
   AVER(segReturn != NULL);
   AVERT(SegPref, pref);
   AVER(size > (Size)0);
-  AVERT(Pool, pool);
-  arena = PoolArena(pool);
+  AVERT(LocusClient, client);
+  arena = LocusClientArena(client);
   AVERT(Arena, arena);
   AVER(SizeIsAligned(size, arena->alignment));
-  return (*arena->class->segAlloc)(segReturn, pref, size, pool);
+  return (*arena->class->segAlloc)(segReturn, pref, size, client);
 }
 
 
 /* SegAlloc -- allocate a segment from the arena */
-
+/* @@@ compatibility: for pools with a single locus client */
 Res SegAlloc(Seg *segReturn, SegPref pref, Size size, Pool pool,
              Bool withReservoirPermit)
+{
+  return SegAllocClient(segReturn, pref, size, PoolLocusClient(pool),
+                        withReservoirPermit);
+}
+
+/* SegAllocClient -- allocate a segment from the arena for a client */
+Res SegAllocClient(Seg *segReturn, SegPref pref, Size size,
+                   LocusClient client, Bool withReservoirPermit)
 {
   Res res;
   Arena arena;
@@ -1255,10 +1268,10 @@ Res SegAlloc(Seg *segReturn, SegPref pref, Size size, Pool pool,
   AVER(segReturn != NULL);
   AVERT(SegPref, pref);
   AVER(size > (Size)0);
-  AVERT(Pool, pool);
+  AVERT(LocusClient, client);
   AVER(BoolCheck(withReservoirPermit));
 
-  arena = PoolArena(pool);
+  arena = LocusClientArena(client);
   AVERT(Arena, arena);
   AVER(SizeIsAligned(size, arena->alignment));
 
@@ -1269,20 +1282,22 @@ Res SegAlloc(Seg *segReturn, SegPref pref, Size size, Pool pool,
       return res;
   }
 
-  res = (*arena->class->segAlloc)(&seg, pref, size, pool);
+  res = (*arena->class->segAlloc)(&seg, pref, size, client);
 
   if(res == ResOK) {
     goto goodAlloc;
   } else if(withReservoirPermit) {
     AVER(ResIsAllocFailure(res));
-    res = ArenaAllocSegFromReservoir(&seg, arena, size, pool);
+    res = ArenaAllocSegFromReservoir(&seg, arena, size, client);
     if(res == ResOK)
       goto goodAlloc;
   }
   return res;
 
 goodAlloc:
-  EVENT_PPAWP(SegAlloc, arena, seg, SegBase(seg), size, pool);
+  LocusClientSegValid(client, seg);
+  /* @@@ update to emit client */
+  EVENT_PPAWP(SegAlloc, arena, seg, SegBase(seg), size, LocusClientPool(client));
   *segReturn = seg;
   return ResOK;
 }
