@@ -1,13 +1,13 @@
 /* impl.h.sac: SEGREGATED ALLOCATION CACHES
  *
- * $HopeName: MMsrc!sac.c(MM_epcore_brisling.2) $
+ * $HopeName: MMsrc!sac.c(MM_epcore_brisling.3) $
  * Copyright (C) 1999 Harlequin Group plc.  All rights reserved.
  */
 
 #include "mpm.h"
 #include "sac.h"
 
-SRCID(sac, "$HopeName: MMsrc!sac.c(MM_epcore_brisling.2) $");
+SRCID(sac, "$HopeName: MMsrc!sac.c(MM_epcore_brisling.3) $");
 
 
 /* SACCheck -- check function for SACs */
@@ -230,8 +230,8 @@ Res SACFill(Addr *p_o, SAC sac, Size size, Bool hasReservoirPermit)
   /* Check it's empty (in the future, there will be other cases). */
   AVER(sac->esacStruct.freelists[i].count == 0);
 
-  /* Fill the cache for this class, and alloc one more to return. */
-  blockCount = sac->esacStruct.freelists[i].countMax;
+  /* Fill 1/3 of the cache for this class. */
+  blockCount = sac->esacStruct.freelists[i].countMax / 3;
   /* Adjust size for the overlarge class. */
   if (blockSize == SizeMAX)
     /* .align: align 'cause some classes don't accept unaligned. */
@@ -245,8 +245,10 @@ Res SACFill(Addr *p_o, SAC sac, Size size, Bool hasReservoirPermit)
     *ADDR_PTR(Addr, p) = fl; fl = p;
   }
   /* If didn't get any, just return. */
-  if (j == 0)
+  if (j == 0) {
+    AVER(res != ResOK);
     return res;
+  }
 
   /* Take the last one off, and return it. */
   sac->esacStruct.freelists[i].count = j - 1;
@@ -257,22 +259,24 @@ Res SACFill(Addr *p_o, SAC sac, Size size, Bool hasReservoirPermit)
 }
 
 
-/* SACClassFlush -- empty the cache for this class */
+/* SACClassFlush -- discard elements from the cache for a given class
+ *
+ * blockCount says how many elements to discard.
+ */
 
-static void SACClassFlush(SAC sac, Index i, Size blockSize)
+static void SACClassFlush(SAC sac, Index i, Size blockSize,
+                          Count blockCount)
 {
   Addr cb, fl;
-  Count blockCount, j;
+  Count j;
 
-  blockCount = sac->esacStruct.freelists[i].count;
   for (j = 0, fl = sac->esacStruct.freelists[i].blocks;
        j < blockCount; ++j) {
     /* @@@@ ignoring shields for now */
     cb = fl; fl = *ADDR_PTR(Addr, cb);
     PoolFree(sac->pool, cb, blockSize);
   }
-  AVER(fl == NULL);
-  sac->esacStruct.freelists[i].count = 0;
+  sac->esacStruct.freelists[i].count -= blockCount;
   sac->esacStruct.freelists[i].blocks = fl;
 }
 
@@ -298,15 +302,20 @@ void SACEmpty(SAC sac, Addr p, Size size)
   if (blockSize == SizeMAX)
     /* see .align */
     blockSize = SizeAlignUp(size, PoolAlignment(sac->pool));
-  SACClassFlush(sac, i, blockSize);
   if (sac->esacStruct.freelists[i].countMax > 0) {
-    /* Leave the latest one in the cache. */
-    sac->esacStruct.freelists[i].count = 1;
+    Count blockCount;
+
+    /* Flush 2/3 of the cache for this class. */
+    /* @@@@ Needs an overflow check */
+    blockCount = sac->esacStruct.freelists[i].count * 2 / 3;
+    SACClassFlush(sac, i, blockSize, (blockCount > 0) ? blockCount : 1);
+    /* Leave the current one in the cache. */
+    sac->esacStruct.freelists[i].count += 1;
     /* @@@@ ignoring shields for now */
-    *ADDR_PTR(Addr, p) = NULL;
+    *ADDR_PTR(Addr, p) = sac->esacStruct.freelists[i].blocks;
     sac->esacStruct.freelists[i].blocks = p;
   } else {
-    /* Free even the latest one. */
+    /* Free even the current one. */
     PoolFree(sac->pool, p, blockSize);
   }
 }
@@ -323,14 +332,18 @@ void SACFlush(SAC sac)
 
   for (j = sac->middleIndex + 1, i = 0;
        j < sac->classesCount; ++j, i += 2) {
-    SACClassFlush(sac, i, sac->esacStruct.freelists[i].size);
+    SACClassFlush(sac, i, sac->esacStruct.freelists[i].size,
+                  sac->esacStruct.freelists[i].count);
+    AVER(sac->esacStruct.freelists[i].blocks == NULL);
   }
   /* no need to flush overlarge, there's nothing there */
   prevSize = sac->esacStruct.middle;
   for (j = sac->middleIndex, i = 1; j > 0; --j, i += 2) {
-    SACClassFlush(sac, i, prevSize);
+    SACClassFlush(sac, i, prevSize, sac->esacStruct.freelists[i].count);
+    AVER(sac->esacStruct.freelists[i].blocks == NULL);
     prevSize = sac->esacStruct.freelists[i].size;
   }
   /* flush smallest class */
-  SACClassFlush(sac, i, prevSize);
+  SACClassFlush(sac, i, prevSize, sac->esacStruct.freelists[i].count);
+  AVER(sac->esacStruct.freelists[i].blocks == NULL);
 }
