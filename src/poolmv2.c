@@ -1,6 +1,6 @@
 /* impl.c.poolmv2: MANUAL VARIABLE POOL, II
  *
- * $HopeName: MMsrc!poolmv2.c(MMdevel_gavinm_splay.10) $
+ * $HopeName: MMsrc!poolmv2.c(MMdevel_gavinm_splay.11) $
  * Copyright (C) 1998 Harlequin Group plc.  All rights reserved.
  *
  * .limitation.seg : MV2BufferFill may fill a buffer with a range that
@@ -15,7 +15,7 @@
 #include "abq.h"
 #include "meter.h"
 
-SRCID(poolmv2, "$HopeName: MMsrc!poolmv2.c(MMdevel_gavinm_splay.10) $");
+SRCID(poolmv2, "$HopeName: MMsrc!poolmv2.c(MMdevel_gavinm_splay.11) $");
 
 /* Signatures */
 #define MV2Sig ((Sig)0x5193F299) /* SIGnature MV2 */
@@ -335,8 +335,8 @@ static void MV2Finish(Pool pool)
   }
 
   /* Finish the ABQ and CBS structures */
-  CBSFinish(MV2CBS(mv2));
   ABQFinish(arena, MV2ABQ(mv2));
+  CBSFinish(MV2CBS(mv2));
 
   mv2->sig = SigInvalid;
 }
