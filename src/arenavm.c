@@ -1,12 +1,12 @@
 /* impl.c.arenavm: VIRTUAL MEMORY BASED ARENA IMPLEMENTATION
  *
- * $HopeName: MMsrc!arenavm.c(MMdevel_restr.5) $
+ * $HopeName: MMsrc!arenavm.c(MMdevel_restr.6) $
  * Copyright (C) 1996 Harlequin Group, all rights reserved.
  */
 
 #include "mpm.h"
 
-SRCID(arenavm, "$HopeName: MMsrc!arenavm.c(MMdevel_restr.5) $");
+SRCID(arenavm, "$HopeName: MMsrc!arenavm.c(MMdevel_restr.6) $");
 
 #define SpaceArena(space)	(&(space)->arenaStruct)
 
@@ -41,12 +41,14 @@ typedef struct PageStruct {		/* page structure */
 
 /* BTGet -- get a bool from the bool table */
 
-static Bool BTGet(BT bt, BI i)
+static Bool (BTGet)(BT bt, BI i)
 {
   Size wi = i >> WORD_SHIFT;		/* word index */
   Size bi = i & (WORD_WIDTH - 1);	/* bit index */
   return (bt[wi] >> bi) & 1;
 }
+#define BTGET(bt, i) \
+  (1 & ( (bt)[(i)>>WORD_SHIFT] >> ((WORD_WIDTH-1)&(i)) ) )
 
 
 /* BTSet -- set a bool in a bool table */
@@ -204,7 +206,7 @@ Res SegAlloc(Seg *segReturn, Space space, Size size, Pool pool)
   pages = size >> arena->pageShift;
   count = 0;
   for(pi = arena->tablePages; pi < arena->pages; ++pi) {
-    if(BTGet(arena->freeTable, pi)) {
+    if(BTGET(arena->freeTable, pi)) {
       if(count == 0)
         base = pi;
       ++count;
@@ -244,7 +246,7 @@ found:
     Addr limit = PageBase(arena, base + pages);
     seg->single = FALSE;
     for(pi = base + 1; pi < base + pages; ++pi) {
-      AVER(BTGet(arena->freeTable, pi));
+      AVER(BTGET(arena->freeTable, pi));
       BTSet(arena->freeTable, pi, FALSE);
       arena->pageTable[pi].the.tail.pool = NULL;
       arena->pageTable[pi].the.tail.seg = seg;
@@ -289,7 +291,7 @@ void SegFree(Space space, Seg seg)
     BTSet(arena->freeTable, pi, TRUE);
     ++pi;
     size += arena->pageSize;
-  } while(!BTGet(arena->freeTable, pi) &&
+  } while(!BTGET(arena->freeTable, pi) &&
           arena->pageTable[pi].the.tail.pool == NULL);
 
   /* Unmap the segment memory. */
@@ -393,7 +395,7 @@ Bool SegOfAddr(Seg *segReturn, Space space, Addr addr)
   arena = SpaceArena(space);
   if(arena->base <= addr && addr < arena->limit) {
     PI pi = (addr - arena->base) >> arena->pageShift;
-    if(!BTGet(arena->freeTable, pi)) {
+    if(!BTGET(arena->freeTable, pi)) {
       Page page = &arena->pageTable[pi];
       if(page->the.head.pool != NULL)
         *segReturn = &page->the.head;
@@ -417,7 +419,7 @@ Bool SegOfAddr(Seg *segReturn, Space space, Addr addr)
 static Seg SegSearch(Arena arena, PI pi)
 {
   while(pi < arena->pages &&
-        (BTGet(arena->freeTable, pi) ||
+        (BTGET(arena->freeTable, pi) ||
   	 arena->pageTable[pi].the.head.pool == NULL))
     ++pi;
   
