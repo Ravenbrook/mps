@@ -1,6 +1,6 @@
 /* impl.c.mpsi: MEMORY POOL SYSTEM C INTERFACE LAYER
  *
- * $HopeName: MMsrc!mpsi.c(MMdevel_drj_message.3) $
+ * $HopeName: MMsrc!mpsi.c(MMdevel_drj_message.4) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  *
  * .purpose: This code bridges between the MPS interface to C,
@@ -52,7 +52,7 @@
 #include "mpm.h"
 #include "mps.h"
 
-SRCID(mpsi, "$HopeName: MMsrc!mpsi.c(MMdevel_drj_message.3) $");
+SRCID(mpsi, "$HopeName: MMsrc!mpsi.c(MMdevel_drj_message.4) $");
 
 
 /* mpsi_check -- check consistency of interface mappings
@@ -1101,11 +1101,16 @@ void mps_message_finalization_ref(mps_addr_t *mps_addr_return,
 {
   Space space = (Space)mps_space;
   Message message = (Message)mps_message;
+  Ref ref;
 
+  AVER(mps_addr_return != NULL);
+  
   SpaceEnter(space);
-
-  /* Pun */
-  MessageFinalizationRef((Ref *)mps_addr_return, space, message);
-
+  AVERT(Space, space);
+  MessageFinalizationRef(&ref, space, message);
   SpaceLeave(space);
+
+  /* Must be outside space in case mps_addr_return is */
+  /* write-protected. */
+  *mps_addr_return = (mps_addr_t)ref;
 }
