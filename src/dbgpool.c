@@ -1,6 +1,6 @@
 /* impl.c.dbgpool: POOL DEBUG MIXIN
  *
- * $HopeName: MMsrc!dbgpool.c(MMdevel_color_pool.1) $
+ * $HopeName: MMsrc!dbgpool.c(MMdevel_color_pool.2) $
  * Copyright (C) 1998 Harlequin Group plc.  All rights reserved.
  *
  * .source: design.mps.object-debug
@@ -285,7 +285,7 @@ static void FenceFree(PoolDebugMixin debug,
 }
 
 
-/* TagAlloc -- tag allocation */
+/* TagAlloc -- allocation wrapper for tagged pools */
 
 static Res TagAlloc(PoolDebugMixin debug,
                     Pool pool, Addr new, Size size, Bool withReservoir)
@@ -298,13 +298,14 @@ static Res TagAlloc(PoolDebugMixin debug,
   AVER(size > 0);
 
   res = PoolAlloc((Addr*)&tag, debug->tagPool, debug->tagSize, FALSE);
-  if (res != ResOK)
+  if (res != ResOK) {
     if (withReservoir) { /* design.mps.object-debug.out-of-space */
       debug->missingTags++;
       return ResOK;
     } else {
       return res;
     }
+  }
   tag->addr = new; tag->size = size;
   /* In the future, we might call debug->tagInit here. */
   res = SplayTreeInsert(&debug->index, &tag->splayNode, (void *)&new);
@@ -312,6 +313,8 @@ static Res TagAlloc(PoolDebugMixin debug,
   return ResOK;
 }
 
+
+/* TagFree -- deallocation wrapper for tagged pools */
 
 static void TagFree(PoolDebugMixin debug, Pool pool, Addr old, Size size)
 {
