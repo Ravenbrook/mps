@@ -1,12 +1,8 @@
 /* impl.c.eventpro: Event processing routines
  * Copyright (C) 1999 Harlequin Group plc.  All rights reserved.
  *
- * $HopeName: MMsrc!eventpro.c(MMdevel_alloc_replay.1) $
+ * $HopeName: MMsrc!eventpro.c(MMdevel_alloc_replay.2) $
  */
-
-#include <assert.h>
-#include <stdlib.h>
-#include <string.h>
 
 #include "config.h"
 /* override variety setting for EVENT */
@@ -19,6 +15,10 @@
 #include "misc.h"
 #include "mpmtypes.h"
 
+#include <assert.h> /* assert */
+#include <stdlib.h> /* size_t */
+#include <string.h> /* strcmp */
+
 
 struct EventProcStruct {
   Bool partialLog;        /* Is this a partial log? */
@@ -26,6 +26,7 @@ struct EventProcStruct {
   void *readerP;          /* closure pointer for reader fn */
   Table internTable;      /* dictionary of intern ids to symbols */
   Table labelTable;       /* dictionary of addrs to intern ids */
+  void *cachedEvent;
 };
 
 
@@ -254,9 +255,14 @@ Res EventRead(Event *eventReturn, EventProc proc)
 
   index = eventType2Index(type);
   length = eventTypes[index].length;
-  /* This is too long for string events, but nevermind. */
-  event = (Event)malloc(length);
-  if (event == NULL) return ResMEMORY;
+  if (proc->cachedEvent != NULL) {
+    event = proc->cachedEvent;
+    proc->cachedEvent = NULL;
+  } else {
+    /* This is too long for most events, but never mind. */
+    event = (Event)malloc(sizeof(EventUnion));
+    if (event == NULL) return ResMEMORY;
+  }
 
   event->any.code = type;
   restOfEvent = PointerAdd(event, sizeof(EventType));
@@ -332,8 +338,10 @@ Res EventRecord(EventProc proc, Event event, Word etime)
 
 void EventDestroy(EventProc proc, Event event)
 {
-  UNUSED(proc);
-  free(event);
+  if (proc->cachedEvent == NULL)
+    proc->cachedEvent = event;
+  else
+    free(event);
 }
 
 
@@ -361,7 +369,7 @@ void EventDestroy(EventProc proc, Event event)
 /* EventProcInit -- initialize the module */
 
 Res EventProcInit(EventProc *procReturn, Bool partial,
-                   EventProcReader reader, void *readerP)
+                  EventProcReader reader, void *readerP)
 {
   Res res;
   EventProc proc = malloc(sizeof(struct EventProcStruct));
@@ -380,6 +388,7 @@ Res EventProcInit(EventProc *procReturn, Bool partial,
   if (res != ResOK) goto failIntern;
   res = TableCreate(&proc->labelTable, (size_t)1<<7);
   if (res != ResOK) goto failLabel;
+  proc->cachedEvent = NULL;
   *procReturn = proc;
   return ResOK;
 
@@ -405,5 +414,7 @@ void EventProcFinish(EventProc proc)
   TableMap(proc->internTable, deallocItem);
   TableDestroy(proc->labelTable);
   TableDestroy(proc->internTable);
+  if (proc->cachedEvent != NULL)
+    free(proc->cachedEvent);
   free(proc);
 }
