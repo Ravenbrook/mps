@@ -1,7 +1,7 @@
 /* impl.c.vmso: VIRTUAL MEMORY MAPPING FOR SOLARIS 2.x
  *
- * $HopeName: !vmso.c(trunk.6) $
- * Copyright (C) 1995 Harlequin Group, all rights reserved
+ * $HopeName: MMsrc!vmso.c(MMdevel_partial_page.1) $
+ * Copyright (C) 1995,1997 Harlequin Group, all rights reserved
  *
  * Design: design.mps.vm
  *
@@ -52,7 +52,7 @@
 /* unistd for _SC_PAGESIZE */
 #include <unistd.h>
 
-SRCID(vmso, "$HopeName: !vmso.c(trunk.6) $");
+SRCID(vmso, "$HopeName: MMsrc!vmso.c(MMdevel_partial_page.1) $");
 
 
 /* Fix up unprototyped system calls.  */
@@ -62,7 +62,9 @@ SRCID(vmso, "$HopeName: !vmso.c(trunk.6) $");
 extern int close(int fd);
 extern int munmap(caddr_t addr, size_t len);
 
+
 #define SpaceVM(space)  (&(space)->arenaStruct.vmStruct)
+
 
 Align VMAlign(void)
 {
@@ -108,6 +110,8 @@ Res VMCreate(Space *spaceReturn, Size size, Addr base)
   AVER(size != 0);
   AVER(size <= INT_MAX); /* see .assume.size */
   AVER(base == NULL);
+  AVER(sizeof(caddr_t) == sizeof(Addr));
+  AVER(sizeof(size_t) == sizeof(Size));
 
   zero_fd = open("/dev/zero", O_RDONLY);
   if(zero_fd == -1)
@@ -122,7 +126,7 @@ Res VMCreate(Space *spaceReturn, Size size, Addr base)
   addr = mmap((caddr_t)0, SizeAlignUp(sizeof(SpaceStruct), align),
               PROT_READ | PROT_WRITE, MAP_PRIVATE,
               zero_fd, (off_t)0);
-  if((int)addr == -1) {
+  if(addr == (caddr_t)-1) {
     int e = errno;
     AVER(e == ENOMEM); /* .assume.mmap.err */
     close(none_fd);
@@ -141,7 +145,7 @@ Res VMCreate(Space *spaceReturn, Size size, Addr base)
 
   /* See .assume.not-last. */
   addr = mmap((caddr_t)0, size, PROT_NONE, MAP_SHARED, none_fd, (off_t)0);
-  if((int)addr == -1) {
+  if(addr == (caddr_t)-1) {
     int e = errno;
     AVER(e == ENOMEM); /* .assume.mmap.err */
     close(none_fd);
@@ -182,10 +186,10 @@ void VMDestroy(Space space)
 
   close(vm->zero_fd);
   close(vm->none_fd);
-  r = munmap((caddr_t)vm->base, (int)AddrOffset(vm->base, vm->limit));
+  r = munmap((caddr_t)vm->base, (size_t)AddrOffset(vm->base, vm->limit));
   AVER(r == 0);
   r = munmap((caddr_t)space,
-             (int)SizeAlignUp(sizeof(SpaceStruct), vm->align));
+             (size_t)SizeAlignUp(sizeof(SpaceStruct), vm->align));
   AVER(r == 0);
 }
 
@@ -226,7 +230,6 @@ Res VMMap(Space space, Addr base, Addr limit)
   Size size;
 
   AVERT(VM, vm);
-  AVER(sizeof(int) == sizeof(Addr));
   AVER(base < limit);
   AVER(base >= vm->base);
   AVER(limit <= vm->limit);
@@ -239,10 +242,11 @@ Res VMMap(Space space, Addr base, Addr limit)
 
   size = AddrOffset(base, limit);
 
-  if((int)mmap((caddr_t)base, (int)size,
-               PROT_READ | PROT_WRITE | PROT_EXEC,
-               MAP_PRIVATE | MAP_FIXED,
-               vm->zero_fd, (off_t)0) == -1) {
+  if(mmap((caddr_t)base, (size_t)size,
+	  PROT_READ | PROT_WRITE | PROT_EXEC,
+	  MAP_PRIVATE | MAP_FIXED,
+	  vm->zero_fd, (off_t)0)
+     == (caddr_t)-1) {
     AVER(errno == ENOMEM); /* .assume.mmap.err */
     return ResMEMORY;
   }
@@ -260,7 +264,6 @@ void VMUnmap(Space space, Addr base, Addr limit)
   caddr_t addr;
 
   AVERT(VM, vm);
-  AVER(sizeof(int) == sizeof(Addr));
   AVER(base < limit);
   AVER(base >= vm->base);
   AVER(limit <= vm->limit);
@@ -274,10 +277,10 @@ void VMUnmap(Space space, Addr base, Addr limit)
 
   size = AddrOffset(base, limit);
 
-  addr = mmap((caddr_t)base, (int)size,
-              PROT_NONE, MAP_SHARED, vm->none_fd, (off_t)0);
-  AVER((int)addr != -1);
+  addr = mmap((caddr_t)base, (size_t)size,
+              PROT_NONE, MAP_SHARED | MAP_FIXED, vm->none_fd, (off_t)0);
+  AVER(addr == (caddr_t)base);
+  AVER(addr != (caddr_t)-1);
 
   vm->mapped -= size;
 }
-
