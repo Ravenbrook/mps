@@ -1,6 +1,6 @@
 /* impl.h.mpm: MEMORY POOL MANAGER DEFINITIONS
  *
- * $HopeName: MMsrc!mpm.h(MMdevel_action2.10) $
+ * $HopeName: MMsrc!mpm.h(MMdevel_action2.11) $
  * Copyright (C) 1996,1997 Harlequin Group, all rights reserved.
  */
 
@@ -197,13 +197,12 @@ extern void PoolDestroy(Pool pool);
 extern Res PoolAlloc(Addr *pReturn, Pool pool, Size size);
 extern void PoolFree(Pool pool, Addr old, Size size);
 extern Res PoolCondemn(Pool pool, Trace trace, Seg seg);
-extern void PoolGrey(Pool pool, Trace trace);
+extern void PoolGrey(Pool pool, Trace trace, Seg seg);
 extern Res PoolScan(ScanState ss, Pool pool, Seg seg);
 extern Res (PoolFix)(Pool pool, ScanState ss, Seg seg, Addr *refIO);
 #define PoolFix(pool, ss, seg, refIO) \
   ((*(pool)->class->fix)(pool, ss, seg, refIO))
-
-extern void PoolReclaim(Pool pool, Trace trace);
+extern void PoolReclaim(Pool pool, Trace trace, Seg seg);
 
 extern void PoolTrivFinish(Pool pool);
 extern Res PoolNoAlloc(Addr *pReturn, Pool pool, Size size);
@@ -221,10 +220,11 @@ extern void PoolNoBufferCover(Pool pool, Buffer buffer);
 extern Res PoolNoDescribe(Pool pool, mps_lib_FILE *stream);
 extern Res PoolTrivDescribe(Pool pool, mps_lib_FILE *stream);
 extern Res PoolNoCondemn(Pool pool, Trace trace, Seg seg);
-extern void PoolNoGrey(Pool pool, Trace trace);
+extern void PoolNoGrey(Pool pool, Trace trace, Seg seg);
+extern void PoolTrivGrey(Pool pool, Trace trace, Seg seg);
 extern Res PoolNoScan(ScanState ss, Pool pool, Seg seg);
 extern Res PoolNoFix(Pool pool, ScanState ss, Seg seg, Ref *refIO);
-extern void PoolNoReclaim(Pool pool, Trace trace);
+extern void PoolNoReclaim(Pool pool, Trace trace, Seg seg);
 
 
 /* Trace Interface -- see impl.c.trace */
@@ -394,6 +394,9 @@ extern Res FormatDescribe(Format format, mps_lib_FILE *stream);
 /* Reference Interface -- see impl.c.ref */
 
 extern Bool RankCheck(Rank rank);
+
+#define RankSetIsMember(rs, r)	BS_IS_MEMBER(rs, r)
+#define RankSetSingle(r)	BS_SINGLE(RankSet, r)
 
 #define RefSetZone(space, addr) \
   (((Word)(addr) >> space->zoneShift) & (WORD_WIDTH - 1))
