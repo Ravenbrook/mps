@@ -1,7 +1,7 @@
 /* impl.c.mpsliban: HARLEQUIN MEMORY POOL SYSTEM LIBRARY INTERFACE (ANSI)
  *
- * $HopeName: !mpsliban.c(trunk.10) $
- * Copyright (C) 1996, 1998 Harlequin Group plc.  All rights reserved.
+ * $HopeName: MMsrc!mpsliban.c(MM_epcore_brisling.1) $
+ * Copyright (C) 1998 Harlequin Limited.  All rights reserved.
  *
  * PURPOSE
  *
@@ -23,7 +23,8 @@
  * .sunos.warn: The MPM core header, ossu.h, is included so that this
  * file will compile without warnings under SunOS 4.1.  In order to
  * test whether to include it mpstd.h is included.  This hack must be
- * removed before the code is shipped.
+ * removed before the code is shipped.  .warn: Likewise, itimerspec for
+ * MPS_OS_IA, and osxc.h.
  *
  * .trans.file: The ANSI standard says (in section 7.9.1) that FILE is an
  * object type, and hence the casts between FILE and mps_lib_FILE (an 
@@ -32,18 +33,24 @@
  */
 
 #include "mpslib.h"
-#include <stdlib.h>
-#include <stdio.h>
-#include <string.h>
+
 #include "mpstd.h"              /* .sunos.warn */
+
+#ifdef MPS_OS_SU
+#include "ossu.h"
+#endif
+#ifdef MPS_OS_XC
+#include "osxc.h"
+#endif
+
 #ifdef MPS_OS_IA
 struct itimerspec; /* stop complaints from time.h */
 #endif
 #include <time.h>
 
-#ifdef MPS_OS_SU
-#include "ossu.h"
-#endif
+#include <stdlib.h>
+#include <stdio.h>
+#include <string.h>
 
 
 int mps_lib_get_EOF(void)
