@@ -1,6 +1,6 @@
 /* impl.c.arenacl: ARENA IMPLEMENTATION USING CLIENT MEMORY
  *
- * $HopeName: !arenacl.c(trunk.7) $
+ * $HopeName: MMsrc!arenacl.c(MMdevel_annotation.1) $
  * 
  * Copyright (C) 1996 Harlequin Group, all rights reserved.
  *
@@ -41,9 +41,10 @@
 #error "Client arena not configured"
 #endif
 
-SRCID(arenacl, "$HopeName: !arenacl.c(trunk.7) $");
+SRCID(arenacl, "$HopeName: MMsrc!arenacl.c(MMdevel_annotation.1) $");
 
-Bool ArenaCheck(Arena arena)
+/* See impl.h.mpm.arenacheck for behaviour constraint. */
+Bool (ArenaCheck)(Arena arena)
 {
   CHECKS(Arena,arena);
   CHECKL(RingCheck(&arena->chunkRing));

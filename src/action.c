@@ -1,18 +1,18 @@
 /* impl.c.action: STRATEGIC ACTION
  *
  * Copyright (C) 1997 Harlequin Group, all rights reserved.
- * $HopeName: !action.c(trunk.3) $
+ * $HopeName: MMsrc!action.c(MMdevel_annotation.1) $
  */
 
 #include "mpm.h"
 #include <float.h>	/* @@@@ for DBL_MAX */
 
-SRCID(action, "$HopeName: !action.c(trunk.3) $");
+SRCID(action, "$HopeName: MMsrc!action.c(MMdevel_annotation.1) $");
 
 
 /* ActionCheck -- check consistency of an Action structure */
 
-Bool ActionCheck(Action action)
+Bool (ActionCheck)(Action action)
 {
   CHECKS(Action, action);
   CHECKU(Pool, action->pool);

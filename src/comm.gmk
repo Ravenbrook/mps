@@ -1,6 +1,6 @@
 # impl.gmk.comm: COMMON GNUMAKEFILE FRAGMENT
 #
-# $HopeName: MMsrc!comm.gmk(MMdevel_annotation.2) $
+# $HopeName: MMsrc!comm.gmk(MMdevel_annotation.3) $
 # Copyright (C) 1995,1996,1997 Harlequin Group, all rights reserved
 #
 # DSCRIPTION
@@ -240,6 +240,8 @@ clean: phony
 
 # "target" builds all varieties of the target named in the TARGET macro.
 # %%VARIETY: Add a recursive make call for the new variety.
+# In fact, it builds all varieties needed for development and
+# internal customers.
 
 ifdef TARGET
 ifndef VARIETY
@@ -247,9 +249,6 @@ target: phony
 	$(MAKE) -f $(PFM).gmk VARIETY=hi variety
 	$(MAKE) -f $(PFM).gmk VARIETY=ci variety
 	$(MAKE) -f $(PFM).gmk VARIETY=ti variety
-	$(MAKE) -f $(PFM).gmk VARIETY=he variety
-	$(MAKE) -f $(PFM).gmk VARIETY=ce variety
-# variety.wi is not normally required
 endif
 endif
 

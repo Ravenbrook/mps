@@ -1,6 +1,6 @@
 /* impl.h.mpm: MEMORY POOL MANAGER DEFINITIONS
  *
- * $HopeName: MMsrc!mpm.h(MMdevel_annotation.2) $
+ * $HopeName: MMsrc!mpm.h(MMdevel_annotation.3) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  */
 
@@ -38,30 +38,16 @@
 
 #define AVER(cond)                  NOCHECK(cond)
 #define AVERT(type, val)            NOCHECK(type ## Check(val))
-#define AVER_COOL(cond)             NOCHECK(cond)
-#define AVERT_COOL(type,val)        NOCHECK(type ## Check(val))
-
-#elif defined(MPS_HOT)
-
-#define AVER(cond)                  ASSERT(cond)
-#define AVERT(type, val)            ASSERT(type ## Check(val))
-#define AVER_COOL(cond)             NOCHECK(cond)
-#define AVERT_COOL(type,val)        NOCHECK(type ## Check(val))
 
 #else
 
 #define AVER(cond)                  ASSERT(cond)
 #define AVERT(type, val)            ASSERT(type ## Check(val))
-#define AVER_COOL(cond)             ASSERT(cond)
-#define AVERT_COOL(type,val)        ASSERT(type ## Check(val))
 
 #endif
 
+/* CheckLevel -- Control check method behaviour; see impl.c.mpm */
 extern Word CheckLevel;
-#define CheckNone     ((Word)0)
-#define CheckShallow  ((Word)1)
-#define CheckDeep     ((Word)2)
-
 
 /* MPMCheck -- check MPM assumptions */
 
@@ -447,7 +433,12 @@ extern void SpaceFree(Space space, Addr base, Size size);
 
 extern Res ArenaCreate(Space *spaceReturn, Size size, Addr base);
 extern void ArenaDestroy(Space space);
-extern Bool ArenaCheck(Arena arena);
+/* .arenacheck: This shortcut for ArenaCheck must be consistent with
+   the function form. */
+extern Bool (ArenaCheck)(Arena arena);
+#ifdef MPS_HOT
+#define ArenaCheck(arena) CHECKT(Arena, arena)
+#endif
 extern Align ArenaAlign(Space space);
 extern Size ArenaReserved(Space space);
 extern Size ArenaCommitted(Space space);

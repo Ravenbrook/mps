@@ -1,6 +1,6 @@
 /* impl.c.mpm: GENERAL MPM SUPPORT
  *
- * $HopeName: MMsrc!mpm.c(MMdevel_annotation.1) $
+ * $HopeName: MMsrc!mpm.c(MMdevel_annotation.2) $
  * Copyright (C) 1996 Harlequin Group, all rights reserved.
  *
  * .readership: MM developers.
@@ -13,13 +13,14 @@
 
 #include "mpm.h"
 
-SRCID(mpm, "$HopeName: MMsrc!mpm.c(MMdevel_annotation.1) $");
+SRCID(mpm, "$HopeName: MMsrc!mpm.c(MMdevel_annotation.2) $");
 
-#ifdef MPS_HOT
-Word CheckLevel = CheckNone;
-#else
-Word CheckLevel = CheckShallow;
-#endif
+/* CheckLevel -- Control check level 
+ * This controls the behaviour of Check methods unless MPS_HOT 
+ * is defined, when it is effectively stuck at "CheckNONE".
+ */
+Word CheckLevel = CheckSHALLOW;
+
 
 /* MPMCheck -- test MPM assumptions */
 

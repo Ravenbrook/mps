@@ -1,6 +1,6 @@
 /* impl.h.check: ASSERTION INTERFACE
  *
- * $HopeName: MMsrc!check.h(MMdevel_annotation.1) $
+ * $HopeName: MMsrc!check.h(MMdevel_annotation.2) $
  *
  * This header defines a family of AVER and NOTREACHED macros. The
  * macros should be used to instrument and annotate code with
@@ -61,6 +61,31 @@ extern void AssertFail(const char *cond, const char *id,
 
 #define CHECKT(type, val)       ((val) != NULL && (val)->sig == type ## Sig)
 
+#if defined(MPS_WHITE_HOT)
+
+#define CHECKS(type, val) \
+  BEGIN NOCHECK(CHECKT(type, val)); NOTREACHED; END
+
+#define CHECKL(cond) \
+  BEGIN NOCHECK(cond); NOTREACHED; END
+
+#define CHECKD(type, val) \
+  BEGIN NOCHECK(CHECKT(type, val)); NOTREACHED; END
+
+#define CHECKU(type, val) \
+  BEGIN NOCHECK(CHECKT(type, val)); NOTREACHED; END
+
+#elif defined(MPS_HOT)
+
+/* CHECKS -- Check Signature */
+#define CHECKS(type, val)       CHECKC(CHECKT(type, val))
+
+#define CHECKL(cond)       NOCHECK(cond)
+#define CHECKD(type, val)  NOCHECK(CHECKT(type, val))
+#define CHECKU(type, val)  NOCHECK(CHECKT(type, val))
+
+#else /* COOL */
+
 /* CHECKS -- Check Signature */
 #define CHECKS(type, val)       CHECKC(CHECKT(type, val))
 
@@ -69,11 +94,11 @@ extern void AssertFail(const char *cond, const char *id,
 #define CHECKL(cond) \
   BEGIN \
     switch(CheckLevel) { \
-    case CheckNone: \
+    case CheckNONE: \
       NOOP; \
       break; \
-    case CheckShallow: \
-    case CheckDeep: \
+    case CheckSHALLOW: \
+    case CheckDEEP: \
       CHECKC(cond); \
       break; \
     default: \
@@ -86,13 +111,13 @@ extern void AssertFail(const char *cond, const char *id,
 #define CHECKD(type, val) \
   BEGIN \
     switch(CheckLevel) { \
-    case CheckNone: \
+    case CheckNONE: \
       NOOP; \
       break; \
-    case CheckShallow: \
+    case CheckSHALLOW: \
       CHECKC(CHECKT(type, val)); \
       break; \
-    case CheckDeep: \
+    case CheckDEEP: \
       CHECKC(type ## Check(val)); \
       break; \
     default: \
@@ -105,11 +130,11 @@ extern void AssertFail(const char *cond, const char *id,
 #define CHECKU(type, val) \
   BEGIN \
     switch(CheckLevel) { \
-    case CheckNone: \
+    case CheckNONE: \
       NOOP; \
       break; \
-    case CheckShallow: \
-    case CheckDeep: \
+    case CheckSHALLOW: \
+    case CheckDEEP: \
       CHECKC(CHECKT(type, val)); \
       break; \
     default: \
@@ -117,5 +142,7 @@ extern void AssertFail(const char *cond, const char *id,
       break; \
     } \
   END
+
+#endif /* MPS_HOT/MPS_WHITE_HOT */
 
 #endif /* check_h */

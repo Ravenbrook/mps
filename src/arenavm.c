@@ -1,6 +1,6 @@
 /* impl.c.arenavm: VIRTUAL MEMORY BASED ARENA IMPLEMENTATION
  *
- * $HopeName: !arenavm.c(trunk.28) $
+ * $HopeName: MMsrc!arenavm.c(MMdevel_annotation.1) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  *
  * This is the implementation of the Segment abstraction from the VM
@@ -37,7 +37,7 @@
 #include "mpm.h"
 
 
-SRCID(arenavm, "$HopeName: !arenavm.c(trunk.28) $");
+SRCID(arenavm, "$HopeName: MMsrc!arenavm.c(MMdevel_annotation.1) $");
 
 
 /* Space Arena Projection
@@ -271,8 +271,9 @@ Size ArenaCommitted(Space space)
 
 
 /* ArenaCheck -- check of the consistency of the arena structure */
+/* See impl.h.mpm.arenacheck for behaviour constraint. */
 
-Bool ArenaCheck(Arena arena)
+Bool (ArenaCheck)(Arena arena)
 {
   CHECKS(Arena, arena);
   CHECKD(VM, &arena->vmStruct);
