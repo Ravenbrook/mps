@@ -2,7 +2,7 @@
  *
  *                   ROOT IMPLEMENTATION
  *
- *  $HopeName: !root.c(trunk.14) $
+ *  $HopeName: MMsrc!root.c(MMdevel_remem.1) $
  *
  *  Copyright (C) 1995 Harlequin Group, all rights reserved
  *
@@ -11,7 +11,7 @@
 
 #include "mpm.h"
 
-SRCID(root, "$HopeName: !root.c(trunk.14) $");
+SRCID(root, "$HopeName: MMsrc!root.c(MMdevel_remem.1) $");
 
 Bool RootCheck(Root root)
 {
@@ -184,7 +184,7 @@ Res RootScan(ScanState ss, Root root)
   AVERT(ScanState, ss);
   AVER(root->rank == ss->rank);
 
-  if(!TraceSetIsMember(root->grey, ss->traceId))
+  if((root->grey & ss->traceSet) == 0)
     return ResOK;
 
   switch(root->var) {
@@ -218,7 +218,7 @@ Res RootScan(ScanState ss, Root root)
     NOTREACHED;
   }
 
-  root->grey = TraceSetDelete(root->grey, ss->traceId);
+  root->grey &= ~ss->traceSet;
 
   return ResOK;
 }
