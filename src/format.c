@@ -2,7 +2,7 @@
  *
  *           OBJECT FORMATS
  *
- *  $HopeName: MMsrc/!format.c(trunk.2)$
+ *  $HopeName: MMsrc/!format.c(MMdevel_protoposm_0.1)$
  *
  *  Copyright (C) 1995 Harlequin Group, all rights reserved
  */
@@ -35,6 +35,7 @@ Bool FormatIsValid(Format format, ValidationType validParam)
   AVER(format->move != NULL);
   AVER(format->isMoved != NULL);
   AVER(format->copy != NULL);
+  AVER(format->fill != NULL);
   return(TRUE);
 }
 
@@ -49,7 +50,8 @@ Error FormatCreate(Format *formatReturn, Space space,
                    FormatProbeMethod probe,
                    FormatMoveMethod move,
                    FormatIsMovedMethod isMoved,
-                   FormatCopyMethod copy)
+                   FormatCopyMethod copy,
+                   FormatFillMethod fill)
 {
   Format format;
   Error e;
@@ -70,6 +72,7 @@ Error FormatCreate(Format *formatReturn, Space space,
   format->move = move;
   format->isMoved = isMoved;
   format->copy = copy;
+  format->fill = fill;
 
 #ifdef DEBUG_SIGN
   SigInit(&FormatSigStruct, "Format");
