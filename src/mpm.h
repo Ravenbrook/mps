@@ -1,6 +1,6 @@
 /* impl.h.mpm: MEMORY POOL MANAGER DEFINITIONS
  *
- * $HopeName: !mpm.h(trunk.38) $
+ * $HopeName: MMsrc!mpm.h(MMdevel_remem_root.1) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  */
 
@@ -608,6 +608,9 @@ extern Bool RootCheck(Root root);
 extern Res RootDescribe(Root root, mps_lib_FILE *stream);
 extern Bool RootIsAtomic(Root root);
 extern Rank RootRank(Root root);
+extern RefSet RootSummary(Root root);
+extern Bool RootOfAddr(Root *rootReturn, Space space, Addr addr);
+extern void RootAccess(Root root, AccessSet mode);
 extern void RootGrey(Root root, Trace trace);
 extern Res RootScan(ScanState ss, Root root);
 extern Space RootSpace(Root root);

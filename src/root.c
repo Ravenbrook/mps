@@ -1,6 +1,6 @@
 /* impl.c.root: ROOT IMPLEMENTATION
  *
- * $HopeName: !root.c(trunk.22) $
+ * $HopeName: MMsrc!root.c(MMdevel_remem_root.1) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  *
  * .scope: This is the implementation of the root datatype.
@@ -10,7 +10,7 @@
 
 #include "mpm.h"
 
-SRCID(root, "$HopeName: !root.c(trunk.22) $");
+SRCID(root, "$HopeName: MMsrc!root.c(MMdevel_remem_root.1) $");
 
 
 /* RootVarCheck -- check a Root union discriminator
@@ -42,6 +42,22 @@ Bool RootCheck(Root root)
   CHECKL(RingCheck(&root->spaceRing));
   CHECKL(RankCheck(root->rank));
   CHECKL(TraceSetCheck(root->grey));
+  CHECKL(BoolCheck(root->immutable));
+  CHECKL(BoolCheck(root->protectable));
+  /* .check.wb: If summary isn't universal then the root must either */
+  /* be immutable, or write protected. */
+  CHECKL(root->summary == RefSetUNIV ||
+         (root->protection & AccessWRITE) ||
+         root->immutable);
+  /* Only protectable roots may be protected. */
+  CHECKL(!root->protectable || root->protection != AccessSetEMPTY);
+  if(root->protectable) {
+    CHECKL(root->protBase != (Addr)0);
+    CHECKL(root->protBase < root->protLimit);
+  } else {
+    CHECKL(root->protBase == (Addr)0);
+    CHECKL(root->protLimit == (Addr)0);
+  }
   /* Don't need to check var here, because of the switch below */
   switch(root->var)
   {
@@ -78,7 +94,9 @@ Bool RootCheck(Root root)
 }
 
 
-/* .create: create, RootCreateTable, RootCreateReg, RootCreateFmt, 
+/* rootCreate -- common root creation
+ *
+ * .create: create, RootCreateTable, RootCreateReg, RootCreateFmt, 
  *   RootCreateFun:
  * RootCreate* set up the appropriate union member, and call the generic
  * create function to do the actual creation 
@@ -86,9 +104,9 @@ Bool RootCheck(Root root)
  * See design.mps.root.init for initial value
  */
 
-static Res create(Root *rootReturn, Space space,
-                  Rank rank, RootVar type,
-                  union RootUnion *theUnionP)
+static Res rootCreate(Root *rootReturn, Space space,
+                      Rank rank, RootVar type,
+                      union RootUnion *theUnionP)
 {
   Root root;
   Res res;
@@ -110,6 +128,11 @@ static Res create(Root *rootReturn, Space space,
   root->the  = *theUnionP;
   root->grey = TraceSetEMPTY;
   root->summary = RefSetUNIV;
+  root->immutable = FALSE;
+  root->protectable = FALSE;
+  root->protection = AccessSetEMPTY;
+  root->protBase = (Addr)0;
+  root->protLimit = (Addr)0;
 
   /* See design.mps.space.root-ring */
   RingInit(&root->spaceRing);
@@ -140,7 +163,7 @@ Res RootCreateTable(Root *rootReturn, Space space,
   theUnion.table.base = base;
   theUnion.table.limit = limit;
 
-  return create(rootReturn, space, rank, RootTABLE, &theUnion);
+  return rootCreate(rootReturn, space, rank, RootTABLE, &theUnion);
 }
 
 Res RootCreateTableMasked(Root *rootReturn, Space space,
@@ -160,7 +183,8 @@ Res RootCreateTableMasked(Root *rootReturn, Space space,
   theUnion.tableMasked.limit = limit;
   theUnion.tableMasked.mask = mask;
 
-  return create(rootReturn, space, rank, RootTABLE_MASKED, &theUnion);
+  return rootCreate(rootReturn, space, rank, RootTABLE_MASKED,
+                    &theUnion);
 }
 
 Res RootCreateReg(Root *rootReturn, Space space,
@@ -180,7 +204,7 @@ Res RootCreateReg(Root *rootReturn, Space space,
   theUnion.reg.p = p;
   theUnion.reg.s = s;
 
-  return create(rootReturn, space, rank, RootREG, &theUnion);
+  return rootCreate(rootReturn, space, rank, RootREG, &theUnion);
 }
 
 Res RootCreateFmt(Root *rootReturn, Space space,
@@ -200,7 +224,7 @@ Res RootCreateFmt(Root *rootReturn, Space space,
   theUnion.fmt.base = base;
   theUnion.fmt.limit = limit;
 
-  return create(rootReturn, space, rank, RootFMT, &theUnion);
+  return rootCreate(rootReturn, space, rank, RootFMT, &theUnion);
 }
 
 Res RootCreateFun(Root *rootReturn, Space space,
@@ -219,7 +243,7 @@ Res RootCreateFun(Root *rootReturn, Space space,
   theUnion.fun.p = p;
   theUnion.fun.s = s;
 
-  return create(rootReturn, space, rank, RootFUN, &theUnion);
+  return rootCreate(rootReturn, space, rank, RootFUN, &theUnion);
 }
 
 void RootDestroy(Root root)
@@ -254,58 +278,166 @@ void RootGrey(Root root, Trace trace)
   root->grey = TraceSetAdd(root->grey, trace->ti);
 }
 
+
+/* RootSummary -- return the summary of a root */
+
+RefSet RootSummary(Root root)
+{
+  AVERT(Root, root);
+  return root->summary;
+}
+
+
+/* rootSetSummary -- set the summary of a root
+ *
+ * .set-summary: The summary of a root can only be set less than
+ * RefSetUNIV if it is immutable or can be write protected.  Otherwise
+ * we can't assume that the mutator won't write into it and invalidate
+ * the summary.
+ */
+
+static void rootSetSummary(Root root, RefSet summary)
+{
+  AVERT(Root, root);
+  /* Can't check summary. */
+
+  if(root->immutable)
+    root->summary = summary;
+  else if(root->protectable) {
+    if(summary == RefSetUNIV) {
+      root->summary = summary;
+      root->protection &= ~AccessWRITE;
+    } else {
+      root->protection |= AccessWRITE;
+      root->summary = summary;
+    }
+  } else
+    AVER(root->summary == RefSetUNIV);
+}
+
+
+Bool RootOfAddr(Root *rootReturn, Space space, Addr addr)
+{
+  Ring node;
+
+  AVER(rootReturn != NULL);
+  AVERT(Space, space);
+  /* Can't check addr */
+
+  RING_FOR(node, SpaceRootRing(space)) {
+    Root root = RING_ELT(Root, spaceRing, node);
+    if(root->protectable &&
+       root->protBase <= addr &&
+       addr < root->protLimit) {
+      *rootReturn = root;
+      return TRUE;
+    }
+  }
+
+  return FALSE;
+}
+
+
+void RootAccess(Root root, AccessSet mode)
+{
+  AVERT(Root, root);
+  /* Can't check mode. */
+  AVER((root->protection & mode) != AccessSetEMPTY);
+  AVER(mode == AccessWRITE); /* only write protection supported */
+
+  rootSetSummary(root, RefSetUNIV);
+
+  /* Access must now be allowed. */
+  AVER((root->protection & mode) == AccessSetEMPTY);
+}
+
+
+/* RootScan -- scan a root */
+
 Res RootScan(ScanState ss, Root root)
 {
   Res res;
+  Space space;          /* space which owns the root */
+  RefSet summary;       /* caller's summary */
 
   AVERT(Root, root);
   AVERT(ScanState, ss);
   AVER(root->rank == ss->rank);
+  AVER(root->space == ss->space);
 
   if(TraceSetInter(root->grey, ss->traces) == TraceSetEMPTY)
     return ResOK;
 
+  space = root->space;
+  summary = ss->summary;
+  ss->summary = RefSetEMPTY;
+
+  /* If the root is protected, lift the protection while scanning. */
+  /* It's only safe to do this if the mutator's other threads are */
+  /* suspended.  (This is a sort of mini-shield.) */
+  if(root->protection != AccessSetEMPTY) {
+    AVER(space->suspended);
+    ProtSet(root->protBase, root->protLimit, AccessSetEMPTY);
+  }
+
   switch(root->var) {
-    case RootTABLE:
-    res = TraceScanArea(ss, root->the.table.base, root->the.table.limit);
-    if(res != ResOK) return res;
+  case RootTABLE:
+    res = TraceScanArea(ss,
+                        root->the.table.base,
+                        root->the.table.limit);
+    if(res != ResOK)
+      goto failScan;
     break;
 
-    case RootTABLE_MASKED:
+  case RootTABLE_MASKED:
     res = TraceScanAreaMasked(ss,
                               root->the.tableMasked.base,
                               root->the.tableMasked.limit,
                               root->the.tableMasked.mask);
-    if(res != ResOK) return res;
+    if(res != ResOK)
+      goto failScan;
     break;
 
-    case RootFUN:
+  case RootFUN:
     res = (*root->the.fun.scan)(ss, root->the.fun.p, root->the.fun.s);
     if(res != ResOK)
-      return res;
+      goto failScan;
     break;
 
-    case RootREG:
+  case RootREG:
     res = (*root->the.reg.scan)(ss, root->the.reg.thread,
-                              root->the.reg.p, root->the.reg.s);
+                                root->the.reg.p, root->the.reg.s);
     if(res != ResOK)
-      return res;
+      goto failScan;
     break;
 
-    case RootFMT:
+  case RootFMT:
     res = (*root->the.fmt.scan)(ss, root->the.fmt.base,
-                              root->the.fmt.limit);
+				root->the.fmt.limit);
     if(res != ResOK)
-      return res;
+      goto failScan;
     break;
 
-    default:
+  default:
     NOTREACHED;
+    res = ResUNIMPL;
+    goto failScan;
   }
 
   root->grey = TraceSetDiff(root->grey, ss->traces);
+  rootSetSummary(root, ss->summary);
+  ss->summary = RefSetUnion(summary, RootSummary(root));
+
+  if(root->protection != AccessSetEMPTY)
+    ProtSet(root->protBase, root->protLimit, root->protection);
 
   return ResOK;
+
+failScan:
+  ss->summary = summary;
+  if(root->protection != AccessSetEMPTY)
+    ProtSet(root->protBase, root->protLimit, root->protection);
+  return res;
 }
 
 /* Must be thread-safe.  See design.mps.interface.c.thread-safety. */
@@ -330,6 +462,11 @@ Res RootDescribe(Root root, mps_lib_FILE *stream)
                "  rank $U\n", (WriteFU)root->rank,
                "  grey $B\n", (WriteFB)root->grey,
                "  summary $B\n", (WriteFB)root->summary,
+               "  immutable $S\n", root->immutable ? "TRUE" : "FALSE",
+               "  protectable $S\n", root->protectable ? "TRUE" : "FALSE",
+               "  protection $B\n", (WriteFB)root->protection,
+               "  protBase $A\n", (WriteFA)root->protBase,
+               "  protLimit $A\n", (WriteFA)root->protLimit,
                NULL);
   if(res != ResOK) return res;
 

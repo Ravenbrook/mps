@@ -1,6 +1,6 @@
 /* impl.h.mpmst: MEMORY POOL MANAGER DATA STRUCTURES
  *
- * $HopeName: !mpmst.h(trunk.30) $
+ * $HopeName: MMsrc!mpmst.h(MMdevel_remem_root.1) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  *
  * .readership: MM developers.
@@ -509,6 +509,11 @@ typedef struct RootStruct {
   Rank rank;                    /* rank of references in this root */
   TraceSet grey;                /* traces for which root is grey */
   RefSet summary;               /* summary of references in root */
+  Bool immutable;               /* is the root immutable? */
+  Bool protectable;             /* is the root protectable? */
+  AccessSet protection;         /* protection mode */
+  Addr protBase;                /* base address of protected area */
+  Addr protLimit;               /* limit address of protected area */
   RootVar var;                  /* union discriminator */
   union RootUnion {
     struct {
