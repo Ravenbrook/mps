@@ -1,12 +1,12 @@
 /* impl.c.arenavm: VIRTUAL MEMORY BASED ARENA IMPLEMENTATION
  *
- * $HopeName: MMsrc!arenavm.c(MMdevel_restr.3) $
+ * $HopeName: MMsrc!arenavm.c(MMdevel_restr.4) $
  * Copyright (C) 1996 Harlequin Group, all rights reserved.
  */
 
 #include "mpm.h"
 
-SRCID(arenavm, "$HopeName: MMsrc!arenavm.c(MMdevel_restr.3) $");
+SRCID(arenavm, "$HopeName: MMsrc!arenavm.c(MMdevel_restr.4) $");
 
 #define SpaceArena(space)	(&(space)->arenaStruct)
 
@@ -110,18 +110,14 @@ Res ArenaCreate(Space *spaceReturn, Size size)
 
   /* Mark the pages that are occupied by the tables as allocated, and */
   /* the rest as free. */
+  /* .seg.null: for the moment preallocated pages are marked with
+   * a null page and seg
+   */
   t_pages = (f_size + p_size) >> arena->pageShift;
   for(i = 0; i < arena->pages; ++i) {
-    Seg seg;
     BTSet(arena->freeTable, i, i >= t_pages);
-    seg = &arena->pageTable[i].the.head;
-    seg->pool = (Pool)NULL;
-
-    seg->p = NULL;
-    seg->single = TRUE;
-    seg->pm = ProtNONE; /* see impl.c.shield */
-    seg->sm = ProtNONE;
-    seg->depth = 0;
+    arena->pageTable[i].the.tail.pool = NULL;
+    arena->pageTable[i].the.tail.seg = NULL;
   }
 
   /* Set the zone shift to divide the arena into the same number of */
@@ -404,7 +400,10 @@ Bool SegOfAddr(Seg *segReturn, Space space, Addr addr)
       if(page->the.head.pool != NULL)
         *segReturn = &page->the.head;
       else
-        *segReturn = page->the.tail.seg;
+	if(page->the.tail.seg == NULL)    /* .seg.null */
+	  return FALSE;
+	else
+	  *segReturn = page->the.tail.seg;
       return TRUE;
     }
   }
