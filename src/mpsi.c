@@ -1,6 +1,6 @@
 /* impl.c.mpsi: MEMORY POOL SYSTEM C INTERFACE LAYER
  *
- * $HopeName: MMsrc!mpsi.c(MM_epcore_brisling.2) $
+ * $HopeName: MMsrc!mpsi.c(MM_epcore_brisling.3) $
  * Copyright (C) 1997, 1999 Harlequin Group plc.  All rights reserved.
  *
  * .purpose: This code bridges between the MPS interface to C,
@@ -54,7 +54,7 @@
 #include "mpsavm.h" /* only for mps_space_create */
 #include "sac.h"
 
-SRCID(mpsi, "$HopeName: MMsrc!mpsi.c(MM_epcore_brisling.2) $");
+SRCID(mpsi, "$HopeName: MMsrc!mpsi.c(MM_epcore_brisling.3) $");
 
 
 /* mpsi_check -- check consistency of interface mappings
@@ -117,26 +117,31 @@ static Bool mpsi_check(void)
   /* Check sac_s/ExternalSACStruct compatibility by hand */
   /* See impl.h.mps.sac and impl.h.sac.sac. */
   CHECKL(sizeof(mps_sac_s) == sizeof(ExternalSACStruct));
-  CHECKL(CHECKFIELD(mps_sac_s, middle, ExternalSACStruct, middle));
-  CHECKL(CHECKFIELD(mps_sac_s, trapped, ExternalSACStruct, trapped));
-  CHECKL(CHECKFIELDAPPROX(mps_sac_s, freelists, ExternalSACStruct, freelists));
-  CHECKL(sizeof(mps_sac_freelist_block_s) == sizeof(SACFreeListBlockStruct));
-  CHECKL(CHECKFIELD(mps_sac_freelist_block_s, size,
+  CHECKL(CHECKFIELD(mps_sac_s, mps_middle, ExternalSACStruct, middle));
+  CHECKL(CHECKFIELD(mps_sac_s, mps_trapped,
+                    ExternalSACStruct, trapped));
+  CHECKL(CHECKFIELDAPPROX(mps_sac_s, mps_freelists,
+                          ExternalSACStruct, freelists));
+  CHECKL(sizeof(mps_sac_freelist_block_s)
+         == sizeof(SACFreeListBlockStruct));
+  CHECKL(CHECKFIELD(mps_sac_freelist_block_s, mps_size,
                     SACFreeListBlockStruct, size));
-  CHECKL(CHECKFIELD(mps_sac_freelist_block_s, count,
+  CHECKL(CHECKFIELD(mps_sac_freelist_block_s, mps_count,
                     SACFreeListBlockStruct, count));
-  CHECKL(CHECKFIELD(mps_sac_freelist_block_s, count_max,
+  CHECKL(CHECKFIELD(mps_sac_freelist_block_s, mps_count_max,
                     SACFreeListBlockStruct, countMax));
-  CHECKL(CHECKFIELD(mps_sac_freelist_block_s, blocks,
+  CHECKL(CHECKFIELD(mps_sac_freelist_block_s, mps_blocks,
                     SACFreeListBlockStruct, blocks));
 
   /* Check sac_classes_s/SACClassesStruct compatibility by hand */
   /* See impl.h.mps.sacc and impl.h.sac.sacc. */
   CHECKL(sizeof(mps_sac_classes_s) == sizeof(SACClassesStruct));
-  CHECKL(CHECKFIELD(mps_sac_classes_s, block_size, SACClassesStruct, blockSize));
-  CHECKL(CHECKFIELD(mps_sac_classes_s, cached_count,
+  CHECKL(CHECKFIELD(mps_sac_classes_s, mps_block_size,
+                    SACClassesStruct, blockSize));
+  CHECKL(CHECKFIELD(mps_sac_classes_s, mps_cached_count,
                     SACClassesStruct, cachedCount));
-  CHECKL(CHECKFIELD(mps_sac_classes_s, frequency, SACClassesStruct, frequency));
+  CHECKL(CHECKFIELD(mps_sac_classes_s, mps_frequency,
+                    SACClassesStruct, frequency));
 
   /* Check ss_s/ScanStateStruct compatibility by hand */
   /* .check.ss: See impl.h.mps.ss and impl.h.mpmst.ss. */
@@ -1051,10 +1056,10 @@ void mps_sac_flush(mps_sac_t mps_sac)
 }
 
 
-/* mps_sac_fill -- alloc an object, and perhaps fill the cache */
+/* _mps_sac_fill -- alloc an object, and perhaps fill the cache */
 
-mps_res_t mps_sac_fill(mps_addr_t *p_o, mps_sac_t mps_sac, size_t size,
-                       mps_bool_t has_reservoir_permit)
+mps_res_t _mps_sac_fill(mps_addr_t *p_o, mps_sac_t mps_sac, size_t size,
+                        mps_bool_t has_reservoir_permit)
 {
   SAC sac = SACOfExternalSAC((ExternalSAC)mps_sac);
   Arena arena;
@@ -1077,9 +1082,9 @@ mps_res_t mps_sac_fill(mps_addr_t *p_o, mps_sac_t mps_sac, size_t size,
 }
 
 
-/* mps_sac_empty -- free an object, and perhaps empty the cache */
+/* _mps_sac_empty -- free an object, and perhaps empty the cache */
 
-void mps_sac_empty(mps_sac_t mps_sac, mps_addr_t p, size_t size)
+void _mps_sac_empty(mps_sac_t mps_sac, mps_addr_t p, size_t size)
 {
   SAC sac = SACOfExternalSAC((ExternalSAC)mps_sac);
   Arena arena;
