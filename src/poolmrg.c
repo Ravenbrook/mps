@@ -2,7 +2,7 @@
  * 
  * MANUAL RANK GUARDIAN POOL
  * 
- * $HopeName: MMsrc!poolmrg.c(MMdevel_drj_message.6) $
+ * $HopeName: MMsrc!poolmrg.c(MMdevel_drj_message.7) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  *
  * READERSHIP
@@ -31,7 +31,7 @@
 #include "mpm.h"
 #include "poolmrg.h"
 
-SRCID(poolmrg, "$HopeName: MMsrc!poolmrg.c(MMdevel_drj_message.6) $");
+SRCID(poolmrg, "$HopeName: MMsrc!poolmrg.c(MMdevel_drj_message.7) $");
 
 
 #define MRGSig          ((Sig)0x519369B0) /* SIGnature MRG POol */
@@ -289,7 +289,7 @@ static Res MRGGroupScan(ScanState ss, MRGGroup group, MRG mrg)
       if(res != ResOK) 
         return res;
       
-      if(ss->rank == RankFINAL && !ss->wasMarked) {     /* .improve.rank */
+      if(ss->rank == RankFINAL && !ss->wasMarked) { /* .improve.rank */
         MRGFinalize(space, group, i);
       }
     }
@@ -369,7 +369,8 @@ static Res MRGAlloc(Addr *pReturn, Pool pool, Size size)
   /* design.mps.poolmrg.alloc.grow */
 
   if(f == &mrg->free) {                 /* (Ring has no elements) */
-    res = MRGGroupCreate(&junk, mrg);   /* .group.useless: group isn't used */
+    /* .group.useless: group isn't used */
+    res = MRGGroupCreate(&junk, mrg);   
     if(res != ResOK) 
       return res;
     
