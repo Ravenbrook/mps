@@ -2,7 +2,7 @@
  *
  *            Leaf Object Pool Class Coverage Test
  *
- *  $HopeName: !locv.c(trunk.8) $
+ *  $HopeName: MMsrc!locv.c(MMdevel_sw_eq.1) $
  *
  *  Copyright (C) 1996 Harlequin Group, all rights reserved
  *
@@ -42,6 +42,7 @@ main(void)
 {
   mps_space_t space;
   mps_pool_t pool;
+  mps_pool_pref_t pref;
   mps_fmt_t format;
   mps_ap_t ap;
   mps_addr_t p;
@@ -55,7 +56,10 @@ main(void)
       "RootCreate");
 
   die(mps_fmt_create_A(&format, space, &locv_fmt), "FormatCreate");
-  die(mps_pool_create(&pool, space, mps_class_lo(), format), "LOCreate");
+
+  die(mps_pool_pref_create(&pref, space), "pool_pref_create");
+  die(mps_pool_create(&pool, pref, mps_class_lo(), space, format), "LOCreate");
+  mps_pool_pref_destroy(pref, space);
 
   die(mps_ap_create(&ap, pool, MPS_RANK_EXACT), "APCreate");
 
