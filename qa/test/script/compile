@@ -1,5 +1,5 @@
 #!/usr/local/perl
-# $HopeName: MMQA_harness!script:compile(MMQA_harness_dev.1) $
+# $HopeName: MMQA_harness!script:compile(MMQA_harness_dev.2) $
 #
 # provides subroutines to compile or compile and link
 # tests and test libraries.
@@ -95,6 +95,7 @@ sub compile_and_link {
 
  while (<COMLINK>) {
   $compoutput .= $_;
+  print $_;
  }
  close(COMLINK);
 
