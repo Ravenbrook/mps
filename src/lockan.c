@@ -1,6 +1,6 @@
 /* impl.c.lockan: ANSI RECURSIVE LOCKS
  *
- * $HopeName: !lockan.c(trunk.8) $
+ * $HopeName: MMsrc!lockan.c(MMdevel_tony_lock.1) $
  * Copyright (C) 1995, 1998 Harlequin Group plc.  All rights reserved.
  *
  * .purpose: This is a trivial implementation of recursive locks
@@ -13,8 +13,19 @@
 
 #include "mpm.h"
 
-SRCID(lockan, "$HopeName: !lockan.c(trunk.8) $");
+SRCID(lockan, "$HopeName: MMsrc!lockan.c(MMdevel_tony_lock.1) $");
 
+
+typedef struct LockStruct {     /* ANSI fake lock structure */
+  Sig sig;                      /* design.mps.sig */
+  unsigned long claims;         /* # claims held by owner */
+} LockStruct;
+
+
+size_t LockSize(void)
+{
+  return sizeof(LockStruct);
+}
 
 Bool LockCheck(Lock lock)
 {
@@ -83,4 +94,14 @@ void LockClaimGlobalRecursive(void)
 void LockReleaseGlobalRecursive(void)
 {
   LockReleaseRecursive(globalLock);
+}
+
+void LockClaimGlobal(void)
+{
+  LockClaim(globalLock);
+}
+
+void LockReleaseGlobal(void)
+{
+  LockReleaseMPM(globalLock);
 }

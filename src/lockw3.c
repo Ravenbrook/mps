@@ -1,6 +1,6 @@
 /* impl.c.lockw3: RECURSIVE LOCKS IN WIN32
  *
- * $HopeName: !lockw3.c(trunk.11) $
+ * $HopeName: MMsrc!lockw3.c(MMdevel_tony_lock.1) $
  * Copyright (C) 1995, 1997, 1998 Harlequin Group plc.  All rights reserved.
  *
  * .design: These are implemented using critical sections.
@@ -29,8 +29,21 @@
 
 #include "mpswin.h"
 
-SRCID(lockw3, "$HopeName: !lockw3.c(trunk.11) $");
+SRCID(lockw3, "$HopeName: MMsrc!lockw3.c(MMdevel_tony_lock.1) $");
 
+
+/* .lock.win32: Win32 lock structure; uses CRITICAL_SECTION */
+typedef struct LockStruct {
+  Sig sig;                      /* design.mps.sig */
+  unsigned long claims;         /* # claims held by the owning thread */
+  CRITICAL_SECTION cs;          /* Win32's recursive lock thing */
+} LockStruct;
+
+
+size_t LockSize(void)
+{
+  return sizeof(LockStruct);
+}
 
 Bool LockCheck(Lock lock)
 {
@@ -97,7 +110,8 @@ static LockStruct globalLockStruct;
 static Lock globalLock = &globalLockStruct;
 static Bool globalLockInit = FALSE; /* TRUE iff globalLock initialized */
 
-void LockClaimGlobalRecursive(void)
+
+static void lockEnsureGlobalLock(void)
 {
   /* Ensure the global lock has been initialized */
   /* There is a race condition initializing the lock. */
@@ -105,6 +119,11 @@ void LockClaimGlobalRecursive(void)
     LockInit(globalLock);
     globalLockInit = TRUE;
   }
+}
+
+void LockClaimGlobalRecursive(void)
+{
+  lockEnsureGlobalLock();
   AVER(globalLockInit);
   LockClaimRecursive(globalLock);
 }
@@ -113,4 +132,17 @@ void LockReleaseGlobalRecursive(void)
 {
   AVER(globalLockInit);
   LockReleaseRecursive(globalLock);
+}
+
+void LockClaimGlobal(void)
+{
+  lockEnsureGlobalLock();
+  AVER(globalLockInit);
+  LockClaim(globalLock);
+}
+
+void LockReleaseGlobal(void)
+{
+  AVER(globalLockInit);
+  LockReleaseMPM(globalLock);
 }
