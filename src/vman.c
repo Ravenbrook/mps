@@ -1,6 +1,6 @@
 /* impl.c.vman: ANSI VM: MALLOC-BASED PSUEDO MEMORY MAPPING
  *
- * $HopeName: MMsrc!vman.c(trunk.15) $
+ * $HopeName: MMsrc!vman.c(MMdevel_arenaclass.2) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  */
 
@@ -13,7 +13,7 @@
 #include <stdlib.h>     /* for malloc and free */
 #include <string.h>     /* for memset */
 
-SRCID(vman, "$HopeName: MMsrc!vman.c(trunk.15) $");
+SRCID(vman, "$HopeName: MMsrc!vman.c(MMdevel_arenaclass.2) $");
 
 Bool VMCheck(VM vm)
 {
@@ -65,7 +65,7 @@ Res VMInit(VM vm, Size size, Addr base)
 
   AVERT(VM, vm);
   
-  EVENT4(VMCreate, vm, arena, vm->base, vm->limit);
+  EVENT3(VMCreate, vm, vm->base, vm->limit);
 
   return ResOK;
 }
