@@ -1,6 +1,6 @@
 /* impl.h.mpm: MEMORY POOL MANAGER DEFINITIONS
  *
- * $HopeName: MMsrc!mpm.h(MMdevel_restr.5) $
+ * $HopeName: MMsrc!mpm.h(MMdevel_restr.6) $
  * Copyright (C) 1996 Harlequin Group, all rights reserved.
  */
 
@@ -180,8 +180,8 @@ extern void SpaceDestroy(Space space);
 extern Bool SpaceCheck(Space space);
 extern Res SpaceDescribe(Space space, Lib_FILE *stream);
 extern Bool SpaceAccess(Addr addr, ProtMode mode);
-extern void SpaceLockClaim(Space space);
-extern void SpaceLockRelease(Space space);
+extern void SpaceEnter(Space space);
+extern void SpaceLeave(Space space);
 extern void SpacePoll(Space space);
 extern Res SpaceAlloc(Addr *baseReturn, Space space, Size size);
 extern void SpaceFree(Space space, Addr base, Size size);
@@ -199,6 +199,8 @@ extern Res ArenaCreate(Space *spaceReturn, Size size);
 extern void ArenaDestroy(Space space);
 extern Bool ArenaCheck(Arena arena);
 extern Align ArenaAlign(Space space);
+extern Size ArenaReserved(Space space);
+extern Size ArenaCommitted(Space space);
 extern Res SegAlloc(Seg *segReturn, Space space, Size size, Pool pool);
 extern void SegFree(Space space, Seg seg);
 extern Addr SegBase(Space space, Seg seg);
@@ -291,7 +293,7 @@ extern Bool RankCheck(Rank rank);
 #define RefSetUnion(rs1, rs2)	((rs1) | (rs2))
 #define RefSetInter(rs1, rs2)	((rs1) & (rs2))
 #define RefSetZone(space, addr) \
-  (((addr) >> space->zoneShift) & (WORD_WIDTH - 1))
+  (((Word)(addr) >> space->zoneShift) & (WORD_WIDTH - 1))
 #define RefSetAdd(space, rs, addr) \
   ((rs) | ((RefSet)1 << RefSetZone(space, addr)))
 #define RefSetIsMember(space, rs, addr) \
@@ -318,6 +320,7 @@ extern void ProtSetup(void);
 extern void ProtSet(Addr base, Addr limit, ProtMode mode);
 extern void ProtTramp(void **resultReturn, void *(*f)(void *, size_t),
                       void *p, size_t s);
+extern void ProtSync(Space space);
 
 
 /* Location Dependency -- see impl.c.ld */
