@@ -1,6 +1,6 @@
 /* impl.c.arena: ARENA IMPLEMENTATION
  *
- * $HopeName: !arena.c(trunk.44) $
+ * $HopeName: MMsrc!arena.c(MMdevel_tony_lifetime.1) $
  * Copyright (C) 1998. Harlequin Group plc. All rights reserved.
  *
  * .readership: Any MPS developer
@@ -35,8 +35,10 @@
 /* finalization */
 #include "poolmrg.h"
 #include "mps.h"
+#include "mpsdt.h" /* for deathtime tracking */
 
-SRCID(arena, "$HopeName: !arena.c(trunk.44) $");
+SRCID(arena, "$HopeName: MMsrc!arena.c(MMdevel_tony_lifetime.1) $");
+
 
 
 /* All static data objects are declared here. See .static */
@@ -105,6 +107,9 @@ Bool ArenaCheck(Arena arena)
   /* no check possible on arena->pollThreshold */
   CHECKL(BoolCheck(arena->insidePoll));
   CHECKL(BoolCheck(arena->clamped));
+  CHECKL(BoolCheck(arena->trackDeathtimes));
+  /* no check possible on arena->trackThreshold */
+  /* no check possible on arena->trackFreq */
 
   CHECKL(BoolCheck(arena->bufferLogging));
   CHECKL(arena->fillMutatorSize >= 0.0);
@@ -239,6 +244,9 @@ void ArenaInit(Arena arena, ArenaClass class)
   arena->pollThreshold = 0.0;
   arena->insidePoll = FALSE;
   arena->clamped = FALSE;
+  arena->trackDeathtimes = FALSE;
+  arena->trackThreshold = 0.0;
+  arena->trackFreq = ARENA_TRACK_MAX_DEFAULT;
   arena->epoch = (Epoch)0;              /* impl.c.ld */
   arena->prehistory = RefSetEMPTY;
   for(i = 0; i < ARENA_LD_LENGTH; ++i)
@@ -519,6 +527,29 @@ Bool ArenaAccess(Addr addr, AccessSet mode, MutatorFaultContext context)
 }
 
 
+/* ArenaActionsForDeathtimes -- trigger actions for deathtime tracking
+ *
+ * Perform a full collection frequently. There's little point being 
+ * incremental in any way - so just stop-and-go.
+ */
+static void ArenaActionsForDeathtimes(Arena arena)
+{
+  Res res;
+  double size;
+
+  AVERT(Arena, arena);
+
+  size = arena->fillMutatorSize;
+  if(size < arena->trackThreshold)
+    return;
+  res = ArenaCollect(arena);
+  AVER(res == ResOK);
+  ArenaRelease(arena);
+  size = arena->fillMutatorSize;
+  arena->trackThreshold = size + arena->trackFreq;
+  AVER(arena->trackThreshold > size); /* enough precision? */
+}
+
 /* ArenaPoll -- trigger periodic actions
  *
  * Poll all background activities to see if they need to do anything.
@@ -558,8 +589,13 @@ void ArenaPoll(Arena arena)
 
   arena->insidePoll = TRUE;
 
-  /* Poll actions to see if any new action is to be taken. */
-  ActionPoll(arena);
+  if (arena->trackDeathtimes) {
+    /* User alternative collection policy for tracking deathtimes */
+    ArenaActionsForDeathtimes(arena);
+  } else {
+    /* Poll actions to see if any new action is to be taken. */
+    ActionPoll(arena);
+  }
 
   /* Temporary hacky progress control added here and in trace.c */
   /* for change.dylan.honeybee.170466, and substantially modified */
@@ -581,6 +617,50 @@ void ArenaPoll(Arena arena)
 }
 #endif
 
+
+void ArenaTrackFrequencySet(Arena arena, double freq)
+{
+  AVERT(Arena, arena);
+  arena->trackFreq = freq;
+}
+
+Res ArenaStartTrackingDeathtimes(Arena arena)
+{
+  Res res;
+
+  AVERT(Arena, arena);
+  AVER(arena->trackDeathtimes == FALSE);
+
+  res = (Res)mps_dtio_create();
+  if(res != ResOK) 
+    return res;
+  arena->trackDeathtimes = TRUE;
+
+  return ResOK;
+}
+ 
+Res ArenaStopTrackingDeathtimes(Arena arena)
+{
+  AVERT(Arena, arena);
+  AVER(arena->trackDeathtimes == TRUE);
+
+  arena->trackDeathtimes = FALSE;
+  mps_dtio_destroy();
+  return ResOK;
+}
+ 
+Res ArenaTrackDeathEvent(Arena arena, Addr addr)
+{
+  AVERT(Arena, arena);
+  /* addr is a general address and cannot be checked */
+
+  if (arena->trackDeathtimes) {
+    return (Res)mps_dtio_free_event((mps_addr_t)addr);
+  } else {
+    return ResOK;
+  }
+}
+ 
 
 void ArenaClamp(Arena arena)
 {
