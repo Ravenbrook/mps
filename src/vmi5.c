@@ -1,6 +1,6 @@
 /* impl.c.vmi5: VIRTUAL MEMORY MAPPING FOR IRIX 5
  *
- * $HopeName: MMsrc!vmi5.c(MM_epcore_brisling.2) $
+ * $HopeName: MMsrc!vmi5.c(MM_epcore_brisling.3) $
  * Copyright (C) 1997, 1998, 1999 Harlequin Group plc.  All rights reserved.
  *
  * Design: design.mps.vm
@@ -56,7 +56,7 @@
 #define MAP_FAILED ((void *)-1)
 #endif
 
-SRCID(vmi5, "$HopeName: MMsrc!vmi5.c(MM_epcore_brisling.2) $");
+SRCID(vmi5, "$HopeName: MMsrc!vmi5.c(MM_epcore_brisling.3) $");
 
 
 /* mapChunkSHIFT -- shift to compute mapChunkSize from arena size
@@ -301,9 +301,9 @@ failMap:
       left < (size_t)size;
       chunkBase = PointerSub(chunkBase, vm->mapChunkSize),
         left += vm->mapChunkSize) {
-    addr = mmap(chunkBase, vm->mapChunkSize,
-                PROT_NONE, MAP_SHARED | MAP_FIXED | MAP_AUTORESRV,
-                vm->zero_fd, (off_t)AddrOffset(vm->base, chunkBase));
+    (void)mmap(chunkBase, vm->mapChunkSize,
+               PROT_NONE, MAP_SHARED | MAP_FIXED | MAP_AUTORESRV,
+               vm->zero_fd, (off_t)AddrOffset(vm->base, chunkBase));
   }
   return res;
 }
@@ -343,7 +343,7 @@ void VMUnmap(VM vm, Addr base, Addr limit)
     chunkSize = (left > vm->mapChunkSize) ? vm->mapChunkSize : left;
     addr = mmap(chunkBase, chunkSize,
                 PROT_NONE, MAP_SHARED | MAP_FIXED | MAP_AUTORESRV,
-                vm->zero_fd, (off_t)AddrOffset(vm->base, base));
+                vm->zero_fd, (off_t)AddrOffset(vm->base, chunkBase));
     if(addr == MAP_FAILED) {
       AVER(errno == ENOMEM); /* ran out of map space */
     } else {
