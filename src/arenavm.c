@@ -1,12 +1,12 @@
 /* impl.c.arenavm: VIRTUAL MEMORY BASED ARENA IMPLEMENTATION
  *
- * $HopeName: MMsrc!arenavm.c(MMdevel_remem.2) $
+ * $HopeName: MMsrc!arenavm.c(MMdevel_remem.3) $
  * Copyright (C) 1996 Harlequin Group, all rights reserved.
  */
 
 #include "mpm.h"
 
-SRCID(arenavm, "$HopeName: MMsrc!arenavm.c(MMdevel_remem.2) $");
+SRCID(arenavm, "$HopeName: MMsrc!arenavm.c(MMdevel_remem.3) $");
 
 #define SpaceArena(space)	(&(space)->arenaStruct)
 
@@ -303,6 +303,8 @@ Res SegAllocPref(Seg *segReturn, Space space, Size size, Pool pool, RefSet pref)
   seg->single = TRUE;
   seg->condemned = TraceIdNONE;
   seg->summary = RefSetUniv;
+  seg->buffer = NULL;
+  RingInit(&seg->traceRing);
 
   seg->pm = AccessSetEMPTY; /* see impl.c.shield */
   seg->sm = AccessSetEMPTY;
