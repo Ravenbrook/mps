@@ -1,6 +1,6 @@
 /* impl.c.mpsi: MEMORY POOL SYSTEM C INTERFACE LAYER
  *
- * $HopeName: MMsrc!mpsi.c(MMdevel_drj_message.1) $
+ * $HopeName: MMsrc!mpsi.c(MMdevel_drj_message.2) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  *
  * .purpose: This code bridges between the MPS interface to C,
@@ -52,7 +52,7 @@
 #include "mpm.h"
 #include "mps.h"
 
-SRCID(mpsi, "$HopeName: MMsrc!mpsi.c(MMdevel_drj_message.1) $");
+SRCID(mpsi, "$HopeName: MMsrc!mpsi.c(MMdevel_drj_message.2) $");
 
 
 /* mpsi_check -- check consistency of interface mappings
@@ -178,7 +178,9 @@ mps_res_t mps_space_create_wmem(mps_space_t *mps_space_o,
   AVER(base != NULL);
 
   res = SpaceCreate(&space, (Addr)base, (Size)size);
-  if(res != ResOK) return res;
+  if(res != ResOK)
+    return res;
+  SpaceLeave(space);
   
   *mps_space_o = (mps_space_t)space;
   return MPS_RES_OK;
@@ -234,7 +236,9 @@ mps_res_t mps_space_create(mps_space_t *mps_space_o)
   AVER(mps_space_o != NULL);
 
   res = SpaceCreate(&space, (Addr)0, (Size)0);
-  if(res != ResOK) return res;
+  if(res != ResOK)
+    return res;
+  SpaceLeave(space);
   
   *mps_space_o = (mps_space_t)space;
   return MPS_RES_OK;
@@ -253,6 +257,8 @@ void mps_space_destroy(mps_space_t mps_space)
 {
   Space space = (Space)mps_space;
   AVERT(Space, space);
+
+  SpaceEnter(space);
   SpaceDestroy(space);
 }
 
