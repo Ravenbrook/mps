@@ -1,4 +1,4 @@
-/* $HopeName: MMQA_harness!testlib:rankfmt.h(trunk.5) $
+/* $HopeName: !testlib:rankfmt.h(trunk.6) $
 
    Format like exfmt but with rank-checking built in.
    This format will work without register roots, but to use it,

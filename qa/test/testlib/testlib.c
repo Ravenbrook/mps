@@ -1,4 +1,4 @@
-/* $HopeName: MMQA_harness!testlib:testlib.c(trunk.21) $
+/* $HopeName: !testlib:testlib.c(trunk.22) $
 some useful functions for testing the MPS */
 
 #include <stdio.h>

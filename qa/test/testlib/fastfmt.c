@@ -1,4 +1,4 @@
-/* $HopeName: MMQA_harness!testlib:fastfmt.c(trunk.3) $
+/* $HopeName: !testlib:fastfmt.c(trunk.4) $
 fastfmt.c
    See comments in header file for usage.
 */

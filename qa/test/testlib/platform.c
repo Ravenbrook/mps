@@ -1,4 +1,4 @@
-/* $HopeName: MMQA_harness!testlib:platform.c(trunk.3) $
+/* $HopeName: !testlib:platform.c(trunk.4) $
 */
 
 #include "testlib.h"

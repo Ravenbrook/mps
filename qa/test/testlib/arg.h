@@ -1,4 +1,4 @@
-/* $HopeName: MMQA_harness!testlib:arg.h(trunk.2) $
+/* $HopeName: !testlib:arg.h(trunk.3) $
 arg.h
    useful things for arg-err tests
 */

@@ -1,4 +1,4 @@
-$HopeName: MMQA_harness!README(trunk.8) $
+$HopeName: !README(trunk.9) $
 
 This is the Memory Management QA test harness. To use it you need
 perl 5 (or higher). Go "perl qa help" for help, "perl qa options"

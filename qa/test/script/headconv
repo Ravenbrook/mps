@@ -1,5 +1,5 @@
 #!/usr/local/bin/perl -w
-# $HopeName$
+# $HopeName: !script:headconv(trunk.2) $
 #
 # convert to new-style test header format
 #

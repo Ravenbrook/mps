@@ -1,4 +1,4 @@
-/* $HopeName: $
+/* $HopeName: !testlib:preHU.h(trunk.1) $
 Before humanist interface;
  -- there was no spare committed fund
 */

@@ -1,4 +1,4 @@
-/* $HopeName: MMQA_harness!testlib:newfmt.h(trunk.2) $
+/* $HopeName: !testlib:newfmt.h(trunk.3) $
 newfmt.h
    A nice format with graph checking and statistics
 */

@@ -1,5 +1,5 @@
 compile test libraries
-% $HopeName: MMQA_harness!script:help:clib(trunk.4) $
+% $HopeName: !script:help:clib(trunk.5) $
 
 Usage: qa clib [<options>]
 

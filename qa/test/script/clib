@@ -1,5 +1,5 @@
 #!/usr/local/perl
-# $HopeName: MMQA_harness!script:clib(trunk.2) $
+# $HopeName: !script:clib(trunk.3) $
 #
 # subroutines to compile test libraries, and check whether they
 # need to be compiled

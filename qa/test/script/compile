@@ -1,5 +1,5 @@
 #!/usr/local/perl
-# $HopeName: MMQA_harness!script:compile(trunk.25) $
+# $HopeName: !script:compile(trunk.26) $
 #
 # provides subroutines to compile or compile and link
 # tests and test libraries.

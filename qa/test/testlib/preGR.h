@@ -1,4 +1,4 @@
-/* $HopeName: $
+/* $HopeName: !testlib:preGR.h(trunk.1) $
 Before grotesque interface;
  - "arena" was called "space" in several functions
 */

@@ -1,5 +1,5 @@
 run tests, reporting results and verdict
-% $HopeName: MMQA_harness!script:help:run(trunk.3) $
+% $HopeName: !script:help:run(trunk.4) $
 
 Usage: qa run [<options>] <testfile> [<testfile> ...]
 

@@ -1,5 +1,5 @@
 #!/usr/local/bin/perl -w
-# $HopeName: MMQA_harness!qa(trunk.7) $
+# $HopeName: !qa(trunk.8) $
 #
 # First, we'll set up @INC so we can find the other
 # perl scripts we require. This program will be in the

@@ -1,4 +1,4 @@
-/* $HopeName: MMQA_harness!testlib:versind.h(trunk.6) $
+/* $HopeName: !testlib:versind.h(trunk.7) $
 versind.h
    This file used to read header files depending on the
    value of the MPS_INTERFACE_VERSION parameter (aka MMQA_VERS_XX).

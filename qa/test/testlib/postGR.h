@@ -1,4 +1,4 @@
-/* $HopeName: $
+/* $HopeName: !testlib:postGR.h(trunk.1) $
 In grotesq interface
  - "space" becomes "arena"
 */

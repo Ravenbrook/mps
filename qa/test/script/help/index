@@ -1,5 +1,5 @@
 list tests in a directory
-% $HopeName$
+% $HopeName: !script:help:index(trunk.2) $
 
 Usage: qa index [<directory>]
 
