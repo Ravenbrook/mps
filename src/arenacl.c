@@ -1,6 +1,6 @@
 /* impl.c.arenacl: ARENA IMPLEMENTATION USING CLIENT MEMORY
  *
- * $HopeName: MMsrc!arenacl.c(MMdevel_sw_eq.6) $
+ * $HopeName: MMsrc!arenacl.c(MMdevel_sw_eq.7) $
  * 
  * Copyright (C) 1996 Harlequin Group, all rights reserved.
  *
@@ -41,7 +41,7 @@
 #error "Client arena not configured"
 #endif
 
-SRCID(arenacl, "$HopeName: MMsrc!arenacl.c(MMdevel_sw_eq.6) $");
+SRCID(arenacl, "$HopeName: MMsrc!arenacl.c(MMdevel_sw_eq.7) $");
 
 Bool ArenaCheck(Arena arena)
 {
@@ -192,8 +192,8 @@ static void BTSet(BT bt, BI i, Bool b)
 #define BTWordRes(bt,i) ((bt)[(i)>>WORD_SHIFT] == 0)
 
 static Bool BTFindShortSetRangeLow(BI *baseReturn, BT bt,
-				   BI searchBase, BI searchLimit,
-				   unsigned long length)
+                                   BI searchBase, BI searchLimit,
+                                   unsigned long length)
 {
   BI base;   /* the base of each candidate range */
 
@@ -210,11 +210,11 @@ static Bool BTFindShortSetRangeLow(BI *baseReturn, BT bt,
       base = (BI)SizeAlignUp(i+1, WORD_WIDTH);
     else {                          /* check the candidate range */
       while (BTGet(bt, i)) {
-	if (i == base) {            /* then we're done */
-	  *baseReturn = base;
-	  return TRUE;
-	}
-	-- i;
+        if (i == base) {            /* then we're done */
+          *baseReturn = base;
+          return TRUE;
+        }
+        -- i;
       }
       base = i + 1;                 /* skip to first trailing set bit */
     }
@@ -223,8 +223,8 @@ static Bool BTFindShortSetRangeLow(BI *baseReturn, BT bt,
 }
 
 static Bool BTFindShortSetRangeHigh(BI *baseReturn, BT bt,
-				    BI searchBase, BI searchLimit,
-				    unsigned long length)
+                                    BI searchBase, BI searchLimit,
+                                    unsigned long length)
 {
   BI limit;   /* the limit of each candidate range */
 
@@ -241,11 +241,11 @@ static Bool BTFindShortSetRangeHigh(BI *baseReturn, BT bt,
       limit = (BI)SizeAlignDown(i, WORD_WIDTH);
     else {                         /* check the candidate range */
       while (BTGet(bt, i)) {
-	++ i;
-	if (i == limit) {          /* then we're done */
-	  *baseReturn = limit-length;
-	  return TRUE;
-	}
+        ++ i;
+        if (i == limit) {          /* then we're done */
+          *baseReturn = limit-length;
+          return TRUE;
+        }
       }
       limit = i;                   /* skip to last leading set bit */
     }
@@ -565,10 +565,10 @@ static Res ChunkSegAlloc(Seg *segReturn, SegPref pref, Size pages, Pool pool,
 
   if (pref->high)
     b = BTFindShortSetRangeHigh(&base, chunk->freeTable,
-				0, chunk->pages, pages);
+                                0, chunk->pages, pages);
   else
     b = BTFindShortSetRangeLow(&base, chunk->freeTable,
-			       0, chunk->pages, pages);
+                               0, chunk->pages, pages);
 
   if (!b) {
     /* No adequate range was found.
