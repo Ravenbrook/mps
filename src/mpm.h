@@ -1,6 +1,6 @@
 /* impl.h.mpm: MEMORY POOL MANAGER DEFINITIONS
  *
- * $HopeName: MMsrc!mpm.h(MMdevel_lint.2) $
+ * $HopeName: MMsrc!mpm.h(MMdevel_lint.3) $
  * Copyright (C) 1996,1997 Harlequin Group, all rights reserved.
  */
 
@@ -251,10 +251,18 @@ extern Space (PoolSpace)(Pool pool);
 #endif
 
 extern Align (PoolAlignment)(Pool pool);
+#ifdef LCLINT
+#define PoolAlignment(pool)     (((Pool)pool)->alignment)
+#else
 #define PoolAlignment(pool)     ((pool)->alignment)
+#endif
 
 extern Ring (PoolSegRing)(Pool pool);
+#ifdef LCLINT
+#define PoolSegRing(pool)       (&((Pool)pool)->segRing)
+#else
 #define PoolSegRing(pool)       (&(pool)->segRing)
+#endif
 
 extern Res PoolSegAlloc(Seg *segReturn, SegPref pref, Pool pool, Size size);
 extern void PoolSegFree(Pool pool, Seg seg);

@@ -1,6 +1,6 @@
 /* impl.c.poolmv: MANUAL VARIABLE POOL
  *
- * $HopeName: !poolmv.c(trunk.18) $
+ * $HopeName: MMsrc!poolmv.c(MMdevel_lint.1) $
  * Copyright (C) 1994, 1995 Harlequin Group, all rights reserved
  *
  * **** RESTRICTION: This pool may not allocate from the arena control
@@ -37,7 +37,7 @@
 #include "poolmfs.h"
 #include "mpscmv.h"
 
-SRCID(poolmv, "$HopeName: !poolmv.c(trunk.18) $");
+SRCID(poolmv, "$HopeName: MMsrc!poolmv.c(MMdevel_lint.1) $");
 
 
 #define BLOCKPOOL(mv)   (MFSPool(&(mv)->blockPoolStruct))
@@ -382,7 +382,11 @@ static Res MVAlloc(Addr *pReturn, Pool pool, Size size)
   AVER(pReturn != NULL);
   AVER(size > 0);
 
+#ifdef LCLINT
+  size = SizeAlignUp(size, ((Pool)pool)>alignment);
+#else
   size = SizeAlignUp(size, pool->alignment);
+#endif
 
   if(size <= mv->space) {
     spans = &mv->spans;
@@ -468,7 +472,11 @@ static void MVFree(Pool pool, Addr old, Size size)
   AVER(old != (Addr)0);
   AVER(size > 0);
 
+#ifdef LCLINT
+  size = SizeAlignUp(size, ((Pool)pool)->alignment);
+#else
   size = SizeAlignUp(size, pool->alignment);
+#endif
   base = old;
   limit = AddrAdd(base, size);
 
@@ -554,7 +562,11 @@ static Res MVDescribe(Pool pool, mps_lib_FILE *stream)
   res = WriteF(stream, "  Span allocation maps\n", NULL);
   if(res != ResOK) return res;
 
+#ifdef LCLINT
+  step = ((Pool)pool)->alignment;
+#else
   step = pool->alignment;
+#endif
   length = 0x40 * step;
 
   spans = &mv->spans;
