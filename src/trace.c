@@ -1,6 +1,6 @@
 /* impl.c.trace: GENERIC TRACER IMPLEMENTATION
  *
- * $HopeName: MMsrc!trace.c(MMdevel_drj_trace_abort.1) $
+ * $HopeName: MMsrc!trace.c(MMdevel_drj_trace_abort.2) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  *
  * .sources: design.mps.tracer.
@@ -8,7 +8,7 @@
 
 #include "mpm.h"
 
-SRCID(trace, "$HopeName: MMsrc!trace.c(MMdevel_drj_trace_abort.1) $");
+SRCID(trace, "$HopeName: MMsrc!trace.c(MMdevel_drj_trace_abort.2) $");
 
 
 /* ScanStateCheck -- check consistency of a ScanState object */
@@ -867,18 +867,23 @@ static Res TraceRun(Trace trace)
   return ResOK;
 }
 
-/* TraceExpedite -- moves a trace to the Finished state */
+/* TraceExpedite -- signals an emergency condition and */
+/* moves a trace to the Finished state. */
 static void TraceExpedite(Trace trace)
 {
   AVERT(Trace, trace);
 
+  /* check trace is not in INIT state.  If the trace was in the */
+  /* INIT state, then TraceStep would not progress it so the loop */
+  /* would never terminate (see .step.noprogress) */
   AVER(trace->state != TraceINIT);
 
   trace->arena->traceEmergency = TRUE;
 
   while(trace->state != TraceFINISHED) {
     Res res = TraceStep(trace);
-    /* This AVER really is sound now, because we're using EmergencyFix */
+    /* because we are using emergencyFix the trace shouldn't */
+    /* raise any error conditions */
     AVER(res == ResOK);
   }
 }
@@ -920,6 +925,8 @@ Res TraceStep(Trace trace)
 
   case TraceFINISHED:
   case TraceINIT:
+    /* .step.noprogress: no progress in either of these two states. */
+    /* @@@@ in fact, should we ever see a trace in the INIT state? */
     NOOP;
     break;
 
