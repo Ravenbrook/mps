@@ -2,7 +2,7 @@
  *
  *                         NULL POOL
  *
- *  $HopeName$
+ *  $HopeName: MMsrc/!pooln.c(trunk.2)$
  *
  *  Copyright(C) 1995 Harlequin Group, all rights reserved
  *
@@ -51,14 +51,14 @@ static PoolClassStruct PoolClassNStruct;
 PoolClass PoolClassN(void)
 {
   PoolClassInit(&PoolClassNStruct,
-		"N",
-		sizeof(PoolNStruct), offsetof(PoolNStruct, poolStruct),
-		create, destroy,
-		alloc, free_,
-		bufferCreate, bufferDestroy,
-		condemn, mark, scan,
-		fix, reclaim,
-		describe);
+                "N",
+                sizeof(PoolNStruct), offsetof(PoolNStruct, poolStruct),
+                create, destroy,
+                alloc, free_,
+                bufferCreate, bufferDestroy,
+                condemn, mark, scan,
+                fix, reclaim,
+                describe);
   return &PoolClassNStruct;
 }
 
@@ -175,7 +175,7 @@ static void free_(Pool pool, Addr old, Size size)
 {
   AVER(ISVALID(Pool, pool));
   AVER(pool->class == &PoolClassNStruct);
-  AVER(old != NULL);
+  AVER(old != (Addr)0);
   AVER(size > 0);
 #ifndef DEBUG_ASSERT
   UNUSED(pool);
@@ -269,7 +269,7 @@ static Error scan(Pool pool, Trace trace, RefRank rank)
 }
 
 static Error fix(Pool pool, Trace trace, RefRank rank,
-		 Arena arena, Ref *refIO)
+                 Arena arena, Ref *refIO)
 {
   AVER(ISVALID(Pool, pool));
   AVER(pool->class == &PoolClassNStruct);
@@ -284,7 +284,7 @@ static Error fix(Pool pool, Trace trace, RefRank rank,
   UNUSED(refIO);
 #endif /* DEBUG_ASSERT */
   NOTREACHED;  /* since we don't allocate any objects, should never
-	        * be called upon to fix a reference */
+                * be called upon to fix a reference */
   return ErrFAILURE;
 }
 
