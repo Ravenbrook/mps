@@ -1,6 +1,6 @@
 /* impl.c.poolawl: AUTOMATIC WEAK LINKED POOL CLASS
  *
- * $HopeName: MMsrc!poolawl.c(MMdevel_tony_sunset.1) $
+ * $HopeName: MMsrc!poolawl.c(MMdevel_tony_sunset.2) $
  * Copyright (C) 1998.  Harlequin Group plc.  All rights reserved.
  *
  * READERSHIP
@@ -45,7 +45,7 @@
 #include "mpm.h"
 
 
-SRCID(poolawl, "$HopeName: MMsrc!poolawl.c(MMdevel_tony_sunset.1) $");
+SRCID(poolawl, "$HopeName: MMsrc!poolawl.c(MMdevel_tony_sunset.2) $");
 
 
 #define AWLSig  ((Sig)0x519b7a37)       /* SIGPooLAWL */
@@ -477,12 +477,12 @@ static Res AWLBufferInit(Pool pool, Buffer buffer, va_list args)
   /* AWL only accepts two ranks */
   AVER(rank == RankEXACT || rank == RankWEAK);
 
-  buffer->rankSet = RankSetSingle(rank);
+  BufferSetRankSet(buffer, RankSetSingle(rank));
   return ResOK;
 }
 
 
-static Res AWLBufferFill(Seg *segReturn, Addr *baseReturn, Addr *limitReturn,
+static Res AWLBufferFill(Addr *baseReturn, Addr *limitReturn,
                          Pool pool, Buffer buffer, Size size,
                          Bool withReservoirPermit)
 {
@@ -492,7 +492,6 @@ static Res AWLBufferFill(Seg *segReturn, Addr *baseReturn, Addr *limitReturn,
   Res res;
   Ring node, nextNode;
 
-  AVER(segReturn != NULL);
   AVER(baseReturn != NULL);
   AVER(limitReturn != NULL);
   AVERT(Pool, pool);
@@ -543,7 +542,6 @@ found:
     BTSetRange(group->scanned, i, j);
     group->free -= j - i;
   }
-  *segReturn = group->seg;
   *baseReturn = base;
   *limitReturn = limit;
   return ResOK;
@@ -551,15 +549,17 @@ found:
 
 
 static void AWLBufferEmpty(Pool pool, Buffer buffer, 
-                           Seg seg, Addr init, Addr limit)
+                           Addr init, Addr limit)
 {
   AWL awl;
   AWLGroup group;
+  Seg seg;
   Addr segBase;
   Index i, j;
 
   AVERT(Pool, pool);
   AVERT(Buffer, buffer);
+  seg = BufferSeg(buffer);
   AVER(SegCheck(seg));
   AVER(init <= limit);
 

@@ -1,6 +1,6 @@
 /* impl.h.mpmtypes: MEMORY POOL MANAGER TYPES
  *
- * $HopeName: MMsrc!mpmtypes.h(MMdevel_tony_sunset.3) $
+ * $HopeName: MMsrc!mpmtypes.h(MMdevel_tony_sunset.4) $
  * Copyright (C) 1997, 1998 Harlequin Group plc.  All rights reserved.
  *
  * .readership: MM developers.
@@ -54,6 +54,9 @@ typedef unsigned Serial;                /* design.mps.type.serial */
 typedef struct RingStruct *Ring;        /* design.mps.ring */
 typedef Word *BT;                       /* design.mps.bt */
 typedef struct BufferStruct *Buffer;    /* design.mps.buffer */
+typedef struct BufferedSegStruct *BufferedSeg; /* design.mps.buffer */
+typedef struct BufferClassStruct *BufferClass; /* design.mps.buffer */
+typedef BufferClass BufferedSegClass;   /* impl.c.poolabs */
 typedef unsigned BufferMode;            /* design.mps.buffer */
 typedef unsigned FrameState;            /* design.mps.alloc-frame */
 typedef struct APStruct *AP;            /* design.mps.buffer */
@@ -65,17 +68,20 @@ typedef struct PoolClassStruct *PoolClass; /* impl.c.poolclas */
 typedef PoolClass AbstractPoolClass;    /* impl.c.poolabs */
 typedef PoolClass AbstractAllocFreePoolClass; /* impl.c.poolabs */
 typedef PoolClass AbstractBufferPoolClass; /* impl.c.poolabs */
+typedef PoolClass AbstractBufferedSegPoolClass; /* impl.c.poolabs */
 typedef PoolClass AbstractScanPoolClass; /* impl.c.poolabs */
 typedef PoolClass AbstractCollectPoolClass; /* impl.c.poolabs */
 typedef struct TraceStruct *Trace;      /* design.mps.tracer */
 typedef struct ScanStateStruct *ScanState; /* design.mps.tracer */
-typedef struct TractStruct *Tract;     /* design.mps.arena */
+typedef struct TractStruct *Tract;      /* design.mps.arena */
 typedef struct SegStruct *Seg;          /* impl.c.seg */
 typedef struct SegGCStruct *SegGC;      /* impl.c.seg */
 typedef struct SegClassStruct *SegClass; /* impl.c.seg */
+typedef SegClass SegGCClass;            /* impl.c.poolabs */
 typedef struct SegPrefStruct *SegPref;  /* design.mps.pref, impl.c.arena* */
 typedef int SegPrefKind;                /* design.mps.pref, impl.c.arena* */
 typedef struct ArenaClassStruct *ArenaClass; /* design.mps.arena */
+typedef ArenaClass AbstractArenaClass;  /* impl.c.arena */
 typedef struct ArenaStruct *Arena;      /* design.mps.arena */
 typedef Arena Space;                    /* until all files have been updated */
 typedef struct VMStruct *VM;            /* impl.c.vm* */
@@ -105,7 +111,6 @@ typedef Res (*ArenaAllocMethod)(Addr *baseReturn,
                                 Tract *baseTractReturn,
                                 SegPref pref, Size size, Pool pool);
 typedef void (*ArenaFreeMethod)(Addr base, Size size, Pool pool);
-typedef Addr (*ArenaTractBaseMethod)(Tract tract);
 typedef Bool (*ArenaTractOfAddrMethod)(Tract *tractReturn, 
                                        Arena arena, Addr addr);
 typedef Bool (*ArenaTractFirstMethod)(Tract *tractReturn, Arena arena);
@@ -153,6 +158,19 @@ typedef void (*SegSetPMethod)(Seg seg, void *p);
 typedef Res (*SegDescribeMethod)(Seg seg, mps_lib_FILE *stream);
 
 
+/* Buffer*Method -- see design.mps.buffer */
+
+typedef Res (*BufferInitMethod)(Buffer buffer, Pool pool);
+typedef void (*BufferFinishMethod)(Buffer buffer);
+typedef void (*BufferAttachMethod)(Buffer buffer, Addr base, Addr limit, 
+                                   Addr init, Size size);
+typedef void (*BufferDetachMethod)(Buffer buffer);
+typedef Seg (*BufferSegMethod)(Buffer buffer);
+typedef RankSet (*BufferRankSetMethod)(Buffer buffer);
+typedef void (*BufferSetRankSetMethod)(Buffer buffer, RankSet rankSet);
+typedef Res (*BufferDescribeMethod)(Buffer buffer, mps_lib_FILE *stream);
+
+
 /* Pool*Method -- see design.mps.class-interface */
 
 /* Order of types corresponds to PoolClassStruct in impl.h.mpmst */
@@ -163,12 +181,11 @@ typedef Res (*PoolAllocMethod)(Addr *pReturn, Pool pool, Size size,
                                Bool withReservoirPermit);
 typedef void (*PoolFreeMethod)(Pool pool, Addr old, Size size);
 typedef Res (*PoolBufferInitMethod)(Pool pool, Buffer buf, va_list args);
-typedef Res (*PoolBufferFillMethod)(Seg *segReturn,
-                                    Addr *baseReturn, Addr *limitReturn,
+typedef Res (*PoolBufferFillMethod)(Addr *baseReturn, Addr *limitReturn,
                                     Pool pool, Buffer buffer, Size size,
                                     Bool withReservoirPermit);
 typedef void (*PoolBufferEmptyMethod)(Pool pool, Buffer buffer, 
-                                      Seg seg, Addr init, Addr limit);
+                                      Addr init, Addr limit);
 typedef void (*PoolBufferFinishMethod)(Pool pool, Buffer buf);
 typedef Res (*PoolTraceBeginMethod)(Pool pool, Trace trace);
 typedef Res (*PoolAccessMethod)(Pool pool, Seg seg, Addr addr,
@@ -196,6 +213,7 @@ typedef void (*PoolFramePopPendingMethod)(Pool pool, Buffer buf,
 typedef void (*PoolWalkMethod)(Pool pool, Seg seg,
                                FormattedObjectsStepMethod f,
                                void *p, unsigned long s);
+typedef BufferClass (*PoolBufferClassMethod)(void);
 typedef Res (*PoolDescribeMethod)(Pool pool, mps_lib_FILE *stream);
 typedef PoolDebugMixin (*PoolDebugMixinMethod)(Pool pool);
 

@@ -1,6 +1,6 @@
 /* impl.c.pool: POOL IMPLEMENTATION
  *
- * $HopeName: MMsrc!pool.c(MMdevel_tony_sunset.1) $
+ * $HopeName: MMsrc!pool.c(MMdevel_tony_sunset.2) $
  * Copyright (C) 1997, 1999 Harlequin Group plc.  All rights reserved.
  *
  * READERSHIP
@@ -37,7 +37,7 @@
 
 #include "mpm.h"
 
-SRCID(pool, "$HopeName: MMsrc!pool.c(MMdevel_tony_sunset.1) $");
+SRCID(pool, "$HopeName: MMsrc!pool.c(MMdevel_tony_sunset.2) $");
 
 
 Bool PoolClassCheck(PoolClass class)
@@ -278,6 +278,15 @@ void PoolDestroy(Pool pool)
   /* .space.free: Free the pool instance structure.  See .space.alloc */
   base = AddrSub((Addr)pool, (Size)(class->offset));
   ControlFree(arena, base, (Size)(class->size));
+}
+
+
+/* PoolDefaultBufferClass -- return the buffer class used by the pool */
+
+BufferClass PoolDefaultBufferClass(Pool pool)
+{
+  AVERT(Pool, pool);
+  return (*pool->class->bufferClass)();
 }
 
 
@@ -715,11 +724,10 @@ void PoolTrivBufferFinish(Pool pool, Buffer buffer)
   NOOP;
 }
 
-Res PoolNoBufferFill(Seg *segReturn, Addr *baseReturn, Addr *limitReturn,
+Res PoolNoBufferFill(Addr *baseReturn, Addr *limitReturn,
                      Pool pool, Buffer buffer, Size size,
                      Bool withReservoirPermit)
 {
-  AVER(segReturn != NULL);
   AVER(baseReturn != NULL);
   AVER(limitReturn != NULL);
   AVERT(Pool, pool);
@@ -730,14 +738,13 @@ Res PoolNoBufferFill(Seg *segReturn, Addr *baseReturn, Addr *limitReturn,
   return ResUNIMPL;
 }
 
-Res PoolTrivBufferFill(Seg *segReturn, Addr *baseReturn, Addr *limitReturn,
+Res PoolTrivBufferFill(Addr *baseReturn, Addr *limitReturn,
                        Pool pool, Buffer buffer, Size size,
                        Bool withReservoirPermit)
 {
   Res res;
   Addr p;
 
-  AVER(segReturn != NULL);
   AVER(baseReturn != NULL);
   AVER(limitReturn != NULL);
   AVERT(Pool, pool);
@@ -748,33 +755,28 @@ Res PoolTrivBufferFill(Seg *segReturn, Addr *baseReturn, Addr *limitReturn,
   res = PoolAlloc(&p, pool, size, withReservoirPermit);
   if(res != ResOK) return res;
   
-  *segReturn = NULL;  /* .triv: doesn't support segment attachment */
   *baseReturn = p;
   *limitReturn = AddrAdd(p, size);
   return ResOK;
 }
 
 void PoolNoBufferEmpty(Pool pool, Buffer buffer, 
-                       Seg seg, Addr init, Addr limit)
+                       Addr init, Addr limit)
 {
   AVERT(Pool, pool);
   AVERT(Buffer, buffer);
   AVER(BufferIsReady(buffer));
   AVER(init <= limit);
-  if (seg != NULL)
-    AVER(SegCheck(seg));
   NOTREACHED;
 }
 
 void PoolTrivBufferEmpty(Pool pool, Buffer buffer, 
-                       Seg seg, Addr init, Addr limit)
+                       Addr init, Addr limit)
 {
   AVERT(Pool, pool);
   AVERT(Buffer, buffer);
   AVER(BufferIsReady(buffer));
   AVER(init <= limit);
-  if (seg != NULL)
-    AVER(SegCheck(seg));
   if (limit > init)
     PoolFree(pool, init, AddrOffset(init, limit));
 }
@@ -1178,4 +1180,12 @@ void PoolNoWalk(Pool pool, Seg seg,
   UNUSED(s);
 
   NOTREACHED;
+}
+
+
+BufferClass PoolNoBufferClass(void)
+{
+  NOTREACHED;
+  return NULL;
+
 }

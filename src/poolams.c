@@ -1,6 +1,6 @@
 /* impl.c.poolams: AUTOMATIC MARK & SWEEP POOL CLASS
  *
- * $HopeName: MMsrc!poolams.c(MMdevel_tony_sunset.1) $
+ * $HopeName: MMsrc!poolams.c(MMdevel_tony_sunset.2) $
  * Copyright (C) 1998.  Harlequin Group plc.  All rights reserved.
  * 
  * .readership: any MPS developer.
@@ -23,7 +23,7 @@
 #include "mpm.h"
 #include <stdarg.h>
 
-SRCID(poolams, "$HopeName: MMsrc!poolams.c(MMdevel_tony_sunset.1) $");
+SRCID(poolams, "$HopeName: MMsrc!poolams.c(MMdevel_tony_sunset.2) $");
 
 
 #define AMSSig          ((Sig)0x519A3599) /* SIGnature AMS */
@@ -431,7 +431,7 @@ Res AMSBufferInit(Pool pool, Buffer buffer, va_list args)
   AVERT(AMS, PoolPoolAMS(pool));
   AVERT(Rank, rank);
 
-  buffer->rankSet = RankSetSingle(rank);
+  BufferSetRankSet(buffer, RankSetSingle(rank));
   return ResOK;
 }
 
@@ -442,7 +442,7 @@ Res AMSBufferInit(Pool pool, Buffer buffer, va_list args)
  * design.mps.poolams.fill.
  */
 
-Res AMSBufferFill(Seg *segReturn, Addr *baseReturn, Addr *limitReturn,
+Res AMSBufferFill(Addr *baseReturn, Addr *limitReturn,
                   Pool pool, Buffer buffer, Size size,
                   Bool withReservoirPermit)
 {
@@ -455,7 +455,6 @@ Res AMSBufferFill(Seg *segReturn, Addr *baseReturn, Addr *limitReturn,
   Bool b;                       /* the return value of AMSGroupAlloc */
   SegPrefStruct segPrefStruct;
 
-  AVER(segReturn != NULL);
   AVER(baseReturn != NULL);
   AVER(limitReturn != NULL);
   AVERT(Pool, pool);
@@ -498,7 +497,6 @@ Res AMSBufferFill(Seg *segReturn, Addr *baseReturn, Addr *limitReturn,
 
 found:
   AVER(b);
-  *segReturn = group->seg;
   *baseReturn = AMS_INDEX_ADDR(group, base);
   *limitReturn = AMS_INDEX_ADDR(group, limit);
   return ResOK;
@@ -512,10 +510,11 @@ found:
  */
 
 void AMSBufferEmpty(Pool pool, Buffer buffer, 
-                    Seg seg, Addr init, Addr limit)
+                    Addr init, Addr limit)
 {
   AMS ams;
   Index initIndex, limitIndex;
+  Seg seg;
   AMSGroup group;
 
   AVERT(Pool, pool);
@@ -523,6 +522,7 @@ void AMSBufferEmpty(Pool pool, Buffer buffer,
   AVERT(AMS, ams);
   AVERT(Buffer,buffer);
   AVER(BufferIsReady(buffer));
+  seg = BufferSeg(buffer);
   AVER(SegCheck(seg));
   AVER(init <= limit);
   AVER(AddrIsAligned(init, PoolAlignment(pool)));

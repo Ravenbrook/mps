@@ -1,6 +1,6 @@
 /* impl.c.poolamc: AUTOMATIC MOSTLY-COPYING MEMORY POOL CLASS
  *
- * $HopeName: MMsrc!poolamc.c(MMdevel_tony_sunset.1) $
+ * $HopeName: MMsrc!poolamc.c(MMdevel_tony_sunset.2) $
  * Copyright (C) 1998.  Harlequin Group plc.  All rights reserved.
  *
  * .sources: design.mps.poolamc.
@@ -9,7 +9,7 @@
 #include "mpscamc.h"
 #include "mpm.h"
 
-SRCID(poolamc, "$HopeName: MMsrc!poolamc.c(MMdevel_tony_sunset.1) $");
+SRCID(poolamc, "$HopeName: MMsrc!poolamc.c(MMdevel_tony_sunset.2) $");
 
 
 /* Binary i/f used by ASG (drj 1998-06-11) */
@@ -21,17 +21,21 @@ enum {AMCPTypeGen = 1, AMCPTypeNailBoard};
 /* AMC typedef */
 typedef struct AMCStruct *AMC;
 
+/* AMCGen typedef */
+typedef struct AMCGenStruct *AMCGen;
+
 /* forward declarations */
 
 static Bool AMCCheck(AMC amc);
+static Bool AMCGenCheck(AMCGen gen);
 static PoolClass EnsureAMCPoolClass(void);
+static BufferClass EnsureAMCBufClass(void);
 
 
 /* AMCGenStruct -- pool AMC generation descriptor */
 
-#define AMCGenSig       ((Sig)0x519A3C69)
+#define AMCGenSig       ((Sig)0x519A3C9E)  /* SIGnature AMC GEn */
 
-typedef struct AMCGenStruct *AMCGen;
 typedef struct AMCGenStruct {
   Sig sig;                      /* impl.h.misc.sig */
   Serial serial;                /* generation number */
@@ -46,8 +50,122 @@ typedef struct AMCGenStruct {
 } AMCGenStruct;
 
 
-#define AMCBufferGen(buffer) ((AMCGen)((buffer)->p))
-#define AMCBufferSetGen(buffer, gen) ((buffer)->p = (void*)(gen))
+
+/* AMCBufStruct -- AMC Buffer subclass
+ *
+ * This subclass of BufferedSeg records a link to a generation.
+ */
+
+#define AMCBufSig ((Sig)0x519A3CBF) /* SIGnature AMC BuFfer  */ 
+
+typedef struct AMCBufStruct *AMCBuf;
+
+typedef struct AMCBufStruct {
+  BufferedSegStruct bufSegStruct; /* superclass fields must come first */
+  AMCGen gen;                     /* The AMC generation */
+  Sig sig;                        /* design.mps.sig */
+} AMCBufStruct;
+
+
+/* BufferAMCBuf -- convert generic Buffer to an AMCBuf */
+
+#define BufferAMCBuf(buffer) ((AMCBuf)(buffer))
+
+
+/* AMCBufCheck -- check consistency of an AMCBuf */
+
+Bool AMCBufCheck(AMCBuf amcbuf)
+{
+  BufferedSeg bufseg;
+
+  CHECKS(AMCBuf, amcbuf);
+  bufseg = &amcbuf->bufSegStruct;
+  CHECKL(BufferedSegCheck(bufseg));
+  if (amcbuf->gen != NULL) {
+    CHECKL(AMCGenCheck(amcbuf->gen));
+  }
+  return TRUE;
+}
+
+
+/* AMCBufGen -- Return the AMC generation of an AMCBuf */
+
+static AMCGen AMCBufGen(Buffer buffer)
+{
+  AMCBuf amcbuf;
+  AVERT(Buffer, buffer);
+  amcbuf = BufferAMCBuf(buffer);
+  AVERT(AMCBuf, amcbuf);
+  return amcbuf->gen;
+}
+
+
+/* AMCBufSetGen -- Set the AMC generation of an AMCBuf */
+
+static void AMCBufSetGen(Buffer buffer, AMCGen gen)
+{
+  AMCBuf amcbuf;
+  AVERT(Buffer, buffer);
+  if (gen != NULL) {
+    AVERT(AMCGen, gen);
+  }
+  amcbuf = BufferAMCBuf(buffer);
+  AVERT(AMCBuf, amcbuf);
+  amcbuf->gen = gen;
+}
+
+
+/* AMCBufInit -- Initialize an AMCBuf */
+
+static Res AMCBufInit(Buffer buffer, Pool pool)
+{
+  AMCBuf amcbuf;
+  BufferClass superclass = EnsureBufferedSegClass();
+
+  AVERT(Buffer, buffer);
+  AVERT(Pool, pool);
+
+  /* call next method */
+  (*superclass->init)(buffer, pool);
+
+  amcbuf = BufferAMCBuf(buffer);
+  amcbuf->gen = NULL;
+  amcbuf->sig = AMCBufSig;
+
+  AVERT(AMCBuf, amcbuf);
+  return ResOK;
+}
+
+
+/* AMCBufFinish -- Finish an AMCBuf */
+
+static void AMCBufFinish(Buffer buffer)
+{
+  BufferClass super;
+  AMCBuf amcbuf;
+
+  AVERT(Buffer, buffer);
+  amcbuf = BufferAMCBuf(buffer);
+  AVERT(AMCBuf, amcbuf);
+
+  amcbuf->sig = SigInvalid;
+
+  /* finish the superclass fields last */
+  super = EnsureBufferedSegClass();
+  super->finish(buffer);
+}
+
+
+/* AMCBufClass -- The class definition */
+
+DEFINE_BUFFER_CLASS(AMCBufClass, class)
+{
+  INHERIT_CLASS(class, BufferedSegClass);
+  class->name = "AMCBUF";
+  class->size = sizeof(AMCBufStruct);
+  class->init = AMCBufInit;
+  class->finish = AMCBufFinish;
+}
 
 
 /* .ramp.generation: The ramp gen has serial AMCTopGen+1. */
@@ -222,11 +340,10 @@ static Res AMCGenCreate(AMCGen *genReturn, AMC amc, Serial genNum)
     goto failControlAlloc;
   gen = (AMCGen)p;
 
-  res = BufferCreate(&buffer, pool);
+  res = BufferCreate(&buffer, EnsureAMCBufClass(), pool, FALSE);
   if(res != ResOK)
     goto failBufferCreate;
-  buffer->p = NULL; /* no gen yet -- see design.mps.poolamc.forward.gen */
-  buffer->i = TRUE; /* it's a forwarding buffer */
+  AMCBufSetGen(buffer, NULL); /* design.mps.poolamc.gen.forward */
 
   RingInit(&gen->amcRing);
   ActionInit(&gen->actionStruct, pool);
@@ -499,13 +616,13 @@ static Res AMCInitComm(Pool pool, RankSet rankSet, va_list arg)
     }
     /* set up forwarding buffers */
     for(i=0; i<AMCTopGen; ++i) {
-      AMCBufferSetGen(amc->gen[i]->forward, amc->gen[i+1]);
+      AMCBufSetGen(amc->gen[i]->forward, amc->gen[i+1]);
     }
     /* TopGen forward to itself */
-    AMCBufferSetGen(amc->gen[AMCTopGen]->forward, amc->gen[AMCTopGen]);
+    AMCBufSetGen(amc->gen[AMCTopGen]->forward, amc->gen[AMCTopGen]);
     /* rampGen may as well forward into itself (though it's */
     /* irrelevant as it is set at beginning and end of every ramp */
-    AMCBufferSetGen(amc->gen[AMCRampGen]->forward, amc->gen[AMCRampGen]);
+    AMCBufSetGen(amc->gen[AMCRampGen]->forward, amc->gen[AMCRampGen]);
   }
   amc->nursery = amc->gen[0];
   amc->rampGen = amc->gen[AMCRampGen];
@@ -579,7 +696,7 @@ static void AMCFinish(Pool pool)
 }
 
 
-/* AMCBufferInit -- initialize a new mutator buffer */
+/* AMCBufferInit -- initialize a new AMC buffer */
 
 static Res AMCBufferInit(Pool pool, Buffer buffer, va_list args)
 {
@@ -590,12 +707,11 @@ static Res AMCBufferInit(Pool pool, Buffer buffer, va_list args)
   AVERT(AMC, amc);
   UNUSED(args);
 
-  buffer->rankSet = amc->rankSet;
+  BufferSetRankSet(buffer, amc->rankSet);
 
   /* Set up the buffer to be a mutator buffer allocating in */
   /* the nursery. */
-  buffer->p = amc->nursery;
-  buffer->i = FALSE;                    /* mutator buffer */
+  AMCBufSetGen(buffer, amc->nursery);
   EVENT_PP(AMCBufferInit, amc, buffer);
   return ResOK;
 }
@@ -606,8 +722,7 @@ static Res AMCBufferInit(Pool pool, Buffer buffer, va_list args)
  * See design.mps.poolamc.fill.
  */
 
-static Res AMCBufferFill(Seg *segReturn,
-                         Addr *baseReturn, Addr *limitReturn,
+static Res AMCBufferFill(Addr *baseReturn, Addr *limitReturn,
                          Pool pool, Buffer buffer, Size size,
                          Bool withReservoirPermit)
 {
@@ -623,7 +738,6 @@ static Res AMCBufferFill(Seg *segReturn,
   AVERT(Pool, pool);
   amc = PoolPoolAMC(pool);
   AVERT(AMC, amc);
-  AVER(segReturn != NULL);
   AVER(baseReturn != NULL);
   AVER(limitReturn != NULL);
   AVERT(Buffer, buffer);
@@ -631,7 +745,7 @@ static Res AMCBufferFill(Seg *segReturn,
   AVER(size >  0);
   AVER(BoolCheck(withReservoirPermit));
 
-  gen = (AMCGen)buffer->p;
+  gen = AMCBufGen(buffer);
   AVERT(AMCGen, gen);
 
   /* Create and attach segment.  The location of this segment is */
@@ -664,7 +778,6 @@ static Res AMCBufferFill(Seg *segReturn,
   }
 
   /* Give the buffer the entire segment to allocate in. */
-  *segReturn = seg;
   base = SegBase(seg);
   *baseReturn = base;
   limit = AddrAdd(base, alignedSize);
@@ -681,17 +794,19 @@ static Res AMCBufferFill(Seg *segReturn,
  */
 
 static void AMCBufferEmpty(Pool pool, Buffer buffer, 
-                           Seg seg, Addr init, Addr limit)
+                           Addr init, Addr limit)
 {
   AMC amc;
   Word size;
   Arena arena;
+  Seg seg;
 
   AVERT(Pool, pool);
   amc = PoolPoolAMC(pool);
   AVERT(AMC, amc);
   AVERT(Buffer, buffer);
   AVER(BufferIsReady(buffer));
+  seg = BufferSeg(buffer);
   AVER(SegCheck(seg));
   AVER(init <= limit);
   AVER(SegLimit(seg) == limit);
@@ -829,7 +944,7 @@ static Res AMCWhiten(Pool pool, Trace trace, Seg seg)
   if(buffer != NULL) {
     AVERT(Buffer, buffer);
 
-    if(buffer->i) {                 /* forwarding buffer */
+    if(!BufferIsMutator(buffer)) {   /* forwarding buffer */
       AVER(BufferIsReady(buffer));
       BufferDetach(buffer, pool);
     } else {                        /* mutator buffer */
@@ -890,18 +1005,18 @@ static Res AMCWhiten(Pool pool, Trace trace, Seg seg)
   AVER(TraceSetIsSingle(PoolArena(pool)->busyTraces));
   if(amc->rampMode == beginRamp && gen->serial == AMCRampGenFollows) {
     BufferDetach(gen->forward, pool);
-    AMCBufferSetGen(gen->forward, amc->rampGen);
+    AMCBufSetGen(gen->forward, amc->rampGen);
     AVER(amc->rampGen != NULL);
     BufferDetach(amc->rampGen->forward, pool);
-    AMCBufferSetGen(amc->rampGen->forward, amc->rampGen);
+    AMCBufSetGen(amc->rampGen->forward, amc->rampGen);
     amc->rampMode = ramping;
   } else {
     if(amc->rampMode == finishRamp && gen->serial == AMCRampGenFollows) {
       BufferDetach(gen->forward, pool);
-      AMCBufferSetGen(gen->forward, amc->afterRampGen);
+      AMCBufSetGen(gen->forward, amc->afterRampGen);
       AVER(amc->rampGen != NULL);
       BufferDetach(amc->rampGen->forward, pool);
-      AMCBufferSetGen(amc->rampGen->forward, amc->afterRampGen);
+      AMCBufSetGen(amc->rampGen->forward, amc->afterRampGen);
       amc->rampMode = collectingRamp;
     }
   }
@@ -1760,6 +1875,7 @@ DEFINE_POOL_CLASS(AMCPoolClass, this)
   this->rampBegin = AMCRampBegin;
   this->rampEnd = AMCRampEnd;
   this->walk = AMCWalk;
+  this->bufferClass = EnsureAMCBufClass;
   this->describe = AMCDescribe;
 }
 

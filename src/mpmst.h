@@ -1,6 +1,6 @@
 /* impl.h.mpmst: MEMORY POOL MANAGER DATA STRUCTURES
  *
- * $HopeName: MMsrc!mpmst.h(MMdevel_tony_sunset.3) $
+ * $HopeName: MMsrc!mpmst.h(MMdevel_tony_sunset.4) $
  * Copyright (C) 1998 Harlequin Group plc.  All rights reserved.
  *
  * .readership: MM developers.
@@ -100,6 +100,7 @@ typedef struct PoolClassStruct {
   PoolFramePopMethod framePop;  /* pop an allocation frame */
   PoolFramePopPendingMethod framePopPending;  /* notify pending pop */
   PoolWalkMethod walk;          /* walk over a segment */
+  PoolBufferClassMethod bufferClass; /* default BufferClass of pool */
   PoolDescribeMethod describe;  /* describe the contents of the pool */
   PoolDebugMixinMethod debugMixin; /* find the debug mixin, if any */
   Bool labelled;                /* whether it has been EventLabelled */
@@ -263,14 +264,19 @@ typedef struct MessageStruct {
  *
  * .tract: Tracts represent the grains of memory allocation from
  * the arena.  See design.mps.arena.
+ * 
+ * .bool: The hasSeg field is a boolean, stored as a bit-field 
+ * of size 1 for compactness. It must be represented as an unsigned
+ * type to preserve the value of TRUE. The Bool type is not 
+ * sufficient.
  */
 
 typedef struct TractStruct { /* Tract structure */
-  Pool pool;           /* MUST BE FIRST (design.mps.arena.tract.pool) */
+  Pool pool;      /* MUST BE FIRST (design.mps.arena.tract.field pool) */
   void *p;                    /* pointer for use of owning pool */
   Addr base;                  /* Base address of the tract */
   TraceSet white : TRACE_MAX; /* traces for which tract is white */
-  unsigned int hasSeg : 1;    /* does tract have a seg in p? */
+  unsigned int hasSeg : 1;    /* does tract have a seg in p? See .bool */
 } TractStruct;
 
 
@@ -279,7 +285,7 @@ typedef struct TractStruct { /* Tract structure */
  * See design.mps.seg & design.mps.protocol
  *
  * .seg.class: The segment class structure is defined by each 
- * segment class implementation in order to provide an generic 
+ * segment class implementation in order to provide a generic 
  * interface to segments.
  */
 
@@ -371,6 +377,35 @@ typedef struct SegPrefStruct {  /* segment placement preferences */
 } SegPrefStruct;
 
 
+/* BufferClassStruct -- buffer class structure
+ *
+ * See design.mps.buffer & design.mps.protocol
+ *
+ * .buffer.class: The buffer class structure is defined by each 
+ * buffer class implementation in order to provide a generic 
+ * interface to buffers.
+ */
+
+#define BufferClassSig    ((Sig)0x519B0FC7) /* SIGnature BUFfer CLass */
+
+typedef struct BufferClassStruct {
+  ProtocolClassStruct protocol;
+  const char *name;             /* class name string */
+  size_t size;                  /* size of outer structure */
+  BufferInitMethod init;        /* initialize the buffer */
+  BufferFinishMethod finish;    /* finish the buffer */
+  BufferAttachMethod attach;    /* attach the buffer */
+  BufferDetachMethod detach;    /* detach the buffer */
+  BufferDescribeMethod describe;/* describe the contents of the buffer */
+  BufferSegMethod seg;          /* seg of buffer */
+  BufferRankSetMethod rankSet;  /* rank set of buffer */
+  BufferSetRankSetMethod setRankSet; /* change rank set of buffer */
+  Sig sig;                      /* .class.end-sig */
+} BufferClassStruct;
+
+
+
+
 /* APStruct -- allocation point structure
  *
  * AP are part of the design of buffers see design.mps.buffer.
@@ -403,6 +438,7 @@ typedef struct APStruct {
 
 typedef struct BufferStruct {
   Sig sig;                      /* design.mps.sig */
+  BufferClass class;            /* buffer class structure */
   Serial serial;                /* from pool->bufferSerial */
   Arena arena;                  /* owning arena */
   Pool pool;                    /* owning pool */
@@ -411,17 +447,29 @@ typedef struct BufferStruct {
   BufferMode mode;              /* Attached/Logged/Flipped/etc */
   double fillSize;              /* bytes filled in this buffer */
   double emptySize;             /* bytes emptied from this buffer */
-  RankSet rankSet;              /* ranks of references being created */
-  Seg seg;                      /* segment being buffered - if any */
   Addr base;                    /* base address of allocation buffer */
   Addr initAtFlip;              /* limit of initialized data at flip */
   APStruct apStruct;            /* the allocation point */
   Addr poolLimit;               /* the pool's idea of the limit */
   Align alignment;              /* allocation alignment */
   unsigned rampCount;           /* see impl.c.buffer.ramp.hack */
-  void *p;                      /* closure variable for pool */
-  int i;                        /* closure variable for pool */
 } BufferStruct;
+
+
+/* BufferedSegStruct -- Buffer structure associated with segments
+ *
+ * .bufseg: BufferedSeg is a subclass of Buffer with support for
+ * attachment to segments.
+ */
+
+#define BufferedSegSig ((Sig)0x519B0F59) /* SIGnature BUFfer SeG  */ 
+
+typedef struct BufferedSegStruct {
+  BufferStruct bufferStruct;    /* superclass fields must come first */
+  RankSet rankSet;              /* ranks of references being created */
+  Seg seg;                      /* segment being buffered */
+  Sig sig;                      /* design.mps.sig */
+} BufferedSegStruct;
 
 
 /* FormatStruct -- object format structure
@@ -677,7 +725,7 @@ typedef struct ActionStruct {
 #define ArenaClassSig   ((Sig)0x519A6C1A) /* SIGnature ARena CLAss */
 
 typedef struct ArenaClassStruct {
-  Sig sig;
+  ProtocolClassStruct protocol;
   char *name;                   /* class name string */
   size_t size;                  /* size of outer structure */
   size_t offset;                /* offset of generic struct in outer struct */
@@ -691,13 +739,12 @@ typedef struct ArenaClassStruct {
   ArenaIsReservedAddrMethod isReserved;
   ArenaAllocMethod alloc;
   ArenaFreeMethod free;
-  ArenaTractBaseMethod tractBase;
   ArenaTractOfAddrMethod tractOfAddr;
   ArenaTractFirstMethod tractFirst;
   ArenaTractNextMethod tractNext;
   ArenaTractNextContigMethod tractNextContig;
   ArenaDescribeMethod describe;
-  Sig endSig;
+  Sig sig;
 } ArenaClassStruct;
 
 

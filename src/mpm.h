@@ -1,6 +1,6 @@
 /* impl.h.mpm: MEMORY POOL MANAGER DEFINITIONS
  *
- * $HopeName: MMsrc!mpm.h(MMdevel_tony_sunset.5) $
+ * $HopeName: MMsrc!mpm.h(MMdevel_tony_sunset.6) $
  * Copyright (C) 1998.  Harlequin Group plc.  All rights reserved.
  */
 
@@ -330,6 +330,7 @@ extern Res PoolCreate(Pool *poolReturn, Arena arena,
 extern Res PoolCreateV(Pool *poolReturn, Arena arena,
                        PoolClass class, va_list arg);
 extern void PoolDestroy(Pool pool);
+extern BufferClass PoolDefaultBufferClass(Pool pool);
 extern Res PoolAlloc(Addr *pReturn, Pool pool, Size size, 
                      Bool withReservoirPermit);
 extern void PoolFree(Pool pool, Addr old, Size size);
@@ -361,18 +362,16 @@ extern Res PoolNoBufferInit(Pool pool, Buffer buf, va_list args);
 extern Res PoolTrivBufferInit(Pool pool, Buffer buf, va_list args);
 extern void PoolNoBufferFinish(Pool pool, Buffer buf);
 extern void PoolTrivBufferFinish(Pool pool, Buffer buf);
-extern Res PoolNoBufferFill(Seg *segReturn,
-                            Addr *baseReturn, Addr *limitReturn,
+extern Res PoolNoBufferFill(Addr *baseReturn, Addr *limitReturn,
                             Pool pool, Buffer buffer, Size size,
                             Bool withReservoirPermit);
-extern Res PoolTrivBufferFill(Seg *segReturn,
-                              Addr *baseReturn, Addr *limitReturn,
+extern Res PoolTrivBufferFill(Addr *baseReturn, Addr *limitReturn,
                               Pool pool, Buffer buffer, Size size,
                               Bool withReservoirPermit);
 extern void PoolNoBufferEmpty(Pool pool, Buffer buffer, 
-                              Seg seg, Addr init, Addr limit);
+                              Addr init, Addr limit);
 extern void PoolTrivBufferEmpty(Pool pool, Buffer buffer, 
-                                Seg seg, Addr init, Addr limit);
+                                Addr init, Addr limit);
 extern Res PoolNoDescribe(Pool pool, mps_lib_FILE *stream);
 extern Res PoolTrivDescribe(Pool pool, mps_lib_FILE *stream);
 extern Res PoolNoTraceBegin(Pool pool, Trace trace);
@@ -411,6 +410,7 @@ extern void PoolNoWalk(Pool pool, Seg seg,
 		       void *, unsigned long);
 extern Res PoolCollectAct(Pool pool, Action action);
 extern PoolDebugMixin PoolNoDebugMixin(Pool pool);
+extern BufferClass PoolNoBufferClass(void);
 
 #define ClassOfPool(pool) ((pool)->class)
 #define SuperclassOfPool(pool) \
@@ -426,12 +426,14 @@ extern void PoolClassMixInCollect(PoolClass class);
 extern AbstractPoolClass EnsureAbstractPoolClass(void);
 extern AbstractAllocFreePoolClass EnsureAbstractAllocFreePoolClass(void);
 extern AbstractBufferPoolClass EnsureAbstractBufferPoolClass(void);
+extern AbstractBufferPoolClass EnsureAbstractBufferedSegPoolClass(void);
 extern AbstractScanPoolClass EnsureAbstractScanPoolClass(void);
 extern AbstractCollectPoolClass EnsureAbstractCollectPoolClass(void);
 
 /* DEFINE_POOL_CLASS
  * convenience macro -- see design.mps.protocol.int.define-special 
  */
+
 #define DEFINE_POOL_CLASS(className, var) \
   DEFINE_ALIAS_CLASS(className, PoolClass, var)
 
@@ -590,6 +592,14 @@ extern void ActionPoll(Arena arena);
 
 /* Arena Interface -- see impl.c.arena */
 
+/* DEFINE_ARENA_CLASS
+ * convenience macro -- see design.mps.protocol.int.define-special 
+ */
+
+#define DEFINE_ARENA_CLASS(className, var) \
+  DEFINE_ALIAS_CLASS(className, ArenaClass, var)
+
+extern AbstractArenaClass EnsureAbstractArenaClass(void);
 extern Bool ArenaClassCheck(ArenaClass class);
 extern Bool ArenaCheck(Arena arena);
 /* backward compatibility */
@@ -719,27 +729,48 @@ extern void TractInit(Tract tract, Pool pool, Addr base);
 extern void TractFinish(Tract tract);
 #define TractPool(tract)        ((tract)->pool)
 #define TractP(tract)           ((tract)->p)
-#define TractSeg(tract)         ((Seg)TractP(tract))
 #define TractSetP(tract, pp)    ((void)((tract)->p = (pp)))
 #define TractHasSeg(tract)      ((tract)->hasSeg)
+#define TractSetHasSeg(tract, b) ((void)((tract)->hasSeg = (b)))
 #define TractWhite(tract)       ((tract)->white)
+#define TractSetWhite(tract, w) ((void)((tract)->white = w))
+
+/* TRACT_*SEG -- Test / set / unset seg->tract associations
+ *
+ * These macros all multiply evaluate the tract parameter 
+ */
+
+#define TRACT_SEG(segReturn, tract) \
+  (TractHasSeg(tract) && ((*(segReturn) = (Seg)TractP(tract)), TRUE))
+
+#define TRACT_SET_SEG(tract, seg) \
+  (TractSetHasSeg(tract, TRUE), TractSetP(tract, seg))
+
+#define TRACT_UNSET_SEG(tract) \
+  (TractSetHasSeg(tract, FALSE), TractSetP(tract, NULL))
+
+/* Macro version of TractNextContig for use in iteration macros */
+#define TRACT_NEXT_CONTIG(arena, tract) \
+  (*(arena)->class->tractNextContig)(arena, tract)
 
 /* .tract.tract.for: See design.mps.arena.tract.tract.for */
+/* paremeters arena & limit are evaluated multiple times */
 #define TRACT_TRACT_FOR(tract, addr, arena, firstTract, limit)     \
-  for((tract = firstTract), (addr = TractBase(tract)); \
+  for((tract = (firstTract)), (addr = TractBase(tract)); \
       tract != NULL;  \
       (addr = AddrAdd((addr),(arena)->alignment)), \
       ((addr < (limit)) ? \
-         (tract = TractNextContig((arena), tract)) : \
+         (tract = TRACT_NEXT_CONTIG((arena), tract)) : \
          (tract = NULL) /* terminate loop */))
 
 /* .tract.for: See design.mps.arena.tract.for */
+/* paremeters arena & limit are evaluated multiple times */
 #define TRACT_FOR(tract, addr, arena, base, limit)     \
   for((tract = TractOfBaseAddr((arena), (base))), (addr = (base)); \
       tract != NULL;  \
       (addr = AddrAdd((addr),(arena)->alignment)), \
       ((addr < (limit)) ? \
-         (tract = TractNextContig((arena), tract)) : \
+         (tract = TRACT_NEXT_CONTIG((arena), tract)) : \
          (tract = NULL) /* terminate loop */))
 
 
@@ -782,6 +813,7 @@ extern SegClass EnsureSegGCClass(void);
 /* DEFINE_SEG_CLASS
  * convenience macro -- see design.mps.protocol.int.define-special 
  */
+
 #define DEFINE_SEG_CLASS(className, var) \
   DEFINE_ALIAS_CLASS(className, SegClass, var)
 
@@ -814,11 +846,13 @@ extern Addr (SegLimit)(Seg seg);
 
 /* Buffer Interface -- see impl.c.buffer */
 
-extern Res BufferCreate(Buffer *bufferReturn, Pool pool, ...);
-extern Res BufferCreateV(Buffer *bufferReturn,
+extern Res BufferCreate(Buffer *bufferReturn, BufferClass class, 
+                        Pool pool, Bool isMutator, ...);
+extern Res BufferCreateV(Buffer *bufferReturn, BufferClass class, 
                          Pool pool, Bool isMutator, va_list args);
 extern void BufferDestroy(Buffer buffer);
 extern Bool BufferCheck(Buffer buffer);
+extern Bool BufferedSegCheck(BufferedSeg bufseg);
 extern Res BufferDescribe(Buffer buffer, mps_lib_FILE *stream);
 extern Res BufferReserve(Addr *pReturn, Buffer buffer, Size size,
                          Bool withReservoirPermit);
@@ -846,7 +880,7 @@ extern Bool BufferIsReset(Buffer buffer);
 extern Bool BufferIsReady(Buffer buffer);
 extern Bool BufferIsMutator(Buffer buffer);
 extern void BufferSetAllocAddr(Buffer buffer, Addr addr);
-extern void BufferAttach(Buffer buffer, Seg seg, 
+extern void BufferAttach(Buffer buffer, 
                          Addr base, Addr limit, Addr init, Size size);
 extern void BufferDetach(Buffer buffer, Pool pool);
 extern void BufferFlip(Buffer buffer);
@@ -859,10 +893,9 @@ extern Arena BufferArena(Buffer buffer);
 #define BufferArena(buffer)     ((buffer)->arena)
 extern Pool (BufferPool)(Buffer buffer);
 #define BufferPool(buffer)      ((buffer)->pool)
-extern Seg (BufferSeg)(Buffer buffer);
-#define BufferSeg(buffer)       ((buffer)->seg)
-extern RankSet (BufferRankSet)(Buffer buffer);
-#define BufferRankSet(buffer)   ((buffer)->rankSet)
+extern Seg BufferSeg(Buffer buffer);
+extern RankSet BufferRankSet(Buffer buffer);
+extern void BufferSetRankSet(Buffer buffer, RankSet rankset);
 extern Addr (BufferBase)(Buffer buffer);
 #define BufferBase(buffer)      ((buffer)->base)
 extern Addr (BufferGetInit)(Buffer buffer);
@@ -880,6 +913,18 @@ extern Res BufferFramePush(AllocFrame *frameReturn, Buffer buffer);
 extern Res BufferFramePop(Buffer buffer, AllocFrame frame);
 extern FrameState BufferFrameState(Buffer buffer);
 extern void BufferFrameSetState(Buffer buffer, FrameState state);
+
+
+/* DEFINE_BUFFER_CLASS
+ * convenience macro -- see design.mps.protocol.int.define-special 
+ */
+#define DEFINE_BUFFER_CLASS(className, var) \
+  DEFINE_ALIAS_CLASS(className, BufferClass, var)
+
+
+extern Bool BufferClassCheck(BufferClass class);
+extern BufferClass EnsureBufferClass(void);
+extern BufferClass EnsureBufferedSegClass(void);
 
 extern AllocPattern AllocPatternRamp(void);
 extern AllocPattern AllocPatternRampCollectAll(void);

@@ -1,6 +1,6 @@
 /* impl.c.poollo: LEAF POOL CLASS
  *
- * $HopeName: MMsrc!poollo.c(MMdevel_tony_sunset.1) $
+ * $HopeName: MMsrc!poollo.c(MMdevel_tony_sunset.2) $
  * Copyright (C) 1997,1998 Harlequin Group plc, all rights reserved.
  *
  * READERSHIP
@@ -19,7 +19,7 @@
 #include "mpm.h"
 #include "mps.h"
 
-SRCID(poollo, "$HopeName: MMsrc!poollo.c(MMdevel_tony_sunset.1) $");
+SRCID(poollo, "$HopeName: MMsrc!poollo.c(MMdevel_tony_sunset.2) $");
 
 
 /* MACROS */
@@ -485,8 +485,8 @@ static void LOFinish(Pool pool)
 }
 
 
-static Res LOBufferFill(Seg *segReturn, Addr *baseReturn, 
-                        Addr *limitReturn, Pool pool, Buffer buffer, 
+static Res LOBufferFill(Addr *baseReturn, Addr *limitReturn, 
+                        Pool pool, Buffer buffer, 
                         Size size, Bool withReservoirPermit)
 {
   Res res;
@@ -496,7 +496,6 @@ static Res LOBufferFill(Seg *segReturn, Addr *baseReturn,
   Arena arena;
   Addr base, limit;
 
-  AVER(segReturn != NULL);
   AVER(baseReturn != NULL);
   AVER(limitReturn != NULL);
   AVERT(Pool, pool);
@@ -547,7 +546,6 @@ found:
   AVER(lo->objectsSize < lo->objectsSize + AddrOffset(base, limit));
   lo->objectsSize += AddrOffset(base, limit);
 
-  *segReturn = group->seg;
   *baseReturn = base;
   *limitReturn = limit;
   return ResOK;
@@ -560,10 +558,11 @@ failGroup:
 /* Synchronise the buffer with the alloc Bit Table in the group. */
 
 static void LOBufferEmpty(Pool pool, Buffer buffer, 
-                           Seg seg, Addr init, Addr limit)
+                          Addr init, Addr limit)
 {
   LO lo;
   Addr base, segBase;
+  Seg seg;
   LOGroup group;
   Index baseIndex, initIndex, limitIndex;
   Arena arena;
@@ -573,6 +572,7 @@ static void LOBufferEmpty(Pool pool, Buffer buffer,
   AVERT(LO, lo);
   AVERT(Buffer, buffer);
   AVER(BufferIsReady(buffer));
+  seg = BufferSeg(buffer);
   AVER(SegCheck(seg));
   AVER(init <= limit);
   
