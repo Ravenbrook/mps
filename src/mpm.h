@@ -1,7 +1,7 @@
 /* impl.h.mpm: MEMORY POOL MANAGER DEFINITIONS
  *
- * $HopeName: !mpm.h(trunk.131) $
- * Copyright (C) 1999.  Harlequin Limited.  All rights reserved.
+ * $HopeName: MMsrc!mpm.h(MMdevel_pekka_locus.1) $
+ * Copyright (C) 1999 Harlequin Limited.  All rights reserved.
  */
 
 #ifndef mpm_h
@@ -619,18 +619,21 @@ extern void ActionPoll(Arena arena);
   ((ArenaClass)SUPERCLASS(className))
 
 extern AbstractArenaClass EnsureAbstractArenaClass(void);
-extern Bool ArenaClassCheck(ArenaClass class);
 extern Bool ArenaCheck(Arena arena);
-/* backward compatibility */
-#define SpaceCheck(space) ArenaCheck(space)
 extern Res ArenaCreateV(Arena *arenaReturn, ArenaClass class, va_list args);
 extern void ArenaDestroy(Arena arena);
 extern void ArenaInit(Arena arena, Lock lock, ArenaClass class);
 extern void ArenaFinish(Arena arena);
 extern Res ArenaDescribe(Arena arena, mps_lib_FILE *stream);
-extern Res ArenaDescribeTracts(Arena arena, mps_lib_FILE *stream);
 extern Bool ArenaAccess(Addr addr, AccessSet mode,
 			MutatorFaultContext context);
+
+extern Bool ArenaAllocCheck(Arena arena);
+extern void ArenaAllocInit(Arena arena);
+extern void ArenaAllocFinish(Arena arena);
+extern Bool ArenaClassCheck(ArenaClass class);
+extern Res ArenaAllocDescribe(Arena arena, mps_lib_FILE *stream);
+extern Res ArenaDescribeTracts(Arena arena, mps_lib_FILE *stream);
 
 extern void (ArenaEnter)(Arena arena);
 extern void (ArenaLeave)(Arena arena);
@@ -652,6 +655,8 @@ extern void ArenaRelease(Arena arena);
 extern void ArenaPark(Arena arena);
 extern Res ArenaCollect(Arena arena);
 
+extern Res ControlInit(Arena arena);
+extern void ControlFinish(Arena arena);
 extern Res ControlAlloc(void **baseReturn, Arena arena, size_t size, 
                         Bool withReservoirPermit);
 extern void ControlFree(Arena arena, void *base, size_t size);
