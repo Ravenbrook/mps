@@ -1,6 +1,6 @@
 /*  impl.c.teletest: TELEMETRY TEST
  *
- *  $HopeName: MMsrc!teletest.c(MMdevel_telemetry_intern2.1) $
+ *  $HopeName: !teletest.c(trunk.2) $
  * Copyright (C) 1998 Harlequin Group plc, all rights reserved.
  */
 
@@ -20,7 +20,7 @@
 #endif /* MPS_OS_SU */
 
 
-SRCID(bttest, "$HopeName: MMsrc!teletest.c(MMdevel_telemetry_intern2.1) $");
+SRCID(bttest, "$HopeName: !teletest.c(trunk.2) $");
 
 
 static mps_arena_t arena; /* the ANSI arena which we use to allocate the BT */

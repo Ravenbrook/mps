@@ -1,7 +1,7 @@
 /* impl.h.event -- Event Logging Interface
  *
  * Copyright (C) 1997 Harlequin Group, all rights reserved.
- * $HopeName: MMsrc!event.h(trunk.6) $
+ * $HopeName: !event.h(trunk.7) $
  *
  * READERSHIP
  *

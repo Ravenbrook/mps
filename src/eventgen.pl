@@ -2,7 +2,7 @@
 # impl.pl.eventgen -- Generator for impl.h.eventgen
 #
 # Copyright (C) 1997 Harlequin Group, all rights reserved.
-# $HopeName: MMsrc!eventgen.pl(trunk.3) $
+# $HopeName: !eventgen.pl(trunk.4) $
 #
 # Invoke this script in the src directory.
 # It works by scanning *.c for EVENT_[A-Z], 

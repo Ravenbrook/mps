@@ -2,7 +2,7 @@
  *
  *                          NULL POOL
  *
- *  $HopeName: MMsrc!pooln.h(MMdevel_restr2.2) $
+ *  $HopeName: !pooln.h(trunk.3) $
  *
  *  Copyright (C) 1995 Harlequin Group, all rights reserved
  *
