@@ -1,6 +1,6 @@
 /*  impl.c.poolmv2ss: POOLMV2 STRESS TEST
  *
- * $HopeName: MMsrc!mv2test.c(MMdevel_gavinm_splay.4) $
+ * $HopeName: MMsrc!mv2test.c(MMdevel_gavinm_splay.5) $
  * Copyright (C) 1998. Harlequin Group plc. All rights reserved.
  */
 
@@ -40,13 +40,13 @@ typedef MPS_T_WORD mps_count_t;  /* machine word (target dep.) */
  */
 #define IA 16807
 #define IM 2147483647
-#define AM (1.0/IM)
+#define AM (1.0F/IM)
 #define IQ 127773
 #define IR 2836
 #define NTAB 32
 #define NDIV (1+(IM-1)/NTAB)
-#define EPS 1.2e-7
-#define RNMX (1.0-EPS)
+#define EPS 1.2e-7F
+#define RNMX (1.0F-EPS)
 static float ran1(long *idum)
 {
   int j;
@@ -98,7 +98,7 @@ static float expdev(long *idum)
   do
     dum=ran1(idum);
   while (dum == 0.0);
-  return -log(dum);
+  return (float)-log(dum);
 }
 
 #ifdef ndef
