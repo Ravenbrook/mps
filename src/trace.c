@@ -1,11 +1,11 @@
 /* impl.c.trace: GENERIC TRACER IMPLEMENTATION
  *
- * $HopeName: MMsrc!trace.c(MMdevel_remem.2) $
+ * $HopeName: MMsrc!trace.c(MMdevel_remem.3) $
  */
 
 #include "mpm.h"
 
-SRCID(trace, "$HopeName: MMsrc!trace.c(MMdevel_remem.2) $");
+SRCID(trace, "$HopeName: MMsrc!trace.c(MMdevel_remem.3) $");
 
 Bool ScanStateCheck(ScanState ss)
 {
@@ -72,7 +72,6 @@ Res TraceFlip(Space space, TraceId ti, RefSet condemned)
   ShieldSuspend(space);
 
   trace = &space->trace[ti];
-  AVER(trace->condemned == RefSetEmpty);
   trace->condemned = condemned;
 
   /* Update location dependency structures.  condemned is
@@ -174,14 +173,12 @@ Size TracePoll(Space space, TraceId ti)
 
   trace = &space->trace[ti];
 
-  if(trace->condemned != RefSetEmpty) {
-    res = TraceRun(space, ti, &finished);
-    AVER(res == ResOK); /* @@@@ */
-    if(finished) {
-      TraceReclaim(space, ti);
-      TraceDestroy(space, ti);
-      return SPACE_POLL_MAX;
-    }
+  res = TraceRun(space, ti, &finished);
+  AVER(res == ResOK); /* @@@@ */
+  if(finished) {
+    TraceReclaim(space, ti);
+    TraceDestroy(space, ti);
+    return SPACE_POLL_MAX;
   }
 
   /* We need to calculate a rate depending on the amount of work */
