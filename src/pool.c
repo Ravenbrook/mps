@@ -1,6 +1,6 @@
 /* impl.c.pool: POOL IMPLEMENTATION
  *
- * $HopeName: MMsrc!pool.c(MMdevel_config_thread.1) $
+ * $HopeName: MMsrc!pool.c(MMdevel_config_thread.2) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  *
  * This is the implementation of the generic pool interface.  The
@@ -12,7 +12,7 @@
 
 #include "mpm.h"
 
-SRCID(pool, "$HopeName: MMsrc!pool.c(MMdevel_config_thread.1) $");
+SRCID(pool, "$HopeName: MMsrc!pool.c(MMdevel_config_thread.2) $");
 
 
 Bool PoolClassCheck(PoolClass class)
@@ -582,7 +582,9 @@ void PoolTrivBufferFinish(Pool pool, Buffer buffer)
 Res PoolNoBufferFill(Seg *segReturn, Addr *baseReturn, Addr *limitReturn,
                      Pool pool, Buffer buffer, Size size)
 {
+  AVER(segReturn != NULL);
   AVER(baseReturn != NULL);
+  AVER(limitReturn != NULL);
   AVERT(Pool, pool);
   AVERT(Buffer, buffer);
   AVER(size > 0);
@@ -598,7 +600,9 @@ Res PoolTrivBufferFill(Seg *segReturn, Addr *baseReturn, Addr *limitReturn,
   Seg seg;
   Bool b;
 
+  AVER(segReturn != NULL);
   AVER(baseReturn != NULL);
+  AVER(limitReturn != NULL);
   AVERT(Pool, pool);
   AVERT(Buffer, buffer);
   AVER(size > 0);
