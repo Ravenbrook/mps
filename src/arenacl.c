@@ -1,6 +1,6 @@
 /* impl.c.arenacl: ARENA IMPLEMENTATION USING CLIENT MEMORY
  *
- * $HopeName: MMsrc!arenacl.c(MMdevel_tony_sunset.5) $
+ * $HopeName: MMsrc!arenacl.c(MMdevel_tony_sunset.6) $
  * Copyright (C) 1997. Harlequin Group plc. All rights reserved.
  *
  * .readership: MM developers
@@ -17,7 +17,7 @@
 #include "mpsacl.h"
 
 
-SRCID(arenacl, "$HopeName: MMsrc!arenacl.c(MMdevel_tony_sunset.5) $");
+SRCID(arenacl, "$HopeName: MMsrc!arenacl.c(MMdevel_tony_sunset.6) $");
 
 
 typedef struct ClientArenaStruct *ClientArena;
@@ -831,7 +831,7 @@ DEFINE_ARENA_CLASS(ClientArenaClass, this)
   this->tractFirst = ClientTractFirst;
   this->tractNext = ClientTractNext;
   this->tractNextContig = ClientTractNextContig;
-};
+}
 
 
 /* mps_arena_class_cl -- return the arena class CL */

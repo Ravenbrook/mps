@@ -1,6 +1,6 @@
 /* impl.c.arenavm: VIRTUAL MEMORY BASED ARENA IMPLEMENTATION
  *
- * $HopeName: MMsrc!arenavm.c(MMdevel_tony_sunset.4) $
+ * $HopeName: MMsrc!arenavm.c(MMdevel_tony_sunset.5) $
  * Copyright (C) 1998.  Harlequin Group plc.  All rights reserved.
  *
  * PURPOSE
@@ -32,7 +32,7 @@
 #include "mpm.h"
 #include "mpsavm.h"
 
-SRCID(arenavm, "$HopeName: MMsrc!arenavm.c(MMdevel_tony_sunset.4) $");
+SRCID(arenavm, "$HopeName: MMsrc!arenavm.c(MMdevel_tony_sunset.5) $");
 
 
 /* @@@@ Arbitrary calculation for the maximum number of distinct */
@@ -2386,7 +2386,7 @@ DEFINE_ARENA_CLASS(VMArenaClass, this)
   this->tractFirst = VMTractFirst;
   this->tractNext = VMTractNext;
   this->tractNextContig = VMTractNextContig;
-};
+}
 
 
 /* VMNZArenaClass  -- The VMNZ arena class definition 
