@@ -1,6 +1,6 @@
 /* impl.c.pool: POOL IMPLEMENTATION
  *
- * $HopeName: MMsrc!pool.c(MMdevel_restr2.5) $
+ * $HopeName: MMsrc!pool.c(MMdevel_restr2.6) $
  * Copyright (C) 1994,1995,1996 Harlequin Group, all rights reserved
  *
  * This is the implementation of the generic pool interface.  The
@@ -9,7 +9,7 @@
 
 #include "mpm.h"
 
-SRCID(pool, "$HopeName: MMsrc!pool.c(MMdevel_restr2.5) $");
+SRCID(pool, "$HopeName: MMsrc!pool.c(MMdevel_restr2.6) $");
 
 
 Bool PoolClassCheck(PoolClass class)
@@ -89,7 +89,7 @@ Res PoolInitV(Pool pool, Space space, PoolClass class, va_list args)
 
   /* Do class-specific initialization. */
   res = (*class->init)(pool, args);
-  if(res)
+  if(res != ResOK)
     goto failInit;
 
   RingAppend(SpacePoolRing(space), &pool->spaceRing);
@@ -99,7 +99,6 @@ failInit:
   pool->sig = SigInvalid;
   RingFinish(&pool->bufferRing);
   RingFinish(&pool->spaceRing);
-  SpaceFree(space, (Addr)pool, class->size);
   return res;
 }
 
@@ -127,7 +126,7 @@ Res PoolCreateV(Pool *poolReturn, PoolClass class,
   /* Allocate the pool instance structure with the size requested */
   /* in the pool class. */
   res = SpaceAlloc(&base, space, class->size);
-  if(res) return res;
+  if(res != ResOK) return res;
 
   /* Calculate the adress of the generic pool structure within the */
   /* instance by using the offset information from the class. */
@@ -135,7 +134,7 @@ Res PoolCreateV(Pool *poolReturn, PoolClass class,
 
   /* Initialize the pool. */  
   res = PoolInitV(pool, space, class, arg);
-  if(res) {
+  if(res != ResOK) {
     SpaceFree(space, base, class->size);
     return res;
   }
