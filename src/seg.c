@@ -1,6 +1,6 @@
 /* impl.c.seg: SEGMENTS
  *
- * $HopeName: !seg.c(MM_dylan_honeybee.2) $
+ * $HopeName: MMsrc!seg.c(MMdevel_honeybee_ambig2.1) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  *
  * .design: The design for this module is design.mps.seg.
@@ -16,7 +16,7 @@
 
 #include "mpm.h"
 
-SRCID(seg, "$HopeName: !seg.c(MM_dylan_honeybee.2) $");
+SRCID(seg, "$HopeName: MMsrc!seg.c(MMdevel_honeybee_ambig2.1) $");
 
 
 /* SegCheck -- check the integrity of a segment */
@@ -25,6 +25,7 @@ Bool SegCheck(Seg seg)
 {
   CHECKU(Pool, seg->_pool);
   CHECKL(TraceSetCheck(seg->_white));
+  CHECKL(RefSetSub(seg->_nailed, seg->_white));
   CHECKL(TraceSetCheck(seg->_grey));
 
   if(seg->_buffer != NULL) {
@@ -85,6 +86,7 @@ void SegInit(Seg seg, Pool pool)
   seg->_p = NULL;
   seg->_rankSet = RankSetEMPTY;
   seg->_white = TraceSetEMPTY;
+  seg->_nailed = TraceSetEMPTY;
   seg->_grey = TraceSetEMPTY;
   seg->_summary = RefSetEMPTY;
   seg->_buffer = NULL;
