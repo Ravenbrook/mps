@@ -1,6 +1,6 @@
 /* impl.h.mpm: MEMORY POOL MANAGER DEFINITIONS
  *
- * $HopeName: MMsrc!mpm.h(MMdevel_remem2.1) $
+ * $HopeName: MMsrc!mpm.h(MMdevel_remem2.2) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  */
 
@@ -60,6 +60,9 @@ extern Bool (WordIsAligned)(Word word, Align align);
 extern Word (WordAlignUp)(Word word, Align align);
 #define WordAlignUp(w, a)       (((w) + (a) - 1) & ~((Word)(a) - 1))
 
+extern Word (WordAlignDown)(Word word, Align align);
+#define WordAlignDown(w, a)     ((w) & ~((Word)(a) - 1))
+
 extern Bool AlignCheck(Align align);
 
 extern Pointer (PointerAdd)(Pointer p, Size s);
@@ -80,6 +83,9 @@ extern Addr (AddrSub)(Addr addr, Size size);
 
 extern Size (AddrOffset)(Addr base, Addr limit);
 #define AddrOffset(b, l)        (PointerOffset((Pointer)b, (Pointer)l))
+
+extern Addr (AddrAlignDown)(Addr addr, Align align);
+#define AddrAlignDown(p, a)	((Addr)WordAlignDown((Word)p, a))
 
 
 /* Logs and Powers
