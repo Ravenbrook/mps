@@ -2,7 +2,7 @@
  *
  *                          QUICKSORT
  *
- *  $HopeName: !qs.c(trunk.7) $
+ *  $HopeName: MMsrc!qs.c(MMdevel_drjweak.1) $
  *
  *  Copyright (C) 1995,1996 Harlequin Group, all rights reserved
  *
@@ -377,7 +377,7 @@ go(void *p, size_t s)
   die(mps_fmt_create_A(&format, space, &fmt_A_s), "FormatCreate");
   die(mps_pool_create(&pool, space, mps_class_amc(), format),
       "AMCCreate");
-  die(mps_ap_create(&ap, pool), "APCreate");
+  die(mps_ap_create(&ap, pool, MPS_RANK_EXACT), "APCreate");
   die(mps_root_create_table(&regroot, space, MPS_RANK_AMBIG, 0,
       (mps_addr_t *)reg, NREGS), "RootCreateTable");
   die(mps_root_create_table(&actroot, space, MPS_RANK_AMBIG, 0,
