@@ -1,6 +1,6 @@
 # impl.gmk.comm: COMMON GNUMAKEFILE FRAGMENT
 #
-# $HopeName: !comm.gmk(trunk.48) $
+# $HopeName: MMsrc!comm.gmk(MM_epcore_brisling.1) $
 # Copyright (C) 1997.  Harlequin Group plc.  All rights reserved.
 #
 # DESCRIPTION
@@ -260,8 +260,9 @@ all: mpmss apss amcss amsss awlut mpsicv lockcov poolncv mps.a \
 # These tests are run overnight (see design.buildsys.overnight).
 #   bttest & teletest cannot be run unattended
 #   mv2test cannot be run because MV2 is broken
-testrun: mpmss apss amcss amsss awlut mpsicv lockcov poolncv \
-         locv qs finalcv arenacv abqtest cbstest
+#   abqtest, finalcv, locv, lockcov, awlut, and amcss are omitted as irrelevant
+testrun: mpmss apss amsss mpsicv poolncv \
+         qs arenacv cbstest
 	$(^:%=date && $(PFM)/$(VARIETY)/% &&) true
 
 # Runs the automatic tests that are built with CONFIG_PROD_EPCORE
