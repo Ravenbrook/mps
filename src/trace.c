@@ -1,12 +1,12 @@
 /* impl.c.trace: GENERIC TRACER IMPLEMENTATION
  *
- * $HopeName: MMsrc!trace.c(MMdevel_gens2.2) $
+ * $HopeName: MMsrc!trace.c(MMdevel_gens2.3) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  */
 
 #include "mpm.h"
 
-SRCID(trace, "$HopeName: MMsrc!trace.c(MMdevel_gens2.2) $");
+SRCID(trace, "$HopeName: MMsrc!trace.c(MMdevel_gens2.3) $");
 
 
 /* ScanStateCheck -- check consistency of a ScanState object */
@@ -662,6 +662,23 @@ Res TracePoll(Trace trace)
   }
 
   return ResOK;
+}
+
+
+/* TraceGreyEstimate -- estimate amount of grey stuff
+ *
+ * This function returns an estimate of the total size (in bytes)
+ * of objects which would need to be scanned in order to find
+ * all references to a certain RefSet.
+ *
+ * @@@@ This currently assumes that it's everything in the world.
+ * @@@@ Should factor in the size of the roots, especially if the stack
+ * is currently very deep.
+ */
+
+Size TraceGreyEstimate(Space space, RefSet refSet)
+{
+  return ArenaCommitted(space);
 }
 
 

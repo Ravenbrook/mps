@@ -1,6 +1,6 @@
 /* impl.h.mpm: MEMORY POOL MANAGER DEFINITIONS
  *
- * $HopeName: MMsrc!mpm.h(MMdevel_gens2.3) $
+ * $HopeName: MMsrc!mpm.h(MMdevel_gens2.4) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  */
 
@@ -322,6 +322,8 @@ extern void TraceAccess(Space space, Seg seg, AccessSet mode);
 
 extern Res TraceFix(ScanState ss, Ref *refIO);
 extern void TraceSegGreyen(Space space, Seg seg, TraceSet ts);
+
+extern Size TraceGreyEstimate(Space space, RefSet refSet);
 
 /* Equivalent to impl.h.mps MPS_SCAN_BEGIN */
 
