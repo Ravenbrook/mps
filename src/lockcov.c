@@ -1,7 +1,7 @@
 /* impl.c.lockcov
  *                     LOCK COVERAGE TEST
  *
- * $HopeName: MMsrc!lockcov.c(trunk.2) $
+ * $HopeName: !lockcov.c(trunk.3) $
  */
 
 #include "mpm.h"

@@ -1,7 +1,7 @@
 /* impl.h.event -- Event Logging Interface
  *
  * Copyright (C) 1996 Harlequin Group, all rights reserved.
- * $HopeName: MMsrc!event.h(MMdevel_event.3) $
+ * $HopeName: !event.h(trunk.2) $
  *
  * .readership: MPS developers.
  * .sources: mps.design.event
