@@ -1,7 +1,7 @@
 /* impl.c.poolams: AUTOMATIC MARK & SWEEP POOL CLASS
  *
- * $HopeName: !poolams.c(trunk.40) $
- * Copyright (C) 1998 Harlequin Group plc.  All rights reserved.
+ * $HopeName: MMsrc!poolams.c(MMdevel_alloc_replay.1) $
+ * Copyright (C) 1998, 1999 Harlequin Group plc.  All rights reserved.
  * 
  * .readership: any MPS developer.
  * 
@@ -20,7 +20,7 @@
 #include "mpm.h"
 #include <stdarg.h>
 
-SRCID(poolams, "$HopeName: !poolams.c(trunk.40) $");
+SRCID(poolams, "$HopeName: MMsrc!poolams.c(MMdevel_alloc_replay.1) $");
 
 
 #define AMSSig          ((Sig)0x519A3599) /* SIGnature AMS */
@@ -309,15 +309,34 @@ static Res AMSIterate(AMSGroup group,
  *  allocated in the pool.  See design.mps.poolams.init.
  */
 
-Res AMSInit(Pool pool, va_list arg)
+static Res AMSInit(Pool pool, va_list args)
 {
-  AMS ams;
+  Res res;
+  Format format;
 
   AVERT(Pool, pool);
 
-  ams = PoolPoolAMS(pool);
-  pool->format = va_arg(arg, Format);
-  AVERT(Format, pool->format);
+  format = va_arg(args, Format);
+  res = AMSInitInternal(PoolPoolAMS(pool), format);
+  if (res == ResOK) {
+    EVENT_PPP(PoolInitAMS, pool, PoolArena(pool), format);
+  }
+  return res;
+}
+
+
+/* AMSInitInternal -- initialize an AMS pool, given the format */
+
+Res AMSInitInternal(AMS ams, Format format)
+{
+  Pool pool;
+
+  /* Can't check ams, it's not initialized. */
+  AVERT(Format, format);
+
+  pool = AMSPool(ams);
+  AVERT(Pool, pool);
+  pool->format = format;
 
   pool->alignment = pool->format->alignment;
   ams->grainShift = SizeLog2(PoolAlignment(pool));
@@ -339,7 +358,6 @@ Res AMSInit(Pool pool, va_list arg)
 
   ams->sig = AMSSig;
   AVERT(AMS, ams);
-
   return ResOK;
 }
 
@@ -429,6 +447,7 @@ Res AMSBufferInit(Pool pool, Buffer buffer, va_list args)
   AVERT(Rank, rank);
 
   buffer->rankSet = RankSetSingle(rank);
+  EVENT_PPU(BufferInitAMS, buffer, pool, rank);
   return ResOK;
 }
 
