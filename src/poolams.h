@@ -1,6 +1,6 @@
 /* impl.h.poolams: AUTOMATIC MARK & SWEEP POOL CLASS INTERFACE
  *
- * $HopeName$
+ * $HopeName: MMsrc!poolams.h(MMdevel_pekka_rate.1) $
  * Copyright (C) 1998. Harlequin Group plc. All rights reserved.
  *
  * .purpose: Internal interface to AMS functionality.
@@ -74,8 +74,8 @@ typedef struct AMSGroupStruct {
   /* design.mps.poolams.colour.single */
   Bool marked;           /* has been marked since last scan */
   Bool colourTablesInUse;/* whether we use the colour tables */
-  BT markTable;          /* set if grain marked */
-  BT scanTable;          /* set if grain scanned */
+  BT nongreyTable;       /* set if grain not grey */
+  BT nonwhiteTable;      /* set if grain not white */
 } AMSGroupStruct;
 
 
@@ -114,49 +114,59 @@ typedef struct AMSGroupStruct {
 
 /* colour ops */
 
-#define AMSMarked(group, index)  BTGet((group)->markTable, (index))
-#define AMSScanned(group, index) BTGet((group)->scanTable, (index))
+#define AMSIsWhite(group, index) !BTGet((group)->nonwhiteTable, (index))
+
+#define AMSIsGrey(group, index) !BTGet((group)->nongreyTable, (index))
 
 #define AMSIsBlack(group, index) \
-  (AMSMarked((group), (index)) && AMSScanned((group), (index)))
+  (!AMSIsGrey((group), (index)) && !AMSIsWhite((group), (index)))
 
-#define AMSIsGrey(group, index) \
-  (AMSMarked((group), (index)) && !AMSScanned((group), (index)))
-
-#define AMSIsWhite(group, index) \
-  (!AMSMarked((group), (index)) && !AMSScanned((group), (index)))
+#define AMSIsInvalidColor(group, index) \
+  (AMSIsGrey((group), (index)) && AMSIsWhite((group), (index)))
 
 #define AMSGreyBlacken(group, index) \
   BEGIN \
-    BTSet((group)->scanTable, (index)); \
+    BTSet((group)->nongreyTable, (index)); \
   END
 
 #define AMSWhiteGreyen(group, index) \
   BEGIN \
-    BTSet((group)->markTable, (index)); \
+    BTSet((group)->nonwhiteTable, (index)); \
+    BTRes((group)->nongreyTable, (index)); \
   END
 
 #define AMSWhiteBlacken(group, index) \
   BEGIN \
-    BTSet((group)->markTable, (index)); \
-    BTSet((group)->scanTable, (index)); \
+    BTSet((group)->nonwhiteTable, (index)); \
   END
 
 #define AMSRangeWhiten(group, base, limit) \
   BEGIN \
-    BTResRange((group)->markTable, (base), (limit)); \
-    BTResRange((group)->scanTable, (base), (limit)); \
+    BTResRange((group)->nonwhiteTable, (base), (limit)); \
+    BTSetRange((group)->nongreyTable, (base), (limit)); \
   END
 
 #define AMSRangeBlacken(group, base, limit) \
   BEGIN \
-    BTSetRange((group)->markTable, (base), (limit)); \
-    BTSetRange((group)->scanTable, (base), (limit)); \
+    BTSetRange((group)->nonwhiteTable, (base), (limit)); \
+    BTSetRange((group)->nongreyTable, (base), (limit)); \
   END
 
-#define AMSRangeIsBlack(group, base, limit) \
-  (BTIsSetRange((group)->markTable, (base), (limit)) \
-   && BTIsSetRange((group)->scanTable, (base), (limit)))
+#define AMSFindGrey(pos, group, base, limit) \
+  BEGIN \
+    Index _dummy; \
+    \
+    BTFindShortResRange((pos), &_dummy, (group)->nongreyTable, \
+                        (base), (limit), 1); \
+  END
+
+#define AMSFindWhite(pos, group, base, limit) \
+  BEGIN \
+    Index _dummy; \
+    \
+    BTFindShortResRange((pos), &_dummy, (group)->nonwhiteTable, \
+                        (base), (limit), 1); \
+  END
 
 
 #define AMSAlloced(group, index) \
@@ -169,7 +179,7 @@ extern Res AMSInit(Pool pool, va_list arg);
 extern void AMSFinish(Pool pool);
 extern Bool AMSCheck(AMS ams);
 
-extern AMSBufferInit(Pool pool, Buffer buffer, va_list args);
+extern Res AMSBufferInit(Pool pool, Buffer buffer, va_list args);
 extern Res AMSBufferFill(Seg *segReturn,
                          Addr *baseReturn, Addr *limitReturn,
                          Pool pool, Buffer buffer, Size size);
