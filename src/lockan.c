@@ -1,6 +1,6 @@
 /* impl.c.lockan: ANSI RECURSIVE LOCKS
  *
- * $HopeName$
+ * $HopeName: !lockan.c(trunk.8) $
  * Copyright (C) 1995, 1998 Harlequin Group plc.  All rights reserved.
  *
  * .purpose: This is a trivial implementation of recursive locks
@@ -13,7 +13,7 @@
 
 #include "mpm.h"
 
-SRCID(lockan, "$HopeName$");
+SRCID(lockan, "$HopeName: !lockan.c(trunk.8) $");
 
 
 Bool LockCheck(Lock lock)

@@ -1,6 +1,6 @@
 /*  impl.c.btss: BIT TABLE COVERAGE TEST
  *
- *  $HopeName: MMsrc!btcv.c(trunk.1) $
+ *  $HopeName: !btcv.c(trunk.2) $
  * Copyright (C) 1999 Harlequin Group plc.  All rights reserved.
  *
  * .readership: MPS developers
@@ -19,7 +19,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-SRCID(btcv, "$HopeName: MMsrc!btcv.c(trunk.1) $");
+SRCID(btcv, "$HopeName: !btcv.c(trunk.2) $");
 
 
 static void die_bool(Bool res, Bool expected, const char *s)

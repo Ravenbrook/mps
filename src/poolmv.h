@@ -1,6 +1,6 @@
 /*  ==== MANUAL VARIABLE POOLS ====
  *
- *  $HopeName: MMsrc!poolmv.h(MMdevel_restr2.2) $
+ *  $HopeName: !poolmv.h(trunk.5) $
  *
  *  Copyright (C) 1994,1995 Harlequin Group, all rights reserved
  *
