@@ -1,12 +1,12 @@
 /* impl.c.mpm: GENERAL MPM SUPPORT
  *
- * $HopeName: MMsrc!mpm.c(MMdevel_lib.3) $
+ * $HopeName: MMsrc!mpm.c(MMdevel_lib.4) $
  * Copyright (C) 1996 Harlequin Group, all rights reserved.
  */
 
 #include "mpm.h"
 
-SRCID(mpm, "$HopeName: MMsrc!mpm.c(MMdevel_lib.3) $");
+SRCID(mpm, "$HopeName: MMsrc!mpm.c(MMdevel_lib.4) $");
 
 
 /* MPMCheck -- test MPM assumptions */
@@ -184,7 +184,6 @@ static Res WriteWord(mps_lib_FILE *stream, Word w, unsigned base, unsigned width
 Res WriteF(mps_lib_FILE *stream, ...)
 {
   const char *format;
-  char c;
   int r;
   Res res;
   va_list args;
@@ -201,10 +200,8 @@ Res WriteF(mps_lib_FILE *stream, ...)
 
     while(*format != '\0') {
 
-      c = *format;
-
-      if(c != '$') {
-        r = mps_lib_fputc(c, stream);
+      if(*format != '$') {
+        r = mps_lib_fputc(*format, stream);
         if(r == mps_lib_EOF)
           return ResIO;
       } else {
