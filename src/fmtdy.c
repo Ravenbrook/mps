@@ -1,6 +1,6 @@
 /* impl.c.fmtdy: DYLAN OBJECT FORMAT IMPLEMENTATION
  *
- *  $HopeName: MMsrc!fmtdy.c(MM_dylan_incremental.5) $
+ *  $HopeName: MMsrc!fmtdy.c(MM_dylan_incremental.6) $
  *  Copyright (C) 1996 Harlequin Group, all rights reserved.
  *
  *  All objects, B:
@@ -84,8 +84,10 @@ static int dylan_wrapper_check(mps_word_t *w)
   assert(ww[1] != 0);               /* wrapper class exists */
   assert((ww[1] & 3) == 0);         /* wrapper class is aligned */
   assert(ww[2] == ((3 << 2) | 2));  /* three fields with patterns */
-  assert(ww[3] == ((0 << 3) | 0));  /* non-traceable vector of pats */
-  assert(ww[4] == ((1 << 2) | 1));  /* one pattern word in wrapper */
+  assert((ww[3] & 0x00ffffff) == 0);/* non-traceable vector */
+  assert(((ww[3] >> (MPS_WORD_WIDTH - 8)) & 0xff) == 1 ||
+         ((ww[3] >> (MPS_WORD_WIDTH - 8)) & 0xff) == 0); /* version 0 or 1 */
+  assert(ww[4] == ((1 << 2) | 1));  /* one pattern word in wrapper wrapper */
   assert(ww[5] == 1);               /* first field traceable */
 
   /* Unpack the wrapper. */
@@ -130,7 +132,7 @@ static int dylan_wrapper_check(mps_word_t *w)
   /* vectors in the non-word case. */
 
   /* Variable part format 6 is reserved. */  
-  assert(vh != 6);
+  assert(vf != 6);
 
   /* There should be no shift in word vector formats. */
   assert((vf & 6) == 4 || es == 0);
