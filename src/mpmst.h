@@ -97,6 +97,7 @@ typedef struct LocusStruct
   /* Support for refset search policy */
   RefSet search;
   Index searchIndex;
+  Index i, j, k;
   /* locus client list */
   RingStruct clientRingStruct;
   Serial clientSerial;
