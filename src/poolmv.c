@@ -1,6 +1,6 @@
 /* impl.c.poolmv: MANUAL VARIABLE POOL
  *
- * $HopeName: MMsrc!poolmv.c(MMdevel_fencepost.1) $
+ * $HopeName: MMsrc!poolmv.c(MMdevel_fencepost.2) $
  * Copyright (C) 1997, 1998 Harlequin Group plc.  All rights reserved.
  *
  * **** RESTRICTION: This pool may not allocate from the arena control
@@ -30,7 +30,7 @@
 #include "poolmfs.h"
 #include "mpm.h"
 
-SRCID(poolmv, "$HopeName: MMsrc!poolmv.c(MMdevel_fencepost.1) $");
+SRCID(poolmv, "$HopeName: MMsrc!poolmv.c(MMdevel_fencepost.2) $");
 
 
 #define BLOCKPOOL(mv)   (MFSPool(&(mv)->blockPoolStruct))
@@ -169,16 +169,6 @@ static Bool MVSpanCheck(MVSpan span)
 }
 
 
-/* MVDebugCheck -- check method for MVDebug */
-
-static Bool MVDebugCheck(MVDebug mvd)
-{
-  CHECKD(MV, &mvd->MVStruct);
-  CHECKD(PoolDebugMixin, &mvd->debug);
-  return TRUE;
-}
-
-
 /* MVInit -- init method for class MV */
 
 static Res MVInit(Pool pool, va_list arg)
@@ -237,24 +227,6 @@ static Res MVInit(Pool pool, va_list arg)
 }
 
 
-/* MVDebugInit -- init method for class MVDebug
- * 
- * .mvdebug.tramp: MVDebug methods just trampoline into Debug methods,
- * which then use the super slot to find what they're dealing with.
- */
-
-static Res MVDebugInit(Pool pool, va_list args)
-{
-  MVDebug mvd;
-
-  AVERT(Pool, pool);
-  mvd = MVPoolMVDebug(PoolPoolMV(pool));
-  AVERT(MVDebug, mvd);
-
-  return DebugPoolInit(&mvd->debug, pool, args);
-}
-
-
 /* MVFinish -- finish method for class MV */
 
 static void MVFinish(Pool pool)
@@ -279,23 +251,6 @@ static void MVFinish(Pool pool)
 
   PoolFinish(&mv->blockPoolStruct.poolStruct);
   PoolFinish(&mv->spanPoolStruct.poolStruct);
-}
-
-
-/* MVDebugFinish -- finish method for class MVDebug
- * 
- * See .mvdebug.tramp.
- */
-
-static void MVDebugFinish(Pool pool)
-{
-  MVDebug mvd;
-
-  AVERT(Pool, pool);
-  mvd = MVPoolMVDebug(PoolPoolMV(pool));
-  AVERT(MVDebug, mvd);
-
-  DebugPoolFinish(&mvd->debug, pool);
 }
 
 
@@ -583,28 +538,6 @@ static Res MVAlloc(Addr *pReturn, Pool pool, Size size,
 }
 
 
-/* MVAlloc -- allocate method for class MVDebug
- * 
- * See .mvdebug.tramp.
- */
-
-static Res MVDebugAlloc(Addr *aReturn, Pool pool,
-                        Size size, Bool withReservoirPermit)
-{
-  MVDebug mvd;
-
-  AVER(aReturn != NULL);
-  AVERT(Pool, pool);
-  mvd = MVPoolMVDebug(PoolPoolMV(pool));
-  AVERT(MVDebug, mvd);
-  AVER(size > 0);
-  AVERT(Bool, withReservoirPermit);
-
-  return DebugPoolAlloc(aReturn, &mvd->debug,
-                        pool, size, withReservoirPermit);
-}
-
-
 /* MVFree -- free method for class MV */
 
 static void MVFree(Pool pool, Addr old, Size size)
@@ -660,21 +593,17 @@ static void MVFree(Pool pool, Addr old, Size size)
 }
 
 
-/* MVDebugFree - free method for class MVDebug
- * 
- * See .mvdebug.tramp.
- */
+/* MVDebugMixin - find debug mixin in class MVDebug */
 
-static void MVDebugFree(Pool pool, Addr old, Size size)
+static PoolDebugMixin MVDebugMixin(Pool pool)
 {
-  MVDebug mvd;
+  MV mv;
 
   AVERT(Pool, pool);
-  mvd = MVPoolMVDebug(PoolPoolMV(pool));
-  AVERT(MVDebug, mvd);
-  AVER(size > 0);
-
-  DebugPoolFree(&mvd->debug, pool, old, size);
+  mv = PoolPoolMV(pool);
+  AVERT(MV, mv);
+  /* Can't check MVDebug, because this is called during MVDebug init */
+  return &(MVPoolMVDebug(mv)->debug);
 }
 
 
@@ -817,6 +746,7 @@ static PoolClassStruct poolClassMVStruct = {
   PoolNoRampEnd,
   PoolNoWalk,                           /* walk */
   MVDescribe,                           /* describe */
+  MVDebugMixin,
   PoolClassSig                          /* impl.h.mpmst.class.end-sig */
 };
 
@@ -832,17 +762,10 @@ static PoolClassStruct poolClassMVDebugStruct;
 
 static PoolClass poolClassMVDebug(void)
 {
-  PoolClass super = PoolClassMV();
-
-  poolClassMVDebugStruct = *super;
-  poolClassMVDebugStruct.super = super;
+  /* This code has to be idempotent to avoid locking. */
+  EnsureDebugClass(&poolClassMVDebugStruct, PoolClassMV());
   poolClassMVDebugStruct.name = "MVDBG";
   poolClassMVDebugStruct.size = sizeof(MVDebugStruct);
-  poolClassMVDebugStruct.init = MVDebugInit;
-  poolClassMVDebugStruct.finish = MVDebugFinish;
-  poolClassMVDebugStruct.alloc = MVDebugAlloc;
-  poolClassMVDebugStruct.free = MVDebugFree;
-
   return &poolClassMVDebugStruct;
 }
 
@@ -923,7 +846,8 @@ Bool MVCheck(MV mv)
 {
   CHECKS(MV, mv);
   CHECKD(Pool, &mv->poolStruct);
-  CHECKL(mv->poolStruct.class == &poolClassMVStruct);
+  CHECKL(mv->poolStruct.class == &poolClassMVStruct
+         || mv->poolStruct.class == &poolClassMVDebugStruct);
   CHECKD(MFS, &mv->blockPoolStruct);
   CHECKD(MFS, &mv->spanPoolStruct);
   CHECKL(mv->extendBy > 0);
