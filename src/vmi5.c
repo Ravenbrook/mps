@@ -1,6 +1,6 @@
 /* impl.c.vmi5: VIRTUAL MEMORY MAPPING FOR IRIX 5
  *
- * $HopeName: MMsrc!vmi5.c(MM_epcore_brisling.1) $
+ * $HopeName: MMsrc!vmi5.c(MM_epcore_brisling.2) $
  * Copyright (C) 1997, 1998, 1999 Harlequin Group plc.  All rights reserved.
  *
  * Design: design.mps.vm
@@ -22,6 +22,11 @@
  * have actually observed ENOMEM when committing).  The others are
  * either caused by invalid params or features we don't use.  See
  * mmap(2) for details.
+ *
+ * .map.chunk: IRIX 5 has a limit on the number of pages a process can
+ * have mapped at the same time.  VMMap replaces one mapping with
+ * another, and in the meanwhile, both exist.  So do large maps in small
+ * chunks.
  *
  * TRANSGRESSIONS
  *
@@ -51,18 +56,16 @@
 #define MAP_FAILED ((void *)-1)
 #endif
 
-SRCID(vmi5, "$HopeName: MMsrc!vmi5.c(MM_epcore_brisling.1) $");
+SRCID(vmi5, "$HopeName: MMsrc!vmi5.c(MM_epcore_brisling.2) $");
 
 
-/* mapChunkSIZE -- maximum chunk to map at one time
+/* mapChunkSHIFT -- shift to compute mapChunkSize from arena size
  *
- * .map.chunk: IRIX 5 has a limit on the number of pages a process can
- * have mapped at the same time.  VMMap replaces one mapping with
- * another, and in the meanwhile, both exist.  So do large maps in small
- * chunks.
+ * mapChunkSize is set to a fraction of arena size, by shifting it it
+ * down by this amount.  This should be a config parameter or something.
  */
 
-#define mapChunkSIZE ((size_t)1024u * 1024u)
+#define mapChunkSHIFT 7
 
 
 /* VMStruct -- virtual memory structure */
@@ -77,6 +80,7 @@ typedef struct VMStruct {
   Addr base, limit;             /* boundaries of reserved space */
   Size reserved;                /* total reserved address space */
   Size mapped;                  /* total mapped memory */
+  Size mapChunkSize;            /* map chunk size, see .map.chunk */
 } VMStruct;
 
 
@@ -151,10 +155,10 @@ Res VMCreate(VM *vmReturn, Size size)
   vm->limit = AddrAdd(vm->base, size);
   vm->reserved = size;
   vm->mapped = (Size)0;
+  vm->mapChunkSize = SizeAlignUp(size >> mapChunkSHIFT, align);
 
   /* Check that you can VMMap (see .map.chunk). */
-  chunkSize = (size >= mapChunkSIZE) ? mapChunkSIZE : (size_t)size;
-  addr = mmap((void *)vm->base, chunkSize,
+  addr = mmap((void *)vm->base, vm->mapChunkSize,
 	      PROT_READ | PROT_WRITE | PROT_EXEC,
 	      MAP_PRIVATE | MAP_FIXED,
 	      vm->zero_fd, (off_t)0);
@@ -164,7 +168,7 @@ Res VMCreate(VM *vmReturn, Size size)
     goto failCheck;
   }
   /* Checked; now return the chunk. */
-  addr = mmap((void *)vm->base, chunkSize,
+  addr = mmap((void *)vm->base, vm->mapChunkSize,
               PROT_NONE, MAP_SHARED | MAP_FIXED | MAP_AUTORESRV,
               vm->zero_fd, (off_t)0);
   AVER(addr == (void *)vm->base);
@@ -270,7 +274,7 @@ Res VMMap(VM vm, Addr base, Addr limit)
   for(chunkBase = (void *)base, left = (size_t)size;
       left > 0;
       chunkBase = PointerAdd(chunkBase, chunkSize), left -= chunkSize) {
-    chunkSize = (left > mapChunkSIZE) ? mapChunkSIZE : left;
+    chunkSize = (left > vm->mapChunkSize) ? vm->mapChunkSize : left;
     addr = mmap(chunkBase, chunkSize,
                 PROT_READ | PROT_WRITE | PROT_EXEC,
                 MAP_PRIVATE | MAP_FIXED,
@@ -291,16 +295,15 @@ Res VMMap(VM vm, Addr base, Addr limit)
 failMap:
   /* Back up 'chunkBase' and 'left', undoing in opposite order, but */
   /* let 'left' trail by one chunk, because we can't let it pass */
-  /* 'size' and possibly overflow.  All the chunks are mapChunkSIZE, */
+  /* 'size' and possibly overflow.  All the chunks are the same size, */
   /* because the commit loop failed before it mapped the small one. */
-  for(chunkBase = PointerSub(chunkBase, mapChunkSIZE);
+  for(chunkBase = PointerSub(chunkBase, vm->mapChunkSize);
       left < (size_t)size;
-      chunkBase = PointerSub(chunkBase, mapChunkSIZE),
-        left += mapChunkSIZE) {
-    addr = mmap(chunkBase, mapChunkSIZE,
+      chunkBase = PointerSub(chunkBase, vm->mapChunkSize),
+        left += vm->mapChunkSize) {
+    addr = mmap(chunkBase, vm->mapChunkSize,
                 PROT_NONE, MAP_SHARED | MAP_FIXED | MAP_AUTORESRV,
                 vm->zero_fd, (off_t)AddrOffset(vm->base, chunkBase));
-    AVER(addr == chunkBase);
   }
   return res;
 }
@@ -337,11 +340,15 @@ void VMUnmap(VM vm, Addr base, Addr limit)
   for(chunkBase = (void *)base, left = (size_t)size;
       left > 0;
       chunkBase = PointerAdd(chunkBase, chunkSize), left -= chunkSize) {
-    chunkSize = (left > mapChunkSIZE) ? mapChunkSIZE : left;
+    chunkSize = (left > vm->mapChunkSize) ? vm->mapChunkSize : left;
     addr = mmap(chunkBase, chunkSize,
                 PROT_NONE, MAP_SHARED | MAP_FIXED | MAP_AUTORESRV,
                 vm->zero_fd, (off_t)AddrOffset(vm->base, base));
-    AVER(addr == chunkBase);
+    if(addr == MAP_FAILED) {
+      AVER(errno == ENOMEM); /* ran out of map space */
+    } else {
+      AVER(addr == chunkBase);
+    }
   }
 
   vm->mapped -= size;
