@@ -1,6 +1,6 @@
 /* impl.c.mpsi: MEMORY POOL SYSTEM INTERFACE LAYER
  *
- * $HopeName: MMsrc!mpsi.c(MMdevel_trace2.1) $
+ * $HopeName: MMsrc!mpsi.c(MMdevel_trace2.2) $
  * Copyright (C) 1996 Harlequin Group, all rights reserved.
  *
  * PURPOSE
@@ -60,7 +60,7 @@
 #include "mpm.h"
 #include "mps.h"
 
-SRCID(mpsi, "$HopeName: MMsrc!mpsi.c(MMdevel_trace2.1) $");
+SRCID(mpsi, "$HopeName: MMsrc!mpsi.c(MMdevel_trace2.2) $");
 
 
 /* mpsi_check -- check consistency of interface mappings
@@ -638,10 +638,10 @@ mps_res_t mps_root_create_reg(mps_root_t *mps_root_o,
  * See .reg-scan.
  */
 
-mps_res_t mps_stack_scan_ambig(mps_fix_t mps_fix,
+mps_res_t mps_stack_scan_ambig(mps_fix_t mps_fixer,
                                mps_reg_t mps_reg, void *p)
 {
-  Fix fix = (Fix)mps_fix;
+  Fix fix = (Fix)mps_fixer;
   Thread thread = (Thread)mps_reg;
   return ThreadScan(fix, thread, p);
 }
@@ -735,13 +735,13 @@ mps_bool_t mps_ld_isstale(mps_ld_t mps_ld,
   return (mps_bool_t)b;
 }
 
-mps_res_t mps_fix(mps_addr_t *ref_io, mps_fix_t mps_fix)
+mps_res_t mps_fix(mps_addr_t *ref_io, mps_fix_t mps_fixer)
 {
   mps_res_t res;
 
-  MPS_SCAN_BEGIN(mps_fix) {
-    res = MPS_FIX(ref_io, mps_fix);
-  } MPS_SCAN_END(mps_fix);
+  MPS_SCAN_BEGIN(mps_fixer) {
+    res = MPS_FIX(ref_io, mps_fixer);
+  } MPS_SCAN_END(mps_fixer);
 
   return res;
 }
