@@ -1,6 +1,6 @@
 /* impl.c.arena: ARENA IMPLEMENTATION
  *
- * $HopeName: MMsrc!arena.c(MMdevel_config_thread.1) $
+ * $HopeName: MMsrc!arena.c(MMdevel_config_thread.2) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  *
  * .readership: Any MPS developer
@@ -38,7 +38,7 @@
 #include "mpm.h"
 
 
-SRCID(arena, "$HopeName: MMsrc!arena.c(MMdevel_config_thread.1) $");
+SRCID(arena, "$HopeName: MMsrc!arena.c(MMdevel_config_thread.2) $");
 
 
 /* All static data objects are declared here. See .static */
@@ -48,6 +48,8 @@ static RingStruct arenaRing;       /* design.mps.arena.static.ring */
 static LockStruct arenaRingLock;   /* design.mps.arena.static.ring.lock */
 static Serial arenaSerial;         /* design.mps.arena.static.serial */
 
+
+/* ArenaClassCheck -- check the consistency of an arena class structure */
 
 Bool ArenaClassCheck(ArenaClass class)
 {
@@ -75,6 +77,8 @@ Bool ArenaClassCheck(ArenaClass class)
   return TRUE;
 }
 
+
+/* ArenaCheck -- check the consistency of a generic arena structure */
 
 Bool ArenaCheck(Arena arena)
 {
@@ -169,6 +173,7 @@ Bool ArenaCheck(Arena arena)
  * methods, not the generic Create.  This is because the class is
  * responsible for allocating the descriptor.
  */
+
 void ArenaInit(Arena arena, ArenaClass class)
 {
   Index i;
@@ -218,9 +223,7 @@ void ArenaInit(Arena arena, ArenaClass class)
 }
 
 
-/* ArenaCreate -- create and bootstrap an arena
- *
- */
+/* ArenaCreateV -- create and bootstrap the arena */
 
 Res ArenaCreateV(Arena *arenaReturn, ArenaClass class, va_list args)
 {
@@ -246,7 +249,7 @@ Res ArenaCreateV(Arena *arenaReturn, ArenaClass class, va_list args)
     ProtSetup();
   }
 
-  /* Do initialization.  This will call ArenaInit. */
+  /* Do initialization.  This will call ArenaInit (see .init.caller). */
   res = (*class->init)(&arena, args);
   if(res != ResOK) goto failInit;
 
@@ -262,7 +265,6 @@ Res ArenaCreateV(Arena *arenaReturn, ArenaClass class, va_list args)
   RingAppend(&arenaRing, &arena->globalRing);
   LockReleaseMPM(&arenaRingLock);
 
-  EVENT_P(ArenaCreate, arena);
   *arenaReturn = arena;
   return ResOK;
 
@@ -281,6 +283,7 @@ failInit:
  * methods, not the generic Destroy.  This is because the class is
  * responsible for deallocating the descriptor.
  */
+
 void ArenaFinish(Arena arena)
 {
   arena->sig = SigInvalid;
@@ -292,6 +295,8 @@ void ArenaFinish(Arena arena)
   RingFinish(&arena->globalRing);
 }
 
+
+/* ArenaDestroy -- deallocate and destroy the arena */
 
 void ArenaDestroy(Arena arena)
 {
@@ -315,7 +320,6 @@ void ArenaDestroy(Arena arena)
   /* Call class-specific finishing.  This will call ArenaFinish. */
   (*class->finish)(arena);
 
-  EVENT_P(ArenaDestroy, arena);
   EventFinish();
 }
 
@@ -375,7 +379,7 @@ Bool ArenaAccess(Addr addr, AccessSet mode)
 
     ArenaEnter(arena);          /* design.mps.arena.lock.arena */
     AVERT(Arena, arena);        /* can't AVER until we've got the lock */
-    if(ArenaSegOfAddr(&seg, arena, addr)) {
+    if(SegOfAddr(&seg, arena, addr)) {
       LockReleaseMPM(&arenaRingLock);
       /* An access in a different thread may have already caused
        * the protection to be cleared.  This avoids calling
@@ -581,6 +585,12 @@ Res ArenaDescribe(Arena arena, mps_lib_FILE *stream)
 }
 
 
+/* ArenaAlloc -- allocate a small block directly from the arena
+ *
+ * .arena.control-pool: Actually the block will be allocated from the
+ * control pool, which is an MV pool embedded in the arena itself.
+ */
+
 Res ArenaAlloc(void **baseReturn, Arena arena, Size size)
 {
   Addr base;
@@ -596,11 +606,13 @@ Res ArenaAlloc(void **baseReturn, Arena arena, Size size)
   if(res != ResOK) return res;
 
   /* .arenaalloc.addr-conv: This is the place where we go from the managed */
-  /* addresses of PoolAlloc to the unmanaged addresses of ArenaAlloc */
+  /* addresses of PoolAlloc to the unmanaged addresses of ArenaAlloc. */
   *baseReturn = (void *)base;
   return ResOK;
 }
 
+
+/* ArenaFree -- free a block allocated using ArenaAlloc */
 
 void ArenaFree(Arena arena, Addr base, Size size)
 {
@@ -614,7 +626,9 @@ void ArenaFree(Arena arena, Addr base, Size size)
 }
 
 
-Res ArenaSegAlloc(Seg *segReturn, SegPref pref, Arena arena, Size size, Pool pool)
+/* SegAlloc -- allocate a segment from the arena */
+
+Res SegAlloc(Seg *segReturn, SegPref pref, Arena arena, Size size, Pool pool)
 {
   Res res;
   Seg seg;
@@ -634,7 +648,9 @@ Res ArenaSegAlloc(Seg *segReturn, SegPref pref, Arena arena, Size size, Pool poo
 }
 
 
-void ArenaSegFree(Arena arena, Seg seg)
+/* SegFree -- free a segment to the arena */
+
+void SegFree(Arena arena, Seg seg)
 {
   AVERT(Arena, arena);
   AVERT(Seg, seg);
@@ -691,7 +707,9 @@ Res ArenaRetract(Arena arena, Addr base, Size size)
 }
 
 
-Addr ArenaSegBase(Arena arena, Seg seg)
+/* SegBase -- return the base address of a segment */
+
+Addr SegBase(Arena arena, Seg seg)
 {
   AVERT(Arena, arena);
   AVERT(Seg, seg);
@@ -700,7 +718,9 @@ Addr ArenaSegBase(Arena arena, Seg seg)
 }
 
 
-Addr ArenaSegLimit(Arena arena, Seg seg)
+/* SegLimit -- return the limit address of a segment */
+
+Addr SegLimit(Arena arena, Seg seg)
 {
   AVERT(Arena, arena);
   AVERT(Seg, seg);
@@ -709,22 +729,20 @@ Addr ArenaSegLimit(Arena arena, Seg seg)
 }
 
 
-/* ArenaSegSize -- return the size (limit - base) of a segment
- *
- * .improve.redundant-calc: There is scope for optimizing this,
- * because both base and limit calls may do roughly the same thing twice.
- */
+/* SegSize -- return the size of a segment */
 
-Size ArenaSegSize(Arena arena, Seg seg)
+Size SegSize(Arena arena, Seg seg)
 {
   AVERT(Arena, arena);
   AVERT(Seg, seg);
 
-  return AddrOffset(ArenaSegBase(arena, seg), ArenaSegLimit(arena, seg));
+  return (*arena->class->segSize)(arena, seg);
 }
 
 
-Bool ArenaSegOfAddr(Seg *segReturn, Arena arena, Addr addr)
+/* SegOfAddr -- return the segment the given address is in, if any */
+
+Bool SegOfAddr(Seg *segReturn, Arena arena, Addr addr)
 {
   AVER(segReturn != NULL);
   AVERT(Arena, arena);
@@ -733,12 +751,12 @@ Bool ArenaSegOfAddr(Seg *segReturn, Arena arena, Addr addr)
 }
 
 
-/* ArenaSegFirst -- return the first segment in the arena
+/* SegFirst -- return the first segment in the arena
  *
  * This is used to start an iteration over all segments in the arena.
  */
 
-Bool ArenaSegFirst(Seg *segReturn, Arena arena)
+Bool SegFirst(Seg *segReturn, Arena arena)
 {
   AVER(segReturn != NULL);
   AVERT(Arena, arena);
@@ -747,17 +765,17 @@ Bool ArenaSegFirst(Seg *segReturn, Arena arena)
 }
 
 
-/* ArenaSegNext -- return the "next" segment in the arena
+/* SegNext -- return the "next" segment in the arena
  *
  * This is used as the iteration step when iterating over all
  * segments in the arena.
  *
- * ArenaSegNext finds the segment with the lowest base address which is
+ * SegNext finds the segment with the lowest base address which is
  * greater than a specified address.  The address must be (or once
  * have been) the base address of a segment.
  */
 
-Bool ArenaSegNext(Seg *segReturn, Arena arena, Addr addr)
+Bool SegNext(Seg *segReturn, Arena arena, Addr addr)
 {
   AVER(segReturn != NULL);
   AVERT(Arena, arena);
@@ -765,6 +783,45 @@ Bool ArenaSegNext(Seg *segReturn, Arena arena, Addr addr)
   return (*arena->class->segNext)(segReturn, arena, addr);
 }
 
+
+/* ArenaNoExtend -- fail to extend the arena by a chunk */
+
+Res ArenaNoExtend(Arena arena, Addr base, Size size)
+{
+  AVERT(Arena, arena);
+  AVER(base != (Addr)0);
+  AVER(size > (Size)0);
+
+  NOTREACHED;
+  return ResUNIMPL;
+}
+
+
+/* ArenaNoRetract -- fail to retract a chunk from the arena */
+
+Res ArenaNoRetract(Arena arena, Addr base, Size size)
+{
+  AVERT(Arena, arena);
+  AVER(base != (Addr)0);
+  AVER(size > (Size)0);
+
+  NOTREACHED;
+  return ResUNIMPL;
+}
+
+
+/* ArenaTrivDescribe -- produce trivial description of an arena */
+
+Res ArenaTrivDescribe(Arena arena, mps_lib_FILE *stream)
+{
+  AVERT(Arena, arena);
+  AVER(stream != NULL);
+
+  return WriteF(stream, "  No class-specific description available.\n", NULL);
+}
+
+
+/* SegPrefCheck -- check the consistency of a segment preference */
 
 Bool SegPrefCheck(SegPref pref)
 {
@@ -774,6 +831,8 @@ Bool SegPrefCheck(SegPref pref)
   return TRUE;
 }
 
+
+/* SegPrefDefault -- return a segment preference representing the defaults */
 
 static SegPrefStruct segPrefDefault = {
   SegPrefSig,                           /* sig */
@@ -786,6 +845,8 @@ SegPref SegPrefDefault(void)
   return &segPrefDefault;
 }
 
+
+/* SegPrefExpress -- express a segment preference */
 
 Res SegPrefExpress(SegPref pref, SegPrefKind kind, void *p)
 {
