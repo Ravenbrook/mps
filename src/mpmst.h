@@ -1,6 +1,6 @@
 /* impl.h.mpmst: MEMORY POOL MANAGER DATA STRUCTURES
  *
- * $HopeName: !mpmst.h(trunk.2) $
+ * $HopeName: MMsrc!mpmst.h(MMdevel_remem.1) $
  * Copyright (C) 1996 Harlequin Group, all rights reserved.
  *
  * .rationale: Almost all MPM data structures are defined in this
@@ -201,6 +201,7 @@ typedef struct SegStruct {      /* segment structure */
   Size depth;                   /* see impl.c.shield.def.depth */
   void *p;                      /* pointer for use of owning pool */
   TraceId condemned;            /* seg condemned? for which trace? */
+  RefSet summary;               /* refset approx of refs in seg */
 } SegStruct;
 
 
@@ -438,6 +439,7 @@ typedef struct ScanStateStruct {
   RefSet condemned;             /* condemned set, for inline fix test */
   RefSet summary;               /* accumulated summary of scanned references */
   Sig sig;                      /* impl.h.misc.sig */
+  RefSet fixed;                 /* accumulated summary of fixed references */
   Space space;                  /* owning space */
   TraceId traceId;              /* trace ID of scan */
   Rank rank;                    /* reference rank of scanning */

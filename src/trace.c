@@ -1,11 +1,11 @@
 /* impl.c.trace: GENERIC TRACER IMPLEMENTATION
  *
- * $HopeName: !trace.c(trunk.15) $
+ * $HopeName: MMsrc!trace.c(MMdevel_remem.1) $
  */
 
 #include "mpm.h"
 
-SRCID(trace, "$HopeName: !trace.c(trunk.15) $");
+SRCID(trace, "$HopeName: MMsrc!trace.c(MMdevel_remem.1) $");
 
 Bool ScanStateCheck(ScanState ss)
 {
@@ -111,6 +111,7 @@ Res TraceFlip(Space space, TraceId ti, RefSet condemned)
   ss.zoneShift = space->zoneShift;
   ss.condemned = space->trace[ti].condemned;
   ss.summary = RefSetEmpty;
+  ss.fixed = RefSetEmpty;
   ss.space = space;
   ss.traceId = ti;
   ss.sig = ScanStateSig;
@@ -193,15 +194,20 @@ Res TraceFix(ScanState ss, Ref *refIO)
   Ref ref;
   Seg seg;
   Pool pool;
+  Space space;
 
   AVERT(ScanState, ss);
   AVER(refIO != NULL);
 
   ref = *refIO;
-  if(SegOfAddr(&seg, ss->space, ref))
+  space = ss->space;
+  if(SegOfAddr(&seg, space, ref))
     if(ss->traceId == seg->condemned) {
+      Res res;
       pool = seg->pool;
-      return PoolFix(pool, ss, seg, refIO);
+      res = PoolFix(pool, ss, seg, refIO);
+      ss->fixed = RefSetAdd(space, ss->fixed, *refIO);
+      return res;
     }
 
   return ResOK;
@@ -286,6 +292,7 @@ Res TraceRun(Space space, TraceId ti, Bool *finishedReturn)
   ss.zoneShift = space->zoneShift;
   ss.condemned = space->trace[ti].condemned;
   ss.summary = RefSetEmpty;
+  ss.fixed = RefSetEmpty;
   ss.space = space;
   ss.traceId = ti;
   ss.sig = ScanStateSig;
