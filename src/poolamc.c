@@ -1,6 +1,6 @@
 /* impl.c.poolamc: AUTOMATIC MOSTLY-COPYING MEMORY POOL CLASS
  *
- * $HopeName: !poolamc.c(trunk.11) $
+ * $HopeName: MMsrc!poolamc.c(MMdevel_tony_lifetime.1) $
  * Copyright (C) 1998.  Harlequin Group plc.  All rights reserved.
  *
  * .sources: design.mps.poolamc.
@@ -10,7 +10,7 @@
 #include "mpscamc.h"
 #include "mpm.h"
 
-SRCID(poolamc, "$HopeName: !poolamc.c(trunk.11) $");
+SRCID(poolamc, "$HopeName: MMsrc!poolamc.c(MMdevel_tony_lifetime.1) $");
 
 
 /* PType enumeration -- distinguishes AMCGen and AMCNailBoard */
@@ -1114,6 +1114,8 @@ static Res AMCFix(Pool pool, ScanState ss, Seg seg, Ref *refIO)
   AVER_CRITICAL(refIO != NULL);
   EVENT_0(AMCFix);
 
+  arena = pool->arena;
+
   /* For the moment, assume that the object was already marked. */
   /* (See design.mps.fix.protocol.was-marked.) */
   ss->wasMarked = TRUE;
@@ -1121,7 +1123,11 @@ static Res AMCFix(Pool pool, ScanState ss, Seg seg, Ref *refIO)
   /* If the reference is ambiguous, set up the datastructures for */
   /* managing a nailed segment.  This involves marking the segment */
   /* as nailed, and setting up a per-word mark table */
-  if(ss->rank == RankAMBIG) {
+  /* If tracking deathtimes, need to ensure that we fix in place */
+  /* so this is treated just like RankAMBIG, except for RankWEAK */
+  /* for which fixing won't move the object anyway */
+  if(ss->rank == RankAMBIG
+     || (ss->rank != RankWEAK && arena->trackDeathtimes)) {
     /* .nail.new: Check to see whether we need a NailBoard for */
     /* this seg.  We use "SegNailed(seg) == TraceSetEMPTY" */
     /* rather than "!AMCSegHasNailBoard(seg)" because this avoids */
@@ -1145,8 +1151,6 @@ static Res AMCFix(Pool pool, ScanState ss, Seg seg, Ref *refIO)
   AVERT_CRITICAL(AMC, amc);
   format = amc->format;
   ref = *refIO;
-
-  arena = pool->arena;
 
   if(SegNailed(seg) != TraceSetEMPTY) {
     /* If segment is nailed then may have grey and white */
@@ -1284,6 +1288,9 @@ static void AMCReclaimNailed(Pool pool, Trace trace, Seg seg)
     Addr q;
     q = (*format->skip)(p);
     if(!AMCNailGetMark(seg, p)) {
+      if (arena->trackDeathtimes) {
+        ArenaTrackDeathEvent(arena, p);
+      }
       (*format->pad)(p, AddrOffset(p, q));
       bytesReclaimed += AddrOffset(p, q);
     }
