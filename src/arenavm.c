@@ -1,6 +1,6 @@
 /* impl.c.arenavm: VIRTUAL MEMORY BASED ARENA IMPLEMENTATION
  *
- * $HopeName: MMsrc!arenavm.c(trunk.15) $
+ * $HopeName: MMsrc!arenavm.c(MMdevel_arenaclass.2) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  *
  * This is the implementation of the Segment abstraction from the VM
@@ -14,7 +14,7 @@
 #include "mpm.h"
 
 
-SRCID(arenavm, "$HopeName: MMsrc!arenavm.c(trunk.15) $");
+SRCID(arenavm, "$HopeName: MMsrc!arenavm.c(MMdevel_arenaclass.2) $");
 
 
 /* Types
@@ -393,8 +393,6 @@ found:
   
   AVERT(Seg, seg);
   
-  EVENT5(SegAlloc, arena, seg, addr, size, pool);
-
   *segReturn = seg;
   return ResOK;
 }
@@ -496,8 +494,6 @@ static void ArenaVMSegFree(Arena arena, Seg seg)
    * segment.
    */
   AVER(PageBase(arenaVM, pi) == limit);
-
-  EVENT2(SegFree, arena, seg);
 }
 
 

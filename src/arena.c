@@ -1,6 +1,6 @@
 /* impl.c.arena: GENERIC ARENA IMPLEMENTATION
  *
- * $HopeName$
+ * $HopeName: MMsrc!arena.c(MMdevel_arenaclass.1) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  *
  * The arena is the alpha and the omega.
@@ -8,7 +8,7 @@
 
 #include "mpm.h"
 
-SRCID(arena, "$HopeName$");
+SRCID(arena, "$HopeName: MMsrc!arena.c(MMdevel_arenaclass.1) $");
 
 #if 0
 extern Bool SegPrefCheck(SegPref pref);
@@ -155,8 +155,7 @@ Res ArenaCreate(Arena *arenaReturn, ArenaClass class, Addr base, Size size)
   RingAppend(&arenaRing, &arena->globalRing);
   LockReleaseMPM(&arenaRingLock);
 
-/*  EVENT1(ArenaCreate, space); */
-/*  EVENT2(ArenaCreate, arena, space); @@@@ */
+  EVENT1(ArenaCreate, arena);
 
   *arenaReturn = arena;
   return ResOK;
@@ -209,8 +208,7 @@ void ArenaDestroy(Arena arena)
   /* Send the arena descriptor back from whence it came. */
   (*class->free)(arena);  
 
-/*  EVENT1(ArenaDestroy, arena); @@@@ */
-/*  EVENT1(ArenaDestroy, arena); @@@@ */
+  EVENT1(ArenaDestroy, arena);
 
   EventFinish();
 }
@@ -270,12 +268,22 @@ Bool ArenaAccess(Addr addr, AccessSet mode)
   }
 
   LockReleaseMPM(&arenaRingLock);
+
+  /* Currently the convention is that events are emitted on successful */
+  /* completion of a function.  This is probably not very useful in */
+  /* this case and the event should be moved to the beginning.  This */
+  /* is waiting for Gavin's proposal and change. */
+  EVENT2(ArenaAccess, addr, mode);
+
   return FALSE;
 }
 
 
 Res ArenaSegAlloc(Seg *segReturn, SegPref pref, Arena arena, Size size, Pool pool)
 {
+  Res res;
+  Seg seg;
+
   AVER(segReturn != NULL);
   AVERT(SegPref, pref);
   AVERT(Arena, arena);
@@ -283,7 +291,13 @@ Res ArenaSegAlloc(Seg *segReturn, SegPref pref, Arena arena, Size size, Pool poo
   AVERT(Pool, pool);
   AVER(SizeIsAligned(size, arena->alignment));
 
-  return (*arena->class->segAlloc)(segReturn, pref, arena, size, pool);
+  res = (*arena->class->segAlloc)(&seg, pref, arena, size, pool);
+  if(res != ResOK) return res;
+
+  EVENT4(ArenaSegAlloc, arena, seg, size, pool);
+
+  *segReturn = seg;
+  return ResOK;
 }
 
 
@@ -293,6 +307,8 @@ void ArenaSegFree(Arena arena, Seg seg)
   AVERT(Seg, seg);
   
   (*arena->class->segFree)(arena, seg);
+
+  EVENT2(ArenaSegFree, arena, seg);
 }
 
 
@@ -312,21 +328,35 @@ Size ArenaCommitted(Arena arena)
 
 Res ArenaExtend(Arena arena, Addr base, Size size)
 {
+  Res res;
+
   AVERT(Arena, arena);
   AVER(base != (Addr)0);
   AVER(size > 0);
 
-  return (*arena->class->extend)(arena, base, size);
+  res = (*arena->class->extend)(arena, base, size);
+  if(res != ResOK) return res;
+  
+  EVENT3(ArenaExtend, arena, base, size);
+
+  return ResOK;
 }
 
 
 Res ArenaRetract(Arena arena, Addr base, Size size)
 {
+  Res res;
+
   AVERT(Arena, arena);
   AVER(base != (Addr)0);
   AVER(size > 0);
 
-  return (*arena->class->retract)(arena, base, size);
+  res = (*arena->class->retract)(arena, base, size);
+  if(res != ResOK) return res;
+  
+  EVENT3(ArenaRetract, arena, base, size);
+
+  return ResOK;
 }
 
 
@@ -401,7 +431,7 @@ SegPref SegPrefDefault(void)
   return &segPrefDefault;
 }
 
-Res SegPrefExpress (SegPref sp, SegPrefKind kind, void *p)
+Res SegPrefExpress(SegPref sp, SegPrefKind kind, void *p)
 {
   AVERT(SegPref,sp);
   AVER(sp != &segPrefDefault);
@@ -443,6 +473,7 @@ Res ArenaAlloc(void **baseReturn, Arena arena, Size size)
   *baseReturn = (void *)base;
   return ResOK;
 }
+
 
 void ArenaFree(Arena arena, Addr base, Size size)
 {
@@ -521,6 +552,10 @@ void ArenaPoll(Arena arena)
   arena->pollThreshold = size + interval;
 
   arena->insidePoll = FALSE;
+
+  /* Currently the convention is that events are emitted on successful */
+  /* completion of a function.  This is probably not very useful in */
+  /* this case and the event should be moved to the beginning.  This */
+  /* is waiting for Gavin's proposal and change. */
+  EVENT1(ArenaPoll, arena);
 }
-
-
