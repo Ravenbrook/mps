@@ -42,6 +42,8 @@
 #include <setjmp.h>
 #include <string.h>
 
+#include "mps.h"
+
 
 /* OPTIONS */
 
@@ -293,6 +295,10 @@ typedef struct state_s {
   void *heap_limit;
   void *old_base;
   void *old_limit;
+
+  /* MPS integration */
+  mps_arena_t arena;
+  mps_pool_t pool;
 
   /* Procedures
    *

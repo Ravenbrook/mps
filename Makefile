@@ -45,13 +45,15 @@ SCN_OBJS = $(SC_OBJS) scinitstub.o
 
 SCL_OBJS = $(SC_OBJS) scinit.o
 
-sc: main.o libsc.a
-	@echo "$@ <- $^"
-	@$(CC) -o $@ $(CFLAGS) $^ -L. -lsc
+SC_LIBS = mps.a mpsplan.a
 
-scn: main.o libscn.a
+sc: main.o libsc.a $(SC_LIBS)
 	@echo "$@ <- $^"
-	@$(CC) -o $@ $(CFLAGS) $^ -L. -lscn
+	@$(CC) -o $@ $(CFLAGS) $^ -L. -lsc $(SCLIBS)
+
+scn: main.o libscn.a $(SC_LIBS)
+	@echo "$@ <- $^"
+	@$(CC) -o $@ $(CFLAGS) $^ -L. -lscn $(SCLIBS)
 
 libscn.a: $(SCN_OBJS)
 	libtool -static -o $@ $^

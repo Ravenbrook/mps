@@ -297,6 +297,8 @@ extern void gc(state_t state, size_t size)
   static int in_gc = 0;
   obj_t obj;
   size_t old_size;
+  mps_res_t res;
+  void *p;
 
   UNUSED(size);
 
@@ -330,11 +332,12 @@ extern void gc(state_t state, size_t size)
     (void)fprintf(stdout, "gc new size %lub\n", state->heap_size);
   }
 
-  state->heap_base = malloc(state->heap_size);
-  if(state->heap_base == NULL) {
+  res = mps_alloc(&p, state->pool, state->heap_size);
+  if(res != MPS_RES_OK) {
     (void)fprintf(stdout, "Can't allocate new heap.\n");
     exit(EXIT_FAILURE);
   }
+  state->heap_base = p;
   state->heap_next = state->heap_base;
   state->heap_limit = (void *)((ulong)state->heap_base + state->heap_size);
 
@@ -357,7 +360,7 @@ extern void gc(state_t state, size_t size)
 #ifdef GC_CHECKING
   memset(state->old_base, 0xF5, old_size);
 #endif
-  free(state->old_base);
+  mps_free(state->pool, state->old_base, old_size);
 
 #ifdef GC_CHECKING
   heap_check(state);

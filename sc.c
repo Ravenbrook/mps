@@ -59,6 +59,8 @@
  */
 
 #include "sc.h"
+#include "mpsavm.h"
+#include "mpscmv.h"
 
 #include <stddef.h>
 #include <stdio.h>
@@ -605,16 +607,33 @@ extern void bind_procs(state_t state,
 static state_t state_create(void)
 {
   state_t state;
-  void *heap;
+  void *heap, *p;
   size_t i;
+  mps_res_t res;
+  mps_arena_t arena;
+  mps_pool_t pool;
 
-  heap = malloc(HEAP);
-  if(heap == NULL)
+  /* What on earth is 64<<20? */
+  res = mps_arena_create(&arena, mps_arena_class_vm(), 64<<20);
+  if(res != MPS_RES_OK)
+    goto fail_arena;
+
+  /* What do these parameters mean? */
+  res = mps_pool_create(&pool, arena, mps_class_mv(), HEAP, HEAP, HEAP);
+  if(res != MPS_RES_OK)
+    goto fail_pool;
+  
+  res = mps_alloc(&p, pool, sizeof(state_s));
+  if(res != MPS_RES_OK)
+    goto fail_state;
+  state = (state_t)p;
+
+  res = mps_alloc(&heap, pool, HEAP);
+  if(res != MPS_RES_OK)
     goto fail_heap;
 
-  state = (state_t)malloc(sizeof(state_s));
-  if(state == NULL)
-    goto fail_state;
+  state->arena = arena;
+  state->pool = pool;
 
   state->trace = 0;		/* don't trace by default */
   state->heap_checking = 0;	/* don't heap check by default */
@@ -654,9 +673,13 @@ static state_t state_create(void)
 
   return state;
 
-fail_state:
-  free(heap);
 fail_heap:
+  mps_free(pool, state, sizeof(state_s));
+fail_state:
+  mps_pool_destroy(pool);
+fail_pool:
+  mps_arena_destroy(arena);
+fail_arena:
   return NULL;
 }
 
