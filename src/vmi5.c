@@ -1,6 +1,6 @@
 /* impl.c.vmso: VIRTUAL MEMORY MAPPING FOR IRIX 5 (AND 6)
  *
- * $HopeName: MMsrc!vmi5.c(MMdevel_irix_vm.2) $
+ * $HopeName: MMsrc!vmi5.c(MMdevel_irix_vm.3) $
  * Copyright (C) 1995,1997 Harlequin Group, all rights reserved
  *
  * Design: design.mps.vm
@@ -16,10 +16,6 @@
  *   mmap() will not choose a region which contains the last page
  *   in the address space, so that the limit of the mapped area
  *   is representable.
- *
- * .assume.size: The maximum size of the reserved address space
- *   is limited by the range of "int".  This will probably be half
- *   of the address space.
  *
  * .assume.mmap.err: EAGAIN is the only error we really expect to
  *   get from mmap.  The others are either caused by invalid params
@@ -48,7 +44,7 @@
 #include <errno.h>
 #include <unistd.h> /* for _SC_PAGESIZE */
 
-SRCID(vmi5, "$HopeName: MMsrc!vmi5.c(MMdevel_irix_vm.2) $");
+SRCID(vmi5, "$HopeName: MMsrc!vmi5.c(MMdevel_irix_vm.3) $");
 
 
 /* VMStruct -- virtual memory structure */
@@ -105,7 +101,6 @@ Res VMCreate(VM *vmReturn, Size size)
   AVER(vmReturn != NULL);
   AVER(SizeIsAligned(size, align));
   AVER(size != 0);
-  AVER(size <= INT_MAX); /* see .assume.size */
 
   zero_fd = open("/dev/zero", O_RDONLY);
   if(zero_fd == -1)
@@ -214,17 +209,17 @@ Res VMMap(VM vm, Addr base, Addr limit)
   void *addr;
 
   AVERT(VM, vm);
-  AVER(sizeof(int) == sizeof(Addr));
   AVER(base < limit);
   AVER(base >= vm->base);
   AVER(limit <= vm->limit);
-  AVER(AddrOffset(base, limit) <= INT_MAX);
   AVER(AddrIsAligned(base, vm->align));
   AVER(AddrIsAligned(limit, vm->align));
 
   /* Map /dev/zero onto the area with a copy-on-write policy.  This */
   /* effectively populates the area with zeroed memory. */
   size = AddrOffset(base, limit);
+  /* Check it won't lose any bits. */
+  AVER(size <= (Size)(size_t)-1);
   addr = mmap((void *)base, (size_t)size,
 	      PROT_READ | PROT_WRITE | PROT_EXEC,
 	      MAP_PRIVATE | MAP_FIXED,
@@ -247,7 +242,6 @@ void VMUnmap(VM vm, Addr base, Addr limit)
   void *addr;
 
   AVERT(VM, vm);
-  AVER(sizeof(int) == sizeof(Addr));
   AVER(base < limit);
   AVER(base >= vm->base);
   AVER(limit <= vm->limit);
@@ -262,6 +256,8 @@ void VMUnmap(VM vm, Addr base, Addr limit)
   /* The OS doesn't merge this mapping with any neighbours, but it */
   /* can keep track of at least 16K mappings, so it's good enough. */
   size = AddrOffset(base, limit);
+  /* Check it won't lose any bits. */
+  AVER(size <= (Size)(size_t)-1);
   addr = mmap((void *)base, (size_t)size,
               PROT_NONE, MAP_SHARED | MAP_FIXED | MAP_AUTORESRV,
               vm->zero_fd, (off_t)AddrOffset(vm->base, base));
