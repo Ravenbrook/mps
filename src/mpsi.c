@@ -1,6 +1,6 @@
 /* impl.c.mpsi: MEMORY POOL SYSTEM INTERFACE LAYER
  *
- * $HopeName: MMsrc!mpsi.c(MM_dylan_incremental.1) $
+ * $HopeName: MMsrc!mpsi.c(MM_dylan_incremental.2) $
  * Copyright (C) 1996 Harlequin Group, all rights reserved.
  *
  * .thread-safety: Most calls through this interface lock the space
@@ -30,9 +30,8 @@
 #include <stdarg.h>
 #include <stddef.h>
 
-#include "exch.h" /* MM PrEv request 170008 */
 
-SRCID("$HopeName: MMsrc!mpsi.c(MM_dylan_incremental.1) $");
+SRCID("$HopeName: MMsrc!mpsi.c(MM_dylan_incremental.2) $");
 
 
 /* Check consistency of interface mappings. */
@@ -302,9 +301,7 @@ mps_res_t mps_ap_create(mps_ap_t *mps_ap_o, mps_pool_t mps_pool, ...)
 
   /* Varargs are ignored at the moment -- none of the pool */
   /* implementations use them, and they're not passed through. */
-  EXCH_BEGIN
-    e = BufferCreate(&buf, pool);
-  EXCH_END
+  e = BufferCreate(&buf, pool);
   if(e != ErrSUCCESS)
     goto failBufferCreate;
 
@@ -398,18 +395,14 @@ mps_res_t mps_ap_fill(mps_addr_t *p_o, mps_ap_t mps_ap, size_t size)
   SpaceLockClaim(space);
 
   /* Give the space the opportunity to steal CPU time. */
-  EXCH_BEGIN
-    SpacePoll(space);
-  EXCH_END
+  SpacePoll(space);
 
   AVER(p_o != NULL);
   AVER(ISVALID(Buffer, buf));
   AVER(size > 0);
   AVER(IsAligned(BufferPool(buf)->alignment, size));
 
-  EXCH_BEGIN
-    e = BufferFill((Addr *)p_o, buf, size);
-  EXCH_END
+  e = BufferFill((Addr *)p_o, buf, size);
 
   SpaceLockRelease(space);
   return e;
@@ -427,9 +420,7 @@ mps_bool_t mps_ap_trip(mps_ap_t mps_ap, mps_addr_t p, size_t size)
   AVER(size > 0);
   AVER(IsAligned(BufferPool(buf)->alignment, size));
 
-  EXCH_BEGIN
-    b = BufferTrip(buf, (Addr)p, size);
-  EXCH_END
+  b = BufferTrip(buf, (Addr)p, size);
   SpaceLockRelease(space);
   return b;
 }
