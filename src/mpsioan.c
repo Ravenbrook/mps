@@ -1,6 +1,6 @@
 /* impl.c.mpsioan: HARLEQUIN MEMORY POOL SYSTEM I/O IMPLEMENTATION (ANSI)
  *
- * $HopeName$
+ * $HopeName: MMsrc!mpsioan.c(MMdevel_event.1) $
  * Copyright (C) 1996 Harlequin Group, all rights reserved.
  *
  * .readership: MPS developers.
@@ -12,6 +12,11 @@
 
 #include "mpsio.h"
 #include <stdio.h>
+
+#include "mpstd.h"		/* .sunos.warn */
+#ifdef MPS_OS_SU
+#include "ossu.h"
+#endif
 
 mps_res_t mps_io_create(mps_io_t *mps_io_r)
 {
