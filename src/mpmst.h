@@ -1,6 +1,6 @@
 /* impl.h.mpmst: MEMORY POOL MANAGER DATA STRUCTURES
  *
- * $HopeName: MMsrc!mpmst.h(MMdevel_action2.6) $
+ * $HopeName: MMsrc!mpmst.h(MMdevel_action2.8) $
  * Copyright (C) 1996,1997 Harlequin Group, all rights reserved.
  *
  * .readership: MM developers.
@@ -252,26 +252,19 @@ typedef struct VMStruct {
 /* SegStruct -- segment structure
  *
  * .seg: Segments are the basic units of memory allocation from
- * the arena, and also the units of scanning, shielding, and colour
- * for the MPM (pool classes may subdivide segments and be able to
- * maintain colour on a finer grain (down to the object level for example)).
- *
- * .seg.pm: The pm field is used by both the shield (impl.c.shield)
- * and the ANSI fake protection (impl.c.protan).
- *
- * .seg.pool: This field must be first.  See
- * design.mps.seg.assume.pointer-conversion for why.
+ * the arena.  See design.mps.seg.
  */
 
 typedef struct SegStruct {      /* segment structure */
-  Pool pool;                    /* MUST BE FIRST, see .seg.pool */
+  Pool pool;                    /* MUST BE FIRST (design.mps.seg.field.pool) */
   Bool single;                  /* single page segment */
   RankSet rankSet;		/* ranks of references in this seg */
   AccessSet pm, sm;             /* protection and shield modes */
   Size depth;                   /* see impl.c.shield.def.depth */
   void *p;                      /* pointer for use of owning pool */
-  TraceSet white;            	/* seg white? for which traces? */
+  TraceSet black;		/* traces for which seg is black */
   TraceSet grey;                /* traces for which seg is grey */
+  TraceSet white;            	/* traces for which seg is white */
   RefSet summary;		/* summary of references out of seg */
   Buffer buffer;                /* non-NULL if seg is buffered */
   RingStruct poolRing;          /* link in list of segs in pool */
