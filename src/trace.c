@@ -271,6 +271,7 @@ Res TraceCondemnObjSet(Trace trace, ObjSet condemnedSet)
   AVERT(Trace, trace);
   AVER(condemnedSet != ObjSetEMPTY);
   AVER(trace->state == TraceINIT);
+  AVER(trace->white == ObjSetEMPTY);
 
   arena = trace->arena;
 
@@ -797,7 +798,7 @@ static Res TraceScan(TraceSet ts, Rank rank,
       white = ObjSetUnion(white, ArenaTrace(arena, ti)->white);
 
   /* only scan a segment if it refers to the white set */
-  if(RefSetInterObjSet(SegSummary(seg), white)) { /* blacken it */
+  if(!RefSetInterObjSet(SegSummary(seg), white)) { /* blacken it */
     PoolBlacken(SegPool(seg), ts, seg);
     /* setup result code to return later */
     res = ResOK;

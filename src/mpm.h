@@ -702,6 +702,8 @@ extern ObjSet ObjSetOfSeg(Arena arena, Seg seg);
   (((Word)(addr) >> (arena)->zoneShift) & (MPS_WORD_WIDTH - 1))
 #define ObjSetIsMember(arena, os, addr) \
   BS_IS_MEMBER((os), ObjSetZone((arena), (addr)))
+#define ObjSetAdd(arena, os, addr) \
+  BS_ADD(ObjSet, (os), ObjSetZone((arena), (addr)))
 
 /* The only link we make between RefSet's and ObjSet's is this */
 /* intersection, which detects whether the set of references might */

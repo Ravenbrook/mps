@@ -1,6 +1,6 @@
 /* impl.c.arenavm: VIRTUAL MEMORY BASED ARENA IMPLEMENTATION
  *
- * $HopeName: MMsrc!arenavm.c(MMdevel_gavinm_zone.1) $
+ * $HopeName: MMsrc!arenavm.c(MMdevel_gavinm_zone.2) $
  * Copyright (C) 1997, 1998 The Harlequin Group Limited.  All rights reserved.
  *
  * This is the implementation of the Segment abstraction from the VM
@@ -29,7 +29,7 @@
 #include "mpm.h"
 #include "mpsavm.h"
 
-SRCID(arenavm, "$HopeName: MMsrc!arenavm.c(MMdevel_gavinm_zone.1) $");
+SRCID(arenavm, "$HopeName: MMsrc!arenavm.c(MMdevel_gavinm_zone.2) $");
 
 
 typedef struct VMArenaStruct *VMArena;
@@ -275,7 +275,8 @@ static Res VMArenaInit(Arena *arenaReturn, va_list args)
   /* We blacklist the first and last zones because they commonly */
   /* correspond to low integers.  */
   /* @@@@ This should be dynamic. */
-  vmArena->blacklist = ObjSetUnion((ObjSet)0, (ObjSet)-1);
+  vmArena->blacklist = 
+    ObjSetAdd(arena, ObjSetAdd(arena, ObjSetEMPTY, (Addr)1), (Addr)-1);
 
   for(gen = (Index)0; gen < VMArenaGenCount; gen++) {
     vmArena->genObjSet[gen] = ObjSetEMPTY;
