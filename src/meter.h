@@ -1,6 +1,6 @@
 /* impl.h.meter: METER INTERFACE
  *
- * $HopeName: $
+ * $HopeName: MMsrc!meter.h(MMdevel_gavinm_splay.1) $
  * Copyright (C) 1998 Harlequin Group plc.  All rights reserved.
  *
  * Defines an interface for creating "meters" that accumulate the
@@ -31,6 +31,8 @@ typedef struct MeterStruct
   Count count;
   double total;
   double meanSquared;
+  Size min;
+  Size max;
 }MeterStruct;
 
 
