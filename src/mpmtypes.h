@@ -1,6 +1,6 @@
 /* impl.h.mpmtypes: MEMORY POOL MANAGER TYPES
  *
- * $HopeName: !mpmtypes.h(trunk.21) $
+ * $HopeName: MMsrc!mpmtypes.h(trunk.21) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights 
  * reserved.
  *
@@ -84,12 +84,10 @@ typedef Res  (*PoolAllocMethod)        (Addr *pReturn, Pool pool,
 typedef void (*PoolFreeMethod)         (Pool pool, Addr old, Size size);
 typedef Res  (*PoolBufferInitMethod)   (Pool pool, Buffer buf);
 typedef void (*PoolBufferFinishMethod) (Pool pool, Buffer buf);
-typedef Res  (*PoolBufferFillMethod)   (Addr *baseReturn, Pool pool,
-                                        Buffer buffer, Size size);
-typedef Bool (*PoolBufferTripMethod)   (Pool pool, Buffer buffer,
-                                        Addr base, Size size);
-typedef void (*PoolBufferExposeMethod) (Pool pool, Buffer buffer);
-typedef void (*PoolBufferCoverMethod)  (Pool pool, Buffer buffer);
+typedef Res  (*PoolBufferFillMethod)   (Seg *segReturn,
+                                        Addr *baseReturn, Addr *limitReturn,
+                                        Pool pool, Buffer buffer, Size size);
+typedef void (*PoolBufferEmptyMethod)  (Pool pool, Buffer buffer);
 typedef Res  (*PoolDescribeMethod)     (Pool pool, mps_lib_FILE 
                                         *stream);
 typedef Res  (*PoolCondemnMethod)      (Pool pool, Trace trace, 
