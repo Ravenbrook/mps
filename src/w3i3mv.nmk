@@ -1,6 +1,6 @@
 # ==== NTI3MV NMAKE FILE ====
 #
-# $HopeName: MMsrc!nti3mv.nmk(MMdevel_protoposm_1.1) $
+# $HopeName: MMsrc!nti3mv.nmk(MMdevel_protoposm_1.2) $
 #
 # Copyright (C) 1995 Harlequin Group, all rights reserved
 #
@@ -18,14 +18,14 @@ DB = <poolps> \
      <barreg> <barrier> <cache> <cluster> <gc> <iohigh> \
      <iolow> <iomid> <mpm> <segment> <xaction> <list> <dbpool> \
      <db> <dbm> \
-     <assoc> <database> <element> <stretchy> <support> <tables>
+     <assoc> <broker> <element> <stretchy> <support> <tables>
 TESTLIB = <testlib>
 
 #!INCLUDE mv.nmk
 
 # ==== ALMOST GENERIC PRODUCT BUILD FOR NMAKE ====
 #
-# $HopeName: MMsrc!nti3mv.nmk(MMdevel_protoposm_1.1) $
+# $HopeName: MMsrc!nti3mv.nmk(MMdevel_protoposm_1.2) $
 #
 # Copyright (C) 1995 Harlequin Group, all rights reserved
 #
