@@ -1,6 +1,6 @@
 /* impl.h.mpmst: MEMORY POOL MANAGER DATA STRUCTURES
  *
- * $HopeName: !mpmst.h(trunk.30) $
+ * $HopeName: MMsrc!mpmst.h(MMdevel_control3.1) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  *
  * .readership: MM developers.
@@ -577,14 +577,16 @@ typedef struct ScanStateStruct {
 #define TraceSig        ((Sig)0x51924ACE)
 
 typedef struct TraceStruct {
-  Sig sig;                      /* design.mps.sig */
-  TraceId ti;                   /* index into TraceSets */
-  Space space;                  /* owning space */
-  Action action;                /* the action that launched the trace */
-  RefSet white;                 /* superset of refs in white set */
+  Sig sig;			/* design.mps.sig */
+  TraceId ti;			/* index into TraceSets */
+  Space space;			/* owning space */
+  Action action;		/* the action that launched the trace */
+  RefSet white;			/* superset of refs in white set */
+  TraceState state;		/* current state of trace */
   RankSet grey;                 /* ranks for which grey segs (may) exist */
-  TraceState state;             /* current state of trace */
-  Size interval;                /* polling interval */
+  Size condemned;               /* condemned bytes */
+  Size foundation;              /* initial grey set size */
+  Size rate;                    /* bytes to scan per increment */
 } TraceStruct;
 
 

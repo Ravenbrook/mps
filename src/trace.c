@@ -1,12 +1,12 @@
 /* impl.c.trace: GENERIC TRACER IMPLEMENTATION
  *
- * $HopeName: !trace.c(trunk.34) $
+ * $HopeName: MMsrc!trace.c(MMdevel_control3.1) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  */
 
 #include "mpm.h"
 
-SRCID(trace, "$HopeName: !trace.c(trunk.34) $");
+SRCID(trace, "$HopeName: MMsrc!trace.c(MMdevel_control3.1) $");
 
 
 /* ScanStateCheck -- check consistency of a ScanState object */
@@ -90,7 +90,6 @@ Bool TraceCheck(Trace trace)
     default:
     NOTREACHED;
   }
-  /* @@@@ Check trace->interval? */
   return TRUE;
 }
 
@@ -140,8 +139,10 @@ static Res TraceStart(Trace trace, Action action)
 
     /* Add the segment to the approximation of the white set the */
     /* pool made it white. */
-    if(TraceSetIsMember(SegWhite(seg), trace->ti))
+    if(TraceSetIsMember(SegWhite(seg), trace->ti)) {
       trace->white = RefSetUnion(trace->white, RefSetOfSeg(space, seg));
+      trace->condemned += SegSize(space, seg);
+    }
 
     node = next;
   }
@@ -180,12 +181,15 @@ static Res TraceStart(Trace trace, Action action)
         /* Segments with ranks may only belong to scannable pools. */
         AVER((SegPool(seg)->class->attr & AttrSCAN) != 0);
 
-        /* Turn the segment grey if there might be a reference in it */
-        /* to the white set.  This is done by seeing if the summary */
-        /* of references in the segment intersects with the approximation */
-        /* to the white set. */
-        if(RefSetInter(SegSummary(seg), trace->white) != RefSetEMPTY)
-          PoolGrey(SegPool(seg), trace, seg);
+	/* Turn the segment grey if there might be a reference in it */
+	/* to the white set.  This is done by seeing if the summary */
+	/* of references in the segment intersects with the approximation */
+	/* to the white set. */
+	if(RefSetInter(SegSummary(seg), trace->white) != RefSetEMPTY) {
+	  PoolGrey(SegPool(seg), trace, seg);
+          if(TraceSetIsMember(SegGrey(seg), trace->ti))
+            trace->foundation += SegSize(space, seg);
+        }
       }
     } while(SegNext(&seg, space, base));
   }
@@ -200,6 +204,22 @@ static Res TraceStart(Trace trace, Action action)
       RootGrey(root, trace);
 
     node = next;
+  }
+
+  /* Calculate the rate of working.  Assumes that half the condemned */
+  /* set will survive, and calculates a rate of work which will finish */
+  /* the collection by the time that half of that has been allocated. */
+  /* @@@@ The 4096 is the number of bytes scanned by each TracePoll */
+  /* (approximately) and should be replaced by a parameter. */
+  {
+    double surviving = trace->condemned / 2;
+    double scan = trace->foundation + surviving;
+    double reclaim = trace->condemned - surviving;
+    double alloc = reclaim / 2;
+    if(alloc > 0)
+      trace->rate = scan * SPACE_POLL_MAX / (4096 * alloc);
+    else
+      trace->rate = scan / 4096;
   }
 
   trace->state = TraceUNFLIPPED;
@@ -267,11 +287,13 @@ found:
   trace->white = RefSetEMPTY;
   trace->ti = ti;
   trace->state = TraceINIT;
-  trace->interval = (Size)4096; /* @@@@ should be progress control */
   /* We conservatively assume that there may be grey segments at all */
   /* ranks when we create the trace.  (almost certainly we could do */
   /* better) */
   trace->grey = RankSetUNIV;
+  trace->condemned = (Size)0;   /* nothing condemned yet */
+  trace->foundation = (Size)0;  /* nothing grey yet */
+  trace->rate = (Size)0;        /* no scanning to be done yet */
 
   trace->sig = TraceSig;
   AVERT(Trace, trace);
