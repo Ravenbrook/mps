@@ -1,6 +1,6 @@
 /* impl.h.mpm: MEMORY POOL MANAGER DEFINITIONS
  *
- * $HopeName: !mpm.h(trunk.2) $
+ * $HopeName: MMsrc!mpm.h(MMdevel_restr2.1) $
  * Copyright (C) 1996 Harlequin Group, all rights reserved.
  */
 
@@ -123,7 +123,8 @@ extern Ring (RingNext)(Ring ring);
 
 /* Pool Interface -- see impl.c.pool */
 
-extern void PoolInit(Pool pool, Space space, PoolClass class);
+extern Res PoolInit(Pool pool, Space space, PoolClass class, ...);
+extern Res PoolInitV(Pool pool, Space space, PoolClass class, va_list args);
 extern void PoolFinish(Pool pool);
 extern Bool PoolCheck(Pool pool);
 extern Res PoolDescribe(Pool pool, Lib_FILE *stream);
@@ -313,8 +314,8 @@ extern void PoolClassInit(
   const char *name,
   size_t size,
   size_t offset,
-  PoolCreateMethod create,
-  PoolDestroyMethod destroy,
+  PoolInitMethod init,
+  PoolFinishMethod finish,
   PoolAllocMethod alloc,
   PoolFreeMethod free_,
   PoolBufferCreateMethod bufferCreate,

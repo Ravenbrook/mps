@@ -2,7 +2,7 @@
  *
  *                         NULL POOL
  *
- *  $HopeName: !pooln.c(trunk.8) $
+ *  $HopeName: MMsrc!pooln.c(trunk.7) $
  *
  *  Copyright(C) 1995 Harlequin Group, all rights reserved
  *
@@ -13,7 +13,7 @@
 #include "mpm.h"
 #include "pooln.h"
 
-SRCID(pooln, "$HopeName: !pooln.c(trunk.8) $");
+SRCID(pooln, "$HopeName: MMsrc!pooln.c(trunk.7) $");
 
 
 typedef struct PoolNStruct {
@@ -21,27 +21,29 @@ typedef struct PoolNStruct {
   /* and that's it */
 } PoolNStruct;
 
+#define PoolPoolN(pool)	PARENT(PoolNStruct, poolStruct, pool)
+
 
 /*  Class's methods  */
 
-static Res create(Pool *poolReturn, Space space, va_list arg);
-static void destroy(Pool pool);
-static Res alloc(Addr *pReturn, Pool pool, Size size);
-static void free_(Pool pool, Addr old, Size size);
-static Res bufferCreate(Buffer *bufReturn, Pool pool);
-static void bufferDestroy(Pool pool, Buffer buf);
-static Res bufferFill(Addr *pReturn, Pool pool, Buffer buffer, Size size);
-static Bool bufferTrip(Pool pool, Buffer buffer, Addr p, Size size);
-static void bufferExpose(Pool pool, Buffer buffer);
-static void bufferCover(Pool pool, Buffer buffer);
-static Res describe(Pool pool, Lib_FILE *stream);
-static Res condemn(RefSet *condemnedReturn, Pool pool,
+static Res NInit(Pool pool, va_list arg);
+static void NFinish(Pool pool);
+static Res NAlloc(Addr *pReturn, Pool pool, Size size);
+static void NFree(Pool pool, Addr old, Size size);
+static Res NBufferCreate(Buffer *bufReturn, Pool pool);
+static void NBufferDestroy(Pool pool, Buffer buf);
+static Res NBufferFill(Addr *pReturn, Pool pool, Buffer buffer, Size size);
+static Bool NBufferTrip(Pool pool, Buffer buffer, Addr p, Size size);
+static void NBufferExpose(Pool pool, Buffer buffer);
+static void NBufferCover(Pool pool, Buffer buffer);
+static Res NDescribe(Pool pool, Lib_FILE *stream);
+static Res NCondemn(RefSet *condemnedReturn, Pool pool,
                      Space space, TraceId ti);
-static void mark(Pool pool, Space space, TraceId ti);
-static Res scan(ScanState ss, Pool pool, Bool *finishedReturn);
-static Res fix(Pool pool, ScanState ss, Seg seg, Ref *refIO);
-static void reclaim(Pool pool, Space space, TraceId ti);
-static void access(Pool pool, Seg seg, AccessSet mode);
+static void NMark(Pool pool, Space space, TraceId ti);
+static Res NScan(ScanState ss, Pool pool, Bool *finishedReturn);
+static Res NFix(Pool pool, ScanState ss, Seg seg, Ref *refIO);
+static void NReclaim(Pool pool, Space space, TraceId ti);
+static void NAccess(Pool pool, Seg seg, AccessSet mode);
 
 
 /*  Class Structure  */
@@ -53,101 +55,46 @@ PoolClass PoolClassN(void)
   PoolClassInit(&PoolClassNStruct,
                 "N",
                 sizeof(PoolNStruct), offsetof(PoolNStruct, poolStruct),
-                create, destroy,
-                alloc, free_,
-                bufferCreate, bufferDestroy,
-                bufferFill, bufferTrip,
-                bufferExpose, bufferCover,
-                condemn, mark, scan,
-                fix, reclaim,
-                access,
-                describe);
+                NInit, NFinish,
+                NAlloc, NFree,
+                NBufferCreate, NBufferDestroy,
+                NBufferFill, NBufferTrip,
+                NBufferExpose, NBufferCover,
+                NCondemn, NMark, NScan,
+                NFix, NReclaim,
+                NAccess,
+                NDescribe);
   return &PoolClassNStruct;
 }
-
 
 Bool PoolNCheck(PoolN poolN)
 {
   CHECKL(poolN != NULL);
   CHECKD(Pool, &poolN->poolStruct);
   CHECKL(poolN->poolStruct.class == &PoolClassNStruct);
-
   return TRUE;
 }
 
-
-static Res create(Pool *poolReturn, Space space, va_list arg)
+static Res NInit(Pool pool, va_list args)
 {
-  PoolN poolN;
-  Res res;
+  PoolN poolN = PoolPoolN(pool);
 
-  AVER(poolReturn != NULL);
-  AVERT(Space, space);
-  UNUSED(arg);
+  UNUSED(args);
+  
+  /* Initialize pool-specific structures. */
 
-  res = PoolNCreate(&poolN, space);
-  if(res != ResOK) {
-    return res;
-  }
-  *poolReturn = PoolNPool(poolN);
-  return ResOK;
-}
-
-Res PoolNCreate(PoolN *poolNReturn, Space space)
-{
-  Res res;
-  PoolN poolN;
-
-  AVER(poolNReturn != NULL);
-  AVERT(Space, space);
-
-  res = SpaceAlloc((Addr *)&poolN, space, (Size)sizeof(PoolNStruct));
-  if(res != ResOK)
-    goto failAlloc;
-  res = PoolNInit(poolN, space);
-  if(res != ResOK)
-    goto failInit;
-
-  *poolNReturn = poolN;
-  return ResOK;
-
-failInit:
-  SpaceFree(space, (Addr)poolN, (Size)sizeof(PoolNStruct));
-failAlloc:
-  return res;
-}
-
-Res PoolNInit(PoolN poolN, Space space)
-{
-  AVER(poolN != NULL);
-  AVERT(Space, space);
-
-  PoolInit(&poolN->poolStruct, space, PoolClassN());
   AVERT(PoolN, poolN);
 
   return ResOK;
 }
 
-static void destroy(Pool pool)
+static void NFinish(Pool pool)
 {
+  PoolN poolN = PoolPoolN(pool);
   AVERT(Pool, pool);
   AVER(pool->class == &PoolClassNStruct);
-  PoolNDestroy(PARENT(PoolNStruct, poolStruct, pool));
-}
 
-void PoolNDestroy(PoolN poolN)
-{
-  Space space;
-  AVERT(PoolN, poolN);
-  space = PoolSpace(PoolNPool(poolN));
-  PoolNFinish(poolN);
-  SpaceFree(space, (Addr)poolN, (Size)sizeof(PoolNStruct));
-}
-
-void PoolNFinish(PoolN poolN)
-{
-  AVERT(PoolN, poolN);
-  PoolFinish(PoolNPool(poolN));
+  /* Finish pool-specific structures. */
 }
 
 Pool (PoolNPool)(PoolN poolN)
@@ -156,7 +103,7 @@ Pool (PoolNPool)(PoolN poolN)
   return &poolN->poolStruct;
 }
 
-static Res alloc(Addr *pReturn, Pool pool, Size size)
+static Res NAlloc(Addr *pReturn, Pool pool, Size size)
 {
   AVER(pReturn != NULL);
   AVERT(Pool, pool);
@@ -166,7 +113,7 @@ static Res alloc(Addr *pReturn, Pool pool, Size size)
   return ResLIMIT;  /* limit of nil blocks exceeded */
 }
 
-static void free_(Pool pool, Addr old, Size size)
+static void NFree(Pool pool, Addr old, Size size)
 {
   AVERT(Pool, pool);
   AVER(pool->class == &PoolClassNStruct);
@@ -176,7 +123,7 @@ static void free_(Pool pool, Addr old, Size size)
   NOTREACHED;  /* can't allocate, should never free */
 }
 
-static Res bufferCreate(Buffer *bufReturn, Pool pool)
+static Res NBufferCreate(Buffer *bufReturn, Pool pool)
 {
   AVER(bufReturn != NULL);
   AVERT(Pool, pool);
@@ -185,7 +132,7 @@ static Res bufferCreate(Buffer *bufReturn, Pool pool)
   return ResLIMIT;  /* limit of nil buffers exceeded */
 }
 
-static void bufferDestroy(Pool pool, Buffer buf)
+static void NBufferDestroy(Pool pool, Buffer buf)
 {
   AVERT(Pool, pool);
   AVERT(Buffer, buf);
@@ -193,48 +140,45 @@ static void bufferDestroy(Pool pool, Buffer buf)
   NOTREACHED;  /* can't create, so shouldn't destroy */
 }
 
-static Res bufferFill(Addr *pReturn, Pool pool, Buffer buffer, Size size)
+static Res NBufferFill(Addr *pReturn, Pool pool, Buffer buffer, Size size)
 {
   AVERT(Pool, pool);
   AVERT(Buffer, buffer);
   AVER(size > 0);
   AVER(pReturn != NULL);
 
-  NOTREACHED;   /* can't create buffers, so shouldn't fill them */
+  NOTREACHED;	/* can't create buffers, so shouldn't fill them */
   return ResUNIMPL;
 }
 
-static Bool bufferTrip(Pool pool, Buffer buffer, Addr p, Size size)
+static Bool NBufferTrip(Pool pool, Buffer buffer, Addr p, Size size)
 {
   AVERT(Pool, pool);
   AVERT(Buffer, buffer);
   AVER(p != 0);
   AVER(size > 0);
 
-  NOTREACHED;   /* can't create buffers, so they shouldn't trip */
+  NOTREACHED;	/* can't create buffers, so they shouldn't trip */
   return FALSE;
 }
 
-
-static void bufferExpose(Pool pool, Buffer buffer)
+static void NBufferExpose(Pool pool, Buffer buffer)
 {
   AVERT(Pool, pool);
   AVERT(Buffer, buffer);
 
-  NOTREACHED;   /* can't create buffers, so shouldn't expose them */
+  NOTREACHED;	/* can't create buffers, so shouldn't expose them */
 }
 
-
-static void bufferCover(Pool pool, Buffer buffer)
+static void NBufferCover(Pool pool, Buffer buffer)
 {
   AVERT(Pool, pool);
   AVERT(Buffer, buffer);
 
-  NOTREACHED;   /* can't create buffers, so shouldn't cover them */
+  NOTREACHED;	/* can't create buffers, so shouldn't cover them */
 }
 
-
-static Res describe(Pool pool, Lib_FILE *stream)
+static Res NDescribe(Pool pool, Lib_FILE *stream)
 {
   PoolN poolN;
 
@@ -249,8 +193,7 @@ static Res describe(Pool pool, Lib_FILE *stream)
   return ResOK;
 }
 
-
-static Res condemn(RefSet *condemnedReturn, Pool pool,
+static Res NCondemn(RefSet *condemnedReturn, Pool pool,
                      Space space, TraceId ti)
 {
   AVER(condemnedReturn != NULL);
@@ -261,14 +204,14 @@ static Res condemn(RefSet *condemnedReturn, Pool pool,
   return ResOK;
 }
 
-static void mark(Pool pool, Space space, TraceId ti)
+static void NMark(Pool pool, Space space, TraceId ti)
 {
   AVERT(Pool, pool);
   AVER(pool->class == &PoolClassNStruct);
   AVERT(Space, space);
 }
 
-static Res scan(ScanState ss, Pool pool, Bool *finishedReturn)
+static Res NScan(ScanState ss, Pool pool, Bool *finishedReturn)
 {
   AVER(finishedReturn != NULL);
   AVERT(Pool, pool);
@@ -278,7 +221,7 @@ static Res scan(ScanState ss, Pool pool, Bool *finishedReturn)
   return ResOK;
 }
 
-static Res fix(Pool pool, ScanState ss, Seg seg, Ref *refIO)
+static Res NFix(Pool pool, ScanState ss, Seg seg, Ref *refIO)
 {
   AVERT(Pool, pool);
   AVER(pool->class == &PoolClassNStruct);
@@ -289,7 +232,7 @@ static Res fix(Pool pool, ScanState ss, Seg seg, Ref *refIO)
   return ResFAIL;
 }
 
-static void reclaim(Pool pool, Space space, TraceId ti)
+static void NReclaim(Pool pool, Space space, TraceId ti)
 {
   AVERT(Pool, pool);
   AVER(pool->class == &PoolClassNStruct);
@@ -297,7 +240,7 @@ static void reclaim(Pool pool, Space space, TraceId ti)
   /* all unmarked and condemned objects reclaimed */
 }
 
-static void access(Pool pool, Seg seg, AccessSet mode)
+static void NAccess(Pool pool, Seg seg, AccessSet mode)
 {
   AVERT(Pool, pool);
   AVER(pool->class == &PoolClassNStruct);

@@ -1,6 +1,6 @@
 /* impl.h.mpmst: MEMORY POOL MANAGER DATA STRUCTURES
  *
- * $HopeName: !mpmst.h(trunk.2) $
+ * $HopeName: MMsrc!mpmst.h(MMdevel_restr2.1) $
  * Copyright (C) 1996 Harlequin Group, all rights reserved.
  *
  * .rationale: Almost all MPM data structures are defined in this
@@ -47,8 +47,8 @@ typedef struct PoolClassStruct {
   const char *name;             /* class name string */
   size_t size;                  /* size of instance structure */
   size_t offset;                /* offset of PoolStruct in instance */
-  PoolCreateMethod create;
-  PoolDestroyMethod destroy;
+  PoolInitMethod init;
+  PoolFinishMethod finish;
   PoolAllocMethod alloc;
   PoolFreeMethod free;
   PoolBufferCreateMethod bufferCreate;

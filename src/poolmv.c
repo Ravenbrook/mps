@@ -1,6 +1,6 @@
 /* impl.c.poolmv: MANUAL VARIABLE POOL
  *
- * $HopeName: !poolmv.c(trunk.12) $
+ * $HopeName: MMsrc!poolmv.c(trunk.11) $
  * Copyright (C) 1994, 1995 Harlequin Group, all rights reserved
  *
  * **** RESTRICTION: This pool may not allocate from the arena control
@@ -37,20 +37,21 @@
 #include "poolmfs.h"
 #include "mpscmv.h"
 
-SRCID(poolmv, "$HopeName: !poolmv.c(trunk.12) $");
+SRCID(poolmv, "$HopeName: MMsrc!poolmv.c(trunk.11) $");
 
 
 #define BLOCKPOOL(mv)   (MFSPool(&(mv)->blockPoolStruct))
 #define SPANPOOL(mv)    (MFSPool(&(mv)->spanPoolStruct))
+#define PoolPoolMV(pool)	PARENT(MVStruct, poolStruct, pool)
 
 
 /*  == Class Structure ==  */
 
-static Res create(Pool *poolReturn, Space space, va_list arg);
-static void  destroy(Pool pool);
-static Res alloc(Addr *pReturn, Pool pool, Size size);
-static void free_(Pool pool, Addr old, Size size);
-static Res describe(Pool pool, Lib_FILE *stream);
+static Res MVInit(Pool pool, va_list arg);
+static void MVFinish(Pool pool);
+static Res MVAlloc(Addr *pReturn, Pool pool, Size size);
+static void MVFree(Pool pool, Addr old, Size size);
+static Res MVDescribe(Pool pool, Lib_FILE *stream);
 
 static PoolClassStruct PoolClassMVStruct;
 
@@ -59,15 +60,15 @@ PoolClass PoolClassMV(void)
   PoolClassInit(&PoolClassMVStruct,
                 "MV",
                 sizeof(MVStruct), offsetof(MVStruct, poolStruct),
-                create, destroy,
-                alloc, free_,
+                MVInit, MVFinish,
+                MVAlloc, MVFree,
                 NULL, NULL,             /* bufferCreate, bufferDestroy */
-                NULL, NULL,             /* bufferFill, bufferTrip */
-                NULL, NULL,             /* bufferExpose, bufferCover */
+                NULL, NULL,		/* bufferFill, bufferTrip */
+                NULL, NULL,		/* bufferExpose, bufferCover */
                 NULL, NULL,             /* mark, scan */
                 NULL, NULL,             /* fix, relcaim */
                 NULL, NULL,             /* access, poll */
-                describe);
+                MVDescribe);
   return &PoolClassMVStruct;
 }
 
@@ -119,8 +120,8 @@ static Bool MVBlockCheck(MVBlock block)
 
 typedef struct MVSpanStruct *MVSpan;
 typedef struct MVSpanStruct {
-  MVSpan next;                  /* link to next span */
-  MV mv;                        /* owning MV pool */
+  MVSpan next;			/* link to next span */
+  MV mv;			/* owning MV pool */
   Seg seg;                      /* segment underlying the span */
   MVBlockStruct base;           /* sentinel at base of span */
   MVBlockStruct limit;          /* sentinel at limit of span */
@@ -128,6 +129,29 @@ typedef struct MVSpanStruct {
   Size space;                   /* total free space in segment */
   unsigned blockCount;          /* number of blocks on chain */
 } MVSpanStruct;
+
+
+/* MVCheck -- check the consistency of an MV structure */
+
+Bool MVCheck(MV mv)
+{
+  CHECKS(MV, mv);
+  CHECKD(Pool, &mv->poolStruct);
+  CHECKD(MFS, &mv->blockPoolStruct);
+  CHECKD(MFS, &mv->spanPoolStruct);
+  CHECKL(mv->extendBy > 0);
+  CHECKL(mv->avgSize > 0);
+  CHECKL(mv->extendBy >= mv->avgSize);
+  /* Could do more checks here. */
+  return TRUE;
+}
+
+
+Pool MVPool(MV mv)
+{
+  AVERT(MV, mv);
+  return &mv->poolStruct;
+}
 
 
 /* MVSpanCheck -- check the consistency of a span structure */
@@ -159,120 +183,39 @@ static Bool MVSpanCheck(MVSpan span)
 }
 
 
-/* MVCheck -- check the consistency of an MV structure */
-
-Bool MVCheck(MV mv)
+static Res MVInit(Pool pool, va_list arg)
 {
-  CHECKS(MV, mv);
-  CHECKD(Pool, &mv->poolStruct);
-  CHECKD(MFS, &mv->blockPoolStruct);
-  CHECKD(MFS, &mv->spanPoolStruct);
-  CHECKL(mv->extendBy > 0);
-  CHECKL(mv->avgSize > 0);
-  CHECKL(mv->extendBy >= mv->avgSize);
-  /* Could do more checks here. */
-  return TRUE;
-}
-
-
-Pool MVPool(MV mv)
-{
-  AVERT(MV, mv);
-  return &mv->poolStruct;
-}
-
-
-Res MVCreate(MV *mvReturn, Space space,
-                   Size extendBy, Size avgSize, Size maxSize)
-{
-  Res res;
+  Size extendBy, avgSize, maxSize, blockExtendBy, spanExtendBy;
   MV mv;
-
-  AVER(mvReturn != NULL);
-  AVERT(Space, space);
-
-  res = SpaceAlloc((Addr *)&mv, space, sizeof(MVStruct));
-  if(res != ResOK)
-    return res;
-
-  res = MVInit(mv, space, extendBy, avgSize, maxSize);
-  if(res != ResOK) {
-    SpaceFree(space, (Addr)mv, sizeof(MVStruct));
-    return res;
-  }
-
-  *mvReturn = mv;
-  return ResOK;
-}
-
-static Res create(Pool *poolReturn, Space space, va_list arg)
-{
-  Size extendBy, avgSize, maxSize;
-  MV mv;
+  Space space;
   Res res;
-
-  AVER(poolReturn != NULL);
-  AVERT(Space, space);
 
   extendBy = va_arg(arg, Size);
   avgSize = va_arg(arg, Size);
   maxSize = va_arg(arg, Size);
 
-  res = MVCreate(&mv, space, extendBy, avgSize, maxSize);
-  if(res != ResOK)
-    return res;
-
-  *poolReturn = MVPool(mv);
-  return ResOK;
-}
-
-
-void MVDestroy(MV mv)
-{
-  Space space;
-  AVERT(MV, mv);
-  space = PoolSpace(MVPool(mv));
-  MVFinish(mv);
-  SpaceFree(space, (Addr)mv, sizeof(MVStruct));
-}
-
-static void destroy(Pool pool)
-{
-  AVERT(Pool, pool);
-  AVER(pool->class == &PoolClassMVStruct);
-  MVDestroy(PARENT(MVStruct, poolStruct, pool));
-}
-
-
-Res MVInit(MV mv, Space space, Size extendBy,
-                 Size avgSize, Size maxSize)
-{
-  Res res;
-  Size blockExtendBy, spanExtendBy;
-
-  AVER(mv != NULL);
-  AVERT(Space, space);
   AVER(extendBy > 0);
   AVER(avgSize > 0);
   AVER(avgSize <= extendBy);
   AVER(maxSize > 0);
   AVER(extendBy <= maxSize);
 
-  PoolInit(&mv->poolStruct, space, PoolClassMV());
+  mv = PoolPoolMV(pool);
+  space = PoolSpace(pool);
 
   /* At 100% fragmentation we will need one block descriptor for every other */
   /* allocated block, or (extendBy/avgSize)/2 descriptors.  See note 1. */
   blockExtendBy = sizeof(MVBlockStruct) * (extendBy/avgSize)/2;
 
-  res = MFSInit(&mv->blockPoolStruct, space,
-    blockExtendBy, sizeof(MVBlockStruct));
+  res = PoolInit(&mv->blockPoolStruct.poolStruct, space, PoolClassMFS(),
+                 blockExtendBy, sizeof(MVBlockStruct));
   if(res != ResOK)
     return res;
 
   spanExtendBy = sizeof(MVSpanStruct) * (maxSize/extendBy);
 
-  res = MFSInit(&mv->spanPoolStruct, space,
-    spanExtendBy, sizeof(MVSpanStruct));
+  res = PoolInit(&mv->spanPoolStruct.poolStruct, space, PoolClassMFS(),
+                 spanExtendBy, sizeof(MVSpanStruct));
   if(res != ResOK)
     return res;
 
@@ -290,14 +233,15 @@ Res MVInit(MV mv, Space space, Size extendBy,
 }
 
 
-void MVFinish(MV mv)
+static void MVFinish(Pool pool)
 {
-  Pool pool;
+  MV mv;
   MVSpan span;
 
-  AVERT(MV, mv);
+  AVERT(Pool, pool);
+  AVER(pool->class == &PoolClassMVStruct);
 
-  pool = MVPool(mv);
+  mv = PoolPoolMV(pool);
 
   /* Destroy all the segments attached to the pool. */
   span = mv->spans;
@@ -309,9 +253,8 @@ void MVFinish(MV mv)
 
   mv->sig = SigInvalid;
 
-  MFSFinish(&mv->blockPoolStruct);
-  MFSFinish(&mv->spanPoolStruct);
-  PoolFinish(pool);
+  PoolFinish(&mv->blockPoolStruct.poolStruct);
+  PoolFinish(&mv->spanPoolStruct.poolStruct);
 }
 
 
@@ -458,7 +401,7 @@ static Res MVSpanFree(MVSpan span, Addr base, Addr limit, Pool blockPool)
 
 /*  == Allocate ==  */
 
-static Res alloc(Addr *pReturn, Pool pool, Size size)
+static Res MVAlloc(Addr *pReturn, Pool pool, Size size)
 {
   Res res;
   MVSpan span;
@@ -540,7 +483,7 @@ static Res alloc(Addr *pReturn, Pool pool, Size size)
 }
 
 
-static void free_(Pool pool, Addr old, Size size)
+static void MVFree(Pool pool, Addr old, Size size)
 {
   Addr base, limit;
   MVSpan span;
@@ -581,7 +524,7 @@ static void free_(Pool pool, Addr old, Size size)
 }
 
 
-static Res describe(Pool pool, Lib_FILE *stream)
+static Res MVDescribe(Pool pool, Lib_FILE *stream)
 {
   MV mv;
   MVSpan span;

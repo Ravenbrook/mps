@@ -1,6 +1,6 @@
 /* impl.c.poolmfs: MANUAL FIXED SMALL UNIT POOL
  *
- * $HopeName: !poolmfs.c(trunk.10) $
+ * $HopeName: MMsrc!poolmfs.c(MMdevel_restr2.1) $
  * Copyright (C) 1994,1995 Harlequin Group, all rights reserved
  *
  * This is the implementation of the MFS pool class.  MFS operates
@@ -34,7 +34,7 @@
 #include "mpm.h"
 #include "poolmfs.h"
 
-SRCID(poolmfs, "$HopeName: !poolmfs.c(trunk.10) $");
+SRCID(poolmfs, "$HopeName: MMsrc!poolmfs.c(MMdevel_restr2.1) $");
 
 
 /*  == Round up ==
@@ -44,14 +44,16 @@ SRCID(poolmfs, "$HopeName: !poolmfs.c(trunk.10) $");
 
 #define ROUND(unit, n)  ((n)+(unit)-1 - ((n)+(unit)-1)%(unit))
 
+#define PoolPoolMFS(pool)	PARENT(MFSStruct, poolStruct, pool)
+
 
 /*  == Class Structure ==  */
 
-static Res create(Pool *poolReturn, Space space, va_list arg);
-static void  destroy(Pool pool);
-static Res alloc(Addr *pReturn, Pool pool, Size size);
-static void free_(Pool pool, Addr old, Size size);
-static Res describe(Pool pool, Lib_FILE *stream);
+static Res MFSInit(Pool pool, va_list arg);
+static void MFSFinish(Pool pool);
+static Res MFSAlloc(Addr *pReturn, Pool pool, Size size);
+static void MFSFree(Pool pool, Addr old, Size size);
+static Res MFSDescribe(Pool pool, Lib_FILE *stream);
 
 static PoolClassStruct PoolClassMFSStruct;
 
@@ -60,15 +62,15 @@ PoolClass PoolClassMFS(void)
   PoolClassInit(&PoolClassMFSStruct,
                 "MFS",
                 sizeof(MFSStruct), offsetof(MFSStruct, poolStruct),
-                create, destroy,
-                alloc, free_,
+                MFSInit, MFSFinish,
+                MFSAlloc, MFSFree,
                 NULL, NULL,             /* bufferCreate, bufferDestroy */
                 NULL, NULL,             /* bufferFill, bufferTrip */
                 NULL, NULL,             /* bufferExpose, bufferCover */
                 NULL, NULL,             /* mark, scan */
                 NULL, NULL,             /* fix, relcaim */
                 NULL, NULL,             /* access, poll */
-                describe);
+                MFSDescribe);
   return &PoolClassMFSStruct;
 }
 
@@ -119,76 +121,22 @@ Pool (MFSPool)(MFS mfs)
 }
 
 
-Res MFSCreate(MFS *mfsReturn, Space space,
-                    Size extendBy, Size unitSize)
-{
-  Res res;
-  MFS mfs;
-
-  AVER(mfsReturn != NULL);
-  AVERT(Space, space);
-
-  res = SpaceAlloc((Addr *)&mfs, space, sizeof(MFSStruct));
-  if(res != ResOK)
-    return res;
-
-  res = MFSInit(mfs, space, extendBy, unitSize);
-  if(res != ResOK) {
-    SpaceFree(space, (Addr)mfs, sizeof(MFSStruct));
-    return res;
-  }
-
-  *mfsReturn = mfs;
-  return ResOK;
-}
-
-static Res create(Pool *poolReturn, Space space, va_list arg)
+static Res MFSInit(Pool pool, va_list arg)
 {
   Size extendBy, unitSize;
   MFS mfs;
-  Res res;
+  Space space;
 
-  AVER(poolReturn != NULL);
-  AVERT(Space, space);
+  AVER(pool != NULL);
 
   extendBy = va_arg(arg, Size);
   unitSize = va_arg(arg, Size);
 
-  res = MFSCreate(&mfs, space, extendBy, unitSize);
-  if(res != ResOK) return res;
-
-  *poolReturn = MFSPool(mfs);
-  return ResOK;
-}
-
-
-void MFSDestroy(MFS mfs)
-{
-  Space space;
-  AVERT(MFS, mfs);
-  space = PoolSpace(MFSPool(mfs));
-  MFSFinish(mfs);
-  SpaceFree(space, (Addr)mfs, sizeof(MFSStruct));
-}
-
-static void destroy(Pool pool)
-{
-  AVERT(Pool, pool);
-  AVER(pool->class == &PoolClassMFSStruct);
-  MFSDestroy(PARENT(MFSStruct, poolStruct, pool));
-}
-
-
-Res MFSInit(MFS mfs, Space space, Size extendBy,
-                  Size unitSize)
-{
-  AVER(mfs != NULL);
-  AVERT(Space, space);
-
   AVER(unitSize >= UNIT_MIN);
   AVER(extendBy >= unitSize);
-
-  PoolInit(&mfs->poolStruct, space, PoolClassMFS());
+  
+  mfs = PoolPoolMFS(pool);
+  space = PoolSpace(pool);
 
   mfs->unroundedUnitSize = unitSize;
 
@@ -208,15 +156,14 @@ Res MFSInit(MFS mfs, Space space, Size extendBy,
 }
 
 
-void MFSFinish(MFS mfs)
+static void MFSFinish(Pool pool)
 {
   Seg seg;
-  Pool pool;
+  MFS mfs;
 
+  AVERT(Pool, pool);
+  mfs = PoolPoolMFS(pool);
   AVERT(MFS, mfs);
-
-  pool = MFSPool(mfs);
-  mfs->sig = SigInvalid;
 
   seg = mfs->segList;
   while(seg != NULL) {
@@ -225,7 +172,7 @@ void MFSFinish(MFS mfs)
     seg = nextSeg;
   }
 
-  PoolFinish(&mfs->poolStruct);
+  mfs->sig = SigInvalid;
 }
 
 
@@ -235,7 +182,7 @@ void MFSFinish(MFS mfs)
  *  and returning it.  If there are none, a new segment is allocated.
  */
 
-static Res alloc(Addr *pReturn, Pool pool, Size size)
+static Res MFSAlloc(Addr *pReturn, Pool pool, Size size)
 {
   Header f;
   Res res;
@@ -315,7 +262,7 @@ static Res alloc(Addr *pReturn, Pool pool, Size size)
  *  locations throughout the pool.
  */
 
-static void free_(Pool pool, Addr old, Size size)
+static void MFSFree(Pool pool, Addr old, Size size)
 {
   Header h;
   MFS mfs;
@@ -335,7 +282,7 @@ static void free_(Pool pool, Addr old, Size size)
 }
 
 
-static Res describe(Pool pool, Lib_FILE *stream)
+static Res MFSDescribe(Pool pool, Lib_FILE *stream)
 {
   MFS mfs;
   int e;
