@@ -1,6 +1,6 @@
 /* impl.h.config: MPS CONFIGURATION
  *
- * $HopeName: !config.h(trunk.25) $
+ * $HopeName: MMsrc!config.h(MMdevel_tony_lifetime.1) $
  * Copyright (C) 1998. Harlequin Group plc. All rights reserved.
  *
  * .readership: MPS developers.
@@ -174,6 +174,7 @@
 #define ARENA_POLL_MAX          (65536.0)
 #define ARENA_LD_LENGTH         ((Size)4)
 #define ARENA_ZONESHIFT         ((Shift)20)
+#define ARENA_TRACK_MAX_DEFAULT (1000000.0)
 
 /* Stack configuration */
 
