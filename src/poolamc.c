@@ -1,6 +1,6 @@
 /* impl.c.poolamc: AUTOMATIC MOSTLY-COPYING MEMORY POOL CLASS
  *
- * $HopeName: !poolamc.c(trunk.25) $
+ * $HopeName: MMsrc!poolamc.c(MMdevel_tony_sunset.1) $
  * Copyright (C) 1998.  Harlequin Group plc.  All rights reserved.
  *
  * .sources: design.mps.poolamc.
@@ -9,7 +9,7 @@
 #include "mpscamc.h"
 #include "mpm.h"
 
-SRCID(poolamc, "$HopeName: !poolamc.c(trunk.25) $");
+SRCID(poolamc, "$HopeName: MMsrc!poolamc.c(MMdevel_tony_sunset.1) $");
 
 
 /* Binary i/f used by ASG (drj 1998-06-11) */
@@ -216,9 +216,10 @@ static Res AMCGenCreate(AMCGen *genReturn, AMC amc, Serial genNum)
   pool = &amc->poolStruct;
   arena = pool->arena;
 
-  res = ArenaAlloc(&p, arena, sizeof(AMCGenStruct));
+  res = ControlAlloc(&p, arena, sizeof(AMCGenStruct), 
+                     /* withReservoirPermit */ FALSE);
   if(res != ResOK)
-    goto failArenaAlloc;
+    goto failControlAlloc;
   gen = (AMCGen)p;
 
   res = BufferCreate(&buffer, pool);
@@ -249,8 +250,8 @@ static Res AMCGenCreate(AMCGen *genReturn, AMC amc, Serial genNum)
   return ResOK;
 
 failBufferCreate:
-  ArenaFree(arena, p, sizeof(AMCGenStruct));
-failArenaAlloc:
+  ControlFree(arena, p, sizeof(AMCGenStruct));
+failControlAlloc:
   return res;
 }
 
@@ -272,7 +273,7 @@ static void AMCGenDestroy(AMCGen gen)
   ActionFinish(&gen->actionStruct);
   BufferDestroy(gen->forward);
   RingFinish(&gen->amcRing);
-  ArenaFree(arena, gen, sizeof(AMCGenStruct));
+  ControlFree(arena, gen, sizeof(AMCGenStruct));
 }
 
 
@@ -290,7 +291,8 @@ static Res AMCSegCreateNailBoard(Seg seg, Pool pool)
 
   arena = PoolArena(pool);
 
-  res = ArenaAlloc(&p, arena, sizeof(AMCNailBoardStruct));
+  res = ControlAlloc(&p, arena, sizeof(AMCNailBoardStruct), 
+                     /* withReservoirPermit */ FALSE);
   if(res != ResOK)
     goto failAllocNailBoard;
   board = p;
@@ -301,7 +303,8 @@ static Res AMCSegCreateNailBoard(Seg seg, Pool pool)
   board->newMarks = FALSE;
   board->markShift = SizeLog2((Size)pool->alignment);
   bits = SegSize(seg) >> board->markShift;
-  res = ArenaAlloc(&p, arena, BTSize(bits));
+  res = ControlAlloc(&p, arena, BTSize(bits), 
+                     /* withReservoirPermit */ FALSE);
   if(res != ResOK)
     goto failMarkTable;
   board->mark = p;
@@ -312,7 +315,7 @@ static Res AMCSegCreateNailBoard(Seg seg, Pool pool)
   return ResOK;
 
 failMarkTable:
-  ArenaFree(arena, board, sizeof(AMCNailBoardStruct));
+  ControlFree(arena, board, sizeof(AMCNailBoardStruct));
 failAllocNailBoard:
   return res;
 }
@@ -335,9 +338,9 @@ static void AMCSegDestroyNailBoard(Seg seg, Pool pool)
   AVERT(Arena, arena);
 
   bits = SegSize(seg) >> board->markShift;
-  ArenaFree(arena, board->mark, BTSize(bits));
+  ControlFree(arena, board->mark, BTSize(bits));
   board->sig = SigInvalid;
-  ArenaFree(arena, board, sizeof(AMCNailBoardStruct));
+  ControlFree(arena, board, sizeof(AMCNailBoardStruct));
   SegSetP(seg, &gen->type); /* design.mps.poolamc.fix.nail.distinguish */
 }
 
@@ -477,7 +480,8 @@ static Res AMCInitComm(Pool pool, RankSet rankSet, va_list arg)
     Size genArraySize;
 
     genArraySize = sizeof(AMCGen)*amc->gens;
-    res = ArenaAlloc(&p, arena, genArraySize);
+    res = ControlAlloc(&p, arena, genArraySize, 
+                       /* withReservoirPermit */ FALSE);
     if(res != ResOK) {
       return res;
     }
@@ -489,7 +493,7 @@ static Res AMCInitComm(Pool pool, RankSet rankSet, va_list arg)
 	  --i;
 	  AMCGenDestroy(amc->gen[i]);
 	}
-	ArenaFree(arena, amc->gen, genArraySize);
+	ControlFree(arena, amc->gen, genArraySize);
 	return res;
       }
     }
@@ -676,7 +680,8 @@ static Res AMCBufferFill(Seg *segReturn,
  * See design.mps.poolamc.flush.
  */
 
-static void AMCBufferEmpty(Pool pool, Buffer buffer, Seg seg)
+static void AMCBufferEmpty(Pool pool, Buffer buffer, 
+                           Seg seg, Addr init, Addr limit)
 {
   AMC amc;
   Word size;
@@ -688,14 +693,16 @@ static void AMCBufferEmpty(Pool pool, Buffer buffer, Seg seg)
   AVERT(Buffer, buffer);
   AVER(BufferIsReady(buffer));
   AVER(SegCheck(seg));
+  AVER(init <= limit);
+  AVER(SegLimit(seg) == limit);
 
   arena = BufferArena(buffer);
 
   /* design.mps.poolamc.flush.pad */
-  size = AddrOffset(BufferGetInit(buffer), SegLimit(seg));
+  size = AddrOffset(init, limit);
   if(size > 0) {
     ShieldExpose(arena, seg);
-    (*pool->format->pad)(BufferGetInit(buffer), size);
+    (*pool->format->pad)(init, size);
     ShieldCover(arena, seg);
   }
   EVENT_PPW(AMCBufferEmpty, amc, buffer, size);
@@ -1658,7 +1665,7 @@ static void AMCWalkAll(Pool pool,
   AVERT(Pool, pool);
   AVER(FUNCHECK(f));
   /* p and s are arbitrary closures, hence can't be checked */
-  AVER(IsSubclass(pool->class, EnsureAMCPoolClass()));
+  AVER(IsSubclassPoly(pool->class, EnsureAMCPoolClass()));
 
   arena = PoolArena(pool);
 
@@ -1844,7 +1851,7 @@ static Bool AMCCheck(AMC amc)
 {
   CHECKS(AMC, amc);
   CHECKD(Pool, &amc->poolStruct);
-  CHECKL(IsSubclass(amc->poolStruct.class, EnsureAMCPoolClass()));
+  CHECKL(IsSubclassPoly(amc->poolStruct.class, EnsureAMCPoolClass()));
   CHECKL(RankSetCheck(amc->rankSet));
   CHECKL(RingCheck(&amc->genRing));
   CHECKL(BoolCheck(amc->gensBooted));
