@@ -1,6 +1,6 @@
 /* impl.h.mpmst: MEMORY POOL MANAGER DATA STRUCTURES
  *
- * $HopeName: MMsrc!mpmst.h(MMdevel_restr.1) $
+ * $HopeName: MMsrc!mpmst.h(MMdevel_restr.2) $
  * Copyright (C) 1996 Harlequin Group, all rights reserved.
  *
  * .rationale: Almost all MPM data structures are defined in this
@@ -170,6 +170,7 @@ typedef struct SegStruct {	/* segment structure */
   Pool pool;			/* owner, MUST BE FIRST, impl.c.arenvm.page */
   Bool single;			/* single page segment */
   ProtMode pm, sm;		/* protection and shield modes */
+  Size depth;                   /* see impl.c.shield.def.depth */
   void *p;			/* pointer for use of pool */
 } SegStruct;
 
@@ -419,7 +420,11 @@ typedef struct SpaceStruct {
   Serial threadSerial;		/* serial of next thread */
   
   /* sheild fields (impl.c.shield) */
-  Bool insideShield;
+  Bool insideShield;             /* TRUE if inside shield */
+  Seg shCache[SHIELD_CACHE_SIZE];/* Cache of unsynced segs */
+  Size shCacheI;                 /* index into cache */
+  Size shDepth;                  /* sum of depths of all segs */
+  Bool suspended;                /* TRUE if mutator suspended */
 
   /* trace fields (impl.c.trace) */
   TraceSet busyTraces;          /* set of running traces */

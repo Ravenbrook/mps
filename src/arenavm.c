@@ -1,12 +1,12 @@
 /* impl.c.arenavm: VIRTUAL MEMORY BASED ARENA IMPLEMENTATION
  *
- * $HopeName$
+ * $HopeName: MMsrc!arenavm.c(MMdevel_restr.2) $
  * Copyright (C) 1996 Harlequin Group, all rights reserved.
  */
 
 #include "mpm.h"
 
-SRCID(arenavm, "$HopeName$");
+SRCID(arenavm, "$HopeName: MMsrc!arenavm.c(MMdevel_restr.2) $");
 
 #define SpaceArena(space)	(&(space)->arenaStruct)
 
@@ -225,10 +225,12 @@ found:
   /* Initialize the generic segment structure. */
   seg = &arena->pageTable[base].the.head;
   seg->pool = pool;
-  seg->pm = ProtNONE;
-  seg->sm = ProtNONE;
   seg->p = NULL;
   seg->single = TRUE;
+
+  seg->pm = ProtNONE; /* see impl.c.shield */
+  seg->sm = ProtNONE;
+  seg->depth = 0;
 
   /* Allocate the first page, and, if there is more than one page, */
   /* allocate the rest of the pages and store the multi-page */
