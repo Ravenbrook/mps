@@ -1,6 +1,6 @@
 /* impl.c.vmso: VIRTUAL MEMORY MAPPING FOR SOLARIS 2.x
  *
- * $HopeName: !vmso.c(trunk.4) $
+ * $HopeName: MMsrc!vmso.c(MMdevel_config.1) $
  * Copyright (C) 1995 Harlequin Group, all rights reserved
  *
  * Design: design.mps.vm
@@ -37,6 +37,9 @@
 #ifndef MPS_OS_SO
 #error "vmso.c is Solaris 2.x specific, but MPS_OS_SO is not set"
 #endif
+#ifdef VM_RM
+#error "vmso.c compiled with VM_RM set"
+#endif /* VM_RM */
 
 #include <sys/types.h>
 #include <sys/mman.h>
@@ -44,7 +47,7 @@
 #include <errno.h>
 #include <sys/errno.h>
 
-SRCID(vmso, "$HopeName: !vmso.c(trunk.4) $");
+SRCID(vmso, "$HopeName: MMsrc!vmso.c(MMdevel_config.1) $");
 
 
 /* Fix up unprototyped system calls.  */

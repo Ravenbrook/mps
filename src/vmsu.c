@@ -1,6 +1,6 @@
 /* impl.c.vmsu: VIRTUAL MEMORY MAPPING FOR SUNOS 4
  *
- * $HopeName: !vmsu.c(trunk.12) $
+ * $HopeName: MMsrc!vmsu.c(MMdevel_config.1) $
  * Copyright (C) 1995 Harlequin Group, all rights reserved
  *
  * Design: design.mps.vm
@@ -37,6 +37,9 @@
 #ifndef MPS_OS_SU
 #error "vmsu.c is SunOS 4 specific, but MPS_OS_SU is not set"
 #endif
+#ifdef VM_RM
+#error "vmsu.c compiled with VM_RM set"
+#endif /* VM_RM */
 
 #include <sys/types.h>
 #include <sys/mman.h>
@@ -44,7 +47,7 @@
 #include <errno.h>
 #include <sys/errno.h>
 
-SRCID(vmsu, "$HopeName: !vmsu.c(trunk.12) $");
+SRCID(vmsu, "$HopeName: MMsrc!vmsu.c(MMdevel_config.1) $");
 
 
 /* Fix up unprototyped system calls.  */
