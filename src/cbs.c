@@ -1,6 +1,6 @@
 /* impl.c.cbs: COALESCING BLOCK STRUCTURE IMPLEMENTATION
  *
- * $HopeName: MMsrc!cbs.c(MMdevel_gavinm_splay.7) $
+ * $HopeName: MMsrc!cbs.c(MMdevel_gavinm_splay.8) $
  * Copyright (C) 1998 Harlequin Group plc, all rights reserved.
  *
  * .readership: Any MPS developer.
@@ -18,7 +18,7 @@
 #include "mpm.h"
 
 
-SRCID(cbs, "$HopeName: MMsrc!cbs.c(MMdevel_gavinm_splay.7) $");
+SRCID(cbs, "$HopeName: MMsrc!cbs.c(MMdevel_gavinm_splay.8) $");
 
 typedef struct CBSEmergencyBlockStruct *CBSEmergencyBlock;
 typedef struct CBSEmergencyBlockStruct {
@@ -52,10 +52,15 @@ Bool CBSCheck(CBS cbs) {
 }
 
 Bool CBSBlockCheck(CBSBlock block) {
-  UNUSED(block);
+  UNUSED(block); /* Required because there is no signature */
   CHECKL(block != NULL);
   /* Don't check block->splayNode? */
-  CHECKL(block->base <= block->limit);
+
+  /* If the block is about to be deleted, then both pointers will be */
+  /* null.  Otherwise, the limit must be greater than the base. */
+  CHECKL((CBSBlockBase(block) == (Addr)0 && 
+	  CBSBlockLimit(block) == (Addr)0) ||
+	 CBSBlockBase(block) < CBSBlockLimit(block));
   return TRUE;
 }
 
@@ -142,18 +147,74 @@ void CBSFinish(CBS cbs) {
   cbs->emergencyGrainList = NULL;
 }
 
-static Res CBSBlockCreate(CBSBlock *blockReturn,
-			 CBS cbs, Addr base, Addr limit) {
+
+/* Node change operators
+ *
+ * These four functions are called whenever blocks are created,
+ * destroyed, grow, or shrink.  They report to the client, and
+ * perform the necessary memory management.  They are responsible
+ * for the client interaction logic.
+ */
+
+static Res CBSBlockDelete(CBS cbs, CBSBlock block) {
+  Res res;
+  Size oldSize;
+
+  AVERT(CBS, cbs);
+  AVERT(CBSBlock, block);
+
+  oldSize = CBSBlockSize(block);
+
+  res = SplayTreeDelete(SplayTreeOfCBS(cbs), SplayNodeOfCBSBlock(block), 
+                        (void *)&(block->base));
+  if(res != ResOK)
+    return res;
+
+  block->base = (Addr)0;
+  block->limit = (Addr)0;
+
+  if(cbs->delete != NULL && oldSize >= cbs->minSize)
+    (*(cbs->delete))(cbs, block);
+
+  PoolFree(cbs->blockPool, (Addr)block, sizeof(CBSBlockStruct));
+
+  return ResOK;
+}
+
+static void CBSBlockShrink(CBS cbs, CBSBlock block, Size oldSize) {
+  AVERT(CBS, cbs);
+  AVERT(CBSBlock, block);
+  AVER(oldSize > CBSBlockSize(block));
+
+  /* Should not affect splay tree. */
+
+  if(cbs->delete != NULL && oldSize >= cbs->minSize && 
+     CBSBlockSize(block) < cbs->minSize)
+    (*(cbs->delete))(cbs, block);
+}
+
+static void CBSBlockGrow(CBS cbs, CBSBlock block, Size oldSize) {
+  AVERT(CBS, cbs);
+  AVERT(CBSBlock, block);
+  AVER(oldSize < CBSBlockSize(block));
+
+  /* Should not affect splay tree. */
+
+  if(cbs->new != NULL && oldSize < cbs->minSize &&
+     CBSBlockSize(block) >= cbs->minSize)
+    (*(cbs->new))(cbs, block);
+}
+
+static Res CBSBlockNew(CBS cbs, Addr base, Addr limit) {
+  CBSBlock block;
   Res res;
   Addr p;
-  CBSBlock block;
 
   AVERT(CBS, cbs);
 
   res = PoolAlloc(&p, cbs->blockPool, sizeof(CBSBlockStruct));
   if(res != ResOK)
     goto failPoolAlloc;
-
   block = (CBSBlock)p;
 
   SplayNodeInit(SplayNodeOfCBSBlock(block));
@@ -167,92 +228,16 @@ static Res CBSBlockCreate(CBSBlock *blockReturn,
   if(res != ResOK)
     goto failSplayTreeInsert;
 
-  *blockReturn = block;
+  if(cbs->new != NULL && CBSBlockSize(block) >= cbs->minSize)
+    (*(cbs->new))(cbs, block);
+  
   return ResOK;
 
 failSplayTreeInsert:
   PoolFree(cbs->blockPool, (Addr)block, sizeof(CBSBlockStruct));
 failPoolAlloc:
+  AVER(res != ResOK);
   return res;
-}
-
-static Res CBSBlockDestroy(CBS cbs, CBSBlock block) {
-  Res res;
-
-  AVERT(CBS, cbs);
-  AVERT(CBSBlock, block);
-
-  res = SplayTreeDelete(SplayTreeOfCBS(cbs), SplayNodeOfCBSBlock(block), 
-                        (void *)&(block->base));
-  if(res != ResOK)
-    return res;
-
-  block->base = (Addr)0;
-  block->limit = (Addr)0;
-
-  PoolFree(cbs->blockPool, (Addr)block, sizeof(CBSBlockStruct));
-
-  return ResOK;
-}
-
-/* Node change operators
- *
- * These two functions are called whenever blocks are created,
- * destroyed, grow, or shrink.  They report to the client, and
- * perform the necessary memory management.  They are responsible
- * for the client interaction logic.
- */
-
-static Res CBSBlockDelete(CBS cbs, CBSBlock block) {
-  Res res;
-
-  AVERT(CBS, cbs);
-  AVERT(CBSBlock, block);
-
-  if(cbs->delete != NULL && CBSBlockSize(block) >= cbs->minSize)
-    (*(cbs->delete))(cbs, block);
-
-  res = CBSBlockDestroy(cbs, block);
-  if(res != ResOK)
-    return res;
-
-  return ResOK;
-}
-
-static void CBSBlockShrink(CBS cbs, CBSBlock block, Size oldSize) {
-  AVERT(CBS, cbs);
-  AVERT(CBSBlock, block);
-  AVER(oldSize > CBSBlockSize(block));
-
-  if(cbs->delete != NULL && oldSize >= cbs->minSize && 
-     CBSBlockSize(block) < cbs->minSize)
-    (*(cbs->delete))(cbs, block);
-}
-
-static void CBSBlockGrow(CBS cbs, CBSBlock block, Size oldSize) {
-  AVERT(CBS, cbs);
-  AVERT(CBSBlock, block);
-  AVER(oldSize < CBSBlockSize(block));
-
-  if(cbs->new != NULL && oldSize < cbs->minSize &&
-     CBSBlockSize(block) >= cbs->minSize)
-    (*(cbs->new))(cbs, block);
-}
-
-static Res CBSBlockNew(CBS cbs, Addr base, Addr limit) {
-  CBSBlock block;
-  Res res;
-
-  AVERT(CBS, cbs);
-
-  res = CBSBlockCreate(&block, cbs, base, limit);
-  if(res != ResOK)
-    return res;
-  
-  if(cbs->new != NULL && CBSBlockSize(block) >= cbs->minSize)
-    (*(cbs->new))(cbs, block);
-  
-  return ResOK;
 }
 
 
