@@ -1,6 +1,6 @@
 /* impl.c.arenacv: ARENA COVERAGE TEST
  *
- * $HopeName: MMsrc!arenacv.c(MMdevel_config_thread.2) $
+ * $HopeName: MMsrc!arenacv.c(MMdevel_config_thread.3) $
  * Copyright (C) 1997 Harlequin Group, all rights reserved
  *
  * .readership: MPS developers
@@ -24,6 +24,7 @@
 #include "testlib.h"
 #include "mpsavm.h"
 #include "mpsacl.h"
+#include "mpsaan.h"
 
 
 #define segsSIZE 500
@@ -75,13 +76,37 @@ static void testit(ArenaClass class, ...)
 	    "topSeg");
 	SegFree(arena, gapSeg);
 	for(new = 1; new <= gap; new += segsPerPage) {
+	  Seg seg;
+
 	  die(SegAlloc(&newSeg, &pref, arena, new * pageSize, pool),
 	      "newSeg");
+
+	  /* Test segment iterators */
+	  die(SegFirst(&seg, arena) ? ResOK : ResFAIL, "first");
+	  die(SegNext(&seg, arena, SegBase(arena, seg)) ? ResOK : ResFAIL,
+	      "second");
+	  die(SegNext(&seg, arena, SegBase(arena, seg)) ? ResOK : ResFAIL,
+	      "third");
+	  /* There are at least three segments */
+	  SegNext(&seg, arena, SegBase(arena, seg));
+
 	  SegFree(arena, newSeg);
 	}
+
 	SegFree(arena, topSeg);
       }
-      if(offset != 0) SegFree(arena, offsetSeg);
+      if(offset != 0) {
+	/* Test size functions */
+	Addr base, limit;
+	Size size;
+
+	base = SegBase(arena, offsetSeg);
+	limit = SegLimit(arena, offsetSeg);
+	size = SegSize(arena, offsetSeg);
+	die(size == AddrOffset(base, limit) ? ResOK : ResFAIL, "size");
+
+	SegFree(arena, offsetSeg);
+      }
     }
     SegPrefExpress(&pref, SegPrefRefSet, &refSet);
   }
@@ -96,6 +121,8 @@ int main(void)
   void *block;
 
   testit((ArenaClass)mps_arena_class_vm(), ARENA_SIZE);
+
+  testit((ArenaClass)mps_arena_class_an(), ARENA_SIZE);
 
   block = malloc(ARENA_SIZE);
   die(block == NULL ? ResFAIL : ResOK, "malloc");
