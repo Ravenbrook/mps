@@ -1,6 +1,6 @@
 /* impl.c.poolawl: AUTOMATIC WEAK LINKED POOL CLASS
  *
- * $HopeName: !poolawl.c(trunk.33) $
+ * $HopeName: MMsrc!poolawl.c(MM_dylan_meadowlark.1) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  *
  * READERSHIP
@@ -16,7 +16,7 @@
 #include "mpm.h"
 #include "mpscawl.h"
 
-SRCID(poolawl, "$HopeName: !poolawl.c(trunk.33) $");
+SRCID(poolawl, "$HopeName: MMsrc!poolawl.c(MM_dylan_meadowlark.1) $");
 
 
 #define AWLSig	((Sig)0x519b7a37)	/* SIGPooLAWL */
@@ -803,6 +803,7 @@ static void AWLWalk(Pool pool, Seg seg, FormattedObjectsStepMethod f,
     if(BTGet(group->mark, i) && BTGet(group->scanned, i)) {
       (*f)(object, awl->format, pool, p, s);
     }
+    object = next;
   }
 }
 
