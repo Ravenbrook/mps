@@ -1,6 +1,6 @@
 /* impl.c.shield: SHIELD IMPLEMENTATION
  *
- * $HopeName: MMsrc!shield.c(MMdevel_restr.3) $
+ * $HopeName: MMsrc!shield.c(MMdevel_restr.4) $
  *
  * See: idea.shield, design.mps.shield.
  *
@@ -72,7 +72,7 @@
 
 #include "mpm.h"
 
-SRCID(shield, "$HopeName: MMsrc!shield.c(MMdevel_restr.3) $");
+SRCID(shield, "$HopeName: MMsrc!shield.c(MMdevel_restr.4) $");
 
 void ShieldSuspend(Space space)
 {
@@ -210,23 +210,28 @@ void ShieldEnter(Space space)
   space->insideShield = TRUE;
 }
 
-void ShieldLeave(Space space)
+/* Flush empties the shield cache.
+ * This needs to be called before segments are destroyed as there
+ * may be references to them in the cache.
+ */
+void ShieldFlush(Space space)
 {
   Size i;
+
+  for(i = 0; i < SHIELD_CACHE_SIZE; ++i) {
+    if(space->shDepth == 0)
+      break;
+    flush(space, i);
+  }
+}
+
+void ShieldLeave(Space space)
+{
   AVERT(Space, space);
   AVER(space->insideShield);
 
-  /* There should be no exposed segments at this point so
-   * any depth is due to cached segments.  So flush entries
-   * from the cache until the total depth is zero.
-   */
-  i = 0;
-  while(space->shDepth > 0) {
-    AVER(i < SHIELD_CACHE_SIZE);
-    flush(space, i);
-    ++i;
-  }
-  /* Now inv.outside.depth is ensured */
+  ShieldFlush(space);
+  /* Cache is empty so inv.outside.depth holds */
   AVER(space->shDepth == 0);
 
   /* Ensuring the mutator is running at this point
