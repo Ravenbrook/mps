@@ -1,6 +1,6 @@
 /* impl.c.buffer: ALLOCATION BUFFER IMPLEMENTATION
  *
- * $HopeName: MMsrc!buffer.c(MMdevel_ramp_alloc.1) $
+ * $HopeName: MMsrc!buffer.c(MMdevel_ramp_alloc.2) $
  * Copyright (C) 1997, 1998.  Harlequin Group plc.  All rights reserved.
  *
  * This is (part of) the implementation of allocation buffers.
@@ -25,7 +25,7 @@
 
 #include "mpm.h"
 
-SRCID(buffer, "$HopeName: MMsrc!buffer.c(MMdevel_ramp_alloc.1) $");
+SRCID(buffer, "$HopeName: MMsrc!buffer.c(MMdevel_ramp_alloc.2) $");
 
 
 /* BufferCheck -- check consistency of a buffer */
@@ -195,6 +195,7 @@ static Res BufferInitV(Buffer buffer, Pool pool, Bool isMutator, va_list args)
   buffer->apStruct.alloc = (Addr)0;
   buffer->apStruct.limit = (Addr)0;
   buffer->poolLimit = (Addr)0;
+  buffer->rampCount = 0;
   buffer->p = NULL;
   buffer->i = 0;
 
@@ -798,7 +799,7 @@ Res BufferRampEnd(Buffer buffer)
 
   AVERT(Buffer, buffer);
 
-  if(buffer->rampCount <= 0)
+  if(buffer->rampCount == 0)
     return ResFAIL;
   --buffer->rampCount;
 
@@ -817,11 +818,12 @@ void BufferRampReset(Buffer buffer)
 
   AVERT(Buffer, buffer);
 
-  if(buffer->rampCount <= 0)
+  if(buffer->rampCount == 0)
     return;
 
   pool = BufferPool(buffer);
   AVERT(Pool, pool);
-  for( ; buffer->rampCount > 0; --buffer->rampCount)
+  do
     (*pool->class->rampEnd)(pool, buffer);
+  while(--buffer->rampCount > 0);
 }
