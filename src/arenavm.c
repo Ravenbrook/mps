@@ -1,12 +1,12 @@
 /* impl.c.arenavm: VIRTUAL MEMORY BASED ARENA IMPLEMENTATION
  *
- * $HopeName: MMsrc!arenavm.c(MMdevel_restr.6) $
+ * $HopeName: MMsrc!arenavm.c(MMdevel_restr.7) $
  * Copyright (C) 1996 Harlequin Group, all rights reserved.
  */
 
 #include "mpm.h"
 
-SRCID(arenavm, "$HopeName: MMsrc!arenavm.c(MMdevel_restr.6) $");
+SRCID(arenavm, "$HopeName: MMsrc!arenavm.c(MMdevel_restr.7) $");
 
 #define SpaceArena(space)	(&(space)->arenaStruct)
 
@@ -63,7 +63,7 @@ static void BTSet(BT bt, BI i, Bool b)
 
 
 #define PageBase(arena, pi) \
-  ((arena)->base + ((pi) << arena->pageShift))
+  AddrAdd((arena)->base, ((pi) << arena->pageShift))
 
 
 /* ArenaCreate -- create the arena
@@ -102,13 +102,13 @@ Res ArenaCreate(Space *spaceReturn, Size size)
   f_size = SizeAlignUp(f_words * sizeof(Word), arena->pageSize);
   p_size = SizeAlignUp(arena->pages * sizeof(PageStruct), arena->pageSize);
   arena->tablesSize = f_size + p_size;
-  res = VMMap(space, arena->base, arena->base + arena->tablesSize);
+  res = VMMap(space, arena->base, AddrAdd(arena->base, arena->tablesSize));
   if(res) {
     VMDestroy(space);
     return res;
   }
   arena->freeTable = (Word *)arena->base;
-  arena->pageTable = (Page)(arena->base + f_size);
+  arena->pageTable = (Page)AddrAdd(arena->base, f_size);
 
   /* .tablePages: pages numbered < tablePages are recorded as free
    * but never allocated as segments as they contain the arena's
@@ -141,8 +141,28 @@ void ArenaDestroy(Space space)
   AVERT(Arena, SpaceArena(space));
   arena = SpaceArena(space);
   arena->sig = SigInvalid;
-  VMUnmap(space, arena->base, arena->base + arena->tablesSize);
+  VMUnmap(space, arena->base, AddrAdd(arena->base, arena->tablesSize));
   VMDestroy(space);
+}
+
+
+/* ArenaReserved -- return the amount of reserved address space
+ * ArenaCommitted -- return the amount of committed virtual memory
+ *
+ * Since this is a VM-based arena, this information is retrieved from
+ * the VM.
+ */
+
+Size ArenaReserved(Space space)
+{
+  AVERT(Arena, SpaceArena(space));
+  return SpaceArena(space)->vmStruct.reserved;
+}
+
+Size ArenaCommitted(Space space)
+{
+  AVERT(Arena, SpaceArena(space));
+  return SpaceArena(space)->vmStruct.mapped;
 }
 
 
@@ -156,7 +176,7 @@ Bool ArenaCheck(Arena arena)
   CHECKL(arena->base < arena->limit);
   CHECKL(SizeIsP2(arena->pageSize));
   CHECKL(arena->pageShift == SizeLog2(arena->pageSize));
-  CHECKL(arena->pages == (arena->limit - arena->base) >> arena->pageShift);
+  CHECKL(arena->pages == AddrOffset(arena->base, arena->limit) >> arena->pageShift);
   CHECKL(arena->pageTable != NULL);
   CHECKL((Addr)arena->pageTable >= arena->base);
   CHECKL((Addr)&arena->pageTable[arena->pages] <= arena->limit);
@@ -355,7 +375,7 @@ Addr SegLimit(Space space, Seg seg)
 
   arena = SpaceArena(space);
   if(seg->single)
-    return SegBase(space, seg) + arena->pageSize;
+    return AddrAdd(SegBase(space, seg), arena->pageSize);
   else {
     page = PARENT(PageStruct, the.head, seg);
     return page[1].the.tail.limit;
@@ -373,7 +393,7 @@ Size SegSize(Space space, Seg seg)
 {
   AVERT(Arena, SpaceArena(space));
   AVERT(Seg, seg);
-  return SegLimit(space, seg) - SegBase(space, seg);
+  return AddrOffset(SegBase(space, seg), SegLimit(space, seg));
 }
 
 
@@ -394,7 +414,7 @@ Bool SegOfAddr(Seg *segReturn, Space space, Addr addr)
   
   arena = SpaceArena(space);
   if(arena->base <= addr && addr < arena->limit) {
-    PI pi = (addr - arena->base) >> arena->pageShift;
+    PI pi = AddrOffset(arena->base, addr) >> arena->pageShift;
     if(!BTGET(arena->freeTable, pi)) {
       Page page = &arena->pageTable[pi];
       if(page->the.head.pool != NULL)
@@ -462,3 +482,5 @@ Seg SegNext(Space space, Seg seg)
   pi = page - arena->pageTable;
   return SegSearch(arena, pi + 1);
 }
+
+
