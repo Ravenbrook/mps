@@ -1,11 +1,7 @@
 /* impl.c.prmci3w3: PROTECTION MUTATOR CONTEXT INTEL 386 (Win32)
  *
- * $HopeName: !prmci3w3.c(trunk.1) $
- * Copyright (C) 1999. Harlequin Group plc. All rights reserved.
- *
- * READERSHIP
- *
- * .readership: Any MPS developer.
+ * $HopeName: MMsrc!prmci3w3.c(MM_dylan_kinglet.1) $
+ * Copyright (C) 1999 Harlequin Limited.  All rights reserved.
  *
  * PURPOSE
  *
@@ -14,26 +10,26 @@
  *
  * SOURCES
  *
- * .source.i486: Intel486 Microprocessor Family Programmer's 
- * Reference Manual
+ * .source.i486: Intel486(tm) Microprocessor Family Programmer's 
+ * Reference Manual (book.intel92).
  *
  * ASSUMPTIONS
  *
  * .assume.regref: The resisters in the context can be modified by
  * storing into an MRef pointer.
- *
  */
 
 #include "mpm.h"
 #include "prmcw3.h"
 #include "prmci3.h"
 
+SRCID(prmci3w3, "$HopeName$");
+
 
 /* Return an address for a machine register given a context and a 
  * register number
  */
-MRef Prmci3AddressHoldingReg(MutatorFaultContext context, 
-                                    unsigned int regnum)
+MRef Prmci3AddressHoldingReg(MutatorFaultContext context, unsigned int regnum)
 {
   PCONTEXT wincont;
 
@@ -52,7 +48,7 @@ MRef Prmci3AddressHoldingReg(MutatorFaultContext context,
   case 6: return (MRef)&wincont->Esi;
   case 7: return (MRef)&wincont->Edi;
   }
-  NOTREACHED;
+  NOTREACHED; return (MRef)NULL;
 }
 
 
@@ -72,8 +68,8 @@ void Prmci3DecodeFaultContext(MRef *faultmemReturn,
   *insvecReturn = (Byte*)context->ep->ContextRecord->Eip;
 }
 
+
 void Prmci3StepOverIns(MutatorFaultContext context, Size inslen)
 {
   context->ep->ContextRecord->Eip += (DWORD)inslen;
 }
-
