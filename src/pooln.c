@@ -2,7 +2,7 @@
  *
  *                         NULL POOL
  *
- *  $HopeName: MMsrc!pooln.c(MMdevel_action2.2) $
+ *  $HopeName: MMsrc!pooln.c(MMdevel_action2.3) $
  *
  *  Copyright(C) 1995 Harlequin Group, all rights reserved
  *
@@ -13,7 +13,7 @@
 #include "mpm.h"
 #include "pooln.h"
 
-SRCID(pooln, "$HopeName: MMsrc!pooln.c(MMdevel_action2.2) $");
+SRCID(pooln, "$HopeName: MMsrc!pooln.c(MMdevel_action2.3) $");
 
 
 typedef struct PoolNStruct {
@@ -89,6 +89,8 @@ static Res NBufferInit(Pool pool, Buffer buffer)
   AVERT(Pool, pool);
   poolN = PoolPoolN(pool);
   AVERT(PoolN, poolN);
+
+  UNUSED(buffer);
 
   return ResLIMIT;  /* limit of nil buffers exceeded */
 }
@@ -172,7 +174,7 @@ static Res NDescribe(Pool pool, mps_lib_FILE *stream)
   return ResOK;
 }
 
-static Res NCondemn(RefSet *whiteReturn, Pool pool, Trace trace)
+static Res NCondemn(Pool pool, Trace trace, Seg seg)
 {
   PoolN poolN;
 
@@ -180,8 +182,8 @@ static Res NCondemn(RefSet *whiteReturn, Pool pool, Trace trace)
   poolN = PoolPoolN(pool);
   AVERT(PoolN, poolN);
 
-  AVER(whiteReturn != NULL);
   AVERT(Trace, trace);
+  AVERT(Seg, seg);
 
   return ResOK;
 }
@@ -220,6 +222,7 @@ static Res NFix(Pool pool, ScanState ss, Seg seg, Ref *refIO)
   AVERT(PoolN, poolN);
 
   AVERT(ScanState, ss);
+  UNUSED(refIO);
   AVERT(Seg, seg);
   NOTREACHED;  /* since we don't allocate any objects, should never
                 * be called upon to fix a reference */
