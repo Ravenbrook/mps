@@ -1,21 +1,22 @@
-/*  impl.c.root
+/* impl.c.root: ROOT IMPLEMENTATION
  *
- *                   ROOT IMPLEMENTATION
+ * $HopeName: MMsrc!root.c(MMdevel_action2.3) $
+ * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  *
- *  $HopeName: MMsrc!root.c(MMdevel_action2.2) $
- *
- *  Copyright (C) 1995,1996 Harlequin Group, all rights reserved
- *
- *  .scope: This is the implementation of the root datatype.
- *
- *  .design: For design, see design.mps.root and design.mps.root-interface
+ * .scope: This is the implementation of the root datatype.
+ * .design: For design, see design.mps.root and design.mps.root-interface
  */
 
 #include "mpm.h"
 
-SRCID(root, "$HopeName: MMsrc!root.c(MMdevel_action2.2) $");
+SRCID(root, "$HopeName: MMsrc!root.c(MMdevel_action2.3) $");
 
-/* .rootcheck: Keep synchonized with impl.h.mpmst.root */
+
+/* RootCheck -- check the consistency of a root structure
+ *
+ * .rootcheck: Keep synchonized with impl.h.mpmst.root
+ */
+
 Bool RootCheck(Root root)
 {
   CHECKS(Root, root);
@@ -85,6 +86,7 @@ static Res create(Root *rootReturn, Space space,
   root->var = type;
   root->the  = *theUnionP;
   root->grey = TraceSetEMPTY;
+  root->summary = RefSetUNIV;
 
   /* See design.mps.space.root-ring */
   RingInit(&root->spaceRing);
@@ -275,11 +277,11 @@ Res RootDescribe(Root root, mps_lib_FILE *stream)
                (WriteFU)root->space->serial,
                "  rank $U\n", (WriteFU)root->rank,
                "  grey $B\n", (WriteFB)root->grey,
+               "  summary $B\n", (WriteFB)root->summary,
                NULL);
   if(res != ResOK) return res;
 
-  switch(root->var)
-  {
+  switch(root->var) {
     case RootTABLE:
     res = WriteF(stream,
                  "  table base $A limit $A\n",
