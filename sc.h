@@ -1010,7 +1010,7 @@ extern mms_t mms_create(void);
 extern void *mms_alloc(mms_t, size_t);
 extern void heap_check(state_t);
 extern void gc(state_t);
-extern void stats(state_t, void *, void *);
+extern void stats(state_t);
 extern int register_state(state_t);
 extern void make_pair(state_t);
 extern void make_integer(state_t);

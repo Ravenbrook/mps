@@ -18,6 +18,15 @@
 #include <stddef.h>
 #include <stdlib.h>
 
+
+typedef struct mms_s {
+  mps_arena_t arena;
+  mps_pool_t misc_pool, obj_pool;
+  mps_ap_t obj_ap;
+  mps_root_t state_root;
+} mms_s;
+
+
 typedef obj_t (*fix_t)(state_t, obj_t);
 
 static size_t obj_size(obj_t obj)
@@ -97,8 +106,20 @@ extern void heap_check(state_t state)
 #endif
 }
 
-extern void stats(state_t state, void *base, void *limit)
+extern void stats(state_t state)
 {
+  mps_message_t message;
+  mps_arena_t arena = state->mms->arena;
+
+  while(mps_message_get(&message, arena, mps_message_type_gc())) {
+    (void)printf("message 0x%lX  live %lu  condemned %lu  not_condemned %lu\n",
+                 (unsigned long)message,
+                 (unsigned long)mps_message_gc_live_size(arena, message),
+                 (unsigned long)mps_message_gc_condemned_size(arena, message),
+                 (unsigned long)mps_message_gc_not_condemned_size(arena, message));
+    mps_message_discard(state->mms->arena, message);
+  }
+
 #if 0 /* @@@@ Can be done with mps_amc_apply? */
   obj_t obj;
   ulong total;
@@ -175,13 +196,6 @@ extern void stats(state_t state, void *base, void *limit)
 }
 
 /* MPS format */
-
-typedef struct mms_s {
-  mps_arena_t arena;
-  mps_pool_t misc_pool, obj_pool;
-  mps_ap_t obj_ap;
-  mps_root_t state_root;
-} mms_s;
 
 
 #define TYPE_PAD        ((type_t)0x21BEBADD)
@@ -713,6 +727,9 @@ extern mms_t mms_create(void)
   res = mps_ap_create(&mms->obj_ap, mms->obj_pool, MPS_RANK_EXACT);
   if(res != MPS_RES_OK)
     goto fail_ap;
+
+  /* See "stats" */
+  mps_message_type_enable(arena, mps_message_type_gc());
 
   return mms;
 

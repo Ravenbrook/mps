@@ -449,7 +449,7 @@ static void stats_entry(state_t state)
 {
   veclen_t i;
   check_args(state, 0);
-  /* @@@@ stats(state, state->heap_base, state->heap_next); */
+  stats(state);
 #ifdef COUNT_STATS
   MAKE_VECTOR(T0, COUNT_MAX, obj_uninit);
   for(i = 0; i < COUNT_MAX; ++i) {
