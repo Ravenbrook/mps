@@ -1,12 +1,12 @@
 /* impl.c.action: STRATEGIC ACTION
  *
  * Copyright (C) 1997 Harlequin Group, all rights reserved.
- * $HopeName: MMsrc!action.c(trunk.2) $
+ * $HopeName: MMsrc!action.c(MMdevel_gens.2) $
  */
 
 #include "mpm.h"
 
-SRCID(action, "$HopeName: MMsrc!action.c(trunk.2) $");
+SRCID(action, "$HopeName: MMsrc!action.c(MMdevel_gens.2) $");
 
 
 /* ActionCheck -- check consistency of an Action structure */
@@ -16,6 +16,8 @@ Bool ActionCheck(Action action)
   CHECKS(Action, action);
   CHECKU(Pool, action->pool);
   CHECKL(RingCheck(&action->poolRing));
+  CHECKL(FUNCHECK(action->f));
+  /* Can't check w as it is interpreted by client (pool) */
   CHECKL(action->serial <= action->pool->actionSerial);
   return TRUE;
 }
@@ -23,13 +25,18 @@ Bool ActionCheck(Action action)
 
 /* ActionInit -- initialize an action structure */
 
-void ActionInit(Action action, Pool pool)
+void ActionInit(Action action, Pool pool, ActionClosureMethod f, Word w)
 {
   AVER(action != NULL);
   AVERT(Pool, pool);
+  AVER(FUNCHECK(f));
+  /* Can't check w as it is interpreted by client (pool) */
 
   action->pool = pool;
   RingInit(&action->poolRing);
+
+  action->f = f;
+  action->w = w;
 
   action->sig = ActionSig;
   action->serial = pool->actionSerial;
@@ -89,6 +96,10 @@ failTraceCreate:
  *
  * @@@@ At the moment, it just launches a collection whenever it
  * can.
+ *
+ * @@ At the moment, if there is no collection in progress then all the
+ * actions are prodded in turn to see whether any action should be
+ * taken.  The last action that can be taken is taken.
  */
 
 void ActionPoll(Space space)
@@ -110,10 +121,15 @@ void ActionPoll(Space space)
       Action action = RING_ELT(Action, poolRing, actionnode);
       AVERT(Action, action);
 
-      if(chosen == NULL && (action->pool->class->attr & AttrGC)) {
-	chosen = action;
+      if(action->pool->class->attr & AttrGC) {
+	/* Call the pool to decide whether to act */
+	if((action->f)(action, action->w)) {
+	  chosen = action;
+	}
       }
     }
   }
-  (void)ActionCollect(chosen);
+  if(chosen != NULL) {
+    (void)ActionCollect(chosen);
+  }
 }
