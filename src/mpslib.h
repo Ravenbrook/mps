@@ -1,6 +1,6 @@
 /* impl.h.mpslib: HARLEQUIN MEMORY POOL SYSTEM LIBRARY INTERFACE
  *
- * $HopeName: !mpslib.h(trunk.5) $
+ * $HopeName: MMsrc!mpslib.h(MMdevel_telemetry.1) $
  * Copyright (C) 1996,1997 Harlequin Group, all rights reserved.
  *
  * .readership: MPS client application developers, MPS developers.
@@ -44,5 +44,7 @@ extern void *mps_lib_memcpy(void *, const void *, size_t);
 /*@@@@*/
 typedef unsigned long mps_clock_t;
 extern mps_clock_t mps_clock(void);
+
+extern unsigned long mps_lib_telemetry_control(void);
 
 #endif /* mpslib_h */
