@@ -2,7 +2,7 @@
  *
  *                  PROTECTION FOR SUNOS
  *
- *  $HopeName: MMsrc!protsu.c(trunk.5) $
+ *  $HopeName: MMsrc!protsu.c(MMdevel_restr.2) $
  *
  *  Copyright (C) 1995 Harlequin Group, all rights reserved
  *
@@ -21,7 +21,7 @@
 #error "protsu.c is SunOS 4 specific, but MPS_OS_SU is not set"
 #endif
 
-SRCID(protsu, "$HopeName: MMsrc!protsu.c(trunk.5) $");
+SRCID(protsu, "$HopeName: MMsrc!protsu.c(MMdevel_restr.2) $");
 
 
 /* .hack.sigdfl */
@@ -165,7 +165,7 @@ void ProtSet(Addr base, Addr limit, ProtMode mode)
 
   flags = PROT_READ | PROT_WRITE | PROT_EXEC;
   if((mode & ProtREAD) != 0)
-    flags &= ~PROT_READ;
+    flags &= ~(PROT_READ | PROT_EXEC);
   if((mode & ProtWRITE) != 0)
     flags &= ~PROT_WRITE;
 
