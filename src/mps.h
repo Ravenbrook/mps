@@ -1,7 +1,7 @@
 /* impl.h.mps: HARLEQUIN MEMORY POOL SYSTEM C INTERFACE
  *
- * $HopeName: !mps.h(trunk.60) $
- * Copyright (C) 1998 Harlequin Limited.  All rights reserved.
+ * $HopeName: MMsrc!mps.h(MMdevel_configura.1) $
+ * Copyright (C) 1998, 2000 Harlequin Limited.  All rights reserved.
  *
  * .readership: customers, MPS developers.
  * .sources: design.mps.interface.c.
@@ -196,8 +196,21 @@ typedef struct mps_fmt_B_s {
   mps_fmt_fwd_t   fwd;
   mps_fmt_isfwd_t isfwd;
   mps_fmt_pad_t   pad;
-  mps_fmt_class_t class;
+  mps_fmt_class_t xclass;
 } mps_fmt_B_s;
+
+
+typedef struct mps_fmt_C_s *mps_fmt_C_t;
+typedef struct mps_fmt_C_s {
+  mps_align_t     align;
+  mps_fmt_scan_t  scan;
+  mps_fmt_skip_t  skip;
+  mps_fmt_copy_t  copy;
+  mps_fmt_fwd_t   fwd;
+  mps_fmt_isfwd_t isfwd;
+  mps_fmt_pad_t   pad;
+  size_t          headerSize;
+} mps_fmt_C_s;
 
 
 /* Internal Definitions */
@@ -263,6 +276,8 @@ extern mps_res_t mps_fmt_create_A(mps_fmt_t *, mps_arena_t,
                                   mps_fmt_A_t);
 extern mps_res_t mps_fmt_create_B(mps_fmt_t *, mps_arena_t,
                                   mps_fmt_B_t);
+extern mps_res_t mps_fmt_create_C(mps_fmt_t *, mps_arena_t,
+                                  mps_fmt_C_t);
 extern void mps_fmt_destroy(mps_fmt_t);
 
 
