@@ -1,6 +1,6 @@
 /* impl.h.mpmst: MEMORY POOL MANAGER DATA STRUCTURES
  *
- * $HopeName: !mpmst.h(trunk.55) $
+ * $HopeName: MMsrc!mpmst.h(trunk.55) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  *
  * .readership: MM developers.
@@ -665,5 +665,43 @@ typedef struct ArenaStruct {
   RefSet history[ARENA_LD_LENGTH]; /* design.mps.arena.ld.history */
 } ArenaStruct;
 
+
+/* Splay Trees 
+ *
+ * See design.mps.splay
+ */
+
+typedef struct SplayRootStruct {
+  SplayCompareMethod compare;
+  SplayNode root;
+} SplayRootStruct;
+
+typedef struct SplayNodeStruct {
+  SplayNode left;     /* left child */
+  SplayNode right;    /* right child */
+} SplayNodeStruct;
+
+
+/* CBS -- Coalescing Block Structure
+ *
+ * See design.mps.cbs.
+ */
+
+typedef struct CBSRootStruct {
+  SplayRootStruct splayRoot;
+  Pool nodePool;
+  CBSNewMethod new;
+  CBSGrowMethod grow;
+  CBSShrinkMethod shrink;
+  CBSDeleteMethod delete;
+  Size minSize;
+} CBSRootStruct;
+
+typedef struct CBSNodeStruct {
+  SplayNodeStruct splayNode;
+  Addr base;
+  Addr limit;
+  void *p;
+} CBSNodeStruct;
 
 #endif /* mpmst_h */

@@ -1,6 +1,6 @@
 /* impl.h.mpm: MEMORY POOL MANAGER DEFINITIONS
  *
- * $HopeName: !mpm.h(trunk.84) $
+ * $HopeName: MMsrc!mpm.h(trunk.84) $
  * Copyright (C) 1998. Harlequin Group plc. All rights reserved.
  */
 
@@ -812,5 +812,33 @@ extern Size VMMapped(VM vm);
 
 /* Stack Probe */
 extern void StackProbe(Word depth);
+
+/* Splay Trees */
+extern Bool SplayRootCheck(SplayRoot root);
+extern Bool SplayNodeCheck(SplayNode node);
+extern void SplayRootInit(SplayRoot root, SplayCompareMethod compare);
+extern void SplayNodeInit(SplayNode node);
+extern void SplayNodeFinish(SplayNode node);
+extern void SplayRootFinish(SplayRoot root);
+extern Res SplayTreeInsert(SplayRoot root, SplayNode node, void *key);
+extern Res SplayTreeDelete(SplayRoot root, SplayNode node, void *key);
+extern Res SplayTreeSearch(SplayNode *nodeReturn,
+			   SplayRoot root, void *key );
+extern Res SplayTreeNeighbours(SplayNode *leftReturn, 
+			       SplayNode *rightReturn,
+                               SplayRoot root, void *key);
+extern Res SplayTreeDescribe(SplayRoot root, mps_lib_FILE *stream,
+			     SplayNodeDescribeMethod nodeDescribe);
+
+/* CBS* -- see design.mps.cbs */
+
+extern Res CBSRootInit(Arena arena, CBSRoot root,
+		       CBSNewMethod new, CBSShrinkMethod shrink,
+		       CBSGrowMethod grow, CBSDeleteMethod delete,
+		       Size minSize); 
+extern void CBSRootFinish(CBSRoot root);
+extern Res CBSInsert(CBSRoot root, Addr base, Addr limit);
+extern Res CBSDelete(CBSRoot root, Addr base, Addr limit);
+extern Res CBSDescribe(CBSRoot root, mps_lib_FILE *stream);
 
 #endif /* mpm_h */

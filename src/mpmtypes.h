@@ -1,6 +1,6 @@
 /* impl.h.mpmtypes: MEMORY POOL MANAGER TYPES
  *
- * $HopeName: !mpmtypes.h(trunk.47) $
+ * $HopeName: MMsrc!mpmtypes.h(trunk.47) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  *
  * .readership: MM developers.
@@ -74,6 +74,29 @@ typedef struct ThreadStruct *Thread;    /* impl.c.th* */
 typedef struct ActionStruct *Action;	/* design.mps.action */
 typedef struct MutatorFaultContextStruct
 	*MutatorFaultContext;           /* design.mps.prot */
+
+
+/* Splay* -- See design.mps.splay */
+
+typedef struct SplayRootStruct *SplayRoot;
+typedef struct SplayNodeStruct *SplayNode;
+typedef unsigned Compare;
+typedef Compare (*SplayCompareMethod)(void *key, SplayNode node);
+typedef Res (*SplayNodeDescribeMethod)(SplayNode node, mps_lib_FILE *stream);
+enum {
+  CompareLESS,
+  CompareEQUAL,
+  CompareGREATER
+};
+
+/* CBS* -- See design.mps.cbs */
+
+typedef struct CBSRootStruct *CBSRoot;
+typedef struct CBSNodeStruct *CBSNode;
+typedef void (*CBSNewMethod)(void **pReturn, Addr base, Addr limit);
+typedef void (*CBSShrinkMethod)(void **pIO, Addr base, Addr limit);
+typedef void (*CBSGrowMethod)(void **pIO, Addr base, Addr limit);
+typedef void (*CBSDeleteMethod)(void *p);
 
 
 /* Arena*Method -- see @@@@ */
