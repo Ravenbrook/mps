@@ -1,6 +1,6 @@
 /* impl.c.abq: AVAILABLE BLOCK QUEUE
  *
- * $HopeName: MMsrc!abq.c(MMdevel_mv2_rework.1) $
+ * $HopeName: MMsrc!abq.c(MMdevel_mv2_rework.2) $
  * Copyright (C) 1998 Harlequin Group plc.  All rights reserved.
  *
  * .readership: Any MPS developer
@@ -14,13 +14,15 @@
 #include "meter.h"
 #include "abq.h"
 
-SRCID(abq, "$HopeName: MMsrc!abq.c(MMdevel_mv2_rework.1) $");
+SRCID(abq, "$HopeName: MMsrc!abq.c(MMdevel_mv2_rework.2) $");
 
 
 /* Private prototypes */
 
 static Size ABQQueueSize(Count elements);
 static Index ABQNextIndex(ABQ abq, Index index);
+static Res ABQDescribeElement(CBSBlock block, mps_lib_FILE *stream,
+                              Size envSize);
 
 
 /* Methods */
@@ -168,8 +170,7 @@ Res ABQDelete(ABQ abq, CBSBlock block)
   CBSBlock *queue;
 
   AVERT(ABQ, abq);
-  if(CBSBlockExists(block)) /* may be called during deletion */
-    AVERT(CBSBlock, block);
+  AVERT(CBSBlock, block);
 
   METER_ACC(abq->delete, ABQDepth(abq));
 
@@ -205,7 +206,6 @@ found:
 Res ABQDescribe(ABQ abq, mps_lib_FILE *stream)
 {
   Res res;
-  Index index;
 
   AVERT(ABQ, abq);
 
@@ -221,13 +221,9 @@ Res ABQDescribe(ABQ abq, mps_lib_FILE *stream)
   if(res != ResOK)
     return res;
 
-  for (index = abq->out; index != abq->in; ) {
-    res = CBSBlockDescribe(abq->queue[index], stream);
-    if(res != ResOK)
-      return res;
-    if (++index == abq->elements)
-      index = 0;
-  }
+  res = ABQMap(abq, (ABQMapMethod)&ABQDescribeElement, stream, 0);
+  if(res != ResOK)
+    return res;
 
   res = WriteF(stream, "\n", NULL);
   if(res != ResOK)
@@ -243,6 +239,15 @@ Res ABQDescribe(ABQ abq, mps_lib_FILE *stream)
     return res;
   
   return ResOK;
+}
+
+
+/* ABQDescribeElement -- ABQMapMethod for describing queue elements */
+static Res ABQDescribeElement(CBSBlock block, mps_lib_FILE *stream,
+                              Size envSize)
+{
+  AVER(envSize == 0);
+  return CBSBlockDescribe(block, stream);
 }
 
 
@@ -277,6 +282,24 @@ Count ABQDepth(ABQ abq)
     return in - out;
   else
     return in + abq->elements - out;
+}
+
+
+/* ABQMap -- map over the elements of an ABQ */
+Res ABQMap(ABQ abq, ABQMapMethod method, void* closureP,
+           unsigned long closureS)
+{
+  Res res;
+  Index index;
+  
+  for (index = abq->out; index != abq->in; ) {
+    res = (*method)(abq->queue[index], closureP, closureS);
+    if(res != ResOK)
+      return res;
+    if (++index == abq->elements)
+      index = 0;
+  }
+  return ResOK;
 }
 
 
