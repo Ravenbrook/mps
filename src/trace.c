@@ -1,6 +1,6 @@
 /* impl.c.trace: GENERIC TRACER IMPLEMENTATION
  *
- * $HopeName: !trace.c(trunk.52) $
+ * $HopeName: MMsrc!trace.c(MMdevel_metrics.1) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  *
  * .sources: design.mps.tracer.
@@ -8,7 +8,7 @@
 
 #include "mpm.h"
 
-SRCID(trace, "$HopeName: !trace.c(trunk.52) $");
+SRCID(trace, "$HopeName: MMsrc!trace.c(MMdevel_metrics.1) $");
 
 
 /* ScanStateCheck -- check consistency of a ScanState object */
@@ -288,6 +288,18 @@ found:
   trace->condemned = (Size)0;   /* nothing condemned yet */
   trace->foundation = (Size)0;  /* nothing grey yet */
   trace->rate = (Size)0;        /* no scanning to be done yet */
+  trace->rootScanCount = 0;
+  trace->rootScanSize = 0;
+  trace->rootCopiedSize = 0;
+  trace->segScanCount = 0;
+  trace->segScanSize = 0;
+  trace->segCopiedSize = 0;
+  trace->fixRefCount = 0;
+  trace->segRefCount = 0;
+  trace->whiteSegRefCount = 0;
+  trace->nailCount = 0;
+  trace->snapCount = 0;
+  trace->forwardCount = 0;
 
   trace->sig = TraceSig;
   AVERT(Trace, trace);
@@ -454,6 +466,14 @@ Res TraceFlip(Trace trace)
   ss.traces = TraceSetSingle(trace->ti);
   ss.wasMarked = TRUE;
   ss.sig = ScanStateSig;
+  ss.fixRefCount = (Count)0;
+  ss.segRefCount = (Count)0;
+  ss.whiteSegRefCount = (Count)0;
+  ss.nailCount = (Count)0;
+  ss.snapCount = (Count)0;
+  ss.forwardCount = (Count)0;
+  ss.copiedSize = (Size)0;
+  ss.scannedSize = (Size)0;
 
   for(ss.rank = RankAMBIG; ss.rank <= RankEXACT; ++ss.rank) {
     ring = ArenaRootRing(arena);
@@ -473,11 +493,21 @@ Res TraceFlip(Trace trace)
         if(res != ResOK) {
           return res;
         }
+        ++trace->rootScanCount;
       }
 
       node = next;
     }
   }
+
+  trace->rootScanSize += ss.scannedSize;
+  trace->rootCopiedSize += ss.copiedSize;
+  trace->fixRefCount += ss.fixRefCount;
+  trace->segRefCount += ss.segRefCount;
+  trace->whiteSegRefCount += ss.whiteSegRefCount;
+  trace->nailCount += ss.nailCount;
+  trace->snapCount += ss.snapCount;
+  trace->forwardCount += ss.forwardCount;
 
   ss.sig = SigInvalid;  /* just in case */
 
@@ -681,6 +711,15 @@ static Res TraceScan(TraceSet ts, Rank rank,
     ss.arena = arena;
     ss.wasMarked = TRUE;
     ss.white = white;
+    ss.fixRefCount = (Count)0;
+    ss.segRefCount = (Count)0;
+    ss.whiteSegRefCount = (Count)0;
+    ss.nailCount = (Count)0;
+    ss.snapCount = (Count)0;
+    ss.forwardCount = (Count)0;
+    ss.copiedSize = (Size)0;
+    ss.scannedSize = (Size)0;
+
     ss.sig = ScanStateSig;
     AVERT(ScanState, &ss);
     
@@ -704,6 +743,20 @@ static Res TraceScan(TraceSet ts, Rank rank,
     /* summary should replace the segment summary. */
     SegSetSummary(seg, ScanStateSummary(&ss));
     
+    for(ti = 0; ti < TRACE_MAX; ++ti)
+      if(TraceSetIsMember(ts, ti)) {
+        Trace trace = ArenaTrace(arena, ti);
+        ++trace->segScanCount;
+	trace->segScanSize += ss.scannedSize;
+	trace->segCopiedSize += ss.copiedSize;
+        trace->fixRefCount += ss.fixRefCount;
+	trace->segRefCount += ss.segRefCount;
+	trace->whiteSegRefCount += ss.whiteSegRefCount;
+	trace->nailCount += ss.nailCount;
+	trace->snapCount += ss.snapCount;
+	trace->forwardCount += ss.forwardCount;
+      }
+
     ss.sig = SigInvalid;                  /* just in case */
   }
 
@@ -863,11 +916,19 @@ Res TraceFix(ScanState ss, Ref *refIO)
   ref = *refIO;
 
   EVENT_PPAU(TraceFix, ss, refIO, ref, ss->rank);
+  ++ss->fixRefCount;
+
   if(SegOfAddr(&seg, ss->arena, ref)) {
+
     EVENT_P(TraceFixSeg, seg);
+    ++ss->segRefCount;
+
     if(TraceSetInter(SegWhite(seg), ss->traces) != TraceSetEMPTY) {
       Res res;
+
       EVENT_0(TraceFixWhite);
+      ++ss->whiteSegRefCount;
+
       pool = SegPool(seg);
       /* Could move the rank switch here from the class-specific
        * fix methods. */
