@@ -1,6 +1,6 @@
 /* impl.c.boot: BOOTSTRAP ALLOCATOR
  *
- * $HopeName$
+ * $HopeName: MMsrc!boot.c(MMdevel_pekka_locus.1) $
  * Copyright (C) 1999 Harlequin Limited.  All rights reserved.
  *
  * .overview: A structure and protocols for allocating memory from a
@@ -14,7 +14,7 @@
 #include "boot.h"
 #include "mpm.h"
 
-SRCID(boot, "$HopeName$");
+SRCID(boot, "$HopeName: MMsrc!boot.c(MMdevel_pekka_locus.1) $");
 
 
 #define BootBlockSig ((Sig)0x519B002B) /* SIGnature BOOT Block */
@@ -22,7 +22,7 @@ SRCID(boot, "$HopeName$");
 
 /* BootBlockCheck -- check a BootBlock structure */
 
-static Bool BootBlockCheck(BootBlock boot)
+Bool BootBlockCheck(BootBlock boot)
 {
   CHECKS(BootBlock, boot);
   CHECKL(boot->base != NULL);
@@ -104,9 +104,6 @@ Res BootAlloc(void **pReturn, BootBlock boot, size_t size, size_t align)
   AVER(AlignCheck((Align)align));
 
   /* Align alloc pointer up and bounds check. */
-  /* There's no PointerAlignUp, so we use AddrAlignUp @@@@ */
-  /* .vm.addr-is-star: In this file, Addr is compatible with C */
-  /* pointers. */
   blockBase = PointerAlignUp(boot->alloc, align);
   if(boot->limit <= blockBase || blockBase < boot->alloc) {
     return ResMEMORY;
