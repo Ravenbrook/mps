@@ -1,6 +1,6 @@
 /* impl.h.mpm: MEMORY POOL MANAGER DEFINITIONS
  *
- * $HopeName: MMsrc!mpm.h(MM_dylan_buffalo.1) $
+ * $HopeName: MMsrc!mpm.h(MM_dylan_buffalo.2) $
  * Copyright (C) 1996,1997 Harlequin Group, all rights reserved.
  */
 
@@ -336,6 +336,8 @@ extern Res TraceFix(ScanState ss, Ref *refIO);
 
 extern Res TraceScanArea(ScanState ss, Addr *base, Addr *limit);
 extern Res TraceScanAreaTagged(ScanState ss, Addr *base, Addr *limit);
+extern Res TraceScanAreaMasked(ScanState ss, Addr *base, Addr *limit, Word mask);
+
 
 
 /* Space Interface -- see impl.c.space */
@@ -480,7 +482,10 @@ extern void LDAge(Space space, RefSet moved);
 /* Root Interface -- see impl.c.root */
 
 extern Res RootCreateTable(Root *rootReturn, Space space,
-                             Rank rank, Addr *base, Addr *limit);
+                           Rank rank, Addr *base, Addr *limit);
+extern Res RootCreateTableMasked(Root *rootReturn, Space space,
+                                 Rank rank, Addr *base, Addr *limit,
+                                 Word mask);
 extern Res RootCreateReg(Root *rootReturn, Space space,
                            Rank rank, Thread thread,
                            RootScanRegMethod scan,

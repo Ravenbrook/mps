@@ -1,6 +1,6 @@
 /* impl.h.mpmst: MEMORY POOL MANAGER DATA STRUCTURES
  *
- * $HopeName: !mpmst.h(trunk.17) $
+ * $HopeName: MMsrc!mpmst.h(MM_dylan_buffalo.1) $
  * Copyright (C) 1996,1997 Harlequin Group, all rights reserved.
  *
  * .readership: MM developers.
@@ -492,6 +492,11 @@ typedef struct RootStruct {
       Addr *base;               /* beginning of table */
       Addr *limit;              /* one off end of table */
     } table;
+    struct {
+      Addr *base;               /* beginning of table */
+      Addr *limit;              /* one off end of table */
+      Word mask;                /* tag mask for scanning */
+    } tableMasked;
     struct {
       RootScanRegMethod scan;   /* function for scanning registers */
       Thread thread;            /* passed to scan */

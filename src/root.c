@@ -1,10 +1,7 @@
 /*  impl.c.root
  *
- *                   ROOT IMPLEMENTATION
- *
- *  $HopeName: !root.c(trunk.19) $
- *
- *  Copyright (C) 1995,1996 Harlequin Group, all rights reserved
+ * $HopeName: MMsrc!root.c(trunk.22) $
+ * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  *
  *  .scope: This is the implementation of the root datatype.
  *
@@ -13,9 +10,29 @@
 
 #include "mpm.h"
 
-SRCID(root, "$HopeName: !root.c(trunk.19) $");
+SRCID(root, "$HopeName: MMsrc!root.c(MM_dylan_buffalo.1) $");
 
-/* .rootcheck: Keep synchonized with impl.h.mpmst.root */
+
+/* RootVarCheck -- check a Root union discriminator
+ *
+ * .rootvarcheck: Synchronize with impl.h.mpmtypes.rootvar
+ */
+
+Bool RootVarCheck(RootVar rootVar)
+{
+  AVER(rootVar == RootTABLE ||
+       rootVar == RootTABLE_MASKED ||
+       rootVar == RootFUN ||
+       rootVar == RootFMT ||
+       rootVar == RootREG);
+  return(TRUE);
+}
+
+
+/* RootCheck -- check the consistency of a root structure
+ *
+ * .rootcheck: Keep synchonized with impl.h.mpmst.root
+ */
 Bool RootCheck(Root root)
 {
   CHECKS(Root, root);
@@ -30,6 +47,12 @@ Bool RootCheck(Root root)
     case RootTABLE:
     CHECKL(root->the.table.base != 0);
     CHECKL(root->the.table.base < root->the.table.limit);
+    break;
+
+    case RootTABLE_MASKED:
+    CHECKL(root->the.tableMasked.base != 0);
+    CHECKL(root->the.tableMasked.base < root->the.tableMasked.limit);
+    /* Can't check anything about the mask. */
     break;
 
     case RootFUN:
@@ -116,6 +139,26 @@ Res RootCreateTable(Root *rootReturn, Space space,
   theUnion.table.limit = limit;
 
   return create(rootReturn, space, rank, RootTABLE, &theUnion);
+}
+
+Res RootCreateTableMasked(Root *rootReturn, Space space,
+                          Rank rank, Addr *base, Addr *limit,
+                          Word mask)
+{
+  union RootUnion theUnion;
+
+  AVER(rootReturn != NULL);
+  AVERT(Space, space);
+  AVER(RankCheck(rank));
+  AVER(base != 0);
+  AVER(base < limit);
+  /* Can't check anything about mask. */
+
+  theUnion.tableMasked.base = base;
+  theUnion.tableMasked.limit = limit;
+  theUnion.tableMasked.mask = mask;
+
+  return create(rootReturn, space, rank, RootTABLE_MASKED, &theUnion);
 }
 
 Res RootCreateReg(Root *rootReturn, Space space,
@@ -222,9 +265,16 @@ Res RootScan(ScanState ss, Root root)
 
   switch(root->var) {
     case RootTABLE:
-    TraceScanArea(ss,
-      root->the.table.base,
-      root->the.table.limit);
+    res = TraceScanArea(ss, root->the.table.base, root->the.table.limit);
+    if(res != ResOK) return res;
+    break;
+
+    case RootTABLE_MASKED:
+    res = TraceScanAreaMasked(ss,
+                              root->the.tableMasked.base,
+                              root->the.tableMasked.limit,
+                              root->the.tableMasked.mask);
+    if(res != ResOK) return res;
     break;
 
     case RootFUN:
@@ -285,6 +335,16 @@ Res RootDescribe(Root root, mps_lib_FILE *stream)
                  "  table base $A limit $A\n",
                  root->the.table.base,
                  root->the.table.limit,
+                 NULL);
+    if(res != ResOK) return res;
+    break;
+
+    case RootTABLE_MASKED:
+    res = WriteF(stream,
+                 "  table base $A limit $A mask $B\n",
+                 root->the.tableMasked.base,
+                 root->the.tableMasked.limit,
+                 root->the.tableMasked.mask,
                  NULL);
     if(res != ResOK) return res;
     break;

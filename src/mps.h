@@ -1,6 +1,6 @@
 /* impl.h.mps: HARLEQUIN MEMORY POOL SYSTEM INTERFACE
  *
- * $HopeName: !mps.h(trunk.17) $
+ * $HopeName: MMsrc!mps.h(MM_dylan_buffalo.1) $
  * Copyright (C) 1996 Harlequin Group, all rights reserved
  *
  * .readership: customers, MPS developers.
@@ -243,33 +243,24 @@ extern mps_bool_t (mps_commit)(mps_ap_t mps_ap, mps_addr_t p,
 
 /* Root Creation and Destruction */
 
-extern mps_res_t mps_root_create(mps_root_t *mps_root_o,
-                                 mps_space_t mps_space,
-                                 mps_rank_t mps_rank,
-                                 mps_rm_t mps_rm,
-                                 mps_root_scan_t mps_root_scan,
-                                 void *p, size_t s);
-extern mps_res_t mps_root_create_table(mps_root_t *mps_root_o,
-                                       mps_space_t mps_space,
-                                       mps_rank_t mps_rank,
-                                       mps_rm_t mps_rm,
-                                       mps_addr_t *base, size_t size);
-extern mps_res_t mps_root_create_fmt(mps_root_t *mps_root_o,
-                                     mps_space_t mps_space,
-                                     mps_rank_t mps_rank,
-                                     mps_rm_t mps_rm,
-                                     mps_fmt_scan_t mps_fmt_scan,
-                                     mps_addr_t base,
-                                     mps_addr_t limit);
-extern mps_res_t mps_root_create_reg(mps_root_t *mps_root_o,
-                                     mps_space_t mps_space,
-                                     mps_rank_t mps_rank,
-                                     mps_rm_t mps_rm,
-                                     mps_thr_t mps_thr,
-                                     mps_reg_scan_t mps_reg_scan,
-                                     void *reg_scan_p,
-                                     size_t mps_size);
-extern void mps_root_destroy(mps_root_t root);
+extern mps_res_t mps_root_create(mps_root_t *, mps_space_t, mps_rank_t,
+                                 mps_rm_t, mps_root_scan_t,
+                                 void *, size_t);
+extern mps_res_t mps_root_create_table(mps_root_t *, mps_space_t,
+                                       mps_rank_t, mps_rm_t,
+                                       mps_addr_t *, size_t);
+extern mps_res_t mps_root_create_table_masked(mps_root_t *, mps_space_t,
+                                              mps_rank_t, mps_rm_t,
+                                              mps_addr_t *, size_t,
+                                              mps_word_t);
+extern mps_res_t mps_root_create_fmt(mps_root_t *, mps_space_t,
+                                     mps_rank_t, mps_rm_t,
+                                     mps_fmt_scan_t, mps_addr_t,
+                                     mps_addr_t);
+extern mps_res_t mps_root_create_reg(mps_root_t *, mps_space_t,
+                                     mps_rank_t, mps_rm_t, mps_thr_t,
+                                     mps_reg_scan_t, void *, size_t);
+extern void mps_root_destroy(mps_root_t);
 
 extern mps_res_t mps_stack_scan_ambig(mps_ss_t ss, mps_thr_t thr,
                                       void *p, size_t s);
