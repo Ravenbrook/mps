@@ -2,7 +2,7 @@
  *
  *                         NULL POOL
  *
- *  $HopeName: !pooln.c(trunk.10) $
+ *  $HopeName: MMsrc!pooln.c(MMdevel_action2.1) $
  *
  *  Copyright(C) 1995 Harlequin Group, all rights reserved
  *
@@ -13,7 +13,7 @@
 #include "mpm.h"
 #include "pooln.h"
 
-SRCID(pooln, "$HopeName: !pooln.c(trunk.10) $");
+SRCID(pooln, "$HopeName: MMsrc!pooln.c(MMdevel_action2.1) $");
 
 
 typedef struct PoolNStruct {
@@ -172,7 +172,7 @@ static Res NDescribe(Pool pool, mps_lib_FILE *stream)
   return ResOK;
 }
 
-static Res NCondemn(RefSet *condemnedReturn, Pool pool,
+static Res NCondemn(RefSet *whiteReturn, Pool pool,
                      Space space, TraceId ti)
 {
   PoolN poolN;
@@ -181,7 +181,7 @@ static Res NCondemn(RefSet *condemnedReturn, Pool pool,
   poolN = PoolPoolN(pool);
   AVERT(PoolN, poolN);
 
-  AVER(condemnedReturn != NULL);
+  AVER(whiteReturn != NULL);
   AVERT(Space, space);
 
   return ResOK;
@@ -236,7 +236,7 @@ static void NReclaim(Pool pool, Space space, TraceId ti)
   AVERT(PoolN, poolN);
 
   AVERT(Space, space);
-  /* all unmarked and condemned objects reclaimed */
+  /* all unmarked and white objects reclaimed */
 }
 
 static void NAccess(Pool pool, Seg seg, AccessSet mode)

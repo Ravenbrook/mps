@@ -1,6 +1,6 @@
 /* impl.c.mpsi: MEMORY POOL SYSTEM C INTERFACE LAYER
  *
- * $HopeName: !mpsi.c(trunk.20) $
+ * $HopeName: MMsrc!mpsi.c(MMdevel_action2.1) $
  * Copyright (C) 1996 Harlequin Group, all rights reserved.
  *
  * .purpose: This code bridges between the MPS interface to C,
@@ -52,7 +52,7 @@
 #include "mpm.h"
 #include "mps.h"
 
-SRCID(mpsi, "$HopeName: !mpsi.c(trunk.20) $");
+SRCID(mpsi, "$HopeName: MMsrc!mpsi.c(MMdevel_action2.1) $");
 
 
 /* mpsi_check -- check consistency of interface mappings
@@ -135,7 +135,7 @@ static Bool mpsi_check(void)
   /* design.mps.interface.c.pun.addr. */
   CHECKL(CHECKFIELDAPPROX(mps_ss_s, fix, ScanStateStruct, fix));
   CHECKL(CHECKFIELD(mps_ss_s, w0, ScanStateStruct, zoneShift));
-  CHECKL(CHECKFIELD(mps_ss_s, w1, ScanStateStruct, condemned));
+  CHECKL(CHECKFIELD(mps_ss_s, w1, ScanStateStruct, white));
   CHECKL(CHECKFIELD(mps_ss_s, w2, ScanStateStruct, summary));
 
   /* Check ld_s/LDStruct compatibility by hand */

@@ -2,7 +2,7 @@
  * 
  * MANUAL RANK GUARDIAN POOL
  * 
- * $HopeName: !poolmrg.c(trunk.4) $
+ * $HopeName: MMsrc!poolmrg.c(MMdevel_action2.1) $
  * Copyright(C) 1995,1997 Harlequin Group, all rights reserved
  *
  * READERSHIP
@@ -29,7 +29,7 @@
 #include "poolmrg.h"
 
 
-SRCID(poolmrg, "$HopeName: !poolmrg.c(trunk.4) $");
+SRCID(poolmrg, "$HopeName: MMsrc!poolmrg.c(MMdevel_action2.1) $");
 
 #define MRGSig          ((Sig)0x519B0349)
 
@@ -471,7 +471,7 @@ static void MRGAccess(Pool pool, Seg seg, AccessSet mode)
   /* impl.c.amc.access.multi (!) */
   for(ss.traceId = 0; ss.traceId < TRACE_MAX; ++ss.traceId) {
     if(TraceSetIsMember(space->busyTraces, ss.traceId)) {
-      ss.condemned = space->trace[ss.traceId].condemned;
+      ss.white = space->trace[ss.traceId].white;
       res = MRGGroupScan(&ss, group, mrg);
       AVER(res == ResOK);       /* impl.c.amc.access.error (!) */
     }

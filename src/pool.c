@@ -1,6 +1,6 @@
 /* impl.c.pool: POOL IMPLEMENTATION
  *
- * $HopeName: !pool.c(trunk.21) $
+ * $HopeName: MMsrc!pool.c(MMdevel_action2.1) $
  * Copyright (C) 1994,1995,1996 Harlequin Group, all rights reserved
  *
  * This is the implementation of the generic pool interface.  The
@@ -12,7 +12,7 @@
 
 #include "mpm.h"
 
-SRCID(pool, "$HopeName: !pool.c(trunk.21) $");
+SRCID(pool, "$HopeName: MMsrc!pool.c(MMdevel_action2.1) $");
 
 
 Bool PoolClassCheck(PoolClass class)
@@ -241,16 +241,16 @@ void PoolFree(Pool pool, Addr old, Size size)
   (*pool->class->free)(pool, old, size);
 }
 
-Res PoolCondemn(RefSet *condemnedReturn, Pool pool,
+Res PoolCondemn(RefSet *whiteReturn, Pool pool,
                   Space space, TraceId ti)
 {  
-  AVER(condemnedReturn != NULL);
+  AVER(whiteReturn != NULL);
   AVERT(Pool, pool);
   AVERT(Space, space);
   AVER(pool->space == space);
   AVERT(TraceId, ti);
   AVER(ti != TraceIdNONE);
-  return (*pool->class->condemn)(condemnedReturn, pool, space, ti);
+  return (*pool->class->condemn)(whiteReturn, pool, space, ti);
 }
 
 void PoolGrey(Pool pool, Space space, TraceId ti)
@@ -545,9 +545,9 @@ Res PoolTrivDescribe(Pool pool, mps_lib_FILE *stream)
   return WriteF(stream, "  No class-specific description available.\n", NULL);
 }
 
-Res PoolNoCondemn(RefSet *condemnedReturn, Pool pool, Space space, TraceId ti)
+Res PoolNoCondemn(RefSet *whiteReturn, Pool pool, Space space, TraceId ti)
 {
-  AVER(condemnedReturn != NULL);
+  AVER(whiteReturn != NULL);
   AVERT(Pool, pool);
   AVERT(Space, space);
   AVER(TraceIdCheck(ti));
