@@ -1,6 +1,6 @@
 /* impl.h.mpm: MEMORY POOL MANAGER DEFINITIONS
  *
- * $HopeName: MMsrc!mpm.h(MMdevel_restr.4) $
+ * $HopeName: MMsrc!mpm.h(MMdevel_restr.5) $
  * Copyright (C) 1996 Harlequin Group, all rights reserved.
  */
 
@@ -92,6 +92,7 @@ extern Bool PoolCheck(Pool pool);
 extern Res PoolDescribe(Pool pool, Lib_FILE *stream);
 
 extern Space (PoolSpace)(Pool pool);
+#define PoolSpace(pool) ((pool)->space)
 extern PoolClass (PoolGetClass)(Pool pool);
 extern Ring (PoolSpaceRing)(Pool pool);
 extern Ring (PoolBufferRing)(Pool pool);
@@ -112,7 +113,10 @@ extern Res PoolCondemn(RefSet *condemnedReturn, Pool pool,
                          Space space, TraceId ti);
 extern void PoolGrey(Pool pool, Space space, TraceId ti);
 extern Res PoolScan(ScanState ss, Pool pool, Bool *finishedReturn);
-extern Res PoolFix(Pool pool, ScanState ss, Seg seg, Addr *refIO);
+extern Res (PoolFix)(Pool pool, ScanState ss, Seg seg, Addr *refIO);
+#define POOLFIX(pool, ss, seg, refIO) \
+  ((*(pool)->class->fix)((pool), (ss), (seg), (refIO)))
+
 extern void PoolReclaim(Pool pool, Space space, TraceId ti);
 extern void PoolAccess(Pool pool, Seg seg, ProtMode mode);
 extern Size PoolPoll(Pool pool);

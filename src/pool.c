@@ -1,6 +1,6 @@
 /* impl.c.pool: POOL IMPLEMENTATION
  *
- * $HopeName: MMsrc!pool.c(trunk.12) $
+ * $HopeName: MMsrc!pool.c(MMdevel_restr.2) $
  * Copyright (C) 1994,1995,1996 Harlequin Group, all rights reserved
  *
  * This is the implementation of the generic pool interface.  The
@@ -9,7 +9,7 @@
 
 #include "mpm.h"
 
-SRCID(pool, "$HopeName: MMsrc!pool.c(trunk.12) $");
+SRCID(pool, "$HopeName: MMsrc!pool.c(MMdevel_restr.2) $");
 
 
 Bool PoolCheck(Pool pool)
@@ -139,11 +139,10 @@ Res PoolScan(ScanState ss, Pool pool, Bool *finishedReturn)
   }
 }
 
-Res PoolFix(Pool pool, ScanState ss, Seg seg, Addr *refIO)
+Res (PoolFix)(Pool pool, ScanState ss, Seg seg, Addr *refIO)
 {
-  if(pool->class->fix != NULL)
-    return (*pool->class->fix)(pool, ss, seg, refIO);
-  return ResOK;
+  AVERT(Pool, pool);
+  return (*pool->class->fix)(pool, ss, seg, refIO);
 }
 
 void PoolReclaim(Pool pool, Space space, TraceId ti)
