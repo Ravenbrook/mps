@@ -1,12 +1,12 @@
 /* impl.c.trace: GENERIC TRACER IMPLEMENTATION
  *
- * $HopeName: MMsrc!trace.c(MMdevel_control3.3) $
+ * $HopeName: MMsrc!trace.c(MMdevel_control3.4) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  */
 
 #include "mpm.h"
 
-SRCID(trace, "$HopeName: MMsrc!trace.c(MMdevel_control3.3) $");
+SRCID(trace, "$HopeName: MMsrc!trace.c(MMdevel_control3.4) $");
 
 
 /* ScanStateCheck -- check consistency of a ScanState object */
@@ -156,6 +156,7 @@ static Res TraceStart(Trace trace, Action action)
   if(trace->white == RefSetEMPTY) {
     space->flippedTraces = TraceSetAdd(space->flippedTraces, trace->ti);
     trace->state = TraceRECLAIM;
+    trace->rate = 1;
     return ResOK;
   }
 
@@ -208,7 +209,7 @@ static Res TraceStart(Trace trace, Action action)
 
   /* Calculate the rate of working.  Assumes that half the condemned */
   /* set will survive, and calculates a rate of work which will finish */
-  /* the collection by the time that half of that has been allocated. */
+  /* the collection by the time that a megabyte has been allocagted. */
   /* @@@@ The 4096 is the number of bytes scanned by each TracePoll */
   /* (approximately) and should be replaced by a parameter. */
   {
@@ -219,7 +220,7 @@ static Res TraceStart(Trace trace, Action action)
     if(alloc > 0)
       trace->rate = 1 + (Size)(scan * SPACE_POLL_MAX / (4096 * alloc));
     else
-      trace->rate = (Size)(scan / 4096);
+      trace->rate = 1 + (Size)(scan / 4096);
   }
 
   trace->state = TraceUNFLIPPED;
