@@ -1,12 +1,12 @@
 /* impl.c.trace: GENERIC TRACER IMPLEMENTATION
  *
- * $HopeName: !trace.c(trunk.35) $
+ * $HopeName: MMsrc!trace.c(MMdevel_annotation.1) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  */
 
 #include "mpm.h"
 
-SRCID(trace, "$HopeName: !trace.c(trunk.35) $");
+SRCID(trace, "$HopeName: MMsrc!trace.c(MMdevel_annotation.1) $");
 
 
 /* ScanStateCheck -- check consistency of a ScanState object */
@@ -809,8 +809,8 @@ Res TraceFix(ScanState ss, Ref *refIO)
   Seg seg;
   Pool pool;
 
-  AVERT(ScanState, ss);
-  AVER(refIO != NULL);
+  AVERT_COOL(ScanState, ss);
+  AVER_COOL(refIO != NULL);
 
   ref = *refIO;
 

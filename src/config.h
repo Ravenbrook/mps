@@ -1,7 +1,7 @@
 /* impl.h.config: MPS CONFIGURATION
  *
  * Copyright (C) 1997 Harlequin Group, all rights reserved.
- * $HopeName: !config.h(trunk.11) $
+ * $HopeName: MMsrc!config.h(MMdevel_annotation.1) $
  */
 
 #ifndef config_h
@@ -18,30 +18,16 @@
  * internal configuration parameters.  See design.mps.config.var.
  */
 
-#if defined(CONFIG_VAR_DF)
-#define MPS_VAR_DF              /* debug, full checking */
-#define ASSERT_MPSI             /* impl.c.mpsi */
-#define ASSERT_MPM              /* impl.h.mpm */
-#define CHECK_DEEP              /* impl.h.assert */
-#define CHECK_ASSERT            /* impl.h.assert */
-#elif defined(CONFIG_VAR_DL)    /* debug, full checking, telemetry */
-#define EVENT                   /* impl.h.event */
-#define ASSERT_MPSI             /* impl.c.mpsi */
-#define ASSERT_MPM              /* impl.h.mpm */
-#define CHECK_DEEP              /* impl.h.assert */
-#define CHECK_ASSERT            /* impl.h.assert */
-#elif defined(CONFIG_VAR_DP)    /* debug, partial checking */
-#define MPS_VAR_DP
-#define ASSERT_MPSI
-#define ASSERT_MPM
-#define CHECK_SHALLOW
-#define CHECK_ASSERT            /* impl.h.assert */
-#elif defined(CONFIG_VAR_DS)    /* debug, sig checking only */
-#define MPS_VAR_DS
-#define ASSERT_MPSI
-#define ASSERT_MPM
-#elif defined(CONFIG_VAR_RO)
-#define MPS_VAR_RO
+#if defined(CONFIG_VAR_HI)      /* Hot, Internal */
+#define MPS_HOT
+#elif defined(CONFIG_VAR_CI)    /* Cool, Internal */
+#elif defined(CONFIG_VAR_TI)    /* Telemetry, Cool, Internal (temp) */
+#define EVENT
+#elif defined(CONFIG_VAR_HE)    /* Hot, External */
+#define MPS_HOT
+#elif defined(CONFIG_VAR_CE)    /* Cool, External */
+#elif defined(CONFIG_VAR_TE)    /* Telemetry, Cool, External (temp) */
+#define EVENT
 #else
 #error "No target variety configured."
 #endif

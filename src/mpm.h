@@ -1,6 +1,6 @@
 /* impl.h.mpm: MEMORY POOL MANAGER DEFINITIONS
  *
- * $HopeName: !mpm.h(trunk.38) $
+ * $HopeName: MMsrc!mpm.h(MMdevel_annotation.1) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  */
 
@@ -22,20 +22,34 @@
 #include "mpslib.h"
 
 
-/* AVER, AVERT -- MPM assertions
+/* AVER, AVERTm AVER_COOL, AVERT_COOL -- MPM assertions
  *
- * AVER and AVERT are used to assert conditions within the MPM (as
- * opposed to in the MPS Interface layer, impl.c.mpsi).  This allows
- * control over internal and interface checking.
+ * AVER and AVERT are used to assert conditions within the MPM.
+ * AVER_COOL and AVERT_COOL are identical, except in "hot" varieties
+ * where they compile away to nothing.  They are intended for critical
+ * paths.  Their use is a transgression and must be documented.
  */
 
-#ifdef ASSERT_MPM               /* design.mps.config, impl.h.config */
-#define AVER                    ASSERT
-#define AVERT(type, val)        ASSERT(type ## Check(val))
+#ifdef MPS_HOT
+
+#define AVER(cond)                  ASSERT(cond)
+#define AVERT(type, val)            ASSERT(type ## Check(val))
+#define AVER_COOL(cond)             NOCHECK(cond)
+#define AVERT_COOL(type,val)        NOCHECK(type ## Check(val))
+
 #else
-#define AVER(cond)              NOCHECK(cond)
-#define AVERT(type, val)        NOCHECK(type ## Check(val))
+
+#define AVER(cond)                  ASSERT(cond)
+#define AVERT(type, val)            ASSERT(type ## Check(val))
+#define AVER_COOL(cond)             ASSERT(cond)
+#define AVERT_COOL(type,val)        ASSERT(type ## Check(val))
+
 #endif
+
+extern Word CheckLevel;
+#define CheckNone     ((Word)0)
+#define CheckShallow  ((Word)1)
+#define CheckDeep     ((Word)2)
 
 
 /* MPMCheck -- check MPM assumptions */

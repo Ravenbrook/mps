@@ -1,6 +1,6 @@
 /* impl.h.check: ASSERTION INTERFACE
  *
- * $HopeName: !check.h(trunk.2) $
+ * $HopeName: MMsrc!check.h(MMdevel_annotation.1) $
  *
  * This header defines a family of AVER and NOTREACHED macros. The
  * macros should be used to instrument and annotate code with
@@ -37,12 +37,12 @@ extern void AssertFail(const char *cond, const char *id,
       AssertFail(#cond, FileSrcIdStruct.hopename, \
                  FileSrcIdStruct.file, __LINE__); \
   END
-
+		 
 #define NOCHECK(cond) \
   BEGIN \
     (void)sizeof(cond); \
   END
-
+    
 #define NOTREACHED \
   BEGIN \
     AssertFail("unreachable statement", \
@@ -50,11 +50,7 @@ extern void AssertFail(const char *cond, const char *id,
                __LINE__); \
   END
 
-#ifdef CHECK_ASSERT
-#define CHECKC(cond)    ASSERT(cond)
-#else
 #define CHECKC(cond)    BEGIN if(cond) NOOP; else return FALSE; END
-#endif
 
 
 /* CHECKT -- check type simply
@@ -65,22 +61,61 @@ extern void AssertFail(const char *cond, const char *id,
 
 #define CHECKT(type, val)       ((val) != NULL && (val)->sig == type ## Sig)
 
+/* CHECKS -- Check Signature */
+#define CHECKS(type, val)       CHECKC(CHECKT(type, val))
 
-#if defined(CHECK_SHALLOW)
-#define CHECKS(type, val)       CHECKC(CHECKT(type, val))
-#define CHECKL(cond)            CHECKC(cond)
-#define CHECKD(type, val)       CHECKC(CHECKT(type, val))
-#define CHECKU(type, val)       CHECKC(CHECKT(type, val))
-#elif defined(CHECK_DEEP)
-#define CHECKS(type, val)       CHECKC(CHECKT(type, val))
-#define CHECKL(cond)            CHECKC(cond)
-#define CHECKD(type, val)       CHECKC(type ## Check(val))
-#define CHECKU(type, val)       CHECKC(CHECKT(type, val))
-#else /* neither CHECK_DEEP nor CHECK_SHALLOW */
-#define CHECKS(type, val)       CHECKC(CHECKT(type, val))
-#define CHECKL(cond)            NOCHECK(cond)
-#define CHECKD(type, val)       NOCHECK(type ## Check(val))
-#define CHECKU(type, val)       NOCHECK(CHECKT(type, val))
-#endif /* CHECK_SHALLOW or CHECK_DEEP */
+/* CHECKL -- Check Local Invariant */
+/* Could make this an expression using ?: */
+#define CHECKL(cond) \
+  BEGIN \
+    switch(CheckLevel) { \
+    case CheckNone: \
+      NOOP; \
+      break; \
+    case CheckShallow: \
+    case CheckDeep: \
+      CHECKC(cond); \
+      break; \
+    default: \
+      NOTREACHED; \
+      break; \
+    } \
+  END
+
+/* CHECKD -- Check Down */
+#define CHECKD(type, val) \
+  BEGIN \
+    switch(CheckLevel) { \
+    case CheckNone: \
+      NOOP; \
+      break; \
+    case CheckShallow: \
+      CHECKC(CHECKT(type, val)); \
+      break; \
+    case CheckDeep: \
+      CHECKC(type ## Check(val)); \
+      break; \
+    default: \
+      NOTREACHED; \
+      break; \
+    } \
+  END
+
+/* CHECKU -- Check Up */
+#define CHECKU(type, val) \
+  BEGIN \
+    switch(CheckLevel) { \
+    case CheckNone: \
+      NOOP; \
+      break; \
+    case CheckShallow: \
+    case CheckDeep: \
+      CHECKC(CHECKT(type, val)); \
+      break; \
+    default: \
+      NOTREACHED; \
+      break; \
+    } \
+  END
 
 #endif /* check_h */

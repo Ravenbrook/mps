@@ -1,6 +1,6 @@
 /* impl.c.poolawl: AUTOMATIC WEAK LINKED POOL CLASS
  *
- * $HopeName: !poolawl.c(trunk.12) $
+ * $HopeName: MMsrc!poolawl.c(MMdevel_annotation.1) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  *
  * READERSHIP
@@ -16,7 +16,7 @@
 #include "mpm.h"
 #include "mpscawl.h"
 
-SRCID(poolawl, "$HopeName: !poolawl.c(trunk.12) $");
+SRCID(poolawl, "$HopeName: MMsrc!poolawl.c(MMdevel_annotation.1) $");
 
 
 #define AWLSig	((Sig)0x519b7a37)	/* SIGPooLAWL */
@@ -514,19 +514,19 @@ static Res AWLFix(Pool pool, ScanState ss, Seg seg, Ref *refIO)
   AWLGroup group;
   Space space;
 
-  AVERT(Pool, pool);
-  AVERT(ScanState, ss);
-  AVERT(Seg, seg);
-  AVER(TraceSetInter(SegWhite(seg), ss->traces) != TraceSetEMPTY);
-  AVER(refIO != NULL);
+  AVERT_COOL(Pool, pool);
+  AVERT_COOL(ScanState, ss);
+  AVERT_COOL(Seg, seg);
+  AVER_COOL(TraceSetInter(SegWhite(seg), ss->traces) != TraceSetEMPTY);
+  AVER_COOL(refIO != NULL);
 
   awl = PoolPoolAWL(pool);
-  AVERT(AWL, awl);
+  AVERT_COOL(AWL, awl);
   group  = (AWLGroup)SegP(seg);
-  AVERT(AWLGroup, group);
+  AVERT_COOL(AWLGroup, group);
 
   space = PoolSpace(pool);
-  AVERT(Space, space);
+  AVERT_COOL(Space, space);
 
   ref = *refIO;
   i = AddrOffset(SegBase(space, seg), ref) >> awl->alignShift;
