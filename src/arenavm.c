@@ -1,6 +1,6 @@
 /* impl.c.arenavm: VIRTUAL MEMORY BASED ARENA IMPLEMENTATION
  *
- * $HopeName: MMsrc!arenavm.c(MMdevel_drj_arena_hysteresis.1) $
+ * $HopeName: MMsrc!arenavm.c(MMdevel_drj_arena_hysteresis.2) $
  * Copyright (C) 1998.  Harlequin Group plc.  All rights reserved.
  *
  * PURPOSE
@@ -32,7 +32,7 @@
 #include "mpm.h"
 #include "mpsavm.h"
 
-SRCID(arenavm, "$HopeName: MMsrc!arenavm.c(MMdevel_drj_arena_hysteresis.1) $");
+SRCID(arenavm, "$HopeName: MMsrc!arenavm.c(MMdevel_drj_arena_hysteresis.2) $");
 
 
 /* @@@@ Arbitrary calculation for the maximum number of distinct */
@@ -92,6 +92,8 @@ typedef struct VMArenaStruct {  /* VM arena structure */
   VMArenaChunk primary;
   RingStruct chunkRing;
   VMArenaChunkCacheEntryStruct chunkCache; /* just one entry */
+  RingStruct latentRing;	/* ring of all latent pages */
+  Size latentSize;              /* total size of latent pages */
   Size committed;               /* amount of committed RAM */
   RefSet blacklist;             /* zones to use last */
   RefSet genRefSet[VMArenaGenCount]; /* .gencount.const */
@@ -289,6 +291,9 @@ static Bool VMArenaCheck(VMArena vmArena)
   CHECKD(VMArenaChunk, vmArena->primary);
   CHECKD(VMArenaChunkCacheEntry, &vmArena->chunkCache);
   CHECKL(RingCheck(&vmArena->chunkRing));
+  CHECKL(RingCheck(&vmArena->latentRing));
+  /* latent pages are committed, so must be less latent than committed */
+  CHECKL(vmArena->latentSize <= vmArena->committed);
   /* we could iterate over all chunks accumulating an accurate */
   /* count of committed, but we don't have all day */
   CHECKL(VMMapped(vmArena->primary->vm) <= vmArena->committed);
@@ -754,6 +759,8 @@ static Res VMArenaInit(Arena *arenaReturn, ArenaClass class,
   chunk->vmArena = vmArena;
   chunk->inBoot = FALSE;
   vmArena->committed = VMMapped(vmArena->primary->vm);
+  RingInit(&vmArena->latentRing);
+  vmArena->latentSize = 0;
 
   arena = VMArenaArena(vmArena);
   /* impl.c.arena.init.caller */
