@@ -1,6 +1,6 @@
 /* impl.c.arenacl: ARENA IMPLEMENTATION USING CLIENT MEMORY
  *
- * $HopeName: MMsrc!arenacl.c(MMdevel_tony_sunset.6) $
+ * $HopeName: MMsrc!arenacl.c(MMdevel_tony_sunset.7) $
  * Copyright (C) 1997. Harlequin Group plc. All rights reserved.
  *
  * .readership: MM developers
@@ -17,7 +17,7 @@
 #include "mpsacl.h"
 
 
-SRCID(arenacl, "$HopeName: MMsrc!arenacl.c(MMdevel_tony_sunset.6) $");
+SRCID(arenacl, "$HopeName: MMsrc!arenacl.c(MMdevel_tony_sunset.7) $");
 
 
 typedef struct ClientArenaStruct *ClientArena;
@@ -796,7 +796,9 @@ static Tract ClientTractNextContig(Arena arena, Tract tract)
     UNUSED(ch1);
     UNUSED(ch2);
     AVER_CRITICAL(ClientChunkOfAddr(&ch1, clArena, TractBase(tract)) &&
-                  ClientChunkOfAddr(&ch2, clArena, TractLimit(tract)) &&
+                  ClientChunkOfAddr(&ch2, clArena, 
+                                    AddrAdd(TractBase(tract), 
+                                            arena->alignment)) &&
                   (ch1 == ch2));
   }
 
