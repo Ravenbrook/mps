@@ -1,6 +1,6 @@
 /* impl.h.mpmst: MEMORY POOL MANAGER DATA STRUCTURES
  *
- * $HopeName: !mpmst.h(trunk.13) $
+ * $HopeName: MMsrc!mpmst.h(MMdevel_action.1) $
  * Copyright (C) 1996 Harlequin Group, all rights reserved.
  *
  * .readership: MM developers.
@@ -123,6 +123,8 @@ typedef struct PoolStruct {     /* generic structure */
   RingStruct spaceRing;         /* link in list of pools in space */
   RingStruct bufferRing;        /* allocation buffers are attached to pool */
   Serial bufferSerial;          /* serial of next buffer */
+  RingStruct actionRing;	/* actions are attached to pool */
+  Serial actionSerial;		/* serial of next action */
   Align alignment;              /* alignment for units */
 } PoolStruct;
 
@@ -536,6 +538,27 @@ typedef struct ScanStateStruct {
 typedef struct TraceStruct {
   RefSet condemned;             /* summary of comdemnded set */
 } TraceStruct;
+
+
+/* ActionStruct -- action structure
+ *
+ * See design.mps.action.
+ */
+
+#define ActionSig	((Sig)0x519AC209)
+
+typedef struct ActionStruct {
+  Sig sig;			/* design.mps.sig */
+  Serial serial;		/* from pool->actionSerial */
+  Pool pool;			/* owning pool */
+  RingStruct poolRing;		/* link in list of actions in pool */
+  ActionVar var;		/* variant of action */
+  union {
+    struct {
+      int dummy;		/* no strategy yet */
+    } collect;
+  } the;
+} ActionStruct;
 
 
 /* SpaceStruct -- the space structure
