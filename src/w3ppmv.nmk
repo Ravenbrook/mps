@@ -1,8 +1,8 @@
 # impl.nmk.w3ppmv: WINDOWS (POWERPC) NMAKE FILE
 #
-# $HopeName: !w3ppmv.nmk(trunk.38) $
+# $HopeName: MMsrc!w3ppmv.nmk(MMdevel_pekka_mvbt.1) $
 #
-# Copyright (C) 1998 Harlequin Group plc.  All rights reserved.
+# Copyright (C) 1998, 1999 Harlequin Group plc.  All rights reserved.
 #
 
 PFM = w3ppmv
@@ -14,7 +14,7 @@ MPM = <assert> <ring> <mpm> <bt> <protocol> \
       <ref> <trace> <protw3> <prmcan> <shield> <vmw3> \
       <than> <ssan> <mpsi> <mpsiw3> <ld> <span> \
       <event> <action> <seg> <poolmrg> <message> <dbgpool> \
-      <abq> <meter> <cbs> <poolmv2> <splay> <version>
+      <abq> <meter> <cbs> <poolmbt> <splay> <version>
 SW  = <assert> <ring> <mpm> <bt> <protocol> \
       <arenavm> <arenacl> <arena> <pool> <poolabs> <poolmfs> \
       <poolmv> <root> <format> <buffer> <lockw3> \
@@ -22,7 +22,7 @@ SW  = <assert> <ring> <mpm> <bt> <protocol> \
       <than> <ssan> <mpsi> <ld> \
       <event> <action> <seg> <poolmrg> <message> <mpsioan> \
       <poolepdl> <poolepvm> <poolams> <dbgpool> \
-      <abq> <meter> <cbs> <poolmv2> <splay> <version> <poolmvff>
+      <abq> <meter> <cbs> <poolmbt> <splay> <version> <poolmvff>
 PLINTH = <mpsliban> <mpsioan>
 AMC = <poolamc>
 AMS = <poolams>
