@@ -1,27 +1,24 @@
-/*  impl.c.mpmss: MPM STRESS TEST
+/* impl.c.mpmss: MPM STRESS TEST
  *
- * $HopeName: !mpmss.c(trunk.21) $
- * Copyright (C) 1998. Harlequin Group plc. All rights reserved.
+ * $HopeName: MMsrc!mpmss.c(MM_epcore_brisling.1) $
+ * Copyright (C) 1998 Harlequin Limited.  All rights reserved.
  */
 
 
+#include "testlib.h"
+
+#include "mpscmv.h"
+#include "mpslib.h"
+#include "mpsavm.h"
+#include "mps.h"
+
 #include <stdio.h>
-#include "mpstd.h"
-#ifdef MPS_OS_SU
-#include "ossu.h"
-#endif
 #include <stdlib.h>
 #include <stdarg.h>
 #ifdef MPS_OS_IA
 struct itimerspec; /* stop complaints from time.h */
 #endif
 #include <time.h>
-
-#include "mpscmv.h"
-#include "mpslib.h"
-#include "mpsavm.h"
-#include "testlib.h"
-#include "mps.h"
 
 
 /* @@@@ Hack due to missing mpscmfs.h */
