@@ -1,6 +1,6 @@
 /* impl.h.mpmst: MEMORY POOL MANAGER DATA STRUCTURES
  *
- * $HopeName$
+ * $HopeName: MMsrc!mpmst.h(MMdevel_restr.1) $
  * Copyright (C) 1996 Harlequin Group, all rights reserved.
  *
  * .rationale: Almost all MPM data structures are defined in this
@@ -131,7 +131,7 @@ typedef struct VMStruct { 	/* Win32 VM structure */
   Addr base, limit;	     	/* boundaries of reserved space */
 } VMStruct;
 
-#elif defined(MPS_OS_O1) || defined(MPS_OS_S7) || defined(MPS_OS_SU)
+#elif defined(MPS_OS_O1) || defined(MPS_OS_S7)
 
 typedef struct VMStruct { 	/* ANSI fake VM structure */
   Sig sig;			/* impl.h.misc.sig */
@@ -149,6 +149,8 @@ typedef struct VMStruct { 	/* SunOS 4 VM structure */
   int none_fd;          	/* fildes used for PROT_NONE (/etc/passwd) */
   Align align;			/* page size */
   Addr base, limit;		/* boundaries of reserved space */
+  Size reserved;		/* total reserved address space */
+  Size mapped;			/* total mapped memory */
 } VMStruct;
 
 #else
