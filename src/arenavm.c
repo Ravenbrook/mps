@@ -1,6 +1,6 @@
 /* impl.c.arenavm: VIRTUAL MEMORY BASED ARENA IMPLEMENTATION
  *
- * $HopeName: MMsrc!arenavm.c(MMdevel_remem2.1) $
+ * $HopeName: MMsrc!arenavm.c(MMdevel_remem2.2) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  *
  * This is the implementation of the Segment abstraction from the VM
@@ -14,7 +14,7 @@
 #include "mpm.h"
 
 
-SRCID(arenavm, "$HopeName: MMsrc!arenavm.c(MMdevel_remem2.1) $");
+SRCID(arenavm, "$HopeName: MMsrc!arenavm.c(MMdevel_remem2.2) $");
 
 
 /* Space Arena Projection
@@ -309,62 +309,129 @@ Res SegPrefExpress (SegPref sp, SegPrefKind kind, void *p)
 }
 
 
-/* SegAllocTry -- try to allocate a segment with a certain RefSet
+/* PIOfAddr -- return the page index of the page containing an address */
+
+static PI PIOfAddr(Arena arena, Addr addr)
+{
+  AVERT(Arena, arena);
+  AVER(arena->base <= addr);
+  AVER(addr <= arena->limit);
+  return AddrOffset(arena->base, addr) >> arena->pageShift;
+}
+
+
+/* SegAllocWithRefSet -- try to allocate a segment in an area
  *
- * This code was imported from David Moore's remembered set branch,
- * MMsrc!arenavm.c(MMdevel_remem.5), and is not intended as the long
- * term solution.  richard 1997-04-22
+ * Search for a free run of pages in the free table, but between
+ * base and limit.
+ *
+ * .improve.bit-twiddle:  This code can probably be seriously
+ * optimised by twiddling the bit table.
  */
 
-static Res SegAllocTry(PI *baseReturn, Space space, PI pages, RefSet try)
+static Bool SegAllocInArea(PI *baseReturn, Space space, Size size, Addr base, Addr limit)
 {
-  PI pi, count, base = 0, end;
-  Arena arena = SpaceArena(space);
-  Word z;
+  Arena arena;
+  Word pages;				/* number of pages equiv. to size */
+  Word count;				/* pages so far in free run */
+  PI basePage, limitPage;		/* PI equiv. to base and limit */
+  PI pi;				/* iterator over page table */
+  PI start = (PI)0;			/* base of free run, with warning suppressor */
 
-  /* Search for a free run of pages in the free table. */
-  /* .alloc.skip: Start from arena->tablePages (.tablePages). */
-  /* .improve.bit-twiddle: This code can probably be seriously */
-  /* optimised by twiddling the bit table. */  
-  pi = arena->tablePages;
-  do {
-    end = pi;
-    do {
-      Addr a;
-      pi = end;
-      a = PageBase(arena, pi + 1);
-      z = RefSetZone(space, AddrSub(a, (Size)1));
-      /* find next zone stripe */
-      a = AddrAdd(a, (Size)1 << space->zoneShift);
-      /* move to beginning of this stripe */
-      a = (Addr)((Word)a & ~(((Size)1 << space->zoneShift) - 1));
-      end = AddrOffset(arena->base, a) >> arena->pageShift;
-      if(end > arena->pages || pi > end) {
-	end = arena->pages;
-	break;
+  AVER(baseReturn != NULL);
+  AVERT(Space, space);  
+  arena = SpaceArena(space);
+  AVERT(Arena, arena);
+  AVER(arena->base <= base);
+  AVER(base < limit);
+  AVER(limit <= arena->limit);
+  AVER(size <= AddrOffset(base, limit));
+  AVER(size > (Size)0);
+  AVER(SizeIsAligned(size, arena->pageSize));
+
+  basePage = PIOfAddr(arena, base);
+  limitPage = PIOfAddr(arena, limit);
+
+  pages = size >> arena->pageShift;
+  count = 0;
+  for(pi = basePage; pi < limitPage; ++pi) {
+    if(ABTGet(arena->freeTable, pi)) {
+      if(count == 0)
+        start = pi;
+      ++count;
+      if(count == pages) {
+        *baseReturn = start;
+        return TRUE;
       }
-    } while((try & (1<<z)) == 0);
+    } else
+      count = 0;
+  }
+  
+  return FALSE;
+}
 
-    count = 0;
-    while(pi < end) {
-      if(ABTGet(arena->freeTable, pi)) {
-	if(count == 0)
-	  base = pi;
-	++count;
-	if(count == pages) {
-	  *baseReturn = base;
-	  return ResOK;
-	}
-      } else
-	count = 0;
-      ++pi;
+
+/* SegAllocWithRefSet -- try to allocate a segment with a particular RefSet
+ *
+ * This function finds the intersection of refSet and the set of free pages
+ * and tries to allocate a segment in the resulting set of areas.
+ */
+
+static Bool SegAllocWithRefSet(PI *baseReturn, Space space, Size size, RefSet refSet)
+{
+  Arena arena = SpaceArena(space);
+  Addr arenaBase, base, limit;
+  Size zoneSize = (Size)1 << space->zoneShift;
+
+  /* This is the first address available for segments, just after the */
+  /* arena tables. */
+  arenaBase = PageBase(arena, arena->tablePages);
+
+  base = arenaBase;
+  while(base < arena->limit) {
+  
+    if(RefSetIsMember(space, refSet, base)) {
+      /* Search for a run of zone stripes which are in the RefSet and */
+      /* the arena.  Adding the zoneSize might wrap round (to zero, */
+      /* because limit is aligned to zoneSize, which is a power of two). */
+      limit = base;
+      do {
+        limit = AddrAlignDown(AddrAdd(limit, zoneSize), zoneSize);
+
+        AVER(limit > base || limit == (Addr)0);
+
+        if(limit >= arena->limit || limit < base) {
+          limit = arena->limit;
+          break;
+        }
+
+        AVER(base < limit && limit < arena->limit);
+      } while(RefSetIsMember(space, refSet, limit));
+
+      AVER(refSet != RefSetUNIV ||
+           (base == arenaBase && limit == arena->limit));
+
+      /* Try to allocate a segment in the area. */
+      if(AddrOffset(base, limit) >= size &&
+         SegAllocInArea(baseReturn, space, size, base, limit))
+        return TRUE;
+      
+      base = limit;
+    } else {
+      /* Adding the zoneSize might wrap round (to zero, because base */
+      /* is aligned to zoneSize, which is a power of two). */
+      base = AddrAlignDown(AddrAdd(base, zoneSize), zoneSize);
+      AVER(base > arenaBase || base == (Addr)0);
+      if(base < arenaBase) {
+        base = arena->limit;
+        break;
+      }
     }
-  } while(pi < arena->pages);
+  }
 
-  /* No space was found.  This could be because the request was */
-  /* too large, or perhaps the arena is fragmented.  Perhaps we */
-  /* should return a more meaningful code. */
-  return ResRESOURCE;
+  AVER(base == arena->limit);
+
+  return FALSE;
 }
 
 
@@ -389,20 +456,15 @@ Res SegAlloc(Seg *segReturn, SegPref pref, Space space, Size size, Pool pool)
   /* therefore the real pool must be non-NULL. */
   AVER(pool != NULL);
 
-  pages = size >> arena->pageShift;
-  res = SegAllocTry(&base, space, pages, pref->refSet);
-  if(res != ResOK) {                    /* couldn't allocated in preferred area */
-    AVER(res == ResRESOURCE);
-    res = SegAllocTry(&base, space, pages, RefSetDiff(RefSetUNIV, pref->refSet));
-    if(res) {                           /* failed to allocate at all */
-      /* No space was found. */
-      /* .improve.alloc-fail: This could be because the request was */
-      /* too large, or perhaps the arena is fragmented.  We could return a */
-      /* more meaningful code. */
-      return res;
-    }
+  if(!SegAllocWithRefSet(&base, space, size, pref->refSet) &&
+     (pref->refSet == RefSetUNIV ||
+      !SegAllocWithRefSet(&base, space, size, RefSetUNIV))) {
+    /* .improve.alloc-fail: This could be because the request was */
+    /* too large, or perhaps the arena is fragmented.  We could return a */
+    /* more meaningful code. */
+    return ResRESOURCE;
   }
-
+  
   /* .alloc.early-map: Map in the segment memory before actually */
   /* allocating the pages, because the unwind (in case of failure) */
   /* is simpler. */
@@ -419,6 +481,7 @@ Res SegAlloc(Seg *segReturn, SegPref pref, Space space, Size size, Pool pool)
   /* in the page table. */
   AVER(ABTGet(arena->freeTable, base));
   ABTSet(arena->freeTable, base, FALSE);
+  pages = size >> arena->pageShift;
   if(pages > 1) {
     Addr limit = PageBase(arena, base + pages);
     seg->single = FALSE;
