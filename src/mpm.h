@@ -1,6 +1,6 @@
 /* impl.h.mpm: MEMORY POOL MANAGER DEFINITIONS
  *
- * $HopeName: MMsrc!mpm.h(MMdevel_annotation.1) $
+ * $HopeName: MMsrc!mpm.h(MMdevel_annotation.2) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  */
 
@@ -25,12 +25,23 @@
 /* AVER, AVERTm AVER_COOL, AVERT_COOL -- MPM assertions
  *
  * AVER and AVERT are used to assert conditions within the MPM.
- * AVER_COOL and AVERT_COOL are identical, except in "hot" varieties
- * where they compile away to nothing.  They are intended for critical
- * paths.  Their use is a transgression and must be documented.
+ * AVER_COOL and AVERT_COOL are identical, except that they are used
+ * on the critical path.  Their use is a transgression and must be 
+ * documented.
+ * 
+ * In hot varieties, the COOL assertions compile away to nothing.
+ * In white-hot varieites, all assertions compile away to nothing.
  */
 
-#ifdef MPS_HOT
+
+#if defined(MPS_WHITE_HOT)
+
+#define AVER(cond)                  NOCHECK(cond)
+#define AVERT(type, val)            NOCHECK(type ## Check(val))
+#define AVER_COOL(cond)             NOCHECK(cond)
+#define AVERT_COOL(type,val)        NOCHECK(type ## Check(val))
+
+#elif defined(MPS_HOT)
 
 #define AVER(cond)                  ASSERT(cond)
 #define AVERT(type, val)            ASSERT(type ## Check(val))

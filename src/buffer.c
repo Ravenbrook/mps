@@ -1,6 +1,6 @@
 /* impl.c.buffer: ALLOCATION BUFFER IMPLEMENTATION
  *
- * $HopeName: !buffer.c(trunk.29) $
+ * $HopeName: MMsrc!buffer.c(MMdevel_annotation.1) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  *
  * This is (part of) the implementation of allocation buffers.
@@ -29,7 +29,7 @@
 
 #include "mpm.h"
 
-SRCID(buffer, "$HopeName: !buffer.c(trunk.29) $");
+SRCID(buffer, "$HopeName: MMsrc!buffer.c(MMdevel_annotation.1) $");
 
 
 /* BufferCheck -- check consistency of a buffer */
@@ -343,11 +343,11 @@ Res BufferReserve(Addr *pReturn, Buffer buffer, Size size)
 {
   Addr next;
 
-  AVER(pReturn != NULL);
-  AVERT(Buffer, buffer);
-  AVER(size > 0);
-  AVER(SizeIsAligned(size, BufferPool(buffer)->alignment));
-  AVER(BufferIsReady(buffer));
+  AVER_COOL(pReturn != NULL);
+  AVERT_COOL(Buffer, buffer);
+  AVER_COOL(size > 0);
+  AVER_COOL(SizeIsAligned(size, BufferPool(buffer)->alignment));
+  AVER_COOL(BufferIsReady(buffer));
 
   /* Is there enough room in the unallocated portion of the buffer to */
   /* satisfy the request?  If so, just increase the alloc marker and */
@@ -380,11 +380,11 @@ Res BufferFill(Addr *pReturn, Buffer buffer, Size size)
   Seg seg;
   Addr base, limit, next;
 
-  AVER(pReturn != NULL);
-  AVERT(Buffer, buffer);
-  AVER(size > 0);
-  AVER(SizeIsAligned(size, BufferPool(buffer)->alignment));
-  AVER(BufferIsReady(buffer));
+  AVER_COOL(pReturn != NULL);
+  AVERT_COOL(Buffer, buffer);
+  AVER_COOL(size > 0);
+  AVER_COOL(SizeIsAligned(size, BufferPool(buffer)->alignment));
+  AVER_COOL(BufferIsReady(buffer));
 
   pool = BufferPool(buffer);
   space = BufferSpace(buffer);
@@ -406,7 +406,7 @@ Res BufferFill(Addr *pReturn, Buffer buffer, Size size)
   }
 
   /* There really isn't enough room for the allocation now. */
-  AVER(AddrAdd(buffer->apStruct.alloc, size) > buffer->apStruct.limit ||
+  AVER_COOL(AddrAdd(buffer->apStruct.alloc, size) > buffer->apStruct.limit ||
        AddrAdd(buffer->apStruct.alloc, size) < buffer->apStruct.alloc);
 
   BufferDetach(buffer, pool);
@@ -416,11 +416,11 @@ Res BufferFill(Addr *pReturn, Buffer buffer, Size size)
                                    pool, buffer, size);
   if(res != ResOK) return res;
 
-  AVER(SegCheck(seg));
-  AVER(SegBuffer(seg) == NULL);
-  AVER(SegBase(space, seg) <= base);
-  AVER(AddrAdd(base, size) <= limit);
-  AVER(limit <= SegLimit(space, seg));
+  AVER_COOL(SegCheck(seg));
+  AVER_COOL(SegBuffer(seg) == NULL);
+  AVER_COOL(SegBase(space, seg) <= base);
+  AVER_COOL(AddrAdd(base, size) <= limit);
+  AVER_COOL(limit <= SegLimit(space, seg));
 
   /* Set up the buffer to point at the memory given by the pool */
   /* and do the allocation that was requested by the client. */
@@ -433,7 +433,7 @@ Res BufferFill(Addr *pReturn, Buffer buffer, Size size)
   buffer->apStruct.limit = limit;
   buffer->poolLimit = limit;
 
-  AVERT(Buffer, buffer);
+  AVERT_COOL(Buffer, buffer);
 
   *pReturn = base;
   return res;
@@ -447,17 +447,17 @@ Res BufferFill(Addr *pReturn, Buffer buffer, Size size)
 
 Bool BufferCommit(Buffer buffer, Addr p, Size size)
 {
-  AVERT(Buffer, buffer);
-  AVER(size > 0);
-  AVER(SizeIsAligned(size, BufferPool(buffer)->alignment));
-  AVER(!BufferIsReady(buffer));
+  AVERT_COOL(Buffer, buffer);
+  AVER_COOL(size > 0);
+  AVER_COOL(SizeIsAligned(size, BufferPool(buffer)->alignment));
+  AVER_COOL(!BufferIsReady(buffer));
 
   /* See design.mps.collection.flip. */
   /* .commit.before: If a flip occurs before this point, when the */
   /* pool reads "initAtFlip" it will point below the object, so it */
   /* will be trashed and the commit must fail when trip is called.  */
-  AVER(p == buffer->apStruct.init);
-  AVER(AddrAdd(buffer->apStruct.init, size) == buffer->apStruct.alloc);
+  AVER_COOL(p == buffer->apStruct.init);
+  AVER_COOL(AddrAdd(buffer->apStruct.init, size) == buffer->apStruct.alloc);
 
   /* .commit.update: Atomically update the init pointer to declare */
   /* that the object is initialized (though it may be invalid if a */

@@ -1,7 +1,7 @@
 /* impl.h.config: MPS CONFIGURATION
  *
  * Copyright (C) 1997 Harlequin Group, all rights reserved.
- * $HopeName: MMsrc!config.h(MMdevel_annotation.1) $
+ * $HopeName: MMsrc!config.h(MMdevel_annotation.2) $
  */
 
 #ifndef config_h
@@ -26,8 +26,9 @@
 #elif defined(CONFIG_VAR_HE)    /* Hot, External */
 #define MPS_HOT
 #elif defined(CONFIG_VAR_CE)    /* Cool, External */
-#elif defined(CONFIG_VAR_TE)    /* Telemetry, Cool, External (temp) */
-#define EVENT
+#elif defined(CONFIG_VAR_WI)    /* White hot, Cool, Internal (rare) */
+#define MPS_HOT
+#define MPS_WHITE_HOT
 #else
 #error "No target variety configured."
 #endif
