@@ -1,6 +1,6 @@
 /*  impl.c.pthreadext: POSIX THREAD EXTENSIONS
  *
- *  $HopeName: MMsrc!pthrdext.c(trunk.2) $
+ *  $HopeName: !pthrdext.c(trunk.3) $
  *  Copyright (C) 2000 Harlequin Limited.  All rights reserved.
  *
  * .purpose: Provides extension to Pthreads.
@@ -28,7 +28,7 @@
 #include "pthrdext.h"
 #include "mpm.h"
 
-SRCID(pthreadext, "$HopeName$");
+SRCID(pthreadext, "$HopeName: !pthrdext.c(trunk.3) $");
 
 
 /* PTHREADEXT_SIGSUSPEND, PTHREADEXT_SIGRESUME -- signals used

@@ -1,6 +1,6 @@
 /* impl.c.poolmv2: MANUAL VARIABLE POOL, II
  *
- * $HopeName: MMsrc!poolmv2.c(trunk.17) $
+ * $HopeName: !poolmv2.c(trunk.18) $
  * Copyright (C) 1998 Harlequin Limited.  All rights reserved.
  *
  * .purpose: A manual-variable pool designed to take advantage of
@@ -16,7 +16,7 @@
 #include "cbs.h"
 #include "meter.h"
 
-SRCID(poolmv2, "$HopeName: MMsrc!poolmv2.c(trunk.17) $");
+SRCID(poolmv2, "$HopeName: !poolmv2.c(trunk.18) $");
 
 
 /* Signatures */

@@ -1,6 +1,6 @@
 /* impl.c.vmsu: VIRTUAL MEMORY MAPPING FOR SUNOS 4
  *
- * $HopeName: MMsrc!vmsu.c(trunk.20) $
+ * $HopeName: !vmsu.c(trunk.21) $
  * Copyright (C) 1998 Harlequin Limited.  All rights reserved.
  *
  * .design: See design.mps.vm for general design.
@@ -49,7 +49,7 @@
 #include <sys/errno.h>
 #include <limits.h>
 
-SRCID(vmsu, "$HopeName: MMsrc!vmsu.c(trunk.20) $");
+SRCID(vmsu, "$HopeName: !vmsu.c(trunk.21) $");
 
 
 /* Fix up unprototyped system calls. */
