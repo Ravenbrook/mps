@@ -1,6 +1,6 @@
 /* impl.c.abq: AVAILABLE BLOCK QUEUE
  *
- * $HopeName: MMsrc!abq.c(MMdevel_gavinm_splay.5) $
+ * $HopeName: MMsrc!abq.c(MMdevel_gavinm_splay.6) $
  * Copyright (C) 1998 Harlequin Group plc.  All rights reserved.
  *
  * .readership: Any MPS developer
@@ -14,7 +14,7 @@
 #include "meter.h"
 #include "abq.h"
 
-SRCID(abq, "$HopeName: MMsrc!abq.c(MMdevel_gavinm_splay.5) $");
+SRCID(abq, "$HopeName: MMsrc!abq.c(MMdevel_gavinm_splay.6) $");
 
 
 /* Private prototypes */
@@ -37,7 +37,7 @@ Res ABQInit(Arena arena, ABQ abq, Count items)
 
   AVERT(Arena, arena);
   AVER(abq != NULL);
-  AVER(elements > 0);
+  AVER(items > 0);
 
   elements = items + 1;
   
