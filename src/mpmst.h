@@ -1,7 +1,7 @@
 /* impl.h.mpmst: MEMORY POOL MANAGER DATA STRUCTURES
  *
- * $HopeName: !mpmst.h(trunk.87) $
- * Copyright (C) 1999.  Harlequin Limited.  All rights reserved.
+ * $HopeName: MMsrc!mpmst.h(MMdevel_pekka_locus.1) $
+ * Copyright (C) 1999 Harlequin Limited.  All rights reserved.
  *
  * .readership: MM developers.
  *
@@ -9,14 +9,9 @@
  * design a module's structures should be found in that module's design
  * document.
  *
- * .rationale: Almost all MPM data structures are defined in this
- * header, or in headers selected from here.  Most structures have
- * already been declared as incomplete types in impl.h.mpmtypes.  This
- * organization means that there is an easily browsable view of the
- * data structures, and that it is easy to experiment.
- *
- * Most of the structures are the underlying aggregate types for an
- * abstract data type.  See
+ * .structure: Most structures have already been declared as incomplete
+ * types in impl.h.mpmtypes.  Most of the structures are the underlying
+ * aggregate types for an abstract data type.  See
  * guide.impl.c.naming.type.adt-aggregate.relate.
  *
  * .rationale.sig: Object signatures (PoolSig, etc.) are defined
@@ -251,24 +246,6 @@ typedef struct MessageStruct {
   MessageClass class;           /* Message Class Structure */
   RingStruct queueRing;         /* Message queue ring */
 } MessageStruct;
-
-
-/* TractStruct -- tract structure
- *
- * .tract: Tracts represent the grains of memory allocation from
- * the arena.  See design.mps.arena.
- * 
- * .bool: The hasSeg field is a boolean, but can't be represented
- * as type Bool. See design.mps.arena.tract.field.hasSeg.
- */
-
-typedef struct TractStruct { /* Tract structure */
-  Pool pool;      /* MUST BE FIRST (design.mps.arena.tract.field pool) */
-  void *p;                    /* pointer for use of owning pool */
-  Addr base;                  /* Base address of the tract */
-  TraceSet white : TRACE_MAX; /* traces for which tract is white */
-  unsigned int hasSeg : 1;    /* does tract have a seg in p? See .bool */
-} TractStruct;
 
 
 /* SegClassStruct -- segment class structure
