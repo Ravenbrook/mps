@@ -1,7 +1,7 @@
 /* impl.c.eventcnv: Simple event log converter
  * Copyright (C) 1999 Harlequin Group plc.  All rights reserved.
  *
- * $HopeName: !eventcnv.c(trunk.3) $
+ * $HopeName: MMsrc!eventcnv.c(MMdevel_alloc_replay.1) $
  */
 
 #include "config.h"
@@ -192,10 +192,6 @@ static void processEvent(EventProc proc, Event event, Word etime)
   if (res != ResOK)
     error("Can't record event: error %d.", res);
   switch(event->any.code) {
-  case EventArenaCreate:	/* arena */
-    break;
-  case EventArenaDestroy:	/* arena */
-    break;
   default: 
     break;
   }
