@@ -1,12 +1,12 @@
 /* impl.c.arenavm: VIRTUAL MEMORY BASED ARENA IMPLEMENTATION
  *
- * $HopeName: MMsrc!arenavm.c(MMdevel_restr.7) $
+ * $HopeName: MMsrc!arenavm.c(MMdevel_restr.8) $
  * Copyright (C) 1996 Harlequin Group, all rights reserved.
  */
 
 #include "mpm.h"
 
-SRCID(arenavm, "$HopeName: MMsrc!arenavm.c(MMdevel_restr.7) $");
+SRCID(arenavm, "$HopeName: MMsrc!arenavm.c(MMdevel_restr.8) $");
 
 #define SpaceArena(space)	(&(space)->arenaStruct)
 
@@ -39,14 +39,22 @@ typedef struct PageStruct {		/* page structure */
 } PageStruct;
 
 
-/* BTGet -- get a bool from the bool table */
+/* BTGet -- get a bool from the bool table
+ *
+ * Note: The function version of BTGet isn't used anywhere in
+ * this source, but is left here in case we want to revert from
+ * the macro BTGET.
+ */
 
+#if 0
 static Bool (BTGet)(BT bt, BI i)
 {
   Size wi = i >> WORD_SHIFT;		/* word index */
   Size bi = i & (WORD_WIDTH - 1);	/* bit index */
   return (bt[wi] >> bi) & 1;
 }
+#endif /* 0 */
+
 #define BTGET(bt, i) \
   (1 & ( (bt)[(i)>>WORD_SHIFT] >> ((WORD_WIDTH-1)&(i)) ) )
 
