@@ -2,7 +2,7 @@
  *
  *                  PROTECTION FOR Solaris
  *
- *  $HopeName: MMsrc!protso.c(trunk.3) $
+ *  $HopeName: !protso.c(trunk.4) $
  *
  *  Copyright (C) 1995 Harlequin Group, all rights reserved
  *
@@ -25,7 +25,7 @@
 #error "protso.c is Solaris specific, but MPS_OS_SO is not set"
 #endif
 
-SRCID(protso, "$HopeName: MMsrc!protso.c(trunk.3) $");
+SRCID(protso, "$HopeName: !protso.c(trunk.4) $");
 
 /* Fix up unprototyped system calls.  */
 /* Note that these are not fixed up by std.h because that only fixes */
