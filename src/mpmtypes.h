@@ -1,6 +1,6 @@
 /* impl.h.mpmtypes: MEMORY POOL MANAGER TYPES
  *
- * $HopeName: !mpmtypes.h(trunk.26) $
+ * $HopeName: MMsrc!mpmtypes.h(MMdevel_event_string.1) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  *
  * .readership: MM developers.
@@ -293,5 +293,6 @@ typedef int WriteFC; /* Promoted */
 #define EventVMDestroy      ((EventType)0xEFF3DE52) /* VM DESTroy */
 #define EventVMMap          ((EventType)0xEFF33AB9) /* VM MAP */
 #define EventVMUnmap        ((EventType)0xEFF3043B) /* VM UNMaP */
+#define EventIntern         ((EventType)0XEF142E64) /* INTERN */
 
 #endif /* mpmtypes_h */

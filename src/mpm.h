@@ -1,6 +1,6 @@
 /* impl.h.mpm: MEMORY POOL MANAGER DEFINITIONS
  *
- * $HopeName: !mpm.h(trunk.34) $
+ * $HopeName: MMsrc!mpm.h(MMdevel_event_string.1) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  */
 
@@ -114,6 +114,11 @@ extern Shift SizeFloorLog2(Size size);
 /* Formatted Output -- see design.mps.writef, impl.c.mpm */
 
 extern Res WriteF(mps_lib_FILE *stream, ...);
+
+
+/* Miscellaneous support -- see impl.c.mpm */
+
+extern size_t StringLength(char *s);
 
 
 /* Ring Interface -- see design.mps.ring, impl.c.ring */

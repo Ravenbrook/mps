@@ -1,6 +1,6 @@
 /* impl.c.mpm: GENERAL MPM SUPPORT
  *
- * $HopeName: !mpm.c(trunk.14) $
+ * $HopeName: MMsrc!mpm.c(MMdevel_event_string.1) $
  * Copyright (C) 1996 Harlequin Group, all rights reserved.
  *
  * .readership: MM developers.
@@ -13,7 +13,7 @@
 
 #include "mpm.h"
 
-SRCID(mpm, "$HopeName: !mpm.c(trunk.14) $");
+SRCID(mpm, "$HopeName: MMsrc!mpm.c(MMdevel_event_string.1) $");
 
 
 /* MPMCheck -- test MPM assumptions */
@@ -397,4 +397,18 @@ Res WriteF(mps_lib_FILE *stream, ...)
   va_end(args);
   
   return ResOK;
+}
+
+
+/* StringLength -- Substitute for strlen
+ */
+
+size_t StringLength(char *s) {
+  size_t i;
+  AVER(s != NULL);
+
+  for(i = 0; s[i] != '\0'; i++) 
+    NOOP;
+
+  return(i);
 }
