@@ -1,6 +1,6 @@
 /* impl.c.poolmvff: First Fit Manual Variable Pool
  * 
- * $HopeName: MMsrc!poolmvff.c(MMdevel_color_pool.4) $
+ * $HopeName: MMsrc!poolmvff.c(MMdevel_color_pool.5) $
  * Copyright (C) 1998, 1999 Harlequin Group plc.  All rights reserved.
  *
  * .purpose: This is a pool class for manually managed objects of
@@ -24,7 +24,7 @@
 #include "cbs.h"
 #include "mpm.h"
 
-SRCID(poolmvff, "$HopeName: MMsrc!poolmvff.c(MMdevel_color_pool.4) $");
+SRCID(poolmvff, "$HopeName: MMsrc!poolmvff.c(MMdevel_color_pool.5) $");
 
 
 /* Would go in poolmvff.h if the class had any MPS-internal clients. */
@@ -207,8 +207,7 @@ static Res MVFFAddSeg(Seg *segReturn,
 
   AVER(SizeIsAligned(size, PoolAlignment(pool)));
 
-
-  if(mvff->TSBA)
+  if(!mvff->TSBA)
     /* Make sure we have an extra grain to spare, see */
     /* design.mps.poolmvff.impl.trans-seg-buffers. */
     size += PoolAlignment(pool);
