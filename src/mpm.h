@@ -1,6 +1,6 @@
 /* impl.h.mpm: MEMORY POOL MANAGER DEFINITIONS
  *
- * $HopeName: MMsrc!mpm.h(MMdevel_amcsimp.1) $
+ * $HopeName: MMsrc!mpm.h(MMdevel_amcsimp.2) $
  * Copyright (C) 1996 Harlequin Group, all rights reserved.
  */
 
@@ -363,6 +363,14 @@ extern Seg (BufferSeg)(Buffer buffer);
 #define BufferSeg(buffer)	((buffer)->seg)
 extern Rank (BufferRank)(Buffer buffer);
 #define BufferRank(buffer)	((buffer)->rank)
+extern Addr (BufferBase)(Buffer buffer);
+#define BufferBase(buffer)	((buffer)->base)
+extern Addr (BufferGetInit)(Buffer buffer);
+#define BufferGetInit(buffer)	(BufferAP(buffer)->init)
+extern Addr (BufferAlloc)(Buffer buffer);
+#define BufferAlloc(buffer)	(BufferAP(buffer)->alloc)
+extern Addr (BufferLimit)(Buffer buffer);
+#define BufferLimit(buffer)	(BufferAP(buffer)->limit)
 
 
 /* Format Interface -- see impl.c.format */
