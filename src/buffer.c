@@ -1,6 +1,6 @@
 /* impl.c.buffer: ALLOCATION BUFFER IMPLEMENTATION
  *
- * $HopeName: MMsrc!buffer.c(MMdevel_remem.1) $
+ * $HopeName: MMsrc!buffer.c(MMdevel_remem.2) $
  * Copyright (C) 1996 Harlequin Group, all rights reserved
  *
  * This is the interface to allocation buffers.
@@ -80,7 +80,7 @@
  * to the buffer's alignment.
  *
  * Reserve(buf, size)                   ; size must be aligned to pool
- *   if buf->limit - buf->alloc >= size then
+ *   if buf->limit != 0 && buf->limit - buf->alloc >= size then
  *     buf->alloc +=size                ; must be atomic update
  *     p = buf->init
  *   else
@@ -115,7 +115,7 @@
 
 #include "mpm.h"
 
-SRCID(buffer, "$HopeName: MMsrc!buffer.c(MMdevel_remem.1) $");
+SRCID(buffer, "$HopeName: MMsrc!buffer.c(MMdevel_remem.2) $");
 
 
 Ring BufferPoolRing(Buffer buffer)
@@ -194,19 +194,155 @@ Bool BufferCheck(Buffer buffer)
   return TRUE;
 }
 
-
-/* BufferSet/Reset -- set/reset a buffer
+/* BufferSet/Reset/Trap -- set/reset/trap a buffer
  *
- * Set sets the buffer base, init, alloc, and limit fields so that
- * the buffer is ready to start allocating in area of memory.  The
- * alloc field is a copy of the init field.
+ * The collector's view:
+ * .states: A buffer may be in one of three mutually exclusive states.
  *
- * Reset sets the buffer base, init, alloc, and limit fields to
- * zero, so that the next reserve request will call the fill
- * method.
+ * .state.set: the buffer is attached to an area of memory [base,limit)
+ * within a seg.  Allocation will continue at init.
  *
- * BufferIsReset returns TRUE iff the buffer is in the reset state,
- * i.e.  with base, init, alloc, and limit set to zero.
+ * .state.reset: a buffer in this state is not attached to any seg and
+ * will cause a call to PoolBufferFill on the next reserve.
+ *
+ * .state.trapped: no further allocation may occur in a trapped buffer.
+ * The next reserve or commit will cause a call to PoolBufferTrip.
+ *
+ * .busy: A buffer is busy if the mutator may be using it and the using
+ * thread is not in a call to Fill or Trip.
+ * This may depend on a promise between a pool and its user.
+ *
+ * BufferSet sets the buffer base, init, and limit fields and the Ap is
+ * set so that the buffer is ready to start allocating in that area of
+ * memory.
+ *
+ * BufferReset changes the state from set to reset.  This may only be
+ * used on a non-busy buffer.
+ *
+ * BufferTrap puts a set buffer in to trapped state.
+ * 
+ * BufferUntrap turns a trapped buffer back into a set buffer.
+ * A buffer may not be untrapped before it is determined it is not
+ * busy.  This also makes the buffer ready.
+ *
+ * BufferIsReset/Set/Trapped
+ *   returns TRUE iff the buffer is in the reset/set/trapped state,
+ * These may be used even while the buffer is busy.
+ *
+ * Allocation in buffers
+ *
+ * Allocation in buffers may happen asynchronously with collector activity.
+ * 
+ * At all points there is a consistent view as to what is defined to be
+ * intialised.  This is defined to be all memory between base and init.
+ * init is read by using BufferGetInit().
+ *
+ * Objects are allocated contiguously in memory upwards from init until
+ * limit.
+ *
+ * Allocation may happen in a perticular buffer, in a single thread at
+ * a time, using the following protocol.
+ * The intention is that multiple threads use different buffers to
+ * allocate in, avoiding the need for interlocking.
+ *
+ * do {
+ *   res = BufferReserve(&p, buffer, size);
+ *   if(res != ResOK) return res;       // allocation fails, reason res
+ *   initialize(p);                     // p now points at valid object
+ * } while(!BufferCommit(buffer, p, size));
+ *
+ * If a trap happens PoolBufferTrip will be called before another further
+ * action.
+ *
+ * If BufferReserve is called the allocation will be passed onto
+ * PoolBufferFill iff:
+ *     the buffer is set AND the allocation of size will not fit
+ *  OR the buffer is reset
+ * The buffer should be in a set or trapped state on return, with
+ * *pReturn set to where object is to be allocated, if there is no
+ * error.
+ *
+ * If the buffer is trapped and BufferCommit or BufferReserve is called
+ * (this can only happen if the buffer is trapped while it is busy)
+ * then PoolBufferTrip is called iff:
+ *   the buffer is trapped
+ * 
+ * Allocation Point Implementation
+ *
+ * An AP or allocation point contains three pointers:
+ * init, alloc and limit
+ *
+ * .ap.states: the states of the buffer are then identified as follows:
+ *
+ * set     iff ap.limit != 0 != ap.init
+ * trapped iff ap.limit == 0 != ap.init
+ * reset   iff ap.limit == 0 == ap.init
+ *
+ * .ap.inited: the initialised data in a buffer is defined to be from base
+ * to ap.init iff buffer is set and to init iff buffer is trapped
+ *
+ * .ap.ready: a set buffer is ready iff ap.init == ap.alloc
+ * an a set buffer should be busy or ready.
+ *
+ * if the buffer is busy then:
+ *   ap.init  must not be written
+ *   ap.alloc should not be read and must not be written
+ *
+ * .ap.thread.safety: Thread safety
+ *   Synchronisation is achieved whenever BufferFill or BufferTrip is
+ * called.  The case where there may be conflict over use of the AP
+ * is when the allocator may be at any point of allocation (.busy).
+ * In the busy state, both allocator and owner may be accessing the
+ * AP fields.
+ * In this case synchronisation happens through atomic memory reads
+ * and writes.
+ * During this time
+ * ap.init is writeable only by the allocator.
+ * ap.limit is writeable only by the owner.
+ * ap.init and ap.limit are atomically readable by both.
+ * ap.alloc is accessible only by the allocator.
+ * 
+ * Reserve(size)
+ *   ap.alloc = ap.init + size
+ *   if ap.alloc is in (ap.init, ap.limit] then
+ *   allocation succeeds at ap.init.
+ *   otherwise BufferFill(size)
+ *
+ * Commit
+ *   // .commit.time: the write of ap.init is the time of commit
+ *   ap.init = ap.alloc
+ *   if ap.limit !=0 then success
+ *   else BufferTrip(size)
+ *
+ * Trap
+ *   ap.limit = 0
+ *   init = ap.init // .trap.time: the read of ap.init is the time of the trap
+ * 
+ * It can be seen that BufferFill will be called iff:
+ *     the buffer is set AND the allocation of size will not fit
+ *  OR the buffer is reset
+ *  OR the buffer is trapped
+ *
+ * BufferTrip is called iff:
+ *   the buffer is trapped
+ * 
+ * BufferFill and BufferTrip, in turn call the pool specific methods
+ * to allow them to manipulate the buffer state.
+ *
+ * Also note none of the operations affect which of the three states
+ * the buffer is in.  The tricky thing to notice is that Commit can
+ * change ap.init, but not (ap.init == 0).  It only changes one
+ * non-zero value into another.  To have succeeded the corresponding
+ * Reserve, the buffer must have been set, and so
+ * 0 < ap.init < ap.alloc.
+ *
+ * Note:
+ * As ap.alloc is only accessed by the allocator, it is not a necessary
+ * part of the protocol, a local variable could be used instead, or the
+ * addition be recalculated.  However the following invariant is also
+ * maintained.
+ * .ap.alloc: in a non-busy set buffer ap.alloc == ap.init (i.e. IsReady)
+ *
  */
 
 void BufferSet(Buffer buffer, Seg seg, Addr base, Addr init, Addr limit)
@@ -215,22 +351,59 @@ void BufferSet(Buffer buffer, Seg seg, Addr base, Addr init, Addr limit)
 
   buffer->seg = seg;
   buffer->base = base;
+  buffer->init = init;
+  buffer->limit = limit;
   buffer->ap.init = init;
   buffer->ap.alloc = init;
   buffer->ap.limit = limit;
+
+  AVER(BufferIsSet(buffer));
+  AVER(BufferIsReady(buffer));
 }
 
 void BufferReset(Buffer buffer)
 {
   AVERT(Buffer, buffer);
 
+  buffer->ap.init = 0;
+  buffer->ap.limit = 0;
+
+  /* reset the other fields for extra safety */
   buffer->seg = NULL;
   buffer->base = 0;
-  buffer->ap.init = 0;
   buffer->ap.alloc = 0;
-  buffer->ap.limit = 0;
+
+  AVER(BufferIsReset(buffer));
 }
 
+void BufferTrap(Buffer buffer)
+{
+  AVER(BufferIsSet(buffer));
+
+  /* .trap.order: The order of the following instructions is important.
+   * A fill or trap _may_ be triggered after the first instruction.
+   * An allocation must fail if ap.init is advanced after ap.init
+   * is read.  This can only be ensured if limit is zeroed first.
+   * see BufferCommit
+   */
+  buffer->ap.limit = 0;           /* .trap.order */
+  /* **** Memory barrier here on the DEC Alpha may be necessary */
+  buffer->init = buffer->ap.init; /* .trap.order */
+
+  AVER(BufferIsTrapped(buffer));
+}
+
+void BufferUntrap(Buffer buffer)
+{
+  AVER(BufferIsTrapped(buffer));
+
+  buffer->ap.limit = buffer->limit;
+  buffer->ap.init = buffer->init;
+  buffer->ap.alloc = buffer->init;
+
+  AVER(BufferIsSet(buffer));
+  AVER(BufferIsReady(buffer));
+}
 
 /* Buffer Information
  *
@@ -239,10 +412,7 @@ void BufferReset(Buffer buffer)
  *
  * BufferPool returns the pool to which a buffer is attached.
  *
- * BufferIsReady returns TRUE iff the buffer is not between a
- * reserve and commit.  The result is only reliable if the client is
- * not currently using the buffer, since it may update the alloc and
- * init pointers asynchronously.
+ * BufferIsReady returns TRUE if the buffer is ready.
  *
  * BufferAP returns the APStruct substructure of a buffer.
  *
@@ -253,16 +423,43 @@ void BufferReset(Buffer buffer)
  * getting the space which owns a buffer.
  */
 
+Bool BufferIsSet(Buffer buffer)
+{
+  AVERT(Buffer, buffer);
+
+  if(buffer->ap.limit != 0) {
+    AVER(buffer->ap.init != 0);
+    AVER(buffer->base != 0);
+    AVER(buffer->limit != 0);
+    AVER(buffer->seg != NULL);
+    return TRUE;
+  }
+  return FALSE;
+}
+
 Bool BufferIsReset(Buffer buffer)
 {
   AVERT(Buffer, buffer);
 
-  if(buffer->base == 0 &&
-     buffer->ap.init == 0 &&
-     buffer->ap.alloc == 0 &&
-     buffer->ap.limit == 0)
+  if(buffer->ap.init == 0 && buffer->ap.limit == 0) {
+    AVER(buffer->base == 0);
+    AVER(buffer->ap.alloc == 0);
+    AVER(buffer->seg == NULL);
     return TRUE;
+  }
+  return FALSE;
+}
 
+Bool BufferIsTrapped(Buffer buffer)
+{
+  AVERT(Buffer, buffer);
+
+  if(buffer->ap.limit == 0 && buffer->ap.init != 0) {
+    AVER(buffer->base != 0);
+    AVER(buffer->limit != 0);
+    AVER(buffer->seg != NULL);
+    return TRUE;
+  }
   return FALSE;
 }
 
@@ -275,6 +472,16 @@ Bool BufferIsReady(Buffer buffer)
     return TRUE;
 
   return FALSE;
+}
+
+Addr BufferGetInit(Buffer buffer) /* see .ap.inited */
+{
+  AVERT(Buffer, buffer);
+
+  if(buffer->limit == 0)
+    return buffer->init;
+  else
+    return buffer->ap.init;
 }
 
 AP BufferAP(Buffer buffer)
@@ -318,11 +525,9 @@ void BufferInit(Buffer buffer, Pool pool)
   buffer->ap.alloc = 0;
   buffer->ap.limit = 0;
   buffer->alignment = pool->alignment;
-  buffer->exposed = FALSE;
   buffer->seg = NULL;
   buffer->p = NULL;
   buffer->i = 0;
-  buffer->shieldMode = AccessSetEMPTY;
   buffer->prop = 0;
   buffer->grey = TraceSetEMPTY;
   RingInit(&buffer->traceRing);
@@ -342,10 +547,9 @@ void BufferFinish(Buffer buffer)
 {
   AVERT(Buffer, buffer);
   AVER(BufferIsReset(buffer));
-  AVER(buffer->exposed == FALSE);
 
   RingRemove(&buffer->poolRing);
-  RingRemove(&buffer->traceRing);
+  RingRemove(&buffer->traceRing); /* relies on double remove @@@@ */
 
   buffer->sig = SigInvalid;
 }
@@ -380,22 +584,23 @@ Res BufferReserve(Addr *pReturn, Buffer buffer, Word size)
   /* satisfy the request?  If so, just increase the alloc marker and */
   /* return a pointer to the area below it. */
 
-  next = AddrAdd(buffer->ap.alloc, size);
-  if(next > buffer->ap.alloc && next <= buffer->ap.limit)
+  next = AddrAdd(buffer->ap.init, size);
+  if(next > buffer->ap.init && next <= buffer->ap.limit)
   {
     buffer->ap.alloc = next;
     *pReturn = buffer->ap.init;
     return ResOK;
   }
 
-  /* If the buffer can't accommodate the request, fall through to the */
-  /* pool-specific allocation method. */
+  /* The buffer can't accommodate the request, the buffer must be
+   * trapped, full, or reset.  
+   */
 
   return BufferFill(pReturn, buffer, size);
 }
 
 
-/* BufferFill -- refill an empty buffer
+/* BufferFill -- refill a buffer
  *
  * If there is not enough space in a buffer to allocate in-line,
  * BufferFill must be called to "refill" the buffer.  (See the
@@ -404,6 +609,7 @@ Res BufferReserve(Addr *pReturn, Buffer buffer, Word size)
 
 Res BufferFill(Addr *pReturn, Buffer buffer, Word size)
 {
+  Addr next;
   Res res;
   Pool pool;
 
@@ -413,12 +619,33 @@ Res BufferFill(Addr *pReturn, Buffer buffer, Word size)
   AVER(SizeIsAligned(size, BufferPool(buffer)->alignment));
   AVER(BufferIsReady(buffer));
 
+  /* If the buffer is trapped then call bufferTrip */
+  if(BufferIsTrapped(buffer)) {
+
+    /* Deal with the trapped buffer first, then think about the
+     * reserve */
+    pool = BufferPool(buffer);
+    (*pool->class->bufferTrip)(pool, buffer);
+
+    /* retry the reserve */
+    next = AddrAdd(buffer->ap.init, size);
+    if(next > buffer->ap.init && next <= buffer->ap.limit)
+      goto reserve;
+    /* buffer must now be full or reset */
+  }
+  AVER(!BufferIsTrapped(buffer));
+    
   pool = BufferPool(buffer);
-  res = (*pool->class->bufferFill)(pReturn, pool, buffer, size);
+  res = (*pool->class->bufferFill)(pool, buffer, size);
+  if(res) return res;
 
-  AVERT(Buffer, buffer);
+  next = AddrAdd(buffer->ap.init, size);
+  AVER(next > buffer->ap.init && next <= buffer->ap.limit);
 
-  return res;
+reserve:
+  buffer->ap.alloc = next;
+  *pReturn = buffer->ap.init;
+  return ResOK;
 }
 
 
@@ -449,32 +676,25 @@ Bool BufferCommit(Buffer buffer, Addr p, Word size)
   AVER(size > 0);
   AVER(SizeIsAligned(size, BufferPool(buffer)->alignment));
 
-  /* If a flip occurs before this point, the pool will see init */
-  /* below the object, so it will be trashed and the commit */
-  /* must fail when trip is called.  The pool will also see */
-  /* a pointer p which points to the invalid object at init. */
-
   AVER(p == buffer->ap.init);
   AVER(AddrAdd(buffer->ap.init, size) == buffer->ap.alloc);
 
   /* Atomically update the init pointer to declare that the object */
-  /* is initialized (though it may be invalid if a flip occurred). */
+  /* is initialized. */
 
+  /* If a trap occurs before this point, then the allocation fails */
   buffer->ap.init = buffer->ap.alloc;
+  /* If a trap occurs after this store, then the allocation succeeds */
+  /* See BufferTrap and .ap.inited */
 
   /* **** Memory barrier here on the DEC Alpha. */
 
-  /* If a flip occurs at this point, the pool will see init */
-  /* above the object, which is valid, so it will be collected */
-  /* the commit must succeed when trip is called.  The pointer */
-  /* p will have been fixed up. */
-
-  /* trip the buffer if a flip has occurred. */
+  /* call BufferTrip the buffer if a trap has occurred. */
 
   if(buffer->ap.limit == 0)
     return BufferTrip(buffer, p, size);
 
-  /* No flip occurred, so succeed. */
+  /* buffer not trapped, so succeed. */
 
   return TRUE;
 }
@@ -490,14 +710,23 @@ Bool BufferCommit(Buffer buffer, Addr p, Word size)
 
 Bool BufferTrip(Buffer buffer, Addr p, Word size)
 {
+  Bool alloced;
   Pool pool;
+
+  AVER(buffer->limit == 0);
+  AVER(p != 0);
+  AVER(size > 0);
 
   AVERT(Buffer, buffer);
   AVER(size > 0);
   AVER(SizeIsAligned(size, BufferPool(buffer)->alignment));
 
+  alloced = (buffer->ap.init == buffer->init);
+
   pool = BufferPool(buffer);
-  return (*pool->class->bufferTrip)(pool, buffer, p, size);
+  (*pool->class->bufferTrip)(pool, buffer);
+
+  return alloced;
 }
 
 Res BufferDescribe(Buffer buffer, Lib_FILE *stream)
@@ -510,7 +739,7 @@ Res BufferDescribe(Buffer buffer, Lib_FILE *stream)
              "  Pool %p\n"
              "  alignment %lu\n"
              "  base 0x%lX  init 0x%lX  alloc 0x%lX  limit 0x%lX\n"
-             "  grey 0x%lX  shieldMode %lu"
+             "  grey 0x%lX"
              "} Buffer %p\n",
              (void *)buffer,
              (void *)BufferPool(buffer),
@@ -520,7 +749,6 @@ Res BufferDescribe(Buffer buffer, Lib_FILE *stream)
              (unsigned long)buffer->ap.alloc,
              (unsigned long)buffer->ap.limit,
              (unsigned long)buffer->grey,
-             (unsigned long)buffer->shieldMode,
              (void *)buffer);
 
   return ResOK;
