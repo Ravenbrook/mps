@@ -1,14 +1,15 @@
 /* impl.c.trace: GENERIC TRACER IMPLEMENTATION
  *
- * $HopeName: MMsrc!trace.c(MMdevel_pekka_rate.1) $
+ * $HopeName: MMsrc!trace.c(MMdevel_pekka_rate.2) $
  * Copyright (C) 1997, 1998 The Harlequin Group Limited.  All rights reserved.
  *
  * .design: design.mps.trace.
  */
 
 #include "mpm.h"
+#include "limits.h"
 
-SRCID(trace, "$HopeName: MMsrc!trace.c(MMdevel_pekka_rate.1) $");
+SRCID(trace, "$HopeName: MMsrc!trace.c(MMdevel_pekka_rate.2) $");
 
 
 /* Types
@@ -391,12 +392,16 @@ Res TraceStart(Trace trace, double mortality, double finishingTime)
 
   /* Calculate the rate of scanning. */
   {
-    Count nPolls = finishingTime / ARENA_POLL_MAX;
-    Size surviving = trace->condemned * (1.0 - mortality);
+    Size sSurvivors = (Size)(trace->condemned * (1.0 - mortality));
+    double nPolls = finishingTime / ARENA_POLL_MAX;
 
-    if(nPolls == 0) nPolls = 1;
+    /* There must be at least one poll. */
+    if(nPolls < 1.0) nPolls = 1.0;
+    /* We use casting to long to truncate nPolls down to the nearest */
+    /* integer, so try to make sure it fits. */
+    if(nPolls >= (double)LONG_MAX) nPolls = (double)LONG_MAX;
     /* rate equals scanning work per number of polls available */
-    trace->rate = (trace->foundation + surviving) / nPolls + 1;
+    trace->rate = (trace->foundation + sSurvivors) / (long)nPolls + 1;
   }
 
   trace->state = TraceUNFLIPPED;
