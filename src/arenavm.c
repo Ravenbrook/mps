@@ -1,6 +1,6 @@
 /* impl.c.arenavm: VIRTUAL MEMORY BASED ARENA IMPLEMENTATION
  *
- * $HopeName: MMsrc!arenavm.c(MMdevel_tony_sunset.3) $
+ * $HopeName: MMsrc!arenavm.c(MMdevel_tony_sunset.4) $
  * Copyright (C) 1998.  Harlequin Group plc.  All rights reserved.
  *
  * PURPOSE
@@ -11,7 +11,7 @@
  *
  * DESIGN
  *
- * See design.mps.arena.vm, and design.mps.arena.coop-vm:
+ * See design.mps.arena.vm, and design.mps.arena.coop-vm
  *
  *
  * TRANSGRESSIONS
@@ -32,7 +32,7 @@
 #include "mpm.h"
 #include "mpsavm.h"
 
-SRCID(arenavm, "$HopeName: MMsrc!arenavm.c(MMdevel_tony_sunset.3) $");
+SRCID(arenavm, "$HopeName: MMsrc!arenavm.c(MMdevel_tony_sunset.4) $");
 
 
 /* @@@@ Arbitrary calculation for the maximum number of distinct */
@@ -41,10 +41,15 @@ SRCID(arenavm, "$HopeName: MMsrc!arenavm.c(MMdevel_tony_sunset.3) $");
 /* array size. */
 #define VMArenaGenCount ((Count)(MPS_WORD_WIDTH/2))
 
+
 /* Structure Pointer types */
+
 typedef struct PageStruct *Page;
+
 typedef struct VMArenaChunkCacheEntryStruct *VMArenaChunkCacheEntry;
+
 typedef struct VMArenaChunkStruct *VMArenaChunk;
+
 typedef struct VMArenaStruct *VMArena;
 
 
@@ -52,14 +57,13 @@ typedef struct VMArenaStruct *VMArena;
  *
  * .page-table: The page table (defined as a PageStruct array)
  * is central to the design of the arena.
- * See design.mps.arena.vm:table.*.
+ * See design.mps.arena.vm.table.*.
  *
  * .page: The "pool" field must be the first field of the "tail"
- * field of this union, so that it shares a common prefix with the
- * TractStruct.  See design.mps.tract.field.pool.
+ * field of this union.  See design.mps.arena.tract.field.pool.
  *
- * Pages (hence PageStructs that describe them) can be in one of
- * 3 states:
+ * .states: Pages (hence PageStructs that describe them) can be in 
+ * one of 3 states:
  * allocated to a pool as tracts.
  *   allocated pages are mapped
  *   BTGet(allocTable, i) == 1
@@ -135,8 +139,10 @@ typedef struct VMArenaChunkStruct {
 
 
 /* VMArenaChunkCacheEntryStruct */
+
 /* SIGnature Arena VM Chunk Cache */
 #define VMArenaChunkCacheEntrySig       ((Sig)0x519AF3CC) 
+
 typedef struct VMArenaChunkCacheEntryStruct {
   Sig sig;
   VMArenaChunk chunk;
@@ -148,10 +154,11 @@ typedef struct VMArenaChunkCacheEntryStruct {
 
 
 /* VMArenaStruct
- * See design.mps.arena.coop-vm:struct.vmarena for description.
+ * See design.mps.arena.coop-vm.struct.vmarena for description.
  */
 
 #define VMArenaSig      ((Sig)0x519A6EB3) /* SIGnature AREna VM */
+
 typedef struct VMArenaStruct {  /* VM arena structure */
   ArenaStruct arenaStruct;
   VMArenaChunk primary;
@@ -265,7 +272,7 @@ static Index indexOfAddr(VMArenaChunk chunk, Addr addr)
 
 /* PageIndexBase -- map page index to base address of page
  *
- * See design.mps.arena.vm:table.linear
+ * See design.mps.arena.vm.table.linear
  */
 
 #define PageIndexBase(chunk, i) \
@@ -282,8 +289,10 @@ static Index indexOfAddr(VMArenaChunk chunk, Addr addr)
  *   AddrAlignUp((Addr)&chunk->pageTable[chunk->pages], chunk->pageSize) ==
  *   chunk->pageTablePages
  */
+
 #define PageTablePageIndex(chunk, pageAddr) \
   (AddrOffset((Addr)(chunk)->pageTable, pageAddr) >> (chunk)->pageShift)
+
 
 /* TablePageIndexBase
  *
@@ -293,6 +302,7 @@ static Index indexOfAddr(VMArenaChunk chunk, Addr addr)
  *
  * (reverse of mapping defined by PageTablePageIndex)
  */
+
 #define TablePageIndexBase(chunk, index) \
   (AddrAdd((Addr)(chunk)->pageTable, ((index) << (chunk)->pageShift)))
 
@@ -315,14 +325,17 @@ static Index indexOfAddr(VMArenaChunk chunk, Addr addr)
 
 /* PageIsAllocated -- is a page a allocated?
  *
- * See design.mps.arena.vm:table.disc.
+ * See design.mps.arena.vm.table.disc.
  */
 
 #define PageIsAllocated(page)    (PageRest((page))->pool != NULL)
 
+
 /* PageIsLatent -- is page latent (free and mapped)?
  *
- * @@@@ Uses argument multiple times. */
+ * @@@@ Uses argument multiple times. 
+ */
+
 #define PageIsLatent(page)  (PageRest((page))->pool == NULL && \
                                  PageRest((page))->type == PageTypeLatent)
 
@@ -372,6 +385,7 @@ static Bool VMArenaCheck(VMArena vmArena)
 
   return TRUE;
 }
+
 
 /* Chunk Cache
  *
@@ -495,6 +509,7 @@ static Bool VMArenaBootCheck(VMArenaBoot boot)
   return TRUE;
 }
 
+
 /* VMArenaBootInit 
  *
  * Initializes the BootStruct for later use with BootAlloc.
@@ -507,6 +522,7 @@ static Bool VMArenaBootCheck(VMArenaBoot boot)
  *   allocated from (this is used to check for over-allocation) (see
  *   .boot.c).
  */
+
 static Res VMArenaBootInit(VMArenaBootStruct *boot,
                            void *base, void *limit)
 {
@@ -560,6 +576,7 @@ static size_t VMArenaBootAllocated(VMArenaBoot boot)
  * .bootalloc.arg.size: size of requested object, see .boot.c.
  * .bootalloc.arg.align: required alignment of object, see .boot.c.
  */
+
 static Res VMArenaBootAlloc(void **pReturn, VMArenaBoot boot,
                             size_t size, size_t align)
 {
@@ -620,6 +637,7 @@ static Res VMArenaBootAlloc(void **pReturn, VMArenaBoot boot,
  * which should be allocated in the chunk to be used by the caller.
  * Can be specified as 0 to indicate no block desired.
  */
+
 static Res VMArenaChunkCreate(VMArenaChunk *chunkReturn,
                               void **spareReturn,
                               Bool primary, VMArena vmArena,
@@ -672,7 +690,7 @@ static Res VMArenaChunkCreate(VMArenaChunk *chunkReturn,
   pageTablePages = pageTableSize >> pageShift;
 
   /* Allocate and map the descriptor and tables (comprising the ullage) */
-  /* See design.mps.arena.coop-vm:chunk.create.tables */
+  /* See design.mps.arena.coop-vm.chunk.create.tables */
 
   res = VMArenaBootInit(boot,
                         (void *)VMBase(vm),
@@ -717,7 +735,7 @@ static Res VMArenaChunkCreate(VMArenaChunk *chunkReturn,
     goto failBootFinish;
 
   /* Actually commit the necessary addresses. */
-  /* design.mps.arena.coop-vm:chunk.create.tables.map */
+  /* design.mps.arena.coop-vm.chunk.create.tables.map */
   if(primary) {
     /* no vmArena, so must call VMMap directly */
     res = VMMap(vm, VMBase(vm), (Addr)pageTable);
@@ -871,7 +889,7 @@ static Res VMArenaInit(Arena *arenaReturn, ArenaClass class,
   }
 
   vmArena->freeSet = RefSetUNIV; /* includes blacklist */
-  /* design.mps.arena.coop-vm:struct.vmarena.extendby.init */
+  /* design.mps.arena.coop-vm.struct.vmarena.extendby.init */
   vmArena->extendBy = userSize;
 
   /* initialize and load cache */
@@ -962,6 +980,7 @@ static Size VMArenaCommitted(Arena arena)
   return vmArena->committed;
 }
 
+
 /* VMArenaSpareCommitExceeded
  *
  * Simply calls through to Purge
@@ -982,7 +1001,8 @@ static void VMArenaSpareCommitExceeded(Arena arena)
 
 /* Page Table Partial Mapping
  *
- * Some helper functions */
+ * Some helper functions 
+ */
 
 
 /* tablePageBaseIndex -- index of the first page descriptor falling
@@ -999,11 +1019,13 @@ static void VMArenaSpareCommitExceeded(Arena arena)
   (AddrOffset((Addr)(chunk)->pageTable, (tablePage)) \
    / sizeof(PageStruct))
 
+
 /* tablePageWholeBaseIndex
  *
  * Index of the first page descriptor wholly on this table page.
  * Table page specified by address (not index).
  */
+
 #define tablePageWholeBaseIndex(chunk, tablePage) \
   (AddrOffset((Addr)(chunk)->pageTable, \
               AddrAdd((tablePage), sizeof(PageStruct)-1)) \
@@ -1027,6 +1049,7 @@ static void VMArenaSpareCommitExceeded(Arena arena)
  * Index of the first page descriptor falling partially on the next
  * table page.
  */
+
 #define tablePageWholeLimitIndex(chunk, tablePage) \
   ((AddrOffset((Addr)(chunk)->pageTable, (tablePage))+(chunk)->pageSize) \
    / sizeof(PageStruct))
@@ -1072,6 +1095,7 @@ static Bool tablePageInUse(VMArenaChunk chunk, Addr tablePage)
  * returns the pages occupied by the page table which store the
  * PageStruct descriptors for those pages.
  */
+
 static void VMArenaTablePagesUsed(Index *tableBaseReturn,
                                   Index *tableLimitReturn,
 				  VMArenaChunk chunk,
@@ -1091,7 +1115,9 @@ static void VMArenaTablePagesUsed(Index *tableBaseReturn,
 
 /* Pages from baseIndex to limitIndex are about to be allocated.
  * Ensure that the relevant pages occupied by the page table are
- * mapped. */
+ * mapped. 
+ */
+
 static Res VMArenaEnsurePageTableMapped(VMArenaChunk chunk,
                                 Index baseIndex, Index limitIndex)
 {
@@ -1163,6 +1189,7 @@ static Res VMArenaEnsurePageTableMapped(VMArenaChunk chunk,
 /* Of the pages occupied by the page table from tablePageBase to
  * tablePageLimit find those which are wholly unused and unmap them.
  */
+
 static void VMArenaUnmapUnusedTablePages(VMArenaChunk chunk,
                                          Addr tablePageBase,
 					 Addr tablePageLimit)
@@ -1256,7 +1283,7 @@ static Bool findFreeInArea(Index *baseReturn,
 }
 
 
-/* VMFindFreeInRefSet -- try to allocate a page with a RefSet
+/* VMFindFreeInRefSet -- try to allocate a range of pages with a RefSet
  * 
  * This function finds the intersection of refSet and the set of free
  * pages and tries to find a free run of pages in the resulting set of
@@ -1480,6 +1507,7 @@ static Bool VMRegionFind(Index *baseReturn, VMArenaChunk *chunkReturn,
  * .extend.arg.size: size.  size of region that we wish
  *   to allocate after the extension.
  */
+
 static Res VMExtend(VMArena vmArena, Size size)
 {
   VMArenaChunk newChunk;
@@ -1722,7 +1750,8 @@ failTableMap:
 /* VMAllocComm -- allocate a region from the arena
  *
  * Common code used by mps_arena_class_vm and
- * mps_arena_class_vmnz. */
+ * mps_arena_class_vmnz. 
+ */
 
 static Res VMAllocComm(Addr *baseReturn, Tract *baseTractReturn,
                        VMAllocPolicyMethod policy,
@@ -1751,11 +1780,11 @@ static Res VMAllocComm(Addr *baseReturn, Tract *baseTractReturn,
   vmArena = ArenaVMArena(arena);
   AVERT(VMArena, vmArena);
   /* Assume all chunks have same pageSize (see */
-  /* design.mps.arena.coop-vm:struct.chunk.pagesize.assume) */
+  /* design.mps.arena.coop-vm.struct.chunk.pagesize.assume) */
   AVER(SizeIsAligned(size, vmArena->primary->pageSize));
   
   /* NULL is used as a discriminator */
-  /* (see design.mps.arena.vm:table.disc) therefore the real pool */
+  /* (see design.mps.arena.vm.table.disc) therefore the real pool */
   /* must be non-NULL. */
   AVER(pool != NULL);
 
@@ -1833,39 +1862,13 @@ static Res VMNZAlloc(Addr *baseReturn, Tract *baseTractReturn,
                      VMNZAllocPolicy, pref, size, pool);
 }
 
-static VMArenaChunk VMArenaChunkOfTract(VMArena vmArena, Tract tract)
-{
-  Ring node, next;
-  /* critical because used from critical functions */
-  AVERT_CRITICAL(VMArena, vmArena);
-  AVERT_CRITICAL(Tract, tract);
-
-  /* check cache first */
-  if(vmArena->chunkCache.pageTableBase <= (Page)tract &&
-     (Page)tract < vmArena->chunkCache.pageTableLimit) {
-    return vmArena->chunkCache.chunk;
-  }
-
-  RING_FOR(node, &vmArena->chunkRing, next) {
-    VMArenaChunk chunk = RING_ELT(VMArenaChunk, arenaRing, node);
-    Page page = PageOfTract(tract);
-
-    if(&chunk->pageTable[0] <= page &&
-       page < &chunk->pageTable[chunk->pages]) {
-      /* Gotcha! */
-      VMArenaChunkEncache(vmArena, chunk);
-      return chunk;
-    }
-  }
-  NOTREACHED;
-  return NULL;
-}
-
 
 /* The function f is called on the ranges of latent pages which are
  * within the range of pages from base to limit.  PageStruct descriptors
  * from base to limit should be mapped in the page table before calling
- * this function. */
+ * this function. 
+ */
+
 static void VMArenaFindLatentRanges(
   VMArenaChunk chunk, Index base, Index limit,
   void (*f)(VMArenaChunk, Index, Index, void *, size_t),
@@ -1933,6 +1936,7 @@ static void VMArenaUnmapLatentRange(VMArenaChunk chunk,
  * It uses the noLatentPages bits to determine which areas of the
  * pageTable to examine.
  */
+
 static void VMArenaPurgeLatentPages(VMArena vmArena)
 {
   Ring node, next;
@@ -2053,7 +2057,7 @@ static void VMFree(Addr base, Size size, Pool pool)
   AVERT(VMArena, vmArena);
 
   /* Assume all chunks have same pageSize (see */
-  /* design.mps.arena.coop-vm:struct.chunk.pagesize.assume) */
+  /* design.mps.arena.coop-vm.struct.chunk.pagesize.assume) */
   AVER(SizeIsAligned(size, vmArena->primary->pageSize));
   AVER(AddrIsAligned(base, vmArena->primary->pageSize));
 
@@ -2101,35 +2105,6 @@ static void VMFree(Addr base, Size size, Pool pool)
  * the critical path in various ways.  The more common therefore 
  * use AVER_CRITICAL
  */
-
-/* VMTractBase -- return the base address of a tract
- *
- * The tract base is calculated by working out the index of the
- * tract structure in the page table and then returning the
- * base address of that page.
- */
-
-static Addr VMTractBase(Tract tract)
-{
-  VMArena vmArena;
-  VMArenaChunk chunk;
-  Page page;
-  Index i;
-  
-  AVERT_CRITICAL(Tract, tract); /* .tract.critical */
-
-  vmArena = TractVMArena(tract);
-  AVERT_CRITICAL(VMArena, vmArena);
-  chunk = VMArenaChunkOfTract(vmArena, tract);
-
-  page = PageOfTract(tract);
-  /* .improve.tract.base.subtract: This subtraction is redundant */
-  /* with the one in VMArenaChunkOfTract.  CSE by hand? */
-
-  i = page - chunk->pageTable;
-
-  return PageIndexBase(chunk, i);
-}
 
 
 /* VMTractOfAddr -- return the tract which encloses an address
@@ -2230,6 +2205,7 @@ static Bool tractSearchInChunk(Tract *tractReturn,
  * Of the latter set, the chunk with least address is chosen.  FALSE
  * is returned if this set is empty.
  */
+
 static Bool VMNextChunkOfAddr(VMArenaChunk *chunkReturn,
                               VMArena vmArena, Addr addr)
 {
@@ -2263,6 +2239,7 @@ static Bool VMNextChunkOfAddr(VMArenaChunk *chunkReturn,
  *
  * Returns FALSE if there is no tract to find (end of the arena).
  */
+
 static Bool tractSearch(Tract *tractReturn, VMArena vmArena, Addr addr)
 {
   Bool b;
@@ -2350,8 +2327,8 @@ static Bool VMTractNext(Tract *tractReturn, Arena arena, Addr addr)
 /* VMTractNextContig -- return the next contiguous tract in the arena
  *
  * This is used as the iteration step when iterating over all
- * a contiguous range of tracts owned by a pool. The tract 
- * must exist.
+ * a contiguous range of tracts owned by a pool. Both current
+ * and next tracts must be allocated.
  *
  * VMTractNextContig finds the tract with the base address which is
  * immediately after the supplied tract.  
@@ -2360,81 +2337,82 @@ static Bool VMTractNext(Tract *tractReturn, Arena arena, Addr addr)
 static Tract VMTractNextContig(Arena arena, Tract tract)
 {
   VMArena vmArena;
+  Tract nextTract;
   Page page, next;
 
   vmArena = ArenaVMArena(arena);
   AVERT_CRITICAL(VMArena, vmArena);
   AVERT_CRITICAL(Tract, tract);
 
+  /* check both this tract & next tract lie with the same chunk */
+  {
+    VMArenaChunk ch1, ch2;
+    UNUSED(ch1);
+    UNUSED(ch2);
+    AVER_CRITICAL(VMArenaChunkOfAddr(&ch1, vmArena, TractBase(tract)) &&
+                  VMArenaChunkOfAddr(&ch2, vmArena, TractLimit(tract)) &&
+                  (ch1 == ch2));
+  }
+
   /* the next contiguous tract is contiguous in the page table */
   page = PageOfTract(tract);
   next = page + 1;  
 
-  /* check that the next tract is in the appropriate chunk */
-  AVER_CRITICAL(VMArenaChunkOfTract(vmArena, tract) == 
-                VMArenaChunkOfTract(vmArena, PageTract(next)));
   AVER_CRITICAL(PageIsAllocated(next));
-  return PageTract(next);
+  nextTract = PageTract(next);
+  AVERT_CRITICAL(Tract, nextTract);
+  return nextTract;
+}
+
+
+
+/* VMArenaClass  -- The VM arena class definition */
+
+DEFINE_ARENA_CLASS(VMArenaClass, this)
+{
+  INHERIT_CLASS(this, AbstractArenaClass);
+  this->name = "VM";
+  this->size = sizeof(VMArenaStruct);
+  this->offset = offsetof(VMArenaStruct, arenaStruct);
+  this->init = VMArenaInit;
+  this->finish = VMArenaFinish;
+  this->reserved = VMArenaReserved;
+  this->committed = VMArenaCommitted;
+  this->spareCommitExceeded = VMArenaSpareCommitExceeded;
+  this->isReserved = VMIsReservedAddr;
+  this->alloc = VMAlloc;
+  this->free = VMFree;
+  this->tractOfAddr = VMTractOfAddr;
+  this->tractFirst = VMTractFirst;
+  this->tractNext = VMTractNext;
+  this->tractNextContig = VMTractNextContig;
+};
+
+
+/* VMNZArenaClass  -- The VMNZ arena class definition 
+ *
+ * VMNZ is just VMArena with a different allocation policy.
+ */
+
+DEFINE_ARENA_CLASS(VMNZArenaClass, this)
+{
+  INHERIT_CLASS(this, VMArenaClass);
+  this->name = "VMNZ";
+  this->alloc = VMNZAlloc;
 }
 
 
 /* mps_arena_class_vm -- return the arena class VM */
 
-static ArenaClassStruct ArenaClassVMStruct = {
-  ArenaClassSig,
-  "VM",                                 /* name */
-  sizeof(VMArenaStruct),                /* size */
-  offsetof(VMArenaStruct, arenaStruct), /* offset */
-  VMArenaInit,                          /* init */
-  VMArenaFinish,                        /* finish */
-  VMArenaReserved,                      /* reserved */
-  VMArenaCommitted,                     /* committed */
-  VMArenaSpareCommitExceeded,
-  ArenaNoExtend,                        /* extend */
-  ArenaNoRetract,                       /* retract */
-  VMIsReservedAddr,                     /* isReserved */
-  VMAlloc,                              /* alloc */
-  VMFree,                               /* free */
-  VMTractBase,                          /* tractBase */
-  VMTractOfAddr,                        /* tractOfAddr */
-  VMTractFirst,                         /* tractFirst */
-  VMTractNext,                          /* tractNext */
-  VMTractNextContig,                    /* tractNextContig */
-  ArenaTrivDescribe,                    /* describe */
-  ArenaClassSig
-};
-
-static ArenaClassStruct ArenaClassVMNZStruct = {
-  ArenaClassSig,
-  "VMNZ",                               /* name */
-  sizeof(VMArenaStruct),                /* size */
-  offsetof(VMArenaStruct, arenaStruct), /* offset */
-  VMArenaInit,                          /* init */
-  VMArenaFinish,                        /* finish */
-  VMArenaReserved,                      /* reserved */
-  VMArenaCommitted,                     /* committed */
-  VMArenaSpareCommitExceeded,
-  ArenaNoExtend,                        /* extend */
-  ArenaNoRetract,                       /* retract */
-  VMIsReservedAddr,                     /* isReserved */
-  VMNZAlloc,                            /* alloc */
-  VMFree,                               /* free */
-  VMTractBase,                          /* tractBase */
-  VMTractOfAddr,                        /* tractOfAddr */
-  VMTractFirst,                         /* tractFirst */
-  VMTractNext,                          /* tractNext */
-  VMTractNextContig,                    /* tractNextContig */
-  ArenaTrivDescribe,                    /* describe */
-  ArenaClassSig
-};
-
 mps_arena_class_t mps_arena_class_vm(void)
 {
-  return (mps_arena_class_t)&ArenaClassVMStruct;
+  return (mps_arena_class_t)EnsureVMArenaClass();
 }
 
-/* VMNZ is just VMArena with a different allocation policy */
+
+/* mps_arena_class_vmnz -- return the arena class VMNZ */
+
 mps_arena_class_t mps_arena_class_vmnz(void)
 {
-  return (mps_arena_class_t)&ArenaClassVMNZStruct;
+  return (mps_arena_class_t)EnsureVMNZArenaClass();
 }
