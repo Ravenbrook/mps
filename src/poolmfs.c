@@ -1,6 +1,6 @@
 /* impl.c.poolmfs: MANUAL FIXED SMALL UNIT POOL
  *
- * $HopeName: !poolmfs.c(trunk.16) $
+ * $HopeName: MMsrc!poolmfs.c(MMdevel_lint.1) $
  * Copyright (C) 1994,1995,1996 Harlequin Group, all rights reserved
  *
  * This is the implementation of the MFS pool class.
@@ -35,7 +35,7 @@
 #include "mpm.h"
 #include "poolmfs.h"
 
-SRCID(poolmfs, "$HopeName: !poolmfs.c(trunk.16) $");
+SRCID(poolmfs, "$HopeName: MMsrc!poolmfs.c(MMdevel_lint.1) $");
 
 
 /*  == Round up ==
@@ -91,7 +91,11 @@ static Res MFSInit(Pool pool, va_list arg)
   AVER(extendBy >= unitSize);
   
   mfs = PoolPoolMFS(pool);
+#ifdef LCLINT
+  space = PoolSpace((Pool)pool);
+#else
   space = PoolSpace(pool);
+#endif
 
   mfs->unroundedUnitSize = unitSize;
 
