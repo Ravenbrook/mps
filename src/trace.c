@@ -1,12 +1,12 @@
 /* impl.c.trace: GENERIC TRACER IMPLEMENTATION
  *
- * $HopeName: MMsrc!trace.c(trunk.21) $
+ * $HopeName: MMsrc!trace.c(MMdevel_gens.2) $
  * Copyright (C) 1997 The Harlequin Group Limited.  All rights reserved.
  */
 
 #include "mpm.h"
 
-SRCID(trace, "$HopeName: MMsrc!trace.c(trunk.21) $");
+SRCID(trace, "$HopeName: MMsrc!trace.c(MMdevel_gens.2) $");
 
 
 /* ScanStateCheck -- check consistency of a ScanState object */
@@ -136,6 +136,8 @@ found:
   trace->ti = ti;
   trace->state = TraceINIT;
   trace->interval = (Size)4096; /* @@@@ should be progress control */
+  trace->condemned = (Size)0;
+  trace->foundation = (Size)0;
 
   trace->sig = TraceSig;
   AVERT(Trace, trace);
