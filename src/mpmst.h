@@ -1,6 +1,6 @@
 /* impl.h.mpmst: MEMORY POOL MANAGER DATA STRUCTURES
  *
- * $HopeName: !mpmst.h(trunk.77) $
+ * $HopeName: MMsrc!mpmst.h(MMdevel_color_pool.1) $
  * Copyright (C) 1998 Harlequin Group plc.  All rights reserved.
  *
  * .readership: MM developers.
@@ -720,23 +720,6 @@ typedef struct ArenaStruct {
 typedef struct AllocPatternStruct {
   char dummy;
 } AllocPatternStruct;
-
-
-/* Splay Trees 
- *
- * See design.mps.splay
- */
-
-typedef struct SplayTreeStruct {
-  SplayCompareMethod compare;
-  SplayUpdateNodeMethod updateNode;
-  SplayNode root;
-} SplayTreeStruct;
-
-typedef struct SplayNodeStruct {
-  SplayNode left;     /* left child */
-  SplayNode right;    /* right child */
-} SplayNodeStruct;
 
 
 #endif /* mpmst_h */

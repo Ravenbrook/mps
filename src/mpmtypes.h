@@ -1,6 +1,6 @@
 /* impl.h.mpmtypes: MEMORY POOL MANAGER TYPES
  *
- * $HopeName: MMsrc!mpmtypes.h(MMdevel_color_pool.1) $
+ * $HopeName: MMsrc!mpmtypes.h(MMdevel_color_pool.2) $
  * Copyright (C) 1997, 1998 Harlequin Group plc.  All rights reserved.
  *
  * .readership: MM developers.
@@ -86,27 +86,6 @@ typedef struct AllocPatternStruct *AllocPattern;
 typedef struct AllocFrameStruct *AllocFrame; /* design.mps.alloc-frame */
 
 
-/* Splay* -- See design.mps.splay */
-
-typedef struct SplayTreeStruct *SplayTree;
-typedef struct SplayNodeStruct *SplayNode;
-typedef unsigned Compare;
-typedef Compare (*SplayCompareMethod)(void *key, SplayNode node);
-typedef Bool (*SplayTestNodeMethod)(SplayTree tree, SplayNode node,
-                                    void *closureP, unsigned long closureS);
-typedef Bool (*SplayTestTreeMethod)(SplayTree tree, SplayNode node,
-                                    void *closureP, unsigned long closureS);
-typedef void (*SplayUpdateNodeMethod)(SplayTree tree, SplayNode node,
-                                      SplayNode leftChild, 
-                                      SplayNode rightChild);
-typedef Res (*SplayNodeDescribeMethod)(SplayNode node, mps_lib_FILE *stream);
-enum {
-  CompareLESS,
-  CompareEQUAL,
-  CompareGREATER
-};
-
-
 /* Arena*Method -- see @@@@ */
 
 typedef Res (*ArenaInitMethod)(Arena *arenaReturn,
@@ -131,7 +110,8 @@ typedef Res (*ArenaDescribeMethod)(Arena arena, mps_lib_FILE *stream);
 
 /* Messages
  *
- * See design.mps.message */
+ * See design.mps.message
+ */
 typedef unsigned MessageType;
 typedef struct MessageStruct *Message;
 typedef struct MessageClassStruct *MessageClass;
