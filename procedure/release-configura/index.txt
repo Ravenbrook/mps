@@ -76,7 +76,7 @@ A.BBB.C is the release name.  DDDDDD is the release origin changelevel (which, f
 
 p4 add this under mps/release.  (It's your first candidate build for release A.BBB.C).  
 
-Test it.  
+Test it.  (Copy to new place and extract with "tar xvf MMconfigura-A.BBB.C-DDDDDD.tgz").  
 
 Once successfully tested, update infosys.  See <http://info.ravenbrook.com/project/mps/master/procedure/release-build/>.  Remember to update issue.cgi.  
 
