@@ -19,24 +19,24 @@ Steps:
 
 2. check the diffs: eg. "p4 diff2 -q version/1.105/... version/1.106/...".
 
-3. get the tools ready: see __TOOLS__ below.
+3. get the equipment ready: see __EQUIPMENT__ below.
 
 4. test the new code: see <code/tool/testrunner.py>
 
 5. build the release: see __BUILD__ below.
 
 
-__TOOLS__
+__EQUIPMENT__
 
-You need a Windows box.  I used sandpiper, which has P4, VisualC++, and cygwin on it already.  
+You need a Windows box.  I used bowerbird, which has P4, VisualC++, and cygwin on it already.  
 
 Set-up a login and password if necessary.  To prevent pwd expiry, use Start > Programs > Admin Tools > User Manager.  To make cmd windows tab-complete filenames, do this:  Start > Run > regedit.  HKEY_CURRENT_USER > Software > Microsoft > Command Processor > CompletionChar = 9.  
 
 If you want to access remotely from a Mac, use "Chicken of the VNC", eg. 2.02b2.  You'll need the VNC session-password (not the same as your NT login password).  Remember how to escape from Full-screen: Cmd-Opt-Ctrl-` (backquote); and how to right-click: depress and release Shift-key, then click.  
 
-To copy ad-hoc files (like build output) to and from a Mac, mount sandpiper's disk on your Mac.  Finder > Go > Network > Network > Ravenbrook > Sandpiper.  Be patient: list of servers may take some seconds to fully update/populate.  For a machine in its own workgroup, it may be more like Finder > Go > Network > Network > Workgroup > Bowerbird.  By default XP has "simple file-sharing", so if you share the whole disk you still don't share stuff in Documents and Settings.  To fix this: turn off "simple file-sharing" by clearing the check-box at Control Panel > Folder Options > View > "Use simple file sharing (Recommended)"; and go back to the share point (eg. C:\) > Properties > Sharing > Permissions, and make it BOWERBIRD\Users who have access (not Everyone).  
+To copy ad-hoc files (like build output) to and from a Mac, mount bowerbird's disk on your Mac.  Finder > Go > Network > Network > Ravenbrook > Bowerbird.  Be patient: list of servers may take some seconds to fully update/populate.  For a machine in its own workgroup, it may be more like Finder > Go > Network > Network > Workgroup > Bowerbird.  By default XP has "simple file-sharing", so if you share the whole disk you still don't share stuff in Documents and Settings.  To fix this: turn off "simple file-sharing" by clearing the check-box at Control Panel > Folder Options > View > "Use simple file sharing (Recommended)"; and go back to the share point (eg. C:\) > Properties > Sharing > Permissions, and make it BOWERBIRD\Users who have access (not Everyone).  
 
-Start > Programs > P4Win.  Set-up a P4 client (rhsk-sandpiper).  It should be using port 1666.  There is no need to ssh / tunnel, because sandpiper is on the Ravenbrook ethernet.  Set-up the client map.  P4sync to check it's working.  
+Start > Programs > P4Win.  Set-up a P4 client (rhsk-bowerbird).  It should be using port 1666.  There is no need to ssh / tunnel, because bowerbird is on the Ravenbrook ethernet.  Set-up the client map.  P4sync to check it's working.  
 
 Or, for command-line p4, first need to do "p4 set" to set P4USER, P4CLIENT, and P4PORT (eg. "p4 set P4USER=rhsk").  This sets things in the registry, so it is persistent.  
 
@@ -49,7 +49,7 @@ First, clean out the place code will be built in, and sync to the right changele
 
 cd code
 
-"C:\Program Files\Microsoft Visual Studio\VC98\Bin\vcvars32.bat".  (This also sets up the path so you can just type "nmake").  
+You may need to do "C:\Program Files\Microsoft Visual Studio\VC98\Bin\vcvars32.bat".  (This also sets up the path so you can just type "nmake").  
 
 Invoke w3build.
 
@@ -59,7 +59,7 @@ is right, but no, you want:  //info.ravenbrook.com/project/mps/master/code/w3bui
 )
 
 This makes a release directory, eg:
-duck:/Volumes/SANDPIPER-C/rhsk/master/code/release richardk$ find . '-type' d '-print'
+duck:/Volumes/BOWERBIRD-C/rhsk/master/code/release richardk$ find . '-type' d '-print'
 .
 ./include
 ./lib
@@ -70,7 +70,7 @@ duck:/Volumes/SANDPIPER-C/rhsk/master/code/release richardk$ find . '-type' d '-
 ./lib/w3i3/wi
 ./src
 
-Make a tar archive of the release directory.  (Sandpiper has cygwin, which includes GNU tar, etc.).  Use this command:
+Make a tar archive of the release directory.  (Bowerbird has cygwin, which includes GNU tar, etc.).  Use this command:
   "tar cfz MMconfigura-A.BBB.C-DDDDDD.tgz release"
 A.BBB.C is the release name.  DDDDDD is the release origin changelevel (which, for release A.BBB.0, is usually the changelevel of the integrate that first populated the version branch with files).  
 
@@ -82,7 +82,7 @@ Once successfully tested, update infosys.  See <http://info.ravenbrook.com/proje
 
 Make sure it is sync'd to www.ravenbrook.com.  NB knows magic to do this.  [RHSK notes: needs a procedure].  Then send an email with a pointer to the release.  
 
-(You could also, separately, email it as an attachment.  But this is NOT reliable: it may get stuck in a virus filter.)
+(You could also send it attached to a separate email.  But this is NOT reliable: it may get stuck in a virus filter.)
 
 END OF PROCEDURE
 
