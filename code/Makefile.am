@@ -25,6 +25,22 @@ lib_LIBRARIES = libmpshi.a libmpsci.a
 libmpshi_a_CFLAGS = -DCONFIG_PROD_MPS -DCONFIG_VAR_HI -DNDEBUG
 libmpsci_a_CFLAGS = -DCONFIG_PROD_MPS -DCONFIG_VAR_CI
 
+
+# Tests
+
+TESTS = amcss
+EXTRA_PROGRAMS = amcss
+
+FMTDYTST = fmtdy.c fmtno.c fmtdytst.c
+AMC = poolamc.c
+PLINTH = mpsliban.c mpsioan.c
+TESTLIB = testlib.c
+
+amcss_SOURCES = $(FMTDYTST) $(PLINTH) $(AMC) $(TESTLIB)
+amcss_CFLAGS = -DCONFIG_PROD_MPS -DCONFIG_VAR_CI
+amcss_LDADD = libmpsci.a
+
+
 # Sources for each variety.
 # Each block is identical to the first block, but with the variety changed.
 # Automake is too stupid to allow me to write this with a loop.
@@ -34,7 +50,7 @@ if XCPPGC
 libmpshi_a_SOURCES = $(MPMCOMMON) $(MPM_PF_XCPPGC)
 else
 if XCI3GC
-libmpshi_a_SOURCES = $(MPMCOMMON) $(MPM_PF_UNKNOWN)
+libmpshi_a_SOURCES = $(MPMCOMMON) $(MPM_PF_XCI3GC)
 else
 libmpshi_a_SOURCES = $(MPMCOMMON) $(MPM_PF_UNKNOWN)
 endif
@@ -44,7 +60,7 @@ if XCPPGC
 libmpsci_a_SOURCES = $(MPMCOMMON) $(MPM_PF_XCPPGC)
 else
 if XCI3GC
-libmpsci_a_SOURCES = $(MPMCOMMON) $(MPM_PF_UNKNOWN)
+libmpsci_a_SOURCES = $(MPMCOMMON) $(MPM_PF_XCI3GC)
 else
 libmpsci_a_SOURCES = $(MPMCOMMON) $(MPM_PF_UNKNOWN)
 endif

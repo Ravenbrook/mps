@@ -10,6 +10,8 @@ AC_INIT([Memory Pool System], [1.106.2], [mps-bugs@ravenbrook.com], [mps])
 AC_CONFIG_AUX_DIR([config])
 AC_CONFIG_SRCDIR([code/mpm.c])
 
+AC_CANONICAL_BUILD
+AC_CANONICAL_HOST
 AC_CANONICAL_TARGET
 
 AM_INIT_AUTOMAKE
