@@ -1,0 +1,114 @@
+# Jamfile -- Instructions for building the Memory Pool System (MPS)
+#
+# Richard Brooksby, Ravenbrook Limited, 2006-05-13
+#
+# $Id$
+#
+# This file is input to Jam <http://www.perforce.com/jam/jam.html>, which
+# is a "make" replacement, which we use because make programs (even GNU Make,
+# Automake, etc.) is too stupid to build MPS varieties.  Actually, we did
+# have it going with GNU Make for quite a while, but it was a horribly tangly
+# recursive mess.
+#
+# NOTES
+#
+# 1. Need a way to detect which C compiler we're using and add flags for
+# warnings etc.  Also want to add "-f" flags to build Universal binaries on
+# Intel Macs, etc.
+#
+# 2. It should be fairly easy to get cross-compilation working, overriding
+# the OS and OSPLAT variables and passing the right flags to the compiler.
+#
+
+libraries = mps ;
+tests = amcss mpmss ;
+varieties = hi ci ;
+
+ccflags_common = -DCONFIG_PROD_MPS ;
+ccflags_hi = $(ccflags_common) -DCONFIG_VAR_HI ;
+ccflags_ci = $(ccflags_common) -DCONFIG_VAR_CI ;
+
+mps_sources =
+  mpsi.c mpm.c arenavm.c arenacl.c arena.c global.c locus.c tract.c
+  walk.c reserv.c protocol.c pool.c poolabs.c trace.c root.c seg.c
+  format.c buffer.c ref.c bt.c ring.c shield.c ld.c event.c sac.c
+  message.c poolmrg.c poolmfs.c poolmv.c dbgpool.c dbgpooli.c boot.c
+  meter.c splay.c cbs.c version.c
+;
+
+mps_sources_MACOSX_PPC = 
+    lockan.c than.c vmxc.c protxc.c protxcpp.c prmcan.c span.c ssxcpp.s
+;
+
+amcss_sources =
+    amcss.c fmtdy.c fmtno.c fmtdytst.c mpsliban.c mpsioan.c poolamc.c
+    testlib.c
+;
+
+amcss_libraries = mps ;
+
+mpmss_sources = mpmss.c mpsliban.c mpsioan.c poolmvff.c testlib.c ;
+mpmss_libraries = mps ;
+
+
+# From here down it's just rules and shouldn't need modifying as long as
+# the structure of the build doesn't change.
+
+# For every thing we're going to build, append platform specific sources to
+# the list of sources.
+
+for thing in $(libraries) $(tests) {
+  if $($(thing)_sources_$(OS)_$(OSPLAT)) {
+    $(thing)_sources += $($(thing)_sources_$(OS)_$(OSPLAT)) ;
+  }
+}
+
+for variety in $(varieties) {
+
+  # We're going to build one of everything for each variety into subdirectories
+  # under the "build" directory.
+
+  MkDir build/$(variety) ;
+
+  # This is how to make a library from object files.
+
+  for library in $(libraries) {
+    LibraryFromObjects build/lib$(library)$(variety) : build/$(variety)/$($(library)_sources:S=$(SUFOBJ)) ;
+    Depends build/$(variety)/$(library) : build/$(variety) ;
+  }
+
+  # This is how to make a test program from object files.
+
+  for test in $(tests) {
+    MainFromObjects build/$(variety)/$(test) : build/$(variety)/$($(test)_sources:S=$(SUFOBJ)) ;
+    LinkLibraries build/$(variety)/$(test) : build/lib$($(test)_libraries)$(variety) ;
+    Depends build/$(variety)/$(test) : build/$(variety) ;
+  }
+
+  # This is how to make object files from source files.
+  
+  for thing in $(libraries) $(tests) {
+    for source in $($(thing)_sources) {
+      Object build/$(variety)/$(source:S=$(SUFOBJ)) : code/$(source) ;
+      Depends build/$(variety)/$(source:S=$(SUFOBJ)) : build/$(variety) ;
+      ObjectCcFlags build/$(variety)/$(source:S=$(SUFOBJ)) : $(ccflags_$(variety)) ;
+    }
+  }
+}
+
+prefix = /usr/local ;
+exec_prefix = $(prefix) ;
+bindir = $(exec_prefix)/bin ;
+sbindir = $(exec_prefix)/sbin ;
+libexecdir = $(exec_prefix)/libexec ;
+datadir = $(prefix)/share ;
+sysconfdir = $(prefix)/etc ;
+libdir = $(exec_prefix)/lib ;
+mandir = $(prefix)/man ;
+includedir = $(prefix)/include ;
+
+for variety in $(varieties) {
+  for library in $(libraries) {
+    InstallLib $(libdir) : build/$(library)$(variety) ;
+  }
+}
