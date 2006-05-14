@@ -1,0 +1,26 @@
+#! /bin/sh
+# configure -- Configure MPS distribution for building.
+# Richard Brooksby, Ravenbrook Limited, 2006-05-14
+# $Id$
+
+echo "$0: Checking for Jam/MR..."
+if test -f bin/jam -a -x bin/jam; then :; else
+  echo "$0: Building Jam/MR..."
+  test -d bin || mkdir bin
+  (cd tool/jam && make jam0 && ./jam0 -sLOCATE_TARGET=.) &&
+  ln tool/jam/jam bin/jam
+fi
+
+echo "$0: Generating Makefile..."
+cat > Makefile <<EOF
+all: .phony
+	@bin/jam
+
+clean: .phony
+	@bin/jam clean
+
+install: .phony
+	@bin/jam install
+
+.phony:
+EOF
