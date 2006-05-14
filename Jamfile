@@ -20,13 +20,16 @@
 # the OS and OSPLAT variables and passing the right flags to the compiler.
 #
 
+Echo $(OSFULL) ;
+
 libraries = mps ;
 tests = amcss mpmss ;
 varieties = hi ci ;
 
-ccflags_common = -DCONFIG_PROD_MPS ;
-ccflags_hi = $(ccflags_common) -DCONFIG_VAR_HI ;
-ccflags_ci = $(ccflags_common) -DCONFIG_VAR_CI ;
+defs = CONFIG_PROD_MPS ;
+defs_hi = CONFIG_VAR_HI ;
+defs_ci = CONFIG_VAR_CI ;
+defs_NT = WIN32 WINDOWS ;
 
 mps_sources =
   mpsi.c mpm.c arenavm.c arenacl.c arena.c global.c locus.c tract.c
@@ -37,18 +40,49 @@ mps_sources =
 ;
 
 mps_sources_MACOSX_PPC = 
-    lockan.c than.c vmxc.c protxc.c protxcpp.c prmcan.c span.c ssxcpp.s
+  lockan.c than.c vmxc.c protxc.c protxcpp.c prmcan.c span.c ssxcpp.s
+;
+
+mps_sources_NT_X86 =
+  abq.c lockw3.c mpsiw3.c poolmv2.c prmci3w3.c proti3.c protw3.c spi3.c
+  ssw3i3.c thw3i3.c vmw3.c
 ;
 
 amcss_sources =
-    amcss.c fmtdy.c fmtno.c fmtdytst.c mpsliban.c mpsioan.c poolamc.c
-    testlib.c
+  amcss.c fmtdy.c fmtno.c fmtdytst.c mpsliban.c mpsioan.c poolamc.c
+  testlib.c
 ;
-
 amcss_libraries = mps ;
 
 mpmss_sources = mpmss.c mpsliban.c mpsioan.c poolmvff.c testlib.c ;
 mpmss_libraries = mps ;
+
+
+# Options for the commands in the various toolsets
+
+toolsets = gc mv ;
+
+# GNU toolset, in particular GCC
+
+ccopts_gc = 
+    -ansi -pedantic -Wall -Werror -Wpointer-arith -Wstrict-prototypes
+    -Wmissing-prototypes -Winline -Waggregate-return -Wnested-externs
+    -Wcast-qual -Wshadow
+  ;
+
+# Microsoft Visual C toolset
+
+ccopts_mv = /nologo /W4 /WX ;
+ccopts_mv_hi = /MT /Ox /DNDEBUG ;
+ccopts_mv_ci = /MT /Od /Zi ;
+
+
+# Flagrant assumptions about the toolset based on the platform.
+
+switch $(OS) {
+case MACOSX : toolset = gc ;
+case NT : toolset = mv ;
+}
 
 
 # From here down it's just rules and shouldn't need modifying as long as
@@ -91,19 +125,19 @@ for variety in $(varieties) {
     for source in $($(thing)_sources) {
       Object build/$(variety)/$(source:S=$(SUFOBJ)) : code/$(source) ;
       Depends build/$(variety)/$(source:S=$(SUFOBJ)) : build/$(variety) ;
-      ObjectCcFlags build/$(variety)/$(source:S=$(SUFOBJ)) : $(ccflags_$(variety)) ;
+      ObjectCcFlags build/$(variety)/$(source:S=$(SUFOBJ)) :
+        $(ccopts_$(toolset))
+        $(ccopts_$(toolset)_$(variety))
+        -D$(defs)
+        -D$(defs_$(variety))
+        -D$(defs_$(OS))
+      ;
     }
   }
 }
 
-prefix = /usr/local ;
-exec_prefix = $(prefix) ;
-bindir = $(exec_prefix)/bin ;
-sbindir = $(exec_prefix)/sbin ;
-libexecdir = $(exec_prefix)/libexec ;
-datadir = $(prefix)/share ;
-sysconfdir = $(prefix)/etc ;
-libdir = $(exec_prefix)/lib ;
+prefix ?= /usr/local ;
+libdir = $(prefix)/lib ;
 mandir = $(prefix)/man ;
 includedir = $(prefix)/include ;
 
