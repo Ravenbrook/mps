@@ -1,3 +1,7 @@
+#ifndef YYERRCODE
+#define YYERRCODE 256
+#endif
+
 #define _BANG_t 257
 #define _BANG_EQUALS_t 258
 #define _AMPER_t 259
