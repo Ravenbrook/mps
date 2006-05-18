@@ -20,7 +20,9 @@
 # the OS and OSPLAT variables and passing the right flags to the compiler.
 #
 
-Echo $(OSFULL) ;
+Echo "OSFULL" $(OSFULL) ;
+Echo "OS" $(OS) ;
+Echo "OSPLAT" $(OSPLAT) ;
 
 libraries = mps ;
 tests = amcss mpmss ;
@@ -43,6 +45,10 @@ mps_sources_MACOSX_PPC =
   lockan.c than.c vmxc.c protxc.c protxcpp.c prmcan.c span.c ssxcpp.s
 ;
 
+mps_sources_LINUX_X86 =
+  lockli.c thlii4.c pthrdext.c vmli.c protli.c protlii3.c proti3.c prmci3li.c sslii3.c span.c
+;
+
 mps_sources_NT_X86 =
   abq.c lockw3.c mpsiw3.c poolmv2.c prmci3w3.c proti3.c protw3.c spi3.c
   ssw3i3.c thw3i3.c vmw3.c
@@ -53,9 +59,11 @@ amcss_sources =
   testlib.c
 ;
 amcss_libraries = mps ;
+amcss_linklibs_LINUX_X86 = -lm -lpthread ;
 
 mpmss_sources = mpmss.c mpsliban.c mpsioan.c poolmvff.c testlib.c ;
 mpmss_libraries = mps ;
+mpmss_linklibs_LINUX_X86 = -lm -lpthread ;
 
 
 # Options for the commands in the various toolsets
@@ -116,6 +124,7 @@ for variety in $(varieties) {
   for test in $(tests) {
     MainFromObjects build/$(variety)/$(test) : build/$(variety)/$($(test)_sources:S=$(SUFOBJ)) ;
     LinkLibraries build/$(variety)/$(test) : build/lib$($(test)_libraries)$(variety) ;
+    LINKFLAGS on build/$(variety)/$(test) = $($(test)_linklibs_$(OS)_$(OSPLAT)) ;
     Depends build/$(variety)/$(test) : build/$(variety) ;
   }
 
