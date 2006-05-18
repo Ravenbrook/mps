@@ -9,7 +9,7 @@ if test -f bin/jam -a -x bin/jam; then :; else
   test -d bin || mkdir bin
   # There's no reason to fully bootstrap Jam, and in any case this would
   # require Yacc, which we don't want to assume is available.
-  (cd tool/jam && make jam0) && ln tool/jam/jam0 bin/jam
+  (cd tool/jam && make ./jam0) && ln tool/jam/jam0 bin/jam
 fi
 
 echo "$0: Generating Makefile..."
