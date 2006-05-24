@@ -120,31 +120,31 @@ for variety in $(varieties) {
   # We're going to build one of everything for each variety into subdirectories
   # under the "build" directory.
 
-  MkDir build/$(variety) ;
+  MkDir build$(SLASH)$(variety) ;
 
   # This is how to make a library from object files.
 
   for library in $(libraries) {
-    LibraryFromObjects build/lib$(library)$(variety) : build/$(variety)/$($(library)_sources:S=$(SUFOBJ)) ;
-    Depends build/$(variety)/$(library) : build/$(variety) ;
+    LibraryFromObjects build$(SLASH)lib$(library)$(variety) : build$(SLASH)$(variety)$(SLASH)$($(library)_sources:S=$(SUFOBJ)) ;
+    Depends build$(SLASH)$(variety)$(SLASH)$(library) : build$(SLASH)$(variety) ;
   }
 
   # This is how to make a test program from object files.
 
   for test in $(tests) {
-    MainFromObjects build/$(variety)/$(test) : build/$(variety)/$($(test)_sources:S=$(SUFOBJ)) ;
-    LinkLibraries build/$(variety)/$(test) : build/lib$($(test)_libraries)$(variety) ;
-    LINKFLAGS on build/$(variety)/$(test) = $($(test)_linklibs_$(OS)) ;
-    Depends build/$(variety)/$(test) : build/$(variety) ;
+    MainFromObjects build$(SLASH)$(variety)$(SLASH)$(test) : build$(SLASH)$(variety)$(SLASH)$($(test)_sources:S=$(SUFOBJ)) ;
+    LinkLibraries build$(SLASH)$(variety)$(SLASH)$(test) : build$(SLASH)lib$($(test)_libraries)$(variety) ;
+    LINKFLAGS on build$(SLASH)$(variety)$(SLASH)$(test) = $($(test)_linklibs_$(OS)) ;
+    Depends build$(SLASH)$(variety)$(SLASH)$(test) : build$(SLASH)$(variety) ;
   }
 
   # This is how to make object files from source files.
   
   for thing in $(libraries) $(tests) {
     for source in $($(thing)_sources) {
-      Object build/$(variety)/$(source:S=$(SUFOBJ)) : code/$(source) ;
-      Depends build/$(variety)/$(source:S=$(SUFOBJ)) : build/$(variety) ;
-      ObjectCcFlags build/$(variety)/$(source:S=$(SUFOBJ)) :
+      Object build$(SLASH)$(variety)$(SLASH)$(source:S=$(SUFOBJ)) : code$(SLASH)$(source) ;
+      Depends build$(SLASH)$(variety)$(SLASH)$(source:S=$(SUFOBJ)) : build$(SLASH)$(variety) ;
+      ObjectCcFlags build$(SLASH)$(variety)$(SLASH)$(source:S=$(SUFOBJ)) :
         $(ccopts_$(toolset))
         $(ccopts_$(toolset)_$(variety))
         -D$(defs)

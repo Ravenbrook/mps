@@ -206,11 +206,12 @@ if $(NT)
 	STDHDRS		?= $(MSVC)\\include ;
 	UNDEFFLAG	?= "/u _" ;
     }
-    else if $(MSVCNT) || $(MSVCDIR)
+    else if $(MSVCNT) || $(MSVCDIR) || $(MSVCDir)
     {
 	# Visual C++ 6.0 uses MSVCDIR
 
 	MSVCNT		?= $(MSVCDIR) ;	
+	MSVCNT		?= $(MSVCDir) ;	
 
 	# bury IA64 in the path for the SDK
 
