@@ -48,8 +48,26 @@ This document is not confidential.
 
 2. WHAT'S NEW; STATUS
 
-This is release 1.106.2, made on 2006-04-11.
+[
+......Post 1.106.2 changes:
 
+Functional changes to MPS code:
+
+<http://www.ravenbrook.com/project/mps/issue/job001455/>
+Defect discovered:
+  - if there was a pool of pool-class LO (leaf-only objects,
+    see mps_class_lo), the mps_arena_formatted_objects_walk() 
+    call would fail.
+Fixed: mps_arena_formatted_objects_walk() will now work.
+
+Other changes:
+
+<http://www.ravenbrook.com/project/mps/issue/job001421/>
+  - the default "all" build now builds mps library and plinth, on 
+    all platforms.
+]
+
+This is release 1.106.2, made on 2006-04-11.
 Changes from release 1.106.1:
 
 No functional changes to MPS implementation code.
@@ -294,6 +312,7 @@ B. DOCUMENT HISTORY
 2006-01-30  RHSK  Update from "1.100.1" to "1.106.1".
 2006-03-30  RHSK  Add section 2: What's new.
 2006-04-11  RHSK  Update from "1.106.1" to "1.106.2".
+2006-06-29  RHSK  Note fixed job001421, job001455.
 
 
 C. COPYRIGHT AND LICENSE
