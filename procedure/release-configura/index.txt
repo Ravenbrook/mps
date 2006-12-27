@@ -72,19 +72,26 @@ duck:/Volumes/BOWERBIRD-C/rhsk/master/code/release richardk$ find . '-type' d '-
 
 Make a tar archive of the release directory.  (Bowerbird has cygwin, which includes GNU tar, etc.).  Use this command:
   "tar cfz MMconfigura-A.BBB.C-DDDDDD.tgz release"
-A.BBB.C is the release name.  DDDDDD is the release origin changelevel (which, for release A.BBB.0, is usually the changelevel of the integrate that first populated the version branch with files).  
+A.BBB.C is the release name.  DDDDDD is the release origin changelevel.  
 
 p4 add this under mps/release.  (It's your first candidate build for release A.BBB.C).  
 
-Test it.  (Copy to new place and extract with "tar xfz MMconfigura-A.BBB.C-DDDDDD.tgz"; note: do not use auto-complete on the tgz filename, because a full pathname confuses tar).  
+Test it.  (Copy to new place and extract with "tar xfz MMconfigura-A.BBB.C-DDDDDD.tgz"; note: do not use auto-complete on the tgz filename, because a full pathname confuses tar.  Consider using tool/test-runner.py to run various tests, repeatedly.)
 
 Once successfully tested, update infosys.  See <http://info.ravenbrook.com/project/mps/master/procedure/release-build/>.  Remember to update issue.cgi.  
 
-Make sure it is sync'd to www.ravenbrook.com.  NB knows magic to do this.  [RHSK notes: needs a procedure].  Then send an email with a pointer to the release.  
+Make sure it is sync'd to www.ravenbrook.com.  (As of 2006, this should happen automatically every 10 minutes).  Then send an email with a pointer to the release.  
 
 (You could also send it attached to a separate email.  But this is NOT reliable: it may get stuck in a virus filter.)
 
 END OF PROCEDURE
+
+
+DOCUMENT HISTORY
+
+2005-10-03  RHSK  Created.
+2006-12-27  RHSK  Minor tweaks: drop incorrect release origin comment; www auto-syncs now.
+
 
 COPYRIGHT AND LICENSE
 
