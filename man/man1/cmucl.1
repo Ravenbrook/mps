@@ -1,0 +1,347 @@
+.\" -*- Mode: Text -*-
+.\"
+.\" **********************************************************************
+.\" This code was written as part of the CMU Common Lisp project at
+.\" Carnegie Mellon University, and has been placed in the public domain.
+.\" If you want to use this code or any part of CMU Common Lisp, please contact
+.\" Scott Fahlman or slisp-group@cs.cmu.edu.
+.\"
+.\"$Header: /project/cmucl/cvsroot/src/general-info/cmucl.1,v 1.13 2003/11/11 16:01:14 toy Exp $
+.\"
+.\" **********************************************************************
+.\"
+.\"  Man page introduction to CMU CL.
+.TH CMUCL 1 "October 15, 1991"
+.AT 3
+.SH NAME
+cmucl \- CMU Common Lisp
+
+.SH DESCRIPTION
+
+CMU Common Lisp is public domain "industrial strength" Common Lisp programming
+environment.  Many of the X3j13 changes have been incorporated into CMU CL.
+Wherever possible, this has been done so as to transparently allow use of
+either CLtL1 or proposed ANSI CL.  Probably the new features most interesting
+to users are SETF functions, LOOP and the WITH-COMPILATION-UNIT macro.
+
+.SH HARDWARE REQUIREMENTS
+
+CMU CL is currently available for a variety of Unix workstations.  See the
+README file for current platforms.  At least 16 megabytes of memory and 25
+megabytes of disk space are recommended.  As usual, more is better.
+
+.SH OVERVIEW
+When compared other Common Lisp implementations, CMU CL has
+two broad advantages:
+.TP 3
+\--
+The new CMU CL compiler (Python) is more sophisticated than other
+Common Lisp compilers.  It both produces better code and is easier to use.
+.TP 3
+\--
+The programming environment based on the Hemlock editor is better
+integrated than gnu-emacs based environments.  (Though you can still use
+GNU if you want.)
+.PP
+
+CMU CL also has significant non-technical advantages:
+.TP 3
+\--
+It has good local support for CMU users, and is well integrated with the
+CMU CS environment.
+.TP 3
+\--
+It is public domain, and is freely available to non-CMU sites that aren't
+able to afford a site-license for a commercial Lisp.
+
+
+.SH COMPILER FEATURES
+
+The `Advanced Compiler' chapter of the User's manual extensively discusses
+Python's optimization capabilities (See DOCUMENTATION below.)  Here are a few
+high points:
+.TP 3
+\--
+Good efficiency and type-checking 
+.I at the same time.
+Compiling code safe gives a 2x speed reduction at worst.
+.TP 3
+\--
+In safe code, type declarations are verified, allowing declarations to
+be debugged in safe code.  When you go to compile unsafe, you know the
+declarations are right.
+.TP 3
+\--
+Full source level debugging of compiled code, including display of the
+exact call that got an error.
+.TP 3
+\--
+Good efficiency notes that tell you why an operation can't be open coded
+or where you are number-consing, and that provide unprecedented source context
+.TP 3
+\--
+Block compilation, partial evaluation, lightweight functions and proper
+tail-recursion allow low-cost use of function call abstraction.
+.PP
+
+.SH TYPE SUPPORT
+
+.B Important note:
+Even debugged programs may contain type errors that remain undetected by
+other compilers.  When compiled with type checking suppressed using the
+CMU Common Lisp compiler, these type errors may cause said debugged
+programs to die strangely.  If type checking is not suppressed, these
+programs will die with an explicit type error. 
+
+The most visible way in which Python differs from previous Common Lisp
+compilers is that it has a greater knowledge about types and a different
+approach to type checking.  In particular, Python implements type checking
+which is `eager' and `precise':
+.TP 3
+\--
+Eager in the sense that type checking is done immediately whenever there is
+a declaration, rather than being delayed until the the value is actually
+used.  For example:
+.nf
+    (let ((x ...))
+.br
+      (declare (fixnum x))
+.br
+      ...)
+.br
+.fi
+Here, the type of the initial value of X must be a FIXNUM or an error will
+be signalled.
+.TP 3
+\--
+Precise in the sense that the exact type specified is checked.  For
+example, if a variable is declared to be of type (integer 3 7), then the
+value must always be an integer between 3 and 7.
+.PP
+
+Since Python does more type checking, programs that work fine when compiled
+with other compilers may get type errors when compiled with Python.  It is
+important to initially compile programs with the default (safe) policy, and
+then test this version.  If a program with an erroneous declaration is compiled
+with type checking suppressed (due to the SAFETY optimize quality being
+reduced), then the type error may cause obscure errors or infinite looping.
+See the section `Getting Existing Programs to Run' (6.6) in the compiler
+chapter of the user manual.
+
+CMU CL adheres to the X3J13 function type cleanup, which means that quoted
+lambda-lists are not of type FUNCTION, and are no longer directly callable.
+Use COERCE with the FUNCTION result type.
+
+.SH OPTIMIZATION
+
+Python does many optimizations that are absent or less general in other
+Common Lisp compilers:
+Proper tail recursion, lightweight function call, block compilation,
+inter-procedural type inference, global flow analysis, dynamic type
+inference, global register allocation, stack number allocation, control
+optimization, integer range analysis, enhanced inline expansion, multiple
+value optimization and source-to-source transforms.
+
+Optimization and type-checking are controlled by the OPTIMIZE declaration.  The
+default compilation policy is type-safe.
+
+.SH NUMERIC SUPPORT
+
+Python is particular good at number crunching:
+.TP 3
+\--
+Good inline coding of float and 32 bit integer operations, with no
+number consing.  This includes all the hardware primitives ROUND,
+TRUNCATE, COERCE, as well as important library routines such as
+SCALE-FLOAT and DECODE-FLOAT.  Results that don't fit in registers go
+on a special number stack.
+.TP 3
+\--
+Full support for IEEE single and double (denorms, +-0, etc.)
+.TP 3
+\--
+In block compiled code, numbers are passed as function arguments and
+return values in registers (and without number consing.)
+.TP 3
+\--
+Calls to library functions (SIN, ...) are optimized to a direct call to
+the C library routine (with no number consing.)  On hardware with
+direct support for such functions, these operations can easily be
+open-coded.
+.TP 3
+\--
+
+Substantially better bignum performance than commercial implementations
+(2x-4x).  Bignums implemented in lisp using word integers, so you can roll your
+own.
+.PP
+
+Python's compiler warnings and efficiency notes are especially valuable in
+numeric code.  50+ pages in the user manual describe Python's capabilities in
+more detail.
+
+
+.SH THE DEBUGGER
+
+In addition to a Motif-based windowing interface and a basic command-line
+interface, the debugger also has several powerful new features:
+.TP 3
+\--
+The "source" and "vsource" commands print the *precise* original source
+form responsible for the error or pending function call.  It is no longer
+necessary to guess which call to CAR caused some "not a list" error.
+.TP 3
+\--
+Variables in compiled code can be accessed by name, so the debugger always
+evaluates forms in the lexical environment of the current frame.  This 
+variable access is robust in the presence of compiler optimization ---
+although higher levels of optimization may make variable values unavailable
+at some locations in the variable's scope, the debugger always errs on the
+side of discretion, refusing to display possibly incorrect values.
+.TP 3
+\--
+Compiled code can be stepped, stopping at each control transfer.
+.TP 3
+\--
+Integration with the Hemlock editor.  In a slave, the "edit" command causes the
+editor edit the source for the current code location.  The editor can also send
+non-line-mode input to the debugger using C-M-H bindings.  Try apropos "debug"
+in Hemlock.
+.PP
+See the debugger chapter in the user manual for more details.  We are working
+on integrating the debugger with Hemlock and X windows.
+
+.SH THE GRAPHICAL INTERFACE
+
+CMU Common Lisp has an interface to Motif which is functionally similar to
+CLM, but works better in CMU CL.  See:
+.IP "" .2i
+.br
+    doc/motif-toolkit.doc
+.br
+    doc/motif-internals.doc
+.PP
+
+This motif interface has been used to write the inspector and graphical
+debugger.  There is also a Lisp control panel with a simple file management
+facility, apropos and inspector dialogs, and controls for setting global
+options.
+
+Call INTERFACE:LISP-CONTROL-PANEL to create the control panel.  When
+INTERFACE:*INTERFACE-STYLE* is :GRAPHICS (the default) and the DISPLAY
+environment variable is defined, the graphical inspector and debugger will be
+invoked by INSPECT or when an error is signalled.  Possible values are
+:GRAPHICS and :TTY.  If the value is :GRAPHICS, but there is no X display,
+then we quietly use the TTY interface.
+
+.SH THE INTERPRETER
+
+As far as Common Lisp semantics are concerned, there is no interpreter; this is
+effectively a compile-only implementation.  Forms typed to the read-eval-print
+loop or passed to EVAL are in effect compiled before being run.  In
+implementation, there is an interpreter, but it operates on the internal
+representation produced by the compiler's font-end.
+
+It is not recommended that programs be debugged by running the whole program
+interpreted, since Python and the debugger eliminate the main reasons for
+debugging using the interpreter:
+.TP 3
+\--
+Compiled code does much more error checking than interpreted code.
+.TP 3
+\--
+It is as easy to debug compiled code as interpreted code.
+.PP
+
+Note that the debugger does not currently support single-stepping.  Also, the
+interpreter's pre-processing freezes in the macro definitions in effect at the
+time an interpreted function is defined.  Until we implement automatic
+reprocessing when macros are redefined, it is necessary to re-evaluate the
+definition of an interpreted function to cause new macro definitions to be
+noticed.
+
+.SH DOCUMENTATION
+
+The CMU CL documentation is printed as tech reports, and is available (at CMU)
+in the document room:
+.IP "" .2i
+.br
+CMU Common Lisp User's Manual
+.br
+Hemlock User's Manual
+.br
+Hemlock Command Implementor's Manual
+.PP
+
+Non-CMU users may get documentation from the doc/ directory in the binary
+distribution:
+.TP 10n
+.BR cmu-user.info
+CMU CL User's Manual in Gnu Info format.  The ``cmu-user.info-<N>'' files
+are subfiles.  You can either have your EMACS
+maintainer install this in the info root, or you can use the info 
+``g(...whatever.../doc/cmu-user.info)'' command.
+.TP
+.BR cmu-user.ps
+The CMU CL User's Manual (148 pages) in postscript format.  LaTeX source and
+DVI versions are also available.
+.TP
+.BR release-notes.txt
+Information on the changes between releases.
+.TP
+.BR hemlock-user.ps
+Postscript version of the Hemlock User's Manual (124 pages.)
+.TP
+.BR hemlock-cim.ps
+Postscript version of the Hemlock Command Implementor's Manual (96 pages).
+.PP
+\
+
+.SH SUPPORT
+
+Bug reports should be sent to cmucl-bugs@cs.cmu.edu.  Please consult
+your local CMU CL maintainer or Common Lisp expert to verify that 
+the problem really is a bug before sending to this list.
+
+The CMU Common Lisp project is no longer funded, so only minimal support is
+being done at CMU.  There is a net community of \cmucl{} users and maintainers
+who communicate via comp.lang.lisp and the cmucl-bugs@cs.cmu.edu mailing list.
+
+.SH DISTRIBUTION
+
+CMU Common Lisp is a public domain implementation of Common Lisp.  Both sources
+and executables are freely available via anonymous FTP; this software is 
+"as is", and has no warranty of any kind.  CMU and the authors assume no
+responsibility for the consequences of any use of this software.  See the
+README file in the distribution for FTP instructions.
+
+.SH ABOUT THE CMU COMMON LISP PROJECT
+
+Organizationally, CMU Common Lisp was a small, mostly autonomous part within
+the Mach operating system project.  The CMU CL project was more of a tool
+development effort than a research project.  The project started out as Spice
+Lisp, which provided a modern Lisp implementation for use in the CMU community.
+CMU CL has been under continuous development since the early 1980's (concurrent
+with the Common Lisp standardization effort.)  Most of the CMU Common Lisp
+implementors are now working on the Gwydion environment for Dylan (see
+http://legend.gwydion.cs.cmu.edu:8001/gwydion/.)
+
+CMU CL was funded by DARPA under CMU's "Research on Parallel Computing"
+contract.  Rather than doing pure research on programming languages and
+environments, the emphasis was on developing practical programming tools.
+Sometimes this required new technology, but much of the work was in creating a
+Common Lisp environment that incorporates state-of-the-art features from
+existing systems (both Lisp and non-Lisp.)
+
+Because sources are freely available, CMU Common Lisp has been ported to
+experimental hardware, and used as a basis for research in programming language
+and environment construction.
+
+.SH SEE ALSO
+lisp(1), README
+.br
+The ``CMU Common Lisp User's Manual'',
+.br
+the ``Hemlock User's Manual'', and 
+.br
+the ``Hemlock Command Implementor's Manual''

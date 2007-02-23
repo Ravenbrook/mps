@@ -1,0 +1,5 @@
+#!/bin/sh
+#
+# This file script invokes CMU CL with the Lisp configuration script, which
+# will go into an interactive dialog to determine what systems to load.
+lisp -eval '(load (open "library:config.lisp"))' -noinit

@@ -1,0 +1,141 @@
+================ C M U C L =============================================
+
+   CMUCL is a free, high performance implementation of the Common Lisp
+   programming language which runs on most major Unix platforms. It
+   mainly conforms to the ANSI Common Lisp standard. CMUCL provides a
+   sophisticated native code compiler; a powerful foreign function
+   interface; an implementation of CLOS; the Common Lisp Object System;
+   which includes multimethods; a metaobject protocol; a source-level
+   debugger and code profiler; and an Emacs-like editor implemented in
+   Common Lisp. CMUCL is maintained by a team of volunteers collaborating
+   over the Internet, and is mostly in the public domain.
+
+
+=== Installation instructions ==========================================
+
+   For each supported platform (see below for platform-specific
+   information) there are two gzipped tar archives, one containing the
+   base system, and the other (with extra in the name) containing
+   optional additional files supporting CLX, Hemlock, the Motif
+   interface, and so on. Alternatively, you can download the slightly
+   smaller bzipped archives (with the .bz2 filename extension), which
+   contain the same data but were compressed using the bzip2 program.
+
+   Download the archives corresponding to your platform. You can check
+   the integrity of the files you have downloaded by comparing the
+   output of md5sum <filename> with that given in the file md5sums.txt.
+
+   The release tarballs extract to the following directory structure:
+
+      bin/lisp
+      lib/cmucl/lib/lisp.core
+      doc/cmucl/README (this file)
+      man/man1/cmucl.1
+      ...
+
+   This allows you to install CMUCL directly under /usr/local, for
+   example using
+
+      cd /usr/local
+      tar xzf /path/to/cmucl-<ver>-<platform>.tar.gz
+
+   or alternatively, install under a directory in /opt, for example
+
+      mkdir /opt/cmucl-<ver>
+      cd /opt/cmucl-<ver>
+      tar xzf /path/to/cmucl-<ver>-<platform>.tar.gz
+
+   You can now invoke CMUCL: this should display a banner then show a
+   prompt (the default prompt is an asterisk).
+
+      % lisp
+      CMU Common Lisp 19c, running on orion
+      With core: /prj/cmucl/release-19c/linux/lisp/lisp.core
+      Dumped on: Thu, 2003-04-03 15:47:12+02:00 on orion
+      See <http://www.cons.org/cmucl/> for support information.
+      Loaded subsystems:
+          Python 1.1, target Intel x86
+	  CLOS based on Gerd's PCL 2004/04/14 03:32:47
+      * (format t "~&Hello, world!~%")
+      Hello, world!
+      NIL
+      *
+
+   To load precompiled subsystems (assuming that you installed the
+   -extra- tarball), just use REQUIRE:
+
+      * (require :gray-streams)
+      * (require :simple-streams)
+      * (require :clx)
+      * (require :clm)
+      * (require :hemlock)
+
+   You may wish to edit your site initialization file (in
+   /usr/local/lib/cmucl/site-init.lisp).
+
+=== Platform-specific notes ============================================
+
+   +++ Solaris/SPARC
+   The release binaries are known to work with SunOS 5.7 and 5.8
+   (also known respectively as Solaris 7 and Solaris 8), and should
+   work on any later versions.
+
+   Currently, only UltraSPARC binaries are provided, so you need an
+   UltraSPARC machine.  For older machines, you will need a special
+   build.  Please ask on the mailing lists if such builds are available.
+
+   If you have an UltraSPARC the command uname -m will say sun4u, if you
+   have an older machine such as a SparcStation it will probably say sun4m.
+   If it says sun4c, sun4d or only sun4, you have a machine with only a
+   SPARC-v7 implementation, and thus will need custom-built binaries.
+
+
+   +++ Linux/x86
+   The release binaries should work with any Pentium or better processor.
+   The binaries were built against version 2.1 of the GNU C library
+   (glibc2.1), but should run on systems using version 2.2. They should
+   run with any Linux kernel after 2.0 (but beware early kernels in the
+   2.4 series, which had poor virtual memory characteristics). There
+   are known problems running CMUCL on kernels using some of the
+   "highmem" patches: in particular the CONFIG_2GB patch seems to
+   conflict with the memory map used by the release binaries. The
+   CONFIG_1GB and CONFIG_64GB options work fine.
+
+   CMUCL is known not to run under libsafe, whose system call
+   interposition mechanism interferes with the foreign function
+   interface.
+
+
+   +++ FreeBSD/x86
+   The release binaries should work with any Pentium or better processor.
+   The binaries were built on FreeBSD 4.7, but should run on any of the
+   4.x releases. 
+
+
+   +++ Mac OS X/ppc
+   The release binaries are built on a Mac OS X 10.4.x system.  They
+   are also known to work on 10.3.x.  They may not work on 10.2.x.
+   The binaries should work on any Power PC system, including G3, G4,
+   and G5's.
+
+
+   +++ Other platforms
+   Binaries for other platforms supported by 19c sources might be made
+   available by contributors at later dates, the details of which were
+   not available at release time.  Please see the README file
+   distributed with those binaries for details on platform-specific
+   notes for those platforms.
+
+
+
+=== Further information ================================================
+
+   The best source for information on CMUCL is the web site,
+   <URL:http://www.cons.org/cmucl/>. You will find pointers to
+   documentation and tips on using CMUCL, and information regarding
+   mailing lists and bug reporting.
+
+   Enjoy using CMUCL!
+
+
+2005-11-15

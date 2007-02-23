@@ -1,0 +1,16 @@
+#!/bin/sh
+#
+# Set up CMUCLLIB environment variable to point to run-time files.
+CMUCLLIB=/<<your-cmucl-path>>/lib/cmucl/lib
+export CMUCLLIB
+
+#
+# This might be necessary for SunOS.  Not needed for Solaris.
+# If /tmp is a "tmpfs" filesystem (mounted on "swap") then uncomment the
+# following two lines, and fill in an alternate path:
+#CMUCL_EMPTYFILE=/<<your-temp-path>>/empty
+#export CMUCL_EMPTYFILE
+
+#
+# Run Lisp with these environment variables set.
+exec /<<your-cmucl-path>>/bin/lisp "$@"
