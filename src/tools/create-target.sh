@@ -78,6 +78,9 @@ elif [ ! -f src/motif/server/Config.$MOTIF_VARIANT ]; then
     exit 1
 fi
 
+# Ravenbrook: hack out the motif building.
+MOTIF_VARIANT=""
+
 # Tell user what's we've configured
 echo "Lisp = $LISP_VARIANT"
 echo "Motif = $MOTIF_VARIANT"
