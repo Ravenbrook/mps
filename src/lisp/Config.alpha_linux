@@ -1,0 +1,16 @@
+P1=../../src/lisp
+CPPFLAGS = -I. -I/usr/include -I$(P1) -I-
+CC = gcc 
+LD = ld
+CPP = cpp
+CFLAGS = -g -Wstrict-prototypes -Dlinux -Dalpha
+ASFLAGS = -g -Dlinux -Dalpha
+NM = $(P1)/linux-nm
+UNDEFSYMPATTERN=-Xlinker -u -Xlinker &
+ASSEM_SRC = alpha-assem.S linux-stubs.S
+ARCH_SRC = alpha-arch.c
+OS_SRC = Linux-os.c os-common.c
+OS_LINK_FLAGS = -rdynamic -Xlinker --export-dynamic
+OS_LIBS= -ldl
+GC_SRC = gc.c
+VPATH=$(P1)

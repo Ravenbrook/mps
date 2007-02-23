@@ -1,0 +1,18 @@
+PATH1 = ../../src/lisp
+vpath %.h $(PATH1)
+vpath %.c $(PATH1)
+vpath %.S $(PATH1)
+CPPFLAGS = -I. -I$(PATH1) -I- -I/usr/X11R6/include
+CC = gcc
+LD = ld
+CPP = cpp
+CFLAGS = -Wstrict-prototypes -Wall -O2 -g -DGENCGC -Di386
+ASFLAGS = -g -DGENCGC -Di386
+NM = nm -gp
+UNDEFSYMPATTERN = -Xlinker -u -Xlinker &
+ASSEM_SRC = x86-assem.S
+ARCH_SRC = x86-arch.c
+OS_SRC = OpenBSD-os.c os-common.c undefineds.c
+OS_LINK_FLAGS = -static
+OS_LIBS =
+GC_SRC = gencgc.c

@@ -1,0 +1,12 @@
+CPPFLAGS = -I. -I/usr/misc/.X11/include -I/usr/mach/include
+CC = gcc # -Wall -Wstrict-prototypes -Wmissing-prototypes
+CPP = /usr/cs/lib/cpp
+CFLAGS = -O
+ASFLAGS = -O
+NM = nm -gp
+UNDEFSYMPATTERN=-Xlinker -u -Xlinker &
+ASSEM_SRC = mips-assem.S
+ARCH_SRC = mips-arch.c
+OS_SRC = mach-os.c os-common.c undefineds.c
+OS_LINK_FLAGS=
+OS_LIBS=-lmach

@@ -1,0 +1,18 @@
+PATH1 = ../../src/lisp
+vpath %.h $(PATH1)
+vpath %.c $(PATH1)
+vpath %.S $(PATH1)
+CPPFLAGS = -I. -I$(PATH1) -I- -I/usr/X11R6/include
+CC = gcc
+LD = ld
+CPP = cpp
+CFLAGS = -m64 -rdynamic -Wstrict-prototypes -Wall -g -DGENCGC -DLINKAGE_TABLE
+ASFLAGS = -g -DGENCGC -DLINKAGE_TABLE
+NM = $(PATH1)/linux-nm
+UNDEFSYMPATTERN = -Xlinker -u -Xlinker &
+ASSEM_SRC = amd64-assem.S linux-stubs.S
+ARCH_SRC = amd64-arch.c
+OS_SRC = Linux-os.c os-common.c elf.c
+OS_LINK_FLAGS = -rdynamic -Xlinker --export-dynamic -Xlinker -Map -Xlinker foo
+OS_LIBS = -ldl
+GC_SRC = gencgc.c

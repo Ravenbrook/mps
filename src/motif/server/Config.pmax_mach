@@ -1,0 +1,2 @@
+CFLAGS = -O -G 0 -I/usr/misc/.motif/include -I/usr/misc/.X11/include
+LDFLAGS = -G 0 -L/usr/misc/.X11/lib -L/usr/misc/.motif/lib

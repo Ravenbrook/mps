@@ -1,0 +1,20 @@
+P1=../../src/lisp
+CPPFLAGS = -I.-I/usr/include -I$(P1) -I-
+CC = cc -g #-migrate
+LD = ld
+CPP = cpp
+CFLAGS = -Dosf1 -Dalpha
+ASFLAGS = -g -Dosf1 -Dalpha
+NM = $(P1)/alpha-nm
+UNDEFSYMPATTERN=-Xlinker -u -Xlinker &
+ASSEM_SRC = alpha-assem.S
+ARCH_SRC = alpha-arch.c
+OS_SRC = osf1-os.c os-common.c undefineds.c
+OS_LINK_FLAGS= -non_shared -taso
+OS_LIBS=
+VPATH=$(P1)
+
+# assembly source must end in .s
+alpha-assem.s: alpha-assem.S
+	cp $^ $@
+

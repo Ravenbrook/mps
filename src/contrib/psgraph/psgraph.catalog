@@ -1,0 +1,46 @@
+Name:
+   PSgrapher
+
+Description:
+   The PSgrapher is a set of Lisp routines that can be called to produce
+Postscript commands that display a directed acyclic graph.
+
+Author:
+   Joseph Bates.  Skef put the whole thing in the PSGRPAPH package and
+added functionality which allows the user to specify EQ, EQUAL, or
+EQUALP as the node equivalence function.  Bill made all exported
+symbols have stars on them.  Douglas Crosher fixed the hash table
+usage, added the shrink :width option and the same-height optional
+argument, and cleaned up the source reducing special variables usage
+and adding declarations for CMUCL.
+
+Address:
+   Carnegie-Mellon University
+   Computer Science Department
+   Pittsburgh, PA 15213
+
+Net Address:
+   Joseph.Bates@CS.CMU.EDU
+
+Copyright Status:
+   Public Domain.
+
+Files:
+   psgraph.lisp, psgraph.doc, psgraph.catalog
+
+How to Get:
+   ftp://ftp2.cons.org/pub/languages/lisp/cmucl/src/contrib/psgraph/*
+
+Portability:
+   Should run in any legal Common Lisp.  Requires Postscript for printing.
+
+Instructions:
+   See psgraph.doc.
+
+Bugs:
+   This code blindly outputs what the user gives it as node labels.  It should
+run through the output escaping any PS control characters.  For example, if
+node labels contain parentheses, your output PS file will not print.
+
+Examples:
+   See psgraph.doc

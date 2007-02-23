@@ -1,0 +1,71 @@
+@marker(library, Hem, Press, Dover, Postscript)
+
+@Form(Defhvar = "@Begin(Defenvironment)@Comment(Tabset?)@~
+   @hid[@Parm(Var)]@imbed(val, def <@ @ (initial value @f[@parm(val)])>)@>[@i[@Hemlock Variable]]@\@~
+   @Send(FunList {@hid[@Parm(Var)] @>[@i[@Hemlock Variable]]@\})@~
+   @HVxindex@Parmquote(Var)@~
+   @Imbed(Nolabel, undef '@Imbed(Varlabel,
+                                  def <@Label{@Parm(Varlabel)-hvar}>,
+                                  undef <@Label{@Parm(Var)-hvar}>)')@~
+   @Begin(Defbody)@Tabclear ")
+
+@Form(Defhvar1 = "@Begin(Undefbody)@Comment(Tabset?)@~
+   @hid[@Parm(Var)]@imbed(val, def <@ @ (initial value @f[@parm(val)])>)@>[@i[@hemlock Variable]]@\@~
+   @Send(FunList {@hid[@Parm(Var)] @>[@i[@hemlock Variable]]@\})@~
+   @HVxindex@Parmquote(Var)@~
+   @Imbed(Nolabel, undef '@Imbed(Varlabel,
+                                  def <@Label{@Parm(Varlabel)-hvar}>,
+                                  undef <@Label{@Parm(Var)-hvar}>)')@~
+   @End(Undefbody)")
+
+@Commandstring(Enddefhvar = "@End(Defbody)@End(Defenvironment)")
+@Textform(HVxindex = "@Xindex(T {Hemlock variable}, X {@Parm(Text)}, P {@hid[@Parm(Text)]})@'")
+@Textform(HVindexref = "@Xindexref(T {Hemlock variable}, X {@Parm(Text)}, P {@hid[@Parm(Text)]})@'")
+@Textform(HVarref = '@hid[@Parm(Text)] @~
+    @r[(page @Pageref(@Parm(Text)-hvar))]@HVindexref@Parmquote(Text)')
+
+
+@Form(Defcom = "@Begin(Defenvironment)@Comment(Tabset?)@~
+   @hid[@Parm(Com)]@imbed(bind, def <@ @ (bound to @bf[@parm(bind)])>)@~
+   @imbed(Stuff, def <@ @ (@Parm(Stuff))>)@>[@i[Command]]@\@~
+   @Send(FunList {@hid[@Parm(Com)] @>[@i[Command]]@\})@~
+   @HCxindex@Parmquote(Com)@~
+   @Imbed(Nolabel, undef '@Imbed(Comlabel,
+                                  def <@Label{@Parm(Comlabel)-com}>,
+                                  undef <@Label{@Parm(Com)-com}>)')@~
+   @Begin(Defbody)@Tabclear ")
+
+
+@Form(Defcom1 = "@Begin(Undefbody)@Comment(Tabset?)@~
+   @hid[@Parm(Com)]@imbed(bind, def <@ @ (bound to @bf[@parm(bind)])>)@~
+   @imbed(Stuff, def <@ @ (@Parm(Stuff))>)@>[@i[Command]]@\@~
+   @Send(FunList {@hid[@Parm(Com)] @>[@i[Command]]@\})@~
+   @HCxindex@Parmquote(Com)@~
+   @Imbed(Nolabel, undef '@Imbed(Comlabel,
+                                  def <@Label{@Parm(Comlabel)-com}>,
+                                  undef <@Label{@Parm(Com)-com}>)')@~
+   @End(Undefbody)")
+
+
+@Commandstring(Enddefcom = "@End(Defbody)@End(Defenvironment)")
+@Textform(HCxindex = "@Xindex(T {Command}, X {@Parm(Text)}, P {@hid[@Parm(Text)]})@'")
+@Textform(HCindexref = "@Xindexref(T {Command}, X {@Parm(Text)}, P {@hid[@Parm(Text)]})@'")
+@Textform(Comref = '@hid[@Parm(Text) ]@~
+    @r[(page @Pageref(@Parm(Text)-com))]@HCindexref@Parmquote(Text)')
+
+
+@String(IndexFuns "Yes")
+@string(supresskeyindex "Yes")
+
+@specialfont(f1 = helvetica)
+@commandstring(Hemlock = "@f1(Hemlock)")
+@textform(hid = '@w{@f1{@parm(Text)}}')
+@commandstring[emacs = "@f1<Emacs>"]
+
+@specialfont(f2 = "SouvenirDemi")
+@textform<binding = "@f2[@w(@parm{text})]">
+@textform<bf = "@f2[@w(@parm{text})]">
+
+@commandstring[llisp = "L@c(isp)"]
+
+@commandstring[windows = "X windows"]

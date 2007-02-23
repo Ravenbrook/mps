@@ -1,0 +1,225 @@
+========================== C M U C L  18 e =============================
+
+The CMUCL project is pleased to announce the release of CMUCL 18e.
+This is a major release which contains numerous enhancements and
+bugfixes from the 18d release.
+
+CMUCL is a free, high performance implementation of the Common Lisp
+programming language which runs on most major Unix platforms. It
+mainly conforms to the ANSI Common Lisp standard. CMUCL provides a
+sophisticated native code compiler; a powerful foreign function
+interface; an implementation of CLOS, the Common Lisp Object System,
+which includes multimethods and a metaobject protocol; a source-level
+debugger and code profiler; and an Emacs-like editor implemented in
+Common Lisp. CMUCL is maintained by a team of volunteers collaborating
+over the Internet, and is mostly in the public domain.
+
+New in this release:
+       
+  * Feature enhancements:
+     - Karatsuba multiplier added to give faster multiplication for
+       big bignums.
+     - Better support for linking foreign libraries. You can now dump
+       cores with foreign libraries and reload this core and the
+       libraries, without having to reload code that uses those
+       libraries.  Available if the feature :linkage-table is present.
+     - A cross-referencing facility has been added to the compiler,
+       providing WHO-CALLS, WHO-BINDS, WHO-REFERENCES, WHO-SETS
+       information. See the corresponding chapter of the User's Manual
+       for more information.
+     - Bindings to the POSIX user and group database access functions
+       (getpwuid et al) have been added to the UNIX package.
+     - Support for Unix sockets and for binding to specific IP
+       addresses has been added to the networking code.
+     - Support for generalized function names of the form
+       (<SYMBOL> ...) has been added.  See EXT:DEFINE-FUNCTION-NAME-SYNTAX
+       and EXT:VALID-FUNCTION-NAME-P.
+     - Access to the hardware cycle counters on Pentium and UltraSPARC
+       processors has been added, and is reported by the TIME macro.
+     - On Linux, it is possible to read and write files larger than 2GiB
+       (Large File Support implementation) using the low-level functions
+       in the UNIX package.  Use of ANSI CL functions to process such files
+       may work, but the code base hasn't been audited for this.
+       Full support for this requires a 2.4 or a 2.2 kernel with LFS
+       patches.
+
+  * Numerous ANSI compliance fixes:
+     - SYMBOL-MACROLET signals an error when an attempt is made to
+       bind a special variable or a constant
+     - the function COMPILE no longer coalesces constants, as required
+       by the specification (however, COMPILE-FILE continues to do so)
+     - WITH-OUTPUT-TO-STRING accepts the :external-format keyword
+       argument
+     - the function WRITE-STRING accepts a NIL value for the :end
+       argument 
+     - the function CHANGE-CLASS now accepts initargs
+     - loops of the form (LOOP FOR I BY (INCF X) FROM ...) now work
+     - in loop forms, the INITIALLY, FINALLY and DO keywords must be
+       followed by a compound form
+     - in the loop macro, PRESENT-SYMBOL now means both internal and
+       external symbols of a package
+     - the class precedence list of NULL has symbol before list
+     - the function FLOAT-RADIX signals an error if its argument is
+       not a float
+     - an error is signaled if the lambda keyword &rest is not
+       followed by a variable
+     - the GENTEMP function no longer accepts arguments of type symbol
+     - the function SHIFTF supports multiple values
+     - compiler macros recognize calls of the form (funcall foo args)
+     - (coerce <rational> '(complex float)) now returns a (complex
+       float) rather than a rational
+     - the ECASE and CCASE macros are allowed to use T and OTHERWISE
+       as regular keys, instead of as the otherwise clause. CMUCL
+       prints a warning about this being poor style.
+     - the type (complex (eql 0)) is accepted now instead of
+       generating an error.
+     - the sequence functions check to make sure sequences are
+       specified and that, if lengths are given, the result matches
+       the given length.
+     - when the argument to TRANSLATE-LOGICAL-PATHNAME is a physical
+       pathname, return it instead of signalling an error.
+     - the function DEFAULT-DIRECTORY returns a pathname with an
+       explicit Unix host, instead of leaving it unspecified.
+     - logical pathnames are now externalizable
+     - bad directives in FORMAT-LOGICAL-BLOCK: an error is now signalled
+       if ~W, ~_, ~<...~:>, ~I, or ~:T is used inside "~<..~>"
+       (without the colon modifier on the closing syntax).
+     - the SUBTYPEP function is more intelligent when dealing with
+       certain hairy types (such as those based on SATISFIES).
+     - the optional environment argument to the functions TYPEP,
+       SUBTYPEP and friends are now accepted (but ignored).
+     - system classes FILE-STREAM and STRING-STREAM have been added.
+
+  * Numerous bugfixes:
+     - READ-BYTE on certain types of multi-byte elements was incorrect
+     - fix the treatment of colon package delimiters for the ~/
+       formatting directive
+     - correction to CLX's handling of FamilyLocal authorization
+       cookies (as created by versions of ssh after 3.4)
+     - fix to CLX handling of :any event-spec
+     - fix to boa-constructors ??
+     - EXPT was not correctly handling a zero exponent
+     - PROGV was not handling special variables correctly.
+     - MULTIPLE-VALUE-SETQ and PSETQ were not handling symbol macros correctly.
+     - index calculations for operations bitvectors of sizes near the
+       ARRAY-DIMENSION-LIMIT could overflow
+     - redefining a class with a changed class precedence list didn't
+       update the CMUCL type system
+     - generated CLOS getter/setter/boundp generic functions are now
+       declared correctly, to eliminate bogus undefined function
+       warnings from the compiler
+     - method combination options for the long form of the
+       DEFINE-METHOD-COMBINATION special form work correctly
+     - executing a defclass form with a metaclass of STRUCTURE-CLASS
+       would result in the generation of recursive print-object
+       methods, so that printing such instances would loop
+     - dividing a ration by zero returned 1/0 instead of signaling an
+       error
+     - PPRINT-LOGICAL-BLOCK with a numeric prefix no longer causes the
+       system to crash
+     - byte-compiled calls to two-argument STRING< and STRING>
+       returned incorrect results
+     - the function READ-SEQUENCE returned incorrect results for
+       specialized arrays when the internal READ-N-BYTES function read
+       short
+     - when a sequence type specifies a length, CMUCL checks that the
+       length of sequence arguments match the length of the sequence type
+     - the function REMOVE was not correctly handling all possible
+       combinations of the :start, :end and :from options.
+     - the function COMPILE-FILE-PATHNAME computes the output file
+       name by merging the input file name and the supplied output file name
+     - the functions MAKE-BROADCAST-STREAM, MAKE-TWO-WAY-STREAM,
+       MAKE-CONCATENATED-STREAM and MAKE-ECHO-STREAM check that their
+       argument is an input or output stream, as appropriate
+     - STREAM-READ-SEQUENCE and STREAM-WRITE-SEQUENCE were getting
+       called with arguments in the wrong order.
+     - numerous error conditions are signalled using a more specific
+       condition type than a generic error
+     - many (all?) cases where the unused labels functions were
+       causing a compiler assertion error.
+     - some cases where the compiler was incorrectly deriving the
+       types of functions have been fixed.
+     - error reporting in many areas have been improved to be more
+       specific and/or ANSI compliant. 
+     - error detection of defclass options in line with ANSI
+       requirements. 
+     - the compiler now checks type declarations on array elements
+       before believing them.
+     - Special declarations of the DOLIST iteration variable are
+       now honoured when evaluating the DOLIST result form.
+     - The argument evaluation order of MAKE-STRING in compiled
+       code has been fixed.
+
+  * Other changes:
+     - The default value for EXT:*BYTES-CONSED-BETWEEN-GCS* has been
+       increased from 2000000 to 12000000, which should improve GC
+       performance for many applications out of the box.  Of course
+       people are encouraged to tune the GC parameters to match their
+       application requirements (e.g. interactive response times),
+       and their hardware environment.
+     - The sparc port has experimental support for native 64-bit
+       integers (unsigned-byte 64) and (signed-byte 64) on sparc v9
+       (64-bit) architectures.  Enabled if the feature :sparc-v8plus
+       is present (you will need to rebuild CMUCL).
+     - The CMUCL release tarballs are now relocatable. The lisp image
+       (in the lisp.core file) is now searched for relative to the
+       lisp runtime. The previous search mechanisms still take
+       precedence: the -core commandline option, the CMUCLLIB
+       environment variable, the default /usr/local/lib/cmucl search
+       path.
+     - Messages from the compiler are now preceded by a semicolon, for
+       better interaction with environments with syntax highlighting.
+     - An improved initializer for random state is available (function
+       KERNEL:INIT-RANDOM-STATE accepts an argument of type vector).
+     - the function PROFILE:REPORT-TIME no longer prints out a long
+       list of functions that were not profiled. The cutoff is
+       user-configurable by setting the new variable
+       PROFILE::*NO-CALLS-LIMIT*.
+     - reinstated the ability to build small runtime images (excluding
+       the compiler)
+     - DESCRIBE will print a note if a symbol names a type-specifier
+     - numeric types with empty ranges are accepted silently (instead
+       of signalling an error), and treated as the empty type.
+     - on Linux, the function SOFTWARE-VERSION returns more useful
+       information than in the past, including the kernel version
+       number. 
+     - the function MAKE-DISPATCH-MACRO-CHARACTER will quietly
+       override existing definitions, instead of signalling an error
+       if a previous binding for a macro character existed.
+     - a number of stale symbols have been deleted from CMUCL images
+
+  * Numerous improvements to the PCL implementation of CLOS:
+     - some unused code has been deleted
+     - error checking of CLOS functions has been significantly improved
+     - the hash function for PCL instances has been improved
+     - superfluous SLOT-BOUNDP checking for structure-classes has been
+       removed 
+     - the preallocation of caches for generic functions has been
+       removed, since benchmarking indicated that this doesn't provide a
+       noticeable performance increase
+
+  * Improvements to Hemlock, the Emacs-like editor:
+     - a dynamic-abbrev facility has been added (bound to M-/)
+     - support for C-w (copy work) during incremental search
+
+  * Changes to rebuilding procedure:
+     - the search-list "modules:" tracks the "library:" search-list,
+       instead of being set to whatever "library:subsystems/" is at
+       startup. 
+      
+  * Deprecated features:
+     - the HASH-NEW, NEW-COMPILER and RANDOM-MT19937 elements of the
+       *FEATURES* list are deprecated. Starting from the next release of
+       CMUCL, the corresponding code will be included in default CMUCL
+       builds.
+  
+
+This release is not binary compatible with code compiled using CMUCL
+18d; you will need to recompile FASL files. 
+
+See <URL:http://www.cons.org/cmucl/> for download information,
+guidelines on reporting bugs, and mailing list details.
+
+
+We hope you enjoy using this release of CMUCL!
+

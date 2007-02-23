@@ -1,0 +1,6 @@
+XDIR = /afs/cs/sun4c_411/alpha/usr/misc/.X11/
+XMDIR = /afs/cs/sun4c_411/alpha/usr/misc/.MotifV1R2/
+
+CFLAGS = -O -I$(XDIR)include -I$(XMDIR)include -D_STDDEF_H
+
+LIBS = $(XMDIR)lib/libXm.a $(XDIR)lib/libXt.a $(XDIR)lib/libX11.a

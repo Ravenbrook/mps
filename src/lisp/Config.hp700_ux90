@@ -1,0 +1,16 @@
+CPPFLAGS = -Dparisc -I. -I/usr/cygnus/lib/gcc-lib/hppa1.1-hp-hpux9.05/2.6-95q3/include \
+	-I/usr/include -I/usr/include/X11R5
+LINK.o = gcc $(LDFLAGS) $(TARGET_ARCH)
+CC = gcc
+NM = hpux-nm
+CFLAGS = -g
+ASFLAGS = -g -DNEW_FORMAT
+UNDEFSYMPATTERN=-u &
+ASSEM_SRC = hppa-assem.S
+ARCH_SRC = hppa-arch.c
+OS_SRC = hpux-os.c undefineds.c
+OS_LINK_FLAGS= -Wl,-a,archive -N
+OS_LIBS= -lBSD /lib/pa1.1/libm.a
+
+%.o: %.S
+	$(PREPROCESS.S) $< | as -o $@

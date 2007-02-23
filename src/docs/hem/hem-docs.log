@@ -1,0 +1,43 @@
+/usr1/lisp/scribe/hem/user/lisp.mss, 01-Sep-89 10:27:47, Edit by Chiles.
+  Modifying slave interaction description.
+
+/usr1/lisp/scribe/hem/cim/cim.mss, 01-Sep-89 10:25:15, Edit by Chiles.
+  Added description of LOUD-MESSAGE.
+
+/usr1/lisp/scribe/hem/cim/aux-sys.mss, 01-Sep-89 10:22:22, Edit by Chiles.
+  Updating slave Lisp interaction functions.
+
+/usr1/lisp/scribe/hem/cim.mss, 27-Jun-89 15:19:47, Edit by Chiles.
+  Moved "Auxiliary Systems" chapter into its own file, and qualified lots of
+  the described symbols with their home package.
+
+/usr1/lisp/scribe/hem/hemimpl.mss, 22-Jun-89 12:56:23, Edit by Chiles.
+  Added new WITH-POP-UP-DISPLAY.
+
+  Updated all the English in the prompting functions section.
+
+  Added the "Keep" logical character description.
+
+
+/usr1/lisp/scribe/hem/hemuser.mss, 22-Jun-89 12:55:03, Edit by Chiles.
+  Added new pop-up windows section.
+
+  Modified modelines section, talked about status line.
+
+  Added completion section.
+
+
+/usr1/lisp/scribe/hem/hemuser.mss, 20-May-89 18:03:57, Edit by Chiles.
+  Modified example after "Name Keyboard Macro".  Scribe was screwing up a paren
+  in the @binding.  I changed it to a programexample, but check the result.
+
+/usr1/lisp/scribe/hemimpl.mss, 18-May-89 13:00:09, Edit by Chiles.
+  Addes sections to miscellaneous chapter for View mode interaction and
+  SUPPLY-GENERIC-POINTER-UP-FUNCTION
+
+/usr1/lisp/scribe/hemimpl.mss, 15-May-89 17:40:09, Edit by Chiles.
+  Added new Miscellaneous chapter.
+
+/usr1/lisp/scribe/hemuser.mss, 15-May-89 14:14:37, Edit by Chiles.
+  Modified "View" mode section.
+

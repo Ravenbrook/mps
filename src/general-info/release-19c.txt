@@ -1,0 +1,150 @@
+========================== C M U C L  19 c =============================
+
+The CMUCL project is pleased to announce the release of CMUCL 19c.
+This is a major release which contains numerous enhancements and
+bugfixes from the 19b release.
+
+CMUCL is a free, high performance implementation of the Common Lisp
+programming language which runs on most major Unix platforms. It
+mainly conforms to the ANSI Common Lisp standard. CMUCL provides a
+sophisticated native code compiler; a powerful foreign function
+interface; an implementation of CLOS, the Common Lisp Object System,
+which includes multimethods and a metaobject protocol; a source-level
+debugger and code profiler; and an Emacs-like editor implemented in
+Common Lisp. CMUCL is maintained by a team of volunteers collaborating
+over the Internet, and is mostly in the public domain.
+
+New in this release:
+
+
+  * Feature enhancements:
+
+      - Cross-reference information can now be saved to a fasl file.
+      - COMPILE-FILE accepts the new keyword arg :XREF.  When non-NIL,
+        cross-reference information found during compilation is saved
+        to the fasl file.
+      - UNIX-UNAME added for non-glibc2 platforms, which already had
+        it.
+      - Added annotation support to the pretty printer so various
+        annotations can be produced in sync with the pretty printer
+        output.  (From Matthias Koeppe.)  Arbitrary functions
+        ("annotations") can be queued in sequence with characters that
+        are printed to the pretty stream.  When the characters are
+        forwarded to the target stream, the annotations are invoked at
+        the right position.
+      - Add a restart for ENSURE-DIRECTORIES-EXIST to retry directory
+        creation if necessary.
+
+  * Numerous ANSI compliance fixes:
+
+      - FILE-POSITION on string input streams accept :START and :END
+        for the position.
+      - The default value for keyword args for deftype is '*, not NIL.
+      - ED is now defined (but does nothing).  Loading hemlock will
+        give you an ED that works.
+      - DOCUMENTATION and (SETF DOCUMENTATION) works for more cases
+        now.
+      - MULTIPLE-VALUE-SETQ now always returns the primary value.
+      - (SETF MACRO-FUNCTION) and (SETF COMPILER-MACRO-FUNCTION)
+        accepts the optional environment arg, as specified by ANSI CL.
+      - PRIN1 no longer prints the sign of the exponent if it is
+        non-negative. 
+      - PRIN1 and ~E are consistent now when printing large numbers. 
+      - Undefined-Function errors from funcalling special forms now
+        have the cell-error name filled in correctly.
+      - ENOUGH-NAMESTRING was not returning the shortest namestring
+        when the defaults was #p"/".
+      - TRANSLATE-PATHNAME signals an error if (PATHNAME-MATCH-P
+        source from-wildcard) is not true.
+      - ENOUGH-NAMESTRING was returning a pathname object instead of a
+        string for logical pathnames.
+      - ENOUGH-NAMESTRING no longer returns relative pathnames if the
+        pathname and the defaults have nothing in common.
+      - PARSE-NAMESTRING will accept a string for the DEFAULTS
+        parameter, as specified by ANSI.
+        
+  * Numerous bugfixes:
+
+      - Regression in MRG32K3A benchmark fixed.
+      - (format t "~8,2f" -0.0) has the right length now.  This
+        happened because we didn't recognize -0.0 is negative.
+      - Type derivation for FTRUNCATE is now consistent with what
+        FTRUNCATE returns.  Main problem was that -0.0 is now returned
+        by ftruncate instead of +0.0.
+      - Some errors during type derivation are fixed.  We cause the
+        offending function to return NIL to indicate unbounded.
+      - Errors in callbacks for the ppc and sparc ports when the
+        integer arg is shorter than an int have been fixed.
+      - ASIN and ACOS returns NaN when given NaN args instead of
+        signaling an error.
+      - FTRUNCATE will return a quiet NaN when given a signaling NaN.
+        It also properly handles infinity too.
+      - Fixed a bug in handling of alien enum types in structures.
+      - (MAKE-PATHNAME :DIRECTORY '(:RELATIVE)) now prints as #P"./"
+        instead of #p"", which is the printed form of (MAKE-PATHNAME).
+      - Relative directories for MAKE-PATHNAME now have all "."
+        elements removed.  This makes it consistent with the reader.
+      - A warning is printed if an element of the directory component
+        of a pathname consists of a string containing the "/"
+        character.
+      - Namestrings for pathnames with a NIL host will now be
+        generated using the host from *DEFAULT-PATHNAME-DEFAULTS*, or
+        *UNIX-HOST* instead of producing an error.
+      - ENOUGH-NAMESTRING returns the pathname if the host for the
+        pathname differs from the host for the defaults.
+      - CMUCL recognizes multi-arch (fat) shared libs on Darwin/ppc.
+        It's now possible to load libSystem.dylib.
+      - #p".." is read as a directory instead of as a file with name
+        #"." and type "".
+      - #p"..." and similar forms with more dots is read as a file
+        with name equal to the string and type nil.  Previously, the
+        name had one fewer dot with type "".
+      - MAKE-PATHNAME with :name equal to ".." or "." will generate a
+        warning because CMUCL cannot print that in a form that will be
+        read back the same.
+      - ENOUGH-NAMESTRING will work with search-lists, but only looks
+        at the first path in the search-list.  This is mostly to
+        handle the home: search-list, which only has one path by
+        default.
+      - SXHASH will hash the components of a pathname object together
+        instead of returning the same hash value for all pathname
+        objects.
+      - EQUAL for pathnames treats version NIL and version :NEWEST to
+        be equal.
+      - PPC callbacks were not preserving register values and
+        therefore produced erroneous values.
+      - PROBE-FILE for a pathname that is actually a directory returns
+        a pathname indicating that it is a directory.
+      - LISTEN on DUAL-CHANNEL-SIMPLE-STREAM should work now.
+
+  * Other changes:
+
+      - Due to some bugs in modular arithmetic, generating either
+        wrong code or much slower code, you can now disable modular
+        arithmetic by setting c::*enable-modular-arithmetic* to NIL.
+        This is a workaround pending a better solution.
+      - Support logical pathnames when using LOAD-OBJECT-FILE.
+      - Namestrings that are being parsed will not produce a
+        search-list if a logical host with the same name already
+        exists.  An error is signaled in this case.
+      - Tracing with :encapsulate nil does not work very well on ppc.
+        The default for tracing on ppc is to encapsulate.  (Tracing
+        functions with the known-return convention using :encapsulate
+        nil works, however.)
+ 
+  * Improvements to the PCL implementation of CLOS:
+
+  * Changes to rebuilding procedure:
+      - Build scripts should recognize FreeBSD automatically.
+      - Should be able to build on either Mac OS X 10.2 or 10.4 using
+        the default version of gcc.
+
+This release is not binary compatible with code compiled using CMUCL
+19b; you will need to recompile FASL files. 
+
+See <URL:http://www.cons.org/cmucl/> for download information,
+guidelines on reporting bugs, and mailing list details.
+
+
+We hope you enjoy using this release of CMUCL!
+

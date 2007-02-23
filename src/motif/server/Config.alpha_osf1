@@ -1,0 +1,3 @@
+CFLAGS = -O -I/usr/include/X11 -I/usr/include
+LDFLAGS = -L/usr/lib/X11 -L/usr/lib
+LIBS = -lXm -lXt -lX11 -ldnet_stub

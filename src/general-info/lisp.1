@@ -1,0 +1,239 @@
+.\" -*- Mode: Text -*-
+.\"
+.\" **********************************************************************
+.\" This code was written as part of the CMU Common Lisp project at
+.\" Carnegie Mellon University, and has been placed in the public domain.
+.\" If you want to use this code or any part of CMU Common Lisp, please contact
+.\" Scott Fahlman or slisp-group@cs.cmu.edu.
+.\"
+.\"$Header: /project/cmucl/cvsroot/src/general-info/lisp.1,v 1.11.10.1 2006/10/02 21:05:19 rtoy Exp $
+.\"
+.\" **********************************************************************
+.\"
+.\" Man page for CMU CL.
+.TH LISP 1 "Nov, 2006"
+.AT 3
+.SH NAME
+lisp \- CMU Common Lisp programming environment
+.SH SYNOPSIS
+.B lisp
+[input-files] [switch-list]
+.SH DESCRIPTION
+.I lisp
+Starts up CMU Common Lisp.  If
+.I switch-list
+is empty, then Lisp will enter a read-eval-print loop using stdin, stdout and
+stderr.  The optional 
+.I input-files
+provide operands for some switches.  These switches are defined:
+
+.TP 10n
+.BR \-core " filename"
+Specifies the suspended Lisp image (or `core file') to start up.  
+.TP
+.BR \-lib " libpath"
+A colon-separated list of directories to be used for the library: search-list.
+.TP
+.BR \-batch
+Causes Lisp to run in batch mode, where all input is directed from
+standard-input.
+A unix return code of 0 is returned upon encountering an EOF, while any
+unhandled error condition will cause an immediate exit with a return code
+of 1, instead of entering the debugger.
+.TP
+.BR \-quiet
+Causes Lisp to start up silently, disabling printing of the herald, and causing
+most unnecessary noise, like GC messages, load messages, etc. to be suppressed.
+.TP
+.BR \-dynamic-space-size
+Requires an argument that should be the number of megabytes (1048576 bytes)
+that should be allocated to the heap.  If not specified, a platform-specific
+default is used.  The actual maximum allowed heap size is platform-specific.
+Currently, this option is only available for the x86 and sparc platforms. 
+.TP
+.BR \-edit
+Causes Lisp to enter the 
+.I Hemlock
+editor.
+A file to edit may be specified by
+placing the name of the file between the program name (usually `lisp') and
+the first switch.
+.TP
+.BR \-eval " expression"
+Evaluates the specified Lisp
+.I expression
+during the start up sequence.  The value of the form will not be printed unless
+it is wrapped in a form that does output.
+.TP
+.BR \-init " filename"
+Specifies the name of a file containing user customizations that is to be
+loaded each time Lisp starts up (default ~/init or ~/.cmucl-init.)  The loader
+loads any existing compiled binary, or the ".lisp" source if none.
+.TP
+.BR \-hinit " filename"
+Similar to \-init, but specifies the name of the
+.I Hemlock
+init file (default `~/hemlock-init' or ~/.hemlock-init), which is loaded only
+when
+.I Hemlock
+is started.
+.TP
+.BR \-noinit
+Suppresses loading of the init file, and also prevents \-edit from loading the
+.I Hemlock
+init file.
+.TP
+.BR \-nositeinit
+Suppresses loading of the site-init site specific initialization file.
+.TP
+.BR \-load " filename"
+Loads the specified file into Lisp before entering Lisp's read-eval-print loop.
+.TP
+.BR \-slave " editor-name"
+Specifies that Lisp should start up as a 
+.I slave
+Lisp and try to
+connect to an editor Lisp.  The name of the editor to connect to must be
+specified.  To find the editor's name, use the
+.I Hemlock
+`Accept Slave Connections' command.  
+.I editor-name
+is of the form `machine-name:socket', where
+.I machine-name 
+is the
+internet host name for the machine and
+.I socket
+is the decimal number of the socket to connect to.
+.TP
+.BR \-debug-lisp-search
+Enables printing of messages indicating how CMUCL is searching for its
+core file.  This is useful if CMUCL is not finding its core file for
+some reason.
+.PP
+
+.SH ENVIRONMENT
+
+.TP 10n
+.BR CMUCLLIB
+This variable points to the `lib/' directory holding `lisp.core' and other
+files used by Lisp at run-time.  This can be overridden by using the
+-lib commandline option.
+.TP
+.BR CMUCLCORE
+This variable holds the path to the `lisp.core' that that should be
+used.  This can be overridden by using the -core commandline option.
+.TP
+.BR CMUCL_EMPTYFILE
+[SunOS only] If `df /tmp' shows `swap' as the filesystem for the `/tmp'
+directory, then you have a "tmpfs" filesystem.  In this case, you must setenv
+CMUCL_EMPTYFILE to point into a pathname on a non-TMPFS filesystem that can be
+used instead of `/tmp/empty'.
+.TP
+.BR XKEYSYMDB
+In order to use Motif (and the graphical debugger) with X servers from
+non-OSF vendors (like Sun) you may need to set the environment variable
+XKEYSYMDB to point to the file `lib/XKeysymDB'.  Otherwise, you will get many
+error messages every time a new connection is opened to the CMU CL motifd.
+This file is read by the X11R5 Xt in order to augment the keysym database with
+certain OSF vendor keysyms that Motif wants to use.
+
+.SH CORE FILE SEARCHING
+When no core file is specified (either by the CMUCLCORE environment
+variable or by the -core option), CMUCL will search in various places to
+find a possible core file. 
+
+When the environment variable CMUCLLIB is set or the -lib option is
+given, the lisp core file is searched in the places specified
+therein.  This is a colon-separated list of directories, just like
+PATH.  This list of directories is searched in order for a file named
+`lisp.core'.  The first one found will be the core to be used.
+
+When the CMUCLLIB is not set and -lib is not given, a set of default
+paths is used to initialize the library: search-list, and this list is
+also used to search for the core file.  Let the lisp C executable be
+located at `<bin>/lisp'.  Then the following directories are searched
+for the core file:
+
+.TP 10n
+.BR `<bin>'
+.TP
+.BR `<bin>/../lib/cmucl/lib'
+.TP
+.BR `<bin>/../lib'
+.TP
+.BR `/usr/local/lib/cmucl/lib'
+
+.PP
+
+.SH FILES
+
+The following pathnames are specified relative to the directory where CMU CL is
+installed, e.g. /usr/local.
+
+.TP 10n
+.BR doc/cmucl/*
+Various postscript and text documentation files.
+.TP
+.BR bin/lisp
+The lisp startup program.  This directory should be in PATH.
+.TP
+.BR lib/cmucl/lib/lisp.core
+The suspended Lisp image.
+.TP
+.BR lib/cmucl/lib/site-init.lisp
+Site specific initialization (see README file.)
+.TP
+.BR lib/cmucl/lib/hemlock11.*, lib/cmucl/lib/mh-scan, lib/cmucl/lib/spell-dictionary.bin
+Hemlock files.
+.TP
+.BR lib/cmucl/lib/fonts/
+X11 fonts for Hemlock.
+.TP
+.BR lib/cmucl/lib/XKeysymDB
+Database of X Keysym names for Motif.
+.TP
+.BR lib/cmucl/lib/load-foreign.csh
+Script used by LOAD-FOREIGN to run "ld" on some platforms.
+.TP
+.BR ~/init.lisp,~/.cmucl-init.lisp
+User customization files loaded at lisp startup; either name is acceptable.
+Init files can be compiled.
+.TP
+.BR ~/hemlock-init.lisp, ~/.hemlock-init.lisp
+Hemlock initialization file, loaded when Hemlock starts.
+.PP
+
+.SH SEE ALSO
+cmucl(1), README
+.br
+The ``CMU Common Lisp User's Manual'',
+.br
+the ``Hemlock User's Manual'', and 
+.br
+the ``Hemlock Command Implementor's Manual''
+
+.SH BUGS
+
+Consult http://www.cons.org/cmucl/support.html for support
+information, including mechanisms for bug reporting.  Please consult
+your local CMU CL maintainer or Common Lisp expert if any to verify
+that a problem really is a bug before reporting it.
+
+Known problems with this version:
+.TP 3
+--
+Detection of stack overflow is not very graceful.   You get many "map
+failure" errors on stderr.
+.TP 3
+--
+If file descriptors are used up, then Lisp will die.
+.TP 3
+\--
+Several proposed ANSI Common Lisp (CLtL II) features are not implemented:
+Any CLOS features not implemented by PCL, and features added since the first
+ANSI draft.
+.TP 3
+\--
+The interpreter's pre-processing freezes in the macro definitions in effect at
+the time an interpreted function is defined.
+.PP

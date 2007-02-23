@@ -1,0 +1,27 @@
+@Marker(Library,Table,Dover,Postscript)
+
+@Comment{New library definitions for tables.}
+
+@Style(StringMax=10000)
+@Modify(Table, Spacing 1)
+
+@Define(Liner, underline all, tabexport off, script -1pt,
+	rightmargin +1pts, leftmargin +2pts)
+@Define(up6, script +6pts)
+
+@textform(VB={@string(NID = "@parm(text)")@case(NID,
+	1 "@hsp(1pt)@ovp[|]@up6[|]",
+	2 "@hsp(1pt)@ovp[|]@up6[|]@>@ovp[|]@up6[|]@\",
+	3 "@hsp(1pt)@ovp[|]@up6[|]@>@ovp[|]@up6[|]@>@ovp[|]@up6[|]@\",
+	4 "@hsp(1pt)@ovp[|]@up6[|]@>@ovp[|]@up6[|]@>@ovp[|]@up6[|]@>@ovp[|]@up6[|]@\",
+	5 "@hsp(1pt)@ovp[|]@up6[|]@>@ovp[|]@up6[|]@>@ovp[|]@up6[|]@>@ovp[|]@up6[|]@>@ovp[|]@up6[|]@\",
+	6 "@hsp(1pt)@ovp[|]@up6[|]@>@ovp[|]@up6[|]@>@ovp[|]@up6[|]@>@ovp[|]@up6[|]@>@ovp[|]@up6[|]@>@ovp[|]@up6[|]@\",
+	7 "@hsp(1pt)@ovp[|]@up6[|]@>@ovp[|]@up6[|]@>@ovp[|]@up6[|]@>@ovp[|]@up6[|]@>@ovp[|]@up6[|]@>@ovp[|]@up6[|]@>@ovp[|]@up6[|]@\",
+	else "@hsp(1pt)@ovp[|]@up6[|]")})
+
+@Form(TLine="@enter(Liner, script @parm<height, default=[+3pts]>)@~
+	@tabclear()@&@ @\@leave(Liner)")
+@TextForm(BLine="@ovp<@Liner(@tabclear()@&@ @\)>@VB(@parm(text))")
+@TextForm(TL="@hsp(1)@parm(text)@>@ovp[|]@up6[|]@\")
+@TextForm(TC="@=@parm(text)@>@ovp[|]@up6[|]@\")
+@TextForm(TR="@>@parm(text)@hsp(1)@ovp[|]@up6[|]@\")

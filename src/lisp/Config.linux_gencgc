@@ -1,0 +1,33 @@
+# -*- Mode: makefile -*-
+PATH1 = ../../src/lisp
+vpath %.h $(PATH1)
+vpath %.c $(PATH1)
+vpath %.S $(PATH1)
+CC = gcc
+LD = ld
+CPP = cpp
+# Enable support for :linkage-table feature.
+
+ifdef FEATURE_LINKAGE_TABLE
+LINKAGE = -DLINKAGE_TABLE
+endif
+
+# Enable support for generational GC
+ifdef FEATURE_GENCGC
+GENCGC = -DGENCGC
+GC_SRC = gencgc.c
+endif
+
+RUNTIME = $(GENCGC) $(LINKAGE)
+# __NO_CTYPE so builds on glibc 2.3 will run on (some) older glibc's.
+CPPFLAGS = -D__NO_CTYPE -I. -I$(PATH1) -I- -I/usr/X11R6/include $(RUNTIME)
+CFLAGS = -rdynamic -Wstrict-prototypes -Wall -g $(RUNTIME)
+ASFLAGS = -g -DGENCGC -DLINKAGE_TABLE
+NM = $(PATH1)/linux-nm
+UNDEFSYMPATTERN = -Xlinker -u -Xlinker &
+ASSEM_SRC = x86-assem.S linux-stubs.S
+ARCH_SRC = x86-arch.c
+OS_SRC = Linux-os.c os-common.c elf.c e_rem_pio2.c k_rem_pio2.c
+OS_LINK_FLAGS = -rdynamic -Xlinker --export-dynamic -Xlinker -Map -Xlinker foo
+OS_LIBS = -ldl
+#GC_SRC = gencgc.c

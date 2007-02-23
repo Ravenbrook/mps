@@ -1,0 +1,181 @@
+
+
+(literalize primer zero role count zero)
+(literalize maker role count fin zero)
+(literalize goal count zero)
+
+
+(p run
+	(goal ^count <c>)
+    -->
+	(bind <z> (compute <c> + 1))
+	(modify 1    ^count <z>))
+
+
+(p makeprimer
+	(maker ^count <c>    ^fin > <c>    ^role <r>)
+    -->
+	(make    primer    ^role <r>    ^zero 0    ^count <c>)
+	(bind <z> (compute <c> + 1))
+	(modify 1    ^count <z>))
+
+
+(p beginrun
+	(maker ^count <c>    ^fin = <c>    ^role left)
+	(maker ^count <d>    ^fin = <d>    ^role right)
+    -->
+	(remove 1)
+	(remove 1)
+	(make goal    ^count 0    ^zero 0))
+
+
+(p start
+	(start)
+    -->
+	(remove 1)
+	(make maker    ^role left     ^count 1    ^fin 50)
+	(make maker    ^role right    ^count 1    ^fin 50))
+
+
+(p leftrule10
+	(goal ^zero <c>)
+	(primer    ^role left     ^zero <> <c>    ^count <> 10)
+    -->
+	(remove 1))
+
+
+(p leftrule9
+	(goal ^zero <c>)
+	(primer    ^role left     ^zero <> <c>    ^count <> 9)
+    -->
+	(remove 1))
+
+
+(p leftrule8
+	(goal ^zero <c>)
+	(primer    ^role left     ^zero <> <c>    ^count <> 8)
+    -->
+	(remove 1))
+
+
+(p leftrule7
+	(goal ^zero <c>)
+	(primer    ^role left     ^zero <> <c>    ^count <> 7)
+    -->
+	(remove 1))
+
+
+(p leftrule6
+	(goal ^zero <c>)
+	(primer    ^role left     ^zero <> <c>    ^count <> 6)
+    -->
+	(remove 1))
+
+
+(p leftrule5
+	(goal ^zero <c>)
+	(primer    ^role left     ^zero <> <c>    ^count <> 5)
+    -->
+	(remove 1))
+
+
+(p leftrule4
+	(goal ^zero <c>)
+	(primer    ^role left     ^zero <> <c>    ^count <> 4)
+    -->
+	(remove 1))
+
+
+(p leftrule3
+	(goal ^zero <c>)
+	(primer    ^role left     ^zero <> <c>    ^count <> 3)
+    -->
+	(remove 1))
+
+
+(p leftrule2
+	(goal ^zero <c>)
+	(primer    ^role left     ^zero <> <c>    ^count <> 2)
+    -->
+	(remove 1))
+
+
+(p leftrule1
+	(goal ^zero <c>)
+	(primer    ^role left     ^zero <> <c>    ^count <> 1)
+    -->
+	(remove 1))
+
+
+
+
+(p rightrule10
+	(primer    ^role right     ^zero <c>    ^count <> 10)
+	(goal ^zero <> <c>)
+    -->
+	(remove 1))
+
+
+(p rightrule9
+	(primer    ^role right     ^zero <c>    ^count <> 9)
+	(goal ^zero <> <c>)
+    -->
+	(remove 1))
+
+
+(p rightrule8
+	(primer    ^role right     ^zero <c>    ^count <> 8)
+	(goal ^zero <> <c>)
+    -->
+	(remove 1))
+
+
+(p rightrule7
+	(primer    ^role right     ^zero <c>    ^count <> 7)
+	(goal ^zero <> <c>)
+    -->
+	(remove 1))
+
+
+(p rightrule6
+	(primer    ^role right     ^zero <c>    ^count <> 6)
+	(goal ^zero <> <c>)
+    -->
+	(remove 1))
+
+
+(p rightrule5
+	(primer    ^role right     ^zero <c>    ^count <> 5)
+	(goal ^zero <> <c>)
+    -->
+	(remove 1))
+
+
+(p rightrule4
+	(primer    ^role right     ^zero <c>    ^count <> 4)
+	(goal ^zero <> <c>)
+    -->
+	(remove 1))
+
+
+(p rightrule3
+	(primer    ^role right     ^zero <c>    ^count <> 3)
+	(goal ^zero <> <c>)
+    -->
+	(remove 1))
+
+
+(p rightrule2
+	(primer    ^role right     ^zero <c>    ^count <> 2)
+	(goal ^zero <> <c>)
+    -->
+	(remove 1))
+
+
+(p rightrule1
+	(primer    ^role right     ^zero <c>    ^count <> 1)
+	(goal ^zero <> <c>)
+    -->
+	(remove 1))
+
+

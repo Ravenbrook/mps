@@ -1,0 +1,9 @@
+Three critical files are created in the build directory and
+may not be present in this source directory after Genesis.
+Look for correct versions of
+
+	internals.h
+	version
+	lisp.nm
+
+before making distributions.

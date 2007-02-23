@@ -1,0 +1,3089 @@
+
+
+(literal wme-type = 1)
+
+
+
+
+
+
+
+ (literal
+     geometry             = 2
+     row                  = 3
+     column               = 4 )
+
+
+
+
+
+ (literal
+     length               = 3
+     delta                = 2
+     nb                   = 4
+     nb+d                 = 5
+     nb+2d                = 6
+     nb+3d                = 7
+     nb+4d                = 8
+     nb+5d                = 9
+     nb+6d                = 10 )
+
+
+
+
+
+ (literal
+     nb                   = 4
+     nb-incremented       = 2 )
+
+
+
+
+
+ (literal
+     value                = 3 )
+
+
+
+
+
+ (literal
+     name                 = 5
+     length               = 3
+     geometry             = 2
+     owner                = 4
+     position-1-state     = 6
+     position-2-state     = 7
+     position-3-state     = 8
+     position-4-state     = 9
+     position-5-state     = 10
+     position-6-state     = 11
+     position-7-state     = 12
+     position-1-counter-to-update  = 13
+     position-2-counter-to-update  = 14
+     position-3-counter-to-update  = 15
+     position-4-counter-to-update  = 16
+     position-5-counter-to-update  = 17
+     position-6-counter-to-update  = 18
+     position-7-counter-to-update  = 19 )
+
+
+
+
+
+ (literal
+     row                  = 3
+     column               = 4
+     point-of-view        = 2
+     name                 = 5 )
+
+
+
+
+
+ (literal
+     row                  = 3
+     column               = 4
+     point-of-view        = 2
+     nb-of-compulsory-answer-creations  = 5
+     nb-of-fragile-winners  = 6
+     nb-of-strong-winners  = 7 )
+
+
+
+
+
+ (literal
+     type                 = 2
+     is-better-than-type  = 3 )
+
+
+
+
+
+ (literal
+     type                 = 2
+     state                = 5
+     row                  = 3
+     column               = 4
+     score                = 6 )
+
+
+
+
+
+ (literal
+     name                 = 5
+     point-of-views&counters-to-add  = 6
+     comment              = 2 )
+
+
+
+
+
+ (literal
+     type                 = 2
+     value                = 3 )
+
+
+
+
+
+ (literal
+     beginning-row        = 2
+     beginning-column     = 3
+     ending-row           = 4
+     ending-column        = 5 )
+
+
+
+
+
+ (literal
+     state                = 5
+     row                  = 3
+     column               = 4 )
+
+
+
+
+
+ (literal
+     meaning              = 2
+     drawing-character    = 3 )
+
+
+
+
+
+ (literal
+     nb-of-columns        = 2
+     nb-of-rows           = 3
+     nb-of-columns-incr   = 4
+     nb-of-rows-incr      = 5
+     max-board-size       = 6
+     max-board-size-incr  = 7 )
+
+
+
+
+
+ (literal
+     board-row            = 3
+     board-column         = 4
+     type                 = 2
+     line-type            = 5
+     previous-board-position-row  = 6
+     previous-board-position-column  = 7
+     next-board-position-row  = 8
+     next-board-position-column  = 9
+     nw-board-position-row  = 10
+     nw-board-position-column  = 11
+     ne-board-position-row  = 12
+     ne-board-position-column  = 13
+     se-board-position-row  = 14
+     se-board-position-column  = 15
+     sw-board-position-row  = 16
+     sw-board-position-column  = 17 )
+
+
+
+
+
+ (literal
+     of                   = 2
+     is                   = 3 )
+
+
+
+
+
+ (literal
+     row                  = 3
+     column               = 4
+     state                = 5
+     vertical-state       = 2
+     horizontal-state     = 6
+     right-bent-state     = 7
+     left-bent-state      = 8 )
+
+
+
+
+
+ (literal
+     current-context      = 2
+     current-sub-context  = 3
+     current-player       = 4
+     human-score          = 5
+     computer-score       = 6 )
+
+
+
+(p board-analyse::segment-updating-of-length-5
+    (incrementation-table ^length 5 ^delta <i> ^nb <nb1> ^nb+d <nb1+i>
+       ^nb+2d <nb1+2i> ^nb+3d <nb1+3i> ^nb+4d <nb1+4i>)
+    (incrementation-table ^length 5 ^delta <j> ^nb <nb2> ^nb+d <nb2+j>
+      ^nb+2d <nb2+2j> ^nb+3d <nb2+3j> ^nb+4d <nb2+4j>)
+    (direction ^geometry <geometry> ^row <i> ^column <j>)
+    (segment-type
+      ^length 5 ^geometry <geometry>
+      ^owner <owner>
+      ^position-1-state <position-1-state>
+      ^position-2-state <position-2-state>
+      ^position-3-state <position-3-state>
+      ^position-4-state <position-4-state>
+      ^position-5-state <position-5-state>
+      ^position-1-counter-to-update <position-1-counter-to-update>
+      ^position-2-counter-to-update <position-2-counter-to-update>
+      ^position-3-counter-to-update <position-3-counter-to-update>
+      ^position-4-counter-to-update <position-4-counter-to-update>
+      ^position-5-counter-to-update <position-5-counter-to-update>)
+    (position ^row <nb1> ^column <nb2> ^state <position-1-state>)
+    (position ^row <nb1+i> ^column <nb2+j> ^state <position-2-state>)
+    (position ^row <nb1+2i> ^column <nb2+2j> ^state <position-3-state>)
+    (position ^row <nb1+3i> ^column <nb2+3j> ^state <position-4-state>)
+    (position ^row <nb1+4i> ^column <nb2+4j> ^state <position-5-state>)
+-->
+    (make counter-to-update
+           ^point-of-view <owner>
+           ^row <nb1> ^column <nb2>
+           ^name <position-1-counter-to-update>)
+    (make counter-to-update
+           ^point-of-view <owner>
+           ^row <nb1+i> ^column <nb2+j>
+           ^name <position-2-counter-to-update>)
+    (make counter-to-update
+           ^point-of-view <owner>
+           ^row <nb1+2i> ^column <nb2+2j>
+           ^name <position-3-counter-to-update>)
+    (make counter-to-update
+           ^point-of-view <owner>
+           ^row <nb1+3i> ^column <nb2+3j>
+           ^name <position-4-counter-to-update>)
+    (make counter-to-update
+           ^point-of-view <owner>
+           ^row <nb1+4i> ^column <nb2+4j>
+           ^name <position-5-counter-to-update>))
+
+(p board-analyse::segment-updating-of-length-6
+    (incrementation-table ^length 6 ^delta <i> ^nb <nb1> ^nb+d <nb1+i>
+       ^nb+2d <nb1+2i> ^nb+3d <nb1+3i> ^nb+4d <nb1+4i> ^nb+5d <nb1+5i>)
+    (incrementation-table ^length 6 ^delta <j> ^nb <nb2> ^nb+d <nb2+j>
+      ^nb+2d <nb2+2j> ^nb+3d <nb2+3j> ^nb+4d <nb2+4j> ^nb+5d <nb2+5j>)
+    (direction ^geometry <geometry> ^row <i> ^column <j>)
+    (segment-type
+      ^length 6 ^geometry <geometry>
+      ^owner <owner>
+      ^position-1-state <position-1-state>
+      ^position-2-state <position-2-state>
+      ^position-3-state <position-3-state>
+      ^position-4-state <position-4-state>
+      ^position-5-state <position-5-state>
+      ^position-6-state <position-6-state>
+      ^position-1-counter-to-update <position-1-counter-to-update>
+      ^position-2-counter-to-update <position-2-counter-to-update>
+      ^position-3-counter-to-update <position-3-counter-to-update>
+      ^position-4-counter-to-update <position-4-counter-to-update>
+      ^position-5-counter-to-update <position-5-counter-to-update>
+      ^position-6-counter-to-update <position-6-counter-to-update>)
+    (position ^row <nb1> ^column <nb2> ^state <position-1-state>)
+    (position ^row <nb1+i> ^column <nb2+j> ^state <position-2-state>)
+    (position ^row <nb1+2i> ^column <nb2+2j> ^state <position-3-state>)
+    (position ^row <nb1+3i> ^column <nb2+3j> ^state <position-4-state>)
+    (position ^row <nb1+4i> ^column <nb2+4j> ^state <position-5-state>)
+    (position ^row <nb1+5i> ^column <nb2+5j> ^state <position-6-state>)
+-->
+    (make counter-to-update
+           ^point-of-view <owner>
+           ^row <nb1> ^column <nb2>
+           ^name <position-1-counter-to-update>)
+    (make counter-to-update
+           ^point-of-view <owner>
+           ^row <nb1+i> ^column <nb2+j>
+           ^name <position-2-counter-to-update>)
+    (make counter-to-update
+           ^point-of-view <owner>
+           ^row <nb1+2i> ^column <nb2+2j>
+           ^name <position-3-counter-to-update>)
+    (make counter-to-update
+           ^point-of-view <owner>
+           ^row <nb1+3i> ^column <nb2+3j>
+           ^name <position-4-counter-to-update>)
+    (make counter-to-update
+           ^point-of-view <owner>
+           ^row <nb1+4i> ^column <nb2+4j>
+           ^name <position-5-counter-to-update>)
+    (make counter-to-update
+           ^point-of-view <owner>
+           ^row <nb1+5i> ^column <nb2+5j>
+           ^name <position-6-counter-to-update>))
+
+(p board-analyse::segment-updating-of-length-7
+    (incrementation-table ^length 7 ^delta <i> ^nb <nb1> ^nb+d <nb1+i>
+       ^nb+2d <nb1+2i> ^nb+3d <nb1+3i> ^nb+4d <nb1+4i> ^nb+5d <nb1+5i> ^nb+6d <nb1+6i>)
+    (incrementation-table ^length 7 ^delta <j> ^nb <nb2> ^nb+d <nb2+j>
+      ^nb+2d <nb2+2j> ^nb+3d <nb2+3j> ^nb+4d <nb2+4j> ^nb+5d <nb2+5j> ^nb+6d <nb2+6j>)
+    (direction ^geometry <geometry> ^row <i> ^column <j>)
+    (segment-type
+      ^length 7 ^geometry <geometry>
+      ^owner <owner>
+      ^position-1-state <position-1-state>
+      ^position-2-state <position-2-state>
+      ^position-3-state <position-3-state>
+      ^position-4-state <position-4-state>
+      ^position-5-state <position-5-state>
+      ^position-6-state <position-6-state>
+      ^position-7-state <position-7-state>
+      ^position-1-counter-to-update <position-1-counter-to-update>
+      ^position-2-counter-to-update <position-2-counter-to-update>
+      ^position-3-counter-to-update <position-3-counter-to-update>
+      ^position-4-counter-to-update <position-4-counter-to-update>
+      ^position-5-counter-to-update <position-5-counter-to-update>
+      ^position-6-counter-to-update <position-6-counter-to-update>
+      ^position-7-counter-to-update <position-7-counter-to-update>)
+    (position ^row <nb1> ^column <nb2> ^state <position-1-state>)
+    (position ^row <nb1+i> ^column <nb2+j> ^state <position-2-state>)
+    (position ^row <nb1+2i> ^column <nb2+2j> ^state <position-3-state>)
+    (position ^row <nb1+3i> ^column <nb2+3j> ^state <position-4-state>)
+    (position ^row <nb1+4i> ^column <nb2+4j> ^state <position-5-state>)
+    (position ^row <nb1+5i> ^column <nb2+5j> ^state <position-6-state>)
+    (position ^row <nb1+6i> ^column <nb2+6j> ^state <position-7-state>)
+-->
+    (make counter-to-update
+           ^point-of-view <owner>
+           ^row <nb1> ^column <nb2>
+           ^name <position-1-counter-to-update>)
+    (make counter-to-update
+           ^point-of-view <owner>
+           ^row <nb1+i> ^column <nb2+j>
+           ^name <position-2-counter-to-update>)
+    (make counter-to-update
+           ^point-of-view <owner>
+           ^row <nb1+2i> ^column <nb2+2j>
+           ^name <position-3-counter-to-update>)
+    (make counter-to-update
+           ^point-of-view <owner>
+           ^row <nb1+3i> ^column <nb2+3j>
+           ^name <position-4-counter-to-update>)
+    (make counter-to-update
+           ^point-of-view <owner>
+           ^row <nb1+4i> ^column <nb2+4j>
+           ^name <position-5-counter-to-update>)
+    (make counter-to-update
+           ^point-of-view <owner>
+           ^row <nb1+5i> ^column <nb2+5j>
+           ^name <position-6-counter-to-update>)
+    (make counter-to-update
+           ^point-of-view <owner>
+           ^row <nb1+6i> ^column <nb2+6j>
+           ^name <position-7-counter-to-update>))
+
+(p board-analyse::garbage-cleaning
+    (game-state
+      ^current-context board-analyse
+      ^current-sub-context garbage-cleaning)
+    (counter-to-update)
+-->
+    (remove 2))
+
+(p board-analyse::garbage-cleaning-end
+    (game-state
+      ^current-context board-analyse
+      ^current-sub-context garbage-cleaning)
+-->
+    (modify 1 ^current-sub-context counters-decrementation))
+
+(p board-analyse::initialisations-for-counters-decrementation
+    (game-state
+      ^current-context board-analyse
+      ^current-sub-context counters-decrementation)
+    (new-move ^row <row> ^column <column>)
+    (position ^row <row> ^column <column>)
+    (number-to-add-while-updating-counters ^value <> -1)
+-->
+    (modify 4 ^value -1)
+    (modify 3 ^row <row>))
+
+(p board-analyse::counters-decrementation-end
+    (game-state
+      ^current-context board-analyse
+      ^current-sub-context counters-decrementation)
+-->
+    (modify 1 ^current-sub-context counters-incrementation))
+
+(p board-analyse::initialisations-for-counters-incrementation
+    (game-state
+      ^current-context board-analyse
+      ^current-sub-context counters-incrementation)
+    (new-move ^row <row> ^column <column> ^state <state>)
+    (position ^row <row> ^column <column>)
+    (number-to-add-while-updating-counters ^value <> 1)
+-->
+    (remove 2)
+    (modify 4 ^value 1)
+    (modify 3 ^state <state>))
+
+(p board-analyse::counters-incrementation-end
+    (game-state
+      ^current-context board-analyse
+      ^current-sub-context counters-incrementation)
+    (number-to-add-while-updating-counters)
+-->
+    (modify 2 ^value ignore-it)
+    (modify 1 ^current-context choice-of-a-move
+              ^current-sub-context choice-of-segments))
+
+
+(p board-analyse::counter-updating
+    (game-state ^current-context board-analyse)
+    (counter-to-update
+      ^name {<name> <> garbage}
+      ^row <row>
+      ^column <column>
+      ^point-of-view <point-of-view>)
+    (number-to-add-while-updating-counters
+      ^value {<increment-value> <> ignore-it})
+    (position-analyse
+      ^row <row>
+      ^column <column>
+      ^point-of-view <point-of-view>)
+    (position
+      ^row <row>
+      ^column <column>
+      ^state vacant)
+-->
+    (bind <counter-value> (substr 4 <name> <name>))
+    (modify 4 ^<name> (compute <increment-value> + <counter-value>))
+    (remove 2))
+
+(p board-analyse::making-of-two-position-analyses
+    (game-state ^current-context board-analyse)
+    (counter-to-update
+      ^name {<name> <> garbage}
+      ^row <row>
+      ^column <column>)
+    (number-to-add-while-updating-counters
+      ^value <> ignore-it)
+   -(position-analyse
+      ^row <row>
+      ^column <column>)
+    (position
+      ^row <row>
+      ^column <column>
+      ^state vacant)
+
+-->
+    (make position-analyse
+           ^row <row> ^column <column>
+           ^point-of-view human
+           ^nb-of-compulsory-answer-creations 0
+           ^nb-of-fragile-winners 0
+           ^nb-of-strong-winners 0)
+    (make position-analyse
+           ^row <row> ^column <column>
+           ^point-of-view computer
+           ^nb-of-compulsory-answer-creations 0
+           ^nb-of-fragile-winners 0
+           ^nb-of-strong-winners 0))
+
+(p board-analyse::removal-of-a-pointless-position-analyse
+    (game-state ^current-context board-analyse)
+    (number-to-add-while-updating-counters
+      ^value {<increment-value> <> ignore-it})
+    (position-analyse
+      ^row <row>
+      ^column <column>)
+    (position
+      ^row <row>
+      ^column <column>
+      ^state <> vacant)
+-->
+    (remove 3))
+
+
+(p board-analyse::removal-of-a-pointless-counter-updating
+    (counter-to-update
+      ^name garbage)
+-->
+    (remove 1))
+
+
+
+
+
+(p choice-of-a-move-by-the-computer::compulsory-answers-computation
+    (game-state
+      ^current-context choice-of-a-move
+      ^current-sub-context generation-of-the-best-possible-moves
+      ^current-player computer)
+    (position-analyse
+      ^point-of-view computer
+      ^row <row>
+      ^column <column>
+      ^nb-of-compulsory-answer-creations <nbcacc>)
+    (position-analyse
+      ^point-of-view human
+      ^row <row>
+      ^column <column>
+      ^nb-of-strong-winners <nbswh>)
+-->
+    (make possible-move
+           ^state non-validated-nb-of-compulsory-answer-creations
+           ^row <row>
+           ^column <column>
+	   ^score (compute <nbcacc> + <nbswh>)))
+
+(p choice-of-a-move-by-the-computer::compulsory-answers-validation
+    (game-state
+      ^current-context choice-of-a-move
+      ^current-sub-context generation-of-the-best-possible-moves
+      ^current-player computer)
+   {(possible-move
+     ^state non-validated-nb-of-compulsory-answer-creations
+     ^row <row>
+     ^column <column>
+     ^score {<score> >= 2 }) <possible-move>}
+-->
+    (modify <possible-move>
+	    ^state validated-nb-of-compulsory-answer-creations))
+
+(p choice-of-a-move-by-the-computer::compulsory-answers-validation-to-0
+    (game-state
+      ^current-context choice-of-a-move
+      ^current-sub-context generation-of-the-best-possible-moves
+      ^current-player computer)
+   {(possible-move
+     ^state non-validated-nb-of-compulsory-answer-creations
+     ^row <row>
+     ^column <column>
+     ^score {<score> < 2 }) <possible-move>}
+-->
+    (modify <possible-move>
+	    ^score 0
+	    ^state validated-nb-of-compulsory-answer-creations))
+
+(p choice-of-a-move-by-the-computer::score-computation
+    (game-state
+      ^current-context choice-of-a-move
+      ^current-sub-context generation-of-the-best-possible-moves
+      ^current-player computer)
+  {(possible-move
+     ^state validated-nb-of-compulsory-answer-creations
+     ^row <row>
+     ^column <column>
+     ^score <score>) <possible-move>}
+    (position-analyse
+      ^point-of-view computer
+      ^row <row>
+      ^column <column>
+      ^nb-of-fragile-winners <nbfwc>
+      ^nb-of-strong-winners <nbswc>)
+    (position-analyse
+      ^point-of-view human
+      ^row <row>
+      ^column <column>
+      ^nb-of-fragile-winners <nbfwh>
+      ^nb-of-compulsory-answer-creations <nbcach>)
+-->
+    (modify <possible-move>
+	    ^state computed
+	    ^score (compute (100 * (<nbfwh> + <nbfwc>)) +
+			    (10 * <score>) +
+			    <nbcach> + (2 * <nbswc>))))
+
+
+(p choice-of-a-move-by-the-computer::selection-of-the-best-moves
+    (game-state
+      ^current-context choice-of-a-move
+      ^current-sub-context generation-of-the-best-possible-moves
+      ^current-player computer)
+   {(possible-move
+      ^state computed
+      ^score <score-i>) <possible-move-i>}
+    (possible-move
+      ^state computed
+      ^score  > <score-i>)
+-->
+    (remove  <possible-move-i>))
+
+(p choice-of-a-move-by-the-computer::generation-of-the-best-possible-moves-end
+    (game-state
+      ^current-context choice-of-a-move
+      ^current-sub-context generation-of-the-best-possible-moves
+      ^current-player computer)
+-->
+    (modify 1
+      ^current-sub-context choice-of-the-move))
+
+(p choice-of-a-move-by-the-computer::removal-of-all-possible-moves
+    (game-state
+      ^current-context choice-of-a-move
+      ^current-sub-context choice-of-the-move
+      ^current-player computer)
+    (possible-move
+      ^row <row>
+      ^column <column>)
+    (new-move)
+-->
+    (remove 2))
+
+(p choice-of-a-move-by-the-computer::blind-pick-up-of-one-of-the-best
+    (game-state
+      ^current-context choice-of-a-move
+      ^current-sub-context choice-of-the-move
+      ^current-player computer)
+    (possible-move
+      ^row <row>
+      ^column <column>)
+   -(new-move)
+-->
+    (make last-computer-move <row> <column>)
+    (make new-move
+           ^state computer
+           ^row <row>
+           ^column <column>))
+
+(p choice-of-a-move-by-the-computer::blind-pick-up-of-a-vacant-position
+    (game-state
+      ^current-context choice-of-a-move
+      ^current-sub-context choice-of-the-move
+      ^current-player computer)
+   -(possible-move)
+   -(new-move)
+    (position ^state << human computer >>)
+    (position
+      ^state vacant
+      ^row <row>
+      ^column <column>)
+-->
+    (make last-computer-move <row> <column>)
+    (make new-move
+           ^state computer
+           ^row <row>
+           ^column <column>))
+
+(p choice-of-a-move-by-the-computer::first-move
+    (game-state
+      ^current-context choice-of-a-move
+      ^current-sub-context choice-of-the-move
+      ^current-player computer)
+   -(position ^state << computer human >>)
+-->
+    (make last-computer-move 6 5)
+    (make new-move
+           ^state computer
+           ^row 6
+           ^column 5))
+
+(p choice-of-a-move-by-the-computer::end-of-the-choice-of-the-move
+    (game-state
+      ^current-context choice-of-a-move
+      ^current-sub-context choice-of-the-move
+      ^current-player computer)
+-->
+    (modify 1 ^current-context board-analyse
+              ^current-sub-context garbage-cleaning))
+
+(p choice-of-a-move-by-the-computer::vertical-segment-choice
+    (game-state
+      ^current-context choice-of-a-move
+      ^current-sub-context choice-of-segments
+      ^computer-score <computer-score>
+      ^current-player computer)
+    (incrementation-table ^length 4 ^delta 1 ^nb <nb1> ^nb+d <nb1+i>
+       ^nb+2d <nb1+2i> ^nb+3d <nb1+3i>)
+    (incrementation-table ^length 4 ^delta 0 ^nb <nb2> ^nb+d <nb2+j>
+      ^nb+2d <nb2+2j> ^nb+3d <nb2+3j>)
+    (position ^row <nb1> ^column <nb2>
+              ^state computer ^vertical-state << free end-of-a-segment >>)
+    (position ^row <nb1+i> ^column <nb2+j>
+              ^state computer ^vertical-state << free end-of-a-segment >>)
+    (position ^row <nb1+2i> ^column <nb2+2j>
+              ^state computer ^vertical-state << free end-of-a-segment >>)
+    (position ^row <nb1+3i> ^column <nb2+3j>
+              ^state computer ^vertical-state << free end-of-a-segment >>)
+-->
+    (modify 1 ^computer-score (compute <computer-score> + 1))
+    (modify 4 ^vertical-state end-of-a-segment)
+    (modify 5 ^vertical-state inside-a-segment)
+    (modify 6 ^vertical-state inside-a-segment)
+    (modify 7 ^vertical-state end-of-a-segment))
+
+(p choice-of-a-move-by-the-computer::horizontal-segment-choice
+    (game-state
+      ^current-context choice-of-a-move
+      ^current-sub-context choice-of-segments
+      ^computer-score <computer-score>
+      ^current-player computer)
+    (incrementation-table ^length 4 ^delta 0 ^nb <nb1> ^nb+d <nb1+i>
+       ^nb+2d <nb1+2i> ^nb+3d <nb1+3i>)
+    (incrementation-table ^length 4 ^delta 1 ^nb <nb2> ^nb+d <nb2+j>
+      ^nb+2d <nb2+2j> ^nb+3d <nb2+3j>)
+    (position ^row <nb1> ^column <nb2>
+              ^state computer ^horizontal-state << free end-of-a-segment >>)
+    (position ^row <nb1+i> ^column <nb2+j>
+              ^state computer ^horizontal-state << free end-of-a-segment >>)
+    (position ^row <nb1+2i> ^column <nb2+2j>
+              ^state computer ^horizontal-state << free end-of-a-segment >>)
+    (position ^row <nb1+3i> ^column <nb2+3j>
+              ^state computer ^horizontal-state << free end-of-a-segment >>)
+-->
+    (modify 1 ^computer-score (compute <computer-score> + 1))
+    (modify 4 ^horizontal-state end-of-a-segment)
+    (modify 5 ^horizontal-state inside-a-segment)
+    (modify 6 ^horizontal-state inside-a-segment)
+    (modify 7 ^horizontal-state end-of-a-segment))
+
+(p choice-of-a-move-by-the-computer::right-bent-segment-choice
+    (game-state
+      ^current-context choice-of-a-move
+      ^current-sub-context choice-of-segments
+      ^computer-score <computer-score>
+      ^current-player computer)
+    (incrementation-table ^length 4 ^delta -1 ^nb <nb1> ^nb+d <nb1+i>
+       ^nb+2d <nb1+2i> ^nb+3d <nb1+3i>)
+    (incrementation-table ^length 4 ^delta 1 ^nb <nb2> ^nb+d <nb2+j>
+      ^nb+2d <nb2+2j> ^nb+3d <nb2+3j>)
+    (position ^row <nb1> ^column <nb2>
+              ^state computer ^right-bent-state << free end-of-a-segment >>)
+    (position ^row <nb1+i> ^column <nb2+j>
+              ^state computer ^right-bent-state << free end-of-a-segment >>)
+    (position ^row <nb1+2i> ^column <nb2+2j>
+              ^state computer ^right-bent-state << free end-of-a-segment >>)
+    (position ^row <nb1+3i> ^column <nb2+3j>
+              ^state computer ^right-bent-state << free end-of-a-segment >>)
+-->
+    (modify 1 ^computer-score (compute <computer-score> + 1))
+    (modify 4 ^right-bent-state end-of-a-segment)
+    (modify 5 ^right-bent-state inside-a-segment)
+    (modify 6 ^right-bent-state inside-a-segment)
+    (modify 7 ^right-bent-state end-of-a-segment))
+
+(p choice-of-a-move-by-the-computer::left-bent-segment-choice
+    (game-state
+      ^current-context choice-of-a-move
+      ^current-sub-context choice-of-segments
+      ^computer-score <computer-score>
+      ^current-player computer)
+    (incrementation-table ^length 4 ^delta 1 ^nb <nb1> ^nb+d <nb1+i>
+       ^nb+2d <nb1+2i> ^nb+3d <nb1+3i>)
+    (incrementation-table ^length 4 ^delta 1 ^nb <nb2> ^nb+d <nb2+j>
+      ^nb+2d <nb2+2j> ^nb+3d <nb2+3j>)
+    (position ^row <nb1> ^column <nb2>
+              ^state computer ^left-bent-state << free end-of-a-segment >>)
+    (position ^row <nb1+i> ^column <nb2+j>
+              ^state computer ^left-bent-state << free end-of-a-segment >>)
+    (position ^row <nb1+2i> ^column <nb2+2j>
+              ^state computer ^left-bent-state << free end-of-a-segment >>)
+    (position ^row <nb1+3i> ^column <nb2+3j>
+              ^state computer ^left-bent-state << free end-of-a-segment >>)
+-->
+    (modify 1 ^computer-score (compute <computer-score> + 1))
+    (modify 4 ^left-bent-state end-of-a-segment)
+    (modify 5 ^left-bent-state inside-a-segment)
+    (modify 6 ^left-bent-state inside-a-segment)
+    (modify 7 ^left-bent-state end-of-a-segment))
+
+(p choice-of-a-move-by-the-computer::end-of-choice-of-segments
+    (game-state
+      ^current-context choice-of-a-move
+      ^current-sub-context choice-of-segments
+      ^computer-score <computer-score>
+      ^current-player computer)
+-->
+    (modify 1
+            ^current-context board-drawing
+            ^current-player human))
+
+
+
+
+
+
+
+
+(p generation-of-incrementation
+    (game-state ^current-context initialisations)
+    (board-parameters
+      ^max-board-size-incr <mbs+1>)
+    (incrementation
+      ^nb <nb>
+      ^nb-incremented  {<nb-incremented> < <mbs+1>})
+   -(incrementation
+      ^nb <nb-incremented>)
+-->
+    (make incrementation
+           ^nb <nb-incremented>
+           ^nb-incremented (compute <nb-incremented> + 1)))
+
+
+(p generation-of-incrementation-table
+    (game-state ^current-context initialisations)
+    (delta <delta>)
+    (nb <nb>)
+    (length <length>)
+-->
+    (make incrementation-table
+	      ^length <length>
+	      ^delta <delta>
+	      ^nb <nb>
+	      ^nb+d (compute <nb> + <delta>)
+              ^nb+2d (compute <nb> + ( 2 * <delta>))
+              ^nb+3d (compute <nb> + ( 3 * <delta>))
+              ^nb+4d (compute <nb> + ( 4 * <delta>))
+              ^nb+5d (compute <nb> + ( 5 * <delta>))
+              ^nb+6d (compute <nb> + ( 6 * <delta>))))
+
+(p cleaning-of-superfluous-incrementation-tables-2
+    (game-state ^current-context initialisations)
+    (board-parameters
+      ^max-board-size-incr <mbs+1>)
+   {(incrementation-table ^length 7 ^nb+6d > <mbs+1>)
+    <incrementation-table>}
+-->
+    (remove <incrementation-table>))
+
+(p cleaning-of-superfluous-incrementation-tables-3
+    (game-state ^current-context initialisations)
+    (board-parameters
+      ^max-board-size-incr <mbs+1>)
+   {(incrementation-table ^length 6 ^nb+5d > <mbs+1>)
+    <incrementation-table>}
+-->
+    (remove <incrementation-table>))
+
+(p cleaning-of-superfluous-incrementation-tables-4
+    (game-state ^current-context initialisations)
+    (board-parameters
+      ^max-board-size-incr <mbs+1>)
+   {(incrementation-table ^length 5 ^nb+4d > <mbs+1>)
+    <incrementation-table>}
+-->
+    (remove <incrementation-table>))
+
+(p cleaning-of-superfluous-incrementation-tables-5
+    (game-state ^current-context initialisations)
+    (board-parameters
+      ^max-board-size <mbs>)
+   {(incrementation-table ^length 4 ^nb+3d > <mbs>)
+    <incrementation-table>}
+-->
+    (remove <incrementation-table>))
+
+(p cleaning-of-superfluous-incrementation-tables-2-bis
+    (game-state ^current-context initialisations)
+   {(incrementation-table ^length 7 ^nb+6d < 0)
+    <incrementation-table>}
+-->
+    (remove <incrementation-table>))
+
+(p cleaning-of-superfluous-incrementation-tables-3-bis
+    (game-state ^current-context initialisations)
+   {(incrementation-table ^length 6 ^nb+5d < 0)
+    <incrementation-table>}
+-->
+    (remove <incrementation-table>))
+
+(p cleaning-of-superfluous-incrementation-tables-4-bis
+    (game-state ^current-context initialisations)
+   {(incrementation-table ^length 5 ^nb+4d < 0)
+    <incrementation-table>}
+-->
+    (remove <incrementation-table>))
+
+(p cleaning-of-superfluous-incrementation-tables-5-bis
+    (game-state ^current-context initialisations)
+   {(incrementation-table ^length 4 ^nb+3d <= 0)
+    <incrementation-table>}
+-->
+    (remove <incrementation-table>))
+
+(p generation-of-an-edge-horizontally
+    (game-state ^current-context initialisations)
+    (board-parameters
+      ^nb-of-columns <nbbc>)
+    (position
+      ^row {<< 0 11 >> <existing-position-row>}
+      ^column  {<= <nbbc> <existing-position-column>})
+    (incrementation
+      ^nb <existing-position-column>
+      ^nb-incremented <existing-position-column-incremented>)
+   -(position
+      ^row <existing-position-row>
+      ^column <existing-position-column-incremented>)
+-->
+    (make position
+           ^row <existing-position-row>
+           ^column <existing-position-column-incremented>
+           ^state edge
+           ^vertical-state nil
+           ^horizontal-state nil
+           ^right-bent-state nil
+           ^left-bent-state nil))
+
+(p generation-of-an-edge-vertically
+    (game-state ^current-context initialisations)
+    (board-parameters
+      ^nb-of-rows <nbbr>)
+    (position
+      ^column {<< 0  11 >> <existing-position-column>}
+      ^row  {<= <nbbr> <existing-position-row>})
+    (incrementation
+      ^nb <existing-position-row>
+      ^nb-incremented <existing-position-row-incremented>)
+   -(position
+      ^column <existing-position-column>
+      ^row  <existing-position-row-incremented>)
+-->
+    (make position
+           ^column <existing-position-column>
+           ^row <existing-position-row-incremented>
+           ^state edge
+           ^vertical-state nil
+           ^horizontal-state nil
+           ^right-bent-state nil
+           ^left-bent-state nil))
+
+(p generation-of-an-empty-board-horizontally
+    (game-state ^current-context initialisations)
+    (board-parameters
+      ^nb-of-rows <nbbr>
+      ^nb-of-columns <nbbc>)
+    (position
+      ^row {<existing-position-row> > 0 <= <nbbr>}
+      ^column  {< <nbbc> <existing-position-column>})
+    (incrementation
+      ^nb <existing-position-column>
+      ^nb-incremented <existing-position-column-incremented>)
+   -(position
+      ^row <existing-position-row>
+      ^column <existing-position-column-incremented>)
+-->
+    (make position
+           ^row <existing-position-row>
+           ^column <existing-position-column-incremented>
+           ^state vacant
+           ^vertical-state free
+           ^horizontal-state free
+           ^right-bent-state free
+           ^left-bent-state free))
+
+(p generation-of-an-empty-board-vertically
+    (game-state ^current-context initialisations)
+    (board-parameters
+      ^nb-of-rows <nbbr>
+      ^nb-of-columns <nbbc>)
+    (position
+      ^column {<existing-position-column> > 0 <= <nbbc>}
+      ^row  {< <nbbr> <existing-position-row>})
+    (incrementation
+      ^nb <existing-position-row>
+      ^nb-incremented <existing-position-row-incremented>)
+   -(position
+      ^column <existing-position-column>
+      ^row  <existing-position-row-incremented>)
+-->
+    (make position
+           ^column <existing-position-column>
+           ^row <existing-position-row-incremented>
+           ^state vacant
+           ^vertical-state free
+           ^horizontal-state free
+           ^right-bent-state free
+           ^left-bent-state free))
+
+(p determination-of-the-player-who-is-going-to-start
+   {<game-state>
+    (game-state
+      ^current-context initialisations
+      ^current-player {<> human <> computer})}
+    (symbol
+      ^meaning human
+      ^drawing-character <human-drawing-character>)
+    (symbol
+      ^meaning computer
+      ^drawing-character <computer-drawing-character>)
+    (board-parameters
+      ^nb-of-columns <nbbc>
+      ^nb-of-rows <nbbr>)
+-->
+    (write |___________________________________________|
+           (crlf)
+           (crlf)
+           |   The board has | <nbbc> | rows and | <nbbc> | columns.|
+           (crlf)
+           |       You are | <human-drawing-character> |, I am |
+           <computer-drawing-character> |.|
+           (crlf)
+           | ___________________________________________|
+           (crlf)
+           (crlf)
+           |Do you want to start (return: yes, anything else: no)? |)
+           (make input ^type first-player ^value (acceptline human read)))
+
+(p validation-of-the-answer-1
+   {<game-state>
+    (game-state
+      ^current-context initialisations)}
+   {(input ^type first-player ^value human) <input>}
+-->
+    (remove <input>)
+    (modify <game-state>
+	      ^current-player human
+              ^current-context choice-of-a-move
+              ^current-sub-context choice-of-the-move))
+
+(p validation-of-the-answer-2
+   {<game-state>
+    (game-state
+      ^current-context initialisations)}
+   {(input ^type first-player ^value <> human) <input>}
+-->
+    (remove <input>)
+    (modify <game-state>
+	      ^current-player computer
+              ^current-context choice-of-a-move
+              ^current-sub-context choice-of-the-move))
+
+
+
+(p initialisations-for-board-drawing
+   {<game-state>
+    (game-state ^current-context board-drawing)}
+   {(last-computer-move <row> <column>) <last-computer-move>}
+   -(drawing-position-printed)
+-->
+    (write (crlf)
+           (crlf)
+           |score: human |
+           (substr <game-state> human-score human-score)
+           | computer |
+           (substr <game-state> computer-score computer-score)
+           |. I just played| <row> <column> |.|
+           (crlf)
+           (crlf))
+    (remove <last-computer-move>)
+    (make drawing-position-printed
+           ^type outside-board
+           ^line-type first-line
+           ^board-row nil
+           ^board-column 1))
+
+(p drawing-of-the-first-line
+    (game-state ^current-context board-drawing)
+    (board-parameters
+      ^nb-of-columns <nbbc>)
+   {<drawing-position-printed>
+    (drawing-position-printed
+      ^line-type first-line
+      ^board-column {<> <nbbc> <board-column>})}
+
+-->
+    (bind <tab> (compute (2 + (<board-column> * 4))))
+    (write (tabto <tab>)
+           <board-column>)
+    (modify <drawing-position-printed>
+              ^board-column (compute <board-column> + 1)))
+
+(p end-of-the-drawing-of-the-first-line
+    (game-state ^current-context board-drawing)
+    (board-parameters
+      ^nb-of-columns <nb-of-columns>)
+   {<drawing-position-printed>
+    (drawing-position-printed
+      ^line-type first-line
+      ^board-column <nb-of-columns>)}
+-->
+    (bind <tab> (compute (2 + (4 * <nb-of-columns>))))
+    (write (tabto <tab>)
+           <nb-of-columns>
+           (crlf) (crlf))
+    (modify <drawing-position-printed>
+             ^board-row 1
+             ^line-type board-line
+             ^type outside-board))
+
+(p drawing-of-the-beginning-of-a-board-line
+    (game-state ^current-context board-drawing)
+   {<drawing-position-printed>
+    (drawing-position-printed
+      ^line-type board-line
+      ^type outside-board
+      ^board-row <board-row>)}
+-->
+    (write <board-row>)
+    (modify <drawing-position-printed>
+              ^type board-position
+              ^board-column 1
+              ^previous-board-position-column 1
+              ^previous-board-position-row <board-row>
+              ^next-board-position-column 2
+              ^next-board-position-row <board-row>))
+
+(p drawing-of-a-board-position
+    (game-state ^current-context board-drawing)
+    (board-parameters
+      ^nb-of-columns <nbbc>)
+   {<drawing-position-printed>
+    (drawing-position-printed
+      ^line-type board-line
+      ^type board-position
+      ^board-row <board-row>
+      ^board-column {<> <nbbc> <board-column>})}
+    (position
+      ^state <board-position-state>
+      ^row <board-row>
+      ^column <board-column>)
+    (symbol
+      ^meaning <board-position-state>
+      ^drawing-character <drawing-character>)
+-->
+    (bind <tab> (compute (2 + (4 * <board-column>))))
+    (write (tabto <tab>)
+           <drawing-character>)
+    (modify <drawing-position-printed>
+              ^type possibly-a-piece-of-horizontal-segment))
+
+(p drawing-of-the-end-of-a-board-line
+    (game-state ^current-context board-drawing)
+    (board-parameters
+      ^nb-of-rows <nbbr>
+      ^nb-of-columns <nbbc>)
+   {<drawing-position-printed>
+    (drawing-position-printed
+      ^line-type board-line
+      ^type board-position
+      ^board-row {<> <nbbr> <board-row>}
+      ^board-column <nbbc>)}
+    (position
+      ^state <board-position-state>
+      ^row <board-row>
+      ^column <nbbc>)
+    (symbol
+      ^meaning <board-position-state>
+      ^drawing-character <drawing-character>)
+-->
+    (bind <tab> (compute (2 + (4 * <nbbc>))))
+    (write (tabto <tab>)
+           <drawing-character>
+           (crlf))
+    (modify <drawing-position-printed>
+              ^type outside-board
+              ^line-type intermediate-line))
+
+(p drawing-of-the-end-of-the-board
+   {<game-state>
+    (game-state ^current-context board-drawing)}
+    (board-parameters
+      ^nb-of-rows <nbbr>
+      ^nb-of-columns <nbbc>)
+   {<drawing-position-printed>
+    (drawing-position-printed
+      ^line-type board-line
+      ^type board-position
+      ^board-row <nbbr>
+      ^board-column <nbbc>)}
+    (position
+      ^state <board-position-state>
+      ^row <nbbr>
+      ^column <nbbc>)
+    (symbol
+      ^meaning <board-position-state>
+      ^drawing-character <drawing-character>)
+-->
+    (bind <tab> (compute (2 + (4 * <nbbc>))))
+    (write (tabto <tab>)
+           <drawing-character>
+           (crlf) (crlf))
+    (remove <drawing-position-printed>)
+    (modify <game-state>
+              ^current-context choice-of-a-move
+              ^current-sub-context choice-of-the-move
+              ^current-player human))
+
+(p drawing-of-an-horizontal-piece-of-segment-1
+
+    (game-state ^current-context board-drawing)
+   {<drawing-position-printed>
+    (drawing-position-printed
+      ^line-type board-line
+      ^type possibly-a-piece-of-horizontal-segment
+      ^board-column <board-column>
+      ^board-row <board-row>
+      ^next-board-position-column <nbpc>
+      ^previous-board-position-column <pbpc>)}
+    (position
+      ^row <board-row>
+      ^column <pbpc>
+      ^state <> vacant
+      ^horizontal-state inside-a-segment)
+    (symbol
+      ^meaning piece-of-horizontal-segment
+      ^drawing-character <drawing-character>)
+-->
+    (bind <tab> (compute (2 + (4 * <board-column>) + 2)))
+    (write (tabto <tab>)
+           <drawing-character>)
+    (modify <drawing-position-printed>
+              ^type board-position
+              ^board-column (compute <board-column> + 1)
+              ^previous-board-position-column <nbpc>
+              ^next-board-position-column (compute <nbpc> + 1)))
+
+(p drawing-of-an-horizontal-piece-of-segment-2
+    (game-state ^current-context board-drawing)
+   {<drawing-position-printed>
+    (drawing-position-printed
+      ^line-type board-line
+      ^type possibly-a-piece-of-horizontal-segment
+      ^board-column <board-column>
+      ^board-row <board-row>
+      ^next-board-position-column <nbpc>
+      ^previous-board-position-column <pbpc>)}
+    (position
+      ^row <board-row>
+      ^column <nbpc>
+      ^state <> vacant
+      ^horizontal-state inside-a-segment)
+    (symbol
+      ^meaning piece-of-horizontal-segment
+      ^drawing-character <drawing-character>)
+-->
+    (bind <tab> (compute (2 + (4 * <board-column>) + 2)))
+    (write (tabto <tab>)
+           <drawing-character>)
+    (modify <drawing-position-printed>
+              ^type board-position
+              ^board-column (compute <board-column> + 1)
+              ^previous-board-position-column <nbpc>
+              ^next-board-position-column (compute <nbpc> + 1)))
+
+
+(p non-drawing-of-an-horizontal-piece-of-segment
+    (game-state ^current-context board-drawing)
+   {<drawing-position-printed>
+    (drawing-position-printed
+      ^line-type board-line
+      ^type possibly-a-piece-of-horizontal-segment
+      ^board-column <board-column>
+      ^board-row <board-row>
+      ^next-board-position-column <nbpc>
+      ^previous-board-position-column <pbpc>)}
+-->
+    (modify <drawing-position-printed>
+              ^type board-position
+              ^board-column (compute <board-column> + 1)
+              ^previous-board-position-column <nbpc>
+              ^next-board-position-column (compute <nbpc> + 1)))
+
+(p drawing-of-the-beginning-of-an-intermediate-line
+    (game-state ^current-context board-drawing)
+   {<drawing-position-printed>
+    (drawing-position-printed
+      ^line-type intermediate-line
+      ^type outside-board
+      ^board-row <board-row>)}
+-->
+    (modify <drawing-position-printed>
+              ^type possibly-a-piece-of-vertical-segment
+              ^nw-board-position-row <board-row>
+              ^nw-board-position-column 1
+              ^sw-board-position-row (compute 1 + <board-row>)
+              ^sw-board-position-column 1
+              ^ne-board-position-row <board-row>
+              ^ne-board-position-column 2
+              ^se-board-position-row (compute 1 + <board-row>)
+              ^se-board-position-column 2))
+
+(p drawing-of-a-vertical-piece-of-segment-1
+    (game-state ^current-context board-drawing)
+    (board-parameters
+      ^nb-of-columns <nbbc>)
+   {<drawing-position-printed>
+    (drawing-position-printed
+      ^line-type intermediate-line
+      ^type possibly-a-piece-of-vertical-segment
+      ^nw-board-position-column {<> <nbbc> <board-column>}
+      ^nw-board-position-row <nwbpr>)}
+    (position
+      ^row <nwbpr>
+      ^column <board-column>
+      ^state <> vacant
+      ^vertical-state inside-a-segment)
+    (symbol
+      ^meaning piece-of-vertical-segment
+      ^drawing-character <drawing-character>)
+-->
+    (bind <tab> (compute 2 + (4 * <board-column>)))
+    (write (tabto <tab>)
+           <drawing-character>)
+    (modify <drawing-position-printed>
+              ^type possibly-a-piece-of-bent-segment))
+
+(p drawing-of-a-vertical-piece-of-segment-2
+    (game-state ^current-context board-drawing)
+    (board-parameters
+      ^nb-of-columns <nbbc>)
+   {<drawing-position-printed>
+    (drawing-position-printed
+      ^line-type intermediate-line
+      ^type possibly-a-piece-of-vertical-segment
+      ^nw-board-position-column {<> <nbbc> <board-column>}
+      ^sw-board-position-row <swbpr>)}
+    (position
+      ^row <swbpr>
+      ^column <board-column>
+      ^state <> vacant
+      ^vertical-state inside-a-segment)
+    (symbol
+      ^meaning piece-of-vertical-segment
+      ^drawing-character <drawing-character>)
+-->
+    (bind <tab> (compute 2 + (4 * <board-column>)))
+    (write (tabto <tab>)
+           <drawing-character>)
+    (modify <drawing-position-printed>
+              ^type possibly-a-piece-of-bent-segment))
+
+(p non-drawing-of-a-vertical-piece-of-segment
+    (game-state ^current-context board-drawing)
+    (board-parameters
+      ^nb-of-columns <nbbc>)
+   {<drawing-position-printed>
+    (drawing-position-printed
+      ^line-type intermediate-line
+      ^type possibly-a-piece-of-vertical-segment
+      ^nw-board-position-column {<> <nbbc> <board-column>}
+      ^sw-board-position-row <swbpr>)}
+-->
+    (modify <drawing-position-printed>
+              ^type possibly-a-piece-of-bent-segment))
+
+(p drawing-of-a-piece-of-right-bent-segment-1
+    (game-state ^current-context board-drawing)
+   {<drawing-position-printed>
+    (drawing-position-printed
+      ^line-type intermediate-line
+      ^type possibly-a-piece-of-bent-segment
+      ^nw-board-position-column <board-column>
+      ^board-row <board-row>
+      ^sw-board-position-column <swbpc>
+      ^nw-board-position-column <nwbpc>
+      ^se-board-position-column <sebpc>
+      ^ne-board-position-column <nebpc>
+      ^sw-board-position-row <swbpr>)}
+    (position
+      ^row <swbpr>
+      ^column <swbpc>
+      ^state <> vacant
+      ^right-bent-state inside-a-segment)
+    (symbol
+      ^meaning piece-of-right-bent-segment
+      ^drawing-character <drawing-character>)
+-->
+    (bind <tab> (compute 2 + (4 * <board-column>) + 2))
+    (write (tabto <tab>)
+           <drawing-character>)
+    (modify <drawing-position-printed>
+              ^type possibly-a-piece-of-vertical-segment
+              ^sw-board-position-column <sebpc>
+              ^nw-board-position-column <nebpc>
+              ^se-board-position-column (compute <sebpc> + 1)
+              ^ne-board-position-column (compute <nebpc> + 1)))
+
+(p drawing-of-a-piece-of-right-bent-segment-2
+    (game-state ^current-context board-drawing)
+   {<drawing-position-printed>
+    (drawing-position-printed
+      ^line-type intermediate-line
+      ^type possibly-a-piece-of-bent-segment
+      ^nw-board-position-column <board-column>
+      ^board-row <board-row>
+      ^sw-board-position-column <swbpc>
+      ^nw-board-position-column <nwbpc>
+      ^se-board-position-column <sebpc>
+      ^ne-board-position-column <nebpc>
+      ^ne-board-position-row <nebpr>)}
+    (position
+      ^row <nebpr>
+      ^column <nebpc>
+      ^state <> vacant
+      ^right-bent-state inside-a-segment)
+    (symbol
+      ^meaning piece-of-right-bent-segment
+      ^drawing-character <drawing-character>)
+-->
+    (bind <tab> (compute 2 + (4 * <board-column>) + 2))
+    (write (tabto <tab>)
+           <drawing-character>)
+    (modify <drawing-position-printed>
+              ^type possibly-a-piece-of-vertical-segment
+              ^sw-board-position-column <sebpc>
+              ^nw-board-position-column <nebpc>
+              ^se-board-position-column (compute <sebpc> + 1)
+              ^ne-board-position-column (compute <nebpc> + 1)))
+
+(p drawing-of-a-piece-of-left-bent-segment-1
+    (game-state ^current-context board-drawing)
+   {<drawing-position-printed>
+    (drawing-position-printed
+      ^line-type intermediate-line
+      ^type possibly-a-piece-of-bent-segment
+      ^nw-board-position-column <board-column>
+      ^board-row <board-row>
+      ^sw-board-position-column <swbpc>
+      ^nw-board-position-column <nwbpc>
+      ^se-board-position-column <sebpc>
+      ^ne-board-position-column <nebpc>
+      ^se-board-position-row <sebpr>)}
+    (position
+      ^row <sebpr>
+      ^column <sebpc>
+      ^state <> vacant
+      ^left-bent-state inside-a-segment)
+    (symbol
+      ^meaning piece-of-left-bent-segment
+      ^drawing-character <drawing-character>)
+-->
+    (bind <tab> (compute 2 + (4 * <board-column>) + 2))
+    (write (tabto <tab>)
+           <drawing-character>)
+    (modify <drawing-position-printed>
+              ^type possibly-a-piece-of-vertical-segment
+              ^sw-board-position-column <sebpc>
+              ^nw-board-position-column <nebpc>
+              ^se-board-position-column (compute <sebpc> + 1)
+              ^ne-board-position-column (compute <nebpc> + 1)))
+
+(p drawing-of-a-piece-of-left-bent-segment-2
+    (game-state ^current-context board-drawing)
+   {<drawing-position-printed>
+    (drawing-position-printed
+      ^line-type intermediate-line
+      ^type possibly-a-piece-of-bent-segment
+      ^nw-board-position-column <board-column>
+      ^board-row <board-row>
+      ^sw-board-position-column <swbpc>
+      ^nw-board-position-column <nwbpc>
+      ^se-board-position-column <sebpc>
+      ^ne-board-position-column <nebpc>
+      ^nw-board-position-row <nwbpr>)}
+    (position
+      ^row <nwbpr>
+      ^column <nwbpc>
+      ^state <> vacant
+      ^left-bent-state inside-a-segment)
+    (symbol
+      ^meaning piece-of-left-bent-segment
+      ^drawing-character <drawing-character>)
+-->
+    (bind <tab> (compute 2 + (4 * <board-column>) + 2))
+    (write (tabto <tab>)
+           <drawing-character>)
+    (modify <drawing-position-printed>
+              ^type possibly-a-piece-of-vertical-segment
+              ^sw-board-position-column <sebpc>
+              ^nw-board-position-column <nebpc>
+              ^se-board-position-column (compute <sebpc> + 1)
+              ^ne-board-position-column (compute <nebpc> + 1)))
+
+(p drawing-of-a-crossing-of-segments-1
+    (game-state ^current-context board-drawing)
+   {<drawing-position-printed>
+    (drawing-position-printed
+      ^line-type intermediate-line
+      ^type possibly-a-piece-of-bent-segment
+      ^nw-board-position-column <board-column>
+      ^board-row <board-row>
+      ^sw-board-position-column <swbpc>
+      ^nw-board-position-column <nwbpc>
+      ^se-board-position-column <sebpc>
+      ^ne-board-position-column <nebpc>
+      ^se-board-position-row <sebpr>
+      ^sw-board-position-row <swbpr>)}
+    (position
+      ^row <swbpr>
+      ^column <swbpc>
+      ^state <> vacant
+      ^right-bent-state inside-a-segment)
+    (position
+      ^row <sebpr>
+      ^column <sebpc>
+      ^state <> vacant
+      ^left-bent-state inside-a-segment)
+    (symbol
+      ^meaning crossing-of-two-bent-segments
+      ^drawing-character <drawing-character>)
+-->
+    (bind <tab> (compute 2 + (4 * <board-column>) + 2))
+    (write (tabto <tab>)
+           <drawing-character>)
+    (modify <drawing-position-printed>
+              ^type possibly-a-piece-of-vertical-segment
+              ^sw-board-position-column <sebpc>
+              ^nw-board-position-column <nebpc>
+              ^se-board-position-column (compute <sebpc> + 1)
+              ^ne-board-position-column (compute <nebpc> + 1)))
+
+(p drawing-of-a-crossing-of-segments-2
+    (game-state ^current-context board-drawing)
+   {<drawing-position-printed>
+    (drawing-position-printed
+      ^line-type intermediate-line
+      ^type possibly-a-piece-of-bent-segment
+      ^nw-board-position-column <board-column>
+      ^board-row <board-row>
+      ^sw-board-position-column <swbpc>
+      ^nw-board-position-column <nwbpc>
+      ^se-board-position-column <sebpc>
+      ^ne-board-position-column <nebpc>
+      ^ne-board-position-row <nebpr>
+      ^nw-board-position-row <nwbpr>)}
+    (position
+      ^row <nwbpr>
+      ^column <nwbpc>
+      ^state <> vacant
+      ^left-bent-state inside-a-segment)
+    (position
+      ^row <nebpr>
+      ^column <nebpc>
+      ^state <> vacant
+      ^right-bent-state inside-a-segment)
+    (symbol
+      ^meaning crossing-of-two-bent-segments
+      ^drawing-character <drawing-character>)
+-->
+    (bind <tab> (compute 2 + (4 * <board-column>) + 2))
+    (write (tabto <tab>)
+           <drawing-character>)
+    (modify <drawing-position-printed>
+              ^type possibly-a-piece-of-vertical-segment
+              ^sw-board-position-column <sebpc>
+              ^nw-board-position-column <nebpc>
+              ^se-board-position-column (compute <sebpc> + 1)
+              ^ne-board-position-column (compute <nebpc> + 1)))
+
+(p drawing-of-a-crossing-of-segments-3
+    (game-state ^current-context board-drawing)
+   {<drawing-position-printed>
+    (drawing-position-printed
+      ^line-type intermediate-line
+      ^type possibly-a-piece-of-bent-segment
+      ^nw-board-position-column <board-column>
+      ^board-row <board-row>
+      ^sw-board-position-column <swbpc>
+      ^nw-board-position-column <nwbpc>
+      ^se-board-position-column <sebpc>
+      ^ne-board-position-column <nebpc>
+      ^ne-board-position-row <nebpr>
+      ^se-board-position-row <sebpr>)}
+    (position
+      ^row <sebpr>
+      ^column <sebpc>
+      ^state <> vacant
+      ^left-bent-state inside-a-segment)
+    (position
+      ^row <nebpr>
+      ^column <nebpc>
+      ^state <> vacant
+      ^right-bent-state inside-a-segment)
+    (symbol
+      ^meaning crossing-of-two-bent-segments
+      ^drawing-character <drawing-character>)
+-->
+    (bind <tab> (compute 2 + (4 * <board-column>) + 2))
+    (write (tabto <tab>)
+           <drawing-character>)
+    (modify <drawing-position-printed>
+              ^type possibly-a-piece-of-vertical-segment
+              ^sw-board-position-column <sebpc>
+              ^nw-board-position-column <nebpc>
+              ^se-board-position-column (compute <sebpc> + 1)
+              ^ne-board-position-column (compute <nebpc> + 1)))
+
+(p drawing-of-a-crossing-of-segments-4
+    (game-state ^current-context board-drawing)
+   {<drawing-position-printed>
+    (drawing-position-printed
+      ^line-type intermediate-line
+      ^type possibly-a-piece-of-bent-segment
+      ^nw-board-position-column <board-column>
+      ^board-row <board-row>
+      ^sw-board-position-column <swbpc>
+      ^nw-board-position-column <nwbpc>
+      ^se-board-position-column <sebpc>
+      ^ne-board-position-column <nebpc>
+      ^nw-board-position-row <nwbpr>
+      ^sw-board-position-row <swbpr>)}
+    (position
+      ^row <swbpr>
+      ^column <swbpc>
+      ^state <> vacant
+      ^right-bent-state inside-a-segment)
+    (position
+      ^row <nwbpr>
+      ^column <nwbpc>
+      ^state <> vacant
+      ^left-bent-state inside-a-segment)
+    (symbol
+      ^meaning crossing-of-two-bent-segments
+      ^drawing-character <drawing-character>)
+-->
+    (bind <tab> (compute 2 + (4 * <board-column>) + 2))
+    (write (tabto <tab>)
+           <drawing-character>)
+    (modify <drawing-position-printed>
+              ^type possibly-a-piece-of-vertical-segment
+              ^sw-board-position-column <sebpc>
+              ^nw-board-position-column <nebpc>
+              ^se-board-position-column (compute <sebpc> + 1)
+              ^ne-board-position-column (compute <nebpc> + 1)))
+
+(p non-drawing-of-an-intermediate-position-of-an-intermediate-line
+    (game-state ^current-context board-drawing)
+   {<drawing-position-printed>
+    (drawing-position-printed
+      ^line-type intermediate-line
+      ^type possibly-a-piece-of-bent-segment
+      ^board-row <board-row>
+      ^sw-board-position-column <swbpc>
+      ^nw-board-position-column <nwbpc>
+      ^se-board-position-column <sebpc>
+      ^ne-board-position-column <nebpc>
+      ^nw-board-position-row <nwbpr>
+      ^sw-board-position-row <swbpr>)}
+-->
+    (modify <drawing-position-printed>
+              ^type possibly-a-piece-of-vertical-segment
+              ^sw-board-position-column <sebpc>
+              ^nw-board-position-column <nebpc>
+              ^se-board-position-column (compute <sebpc> + 1)
+              ^ne-board-position-column (compute <nebpc> + 1)))
+
+(p drawing-of-the-end-of-an-intermediate-line-1
+    (game-state ^current-context board-drawing)
+    (board-parameters
+      ^nb-of-columns <nbbc>)
+   {<drawing-position-printed>
+    (drawing-position-printed
+      ^line-type intermediate-line
+      ^type possibly-a-piece-of-vertical-segment
+      ^nw-board-position-column <nbbc>
+      ^board-row <board-row>
+      ^sw-board-position-row <swbpr>)}
+    (position
+      ^row <swbpr>
+      ^column <nbbc>
+      ^state <> vacant
+      ^vertical-state inside-a-segment)
+    (symbol
+      ^meaning piece-of-vertical-segment
+      ^drawing-character <drawing-character>)
+-->
+    (bind <tab> (compute 2 + (4 * <nbbc>)))
+    (write (tabto <tab>)
+           <drawing-character>
+           (crlf))
+    (modify <drawing-position-printed>
+              ^type outside-board
+              ^line-type board-line
+              ^board-row (compute <board-row> + 1)))
+
+(p drawing-of-the-end-of-an-intermediate-line-2
+    (game-state ^current-context board-drawing)
+    (board-parameters
+      ^nb-of-columns <nbbc>)
+   {<drawing-position-printed>
+    (drawing-position-printed
+      ^line-type intermediate-line
+      ^type possibly-a-piece-of-vertical-segment
+      ^nw-board-position-column <nbbc>
+      ^board-row <board-row>
+      ^nw-board-position-row <nwbpr>)}
+    (position
+      ^row <nwbpr>
+      ^column <nbbc>
+      ^state <> vacant
+      ^vertical-state inside-a-segment)
+    (symbol
+      ^meaning piece-of-vertical-segment
+      ^drawing-character <drawing-character>)
+-->
+    (bind <tab> (compute 2 + (4 * <nbbc>)))
+    (write (tabto <tab>)
+           <drawing-character>
+           (crlf))
+    (modify <drawing-position-printed>
+              ^type outside-board
+              ^line-type board-line
+              ^board-row (compute <board-row> + 1)))
+
+(p non-drawing-of-the-end-of-an-intermediate-line
+    (game-state ^current-context board-drawing)
+    (board-parameters
+      ^nb-of-columns <nbbc>)
+   {<drawing-position-printed>
+    (drawing-position-printed
+      ^line-type intermediate-line
+      ^type possibly-a-piece-of-vertical-segment
+      ^nw-board-position-column <nbbc>
+      ^board-row <board-row>
+      ^nw-board-position-row <nwbpr>)}
+-->
+    (modify <drawing-position-printed>
+              ^type outside-board
+              ^line-type board-line
+              ^board-row (compute <board-row> + 1))
+    (write (crlf)))
+
+
+
+(p choice-of-a-move-by-human
+   {<game-state>
+    (game-state
+      ^current-context choice-of-a-move
+      ^current-sub-context choice-of-the-move
+      ^current-player human)}
+-->
+    (write |Where do you play (row column)?|)
+    (make input ^type position ^value (acceptline)))
+
+(p correction-of-a-move-by-human
+    (game-state
+      ^current-context choice-of-a-move
+      ^current-sub-context choice-of-the-move
+      ^current-player human)
+   {(input ^type position) <input>}
+-->
+    (write |Your move is illegal.|
+           (crlf)
+           |Where do you play (row column)?|)
+    (modify <input>
+      ^value (acceptline)))
+
+(p end-of-the-choice-of-the-move
+   {<game-state>
+    (game-state
+      ^current-context choice-of-a-move
+      ^current-sub-context choice-of-the-move
+      ^current-player human)}
+   {(input
+      ^type position
+      ^value <row> <column>) <input>}
+    (position
+      ^row  <row>
+      ^column <column>
+      ^state vacant)
+-->
+    (make new-move
+	   ^row <row>
+	   ^column <column>
+	   ^state human)
+    (remove <input>)
+    (modify <game-state>
+              ^current-context board-analyse
+              ^current-sub-context garbage-cleaning))
+
+(p asking-the-human-whether-he-wants-to-draw-a-segment
+    (game-state
+      ^current-context choice-of-a-move
+      ^current-sub-context choice-of-segments
+      ^current-player human)
+   -(segment)
+   -(input)
+-->
+(write |Segment to draw (ret., or beginning row & column, ending ...)?|)
+    (make input
+	  ^type segment
+	  ^value (acceptline no read)))
+
+(p asking-the-human-whether-he-wants-to-draw-another-segment
+   {<game-state>
+    (game-state
+      ^current-context choice-of-a-move
+      ^current-player human)}
+-->
+    (modify <game-state>
+             ^current-context choice-of-a-move))
+
+(p removal-of-a-negative-segment-input
+   {(game-state
+      ^current-context choice-of-a-move
+      ^current-sub-context choice-of-segments
+      ^current-player human) <game-state>}
+   {(input
+      ^type segment
+      ^value no) <input>}
+-->
+    (remove <input>)
+    (modify <game-state>
+	     ^current-context choice-of-a-move
+	     ^current-sub-context generation-of-the-best-possible-moves
+	     ^current-player computer))
+
+(p drawing-of-a-segment-by-human
+    (game-state
+      ^current-context choice-of-a-move
+      ^current-sub-context choice-of-segments
+      ^current-player human)
+   {(input
+      ^type segment
+      ^value {<> no <beginning-row>}
+             <beginning-column>
+             <ending-row>
+             <ending-column>) <input>}
+-->
+    (make segment
+            ^beginning-row <beginning-row>
+            ^beginning-column <beginning-column>
+            ^ending-row <ending-row>
+            ^ending-column <ending-column>)
+    (remove <input>))
+
+(p orientation-of-a-non-vertical-segment
+    (game-state
+      ^current-context choice-of-a-move
+      ^current-sub-context choice-of-segments
+      ^current-player human)
+   {<segment>
+    (segment
+      ^beginning-row <beginning-row>
+      ^ending-row <ending-row>
+      ^beginning-column <beginning-column>
+      ^ending-column {<ending-column> < <beginning-column>})}
+-->
+    (modify <segment>
+              ^beginning-row <ending-row>
+              ^ending-row <beginning-row>
+              ^beginning-column <ending-column>
+              ^ending-column <beginning-column>))
+
+ (p orientation-of-a-vertical-segment
+    (game-state
+      ^current-context choice-of-a-move
+      ^current-sub-context choice-of-segments
+      ^current-player human)
+   {<segment>
+    (segment
+      ^beginning-column <column>
+      ^ending-column  <column>
+      ^beginning-row <beginning-row>
+      ^ending-row {<ending-row> < <beginning-row>})}
+-->
+    (modify <segment>
+              ^beginning-row <ending-row>
+              ^ending-row <beginning-row>))
+
+(p checking-of-the-legality-of-a-horizontal-oriented-segment
+   {<game-state>
+    (game-state
+      ^current-context choice-of-a-move
+      ^current-sub-context choice-of-segments
+      ^current-player human
+      ^human-score <human-score>)}
+   {<segment>
+    (segment
+      ^beginning-row <row>
+      ^ending-row  <row>
+      ^beginning-column <beginning-column>
+      ^ending-column <ending-column>)}
+    (incrementation
+      ^nb <beginning-column>
+      ^nb-incremented <column2>)
+    (incrementation
+      ^nb <column2>
+      ^nb-incremented <column3>)
+    (incrementation
+      ^nb <column3>
+      ^nb-incremented <column4>)
+   {<position1>
+    (position
+      ^column <beginning-column>
+      ^row <row>
+      ^state human
+      ^horizontal-state << free end-of-a-segment >>)}
+   {<position2>
+    (position
+      ^column <column2>
+      ^row <row>
+      ^state human
+      ^horizontal-state << free end-of-a-segment >>)}
+   {<position3>
+    (position
+      ^column <column3>
+      ^row <row>
+      ^state human
+      ^horizontal-state << free end-of-a-segment >>)}
+   {<position4>
+    (position
+      ^column {<ending-column> <column4>}
+      ^row <row>
+      ^state human
+      ^horizontal-state << free end-of-a-segment >>)}
+-->
+    (modify <position1>
+              ^horizontal-state end-of-a-segment)
+    (modify <position2>
+              ^horizontal-state inside-a-segment)
+    (modify <position3>
+              ^horizontal-state inside-a-segment)
+    (modify <position4>
+              ^horizontal-state end-of-a-segment)
+    (modify <game-state>
+              ^human-score (compute <human-score> + 1))
+    (remove <segment>))
+
+(p checking-of-the-legality-of-a-vertical-oriented-segment
+   {<game-state>
+    (game-state
+      ^current-context choice-of-a-move
+      ^current-sub-context choice-of-segments
+      ^current-player human
+      ^human-score <human-score>)}
+   {<segment>
+    (segment
+      ^beginning-column <column>
+      ^ending-column  <column>
+      ^beginning-row <beginning-row>
+      ^ending-row <ending-row>)}
+    (incrementation
+      ^nb <beginning-row>
+      ^nb-incremented <row2>)
+    (incrementation
+      ^nb <row2>
+      ^nb-incremented <row3>)
+    (incrementation
+      ^nb <row3>
+      ^nb-incremented <row4>)
+   {<position1>
+    (position
+      ^row <beginning-row>
+      ^column <column>
+      ^state human
+      ^vertical-state << free end-of-a-segment >>)}
+   {<position2>
+    (position
+      ^row <row2>
+      ^column <column>
+      ^state human
+      ^vertical-state << free end-of-a-segment >>)}
+   {<position3>
+    (position
+      ^row <row3>
+      ^column <column>
+      ^state human
+      ^vertical-state << free end-of-a-segment >>)}
+   {<position4>
+    (position
+      ^row {<ending-row> <row4>}
+      ^column <column>
+      ^state human
+      ^vertical-state << free end-of-a-segment >>)}
+-->
+    (modify <position1>
+              ^vertical-state end-of-a-segment)
+    (modify <position2>
+              ^vertical-state inside-a-segment)
+    (modify <position3>
+              ^vertical-state inside-a-segment)
+    (modify <position4>
+              ^vertical-state end-of-a-segment)
+    (modify <game-state>
+              ^human-score (compute <human-score> + 1))
+    (remove <segment>))
+
+(p checking-of-the-legality-of-a-left-bent-oriented-segment
+   {<game-state>
+    (game-state
+      ^current-context choice-of-a-move
+      ^current-sub-context choice-of-segments
+      ^current-player human
+      ^human-score <human-score>)}
+   {<segment>
+    (segment
+      ^beginning-column <beginning-column>
+      ^ending-column  <ending-column>
+      ^beginning-row <beginning-row>
+      ^ending-row <ending-row>)}
+    (incrementation
+      ^nb <beginning-row>
+      ^nb-incremented <row2>)
+    (incrementation
+      ^nb <row2>
+      ^nb-incremented <row3>)
+    (incrementation
+      ^nb <row3>
+      ^nb-incremented <row4>)
+    (incrementation
+      ^nb <beginning-column>
+      ^nb-incremented <column2>)
+    (incrementation
+      ^nb <column2>
+      ^nb-incremented <column3>)
+    (incrementation
+      ^nb <column3>
+      ^nb-incremented <column4>)
+   {<position1>
+    (position
+      ^row <beginning-row>
+      ^column <beginning-column>
+      ^state human
+      ^left-bent-state << free end-of-a-segment >>)}
+   {<position2>
+    (position
+      ^row <row2>
+      ^column <column2>
+      ^state human
+      ^left-bent-state << free end-of-a-segment >>)}
+   {<position3>
+    (position
+      ^row <row3>
+      ^column <column3>
+      ^state human
+      ^left-bent-state << free end-of-a-segment >>)}
+   {<position4>
+    (position
+      ^row {<ending-row> <row4>}
+      ^column {<ending-column> <column4>}
+      ^state human
+      ^left-bent-state << free end-of-a-segment >>)}
+-->
+    (modify <position1>
+              ^left-bent-state end-of-a-segment)
+    (modify <position2>
+              ^left-bent-state inside-a-segment)
+    (modify <position3>
+              ^left-bent-state inside-a-segment)
+    (modify <position4>
+              ^left-bent-state end-of-a-segment)
+    (modify <game-state>
+              ^human-score (compute <human-score> + 1))
+    (remove <segment>))
+
+(p checking-of-the-legality-of-a-right-bent-oriented-segment
+   {<game-state>
+    (game-state
+      ^current-context choice-of-a-move
+      ^current-sub-context choice-of-segments
+      ^current-player human
+      ^human-score <human-score>)}
+   {<segment>
+    (segment
+      ^beginning-row <beginning-row>
+      ^ending-row  <ending-row>
+      ^beginning-column <beginning-column>
+      ^ending-column <ending-column>)}
+    (incrementation
+      ^nb <beginning-column>
+      ^nb-incremented <column2>)
+    (incrementation
+      ^nb <column2>
+      ^nb-incremented <column3>)
+    (incrementation
+      ^nb <column3>
+      ^nb-incremented <column4>)
+    (incrementation
+      ^nb <ending-row>
+      ^nb-incremented <row3>)
+    (incrementation
+      ^nb <row3>
+      ^nb-incremented <row2>)
+    (incrementation
+      ^nb <row2>
+      ^nb-incremented <row1>)
+   {<position1>
+    (position
+      ^column <beginning-column>
+      ^row {<row1> <beginning-row>}
+      ^state human
+      ^right-bent-state << free end-of-a-segment >>)}
+   {<position2>
+    (position
+      ^column <column2>
+      ^row <row2>
+      ^state human
+      ^right-bent-state << free end-of-a-segment >>)}
+   {<position3>
+    (position
+      ^column <column3>
+      ^row <row3>
+      ^state human
+      ^right-bent-state << free end-of-a-segment >>)}
+   {<position4>
+    (position
+      ^column {<ending-column> <column4>}
+      ^row <ending-row>
+      ^state human
+      ^right-bent-state << free end-of-a-segment >>)}
+-->
+    (modify <position1>
+              ^right-bent-state end-of-a-segment)
+    (modify <position2>
+              ^right-bent-state inside-a-segment)
+    (modify <position3>
+              ^right-bent-state inside-a-segment)
+    (modify <position4>
+              ^right-bent-state end-of-a-segment)
+    (modify <game-state>
+              ^human-score (compute <human-score> + 1))
+    (remove <segment>))
+
+(p correction-of-a-segment
+   {<game-state>
+    (game-state
+      ^current-context choice-of-a-move
+      ^current-sub-context choice-of-segments
+      ^current-player human
+      ^human-score <human-score>)}
+   {<segment>
+    (segment
+      ^beginning-row <beginning-row>
+      ^ending-row  <ending-row>
+      ^beginning-column <beginning-column>
+      ^ending-column <ending-column>)}
+-->
+    (remove <segment>)
+    (write |Your segment is illegal.|
+           (crlf)
+           |Segment to draw (ret., or beginning row & column, ending ...)?|)
+    (make input
+	  ^type segment
+	  ^value (acceptline no read)))
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+(p fbug-start
+    (start)
+  -->
+    (make position
+           ^row 0
+           ^column 0
+           ^state edge
+           ^vertical-state nil
+           ^horizontal-state nil
+           ^right-bent-state nil
+           ^left-bent-state nil)
+    (make opposite ^of human ^is computer)
+    (make opposite ^of computer ^is human)
+    (make board-parameters
+           ^nb-of-columns 10
+           ^nb-of-rows 10
+           ^nb-of-columns-incr 11
+           ^nb-of-rows-incr 11
+	   ^max-board-size 10
+	   ^max-board-size-incr 11)
+    (make symbol
+           ^meaning vacant
+           ^drawing-character |.|)
+    (make symbol
+           ^meaning human
+           ^drawing-character |o|)
+    (make symbol
+           ^meaning computer
+           ^drawing-character |*|)
+    (make symbol
+           ^meaning piece-of-horizontal-segment
+           ^drawing-character |-|)
+    (make symbol
+           ^meaning piece-of-vertical-segment
+           ^drawing-character |l|)
+    (make symbol
+           ^meaning piece-of-right-bent-segment
+           ^drawing-character |/|)
+    (make symbol
+           ^meaning piece-of-left-bent-segment
+           ^drawing-character |\|)
+    (make symbol
+           ^meaning crossing-of-two-bent-segments
+           ^drawing-character |x|)
+    (make game-state
+           ^current-context initialisations
+           ^human-score 0
+           ^computer-score 0)
+    (make delta 0)
+    (make delta 1)
+    (make delta -1)
+    (make nb 0)
+    (make nb 1)
+    (make nb 2)
+    (make nb 3)
+    (make nb 4)
+    (make nb 5)
+    (make nb 6)
+    (make nb 7)
+    (make nb 8)
+    (make nb 9)
+    (make nb 10)
+    (make nb 11)
+    (make length 4)
+    (make length 5)
+    (make length 6)
+    (make length 7)
+    (make incrementation
+      ^nb 0
+      ^nb-incremented 1)
+    (make direction ^geometry assymetric ^row 0 ^column 1)
+    (make direction ^geometry assymetric ^row 1 ^column 1)
+    (make direction ^geometry assymetric ^row 1 ^column 0)
+    (make direction ^geometry assymetric ^row 1 ^column -1)
+    (make direction ^geometry assymetric ^row 0 ^column -1)
+    (make direction ^geometry assymetric ^row -1 ^column -1)
+    (make direction ^geometry assymetric ^row -1 ^column 0)
+    (make direction ^geometry assymetric ^row -1 ^column 1)
+    (make direction ^geometry symetric ^row 0 ^column 1)
+    (make direction ^geometry symetric ^row 1 ^column 1)
+    (make direction ^geometry symetric ^row 1 ^column 0)
+    (make direction ^geometry symetric ^row 1 ^column -1)
+    (make number-to-add-while-updating-counters ^value ignore-it)
+    (make segment-type
+           ^name opcxcpo
+           ^length 7
+           ^geometry symetric
+           ^owner computer
+           ^position-1-state human
+           ^position-2-state vacant
+           ^position-3-state vacant
+           ^position-4-state computer
+           ^position-5-state vacant
+           ^position-6-state vacant
+           ^position-7-state human
+           ^position-1-counter-to-update garbage
+           ^position-2-counter-to-update garbage
+           ^position-3-counter-to-update nb-of-compulsory-answer-creations
+           ^position-4-counter-to-update garbage
+           ^position-5-counter-to-update nb-of-compulsory-answer-creations
+           ^position-6-counter-to-update garbage
+           ^position-7-counter-to-update garbage)
+    (make segment-type
+           ^name ipcxcpo
+           ^length 7
+           ^geometry assymetric
+           ^owner computer
+           ^position-1-state edge
+           ^position-2-state vacant
+           ^position-3-state vacant
+           ^position-4-state computer
+           ^position-5-state vacant
+           ^position-6-state vacant
+           ^position-7-state human
+           ^position-1-counter-to-update garbage
+           ^position-2-counter-to-update garbage
+           ^position-3-counter-to-update nb-of-compulsory-answer-creations
+           ^position-4-counter-to-update garbage
+           ^position-5-counter-to-update nb-of-compulsory-answer-creations
+           ^position-6-counter-to-update garbage
+           ^position-7-counter-to-update garbage)
+    (make segment-type
+           ^name ipcxcpi
+           ^length 7
+           ^geometry symetric
+           ^owner computer
+           ^position-1-state edge
+           ^position-2-state vacant
+           ^position-3-state vacant
+           ^position-4-state computer
+           ^position-5-state vacant
+           ^position-6-state vacant
+           ^position-7-state edge
+           ^position-1-counter-to-update garbage
+           ^position-2-counter-to-update garbage
+           ^position-3-counter-to-update nb-of-compulsory-answer-creations
+           ^position-4-counter-to-update garbage
+           ^position-5-counter-to-update nb-of-compulsory-answer-creations
+           ^position-6-counter-to-update garbage
+           ^position-7-counter-to-update garbage)
+    (make segment-type
+           ^name pccxccp
+           ^length 7
+           ^geometry symetric
+           ^owner computer
+           ^position-1-state vacant
+           ^position-2-state vacant
+           ^position-3-state vacant
+           ^position-4-state computer
+           ^position-5-state vacant
+           ^position-6-state vacant
+           ^position-7-state vacant
+           ^position-1-counter-to-update garbage
+           ^position-2-counter-to-update nb-of-compulsory-answer-creations
+           ^position-3-counter-to-update nb-of-compulsory-answer-creations
+           ^position-4-counter-to-update garbage
+           ^position-5-counter-to-update nb-of-compulsory-answer-creations
+           ^position-6-counter-to-update nb-of-compulsory-answer-creations
+           ^position-7-counter-to-update garbage)
+    (make segment-type
+           ^name opcxccp
+           ^length 7
+           ^geometry assymetric
+           ^owner computer
+           ^position-1-state human
+           ^position-2-state vacant
+           ^position-3-state vacant
+           ^position-4-state computer
+           ^position-5-state vacant
+           ^position-6-state vacant
+           ^position-7-state vacant
+           ^position-1-counter-to-update garbage
+           ^position-2-counter-to-update garbage
+           ^position-3-counter-to-update nb-of-compulsory-answer-creations
+           ^position-4-counter-to-update garbage
+           ^position-5-counter-to-update nb-of-compulsory-answer-creations
+           ^position-6-counter-to-update nb-of-compulsory-answer-creations
+           ^position-7-counter-to-update garbage)
+    (make segment-type
+           ^name ipcxccp
+           ^length 7
+           ^geometry assymetric
+           ^owner computer
+           ^position-1-state edge
+           ^position-2-state vacant
+           ^position-3-state vacant
+           ^position-4-state computer
+           ^position-5-state vacant
+           ^position-6-state vacant
+           ^position-7-state vacant
+           ^position-1-counter-to-update garbage
+           ^position-2-counter-to-update garbage
+           ^position-3-counter-to-update nb-of-compulsory-answer-creations
+           ^position-4-counter-to-update garbage
+           ^position-5-counter-to-update nb-of-compulsory-answer-creations
+           ^position-6-counter-to-update nb-of-compulsory-answer-creations
+           ^position-7-counter-to-update garbage)
+    (make segment-type
+           ^name cxfxc
+           ^length 5
+           ^geometry symetric
+           ^owner computer
+           ^position-1-state vacant
+           ^position-2-state computer
+           ^position-3-state vacant
+           ^position-4-state computer
+           ^position-5-state vacant
+           ^position-1-counter-to-update nb-of-compulsory-answer-creations
+           ^position-2-counter-to-update garbage
+           ^position-3-counter-to-update nb-of-fragile-winners
+           ^position-4-counter-to-update garbage
+           ^position-5-counter-to-update nb-of-compulsory-answer-creations)
+    (make segment-type
+           ^name oxxcc
+           ^length 5
+           ^geometry assymetric
+           ^owner human
+	   ^position-1-state human
+           ^position-2-state computer
+           ^position-3-state computer
+           ^position-4-state vacant
+           ^position-5-state vacant
+           ^position-1-counter-to-update garbage
+           ^position-2-counter-to-update garbage
+           ^position-3-counter-to-update garbage
+           ^position-4-counter-to-update nb-of-compulsory-answer-creations
+           ^position-5-counter-to-update nb-of-compulsory-answer-creations)
+    (make segment-type
+           ^name ixxcc
+           ^length 5
+           ^geometry assymetric
+           ^owner human
+	   ^position-1-state edge
+           ^position-2-state computer
+           ^position-3-state computer
+           ^position-4-state vacant
+           ^position-5-state vacant
+           ^position-1-counter-to-update garbage
+           ^position-2-counter-to-update garbage
+           ^position-3-counter-to-update garbage
+           ^position-4-counter-to-update nb-of-compulsory-answer-creations
+           ^position-5-counter-to-update nb-of-compulsory-answer-creations)
+    (make segment-type
+           ^name oxxfx
+           ^length 5
+           ^geometry assymetric
+           ^owner computer
+           ^position-1-state human
+           ^position-2-state computer
+           ^position-3-state computer
+           ^position-4-state vacant
+           ^position-5-state computer
+           ^position-1-counter-to-update garbage
+           ^position-2-counter-to-update garbage
+           ^position-3-counter-to-update garbage
+           ^position-4-counter-to-update nb-of-fragile-winners
+           ^position-5-counter-to-update garbage)
+    (make segment-type
+           ^name ixxfx
+           ^length 5
+           ^geometry assymetric
+           ^owner computer
+           ^position-1-state edge
+           ^position-2-state computer
+           ^position-3-state computer
+           ^position-4-state vacant
+           ^position-5-state computer
+           ^position-1-counter-to-update garbage
+           ^position-2-counter-to-update garbage
+           ^position-3-counter-to-update garbage
+           ^position-4-counter-to-update nb-of-fragile-winners
+           ^position-5-counter-to-update garbage)
+    (make segment-type
+           ^name ocxxco
+           ^length 6
+           ^geometry symetric
+           ^owner computer
+           ^position-1-state human
+           ^position-2-state vacant
+           ^position-3-state computer
+           ^position-4-state computer
+           ^position-5-state vacant
+           ^position-6-state human
+           ^position-1-counter-to-update garbage
+           ^position-2-counter-to-update nb-of-compulsory-answer-creations
+           ^position-3-counter-to-update garbage
+           ^position-4-counter-to-update garbage
+           ^position-5-counter-to-update nb-of-compulsory-answer-creations
+           ^position-6-counter-to-update garbage)
+    (make segment-type
+           ^name icxxco
+           ^length 6
+           ^geometry assymetric
+           ^owner computer
+           ^position-1-state edge
+           ^position-2-state vacant
+           ^position-3-state computer
+           ^position-4-state computer
+           ^position-5-state vacant
+           ^position-6-state human
+           ^position-1-counter-to-update garbage
+           ^position-2-counter-to-update nb-of-compulsory-answer-creations
+           ^position-3-counter-to-update garbage
+           ^position-4-counter-to-update garbage
+           ^position-5-counter-to-update nb-of-compulsory-answer-creations
+           ^position-6-counter-to-update garbage)
+    (make segment-type
+           ^name icxxci
+           ^length 6
+           ^geometry symetric
+           ^owner computer
+           ^position-1-state edge
+           ^position-2-state vacant
+           ^position-3-state computer
+           ^position-4-state computer
+           ^position-5-state vacant
+           ^position-6-state edge
+           ^position-1-counter-to-update garbage
+           ^position-2-counter-to-update nb-of-compulsory-answer-creations
+           ^position-3-counter-to-update garbage
+           ^position-4-counter-to-update garbage
+           ^position-5-counter-to-update nb-of-compulsory-answer-creations
+           ^position-6-counter-to-update garbage)
+    (make segment-type
+           ^name ocxxfc
+           ^length 6
+           ^geometry assymetric
+           ^owner computer
+           ^position-1-state human
+           ^position-2-state vacant
+           ^position-3-state computer
+           ^position-4-state computer
+           ^position-5-state vacant
+           ^position-6-state vacant
+           ^position-1-counter-to-update garbage
+           ^position-2-counter-to-update nb-of-compulsory-answer-creations
+           ^position-3-counter-to-update garbage
+           ^position-4-counter-to-update garbage
+           ^position-5-counter-to-update nb-of-fragile-winners
+           ^position-6-counter-to-update nb-of-compulsory-answer-creations)
+    (make segment-type
+           ^name icxxfc
+           ^length 6
+           ^geometry assymetric
+           ^owner computer
+           ^position-1-state edge
+           ^position-2-state vacant
+           ^position-3-state computer
+           ^position-4-state computer
+           ^position-5-state vacant
+           ^position-6-state vacant
+           ^position-1-counter-to-update garbage
+           ^position-2-counter-to-update nb-of-compulsory-answer-creations
+           ^position-3-counter-to-update garbage
+           ^position-4-counter-to-update garbage
+           ^position-5-counter-to-update nb-of-fragile-winners
+           ^position-6-counter-to-update nb-of-compulsory-answer-creations)
+    (make segment-type
+           ^name ocxxfx
+           ^length 6
+           ^geometry assymetric
+           ^owner computer
+           ^position-1-state human
+           ^position-2-state vacant
+           ^position-3-state computer
+           ^position-4-state computer
+           ^position-5-state vacant
+           ^position-6-state computer
+           ^position-1-counter-to-update garbage
+           ^position-2-counter-to-update nb-of-compulsory-answer-creations
+           ^position-3-counter-to-update garbage
+           ^position-4-counter-to-update garbage
+           ^position-5-counter-to-update nb-of-fragile-winners
+           ^position-6-counter-to-update garbage)
+    (make segment-type
+           ^name icxxfx
+           ^length 6
+           ^geometry assymetric
+           ^owner computer
+           ^position-1-state edge
+           ^position-2-state vacant
+           ^position-3-state computer
+           ^position-4-state computer
+           ^position-5-state vacant
+           ^position-6-state computer
+           ^position-1-counter-to-update garbage
+           ^position-2-counter-to-update nb-of-compulsory-answer-creations
+           ^position-3-counter-to-update garbage
+           ^position-4-counter-to-update garbage
+           ^position-5-counter-to-update nb-of-fragile-winners
+           ^position-6-counter-to-update garbage)
+    (make segment-type
+           ^name cfxxfc
+           ^length 6
+           ^geometry symetric
+           ^owner computer
+           ^position-1-state vacant
+           ^position-2-state vacant
+           ^position-3-state computer
+           ^position-4-state computer
+           ^position-5-state vacant
+           ^position-6-state vacant
+           ^position-1-counter-to-update nb-of-compulsory-answer-creations
+           ^position-2-counter-to-update nb-of-fragile-winners
+           ^position-3-counter-to-update garbage
+           ^position-4-counter-to-update garbage
+           ^position-5-counter-to-update nb-of-fragile-winners
+           ^position-6-counter-to-update nb-of-compulsory-answer-creations)
+    (make segment-type
+           ^name xfxxfc
+           ^length 6
+           ^geometry assymetric
+           ^owner computer
+           ^position-1-state computer
+           ^position-2-state vacant
+           ^position-3-state computer
+           ^position-4-state computer
+           ^position-5-state vacant
+           ^position-6-state vacant
+           ^position-1-counter-to-update garbage
+           ^position-2-counter-to-update nb-of-fragile-winners
+           ^position-3-counter-to-update garbage
+           ^position-4-counter-to-update garbage
+           ^position-5-counter-to-update nb-of-fragile-winners
+           ^position-6-counter-to-update nb-of-compulsory-answer-creations)
+    (make segment-type
+           ^name xwxxwx
+           ^length 6
+           ^geometry symetric
+           ^owner computer
+           ^position-1-state computer
+           ^position-2-state vacant
+           ^position-3-state computer
+           ^position-4-state computer
+           ^position-5-state vacant
+           ^position-6-state computer
+           ^position-1-counter-to-update garbage
+           ^position-2-counter-to-update nb-of-strong-winners
+           ^position-3-counter-to-update garbage
+           ^position-4-counter-to-update garbage
+           ^position-5-counter-to-update nb-of-strong-winners
+           ^position-6-counter-to-update garbage)
+    (make segment-type
+           ^name oxxxf
+           ^length 5
+           ^geometry assymetric
+           ^owner computer
+           ^position-1-state human
+           ^position-2-state computer
+           ^position-3-state computer
+           ^position-4-state computer
+           ^position-5-state vacant
+           ^position-1-counter-to-update garbage
+           ^position-2-counter-to-update garbage
+           ^position-3-counter-to-update garbage
+           ^position-4-counter-to-update garbage
+           ^position-5-counter-to-update nb-of-fragile-winners)
+    (make segment-type
+           ^name ixxxf
+           ^length 5
+           ^geometry assymetric
+           ^owner computer
+           ^position-1-state edge
+           ^position-2-state computer
+           ^position-3-state computer
+           ^position-4-state computer
+           ^position-5-state vacant
+           ^position-1-counter-to-update garbage
+           ^position-2-counter-to-update garbage
+           ^position-3-counter-to-update garbage
+           ^position-4-counter-to-update garbage
+           ^position-5-counter-to-update nb-of-fragile-winners)
+    (make segment-type
+           ^name wxxxw
+           ^length 5
+           ^geometry symetric
+           ^owner computer
+           ^position-1-state vacant
+           ^position-2-state computer
+           ^position-3-state computer
+           ^position-4-state computer
+           ^position-5-state vacant
+           ^position-1-counter-to-update nb-of-strong-winners
+           ^position-2-counter-to-update garbage
+           ^position-3-counter-to-update garbage
+           ^position-4-counter-to-update garbage
+           ^position-5-counter-to-update nb-of-strong-winners)
+    (make segment-type
+           ^name opcxcpo
+           ^length 7
+           ^geometry symetric
+           ^owner human
+           ^position-1-state computer
+           ^position-2-state vacant
+           ^position-3-state vacant
+           ^position-4-state human
+           ^position-5-state vacant
+           ^position-6-state vacant
+           ^position-7-state computer
+           ^position-1-counter-to-update garbage
+           ^position-2-counter-to-update garbage
+           ^position-3-counter-to-update nb-of-compulsory-answer-creations
+           ^position-4-counter-to-update garbage
+           ^position-5-counter-to-update nb-of-compulsory-answer-creations
+           ^position-6-counter-to-update garbage
+           ^position-7-counter-to-update garbage)
+    (make segment-type
+           ^name ipcxcpo
+           ^length 7
+           ^geometry assymetric
+           ^owner human
+           ^position-1-state edge
+           ^position-2-state vacant
+           ^position-3-state vacant
+           ^position-4-state human
+           ^position-5-state vacant
+           ^position-6-state vacant
+           ^position-7-state computer
+           ^position-1-counter-to-update garbage
+           ^position-2-counter-to-update garbage
+           ^position-3-counter-to-update nb-of-compulsory-answer-creations
+           ^position-4-counter-to-update garbage
+           ^position-5-counter-to-update nb-of-compulsory-answer-creations
+           ^position-6-counter-to-update garbage
+           ^position-7-counter-to-update garbage)
+    (make segment-type
+           ^name ipcxcpi
+           ^length 7
+           ^geometry symetric
+           ^owner human
+           ^position-1-state edge
+           ^position-2-state vacant
+           ^position-3-state vacant
+           ^position-4-state human
+           ^position-5-state vacant
+           ^position-6-state vacant
+           ^position-7-state edge
+           ^position-1-counter-to-update garbage
+           ^position-2-counter-to-update garbage
+           ^position-3-counter-to-update nb-of-compulsory-answer-creations
+           ^position-4-counter-to-update garbage
+           ^position-5-counter-to-update nb-of-compulsory-answer-creations
+           ^position-6-counter-to-update garbage
+           ^position-7-counter-to-update garbage)
+    (make segment-type
+           ^name pccxccp
+           ^length 7
+           ^geometry symetric
+           ^owner human
+           ^position-1-state vacant
+           ^position-2-state vacant
+           ^position-3-state vacant
+           ^position-4-state human
+           ^position-5-state vacant
+           ^position-6-state vacant
+           ^position-7-state vacant
+           ^position-1-counter-to-update garbage
+           ^position-2-counter-to-update nb-of-compulsory-answer-creations
+           ^position-3-counter-to-update nb-of-compulsory-answer-creations
+           ^position-4-counter-to-update garbage
+           ^position-5-counter-to-update nb-of-compulsory-answer-creations
+           ^position-6-counter-to-update nb-of-compulsory-answer-creations
+           ^position-7-counter-to-update garbage)
+    (make segment-type
+           ^name opcxccp
+           ^length 7
+           ^geometry assymetric
+           ^owner human
+           ^position-1-state computer
+           ^position-2-state vacant
+           ^position-3-state vacant
+           ^position-4-state human
+           ^position-5-state vacant
+           ^position-6-state vacant
+           ^position-7-state vacant
+           ^position-1-counter-to-update garbage
+           ^position-2-counter-to-update garbage
+           ^position-3-counter-to-update nb-of-compulsory-answer-creations
+           ^position-4-counter-to-update garbage
+           ^position-5-counter-to-update nb-of-compulsory-answer-creations
+           ^position-6-counter-to-update nb-of-compulsory-answer-creations
+           ^position-7-counter-to-update garbage)
+    (make segment-type
+           ^name ipcxccp
+           ^length 7
+           ^geometry assymetric
+           ^owner human
+           ^position-1-state edge
+           ^position-2-state vacant
+           ^position-3-state vacant
+           ^position-4-state human
+           ^position-5-state vacant
+           ^position-6-state vacant
+           ^position-7-state vacant
+           ^position-1-counter-to-update garbage
+           ^position-2-counter-to-update garbage
+           ^position-3-counter-to-update nb-of-compulsory-answer-creations
+           ^position-4-counter-to-update garbage
+           ^position-5-counter-to-update nb-of-compulsory-answer-creations
+           ^position-6-counter-to-update nb-of-compulsory-answer-creations
+           ^position-7-counter-to-update garbage)
+    (make segment-type
+           ^name cxfxc
+           ^length 5
+           ^geometry symetric
+           ^owner human
+           ^position-1-state vacant
+           ^position-2-state human
+           ^position-3-state vacant
+           ^position-4-state human
+           ^position-5-state vacant
+           ^position-1-counter-to-update nb-of-compulsory-answer-creations
+           ^position-2-counter-to-update garbage
+           ^position-3-counter-to-update nb-of-fragile-winners
+           ^position-4-counter-to-update garbage
+           ^position-5-counter-to-update nb-of-compulsory-answer-creations)
+    (make segment-type
+           ^name oxxcc
+           ^length 5
+           ^geometry assymetric
+           ^owner computer
+	   ^position-1-state computer
+           ^position-2-state human
+           ^position-3-state human
+           ^position-4-state vacant
+           ^position-5-state vacant
+           ^position-1-counter-to-update garbage
+           ^position-2-counter-to-update garbage
+           ^position-3-counter-to-update garbage
+           ^position-4-counter-to-update nb-of-compulsory-answer-creations
+           ^position-5-counter-to-update nb-of-compulsory-answer-creations)
+    (make segment-type
+           ^name ixxcc
+           ^length 5
+           ^geometry assymetric
+           ^owner computer
+	   ^position-1-state edge
+           ^position-2-state human
+           ^position-3-state human
+           ^position-4-state vacant
+           ^position-5-state vacant
+           ^position-1-counter-to-update garbage
+           ^position-2-counter-to-update garbage
+           ^position-3-counter-to-update garbage
+           ^position-4-counter-to-update nb-of-compulsory-answer-creations
+           ^position-5-counter-to-update nb-of-compulsory-answer-creations)
+    (make segment-type
+           ^name oxxfx
+           ^length 5
+           ^geometry assymetric
+           ^owner human
+           ^position-1-state computer
+           ^position-2-state human
+           ^position-3-state human
+           ^position-4-state vacant
+           ^position-5-state human
+           ^position-1-counter-to-update garbage
+           ^position-2-counter-to-update garbage
+           ^position-3-counter-to-update garbage
+           ^position-4-counter-to-update nb-of-fragile-winners
+           ^position-5-counter-to-update garbage)
+    (make segment-type
+           ^name ixxfx
+           ^length 5
+           ^geometry assymetric
+           ^owner human
+           ^position-1-state edge
+           ^position-2-state human
+           ^position-3-state human
+           ^position-4-state vacant
+           ^position-5-state human
+           ^position-1-counter-to-update garbage
+           ^position-2-counter-to-update garbage
+           ^position-3-counter-to-update garbage
+           ^position-4-counter-to-update nb-of-fragile-winners
+           ^position-5-counter-to-update garbage)
+    (make segment-type
+           ^name ocxxco
+           ^length 6
+           ^geometry symetric
+           ^owner human
+           ^position-1-state computer
+           ^position-2-state vacant
+           ^position-3-state human
+           ^position-4-state human
+           ^position-5-state vacant
+           ^position-6-state computer
+           ^position-1-counter-to-update garbage
+           ^position-2-counter-to-update nb-of-compulsory-answer-creations
+           ^position-3-counter-to-update garbage
+           ^position-4-counter-to-update garbage
+           ^position-5-counter-to-update nb-of-compulsory-answer-creations
+           ^position-6-counter-to-update garbage)
+    (make segment-type
+           ^name icxxco
+           ^length 6
+           ^geometry assymetric
+           ^owner human
+           ^position-1-state edge
+           ^position-2-state vacant
+           ^position-3-state human
+           ^position-4-state human
+           ^position-5-state vacant
+           ^position-6-state computer
+           ^position-1-counter-to-update garbage
+           ^position-2-counter-to-update nb-of-compulsory-answer-creations
+           ^position-3-counter-to-update garbage
+           ^position-4-counter-to-update garbage
+           ^position-5-counter-to-update nb-of-compulsory-answer-creations
+           ^position-6-counter-to-update garbage)
+    (make segment-type
+           ^name icxxci
+           ^length 6
+           ^geometry symetric
+           ^owner human
+           ^position-1-state edge
+           ^position-2-state vacant
+           ^position-3-state human
+           ^position-4-state human
+           ^position-5-state vacant
+           ^position-6-state edge
+           ^position-1-counter-to-update garbage
+           ^position-2-counter-to-update nb-of-compulsory-answer-creations
+           ^position-3-counter-to-update garbage
+           ^position-4-counter-to-update garbage
+           ^position-5-counter-to-update nb-of-compulsory-answer-creations
+           ^position-6-counter-to-update garbage)
+    (make segment-type
+           ^name ocxxfc
+           ^length 6
+           ^geometry assymetric
+           ^owner human
+           ^position-1-state computer
+           ^position-2-state vacant
+           ^position-3-state human
+           ^position-4-state human
+           ^position-5-state vacant
+           ^position-6-state vacant
+           ^position-1-counter-to-update garbage
+           ^position-2-counter-to-update nb-of-compulsory-answer-creations
+           ^position-3-counter-to-update garbage
+           ^position-4-counter-to-update garbage
+           ^position-5-counter-to-update nb-of-fragile-winners
+           ^position-6-counter-to-update nb-of-compulsory-answer-creations)
+    (make segment-type
+           ^name icxxfc
+           ^length 6
+           ^geometry assymetric
+           ^owner human
+           ^position-1-state edge
+           ^position-2-state vacant
+           ^position-3-state human
+           ^position-4-state human
+           ^position-5-state vacant
+           ^position-6-state vacant
+           ^position-1-counter-to-update garbage
+           ^position-2-counter-to-update nb-of-compulsory-answer-creations
+           ^position-3-counter-to-update garbage
+           ^position-4-counter-to-update garbage
+           ^position-5-counter-to-update nb-of-fragile-winners
+           ^position-6-counter-to-update nb-of-compulsory-answer-creations)
+    (make segment-type
+           ^name ocxxfx
+           ^length 6
+           ^geometry assymetric
+           ^owner human
+           ^position-1-state computer
+           ^position-2-state vacant
+           ^position-3-state human
+           ^position-4-state human
+           ^position-5-state vacant
+           ^position-6-state human
+           ^position-1-counter-to-update garbage
+           ^position-2-counter-to-update nb-of-compulsory-answer-creations
+           ^position-3-counter-to-update garbage
+           ^position-4-counter-to-update garbage
+           ^position-5-counter-to-update nb-of-fragile-winners
+           ^position-6-counter-to-update garbage)
+    (make segment-type
+           ^name icxxfx
+           ^length 6
+           ^geometry assymetric
+           ^owner human
+           ^position-1-state edge
+           ^position-2-state vacant
+           ^position-3-state human
+           ^position-4-state human
+           ^position-5-state vacant
+           ^position-6-state human
+           ^position-1-counter-to-update garbage
+           ^position-2-counter-to-update nb-of-compulsory-answer-creations
+           ^position-3-counter-to-update garbage
+           ^position-4-counter-to-update garbage
+           ^position-5-counter-to-update nb-of-fragile-winners
+           ^position-6-counter-to-update garbage)
+    (make segment-type
+           ^name cfxxfc
+           ^length 6
+           ^geometry symetric
+           ^owner human
+           ^position-1-state vacant
+           ^position-2-state vacant
+           ^position-3-state human
+           ^position-4-state human
+           ^position-5-state vacant
+           ^position-6-state vacant
+           ^position-1-counter-to-update nb-of-compulsory-answer-creations
+           ^position-2-counter-to-update nb-of-fragile-winners
+           ^position-3-counter-to-update garbage
+           ^position-4-counter-to-update garbage
+           ^position-5-counter-to-update nb-of-fragile-winners
+           ^position-6-counter-to-update nb-of-compulsory-answer-creations)
+    (make segment-type
+           ^name xfxxfc
+           ^length 6
+           ^geometry assymetric
+           ^owner human
+           ^position-1-state human
+           ^position-2-state vacant
+           ^position-3-state human
+           ^position-4-state human
+           ^position-5-state vacant
+           ^position-6-state vacant
+           ^position-1-counter-to-update garbage
+           ^position-2-counter-to-update nb-of-fragile-winners
+           ^position-3-counter-to-update garbage
+           ^position-4-counter-to-update garbage
+           ^position-5-counter-to-update nb-of-fragile-winners
+           ^position-6-counter-to-update nb-of-compulsory-answer-creations)
+    (make segment-type
+           ^name xwxxwx
+           ^length 6
+           ^geometry symetric
+           ^owner human
+           ^position-1-state human
+           ^position-2-state vacant
+           ^position-3-state human
+           ^position-4-state human
+           ^position-5-state vacant
+           ^position-6-state human
+           ^position-1-counter-to-update garbage
+           ^position-2-counter-to-update nb-of-strong-winners
+           ^position-3-counter-to-update garbage
+           ^position-4-counter-to-update garbage
+           ^position-5-counter-to-update nb-of-strong-winners
+           ^position-6-counter-to-update garbage)
+    (make segment-type
+           ^name oxxxf
+           ^length 5
+           ^geometry assymetric
+           ^owner human
+           ^position-1-state computer
+           ^position-2-state human
+           ^position-3-state human
+           ^position-4-state human
+           ^position-5-state vacant
+           ^position-1-counter-to-update garbage
+           ^position-2-counter-to-update garbage
+           ^position-3-counter-to-update garbage
+           ^position-4-counter-to-update garbage
+           ^position-5-counter-to-update nb-of-fragile-winners)
+    (make segment-type
+           ^name ixxxf
+           ^length 5
+           ^geometry assymetric
+           ^owner human
+           ^position-1-state edge
+           ^position-2-state human
+           ^position-3-state human
+           ^position-4-state human
+           ^position-5-state vacant
+           ^position-1-counter-to-update garbage
+           ^position-2-counter-to-update garbage
+           ^position-3-counter-to-update garbage
+           ^position-4-counter-to-update garbage
+           ^position-5-counter-to-update nb-of-fragile-winners)
+    (make segment-type
+           ^name wxxxw
+           ^length 5
+           ^geometry symetric
+           ^owner human
+           ^position-1-state vacant
+           ^position-2-state human
+           ^position-3-state human
+           ^position-4-state human
+           ^position-5-state vacant
+           ^position-1-counter-to-update nb-of-strong-winners
+           ^position-2-counter-to-update garbage
+           ^position-3-counter-to-update garbage
+           ^position-4-counter-to-update garbage
+           ^position-5-counter-to-update nb-of-strong-winners)
+    (make move-type-classification
+           ^type fragile-winner
+           ^is-better-than-type multiple-fragile-winners-creation)
+    (make move-type-classification
+           ^type fragile-winner
+           ^is-better-than-type agressivity)
+    (make move-type-classification
+           ^type multiple-fragile-winners-creation
+           ^is-better-than-type agressivity)
+    (make move-type
+           ^name agressivity
+           ^point-of-views&counters-to-add
+             human nb-of-compulsory-answer-creations
+             computer nb-of-strong-winners
+           ^comment nil)
+    (make move-type
+           ^name multiple-fragile-winners-creation
+           ^point-of-views&counters-to-add
+             computer nb-of-compulsory-answer-creations
+             human nb-of-strong-winners
+           ^comment need-to-be-validated-separetely)
+    (make move-type
+           ^name fragile-winner
+           ^point-of-views&counters-to-add
+             computer nb-of-fragile-winners human nb-of-fragile-winners
+           ^comment nil)
+)
+
+
+

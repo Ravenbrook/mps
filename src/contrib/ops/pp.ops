@@ -1,0 +1,53 @@
+; Production pretty printer.
+; The program takes productions in any lousy
+; format and attempts to print them properly.
+
+(declare (special pcount oport cinp))
+
+(defun pp (ifile ofile)
+       (prog (iport)
+	     (setq iport (infile ifile))
+	     (setq oport (outfile ofile))
+	     (setq pcount 1)
+	     (setq cinp (read iport))
+	     (while cinp
+		    (cond ((atom cinp) (print cinp oport) (terpri oport))
+			  ((not (equal (car cinp) 'p)) (print cinp oport)
+				 (terpri oport))
+			  (t (print-prod) (terpri oport)))
+		    (setq cinp (read iport)))
+	     (terpri oport)))
+
+
+(defun print-prod ()
+       (prog nil
+	     (princ "(p " oport)
+	     (print (cadr cinp) oport) (terpri oport)
+	     (setq cinp (cddr cinp))
+	     (while cinp
+		    (cond ((and (atom (car cinp)) (equal (car cinp) '-->))
+			   (princ "  -->" oport) (terpri oport)
+			   (setq cinp (cdr cinp)))
+			  ((and (atom (car cinp)) (equal (car cinp) '{))
+			   (princ "    " oport)
+			   (print-ce-with-var) (terpri oport))
+			  ((and (atom (car cinp)) (equal (car cinp) '-))
+			   (princ "  - " oport) 
+			   (print (cadr cinp) oport) (terpri oport)
+			   (setq cinp (cddr cinp)))
+			  (t (princ "    " oport)
+			     (print (car cinp) oport) (terpri oport)
+			     (setq cinp (cdr cinp)))))
+	     (setq pcount (1+ pcount))
+	     (princ ")" oport) (terpri oport)))
+
+
+(defun print-ce-with-var ()
+    (prog nil
+	  (while (not (equal (car cinp) '}))
+		 (print (car cinp) oport) (princ " " oport)
+		 (setq cinp (cdr cinp)))
+	  (print (car cinp) oport)
+	  (setq cinp (cdr cinp))))
+
+							 

@@ -1,0 +1,6745 @@
+;;; Source code for the haunt program by John Laird
+
+;;; Added comment, -BGM 2/3/89
+(defmacro comment (&rest r) `',r)
+
+(comment Haunt mps OPS5 productions for haunt)
+
+(strategy mea)
+
+(literalize current type name)
+
+(literalize links id name type)
+
+(literalize object name holds state inside scored xscore alive
+place side north south east up contains covered tied wears asleep treasure)
+
+(literalize location name side north south east up underwater book book2
+ontop siton general)
+
+ (literalize portal name door status)
+
+ (literalize place name visited state water virgin)
+
+ (literalize history atetoken northpole forever hiwater grave_status 
+grave_status2 hungry clue bus_stopped)
+
+ (literalize command string)
+
+ (literalize control state special)
+
+ (literalize time realtime cancer morning midnight orc_status orc_time
+	oil_status oil_time btime)
+
+ (literalize status score die died bdie likes sound went going answer noway 
+	quit notreasure cut)
+
+(comment **************** Start the show ****************)
+
+(p name01
+ (x 0)
+ (current ^type operator ^name  readfirst)
+ (input)
+ -->
+ (remove 3)
+ (write (crlf) |I assume that means yes.|)
+ (modify 2 ^type operator ^name read))
+
+(p name02
+ (x 10)
+ (current ^type operator ^name  readfirst)
+ (input <<  yes y oui nothing  >>)
+ -->
+ (remove 3)
+ (modify 2 ^type operator ^name read))
+
+(p name06
+ (x 0)
+ (current ^type operator ^name process)
+ (input)
+ -->
+ (write (crlf) |What?|)
+ (remove 3)
+ (modify 2 ^name read))
+
+(p name07
+ (x 10)
+ (current ^type operator ^name process)
+ (status ^going <> nil)
+ -->
+ (write (crlf) |You can't go that way.|)
+ (modify 2 ^name read)
+ (modify 3 ^going nil))
+
+(p name08
+ (x 10)
+ (current ^type operator ^name process)
+ (status ^going nil)
+-(input)
+ -->
+ (modify 2 ^type operator ^name read))
+
+(p name09
+ (x 10)
+ (current ^type operator ^name read)
+ (status ^going nil)
+ (time ^realtime <x>)
+-(input)
+ -->
+ (modify 2 ^type operator ^name process)
+ (write (crlf) |*|)
+ (make input (acceptline nothing read))
+ (modify 4 ^realtime (compute <x> + 2)))
+
+(p name010
+ (x 50)
+ (current ^type operator ^name  readfirst)
+  -->
+ (write (crlf) |This is HAUNT.  Version 4.6|)
+ (write (crlf) |See NEWS for news.|)
+ (write (crlf) |Have you played before?| (crlf) |*|)
+ (make input (accept))
+ (write (crlf) | |))
+
+(p name011
+ (x 20)
+ (current ^type operator ^name read)
+-(location)
+ -->
+ (make location ^name bus_stop))
+
+(p name012
+ (x 40)
+ (current ^type operator ^name  readfirst)
+ (input <<  n no  >>)
+ -->
+ (remove 3)
+ (modify 2 ^name read)
+ (write (crlf) |Welcome novice.  You are playing one of the world's largest|)
+ (write (crlf) |production systems.  The purpose of this game is to find|)
+ (write (crlf) |treasure in a haunted house and then escape from the house.|)
+ (write (crlf) | |)
+ (write (crlf) |The program will give descriptions of locations and accept|)
+ (write (crlf) |commands to perform actions.|)
+ (write (crlf) |Give it directives with simple 1-5 word commands.|)
+ (write (crlf) |Its knowledge of English is limited but imaginative.|)
+ (write (crlf) |The directions are north, south, east, west,|)
+ (write (crlf) |up and down.  Directions can be one letter (n,s,e,w,u,d).|)
+ (write (crlf) |Forward, back, left and right also work.|)
+ (write (crlf) |To string commands together use 'then'.  (eg.  west then s)|)
+ (write (crlf) |It will describe things to you, and a phrase enclosed in ' ' |)
+ (write (crlf) |is something it hears.|)
+ (write (crlf) | |)
+ (write (crlf) |Special commands: INVEN tells you what you hold.|)
+ (write (crlf) |                  SCORE gives your current score.  |)
+ (write (crlf) |                  STOP ends the adventure.  |)
+ (write (crlf) |                  LOOK describes your current position.|)
+ (write (crlf) |                  NEWS describes new features.|)
+ (write (crlf) | |)
+ (write (crlf) |*************************************************************|)
+ (write (crlf) |You get 15 points for finding a treasure and 5 points for|)
+ (write (crlf) |getting it to the lawn outside the house.  You get an extra|)
+ (write (crlf) |bonus of 20 points for getting your body off the estate.|)
+ (write (crlf) |The maximum number of points is 440|)
+ (write (crlf) |Good luck, you'll need it.  Ask for help if you want.|)
+ (write (crlf) |*************************************************************|)
+ (write (crlf) |Copyright (C) 1979, 1980, 1981, 1982, 1983 John Laird|)
+ (write (crlf) |*************************************************************|)
+ (write (crlf) | |)
+ (write (crlf) |On with the adventure!!|)
+ (write (crlf) | |)
+ (write (crlf) | |)
+ (write (crlf) | |)
+ (write (crlf) | |)
+ (write (crlf) | |)
+ (write (crlf) | |)
+ (write (crlf) | |)
+ (write (crlf) | |)
+ (write (crlf) | |)
+ (write (crlf) | |)
+ (write (crlf) |Along time ago, a young couple was picnicing near the woods|)
+ (write (crlf) |on the outskirts of town.  They were celebrating the birth|)
+ (write (crlf) |of their first child.  Unfortunately, a crazed moose|)
+ (write (crlf) |inhabited that area and attacked them.  The child and husband|)
+ (write (crlf) |were unharmed, but the wife was gored to death by the moose.|)
+ (write (crlf) | |)
+ (write (crlf) |After the funeral, the man bought the land where the incident occurred|)
+ (write (crlf) |and constructed a large mansion: CHEZ MOOSE.  He filled it|)
+ (write (crlf) |with the treasures of his family and claimed that his wife's|)
+ (write (crlf) |soul was still in the area.  He vowed to remain in the|)
+ (write (crlf) |mansion until he had returned her soul to human flesh.|)
+ (write (crlf) |He tried to bridge the gap between life and death to reclaim her.|)
+ (write (crlf) |Some say he was insane with grief, but others claimed that the madness was|)
+ (write (crlf) |in his blood, and his wife's death brought it to the surface.|)
+ (write (crlf) |After he entered the house, he never returned, and was declared dead |)
+ (write (crlf) |seven years later.  Several people have entered the mansion|)
+ (write (crlf) |looking for him but none of them have ever returned.|)
+ (write (crlf) |There were rumors that he and his wife now haunt the house.|)
+ (write (crlf) | |)
+ (write (crlf) |That would be the end of the story except that the house|)
+ (write (crlf) |still stands and is filled with priceless treasures.|)
+ (write (crlf) |The house and all its contents are willed to his only descendant.|)
+ (write (crlf) |Oh yes, I forgot to tell you, the day the mother was killed,|)
+ (write (crlf) |the child was stolen by Gypsies.|)
+ (write (crlf) |The Will claims that only the descendant will know|)
+ (write (crlf) |how to avoid going crazy and committing suicide|)
+ (write (crlf) |while spending a night in the mansion.|)
+ (write (crlf) |An obscure hereditary disease, Orkhisnoires sakioannes,|)
+ (write (crlf) |is supposed to play some part in this.|)
+ (write (crlf) | |)
+ (write (crlf) |So if your heritage is in doubt, you may be the descendant|)
+ (write (crlf) |that can claim the treasure in the mansion.|)
+ (write (crlf) |Many people, claiming to be descendants have died trying...|)
+ (write (crlf) | or at least never returned.|)
+ (write (crlf) | |)
+ (write (crlf) |The terms of the Will say you get to keep any treasure|)
+ (write (crlf) |you get to the lawn, but of course you must also get off the premises alive.|)
+ (write (crlf) |Because the house is haunted it must be destroyed, and nobody|)
+ (write (crlf) |would be crazy enough to try and recover the rest of the treasure.|)
+ (write (crlf) |If you do get out, the government has agreed to|)
+ (write (crlf) |buy the land and destroy the house.|)
+ (write (crlf) | |)
+ (write (crlf) |If you are insane enough to try, your adventure starts at a bus stop.|)
+ (write (crlf) |Remember, type STOP to end the adventure.|)
+ (write (crlf) | |))
+
+(p name013
+ (start)
+ -->
+ (make current ^type operator ^name readfirst)
+ (remove 1)
+ (make x 0)
+ (make x 10)
+ (make x 20)
+ (make x 30)
+ (make x 40)
+ (make x 50)
+ (make x 60))
+
+(p name1005
+ (x 60)
+ (current ^type operator ^name  readfirst)
+  -->
+ (make status ^score 0 ^went w ^sound on)
+ (make object ^name elevator		^place H)
+ (make object ^name candlesticks	^place dining_room ^treasure t)
+ (make object ^name ghost		^place cheese_room)
+ (make object ^name candy		^place foyer)
+ (make object ^name jade		^place backroom ^treasure t)
+ (make object ^name soap		^place bathroom)
+ (make object ^name mattress		^place bedroom)
+ (make object ^name chest ^place ocean ^south 2 ^east 2 ^up 1 ^treasure t)
+ (make object ^name marijuana		^place secret_room ^treasure t)
+ (make object ^name bottle		^place bar)
+ (make object ^name painting		^place smelly_room	^covered t)
+ (make object ^name chair		^place main_hall ^treasure t)
+ (make object ^name stool		^place bar)
+ (make object ^name gold		^place small_closet ^treasure t)
+ (make object ^name Dracula		^place dark_room	^asleep t)
+ (make object ^name monster		^place laboratory)
+ (make object ^name coins		^place bathysphere ^treasure t)
+ (make object ^name corkscrew		^place wine_cellar ^treasure t)
+ (make object ^name wetsuit		^place closet)
+ (make object ^name speargun		^place bathysphere	^state loaded)
+ (make object ^name diamonds		^place cave ^treasure t)
+ (make object ^name cube		^place frig ^treasure t)
+ (make object ^name tokens		^place held)
+ (make object ^name orchid		^place lawn
+					^side in ^east 3 ^north 7 ^state seed)
+ (make object ^name watch		^place held)
+ (make object ^name stairs	^state whole)
+ (make object ^name rope 	^tied noose)
+ (make object ^name damsel 	^alive t ^tied t)
+ (make object ^name turpentine 	^inside bottle)
+ (make object ^name moray_eel 	^alive t)
+ (make object ^name seamonster 	^alive t)
+ (make object ^name octopus 	^alive t)
+ (make portal ^name truck		^door closed)
+ (make portal ^name library		^door closed)
+ (make portal ^name casket		^door closed)
+ (make portal ^name grill		^door closed)
+ (make portal ^name elevator		^door closed)
+ (make portal ^name large_door		^door closed)
+ (make portal ^name safe		^door closed)
+ (make portal ^name rdoor		^door closed)
+ (make portal ^name wdoor		^door closed)
+ (make portal ^name closet		^door open)
+ (make portal ^name wall		^door closed)
+ (make time ^btime 2214  ^realtime 2200)
+ (make history ^grave_status undug)
+ (make place ^name bathtub ^water out)
+ (make place ^name foyer ^virgin t))
+
+(p name1
+  (x 50)
+  (location ^name <name>)
+- (place ^name <name>)
+  -->
+  (make place ^name <name>))
+
+(p name3
+ (x 10)
+ (location ^name <y>)
+ (object ^name <x> ^place <> <y>)
+ (input <a> <x>)
+ -->
+ (remove 4)
+ (write (crlf) |The| <x> |is not here.|))
+
+(p name4
+ (x 30)
+ (input news)
+ -->
+ (remove 2)
+ (write (crlf) |Version 4.6, 6-21-82|)
+ (write (crlf) |As always, a few more bugs have been fixed.|)
+ (write (crlf) |Send gripes to John.Laird@CMUA.|)
+ (write (crlf) |Or John Laird, Computer Science Department|)
+ (write (crlf) |Carnegie-Mellon University, Pittsburgh, Pa. 15213|)
+ (write (crlf) |The max score is 440.|)
+ (write (crlf) |Copyright (C) 1979,1980,1981,1982,1983 John E. Laird|))
+
+(p name5
+ (x 30)
+ (input who is bzm <x>)
+ -->
+ (remove 2)
+ (write (crlf) |A famous graduate of CMU CSD.|))
+
+(p name6
+ (x 30)
+ (input xstat)
+ -->
+ (remove 2)
+ (halt))
+
+(p name7
+ (x 50)
+ (location ^name <x>)
+ (place ^name <x> ^visited t)
+ -->
+ (write (crlf) |You are in| <x> |.|))
+
+(p name8
+ (x 30)
+ (input <x> <y> on)
+ -->
+ (make input <x> on <y> (substr 2 5 inf))
+ (remove 2))
+
+(p name9
+ (x 30)
+ (input <x> <y> off)
+ -->
+ (make input <x> off <y> (substr 2 5 inf))
+ (remove 2))
+
+(p name10
+ (x 30)
+ (input <x> to <y>)
+ -->
+ (remove 2)
+ (make input <x> <y>))
+
+(p name11
+ (x 30)
+ (location ^name <x>)
+ (input gamma <y>)
+ -->
+ (remove 3)
+ (modify 2 ^name <y>))
+
+(p name12
+ (x 30)
+ (input <x> the)
+ -->
+ (remove 2)
+ (make input <x> (substr 2 4 inf)))
+
+(p name13
+ (x 30)
+ (input <x> <y> the)
+ -->
+ (remove 2)
+ (make input <x> <y> (substr 2 5 inf)))
+
+(p name14
+ (x 30)
+ (input <x> a)
+ -->
+ (remove 2)
+ (make input <x> (substr 2 4 inf)))
+
+(p name15
+ (x 30)
+ (input <x> then)
+ -->
+ (remove 2)
+ (make input <x>)
+ (make input then (substr 2 4 inf)))
+
+(p name16
+ (x 30)
+ (input <x> <y> then)
+ -->
+ (remove 2)
+ (make input <x> <y>)
+ (make input (substr 2 4 inf)))
+
+(p name17
+ (x 30)
+ (input <x> <y> then <W> it)
+ -->
+ (remove 2)
+ (make input <x> <y>)
+ (make input then <W> <y> (substr 2 7 inf)))
+
+(p name18
+ (x 30)
+ (input <x> {<> then <y>} <n> then)
+ -->
+ (remove 2)
+ (make input <x> <y> <n>)
+ (make input (substr 2 5 inf)))
+
+(p name19
+ (x 30)
+ (input then)
+ (time ^realtime <y>)
+ -->
+ (remove 2)
+ (make input (substr 2 3 inf))
+ (modify 3 ^realtime (compute <y> + 2)))
+
+(p name20
+ (x 30)
+ (object ^name <y> ^place held)
+ (input <x> it)
+ -->
+ (remove 3)
+ (make input <x> <y> (substr 3 4 inf)))
+
+(p name21
+ (x 30)
+ (object ^name <y> ^place <Z>)
+ (location ^name <Z>)
+ (input <x> it)
+ -->
+ (remove 4)
+ (make input <x> <y> (substr 4 4 inf)))
+
+
+(comment ********Directions************************************************ )
+
+(p name22
+ (x 30)
+ (input {<< n s e w u d >> <direction>})
+ (status)
+ -->
+ (remove 2)
+ (modify 3 ^going <direction> ^went <direction>))
+
+(p name23
+ (x 30)
+ (input << out leave >>)
+ -->
+ (make input exit (substr 2 3 inf))
+ (remove 2))
+
+(p name24
+ (x 30)
+ (input get in)
+ -->
+ (remove 2)
+ (make input enter (substr 2 4 inf)))
+
+(p name25
+ (x 30)
+ (input << walkin in inside >>)
+ -->
+ (remove 2)
+ (make input enter (substr 2 3 inf)))
+
+(p name26
+ (x 30)
+ (input west)
+ (status)
+ -->
+ (remove 2)
+ (modify 3 ^going w ^went w))
+
+(p name27
+ (x 30)
+ (input east)
+ (status)
+ -->
+ (remove 2)
+ (modify 3 ^going e ^went e))
+
+(p name28
+ (x 30)
+ (input north)
+ (status)
+ -->
+ (remove 2)
+ (modify 3 ^going n ^went n))
+
+(p name29
+ (x 30)
+ (input south)
+ (status)
+ -->
+ (remove 2)
+ (modify 3 ^going s ^went s))
+
+(p name30
+ (x 30)
+ (input up)
+ (status)
+ -->
+ (remove 2)
+ (modify 3 ^going u ^went u))
+
+(p name31
+ (x 30)
+ (input down)
+ (status)
+ -->
+ (remove 2)
+ (modify 3 ^going d ^went d))
+
+(p name32
+ (x 30)
+ (status ^going n)
+ -->
+ (modify 2 ^going nil ^noway t))
+
+(p name33
+ (x 30)
+ (status ^going s)
+ -->
+ (modify 2 ^going nil ^noway t))
+
+(p name34
+ (x 30)
+ (status ^going w)
+ -->
+ (modify 2 ^going nil ^noway t))
+
+(p name35
+ (x 30)
+ (status ^going e)
+ -->
+ (modify 2 ^going nil ^noway t))
+
+(p name36
+ (x 30)
+ (status ^going d)
+ -->
+ (modify 2 ^going nil)
+ (write (crlf) |You can't go down from here.|))
+
+(p name37
+ (x 30)
+ (status ^going u)
+ -->
+ (modify 2 ^going nil)
+ (write (crlf) |There is nothing to go up on.|))
+
+(p name38
+ (x 30)
+ (status ^noway t)
+ -->
+ (write (crlf) |You can't go that way.|)
+ (modify 2 ^noway nil ^going nil))
+
+(p name39
+ (x 30)
+ (status ^went w)
+ (input right)
+ -->
+ (modify 2 ^going n ^went n)
+ (remove 3))
+
+(p name40
+ (x 30)
+ (status ^went <direction>)
+ (input forward)
+ -->
+ (modify 2 ^going <direction>)
+ (remove 3))
+
+(p name41
+ (x 30)
+ (status ^went s)
+ (input left)
+ -->
+ (modify 2 ^going e ^went e)
+ (remove 3))
+
+(p name42
+ (x 30)
+ (status ^went e)
+ (input left)
+ -->
+ (modify 2 ^going n ^went n)
+ (remove 3))
+
+(p name43
+ (x 30)
+ (status ^went e)
+ (input right)
+ -->
+ (modify 2 ^going s ^went s)
+ (remove 3))
+
+(p name44
+ (x 30)
+ (status ^went e)
+ (input back)
+ -->
+ (modify 2 ^going w ^went w)
+ (remove 3))
+
+(p name45
+ (x 30)
+ (status ^went s)
+ (input right)
+ -->
+ (modify 2 ^going w ^went w)
+ (remove 3))
+
+(p name46
+ (x 30)
+ (status ^went s)
+ (input back)
+ -->
+ (modify 2 ^going n ^went n)
+ (remove 3))
+
+(p name47
+ (x 30)
+ (status ^went n)
+ (input left)
+ -->
+ (modify 2 ^going w ^went w)
+ (remove 3))
+
+(p name48
+ (x 30)
+ (status ^went n)
+ (input right)
+ -->
+ (modify 2 ^going e ^went e)
+ (remove 3))
+
+(p name49
+ (x 30)
+ (status ^went n)
+ (input back)
+ -->
+ (modify 2 ^going s ^went s)
+ (remove 3))
+
+(p name50
+ (x 30)
+ (status ^went w)
+ (input left)
+ -->
+ (modify 2 ^going s ^went s)
+ (remove 3))
+
+(p name51
+ (x 30)
+ (status ^went u)
+ (input back)
+ -->
+ (modify 2 ^going d ^went d)
+ (remove 3))
+
+(p name52
+ (x 30)
+ (status ^went d)
+ (input back)
+ -->
+ (modify 2 ^going u ^went u)
+ (remove 3))
+
+(p name53
+ (x 30)
+ (status ^went w)
+ (input back)
+ -->
+ (modify 2 ^going e ^went e)
+ (remove 3))
+
+(p name54
+ (x 30)
+ (input ahead)
+ -->
+ (remove 2)
+ (make input forward))
+
+(p name55
+ (x 30)
+ (status ^went <y>)
+ (input direction)
+ -->
+ (remove 3)
+ (write (crlf) |You are facing | <y>))
+
+(p name56
+ (x 20)
+ (input exit)
+ -->
+ (remove 2)
+ (make input back))
+
+(p name57
+ (x 20)
+ (input enter <x>)
+ -->
+ (remove 2)
+ (write (crlf) |I can't enter| <x> |.|))
+
+(p name58
+ (x 30)
+ (input go nil)
+ -->
+ (make input forward)
+ (remove 2))
+
+(p name59
+ (x 30)
+ (input go <> nil)
+ -->
+ (remove 2)
+ (make input (substr 2 3 inf)))
+
+
+(comment *****************Get and Drop************************************* )
+
+(p name60
+ (x 30)
+ (location ^name <x>)
+ (object ^name <n> ^place <x>)
+ (input get all)
+ -->
+ (make input get <n>))
+
+(p name61
+ (x 20)
+ (input get all)
+ -->
+ (remove 2)
+ (write (crlf) |OK, all done.|))
+
+(p name62
+ (x 30)
+ (object ^name <p> ^place held)
+ (input get <p>)
+ -->
+ (remove 3)
+ (write (crlf) |You already have| <p>))
+
+(p name63
+ (x 10)
+ (input get <p>)
+ -->
+ (remove 2)
+ (write (crlf) |I can't get| <p>))
+
+(p name64
+ (x 30)
+ (object ^name <x> ^place <p> ^side <s> ^north <n> ^east <e> ^state nil)
+ (location ^name <p> ^side <s> ^north <n> ^east <e>)
+ (input get <x>)
+ -->
+ (remove 4)
+ (modify 2 ^place held)
+ (write (crlf) |You just got| <x> |.|))
+
+(p name65
+ (x 40)
+ (object ^name monster ^place laboratory)
+ (location ^name laboratory)
+ (input get monster)
+ -->
+ (remove 4)
+ (write (crlf) |That would be a big mistake.|))
+
+(p name66
+ (x 40)
+ (object ^name cecil ^place <x>)
+ (location ^name <x>)
+ (input get cecil)
+ -->
+ (remove 4)
+ (write (crlf) |Cecil is a free spirit.  He doesn't come with you.|))
+
+(p name67
+ (x 30)
+ (input << pull pickup grab pry lift take carry >> <x>)
+ -->
+ (remove 2)
+ (make input get <x>))
+
+(p name68
+ (x 30)
+ (input pick up <x>)
+ -->
+ (make input get <x>)
+ (remove 2))
+
+(p name69
+ (x 10)
+ (input drop all)
+ -->
+ (remove 2)
+ (write (crlf) |All dropped.|))
+
+(p name70
+ (x 30)
+ (input drop all)
+ (location ^name <p>)
+ (object ^name <n> ^place held)
+ -->
+ (make input drop <n>))
+
+(p name71
+ (x 20)
+ (object ^name <x> ^place held)
+ (location ^name <y> ^side <s> ^north <n> ^east <e>)
+ (input drop <x>)
+ -->
+ (remove 4)
+ (modify 2 ^place <y> ^side <s> ^north <n> ^east <e>))
+
+(p name72
+ (x 30)
+ (input << discard release >> <x>)
+ -->
+ (remove 2)
+ (make input drop <x>))
+
+(p name73
+ (x 10)
+ (object ^name <x> ^place <> held)
+ (input drop <x>)
+ -->
+ (remove 3)
+ (write (crlf) |You don't have| <x>))
+
+(p name74
+ (x 30)
+ (input put down <x>)
+ -->
+ (remove 2)
+ (make input drop <x>))
+
+(p name75
+ (x 30)
+ (input take off <x>)
+ -->
+ (remove 2)
+ (make input remove <x>))
+
+
+(comment *****************Inventory************************************  )
+
+(p name76
+ (x 30)
+ (object ^name <p> ^place held)
+ (input inven)
+ -->
+ (write (crlf) <p>))
+
+(p name77
+ (x 20)
+ (input inven)
+ -->
+ (remove 2))
+
+(p name78
+ (x 40)
+ (input inven)
+ -->
+ (write (crlf) |You have the following:|))
+
+(p name79
+ (x 30)
+ (input inventory)
+ -->
+ (remove 2)
+ (make input inven))
+
+(p name80
+ (x 30)
+ (object ^name <p> ^place held)
+ (object ^name <C> ^inside <p>)
+ (input inven)
+ -->
+ (write (crlf) <C>))
+
+(p name81
+ (x 50)
+-(object ^name <x> ^place held)
+ (input inven)
+ -->
+ (remove 2)
+ (write (crlf) |You're empty handed.|))
+
+
+(comment ******************Random inputs********************************* )
+
+(p name82
+ (x 30)
+ (input run nil)
+ -->
+ (remove 2)
+ (write (crlf) |I'm going as fast as I can.|))
+
+(p name83
+ (x 30)
+ (input run <> nil)
+ -->
+ (remove 2)
+ (write (crlf) |I can't go any faster.|))
+
+(p name84
+ (x 30)
+ (input listen)
+ -->
+ (remove 2)
+ (write (crlf) |Silence!|))
+
+
+(p name85
+ (x 30)
+ (status ^sound on)
+ (input listen)
+ -->
+ (remove 3)
+ (modify 2 ^sound on))
+
+(p name86
+ (x 30)
+ (input whistle)
+ -->
+ (remove 2)
+ (write (crlf) |What, without an accompanying orchestra?|))
+
+(p name87
+ (x 30)
+ (input hum)
+ -->
+ (remove 2)
+ (write (crlf) |Hum de dum de dum, hum hum dum dum de dum.|))
+
+(p name88
+ (x 30)
+ (input sing)
+ -->
+ (remove 2)
+ (write (crlf) |In-A-Gadda-Da-Vida Baby, don't you know that I love you.|))
+
+(p name89
+ (x 30)
+ (input mumble)
+ -->
+ (remove 2)
+ (write (crlf) |mumbmaubmmmsms|))
+
+(p name90
+ (x 30)
+ (status)
+ (input << quit halt stop >>)
+ -->
+ (remove 3)
+ (modify 2 ^quit t)
+ (write (crlf) |The party's over.|))
+
+
+(comment ***********************Death*************************************** )
+
+(p name1007
+ (x 40)
+ (status ^die t ^died t ^quit nil)
+ -->
+ (write (crlf) |Well, you're one more that didn't get the treasure and live.|)
+ (modify 2 ^quit t))
+
+(p name1008
+ (x 40)
+ (status ^die t  ^score <Q> ^died nil)
+ -->
+ (modify 2 ^score (compute <Q> - 20) ^died t)
+ (write (crlf) |Hmm...  you went and got yourself killed.|)
+ (write (crlf) |But I'll let you play a bit longer.|))
+
+(p name96
+ (x 30)
+-(object ^name bottle ^place held)
+ (input pour)
+ -->
+ (remove 2)
+ (write (crlf) |You don't have a bottle full of anything.|))
+
+(p name97
+ (x 30)
+ (object ^name bottle ^place held)
+ (object ^name <x> ^inside bottle)
+ (input drink)
+-->
+ (remove 4)
+ (remove 3)
+ (write (crlf) |I love that| <x> |for breakfast every morning.|))
+
+(p name98
+ (x 30)
+ (object ^name bottle ^place held)
+ (location ^name beach)
+ (input get sand)
+ -->
+ (remove 4)
+ (write (crlf) |The sand clogs in the neck of the bottle.|)
+ (write (crlf) |For all practical purposes you can't get any sand.|))
+
+(p name99
+ (x 30)
+ (object ^name bottle ^place held)
+ (location ^name beach)
+ (input fill bottle)
+ -->
+ (remove 4)
+ (make input get sand))
+
+
+(comment ********Treasure Objects***************************** )
+
+(p name100
+ (x 20)
+ (object ^name corkscrew ^place <x>)
+ (location ^name <x>)
+ -->
+ (write (crlf) |There is a diamond studded corkscrew here!|))
+
+(p name101
+ (x 30)
+ (object ^name corkscrew ^place held)
+ (input screw)
+ -->
+ (write (crlf)|Cork screwing is a little out of my league.|)
+ (remove 3))
+
+(p name102
+ (x 20)
+ (location ^name <x>)
+ (object ^name ring ^place <x>)
+ -->
+ (write (crlf) |There is a huge diamond ring here.|))
+
+
+(comment **************************Candy*************************************)
+
+(p name103
+ (x 20)
+ (location ^name <x>)
+ (object ^name candy ^place <x>)
+ -->
+ (write (crlf) |There is a bowl of candy on the ground.|))
+
+(p name104
+ (x 30)
+ (input <x> bowl)
+ -->
+ (remove 2)
+ (make input <x> candy))
+
+(p name105
+ (x 30)
+ (object ^name candy ^place <x>)
+ (location ^name <x>)
+ (input eat candy)
+ -->
+ (write (crlf) |Candy tastes good; uhm!|)
+ (write (crlf) |Of course the pins in the Snickers take a little chewing.|)
+ (remove 2)
+ (remove 4))
+
+(p name106
+ (x 30)
+ (object ^name candy ^place held)
+ (input eat candy)
+ -->
+ (write (crlf) |You eat the candy; and get cavities.|)
+ (remove 2)
+ (remove 3))
+
+
+(comment *****************Marijuana************************************)
+
+(p name107
+ (x 30)
+ (location ^name <x>)
+ (object ^name marijuana ^place <x>)
+ -->
+ (write (crlf) |There is some fine marijuana here! Good stuff.|))
+
+(p name108
+ (object ^name matches ^place held)
+ (location ^name lawn)
+ (input burn <x>)
+ -->
+ (remove 3)
+ (write (crlf) |The matches go out before you can burn| <x>))
+
+(p name109
+ (x 30)
+ (object ^name marijuana ^place held)
+ (object ^name matches ^place held)
+ (history ^hungry nil)
+ (location ^name lawn)
+ (input smoke marijuana)
+ -->
+ (remove 2)
+ (remove 3)
+ (remove 5)
+ (modify 4 ^hungry t)
+ (write (crlf) |You manage to light up,|)
+ (write (crlf) |the matches haved dried out here, this very expensive stuff.|)
+ (write (crlf) |Its very smooth, you begin to think you really don't|)
+ (write (crlf) |need to adventure anymore.  You are hungry.|))
+
+(p name110
+ (x 30)
+ (object ^name marijuana ^place held)
+ (input smoke marijuana)
+ -->
+ (remove 3)
+ (write (crlf) |You don't have any matches.|))
+
+(p name111
+ (x 30)
+ (input smoke marijuana)
+ -->
+ (remove 2)
+ (write (crlf) |You don't have any.|))
+
+(p name112
+ (x 30)
+ (object ^name marijuana ^place held)
+ (object ^name matches ^place held)
+ (input smoke marijuana)
+ -->
+ (remove 4)
+ (write (crlf) |The matches are wet.|))
+
+(p name113
+ (x 30)
+ (history ^hungry t)
+ (object ^name <x> ^place held)
+ -->
+ (write (crlf) |I'm so hungry, I could eat a | <x> )
+ (make input eat <x>))
+
+(p name114
+ (x 20)
+ (history ^hungry t)
+ -->
+ (modify 1 ^hungry nil))
+
+(p name115
+ (x 30)
+ (input <y> << maryjane marihuana dope grass pot >>)
+ -->
+ (remove 2)
+ (make input <y> marijuana))
+
+(p name116
+ (x 30)
+ (input << smoke light burn >> marijuana)
+ -->
+ (remove 2)
+ (make input smoke marijuana))
+
+
+(comment ***********************************CUBE*****************************)
+(p name117
+ (x 20)
+ (location ^name <x>)
+ (object ^name cube ^place <x>)
+ -->
+ (write (crlf) |There is a small white cube here.|))
+
+(p name118
+ (x 30)
+ (object ^name cube ^place held)
+ (input lick cube)
+ -->
+ (remove 3)
+ (write (crlf) |UHM! That tasted good!!!|))
+
+(p name119
+ (x 30)
+ (object ^name cube ^place held)
+ (input taste cube)
+ -->
+ (remove 3)
+ (write (crlf) |To taste it you should really eat the cube.|))
+
+(p name120
+ (x 30)
+ (object ^name cube ^place held)
+ (object ^name watch ^place held)
+ (input eat cube)
+ -->
+ (remove 2)
+ (remove 4)
+ (write (crlf) |The cube tastes like sugar.  You are suddenly surrounded by|)
+ (write (crlf) |a herd of moose.  They start talking to you about a moose-load of things.|)
+ (write (crlf) |One walks over to you and whispers, 'Fa Lowe, why her?'|)
+ (write (crlf) |You look at your watch , but the hands suddenly spin!|)
+ (write (crlf) |You find yourself staring at the|)
+ (write (crlf) |m|)
+ (write (crlf) | o|)
+ (write (crlf) |  o|)
+ (write (crlf) |   s|)
+ (write (crlf) |    e|)
+ (write (crlf) |     ?|)
+ (write (crlf) |  for a long time, and enjoying it.|))
+
+(p name121
+ (x 30)
+ (object ^name cube ^place held)
+ (input eat cube)
+ -->
+ (remove 2)
+ (remove 3)
+ (write (crlf) |The cube tastes like sugar.  You are suddenly surrounded by|)
+ (write (crlf) |a herd of moose.  They start talking to you about a moose-load of things.|)
+ (write (crlf) |One walks over to you and whispers, 'Fa Lowe, why her?'|)
+ (write (crlf) |You find yourself staring at your toes|)
+ (write (crlf) |  for a long time, and enjoying it.|))
+
+(p name122
+ (x 30)
+ (location ^name kitchen)
+ (object ^name cube ^place held)
+ (input eat cube)
+ -->
+ (remove 3)
+ (remove 4)
+ (write (crlf) |That was sweet.|)
+ (write (crlf) |This kitchen is real deary.  A bad place to take acid.|)
+ (write (crlf) |You have to get out of here!!|)
+ (write (crlf) |You feel on fire, you need water to cool off.|)
+ (make input
+ w then push button then n then push b then exit then push red button))
+
+(p name123
+ (x 30)
+ (input <x> white cube)
+ -->
+ (remove 2)
+ (make input <x> cube))
+
+(p name124
+ (x 30)
+ (input <x> << sugar acid >>)
+ -->
+ (remove 2)
+ (make input <x> cube))
+
+(comment *************************CANCER*************************************)
+
+(p name125
+ (x 60)
+ (location)
+ (status ^likes  <B>)
+ (time ^cancer  <TIME> ^realtime <TIME>)
+ -->
+ (write (crlf) |Your wicked and lusty life has finally caught up with you.|)
+ (write (crlf) |That cigarette you had with the| <B> |has caused cancer to|)
+ (write (crlf) |spread throughout your lungs.  COUGH!! COUGH!! You are|)
+ (write (crlf) |weakening.  Hack! You're down on your knees.  COUGH COUGH!!|)
+ (write (crlf) |You keel over and die....|)
+ (modify 3 ^quit t))
+
+
+(comment **********************Going Crazy********************************  )
+
+(p name126
+ (x 60)
+ (time ^orc_status sweat ^orc_time <x> ^realtime <x>)
+ -->
+ (modify 2 ^orc_status dizzy ^orc_time (compute <x> + 120))
+ (write (crlf) | |)
+ (write (crlf) |You are starting to sweat.  I think this place is getting to you.|))
+
+(p name127
+ (x 60)
+ (time ^orc_status dizzy ^orc_time <x> ^realtime <x>)
+ -->
+ (modify 2 ^orc_status mad ^orc_time (compute <x> + 60))
+ (write (crlf) | |)
+ (write (crlf) |Your getting a little dizzy.|)
+ (write (crlf) |The area around seems to swim a little when you move.|))
+
+(p name128
+ (x 60)
+ (time ^orc_status mad ^orc_time <x> ^realtime <x>)
+ -->
+ (modify 2 ^orc_status suicide ^orc_time (compute <x> + 30))
+ (write (crlf) | |)
+ (write (crlf) |I think you are definitely going insane.  The sweaty palms and dizziness were|)
+ (write (crlf) |the first signs.  If you don't do something quick, you'll commit suicide!|))
+
+(p name129
+ (x 60)
+ (time ^orc_status suicide ^orc_time <x> ^realtime <x>)
+ (status)
+ -->
+ (modify 2 ^orc_status nil ^orc_time nil)
+ (modify 3 ^die t)
+ (write (crlf) | |)
+ (write (crlf) |~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~|)
+ (write (crlf) |You can't stand it anymore, you are now totally crazy!|)
+ (write (crlf) |You start laughing uncontrollably, but choke on your tongue.|)
+ (write (crlf) |Ugh! Well at least you died happy!|))
+
+(p name130
+ (x 30)
+ (time ^orc_status <> nil) 
+ (command ^string eat_it)
+ -->
+ (modify 2 ^orc_status nil)
+ (remove 3)
+ (write (crlf) |You feel much saner.|)
+ (write (crlf) |You've managed to avoid the St.  John curse!|))
+
+(p name131
+ (x 30)
+ (time ^orc_status suicide)
+ (command ^string eat_it)
+ -->
+ (modify 2 ^orc_status nil)
+ (remove 3)
+ (write (crlf) |You've done it! The orchid returns you to sanity.|))
+
+
+(comment **********************More  Random********************************* )
+
+(p name132
+ (x 30)
+ (input << examine describe >> <x>)
+ -->
+ (remove 2)
+ (make input look <x>))
+
+(p name133
+ (x 30)
+ (place ^name <y> ^visited t)
+ (location ^name <y>)
+ (input look)
+ -->
+ (remove 4)
+ (modify 2 ^visited nil))
+
+(p name134
+ (x 30)
+ (input kill)
+ -->
+ (remove 2)
+ (write (crlf) |With what? Your bare hands?|))
+
+(p name135
+ (x 30)
+ (object ^name <x> ^place <z>)
+ (location ^name <z>)
+ (input kill <x> with <y>)
+ -->
+ (remove 4)
+ (write (crlf) |Even with that you can't kill it.|))
+
+(p name136
+ (x 30)
+ (object ^name football ^holds nil)
+ (input throw football)
+ --> 
+ (remove 3)
+ (write (crlf) |You don't have a football Dummy!|))
+
+(p name137
+ (x 30)
+ (input throw)
+ -->
+ (remove 2)
+ (write (crlf) |I don't throw anything but a regulation NFL football.|))
+
+(p name138
+ (x 30)
+ (input throw up)
+ -->
+ (remove 2)
+ (write (crlf) |I don't have the stomach for that.|))
+
+(p name139
+ (x 30)
+ (input cut)
+ -->
+ (remove 2)
+ (write (crlf) |There is nothing to cut with.|))
+
+(p name140
+ (x 30)
+ (input cut <x> with <y>)
+ -->
+ (remove 2)
+ (write (crlf) |The| <y>  |won't cut the| <x>  |.|))
+
+(p name141
+ (x 30)
+ (input cut cheese)
+ -->
+ (remove 2)
+ (write (crlf) |Look, this room is smelly enough already without that.|))
+
+(p name142
+ (x 30)
+ (input break <x>)
+ -->
+ (remove 2)
+ (write (crlf) |You hurt your hand.|))
+
+(p name143
+ (x 30)
+ (input bust bust)
+ -->
+ (remove 2)
+ (write (crlf) |Homer looks hurt.|))
+
+(p name144
+ (x 30)
+ (input kick <x>)
+ -->
+ (remove 2)
+ (write (crlf) |Ouch! The| <x>  |kicks back.|))
+
+(p name145
+ (x 30)
+ (object ^name <x> ^place held)
+ (location ^name <y> ^side <s> ^north <n> ^east <e>)
+ (input kick <x>)
+ -->
+ (modify 2 ^place <y> ^side <s> ^north <n> ^east <e>)
+ (remove 4)
+ (write (crlf) |Thud! Not much of a kicker I see.|))
+
+(p name146
+ (x 30)
+ (input kick football)
+ -->
+ (remove 2)
+ (write (crlf) |I see no football here.|))
+
+(p name147
+ (x 30)
+ (input punt <x>)
+ -->
+ (remove 2)
+ (make input kick <x>))
+
+(p name148
+ (x 20)
+ (input jump)
+ -->
+ (remove 2)
+ (write (crlf) |Up you go, down you come.|))
+
+(p name149
+ (x 20)
+ (input burn <x>)
+ -->
+ (remove 2)
+ (write (crlf) |You can't burn| <x> |without matches.|))
+
+(p name150
+ (x 30)
+ (object ^name matches ^place held)
+ (input burn)
+ -->
+ (remove 3)
+ (write (crlf) |You may have matches, but you didn't light one.|))
+
+(p name151
+ (x 30)
+ (input open)
+ -->
+ (remove 2)
+ (write (crlf)  |I don't see anything that is closed.|))
+
+(p name152
+ (x 30)
+ (input open chest)
+ -->
+ (remove 2)
+ (write (crlf) |The chest can't be opened, but it is worth mucho closed.|))
+
+(p name153
+ (x 30)
+ (input help)
+ -->
+ (remove 2)
+ (write (crlf) |Help yourself|))
+
+(p name154
+ (x 20)
+ (current ^type operator ^name process)
+ (input yes)
+ -->
+ (remove 3)
+ (write (crlf) |Cute, but lets get on with the show.|))
+
+(p name155
+ (x 30)
+ (current ^type operator ^name process)
+ (input no)
+ -->
+ (remove 3)
+ (write (crlf) |That was rhetorical you fool.|))
+
+(p name156
+ (x 30)
+ (input spit <x>)
+ -->
+ (remove 2)
+ (write (crlf) |Your throat is too dry.|))
+
+(p name157
+ (x 30)
+ (input where <x>)
+ -->
+ (remove 2)
+ (write (crlf) |I don't know where| <x> |.  I hope we aren't lost!!|))
+
+(p name158
+ (x 30)
+ (input find <x>)
+ -->
+ (remove 2)
+ (write (crlf) |That would be cheating if I did it.|))
+
+(p name159
+ (x 20)
+ (input drink <a>)
+ -->
+ (remove 2)
+ (write (crlf) |The| <a> |is not drinkable.|))
+
+(p name160
+ (x 20)
+ (input drink nil)
+ -->
+ (remove 2)
+ (write (crlf) |I don't know what to drink.|))
+
+(p name161
+ (x 30)
+ (input screw)
+ -->
+ (remove 2)
+ (write (crlf) |Sorry, but i don't have a screw driver.|))
+
+(p name162
+ (x 30)
+ (input fuck)
+ -->
+ (remove 2)
+ (write (crlf) |That would be pretty kinky.|))
+
+(p name163
+ (x 30)
+ (input fuck bust)
+ -->
+ (remove 2)
+ (write (crlf) |Homer is harder than you are.|))
+
+(p name164
+ (x 30)
+ (status ^wears wetsuit)
+ (input fuck <x>)
+ -->
+ (remove 3)
+ (write (crlf) |You can't do that with a wetsuit on!|))
+
+(p name165
+ (x 30)
+ (input up yours)
+ -->
+ (remove 2)
+ (write (crlf) |Up your own.|))
+
+(p name166
+ (x 30)
+ (input oh shit)
+ -->
+ (remove 2)
+ (write (crlf) |Isn't life a pisser?|))
+
+(p name167
+ (x 30)
+ (input oh no)
+ -->
+ (remove 2)
+ (write (crlf) |Mais oui.|))
+
+(p name168
+ (x 30)
+ (input shit)
+ -->
+ (remove 2)
+ (write (crlf) |Hey, let's not mess up the place!|))
+
+(p name169
+ (x 30)
+ (input rape <x>)
+ -->
+ (remove 2)
+ (make input torture <x>))
+
+(p name170
+ (x 30)
+ (input kiss)
+ -->
+ (remove 2)
+ (write (crlf) |SMACK!|))
+
+(p name171
+ (x 30)
+ (input << ball copulate hump >> <x>)
+ -->
+ (remove 2)
+ (make input fuck <x>))
+
+(p name172
+ (x 30)
+ (input make love)
+ (status ^likes  <x>)
+ -->
+ (remove 2)
+ (make input fuck <x>))
+
+(p name173
+ (x 30)
+ (input masturbate)
+ -->
+ (remove 2)
+ (write (crlf) |You're too scared to get aroused at all.|))
+
+(p name174
+ (x 30)
+ (input god damn)
+ -->
+ (remove 2)
+ (make input pray))
+
+(p name175
+ (x 30)
+ (input tingle)
+ -->
+ (remove 2)
+ (write (crlf) |Nothing happens.|))
+
+(p name176
+ (x 30)
+ (input blow)
+ -->
+ (remove 2)
+ (write (crlf) |Whoooooosh!|))
+
+(p name177
+ (x 20)
+ (input knock)
+ -->
+ (remove 2)
+ (write (crlf) |Thud, thud.|))
+
+(p name178
+ (x 30)
+ (input eat <> orchid)
+ -->
+ (remove 2)
+ (write (crlf) |That is not part of a balanced diet.|))
+
+(p name179
+ (x 30)
+ (object ^name <x> ^holds nil)
+ (input eat <x>)
+ -->
+ (remove 3)
+ (write (crlf) |You don't have| <x> |on you.|))
+
+(p name180
+ (x 30)
+ (input eat shit)
+ -->
+ (remove 2)
+ (write (crlf) |YEACH! Fuck off!|))
+
+(p name181
+ (x 30)
+ (status)
+ (input go to hell)
+ -->
+ (remove 3)
+ (write (crlf) |Oh yeah! I'm fed up with you!!|)
+ (modify 2 ^quit t))
+
+(p name182
+ (x 30)
+ (input <x> moose)
+ -->
+ (remove 2)
+ (write (crlf) |I see no moose.|))
+
+(p name183
+ (x 30)
+ (input go blue)
+ -->
+ (remove 2)
+ (write (crlf) |Beat State.|))
+
+(p name184
+ (x 30)
+ (input pray)
+ -->
+ (remove 2)
+ (write (crlf) |GOD responds:|)
+ (make input help))
+
+(p name185
+ (x 30)
+ (input damn <x>)
+ -->
+ (remove 2)
+ (write (crlf) |Clean up your act.|))
+
+
+(p name186
+ (x 30)
+ (input open sesame)
+ -->
+ (remove 2)
+ (write (crlf) |No says me!|))
+
+(p name187
+ (x 30)
+ (input I <x>)
+ -->
+ (remove 2)
+ (write (crlf) |Quit talking about yourself and give me a command.|))
+
+(p name188
+ (x 20)
+ (input give <x> to <y>)
+ -->
+ (remove 2)
+ (write (crlf) |The| <y>  |doesn't take| <x> ))
+
+(p name189
+ (x 20)
+ (input give <x> <y>)
+ -->
+ (remove 2)
+ (write (crlf) |The| <x>  |doesn't want| <y> ))
+
+(p name190
+ (x 30)
+ (object ^name <x> ^place held)
+ (input give <x>)
+ -->
+ (remove 3)
+ (write (crlf) |Hey, after we went through all the trouble to get |
+	(crlf) <x>  |I ain't gonna let you give it away.|))
+
+(p name191
+ (x 20)
+ (input give <x>)
+ -->
+ (remove 2)
+ (write (crlf) |First we should get it.|))
+
+(p name192
+ (x 30)
+ (time ^realtime 0002)
+ (input follow moose)
+ -->
+ (remove 3)
+ (write (crlf) |Crash!! Into the wall you go.|))
+
+(p name193
+ (x 30)
+ (location ^name bus_stop)
+ (time ^realtime 0002)
+ (input follow moose)
+ -->
+ (remove 4)
+ (write (crlf) |Last I saw he went west, so away we go.|)
+ (make input west))
+
+(p name194
+ (x 30)
+ (input follow moose)
+ -->
+ (remove 2)
+ (write (crlf) |I see no moose here.|))
+
+(p name195
+ (x 30)
+ (input swim)
+ -->
+ (remove 2)
+ (write (crlf) |Why don't you wait until we are in the water.|))
+
+
+(comment **************Get on and off objects ****************************** )
+
+(p name196
+ (x 30)
+ (status)
+ (input mount)
+ -->
+ (remove 3)
+ (modify 2 ^going u ^went u))
+
+(p name197
+ (x 30)
+ (input stand on)
+ -->
+ (remove 2)
+ (make input mount))
+
+(p name198
+ (x 20)
+ (input get on)
+ -->
+ (remove 2)
+ (make input mount))
+
+(p name199
+ (x 30)
+ (input climb on)
+ -->
+ (remove 2)
+ (make input mount))
+
+(p name200
+ (x 30)
+ (status)
+ (input climb)
+ -->
+ (remove 3)
+ (modify 2 ^going u ^went u))
+
+(p name201
+ (x 30)
+ (location ^name <> bus)
+ (status)
+ (input get off)
+ -->
+ (remove 4)
+ (modify 3 ^going d ^went d))
+
+(p name202
+ (x 30)
+ (status)
+ (input get down)
+ -->
+ (remove 3)
+ (modify 2 ^going d ^went d))
+
+(p name203
+ (x 30)
+ (status)
+ (input dismount)
+ -->
+ (remove 3)
+ (modify 2 ^going d ^went d))
+
+(p name204
+ (x 30)
+ (input sit in)
+ -->
+ (remove 2)
+ (make input sit on))
+
+(p name205
+ (x 30)
+ (input sit)
+ -->
+ (remove 2)
+ (write (crlf) |I don't know how to sit on it.|))
+
+(p name206
+ (x 50)
+ (location ^ontop <> nil ^going d)
+ -->
+ (modify 2 ^ontop nil ^going nil)
+ (write (crlf) |You are back on Terra Firma.|))
+
+(p name207
+ (x 40)
+ (location ^ontop <> nil ^going <> nil)
+ -->
+ (modify 2 ^ontop nil ^going nil)
+ (write (crlf) |You just fell to the ground.|)
+ (make input look))
+
+(p name208
+ (x 40)
+ (location ^siton <> nil ^going <> nil)
+ -->
+ (modify 2 ^siton nil))
+
+(p name209
+ (x 30)
+ (location ^siton <> nil)
+ (input get up)
+ -->
+ (modify 2 ^siton nil)
+ (remove 3)
+ (write (crlf) |You are now standing.|))
+
+(p name210
+ (x 30)
+ (location siton <> nil)
+ (input stand <x>)
+ -->
+ (modify 2 ^siton nil)
+ (remove 3)
+ (write (crlf) |You are no longer sitting.|))
+
+(p name211
+ (x 30)
+ (location ^siton  <Q>)
+ (input get <Q>)
+ -->
+ (remove 3)
+ (write (crlf) |You'll have to stand up first.|))
+
+(p name212
+ (x 30)
+ (location ^ontop <Q>)
+ (input get <Q>)
+ -->
+ (remove 3)
+ (write (crlf) |Cute, why don't you get off it first.|))
+
+(p name213
+ (x 30)
+ (object ^name <x> ^place held)
+ (input mount <x>)
+ -->
+ (remove 3)
+ (write (crlf) |Why don't you drop it first.|))
+
+
+(comment *****Touchy Feelie*************************************************)
+
+(p name214
+ (x 30)
+ (input << fondle cuddle hug rub tap feel >>)
+ -->
+ (remove 2)
+ (make input touch))
+
+(p name215
+ (x 30)
+ (object ^name <x> ^place held)
+ (input touch <x>)
+ -->
+ (remove 3)
+ (write (crlf) |It is in your hands, and it feels like a| <x> |.|))
+
+(p name216
+ (x 30)
+ (input touch wall)
+ -->
+ (remove 2)
+ (write (crlf) |Surprize! The wall is flat and cold.|))
+
+(p name217
+ (x 30)
+ (object ^name painting ^place held)
+ (input touch painting)
+ -->
+ (remove 3)
+ (write (crlf) |The painting is still wet!!|))
+
+(p name218
+ (x 30)
+ (input touch)
+ -->
+ (remove 2)
+ (write (crlf) |You should get it first.|))
+
+
+(comment ********************Bottle*********************************** )
+(p name219
+ (x 30)
+ (object ^name bottle ^place held)
+ (history ^grave_status2 oil)
+ (location ^name lawn ^side in ^east 8 ^north 8)
+ (input fill bottle)
+ -->
+ (remove 5)
+ (write (crlf) |The oil won't go into the bottle, sorry.|))
+
+(p name220
+ (x 30)
+ (history ^grave_status2 oil)
+ (object ^name bottle ^place held)
+ (location ^name lawn ^side in ^east 8 ^north 8)
+ (input get oil)
+ -->
+ (remove 5)
+ (write (crlf) |The oil is too thick to go into the bottle.|))
+
+(p name221
+ (x 20)
+ (location ^name <x>)
+ (object ^name bottle ^place <x>)
+-(object ^inside bottle)
+-->
+ (write (crlf) |There is an empty bottle here.|))
+
+(p name222
+ (x 20)
+ (location ^name <x>)
+ (object ^name bottle ^place <x>)
+ (object ^name <q> ^inside bottle)
+-->
+ (write (crlf) |There is a bottle of| <q>  |here.|))
+
+(p name223
+ (x 30)
+ (object ^name <q> ^inside bottle)
+ (object ^name bottle ^place <x>)
+ (location ^name <x>)
+ (input get <q>)
+ -->
+ (modify 2 ^place held)
+ (remove 5)
+ (write (crlf) |You are now holding the bottle.|))
+
+(p name224
+ (x 30)
+ (object ^name bottle ^place held)
+ (location ^name bathroom)
+ (input fill bottle <g>)
+-(object ^inside bottle)
+ -->
+ (remove 4)
+ (make object ^name bathwater ^inside bottle)
+ (write (crlf) |The bottle is full of bathwater.|))
+
+(p name225
+ (x 30)
+ (object ^name bottle ^place held)
+ (location ^name beach ^east 3)
+ (input fill bottle <g>)
+-(object ^inside bottle)
+ -->
+ (remove 4)
+ (make object ^name water ^inside bottle)
+ (write (crlf) |The bottle is full of sparkling water.|))
+
+(p name226
+ (x 30)
+ (object ^name bottle ^place held)
+ (object ^inside bottle)
+ (location ^name beach ^east 3)
+ (input pour)
+ -->
+ (remove 3)
+ (remove 5)
+ (write (crlf) |The bottle is empty.  The liquid disappears in the sand.|))
+
+(p name227
+ (x 30)
+ (object ^name bottle ^place held)
+ (object ^inside bottle)
+ (location ^name bathroom)
+ (input pour)
+ -->
+ (remove 3)
+ (remove 5)
+ (write (crlf) |The bottle is now empty.|))
+(comment ++++++++++++++++)
+(p name228
+ (location ^underwater t)
+ (object ^name bottle ^place held)
+ (input fill bottle)
+-(object ^name <> nil ^inside bottle)
+ -->
+ (remove 3)
+ (make object ^name seawater ^inside bottle)
+ (write (crlf) |The bottle is full of seawater.|))
+
+(p name229
+ (input get << seawater bathwater water >>)
+ -->
+ (remove 1)
+ (make input fill bottle))
+
+(p name230
+ (input fill up)
+ -->
+ (remove 1)
+ (make input fill bottle))
+
+(p name231
+ (object ^name bottle ^place held)
+ (input fill bottle <g>)
+-(object ^name <q> ^inside bottle)
+ -->
+ (remove 2)
+ (write (crlf) |There is nothing to fill the bottle with.|))
+
+(p name232
+ (object ^name bottle ^place held)
+ (object ^inside bottle)
+ (input fill bottle)
+ -->
+ (remove 3)
+ (write (crlf) |The bottle is already full.|))
+
+(p name233
+ (input fill bottle)
+ -->
+ (remove 1)
+ (write (crlf) |You don't have a bottle to fill.|))
+
+(p name234
+ (input pour)
+ (location ^underwater t)
+ -->
+ (remove 1)
+ (write (crlf) |Hmm, you want me to empty a bottle underwater.|)
+ (write (crlf) |I'm afraid that is out of my league.|))
+
+(p name235
+ (object ^name water ^place <x>)
+ (location ^name <x>)
+ -->
+ (write (crlf) |There is a wet spot here.|))
+
+(p name236
+ (object ^name seawater ^place <x>)
+ (location ^name <x>)
+ -->
+ (write (crlf) |There is a salty wet spot here.|))
+
+(p name237
+ (location ^name <x>)
+ (object ^name bathwater ^place <x>)
+ -->
+ (write (crlf) |There is a bit of a wet spot here.|))
+
+(p name238
+ (location ^name <x>)
+ (object ^name turpentine ^place <x>)
+ -->
+ (remove 2)
+ (write (crlf) |The turpentine evaporates as it leaves the bottle.|))
+
+(p name239
+ (location ^name <y>)
+ (object ^name bottle ^place held)
+ (object ^name <q> ^inside bottle)
+ (input drop <q>)
+ -->
+ (modify 2 ^place <y>)
+ (remove 4))
+
+(p name240
+ (location ^name <y>)
+ (object ^name bottle ^place held)
+ (object ^name <q> ^inside bottle)
+ (input pour)
+ -->
+ (remove 4)
+ (modify 3 ^inside nil ^place <y>))
+
+(p name241
+ (location ^name <x>)
+ (object ^name << water seawater bathwater >> ^place <x>)
+ (input fill bottle)
+ -->
+ (remove 3)
+ (write (crlf) |Sorry, I don't have a mop!|))
+
+(p name242
+ (location ^name <x>)
+ (object ^name water ^inside bottle)
+ (object ^name bottle ^place held)
+ (input drink water)
+ (status)
+ -->
+ (remove 1)
+ (remove 2)
+ (remove 4)
+ (write (crlf) |You have changed into a baby, the adventure must end.|)
+ (modify 5 ^quit t))
+
+(p name243
+ (object ^name bottle ^place held)
+ (object ^name seawater ^inside bottle)
+ (input drink)
+ -->
+ (remove 2)
+ (remove 3)
+ (write (crlf) |Yech! It tastes salty!!|))
+
+(p name244
+ (input << water empty >>)
+ -->
+ (remove 1)
+ (make input pour))
+
+
+(comment ********************MATCHES************************************* )
+
+(p name245
+ (location ^name <x>)
+ (object ^name matches ^place <x>)
+ -->
+ (write (crlf) |There are matches here.|))
+
+(p name246
+ (object ^name matches ^place held)
+ (input <x> match)
+ -->
+ (remove 2)
+ (make input <x> matches))
+
+(p name247
+ (object ^name matches ^place held)
+ (input << light strike dry >> matches)
+ -->
+ (remove 2)
+ (write (crlf) |This house is to damp to light the matches in.|))
+
+(p name248
+ (location ^name lawn)
+ (object ^name matches ^place held)
+ (input dry matches)
+ -->
+ (remove 3)
+ (write (crlf) |The matches dry out.|))
+
+(p name249
+ (location ^name lawn)
+ (object ^name matches ^place held)
+ (input << light strike >> matches)
+ -->
+ (remove 3)
+ (write (crlf) |The match lights but goes out quickly.|))
+
+(p name250
+ (input smoke <x>)
+ (object ^name <x> ^place <> holds)
+ -->
+ (remove 1)
+ (write (crlf) |You're not holding it.|))
+
+(p name251
+ (input light marijuana <x>)
+ -->
+ (remove 1)
+ (make input smoke marijuana))
+
+
+(comment *******************FOOTBALL****************************************)
+
+(p name252
+ (location ^name <x>)
+ (object ^name football ^place <x>)
+ -->
+ (write (crlf) |There is an official NFL football here!|))
+
+(p name253
+ (location ^name <x>)
+ (object ^name football ^place held)
+ (input kick football)
+ -->
+ (remove 3)
+ (write (crlf) |Oh wow! You kick it around,|)
+ (write (crlf) |luckily nothing breaks.|)
+ (modify 2 ^place <x>))
+
+(p name254
+ (location ^name <x>)
+ (object ^name football ^place held)
+ (input throw football)
+ -->
+ (remove 3)
+ (write (crlf) |Throw is short.  Incomplete pass.  Fourth down, 10 to go.|)
+ (modify 2 ^place <x>))
+
+(p name255
+ (input <x> ball)
+ -->
+ (remove 1)
+ (make input <x> football))
+
+
+(comment ***************************TIME************************************ )
+(p name256
+ (input what time)
+ (object ^name watch ^place held)
+ (time ^realtime <x>)
+ -->
+ (remove 1)
+ (write (crlf) |The time is| <x>))
+
+(p name257
+ (location ^name <x>)
+ (object ^name watch ^place <x>)
+ -->
+ (write (crlf) |There's a watch here, it even has a luminous dial.|))
+
+(p name258
+ (input time)
+ -->
+ (remove 1)
+ (make input what time))
+
+(p name259
+ (input read watch)
+ -->
+ (remove 1)
+ (make input what time))
+
+(p name260
+ (input tell time)
+ -->
+ (remove 1)
+ (make input what time))
+
+(p name261
+ (x 10)
+ (input what time)
+ -->
+ (remove 2)
+ (write (crlf) |I have no watch.|))
+
+(p name262
+ (input look at watch)
+ -->
+ (remove 1)
+ (make input what time))
+
+(p name263
+ (input put on watch)
+ -->
+ (remove 1)
+ (make input get watch))
+
+(p name264
+ (input wind watch)
+ -->
+ (remove 1)
+ (write (crlf) |The watch is electric.|))
+
+(p name265
+ (input open watch)
+ -->
+ (remove 1)
+ (write (crlf) |The watch is sealed shut.|))
+
+(p name266
+ (input break watch)
+ -->
+ (remove 1)
+ (write (crlf) |The watch is shock resistent too.  It still works.|))
+
+(p name267
+ (time ^realtime 0600 ^morning nil)
+ -->
+ (modify 1 ^morning t)
+ (write (crlf) |'Cock-a-doodle-do'.  You hear a rooster crow.|))
+
+(p name268
+ (time ^realtime 2000 ^morning t)
+ -->
+ (modify 1 ^morning nil)
+ (write (crlf) |'Clunk!'  I think night just fell.|))
+
+(p name269
+ (time ^realtime 0000 ^midnight nil)
+ -->
+ (modify 1 ^midnight t))
+
+(p name270
+ (time ^midnight t)
+ -->
+ (modify 1 ^midnight nil)
+ (write (crlf) |BonG!|)
+ (write (crlf) |BonG!|)
+ (write (crlf) |BonG!|)
+ (write (crlf) |BonG!|)
+ (write (crlf) |BonG!|)
+ (write (crlf) |BonG!|)
+ (write (crlf) |BonG!|)
+ (write (crlf) |BonG!|)
+ (write (crlf) |BonG!|)
+ (write (crlf) |BonG!|)
+ (write (crlf) |BonG!|)
+ (write (crlf) |BonG!|)
+ (write (crlf) |A moose comes running out of a wall at full speed straight at you!!!|)
+ (write (crlf) |He is right on top of you!!! He runs right through you and disappears.|))
+
+(p name271
+ (time ^midnight t)
+ (location ^name lawn)
+ -->
+ (modify 1 ^midnight nil)
+ (write (crlf) |BonG!|)
+ (write (crlf) |BonG!|)
+ (write (crlf) |BonG!|)
+ (write (crlf) |BonG!|)
+ (write (crlf) |BonG!|)
+ (write (crlf) |BonG!|)
+ (write (crlf) |BonG!|)
+ (write (crlf) |BonG!|)
+ (write (crlf) |BonG!|)
+ (write (crlf) |BonG!|)
+ (write (crlf) |BonG!|)
+ (write (crlf) |BonG!|)
+ (write (crlf) |A moose comes running across the lawn at full speed straight at you!!!|)
+ (write (crlf) |He is right on top of you.  He runs right through you and disappears.|))
+
+
+(p name272
+ (time ^midnight t)
+ (location ^underwater t)
+ -->
+ (remove 1)
+ (write (crlf) |BonG!|)
+ (write (crlf) |BonG!|)
+ (write (crlf) |BonG!|)
+ (write (crlf) |BonG!|)
+ (write (crlf) |BonG!|)
+ (write (crlf) |BonG!|)
+ (write (crlf) |BonG!|)
+ (write (crlf) |BonG!|)
+ (write (crlf) |BonG!|)
+ (write (crlf) |BonG!|)
+ (write (crlf) |BonG!|)
+ (write (crlf) |BonG!|)
+ (write (crlf) |A moose comes swimming out of the darkness, at full speed straight at you.|)
+ (write (crlf) |He has on full scuba gear, and is really moving.|)
+ (write (crlf) |He is right on top of you.  He runs right through you and disappears.|))
+
+
+(comment **************************PAINTING***************************)
+
+(p name273
+ (input <x> art <y>)
+ -->
+ (remove 1)
+ (make input <x> painting <y>))
+
+(p name274
+ (location ^name <x>)
+ (object ^name painting ^place <x> ^covered t)
+ -->
+ (write (crlf) |There is a work of ugly modern art on the ground.|))
+
+(p name275
+ (location ^name <x>)
+ (object ^name painting ^place <x> ^covered nil)
+ -->
+ (write (crlf) |There is a valuable Rembrandt here.|))
+
+(p name276
+ (object ^name painting ^place held ^covered t)
+ (object ^name bottle ^place held)
+ (object ^name turpentine ^inside bottle)
+ (input << clean pour >>)
+ -->
+ (modify 1 ^covered nil ^treasure t)
+ (remove 3)
+ (remove 4)
+ (write (crlf) |The ugly paint comes off! Underneath is a Rembrandt|)
+ (write (crlf) |This will be very valuable.|)
+ (write (crlf) |It is a person and a bust in the painting.|))
+
+(p name277
+ (location ^name <x>)
+ (object ^name painting ^place <x> ^covered t)
+ (object ^name bottle ^place held)
+ (object ^name turpentine ^inside bottle)
+ (input << clean pour >>)
+ -->
+ (modify 2 ^covered nil ^treasure t)
+ (remove 4)
+ (remove 5)
+ (write (crlf) |The turpentine hits the painting and causes the paint to come off.|)
+ (write (crlf) |The painting has a person contemplating a bust.|))
+
+(p name278
+ (input remove paint)
+ -->
+ (remove 1)
+ (make input clean))
+
+(p name279
+ (object ^name painting ^place held ^covered t)
+ -->
+ (write (crlf) |Upon closer look, this is worthless!|))
+
+
+(comment *******************Money************************************* )
+
+(p name280
+ (location ^name <x>)
+ (object ^name money ^place <x>)
+ -->
+ (write (crlf) |The money is here!|))
+
+(comment *******************Stereo************************************* )
+
+(p name281
+ (location ^name smelly_room)
+ (object ^name stereo ^place held)
+ (status ^sound on)
+ -->
+ (modify 3 ^sound off))
+
+(p name282
+ (object ^name stereo ^place smelly_room)
+ (location ^name smelly_room)
+ (status ^sound on)
+ (input turn off)
+ -->
+ (modify 3 ^sound off)
+ (remove 4)
+ (write (crlf) |The stereo is off.  But you broke it, so it won't turn on.|))
+
+(p name283
+ (location ^name <x>)
+ (object ^name stereo ^place <x>)
+ -->
+ (write (crlf) |There is an expensive stereo here, worth many megabucks!!|))
+
+
+(comment *******************Book****************************** )
+
+(p name284
+ (location ^name <x>)
+ (object ^name book ^place <x>)
+ -->
+ (write (crlf) |There is a book on the ground.|))
+
+(p name285
+ (object ^name book ^place held)
+ (input read book)
+ -->
+ (remove 2)
+ (write (crlf) |Vampires can only be destroyed by a stake through the heart,|)
+ (write (crlf) |or by the light of day.  They are invunerable to all other|)
+ (write (crlf) |attacks.  They dislike garlic and fear crosses.  They are known|)
+ (write (crlf) | to frequent dark rooms.|))
+
+(comment ************************GOLD************************)
+
+(p name286
+ (location ^name <x>)
+ (object ^name gold ^place <x>)
+ -->
+ (write (crlf) |There is gold here.|))
+
+
+(comment ************************HORN************************)
+
+(p name287
+ (location ^name <x>)
+ (object ^name horn ^place <x>)
+ -->
+ (write (crlf) |There is a magic unicorn horn here.|))
+
+(p name288
+ (location ^name <x>)
+ (object ^name horn ^place <x>)
+ (object ^name horn ^place held)
+ (input drop horn)
+ -->
+ (remove 3)
+ (remove 4)
+ (write (crlf) |When you drop the horn, it and the one on the ground merge together.|))
+
+(p name289
+ (location ^name dining_room ^ontop stool)
+ (object ^name horn ^place held)
+ (input get horn)
+ -->
+ (remove 3)
+ (write (crlf) |The horn won't come off.|))
+
+(p name290
+ (object ^name horn ^place held)
+ (input blow horn)
+ (history ^clue nil)
+ -->
+ (remove 1)
+ (remove 2)
+ (write (crlf) |A terrific noise comes from the horn.  BLAT!!!|)
+ (write (crlf) |The horn disappears from your hands.|)
+ (write (crlf) |Your body shakes and you black out ......|)
+ (modify 3 ^clue t))
+
+(p name291
+ (history ^clue t ^grave_status undug)
+ -->
+ (write (crlf) |A spirit appears to you in your sleep.|)
+ (write (crlf) |Your mind is filled with the following phrase:|)
+ (write (crlf) |'As your family is sheep, the gold that is YOUR color must be found|)
+ (write (crlf) |before you can escape this estate.' |)
+ (modify 1 ^clue nil))
+
+(p name292
+ (history ^clue t)
+ -->
+ (modify 1 ^clue nil)
+ (write (crlf) |When you wake you see smoke form the words:|)
+ (write (crlf) |EVERY OPTIon on A MACHINE HAS A PURPOSE.  The smoke then dissapates.|))
+
+(p name293
+ (history ^clue t)
+ (object ^name orchid ^place lawn)
+ -->
+ (write (crlf) |You dream of a garden of flowers.|)
+ (modify 1 ^clue nil))
+
+(comment ************************Candlesticks************************)
+
+(p name294
+ (input <x> them)
+ -->
+ (remove 1)
+ (make input <x> candlesticks))
+
+(p name295
+ (location ^name <x>)
+ (object ^name candlesticks ^place <x>)
+ -->
+ (write (crlf) |There is a pair of silver candlesticks here!! No candles though.|))
+
+(p name296
+ (object ^name candlesticks ^place held)
+ (input form cross)
+ -->
+ (modify 1 ^state crossed)
+ (remove 2)
+ (write (crlf) |The candlesticks are in a cross.|))
+
+(p name297
+ (object ^name candlesticks ^place held)
+ (input make cross)
+ -->
+ (modify 1 ^state crossed)
+ (remove 2)
+ (write (crlf) |The candlesticks are in a cross.|))
+
+(p name298
+ (location ^name <x>)
+ (object ^name candlesticks ^place held ^state crossed)	
+ (input drop candlesticks)
+ -->
+ (modify 2 ^place <x> ^state nil)
+ (remove 3))
+
+(p name299
+ (input << make form >> cross)
+ -->
+ (remove 1)
+ (write (crlf) |You have nothing to form a cross with, arms don't work.|))
+
+(p name300
+ (input cross candlesticks)
+ -->
+ (remove 1)
+ (make input make cross))
+
+(comment *********************CHAIR*************************************)
+(p name301
+ (location ^name <x>)
+ (object ^name chair ^place <x>)
+ -->
+ (write (crlf) |There is an old style chair on the ground.|))
+
+(p name302
+ (object ^name chair ^place held)
+ -->
+ (write (crlf) |The plate of the back of the chair says 'MADE BY LOUIS XIV'|))
+
+(p name303
+ (location ^name <x>)
+ (object ^name chair ^place <x>)
+ (input mount chair)
+ -->
+ (remove 2)
+ (remove 3)
+ (write (crlf) |The priceless chair breaks under your weight.|)
+ (write (crlf) |It then disappears.|))
+
+(p name304
+ (location ^name <x>)
+ (object ^name chair ^place <x>)
+ (input sit on chair)
+ -->
+ (remove 2)
+ (remove 3)
+ (write (crlf) |You sat on the chair and it broke!|)
+ (write (crlf) |It disappears.|))
+
+
+(comment **********************STOOL*************************************)
+
+(p name305
+ (location ^name <x>)
+ (object ^name stool ^place <x>)
+ -->
+ (write (crlf) |There is a sturdy stool here.|))
+
+(p name306
+ (location ^name <x>)
+ (object ^name stool ^place <x>)
+ (input sit)
+ -->
+ (remove 3)
+ (modify 1 ^siton stool)
+ (write (crlf) |You're sitting on the stool.|))
+
+(p name307
+ (object ^name stool ^place held)
+ (input sit)
+ -->
+ (remove 2)
+ (write (crlf) |I suggest you drop the stool first.|))
+
+(p name308
+ (location ^name <x>)
+ (object ^name stool ^place <x>)
+ (input mount stool)
+ -->
+ (modify 1 ^siton stool)
+ (remove 3)
+ (write (crlf) |You are on the stool.|))
+
+(p name309
+ (input climb stool)
+ -->
+ (remove 1)
+ (make input mount stool))
+
+(comment ****************Additional objects********************)
+
+(comment ****Chest**** )
+
+(p name310
+ (location ^name <x>)
+ (object ^name chest ^place <x>)
+ -->
+ (write (crlf) |There is a chest of treasure!!!|))
+
+(p name311
+ (object ^name chest ^place held)
+ (input open chest)
+ -->
+ (remove 2)
+ (write (crlf) |Give up, the chest doesn't open, but is worth gigabucks the way it is.|))
+
+(comment ****Conch**** )
+
+(p name312
+ (object ^name conch ^place held)
+ (input blow conch)
+ -->
+ (remove 2)
+ (write (crlf) |'Hoooonk!'|))
+
+(p name313
+ (object ^name conch ^place <x>)
+ (location ^name <x>)
+ -->
+ (write (crlf) |There is a large conch shell here.|))
+
+(p name314
+ (input <x> shell)
+ -->
+ (remove 1)
+ (make input <x> conch))
+
+(p name315
+ (object ^name conch ^place held)
+ (input listen conch)
+ -->
+ (remove 1)
+ (write (crlf) |You hear the ocean 'rumble'.|))
+
+(p name316
+ (location ^name <x>)
+ (object ^name token ^place <x>)
+ -->
+ (write (crlf) |There is a token here.|))
+
+(p name317
+ (location ^name <x>)
+ (object ^name tokens ^place <x>)
+ -->
+ (write (crlf) |There are tokens here.|))
+
+(p name318
+ (input bite <x>)
+ (object ^name <x> ^place held)
+ -->
+ (remove 1)
+ (write (crlf) |The| <x>  |bites back, Chomp!!|))
+
+(p name319
+ (x 10)
+ (input bite)
+ -->
+ (remove 2)
+ (write (crlf) |You must be holding what you are trying to bite.|))
+
+(p name0320
+ (object ^name <x> ^treasure t ^place held ^scored nil)
+ (status ^score <y>)
+ -->
+ (modify 2 ^score (compute <y> + 15))
+ (modify 1 ^scored t))
+
+(p name0321
+ (object ^name bottle ^place lawn)
+ (object ^name water ^inside bottle ^xscore nil)
+ (status ^score <y>)
+ -->
+ (modify 3 ^score (compute 5 + <y>))
+ (modify 2 ^xscore t))
+
+(p name0322
+ (input pour)
+ (object ^name bottle ^place held)
+ (object ^name water ^xscore t)
+ (status ^score <z>)
+ -->
+ (remove 1)
+ (modify 4 ^score (compute <z> - 5)))
+
+(p name0323
+ (object ^name <x> ^place lawn ^treasure t ^xscore nil)
+ (status ^score <y>)
+ -->
+ (modify 2 ^score (compute 5 + <y>))
+ (modify 1 ^name <x> ^xscore t))
+
+(p name0324
+ (object ^name <x> ^xscore t ^place held)
+ (status ^score <y>)
+ -->
+ (modify 1 ^xscore nil)
+ (modify 2 ^score (compute <y> - 5)))
+
+(p name321
+ (input score)
+ (status ^score <x>)
+ -->
+ (write (crlf) |Score =| <x>)
+ (remove 1))
+
+(p name322
+ (status ^quit t ^score <x>)
+ -->
+ (write (crlf) |Your final score is| <x>)
+ (write (crlf) |The total possible is 440|)
+ (make turnoff))
+
+(p name323
+ (turnoff)
+ (status ^score < 20)
+ -->
+ (write (crlf) |Hmm...  I don't think you tried very hard.|))
+
+(p name324
+ (turnoff)
+ -->
+ (halt))
+
+(p name325
+ (turnoff)
+ (status ^score {< 50 > 21})
+ -->
+ (write (crlf) |Rank Novice! Are you scared of your own shadow?|))
+
+(p name326
+ (turnoff)
+ (status ^score {> 51 < 80})
+ -->
+ (write (crlf) |Beginning Ghost Hunter|))
+
+(p name327
+ (turnoff)
+ (status ^score {> 81 < 140})
+ -->
+ (write (crlf) |Reasonable Spirit Fighter|))
+
+(p name328
+ (turnoff)
+ (status ^score {> 141 < 220})
+ -->
+ (write (crlf) |Intermediate Haunt Hacker|))
+
+(p name329
+ (turnoff)
+ (status ^score {> 221 < 290})
+ -->
+ (write (crlf) |Advanced Monster Killer|))
+
+(p name330
+ (turnoff)
+ (status ^score {> 291 < 360})
+ -->
+ (write (crlf) |Master Haunter!!|))
+
+(p name331
+ (turnoff)
+ (status ^score > 361)
+ -->
+ (write (crlf) |Fearless Vampire Killer|))
+
+(p name332
+ (status ^likes  <x>)
+ (turnoff)
+ (status ^score > 435)
+ -->
+ (write (crlf) |and waster of many cycles.|))
+
+(p name333
+ (location ^name <x>)
+ (object ^name pearls ^place <x>)
+ -->
+ (write (crlf) |There are huge pearls here!!|))
+
+(p name334
+ (location ^name <x>)
+ (object ^name diamonds ^place <x>)
+ -->
+ (write (crlf) |There are diamonds here!|))
+
+(p name335
+ (location ^name <x>)
+ (object ^name orchid ^place <x> ^state plant)
+ -->
+ (write (crlf) |There is a beautiful black orchid here.|))
+
+(p name336
+ (location ^name <x>)
+ (object ^name orchid ^place <x> ^state plant)
+ (input smell <y>)
+ -->
+ (remove 3)
+ (write (crlf) |Yum! The orchid smells delicious!|))
+
+(p name337
+ (object ^name orchid ^place held)
+ (input smell orchid)
+ -->
+ (remove 2)
+ (write (crlf) |I like the odor! Sniff.  Sniff.|))
+
+(p name338
+ (input pick orchid)
+ -->
+ (remove 1)
+ (make input get orchid))
+
+(p name339
+ (input smell <x>)
+ -->
+ (remove 1)
+ (write (crlf) |Ah CHOOOO! There is alot of dust around here.|))
+
+(p name340
+ (input sniff <x>)
+ -->
+ (remove 1)
+ (make input smell <x>))
+
+(p name341
+ (location ^name <x>)
+ (object ^name rope ^place <x> ^tied noose)
+ -->
+ (write (crlf) |There is rope in a noose here.|))
+
+(p name342
+ (location ^name <x>)
+ (object ^name rope ^place <x> ^tied untied)
+ -->
+ (write (crlf) |There is some loose rope here.|))
+
+(p name343
+ (location ^name <x>)
+ (object ^name <y> ^place <x>)
+ (object ^name rope ^place <> <x> ^tied <y>)
+ -->
+ (write (crlf) |A rope is tied to the| <y> ))
+
+(p name344
+ (location ^name <x>)
+ (object ^name <y> ^place <> <x>)
+ (object ^name rope ^place <x> ^tied <y>)
+ -->
+ (write (crlf) |An end of a rope is here.|))
+
+(p name345
+ (location ^name <x>)
+ (object ^name rope ^place <x> ^tied <y>)
+ (object ^name <y> ^place <x>)
+-->
+ (write (crlf) |An end of the rope is here, tied to the | <y> ))
+
+(p name346
+ (location ^name <x>)
+ (object ^name rope ^place <x> ^tied <y>)
+ (object ^name <y> ^place held)
+-->
+ (write (crlf) |A rope tied to the| <y> |is here.|))
+
+(p name347
+ (object ^name rope ^place held ^tied noose)
+ (input untie rope)
+ -->
+ (modify 1 ^tied untied)
+ (remove 2)
+ (write (crlf) |The rope is now untied.|))
+
+(p name348
+ (object ^name rope ^tied noose)
+ (input hang <x>)
+ -->
+ (remove 2)
+ (write (crlf) |No hanging around here.|))
+
+(p name349
+ (object ^name rope ^place held ^tied noose)
+ (input tie rope <x>)
+ -->
+ (remove 2)
+ (write (crlf) |The rope is already in knots.|))
+
+(p name350
+ (object ^name rope ^place held)
+ (input tie <x>)
+ -->
+ (remove 2)
+ (write (crlf) |Look, don't tie| <x> |, tie rope to something you have on you.|))
+
+(p name351
+ (object ^name rope ^place held)
+ (input tieup <x>)
+ -->
+ (remove 2)
+ (make input tie rope to <x>))
+
+(p name352
+ (object ^name rope ^place held ^tied untied)
+ (object ^name <x> ^place held)
+ (input tie rope to <x>)
+ -->
+ (modify 1 ^tied <x>)
+ (remove 3)
+ (write (crlf) |The rope is tied to| <x>  |.|))
+
+(p name353
+ (object ^name rope ^place held ^tied <z>)
+ (input tie rope to <x>)
+ -->
+ (remove 2)
+ (write (crlf) |The rope is already tied to the| <z> )
+ (write (crlf) |I can tie the rope to only one object at a time.|))
+
+(p name354
+ (location ^name <y>)
+ (object ^name <x> ^place <y>)
+ (object ^name rope ^place <> held ^tied <x>)
+ (input get <x>)
+ -->
+ (modify 3 ^place held)
+ (write (crlf) |You get the rope first and then ...|))
+
+(p name355
+ (location ^name <y>)
+ (object ^name <x> ^place held)
+ (object ^name rope ^place <> held ^tied <x>)
+ (input get rope)
+ -->
+ (modify 3 ^place held)
+ (remove 4)
+ (write (crlf) |You just pulled in the rest of the rope.|))
+
+(p name356
+ (location ^name <Z>)
+ (object ^name rope ^place held)
+ (object ^name cecil ^place <Z>)
+ (input tie rope to cecil)
+ -->
+ (remove 4)
+ (write (crlf) |You can't tie cecil down!|))
+
+(p name357
+ (location ^name laboratory)
+ (object ^name rope ^place held)
+ (input tie rope to monster)
+ -->
+ (remove 3)
+ (write (crlf) |That would be very foolish.|))
+
+(p name358
+ (location ^name <Z>)
+ (object ^name rope ^place held ^tied untied)
+ (object ^name dracula ^place <Z>)
+ (input tie rope to dracula)
+ -->
+ (remove 4)
+ (write (crlf) |You can't get Dracula, not to mention tie him up.|))
+
+(p name359
+ (input tie rope to {<< candy marijuana cube orchid >> <x>} )
+ (object ^name rope ^place held ^tied untied)
+ (object ^name <x> ^place held)
+ -->
+ (remove 1)
+ (write (crlf) |That is too small for the rope to be tied to.|))
+
+(p name360
+ (input lasso <x>)
+ -->
+ (remove 1)
+ (make input tie rope to <x>))
+
+(p name361
+ (object ^name rope ^place held ^tied untied)
+ (input tie rope to rope)
+ -->
+ (modify 1 ^tied noose)
+ (remove 2)
+ (write (crlf) |The rope is tied in knots.|))
+
+(p name362
+ (location ^name torture_chamber)
+ (status ^likes  <x>)
+ (object ^name rope ^place held)
+ (object ^name damsel ^state free)
+ (input tie rope to <x>)
+ -->
+ (remove 5)
+ (make input torture damsel))
+
+(p name363
+ (location ^name <x>)
+ (object ^name rope ^place held)
+ (object ^name chest ^place <x>)
+ (object ^name octopus ^alive t)
+ (input tie rope to chest)
+ -->
+ (remove 5)
+ (write (crlf) |The octopus blocks your way.|))
+
+(p name364
+ (object ^name rope ^place held)
+ (input tie rope to <x>)
+ -->
+ (remove 2)
+ (write (crlf) |Either you aren't holding | <x>  |, or I can't tie the rope to it.|))
+
+(p name365
+ (object ^name rope ^place <> held)
+ (input tie rope to <z>)
+ -->
+ (remove 2)
+ (write (crlf) |You don't have the rope.|))
+
+(p name366
+ (input untie rope)
+ (object ^name rope ^tied <x>)
+ (object ^name <x> ^place held)
+-->
+ (remove 1)
+ (modify 2 ^tied untied)
+ (write (crlf) |The rope is no longer tied to| <x>  |.|))
+
+(p name367
+ (input pull rope)
+ (object ^name rope ^place held ^tied <x>)
+ (object ^name <x>)
+-->
+ (write (crlf) |Umph! You just pulled in the| <x>  |.|)
+ (remove 1)
+ (modify 3 ^place held))
+
+(p name368x5
+ (input pull rope)
+ (object ^name rope ^tied <x>)
+ (object ^name <x> ^place held)
+ -->
+ (remove 1)
+ (modify 2 ^place held)
+ (write (crlf) |You now have all the rope.|))
+
+(p name368
+ (input untie rope)
+ (object ^name rope ^tied untied)
+ -->
+ (remove 1)
+ (write (crlf) |The rope isn't tied to anything.|))
+
+(p name369
+ (input untie rope)
+ (object ^name rope ^tied <x>)
+ (object ^name <x> ^place <y>)
+ -->
+ (remove 1)
+ (write (crlf) |The rope is tied to the| <x> |, which you aren't holding.|))
+
+(p name370
+ (location ^name bathysphere)
+ (input pull rope)
+ (object ^name rope ^tied <x>)
+ (object ^name <x> ^place ocean)
+ (portal ^name wdoor ^door closed)
+ -->
+ (remove 2)
+ (write (crlf) |The airlock door is closed on the rope.|))
+
+(p name371
+ (location ^name <x>)
+ (object ^name wetsuit ^place <x>)
+ -->
+ (write (crlf) |There is a wetsuit, with everything needed to survive (location ^underwater t).|))
+
+(p name372
+ (input << don wear >> <x>)
+ -->
+ (remove 1)
+ (make input put on <x>))
+
+(p name373
+ (location ^name <x>)
+ (object ^name wetsuit ^place <x>)
+ (input put on wetsuit)
+ -->
+ (modify 2 ^place held))
+
+(p name374
+ (object ^name wetsuit ^place held)
+ (input put on wetsuit)
+ -->
+ (modify 1 ^wears t)
+ (remove 2)
+ (write (crlf) |You are wearing a wetsuit.|))
+
+(p name375
+ (object ^name wetsuit ^wears t)
+ (input << remove doff >> wetsuit)
+-->
+ (modify 1 ^wears nil)
+ (remove 2)
+ (write (crlf) |Your wetsuit is in your arms.|))
+
+(p name376
+ (location ^name <x>)
+ (input drop wetsuit)
+ (object ^name wetsuit ^place held ^wears t)
+ -->
+ (remove 2)
+ (modify 3 ^wears nil ^place <x>))
+
+(p name377
+ (location ^name <x>)
+ (object ^name speargun ^place <x>)
+ -->
+ (write (crlf) |There is a speargun that shoots underwater.|))
+
+(p name378
+ (location ^name <x>)
+ (object ^name speargun ^place <x> ^state loaded)
+-->
+ (write (crlf) |The speargun is loaded, ready to fire.|))
+
+(p name379
+ (location ^name <x>)
+ (object ^name speargun ^place held ^state loaded)
+ (location ^underwater nil)
+ (input shoot)
+ (status)
+ -->
+ (modify 2 ^state unloaded)
+ (remove 4)
+ (write (crlf) |The gun goes off.  BRRRANG!!|)
+ (write (crlf) |The backlash from the speargun snaps your neck!|)
+ (modify 5 ^quit t))
+
+(p name380
+ (object ^name speargun ^place held ^state unloaded)
+ (input shoot speargun)
+ -->
+ (remove 2)
+ (write (crlf) |The gun isn't loaded with a spear!|))
+
+(p name381
+ (object ^name speargun ^place held ^state unloaded)
+ (object ^name spear ^place held)
+ (input load)
+ -->
+ (write (crlf) |The gun is now loaded.|)
+ (modify 1 ^state loaded))
+
+(p name382
+ (location ^name <x>)
+ (object ^name spear ^place <x>)
+ -->
+ (write (crlf) |There is a speargun spear here.|))
+
+(p name383
+ (input <x> gun)
+ -->
+ (remove 1)
+ (make input <x> speargun))
+
+(p name384
+ (input << pres p depress push >> <x>)
+ -->
+ (remove 1)
+ (make input press <x>))
+
+(p name385
+ (location ^name <x>)
+ (object ^name coins ^place <x>)
+ -->
+ (write (crlf) |You see many coins here!|))
+
+(p name386
+ (location ^name <x>)
+ (object ^name bone ^place <x>)
+ -->
+ (write (crlf) |There is a bone here that you identify as from the MISSING LINK!|))
+
+(p name387
+ (location ^name <x>)
+ (object ^name soap ^place <x>)
+ -->
+ (write (crlf) |There is a bar of soap here.|))
+
+(p name388
+ (location ^name <x>)
+ (object ^name gem ^place <x>)
+ -->
+ (write (crlf) |There is a valuable gem here.|))
+
+(p name396
+ (location ^name <x>)
+ (object ^name jade ^place <x>)
+ -->
+ (write (crlf) |There is a piece of valuable jade here.|))
+
+(p name397
+ (input why <x>)
+ -->
+ (remove 1)
+ (write (crlf) |Hey, I don't know.|)
+ (write (crlf) |Send mail to Laird@cmua if you have questions.|))
+
+(p name398
+ (input eat orchid)
+ (object ^name orchid ^place held)
+ -->
+ (remove 1)
+ (remove 2)
+ (write (crlf) |Chomp! chomp.  I don't think your real family had a taste for orchids.|)
+ (write (crlf) |It looks like you aren't one of those that knows how to digest orchids.|))
+
+(p name399
+ (input eat orchid)
+ (status ^name <x> St |.| John)
+ (object ^name orchid ^place held)
+ -->
+ (remove 1)
+ (remove 2)
+ (remove 3)
+ (write (crlf) |An orchid a day keeps the crazies away!|)
+ (make command ^string eat_it))
+
+(p name400
+ (location ^name <x>)
+ (object ^name orchid ^place <x>)
+ (input eat orchid)
+ -->
+ (make input get orchid))
+
+(p name401
+ (input say <x>)
+ -->
+ (remove 1)
+ (make input <x>)
+ (write (crlf) |You can just type| <x> )
+ (write (crlf) |and I'll try and understand| <x>  |right now.|))
+
+(p name402
+ (input << scream shout yell >> <x>)
+ -->
+ (write (crlf) |'| <x> |!!'|)
+ (remove 1)
+ (write (crlf) |I don't think anybody is listening.|))
+
+(p name403
+ (input hello)
+ -->
+ (remove 1)
+ (write (crlf) |Your greeting is met with silence.|))
+
+(p name404
+ (input fly)
+ -->
+ (remove 1)
+ (write (crlf) |You flap your arms, but nothing happens.|))
+
+(p name405
+ (input afihywn)
+ -->
+ (remove 1)
+ (write (crlf) |Hmm, is that Australian?|))
+
+(p name1009
+ (location ^name bus_stop)
+ -->
+ (write (crlf) |We are at an intersection of two streets going n-s and e-w.|)
+ (write (crlf) |There is a bus stop here.|)
+ (write (crlf) |To the west a bus is pulling away from the next bus stop.|))
+
+(p name1010
+ (location ^name bus_stop)
+ (status ^going <> nil)
+ (time ^realtime <x> ^btime <y>)
+ -->
+ (modify 1 ^name bus_stop)
+ (modify 2 ^going nil)
+ (modify 3 ^btime (compute <x> + 16)))
+
+(p name1011
+ (location ^name bus_stop)
+ (time ^realtime <x> ^btime <x>)
+ (history ^bus_stopped nil)
+ -->
+ (modify 3 ^bus_stopped t))
+
+(p name1012
+ (location ^name bus_stop)
+ (history ^bus_stopped t)
+ -->
+ (write (crlf) |A bus has stopped in front of us.|))
+
+(p name1013
+ (input wait)
+ -->
+ (write (crlf) |La dee da.|)
+ (remove 1))
+
+(p name1014
+ (input wait)
+ (location ^name bus_stop)
+ (history ^bus_stopped nil)
+ -->
+ (remove 1)
+ (modify 3 ^bus_stopped t)
+ (write (crlf) |Yawn!|))
+
+(p name1015
+ (input << mount board >>)
+ (location ^name bus_stop)
+ -->
+ (remove 1)
+ (make input enter bus))
+
+(p name1016
+ (input enter)
+ (location ^name bus_stop)
+ (history ^bus_stopped t)
+ (object ^name tokens ^place held)
+ -->
+ (remove 1)
+ (modify 2 ^name on_bus)
+ (modify 3 ^bus_stopped nil)
+ (remove 4)
+ (make object ^name token ^place held))
+
+(p name1017
+ (input enter)
+ (location ^name bus_stop)
+ (history ^bus_stopped t)
+ (object ^name token ^place held)
+ -->
+ (remove 1)
+ (modify 2 ^name on_bus)
+ (modify 3 ^bus_stopped nil)
+ (remove 4))
+
+(p name1018
+ (location ^name bus_stop)
+ (input take ride)
+ -->
+ (remove 1)
+ (make input enter bus))
+
+(p name1019
+ (location ^name bus_stop)
+ (history ^bus_stopped t)
+-(object ^name tokens)
+-(object ^name token)
+ (status)
+ (input enter <x>)
+ -->
+ (remove 4)
+ (write (crlf) |You don't have any tokens.  You sit on the corner and starve to death.|)
+ (modify 3 ^quit t))
+
+(p name1020
+ (location ^name bus_stop)
+ (history ^bus_stopped t)
+ (input enter)
+ (object ^name token ^place bus stop)
+ -->
+ (remove 3)
+ (write (crlf) |The bus doors remain closed.|))
+
+(p name1021
+ (location ^name bus_stop)
+ (history ^bus_stopped t)
+ (input enter)
+ (object ^name tokens ^place bus stop)
+-->
+ (remove 3)
+ (write (crlf) |You stumble over some tokens and bang your head on the bus.|))
+
+(p name1022
+ (location ^name on_bus)
+ -->
+ (modify 1 ^name bus)
+ (make place bus ^visited t)
+ (write (crlf) |As you find your seat, you notice the bus is empty.|)
+ (write (crlf) |There isn't even a driver.  But before you can change your mind,|)
+ (write (crlf) |the bus starts up and drives away from the intersection.|)
+ (write (crlf) |Va Vooooom!|)
+ (write (crlf) |Looking out the window you see many intersections flash by.|)
+ (write (crlf) | |)
+ (write (crlf) |After a while the intersections get farther apart.|)
+ (write (crlf) |The bus is now in the outskirts of town.|)
+ (write (crlf) |The bus comes up to an old mansion with a high gate surrounding it and stops.|)
+ (write (crlf) |A voice comes over the speaker: 'ALL OUT, END OF THE LINE.'|))
+
+(p name1023
+ (location ^name bus)
+ (place ^name bus ^visited nil)
+ -->
+ (write (crlf) | |)
+ (write (crlf) |You are in a bus.  There isn't a driver and the exit doors are open.|))
+
+(p name1024
+ (location ^name bus)
+ (input get off <x>)
+ -->
+ (remove 2)
+ (make input exit))
+
+(p name1025
+ (location ^name bus)
+ (input << leave depart disembark >>)
+ -->
+ (remove 2)
+ (make input exit))
+
+(p name1026
+ (location ^name bus)
+ (input exit <x>)
+ -->
+ (remove 2)
+ (modify 1 ^name lawn ^side out ^east 5 ^north 2)
+ (write (crlf) |The bus drives off as you get off.|))
+
+(p name1027
+ (location ^name bus)
+ (input get out <x>)
+ -->
+ (remove 2)
+ (make input exit))
+
+(p name1028
+ (location ^name bus_stop)
+ (input << chase follow catch >> bus)
+ (status)
+ -->
+ (remove 2)
+ (write (crlf) |I'm assuming that means GO WEST.|)
+ (modify 3 ^going w went w))
+
+(p name1029
+ (location ^name bus_stop)
+ (time ^realtime 2226)
+ -->
+ (write (crlf) |Hint: patience is a virtue.|))
+
+(p name1030
+ (location ^name bus)
+ (input hijack bus)
+ -->
+ (remove 2)
+ (write (crlf) |Sorry, this bus doesn't go to Cuba, that's another line.|))
+
+(p name1031
+ (location ^name bus)
+ (input <x> driver)
+ -->
+ (remove 2)
+ (write (crlf) |There isn't a driver on this bus.|))
+
+(p name1032
+ (location ^name bus)
+ (input drive bus)
+ -->
+ (remove 2)
+ (write (crlf) |I'm sorry but you don't have a chauffeur's license.|))
+
+(p name1033
+ (location ^name bus)
+ (input <x> bus)
+ -->
+ (remove 2)
+ (write (crlf) |Give up and get off the bus.|))
+
+(p name1034
+ (location ^name bus_stop)
+ (input hail bus)
+ -->
+ (remove 2)
+ (write (crlf) |The bus does not stop for you.|))
+
+(p name1035
+ (location ^name lawn ^side out ^east {<< 2 3 4 5 6 7 >> <C>}
+	   ^north << 1 2 8 >>)
+ (status ^going e)
+ -->
+ (modify 2 ^going nil)
+ (modify 1 ^east (compute 1 + <C>)))
+
+(p name01035
+ (location ^name lawn ^side out ^east 1)
+ (status ^going e)
+ -->
+ (modify 2 ^going nil)
+ (modify 1 ^east 2))
+
+(p name1036
+ (location ^name lawn ^side out ^east << 1 2 8 >> 
+	   ^north {<< 2 3 4 5 6 7 >> <N>})
+ (status ^going n)
+ -->
+ (modify 2 ^going nil)
+ (modify 1 ^north (compute 1 + <N>)))
+
+(p name001036
+ (location ^name lawn ^side out ^north 1)
+ (status ^going n)
+ -->
+ (modify 2 ^going nil)
+ (modify 1 ^north 2))
+
+(p name1037
+ (location ^name lawn ^side out ^east << 1 2 8 >>
+	   ^north {<< 3 4 5 6 7 8 >> <N>})
+ (status ^going s)
+ -->
+ (modify 2 ^going nil)
+ (modify 1 ^north (compute <N> - 1)))
+
+(p name01037
+ (location ^name lawn ^side out ^north 2)
+ (status ^going s)
+ -->
+ (modify 2 ^going nil)
+ (modify 1 ^north 1))
+
+(p name1038
+ (location ^name lawn ^side out ^east {> 2 <E>} ^north << 1 2 8 >>)
+ (status ^going w)
+ -->
+ (modify 2 ^going nil)
+ (modify 1 ^east (compute <E> - 1)))
+
+(p name01038
+ (location ^name lawn ^side out ^east 2)
+ (status ^going w)
+ -->
+ (modify 2 ^going nil)
+ (modify 1 ^east 1))
+
+(p name1039
+ (location ^name lawn ^side out ^east 1 ^north <> 1)
+ (status ^going w)
+ -->
+ (modify 2 ^going nil)
+ (write (crlf) |The woods are too dense to penetrate.|))
+
+(p name1041
+ (location ^name lawn ^side out ^east 1 ^north 1)
+ (status ^going w)
+ -->
+ (modify 2 ^going nil)
+ (modify 1 ^name bus_stop))
+
+(p name1043
+ (location ^name lawn ^side out ^east 8 ^north 1)
+ (status ^going e)
+ -->
+ (modify 2 ^going nil)
+ (modify 1 ^name bus_stop))
+
+(p name1044
+ (location ^name lawn ^side out ^east 8 ^north <> 1)
+ (status ^going e)
+ -->
+ (modify 2 ^going nil)
+ (write (crlf) |You are unable to penetrate into the woods.|))
+
+(p name1045
+ (location ^name lawn ^side out ^north 1)
+ (status ^going s)
+ -->
+ (modify 2 ^going nil)
+ (write (crlf) |The forest can not be penetrated.|))
+
+(p name1046
+ (location ^name lawn ^side out ^north 8)
+ (status ^going n)
+ -->
+ (modify 2 ^going nil)
+ (write (crlf) |Penetration into the forest is impossible|))
+
+(p name1047
+ (location ^name lawn ^side out ^east << 3 4 5 6 7 >> ^north 2)
+ (status ^going n)
+ -->
+ (modify 2 ^going nil)
+ (write (crlf) |The wall prevents passage to the north.|))
+
+(p name1049
+ (location ^name lawn ^side out ^east << 3 4 5 6 7 >> ^north 8)
+ (status ^going s)
+ -->
+ (modify 2 ^going nil)
+ (write (crlf) |The wall is in the way.|))
+
+(p name1051
+ (location ^name lawn ^side out ^east << 3 4 5 6 7 >> ^north 8)
+ -->
+ (write (crlf) |You're on the north border of a wall, on the outside.|))
+
+(p name1053
+ (location ^name lawn ^side out ^east  << 3 4 5 6 7 >> ^north 2)
+ -->
+ (write (crlf) |To the north is the wall that surrounds CHEZ MOOSE.|)
+ (write (crlf) |To the south is a road.|))
+
+(p name1055
+ (location ^name lawn ^side out ^north  << 3 4 5 6 7 >> ^east 2)
+ -->
+ (write (crlf) |To the west is a thick forest, and to the east is a wall.|))
+
+(p name1056
+ (location ^name lawn ^side out ^east 8 ^north  << 3 4 5 6 7 >>)
+ -->
+ (write (crlf) |To the east is a dark forest, and to the west is a high wall.|))
+
+(p name1060
+ (location ^name lawn ^side out ^east 2 ^north  << 3 4 5 6 7 >>)
+ (status ^going e)
+ -->
+ (modify 2 ^going nil)
+ (write (crlf) |Ahh, there is the big wall in the way.|))
+
+(p name1061
+ (location ^name lawn ^side out ^east 8 ^north  << 3 4 5 6 7 >>)
+ (status ^going w)
+ -->
+ (modify 2 ^going nil)
+ (write (crlf) |The wall is in the way.|))
+
+(p name1074
+ (location ^name lawn ^side out ^north 1)
+ -->
+ (write (crlf) |You are on the road, to the south is a forest.|))
+
+(p name1075
+ (location ^name lawn ^side out ^east 1 ^north > 1)
+ -->
+ (write (crlf) |You are in a forest.|))
+
+(p name1098
+ (location ^name lawn ^side out ^east 5 ^north 2)
+ -->
+ (write (crlf) |To the north is a gate in a wall.|)
+ (write (crlf) |Further north a huge mansion looms.|)
+ (write (crlf) | |)
+ (write (crlf) |Lights from inside illuminate the surrounding estate.|)
+ (write (crlf) |The gate is inoperable, and you won't be able to open it.|))
+
+(p name1114
+ (location ^name lawn ^side out ^east 2 ^north 2)
+ -->
+ (write (crlf) |This is the sw corner of the wall.|))
+
+(p name1115
+ (location ^name lawn ^side out ^east 8 ^north 2)
+ -->
+ (write (crlf) |This is the se corner of the wall.  You can go n, s, e or w.|))
+
+(p name1116
+ (location ^name lawn ^side out ^east 8 ^north 8)
+ -->
+ (write (crlf) |This is the ne corner of the wall.|))
+
+(p name1117
+ (location ^name lawn ^side out ^east 2 ^north 8)
+ -->
+ (write (crlf) |This is the nw corner of the wall.|))
+
+(comment inside)
+
+(p name1140
+ (location ^name lawn ^side in ^east << 2 3 4 6 7 8 >> 
+	   ^north { < 8 <N>})
+ (status ^going n)
+ -->
+ (modify 2 ^going nil)
+ (modify 1 ^north (compute 1 + <N>) ^general nil))
+
+(p name1141
+ (location ^name lawn ^side in ^east 5 
+	   ^north { << 2 3 6 7 >> <N>})
+ (status ^going n)
+ -->
+ (modify 2 ^going nil)
+ (modify 1 ^north (compute 1 + <N>) ^general nil))
+
+(p name1142
+ (location ^name lawn ^side in ^east << 2 3 4 6 7 8 >> 
+	   ^north { > 2 <N>})
+ (status ^going s)
+ -->
+ (modify 2 ^going nil)
+ (modify 1 ^north (compute <N> - 1) ^general nil))
+
+(p name1143
+ (location ^name lawn ^side in ^east 5 
+	   ^north { << 3 4 7 8 >> <N>})
+ (status ^going s)
+ -->
+ (modify 2 ^going nil)
+ (modify 1 ^north (compute <N> - 1) ^general nil))
+
+(p name1150
+ (location ^name lawn ^side in ^north << 2 3 4 6 7 8 >> 
+	   ^east { < 8 <N>})
+ (status ^going e)
+ -->
+ (modify 2 ^going nil)
+ (modify 1 ^east (compute 1 + <N>) ^general nil))
+
+(p name1151
+ (location ^name lawn ^side in ^north 5 
+	   ^east { << 2 3 6 7 >> <N>})
+ (status ^going e)
+ -->
+ (modify 2 ^going nil)
+ (modify 1 ^east (compute 1 + <N>) ^general nil))
+
+(p name1152
+ (location ^name lawn ^side in ^north << 2 3 4 6 7 8 >> 
+	   ^east { > 2 <N>})
+ (status ^going w)
+ -->
+ (modify 2 ^going nil)
+ (modify 1 ^east (compute <N> - 1) ^general nil))
+
+(p name1153
+ (location ^name lawn ^side in ^north 5 
+	   ^east { << 3 4 7 8 >> <N>})
+ (status ^going w)
+ -->
+ (modify 2 ^going nil)
+ (modify 1 ^east (compute <N> - 1) ^general nil))
+
+(p name1048
+ (location ^name lawn ^side in ^north 2)
+ (status ^going s)
+ -->
+ (modify 2 ^going nil)
+ (write (crlf) |The wall won't let you go south.|))
+
+(p name1050
+ (location ^name lawn ^side in ^north 8)
+ (status ^going n)
+ -->
+ (modify 2 ^going nil)
+ (write (crlf) |Hey, the wall is north.|))
+
+(p name1052
+ (location ^name lawn ^side in ^north 8)
+ -->
+ (write (crlf) |You're on the inside of north border of a wall.|))
+
+(p name1054
+ (location ^name lawn ^side in ^north 2)
+ -->
+ (write (crlf) |A wall is to the south.|))
+
+(p name1057
+ (location ^name lawn ^side in ^east 8)
+ -->
+ (write (crlf) |To the east is a wall.|))
+
+(p name1058
+ (location ^name lawn ^side in ^east 2)
+ -->
+ (write (crlf) |To the west is a wall.|))
+
+(p name1059
+ (location ^name lawn ^side in ^east 2)
+ (status ^going w)
+ -->
+ (modify 2 ^going nil)
+ (write (crlf) |The wall blocks your way.|))
+
+(p name1062
+ (location ^name lawn ^side in ^east 8)
+ (status ^going e)
+ -->
+ (modify 2 ^going nil)
+ (write (crlf) |The wall is in the way.|))
+
+(p name1063
+ (location ^name lawn ^side in ^east 4 ^north 4)
+ -->
+ (write (crlf) |You are at the sw corner of the house.|))
+
+(p name1064
+ (location ^name lawn ^side in ^east 6 ^north 4)
+ -->
+ (write (crlf) |You are at the se corner of the house.|))
+
+(p name1065
+ (location ^name lawn ^side in ^east 4 ^north 5)
+ -->
+ (write (crlf) |You are on the west side of the house.|))
+
+(p name1066
+ (location ^name lawn ^side in ^east 4 ^north 6)
+ -->
+ (write (crlf) |This is the north-west corner of the house.|))
+
+(p name1067
+ (location ^name lawn ^side in ^east 5 ^north 6)
+ -->
+ (write (crlf) |This is the north side of the house.|))
+
+(p name1068
+ (location ^name lawn ^side in ^east 6 ^north 6)
+ -->
+ (write (crlf) |This is the north east corner of the mansion.|))
+
+(p name1069
+ (location ^name lawn ^side in ^east 6 ^north 5)
+ -->
+ (write (crlf) |This is the east side of the house.|))
+
+(p name1070
+ (location ^name lawn ^side in ^east 6 ^north 5)
+ (status ^going w)
+ -->
+ (modify 2 ^going nil)
+ (write (crlf) |The house is in the way.|))
+
+(p name1071
+ (location ^name lawn ^side in ^east 4 ^north 5)
+ (status ^going e)
+ -->
+ (modify 2 ^going nil)
+ (write (crlf) |The house is in the way.|))
+
+(p name1072
+ (location ^name lawn ^side in ^east 5 ^north 4)
+ (status ^going n)
+ -->
+ (modify 2 ^going nil)
+ (write (crlf) |The house is in the way.|))
+
+(p name1073
+ (location ^name lawn ^side in ^east 5 ^north 6)
+ (status ^going s)
+ -->
+ (modify 2 ^going nil)
+ (write (crlf) |The house is in the way.|))
+
+(p name1076
+ (location ^name lawn ^side in ^east 3 ^north 3 ^general nil)
+ -->
+ (modify 1 ^general lawns))
+
+(p name1077
+ (location ^name lawn ^side in ^east 4 ^north 3 ^general nil)
+ -->
+ (modify 1 ^general lawns))
+
+(p name1078
+ (location ^name lawn ^side in ^east 6 ^north 3 ^general nil)
+ -->
+ (modify 1 ^general lawns))
+
+(p name1079
+ (location ^name lawn ^side in ^east 7 ^north 3 ^general nil)
+ -->
+ (modify 1 ^general lawns))
+
+(p name1080
+ (location ^name lawn ^side in ^east 7 ^north 4 ^general nil)
+ -->
+ (modify 1 ^general lawns))
+
+(p name1081
+ (location ^name lawn ^side in ^east 7 ^north 7 ^general nil)
+ -->
+ (modify 1 ^general lawns))
+
+(p name1082
+ (location ^name lawn ^side in ^east 6 ^north 7 ^general nil)
+ -->
+ (modify 1 ^general lawns))
+
+(p name1083
+ (location ^name lawn ^side in ^east 5 ^north 7 ^general nil)
+ -->
+ (modify 1 ^general lawns))
+
+(p name1084
+ (location ^name lawn ^side in ^east 4 ^north 7 ^general nil)
+ -->
+ (modify 1 ^general lawns))
+
+(p name1085
+ (location ^name lawn ^side in ^east 3 ^north 6 ^general nil)
+ -->
+ (modify 1 ^general lawns))
+
+(p name1086
+ (location ^name lawn ^side in ^east 3 ^north 7)
+ -->
+ (write (crlf)|This looks like an old garden, but the land is all dried and hard.|))
+
+(p name1087
+ (object ^name bathwater ^place lawn ^side in ^east 3 ^north 7)
+ (object ^name orchid ^state seed)
+ -->
+ (modify 2 ^state plant)
+ (write (crlf) |The ground shakes...|)
+ (write (crlf) |An orchid sprouts from the ground.|))
+
+(p name1088
+ (object ^name water ^place lawn ^side in ^east 3 ^north 7)
+ (object ^name orchid ^place lawn ^side in ^east 3 ^north 7 ^state plant)
+ (object ^name bathwater ^place lawn ^side in ^east 3 ^north 7)
+ -->
+ (remove 2)
+ (write (crlf) |The orchid shrinks and disappears underground.|))
+
+(p name1089
+ (object ^name water ^place lawn ^side in ^east 3 ^north 7)
+ (object ^name orchid ^place lawn ^side in ^east 3 ^north 7 ^state seed)
+-->
+ (remove 2)
+ (write (crlf) |Nothing happens.  That must be strange water.|))
+
+(p name1090
+ (object ^name seawater ^place lawn ^side in ^east 3 ^north 7)
+ (object ^name orchid ^place lawn ^side in ^east 3 ^north 7)
+-->
+ (remove 2)
+ (write (crlf) |I think you killed what ever was planted.|))
+
+(p name1091
+ (object ^name bathwater ^place <x>)
+ (object ^name water ^place <x>)
+-->
+ (remove 1)
+ (remove 2)
+ (write (crlf) |The two types of water evaporate.|))
+
+(p name1092
+ (location ^name lawn ^side in ^east 3 ^north 5 ^general nil)
+ -->
+ (modify 1 ^general lawns))
+
+(p name1093
+ (location ^name lawn ^side in ^east 3 ^north 4 ^general nil)
+ -->
+ (modify 1 ^general lawns)) 
+
+(p name1094
+ (location ^general lawns)
+ -->
+ (write (crlf) |You're on the lawn of the mansion.|))
+
+(p name1095
+ (location ^name lawn ^side in ^east 5 ^north 3)
+ -->
+ (write (crlf) |You're on the front walk.|))
+
+(p name1096
+ (location ^name lawn ^side in ^east 5 ^north 2)
+ -->
+ (write (crlf) |You're at the front gate, which can't be opened.|))
+
+(p name1097
+ (location ^name lawn ^side <side> ^east 5 ^north 2)
+ (input climb)
+ -->
+ (remove 2)
+ (write (crlf) |Nice try, but the upper part of the gate is electrified!|)
+ (write (crlf) |I suggest you try somewhere else.|))
+
+(p name1105
+ (location ^name lawn ^side in ^east 7 ^north 5)
+ -->
+ (write (crlf) |You are on the drive way.|)
+ (write (crlf) |The drive has a gate in the wall to the east.|))
+
+(p name1106
+ (location ^name lawn ^side in ^east 7 ^north 6)
+ -->
+ (write (crlf) |You are on a parking space.|))
+
+(p name1118
+ (location ^name lawn)
+ (input << scale climb >>)
+ -->
+ (remove 2)
+ (write (crlf) |The wall is too slick to climb up.  You can't get a grip.|))
+
+(p name1119
+ (location ^name lawn)
+ (input << burrow tunnel dig >>)
+ -->
+ (remove 2)
+ (write (crlf) |The ground is too hard to dig here.|))
+
+(p name1120
+ (location ^name lawn)
+ (object ^name <x> ^place held)
+ (input throw <x> at wall)
+ -->
+ (remove 3)
+ (write (crlf) |The| <x> |bounces off the wall.|)
+ (make input drop <x>))
+
+(p name1121
+ (input jump wall)
+ (location ^name lawn)
+ -->
+ (remove 1)
+ (write (crlf) |You aren't the HULK or Dwight Stones.|))
+
+(p name1122
+ (input jump wall)
+ (location ^name lawn)
+ (status ^name Dwight Stones)
+-->
+ (remove 1)
+ (write (crlf) |You approach the wall.  Up, up you go.|)
+ (write (crlf) |SPLAT!! You hit the wall right at 8".  That would|)
+ (write (crlf) |be a new world's record.  Too bad the wall is ten feet tall.|))
+
+(p name1123
+ (input jump wall)
+ (location ^name lawn)
+ (status ^name the Hulk)
+ -->
+ (remove 1)
+ (write (crlf) |Ha! You aren't the Hulk, you're just a little green|)
+ (write (crlf) |from the bus ride.|))
+
+(p name1124
+ (input jump over wall)
+ (location ^name lawn)
+ -->
+ (remove 1)
+ (write (crlf) |You watched Superman too many times!|))
+
+(p name1125
+ (location ^name lawn)
+ (input throw <y> over <Z>)
+ -->
+ (remove 2)
+ (write (crlf) |The wall is too high for you to throw anything over it.|))
+
+(p name1126
+ (input let me in)
+ -->
+ (remove 1)
+ (write (crlf) |I'm afraid you aren't getting anyone's attention.|))
+
+(p name1127
+ (input open gate)
+ -->
+ (remove 1)
+ (write (crlf) |The gate can't be opened by you.|))
+
+(p name1128
+ (status ^notreasure t)
+ (object ^name <x> ^place )
+ -->
+ (remove 2))
+
+(p name1129
+ (location ^name lawn ^side in ^east 5 ^north 6)
+ -->
+ (write (crlf) |There is ivy on the walls of the house.|))
+(p name389
+ (time ^oil_status oil ^oil_time <x> ^realtime <x>)
+ -->
+ (modify 1 ^oil_status enter ^oil_time (compute <x> + 10)))
+
+(p name390
+ (time ^oil_status enter ^oil_time <x> ^realtime <x>)
+ -->
+ (make object ^name truck ^place lawn ^side in ^east 7 ^north 5)
+ (modify 1 ^oil_status walk ^oil_time (compute <x> + 10)))
+
+(p name391
+ (time ^oil_status walk ^oil_time <x> ^realtime <x>)
+ (history ^grave_status undug)
+ -->
+ (modify 1 ^oil_status walk ^oil_time (compute <x> + 4))
+ (modify 2 ^grave_status dug))
+
+(p name392
+ (time ^oil_status walk ^oil_time <x> ^realtime <x>)
+ (history ^grave_status dug)
+ -->
+ (modify 1 ^oil_status walk ^oil_time (compute <x> + 4))
+ (modify 2 ^grave_status deep))
+
+(p name393
+ (time ^oil_status walk ^oil_time <x> ^realtime <x>)
+ (history ^grave_status deep ^grave_status2 oil)
+ -->
+ (modify 2 ^grave_status2 nil)
+ (modify 1 ^oil_status fixit ^oil_time (compute <x> + 8)))
+
+(p name394
+ (time ^oil_status fixit ^oil_time <x> ^realtime <x>)
+ -->
+ (make fixed)
+ (modify 1 ^oil_status return ^oil_time (compute <x> + 10)))
+
+(p name395
+ (time ^oil_status return ^oil_time <x> ^realtime <x>)
+ (object ^name truck ^place <y>)
+ -->
+ (modify 1 ^oil_status done)
+ (remove 2))
+
+(p name500
+ (location ^name lawn ^side in ^east 8 ^north 8)
+ (history ^grave_status undug)
+-->
+ (write (crlf) |There is a fresh grave here.|))
+
+(p name501
+ (location ^name lawn ^side in ^east 8 ^north 8)
+ (history ^grave_status undug)
+ (input dig)
+ -->
+ (remove 3)
+ (modify 2 ^grave_status dug)
+ (write (crlf) |Luckily, the dirt is soft.|))
+
+(p name502
+ (location ^name lawn ^side in ^east 8 ^north 8)
+ (history ^grave_status dug)
+-->
+ (write (crlf) |There is a open grave.|))
+
+(p name503
+ (location ^name lawn ^side in ^east 8 ^north 8)
+ (history ^grave_status dug)
+ (input dig)
+ -->
+ (remove 3)
+ (modify 2 ^grave_status deep))
+
+(p name504
+ (location ^name lawn ^side in ^east 8 ^north 8)
+ (history ^grave_status deep)
+-->
+ (write (crlf) |There is a large pipe that goes through the grave.|)
+ (write (crlf) |There is a lever on the pipe labelled 'Emergency Release.'|))
+
+(p name505
+ (location ^name lawn ^side in ^east 8 ^north 8)
+ (input <x> dirt <y>)
+ -->
+ (remove 2)
+ (write (crlf) |Hmmm..  I didn't understand that.  I can only dig holes and fill in holes.|))
+
+(p name506
+ (location ^name lawn ^side in ^east 8 ^north 8)
+ (input get dirt)
+ -->
+ (remove 2)
+ (write (crlf) |Sorry, that won't wash.  I can only dig holes and fill in holes.|)
+ (write (crlf) |You can't get the dirt.|))
+
+(p name507
+ (location ^name lawn ^side in ^east 8 ^north 8)
+ (input pull lever)
+ (history ^grave_status deep ^grave_status2 <> oil)
+ (time ^realtime <x>)
+-(fixed)
+ -->
+ (remove 2)
+ (write (crlf) |Ummph!|)
+ (modify 3 ^grave_status2 oil)
+ (modify 4 ^oil_time (compute <x> + 30)))
+
+(p name508
+ (location ^name lawn ^side in ^east 8 ^north 8)
+ (history ^grave_status2 oil)
+-->
+ (write (crlf) |There is oil seeping out of the pipe.|))
+
+(p name509
+ (input << throw get push turn close >> lever)
+ -->
+ (remove 1)
+ (make input pull lever))
+
+(p name510
+ (input <x> lever)
+ -->
+ (remove 1)
+ (write (crlf) |I don't understand the word| <x>  |as a verb for lever.|))
+
+(p name511
+ (history ^grave_status2 oil)
+ (input pull lever)
+ -->
+ (remove 2)
+ (write (crlf) |The lever won't close, a special tool is needed!|)
+ (write (crlf) |The oil continues to seep out.|))
+
+(p name512
+ (location ^name lawn ^side in ^east 8 ^north 8)
+ (input <x> oil)
+ -->
+ (remove 2)
+ (write (crlf) |The oil is too slippery to do anything with it.|))
+
+(p name513
+ (location ^name lawn ^side in ^east 8 ^north 8)
+ (input refill)
+ (walk <x>)
+ (history ^grave_status <y>)
+ -->
+ (remove 2)
+ (write (crlf) |You are unable to affect the driver's digging.|))
+
+(p name514
+ (location ^name lawn ^side in ^east 8 ^north 8)
+ (input refill)
+ (fixit <x>)
+ (history ^grave_status <y>)
+ -->
+ (remove 2)
+ (write (crlf) |You are unable to affect the driver's work.|))
+
+(p name515
+ (location ^name lawn ^side in ^east 8 ^north 8)
+ (input refill)
+ (history ^grave_status2 oil ^grave_status deep)
+ -->
+ (remove 2)
+ (modify 3 ^grave_status dug)
+ (write (crlf) |The oil still seeps out.|))
+
+(p name516
+ (location ^name lawn ^side in ^east 8 ^north 8)
+ (history ^grave_status deep)
+ (input refill)
+ -->
+ (remove 3)
+ (modify 2 ^grave_status dug))
+
+(p name517
+ (location ^name lawn ^side in ^east 8 ^north 8)
+ (history ^grave_status dug)
+ (input refill)
+ -->
+ (remove 3)
+ (modify 2 ^grave_status undug))
+
+(p name518
+ (input oil)
+ (location ^name lawn ^side in ^east 8 ^north 8)
+-->
+ (remove 1)
+ (write (crlf) |The oil is too slippery to use.|))
+
+(p name519
+ (input fill in)
+ -->
+ (remove 1)
+ (make input refill))
+
+(p name520
+ (input fillin)
+ -->
+ (remove 1)
+ (make input refill))
+
+(p name521
+ (input cover)
+ -->
+ (remove 1)
+ (make input refill))
+
+(p name522
+ (input << scoop shovel >>)
+ -->
+ (remove 1)
+ (make input dig))
+
+(p name523
+ (input dig)
+ (location ^name lawn ^side in ^east 8 ^north 8)
+-->
+ (remove 1)
+ (write (crlf) |The ground is too hard to dig anymore.|))
+
+(p name524
+ (input refill)
+ (location ^name lawn ^side in ^east 8 ^north 8)
+-->
+ (remove 1)
+ (write (crlf) |The grave is filled.|))
+
+(p name525
+ (history ^grave_status dug)
+-(object ^name bone)
+-->
+ (make object ^name bone ^place lawn ^side in ^east 8 ^north 8 ^treasure t))
+
+(p name526
+ (fixed)
+ (location ^name lawn ^side in ^east 8 ^north 8)
+ -->
+ (write (crlf) |The oil is not seeping out, the lever has been fixed but can not be pulled.|))
+
+(p name527
+ (fixed)
+ (location ^name lawn ^side in ^east 8 ^north 8)
+ (input pull)
+ -->
+ (remove 3)
+ (write (crlf) |The lever won't budge.|))
+
+
+(p name530
+ (location ^name lawn ^side in ^east 8 ^north 5)
+ (enter)
+ -->
+ (write (crlf) |You see a truck outside at the gate.|))
+
+(p name531
+ (location ^name lawn ^side in ^east > 6 ^north 5)
+ (enter <x>)
+ (time ^realtime <x>)
+ (input <z>)
+ -->
+ (write (crlf) |The gates open and the truck enters.  The gate closes before you can escape.|)
+ (write (crlf) |The truck says 'Oil line fixit' on the side.|)
+ (write (crlf) |The truck pulls in and parks on the drive.|)
+ (write (crlf) |The driver gets out and heads north east.|))
+
+(p name532
+ (enter <x>)
+ (time ^realtime <x>)
+-(location ^name lawn ^side in ^east > 6 ^north 5)
+ (input <z>)
+ -->
+ (write (crlf) |You hear a truck pull into the driveway and stop.|))
+
+(p name533
+ (walk <x>)
+ (location ^name lawn ^side in ^east 8 ^north 8)
+ -->
+ (write (crlf) |The driver is digging to get a better angle on the pipe.|))
+
+(p name534
+ (fixit <x>)
+ (location ^name lawn ^side in ^east 8 ^north 8)
+ -->
+ (write (crlf) |The driver is fixing the pipe.|))
+
+(p name535
+ (fixit <x>)
+ (time ^realtime <x>)
+ (location ^name lawn ^side in ^east 8 ^north 8)
+ (input <z>)
+ -->
+ (write (crlf) |The driver is finished with the work, and heads back to the truck.|))
+
+(p name536
+ (return <x>)
+ (time ^realtime <x>)
+ (input <z>)
+ (location ^name lawn ^side in ^east > 6 ^north 5)
+ -->
+ (write (crlf) |The man gets in the truck and backs out as the gate opens.|)
+ (write (crlf) |You are unable to escape as it leaves.|))
+
+(p name537
+ (input <x> driver <y>)
+ -->
+ (remove 1)
+ (write (crlf) |You are unable to contact or make contact with the driver.|)
+ (write (crlf) |It is as if he doesn't know you are there.|))
+
+(p name538
+ (input get truck)
+ -->
+ (remove 1)
+ (write (crlf) |The truck is a little heavy to get.|))
+
+(p name539
+ (location ^name lawn ^side in ^east 7 ^north 5)
+ (portal ^name truck ^place lawn ^side in ^east 7 ^north 5)
+ -->
+ (write (crlf) |There is a panel truck here.|))
+
+(p name540
+ (location ^name lawn ^side in ^east 7 ^north 5)
+ (portal ^name truck ^place lawn ^side in ^east 7 ^north 5)
+ (input mount truck)
+ -->
+ (remove 3)
+ (write (crlf) |The truck is too tall to climb up on.|))
+
+(p name541
+ (location ^name lawn ^side in ^east 7 ^north 5)
+ (object ^name truck ^place lawn ^side in ^east 7 ^north 5)
+ (input open <y>)
+ -->
+ (remove 3)
+ (write (crlf) |The front doors are locked, but you were able to open the back.|)
+ (modify 2 ^door open))
+
+(p name542
+ (portal  ^name truck ^door closed)
+ (object ^name truck ^side in ^east 7 ^north 5)
+ (location ^name lawn ^side in ^east 7 ^north 5)
+ (input open <y>)
+ -->
+ (write (crlf) |The back doors are now open.|)
+ (modify 1 ^door open)
+ (remove 4))
+
+(p name543
+ (location ^name lawn ^side in ^east 7 ^north 5)
+ (object ^name truck ^place lawn ^side in ^east 7 ^north 5)
+ (input << mount enter >> <y>)
+ -->
+ (remove 3)
+ (write (crlf) |None of the doors are open.|))
+
+(p name544
+ (location ^place lawn ^side in ^east 7 ^north 5)
+ (object ^name truck ^place lawn ^side in ^east 7 ^north 5)
+ (portal ^name truck ^door open)
+ (input close <y>)
+-->
+ (modify 3 ^door close)
+ (remove 4)
+ (write (crlf) |Ok.|))
+
+(p name545
+ (location ^name lawn ^side in ^east 7 ^north 5)
+ (object ^name truck ^place lawn ^side in ^east 7 ^north 5)
+ (portal ^name truck ^door open)
+ (input << mount enter >> <h>)
+-->
+ (remove 4)
+ (modify 1 ^place intruck)
+ (write (crlf) |You are in the back of the truck.|))
+
+(p name546
+ (location ^name intruck)
+ (input look)
+ -->
+ (remove 2)
+ (write (crlf) |You are inside the panel truck.  It is empty.|))
+
+(p name547
+ (object ^name truck ^place lawn ^side in ^east 7 ^north 5)
+ (portal ^name truck ^door open)
+ (location ^name intruck)
+ (return <y>)
+ (time ^realtime <y>)
+ (input <z>)
+ -->
+ (write (crlf) |As the truck starts up, it accelerates so fast that you fall out the back.|)
+ (remove 6)
+ (modify 3 ^place lawn ^side in ^east 7 ^north 5))
+
+(p name548
+ (object ^name truck ^place lawn ^side in ^east 7 ^north 5)
+ (portal ^name truck ^door closed)
+ (location ^name intruck)
+ (return <y>)
+ (time ^realtime <y>)
+ (input <z>)
+ (status)
+ -->
+ (remove 6)
+ (write (crlf) |VaVoom! The truck has started up.|)
+ (write (crlf) |Bump bump! You feel yourself being driven out of the yard.|)
+ (modify 7 ^going out))
+
+(p name549
+ (location ^name lawn ^side in ^east 7 ^north 5)
+ (object ^name truck ^place lawn ^side in ^east 7 ^north 5)
+ (portal ^name truck ^door open)
+ (input << mount enter >> <R>)
+ (object ^name <y> ^place held)
+ -->
+ (remove 4)
+ (write (crlf) |The| <y>  |won't fit through the door!|))
+
+(p name550
+ (status ^going out)
+ -->
+ (modify 1 ^going nil)
+ (write (crlf) |As you drive by the gate you hear from the speaker:|)
+ (write (crlf) |'Good job son!'|)
+ (write (crlf) ||)
+ (write (crlf) |The truck drives on for a while then stops.|)
+ (write (crlf) |Your open the truck door and find that you are outside the walls.|)
+ (write (crlf) |You've escaped!|)
+ (write (crlf) ||)
+ (write (crlf) |In the distance you here the trumpeting of a bull moose.|)
+ (write (crlf) ||)
+ (write (crlf) |James Watt is here with a check for $10,000,000 to buy the land|)
+ (write (crlf) |for the Department of the Interior.|)
+ (write (crlf) |He assures you that the government will not sell the land, but admits|)
+ (write (crlf) |that he may allow some leasing of mineral rights.  You have the option|)
+ (write (crlf) |of selling it and making big bucks, or you can donate, with the|)
+ (write (crlf) |restriction that it be perserved in its current state.|)
+
+ (write (crlf) |What is your choice? Sell, or donate?|)
+ (make selldonate (accept)))
+
+(p name551
+ (selldonate sell)
+ (status ^score <x>)
+ -->
+ (remove 1)
+ (write (crlf) |Hmm.  I don't think your father would have approved.|)
+ (write (crlf) |Oh my god! Out of the forest a moose comes charging at you.|)
+ (write (crlf) |He is coming right at you.  You can't escape.  |)
+ (write (crlf) |ARGHH! He gored you, but missed James Watt.|)
+ (write (crlf) |You're dead, what a bummer after what you have been through.|)
+ (make input stop)
+ (modify 2 ^score (compute <x> - 20)))
+
+(p name552
+ (selldonate)
+ -->
+ (remove 1)
+ (write (crlf) |Make up your mind, Sell or donate.|)
+ (make selldonate (accept)))
+
+(p name553
+ (selldonate donate)
+ (status ^score <x>)
+ -->
+ (remove 1)
+ (write (crlf) |James Watt accuses you of being a reactionary idiot.|)
+ (write (crlf) |He stomps off, mumbling, 'Those strip miners are going|)
+ (write (crlf) |to be real disappointed', and walks right through a pile of moose turds.|)
+ (write (crlf) |I think you made the right decision.|)
+ (make gone)
+ (modify 2 ^score (compute <x> + 20)))
+
+(p name554
+ (gone)
+ -->
+ (make input stop))
+
+(p name555
+ (gone)
+ (status ^score <x>)
+ (object ^name cube ^place lawn)
+ -->
+ (modify 2 ^score (compute <x> - 50))
+ (make input stop)
+ (write (crlf) |The police bust into the yard of the house to collect|)
+ (write (crlf) |your treasure for you.|)
+ (write (crlf) |Unfortunately they find the sugar cube with the LSd in it.|)
+ (write (crlf) |You are arrested and thrown in jail for 50 years!!!|)
+ (write (crlf) |What a loser!|))
+
+(p name556
+ (gone)
+ (status ^score <x>)
+ (object ^name marijuana ^place lawn)
+-->
+ (modify 2 ^score (compute <x> - 20))
+ (make input stop)
+ (write (crlf) |The police bust into the yard of the house to collect your treasure for you.|)
+ (write (crlf) |They find the marijuana! Luckily you are in the state of confusion|)
+ (write (crlf) |and you get a $5 fine, but lose the $300 worth of pot.|)
+ (write (crlf) |Oh well, maybe next time you'll enjoy it first.|))
+
+(p name557
+ (location ^name intruck)
+ (input get out)
+ (portal ^name truck ^door open)
+ -->
+ (remove 2)
+ (modify 1 ^name lawn ^side in ^east 7 ^north 5))
+
+
+(p name1130
+ (location ^name lawn ^side in ^east 5 ^north 6)
+ (input get ivy)
+ -->
+ (remove 2)
+ (write (crlf) |The ivy is stuck to the wall.|))
+
+
+(p name1131
+ (input hi)
+ (location ^name lawn ^side out ^east 8 ^north 5)
+-->
+ (remove 1)
+ (write (crlf) |The gate opens.  You rush in and then it closes behind you.|)
+ (write (crlf) |Out of the speaker you hear, 'Now you are in, but will you ever get out?'|)
+ (modify 2 ^side in))
+
+(p name1132
+ (location ^name lawn ^side in ^east 8 ^north 5)
+ -->
+ (write (crlf) |You are on the driveway.  The gate to the outside|)
+ (write (crlf) |is to the east, but is locked electronically.|))
+
+(p name1133
+ (location ^name lawn ^side in ^east 8 ^north 5)
+ (status ^going e)
+ -->
+ (modify 2 ^going nil)
+ (write (crlf) |The gate is locked, and you can't open it.|))
+
+(p name1134
+ (location ^name lawn ^side out ^east 8 ^north 5)
+ -->
+ (write (crlf) |There is a gate in the wall that spans the|)
+ (write (crlf) |driveway that leads into the inner grounds of the mansion.|)
+ (write (crlf) |By the left hand side of the gate is a 'Jack-in-the-box'|)
+ (write (crlf) | speaker with a button.|))
+
+(p name1200
+ (input << climb scale >> )
+ (location ^name lawn ^side in ^east 5 ^north 6)
+ -->
+ (remove 1)
+ (modify 2 ^name balcony ^side nil ^east nil ^north nil)
+ (write (crlf) |The ivy allows you to get a grip.  You climb up the wall.|)
+ (write (crlf) |The ivy starts to thin out and you haven't found anywhere to stop.|)
+ (write (crlf) |To the right you spy a balcony.  Using your great skill as a|)
+ (write (crlf) |world class haunted house climber, you jump to the balcony.|))
+
+(p name01200
+ (status ^going u)
+ (location ^name lawn ^side in ^east 5 ^north 6)
+ -->
+ (modify 1 ^going nil)
+ (modify 2 ^name balcony ^side nil ^east nil ^north nil)
+ (write (crlf) |The ivy allows you to get a grip.  You climb up the wall.|)
+ (write (crlf) |The ivy starts to thin out and you haven't found anywhere to stop.|)
+ (write (crlf) |To the right you spy a balcony.  Using your great skill as a|)
+ (write (crlf) |world class haunted house climber, you jump to the balcony.|))
+
+(p name1201
+ (location ^name balcony)
+ (place ^name balcony ^visited nil)
+ -->
+ (write (crlf) |You are on the balcony.  The doors to the inside|)
+ (write (crlf) |are missing leaving a large doorway to the inside.|))
+
+(p name1202
+ (location ^name balcony)
+ (status ^going u)
+ -->
+ (modify 2 ^going nil)
+ (write (crlf) |You can't climb any higher.|))
+
+(p name1203
+ (location ^name balcony)
+ (input climb up)
+ (status)
+ -->
+ (remove 2)
+ (modify 3 ^going u ^went u))
+
+(p name1204
+ (location ^name balcony)
+ (input climb nil)
+ -->
+ (remove 2)
+ (write (crlf) |Climb up or climb down?|))
+
+(p name1205
+ (input climb down)
+ (location ^name balcony)
+ (status)
+ -->
+ (remove 1)
+ (write (crlf) |I warned you that the ivy gave out up here!|)
+ (write (crlf) |When you tried to leap over to get a grip, you missed!!|)
+ (write (crlf) |Down you go|)
+ (write (crlf) |           o|)
+ (write (crlf) |            o|)
+ (write (crlf) |             o|)
+ (write (crlf) |              o.|)
+ (write (crlf) |Your foot gets caught in some ivy near the bottom and you land|)
+ (write (crlf) |on your head.  |)
+ (modify 3 ^die t))
+
+(p name1206
+ (location ^name balcony)
+ (status ^going d)
+ -->
+ (modify 2 ^going nil)
+ (write (crlf) |Is that climb down or jump?|))
+
+(p name1207
+ (location ^name balcony)
+ (input jump)
+ (status)
+ -->
+ (write (crlf) |Paratrooper training comes in helpful sometimes.|)
+ (write (crlf) |Unfortunately you never had it.  You break your neck when you hit.|)
+ (remove 2)
+ (modify 3 ^die t))
+
+(p name1208
+ (location ^name balcony)
+ (input jump)
+ (object ^name mattress ^place held)
+ (status)
+ -->
+ (modify 4 ^die t)
+ (write (crlf) |You flip over in mid-air and land on your back! 'CRUNCH'|)
+ (remove 2))
+
+(p name1209
+ (location ^name balcony)
+ (input jump)
+ (object ^name mattress ^place lawn ^side in ^east 5 ^north 6)
+ -->
+ (remove 2)
+ (modify 1 ^name lawn ^side in ^east 5 ^north 6)
+ (write (crlf) |Luckily you land on the mattress.|))
+
+(p name1210
+ (input drop mattress)
+ (location ^name balcony)
+ (object ^name mattress ^place held)
+ -->
+ (remove 1)
+ (modify 3 ^place lawn ^side in ^east 5 ^north 6)
+ (write (crlf) |The mattress floats to the ground.|))
+
+(p name1211
+ (input throw mattress)
+ (location ^name balcony)
+ -->
+ (remove 1)
+ (make input drop mattress))
+
+(p name1212
+ (input enter)
+ (location ^name balcony)
+ (status)
+ -->
+ (modify 3 ^going s ^went s)
+ (remove 1))
+
+(p name1213
+ (location ^name balcony)
+ (place ^name balcony)
+ (status ^going s)
+ -->
+ (modify 1 ^name bedroom)
+ (modify 2 ^name balcony ^visited t)
+ (modify 3 ^going nil))
+
+(p name1214
+ (location ^name bedroom)
+ (place ^name bedroom ^visited nil)
+ -->
+ (write (crlf) |You are in what looks like the master bedroom of the mansion.|)
+ (write (crlf) |A large doorway opens to the balcony to the north.|)
+ (write (crlf) |To the east is a opening to the bathroom.|)
+ (write (crlf) |The main doorway to the rest of the house is boarded up and impassable.|))
+
+(p name1215
+ (input enter)
+ (location ^name bedroom)
+ -->
+ (remove 1)
+ (make input e))
+
+(p name1216
+ (location ^name bedroom)
+ (make input exit)
+ -->
+ (remove 2)
+ (make input n))
+
+(p name1217
+ (location ^name bedroom)
+ (object ^name mattress ^place held)
+ (status ^going e)
+ -->
+ (modify 3 ^going nil)
+ (write (crlf) |The mattress won't fit through the door.|))
+
+(p name1218
+ (location ^name bedroom)
+ (object ^name mattress ^place held)
+ (status ^going n)
+ -->
+ (write (crlf) |The mattress just clears the door.|))
+
+(p name1219
+ (location ^name bedroom)
+ (place ^name bedroom)
+ (status ^going n)
+ -->
+ (modify 3 ^going nil)
+ (modify 2 ^name bedroom ^visited t)
+ (modify 1 ^name balcony))
+
+(p name1220
+ (location ^name bedroom)
+ (status ^going e)
+ (place ^name bedroom)
+ -->
+ (modify 2 ^going nil)
+ (modify 3 ^name bedroom ^visited t)
+ (modify 1 ^name bathroom))
+
+(p name1221
+ (location ^name bedroom)
+ (status ^sound on)
+ -->
+ (write (crlf) |Some noise can be heard through the boarded up door.|))
+
+(p name1222
+ (location ^name bedroom)
+ (object ^name mattress ^place bedroom)
+ -->
+ (write (crlf) |There is a king-size bed in the middle of the room.|))
+
+(p name1223
+ (location ^name bedroom)
+-(object ^name mattress ^place bedroom)
+ -->
+ (write (crlf) |There is the frame and springs of a king-size bed in the room.|))
+
+(p name1224
+ (location ^name bedroom)
+ (input get bed)
+ -->
+ (remove 2)
+ (write (crlf) |All you can get is the mattress, the rest is too heavy.|)
+ (make input get mattress))
+
+(p name1225
+ (location ^name <x>)
+ (object ^name mattress ^place <x>)
+ (input cut mattress)
+ -->
+ (remove 3)
+ (remove 2)
+ (write (crlf) |The mattress is poorly made and you rip it to shreds.|)
+ (write (crlf) |In fact it is in a million pieces that float away.|))
+
+(p name1226
+ (input cut mattress)
+ (object ^name mattress ^place held)
+ -->
+ (remove 1)
+ (remove 2)
+ (write (crlf) |The mattress falls to pieces in your hands and they all float away.|))
+
+(p name1227
+ (input << chop rip tear >>)
+ -->
+ (remove 1)
+ (make input cut))
+
+(p name1228
+ (location ^name bedroom)
+ (input look under bed)
+ -->
+ (remove 2)
+ (write (crlf) |'Ahhh Chooo!' There is dust under the bed.|))
+
+(p name1229
+ (location ^name bedroom)
+ (input <x> under bed)
+ -->
+ (remove 2)
+ (write (crlf) |The bed is too low to go under.|))
+
+(p name1230
+ (input mount bed)
+ (location ^name bedroom)
+ -->
+ (remove 1)
+ (modify 2 ^ontop bed)
+ (write (crlf) |You are on the bed.|))
+
+(p name1231
+ (location ^name bedroom ^ontop bed)
+ (object ^name mattress ^place bedroom)
+ (input jump)
+-(object ^name mirror ^state broke)
+ -->
+ (remove 3)
+ (write (crlf) |You bounce up and hit the mirror.  It shatters into many small pieces.|)
+ (make object ^name mirror ^state broke))
+
+(p name1232
+ (input bounce)
+ -->
+ (remove 1)
+ (make input jump))
+
+(p name1233
+ (location ^name bedroom ^ontop bed)
+ (input jump)
+ -->
+ (remove 2)
+ (write (crlf) |Without the mattress on you don't get any cheap thrills.|))
+
+(p name1234
+ (location ^name bedroom ^ontop <> nil)
+ (input get mirror)
+ -->
+ (remove 2)
+ (write (crlf) |The mirror is still out of reach.|))
+
+(p name1235
+ (location ^name bedroom)
+ (input get mirror)
+ -->
+ (remove 2)
+ (write (crlf) |The mirror is much too high to reach.|))
+
+(p name1236
+ (location ^name bedroom)
+-(object ^name mirror ^state broke)
+ -->
+ (write (crlf) |There is a mirror on the ceiling above the bed.|))
+
+(p name1237
+ (location ^name bedroom)
+ (object ^name mirror ^state broke)
+ (input get mirror)
+ (status ^cut nil)
+ -->
+ (remove 3)
+ (modify 4 ^cut t)
+ (write (crlf) |The glass is too sharp to carry, you cut yourself.  'Ouch!'|))
+
+(p name1238
+ (location ^name bedroom ^ontop bed)
+ (object ^name mirror ^state broke)
+ (input get mirror <x>)
+ (status)
+ -->
+ (remove 3)
+ (modify 4 ^cut t)
+ (write (crlf) |The glass cuts you when you try to pick it up.|))
+
+(p name1239
+ (location ^name bedroom)
+ (object ^name mirror ^state broke)
+ (input get glass)
+ (status)
+ -->
+ (remove 3)
+ (modify 4 ^cut t)
+ (write (crlf) |'Ouch!' The glass cuts you, you can't carry it.|))
+
+(p name1240
+ (location ^name bedroom)
+ (object ^name mirror ^state broke)
+ -->
+ (write (crlf) |There is glass from a broken mirror on the floor.|))
+
+(p name1241
+ (input sleep)
+ (location ^name bedroom ^ontop bed)
+ -->
+ (write (crlf) |Snooze...
+	.
+	.
+	.
+	.
+	.
+	...  snort.  Ah that was refreshing, but useless, you're still ugly.|)
+ (remove 1))
+
+(p name1242
+ (input get << on in >> bed)
+ (location ^name bedroom)
+ -->
+ (remove 1)
+ (make input mount bed))
+
+(p name1243
+ (location ^name bedroom)
+ (input sit on bed)
+ -->
+ (remove 2)
+ (make input mount bed))
+
+(p name1244
+ (x 10)
+ (input sleep)
+ -->
+ (remove 2)
+ (write (crlf) |Let's wait until we are on a bed.|))
+
+(p name1245
+ (location ^name {<> bedroom <x>})
+ (object ^name mattress ^place <x>)
+ -->
+ (write (crlf) |There is a king-size mattress here.|))
+
+(p name1246
+ (location ^name bathroom)
+ (place ^name bathroom ^visited nil)
+ -->
+ (write (crlf) |You are in the master bathroom.|)
+ (write (crlf) |The exciting features around are the bathtub and the toilet.|))
+
+(p name1247
+ (location ^name bathroom)
+ (status ^going w)
+ (place ^name bathroom)
+ -->
+ (modify 1 ^name bedroom)
+ (modify 2 ^going nil)
+ (modify 3 ^visited t))
+
+(p name1248
+ (location ^name bathroom)
+ (input urinate)
+ -->
+ (remove 2)
+ (write (crlf) |That was a relief!|))
+
+(p name1249
+ (location ^name bathroom)
+ (input urinate)
+ (status ^likes  prince)
+ -->
+ (modify 1 ^siton  toilet))
+
+(p name1250
+ (input urinate into bottle)
+ -->
+ (remove 1)
+ (write (crlf) |The adventure has frighten you so much that your|)
+ (write (crlf) |urethra won't relax|)
+ (write (crlf) |and you are unable to even expel a drop.|))
+
+(p name1251
+ (input get urine)
+ -->
+ (remove 1)
+ (make input urinate into bottle))
+
+(p name1252
+ (input urinate in bottle)
+ -->
+ (remove 1)
+ (make input urinate into bottle))
+
+(p name1253
+ (input shit)
+ (location ^name bathroom)
+ -->
+ (remove 1)
+ (modify 2 ^siton  toilet)
+ (write (crlf) |Too bad there isn't any tissue!|))
+
+(p name1254
+ (input piss)
+ -->
+ (remove 1)
+ (make input urinate))
+
+(p name1255
+ (input take a leak)
+ -->
+ (remove 1)
+ (make input urinate))
+
+(p name1256
+ (input take a crap)
+ (location ^name bathroom)
+ -->
+ (remove 1)
+ (make input shit))
+
+(p name1257
+ (input mount toilet)
+ (location ^name bathroom)
+ -->
+ (remove 1)
+ (modify 2 ^siton  toilet)
+ (write (crlf) |Sitting on a toilet is lots of fun!|))
+
+(p name1258
+ (input sit on toilet)
+ (location ^name bathroom)
+ -->
+ (remove 1)
+ (modify 2 ^siton  toilet)
+ (write (crlf) |Duly sat.|))
+
+(p name1259
+ (location ^name bathroom)
+ (input flush)
+ (status)
+ -->
+ (remove 2)
+ (modify 3 ^die t)
+ (write (crlf) |When you flush the toilet it spins around, knocking you off your feet!|)
+ (write (crlf) |You crack your head on the bathtub and die!!|))
+
+(p name1260
+ (location ^name bathroom ^siton <> nil)
+ (status ^going w)
+ -->
+ (modify 1 ^siton nil))
+
+(p name1261
+ (input flush)
+ (location ^name bathroom ^siton  toilet)
+ (place ^name bathroom)
+ -->
+ (remove 1)
+ (modify 2 ^name backroom)
+ (modify 3 ^visited t))
+
+(p name1262
+ (location ^name bathroom)
+ (input get toilet)
+ -->
+ (remove 2)
+ (write (crlf) |Give me a break! The toilet stays here!|))
+
+(p name1263
+ (location ^name bathroom)
+ (input get bathtub)
+ -->
+ (write (crlf) |The bathtub doesn't move.|)
+ (remove 2))
+
+(p name1264
+ (location ^name bathroom)
+ (input << enter mount >> bathtub)
+ -->
+ (modify 1 ^siton  bathtub)
+ (remove 2)
+ (write (crlf) |Ok.|))
+
+(p name1265
+ (location ^name bathroom)
+ (input sit in bathtub)
+ -->
+ (modify 1 ^siton  bathtub)
+ (remove 2)
+ (write (crlf) |Ok.|))
+
+(p name1266
+ (location ^name bathroom)
+ (input turn on water)
+ (place ^name bathroom)
+ -->
+ (remove 2)
+ (modify 3 ^state water_running))
+
+(p name1267
+ (location ^name bathroom)
+ (place ^name bathroom ^state water_running)
+ -->
+ (write (crlf) |The water is on in the bathtub.|))
+
+(p name1268
+ (location ^name bathroom)
+ (place ^name bathroom ^state <> water_running)
+ (input turn off water)
+ -->
+ (remove 3)
+ (write (crlf) |The water is already off.|))
+
+(p name1269
+ (location ^name bathroom)
+ (place ^name bathroom ^state water_running)
+ (input turn off water)
+ -->
+ (modify 2 ^state nil)
+ (remove 3)
+ (write (crlf) |The water is turned off.|)
+ (write (crlf) |All the water drains out.|))
+
+(p name1270
+ (location ^name bathroom)
+ (input turn on shower)
+ -->
+ (remove 2)
+ (write (crlf) |There isn't a shower head, just a bathtub.|))
+
+(p name1271
+ (location ^name bathroom)
+ (input take shower)
+ -->
+ (remove 2)
+ (write (crlf) |I thought I said there was only a bathtub!|))
+
+(p name1272
+ (location ^name bathroom)
+ (input take bath)
+ -->
+ (remove 2)
+ (make command ^string wash))
+
+(p name1273
+ (location ^name bathroom)
+ (input wash)
+ -->
+ (remove 2)
+ (make command ^string wash))
+
+(p name1274
+ (location ^name bathroom)
+ (command ^string wash)
+ (place ^name bathroom ^state <> water_running)
+ -->
+ (write (crlf) |Well, I must turn on the water.|)
+ (modify 3 ^state water_running))
+
+(p name1275
+ (location ^name bathroom ^siton  <> bathtub)
+ (command ^string wash)
+ -->
+ (write (crlf) |Let's get in the bathtub.|)
+ (modify 1 ^siton  bathtub))
+
+(p name1276
+ (location ^name bathroom)
+ (command ^string wash)
+ (object ^name soap ^place bathroom)
+ -->
+ (write (crlf) |Hmmm...  now where was that soap.|)
+ (make input get soap))
+
+(p name1277
+ (location ^name bathroom ^siton  bathtub)
+ (command ^string wash)
+ (object ^name soap ^place held)
+ (place ^name bathroom ^state water_running)
+ -->
+ (remove 2)
+ (remove 3)
+ (write (crlf) |Luckily we don't worry about clothes in this adventure!|)
+ (write (crlf) |The water is nice and warm.  Too bad I don't have a rubber duckie!|)
+ (write (crlf) |Well let's use the soap to get clean.|)
+ (write (crlf) |There is so much dirt here it takes alot of soap.|)
+ (write (crlf) |As the soap wears away, we are left with a GEM!!.|)
+ (make object ^name gem ^place held ^treasure t))
+
+(p name1278
+ (x 10)
+ (command ^string wash)
+ -->
+ (remove 1)
+ (write (crlf) |Ahh, can't wash without any soap and water.|))
+
+(p name1279
+ (location ^siton  bathtub)
+ (object ^name soap ^place held)
+ (place ^name bathroom ^state water_running)
+ -->
+ (write (crlf) |As long as we're here, we might as well wash.|)
+ (make command ^string wash))
+
+(p name1280
+ (location ^name bathroom)
+ (object ^name soap ^place held)
+ (input drop soap in << bathtub water >>)
+ (place ^name bathroom ^state water_running)
+ -->
+ (remove 2)
+ (remove 3)
+ (write (crlf) |The soap dissolves and a gem remains!|)
+ (make object ^name gem ^place bathroom ^treasure t))
+
+(p name1281
+ (location ^siton  bathtub)
+ (object ^name <x> ^wears t)
+ -->
+ (remove 1)
+ (write (crlf) |If we're getting in the bathtub I'm going to take off the|
+ <x>  |.|)
+ (make input take off <x>))
+
+(p name1282
+ (location ^name bathroom)
+ (input lather)
+ -->
+ (remove 2)
+ (make input wash))
+
+(p name1283
+ (location ^name bathroom)
+ (input drop soap in water)
+ -->
+ (remove 2)
+ (make input wash))
+
+(p name1284
+ (location ^name bathroom)
+ (input drop soap in bathtub)
+ -->
+ (remove 2)
+ (make input wash)
+ (write (crlf) |Let's jump in after it and take a bath.|))
+
+(p name1285
+ (location ^name bathroom)
+ (input drink water)
+ -->
+ (remove 2)
+ (write (crlf) |Gross! I'm not that thirsty!|))
+
+(p name1286
+ (input urinate <x>)
+ (object ^name <x> ^wears <> nil)
+ -->
+ (remove 1)
+ (make input take off <x>)
+ (write (crlf) |Well, I think it is best to undress a little first.|))
+
+(p name1287
+ (location ^name bathroom)
+ (input shit)
+ (object ^name <x> ^wears <> nil)
+ -->
+ (remove 2)
+ (make input take off <x>)
+ (write (crlf) |I'll take off the suit first.|))
+
+(p name1288
+ (input pee)
+ -->
+ (remove 1)
+ (make input urinate))
+
+(p name1289
+ (location ^name bathroom)
+ (input <x> drain)
+ -->
+ (remove 2)
+ (write (crlf) |The drain is open, even shoving the bed down it won't close it|))
+
+(p name1290
+ (location ^name bathroom)
+ (input plug)
+ -->
+ (remove 2)
+ (write (crlf) |You can't plug it.|))
+
+(p name1291
+ (location ^name bathroom)
+ (input <x> plug <y>)
+ -->
+ (remove 2)
+ (write (crlf) |I see no plug here.|))
+
+(p name1292
+ (location ^name bathroom)
+ (place ^name bathroom ^state water_running)
+ (input splash)
+-->
+ (remove 3)
+ (write (crlf) |Hey, watch it! No splashing around here.|))
+
+(p name1293
+ (location ^name bathroom ^siton  bathtub)
+ (place ^name bathroom ^state water_running)
+ (input drown)
+ (status)
+ -->
+ (modify 2 ^state nil)
+ (remove 3)
+ (modify 4 ^die t)
+ (write (crlf) |Adventure a little to tough for you eh?|)
+ (write (crlf) |Well you did look a little blue, especially after you held your head under|)
+ (write (crlf) |for ten minutes!|))
+
+(p name1294
+ (location ^name backroom)
+ (place ^name backroom ^visited nil)
+ -->
+ (write (crlf) |The toilet and the wall have swivled around 180 degrees.|)
+ (write (crlf) |You are now in a backroom.|)
+ (write (crlf) |I assume this was for when grand-dad wanted to ...  in private.|)
+ (write (crlf) |There are no doors or windows.  Just the toilet.|))
+
+(p name1295
+ (location ^name backroom)
+ (input flush)
+ (place ^name backroom)
+ -->
+ (modify 1 ^name bathroom)
+ (remove 2)
+ (modify 3 ^visited t)
+ (write (crlf) |Around you go again.|))
+
+(p name1296
+ (location ^name backroom)
+ (input urinate)
+ -->
+ (remove 2)
+ (write (crlf) |Your bladder is empty.|))
+
+(p name1297
+ (location ^name backroom)
+ (input shit)
+ -->
+ (remove 2)
+ (write (crlf) |Plop!|))
+
+(p name1298
+ (location ^name backroom)
+ (input stand)
+ -->
+ (remove 2)
+ (write (crlf) |There isn't enough room to stand.|))
+
+(p name1299
+ (location ^name backroom)
+ (input get up)
+ -->
+ (remove 2)
+ (write (crlf) |I see no up here.  Ha ha, only kidding.  There isn't room to stand in here.|))
+(p name2000
+ (location ^name lawn ^side in ^east 5 ^north 4)
+ (input ouvre)
+ (portal ^name large_door ^door closed)
+ (status ^likes <f>)
+ -->
+ (remove 2)
+ (modify 3 ^name large_door ^door open)
+ (write (crlf) |The door creaks open.|)
+ (write (crlf) |A voice from within says: 'Welcome,| <f> |lover.'|))
+
+(p name2001
+ (location ^name lawn ^side in ^east 5 ^north 4)
+ (input ouvre)
+ (portal ^name large_door ^door open)
+ -->
+ (remove 2)
+ (write (crlf) |The door stays open.|))
+
+(p name2002
+ (location ^name lawn ^side in ^east 5 ^north 4)
+ (status ^going n)
+ -->
+ (remove 2)
+ (write (crlf) |The door is closed, you bump your nose!|))
+
+(p name2003
+ (location ^name lawn ^side in ^east 5 ^north 4)
+ (status ^going n)
+ (portal ^name large_door ^door open)
+ -->
+ (modify 1 ^name foyer ^side nil ^east nil ^north nil)
+ (modify 2 ^going nil))
+
+(p name2004
+ (location ^name lawn ^side in ^east 5 ^north 4)
+ (status ^going n)
+ (portal ^name large_door ^door open)
+ (object ^name mattress ^place held)
+ -->
+ (modify 2 ^going nil)
+ (write (crlf) |The mattress won't fit throught the door.|))
+
+(p name2005
+ (location ^name lawn ^side in ^east 5 ^north 4)
+ (status ^going n)
+ (portal ^name large_door ^door open)
+ (object ^name cube ^place held)
+-->
+ (modify 4 ^place lawn ^side in ^east 5 ^north 4)
+ (write (crlf) |You stumble over the threshold and drop the cube outside.|))
+
+(p name2006
+ (location ^name lawn ^side in ^east 5 ^north 4)
+ (status ^going n)
+ (portal ^name large_door ^door open)
+ (object ^name marijuana ^place held)
+ -->
+ (write (crlf) |The dope slips from your hand.|)
+ (modify 4 ^place lawn ^side in ^east 5 ^north 4))
+
+(p name2007
+ (location ^name lawn ^side in ^east 5 ^north 4)
+ (input enter)
+ (status)
+ -->
+ (remove 2)
+ (modify 3 ^going n ^went n))
+
+(p name2008
+ (location ^name lawn ^side in ^east 5 ^north 4)
+ -->
+ (write (crlf) |You are outside a large door in the front of an old mansion.|))
+
+(p name2009
+ (location ^name lawn ^side in ^east 5 ^north 4)
+ (input knock)
+ -->
+ (remove 2)
+ (write (crlf) |'Knock! Knock!'|)
+ (make input ouvre))
+
+(p name2010
+ (location ^name lawn ^side in ^east 5 ^north 4)
+ (input ring)
+ -->
+ (remove 2)
+ (write (crlf) |Ding dong!|)
+ (make input ouvre))
+
+(p name2011
+ (x 30)
+ (input ring)
+ -->
+ (remove 2)
+ (write (crlf) |I see no bell here.|))
+
+(p name2012
+ (location ^name lawn ^side in ^east 5 ^north 4)
+ (input open)
+ (portal ^name large_door ^door closed)
+ -->
+ (remove 2)
+ (write (crlf) |Didn't your mother teach you any manners?|)
+ (write (crlf) |You shouldn't open someones door without their permission!|))
+
+(p name2013
+ (location ^name lawn ^side in ^east 5 ^north 4)
+ (portal ^name large_door ^door open)
+ (input close)
+ -->
+ (modify 2 ^door closed)
+ (remove 3)
+ (write (crlf) |The door closes.|))
+
+(p name2014
+ (location ^name lawn ^side in ^east 5 ^north 4)
+ (status ^sound on)
+ -->
+ (write (crlf) |Muffled sounds can be heard from inside.|))
+
+(p name2015
+ (location ^name foyer)
+ (place ^name foyer ^visited nil)
+ -->
+ (write (crlf) |You are inside of the house in the inner foyer.|)
+ (write (crlf) |There is a walk-in closet to the west, an entrance to a hall to the north.|))
+
+(p name2016
+ (location ^name foyer)
+ (status ^going s)
+ (portal ^name large_door ^door open)
+ -->
+ (modify 2 ^going nil)
+ (modify 3 ^door closed)
+ (write (crlf) |Before you can get out the large door slams shut; BOOM!|)
+ (write (crlf) |Laughter can be heard in the upper floors of the house.|))
+
+(p name2017
+ (location ^name foyer)
+ (portal ^name large_door ^door closed)
+ (input open)
+ -->
+ (remove 3)
+ (write (crlf) |The large door is locked impossible to open.|))
+
+(p name2018
+ (location ^name foyer)
+ (status ^going n)
+ (place ^name foyer)
+ -->
+ (modify 2 ^going nil)
+ (modify 3 ^visited t)
+ (modify 1 ^name main_hall))
+
+(p name2019
+ (location ^name foyer)
+ (portal ^name large_door ^door closed)
+ (status ^going s)
+ -->
+ (modify 3 ^going nil)
+ (write (crlf) |The door is shut.|))
+
+(p name2020
+ (location ^name foyer)
+ (input enter closet)
+ (status)
+ -->
+ (remove 2)
+ (modify 3 ^going w ^went w))
+
+(p name2021
+ (location ^name foyer)
+ (input enter hall)
+ (status)
+ -->
+ (modify 3 ^going n ^went n)
+ (remove 2))
+
+(p name2022
+ (location ^name foyer)
+ (status ^going w)
+ (place ^name foyer)
+ -->
+ (modify 3 ^visited t)
+ (modify 1 ^name closet)
+ (modify 2 ^going nil))
+
+(p name2023
+ (location ^name foyer)
+ (portal ^name large_door ^door open)
+ (input close)
+ -->
+ (remove 3)
+ (modify 2 ^door closed)
+ (write (crlf) |The door closes.|))
+
+(p name2024
+ (location ^name foyer)
+ (place ^name foyer ^virgin t)
+ (time ^realtime <y>)
+ -->
+ (modify 2 ^virgin nil)
+ (modify 3 ^orc_status sweat ^orc_time (compute <y> + 160))
+ (write (crlf) |You feel a chill run down your spine, and you doubt your own sanity.|)
+ (write (crlf) | |)
+ (write (crlf) |A booming voice proclaims:|)
+ (write (crlf) |'YOU WON'T GET OUT BY A DOOR.'|)
+ (write (crlf) |'...  at least alive!'|)
+ (write (crlf) | |)
+ (write (crlf) |The house is very damp and musty.|))
+
+(p name2025
+ (location ^name foyer)
+ (time ^realtime <y> ^orc_time < <y>)
+ -->
+ (modify 2 ^orc_time (compute <y> + 20))
+ (write (crlf) |A booming voice proclaims:|)
+ (write (crlf) |'You must be mad to return.  If you're not, you will be soon.'|))
+
+(p name2026
+ (location ^name foyer)
+ (time ^realtime <y>)
+ (command ^string eat_it)
+ -->
+ (modify 2 ^orc_status nil)
+ (remove 3))
+
+(p name2027
+ (location ^name foyer)
+ (status ^sound on)
+ -->
+ (write (crlf) |Some noise is coming from the hall.|))
+
+(p name2028
+ (location ^name main_hall)
+ (status ^going s)
+ (place ^name main_hall)
+ -->
+ (modify 1 ^name foyer)
+ (modify 2 ^going nil)
+ (modify 3 ^visited t))
+
+(p name2029
+ (location ^name main_hall)
+ (place ^name main_hall ^visited nil)
+ -->
+ (write (crlf) |You are in the main hall.|)
+ (write (crlf) |The foyer is south.|)
+ (write (crlf) |The hall extends west and darkens.|)
+ (write (crlf) |A large room is to the east.|))
+
+(p name2030
+ (location ^name main_hall)
+ (place ^name main_hall)
+ (status ^going w)
+ -->
+ (modify 1 ^name dark_hall)
+ (modify 2 ^visited t)
+ (modify 3 ^going nil))
+
+(p name2031
+ (location ^name main_hall)
+ (status ^going e)
+ (place ^name main_hall)
+ -->
+ (modify 1 ^name library)
+ (modify 2 ^going nil)
+ (modify 3 ^visited t))
+
+(p name2032
+ (location ^name main_hall)
+ (status ^going << u n >>)
+ (object ^name stairs ^state whole)
+ (place ^name main_hall)
+ -->
+ (modify 1 ^name stairs)
+ (modify 2 ^going nil)
+ (modify 4 ^visited t))
+
+(p name2033
+ (location ^name main_hall)
+ (status ^going n)
+ (object ^name stairs ^state collapsed)
+ (place ^name main_hall)
+ -->
+ (modify 1 ^name stairs_debris)
+ (modify 2 ^going nil)
+ (modify 4 ^visited t))
+
+(p name2034
+ (location ^name main_hall)
+ (status ^sound on)
+ -->
+ (write (crlf) |Weird noises are coming from above.|))
+
+(p name2035
+ (location ^name closet)
+ (status ^going e)
+ (place ^name closet)
+ -->
+ (modify 1 ^name foyer)
+ (modify 2 ^going nil)
+ (modify 3 ^visited t))
+
+(p name2036
+ (location ^name closet)
+ (place ^name closet ^visited nil)
+ -->
+ (write (crlf) |You are in a large closet, you can see all its contents|)
+ (write (crlf) | by the light from the foyer.|))
+
+(p name2037
+ (location ^name dark_hall)
+ (place ^name dark_hall ^visited nil)
+ -->
+ (write (crlf) |You are in a poorly lit hall.  There is a faint scent of fresh paint.|))
+(p name2038
+ (location ^name dark_hall)
+ (status ^going w)
+ (place ^name dark_hall)
+ -->
+ (modify 1 ^name smelly_room)
+ (modify 2 ^going nil)
+ (modify 3 ^visited t))
+
+(p name2039
+ (location ^name dark_hall)
+ (status ^going e)
+ (place ^name dark_hall)
+ -->
+ (modify 1 ^name main_hall)
+ (modify 2 ^going nil)
+ (modify 3 ^visited t))
+
+(p name2040
+ (location ^name stairs)
+ (place ^name stairs ^visited nil)
+ -->
+ (write (crlf) |You are on the landing of the stair case.|)
+ (write (crlf) |stairs go up and down.|)
+ (write (crlf) | |)
+ (write (crlf) |The stairs are squeeky! They seem about to collapse.|))
+
+(p name2041
+ (location ^name stairs)
+ (status ^sound on)
+ -->
+ (write (crlf) |The sound is coming from above you.|))
+
+(p name2042
+ (location ^name stairs)
+ (status ^going u)
+ (place ^name stairs)
+  -->
+ (modify 1 ^name upper_hall)
+ (modify 2 ^going nil)
+ (modify 3 ^visited t))
+
+(p name2043
+ (location ^name stairs)
+ (status ^going d)
+ (place ^name stairs)
+  -->
+ (modify 1 ^name main_hall)
+ (modify 2 ^going nil)
+ (modify 3 ^visited t))
+
+(p name2045
+ (location ^name stairs)
+ (place ^name stairs ^visited t)
+ -->
+ (write (crlf) |SQUEEK! These stairs are delicate!|))
+
+(p name2046
+ (location ^name stairs)
+ (object ^name stairs ^state whole)
+ (input jump)
+ -->
+ (write (crlf) |CRASH! You've collapsed the stairs.|)
+ (modify 1 ^name stairs_debris)
+ (modify 2 ^state collapsed)
+ (remove 3))
+
+(p name2047
+ (location ^name smelly_room)
+ (place ^name smelly_room ^visited nil)
+ -->
+ (write (crlf) |You are in a room that smells of paint.|)
+ (write (crlf) |There are no windows or door except the one you came through.|)
+ (write (crlf) |The walls are wood panel.|))
+
+(p name2048
+ (location ^name smelly_room)
+ (status ^going e)
+ (place ^name smelly_room)
+  -->
+ (modify 1 ^name dark_hall)
+ (modify 2 ^going nil)
+ (modify 3 ^visited t))
+
+(p name2049
+ (location ^name library)
+ (place ^name library ^visited nil)
+ -->
+ (write (crlf) |You are in the library.  All the walls are lined with books.|)
+ (write (crlf) |There is a bust of Homer within reach.|))
+
+(p name2050
+ (location ^name library)
+ (status ^going w)
+ (place ^name library)
+  -->
+ (modify 1 ^name main_hall)
+ (modify 2 ^going nil)
+ (modify 3 ^visited t))
+
+(p name2051
+ (location ^name library)
+ (input get bust)
+ -->
+ (remove 1)
+ (write (crlf) |The bust is too heavy to carry.|))
+
+(p name2052
+ (location ^name library)
+ (input turn bust)
+ (portal ^name library ^door closed)
+ -->
+ (remove 2)
+ (modify 3 ^door open))
+
+(p name2053
+ (location ^name library)
+ (input enter)
+ (portal ^name library ^door open)
+ (status)
+ -->
+ (remove 2)
+ (modify 4 ^going e ^went e))
+
+(p name2054
+ (location ^name library)
+ (portal ^name library ^door open)
+ (object ^name wetsuit ^wears t)
+ (status ^going e)
+ -->
+ (modify 4 ^going nil)
+ (write (crlf) |You can't fit into the opening.|))
+
+(p name2055
+ (location ^name library)
+ (portal ^name library ^door open)
+ (object ^name wetsuit ^place held)
+ (status ^going e)
+ -->
+ (modify 4 ^going nil)
+ (write (crlf) |Something you're carrying is to big to fit through the door.|))
+
+(p name2056
+ (location ^name library)
+ (portal ^name library ^door open)
+ (status ^going e)
+ (place ^name library)
+ -->
+ (modify 1 ^name secret_stairs)
+ (modify 3 ^going nil)
+ (modify 4 ^visited t))
+
+(p name2057
+ (location ^name library)
+ (input turn bust)
+ (portal ^name library ^door open)
+ -->
+ (remove 2)
+ (modify 3 ^door closed)
+ (write (crlf) |The shelves close.|))
+
+(p name2058
+ (location ^name library)
+ (portal ^name library ^door open)
+ -->
+ (write (crlf) |The east wall of books is open!|))
+
+(p name2059
+ (location ^name library)
+ (input bust)
+ -->
+ (remove 2)
+ (write (crlf) |I'll bust you if you don't watch it.|))
+
+(p name2060
+ (location ^name library)
+ (input rub bust)
+ -->
+ (remove 2)
+ (write (crlf) |That isn't very rewarding, nothing happens.|))
+
+(p name2061
+ (location ^name library)
+ (input kiss bust)
+ -->
+ (remove 2)
+ (write (crlf) |That might turn on a frog, but homer is unmoved.|))
+
+(p name2062
+ (location ^name library ^book nil)
+ (input get book)
+ -->
+ (modify 1 ^book t)
+ (remove 2)
+ (write (crlf) |You get a book but discover it has only virtual pages.|)
+ (write (crlf) |The book disappears.|))
+
+(p name2063
+ (location ^name library ^book t ^book2 nil)
+ (input get book)
+ -->
+ (write (crlf) |The title of the book is 'Vampires I have known'|)
+ (modify 1 ^book2 t)
+ (remove 2)
+ (make object ^name book ^place held))
+
+(p name2064
+ (location ^name library ^book t ^book2 t)
+ (input get book)
+ -->
+ (remove 2)
+ (write (crlf) |All the rest of the books are fake.|)
+ (write (crlf) |They seem to be wood.|))
+
+(p name2065
+ (location ^name secret_stairs)
+ (place ^name secret_stairs ^visited nil)
+ -->
+ (write (crlf) |You are in the head of a secret staircase.|)
+ (write (crlf) |The stairs go down.  A pole in the room goes through a hole in the ceiling.|))
+
+(p name2066
+ (location ^name secret_stairs)
+ (status ^going w)
+ (portal ^name library ^door open)
+ (place ^name secret_stairs)
+ -->
+ (modify 1 ^name library)
+ (modify 2 ^going nil)
+ (modify 4 ^visited t))
+
+(p name2067
+ (location ^name secret_stairs)
+ (status ^going d)
+ (place ^name secret_stairs)
+ -->
+ (modify 1 ^name  wine_cellar)
+ (modify 2 ^going nil)
+ (modify 3 ^visited t))
+
+(p name2068
+ (location ^name secret_stairs)
+ (portal ^name library ^door closed)
+ (input open <x>)
+ -->
+ (remove 3)
+ (write (crlf) |The stacks can't be opened from here.|))
+
+(p name2069
+ (location ^name secret_stairs)
+ (portal ^name library ^door open)
+ -->
+ (write (crlf) |The west wall is open.|))
+
+(p name2070
+ (location ^name secret_stairs)
+ (status ^going u)
+ -->
+ (modify 2 ^going nil)
+ (write (crlf) |That isn't a bat pole, ROBIN.  You can only come down.|))
+
+(p name2071
+ (location ^name stairs_debris)
+ (place ^name stairs_debris ^visited nil)
+ -->
+ (write (crlf) |You are on wreckage of the stairs.|)
+ (write (crlf) |To the south is the main_hall, north is a small opening.|))
+
+(p name2072
+ (location ^name stairs_debris)
+ (status ^going s)
+ (place ^name stairs_debris)
+ -->
+ (modify 1 ^name  main_hall)
+ (modify 2 ^going nil)
+ (modify 3 ^visited t))
+
+(p name2073
+ (location ^name stairs_debris)
+ (status ^going n)
+ (place ^name stairs_debris)
+ -->
+ (modify 1 ^name  back_hall)
+ (modify 2 ^going nil)
+ (modify 3 ^visited t))
+
+(p name2074
+ (location ^name back_hall)
+ (place ^name back_hall ^visited nil)
+ -->
+ (write (crlf) |This is the back hall.  It connects the kitchen and|)
+ (write (crlf) |dining room.  The kitchen is east and the dining room is west.|))
+
+(p name2075
+ (location ^name back_hall)
+ (object ^name stairs ^state collapsed)
+ -->
+ (write (crlf) |To the south is the wreckage of the stairs.|))
+
+(p name2076
+ (location ^name back_hall)
+ (status ^going e)
+ (place ^name back_hall)
+ -->
+ (modify 1 ^name  kitchen)
+ (modify 2 ^going nil)
+ (modify 3 ^visited t))
+
+(p name2077
+ (location ^name back_hall)
+ (status ^going w)
+ (place ^name back_hall)
+ -->
+ (modify 1 ^name  dining_room)
+ (modify 2 ^going nil)
+ (modify 3 ^visited t))
+
+(p name2078
+ (location ^name back_hall)
+ (status ^going s)
+ (place ^name back_hall)
+ (object ^name stairs ^state collapsed)
+ -->
+ (modify 1 ^name  stairs_debris)
+ (modify 2 ^going nil)
+ (modify 3 ^visited t))
+
+(p name2079
+ (location ^name kitchen)
+ (place ^name kitchen ^visited nil)
+ -->
+ (write (crlf) |You are in a old kitchen.  All the windows are|)
+ (write (crlf) |boarded up.  The only exit is west.|)
+ (write (crlf) | |)
+ (write (crlf) |There is a refrigerator in the corner.|)
+ (write (crlf) |A ventilation duct is open over the refrigerator.|))
+
+(p name2080
+ (location ^name kitchen)
+ (status ^going w)
+ (place ^name kitchen)
+ -->
+ (modify 1 ^name  back_hall)
+ (modify 2 ^going nil)
+ (modify 3 ^visited t))
+
+(p name2081
+ (location ^name kitchen)
+ (input exit)
+ (status)
+ -->
+ (remove 2)
+ (modify 3 ^going w ^went w))
+
+(p name2082
+ (location ^name kitchen)
+ (portal ^name rdoor ^door closed)
+ -->
+ (write (crlf) |The refrigirator door is closed.|))
+
+(p name2083
+ (location ^name kitchen)
+ (portal ^name rdoor ^door open)
+ -->
+ (write (crlf) |The door of the ice box is open.|))
+
+(p name2084
+ (location ^name kitchen)
+ (portal ^name rdoor ^door closed)
+ (input open)
+ -->
+ (remove 3)
+ (modify 2 ^door open))
+
+(p name2085
+ (location ^name kitchen)
+ (portal ^name rdoor ^door open)
+ (input close)
+-->
+ (remove 3)
+ (modify 2 ^door closed))
+
+(p name2086
+ (location ^name kitchen)
+ (portal ^name rdoor ^door open)
+ (object ^name cube ^place frig)
+ -->
+ (write (crlf) |There is a small white cube in the refrigirator.|))
+
+(p name2087
+ (location ^name kitchen)
+ (portal ^name rdoor ^door open)
+ (object ^name cube ^place frig)
+ (input get cube)
+ -->
+ (remove 4)
+ (write (crlf) |You have a cube.|)
+ (modify 3 ^place held))
+
+(p name2088
+ (location ^name kitchen)
+ (status ^going u)
+ -->
+ (modify 2 ^going nil)
+ (modify 1 ^ontop frig))
+
+(p name2089
+ (location ^name kitchen ^ontop frig)
+ -->
+ (write (crlf) |You are ontop the refrigirator.|)
+ (write (crlf) |Going down will put you on the floor, going south will put you in the duct.|))
+
+(p name2090
+ (location ^name kitchen)
+ (input mount)
+ -->
+ (remove 2)
+ (modify 1 ^ontop frig))
+
+(p name2091
+ (location ^name kitchen ^ontop frig)
+ (status ^going s)
+ (place ^name kitchen)
+ -->
+ (modify 2 ^going nil)
+ (modify 3 ^visited t)
+ (modify 1 ^name ductf2 ^ontop nil))
+
+(p name2092
+ (location ^name dining_room)
+ (place ^name dining room ^visited nil)
+ -->
+ (write (crlf) |You are in a large dining room.  The ceiling is very high.|)
+ (write (crlf) |The hall is east.|))
+
+(p name2093
+ (location ^name dining_room)
+ (status ^going e)
+ (place ^name dining_room)
+ -->
+ (modify 1 ^name  back_hall)
+ (modify 2 ^going nil)
+ (modify 3 ^visited t))
+
+(p name2094
+ (location ^name upper_hall)
+ (place ^name upper_hall ^visited nil)
+ -->
+ (write (crlf) |You are at the upper hall.  You can see down the|)
+ (write (crlf) |first steps of some stairs.  A circular staircase|)
+ (write (crlf) |continues up.|)
+ (write (crlf) | |)
+ (write (crlf) |There is a dark room to the south,|)
+ (write (crlf) |a hall to the west, a stone wall to the east,|)
+ (write (crlf) |and another room to the north.|))
+
+(p name2095
+ (location ^name upper_hall)
+ (object ^name stairs ^state collapsed)
+ (status ^going d)
+ -->
+ (modify 3 ^going nil)
+ (write (crlf) |The stairs are collapsed.|))
+
+(p name2096
+ (location ^name upper_hall)
+ (status ^going d)
+ (place ^name upper_hall)
+ (object ^name stairs ^state whole)
+ -->
+ (modify 1 ^name  stairs)
+ (modify 2 ^going nil)
+ (modify 3 ^visited t))
+
+(p name2097
+ (location ^name upper_hall)
+ (status ^going s)
+ (place ^name upper_hall)
+ -->
+ (modify 1 ^name  dark_room)
+ (modify 2 ^going nil)
+ (modify 3 ^visited t))
+
+(p name2098
+ (location ^name upper_hall)
+ (status ^going w)
+ (place ^name upper_hall)
+ -->
+ (modify 1 ^name  long_hall)
+ (modify 2 ^going nil)
+ (modify 3 ^visited t))
+
+(p name2099
+ (location ^name upper_hall)
+ (status ^going n)
+ (place ^name upper_hall)
+ -->
+ (modify 1 ^name  dull_room)
+ (modify 2 ^going nil)
+ (modify 3 ^visited t))
+
+(p name2100
+ (location ^name upper_hall)
+ (status ^going e)
+ (place ^name upper_hall)
+ (portal ^name wall ^door open)
+ -->
+ (modify 1 ^name  secret_room)
+ (modify 2 ^going nil)
+ (modify 3 ^visited t))
+
+(p name2101
+ (location ^name upper_hall)
+ (portal ^name wall ^door closed)
+ (input << move pull get >> brick)
+ -->
+ (remove 3)
+ (write (crlf) |The brick moves, but can't be removed from the wall.|)
+ (write (crlf) |A secret panel in the wall opens!|)
+ (write (crlf) |There is a room ahead.|)
+ (modify 2 ^door open))
+
+(p name2102
+ (location ^name upper_hall)
+ (input close wall)
+ (portal ^name wall ^door open)
+ -->
+ (remove 2)
+ (modify 3 ^door closed)
+ (write (crlf) |The wall closes.|))
+
+(p name2103
+ (location ^name upper_hall)
+ (status ^going u)
+ (place ^name upper_hall)
+ -->
+ (modify 1 ^name  laboratory)
+ (modify 2 ^going nil)
+ (modify 3 ^visited t))
+
+(p name2104
+ (location ^name upper_hall)
+ (status ^sound on)
+ -->
+ (write (crlf) |You hear clanking and screams coming from the hall.|))
+
+(p name2105
+ (location ^name laboratory)
+ (location ^name laboratory)
+ (place ^name laboratory ^visited nil)
+ -->
+ (write (crlf) |You are in the laboratory.  The most notable feature is a huge |)
+ (write (crlf) |slab in the middle of the room.  There is a large |)
+ (write (crlf) |lever switch.  The stairs are the only obvious exit.  The ceiling|)
+ (write (crlf) |is a glass dome painted black, much too high to reach.|))
+
+(p name2106
+ (location ^name laboratory)
+ (status ^going d)
+ (place ^name laboratory)
+ -->
+ (modify 1 ^name  upper_hall)
+ (modify 2 ^going nil)
+ (modify 3 ^visited t))
+
+(p name2107
+ (location ^name laboratory)
+ (status ^going w)
+ (place ^name laboratory)
+ (wall is down)
+ -->
+ (modify 1 ^name  bar)
+ (modify 2 ^going nil)
+ (modify 3 ^visited t))
+
+(p name2108
+ (location ^name laboratory)
+ (wall is down)
+ -->
+ (write (crlf) |The west wall has the shape of a running figure in it.|))
+
+(p name2109
+ (location ^name laboratory)
+ (input <B> << lever switch >>)
+ -->
+ (remove 2)
+ (make monster live))
+
+(p name2110
+ (location ^name laboratory)
+ (input <x> lever)
+ (object ^name lever ^state thrown)
+ -->
+ (remove 2)
+ (write (crlf) |The lever is stuck.|))
+
+(p name2111
+ (location ^name laboratory)
+ (monster live)
+ (object ^name monster ^place laboratory)
+-(object ^name lever ^state thrown)
+ -->
+ (remove 2)
+ (write (crlf) |The lights dim.  A massive door on the east wall|)
+ (write (crlf) |opens revealing a bank of computers, generators, and misc.|)
+ (write (crlf) |electronic gear.  The generators start to scream.|)
+ (write (crlf) |The lights dim more.  Suddenly sparks start to fly from the|)
+ (write (crlf) |equipment.  The body on the table starts to jerk around.|)
+ (write (crlf) | |)
+ (write (crlf) |As suddenly as it started, the generators turn off, the|)
+ (write (crlf) |wall closes.  And everything returns to normal.....|)
+ (write (crlf) |Then the body rises, removes its sheet and it is a monster.|)
+ (write (crlf) | |)
+ (write (crlf) |The monster approaches you and says 'Trick or Treat'|)
+ (make object ^name lever ^state thrown))
+
+(p name2112
+ (location ^name laboratory)
+ (object ^name monster ^place laboratory)
+-(object ^name lever ^state thrown)
+ -->
+ (write (crlf) |There is the shape of a body on the slab, covered with a sheet.|))
+
+(p name2113
+ (location ^name laboratory)
+ (object ^name monster ^place laboratory)
+ (object ^name candy ^place held)
+ (object ^name lever ^state thrown)
+ (input give candy)
+ -->
+ (remove 3)
+ (remove 2)
+ (remove 5)
+ (write (crlf) |The monster is pleased.|
+	 |He eats the candy, walks through the west wall|)
+ (write (crlf) |and disappears.|)
+ (make wall is down))
+
+(p name2114
+ (location ^name laboratory)
+ (object ^name monster ^place laboratory)
+ (object ^name lever ^state thrown)
+ (input <x> monster)
+ -->
+ (remove 2)
+ (remove 4)
+ (write (crlf) |The monster is frightened and holds his breath until he turns|)
+ (write (crlf) |blue.  He then disappears.|))
+
+(p name2115
+ (location ^name laboratory)
+ (object ^name lever ^state thrown)
+ -->
+ (write (crlf) |The lever has been thrown, and is stuck in that position.|))
+
+(p name2116
+ (location ^name laboratory)
+ (object ^name football ^place held)
+ (input kick football)
+ -->
+ (remove 3)
+ (write (crlf) |The football goes crashing through the glass dome.|)
+ (modify 2 ^place lawn ^side in ^east 7 ^north 4)
+ (make object ^name dome ^state broken))
+
+(p name2117
+ (location ^name laboratory)
+ (object ^name football ^place held)
+ (object ^name rope ^state tied ^tied football)
+ (input kick football <p>)
+ -->
+ (remove 4)
+ (write (crlf) |Kicking the football tears the rope off of it.|)
+ (write (crlf) |The football goes crashing through the glass dome.|)
+ (modify 3 ^state untied)
+ (modify 2 ^place lawn ^side in ^east 7 ^north 4)
+ (make object ^name dome ^state broken))
+
+(p name2118
+ (location ^name laboratory)
+ (object ^name Dracula ^place laboratory)
+ (object ^name dome ^state broken)
+ -->
+ (remove 2)
+ (write (crlf) |The bat flies through the hole in the dome and escapes.|))
+
+(p name2119
+ (location ^name laboratory)
+ (object ^name Dracula ^place laboratory)
+ -->
+ (write (crlf) |There is a bat flying around in the dome, too high to reach.|))
+
+(p name2120
+ (location ^name laboratory)
+ (object ^name Dracula ^place laboratory)
+ (input get Dracula)
+ -->
+ (remove 3)
+ (write (crlf) |I said the bat was too high to reach, even on a stool.|))
+
+(p name2121
+ (location ^name laboratory)
+ (object ^name Dracula ^place laboratory)
+ (input get bat)
+ -->
+ (remove 3)
+ (write (crlf) |The bat is much too high for you to get.|))
+
+(p name2122
+ (location ^name laboratory)
+ (object ^name Dracula ^place laboratory)
+ (object ^name dome ^state broken)
+ (time ^morning t)
+ -->
+ (remove 2)
+ (make object ^name ring ^place laboratory ^treasure t)
+ (write (crlf) |The sun's rays cause the bat to shrivel.  Something falls to the floor.|))
+
+(p name2123
+ (object ^name Dracula ^place laboratory)
+ (object ^name dome ^state broken)
+ (time ^morning t)
+ -->
+ (remove 1)
+ (make object ^name ring ^place laboratory ^treasure t))
+
+(p name2124
+ (location ^name laboratory)
+ (object ^name monster ^place laboratory)
+ (object ^name lever ^state thrown)
+ (place ^name laboratory ^visited t)
+ -->
+ (write (crlf) |The monster is drooling on himself, saying 'Trick or Treat'|))
+
+(p name2125
+ (location ^name laboratory)
+ (object ^name monster ^place laboratory)
+ (object ^name lever ^state thrown)
+ (input give <x>)
+ -->
+ (remove 4)
+ (write (crlf) |The monster doesn't like | <x> |.  |)
+ (write (crlf) |He is getting very angry.|))
+
+(p name2126
+ (location ^name laboratory)
+ (object ^name monster ^place laboratory)
+ (object ^name lever ^state thrown)
+ (input give monster <x>)
+ -->
+ (remove 4)
+ (make input give <x>))
+
+(p name2127
+ (location ^name laboratory)
+ (object ^name monster ^place laboratory)
+ (object ^name lever ^state thrown)
+ (input give <x> to monster)
+ -->
+ (remove 4)
+ (make input give <x>))
+
+(p name2128
+ (location ^name laboratory)
+ (object ^name monster ^place laboratory)
+ (object ^name lever ^state thrown)
+ (input throw <x>)
+ -->
+ (remove 4)
+ (make input give <x>))
+
+(p name2129
+ (location ^name laboratory)
+ (object ^name dome ^state broken)
+ (time ^morning t)
+ -->
+ (write (crlf) |Light shows throught the hole.|))
+
+(p name2130
+ (location ^name laboratory)
+ (object ^name matches ^place laboratory)
+ (time ^morning t)
+ -->
+ (write (crlf) |Even in the sun light the matches don't dry.|)
+ (write (crlf) |The laboratory is damp and musty.|))
+
+(p name2131
+ (location ^name laboratory)
+ (input dry matches)
+ -->
+ (remove 2)
+ (write (crlf) |The laboratory is very damp.|))
+
+(p name2132
+ (location ^name laboratory)
+ (object ^name dome ^state broken)
+ (time ^morning nil)
+ -->
+ (write (crlf) |You can see the moon through the dome.|))
+
+(p name2133
+ (location ^name laboratory)
+ (object ^name monster ^place laboratory)
+ (object ^name cube ^place held)
+ (object ^name lever ^state thrown)
+ (input give cube)
+ -->
+ (remove 2)
+ (remove 3)
+ (remove 5)
+ (write (crlf) |The monster eats the cube.  He then starts saying 'ohhh, ahhhh'.|)
+ (write (crlf) |'Out of sight man.' Then he jumps straight up through the dome.|)
+ (make object ^name dome ^state broken))
+
+(p name2134
+ (location ^name bar)
+ (location ^name bar)
+ (place ^name bar ^visited nil)
+ -->
+ (write (crlf) |You are in a bar.  There isn't any booze.|))
+
+(p name2135
+ (location ^name bar)
+ (status ^going e)
+ (place ^name bar)
+ -->
+ (modify 1 ^name  laboratory)
+ (modify 2 ^going nil)
+ (modify 3 ^visited t))
+
+(p name2136
+ (location ^name wine_racks)
+ -->
+ (write (crlf) |You are in rows of wine racks that stretch out of sight in all directions.|))
+
+(p name2137
+ (location ^name wine_racks ^east <e>)
+ (status ^going e)
+ -->
+ (remove 1)
+ (modify 2 ^going nil)
+ (modify 1 ^name wine_racks ^east (compute 1 + <e>)))
+

@@ -1,0 +1,43 @@
+Name:
+   OPS
+
+Package Name:
+   OPS
+
+Description:
+   Interpreter for Ops5, a programming language for production systems.
+
+Author:
+   Charles L. Forgy.  Ported to Common lisp by George Wood and Jim Kowalski.
+CMU Common Lisp mods by Dario Guise, Skef Wholey, and Dan Kuokka.
+
+Maintainer:
+   Not really maintained.
+
+Copyright Status:
+   Public domain.
+
+Files:
+   ops.lisp, ops-backup.lisp, ops-compile.lisp, ops-io.lisp, ops-main.lisp,
+ops-match.lisp, ops-rhs.lisp, ops-util.lisp, ops.catalog, *.ops
+
+Portability:
+   Should run in any legal Common Lisp implementation.
+
+Instructions:
+
+To compile for CMU Common Lisp, (load "library:contrib/ops/compile-ops").
+After OPS has been compiled, you can (load "library:contrib/ops/ops.fasl").
+Then go into the OPS package with (in-package :ops).  Now you can load your
+OPS5 code or start typing in productions.
+
+There are a number of demos and sample programs; particularly amusing is the
+Haunt adventure game.  Do (load "<name>.ops"), then "(run)".  Many systems
+require an initial "(make start)" before the "(run)" --- if this is missing,
+"(run)" will do nothing.  Set *ptrace* to NIL to eliminate production tracing.
+
+See the OPS5 User's Manual, July 1981, by Forgy, CMU CSD.
+
+Bugs:
+   This has been put in its own package, but only a few interfaces have been
+exported.  You must run in the ops package.

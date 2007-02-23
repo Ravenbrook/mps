@@ -1,0 +1,67 @@
+@Marker(Library, Spice, Press, Dover, Postscript)
+
+@libraryfile(table)
+@modify(HD3, above 0.3inch, below 0.15inch)
+@modify(HD2, below 0.25inch)
+@modify[HD4, above .3inch, below 0, break before]
+@modify(paragraph, 
+	ContentsForm=" ", 
+	TitleForm="@HD4[@parm(title)@hsp(1quad)]",
+	numbered [], referenced [])
+@textform(mline="@enter(liner,script +5pts)@tabclear()@&@ @\@leave(liner)")
+
+@define(twocolumn,columns 2,columnmargin 1cm,spacing 12pts,boxed,
+	linewidth 3inch)
+
+@form(SpiceTitlePage={
+@begin(titlepage)
+@begin(titlebox,centered)
+@majorheading(CARNEGIE-MELLON UNIVERSITY)
+@heading(DEPARTMENT@  OF@  COMPUTER@  SCIENCE)
+@heading[SPICE@  PROJECT]
+@begin(format, leftmargin +1.10inch, rightmargin +1.10inch)
+@mline()
+@begin(center, spacing 1)
+@heading[@Parm(Title)]
+
+@Parm(Author)
+
+@Parm(Date,default="@value(date)")
+@end(center)
+@mline()
+@end(format)
+@end(titlebox)
+
+@Parm(cruft, default="")
+
+@begin(center,spacing 1.3, above .5inch)
+Keywords and index categories: @Parm(Index,default="<not specified>")
+Location of machine-readable File: @parm(File,default="@value(Manuscript) @@ @value(site)")
+@end(center)
+
+@Copyrightnotice(@Parm(Copyrightholder, default <Carnegie-Mellon University>))
+@begin(researchcredit)
+@imbed( internal, 
+def "This is an internal working document of the Computer Science 
+	Department, Carnegie-Mellon University, Schenley Park, Pittsburgh, 
+	PA 15213.  Some of the ideas expressed in this document may be   
+	only partially developed or erroneous.  Distribution of this document   
+	outside the immediate working community is discouraged; publication   
+	of this document is forbidden.")
+
+Supported by the Defense Advanced Research Projects Agency, Department   
+of Defense, ARPA Order 3597, monitored by the Air Force Avionics   
+Laboratory under contract F33615-78-C-1551.  The views   
+and conclusions contained in this document are those of the authors   
+and should not be interpreted as representing the official policies,   
+either expressed or implied, of the Defense Advanced Research   
+Projects Agency or the U.S. Government.
+@end(researchcredit)
+@end(titlepage)
+
+@newpage
+
+@comment[ Leave larger blank area at top of first page ]
+@format[ @blankspace( 1inch ) ]
+}) @comment[ End of SpiceTitlePage form ]
+@Marker(Library,Spice)

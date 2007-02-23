@@ -1,0 +1,178 @@
+========================== C M U C L  18 d =============================
+
+The CMUCL project is pleased to announce the release of CMUCL 18d.
+This is a major release which contains numerous enhancements and
+bugfixes from the 18d release.
+
+CMUCL is a free, high performance implementation of the Common Lisp
+programming language which runs on most major Unix platforms. It
+mainly conforms to the ANSI Common Lisp standard. CMUCL provides a
+sophisticated native code compiler; a powerful foreign function
+interface; an implementation of CLOS; the Common Lisp Object System;
+which includes multimethods and a metaobject protocol; a source-level
+debugger and code profiler; and an Emacs-like editor implemented in
+Common Lisp. CMUCL is maintained by a team of volunteers collaborating
+over the Internet, and is in the public domain.
+
+Features new in this release:
+       
+  * Feature enhancements:
+      - a new platform, OpenBSD/x86 is supported
+      - significant performance enhancements: code compiled with this
+        release is approximately 15% faster than with 18c
+      - Logical Pathname Translations can be auto-loaded
+      - The presence of gray streams support is now clearly announced in the
+        herald, and via the :gray-streams feature.
+      - Support for READ- and WRITE-SEQUENCE on Gray streams, via
+        STREAM-READ-SEQUENCE and STREAM-WRITE-SEQUENCE
+      - New :class keyword option for OPEN, which lets it return Gray streams
+        classes wrapped around lisp-streams.
+      - Facility for addition of clean-up hooks, that are called before CMU
+        CL is exited via EXT:QUIT.
+      - Added hooks that support the addition of advanced command processing
+        capabilities for user input (similar to the stuff ACL does)
+      - the modules: pathname is initialized sensibly, to make REQUIRE work
+        correctly out of the box. For example, you can now say
+        (require :clx) to load the precompiled clx-library subsystem.
+      - Report class information when describing symbols that are class
+        names.
+      - Compilation of PCL-generated code is now silent by default.  This can
+        be controlled by changing pcl::*compile-lambda-silent-p*.
+      - Further ongoing speed tuning to various numerical routines.
+      - LOAD-FOREIGN has added :verbose option that honors *load-verbose*
+      - Support larger FD_SETSIZE on FreeBSD
+      - Debugger short-cuts to invoke available restarts now behave more
+        predictably (all available restarts get a numeric command, and named
+        restarts get their name as a command, unless that is already taken,
+        i.e. as is indicated by the debugger display)
+      - Improvements to disassembly listings on x86 and SPARC:
+        o Sparc v9 instructions are longer so make the opcode column wider.
+        o Allow printing of integer registers to use the Sparc register names
+          instead of the Lisp names.
+        o Add support for printing various notes during disassembly:
+          o Assembler routines, foreign functions, and foreign constants
+          o The value of constants in the code header
+          o References to static symbols
+          o Notes about pseudo-atomic stuff
+          o Some hints on header-word types
+      - Sparc port supports 64-bit integers for parameters and return
+        values when calling foreign functions.
+      - Try to use branch prediction on the sparc port.
+      - Compiler understands the type of SIGNUM now.
+      - Loading of files given by logical pathnames without a type
+        will do a search for possible fasl files instead of just
+        FASL.
+      - Some optimizations to ALIEN-SAP to speed up alien access.
+
+  * Numerous ANSI compliance fixes:
+      - EVAL-WHEN behaviour should now be in line with ANSI spec
+      - PROCLAIM no longer has a compile-time effect, so many old uses of this
+        should use DECLAIM instead
+      - DEFMACRO no has compile-time effect only when at toplevel
+      - The interaction of structure-printing and print-object now matches
+        ANSI spec more closely
+      - Duplicate keyword arguments are now allowed in lambda-list
+        destructuring operators.
+      - READTABLE-CASE is now copied by COPY-READTABLE
+      - fixes to the precedence lists of several error conditions
+      - :CLTL2, :DRAFT-ANSI-CL, :X3J13 features removed
+      - Removed various CLtL1/CLtL2-only exports from COMMON-LISP
+        (COMPILER-MACROEXPAND, COMPILER-MACROEXPAND-1, DEFINE-SETF-METHOD,
+         GET-SETF-METHOD, GET-SETF-METHOD-MULTIPLE-VALUE, LOGICAL-PATHNAME-P,
+         SIMPLE-CONDITION-FORMAT-STRING, GENERIC-FLET, GENERIC-LABELS,
+         WITH-ADDED-METHODS, HASH-TABLE-WEAK-P)
+      - changes to logical pathname semantics
+      - LOAD accepts :EXTERNAL-FORMAT as required by ANSI, but
+        doesn't do anything with it.
+      
+  * Numerous bugfixes:
+      - fix for bogus warnings based on stale function type information for
+        redefined functions
+      - fix for printing of bit vectors (printer was incorrectly
+        respecting radix and base control vairables). Also bugfixes to
+        pretty printing of vectors
+      - Fix sxhash and equal hash tables for strings with fill-pointers
+      - read-sequence now works with byte-vectors and strings for
+        concatenated-streams
+      - Fix to handling of infinities in floating-point comparisons
+      - Fix bug in handling of certain complex numbers by log
+      - Fixed handling of floating point errors by handler-bind
+      - Fixed broken INVALID-METHOD-ERROR and added stricter checks in
+        standard method combination for the qualifiers on methods
+      - Fixed calling of NO-APPLICABLE-METHOD for GFs with no defined
+        methods
+      - Fixed missing coercion to class in argument processing of the
+        :METHOD-CLASS option to DEFGENERIC, which caused
+        GENERIC-FUNCTION-METHOD-CLASS to return the uncoerced class name,
+        breaking PCL and foreign code
+      - Various fixes to parameters and events in CLX
+      - COMPILE-FILE heeds logical-pathname translations for output file spec
+      - Rewrite of deftransform for concatenate, because the original
+        deftransform could cause the compiler to spend enormous (minutes!)
+        amounts of time trying to derive the type of the START variable.
+      - Allow only one docstring in relevant bodies, as processed by
+        system:parse-body
+      - Bugfix for handling of complex and non-numeric arguments to the ~f
+        format directive
+      - Better error checking for arguments to FILE-LENGTH, FLOAT-RADIX
+      - vector-push-extend works for adjustable arrays of zero length
+      - Respect :order argument to short form of define-method-combination
+      - Fix destructuring in AND sub-clauses of WITH-CLAUSES for LOOP
+      - IGNORE declarations work for symbol-macros now
+      - Changed handling of static libraries as the first argument to
+        load-foreign, so that all archive members are loaded (like the user
+        expects).
+      - Stricter argument checking for ADJUST-ARRAY, which also doesn't
+        shrink non-adjustable vectors in place anymore.
+      - Removed forced defaulting of unsupplied :direct-superclasses and
+        :direct-slots arguments by ENSURE-CLASS-USING-CLASS, as required by
+        AMOP.
+      - Fixed shared-initialize for std-class to correctly interpret
+        unsupplied :direct-superclasses.
+      - CATCH now works correctly for immediate fixnum and character tags
+      - Fix some bugs in the ash deftransform.
+      - Fix a bug in printing logical pathnames with a file version
+        given.
+      - Fixed a sparc backend bug where offsets were generated that
+        couldn't fit in an offset field of an instruction.
+      - Complex division vop was wrong (only for Sparc with
+        :complex-vops *feature*)
+      - Stack clearing code is incorporated into the Sparc port
+      - The deprecated branch and taddcctv instructions shouldn't be
+        used at all on V9 builds.
+
+  * Other changes:
+      - Default for CMUCLLIB on Linux changed to match the default on other
+        Unices, namely /usr/local/lib/cmucl/lib/
+
+  * Code cleanups:
+      - Changes to PCL (the CLOS implementation included with CMUCL)
+        to remove code for other Common Lisp implementations. 
+      - The features propagate-float-type, propagate-fun-type, and
+        constrain-float-type are now the default and only behaviour.  Remove
+        those features from your build scripts.
+
+   * Changes to rebuilding procedure:
+      - the directory src/bootfiles/18c contains a number of files
+        required to bootstrap compilation from the 18c release. See the
+        README in that directory for usage instructions.
+      - the :NO-CLX, :NO-HEMLOCK etc features which are used to
+        control subsystem compilation during the build phase are no
+        longer present in the final cores.
+      - Added new new target 'initial-map' that can make a 'lisp.nm' file
+        from whatever 'lisp' executable is in the "target:lisp/" directory
+        without depending on the rest of the source code being
+        available. Used when setting up a build directory and/or when
+        internals.h doesn't yet exist.
+      - Various minor improvements to the Makefiles
+                  
+      
+
+This release is not binary compatible with code compiled using CMUCL
+18c; you will need to recompile FASL files. 
+
+See <URL:http://www.cons.org/cmucl/> for download information,
+guidelines on reporting bugs, and mailing list details.
+
+
+We hope you enjoy using this release of CMUCL!

@@ -1,0 +1,2026 @@
+
+
+
+(literalize goal
+    want
+    object
+    number
+    direction
+    value
+    id
+    seq
+    status)
+
+(literalize vodor
+    right
+    left
+    top
+    bottom
+    front
+    posterior
+    id
+    status)
+
+(literalize task-list
+    task
+    object
+    subtask
+    subtask-object)
+
+(literalize face
+    number
+    block
+    color)
+
+(literalize cubie-order
+    face-num
+    direction
+    adj-face-num
+    block
+    adj-blk-num)
+
+(literalize face-relation
+    front
+    posterior
+    right
+    left
+    top
+    bottom)
+
+(literalize front-face
+    number
+    color
+    id
+    status)
+
+(literalize source-face
+    number
+    color
+    ic
+    id
+    status)
+
+(literalize bottom-corner
+    number
+    face
+    color
+    cubie
+    id
+    status)
+
+(literalize bottom-edge
+    number
+    face
+    color
+    cubie
+    id
+    status)
+
+
+
+
+(p start
+    (start)
+-->
+    (remove 1)
+    (make face ^number 1 ^block 1 ^color blue)
+    (make face ^number 1 ^block 2 ^color blue)
+    (make face ^number 1 ^block 3 ^color blue)
+    (make face ^number 1 ^block 4 ^color blue)
+    (make face ^number 1 ^block 5 ^color blue)
+    (make face ^number 1 ^block 6 ^color blue)
+    (make face ^number 1 ^block 7 ^color blue)
+    (make face ^number 1 ^block 8 ^color blue)
+    (make face ^number 1 ^block 9 ^color blue)
+    (make face ^number 2 ^block 1 ^color red)
+    (make face ^number 2 ^block 2 ^color red)
+    (make face ^number 2 ^block 3 ^color red)
+    (make face ^number 2 ^block 4 ^color red)
+    (make face ^number 2 ^block 5 ^color red)
+    (make face ^number 2 ^block 6 ^color red)
+    (make face ^number 2 ^block 7 ^color red)
+    (make face ^number 2 ^block 8 ^color red)
+    (make face ^number 2 ^block 9 ^color red)
+    (make face ^number 3 ^block 1 ^color green)
+    (make face ^number 3 ^block 2 ^color green)
+    (make face ^number 3 ^block 3 ^color green)
+    (make face ^number 3 ^block 4 ^color green)
+    (make face ^number 3 ^block 5 ^color green)
+    (make face ^number 3 ^block 6 ^color green)
+    (make face ^number 3 ^block 7 ^color green)
+    (make face ^number 3 ^block 8 ^color green)
+    (make face ^number 3 ^block 9 ^color green)
+    (make face ^number 4 ^block 1 ^color white)
+    (make face ^number 4 ^block 2 ^color white)
+    (make face ^number 4 ^block 3 ^color white)
+    (make face ^number 4 ^block 4 ^color white)
+    (make face ^number 4 ^block 5 ^color white)
+    (make face ^number 4 ^block 6 ^color white)
+    (make face ^number 4 ^block 7 ^color white)
+    (make face ^number 4 ^block 8 ^color white)
+    (make face ^number 4 ^block 9 ^color white)
+    (make face ^number 5 ^block 1 ^color yellow)
+    (make face ^number 5 ^block 2 ^color yellow)
+    (make face ^number 5 ^block 3 ^color yellow)
+    (make face ^number 5 ^block 4 ^color yellow)
+    (make face ^number 5 ^block 5 ^color yellow)
+    (make face ^number 5 ^block 6 ^color yellow)
+    (make face ^number 5 ^block 7 ^color yellow)
+    (make face ^number 5 ^block 8 ^color yellow)
+    (make face ^number 5 ^block 9 ^color yellow)
+    (make face ^number 6 ^block 1 ^color orange)
+    (make face ^number 6 ^block 2 ^color orange)
+    (make face ^number 6 ^block 3 ^color orange)
+    (make face ^number 6 ^block 4 ^color orange)
+    (make face ^number 6 ^block 5 ^color orange)
+    (make face ^number 6 ^block 6 ^color orange)
+    (make face ^number 6 ^block 7 ^color orange)
+    (make face ^number 6 ^block 8 ^color orange)
+    (make face ^number 6 ^block 9 ^color orange)
+    (make cubie-order ^face-num 1 ^direction dn
+                      ^adj-face-num 2 ^block 7 ^adj-blk-num 1)
+    (make cubie-order ^face-num 1 ^direction dn
+                      ^adj-face-num 2 ^block 8 ^adj-blk-num 2)
+    (make cubie-order ^face-num 1 ^direction dn
+                      ^adj-face-num 2 ^block 9 ^adj-blk-num 3)
+    (make cubie-order ^face-num 1 ^direction rt
+                      ^adj-face-num 3 ^block 3 ^adj-blk-num 3)
+    (make cubie-order ^face-num 1 ^direction rt
+                      ^adj-face-num 3 ^block 6 ^adj-blk-num 2)
+    (make cubie-order ^face-num 1 ^direction rt
+                      ^adj-face-num 3 ^block 9 ^adj-blk-num 1)
+    (make cubie-order ^face-num 1 ^direction up
+                      ^adj-face-num 4 ^block 1 ^adj-blk-num 3)
+    (make cubie-order ^face-num 1 ^direction up
+                      ^adj-face-num 4 ^block 2 ^adj-blk-num 2)
+    (make cubie-order ^face-num 1 ^direction up
+                      ^adj-face-num 4 ^block 3 ^adj-blk-num 1)
+    (make cubie-order ^face-num 1 ^direction lf
+                      ^adj-face-num 5 ^block 1 ^adj-blk-num 1)
+    (make cubie-order ^face-num 1 ^direction lf
+                      ^adj-face-num 5 ^block 4 ^adj-blk-num 2)
+    (make cubie-order ^face-num 1 ^direction lf
+                      ^adj-face-num 5 ^block 7 ^adj-blk-num 3)
+    (make cubie-order ^face-num 2 ^direction up
+                      ^adj-face-num 1 ^block 1 ^adj-blk-num 7)
+    (make cubie-order ^face-num 2 ^direction up
+                      ^adj-face-num 1 ^block 2 ^adj-blk-num 8)
+    (make cubie-order ^face-num 2 ^direction up
+                      ^adj-face-num 1 ^block 3 ^adj-blk-num 9)
+    (make cubie-order ^face-num 2 ^direction rt
+                      ^adj-face-num 3 ^block 3 ^adj-blk-num 1)
+    (make cubie-order ^face-num 2 ^direction rt
+                      ^adj-face-num 3 ^block 6 ^adj-blk-num 4)
+    (make cubie-order ^face-num 2 ^direction rt
+                      ^adj-face-num 3 ^block 9 ^adj-blk-num 7)
+    (make cubie-order ^face-num 2 ^direction dn
+                      ^adj-face-num 6 ^block 7 ^adj-blk-num 1)
+    (make cubie-order ^face-num 2 ^direction dn
+                      ^adj-face-num 6 ^block 8 ^adj-blk-num 2)
+    (make cubie-order ^face-num 2 ^direction dn
+                      ^adj-face-num 6 ^block 9 ^adj-blk-num 3)
+    (make cubie-order ^face-num 2 ^direction lf
+                      ^adj-face-num 5 ^block 1 ^adj-blk-num 3)
+    (make cubie-order ^face-num 2 ^direction lf
+                      ^adj-face-num 5 ^block 4 ^adj-blk-num 6)
+    (make cubie-order ^face-num 2 ^direction lf
+                      ^adj-face-num 5 ^block 7 ^adj-blk-num 9)
+    (make cubie-order ^face-num 3 ^direction up
+                      ^adj-face-num 1 ^block 1 ^adj-blk-num 9)
+    (make cubie-order ^face-num 3 ^direction up
+                      ^adj-face-num 1 ^block 2 ^adj-blk-num 6)
+    (make cubie-order ^face-num 3 ^direction up
+                      ^adj-face-num 1 ^block 3 ^adj-blk-num 3)
+    (make cubie-order ^face-num 3 ^direction rt
+                      ^adj-face-num 4 ^block 3 ^adj-blk-num 1)
+    (make cubie-order ^face-num 3 ^direction rt
+                      ^adj-face-num 4 ^block 6 ^adj-blk-num 4)
+    (make cubie-order ^face-num 3 ^direction rt
+                      ^adj-face-num 4 ^block 9 ^adj-blk-num 7)
+    (make cubie-order ^face-num 3 ^direction dn
+                      ^adj-face-num 6 ^block 7 ^adj-blk-num 3)
+    (make cubie-order ^face-num 3 ^direction dn
+                      ^adj-face-num 6 ^block 8 ^adj-blk-num 6)
+    (make cubie-order ^face-num 3 ^direction dn
+                      ^adj-face-num 6 ^block 9 ^adj-blk-num 9)
+    (make cubie-order ^face-num 3 ^direction lf
+                      ^adj-face-num 2 ^block 1 ^adj-blk-num 3)
+    (make cubie-order ^face-num 3 ^direction lf
+                      ^adj-face-num 2 ^block 4 ^adj-blk-num 6)
+    (make cubie-order ^face-num 3 ^direction lf
+                      ^adj-face-num 2 ^block 7 ^adj-blk-num 9)
+    (make cubie-order ^face-num 4 ^direction up
+                      ^adj-face-num 1 ^block 1 ^adj-blk-num 3)
+    (make cubie-order ^face-num 4 ^direction up
+                      ^adj-face-num 1 ^block 2 ^adj-blk-num 2)
+    (make cubie-order ^face-num 4 ^direction up
+                      ^adj-face-num 1 ^block 3 ^adj-blk-num 1)
+    (make cubie-order ^face-num 4 ^direction rt
+                      ^adj-face-num 5 ^block 3 ^adj-blk-num 1)
+    (make cubie-order ^face-num 4 ^direction rt
+                      ^adj-face-num 5 ^block 6 ^adj-blk-num 4)
+    (make cubie-order ^face-num 4 ^direction rt
+                      ^adj-face-num 5 ^block 9 ^adj-blk-num 7)
+    (make cubie-order ^face-num 4 ^direction dn
+                      ^adj-face-num 6 ^block 7 ^adj-blk-num 9)
+    (make cubie-order ^face-num 4 ^direction dn
+                      ^adj-face-num 6 ^block 8 ^adj-blk-num 8)
+    (make cubie-order ^face-num 4 ^direction dn
+                      ^adj-face-num 6 ^block 9 ^adj-blk-num 7)
+    (make cubie-order ^face-num 4 ^direction lf
+                      ^adj-face-num 3 ^block 1 ^adj-blk-num 3)
+    (make cubie-order ^face-num 4 ^direction lf
+                      ^adj-face-num 3 ^block 4 ^adj-blk-num 6)
+    (make cubie-order ^face-num 4 ^direction lf
+                      ^adj-face-num 3 ^block 7 ^adj-blk-num 9)
+    (make cubie-order ^face-num 5 ^direction up
+                      ^adj-face-num 1 ^block 1 ^adj-blk-num 1)
+    (make cubie-order ^face-num 5 ^direction up
+                      ^adj-face-num 1 ^block 2 ^adj-blk-num 4)
+    (make cubie-order ^face-num 5 ^direction up
+                      ^adj-face-num 1 ^block 3 ^adj-blk-num 7)
+    (make cubie-order ^face-num 5 ^direction rt
+                      ^adj-face-num 2 ^block 3 ^adj-blk-num 1)
+    (make cubie-order ^face-num 5 ^direction rt
+                      ^adj-face-num 2 ^block 6 ^adj-blk-num 4)
+    (make cubie-order ^face-num 5 ^direction rt
+                      ^adj-face-num 2 ^block 9 ^adj-blk-num 7)
+    (make cubie-order ^face-num 5 ^direction dn
+                      ^adj-face-num 6 ^block 7 ^adj-blk-num 7)
+    (make cubie-order ^face-num 5 ^direction dn
+                      ^adj-face-num 6 ^block 8 ^adj-blk-num 4)
+    (make cubie-order ^face-num 5 ^direction dn
+                      ^adj-face-num 6 ^block 9 ^adj-blk-num 1)
+    (make cubie-order ^face-num 5 ^direction lf
+                      ^adj-face-num 4 ^block 1 ^adj-blk-num 3)
+    (make cubie-order ^face-num 5 ^direction lf
+                      ^adj-face-num 4 ^block 4 ^adj-blk-num 6)
+    (make cubie-order ^face-num 5 ^direction lf
+                      ^adj-face-num 4 ^block 7 ^adj-blk-num 9)
+    (make cubie-order ^face-num 6 ^direction up
+                      ^adj-face-num 2 ^block 1 ^adj-blk-num 7)
+    (make cubie-order ^face-num 6 ^direction up
+                      ^adj-face-num 2 ^block 2 ^adj-blk-num 8)
+    (make cubie-order ^face-num 6 ^direction up
+                      ^adj-face-num 2 ^block 3 ^adj-blk-num 9)
+    (make cubie-order ^face-num 6 ^direction rt
+                      ^adj-face-num 3 ^block 3 ^adj-blk-num 7)
+    (make cubie-order ^face-num 6 ^direction rt
+                      ^adj-face-num 3 ^block 6 ^adj-blk-num 8)
+    (make cubie-order ^face-num 6 ^direction rt
+                      ^adj-face-num 3 ^block 9 ^adj-blk-num 9)
+    (make cubie-order ^face-num 6 ^direction dn
+                      ^adj-face-num 4 ^block 7 ^adj-blk-num 9)
+    (make cubie-order ^face-num 6 ^direction dn
+                      ^adj-face-num 4 ^block 8 ^adj-blk-num 8)
+    (make cubie-order ^face-num 6 ^direction dn
+                      ^adj-face-num 4 ^block 9 ^adj-blk-num 7)
+    (make cubie-order ^face-num 6 ^direction lf
+                      ^adj-face-num 5 ^block 1 ^adj-blk-num 9)
+    (make cubie-order ^face-num 6 ^direction lf
+                      ^adj-face-num 5 ^block 4 ^adj-blk-num 8)
+    (make cubie-order ^face-num 6 ^direction lf
+                      ^adj-face-num 5 ^block 7 ^adj-blk-num 7)
+    (make face-relation ^front 2 ^right 3 ^left 5
+                        ^top 1 ^bottom 6 ^posterior 4)
+    (make face-relation ^front 3 ^right 4 ^left 2
+                        ^top 1 ^bottom 6 ^posterior 5)
+    (make face-relation ^front 4 ^right 5 ^left 3
+                        ^top 1 ^bottom 6 ^posterior 2)
+    (make face-relation ^front 5 ^right 2 ^left 4
+                        ^top 1 ^bottom 6 ^posterior 3)
+    (make face-relation ^front 6 ^posterior 1)
+    (make task-list ^task orient ^object bottom-edge
+                    ^subtask position ^subtask-object bottom-edge)
+    (make task-list ^task position ^object bottom-edge
+                    ^subtask orient ^subtask-object bottom-corner)
+    (make task-list ^task orient ^object bottom-corner
+                    ^subtask position ^subtask-object bottom-corner)
+    (make task-list ^task position ^object bottom-corner
+                    ^subtask orient ^subtask-object vertical-edge)
+    (make task-list ^task orient ^object vertical-edge
+                    ^subtask position ^subtask-object vertical-edge)
+    (make task-list ^task position ^object vertical-edge
+                    ^subtask orient ^subtask-object top-corner)
+    (make task-list ^task orient ^object top-corner
+                    ^subtask position ^subtask-object top-corner)
+    (make task-list ^task position ^object top-corner
+                    ^subtask orient ^subtask-object top-edge)
+    (make task-list ^task orient ^object top-edge
+                    ^subtask position ^subtask-object top-edge)
+    (write (crlf) normal cube order is |:|)
+    (write (crlf) (tabto 20) top face 1 |:| blue)
+    (write (crlf) (tabto 20) bottom face 6 |:| orange)
+    (write (crlf) (tabto 20) front face 2 |:| red)
+    (write (crlf) (tabto 20) right face 3 |:| green)
+    (write (crlf) (tabto 20) posterior face 4 |:| white)
+    (write (crlf) (tabto 20) left face 5 |:| yellow)
+    (make goal ^want scramble ^object cube ^id 1 ^number nil ^status active))
+
+(p scramble*initiate
+    (goal ^want scramble ^object cube ^id <id> ^number nil ^status active)
+-->
+    (write (crlf) how many scrambling operations  >0  shall i perform |?_| )
+    (modify 1 ^number (accept)))
+
+(p scramble*sequence
+    (goal ^want scramble ^object cube ^id <id> ^number {<n> > 0}
+          ^status active)
+-->
+	   (modify 1 ^number (compute <n> - 1))
+    (write (crlf) about which face 1-6 shall i perform this rotation |?_|)
+    (bind <f> (accept))
+    (write (crlf) in which direction pos neg shall i rotate |?_|)
+    (bind <d> (accept))
+    (write (crlf) what size rotation shall i perform 90-180 |?_|)
+    (bind <v> (accept))
+    (make goal ^want rotate ^object face ^number <f> ^direction <d>
+               ^value <v> ^seq 1 ^status active))
+
+(p scramble*exit
+    (goal ^want scramble ^object cube ^id <id> ^number 0 ^status active)
+-->
+    (remove 1)
+    (write (crlf) initiating solution |:| (crlf))
+    (make goal ^want orient ^object bottom-edge ^id 1 ^status consider))
+
+
+
+
+(p sequence-1
+    (goal ^want { << orient position >> <w> } ^object <o>
+          ^id <id> ^status consider)
+    (task-list ^task <w> ^object <o> ^subtask <st> ^subtask-object <sto>)
+   -(goal ^want <st> ^object <sto> ^status done)
+   -(goal ^want rotate ^status active)
+-->
+    (write (crlf) (crlf) suspending task to <w> <o>)
+    (write (crlf) considering task to <st> <sto>)
+    (modify 1 ^status pending)
+    (make goal ^want <st> ^object <sto> ^id (compute <id> + 1)
+               ^status consider))
+
+
+(p sequence-2
+    (goal ^want { << orient position >> <w> } ^object <o>
+          ^id <id> ^status consider)
+   -(task-list ^task <w> ^object <o>)
+   -(goal ^want rotate ^status active)
+-->
+    (write (crlf) (crlf) initiating task to <w> <o>)
+    (modify 1 ^status active))
+
+
+(p sequence-3
+    (goal ^want { << orient position >> <w> } ^object <o>
+          ^id <id> ^status active)
+   -(goal ^want rotate ^status active)
+-->
+    (write (crlf) (crlf) i find no further tasks to <w> <o>)
+    (modify 1 ^status done))
+
+
+(p sequence-4
+    (goal ^want { << orient position >> <w> } ^object <o>
+          ^id <id> ^status pending)
+   -(goal ^status << active  consider >>)
+   -(goal ^id > <id> ^status pending)
+-->
+    (write (crlf) (crlf) reconsidering task to <w> <o>)
+    (modify 1 ^status consider))
+
+(p sequence-5
+    (goal ^want { << orient position >> <w> } ^object <o>
+          ^id <id> ^status consider)
+    (task-list ^task <w> ^object <o> ^subtask <st> ^subtask-object <sto>)
+    (goal ^want <st> ^object <sto> ^status done)
+   -(goal ^want rotate ^status active)
+-->
+    (write (crlf) (crlf) initiating task to <w> <o>)
+    (modify 1 ^status active))
+
+
+(p detect_normal-order
+    (goal ^want { << orient position >> <w> } ^object <o>)
+    (face ^number 1 ^block 5 ^color <c1>)
+   -(face ^number 1 ^block << 1 2 3 4 6 7 8 9 >> ^color <> <c1>)
+    (face ^number 2 ^block 5 ^color <c2>)
+   -(face ^number 2 ^block << 1 2 3 4 6 7 8 9 >> ^color <> <c2>)
+    (face ^number 3 ^block 5 ^color <c3>)
+   -(face ^number 3 ^block << 1 2 3 4 6 7 8 9 >> ^color <> <c3>)
+    (face ^number 4 ^block 5 ^color <c4>)
+   -(face ^number 4 ^block << 1 2 3 4 6 7 8 9 >> ^color <> <c4>)
+    (face ^number 5 ^block 5 ^color <c5>)
+   -(face ^number 2 ^block << 1 2 3 4 6 7 8 9 >> ^color <> <c2>)
+    (face ^number 6 ^block 5 ^color <c6>)
+   -(face ^number 6 ^block << 1 2 3 4 6 7 8 9 >> ^color <> <c6>)
+-->
+    (write (crlf) i find cube in normal order while attempting to <w> <o>)
+    (halt))
+
+
+
+(p plus-90
+    (goal ^want rotate ^object face ^number <n> ^direction pos
+          ^value 90 ^id <id> ^seq <seq> ^status active)
+   -(goal ^want rotate ^object face ^id <id> ^seq < <seq> ^status active)
+    (face ^number <n> ^block 1 ^color <c1>)
+    (face ^number <n> ^block 2 ^color <c2>)
+    (face ^number <n> ^block 3 ^color <c3>)
+    (face ^number <n> ^block 4 ^color <c4>)
+    (face ^number <n> ^block 5 ^color <c5>)
+    (face ^number <n> ^block 6 ^color <c6>)
+    (face ^number <n> ^block 7 ^color <c7>)
+    (face ^number <n> ^block 8 ^color <c8>)
+    (face ^number <n> ^block 9 ^color <c9>)
+    (cubie-order ^face-num <n> ^direction up ^adj-face-num <nup>
+                 ^block 1 ^adj-blk-num <nup1>)
+    (cubie-order ^face-num <n> ^direction up ^adj-face-num <nup>
+                 ^block 2 ^adj-blk-num <nup2>)
+    (cubie-order ^face-num <n> ^direction up ^adj-face-num <nup>
+                 ^block 3 ^adj-blk-num <nup3>)
+    (cubie-order ^face-num <n> ^direction rt ^adj-face-num <nrt>
+                 ^block 3 ^adj-blk-num <nrt3>)
+    (cubie-order ^face-num <n> ^direction rt ^adj-face-num <nrt>
+                 ^block 6 ^adj-blk-num <nrt6>)
+    (cubie-order ^face-num <n> ^direction rt ^adj-face-num <nrt>
+                 ^block 9 ^adj-blk-num <nrt9>)
+    (cubie-order ^face-num <n> ^direction dn ^adj-face-num <ndn>
+                 ^block 7 ^adj-blk-num <ndn7>)
+    (cubie-order ^face-num <n> ^direction dn ^adj-face-num <ndn>
+                 ^block 8 ^adj-blk-num <ndn8>)
+    (cubie-order ^face-num <n> ^direction dn ^adj-face-num <ndn>
+                 ^block 9 ^adj-blk-num <ndn9>)
+    (cubie-order ^face-num <n> ^direction lf ^adj-face-num <nlf>
+                 ^block 1 ^adj-blk-num <nlf1>)
+    (cubie-order ^face-num <n> ^direction lf ^adj-face-num <nlf>
+                 ^block 4 ^adj-blk-num <nlf4>)
+    (cubie-order ^face-num <n> ^direction lf ^adj-face-num <nlf>
+                 ^block 7 ^adj-blk-num <nlf7>)
+    (face ^number <nrt> ^block <nrt3> ^color <cnrt3>)
+    (face ^number <nrt> ^block <nrt6> ^color <cnrt6>)
+    (face ^number <nrt> ^block <nrt9> ^color <cnrt9>)
+    (face ^number <nlf> ^block <nlf7> ^color <cnlf7>)
+    (face ^number <nlf> ^block <nlf4> ^color <cnlf4>)
+    (face ^number <nlf> ^block <nlf1> ^color <cnlf1>)
+    (face ^number <nup> ^block <nup1> ^color <cnup1>)
+    (face ^number <nup> ^block <nup2> ^color <cnup2>)
+    (face ^number <nup> ^block <nup3> ^color <cnup3>)
+    (face ^number <ndn> ^block <ndn9> ^color <cndn9>)
+    (face ^number <ndn> ^block <ndn8> ^color <cndn8>)
+    (face ^number <ndn> ^block <ndn7> ^color <cndn7>)
+-->
+    (write (crlf) rotating face <n>  the <c5> face  plus 90)
+    (modify 1 ^status done)
+    (modify 2 ^color <c7>)
+    (modify 3 ^color <c4>)
+    (modify 4 ^color <c1>)
+    (modify 5 ^color <c8>)
+    (modify 6 ^color <c5>)
+    (modify 7 ^color <c2>)
+    (modify 8. ^color <c9>)
+    (modify 9. ^color <c6>)
+    (modify 10. ^color <c3>)
+    (modify 23. ^color <cnup1>)
+    (modify 24. ^color <cnup2>)
+    (modify 25. ^color <cnup3>)
+    (modify 26. ^color <cndn9>)
+    (modify 27. ^color <cndn8>)
+    (modify 28. ^color <cndn7>)
+    (modify 29. ^color <cnlf7>)
+    (modify 30. ^color <cnlf4>)
+    (modify 31. ^color <cnlf1>)
+    (modify 32. ^color <cnrt3>)
+    (modify 33. ^color <cnrt6>)
+    (modify 34. ^color <cnrt9>))
+
+(p minus-90
+    (goal ^want rotate ^object face ^number <n> ^direction neg
+          ^value 90 ^id <id> ^seq <seq> ^status active)
+   -(goal ^want rotate ^object face ^id <id> ^seq < <seq> ^status active)
+    (face ^number <n> ^block 1 ^color <c1>)
+    (face ^number <n> ^block 2 ^color <c2>)
+    (face ^number <n> ^block 3 ^color <c3>)
+    (face ^number <n> ^block 4 ^color <c4>)
+    (face ^number <n> ^block 5 ^color <c5>)
+    (face ^number <n> ^block 6 ^color <c6>)
+    (face ^number <n> ^block 7 ^color <c7>)
+    (face ^number <n> ^block 8 ^color <c8>)
+    (face ^number <n> ^block 9 ^color <c9>)
+    (cubie-order ^face-num <n> ^direction up ^adj-face-num <nup>
+                 ^block 1 ^adj-blk-num <nup1>)
+    (cubie-order ^face-num <n> ^direction up ^adj-face-num <nup>
+                 ^block 2 ^adj-blk-num <nup2>)
+    (cubie-order ^face-num <n> ^direction up ^adj-face-num <nup>
+                 ^block 3 ^adj-blk-num <nup3>)
+    (cubie-order ^face-num <n> ^direction rt ^adj-face-num <nrt>
+                 ^block 3 ^adj-blk-num <nrt3>)
+    (cubie-order ^face-num <n> ^direction rt ^adj-face-num <nrt>
+                 ^block 6 ^adj-blk-num <nrt6>)
+    (cubie-order ^face-num <n> ^direction rt ^adj-face-num <nrt>
+                 ^block 9 ^adj-blk-num <nrt9>)
+    (cubie-order ^face-num <n> ^direction dn ^adj-face-num <ndn>
+                 ^block 7 ^adj-blk-num <ndn7>)
+    (cubie-order ^face-num <n> ^direction dn ^adj-face-num <ndn>
+                 ^block 8 ^adj-blk-num <ndn8>)
+    (cubie-order ^face-num <n> ^direction dn ^adj-face-num <ndn>
+                 ^block 9 ^adj-blk-num <ndn9>)
+    (cubie-order ^face-num <n> ^direction lf ^adj-face-num <nlf>
+                 ^block 1 ^adj-blk-num <nlf1>)
+    (cubie-order ^face-num <n> ^direction lf ^adj-face-num <nlf>
+                 ^block 4 ^adj-blk-num <nlf4>)
+    (cubie-order ^face-num <n> ^direction lf ^adj-face-num <nlf>
+                 ^block 7 ^adj-blk-num <nlf7>)
+    (face ^number <nrt> ^block <nrt3> ^color <cnrt3>)
+    (face ^number <nrt> ^block <nrt6> ^color <cnrt6>)
+    (face ^number <nrt> ^block <nrt9> ^color <cnrt9>)
+    (face ^number <nlf> ^block <nlf7> ^color <cnlf7>)
+    (face ^number <nlf> ^block <nlf4> ^color <cnlf4>)
+    (face ^number <nlf> ^block <nlf1> ^color <cnlf1>)
+    (face ^number <nup> ^block <nup1> ^color <cnup1>)
+    (face ^number <nup> ^block <nup2> ^color <cnup2>)
+    (face ^number <nup> ^block <nup3> ^color <cnup3>)
+    (face ^number <ndn> ^block <ndn9> ^color <cndn9>)
+    (face ^number <ndn> ^block <ndn8> ^color <cndn8>)
+    (face ^number <ndn> ^block <ndn7> ^color <cndn7>)
+-->
+    (write (crlf) rotating face <n>  the <c5> face  minus 90)
+    (modify 1 ^status done)
+    (modify 2 ^color <c3>)
+    (modify 3 ^color <c6>)
+    (modify 4 ^color <c9>)
+    (modify 5 ^color <c2>)
+    (modify 6 ^color <c5>)
+    (modify 7 ^color <c8>)
+    (modify 8. ^color <c1>)
+    (modify 9. ^color <c4>)
+    (modify 10. ^color <c7>)
+    (modify 23. ^color <cndn9>)
+    (modify 24. ^color <cndn8>)
+    (modify 25. ^color <cndn7>)
+    (modify 26. ^color <cnup1>)
+    (modify 27. ^color <cnup2>)
+    (modify 28. ^color <cnup3>)
+    (modify 29. ^color <cnrt3>)
+    (modify 30. ^color <cnrt6>)
+    (modify 31. ^color <cnrt9>)
+    (modify 32. ^color <cnlf7>)
+    (modify 33. ^color <cnlf4>)
+    (modify 34. ^color <cnlf1>))
+
+(p plus-minus-180
+    (goal ^want rotate ^object face ^number <n>
+          ^direction { << pos neg >> <dir> } ^value 180 ^id <id> ^seq <seq>
+          ^status active)
+   -(goal ^want rotate ^object face ^id <id> ^seq < <seq> ^status active)
+    (face ^number <n> ^block 1 ^color <c1>)
+    (face ^number <n> ^block 2 ^color <c2>)
+    (face ^number <n> ^block 3 ^color <c3>)
+    (face ^number <n> ^block 4 ^color <c4>)
+    (face ^number <n> ^block 5 ^color <c5>)
+    (face ^number <n> ^block 6 ^color <c6>)
+    (face ^number <n> ^block 7 ^color <c7>)
+    (face ^number <n> ^block 8 ^color <c8>)
+    (face ^number <n> ^block 9 ^color <c9>)
+    (cubie-order ^face-num <n> ^direction up ^adj-face-num <nup>
+                 ^block 1 ^adj-blk-num <nup1>)
+    (cubie-order ^face-num <n> ^direction up ^adj-face-num <nup>
+                 ^block 2 ^adj-blk-num <nup2>)
+    (cubie-order ^face-num <n> ^direction up ^adj-face-num <nup>
+                 ^block 3 ^adj-blk-num <nup3>)
+    (cubie-order ^face-num <n> ^direction rt ^adj-face-num <nrt>
+                 ^block 3 ^adj-blk-num <nrt3>)
+    (cubie-order ^face-num <n> ^direction rt ^adj-face-num <nrt>
+                 ^block 6 ^adj-blk-num <nrt6>)
+    (cubie-order ^face-num <n> ^direction rt ^adj-face-num <nrt>
+                 ^block 9 ^adj-blk-num <nrt9>)
+    (cubie-order ^face-num <n> ^direction dn ^adj-face-num <ndn>
+                 ^block 7 ^adj-blk-num <ndn7>)
+    (cubie-order ^face-num <n> ^direction dn ^adj-face-num <ndn>
+                 ^block 8 ^adj-blk-num <ndn8>)
+    (cubie-order ^face-num <n> ^direction dn ^adj-face-num <ndn>
+                 ^block 9 ^adj-blk-num <ndn9>)
+    (cubie-order ^face-num <n> ^direction lf ^adj-face-num <nlf>
+                 ^block 1 ^adj-blk-num <nlf1>)
+    (cubie-order ^face-num <n> ^direction lf ^adj-face-num <nlf>
+                 ^block 4 ^adj-blk-num <nlf4>)
+    (cubie-order ^face-num <n> ^direction lf ^adj-face-num <nlf>
+                 ^block 7 ^adj-blk-num <nlf7>)
+    (face ^number <nrt> ^block <nrt3> ^color <cnrt3>)
+    (face ^number <nrt> ^block <nrt6> ^color <cnrt6>)
+    (face ^number <nrt> ^block <nrt9> ^color <cnrt9>)
+    (face ^number <nlf> ^block <nlf7> ^color <cnlf7>)
+    (face ^number <nlf> ^block <nlf4> ^color <cnlf4>)
+    (face ^number <nlf> ^block <nlf1> ^color <cnlf1>)
+    (face ^number <nup> ^block <nup1> ^color <cnup1>)
+    (face ^number <nup> ^block <nup2> ^color <cnup2>)
+    (face ^number <nup> ^block <nup3> ^color <cnup3>)
+    (face ^number <ndn> ^block <ndn9> ^color <cndn9>)
+    (face ^number <ndn> ^block <ndn8> ^color <cndn8>)
+    (face ^number <ndn> ^block <ndn7> ^color <cndn7>)
+-->
+    (write (crlf) rotating face <n>  the <c5> face  <dir> 180)
+    (modify 1 ^status done)
+    (modify 2 ^color <c9>)
+    (modify 3 ^color <c8>)
+    (modify 4 ^color <c7>)
+    (modify 5 ^color <c6>)
+    (modify 6 ^color <c5>)
+    (modify 7 ^color <c4>)
+    (modify 8. ^color <c3>)
+    (modify 9. ^color <c2>)
+    (modify 10. ^color <c1>)
+    (modify 23. ^color <cnlf7>)
+    (modify 24. ^color <cnlf4>)
+    (modify 25. ^color <cnlf1>)
+    (modify 26. ^color <cnrt3>)
+    (modify 27. ^color <cnrt6>)
+    (modify 28. ^color <cnrt9>)
+    (modify 29. ^color <cndn9>)
+    (modify 30. ^color <cndn8>)
+    (modify 31. ^color <cndn7>)
+    (modify 32. ^color <cnup1>)
+    (modify 33. ^color <cnup2>)
+    (modify 34. ^color <cnup3>))
+
+
+
+(p position_top_edge*get_defining_faces
+    (goal ^want position ^object top-edge ^id <id> ^status active)
+    (face ^number 1 ^block 5 ^color <ct>)
+    (face ^number { << 2 3 4 5 >> <nf> } ^block 5 ^color <cf>)
+   -(front-face ^status active)
+   -(front-face ^number <nf> ^id <id> ^status used)
+    (face ^number <n1> ^block { << 2 4 6 8 >> <b1> } ^color <ct>)
+    (face ^number { <n2> <> <n1> } ^block { << 2 4 6 8 >> <b2> } ^color <cf>)
+    (cubie-order ^face-num <n1> ^adj-face-num <n2>
+                 ^block <b1> ^adj-blk-num <b2>)
+-->
+    (make front-face ^number <nf> ^color <cf> ^id <id> ^status active)
+    (make source-face ^number <n1> ^color <ct> ^id <id> ^status active)
+    (make source-face ^number <n2> ^color <cf> ^id <id> ^status active))
+
+(p position_top_edge*desired_cubie_in_position
+    (goal ^want position ^object top-edge ^id <id> ^status active)
+    (front-face ^number {<nf> <> 1 <> 6} ^id <id> ^status active)
+    (source-face ^number {<nf> <> 1 <> 6} ^id <id> ^status active)
+    (source-face ^number 1 ^id <id> ^status active)
+    (face-relation ^front <nf> ^top 1)
+-->
+    (modify 2 ^status used)
+    (modify 3 ^status used)
+    (modify 4 ^status used))
+
+
+(p rt-to-ft
+    (goal ^want position ^object top-edge ^id <id> ^status active)
+    (front-face ^number <nf> ^id <id> ^status active)
+    (source-face ^number <nr> ^id <id> ^status active)
+    (source-face ^number {<nt> <> <nr>} ^id <id> ^status active)
+    (face-relation ^front <nf> ^right <nr>)
+-->
+    (make goal ^want rotate ^object face ^number <nr> ^direction neg
+               ^value 90 ^id <id> ^seq 1 ^status active)
+    (make goal ^want rotate ^object face ^number <nf> ^direction neg
+               ^value 90 ^id <id> ^seq 2 ^status active)
+    (modify 2 ^status used)
+    (modify 3 ^status used)
+    (modify 4 ^status used))
+
+(p pt-to-ft
+    (goal ^want position ^object top-edge ^id <id> ^status active)
+    (front-face ^number <nf> ^id <id> ^status active)
+    (source-face ^number <np> ^id <id> ^status active)
+    (source-face ^number {<nt> <> <np>} ^id <id> ^status active)
+    (face-relation ^front <nf> ^posterior <np> ^right <nr> ^top <nt>)
+-->
+    (make goal ^want rotate ^object face ^number <nt> ^direction pos
+               ^value 90 ^id <id> ^seq 1 ^status active)
+    (make goal ^want rotate ^object face ^number <nr> ^direction neg
+               ^value 90 ^id <id> ^seq 2 ^status active)
+    (make goal ^want rotate ^object face ^number <nt> ^direction neg
+               ^value 90 ^id <id> ^seq 3 ^status active)
+    (make goal ^want rotate ^object face ^number <nf> ^direction neg
+               ^value 90 ^id <id> ^seq 4 ^status active)
+    (modify 2 ^status used)
+    (modify 3 ^status used)
+    (modify 4 ^status used))
+
+(p lt-to-ft
+    (goal ^want position ^object top-edge ^id <id> ^status active)
+    (front-face ^number <nf> ^id <id> ^status active)
+    (source-face ^number <nl> ^id <id> ^status active)
+    (source-face ^number {<nt> <> <nl>} ^id <id> ^status active)
+    (face-relation ^front <nf> ^left <nl> ^top <nt>)
+-->
+    (make goal ^want rotate ^object face ^number <nl> ^direction pos
+               ^value 90 ^id <id> ^seq 1 ^status active)
+    (make goal ^want rotate ^object face ^number <nf> ^direction pos
+               ^value 90 ^id <id> ^seq 2 ^status active)
+    (modify 2 ^status used)
+    (modify 3 ^status used)
+    (modify 4 ^status used))
+
+(p fr-to-ft
+    (goal ^want position ^object top-edge ^id <id> ^status active)
+    (front-face ^number <nf> ^id <id> ^status active)
+    (source-face ^number <nf> ^id <id> ^status active)
+    (source-face ^number {<nr> <> <nf>} ^id <id> ^status active)
+    (face-relation ^front <nf> ^right <nr>)
+-->
+    (make goal ^want rotate ^object face ^number <nf> ^direction neg
+               ^value 90 ^id <id> ^seq 1 ^status active)
+    (modify 2 ^status used)
+    (modify 3 ^status used)
+    (modify 4 ^status used))
+
+(p pr-to-ft
+    (goal ^want position ^object top-edge ^id <id> ^status active)
+    (front-face ^number <nf> ^id <id> ^status active)
+    (source-face ^number <np> ^id <id> ^status active)
+    (source-face ^number {<nr> <> <np>} ^id <id> ^status active)
+    (face-relation ^front <nf> ^posterior <np> ^right <nr>)
+-->
+    (make goal ^want rotate ^object face ^number <nr> ^direction pos
+               ^value 180 ^id <id> ^seq 1 ^status active)
+    (make goal ^want rotate ^object face ^number <nf> ^direction neg
+               ^value 90 ^id <id> ^seq 2 ^status active)
+    (make goal ^want rotate ^object face ^number <nr> ^direction pos
+               ^value 180 ^id <id> ^seq 3 ^status active)
+    (modify 2 ^status used)
+    (modify 3 ^status used)
+    (modify 4 ^status used))
+
+(p lp-to-ft
+    (goal ^want position ^object top-edge ^id <id> ^status active)
+    (front-face ^number <nf> ^id <id> ^status active)
+    (source-face ^number <nl> ^id <id> ^status active)
+    (source-face ^number {<np> <> <nl>} ^id <id> ^status active)
+    (face-relation ^front <nf> ^posterior <np> ^left <nl>)
+-->
+    (make goal ^want rotate ^object face ^number <nl> ^direction pos
+               ^value 180 ^id <id> ^seq 1 ^status active)
+    (make goal ^want rotate ^object face ^number <nf> ^direction pos
+               ^value 90 ^id <id> ^seq 2 ^status active)
+    (make goal ^want rotate ^object face ^number <nl> ^direction pos
+               ^value 180 ^id <id> ^seq 3 ^status active)
+    (modify 2 ^status used)
+    (modify 3 ^status used)
+    (modify 4 ^status used))
+
+(p fl-to-ft
+    (goal ^want position ^object top-edge ^id <id> ^status active)
+    (front-face ^number <nf> ^id <id> ^status active)
+    (source-face ^number <nf> ^id <id> ^status active)
+    (source-face ^number {<nl> <> <nf>} ^id <id> ^status active)
+    (face-relation ^front <nf> ^left <nl>)
+-->
+    (make goal ^want rotate ^object face ^number <nf> ^direction pos
+               ^value 90 ^id <id> ^seq 1 ^status active)
+    (modify 2 ^status used)
+    (modify 3 ^status used)
+    (modify 4 ^status used))
+
+(p bf-to-ft
+    (goal ^want position ^object top-edge ^id <id> ^status active)
+    (front-face ^number <nf> ^id <id> ^status active)
+    (source-face ^number <nb> ^id <id> ^status active)
+    (source-face ^number {<nf> <> <nb>} ^id <id> ^status active)
+    (face-relation ^front <nf> ^bottom <nb>)
+-->
+    (make goal ^want rotate ^object face ^number <nf> ^direction pos
+               ^value 180 ^id <id> ^seq 1 ^status active)
+    (modify 2 ^status used)
+    (modify 3 ^status used)
+    (modify 4 ^status used))
+
+(p br-to-ft
+    (goal ^want position ^object top-edge ^id <id> ^status active)
+    (front-face ^number <nf> ^id <id> ^status active)
+    (source-face ^number <nb> ^id <id> ^status active)
+    (source-face ^number {<nr> <> <nb>} ^id <id> ^status active)
+    (face-relation ^front <nf> ^right <nr> ^bottom <nb>)
+-->
+    (make goal ^want rotate ^object face ^number <nb> ^direction neg
+               ^value 90 ^id <id> ^seq 1 ^status active)
+    (make goal ^want rotate ^object face ^number <nf> ^direction pos
+               ^value 180 ^id <id> ^seq 2 ^status active)
+    (modify 2 ^status used)
+    (modify 3 ^status used)
+    (modify 4 ^status used))
+
+(p bp-to-ft
+    (goal ^want position ^object top-edge ^id <id> ^status active)
+    (front-face ^number <nf> ^id <id> ^status active)
+    (source-face ^number <nb> ^id <id> ^status active)
+    (source-face ^number {<np> <> <nb>} ^id <id> ^status active)
+    (face-relation ^front <nf> ^posterior <np> ^bottom <nb>)
+-->
+    (make goal ^want rotate ^object face ^number <nb> ^direction pos
+               ^value 180 ^id <id> ^seq 1 ^status active)
+    (make goal ^want rotate ^object face ^number <nf> ^direction pos
+               ^value 180 ^id <id> ^seq 2 ^status active)
+    (modify 2 ^status used)
+    (modify 3 ^status used)
+    (modify 4 ^status used))
+
+(p bl-to-ft
+    (goal ^want position ^object top-edge ^id <id> ^status active)
+    (front-face ^number <nf> ^id <id> ^status active)
+    (source-face ^number <nb> ^id <id> ^status active)
+    (source-face ^number {<nl> <> <nb>} ^id <id> ^status active)
+    (face-relation ^front <nf> ^left <nl> ^bottom <nb>)
+-->
+    (make goal ^want rotate ^object face ^number <nb> ^direction pos
+               ^value 90 ^id <id> ^seq 1 ^status active)
+    (make goal ^want rotate ^object face ^number <nf> ^direction pos
+               ^value 180 ^id <id> ^seq 2 ^status active)
+    (modify 2 ^status used)
+    (modify 3 ^status used)
+    (modify 4 ^status used))
+
+(p orient_top_edge
+    (goal ^want orient ^object top-edge ^id <id> ^status active)
+    (face ^number 1 ^block 5 ^color <ct>)
+    (face ^number { << 2 3 4 5 >> <nf> } ^block 5 ^color <cf>)
+    (face ^number 1 ^block { << 2 4 6 8 >> <b> } ^color <cf>)
+    (face ^number <nf> ^block 2 ^color <ct>)
+    (cubie-order ^face-num <nf> ^direction up
+                 ^adj-face-num 1 ^block 2 ^adj-blk-num <b>)
+    (face-relation ^front <nf> ^top 1 ^left <nl>)
+-->
+    (make goal ^want rotate ^object face ^number <nf> ^direction neg
+               ^value 90 ^id <id> ^seq 1 ^status active)
+    (make goal ^want rotate ^object face ^number 1 ^direction pos
+               ^value 90 ^id <id> ^seq 2 ^status active)
+    (make goal ^want rotate ^object face ^number <nl> ^direction neg
+               ^value 90 ^id <id> ^seq 3 ^status active)
+    (make goal ^want rotate ^object face ^number 1 ^direction neg
+               ^value 90 ^id <id> ^seq 4 ^status active))
+
+(p position_top_corner*get_defining_faces
+    (goal ^want position ^object top-corner ^id <id> ^status active)
+   -(front-face ^id <id> ^status active)
+   -(source-face ^id <id> ^status active)
+    (face ^number 1 ^block 5 ^color <ct>)
+    (face ^number { << 2 3 4 5 >> <nf> } ^block 5 ^color <cf>)
+   -(front-face ^number <nf> ^id <id> ^status used)
+    (face ^number { <nr> <> <nf> <> 1 <> 6 } ^block 5 ^color <cr>)
+    (face-relation ^front <nf> ^right <nr> ^top 1)
+    (face ^number <n1> ^block { << 1 3 7 9 >> <b1> } ^color <ct>)
+    (face ^number { <n2> <> <n1> } ^block { << 1 3 7 9 >> <b2> } ^color <cf>)
+    (face ^number { <n3> <> <n2> } ^block { << 1 3 7 9 >> <b3> } ^color <cr>)
+    (cubie-order ^face-num <n1> ^adj-face-num <n2> ^block <b1>
+                 ^adj-blk-num <b2>)
+    (cubie-order ^face-num <n1> ^adj-face-num <n3> ^block <b1>
+                 ^adj-blk-num <b3>)
+    (cubie-order ^face-num <n2> ^adj-face-num <n3> ^block <b2>
+                 ^adj-blk-num <b3>)
+-->
+    (make front-face ^number <nf> ^color <cf> ^id <id> ^status active)
+    (make source-face ^number <n1> ^color <ct> ^id <id> ^status active)
+    (make source-face ^number <n2> ^color <cf> ^id <id> ^status active)
+    (make source-face ^number <n3> ^color <cr> ^id <id> ^status active))
+
+(p position_top_corner*desired_cubie_in_position
+    (goal ^want position ^object top-corner ^id <id> ^status active)
+    (front-face ^number {<nf> <> 1 <> 6} ^id <id> ^status active)
+    (source-face ^number {<nf> <> 1 <> 6} ^id <id> ^status active)
+    (source-face ^number {<nt> <> <nf> <> 6} ^id <id> ^status active)
+    (source-face ^number {<nr> <> <nt> <> <nf> <> 6} ^id <id> ^status active)
+    (face-relation ^front <nf> ^right <nr> ^top <nt>)
+-->
+    (modify 2 ^status used)
+    (modify 3 ^status used)
+    (modify 4 ^status used)
+    (modify 5 ^status used))
+
+(p position_top_corner*desired_cubie_on_left_front_top
+    (goal ^want position ^object top-corner ^id <id> ^status active)
+    (front-face ^number {<n3> <> 1 <> 6} ^id <id> ^status active)
+    (source-face ^number 1 ^id <id> ^status active)
+    (source-face ^number {<n2> <> 1 <> 6} ^id <id> ^status active)
+    (source-face ^number {<n3> <> <n2> <> 1 <> 6} ^id <id> ^status active)
+    (face-relation ^front {<n2> <> 1 <> 6} ^posterior <n4> ^right <n3> ^top 1)
+-->
+    (make goal ^want rotate ^object face ^number <n3> ^direction neg
+               ^value 90 ^id <id> ^seq 1 ^status active)
+    (make goal ^want rotate ^object face ^number 6 ^direction neg
+               ^value 90 ^id <id> ^seq 2 ^status active)
+    (make goal ^want rotate ^object face ^number <n3> ^direction pos
+               ^value 90 ^id <id> ^seq 3 ^status active)
+    (make goal ^want rotate ^object face ^number 6 ^direction pos
+               ^value 180 ^id <id> ^seq 4 ^status active)
+    (make goal ^want rotate ^object face ^number <n4> ^direction neg
+               ^value 90 ^id <id> ^seq 5 ^status active)
+    (make goal ^want rotate ^object face ^number 6 ^direction neg
+               ^value 90 ^id <id> ^seq 6 ^status active)
+    (make goal ^want rotate ^object face ^number <n4> ^direction pos
+               ^value 90 ^id <id> ^seq 7 ^status active)
+    (modify 2 ^status used)
+    (modify 3 ^status used)
+    (modify 4 ^status used)
+    (modify 5 ^status used))
+
+(p position_top_corner*desired_cubie_on_top_right_posterior
+    (goal ^want position ^object top-corner ^id <id> ^status active)
+    (front-face ^number {<nf> <> 1 <> 6} ^id <id> ^status active)
+    (source-face ^number 1 ^id <id> ^status active)
+    (source-face ^number {<n2> <> <nf> <> 1 <> 6} ^id <id> ^status active)
+    (source-face ^number {<n3> <> <n2> <> 1 <> 6} ^id <id> ^status active)
+    (face-relation ^front {<n2> <> 1 <> 6} ^right {<n3> <> 1 <> 6} ^top 1)
+    (face-relation ^front {<nf> <> 1 <> 6} ^right {<n2> <> 1 <> 6} ^top 1)
+-->
+    (make goal ^want rotate ^object face ^number <n3> ^direction neg
+               ^value 90 ^id <id> ^seq 1 ^status active)
+    (make goal ^want rotate ^object face ^number 6 ^direction neg
+               ^value 90 ^id <id> ^seq 2 ^status active)
+    (make goal ^want rotate ^object face ^number <n3> ^direction pos
+               ^value 90 ^id <id> ^seq 3 ^status active)
+    (make goal ^want rotate ^object face ^number <n2> ^direction neg
+               ^value 90 ^id <id> ^seq 4 ^status active)
+    (make goal ^want rotate ^object face ^number 6 ^direction neg
+               ^value 90 ^id <id> ^seq 5 ^status active)
+    (make goal ^want rotate ^object face ^number <n2> ^direction pos
+               ^value 90 ^id <id> ^seq 6 ^status active)
+    (modify 2 ^status used)
+    (modify 3 ^status used)
+    (modify 4 ^status used)
+    (modify 5 ^status used))
+
+(p position_top_corner*desired_cubie_on_top_left_posterior
+    (goal ^want position ^object top-corner ^id <id> ^status active)
+    (front-face ^number {<nf> <> 1 <> 6} ^id <id> ^status active)
+    (source-face ^number 1 ^id <id> ^status active)
+    (source-face ^number {<n2> <> <nf> <> 1 <> 6} ^id <id> ^status active)
+    (source-face ^number {<n3> <> <n2> <> 1 <> 6} ^id <id> ^status active)
+    (face-relation ^front {<n2> <> <nf>} ^right {<n3> <> <nf>} ^top 1)
+    (face-relation ^front <nf> ^right <n4> ^left <n3> ^top 1)
+-->
+    (make goal ^want rotate ^object face ^number <n3> ^direction neg
+               ^value 90 ^id <id> ^seq 1 ^status active)
+    (make goal ^want rotate ^object face ^number 6 ^direction pos
+               ^value 180 ^id <id> ^seq 2 ^status active)
+    (make goal ^want rotate ^object face ^number <n3> ^direction pos
+               ^value 90 ^id <id> ^seq 3 ^status active)
+    (make goal ^want rotate ^object face ^number <n4> ^direction neg
+               ^value 90 ^id <id> ^seq 4 ^status active)
+    (make goal ^want rotate ^object face ^number 6 ^direction neg
+               ^value 90 ^id <id> ^seq 5 ^status active)
+    (make goal ^want rotate ^object face ^number <n4> ^direction pos
+               ^value 90 ^id <id> ^seq 6 ^status active)
+    (modify 2 ^status used)
+    (modify 3 ^status used)
+    (modify 4 ^status used)
+    (modify 5 ^status used))
+
+(p position_top_corner*desired_cubie_under_desired_position
+    (goal ^want position ^object top-corner ^id <id> ^status active)
+    (front-face ^number {<nf> <> 1 <> 6} ^id <id> ^status active)
+    (source-face ^number {<nf> <> 1 <> 6} ^id <id> ^status active)
+    (source-face ^number {<nr> <> <nf> <> 1 <> 6} ^id <id> ^status active)
+    (source-face ^number 6 ^id <id> ^status active)
+    (face-relation ^front <nf> ^right <nr> ^bottom 6)
+-->
+    (make goal ^want rotate ^object face ^number <nr> ^direction neg
+               ^value 90 ^id <id> ^seq 1 ^status active)
+    (make goal ^want rotate ^object face ^number 6 ^direction neg
+               ^value 90 ^id <id> ^seq 2 ^status active)
+    (make goal ^want rotate ^object face ^number <nr> ^direction pos
+               ^value 90 ^id <id> ^seq 3 ^status active)
+    (modify 2 ^status used)
+    (modify 3 ^status used)
+    (modify 4 ^status used)
+    (modify 5 ^status used))
+
+(p position_top_corner*desired_cubie_on_bottom_left_front
+    (goal ^want position ^object top-corner ^id <id> ^status active)
+    (front-face ^number {<nf> <> 1 <> 6} ^id <id> ^status active)
+    (source-face ^number {<nf> <> 1 <> 6} ^id <id> ^status active)
+    (source-face ^number {<nl> <> <nf> <> 1 <> 6} ^id <id> ^status active)
+    (source-face ^number 6 ^id <id> ^status active)
+    (face-relation ^front <nl> ^posterior <np> ^right <nf> ^bottom 6)
+-->
+    (make goal ^want rotate ^object face ^number 6 ^direction pos
+               ^value 90 ^id <id> ^seq 1 ^status active)
+    (make goal ^want rotate ^object face ^number <np> ^direction neg
+               ^value 90 ^id <id> ^seq 2 ^status active)
+    (make goal ^want rotate ^object face ^number 6 ^direction neg
+               ^value 90 ^id <id> ^seq 3 ^status active)
+    (make goal ^want rotate ^object face ^number <np> ^direction pos
+               ^value 90 ^id <id> ^seq 4 ^status active)
+    (modify 2 ^status used)
+    (modify 3 ^status used)
+    (modify 4 ^status used)
+    (modify 5 ^status used))
+
+(p position_top_corner*desired_cubie_on_bottom_left_posterior
+    (goal ^want position ^object top-corner ^id <id> ^status active)
+    (front-face ^number {<nf> <> 1 <> 6} ^id <id> ^status active)
+    (source-face ^number {<nl> <> <nf> <> 1 <> 6} ^id <id> ^status active)
+    (source-face ^number {<np> <> <nl> <> 1 <> 6} ^id <id> ^status active)
+    (source-face ^number 6 ^id <id> ^status active)
+    (face-relation ^front <nf> ^posterior <np> ^right <nr>
+                   ^left <nl> ^bottom 6)
+-->
+    (make goal ^want rotate ^object face ^number 6 ^direction pos
+               ^value 180 ^id <id> ^seq 1 ^status active)
+    (make goal ^want rotate ^object face ^number <nr> ^direction neg
+               ^value 90 ^id <id> ^seq 2 ^status active)
+    (make goal ^want rotate ^object face ^number 6 ^direction neg
+               ^value 90 ^id <id> ^seq 3 ^status active)
+    (make goal ^want rotate ^object face ^number <nr> ^direction pos
+               ^value 90 ^id <id> ^seq 4 ^status active)
+    (modify 2 ^status used)
+    (modify 3 ^status used)
+    (modify 4 ^status used)
+    (modify 5 ^status used))
+
+(p position_top_corner*desired_cubie_on_bottom_right_posterior
+    (goal ^want position ^object top-corner ^id <id> ^status active)
+    (front-face ^number {<nf> <> 1 <> 6} ^id <id> ^status active)
+    (source-face ^number {<nr> <> 1 <> 6} ^id <id> ^status active)
+    (source-face ^number {<np> <> <nr> <> 1 <> 6} ^id <id> ^status active)
+    (source-face ^number 6 ^id <id> ^status active)
+    (face-relation ^front <nf> ^posterior <np> ^right <nr> ^bottom 6)
+-->
+    (make goal ^want rotate ^object face ^number 6 ^direction neg
+               ^value 90 ^id <id> ^seq 1 ^status active)
+    (make goal ^want rotate ^object face ^number <nr> ^direction neg
+               ^value 90 ^id <id> ^seq 2 ^status active)
+    (make goal ^want rotate ^object face ^number 6 ^direction neg
+               ^value 90 ^id <id> ^seq 3 ^status active)
+    (make goal ^want rotate ^object face ^number <nr> ^direction pos
+               ^value 90 ^id <id> ^seq 4 ^status active)
+    (modify 2 ^status used)
+    (modify 3 ^status used)
+    (modify 4 ^status used)
+    (modify 5 ^status used))
+
+(p orient_top_corner
+    (goal ^want orient ^object top-corner ^id <id> ^status active)
+    (face ^number 1 ^block 5 ^color <ct>)
+    (face ^number { << 2 3 4 5 >> <nf> } ^block 5 ^color <cf>)
+    (face ^number { <nr> <> <nf> <> 1 <> 6 } ^block 5 ^color <cr>)
+    (face-relation ^front <nf> ^right <nr> ^top 1 ^bottom 6)
+    (face ^number <nf> ^block 3 ^color <> <cf>)
+-->
+    (make goal ^want rotate ^object face ^number <nr> ^direction neg
+               ^value 90 ^id <id> ^seq 1 ^status active)
+    (make goal ^want rotate ^object face ^number 6 ^direction pos
+               ^value 180 ^id <id> ^seq 2 ^status active)
+    (make goal ^want rotate ^object face ^number <nr> ^direction pos
+               ^value 90 ^id <id> ^seq 3 ^status active)
+    (make goal ^want rotate ^object face ^number <nf> ^direction pos
+               ^value 90 ^id <id> ^seq 4 ^status active)
+    (make goal ^want rotate ^object face ^number 6 ^direction pos
+               ^value 180 ^id <id> ^seq 5 ^status active)
+    (make goal ^want rotate ^object face ^number <nf> ^direction neg
+               ^value 90 ^id <id> ^seq 6 ^status active))
+
+(p position_vertical_edge*get_defining_faces
+    (goal ^want position ^object vertical-edge ^id <id> ^status active)
+   -(source-face ^id <id> ^status active)
+    (face ^number { << 2 3 4 5 >> <nf> } ^block 5 ^color <cf>)
+   -(front-face ^number <nf> ^id <id> ^status used)
+    (face ^number { <nr> <> <nf> <> 1 <> 6 } ^block 5 ^color <cr>)
+    (face-relation ^front <nf> ^right <nr> ^top 1 ^bottom 6)
+    (face ^number {<n1> <> 1} ^block { << 2 4 6 8 >> <b1> } ^color <cf>)
+    (face ^number {<n2> <> <n1> <> 1} ^block { << 2 4 6 8 >> <b2> }
+          ^color <cr>)
+    (cubie-order ^face-num <n1> ^adj-face-num <n2>
+                 ^block <b1> ^adj-blk-num <b2>)
+-->
+    (make front-face ^number <nf> ^color <cf> ^id <id> ^status active)
+    (make source-face ^number <n1> ^color <cf> ^id <id> ^status active)
+    (make source-face ^number <n2> ^color <cr> ^id <id> ^status active))
+
+(p position_vertical_edge*desired_cube_in_position
+    (goal ^want position ^object vertical-edge ^id <id> ^status active)
+    (front-face ^number {<nf> <> 1 <> 6} ^id <id> ^status active)
+    (source-face ^number {<nf> <> 1 <> 6} ^id <id> ^status active)
+    (source-face ^number {<nr> <> <nf> <> 1 <> 6} ^id <id> ^status active)
+    (face-relation ^front <nf> ^right <nr> ^top 1)
+-->
+    (modify 2 ^status used)
+    (modify 3 ^status used)
+    (modify 4 ^status used))
+
+(p position_vertical_edge*fr-to-bp
+    (goal ^want position ^object vertical-edge ^id <id> ^status active)
+    (front-face ^number {<n1> <> 1 <> 6} ^id <id> ^status active)
+    (source-face ^number {<nf> <> 1 <> 6} ^id <id> ^status active)
+    (source-face ^number {<nr> <> <nf> <> 1 <> 6} ^id <id>
+                 ^status active)
+    (face-relation ^front <nf> ^posterior <np> ^right <nr> ^bottom 6)
+   -(face-relation ^front <n1> ^right <nr> ^bottom 6)
+-->
+    (make goal ^want rotate ^object face ^number <nr> ^direction neg
+               ^value 90 ^id <id> ^seq 1 ^status active)
+    (make goal ^want rotate ^object face ^number 6 ^direction pos
+               ^value 90 ^id <id> ^seq 2 ^status active)
+    (make goal ^want rotate ^object face ^number <nr> ^direction pos
+               ^value 90 ^id <id> ^seq 3 ^status active)
+    (make goal ^want rotate ^object face ^number 6 ^direction pos
+               ^value 90 ^id <id> ^seq 4 ^status active)
+    (make goal ^want rotate ^object face ^number <nf> ^direction pos
+               ^value 90 ^id <id> ^seq 5 ^status active)
+    (make goal ^want rotate ^object face ^number 6 ^direction neg
+               ^value 90 ^id <id> ^seq 6 ^status active)
+    (make goal ^want rotate ^object face ^number <nf> ^direction neg
+               ^value 90 ^id <id> ^seq 7 ^status active)
+    (modify 3 ^number 6)
+    (modify 4 ^number <np>))
+
+(p position_vertical_edge*try_bottom_rotation
+    (goal ^want position ^object vertical-edge ^id <id> ^status active)
+    (front-face ^number {<nf> <> 1 <> 6} ^id <id> ^status active)
+    (source-face ^number { << 2 3 4 5 >> <ns> } ^color <cs>
+                 ^id <id>^status active)
+    (face ^number <ns> ^block 5 ^color <> <cs>)
+    (source-face ^number 6 ^id <id> ^status active)
+    (face-relation ^front <ns> ^right <nsr> ^bottom 6)
+-->
+    (make goal ^want rotate ^object face ^number 6 ^direction pos
+               ^value 90 ^id <id> ^seq 1 ^status active)
+    (modify 3 ^number <nsr>))
+
+(p position_vertical_edge*match_on_f-face
+    (goal ^want position ^object vertical-edge ^id <id> ^status active)
+    (front-face ^number {<nf> <> 1 <> 6} ^id <id> ^status active)
+    (face-relation ^front <nf> ^right <nr> ^bottom 6)
+    (face ^number <nf> ^block 5 ^color <cf>)
+    (face ^number <nf> ^block 8 ^color <cf>)
+    (face ^number <nr> ^block 5 ^color <cr>)
+    (source-face ^number {<nf> <> 1 <> 6} ^color <cf> ^id <id> ^status active)
+    (source-face ^number 6 ^color <cr> ^id <id> ^status active)
+-->
+    (make goal ^want rotate ^object face ^number 6 ^direction neg
+               ^value 90 ^id <id> ^seq 1 ^status active)
+    (make goal ^want rotate ^object face ^number <nr> ^direction neg
+               ^value 90 ^id <id> ^seq 2 ^status active)
+    (make goal ^want rotate ^object face ^number 6 ^direction pos
+               ^value 90 ^id <id> ^seq 3 ^status active)
+    (make goal ^want rotate ^object face ^number <nr> ^direction pos
+               ^value 90 ^id <id> ^seq 4 ^status active)
+    (make goal ^want rotate ^object face ^number 6 ^direction pos
+               ^value 90 ^id <id> ^seq 5 ^status active)
+    (make goal ^want rotate ^object face ^number <nf> ^direction pos
+               ^value 90 ^id <id> ^seq 6 ^status active)
+    (make goal ^want rotate ^object face ^number 6 ^direction neg
+               ^value 90 ^id <id> ^seq 7 ^status active)
+    (make goal ^want rotate ^object face ^number <nf> ^direction neg
+               ^value 90 ^id <id> ^seq 8 ^status active)
+    (modify 2 ^status used)
+    (modify 7 ^status used)
+    (modify 8 ^status used))
+
+(p position_vertical_edge*match_on_r-face
+    (goal ^want position ^object vertical-edge ^id <id> ^status active)
+    (front-face ^number {<nf> <> 1 <> 6} ^id <id> ^status active)
+    (face-relation ^front <nf> ^right <nr> ^bottom 6)
+    (face ^number <nf> ^block 5 ^color <cf>)
+    (face ^number <nr> ^block 5 ^color <cr>)
+    (face ^number <nr> ^block 8 ^color <cr>)
+    (source-face ^number {<nr> <> 1 <> 6} ^color <cr> ^id <id> ^status active)
+    (source-face ^number 6 ^color <cf> ^id <id> ^status active)
+-->
+    (make goal ^want rotate ^object face ^number 6 ^direction pos
+               ^value 90 ^id <id> ^seq 1 ^status active)
+    (make goal ^want rotate ^object face ^number <nf> ^direction pos
+               ^value 90 ^id <id> ^seq 2 ^status active)
+    (make goal ^want rotate ^object face ^number 6 ^direction neg
+               ^value 90 ^id <id> ^seq 3 ^status active)
+    (make goal ^want rotate ^object face ^number <nf> ^direction neg
+               ^value 90 ^id <id> ^seq 4 ^status active)
+    (make goal ^want rotate ^object face ^number 6 ^direction neg
+               ^value 90 ^id <id> ^seq 5 ^status active)
+    (make goal ^want rotate ^object face ^number <nr> ^direction neg
+               ^value 90 ^id <id> ^seq 6 ^status active)
+    (make goal ^want rotate ^object face ^number 6 ^direction pos
+               ^value 90 ^id <id> ^seq 7 ^status active)
+    (make goal ^want rotate ^object face ^number <nr> ^direction pos
+               ^value 90 ^id <id> ^seq 8 ^status active)
+    (modify 2 ^status used)
+    (modify 7 ^status used)
+    (modify 8 ^status used))
+
+(p orient_vertical_edge
+    (goal ^want orient ^object vertical-edge ^id <id> ^status active)
+    (face ^number { << 2 3 4 5 >> <nf> } ^block 5 ^color <cf>)
+    (face ^number { <nr> <> <nf> <> 1 <> 6 } ^block 5 ^color <cr>)
+    (face ^number <nf> ^block 6 ^color <cr>)
+    (face ^number <nr> ^block 4 ^color <cf>)
+    (cubie-order ^face-num <nf> ^direction rt
+                 ^adj-face-num <nr> ^block 6 ^adj-blk-num 4)
+    (face-relation ^front <nf> ^top 1 ^right <nr>)
+-->
+    (make goal ^want rotate ^object face ^number <nr> ^direction neg
+               ^value 90 ^id <id> ^seq 1 ^status active)
+    (make goal ^want rotate ^object face ^number 6 ^direction pos
+               ^value 90 ^id <id> ^seq 2 ^status active)
+    (make goal ^want rotate ^object face ^number <nr> ^direction pos
+               ^value 90 ^id <id> ^seq 3 ^status active)
+    (make goal ^want rotate ^object face ^number 6 ^direction pos
+               ^value 90 ^id <id> ^seq 4 ^status active)
+    (make goal ^want rotate ^object face ^number <nf> ^direction pos
+               ^value 90 ^id <id> ^seq 5 ^status active)
+    (make goal ^want rotate ^object face ^number 6 ^direction neg
+               ^value 90 ^id <id> ^seq 6 ^status active)
+    (make goal ^want rotate ^object face ^number <nf> ^direction neg
+               ^value 90 ^id <id> ^seq 7 ^status active)
+    (make goal ^want rotate ^object face ^number 6 ^direction pos
+               ^value 90 ^id <id> ^seq 8 ^status active)
+    (make goal ^want rotate ^object face ^number <nr> ^direction neg
+               ^value 90 ^id <id> ^seq 9 ^status active)
+    (make goal ^want rotate ^object face ^number 6 ^direction pos
+               ^value 90 ^id <id> ^seq 10 ^status active)
+    (make goal ^want rotate ^object face ^number <nr> ^direction pos
+               ^value 90 ^id <id> ^seq 11 ^status active)
+    (make goal ^want rotate ^object face ^number 6 ^direction pos
+               ^value 90 ^id <id> ^seq 12 ^status active)
+    (make goal ^want rotate ^object face ^number <nf> ^direction pos
+               ^value 90 ^id <id> ^seq 13 ^status active)
+    (make goal ^want rotate ^object face ^number 6 ^direction neg
+               ^value 90 ^id <id> ^seq 14 ^status active)
+    (make goal ^want rotate ^object face ^number <nf> ^direction neg
+               ^value 90 ^id <id> ^seq 15 ^status active))
+
+(p position_bottom_corner
+    (goal ^want position ^object bottom-corner ^id <id> ^status active)
+   -(bottom-corner ^id <id> ^status << active done >>)
+   -(goal ^want clean-up ^object bottom-corner ^id <id> ^status active)
+    (face ^number 2 ^block 9 ^color <c29>)
+    (face ^number 3 ^block 7 ^color <c37>)
+    (cubie-order ^face-num 2 ^direction dn ^adj-face-num 6
+                 ^block 9 ^adj-blk-num <blk269>)
+    (face ^number 6 ^block <blk269> ^color <c269>)
+    (face ^number 3 ^block 9 ^color <c39>)
+    (face ^number 4 ^block 7 ^color <c47>)
+    (cubie-order ^face-num 3 ^direction dn ^adj-face-num 6
+                 ^block 9 ^adj-blk-num <blk369>)
+    (face ^number 6 ^block <blk369> ^color <c369>)
+    (face ^number 4 ^block 9 ^color <c49>)
+    (face ^number 5 ^block 7 ^color <c57>)
+    (cubie-order ^face-num 4 ^direction dn ^adj-face-num 6
+                 ^block 9 ^adj-blk-num <blk469>)
+    (face ^number 6 ^block <blk469> ^color <c469>)
+    (face ^number 5 ^block 9 ^color <c59>)
+    (face ^number 2 ^block 7 ^color <c27>)
+    (cubie-order ^face-num 5 ^direction dn ^adj-face-num 6
+                 ^block 9 ^adj-blk-num <blk569>)
+    (face ^number 6 ^block <blk569> ^color <c569>)
+-->
+    (make bottom-corner ^number 1 ^face 2 ^color <c29>
+                      ^id <id> ^status active)
+    (make bottom-corner ^number 1 ^face 3 ^color <c37>
+                      ^id <id> ^status active)
+    (make bottom-corner ^number 1 ^face 6 ^color <c269>
+                      ^id <id> ^status active)
+    (make bottom-corner ^number 2 ^face 3 ^color <c39>
+                      ^id <id> ^status active)
+    (make bottom-corner ^number 2 ^face 4 ^color <c47>
+                      ^id <id> ^status active)
+    (make bottom-corner ^number 2 ^face 6 ^color <c369>
+                      ^id <id> ^status active)
+    (make bottom-corner ^number 3 ^face 4 ^color <c49>
+                      ^id <id> ^status active)
+    (make bottom-corner ^number 3 ^face 5 ^color <c57>
+                      ^id <id> ^status active)
+    (make bottom-corner ^number 3 ^face 6 ^color <c469>
+                      ^id <id> ^status active)
+    (make bottom-corner ^number 4 ^face 5 ^color <c59>
+                      ^id <id> ^status active)
+    (make bottom-corner ^number 4 ^face 2 ^color <c27>
+                      ^id <id> ^status active)
+    (make bottom-corner ^number 4 ^face 6 ^color <c569>
+                      ^id <id> ^status active))
+
+(p position_bottom_corner*find_no_match
+    (goal ^want position ^object bottom-corner ^id <id> ^status active)
+   -(goal ^want clean-up ^object bottom-corner ^id <id> ^status active)
+   -(goal ^want rotate ^object face ^number 6 ^id <id> ^status active)
+    (bottom-corner ^number 1 ^face 2 ^id <id> ^status active)
+-->
+    (make goal ^want clean-up ^object bottom-corner ^id <id> ^status active)
+    (make goal ^want rotate ^object face ^number 6 ^direction pos
+               ^value 90 ^id <id> ^seq 1 ^status active))
+
+(p position_bottom_corner*clean_up_bottom_corner
+    (goal ^want position ^object bottom-corner ^id <id> ^status active)
+    (goal ^want clean-up ^object bottom-corner ^id <id> ^status active)
+   -(goal ^want rotate ^object face ^id <id> ^status active)
+    (bottom-corner ^id <id> ^status active)
+-->
+    (modify 3 ^status used))
+
+(p position_bottom_corner*clean_up_bottom_corner*exit
+    (goal ^want position ^object bottom-corner ^id <id> ^status active)
+    (goal ^want clean-up ^object bottom-corner ^id <id> ^status active)
+   -(goal ^want rotate ^object face ^id <id> ^status active)
+   -(bottom-corner ^id <id> ^status active)
+-->
+    (remove 2))
+
+(p position_bottom_corner*find_one_match
+     (goal ^want position ^object bottom-corner ^id <id> ^status active)
+    -(goal ^want clean-up ^object bottom-corner ^id <id> ^status active)
+    -(goal ^want rotate ^object face ^number 6 ^id <id> ^status active)
+    -(bottom-corner ^id <id> ^status done)
+     (face ^number <nf> ^block 5 ^color <cf>)
+     (face ^number <nr> ^block 5 ^color <cr>)
+     (face ^number <nb> ^block 5 ^color <cb>)
+     (face-relation ^front <nf> ^right <nr> ^bottom <nb>)
+     (bottom-corner ^number <n1> ^color <cf> ^status active)
+     (bottom-corner ^number <n1> ^color <cr> ^status active)
+     (bottom-corner ^number <n1> ^color <cb> ^status active)
+     (bottom-corner ^number <n1> ^face <nf> ^status active)
+     (bottom-corner ^number <n1> ^face <nr> ^status active)
+     (bottom-corner ^number <n1> ^face <nb> ^status active)
+-->
+     (make goal ^want rotate ^object face ^number 6 ^direction pos
+               ^value 90 ^id <id> ^seq 1 ^status active)
+     (make goal ^want clean-up ^object bottom-corner ^id <id> ^status active))
+
+(p position_bottom_corner*exchange_two_adjacent
+     (goal ^want position ^object bottom-corner ^id <id> ^status active)
+    -(goal ^want clean-up ^object bottom-corner ^id <id> ^status active)
+    -(goal ^want rotate ^object face ^number 6 ^id <id> ^status active)
+    -(bottom-corner ^id <id> ^status done)
+     (face ^number <nf> ^block 5 ^color <cf>)
+     (face ^number <nl> ^block 5 ^color <cl>)
+     (face ^number <nb> ^block 5 ^color <cb>)
+     (face-relation ^front <nf> ^posterior <np> ^left <nl> ^right <nr>
+                    ^bottom <nb>)
+     (bottom-corner ^number <n1> ^color <cf> ^status active)
+     (bottom-corner ^number <n1> ^color <cl> ^status active)
+     (bottom-corner ^number <n1> ^color <cb> ^status active)
+     (bottom-corner ^number <n1> ^face <nf> ^status active)
+     (bottom-corner ^number <n1> ^face <nl> ^status active)
+     (bottom-corner ^number <n1> ^face <nb> ^status active)
+     (face ^number <nf> ^block 5 ^color <cf>)
+     (face ^number <nr> ^block 5 ^color <cr>)
+     (bottom-corner ^number {<n2> <> <n1>} ^color <cf> ^status active)
+     (bottom-corner ^number <n2> ^color <cr> ^status active)
+     (bottom-corner ^number <n2> ^color <cb> ^status active)
+     (bottom-corner ^number <n2> ^face <nf> ^status active)
+     (bottom-corner ^number <n2> ^face <nr> ^status active)
+     (bottom-corner ^number <n2> ^face <nb> ^status active)
+-->
+     (make bottom-corner ^id <id> ^status done)
+     (make goal ^want rotate ^object face ^number <nl> ^direction neg
+               ^value 90 ^id <id> ^seq 1 ^status active)
+     (make goal ^want rotate ^object face ^number 6 ^direction neg
+               ^value 90 ^id <id> ^seq 2 ^status active)
+     (make goal ^want rotate ^object face ^number <nl> ^direction pos
+               ^value 90 ^id <id> ^seq 3 ^status active)
+     (make goal ^want rotate ^object face ^number <np> ^direction pos
+               ^value 90 ^id <id> ^seq 4 ^status active)
+     (make goal ^want rotate ^object face ^number 6 ^direction pos
+               ^value 90 ^id <id> ^seq 5 ^status active)
+     (make goal ^want rotate ^object face ^number <np> ^direction neg
+               ^value 90 ^id <id> ^seq 6 ^status active)
+     (make goal ^want rotate ^object face ^number <nl> ^direction neg
+               ^value 90 ^id <id> ^seq 7 ^status active)
+     (make goal ^want rotate ^object face ^number 6 ^direction pos
+               ^value 90 ^id <id> ^seq 8 ^status active)
+     (make goal ^want rotate ^object face ^number <nl> ^direction pos
+               ^value 90 ^id <id> ^seq 9 ^status active)
+     (make goal ^want rotate ^object face ^number 6 ^direction pos
+               ^value 180 ^id <id> ^seq 10 ^status active)
+     (make goal ^want clean-up ^object bottom-corner ^id <id> ^status active))
+
+(p position_bottom_corner*exchange_two_diagonal
+     (goal ^want position ^object bottom-corner ^id <id> ^status active)
+    -(goal ^want clean-up ^object bottom-corner ^id <id> ^status active)
+    -(goal ^want rotate ^object face ^number 6 ^id <id> ^status active)
+    -(bottom-corner ^id <id> ^status done)
+     (face ^number <nf> ^block 5 ^color <cf>)
+     (face ^number <nl> ^block 5 ^color <cl>)
+     (face ^number <nb> ^block 5 ^color <cb>)
+     (face-relation ^front <nf> ^posterior <np> ^left <nl> ^right <nr>
+                    ^bottom <nb>)
+     (bottom-corner ^number <n1> ^color <cf> ^status active)
+     (bottom-corner ^number <n1> ^color <cl> ^status active)
+     (bottom-corner ^number <n1> ^color <cb> ^status active)
+     (bottom-corner ^number <n1> ^face <nf> ^status active)
+     (bottom-corner ^number <n1> ^face <nl> ^status active)
+     (bottom-corner ^number <n1> ^face <nb> ^status active)
+     (face ^number <nr> ^block 5 ^color <cr>)
+     (face ^number <np> ^block 5 ^color <cp>)
+     (face-relation ^front <nr> ^right <np> ^bottom <nb>)
+     (bottom-corner ^number {<n2> > <n1>} ^color <cr> ^status active)
+     (bottom-corner ^number <n2> ^color <cp> ^status active)
+     (bottom-corner ^number <n2> ^color <cb> ^status active)
+     (bottom-corner ^number <n2> ^face <nr> ^status active)
+     (bottom-corner ^number <n2> ^face <np> ^status active)
+     (bottom-corner ^number <n2> ^face <nb> ^status active)
+-->
+     (make bottom-corner ^id <id> ^status done)
+     (make goal ^want rotate ^object face ^number <np> ^direction neg
+               ^value 90 ^id <id> ^seq 1 ^status active)
+     (make goal ^want rotate ^object face ^number 6 ^direction neg
+               ^value 90 ^id <id> ^seq 2 ^status active)
+     (make goal ^want rotate ^object face ^number <np> ^direction pos
+               ^value 90 ^id <id> ^seq 3 ^status active)
+     (make goal ^want rotate ^object face ^number <nr> ^direction pos
+               ^value 90 ^id <id> ^seq 4 ^status active)
+     (make goal ^want rotate ^object face ^number 6 ^direction pos
+               ^value 180 ^id <id> ^seq 5 ^status active)
+     (make goal ^want rotate ^object face ^number <nr> ^direction neg
+               ^value 90 ^id <id> ^seq 6 ^status active)
+     (make goal ^want rotate ^object face ^number <np> ^direction neg
+               ^value 90 ^id <id> ^seq 7 ^status active)
+     (make goal ^want rotate ^object face ^number 6 ^direction pos
+               ^value 90 ^id <id> ^seq 8 ^status active)
+     (make goal ^want rotate ^object face ^number <np> ^direction pos
+               ^value 90 ^id <id> ^seq 9 ^status active)
+     (make goal ^want rotate ^object face ^number 6 ^direction pos
+               ^value 90 ^id <id> ^seq 10 ^status active)
+     (make goal ^want clean-up ^object bottom-corner ^id <id> ^status active))
+
+(p position_bottom_corner*match_four
+     (goal ^want position ^object bottom-corner ^id <id> ^status active)
+    -(goal ^want clean-up ^object bottom-corner ^id <id> ^status active)
+    -(goal ^want rotate ^object face ^number 6 ^id <id> ^status active)
+    -(bottom-corner ^id <id> ^status done)
+     (face ^number <n1f> ^block 5 ^color <c1f>)
+     (face ^number <n1r> ^block 5 ^color <c1r>)
+     (face ^number <nb> ^block 5 ^color <c1b>)
+     (face-relation ^front <n1f> ^right <n1r> ^bottom <nb>)
+     (bottom-corner ^number 1 ^color <c1f> ^status active)
+     (bottom-corner ^number 1 ^color <c1r> ^status active)
+     (bottom-corner ^number 1 ^color <c1b> ^status active)
+     (bottom-corner ^number 1 ^face <n1f> ^status active)
+     (bottom-corner ^number 1 ^face <n1r> ^status active)
+     (bottom-corner ^number 1 ^face <nb> ^status active)
+     (face ^number <n2f> ^block 5 ^color <c2f>)
+     (face ^number <n2r> ^block 5 ^color <c2r>)
+     (face-relation ^front <n2f> ^right <n2r> ^bottom <nb>)
+     (bottom-corner ^number 2 ^color <c2f> ^status active)
+     (bottom-corner ^number 2 ^color <c2r> ^status active)
+     (bottom-corner ^number 2 ^color <c2b> ^status active)
+     (bottom-corner ^number 2 ^face <n2f> ^status active)
+     (bottom-corner ^number 2 ^face <n2r> ^status active)
+     (bottom-corner ^number 2 ^face <nb> ^status active)
+     (face ^number <n3f> ^block 5 ^color <c3f>)
+     (face ^number <n3r> ^block 5 ^color <c3r>)
+     (face-relation ^front <n3f> ^right <n3r> ^bottom <nb>)
+     (bottom-corner ^number 3 ^color <c3f> ^status active)
+     (bottom-corner ^number 3 ^color <c3r> ^status active)
+     (bottom-corner ^number 3 ^color <c3b> ^status active)
+     (bottom-corner ^number 3 ^face <n3f> ^status active)
+     (bottom-corner ^number 3 ^face <n3r> ^status active)
+     (bottom-corner ^number 3 ^face <nb> ^status active)
+     (face ^number <n4f> ^block 5 ^color <c4f>)
+     (face ^number <n4r> ^block 5 ^color <c4r>)
+     (face-relation ^front <n4f> ^right <n4r> ^bottom <nb>)
+     (bottom-corner ^number 4 ^color <c4f> ^status active)
+     (bottom-corner ^number 4 ^color <c4r> ^status active)
+     (bottom-corner ^number 4 ^color <c4b> ^status active)
+     (bottom-corner ^number 4 ^face <n4f> ^status active)
+     (bottom-corner ^number 4 ^face <n4r> ^status active)
+     (bottom-corner ^number 4 ^face <nb> ^status active)
+-->
+     (make bottom-corner ^id <id> ^status done)
+     (modify 6 ^status used)
+     (modify 7 ^status used)
+     (modify 8 ^status used)
+     (modify 15 ^status used)
+     (modify 16 ^status used)
+     (modify 17 ^status used)
+     (modify 24 ^status used)
+     (modify 25 ^status used)
+     (modify 26 ^status used)
+     (modify 33 ^status used)
+     (modify 34 ^status used)
+     (modify 35 ^status used))
+
+(p orient_bottom_corner*bc1
+    (goal ^want orient ^object bottom-corner ^id <id> ^status active)
+    (face ^number 6 ^block 5 ^color <cb>)
+    (face ^number <nf> ^block 9 ^color <cb>)
+    (face ^number <nr> ^block 9 ^color <cb>)
+    (face ^number <np> ^block 9 ^color <cb>)
+    (cubie-order ^face-num <nf> ^direction dn ^adj-face-num 6
+                 ^block 7 ^adj-blk-num <abn>)
+    (face ^number 6 ^block <abn> ^color <cb>)
+    (face-relation ^front <nf> ^right <nr> ^posterior <np> 
+                   ^top 1 ^bottom 6)
+-->
+    (make vodor ^right <nr> ^bottom 6 ^id <id> ^status active))
+
+(p orient_bottom_corner*bc2
+    (goal ^want orient ^object bottom-corner ^id <id> ^status active)
+    (face ^number 6 ^block 5 ^color <cb>)
+    (face ^number <nr> ^block 7 ^color <cb>)
+    (face ^number <np> ^block 7 ^color <cb>)
+    (face ^number <nl> ^block 7 ^color <cb>)
+    (cubie-order ^face-num <nl> ^direction dn ^adj-face-num 6
+                 ^block 9 ^adj-blk-num <abn>)
+    (face ^number 6 ^block <abn> ^color <cb>)
+    (face-relation ^front <nf> ^right <nr> ^left <nl> ^posterior <np> 
+                   ^top 1 ^bottom 6)
+-->
+    (make goal ^want rotate ^object face ^number 6 ^direction pos
+               ^value 180 ^id <id> ^seq 1 ^status active)
+    (make goal ^want rotate ^object face ^number <nr> ^direction neg
+               ^value 90 ^id <id> ^seq 2 ^status active)
+    (make goal ^want rotate ^object face ^number 6 ^direction pos
+               ^value 180 ^id <id> ^seq 3 ^status active)
+    (make goal ^want rotate ^object face ^number <nr> ^direction pos
+               ^value 90 ^id <id> ^seq 4 ^status active)
+    (make goal ^want rotate ^object face ^number 6 ^direction pos
+               ^value 90 ^id <id> ^seq 5 ^status active)
+    (make goal ^want rotate ^object face ^number <nr> ^direction neg
+               ^value 90 ^id <id> ^seq 6 ^status active)
+    (make goal ^want rotate ^object face ^number 6 ^direction pos
+               ^value 90 ^id <id> ^seq 7 ^status active)
+    (make goal ^want rotate ^object face ^number <nr> ^direction pos
+               ^value 90 ^id <id> ^seq 8 ^status active))
+
+(p orient_bottom_corner*bc3
+    (goal ^want orient ^object bottom-corner ^id <id> ^status active)
+    (face ^number 6 ^block 5 ^color <cb>)
+    (face ^number <nr> ^block 7 ^color <cb>)
+    (face ^number <np> ^block 7 ^color <cb>)
+    (face ^number <np> ^block 9 ^color <cb>)
+    (face ^number <nl> ^block 9 ^color <cb>)
+    (face-relation ^front <nf> ^right <nr> ^left <nl> ^posterior <np> 
+                   ^top 1 ^bottom 6)
+-->
+    (make vodor ^right <nr> ^bottom 6 ^id <id> ^status active))
+
+(p orient_bottom_corner*bc4
+    (goal ^want orient ^object bottom-corner ^id <id> ^status active)
+    (face ^number 6 ^block 5 ^color <cb>)
+    (face ^number <nf> ^block 7 ^color <cb>)
+    (face ^number <np> ^block 9 ^color <cb>)
+    (face-relation ^front <nf> ^right <nr> ^posterior <np> 
+                   ^top 1 ^bottom 6)
+    (cubie-order ^face-num <nf> ^direction dn ^adj-face-num 6
+                 ^block 9 ^adj-blk-num <abn1>)
+    (face ^number 6 ^block <abn1> ^color <cb>)
+    (cubie-order ^face-num <np> ^direction dn ^adj-face-num 6
+                 ^block 7 ^adj-blk-num <abn2>)
+    (face ^number 6 ^block <abn2> ^color <cb>)
+-->
+    (make vodor ^right <nr> ^bottom 6 ^id <id> ^status active))
+
+(p orient_bottom_corner*bc5
+    (goal ^want orient ^object bottom-corner ^id <id> ^status active)
+    (face ^number 6 ^block 5 ^color <cb>)
+    (face ^number <nf> ^block 7 ^color <cb>)
+    (face ^number <nf> ^block 9 ^color <cb>)
+    (face-relation ^front <nf> ^right <nr> ^posterior <np> 
+                   ^top 1 ^bottom 6)
+    (cubie-order ^face-num <np> ^direction dn ^adj-face-num 6
+                 ^block 7 ^adj-blk-num <abn1>)
+    (face ^number 6 ^block <abn1> ^color <cb>)
+    (cubie-order ^face-num <np> ^direction dn ^adj-face-num 6
+                 ^block 9 ^adj-blk-num <abn2>)
+    (face ^number 6 ^block <abn2> ^color <cb>)
+-->
+    (make vodor ^right <nr> ^bottom 6 ^id <id> ^status active))
+
+(p orient_bottom_corner*bc6
+    (goal ^want orient ^object bottom-corner ^id <id> ^status active)
+    (face ^number 6 ^block 5 ^color <cb>)
+    (face ^number <nf> ^block 7 ^color <cb>)
+    (face ^number <nr> ^block 9 ^color <cb>)
+    (face-relation ^front <nf> ^right <nr> ^posterior <np> 
+                   ^top 1 ^bottom 6)
+    (cubie-order ^face-num <nf> ^direction dn ^adj-face-num 6
+                 ^block 9 ^adj-blk-num <abn1>)
+    (face ^number 6 ^block <abn1> ^color <cb>)
+    (cubie-order ^face-num <np> ^direction dn ^adj-face-num 6
+                 ^block 9 ^adj-blk-num <abn2>)
+    (face ^number 6 ^block <abn2> ^color <cb>)
+-->
+    (make vodor ^right <nr> ^bottom 6 ^id <id> ^status active))
+
+(p orient_bottom_corner*bc7
+    (goal ^want orient ^object bottom-corner ^id <id> ^status active)
+    (face ^number 6 ^block 5 ^color <cb>)
+    (face ^number <nr> ^block 7 ^color <cb>)
+    (face ^number <nr> ^block 9 ^color <cb>)
+    (face ^number <nl> ^block 7 ^color <cb>)
+    (face ^number <nl> ^block 9 ^color <cb>)
+    (face-relation ^front <nf> ^right <nr> ^left <nl> ^posterior <np> 
+                   ^top 1 ^bottom 6)
+-->
+    (make vodor ^right <nr> ^bottom 6 ^id <id> ^status active))
+
+(p orient_bottom_corner*rotate_utility
+    (goal ^want orient ^object bottom-corner ^id <id> ^status active)
+    (vodor ^right <nr> ^bottom 6 ^id <id> ^status active)
+-->
+    (modify 2 ^status used)
+    (make goal ^want rotate ^object face ^number <nr> ^direction neg
+               ^value 90 ^id <id> ^seq 1 ^status active)
+    (make goal ^want rotate ^object face ^number 6 ^direction neg
+               ^value 90 ^id <id> ^seq 2 ^status active)
+    (make goal ^want rotate ^object face ^number <nr> ^direction pos
+               ^value 90 ^id <id> ^seq 3 ^status active)
+    (make goal ^want rotate ^object face ^number 6 ^direction neg
+               ^value 90 ^id <id> ^seq 4 ^status active)
+    (make goal ^want rotate ^object face ^number <nr> ^direction neg
+               ^value 90 ^id <id> ^seq 5 ^status active)
+    (make goal ^want rotate ^object face ^number 6 ^direction pos
+               ^value 180 ^id <id> ^seq 6 ^status active)
+    (make goal ^want rotate ^object face ^number <nr> ^direction pos
+               ^value 90 ^id <id> ^seq 7 ^status active)
+    (make goal ^want rotate ^object face ^number 6 ^direction pos
+               ^value 180 ^id <id> ^seq 8 ^status active))
+
+(p position_orient_bottom_edge*make_bottom_edges
+    (goal ^want << position orient >> ^object bottom-edge ^id <id>
+          ^status active)
+   -(bottom-edge ^id <id> ^status << active done >>)
+   -(goal ^want clean-up ^object bottom-edge ^id <id> ^status active)
+    (face ^number 2 ^block 8 ^color <c28>)
+    (cubie-order ^face-num 2 ^direction dn ^adj-face-num 6
+                 ^block 8 ^adj-blk-num <blk268>)
+    (face ^number 6 ^block <blk268> ^color <c268>)
+    (face ^number 3 ^block 8 ^color <c38>)
+    (cubie-order ^face-num 3 ^direction dn ^adj-face-num 6
+                 ^block 8 ^adj-blk-num <blk368>)
+    (face ^number 6 ^block <blk368> ^color <c368>)
+    (face ^number 4 ^block 8 ^color <c48>)
+    (cubie-order ^face-num 4 ^direction dn ^adj-face-num 6
+                 ^block 8 ^adj-blk-num <blk468>)
+    (face ^number 6 ^block <blk468> ^color <c468>)
+    (face ^number 5 ^block 8 ^color <c58>)
+    (cubie-order ^face-num 5 ^direction dn ^adj-face-num 6
+                 ^block 8 ^adj-blk-num <blk568>)
+    (face ^number 6 ^block <blk568> ^color <c568>)
+-->
+    (make bottom-edge ^number 1 ^face 2 ^color <c28>
+                      ^id <id> ^status active)
+    (make bottom-edge ^number 1 ^face 6 ^color <c268>
+                      ^id <id> ^status active)
+    (make bottom-edge ^number 2 ^face 3 ^color <c38>
+                      ^id <id> ^status active)
+    (make bottom-edge ^number 2 ^face 6 ^color <c368>
+                      ^id <id> ^status active)
+    (make bottom-edge ^number 3 ^face 4 ^color <c48>
+                      ^id <id> ^status active)
+    (make bottom-edge ^number 3 ^face 6 ^color <c468>
+                      ^id <id> ^status active)
+    (make bottom-edge ^number 4 ^face 5 ^color <c58>
+                      ^id <id> ^status active)
+    (make bottom-edge ^number 4 ^face 6 ^color <c568>
+                      ^id <id> ^status active))
+
+(p position_bottom_edge*find_no_match
+     (goal ^want position ^object bottom-edge ^id <id> ^status active)
+    -(goal ^want clean-up ^object bottom-edge ^id <id> ^status active)
+    -(goal ^want rotate ^object face ^number 6 ^id <id> ^status active)
+     (bottom-edge ^number 1 ^face 2 ^id <id> ^status active)
+-->
+     (make goal ^want clean-up ^object bottom-edge ^id <id> ^status active)
+     (make vodor ^right 4 ^left 2 ^front 3 ^bottom 6 ^id <id>
+                       ^status active))
+
+(p position_bottom_edge*clean_up_bottom_edge
+    (goal ^want position ^object bottom-edge ^id <id> ^status active)
+    (goal ^want clean-up ^object bottom-edge ^id <id> ^status active)
+   -(goal ^want rotate ^object face ^id <id> ^status active)
+    (bottom-edge ^id <id> ^status active)
+-->
+    (modify 3 ^status used))
+
+(p position_bottom_edge*clean_up_bottom_edge*exit
+    (goal ^want position ^object bottom-edge ^id <id> ^status active)
+    (goal ^want clean-up ^object bottom-edge ^id <id> ^status active)
+   -(goal ^want rotate ^object face ^id <id> ^status active)
+   -(bottom-edge ^id <id> ^status active)
+-->
+    (remove 2))
+
+(p position_bottom_edge*find_one_match
+     (goal ^want position ^object bottom-edge ^id <id> ^status active)
+    -(goal ^want clean-up ^object bottom-edge ^id <id> ^status active)
+    -(goal ^want rotate ^object face ^number 6 ^id <id> ^status active)
+    -(bottom-edge ^id <id> ^status done)
+     (face ^number <nf> ^block 5 ^color <cf>)
+     (face ^number <nb> ^block 5 ^color <cb>)
+     (face-relation ^front <nf> ^right <nr> ^left <nl> ^bottom <nb>)
+     (bottom-edge ^number <n1> ^color <cf> ^status active)
+     (bottom-edge ^number <n1> ^color <cb> ^status active)
+     (bottom-edge ^number <n1> ^face <nf> ^status active)
+     (bottom-edge ^number <n1> ^face <nb> ^status active)
+-->
+     (make vodor ^right <nr> ^left <nl> ^front <nf> ^bottom <nb> ^id <id>
+                       ^status active)
+     (make goal ^want clean-up ^object bottom-edge ^id <id> ^status active))
+
+(p position_bottom_edge*match_four
+     (goal ^want position ^object bottom-edge ^id <id> ^status active)
+    -(goal ^want clean-up ^object bottom-edge ^id <id> ^status active)
+    -(goal ^want rotate ^object face ^id <id> ^status active)
+    -(bottom-edge ^id <id> ^status done)
+     (face ^number <n1f> ^block 5 ^color <c1f>)
+     (face ^number <nb> ^block 5 ^color <cb>)
+     (face-relation ^front <n1f> ^bottom <nb>)
+     (bottom-edge ^number 1 ^color <c1f> ^status active)
+     (bottom-edge ^number 1 ^color <cb> ^status active)
+     (bottom-edge ^number 1 ^face <n1f> ^status active)
+     (bottom-edge ^number 1 ^face <nb> ^status active)
+     (face ^number <n2f> ^block 5 ^color <c2f>)
+     (face-relation ^front <n2f> ^bottom <nb>)
+     (bottom-edge ^number 2 ^color <c2f> ^status active)
+     (bottom-edge ^number 2 ^color <cb> ^status active)
+     (bottom-edge ^number 2 ^face <n2f> ^status active)
+     (bottom-edge ^number 2 ^face <nb> ^status active)
+     (face ^number <n3f> ^block 5 ^color <c3f>)
+     (face-relation ^front <n3f> ^bottom <nb>)
+     (bottom-edge ^number 3 ^color <c3f> ^status active)
+     (bottom-edge ^number 3 ^color <cb> ^status active)
+     (bottom-edge ^number 3 ^face <n3f> ^status active)
+     (bottom-edge ^number 3 ^face <nb> ^status active)
+     (face ^number <n4f> ^block 5 ^color <c4f>)
+     (face-relation ^front <n4f> ^bottom <nb>)
+     (bottom-edge ^number 4 ^color <c4f> ^status active)
+     (bottom-edge ^number 4 ^color <cb> ^status active)
+     (bottom-edge ^number 4 ^face <n4f> ^status active)
+     (bottom-edge ^number 4 ^face <nb> ^status active)
+-->
+     (make bottom-edge ^id <id> ^status done)
+     (modify 5 ^status used)
+     (modify 6 ^status used)
+     (modify 11 ^status used)
+     (modify 12 ^status used)
+     (modify 17 ^status used)
+     (modify 18 ^status used)
+     (modify 23 ^status used)
+     (modify 24 ^status used))
+
+(p orient_bottom_edge*be1
+     (goal ^want orient ^object bottom-edge ^id <id> ^status active)
+    -(goal ^want clean-up ^object bottom-edge ^id <id> ^status active)
+    -(goal ^want rotate ^object face ^id <id> ^status active)
+    -(bottom-edge ^id <id> ^status done)
+     (face ^number {2 <nf>} ^block 5 ^color <cf>)
+     (face ^number <nb> ^block 5 ^color <cb>)
+     (face-relation ^front <nf> ^posterior <np> ^right <nr> ^left <nl>
+                    ^bottom <nb>)
+     (bottom-edge ^number <n1> ^face <nf> ^color <cb> ^status active)
+     (bottom-edge ^number <n1> ^face <nb> ^color <cf> ^status active)
+     (face ^number <nr> ^block 5 ^color <cr>)
+     (bottom-edge ^number <n2> ^face <nr> ^color <cb> ^status active)
+     (bottom-edge ^number <n2> ^face <nb> ^color <cr> ^status active)
+     (face ^number <np> ^block 5 ^color <cp>)
+     (bottom-edge ^number <n3> ^face <np> ^color <cb> ^status active)
+     (bottom-edge ^number <n3> ^face <nb> ^color <cp> ^status active)
+     (face ^number <nl> ^block 5 ^color <cl>)
+     (bottom-edge ^number <n4> ^face <nl> ^color <cb> ^status active)
+     (bottom-edge ^number <n4> ^face <nb> ^color <cl> ^status active)
+-->
+     (make bottom-edge ^id <id> ^status done)
+     (modify 5 ^status used)
+     (modify 6 ^status used)
+     (modify 8 ^status used)
+     (modify 9 ^status used)
+     (modify 11 ^status used)
+     (modify 12 ^status used)
+     (modify 14 ^status used)
+     (modify 15 ^status used)
+     (make goal ^want rotate ^object face ^number <nl> ^direction neg
+               ^value 90 ^id <id> ^seq 1 ^status active)
+     (make goal ^want rotate ^object face ^number <nr> ^direction pos
+               ^value 90 ^id <id> ^seq 2 ^status active)
+     (make goal ^want rotate ^object face ^number <nf> ^direction pos
+               ^value 180 ^id <id> ^seq 3 ^status active)
+     (make goal ^want rotate ^object face ^number <nl> ^direction pos
+               ^value 90 ^id <id> ^seq 4 ^status active)
+     (make goal ^want rotate ^object face ^number <nr> ^direction neg
+               ^value 90 ^id <id> ^seq 5 ^status active)
+     (make goal ^want rotate ^object face ^number <nb> ^direction pos
+               ^value 180 ^id <id> ^seq 6 ^status active)
+     (make goal ^want rotate ^object face ^number <nl> ^direction neg
+               ^value 90 ^id <id> ^seq 7 ^status active)
+     (make goal ^want rotate ^object face ^number <nr> ^direction pos
+               ^value 90 ^id <id> ^seq 8 ^status active)
+     (make goal ^want rotate ^object face ^number <nf> ^direction pos
+               ^value 90 ^id <id> ^seq 9 ^status active)
+     (make goal ^want rotate ^object face ^number <nl> ^direction pos
+               ^value 90 ^id <id> ^seq 10 ^status active)
+     (make goal ^want rotate ^object face ^number <nr> ^direction neg
+               ^value 90 ^id <id> ^seq 11 ^status active)
+     (make goal ^want rotate ^object face ^number <nb> ^direction pos
+               ^value 180 ^id <id> ^seq 12 ^status active)
+     (make goal ^want rotate ^object face ^number <nl> ^direction neg
+               ^value 90 ^id <id> ^seq 13 ^status active)
+     (make goal ^want rotate ^object face ^number <nr> ^direction pos
+               ^value 90 ^id <id> ^seq 14 ^status active)
+     (make goal ^want rotate ^object face ^number <nf> ^direction pos
+               ^value 180 ^id <id> ^seq 15 ^status active)
+     (make goal ^want rotate ^object face ^number <nl> ^direction pos
+               ^value 90 ^id <id> ^seq 16 ^status active)
+     (make goal ^want rotate ^object face ^number <nr> ^direction neg
+               ^value 90 ^id <id> ^seq 17 ^status active)
+     (make goal ^want rotate ^object face ^number <nb> ^direction neg
+               ^value 90 ^id <id> ^seq 18 ^status active))
+
+(p orient_bottom_edge*be2
+     (goal ^want orient ^object bottom-edge ^id <id> ^status active)
+    -(goal ^want clean-up ^object bottom-edge ^id <id> ^status active)
+    -(goal ^want rotate ^object face ^id <id> ^status active)
+    -(bottom-edge ^id <id> ^status done)
+     (face ^number <nf> ^block 5 ^color <cf>)
+     (face ^number <nb> ^block 5 ^color <cb>)
+     (face-relation ^front <nf> ^posterior <np> ^right <nr> ^left <nl>
+                    ^bottom <nb>)
+     (bottom-edge ^number <n1> ^face <nf> ^color <cb> ^status active)
+     (bottom-edge ^number <n1> ^face <nb> ^color <cf> ^status active)
+     (face ^number <nr> ^block 5 ^color <cr>)
+     (bottom-edge ^number <n2> ^face <nr> ^color <cr> ^status active)
+     (bottom-edge ^number <n2> ^face <nb> ^color <cb> ^status active)
+     (face ^number <np> ^block 5 ^color <cp>)
+     (bottom-edge ^number <n3> ^face <np> ^color <cb> ^status active)
+     (bottom-edge ^number <n3> ^face <nb> ^color <cp> ^status active)
+     (face ^number <nl> ^block 5 ^color <cl>)
+     (bottom-edge ^number <n4> ^face <nl> ^color <cl> ^status active)
+     (bottom-edge ^number <n4> ^face <nb> ^color <cb> ^status active)
+-->
+     (make bottom-edge ^id <id> ^status done)
+     (modify 5 ^status used)
+     (modify 6 ^status used)
+     (modify 8 ^status used)
+     (modify 9 ^status used)
+     (modify 11 ^status used)
+     (modify 12 ^status used)
+     (modify 14 ^status used)
+     (modify 15 ^status used)
+     (make goal ^want rotate ^object face ^number <nl> ^direction neg
+               ^value 90 ^id <id> ^seq 1 ^status active)
+     (make goal ^want rotate ^object face ^number <nr> ^direction pos
+               ^value 90 ^id <id> ^seq 2 ^status active)
+     (make goal ^want rotate ^object face ^number <nf> ^direction pos
+               ^value 90 ^id <id> ^seq 3 ^status active)
+     (make goal ^want rotate ^object face ^number <nl> ^direction pos
+               ^value 90 ^id <id> ^seq 4 ^status active)
+     (make goal ^want rotate ^object face ^number <nr> ^direction neg
+               ^value 90 ^id <id> ^seq 5 ^status active)
+     (make goal ^want rotate ^object face ^number <nb> ^direction pos
+               ^value 90 ^id <id> ^seq 6 ^status active)
+     (make goal ^want rotate ^object face ^number <nl> ^direction neg
+               ^value 90 ^id <id> ^seq 7 ^status active)
+     (make goal ^want rotate ^object face ^number <nr> ^direction pos
+               ^value 90 ^id <id> ^seq 8 ^status active)
+     (make goal ^want rotate ^object face ^number <nf> ^direction pos
+               ^value 90 ^id <id> ^seq 9 ^status active)
+     (make goal ^want rotate ^object face ^number <nl> ^direction pos
+               ^value 90 ^id <id> ^seq 10 ^status active)
+     (make goal ^want rotate ^object face ^number <nr> ^direction neg
+               ^value 90 ^id <id> ^seq 11 ^status active)
+     (make goal ^want rotate ^object face ^number <nb> ^direction pos
+               ^value 90 ^id <id> ^seq 12 ^status active)
+     (make goal ^want rotate ^object face ^number <nl> ^direction neg
+               ^value 90 ^id <id> ^seq 13 ^status active)
+     (make goal ^want rotate ^object face ^number <nr> ^direction pos
+               ^value 90 ^id <id> ^seq 14 ^status active)
+     (make goal ^want rotate ^object face ^number <nf> ^direction pos
+               ^value 180 ^id <id> ^seq 15 ^status active)
+     (make goal ^want rotate ^object face ^number <nl> ^direction pos
+               ^value 90 ^id <id> ^seq 16 ^status active)
+     (make goal ^want rotate ^object face ^number <nr> ^direction neg
+               ^value 90 ^id <id> ^seq 17 ^status active)
+     (make goal ^want rotate ^object face ^number <nb> ^direction pos
+               ^value 90 ^id <id> ^seq 18 ^status active)
+     (make goal ^want rotate ^object face ^number <nl> ^direction neg
+               ^value 90 ^id <id> ^seq 19 ^status active)
+     (make goal ^want rotate ^object face ^number <nr> ^direction pos
+               ^value 90 ^id <id> ^seq 20 ^status active)
+     (make goal ^want rotate ^object face ^number <nf> ^direction pos
+               ^value 90 ^id <id> ^seq  21 ^status active)
+     (make goal ^want rotate ^object face ^number <nl> ^direction pos
+               ^value 90 ^id <id> ^seq 22 ^status active)
+     (make goal ^want rotate ^object face ^number <nr> ^direction neg
+               ^value 90 ^id <id> ^seq 23 ^status active)
+     (make goal ^want rotate ^object face ^number <nb> ^direction pos
+               ^value 90 ^id <id> ^seq 24 ^status active)
+     (make goal ^want rotate ^object face ^number <nl> ^direction neg
+               ^value 90 ^id <id> ^seq 25 ^status active)
+     (make goal ^want rotate ^object face ^number <nr> ^direction pos
+               ^value 90 ^id <id> ^seq 26 ^status active)
+     (make goal ^want rotate ^object face ^number <nf> ^direction pos
+               ^value 90 ^id <id> ^seq 27 ^status active)
+     (make goal ^want rotate ^object face ^number <nl> ^direction pos
+               ^value 90 ^id <id> ^seq 28 ^status active)
+     (make goal ^want rotate ^object face ^number <nr> ^direction neg
+               ^value 90 ^id <id> ^seq 29 ^status active)
+     (make goal ^want rotate ^object face ^number <nb> ^direction pos
+               ^value 180 ^id <id> ^seq 30 ^status active))
+
+(p orient_bottom_edge*be3
+     (goal ^want orient ^object bottom-edge ^id <id> ^status active)
+    -(goal ^want clean-up ^object bottom-edge ^id <id> ^status active)
+    -(goal ^want rotate ^object face ^id <id> ^status active)
+    -(bottom-edge ^id <id> ^status done)
+     (face ^number <nf> ^block 5 ^color <cf>)
+     (face ^number <nb> ^block 5 ^color <cb>)
+     (face-relation ^front <nf> ^posterior <np> ^right <nr> ^left <nl>
+                    ^bottom <nb>)
+     (bottom-edge ^number <n1> ^face <nf> ^color <cf> ^status active)
+     (bottom-edge ^number <n1> ^face <nb> ^color <cb> ^status active)
+     (face ^number <nr> ^block 5 ^color <cr>)
+     (bottom-edge ^number <n2> ^face <nr> ^color <cr> ^status active)
+     (bottom-edge ^number <n2> ^face <nb> ^color <cb> ^status active)
+     (face ^number <np> ^block 5 ^color <cp>)
+     (bottom-edge ^number <n3> ^face <np> ^color <cb> ^status active)
+     (bottom-edge ^number <n3> ^face <nb> ^color <cp> ^status active)
+     (face ^number <nl> ^block 5 ^color <cl>)
+     (bottom-edge ^number <n4> ^face <nl> ^color <cb> ^status active)
+     (bottom-edge ^number <n4> ^face <nb> ^color <cl> ^status active)
+     (goal ^id <oldid>)
+    -(goal ^id > <oldid>)
+-->
+     (modify 1 ^status done)
+     (modify 1 ^want position ^object bottom-edge ^id (compute <oldid> + 1)
+                ^status active)
+     (make bottom-edge ^id <id> ^status done)
+     (modify 5 ^status used)
+     (modify 6 ^status used)
+     (modify 8 ^status used)
+     (modify 9 ^status used)
+     (modify 11 ^status used)
+     (modify 12 ^status used)
+     (modify 14 ^status used)
+     (modify 15 ^status used)
+     (make goal ^want rotate ^object face ^number <nl> ^direction neg
+               ^value 90 ^id <id> ^seq 1 ^status active)
+     (make goal ^want rotate ^object face ^number <nr> ^direction pos
+               ^value 90 ^id <id> ^seq 2 ^status active)
+     (make goal ^want rotate ^object face ^number <nf> ^direction pos
+               ^value 90 ^id <id> ^seq 3 ^status active)
+     (make goal ^want rotate ^object face ^number <nl> ^direction pos
+               ^value 90 ^id <id> ^seq 4 ^status active)
+     (make goal ^want rotate ^object face ^number <nr> ^direction neg
+               ^value 90 ^id <id> ^seq 5 ^status active)
+     (make goal ^want rotate ^object face ^number <nb> ^direction neg
+               ^value 90 ^id <id> ^seq 6 ^status active)
+     (make goal ^want rotate ^object face ^number <nl> ^direction neg
+               ^value 90 ^id <id> ^seq 7 ^status active)
+     (make goal ^want rotate ^object face ^number <nr> ^direction pos
+               ^value 90 ^id <id> ^seq 8 ^status active)
+     (make goal ^want rotate ^object face ^number <nf> ^direction neg
+               ^value 90 ^id <id> ^seq 9 ^status active)
+     (make goal ^want rotate ^object face ^number <nl> ^direction pos
+               ^value 90 ^id <id> ^seq 10 ^status active)
+     (make goal ^want rotate ^object face ^number <nr> ^direction neg
+               ^value 90 ^id <id> ^seq 11 ^status active)
+     (make goal ^want rotate ^object face ^number <nb> ^direction neg
+               ^value 90 ^id <id> ^seq 12 ^status active)
+     (make goal ^want rotate ^object face ^number <nl> ^direction neg
+               ^value 90 ^id <id> ^seq 13 ^status active)
+     (make goal ^want rotate ^object face ^number <nr> ^direction pos
+               ^value 90 ^id <id> ^seq 14 ^status active)
+     (make goal ^want rotate ^object face ^number <nf> ^direction pos
+               ^value 180 ^id <id> ^seq 15 ^status active)
+     (make goal ^want rotate ^object face ^number <nl> ^direction pos
+               ^value 90 ^id <id> ^seq 16 ^status active)
+     (make goal ^want rotate ^object face ^number <nr> ^direction neg
+               ^value 90 ^id <id> ^seq 17 ^status active))
+
+(p orient_position_bottom_edge*rotate_utility
+    (goal ^want { << orient position >> <w> } ^object bottom-edge ^id <id>
+          ^status active)
+    (vodor ^right <nr> ^left <nl> ^front <nf> ^bottom <nb> ^id <id>
+          ^status active)
+-->
+    (modify 2 ^status used)
+    (make goal ^want rotate ^object face ^number <nl> ^direction neg
+               ^value 90 ^id <id> ^seq 1 ^status active)
+    (make goal ^want rotate ^object face ^number <nr> ^direction pos
+               ^value 90 ^id <id> ^seq 2 ^status active)
+    (make goal ^want rotate ^object face ^number <nf> ^direction pos
+               ^value 90 ^id <id> ^seq 3 ^status active)
+    (make goal ^want rotate ^object face ^number <nl> ^direction pos
+               ^value 90 ^id <id> ^seq 4 ^status active)
+    (make goal ^want rotate ^object face ^number <nr> ^direction neg
+               ^value 90 ^id <id> ^seq 5 ^status active)
+    (make goal ^want rotate ^object face ^number <nb> ^direction pos
+               ^value 180 ^id <id> ^seq 6 ^status active)
+    (make goal ^want rotate ^object face ^number <nl> ^direction neg
+               ^value 90 ^id <id> ^seq 7 ^status active)
+    (make goal ^want rotate ^object face ^number <nr> ^direction pos
+               ^value 90 ^id <id> ^seq 8 ^status active)
+    (make goal ^want rotate ^object face ^number <nf> ^direction pos
+               ^value 90 ^id <id> ^seq 9 ^status active)
+    (make goal ^want rotate ^object face ^number <nl> ^direction pos
+               ^value 90 ^id <id> ^seq 10 ^status active)
+    (make goal ^want rotate ^object face ^number <nr> ^direction neg
+               ^value 90 ^id <id> ^seq 11 ^status active))
+
+
+
+
+
+
+
+
+
+
+

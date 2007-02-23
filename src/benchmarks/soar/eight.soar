@@ -1,0 +1,269 @@
+(comment eight puzzle for soar 35)
+
+
+(comment this is the eight puzzle problem)
+(comment state structure 
+	each state contains nine bindings
+	the bindings connect together a cell -
+	one of the nine positions on the board -
+	and a tile - one of the movable pieces 
+	the cells have pointers ^cell to each of their
+	adjacent cells 
+	the state also has a pointer to the blank-cell and the cell
+	that the last moved tile is in  this improve efficiency and
+	simplify computations that depend on the previous operator)
+
+(comment each operator contains a pointer to the cell with the blank
+	and the cell with the tile to be moved)
+
+
+
+(multi-attributes  '((state binding 5) (desired binding 5)
+	(operator blank 3) (operator cell 2) (cell cell 4)))
+
+(trace-attributes '((operator tile-cell))) 
+
+(comment name the first subgoal eight-puzzle and create the 
+		problem space and operators)
+
+(sp eight*start
+    (gc <g> ^problem-space undecided - ^supergoal)
+    -->
+    (gc <g> ^name solve-eight-puzzle ^impasse <d> ^desired <d>)
+    (problem-space <p> ^name eight-puzzle)
+    (preference	 <p> ^role problem-space ^value acceptable 
+	^goal <g>))
+
+(comment define the initial state and the impasse state
+		each state is a set of bindings 
+		each binding points to a cell and a tile
+		each cell points to its neighboring cells)
+
+(sp eight*initial-desired-states
+  (gc <g> ^problem-space <p> ^state undecided
+	^name solve-eight-puzzle ^desired <d>)
+  (space <p> ^name eight-puzzle)
+  -->
+  (preference <s> ^role state ^value acceptable
+           ^goal <g> ^problem-space <p> ^state undecided)
+  (tile <t0> ^name 0)   (tile <t1> ^name 1)   (tile <t2> ^name 2)
+  (tile <t3> ^name 3)   (tile <t4> ^name 4)   (tile <t5> ^name 5)
+  (tile <t6> ^name 6)   (tile <t7> ^name 7)   (tile <t8> ^name 8)
+
+  (binding <bb0> ^cell c11 ^tile <t2>) 
+  (binding <bb1> ^cell c12 ^tile <t1>)
+  (binding <bb2> ^cell c13 ^tile <t7>)
+  (binding <bb3> ^cell c21 ^tile <t8>)
+  (binding <bb4> ^cell c22 ^tile <t6>)
+  (binding <bb5> ^cell c23 ^tile <t0>)
+  (binding <bb6> ^cell c31 ^tile <t3>)
+  (binding <bb7> ^cell c32 ^tile <t4>)
+  (binding <bb8> ^cell c33 ^tile <t5>)
+  (state <s> ^binding <bb0> <bb1> <bb2> <bb3>
+	<bb4> <bb5> <bb6> <bb7> <bb8> ^blank-cell c23)
+  (cell c11 ^cell c12 ^cell c21)
+  (cell c12 ^cell c11 ^cell c13 ^cell c22) 
+  (cell c13 ^cell c12 ^cell c23)
+  (cell c21 ^cell c11 ^cell c31 ^cell c22)
+  (cell c22 ^cell c21 ^cell c12 ^cell c23 ^cell c32)
+  (cell c23 ^cell c22 ^cell c33 ^cell c13)
+  (cell c31 ^cell c32 ^cell c21)
+  (cell c32 ^cell c31 ^cell c22 ^cell c33)
+  (cell c33 ^cell c32 ^cell c23)
+
+  (binding <d1> ^cell c11 ^tile <t1>)
+  (binding <d2> ^cell c12 ^tile <t8>)
+  (binding <d3> ^cell c13 ^tile <t7>)
+  (binding <d8> ^cell c21 ^tile <t2>)
+  (binding <d0> ^cell c22 ^tile <t0>)
+  (binding <d4> ^cell c23 ^tile <t6>)
+  (binding <d7> ^cell c31 ^tile <t3>)
+  (binding <d6> ^cell c32 ^tile <t4>)
+  (binding <d5> ^cell c33 ^tile <t5>)
+  (desired <d> ^binding <d0> <d1> <d2> <d3> <d4>
+	<d5> <d6> <d7> <d8>)
+  (evaluation <d> ^better higher)
+)
+
+(comment create an operator if it will apply)
+
+(sp eight*acceptable 
+  (gc <g> ^problem-space <p> ^state <s>)
+  (problem-space <p> ^name eight-puzzle)
+  (state <s> ^blank-cell <c1>)
+  (cell <c1> ^cell <c2>)
+ -(op-info ^attribute state ^value <s>)
+  -->
+  (operator <q> ^name move-tile ^state <s> ^tile-cell <c2> ^blank-cell <c1>)
+  (preference <q> ^role operator ^value acceptable
+	^goal <g> ^problem-space <p> ^state <s>))
+
+
+
+(comment reject the operator that was applied to create this state)
+
+(sp eight*reject-undo
+  (gc <g> ^problem-space <p> ^state <s>)
+  (problem-space <p> ^name eight-puzzle)
+  (state <s> ^tile-cell <tc>)
+  (preference <q> ^role operator ^value acceptable
+	^problem-space <p> ^state <s>)
+  (operator <q> ^tile-cell <tc>)
+  -->
+  (preference <q> ^role operator ^value reject
+	 ^goal <g> ^problem-space <p> ^state <s>))
+
+
+
+(comment apply operator to state and copy unchanged bindings new state)
+
+(comment swap blank binding and one specified by operator)
+
+(sp eight*apply-move-tile
+  (gc <g> ^problem-space <p> ^state <s> ^operator <q>)
+  (problem-space <p> ^name eight-puzzle)
+  (state <s> ^binding <b1> <b2> ^blank-cell <c1>)
+  (binding <b1> ^tile <t1> ^cell <c1>)
+  (binding <b2> ^tile <t2> ^cell <c2>)
+  (operator <q> ^tile-cell <c2> ^blank-cell <c1> ^name move-tile)
+  -->
+  (preference <s2> ^role state ^value acceptable
+	 ^goal <g> ^problem-space <p> ^state <s> ^operator <q>)
+  (state <s2> ^blank-cell <c2> ^tile-cell <c1>
+	^binding <b3> ^binding <b4>)
+  (binding <b3> ^tile <t2> ^cell <c1>)
+  (binding <b4> ^tile <t1> ^cell <c2>)
+)
+
+(comment copy pointers to all untouched bindings)
+
+(sp eight*copy-unchanged
+  (gc <g> ^problem-space <p> ^state <s> ^operator <q>)
+  (problem-space <p> ^name eight-puzzle)
+  (preference <n> ^role state ^value acceptable
+	 ^problem-space <p> ^state { <> nil <s> } ^operator { <> nil <q> })
+  (state <s> ^binding <b>)
+  (binding <b> ^cell <c>)
+  (state <n> -^tile-cell <c> -^blank-cell <c>)
+  -->
+  (state <n> ^binding <b>))
+
+(comment detect success)
+
+(sp eight*detect-goal
+  (gc <g> ^problem-space <p> ^state <s> ^desired <d>)
+  (space <p> ^name eight-puzzle)
+  (state <s> ^binding <x11> <x12> <x13> <x21> <x22> <x23>
+	 <x31> <x32> <x33>)
+  (binding <x11> ^cell c11 ^tile <o11>)
+  (binding <x12> ^cell c12 ^tile <o12>)
+  (binding <x13> ^cell c13 ^tile <o13>)
+  (binding <x21> ^cell c21 ^tile <o21>)
+  (binding <x22> ^cell c22 ^tile <o22>)
+  (binding <x23> ^cell c23 ^tile <o23>)
+  (binding <x31> ^cell c31 ^tile <o31>)
+  (binding <x32> ^cell c32 ^tile <o32>)
+  (binding <x33> ^cell c33 ^tile <o33>)
+  (desired <d>
+	 ^binding <d11> <d12> <d13> <d21> <d22> <d23>
+	 <d31> <d32> <d33>)
+  (binding <d11> ^cell c11 ^tile <o11>)
+  (binding <d12> ^cell c12 ^tile <o12>)
+  (binding <d13> ^cell c13 ^tile <o13>)
+  (binding <d21> ^cell c21 ^tile <o21>)
+  (binding <d22> ^cell c22 ^tile <o22>)
+  (binding <d23> ^cell c23 ^tile <o23>)
+  (binding <d31> ^cell c31 ^tile <o31>)
+  (binding <d32> ^cell c32 ^tile <o32>)
+  (binding <d33> ^cell c33 ^tile <o33>)
+  -->
+  (state <s> ^success <d>))
+
+(comment monitor new states)
+
+(sp eight*monitor
+  (gc <g> ^problem-space <p> ^state <s> ^operator <q>)
+  (problem-space <p> ^name eight-puzzle)
+  (preference <n> ^role state ^value acceptable
+	 ^problem-space <p> ^state <s> ^operator <q>)
+  (operator <q> ^tile-cell <qname>)
+  (state <n> ^binding <x11> <x12> <x13> <x21> <x22> <x23>
+	 <x31> <x32> <x33>)
+  (binding <x11> ^cell c11 ^tile <o11>)
+  (binding <x12> ^cell c12 ^tile <o12>)
+  (binding <x13> ^cell c13 ^tile <o13>)
+  (binding <x21> ^cell c21 ^tile <o21>)
+  (binding <x22> ^cell c22 ^tile <o22>)
+  (binding <x23> ^cell c23 ^tile <o23>)
+  (binding <x31> ^cell c31 ^tile <o31>)
+  (binding <x32> ^cell c32 ^tile <o32>)
+  (binding <x33> ^cell c33 ^tile <o33>)
+  (tile <o11> ^name <v11>)
+  (tile <o12> ^name <v12>)
+  (tile <o13> ^name <v13>)
+  (tile <o21> ^name <v21>)
+  (tile <o22> ^name <v22>)
+  (tile <o23> ^name <v23>)
+  (tile <o31> ^name <v31>)
+  (tile <o32> ^name <v32>)
+  (tile <o33> ^name <v33>)
+  -->
+  (write2 (crlf) (crlf) <qname> "(" <s> ") --> " <n> (crlf))
+  (write1 "     -------------" (crlf))
+  (write1 "     |" <v11> "|" <v21> "|" <v31> "|" (crlf))
+  (write1 "     |---|---|---|" (crlf))
+  (write1 "     |" <v12> "|" <v22> "|" <v32> "|" (crlf))
+  (write1 "     |---|---|---|" (crlf))
+  (write1 "     |" <v13> "|" <v23> "|" <v33> "|" (crlf))
+  (write1 "     -------------" (crlf)))
+
+
+(comment compute evaluation function based on changes by operators)
+(comment 1 point for moving binding into its impasse location)
+
+(sp eight*eval-state-plus-one
+   (gc <g> ^problem-space <p> ^state { <> <ss> <s> } ^superoperator <sq>)
+   (problem-space <p> ^name eight-puzzle)
+   (operator <sq> ^name evaluate-object ^evaluation <e> 
+	^superstate <ss> ^desired <d>)
+   (state <s> ^tile-cell <c1> ^binding <b1>)
+   (binding <b1> ^cell <c1> ^tile <v1>)
+   (desired <d> ^binding <b2>)
+   (binding <b2> ^cell <c1> ^tile <v1>)
+   -->
+   (evaluation <e> ^numeric-value 1))
+
+(comment 0 points for not moving tile in or out of its impasse cell)
+
+(sp eight*eval-state-zero
+   (gc <g> ^problem-space <p> ^state { <> <ss> <s> } ^superoperator <sq>)
+   (space <p> ^name eight-puzzle)
+   (operator <sq> ^name evaluate-object ^evaluation <e>
+	^desired <d> ^superstate <ss>)
+   (state <s> ^tile-cell <c1> ^blank-cell <c0>
+	^binding <b1> <b2> <b3>)
+   (binding <b1> ^cell <c1> ^tile <v1>)
+   (binding <b2> ^tile <v2>)
+   (binding <b3> ^tile <v3>)
+   (desired <d> ^binding <b4> <b5>)
+   (binding <b4> ^cell <c1> ^tile { <> <v1> <v2> })
+   (binding <b5> ^cell <c0> ^tile { <> <v1> <v3> })
+   -->
+   (evaluation <e> ^numeric-value 0))
+
+
+(comment -1 points for moving tile out of its impasse cell)
+
+(sp eight*eval-state-minus-one
+   (gc <g> ^problem-space <p> ^state { <> <ss> <s> } ^superoperator <sq>)
+   (space <p> ^name eight-puzzle)
+   (operator <sq> ^name evaluate-object ^evaluation <e>
+	^desired <d> ^superstate <ss>)
+   (state <s>  ^tile-cell <c1> ^binding <b1> ^blank-cell <c0>)
+   (binding <b1> ^cell <c1> ^tile <v1>)
+   (desired <d> ^binding <b2>)
+   (binding <b2> ^cell <c0> ^tile <v1>)
+   -->
+   (evaluation <e> ^numeric-value -1))
+
+nil

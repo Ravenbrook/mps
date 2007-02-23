@@ -1,0 +1,132 @@
+DESCRIPTION OF THE CMU COMMON LISP LIBRARY AND CATALOG ENTRY FORMAT.
+
+The CMU Common Lisp library contains a variety of useful or interesting
+software packages written by users of CMU Common Lisp.  Each entry is contained
+in its own subdirectory.  The CATALOG.TXT describes every entry in the library.
+Two subdirectories are for library maintainers, library-broken and
+library-maintenance.
+
+To submit a program for inclusion in the library, send mail to Gripe
+pointing to the relevant files and providing the information for the
+catalog entry in the format described below.  The library maintainers will
+verify that the program runs as documented in the current Lisp, has no
+crippling bugs, and that the functionality is not duplicated in some other
+program; then we will add the program to the library.  Programs that are
+made obsolete by later submissions may be dropped from the library, after
+due notice is given to the user community.  Some programs may be deemed so
+useful that they will be included in the standard CMU Common Lisp system.
+
+All source files must be included for each software package in the library.
+Whenever possible, a program should be submitted as a single large file
+rather than as a collection of smaller files; this will help to minimize
+version-control problems.
+
+Note: We plan to distribute this software freely over the Arpanet and we
+may set up some mechanism to provide non-arpanet users with tapes.  We can
+in general accept only public-domain code (anything with no copyright
+notice in the source will be assumed to be in the public domain) and code
+for which Carnegie-Mellon University holds the copyright.  If you have any
+code of commercial value, the copyright system provides little real
+protection in any case.
+
+Bugs in library programs not listed in the "bugs" section of the program's
+description should be reported to the maintainer listed below (or to the
+author if there is no maintainer), with CC to Gripe.
+
+Send any questions or comments to Gripe.
+
+
+CATALOG ENTRY FORMAT FOR CATALOG.TXT.
+
+Each entry is on a separate page, separated by the page mark Control-L.
+
+Each entry consists of fields.  Each new field begins on a fresh line with a
+field name terminated by a colon.  Then on a new line, indented at least one
+space, is an arbitrary amount of text.  This somewhat rigid format is designed
+to make it easy to build various sorts of software to automatically manipulate
+catalogs, but the indentation is simply a convenience for paragraph
+manipulation and filling commands in the editor.  The field names are sensitive
+to spelling, but insensitive to case and extra whitespace.
+
+The following is a specification of the possible fields in the catalog format:
+
+Name:		or
+Module Name:
+   This specifies the name of the program or set of programs.  If the supplier
+of the entry does not specify a Package Name, then this is the package in which
+the code lives.
+
+Package Name:
+   If the programs are loaded into a package of their own, this is the name of
+that package.  If the supplier of the entry does not specify a Name or Module
+Name, the package name will be used as the name for everything.
+
+Description:
+   This is a brief description of what the program does.
+
+Author:
+   This is the name of the author, or "anonymous".
+
+Maintainer:
+   This is the name of the current maintainer, if different from the author.
+If a program is not being maintained by anyone, the Maintainer is "none".
+
+Address:		or
+Address of Author:	or
+Address of Maintainer:
+   This is the physical mailing address of the author or maintainer.  If the
+field is just "address", it is assumed to be the maintainer if one is
+specified, and the author otherwise.
+
+Net Address:			or
+Net Address of Author:		or
+Net Address of Maintainer:
+   This is a network address that can be reached from the arpanet.
+
+Copyright Status:
+   This is "Public domain.", or some sort of copyright notice.
+
+Files:
+   This is a list of the files that constitute this facility.  For example, a
+system named "Foo" may be distributed as files "foo.lisp", "foo.fasl", and
+(optionally) "foo.doc" or "foo.PS" for documentation.  In order to minimize
+maintenance headaches and encourage people to build on the work of others, we
+want all programs in the library to include complete sources.
+
+How to Get:
+   This can either be a shell command using such programs as lcp or cp, or
+there may be a .cmd file that will copy all the sources, binaries, catalog, and
+log files to the user's current directory.  This .cmd file will try to preserve
+write date (such as using -p with cp).
+
+Portability:
+   If the program will run in any legal Common Lisp, say so.  If there are
+known dependencies on CMU Common Lisp specific or Mach/RT specific features,
+describe them here.  Programs relying on CLX, CLOS, etc. should be considered
+to have a high expectation of portability.
+
+Dependencies:
+   If the program requires other library packages not built into the standard
+CMU Common Lisp core image, list those other packages here.
+
+Instructions:
+   Place here any instructions for use that are too lengthy to be mere
+documentation strings, but that are not lengthy enough to deserve a separate
+document.
+
+Recent Changes:
+   What is different between this version and the one that preceded it, if any.
+(May go back several versions at the author's discretion.)
+
+Bugs:
+   Describe here any known bugs or treacherous features.
+
+Future Plans:
+   Describe here any improvements planned by the author.
+
+Wish List:
+   Describe here any desirable features that the author does not plan to work
+on in the near future.
+
+Notes:
+   This is anything else that users or potential users ought to know about.

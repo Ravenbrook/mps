@@ -1,0 +1,298 @@
+========================== C M U C L  19 b =============================
+
+The CMUCL project is pleased to announce the release of CMUCL 19b.
+This is a major release which contains numerous enhancements and
+bugfixes from the 19a release.
+
+CMUCL is a free, high performance implementation of the Common Lisp
+programming language which runs on most major Unix platforms. It
+mainly conforms to the ANSI Common Lisp standard. CMUCL provides a
+sophisticated native code compiler; a powerful foreign function
+interface; an implementation of CLOS, the Common Lisp Object System,
+which includes multimethods and a metaobject protocol; a source-level
+debugger and code profiler; and an Emacs-like editor implemented in
+Common Lisp. CMUCL is maintained by a team of volunteers collaborating
+over the Internet, and is mostly in the public domain.
+
+New in this release:
+
+  * Newly supported platforms:
+
+      - CMUCL has been ported to Mac OS X. The port includes support for
+        callbacks from foreign code, and linkage-table support (which
+        makes it possible to dump images that contain references to
+        foreign code).
+      - the NetBSD/x86 platform is supported, with generational
+        conservative garbage collection (the :gencgc *feature*),
+        linkage-table support, and the Motif interface. 
+
+
+  * Feature enhancements:
+
+      - Added a much faster and much less consy bignum printer and a
+        faster bignum reader.
+      - Extended REQUIRE to support *MODULE-PROVIDER-FUNCTIONS* from
+        SBCL.
+      - SIMPLE-STREAM fixes:
+           o READ-SEQUENCE and WRITE-SEQUENCE for
+             signed-byte/unsigned-byte 8 streams.
+	   o Memory-mapped file streams.
+      - Large file support for Solaris, so CMUCL can handle files
+        larger than 2GB.
+      - A much faster GCD implementation.
+      - A faster Karatsuba multiplier when the number of words of the
+        bignums is not a power of 2.  (Break-even is still around 1500
+        bits, though.)
+      - New command-line switch -debug-lisp-search to show how lisp is
+        searching for its core file.
+      - DEBUG-RETURN implemented which allows you to return a value
+        from function.  Only enabled with DEBUG 3.
+      - Lazy sxhash on symbols implemented for ppc.
+      - Pretty-printer for LOOP.
+      - Added some more pprinters for various forms.
+      - Loop analysis code added to the compiler.  It's incorporated
+        into the build and can be enabled by setting *loop-analyze* to
+        T, but the compiler doesn't use the loop information for
+        anything yet.
+      - Errors from socket functions signal a SOCKET-ERROR instead of
+        a generic ERROR condition. 
+      - Efficiency notes are no longer printed if inhibit-warnings >=
+        2.5.
+      - Simple support for datagram networking added: INET-RECVFROM,
+        INET-SENDTO, INET-SHUTDOWN.
+      - MAKE-INDENTING-STREAM and INDENTING-STREAM-P are exported from
+        the EXTENSIONS package instead of being internal.
+      - TRACE will work now for the known-return convention, which
+        used to require encapsulation so that only the first call was
+        traced.  Useful for tracing recursive functions.
+      - Bivalent streams are supported.  Thus, streams with
+        element-type (unsigned-byte 8) can be used for character
+        input/output as well as binary input/output.  Supply the
+        option :CLASS 'EXT:BINARY-TEXT-STREAM for OPEN to get bivalent
+        streams.  EXT:READ-VECTOR and EXT:WRITE-VECTOR also
+        implemented.  This is somewhat experimental right now, and may
+        change slightly in a future version.
+      - Loading fasls compiled for a different version of CMUCL will
+        now signal an EXT:INVALID-FASL error instead a generic error.
+
+  * Numerous ANSI compliance fixes:
+      - FILE-AUTHOR should signal errors appropriately.
+      - CMUCL was computing the wrong value for some special functions
+        when the argument was on the branch cut for the function.
+      - MULTIPLE-VALUE-BIND accepts &REST and friends in the var list.
+      - When constructing logical pathnames, all components will be
+        automatically upcased.  Needed for print/read consistency, and
+        fixes an issue with ASDF and logical pathnames.
+      - Numerous fixes to the float printer, including a new float
+        printer.
+      - Justification (~< ~> FORMAT directives) works better.
+      - ~V with the value of NIL in format strings is treated to mean
+        as if it weren't given at all, as specified by ANSI CL.
+      - Characters print consistently with ~:C and ~S.
+      - Numerous bug fixes for pretty-printing and format strings.
+      - Pathnames are now printed with #P instead of #p.
+      - The types COMPLEX and (COMPLEX REAL) are the same now.
+      - UPGRADED-COMPLEX-PART-TYPE returns RATIONAL for integer types
+        now.  (CMUCL doesn't really have a (COMPLEX INTEGER) type).
+      - When a pathname can't be printed readably, signal a
+        PRINT-NOT-READABLE condition.
+      - Printing arrays readably was sometimes wrong.
+      - FOR-AS-ON-LIST works with dotted lists.
+      - DEFSTRUCT predicates for list structures don't produce errors
+        anymore on dotted or short lists.
+      - UNBOUND-SLOT condition no longer takes the :slot keyword.  It
+        uses the ANSI-specified :name keyword.  This is not backward
+        compatible!
+      - MAKE-SYMBOL takes STRINGs, not just SIMPLE-STRINGs.
+      - PPRINT-POP did not return NIL when the list arg to
+        PPRINT-LOGICAL-BLOCK was NIL.
+      - Signal appropriate error conditions instead of a plain error
+        condition in many situations.
+      - TYPECASE was treating the type T as an otherwise clause even
+        though it was not the last clause.  It should be just a
+        regular clause.
+      - ASIN, ACOS, ACOSH, and ATANH were returning the wrong values
+        when the arg was a real number on the branch cut.
+      - Missed some places where loop variables were duplicated, which
+        should signal a program-error.
+      - LOOP INITIALLY clauses occur after variable initialization for
+        FOR, WITH, and AS clauses, as required by ANSI CL.
+      - Format bugs in ~{ and ~@[X~], as noted by ansi-tests, have
+        been fixed.
+      - Evaluation order of REMF, INCF, and DECF.
+      - When *READ-SUPPRESS* is T, READ, READ-PRESERVING-WHITESPACE,
+        READ-DELIMITED-LIST, and READ-FROM-STRING now return NIL, as
+        specified by ANSI CL.  (Previously, CMUCL would return a list
+        of NILs.)
+      - Pathname components of type :UNSPECIFIC are no longer printed in
+        namestrings.
+      - Dumping of symbols in fasls now works according to ANSI.
+      - READ-FROM-STRING was sometimes not returning the correct
+        second value when the string was a displaced string.
+      - The invalid trait for constituent characters is handled
+        better. 
+      - (formatter "~V[...~]") now returns a correct second value.
+      - MAKE-DISPATCH-MACRO-CHARACTER is supposed to return T.
+      - APROPOS and APROPOS-LIST no longer take 3 arguments.  ANSI CL
+        says they only take 2.
+      - A reader error is signaled when bad ratios (like 1/0) are read
+        or when a float can't fit into the specified float type.
+      - A form like #(1 . 2) now signals a reader error.
+      - NIL as a keyword arg is no longer silently accepted, unless
+        NIL was actually a specified keyword arg.
+      - Some cases of reader errors being signaled when
+        *READ-SUPPRESS* was T no longer occur.
+      - The datum slot for check-type contains the place-value now
+        instead of the place.
+      - The expected-type and datum should now be consistent in
+        type-errors  (datum is not of the expected-type).
+        Similar situations in other errors are also corrected.
+
+  * Numerous bugfixes:
+
+      - FFLOOR and friends preserve the sign of the arg, so -0.0 is
+        returned for negative args.
+      - EXPT sometimes returned NaN instead of 1 when the power was 0.
+      - Weak pointers no longer have O(n^2) GC behavior.
+      - X11 authorization changes to solve problems seen with servers
+        that don't listen to TCP connection requests.
+      - UNIX-READ fix
+      - The compiler would give an error on deriving the result type
+        of RANDOM when the arg to RANDOM was a union type.
+      - "~*~" was not being parsed to mean a wildcard version.
+      - UNIX-GETPWUID implemented for Darwin.  Needed for FILE-AUTHOR.
+      - The compiler no longer gives errors when deriving the result type of
+        COERCE when converting a integer to a float that would not fit
+        in a float.
+      - Fix bug in reading from streams with element-type SIGNED-BYTE
+        for sizes greater than 32:  Positive numbers were incorrectly
+        being returned as negative.
+      - REMOVE-DUPLICATES was not honoring the :START option.
+      - PPRINT-LOGICAL-BLOCK sometimes didn't close the block properly
+        because PPRINT-EXIT-IF-LIST-EXHAUSTED caused an early exit.
+      - Macro expansion was not looking in the local environment
+        properly for local definitions.
+      - Circular weak pointers can now be printed when *PRINT-CIRCLE*
+        is T.
+      - "foo.lisp.*" is interpreted to have version :wild, just like
+        "foo.lisp.~*~". 
+      - DIRECTORY will report all versions of a file if the pathname
+        has version :wild.
+      - Fixed bug with CLX on MacOS X where the WM-SIZE-HINTS were
+        larger than CLX expected.  Replaced card16 with card32.
+      - Callbacks on sparc that returned double-floats were sometimes
+        causing a sigbus error.
+      - Type specifiers like (float low high) where low and high were
+        outside the range of single-float numbers no longer cause
+        compiler errors.
+      - Fix source-form reporting in the disassembler.
+      - Arrays in fasl files had non-NIL fill-pointer.  Make them NIL.
+      - FILE-POSITION was incorrectly set for simple-streams after a
+        READ-VECTOR. 
+      - Printing 1d23 no longer causes an error.
+      - Work around the problem of (concatenate 'fixnum '(1)) causing
+        deletion of all following code.
+      - A directory with a component of :WILD was not correctly
+        handled.
+      - CREATE-INET-LISTENER was missing a call to htonl.
+      - (coerce #c(1 2) '(complex float)) works now.
+      - Type derivation for logior and logxor was broken.
+      - Fixed bug where (setf (aref f 0) (aref d 0)) doesn't produce a
+        warning and causes code including the function return to be
+        deleted, where f is a single-float array and d is a
+        double-float array.
+      - COUNT for bit arrays was sometimes failing to include the
+        count from the last 32-bits of the array.
+      - The default heap size was causing CMUCL to fail on Solaris
+        10.  Change the default so this doesn't happen.  (The real
+        cause is unknown.)
+      - In some cases, the compiler was spending large amounts of time
+        deriving union of a bunch of disjoint integer intervals.  If
+        the union is long enough, we give up and just return the
+        smallest new interval that contains all of the disjoint
+        intervals.  (This needs a better fix.)
+      - The :WHEREIN option to TRACE handles methods now.
+      - The maximum dynamic space size was wrong on Linux.
+      - Type inferencing for OPEN was broken when :IF-DOES-NOT-EXIST
+        was given and was not a compile-time constant.
+      - ~G output always had a zero for the last digit when
+        exponential form was used.  Fix this so the last digit has the
+        correct digit.
+      - Output to (make-two-way-stream (make-concatenated-stream)
+        (make-broadcast-stream)) silently discards output instead of
+        producing an error.
+      - STRING<, STRING<=, STRING>, STRING>= no longer produce
+        incorrect results.
+      - COPY-SEQ sometimes produced erroneous results because the
+        compiler was confused by the derived result type of COPY-SEQ.
+      - Many (all?) compiler failures about a STRANGE-TEMPLATE-FAILURE
+        should be fixed.
+      - Type derivation for LOGAND is fixed.  (Affects LOGAND and
+        LOGBITP.)
+      - Type derivation for SCALE-FLOAT is fixed.  Should also work
+        better on x86.  (But there are still bugs in x86's handling of
+        single-floats.)
+      - generic-site.lisp won't give an error when updating
+        *HERALD-ITEMS* when the -quiet flag is used.
+      - The disassembler handles closures better.
+      - The result array for bit-* operations was sometimes too short
+        if the args had fill pointers.
+      - Weak hash tables no longer cause GC to go into an infinite loop.
+      - (PEEK-CHAR nil s nil foo) doesn't remove the character
+        that was read if FOO happens to match the character that
+        PEEK-CHAR returns.
+      - PROFILE no longer crashes when an internal data structure was
+        set to a non-boolean value.
+      - Regressions in float printing with ~F, ~E, and ~G are fixed.
+      - OPEN-X-STREAM accepts :INTERNET as a valid protocol again.
+
+  * Other changes:
+
+      - Infinite loops in map and friends caused by specifying
+        sequence types that are too hairy for CMUCL should no longer
+        occur.  But CMUCL will now signal an error, which may not be
+        compliant either.
+      - Compiler is a little smarter in deriving the result type of
+        MAP.
+      - MAKE-PATHNAME will accept a :HOST arg of NIL, and will use NIL
+        as the host slot instead of filling in the host slot from the
+        defaults.
+      - CMUCL/sparc should now run on Solaris 10.  This port no longer
+        uses the reserved register %g7 anymore.  The heap size is now
+        rounded to a multiple of 8 MB.  Without this, CMUCL eventually
+        gets a GC error on Solaris 10 when using gencgc.  There appear
+        to be no problems with Cheney GC on Solaris 10.
+      - The config script uses REQUIRE instead of LOAD to load up
+        CMUCL's system libraries so there are no package-lock errors.
+      - REQUIRE no longer disables package-locks when loading
+        requested file.  But package-locks are disabled for CMUCL's
+        own system libraries like gray-streams, clx, etc.
+      - CMUCL should fail gracefully on x86 if something is already
+        mapped at addresses CMUCL wants for itself.  Previously, CMUCL
+        would just use it.
+
+  * Improvements to the PCL implementation of CLOS:
+
+      - AMOP-style custom slot allocation supported.
+      - The value of a slot that is specified as shared in the old
+        class and as local in the new class is now retained.
+      - CMUCL supports using the class name for the :metaclass
+        argument.
+
+  * Changes to rebuilding procedure:
+
+      - Added a new script to run all of the subscripts needed to
+        build CMUCL.  Won't handle all cases, but will handle the most
+        common builds.
+
+
+
+This release is not binary compatible with code compiled using CMUCL
+19a; you will need to recompile FASL files. 
+
+See <URL:http://www.cons.org/cmucl/> for download information,
+guidelines on reporting bugs, and mailing list details.
+
+
+We hope you enjoy using this release of CMUCL!
+

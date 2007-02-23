@@ -1,0 +1,20 @@
+;;; -*- Mode: Text, Spell, Fill -*-
+
+
+
+;;;; Randomness
+
+The results of (machine-type) are not machine-type specific.
+
+
+
+;;;; Garbage Collector
+
+GC doesn't fix the LIP correctly if it is a raw function address and nobody
+else has a handle on the real function object.  (This can happen during
+call.)  GC needs to check to see if any of the descriptor objects are a
+symbol with the same value as the LIP for the raw-function address.
+
+When GC is trying to find the descriptor object the LIP points into, it
+should verify that the LIP points before the end, not just after the start.
+

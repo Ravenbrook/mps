@@ -1,0 +1,15 @@
+(literalize wme val)
+
+(p sort
+    (wme    ^val <x>)
+  - (wme    ^val < <x>)
+    -->
+    (write <x> (crlf))
+    (remove 1))
+
+(p start
+    (start)
+    -->
+    (make wme    ^val 0)
+    (make wme    ^val 1)
+    (make wme    ^val -1))

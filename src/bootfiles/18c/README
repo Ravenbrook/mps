@@ -1,0 +1,8 @@
+This directory holds any special "boot" files needed to get from some delta
+to the next. The directory src/bootfiles/18c holds files generated post 18c
+release.
+
+The files will be named boot1.lisp, boot2.lisp, ..., bootz.lisp. Each file
+should have some commentary as to the particulars about the file.  It is
+hoped, but not guaranteed, that one could load all files into a fresh 18c
+or nearly current environment and be able to compile current sources.

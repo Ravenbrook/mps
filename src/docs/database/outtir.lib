@@ -1,0 +1,329 @@
+@Comment{Version of BOLIO.LIB that provides a single unified index
+instead of separate indexes for functions, variables, constants,
+keywords, and concepts.}
+
+@Marker(Library, Uttir, Press, Dover, Postscript)
+
+@Libraryfile(DBolio)
+
+
+@Comment{Constraints on the definition of IndexEnvironment:
+	Indent = - LeftMargin
+	(Linewidth + Leftmargin + Columnmargin) * Columns - Columnmargin
+		 = global line width
+}
+@Define(IndexEnvironment, Boxed, Columns 2, Columnmargin 0.5in,
+        Linewidth 2.7in, Leftmargin +0.3in, Indent -0.3in)
+
+@Define(KeySpreadEnvironment, Facecode F)
+@Textform(SpreadKeys = "@KeySpreadEnvironment<@SpreadKeysLoop@Parm(Text)[]>")
+@Textform(SpreadKeysLoop =
+	"@String(SpreadKeysTemp = @Parmquote(Text))@Case(SpreadKeysTemp,
+	     null <>, else < :@Parm(Text)@SpreadKeysLoop>)")
+
+@Form(IndexKeys = "@Textform(IndexKeysLoop =
+	'@String(IndexKeysTemp = @Quote{@Parmquote(Text)})@Case(IndexKeysTemp,
+	    null <>, else [@Kindex2(P = @Quote{@Parmquote(Text)},
+				    S = {for@f( @Parm(Fun))})@IndexKeysLoop])')@IndexKeysLoop@Parm(Keys)[]@~")
+
+@Counter(UnNumberedIndex,TitleEnv HD1A,ContentsEnv tc1,Announced,Alias Chapter)
+
+@Textform(IndexHeadings = "@UnnumberedIndex@Parmquote(Text)
+@String(ChapterTitle = @Parmquote(Text))
+@Pageheading(Immediate, Left = <>, Right = <>)
+@Pagefooting(Immediate, Center = <@Value(Page)>)
+@Pageheading(Odd, Left = <@c[@Value(ChapterTitle)]>, Right = <@Value(Page)>)
+@Pageheading(Even, Left = <@Value(Page)>, Right = <@c[@Value(ReportTitle)]>)
+@Pagefooting(Center = <>)
+")
+
+@Textform(Incompatibility = "@Begin(Quotation, Font Smallbodyfont, Indent +0, Spread 0.5, need 4)
+	@b[Compatibility note:] @Index(@b[Compatibility note])
+	@Parm(Text) @End(Quotation)")
+@Textform(Implementation = "@Begin(Quotation, Font Smallbodyfont, Indent +0, Spread 0.5, need 4)
+	@b[Implementation note:] @Index(@b[Implementation note])
+	@Parm(Text) @End(Quotation)")
+@Textform(Rationale = "@Begin(Quotation, Font Smallbodyfont, Indent +0, Spread 0.5, need 4)
+	@b[Rationale:] @Index(@b[Rationale]) @Parm(Text) @End(Quotation)")
+@Comment{
+@Textform(Query = "@Begin(Quotation, Font Smallbodyfont, Indent +0, Spread 0.5, need 4)
+	@f[???] @b[Query:] @Index(@b[Query]) @Parm(Text) @End(Quotation)")
+}
+
+@Textform(Kwd = "@f[:@Parm(Text)]")
+@Textform(KeywordList = "
+	@Begin(Description)
+	@Textform(Keyword = '@Begin(Multiple)@~
+@f[:@Quote<@Parm(Text)>  ]@\@Kindex2(P = @Quote<@Parmquote(Text)>,
+			   S = {for@f[ @Parm(Text)]})@~
+		@Label{@Parm(Text)-@Quote<@Parm(Text)>-kwd}@~')
+	@Textform(FirstKeyword = '@Begin(Multiple)@~
+@f[:@Quote<@Parm(Text)> @r[or] ]@Kindex2(P = @Quote<@Parmquote(Text)>,
+			   S = {for@f[ @Parm(Text)]})@~
+		@Label{@Parm(Text)-@Quote<@Parm(Text)>-kwd}@~')
+	@Textform(NextKeyword = '@~
+@f[:@Quote<@Parm(Text)> @r[or] ]@Kindex2(P = @Quote<@Parmquote(Text)>,
+			   S = {for@f[ @Parm(Text)]})@~
+		@Label{@Parm(Text)-@Quote<@Parm(Text)>-kwd}@~')
+	@Textform(LastKeyword = '@~
+@f[:@Quote<@Parm(Text)>  ]@\@Kindex2(P = @Quote<@Parmquote(Text)>,
+			   S = {for@f[ @Parm(Text)]})@~
+		@Label{@Parm(Text)-@Quote<@Parm(Text)>-kwd}@~')
+	@Textform(SubKeywordList = '
+		@Begin(Description)
+		@Textform(SubKeyword = <@Begin(Multiple)@~
+@f[:@Quote{@Quote[@Parm(Text)]}  ]@\@Kindex2(P = @Quote{@Quote[@Parmquote(Text)]},
+			   S = {for@f[ @Quote[@Parm(Text)] ]option @~
+				to@f[ @Parm(Text)]})@~
+		@Label{@Parm(Text)-@Quote[@Parm(Text)]-@Quote{@Quote[@Parm(Text)]}-kwd}@~>)')
+")
+@Textform(PseudoKeyword = "@Begin(Multiple)@Parm(Text)   @\@~")
+@Commandstring(Endkeyword = "@End(Multiple)")
+@Commandstring(Endkeywordlist = "@End(Description)")
+@Textform(PseudoSubKeyword = "@Begin(Multiple)@Parm(Text)   @\@~")
+@Commandstring(EndSubKeyword = "@End(Multiple)")
+@Commandstring(EndSubKeywordlist = "@End(Description)")
+@Textform(RandomKeywordList = "
+	@Begin(Description)
+	@Index2(P = {Keywords}, S = {for@f[ ]@Parm(Text)})
+	@Textform(RandomKeyword = '@Begin(Multiple)
+@f[:@Quote<@Parm(Text)>  ]@\@Kindex2(P = @Quote<@Parmquote(Text)>,
+				     S = {for@f[ ]@Parm(Text)})@~')
+")
+@Textform(PseudoRandomKeyword = "@Begin(Multiple)@Parm(Text)   @\@~")
+@Commandstring(Endrandomkeyword = "@End(Multiple)")
+@Commandstring(Endrandomkeywordlist = "@End(Description)")
+
+@Form(Defvar = "@Begin(Defenvironment)@Comment(Tabset?)@~
+   @f[@Imbed(Nostar, undef '*')@Parm(Var)@Imbed(Nostar, undef '*')] @>[@i[Variable]]@\@~
+   @Send(FunList {@f[@Imbed(Nostar, undef '*')@Parm(Var)@Imbed(Nostar, undef '*')] @>[@i[Variable]]@\})@~
+   @Imbed(Nostar, undef<@Vindex@Parmquote(Var)>, def<@Vxindex@Parmquote(Var)>)@~
+   @Imbed(Nolabel, undef '@Imbed(Varlabel,
+			          def <@Label{@Parm(Varlabel)-var}>,
+			          undef <@Label{@Parm(Var)-var}>)')@~
+   @Begin(Defbody)@Tabclear ")
+@Form(Defvar1 = "@Begin(Undefbody)@Comment(Tabset?)@~
+   @f[@Imbed(Nostar, undef '*')@Parm(Var)@Imbed(Nostar, undef '*')] @>[@i[Variable]]@\@~
+   @Send(FunList {@f[@Imbed(Nostar, undef '*')@Parm(Var)@Imbed(Nostar, undef '*')] @>[@i[Variable]]@\})@~
+   @Imbed(Nostar, undef<@Vindex@Parmquote(Var)>, def<@Vxindex@Parmquote(Var)>)@~
+   @Imbed(Nolabel, undef '@Imbed(Varlabel,
+			          def <@Label{@Parm(Varlabel)-var}>,
+			          undef <@Label{@Parm(Var)-var}>)')@~
+   @End(Undefbody)")
+@Commandstring(Enddefvar = "@End(Defbody)@End(Defenvironment)")
+
+@Form(Defcon = "@Begin(Defenvironment)@Comment(Tabset?)@~
+   @f[@Parm(Var)] @>[@i[Constant]]@\@~
+   @Send(FunList {@f[@Parm(Var)] @>[@i[Constant]]@\})@~
+   @Conindex@Parmquote(Var)@~
+   @Imbed(Nolabel, undef '@Imbed(Varlabel,
+			          def <@Label{@Parm(Varlabel)-con}>,
+			          undef <@Label{@Parm(Var)-con}>)')@~
+   @Begin(Defbody)@Tabclear ")
+@Form(Defcon1 = "@Begin(Undefbody)@Comment(Tabset?)@~
+   @f[@Parm(Var)] @>[@i[Constant]]@\@~
+   @Send(FunList {@f[@Parm(Var)] @>[@i[Constant]]@\})@~
+   @Conindex@Parmquote(Var)@~
+   @Imbed(Nolabel, undef '@Imbed(Varlabel,
+			          def <@Label{@Parm(Varlabel)-con}>,
+			          undef <@Label{@Parm(Var)-con}>)')@~
+   @End(Undefbody)")
+@Commandstring(Enddefcon = "@End(Defbody)@End(Defenvironment)")
+
+@Form(Defun = "@Begin(Defenvironment)@Comment(Tabset?)@~
+   @f[@Parm(Fun) @Parm(Args, default <>)@Imbed(Keys, def < @key@!@Spreadkeys(@Parm(Keys))>)] @>[@i[Function]]@\
+@Imbed(MoreKeys, def <@/@Spreadkeys(@Parm(MoreKeys))
+>)@~
+@Imbed(YetMoreKeys, def <@/@Spreadkeys(@Parm(YetMoreKeys))
+>)@~
+   @Send(FunList {@f[@Parm(Fun) @Parm(Args, default <>)@Imbed(Keys,
+	def < @key@!@Spreadkeys(@Parm(Keys))>)] @>[@i[Function]]@\@Imbed(MoreKeys,
+	def <
+@/@f[@Spreadkeys(@Parm(MoreKeys))]>)@Imbed(YetMoreKeys,
+	def <
+@/@f[@Spreadkeys(@Parm(YetMoreKeys))]>)})@~
+   @Findex@Parmquote(Fun)@~
+  @Imbed(SuppressKeyIndex, undef <
+   @Imbed(Keys, def '@IndexKeys(Fun = @Parmquote(Fun), Keys = @Parmquote(Keys))')@~
+   @Imbed(MoreKeys, def '@IndexKeys(Fun = @Parmquote(Fun), Keys = @Parmquote(MoreKeys))')@~
+   @Imbed(YetMoreKeys, def '@IndexKeys(Fun = @Parmquote(Fun), Keys = @Parmquote(YetMoreKeys))')>)@~
+   @Imbed(Nolabel, undef '@Imbed(Funlabel,
+			          def <@Label{@Parm(Funlabel)-fun}>,
+			          undef <@Label{@Parm(Fun)-fun}>)')@~
+   @Begin(Defbody)@Tabclear ")
+@Form(Defun1 = "@Begin(Undefbody)@Comment(Tabset?)@~
+   @f[@Parm(Fun) @Parm(Args, default <>)@Imbed(Keys, def < @key@!@Spreadkeys(@Parm(Keys))>)] @>[@i[Function]]@\
+@Imbed(MoreKeys, def <@/@Spreadkeys(@Parm(MoreKeys))
+>)@~
+@Imbed(YetMoreKeys, def <@/@Spreadkeys(@Parm(YetMoreKeys))
+>)@~
+   @Send(FunList {@f[@Parm(Fun) @Parm(Args, default <>)@Imbed(Keys,
+	def < @key@!@Spreadkeys(@Parm(Keys))>)] @>[@i[Function]]@\@Imbed(MoreKeys,
+	def <
+@/@f[@Spreadkeys(@Parm(MoreKeys))]>)@Imbed(YetMoreKeys,
+	def <
+@/@f[@Spreadkeys(@Parm(YetMoreKeys))]>)})@~
+   @Findex@Parmquote(Fun)@~
+  @Imbed(SuppressKeyIndex, undef <
+   @Imbed(Keys, def '@IndexKeys(Fun = @Parmquote(Fun), Keys = @Parmquote(Keys))')@~
+   @Imbed(MoreKeys, def '@IndexKeys(Fun = @Parmquote(Fun), Keys = @Parmquote(MoreKeys))')@~
+   @Imbed(YetMoreKeys, def '@IndexKeys(Fun = @Parmquote(Fun), Keys = @Parmquote(YetMoreKeys))')>)@~
+   @Imbed(Nolabel, undef '@Imbed(Funlabel,
+			          def [@Label{@Parm(Funlabel)-fun}],
+			          undef [@Label{@Parm(Fun)-fun}])')@~
+   @End(Undefbody)")
+@Commandstring(Enddefun = "@End(Defbody)@End(Defenvironment)")
+
+@Form(Defmac = "@Begin(Defenvironment)@Comment(Tabset?)@~
+   @f[@Parm(Fun) @Parm(Args, default <>)] @>[@i[Macro]]@\@~
+   @Send(FunList {@f[@Parm(Fun) @Parm(Args, default <>)] @>[@i[Macro]]@\})@~
+   @Mindex@Parmquote(Fun)@~
+   @Imbed(Nolabel, undef '@Imbed(Funlabel,
+			          def <@Label{@Parm(Funlabel)-mac}>,
+			          undef <@Label{@Parm(Fun)-mac}>)')@~
+   @Begin(Defbody)@Tabclear ")
+@Form(Defmac1 = "@Begin(Undefbody)@Comment(Tabset?)@~
+   @f[@Parm(Fun) @Parm(Args, default <>)] @>[@i[Macro]]@\@~
+   @Send(FunList {@f[@Parm(Fun) @Parm(Args, default <>)] @>[@i[Macro]]@\})@~
+   @Mindex@Parmquote(Fun)@~
+   @Imbed(Nolabel, undef '@Imbed(Funlabel,
+			          def <@Label{@Parm(Funlabel)-mac}>,
+			          undef <@Label{@Parm(Fun)-mac}>)')@~
+   @End(Undefbody)")
+@Commandstring(Enddefmac = "@End(Defbody)@End(Defenvironment)")
+
+@Form(Defspec = "@Begin(Defenvironment)@Comment(Tabset?)@~
+   @f[@Parm(Fun) @Parm(Args, default <>)] @>[@i[Special form]]@\@~
+   @Send(FunList {@f[@Parm(Fun) @Parm(Args, default <>)] @>[@i[Special form]]@\})@~
+   @Sindex@Parmquote(Fun)@~
+   @Imbed(Nolabel, undef '@Imbed(Funlabel,
+			          def <@Label{@Parm(Funlabel)-spec}>,
+			          undef <@Label{@Parm(Fun)-spec}>)')@~
+   @Begin(Defbody)@Tabclear ")
+@Form(Defspec1 = "@Begin(Undefbody)@Comment(Tabset?)@~
+   @f[@Parm(Fun) @Parm(Args, default <>)] @>[@i[Special form]]@\@~
+   @Send(FunList {@f[@Parm(Fun) @Parm(Args, default <>)] @>[@i[Special form]]@\})@~
+   @Sindex@Parmquote(Fun)@~
+   @Imbed(Nolabel, undef '@Imbed(Funlabel,
+			          def <@Label{@Parm(Funlabel)-spec}>,
+			          undef <@Label{@Parm(Fun)-spec}>)')@~
+   @End(Undefbody)")
+@Commandstring(Enddefspec = "@End(Defbody)@End(Defenvironment)")
+
+@Textform(Xindent = "@hsp(2.0em)")
+@Textform(Xsepr = "@hsp(0.5em)")
+@Textform(Def = "@Index@Parmquote(Text)@i@Parmquote(Text)")
+@Textform(Index = "@Indexentry{Key {@Parm(Text) !1},
+             Entry {@r[@Parm(Text)]@Xsepr()}, Number {@r[@Parmvalue(Page)]}}@'")
+@Form(PossiblyIndexedRef = "@Indexentry{Key {@Parm(K) !1},
+             Entry {@r[@Parm(F)]@Xsepr()}, Number {@r[@Parmvalue(Page)]}}@Parm(E)")
+@Textform(Index1 = "@Indexentry{Key {@Parm(Text) !1},
+             Entry {@r[@Parm(Text)]@Xsepr()}}@'")
+@Form(Index2 = "@Index1@Parmquote(P)@Indexentry{Key {@Parm(P) !2 @Parm(S)},
+         Entry {@Xindent()@r[@Parm(S)]@Xsepr()}, Number {@Parmvalue(Page)}}@'")
+@Form(Seealso = "@Index1@Parmquote(P)@Indexentry{Key {@Parm(P) !3 @Parm(S)},
+         Entry {@Xindent()@Xindent()@r[See also:]}, Number @Parmquote(S)}@'")
+@Form(Xindex = "@Indexentry{Key {@Parm(X) @Parm(T) 1},
+         Entry {@Parm(Q, default <>)@Parm(P)@Parm(R, default <>)@f[ ]@r[@Parm(T)]@Xsepr()},
+	 Number {@b[@Parmvalue(Page)]}}@'")
+@Form(Xindexref = "@Indexentry{Key {@Parm(X) @Parm(T) 1},
+         Entry {@Parm(Q, default <>)@Parm(P)@Parm(R, default <>)@f[ ]@r[@Parm(T)]@Xsepr()},
+	 Number {@Parmvalue(Page)}}@'")
+@Form(Xindex1 = "@Indexentry{Key {@Parm(X) @Parm(T) 1},
+         Entry {@Parm(Q, default <>)@Parm(P)@Parm(R, default <>)@f[ ]@r[@Parm(T)]@Xsepr()}}@'")
+@Form(Xindex2 = "@Xindex1(X @Parmquote(X), T @Parmquote(T),
+			  P @Parmquote(P)@Imbed(Q, def <, Q @Parmquote(Q)>)@Imbed(R, def <, R @Parmquote(R)>))@~
+         @Indexentry{Key {@Parm(X) @Parm(T) 2 @Parm(S)},
+		     Entry {@Xindent()@Parm(S)@Xsepr()},
+		     Number {@b[@Parmvalue(Page)]}}@'")
+@Form(Xindexref2 = "@Xindex1(X @Parmquote(X), T @Parmquote(T),
+			     P @Parmquote(P)@Imbed(Q, def <, Q @Parmquote(Q)>)@Imbed(R, def <, R @Parmquote(R)>))@~
+         @Indexentry{Key {@Parm(X) @Parm(T) 2 @Parm(S)},
+		     Entry {@Xindent()@Parm(S)@Xsepr()},
+		     Number {@Parmvalue(Page)}}@'")
+@Form(Xseealso = "@Xindex1(X @Parmquote(X), T @Parmquote(T),
+			   P @Parmquote(P)@Imbed(Q, def <, Q @Parmquote(Q)>)@Imbed(R, def <, R @Parmquote(R)>))@~
+         @Indexentry{Key {@Parm(X) @Parm(T) 3 @Parm(S)},
+		     Entry {@Xindent()@Xindent()@r[See also:]},
+		     Number @Parmquote(S)}}@'")
+
+@Textform(Cindex = "@Index@Parmquote(Text)@'")
+
+@Textform(Findex = "@Case(IndexFuns, Yes '@Xindex(T {function}, X {@Parm(Text)}, P {@f[@Parm(Text)]})')@'")
+@Textform(Findexref = "@Case(IndexFuns, Yes '@Xindexref(T {function}, X {@Parm(Text)}, P {@f[@Parm(Text)]})')@'")
+@Form(Findex2 = "@Case(IndexFuns, Yes '@Xindex2(T {function}, X {@Parm(P)}, P {@f[@Parm(P)]}, S @Parmquote(S))')@'")
+@Form(Fseealso = "@Case(IndexFuns, Yes '@Xseealso(T {function}, X {@Parm(P)}, P {@f[@Parm(P)]}, S @Parmquote(S))')@'")
+
+@Textform(Mindex = "@Case(IndexFuns, Yes '@Xindex(T {macro}, X {@Parm(Text)}, P {@f[@Parm(Text)]})')@'")
+@Textform(Mindexref = "@Case(IndexFuns, Yes '@Xindexref(T {macro}, X {@Parm(Text)}, P {@f[@Parm(Text)]})')@'")
+@Form(Mindex2 = "@Case(IndexFuns, Yes '@Xindex2(T {macro}, X {@Parm(P)}, P {@f[@Parm(P)]}, S @Parmquote(S))')@'")
+@Form(Mseealso = "@Case(IndexFuns, Yes '@Xseealso(T {macro}, X {@Parm(P)}, P {@f[@Parm(P)]}, S @Parmquote(S))')@'")
+
+@Textform(Sindex = "@Case(IndexFuns, Yes '@Xindex(T {special form}, X {@Parm(Text)}, P {@f[@Parm(Text)]})')@'")
+@Textform(Sindexref = "@Case(IndexFuns, Yes '@Xindexref(T {special form}, X {@Parm(Text)}, P {@f[@Parm(Text)]})')@'")
+@Form(Sindex2 = "@Case(IndexFuns, Yes '@Xindex2(T {special form}, X {@Parm(P)}, P {@f[@Parm(P)]}, S @Parmquote(S))')@'")
+@Form(Sseealso = "@Case(IndexFuns, Yes '@Xseealso(T {special form}, X {@Parm(P)}, P {@f[@Parm(P)]}, S @Parmquote(S))')@'")
+
+@Textform(Vindex = "@Xindex(T {variable}, X {@Parm(Text)}, P {@f[@Parm(Text)]}, Q {@f[*]}, R{@f[*]})@'")
+@Textform(Vxindex = "@Xindex(T {variable}, X {@Parm(Text)}, P {@f[@Parm(Text)]})@'")
+@Textform(Vindexref = "@Xindexref(T {variable}, X {@Parm(Text)}, P {@f[@Parm(Text)]}, Q {@f[*]}, R{@f[*]})@'")
+@Form(Vindex2 = "@Xindex2(T {variable}, X {@Parm(P)}, P {@f[@Parm(P)]}, S @Parmquote(S), Q {@f[*]}, R{@f[*]})@'")
+@Form(Vseealso = "@Xseealso(T {variable}, X {@Parm(P)}, P {@f[@Parm(P)]}, S @Parmquote(S), Q {@f[*]}, R{@f[*]})@'")
+
+@Textform(Conindex = "@Xindex(T {constant}, X {@Parm(Text)}, P {@f[@Parm(Text)]})@'")
+@Textform(Conindexref = "@Xindexref(T {constant}, X {@Parm(Text)}, P {@f[@Parm(Text)]})@'")
+@Form(Conindex2 = "@Xindex2(T {constant}, X {@Parm(P)}, P {@f[@Parm(P)]}, S @Parmquote(S))@'")
+@Form(Conseealso = "@Xseealso(T {constant}, X {@Parm(P)}, P {@f[@Parm(P)]}, S @Parmquote(S))@'")
+
+@Textform(Kindex = "@Xindex(T {keyword}, X {@Parm(Text)}, P {@f[@Parm(Text)]}, Q {@f[:]})@'")
+@Textform(Kindexref = "@Xindexref(T {keyword}, X {@Parm(Text)}, P {@f[@Parm(Text)]}, Q {@f[:]})@'")
+@Form(Kindex2 = "@Xindex2(T {keyword}, X {@Parm(P)}, P {@f[@Parm(P)]}, S @Parmquote(S), Q {@f[:]})@'")
+@Form(Kindexref2 = "@Xindexref2(T {keyword}, X {@Parm(K)}, P {@f[@Parm(K)]}, S @Parmquote(S), Q {@f[:]})@'")
+@Form(Kseealso = "@Xseealso(T {keyword}, X {@Parm(P)}, P {@f[@Parm(P)]}, S @Parmquote(S), Q {@f[:]})@'")
+
+@Textform(Declindex = "@Xindex(T {declaration}, X {@Parm(Text)}, P {@f[@Parm(Text)]})@'")
+@Textform(Declindexref = "@Xindexref(T {declaration}, X {@Parm(Text)}, P {@f[@Parm(Text)]})@'")
+@Form(Declindex2 = "@Xindex2(T {declaration}, X {@Parm(P)}, P {@f[@Parm(P)]}, S @Parmquote(S))@'")
+@Form(Declseealso = "@Xseealso(T {declaration}, X {@Parm(P)}, P {@f[@Parm(P)]}, S @Parmquote(S))@'")
+
+@Textform(Typeindex = "@Xindex(T {type specifier}, X {@Parm(Text)}, P {@f[@Parm(Text)]})@'")
+@Textform(Typeindexref = "@Xindexref(T {type specifier}, X {@Parm(Text)}, P {@f[@Parm(Text)]})@'")
+@Form(Typeindex2 = "@Xindex2(T {type specifier}, X {@Parm(P)}, P {@f[@Parm(P)]}, S @Parmquote(S))@'")
+@Form(Typeseealso = "@Xseealso(T {type specifier}, X {@Parm(P)}, P {@f[@Parm(P)]}, S @Parmquote(S))@'")
+
+@Textform(Funref = "@f[@Parm(Text) ]@~
+    @r[(page @Pageref(@Parm(Text)-fun))]@Findexref@Parmquote(Text)@;")
+@Textform(Funreftab = "@f[@Parm(Text) ]@\@r[(page @Pageref(@Parm(Text)-fun))]@Findexref@Parmquote(Text)@;")
+@Form(Xfunref = "@f[@Parm(X) ]@~
+    @r[(page @Pageref(@Parm(L)-fun))]@Findexref@Parmquote(X)@;")
+@Textform(Macref = "@f[@Parm(Text) ]@~
+    @r[(page @Pageref(@Parm(Text)-mac))]@Mindexref@Parmquote(Text)@;")
+@Textform(Macreftab = "@f[@Parm(Text) ]@\@r[(page @Pageref(@Parm(Text)-mac))]@Mindexref@Parmquote(Text)@;")
+@Form(Xmacref = "@f[@Parm(X) ]@~
+    @r[(page @Pageref(@Parm(L)-mac))]@Mindexref@Parmquote(X)@;")
+@Textform(Specref = "@f[@Parm(Text) ]@~
+    @r[(page @Pageref(@Parm(Text)-spec))]@Sindexref@Parmquote(Text)@;")
+@Textform(Specreftab = "@f[@Parm(Text) ]@\@r[(page @Pageref(@Parm(Text)-spec))]@Sindexref@Parmquote(Text)@;")
+@Form(XSpecref = "@f[@Parm(X) ]@~
+    @r[(page @Pageref(@Parm(L)-spec))]@Sindexref@Parmquote(X)@;")
+@Textform(Var = "@f[*@Parm(Text)*]")
+@Textform(Varref = "@f[*@Parm(Text)* ]@~
+    @r[(page @Pageref(@Parm(Text)-var))]@Vindexref@Parmquote(Text)@;")
+@Form(Xvarref = "@f[*@Parm(X)* ]@~
+    @r[(page @Pageref(@Parm(L)-var))]@Vindexref@Parmquote(X)@;")
+@Textform(Conref = "@f[@Parm(Text) ]@~
+    @r[(page @Pageref(@Parm(Text)-con))]@Conindexref@Parmquote(Text)@;")
+@Form(Xconref = "@f[@Parm(X) ]@~
+    @r[(page @Pageref(@Parm(L)-con))]@Conindexref@Parmquote(X)@;")
+@Form(Kwdref = "@f[:@Parm(K) ]@~
+    @r[(page @Pageref(@Parm(F)-@Parm(K)-kwd))]@Kindexref2(S {for@f[ @Parm(F)]},
+						      K @Parmquote(K))@;")
+@Form(SubKwdref = "@f[:@Parm(K)] @~
+    @r[(page @Pageref(@Parm(F)-@Parm(O)-@Parm(K)-kwd))]@~
+	@Kindexref2(S {for@f[ :@Parm(O) ]option to@f[ @Parm(F)]},
+		    K @Parmquote(K))")
+
+@Indexentry(Key {  1}, Entry {@IndexHeadings[Index]@Blankspace(1)@Begin(IndexEnvironment)})
+@Indexentry(Key {~~~ }, Entry {@End(IndexEnvironment)})
+
+@Textform(IndexCleanup = " ")

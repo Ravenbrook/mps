@@ -1,0 +1,72 @@
+
+CATALOG ENTRY FORMAT FOR CATALOG.TXT.
+
+Each entry is on a separate page, separated by the page mark Control-L.
+
+Each entry consists of fields.  Each new field begins with a field name in
+square brackets, then an arbitrary amount of text.  This rather rigid
+format is designed to make it easy to build various sorts of software to
+automatically manipulate catalogs.  The field names are sensitive to
+spelling, but insensitive to case and extra whitespace.
+
+Fields currently recognized are as follows:
+
+[Name] or [Module Name]: The name of the program or set of programs.  If no
+Package Name is supplied, then this is assumed to name of the package in
+which the code lives.
+
+[Package Name]: If the programs are loaded into a package of their own, the
+name of this package.  If no Name or Module Name is supplied, the package
+name will be used as the name for everything.
+
+[Description]: A brief description of what the program does.
+
+[Author]: Name of the author, or "anonymous".
+
+[Maintainer]: Name of current maintainer, if different from the author.  If
+a program is not being maintained by anyone, the Maintainer is "none".
+
+[Address], [Address of Author], [Address of Maintainer]: Physical mailing
+address of author or maintainer.  If the field is just "address", it is
+assumed to be the maintainer if one is specified, and the author otherwise.
+
+[Net Address], [Net Address of Author], [Net Address of Maintainer]: A
+network address that can be reached from the arpanet.
+
+[Copyright Status]: "Public domain" or some sort of copyright notice.
+
+[Files]: A list of the files comprising this facility.  If a system whose
+name is "Foo" is distributed as files "foo.slisp", "foo.sfasl", and
+(optionally) "foo.doc" or "foo.press" for documentation.  In order to
+minimize maintenance headaches and encourage people to build on the work of
+others, we want all programs in the library to include complete sources.
+
+[How to Get]: This can either be a shell command using such programs as lcp
+or cp.  There will usually be a .cmd file that will copy all the sources,
+binaries, catalog, and log files to the user's current directory.  This
+.cmd file will try to preserve write date (such as using -p with cp).
+
+[Portability]: If the program will run in any legal Common Lisp, say so.
+If there are known dependencies on CMU Common Lisp specific or
+Mach/RT specific features, describe them here.
+
+[Dependencies]: If the program requires other library packages not built
+into the standard CMU Common Lisp core image, list those other packages
+here.
+
+[Instructions]: Place here any instructions for use that are too lengthy to
+be mere documentation strings, but that are not lengthy enough to deserve a
+separate document.
+
+[Recent Changes]: What is different between this version and the one that
+preceded it, if any.  (May go back several versions at the author's
+discretion.)
+
+[Bugs]: Describe here any known bugs or treacherous features.
+
+[Future Plans]: Describe here any improvements planned by the author.
+
+[Wish List]: Describe here any desirable features that the author does not
+plan to work on in the near future.
+
+[Notes]: Anything else that users or potential users ought to know about.

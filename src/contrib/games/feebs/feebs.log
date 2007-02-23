@@ -1,0 +1,90 @@
+/usr2/lisp/library/rt/feebs/feebs.lisp, 11-Oct-87 16:33:43, Edit by Chiles.
+  Made FEEBS bind, instead of set, *single-step*,*delay*,
+  *feep-dead-feebs*, and *continue*.  These values were being retained
+  between runs.
+
+/usr2/lisp/library/rt/feebs/feebs.lisp, 11-Oct-87 15:35:47, Edit by Chiles.
+  Fixed X interaction by calling X:OPEN-CONSOLE in INIT-GRAPHICS.  Also,
+  set bordercolor and background parameters in INIT-GRAPHICS.  Made
+  KILL-FEEB look at the value of *feep-dead-feebs*.
+
+/usr2/lisp/library/rt/feebs/brains.lisp, 11-Oct-87 12:01:50, Edit by Chiles.
+  Written by Skef and Scott.  This is just a file of sample feebs that are
+  pretty dumb.
+
+/usr2/lisp/library/rt/feebs/mazes.lisp, 11-Oct-87 11:57:15, Edit by Chiles.
+  Created by Jim Healy, July 1987.  This file contains some sample mazes
+  with various curious properties.
+
+/usr2/lisp/library/rt/feebs/feebs.lisp, 11-Oct-87 11:53:54, Edit by Chiles.
+  No time stamp for this either, but it is close to the previous line's.
+
+  ;;; Modifications by Jim Healy:
+  ;;;
+  ;;; Ported the graphics to the IBM RT PC using the X window manager.
+  ;;; Added functions to create and store bitmaps for X.
+  ;;; Added event-handling routines to catch incoming events from the
+  ;;;   X server and redisplay the windows if exposed.
+  ;;; Changed :single-step option to work by clicking a mouse button.
+  ;;; Added keypress features to quit the game prematurely (q), jump
+  ;;;   into single-step mode (s), and go back to automatic mode (a).
+  ;;; Added the neat "Planet of the Feebs" banner at the top.
+  ;;; Added feature to zap windows at end of game by clicking a mouse
+  ;;;   button.
+  ;;; Fixed the disembodied periscopes bug.
+
+/usr2/lisp/library/rt/feebs/feebs.lisp, 11-Oct-87 11:52:55, Edit by Chiles.
+  No time stamp on this entry.
+
+  ;;; Modifications by Dan Kuokka:
+  ;;;
+  ;;; Built the interface to a generalized set of graphics primitives.
+  ;;; Wrote rotate-bitmap.
+
+/usr2/lisp/library/rt/feebs/feebs.lisp, 11-Oct-87 11:51:54, Edit by Chiles.
+  No time stamp on this entry either.
+
+  ;;; The following by Scott Fahlman, for initial public release:
+  ;;;
+  ;;; Installed CHANCE macro to speed up random events. 
+  ;;; Modified points for being killed from -5 to -2. 
+  ;;; When you zap yourself, you get no points for the kill.
+  ;;; Eliminated random length of game.  Now *GAME-LENGTH* = 1000.
+  ;;; Modified default maze slightly so that no two entry points are
+  ;;;   line of sight, regardless of how the feebs are facing.
+  ;;; Changed directions from keywords to constants, with integer values:
+  ;;;   north = 1, east = 2, etc.
+  ;;; Randomize initial entry points for feebs.
+  ;;; Display more interesting stuff in text area: score, energy, last move.
+  ;;; Keep energy in range 0 to 200 always, fix bug that caused any eating
+  ;;;   to push energy to maximum.
+  ;;; Display kills in status area, along with score.
+  ;;; ABORTED status field was not being maintained.
+  ;;; Install a smoother function for aborting moves of slow feebs.
+  ;;; Add single-step and slow motion.
+  ;;; Put in proximity sense, start vision array in space in front of the
+  ;;;   the feeb's current location, going forward, left, or right from there.
+  ;;; Store the appropriate image list in each maze cell, eliminating the
+  ;;;   IMAGIFY operations.  Add a pointer from the feeb-image back to the
+  ;;;   full feeb-structure.
+  ;;; Allow *maze-i-size* and *maze-j-size* to be different.
+  ;;; Fixed a couple of bugs in fireball motion.
+  ;;; Feebs running into fireballs get zapped.
+  ;;; Make sure image is updated between action and redisplay.
+  ;;; Queue redisplay for a feeb's old square on every move.
+  ;;; Improve mushroom image to not hit edges of square.
+  ;;; Improve fireball display to show direction of travel.
+  ;;; On reflection, update fireball DIRECTION as well as DI, DJ.
+  ;;; Display current turn.  Improve kludgy number printing.
+  ;;; Display periscope-like appendage when feeb is peeking.
+  ;;; Do not execute peek command if the feeb is facing a rock wall.
+  ;;; When a feeb was peeking last move, queue the forward square for
+  ;;;   redisplay to get rid of the periscope.
+  ;;; Set up auto-feeb creation and add some stupid auto-feebs.
+  ;;; Remove the terse printing function for the status structure to make
+  ;;;   it somewhat easier to debug things.
+  ;;; Fixed a bug in the DI and DJ macros.
+
+/usr2/lisp/library/rt/feebs/feebs.lisp, 11-Oct-87 11:50:10, Edit by Chiles.
+  Created by Skef Wholey -- No time stamp.
+

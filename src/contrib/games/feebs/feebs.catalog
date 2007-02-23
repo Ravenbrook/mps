@@ -1,0 +1,37 @@
+[Name]		FEEBS
+
+[Description]	"Planet of the Feebs is a simulation game that is
+		intended as a training aid for beginning programmers in
+		Common Lisp.  It is loosely based on the "Maze War" game,
+		written by Jim Guyton, Bruce Malasky, and assorted others
+		at Xerox PARC.  In "Planet of the Feebs", however, the
+		players do not control their creatures by hand.  Instead,
+		they supply programs which control the creatures as they
+		move around the maze trying to zap one another.  The game
+		presents an open-ended challenge, and advanced players may
+		find themselves reaching deep into the AI bag of tricks as
+		they try to build ever more clever and adaptable creatures.
+
+[Author]	Skef Wholey, Scott Fahlman, Dan Kuokka, Jim Healy
+
+[Maintainer]	Members of the CMU Common Lisp Group.
+[Address]	Carnegie-Mellon University
+		Computer Science Department
+		Pittsburgh, PA 15213
+
+[Net Address]   Slisp@C.CS.CMU.EDU  (at CMU send mail to Gripe)
+
+[Copywrite Status] Public domain.
+
+[Files]		feebs.lisp, feebs.fasl, feebs.catalog, feebs.mss,
+		feebs.log, brains.lisp, brains.fasl, mazes.lisp
+
+[How to Get]	source /../spice/usr/slisp/library/rt/feebs/get-feebs.cmd
+
+[Portability]	Dependent on Version 10 of the X Window Manager.
+
+[Instructions]	Load feebs.fasl and brains.fasl.
+		call FEEBS:FEEBS.
+
+[Wish List]	Add egocentric display for one selected feeb.
+

@@ -1,0 +1,46 @@
+Name:
+   Follow Mouse.
+
+Package Name:
+   HEMLOCK
+
+Description:
+   This Hemlock customization causes Hemlock's current window to be set to
+whatever Hemlock window the mouse enters, except the echo area.
+
+Author:
+   Todd Kaufmann, modified by Dave Touretzky.
+
+Maintainer:
+   Todd Kaufmann.
+
+Address:
+   Carnegie-Mellon University
+   Computer Science Department
+   Pittsburgh, PA 15213
+
+Net Address:
+   Todd.Kaufmann@CS.CMU.EDU
+
+Copyright Status:
+   Public Domain.
+
+Files:
+   follow-mouse.lisp, follow-mouse.fasl, follow-mouse.catalog.
+
+How to Get:
+   The following unix command will copy the pertinent files into directory
+<spec>:
+   cp /afs/cs.cmu.edu/project/slisp/library/follow-mouse/* <spec>
+
+Portability:
+   This should work in any Common Lisp supporting Hemlock and CLX V11R3.
+
+Instructions:
+   Load the fasl file into your editor Lisp.  A value of T for the hemlock
+variable "Follow Mouse To Read-Only Buffers", which is the default, means
+follow mouse is on.  Anything else means hemlock will behave normally.
+
+Bugs:
+   A few more PROMPT-FOR-... functions need to be modified.  They are mentioned
+in the source code.

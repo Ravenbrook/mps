@@ -1,0 +1,63 @@
+Newsgroups: comp.lang.smalltalk
+Distribution: comp
+Subject: Smalltalk vs. C(++) performance
+
+Executive summary: a non-trivial benchmark written in C++ and
+Smalltalk is available from otis.stanford.edu; please send me your
+results.
+-------------------------------------------------------------------
+
+As some have pointed out, it is difficult to compare the runtime
+performance of Smalltalk programs with the performance of equivalent C
+programs.  One reason for this is that for most non-trivial programs
+there is no equivalent program written in the other language (because
+it would be a non-trivial effort to write it).
+
+The "best" benchmark I know of is the Richards benchmark, an operating
+system simulation.  It is written in an object-oriented style, uses
+polymorphism, and is reasonably non-trivial (700 lines).  It's
+probably not the world's greatest benchmark, but better than 
+micro-benchamrks, and it is available in Smalltalk, Self, T (an
+object-oriented version of Scheme) and C++.
+
+[Historical note: the Richards benchmark was originally written in
+BCPL by Mark Richards.  Many thanks to L. Peter Deutsch for the
+Smalltalk version.]
+
+The sources for Richards are available from otis.stanford.edu
+(36.22.0.201) in /pub/benchmarks.  I would be interested in
+comparisons of the performance of the C++ and Smalltalk versions on
+various systems.  We measured it a while ago for the Sun-3/4 versions
+of PP 2.4, and the difference was about a factor of 10.
+
+Disclaimer: Richards is *not* a typical application: it is relatively
+small and contains no graphics or other user interaction.  Thus it may
+not reflect the relative performance of Your Own Real-World (TM)
+Application, but I think it tests the efficiency of the basic language
+mechanisms fairly well.  If you think you have a better benchmark
+which is available both in ST-80 and C (or Fortran or...), please let
+me know.
+
+******* ADVERTISEMENT ******** 
+
+The goal of the Self project at Stanford is to improve the performance
+of dynamically-typed object-oriented languages such as Smalltalk and
+Self.  Though similar to Smalltalk, Self is simpler and more flexible.
+Our current system runs significantly faster than any Smalltalk
+implementation we know of.  For example, here are the numbers for
+Richards on a Sun-4/260:
+
+	C++  (-O2)	730ms
+	Self	       2160ms (Nov'90; 1940ms for an experimental system)
+	PP ST-80 2.4   7740ms
+	T	       9800ms (8100ms with some not-so-kosher "tuning")
+
+[On some other benchmarks, the Stanford Integer Benchmarks, Self
+actually looks even better, running at around 60-70% of the speed of
+optimized C.]
+
+More information (papers, documentation, how to get the current system)
+is available via anonymous ftp from otis.stanford.edu.
+
+******* END OF ADVERTISEMENT ******** 
+

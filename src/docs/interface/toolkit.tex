@@ -1,0 +1,472 @@
+%% -*- Mode: LaTeX -*-
+%% toolkit.tex
+
+%% LaTeX formatting by Marco Antoniotti based on internals.doc.
+
+\documentclass[a4paper]{article}
+% \usepackage{a4wide}
+\usepackage{palatino}
+
+
+\newif\ifpdf
+\ifx\pdfoutput\undefined
+   \pdffalse
+\else
+   \pdfoutput=1
+   \pdftrue
+\fi
+
+\ifpdf
+\pdfinfo{
+/Title (The CMUCL Motif Toolkit)
+/Keywords (CMUCL, Motif, interface)
+}
+\fi
+
+\newcommand{\functdescr}[1]{\paragraph{\texttt{#1}}}
+
+\title{The CMUCL Motif Toolkit}
+
+\begin{document}
+
+\maketitle
+
+\section{Naming conventions}
+
+In general, names in the Lisp Motif interface are derived directly from
+the C original.  The following rules apply:
+\begin{enumerate}
+   \item Drop \texttt{Xt}" and \texttt{Xm} (also \texttt{XmN},
+	 \texttt{XmC}, etc.) prefixes 
+   \item Separate words by dashes (\texttt{-}) rather than capitalization
+   \item Resource names and enumeration values are given as keywords
+   \item Replace underscores (\texttt{\_}) with dashes (\texttt{-})
+\end{enumerate}
+
+\vspace{2mm}
+
+\noindent
+Examples:\\[2mm]
+\begin{tabular}{lcl}
+\texttt{XtCreateWidget} & $\Longrightarrow$ & \texttt{create-widget}\\
+\texttt{XmNlabelString} & $\Longrightarrow$ & \texttt{:label-string}\\
+\texttt{XmVERTICAL}     & $\Longrightarrow$ & \texttt{:vertical}\\
+\end{tabular}
+
+\vspace{2mm}
+
+\noindent
+Some exceptions:\\
+Compound string functions (\texttt{XmString}\ldots) are prefixed by
+\texttt{compound-string-} rather than \texttt{string-} in Lisp.
+
+Functions or resources, with the exception of the \texttt{compound-string-xxx}
+functions, which require compound string arguments, may be given Lisp
+\texttt{SIMPLE-STRING}s instead.
+
+The arguments to functions are typically the same as the C Motif
+equivalents.  Some exceptions are:
+\begin{itemize}
+\item	Widget creation functions have a \texttt{\&rest} arg for
+	resource values.
+\item	Functions which take a string table/length pair in C only take a
+	list of strings in Lisp.
+\item	Registering functions such as \texttt{ADD-CALLBACK} use a
+	\texttt{\&rest} arg for registering an arbitrary number of
+	\texttt{client-data} items. 
+\end{itemize}
+
+
+\section{Starting things up}
+
+The Motif toolkit interface is divided into two parts.  First, there is
+a server process written in C which provides an RPC interface to Motif
+functions.  The other half is a Lisp package which connects to the server
+and makes requests on the user's behalf.  The Motif interface is exported
+from the \texttt{TOOLKIT} (nickname \texttt{XT}) package.
+
+
+\subsection{Variables controlling connections}
+
+\paragraph{\texttt{*DEFAULT-SERVER-HOST*}} A string naming the machine
+where the Motif server is to be found.  The default is NIL, which
+causes a connection to be made using a Unix domain socket on the local
+machine.  Any other name must be a valid machine name, and the client
+will connect using Internet domain sockets.
+
+\paragraph{\texttt{*DEFAULT-DISPLAY*}} Determines the display on which
+to open windows. The default value of NIL instructs the system to
+consult the \texttt{DISPLAY} environment variable.  Any other value
+must be a string naming a valid X display.
+
+\paragraph{\texttt{*DEFAULT-TIMEOUT-INTERVAL*}} An integer specifying
+how many seconds the Lisp process will wait for input before assuming
+that the connection to the server has timed out.
+
+
+\subsection{Handling Connections}
+
+\paragraph{\texttt{OPEN-MOTIF-CONNECTION (hostname xdisplay-name
+app-name app-class)}} Opens a connection to a server on the named host
+and opens a display connection to the named X display.  The
+\texttt{app-name} and \texttt{app-class} are for defining the
+application name and class for use in resource specifications.  An
+optional process-id argument can be passed if a local server process
+has already been created.  This returns a MOTIF-CONNECTION object.
+
+\paragraph{\texttt{CLOSE-MOTIF-CONNECTION (connection)}} This closes a toolkit
+connection which was created by OPEN-MOTIF-CONNECTION.
+
+\paragraph{\texttt{*MOTIF-CONNECTION*}} Bound in contexts such as
+callback handlers to the currently active toolkit connection.
+
+\paragraph{\texttt{*X-DISPLAY*}} Bound in contexts such as callback
+handlers to the currently active CLX display.
+
+\paragraph{\texttt{WITH-MOTIF-CONNECTION ((connection) \&body forms)}}
+This macro establishes the necessary context for invoking toolkit
+functions outside of callback/event handlers.
+
+\paragraph{\texttt{WITH-CLX-REQUESTS (\&body forms)}} Macro that ensures
+that all CLX requests made within its body will be flushed to the X
+server before proceeding so that Motif functions may use the results.
+
+\paragraph{\texttt{RUN-MOTIF-APPLICATION (init-function)}} This is the
+standard CLM entry point for creating a Motif application.  The
+init-function argument will be called to create and realize the
+interface.  It returns the created MOTIF-CONNECTION object.  Available
+keyword arguments are:\\[2mm]
+\begin{tabular}{ll}
+\texttt{:init-args}		& list of arguments to pass to init-function\\
+\texttt{:application-class}	& application class (default \texttt{"Lisp"})\\
+\texttt{:application-name}	& application name (default \texttt{"lisp"})\\
+\texttt{:server-host}		& name of Motif server to connect to\\
+\texttt{:display}		& name of X display to connect to
+\end{tabular}
+
+\paragraph{\texttt{QUIT-APPLICATION ()}} This is the standard function
+for closing down a Motif application.  You can call it within your
+callbacks to terminate the application.
+
+
+\section{The Server}
+
+The C server is run by the \texttt{motifd} program.  This will create
+both Inet and Unix sockets for the Lisp client to connect to.  By
+default, the Inet and Unix sockets will be specific to the user.
+
+When a Lisp client connects to the server, it forks a copy of itself.
+Thus each Lisp application has an exclusive connection to a single C
+server process.  To terminate the server, just \texttt{\^C} it.
+
+\noindent
+Switches to change behavior:\\[2mm]
+\begin{tabular}{lp{.8\textwidth}}
+\texttt{-global} & Sockets created for use by everyone rather than
+	           being user-specific.\\
+\texttt{-local } & No Inet socket is created and the Unix socket is
+	           process-specific\\
+\texttt{-noinet} & Instructs the server not to create an Inet socket.\\
+\texttt{-nounix} & Instructs the server not to create a Unix socket.\\
+\texttt{-nofork} & Will keep the server from forking when connections are
+	           made.  This is useful when debugging the server or when
+	           you want the server to die when the application
+	           terminates.\\
+\texttt{-trace}  & Will spit out lots of stuff about what the server is
+	           doing.  This is only for debugging purposes.
+\end{tabular}
+
+\vspace{2mm}
+	
+Typically, users do not need to be concerned with server switches
+since, by default, servers are created automatically by your Lisp
+process.  However, if you wish to share servers, or use servers across
+the network, you will need to run the server manually.
+
+
+\section{Widget creation}
+
+
+\functdescr{CREATE-APPLICATION-SHELL (\&rest resources)} Creates the
+\texttt{applicationShell} widget for a new Motif application.
+
+\functdescr{CREATE-WIDGET, CREATE-MANAGED-WIDGET (name class parent
+\&rest resources)} These create new widgets.  \texttt{CREATE-WIDGET}
+does not automatically manage the created widget, while
+\texttt{CREATE-MANAGED-WIDGET} does.
+
+\functdescr{CREATE-<widget\_class> (parent name \&rest resources)}
+Convenience function which creates a new widget of class
+\texttt{<widget\_class>}.  For instance, \texttt{CREATE-FORM} will
+create a new \texttt{XmForm} widget.
+
+\functdescr{*CONVENIENCE-AUTO-MANAGE*} Controls whether convenience
+functions automatically manage the widgets they create.  The default
+is NIL.
+
+\section{Callbacks}
+
+Callbacks are registered with the \texttt{ADD-CALLBACK} function.  Unlike Motif
+in C, an arbitrary number of client-data items can be registered with
+the callback.  Callback functions should be defined as:
+
+\begin{verbatim}
+(defun callback-handler (widget call-data \&rest client-data) ... )
+\end{verbatim}
+
+The passed widget is that in which the callback has occurred, and the
+call-data is a structure which provides more detailed information on the
+callback.  Client-data is some number of arguments which have been
+registered with the callback handler.  The slots of the call-data structure
+can be derived from the C structure name using the standard name conversion
+rules.  For example, the call-data structure for button presses has the
+following slot (aside from the standard ones): click-count.
+
+To access the X event which generated the callback, use the following:
+
+\begin{verbatim}
+(defun handler (widget call-data \&rest client-data)
+  (with-callback-event (event call-data)
+    ;; Use event structure here
+  ))
+\end{verbatim}
+
+Since callback procedures are processed synchronously, the Motif
+server will remain blocked to event handling until the callback
+finishes.  This can be potentially troublesome, but there are two ways
+of dealing with this problem.  The first alternative is the function
+\texttt{UPDATE-DISPLAY}.  Invoking this function during your callback
+function will force the server to process any pending redraw events
+before continuing.  The other (slightly more general) method is to
+register deferred actions with the callback handling mechanism.
+Deferred actions will be invoked after the server is released to
+process other events and the callback is officially terminated.
+Deferred actions are not invoked if the current application was
+destroyed as a result of the callback, since any requests to the
+server would refer to an application context which was no longer
+valid.  The syntax for their usage is:
+
+\begin{verbatim}
+(with-callback-deferred-actions <forms>)
+\end{verbatim}
+
+You may register only one set of deferred actions within the body of
+any particular callback procedure, as well as within event handlers
+and action procedures.  Registering a second (or more) set of deferred
+actions will overwrite all previous ones.
+
+When using deferred action procedures, care must be taken to avoid
+referencing invalid data.  Some information available within callbacks
+is only valid within the body of that callback and is discarded after
+the callback terminates.  For instance, events can only be retrieved
+from the call-data structure within the callback procedure.  Thus the
+code
+
+\begin{verbatim}
+(with-callback-deferred-actions
+  (with-callback-event (event call-data)
+    (event-type event)))
+\end{verbatim}
+
+is incorrect since the event will be fetched after the callback is
+terminated, at which point the event information will be unavailable.
+However, the code
+
+\begin{verbatim}
+(with-callback-event (event call-data)
+  (with-callback-deferred-actions
+    (event-type event)))
+\end{verbatim}
+
+is perfectly legitimate.  The event will be fetched during the callback and
+will be closed over in the deferred action procedure.
+
+
+\section{Action procedures}
+
+Action procedures can be registered in translation tables as in the
+following example:
+
+\begin{verbatim}
+	<Key> q: Lisp(SOME-PACKAGE:MY-FUNCTION)\n
+\end{verbatim}
+
+\noindent
+The generating X event can be accessed within the action handler
+using:
+
+\begin{verbatim}
+	(with-action-event (event call-data)
+	  ... use event here ...
+	)
+\end{verbatim}
+
+
+\section{Event handlers}
+
+X events are also represented as structured objects with slot names
+which are directly translated from the C equivalent.  The accessor
+functions are named by \texttt{<event name>-<slot name>}.  Some
+examples:\\[2mm]
+\begin{tabular}{ll}
+\texttt{(event-window event)}  & This applies to all events\\
+\texttt{(event-type event)}    & So does this\\
+ & \\
+\texttt{(button-event-x event)}      & Some button event\\
+\texttt{(button-event-button event)} & accessors\\
+\end{tabular}
+
+At the moment, \texttt{XClientMessage} and \texttt{XKeyMap} events are
+not supported (they will be in the not too distant future).
+
+
+\texttt{Provided conveniences}
+
+Since Motif requires the use of font lists for building non-trivial
+compound strings, there are some Lisp functions to ease the pain of
+building them:
+
+\functdescr{BUILD-SIMPLE-FONT-LIST (name font-spec)} Returns a font
+list of with the given name associated with the given font.  For
+example,
+
+\begin{verbatim}
+(build-simple-font-list "MyFont" "8x13")
+\end{verbatim}
+
+\functdescr{BUILD-FONT-LIST (flist-spec)} This allows for the
+construction of font lists with more than one font.  An example:
+
+\begin{verbatim}
+(build-font-list `(("EntryFont" ,entry-font-name)
+                   ("HeaderFont" ,header-font-name)
+                   ("ItalicFont" ,italic-font-name)))
+\end{verbatim}
+
+There are certain callbacks which are of general use, and standard
+ones are provided for the programmer's convenience.  For all callbacks
+except \texttt{QUIT-APPLICATION-CALLBACK}, you register some number of widgets
+with \texttt{ADD-CALLBACK}.  These will be the widgets acted upon by the
+callback:
+
+\functdescr{QUIT-APPLICATION-CALLBACK ()} Callback to terminate the
+current application.
+
+\functdescr{DESTROY-CALLBACK} Destroys all the widgets passed to it.
+\functdescr{MANAGE-CALLABCK } Manages all the widgets passed to it.
+\functdescr{UNMANAGE-CALLBACK} Unmanages all the widgets passed to it.
+\functdescr{POPUP-CALLBACK } Calls popup on all widgets passed to it.
+\functdescr{POPDOWN-CALLBACK} Calls popdown on all widgets passed to it.
+
+
+\section{Some random notes}
+
+\begin{itemize}
+
+\item When using functions such as \texttt{REMOVE-CALLBACK}, the
+	client-data passed must be \texttt{EQUAL} to the client-data
+	passed to \texttt{ADD-CALLBACK}.
+
+\item When using \texttt{REMOVE-CALLBACK}, etc., the function may be
+	supplied as either \texttt{'FUNCTION} or \texttt{\#'FUNCTION}.
+	However, they are considered different so use the same one
+	when adding and removing callbacks.
+
+\item You cannot directly access the \texttt{XmNitems} resources for
+	List widgets and relatives.  Instead, use \texttt{(SET-ITEMS
+	<widget> ....)} and \texttt{(GET-ITEMS <widget>)}.
+\end{itemize}
+
+
+\section{Things that are missing}
+
+\begin{itemize}
+\item Real documentation
+\item Support for \texttt{XClientMessage} and \texttt{XKeyMap} events
+\item Callback return values (e.g. \texttt{XmTextCallback}'s)
+\item Ability to send strings longer than 4096 bytes.
+\end{itemize}
+
+
+
+\section{A brief example}
+
+The following gives a simple example that pops up a window containing
+a ``Quit'' button. Clicking on the button exits the application. Note
+that the application runs concurrently with CMUCL: you can
+evaluate forms in the listener while the Motif application is running.
+Exiting the application does not cause CMUCL to exit; once you have
+quit the application, you can run it again.
+
+To run this example, save the code to a file named
+\verb|motif-example.lisp| and in the CMUCL listener, type
+
+\begin{verbatim}
+   USER> (compile-file "motif-example")
+   ; Loading #p"/opt/cmucl/lib/cmucl/lib/subsystems/clm-library.x86f".
+   ;; Loading #p"/opt/cmucl/lib/cmucl/lib/subsystems/clx-library.x86f".
+   ; Byte Compiling Top-Level Form: 
+   ; Converted my-callback.
+   ; Compiling defun my-callback: 
+   ; Converted test-init.
+   ; Compiling defun test-init: 
+   ; Converted test.
+   ; Compiling defun test: 
+   ; Byte Compiling Top-Level Form: 
+   #p"/home/CMUCL/motif-example.x86f"
+   nil
+   nil
+   USER> (load *)
+   ; Loading #p"/home/CMUCL/motif-example.x86f".
+   t
+   USER> (motif-example:test)
+   #<X Toolkit Connection, fd=5>
+   Got callback on #<X Toolkit Widget: push-button-gadget 82D89A0>
+   Callback reason was cr-activate
+   Quit button is #<X Toolkit Widget: push-button-gadget 82D7AD0>
+   USER> (quit)
+\end{verbatim}
+
+\newpage
+The source code:
+
+\begin{verbatim}
+;;; file motif-example.lisp
+
+(eval-when (:load-toplevel :compile-toplevel)
+  (require :clm))
+
+(defpackage :motif-example
+  (:use :cl :toolkit)
+  (:export #:test))
+
+(in-package :motif-example)
+
+
+(defun my-callback (widget call-data quit)
+  (format t "Got callback on ~A~%" widget)
+  (format t "Callback reason was ~A~%" (any-callback-reason call-data))
+  (format t "Quit button is ~A~%" quit))
+
+(defun test-init ()
+  (let* ((shell (create-application-shell))
+	 (rc (create-row-column shell "rowColumn"))
+	 (quit (create-push-button-gadget rc "quitButton"
+					  :label-string "Quit"))
+	 (button (create-push-button-gadget rc "button"
+					    :highlight-on-enter t
+					    :shadow-thickness 0
+					    :label-string "This is a button")))
+
+    (add-callback quit :activate-callback #'quit-application-callback)
+    (add-callback button :activate-callback 'my-callback quit)
+
+    (manage-child rc)
+    (manage-children quit button)
+    (realize-widget shell)))
+
+(defun test ()
+  (run-motif-application 'test-init))
+\end{verbatim}
+
+\end{document}

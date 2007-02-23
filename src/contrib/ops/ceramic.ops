@@ -1,0 +1,348 @@
+
+
+(literalize component)	(literalize context)	(literalize pcon)	(literalize datum)
+(literalize computation)	(literalize setattr)	(literalize template)	(literalize interaction)
+(literalize lineitem)	(literalize local)	(literalize discrlist)	(literalize task)
+(literalize arg)	(literalize call)	(literalize order)	(literalize wip)
+(literalize location)	(literalize input)	(literalize object)	(literalize x)
+(literalize status)	(literalize place)	(literalize time)	(literalize port)
+(literalize module)	(literalize link)	(literalize lists)	(literalize outnode)
+(literalize operator)	(literalize current)	(literalize attval)	(literalize choice)
+(literalize applied)	(literalize stateop)	(literalize exit)
+(literalize component0)	(literalize context0)	(literalize pcon0)	(literalize datum0)
+(literalize computation0)	(literalize setattr0)	(literalize template0)	(literalize interaction0)
+(literalize lineitem0)	(literalize local0)	(literalize discrlist0)	(literalize task0)
+(literalize arg0)	(literalize call0)	(literalize order0)	(literalize wip0)
+(literalize location0)	(literalize input0)	(literalize object0)	(literalize x0)
+(literalize status0)	(literalize place0)	(literalize time0)	(literalize port0)
+(literalize module0)	(literalize link0)	(literalize lists0)	(literalize outnode0)
+(literalize operator0)	(literalize current0)	(literalize attval0)	(literalize choice0)
+(literalize applied0)	(literalize stateop0)	(literalize exit0)
+(literalize tank)	(literalize pipe)	(literalize measurement)	(literalize reading)
+(literalize goal)	(literalize material)
+
+(literalize primer
+	spacer
+	role
+	cnt
+	null)
+
+(literalize count
+	spacer
+	role
+	null
+	val
+	delta
+	null2)
+
+
+
+(p start
+	(start)
+    -->
+    	(remove 1)
+	(make primer    ^role exist    ^cnt 1)
+	(make primer    ^role exist    ^cnt 2)
+	(make primer    ^role exist    ^cnt 3)
+	(make primer    ^role exist    ^cnt 4)
+	(make primer    ^role exist    ^cnt 5)
+	(make primer    ^role exist    ^cnt 6)
+	(make primer    ^role exist    ^cnt 7)
+	(make primer    ^role exist    ^cnt 8)
+	(make primer    ^role exist    ^cnt 9)
+	(make primer    ^role exist    ^cnt 10)
+	(make primer    ^role exist    ^cnt 11)
+	(make primer    ^role exist    ^cnt 12)
+	(make primer    ^role exist    ^cnt 13)
+	(make primer    ^role exist    ^cnt 14)
+	(make primer    ^role exist    ^cnt 15)
+	(make primer    ^role exist    ^cnt 16)
+	(make primer    ^role exist    ^cnt 17)
+	(make primer    ^role exist    ^cnt 18)
+	(make primer    ^role exist    ^cnt 19)
+	(make primer    ^role exist    ^cnt 20)
+	(make primer    ^role exist    ^cnt 21)
+	(make primer    ^role exist    ^cnt 22)
+	(make primer    ^role exist    ^cnt 23)
+	(make primer    ^role exist    ^cnt 24)
+	(make primer    ^role exist    ^cnt 25)
+	(make primer    ^role exist    ^cnt 26)
+	(make primer    ^role exist    ^cnt 27)
+	(make primer    ^role exist    ^cnt 28)
+	(make primer    ^role exist    ^cnt 29)
+	(make primer    ^role exist    ^cnt 30)
+	(make count    ^role exist    ^val 1    ^delta 7)
+	(make count    ^role exist    ^val 2    ^delta 7)
+	(make count    ^role exist    ^val 3    ^delta 7)
+	(make count    ^role exist    ^val 4    ^delta 7)
+	(make count    ^role exist    ^val 5    ^delta 7)
+	(make count    ^role exist    ^val 6    ^delta 7)
+	(make count    ^role exist    ^val 7    ^delta 7)
+	(make primer    ^role driver    ^cnt -1))
+
+
+
+(p driver
+	(primer    ^role driver    ^null <x>)
+	(count    ^null <x>    ^val <val>    ^delta <delta>)
+    -	(count    ^val < <val>)
+    -->
+    	(modify 2 ^val  (compute <val> + <delta>)))
+
+
+(p driverCopy
+	(primer    ^role driver    ^null <x>)
+	(count    ^null <x>    ^val <val>    ^delta <delta>)
+    -	(count    ^val < <val>)
+    -->
+    	(modify 2 ^val  (compute <val> + <delta>)))
+
+
+(p alphamem
+	(primer    ^role nonexist)
+	(count)
+	(count)
+	(count)
+	(count)
+	(count)
+	(count)
+	(count)
+    -->
+        (halt))
+
+
+(p betamem1
+	(count    ^null <> betamem1)
+	(primer	   ^role nonexist)
+    -->
+        (halt))
+
+
+(p betamem2
+	(count    ^null <> betamem2)
+	(primer	   ^role nonexist)
+    -->
+        (halt))
+
+
+(p betamem3
+	(count    ^null <> betamem3)
+	(primer	   ^role exist    ^cnt < 1)
+    -->
+        (halt))
+
+
+(p betaleft1
+	(count    ^null <> betamem3    ^null <n>)
+	(primer	   ^role exist    ^cnt <= 25    ^role <n>)
+    -->
+        (halt))
+
+
+(p betaleft2
+	(count    ^null <> betamem3    ^null <n>)
+	(primer	   ^role exist    ^cnt <= 24    ^role <n>)
+    -->
+        (halt))
+
+
+(p andrightnull1
+	(primer    ^role nonexist1)
+	(count)
+	(count)
+	(count)
+	(count)
+	(count)
+	(count)
+	(count)
+    -->
+        (halt))
+
+
+(p andrightnull2
+	(primer    ^role nonexist2)
+	(count)
+	(count)
+	(count)
+	(count)
+    -->
+        (halt))
+
+
+(p andrightloop
+	(primer    ^role exist    ^cnt <= 13    ^null <n>)
+	(count    ^role <n>)
+    -->
+    	(halt))
+
+
+(p notleft
+	(primer    ^role driver    ^null <x>)
+	(count    ^null <x>)
+    -	(primer    ^role exist    ^cnt <= 23    ^null <x>    ^null <x>)
+    -->
+    	(halt))
+
+
+(p notrnull1
+	(primer    ^role notex1)
+    -	(count)
+    -->
+        (halt))
+
+
+(p notrnull2
+	(primer    ^role notex2)
+    -	(count)
+    -->
+        (halt))
+
+
+(p notrnull3
+	(primer    ^role notex3)
+    -	(count)
+    -->
+        (halt))
+
+
+(p notrnull4
+	(primer    ^role notex4)
+    -	(count)
+    -->
+        (halt))
+
+
+(p notrnull5
+	(primer    ^role notex5)
+    -	(count)
+    -->
+        (halt))
+
+
+(p notrnull6
+	(primer    ^role notex6)
+    -	(count)
+    -->
+        (halt))
+
+
+(p notright
+	(primer    ^role exist    ^cnt <= 8   ^null <x>)
+    -	(count    ^null <x>    ^null2 <x>)
+    -->
+        (halt))
+
+
+(p object12
+	(component)	(context)	(pcon)		(datum)
+	(computation)	(setattr)    	(template)	(interaction)
+	(lineitem)	(local)		(discrlist)	(task)
+	-->
+	(halt))
+
+(p object24
+	(arg)		(call)		(order)		(wip)
+	(location)	(input)		(object)	(x)
+	(status)	(place)		(time)		(port)
+	-->
+	(halt))
+
+(p object36
+	(module)	(link)		(lists)		(outnode)
+	(operator)	(current)	(attval)	(choice)
+	(operator)	(applied)	(stateop)	(exit)
+	-->
+	(halt))
+
+
+(p object48
+	(component0)	(context0)	(pcon0)		(datum0)
+	(computation0)	(setattr0)    	(template0)	(interaction0)
+	(lineitem0)	(local0)	(discrlist0)	(task0)
+	-->
+	(halt))
+
+(p object60
+	(arg0)		(call0)		(order0)	(wip0)
+	(location0)	(input0)	(object0)	(x0)
+	(status0)	(place0)	(time0)		(port0)
+	-->
+	(halt))
+
+(p object72
+	(module0)	(link0)		(lists0)	(outnode0)
+	(operator0)	(current0)	(attval0)	(choice0)
+	(operator0)	(applied0)	(stateop0)	(exit0)
+	-->
+	(halt))
+
+(p object78
+	(tank)		(pipe)		(measurement)	(reading)
+	(goal)		(material)
+	-->
+	(halt))
+
+
+(p tnea0
+	(count    ^null a)
+	(count    ^null b)
+	(count    ^null c)
+	(count    ^null d)
+	(count    ^null e)
+	(count    ^null f)
+	(count    ^null g)
+	(count    ^null h)
+	(count    ^null i)
+	(count    ^null j)
+    -->
+    	(halt))
+
+(p tnea1
+	(count    ^null a1)
+	(count    ^null b1)
+	(count    ^null c1)
+	(count    ^null d1)
+	(count    ^null e1)
+	(count    ^null f1)
+	(count    ^null g1)
+	(count    ^null h1)
+	(count    ^null i1)
+	(count    ^null j1)
+    -->
+    	(halt))
+
+(p tnea2
+	(count    ^null a2)
+	(count    ^null b2)
+	(count    ^null c2)
+	(count    ^null d2)
+	(count    ^null e2)
+	(count    ^null f2)
+	(count    ^null g2)
+	(count    ^null h2)
+	(count    ^null i2)
+	(count    ^null j2)
+    -->
+    	(halt))
+
+(p tnea3
+	(count    ^null a3)
+	(count    ^null b3)
+	(count    ^null c3)
+	(count    ^null d3)
+	(count    ^null e3)
+	(count    ^null f3)
+	(count    ^null g3)
+    -->
+    	(halt))
+
+
+(p cs
+	(primer    ^role exist    ^cnt <= 2)
+	(primer    ^role exist    ^cnt <= 2)
+	(primer    ^role exist    ^cnt <= 2)
+	(primer    ^role exist    ^cnt <= 1)
+	(primer    ^role exist    ^cnt <= 1)
+	(primer    ^role exist    ^cnt <= 1)
+    -->
+    	(halt))

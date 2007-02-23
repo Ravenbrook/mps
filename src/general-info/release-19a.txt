@@ -1,0 +1,359 @@
+========================== C M U C L  19 a =============================
+
+The CMUCL project is pleased to announce the release of CMUCL 19a.
+This is a major release which contains numerous enhancements and
+bugfixes from the 18e release.
+
+CMUCL is a free, high performance implementation of the Common Lisp
+programming language which runs on most major Unix platforms. It
+mainly conforms to the ANSI Common Lisp standard. CMUCL provides a
+sophisticated native code compiler; a powerful foreign function
+interface; an implementation of CLOS, the Common Lisp Object System,
+which includes multimethods and a metaobject protocol; a source-level
+debugger and code profiler; and an Emacs-like editor implemented in
+Common Lisp. CMUCL is maintained by a team of volunteers collaborating
+over the Internet, and is mostly in the public domain.
+
+New in this release:
+       
+  * Feature enhancements:
+     - Stack overflow checking added for FreeBSD/x86, Linux/x86 and
+       Solaris.  Code that makes the control stack overflow (for
+       example due to unbounded recursion) will lead to a
+       STORAGE-ERROR being signaled, instead of making CMUCL crash.
+     - LISP:FIND-CLASS and LISP:CLASS-OF now return CLOS classes.  The
+       symbols LISP:STANDARD-CLASS, LISP:BUILT-IN-CLASS, and
+       LISP:STRUCTURE-CLASS name CLOS classes.  It is no longer
+       necessary to SHADOWING-IMPORT these from PCL when doing MOP
+       programming, and it fixes some non-compliances as well.
+     - Package locks: a package whose EXT:PACKAGE-LOCK is enabled
+       non-NIL is protected against changes in its structure (list of
+       exported symbols, use-list etc). Symbols in a package whose
+       EXT:PACKAGE-DEFINITION-LOCK is enabled are protected against
+       redefinition.
+     - Weak hash tables have been added for x86 systems.
+     - Local functions are now named (FLET <name> ...) or 
+       (LABELS <name> ...).
+     - Compiler checking control string and number of args to FORMAT,
+       ERROR and WARN.
+     - TRACE automatically using encapsulation when function-end
+       breakpoints cannot be used.
+     - INSPECT working on CLOS instances.
+     - Callbacks from foreign code to Lisp.  Implemented for x86 and
+       sparc.
+     - Functions like GETHASH that are used in the implementation of 
+       TRACE can now be traced.  See also
+       DEBUG:*TRACE-ENCAPSULATE-PACKAGE-NAMES*.
+     - New facility for encapsulating functions, FWRAPPERS;
+       see also the CMUCL User Manual.
+     - TRACE and PROFILE have been reimplemented using fwrappers,
+       with the effect of tracing and profiling now working more
+       nicely together.
+     - When a profiled function is redefined, it is re-profiled.
+     - A basic implementation of simple-streams added.  Some
+       functionality may be missing.
+     - UNIX:UNIX-LSEEK working with files > 2G on BSDs.
+     - Type declarations on local bindings of special variables no
+       longer being ignored.
+     - DISASSEMBLE disassembling closure/funcallable instance
+       functions.
+     - (SETF EXT:WEAK-POINTER-VALUE) has been added.
+     - CMUCL no longer entering an infinite loop when dumping
+       circular constant lists to fasl files.
+     - COMPILE-FILE-PATHNAME's BYTE-COMPILE keyword arg defaulting
+       to *BYTE-COMPILE-DEFAULT* like COMPILE-FILE.
+     - Added VOPs for CHAR=, CHAR<, and CHAR> when the second arg is a
+       constant character.
+     - Added missing VOPs for Sparc for array refs with a constant
+       index. 
+     - Lisp binary will also look at the PATH envvar to find out it's
+       own location which is used to find other needed files.
+     - Byte-compiled code being executed ca. 1/3 faster.
+     - Heap overflow checking for x86 and solaris with gencgc.  When
+       the heap is close to overflowing, a heap-overflow condition is
+       signaled.  If an overflow happens again while debugging the
+       condition, the user is returned to top-level without warning.
+       Use lisp::*reserved-heap-pages* to set the number of pages to
+       reserve.
+     - C functions are displayed in backtraces now for x86/linux and
+       sparc.  Previously, it just said "Foreign function call land".
+       (From Helmut Eller.)
+     - Source location recording is done better and handles macros
+       including things defined by defclass, defvar, and defgeneric.
+       From Helmut Eller.
+     - Modular arithmetic implemented for x86 and sparc.  So 
+
+         (ldb (byte 32 0) (+ x y))
+
+       is a simple machine add instruction if x and y are
+       (unsigned-byte 32).
+
+  * Numerous ANSI compliance fixes:
+     - Many bugs in CMUCL's type system detected by Paul Dietz'
+       ANSI test suite have been fixed.
+     - Non-keyword keyword names in lambda lists are now accepted.
+     - Condition slot initialization fixed for the case that two
+       or more slots have the same :INITARG.
+     - Initforms are now evaluated once only during condition slot
+       initialization.
+     - USE-VALUE, STORE-VALUE, CONTINUE behavior corrected in presence
+       of multiple restarts having the same name.
+     - RESTART-CASE's interaction with local macros fixed.
+     - Interaction of COMPUTE-RESTARTS and RESTART-CASE fixed in
+       presence of multiple restarts having the same name.
+     - Condition slot readers/writers are generic functions.
+     - &WHOLE, &REST, &BODY in macro lambda lists can be followed
+       by destructuring patterns.  The previous behavior of &BODY
+       when followed by (<body> <declarations> <doc>) is available
+       through the new lambda-list keyword EXT:&PARSE-BODY.
+     - ELT now signals an error in safe code when used on lists
+       with an out-of-bounds index.
+     - Accessing arrays in compiled code with out-of-bounds indices
+       now signals a TYPE-ERROR.
+     - DECLARE no longer being a special operator.
+     - DEFINE-CONDITION accepts slot option :DOCUMENTATION.
+     - Behavior of (... &KEY &ALLOW-OTHER-KEYS) fixed for 
+       DESTRUCTURING-BIND and macros.
+     - Stricter checking of keyword argument list in CLOS methods.
+     - &ENVIRONMENT variable bound bound before other vars, regardless
+       of where it appears in a lambda-list.
+     - VALUES types no longer accepting &KEY or &ALLOW-OTHER-KEYS.
+     - THE conforming to ANSI.
+     - SLOT-EXISTS-P can be used with conditions.
+     - REMOVE-METHOD always returning the generic function passed to it.
+     - Standard methods for STANDARD-OBJECT and STRUCTURE-OBJECT
+       defined on MAKE-LOAD-FORM.
+     - Compliant MAKE-LOAD-FORM-SAVING-SLOTS.
+     - DEFSTRUCT recording slot-names as specified by users.
+     - Generic function call keyword argument checking according to
+       ANSI 7.6.5.
+     - CALL-NEXT-METHOD without arguments being called with original
+       arguments when method parameters are changed with SETQ.
+     - When CALL-NEXT-METHOD is called with arguments, an error is
+       signaled in safe code when the set of methods applicable to
+       CALL-NEXT-METHOD's arguments is different from the set of
+       methods applicable to the original method arguments.
+     - FIND-METHOD signaling an error when called with specializers
+       not corresponding to the number of required arguments of the
+       supplied generic function.
+     - TYPE-OF returning KEYWORD for keywords, STANDARD-CHAR for
+       standard characters, BOOLEAN for T, (INTEGER <N> <N>) for
+       integers N, non-list types for functions, and CLOS classes for
+       instances whose class doesn't have a proper name.
+     - Class precedence list of NULL not having SYMBOL before LIST,
+       precedence list of STANDARD-METHOD not having METHOD before
+       STANDARD-OBJECT.
+     - ADD-METHOD returning its first argument, the generic function.
+     - DEFCLASS redefining a class with the given name only if the
+       name is the proper name of an existing class.
+     - KEYWORD package no longer having nickname "".
+     - COMMON-LISP-USER package no longer having nickname USER.
+     - COMMON-LISP package no longer having nickname LISP; LISP
+       and COMMON-LISP are now separate packages.
+     - SLOT-VALUE, (SETF SLOT-VALUE), SLOT-BOUNDP, SLOT-MAKUNBOUND
+       returning values specified by the standard when SLOT-UNBOUND
+       or SLOT-MISSING are called and return.
+     - NTH and NTHCDR accepting bignums as first argument.
+     - First arg of CERROR may be a function.
+     - Lambda-lists of the form (X . Y) in DESTRUCTURING-BIND and macros
+       are now equivalent to (X &REST Y).
+     - LAST, BUTLAST, NBUTLAST accepting bignum counts.
+     - WITH-OUTPUT-TO-STRING accepting :ELEMENT-TYPE.
+     - FIXNUM no longer naming a function.
+     - MAKE-STRING-OUTPUT-STREAM accepts :ELEMENT-TYPE.
+     - Numerous LOOP fixes.
+     - On FreeBSD, CLtS-required floating-point conditions are signaled.
+     - The minimum rehash-threshold is 0.1, and is enforced silently.
+       This is to prevent overflows and divide-by-zero errors when
+       creating a hash-table with a too-small rehash-threshold.
+     - MACROLET now accepts declarations, as prescribed by ANSI CL.
+     - MAKE-PATHNAME signals an error on invalid combinations
+       (:absolute or :wild-inferiors followed by :back or :up).
+     - PEEK-CHAR skips whitespace based on the readtable instead of
+       using hard-wired values.
+     - PEEK-CHAR signals an end-of-file error if necessary when
+       RECURSIVE-P is true.
+     - FILE-LENGTH now signals a TYPE-ERROR when the stream is not a
+       stream associated with a file.
+     - Floats are now printed and read accurately, preserving
+       read/print consistency.  (Was sometimes off by a bit in the
+       least significant bit.)
+     - Printing of rationals should generate correct results now for
+       all cases of *print-base* and *print-radix*.
+     - Symbol printer should print better with unusual settings of
+       *print-case* and friends.
+     - Stream element-type can go up to 1024 bits.
+
+  * Numerous bugfixes:
+     - NSET-EXCLUSIVE-OR returns the same results as SET-EXCLUSIVE-OR
+       wrt to duplicate elements.
+     - Forms like (MULTIPLE-VALUE-BIND 'LIST) no longer trapping
+       an internal compiler error when compiled.
+     - PARSE-INTEGER signaling PARSE-ERROR.
+     - Compiler eliminating some type checks in safe code.
+     - Byte-compiler and -interpreter not handling C:&MORE.
+     - Some TYPE-ERRORs being signaled with unbound slots, which
+       made them undisplayable.
+     - Structure predicates no longer signaling an error when applied
+       to obsolete instances.
+     - A DEFTRANSFORM for array bounds checking had an off-by-1 error.
+     - Compiler was not properly deriving the type of FTRUNCATE in all
+       cases.
+     - Fixed error wherein certain uses of 2 arg ATAN caused a
+       compiler error on x86.
+     - Compiler wrongly signaling a type error in VOLATILE-INFO-LOOKUP or
+       COMPACT-INFO-LOOKUP for hash values equal to MOST-POSITIVE-FIXNUM.
+     - FFLOOR and FCEILING return types sometimes being inferred as
+       being the nil type.
+     - PARSE-TIME accepting GMT offsets with a leading plus sign.
+     - UNIX-MMAP not accepting a null fd, preventing anonymous
+       mappings.
+     - SIGPROF having the wrong value on GNU/Linux.
+     - Wrong byte-code being generated for (APPLY #'+ <X> <Y>) and
+       similar cases.
+     - GCD sometimes returning a negative value.
+     - LCM sometimes returning a negative value, or signaling division-by-zero.
+     - FLOAT sometimes returning a float of the wrong type.
+     - ROOM should handle the large heaps now without overflowing
+       internal counters or signaling type errors.  Columns should
+       line up better too.
+     - READ-SEQUENCE was returning too soon when reading from files
+       into simple-strings even though there were data available.
+     - READ-SEQUENCE was returning the wrong value when reading into
+       simple-strings and when the :START value was not zero.
+     - CMUCL was computing the wrong value for some special functions
+       when the argument was on the branch cut for the function.
+     - MULTIPLE-VALUE-BIND accepts &REST and friends in the var list.
+     - When constructing logical pathnames, all components will be
+       automatically upcased.  Needed for print/read consistency, and
+       fixes an issue with ASDF and logical pathnames.
+     - Handle things like [abc] in namestrings better to match
+       Unix-style usage.
+     - ATANH was incorrectly computing the value of 1+i*y.
+     - SOFTWARE-VERSION would hang on some Linux 2.6 kernels because
+       it was waiting forever reading /proc files.  Hopefully fixed
+       for all kernels.
+     - Reloading of shared libraries happened in the wrong order.
+       
+  * Other changes:
+     - CREATE-REQUEST-SERVER has an additional :reuse-address keyword
+       argument. 
+     - Removed obsolete alias from MAKE-VECTOR to MAKE-ARRAY
+     - the signature of *COMPILER-NOTIFICATION-FUNCTION* has changed;
+       it now has an extra argument that describes the nature of the
+       error or warning. 
+     - File versioning occurs when the version component is :NEWEST,
+       and Emacs style file versions are created:  foo.bar.~N~, where
+       the larger N is newer.  foo.bar is the newest version.
+     - Converting namestrings to pathnames now get a version component
+       of NIL instead of :NEWEST.
+     - *DEFAULT-PATHNAME-DEFAULTS* has a version component of
+       :UNSPECIFIC instead of :NEWEST so versioning is disabled by
+       default to preserve current behavior.  Set the version to
+       :NEWEST to create versions.
+     - LDB backtrace on x86.
+     - DYNAMIC-EXTENT support on x86 and sparc.  Stack-allocation can
+       be controlled by the setting of
+       EXT:*TRUST-DYNAMIC-EXTENT-DECLARATIONS*.  See also the CMU User
+       Manual.  Be warned that all bets are off if a stack-allocated
+       object or parts of it escape; CMUCL might crash or format your
+       hard disk.
+     - Generational GC (gencgc) available for Sparc/Solaris on an
+       experimental basis.  Despite the name and feature, it is not
+       conservative. 
+     - Search in /usr/lib/cmucl for the lisp core file as well, to
+       support x86/Linux
+     - The trap for floating-point underflow is turned off by default
+       for all platforms now.
+     - A continuable error is signaled when defining a logical
+       pathname host that has the same name as a search-list host. 
+     - A better sxhash function for string is implemented on sparc.
+       This is based on the one-at-a-time hash from
+       http://burtleburtle.net/bob/hash/doobs.html. 
+     
+  * Numerous improvements to the PCL implementation of CLOS:
+     - Gerd's PCL has been added, which fixes numerous bugs and ANSI/
+       AMOP non-compliances, and adds various new optimizations (also
+       see the CMU User Manual).
+     - PCL's class hierarchy has been changed to conform to AMOP, for
+       instance, GENERIC-FUNCTION is now a subclass of
+       STANDARD-OBJECT.
+     - ENSURE-CLASS-USING-CLASS's argument list has been changed
+       to conform to AMOP.
+     - COMPUTE-EFFECTIVE-SLOT-DEFINITION now takes a slot name as
+       argument, for AMOP compliance.
+     - SUBTYPEP works in presence of forward-referenced classes.
+     - Accessing slots of specialized parameters in (SETF
+       SLOT-VALUE-USING-CLASS) methods works.
+     - DIRECT-SLOT-DEFINITION-CLASS and EFFECTIVE-SLOT-DEFINITION-CLASS
+       AMOP compliant.
+     - ALLOCATE-INSTANCE working with structures defined with DEFSTRUCT.
+     - With (DEFGENERIC FOO (&REST X &KEY)) (DEFMETHOD FOO (&REST X) X),
+       (FOO 1) now signals an error.
+     - Methods with &OPTIONAL arguments detecting too many args.
+     - DEFMETHOD and DEFGENERIC detecting doubled lambda variables.
+     - DEFGENERIC :ARGUMENT-PRECEDENCE-ORDER option checking.
+     - SLOT-VALUE, (SETF SLOT-VALUE), SLOT-BOUNDP working with conditions.
+     - (SETF SLOT-VALUE) working on read-only structure slots like
+       in other implementations.
+     - The declaration identifiers SLOTS, AUTO-COMPILE,
+       NOT-AUTO-COMPILE have been moved from PCL to EXT.
+     - Support for inlineing methods in effective methods; see the 
+       CMU User Manual.
+     - Wrong results could be returned from generic functions when
+       all methods returned constant values, and some methods were
+       qualified, or the generic function didn't use the standard
+       method combination.
+     - For standard method combination and method combinations defined
+       with the short form of DEFINE-METHOD-COMBINATION: If there are
+       no applicable primary methods when a generic function is
+       called, the generic function PCL:NO-PRIMARY-METHOD is called.
+       The default method of this generic function signals a
+       continuable error of type PCL:NO-PRIMARY-METHOD-ERROR.
+     - Effective methods are no longer precomputed at method load
+       time, if the generic function has more than 
+       PCL:*MAX-EMF-PRECOMPUTATION-METHODS* methods (default 100).
+     - The loading of methods with invalid qualifiers no longer
+       signals an error, for standard's conformance.  Instead, a
+       warning is printed at method load time.  An error is
+       signaled if the generic function is called with arguments such
+       that the method is used.
+     - Redefining a generic function with a different method
+       combination now recomputes effective methods.
+     - Slot access and gf-call optimizations are no longer performed
+       for method parameters being assigned to in a method body, because
+       we can't tell what type of object the method parameter actually
+       contains.
+
+  * Improvements to Hemlock, the Emacs-like editor:
+
+  * Changes to rebuilding procedure:
+     - When rebuilding CMUCL, *features* do not need to be set by
+       hand.  As files are loaded, the appropriate *features* are set
+       so that the resulting build has the same set of *features*.
+       There should also be fewer warnings about internals.h changing,
+       since that now just contains things in sys:*runtime-features*.
+       Use sys:register-lisp-feature and
+       sys:register-lisp-runtime-feature to set *features* and
+       sys:*runtime-features*, respectively.
+     - Pierre Mai's build-tools have been incorporated.  The scripts
+       are in the src/tools directory.  These are slightly modified
+       versions of his scripts.  Should make building CMUCL easier.
+
+  * Deprecated features:
+     - EXT:ENCAPSULATE and associated functions; use fwrappers instead.
+     - The sparc port with the Cheney stop-and-copy garbage collector
+       will no longer be supported after this release.  The supported
+       GC will be gencgc.
+     - The sparc port will only be supported on Ultrasparc machines
+       (Sparc V9).
+
+This release is not binary compatible with code compiled using CMUCL
+18e; you will need to recompile FASL files. 
+
+See <URL:http://www.cons.org/cmucl/> for download information,
+guidelines on reporting bugs, and mailing list details.
+
+
+We hope you enjoy using this release of CMUCL!
+

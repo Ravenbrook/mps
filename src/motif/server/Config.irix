@@ -1,0 +1,3 @@
+CC = cc
+CFLAGS = -Dirix -DSVR4 -D_BSD_SIGNALS -I/usr/include/X11 -I/usr/include
+LDFLAGS = -L/usr/lib/X11 -L/usr/lib

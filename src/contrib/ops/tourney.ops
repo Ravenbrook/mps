@@ -1,0 +1,299 @@
+
+(literalize player
+  number
+  nights-scheduled)
+
+(literalize foursome
+  night
+  group
+  north
+  south
+  east
+  west)
+
+(literalize context
+  name)
+
+(literalize scheduling
+  night)
+
+(literalize already-played
+  player1
+  player2)
+
+(literalize candidate
+  group
+  chosen
+  south
+  east
+  west)
+
+
+(p startup 
+  (start)
+-->
+  (make player ^number 1 ^nights-scheduled 0)
+  (make player ^number 2 ^nights-scheduled 0)
+  (make player ^number 3 ^nights-scheduled 0)
+  (make player ^number 4 ^nights-scheduled 0)
+  (make player ^number 5 ^nights-scheduled 0)
+  (make player ^number 6 ^nights-scheduled 0)
+  (make player ^number 7 ^nights-scheduled 0)
+  (make player ^number 8 ^nights-scheduled 0)
+  (make player ^number 9 ^nights-scheduled 0)
+  (make player ^number 10 ^nights-scheduled 0)
+  (make player ^number 11 ^nights-scheduled 0)
+  (make player ^number 12 ^nights-scheduled 0)
+  (make player ^number 13 ^nights-scheduled 0)
+  (make player ^number 14 ^nights-scheduled 0)
+  (make player ^number 15 ^nights-scheduled 0)
+  (make player ^number 16 ^nights-scheduled 0)
+  (make foursome ^night 1 ^group a ^north nil ^south nil ^east nil ^west nil)
+  (make foursome ^night 1 ^group b ^north nil ^south nil ^east nil ^west nil)
+  (make foursome ^night 1 ^group c ^north nil ^south nil ^east nil ^west nil)
+  (make foursome ^night 1 ^group d ^north nil ^south nil ^east nil ^west nil)
+  (make foursome ^night 2 ^group a ^north nil ^south nil ^east nil ^west nil)
+  (make foursome ^night 2 ^group b ^north nil ^south nil ^east nil ^west nil)
+  (make foursome ^night 2 ^group c ^north nil ^south nil ^east nil ^west nil)
+  (make foursome ^night 2 ^group d ^north nil ^south nil ^east nil ^west nil)
+  (make foursome ^night 3 ^group a ^north nil ^south nil ^east nil ^west nil)
+  (make foursome ^night 3 ^group b ^north nil ^south nil ^east nil ^west nil)
+  (make foursome ^night 3 ^group c ^north nil ^south nil ^east nil ^west nil)
+  (make foursome ^night 3 ^group d ^north nil ^south nil ^east nil ^west nil)
+  (make foursome ^night 4 ^group a ^north nil ^south nil ^east nil ^west nil)
+  (make foursome ^night 4 ^group b ^north nil ^south nil ^east nil ^west nil)
+  (make foursome ^night 4 ^group c ^north nil ^south nil ^east nil ^west nil)
+  (make foursome ^night 4 ^group d ^north nil ^south nil ^east nil ^west nil)
+  (make foursome ^night 5 ^group a ^north nil ^south nil ^east nil ^west nil)
+  (make foursome ^night 5 ^group b ^north nil ^south nil ^east nil ^west nil)
+  (make foursome ^night 5 ^group c ^north nil ^south nil ^east nil ^west nil)
+  (make foursome ^night 5 ^group d ^north nil ^south nil ^east nil ^west nil)
+  (make context ^name north)
+  (make scheduling ^night 1)
+  (write (tabto 32) |Tournament Schedule| (crlf) (crlf)
+	 (tabto 15) |N  S  E  W|
+	 (tabto 42) |N  S  E  W|
+	 (tabto 68) |N  S  E  W| (crlf)
+	 (tabto 15) |=  =  =  =|
+	 (tabto 42) |=  =  =  =|
+	 (tabto 68) |=  =  =  =| (crlf)))
+
+(p north-pick-one-1
+  (context ^name north)
+  (scheduling ^night <n>)
+  { <THE-FOURSOME> (foursome ^night <n> ^north nil) }
+  { <THE-PLAYER> (player ^number <p> ^nights-scheduled < <n>) }
+  (foursome ^night <n> ^north { <p1> <> nil })
+  (foursome ^night <n> ^north { <p2> <> <p1> <> nil })
+  (foursome ^night <n> ^north { <p3> <> <p2> <> <p1> <> nil })
+  (already-played ^player1 <p> ^player2 <p1>)
+  (already-played ^player1 <p> ^player2 <p2>)
+  (already-played ^player1 <p> ^player2 <p3>)
+-->
+  (modify <THE-PLAYER> ^nights-scheduled <n>)
+  (modify <THE-FOURSOME> ^north <p>) )
+
+(p north-pick-one-2
+  (context ^name north)
+  (scheduling ^night <n>)
+  { <THE-FOURSOME> (foursome ^night <n> ^north nil) }
+  { <THE-PLAYER> (player ^number <p> ^nights-scheduled < <n>) }
+  (foursome ^night <n> ^north { <p1> <> nil })
+  (foursome ^night <n> ^north { <p2> <> <p1> <> nil })
+  (already-played ^player1 <p> ^player2 <p1>)
+  (already-played ^player1 <p> ^player2 <p2>)
+-->
+  (modify <THE-PLAYER> ^nights-scheduled <n>)
+  (modify <THE-FOURSOME> ^north <p>) )
+
+(p north-pick-one-3
+  (context ^name north)
+  (scheduling ^night <n>)
+  { <THE-FOURSOME> (foursome ^night <n> ^north nil) }
+  { <THE-PLAYER> (player ^number <p> ^nights-scheduled < <n>) }
+  (foursome ^night <n> ^north { <p1> <> nil })
+  (already-played ^player1 <p> ^player2 <p1>)
+-->
+  (modify <THE-PLAYER> ^nights-scheduled <n>)
+  (modify <THE-FOURSOME> ^north <p>) )
+
+(p north-pick-one-4
+  (context ^name north)
+  (scheduling ^night <n>)
+  { <THE-FOURSOME> (foursome ^night <n> ^north nil) }
+  { <THE-PLAYER> (player ^number <p> ^nights-scheduled < <n>) }
+-->
+  (modify <THE-PLAYER> ^nights-scheduled <n>)
+  (modify <THE-FOURSOME> ^north <p>) )
+
+(p north-done
+  { <THE-CONTEXT> (context ^name north) }
+-->
+  (modify <THE-CONTEXT> ^name make-candidates))
+
+(p make-candidates-make-candidate
+  (context ^name make-candidates)
+  (scheduling ^night { <n> < 3 })
+  (foursome ^night <n> ^group <g> ^north <yankee>)
+  (player ^number <redneck> ^nights-scheduled < <n>)
+  (player ^number { <oriental> < <redneck> } ^nights-scheduled < <n>)
+  (player ^number { <cowboy> < <oriental> } ^nights-scheduled < <n>)
+  - (already-played ^player1 <yankee> ^player2 <redneck>)
+  - (already-played ^player1 <yankee> ^player2 <oriental>)
+  - (already-played ^player1 <yankee> ^player2 <cowboy>)
+  - (already-played ^player1 <redneck> ^player2 <oriental>)
+  - (already-played ^player1 <redneck> ^player2 <cowboy>)
+  - (already-played ^player1 <oriental> ^player2 <cowboy>)
+  - (candidate ^group <g> ^chosen no ^south <redneck> ^east <oriental>)
+  - (candidate ^group <g> ^chosen no ^south <redneck> ^west <cowboy>)
+  - (candidate ^group <g> ^chosen no ^east <oriental> ^west <cowboy>)
+-->
+  (make candidate ^group <g> ^chosen no
+	 ^south <redneck> ^east <oriental> ^west <cowboy>))
+
+(p make-candidates-make-candidate-late
+  (context ^name make-candidates)
+  (scheduling ^night { <n> > 2 })
+  (foursome ^night <n> ^group <g> ^north <yankee>)
+  (player ^number <redneck> ^nights-scheduled < <n>)
+  (player ^number { <oriental> < <redneck> } ^nights-scheduled < <n>)
+  (player ^number { <cowboy> < <oriental> } ^nights-scheduled < <n>)
+  - (already-played ^player1 <yankee> ^player2 <redneck>)
+  - (already-played ^player1 <yankee> ^player2 <oriental>)
+  - (already-played ^player1 <yankee> ^player2 <cowboy>)
+  - (already-played ^player1 <redneck> ^player2 <oriental>)
+  - (already-played ^player1 <redneck> ^player2 <cowboy>)
+  - (already-played ^player1 <oriental> ^player2 <cowboy>)
+-->
+  (make candidate ^group <g> ^chosen no
+	^south <redneck> ^east <oriental> ^west <cowboy>))
+
+(p make-candidates-done
+  { <THE-CONTEXT> (context ^name make-candidates) }
+-->
+  (modify <THE-CONTEXT> ^name make-choice)) 
+
+(p make-choice-doit
+  { <THE-CONTEXT> (context ^name make-choice) }
+  { <WINNER-A> (candidate ^group a ^chosen no
+	^south <sa>
+	^east  <ea>
+	^west  <wa>) }
+  { <WINNER-B> (candidate ^group b ^chosen no
+	^south { <sb> <> <sa> <> <ea> <> <wa> }
+	^east  { <eb> <> <sa> <> <ea> <> <wa> }
+	^west  { <wb> <> <sa> <> <ea> <> <wa> }) }
+  { <WINNER-C> (candidate ^group c ^chosen no
+	^south { <sc> <> <sa> <> <ea> <> <wa> <> <sb> <> <eb> <> <wb> }
+	^east  { <ec> <> <sa> <> <ea> <> <wa> <> <sb> <> <eb> <> <wb> }
+	^west  { <wc> <> <sa> <> <ea> <> <wa> <> <sb> <> <eb> <> <wb> }) }
+  { <WINNER-D> (candidate ^group d ^chosen no
+	^south { <sd>
+			<> <sa> <> <ea> <> <wa>
+			<> <sb> <> <eb> <> <wb>
+			<> <sc> <> <ec> <> <wc> }
+	^east  { <ed>
+			<> <sa> <> <ea> <> <wa>
+			<> <sb> <> <eb> <> <wb>
+			<> <sc> <> <ec> <> <wc> }
+	^west  { <wd>
+			<> <sa> <> <ea> <> <wa>
+			<> <sb> <> <eb> <> <wb>
+			<> <sc> <> <ec> <> <wc> }) }
+--> 
+  (modify <WINNER-A> ^chosen yes)
+  (modify <WINNER-B> ^chosen yes)
+  (modify <WINNER-C> ^chosen yes)
+  (modify <WINNER-D> ^chosen yes)
+  (modify <THE-CONTEXT> ^name remove-candidates))
+
+(p remove-candidates-bye
+  (context ^name remove-candidates)
+  { <THE-CANDIDATE> (candidate ^chosen no) }
+-->
+  (remove <THE-CANDIDATE>))
+
+(p remove-candidates-done
+  { <THE-CONTEXT> (context ^name remove-candidates) }
+-->
+  (modify <THE-CONTEXT> ^name apply-choice))
+
+(p apply-choice-doit
+  (context ^name apply-choice)
+  (scheduling ^night <n>)
+  { <THE-FOURSOME> (foursome ^night <n> ^group <g> ^north <yankee>) }
+  { <THE-CHOICE> (candidate ^group <g> ^chosen yes
+			^south <redneck> ^east <oriental> ^west <cowboy>) }
+-->
+  (modify <THE-FOURSOME> ^south <redneck> ^east <oriental> ^west <cowboy>)
+  (remove <THE-CHOICE>)
+  (make already-played ^player1 <yankee> ^player2 <redneck>)
+  (make already-played ^player2 <yankee> ^player1 <redneck>)
+  (make already-played ^player1 <yankee> ^player2 <oriental>)
+  (make already-played ^player2 <yankee> ^player1 <oriental>)
+  (make already-played ^player1 <yankee> ^player2 <cowboy>)
+  (make already-played ^player2 <yankee> ^player1 <cowboy>)
+  (make already-played ^player1 <redneck> ^player2 <oriental>)
+  (make already-played ^player2 <redneck> ^player1 <oriental>)
+  (make already-played ^player1 <redneck> ^player2 <cowboy>)
+  (make already-played ^player2 <redneck> ^player1 <cowboy>)
+  (make already-played ^player1 <oriental> ^player2 <cowboy>)
+  (make already-played ^player2 <oriental> ^player1 <cowboy>))
+
+(p apply-choice-done
+  { <THE-CONTEXT> (context ^name apply-choice) }
+-->
+  (modify <THE-CONTEXT> ^name report))
+
+(p report-night-schedule
+  { <THE-CONTEXT> (context ^name report) }
+  (scheduling ^night <n>)
+  (foursome ^night <n> ^group a ^north <an> ^south <as> ^east <ae> ^west <aw>)
+  (foursome ^night <n> ^group b ^north <bn> ^south <bs> ^east <be> ^west <bw>)
+  (foursome ^night <n> ^group c ^north <cn> ^south <cs> ^east <ce> ^west <cw>)
+  (foursome ^night <n> ^group d ^north <dn> ^south <ds> ^east <de> ^west <dw>)
+-->
+  (modify <THE-CONTEXT> ^name next-night)
+  (bind <n2> (compute <n> + 5))
+  (bind <n3> (compute <n> + 10))
+  (write (crlf) (rjust 1) |#| (rjust 1) <n> (rjust 1) - (tabto 5)
+	|Group A-| (rjust 3) <an> (rjust 3) <as> (rjust 3) <ae> (rjust 3) <aw>
+	(tabto 27) (rjust 1) |#| (rjust 2) <n2> (rjust 1) - (tabto 32)
+	|Group A-| (rjust 3) <an> (rjust 3) <ae> (rjust 3) <as> (rjust 3) <aw>
+	(tabto 53) (rjust 1) |#| (rjust 2) <n3> (rjust 1) - (tabto 58)
+	|Group A-| (rjust 3) <an> (rjust 3) <aw> (rjust 3) <ae> (rjust 3) <as>)
+   (write (crlf)
+	(tabto 5)
+	|Group B-| (rjust 3) <bn> (rjust 3) <bs> (rjust 3) <be> (rjust 3) <bw>
+	(tabto 32)
+	|Group B-| (rjust 3) <bn> (rjust 3) <be> (rjust 3) <bs> (rjust 3) <bw>
+	(tabto 58)
+	|Group B-| (rjust 3) <bn> (rjust 3) <bw> (rjust 3) <be> (rjust 3) <bs>)
+   (write  (crlf)
+	(tabto 5)
+	|Group C-| (rjust 3) <cn> (rjust 3) <cs> (rjust 3) <ce> (rjust 3) <cw>
+	(tabto 32)
+	|Group C-| (rjust 3) <cn> (rjust 3) <ce> (rjust 3) <cs> (rjust 3) <cw>
+	(tabto 58)
+	|Group C-| (rjust 3) <cn> (rjust 3) <cw> (rjust 3) <ce> (rjust 3) <cs>)
+   (write (crlf)
+	(tabto 5)
+	|Group D-| (rjust 3) <dn> (rjust 3) <ds> (rjust 3) <de> (rjust 3) <dw>
+	(tabto 32)
+	|Group D-| (rjust 3) <dn> (rjust 3) <de> (rjust 3) <ds> (rjust 3) <dw>
+	(tabto 58)
+	|Group D-| (rjust 3) <dn> (rjust 3) <dw> (rjust 3) <de> (rjust 3) <ds>
+    (crlf)))
+
+(p next-night-more
+  { <THE-CONTEXT> (context ^name next-night) }
+  { <THE-NIGHT> (scheduling ^night { <n> < 5 }) }
+-->
+  (modify <THE-CONTEXT> ^name north)
+  (modify <THE-NIGHT> ^night (compute <n> + 1)))
+
+(p next-night-done
+  (context ^name next-night)
+-->
+  (write (tabto 32) |End of Scheduling| (crlf) (crlf)))
+

@@ -1,0 +1,4 @@
+#!/bin/sh
+# Removing 0x prefix
+# remove local symbols ([a-z] in type field).
+/usr/ccs/bin/nm -pxh "$@" | sed -e 's/^0x//' -e '/ [a-z] /d'

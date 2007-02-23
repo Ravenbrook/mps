@@ -1,0 +1,7 @@
+CFLAGS = -O2 -I/usr/X11R6/include -I. -I$(VPATH)
+LDFLAGS = -L/usr/X11R6/lib
+LIBS = -static -lXm -dynamic -lXt -lXext -lX11 -lSM -lICE -lXp -ldl -lpthread
+# This def assumes you are building in the same or parallel
+# tree to the CVS souce layout. Sites may need to customize
+# this path.
+VPATH = ../../../src/motif/server/

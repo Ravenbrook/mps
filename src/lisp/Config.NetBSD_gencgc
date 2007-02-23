@@ -1,0 +1,46 @@
+PATH1 = ../../src/lisp
+ARCH = $(shell uname -m)
+vpath %.h $(PATH1)
+vpath %.c $(PATH1)
+vpath %.S $(PATH1)
+CPPFLAGS = -I. -I$(PATH1) -I- -I/usr/X11R6/include
+CC = gcc -pipe
+LD = ld
+CPP = cpp
+CFLAGS = -Wstrict-prototypes -Wall -O2 -g
+ASFLAGS = -g -x assembler-with-cpp
+NM = nm -gp
+UNDEFSYMPATTERN = -Xlinker -u -Xlinker &
+
+ifeq ($(ARCH), i386)
+  ASSEM_SRC = x86-assem.S
+  ARCH_SRC = x86-arch.c
+  ASFLAGS += -Di386 -DGENCGC -DLINKAGE_TABLE
+  CFLAGS += -Di386 -DGENCGC -DLINKAGE_TABLE
+  GC_SRC = gencgc.c
+endif
+
+ifeq ($(ARCH), sparc64)
+  ASSEM_SRC = sparc-assem.S
+  ARCH_SRC = sparc-arch.c
+  ASFLAGS += -Dsparc64 -DLINKAGE_TABLE
+  CFLAGS += -Dsparc64 -DLINKAGE_TABLE
+endif
+
+ifeq ($(ARCH), sparc)
+  ASSEM_SRC = sparc-assem.S
+  ARCH_SRC = sparc-arch.c
+  ASFLAGS += -Dsparc
+  CFLAGS += -Dsparc
+endif
+
+ifeq ($(ARCH), powerpc)
+  ASSEM_SRC = ppc-assem.S
+  ARCH_SRC = ppc-arch.c
+  ASFLAGS += -Dppc
+  CFLAGS += -Dppc
+endif
+
+OS_SRC = NetBSD-os.c os-common.c elf.c e_rem_pio2.c k_rem_pio2.c
+OS_LINK_FLAGS = -dynamic -export-dynamic
+OS_LIBS =

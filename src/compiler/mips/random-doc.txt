@@ -1,0 +1,351 @@
+-*- Mode: Text, Fill -*-
+
+$Header: /project/cmucl/cvsroot/src/compiler/mips/random-doc.txt,v 1.3 1990/03/02 17:40:56 ch Exp $
+
+DEFINE-STORAGE-BASE
+
+  Define-Storage-Base Name Kind {Key Value}*
+
+  Define a storage base having the specified Name.  Kind may be :Finite,
+  :Unbounded or :Non-Packed.  The following keywords are legal:
+
+  :Size <Size>
+      Specify the number of locations in a :Finite SB or the initial size of a
+      :Unbounded SB.
+
+
+DEFINE-STORAGE-CLASS
+
+  Define-Storage-Class Name Number Storage-Base {Key Value}*
+
+  Define a storage class Name that uses the named Storage-Base.  Number is a
+  small, non-negative integer that is used as an alias.  The following
+  keywords are defined:
+
+  :Element-Size <Size>
+      The size of objects in this SC in whatever units the SB uses.  This
+      defaults to 1.
+
+  :Locations
+      If the SB is :Finite, then this is a list of the offsets within the SB
+      that are in this SC.
+
+  
+DEFINE-MOVE-COSTS
+
+  Define-Move-Costs {((Source-SC*) {(Cost Dest-SC*)}*)}*
+
+  This macro declares the cost of the implicit move operations needed to load
+  arguments and store results.  The format is somewhat similar to the costs
+  specifications in Define-VOP.  Each argument form gives the cost for moving
+  to all possible destination SCs from some collection of equivalent source
+  SCs.
+
+  This information is used only to compute the cost of moves from arguments to
+  Load TNs or from Load TNs to results.  It is not necessary to specify the
+  costs for moves between combinations of SCs impossible in this context.
+
+
+DEFINE-SAVE-SCS
+
+  Define-Save-SCs {(save-sc saved-sc*)}*
+
+  This form is used to define which SCs must be saved on a function call.  The
+  Saved-SCs are SCs that must be saved.  The Save-SC a SC that is used in
+  combination with the defined move costs to determine the cost of saving.
+
+
+DEF-PRIMITIVE-TYPE
+
+  Def-Primitive-Type Name (SC*) {Key Value}*
+
+  Define a primitive type Name.  Each SC specifies a Storage Class that values
+  of this type may be allocated in.  The following keyword options are defined:
+
+  :Type
+      The type descriptor for the Lisp type that is equivalent to this type
+      (defaults to Name.)
+
+
+DEF-BOOLEAN-ATTRIBUTE
+
+  Def-Boolean-Attribute Name Attribute-Name*
+
+  Define a new class of boolean attributes, with the attributes havin the
+  specified Attribute-Names.  Name is the name of the class, which is used to
+  generate some macros to manipulate sets of the attributes: 
+
+    NAME-attributep attributes attribute-name*
+      Return true if one of the named attributes is present, false otherwise.
+
+    NAME-attributes attribute-name*
+      Return a set of the named attributes.
+
+
+PRIMITIVE-TYPE-VOP
+
+  Primitive-Type-VOP Vop (Kind*) Type*
+
+  Annotate all the specified primitive Types with the named VOP under each of
+  the specified kinds:
+
+  :Coerce-To-T
+  :Coerce-From-T
+  :Move
+      One argument one result VOPs used for coercion between representations
+      and explicit moves.
+
+  :Check
+      A one argument one result VOP that moves the argument to the result,
+      checking that the value is of this type in the process.
+
+DEFINE-VOP
+ 
+  Define-VOP (Name [Inherits]) Spec*
+
+  Define the symbol Name to be a Virtual OPeration in the compiler.  If
+  specified, Inherits is the name of a VOP that we default unspecified
+  information from.  Each Spec is a list beginning with a keyword indicating
+  the interpretation of the other forms in the Spec:
+  
+  :Args {(Name {Key Value}*)}*
+  :Results {(Name {Key Value}*)}*
+      The Args and Results are specifications of the operand TNs passed to the
+      VOP.  The following operand options are defined:
+
+      :SCs (SC*)
+      :Load T-or-NIL
+	  :SCs specifies good SCs for this operand.  Other SCs will be
+	  penalized according to move costs.  If :Load is true (the default),
+	  then a load TN will be allocated if necessary, guaranteeing that the
+	  operand is always one of the specified SCs.
+
+      :More T-or-NIL
+	  If specified, Name is bound to the TN-Ref for the first argument or
+	  result following the fixed arguments or results.  A more operand must
+	  appear last, and cannot be targeted or restricted.
+
+      :Target Operand
+	  This operand is targeted to the named operand, indicating a desire to
+	  pack in the same location.  Not legal for results.
+  
+  :Conditional
+      This is used in place of :Results with conditional branch VOPs.  There
+      are no result values: the result is a transfer of control.  The
+      consequent and alternative continuations are passed as the first and
+      second :Info arguments.  A side-effect is to set the Predicate attribute
+      for functions in the :Translate option.
+  
+  :Temporary ({Key Value}*) Name*
+      Allocate a temporary TN for each Name, binding that variable to the TN
+      within the body of the generators.  In addition to :Target (which is 
+      is the same as for operands), the following options are
+      defined:
+
+      :Type Type
+          Specify the primitive type for the temporary, default T.
+
+      :SC SC-Name
+      :Offset SB-Offset
+	  Force the temporary to be allocated in the specified SC with the
+	  specified offset.  Offset is evaluated at macroexpand time.
+
+      :SCs (SC*)
+	  Restrict the temporary to a subset of the SCs allowed by the type,
+	  possibly requiring packing in a finite SC.
+
+      :From Time-Spec
+      :To Time-Spec
+	  Specify the beginning and end of the temporary's lives.  The defaults
+	  are :Load and :Save, i.e. the duration of the VOP.  The other
+	  intervening phases are :Argument, :Eval and :Result.  Non-zero
+	  sub-phases can be specified by a list, e.g. the second argument's
+	  life ends at (:Argument 1).
+  
+  :Generator Cost Form*
+      Specifies the translation into assembly code. Cost is the estimated cost
+      of the code emitted by this generator. The body is arbitrary Lisp code
+      that emits the assembly language translation of the VOP.  An Assemble
+      form is wrapped around the body, so code may be emitted by using the
+      local Inst macro.  During the evaluation of the body, the names of the
+      operands and temporaries are bound to the actual TNs.
+  
+  :Effects Effect*
+  :Affected Effect*
+      Specifies the side effects that this VOP has and the side effects that
+      effect its execution.  If unspecified, these default to the worst case.
+  
+  :Info Name*
+      Define some magic arguments that are passed directly to the code
+      generator.  The corresponding trailing arguments to VOP or %Primitive are
+      stored in the VOP structure.  Within the body of the generators, the
+      named variables are bound to these values.  Except in the case of
+      :Conditional VOPs, :Info arguments cannot be specified for VOPS that are
+      the direct translation for a function (specified by :Translate).
+
+  :Ignore Name*
+      Causes the named variables to be declared IGNORE in the generator body.
+
+  :Variant Thing*
+  :Variant-Vars Name*
+      These options provide a way to parameterize families of VOPs that differ
+      only trivially.  :Variant makes the specified evaluated Things be the
+      "variant" associated with this VOP.  :Variant-Vars causes the named
+      variables to be bound to the corresponding Things within the body of the
+      generator.
+
+  :Variant-Cost Cost
+      Specifies the cost of this VOP, overriding the cost of any inherited
+      generator.
+
+  :Note String
+      A short noun-like phrase describing what this VOP "does", i.e. the
+      implementation strategy.  This is for use in efficiency notes.
+
+  :Arg-Types Type*
+  :Result-Types Type*
+      Specify the template type restrictions used for automatic translation.
+      If there is a :More operand, the last type is the more type. 
+  
+  :Translate Name*
+      This option causes the VOP template to be entered as an IR2 translation
+      for the named functions.
+
+  :Policy {:Small | :Fast | :Safe | :Fast-Safe}
+      Specifies the policy under which this VOP is the best translation.
+
+  :Guard Form
+      Specifies a Form that is evaluated in the global environment.  If
+      form returns NIL, then emission of this VOP is prohibited even when
+      all other restrictions are met.
+
+  :Save-P {T | NIL | :Force-To-Stack}
+      Indicates how a VOP wants live registers saved.
+
+
+SC-CASE
+
+  SC-Case TN {({(SC-Name*) | SC-Name | T} Form*)}*
+
+  Case off of TN's SC.  The first clause containing TN's SC is evaulated,
+  returning the values of the last form.  A clause beginning with T specifies a
+  default.  If it appears, it must be last.  If no default is specified, and no
+  clause matches, then an error is signalled.
+
+
+DEFINE-MISCOP
+
+  Define-Miscop Name Args {Key Value}*
+
+  Define a miscop with the specified args/results and options.  The
+  following keywords are defined:
+
+  :results
+     Defaults to '(r).
+
+  :translate
+  :policy
+  :arg-types
+  :result-types
+  :cost
+  :conditional
+
+
+DEFINE-MISCOP-VARIANTS
+
+  Define-Miscop-Variants Vop Names*
+
+  Define a bunch of miscops VOPs that inherit the specified VOP and whose
+  Template name, Miscop name and translate function are all the same.
+
+
+DEF-SOURCE-TRANSFORM
+
+  Def-Source-Transform Name Lambda-List Form*
+
+  Define a macro-like source-to-source transformation for the function Name.
+  A source transform may "pass" by returning a non-nil second value.  If the
+  transform passes, then the form is converted as a normal function call.  If
+  the supplied arguments are not compatible with the specified lambda-list,
+  then the transform automatically passes.
+  
+  Source-Transforms may only be defined for functions.  Source transformation
+  is not attempted if the function is declared Notinline.  Source transforms
+  should not examine their arguments.  If it matters how the function is used,
+  then Deftransform should be used to define an IR1 transformation.
+  
+  If the desirability of the transformation depends on the current Optimize
+  parameters, then the Policy macro should be used to determine when to pass.
+
+
+DEFKNOWN
+
+  Defknown Name Arg-Types Result-Type [Attributes] {Key Value}* 
+
+  Declare the function Name to be a known function.  We construct a type
+  specifier for the function by wrapping (FUNCTION ...) around the Arg-Types
+  and Result-Type.  Attributes is a an unevaluated list of the boolean
+  attributes that the function has.  These attributes are meaningful here:
+      call
+         May call functions that are passed as arguments.  In order to determine
+         what other effects are present, we must find the effects of all arguments
+         that may be functions.
+        
+      unsafe
+         May incorporate arguments in the result or somehow pass them upward.
+        
+      unwind
+         May fail to return during correct execution.  Errors are O.K.
+        
+      any
+         The (default) worst case.  Includes all the other bad things, plus any
+         other possible bad thing.
+        
+      foldable
+         May be constant-folded.  The function has no side effects, but may be
+         affected by side effects on the arguments.  e.g. SVREF, MAPC.
+        
+      flushable
+         May be eliminated if value is unused.  The function has no side effects
+         except possibly CONS.  If a function is defined to signal errors, then
+         it is not flushable even if it is movable or foldable.
+        
+      movable
+         May be moved with impunity.  Has no side effects except possibly CONS,
+         and is affected only by its arguments.
+
+      predicate
+          A true predicate likely to be open-coded.  This is a hint to IR1
+	  conversion that it should ensure calls always appear as an IF test.
+	  Not usually specified to Defknown, since this is implementation
+	  dependent, and is usually automatically set by the Define-VOP
+	  :Conditional option.
+
+  Name may also be a list of names, in which case the same information is given
+  to all the names.  The keywords specify the initial values for various
+  optimizers that the function might have.
+
+
+DEF-PRIMITIVE-TRANSLATOR
+
+  Def-Primitive-Translator Name Lambda-List Form*
+
+  Define a function that converts a use of (%PRIMITIVE Name ...) into Lisp
+  code.  Lambda-List is a defmacro style lambda list.
+
+
+CTYPE-OF
+
+  CType-Of Object
+
+  Like Type-Of, only returns a Type structure instead of a type
+  specifier.  We try to return the type most useful for type checking,
+  rather than trying to come up with the one that the user might find
+  most informative.
+
+
+SC-IS
+
+  SC-Is TN SC*
+
+  Returns true if TNs SC is any of the named SCs, false otherwise.

@@ -1,0 +1,230 @@
+@Marker(Font,SpiceRoman10,Press)
+@DefineFont(BodyFont,	
+	R=<Xerox "TimesRoman10R">,
+	I=<Xerox "TimesRoman10I">,
+	B=<Xerox "TimesRoman10B">,
+	P=<Ascii "TimesRoman10BI">,
+	F=<Ascii "SailA10R">,
+	C=<Xerox "TimesRoman8R">,
+	Z=<Xerox "Zfont10R">,
+	G=<Xgreek "Hippo10R">,
+	Y=<Xerox "TimesRoman8R">,
+	X=<Xerox "CMSY10S10R">,
+	U=<Ascii "Sail10">,
+	A=<Ascii "APL10">,
+	T=<Ascii "SailA10R">,
+	K=<Ascii "Operators10R">,
+	L=<Ascii "Operators20R">,
+	M=<Ascii "Relation9R">,
+	N=<Ascii "AllArrows10R">)
+
+@comment(Shrunk: 14-12,10-9,9-8,8-7,6-5 except K and G)
+@DefineFont(SmallBodyFont,
+	R=<Xerox "TimesRoman8R">,
+	B=<Xerox "TimesRoman8B">,
+	I=<Xerox "TimesRoman8I">,
+	P=<Xerox "TimesRoman8BI">,
+	G=<Xgreek "Hippo8R">,
+	F=<Ascii "SailA8R">,
+	Z=<Xerox "Zfont10R">,
+	Y=<Xerox "TimesRoman8R">,
+	X=<Xerox "CMSY8R">,
+	U=<Ascii "Sail8">,
+	A=<Ascii "APL8">,
+	C=<Xerox "TimesRoman6R">,
+	T=<Ascii "SailA8R">,
+	K=<Ascii "Operators8R">,
+	L=<Ascii "Operators12R">,
+	M=<Ascii "Relation8R">,
+	N=<Ascii "AllArrows8R">) @Comment{GLS 5/17/81: AllArrows7R nonexistent}
+
+@DefineFont(LargeBodyFont,
+		R=<Ascii "TimesRoman12">,
+		I=<Ascii "TimesRoman12I">,
+		B=<Ascii "TimesRoman12B">,
+		C=<Ascii "TimesRoman10">)
+@DefineFont(SquareRootFont,
+		R=<Ascii "SquareRoot10">)
+
+@DefineFont(TitleFont1,
+		R=<Xerox "TimesRoman10B">,
+		I=<Xerox "TimesRoman10BI">,
+		F=<Ascii "SailA10R">,
+		C=<Xerox "TimesRoman8B">)
+@DefineFont(TitleFont2,
+		R=<Xerox "TimesRoman12B">,
+		I=<Xerox "TimesRoman12BI">,
+		F=<Ascii "SailA12R">,
+		C=<Xerox "TimesRoman9B">)
+@DefineFont(TitleFont3,
+		R=<Xerox "TimesRoman12B">,
+		I=<Xerox "TimesRoman12BI">,
+		F=<Ascii "SailA12R">,
+		C=<Xerox "TimesRoman9B">)
+@DefineFont(TitleFont4,
+		R=<Xerox "TimesRoman12B">,
+		I=<Xerox "TimesRoman12BI">,
+		F=<Ascii "SailA12R">,
+		C=<Xerox "TimesRoman9B">)
+@DefineFont(TitleFont5,
+		R=<Xerox "TimesRoman18B">,
+		I=<Xerox "TimesRoman18BI">,
+		C=<Xerox "TimesRoman12B">)
+
+@Equate(DisplayFont=BodyFont,TitleFont0=BodyFont,HeadingFont=TitleFont3)
+@Marker(Font,SpiceRoman11,Press)
+@DefineFont(BodyFont,	
+	R=<Xerox "TimesRoman11R">,
+	I=<Xerox "TimesRoman11I">,
+	B=<Xerox "TimesRoman11B">,
+	P=<Ascii "TimesRoman11BI">,
+	F=<Ascii "SailA11R">,
+	C=<Xerox "TimesRoman9R">,
+	Z=<Xerox "Zfont11R">,
+	G=<Xgreek "Hippo11R">,
+	Y=<Xerox "TimesRoman9R">,
+	X=<Xerox "CMSY10S10R">,
+	U=<Ascii "Sail10">,
+	A=<Ascii "APL10">,
+	T=<Ascii "SailA11R">)
+
+@DefineFont(SmallBodyFont,
+	R=<Xerox "TimesRoman9R">,
+	B=<Xerox "TimesRoman9B">,
+	I=<Xerox "TimesRoman9I">,
+	P=<Xerox "TimesRoman9BI">,
+	G=<Xgreek "Hippo9R">,
+	F=<Ascii "SailA9R">,
+	Z=<Xerox "Zfont11R">,
+	Y=<Xerox "TimesRoman9R">,
+	X=<Xerox "CMSY8R">,
+	C=<Xerox "TimesRoman6R">,
+	U=<Ascii "Sail9">,
+	A=<Ascii "APL8">,
+	T=<Ascii "SailA9R">)
+
+@DefineFont(TitleFont1,
+		R=<Xerox "TimesRoman11B">,
+		I=<Xerox "TimesRoman11BI">,
+		C=<Xerox "TimesRoman9B">)
+@DefineFont(TitleFont2,
+		R=<Xerox "TimesRoman12B">,
+		I=<Xerox "TimesRoman12BI">,
+		C=<Xerox "TimesRoman9B">)
+@DefineFont(TitleFont3,
+		R=<Xerox "TimesRoman12B">,
+		I=<Xerox "TimesRoman12BI">,
+		C=<Xerox "TimesRoman9B">)
+@DefineFont(TitleFont4,
+		R=<Xerox "TimesRoman12B">,
+		I=<Xerox "TimesRoman12BI">,
+		C=<Xerox "TimesRoman9B">)
+@DefineFont(TitleFont5,
+		R=<Xerox "TimesRoman18B">,
+		I=<Xerox "TimesRoman18BI">,
+		C=<Xerox "TimesRoman12B">)
+
+@Equate(DisplayFont=BodyFont,TitleFont0=BodyFont,HeadingFont=TitleFont3)
+@Marker(Font,SpiceRoman12,Press)
+@DefineFont(BodyFont,	
+	R=<Xerox "TimesRoman12R">,
+	I=<Xerox "TimesRoman12I">,
+	B=<Xerox "TimesRoman12B">,
+	P=<Ascii "TimesRoman12BI">,
+	F=<Ascii "SailA10R">,
+	C=<Xerox "TimesRoman10R">,
+	Z=<Xerox "Zfont12R">,
+	G=<Xgreek "Hippo12R">,
+	Y=<Xerox "TimesRoman10R">,
+	X=<Xerox "CMSY10S10R">,
+	U=<Ascii "Sail12">,
+	T=<Ascii "SailA10R">)
+
+@DefineFont(SmallBodyFont,
+	R=<Xerox "TimesRoman10R">,
+	B=<Xerox "TimesRoman10B">,
+	I=<Xerox "TimesRoman10I">,
+	P=<Xerox "TimesRoman10BI">,
+	G=<Xgreek "Hippo10R">,
+	F=<Ascii "SailA9R">,
+	Z=<Xerox "Zfont12R">,
+	Y=<Xerox "TimesRoman10R">,
+	X=<Xerox "CMSY8R">,
+	C=<Xerox "TimesRoman6R">,
+	U=<Ascii "Sail10">,
+	A=<Ascii "APL10">,
+	T=<Ascii "SailA9R">)
+
+@DefineFont(TitleFont1,
+		R=<Xerox "TimesRoman12B">,
+		I=<Xerox "TimesRoman12BI">,
+		C=<Xerox "TimesRoman10B">)
+@DefineFont(TitleFont2,
+		R=<Xerox "TimesRoman14B">,
+		I=<Xerox "TimesRoman14BI">,
+		C=<Xerox "TimesRoman9B">)
+@DefineFont(TitleFont3,
+		R=<Xerox "TimesRoman16B">,
+		I=<Xerox "TimesRoman16BI">,
+		C=<Xerox "TimesRoman12B">)
+@DefineFont(TitleFont4,
+		R=<Xerox "TimesRoman16B">,
+		I=<Xerox "TimesRoman16BI">,
+		C=<Xerox "TimesRoman12B">)
+@DefineFont(TitleFont5,
+		R=<Xerox "TimesRoman18B">,
+		I=<Xerox "TimesRoman18BI">,
+		C=<Xerox "TimesRoman14B">)
+
+@Equate(DisplayFont=BodyFont,TitleFont0=BodyFont,HeadingFont=TitleFont3)
+@Marker(Font,SpiceRoman14,Press)
+@DefineFont(BodyFont,	
+	R=<Xerox "TimesRoman14R">,
+	I=<Xerox "TimesRoman14I">,
+	B=<Xerox "TimesRoman14B">,
+	P=<Ascii "TimesRoman14BI">,
+	F=<Ascii "SailA14R">,
+	C=<Xerox "TimesRoman10R">,
+	Z=<Xerox "Zfont14R">,
+	G=<Xgreek "Hippo14R">,
+	Y=<Xerox "TimesRoman10R">,
+	X=<Xerox "CMSY10S10R">,
+	U=<Ascii "Sail14">,
+	T=<Ascii "SailA14R">)
+
+@DefineFont(SmallBodyFont,
+	R=<Xerox "TimesRoman10R">,
+	B=<Xerox "TimesRoman10B">,
+	I=<Xerox "TimesRoman10I">,
+	P=<Xerox "TimesRoman10BI">,
+	G=<Xgreek "Hippo10R">,
+	F=<Ascii "SailA10R">,
+	Z=<Xerox "Zfont10R">,
+	Y=<Xerox "TimesRoman10R">,
+	X=<Xerox "CMSY10S10R">,
+	C=<Xerox "TimesRoman8R">,
+	U=<Ascii "Sail12">,
+	T=<Ascii "SailA10R">)
+
+@DefineFont(TitleFont1,
+		R=<Xerox "TimesRoman14B">,
+		I=<Xerox "TimesRoman14BI">,
+		C=<Xerox "TimesRoman10B">)
+@DefineFont(TitleFont2,
+		R=<Xerox "TimesRoman16B">,
+		I=<Xerox "TimesRoman16BI">,
+		C=<Xerox "TimesRoman12B">)
+@DefineFont(TitleFont3,
+		R=<Xerox "TimesRoman16B">,
+		I=<Xerox "TimesRoman16BI">,
+		C=<Xerox "TimesRoman12B">)
+@DefineFont(TitleFont4,
+		R=<Xerox "TimesRoman18B">,
+		I=<Xerox "TimesRoman18BI">,
+		C=<Xerox "TimesRoman14B">)
+@DefineFont(TitleFont5,
+		R=<Xerox "TimesRoman18B">,
+		I=<Xerox "TimesRoman18BI">,
+		C=<Xerox "TimesRoman14B">)
+
+@Equate(DisplayFont=BodyFont,TitleFont0=BodyFont,HeadingFont=TitleFont3)

@@ -1,0 +1,5 @@
+#!/bin/csh -f
+
+/bin/nm -Bgp $argv | sed "s/                 U/0000000000000000 U/g"
+
+exit 0

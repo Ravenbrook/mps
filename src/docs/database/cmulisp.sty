@@ -1,0 +1,119 @@
+\input{clisp.sty}
+\input{funref.sty}
+
+\def\researchcredit{
+This research was sponsored by the Defense Advanced
+Research Projects Agency, Information Science and Technology Office,
+under the title \i{Research on Parallel Computing} issued by DARPA/CMO
+under Contract MDA972-90-C-0035 ARPA Order No. 7330.
+
+The views and conclusions contained in this document are those of the
+authors and should not be interpreted as representing the official
+policies, either expressed or implied, of the Defense Advanced Research
+Projects Agency or the U.S. government.
+}
+
+% Now stop making all imbedded control L's <Form Feed> act like \newpage
+\catcode`^^L = \active
+\def^^L{}
+
+% Was @comment[garbage...]
+\long\def\hide#1{}
+
+% See if we can squelch some of the noise in the default cross-reference
+% format.
+\def\xrefX [#1,#2,#3,#4,#5,#6]{section \ref{#1}, page\tie \pageref{#1}}
+
+% Wrap *'s around DEFVAR variables, but not in the vindex.
+\def\defvar{\defun@vspace\defvarx}
+\def\defvarx{\@defvrstar{Variable}}
+
+\def\@defvrstar#1#2{\outer\def\defun@type{#1}\outer\def\defun@name{*#2*}%
+\vrindexbold{#2}\label{VR:#2}%
+\@ifnextchar[{\@defvarpackage}{\@defvarnopackage}
+}
+
+%%% Hemlock Function
+\def\F#1{\code{#1}}
+
+%% Keywords
+\def\kwd#1{\code{:#1}}
+
+
+% Indexing (was fvpindex)
+
+\let\indexfont=\tt
+
+\def\findexed#1{\findex{#1}{\indexfont #1}}
+\def\vindexed#1{\vindex{#1}{\indexfont *#1*}}
+\def\conindexed#1{\vindex{#1}{\indexfont #1}}
+\def\tindexed#1{\tindex{#1}{\indexfont #1}}
+
+\newindex{vr}
+\newindex{fn}
+\newindex{tp}
+
+
+% Cross-referencing (was funref)
+
+% Add support for referencing functions.  This assumes clisp.sty
+% and must be loaded after clisp.sty
+\def\@defn#1#2{\outer\def\defun@type{#1}\outer\def\defun@name{#2}%
+\fnindexbold{#2}\label{FN:#2}%
+\@ifnextchar[{\@defunpackage}{\@defunnopackage}
+}
+
+\def\@defvr#1#2{\outer\def\defun@type{#1}\outer\def\defun@name{#2}%
+\vrindexbold{#2}\label{VR:#2}%
+\@ifnextchar[{\@defvarpackage}{\@defvarnopackage}
+}
+
+\def\@defmc#1#2{\outer\def\defun@type{#1}\outer\def\defun@name{#2}%
+\fnindexbold{#2}\label{FN:#2}%
+\@ifnextchar[{\@defmacpackage}{\@defmacnopackage}
+}
+
+\let\xlref=\xref	% the same indexes in LaTeX, but not in info
+\let\pxlref=\pxref	% the same indexes in LaTeX, but not in info
+
+% These are now supported.
+\def\funref#1{\findexed{#1} (page\tie\pageref{FN:#1})}
+\def\specref#1{\findexed{#1} (page\tie\pageref{FN:#1})}
+\def\macref#1{\findexed{#1} (page\tie\pageref{FN:#1})}
+\def\varref#1{\vindexed{#1} (page\tie\pageref{VR:#1})}
+\def\conref#1{\conindexed{#1} (page\tie\pageref{VR:#1})}
+
+
+% Abbreviations..
+
+\def\clisp{{Common Lisp}}
+
+\def\dash{---}
+\def\alien{{Alien}}
+\def\aliens{{Aliens}}
+\def\Aliens{{Aliens}}
+\def\Alien{{Alien}}
+\def\Hemlock{{Hemlock}}
+\def\hemlock{{Hemlock}}
+\def\python{{Python}}
+\def\Python{{Python}}
+\def\cmucl{{CMU Common Lisp}}
+\def\llisp{{Common Lisp}}
+\def\Llisp{{Common Lisp}}
+\def\cltl{{\i{Common Lisp: The Language}}}
+
+
+% Formatting, from cmu-proc.sty:
+
+ \oddsidemargin -10pt \evensidemargin -10pt
+ \topmargin -40pt \headheight 12pt \headsep 25pt
+ \footheight 12pt \footskip 30pt 
+
+\textheight 9.25in \textwidth 6.75in \columnsep .375in \columnseprule 0pt 
+
+
+\def\@oddhead{}\def\@evenhead{}
+\def\@oddfoot{}
+\def\@evenfoot{\@oddfoot}
+
+\sloppy

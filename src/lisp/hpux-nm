@@ -1,0 +1,5 @@
+#!/bin/csh -f
+
+/bin/nm -xp $argv | sed -e '/ [tdb] /d' -e 's/^0x//' -e 's/  / /'
+
+exit 0

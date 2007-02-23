@@ -1,0 +1,21 @@
+(literalize c1  a1 a2)
+(literalize c2  a1 a2)
+(literalize c3  a1 a2)
+
+(p p1 
+	(start)
+    -->
+	(make c1 ^a1 5    ^a2 foo)
+	(make c2 ^a1 foo  ^a2 1  )
+	(make c3 ^a1 5    ^a2 foo)
+	(make c1 ^a1 10   ^a2 foo))
+	      
+
+
+(p p2
+	(c1  ^a1 <x>   ^a2 <y>)
+	(c2  ^a1 <y>   ^a2 < <x>)
+      - (c3  ^a1 <x>   ^a2 foo)
+   -->
+	(write    --------  x: <x> all fine --------- (crlf)))
+

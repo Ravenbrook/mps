@@ -1,0 +1,5 @@
+#!/bin/sh
+
+/bin/nm -Bv $* | grep -v ' [a-z] ' | sed -e 's/ (weak)//' |sort -k1,1
+
+exit 0

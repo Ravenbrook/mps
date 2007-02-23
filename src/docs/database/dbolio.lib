@@ -1,0 +1,324 @@
+@Marker(Library, DBOLIO, Press, Dover, Postscript)
+
+
+@Modify(Chapter,TitleForm 
+{@Begin(Hd1A, Below 0.8 in)@Skip(0.8 in)@*Chapter @Parm(Numbered)@*@Skip(0.3 in)@*@Parm(Title)@End(Hd1A)},
+	ContentsForm
+{@Begin(Tc1)@Rfstr(@Parm(Page))@Parm(Referenced)@.@ @Parm(Title)@End(Tc1)},
+	  Numbered [@1],IncrementedBy Use,Referenced [@1],Announced)
+@Modify(Appendix,TitleEnv HD1,ContentsEnv tc1,Numbered [@A.],
+	 ContentsForm "@Tc1(Appendix @Parm(Referenced)@.@ @Rfstr(@Parm(Page))@parm(Title))",
+	 TitleForm "@Hd1(@=Appendix @Parm(Referenced)@*@=@Parm(Title))",
+	  IncrementedBy,Referenced [@A],Announced) @Comment{Alias Chapter}
+@Define(F, Facecode F)
+@Define(Sail, Facecode U)
+@Define(Arrow, Facecode N)
+@Commandstring(Minussign = "")
+@Commandstring(Centerdot = "@Begin(W, script +0.4 quad).@End(W)")
+@Commandstring(Tilde = "@Begin(W, script +0.4 quad)~@End(W)")
+@Commandstring(Underscore = "_")
+@Commandstring(Bq = "@;`")
+@Form(Complex = "@f[#C(@Parm(R) @Parm(I))]")
+@Textform(Altmode = "<altmode>")
+@Define(DenseDescription = Description, Spread .3)
+@Define(Defenvironment = Text, Need 4, Nofill, Justification Off, Break,
+		Above 2, Below 2, Spread 0.5)
+@Define(Defbody = Text, Leftmargin +.6in, Indent 0, Spread 0.5, Break)
+@Define(Undefbody = Text, Nofill, Justification Off, Leftmargin -.6in,
+		Above 0, Below 0, Group, Break)
+@Define(Lispenvironment = Verbatim, Group, Leftmargin +.3in, Above .5, Below .5)
+@Commandstring(Nopara = "@Begin(Text, Continue Force)@End(Text)")
+@Commandstring(Optional = "@f[&optional]")
+@Commandstring(Rest = "@f[&rest]")
+@Commandstring(Key = "@f[&key]")
+@Commandstring(allowotherkeys = "@f[&allow-other-keys]")
+@Commandstring(Aux = "@f[&aux]")
+@Commandstring(Body = "@f[&body]")
+@Commandstring(Whole = "@f[&whole]")
+@Commandstring(Special = "@f[&special]")
+@Commandstring(Local = "@f[&local]")
+@Textform(Mopt = "@r{[}@Parm(Text)@r{]}")
+@Textform(Mgroup = "@r[{]@Parm(Text)@r[}]")
+@Textform(Mstar = "@r[{]@Parm(Text)@r[}*]")
+@Textform(Mplus = "@r[{]@Parm(Text)@r[}@+[+]]")
+@Commandstring(Mor = "@r[|]")
+@Commandstring(Lisp = "@Begin(Lispenvironment)@~")
+@Commandstring(Endlisp = "@End(Lispenvironment)")
+@Commandstring(Lispx = "@Begin(Text, Indent 0, Above .5)For example:@End(Text)@Lisp")
+@Comment{
+ @Commandstring(EQ = "@Arrow[J]")
+ @Commandstring(EV = "@Arrow[A]")
+ @Commandstring(EX = "@Arrow[G]")
+}
+ @Commandstring(EQ = "@f[<=>]")
+ @Commandstring(EV = "@f[=>]")
+ @Commandstring(EX = "@f[==>]")
+@Commandstring(lbracket = "@f{[}")
+@Commandstring(rbracket = "@f{]}")
+@Commandstring(lbrace = "@f[{]")
+@Commandstring(rbrace = "@f[}]")
+@define(subi = i)
+@define(subr = r)
+@define(superi = i)
+@define(supersail = sail)
+@define(superg = g)
+@commandstring(superminussign = "@minussign@;")
+@commandstring(supercenterdot = "@centerdot@;")
+@Commandstring(false = "@f[nil]")
+@Commandstring(nil = "@f[nil]")
+@Commandstring(empty = "@f[()]")
+@Commandstring(true = "@f[t]")
+@Commandstring(xlisp = "@r[L@c[isp]]")
+@Commandstring(clisp = "@r[C@c[ommon]] @xlisp")
+@Commandstring(lmlisp = "@PossiblyIndexedRef(K <ZetaLisp>,
+		E <@r[Z@c[eta]@xlisp]>, F <@r[Z@c[eta]@xlisp]>)")
+@Commandstring(newlisp = "@PossiblyIndexedRef(K <NIL>,
+		E <@r[N@c[il]]>, F <@r[N@c[il] (New Implementation of @xlisp]>)")
+@Commandstring(slisp = "@PossiblyIndexedRef(K <Spice LISP>,
+		E <@r[S@c[pice]] @xlisp>, F <@r[S@c[pice]] @xlisp>)")
+@Commandstring(lisp15 = "@PossiblyIndexedRef(K <Lisp 1.5>,
+		E <@xlisp @r[1.5]>, F <@xlisp @r[1.5]>)")
+@Commandstring(maclisp = "@PossiblyIndexedRef(K <MacLISP>,
+		E <@r[M@c[ac]]@xlisp>, F <@r[M@c[ac]]@xlisp>)")
+@Commandstring(franzlisp = "@PossiblyIndexedRef(K <Franz LISP>,
+		E <@r[F@c[ranz]] @xlisp>, F <@r[F@c[ranz]] @xlisp>)")
+@Commandstring(interlisp = "@PossiblyIndexedRef(K <InterLISP>,
+		E <@r[I@c[nter]]@xlisp>, F <@r[I@c[nter]]@xlisp>)")
+@Commandstring(stdlisp = "@PossiblyIndexedRef(K <Standard LISP>,
+		E <@r[S@c[tandard]] @xlisp>, F <@r[S@c[tandard]] @xlisp>)")
+@Commandstring(psl = "@PossiblyIndexedRef(K <Portable Standard LISP>,
+		E <@r[P@c[ortable] S@c[tandard]] @xlisp>, F <@r[P@c[ortable] S@c[tandard]] @xlisp>)")
+@Commandstring(s1lisp = "@PossiblyIndexedRef(K <S-1 Lisp>,
+		E <@r[S-1] @xlisp>, F <@r[S-1] @xlisp>)")
+@Commandstring(scheme = "@PossiblyIndexedRef(K <scheme>,
+		E <@r[S@c[cheme]]>, F <@r[S@c[cheme]]>)")
+@Commandstring(fortran = "@PossiblyIndexedRef(K <Fortran>,
+		E <@c[fortran]>, F <@c[fortran]>)")
+@Commandstring(algol = "@PossiblyIndexedRef(K <Algol>,
+		E <@c[algol]>, F <@c[algol]>)")
+@Commandstring(pascal = "@PossiblyIndexedRef(K <Pascal>,
+		E <@c[pascal]>, F <@c[pascal]>)")
+@Commandstring(ada = "@PossiblyIndexedRef(K <ADA>,
+		E <@c[ada]>, F <@c[ada]>)")
+@Commandstring(apl = "@PossiblyIndexedRef(K <APL>,
+		E <@c[apl]>, F <@c[apl]>)")
+@Commandstring(pl1 = "@PossiblyIndexedRef(K <PL/I>,
+		E <@c[pl/i]>, F <@c[pl/i]>)")
+@Commandstring(clanguage = "@PossiblyIndexedRef(K <C>,
+		E <@c[c]>, F <@c[c] language>)")
+@Define(Smallitemize=Itemize, Spread 0.5, Above 0.5, Below 0.5)
+
+@Marker(Library, DBOLIO, File)
+
+
+@Style(Justification Off)
+@Style(Linewidth 7.2 Inches)
+@Style(Indentation 0)
+@Modify(Chapter,TitleForm 
+{@Begin(Hd1A, Below 0.8 in)@Skip(0.8 in)@*Chapter @Parm(Numbered)@*@Skip(0.3 in)@*@Parm(Title)@End(Hd1A)},
+	ContentsForm
+{@Begin(Tc1)@Rfstr(@Parm(Page))@Parm(Referenced)@.@ @Parm(Title)@End(Tc1)},
+	  Numbered [@1],IncrementedBy Use,Referenced [@1],Announced)
+@Modify(Appendix,TitleEnv HD1,ContentsEnv tc1,Numbered [@A.],
+	 ContentsForm "@Tc1(Appendix @Parm(Referenced)@.@ @Rfstr(@Parm(Page))@parm(Title))",
+	 TitleForm "@Hd1(@=Appendix @Parm(Referenced)@*@=@Parm(Title))",
+	  IncrementedBy,Referenced [@A],Announced) @Comment{Alias Chapter}
+@Define(F, Capitalized)
+@Define(A, Initialize "[APL]")
+@Define(Sail = R)
+@Define(B = R)
+@Commandstring(Minussign = "-")
+@Commandstring(Tilde = "~")
+@Commandstring(Centerdot = ".")
+@Commandstring(Underscore = "_")
+@Commandstring(Bq = "@;`")
+@Form(Complex = "@f[#C(@Parm(R) @Parm(I))]")
+@Textform(Altmode = "$")
+@Define(DenseDescription = Description, Spread 0)
+@Define(Defenvironment = Text, Need 4, Nofill, Justification Off, Break,
+		Leftmargin +12, Indent -12, Above 2, Below 2, Spread 0.5)
+@Define(Defbody = Text, Leftmargin -6in, Indent 0, Spread 0.5, Break)
+@Define(Undefbody = Text, Justification Off, Leftmargin +6, Indent -12,
+		Above 0, Below 0, Group, Break)
+@Define(Lispenvironment = Verbatim, Group, Leftmargin +.5in, Above 1, Below 1)
+@Commandstring(Nopara = "@Begin(Text, Continue Force)@End(Text)")
+@Commandstring(Optional = "@f[&optional]")
+@Commandstring(Rest = "@f[&rest]")
+@Commandstring(Key = "@f[&key]")
+@Commandstring(allowotherkeys = "@f[&allow-other-keys]")
+@Commandstring(Aux = "@f[&aux]")
+@Commandstring(Body = "@f[&body]")
+@Commandstring(Whole = "@f[&whole]")
+@Commandstring(Special = "@f[&special]")
+@Commandstring(Local = "@f[&local]")
+@Textform(Mopt = "@r{[}@Parm(Text)@r{]}")
+@Textform(Mgroup = "@r[{]@Parm(Text)@r[}]")
+@Textform(Mstar = "@r[{]@Parm(Text)@r[}*]")
+@Textform(Mplus = "@r[{]@Parm(Text)@r[}@+[+]]")
+@Commandstring(Mor = "@r[|]")
+@Commandstring(Lisp = "@Begin(Lispenvironment)@~")
+@Commandstring(Endlisp = "@End(Lispenvironment)")
+@Commandstring(Lispx = "@Begin(Text, Indent 0, Above 0)For example:@End(Text)@Lisp")
+@Commandstring(EQ = "==")
+@Commandstring(EV = "->")
+@Commandstring(EX = "<=>")
+@Commandstring(lbracket = "@f{[}")
+@Commandstring(rbracket = "@f{]}")
+@Commandstring(lbrace = "@f[{]")
+@Commandstring(rbrace = "@f[}]")
+@define(subi = i)
+@define(subr = r)
+@define(superi = i)
+@define(supersail = sail)
+@define(superg = g)
+@commandstring(superminussign = "@minussign@;")
+@commandstring(supercenterdot = "@centerdot@;")
+@Commandstring(false = "@f[nil]")
+@Commandstring(nil = "@f[nil]")
+@Commandstring(empty = "@f[()]")
+@Commandstring(true = "@f[t]")
+@Commandstring(xlisp = "@r[L@c[isp]]")
+@Commandstring(clisp = "@r[C@c[ommon]] @xlisp")
+@Commandstring(lmlisp = "@PossiblyIndexedRef(K <ZetaLisp>,
+		E <@r[Z@c[eta]@xlisp]>, F <@r[Z@c[eta]@xlisp]>)")
+@Commandstring(newlisp = "@PossiblyIndexedRef(K <NIL>,
+		E <@r[N@c[il]]>, F <@r[N@c[il] (New Implementation of @xlisp]>)")
+@Commandstring(slisp = "@PossiblyIndexedRef(K <Spice LISP>,
+		E <@r[S@c[pice]] @xlisp>, F <@r[S@c[pice]] @xlisp>)")
+@Commandstring(lisp15 = "@PossiblyIndexedRef(K <Lisp 1.5>,
+		E <@xlisp @r[1.5]>, F <@xlisp @r[1.5]>)")
+@Commandstring(maclisp = "@PossiblyIndexedRef(K <MacLISP>,
+		E <@r[M@c[ac]]@xlisp>, F <@r[M@c[ac]]@xlisp>)")
+@Commandstring(franzlisp = "@PossiblyIndexedRef(K <Franz LISP>,
+		E <@r[F@c[ranz]] @xlisp>, F <@r[F@c[ranz]] @xlisp>)")
+@Commandstring(interlisp = "@PossiblyIndexedRef(K <InterLISP>,
+		E <@r[I@c[nter]]@xlisp>, F <@r[I@c[nter]]@xlisp>)")
+@Commandstring(stdlisp = "@PossiblyIndexedRef(K <Standard LISP>,
+		E <@r[S@c[tandard]] @xlisp>, F <@r[S@c[tandard]] @xlisp>)")
+@Commandstring(psl = "@PossiblyIndexedRef(K <Portable Standard LISP>,
+		E <@r[P@c[ortable] S@c[tandard]] @xlisp>, F <@r[P@c[ortable] S@c[tandard]] @xlisp>)")
+@Commandstring(s1lisp = "@PossiblyIndexedRef(K <S-1 Lisp>,
+		E <@r[S-1] @xlisp>, F <@r[S-1] @xlisp>)")
+@Commandstring(scheme = "@PossiblyIndexedRef(K <scheme>,
+		E <@c[scheme]>, F <@c[scheme]>)")
+@Commandstring(fortran = "@PossiblyIndexedRef(K <Fortran>,
+		E <@c[fortran]>, F <@c[fortran]>)")
+@Commandstring(algol = "@PossiblyIndexedRef(K <Algol>,
+		E <@c[algol]>, F <@c[algol]>)")
+@Commandstring(pascal = "@PossiblyIndexedRef(K <Pascal>,
+		E <@c[pascal]>, F <@c[pascal]>)")
+@Commandstring(ada = "@PossiblyIndexedRef(K <ADA>,
+		E <@c[ada]>, F <@c[ada]>)")
+@Commandstring(apl = "@PossiblyIndexedRef(K <APL>,
+		E <@c[apl]>, F <@c[apl]>)")
+@Commandstring(pl1 = "@PossiblyIndexedRef(K <PL/I>,
+		E <@c[pl/i]>, F <@c[pl/i]>)")
+@Commandstring(clanguage = "@PossiblyIndexedRef(K <C>,
+		E <@c[c]>, F <@c[c] language>)")
+@Define(Smallitemize=Itemize, Spread 0, Above 0, Below 0)
+
+@Marker(Library, DBOLIO)
+
+
+@Modify(Chapter,TitleForm 
+{@Begin(Hd1A, Below 0.8 in)@Skip(0.8 in)@*Chapter @Parm(Numbered)@*@Skip(0.3 in)@*@Parm(Title)@End(Hd1A)},
+	ContentsForm
+{@Begin(Tc1)@Rfstr(@Parm(Page))@Parm(Referenced)@.@ @Parm(Title)@End(Tc1)},
+	  Numbered [@1],IncrementedBy Use,Referenced [@1],Announced)
+@Modify(Appendix,TitleEnv HD1,ContentsEnv tc1,Numbered [@A.],
+	 ContentsForm "@Tc1(Appendix @Parm(Referenced)@.@ @Rfstr(@Parm(Page))@parm(Title))",
+	 TitleForm "@Hd1(@=Appendix @Parm(Referenced)@*@=@Parm(Title))",
+	  IncrementedBy,Referenced [@A],Announced) @Comment{Alias Chapter}
+@Define(F, Capitalized)
+@Define(A, Initialize "[APL]")
+@Define(Sail = R)
+@Define(B = R)
+@Commandstring(Minussign = "-")
+@Commandstring(Tilde = "~")
+@Commandstring(Centerdot = ".")
+@Commandstring(Underscore = "_")
+@Commandstring(Bq = "@;`")
+@Form(Complex = "@f[#C(@Parm(R) @Parm(I))]")
+@Textform(Altmode = "<altmode>")
+@Define(DenseDescription = Description, Spread 0)
+@Define(Defenvironment = Text, Need 4, Nofill, Justification Off, Break,
+		Leftmargin +12, Indent -12, Above 2, Below 2, Spread 0.5)
+@Define(Defbody = Text, Leftmargin -6, Indent 0, Spread 0.5, Break)
+@Define(Undefbody = Text, Justification Off, Leftmargin +6, Indent -12,
+		Above 0, Below 0, Group, Break)
+@Define(Lispenvironment = Verbatim, Group, Leftmargin +4, Above 1, Below 1)
+@Commandstring(Nopara = "@Begin(Text, Continue Force)@End(Text)")
+@Commandstring(Optional = "@f[&optional]")
+@Commandstring(Rest = "@f[&rest]")
+@Commandstring(Key = "@f[&key]")
+@Commandstring(allowotherkeys = "@f[&allow-other-keys]")
+@Commandstring(Aux = "@f[&aux]")
+@Commandstring(Body = "@f[&body]")
+@Commandstring(Whole = "@f[&whole]")
+@Commandstring(Special = "@f[&special]")
+@Commandstring(Local = "@f[&local]")
+@Textform(Mopt = "@r{[}@Parm(Text)@r{]}")
+@Textform(Mgroup = "@r[{]@Parm(Text)@r[}]")
+@Textform(Mstar = "@r[{]@Parm(Text)@r[}*]")
+@Textform(Mplus = "@r[{]@Parm(Text)@r[}@+[+]]")
+@Commandstring(Mor = "@r[|]")
+@Commandstring(Lisp = "@Begin(Lispenvironment)@~")
+@Commandstring(Endlisp = "@End(Lispenvironment)")
+@Commandstring(Lispx = "@Begin(Text, Indent 0, Above 0)For example:@End(Text)@Lisp")
+@Commandstring(EQ = "==")
+@Commandstring(EV = "->")
+@Commandstring(EX = "<=>")
+@Commandstring(lbracket = "@f{[}")
+@Commandstring(rbracket = "@f{]}")
+@Commandstring(lbrace = "@f[{]")
+@Commandstring(rbrace = "@f[}]")
+@define(subi = i)
+@define(subr = r)
+@define(superi = i)
+@define(supersail = sail)
+@define(superg = g)
+@commandstring(superminussign = "@minussign@;")
+@commandstring(supercenterdot = "@centerdot@;")
+@Commandstring(false = "@f[nil]")
+@Commandstring(nil = "@f[nil]")
+@Commandstring(empty = "@f[()]")
+@Commandstring(true = "@f[t]")
+@Commandstring(xlisp = "@r[L@c[isp]]")
+@Commandstring(clisp = "@r[C@c[ommon]] @xlisp")
+@Commandstring(lmlisp = "@PossiblyIndexedRef(K <ZetaLisp>,
+		E <@r[Z@c[eta]@xlisp]>, F <@r[Z@c[eta]@xlisp]>)")
+@Commandstring(newlisp = "@PossiblyIndexedRef(K <NIL>,
+		E <@r[N@c[il]]>, F <@r[N@c[il] (New Implementation of @xlisp)]>)")
+@Commandstring(slisp = "@PossiblyIndexedRef(K <Spice LISP>,
+		E <@r[S@c[pice]] @xlisp>, F <@r[S@c[pice]] @xlisp>)")
+@Commandstring(lisp15 = "@PossiblyIndexedRef(K <Lisp 1.5>,
+		E <@xlisp @r[1.5]>, F <@xlisp @r[1.5]>)")
+@Commandstring(maclisp = "@PossiblyIndexedRef(K <MacLISP>,
+		E <@r[M@c[ac]]@xlisp>, F <@r[M@c[ac]]@xlisp>)")
+@Commandstring(franzlisp = "@PossiblyIndexedRef(K <Franz LISP>,
+		E <@r[F@c[ranz]] @xlisp>, F <@r[F@c[ranz]] @xlisp>)")
+@Commandstring(interlisp = "@PossiblyIndexedRef(K <InterLISP>,
+		E <@r[I@c[nter]]@xlisp>, F <@r[I@c[nter]]@xlisp>)")
+@Commandstring(stdlisp = "@PossiblyIndexedRef(K <Standard LISP>,
+		E <@r[S@c[tandard]] @xlisp>, F <@r[S@c[tandard]] @xlisp>)")
+@Commandstring(psl = "@PossiblyIndexedRef(K <Portable Standard LISP>,
+		E <@r[P@c[ortable] S@c[tandard]] @xlisp>, F <@r[P@c[ortable] S@c[tandard]] @xlisp>)")
+@Commandstring(s1lisp = "@PossiblyIndexedRef(K <S-1 Lisp>,
+		E <@r[S-1] @xlisp>, F <@r[S-1] @xlisp>)")
+@Commandstring(scheme = "@PossiblyIndexedRef(K <scheme>,
+		E <@c[scheme]>, F <@c[scheme]>)")
+@Commandstring(fortran = "@PossiblyIndexedRef(K <Fortran>,
+		E <@c[fortran]>, F <@c[fortran]>)")
+@Commandstring(algol = "@PossiblyIndexedRef(K <Algol>,
+		E <@c[algol]>, F <@c[algol]>)")
+@Commandstring(pascal = "@PossiblyIndexedRef(K <Pascal>,
+		E <@c[pascal]>, F <@c[pascal]>)")
+@Commandstring(ada = "@PossiblyIndexedRef(K <ADA>,
+		E <@c[ada]>, F <@c[ada]>)")
+@Commandstring(apl = "@PossiblyIndexedRef(K <APL>,
+		E <@c[apl]>, F <@c[apl]>)")
+@Commandstring(pl1 = "@PossiblyIndexedRef(K <PL/I>,
+		E <@c[pl/i]>, F <@c[pl/i]>)")
+@Commandstring(clanguage = "@PossiblyIndexedRef(K <C>,
+		E <@c[c]>, F <@c[c] language>)")
+@Define(Smallitemize=Itemize, Spread 0, Above 0, Below 0)

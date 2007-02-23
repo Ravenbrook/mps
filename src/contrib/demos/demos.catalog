@@ -1,0 +1,39 @@
+Package Name:
+   DEMOS
+
+Description:
+   Graphics demonstration programs for CMU Common Lisp using version 11
+of the X Window System.
+
+Author:
+   CMU Common Lisp Group.
+
+Maintainer:
+   CMU Common Lisp Group.
+
+Address:
+   Carnegie-Mellon University
+   Computer Science Department
+   Pittsburgh, PA 15213
+
+Net Address:
+   cmucl-imp@cons.org
+
+Copyright Status:
+   Public Domain.
+
+Files:
+   demos.lisp, demos.fasl, demos.catalog.menu.lisp
+
+How to Get:
+   The following unix command will copy the pertinent files into directory
+<spec>:
+   cp .../library/demos/* <spec>
+
+Portability:
+   Should run in any Common Lisp supporting CLX V11R4.
+
+Instructions:
+   The function DEMOS:DO-ALL-DEMOS will run through each of the demos
+once, and the function DEMOS:DEMO will present a menu of all the
+demos.

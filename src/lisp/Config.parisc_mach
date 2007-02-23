@@ -1,0 +1,16 @@
+CPPFLAGS = -Dparisc -Dhpux -DMACH \
+	-I. -I/usr/misc/.X11/include -I/usr/mach/include -Ihacks
+LINK.o = /usr/src/mach/bin/cc $(LDFLAGS) $(TARGET_ARCH)
+CC = /usr/src/mach/bin/cc
+NM = hacks/my-nm
+CFLAGS = -g
+ASFLAGS = -g
+UNDEFSYMPATTERN=-u &
+ASSEM_SRC = hppa-assem.S
+ARCH_SRC = hppa-arch.c
+OS_SRC = mach-os.c os-common.c undefineds.c
+OS_LINK_FLAGS=
+OS_LIBS=-lmach -lthreads
+
+%.o: %.S
+	$(PREPROCESS.S) $< | as -o $@

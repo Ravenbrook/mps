@@ -1,0 +1,3 @@
+#!/bin/sh
+# Remove the U lines that genesis doesn't like
+nm "$@" | grep -v '^         U'

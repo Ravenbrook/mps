@@ -1,0 +1,291 @@
+Package Name:
+   DEMOS
+
+Description:
+   Graphics demonstration programs for CMU Common Lisp using version 11 of the
+X Window System.
+
+Author:
+   CMU Common Lisp Group.
+
+Maintainer:
+   CMU Common Lisp Group.
+
+Address:
+   Carnegie-Mellon University
+   Computer Science Department
+   Pittsburgh, PA 15213
+
+Net Address:
+   slisp-group@b
+
+Copyright Status:
+   Public Domain.
+
+Files:
+   demos.lisp, demos.fasl, demos.catalog.
+
+How to Get:
+   The following unix command will copy the pertinent files into directory
+<spec>:
+   cp /afs/cs.cmu.edu/project/slisp/library/demos/* <spec>
+
+Portability:
+   Should run in any Common Lisp supporting CLX V11R3.
+
+Instructions:
+   The function DEMOS:DO-ALL-DEMOS will run through each of the demos once, and
+the function DEMOS:DEMO will present a menu of all the demos.
+
+
+Name:
+   Follow Mouse.
+
+Package Name:
+   HEMLOCK
+
+Description:
+   This Hemlock customization causes Hemlock's current window to be set to
+whatever Hemlock window the mouse enters, except the echo area.
+
+Author:
+   Todd Kaufmann, modified by Dave Touretzky.
+
+Maintainer:
+   Todd Kaufmann.
+
+Address:
+   Carnegie-Mellon University
+   Computer Science Department
+   Pittsburgh, PA 15213
+
+Net Address:
+   Todd.Kaufmann@CS.CMU.EDU
+
+Copyright Status:
+   Public Domain.
+
+Files:
+   follow-mouse.lisp, follow-mouse.fasl, follow-mouse.catalog.
+
+How to Get:
+   The following unix command will copy the pertinent files into directory
+<spec>:
+   cp /afs/cs.cmu.edu/project/slisp/library/follow-mouse/* <spec>
+
+Portability:
+   This should work in any Common Lisp supporting Hemlock and CLX V11R3.
+
+Instructions:
+   Load the fasl file into your editor Lisp.  A value of T for the hemlock
+variable "Follow Mouse To Read-Only Buffers", which is the default, means
+follow mouse is on.  Anything else means hemlock will behave normally.
+
+Bugs:
+   A few more PROMPT-FOR-... functions need to be modified.  They are mentioned
+in the source code.
+
+
+Package Name:
+   HIST
+
+Description:
+   Simple histogram facility using Format strings for output.
+
+Author:
+   Scott E. Fahlman
+
+Address:
+   Carnegie-Mellon University
+   Computer Science Department
+   Pittsburgh, PA 15213
+
+Net Address:
+   Scott.Fahlman@CS.CMU.EDU
+
+Copyright Status:
+   Public Domain.
+
+Files:
+   hist.lisp, hist.fasl, hist.catalog
+
+How to Get:
+   The following unix command will copy the pertinent files into directory
+<spec>.
+   cp /afs/cs.cmu.edu/project/slisp/library/hist/* <spec>
+
+Portability:
+   Should run in any legal Common Lisp.
+
+Instructions:
+   Hist is a macro of form (HIST (min max [bucket-size]) . body)
+
+Creates a histogram with buckets of the specified size (defaults to 1),
+spanning the range from Low (inclusive) to High (exclusive), with two
+additional buckets to catch values below and above this range.  The body is
+executed as a progn, and every call to Hist-Record within the body provides a
+value for the histogram to count.  When Body exits, the histogram is printed
+out and Hist returns Nil.
+
+A simple example:
+   (hist (0 10) (dotimes (i 1000) (random 10)))
+This example may make the RANDOM distribution look more normal:
+   (hist (0 10 2) (dotimes (i 1000) (random 10)))
+This example will show you overflow buckets:
+   (hist (2 12) (dotimes (i 1000) (random 15)))
+
+Wish List:
+   Some sort of automatic scaling for the number and size of buckets would be
+nice, if the user chooses not to supply these.  This would probably require
+running the body twice, once to determine the spread of values, and again to
+actually produce the histogram.
+
+
+Name:
+   OPS
+
+Package Name:
+   OPS
+
+Description:
+   Interpreter for Ops5, a programming language for production systems.
+
+Author:
+   Charles L. Forgy.  Ported to Common lisp by George Wood and Jim Kowalski.
+CMU Common Lisp mods by Dario Guise, Skef Wholey, and Dan Kuokka.
+
+Maintainer:
+   CMU Common Lisp Group.
+
+Net Address:
+   slisp-group@b
+
+Copyright Status:
+   Public domain.
+
+Files:
+   ops.lisp, ops-backup.lisp, ops-compile.lisp, ops-io.lisp, ops-main.lisp,
+ops-match.lisp, ops-rhs.lisp, ops-util.lisp, ops.catalog, ops-demo-mab.lisp,
+ops-demo-ttt.lisp, and binaries.
+
+How to Get:
+   The following unix command will copy the pertinent files into directory
+<spec>.
+   cp /afs/cs.cmu.edu/project/slisp/library/ops/* <spec>
+
+Portability:
+   Should run in any legal Common Lisp implementation.
+
+Instructions:
+   From Lisp, load "ops" and then go into the OPS package with (in-package
+'ops).  Now you can load your OPS5 code or start typing in productions.
+
+There are two demos -- interactive tic-tac-toe and the monkey and banana
+problem.  To run the former just load it and call RUN.  For the latter, first
+enter "(make start 1)" and then call RUN.
+
+See the OPS5 User's Manual, July 1981, by Forgy, CMU CSD.
+
+Bugs:
+   This has been put in its own package, but only a few interfaces have been
+exported.  You must run in the ops package.
+
+
+Package Name:
+   PROFILE
+
+Description:
+   Provides macros to do simple code profiling things.
+
+Author:
+   Skef Wholey
+   Rob MacLachlan
+
+Address:
+   Carnegie-Mellon University
+   Computer Science Department
+   Pittsburgh, PA 15213
+
+Net Address:
+   ram@cs.cmu.edu
+
+Copyright Status:
+   Public Domain
+
+Files:
+   profile.lisp, profile.fasl, profile.doc, profile.catalog
+
+How to Get:
+   The following unix command will copy the pertinent files into directory
+<spec>:
+   cp /afs/cs.cmu.edu/project/slisp/library/profile/* <spec>
+
+Portability:
+   Should run in any Common Lisp.  Someone porting this may want to change a
+few things mentioned in profile.lisp to tune it to another implementation.
+
+Instructions:
+   See the file profile.doc for details.
+
+
+Name:
+   PSgrapher
+
+Description:
+   The PSgrapher is a set of Lisp routines that can be called to produce
+Postscript commands that display a directed acyclic graph.
+
+Author:
+   Joseph Bates.  Skef put the whole thing in the PSGRPAPH package and added
+functionality which allows the user to specify EQ, EQUAL, or EQUALP as the
+node equivalence function.  Bill made all exported symbols have stars on them.
+
+Address:
+   Carnegie-Mellon University
+   Computer Science Department
+   Pittsburgh, PA 15213
+
+Net Address:
+   Joseph.Bates@CS.CMU.EDU
+
+Copyright Status:
+   Public Domain.
+
+Files:
+   psgraph.lisp, psgraph.fasl, psgraph.doc, psgraph.log, psgraph.catalog
+
+How to Get:
+   The following unix command will copy the pertinent files into directory
+<spec>.
+   cp /afs/cs.cmu.edu/project/clisp/library/psgraph/* <spec>
+
+Portability:
+   Should run in any legal Common Lisp.  Requires Postscript for printing.
+
+Instructions:
+   See psgraph.doc.
+
+Bugs:
+   This code blindly outputs what the user gives it as node labels.  It should
+run through the output escaping any PS control characters.  For example, if
+node labels contain parentheses, your output PS file will not print.
+
+Examples:
+   Skef Wholey submitted this as a reasonable example:
+
+;;; I use this in my compiler so I can look at code trees without
+;;; crawling around them in the inspector.  The postsript previewer
+;;; groks the generated ps file, which is bitchin' marvy.
+
+   (defun code-graph-to-file (s file &optional shrink insert)
+     (let ((psgraph:*fontname* "Times-Roman")
+	   (psgraph:*fontsize* 8)
+	   (psgraph:*second-fontname* "Times-BoldItalic")
+	   (psgraph:*second-fontsize* 6)
+	   (psgraph:*boxgray* "0")
+	   (psgraph:*edgegray* "0")
+	   (psgraph:*extra-x-spacing* 30))
+       (with-open-file (*standard-output* file
+					  :direction :output
+					  :if-exists :supersede)
+	 (psgraph:psgraph s #'psg-children #'psg-info shrink insert #'eq))))

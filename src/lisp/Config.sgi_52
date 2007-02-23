@@ -1,0 +1,32 @@
+# To make the Depends file temporarily change Config to use gcc instead of cc.
+
+CPPFLAGS = -I. -Dirix -DSVR4
+CC = cc # -Wall -Wstrict-prototypes -Wmissing-prototypes
+CPP = cpp
+CFLAGS = -Dirix -DSVR4 -D_BSD_SIGNALS -g
+
+DEPEND = $(CC) -M -E
+
+# For some reason mips-assem.S and mips-assem.s must both be linked to the
+# mips-assem.S source file.  It seems that .S means something wierd on this
+# platform.  Also, make sure that "as" is /usr/bin/as, not the
+# gnu assembler.
+ASFLAGS = -g -Dirix
+
+NM = ./irix-nm
+UNDEFSYMPATTERN=-Xlinker -u -Xlinker &
+ASSEM_SRC = mips-assem.S
+ARCH_SRC = mips-arch.c
+OS_SRC = irix-os.c os-common.c undefineds.c
+OS_LINK_FLAGS=
+OS_LIBS=
+
+# special rules for working around sgi compiler bug, see comments at start
+# of irix-asm-munge.c
+
+irix-asm-munge: irix-asm-munge.c internals.h
+	cc -g -o $@ irix-asm-munge.c -lelf
+
+mips-assem.o: mips-assem.S irix-asm-munge
+	as $(ASFLAGS) -o $@ mips-assem.S
+	./irix-asm-munge $@

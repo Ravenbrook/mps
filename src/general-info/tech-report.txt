@@ -1,0 +1,6 @@
+
+In addition to the documentation pointers below, the CMU CL documentation
+is also available as tech reports:
+    Hemlock Command Implementor's Manual: CMU-CS-89-134-R1
+    Hemlock User's Manual: CMU-CS-89-133-R1
+    CMU Common Lisp User's Manual: CMU-CS-91-108 (hot off the press)

@@ -1,0 +1,71 @@
+# -*- Mode: makefile -*-
+# These tell gmake where to look for .h, .c and .S files.  Mostly for
+# building the binary outside of the src tree.
+
+
+PATH1 = ../../src/lisp
+vpath %.h .:$(PATH1)
+vpath %.c .:$(PATH1)
+vpath %.S .:$(PATH1)
+
+# For Solaris 2.4 or earlier, remove -DSOLARIS25 from CPPFLAGS.
+
+# For v8plus support (allows 64-bit integer support on V9
+# architectures), uncomment the definitions for CC_V8PLUS and
+# AS_V8PLUS.  The -Wa,xarch=v8plus option tells the assembler to
+# accept v8plus instructions and generate a v8plus object files and
+# executable.
+#
+# However, we should also make sure the binary is marked as v8plus by
+# enabling AS_V8PLUS whenever we have the :sparc-v9 *feature* enabled
+# because we really are a v8plus application by using some of the v9
+# instructions, even if we don't use the 64-bit registers.
+
+#CC_V8PLUS = -xarch=v8plus
+ifdef FEATURE_SPARC_V9
+AS_V8PLUS = -Wa,-xarch=v8plus
+endif
+
+# Enable support for :linkage-table feature.
+
+ifdef FEATURE_LINKAGE_TABLE
+LINKAGE = -DLINKAGE_TABLE
+endif
+
+# Enable support for generational GC
+ifdef FEATURE_GENCGC
+GENCGC = -DGENCGC
+GC_SRC = gencgc.c
+endif
+
+CPPFLAGS = -I. -I$(PATH1) -I/usr/openwin/include -I/usr/include/X11 -DSOLARIS -DSOLARIS25 -DSVR4 $(CC_V8PLUS) $(LINKAGE) $(GENCGC)
+
+# Note: If you want to be able to run gdb with cmucl, the only version
+# of gdb that still works for me (rtoy) on Solaris is 4.18.  Versions
+# 5.x and later (including 6.3) are incapable of passing signals
+# (SIGILL and SIGSEGV) to lisp properly.
+#
+# But, gcc 3.3.3 and later appear to produce executables that gdb 4.18
+# can't handle.  So, we should probably stick with gcc 3.3.2.  Adjust
+# the CC variable appropriately, if necessary.
+
+CC = gcc -O -Wall
+#CC = /apps/gnu/solaris2.8/gcc-3.3.3/bin/gcc -O1 -Wall
+CPP = gcc -E
+CFLAGS = -g $(AS_V8PLUS)
+
+# Needed for sys/asm_linkage.h and sparc-assem.S (at least in 2.3)
+# Note that the sys/asm_linkage.h braindamage breaks make depend
+ASFLAGS = -g -traditional-cpp $(AS_V8PLUS)
+DEPEND_FLAGS = -traditional-cpp
+NM = $(PATH1)/solaris-nm
+ASSEM_SRC = sparc-assem.S
+ARCH_SRC = sparc-arch.c
+
+# For Solaris, you may also use sunos-os.c instead of solaris-os.c.
+# This has been checked out on Solaris 2.7 (aka 7) without problems.
+# The resulting binaries work ok on 2.5.
+
+OS_SRC = solaris-os.c os-common.c undefineds.c elf.c k_rem_pio2.c
+OS_LINK_FLAGS=
+OS_LIBS= -lsocket -lnsl -ldl

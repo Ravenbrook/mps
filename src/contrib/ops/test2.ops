@@ -1,0 +1,74 @@
+
+(literalize loop                 ;  loop counter
+	count)
+(literalize buf                  ;  input buffer
+	input)
+(literalize buffield             ;  holds an atom from the input
+	extracted value)
+
+(vector-attribute input)
+
+(literal extracted = 2
+         value     = 3)
+
+; Test acceptline
+
+(p p1
+	 (start)      		;  begin here
+	-->
+	 (make loop ^count 1)
+	 (make buffield ^extracted FALSE ^value nil) )
+
+
+(p p2
+	 (loop ^count 1)        ;  Get a new line of input
+	-->
+	 (write (crlf) Enter a line of "input: ")
+	 (make buf ^input (acceptline nothing read))
+	 (modify 1 ^count 2) )
+
+
+
+
+(p p3
+	 (loop ^count { <x> > 1 < 128 })    ;  Extract a field
+	 (buf ^input <> end-of-file)
+	 (buffield ^extracted FALSE)
+	-->
+ 	 (modify 3 ^extracted TRUE ^value (substr 2 <x>  <x>)) )
+
+
+
+(p p4
+	(loop ^count <x>)     	;  Print non-nil field
+	(buffield ^extracted TRUE ^value { <v> <> nil })
+       -->
+        (write (crlf) Field <x> is <v>)
+        (modify 1 ^count (compute (<x> + 1)))
+	(modify 2 ^extracted FALSE) )
+
+
+
+(p p5
+	(loop ^count <x>)     	;  Skip over nil field
+	(buffield ^extracted TRUE ^value nil)
+       -->
+        (modify 1 ^count (compute (<x> + 1)))
+	(modify 2 ^extracted FALSE) )
+
+
+
+(p p6
+	(loop ^count 128)     	;  Start over again
+	(buf)
+       -->
+	(modify 1 ^count 1)
+	(remove 2) )
+
+
+
+(p p7
+	(buf ^input end-of-file)     ;  Exit on EOF
+       -->
+	(write (crlf) End-of-file reached in input.)
+	(halt) )

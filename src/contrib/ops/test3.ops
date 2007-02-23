@@ -1,0 +1,110 @@
+
+
+(literalize component)	(literalize context)	(literalize pcon)	(literalize datum)
+(literalize computation)	(literalize setattr)	(literalize template)	(literalize interaction)
+(literalize lineitem)	(literalize local)	(literalize discrlist)	(literalize task)
+(literalize arg)	(literalize call)	(literalize order)	(literalize wip)
+(literalize location)	(literalize input)	(literalize object)	(literalize x)
+(literalize status)	(literalize place)	(literalize time)	(literalize port)
+(literalize module)	(literalize link)	(literalize lists)	(literalize outnode)
+(literalize operator)	(literalize current)	(literalize attval)	(literalize choice)
+(literalize applied)	(literalize stateop)	(literalize exit)
+(literalize component0)	(literalize context0)	(literalize pcon0)	(literalize datum0)
+(literalize computation0)	(literalize setattr0)	(literalize template0)	(literalize interaction0)
+(literalize lineitem0)	(literalize local0)	(literalize discrlist0)	(literalize task0)
+(literalize arg0)	(literalize call0)	(literalize order0)	(literalize wip0)
+(literalize location0)	(literalize input0)	(literalize object0)	(literalize x0)
+(literalize status0)	(literalize place0)	(literalize time0)	(literalize port0)
+(literalize module0)	(literalize link0)	(literalize lists0)	(literalize outnode0)
+(literalize operator0)	(literalize current0)	(literalize attval0)	(literalize choice0)
+(literalize applied0)	(literalize stateop0)	(literalize exit0)
+(literalize tank)	(literalize pipe)	(literalize measurement)	(literalize reading)
+(literalize goal)	(literalize material)
+
+(literalize primer
+	spacer
+	role
+	cnt
+	null)
+
+(literalize count
+	spacer
+	role
+	null
+	val
+	delta
+	null2)
+
+
+
+(p start
+	(start)
+    -->
+    	(remove 1)
+	(make primer    ^role exist    ^cnt 1)
+	(make primer    ^role exist    ^cnt 2)
+	(make primer    ^role exist    ^cnt 3)
+	(make primer    ^role exist    ^cnt 4)
+	(make primer    ^role exist    ^cnt 5)
+	(make primer    ^role exist    ^cnt 6)
+	(make primer    ^role exist    ^cnt 7)
+	(make primer    ^role exist    ^cnt 8)
+	(make primer    ^role exist    ^cnt 9)
+	(make primer    ^role exist    ^cnt 10)
+	(make primer    ^role exist    ^cnt 11)
+	(make primer    ^role exist    ^cnt 12)
+	(make primer    ^role exist    ^cnt 13)
+	(make primer    ^role exist    ^cnt 14)
+	(make primer    ^role exist    ^cnt 15)
+	(make primer    ^role exist    ^cnt 16)
+	(make primer    ^role exist    ^cnt 17)
+	(make primer    ^role exist    ^cnt 18)
+	(make primer    ^role exist    ^cnt 19)
+	(make primer    ^role exist    ^cnt 20)
+	(make primer    ^role exist    ^cnt 21)
+	(make primer    ^role exist    ^cnt 22)
+	(make primer    ^role exist    ^cnt 23)
+	(make primer    ^role exist    ^cnt 24)
+	(make primer    ^role exist    ^cnt 25)
+	(make primer    ^role exist    ^cnt 26)
+	(make primer    ^role exist    ^cnt 27)
+	(make primer    ^role exist    ^cnt 28)
+	(make primer    ^role exist    ^cnt 29)
+	(make primer    ^role exist    ^cnt 30)
+	(make count    ^role exist    ^val 1    ^delta 7)
+	(make count    ^role exist    ^val 2    ^delta 7)
+	(make count    ^role exist    ^val 3    ^delta 7)
+	(make count    ^role exist    ^val 4    ^delta 7)
+	(make count    ^role exist    ^val 5    ^delta 7)
+	(make count    ^role exist    ^val 6    ^delta 7)
+	(make count    ^role exist    ^val 7    ^delta 7)
+	(make primer    ^role driver    ^cnt -1))
+
+
+
+(p driver
+	(primer    ^role driver    ^null <x>)
+	(count    ^null <x>    ^val <val>    ^delta <delta>)
+    -	(count    ^val < <val>)
+    -->
+    	(modify 2 ^val  (compute <val> + <delta>)))
+
+
+(p driverCopy
+	(primer    ^role driver    ^null <x>)
+	(count    ^null <x>    ^val <val>    ^delta <delta>)
+    -	(count    ^val < <val>)
+    -->
+    	(modify 2 ^val  (compute <val> + <delta>)))
+
+
+
+(p cs
+	(primer    ^role exist    ^cnt <= 2)
+	(primer    ^role exist    ^cnt <= 2)
+	(primer    ^role exist    ^cnt <= 2)
+	(primer    ^role exist    ^cnt <= 1)
+	(primer    ^role exist    ^cnt <= 1)
+	(primer    ^role exist    ^cnt <= 1)
+    -->
+    	(halt))

@@ -1,0 +1,705 @@
+(comment default soar  version 4.0)
+(comment inter-lisp version  go to lower case for other versions)
+
+(comment this production gathers all relevant preferences and makes them
+         available to the decision procedure through the decide action.
+         users should never create decide productions)
+
+(sp decision*gather-preferences decide
+    (gc <g> ^problem-space <p> ^state <s> ^operator <q>)
+    (preference <id> ^role <role> ^value <value> ^reference <c> 
+		^goal <g> ^problem-space <p> ^state <s> ^operator <q>)
+    -->
+    (decide ^goal <g> ^identifier <id> ^role <role> ^value <value> ^reference <c>))
+
+
+
+(comment ****** common search-control productions ******)
+
+(comment all operator augmentations of the problem space have
+         acceptable-preferences created for them)
+
+(sp default*make-all-operators-acceptable
+  (gc <g> ^problem-space <p>)
+  (problem-space <p> ^operator <x>)
+ -(preference <x> ^role operator ^value acceptable ^problem-space <p>)
+  -->
+  (preference <x> ^role operator ^value acceptable
+    ^problem-space <p>))
+
+
+(comment if an operator has just been applied to a state -
+         detected by using the preference created for that state -
+         reject the operator for that state so it will not be reapplied
+         in the future)
+
+(sp default*no-operator-retry
+    (gc <g> ^problem-space <p> ^state <s2>)
+    (preference ^object <s2> ^role state ^value acceptable
+		^goal <g> ^problem-space <p> ^state <s>
+		^operator { <> undecided <> nil <q> })
+    -->
+    (preference <q> ^role operator ^value reject
+	  ^goal <g> ^problem-space <p> ^state <s>))
+
+
+(comment if there is a reject-preference for the current state - 
+         make an acceptable-preference for the prior state so problem
+         solving can backup)
+
+(sp default*backup-if-failed-state
+    (gc <g> ^problem-space <p> ^state <s>)
+    (preference <s> ^role state ^value reject 
+		^goal <g> ^problem-space <p>)
+    (preference <s> ^role state ^value acceptable
+		^goal <g> ^problem-space <p> ^state { <> undecided <> nil <n> }
+		^operator <> undecided)
+    --> 
+    (preference <n> ^role state ^value acceptable
+	  ^goal <g> ^problem-space <p> ^state <s>))
+
+(comment ****** default knowledge for impasses ******
+         ****** tie impasses ******)
+
+(comment if the problem space for handling the subgoal fails -
+         signified by the choices none impasse below it -
+         make a worst-preference for each tied object)
+
+ (sp default*problem-space-tie
+    (gc <g3> ^role goal ^choices none ^supergoal <g2>)
+    (gc <g2> ^role problem-space ^impasse tie ^supergoal <g1>
+		^item <p>)
+     -->
+    (preference <p> ^role problem-space ^value worst
+		^goal <g1>))
+
+(sp default*state-tie
+    (gc <g3> ^role goal ^choices none ^supergoal <g2>)
+    (gc <g2> ^role state ^impasse tie ^supergoal <g1> ^item <s>)
+    (gc <g1> ^problem-space <p>)
+     -->
+    (preference <s> ^role state ^value worst
+		^goal <g1> ^problem-space <p>))
+
+(sp default*operator-tie
+    (gc <g3> ^role goal ^choices none ^supergoal <g2>)
+    (gc <g2> ^role operator ^impasse tie ^supergoal <g1>
+		^item <q>)
+    (gc <g1> ^problem-space <p> ^state <s>)
+     -->
+    (preference <q> ^role operator ^value worst
+		^goal <g1> ^problem-space <p> ^state <s>))
+
+
+(comment ****** conflict impasses ******)
+
+(comment if the problem space for handling the subgoal fails -
+         signified by the choices none impasse below it -
+         make a reject-preference for each conflicted object)
+
+ (sp default*problem-space-conflict
+    (gc <g3> ^role goal ^choices none ^supergoal <g2>)
+    (gc <g2> ^role problem-space ^impasse conflict ^supergoal <g1>
+		^item <p>)
+     -->
+    (preference <p> ^role problem-space ^value reject
+		^goal <g1>))
+
+(sp default*state-conflict
+    (gc <g3> ^role goal ^choices none ^supergoal <g2>)
+    (gc <g2> ^role state ^impasse conflict
+		^supergoal <g1> ^item <s>)
+    (gc <g1> ^problem-space <p>)
+     -->
+    (preference <s> ^role state ^value reject
+		^goal <g1> ^problem-space <p>))
+
+(sp default*operator-conflict
+    (gc <g3> ^role goal ^choices none ^supergoal <g2>)
+    (gc <g2> ^role operator ^impasse conflict ^supergoal <g1>
+		^item <q>)
+    (gc <g1> ^problem-space <p> ^state <s>)
+     -->
+    (preference <q> ^role operator ^value reject
+		^goal <g1> ^problem-space <p> ^state <s>))
+
+
+(comment ****** no-choice impasses ******)
+
+(comment if no problem spaces are available for the top goal -
+         terminate the problem solving session with halt)
+
+(sp default*goal-no-choices
+    (gc <g3> ^role goal ^choices none ^supergoal <g2>)
+   -(gc <g2> ^supergoal)
+    -->
+    (write1 (crlf) "No problem space can be selected for top goal.")
+    (write1 (crlf) "Soar must terminate.")
+    (halt))
+
+
+(comment if no states are available for a problem space -
+         and there is no problem space to find more -
+         reject that problem space)
+
+(sp default*problem-space-no-choices
+    (gc <g3> ^role goal ^choices none ^supergoal <g2>)
+    (gc <g2> ^role problem-space ^choices none ^supergoal <g1>)
+    (gc <g1> ^problem-space <p>)
+    -->
+    (preference <p> ^role problem-space ^value reject ^goal <g1>))
+
+
+(comment if no operators are available for a state -
+         and there is no problem space to find more -
+         reject that state)
+
+(sp default*state-no-choices
+    (gc <g3> ^role goal ^choices none ^supergoal <g2>)
+    (gc <g2> ^role state ^choices none ^supergoal <g1>)
+    (gc <g1> ^problem-space <p> ^state <s>)
+     -->
+    (preference <s> ^role state ^value reject
+		^goal <g1> ^problem-space <p>))
+
+(comment if no changes for an operator -
+         and there is no problem space to find more -
+         reject that operator)
+
+(sp default*operator-no-choices
+    (gc <g3> ^role goal ^choices none ^supergoal <g2>)
+    (gc <g2> ^role operator ^impasse no-change ^supergoal <g1>)
+    (gc <g1> ^problem-space <p> ^state <s> ^operator <q>)
+    -->
+    (preference <q> ^role operator ^value reject
+	  ^goal <g1> ^problem-space <p> ^state <s>))
+
+
+(comment ************** selection problem space ****************)
+
+
+(comment use the selection problem space for all choice multiple
+         impasses - make it worst so that any other will dominate)
+
+(sp select*selection-space elaborate
+    (gc <g> ^choices multiple)
+    -->
+    (preference <p> ^role problem-space ^value acceptable ^goal <g>)
+    (preference <p> ^role problem-space ^value worst ^goal <g>)
+    (problem-space <p> ^name selection))
+
+
+(comment the state of the selection problem space is empty)
+
+(sp select*create-state
+   (gc <g> ^problem-space <p> ^state undecided)
+   (space <p> ^name selection)
+   -->
+   (preference <s> ^role state ^value acceptable 
+	^goal <g> ^problem-space <p> ^state undecided))
+
+
+
+(comment ************** evaluate-object operator ****************)
+
+
+(comment create evaluate operator in selection problem space)
+
+(sp eval*select-evaluate 
+   (gc <g> ^problem-space <p> ^state <s> ^supergoal <g2> ^item <x>)
+   (problem-space <p> ^name selection)
+   -->
+   (operator <o> ^state <s> ^name evaluate-object ^object <x>)
+   (preference <o> ^role operator ^value indifferent
+	^goal <g> ^problem-space <p> ^state <s> )
+   (preference <o> ^role operator ^value acceptable
+	^goal <g> ^problem-space <p> ^state <s> ))
+
+
+(comment for parallel evaluation
+         remove this comment if you want parallel evaluation of
+         the alternatives.
+
+(sp eval*parallel-evaluate 
+   (gc <g> ^problem-space <p> ^state <s> ^role operator ^supergoal <g2>)
+   (problem-space <p> ^name selection )
+   (operator <q1> ^state <s> ^object <y>)
+   (operator <q2> ^state <s> ^object { <> <y> <x> })
+   -->
+   (preference <q1> ^role operator ^value parallel 
+	^goal <g> ^problem-space <p> ^state <s> ^reference <q2>)))
+
+
+(comment create evaluation once the eval operator is selected)
+
+(sp eval*apply-evaluate 
+   (gc <g> ^problem-space <p> ^state <s> ^operator <q>
+	^role <role> ^supergoal <g2>)
+   (problem-space <p> ^name selection)
+   (gc <g2> ^problem-space <p2> ^state <s2> ^desired <d>)
+   (operator <q> ^name evaluate-object ^object <x>)
+   -->
+   (state <s> ^evaluation <e>)
+   (evaluation <e> ^object <x> ^state <s> ^operator <q> ^desired <d>)
+   (operator <q> ^role <role> ^evaluation <e> ^desired <d>
+	^supergoal <g2> ^superproblem-space <p2> ^superstate <s2>))
+
+
+(comment reject evaluate-object after it finished in selection space)
+
+(sp eval*reject-evaluate-finished elaborate
+   (gc <g> ^problem-space <p> ^state <s> ^operator <q>)
+   (problem-space <p> ^name selection)
+   (operator <q> ^name evaluate-object ^evaluation <e>)
+   (evaluation <e> ^ << numeric-value symbolic-value >>)
+   -->
+   (preference <q> ^role operator ^value reject ^goal <g> 
+	 ^problem-space <p> ^state <s>))
+
+
+(comment if two objects have equal evaluations they are indifferent)
+
+(sp eval*equal-eval-indifferent-preference
+   (gc <g> ^problem-space <p> ^state <s>	^role <role> ^supergoal <g2>)
+   (problem-space <p> ^name selection)
+   (state <s> ^evaluation <e1> ^evaluation { <> <e1> <e2> })
+   (gc <g2> ^problem-space <p2> ^state <s2> ^desired <d>)
+   (evaluation <e1> ^object <x> ^numeric-value <v> ^desired <d>)
+   (evaluation <e2> ^object <y> ^numeric-value <v> ^desired <d>)
+   -->
+   (preference <x> ^role <role> ^value indifferent ^reference <y>
+	 ^goal <g2> ^problem-space <p2> ^state <s2>))
+
+
+(comment generate operator preferences based on their evaluations and info 
+         as to whether higher or lower evaluations are better)
+
+(sp eval*prefer-higher-evaluation
+   (gc <g> ^problem-space <p> ^state <s>	^role <role> ^supergoal <g2>)
+   (problem-space <p> ^name selection)
+   (gc <g2> ^problem-space <p2> ^state <s2> ^desired <d>)
+   (state <s> ^evaluation <e1> ^evaluation { <> <e1> <e2> })
+   (evaluation <d> ^better higher)
+   (evaluation <e1> ^object <q1> ^numeric-value <v> ^desired <d>)
+   (evaluation <e2> ^object <q2> ^numeric-value < <v> ^desired <d>)
+   -->
+   (preference <q2> ^role <role> ^value worse ^reference <q1>
+	 ^goal <g2> ^problem-space <p2> ^state <s2>))
+
+(sp eval*prefer-lower-evaluation
+   (gc <g> ^problem-space <p> ^state <s>	^role <role> ^supergoal <g2>)
+   (problem-space <p> ^name selection)
+   (gc <g2> ^problem-space <p2> ^state <s2> ^desired <d>)
+   (state <s> ^evaluation <e1> ^evaluation { <> <e1> <e2> })
+   (evaluation <d> ^better lower)
+   (evaluation <e1> ^object <q1> ^numeric-value <v> ^desired <d>)
+   (evaluation <e2> ^object <q2> ^numeric-value > <v> ^desired <d>)
+   -->
+   (preference <q2> ^role operator ^value worse ^reference <q1>
+	 ^goal <g2> ^problem-space <p2> ^state <s2>))
+
+(comment productions that fire in the evaluation subgoal)
+
+
+(comment copy down the desired and create the appropriate context -
+         given the role of the object being evaluated)
+
+(sp eval*select-role-problem-space
+   (gc <g> ^problem-space undecided ^supergoal <g2> ^superoperator <q2>)
+   (gc <g2> ^operator <q2>)
+   (operator <q2> ^name evaluate-object ^role problem-space ^object <p> ^desired <d>)
+   -->
+   (gc <g> ^desired <d>)
+   (preference <p> ^role problem-space ^value acceptable ^goal <g>))
+
+
+(sp eval*select-role-state
+   (gc <g> ^problem-space undecided ^supergoal <g2> ^superoperator <q2>)
+   (gc <g2> ^operator <q2>)
+   (operator <q2> ^name evaluate-object ^role state ^object <s>
+	^superproblem-space <p> ^desired <d>)
+   -->
+   (gc <g> ^desired <d>)
+   (preference <p> ^role problem-space ^value acceptable ^goal <g>)
+   (preference <s> ^role state ^value acceptable
+	^goal <g> ^problem-space <p> ^state undecided)
+   (preference <s> ^role state ^value best
+	^goal <g> ^problem-space <p> ^state undecided))
+
+
+(sp eval*select-role-operator
+   (gc <g> ^problem-space undecided ^supergoal <g2> ^superoperator <q2>)
+   (gc <g2> ^operator <q2>)
+   (operator <q2> ^name evaluate-object ^role operator ^object <q>
+	^superproblem-space <p> ^superstate <s> ^desired <d>)
+   -->
+   (gc <g> ^desired <d>)
+   (preference <p> ^role problem-space ^value acceptable ^goal <g>)
+   (preference <s> ^role state ^value acceptable
+	^goal <g> ^problem-space <p> ^state undecided)
+   (preference <q> ^role operator ^value acceptable
+	 ^goal <g> ^problem-space <p> ^state <s>))
+
+
+(sp eval*reject-non-slot-operator
+   (gc <g> ^problem-space <p> ^state <s> ^supergoal <g2> ^superoperator <q2>)
+   (operator <q2> ^name evaluate-object ^role operator ^object <q>
+	 ^superstate <s>)
+   (preference { <> <q> <q3> } ^role operator ^value acceptable
+	 ^goal <g> ^problem-space <p> ^state <s>)
+   -->
+   (preference <q3> ^role operator ^value reject
+	 ^goal <g> ^problem-space <p> ^state <s>))
+
+(comment give symbol-value failure to an operator that has been rejected
+         during evaluation and did not create a new state and reject the eval-operator)
+
+(sp eval*failure-if-reject-evaling-operator 
+   (gc <g> ^problem-space <p> ^state <s> ^operator <q> 
+	^supergoal <g2> ^superoperator <q2>)
+   (gc <g2> ^problem-space <p2> ^state <s2>)
+   (operator <q2> ^name evaluate-object ^role operator
+	^object <q> ^superstate <s> ^evaluation <e2>)
+   (preference <q> ^role operator ^value reject
+	^goal <g> ^problem-space <p> ^state <s> ^operator <q>)
+  -(preference ^role state ^value acceptable
+	^goal <g> ^problem-space <p> ^state <s> ^operator <q>)
+   -->
+   (evaluation <e2> ^symbolic-value failure))
+
+(comment give symbol-value failure to an operator 
+         that produces a state that gets rejected in the subgoal)
+
+(sp eval*failure-if-reject-state 
+   (gc <g> ^problem-space <p> ^state <s>
+	^supergoal <g2> ^superoperator <q2>)
+   (gc <g2> ^problem-space <p2> ^state <s2>)
+   (operator <q2> ^name evaluate-object ^evaluation <e2>)
+   (preference <s> ^role state ^value reject
+	^goal <g> ^problem-space <p>)
+   -->
+   (evaluation <e2> ^symbolic-value failure))
+
+
+
+(comment if an operator leads to success and it is being
+         tried out in a subgoal to evaluate another operator -
+         give that second operator a success evaluation also)
+
+(sp eval*pass-back-success elaborate	
+   (gc <g> ^problem-space <p> ^state <s> ^operator <q> ^supergoal <g2>)
+   (problem-space <p> ^name selection)
+   (operator <q> ^name evaluate-object ^evaluation <e1> ^desired <eb>)
+   (evaluation <e1> ^symbolic-value success)
+   (gc <g2> ^superoperator <q3>)
+   (operator <q3> ^name evaluate-object ^evaluation <e2> ^desired <eb>)
+   -->
+   (evaluation <e2> ^symbolic-value success))
+
+
+(comment if an operator is evaluated to be lose or failure -
+         create a worst-preference for it)
+
+(sp eval*failure-becomes-worst
+   (gc <g> ^problem-space <p> ^state <s> ^operator <q> ^supergoal <g2>)
+   (problem-space <p> ^name selection)
+   (gc <g2> ^problem-space <p2> ^state <s2> ^desired <e>)
+   (operator <q> ^name evaluate-object ^evaluation <e1> ^desired <e>
+	^role <role> ^object <q1>)
+   (evaluation <e1> ^symbolic-value << lose failure >>)
+   -->
+   (preference <q1> ^role operator ^value worst
+	 ^goal <g2> ^problem-space <p2> ^state <s2>))
+
+
+(comment if an operator is evaluated to be success -
+         create a best-preference for it)
+
+(sp eval*success-becomes-best	
+   (gc <g> ^problem-space <p> ^state <s> ^operator <q> ^supergoal <g2>)
+   (problem-space <p> ^name selection)
+   (gc <g2> ^problem-space <p2> ^state <s2> ^desired <eb>)
+   (operator <q> ^name evaluate-object ^evaluation <e1> 
+	 ^desired <eb> ^object <q1> ^role <role>)
+   (evaluation <e1> ^symbolic-value success)
+   -->
+   (preference <q1> ^role <role> ^value best
+	 ^goal <g2> ^problem-space <p2> ^state <s2>))
+
+
+(comment convert state augmentations into evaluations)
+
+(sp eval*state-to-evaluation-success
+   (gc <g> ^problem-space <p> ^state <s> ^superoperator <sq>)
+   (operator <sq> ^name evaluate-object 
+	^evaluation <e> ^desired <eb>)
+   (state <s> ^success <eb> )
+   -->
+   (evaluation <e> ^symbolic-value success))
+
+(sp eval*state-to-evaluation-failure
+   (gc <g> ^problem-space <p> ^state <s> ^superoperator <sq>)
+   (operator <sq> ^name evaluate-object 
+	^evaluation <e> ^desired <eb>)
+   (state <s> ^failure <eb> )
+   -->
+   (evaluation <e> ^symbolic-value failure))
+
+(sp eval*state-to-evaluation-win
+   (gc <g> ^problem-space <p> ^state <s> ^superoperator <sq>)
+   (operator <sq> ^name evaluate-object 
+	^evaluation <e> ^desired <eb>)
+   (state <s> ^win <eb> )
+   -->
+   (evaluation <e> ^symbolic-value win))
+
+(sp eval*state-to-evaluation-draw
+   (gc <g> ^problem-space <p> ^state <s> ^superoperator <sq>)
+   (operator <sq> ^name evaluate-object 
+	^evaluation <e> ^desired <eb>)
+   (state <s> ^draw <eb> )
+   -->
+   (evaluation <e> ^symbolic-value draw))
+
+(sp eval*state-to-evaluation-lose
+   (gc <g> ^problem-space <p> ^state <s> ^superoperator <sq>)
+   (operator <sq> ^name evaluate-object 
+	^evaluation <e> ^desired <eb>)
+   (state <s> ^lose <eb> )
+   -->
+   (evaluation <e> ^symbolic-value lose))
+
+
+
+(comment handle state augmentations dealing with goal
+         termination for the top-level goal)
+
+(sp eval*detect-success
+  (gc <g> ^state <s> ^name <name> ^desired <eb> -^supergoal) 
+  (state <s> ^success <eb>)
+  -->
+  (write1 (crlf) "GOAL" <name> "ACHIEVED")
+  (halt))
+
+(sp eval*detect-win
+  (gc <g> ^state <s> ^name <name> -^supergoal ^desired <eb>) 
+  (state <s> ^win <eb>)
+  -->
+  (write1 (crlf) "GAME" <name> "WON")
+  (halt))
+
+(sp eval*detect-failure
+  (gc <g> ^state <s> ^name <name> -^supergoal ^desired <eb>) 
+  (state <s> ^failure <eb>)
+  -->
+  (preference <s> ^role state ^value reject
+	^goal <g> ^problem-space <p>))
+
+(sp eval*detect-lose
+  (gc <g> ^state <s> ^name <name> -^supergoal ^desired <eb>) 
+  (state <s> ^lose <eb>)
+  -->
+  (write1 (crlf) "GAME" <name> "LOST")
+  (halt))
+
+
+(comment two player games - win side oside lose)
+
+(sp eval*move-side-to-eval 	
+   (gc <g> ^state <s> ^superoperator <sq>)
+   (state <s> ^oside <side> ^ << lose win >>)
+   (operator <sq> ^name evaluate-object ^evaluation <e>)
+   -->
+   (evaluation <e> ^side <side>))
+
+(sp eval*winning-values 	
+   (gc <g> ^problem-space <p> ^state <s> ^supergoal <g1> ^operator <q>)
+   (problem-space <p> ^name selection)
+   (gc <g1> ^problem-space <p1> ^state <s1>)
+   (state <s1> ^side <side>)
+   (operator <q> ^name evaluate-object ^evaluation <e> ^object <q1> ^role <role>)
+   (evaluation <e> ^symbolic-value win ^side <side>)
+   -->
+   (preference <q1> ^role <role> ^value best
+	 ^goal <g1> ^problem-space <p1> ^state <s1>))
+
+(sp eval*winning-values2 	
+   (gc <g> ^problem-space <p> ^state <s> ^supergoal <g1> ^operator <q>)
+   (problem-space <p> ^name selection)
+   (gc <g1> ^problem-space <p1> ^state <s1>)
+   (state <s1> ^oside <side>)
+   (operator <q> ^name evaluate-object ^evaluation <e> ^object <q1> ^role <role>)
+   (evaluation <e> ^symbolic-value lose ^side <side>)
+   -->
+   (preference <q1> ^role <role> ^value best
+	 ^goal <g1> ^problem-space <p1> ^state <s1>))
+
+(sp eval*draw-values 	
+   (gc <g> ^problem-space <p> ^state <s> ^supergoal <g1> ^operator <q>)
+   (problem-space <p> ^name selection)
+   (gc <g1> ^problem-space <p1> ^state <s1>)
+   (operator <q> ^name evaluate-object ^evaluation <e> ^object <q1> ^role <role>)
+   (evaluation <e> ^symbolic-value draw)
+   -->
+   (preference <q1> ^role <role> ^value indifferent
+	 ^goal <g1> ^problem-space <p1> ^state <s1>))
+
+(sp eval*losing-values 	
+   (gc <g> ^problem-space <p> ^state <s> ^supergoal <g1> ^operator <q>)
+   (problem-space <p> ^name selection)
+   (gc <g1> ^problem-space <p1> ^state <s1>)
+   (state <s1> ^oside <side>)
+   (operator <q> ^name evaluate-object ^evaluation <e> ^object <q1> ^role <role>)
+   (evaluation <e> ^symbolic-value win ^side <side>)
+   -->
+   (preference <q1> ^role <role> ^value worst
+	 ^goal <g1> ^problem-space <p1> ^state <s1>))
+
+(sp eval*losing-values2 	
+   (gc <g> ^problem-space <p> ^state <s> ^supergoal <g1> ^operator <q>)
+   (problem-space <p> ^name selection)
+   (gc <g1> ^problem-space <p1> ^state <s1>)
+   (state <s1> ^side <side>)
+   (operator <q> ^name evaluate-object ^evaluation <e> ^object <q1> ^role <role>)
+   (evaluation <e> ^symbolic-value lose ^side <side>)
+   -->
+   (preference <q1> ^role <role> ^value worst
+	 ^goal <g1> ^problem-space <p1> ^state <s1>))
+
+(sp eval*pass-back-win 	
+   (gc <g> ^problem-space <p> ^state <s> ^supergoal <g2> ^operator <q>)
+   (problem-space <p> ^name selection)
+   (operator <q> ^name evaluate-object ^evaluation <e1> ^desired <eb>)
+   (evaluation <e1> ^symbolic-value win ^side <side>)
+   (gc <g2> ^superoperator <q3>)
+   (operator <q3> ^name evaluate-object ^evaluation <e2> ^desired <eb>
+	^superstate <s4>)
+   (state <s4> ^oside <side>)
+   -->
+   (evaluation <e2> ^symbolic-value win ^side <side>))
+
+(sp eval*pass-back-win2 	
+   (gc <g> ^problem-space <p> ^state <s> ^supergoal <g2> ^operator <q>)
+   (problem-space <p> ^name selection)
+   (operator <q> ^name evaluate-object ^evaluation <e1> ^desired <eb>)
+   (evaluation <e1> ^symbolic-value lose ^side <side>)
+   (gc <g2> ^superoperator <q3>)
+   (operator <q3> ^name evaluate-object ^evaluation <e2> ^desired <eb>
+	^superstate <s4>)
+   (state <s4> ^side <side>)
+   -->
+   (evaluation <e2> ^symbolic-value win ^side <side>))
+
+(comment **************** operator subgoaling ****************
+         there are two ways to do operator subgoal
+         just pass down most recent operator - or pass down all of them
+         this implementation passes down just the super operator as the
+         desired - uncomment opsub*go-for-it2 if you want all supergoals
+         to be included)
+
+(comment make the super-problem space the default
+         when there is a no-change for the operator)
+
+(sp opsub*try-operator-subgoaling elaborate
+  (gc <g> ^impasse no-change ^role operator 
+	^problem-space undecided ^supergoal <g2>)
+  (gc <g2> ^problem-space <p2>)
+  -->
+  (preference <p2> ^goal <g> ^role problem-space ^value acceptable)
+  (preference <p2> ^goal <g> ^role problem-space ^value worst))
+
+
+(comment if the superproblem-space is selected as the
+         current problem space then operator subgoaling
+         is being used so select the superstate -
+         the superoperator becomes the desired)
+
+(sp opsub*go-for-it elaborate
+  (gc <g> ^problem-space <p> ^state undecided 
+	^impasse no-change ^role operator ^supergoal <g2>)
+  (gc <g2> ^problem-space <p> ^state <s> ^operator <q>)
+  -->
+  (gc <g> ^name operator-subgoal ^desired <q>)
+  (preference <s> ^role state ^value acceptable
+	 ^goal <g> ^problem-space <p> ^state undecided))
+
+
+(comment  pass down all super operator subgoals as well
+(sp opsub*go-for-it2 elaborate
+  (gc <g> ^problem-space <p> ^state undecided 
+	^impasse no-change ^role operator ^supergoal <g2>)
+  (gc <g2> ^problem-space <p> ^state <s> ^desired <q>)
+  -->
+  (gc <g> ^desired <q>)) )
+
+
+(comment don't select the operator for the initial state that we are 
+         subgoaling on)
+
+(sp opsub*reject-opsub*operator
+  (gc <g> ^problem-space <p> ^state <s> ^desired <q>)
+  (op-info ^identifier <q>)
+  (preference <s> ^role state ^value acceptable
+	 ^goal <g> ^problem-space <p> ^state undecided)
+  -->
+  (preference <q> ^role operator ^value reject
+	 ^goal <g> ^problem-space <p> ^state <s>))
+
+
+(comment select superoperator for all new states)
+
+(sp opsub*select-opsub*operator elaborate
+  (gc <g1> ^problem-space <p> ^state <s> ^desired <q>)
+  (op-info ^identifier <q>)
+  -->
+  (preference <q> ^role operator ^value acceptable
+	^goal <g1> ^problem-space <p> ^state <s>)
+  (preference <q> ^role operator ^value best
+	^goal <g1> ^problem-space <p> ^state <s>))
+
+
+(comment if superoperator applied to a state then success
+         we make a preference for the state it created)
+
+(sp opsub*detect-direct-opsub-success elaborate
+  (gc <g0> ^problem-space <p> ^state <s> ^operator <q>
+	 ^supergoal <g1> ^name operator-subgoal)
+  (gc <g1> ^problem-space <p> ^state <s2> ^operator <q>)
+  (preference <ns> ^role state ^value acceptable 
+	^goal <g0> ^problem-space <p> ^state <s> ^operator <q>)
+  -->
+  (preference <ns> ^role state ^value acceptable
+	^goal <g1> ^problem-space <p> ^state <s2> ^operator <q>))
+
+
+(comment if there is an evaluation subgoal within
+         an operator subgoal and the operator being
+         subgoaled on is applied - success)
+
+(sp opsub*detect-indirect-opsub-success elaborate
+  (gc <g1> ^name operator-subgoal ^supergoal <g2>)
+  (gc <g2> ^problem-space <p> ^state <s2> ^operator <q>)
+  (gc <g0> ^problem-space <p> ^state <s> ^operator <q>
+	^desired <q> ^superoperator <sq>)
+  (operator <sq> ^name evaluate-object)
+  (preference <ns> ^role state ^value acceptable 
+	^goal <g0> ^problem-space <p> ^state <s> ^operator <q>)
+  -->
+  (state <s> ^success <q>))
+
+
+(comment if the operator being subgoaled on is the current
+         operator and a no-change subgoal is created for it 
+         then reject it in the subgoal)
+
+(sp opsub*reject-double-op-sub
+  (gc <g1> ^name operator-subgoal ^desired <q>)
+  (gc { <> <g1> <g3> } ^name operator-subgoal)
+  (gc <g3> ^supergoal <g4>)
+  (gc <g4> ^problem-space <p> ^state <s> ^operator <q>)
+ -(gc ^supergoal <g3>)
+  -->
+  (preference <q> ^role operator ^value reject
+	^goal <g4> ^problem-space <p> ^state <s>))
+
+nil

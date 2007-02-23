@@ -1,0 +1,14 @@
+/* For GNU indent */
+--indent-level4
+--line-length80
+--braces-on-if-line
+--cuddle-else
+--braces-on-struct-decl-line
+--dont-format-first-column-comments
+--continue-at-parentheses
+--no-space-after-function-call-names
+--leave-optional-blank-lines
+--break-before-boolean-operator
+--blank-lines-after-declarations
+--blank-lines-after-procedures
+--case-indentation2

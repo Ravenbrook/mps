@@ -1,0 +1,161 @@
+
+;;; $Header: /project/cmucl/cvsroot/src/compiler/mips/notes.txt,v 1.2 1990/02/07 14:05:49 ram Exp $
+
+
+
+Call:
+
+There are several different kinds of call, depending on what is going on.
+
+The call can be named (i.e. use the symbol-function slot) or through a
+function object.
+
+The call can pass either a fixed number of args or a variable number of
+args.
+
+The call can return a fixed number of values, a variable number of values,
+or be a tail call.
+
+
+
+Register usage at the time of the call:
+
+LEXENV:  Holds the lexical environment to use during the call if it's a
+closure, or garbage if not.
+
+CALL-NAME:  Holds the symbol for a named call and garbage for others.
+
+OLD-CONT:  Holds the context pointer that should be restored upon return.
+
+A0...An:  Holds the first n+1 args.
+
+NARGS:  Holds the number of args, as a fixnum.
+
+ARGS:  Holds a pointer to the args.  Note: indexes off of this pointer are
+as if all the arguments were stored at it, e.g. the first stack arg is at
+ARGS[n] where n is number of register args.  Because of this, ARGS is the
+same as the callers CONT (OLD-CONT at the time of the call for non-tail
+call).
+[RAM: note that this must be set up even when NARGS<=n, since the callee may be
+expecting more arguments (due to optionals or a bad call.)  ARGS must be
+pointing to some valid chunk of memory, since the callee moves all of the
+positional args before checking to see if they are actually supplied.]
+
+LRA:  Holds the lisp-return-address object that the call should be returned
+to.  Calculated for non-tail call, and left as is for tail call.
+
+CSP:  Left as is.  The callee will set this as necessary based on CONT.
+
+NSP:  ???
+[RAM: will be managed similarly to CSP, i.e. callee has to allocate and is
+required to deallocate.]
+
+CONT:  The callee's context pointer.  Established as CSP for non-tail call,
+and left as is for tail call.
+
+CODE:  The function object being called.
+
+
+
+Register usage at the time of the return for single value return:
+
+A0:  The value.
+
+CODE:  The lisp-return-address we returned to.
+
+CSP:  Restored from CONT.
+[RAM: i.e. stack is guaranteed to be clean.  No SP frobbing is necessary.]
+
+CONT:  Restored from OLD-CONT.
+
+
+Additional register usage for multiple value return:
+
+NARGS:  Number of values being returned.
+
+A0...An:  The first n+1 values, or NIL if there are less than n+1 values.
+
+ARGS:  Pointer to the rest of the values.  The returnee's CONT.
+[RAM: i.e. as with ARGS in call, points n+1 words before the first stack
+value.]
+
+
+CSP:  CONT + NARGS*4
+
+
+
+
+What has to happen for this to work:
+
+Caller:
+  set NARGS
+  set ARGS
+  if tail call
+    CONT <- OLD-CONT
+  else
+    calc LRA
+    CONT <- CSP
+  if named
+    set CALL-NAME
+  set LEXENV
+  set CODE
+  calc target addr (CODE + n)
+  jr
+
+Callee:
+  allocate-frame
+    emit function header.
+    set CSP = CONT + size.
+    do something with nsp
+  setup-environment
+    set CODE = CODE - n
+  move-argument
+    move stack args from ARGS[n] to CONT[n]
+
+Returner:
+  known values:
+    move-result
+      move values from CONT[n] to OLD-CONT[n].
+    known-return
+      CONT = OLD-CONT
+      CODE = LRA
+      calc target addr (CODE + n)
+      jr
+
+  unknown constant values (return VOP):
+    nargs = 1 case:
+      CSP = CONT
+      CONT = OLD-CONT
+      CODE = LRA
+      calc target addr (CODE + n + 8)
+      jr
+    nargs != 1 case:
+      set NARGS
+      nil out unused arg regs
+      ARGS = CONT
+      CSP = CONT + NARGS * word-bytes
+      CONT = OLD-CONT
+      CODE = LRA
+      calc target addr (CODE + n)
+      jr
+
+  unknown variable values (return-multiple VOP):
+    copy the args from wherever to the top of the stack.
+[RAM: I would phrase this "to the beginning of the current (returner's) frame".
+They will already be there except with RETURN-MULTIPLE (when they *will* be on
+the stack top.)  But then after any copy, we adjust CSP so that the values are
+once again on stack top.]
+    nil out unused arg regs
+    ARGS = CONT
+    CSP = CONT + NARGS * word-bytes
+    CONT = OLD-CONT
+    CODE = LRA
+    calc target addr (CODE + n)
+    jr
+
+
+Returnee:
+  want fixed number of values:
+
+
+  want variable number of values:

@@ -1,0 +1,60 @@
+Global Lisp Registers:
+	NULL - Wired NIL register.
+	CSP - Control stack pointer.
+	CONT - Continuation pointer.
+	NSP - Number stack pointer.
+	BSP - Binding stack pointer.
+	FLAGS - Special flags register.
+	ALLOC - Allocation pointer.
+	CODE - Current code object.
+
+Linkage Registers:
+	NARGS - Number of arguments or values.
+	LEXENV - Lexical Environment being called.
+	OLDCONT - Old continuation pointer.
+	CNAME - Name of called function.
+	A0-A5 - First 6 arguments.
+	ARGS - Argument pointer.
+	LRA - Lisp Return Address.
+
+
+  Reg	CN  PR	C Usage		LN 	Lisp Usage		GC
+------------------------------------------------------------------------
+  R0	-   -	Wired Zero	ZERO	Wired Zero		N
+  R1	-   N	Assembler Temp	LIP	Lisp-Interior		Special
+  R2	v0  N   Results		NL0	Non-Lisp Reg		N
+  R3	v1  N	Static Link	NL1	Non-Lisp Reg		N
+  R4	a0  N	Integer Arg	NL2	Non-Lisp Reg		N
+  R5	a1  N	Integer Arg	NL3	Non-Lisp Reg		N
+  R6	a2  N	Integer Arg	NL4	Non-Lisp Reg		N
+  R7	a3  N	Integer Arg	NARGS	Arg Count		N
+  R8	t0  N	Temporary Reg	A0	Argument		Y
+  R9	t1  N	Temporary Reg	A1	Argument		Y
+  R10	t2  N	Temporary Reg	A2	Argument		Y
+  R11	t3  N	Temporary Reg	A3	Argument		Y
+  R12	t4  N	Temporary Reg	A4	Argument		Y
+  R13	t5  N	Temporary Reg	A5	Argument		Y
+  R14	t6  N	Temporary Reg	CNAME	Call Name		Y
+  R15	t7  N	Temporary Reg	LEXENV	Lexical Env		Y
+  R16	s0  Y	Saved Temp Reg	ARGS	Arg Pointer		Y
+  R17	s1  Y	Saved Temp Reg	OLDCONT	Old Continuation	Y
+  R18	s2  Y	Saved Temp Reg	LRA	Lisp Return Address	Y
+  R19	s3  Y	Saved Temp Reg	L0	Random Lisp Reg		Y
+  R20	s4  Y	Saved Temp Reg	NULL	Null / Nil Constant	Y
+  R21	s5  Y	Saved Temp Reg	BSP	Binding Stack Pointer	Special
+  R22	s6  Y	Saved Temp Reg	CONT	Current Continuation	Special
+  R23	s7  Y	Saved Temp Reg	CSP	Control Stack Pointer	Special
+  R24	t8  N	Temporary Reg	FLAGS	Flags register		N
+  R25   t9  N	Temporary Reg	ALLOC	Allocation Pointer	Special
+  R26	k0  -	(reserved)	-	Kernel Reg (reserved)	N
+  R27	k1  -	(reserved)	-	Kernel Reg (reserved)	N
+  R28	gp  -	Global Pointer	L1	Random Lisp Reg		Y
+  R29   sp  -	Stack Pointer	NSP	Number Stack Pointer	N
+  R30	s8  Y	Saved Temp Reg	CODE	Code Pointer		Y
+  R31	ra  N	Return Addr	L2	Random Lisp Reg		Y
+
+Key:
+	CN == C/UNIX name
+	NL == Lisp name
+	PR == Preserved on C function call (callee saves)
+	GC == Considered as a root for GC

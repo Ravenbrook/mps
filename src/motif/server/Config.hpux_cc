@@ -1,0 +1,6 @@
+CC = cc -Ae
+
+CFLAGS = -O -I/usr/include/X11R5 -I/usr/include/Motif1.2
+
+# -Wl,-a,archive forces motif libraries to be included (not shared.)
+LDFLAGS = -L/usr/lib/X11R5 -L/usr/lib/Motif1.2

@@ -1,0 +1,282 @@
+========================== C M U C L  19 d =============================
+
+The CMUCL project is pleased to announce the release of CMUCL 19d.
+This is a major release which contains numerous enhancements and
+bugfixes from the 19c release.
+
+CMUCL is a free, high performance implementation of the Common Lisp
+programming language which runs on most major Unix platforms. It
+mainly conforms to the ANSI Common Lisp standard. CMUCL provides a
+sophisticated native code compiler; a powerful foreign function
+interface; an implementation of CLOS, the Common Lisp Object System,
+which includes multimethods and a metaobject protocol; a source-level
+debugger and code profiler; and an Emacs-like editor implemented in
+Common Lisp. CMUCL is maintained by a team of volunteers collaborating
+over the Internet, and is mostly in the public domain.
+
+New in this release:
+
+
+  * Feature enhancements:
+
+      - Destructive functions like NREVERSE that modify constant args
+        will produce a compile-time warning.
+      - Destructive functions like NREVERSE whose results are not used
+        will produce a compile-time warning.
+      - Pathnames that cannot be printed readably using #p"..." will
+        now be printed using the CMUCL extension #P(...).  However,
+        there are still cases where CMUCL cannot print pathnames
+        readably, but these involve search-lists and patterns.
+      - LONG-LONG and UNSIGNED-LONG-LONG are recognized types in the
+        C-CALL package for signed and unsigned 64-bit integers.
+      - A port of gencgc to Darwin/ppc has been made.  This still
+        needs work, and is known to have some issues, but it compiles
+        CMUCL without problems and runs maxima just fine.
+      - TRACE supports tracing of FLET/LABELS functions.  Use (trace
+        (labels foo bar)) to trace the labels function FOO in the
+        function BAR.  This is currently experimental.
+      - DISASSEMBLE will disassemble flets/labels functions when
+        disassembling a function.  Set disassem::*disassemble-flets*
+        to NIL to turn this off.
+      - Simple errors in socket handling code have been converted to
+        socket-error's to allow easier distinction of the errors.
+      - EXT:LOAD-FOREIGN will use dlopen to try to open a shared
+        library, so if dlopen searches in certain places, LOAD-FOREIGN
+        will find the shared object.
+      - A new search-list "ld-library-path:" has been created and
+        contains the value of the environment variable
+        LD_LIBRARY_PATH.  This is analogous to the "path:"
+        search-list.
+      - When a core file is started, any shared libraries that were
+        loaded when the core was made will be reloaded on startup.  If
+        the library cannot be found, several restarts are available.
+      - Support for the new float type EXT:DOUBLE-DOUBLE-FLOAT.  This
+        includes support for complex numbers with this component type
+        and simple arrays for this type and complex numbers of this
+        type.
+
+        A DOUBLE-DOUBLE-FLOAT uses two DOUBLE-FLOAT's to represent a
+        number with >= 106 bits of precision (about 33 digits).  Known
+        issues:
+
+	* IEEE-style floating point behavior is not supported:
+	  - signed zeroes exist but arithmetic operations may not
+	    produce the correct signed zeroes.
+	  - overflows don't return infinity but return NaN instead.
+	  - rounding might not be quite the same as IEEE.
+	  - SQRT is not accurate to the last bit, as required by IEEE.
+	* Multiplying by a number very close to
+	  most-positive-double-float will produce an error even if the
+	  result does not overflow.  (This is an artifact of how
+	  multiplication is done.)
+	* Read/write consistency is not working.  (Because conversion
+	  from a bignum to a double-double-float doesn't really
+	  understand the internal double-double-float format.)
+	* INTEGER-DECODE-FLOAT and SCALE-FLOAT aren't "inverses".
+	  That is, applying the result of integer-decode-float to
+	  scale-float does not produce exactly the same number.  This
+	  is because of how bignums are converted to double-doubles.
+	* FLOAT-DIGITS always returns 106 even though there could be
+	  more bits.  (Consider the double-double (1d0,1d-200)).  This
+	  will show up in PRINT where the printed result will have way
+	  more than the normal 33 digits or so.  But reading such a
+	  number back won't give the same value.
+	* There is probably more consing than is necessary in many of
+	  the standard Common Lisp functions like floor, ffloor, etc.
+	* The special functions are not fully tested.  A few random
+	  spot checks were done for each function and maxima was used
+	  to verify the results.
+	* The branch cuts for the special functions very likely will
+	  not match the double-float versions, mostly because we don't
+	  have working signed zeroes.
+	* Type derivation for double-double-floats might not be
+	  working quite right.
+	* PI is still a double-float.  The double-double version of pi
+	  is EXT:DD-PI.
+	* There may be bugs where double-double-float support was
+	  overlooked.
+        * The double-double arithmetic operations can be inlined by
+          specifying (SPACE 0).  Otherwise, they are not inlined.
+          (Each double-double operation is about 20 FP instructions.)
+      - Hash tables now support weak value, weak key-and-value, and
+        weak key-or-value tables.  The :WEAK-P keyword argument can
+        take the following values with the given meanings:
+
+            T
+                For backward compatibility.  It is the same as :KEY.
+	    :KEY
+		The entry exists as long as the key is not
+		garbage-collected.
+            :VALUE
+		The entry exists as long as the value is not
+		garbage-collected.
+            :KEY-AND-VALUE
+		The entry exists as long as the key and the value are
+		alive.
+            :KEY-OR-VALUE
+	        The entry exists as long as the key or the value are alive.
+        
+        These tables are currently experimental, but appear to work.
+      - TRACE supports an extra option, :WHEREIN-ONLY.  This is
+        similar to the :WHEREIN option, except :WHEREIN-ONLY only
+        traces the function if the immediate caller is the specified
+        function(s).
+
+  * Numerous ANSI compliance fixes:
+
+      - A reader-error is signaled if the number that is being read is
+        too small to be presented.  We used to silently return 0.
+      - WITH-INPUT-FROM-STRING no longer modifies the index if
+        WITH-INPUT-FROM-STRING is not exited normally.
+      - An error is signaled if a declaration is used as the name of a
+        deftype, condition, or defstruct, and vice versa.
+      - An error is signaled when trying to generate a namestring from
+        a pathname with just a version component (other than NIL,
+        :NEWEST, or :UNSPECIFIC).  CMUCL cannot print that readably.
+      - FLET and LABELS functions will catch errors in keyword
+        parameters.  Previously, a keyword of NIL was silently
+        accepted. 
+      - Printing a zero using ~E will now include a trailing zero
+        after the decimal point, as required by CLHS, 22.3.3.2.
+      - DOCUMENTATION and (SETF DOCUMENTATION) now works for
+        structures of type list or vector. 
+      - DOTIMES will execute the loop the specified number of times,
+        independent of what the loop might do to the loop counter.
+      - Printing of circular objects using logical-blocks is handled
+        better. 
+      - SET-SYNTAX-FROM-CHAR copies the entire dispatch table of
+        reader macro functions if necessary.
+      - SET-SYNTAX-FROM-CHAR handles single-escape, multiple-escape
+        and # characters correctly now.
+      - When CLOSE'ing a file with :ABORT, don't delete the file,
+        unless we renamed it.  This preserves any and all changes to
+        the file, instead of deleting it.
+      - As specified by CLHS 22.1.3.1.3, PRIN1 and friends now produce
+        a trailing zero if necessary.
+      - As specified by CLHS 22.3.3.2, ~E will produce a single zero
+        for the fractional part, if necessary.
+      - (FORMAT NIL "~,2F" 0.001) produces "0.00" instead of "0.001".
+        Thus, we actually honor the d field now.
+
+  * Numerous bugfixes:
+
+      - LISTEN on DUAL-CHANNEL-SIMPLE-STREAM should work now.
+      - Some numerical issues with the two-arg log function have been
+        fixed.  (log 17 10f0), (log 17f0 10) and (log 17 10) all
+        return the same result now.
+      - DESTRUCTURING-BIND no longer causes an error when the list to
+        be destructured is circular.
+      - PEEK-CHAR for Gray streams handles end of file correctly now.
+      - For the ppc port, the alignment of objects in alien structures
+        now matches the PowerOpen ABI for Mac OS X.
+      - For Darwin/ppc, CMUCL was not following the ABI when calling
+        out to C varargs functions.  Now we always copy any float args
+        to the corresponding int regs (or stack) as required by the
+        ABI.  This isn't necessary for non-varargs functions, but
+        CMUCL doesn't know which functions are varargs functions.
+      - Callbacks with long-long args or results should work correctly
+        now for Darwin/ppc.
+      - DESCRIBE no longer depends on having PCL loaded.
+      - Tracing without encapsulation appears to be working now for
+        ppc.
+      - A simple interface to sysinfo(2) has been added for sparc.
+        This is used to provide better values for MACHINE-TYPE and
+        MACHINE-VERSION.
+      - PARSE-TIME can parse times like "Tue Sep 7 18:56:57 UTC 2004"
+        again.
+      - The pretty-printer for MULTIPLE-VALUE-BIND can handle
+        malformed MULTIPLE-VALUE-BIND forms now, instead of producing
+        an error.
+      - Callbacks on Darwin/ppc with a large number of args (more than
+        8 integer args) should work correctly now.  (Previous versions
+        would signal an error.)
+      - DESCRIBE no longer says arrays are adjustable when they are
+        not, and vice versa.
+      - Disassembly of some floating-point instructions on ppc has
+        been corrected to display floating-point registers instead of
+        integer registers.
+      - (read (make-array 5)) doesn't cause a segfault anymore on
+        x86/linux.  An error is now signaled saying the object isn't
+        one of the possible stream types.
+      - The PPC port no longer runs very slowly on some tests on a G5.
+        This was caused by using an instruction (mcrxr) that is
+        emulated on a G5 but not earlier.
+      - The pretty printer no longer causes an error on badly formed
+        slots in defclass forms.
+      - Document LISP::*IGNORE-WILDCARDS*.  When set, namestrings will
+        not have pathnames with wildcards escaped when parsing
+        namestrings or when creating namestrings.
+      - Fix PPC bug in fixnum arithmetic that caused overflow.  A trap
+        would be triggered, but there's no C support for the trap.
+      - Some flet/labels functions were not disassembled at all.
+      - (expt 1 <big number>) doesn't trigger a continuable error
+        anymore and returns 1 immediately.
+      - Disassembling methods doesn't produce a type error anymore.
+      - The unknown condition type LISP:SOCKET-ERROR has been fixed.
+        It properly signals the EXT:SOCKET-ERROR condition now.
+      - The accuracy of the trig functions (sin, cos, tan) for large
+        arguments has been improved for x86 and ppc.  Sparc already
+        had accurate versions.  Thus, (cos 1d120) is
+        -0.8278608682708728d0. 
+      - ROOM works a bit better with GENCGC's allocation because
+        unallocated pages ended up looking like pages of conses.
+      - DESCRIBE will indicate if a hash-table is a weak (key)
+        hash-table or not.
+      - Some issues with GC of weak pointers and weak hash-tables have
+        been fixed.  (CMUCL would sometimes crash to ldb about weird,
+        invalid objects.)  There are, however, still issues with weak
+        pointers.
+
+  * Trac Tickets
+      3. without-package-locks doesn't work with defmacro
+         - DEFMACRO within a WITHOUT-PACKAGE-LOCKS now actually
+           disables the package lock.
+      4. symbol-macrolet + ignorable causes internal compiler error
+         - IGNOREing a symbol in a SYMBOL-MACROLET doesn't cause a
+           type error anymore.
+      5. Hash table entry with key and value of :EMPTY is treated as
+         an empty entry.
+         - :EMPTY is allowed now and works as expected.
+      6. GCed items in weak hash tables are still accessible (with
+         random junk)
+	 - When an entry is freed in a weak hash-table, the entry is
+	   actually marked as free now.  Previously, MAPHASH and
+	   WITH-HASH-TABLE-ITERATOR would still display (potentially
+	   incorrect) entry for it.
+      7. Bug in ext:read-vector
+         - Fixed so that EXT:READ-VECTOR can read binary data from
+           streams with element type BASE-CHAR and CHARACTER.  This
+           matches the behavior of STREAMS:READ-VECTOR.
+
+  * Other changes:
+
+      - CMUCL catches more cases where it cannot print a pathname
+        readably.  In particular when the pathname name contains "/"
+        or ".", or when the pathname type contains a ".".
+      - WITH-SLOTS and WITH-ACCESSORS are now pprinted like
+        MULTIPLE-VALUE-BIND instead of like WITH-OPEN-FILE.
+      - LOOKUP-HOST-ENTRY now returns a second value.  If
+        LOOKUP-HOST-ENTRY succeeds, the second value is T; otherwise,
+        the value of h_errno is returned.
+      - A warning is printed when creating a weak key hash table with
+        a test different from EQ.
+      - An SCM and project management system is now available at
+        http://trac.common-lisp.net/cmucl.  Please use this to submit
+        tickets, documentation, project requests, etc.
+
+  * Improvements to the PCL implementation of CLOS:
+
+  * Changes to rebuilding procedure:
+      - Build scripts should recognize FreeBSD automatically.
+      - Should be able to build on either Mac OS X 10.2 or 10.4 using
+        the default version of gcc.
+
+This release is not binary compatible with code compiled using CMUCL
+19c; you will need to recompile FASL files. 
+
+See <URL:http://www.cons.org/cmucl/> for download information,
+guidelines on reporting bugs, and mailing list details.
+
+
+We hope you enjoy using this release of CMUCL!
+

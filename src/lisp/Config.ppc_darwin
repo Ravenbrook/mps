@@ -1,0 +1,44 @@
+PATH1 = ../../src/lisp
+vpath %.h $(PATH1)
+vpath %.c $(PATH1)
+vpath %.S $(PATH1)
+CPPFLAGS = -I. -I$(PATH1) -I/usr/X11R6/include
+# For Mac OS X 10.2, gcc3 is appropriate.  For 10.4, gcc (gcc 4.0) is ok.  But
+# this means -traditional is needed because gcc 4 seems to handle '##'
+# differently from gcc-3.3.  I (rtoy) don't know which is right, but I
+# think gcc 4 is wrong.  However, to work around this, we use /**/ to 
+# concatenate tokens which reguires the -traditional flag.
+CC = gcc
+LD = ld
+NM = $(PATH1)/darwin-nm
+CPP = cpp -no-cpp-precomp
+DEPEND = $(CC) -MM
+ifdef FEATURE_LINKAGE_TABLE
+LINKAGE = -DLINKAGE_TABLE
+endif
+
+# Enable support for generational GC
+ifdef FEATURE_GENCGC
+GENCGC = -DGENCGC
+GC_SRC = gencgc.c
+endif
+
+CFLAGS = -g -O3 -no-cpp-precomp -DDARWIN -Dppc $(LINKAGE) $(GENCGC)
+ASFLAGS = -traditional -g -O3 -no-cpp-precomp -DDARWIN -Dppc $(LINKAGE) $(GENCGC)
+
+UNDEFSYMPATTERN = -Xlinker -u -Xlinker &
+ASSEM_SRC = ppc-assem.S linux-stubs.S
+ARCH_SRC = ppc-arch.c
+OS_SRC = ppc-darwin-dlshim.c os-common.c Darwin-os.c e_rem_pio2.c k_rem_pio2.c
+
+# I (rtoy) am not exactly sure what these values are, but it seems
+# that the segaddr for CMUCLRO should be the READ_ONLY_SPACE_START.
+# The seg1addr should be somewhere above our spaces.  This is where
+# the C runtime code goes, I think.
+
+OS_LINK_FLAGS = -g -dynamic -Wl,-sectcreate,CMUCLRO,core,/dev/null -Wl,-segaddr,CMUCLRO,0x01000000 -Wl,-seg1addr,0x1a000000
+OS_LIBS = -lSystem -lc -lm
+all: adjustlisp
+adjustlisp: lisp darwin-lispadjuster
+	./darwin-lispadjuster lisp
+darwin-lispadjuster: darwin-lispadjuster.c
