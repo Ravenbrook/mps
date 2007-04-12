@@ -17,6 +17,8 @@
 #include "lauxlib.h"
 #include "lualib.h"
 
+#include "mps.h"
+#include "mpsavm.h"
 
 
 static lua_State *globalL = NULL;
@@ -375,6 +377,12 @@ static int pmain (lua_State *L) {
 int main (int argc, char **argv) {
   int status;
   struct Smain s;
+  mps_arena_t arena;
+  int res;
+
+#define MPS_VM_SIZE (8uL*1024uL*1024uL)
+  res = mps_arena_create(&arena, mps_arena_class_vm(), MPS_VM_SIZE);
+
   lua_State *L = lua_open();  /* create state */
   if (L == NULL) {
     l_message(argv[0], "cannot create state: not enough memory");
@@ -385,6 +393,7 @@ int main (int argc, char **argv) {
   status = lua_cpcall(L, &pmain, &s);
   report(L, status);
   lua_close(L);
+  mps_arena_destroy(arena);
   return (status || s.status) ? EXIT_FAILURE : EXIT_SUCCESS;
 }
 
