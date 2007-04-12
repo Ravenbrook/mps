@@ -19,6 +19,7 @@
 
 #include "mps.h"
 #include "mpsavm.h"
+#include "mpscmv.h"
 
 
 static lua_State *globalL = NULL;
@@ -375,13 +376,23 @@ static int pmain (lua_State *L) {
 
 
 int main (int argc, char **argv) {
+  /* If status is non-zero at end of function then EXIT_FAILURE is
+   * returned.  Happily the MPS uses the same convention for its result
+   * codes.  So we use the status variable for those too.
+   */
   int status;
   struct Smain s;
   mps_arena_t arena;
-  int res;
+  mps_pool_t pool;
 
 #define MPS_VM_SIZE (8uL*1024uL*1024uL)
-  res = mps_arena_create(&arena, mps_arena_class_vm(), MPS_VM_SIZE);
+  status = mps_arena_create(&arena, mps_arena_class_vm(), MPS_VM_SIZE);
+  if(status != MPS_RES_OK)
+    goto failArena;
+  status = mps_pool_create(&pool, arena, mps_class_mv(), 
+    32*(size_t)1024uL, 64, 1024*(size_t)1024);
+  if(status != MPS_RES_OK)
+    goto failPool;
 
   lua_State *L = lua_open();  /* create state */
   if (L == NULL) {
@@ -393,7 +404,10 @@ int main (int argc, char **argv) {
   status = lua_cpcall(L, &pmain, &s);
   report(L, status);
   lua_close(L);
+  mps_pool_destroy(pool);
+failPool:
   mps_arena_destroy(arena);
+failArena:
   return (status || s.status) ? EXIT_FAILURE : EXIT_SUCCESS;
 }
 
