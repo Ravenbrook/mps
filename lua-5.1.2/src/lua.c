@@ -4,7 +4,7 @@
 ** See Copyright Notice in lua.h
 */
 
-
+#include <assert.h>
 #include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -375,6 +375,64 @@ static int pmain (lua_State *L) {
 }
 
 
+/*
+ * The allocator function passed into lua_newstate.  Its type is
+ * governed by Lua; type lua_Alloc.  See
+ * http://www.lua.org/manual/5.1/manual.html#lua_Alloc
+ */
+void *
+mps_lua_alloc_adapter(void *ud, void *ptr, size_t osize, size_t nsize)
+{
+  /* ud is actually an mps_pool_t */
+  mps_pool_t pool = ud;
+  void *new;
+  int res;
+
+  /*
+   * Lua documentation says: "ptr is NULL if and only if osize is zero".
+   */
+  assert((ptr == NULL) == (osize == 0));
+  /*
+   * Lua documentation says: "When nsize is zero, the allocator must
+   * return NULL" and "if osize is not zero, it should free the block
+   * pointed to by ptr".
+   */
+  if(nsize == 0) {
+    /* osize can in fact be 0.  Lua invokes this case when making
+     * arrays.  I discovered that by assert(osize != 0).
+     */
+    if(osize != 0) {
+      mps_free(pool, ptr, osize);
+    }
+    return NULL;
+  }
+  assert(nsize != 0);
+  /* In this case we're either allocing or reallocing.  We handle
+   * realloc by alloc/copy/free, so in any case the first thing we do is
+   * alloc.
+   */
+  res = mps_alloc(&new, pool, nsize);
+  if(res != MPS_RES_OK) {
+    goto null;
+  }
+  if(osize == 0) {
+    return new;
+  }
+  assert(osize != 0);
+  memmove(new, ptr, osize);
+  mps_free(pool, ptr, osize);
+  return new;
+
+null:
+  /* Lua documentation says: "Lua assumes that the allocator never fails
+   * when osize >= nsize".  We don't guarantee that, so we assert to
+   * avoid upsetting Lua.
+   */
+  assert(nsize > osize);
+  return NULL;
+}
+
+
 int main (int argc, char **argv) {
   /* If status is non-zero at end of function then EXIT_FAILURE is
    * returned.  Happily the MPS uses the same convention for its result
@@ -394,7 +452,7 @@ int main (int argc, char **argv) {
   if(status != MPS_RES_OK)
     goto failPool;
 
-  lua_State *L = lua_open();  /* create state */
+  lua_State *L = lua_newstate(mps_lua_alloc_adapter, pool);  /* create state */
   if (L == NULL) {
     l_message(argv[0], "cannot create state: not enough memory");
     return EXIT_FAILURE;
