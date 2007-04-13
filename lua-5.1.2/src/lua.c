@@ -442,13 +442,17 @@ int main (int argc, char **argv) {
   struct Smain s;
   mps_arena_t arena;
   mps_pool_t pool;
+  struct mps_pool_debug_option_s options = {
+    "XYXY", 4,
+    "FGFG", 4,
+  };
 
 #define MPS_VM_SIZE (8uL*1024uL*1024uL)
   status = mps_arena_create(&arena, mps_arena_class_vm(), MPS_VM_SIZE);
   if(status != MPS_RES_OK)
     goto failArena;
-  status = mps_pool_create(&pool, arena, mps_class_mv(), 
-    32*(size_t)1024uL, 64, 1024*(size_t)1024);
+  status = mps_pool_create(&pool, arena, mps_class_mv_debug(), 
+    &options, 32*(size_t)1024uL, 64, 1024*(size_t)1024);
   if(status != MPS_RES_OK)
     goto failPool;
 
