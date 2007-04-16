@@ -419,7 +419,11 @@ mps_lua_alloc_adapter(void *ud, void *ptr, size_t osize, size_t nsize)
     return new;
   }
   assert(osize != 0);
-  memmove(new, ptr, osize);
+  if(osize < nsize) {
+    memmove(new, ptr, osize);
+  } else {
+    memmove(new, ptr, nsize);
+  }
   mps_free(pool, ptr, osize);
   return new;
 
