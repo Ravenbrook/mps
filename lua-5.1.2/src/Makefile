@@ -8,7 +8,7 @@
 PLAT= none
 
 CC= gcc
-CFLAGS= -O2 -Wall $(MYCFLAGS)
+CFLAGS= -g -Wall $(MYCFLAGS)
 AR= ar rcu
 RANLIB= ranlib
 RM= rm -f
@@ -16,7 +16,7 @@ LIBS= -lm $(MYLIBS)
 
 MYCFLAGS=
 MYLDFLAGS=
-MYLIBS=
+MYLIBS=mps.a mpsplan.a
 
 # == END OF USER SETTINGS. NO NEED TO CHANGE ANYTHING BELOW THIS LINE =========
 
