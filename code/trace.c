@@ -1824,9 +1824,11 @@ static void TraceStartGenDesc_diag(GenDesc desc, int i)
     DIAG_WRITEF(( DIAG_STREAM,
       "MPS:       PoolGen $U ($S)", gen->nr, gen->pool->class->name,
       " totalSize $U", gen->totalSize,
-      " newSize $U\n", gen->newSizeAtCreate,
+      " newSize $U", gen->newSizeAtCreate,
+      " condemned $U\n", gen->condemned,
       NULL ));
   }
+  return;
 }
 
 void TraceStart(Trace trace, double mortality, double finishingTime)
