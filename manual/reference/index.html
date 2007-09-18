@@ -121,6 +121,7 @@ also no overview or protocol-oriented sections.</strong></p>
 <li> function <code><a href="#mps_arena_create">mps_arena_create</a></code> </li>
 <li> function <code><a href="#mps_arena_create_v">mps_arena_create_v</a></code> </li>
 <li> function <code><a href="#mps_arena_expose">mps_arena_expose</a></code> </li>
+<li> function <code><a href="#mps_arena_find_heap_ref">mps_arena_find_heap_ref</a></code> </li>
 <li> function <code><a href="#mps_arena_formatted_objects_walk">mps_arena_formatted_objects_walk</a></code> </li>
 <li> function <code><a href="#mps_arena_park">mps_arena_park</a></code> </li>
 <li> function <code><a href="#mps_arena_release">mps_arena_release</a></code> </li>
@@ -3963,8 +3964,166 @@ client can do (basically no exposed data can be changed).
 <code><a href="#mps_arena_unsafe_expose_remember_protection">mps_arena_unsafe_expose_remember_protection</a></code>,
 <code><a href="#mps_arena_unsafe_restore_protection">mps_arena_unsafe_restore_protection</a></code>
 
+<h3>function <code><a id="mps_arena_find_heap_ref" name="mps_arena_find_heap_ref">mps_arena_find_heap_ref</a></code></h3>
+
+<h4>Name</h4>
+
+<p><code><a href="#mps_arena_find_heap_ref">mps_arena_find_heap_ref</a></code></p>
+
+<h4>Summary</h4>
+
+<p><code><a
+href="#mps_arena_find_heap_ref">mps_arena_find_heap_ref</a></code> is
+used to locate objects that contain a particular reference (to some
+particular object of interest).</a></code></p>
+
+<p>This interface is experimental and may be changed or withdrawn.</p>
+
+<h4>Associated Protocols</h4>
+
+<p>None.</p>
+
+<h4>Syntax</h4>
+
+<p><code>mps_arena_find_heap_ref(mps_addr_t *, mps_addr_t *,
+mps_arena_t, mps_addr_t, void **);</code></p>
+
+<h4>Type</h4>
+
+<pre>
+extern mps_res_t mps_arena_find_heap_ref(mps_addr_t *, mps_addr_t *, mps_arena_t, mps_addr_t, void **);
+</pre>
+
+<h4>Arguments</h4>
+
+<p><code>(mps_addr_t *objectOut, mps_addr_t *addrOut,
+mps_arena_t arena, mps_addr_t culprit, void **stateIO)</code></p>
+
+<p><code>objectOut</code> (an output parameter) points to an
+<code>mps_addr_t</code> variable where the address of a discovered
+object will be stored.</p>
+
+<p><code>addrOut</code> (an output parameter) points to an
+<code>mps_addr_t</code> variable where an address, internal to the object
+referred to by <code>*objectOut</code>, is stored.  The address stored
+here locates the exact address, within the discovered object, where a
+reference to the culprit is found.  It may not be possible in all
+circumstances to give such an address, in which case NULL is stored in
+<code>*addrOut</code>.</p>
+
+<p><code>arena</code> is an <a href="#mps_arena_t">an MPS arena
+object</a>.</p>
+
+<p><code>culprit</code> is the address of the particular object of
+interest.  Called the culprit because the expected use of this function
+is <em>culprit analysis</em>.</p>
+
+<p><code>stateIO</code> is the address of a <code>void *</code> variable
+where the MPS may store information for use by subsequent calls to this
+function.  The client should allocate this variable and initialise it to
+NULL prior to the first call to this function.  Subsequently the client
+should not touch the variable (except to reset it to NULL to call this
+function for a different culprit).</p>
+
+<h4>Returned Values</h4>
+
+<p><code>MPS_RES_OK</code> indicates success, <code>*objectOut</code>
+and <code>*addrOut</code> will have been filled in.</p>
+
+<p><code>MPS_RES_FAIL</code> indicates that the search has terminated; this
+will happen once all suitable objects have been found.</p>
+
+<p>Any other result code indicates some sort of error.  No errors are
+expected or documented at this time.</p>
+
+<h4>Resources</h4>
+
+<p>mps.h</p>
+
+<h4>Description</h4>
+
+<p>
+It is only legal to call this function when the arena is parked.  See
+<a href="#mps_arena_park">mps_arena_park</a>.
+
+<p>
+Searches the formatted objects in <code>arena</code> to find an object that refers
+to the object, the <em>culprit</em>, whose address is
+<code>culprit</code>.  The <em>culprit</em> object is so named because
+this function is expected to be used in <em>culprit analysis</em>; this
+is an investigation into why a particular object (or set of objects)
+remains alive in a garbage collected environment.  The answer to such
+investigations usually involves finding out what objects refer to a
+particular culprit of interest.
+</p>
+
+<p>
+If an object that refers
+to <code>culprit</code> is found then the search is successful and MPS_RES_OK is
+returned.  Otherwise the search is unsuccessful and MPS_RES_FAIL
+is returned.
+</p>
+
+<p>
+On a successful search the output parameters are filled in:
+</p>
+
+<dl>
+<dt><code>*objectOut</code></dt>
+<dd>The address of an object referring to <code>culprit</code>.</dd>
+<dt><code>*addrOut</code></dt>
+<dd>The exact address within that object that contains the reference.
+May be NULL if that can't be computed.</dd>
+</dl>
+
+<p>
+The <code>stateIO</code> parameter is used for an iteration protocol.
+This allows the client to find <em>all</em> heap objects that refer to
+<code>culprit</code>.
+<code>*stateIO</code> should be initialised to NULL prior to a call to
+this function; this causes the function to find the first suitable
+object.  Subsequent calls to this function that specify the same
+<code>culprit</code> will find subsequent objects that also refer to the
+<code>culprit</code> as long as the client does not touch
+<code>*stateIO</code>.  The end of the iteration (when the search can
+find no object that refers to <code>culprit</code>) is indicated by
+MPS_RES_FAIL being returned.  For subsequent calls to search for
+a different culprit the <code>*stateIO</code> variable should be reset
+to NULL.
+</p>
+
+<h4>Example</h4>
+
+<pre>
+mps_addr_t obj = (mps_addr_t)0;
+mps_addr_t addr = 0;
+void *state = NULL;
+
+while(MPS_RES_OK !=
+    mps_arena_find_heap_ref(&obj, &addr, arena, culprit, &state))
+{
+  printf("Object at %p refers to culprit %p.\n",
+         (void *)obj, (void *)culprit);
+}
+</pre>
+
+
+<h4>Error Handling</h4>
+
+<p>
+No errors are expected, but if any occur they will be indicated using
+the result code.  The MPS_RES_FAIL result code is used to indicate that
+the search terminated, but this is expected and is not an error.
+</p>
+
+<h4>See Also</h4>
+
+<p>None</p>
+
 
 <h3>function <code><a id="mps_arena_formatted_objects_walk" name="mps_arena_formatted_objects_walk">mps_arena_formatted_objects_walk</a></code></h3>
+
+<h4>Notes</h4>
 
 
 <h4>Name</h4>
