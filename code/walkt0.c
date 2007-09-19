@@ -148,6 +148,8 @@ static void *test(void *arg, size_t s)
         ++objs;
     }
 
+    /* park is required by mps_arena_formatted_objects_walk */
+    mps_arena_park(arena);
     mps_arena_formatted_objects_walk(arena, stepper, arena, 0);
 
     mps_ap_destroy(ap);
