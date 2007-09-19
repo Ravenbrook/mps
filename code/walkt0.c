@@ -47,6 +47,8 @@ static mps_gen_param_s testChain[genCOUNT] = {
 static mps_ap_t ap;
 static mps_addr_t exactRoots[exactRootsCOUNT];
 static size_t alloc_bytes;
+/* Becomes non-zero when a defect is detected. */
+static int defective = 0;
 
 /* Make a single Dylan object */
 
@@ -87,8 +89,9 @@ static void stepper(mps_addr_t object, mps_fmt_t format,
     UNUSED(s);
 
     if(!mps_arena_has_addr(arena, object)) {
-      printf("Stepper got called with object at address %p,\n"
+      printf("Defect: stepper got called with object at address %p,\n"
        "which is not managed by the arena!\n", (void *)object);
+      defective = 1;
     }
     return;
 }
@@ -116,8 +119,9 @@ static void *test(void *arg, size_t s)
 
     die(mps_ap_create(&ap, pool, MPS_RANK_EXACT), "ap_create");
 
-    for(i = 0; i < exactRootsCOUNT; ++i)
+    for(i = 0; i < exactRootsCOUNT; ++i) {
         exactRoots[i] = objNULL;
+    }
 
     die(mps_root_create_table_masked(&exactRoot, arena,
                                      MPS_RANK_EXACT, (mps_rm_t)0,
@@ -136,9 +140,10 @@ static void *test(void *arg, size_t s)
 	    cdie(dylan_check(exactRoots[i]), "dying root check");
 	}
 	exactRoots[i] = make();
-	if(exactRoots[(exactRootsCOUNT-1) - i] != objNULL)
+	if(exactRoots[(exactRootsCOUNT-1) - i] != objNULL) {
 	    dylan_write(exactRoots[(exactRootsCOUNT-1) - i],
 			exactRoots, exactRootsCOUNT);
+        }
 
         ++objs;
     }
@@ -172,7 +177,11 @@ int main(int argc, char **argv)
     mps_arena_destroy(arena);
 
     fflush(stdout); /* synchronize */
-    fprintf(stderr, "\nConclusion:  Failed to find any defects.\n");
+    if(!defective) {
+      fprintf(stderr, "\nConclusion:  Failed to find any defects.\n");
+    } else {
+      fprintf(stderr, "\nConclusion:  Defects detected.\n");
+    }
     return 0;
 }
 
