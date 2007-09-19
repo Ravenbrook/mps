@@ -1960,6 +1960,28 @@ void mps_chain_destroy(mps_chain_t mps_chain)
   ArenaLeave(arena);
 }
 
+/* culprit analysis */
+
+mps_res_t mps_arena_find_heap_ref(mps_addr_t *object_o,
+                                  mps_addr_t *addr_o,
+                                  mps_arena_t mps_arena,
+                                  mps_addr_t culprit,
+                                  void **state_io)
+{
+  Arena arena;
+
+  arena = (Arena)mps_arena;
+  ArenaEnter(arena);
+
+  AVER(object_o != NULL);
+  AVER(addr_o != NULL);
+  AVER(culprit != NULL);
+  AVER(state_io != NULL);
+  ArenaLeave(arena);
+
+  return MPS_RES_UNIMPL;
+}
+
 
 /* C. COPYRIGHT AND LICENSE
  *
