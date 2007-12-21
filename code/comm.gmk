@@ -126,6 +126,7 @@ CFWE = -DCONFIG_VAR_WE -DNDEBUG $(CFLAGSOPTNODEBUG)
 CFWI = -DCONFIG_VAR_WI -DNDEBUG $(CFLAGSOPT)
 CFHE = -DCONFIG_VAR_HE -DNDEBUG $(CFLAGSOPTNODEBUG)
 CFHI = -DCONFIG_VAR_HI -DNDEBUG $(CFLAGSOPT)
+CFDI = -DCONFIG_VAR_DI -DNDEBUG $(CFLAGSOPT)
 CFII = -DCONFIG_VAR_II -DNDEBUG $(CFLAGSOPT)
 CFCE = -DCONFIG_VAR_CE          $(CFLAGSOPTNODEBUG)
 CFCI = -DCONFIG_VAR_CI          $(CFLAGSDEBUG)
@@ -145,6 +146,9 @@ else
 ifeq ($(VARIETY),hi)
 CFLAGS=$(CFLAGSCOMMON) $(CFHI)
 else
+ifeq ($(VARIETY),di)
+CFLAGS=$(CFLAGSCOMMON) $(CFDI)
+else
 ifeq ($(VARIETY),ii)
 CFLAGS=$(CFLAGSCOMMON) $(CFII)
 else
@@ -157,6 +161,7 @@ else
 ifeq ($(VARIETY),ti)
 CFLAGS=$(CFLAGSCOMMON) $(CFTI)
 else
+endif
 endif
 endif
 endif
@@ -193,7 +198,7 @@ MPMCOMMON = mpsi.c mpm.c arenavm.c arenacl.c arena.c global.c locus.c \
             trace.c root.c seg.c format.c buffer.c ref.c bt.c ring.c \
             shield.c ld.c event.c sac.c message.c \
             poolmrg.c poolmfs.c poolmv.c dbgpool.c dbgpooli.c \
-            boot.c meter.c splay.c cbs.c version.c
+            boot.c meter.c splay.c cbs.c diag.c version.c
 MPM = $(MPMCOMMON) $(MPMPF)
 SWCOMMON = mpsi.c mpm.c arenavm.c arenacl.c arena.c global.c locus.c \
            tract.c walk.c reserv.c protocol.c pool.c poolabs.c \
@@ -323,8 +328,8 @@ ifndef VARIETY
 target: phony
 	$(MAKE) -f $(PFM).gmk VARIETY=hi variety
 	$(MAKE) -f $(PFM).gmk VARIETY=ci variety
-	$(MAKE) -f $(PFM).gmk VARIETY=ti variety
-	$(MAKE) -f $(PFM).gmk VARIETY=wi variety
+	$(MAKE) -f $(PFM).gmk VARIETY=di variety
+	$(MAKE) -f $(PFM).gmk VARIETY=we variety
 endif
 endif
 

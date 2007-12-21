@@ -1,29 +1,37 @@
-# xcppgc.gmk: BUILD FOR MACOS X (CARBON)/POWERPC/GCC PLATFORM
+#!/bin/sh
 #
 # $Id$
-# Copyright (c) 2001-2007 Ravenbrook Limited.  See end of file for license.
+# Copyright (c) 2007 Ravenbrook Limited.  See end of file for license.
+#
+# DESCRIPTION
+#
+# Runs specified command, logging output to logfile.
+#
+# Logfile is put in ./log/<datetime>-<command-name>
 
-PFM = xcppgc
 
-MPMPF = lockix.c than.c vmix.c \
-        protix.c protxcpp.c prmcan.c span.c
-MPMS = ssxcpp.s
-SWPF = than.c vmxc.c protsw.c prmcan.c ssan.c
+LOGRUNCOMMAND="$1"
+shift
 
-LIBS =
+# This ${foo##*/} construct drops all except the last component of the 
+# path foo, so "./xcppgc/hi/amcss" --> "amcss".
+LOGRUNCOMMANDNAME="${LOGRUNCOMMAND##*/}"
 
-RANLIB=ranlib
+# Some commands have a language suffix, eg .py.  But that does not 
+# mean the resulting logfile is in that language: so append .txt.
+LOGRUNFILE="log/`date -u '+%Y%m%dt%H%M%S'`-${LOGRUNCOMMANDNAME}.txt"
 
-include gc.gmk
+mkdir -p log
+echo "(${LOGRUNCOMMAND} $@)(Logging to ${LOGRUNFILE})" | tee ${LOGRUNFILE}
+"${LOGRUNCOMMAND}" "$@" 2>&1 | tee -a ${LOGRUNFILE}
 
-CC = cc -arch ppc
-
-include comm.gmk
+# open logfile in your favourite editor...
+mate ${LOGRUNFILE}
 
 
 # C. COPYRIGHT AND LICENSE
 #
-# Copyright (C) 2001-2007 Ravenbrook Limited <http://www.ravenbrook.com/>.
+# Copyright (C) 2007 Ravenbrook Limited <http://www.ravenbrook.com/>.
 # All rights reserved.  This is an open source license.  Contact
 # Ravenbrook for commercial licensing options.
 # 

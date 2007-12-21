@@ -379,7 +379,7 @@ Res PoolSegAccess(Pool pool, Seg seg, Addr addr,
  *
  * .single-access.assume.ref: It currently assumes that the address
  * being faulted on contains a plain reference or a tagged non-reference.
- * .single-access.improve.format: * later this will be abstracted
+ * .single-access.improve.format: Later this will be abstracted
  * through the cleint object format interface, so that
  * no such assumption is necessary.
  */
@@ -405,23 +405,23 @@ Res PoolSingleAccess(Pool pool, Seg seg, Addr addr,
     ShieldExpose(arena, seg);
 
     if(mode & SegSM(seg) & AccessREAD) {
-      /* read access */
+      /* Read access. */
       /* .single-access.assume.ref */
       /* .single-access.improve.format */
       ref = *(Ref *)addr;
       /* Check that the reference is aligned to a word boundary */
-      /* (we assume it is not a reference otherwise) */
+      /* (we assume it is not a reference otherwise). */
       if(WordIsAligned((Word)ref, sizeof(Word))) {
         /* See the note in TraceSegAccess about using RankEXACT here */
-        /* (<code/trace.c#scan.conservative>) */
-	TraceScanSingleRef(arena->flippedTraces, RankEXACT, arena,
-	                   seg, (Ref *)addr);
+        /* (<code/trace.c#scan.conservative>). */
+        TraceScanSingleRef(arena->flippedTraces, RankEXACT, arena,
+                           seg, (Ref *)addr);
       }
     }
     res = ProtStepInstruction(context);
     AVER(res == ResOK);
 
-    /* update SegSummary according to the possibly changed reference */
+    /* Update SegSummary according to the possibly changed reference. */
     ref = *(Ref *)addr;
     SegSetSummary(seg, RefSetAdd(arena, SegSummary(seg), ref));
 
@@ -470,8 +470,12 @@ void PoolTrivGrey(Pool pool, Trace trace, Seg seg)
   AVERT(Trace, trace);
   AVERT(Seg, seg);
 
-  /* @@@@ The trivial grey method probably shouldn't exclude */
-  /* the white segments, since they might also contain grey objects. */
+  /* If we had a (partially) white seg, then other parts of the */
+  /* same seg might need to get greyed. In fact, all current pools */
+  /* only ever Whiten a whole seg, so we never need to Greyen any */
+  /* part of an already Whitened seg.  So we hereby exclude white */
+  /* segs. */
+  /* @@@@ This should not really be called 'trivial'! */
   if(!TraceSetIsMember(SegWhite(seg), trace))
     SegSetGrey(seg, TraceSetSingle(trace));
 }

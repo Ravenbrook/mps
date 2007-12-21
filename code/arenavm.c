@@ -191,6 +191,54 @@ static Bool VMArenaCheck(VMArena vmArena)
 }
 
 
+/* VMArenaDescribe -- describe the VMArena
+ */
+static Res VMArenaDescribe(Arena arena, mps_lib_FILE *stream)
+{
+  Res res;
+  VMArena vmArena;
+  Index gen;
+
+  if (!CHECKT(Arena, arena)) return ResFAIL;
+  if (stream == NULL) return ResFAIL;
+  vmArena = Arena2VMArena(arena);
+  if (!CHECKT(VMArena, vmArena)) return ResFAIL;
+
+  /* Describe the superclass fields first via next-method call */
+  /* ...but the next method is ArenaTrivDescribe, so don't call it;
+   * see impl.c.arena#describe.triv.dont-upcall.
+   *
+  super = ARENA_SUPERCLASS(VMArenaClass);
+  res = super->describe(arena, stream);
+  if (res != ResOK) return res;
+   *
+  */
+
+  for(gen = (Index)0; gen < VMArenaGenCount; gen++) {
+    if(vmArena->genZoneSet[gen] != ZoneSetEMPTY) {
+      res = WriteF(stream,
+                   "  genZoneSet[$U]: $B\n",
+                   (WriteFU)gen, (WriteFB)vmArena->genZoneSet[gen],
+                   NULL);
+      if(res != ResOK)
+        return res;
+    }
+  }
+  
+  res = WriteF(stream,
+               "  freeSet:       $B\n", (WriteFB)vmArena->freeSet,
+               "  blacklist:     $B\n", (WriteFB)vmArena->blacklist,
+               NULL);
+  if(res != ResOK)
+    return res;
+
+  /* (incomplete: some fields are not Described) */
+
+  return ResOK;
+}
+
+
+
 /* VM indirect functions
  *
  * These functions should be used to map and unmap within the arena.
@@ -1005,14 +1053,50 @@ static Res vmArenaExtend(VMArena vmArena, Size size)
   Size chunkSize;
   Res res;
 
-  /* .improve.debug: @@@@ chunkSize (calculated below) won't */
-  /* be big enough if the tables of the new chunk are */
-  /* more than vmArena->extendBy (because there will be fewer than */
-  /* size bytes free in the new chunk).  Fix this. */
-  chunkSize = vmArena->extendBy + size;
-  res = VMChunkCreate(&newChunk, vmArena, chunkSize);
-  /* .improve.chunk-create.fail: If we fail we could try again */
-  /* (with a smaller size, say).  We don't do this. */
+  /* Choose chunk size. */
+  /* .vmchunk.overhead: This code still lacks a proper estimate of */
+  /* the overhead required by a vmChunk for chunkStruct, page tables */
+  /* etc.  For now, estimate it as 10%.  RHSK 2007-12-21 */
+  do {
+    Size fraction = 10;  /* 10% -- see .vmchunk.overhead */
+    Size chunkOverhead;
+    
+    /* 1: use extendBy, if it is big enough for size + overhead */
+    chunkSize = vmArena->extendBy;
+    chunkOverhead = chunkSize / fraction;
+    if(chunkSize > size && (chunkSize - size) >= chunkOverhead)
+      break;
+    
+    /* 2: use size + overhead (unless it overflows SizeMAX) */
+    chunkOverhead = size / (fraction - 1);
+    if((SizeMAX - size) >= chunkOverhead) {
+      chunkSize = size + chunkOverhead;
+      break;
+    }
+    
+    /* 3: use SizeMAX */
+    chunkSize = SizeMAX;
+    break;
+  } while(0);
+
+
+  DIAG_SINGLEF(( "vmArenaExtend_Start", 
+    "to accommodate size $W, try chunkSize $W", size, chunkSize,
+    " (VMArenaReserved currently $W bytes)\n",
+    VMArenaReserved(VMArena2Arena(vmArena)), NULL ));
+
+  /* .chunk-create.fail: If we fail, try again with a smaller size */
+  for(;; chunkSize /= 2) {
+    res = VMChunkCreate(&newChunk, vmArena, chunkSize);
+    if(res == ResOK)
+      break;
+  }
+
+  DIAG_SINGLEF(( "vmArenaExtend_Done",
+    "Reserved new chunk of VM $W bytes", chunkSize,
+    " (VMArenaReserved now $W bytes)\n", 
+    VMArenaReserved(VMArena2Arena(vmArena)), NULL ));
+
   return res;
 }
 
@@ -1518,6 +1602,7 @@ DEFINE_ARENA_CLASS(VMArenaClass, this)
   this->free = VMFree;
   this->chunkInit = VMChunkInit;
   this->chunkFinish = VMChunkFinish;
+  this->describe = VMArenaDescribe;
 }
 
 

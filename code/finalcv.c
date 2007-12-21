@@ -37,7 +37,11 @@
 #define finalizationRATE 6
 #define gcINTERVAL ((size_t)150 * 1024)
 #define collectionCOUNT 3
-#define slotSIZE (3*sizeof(mps_word_t))
+
+/* 3 words:  wrapper  |  vector-len  |  first-slot */
+#define vectorSIZE (3*sizeof(mps_word_t))
+#define vectorSLOT 2
+
 #define genCOUNT 2
 
 /* testChain -- generation parameters for the test */
@@ -60,9 +64,12 @@ static mps_word_t dylan_int_int(mps_word_t x)
 }
 
 
+/* note: static, so auto-initialised to NULL */
 static void *root[rootCOUNT];
 
 
+/* churn -- allocate a lot of stuff (unreachable garbage, so it will */
+/* probably only ever cause a minor collection). */
 static void churn(mps_ap_t ap)
 {
   int i;
@@ -97,6 +104,7 @@ static void *test(void *arg, size_t s)
   mps_pool_t amc;
   mps_res_t e;
   mps_root_t mps_root[2];
+  mps_addr_t nullref = NULL;
   int state[rootCOUNT];
   mps_arena_t arena;
   void *p = NULL;
@@ -117,14 +125,18 @@ static void *test(void *arg, size_t s)
       "root_create\n");
   die(mps_ap_create(&ap, amc, MPS_RANK_EXACT), "ap_create\n");
 
+  /* Make registered-for-finalization objects. */
   /* <design/poolmrg/#test.promise.ut.alloc> */
   for(i = 0; i < rootCOUNT; ++i) {
     do {
-      MPS_RESERVE_BLOCK(e, p, ap, slotSIZE);
+      MPS_RESERVE_BLOCK(e, p, ap, vectorSIZE);
       die(e, "MPS_RES_OK");
-      die(dylan_init(p, slotSIZE, root, 1), "dylan_init");
-    } while (!mps_commit(ap, p, slotSIZE));
-    ((mps_word_t *)p)[2] = dylan_int(i);
+      die(dylan_init(p, vectorSIZE, &nullref, 1), "dylan_init");
+    } while (!mps_commit(ap, p, vectorSIZE));
+
+    /* store index in vector's slot */
+    ((mps_word_t *)p)[vectorSLOT] = dylan_int(i);
+
     die(mps_finalize(arena, &p), "finalize\n");
     root[i] = p; state[i] = rootSTATE;
   }
@@ -134,22 +146,32 @@ static void *test(void *arg, size_t s)
 
   /* <design/poolmrg/#test.promise.ut.churn> */
   while (mps_collections(arena) < collectionCOUNT) {
+    
+    /* Perhaps cause (minor) collection */
     churn(ap);
+    
+    /* Maybe make some objects ready-to-finalize */
     /* <design/poolmrg/#test.promise.ut.drop> */
     for (i = 0; i < rootCOUNT; ++i) {
       if (root[i] != NULL && state[i] == rootSTATE) {
         if (rnd() % finalizationRATE == 0) {
-          /* definalize some of them */
+          /* for this object, either... */
           if (rnd() % 2 == 0) {
+            /* ...definalize it, or */
             die(mps_definalize(arena, &root[i]), "definalize\n");
             state[i] = deadSTATE;
           } else {
+            /* ...expect it to be finalized soon */
             state[i] = finalizableSTATE;
           }
+          /* Drop the root reference to it; this makes it */
+          /* non-E-reachable: so either dead, or ready-to-finalize. */
           root[i] = NULL;
         }
       }
     }
+
+    /* Test any finalized objects, and perhaps resurrect some */
     while (mps_message_poll(arena)) {
       mps_word_t *obj;
       mps_word_t objind;
@@ -160,7 +182,7 @@ static void *test(void *arg, size_t s)
            "get");
       mps_message_finalization_ref(&objaddr, arena, message);
       obj = objaddr;
-      objind = dylan_int_int(obj[2]);
+      objind = dylan_int_int(obj[vectorSLOT]);
       printf("Finalizing: object %lu at %p\n", objind, objaddr);
       /* <design/poolmrg/#test.promise.ut.final.check> */
       cdie(root[objind] == NULL, "finalized live");

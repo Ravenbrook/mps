@@ -405,6 +405,7 @@ enum {
   TraceFINISHED
 };
 
+
 /* TraceStart reasons: the trigger that caused a trace to start. */
 /* Make these specific trigger names, not broad categories; */
 /* and if a new trigger is added, add a new reason. */
@@ -454,12 +455,12 @@ typedef double WriteFD;
  * leave them in, see design.mps.metrics.
  */
 
-#if defined(DIAGNOSTICS)
+#if defined(STATISTICS)
 #define STATISTIC_DECL(field) field
-#elif defined(DIAGNOSTICS_NONE)
+#elif defined(STATISTICS_NONE)
 #define STATISTIC_DECL(field) field
 #else
-#error "No diagnostics configured."
+#error "No statistics configured."
 #endif
 
 
