@@ -48,8 +48,72 @@ This document is not confidential.
 
 2. WHAT'S NEW; STATUS
 
-This is release 1.108.1, made on 2007-12-21.
-Changes from release 1.108.0:
+This is release 1.108.2, made on 2008-05-01.
+Changes from release 1.108.1:
+
+Functional changes to MPS code:
+
+<http://www.ravenbrook.com/project/mps/issue/job001784/>
+Defect discovered:
+  - when using an auto_header format (mps_fmt_create_auto_header) 
+    with AMC pools (mps_class_amc), the MPS leaks a small amount of 
+    memory on each collection.
+Impact:
+  - the leak is likely to be a few bytes per collection, and at most 
+    one byte per page (typically 2^12 bytes) of the address-space 
+    currently in use for objects in AMC pools;
+  - the leak is of temporary memory that the MPS uses to process 
+    ambiguous references (typically references on the stack and in 
+    registers), so a larger stack when a collection starts will 
+    tend to cause a larger leak;
+  - the leaked bytes are widely-spaced single bytes which therefore 
+    also cause fragmentation;
+  - the leaked bytes are not reclaimed until the client calls 
+    mps_arena_destroy().
+Fixed: correctly release all of this temporary memory.
+
+<http://www.ravenbrook.com/project/mps/issue/job001809/>
+Defect discovered:
+  - AMC pools (mps_class_amc) temporarily retain the memory that was
+    used for a dead object, if there is an ambiguous reference (such 
+    as a value on the stack) that happens to point at the interior of 
+    the (dead) object.
+Impact:
+  - if the (dead) object was small- or medium-sized, this temporary 
+    retention is unlikely to cause a problem;
+  - if the (dead) object was very large, then this retention is more
+    likely, and will retain a large amount of memory;
+  - if many large objects are allocated, this retention can cause 
+    memory to be exhausted when it should not be.
+Fix:
+  - it is usually possible for AMC pools to free the memory 
+    immediately (that is, during the collection that identifies the 
+    object as being dead), and AMC pools now do so;
+Future work:
+  - occasionally, there are adjacently located objects that are 
+    ambiguously referenced and are not dead;
+  - in this case it is not possible to free the memory immediately, 
+    and so temporary retention still occurs (this is not expected to 
+    be very common).
+  - however, the MPS could prevent this by avoiding locating small 
+    objects adjacent to very large objects, see:
+      <http://www.ravenbrook.com/project/mps/issue/job001811/>
+
+<http://www.ravenbrook.com/project/mps/issue/job001737/>
+Further changes to arena growth (see notes below for version 1.108.1).
+When the arena cannot grow by the desired increment, the MPS 
+attempts successively smaller increments, but with a more fine-grained 
+search than in version 1.108.1, thereby achieveing an increment that 
+more closely matches the largest available chunk of remaining 
+address-space.
+New interface function mps_arena_vm_growth().  This function allows
+the client more control over how a VM arena (mps_arena_class_vm) 
+grows.  The interface is under development and is likely to change; 
+please contact us if you would like further details.
+
+
+[
+Historical: changes in release 1.108.1 (2007-12-21).
 
 Functional changes to MPS code:
 
@@ -89,8 +153,7 @@ Note: for further details of this release (including a 'live' report
 of defects found after these release-notes were written), and details 
 of earlier and later releases, please see:
   <http://www.ravenbrook.com/project/mps/release/>
-
-
+]
 
 [
 Historical: changes in release 1.108.0 (2007-07-05).
@@ -429,11 +492,13 @@ B. DOCUMENT HISTORY
 2006-06-29  RHSK  Note fixed job001421, job001455.
 2006-12-13  RHSK  Release 1.107.0
 2007-07-05  RHSK  Release 1.108.0
+2007-12-21  RHSK  Release 1.108.1
+2008-05-01  RHSK  Release 1.108.2
 
 
 C. COPYRIGHT AND LICENSE
 
-Copyright (C) 2001-2002, 2006-2007 Ravenbrook Limited.  
+Copyright (C) 2001-2002, 2006-2007, 2008 Ravenbrook Limited.  
 All rights reserved.  <http://www.ravenbrook.com/>.  
 This is an open source license.  
 Contact Ravenbrook for commercial licensing options.

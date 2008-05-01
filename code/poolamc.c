@@ -736,7 +736,8 @@ static void amcSegDestroyNailboard(Seg seg, Pool pool)
   AVERT(amcNailboard, board);
 
   arena = PoolArena(pool);
-  bits = SegSize(seg) >> board->markShift;
+  /* See d.m.p.Nailboard.size. */
+  bits = (SegSize(seg) + pool->format->headerSize) >> board->markShift;
   ControlFree(arena, board->mark, BTSize(bits));
   board->sig = SigInvalid;
   ControlFree(arena, board, sizeof(amcNailboardStruct));
@@ -1905,6 +1906,7 @@ static void amcReclaimNailed(Pool pool, Trace trace, Seg seg)
   Size preservedInPlaceSize = (Size)0;
   AMC amc;
   Size headerSize;
+  Bool emptySeg = TRUE;  /* seg has no preserved-in-place objects */
 
   /* All arguments AVERed by AMCReclaim */
 
@@ -1940,6 +1942,7 @@ static void amcReclaimNailed(Pool pool, Trace trace, Seg seg)
       (*format->pad)(AddrSub(p, headerSize), length);
       bytesReclaimed += length;
     } else {
+      emptySeg = FALSE;
       ++preservedInPlaceCount;
       preservedInPlaceSize += length;
     }
@@ -1960,6 +1963,21 @@ static void amcReclaimNailed(Pool pool, Trace trace, Seg seg)
   trace->reclaimSize += bytesReclaimed;
   trace->preservedInPlaceCount += preservedInPlaceCount;
   trace->preservedInPlaceSize += preservedInPlaceSize;
+
+  /* Free the seg if we can; fixes .nailboard.limitations.middle. */
+  if(emptySeg
+     && (SegBuffer(seg) == NULL)
+     && (SegNailed(seg) == TraceSetEMPTY)) {
+
+    amcGen gen = amcSegGen(seg);
+
+    /* We may not free a buffered seg. */
+    AVER(SegBuffer(seg) == NULL);
+
+    --gen->segs;
+    gen->pgen.totalSize -= SegSize(seg);
+    SegFree(seg);
+  }
 }
 
 
@@ -1999,6 +2017,10 @@ static void AMCReclaim(Pool pool, Trace trace, Seg seg)
     amcReclaimNailed(pool, trace, seg);
     return;
   }
+  
+  /* We may not free a buffered seg.  (But all buffered + condemned */
+  /* segs should have been nailed anyway). */
+  AVER(SegBuffer(seg) == NULL);
 
   --gen->segs;
   size = SegSize(seg);
@@ -2280,7 +2302,7 @@ static Bool AMCCheck(AMC amc)
 
 /* C. COPYRIGHT AND LICENSE
  *
- * Copyright (C) 2001-2002 Ravenbrook Limited <http://www.ravenbrook.com/>.
+ * Copyright (C) 2001-2002, 2008 Ravenbrook Limited <http://www.ravenbrook.com/>.
  * All rights reserved.  This is an open source license.  Contact
  * Ravenbrook for commercial licensing options.
  * 

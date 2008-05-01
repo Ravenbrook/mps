@@ -77,7 +77,8 @@ typedef struct VMArenaStruct {  /* VM arena structure */
   ZoneSet blacklist;             /* zones to use last */
   ZoneSet genZoneSet[VMArenaGenCount]; /* .gencount.const */
   ZoneSet freeSet;               /* unassigned zones */
-  Size extendBy;
+  Size extendBy;                /* desired arena increment */
+  Size extendMin;               /* minimum arena increment */
   Sig sig;                      /* <design/sig/> */
 } VMArenaStruct;
 
@@ -179,6 +180,7 @@ static Bool VMArenaCheck(VMArena vmArena)
   }
   CHECKL(ZoneSetInter(allocSet, vmArena->freeSet) == ZoneSetEMPTY);
   CHECKL(vmArena->extendBy > 0);
+  CHECKL(vmArena->extendMin <= vmArena->extendBy);
 
   if (arena->primary != NULL) {
     primary = Chunk2VMChunk(arena->primary);
@@ -489,6 +491,7 @@ static Res VMArenaInit(Arena *arenaReturn, ArenaClass class, va_list args)
   vmArena->freeSet = ZoneSetUNIV; /* includes blacklist */
   /* <design/arena/#coop-vm.struct.vmarena.extendby.init> */
   vmArena->extendBy = userSize;
+  vmArena->extendMin = 0;
 
   /* have to have a valid arena before calling ChunkCreate */
   vmArena->sig = VMArenaSig;
@@ -682,7 +685,7 @@ static void tablePagesUsed(Index *tableBaseReturn, Index *tableLimitReturn,
   *tableLimitReturn =
     PageTablePageIndex(chunk,
                        AddrAlignUp(addrOfPageDesc(chunk, pageLimit),
-		                   ChunkPageSize(chunk)));
+                                   ChunkPageSize(chunk)));
   return;
 }
 
@@ -714,8 +717,8 @@ static Res tablePagesEnsureMapped(VMChunk vmChunk,
  
   while(BTFindLongResRange(&unmappedBaseIndex, &unmappedLimitIndex,
                            vmChunk->pageTableMapped,
-		           tableCursorIndex, tableLimitIndex,
-		           1)) {
+                           tableCursorIndex, tableLimitIndex,
+                           1)) {
     Addr unmappedBase = TablePageIndexBase(chunk, unmappedBaseIndex);
     Addr unmappedLimit = TablePageIndexBase(chunk, unmappedLimitIndex);
     /* There might be a page descriptor overlapping the beginning */
@@ -1086,14 +1089,42 @@ static Res vmArenaExtend(VMArena vmArena, Size size)
     VMArenaReserved(VMArena2Arena(vmArena)), NULL ));
 
   /* .chunk-create.fail: If we fail, try again with a smaller size */
-  for(;; chunkSize /= 2) {
-    res = VMChunkCreate(&newChunk, vmArena, chunkSize);
-    if(res == ResOK)
-      break;
+  {
+    int fidelity = 8;  /* max fraction of addr-space we may 'waste' */
+    Size chunkHalf;
+    Size chunkMin = 4 * 1024;  /* typical single page */
+    Size sliceSize;
+    
+    if (vmArena->extendMin > chunkMin)
+      chunkMin = vmArena->extendMin;
+    if (chunkSize < chunkMin)
+      chunkSize = chunkMin;
+    
+    for(;; chunkSize = chunkHalf) {
+      chunkHalf = chunkSize / 2;
+      sliceSize = chunkHalf / fidelity;
+      AVER(sliceSize > 0);
+      
+      /* remove slices, down to chunkHalf but no further */
+      for(; chunkSize > chunkHalf; chunkSize -= sliceSize) {
+        if(chunkSize < chunkMin) {
+          DIAG_SINGLEF(( "vmArenaExtend_FailMin", 
+            "no remaining address-space chunk >= min($W)", chunkMin,
+            " (so VMArenaReserved remains $W bytes)\n",
+            VMArenaReserved(VMArena2Arena(vmArena)), NULL ));
+          return ResRESOURCE;
+        }
+        res = VMChunkCreate(&newChunk, vmArena, chunkSize);
+        if(res == ResOK)
+          goto vmArenaExtend_Done;
+      }
+    }
   }
 
+vmArenaExtend_Done:
+
   DIAG_SINGLEF(( "vmArenaExtend_Done",
-    "Reserved new chunk of VM $W bytes", chunkSize,
+    "Request for new chunk of VM $W bytes succeeded", chunkSize,
     " (VMArenaReserved now $W bytes)\n", 
     VMArenaReserved(VMArena2Arena(vmArena)), NULL ));
 
@@ -1213,7 +1244,7 @@ static Res pagesMarkAllocated(VMArena vmArena, VMChunk vmChunk,
     while(pageIsMapped(vmChunk, mappedLimit)) {
       ++mappedLimit;
       if (mappedLimit >= limitIndex)
-	break;
+        break;
     }
     AVER(mappedLimit <= limitIndex);
     /* NB for loop will loop 0 times iff first page is not mapped */
@@ -1232,8 +1263,8 @@ static Res pagesMarkAllocated(VMArena vmArena, VMChunk vmChunk,
     }
     AVER(unmappedLimit <= limitIndex);
     res = vmArenaMap(vmArena, vmChunk->vm,
-		     PageIndexBase(chunk, unmappedBase),
-		     PageIndexBase(chunk, unmappedLimit));
+                     PageIndexBase(chunk, unmappedBase),
+                     PageIndexBase(chunk, unmappedLimit));
     if (res != ResOK)
       goto failPagesMap;
     for(i = unmappedBase; i < unmappedLimit; ++i) {
@@ -1250,8 +1281,8 @@ failPagesMap:
   /* region from baseIndex to mappedLimit needs unmapping */
   if (baseIndex < mappedLimit) {
     vmArenaUnmap(vmArena, vmChunk->vm,
-		 PageIndexBase(chunk, baseIndex),
-		 PageIndexBase(chunk, mappedLimit));
+                 PageIndexBase(chunk, baseIndex),
+                 PageIndexBase(chunk, mappedLimit));
     /* mark pages as free */
     for(i = baseIndex; i < mappedLimit; ++i) {
       TractFinish(PageTract(&chunk->pageTable[i]));
@@ -1337,7 +1368,7 @@ static Res vmAllocComm(Addr *baseReturn, Tract *baseTractReturn,
       sparePagesPurge(vmArena);
       res = pagesMarkAllocated(vmArena, vmChunk, baseIndex, pages, pool);
       if (res != ResOK)
-	goto failPagesMap;
+        goto failPagesMap;
       /* win! */
     } else {
       goto failPagesMap;
@@ -1404,13 +1435,13 @@ static void spareRangesMap(VMChunk vmChunk, Index base, Index limit,
     while(!pageIsSpare(&chunk->pageTable[spareBase])) {
       ++spareBase;
       if (spareBase >= limit)
-	goto done;
+        goto done;
     }
     spareLimit = spareBase;
     while(pageIsSpare(&chunk->pageTable[spareLimit])) {
       ++spareLimit;
       if (spareLimit >= limit)
-	break;
+        break;
     }
     f(vmChunk, spareBase, spareLimit, p);
     spareBase = spareLimit;
@@ -1439,7 +1470,7 @@ static void vmArenaUnmapSpareRange(VMChunk vmChunk,
   }
   vmArenaUnmap(VMChunkVMArena(vmChunk), vmChunk->vm,
                PageIndexBase(chunk, rangeBase),
-	       PageIndexBase(chunk, rangeLimit));
+               PageIndexBase(chunk, rangeLimit));
 
   return;
 }
@@ -1465,8 +1496,8 @@ static void sparePagesPurge(VMArena vmArena)
 
     while(BTFindLongResRange(&spareBaseIndex, &spareLimitIndex,
                              vmChunk->noSparePages,
-	           	     tablePageCursor, chunk->pageTablePages,
-	      	             1)) {
+                             tablePageCursor, chunk->pageTablePages,
+                             1)) {
       Addr spareTableBase, spareTableLimit;
       Index pageBase, pageLimit;
       Index tablePage;
@@ -1476,43 +1507,43 @@ static void sparePagesPurge(VMArena vmArena)
       /* Determine whether to use initial overlapping PageStruct. */
       if (spareBaseIndex > 0
           && !BTGet(vmChunk->pageTableMapped, spareBaseIndex - 1)) {
-	pageBase = tablePageWholeBaseIndex(chunk, spareTableBase);
+        pageBase = tablePageWholeBaseIndex(chunk, spareTableBase);
       } else {
         pageBase = tablePageBaseIndex(chunk, spareTableBase);
       }
       for(tablePage = spareBaseIndex; tablePage < spareLimitIndex;
           ++tablePage) {
-	/* Determine whether to use final overlapping PageStruct. */
+        /* Determine whether to use final overlapping PageStruct. */
         if (tablePage == spareLimitIndex - 1
             && spareLimitIndex < chunk->pageTablePages
             && !BTGet(vmChunk->pageTableMapped, spareLimitIndex)) {
-	  pageLimit =
-	    tablePageWholeLimitIndex(chunk,
-	                             TablePageIndexBase(chunk, tablePage));
-	} else if (tablePage == chunk->pageTablePages - 1) {
-	  pageLimit = chunk->pages;
-	} else {
-	  pageLimit =
-	    tablePageLimitIndex(chunk, TablePageIndexBase(chunk, tablePage));
-	}
-	if (pageBase < pageLimit) {
-	  spareRangesMap(vmChunk, pageBase, pageLimit,
+          pageLimit =
+            tablePageWholeLimitIndex(chunk,
+                                     TablePageIndexBase(chunk, tablePage));
+        } else if (tablePage == chunk->pageTablePages - 1) {
+          pageLimit = chunk->pages;
+        } else {
+          pageLimit =
+            tablePageLimitIndex(chunk, TablePageIndexBase(chunk, tablePage));
+        }
+        if (pageBase < pageLimit) {
+          spareRangesMap(vmChunk, pageBase, pageLimit,
                          vmArenaUnmapSpareRange, NULL);
-	} else {
-	  /* Only happens for last page occupied by the page table */
-	  /* and only then when that last page has just the tail end */
-	  /* part of the last page descriptor and nothing more. */
-	  AVER(pageBase == pageLimit);
-	  AVER(tablePage == chunk->pageTablePages - 1);
-	}
-	BTSet(vmChunk->noSparePages, tablePage);
-	pageBase = pageLimit;
+        } else {
+          /* Only happens for last page occupied by the page table */
+          /* and only then when that last page has just the tail end */
+          /* part of the last page descriptor and nothing more. */
+          AVER(pageBase == pageLimit);
+          AVER(tablePage == chunk->pageTablePages - 1);
+        }
+        BTSet(vmChunk->noSparePages, tablePage);
+        pageBase = pageLimit;
       }
       tablePagesUnmapUnused(vmChunk, spareTableBase, spareTableLimit);
       tablePageCursor = spareLimitIndex;
       if (tablePageCursor >= chunk->pageTablePages) {
         AVER(tablePageCursor == chunk->pageTablePages);
-	break;
+        break;
       }
     }
 
@@ -1583,6 +1614,35 @@ static void VMFree(Addr base, Size size, Pool pool)
   /* @@@@ Chunks are never freed. */
 
   return;
+}
+
+
+mps_res_t mps_arena_vm_growth(mps_arena_t mps_arena,
+                              size_t mps_desired, size_t mps_minimum)
+{
+  Arena arena = (Arena)mps_arena;
+  Size desired = (Size)mps_desired;
+  Size minimum = (Size)mps_minimum;
+  VMArena vmArena;
+  
+  ArenaEnter(arena);
+  
+  AVERT(Arena, arena);
+  vmArena = Arena2VMArena(arena);
+  AVERT(VMArena, vmArena);
+  
+  if(desired < minimum) {
+    /* May not desire an increment smaller than the minimum! */
+    ArenaLeave(arena);
+    return MPS_RES_PARAM;
+  }
+  
+  vmArena->extendBy = desired;
+  vmArena->extendMin = minimum;
+  
+  ArenaLeave(arena);
+  
+  return MPS_RES_OK;
 }
 
 
