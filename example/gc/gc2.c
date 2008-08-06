@@ -1,3 +1,6 @@
+/* $Id$ */
+/* gcc -I ../../code/ gc2.c ../../code/xcppgc/di/mps.a ../../code/xcppgc/di/mpsplan.a */
+
 #include <stdlib.h>  /* for malloc */
 #include <stdio.h>  /* for printf */
 
@@ -194,13 +197,33 @@ fail_Reserve:
 
 static show_usage(mps_arena_t arena)
 {
-  size_t size = mps_arena_committed(arena);
-  printf("Usage: committed memory: %X.\n", size);
+  size_t sizeAddressSpaceReserved = mps_arena_reserved(arena);
+  size_t sizeTractsCommitted = mps_arena_committed(arena);
+  size_t sizeTractsSpare = mps_arena_spare_committed(arena);
+  size_t sizeTractsInUse = sizeTractsCommitted - sizeTractsSpare;
+
+  size_t sizeReservoirLimit = mps_reservoir_limit(arena);
+  size_t sizeReservoirAvail = mps_reservoir_available(arena);
+
+  printf(
+    "|-----------------------------------------------ARENA------------------------------------------------|\n"
+    "|                                  sizeAddressSpaceReserved: %08X                                |\n"
+    "|                  sizeTractsCommitted: %08X              |  (sizeTractsUncommitted:  %08X)  |\n"
+    "|  (sizeTractsInUse: %08X)  |  sizeTractsSpare: %08X  |                                      |\n"
+    "|-------------------------------|-----------------------------|--------------------------------------|\n",
+    sizeAddressSpaceReserved,
+    sizeTractsCommitted, sizeAddressSpaceReserved - sizeTractsCommitted,
+    sizeTractsInUse, sizeTractsSpare
+  );
+
+  printf("Reservoir: sizeReservoirAvail: %08X; sizeReservoirLimit: %08X.\n",
+    sizeReservoirAvail, sizeReservoirLimit
+  );
 }
 
 struct mps_gen_param_s gens[] = {
   /* Generation 0 */
-  { 10  /* x 1024 bytes (!) */,
+  { 10000  /* x 1024 bytes (!) */,
     0.85  /* % mortality */
   }
 };
@@ -209,7 +232,7 @@ struct mps_gen_param_s gens[] = {
 int main(int argc, char **argv)
 {
   void *pBlock = NULL;
-  size_t cbBlock = 4 * 1024 * 1024;
+  size_t cbBlock = 0x400000;  /*4 * 1024 * 1024;   0x400000 */
   
   mps_arena_t arena;
   mps_fmt_t fmt;
@@ -245,7 +268,7 @@ int main(int argc, char **argv)
   show_usage(arena);
   {
     int i;
-    for(i = 0; i < 1000; i += 1) {
+    for(i = 0; i < 100000; i += 1) {
       atom = make_atom(ap);
       atom->value = i;
     }
