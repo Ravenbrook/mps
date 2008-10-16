@@ -45,7 +45,14 @@ __BUILD__
 
 Read all of <http://info.ravenbrook.com/project/mps/master/procedure/release-build/>, which is the normal release-build procedure.  Keeping referring to it during this procedure.  The following notes are just a delta from it.  
 
-First, clean out the place code will be built in, and sync to the right changelevel (the changelevel you have decided is going to be the release's origin).  
+First, clean out the place code will be built in, and sync to the right changelevel (the changelevel you have decided is going to be the release's origin), by using the following procedure:
+
+    # (you may wish to check for opened files first)
+    p4 revert version/VERSION/...
+    rm -rf version/VERSION
+    p4 sync -f version/VERSION/...@CHANGELEVEL
+
+(Note: "revert" and "sync -f" are required: otherwise p4-opened or forced-writeable files may remain or be omitted).
 
 cd code
 
