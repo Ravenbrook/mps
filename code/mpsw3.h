@@ -10,6 +10,9 @@
 #ifndef mpsw3_h
 #define mpsw3_h
 
+/* Disable SEH-based protection, for vc9exit investigation -- RHSK */
+#if 0
+
 #include "mps.h"               /* needed for mps_tramp_t */
 #include <windows.h>           /* needed for SEH filter */
 
@@ -32,6 +35,8 @@ extern void mps_SEH_handler(void *, size_t);
       mps_SEH_handler(_hp, _hs); \
     } \
   MPS_END
+
+#endif
 
 
 #endif /* mpsw3_h */
