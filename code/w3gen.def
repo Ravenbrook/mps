@@ -153,6 +153,5 @@ mps_class_snc
 mps_lib_callback_register
 ; mpstd.h
 ; mpsw3.h - by hand
-; - Disable SEH-based protection, for vc9exit investigation -- RHSK
-; - mps_SEH_filter
-; - mps_SEH_handler
+mps_SEH_filter
+mps_SEH_handler
