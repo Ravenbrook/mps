@@ -235,7 +235,8 @@
 /* Currently StackProbe has a useful implementation only on
  * Intel platforms and only when using Microsoft build tools (builder.mv)
  */
-#if defined(MPS_ARCH_I3) && defined(MPS_BUILD_MV)
+/* -- disable stack probe for vc9exit testing -- RHSK 2009-05-29 */
+#if 0 && defined(MPS_ARCH_I3) && defined(MPS_BUILD_MV)
 #define StackProbeDEPTH ((Size)500)
 #else
 #define StackProbeDEPTH ((Size)0)
