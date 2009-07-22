@@ -1,0 +1,13 @@
+This branch is all experiment-only -- none to be integ'd to master.
+
+But ideas for ../tool/test-runner.py:
+
+1. We should test w3i3m9 as well as / instead of w3i3mv.
+mpsplatformcode() could return a list of platforms we can exercise on this machine.
+for each such platform, ...
+
+2. Currently MPS test-executables are built from object files, not w3build.bat library files.
+There's no way to test the actual library files in a shipped release.
+It would be nice to be able to use test-runner to do this.
+
+$Id$
