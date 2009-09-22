@@ -1,10 +1,16 @@
 How to make an MPS release for Configura.  
 
-This document tells you how to make a new release of the MPS for Configura.  It assumes that the source-code work (the reason for the new release) is in master sources already.  
+This document tells you how to make a new release of the MPS for Configura. 
+It assumes that the source-code work (the reason for the new release) is in
+master sources already.
 
-Readership: MPS staff.  Confidential: no.  Status: rough notes, informally peer-reviewed.  Author: RHSK.
+Readership: MPS staff.  Confidential: no.  Status: rough notes, informally
+peer-reviewed.  Author: RHSK.
 
-Background: refer to PQTCM ("Product Quality Through Change Management", <http://www.ravenbrook.com/doc/1999/05/20/pqtcm/>) for background, terminology, rationale, and usage guidance.  This tells you what "a release" actually is.  
+Background: refer to PQTCM ("Product Quality Through Change Management",
+<http://www.ravenbrook.com/doc/1999/05/20/pqtcm/>) for background,
+terminology, rationale, and usage guidance.  This tells you what "a release"
+actually is.
 
 Peer documents:
   <http://info.ravenbrook.com/project/mps/master/procedure/version-create/>.
@@ -28,41 +34,70 @@ Steps:
 
 __EQUIPMENT__
 
-You need a Windows box.  I used a PC with P4, VisualC++, and cygwin on it already.  
+You need a Windows box.  I used a PC with P4, VisualC++, and cygwin on it
+already.
 
-Set-up a login and password if necessary.  To prevent pwd expiry, use Start > Programs > Admin Tools > User Manager.  To make cmd windows tab-complete filenames, do this:  Start > Run > regedit.  HKEY_CURRENT_USER > Software > Microsoft > Command Processor > CompletionChar = 9.  
+Set-up a login and password if necessary.  To prevent pwd expiry, use Start >
+Programs > Admin Tools > User Manager.  To make cmd windows tab-complete
+filenames, do this:  Start > Run > regedit.  HKEY_CURRENT_USER > Software >
+Microsoft > Command Processor > CompletionChar = 9.
 
-If you want to access remotely from a Mac, use "Chicken of the VNC", eg. 2.02b2.  You'll need the VNC session-password (not the same as your NT login password).  Remember how to escape from Full-screen: Cmd-Opt-Ctrl-` (backquote); and how to right-click: depress and release Shift-key, then click.  
+If you want to access remotely from a Mac, use "Chicken of the VNC", eg.
+2.02b2.  You'll need the VNC session-password (not the same as your NT login
+password).  Remember how to escape from Full-screen: Cmd-Opt-Ctrl-`
+(backquote); and how to right-click: depress and release Shift-key, then
+click.
 
-To copy ad-hoc files (like build output) to and from a Mac, mount the PC's disk on your Mac.  Finder > Go > Network > Network > Ravenbrook > PC.  Be patient: list of servers may take some seconds to fully update/populate.  For a machine in its own workgroup, it may be more like Finder > Go > Network > Network > Workgroup > PC.  By default XP has "simple file-sharing", so if you share the whole disk you still don't share stuff in Documents and Settings.  To fix this: turn off "simple file-sharing" by clearing the check-box at Control Panel > Folder Options > View > "Use simple file sharing (Recommended)"; and go back to the share point (eg. C:\) > Properties > Sharing > Permissions, and make it PC\Users who have access (not Everyone).  
+To copy ad-hoc files (like build output) to and from a Mac, mount the PC's
+disk on your Mac.  Finder > Go > Network > Network > Ravenbrook > PC.  Be
+patient: list of servers may take some seconds to fully update/populate.  For
+a machine in its own workgroup, it may be more like Finder > Go > Network >
+Network > Workgroup > PC.  By default XP has "simple file-sharing", so if you
+share the whole disk you still don't share stuff in Documents and Settings. 
+To fix this: turn off "simple file-sharing" by clearing the check-box at
+Control Panel > Folder Options > View > "Use simple file sharing
+(Recommended)"; and go back to the share point (eg. C:\) > Properties >
+Sharing > Permissions, and make it PC\Users who have access (not Everyone).
 
-Start > Programs > P4Win.  Set-up a P4 client.  Set-up the client map.  P4sync to check it's working.  
+Start > Programs > P4Win.  Set-up a P4 client.  Set-up the client map.  P4sync
+to check it's working.
 
-Or, for command-line p4, first need to do "p4 set" to set P4USER, P4CLIENT, and P4PORT (eg. "p4 set P4USER=rhsk").  This sets things in the registry, so it is persistent.  
+Or, for command-line p4, first need to do "p4 set" to set P4USER, P4CLIENT,
+and P4PORT (eg. "p4 set P4USER=rhsk").  This sets things in the registry, so
+it is persistent.
 
 
 __BUILD__
 
-Read all of <http://info.ravenbrook.com/project/mps/master/procedure/release-build/>, which is the normal release-build procedure.  Keeping referring to it during this procedure.  The following notes are just a delta from it.  
+Read all of
+<http://info.ravenbrook.com/project/mps/master/procedure/release-build/>,
+which is the normal release-build procedure.  Keeping referring to it during
+this procedure.  The following notes are just a delta from it.
 
-First, clean out the place code will be built in, and sync to the right changelevel (the changelevel you have decided is going to be the release's origin), by using the following procedure:
+First, clean out the place code will be built in, and sync to the right
+changelevel (the changelevel you have decided is going to be the release's
+origin), by using the following procedure:
 
     # (you may wish to check for opened files first)
     p4 revert version/VERSION/...
     rm -rf version/VERSION
     p4 sync -f version/VERSION/...@CHANGELEVEL
 
-(Note: "revert" and "sync -f" are required: otherwise p4-opened or forced-writeable files may remain or be omitted).
+(Note: "revert" and "sync -f" are required: otherwise p4-opened or
+forced-writeable files may remain or be omitted).
 
 cd code
 
-You may need to do "C:\Program Files\Microsoft Visual Studio\VC98\Bin\vcvars32.bat".  (This also sets up the path so you can just type "nmake").  
+You may need to do "C:\Program Files\Microsoft Visual
+Studio\VC98\Bin\vcvars32.bat".  (This also sets up the path so you can just
+type "nmake").
 
 Invoke w3build.
 
 (
-you might think that "C:\Program Files\Microsoft Visual Studio\VC98\Bin\nmake.exe" /f w3i3mv.nmk
-is right, but no, you want:  //info.ravenbrook.com/project/mps/master/code/w3build.bat
+you might think that "C:\Program Files\Microsoft Visual
+Studio\VC98\Bin\nmake.exe" /f w3i3mv.nmk is right, but no, you want: 
+//info.ravenbrook.com/project/mps/master/code/w3build.bat
 )
 
 This makes a release directory called "rel-1_108_0" or some such, eg:
@@ -77,25 +112,38 @@ duck:/Volumes/PC-C/rhsk/master/code/rel-1_108_0 richardk$ find . '-type' d '-pri
 ./lib/w3i3/wi
 ./src
 
-Make a tar archive of the release directory.  (PC needs cygwin, which includes GNU tar, etc.).  Use this command:
+Make a tar archive of the release directory.  (PC needs cygwin, which includes
+GNU tar, etc.).  Use this command:
   "tar cfz MMconfigura-A.BBB.C-DDDDDD.tgz rel-1_108_0"
 A.BBB.C is the release name.  DDDDDD is the release origin changelevel.  
 
-*Also*, make a _zip_ archive of the release directory.  (PC needs Info-ZIP.).  Use this command:
+*Also*, make a _zip_ archive of the release directory.  (PC needs Info-ZIP.). 
+Use this command:
   "zip -r MMconfigura-A.BBB.C-DDDDDD.zip rel-1_108_0"
 A.BBB.C is the release name.  DDDDDD is the release origin changelevel.  
 
-p4 add both archives under mps/release.  (This is your first candidate build for release A.BBB.C).  
+p4 add both archives under mps/release.  (This is your first candidate build
+for release A.BBB.C).
 
-Test the zip one.  (Copy to new place and extract with "unzip MMconfigura-A.BBB.C-DDDDDD.zip".  Consider using tool/test-runner.py to run various tests, repeatedly.)
+Test the zip one.  (Copy to new place and extract with "unzip
+MMconfigura-A.BBB.C-DDDDDD.zip".  Consider using tool/test-runner.py to run
+various tests, repeatedly.)
 
-(If you want to to test the tgz too: copy to new place and extract with "tar xfz MMconfigura-A.BBB.C-DDDDDD.tgz"; note: do not use auto-complete on the tgz filename, because a full pathname confuses tar.  Consider using tool/test-runner.py to run various tests, repeatedly.)
+(If you want to to test the tgz too: copy to new place and extract with "tar
+xfz MMconfigura-A.BBB.C-DDDDDD.tgz"; note: do not use auto-complete on the tgz
+filename, because a full pathname confuses tar.  Consider using
+tool/test-runner.py to run various tests, repeatedly.)
 
-Once successfully tested, update infosys.  See <http://info.ravenbrook.com/project/mps/master/procedure/release-build/>.  Remember to update issue.cgi.  
+Once successfully tested, update infosys.  See
+<http://info.ravenbrook.com/project/mps/master/procedure/release-build/>. 
+Remember to update issue.cgi.
 
-Make sure it is sync'd to www.ravenbrook.com.  (As of 2007, this should happen automatically every minute).  Then send an email with a pointer to the release.  
+Make sure it is sync'd to www.ravenbrook.com.  (As of 2007, this should happen
+automatically every minute).  Then send an email with a pointer to the
+release.
 
-(You could also send it attached to a separate email.  But this is NOT reliable: it may get stuck in a virus filter.)
+(You could also send it attached to a separate email.  But this is NOT
+reliable: it may get stuck in a virus filter.)
 
 END OF PROCEDURE
 
@@ -105,11 +153,12 @@ DOCUMENT HISTORY
 2005-10-03  RHSK  Created.
 2006-12-27  RHSK  Minor tweaks: drop incorrect release origin comment; www auto-syncs now.
 2007-07-05  RHSK  Use zip; GR prefers it.  w3build.bat makes dir called rel-1_108_0.
+2009-09-22  RHSK  word wrap
 
 
 COPYRIGHT AND LICENSE
 
-Copyright (C) 2005-2006 Ravenbrook Limited <http://www.ravenbrook.com/>.
+Copyright (C) 2005-2007, 2009 Ravenbrook Limited <http://www.ravenbrook.com/>.
 All rights reserved.  This is an open source license.  Contact
 Ravenbrook for commercial licensing options.
 
