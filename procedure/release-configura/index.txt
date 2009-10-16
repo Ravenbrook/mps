@@ -93,7 +93,7 @@ Invoke \vc6path.bat.
 "cl" etc, without knowing where it is.  Most of this is already done by 
 Configura's cet2008b install script, but there is a problem with the order of 
 directories on PATH, which this batch file sorts out.  Note: copy archived at 
-http://info.ravenbrook.com/mail/2009/09/24/17-51-21/0.txt)
+http://info.ravenbrook.com/mail/2009/09/24/15-51-21/0.txt)
 
 Invoke w3build.bat.
 (This is the Configura-specific build-script for the VC6 build.  It ALSO sets 
