@@ -555,6 +555,39 @@ Res WriteF_firstformat_v(mps_lib_FILE *stream,
 }
 
 
+/* M_whole, M_frac -- print count of bytes as Megabytes
+ *
+ * Split into a whole number of MB, then "m" for the decimal point, 
+ * then the decimal fraction (thousandths of a MB, ie. kB).
+ *
+ * Use this with WriteF, using $U for the whole and $3 fraction:
+ *    "condemned:  $Um$3\n", M_whole(cond), M_frac(cond),
+ *
+ * Input:                208896
+ * Output:  (Megabytes)  0m209
+ *
+ * Rounds to nearest multiple of 1 kB.
+ * Note: Megabyte = 10 ^ 6 bytes.  (Not 2 ^ 20).
+ */
+#define bPerM (1000000UL)  /* Megabytes */
+#define bThou (1000UL)
+
+Count M_whole(size_t bytes)
+{
+  size_t M;  /* MBs */
+  M = (bytes + (bThou / 2)) / bPerM;
+  return M;
+}
+
+Count M_frac(size_t bytes)
+{
+  Count Mthou;  /* thousandths of a MB */
+  Mthou = (bytes + (bThou / 2)) / bThou;
+  Mthou = Mthou % 1000;
+  return Mthou;
+}
+
+
 /* StringLength -- slow substitute for strlen */
 
 size_t StringLength(const char *s)

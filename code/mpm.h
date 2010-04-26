@@ -153,6 +153,9 @@ extern Res WriteF_v(mps_lib_FILE *stream, va_list args);
 extern Res WriteF_firstformat_v(mps_lib_FILE *stream,
                                 const char *firstformat, va_list args);
 
+extern Count M_whole(size_t bytes);
+extern Count M_frac(size_t bytes);
+
 extern int Stream_fputc(int c, mps_lib_FILE *stream);
 extern int Stream_fputs(const char *s, mps_lib_FILE *stream);
 

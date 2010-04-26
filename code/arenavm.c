@@ -1384,7 +1384,18 @@ static Res vmAllocComm(Addr *baseReturn, Tract *baseTractReturn,
 
   if (pref->isGen) {
     Serial gen = vmGenOfSegPref(vmArena, pref);
+    DIAG_DECL( ZoneSet old = vmArena->genZoneSet[gen]; )
     vmArena->genZoneSet[gen] = ZoneSetUnion(vmArena->genZoneSet[gen], zones);
+    DIAG(
+      if(vmArena->genZoneSet[gen] != old) {
+        DIAG_FIRSTF(( "vmAllocComm_genZoneSet",
+          "gen $U, had genZoneSet $B, now gets zones $B\n",
+          (WriteFU)gen, (WriteFB)old, (WriteFB)zones,
+          NULL ));
+        DIAG( ArenaDescribe(arena, DIAG_STREAM); );
+        DIAG_END("vmAllocComm_genZoneSet");
+      }
+    );
   }
 
   vmArena->freeSet = ZoneSetDiff(vmArena->freeSet, zones);
@@ -1618,33 +1629,6 @@ static void VMFree(Addr base, Size size, Pool pool)
 
   return;
 }
-
-
-/* M_whole, M_frac -- print count of bytes as Megabytes
- *
- * Split into a whole number of MB, "m" for the decimal point, and 
- * then the decimal fraction (thousandths of a MB, ie. kB).
- *
- * Input:                208896
- * Output:  (Megabytes)  0m209
- */
-#define bPerM (1000000UL)  /* Megabytes */
-#define bThou (1000UL)
-DIAG_DECL(
-static Count M_whole(size_t bytes)
-{
-  size_t M;  /* MBs */
-  M = (bytes + (bThou / 2)) / bPerM;
-  return M;
-}
-static Count M_frac(size_t bytes)
-{
-  Count Mthou;  /* thousandths of a MB */
-  Mthou = (bytes + (bThou / 2)) / bThou;
-  Mthou = Mthou % 1000;
-  return Mthou;
-}
-)
 
 
 static void VMCompact(Arena arena, Trace trace)

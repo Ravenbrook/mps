@@ -31,6 +31,9 @@ struct RuleStruct RulesGlobal[] = {
   { "-", "*", "*", "*" },
   { "+", "DiagFilter_Rules", "*", "*" },
   { "+", "VMCompact", "*", "*" },
+  { "+", "ArenaCreateV", "*", "zoneShift" },
+  { "+", "vmAllocComm_genZoneSet", "*", "genZoneSet" },
+  { "+", "vmAllocComm_genZoneSet", "*", "freeSet" },
   /* ----v---- always on please (RHSK) ----v---- */
   { "+", "MPSVersion", "*", "*" },
   { "+", "traceSetSignalEmergency", "*", "*" },

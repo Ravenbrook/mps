@@ -238,6 +238,10 @@ Res ArenaCreateV(Arena *arenaReturn, ArenaClass class, va_list args)
   if (res != ResOK)
     goto failGlobalsCompleteCreate;
 
+  DIAG_FIRSTF(( "ArenaCreateV", "\n", NULL ));
+  DIAG( ArenaDescribe(arena, DIAG_STREAM); );
+  DIAG_END("ArenaCreateV");
+
   AVERT(Arena, arena);
   *arenaReturn = arena;
   return ResOK;
@@ -323,6 +327,7 @@ Res ArenaDescribe(Arena arena, mps_lib_FILE *stream)
 {
   Res res;
   Size reserved;
+  Size zoneSize;
 
   if (!CHECKT(Arena, arena)) return ResFAIL;
   if (stream == NULL) return ResFAIL;
@@ -349,6 +354,7 @@ Res ArenaDescribe(Arena arena, mps_lib_FILE *stream)
                NULL);
   if (res != ResOK) return res;
 
+  zoneSize = (Size)1 << arena->zoneShift;
   res = WriteF(stream,
                "  committed        $W  <-- "
                "total bytes currently stored (in RAM or swap)\n",
@@ -356,7 +362,8 @@ Res ArenaDescribe(Arena arena, mps_lib_FILE *stream)
                "  commitLimit      $W\n", (WriteFW)arena->commitLimit,
                "  spareCommitted   $W\n", (WriteFW)arena->spareCommitted,
                "  spareCommitLimit $W\n", (WriteFW)arena->spareCommitLimit,
-               "  zoneShift $U\n", (WriteFU)arena->zoneShift,
+               "  zoneShift $U  zoneSize $W = $Um$3\n", (WriteFU)arena->zoneShift,
+               (WriteFW)zoneSize, M_whole(zoneSize), M_frac(zoneSize),
                "  alignment $W\n", (WriteFW)arena->alignment,
                NULL);
   if (res != ResOK) return res;
