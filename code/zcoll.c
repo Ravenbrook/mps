@@ -189,6 +189,7 @@ static void get(mps_arena_t arena)
     mps_word_t *obj;
     mps_word_t objind;
     mps_addr_t objaddr;
+    int do_printf = 0;
 
     cdie(mps_message_get(&message, arena, type),
          "get");
@@ -196,10 +197,12 @@ static void get(mps_arena_t arena)
     switch(type) {
       case mps_message_type_gc_start(): {
         mclockBegin = mps_message_clock(arena, message);
+        if(do_printf) {
         printf("    %5lu: (%5lu)",
                mclockBegin, mclockBegin - mclockEnd);
         printf("    Coll Begin                                     (%s)\n",
                mps_message_gc_start_why(arena, message));
+        }
         break;
       }
       case mps_message_type_gc(): {
@@ -211,11 +214,13 @@ static void get(mps_arena_t arena)
 
         mclockEnd = mps_message_clock(arena, message);
         
+        if(do_printf) {
         printf("    %5lu: (%5lu)",
                mclockEnd, mclockEnd - mclockBegin);
         printf("    Coll End  ");
         showStatsText(notcon, con, live);
         if(rnd()==0) showStatsAscii(notcon, con, live, alimit);
+        }
         break;
       }
       case mps_message_type_finalization(): {

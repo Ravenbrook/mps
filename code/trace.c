@@ -1485,7 +1485,35 @@ failBegin:
 
 /* Collection control parameters */
 
-double TraceTopGenMortality = 0.51;
+double TraceTopGenMortality = 0.00;
+
+/* .traceworkfactor:
+ *
+ *'TraceWorkFactor' means how many bytes of Mutator Allowance we 
+ * would like, per byte of Collector Allowance.
+ * (If the collector is expected to allocate 1MB during a trace, 
+ * and TraceWorkFactor is 0.25, then we aim to let the mutator 
+ * allocate 0.25MB during the incremental progress of the trace).
+ *
+ * So TraceWorkFactor is an expression of the mutator's requirement of 
+ * incrementality, to avoid the collector hogging the CPU during a 
+ * trace.  Low TraceWorkFactor means low mutator allowance, ie. 
+ * collector works 'fast' relative to mutator allocation.  
+ *
+ * (TraceWorkFactor expresses the *desired* Mutator Allowance; 
+ * sometimes there is insufficient ArenaAvail, and we then reduce the 
+ * Mutator Allowance accordingly).
+ *
+ * Note that TraceWorkFactor is ratio of space to space.  In contrast, 
+ * the scan rate calculation in TraceStart predicts the 
+ * amount of scanning work -- a measure of CPU time -- and aims to 
+ * divide that up so that it happens in the required number of 
+ * traceQuanta.  If that scan-work prediction is wrong, the rate is 
+ * wrong, so too many or too few traceQuanta will be required, and the 
+ * Mutator Allowance (finishingTime) will be missed.  That means the 
+ * Mutator would in fact allocate more or fewer bytes than its 
+ * Allowance for the trace.
+ */
 double TraceWorkFactor = 0.25;
 
 
@@ -1726,6 +1754,34 @@ void TraceQuantum(Trace trace)
           && (trace->emergency || traceWorkClock(trace) < pollEnd));
 }
 
+
+/* traceAllowanceFull -- how much space would a full collect need? */
+
+static Size collectorAllowanceFull(Arena arena)
+{
+  Size collectorAllowance;
+  
+  /* How much will the collector allocate, eg. for preserve-by-copy?
+   *
+   * We'll condemn all automatic (AttrGC) pool objects.  Only the 
+   * AttrMOVINGGC ones may be preserved-by-copy -- in the worst 
+   * case, all AttrMOVINGGC objects.  Plus some overhead for 
+   * control structures (eg. SegStructs in the ControlPool).
+   * Therefore trace->condemned might be an over- or under-estimate.
+   *
+   * HOWEVER: we will instead assume that the whole of ArenaCommitted 
+   * could end up copied to to-space.  This accounts for overheads: the 
+   * overheads already taken by the from-space objects are already 
+   * inflating ArenaCommitted, so by counting them we allow for similar 
+   * overheads in to-space.  It's safe -- and indeed it may be quite 
+   * pessimistic.
+   */
+  collectorAllowance = ArenaCommitted(arena) - ArenaSpareCommitted(arena);
+  
+  return collectorAllowance;
+}  
+
+
 /* TraceStartCollectAll: start a trace which condemns everything in
  * the arena.
  *
@@ -1736,7 +1792,9 @@ Res TraceStartCollectAll(Trace *traceReturn, Arena arena, int why)
 {
   Trace trace = NULL;
   Res res;
-  double finishingTime;
+  Size collectorAllowance;
+  double dMutatorAllowance;
+  double finishingTime;  /* a synonym for Mutator Allowance */
 
   AVERT(Arena, arena);
   AVER(arena->busyTraces == TraceSetEMPTY);
@@ -1746,8 +1804,24 @@ Res TraceStartCollectAll(Trace *traceReturn, Arena arena, int why)
   res = traceCondemnAll(trace);
   if(res != ResOK) /* should try some other trace, really @@@@ */
     goto failCondemn;
-  finishingTime = ArenaAvail(arena)
-                  - trace->condemned * (1.0 - TraceTopGenMortality);
+
+  /* How much might the collector allocate during the trace? */
+  collectorAllowance = collectorAllowanceFull(arena);
+
+  /* How much can we allow the mutator to allocate during the trace */
+  /* (to maintain incrementality), so that it exactly exhausts */
+  /* ArenaAvail? */
+  /* [RHSK 2010-04-28: This is bogus; see .exhaust.  Also, if */
+  /* triggered in response to mps_arena_start_collect, mutator */
+  /* allowance might be enormous -- and all that allowance will */
+  /* go into nursery zones @@@@!  (If triggered by the 'dynamic */
+  /* criterion', then mutator allowance will at least be <= that */
+  /* requested by TraceWorkFactor, which is okay).] */
+  /* Note: might be negative, so use double. */
+  dMutatorAllowance = (double)ArenaAvail(arena)
+                      - (double)collectorAllowance;
+
+  finishingTime = dMutatorAllowance;
   if(finishingTime < 0) {
     /* Run out of time, should really try a smaller collection. @@@@ */
     finishingTime = 0.0;
@@ -1776,10 +1850,14 @@ Size TracePoll(Globals globals)
 
   scannedSize = (Size)0;
   if(arena->busyTraces == TraceSetEMPTY) {
+    double dynamicDeferral;
+
     /* If no traces are going on, see if we need to start one. */
+  
+    if(0) {
+
     Size sFoundation, sCondemned, sSurvivors, sConsTrace;
     double tTracePerScan; /* tTrace/cScan */
-    double dynamicDeferral;
 
     /* Compute dynamic criterion.  See strategy.lisp-machine. */
     AVER(TraceTopGenMortality >= 0.0);
@@ -1788,11 +1866,43 @@ Size TracePoll(Globals globals)
     /* @@@@ sCondemned should be scannable only */
     sCondemned = ArenaCommitted(arena) - ArenaSpareCommitted(arena);
     sSurvivors = (Size)(sCondemned * (1 - TraceTopGenMortality));
+    /* This next line seems utterly bogus.  RHSK 2010-04-28 */
     tTracePerScan = sFoundation + (sSurvivors * (1 + TraceCopyScanRATIO));
     AVER(TraceWorkFactor >= 0);
     AVER(sSurvivors + tTracePerScan * TraceWorkFactor <= (double)SizeMAX);
     sConsTrace = (Size)(sSurvivors + tTracePerScan * TraceWorkFactor);
     dynamicDeferral = (double)ArenaAvail(arena) - (double)sConsTrace;
+  
+    } else {
+      Size collectorAllowance;
+      Size mutatorAllowance;
+      double traceAllowance;
+      
+      collectorAllowance = collectorAllowanceFull(arena);
+
+      /* How much would we LIKE to allow the mutator to allocate */
+      /* during the trace, to maintain incrementality?  See */
+      /* .traceworkfactor. */
+      mutatorAllowance = collectorAllowance * TraceWorkFactor;
+  
+      /* We only get polled every ArenaPollALLOCTIME.  If we decide */
+      /* not to start now, how much mutator allocation will occur */
+      /* before our next opportunity to trigger a full collection? */
+      /* [Note: does not account for the delay a minor generational */
+      /* collection would cause.  RHSK 2010-04-28.] */
+      /* If that would make us too late, better start now. */
+      mutatorAllowance += ArenaPollALLOCTIME;
+  
+      traceAllowance = collectorAllowance + mutatorAllowance;
+      
+      /* .exhaust: Is that space available?  Would there be some */
+      /* spare?  Wait until there would be NONE spare, ie. until the */
+      /* collection will completely fill the arena! */
+      /* [This is a totally bogus aim.  It utterly ignores the fact */
+      /* that much of ArenaAvail will be in the wrong zones.  RHSK */
+      /* 2010-04-28.] */
+      dynamicDeferral = (double)ArenaAvail(arena) - traceAllowance;
+    }
 
     if(dynamicDeferral < 0.0) { /* start full GC */
       res = TraceStartCollectAll(&trace, arena, TraceStartWhyDYNAMICCRITERION);
@@ -1826,6 +1936,8 @@ Size TracePoll(Globals globals)
           goto failCondemn;
         trace->chain = firstChain;
         ChainStartGC(firstChain, trace);
+        /* trace->condemned * TraceWorkFactor = mutatorAllowance, */
+        /* aka finishingTime. */
         TraceStart(trace, mortality, trace->condemned * TraceWorkFactor);
         scannedSize = traceWorkClock(trace);
       }
