@@ -1399,13 +1399,15 @@ static Res vmAllocComm(Addr *baseReturn, Tract *baseTractReturn,
     DIAG_DECL( ZoneSet old = vmArena->genZoneSet[gen]; )
     vmArena->genZoneSet[gen] = ZoneSetUnion(vmArena->genZoneSet[gen], zones);
     DIAG(
-      if(vmArena->genZoneSet[gen] != old) {
+      static Bool once = TRUE;
+      if(once || vmArena->genZoneSet[gen] != old) {
         DIAG_FIRSTF(( "vmAllocComm_genZoneSet",
           "gen $U, had genZoneSet $B, now gets zones $B\n",
           (WriteFU)gen, (WriteFB)old, (WriteFB)zones,
           NULL ));
         DIAG( ArenaDescribe(arena, DIAG_STREAM); );
         DIAG_END("vmAllocComm_genZoneSet");
+        once = FALSE;
       }
     );
   }
