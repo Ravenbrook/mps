@@ -489,7 +489,19 @@ static Res VMArenaInit(Arena *arenaReturn, ArenaClass class, va_list args)
   for(gen = (Index)0; gen < VMArenaGenCount; gen++) {
     vmArena->genZoneSet[gen] = ZoneSetEMPTY;
   }
+  vmArena->genZoneSet[0] = (ZoneSet)0x10101010;
+  vmArena->genZoneSet[1] = (ZoneSet)0x08080808;
+  vmArena->genZoneSet[2] = (ZoneSet)0x67E7E7E6;
   vmArena->freeSet = ZoneSetUNIV; /* includes blacklist */
+  for(gen = (Index)0; gen < VMArenaGenCount; gen++) {
+    /* Initial setting should be entirely within (free - blacklist), */
+    /* ie. no clashes amongst initial settings (blacklist included). */
+    AVER(ZoneSetInter(vmArena->genZoneSet[gen],
+                      ZoneSetDiff(vmArena->freeSet, vmArena->blacklist))
+         == vmArena->genZoneSet[gen]);
+    /* Mark as no longer free */
+    vmArena->freeSet = ZoneSetDiff(vmArena->freeSet, vmArena->genZoneSet[gen]);
+  }
   /* <design/arena/#coop-vm.struct.vmarena.extendby.init> */
   vmArena->extendBy = userSize;
   vmArena->extendMin = 0;

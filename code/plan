@@ -2,6 +2,10 @@ MPS-Shark:
 
 Zone map init:
   allocate all 32 zones thus, so every 8-stripe window has some of every zoneset:
+  b    80        00         00        01
+  0    10        10         10        10
+  1    08        08         08        08
+  2    67        E7         E7        E6
     b2201222  22201222   22201222  2220122b
          ---  -----
   0 and 1 each get 4/32 = 1/8
