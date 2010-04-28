@@ -462,7 +462,7 @@ static Res VMArenaInit(Arena *arenaReturn, ArenaClass class, va_list args)
   AVER(class == VMArenaClassGet() || class == VMNZArenaClassGet());
   AVER(userSize > 0);
 
-  /* Create a VM to hold the arena and map it. */
+  /* Create a VM to hold the VMArenaStruct and map it. */
   vmArenaSize = SizeAlignUp(sizeof(VMArenaStruct), MPS_PF_ALIGN);
   res = VMCreate(&arenaVM, vmArenaSize);
   if (res != ResOK)
@@ -1064,11 +1064,17 @@ static Bool pagesFindFreeWithSegPref(Index *baseReturn, VMChunk *chunkReturn,
  *
  * The size arg specifies how much we wish to allocate after the extension.
  */
-static Res vmArenaExtend(VMArena vmArena, Size size)
+static Res vmArenaExtend(VMArena vmArena, Size size, SegPref pref)
 {
   Chunk newChunk;
   Size chunkSize;
   Res res;
+  DIAG_DECL( Size vmem0; )
+  DIAG_DECL( Size chunkSizeTry; )
+
+  UNUSED(pref);  /* except in diagnostic varieties */
+
+  DIAG( vmem0 = VMArenaReserved(VMArena2Arena(vmArena)); );
 
   /* Choose chunk size. */
   /* .vmchunk.overhead: This code still lacks a proper estimate of */
@@ -1101,6 +1107,7 @@ static Res vmArenaExtend(VMArena vmArena, Size size)
     "to accommodate size $W, try chunkSize $W", size, chunkSize,
     " (VMArenaReserved currently $W bytes)\n",
     VMArenaReserved(VMArena2Arena(vmArena)), NULL ));
+  DIAG( chunkSizeTry = chunkSize; );
 
   /* .chunk-create.fail: If we fail, try again with a smaller size */
   {
@@ -1136,7 +1143,42 @@ static Res vmArenaExtend(VMArena vmArena, Size size)
   }
 
 vmArenaExtend_Done:
+  DIAG(
+    Size vmem1 = VMArenaReserved(VMArena2Arena(vmArena));
 
+    DIAG_FIRSTF(( "vmArenaExtend_Why",
+      "vmem $Um$3 ", M_whole(vmem0), M_frac(vmem0),
+      "+ $Um$3 ", M_whole(chunkSize), M_frac(chunkSize),
+      NULL ));
+    if(chunkSize != chunkSizeTry) {
+      DIAG_MOREF(( 
+        "(tried $Um$3) ", M_whole(chunkSizeTry), M_frac(chunkSizeTry),
+        NULL ));
+    }
+    DIAG_MOREF((
+      "-> $Um$3, ", M_whole(vmem1), M_frac(vmem1),
+      "why: size $Um$3, ", M_whole(size), M_frac(size),
+      NULL ));
+
+    /* pref */
+    DIAG_MOREF((
+      "pref ",
+      /* "$S", pref->high ? "h" : "l", */
+      "$S", pref->isCollected ? "a" : "m",
+      NULL ));
+    if(pref->isGen) {
+      DIAG_MOREF((
+        "G-$U", pref->gen,
+        NULL ));
+    } else {
+      DIAG_MOREF((
+        "Z-$B", pref->zones,
+        NULL ));
+    }
+    
+    DIAG_END("vmArenaExtend_Why");
+  );
+  
   DIAG_SINGLEF(( "vmArenaExtend_Done",
     "Request for new chunk of VM $W bytes succeeded", chunkSize,
     " (VMArenaReserved now $W bytes)\n", 
@@ -1158,7 +1200,7 @@ static Res VMAllocPolicy(Index *baseIndexReturn, VMChunk *chunkReturn,
   if (!pagesFindFreeWithSegPref(baseIndexReturn, chunkReturn,
                                 vmArena, pref, size, FALSE)) {
     /* try and extend, but don't worry if we can't */
-    (void)vmArenaExtend(vmArena, size);
+    (void)vmArenaExtend(vmArena, size, pref);
 
     /* We may or may not have a new chunk at this point */
     /* we proceed to try the allocation again anyway. */

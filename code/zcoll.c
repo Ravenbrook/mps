@@ -842,7 +842,7 @@ int main(int argc, char **argv)
   /* 16<<20 == 16777216 == 16 Mebibyte */
 
   if(zoneset_diag) {
-    testscriptA("Arena(size 1000000), "
+    testscriptA("Arena(size 500000), "
                 "Make(random 1, keep-1-in 5, keep 50000, rootspace 30000, sizemethod 0), Collect, "
                 "Rootdrop(rank E), StackScan(0), Collect, Collect, StackScan(1), "
                 "Make(random 1, keep-1-in 5, keep 50000, rootspace 30000, sizemethod 0), Collect, "

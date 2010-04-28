@@ -34,6 +34,8 @@ struct RuleStruct RulesGlobal[] = {
   { "+", "ArenaCreateV", "*", "zoneShift" },
   { "+", "vmAllocComm_genZoneSet", "*", "genZoneSet" },
   { "+", "vmAllocComm_genZoneSet", "*", "freeSet" },
+  { "+", "AMCTraceEnd_pageret", "*", "*" },
+  { "+", "vmArenaExtend_Why", "*", "*" },
   /* ----v---- always on please (RHSK) ----v---- */
   { "+", "MPSVersion", "*", "*" },
   { "+", "traceSetSignalEmergency", "*", "*" },
