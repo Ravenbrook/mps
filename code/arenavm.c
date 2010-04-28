@@ -462,7 +462,7 @@ static Res VMArenaInit(Arena *arenaReturn, ArenaClass class, va_list args)
   AVER(class == VMArenaClassGet() || class == VMNZArenaClassGet());
   AVER(userSize > 0);
 
-  /* Create a VM to hold the VMArenaStruct and map it. */
+  /* Create a VM to hold the (VM)ArenaStruct and map it. */
   vmArenaSize = SizeAlignUp(sizeof(VMArenaStruct), MPS_PF_ALIGN);
   res = VMCreate(&arenaVM, vmArenaSize);
   if (res != ResOK)

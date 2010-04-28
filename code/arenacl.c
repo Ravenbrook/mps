@@ -209,7 +209,7 @@ static Res ClientArenaInit(Arena *arenaReturn, ArenaClass class,
 
   limit = AddrAdd(base, size);
 
-  /* allocate the arena */
+  /* allocate the (Client)ArenaStruct */
   base = AddrAlignUp(base, MPS_PF_ALIGN);
   clientArena = (ClientArena)base;
   chunkBase = AddrAlignUp(AddrAdd(base, clArenaSize), MPS_PF_ALIGN);
