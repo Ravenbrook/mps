@@ -1,13 +1,30 @@
+MPS-Shark:
 
+Zone map init:
+  allocate all 32 zones thus, so every 8-stripe window has some of every zoneset:
+    b2201222  22201222   22201222  2220122b
+         ---  -----
+  0 and 1 each get 4/32 = 1/8
+  2 (topgen) gets 22/32 = 69%
 
+Zone size:
+  Tell GR to set _growth to 400 / 5 = 80MB, not arena / 8.
 
+Full rate:
+  Make M = 0.25 S, not 2.5 S!
+  In both trigger condition and finishingTime calc.
 
-
+VMem limit:
+  soft and hard required.  soft might be simply checked by ArenaAvail?
+  code interface function with (param_code, param_value), for easy future changes
 
 
 
 
 ================ NOTES; CONSIDER ADDING THESE TO DESIGN DOCS ==================
+
+
+-------------------- notes: simple chunk return --------------------
 
 ____PRIMARY____
 
