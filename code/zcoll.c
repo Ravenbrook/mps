@@ -832,30 +832,42 @@ static void testscriptA(const char *script)
  */
 int main(int argc, char **argv)
 {
+  int zoneset_diag = 1;  /* test zoneset_diag */
+  int simple_chunk_return = 0;  /* test simple_chunk_return */
+  int large_segment_padding = 0;  /* test large_segment_padding */
+
   randomize(argc, argv);
   
   /* 1<<19 == 524288 == 1/2 Mebibyte */
   /* 16<<20 == 16777216 == 16 Mebibyte */
 
+  if(zoneset_diag) {
+    testscriptA("Arena(size 1000000), "
+                "Make(random 1, keep-1-in 5, keep 50000, rootspace 30000, sizemethod 0), Collect, "
+                "Rootdrop(rank E), StackScan(0), Collect, Collect, StackScan(1), "
+                "Make(random 1, keep-1-in 5, keep 50000, rootspace 30000, sizemethod 0), Collect, "
+                "Rootdrop(rank E), Collect, Collect.");
+  }
+
   /* 1<<19 == 524288 == 1/2 Mebibyte */
   /* This is bogus!  sizemethod 1 can make a 300,000-slot dylan vector, ie. 1.2MB. */
   /* Try 10MB arena */
   /* testscriptA("Arena(size 10485760), Make(keep-1-in 5, keep 50000, rootspace 30000, sizemethod 1), Collect."); */
-  if(1) {
+  if(simple_chunk_return) {
     testscriptA("Arena(size 10000000), "
                 "Make(random 1, keep-1-in 5, keep 50000, rootspace 30000, sizemethod 1), Collect, "
                 "Rootdrop(rank E), StackScan(0), Collect, Collect, StackScan(1), "
                 "Make(random 1, keep-1-in 5, keep 50000, rootspace 30000, sizemethod 1), Collect, "
                 "Rootdrop(rank E), Collect, Collect.");
   }
-  if(1) {
+  if(simple_chunk_return) {
     testscriptA("Arena(size 4000000), "
                 "Make(random 1, keep-1-in 5, keep 50000, rootspace 30000, sizemethod 1), Collect, "
                 "Rootdrop(rank E), StackScan(0), Collect, Collect, StackScan(1), "
                 "Make(random 1, keep-1-in 5, keep 50000, rootspace 30000, sizemethod 1), Collect, "
                 "Rootdrop(rank E), Collect, Collect.");
   }
-  if(1) {
+  if(simple_chunk_return) {
     testscriptA("Arena(size 4000000), "
                 "Make(random 1, keep-1-in 5, keep 10000, rootspace 30000, sizemethod 1), "
                 "Rootdrop(rank E), Collect, "
@@ -866,7 +878,7 @@ int main(int argc, char **argv)
                 "Make(random 1, keep-1-in 5, keep 50000, rootspace 30000, sizemethod 1), "
                 "Rootdrop(rank E), Collect.");
   }
-  if(1) {
+  if(simple_chunk_return) {
     testscriptA("Arena(size 10485760), "
                 "Make(random 0, keep-1-in 5, keep 50000, rootspace 30000, sizemethod 2), "
                 "Collect, "
@@ -875,7 +887,7 @@ int main(int argc, char **argv)
                 "Collect, "
                 "Rootdrop(rank E), Collect, Collect.");
   }
-  if(1) {
+  if(simple_chunk_return) {
     testscriptA("Arena(size 10485760), "
                 "ZRndStateSet(239185672), "
                 "Make(random 1, keep-1-in 5, keep 50000, rootspace 30000, sizemethod 1), Collect, "
@@ -914,10 +926,12 @@ int main(int argc, char **argv)
   /* 7p = 28672b; 8p = 32768b */
   /* 28000 = Medium segment */
   /* 29000 = Large segment */
-  testscriptA("Arena(size 16777216), BigdropSmall(big 28000, small A), Collect.");
-  testscriptA("Arena(size 16777216), BigdropSmall(big 29000, small A), Collect.");
-  testscriptA("Arena(size 16777216), BigdropSmall(big 28000, small E), Collect.");
-  testscriptA("Arena(size 16777216), BigdropSmall(big 29000, small E), Collect.");
+ if(large_segment_padding) {
+    testscriptA("Arena(size 16777216), BigdropSmall(big 28000, small A), Collect.");
+    testscriptA("Arena(size 16777216), BigdropSmall(big 29000, small A), Collect.");
+    testscriptA("Arena(size 16777216), BigdropSmall(big 28000, small E), Collect.");
+    testscriptA("Arena(size 16777216), BigdropSmall(big 29000, small E), Collect.");
+  }
 
   /* 16<<20 == 16777216 == 16 Mebibyte */
   /* See .catalog.broken.

@@ -1668,10 +1668,19 @@ static void VMCompact(Arena arena, Trace trace)
     /* VMCompact diag: emit for all client-requested collections, */
     /* plus any others where chunks were gained or lost during the */
     /* collection.  */
-    if(trace->why == TraceStartWhyCLIENTFULL_INCREMENTAL
-       || trace->why == TraceStartWhyCLIENTFULL_BLOCK
-       || vmem0 != vmem1
-       || vmem1 != vmem2) {
+    /* diag_cli_req  diag_chunk_flux */
+    if(TRUE) {  /* ALWAYS Diag please. RHSK 2010-04-28 */
+      char *diag_cli_req;
+      char *diag_chunk_flux;
+      
+      diag_cli_req = (trace->why == TraceStartWhyCLIENTFULL_INCREMENTAL
+                      || trace->why == TraceStartWhyCLIENTFULL_BLOCK)
+                     ? "diag_cli_req"
+                     : "";
+      diag_chunk_flux = (vmem0 != vmem1
+                         || vmem1 != vmem2)
+                        ? "diag_chunk_flux"
+                        : "";
       DIAG_SINGLEF(( "VMCompact",
         "pre-collection vmem was $Um$3, ", M_whole(vmem0), M_frac(vmem0),
         "peaked at $Um$3, ", M_whole(vmem1), M_frac(vmem1),
@@ -1684,6 +1693,7 @@ static void VMCompact(Arena arena, Trace trace)
         " $Um$3-stuck]", M_whole(trace->preservedInPlaceSize), M_frac(trace->preservedInPlaceSize),
         " ($Um$3-not)", M_whole(trace->notCondemned), M_frac(trace->notCondemned),
         " )",
+        " tags: $S $S.", diag_cli_req, diag_chunk_flux,
         NULL));
     }
   );
