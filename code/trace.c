@@ -1514,7 +1514,7 @@ double TraceTopGenMortality = 0.00;
  * Mutator would in fact allocate more or fewer bytes than its 
  * Allowance for the trace.
  */
-double TraceWorkFactor = 0.25;
+double TraceWorkFactor = 0.125;
 
 
 /* TraceStart -- condemn a set of objects and start collection
