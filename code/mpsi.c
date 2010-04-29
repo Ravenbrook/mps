@@ -332,6 +332,7 @@ void mps_arena_release(mps_arena_t mps_arena)
   Arena arena = (Arena)mps_arena;
   ArenaEnter(arena);
   ArenaRelease(ArenaGlobals(arena));
+  DIAG_SINGLEF(( "mps_arena_release", NULL ));
   ArenaLeave(arena);
 }
 

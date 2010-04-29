@@ -348,20 +348,25 @@ Res ArenaDescribe(Arena arena, mps_lib_FILE *stream)
   }
 
   res = WriteF(stream,
-               "  reserved         $W  <-- "
+               "  reserved         $W = $Um$3  <-- "
                "total size of address-space reserved\n",
-               (WriteFW)arena->reserved,
+               (WriteFW)arena->reserved, 
+               M_whole(arena->reserved), M_frac(arena->reserved),
                NULL);
   if (res != ResOK) return res;
 
   zoneSize = (Size)1 << arena->zoneShift;
   res = WriteF(stream,
-               "  committed        $W  <-- "
+               "  committed        $W = $Um$3  <-- "
                "total bytes currently stored (in RAM or swap)\n",
                (WriteFW)arena->committed,
-               "  commitLimit      $W\n", (WriteFW)arena->commitLimit,
-               "  spareCommitted   $W\n", (WriteFW)arena->spareCommitted,
-               "  spareCommitLimit $W\n", (WriteFW)arena->spareCommitLimit,
+               M_whole(arena->reserved), M_frac(arena->reserved),
+               "  commitLimit      $W = $Um$3\n", (WriteFW)arena->commitLimit,
+               M_whole(arena->commitLimit), M_frac(arena->commitLimit),
+               "  spareCommitted   $W = $Um$3\n", (WriteFW)arena->spareCommitted,
+               M_whole(arena->spareCommitted), M_frac(arena->spareCommitted),
+               "  spareCommitLimit $W = $Um$3\n", (WriteFW)arena->spareCommitLimit,
+               M_whole(arena->spareCommitLimit), M_frac(arena->spareCommitLimit),
                "  zoneShift $U  zoneSize $W = $Um$3\n", (WriteFU)arena->zoneShift,
                (WriteFW)zoneSize, M_whole(zoneSize), M_frac(zoneSize),
                "  alignment $W\n", (WriteFW)arena->alignment,
@@ -371,6 +376,7 @@ Res ArenaDescribe(Arena arena, mps_lib_FILE *stream)
   res = WriteF(stream,
                "  droppedMessages $U$S\n", (WriteFU)arena->droppedMessages,
                (arena->droppedMessages == 0 ? "" : "  -- MESSAGES DROPPED!"),
+               "  epoch $U\n", (WriteFU)arena->epoch,
                NULL);
   if (res != ResOK) return res;
 

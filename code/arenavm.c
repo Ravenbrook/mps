@@ -1128,7 +1128,8 @@ static Res vmArenaExtend(VMArena vmArena, Size size, SegPref pref)
 
 vmArenaExtend_Done:
   DIAG(
-    Size vmem1 = ArenaReserved(VMArena2Arena(vmArena));
+    Arena arena = VMArena2Arena(vmArena);
+    Size vmem1 = ArenaReserved(arena);
 
     DIAG_FIRSTF(( "vmArenaExtend_Why",
       "vmem $Um$3 ", M_whole(vmem0), M_frac(vmem0),
@@ -1149,6 +1150,8 @@ vmArenaExtend_Done:
     }
     DIAG_MOREF((
       "-> $Um$3, ", M_whole(vmem1), M_frac(vmem1),
+      "$S", ArenaGlobals(arena)->clamped ? "CLAMPED!, " : "",
+      "$S", (arena->busyTraces == TraceSetEMPTY) ? "notrace, " : "",
       "why: size $Um$3, ", M_whole(size), M_frac(size),
       NULL ));
 
@@ -1431,6 +1434,7 @@ static Res vmAllocComm(Addr *baseReturn, Tract *baseTractReturn,
       static Bool once = TRUE;
       if(once || vmArena->genZoneSet[gen] != old) {
         DIAG_FIRSTF(( "vmAllocComm_genZoneSet",
+          "$S", once ? " (force diag to emit once this first time, even if genZoneSet is unchanged)\n" : "",
           "gen $U, had genZoneSet $B, now gets zones $B\n",
           (WriteFU)gen, (WriteFB)old, (WriteFB)zones,
           NULL ));
@@ -1728,15 +1732,12 @@ static void VMCompact(Arena arena, Trace trace)
         "pre-collection vmem was $Um$3, ", M_whole(vmem0), M_frac(vmem0),
         "peaked at $Um$3, ", M_whole(vmem1), M_frac(vmem1),
         "released $Um$3, ", M_whole(vmemD), M_frac(vmemD),
-        "now $Um$3", M_whole(vmem2), M_frac(vmem2),
+        "now $Um$3 ", M_whole(vmem2), M_frac(vmem2),
+        "(epoch $U $U", arena->epoch, trace->why,
         NULL ));
       if(trace->why == TraceStartWhyCHAIN_GEN0CAP) {
         DIAG_MOREF((
-          " (why $U [to $U]", trace->why, trace->topCondemnedGenSerial,
-          NULL ));
-      } else {
-        DIAG_MOREF((
-          " (why $U", trace->why,
+          " [to $U]", trace->topCondemnedGenSerial,
           NULL ));
       }
       DIAG_MOREF((

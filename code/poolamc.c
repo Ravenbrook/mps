@@ -2207,7 +2207,7 @@ static void AMCTraceEnd(Pool pool, Trace trace)
 {
   AMC amc;
   TraceId ti;
-  Count pRetMin = 100;
+  Count pRetMin = 0;
   
   AVERT(Pool, pool);
   AVERT(Trace, trace);

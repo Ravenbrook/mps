@@ -1634,9 +1634,31 @@ void TraceStart(Trace trace, double mortality, double finishingTime)
     } while (SegNext(&seg, arena, base));
   }
 
+  DIAG_FIRSTF(( "TraceStart1",
+    "(epoch $U $U", arena->epoch, trace->why,
+    NULL ));
+  if(trace->why == TraceStartWhyCHAIN_GEN0CAP) {
+    DIAG_MOREF((
+      " [to $U]", trace->topCondemnedGenSerial,
+      NULL ));
+  }
+  DIAG_MOREF((
+    ")",
+    NULL ));
+  DIAG_END("TraceStart1");
+
   DIAG_FIRSTF(( "TraceStart",
     "because code $U: $S\n",
     trace->why, TraceStartWhyToString(trace->why),
+    "(epoch $U $U", arena->epoch, trace->why,
+    NULL ));
+  if(trace->why == TraceStartWhyCHAIN_GEN0CAP) {
+    DIAG_MOREF((
+      " [to $U]", trace->topCondemnedGenSerial,
+      NULL ));
+  }
+  DIAG_MOREF((
+    ")\n",
     NULL ));
 
   DIAG( ArenaDescribe(arena, DIAG_STREAM); );
