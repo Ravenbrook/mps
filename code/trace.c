@@ -177,6 +177,7 @@ Bool TraceCheck(Trace trace)
   if(trace->chain != NULL) {
     CHECKU(Chain, trace->chain);
   }
+  /* check for topCondemnedGenSerial is missing */
 
   /* @@@@ checks for counts missing */
 
@@ -663,6 +664,7 @@ found:
   trace->band = RankAMBIG;      /* Required to be the earliest rank. */
   trace->emergency = FALSE;
   trace->chain = NULL;
+  STATISTIC(trace->topCondemnedGenSerial = -1);  /* unsigned */
   STATISTIC(trace->preTraceArenaReserved = ArenaReserved(arena));
   trace->condemned = (Size)0;   /* nothing condemned yet */
   trace->notCondemned = (Size)0;
@@ -1914,6 +1916,21 @@ Size TracePoll(Globals globals)
       /* that much of ArenaAvail will be in the wrong zones.  RHSK */
       /* 2010-04-28.] */
       dynamicDeferral = (double)ArenaAvail(arena) - traceAllowance;
+      
+      if(dynamicDeferral < 0.0) {
+        DIAG_DECL( Size dd = traceAllowance - ArenaAvail(arena); )
+        DIAG_SINGLEF(( "FullTrigger",
+          "(collectorAllowance $Um$3 + ",
+          M_whole(collectorAllowance), M_frac(collectorAllowance),
+          "mutatorAllowanceDesired $Um$3)",
+          M_whole(mutatorAllowanceDesired), M_frac(mutatorAllowanceDesired),
+          " - ArenaAvail $Um$3",
+          M_whole(ArenaAvail(arena)), M_frac(ArenaAvail(arena)),
+          " = $Um$3 deficit",
+          M_whole(dd), M_frac(dd),
+          " -- full collect.",
+          NULL ));
+      }
     }
 
     if(dynamicDeferral < 0.0) { /* start full GC */

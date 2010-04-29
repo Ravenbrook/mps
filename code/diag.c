@@ -33,6 +33,7 @@ struct RuleStruct RulesGlobal[] = {
   { "+", "VMCompact", "*", "*" },
   { "+", "ArenaCreateV", "*", "*" },
   { "+", "mps_arena_vm_growth", "*", "*" },
+  { "+", "FullTrigger", "*", "*" },
   { "+", "vmAllocComm_genZoneSet", "*", "genZoneSet" },
   { "+", "vmAllocComm_genZoneSet", "*", "freeSet" },
   { "+", "AMCTraceEnd_pageret", "*", "*" },

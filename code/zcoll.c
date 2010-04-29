@@ -817,6 +817,9 @@ static void testscriptA(const char *script)
   die(mps_arena_create(&arena, mps_arena_class_vm(), arenasize /*, malloc(arenasize)*/),
       "arena_create");
 
+  die(mps_arena_vm_growth(arena, arenasize / 2, arenasize / 2),
+      "arena_create");
+
   /* thr: used to stop/restart multiple threads */
   die(mps_thread_reg(&thr, arena), "thread");
 

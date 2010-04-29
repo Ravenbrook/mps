@@ -1724,12 +1724,22 @@ static void VMCompact(Arena arena, Trace trace)
                          || vmem1 != vmem2)
                         ? "diag_chunk_flux"
                         : "";
-      DIAG_SINGLEF(( "VMCompact",
+      DIAG_FIRSTF(( "VMCompact",
         "pre-collection vmem was $Um$3, ", M_whole(vmem0), M_frac(vmem0),
         "peaked at $Um$3, ", M_whole(vmem1), M_frac(vmem1),
         "released $Um$3, ", M_whole(vmemD), M_frac(vmemD),
         "now $Um$3", M_whole(vmem2), M_frac(vmem2),
-        " (why $U", trace->why,
+        NULL ));
+      if(trace->why == TraceStartWhyCHAIN_GEN0CAP) {
+        DIAG_MOREF((
+          " (why $U [to $U]", trace->why, trace->topCondemnedGenSerial,
+          NULL ));
+      } else {
+        DIAG_MOREF((
+          " (why $U", trace->why,
+          NULL ));
+      }
+      DIAG_MOREF((
         ": $Um$3", M_whole(trace->condemned), M_frac(trace->condemned),
         "[->$Um$3", M_whole(live), M_frac(live),
         " $U%-live", livePerc,
@@ -1738,6 +1748,7 @@ static void VMCompact(Arena arena, Trace trace)
         " )",
         " tags: $S $S.", diag_cli_req, diag_chunk_flux,
         NULL));
+      DIAG_END("VMCompact");
     }
   );
 }
