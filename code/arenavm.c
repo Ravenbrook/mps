@@ -1055,9 +1055,10 @@ static Res vmArenaExtend(VMArena vmArena, Size size, SegPref pref)
 {
   Chunk newChunk;
   Size chunkSize;
+  Size chunkMin = 4 * 1024;  /* typical single page */
   Res res;
   DIAG_DECL( Size vmem0; )
-  DIAG_DECL( Size chunkSizeTry; )
+  DIAG_DECL( Size chunkSizeWant; )
 
   UNUSED(pref);  /* except in diagnostic varieties */
 
@@ -1090,17 +1091,12 @@ static Res vmArenaExtend(VMArena vmArena, Size size, SegPref pref)
   } while(0);
 
 
-  DIAG_SINGLEF(( "vmArenaExtend_Start", 
-    "to accommodate size $W, try chunkSize $W", size, chunkSize,
-    " (ArenaReserved currently $W bytes)\n",
-    ArenaReserved(VMArena2Arena(vmArena)), NULL ));
-  DIAG( chunkSizeTry = chunkSize; );
+  DIAG( chunkSizeWant = chunkSize; );
 
   /* .chunk-create.fail: If we fail, try again with a smaller size */
   {
     int fidelity = 8;  /* max fraction of addr-space we may 'waste' */
     Size chunkHalf;
-    Size chunkMin = 4 * 1024;  /* typical single page */
     Size sliceSize;
     
     if (vmArena->extendMin > chunkMin)
@@ -1116,11 +1112,12 @@ static Res vmArenaExtend(VMArena vmArena, Size size, SegPref pref)
       /* remove slices, down to chunkHalf but no further */
       for(; chunkSize > chunkHalf; chunkSize -= sliceSize) {
         if(chunkSize < chunkMin) {
-          DIAG_SINGLEF(( "vmArenaExtend_FailMin", 
-            "no remaining address-space chunk >= min($W)", chunkMin,
-            " (so ArenaReserved remains $W bytes)\n",
-            ArenaReserved(VMArena2Arena(vmArena)), NULL ));
-          return ResRESOURCE;
+          Arena arena = VMArena2Arena(vmArena);
+          /* The previous high-water mark is no longer a good guide. */ 
+          arena->reservedHwm = arena->reserved;
+          chunkSize = 0;
+          res = ResRESOURCE;
+          goto vmArenaExtend_Done;
         }
         res = VMChunkCreate(&newChunk, vmArena, chunkSize);
         if(res == ResOK)
@@ -1135,12 +1132,20 @@ vmArenaExtend_Done:
 
     DIAG_FIRSTF(( "vmArenaExtend_Why",
       "vmem $Um$3 ", M_whole(vmem0), M_frac(vmem0),
-      "+ $Um$3 ", M_whole(chunkSize), M_frac(chunkSize),
       NULL ));
-    if(chunkSize != chunkSizeTry) {
+    if(chunkSize == 0) {
       DIAG_MOREF(( 
-        "(tried $Um$3) ", M_whole(chunkSizeTry), M_frac(chunkSizeTry),
+        "Extend failed (Min $Um$3) ", M_whole(chunkMin), M_frac(chunkMin),
         NULL ));
+    } else {
+      DIAG_MOREF(( 
+        "+ $Um$3 ", M_whole(chunkSize), M_frac(chunkSize),
+        NULL ));
+      if(chunkSize != chunkSizeWant) {
+        DIAG_MOREF(( 
+          "(wanted $Um$3) ", M_whole(chunkSizeWant), M_frac(chunkSizeWant),
+          NULL ));
+      }
     }
     DIAG_MOREF((
       "-> $Um$3, ", M_whole(vmem1), M_frac(vmem1),
@@ -1166,11 +1171,6 @@ vmArenaExtend_Done:
     DIAG_END("vmArenaExtend_Why");
   );
   
-  DIAG_SINGLEF(( "vmArenaExtend_Done",
-    "Request for new chunk of VM $W bytes succeeded", chunkSize,
-    " (ArenaReserved now $W bytes)\n", 
-    ArenaReserved(VMArena2Arena(vmArena)), NULL ));
-
   return res;
 }
 

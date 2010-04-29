@@ -180,7 +180,8 @@ Res ChunkInit(Chunk chunk, Arena arena,
   /* ->reserved knows about this chunk, committed < reserved again, */
   /* so the full AVERT(Arena, arena) should pass. */
   arena->reserved += size;
-  /* reservedHwm */
+  if(arena->reserved > arena->reservedHwm)
+    arena->reservedHwm = arena->reserved;
   AVERT(Arena, arena);  /* .aver.arena */
 
   chunk->serial = (arena->chunkSerial)++;

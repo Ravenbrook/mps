@@ -113,7 +113,7 @@ Bool ArenaCheck(Arena arena)
     CHECKD(Reservoir, &arena->reservoirStruct);
   }
   CHECKL(arena->reserved >= arena->committed);
-  /* CHECKL(arena->reservedHwm >= arena->committed); */
+  CHECKL(arena->reservedHwm >= arena->reserved);
   CHECKL(arena->committed <= arena->commitLimit);
   CHECKL(arena->spareCommitted <= arena->committed);
   CHECKL(arena->spareCommitted <= arena->spareCommitLimit);
@@ -167,7 +167,7 @@ Res ArenaInit(Arena arena, ArenaClass class)
   arena->class = class;
 
   arena->reserved = (Size)0;
-  /* arena->reservedHwm = (Size)0; */
+  arena->reservedHwm = (Size)0;
   arena->committed = (Size)0;
   /* commitLimit may be overridden by init (but probably not */
   /* as there's not much point) */
@@ -687,7 +687,7 @@ Size ArenaAvail(Arena arena)
     if(arena->commitLimit != ARENA_INIT_COMMIT_LIMIT) {
       limit = arena->commitLimit;
     } else {
-      limit = ArenaReserved(arena); /*arena->reservedHwm;*/
+      limit = arena->reservedHwm;
     }
   } else {
     /* Until and unless the client calls extend, only the current */
