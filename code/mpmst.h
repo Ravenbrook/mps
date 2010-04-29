@@ -639,6 +639,8 @@ typedef struct ArenaStruct {
 
   ReservoirStruct reservoirStruct; /* <design/reservoir/> */
 
+  /*Size reservedHwm;             highest-ever amount of reserved address-space */
+
   Size committed;               /* amount of committed RAM */
   Size commitLimit;             /* client-configurable commit limit */
 

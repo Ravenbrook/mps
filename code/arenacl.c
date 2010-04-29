@@ -123,8 +123,13 @@ static Res clientChunkCreate(Chunk *chunkReturn, Addr base, Addr limit,
   if (res != ResOK)
     goto failChunkInit;
 
+  /* If base < alignedBase, then those unusable bytes are not */
+  /* included in either arena->committed or arena->reserved. */
+  AVER(alignedBase == chunk->base);
+  /* ClientArena2Arena(clientArena)->reservedHwm += 
+    AddrOffset(chunk->base, chunk->limit); */
   ClientArena2Arena(clientArena)->committed +=
-    AddrOffset(base, PageIndexBase(chunk, chunk->allocBase));
+    AddrOffset(chunk->base, PageIndexBase(chunk, chunk->allocBase));
   BootBlockFinish(boot);
 
   clChunk->sig = ClientChunkSig;

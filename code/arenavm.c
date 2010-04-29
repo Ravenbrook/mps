@@ -343,6 +343,7 @@ static Res VMChunkCreate(Chunk *chunkReturn, VMArena vmArena, Size size)
   if (res != ResOK)
     goto failChunkInit;
 
+  /* VMArena2Arena(vmArena)->reservedHwm += VMReserved(vmChunk->vm); */
   BootBlockFinish(boot);
 
   vmChunk->sig = VMChunkSig;

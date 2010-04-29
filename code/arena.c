@@ -117,6 +117,7 @@ Bool ArenaCheck(Arena arena)
   /* Can't check that limit>=size because we may call ArenaCheck */
   /* while the size is being adjusted. */
 
+  /* CHECKL(arena->reservedHwm >= arena->committed); */
   CHECKL(arena->committed <= arena->commitLimit);
   CHECKL(arena->spareCommitted <= arena->committed);
   CHECKL(arena->spareCommitted <= arena->spareCommitLimit);
@@ -155,6 +156,10 @@ Bool ArenaCheck(Arena arena)
  * methods, not the generic Create.  This is because the class is
  * responsible for allocating the descriptor.  */
 
+/* Choosing -6 is a trick distinctive value, so that we can tell */
+/* if commitLimit is 'unset'. */
+#define ARENA_INIT_COMMIT_LIMIT (Size)-6
+
 Res ArenaInit(Arena arena, ArenaClass class)
 {
   Res res;
@@ -165,10 +170,11 @@ Res ArenaInit(Arena arena, ArenaClass class)
 
   arena->class = class;
 
+  /* arena->reservedHwm = (Size)0; */
   arena->committed = (Size)0;
   /* commitLimit may be overridden by init (but probably not */
   /* as there's not much point) */
-  arena->commitLimit = (Size)-1;
+  arena->commitLimit = ARENA_INIT_COMMIT_LIMIT;
   arena->spareCommitted = (Size)0;
   arena->spareCommitLimit = ARENA_INIT_SPARE_COMMIT_LIMIT;
   /* alignment is usually overridden by init */
@@ -674,12 +680,27 @@ Res ArenaSetCommitLimit(Arena arena, Size limit)
 
 Size ArenaAvail(Arena arena)
 {
-  Size sSwap;
+  /* Does this arena class automatically reserve extra address-space */
+  /* as required?  Heuristic: if no ->extend(), then it must be auto. */
+  /* (This heuristic works ok for the two current arena classes). */
+  Bool auto_size = (arena->class->extend == ArenaNoExtend);
+  Size limit;
 
-  sSwap = ArenaReserved(arena);
-  if (sSwap > arena->commitLimit) sSwap = arena->commitLimit;
-  /* @@@@ sSwap should take actual paging file size into account */
-  return sSwap - arena->committed + arena->spareCommitted;
+  if(auto_size) {
+    /* The currently available address-space is not important (it */
+    /* will grow and shrink as necessary).  If commitLimit is set, */
+    /* use that.  Otherwise use high-water mark. */
+    if(arena->commitLimit != ARENA_INIT_COMMIT_LIMIT) {
+      limit = arena->commitLimit;
+    } else {
+      limit = ArenaReserved(arena); /*arena->reservedHwm;*/
+    }
+  } else {
+    /* Until and unless the client calls extend, only the current */
+    /* address-space is available. */
+    limit = ArenaReserved(arena);
+  }
+  return (limit - arena->committed) + arena->spareCommitted;
 }
 
 
