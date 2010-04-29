@@ -61,7 +61,6 @@ DEFINE_CLASS(AbstractArenaClass, class)
   class->offset = 0;
   class->init = NULL;
   class->finish = NULL;
-  class->reserved = NULL;
   class->spareCommitExceeded = ArenaNoSpareCommitExceeded;
   class->extend = ArenaNoExtend;
   class->alloc = NULL;
@@ -87,7 +86,6 @@ Bool ArenaClassCheck(ArenaClass class)
   CHECKL(class->offset <= (size_t)(class->size - sizeof(ArenaStruct)));
   CHECKL(FUNCHECK(class->init));
   CHECKL(FUNCHECK(class->finish));
-  CHECKL(FUNCHECK(class->reserved));
   CHECKL(FUNCHECK(class->spareCommitExceeded));
   CHECKL(FUNCHECK(class->extend));
   CHECKL(FUNCHECK(class->alloc));
@@ -114,9 +112,7 @@ Bool ArenaCheck(Arena arena)
     CHECKD(MV, &arena->controlPoolStruct);
     CHECKD(Reservoir, &arena->reservoirStruct);
   }
-  /* Can't check that limit>=size because we may call ArenaCheck */
-  /* while the size is being adjusted. */
-
+  CHECKL(arena->reserved >= arena->committed);
   /* CHECKL(arena->reservedHwm >= arena->committed); */
   CHECKL(arena->committed <= arena->commitLimit);
   CHECKL(arena->spareCommitted <= arena->committed);
@@ -170,6 +166,7 @@ Res ArenaInit(Arena arena, ArenaClass class)
 
   arena->class = class;
 
+  arena->reserved = (Size)0;
   /* arena->reservedHwm = (Size)0; */
   arena->committed = (Size)0;
   /* commitLimit may be overridden by init (but probably not */
@@ -332,7 +329,6 @@ void ControlFinish(Arena arena)
 Res ArenaDescribe(Arena arena, mps_lib_FILE *stream)
 {
   Res res;
-  Size reserved;
   Size zoneSize;
 
   if (!CHECKT(Arena, arena)) return ResFAIL;
@@ -351,12 +347,10 @@ Res ArenaDescribe(Arena arena, mps_lib_FILE *stream)
     if (res != ResOK) return res;
   }
 
-  /* Note: this Describe clause calls a function */
-  reserved = ArenaReserved(arena);
   res = WriteF(stream,
                "  reserved         $W  <-- "
                "total size of address-space reserved\n",
-               (WriteFW)reserved,
+               (WriteFW)arena->reserved,
                NULL);
   if (res != ResOK) return res;
 
@@ -598,7 +592,7 @@ void ArenaFree(Addr base, Size size, Pool pool)
 Size ArenaReserved(Arena arena)
 {
   AVERT(Arena, arena);
-  return (*arena->class->reserved)(arena);
+  return arena->reserved;
 }
 
 Size ArenaCommitted(Arena arena)

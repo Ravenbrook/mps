@@ -561,7 +561,6 @@ typedef struct ArenaClassStruct {
   size_t offset;                /* offset of generic struct in outer struct */
   ArenaInitMethod init;
   ArenaFinishMethod finish;
-  ArenaReservedMethod reserved;
   ArenaSpareCommitExceededMethod spareCommitExceeded;
   ArenaExtendMethod extend;
   ArenaAllocMethod alloc;
@@ -639,6 +638,7 @@ typedef struct ArenaStruct {
 
   ReservoirStruct reservoirStruct; /* <design/reservoir/> */
 
+  Size reserved;                /* amount of reserved address-space */
   /*Size reservedHwm;             highest-ever amount of reserved address-space */
 
   Size committed;               /* amount of committed RAM */

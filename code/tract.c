@@ -165,7 +165,7 @@ Res ChunkInit(Chunk chunk, Arena arena,
   Res res;
 
   /* chunk is supposed to be uninitialized, so don't check it. */
-  AVERT(Arena, arena);
+  AVER(CHECKT(Arena, arena));  /* see .aver.arena below */
   AVER(base != NULL);
   AVER(AddrIsAligned(base, pageSize));
   AVER(base < limit);
@@ -173,6 +173,15 @@ Res ChunkInit(Chunk chunk, Arena arena,
   AVERT(Align, pageSize);
   AVER(pageSize > MPS_PF_ALIGN);
   AVERT(BootBlock, boot);
+
+  size = AddrOffset(base, limit);
+  /* .aver.arena: For VM arenas, calls to VMMap have already bumped */
+  /* up ->committed, _before_ ->reserved has been increased.  Once */
+  /* ->reserved knows about this chunk, committed < reserved again, */
+  /* so the full AVERT(Arena, arena) should pass. */
+  arena->reserved += size;
+  /* reservedHwm */
+  AVERT(Arena, arena);  /* .aver.arena */
 
   chunk->serial = (arena->chunkSerial)++;
   chunk->arena = arena;
@@ -183,7 +192,6 @@ Res ChunkInit(Chunk chunk, Arena arena,
   chunk->pageShift = pageShift = SizeLog2(pageSize);
   chunk->base = base;
   chunk->limit = limit;
-  size = AddrOffset(base, limit);
 
   chunk->pages = pages = size >> pageShift;
   res = BootAlloc(&p, boot, (size_t)BTSize(pages), MPS_PF_ALIGN);
@@ -232,7 +240,12 @@ failAllocTable:
 
 void ChunkFinish(Chunk chunk)
 {
+  Size size;
+  Arena arena;
   AVERT(Chunk, chunk);
+  size = AddrOffset(chunk->base, chunk->limit);
+  arena = chunk->arena;
+  
   AVER(BTIsResRange(chunk->allocTable, 0, chunk->pages));
   ChunkDecache(chunk->arena, chunk);
   chunk->sig = SigInvalid;
@@ -240,6 +253,7 @@ void ChunkFinish(Chunk chunk)
   /* Finish all other fields before class finish, because they might be */
   /* unmapped there. */
   (chunk->arena->class->chunkFinish)(chunk);
+  arena->reserved -= size;
 }
 
 

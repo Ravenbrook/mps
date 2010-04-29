@@ -58,6 +58,7 @@
 #include "mps.h"
 #include "mpscamc.h"
 #include "mpsavm.h"
+#include "mpsacl.h"
 #include "fmtdy.h"
 #include "fmtdytst.h"
 #include "mpstd.h"
@@ -813,7 +814,7 @@ static void testscriptA(const char *script)
   printf("  Create arena, size = %lu.\n", arenasize);
 
   /* arena */
-  die(mps_arena_create(&arena, mps_arena_class_vm(), arenasize),
+  die(mps_arena_create(&arena, mps_arena_class_vm(), arenasize /*, malloc(arenasize)*/),
       "arena_create");
 
   /* thr: used to stop/restart multiple threads */
@@ -838,8 +839,8 @@ static void testscriptA(const char *script)
 int main(int argc, char **argv)
 {
   int zoneset_diag = 1;  /* test zoneset_diag */
-  int simple_chunk_return = 0;  /* test simple_chunk_return */
-  int large_segment_padding = 0;  /* test large_segment_padding */
+  int simple_chunk_return = 1;  /* test simple_chunk_return */
+  int large_segment_padding = 1;  /* test large_segment_padding */
 
   randomize(argc, argv);
   

@@ -123,12 +123,11 @@ static Res clientChunkCreate(Chunk *chunkReturn, Addr base, Addr limit,
   if (res != ResOK)
     goto failChunkInit;
 
-  /* If base < alignedBase, then those unusable bytes are not */
-  /* included in either arena->committed or arena->reserved. */
+  /* Count overhead bytes (chunk->base..allocBase) as committed. */
+  /* (If base < alignedBase, then those unusable bytes are not */
+  /* included in either arena->committed or arena->reserved). */
   AVER(alignedBase == chunk->base);
-  /* ClientArena2Arena(clientArena)->reservedHwm += 
-    AddrOffset(chunk->base, chunk->limit); */
-  ClientArena2Arena(clientArena)->committed +=
+  chunk->arena->committed +=
     AddrOffset(chunk->base, PageIndexBase(chunk, chunk->allocBase));
   BootBlockFinish(boot);
 
@@ -170,6 +169,8 @@ static void clientChunkDestroy(Chunk chunk)
   clChunk = Chunk2ClientChunk(chunk);
   AVERT(ClientChunk, clChunk);
 
+  chunk->arena->committed -=
+    AddrOffset(chunk->base, PageIndexBase(chunk, chunk->allocBase));
   clChunk->sig = SigInvalid;
   ChunkFinish(chunk);
 }
@@ -227,6 +228,12 @@ static Res ClientArenaInit(Arena *arenaReturn, ArenaClass class,
   if (res != ResOK)
     return res;
 
+  AVER(arena->reserved == 0);
+  arena->reserved = clArenaSize;
+  AVER(arena->committed == 0);
+  arena->committed = clArenaSize;
+  AVER(arena->committed <= arena->reserved);
+
   /* have to have a valid arena before calling ChunkCreate */
   clientArena->sig = ClientArenaSig;
 
@@ -258,6 +265,7 @@ static void ClientArenaFinish(Arena arena)
 {
   ClientArena clientArena;
   Ring node, next;
+  Size clArenaSize = SizeAlignUp(sizeof(ClientArenaStruct), MPS_PF_ALIGN);
 
   clientArena = Arena2ClientArena(arena);
   AVERT(ClientArena, clientArena);
@@ -267,6 +275,8 @@ static void ClientArenaFinish(Arena arena)
     Chunk chunk = RING_ELT(Chunk, chunkRing, node);
     clientChunkDestroy(chunk);
   }
+  AVER(arena->committed == clArenaSize);
+  AVER(arena->reserved == clArenaSize);
 
   clientArena->sig = SigInvalid;
 
@@ -291,27 +301,6 @@ static Res ClientArenaExtend(Arena arena, Addr base, Size size)
   clientArena = Arena2ClientArena(arena);
   res = clientChunkCreate(&chunk, base, limit, clientArena);
   return res;
-}
-
-
-/* ClientArenaReserved -- return the amount of reserved address space */
-
-static Size ClientArenaReserved(Arena arena)
-{
-  Size size;
-  Ring node, nextNode;
-
-  AVERT(Arena, arena);
-
-  size = 0;
-  /* .req.extend.slow */
-  RING_FOR(node, &arena->chunkRing, nextNode) {
-    Chunk chunk = RING_ELT(Chunk, chunkRing, node);
-    AVERT(Chunk, chunk);
-    size += AddrOffset(chunk->base, chunk->limit);
-  }
-
-  return size;
 }
 
 
@@ -354,10 +343,12 @@ static Res chunkAlloc(Addr *baseReturn, Tract *baseTractReturn,
 
   /* Initialize the generic tract structures. */
   AVER(limitIndex > baseIndex);
+  AVER(pages == limitIndex - baseIndex);
   for(index = baseIndex; index < limitIndex; ++index) {
     PageAlloc(chunk, index, pool);
   }
 
+  arena->committed += ChunkPagesToSize(chunk, pages);
   clChunk->freePages -= pages;
 
   *baseReturn = PageIndexBase(chunk, baseIndex);
@@ -446,6 +437,7 @@ static void ClientFree(Addr base, Size size, Pool pool)
     AVER(TractPool(tract) == pool);
     TractFinish(tract);
   }
+  arena->committed -= ChunkPagesToSize(chunk, pages);
 
   AVER(BTIsSetRange(chunk->allocTable, baseIndex, limitIndex));
   BTResRange(chunk->allocTable, baseIndex, limitIndex);
@@ -464,7 +456,6 @@ DEFINE_ARENA_CLASS(ClientArenaClass, this)
   this->offset = offsetof(ClientArenaStruct, arenaStruct);
   this->init = ClientArenaInit;
   this->finish = ClientArenaFinish;
-  this->reserved = ClientArenaReserved;
   this->extend = ClientArenaExtend;
   this->alloc = ClientAlloc;
   this->free = ClientFree;

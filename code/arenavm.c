@@ -343,7 +343,6 @@ static Res VMChunkCreate(Chunk *chunkReturn, VMArena vmArena, Size size)
   if (res != ResOK)
     goto failChunkInit;
 
-  /* VMArena2Arena(vmArena)->reservedHwm += VMReserved(vmChunk->vm); */
   BootBlockFinish(boot);
 
   vmChunk->sig = VMChunkSig;
@@ -478,7 +477,12 @@ static Res VMArenaInit(Arena *arenaReturn, ArenaClass class, va_list args)
   res = ArenaInit(arena, class);
   if (res != ResOK)
     goto failArenaInit;
+
+  AVER(arena->reserved == 0);
+  arena->reserved = AddrOffset(VMBase(arenaVM), VMLimit(arenaVM));
+  AVER(arena->committed == 0);
   arena->committed = VMMapped(arenaVM);
+  AVER(arena->committed <= arena->reserved);
 
   vmArena->vm = arenaVM;
   vmArena->spareSize = 0;
@@ -569,24 +573,6 @@ static void VMArenaFinish(Arena arena)
   VMUnmap(arenaVM, VMBase(arenaVM), VMLimit(arenaVM));
   VMDestroy(arenaVM);
   EVENT_P(ArenaDestroy, vmArena);
-}
-
-
-/* VMArenaReserved -- return the amount of reserved address space
- *
- * Add up the reserved space from all the chunks.
- */
-static Size VMArenaReserved(Arena arena)
-{
-  Size reserved;
-  Ring node, next;
-
-  reserved = 0;
-  RING_FOR(node, &arena->chunkRing, next) {
-    VMChunk vmChunk = Chunk2VMChunk(RING_ELT(Chunk, chunkRing, node));
-    reserved += VMReserved(vmChunk->vm);
-  }
-  return reserved;
 }
 
 
@@ -1075,7 +1061,7 @@ static Res vmArenaExtend(VMArena vmArena, Size size, SegPref pref)
 
   UNUSED(pref);  /* except in diagnostic varieties */
 
-  DIAG( vmem0 = VMArenaReserved(VMArena2Arena(vmArena)); );
+  DIAG( vmem0 = ArenaReserved(VMArena2Arena(vmArena)); );
 
   /* Choose chunk size. */
   /* .vmchunk.overhead: This code still lacks a proper estimate of */
@@ -1106,8 +1092,8 @@ static Res vmArenaExtend(VMArena vmArena, Size size, SegPref pref)
 
   DIAG_SINGLEF(( "vmArenaExtend_Start", 
     "to accommodate size $W, try chunkSize $W", size, chunkSize,
-    " (VMArenaReserved currently $W bytes)\n",
-    VMArenaReserved(VMArena2Arena(vmArena)), NULL ));
+    " (ArenaReserved currently $W bytes)\n",
+    ArenaReserved(VMArena2Arena(vmArena)), NULL ));
   DIAG( chunkSizeTry = chunkSize; );
 
   /* .chunk-create.fail: If we fail, try again with a smaller size */
@@ -1132,8 +1118,8 @@ static Res vmArenaExtend(VMArena vmArena, Size size, SegPref pref)
         if(chunkSize < chunkMin) {
           DIAG_SINGLEF(( "vmArenaExtend_FailMin", 
             "no remaining address-space chunk >= min($W)", chunkMin,
-            " (so VMArenaReserved remains $W bytes)\n",
-            VMArenaReserved(VMArena2Arena(vmArena)), NULL ));
+            " (so ArenaReserved remains $W bytes)\n",
+            ArenaReserved(VMArena2Arena(vmArena)), NULL ));
           return ResRESOURCE;
         }
         res = VMChunkCreate(&newChunk, vmArena, chunkSize);
@@ -1145,7 +1131,7 @@ static Res vmArenaExtend(VMArena vmArena, Size size, SegPref pref)
 
 vmArenaExtend_Done:
   DIAG(
-    Size vmem1 = VMArenaReserved(VMArena2Arena(vmArena));
+    Size vmem1 = ArenaReserved(VMArena2Arena(vmArena));
 
     DIAG_FIRSTF(( "vmArenaExtend_Why",
       "vmem $Um$3 ", M_whole(vmem0), M_frac(vmem0),
@@ -1182,8 +1168,8 @@ vmArenaExtend_Done:
   
   DIAG_SINGLEF(( "vmArenaExtend_Done",
     "Request for new chunk of VM $W bytes succeeded", chunkSize,
-    " (VMArenaReserved now $W bytes)\n", 
-    VMArenaReserved(VMArena2Arena(vmArena)), NULL ));
+    " (ArenaReserved now $W bytes)\n", 
+    ArenaReserved(VMArena2Arena(vmArena)), NULL ));
 
   return res;
 }
@@ -1699,7 +1685,7 @@ static void VMCompact(Arena arena, Trace trace)
   AVERT(Trace, trace);
 
   DIAG(
-    vmem1 = VMArenaReserved(arena);
+    vmem1 = ArenaReserved(arena);
   );
 
   /* Destroy any empty chunks (except the primary). */
@@ -1714,7 +1700,7 @@ static void VMCompact(Arena arena, Trace trace)
 
   DIAG(
     Size vmem0 = trace->preTraceArenaReserved;
-    Size vmem2 = VMArenaReserved(arena);
+    Size vmem2 = ArenaReserved(arena);
     Size vmemD = vmem1 - vmem2;
     Size live = trace->forwardedSize + trace->preservedInPlaceSize;
     Size livePerc = 0;
@@ -1795,7 +1781,6 @@ DEFINE_ARENA_CLASS(VMArenaClass, this)
   this->offset = offsetof(VMArenaStruct, arenaStruct);
   this->init = VMArenaInit;
   this->finish = VMArenaFinish;
-  this->reserved = VMArenaReserved;
   this->spareCommitExceeded = VMArenaSpareCommitExceeded;
   this->alloc = VMAlloc;
   this->free = VMFree;
