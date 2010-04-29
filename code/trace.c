@@ -664,7 +664,7 @@ found:
   trace->band = RankAMBIG;      /* Required to be the earliest rank. */
   trace->emergency = FALSE;
   trace->chain = NULL;
-  STATISTIC(trace->topCondemnedGenSerial = -1);  /* unsigned */
+  STATISTIC(trace->topCondemnedGenSerial = (Serial)-1);  /* unsigned */
   STATISTIC(trace->preTraceArenaReserved = ArenaReserved(arena));
   trace->condemned = (Size)0;   /* nothing condemned yet */
   trace->notCondemned = (Size)0;
@@ -1824,7 +1824,7 @@ Res TraceStartCollectAll(Trace *traceReturn, Arena arena, int why)
   dMutatorAllowance = (double)ArenaAvail(arena)
                       - (double)collectorAllowance;
 
-  mutatorAllowanceDesired = collectorAllowance * TraceWorkFactor;
+  mutatorAllowanceDesired = (Size)(collectorAllowance * TraceWorkFactor);
 
   /* minimum Mutator Allowance:
    *
@@ -1890,14 +1890,14 @@ Size TracePoll(Globals globals)
     } else {
       Size collectorAllowance;
       Size mutatorAllowanceDesired;
-      double traceAllowance;
+      Size traceAllowance;
       
       collectorAllowance = collectorAllowanceFull(arena);
 
       /* How much would we LIKE to allow the mutator to allocate */
       /* during the trace, to maintain incrementality?  See */
       /* .traceworkfactor. */
-      mutatorAllowanceDesired = collectorAllowance * TraceWorkFactor;
+      mutatorAllowanceDesired = (Size)(collectorAllowance * TraceWorkFactor);
   
       /* We only get polled every ArenaPollALLOCTIME.  If we decide */
       /* not to start now, how much mutator allocation will occur */
@@ -1905,7 +1905,7 @@ Size TracePoll(Globals globals)
       /* [Note: does not account for the delay a minor generational */
       /* collection would cause.  RHSK 2010-04-28.] */
       /* If that would make us too late, better start now. */
-      mutatorAllowanceDesired += ArenaPollALLOCTIME;
+      mutatorAllowanceDesired += (Size)ArenaPollALLOCTIME;
   
       traceAllowance = collectorAllowance + mutatorAllowanceDesired;
       
@@ -1915,7 +1915,7 @@ Size TracePoll(Globals globals)
       /* [This is a totally bogus aim.  It utterly ignores the fact */
       /* that much of ArenaAvail will be in the wrong zones.  RHSK */
       /* 2010-04-28.] */
-      dynamicDeferral = (double)ArenaAvail(arena) - traceAllowance;
+      dynamicDeferral = (double)ArenaAvail(arena) - (double)traceAllowance;
       
       if(dynamicDeferral < 0.0) {
         DIAG_DECL( Size dd = traceAllowance - ArenaAvail(arena); )
