@@ -1755,7 +1755,12 @@ mps_res_t mps_arena_vm_growth(mps_arena_t mps_arena,
   AVERT(Arena, arena);
   vmArena = Arena2VMArena(arena);
   AVERT(VMArena, vmArena);
-  
+
+  DIAG_SINGLEF(("mps_arena_vm_growth",
+    "desired $Um$3, ", M_whole(mps_desired), M_frac(mps_desired),
+    "minimum $Um$3.", M_whole(mps_minimum), M_frac(mps_minimum),
+    NULL ));
+
   if(desired < minimum) {
     /* May not desire an increment smaller than the minimum! */
     ArenaLeave(arena);
