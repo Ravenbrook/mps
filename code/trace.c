@@ -1793,6 +1793,7 @@ Res TraceStartCollectAll(Trace *traceReturn, Arena arena, int why)
   Trace trace = NULL;
   Res res;
   Size collectorAllowance;
+  Size mutatorAllowanceDesired;
   double dMutatorAllowance;
   double finishingTime;  /* a synonym for Mutator Allowance */
 
@@ -1820,6 +1821,17 @@ Res TraceStartCollectAll(Trace *traceReturn, Arena arena, int why)
   /* Note: might be negative, so use double. */
   dMutatorAllowance = (double)ArenaAvail(arena)
                       - (double)collectorAllowance;
+
+  mutatorAllowanceDesired = collectorAllowance * TraceWorkFactor;
+
+  /* minimum Mutator Allowance:
+   *
+   * It's no good going into a stupid useless panic and trying full 
+   * collect after full collect, without letting the mutator do any 
+   * work.
+   */
+  if(dMutatorAllowance < mutatorAllowanceDesired)
+    dMutatorAllowance = (double)mutatorAllowanceDesired;
 
   finishingTime = dMutatorAllowance;
   if(finishingTime < 0) {
@@ -1875,7 +1887,7 @@ Size TracePoll(Globals globals)
   
     } else {
       Size collectorAllowance;
-      Size mutatorAllowance;
+      Size mutatorAllowanceDesired;
       double traceAllowance;
       
       collectorAllowance = collectorAllowanceFull(arena);
@@ -1883,7 +1895,7 @@ Size TracePoll(Globals globals)
       /* How much would we LIKE to allow the mutator to allocate */
       /* during the trace, to maintain incrementality?  See */
       /* .traceworkfactor. */
-      mutatorAllowance = collectorAllowance * TraceWorkFactor;
+      mutatorAllowanceDesired = collectorAllowance * TraceWorkFactor;
   
       /* We only get polled every ArenaPollALLOCTIME.  If we decide */
       /* not to start now, how much mutator allocation will occur */
@@ -1891,9 +1903,9 @@ Size TracePoll(Globals globals)
       /* [Note: does not account for the delay a minor generational */
       /* collection would cause.  RHSK 2010-04-28.] */
       /* If that would make us too late, better start now. */
-      mutatorAllowance += ArenaPollALLOCTIME;
+      mutatorAllowanceDesired += ArenaPollALLOCTIME;
   
-      traceAllowance = collectorAllowance + mutatorAllowance;
+      traceAllowance = collectorAllowance + mutatorAllowanceDesired;
       
       /* .exhaust: Is that space available?  Would there be some */
       /* spare?  Wait until there would be NONE spare, ie. until the */
