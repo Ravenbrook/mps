@@ -377,16 +377,13 @@ Bool ChunkOfAddr(Chunk *chunkReturn, Arena arena, Addr addr)
 }
 
 
-/* ChunkOfNextAddr
+/* NextChunkAboveAddr
  *
  * Finds the next higher chunk in memory which does _not_ contain addr.
  * Returns FALSE if there is none.
- *
- * [The name is misleading; it should be "NextChunkAboveAddr" -- the 
- * word "Next" applies to chunks, not to addrs.  RHSK 2010-03-20.]
  */
 
-static Bool ChunkOfNextAddr(Chunk *chunkReturn, Arena arena, Addr addr)
+static Bool NextChunkAboveAddr(Chunk *chunkReturn, Arena arena, Addr addr)
 {
   Addr leastBase;
   Chunk leastChunk;
@@ -519,13 +516,14 @@ static Bool tractSearchInChunk(Tract *tractReturn, Chunk chunk, Index i)
   AVER_CRITICAL(i <= chunk->pages);
 
   while(i < chunk->pages
-        && !(BTGet(chunk->allocTable, i)
-             && PageIsAllocated(&chunk->pageTable[i]))) {
+        && !BTGet(chunk->allocTable, i)) {
     ++i;
   }
   if (i == chunk->pages)
     return FALSE;
-  AVER(i < chunk->pages);
+  AVER_CRITICAL(i < chunk->pages);
+  AVER_CRITICAL(BTGet(chunk->allocTable, i));
+  AVER_CRITICAL(PageIsAllocated(&chunk->pageTable[i]));
   *tractReturn = PageTract(&chunk->pageTable[i]);
   return TRUE;
 }
@@ -559,7 +557,7 @@ static Bool tractSearch(Tract *tractReturn, Arena arena, Addr addr)
       return TRUE;
     }
   }
-  while (ChunkOfNextAddr(&chunk, arena, addr)) {
+  while (NextChunkAboveAddr(&chunk, arena, addr)) {
     /* If the ring was kept in address order, this could be improved. */
     addr = chunk->base;
     /* Start from allocBase to skip the tables. */
