@@ -842,8 +842,8 @@ static void testscriptA(const char *script)
 int main(int argc, char **argv)
 {
   int zoneset_diag = 1;  /* test zoneset_diag */
-  int simple_chunk_return = 1;  /* test simple_chunk_return */
-  int large_segment_padding = 1;  /* test large_segment_padding */
+  int simple_chunk_return = 0;  /* test simple_chunk_return */
+  int large_segment_padding = 0;  /* test large_segment_padding */
 
   randomize(argc, argv);
   

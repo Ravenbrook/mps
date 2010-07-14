@@ -800,6 +800,87 @@ static void tablePagesUnmapUnused(VMChunk vmChunk,
 }
 
 
+/* SpaceInZones */
+
+/* .zones: number of zones = MPS_WORD_WIDTH */
+#define ZONE_LIMIT MPS_WORD_WIDTH
+
+typedef struct SpaceInZonesStruct {
+  Size sizeOverhead;
+  Size sizeAlloc[ZONE_LIMIT];
+  Size sizeFree[ZONE_LIMIT];
+} *SpaceInZones;
+
+static void ChunkSpaceInZones(SpaceInZones siz, Arena arena, Chunk chunk)
+{
+  Index i;
+  
+  for(i = 0;
+      i < chunk->pages;
+      i += 1) {
+    if(i < chunk->allocBase) {
+      siz->sizeOverhead += chunk->pageSize;
+    } else {
+      Addr pagebase;
+      Index zone;  /* zone number; not bitset */
+      
+      pagebase = AddrAdd(chunk->base, i * chunk->pageSize);
+      zone = AddrZone(arena, pagebase);
+      if(BTGet(chunk->allocTable, i)) {
+        siz->sizeAlloc[zone] += chunk->pageSize;
+      } else {
+        siz->sizeFree[zone] += chunk->pageSize;
+      }
+    }
+  }
+}
+
+
+/* */
+static void ArenaSpaceInZones(Arena arena)
+{
+  struct SpaceInZonesStruct siz;
+  Index z;
+  Ring node, next;
+  Size sizeAlloc = 0, sizeFree = 0;
+  
+  siz.sizeOverhead = 0;
+  for(z = 0; z < ZONE_LIMIT; z += 1) {
+    siz.sizeAlloc[z] = 0;
+    siz.sizeFree[z] = 0;
+  }
+
+  RING_FOR(node, &arena->chunkRing, next) {
+    Chunk chunk = RING_ELT(Chunk, chunkRing, node);
+    AVERT(Chunk, chunk);
+
+    ChunkSpaceInZones(&siz, arena, chunk);
+  }
+  
+  for(z = 0; z < ZONE_LIMIT; z += 1) {
+    sizeAlloc += siz.sizeAlloc[z];
+    sizeFree += siz.sizeFree[z];
+  }
+
+  DIAG_FIRSTF(( "ArenaSpaceInZones", NULL ));
+  
+  DIAG_MOREF((
+    "sizeOverhead $Um$3, ", M_whole(siz.sizeOverhead), M_frac(siz.sizeOverhead),
+    "sizeAlloc $Um$3, ", M_whole(sizeAlloc), M_frac(sizeAlloc),
+    "sizeFree $Um$3, ", M_whole(sizeFree), M_frac(sizeFree),
+    NULL ));
+  
+  for(z = 0; z < ZONE_LIMIT; z += 1) {
+    DIAG_MOREF((
+      "$Um$3/", M_whole(siz.sizeAlloc[z]), M_frac(siz.sizeAlloc[z]),
+      "$Um$3 ", M_whole(siz.sizeFree[z]), M_frac(siz.sizeFree[z]),
+      NULL ));
+  }
+
+  DIAG_END("ArenaSpaceInZones");
+}
+
+
 /* pagesFindFreeInArea -- find a range of free pages in a given address range
  *
  * Search for a free run of pages in the free table, between the given
@@ -1130,6 +1211,8 @@ vmArenaExtend_Done:
   DIAG(
     Arena arena = VMArena2Arena(vmArena);
     Size vmem1 = ArenaReserved(arena);
+
+    ArenaSpaceInZones(arena);
 
     DIAG_FIRSTF(( "vmArenaExtend_Why",
       "vmem $Um$3 ", M_whole(vmem0), M_frac(vmem0),
