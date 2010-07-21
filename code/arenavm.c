@@ -494,9 +494,11 @@ static Res VMArenaInit(Arena *arenaReturn, ArenaClass class, va_list args)
   for(gen = (Index)0; gen < VMArenaGenCount; gen++) {
     vmArena->genZoneSet[gen] = ZoneSetEMPTY;
   }
+#if 0
   vmArena->genZoneSet[0] = (ZoneSet)0x10101010;
   vmArena->genZoneSet[1] = (ZoneSet)0x08080808;
   vmArena->genZoneSet[2] = (ZoneSet)0x67E7E7E6;
+#endif
   vmArena->freeSet = ZoneSetUNIV; /* includes blacklist */
   for(gen = (Index)0; gen < VMArenaGenCount; gen++) {
     /* Initial setting should be entirely within (free - blacklist), */
@@ -807,6 +809,8 @@ static void tablePagesUnmapUnused(VMChunk vmChunk,
 
 typedef struct SpaceInZonesStruct {
   Size sizeOverhead;
+  Size sizeAllocAll;
+  Size sizeFreeAll;
   Size sizeAlloc[ZONE_LIMIT];
   Size sizeFree[ZONE_LIMIT];
 } *SpaceInZones;
@@ -822,14 +826,14 @@ static void ChunkSpaceInZones(SpaceInZones siz, Arena arena, Chunk chunk)
       siz->sizeOverhead += chunk->pageSize;
     } else {
       Addr pagebase;
-      Index zone;  /* zone number; not bitset */
+      Index z;
       
       pagebase = AddrAdd(chunk->base, i * chunk->pageSize);
-      zone = AddrZone(arena, pagebase);
+      z = AddrZone(arena, pagebase);
       if(BTGet(chunk->allocTable, i)) {
-        siz->sizeAlloc[zone] += chunk->pageSize;
+        siz->sizeAlloc[z] += chunk->pageSize;
       } else {
-        siz->sizeFree[zone] += chunk->pageSize;
+        siz->sizeFree[z] += chunk->pageSize;
       }
     }
   }
@@ -837,47 +841,259 @@ static void ChunkSpaceInZones(SpaceInZones siz, Arena arena, Chunk chunk)
 
 
 /* */
-static void ArenaSpaceInZones(Arena arena)
+static void ArenaSpaceInZones(VMArena vmArena, SpaceInZones siz)
 {
-  struct SpaceInZonesStruct siz;
+  Arena arena;
   Index z;
   Ring node, next;
-  Size sizeAlloc = 0, sizeFree = 0;
   
-  siz.sizeOverhead = 0;
+  arena = VMArena2Arena(vmArena);
+
+  siz->sizeOverhead = 0;
   for(z = 0; z < ZONE_LIMIT; z += 1) {
-    siz.sizeAlloc[z] = 0;
-    siz.sizeFree[z] = 0;
+    siz->sizeAlloc[z] = 0;
+    siz->sizeFree[z] = 0;
   }
 
   RING_FOR(node, &arena->chunkRing, next) {
     Chunk chunk = RING_ELT(Chunk, chunkRing, node);
     AVERT(Chunk, chunk);
 
-    ChunkSpaceInZones(&siz, arena, chunk);
+    ChunkSpaceInZones(siz, arena, chunk);
   }
   
   for(z = 0; z < ZONE_LIMIT; z += 1) {
-    sizeAlloc += siz.sizeAlloc[z];
-    sizeFree += siz.sizeFree[z];
+    siz->sizeAllocAll += siz->sizeAlloc[z];
+    siz->sizeFreeAll += siz->sizeFree[z];
   }
 
   DIAG_FIRSTF(( "ArenaSpaceInZones", NULL ));
-  
+
   DIAG_MOREF((
-    "sizeOverhead $Um$3, ", M_whole(siz.sizeOverhead), M_frac(siz.sizeOverhead),
-    "sizeAlloc $Um$3, ", M_whole(sizeAlloc), M_frac(sizeAlloc),
-    "sizeFree $Um$3, ", M_whole(sizeFree), M_frac(sizeFree),
+    "sizeOverhead $Um$3, ", M_whole(siz->sizeOverhead), M_frac(siz->sizeOverhead),
+    "sizeAlloc $Um$3, ", M_whole(siz->sizeAllocAll), M_frac(siz->sizeAllocAll),
+    "sizeFree $Um$3, ", M_whole(siz->sizeFreeAll), M_frac(siz->sizeFreeAll),
     NULL ));
   
   for(z = 0; z < ZONE_LIMIT; z += 1) {
     DIAG_MOREF((
-      "$Um$3/", M_whole(siz.sizeAlloc[z]), M_frac(siz.sizeAlloc[z]),
-      "$Um$3 ", M_whole(siz.sizeFree[z]), M_frac(siz.sizeFree[z]),
+      "$Um$3/", M_whole(siz->sizeAlloc[z]), M_frac(siz->sizeAlloc[z]),
+      "$Um$3 ", M_whole(siz->sizeFree[z]), M_frac(siz->sizeFree[z]),
       NULL ));
   }
 
   DIAG_END("ArenaSpaceInZones");
+}
+
+
+/* ArenaSpaceInGroups -- show stats for various zonesets
+ *
+ * The VM arena class assigns zones to "groups", such as "gen 0", 
+ * "gen 1", "blacklist", etc.
+ *
+ * This function accumulates and reports statistics for various 
+ * group expressions -- set-arithmetic expressions on groups.
+ *
+ * A group expression is represented by a text name, and evaluates 
+ * to a zoneset. Assuming groups named ghijk, and using "+" for union 
+ * and "*" for intersection, the two types of expression calculated 
+ * are named thus:
+ *   - "g" means the zoneset g;
+ *   - "=ghi" means the zoneset g * h * i * not-j * not-k.
+ *
+ * Groups are:
+ *  generations 0..9
+ *  blacklist
+ *  freeset
+ */
+
+#define GEName_LEN 32
+#define GERecords_COUNT 64
+
+typedef struct GERecordStruct {
+  char abNameGE[GEName_LEN];
+  Count nZones;
+  ZoneSet zoneset;
+  Size sizeAlloc;
+  Size sizeFree;
+} *GERecord;
+
+
+/* StringCopy
+ *
+ * Copy chars to destination array "d", with length "len", from 
+ * source string "s".  "len" MUST be >= 1.
+ *
+ * Truncates if string "s" does not fit into "d".  Always leaves "d" 
+ * null-terminated.
+ *
+ * .last-nul: Always sets last char of array "d" to NUL, to allow 
+ * fast asserting that "d" is null-terminated.
+ */
+
+static void StringCopy(char *d, unsigned int len, const char *s)
+{
+  unsigned int i;
+  
+  AVER(d);
+  AVER(len != 0);
+  AVER(s);
+
+  for(i = 0; i < len; i += 1) {
+    d[i] = s[i];
+    if(s[i] == '\0')
+      break;
+  }
+  d[len - 1] = '\0';  /* .last-nul */
+}
+
+static void GERecordsInit(GERecord base, GERecord limit)
+{
+  GERecord ger;
+  Index gen;
+
+  for(ger = base; ger < limit; ger += 1) {
+    ger->abNameGE[0] = '\0';
+    ger->nZones = 0;
+    ger->zoneset = ZoneSetEMPTY;
+    ger->sizeAlloc = 0;
+    ger->sizeFree = 0;
+  }
+
+  /* Initialise names, to control order of report. */
+  ger = base;
+  for(gen = 0; gen < 10; ger++, gen++) {
+    char bName = '0' + gen;
+    ger->abNameGE[0] = bName;
+    ger->abNameGE[1] = '\0';
+  }
+  StringCopy(ger->abNameGE, NELEMS(ger->abNameGE), "b");
+  ger++;
+  StringCopy(ger->abNameGE, NELEMS(ger->abNameGE), "f");
+  ger++;
+  AVER(ger <= limit);
+}
+
+static void GERecordsAddZone(GERecord base, GERecord limit, 
+                             const char *pbNameGE, SpaceInZones siz,
+                             Index z)
+{
+  GERecord ger;
+  
+  /* Find the right record. */
+  for(ger = base; ger < limit; ger += 1) {
+    if(StringEqual(ger->abNameGE, pbNameGE)) {
+      /* Found the right record. */
+      break;
+    }
+    else if(ger->abNameGE[0] == '\0') {
+      /* Empty record: use it. */
+      /* Copy name. */
+      StringCopy(ger->abNameGE, NELEMS(ger->abNameGE), pbNameGE);
+      break;
+    }
+  }
+  AVER(ger < limit);
+  AVER(StringEqual(ger->abNameGE, pbNameGE));
+
+  /* Add this zone. */
+  if(ger < limit) {
+    ger->nZones += 1;
+    ger->zoneset = BS_ADD(ZoneSet, ger->zoneset, z);
+    ger->sizeAlloc += siz->sizeAlloc[z];
+    ger->sizeFree += siz->sizeFree[z];
+  }
+}
+
+static void GERecordsReport(GERecord base, GERecord limit, SpaceInZones siz)
+{
+  GERecord ger;
+
+  DIAG_FIRSTF(( "ArenaSpaceInGroups", "alloc+free(overhead)\n", NULL ));
+
+  DIAG_MOREF((
+    "All:$Um$3+", M_whole(siz->sizeAllocAll), M_frac(siz->sizeAllocAll),
+    "$Um$3", M_whole(siz->sizeFreeAll), M_frac(siz->sizeFreeAll),
+    "($Um$3)\n", M_whole(siz->sizeOverhead), M_frac(siz->sizeOverhead),
+    NULL ));
+  
+  for(ger = base; ger < limit; ger += 1) {
+    GERecord dup;
+    if(ger->nZones == 0)
+      continue;
+
+    for(dup = base; dup < ger; dup += 1) {
+      if(ger->zoneset == dup->zoneset)
+        break;
+    }
+    if(dup < ger && ger->zoneset == dup->zoneset)
+      continue;
+
+    DIAG_MOREF((
+      "$S[$U]:", ger->abNameGE, ger->nZones,
+      "$Um$3+", M_whole(ger->sizeAlloc), M_frac(ger->sizeAlloc),
+      "$Um$3 \n", M_whole(ger->sizeFree), M_frac(ger->sizeFree),
+      NULL ));
+  }
+
+  DIAG_MOREF((
+    NULL ));
+
+  DIAG_END("ArenaSpaceInGroups");
+}
+
+static void ArenaSpaceInGroups(VMArena vmArena)
+{
+  struct SpaceInZonesStruct sizStruct;
+  SpaceInZones siz = &sizStruct;
+  struct GERecordStruct records[GERecords_COUNT];
+  GERecord base, limit;
+  Index z;
+  Index gen;
+  char abNameGE[GEName_LEN];
+  char *pbNameGE;
+
+  ArenaSpaceInZones(vmArena, siz);
+
+  base = records;
+  limit = records + NELEMS(records);
+  GERecordsInit(base, limit);
+
+  for(z = 0; z < ZONE_LIMIT; z += 1) {
+    pbNameGE = abNameGE;
+    *pbNameGE++ = '=';
+    if(BS_IS_MEMBER(vmArena->blacklist, z)) {
+      char bName = 'b';
+      char abzName[2];
+      abzName[0] = bName;
+      abzName[1] = '\0';
+      GERecordsAddZone(base, limit, abzName, siz, z);
+      *pbNameGE++ = bName;
+    }
+    if(BS_IS_MEMBER(vmArena->freeSet, z)) {
+      char bName = 'f';
+      char abzName[2];
+      abzName[0] = bName;
+      abzName[1] = '\0';
+      GERecordsAddZone(base, limit, abzName, siz, z);
+      *pbNameGE++ = bName;
+    }
+    for(gen = 0; gen < 10; gen += 1) {
+      if(BS_IS_MEMBER(vmArena->genZoneSet[gen], z)) {
+        char bName = '0' + gen;
+        char abzName[2];
+        abzName[0] = bName;
+        abzName[1] = '\0';
+        GERecordsAddZone(base, limit, abzName, siz, z);
+        *pbNameGE++ = bName;
+      }
+    }
+    AVER(pbNameGE < abNameGE + NELEMS(abNameGE));
+    *pbNameGE = '\0';
+    GERecordsAddZone(base, limit, abNameGE, siz, z);
+  }
+  
+  GERecordsReport(base, limit, siz);
 }
 
 
@@ -1145,6 +1361,8 @@ static Res vmArenaExtend(VMArena vmArena, Size size, SegPref pref)
 
   DIAG( vmem0 = ArenaReserved(VMArena2Arena(vmArena)); );
 
+  ArenaSpaceInGroups(vmArena);
+
   /* Choose chunk size. */
   /* .vmchunk.overhead: This code still lacks a proper estimate of */
   /* the overhead required by a vmChunk for chunkStruct, page tables */
@@ -1211,8 +1429,6 @@ vmArenaExtend_Done:
   DIAG(
     Arena arena = VMArena2Arena(vmArena);
     Size vmem1 = ArenaReserved(arena);
-
-    ArenaSpaceInZones(arena);
 
     DIAG_FIRSTF(( "vmArenaExtend_Why",
       "vmem $Um$3 ", M_whole(vmem0), M_frac(vmem0),

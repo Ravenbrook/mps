@@ -94,17 +94,21 @@ ACreate
 
       --- chunk contents:
         VMChunkStruct (contains ChunkStruct)
+        
+        /* for each page of allocatable memory: 1 Bit + 1 PS(PageStruct) */
 
-        aBPageIsAllocated "allocTable"
+        aB_perPage_IsAllocated "allocTable"
 
-        - 1 PSG (PageStructGroup) fits into 1 page
-        aBPSGIsMapped "pageTableMapped"
-        aBPSGHasNoSpares "noSparePages"
-        (...memory up to here is always mapped)
+        /* for each PSG (PageStructGroup) (= as many PSs as fit into 1 page): 2 Bits */
 
-        aPS "pageTable"
+        aB_perPSG_IsMapped "pageTableMapped"
+        aB_perPSG_HasNoSpares "noSparePages"
+
+        (---- memory up to here is always mapped ----)
+
+        aPS_perPage "pageTable"
       
-        - iPageFirstUseable "allocBase" is here
+        (---- iPage_FirstUseable "allocBase" is here ----)
       ---
       
 
