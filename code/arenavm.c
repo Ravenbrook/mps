@@ -72,11 +72,12 @@ typedef struct VMArenaStruct *VMArena;
 
 typedef struct VMArenaStruct {  /* VM arena structure */
   ArenaStruct arenaStruct;
-  VM vm;                        /* VM where the arena itself is stored */
-  Size spareSize;              /* total size of spare pages */
-  ZoneSet blacklist;             /* zones to use last */
+  VM arenaStructVM;             /* VM where the (VM)ArenaStruct itself is stored */
+  Size arenaStructSize;         /* ArenaStruct size, rounded up to page */
+  Size spareSize;               /* total size of spare pages */
+  ZoneSet blacklist;            /* zones to use last */
   ZoneSet genZoneSet[VMArenaGenCount]; /* .gencount.const */
-  ZoneSet freeSet;               /* unassigned zones */
+  ZoneSet freeSet;              /* unassigned zones */
   Size extendBy;                /* desired arena increment */
   Size extendMin;               /* minimum arena increment */
   Sig sig;                      /* <design/sig/> */
@@ -449,12 +450,12 @@ static Res VMArenaInit(Arena *arenaReturn, ArenaClass class, va_list args)
 {
   Size userSize;        /* size requested by user */
   Size chunkSize;       /* size actually created */
-  Size vmArenaSize; /* aligned size of VMArenaStruct */
+  Size arenaStructSize; /* aligned size of (VM)ArenaStruct */
   Res res;
   VMArena vmArena;
   Arena arena;
   Index gen;
-  VM arenaVM;
+  VM arenaStructVM;
   Chunk chunk;
 
   userSize = va_arg(args, Size);
@@ -463,14 +464,14 @@ static Res VMArenaInit(Arena *arenaReturn, ArenaClass class, va_list args)
   AVER(userSize > 0);
 
   /* Create a VM to hold the (VM)ArenaStruct and map it. */
-  vmArenaSize = SizeAlignUp(sizeof(VMArenaStruct), MPS_PF_ALIGN);
-  res = VMCreate(&arenaVM, vmArenaSize);
+  arenaStructSize = SizeAlignUp(sizeof(VMArenaStruct), MPS_PF_ALIGN);
+  res = VMCreate(&arenaStructVM, arenaStructSize);
   if (res != ResOK)
     goto failVMCreate;
-  res = VMMap(arenaVM, VMBase(arenaVM), VMLimit(arenaVM));
+  res = VMMap(arenaStructVM, VMBase(arenaStructVM), VMLimit(arenaStructVM));
   if (res != ResOK)
     goto failVMMap;
-  vmArena = (VMArena)VMBase(arenaVM);
+  vmArena = (VMArena)VMBase(arenaStructVM);
 
   arena = VMArena2Arena(vmArena);
   /* <code/arena.c#init.caller> */
@@ -479,12 +480,14 @@ static Res VMArenaInit(Arena *arenaReturn, ArenaClass class, va_list args)
     goto failArenaInit;
 
   AVER(arena->reserved == 0);
-  arena->reserved = AddrOffset(VMBase(arenaVM), VMLimit(arenaVM));
+  /* .overhead: count the space used for the arenaStruct */
+  vmArena->arenaStructSize = AddrOffset(VMBase(arenaStructVM), VMLimit(arenaStructVM));
+  arena->reserved = vmArena->arenaStructSize;  /* .overhead */
   AVER(arena->committed == 0);
-  arena->committed = VMMapped(arenaVM);
+  arena->committed = VMMapped(arenaStructVM);  /* .overhead */
   AVER(arena->committed <= arena->reserved);
 
-  vmArena->vm = arenaVM;
+  vmArena->arenaStructVM = arenaStructVM;
   vmArena->spareSize = 0;
 
   /* .blacklist: We blacklist the zones corresponding to small integers. */
@@ -539,9 +542,9 @@ static Res VMArenaInit(Arena *arenaReturn, ArenaClass class, va_list args)
 failChunkCreate:
   ArenaFinish(arena);
 failArenaInit:
-  VMUnmap(arenaVM, VMBase(arenaVM), VMLimit(arenaVM));
+  VMUnmap(arenaStructVM, VMBase(arenaStructVM), VMLimit(arenaStructVM));
 failVMMap:
-  VMDestroy(arenaVM);
+  VMDestroy(arenaStructVM);
 failVMCreate:
   return res;
 }
@@ -553,11 +556,11 @@ static void VMArenaFinish(Arena arena)
 {
   VMArena vmArena;
   Ring node, next;
-  VM arenaVM;
+  VM arenaStructVM;
 
   vmArena = Arena2VMArena(arena);
   AVERT(VMArena, vmArena);
-  arenaVM = vmArena->vm;
+  arenaStructVM = vmArena->arenaStructVM;
 
   sparePagesPurge(vmArena);
   /* destroy all chunks, including the primary */
@@ -566,14 +569,14 @@ static void VMArenaFinish(Arena arena)
     Chunk chunk = RING_ELT(Chunk, chunkRing, node);
     vmChunkDestroy(chunk);
   }
-  AVER(arena->committed == VMMapped(arenaVM));
+  AVER(arena->committed == VMMapped(arenaStructVM));
 
   vmArena->sig = SigInvalid;
 
   ArenaFinish(arena); /* <code/global.c#finish.caller> */
 
-  VMUnmap(arenaVM, VMBase(arenaVM), VMLimit(arenaVM));
-  VMDestroy(arenaVM);
+  VMUnmap(arenaStructVM, VMBase(arenaStructVM), VMLimit(arenaStructVM));
+  VMDestroy(arenaStructVM);
   EVENT_P(ArenaDestroy, vmArena);
 }
 
@@ -808,9 +811,10 @@ static void tablePagesUnmapUnused(VMChunk vmChunk,
 #define ZONE_LIMIT MPS_WORD_WIDTH
 
 typedef struct SpaceInZonesStruct {
-  Size sizeOverhead;
+  Size sizeTotal;
   Size sizeAllocAll;
   Size sizeFreeAll;
+  Size sizeOverhead;
   Size sizeAlloc[ZONE_LIMIT];
   Size sizeFree[ZONE_LIMIT];
 } *SpaceInZones;
@@ -849,7 +853,10 @@ static void ArenaSpaceInZones(VMArena vmArena, SpaceInZones siz)
   
   arena = VMArena2Arena(vmArena);
 
-  siz->sizeOverhead = 0;
+  siz->sizeTotal = 0;
+  siz->sizeAllocAll = 0;
+  siz->sizeFreeAll = 0;
+  siz->sizeOverhead = vmArena->arenaStructSize;  /* .overhead */
   for(z = 0; z < ZONE_LIMIT; z += 1) {
     siz->sizeAlloc[z] = 0;
     siz->sizeFree[z] = 0;
@@ -866,18 +873,20 @@ static void ArenaSpaceInZones(VMArena vmArena, SpaceInZones siz)
     siz->sizeAllocAll += siz->sizeAlloc[z];
     siz->sizeFreeAll += siz->sizeFree[z];
   }
+  siz->sizeTotal = siz->sizeAllocAll + siz->sizeFreeAll + siz->sizeOverhead;
 
-  DIAG_FIRSTF(( "ArenaSpaceInZones", NULL ));
+  DIAG_FIRSTF(( "ArenaSpaceInZones", "alloc+free+(overhead)=total\n", NULL ));
 
   DIAG_MOREF((
-    "sizeOverhead $Um$3, ", M_whole(siz->sizeOverhead), M_frac(siz->sizeOverhead),
-    "sizeAlloc $Um$3, ", M_whole(siz->sizeAllocAll), M_frac(siz->sizeAllocAll),
-    "sizeFree $Um$3, ", M_whole(siz->sizeFreeAll), M_frac(siz->sizeFreeAll),
+    "$Um$3+", M_whole(siz->sizeAllocAll), M_frac(siz->sizeAllocAll),
+    "$Um$3", M_whole(siz->sizeFreeAll), M_frac(siz->sizeFreeAll),
+    "+($Um$3)=", M_whole(siz->sizeOverhead), M_frac(siz->sizeOverhead),
+    "$Um$3\n", M_whole(siz->sizeTotal), M_frac(siz->sizeTotal),
     NULL ));
   
   for(z = 0; z < ZONE_LIMIT; z += 1) {
     DIAG_MOREF((
-      "$Um$3/", M_whole(siz->sizeAlloc[z]), M_frac(siz->sizeAlloc[z]),
+      "$Um$3+", M_whole(siz->sizeAlloc[z]), M_frac(siz->sizeAlloc[z]),
       "$Um$3 ", M_whole(siz->sizeFree[z]), M_frac(siz->sizeFree[z]),
       NULL ));
   }
@@ -1013,12 +1022,13 @@ static void GERecordsReport(GERecord base, GERecord limit, SpaceInZones siz)
 {
   GERecord ger;
 
-  DIAG_FIRSTF(( "ArenaSpaceInGroups", "alloc+free(overhead)\n", NULL ));
+  DIAG_FIRSTF(( "ArenaSpaceInGroups", "alloc+free+(overhead)=total\n", NULL ));
 
   DIAG_MOREF((
     "All:$Um$3+", M_whole(siz->sizeAllocAll), M_frac(siz->sizeAllocAll),
     "$Um$3", M_whole(siz->sizeFreeAll), M_frac(siz->sizeFreeAll),
-    "($Um$3)\n", M_whole(siz->sizeOverhead), M_frac(siz->sizeOverhead),
+    "+($Um$3)=", M_whole(siz->sizeOverhead), M_frac(siz->sizeOverhead),
+    "$Um$3\n", M_whole(siz->sizeTotal), M_frac(siz->sizeTotal),
     NULL ));
   
   for(ger = base; ger < limit; ger += 1) {
