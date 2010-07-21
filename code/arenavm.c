@@ -916,6 +916,8 @@ typedef struct GERecordStruct {
   ZoneSet zoneset;
   Size sizeAlloc;
   Size sizeFree;
+  Bool isPure;  /* .pure: group shares no zones with other groups */
+  Bool isDup;  /* a single-group expression "=X", where X is .pure */
 } *GERecord;
 
 
@@ -958,6 +960,8 @@ static void GERecordsInit(GERecord base, GERecord limit)
     ger->zoneset = ZoneSetEMPTY;
     ger->sizeAlloc = 0;
     ger->sizeFree = 0;
+    ger->isPure = FALSE;
+    ger->isDup = FALSE;
   }
 
   /* Initialise names, to control order of report. */
@@ -1018,19 +1022,38 @@ static void GERecordsReport(GERecord base, GERecord limit, SpaceInZones siz)
     NULL ));
   
   for(ger = base; ger < limit; ger += 1) {
-    GERecord dup;
     if(ger->nZones == 0)
       continue;
 
-    for(dup = base; dup < ger; dup += 1) {
-      if(ger->zoneset == dup->zoneset)
-        break;
+    if(ger->abNameGE[0] != '=') {
+      /* Is "X" .pure?  Look for "=X" with identical zoneset. */
+      GERecord pure;
+      for(pure = base; pure < limit; pure++) {
+        if(pure->abNameGE[0] == '='
+           && pure->abNameGE[2] == '\0'
+           && pure->zoneset == ger->zoneset) {
+          AVER(pure->abNameGE[1] == ger->abNameGE[0]);
+          AVER(!ger->isPure);
+          AVER(!pure->isDup);
+          ger->isPure = TRUE;
+          pure->isDup = TRUE;
+          break;
+        }
+      }
     }
-    if(dup < ger && ger->zoneset == dup->zoneset)
+  }
+
+  for(ger = base; ger < limit; ger += 1) {
+    char *purity = "";
+    if(ger->nZones == 0
+       || ger->isDup)
       continue;
 
+    if(ger->abNameGE[0] != '=')
+      purity = ger->isPure ? "=" : "~";
+
     DIAG_MOREF((
-      "$S[$U]:", ger->abNameGE, ger->nZones,
+      "$S$S[$U]:", ger->abNameGE, purity, ger->nZones,
       "$Um$3+", M_whole(ger->sizeAlloc), M_frac(ger->sizeAlloc),
       "$Um$3 \n", M_whole(ger->sizeFree), M_frac(ger->sizeFree),
       NULL ));
