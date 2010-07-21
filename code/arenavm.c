@@ -1021,14 +1021,21 @@ static void GERecordsAddZone(GERecord base, GERecord limit,
 static void GERecordsReport(GERecord base, GERecord limit, SpaceInZones siz)
 {
   GERecord ger;
+  Size total = 0;
+  Size fullPerc = 0;
 
-  DIAG_FIRSTF(( "ArenaSpaceInGroups", "alloc+free+(overhead)=total\n", NULL ));
+  DIAG_FIRSTF(( "ArenaSpaceInGroups", "alloc+free+(overhead)=total  %full\n", NULL ));
+
+  total = siz->sizeAllocAll + siz->sizeFreeAll + siz->sizeOverhead;
+  if(total / 100 != 0)
+    fullPerc = (siz->sizeAllocAll + siz->sizeOverhead) / (total / 100);
 
   DIAG_MOREF((
     "All:$Um$3+", M_whole(siz->sizeAllocAll), M_frac(siz->sizeAllocAll),
     "$Um$3", M_whole(siz->sizeFreeAll), M_frac(siz->sizeFreeAll),
     "+($Um$3)=", M_whole(siz->sizeOverhead), M_frac(siz->sizeOverhead),
-    "$Um$3\n", M_whole(siz->sizeTotal), M_frac(siz->sizeTotal),
+    "$Um$3", M_whole(siz->sizeTotal), M_frac(siz->sizeTotal),
+    "  $U%\n", fullPerc,
     NULL ));
   
   for(ger = base; ger < limit; ger += 1) {
@@ -1055,6 +1062,7 @@ static void GERecordsReport(GERecord base, GERecord limit, SpaceInZones siz)
 
   for(ger = base; ger < limit; ger += 1) {
     char *purity = "";
+
     if(ger->nZones == 0
        || ger->isDup)
       continue;
@@ -1062,10 +1070,16 @@ static void GERecordsReport(GERecord base, GERecord limit, SpaceInZones siz)
     if(ger->abNameGE[0] != '=')
       purity = ger->isPure ? "=" : "~";
 
+    fullPerc = 0;
+    total = ger->sizeAlloc + ger->sizeFree;
+    if(total / 100 != 0)
+      fullPerc = ger->sizeAlloc / (total / 100);
+    
     DIAG_MOREF((
       "$S$S[$U]:", ger->abNameGE, purity, ger->nZones,
       "$Um$3+", M_whole(ger->sizeAlloc), M_frac(ger->sizeAlloc),
-      "$Um$3 \n", M_whole(ger->sizeFree), M_frac(ger->sizeFree),
+      "$Um$3", M_whole(ger->sizeFree), M_frac(ger->sizeFree),
+      "  $U%\n", fullPerc,
       NULL ));
   }
 
