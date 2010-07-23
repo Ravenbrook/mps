@@ -957,6 +957,8 @@ static void GERecordsInit(GERecord base, GERecord limit)
     ger->abNameGE[0] = bName;
     ger->abNameGE[1] = '\0';
   }
+  StringCopy(ger->abNameGE, NELEMS(ger->abNameGE), "N");
+  ger++;
   StringCopy(ger->abNameGE, NELEMS(ger->abNameGE), "b");
   ger++;
   StringCopy(ger->abNameGE, NELEMS(ger->abNameGE), "f");
@@ -1082,6 +1084,7 @@ static void ArenaSpaceInGroups(VMArena vmArena)
   GERecordsInit(base, limit);
 
   for(z = 0; z < ZONE_LIMIT; z += 1) {
+    Bool isGens = FALSE;
     pbNameGE = abNameGE;
     *pbNameGE++ = '=';
     if(BS_IS_MEMBER(vmArena->blacklist, z)) {
@@ -1104,11 +1107,20 @@ static void ArenaSpaceInGroups(VMArena vmArena)
       if(BS_IS_MEMBER(vmArena->genZoneSet[gen], z)) {
         char bName = '0' + gen;
         char abzName[2];
+        isGens = TRUE;
         abzName[0] = bName;
         abzName[1] = '\0';
         GERecordsAddZone(base, limit, abzName, siz, z);
         *pbNameGE++ = bName;
       }
+    }
+    if(!isGens) {
+      char bName = 'N';
+      char abzName[2];
+      abzName[0] = bName;
+      abzName[1] = '\0';
+      GERecordsAddZone(base, limit, abzName, siz, z);
+      *pbNameGE++ = bName;
     }
     AVER(pbNameGE < abNameGE + NELEMS(abNameGE));
     *pbNameGE = '\0';
