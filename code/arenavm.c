@@ -953,7 +953,7 @@ static void GERecordsInit(GERecord base, GERecord limit)
   /* Initialise names, to control order of report. */
   ger = base;
   for(gen = 0; gen < 10; ger++, gen++) {
-    char bName = '0' + gen;
+    char bName = (char)('0' + gen);
     ger->abNameGE[0] = bName;
     ger->abNameGE[1] = '\0';
   }
@@ -1122,7 +1122,7 @@ static void ArenaSpaceInGroups(VMArena vmArena)
     }
     for(gen = 0; gen < 10; gen += 1) {
       if(BS_IS_MEMBER(vmArena->genZoneSet[gen], z)) {
-        char bName = '0' + gen;
+        char bName = (char)('0' + gen);
         char abzName[2];
         isGens = TRUE;
         abzName[0] = bName;
