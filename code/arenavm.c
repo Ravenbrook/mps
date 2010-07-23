@@ -997,6 +997,17 @@ static void GERecordsAddZone(GERecord base, GERecord limit,
   }
 }
 
+#if 0
+/* multiline */
+#define ASIG_STR_BEGIN "  ASIG: alloc+free+(overhead)=total  %full\n"
+#define ASIG_STR_PUNC  "\n  "
+#define ASIG_STR_END  ""
+#else
+#define ASIG_STR_BEGIN "  ASIG: "
+#define ASIG_STR_PUNC  "  "
+#define ASIG_STR_END  "\n"
+#endif
+
 static void GERecordsReport(GERecord base, GERecord limit, SpaceInZones siz)
 {
   GERecord ger;
@@ -1027,7 +1038,7 @@ static void GERecordsReport(GERecord base, GERecord limit, SpaceInZones siz)
   }
 
   DIAG_WRITEF(( DIAG_STREAM,
-    "alloc+free+(overhead)=total  %full\n",
+    ASIG_STR_BEGIN,
     NULL ));
 
   total = siz->sizeAllocAll + siz->sizeFreeAll + siz->sizeOverhead;
@@ -1039,7 +1050,8 @@ static void GERecordsReport(GERecord base, GERecord limit, SpaceInZones siz)
     "$Um$3", M_whole(siz->sizeFreeAll), M_frac(siz->sizeFreeAll),
     "+($Um$3)=", M_whole(siz->sizeOverhead), M_frac(siz->sizeOverhead),
     "$Um$3", M_whole(siz->sizeTotal), M_frac(siz->sizeTotal),
-    "  $U%\n", fullPerc,
+    " $U%", fullPerc,
+    ASIG_STR_PUNC,
     NULL ));
   
   for(ger = base; ger < limit; ger += 1) {
@@ -1061,9 +1073,14 @@ static void GERecordsReport(GERecord base, GERecord limit, SpaceInZones siz)
       "$S$S[$U]:", ger->abNameGE, purity, ger->nZones,
       "$Um$3+", M_whole(ger->sizeAlloc), M_frac(ger->sizeAlloc),
       "$Um$3", M_whole(ger->sizeFree), M_frac(ger->sizeFree),
-      "  $U%\n", fullPerc,
+      " $U%", fullPerc,
+      ASIG_STR_PUNC,
       NULL ));
   }
+
+  DIAG_WRITEF(( DIAG_STREAM,
+    ASIG_STR_END,
+    NULL ));
 }
 
 static void ArenaSpaceInGroups(VMArena vmArena)

@@ -779,6 +779,11 @@ static void traceReclaim(Trace trace)
 
   EVENT_P(TraceReclaim, trace);
   arena = trace->arena;
+
+  DIAG_FIRSTF(( "TracePeak", NULL ));
+  DIAG( ArenaDescribe(arena, DIAG_STREAM); );
+  DIAG_END( "TracePeak" );
+
   if(SegFirst(&seg, arena)) {
     Addr base;
     do {
@@ -817,6 +822,9 @@ static void traceReclaim(Trace trace)
   }
 
   ArenaCompact(arena, trace);  /* let arenavm drop chunks */
+  DIAG_FIRSTF(( "TraceEnd", NULL ));
+  DIAG( ArenaDescribe(arena, DIAG_STREAM); );
+  DIAG_END( "TraceEnd" );
 
   TracePostMessage(trace);  /* trace end */
   /* Immediately pre-allocate messages for next time; failure is okay */
