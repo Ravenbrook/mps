@@ -165,6 +165,7 @@ extern int Stream_fputs(const char *s, mps_lib_FILE *stream);
 
 extern size_t StringLength(const char *s);
 extern Bool StringEqual(const char *s1, const char *s2);
+extern void StringCopy(char *d, size_t len, const char *s);
 
 
 /* Version Determination

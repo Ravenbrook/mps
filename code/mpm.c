@@ -623,6 +623,35 @@ Bool StringEqual(const char *s1, const char *s2)
 }
 
 
+/* StringCopy
+ *
+ * Copy chars to destination array "d", with length "len", from 
+ * source string "s".  
+ *
+ * Truncates if string "s" does not fit into "d".  Always leaves "d" 
+ * NUL-terminated (unless len == 0).
+ *
+ * .last-nul: Always sets last char of array "d" to NUL, to allow 
+ * fast asserting that "d" is NUL-terminated.   (Unless len == 0).
+ */
+
+void StringCopy(char *d, size_t len, const char *s)
+{
+  size_t i;
+  
+  AVER(d);
+  AVER(s);
+
+  for(i = 0; i < len; i++) {
+    d[i] = s[i];
+    if(s[i] == '\0')
+      break;
+  }
+  if(len > 0)
+    d[len - 1] = '\0';  /* .last-nul */
+}
+
+
 
 /* C. COPYRIGHT AND LICENSE
  *

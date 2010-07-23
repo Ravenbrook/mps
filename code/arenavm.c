@@ -89,6 +89,7 @@ typedef struct VMArenaStruct {  /* VM arena structure */
 
 /* Forward declarations */
 
+static void ArenaSpaceInGroups(VMArena vmArena);
 static void sparePagesPurge(VMArena vmArena);
 static ArenaClass VMArenaClassGet(void);
 static ArenaClass VMNZArenaClassGet(void);
@@ -235,6 +236,8 @@ static Res VMArenaDescribe(Arena arena, mps_lib_FILE *stream)
                NULL);
   if(res != ResOK)
     return res;
+
+  ArenaSpaceInGroups(vmArena);
 
   /* (incomplete: some fields are not Described) */
 
@@ -875,6 +878,7 @@ static void ArenaSpaceInZones(VMArena vmArena, SpaceInZones siz)
   }
   siz->sizeTotal = siz->sizeAllocAll + siz->sizeFreeAll + siz->sizeOverhead;
 
+#if 0
   DIAG_FIRSTF(( "ArenaSpaceInZones", "alloc+free+(overhead)=total\n", NULL ));
 
   DIAG_MOREF((
@@ -892,6 +896,7 @@ static void ArenaSpaceInZones(VMArena vmArena, SpaceInZones siz)
   }
 
   DIAG_END("ArenaSpaceInZones");
+#endif
 }
 
 
@@ -929,34 +934,6 @@ typedef struct GERecordStruct {
   Bool isDup;  /* a single-group expression "=X", where X is .pure */
 } *GERecord;
 
-
-/* StringCopy
- *
- * Copy chars to destination array "d", with length "len", from 
- * source string "s".  "len" MUST be >= 1.
- *
- * Truncates if string "s" does not fit into "d".  Always leaves "d" 
- * null-terminated.
- *
- * .last-nul: Always sets last char of array "d" to NUL, to allow 
- * fast asserting that "d" is null-terminated.
- */
-
-static void StringCopy(char *d, unsigned int len, const char *s)
-{
-  unsigned int i;
-  
-  AVER(d);
-  AVER(len != 0);
-  AVER(s);
-
-  for(i = 0; i < len; i += 1) {
-    d[i] = s[i];
-    if(s[i] == '\0')
-      break;
-  }
-  d[len - 1] = '\0';  /* .last-nul */
-}
 
 static void GERecordsInit(GERecord base, GERecord limit)
 {
@@ -1024,21 +1001,7 @@ static void GERecordsReport(GERecord base, GERecord limit, SpaceInZones siz)
   Size total = 0;
   Size fullPerc = 0;
 
-  DIAG_FIRSTF(( "ArenaSpaceInGroups", "alloc+free+(overhead)=total  %full\n", NULL ));
-
-  total = siz->sizeAllocAll + siz->sizeFreeAll + siz->sizeOverhead;
-  if(total / 100 != 0)
-    fullPerc = (siz->sizeAllocAll + siz->sizeOverhead) / (total / 100);
-
-  DIAG_MOREF((
-    "All:$Um$3+", M_whole(siz->sizeAllocAll), M_frac(siz->sizeAllocAll),
-    "$Um$3", M_whole(siz->sizeFreeAll), M_frac(siz->sizeFreeAll),
-    "+($Um$3)=", M_whole(siz->sizeOverhead), M_frac(siz->sizeOverhead),
-    "$Um$3", M_whole(siz->sizeTotal), M_frac(siz->sizeTotal),
-    "  $U%\n", fullPerc,
-    NULL ));
-  
-  for(ger = base; ger < limit; ger += 1) {
+  for(ger = base; ger < limit; ger++) {
     if(ger->nZones == 0)
       continue;
 
@@ -1049,6 +1012,7 @@ static void GERecordsReport(GERecord base, GERecord limit, SpaceInZones siz)
         if(pure->abNameGE[0] == '='
            && pure->abNameGE[2] == '\0'
            && pure->zoneset == ger->zoneset) {
+          /* "X" is .pure */
           AVER(pure->abNameGE[1] == ger->abNameGE[0]);
           AVER(!ger->isPure);
           AVER(!pure->isDup);
@@ -1060,6 +1024,22 @@ static void GERecordsReport(GERecord base, GERecord limit, SpaceInZones siz)
     }
   }
 
+  DIAG_WRITEF(( DIAG_STREAM,
+    "alloc+free+(overhead)=total  %full\n",
+    NULL ));
+
+  total = siz->sizeAllocAll + siz->sizeFreeAll + siz->sizeOverhead;
+  if(total / 100 != 0)
+    fullPerc = (siz->sizeAllocAll + siz->sizeOverhead) / (total / 100);
+
+  DIAG_WRITEF(( DIAG_STREAM,
+    "All:$Um$3+", M_whole(siz->sizeAllocAll), M_frac(siz->sizeAllocAll),
+    "$Um$3", M_whole(siz->sizeFreeAll), M_frac(siz->sizeFreeAll),
+    "+($Um$3)=", M_whole(siz->sizeOverhead), M_frac(siz->sizeOverhead),
+    "$Um$3", M_whole(siz->sizeTotal), M_frac(siz->sizeTotal),
+    "  $U%\n", fullPerc,
+    NULL ));
+  
   for(ger = base; ger < limit; ger += 1) {
     char *purity = "";
 
@@ -1075,18 +1055,13 @@ static void GERecordsReport(GERecord base, GERecord limit, SpaceInZones siz)
     if(total / 100 != 0)
       fullPerc = ger->sizeAlloc / (total / 100);
     
-    DIAG_MOREF((
+    DIAG_WRITEF(( DIAG_STREAM,
       "$S$S[$U]:", ger->abNameGE, purity, ger->nZones,
       "$Um$3+", M_whole(ger->sizeAlloc), M_frac(ger->sizeAlloc),
       "$Um$3", M_whole(ger->sizeFree), M_frac(ger->sizeFree),
       "  $U%\n", fullPerc,
       NULL ));
   }
-
-  DIAG_MOREF((
-    NULL ));
-
-  DIAG_END("ArenaSpaceInGroups");
 }
 
 static void ArenaSpaceInGroups(VMArena vmArena)
@@ -1407,8 +1382,6 @@ static Res vmArenaExtend(VMArena vmArena, Size size, SegPref pref)
   UNUSED(pref);  /* except in diagnostic varieties */
 
   DIAG( vmem0 = ArenaReserved(VMArena2Arena(vmArena)); );
-
-  ArenaSpaceInGroups(vmArena);
 
   /* Choose chunk size. */
   /* .vmchunk.overhead: This code still lacks a proper estimate of */
@@ -1772,27 +1745,24 @@ static Res vmAllocComm(Addr *baseReturn, Tract *baseTractReturn,
   limit = AddrAdd(base, size);
   zones = ZoneSetOfRange(arena, base, limit);
 
+  vmArena->freeSet = ZoneSetDiff(vmArena->freeSet, zones);
+
   if (pref->isGen) {
     Serial gen = vmGenOfSegPref(vmArena, pref);
     DIAG_DECL( ZoneSet old = vmArena->genZoneSet[gen]; )
     vmArena->genZoneSet[gen] = ZoneSetUnion(vmArena->genZoneSet[gen], zones);
     DIAG(
-      static Bool once = TRUE;
-      if(once || vmArena->genZoneSet[gen] != old) {
+      if(vmArena->genZoneSet[gen] != old) {
         DIAG_FIRSTF(( "vmAllocComm_genZoneSet",
-          "$S", once ? " (force diag to emit once this first time, even if genZoneSet is unchanged)\n" : "",
           "gen $U, had genZoneSet $B, now gets zones $B\n",
           (WriteFU)gen, (WriteFB)old, (WriteFB)zones,
           NULL ));
         DIAG( ArenaDescribe(arena, DIAG_STREAM); );
         DIAG_END("vmAllocComm_genZoneSet");
-        once = FALSE;
       }
     );
   }
 
-  vmArena->freeSet = ZoneSetDiff(vmArena->freeSet, zones);
- 
   *baseReturn = base;
   *baseTractReturn = baseTract;
   return ResOK;
