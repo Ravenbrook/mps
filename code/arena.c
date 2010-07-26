@@ -360,7 +360,7 @@ Res ArenaDescribe(Arena arena, mps_lib_FILE *stream)
                "  committed        $W = $Um$3  <-- "
                "total bytes currently stored (in RAM or swap)\n",
                (WriteFW)arena->committed,
-               M_whole(arena->reserved), M_frac(arena->reserved),
+               M_whole(arena->committed), M_frac(arena->committed),
                "  commitLimit      $W = $Um$3\n", (WriteFW)arena->commitLimit,
                M_whole(arena->commitLimit), M_frac(arena->commitLimit),
                "  spareCommitted   $W = $Um$3\n", (WriteFW)arena->spareCommitted,
