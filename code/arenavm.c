@@ -73,7 +73,7 @@ typedef struct VMArenaStruct *VMArena;
 typedef struct VMArenaStruct {  /* VM arena structure */
   ArenaStruct arenaStruct;
   VM arenaStructVM;             /* VM where the (VM)ArenaStruct itself is stored */
-  Size arenaStructSize;         /* ArenaStruct size, rounded up to page */
+  Size arenaStructVMSize;       /* VM size; see .arenastruct.overhead */
   Size spareSize;               /* total size of spare pages */
   ZoneSet blacklist;            /* zones to use last */
   ZoneSet genZoneSet[VMArenaGenCount]; /* .gencount.const */
@@ -483,11 +483,12 @@ static Res VMArenaInit(Arena *arenaReturn, ArenaClass class, va_list args)
     goto failArenaInit;
 
   AVER(arena->reserved == 0);
-  /* .overhead: count the space used for the arenaStruct */
-  vmArena->arenaStructSize = AddrOffset(VMBase(arenaStructVM), VMLimit(arenaStructVM));
-  arena->reserved = vmArena->arenaStructSize;  /* .overhead */
+  /* .arenastruct.overhead: Space used by the arenaStructVM. */
+  vmArena->arenaStructVMSize = AddrOffset(VMBase(arenaStructVM),
+                                          VMLimit(arenaStructVM));
+  arena->reserved = vmArena->arenaStructVMSize;  /* .arenastruct.overhead */
   AVER(arena->committed == 0);
-  arena->committed = VMMapped(arenaStructVM);  /* .overhead */
+  arena->committed = VMMapped(arenaStructVM);  /* .arenastruct.overhead */
   AVER(arena->committed <= arena->reserved);
 
   vmArena->arenaStructVM = arenaStructVM;
@@ -859,7 +860,7 @@ static void ArenaSpaceInZones(VMArena vmArena, SpaceInZones siz)
   siz->sizeTotal = 0;
   siz->sizeAllocAll = 0;
   siz->sizeFreeAll = 0;
-  siz->sizeOverhead = vmArena->arenaStructSize;  /* .overhead */
+  siz->sizeOverhead = vmArena->arenaStructVMSize;  /* .arenastruct.overhead */
   for(z = 0; z < ZONE_LIMIT; z += 1) {
     siz->sizeAlloc[z] = 0;
     siz->sizeFree[z] = 0;
@@ -1487,6 +1488,9 @@ vmArenaExtend_Done:
         "Extend failed (Min $Um$3) ", M_whole(chunkMin), M_frac(chunkMin),
         NULL ));
     } else {
+      /* Report the size that was *requested* for the request that */
+      /* succeeded.  The chunk returned has been rounded up to whole */
+      /* pages, and so may be slightly larger. */
       DIAG_MOREF(( 
         "+ $Um$3 ", M_whole(chunkSize), M_frac(chunkSize),
         NULL ));
