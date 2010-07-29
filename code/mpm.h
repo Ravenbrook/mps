@@ -372,6 +372,7 @@ extern RefSet ScanStateSummary(ScanState ss);
 extern Bool TraceIdCheck(TraceId id);
 extern Bool TraceSetCheck(TraceSet ts);
 extern Bool TraceCheck(Trace trace);
+extern Res TraceDescribe(Trace trace, mps_lib_FILE *stream);
 extern Res TraceCreate(Trace *traceReturn, Arena arena, int why);
 extern void TraceDestroy(Trace trace);
 

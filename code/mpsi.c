@@ -284,6 +284,8 @@ mps_res_t mps_arena_commit_limit_set(mps_arena_t mps_arena, size_t limit)
 
   ArenaEnter(arena);
   res = ArenaSetCommitLimit(arena, limit);
+  DIAG_SINGLEF(( "mps_arena_commit_limit_set", "$W = $Um$3, res:$U", 
+    limit, M_whole(limit), M_frac(limit), res, NULL ));
   ArenaLeave(arena);
 
   return res;
@@ -2006,6 +2008,8 @@ void mps_reservoir_limit_set(mps_arena_t mps_arena, size_t size)
   Arena arena = (Arena)mps_arena;
 
   ArenaEnter(arena);
+  DIAG_SINGLEF(( "mps_reservoir_limit_set", "$W = $Um$3", size, 
+    M_whole(size), M_frac(size), NULL ));    
   ReservoirSetLimit(ArenaReservoir(arena), size);
   ArenaLeave(arena);
 }

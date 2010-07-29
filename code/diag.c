@@ -29,11 +29,7 @@ typedef struct RuleStruct {
 
 struct RuleStruct RulesGlobal[] = {
   { "-", "*", "*", "*" },
-  { "+", "DiagFilter_Rules", "*", "*" },
-  { "+", "VMCompact", "*", "*" },
-  { "+", "ArenaCreateV", "*", "*" },
-  { "+", "mps_arena_vm_growth", "*", "*" },
-  { "+", "mps_arena_release", "*", "*" },
+  { "-", "mps_arena_release", "*", "*" },
   { "+", "FullTrigger", "*", "*" },
   { "-", "TraceStart", "*", "*" },
   { "+", "TraceStart", "*", "ASIG:" },
@@ -41,12 +37,20 @@ struct RuleStruct RulesGlobal[] = {
   { "+", "TraceStart1", "*", "*" },
   { "+", "TracePeak", "*", "ASIG:" },
   { "+", "TraceEnd", "*", "ASIG:" },
+  { "+", "TraceEnd1", "*", "*" },
   { "-", "vmAllocComm_genZoneSet", "*", "*" },
   { "+", "vmAllocComm_genZoneSet", "*", "genZoneSet" },
   { "+", "vmAllocComm_genZoneSet", "*", "freeSet" },
   { "-", "AMCTraceEnd_pageret", "*", "*" },
   { "+", "vmArenaExtend_Why", "*", "*" },
+  { "+", "VMCompact", "*", "diag_chunk_flux" },
+  /* ----v---- useful, to show client setup ----v---- */
+  { "+", "ArenaCreateV", "*", "*" },
+  { "+", "mps_arena_vm_growth", "*", "*" },
+  { "+", "mps_arena_commit_limit_set", "*", "*" },
+  { "+", "mps_reservoir_limit_set", "*", "*" },
   /* ----v---- always on please (RHSK) ----v---- */
+  { "+", "DiagFilter_Rules", "*", "*" },
   { "+", "MPSVersion", "*", "*" },
   { "+", "traceSetSignalEmergency", "*", "*" },
   { NULL, "", "", "" }

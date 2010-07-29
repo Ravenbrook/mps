@@ -2071,33 +2071,19 @@ static void VMCompact(Arena arena, Trace trace)
       
       diag_cli_req = (trace->why == TraceStartWhyCLIENTFULL_INCREMENTAL
                       || trace->why == TraceStartWhyCLIENTFULL_BLOCK)
-                     ? "diag_cli_req"
+                     ? " diag_cli_req"
                      : "";
       diag_chunk_flux = (vmem0 != vmem1
                          || vmem1 != vmem2)
-                        ? "diag_chunk_flux"
+                        ? " diag_chunk_flux"
                         : "";
       DIAG_FIRSTF(( "VMCompact",
         "pre-collection vmem was $Um$3, ", M_whole(vmem0), M_frac(vmem0),
         "peaked at $Um$3, ", M_whole(vmem1), M_frac(vmem1),
         "released $Um$3, ", M_whole(vmemD), M_frac(vmemD),
-        "now $Um$3 ", M_whole(vmem2), M_frac(vmem2),
-        "(epoch $U $U", arena->epoch, trace->why,
+        "now $Um$3.", M_whole(vmem2), M_frac(vmem2),
+        "$S$S", diag_cli_req, diag_chunk_flux,
         NULL ));
-      if(trace->why == TraceStartWhyCHAIN_GEN0CAP) {
-        DIAG_MOREF((
-          " [to $U]", trace->topCondemnedGenSerial,
-          NULL ));
-      }
-      DIAG_MOREF((
-        ": $Um$3", M_whole(trace->condemned), M_frac(trace->condemned),
-        "[->$Um$3", M_whole(live), M_frac(live),
-        " $U%-live", livePerc,
-        " $Um$3-stuck]", M_whole(trace->preservedInPlaceSize), M_frac(trace->preservedInPlaceSize),
-        " ($Um$3-not)", M_whole(trace->notCondemned), M_frac(trace->notCondemned),
-        " )",
-        " tags: $S $S.", diag_cli_req, diag_chunk_flux,
-        NULL));
       DIAG_END("VMCompact");
     }
   );

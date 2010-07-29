@@ -187,6 +187,46 @@ Bool TraceCheck(Trace trace)
   return TRUE;
 }
 
+
+Res TraceDescribe(Trace trace, mps_lib_FILE *stream)
+{
+  Size live = 0;
+  Size livePerc = 0;
+
+  if (!CHECKT(Trace, trace))
+    return ResFAIL;
+  if (stream == NULL)
+    return ResFAIL;
+
+  live = trace->forwardedSize + trace->preservedInPlaceSize;
+  if(trace->condemned / 100 != 0)
+    livePerc = live / (trace->condemned / 100);
+
+  WriteF(stream,
+    "(epoch $U $U", trace->arena->epoch, trace->why,
+    NULL);
+  if(trace->why == TraceStartWhyCHAIN_GEN0CAP) {
+    WriteF(stream,
+      " [to $U]", trace->topCondemnedGenSerial,
+      NULL);
+  }
+  if(trace->state != TraceINIT) {
+    WriteF(stream,
+      ": $Um$3", M_whole(trace->condemned), M_frac(trace->condemned),
+      "[->$Um$3", M_whole(live), M_frac(live),
+      " $U%-live", livePerc,
+      " $Um$3-pip]", M_whole(trace->preservedInPlaceSize), M_frac(trace->preservedInPlaceSize),
+      " ($Um$3-not)", M_whole(trace->notCondemned), M_frac(trace->notCondemned),
+      NULL);
+  }
+  WriteF(stream,
+    ")",
+    NULL);
+
+  return ResOK;  /* little point checking WriteF return values */
+}
+
+
 /* traceBand - current band of the trace.
  *
  * The current band is the band currently being discovered.  Each band
@@ -822,9 +862,15 @@ static void traceReclaim(Trace trace)
   }
 
   ArenaCompact(arena, trace);  /* let arenavm drop chunks */
+
   DIAG_FIRSTF(( "TraceEnd", NULL ));
+  DIAG( TraceDescribe(trace, DIAG_STREAM); );
+  DIAG_MOREF(( "\n", NULL ));  /* hack, while TraceDescribe is 1-line */
   DIAG( ArenaDescribe(arena, DIAG_STREAM); );
   DIAG_END( "TraceEnd" );
+  DIAG_FIRSTF(( "TraceEnd1", NULL ));
+  DIAG( TraceDescribe(trace, DIAG_STREAM); );
+  DIAG_END( "TraceEnd1" );
 
   TracePostMessage(trace);  /* trace end */
   /* Immediately pre-allocate messages for next time; failure is okay */
@@ -1642,33 +1688,17 @@ void TraceStart(Trace trace, double mortality, double finishingTime)
     } while (SegNext(&seg, arena, base));
   }
 
-  DIAG_FIRSTF(( "TraceStart1",
-    "(epoch $U $U", arena->epoch, trace->why,
-    NULL ));
-  if(trace->why == TraceStartWhyCHAIN_GEN0CAP) {
-    DIAG_MOREF((
-      " [to $U]", trace->topCondemnedGenSerial,
-      NULL ));
-  }
-  DIAG_MOREF((
-    ")",
-    NULL ));
+  DIAG_FIRSTF(( "TraceStart1", NULL ));
+  DIAG( TraceDescribe(trace, DIAG_STREAM); );
   DIAG_END("TraceStart1");
 
   DIAG_FIRSTF(( "TraceStart",
     "because code $U: $S\n",
     trace->why, TraceStartWhyToString(trace->why),
-    "(epoch $U $U", arena->epoch, trace->why,
-    NULL ));
-  if(trace->why == TraceStartWhyCHAIN_GEN0CAP) {
-    DIAG_MOREF((
-      " [to $U]", trace->topCondemnedGenSerial,
-      NULL ));
-  }
-  DIAG_MOREF((
-    ")\n",
     NULL ));
 
+  DIAG( TraceDescribe(trace, DIAG_STREAM); );
+  DIAG_MOREF(( "\n", NULL ));  /* hack, while TraceDescribe is 1-line */
   DIAG( ArenaDescribe(arena, DIAG_STREAM); );
 
   DIAG_MOREF((
