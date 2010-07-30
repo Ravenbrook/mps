@@ -311,14 +311,16 @@ static void filterStream_LineOut(Diag diag, Index i, Index j)
   AVER(i <= j);
   AVER(j <= diag->n);
   
-  r = Stream_fputs(DIAG_PREFIX_LINE, filterStream_under());
-  AVER(r != mps_lib_EOF);
-  
   for(; i < j; i++) {
     char c;
     c = diag->buf[i];
-    r = Stream_fputc(c, filterStream_under());
-    AVER(r != mps_lib_EOF);
+    if(c == '\n') {
+      /* omit final newline */
+      AVER(i + 1 == j);
+    } else {
+      r = Stream_fputc(c, filterStream_under());
+      AVER(r != mps_lib_EOF);
+    }
   }
 }
 
@@ -390,16 +392,22 @@ static void filterStream_Output(Diag diag, Rule rules)
     if(0) {
       /* .rules.debug: Turn this on to show which rule applied. */
       Rule rule = &rules[ir];
-      (void) WriteF(filterStream_under(), "[$U/$U:", ir, nr, 
+      (void) WriteF(filterStream_under(), "\n[$U/$U:", ir, nr, 
                     " $S$S/$S/$S] ", rule->action, rule->tag, 
                     rule->para, rule->line, NULL);
     }
     if(rules[ir].action[0] == '+' || diag->overflow) {
       if(nolinesyet) {
+        /* first line */
         res = WriteF(filterStream_under(),
-                     DIAG_PREFIX_TAGSTART "$S {", diag->tag, NULL);
+                     DIAG_PREFIX_TAGSTART "$S { ", diag->tag, NULL);
         AVER(res == ResOK);
         nolinesyet = FALSE;
+      } else {
+        /* non-first lines */
+        res = WriteF(filterStream_under(),
+                     "\n ", NULL);
+        AVER(res == ResOK);
       }
       filterStream_LineOut(diag, i, j);
     }
@@ -413,7 +421,7 @@ static void filterStream_Output(Diag diag, Rule rules)
     AVER(res == ResOK);
   }
   if(!nolinesyet) {
-    res = WriteF(filterStream_under(), DIAG_PREFIX_TAGEND "}\n", NULL);
+    res = WriteF(filterStream_under(), " }\n", NULL);
     AVER(res == ResOK);
   }
   inside = FALSE;
@@ -445,13 +453,6 @@ static void filterStream_TagBegin(mps_lib_FILE *stream, const char *tag)
                   diag->tag, NULL);  
   }
   AVER(diag->tag == NULL);
-
-  /* @@ when all diags are tagged, the buffer must be empty */
-  /* @@ but for now, as a courtesy... */
-  if(diag->n > 0) {
-    filterStream_Output(diag, &RulesGlobal[0]);
-    diag->n = 0;
-  }
 
   diag->tag = tag;
   diag->overflow = FALSE;
@@ -491,7 +492,7 @@ static int filterStream_fputc(int c, mps_lib_FILE *stream)
 
   diag = (Diag)stream;
   AVERT(Diag, diag);
-  /* @@ when all diags are tagged: AVER(diag->tag != NULL); */
+  AVER(diag->tag != NULL);
 
   /* AVER(diag->n + 1 <= sizeof(diag->buf)); */
   if(!(diag->n + 1 <= sizeof(diag->buf))) {
@@ -516,7 +517,7 @@ static int filterStream_fputs(const char *s, mps_lib_FILE *stream)
 
   diag = (Diag)stream;
   AVERT(Diag, diag);
-  /* @@ when all diags are tagged: AVER(diag->tag != NULL); */
+  AVER(diag->tag != NULL);
 
   l = StringLength(s);
   
@@ -584,7 +585,7 @@ static void diagTagEnd(mps_lib_FILE *stream, const char *tag)
     filterStream_TagEnd(stream, tag);
   } else {
     Res res;
-    res = WriteF(stream, DIAG_PREFIX_TAGEND "}\n", tag, NULL);
+    res = WriteF(stream, "}\n", NULL);
     AVER(res == ResOK);
   }
 }
