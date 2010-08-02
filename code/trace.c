@@ -220,7 +220,7 @@ Res TraceDescribe(Trace trace, mps_lib_FILE *stream)
       NULL);
   }
   WriteF(stream,
-    ")",
+    ")\n",
     NULL);
 
   return ResOK;  /* little point checking WriteF return values */
@@ -865,11 +865,11 @@ static void traceReclaim(Trace trace)
 
   DIAG_FIRSTF(( "TraceEnd", NULL ));
   DIAG( TraceDescribe(trace, DIAG_STREAM); );
-  DIAG_MOREF(( "\n", NULL ));  /* hack, while TraceDescribe is 1-line */
   DIAG( ArenaDescribe(arena, DIAG_STREAM); );
   DIAG_END( "TraceEnd" );
   DIAG_FIRSTF(( "TraceEnd1", NULL ));
   DIAG( TraceDescribe(trace, DIAG_STREAM); );
+  DIAG_MOREF(( "\n", NULL ));  /* nicely formats diag output */
   DIAG_END( "TraceEnd1" );
 
   TracePostMessage(trace);  /* trace end */
@@ -1698,7 +1698,6 @@ void TraceStart(Trace trace, double mortality, double finishingTime)
     NULL ));
 
   DIAG( TraceDescribe(trace, DIAG_STREAM); );
-  DIAG_MOREF(( "\n", NULL ));  /* hack, while TraceDescribe is 1-line */
   DIAG( ArenaDescribe(arena, DIAG_STREAM); );
 
   DIAG_MOREF((
