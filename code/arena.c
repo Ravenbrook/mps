@@ -152,9 +152,12 @@ Bool ArenaCheck(Arena arena)
  * methods, not the generic Create.  This is because the class is
  * responsible for allocating the descriptor.  */
 
-/* Choosing -6 is a trick distinctive value, so that we can tell */
-/* if commitLimit is 'unset'. */
-#define ARENA_INIT_COMMIT_LIMIT (Size)-6
+/* ARENA_COMMIT_LIMIT_UNSET is the initial value of commit limit. */
+/* It is effectively SizeMAX, but we choose a slightly different, */
+/* distinctive value, so that we can distinguish between a */
+/* a client that never sets commit limit, and one that explicitly */
+/* sets it to SizeMAX. */
+#define ARENA_COMMIT_LIMIT_UNSET (Size)-6
 
 Res ArenaInit(Arena arena, ArenaClass class)
 {
@@ -171,7 +174,7 @@ Res ArenaInit(Arena arena, ArenaClass class)
   arena->committed = (Size)0;
   /* commitLimit may be overridden by init (but probably not */
   /* as there's not much point) */
-  arena->commitLimit = ARENA_INIT_COMMIT_LIMIT;
+  arena->commitLimit = ARENA_COMMIT_LIMIT_UNSET;
   arena->spareCommitted = (Size)0;
   arena->spareCommitLimit = ARENA_INIT_SPARE_COMMIT_LIMIT;
   /* alignment is usually overridden by init */
@@ -680,17 +683,19 @@ Res ArenaSetCommitLimit(Arena arena, Size limit)
 
 Size ArenaAvail(Arena arena)
 {
-  /* Does this arena class automatically reserve extra address-space */
-  /* as required?  Heuristic: if no ->extend(), then it must be auto. */
+  /* .auto_extend: Does this arena class automatically extend, */
+  /* reserving more address-space as required? */
+  /* Heuristic: automatically-extending arena classes do not need */
+  /* an explicit ->extend() method, so extend == "ArenaNoExtend". */
   /* (This heuristic works ok for the two current arena classes). */
-  Bool auto_size = (arena->class->extend == ArenaNoExtend);
+  Bool auto_extend = (arena->class->extend == ArenaNoExtend);
   Size limit;
 
-  if(auto_size) {
+  if(auto_extend) {
     /* The currently available address-space is not important (it */
     /* will grow and shrink as necessary).  If commitLimit is set, */
     /* use that.  Otherwise use high-water mark. */
-    if(arena->commitLimit != ARENA_INIT_COMMIT_LIMIT) {
+    if(arena->commitLimit != ARENA_COMMIT_LIMIT_UNSET) {
       limit = arena->commitLimit;
     } else {
       limit = arena->reservedHwm;
