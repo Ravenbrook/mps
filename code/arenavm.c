@@ -2052,40 +2052,26 @@ static void VMCompact(Arena arena, Trace trace)
   }
 
   DIAG(
+    /* 0 = pre, 1 = peak, 2 = post */
     Size vmem0 = trace->preTraceArenaReserved;
     Size vmem2 = ArenaReserved(arena);
-    Size vmemD = vmem1 - vmem2;
-    Size live = trace->forwardedSize + trace->preservedInPlaceSize;
-    Size livePerc = 0;
-
-    if(trace->condemned / 100 != 0)
-      livePerc = live / (trace->condemned / 100);
-
-    /* VMCompact diag: emit for all client-requested collections, */
-    /* plus any others where chunks were gained or lost during the */
-    /* collection.  */
-    /* diag_cli_req  diag_chunk_flux */
-    if(TRUE) {  /* ALWAYS Diag please. RHSK 2010-04-28 */
-      char *diag_cli_req;
-      char *diag_chunk_flux;
-      
-      diag_cli_req = (trace->why == TraceStartWhyCLIENTFULL_INCREMENTAL
-                      || trace->why == TraceStartWhyCLIENTFULL_BLOCK)
-                     ? " diag_cli_req"
-                     : "";
-      diag_chunk_flux = (vmem0 != vmem1
-                         || vmem1 != vmem2)
-                        ? " diag_chunk_flux"
-                        : "";
-      DIAG_FIRSTF(( "VMCompact",
-        "pre-collection vmem was $Um$3, ", M_whole(vmem0), M_frac(vmem0),
-        "peaked at $Um$3, ", M_whole(vmem1), M_frac(vmem1),
-        "released $Um$3, ", M_whole(vmemD), M_frac(vmemD),
-        "now $Um$3.", M_whole(vmem2), M_frac(vmem2),
-        "$S$S", diag_cli_req, diag_chunk_flux,
-        NULL ));
-      DIAG_END("VMCompact");
-    }
+    Size vmemCompact = vmem1 - vmem2;  /* effect of VMCompact */
+    char *diag_cli_req;  /* trace was client requested */
+    char *diag_chunk_flux;  /* trace involved chunk gain &/| loss */
+    
+    diag_cli_req = (trace->why == TraceStartWhyCLIENTFULL_INCREMENTAL
+                    || trace->why == TraceStartWhyCLIENTFULL_BLOCK)
+                   ? " diag_cli_req" : "";
+    diag_chunk_flux = (vmem0 != vmem1 || vmem1 != vmem2)
+                      ? " diag_chunk_flux" : "";
+    DIAG_FIRSTF(( "VMCompact",
+      "pre-collection vmem was $Um$3, ", M_whole(vmem0), M_frac(vmem0),
+      "peaked at $Um$3, ", M_whole(vmem1), M_frac(vmem1),
+      "released $Um$3, ", M_whole(vmemCompact), M_frac(vmemCompact),
+      "now $Um$3.", M_whole(vmem2), M_frac(vmem2),
+      "$S$S", diag_cli_req, diag_chunk_flux,
+      NULL ));
+    DIAG_END("VMCompact");
   );
 }
 
