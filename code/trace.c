@@ -1790,12 +1790,29 @@ Res TraceTransform(Trace *traceReturn,
   AVER(res == ResOK); /* succeeds because no other trace is busy */
 
   /* Copy old and new list into ControlPool, link into trace */
+  {
+    /* ControlAlloc, Peek, Copy */
+    trace->oneOld = ArenaPeek(arena, (mps_addr_t)&old_list[0]);
+    trace->oneNew = ArenaPeek(arena, (mps_addr_t)&new_list[0]);
+    DIAG_SINGLEF(( "oneOld, New",
+      "oneOld $A, oneNew $A", trace->oneOld, trace->oneNew,
+      NULL ));
+  }
 
   /* Condemn segs of all old objects */
-  res = traceCondemnAll(trace);
-  if(res != ResOK) /* should try some other trace, really @@@@ */
-    goto failCondemn;
-
+  {
+    Addr addr;
+    Seg seg;
+    Bool b;
+    
+    /* for */
+    addr = trace->oneOld;
+    b = SegOfAddr(&seg, arena, addr);
+    AVER(b);  /* old must be managed memory, else client param error */
+    res = TraceAddWhite(trace, seg);
+    AVER(res == ResOK);  /* no reason for TraceAddWhite to fail! */
+  }
+  
   /* Intercept TraceFix */
 
   finishingTime = ArenaAvail(arena)
@@ -1807,10 +1824,6 @@ Res TraceTransform(Trace *traceReturn,
   TraceStart(trace, TraceTopGenMortality, finishingTime);
   *traceReturn = trace;
   return ResOK;
-
-failCondemn:
-  TraceDestroy(trace);
-  return res;
 }
 
 

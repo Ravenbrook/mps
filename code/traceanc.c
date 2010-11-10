@@ -658,6 +658,9 @@ Res ArenaTransform(Bool *transform_done_o,
   
   AVERT(Globals, globals);
   arena = GlobalsArena(globals);
+  
+  if(old_list_count != new_list_count)
+    return MPS_RES_PARAM;
 
   ArenaPark(globals);
   res = TraceTransform(&trace,

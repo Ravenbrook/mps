@@ -535,6 +535,11 @@ typedef struct TraceStruct {
   Size preservedInPlaceSize;    /* bytes preserved in place */
   STATISTIC_DECL(Count reclaimCount); /* segments reclaimed */
   STATISTIC_DECL(Count reclaimSize); /* bytes reclaimed */
+
+  /* (temporarily?) place transform logic here */
+  Bool transform_Abort;  /* if we encounter any non-updateable ref to an old */
+  Addr oneOld;
+  Addr oneNew;
 } TraceStruct;
 
 
