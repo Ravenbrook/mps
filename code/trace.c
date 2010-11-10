@@ -694,6 +694,7 @@ found:
   STATISTIC(trace->reclaimSize = (Size)0);
   trace->sig = TraceSig;
   arena->busyTraces = TraceSetAdd(arena->busyTraces, trace);
+  arena->transforming = FALSE;
   AVERT(Trace, trace);
 
   /* We suspend the mutator threads so that the PoolWhiten methods */
@@ -1207,7 +1208,20 @@ Res TraceFix(ScanState ss, Ref *refIO)
         pool = TractPool(tract);
         /* Could move the rank switch here from the class-specific */
         /* fix methods. */
-        res = PoolFix(pool, ss, seg, refIO);
+        {
+          Arena arena = ss->arena;
+          if(arena->transforming & !arena->transform_Abort) {
+            if(ref == arena->oneOld) {
+              DIAG_SINGLEF(( "TraceFix_transform",
+                "transforming Old $A into New $A.", ref, arena->oneNew,
+                NULL ));
+              *refIO = arena->oneNew;
+            }
+          }
+          res = PoolFix(pool, ss, seg, refIO);
+          if(res != ResOK)
+            *refIO = ref;
+        }
         if(res != ResOK) {
           /* Fix protocol (de facto): if Fix fails, ref must be unchanged */
           /* Justification for this restriction:
@@ -1792,10 +1806,11 @@ Res TraceTransform(Trace *traceReturn,
   /* Copy old and new list into ControlPool, link into trace */
   {
     /* ControlAlloc, Peek, Copy */
-    trace->oneOld = ArenaPeek(arena, (mps_addr_t)&old_list[0]);
-    trace->oneNew = ArenaPeek(arena, (mps_addr_t)&new_list[0]);
+    arena->oneOld = ArenaPeek(arena, (mps_addr_t)&old_list[0]);
+    arena->oneNew = ArenaPeek(arena, (mps_addr_t)&new_list[0]);
+    arena->transforming = TRUE;
     DIAG_SINGLEF(( "oneOld, New",
-      "oneOld $A, oneNew $A", trace->oneOld, trace->oneNew,
+      "oneOld $A, oneNew $A", arena->oneOld, arena->oneNew,
       NULL ));
   }
 
@@ -1806,14 +1821,14 @@ Res TraceTransform(Trace *traceReturn,
     Bool b;
     
     /* for */
-    addr = trace->oneOld;
+    addr = arena->oneOld;
     b = SegOfAddr(&seg, arena, addr);
     AVER(b);  /* old must be managed memory, else client param error */
     res = TraceAddWhite(trace, seg);
     AVER(res == ResOK);  /* no reason for TraceAddWhite to fail! */
   }
   
-  /* Intercept TraceFix */
+  /* Intercept TraceFix (see TraceFix) */
 
   finishingTime = ArenaAvail(arena)
                   - trace->condemned * (1.0 - TraceTopGenMortality);

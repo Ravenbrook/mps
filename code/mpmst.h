@@ -535,11 +535,6 @@ typedef struct TraceStruct {
   Size preservedInPlaceSize;    /* bytes preserved in place */
   STATISTIC_DECL(Count reclaimCount); /* segments reclaimed */
   STATISTIC_DECL(Count reclaimSize); /* bytes reclaimed */
-
-  /* (temporarily?) place transform logic here */
-  Bool transform_Abort;  /* if we encounter any non-updateable ref to an old */
-  Addr oneOld;
-  Addr oneNew;
 } TraceStruct;
 
 
@@ -715,6 +710,13 @@ typedef struct ArenaStruct {
   Epoch epoch;                     /* <design/arena/#ld.epoch> */
   RefSet prehistory;               /* <design/arena/#ld.prehistory> */
   RefSet history[LDHistoryLENGTH]; /* <design/arena/#ld.history> */
+
+ 
+  /* (temporarily?) place transform logic here */
+  Bool transforming;  /* the (only) running trace is a transforming one */
+  Bool transform_Abort;  /* if we encounter any non-updateable ref to an old */
+  Addr oneOld;
+  Addr oneNew;
 
   Sig sig;
 } ArenaStruct;
