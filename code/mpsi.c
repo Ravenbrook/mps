@@ -342,9 +342,9 @@ void mps_space_release(mps_space_t mps_space)
 }
 
 
-void mps_arena_park(mps_space_t mps_space)
+void mps_arena_park(mps_arena_t mps_arena)
 {
-  Arena arena = (Arena)mps_space;
+  Arena arena = (Arena)mps_arena;
   ArenaEnter(arena);
   ArenaPark(ArenaGlobals(arena));
   ArenaLeave(arena);
@@ -354,6 +354,25 @@ void mps_arena_park(mps_space_t mps_space)
 void mps_space_park(mps_space_t mps_space)
 {
   mps_arena_park(mps_space);
+}
+
+mps_res_t mps_arena_transform_objects_list(mps_bool_t *transform_done_o,
+                                           mps_arena_t mps_arena,
+                                           mps_addr_t  *old_list,
+                                           size_t      old_list_count,
+                                           mps_addr_t  *new_list,
+                                           size_t      new_list_count)
+{
+  Res res;
+  Arena arena = (Arena)mps_arena;
+  Bool transform_done;
+  ArenaEnter(arena);
+  res = ArenaTransform(&transform_done, ArenaGlobals(arena), old_list, old_list_count, new_list, new_list_count);
+  ArenaLeave(arena);
+  /* Always set *transform_done_o (even if there is also a non-ResOK */
+  /* return code): it is a status report, not a material return. */
+  *transform_done_o = transform_done;
+  return res;
 }
 
 void mps_arena_expose(mps_arena_t mps_arena)
@@ -382,20 +401,20 @@ void mps_arena_unsafe_restore_protection(mps_arena_t mps_arena)
 }
 
 
-mps_res_t mps_arena_start_collect(mps_space_t mps_space)
+mps_res_t mps_arena_start_collect(mps_arena_t mps_arena)
 {
   Res res;
-  Arena arena = (Arena)mps_space;
+  Arena arena = (Arena)mps_arena;
   ArenaEnter(arena);
   res = ArenaStartCollect(ArenaGlobals(arena), TraceStartWhyCLIENTFULL_INCREMENTAL);
   ArenaLeave(arena);
   return res;
 }
 
-mps_res_t mps_arena_collect(mps_space_t mps_space)
+mps_res_t mps_arena_collect(mps_arena_t mps_arena)
 {
   Res res;
-  Arena arena = (Arena)mps_space;
+  Arena arena = (Arena)mps_arena;
   ArenaEnter(arena);
   res = ArenaCollect(ArenaGlobals(arena), TraceStartWhyCLIENTFULL_BLOCK);
   ArenaLeave(arena);

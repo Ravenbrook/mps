@@ -418,6 +418,7 @@ enum {
   TraceStartWhyCLIENTFULL_INCREMENTAL,   /* start full */
   TraceStartWhyCLIENTFULL_BLOCK, /* do full */
   TraceStartWhyWALK,
+  TraceStartWhyTRANSFORM, /* mps_arena_transform_objects */
   TraceStartWhyLIMIT /* not a reason, the limit of the enum. */
 };
 

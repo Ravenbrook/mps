@@ -28,7 +28,7 @@ typedef struct RuleStruct {
 /* RulesGlobal -- throw away some diags (see INSTRUCTIONS below) */
 
 struct RuleStruct RulesGlobal[] = {
-  { "-", "*", "*", "*" },
+  { "+", "*", "*", "*" },
   { "+", "DiagFilter_Rules", "*", "*" },
   { "+", "VMCompact", "*", "*" },
   /* ----v---- always on please (RHSK) ----v---- */

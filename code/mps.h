@@ -252,6 +252,9 @@ extern void mps_arena_clamp(mps_arena_t);
 extern void mps_arena_release(mps_arena_t);
 extern void mps_arena_park(mps_arena_t);
 
+extern mps_res_t mps_arena_transform_objects_list(mps_bool_t *, 
+  mps_arena_t, mps_addr_t *, size_t, mps_addr_t *, size_t);
+
 extern void mps_arena_expose(mps_arena_t);
 extern void mps_arena_unsafe_expose_remember_protection(mps_arena_t);
 extern void mps_arena_unsafe_restore_protection(mps_arena_t);

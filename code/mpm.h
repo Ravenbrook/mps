@@ -384,6 +384,20 @@ extern Res TraceFixEmergency(ScanState ss, Ref *refIO);
 extern void TraceQuantum(Trace trace);
 extern Res TraceStartCollectAll(Trace *traceReturn, Arena arena, int why);
 
+/* TraceTransform
+ * These external mps_ types should really be cast, but I'm not going 
+ * to do that until the interface is settled.  RHSK 2010-11-10.
+ */
+extern Res TraceTransform(
+  Trace *traceReturn,
+  Bool *transform_done_o,
+  Arena arena,
+  mps_addr_t  *old_list,
+  size_t      old_list_count,
+  mps_addr_t  *new_list,
+  size_t      new_list_count);
+
+
 /* traceanc.c -- Trace Ancillary */
 
 extern Bool TraceStartMessageCheck(TraceStartMessage message);
@@ -515,6 +529,17 @@ extern void ArenaRestoreProtection(Globals globals);
 extern Res ArenaStartCollect(Globals globals, int why);
 extern Res ArenaCollect(Globals globals, int why);
 extern Bool ArenaHasAddr(Arena arena, Addr addr);
+
+/* ArenaTransform
+ * These external mps_ types should really be cast, but I'm not going 
+ * to do that until the interface is settled.  RHSK 2010-11-10.
+ */
+extern Res ArenaTransform(Bool *transform_done_o,
+                   Globals globals,
+                   mps_addr_t  *old_list,
+                   size_t      old_list_count,
+                   mps_addr_t  *new_list,
+                   size_t      new_list_count);
 
 extern Res ControlInit(Arena arena);
 extern void ControlFinish(Arena arena);

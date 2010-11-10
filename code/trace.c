@@ -1762,6 +1762,58 @@ failCondemn:
 }
 
 
+/* TraceTransform: start a trace to transform old_list to new_list.
+ *
+ * These external mps_ types should really be cast, but I'm not going 
+ * to do that until the interface is settled.  RHSK 2010-11-10.
+ *
+ * Placeholders comments below are for Transform 
+ * (though at this moment this fn just does a normal full collect).
+ */
+
+Res TraceTransform(Trace *traceReturn,
+  Bool *transformDoneReturn,
+  Arena arena,
+  mps_addr_t  *old_list,
+  size_t      old_list_count,
+  mps_addr_t  *new_list,
+  size_t      new_list_count)
+{
+  Trace trace = NULL;
+  Res res;
+  double finishingTime;
+
+  AVERT(Arena, arena);
+  AVER(arena->busyTraces == TraceSetEMPTY);
+
+  res = TraceCreate(&trace, arena, TraceStartWhyTRANSFORM);
+  AVER(res == ResOK); /* succeeds because no other trace is busy */
+
+  /* Copy old and new list into ControlPool, link into trace */
+
+  /* Condemn segs of all old objects */
+  res = traceCondemnAll(trace);
+  if(res != ResOK) /* should try some other trace, really @@@@ */
+    goto failCondemn;
+
+  /* Intercept TraceFix */
+
+  finishingTime = ArenaAvail(arena)
+                  - trace->condemned * (1.0 - TraceTopGenMortality);
+  if(finishingTime < 0) {
+    /* Run out of time, should really try a smaller collection. @@@@ */
+    finishingTime = 0.0;
+  }
+  TraceStart(trace, TraceTopGenMortality, finishingTime);
+  *traceReturn = trace;
+  return ResOK;
+
+failCondemn:
+  TraceDestroy(trace);
+  return res;
+}
+
+
 /* TracePoll -- Check if there's any tracing work to be done */
 
 Size TracePoll(Globals globals)

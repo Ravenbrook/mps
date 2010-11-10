@@ -18,6 +18,8 @@
  *
  *   - ArenaRelease, ArenaClamp, ArenaPark.
  *
+ *   - ArenaStartCollect, ArenaCollect, ArenaTransform.
+ *
  *   - ArenaExposeRemember and ArenaRestoreProtection.
  */
 
@@ -166,6 +168,9 @@ const char *TraceStartWhyToString(int why)
     break;
   case TraceStartWhyWALK:
     r = "Walking all live objects.";
+    break;
+  case TraceStartWhyTRANSFORM:
+    r = "Transform objects from old to new.";
     break;
   default:
     NOTREACHED;
@@ -592,6 +597,11 @@ void ArenaPark(Globals globals)
   }
 }
 
+
+
+/* --------  ArenaStartCollect, ArenaCollect, ArenaTransform  -------- */
+
+
 /* ArenaStartCollect -- start a collection of everything in the
  * arena; leave unclamped. */
 
@@ -629,6 +639,37 @@ Res ArenaCollect(Globals globals, int why)
 
   ArenaPark(globals);
   return ResOK;
+}
+
+/* ArenaTransform
+ * These external mps_ types should really be cast, but I'm not going 
+ * to do that until the interface is settled.  RHSK 2010-11-10.
+ */
+Res ArenaTransform(Bool *transform_done_o,
+                   Globals globals,
+                   mps_addr_t  *old_list,
+                   size_t      old_list_count,
+                   mps_addr_t  *new_list,
+                   size_t      new_list_count)
+{
+  Res res;
+  Arena arena;
+  Trace trace;
+  
+  AVERT(Globals, globals);
+  arena = GlobalsArena(globals);
+
+  ArenaPark(globals);
+  res = TraceTransform(&trace,
+                   transform_done_o,
+                   arena,
+                   old_list,
+                   old_list_count,
+                   new_list,
+                   new_list_count);
+  ArenaRelease(globals);
+  ArenaPark(globals);
+  return res;
 }
 
 
