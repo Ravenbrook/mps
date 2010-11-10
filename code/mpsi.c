@@ -82,6 +82,7 @@ static Bool mpsi_check(void)
   CHECKL((int)MPS_RES_UNIMPL == (int)ResUNIMPL);
   CHECKL((int)MPS_RES_IO == (int)ResIO);
   CHECKL((int)MPS_RES_COMMIT_LIMIT == (int)ResCOMMIT_LIMIT);
+  CHECKL((int)MPS_RES_PARAM == (int)ResPARAM);
 
   /* Check that external and internal rank numbers match. */
   /* See <code/mps.h#ranks> and <code/mpmtypes.h#ranks>. */
