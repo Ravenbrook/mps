@@ -1,9 +1,57 @@
 
+____Design____
 
-TODO?
+The client's old->new table must contain managed refs (otherwise might get stale if a flip happens while client is assembling the table).  This means it is part of the object graph.  After a successful transform, all the old refs in this table will have been updated too, so it will look like a new->new table!  This had better not happen *during* the trace, so copy the entire table into the Control pool, and use that copy, not the client-provided one.
+
+Park first.
+
+(Rejected) Unwinding: if we have started a trace but found an ambig (non-updateable) ref to an old object, how do we abort the trace?  We don't.  (Too messy: there may be things like nailboards allocated).  Rejected.
+
+Don't unwind: do trace-band Ambig, checking each fixed ref against the old list.  At the end of trace-band Ambig, if we ambiguously-fixed any old-list ref, then we cannot transform, but we *continue* the trace with transforming "off": it is just a non-transforming collection.  Whereas if we did not encounter any old-ref, then we have a green light for transforming (because all remaining refs are updateable), so we enter trace-band Exact with transforming "on".
+
+Optimisations (whiteset etc) might prevent fix fixing.  What are these optimisations?  How do we turn them off appropriately?  Condemn segs holding all old objects should do it correctly, cf. traceStartCollectAll() for a seg-by-seg Whiten operation.
+
+Intercept fix.  Function called is (ss)->fix, and is either TraceFix or TraceFixEmergency.
+
+TraceStruct could know the fix function for this trace.  Aha, but Scan is for a whole TraceSet, not just a single trace.  How is ScanStateInit called?
+
+Double-update: intercept fix, replace old by new, and continue to fix the new ref.  New may itself be condemned and so move (eg. if it's on same seg as an old).  
+
+Will this upset any ref/summary asserts?
+
+Emergency mode.  What happens if we enter emergency mode during the transform trace?  During a double-update?  See "if Fix fails, ref must be unchanged" in TraceFix().
+
+(Rejected) Instead of double-update, how about overwriting old-obj with a forwarding pointer to new-obj.  Requires double snap-out (as would, I think, be required for multiple traces).  But only PoolAMC formats expect to use fwd/move & isfwd/isMoved, and only PoolAMC resolves forwarding pointers.  So would only support olds in PoolAMC.  Rejected.
+
+Is it thread-safe?  If thread 1 is about to call transform(), but just after it pushes args on the stack it gets preempted and thread 2 starts and triggers a new trace.  Yup, should be ok.
+
+Buffers: what if there's an old ptr in a buffer (allocation point)?
+
+How can TraceAddWhite fail?  Basically it can't currently, apart from ResUNIMPL.
+
+
+
+____Asides____
+
+//info.ravenbrook.com/project/mps/branch/2010-03-11/vmem/code/trace.c#13 line 450:
+"A segment can only be white if it is GC-able."
+This should not be true.  There should be nothing to stop a client running part of its object graph through a manually-managed formatted scannable but non-collectable object.  (Presumably the client has some other way to know when to manually reclaim the object).  Preventing condemnation of that object is really evil, because it always acts like a root, even if that's not what the client wants.
+
+RefMan for void mps_arena_collect(mps_arena_t arena) should be mps_res_t (but only error is on whiten, which is always either ResOK or ResUNIMPL, and shurely ResUNIMPL will never happen).
+
+
+
+____TODO____
 
 Add mps_arena_transform_objects_list() to mpsicv.c
 
 ArenaTransform external mps_ types should really be cast
+
+
+____Tests____
+
+Use MPS-allocated memory, and try to get protection (eg. write barrier) on old-list, new-list, transform_done bool.
+
+
 
 $Id$
