@@ -57,6 +57,16 @@ Both arrays must have the same number of elements, that is: old_list_count and n
 
 Old and new objects must have been allocated from MPS memory.  They may be in any pool or pools.  Restriction: objects must have been allocated in a pool from an automatic (that is: garbage collected) pool class.  [This restriction could be removed.  RHSK 2010-11-05].
 
+[If I change the interface to use a linked list...] Each list must be terminated with next = NULL; circular lists are not permitted and may cause undefined results.
+
+An old object should be referenced in old_list exactly once.  (However, currently, if it is referenced in old_list more than once, only the first entry is used for the transform; later entries are not used, but may be checked for constraint violations).  
+
+A new object may be referenced in new_list more than once.  It is permitted for several different old objects to all transform to the same new object.  
+
+Null-transform entries are permitted, where an object in old_list is also listed as the corresponding new object in new_list (that is: the old and new references are the same).  No transform is performed for these objects.
+
+The transform must be idempotent, that is: applying it more than once has no further effect.  Therefore, except for null-transform entries, the sets of old and new references must be disjoint (that is: no object may appear in both old and new lists).  This means, for example, that it is not possible to swap two objects in a single transform operation.
+
 
 __Example__
 
