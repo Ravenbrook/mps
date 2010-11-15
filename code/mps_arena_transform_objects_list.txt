@@ -47,6 +47,8 @@ Ambiguous references cannot be transformed.  If there is a managed ambiguous ref
 
 Note that it is in general impossible to prevent accidental 'references' to old objects appearing on the stack by coincidence, such as in arbitrary binary data.  Therefore, always check the returned "transform_done" value, and handle the 0 (FALSE) case appropriately.
 
+When mps_arena_transform_objects_list() finishes, it leaves the MPS arena parked (just like mps_arena_collect()).  To allow automatic collections to start up again, call mps_arena_release().
+
 Constraints:
 
 The mps_bool_t pointed to by transform_done_o may be anywhere (managed or unmanaged).
@@ -62,6 +64,10 @@ Old and new objects must have been allocated from MPS memory.  They may be in an
 An old object should be referenced in old_list exactly once.  (However, currently, if it is referenced in old_list more than once, only the first entry is used for the transform; later entries are not used, but may be checked for constraint violations).  
 
 A new object may be referenced in new_list more than once.  It is permitted for several different old objects to all transform to the same new object.  
+
+An entry where the old object reference is NULL (0) is permitted.  No transform is performed for this entry (but it may be checked for other constraint violations).  (Note that this permits attempting to transform weakly-referenced cached objects, by using an old_list with weak references).
+
+An entry where the new object reference is NULL (0) is not permitted.  
 
 Null-transform entries are permitted, where an object in old_list is also listed as the corresponding new object in new_list (that is: the old and new references are the same).  No transform is performed for these objects.
 

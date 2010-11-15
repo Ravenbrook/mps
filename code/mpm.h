@@ -390,7 +390,6 @@ extern Res TraceStartCollectAll(Trace *traceReturn, Arena arena, int why);
  */
 extern Res TraceTransform(
   Trace *traceReturn,
-  Bool *transform_done_o,
   Arena arena,
   mps_addr_t  *old_list,
   size_t      old_list_count,

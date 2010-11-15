@@ -39,6 +39,18 @@ This should not be true.  There should be nothing to stop a client running part 
 
 RefMan for void mps_arena_collect(mps_arena_t arena) should be mps_res_t (but only error is on whiten, which is always either ResOK or ResUNIMPL, and shurely ResUNIMPL will never happen).
 
+What's the splat value, when a weak-ref gets annulled?  AMC puns that these three are the same:
+  - value that format->isMoved() returns if the referent is not a forwarding pointer;
+  - (Addr)0;
+  - splat value in referring pool.
+Splat value should be a property of the format of the referring pool.  For example, some clients might want it still tagged as a pointer.  But it's not.
+
+
+____MultiTrace____
+
+What if old->new list data is being processed by a trace, and data has been forwarded?  We want a function that lets MPS follow forwarding pointers etc to find the list data.  In other words, detect if it's shielded and/or white, and if so scan it.  TraceSegAccess?
+
+Impose ordering on multiple transform traces.  They must be applied in the specified order.   (Hmmm --- that doesn't work, because they may encounter objects out-of-order.  Hmmm -- that's not meaningful: the object graph will be not as the client told it to be.  Therefore...)  Yes, they must be applied in order.  This is different from a GC-trace, where the passage of the trace leaves the object unchanged (albeit in a new location).
 
 
 ____TODO____

@@ -357,6 +357,32 @@ void mps_space_park(mps_space_t mps_space)
   mps_arena_park(mps_space);
 }
 
+static void stackwipe(void)
+{
+  unsigned iw;
+  enum {stackwipedepth = 50000};
+  unsigned long aw[stackwipedepth];
+
+  /* http://xkcd.com/710/ */
+  /* I don't want my friends to stop calling; I just want the */
+  /* compiler to stop optimising away my code. */
+
+  /* Do you ever get two even numbers next to each other?  Hmmmm :-) */
+  for(iw = 0; iw < stackwipedepth; iw++) {
+    if((iw & 1) == 0) {
+      aw[iw] = 1;
+    } else {
+      aw[iw] = 0;
+    }
+  }
+  for(iw = 1; iw < stackwipedepth; iw++) {
+    if(aw[iw - 1] + aw[iw] != 1) {
+      NOTREACHED;
+      break;
+    }
+  }
+}
+
 mps_res_t mps_arena_transform_objects_list(mps_bool_t *transform_done_o,
                                            mps_arena_t mps_arena,
                                            mps_addr_t  *old_list,
@@ -367,6 +393,11 @@ mps_res_t mps_arena_transform_objects_list(mps_bool_t *transform_done_o,
   Res res;
   Arena arena = (Arena)mps_arena;
   Bool transform_done;
+  
+  stackwipe();
+  DIAG_SINGLEF(( "mps_arena_transform_objects_list",
+    "&res $A, &transform_done $A", &res, &transform_done,
+    NULL ));
   ArenaEnter(arena);
   res = ArenaTransform(&transform_done, ArenaGlobals(arena), old_list, old_list_count, new_list, new_list_count);
   ArenaLeave(arena);

@@ -715,6 +715,7 @@ typedef struct ArenaStruct {
   /* (temporarily?) place transform logic here */
   Bool transforming;  /* the (only) running trace is a transforming one */
   Bool transform_Abort;  /* if we encounter any non-updateable ref to an old */
+  Bool transform_Begun;  /* we have started updating refs */
   Addr oneOld;
   Addr oneNew;
 

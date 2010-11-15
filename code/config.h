@@ -68,6 +68,8 @@
 /* ... let PRODUCT determine CHECKLEVEL_INITIAL */
 #define CONFIG_STATS
 /* no telemetry log events */
+/* RHSK 2010-11-15: diag in ci for br/transform, please */
+#define DIAG_WITH_STREAM_AND_WRITEF
 
 #elif defined(CONFIG_VAR_TI)    /* Telemetry, Internal; variety.ti */
 #define CONFIG_ASSERT

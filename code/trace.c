@@ -694,7 +694,6 @@ found:
   STATISTIC(trace->reclaimSize = (Size)0);
   trace->sig = TraceSig;
   arena->busyTraces = TraceSetAdd(arena->busyTraces, trace);
-  arena->transforming = FALSE;
   AVERT(Trace, trace);
 
   /* We suspend the mutator threads so that the PoolWhiten methods */
@@ -1195,6 +1194,10 @@ Res TraceFix(ScanState ss, Ref *refIO)
   STATISTIC(++ss->fixRefCount);
   EVENT_PPAU(TraceFix, ss, refIO, ref, ss->rank);
 
+  DIAG_SINGLEF(( "TraceFix_refIO",
+    "refIO $P, *refIO $A, rank $U, tfm $U", refIO, *refIO, ss->rank, ss->arena->transforming,
+    NULL ));
+
   TRACT_OF_ADDR(&tract, ss->arena, ref);
   if(tract) {
     if(TraceSetInter(TractWhite(tract), ss->traces) != TraceSetEMPTY) {
@@ -1210,17 +1213,32 @@ Res TraceFix(ScanState ss, Ref *refIO)
         /* fix methods. */
         {
           Arena arena = ss->arena;
-          if(arena->transforming & !arena->transform_Abort) {
-            if(ref == arena->oneOld) {
-              DIAG_SINGLEF(( "TraceFix_transform",
-                "transforming Old $A into New $A.", ref, arena->oneNew,
-                NULL ));
-              *refIO = arena->oneNew;
+          if(arena->transforming) {
+            Bool found = FALSE;
+            if(ref == arena->oneOld)
+              found = TRUE;
+            if(found) {
+              if(ss->rank == RankAMBIG || arena->transform_Abort) {
+                AVER(!arena->transform_Begun);
+                DIAG_SINGLEF(( "TraceFix_transform_Abort",
+                  "NOT transforming Old $A (rank $U) into New $A.", ref, ss->rank, arena->oneNew,
+                  NULL ));
+                arena->transform_Abort = TRUE;
+              } else {
+                /* transform */
+                DIAG_SINGLEF(( "TraceFix_transform",
+                  "transforming Old $A into New $A.", ref, arena->oneNew,
+                  NULL ));
+                arena->transform_Begun = TRUE;
+                *refIO = arena->oneNew;
+              }
+              AVER(arena->transform_Abort || arena->transform_Begun);
             }
           }
           res = PoolFix(pool, ss, seg, refIO);
-          if(res != ResOK)
-            *refIO = ref;
+          if(res != ResOK) {
+            *refIO = ref;  /* undo transform */
+          }
         }
         if(res != ResOK) {
           /* Fix protocol (de facto): if Fix fails, ref must be unchanged */
@@ -1781,12 +1799,10 @@ failCondemn:
  * These external mps_ types should really be cast, but I'm not going 
  * to do that until the interface is settled.  RHSK 2010-11-10.
  *
- * Placeholders comments below are for Transform 
- * (though at this moment this fn just does a normal full collect).
+ * Placeholders comments below are for Transform, currently partially hacked-in.
  */
 
 Res TraceTransform(Trace *traceReturn,
-  Bool *transformDoneReturn,
   Arena arena,
   mps_addr_t  *old_list,
   size_t      old_list_count,
@@ -1808,8 +1824,7 @@ Res TraceTransform(Trace *traceReturn,
     /* ControlAlloc, Peek, Copy */
     arena->oneOld = ArenaPeek(arena, (mps_addr_t)&old_list[0]);
     arena->oneNew = ArenaPeek(arena, (mps_addr_t)&new_list[0]);
-    arena->transforming = TRUE;
-    DIAG_SINGLEF(( "oneOld, New",
+    DIAG_SINGLEF(( "TraceTransform_oneOld_oneNew",
       "oneOld $A, oneNew $A", arena->oneOld, arena->oneNew,
       NULL ));
   }
@@ -1825,6 +1840,9 @@ Res TraceTransform(Trace *traceReturn,
     b = SegOfAddr(&seg, arena, addr);
     AVER(b);  /* old must be managed memory, else client param error */
     res = TraceAddWhite(trace, seg);
+    DIAG_SINGLEF(( "TraceTransform_condemn",
+      "seg $P, seg->base $A", seg, SegBase(seg),
+      NULL ));
     AVER(res == ResOK);  /* no reason for TraceAddWhite to fail! */
   }
   
@@ -1936,7 +1954,7 @@ failStart:
 
 /* C. COPYRIGHT AND LICENSE
  *
- * Copyright (C) 2001-2003, 2006, 2007 Ravenbrook Limited
+ * Copyright (C) 2001-2003, 2006-2010 Ravenbrook Limited
  * <http://www.ravenbrook.com/>.
  * All rights reserved.  This is an open source license.  Contact
  * Ravenbrook for commercial licensing options.

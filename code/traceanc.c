@@ -663,8 +663,10 @@ Res ArenaTransform(Bool *transform_done_o,
     return MPS_RES_PARAM;
 
   ArenaPark(globals);
+  arena->transforming = TRUE;
+  arena->transform_Abort = FALSE;
+  arena->transform_Begun = FALSE;
   res = TraceTransform(&trace,
-                   transform_done_o,
                    arena,
                    old_list,
                    old_list_count,
@@ -672,6 +674,11 @@ Res ArenaTransform(Bool *transform_done_o,
                    new_list_count);
   ArenaRelease(globals);
   ArenaPark(globals);
+  /* at conclusion we expect either Abort, or Begun, or none found */
+  AVER(!(arena->transform_Abort && arena->transform_Begun));
+  /* done = TRUE iff either Begun or none found, ie. not Abort */
+  *transform_done_o = !arena->transform_Abort;
+  arena->transforming = FALSE;
   return res;
 }
 
