@@ -641,6 +641,7 @@ Res ArenaCollect(Globals globals, int why)
   return ResOK;
 }
 
+
 /* ArenaTransform
  * These external mps_ types should really be cast, but I'm not going 
  * to do that until the interface is settled.  RHSK 2010-11-10.
@@ -655,30 +656,76 @@ Res ArenaTransform(Bool *transform_done_o,
   Res res;
   Arena arena;
   Trace trace;
+  Index i;
+  OldNew head = NULL;
+  OldNew *pLink;
   
+  AVER(transform_done_o != NULL);
   AVERT(Globals, globals);
   arena = GlobalsArena(globals);
+  AVER(old_list);
+  AVER(new_list);
   
+  *transform_done_o = FALSE;
+
+  /* Check lists. */
   if(old_list_count != new_list_count)
     return MPS_RES_PARAM;
+  
+  /* Store lists, preserving order. */
+  pLink = &head;
+  for(i = 0; i < old_list_count; i++) {
+    void *base;
+    OldNew oldnew;
+    res = ControlAlloc(&base, arena, sizeof(OldNewStruct),
+                       /* withReservoirPermit */ FALSE);
+    if (res != ResOK) {
+      DIAG_SINGLEF(( "ArenaTransform_fail_controlalloc",
+        "Had successfully stored $U, out of list of $U old->new pairs.", i, old_list_count, NULL ));
+      goto failControlAlloc;
+    }
+    oldnew = (OldNew)base;
+    /* @@@@ To access lists, consider using ArenaPeek / TraceScanSeg */
+    oldnew->oldObj = old_list[i];
+    oldnew->newObj = new_list[i];
+    oldnew->next = NULL;
+    *pLink = oldnew;
+    pLink = &oldnew->next;
+  }
+  DIAG_SINGLEF(( "ArenaTransform_storelists",
+    "Stored list of $U old->new pairs.", old_list_count, NULL ));
 
   ArenaPark(globals);
   arena->transforming = TRUE;
   arena->transform_Abort = FALSE;
   arena->transform_Begun = FALSE;
+  arena->transform_Found = 0;
+  arena->oldnewHead = head;
   res = TraceTransform(&trace,
                    arena,
-                   old_list,
-                   old_list_count,
-                   new_list,
-                   new_list_count);
+                   (Count)old_list_count);
   ArenaRelease(globals);
   ArenaPark(globals);
   /* at conclusion we expect either Abort, or Begun, or none found */
   AVER(!(arena->transform_Abort && arena->transform_Begun));
   /* done = TRUE iff either Begun or none found, ie. not Abort */
   *transform_done_o = !arena->transform_Abort;
+  DIAG_SINGLEF(( "ArenaTransform_finished",
+    "Reporting *transform_done_o = $U, $U old->new pairs, edited $U refs.",
+    *transform_done_o, old_list_count, arena->transform_Found,
+    NULL ));
   arena->transforming = FALSE;
+
+failControlAlloc:
+
+  /* Free lists */
+  while(head != NULL) {
+    OldNew next = head->next;
+    ControlFree(arena, head, sizeof(OldNewStruct));
+    head = next;
+  }
+  arena->oldnewHead = NULL;
+
   return res;
 }
 

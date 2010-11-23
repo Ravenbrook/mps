@@ -626,6 +626,12 @@ typedef struct GlobalsStruct {
  *
  * See <code/arena.c>.  */
 
+typedef struct OldNewStruct {
+  Addr oldObj;
+  Addr newObj;
+  struct OldNewStruct *next;
+} OldNewStruct;
+
 #define ArenaSig        ((Sig)0x519A6E4A) /* SIGnature ARENA */
 
 typedef struct ArenaStruct {
@@ -716,8 +722,8 @@ typedef struct ArenaStruct {
   Bool transforming;  /* the (only) running trace is a transforming one */
   Bool transform_Abort;  /* if we encounter any non-updateable ref to an old */
   Bool transform_Begun;  /* we have started updating refs */
-  Addr oneOld;
-  Addr oneNew;
+  Count transform_Found;  /* count of old refs found */
+  OldNew oldnewHead;  /* linked list of old->new records */
 
   Sig sig;
 } ArenaStruct;

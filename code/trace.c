@@ -1215,22 +1215,31 @@ Res TraceFix(ScanState ss, Ref *refIO)
           Arena arena = ss->arena;
           if(arena->transforming) {
             Bool found = FALSE;
-            if(ref == arena->oneOld)
-              found = TRUE;
+            OldNew oldnew = arena->oldnewHead;
+            Addr newObj = NULL;
+            
+            while(oldnew) {
+              if(ref == oldnew->oldObj) {
+                newObj = oldnew->newObj;
+                found = TRUE;
+              }
+              oldnew = oldnew->next;
+            }
             if(found) {
               if(ss->rank == RankAMBIG || arena->transform_Abort) {
                 AVER(!arena->transform_Begun);
                 DIAG_SINGLEF(( "TraceFix_transform_Abort",
-                  "NOT transforming Old $A (rank $U) into New $A.", ref, ss->rank, arena->oneNew,
+                  "NOT transforming Old $A (rank $U) into New $A.", ref, ss->rank, newObj,
                   NULL ));
                 arena->transform_Abort = TRUE;
               } else {
                 /* transform */
                 DIAG_SINGLEF(( "TraceFix_transform",
-                  "transforming Old $A into New $A.", ref, arena->oneNew,
+                  "transforming ref at $P from Old $A into New $A.", refIO, ref, newObj,
                   NULL ));
                 arena->transform_Begun = TRUE;
-                *refIO = arena->oneNew;
+                arena->transform_Found++;
+                *refIO = newObj;
               }
               AVER(arena->transform_Abort || arena->transform_Begun);
             }
@@ -1804,47 +1813,43 @@ failCondemn:
 
 Res TraceTransform(Trace *traceReturn,
   Arena arena,
-  mps_addr_t  *old_list,
-  size_t      old_list_count,
-  mps_addr_t  *new_list,
-  size_t      new_list_count)
+  Count old_list_count)
 {
   Trace trace = NULL;
   Res res;
+  OldNew oldnew;
+  Count countOld = 0;
   double finishingTime;
 
+  AVER(traceReturn);
   AVERT(Arena, arena);
   AVER(arena->busyTraces == TraceSetEMPTY);
 
   res = TraceCreate(&trace, arena, TraceStartWhyTRANSFORM);
   AVER(res == ResOK); /* succeeds because no other trace is busy */
 
-  /* Copy old and new list into ControlPool, link into trace */
-  {
-    /* ControlAlloc, Peek, Copy */
-    arena->oneOld = ArenaPeek(arena, (mps_addr_t)&old_list[0]);
-    arena->oneNew = ArenaPeek(arena, (mps_addr_t)&new_list[0]);
-    DIAG_SINGLEF(( "TraceTransform_oneOld_oneNew",
-      "oneOld $A, oneNew $A", arena->oneOld, arena->oneNew,
-      NULL ));
-  }
-
   /* Condemn segs of all old objects */
-  {
+  oldnew = arena->oldnewHead;
+  while(oldnew) {
     Addr addr;
     Seg seg;
     Bool b;
     
-    /* for */
-    addr = arena->oneOld;
+    addr = oldnew->oldObj;
     b = SegOfAddr(&seg, arena, addr);
     AVER(b);  /* old must be managed memory, else client param error */
-    res = TraceAddWhite(trace, seg);
-    DIAG_SINGLEF(( "TraceTransform_condemn",
-      "seg $P, seg->base $A", seg, SegBase(seg),
-      NULL ));
-    AVER(res == ResOK);  /* no reason for TraceAddWhite to fail! */
+    if(!TraceSetIsMember(SegWhite(seg), trace)) {
+      res = TraceAddWhite(trace, seg);
+      DIAG_SINGLEF(( "TraceTransform_condemn",
+        "seg $P, seg->base $A", seg, SegBase(seg),
+        NULL ));
+      AVER(res == ResOK);  /* no reason for TraceAddWhite to fail! */
+    }
+    countOld ++;
+    oldnew = oldnew->next;
   }
+  AVER(countOld == old_list_count);
+  
   
   /* Intercept TraceFix (see TraceFix) */
 

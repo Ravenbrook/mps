@@ -92,6 +92,7 @@ typedef struct SegPrefStruct *SegPref;  /* design.mps.pref, <code/locus.c> */
 typedef int SegPrefKind;                /* design.mps.pref, <code/locus.c> */
 typedef struct ArenaClassStruct *ArenaClass; /* <design/arena/> */
 typedef ArenaClass AbstractArenaClass;  /* <code/arena.c> */
+typedef struct OldNewStruct *OldNew;    /* ArenaTransform */
 typedef struct ArenaStruct *Arena;      /* <design/arena/> */
 typedef struct GlobalsStruct *Globals;  /* <design/arena/> */
 typedef struct VMStruct *VM;            /* <code/vm.c>* */

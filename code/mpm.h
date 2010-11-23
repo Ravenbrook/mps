@@ -391,10 +391,7 @@ extern Res TraceStartCollectAll(Trace *traceReturn, Arena arena, int why);
 extern Res TraceTransform(
   Trace *traceReturn,
   Arena arena,
-  mps_addr_t  *old_list,
-  size_t      old_list_count,
-  mps_addr_t  *new_list,
-  size_t      new_list_count);
+  Count old_list_count);
 
 
 /* traceanc.c -- Trace Ancillary */
