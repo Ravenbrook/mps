@@ -724,6 +724,8 @@ typedef struct ArenaStruct {
   Bool transform_Begun;  /* we have started updating refs */
   Count transform_Found;  /* count of old refs found */
   OldNew oldnewHead;  /* linked list of old->new records */
+  Addr *stackAtArenaEnter;  /* = top of client stack, in the thread */
+                            /* that then entered the MPS. */
 
   Sig sig;
 } ArenaStruct;

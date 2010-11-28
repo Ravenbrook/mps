@@ -390,17 +390,23 @@ mps_res_t mps_arena_transform_objects_list(mps_bool_t *transform_done_o,
                                            mps_addr_t  *new_list,
                                            size_t      new_list_count)
 {
+  Addr atArenaEnter = 0;
   Res res;
   Arena arena = (Arena)mps_arena;
   Bool transform_done;
   
   stackwipe();
   DIAG_SINGLEF(( "mps_arena_transform_objects_list",
-    "&res $A, &transform_done $A", &res, &transform_done,
+    "&atArenaEnter $A, &transform_done $A", &atArenaEnter, &transform_done,
     NULL ));
+
   ArenaEnter(arena);
+  AVER(arena->stackAtArenaEnter == 0);
+  arena->stackAtArenaEnter = &atArenaEnter;
   res = ArenaTransform(&transform_done, ArenaGlobals(arena), old_list, old_list_count, new_list, new_list_count);
+  arena->stackAtArenaEnter = 0;
   ArenaLeave(arena);
+
   /* Always set *transform_done_o (even if there is also a non-ResOK */
   /* return code): it is a status report, not a material return. */
   *transform_done_o = transform_done;

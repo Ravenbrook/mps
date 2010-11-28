@@ -27,9 +27,134 @@ Is it thread-safe?  If thread 1 is about to call transform(), but just after it 
 
 Buffers: what if there's an old ptr in a buffer (allocation point)?
 
-How can TraceAddWhite fail?  Basically it can't currently, apart from ResUNIMPL.
+How can TraceAddWhite fail?  Basically it can't currently, apart from ResUNIMPL.  Ah, but allocing OldNewStructs in ControlPool can fail.
 
 
+____Better stack scan____
+
+__stack code naming gripes__
+
+<http://info.ravenbrook.com/mail/2010/11/26/18-30-15/0/>
+
+(I've had to write this, just to get the concepts straight in my own mind.  I'm not aiming to get at anyone.)
+
+The current naming of this stuff is just horrible.
+
+What we actually have is:
+ - the concept of a thread;
+ - the concept of the MPS datastructure associated with a thread, which stores some data about it, and is used to suspend and resume it;
+ - the concept of the values directly accessible to the mutator from the context of a particular thread.
+
+These should be called:
+ - "Thread"
+ - "Thr"
+ - "ThreadContext"
+
+Because Thr does not have any concept of containing references, it does not store stackBot.
+
+ThreadContext is never called that currently; it is abbreviated, and very inconsistently: sometimes "reg", sometimes "stack", and sometimes "Thread"!  ThreadContext stores stackBot.
+
+What complexity!  Maintaining separate concepts of Thr-for-suspend/resume, and ThreadContext-for-scanning -- is it worth it?  Is there a reason?  (For the rest of this email I assume this distinction remains).
+
+
+Additionally, there are two situations where distinctions among threads are important:
+ - recognising the thread that has entered the MPS (ArenaEnter), as distinct from all other threads;
+ - implicitly referring to the current (running) thread, as distinct from some explicitly named thread.
+
+
+Specific gripes:
+
+The names "mps_thread_reg" and "...dereg" are awful -- in this case the text "reg" means register in the sense of make-a-record-of, not register in the sense of a hardware CPU register.  The first function should create a "Thr" (an MPS datastructure), and is implicitly referring to the running thread that makes the call.  The function name should reflect that, eg. "mps_thr_create_current".  Pair with "mps_thr_destroy".
+
+The corresponding MPS-internal datastructure should be renamed "Thr" or "ThreadRecord".  It is not synonymous with "thread".
+
+"mps_root_create_reg" should be "mps_root_create_threadcontext".  It should take a scanning function "mps_threadcontext_scan_t", not "mps_reg_scan_t".
+
+"mps_stack_scan_ambig" should be "mps_threadcontext_scan", and means just what that new name says: scan for all the refs that can be found within the context of the specified thread.  It is a public name for the internal ThreadScan() function, which should be renamed ThreadContextScan().
+
+When the thread whose context is to be scanned is different from the current thread, ThreadContextScan() (in th*.c) uses three sources of information: the "stackBot" value it gets as an argument (which was retrieved from the ThreadContext root), the "Thr" datastructure, and thread-library routines, to find and scan that thread's stack and registers.
+
+When the thread whose context is to be scanned is *the same as* the current thread, ThreadContextScan() (in th*.c) calls "StackScan()".
+
+"StackScan()", and the source files "ss*.c", are awfully named.  What they actually mean is ThreadContextScanCurrent(), ie. scan the context (stack, regs, etc) of the current thread, which will also be the thread that has entered the MPS (via ArenaEnter), and which has a whole bunch of MPS debris littering the stack.  This function, and the ss*.c source files, are completely bypassed when the thread whose context is to be scanned is different from the current thread.
+
+rhsk
+
+__END__
+
+We need a better stack scan for the thread that enters the MPS and sets up the transform, because in the process of setting it up the MPS leaves stack-litter with refs to old objects, which (being ambiguous refs) then prevent the transform.  
+
+Is it possible that an ambiguously scanned C stack is required for some parts of the MPS?  The design intention is that this is NOT required.  How could it be required?  Well, if there are MPS-generated ambiguous stack references that:
+  - are a genuine reference that is the only thing preserving an object that must be preserved; or
+  - are a genuine reference that is written pre-flip and read post-flip, and may therefore be stale; or
+  - nails its referent -- this could be required to prevent some other (non-stack) unmanaged ref becoming stale, even though the on-stack ref is never itself dereferenced.
+As a possible example of the first: a newly created object that is to be returned to the client.  Or, it is possible that a hazard would be introduced by skipping parts of the stack and thereby allowing objects to move.
+
+But let's look at the transform case specifically.
+
+The interface version 0.1, where the client provides old-new refs in client objects, we know that all objects that must be preserved (namely the news) are already referenced by the client, and therefore do not require an MPS ambiguous stack reference to protect them from other collections.
+
+For client stack, record stackTop in mpsi.c
+For must-save regs, fake stackBot to be just before assembler.
+Threads: other threads use traditional stack scanner.  Beware redzones.
+How does this work with signals?  Sighandler must have been started on the stack after leaving space for any redzone.  
+
+How may the SS be called, in general?  What was the thread doing?
+  - This thread synchronously called the MPS API;
+  - Another thread called MPS, and this one was doing something else;
+  - Nobody called MPS, but this thread hit a barrier, invoking sighandler or SEH handler;
+  - Another thread hit a barrier (invoking sighandler or SEH handler), and this one was doing something else.
+
+Someone will get to the MPS lock first and go in.  Everyone else will be outside.
+
+In the single-threaded case, the rootFlip we care about is when the sole thread synchronously calls mps_arena_transform_objects.  No-one else can get in.  There are no other threads.  So we can globally change the stack-scanner to our special better one, let the rootFlip happen, and then change it back.
+
+Actually, it turns out it's even simpler than that: despite the name, "StackScan()" is only ever called to scan the stack of the thread that entered the MPS.  All other threads have their stacks scanned using separate code in th*.c.  So, when doing a transform, we can make StackScan behave differently and it will not affect how other threads are scanned.
+
+What will be on the stack?
+
+[1] cellAtStackBot;  stackBot = &cellAtStackBot (stored in ThreadContext Root)  
+      (client stuff)
+[2]      mps_arena_transform() frame, and ArenaEnter
+          (mps stuff)
+            traceFlip
+              (root iterate and scan-method stuff)
+                mps_stack_scan_ambig
+                  ThreadScan
+                    StackScan
+[3]                   cellBelowRegs
+                      SAVED_REGS                      
+[4]                   {read sp here}
+                        TraceScanArea( [stackTop, stackBot) )
+
+We want to scan between [1] and [2], and between [3] and [4].  But only scan between [1] and [2] if the thread we are trying to scan is the current thread!  Better AVER single thread.  
+
+Luckily, the link between ThreadScan and the ThreadContext root is very tenuous and easy to intercept: RootScan extracts stackBot from the ThreadContext root, and then it gets passed as an argument all the way through root->the.reg.scan > mps_stack_scan_ambig > ThreadScan > StackScan.
+
+Eventually, this special treatment (cleverer scanning) of the ThreadContext root of the MPS-entering thread, either always or just in the case of a transform trace, could be selected by the client by passing a new root-scan function, eg. "mps_threadcontext_scan".  This leaves unmodified clients, that call mps_stack_scan_ambig, without the risk of a surprising change of behaviour.  But perhaps linking to a new MPS build is enough of a surprise that we'll make mps_threadcontext_scan and mps_stack_scan_ambig synonyms.
+
+So, fastest and safest for experimental release, is to leave it called mps_stack_scan_ambig, and in the case of a transform trace:
+  sp_1 = stackBot;
+  sp_2 = arena->stackAtArenaEnter;
+  /* Danger!  No way to check whether stackBot is the bottom of the stack of this *current* thread (which is also the one that entered the arena), or of some completely other thread whose ThreadContext is registered as a root.  From now on we assume there are no such other threads. */
+  AVER(single thread);
+  TraceScanArea( sp_2, sp_1 );
+  ThreadScan(ss, thread, 0);
+
+And in StackScan():
+  local cellBelowRegs = 0;
+  sp_3 = &cellBelowRegs;
+  {Push Regs}
+  sp_4 = {read SP};
+  if(stackBot != 0) {
+    /* stackBot == sp_1  =>  We have been asked to scan whole stack + regs. */
+  } else {
+    /* stackBot == 0  =>  We have been asked to only scan regs, and not the stack. */
+    /* (Presumably someone elsewhere has scanned, or will scan, the stack). */
+    stackBot = sp_3;
+  }
+  TraceScanArea( sp_4, stackBot );
+  
 
 ____Asides____
 
