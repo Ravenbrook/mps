@@ -1,5 +1,34 @@
 mps_arena_tranform_objects -- testing
 
 
+Where are the refs?
+  - exact roots
+  - ambig roots:
+    + stack;
+    + declared;
+  - in objects:
+    + young, old;
+    + condemned (co-seg-resident with olds) or not;
+    + which pool class;
+    + which pool.
+
+Where are the objects?
+  - which pool class
+  - which pool
+  - condemned (co-seg-resident with olds) or not;
+
+What is happening?
+  - parked;
+  - released but no trace in progress;
+  - incremental minor trace in progress;
+  - incremental full trace in progress.
+
+What happens during the trace?
+  - ControlPool full;
+  - other emergency.
+
+
+  
+
 
 $Id$
