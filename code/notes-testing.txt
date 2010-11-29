@@ -1,34 +1,64 @@
 mps_arena_tranform_objects -- testing
 
 
+Verification:
+  - existing refs to news are unchanged;
+  - all managed refs to olds are transformed: heap walk finds none;
+  - rest of object graph is unchanged (except for collecing garbage, weakness, etc).
+
 Where are the refs?
-  - exact roots
-  - ambig roots:
+  - Ambig roots:
     + stack;
     + declared;
+  - Exact roots
   - in objects:
     + young, old;
     + condemned (co-seg-resident with olds) or not;
     + which pool class;
     + which pool.
+  - in Exact objects rank-promoted by barrier hit and scanned at Ambig?
+  - Weak refs.
+  - in Weak objects rank-promoted by barrier hit and scanned at Exact?
+  - Finalization guardians.
+    
+  - (0.1 interface)
+    + in old list, or not.
 
 Where are the objects?
   - which pool class
   - which pool
   - condemned (co-seg-resident with olds) or not;
 
-What is happening?
-  - parked;
+What is happening when the transform is requested?
+  - arena is already parked;
   - released but no trace in progress;
   - incremental minor trace in progress;
   - incremental full trace in progress.
 
 What happens during the trace?
+  - no problems;
+  - ambiguous refs found, transform aborted;
   - ControlPool full;
   - other emergency.
 
+Funny transforms:
+  - million olds all mapping to one new;
+  - NULL olds;
+  - NULL news;
+  - identity entries (old == new).
 
-  
+Illegal transforms:
+  - non-idempotent;
+  - duplicate entries of the same old ref in old_list;
+
+Reporting the results:
+  - error code;
+  - transform_done_o Bool is allocated by the client:
+    + on stack;
+    + static;
+    + in managed object.
+    + in old object?!
+
 
 
 $Id$

@@ -51,9 +51,9 @@ When mps_arena_transform_objects_list() finishes, it leaves the MPS arena parked
 
 Constraints:
 
-The mps_bool_t pointed to by transform_done_o may be anywhere (managed or unmanaged).
+The mps_bool_t pointed to by transform_done_o may be anywhere (managed or unmanaged).  @@@@--OR--@@@@  The mps_bool_t pointed to by transform_done_o must not be moveable or collectable.  (Usually it will be in unmanaged space, such as on the stack).
 
-The old_list and new_list arrays must be managed.  (Otherwise the references may become stale).  The arrays should either be allocated from MPS memory and have a format-scan method, or be externally allocated and declared to the MPS as exact roots.  
+The old_list and new_list arrays must be managed.  (Otherwise the references in them may become stale).  The arrays should either be allocated from MPS memory and have a format-scan method, or be externally allocated and declared to the MPS as exact roots.  
 
 Both arrays must have the same number of elements, that is: old_list_count and new_list_count must be equal.
 
@@ -65,13 +65,13 @@ An old object should be referenced in old_list exactly once.  (However, currentl
 
 A new object may be referenced in new_list more than once.  It is permitted for several different old objects to all transform to the same new object.  
 
-An entry where the old object reference is NULL (0) is permitted.  No transform is performed for this entry (but it may be checked for other constraint violations).  (Note that this permits attempting to transform weakly-referenced cached objects, by using an old_list with weak references).
+Entries where the old object reference is NULL (0) are permitted.  No transform is performed for these entry (but they may be checked for other constraint violations).  (Note that this permits attempting to transform weakly-referenced cached objects, by using an old_list with weak references).
 
-An entry where the new object reference is NULL (0) is not permitted.  
+Entries where the new object reference is NULL (0) are not permitted.  [No implementation reason, but assert this out unless it's required functionality]
 
-Null-transform entries are permitted, where an object in old_list is also listed as the corresponding new object in new_list (that is: the old and new references are the same).  No transform is performed for these objects.
+Identity-transform entries are permitted, where an object in old_list is also listed as the corresponding new object in new_list (that is: the old and new references are the same).  No transform is performed for these objects.
 
-The transform must be idempotent, that is: applying it more than once has no further effect.  Therefore, except for null-transform entries, the sets of old and new references must be disjoint (that is: no object may appear in both old and new lists).  This means, for example, that it is not possible to swap two objects in a single transform operation.
+The transform must be idempotent, that is: applying it more than once has no further effect.  Therefore, except for identity-transform entries, the sets of old and new references must be disjoint (that is: no object may appear in both old and new lists).  This means, for example, that it is not possible to swap two objects in a single transform operation.
 
 
 __Example__
