@@ -127,6 +127,24 @@ What will be on the stack?
 [4]                   {read sp here}
                         TraceScanArea( [stackTop, stackBot) )
 
+(More detail:
+  traceFlip
+   for(rank = ...)
+    RootsIterate(&rootFlip, (rfc.rank = rank, &rfc) )
+     rootFlip
+      if(RootRank(root) == rf->rank)
+       traceScanRoot(rf->ts, rf->rank, rf->arena, root)
+        traceScanRootRes
+         ScanStateInit
+         RootScan
+          case RootREG:
+           (*root->the.reg.scan)
+           =
+           mps_stack_scan_ambig
+            ThreadScan
+             StackScan
+)
+
 We want to scan between [1] and [2], and between [3] and [4].  But only scan between [1] and [2] if the thread we are trying to scan is the current thread!  Better AVER single thread.  
 
 Luckily, the link between ThreadScan and the ThreadContext root is very tenuous and easy to intercept: RootScan extracts stackBot from the ThreadContext root, and then it gets passed as an argument all the way through root->the.reg.scan > mps_stack_scan_ambig > ThreadScan > StackScan.

@@ -1528,9 +1528,61 @@ mps_res_t mps_stack_scan_ambig(mps_ss_t mps_ss,
 {
   ScanState ss = (ScanState)mps_ss;
   Thread thread = (Thread)mps_thr;
+  Arena arena;
+  
+  AVERT(ScanState, ss);
+  arena = ss->arena;
+  AVERT(Arena, arena);
+  
+  AVER(ss->rank == RankAMBIG);
+
+  /* .aver.single-thread: */
+  {
+    Count count = 0;
+    Ring ring, node, next;
+    ring = ArenaThreadRing(arena);
+    RING_FOR(node, ring, next) {
+      count ++;
+    }
+    AVER(count == 1);
+  }
 
   UNUSED(s);
-  return ThreadScan(ss, thread, p);
+
+  if(arena->stackAtArenaEnter == NULL) {
+    /* Use ThreadScan to scan the whole stack and registers */
+    return ThreadScan(ss, thread, p);
+  } else {
+    /* Scan only portions of the stack */
+    Addr *sp_1;
+    Addr *sp_2;
+    sp_1 = p;  /* stackBot of client thread we are to scan */
+    sp_2 = arena->stackAtArenaEnter;  /* stackTop of THIS thread at */
+                                      /* ArenaEnter, if recorded. */
+
+    /* Scan the client portion (only) of the stack: sp_1..sp_2.
+     *
+     * Danger!  Are sp_1 and sp_2 in the same stack? 
+     *
+     * We know sp_2 is in the stack of this *current* thread (which 
+     * is also the one that entered the arena), but sp_1 may be the 
+     * bottom of the stack of some completely other thread whose 
+     * ThreadContext is registered as a root.  From now on we assume 
+     * there are no such other threads.  See .aver.single-thread.
+     */
+    TraceScanArea(ss, sp_2, sp_1);
+
+    /* Scan the registers.
+     *
+     * Normally, ThreadScan scans the whole ThreadContext for a thread, 
+     * including stack and registers.  But if we pass stackBot == 0, 
+     * and thread == the current thread, then ThreadScan ignores the 
+     * current stack and only scans the current registers.  This is ok, 
+     * because we have just scanned the stack ourselves, up there ^.
+     * We know thread == the current thread; see .aver.single-thread.
+     */
+    return ThreadScan(ss, thread, 0);
+  }
 }
 
 

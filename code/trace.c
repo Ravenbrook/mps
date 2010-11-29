@@ -1194,9 +1194,11 @@ Res TraceFix(ScanState ss, Ref *refIO)
   STATISTIC(++ss->fixRefCount);
   EVENT_PPAU(TraceFix, ss, refIO, ref, ss->rank);
 
+#if 0
   DIAG_SINGLEF(( "TraceFix_refIO",
     "refIO $P, *refIO $A, rank $U, tfm $U", refIO, *refIO, ss->rank, ss->arena->transforming,
     NULL ));
+#endif
 
   TRACT_OF_ADDR(&tract, ss->arena, ref);
   if(tract) {
