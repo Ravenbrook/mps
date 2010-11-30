@@ -123,6 +123,7 @@ runtestlist([
     "zmess",
     "walkt0",
     "messtest",
+    "ztfm",
  ], ["we", "hi", "di", "ci"], testout)
 
 os.system("echo DONE")
