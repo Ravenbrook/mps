@@ -1327,7 +1327,7 @@ Res TraceFix(ScanState ss, Ref *refIO)
     /* Cannot transform. */
     AVER(!arena->transform_Begun);
     DIAG_SINGLEF(( "TraceFix_transform_Abort",
-      "NOT transforming Old $A (rank $U) into New $A.", ref, ss->rank, refTransformed,
+      "NOT transforming Old $A (rank $U, at $A) into New $A.", ref, ss->rank, refIO, refTransformed,
       NULL ));
 
     arena->transform_Abort = TRUE;

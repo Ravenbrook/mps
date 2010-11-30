@@ -28,9 +28,15 @@ typedef struct RuleStruct {
 /* RulesGlobal -- throw away some diags (see INSTRUCTIONS below) */
 
 struct RuleStruct RulesGlobal[] = {
-  { "+", "*", "*", "*" },
+  { "-", "*", "*", "*" },
   { "+", "DiagFilter_Rules", "*", "*" },
-  { "+", "VMCompact", "*", "*" },
+  /* ----v---- for mps_arena_transform (RHSK) ----v---- */
+  { "+", "mps_arena_transform_objects_list", "*", "*" },
+  { "+", "ArenaTransform_storelists", "*", "*" },
+  { "+", "TraceStart", "*", "because code 7" },
+  { "+", "StackScan_just_registers", "*", "*" },
+  { "+", "TraceFix_transform_Abort", "(rank 0,", "*" },
+  { "+", "ArenaTransform_finished", "*", "*" },
   /* ----v---- always on please (RHSK) ----v---- */
   { "+", "MPSVersion", "*", "*" },
   { "+", "traceSetSignalEmergency", "*", "*" },
