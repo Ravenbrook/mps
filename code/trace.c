@@ -49,6 +49,7 @@ Bool ScanStateCheck(ScanState ss)
   /* Summaries could be anything, and can't be checked. */
   CHECKL(TraceSetCheck(ss->traces));
   CHECKL(TraceSetSuper(ss->arena->busyTraces, ss->traces));
+  CHECKL(BoolCheck(ss->emergency));
   CHECKL(RankCheck(ss->rank));
   CHECKL(BoolCheck(ss->wasMarked));
   /* @@@@ checks for counts missing */
@@ -70,9 +71,11 @@ void ScanStateInit(ScanState ss, TraceSet ts, Arena arena,
   /* white is arbitrary and can't be checked */
 
   ss->fix = TraceFix;
+  ss->emergency = FALSE;
   TRACE_SET_ITER(ti, trace, ts, arena)
     if(trace->emergency) {
-      ss->fix = TraceFixEmergency;
+      ss->emergency = TRUE;
+      /* ss->fix = TraceFixEmergency; */
     }
   TRACE_SET_ITER_END(ti, trace, ts, arena);
   ss->rank = rank;
@@ -1179,110 +1182,226 @@ void TraceSegAccess(Arena arena, Seg seg, AccessSet mode)
 
 /* TraceFix -- fix a reference */
 
+/* The expected path for a ref requiring fix is:
+ *   Zone test TRUE
+ *   TractOfAddr TRUE
+ *   SegOfAddr TRUE
+ *   SegWhite TRUE
+ *   => PoolFix
+ *
+ *
+ * The failure paths for those tests are:
+ *
+ *   Zone test FALSE
+ *   => we don't care: ignore the ref
+ *
+ *   TractOfAddr FALSE
+ *   => a ref into an unallocated page: if legal, ignore it.
+ *   Assert that it is either:
+ *     - Ambiguous, or
+ *     - not actually in reserved arena address space, that is:
+ *       !ArenaIsReservedAddr.
+ *
+ *   SegOfAddr FALSE
+ *   => a ref into a non-seg Tract?  That's odd; only poolmfs, poolmv, 
+ *   and the reservoir, have seg-less tracts.
+ *   We silently accept these refs, and do not fix them.  Because they 
+ *   have no seg, they cannot be part of a trace (eg: no greyRing).
+ *   Nor can they be transformable.
+ *
+ *   SegWhite FALSE
+ *   => we don't care: ignore the ref.
+ *
+ *
+ * Statistics gathered:
+ *   Zone test TRUE  =>  ++fixRefCount
+ *   TractOfAddr TRUE  --  none
+ *   SegOfAddr TRUE  =>  ++segRefCount
+ *   SegWhite TRUE  =>  ++whiteSegRefCount
+ *
+ *
+ * Efficiency
+ *
+ * Tracts have a white TraceSet, so for speed we do the 'SegWhite' test
+ * before bothering to find the seg, thus:
+ *   TraceSetInter(TractWhite(tract), ss->traces) == TraceSetEMPTY?
+ * (This is okay because, apart from the statistics gathered, there is 
+ * no difference between the "SegOfAddr FALSE" and "SegWhite FALSE" 
+ * failure paths).
+ */
+
+static Bool Transformable(Ref *refTransformed, Arena arena, Ref ref)
+{
+  OldNew oldnew;
+
+  if(!arena->transforming) {
+    return FALSE;
+  }
+
+  /* Find old->new pair. */
+  for(oldnew = arena->oldnewHead; oldnew; oldnew = oldnew->next) {
+    if(ref == oldnew->oldObj) {
+      *refTransformed = oldnew->newObj;
+      return TRUE;
+    }
+  }
+  
+  return FALSE;
+}
+
+
 Res TraceFix(ScanState ss, Ref *refIO)
 {
+  Arena arena;
+  Ref refOriginal;
   Ref ref;
-  Tract tract;
+  Ref refTransformed = NULL;
+  Bool transformable = FALSE;
+  Tract tract = NULL;
+  Seg seg = NULL;
   Pool pool;
+  Res res;
 
   /* See <design/trace/#fix.noaver> */
   AVERT_CRITICAL(ScanState, ss);
   AVER_CRITICAL(refIO != NULL);
+  arena = ss->arena;
+  AVERT_CRITICAL(Arena, arena);
 
-  ref = *refIO;
+  refOriginal = *refIO;
+  ref = refOriginal;
 
   STATISTIC(++ss->fixRefCount);
   EVENT_PPAU(TraceFix, ss, refIO, ref, ss->rank);
-
 #if 0
   DIAG_SINGLEF(( "TraceFix_refIO",
-    "refIO $P, *refIO $A, rank $U, tfm $U", refIO, *refIO, ss->rank, ss->arena->transforming,
+    "refIO $P, *refIO $A, rank $U, tfm $U", refIO, *refIO, ss->rank, arena->transforming,
     NULL ));
 #endif
 
-  TRACT_OF_ADDR(&tract, ss->arena, ref);
-  if(tract) {
-    if(TraceSetInter(TractWhite(tract), ss->traces) != TraceSetEMPTY) {
-      Seg seg;
-      if(TRACT_SEG(&seg, tract)) {
-        Res res;
-        STATISTIC(++ss->segRefCount);
-        STATISTIC(++ss->whiteSegRefCount);
-        EVENT_P(TraceFixSeg, seg);
-        EVENT_0(TraceFixWhite);
-        pool = TractPool(tract);
-        /* Could move the rank switch here from the class-specific */
-        /* fix methods. */
-        {
-          Arena arena = ss->arena;
-          if(arena->transforming) {
-            Bool found = FALSE;
-            OldNew oldnew = arena->oldnewHead;
-            Addr newObj = NULL;
-            
-            while(oldnew) {
-              if(ref == oldnew->oldObj) {
-                newObj = oldnew->newObj;
-                found = TRUE;
-              }
-              oldnew = oldnew->next;
-            }
-            if(found) {
-              if(ss->rank == RankAMBIG || arena->transform_Abort) {
-                AVER(!arena->transform_Begun);
-                DIAG_SINGLEF(( "TraceFix_transform_Abort",
-                  "NOT transforming Old $A (rank $U) into New $A.", ref, ss->rank, newObj,
-                  NULL ));
-                arena->transform_Abort = TRUE;
-              } else {
-                /* transform */
-                DIAG_SINGLEF(( "TraceFix_transform",
-                  "transforming ref at $P from Old $A into New $A.", refIO, ref, newObj,
-                  NULL ));
-                arena->transform_Begun = TRUE;
-                arena->transform_Found++;
-                *refIO = newObj;
-              }
-              AVER(arena->transform_Abort || arena->transform_Begun);
-            }
-          }
-          res = PoolFix(pool, ss, seg, refIO);
-          if(res != ResOK) {
-            *refIO = ref;  /* undo transform */
-          }
-        }
-        if(res != ResOK) {
-          /* Fix protocol (de facto): if Fix fails, ref must be unchanged */
-          /* Justification for this restriction:
-           * A: it simplifies;
-           * B: it's reasonable (given what may cause Fix to fail);
-           * C: the code (here) already assumes this: it returns without 
-           *    updating ss->fixedSummary.  RHSK 2007-03-21.
-           */
-          AVER(*refIO == ref);
-          return res;
-        }
-      }
-    } else {
-      /* Tract isn't white. Don't compute seg for non-statistical */
-      /* variety. See <design/trace/#fix.tractofaddr> */
-      STATISTIC_STAT
-        ({
-          Seg seg;
-          if(TRACT_SEG(&seg, tract)) {
-            ++ss->segRefCount;
-            EVENT_P(TraceFixSeg, seg);
-          }
-        });
-    }
-  } else {
+  /* Tract? */
+  TRACT_OF_ADDR(&tract, arena, ref);
+  if(!tract) {
+    /* TractOfAddr FALSE => unallocated page: if legal, ignore it. */
     /* See <design/trace/#exact.legal> */
-    AVER(ss->rank < RankEXACT
-         || !ArenaIsReservedAddr(ss->arena, ref));
+    AVER(ss->rank < RankEXACT || !ArenaIsReservedAddr(arena, ref));
+    goto skipAll;
+  }
+         
+  /* White? */
+  if(TraceSetInter(TractWhite(tract), ss->traces) == TraceSetEMPTY) {
+    /* SegWhite FALSE => we don't care: ignore the ref. */
+    STATISTIC_STAT ({
+        if(TRACT_SEG(&seg, tract)) {
+          ++ss->segRefCount;
+          EVENT_P(TraceFixSeg, seg);
+        }
+    });
+    goto skipAll;
   }
 
+  /* Seg? */
+  if(!TRACT_SEG(&seg, tract)) {
+    /* SegOfAddr FALSE => a ref into a non-seg Tract (poolmv etc) */
+    /* .notwhite: ...But it should NOT be white.  
+     * [I assert this both from logic, and from inspection of the 
+     * current condemn code.  RHSK 2010-11-30]
+     */
+    NOTREACHED;  /* .notwhite */
+  }
+  
+  /* Ref is in a white seg: fix it. */
+  STATISTIC(++ss->segRefCount);
+  STATISTIC(++ss->whiteSegRefCount);
+  EVENT_P(TraceFixSeg, seg);
+  EVENT_0(TraceFixWhite);
+
+  /* Transform? */
+  transformable = Transformable(&refTransformed, arena, ref);
+  if(!transformable) {
+    goto poolFix;
+  }
+
+  /* This ref should be transformed, if we can. */
+  if(ss->rank == RankAMBIG || arena->transform_Abort) {
+    /* Cannot transform. */
+    AVER(!arena->transform_Begun);
+    DIAG_SINGLEF(( "TraceFix_transform_Abort",
+      "NOT transforming Old $A (rank $U) into New $A.", ref, ss->rank, refTransformed,
+      NULL ));
+
+    arena->transform_Abort = TRUE;
+    goto poolFix;
+  }
+    
+  /* Transform. */
+  AVER(!arena->transform_Abort);
+  DIAG_SINGLEF(( "TraceFix_transform",
+    "transforming ref at $P from Old $A into New $A.", refIO, ref, refTransformed,
+    NULL ));
+  arena->transform_Begun = TRUE;
+  arena->transform_Found++;
+
+  ref = refTransformed;
+  *refIO = ref;
+
+
+  /* newRef: repeat the Tract, White, and Seg tests */
+  /* ============================================== */
+
+  /* Tract? */
+  TRACT_OF_ADDR(&tract, arena, ref);
+  if(!tract) {
+    /* TractOfAddr FALSE => unallocated page: if legal, ignore it. */
+    /* See <design/trace/#exact.legal> */
+    AVER(ss->rank < RankEXACT || !ArenaIsReservedAddr(arena, ref));
+    goto skipPoolFix;
+  }
+         
+  /* White? */
+  if(TraceSetInter(TractWhite(tract), ss->traces) == TraceSetEMPTY) {
+    /* SegWhite FALSE => we don't care: ignore the ref. */
+    /* We don't keep statistics about the transformed ref. */
+    goto skipPoolFix;
+  }
+
+  /* Seg? */
+  if(!TRACT_SEG(&seg, tract)) {
+    /* SegOfAddr FALSE => a ref into a non-seg Tract (poolmv etc) */
+    NOTREACHED;  /* .notwhite */
+  }
+
+poolFix:
+  
+  /* PoolFix */
+  /* (@@@@ Could move the rank switch here from the class-specific */
+  /* fix methods). */
+  pool = TractPool(tract);
+  if(ss->emergency) {
+    PoolFixEmergency(pool, ss, seg, refIO);
+    res = ResOK;
+  } else {
+    res = PoolFix(pool, ss, seg, refIO);
+  }
+  if(res != ResOK) {
+    *refIO = refOriginal;  /* undo transform */
+
+    /* Fix protocol (de facto): if Fix fails, ref must be unchanged */
+    /* Justification for this restriction:
+     * A: it simplifies;
+     * B: it's reasonable (given what may cause Fix to fail);
+     * C: the code (here) already assumes this: it returns without 
+     *    updating ss->fixedSummary.  RHSK 2007-03-21.
+     */
+    AVER(*refIO == refOriginal);
+    return res;
+  }
+
+skipPoolFix:
+skipAll:
+
   /* See <design/trace/#fix.fixed.all> */
-  ss->fixedSummary = RefSetAdd(ss->arena, ss->fixedSummary, *refIO);
+  ss->fixedSummary = RefSetAdd(arena, ss->fixedSummary, *refIO);
 
   return ResOK;
 }
@@ -1298,6 +1417,8 @@ Res TraceFixEmergency(ScanState ss, Ref *refIO)
 
   AVERT(ScanState, ss);
   AVER(refIO != NULL);
+  
+  NOTREACHED;  /* all in TraceFix now */
 
   ref = *refIO;
 

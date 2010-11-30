@@ -473,6 +473,7 @@ typedef struct ScanStateStruct {
   Sig sig;                      /* <design/sig/> */
   Arena arena;                  /* owning arena */
   TraceSet traces;              /* traces to scan for */
+  Bool emergency;               /* a trace is in emergency mode */
   Rank rank;                    /* reference rank of scanning */
   Bool wasMarked;               /* design.mps.fix.protocol.was-ready */
   RefSet fixedSummary;          /* accumulated summary of fixed references */

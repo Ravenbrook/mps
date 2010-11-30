@@ -1,6 +1,8 @@
 mps_arena_tranform_objects -- testing
 
 
+__What needs to be tested__
+
 Verification:
   - existing refs to news are unchanged;
   - all managed refs to olds are transformed: heap walk finds none;
@@ -39,7 +41,7 @@ What happens during the trace?
   - no problems;
   - ambiguous refs found, transform aborted;
   - ControlPool full;
-  - other emergency.
+  - other emergency, check PoolFixEmergency is called.
 
 Funny transforms:
   - million olds all mapping to one new;
@@ -50,6 +52,7 @@ Funny transforms:
 Illegal transforms:
   - non-idempotent;
   - duplicate entries of the same old ref in old_list;
+  - olds that are not a GCSeg.
 
 Reporting the results:
   - error code;
@@ -59,6 +62,28 @@ Reporting the results:
     + in managed object.
     + in old object?!
 
+
+__How the test code will work__
+
+Test:
+make a graph
+turn it into two numbers:
+  Number 1 is used to verify that the transform did not break anything.
+  Number 2 is used to verify that the transform did actually change something!
+choose some olds, make new copies, and transform the graph
+verify that number_1 is the same, report old and new number_2s
+
+How to get the two numbers:
+  n1(main-root):
+    for i in main-root
+      n1 += i * n1(tree at main[i])
+  n1(tree):
+    n1 = 13*node + 17*left + 19*right
+  n2(main-root):
+    for i in main-root
+      n2 += n2(tree at main[i])
+  n2(tree):
+    n2 = node + left + right
 
 
 $Id$
