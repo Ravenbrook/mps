@@ -26,6 +26,7 @@ Res StackScan(ScanState ss, Addr *stackBot)
 {
   Addr *stackTop;
   Res res;
+  Addr cellBelowRegisters = 0;
 
   __asm {
     push edi           /* these registers are the save registers  */
@@ -34,7 +35,17 @@ Res StackScan(ScanState ss, Addr *stackBot)
     mov stackTop, esp  /* stack pointer */
   }
 
+  /* Scan registers only? */
+  if(stackBot == 0) {
+    /* Scan registers only. */
+    stackBot = (Addr *)&cellBelowRegisters;
+    DIAG_SINGLEF(( "StackScan_just_registers", "stackBot argument was 0, so only scan registers (placed on stack above &cellBelowRegisters = $P)", stackBot, NULL));
+  }
+
   AVER(AddrIsAligned((Addr)stackTop, sizeof(Addr)));  /* .align */
+  AVER(AddrIsAligned((Addr)stackBot, sizeof(Addr)));  /* .align */
+
+  DIAG_SINGLEF(( "StackScan", "scanning from stackTop $P to stackBot $P", stackTop, stackBot, NULL));
   res = TraceScanArea(ss, stackTop, stackBot);
 
   __asm {
