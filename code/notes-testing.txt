@@ -29,7 +29,7 @@ Where are the refs?
 Where are the objects?
   - which pool class
   - which pool
-  - condemned (co-seg-resident with olds) or not;
+  - news condemned (because co-seg-resident with olds), or not.
 
 What is happening when the transform is requested?
   - arena is already parked;

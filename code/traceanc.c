@@ -677,6 +677,12 @@ Res ArenaTransform(Bool *transform_done_o,
   for(i = 0; i < old_list_count; i++) {
     void *base;
     OldNew oldnew;
+
+    if(old_list[i] == NULL)
+      continue;  /* permitted, but no transform to do */
+    if(old_list[i] == new_list[i])
+      continue;  /* ignore identity-transforms */
+
     res = ControlAlloc(&base, arena, sizeof(OldNewStruct),
                        /* withReservoirPermit */ FALSE);
     if (res != ResOK) {
