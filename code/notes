@@ -175,6 +175,22 @@ And in StackScan():
   TraceScanArea( sp_4, stackBot );
   
 
+____Use AWL?____
+
+Weak key: use to attach extra values to a key-object, without either preserving that key object or using a pointer in it.
+
+Weak value: use to record that a value depends on key, without either preserving that value or using a pointer in key.
+
+key -> value
+
+
+
+AWL key:
+  - object ref?
+  - segbase?  Less bad bound if billions of objects?
+
+
+
 ____Asides____
 
 //info.ravenbrook.com/project/mps/branch/2010-03-11/vmem/code/trace.c#13 line 450:

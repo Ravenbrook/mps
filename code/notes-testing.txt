@@ -31,7 +31,13 @@ Where are the objects?
   - which pool
   - news condemned (because co-seg-resident with olds), or not.
 
-What is happening when the transform is requested?
+Shields:
+  - access olds to lower shield before transform: read and/or write from them; OR:
+  - don't access olds: leave shield (from last collect) up.
+  - access news to lower shield before transform: read and/or write from them; OR:
+  - don't access news: construct them, collect (to put up shield), and then transform.
+
+What else is happening when the transform is requested?
   - arena is already parked;
   - released but no trace in progress;
   - incremental minor trace in progress;
@@ -84,6 +90,45 @@ How to get the two numbers:
       n2 += n2(tree at main[i])
   n2(tree):
     n2 = node + left + right
+
+This is not quite clever enough.  We want to allow cycles in the graph, so each node has to have a 'last visited on tour number T' slot, and store the computed N1 for the subgraph 'below' it.  
+
+A subtlety: when we encounter the node, we can't instantly compute the N1: we need to recursively 'descend'.  But this might lead us back (via a cycle) to this current, partially computed node.  So before descent, we decide a 'local' N1 for this node.  Then we recursively descend looking for newly-encountered nodes; if we re-encounter this node, the N1 value we read is the local value.  When recursion finally returns a computed N1 for this node, we store that instead of the local N1.  
+
+N2 as above is no good.
+
+We need to prove that: every old node was transformed into the correct new node.  N1 verifies that, where the transform happened, the correct new was substituted.  Now we need to verify that every old was transformed, ie. there are no olds left.
+
+To do this, when creating a transform of olds to news (or when creating a set of olds that will later have news and a transform created for them), choose a particular N2 value, and use it only for those olds.  Optionally, choose a different particular N2, and use it only for the corresponding news.
+
+Then, during a tour, we count how many nodes tagged with each N2 we encounter.  Constrain 0 <= N2 < 100, say, and have an int arrayN2NodesFound[100].  To verify, you can require that arrayN2NodesFound[N2Olds] > 0 before, and arrayN2NodesFound[N2Olds] == 0 after.  And optionally arrayN2NodesFound[N2News] > 0, etc.  
+
+The local N1 is called "id" -- replacement nodes copy this.  The computed is tourIdHash, and depends on the whole tour (because the N1 value read from a node may either be the locaal N1, or the computed N1, depending on the prder in which nodes are encountered).
+
+N2 is called "Ver" for version.
+
+  unsigned long  acNodesVer[100];  /* count of nodes of each Ver */
+
+more test scenarios; proper test design with verification
+  - multiple old->new pairs
+  - proper trees, and fix non-root refs.
+
+Test:
+auto-verification
+  - ref != ref
+  - make nodes into a tree
+  - n1n2
+  - transform oldlist->new
+  - transform done?
+  - ref == ref
+  - n1n2
+
+Pre-built nodes:
+perset: 1, 1, 10, 1000
+if>=10: pick N, build tree.
+tfm as we go
+
+big and small perset
 
 
 $Id$

@@ -136,6 +136,11 @@ extern void verror(const char *format, va_list args);
   cdie(cond, condstring "\n" __FILE__ "\n" STR(__LINE__))
 
 
+/* fail -- like assert, but (notionally) returns a value, so usable in an expression */
+
+extern int fail(void);
+
+
 /* rnd -- random number generator
  *
  * rnd() generates a sequence of integers in the range [1, 2^31-2].

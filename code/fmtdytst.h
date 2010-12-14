@@ -8,6 +8,7 @@
 #define fmtdytst_h
 
 #include "mps.h"
+#include "testlib.h"
 
 extern mps_res_t dylan_init(mps_addr_t addr, size_t size,
                             mps_addr_t *refs, size_t nr_refs);
@@ -25,7 +26,15 @@ extern mps_res_t make_dylan_vector(mps_word_t *v, mps_ap_t ap, size_t slots);
 
 #define DYLAN_INT(n) (((n) << 2) | 1)
 
+#define INT_DYI(n)  ( (n) <= DYLAN_UINT_MAX ? DYLAN_INT(n) : fail() )
+
+
 #define DYLAN_INT_INT(d)  ((d) >> 2)
+
+#define DYI_INT(d)  ( ((d) & 0x3) == 0x1 ? DYLAN_INT_INT(d) : fail() )
+
+#define DYLAN_UINT_MASK  (sizeof(mps_word_t) == 4 ? (0xffffffff >> 2) : 0)
+#define DYLAN_UINT_MAX  (sizeof(mps_word_t) == 4 ? 4294967295UL : 0)
 
 #endif /* fmtdy_h */
 
