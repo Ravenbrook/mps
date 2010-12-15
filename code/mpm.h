@@ -944,6 +944,17 @@ typedef Res (*RootIterateFn)(Root root, void *p);
 extern Res RootsIterate(Globals arena, RootIterateFn f, void *p);
 
 
+/* Transform Interface */
+
+extern Bool TransformCheck(Transform transform);
+extern Res TransformCreate(Transform *transformReturn, Arena arena);
+extern Res TransformAddOldNew(Transform transform, mps_addr_t *, mps_addr_t *, size_t);
+extern Res TransformApply(Bool *appliedReturn, Transform transform);
+extern void TransformDestroy(Transform transform);
+
+extern Arena TransformArena(Transform transform);
+
+
 /* VM Interface -- see <code/vm.c>* */
 
 extern Align VMAlign(VM vm);

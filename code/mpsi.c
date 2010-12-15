@@ -1601,6 +1601,87 @@ void mps_root_destroy(mps_root_t mps_root)
 }
 
 
+/* Transforms */
+
+mps_res_t mps_transform_create(mps_transform_t *mps_transform_o, mps_arena_t mps_arena)
+{
+  Arena arena = (Arena)mps_arena;
+  Transform transform = NULL;
+  Res res;
+
+  ArenaEnter(arena);
+
+  AVER(mps_transform_o != NULL);
+
+  res = TransformCreate(&transform, arena);
+
+  ArenaLeave(arena);
+  if (res != ResOK) return res;
+  *mps_transform_o = (mps_transform_t)transform;
+  return MPS_RES_OK;
+}
+
+mps_res_t mps_transform_add_oldnew(mps_transform_t mps_transform, mps_addr_t *old_list, mps_addr_t *new_list, size_t count)
+{
+  Transform transform = (Transform)mps_transform;
+  Arena arena;
+  Res res;
+
+  arena = TransformArena(transform);
+
+  ArenaEnter(arena);
+  res = TransformAddOldNew(transform, old_list, new_list, count);
+  ArenaLeave(arena);
+
+  return res;
+}
+
+/* mps_transform_apply
+ *
+ * success: *applied_o set to TRUE, and the transform is destroyed (? or emptied?  Not sure yet).
+ * failure: *applied_o set to FALSE, and the transform is NOT destroyed (...probably).
+ * error: return != MPS_RES_OK, *applied_o set to FALSE, and the transform is NOT destroyed (...probably).
+ */
+mps_res_t mps_transform_apply(mps_bool_t *applied_o, mps_transform_t mps_transform)
+{
+  Transform transform = (Transform)mps_transform;
+  Arena arena;
+  Res res;
+  Addr atArenaEnter = 0;
+  Bool applied;
+  
+  arena = TransformArena(transform);
+
+  DIAG_SINGLEF(( "mps_transform_apply",
+    "&atArenaEnter $A, &applied $A", &atArenaEnter, &applied,
+    NULL ));
+
+  ArenaEnter(arena);
+  stackwipe();
+  AVER(arena->stackAtArenaEnter == 0);
+  arena->stackAtArenaEnter = &atArenaEnter;
+  res = TransformApply(&applied, transform);
+  arena->stackAtArenaEnter = 0;
+  ArenaLeave(arena);
+
+  /* Always set *applied_o (even if there is also a non-ResOK */
+  /* return code): it is a status report, not a material return. */
+  *applied_o = applied;
+  return res;
+}
+
+void mps_transform_destroy(mps_transform_t mps_transform)
+{
+  Transform transform = (Transform)mps_transform;
+  Arena arena;
+
+  arena = TransformArena(transform);
+
+  ArenaEnter(arena);
+  TransformDestroy(transform);
+  ArenaLeave(arena);
+}
+
 void (mps_tramp)(void **r_o,
                  void *(*f)(void *p, size_t s),
                  void *p, size_t s)

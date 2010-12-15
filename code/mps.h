@@ -36,6 +36,8 @@ typedef struct mps_alloc_pattern_s
   *mps_alloc_pattern_t;                    /* allocation patterns */
 typedef struct mps_frame_s
   *mps_frame_t;                            /* allocation frames */
+typedef struct mps_transform_s
+  *mps_transform_t;                        /* transform */
 
 /* Concrete Types */
 
@@ -498,6 +500,20 @@ extern void mps_root_destroy(mps_root_t);
 
 extern mps_res_t mps_stack_scan_ambig(mps_ss_t, mps_thr_t,
                                       void *, size_t);
+
+
+/* Transforms */
+
+extern mps_res_t mps_transform_create(mps_transform_t *, mps_arena_t);
+
+extern mps_res_t mps_transform_add_oldnew(mps_transform_t, mps_addr_t *, mps_addr_t *, size_t);
+
+extern mps_res_t mps_transform_apply(mps_bool_t *, mps_transform_t);
+/* success: bool is set to TRUE, and the transform is destroyed (? or emptied?  Not sure yet). */
+/* failure: bool is set to FALSE, and the transform is NOT destroyed (...probably). */
+/* error: return != MPS_RES_OK, bool is set to FALSE, and the transform is NOT destroyed (...probably). */
+
+extern void mps_transform_destroy(mps_transform_t);
 
 
 /* Protection Trampoline and Thread Registration */

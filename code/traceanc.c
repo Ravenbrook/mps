@@ -736,6 +736,222 @@ failControlAlloc:
 }
 
 
+/* Transform Interface */
+
+#define TransformSig         ((Sig)0x51926A45) /* SIGnature TRANSform */
+
+typedef struct TransformStruct {
+  Sig sig;
+  Arena arena;                  /* owning arena */
+  RingStruct arenaRing;         /* attachment to arena */
+  Count cOldNews;
+  OldNew head;
+} TransformStruct;
+/* Modified?  See .transformcheck. */
+
+
+/* TransformCheck -- check the consistency of a transform structure
+ */
+
+Bool TransformCheck(Transform transform)
+{
+  CHECKS(Transform, transform);
+  CHECKU(Arena, transform->arena);
+#if 0
+  CHECKL(transform->serial < ArenaGlobals(transform->arena)->transformSerial);
+  CHECKL(RingCheck(&transform->arenaRing));
+#endif
+  return TRUE;
+}
+
+
+Res TransformCreate(Transform *transformReturn, Arena arena)
+{
+  Transform transform;
+  Res res;
+  void *p;
+  Globals globals;
+
+  AVER(transformReturn != NULL);
+  AVERT(Arena, arena);
+  globals = ArenaGlobals(arena);
+
+  res = ControlAlloc(&p, arena, sizeof(TransformStruct), FALSE);
+  if (res != ResOK)
+    return res;
+  transform = (Transform)p; /* Avoid pun */
+
+  transform->arena = arena;
+
+#if 0
+  /* See <design/arena/#root-ring> */
+  RingInit(&transform->arenaRing);
+  transform->serial = globals->transformSerial;
+  ++globals->transformSerial;
+#endif
+
+  transform->cOldNews = 0;
+  transform->head = NULL;
+
+  transform->sig = TransformSig;
+
+  AVERT(Transform, transform);
+
+  /*RingAppend(&globals->transformRing, &transform->arenaRing);*/
+
+  *transformReturn = transform;
+  return ResOK;
+}
+
+Res TransformAddOldNew(Transform transform, mps_addr_t *old_list, mps_addr_t *new_list, size_t count)
+{
+  Res res;
+  Arena arena;
+
+  Index i;
+  Count added = 0;
+  OldNew head = NULL;
+  OldNew *pLink;
+
+  AVERT(Transform, transform);
+  arena = TransformArena(transform);
+  AVERT(Arena, arena);
+  
+  AVER(old_list);
+  AVER(new_list);
+
+  /* Store lists, preserving order. */
+  pLink = &head;
+  for(i = 0; i < count; i++) {
+    void *base;
+    OldNew oldnew;
+
+    if(old_list[i] == NULL)
+      continue;  /* permitted, but no transform to do */
+    if(old_list[i] == new_list[i])
+      continue;  /* ignore identity-transforms */
+
+    res = ControlAlloc(&base, arena, sizeof(OldNewStruct),
+                       /* withReservoirPermit */ FALSE);
+    if (res != ResOK) {
+      DIAG_SINGLEF(( "TransformAddOldNew_fail_controlalloc",
+        "Had successfully processed $U, out of list of $U old->new pairs.", i, count, NULL ));
+      goto failControlAlloc;
+    }
+    oldnew = (OldNew)base;
+    /* @@@@ To access lists, consider using ArenaPeek / TraceScanSeg */
+    oldnew->oldObj = old_list[i];
+    oldnew->newObj = new_list[i];
+    oldnew->next = NULL;
+    *pLink = oldnew;
+    pLink = &oldnew->next;
+    added += 1;
+  }
+  DIAG_SINGLEF(( "TransformAddOldNew_storelists",
+    "Stored list of $U non-trivial old->new pairs, out of list of $U old->new pairs.", added, count, NULL ));
+
+  /* add to transform */
+  AVER(pLink != NULL);
+  AVER(*pLink == NULL);
+  *pLink = transform->head;
+  transform->head = head;
+  transform->cOldNews += added;
+  
+  return ResOK;
+
+failControlAlloc:
+
+  /* Free OldNews */
+  while(head != NULL) {
+    OldNew next = head->next;
+    ControlFree(arena, head, sizeof(OldNewStruct));
+    head = next;
+  }
+
+  return res;
+}
+
+Res TransformApply(Bool *appliedReturn, Transform transform)
+{
+  Res res;
+  Arena arena;
+  Globals globals;
+  Trace trace;
+  
+  AVER(appliedReturn != NULL);
+  AVERT(Transform, transform);
+  arena = TransformArena(transform);
+  AVERT(Arena, arena);
+
+  globals = ArenaGlobals(arena);
+  AVERT(Globals, globals);
+  
+  *appliedReturn = FALSE;
+
+  ArenaPark(globals);
+  arena->transforming = TRUE;
+  arena->transform_Abort = FALSE;
+  arena->transform_Begun = FALSE;
+  arena->transform_Found = 0;
+  AVER(transform->head != NULL);
+  arena->oldnewHead = transform->head;
+  res = TraceTransform(&trace,
+                   arena,
+                   transform->cOldNews);
+  ArenaRelease(globals);
+  ArenaPark(globals);
+  /* at conclusion we expect either Abort, or Begun, or none found */
+  AVER(!(arena->transform_Abort && arena->transform_Begun));
+  /* done = TRUE iff either Begun or none found, ie. not Abort */
+  *appliedReturn = !arena->transform_Abort;
+  DIAG_SINGLEF(( "TransformApply_finished",
+    "Reporting *appliedReturn = $U, $U non-trivial old->new pairs, edited $U refs.",
+    *appliedReturn, transform->cOldNews, arena->transform_Found,
+    NULL ));
+  arena->transforming = FALSE;
+
+  TransformDestroy(transform);
+
+  return res;
+}
+
+void TransformDestroy(Transform transform)
+{
+  Arena arena;
+  OldNew head = NULL;
+
+  AVERT(Transform, transform);
+  arena = TransformArena(transform);
+  AVERT(Arena, arena);
+
+#if 0
+  RingRemove(&transform->arenaRing);
+  RingFinish(&transform->arenaRing);
+#endif
+
+  /* Free OldNews */
+  head = transform->head;
+  while(head != NULL) {
+    OldNew next = head->next;
+    ControlFree(arena, head, sizeof(OldNewStruct));
+    head = next;
+  }
+  transform->head = NULL;
+
+  transform->sig = SigInvalid;
+
+  ControlFree(arena, transform, sizeof(TransformStruct));
+}
+
+Arena TransformArena(Transform transform)
+{
+  Arena arena;
+  AVERT(Transform, transform);
+  arena = transform->arena;
+  AVERT(Arena, arena);
+  return arena;
+}
+
 
 /* --------  ExposeRemember and RestoreProtection  -------- */
 

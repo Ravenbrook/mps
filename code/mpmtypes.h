@@ -97,6 +97,7 @@ typedef struct ArenaStruct *Arena;      /* <design/arena/> */
 typedef struct GlobalsStruct *Globals;  /* <design/arena/> */
 typedef struct VMStruct *VM;            /* <code/vm.c>* */
 typedef struct RootStruct *Root;        /* <code/root.c> */
+typedef struct TransformStruct *Transform;
 typedef struct ThreadStruct *Thread;    /* <code/th.c>* */
 typedef struct MutatorFaultContextStruct
         *MutatorFaultContext;           /* <design/prot/> */
