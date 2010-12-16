@@ -7,6 +7,8 @@ my_transform(mps_arena_t arena)
   mps_transform_t transform;
   mps_bool_t applied = FALSE;
 
+  mps_arena_park(arena);
+
   res = mps_transform_create(&transform, arena);
   if(res == MPS_RES_OK) {
 
@@ -29,6 +31,8 @@ my_transform(mps_arena_t arena)
       /* (Successfully applying the transform destroys it automatically). */
     }
   }
+
+  mps_arena_release(arena);
 
   my_user_dialog(applied
     ? "Patch applied successfully"
