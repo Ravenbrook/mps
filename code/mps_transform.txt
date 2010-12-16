@@ -1,0 +1,39 @@
+#include "mps.h"
+
+...
+
+my_transform(mps_arena_t arena)
+{
+  mps_transform_t transform;
+  mps_bool_t applied = FALSE;
+
+  res = mps_transform_create(&transform, arena);
+  if(res == MPS_RES_OK) {
+
+    /* Put old->new pairs into the transform */
+    while(res == MPS_RES_OK && old = my_find_old()) {
+      new = my_make_new_from_old(old);
+      res = mps_transform_add_oldnew(transform, &old, &new, 1);
+    }
+
+    if(res == MPS_RES_OK) {
+      res = mps_transform_apply(&applied, transform);
+    }
+
+    if(!applied) {
+      /* You could try to remove stuff from stack? */
+      /* You could wait, and try again later? */
+      /* Otherwise, when you give up, you must destroy the transform manually: */
+      mps_transform_destroy(transform);
+    } else {
+      /* (Successfully applying the transform destroys it automatically). */
+    }
+  }
+
+  my_user_dialog(applied
+    ? "Patch applied successfully"
+    : "Sorry, cannot apply the patch now");
+  }
+}
+
+$Id$
