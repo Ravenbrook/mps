@@ -18,7 +18,9 @@
  *
  *   - ArenaRelease, ArenaClamp, ArenaPark.
  *
- *   - ArenaStartCollect, ArenaCollect, ArenaTransform.
+ *   - ArenaStartCollect, ArenaCollect.
+ *
+ *   - Transforms.
  *
  *   - ArenaExposeRemember and ArenaRestoreProtection.
  */
@@ -599,7 +601,7 @@ void ArenaPark(Globals globals)
 
 
 
-/* --------  ArenaStartCollect, ArenaCollect, ArenaTransform  -------- */
+/* --------  ArenaStartCollect, ArenaCollect  -------- */
 
 
 /* ArenaStartCollect -- start a collection of everything in the
@@ -642,7 +644,9 @@ Res ArenaCollect(Globals globals, int why)
 }
 
 
-/* Transform Interface */
+
+/* --------  Transforms  -------- */
+
 
 #define TransformSig         ((Sig)0x51926A45) /* SIGnature TRANSform */
 
@@ -653,6 +657,7 @@ typedef struct TransformStruct {
   Count cOldNews;
   OldNew head;
   OldNew *pLink;                /* link at end of list, ie. OldNew &tail->next */
+  Epoch epoch;                  /* [Temporary, while OldNews not scanned.  RHSK 2010-12-16] */
 } TransformStruct;
 /* Modified?  See .transformcheck. */
 
@@ -670,12 +675,23 @@ Bool TransformCheck(Transform transform)
 #endif
   CHECKL(transform->pLink != NULL);
   CHECKL(*transform->pLink == NULL);
-  if(transform->pLink == &transform->head) {
-    ;  /* */
+  if(transform->cOldNews == 0) {
+    CHECKL(transform->pLink == &transform->head);
   } else {
     OldNew tail;
+    CHECKL(transform->pLink != &transform->head);
     tail = PARENT(OldNewStruct, next, transform->pLink);
     CHECKS(OldNew, tail);
+  }
+  return TRUE;
+}
+
+
+static Bool TransformCheckEpoch(Transform transform)
+{
+  if(TransformCheck(transform)) {
+    /* [Temporary, while OldNews not scanned.  RHSK 2010-12-16] */
+    CHECKL(transform->epoch == ArenaEpoch(transform->arena));
   }
   return TRUE;
 }
@@ -706,6 +722,7 @@ Res TransformCreate(Transform *transformReturn, Arena arena)
   ++globals->transformSerial;
 #endif
 
+  transform->epoch = ArenaEpoch(arena);
   transform->cOldNews = 0;
   transform->head = NULL;
   transform->pLink = &transform->head;
@@ -713,6 +730,7 @@ Res TransformCreate(Transform *transformReturn, Arena arena)
   transform->sig = TransformSig;
 
   AVERT(Transform, transform);
+  TransformCheckEpoch(transform);
 
   /*RingAppend(&globals->transformRing, &transform->arenaRing);*/
 
@@ -731,8 +749,8 @@ Res TransformAddOldNew(Transform transform, mps_addr_t *old_list, mps_addr_t *ne
   OldNew *pLink;
 
   AVERT(Transform, transform);
+  TransformCheckEpoch(transform);
   arena = TransformArena(transform);
-  AVERT(Arena, arena);
   
   AVER(old_list);
   AVER(new_list);
@@ -782,6 +800,7 @@ Res TransformAddOldNew(Transform transform, mps_addr_t *old_list, mps_addr_t *ne
   AVER(*transform->pLink == NULL);
   transform->cOldNews += added;
   AVERT(Transform, transform);
+  TransformCheckEpoch(transform);
   DIAG_SINGLEF(( "TransformAddOldNew_storelists",
     "Stored list of $U non-trivial old->new pairs, out of list of $U old->new pairs.", added, count, NULL ));
   
@@ -797,6 +816,7 @@ failControlAlloc:
   }
 
   AVERT(Transform, transform);
+  TransformCheckEpoch(transform);
   return res;
 }
 
@@ -809,8 +829,8 @@ Res TransformApply(Bool *appliedReturn, Transform transform)
   
   AVER(appliedReturn != NULL);
   AVERT(Transform, transform);
+  TransformCheckEpoch(transform);
   arena = TransformArena(transform);
-  AVERT(Arena, arena);
 
   globals = ArenaGlobals(arena);
   AVERT(Globals, globals);
@@ -850,8 +870,9 @@ void TransformDestroy(Transform transform)
   OldNew head = NULL;
 
   AVERT(Transform, transform);
+  /* Don't TransformCheckEpoch(transform); -- destroying a stale */
+  /* transform is permitted (and necessary). */
   arena = TransformArena(transform);
-  AVERT(Arena, arena);
 
 #if 0
   RingRemove(&transform->arenaRing);
