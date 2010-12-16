@@ -695,6 +695,7 @@ Res ArenaTransform(Bool *transform_done_o,
     oldnew->oldObj = old_list[i];
     oldnew->newObj = new_list[i];
     oldnew->next = NULL;
+    oldnew->sig = OldNewSig;
     *pLink = oldnew;
     pLink = &oldnew->next;
   }
@@ -746,6 +747,7 @@ typedef struct TransformStruct {
   RingStruct arenaRing;         /* attachment to arena */
   Count cOldNews;
   OldNew head;
+  OldNew *pLink;                /* link at end of list, ie. OldNew &tail->next */
 } TransformStruct;
 /* Modified?  See .transformcheck. */
 
@@ -761,6 +763,15 @@ Bool TransformCheck(Transform transform)
   CHECKL(transform->serial < ArenaGlobals(transform->arena)->transformSerial);
   CHECKL(RingCheck(&transform->arenaRing));
 #endif
+  CHECKL(transform->pLink != NULL);
+  CHECKL(*transform->pLink == NULL);
+  if(transform->pLink == &transform->head) {
+    ;  /* */
+  } else {
+    OldNew tail;
+    tail = PARENT(OldNewStruct, next, transform->pLink);
+    CHECKS(OldNew, tail);
+  }
   return TRUE;
 }
 
@@ -792,6 +803,7 @@ Res TransformCreate(Transform *transformReturn, Arena arena)
 
   transform->cOldNews = 0;
   transform->head = NULL;
+  transform->pLink = &transform->head;
 
   transform->sig = TransformSig;
 
@@ -843,19 +855,30 @@ Res TransformAddOldNew(Transform transform, mps_addr_t *old_list, mps_addr_t *ne
     oldnew->oldObj = old_list[i];
     oldnew->newObj = new_list[i];
     oldnew->next = NULL;
+    oldnew->sig = OldNewSig;
     *pLink = oldnew;
     pLink = &oldnew->next;
     added += 1;
+    AVER(head != NULL);
   }
+
+  if(pLink == &head) {
+    /* No OldNews created */
+    AVER(added == 0);
+  } else {
+    /* add to tail of transform */
+    AVER(transform->pLink != NULL);
+    AVER(*transform->pLink == NULL);
+    *transform->pLink = head;
+    transform->pLink = pLink;
+  }
+  AVER(transform->pLink != NULL);
+  AVER(transform->pLink != &head);
+  AVER(*transform->pLink == NULL);
+  transform->cOldNews += added;
+  AVERT(Transform, transform);
   DIAG_SINGLEF(( "TransformAddOldNew_storelists",
     "Stored list of $U non-trivial old->new pairs, out of list of $U old->new pairs.", added, count, NULL ));
-
-  /* add to transform */
-  AVER(pLink != NULL);
-  AVER(*pLink == NULL);
-  *pLink = transform->head;
-  transform->head = head;
-  transform->cOldNews += added;
   
   return ResOK;
 
@@ -868,6 +891,7 @@ failControlAlloc:
     head = next;
   }
 
+  AVERT(Transform, transform);
   return res;
 }
 
@@ -893,7 +917,6 @@ Res TransformApply(Bool *appliedReturn, Transform transform)
   arena->transform_Abort = FALSE;
   arena->transform_Begun = FALSE;
   arena->transform_Found = 0;
-  AVER(transform->head != NULL);
   arena->oldnewHead = transform->head;
   res = TraceTransform(&trace,
                    arena,

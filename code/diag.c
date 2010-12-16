@@ -37,6 +37,9 @@ struct RuleStruct RulesGlobal[] = {
   { "+", "StackScan_just_registers", "*", "*" },
   { "+", "TraceFix_transform_Abort", "(rank 0,", "*" },
   { "+", "ArenaTransform_finished", "*", "*" },
+  { "+", "TransformApply_", "*", "*" },
+  { "+", "TransformAddOldNew_", "*", "*" },
+  { "+", "ArenaAccess", "*", "*" },
   /* ----v---- always on please (RHSK) ----v---- */
   { "+", "MPSVersion", "*", "*" },
   { "+", "traceSetSignalEmergency", "*", "*" },

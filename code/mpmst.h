@@ -627,7 +627,10 @@ typedef struct GlobalsStruct {
  *
  * See <code/arena.c>.  */
 
+#define OldNewSig        ((Sig)0x51907D4E) /* SIGnature OLDNEw */
+
 typedef struct OldNewStruct {
+  Sig sig;
   Addr oldObj;
   Addr newObj;
   struct OldNewStruct *next;

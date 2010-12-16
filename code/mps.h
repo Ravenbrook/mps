@@ -508,10 +508,18 @@ extern mps_res_t mps_transform_create(mps_transform_t *, mps_arena_t);
 
 extern mps_res_t mps_transform_add_oldnew(mps_transform_t, mps_addr_t *, mps_addr_t *, size_t);
 
+/* mps_transform_apply:
+ *
+ * Apply the transform to the whole arena, replacing every reference 
+ * to an Old with a ref to the corresponding New.
+ *
+ * ALWAYS leaves the Arena parked.
+ *
+ * success: bool is set to TRUE, and the transform is destroyed.
+ * failure: bool is set to FALSE, and the transform is NOT destroyed.
+ * error: return != MPS_RES_OK, bool is set to FALSE, and the transform is NOT destroyed.
+ */
 extern mps_res_t mps_transform_apply(mps_bool_t *, mps_transform_t);
-/* success: bool is set to TRUE, and the transform is destroyed (? or emptied?  Not sure yet). */
-/* failure: bool is set to FALSE, and the transform is NOT destroyed (...probably). */
-/* error: return != MPS_RES_OK, bool is set to FALSE, and the transform is NOT destroyed (...probably). */
 
 extern void mps_transform_destroy(mps_transform_t);
 
