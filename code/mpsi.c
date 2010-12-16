@@ -390,26 +390,30 @@ mps_res_t mps_arena_transform_objects_list(mps_bool_t *transform_done_o,
                                            mps_addr_t  *new_list,
                                            size_t      new_list_count)
 {
-  Addr atArenaEnter = 0;
   Res res;
-  Arena arena = (Arena)mps_arena;
-  Bool transform_done;
+  mps_transform_t transform;
+  Bool applied = FALSE;
   
-  stackwipe();
-  DIAG_SINGLEF(( "mps_arena_transform_objects_list",
-    "&atArenaEnter $A, &transform_done $A", &atArenaEnter, &transform_done,
-    NULL ));
+  AVER(old_list_count == new_list_count);
 
-  ArenaEnter(arena);
-  AVER(arena->stackAtArenaEnter == 0);
-  arena->stackAtArenaEnter = &atArenaEnter;
-  res = ArenaTransform(&transform_done, ArenaGlobals(arena), old_list, old_list_count, new_list, new_list_count);
-  arena->stackAtArenaEnter = 0;
-  ArenaLeave(arena);
-
+  res = mps_transform_create(&transform, mps_arena);
+  if(res == MPS_RES_OK) {
+    /* We have a transform */
+    res = mps_transform_add_oldnew(transform, old_list, new_list, old_list_count);
+    if(res == MPS_RES_OK) {
+      res = mps_transform_apply(&applied, transform);
+    }
+    if(applied) {
+      /* Transform has been destroyed */
+      AVER(res == MPS_RES_OK);
+    } else {
+      mps_transform_destroy(transform);
+    }
+  }
+  
   /* Always set *transform_done_o (even if there is also a non-ResOK */
   /* return code): it is a status report, not a material return. */
-  *transform_done_o = transform_done;
+  *transform_done_o = applied;
   return res;
 }
 
