@@ -648,6 +648,7 @@ Res ArenaCollect(Globals globals, int why)
 /* --------  Transforms  -------- */
 
 
+static Count transformSlotsRequired(Count capacity);
 static OldNew transformSlot(Transform transform, mps_addr_t key);
 
 
@@ -668,15 +669,14 @@ Bool TransformCheck(Transform transform)
   } else {
     CHECKL(transform->cSlots >= 1);
     CHECKL(transform->cOldNews < transform->cSlots);
+    /* check table is not cramped */
+    CHECKL(transformSlotsRequired(transform->cOldNews) <= transform->cSlots);
     /* check first and last elements */
     CHECKS(OldNew, transform->aSlots);
     CHECKS(OldNew, &transform->aSlots[transform->cSlots - 1]);
-    /* @@ hack linear */
-    CHECKL(transform->aSlots[transform->cSlots - 1].oldObj == NULL);
   }
   return TRUE;
 }
-
 
 static Bool TransformCheckEpoch(Transform transform)
 {
@@ -687,6 +687,14 @@ static Bool TransformCheckEpoch(Transform transform)
   return TRUE;
 }
 
+static Count transformSlotsRequired(Count capacity)
+{
+  /* Choose an appropriate proportion of slots to remain free.  
+   * Necessary for closed hashing, to avoid large-sized contiguous 
+   * clumps of full cells, because each clump has a linear search cost. 
+   */
+  return capacity + (capacity / 3) + 1;
+}
 
 /* transformSetCapacity -- set the capacity, preserving contents
  *
@@ -711,9 +719,8 @@ static Res transformSetCapacity(Transform transform, Count capacity)
   AVER(capacity >= transform->cOldNews);
   arena = TransformArena(transform);
 
-  /* @@ hack: linear implementation */
-  cSlotsRequired = capacity + 1;
-
+  cSlotsRequired = transformSlotsRequired(capacity);
+  AVER(cSlotsRequired > 0);
   if(transform->cSlots >= cSlotsRequired)
     return ResOK;
 
@@ -767,20 +774,45 @@ static Res transformSetCapacity(Transform transform, Count capacity)
   return ResOK;
 }
 
+
+/* [See rnd() in testlib.c; RHSK 2010-12-28] */
+#define R_m 2147483647UL
+#define R_a 48271UL
+static unsigned long addrHash(mps_addr_t addr)
+{
+  unsigned long seed = ((unsigned long)addr) & 0x7FFFFFFF;
+  /* requires m == 2^31-1, a < 2^16 */
+  unsigned long bot = R_a * (seed & 0x7FFF);
+  unsigned long top = R_a * (seed >> 15);
+  seed = bot + ((top & 0xFFFF) << 15) + (top >> 16);
+  if(seed > R_m)
+    seed -= R_m;
+  /* seed = ((unsigned long)addr * 48271); @@@@@@@@@ test */
+  return seed;
+}
+
 static OldNew transformSlot(Transform transform, mps_addr_t key)
 {
+  Index j;
   Index i;
 
   STATISTIC(transform->slotCall += 1.0);
 
-  /* @@ hack linear */
-  for(i = 0; i < transform->cSlots; i++) {
+  j = addrHash(key) % transform->cSlots;
+  i = j;
+  do {
     if(transform->aSlots[i].oldObj == key
        || transform->aSlots[i].oldObj == NULL) {
      return &transform->aSlots[i];
     }
     STATISTIC(transform->slotMiss += 1.0);
-  }
+    i++;
+    if(i >= transform->cSlots)
+      i = 0;
+    AVER_CRITICAL(i == i % transform->cSlots);
+    AVER_CRITICAL(i != j);
+  } while(i != j);
+
   NOTREACHED;
   return NULL;
 }
