@@ -61,7 +61,7 @@ Old and new objects must have been allocated from MPS memory.  They may be in an
 
 [If I change the interface to use a linked list...] Each list must be terminated with next = NULL; circular lists are not permitted and may cause undefined results.
 
-An old object should be referenced in old_list exactly once.  (However, currently, if it is referenced in old_list more than once, only the first entry is used for the transform; later entries are not used, but may be checked for constraint violations).  
+An old object must be referenced in old_list exactly once.  
 
 A new object may be referenced in new_list more than once.  It is permitted for several different old objects to all transform to the same new object.  
 

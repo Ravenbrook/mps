@@ -192,6 +192,8 @@ Res ArenaInit(Arena arena, ArenaClass class)
   if (res != ResOK)
     goto failGlobalsInit;
 
+  arena->transform = NULL;
+
   arena->sig = ArenaSig;
 
   /* initialize the reservoir, <design/reservoir/> */

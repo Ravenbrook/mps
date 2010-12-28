@@ -623,9 +623,8 @@ typedef struct GlobalsStruct {
 } GlobalsStruct;
 
 
-/* ArenaStruct -- generic arena
- *
- * See <code/arena.c>.  */
+/* TransformStruct -- for traces that transform old -> new objects
+ */
 
 #define OldNewSig        ((Sig)0x51907D4E) /* SIGnature OLDNEw */
 
@@ -635,6 +634,25 @@ typedef struct OldNewStruct {
   Addr newObj;
   struct OldNewStruct *next;
 } OldNewStruct;
+
+
+#define TransformSig         ((Sig)0x51926A45) /* SIGnature TRANSform */
+
+typedef struct TransformStruct {
+  Sig sig;
+  Arena arena;                  /* owning arena */
+  RingStruct arenaRing;         /* attachment to arena */
+  Count cSlots;                 /* count of hashtable slots */
+  Count cOldNews;               /* count of hashtable slots filled */
+  OldNew aSlots;                /* array of hashtable slots */
+  Epoch epoch;                  /* [Temporary, while OldNews not scanned.  RHSK 2010-12-16] */
+} TransformStruct;
+
+
+
+/* ArenaStruct -- generic arena
+ *
+ * See <code/arena.c>.  */
 
 #define ArenaSig        ((Sig)0x519A6E4A) /* SIGnature ARENA */
 
@@ -723,11 +741,10 @@ typedef struct ArenaStruct {
 
  
   /* (temporarily?) place transform logic here */
-  Bool transforming;  /* the (only) running trace is a transforming one */
+  Transform transform;  /* NULL unless the (only) running trace is a transforming one */
   Bool transform_Abort;  /* if we encounter any non-updateable ref to an old */
   Bool transform_Begun;  /* we have started updating refs */
   Count transform_Found;  /* count of old refs found */
-  OldNew oldnewHead;  /* linked list of old->new records */
   Addr *stackAtArenaEnter;  /* = top of client stack, in the thread */
                             /* that then entered the MPS. */
 

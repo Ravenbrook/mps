@@ -1193,11 +1193,11 @@ void TraceSegAccess(Arena arena, Seg seg, AccessSet mode)
  * The failure paths for those tests are:
  *
  *   Zone test FALSE
- *   => we don't care: ignore the ref
+ *   => referent not white, so ref is already correct: ignore it.
  *
  *   TractOfAddr FALSE
- *   => a ref into an unallocated page: if legal, ignore it.
- *   Assert that it is either:
+ *   => a ref into an unallocated page: if permitted, ignore it.
+ *   Assert that it is permitted, namely either:
  *     - Ambiguous, or
  *     - not actually in reserved arena address space, that is:
  *       !ArenaIsReservedAddr.
@@ -1207,10 +1207,11 @@ void TraceSegAccess(Arena arena, Seg seg, AccessSet mode)
  *   and the reservoir, have seg-less tracts.
  *   We silently accept these refs, and do not fix them.  Because they 
  *   have no seg, they cannot be part of a trace (eg: no greyRing).
- *   Nor can they be transformable.
+ *   Nor can they be transformable.  (Also, these tracts should never 
+ *   be white).
  *
  *   SegWhite FALSE
- *   => we don't care: ignore the ref.
+ *   => referent not white, so ref is already correct: ignore it.
  *
  *
  * Statistics gathered:
@@ -1229,26 +1230,6 @@ void TraceSegAccess(Arena arena, Seg seg, AccessSet mode)
  * no difference between the "SegOfAddr FALSE" and "SegWhite FALSE" 
  * failure paths).
  */
-
-static Bool Transformable(Ref *refTransformed, Arena arena, Ref ref)
-{
-  OldNew oldnew;
-
-  if(!arena->transforming) {
-    return FALSE;
-  }
-
-  /* Find old->new pair. */
-  for(oldnew = arena->oldnewHead; oldnew; oldnew = oldnew->next) {
-    if(ref == oldnew->oldObj) {
-      *refTransformed = oldnew->newObj;
-      return TRUE;
-    }
-  }
-  
-  return FALSE;
-}
-
 
 Res TraceFix(ScanState ss, Ref *refIO)
 {
@@ -1275,14 +1256,14 @@ Res TraceFix(ScanState ss, Ref *refIO)
   EVENT_PPAU(TraceFix, ss, refIO, ref, ss->rank);
 #if 0
   DIAG_SINGLEF(( "TraceFix_refIO",
-    "refIO $P, *refIO $A, rank $U, tfm $U", refIO, *refIO, ss->rank, arena->transforming,
+    "refIO $P, *refIO $A, rank $U, tfm $A", refIO, *refIO, ss->rank, arena->transform,
     NULL ));
 #endif
 
   /* Tract? */
   TRACT_OF_ADDR(&tract, arena, ref);
   if(!tract) {
-    /* TractOfAddr FALSE => unallocated page: if legal, ignore it. */
+    /* TractOfAddr FALSE => unallocated page: if permitted, ignore it. */
     /* See <design/trace/#exact.legal> */
     AVER(ss->rank < RankEXACT || !ArenaIsReservedAddr(arena, ref));
     goto skipAll;
@@ -1316,13 +1297,13 @@ Res TraceFix(ScanState ss, Ref *refIO)
   EVENT_P(TraceFixSeg, seg);
   EVENT_0(TraceFixWhite);
 
-  /* Transform? */
+  /* Transformable? */
   transformable = Transformable(&refTransformed, arena, ref);
   if(!transformable) {
     goto poolFix;
   }
 
-  /* This ref should be transformed, if we can. */
+  /* Can we transform this ref? */
   if(ss->rank == RankAMBIG || arena->transform_Abort) {
     /* Cannot transform. */
     AVER(!arena->transform_Begun);
@@ -1926,54 +1907,55 @@ failCondemn:
 }
 
 
-/* TraceTransform: start a trace to transform old_list to new_list.
- *
- * These external mps_ types should really be cast, but I'm not going 
- * to do that until the interface is settled.  RHSK 2010-11-10.
- *
- * Placeholders comments below are for Transform, currently partially hacked-in.
+/* TraceStartTransform -- start a transforming trace
  */
 
-Res TraceTransform(Trace *traceReturn,
-  Arena arena,
-  Count old_list_count)
+Res TraceStartTransform(Trace *traceReturn,
+  Arena arena)
 {
   Trace trace = NULL;
   Res res;
-  OldNew oldnew;
+  Transform transform;
+  Index i;
   Count countOld = 0;
   double finishingTime;
 
   AVER(traceReturn);
   AVERT(Arena, arena);
   AVER(arena->busyTraces == TraceSetEMPTY);
+  AVER(arena->transform != NULL);
+  transform = arena->transform;
+  AVERT(Transform, transform);
 
   res = TraceCreate(&trace, arena, TraceStartWhyTRANSFORM);
   AVER(res == ResOK); /* succeeds because no other trace is busy */
 
   /* Condemn segs of all old objects */
-  oldnew = arena->oldnewHead;
-  while(oldnew) {
+  for(i = 0; i < transform->cSlots; i++) {
+    OldNew oldnew;
     Addr addr;
     Seg seg;
     Bool b;
+
+    oldnew = &transform->aSlots[i];
+    if(oldnew->oldObj == NULL)
+      continue;
     
     addr = oldnew->oldObj;
     b = SegOfAddr(&seg, arena, addr);
     AVER(b);  /* old must be managed memory, else client param error */
     if(!TraceSetIsMember(SegWhite(seg), trace)) {
       res = TraceAddWhite(trace, seg);
-      DIAG_SINGLEF(( "TraceTransform_condemn",
+      DIAG_SINGLEF(( "TraceStartTransform_condemn",
         "seg $P, seg->base $A", seg, SegBase(seg),
         NULL ));
       AVER(res == ResOK);  /* no reason for TraceAddWhite to fail! */
     }
     countOld ++;
-    oldnew = oldnew->next;
   }
-  AVER(countOld == old_list_count);
-  
-  
+  AVER(countOld == transform->cOldNews);
+
+
   /* Intercept TraceFix (see TraceFix) */
 
   finishingTime = ArenaAvail(arena)

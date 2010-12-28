@@ -384,14 +384,7 @@ extern Res TraceFixEmergency(ScanState ss, Ref *refIO);
 extern void TraceQuantum(Trace trace);
 extern Res TraceStartCollectAll(Trace *traceReturn, Arena arena, int why);
 
-/* TraceTransform
- * These external mps_ types should really be cast, but I'm not going 
- * to do that until the interface is settled.  RHSK 2010-11-10.
- */
-extern Res TraceTransform(
-  Trace *traceReturn,
-  Arena arena,
-  Count old_list_count);
+extern Res TraceStartTransform(Trace *traceReturn, Arena arena);
 
 
 /* traceanc.c -- Trace Ancillary */
@@ -950,8 +943,8 @@ extern Bool TransformCheck(Transform transform);
 extern Res TransformCreate(Transform *transformReturn, Arena arena);
 extern Res TransformAddOldNew(Transform transform, mps_addr_t *, mps_addr_t *, size_t);
 extern Res TransformApply(Bool *appliedReturn, Transform transform);
+extern Bool Transformable(Ref *refTransformed, Arena arena, Ref ref);
 extern void TransformDestroy(Transform transform);
-
 extern Arena TransformArena(Transform transform);
 
 

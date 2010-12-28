@@ -648,18 +648,7 @@ Res ArenaCollect(Globals globals, int why)
 /* --------  Transforms  -------- */
 
 
-#define TransformSig         ((Sig)0x51926A45) /* SIGnature TRANSform */
-
-typedef struct TransformStruct {
-  Sig sig;
-  Arena arena;                  /* owning arena */
-  RingStruct arenaRing;         /* attachment to arena */
-  Count cOldNews;
-  OldNew head;
-  OldNew *pLink;                /* link at end of list, ie. OldNew &tail->next */
-  Epoch epoch;                  /* [Temporary, while OldNews not scanned.  RHSK 2010-12-16] */
-} TransformStruct;
-/* Modified?  See .transformcheck. */
+static OldNew transformSlot(Transform transform, mps_addr_t key);
 
 
 /* TransformCheck -- check the consistency of a transform structure
@@ -673,15 +662,17 @@ Bool TransformCheck(Transform transform)
   CHECKL(transform->serial < ArenaGlobals(transform->arena)->transformSerial);
   CHECKL(RingCheck(&transform->arenaRing));
 #endif
-  CHECKL(transform->pLink != NULL);
-  CHECKL(*transform->pLink == NULL);
-  if(transform->cOldNews == 0) {
-    CHECKL(transform->pLink == &transform->head);
+  if(transform->aSlots == NULL) {
+    CHECKL(transform->cSlots == 0);
+    CHECKL(transform->cOldNews == 0);
   } else {
-    OldNew tail;
-    CHECKL(transform->pLink != &transform->head);
-    tail = PARENT(OldNewStruct, next, transform->pLink);
-    CHECKS(OldNew, tail);
+    CHECKL(transform->cSlots >= 1);
+    CHECKL(transform->cOldNews < transform->cSlots);
+    /* check first and last elements */
+    CHECKS(OldNew, transform->aSlots);
+    CHECKS(OldNew, &transform->aSlots[transform->cSlots - 1]);
+    /* @@ hack linear */
+    CHECKL(transform->aSlots[transform->cSlots - 1].oldObj == NULL);
   }
   return TRUE;
 }
@@ -697,6 +688,99 @@ static Bool TransformCheckEpoch(Transform transform)
 }
 
 
+/* transformSetCapacity -- set the capacity, preserving contents
+ *
+ * Ensure the transform's hashtable can accommodate N entries (filled 
+ * slots), without becoming cramped.  If necessary, resize the 
+ * hashtable by allocating a new one and rehashing all old entries.
+ * If insufficient memory, return error without modifying transform.
+ */
+
+static Res transformSetCapacity(Transform transform, Count capacity)
+{
+  Arena arena;
+  Res res;
+  Count cSlotsRequired;
+  void *p;
+  Count cSlotsPrev;
+  Count cOldNewsPrev;
+  OldNew aSlotsPrev;
+  Index i;
+
+  AVERT(Transform, transform);
+  AVER(capacity >= transform->cOldNews);
+  arena = TransformArena(transform);
+
+  /* @@ hack: linear implementation */
+  cSlotsRequired = capacity + 1;
+
+  if(transform->cSlots >= cSlotsRequired)
+    return ResOK;
+
+  /* Alloc new table and rehash. */
+
+  /* alloc next */
+  res = ControlAlloc(&p, arena, cSlotsRequired * sizeof(OldNewStruct),
+                     /* withReservoirPermit */ FALSE);
+  if (res != ResOK) {
+    DIAG_SINGLEF(( "transformSetCapacity_fail_controlalloc",
+      "cSlotsRequired $U", cSlotsRequired, NULL ));
+    return res;
+  }
+  /* save prev */
+  cSlotsPrev = transform->cSlots;
+  cOldNewsPrev = transform->cOldNews;
+  aSlotsPrev = transform->aSlots;
+  /* init next */
+  transform->cSlots = cSlotsRequired;
+  transform->cOldNews = 0;
+  transform->aSlots = (OldNew)p;
+  for(i = 0; i < transform->cSlots; i++) {
+    OldNew oldnew = &transform->aSlots[i];
+    oldnew->oldObj = NULL;
+    oldnew->newObj = NULL;
+    oldnew->next = NULL;
+    oldnew->sig = OldNewSig;
+  }
+  AVERT(Transform, transform);
+  /* rehash prev -> next */
+  for(i = 0; i < cSlotsPrev; i++) {
+    OldNew prev;
+    OldNew oldnew;
+    prev = &aSlotsPrev[i];
+    if(prev->oldObj != NULL) {
+      oldnew = transformSlot(transform, prev->oldObj);
+      /* Is this old recorded already?  Not permitted. */
+      AVER(oldnew->oldObj == NULL);
+      oldnew->oldObj = prev->oldObj;
+      oldnew->newObj = prev->newObj;
+      transform->cOldNews += 1;
+    }
+  }
+  AVER(transform->cOldNews == cOldNewsPrev);
+  AVERT(Transform, transform);
+  /* free prev */
+  if(aSlotsPrev != NULL) {
+    AVER(cSlotsPrev > 0);
+    ControlFree(arena, aSlotsPrev, cSlotsPrev * sizeof(OldNewStruct));
+  }
+  return ResOK;
+}
+
+static OldNew transformSlot(Transform transform, mps_addr_t key)
+{
+  Index i;
+  /* @@ hack linear */
+  for(i = 0; i < transform->cSlots; i++) {
+    if(transform->aSlots[i].oldObj == key
+       || transform->aSlots[i].oldObj == NULL) {
+     return &transform->aSlots[i];
+    }
+  }
+  NOTREACHED;
+  return NULL;
+}
+
 Res TransformCreate(Transform *transformReturn, Arena arena)
 {
   Transform transform;
@@ -711,7 +795,7 @@ Res TransformCreate(Transform *transformReturn, Arena arena)
   res = ControlAlloc(&p, arena, sizeof(TransformStruct), FALSE);
   if (res != ResOK)
     return res;
-  transform = (Transform)p; /* Avoid pun */
+  transform = (Transform)p;
 
   transform->arena = arena;
 
@@ -722,10 +806,10 @@ Res TransformCreate(Transform *transformReturn, Arena arena)
   ++globals->transformSerial;
 #endif
 
-  transform->epoch = ArenaEpoch(arena);
+  transform->cSlots = 0;
   transform->cOldNews = 0;
-  transform->head = NULL;
-  transform->pLink = &transform->head;
+  transform->aSlots = NULL;
+  transform->epoch = ArenaEpoch(arena);
 
   transform->sig = TransformSig;
 
@@ -742,82 +826,46 @@ Res TransformAddOldNew(Transform transform, mps_addr_t *old_list, mps_addr_t *ne
 {
   Res res;
   Arena arena;
-
   Index i;
   Count added = 0;
-  OldNew head = NULL;
-  OldNew *pLink;
 
   AVERT(Transform, transform);
   TransformCheckEpoch(transform);
   arena = TransformArena(transform);
-  
   AVER(old_list);
   AVER(new_list);
+  /* count: cannot check */
+  
+  res = transformSetCapacity(transform, transform->cOldNews + count);
+  if (res != ResOK)
+    return res;
 
   /* Store lists, preserving order. */
-  pLink = &head;
   for(i = 0; i < count; i++) {
-    void *base;
     OldNew oldnew;
 
+    /* @@@@ To access client-provided lists, consider using ArenaPeek / TraceScanSeg */
     if(old_list[i] == NULL)
       continue;  /* permitted, but no transform to do */
     if(old_list[i] == new_list[i])
       continue;  /* ignore identity-transforms */
 
-    res = ControlAlloc(&base, arena, sizeof(OldNewStruct),
-                       /* withReservoirPermit */ FALSE);
-    if (res != ResOK) {
-      DIAG_SINGLEF(( "TransformAddOldNew_fail_controlalloc",
-        "Had successfully processed $U, out of list of $U old->new pairs.", i, count, NULL ));
-      goto failControlAlloc;
-    }
-    oldnew = (OldNew)base;
-    /* @@@@ To access lists, consider using ArenaPeek / TraceScanSeg */
+    oldnew = transformSlot(transform, old_list[i]);
+    /* Is this old recorded already?  Not permitted. */
+    AVER(oldnew->oldObj == NULL);
     oldnew->oldObj = old_list[i];
     oldnew->newObj = new_list[i];
     oldnew->next = NULL;
-    oldnew->sig = OldNewSig;
-    *pLink = oldnew;
-    pLink = &oldnew->next;
     added += 1;
-    AVER(head != NULL);
+    transform->cOldNews += 1;
   }
 
-  if(pLink == &head) {
-    /* No OldNews created */
-    AVER(added == 0);
-  } else {
-    /* add to tail of transform */
-    AVER(transform->pLink != NULL);
-    AVER(*transform->pLink == NULL);
-    *transform->pLink = head;
-    transform->pLink = pLink;
-  }
-  AVER(transform->pLink != NULL);
-  AVER(transform->pLink != &head);
-  AVER(*transform->pLink == NULL);
-  transform->cOldNews += added;
   AVERT(Transform, transform);
   TransformCheckEpoch(transform);
   DIAG_SINGLEF(( "TransformAddOldNew_storelists",
     "Stored list of $U non-trivial old->new pairs, out of list of $U old->new pairs.", added, count, NULL ));
   
   return ResOK;
-
-failControlAlloc:
-
-  /* Free OldNews */
-  while(head != NULL) {
-    OldNew next = head->next;
-    ControlFree(arena, head, sizeof(OldNewStruct));
-    head = next;
-  }
-
-  AVERT(Transform, transform);
-  TransformCheckEpoch(transform);
-  return res;
 }
 
 Res TransformApply(Bool *appliedReturn, Transform transform)
@@ -838,14 +886,12 @@ Res TransformApply(Bool *appliedReturn, Transform transform)
   *appliedReturn = FALSE;
 
   ArenaPark(globals);
-  arena->transforming = TRUE;
+  AVER(arena->transform == NULL);
+  arena->transform = transform;
   arena->transform_Abort = FALSE;
   arena->transform_Begun = FALSE;
   arena->transform_Found = 0;
-  arena->oldnewHead = transform->head;
-  res = TraceTransform(&trace,
-                   arena,
-                   transform->cOldNews);
+  res = TraceStartTransform(&trace, arena);
   ArenaRelease(globals);
   ArenaPark(globals);
   /* at conclusion we expect either Abort, or Begun, or none found */
@@ -856,7 +902,8 @@ Res TransformApply(Bool *appliedReturn, Transform transform)
     "Reporting *appliedReturn = $U, $U non-trivial old->new pairs, edited $U refs.",
     *appliedReturn, transform->cOldNews, arena->transform_Found,
     NULL ));
-  arena->transforming = FALSE;
+  arena->transform = NULL;
+  AVER(arena->transform == NULL);
 
   if(*appliedReturn)
     TransformDestroy(transform);
@@ -864,10 +911,31 @@ Res TransformApply(Bool *appliedReturn, Transform transform)
   return res;
 }
 
+Bool Transformable(Ref *refTransformed, Arena arena, Ref ref)
+{
+  Transform transform;
+  OldNew oldnew;
+
+  if(arena->transform == NULL) {
+    return FALSE;
+  }
+  transform = arena->transform;
+  AVERT_CRITICAL(Transform, transform);
+
+  /* Find old->new pair. */
+  oldnew = transformSlot(transform, ref);
+  if(oldnew->oldObj == NULL) {
+    return FALSE;
+  } else {
+    AVER_CRITICAL(oldnew->oldObj == ref);
+    *refTransformed = oldnew->newObj;
+    return TRUE;
+  }
+}
+
 void TransformDestroy(Transform transform)
 {
   Arena arena;
-  OldNew head = NULL;
 
   AVERT(Transform, transform);
   /* Don't TransformCheckEpoch(transform); -- destroying a stale */
@@ -879,14 +947,11 @@ void TransformDestroy(Transform transform)
   RingFinish(&transform->arenaRing);
 #endif
 
-  /* Free OldNews */
-  head = transform->head;
-  while(head != NULL) {
-    OldNew next = head->next;
-    ControlFree(arena, head, sizeof(OldNewStruct));
-    head = next;
+  if(transform->aSlots != NULL) {
+    AVER(transform->cSlots > 0);
+    ControlFree(arena, transform->aSlots, transform->cSlots * sizeof(OldNewStruct));
+    transform->aSlots = NULL;
   }
-  transform->head = NULL;
 
   transform->sig = SigInvalid;
 

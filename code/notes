@@ -178,16 +178,33 @@ And in StackScan():
 ____Use AWL?____
 
 Weak key: use to attach extra values to a key-object, without either preserving that key object or using a pointer in it.
-
 Weak value: use to record that a value depends on key, without either preserving that value or using a pointer in key.
+What AWL key would we use?
+  - the object ref;
+  - segbase of its seg (less bad bound if billions of objects?).
 
-key -> value
+The nice things about AWL are:
+  - can easily make transform behave like a weak-key hashtable with value-nulling, which is ideal for long-lived transforms;
+  - can easily be scannable, to keep news alive;
+  - it's a reasonable pool implementation for transform hash-tables to live in;
+  - it's well tested etc.
+
+But for 'park, walk, transform' usage, we don't care about weakness, or about preserving news.  It's simpler (less code) to just allocate hash-tables in the ControlPool.
 
 
+____Parked____
 
-AWL key:
-  - object ref?
-  - segbase?  Less bad bound if billions of objects?
+For now, only support transforms while parked.  The client is expected to do this:
+
+  mps_arena_collect()  -- leaves arena parked
+  mps_transform_create(&t)
+  heapwalk:
+  + allocate new and initialise it from old
+  + mps_transform_add_oldnew(t, old, new, 1)
+  mps_transform_apply(t)
+  mps_arena_release()
+
+If a flip happens, the process fails (either gracefully or not).  
 
 
 
