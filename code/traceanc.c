@@ -770,12 +770,16 @@ static Res transformSetCapacity(Transform transform, Count capacity)
 static OldNew transformSlot(Transform transform, mps_addr_t key)
 {
   Index i;
+
+  STATISTIC(transform->slotCall += 1.0);
+
   /* @@ hack linear */
   for(i = 0; i < transform->cSlots; i++) {
     if(transform->aSlots[i].oldObj == key
        || transform->aSlots[i].oldObj == NULL) {
      return &transform->aSlots[i];
     }
+    STATISTIC(transform->slotMiss += 1.0);
   }
   NOTREACHED;
   return NULL;
@@ -809,6 +813,9 @@ Res TransformCreate(Transform *transformReturn, Arena arena)
   transform->cSlots = 0;
   transform->cOldNews = 0;
   transform->aSlots = NULL;
+  transform->aSlots = NULL;
+  STATISTIC(transform->slotCall = 0);
+  STATISTIC(transform->slotMiss = 0);
   transform->epoch = ArenaEpoch(arena);
 
   transform->sig = TransformSig;
@@ -941,6 +948,14 @@ void TransformDestroy(Transform transform)
   /* Don't TransformCheckEpoch(transform); -- destroying a stale */
   /* transform is permitted (and necessary). */
   arena = TransformArena(transform);
+
+  DIAG_SINGLEF(( "TransformDestroy",
+    "transformSlot performance: calls $D, misses $D, misses/call $D",
+    transform->slotCall, transform->slotMiss,
+    transform->slotCall == 0.0
+      ? 0.0
+      : transform->slotMiss / transform->slotCall,
+    NULL ));
 
 #if 0
   RingRemove(&transform->arenaRing);

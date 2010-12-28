@@ -645,6 +645,8 @@ typedef struct TransformStruct {
   Count cSlots;                 /* count of hashtable slots */
   Count cOldNews;               /* count of hashtable slots filled */
   OldNew aSlots;                /* array of hashtable slots */
+  STATISTIC_DECL(double slotCall); /* transformSlot(): calls */
+  STATISTIC_DECL(double slotMiss); /* transformSlot(): key compares that failed */
   Epoch epoch;                  /* [Temporary, while OldNews not scanned.  RHSK 2010-12-16] */
 } TransformStruct;
 
