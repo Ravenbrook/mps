@@ -1207,7 +1207,7 @@ void TraceSegAccess(Arena arena, Seg seg, AccessSet mode)
  *   and the reservoir, have seg-less tracts.
  *   We silently accept these refs, and do not fix them.  Because they 
  *   have no seg, they cannot be part of a trace (eg: no greyRing).
- *   Nor can they be transformable.  (Also, these tracts should never 
+ *   Nor can they be in a transform.  (Also, these tracts should never 
  *   be white).
  *
  *   SegWhite FALSE
@@ -1236,8 +1236,8 @@ Res TraceFix(ScanState ss, Ref *refIO)
   Arena arena;
   Ref refOriginal;
   Ref ref;
-  Ref refTransformed = NULL;
-  Bool transformable = FALSE;
+  Ref refNew = NULL;
+  Bool inTransform = FALSE;
   Tract tract = NULL;
   Seg seg = NULL;
   Pool pool;
@@ -1297,38 +1297,39 @@ Res TraceFix(ScanState ss, Ref *refIO)
   EVENT_P(TraceFixSeg, seg);
   EVENT_0(TraceFixWhite);
 
-  /* Transformable? */
-  transformable = Transformable(&refTransformed, arena, ref);
-  if(!transformable) {
+  /* In the transform? */
+  inTransform = arena->transform
+                && TransformGetNew(&refNew, arena->transform, ref);
+  if(!inTransform) {
     goto poolFix;
   }
 
-  /* Can we transform this ref? */
+  /* Should we apply the transform? */
   if(ss->rank == RankAMBIG || arena->transform_Abort) {
-    /* Cannot transform. */
+    /* Cannot apply transform. */
     AVER(!arena->transform_Begun);
     DIAG_SINGLEF(( "TraceFix_transform_Abort",
-      "NOT transforming Old $A (rank $U, at $A) into New $A.", ref, ss->rank, refIO, refTransformed,
+      "NOT transforming Old $A (rank $U, at $A) into New $A.", ref, ss->rank, refIO, refNew,
       NULL ));
 
     arena->transform_Abort = TRUE;
     goto poolFix;
   }
     
-  /* Transform. */
+  /* Apply the transform to this ref. */
   AVER(!arena->transform_Abort);
   DIAG_SINGLEF(( "TraceFix_transform",
-    "transforming ref at $P from Old $A into New $A.", refIO, ref, refTransformed,
+    "transforming ref at $P from Old $A into New $A.", refIO, ref, refNew,
     NULL ));
   arena->transform_Begun = TRUE;
   arena->transform_Found++;
 
-  ref = refTransformed;
+  ref = refNew;
   *refIO = ref;
 
 
-  /* newRef: repeat the Tract, White, and Seg tests */
-  /* ============================================== */
+  /* new ref: repeat the Tract, White, and Seg tests */
+  /* =============================================== */
 
   /* Tract? */
   TRACT_OF_ADDR(&tract, arena, ref);
@@ -1916,8 +1917,7 @@ Res TraceStartTransform(Trace *traceReturn,
   Trace trace = NULL;
   Res res;
   Transform transform;
-  Index i;
-  Count countOld = 0;
+  Ref ref;
   double finishingTime;
 
   AVER(traceReturn);
@@ -1931,30 +1931,23 @@ Res TraceStartTransform(Trace *traceReturn,
   AVER(res == ResOK); /* succeeds because no other trace is busy */
 
   /* Condemn segs of all old objects */
-  for(i = 0; i < transform->cSlots; i++) {
-    OldNew oldnew;
-    Addr addr;
-    Seg seg;
-    Bool b;
-
-    oldnew = &transform->aSlots[i];
-    if(oldnew->oldObj == NULL)
-      continue;
-    
-    addr = oldnew->oldObj;
-    b = SegOfAddr(&seg, arena, addr);
-    AVER(b);  /* old must be managed memory, else client param error */
-    if(!TraceSetIsMember(SegWhite(seg), trace)) {
-      res = TraceAddWhite(trace, seg);
-      DIAG_SINGLEF(( "TraceStartTransform_condemn",
-        "seg $P, seg->base $A", seg, SegBase(seg),
-        NULL ));
-      AVER(res == ResOK);  /* no reason for TraceAddWhite to fail! */
-    }
-    countOld ++;
+  if(TransformOldFirst(&ref, transform)) {
+    do {
+      Addr addr;
+      Seg seg;
+      Bool b;
+      addr = ref;
+      b = SegOfAddr(&seg, arena, addr);
+      AVER(b);  /* old must be managed memory, else client param error */
+      if(!TraceSetIsMember(SegWhite(seg), trace)) {
+        res = TraceAddWhite(trace, seg);
+        DIAG_SINGLEF(( "TraceStartTransform_condemn",
+          "seg $P, seg->base $A", seg, SegBase(seg),
+          NULL ));
+        AVER(res == ResOK);  /* no reason for TraceAddWhite to fail! */
+      }
+    } while(TransformOldNext(&ref, transform));
   }
-  AVER(countOld == transform->cOldNews);
-
 
   /* Intercept TraceFix (see TraceFix) */
 

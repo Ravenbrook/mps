@@ -647,10 +647,10 @@ Res ArenaCollect(Globals globals, int why)
 
 /* --------  Transforms  -------- */
 
-
 static Count transformSlotsRequired(Count capacity);
-static OldNew transformSlot(Transform transform, mps_addr_t key);
-
+static OldNew transformSlot(Transform transform, Ref ref);
+static unsigned long addrHash(Addr addr);
+static Res transformSetCapacity(Transform transform, Count capacity);
 
 /* TransformCheck -- check the consistency of a transform structure
  */
@@ -666,9 +666,12 @@ Bool TransformCheck(Transform transform)
   if(transform->aSlots == NULL) {
     CHECKL(transform->cSlots == 0);
     CHECKL(transform->cOldNews == 0);
+    CHECKL(transform->iSlot == (Index)-1);
   } else {
     CHECKL(transform->cSlots >= 1);
     CHECKL(transform->cOldNews < transform->cSlots);
+    CHECKL(transform->iSlot == (Index)-1
+           || transform->iSlot <= transform->cSlots);
     /* check table is not cramped */
     CHECKL(transformSlotsRequired(transform->cOldNews) <= transform->cSlots);
     /* check first and last elements */
@@ -685,6 +688,59 @@ static Bool TransformCheckEpoch(Transform transform)
     CHECKL(transform->epoch == ArenaEpoch(transform->arena));
   }
   return TRUE;
+}
+
+Bool TransformOldFirst(Ref *refReturn, Transform transform)
+{
+  if(transform->cOldNews == 0)
+    return FALSE;
+
+  /* Begin iteration. */
+  AVER(transform->iSlot == (Index)-1);
+  transform->iSlot = 0;
+
+  return TransformOldNext(refReturn, transform);
+}
+
+Bool TransformOldNext(Ref *refReturn, Transform transform)
+{
+  Ref ref;
+
+  AVER(transform->iSlot != (Index)-1);
+  AVER(transform->iSlot <= transform->cSlots);
+
+  do {
+    if(transform->iSlot >= transform->cSlots) {
+      /* End iteration. */
+      transform->iSlot = (Index)-1;
+      return FALSE;
+    }
+  
+    ref = transform->aSlots[transform->iSlot].oldObj;
+    transform->iSlot += 1;
+  
+    if(ref != NULL) {
+      *refReturn = ref;
+      return TRUE;
+    }
+  } while(TRUE);
+}
+
+Bool TransformGetNew(Ref *refNewReturn, Transform transform, Ref refOld)
+{
+  OldNew oldnew;
+
+  AVERT_CRITICAL(Transform, transform);
+
+  /* Find old->new pair. */
+  oldnew = transformSlot(transform, refOld);
+  if(oldnew->oldObj == NULL) {
+    return FALSE;
+  } else {
+    AVER_CRITICAL(oldnew->oldObj == refOld);
+    *refNewReturn = oldnew->newObj;
+    return TRUE;
+  }
 }
 
 static Count transformSlotsRequired(Count capacity)
@@ -725,6 +781,11 @@ static Res transformSetCapacity(Transform transform, Count capacity)
     return ResOK;
 
   /* Alloc new table and rehash. */
+  DIAG_SINGLEF(( "transformSetCapacity_rehash",
+    "capacity $U, ", capacity,
+    "cSlots $U, ", transform->cSlots,
+    "cSlotsRequired $U", cSlotsRequired,
+    NULL ));
 
   /* alloc next */
   res = ControlAlloc(&p, arena, cSlotsRequired * sizeof(OldNewStruct),
@@ -775,10 +836,32 @@ static Res transformSetCapacity(Transform transform, Count capacity)
 }
 
 
-/* [See rnd() in testlib.c; RHSK 2010-12-28] */
+/* addrHash -- return a hash value from an address
+ *
+ * This uses a single cycle of an MLCG, more commonly seen as a 
+ * pseudorandom number generator.  It works extremely well as a 
+ * hash function.
+ *
+ * (In particular, it is substantially better than simply doing this:
+ *   seed = ((unsigned long)addr * 48271;
+ * Tested by RHSK 2010-12-28.)
+ *
+ * This MLCG is a full period generator: it cycles through every 
+ * number from 1 to m-1 before repeating.  Therefore, no two numbers 
+ * in that range hash to the same value.  Furthermore, it has prime 
+ * modulus, which tends to avoid recurring patterns in the low-order 
+ * bits, which is good because the hash will be used modulus the 
+ * number of slots in the table.
+ *
+ * Of course it's only a 31-bit cycle, so we start by losing the top 
+ * bit of the address, but that's hardly a great problem.
+ *
+ * The implementation is quite subtle.  See rnd() in testlib.c, where 
+ * it has been exhaustively (ie: totally) tested.  RHSK 2010-12-28.
+ */
 #define R_m 2147483647UL
 #define R_a 48271UL
-static unsigned long addrHash(mps_addr_t addr)
+static unsigned long addrHash(Addr addr)
 {
   unsigned long seed = ((unsigned long)addr) & 0x7FFFFFFF;
   /* requires m == 2^31-1, a < 2^16 */
@@ -787,21 +870,21 @@ static unsigned long addrHash(mps_addr_t addr)
   seed = bot + ((top & 0xFFFF) << 15) + (top >> 16);
   if(seed > R_m)
     seed -= R_m;
-  /* seed = ((unsigned long)addr * 48271); @@@@@@@@@ test */
   return seed;
 }
 
-static OldNew transformSlot(Transform transform, mps_addr_t key)
+
+static OldNew transformSlot(Transform transform, Ref ref)
 {
   Index j;
   Index i;
 
   STATISTIC(transform->slotCall += 1.0);
 
-  j = addrHash(key) % transform->cSlots;
+  j = addrHash(ref) % transform->cSlots;
   i = j;
   do {
-    if(transform->aSlots[i].oldObj == key
+    if(transform->aSlots[i].oldObj == ref
        || transform->aSlots[i].oldObj == NULL) {
      return &transform->aSlots[i];
     }
@@ -845,7 +928,7 @@ Res TransformCreate(Transform *transformReturn, Arena arena)
   transform->cSlots = 0;
   transform->cOldNews = 0;
   transform->aSlots = NULL;
-  transform->aSlots = NULL;
+  transform->iSlot = (Index)-1;
   STATISTIC(transform->slotCall = 0);
   STATISTIC(transform->slotMiss = 0);
   transform->epoch = ArenaEpoch(arena);
@@ -948,28 +1031,6 @@ Res TransformApply(Bool *appliedReturn, Transform transform)
     TransformDestroy(transform);
 
   return res;
-}
-
-Bool Transformable(Ref *refTransformed, Arena arena, Ref ref)
-{
-  Transform transform;
-  OldNew oldnew;
-
-  if(arena->transform == NULL) {
-    return FALSE;
-  }
-  transform = arena->transform;
-  AVERT_CRITICAL(Transform, transform);
-
-  /* Find old->new pair. */
-  oldnew = transformSlot(transform, ref);
-  if(oldnew->oldObj == NULL) {
-    return FALSE;
-  } else {
-    AVER_CRITICAL(oldnew->oldObj == ref);
-    *refTransformed = oldnew->newObj;
-    return TRUE;
-  }
 }
 
 void TransformDestroy(Transform transform)

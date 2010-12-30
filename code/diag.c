@@ -38,6 +38,7 @@ struct RuleStruct RulesGlobal[] = {
   { "+", "TransformApply_", "*", "*" },
   { "-", "TransformAddOldNew_", "*", "*" },
   { "+", "TransformDestroy", "*", "*" },
+  { "+", "transformSetCapacity_", "*", "*" },
   { "+", "ArenaAccess", "*", "*" },
   /* ----v---- always on please (RHSK) ----v---- */
   { "+", "MPSVersion", "*", "*" },

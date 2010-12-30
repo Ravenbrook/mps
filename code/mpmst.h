@@ -630,8 +630,8 @@ typedef struct GlobalsStruct {
 
 typedef struct OldNewStruct {
   Sig sig;
-  Addr oldObj;
-  Addr newObj;
+  Ref oldObj;
+  Ref newObj;
   struct OldNewStruct *next;
 } OldNewStruct;
 
@@ -645,6 +645,7 @@ typedef struct TransformStruct {
   Count cSlots;                 /* count of hashtable slots */
   Count cOldNews;               /* count of hashtable slots filled */
   OldNew aSlots;                /* array of hashtable slots */
+  Index iSlot;                  /* for OldFirst/OldNext iterator */
   STATISTIC_DECL(double slotCall); /* transformSlot(): calls */
   STATISTIC_DECL(double slotMiss); /* transformSlot(): key compares that failed */
   Epoch epoch;                  /* [Temporary, while OldNews not scanned.  RHSK 2010-12-16] */

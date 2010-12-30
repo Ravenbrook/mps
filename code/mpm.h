@@ -519,17 +519,6 @@ extern Res ArenaStartCollect(Globals globals, int why);
 extern Res ArenaCollect(Globals globals, int why);
 extern Bool ArenaHasAddr(Arena arena, Addr addr);
 
-/* ArenaTransform
- * These external mps_ types should really be cast, but I'm not going 
- * to do that until the interface is settled.  RHSK 2010-11-10.
- */
-extern Res ArenaTransform(Bool *transform_done_o,
-                   Globals globals,
-                   mps_addr_t  *old_list,
-                   size_t      old_list_count,
-                   mps_addr_t  *new_list,
-                   size_t      new_list_count);
-
 extern Res ControlInit(Arena arena);
 extern void ControlFinish(Arena arena);
 extern Res ControlAlloc(void **baseReturn, Arena arena, size_t size,
@@ -939,13 +928,16 @@ extern Res RootsIterate(Globals arena, RootIterateFn f, void *p);
 
 /* Transform Interface */
 
-extern Bool TransformCheck(Transform transform);
 extern Res TransformCreate(Transform *transformReturn, Arena arena);
 extern Res TransformAddOldNew(Transform transform, mps_addr_t *, mps_addr_t *, size_t);
 extern Res TransformApply(Bool *appliedReturn, Transform transform);
-extern Bool Transformable(Ref *refTransformed, Arena arena, Ref ref);
 extern void TransformDestroy(Transform transform);
+
+extern Bool TransformCheck(Transform transform);
 extern Arena TransformArena(Transform transform);
+extern Bool TransformOldFirst(Ref *refReturn, Transform transform);
+extern Bool TransformOldNext(Ref *refReturn, Transform transform);
+extern Bool TransformGetNew(Ref *refNewReturn, Transform transform, Ref refOld);
 
 
 /* VM Interface -- see <code/vm.c>* */

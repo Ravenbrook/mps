@@ -1,0 +1,61 @@
+
+Not enough time to implement efficient handling of 10 million calls to 
+
+typedef struct LinearStruct {
+  Sig sig;
+  struct LinearStruct *next;
+  OldNewStruct aOldNew[1000];
+} LinearStruct, *Linear;
+
+Res tLinearAdd()
+{
+  Res res;
+  if !cell || cell == end: {
+    void *p;
+    
+    /* allocate new lin */
+    res = ControlAlloc(&p, arena, sizeof(LinearStruct), FALSE);
+    if (res != ResOK)
+      return res;
+    lin = (Linear)p;
+
+    /* link in */
+    AVER(transform->pLinkLinear);
+    AVER(*transform->pLinkLinear == NULL);
+    *transform->pLinkLinear = lin;
+    transform->pLinkLinear = &lin->next;
+
+    /* cell = first */
+    l = &lin->aOldNew[0];
+  }
+  aver cell
+  *cell = data
+  cell++
+}
+
+
+Bool TransformOldFirst(Addr *addrReturn, Transform transform)
+{
+  OldNew lin;
+  /* setup iteration */
+  
+  /* setup hashtable */
+  tHashCreate;
+  
+  lin =
+  tHashAdd(lin);
+  *addrReturn = lin->oldObj;
+  return TRUE;
+}
+
+Bool TransformOldNext(Addr *addrReturn, Transform transform)
+{
+  /* setup iteration */
+  
+  lin =
+  tHashAdd(lin);
+  *addrReturn = lin->oldObj;
+  return TRUE;
+}
+
+
