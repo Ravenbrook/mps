@@ -383,7 +383,6 @@ extern Res TraceFixEmergency(ScanState ss, Ref *refIO);
 
 extern void TraceQuantum(Trace trace);
 extern Res TraceStartCollectAll(Trace *traceReturn, Arena arena, int why);
-
 extern Res TraceStartTransform(Trace *traceReturn, Arena arena);
 
 

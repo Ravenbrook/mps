@@ -647,13 +647,182 @@ Res ArenaCollect(Globals globals, int why)
 
 /* --------  Transforms  -------- */
 
+
+static Bool transformCheckEpoch(Transform transform);
 static Count transformSlotsRequired(Count capacity);
 static OldNew transformSlot(Transform transform, Ref ref);
 static unsigned long addrHash(Addr addr);
 static Res transformSetCapacity(Transform transform, Count capacity);
 
-/* TransformCheck -- check the consistency of a transform structure
- */
+/* Transforms: client interface */
+
+Res TransformCreate(Transform *transformReturn, Arena arena)
+{
+  Transform transform;
+  Res res;
+  void *p;
+  Globals globals;
+
+  AVER(transformReturn != NULL);
+  AVERT(Arena, arena);
+  globals = ArenaGlobals(arena);
+
+  res = ControlAlloc(&p, arena, sizeof(TransformStruct), FALSE);
+  if (res != ResOK)
+    return res;
+  transform = (Transform)p;
+
+  transform->arena = arena;
+
+#if 0
+  /* See <design/arena/#root-ring> */
+  RingInit(&transform->arenaRing);
+  transform->serial = globals->transformSerial;
+  ++globals->transformSerial;
+#endif
+
+  transform->cSlots = 0;
+  transform->cOldNews = 0;
+  transform->aSlots = NULL;
+  transform->iSlot = (Index)-1;
+  STATISTIC(transform->slotCall = 0);
+  STATISTIC(transform->slotMiss = 0);
+  transform->epoch = ArenaEpoch(arena);
+
+  transform->sig = TransformSig;
+
+  AVERT(Transform, transform);
+  transformCheckEpoch(transform);
+
+  /*RingAppend(&globals->transformRing, &transform->arenaRing);*/
+
+  *transformReturn = transform;
+  return ResOK;
+}
+
+Res TransformAddOldNew(Transform transform, mps_addr_t *old_list, mps_addr_t *new_list, size_t count)
+{
+  Res res;
+  Arena arena;
+  Index i;
+  Count added = 0;
+
+  AVERT(Transform, transform);
+  transformCheckEpoch(transform);
+  arena = TransformArena(transform);
+  AVER(old_list);
+  AVER(new_list);
+  /* count: cannot check */
+  
+  res = transformSetCapacity(transform, transform->cOldNews + count);
+  if (res != ResOK)
+    return res;
+
+  /* Store lists, preserving order. */
+  for(i = 0; i < count; i++) {
+    OldNew oldnew;
+
+    /* @@@@ To access client-provided lists, consider using ArenaPeek / TraceScanSeg */
+    if(old_list[i] == NULL)
+      continue;  /* permitted, but no transform to do */
+    if(old_list[i] == new_list[i])
+      continue;  /* ignore identity-transforms */
+
+    oldnew = transformSlot(transform, old_list[i]);
+    /* Is this old recorded already?  Not permitted. */
+    AVER(oldnew->oldObj == NULL);
+    oldnew->oldObj = old_list[i];
+    oldnew->newObj = new_list[i];
+    oldnew->next = NULL;
+    added += 1;
+    transform->cOldNews += 1;
+  }
+
+  AVERT(Transform, transform);
+  transformCheckEpoch(transform);
+  DIAG_SINGLEF(( "TransformAddOldNew_storelists",
+    "Stored list of $U non-trivial old->new pairs, out of list of $U old->new pairs.", added, count, NULL ));
+  
+  return ResOK;
+}
+
+Res TransformApply(Bool *appliedReturn, Transform transform)
+{
+  Res res;
+  Arena arena;
+  Globals globals;
+  Trace trace;
+  
+  AVER(appliedReturn != NULL);
+  AVERT(Transform, transform);
+  transformCheckEpoch(transform);
+  arena = TransformArena(transform);
+
+  globals = ArenaGlobals(arena);
+  AVERT(Globals, globals);
+  
+  *appliedReturn = FALSE;
+
+  ArenaPark(globals);
+  AVER(arena->transform == NULL);
+  arena->transform = transform;
+  arena->transform_Abort = FALSE;
+  arena->transform_Begun = FALSE;
+  arena->transform_Found = 0;
+  res = TraceStartTransform(&trace, arena);
+  ArenaRelease(globals);
+  ArenaPark(globals);
+  /* at conclusion we expect either Abort, or Begun, or none found */
+  AVER(!(arena->transform_Abort && arena->transform_Begun));
+  /* done = TRUE iff either Begun or none found, ie. not Abort */
+  *appliedReturn = !arena->transform_Abort;
+  DIAG_SINGLEF(( "TransformApply_finished",
+    "Reporting *appliedReturn = $U, $U non-trivial old->new pairs, edited $U refs.",
+    *appliedReturn, transform->cOldNews, arena->transform_Found,
+    NULL ));
+  arena->transform = NULL;
+  AVER(arena->transform == NULL);
+
+  if(*appliedReturn)
+    TransformDestroy(transform);
+
+  return res;
+}
+
+void TransformDestroy(Transform transform)
+{
+  Arena arena;
+
+  AVERT(Transform, transform);
+  /* Don't transformCheckEpoch(transform); -- destroying a stale */
+  /* transform is permitted (and necessary). */
+  arena = TransformArena(transform);
+
+  DIAG_SINGLEF(( "TransformDestroy",
+    "transformSlot performance: calls $D, misses $D, misses/call $D",
+    transform->slotCall, transform->slotMiss,
+    transform->slotCall == 0.0
+      ? 0.0
+      : transform->slotMiss / transform->slotCall,
+    NULL ));
+
+#if 0
+  RingRemove(&transform->arenaRing);
+  RingFinish(&transform->arenaRing);
+#endif
+
+  if(transform->aSlots != NULL) {
+    AVER(transform->cSlots > 0);
+    ControlFree(arena, transform->aSlots, transform->cSlots * sizeof(OldNewStruct));
+    transform->aSlots = NULL;
+  }
+
+  transform->sig = SigInvalid;
+
+  ControlFree(arena, transform, sizeof(TransformStruct));
+}
+
+/* Transforms: internal interface */
 
 Bool TransformCheck(Transform transform)
 {
@@ -681,13 +850,13 @@ Bool TransformCheck(Transform transform)
   return TRUE;
 }
 
-static Bool TransformCheckEpoch(Transform transform)
+Arena TransformArena(Transform transform)
 {
-  if(TransformCheck(transform)) {
-    /* [Temporary, while OldNews not scanned.  RHSK 2010-12-16] */
-    CHECKL(transform->epoch == ArenaEpoch(transform->arena));
-  }
-  return TRUE;
+  Arena arena;
+  AVERT(Transform, transform);
+  arena = transform->arena;
+  AVERT(Arena, arena);
+  return arena;
 }
 
 Bool TransformOldFirst(Ref *refReturn, Transform transform)
@@ -741,6 +910,17 @@ Bool TransformGetNew(Ref *refNewReturn, Transform transform, Ref refOld)
     *refNewReturn = oldnew->newObj;
     return TRUE;
   }
+}
+
+/* Transforms: local functions */
+
+static Bool transformCheckEpoch(Transform transform)
+{
+  if(TransformCheck(transform)) {
+    /* [Temporary, while OldNews not scanned.  RHSK 2010-12-16] */
+    CHECKL(transform->epoch == ArenaEpoch(transform->arena));
+  }
+  return TRUE;
 }
 
 static Count transformSlotsRequired(Count capacity)
@@ -835,7 +1015,6 @@ static Res transformSetCapacity(Transform transform, Count capacity)
   return ResOK;
 }
 
-
 /* addrHash -- return a hash value from an address
  *
  * This uses a single cycle of an MLCG, more commonly seen as a 
@@ -843,7 +1022,7 @@ static Res transformSetCapacity(Transform transform, Count capacity)
  * hash function.
  *
  * (In particular, it is substantially better than simply doing this:
- *   seed = ((unsigned long)addr * 48271;
+ *   seed = (unsigned long)addr * 48271;
  * Tested by RHSK 2010-12-28.)
  *
  * This MLCG is a full period generator: it cycles through every 
@@ -873,7 +1052,6 @@ static unsigned long addrHash(Addr addr)
   return seed;
 }
 
-
 static OldNew transformSlot(Transform transform, Ref ref)
 {
   Index j;
@@ -898,181 +1076,6 @@ static OldNew transformSlot(Transform transform, Ref ref)
 
   NOTREACHED;
   return NULL;
-}
-
-Res TransformCreate(Transform *transformReturn, Arena arena)
-{
-  Transform transform;
-  Res res;
-  void *p;
-  Globals globals;
-
-  AVER(transformReturn != NULL);
-  AVERT(Arena, arena);
-  globals = ArenaGlobals(arena);
-
-  res = ControlAlloc(&p, arena, sizeof(TransformStruct), FALSE);
-  if (res != ResOK)
-    return res;
-  transform = (Transform)p;
-
-  transform->arena = arena;
-
-#if 0
-  /* See <design/arena/#root-ring> */
-  RingInit(&transform->arenaRing);
-  transform->serial = globals->transformSerial;
-  ++globals->transformSerial;
-#endif
-
-  transform->cSlots = 0;
-  transform->cOldNews = 0;
-  transform->aSlots = NULL;
-  transform->iSlot = (Index)-1;
-  STATISTIC(transform->slotCall = 0);
-  STATISTIC(transform->slotMiss = 0);
-  transform->epoch = ArenaEpoch(arena);
-
-  transform->sig = TransformSig;
-
-  AVERT(Transform, transform);
-  TransformCheckEpoch(transform);
-
-  /*RingAppend(&globals->transformRing, &transform->arenaRing);*/
-
-  *transformReturn = transform;
-  return ResOK;
-}
-
-Res TransformAddOldNew(Transform transform, mps_addr_t *old_list, mps_addr_t *new_list, size_t count)
-{
-  Res res;
-  Arena arena;
-  Index i;
-  Count added = 0;
-
-  AVERT(Transform, transform);
-  TransformCheckEpoch(transform);
-  arena = TransformArena(transform);
-  AVER(old_list);
-  AVER(new_list);
-  /* count: cannot check */
-  
-  res = transformSetCapacity(transform, transform->cOldNews + count);
-  if (res != ResOK)
-    return res;
-
-  /* Store lists, preserving order. */
-  for(i = 0; i < count; i++) {
-    OldNew oldnew;
-
-    /* @@@@ To access client-provided lists, consider using ArenaPeek / TraceScanSeg */
-    if(old_list[i] == NULL)
-      continue;  /* permitted, but no transform to do */
-    if(old_list[i] == new_list[i])
-      continue;  /* ignore identity-transforms */
-
-    oldnew = transformSlot(transform, old_list[i]);
-    /* Is this old recorded already?  Not permitted. */
-    AVER(oldnew->oldObj == NULL);
-    oldnew->oldObj = old_list[i];
-    oldnew->newObj = new_list[i];
-    oldnew->next = NULL;
-    added += 1;
-    transform->cOldNews += 1;
-  }
-
-  AVERT(Transform, transform);
-  TransformCheckEpoch(transform);
-  DIAG_SINGLEF(( "TransformAddOldNew_storelists",
-    "Stored list of $U non-trivial old->new pairs, out of list of $U old->new pairs.", added, count, NULL ));
-  
-  return ResOK;
-}
-
-Res TransformApply(Bool *appliedReturn, Transform transform)
-{
-  Res res;
-  Arena arena;
-  Globals globals;
-  Trace trace;
-  
-  AVER(appliedReturn != NULL);
-  AVERT(Transform, transform);
-  TransformCheckEpoch(transform);
-  arena = TransformArena(transform);
-
-  globals = ArenaGlobals(arena);
-  AVERT(Globals, globals);
-  
-  *appliedReturn = FALSE;
-
-  ArenaPark(globals);
-  AVER(arena->transform == NULL);
-  arena->transform = transform;
-  arena->transform_Abort = FALSE;
-  arena->transform_Begun = FALSE;
-  arena->transform_Found = 0;
-  res = TraceStartTransform(&trace, arena);
-  ArenaRelease(globals);
-  ArenaPark(globals);
-  /* at conclusion we expect either Abort, or Begun, or none found */
-  AVER(!(arena->transform_Abort && arena->transform_Begun));
-  /* done = TRUE iff either Begun or none found, ie. not Abort */
-  *appliedReturn = !arena->transform_Abort;
-  DIAG_SINGLEF(( "TransformApply_finished",
-    "Reporting *appliedReturn = $U, $U non-trivial old->new pairs, edited $U refs.",
-    *appliedReturn, transform->cOldNews, arena->transform_Found,
-    NULL ));
-  arena->transform = NULL;
-  AVER(arena->transform == NULL);
-
-  if(*appliedReturn)
-    TransformDestroy(transform);
-
-  return res;
-}
-
-void TransformDestroy(Transform transform)
-{
-  Arena arena;
-
-  AVERT(Transform, transform);
-  /* Don't TransformCheckEpoch(transform); -- destroying a stale */
-  /* transform is permitted (and necessary). */
-  arena = TransformArena(transform);
-
-  DIAG_SINGLEF(( "TransformDestroy",
-    "transformSlot performance: calls $D, misses $D, misses/call $D",
-    transform->slotCall, transform->slotMiss,
-    transform->slotCall == 0.0
-      ? 0.0
-      : transform->slotMiss / transform->slotCall,
-    NULL ));
-
-#if 0
-  RingRemove(&transform->arenaRing);
-  RingFinish(&transform->arenaRing);
-#endif
-
-  if(transform->aSlots != NULL) {
-    AVER(transform->cSlots > 0);
-    ControlFree(arena, transform->aSlots, transform->cSlots * sizeof(OldNewStruct));
-    transform->aSlots = NULL;
-  }
-
-  transform->sig = SigInvalid;
-
-  ControlFree(arena, transform, sizeof(TransformStruct));
-}
-
-Arena TransformArena(Transform transform)
-{
-  Arena arena;
-  AVERT(Transform, transform);
-  arena = transform->arena;
-  AVERT(Arena, arena);
-  return arena;
 }
 
 
