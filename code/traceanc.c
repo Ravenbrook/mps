@@ -648,8 +648,35 @@ Res ArenaCollect(Globals globals, int why)
 /* --------  Transforms  -------- */
 
 
+/* TransformStruct -- for traces that transform old -> new objects
+ */
+
+#define OldNewSig        ((Sig)0x51907D4E) /* SIGnature OLDNEw */
+
+typedef struct OldNewStruct {
+  Ref refOld;
+  Ref refNew;
+} OldNewStruct;
+
+
+#define TransformSig         ((Sig)0x51926A45) /* SIGnature TRANSform */
+
+typedef struct TransformStruct {
+  Sig sig;
+  Arena arena;                  /* owning arena */
+  RingStruct arenaRing;         /* attachment to arena */
+  Count cSlots;                 /* count of hashtable slots */
+  Count cCapacity;              /* capacity (last call to SetCapacity) */
+  Count cOldNews;               /* occupancy (count of hashtable slots filled) */
+  OldNew aSlots;                /* array of hashtable slots */
+  Index iSlot;                  /* for OldFirst/OldNext iterator */
+  STATISTIC_DECL(double slotCall); /* transformSlot(): calls */
+  STATISTIC_DECL(double slotMiss); /* transformSlot(): key compares that failed */
+  Epoch epoch;                  /* [Temporary, while OldNews not scanned.  RHSK 2010-12-16] */
+} TransformStruct;
+
+
 static Bool transformCheckEpoch(Transform transform);
-static Count transformSlotsRequired(Count capacity);
 static OldNew transformSlot(Transform transform, Ref ref);
 static unsigned long addrHash(Addr addr);
 static Res transformSetCapacity(Transform transform, Count capacity);
@@ -682,6 +709,7 @@ Res TransformCreate(Transform *transformReturn, Arena arena)
 #endif
 
   transform->cSlots = 0;
+  transform->cCapacity = 0;
   transform->cOldNews = 0;
   transform->aSlots = NULL;
   transform->iSlot = (Index)-1;
@@ -718,7 +746,6 @@ Res TransformAddOldNew(Transform transform, mps_addr_t *old_list, mps_addr_t *ne
   if (res != ResOK)
     return res;
 
-  /* Store lists, preserving order. */
   for(i = 0; i < count; i++) {
     OldNew oldnew;
 
@@ -730,10 +757,9 @@ Res TransformAddOldNew(Transform transform, mps_addr_t *old_list, mps_addr_t *ne
 
     oldnew = transformSlot(transform, old_list[i]);
     /* Is this old recorded already?  Not permitted. */
-    AVER(oldnew->oldObj == NULL);
-    oldnew->oldObj = old_list[i];
-    oldnew->newObj = new_list[i];
-    oldnew->next = NULL;
+    AVER(oldnew->refOld == NULL);
+    oldnew->refOld = old_list[i];
+    oldnew->refNew = new_list[i];
     added += 1;
     transform->cOldNews += 1;
   }
@@ -834,6 +860,7 @@ Bool TransformCheck(Transform transform)
 #endif
   if(transform->aSlots == NULL) {
     CHECKL(transform->cSlots == 0);
+    CHECKL(transform->cCapacity == 0);
     CHECKL(transform->cOldNews == 0);
     CHECKL(transform->iSlot == (Index)-1);
   } else {
@@ -841,11 +868,8 @@ Bool TransformCheck(Transform transform)
     CHECKL(transform->cOldNews < transform->cSlots);
     CHECKL(transform->iSlot == (Index)-1
            || transform->iSlot <= transform->cSlots);
-    /* check table is not cramped */
-    CHECKL(transformSlotsRequired(transform->cOldNews) <= transform->cSlots);
-    /* check first and last elements */
-    CHECKS(OldNew, transform->aSlots);
-    CHECKS(OldNew, &transform->aSlots[transform->cSlots - 1]);
+    /* check table is not fuller than expected */
+    CHECKL(transform->cOldNews <= transform->cCapacity);
   }
   return TRUE;
 }
@@ -885,7 +909,7 @@ Bool TransformOldNext(Ref *refReturn, Transform transform)
       return FALSE;
     }
   
-    ref = transform->aSlots[transform->iSlot].oldObj;
+    ref = transform->aSlots[transform->iSlot].refOld;
     transform->iSlot += 1;
   
     if(ref != NULL) {
@@ -903,11 +927,11 @@ Bool TransformGetNew(Ref *refNewReturn, Transform transform, Ref refOld)
 
   /* Find old->new pair. */
   oldnew = transformSlot(transform, refOld);
-  if(oldnew->oldObj == NULL) {
+  if(oldnew->refOld == NULL) {
     return FALSE;
   } else {
-    AVER_CRITICAL(oldnew->oldObj == refOld);
-    *refNewReturn = oldnew->newObj;
+    AVER_CRITICAL(oldnew->refOld == refOld);
+    *refNewReturn = oldnew->refNew;
     return TRUE;
   }
 }
@@ -923,14 +947,6 @@ static Bool transformCheckEpoch(Transform transform)
   return TRUE;
 }
 
-static Count transformSlotsRequired(Count capacity)
-{
-  /* Choose an appropriate proportion of slots to remain free.  
-   * Necessary for closed hashing, to avoid large-sized contiguous 
-   * clumps of full cells, because each clump has a linear search cost. 
-   */
-  return capacity + (capacity / 3) + 1;
-}
 
 /* transformSetCapacity -- set the capacity, preserving contents
  *
@@ -938,13 +954,32 @@ static Count transformSlotsRequired(Count capacity)
  * slots), without becoming cramped.  If necessary, resize the 
  * hashtable by allocating a new one and rehashing all old entries.
  * If insufficient memory, return error without modifying transform.
+ *
+ * .hash.spacefraction: As with all closed hash tables, we must choose 
+ * an appropriate proportion of slots to remain free.  More free slots 
+ * help avoid large-sized contiguous clumps of full cells and their 
+ * associated linear search costs. 
+ *
+ * .hash.initial: Any reasonable number.
+ *
+ * .hash.growth: A compromise between space inefficency (growing bigger 
+ * than required) and time inefficiency (growing too slowly, with all 
+ * the rehash costs at every step).  A factor of 2 means that at the 
+ * point of growing to a size X table, hash-work equivalent to filling 
+ * a size-X table has already been done.  So we do at most 2x the 
+ * hash-work we would have done if we had been able to guess the right 
+ * table size initially.
+ *
+ * Numbers of slots maintain this relation:
+ *     occupancy <= capacity < enough <= cSlots
  */
 
 static Res transformSetCapacity(Transform transform, Count capacity)
 {
   Arena arena;
   Res res;
-  Count cSlotsRequired;
+  Count enough;
+  Count now;
   void *p;
   Count cSlotsPrev;
   Count cOldNewsPrev;
@@ -955,24 +990,50 @@ static Res transformSetCapacity(Transform transform, Count capacity)
   AVER(capacity >= transform->cOldNews);
   arena = TransformArena(transform);
 
-  cSlotsRequired = transformSlotsRequired(capacity);
-  AVER(cSlotsRequired > 0);
-  if(transform->cSlots >= cSlotsRequired)
+  {
+    /* Deal with limits here.  If the requested capacity passes this */
+    /* test, then the number of bytes required is representable in */
+    /* a size_t. */
+    Count maxbytes = (size_t)-1;
+    Count maxslots = maxbytes / sizeof(OldNewStruct);
+    Count maxcapacity = maxslots / 2; /* conservative .hash.spacefraction */
+    Count maxpermitted = maxcapacity / 4;  /* use at most 1/4 of address space(!) */
+    if(capacity > maxpermitted) {
+      return ResLIMIT;
+    }
+  }
+
+  now = transform->cSlots;
+  enough = capacity + (capacity / 3) + 1; /* .hash.spacefraction */
+  AVER(enough > 0);
+  
+  if(now >= enough) {
+    transform->cCapacity = capacity;
     return ResOK;
+  }
+
+  do {
+    if(now == 0) {
+      now = 1024;  /* .hash.initial */
+    } else {
+      now = now * 2;  /* .hash.growth */
+    }
+  } while(now < enough);
+  AVER(now > transform->cSlots);
 
   /* Alloc new table and rehash. */
   DIAG_SINGLEF(( "transformSetCapacity_rehash",
     "capacity $U, ", capacity,
     "cSlots $U, ", transform->cSlots,
-    "cSlotsRequired $U", cSlotsRequired,
+    "now becoming $U", now,
     NULL ));
 
   /* alloc next */
-  res = ControlAlloc(&p, arena, cSlotsRequired * sizeof(OldNewStruct),
+  res = ControlAlloc(&p, arena, now * sizeof(OldNewStruct),
                      /* withReservoirPermit */ FALSE);
   if (res != ResOK) {
     DIAG_SINGLEF(( "transformSetCapacity_fail_controlalloc",
-      "cSlotsRequired $U", cSlotsRequired, NULL ));
+      "slots $U", now, NULL ));
     return res;
   }
   /* save prev */
@@ -980,15 +1041,14 @@ static Res transformSetCapacity(Transform transform, Count capacity)
   cOldNewsPrev = transform->cOldNews;
   aSlotsPrev = transform->aSlots;
   /* init next */
-  transform->cSlots = cSlotsRequired;
+  transform->cSlots = now;
+  transform->cCapacity = capacity;
   transform->cOldNews = 0;
   transform->aSlots = (OldNew)p;
   for(i = 0; i < transform->cSlots; i++) {
     OldNew oldnew = &transform->aSlots[i];
-    oldnew->oldObj = NULL;
-    oldnew->newObj = NULL;
-    oldnew->next = NULL;
-    oldnew->sig = OldNewSig;
+    oldnew->refOld = NULL;
+    oldnew->refNew = NULL;
   }
   AVERT(Transform, transform);
   /* rehash prev -> next */
@@ -996,12 +1056,12 @@ static Res transformSetCapacity(Transform transform, Count capacity)
     OldNew prev;
     OldNew oldnew;
     prev = &aSlotsPrev[i];
-    if(prev->oldObj != NULL) {
-      oldnew = transformSlot(transform, prev->oldObj);
+    if(prev->refOld != NULL) {
+      oldnew = transformSlot(transform, prev->refOld);
       /* Is this old recorded already?  Not permitted. */
-      AVER(oldnew->oldObj == NULL);
-      oldnew->oldObj = prev->oldObj;
-      oldnew->newObj = prev->newObj;
+      AVER(oldnew->refOld == NULL);
+      oldnew->refOld = prev->refOld;
+      oldnew->refNew = prev->refNew;
       transform->cOldNews += 1;
     }
   }
@@ -1062,8 +1122,8 @@ static OldNew transformSlot(Transform transform, Ref ref)
   j = addrHash(ref) % transform->cSlots;
   i = j;
   do {
-    if(transform->aSlots[i].oldObj == ref
-       || transform->aSlots[i].oldObj == NULL) {
+    if(transform->aSlots[i].refOld == ref
+       || transform->aSlots[i].refOld == NULL) {
      return &transform->aSlots[i];
     }
     STATISTIC(transform->slotMiss += 1.0);

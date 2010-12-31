@@ -1642,9 +1642,9 @@ mps_res_t mps_transform_add_oldnew(mps_transform_t mps_transform, mps_addr_t *ol
 
 /* mps_transform_apply
  *
- * success: *applied_o set to TRUE, and the transform is destroyed (? or emptied?  Not sure yet).
- * failure: *applied_o set to FALSE, and the transform is NOT destroyed (...probably).
- * error: return != MPS_RES_OK, *applied_o set to FALSE, and the transform is NOT destroyed (...probably).
+ * success: *applied_o set to TRUE, and the transform is destroyed.
+ * failure: *applied_o set to FALSE, and the transform is NOT destroyed.
+ * error: return != MPS_RES_OK, *applied_o set to FALSE, and the transform is NOT destroyed.
  */
 mps_res_t mps_transform_apply(mps_bool_t *applied_o, mps_transform_t mps_transform)
 {
@@ -1657,7 +1657,7 @@ mps_res_t mps_transform_apply(mps_bool_t *applied_o, mps_transform_t mps_transfo
   arena = TransformArena(transform);
 
   DIAG_SINGLEF(( "mps_transform_apply",
-    "&atArenaEnter $A, &applied $A", &atArenaEnter, &applied,
+    "&atArenaEnter $A", &atArenaEnter,
     NULL ));
 
   ArenaEnter(arena);

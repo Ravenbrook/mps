@@ -216,6 +216,16 @@ ____Hash Table____
 
 Suppose 10 million olds, 10 million news.  80 MB of oldnews.  Can we just try to alloc that in one lump?  Yes, why not.  It's not that much, and there must shurely be 800 MB of the old and new objects themselves kicking around.
 
+Occupancy (cOldNews) < Capacity (as set with SetCapacity) <*multiplier*< Enough <*power-of-two*< Now
+
+Stepped hash growth
+	Enough = cap + (cap / 3) + 1
+	While now < enough
+		If now >= max
+			Fail
+		Now *= 2
+
+
 
 ____Linear tables for incremental adds____
 
@@ -249,36 +259,6 @@ It needs to be an iterator that returns from the MPS, to allow client code to ca
 
 So incremental adds are out.
 
-Simplicity wins again.
-
-TLinAdd
-TLinGet
-TLinFree
-
-TKeyCreate(capacity)
-TKeyAdd
-TKeyGet
-TKeyFree
-
-TLinAdd
-  for list
-    if !cell || cell == end:
-      allocate new page
-      link in
-      cell = first
-    aver cell
-    *cell = data
-    cell++
-     
-TLinGetFirst
-TLinGetNext
-
-TLinFree
-
-TKeyCreate(capacity)
-TKeyAdd
-TKeyGet
-TKeyFree
 
 
 ____Asides____

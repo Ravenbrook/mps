@@ -623,36 +623,6 @@ typedef struct GlobalsStruct {
 } GlobalsStruct;
 
 
-/* TransformStruct -- for traces that transform old -> new objects
- */
-
-#define OldNewSig        ((Sig)0x51907D4E) /* SIGnature OLDNEw */
-
-typedef struct OldNewStruct {
-  Sig sig;
-  Ref oldObj;
-  Ref newObj;
-  struct OldNewStruct *next;
-} OldNewStruct;
-
-
-#define TransformSig         ((Sig)0x51926A45) /* SIGnature TRANSform */
-
-typedef struct TransformStruct {
-  Sig sig;
-  Arena arena;                  /* owning arena */
-  RingStruct arenaRing;         /* attachment to arena */
-  Count cSlots;                 /* count of hashtable slots */
-  Count cOldNews;               /* count of hashtable slots filled */
-  OldNew aSlots;                /* array of hashtable slots */
-  Index iSlot;                  /* for OldFirst/OldNext iterator */
-  STATISTIC_DECL(double slotCall); /* transformSlot(): calls */
-  STATISTIC_DECL(double slotMiss); /* transformSlot(): key compares that failed */
-  Epoch epoch;                  /* [Temporary, while OldNews not scanned.  RHSK 2010-12-16] */
-} TransformStruct;
-
-
-
 /* ArenaStruct -- generic arena
  *
  * See <code/arena.c>.  */
