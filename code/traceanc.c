@@ -713,8 +713,8 @@ Res TransformCreate(Transform *transformReturn, Arena arena)
   transform->cOldNews = 0;
   transform->aSlots = NULL;
   transform->iSlot = (Index)-1;
-  STATISTIC(transform->slotCall = 0);
-  STATISTIC(transform->slotMiss = 0);
+  STATISTIC(transform->slotCall = 0.0);
+  STATISTIC(transform->slotMiss = 0.0);
   transform->epoch = ArenaEpoch(arena);
 
   transform->sig = TransformSig;
@@ -825,11 +825,12 @@ void TransformDestroy(Transform transform)
   arena = TransformArena(transform);
 
   DIAG_SINGLEF(( "TransformDestroy",
-    "transformSlot performance: calls $D, misses $D, misses/call $D",
-    transform->slotCall, transform->slotMiss,
-    transform->slotCall == 0.0
-      ? 0.0
-      : transform->slotMiss / transform->slotCall,
+    "transformSlot performance: ",
+    "calls $D, ", transform->slotCall,
+    "misses $D, ", transform->slotMiss,
+    "misses/call $D, ", transform->slotCall == 0.0
+                        ? 0.0
+                        : transform->slotMiss / transform->slotCall,
     NULL ));
 
 #if 0
@@ -1124,7 +1125,7 @@ static OldNew transformSlot(Transform transform, Ref ref)
   do {
     if(transform->aSlots[i].refOld == ref
        || transform->aSlots[i].refOld == NULL) {
-     return &transform->aSlots[i];
+      return &transform->aSlots[i];
     }
     STATISTIC(transform->slotMiss += 1.0);
     i++;
