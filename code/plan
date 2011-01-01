@@ -1,4 +1,4 @@
-Eventual Aim: auto-flip, no re-use, auto-detect Ra
+Eventual Aim: auto-flip, no re-use, auto-detect Ra, client calls function to set trigger (ArenaEnter, or ArenaPoll,start,stop,every,unless)
 
 1. Manual flip, manually detect that object has moved.
   - manual client-request flip: condemns everything;
@@ -11,6 +11,9 @@ Eventual Aim: auto-flip, no re-use, auto-detect Ra
 
 
 3. Auto flip every time, manual detect.  Mac OS
+What's every time?  To start with: every buffer refill.
+3.1: no need to detect: each collection gives message or diag
+
 
 
 4. Then things from this list:
@@ -28,4 +31,29 @@ Other investigations:
 Why does R0, Ra, etc not fault on Mac OS X?
 
 Does mutator access to white objs fault?  On which platforms?
+
+----------------
+
+
+
+mps_movalot_get
+
+mps_movalot_set
+
+To trigger extra collections, choose an event, and choose the trigger condition. 
+
+The three events that can trigger an extra collection are:
+  - ArenaPoll
+  - ArenaEnter
+  - mps_reserve
+
+You will want to know how frequently the event happens, and whether the timing of the events is repeatable from run to run.
+
+ArenaPoll occurs least frequently, typically every 4K of client allocation.  In normal operation, ArenaPoll-time is when the MPS decides whether to begin an automatic incremental garbage collection.
+
+ArenaEnter occurs more frequently: once for every ArenaPoll, and additionally for explicit calls to most MPS functions, and (implicitly) whenever a client memory access to a protected page causes MPS to handle the protection fault and advance an in-progress incremental collection.  Because it is called when handling faults, which depend on adjacency of objects, ArenaEnter is not at all repeatable from run to run.
+
+mps_reserve occurs once for every object allocation.  This is probably more frequent than ArenaEnter.
+
+$Id$
 
