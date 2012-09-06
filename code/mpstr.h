@@ -1,61 +1,46 @@
-/* fmtdytst.h: DYLAN OBJECT FORMAT TESTING
+/* mpstr.h: RAVENBROOK MEMORY POOL SYSTEM C INTERFACE TO TRANSFORMS
  *
  * $Id$
  * Copyright (c) 2001 Ravenbrook Limited.  See end of file for license.
+ *
+ * .readership: customers, MPS developers.
  */
 
-#ifndef fmtdytst_h
-#define fmtdytst_h
+#ifndef mpstr_h
+#define mpstr_h
 
 #include "mps.h"
-#include "testlib.h"
 
-extern mps_res_t dylan_init(mps_addr_t addr, size_t size,
-                            mps_addr_t *refs, size_t nr_refs);
-extern void dylan_write(mps_addr_t addr,
-                        mps_addr_t *refs, size_t nr_refs);
-extern void dylan_mutate(mps_addr_t addr);
-extern mps_addr_t dylan_read(mps_addr_t addr);
-extern mps_bool_t dylan_check(mps_addr_t addr);
-extern void dylan_pad(mps_addr_t addr, size_t size);
-extern int dylan_wrapper_check(mps_word_t *w);
+typedef struct mps_transform_s *mps_transform_t;
 
-extern mps_res_t make_dylan_vector(mps_word_t *v, mps_ap_t ap, size_t slots);
+extern mps_res_t mps_transform_create(mps_transform_t *, mps_arena_t);
 
-#define DYLAN_VECTOR_SLOT(o,n) (((mps_word_t *) (o))[(n)+2])
+extern mps_res_t mps_transform_add_oldnew(mps_transform_t, mps_addr_t *, mps_addr_t *, size_t);
 
-#define DYLAN_INT(n) (((mps_word_t)(n) << 2) | 1)
+extern mps_res_t mps_transform_apply(mps_bool_t *, mps_transform_t);
 
-#define INT_DYI(n)  ( (n) <= DYLAN_UINT_MAX ? DYLAN_INT(n) : (mps_word_t)fail() )
+extern void mps_transform_destroy(mps_transform_t);
 
-
-#define DYLAN_INT_INT(d)  ((mps_word_t)(d) >> 2)
-
-#define DYI_INT(d)  ( ((d) & 0x3) == 0x1 ? DYLAN_INT_INT(d) : (mps_word_t)fail() )
-
-#define DYLAN_UINT_MAX  ((mps_word_t)-1 >> 2)
-#define DYLAN_UINT_MASK  DYLAN_UINT_MAX
-
-#endif /* fmtdy_h */
+#endif /* mpstr_h */
 
 
 /* C. COPYRIGHT AND LICENSE
  *
- * Copyright (C) 2001-2002 Ravenbrook Limited <http://www.ravenbrook.com/>.
+ * Copyright (C) 2011 Ravenbrook Limited <http://www.ravenbrook.com/>.
  * All rights reserved.  This is an open source license.  Contact
  * Ravenbrook for commercial licensing options.
- *
+ * 
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are
  * met:
- *
+ * 
  * 1. Redistributions of source code must retain the above copyright
  * notice, this list of conditions and the following disclaimer.
- *
+ * 
  * 2. Redistributions in binary form must reproduce the above copyright
  * notice, this list of conditions and the following disclaimer in the
  * documentation and/or other materials provided with the distribution.
- *
+ * 
  * 3. Redistributions in any form must be accompanied by information on how
  * to obtain complete source code for this software and any accompanying
  * software that uses this software.  The source code must either be
@@ -66,7 +51,7 @@ extern mps_res_t make_dylan_vector(mps_word_t *v, mps_ap_t ap, size_t slots);
  * include source code for modules or files that typically accompany the
  * major components of the operating system on which the executable file
  * runs.
- *
+ * 
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS
  * IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
  * TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR
