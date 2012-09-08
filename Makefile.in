@@ -33,6 +33,11 @@ clean-xcode-build:
 Makefile: Makefile.in config.status
 	./config.status Makefile
 
+manual/doxygen/index.html: code/mpsi.c code/mps.h
+	rm -rf manual/doxygen && doxygen tool/doxygen/refman.doxyconf
+
+manual: manual/doxygen/index.html
+
 clean: $(CLEAN_TARGET)
 
 distclean: clean
