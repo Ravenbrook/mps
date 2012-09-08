@@ -55,6 +55,12 @@
 
 SRCID(mpsi, "$Id$");
 
+/** @file mpsi.c @brief Memory Pool System interface to C
+ *
+ * This is the documentation of the Memory Pool System interface to C
+ * programs.
+ */
+
 
 /* mpsi_check -- check consistency of interface mappings
  *
@@ -153,6 +159,15 @@ static Bool mpsi_check(void)
  *
  * .rank.final.not: RankFINAL does not have a corresponding function as
  * it is only used internally.  */
+
+/** mps_rank_ambig -- get the value representing the ambiguous rank
+
+  Returns a value that is used to tell the MPS that a reference or set
+  of references are [ambiguous][].  This value is constant throughout
+  the lifetime of the process.
+  
+  [ambiguous]: http://www.memorymanagement.org/glossary/a.html#ambiguous
+ */
 
 mps_rank_t mps_rank_ambig(void)
 {
@@ -1246,11 +1261,65 @@ void mps_sac_free(mps_sac_t mps_sac, mps_addr_t p, size_t size)
 
 /* Roots */
 
+/** \defGroup Roots
+    @{
+ */
 
-mps_res_t mps_root_create(mps_root_t *mps_root_o, mps_arena_t arena,
-                          mps_rank_t mps_rank, mps_rm_t mps_rm,
-                          mps_root_scan_t mps_root_scan, void *p, size_t s)
-{
+/** mps_root_create -- root a set of references determined by a function
+
+  This function declares a [root][] that consists of all the references
+  indicated by a scanning function. Roots are references that are always
+  considered alive by the garbage collector.  Objects reachable from
+  roots won't be [reclaimed][].
+  
+  The client provides a scanning function, that will be called with a
+  scan state and `p` and `s`, whenever the root needs to be scanned.  See
+  \ref mps_root_scan_t for details.
+
+  If the rank of the root is not mps_rank_ambig(), the contents of the
+  root have to be valid whenever a GC happens, i.e., they have to be
+  references to actual objects or `NULL`.  If you're using asynchronous
+  GC, this could be right after the root is registered, so the root has
+  to be valid when it is registered.  It's OK for a root to have entries
+  which point to memory not managed by the MPS -- they will simply be
+  ignored.
+
+  \return Iff the return value is \ref MPS_RES_OK, a new root in
+  `*root_o`.  Returns \ref MPS_RES_MEMORY when it fails to allocate
+  memory for the internal root structure; you need to deallocate or
+  reclaim something to make enough space, or expand the arena.
+
+  [reclaimed]: http://www.memorymanagement.org/glossary/r.html#reclaim
+  [root]: http://www.memorymanagement.org/glossary/r.html#root
+
+  #### Example:
+
+      static mps_root_t mmRoot;
+  
+      int main(void)
+      {
+        mps_res_t res;
+  
+        ...
+  
+        res = mps_root_create(&mmRoot, arena, MPS_RANK_EXACT, (mps_rm_t)0,
+                              &rootScanner, NULL, 0);
+        if(res != MPS_RES_OK)
+          exit(1);
+  
+        ...
+      }
+ */
+
+mps_res_t mps_root_create(
+  mps_root_t *mps_root_o,       /**< where to store the new root object */
+  mps_arena_t arena,            /**< arena this will be a root for */
+  mps_rank_t mps_rank,          /**< rank of the references found by `mps_root_scan` */
+  mps_rm_t mps_rm,              /**< mode of the root, logical OR of `MPS_RM_` values */
+  mps_root_scan_t mps_root_scan,/**< function which finds references */
+  void *p,                      /**< to be passed to `mps_root_scan` */
+  size_t s                      /**< to be passed to `mps_root_scan` */
+) {
   Rank rank = (Rank)mps_rank;
   Root root;
   Res res;
@@ -1354,11 +1423,59 @@ mps_res_t mps_root_create_fmt(mps_root_t *mps_root_o, mps_arena_t arena,
   return MPS_RES_OK;
 }
 
-mps_res_t mps_root_create_reg(mps_root_t *mps_root_o, mps_arena_t arena,
-                              mps_rank_t mps_rank, mps_rm_t mps_rm,
-                              mps_thr_t mps_thr, mps_reg_scan_t mps_reg_scan,
-                              void *reg_scan_p, size_t mps_size)
-{
+
+/** mps_root_create_reg -- register a thread state as a root
+
+  `mps_root_create_reg` declares the state of a thread as a root. The
+  client provides a scanning function that will be called and passed "p"
+  and "s", whenever the root needs to be scanned.  See `mps_reg_scan_t` for
+  details.
+  
+  If the rank of the root is not `MPS_RANK_AMBIG`, the contents of the
+  root have to be valid whenever a GC happens, i.e., they have to be
+  references to actual objects or "NULL".  If you're using asynchronous GC,
+  this could be right after the root is registered, so the root has to be
+  valid when it is registered. It's OK for a root to have entries which
+  point to memory not managed by the MPS -- they will simply be ignored.
+
+  Only one suitable scanning function is currently supplied with the
+  MPS, namely mps_stack_scan_ambig().
+  
+  \return If the return value is \ref MPS_RES_OK, a new root structure
+  in `*root_o`. Returns \ref MPS_RES_MEMORY when it fails to allocate
+  memory for the internal root structure; you need to deallocate or
+  reclaim something to make enough space, or expand the arena.
+
+  #### Example
+
+      typedef struct {
+        mps_root_t mmRoot;
+        mps_thr_t thread;
+        ...
+      } ThreadLocals;
+  
+      void InitThread(ThreadLocals *thr)
+      {
+        void *stackBottom=&stackBottom;
+  
+        mps_thread_reg(&thr->thread, arena);
+        mps_root_create_reg(&thr->mmRoot, arena, MPS_RANK_AMBIG, (mps_rm_t) 0,
+          thr->thread, mps_stack_scan_ambig, stackBottom, 0);
+  
+        ...
+      }
+ */
+
+mps_res_t mps_root_create_reg(
+  mps_root_t *mps_root_o,       /**< where to store the new root object */
+  mps_arena_t arena,            /**< arena this will be a root for */
+  mps_rank_t mps_rank,          /**< rank of references found by `mps_reg_scan` */
+  mps_rm_t mps_rm,              /**< mode of the root, logical OR of `MPS_RM_` values */
+  mps_thr_t mps_thr,            /**< thread to be registered as a root */
+  mps_reg_scan_t mps_reg_scan,  /**< the scanning function to apply */
+  void *reg_scan_p,             /**< to be passed to `mps_reg_scan` */
+  size_t mps_size               /**< to be passed to `mps_reg_scan` */
+) {
   Rank rank = (Rank)mps_rank;
   Thread thread = (Thread)mps_thr;
   Root root;
@@ -1413,6 +1530,8 @@ void mps_root_destroy(mps_root_t mps_root)
 
   ArenaLeave(arena);
 }
+
+/** @} */ /* End of "Roots" group */
 
 
 void (mps_tramp)(void **r_o,
