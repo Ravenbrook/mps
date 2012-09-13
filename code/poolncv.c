@@ -10,7 +10,7 @@
 #include "testlib.h"
 
 
-static Bool testit(ArenaClass class, ...)
+static Bool testit(ArenaClass cclass, ...)
 {
   Bool eflag = FALSE;
   Arena arena;
@@ -19,8 +19,8 @@ static Bool testit(ArenaClass class, ...)
   Addr p;
   va_list args;
 
-  va_start(args, class);
-  die(ArenaCreateV(&arena, class, args), "ArenaCreate");
+  va_start(args, cclass);
+  die(ArenaCreateV(&arena, cclass, args), "ArenaCreate");
   va_end(args);
 
   die(PoolCreate(&pool, arena, PoolClassN()), "PoolNCreate");

@@ -261,7 +261,7 @@ static void testAllocAndIterate(Arena arena, Pool pool,
 {
   AllocInfoStruct offsetRegion, gapRegion, newRegion, topRegion;
   SegPrefStruct pref = *SegPrefDefault();
-  Count offset, gap, new;
+  Count offset, gap, nnew;
   ZoneSet zone = (ZoneSet)2;
   int i;
 
@@ -287,12 +287,12 @@ static void testAllocAndIterate(Arena arena, Pool pool,
         die(allocator->alloc(&topRegion, &pref, pageSize, pool),
             "topRegion");
         allocator->free(&gapRegion);
-        for(new = 1; new <= gap; new += numPerPage) {
+        for(nnew = 1; nnew <= gap; nnew += numPerPage) {
           AllocInfoStruct thisRegion, nextRegion;
           Count regionNum, expected;
           Res enoughRegions;
 
-          die(allocator->alloc(&newRegion, &pref, new * pageSize, pool),
+          die(allocator->alloc(&newRegion, &pref, nnew * pageSize, pool),
               "newRegion");
 
           /* Test iterators */
@@ -306,7 +306,7 @@ static void testAllocAndIterate(Arena arena, Pool pool,
           /* Should be able to iterate over at least offset, new, top */
           expected =
             allocator->units(offset) +
-            allocator->units(new) +
+            allocator->units(nnew) +
             allocator->units(1);
 
           if (regionNum >= expected)
@@ -332,15 +332,15 @@ static void testAllocAndIterate(Arena arena, Pool pool,
 }
 
 
-static void testPageTable(ArenaClass class, ...)
+static void testPageTable(ArenaClass cclass, ...)
 {
   Arena arena; Pool pool;
   Size pageSize;
   Count tractsPerPage;
   va_list args;
 
-  va_start(args, class);
-  die(ArenaCreateV(&arena, class, args), "ArenaCreate");
+  va_start(args, cclass);
+  die(ArenaCreateV(&arena, cclass, args), "ArenaCreate");
   va_end(args);
 
   die(PoolCreate(&pool, arena, PoolClassMV(),
@@ -364,13 +364,13 @@ static void testPageTable(ArenaClass class, ...)
 }
 
 
-static Res makeArena(Arena *arenaOut, ArenaClass class, ...)
+static Res makeArena(Arena *arenaOut, ArenaClass cclass, ...)
 {
   va_list args;
   Res res;
 
-  va_start(args, class);
-  res = ArenaCreateV(arenaOut, class, args);
+  va_start(args, cclass);
+  res = ArenaCreateV(arenaOut, cclass, args);
   va_end(args);
   return res;
 }
@@ -384,12 +384,12 @@ static Res makeArena(Arena *arenaOut, ArenaClass class, ...)
 
 static void testSize(Size size)
 {
-  ArenaClass class = (ArenaClass)mps_arena_class_vm();
+  ArenaClass cclass = (ArenaClass)mps_arena_class_vm();
   Arena arena;
   Res res;
 
   do {
-    res = makeArena(&arena, class, size);
+    res = makeArena(&arena, cclass, size);
     if (res == ResOK)
       ArenaDestroy(arena);
     else

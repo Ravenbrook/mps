@@ -118,8 +118,8 @@ Bool CBSCheck(CBS cbs)
   CHECKL(BoolCheck(cbs->mayUseInline));
   CHECKL(BoolCheck(cbs->fastFind));
   CHECKL(BoolCheck(cbs->inCBS));
-  CHECKL(cbs->new == NULL || FUNCHECK(cbs->new));
-  CHECKL(cbs->delete == NULL || FUNCHECK(cbs->delete));
+  CHECKL(cbs->nnew == NULL || FUNCHECK(cbs->nnew));
+  CHECKL(cbs->ddelete == NULL || FUNCHECK(cbs->ddelete));
   CHECKL(cbs->grow == NULL || FUNCHECK(cbs->grow));
   CHECKL(cbs->shrink == NULL || FUNCHECK(cbs->shrink));
   CHECKL(cbs->mayUseInline || cbs->emergencyBlockList == NULL);
@@ -267,7 +267,7 @@ static void cbsUpdateNode(SplayTree tree, SplayNode node,
  */
 
 Res CBSInit(Arena arena, CBS cbs, void *owner,
-            CBSChangeSizeMethod new, CBSChangeSizeMethod delete,
+            CBSChangeSizeMethod nnew, CBSChangeSizeMethod ddelete,
             CBSChangeSizeMethod grow, CBSChangeSizeMethod shrink,
             Size minSize, Align alignment,
             Bool mayUseInline, Bool fastFind)
@@ -275,8 +275,8 @@ Res CBSInit(Arena arena, CBS cbs, void *owner,
   Res res;
 
   AVERT(Arena, arena);
-  AVER(new == NULL || FUNCHECK(new));
-  AVER(delete == NULL || FUNCHECK(delete));
+  AVER(nnew == NULL || FUNCHECK(nnew));
+  AVER(ddelete == NULL || FUNCHECK(ddelete));
   AVER(BoolCheck(mayUseInline));
   if (mayUseInline) {
     /* See <design/cbs/#align> */
@@ -292,8 +292,8 @@ Res CBSInit(Arena arena, CBS cbs, void *owner,
     return res;
   cbs->splayTreeSize = 0;
 
-  cbs->new = new;
-  cbs->delete = delete;
+  cbs->nnew = nnew;
+  cbs->ddelete = ddelete;
   cbs->grow = grow;
   cbs->shrink = shrink;
   cbs->minSize = minSize;
@@ -370,8 +370,8 @@ static void cbsBlockDelete(CBS cbs, CBSBlock block)
   /* make invalid */
   block->limit = block->base;
 
-  if (cbs->delete != NULL && oldSize >= cbs->minSize)
-    (*(cbs->delete))(cbs, block, oldSize, (Size)0);
+  if (cbs->ddelete != NULL && oldSize >= cbs->minSize)
+    (*(cbs->ddelete))(cbs, block, oldSize, (Size)0);
 
   PoolFree(cbs->blockPool, (Addr)block, sizeof(CBSBlockStruct));
 
@@ -394,8 +394,8 @@ static void cbsBlockShrink(CBS cbs, CBSBlock block, Size oldSize)
     AVER(CBSBlockSize(block) <= block->maxSize);
   }
 
-  if (cbs->delete != NULL && oldSize >= cbs->minSize && newSize < cbs->minSize)
-    (*(cbs->delete))(cbs, block, oldSize, newSize);
+  if (cbs->ddelete != NULL && oldSize >= cbs->minSize && newSize < cbs->minSize)
+    (*(cbs->ddelete))(cbs, block, oldSize, newSize);
   else if (cbs->shrink != NULL && newSize >= cbs->minSize)
     (*(cbs->shrink))(cbs, block, oldSize, newSize);
 }
@@ -416,8 +416,8 @@ static void cbsBlockGrow(CBS cbs, CBSBlock block, Size oldSize)
     AVER(CBSBlockSize(block) <= block->maxSize);
   }
 
-  if (cbs->new != NULL && oldSize < cbs->minSize && newSize >= cbs->minSize)
-    (*(cbs->new))(cbs, block, oldSize, newSize);
+  if (cbs->nnew != NULL && oldSize < cbs->minSize && newSize >= cbs->minSize)
+    (*(cbs->nnew))(cbs, block, oldSize, newSize);
   else if (cbs->grow != NULL && oldSize >= cbs->minSize)
     (*(cbs->grow))(cbs, block, oldSize, newSize);
 }
@@ -451,8 +451,8 @@ static Res cbsBlockNew(CBS cbs, Addr base, Addr limit)
   AVER(res == ResOK);
   STATISTIC(++cbs->splayTreeSize);
 
-  if (cbs->new != NULL && newSize >= cbs->minSize)
-    (*(cbs->new))(cbs, block, (Size)0, newSize);
+  if (cbs->nnew != NULL && newSize >= cbs->minSize)
+    (*(cbs->nnew))(cbs, block, (Size)0, newSize);
 
   return ResOK;
 
@@ -697,8 +697,8 @@ static Res cbsAddToEmergencyLists(CBS cbs, Addr base, Addr limit)
   size = AddrOffset(base, limit);
   /* Use the block list if possible.  See <design/cbs/#align>. */
   if (size > cbsMinimumAlignment) {
-    CBSEmergencyBlock prev, block, new;
-    new = CBSEmergencyBlockInit(base, limit);
+    CBSEmergencyBlock prev, block, nnew;
+    nnew = CBSEmergencyBlockInit(base, limit);
     METER_ACC(cbs->eblSearch, cbs->eblSize);
     for(prev = NULL, block = cbs->emergencyBlockList;
         block != NULL && CBSEmergencyBlockBase(block) < base;
@@ -719,14 +719,14 @@ static Res cbsAddToEmergencyLists(CBS cbs, Addr base, Addr limit)
       return ResFAIL; /* range intersects with existing block */
 
     if (prev == NULL)
-      cbs->emergencyBlockList = new;
+      cbs->emergencyBlockList = nnew;
     else
-      CBSEmergencyBlockSetNext(prev, new);
-    CBSEmergencyBlockSetNext(new, block); /* may be NULL */
+      CBSEmergencyBlockSetNext(prev, nnew);
+    CBSEmergencyBlockSetNext(nnew, block); /* may be NULL */
     STATISTIC(++cbs->eblSize);
   } else if (size == CBSEmergencyGrainSize(cbs)) {
-    CBSEmergencyGrain prev, grain, new;
-    new = CBSEmergencyGrainInit(cbs, base, limit);
+    CBSEmergencyGrain prev, grain, nnew;
+    nnew = CBSEmergencyGrainInit(cbs, base, limit);
     METER_ACC(cbs->eglSearch, cbs->eglSize);
     for(prev = NULL, grain = cbs->emergencyGrainList;
         grain != NULL && CBSEmergencyGrainBase(grain) < base;
@@ -747,10 +747,10 @@ static Res cbsAddToEmergencyLists(CBS cbs, Addr base, Addr limit)
       return ResFAIL; /* range intersects with existing grain */
 
     if (prev == NULL)
-      cbs->emergencyGrainList = new;
+      cbs->emergencyGrainList = nnew;
     else
-      CBSEmergencyGrainSetNext(prev, new);
-    CBSEmergencyGrainSetNext(new, grain); /* may be NULL */
+      CBSEmergencyGrainSetNext(prev, nnew);
+    CBSEmergencyGrainSetNext(nnew, grain); /* may be NULL */
     STATISTIC(++cbs->eglSize);
   } else {
     NOTREACHED;
@@ -1246,7 +1246,7 @@ void CBSIterateLarge(CBS cbs, CBSIterateMethod iterate, void *closureP)
 
 typedef struct {
   Size old;
-  Size new;
+  Size nnew;
 } CBSSetMinSizeClosureStruct, *CBSSetMinSizeClosure;
 
 static Bool cbsSetMinSizeGrow(CBS cbs, CBSBlock block, void *p)
@@ -1255,10 +1255,10 @@ static Bool cbsSetMinSizeGrow(CBS cbs, CBSBlock block, void *p)
   Size size;
  
   closure = (CBSSetMinSizeClosure)p;
-  AVER(closure->old > closure->new);
+  AVER(closure->old > closure->nnew);
   size = CBSBlockSize(block);
-  if (size < closure->old && size >= closure->new)
-    (*cbs->new)(cbs, block, size, size);
+  if (size < closure->old && size >= closure->nnew)
+    (*cbs->nnew)(cbs, block, size, size);
 
   return TRUE;
 }
@@ -1269,10 +1269,10 @@ static Bool cbsSetMinSizeShrink(CBS cbs, CBSBlock block, void *p)
   Size size;
  
   closure = (CBSSetMinSizeClosure)p;
-  AVER(closure->old < closure->new);
+  AVER(closure->old < closure->nnew);
   size = CBSBlockSize(block);
-  if (size >= closure->old && size < closure->new)
-    (*cbs->delete)(cbs, block, size, size);
+  if (size >= closure->old && size < closure->nnew)
+    (*cbs->ddelete)(cbs, block, size, size);
 
   return TRUE;
 }
@@ -1285,7 +1285,7 @@ void CBSSetMinSize(CBS cbs, Size minSize)
   CBSEnter(cbs);
 
   closure.old = cbs->minSize;
-  closure.new = minSize;
+  closure.nnew = minSize;
 
   if (minSize < cbs->minSize)
     cbsIterateInternal(cbs, &cbsSetMinSizeGrow, (void *)&closure);
@@ -1317,7 +1317,7 @@ typedef Res (*cbsDeleteMethod)(CBS cbs, Addr base, Addr limit);
 
 static void cbsFindDeleteRange(Addr *baseReturn, Addr *limitReturn,
                                CBS cbs, Addr base, Addr limit, Size size,
-                               cbsDeleteMethod delete,
+                               cbsDeleteMethod ddelete,
                                CBSFindDelete findDelete)
 {
   Bool callDelete = TRUE;
@@ -1328,7 +1328,7 @@ static void cbsFindDeleteRange(Addr *baseReturn, Addr *limitReturn,
   AVER(base < limit);
   AVER(size > 0);
   AVER(AddrOffset(base, limit) >= size);
-  AVER(FUNCHECK(delete));
+  AVER(FUNCHECK(ddelete));
   AVERT(CBSFindDelete, findDelete);
 
   switch(findDelete) {
@@ -1356,7 +1356,7 @@ static void cbsFindDeleteRange(Addr *baseReturn, Addr *limitReturn,
 
   if (callDelete) {
     Res res;
-    res = (*delete)(cbs, base, limit);
+    res = (*ddelete)(cbs, base, limit);
     AVER(res == ResOK);
   }
 
@@ -1633,8 +1633,8 @@ Res CBSDescribe(CBS cbs, mps_lib_FILE *stream)
   res = WriteF(stream,
                "CBS $P {\n", (WriteFP)cbs,
                "  blockPool: $P\n", (WriteFP)cbs->blockPool,
-               "  new: $F ", (WriteFF)cbs->new,
-               "  delete: $F \n", (WriteFF)cbs->delete,
+               "  new: $F ", (WriteFF)cbs->nnew,
+               "  delete: $F \n", (WriteFF)cbs->ddelete,
                NULL);
   if (res != ResOK) return res;
 

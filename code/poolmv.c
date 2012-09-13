@@ -301,7 +301,7 @@ static Bool MVSpanAlloc(Addr *addrReturn, MVSpan span, Size size,
     }
 
     if(gap >= size) {
-      Addr new = block->limit;
+      Addr nnew = block->limit;
 
       /* If the gap is exactly the right size then the preceeding and */
       /* following blocks can be merged, into the preceeding one, */
@@ -322,7 +322,7 @@ static Bool MVSpanAlloc(Addr *addrReturn, MVSpan span, Size size,
       }
 
       span->space -= size;
-      *addrReturn = new;
+      *addrReturn = nnew;
       return TRUE;
     }
 
@@ -401,7 +401,7 @@ static Res MVSpanFree(MVSpan span, Addr base, Addr limit, Pool blockPool)
       } else {
         /* cases 2, 7, and 8: making a new fragment */
         Res res;
-        MVBlock new;
+        MVBlock nnew;
         Addr addr;
 
         /* The freed area is buried in the middle of the block, so the */
@@ -409,29 +409,29 @@ static Res MVSpanFree(MVSpan span, Addr base, Addr limit, Pool blockPool)
         res = PoolAlloc(&addr, blockPool, sizeof(MVBlockStruct),
                         /* withReservoirPermit */ FALSE);
         if(res != ResOK) return res;
-        new = (MVBlock)addr;
+        nnew = (MVBlock)addr;
 
         freeAreaSize = AddrOffset(base, limit);
 
         /* If the freed area is in the base sentinel then insert the new */
         /* descriptor after it, otherwise insert before. */
         if(isBase) { /* case 7: new fragment at the base of the span */
-          new->base = limit;
-          new->limit = block->limit;
+          nnew->base = limit;
+          nnew->limit = block->limit;
           block->limit = base;
-          new->next = block->next;
-          AVER(new->next != NULL); /* should at least be a sentinel */
-          block->next = new;
+          nnew->next = block->next;
+          AVER(nnew->next != NULL); /* should at least be a sentinel */
+          block->next = nnew;
         } else { /* cases 2 and 8 */
-          new->base = block->base;
-          new->limit = base;
+          nnew->base = block->base;
+          nnew->limit = base;
           block->base = limit;
-          new->next = block;
+          nnew->next = block;
           AVER(prev != NULL);
-          prev->next = new;
+          prev->next = nnew;
         }
 
-        AVERT(MVBlock, new);
+        AVERT(MVBlock, nnew);
         ++span->blockCount;
       }
 
@@ -487,12 +487,12 @@ static Res MVAlloc(Addr *pReturn, Pool pool, Size size,
       span = RING_ELT(MVSpan, spans, node);
       if((size <= span->largest) &&          /* .design.largest.alloc */
          (size <= span->space)) {
-        Addr new;
+        Addr nnew;
 
-        if(MVSpanAlloc(&new, span, size, mvBlockPool(mv))) {
+        if(MVSpanAlloc(&nnew, span, size, mvBlockPool(mv))) {
           mv->space -= size;
-          AVER(AddrIsAligned(new, pool->alignment));
-          *pReturn = new;
+          AVER(AddrIsAligned(nnew, pool->alignment));
+          *pReturn = nnew;
           return ResOK;
         }
       }
@@ -853,7 +853,7 @@ Bool MVCheck(MV mv)
 {
   CHECKS(MV, mv);
   CHECKD(Pool, &mv->poolStruct);
-  CHECKL(IsSubclassPoly(mv->poolStruct.class, EnsureMVPoolClass()));
+  CHECKL(IsSubclassPoly(mv->poolStruct.cclass, EnsureMVPoolClass()));
   CHECKD(MFS, &mv->blockPoolStruct);
   CHECKD(MFS, &mv->spanPoolStruct);
   CHECKL(mv->extendBy > 0);

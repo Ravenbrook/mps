@@ -130,7 +130,7 @@ void AMSSegFreeCheck(AMSSeg amsseg)
   /* If it's not a debug class, don't bother walking. */
   pool = SegPool(AMSSeg2Seg(amsseg));
   AVERT(Pool, pool);
-  debug = ((pool)->class->debugMixin)(pool);
+  debug = ((pool)->cclass->debugMixin)(pool);
   if (debug == NULL)
     return;
 
@@ -599,16 +599,16 @@ static Res AMSSegDescribe(Seg seg, mps_lib_FILE *stream)
 
 /* AMSSegClass -- Class definition for AMS segments */
 
-DEFINE_CLASS(AMSSegClass, class)
+DEFINE_CLASS(AMSSegClass, cclass)
 {
-  INHERIT_CLASS(class, GCSegClass);
-  class->name = "AMSSEG";
-  class->size = sizeof(AMSSegStruct);
-  class->init = AMSSegInit;
-  class->finish = AMSSegFinish;
-  class->merge = AMSSegMerge;
-  class->split = AMSSegSplit;
-  class->describe = AMSSegDescribe;
+  INHERIT_CLASS(cclass, GCSegClass);
+  cclass->name = "AMSSEG";
+  cclass->size = sizeof(AMSSegStruct);
+  cclass->init = AMSSegInit;
+  cclass->finish = AMSSegFinish;
+  cclass->merge = AMSSegMerge;
+  cclass->split = AMSSegSplit;
+  cclass->describe = AMSSegDescribe;
 }
 
 
@@ -1517,7 +1517,7 @@ static void AMSReclaim(Pool pool, Trace trace, Seg seg)
   grains = amsseg->grains;
 
   /* Loop over all white blocks and splat them, if it's a debug class. */
-  debug = ((pool)->class->debugMixin)(pool);
+  debug = ((pool)->cclass->debugMixin)(pool);
   if (debug != NULL) {
     Index i, j = 0;
 
@@ -1690,7 +1690,7 @@ Bool AMSCheck(AMS ams)
 {
   CHECKS(AMS, ams);
   CHECKL(PoolCheck(AMS2Pool(ams)));
-  CHECKL(IsSubclassPoly(AMS2Pool(ams)->class, AMSPoolClassGet()));
+  CHECKL(IsSubclassPoly(AMS2Pool(ams)->cclass, AMSPoolClassGet()));
   CHECKL(PoolAlignment(AMS2Pool(ams)) == ((Size)1 << ams->grainShift));
   CHECKL(PoolAlignment(AMS2Pool(ams)) == AMS2Pool(ams)->format->alignment);
   CHECKD(Chain, ams->chain);

@@ -34,8 +34,8 @@ typedef struct CBSStruct {
   SplayTreeStruct splayTree;
   Count splayTreeSize;
   Pool blockPool;
-  CBSChangeSizeMethod new;
-  CBSChangeSizeMethod delete;
+  CBSChangeSizeMethod nnew;
+  CBSChangeSizeMethod ddelete;
   CBSChangeSizeMethod grow;
   CBSChangeSizeMethod shrink;
   Size minSize;
@@ -66,8 +66,8 @@ extern Bool CBSCheck(CBS cbs);
 extern Bool CBSBlockCheck(CBSBlock block);
 
 extern Res CBSInit(Arena arena, CBS cbs, void *owner,
-                   CBSChangeSizeMethod new,
-                   CBSChangeSizeMethod delete,
+                   CBSChangeSizeMethod nnew,
+                   CBSChangeSizeMethod ddelete,
                    CBSChangeSizeMethod grow,
                    CBSChangeSizeMethod shrink,
                    Size minSize,

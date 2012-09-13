@@ -15,12 +15,12 @@ SRCID(protocol, "$Id$");
 
 /* ProtocolClassCheck -- check a protocol class */
 
-Bool ProtocolClassCheck(ProtocolClass class)
+Bool ProtocolClassCheck(ProtocolClass cclass)
 {
-  CHECKS(ProtocolClass, class);
-  CHECKS(ProtocolClass, class->superclass);
-  CHECKL(FUNCHECK(class->coerceInst));
-  CHECKL(FUNCHECK(class->coerceClass));
+  CHECKS(ProtocolClass, cclass);
+  CHECKS(ProtocolClass, cclass->superclass);
+  CHECKL(FUNCHECK(cclass->coerceInst));
+  CHECKL(FUNCHECK(cclass->coerceClass));
   return TRUE;
 }
 
@@ -30,7 +30,7 @@ Bool ProtocolClassCheck(ProtocolClass class)
 Bool ProtocolInstCheck(ProtocolInst inst)
 {
   CHECKS(ProtocolInst, inst);
-  CHECKL(ProtocolClassCheck(inst->class));
+  CHECKL(ProtocolClassCheck(inst->cclass));
   return TRUE;
 }
 
@@ -92,7 +92,7 @@ static Bool ProtocolCoerceInst(ProtocolInst *coerceResult,
                                ProtocolInst proInst,
                                ProtocolClass super)
 {
-  ProtocolClass p = proInst->class;
+  ProtocolClass p = proInst->cclass;
   ProtocolClass root = ProtocolClassGet();
 
   AVERT(ProtocolInst, proInst);

@@ -79,7 +79,7 @@ static void ArenaFormattedObjectsWalk(Arena arena, FormattedObjectsStepMethod f,
       Pool pool;
       base = SegBase(seg);
       pool = SegPool(seg);
-      if (pool->class->attr & AttrFMT) {
+      if (pool->cclass->attr & AttrFMT) {
         ShieldExpose(arena, seg);
         PoolWalk(pool, seg, f, p, s);
         ShieldCover(arena, seg);
@@ -245,7 +245,7 @@ static Res RootsWalkFix(Pool pool, ScanState ss, Seg seg, Ref *refIO)
 
   /* If the segment isn't GCable then the ref is not to the heap and */
   /* shouldn't be passed to the client. */
-  AVER((SegPool(seg)->class->attr & AttrGC) != 0);
+  AVER((SegPool(seg)->cclass->attr & AttrGC) != 0);
 
   /* Call the client closure - .assume.rootaddr */
   rsc->f((mps_addr_t*)refIO, (mps_root_t)rsc->root, rsc->p, rsc->s);
@@ -311,7 +311,7 @@ static Res ArenaRootsWalk(Globals arenaGlobals, mps_roots_stepper_t f,
     Addr base;
     do {
       base = SegBase(seg);
-      if ((SegPool(seg)->class->attr & AttrGC) != 0) {
+      if ((SegPool(seg)->cclass->attr & AttrGC) != 0) {
         TraceAddWhite(trace, seg);
       }
     } while (SegNext(&seg, arena, base));

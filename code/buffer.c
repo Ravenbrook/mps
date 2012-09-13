@@ -162,7 +162,7 @@ Res BufferDescribe(Buffer buffer, mps_lib_FILE *stream)
                "Buffer $P ($U) {\n",
                (WriteFP)buffer, (WriteFU)buffer->serial,
                "  class $P (\"$S\")\n",
-               (WriteFP)buffer->class, buffer->class->name,
+               (WriteFP)buffer->cclass, buffer->cclass->name,
                "  Arena $P\n",       (WriteFP)buffer->arena,
                "  Pool $P\n",        (WriteFP)buffer->pool,
                buffer->isMutator ?
@@ -181,7 +181,7 @@ Res BufferDescribe(Buffer buffer, mps_lib_FILE *stream)
                NULL);
   if (res != ResOK) return res;
 
-  res = buffer->class->describe(buffer, stream);
+  res = buffer->cclass->describe(buffer, stream);
   if (res != ResOK) return res;
 
   res = WriteF(stream, "} Buffer $P ($U)\n",
@@ -193,23 +193,23 @@ Res BufferDescribe(Buffer buffer, mps_lib_FILE *stream)
 
 /* BufferInitV -- initialize an allocation buffer */
 
-static Res BufferInitV(Buffer buffer, BufferClass class,
+static Res BufferInitV(Buffer buffer, BufferClass cclass,
                        Pool pool, Bool isMutator, va_list args)
 {
   Arena arena;
   Res res;
 
   AVER(buffer != NULL);
-  AVERT(BufferClass, class);
+  AVERT(BufferClass, cclass);
   AVERT(Pool, pool);
   /* The PoolClass should support buffer protocols */
-  AVER((pool->class->attr & AttrBUF)); /* .trans.mod */
+  AVER((pool->cclass->attr & AttrBUF)); /* .trans.mod */
  
   arena = PoolArena(pool);
   /* Initialize the buffer.  See <code/mpmst.h> for a definition of */
   /* the structure.  sig and serial comes later .init.sig-serial */
   buffer->arena = arena;
-  buffer->class = class;
+  buffer->cclass = cclass;
   buffer->pool = pool;
   RingInit(&buffer->poolRing);
   buffer->isMutator = isMutator;
@@ -245,7 +245,7 @@ static Res BufferInitV(Buffer buffer, BufferClass class,
 
   /* Dispatch to the buffer class method to perform any  */
   /* class-specific initialization of the buffer. */
-  res = (*class->init)(buffer, pool, args);
+  res = (*cclass->init)(buffer, pool, args);
   if (res != ResOK)
     goto failInit;
 
@@ -265,14 +265,14 @@ failInit:
  *
  * See <design/buffer/#method.create>.  */
 
-Res BufferCreate(Buffer *bufferReturn, BufferClass class,
+Res BufferCreate(Buffer *bufferReturn, BufferClass cclass,
                  Pool pool, Bool isMutator, ...)
 {
   Res res;
   va_list args;
 
   va_start(args, isMutator);
-  res = BufferCreateV(bufferReturn, class, pool, isMutator, args);
+  res = BufferCreateV(bufferReturn, cclass, pool, isMutator, args);
   va_end(args);
   return res;
 }
@@ -282,7 +282,7 @@ Res BufferCreate(Buffer *bufferReturn, BufferClass class,
  *
  * See <design/buffer/#method.create>.  */
 
-Res BufferCreateV(Buffer *bufferReturn, BufferClass class,
+Res BufferCreateV(Buffer *bufferReturn, BufferClass cclass,
                   Pool pool, Bool isMutator, va_list args)
 {
   Res res;
@@ -291,20 +291,20 @@ Res BufferCreateV(Buffer *bufferReturn, BufferClass class,
   void *p;
 
   AVER(bufferReturn != NULL);
-  AVERT(BufferClass, class);
+  AVERT(BufferClass, cclass);
   AVERT(Pool, pool);
 
   arena = PoolArena(pool);
 
   /* Allocate memory for the buffer descriptor structure. */
-  res = ControlAlloc(&p, arena, class->size,
+  res = ControlAlloc(&p, arena, cclass->size,
                      /* withReservoirPermit */ FALSE);
   if (res != ResOK)
     goto failAlloc;
   buffer = p;
 
   /* Initialize the buffer descriptor structure. */
-  res = BufferInitV(buffer, class, pool, isMutator, args);
+  res = BufferInitV(buffer, cclass, pool, isMutator, args);
   if (res != ResOK)
     goto failInit;
 
@@ -312,7 +312,7 @@ Res BufferCreateV(Buffer *bufferReturn, BufferClass class,
   return ResOK;
 
 failInit:
-  ControlFree(arena, buffer, class->size);
+  ControlFree(arena, buffer, cclass->size);
 failAlloc:
   return res;
 }
@@ -334,12 +334,12 @@ void BufferDetach(Buffer buffer, Pool pool)
     limit = buffer->poolLimit;
     /* Ask the owning pool to do whatever it needs to before the */
     /* buffer is detached (e.g. copy buffer state into pool state). */
-    (*pool->class->bufferEmpty)(pool, buffer, init, limit);
+    (*pool->cclass->bufferEmpty)(pool, buffer, init, limit);
     /* Use of lightweight frames must have been disabled by now */
     AVER(BufferFrameState(buffer) == BufferFrameDISABLED);
 
     /* run any class-specific detachment method */
-    buffer->class->detach(buffer);
+    buffer->cclass->detach(buffer);
 
     spare = AddrOffset(init, limit);
     buffer->emptySize += spare;
@@ -376,14 +376,14 @@ void BufferDetach(Buffer buffer, Pool pool)
 void BufferDestroy(Buffer buffer)
 {
   Arena arena;
-  BufferClass class;
+  BufferClass cclass;
 
   AVERT(Buffer, buffer);
   arena = buffer->arena;
-  class = buffer->class;
-  AVERT(BufferClass, class);
+  cclass = buffer->cclass;
+  AVERT(BufferClass, cclass);
   BufferFinish(buffer);
-  ControlFree(arena, buffer, class->size);
+  ControlFree(arena, buffer, cclass->size);
 }
 
 
@@ -398,7 +398,7 @@ void BufferFinish(Buffer buffer)
   pool = BufferPool(buffer);
 
   /* The PoolClass should support buffer protocols */
-  AVER((pool->class->attr & AttrBUF)); /* .trans.mod */
+  AVER((pool->cclass->attr & AttrBUF)); /* .trans.mod */
   AVER(BufferIsReady(buffer));
 
   /* <design/alloc-frame/#lw-frame.sync.trip> */
@@ -410,7 +410,7 @@ void BufferFinish(Buffer buffer)
 
   /* Dispatch to the buffer class method to perform any  */
   /* class-specific finishing of the buffer. */
-  (*buffer->class->finish)(buffer);
+  (*buffer->cclass->finish)(buffer);
 
   /* Detach the buffer from its owning pool and unsig it. */
   RingRemove(&buffer->poolRing);
@@ -557,7 +557,7 @@ static void BufferFrameNotifyPopPending(Buffer buffer)
     buffer->ap_s.limit = buffer->poolLimit;
   }
   pool = BufferPool(buffer);
-  (*pool->class->framePopPending)(pool, buffer, frame);
+  (*pool->cclass->framePopPending)(pool, buffer, frame);
 }
 
 
@@ -586,7 +586,7 @@ Res BufferFramePush(AllocFrame *frameReturn, Buffer buffer)
     }
   }
   pool = BufferPool(buffer);
-  return (*pool->class->framePush)(frameReturn, pool, buffer);
+  return (*pool->cclass->framePush)(frameReturn, pool, buffer);
 }
 
 
@@ -600,7 +600,7 @@ Res BufferFramePop(Buffer buffer, AllocFrame frame)
   AVERT(Buffer, buffer);
   /* frame is of an abstract type & can't be checked */
   pool = BufferPool(buffer);
-  return (*pool->class->framePop)(pool, buffer, frame);
+  return (*pool->cclass->framePop)(pool, buffer, frame);
  
 }
 
@@ -683,7 +683,7 @@ void BufferAttach(Buffer buffer, Addr base, Addr limit,
   }
 
   /* run any class-specific attachment method */
-  buffer->class->attach(buffer, base, limit, init, size);
+  buffer->cclass->attach(buffer, base, limit, init, size);
 
   AVERT(Buffer, buffer);
   EVENT4(BufferFill, buffer, size, base, filled);
@@ -745,7 +745,7 @@ Res BufferFill(Addr *pReturn, Buffer buffer, Size size,
   BufferDetach(buffer, pool);
 
   /* Ask the pool for some memory. */
-  res = (*pool->class->bufferFill)(&base, &limit,
+  res = (*pool->cclass->bufferFill)(&base, &limit,
                                    pool, buffer, size,
                                    withReservoirPermit);
   if (res != ResOK)
@@ -869,7 +869,7 @@ Bool BufferTrip(Buffer buffer, Addr p, Size size)
 
     b = PoolFormat(&format, buffer->pool);
     if (b) {
-      clientClass = format->class(p);
+      clientClass = format->cclass(p);
     } else {
       clientClass = (Addr)0;
     }
@@ -934,21 +934,21 @@ Addr BufferScanLimit(Buffer buffer)
 Seg BufferSeg(Buffer buffer)
 {
   AVERT(Buffer, buffer);
-  return buffer->class->seg(buffer);
+  return buffer->cclass->seg(buffer);
 }
 
 
 RankSet BufferRankSet(Buffer buffer)
 {
   AVERT(Buffer, buffer);
-  return buffer->class->rankSet(buffer);
+  return buffer->cclass->rankSet(buffer);
 }
 
 void BufferSetRankSet(Buffer buffer, RankSet rankset)
 {
   AVERT(Buffer, buffer);
   AVERT(RankSet, rankset);
-  buffer->class->setRankSet(buffer, rankset);
+  buffer->cclass->setRankSet(buffer, rankset);
 }
 
 
@@ -964,7 +964,7 @@ void BufferReassignSeg(Buffer buffer, Seg seg)
   AVER(BufferBase(buffer) >= SegBase(seg));
   AVER(BufferLimit(buffer) <= SegLimit(seg));
   AVER(BufferPool(buffer) == SegPool(seg));
-  buffer->class->reassignSeg(buffer, seg);
+  buffer->cclass->reassignSeg(buffer, seg);
 }
 
 
@@ -1038,7 +1038,7 @@ void BufferRampBegin(Buffer buffer, AllocPattern pattern)
 
   pool = BufferPool(buffer);
   AVERT(Pool, pool);
-  (*pool->class->rampBegin)(pool, buffer,
+  (*pool->cclass->rampBegin)(pool, buffer,
                             pattern == &AllocPatternRampCollectAllStruct);
 }
 
@@ -1057,7 +1057,7 @@ Res BufferRampEnd(Buffer buffer)
 
   pool = BufferPool(buffer);
   AVERT(Pool, pool);
-  (*pool->class->rampEnd)(pool, buffer);
+  (*pool->cclass->rampEnd)(pool, buffer);
   return ResOK;
 }
 
@@ -1076,7 +1076,7 @@ void BufferRampReset(Buffer buffer)
   pool = BufferPool(buffer);
   AVERT(Pool, pool);
   do
-    (*pool->class->rampEnd)(pool, buffer);
+    (*pool->cclass->rampEnd)(pool, buffer);
   while(--buffer->rampCount > 0);
 }
 
@@ -1198,21 +1198,21 @@ static Res bufferTrivDescribe(Buffer buffer, mps_lib_FILE *stream)
 
 /* BufferClassCheck -- check the consistency of a BufferClass */
 
-Bool BufferClassCheck(BufferClass class)
+Bool BufferClassCheck(BufferClass cclass)
 {
-  CHECKL(ProtocolClassCheck(&class->protocol));
-  CHECKL(class->name != NULL); /* Should be <=6 char C identifier */
-  CHECKL(class->size >= sizeof(BufferStruct));
-  CHECKL(FUNCHECK(class->init));
-  CHECKL(FUNCHECK(class->finish));
-  CHECKL(FUNCHECK(class->attach));
-  CHECKL(FUNCHECK(class->detach));
-  CHECKL(FUNCHECK(class->seg));
-  CHECKL(FUNCHECK(class->rankSet));
-  CHECKL(FUNCHECK(class->setRankSet));
-  CHECKL(FUNCHECK(class->reassignSeg));
-  CHECKL(FUNCHECK(class->describe));
-  CHECKS(BufferClass, class);
+  CHECKL(ProtocolClassCheck(&cclass->protocol));
+  CHECKL(cclass->name != NULL); /* Should be <=6 char C identifier */
+  CHECKL(cclass->size >= sizeof(BufferStruct));
+  CHECKL(FUNCHECK(cclass->init));
+  CHECKL(FUNCHECK(cclass->finish));
+  CHECKL(FUNCHECK(cclass->attach));
+  CHECKL(FUNCHECK(cclass->detach));
+  CHECKL(FUNCHECK(cclass->seg));
+  CHECKL(FUNCHECK(cclass->rankSet));
+  CHECKL(FUNCHECK(cclass->setRankSet));
+  CHECKL(FUNCHECK(cclass->reassignSeg));
+  CHECKL(FUNCHECK(cclass->describe));
+  CHECKS(BufferClass, cclass);
   return TRUE;
 }
 
@@ -1221,21 +1221,21 @@ Bool BufferClassCheck(BufferClass class)
  *
  * See <design/buffer/#class.hierarchy.buffer>.  */
 
-DEFINE_CLASS(BufferClass, class)
+DEFINE_CLASS(BufferClass, cclass)
 {
-  INHERIT_CLASS(&class->protocol, ProtocolClass);
-  class->name = "BUFFER";
-  class->size = sizeof(BufferStruct);
-  class->init = bufferTrivInit;
-  class->finish = bufferTrivFinish;
-  class->attach = bufferTrivAttach;
-  class->detach = bufferTrivDetach;
-  class->describe = bufferTrivDescribe;
-  class->seg = bufferNoSeg;
-  class->rankSet = bufferTrivRankSet;
-  class->setRankSet = bufferNoSetRankSet;
-  class->reassignSeg = bufferNoReassignSeg;
-  class->sig = BufferClassSig;
+  INHERIT_CLASS(&cclass->protocol, ProtocolClass);
+  cclass->name = "BUFFER";
+  cclass->size = sizeof(BufferStruct);
+  cclass->init = bufferTrivInit;
+  cclass->finish = bufferTrivFinish;
+  cclass->attach = bufferTrivAttach;
+  cclass->detach = bufferTrivDetach;
+  cclass->describe = bufferTrivDescribe;
+  cclass->seg = bufferNoSeg;
+  cclass->rankSet = bufferTrivRankSet;
+  cclass->setRankSet = bufferNoSetRankSet;
+  cclass->reassignSeg = bufferNoReassignSeg;
+  cclass->sig = BufferClassSig;
 }
 
 
@@ -1474,20 +1474,20 @@ static Res segBufDescribe(Buffer buffer, mps_lib_FILE *stream)
 
 typedef BufferClassStruct SegBufClassStruct;
 
-DEFINE_CLASS(SegBufClass, class)
+DEFINE_CLASS(SegBufClass, cclass)
 {
-  INHERIT_CLASS(class, BufferClass);
-  class->name = "SEGBUF";
-  class->size = sizeof(SegBufStruct);
-  class->init = segBufInit;
-  class->finish = segBufFinish;
-  class->attach = segBufAttach;
-  class->detach = segBufDetach;
-  class->describe = segBufDescribe;
-  class->seg = segBufSeg;
-  class->rankSet = segBufRankSet;
-  class->setRankSet = segBufSetRankSet;
-  class->reassignSeg = segBufReassignSeg;
+  INHERIT_CLASS(cclass, BufferClass);
+  cclass->name = "SEGBUF";
+  cclass->size = sizeof(SegBufStruct);
+  cclass->init = segBufInit;
+  cclass->finish = segBufFinish;
+  cclass->attach = segBufAttach;
+  cclass->detach = segBufDetach;
+  cclass->describe = segBufDescribe;
+  cclass->seg = segBufSeg;
+  cclass->rankSet = segBufRankSet;
+  cclass->setRankSet = segBufSetRankSet;
+  cclass->reassignSeg = segBufReassignSeg;
 }
 
 
@@ -1530,11 +1530,11 @@ static Res rankBufInit (Buffer buffer, Pool pool, va_list args)
 
 typedef BufferClassStruct RankBufClassStruct;
 
-DEFINE_CLASS(RankBufClass, class)
+DEFINE_CLASS(RankBufClass, cclass)
 {
-  INHERIT_CLASS(class, SegBufClass);
-  class->name = "RANKBUF";
-  class->init = rankBufInit;
+  INHERIT_CLASS(cclass, SegBufClass);
+  cclass->name = "RANKBUF";
+  cclass->init = rankBufInit;
 }
 
 

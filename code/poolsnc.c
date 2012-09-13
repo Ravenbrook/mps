@@ -179,13 +179,13 @@ static void SNCBufFinish(Buffer buffer)
 
 /* SNCBufClass -- The class definition */
 
-DEFINE_BUFFER_CLASS(SNCBufClass, class)
+DEFINE_BUFFER_CLASS(SNCBufClass, cclass)
 {
-  INHERIT_CLASS(class, RankBufClass);
-  class->name = "SNCBUF";
-  class->size = sizeof(SNCBufStruct);
-  class->init = SNCBufInit;
-  class->finish = SNCBufFinish;
+  INHERIT_CLASS(cclass, RankBufClass);
+  cclass->name = "SNCBUF";
+  cclass->size = sizeof(SNCBufStruct);
+  cclass->init = SNCBufInit;
+  cclass->finish = SNCBufFinish;
 }
 
 
@@ -255,13 +255,13 @@ static Res sncSegInit(Seg seg, Pool pool, Addr base, Size size,
 
 /* SNCSegClass -- Class definition for SNC segments */
 
-DEFINE_SEG_CLASS(SNCSegClass, class)
+DEFINE_SEG_CLASS(SNCSegClass, cclass)
 {
-  INHERIT_CLASS(class, GCSegClass);
-  SegClassMixInNoSplitMerge(class);  /* no support for this (yet) */
-  class->name = "SNCSEG";
-  class->size = sizeof(SNCSegStruct);
-  class->init = sncSegInit;
+  INHERIT_CLASS(cclass, GCSegClass);
+  SegClassMixInNoSplitMerge(cclass);  /* no support for this (yet) */
+  cclass->name = "SNCSEG";
+  cclass->size = sizeof(SNCSegStruct);
+  cclass->init = sncSegInit;
 }
 
 
@@ -688,7 +688,7 @@ static Bool SNCCheck(SNC snc)
   CHECKS(SNC, snc);
   CHECKD(Pool, &snc->poolStruct);
   CHECKD(SegPref, &snc->segPrefStruct);
-  CHECKL(snc->poolStruct.class == SNCPoolClassGet());
+  CHECKL(snc->poolStruct.cclass == SNCPoolClassGet());
   if (snc->freeSegs != NULL) {
     CHECKL(SegCheck(snc->freeSegs));
   }

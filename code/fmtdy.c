@@ -100,7 +100,7 @@ int dylan_wrapper_check(mps_word_t *w)
   mps_word_t vh;
   mps_word_t version;
   mps_word_t reserved;
-  mps_word_t class;
+  mps_word_t cclass;
   mps_word_t fh, fl, ff;
   mps_word_t vb, es, vf;
   mps_word_t vt, t;
@@ -133,8 +133,8 @@ int dylan_wrapper_check(mps_word_t *w)
   
   /* Unpack the wrapper. */
 
-  class = w[WC];         /* class */
-  unused(class);
+  cclass = w[WC];         /* class */
+  unused(cclass);
   fh = w[WF];            /* fixed part header word */
   fl = fh >> 2;         /* fixed part length */
   ff = fh & 3;          /* fixed part format code */
@@ -156,8 +156,8 @@ int dylan_wrapper_check(mps_word_t *w)
   /* The second word is the class of the wrapped object. */
   /* It would be good to check which pool this is in. */
 
-  assert(class != 0);                   /* class exists */
-  assert((class & 3) == 0);             /* class is aligned */
+  assert(cclass != 0);                   /* class exists */
+  assert((cclass & 3) == 0);             /* class is aligned */
 
   /* The third word contains the fixed part format and length. */
   /* The only illegal format is 3.  Anything else is possible, although */
@@ -690,7 +690,7 @@ static mps_addr_t dylan_skip(mps_addr_t object)
   return (mps_addr_t)p;
 }
 
-static void dylan_copy(mps_addr_t old, mps_addr_t new)
+static void dylan_copy(mps_addr_t old, mps_addr_t nnew)
 {
   char *base = (char *)old;
   char *limit = (char *)dylan_skip(old);
@@ -700,7 +700,7 @@ static void dylan_copy(mps_addr_t old, mps_addr_t new)
   assert(dylan_wrapper_check(*(mps_word_t **)old));
   /* .improve.memcpy: Can do better here as we know that new and old
      will be aligned (to MPS_PF_ALIGN) */
-  (void)memcpy(new, old, length);
+  (void)memcpy(nnew, old, length);
 }
 
 static mps_addr_t dylan_isfwd(mps_addr_t object)
@@ -715,20 +715,20 @@ static mps_addr_t dylan_isfwd(mps_addr_t object)
     return NULL;
 }
 
-static void dylan_fwd(mps_addr_t old, mps_addr_t new)
+static void dylan_fwd(mps_addr_t old, mps_addr_t nnew)
 {
   mps_word_t *p;
   mps_addr_t limit;
 
   assert(dylan_isfwd(old) == NULL);
-  assert(((mps_word_t)new & 3) == 0);
+  assert(((mps_word_t)nnew & 3) == 0);
 
   p = (mps_word_t *)old;
   limit = dylan_skip(old);
   if(limit == &p[1])    /* single-word object? */
-    p[0] = (mps_word_t)new | 1;
+    p[0] = (mps_word_t)nnew | 1;
   else {
-    p[0] = (mps_word_t)new | 2;
+    p[0] = (mps_word_t)nnew | 2;
     p[1] = (mps_word_t)limit;
   }
 }

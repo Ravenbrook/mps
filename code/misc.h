@@ -31,8 +31,8 @@ enum BoolEnum {
  * used to reverse engineer binary deliverables.
  */
 
-typedef const struct SrcIdStruct *SrcId;
-typedef const struct SrcIdStruct {
+typedef struct SrcIdStruct *SrcId;
+typedef struct SrcIdStruct {
   const char *file;
   const char *scmid;
   const char *build_date;

@@ -53,10 +53,10 @@ extern void (RingFinish)(Ring ring);
   END
 
 /* .ring.append: */
-extern void (RingAppend)(Ring ring, Ring new);
-#define RingAppend(ring, new) \
+extern void (RingAppend)(Ring ring, Ring nnew);
+#define RingAppend(ring, nnew) \
   BEGIN \
-    Ring _ring = (ring), _new = (new); \
+    Ring _ring = (ring), _new = (nnew); \
     AVER(RingCheck(_ring)); \
     AVER(RingCheckSingle(_new)); \
     _new->prev = _ring->prev; \
@@ -66,10 +66,10 @@ extern void (RingAppend)(Ring ring, Ring new);
   END
 
 /* .ring.insert: */
-extern void (RingInsert)(Ring ring, Ring new);
-#define RingInsert(ring, new) \
+extern void (RingInsert)(Ring ring, Ring nnew);
+#define RingInsert(ring, nnew) \
   BEGIN \
-    Ring _ring = (ring), _new = (new); \
+    Ring _ring = (ring), _new = (nnew); \
     AVER(RingCheck(_ring)); \
     AVER(RingCheckSingle(_new)); \
     _new->prev = _ring; \

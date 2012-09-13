@@ -19,7 +19,7 @@ static mps_res_t scan(mps_ss_t ss, mps_addr_t base, mps_addr_t limit);
 static mps_addr_t skip(mps_addr_t object);
 static void move(mps_addr_t object, mps_addr_t to);
 static mps_addr_t isMoved(mps_addr_t object);
-static void copy(mps_addr_t old, mps_addr_t new);
+static void copy(mps_addr_t old, mps_addr_t nnew);
 static void pad(mps_addr_t base, size_t size);
 
 static void stepper(mps_addr_t addr, mps_fmt_t fmt, mps_pool_t pool, 
@@ -134,10 +134,10 @@ static mps_addr_t isMoved(mps_addr_t object)
 }
 
 
-static void copy(mps_addr_t old, mps_addr_t new)
+static void copy(mps_addr_t old, mps_addr_t nnew)
 {
   testlib_unused(old);
-  testlib_unused(new);
+  testlib_unused(nnew);
   cdie(0, "copy");
 }
 

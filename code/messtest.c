@@ -71,7 +71,7 @@ static void topMessageType(MessageType *typeReturn, Arena arena)
 
 /* postDummyMessage -- post a dummy message */
 
-static void postDummyMessage(Arena arena, MessageClass class,
+static void postDummyMessage(Arena arena, MessageClass cclass,
                              MessageType type)
 {
   void *p;
@@ -80,7 +80,7 @@ static void postDummyMessage(Arena arena, MessageClass class,
   die((mps_res_t)ControlAlloc(&p, arena, sizeof(MessageStruct), FALSE),
       "AllocMessage");
   message = (Message)p;
-  MessageInit(arena, message, class, type);
+  MessageInit(arena, message, cclass, type);
   MessagePost(arena, message);
   return;
 }

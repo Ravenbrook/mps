@@ -445,7 +445,7 @@ static void VMChunkFinish(Chunk chunk)
  * .arena.init: Once the arena has been allocated, we call ArenaInit
  * to do the generic part of init.
  */
-static Res VMArenaInit(Arena *arenaReturn, ArenaClass class, va_list args)
+static Res VMArenaInit(Arena *arenaReturn, ArenaClass cclass, va_list args)
 {
   Size userSize;        /* size requested by user */
   Size chunkSize;       /* size actually created */
@@ -459,7 +459,7 @@ static Res VMArenaInit(Arena *arenaReturn, ArenaClass class, va_list args)
 
   userSize = va_arg(args, Size);
   AVER(arenaReturn != NULL);
-  AVER(class == VMArenaClassGet() || class == VMNZArenaClassGet());
+  AVER(cclass == VMArenaClassGet() || cclass == VMNZArenaClassGet());
   AVER(userSize > 0);
 
   /* Create a VM to hold the arena and map it. */
@@ -474,7 +474,7 @@ static Res VMArenaInit(Arena *arenaReturn, ArenaClass class, va_list args)
 
   arena = VMArena2Arena(vmArena);
   /* <code/arena.c#init.caller> */
-  res = ArenaInit(arena, class);
+  res = ArenaInit(arena, cclass);
   if (res != ResOK)
     goto failArenaInit;
   arena->committed = VMMapped(arenaVM);
@@ -528,7 +528,7 @@ static Res VMArenaInit(Arena *arenaReturn, ArenaClass class, va_list args)
   arena->zoneShift = SizeFloorLog2(chunkSize >> MPS_WORD_SHIFT);
 
   AVERT(VMArena, vmArena);
-  if ((ArenaClass)mps_arena_class_vm() == class)
+  if ((ArenaClass)mps_arena_class_vm() == cclass)
     EVENT3(ArenaCreateVM, arena, userSize, chunkSize);
   else
     EVENT3(ArenaCreateVMNZ, arena, userSize, chunkSize);

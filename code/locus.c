@@ -331,7 +331,7 @@ Res ChainCondemnAll(Chain chain, Trace trace)
     Ring segNode, nextSegNode;
 
     AVERT(Pool, pool);
-    AVER((pool->class->attr & AttrGC) != 0);
+    AVER((pool->cclass->attr & AttrGC) != 0);
     RING_FOR(segNode, PoolSegRing(pool), nextSegNode) {
       Seg seg = SegOfPoolRing(segNode);
 

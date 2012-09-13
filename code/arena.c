@@ -53,50 +53,50 @@ static Res ArenaTrivDescribe(Arena arena, mps_lib_FILE *stream)
 
 typedef ArenaClassStruct AbstractArenaClassStruct;
 
-DEFINE_CLASS(AbstractArenaClass, class)
+DEFINE_CLASS(AbstractArenaClass, cclass)
 {
-  INHERIT_CLASS(&class->protocol, ProtocolClass);
-  class->name = "ABSARENA";
-  class->size = 0;
-  class->offset = 0;
-  class->init = NULL;
-  class->finish = NULL;
-  class->reserved = NULL;
-  class->spareCommitExceeded = ArenaNoSpareCommitExceeded;
-  class->extend = ArenaNoExtend;
-  class->alloc = NULL;
-  class->free = NULL;
-  class->chunkInit = NULL;
-  class->chunkFinish = NULL;
-  class->compact = ArenaTrivCompact;
-  class->describe = ArenaTrivDescribe;
-  class->sig = ArenaClassSig;
+  INHERIT_CLASS(&cclass->protocol, ProtocolClass);
+  cclass->name = "ABSARENA";
+  cclass->size = 0;
+  cclass->offset = 0;
+  cclass->init = NULL;
+  cclass->finish = NULL;
+  cclass->reserved = NULL;
+  cclass->spareCommitExceeded = ArenaNoSpareCommitExceeded;
+  cclass->extend = ArenaNoExtend;
+  cclass->alloc = NULL;
+  cclass->free = NULL;
+  cclass->chunkInit = NULL;
+  cclass->chunkFinish = NULL;
+  cclass->compact = ArenaTrivCompact;
+  cclass->describe = ArenaTrivDescribe;
+  cclass->sig = ArenaClassSig;
 }
 
 
 /* ArenaClassCheck -- check the consistency of an arena class */
 
-Bool ArenaClassCheck(ArenaClass class)
+Bool ArenaClassCheck(ArenaClass cclass)
 {
-  CHECKL(ProtocolClassCheck(&class->protocol));
-  CHECKL(class->name != NULL); /* Should be <=6 char C identifier */
-  CHECKL(class->size >= sizeof(ArenaStruct));
+  CHECKL(ProtocolClassCheck(&cclass->protocol));
+  CHECKL(cclass->name != NULL); /* Should be <=6 char C identifier */
+  CHECKL(cclass->size >= sizeof(ArenaStruct));
   /* Offset of generic Pool within class-specific instance cannot be */
   /* greater than the size of the class-specific portion of the */
   /* instance. */
-  CHECKL(class->offset <= (size_t)(class->size - sizeof(ArenaStruct)));
-  CHECKL(FUNCHECK(class->init));
-  CHECKL(FUNCHECK(class->finish));
-  CHECKL(FUNCHECK(class->reserved));
-  CHECKL(FUNCHECK(class->spareCommitExceeded));
-  CHECKL(FUNCHECK(class->extend));
-  CHECKL(FUNCHECK(class->alloc));
-  CHECKL(FUNCHECK(class->free));
-  CHECKL(FUNCHECK(class->chunkInit));
-  CHECKL(FUNCHECK(class->chunkFinish));
-  CHECKL(FUNCHECK(class->compact));
-  CHECKL(FUNCHECK(class->describe));
-  CHECKS(ArenaClass, class);
+  CHECKL(cclass->offset <= (size_t)(cclass->size - sizeof(ArenaStruct)));
+  CHECKL(FUNCHECK(cclass->init));
+  CHECKL(FUNCHECK(cclass->finish));
+  CHECKL(FUNCHECK(cclass->reserved));
+  CHECKL(FUNCHECK(cclass->spareCommitExceeded));
+  CHECKL(FUNCHECK(cclass->extend));
+  CHECKL(FUNCHECK(cclass->alloc));
+  CHECKL(FUNCHECK(cclass->free));
+  CHECKL(FUNCHECK(cclass->chunkInit));
+  CHECKL(FUNCHECK(cclass->chunkFinish));
+  CHECKL(FUNCHECK(cclass->compact));
+  CHECKL(FUNCHECK(cclass->describe));
+  CHECKS(ArenaClass, cclass);
   return TRUE;
 }
 
@@ -107,7 +107,7 @@ Bool ArenaCheck(Arena arena)
 {
   CHECKS(Arena, arena);
   CHECKD(Globals, ArenaGlobals(arena));
-  CHECKD(ArenaClass, arena->class);
+  CHECKD(ArenaClass, arena->cclass);
 
   CHECKL(BoolCheck(arena->poolReady));
   if (arena->poolReady) { /* <design/arena/#pool.ready> */
@@ -155,15 +155,15 @@ Bool ArenaCheck(Arena arena)
  * methods, not the generic Create.  This is because the class is
  * responsible for allocating the descriptor.  */
 
-Res ArenaInit(Arena arena, ArenaClass class)
+Res ArenaInit(Arena arena, ArenaClass cclass)
 {
   Res res;
 
   /* We do not check the arena argument, because it's _supposed_ to */
   /* point to an uninitialized block of memory. */
-  AVERT(ArenaClass, class);
+  AVERT(ArenaClass, cclass);
 
-  arena->class = class;
+  arena->cclass = cclass;
 
   arena->committed = (Size)0;
   /* commitLimit may be overridden by init (but probably not */
@@ -211,13 +211,13 @@ failGlobalsInit:
 
 /* ArenaCreateV -- create the arena and call initializers */
 
-Res ArenaCreateV(Arena *arenaReturn, ArenaClass class, va_list args)
+Res ArenaCreateV(Arena *arenaReturn, ArenaClass cclass, va_list args)
 {
   Arena arena;
   Res res;
 
   AVER(arenaReturn != NULL);
-  AVERT(ArenaClass, class);
+  AVERT(ArenaClass, cclass);
 
   /* We must initialise the event subsystem very early, because event logging
      will start as soon as anything interesting happens and expect to write
@@ -225,7 +225,7 @@ Res ArenaCreateV(Arena *arenaReturn, ArenaClass class, va_list args)
   EventInit();
 
   /* Do initialization.  This will call ArenaInit (see .init.caller). */
-  res = (*class->init)(&arena, class, args);
+  res = (*cclass->init)(&arena, cclass, args);
   if (res != ResOK)
     goto failInit;
 
@@ -251,7 +251,7 @@ failGlobalsCompleteCreate:
   ControlFinish(arena);
 failControlInit:
 failStripeSize:
-  (*class->finish)(arena);
+  (*cclass->finish)(arena);
 failInit:
   return res;
 }
@@ -288,7 +288,7 @@ void ArenaDestroy(Arena arena)
   ControlFinish(arena);
 
   /* Call class-specific finishing.  This will call ArenaFinish. */
-  (*arena->class->finish)(arena);
+  (*arena->cclass->finish)(arena);
 
   EventFinish();
 }
@@ -334,7 +334,7 @@ Res ArenaDescribe(Arena arena, mps_lib_FILE *stream)
 
   res = WriteF(stream, "Arena $P {\n", (WriteFP)arena,
                "  class $P (\"$S\")\n",
-               (WriteFP)arena->class, arena->class->name,
+               (WriteFP)arena->cclass, arena->cclass->name,
                NULL);
   if (res != ResOK) return res;
 
@@ -372,7 +372,7 @@ Res ArenaDescribe(Arena arena, mps_lib_FILE *stream)
                NULL);
   if (res != ResOK) return res;
 
-  res = (*arena->class->describe)(arena, stream);
+  res = (*arena->cclass->describe)(arena, stream);
   if (res != ResOK) return res;
 
   /* Do not call GlobalsDescribe: it makes too much output, thanks.
@@ -426,7 +426,7 @@ Res ArenaDescribeTracts(Arena arena, mps_lib_FILE *stream)
                  (WriteFP)base, (WriteFP)limit,
                  (WriteFW)size, (WriteFW)size,
                  (WriteFP)TractPool(tract),
-                 (WriteFS)(TractPool(tract)->class->name),
+                 (WriteFS)(TractPool(tract)->cclass->name),
                  NULL);
     if (res != ResOK) return res;
     b = TractNext(&tract, arena, TractBase(tract));
@@ -525,7 +525,7 @@ Res ArenaAlloc(Addr *baseReturn, SegPref pref, Size size, Pool pool,
       return res;
   }
 
-  res = (*arena->class->alloc)(&base, &baseTract, pref, size, pool);
+  res = (*arena->cclass->alloc)(&base, &baseTract, pref, size, pool);
   if (res == ResOK) {
     goto goodAlloc;
   } else if (withReservoirPermit) {
@@ -576,7 +576,7 @@ void ArenaFree(Addr base, Size size, Pool pool)
 
   res = ReservoirEnsureFull(reservoir);
   if (res == ResOK) {
-    (*arena->class->free)(base, size, pool);
+    (*arena->cclass->free)(base, size, pool);
   } else {
     AVER(ResIsAllocFailure(res));
     ReservoirDeposit(reservoir, base, size);
@@ -590,7 +590,7 @@ void ArenaFree(Addr base, Size size, Pool pool)
 Size ArenaReserved(Arena arena)
 {
   AVERT(Arena, arena);
-  return (*arena->class->reserved)(arena);
+  return (*arena->cclass->reserved)(arena);
 }
 
 Size ArenaCommitted(Arena arena)
@@ -618,7 +618,7 @@ void ArenaSetSpareCommitLimit(Arena arena, Size limit)
 
   arena->spareCommitLimit = limit;
   if (arena->spareCommitLimit < arena->spareCommitted) {
-    arena->class->spareCommitExceeded(arena);
+    arena->cclass->spareCommitExceeded(arena);
   }
 
   EVENT2(SpareCommitLimitSet, arena, limit);
@@ -652,7 +652,7 @@ Res ArenaSetCommitLimit(Arena arena, Size limit)
     /* Attempt to set the limit below current committed */
     if (limit >= committed - arena->spareCommitted) {
       /* could set the limit by flushing any spare committed memory */
-      arena->class->spareCommitExceeded(arena);
+      arena->cclass->spareCommitExceeded(arena);
       AVER(limit >= ArenaCommitted(arena));
       arena->commitLimit = limit;
       res = ResOK;
@@ -691,7 +691,7 @@ Res ArenaExtend(Arena arena, Addr base, Size size)
   AVER(base != (Addr)0);
   AVER(size > 0);
 
-  res = (*arena->class->extend)(arena, base, size);
+  res = (*arena->cclass->extend)(arena, base, size);
   if (res != ResOK)
     return res;
 
@@ -719,7 +719,7 @@ void ArenaCompact(Arena arena, Trace trace)
 {
   AVERT(Arena, arena);
   AVERT(Trace, trace);
-  (*arena->class->compact)(arena, trace);
+  (*arena->cclass->compact)(arena, trace);
 }
 
 static void ArenaTrivCompact(Arena arena, Trace trace)

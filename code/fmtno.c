@@ -55,16 +55,16 @@ mps_addr_t no_skip(mps_addr_t object)
 }
 
 void no_copy(mps_addr_t old,
-             mps_addr_t new)
+             mps_addr_t nnew)
 {
-    unused(old); unused(new);
+    unused(old); unused(nnew);
     notreached();
 }
 
 void no_fwd(mps_addr_t old,
-            mps_addr_t new)
+            mps_addr_t nnew)
 {
-    unused(old); unused(new);
+    unused(old); unused(nnew);
     notreached();
 }
 

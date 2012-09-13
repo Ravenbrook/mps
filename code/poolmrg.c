@@ -129,7 +129,7 @@ static Bool MRGCheck(MRG mrg)
 {
   CHECKS(MRG, mrg);
   CHECKD(Pool, &mrg->poolStruct);
-  CHECKL(MRG2Pool(mrg)->class == PoolClassMRG());
+  CHECKL(MRG2Pool(mrg)->cclass == PoolClassMRG());
   CHECKL(RingCheck(&mrg->entryRing));
   CHECKL(RingCheck(&mrg->freeRing));
   CHECKL(RingCheck(&mrg->refRing));
@@ -289,25 +289,25 @@ static Res MRGRefSegInit(Seg seg, Pool pool, Addr base, Size size,
 
 /* MRGLinkSegClass -- Class definition */
 
-DEFINE_SEG_CLASS(MRGLinkSegClass, class)
+DEFINE_SEG_CLASS(MRGLinkSegClass, cclass)
 {
-  INHERIT_CLASS(class, SegClass);
-  SegClassMixInNoSplitMerge(class);  /* no support for this */
-  class->name = "MRGLSEG";
-  class->size = sizeof(MRGLinkSegStruct);
-  class->init = MRGLinkSegInit;
+  INHERIT_CLASS(cclass, SegClass);
+  SegClassMixInNoSplitMerge(cclass);  /* no support for this */
+  cclass->name = "MRGLSEG";
+  cclass->size = sizeof(MRGLinkSegStruct);
+  cclass->init = MRGLinkSegInit;
 }
 
 
 /* MRGRefSegClass -- Class definition */
 
-DEFINE_SEG_CLASS(MRGRefSegClass, class)
+DEFINE_SEG_CLASS(MRGRefSegClass, cclass)
 {
-  INHERIT_CLASS(class, GCSegClass);
-  SegClassMixInNoSplitMerge(class);  /* no support for this */
-  class->name = "MRGRSEG";
-  class->size = sizeof(MRGRefSegStruct);
-  class->init = MRGRefSegInit;
+  INHERIT_CLASS(cclass, GCSegClass);
+  SegClassMixInNoSplitMerge(cclass);  /* no support for this */
+  cclass->name = "MRGRSEG";
+  cclass->size = sizeof(MRGRefSegStruct);
+  cclass->init = MRGRefSegInit;
 }
 
 
@@ -342,7 +342,7 @@ static RefPart MRGRefPartOfLink(Link link, Arena arena)
 
   b = SegOfAddr(&seg, arena, (Addr)link);
   AVER(b);
-  AVER(SegPool(seg)->class == PoolClassMRG());
+  AVER(SegPool(seg)->cclass == PoolClassMRG());
   linkseg = Seg2LinkSeg(seg);
   AVERT(MRGLinkSeg, linkseg);
   linkBase = (Link)SegBase(seg);
@@ -371,7 +371,7 @@ static Link MRGLinkOfRefPart(RefPart refPart, Arena arena)
 
   b = SegOfAddr(&seg, arena, (Addr)refPart);
   AVER(b);
-  AVER(SegPool(seg)->class == PoolClassMRG());
+  AVER(SegPool(seg)->cclass == PoolClassMRG());
   refseg = Seg2RefSeg(seg);
   AVERT(MRGRefSeg, refseg);
   refPartBase = (RefPart)SegBase(seg);
@@ -417,7 +417,7 @@ static void MRGMessageDelete(Message message)
   arena = MessageArena(message);
   b = PoolOfAddr(&pool, arena, (Addr)message);
   AVER(b);
-  AVER(pool->class == PoolClassMRG());
+  AVER(pool->cclass == PoolClassMRG());
 
   link = linkOfMessage(message);
   AVER(link->state == MRGGuardianFINAL);

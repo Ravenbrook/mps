@@ -69,14 +69,14 @@ static void loSegFinish(Seg seg);
 
 /* LOSegClass -- Class definition for LO segments */
 
-DEFINE_SEG_CLASS(LOSegClass, class)
+DEFINE_SEG_CLASS(LOSegClass, cclass)
 {
-  INHERIT_CLASS(class, GCSegClass);
-  SegClassMixInNoSplitMerge(class);
-  class->name = "LOSEG";
-  class->size = sizeof(LOSegStruct);
-  class->init = loSegInit;
-  class->finish = loSegFinish;
+  INHERIT_CLASS(cclass, GCSegClass);
+  SegClassMixInNoSplitMerge(cclass);
+  cclass->name = "LOSEG";
+  cclass->size = sizeof(LOSegStruct);
+  cclass->init = loSegInit;
+  cclass->finish = loSegFinish;
 }
 
 
@@ -808,7 +808,7 @@ static Bool LOCheck(LO lo)
 {
   CHECKS(LO, lo);
   CHECKD(Pool, &lo->poolStruct);
-  CHECKL(lo->poolStruct.class == EnsureLOPoolClass());
+  CHECKL(lo->poolStruct.cclass == EnsureLOPoolClass());
   CHECKL(ShiftCheck(lo->alignShift));
   CHECKL((Align)1 << lo->alignShift == PoolAlignment(&lo->poolStruct));
   CHECKD(Chain, lo->chain);

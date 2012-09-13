@@ -178,10 +178,10 @@ extern char *MPSVersion(void);
 
 /* Pool Interface -- see impl.c.pool */
 
-extern Res PoolInit(Pool pool, Arena arena, PoolClass class, ...);
-extern Res PoolInitV(Pool pool, Arena arena, PoolClass class, va_list args);
+extern Res PoolInit(Pool pool, Arena arena, PoolClass cclass, ...);
+extern Res PoolInitV(Pool pool, Arena arena, PoolClass cclass, va_list args);
 extern void PoolFinish(Pool pool);
-extern Bool PoolClassCheck(PoolClass class);
+extern Bool PoolClassCheck(PoolClass cclass);
 extern Bool PoolCheck(Pool pool);
 extern Res PoolDescribe(Pool pool, mps_lib_FILE *stream);
 
@@ -196,8 +196,8 @@ extern double PoolMutatorAllocSize(Pool pool);
 extern Bool PoolOfAddr(Pool *poolReturn, Arena arena, Addr addr);
 extern Bool PoolHasAddr(Pool pool, Addr addr);
 
-extern Res PoolCreate(Pool *poolReturn, Arena arena, PoolClass class, ...);
-extern Res PoolCreateV(Pool *poolReturn, Arena arena, PoolClass class,
+extern Res PoolCreate(Pool *poolReturn, Arena arena, PoolClass cclass, ...);
+extern Res PoolCreateV(Pool *poolReturn, Arena arena, PoolClass cclass,
                        va_list arg);
 extern void PoolDestroy(Pool pool);
 extern BufferClass PoolDefaultBufferClass(Pool pool);
@@ -272,17 +272,17 @@ extern void PoolNoFreeWalk(Pool pool, FreeBlockStepMethod f, void *p);
 extern PoolDebugMixin PoolNoDebugMixin(Pool pool);
 extern BufferClass PoolNoBufferClass(void);
 
-#define ClassOfPool(pool) ((pool)->class)
+#define ClassOfPool(pool) ((pool)->cclass)
 #define SuperclassOfPool(pool) \
-  ((PoolClass)ProtocolClassSuperclassPoly((pool)->class))
+  ((PoolClass)ProtocolClassSuperclassPoly((pool)->cclass))
 
 
 /* Abstract Pool Classes Interface -- see <code/poolabs.c> */
-extern void PoolClassMixInAllocFree(PoolClass class);
-extern void PoolClassMixInBuffer(PoolClass class);
-extern void PoolClassMixInScan(PoolClass class);
-extern void PoolClassMixInFormat(PoolClass class);
-extern void PoolClassMixInCollect(PoolClass class);
+extern void PoolClassMixInAllocFree(PoolClass cclass);
+extern void PoolClassMixInBuffer(PoolClass cclass);
+extern void PoolClassMixInScan(PoolClass cclass);
+extern void PoolClassMixInFormat(PoolClass cclass);
+extern void PoolClassMixInCollect(PoolClass cclass);
 extern AbstractPoolClass AbstractPoolClassGet(void);
 extern AbstractAllocFreePoolClass AbstractAllocFreePoolClassGet(void);
 extern AbstractBufferPoolClass AbstractBufferPoolClassGet(void);
@@ -304,10 +304,10 @@ extern AbstractCollectPoolClass AbstractCollectPoolClassGet(void);
 /* Message Interface -- see <design/message/> */
 /* -- Internal (MPM) Interface -- functions for message originator */
 extern Bool MessageCheck(Message message);
-extern Bool MessageClassCheck(MessageClass class);
+extern Bool MessageClassCheck(MessageClass cclass);
 extern Bool MessageTypeCheck(MessageType type);
 extern void MessageInit(Arena arena, Message message,
-                        MessageClass class, MessageType type);
+                        MessageClass cclass, MessageType type);
 extern void MessageFinish(Message message);
 extern Arena MessageArena(Message message);
 extern Bool MessageOnQueue(Message message);
@@ -482,12 +482,12 @@ extern void TraceScanSingleRef(TraceSet ts, Rank rank, Arena arena,
   ((ArenaClass)SUPERCLASS(className))
 
 extern AbstractArenaClass AbstractArenaClassGet(void);
-extern Bool ArenaClassCheck(ArenaClass class);
+extern Bool ArenaClassCheck(ArenaClass cclass);
 
 extern Bool ArenaCheck(Arena arena);
-extern Res ArenaCreateV(Arena *arenaReturn, ArenaClass class, va_list args);
+extern Res ArenaCreateV(Arena *arenaReturn, ArenaClass cclass, va_list args);
 extern void ArenaDestroy(Arena arena);
-extern Res ArenaInit(Arena arena, ArenaClass class);
+extern Res ArenaInit(Arena arena, ArenaClass cclass);
 extern void ArenaFinish(Arena arena);
 extern Res ArenaDescribe(Arena arena, mps_lib_FILE *stream);
 extern Res ArenaDescribeTracts(Arena arena, mps_lib_FILE *stream);
@@ -639,7 +639,7 @@ extern Bool LocusCheck(Arena arena);
 
 /* Segment interface */
 
-extern Res SegAlloc(Seg *segReturn, SegClass class, SegPref pref,
+extern Res SegAlloc(Seg *segReturn, SegClass cclass, SegPref pref,
                     Size size, Pool pool, Bool withReservoirPermit, ...);
 extern void SegFree(Seg seg);
 extern Bool SegOfAddr(Seg *segReturn, Arena arena, Addr addr);
@@ -659,10 +659,10 @@ extern Buffer SegBuffer(Seg seg);
 extern void SegSetBuffer(Seg seg, Buffer buffer);
 extern Bool SegCheck(Seg seg);
 extern Bool GCSegCheck(GCSeg gcseg);
-extern Bool SegClassCheck(SegClass class);
+extern Bool SegClassCheck(SegClass cclass);
 extern SegClass SegClassGet(void);
 extern SegClass GCSegClassGet(void);
-extern void SegClassMixInNoSplitMerge(SegClass class);
+extern void SegClassMixInNoSplitMerge(SegClass cclass);
 
 
 /* DEFINE_SEG_CLASS -- define a segment class */
@@ -674,7 +674,7 @@ extern void SegClassMixInNoSplitMerge(SegClass class);
 #define SEG_SUPERCLASS(className) \
   ((SegClass)SUPERCLASS(className))
 
-#define ClassOfSeg(seg) ((seg)->class)
+#define ClassOfSeg(seg) ((seg)->cclass)
 
 extern Size SegSize(Seg seg);
 extern Addr (SegBase)(Seg seg);
@@ -706,9 +706,9 @@ extern Addr (SegLimit)(Seg seg);
 
 /* Buffer Interface -- see <code/buffer.c> */
 
-extern Res BufferCreate(Buffer *bufferReturn, BufferClass class,
+extern Res BufferCreate(Buffer *bufferReturn, BufferClass cclass,
                         Pool pool, Bool isMutator, ...);
-extern Res BufferCreateV(Buffer *bufferReturn, BufferClass class,
+extern Res BufferCreateV(Buffer *bufferReturn, BufferClass cclass,
                          Pool pool, Bool isMutator, va_list args);
 extern void BufferDestroy(Buffer buffer);
 extern Bool BufferCheck(Buffer buffer);
@@ -792,7 +792,7 @@ extern void BufferFrameSetState(Buffer buffer, FrameState state);
 #define BUFFER_SUPERCLASS(className) \
   ((BufferClass)SUPERCLASS(className))
 
-extern Bool BufferClassCheck(BufferClass class);
+extern Bool BufferClassCheck(BufferClass cclass);
 extern BufferClass BufferClassGet(void);
 extern BufferClass SegBufClassGet(void);
 extern BufferClass RankBufClassGet(void);
@@ -813,7 +813,7 @@ extern Res FormatCreate(Format *formatReturn, Arena arena,
                         mps_fmt_isfwd_t isMoved,
                         mps_fmt_copy_t copy,
                         mps_fmt_pad_t pad,
-                        mps_fmt_class_t class,
+                        mps_fmt_class_t cclass,
                         Size headerSize);
 extern void FormatDestroy(Format format);
 extern Arena FormatArena(Format format);

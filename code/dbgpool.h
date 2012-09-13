@@ -57,7 +57,7 @@ typedef struct PoolDebugMixinStruct {
 
 extern Bool PoolDebugMixinCheck(PoolDebugMixin dbg);
 
-extern void PoolClassMixInDebug(PoolClass class);
+extern void PoolClassMixInDebug(PoolClass cclass);
 
 extern void DebugPoolCheckFences(Pool pool);
 extern void DebugPoolCheckFreeSpace(Pool pool);

@@ -650,7 +650,7 @@ static Bool MVFFCheck(MVFF mvff)
 {
   CHECKS(MVFF, mvff);
   CHECKD(Pool, MVFF2Pool(mvff));
-  CHECKL(IsSubclassPoly(MVFF2Pool(mvff)->class, MVFFPoolClassGet()));
+  CHECKL(IsSubclassPoly(MVFF2Pool(mvff)->cclass, MVFFPoolClassGet()));
   CHECKD(SegPref, mvff->segPref);
   CHECKL(mvff->extendBy > 0);                   /* see .arg.check */
   CHECKL(mvff->minSegSize >= ArenaAlign(PoolArena(MVFF2Pool(mvff))));

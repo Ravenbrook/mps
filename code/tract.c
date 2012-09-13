@@ -195,7 +195,7 @@ Res ChunkInit(Chunk chunk, Arena arena,
   pageTableSize = SizeAlignUp(pages * sizeof(PageStruct), pageSize);
   chunk->pageTablePages = pageTableSize >> pageShift;
 
-  res = (arena->class->chunkInit)(chunk, boot);
+  res = (arena->cclass->chunkInit)(chunk, boot);
   if (res != ResOK)
     goto failClassInit;
 
@@ -222,7 +222,7 @@ Res ChunkInit(Chunk chunk, Arena arena,
 
   /* .no-clean: No clean-ups needed for boot, as we will discard the chunk. */
 failAllocPageTable:
-  (arena->class->chunkFinish)(chunk);
+  (arena->cclass->chunkFinish)(chunk);
 failClassInit:
 failAllocTable:
   return res;
@@ -240,7 +240,7 @@ void ChunkFinish(Chunk chunk)
   RingRemove(&chunk->chunkRing);
   /* Finish all other fields before class finish, because they might be */
   /* unmapped there. */
-  (chunk->arena->class->chunkFinish)(chunk);
+  (chunk->arena->cclass->chunkFinish)(chunk);
 }
 
 

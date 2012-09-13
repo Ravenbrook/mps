@@ -299,18 +299,18 @@ static Res freeCheckAlloc(Addr *aReturn, PoolDebugMixin debug, Pool pool,
                           Size size, Bool withReservoir)
 {
   Res res;
-  Addr new;
+  Addr nnew;
 
   AVER(aReturn != NULL);
 
-  res = SuperclassOfPool(pool)->alloc(&new, pool, size, withReservoir);
+  res = SuperclassOfPool(pool)->alloc(&nnew, pool, size, withReservoir);
   if (res != ResOK)
     return res;
   if (debug->freeSize != 0)
-    ASSERT(freeCheck(debug, pool, new, AddrAdd(new, size)),
+    ASSERT(freeCheck(debug, pool, nnew, AddrAdd(nnew, size)),
            "free space corrupted on alloc");
 
-  *aReturn = new;
+  *aReturn = nnew;
   return res;
 }
 
@@ -346,20 +346,20 @@ static Res fenceAlloc(Addr *aReturn, PoolDebugMixin debug, Pool pool,
                       Size size, Bool withReservoir)
 {
   Res res;
-  Addr new, clientNew;
+  Addr nnew, clientNew;
   Size alignedSize;
 
   AVER(aReturn != NULL);
 
   alignedSize = SizeAlignUp(size, PoolAlignment(pool));
-  res = freeCheckAlloc(&new, debug, pool, alignedSize + 2*debug->fenceSize,
+  res = freeCheckAlloc(&nnew, debug, pool, alignedSize + 2*debug->fenceSize,
                        withReservoir);
   if (res != ResOK)
     return res;
-  clientNew = AddrAdd(new, debug->fenceSize);
+  clientNew = AddrAdd(nnew, debug->fenceSize);
   /* @@@@ shields? */
   /* start fencepost */
-  (void)AddrCopy(new, debug->fenceTemplate, debug->fenceSize);
+  (void)AddrCopy(nnew, debug->fenceTemplate, debug->fenceSize);
   /* alignment slop */
   (void)AddrCopy(AddrAdd(clientNew, size),
                  debug->fenceTemplate, alignedSize - size);
@@ -412,7 +412,7 @@ static void fenceFree(PoolDebugMixin debug,
 /* tagAlloc -- allocation wrapper for tagged pools */
 
 static Res tagAlloc(PoolDebugMixin debug,
-                    Pool pool, Addr new, Size size, Bool withReservoir)
+                    Pool pool, Addr nnew, Size size, Bool withReservoir)
 {
   Tag tag;
   Res res;
@@ -429,10 +429,10 @@ static Res tagAlloc(PoolDebugMixin debug,
     }
   }
   tag = (Tag)addr;
-  tag->addr = new; tag->size = size;
+  tag->addr = nnew; tag->size = size;
   SplayNodeInit(&tag->splayNode);
   /* In the future, we might call debug->tagInit here. */
-  res = SplayTreeInsert(&debug->index, &tag->splayNode, (void *)&new);
+  res = SplayTreeInsert(&debug->index, &tag->splayNode, (void *)&nnew);
   AVER(res == ResOK);
   return ResOK;
 }
@@ -474,7 +474,7 @@ static Res DebugPoolAlloc(Addr *aReturn,
                           Pool pool, Size size, Bool withReservoir)
 {
   Res res;
-  Addr new = NULL; /* suppress "may be used uninitialized" warning */
+  Addr nnew = NULL; /* suppress "may be used uninitialized" warning */
   PoolDebugMixin debug;
 
   AVER(aReturn != NULL);
@@ -486,23 +486,23 @@ static Res DebugPoolAlloc(Addr *aReturn,
   AVER(debug != NULL);
   AVERT(PoolDebugMixin, debug);
   if (debug->fenceSize != 0)
-    res = fenceAlloc(&new, debug, pool, size, withReservoir);
+    res = fenceAlloc(&nnew, debug, pool, size, withReservoir);
   else
-    res = freeCheckAlloc(&new, debug, pool, size, withReservoir);
+    res = freeCheckAlloc(&nnew, debug, pool, size, withReservoir);
   if (res != ResOK)
     return res;
   /* Allocate object first, so it fits even when the tag doesn't. */
   if (debug->tagInit != NULL) {
-    res = tagAlloc(debug, pool, new, size, withReservoir);
+    res = tagAlloc(debug, pool, nnew, size, withReservoir);
     if (res != ResOK)
       goto tagFail;
   }
 
-  *aReturn = new;
+  *aReturn = nnew;
   return res;
 
 tagFail:
-  fenceFree(debug, pool, new, size);
+  fenceFree(debug, pool, nnew, size);
   return res;
 }
 

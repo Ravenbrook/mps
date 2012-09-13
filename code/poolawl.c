@@ -278,14 +278,14 @@ static void AWLSegFinish(Seg seg)
 
 /* AWLSegClass -- Class definition for AWL segments */
 
-DEFINE_SEG_CLASS(AWLSegClass, class)
+DEFINE_SEG_CLASS(AWLSegClass, cclass)
 {
-  INHERIT_CLASS(class, GCSegClass);
-  SegClassMixInNoSplitMerge(class);  /* no support for this (yet) */
-  class->name = "AWLSEG";
-  class->size = sizeof(AWLSegStruct);
-  class->init = AWLSegInit;
-  class->finish = AWLSegFinish;
+  INHERIT_CLASS(cclass, GCSegClass);
+  SegClassMixInNoSplitMerge(cclass);  /* no support for this (yet) */
+  cclass->name = "AWLSEG";
+  cclass->size = sizeof(AWLSegStruct);
+  cclass->init = AWLSegInit;
+  cclass->finish = AWLSegFinish;
 }
 
 
@@ -1270,7 +1270,7 @@ static Bool AWLCheck(AWL awl)
 {
   CHECKS(AWL, awl);
   CHECKD(Pool, &awl->poolStruct);
-  CHECKL(awl->poolStruct.class == AWLPoolClassGet());
+  CHECKL(awl->poolStruct.cclass == AWLPoolClassGet());
   CHECKL((Align)1 << awl->alignShift == awl->poolStruct.alignment);
   CHECKD(Chain, awl->chain);
   /* 30 is just a sanity check really, not a constraint. */

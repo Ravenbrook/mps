@@ -108,7 +108,7 @@ typedef struct ReservoirStruct *Reservoir;   /* <design/reservoir/> */
 /* Arena*Method -- see <code/mpmst.h#ArenaClassStruct> */
 
 typedef Res (*ArenaInitMethod)(Arena *arenaReturn,
-                               ArenaClass class, va_list args);
+                               ArenaClass cclass, va_list args);
 typedef void (*ArenaFinishMethod)(Arena arena);
 typedef Size (*ArenaReservedMethod)(Arena arena);
 typedef void (*ArenaSpareCommitExceededMethod)(Arena arena);

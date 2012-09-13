@@ -34,7 +34,7 @@ Bool FormatCheck(Format format)
   CHECKL(FUNCHECK(format->isMoved));
   /* Ignore unused copy field. */
   CHECKL(FUNCHECK(format->pad));
-  CHECKL(FUNCHECK(format->class));
+  CHECKL(FUNCHECK(format->cclass));
 
   return TRUE;
 }
@@ -59,7 +59,7 @@ Res FormatCreate(Format *formatReturn, Arena arena,
                  mps_fmt_isfwd_t isMoved,
                  mps_fmt_copy_t copy,
                  mps_fmt_pad_t pad,
-                 mps_fmt_class_t class,
+                 mps_fmt_class_t cclass,
                  Size headerSize)
 {
   Format format;
@@ -84,11 +84,11 @@ Res FormatCreate(Format *formatReturn, Arena arena,
   format->isMoved = isMoved;
   format->copy = copy;
   format->pad = pad;
-  if (class == NULL) {
-    format->class = &FormatDefaultClass;
+  if (cclass == NULL) {
+    format->cclass = &FormatDefaultClass;
   } else {
     AVER(variety == FormatVarietyB);
-    format->class = class;
+    format->cclass = cclass;
   }
   if (headerSize != 0) {
     AVER(variety == FormatVarietyAutoHeader);

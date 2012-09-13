@@ -44,7 +44,7 @@ static mps_res_t make(mps_addr_t *p, mps_sac_t sac, size_t size)
 
 /* stress -- create a pool of the requested type and allocate in it */
 
-static mps_res_t stress(mps_class_t class,
+static mps_res_t stress(mps_class_t cclass,
                         size_t classes_count, mps_sac_classes_s *classes,
                         size_t (*size)(int i), mps_arena_t arena, ...)
 {
@@ -57,7 +57,7 @@ static mps_res_t stress(mps_class_t class,
   size_t ss[testSetSIZE];
 
   va_start(arg, arena);
-  res = mps_pool_create_v(&pool, arena, class, arg);
+  res = mps_pool_create_v(&pool, arena, cclass, arg);
   va_end(arg);
   if (res != MPS_RES_OK)
     return res;

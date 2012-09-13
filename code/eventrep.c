@@ -272,7 +272,7 @@ static void objRemove(void **objReturn, objectTable table,
 
 /* poolRecreate -- create and record a pool */
 
-static void poolRecreate(void *logPool, void *logArena, mps_class_t class,
+static void poolRecreate(void *logPool, void *logArena, mps_class_t cclass,
                          poolSupport support, int bufferClassLevel, ...)
 {
   va_list args;
@@ -286,7 +286,7 @@ static void poolRecreate(void *logPool, void *logArena, mps_class_t class,
   found = TableLookup(&entry, arenaTable, (Word)logArena);
   verify(found);
   va_start(args, bufferClassLevel);
-  eres = mps_pool_create_v(&pool, (mps_arena_t)entry, class, args);
+  eres = mps_pool_create_v(&pool, (mps_arena_t)entry, cclass, args);
   verifyMPS(eres);
   va_end(args);
   rep = malloc(sizeof(poolRepStruct));
@@ -451,7 +451,7 @@ void EventReplay(Event event, Word etime)
     /* internal only */
     ++discardedEvents;
   } break;
-  case EventPoolInit: { /* pool, arena, class */
+  case EventPoolInit: { /* pool, arena, cclass */
     /* all internal only */
     ++discardedEvents;
   } break;

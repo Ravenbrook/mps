@@ -205,7 +205,7 @@ static mps_res_t make(mps_addr_t *p, mps_ap_t ap, size_t size)
 }
 
 
-static mps_res_t stress(mps_class_t class, mps_arena_t arena,
+static mps_res_t stress(mps_class_t cclass, mps_arena_t arena,
                         size_t (*size)(int i), ...)
 {
   mps_res_t res;
@@ -216,7 +216,7 @@ static mps_res_t stress(mps_class_t class, mps_arena_t arena,
   size_t ss[TEST_SET_SIZE];
 
   va_start(arg, size);
-  res = mps_pool_create_v(&pool, arena, class, arg);
+  res = mps_pool_create_v(&pool, arena, cclass, arg);
   va_end(arg);
   if(res != MPS_RES_OK) return res;
 

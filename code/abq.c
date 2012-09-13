@@ -55,7 +55,7 @@ Res ABQInit(Arena arena, ABQ abq, void *owner, Count items)
   METER_INIT(abq->push, "push", owner);
   METER_INIT(abq->pop, "pop", owner);
   METER_INIT(abq->peek, "peek", owner);
-  METER_INIT(abq->delete, "delete", owner);
+  METER_INIT(abq->ddelete, "delete", owner);
  
   abq->sig = ABQSig;
 
@@ -94,7 +94,7 @@ void ABQFinish(Arena arena, ABQ abq)
   METER_EMIT(&abq->push);
   METER_EMIT(&abq->pop);
   METER_EMIT(&abq->peek);
-  METER_EMIT(&abq->delete);
+  METER_EMIT(&abq->ddelete);
   ControlFree(arena, abq->queue, ABQQueueSize(abq->elements));
  
   abq->elements = 0;
@@ -174,7 +174,7 @@ Res ABQDelete(ABQ abq, CBSBlock block)
   AVERT(ABQ, abq);
   AVERT(CBSBlock, block);
 
-  METER_ACC(abq->delete, ABQDepth(abq));
+  METER_ACC(abq->ddelete, ABQDepth(abq));
 
   index = abq->out;
   in = abq->in;
@@ -244,7 +244,7 @@ Res ABQDescribe(ABQ abq, mps_lib_FILE *stream)
   res = METER_WRITE(abq->peek, stream);
   if(res != ResOK)
     return res;
-  res = METER_WRITE(abq->delete, stream);
+  res = METER_WRITE(abq->ddelete, stream);
   if(res != ResOK)
     return res;
  

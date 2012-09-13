@@ -87,7 +87,7 @@ Bool ReservoirCheck(Reservoir reservoir)
 
   CHECKS(Reservoir, reservoir);
   CHECKD(Pool, &reservoir->poolStruct);
-  CHECKL(reservoir->poolStruct.class == reservoircl);
+  CHECKL(reservoir->poolStruct.cclass == reservoircl);
   UNUSED(reservoircl); /* <code/mpm.c#check.unused> */
   arena = reservoirArena(reservoir);
   CHECKU(Arena, arena);
@@ -165,7 +165,7 @@ Res ReservoirEnsureFull(Reservoir reservoir)
     Res res;
     Addr base;
     Tract tract;
-    res = (*arena->class->alloc)(&base, &tract, SegPrefDefault(),
+    res = (*arena->cclass->alloc)(&base, &tract, SegPrefDefault(),
                                  alignment, pool);
     if (res != ResOK) {
       AVER(reservoirIsConsistent(reservoir));
@@ -202,7 +202,7 @@ static void reservoirShrink(Reservoir reservoir, Size want)
     Tract tract = reservoir->reserve;
     AVER(tract != NULL);
     reservoir->reserve = resTractNext(tract);
-    (*arena->class->free)(TractBase(tract), alignment, pool);
+    (*arena->cclass->free)(TractBase(tract), alignment, pool);
     reservoir->reservoirSize -= alignment;
   }
   AVER(reservoir->reservoirSize == want);
@@ -285,7 +285,7 @@ void ReservoirDeposit(Reservoir reservoir, Addr base, Size size)
       reservoir->reserve = tract;
     } else {
       /* free the tract */
-      (*arena->class->free)(addr, alignment, TractPool(tract));
+      (*arena->cclass->free)(addr, alignment, TractPool(tract));
     }
   }
   AVER(addr == limit);

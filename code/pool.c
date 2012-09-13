@@ -38,41 +38,41 @@ SRCID(pool, "$Id$");
 
 /* PoolClassCheck -- check a pool class */
 
-Bool PoolClassCheck(PoolClass class)
+Bool PoolClassCheck(PoolClass cclass)
 {
-  CHECKL(ProtocolClassCheck(&class->protocol));
-  CHECKL(class->name != NULL); /* Should be <=6 char C identifier */
-  CHECKL(class->size >= sizeof(PoolStruct));
+  CHECKL(ProtocolClassCheck(&cclass->protocol));
+  CHECKL(cclass->name != NULL); /* Should be <=6 char C identifier */
+  CHECKL(cclass->size >= sizeof(PoolStruct));
   /* Offset of generic Pool within class-specific instance cannot be */
   /* greater than the size of the class-specific portion of the instance */
-  CHECKL(class->offset <= (size_t)(class->size - sizeof(PoolStruct)));
-  CHECKL(AttrCheck(class->attr));
-  CHECKL(FUNCHECK(class->init));
-  CHECKL(FUNCHECK(class->finish));
-  CHECKL(FUNCHECK(class->alloc));
-  CHECKL(FUNCHECK(class->free));
-  CHECKL(FUNCHECK(class->bufferFill));
-  CHECKL(FUNCHECK(class->bufferEmpty));
-  CHECKL(FUNCHECK(class->access));
-  CHECKL(FUNCHECK(class->whiten));
-  CHECKL(FUNCHECK(class->grey));
-  CHECKL(FUNCHECK(class->blacken));
-  CHECKL(FUNCHECK(class->scan));
-  CHECKL(FUNCHECK(class->fix));
-  CHECKL(FUNCHECK(class->fixEmergency));
-  CHECKL(FUNCHECK(class->reclaim));
-  CHECKL(FUNCHECK(class->traceEnd));
-  CHECKL(FUNCHECK(class->rampBegin));
-  CHECKL(FUNCHECK(class->rampEnd));
-  CHECKL(FUNCHECK(class->framePush));
-  CHECKL(FUNCHECK(class->framePop));
-  CHECKL(FUNCHECK(class->framePopPending));
-  CHECKL(FUNCHECK(class->walk));
-  CHECKL(FUNCHECK(class->freewalk));
-  CHECKL(FUNCHECK(class->bufferClass));
-  CHECKL(FUNCHECK(class->describe));
-  CHECKL(FUNCHECK(class->debugMixin));
-  CHECKS(PoolClass, class);
+  CHECKL(cclass->offset <= (size_t)(cclass->size - sizeof(PoolStruct)));
+  CHECKL(AttrCheck(cclass->attr));
+  CHECKL(FUNCHECK(cclass->init));
+  CHECKL(FUNCHECK(cclass->finish));
+  CHECKL(FUNCHECK(cclass->alloc));
+  CHECKL(FUNCHECK(cclass->free));
+  CHECKL(FUNCHECK(cclass->bufferFill));
+  CHECKL(FUNCHECK(cclass->bufferEmpty));
+  CHECKL(FUNCHECK(cclass->access));
+  CHECKL(FUNCHECK(cclass->whiten));
+  CHECKL(FUNCHECK(cclass->grey));
+  CHECKL(FUNCHECK(cclass->blacken));
+  CHECKL(FUNCHECK(cclass->scan));
+  CHECKL(FUNCHECK(cclass->fix));
+  CHECKL(FUNCHECK(cclass->fixEmergency));
+  CHECKL(FUNCHECK(cclass->reclaim));
+  CHECKL(FUNCHECK(cclass->traceEnd));
+  CHECKL(FUNCHECK(cclass->rampBegin));
+  CHECKL(FUNCHECK(cclass->rampEnd));
+  CHECKL(FUNCHECK(cclass->framePush));
+  CHECKL(FUNCHECK(cclass->framePop));
+  CHECKL(FUNCHECK(cclass->framePopPending));
+  CHECKL(FUNCHECK(cclass->walk));
+  CHECKL(FUNCHECK(cclass->freewalk));
+  CHECKL(FUNCHECK(cclass->bufferClass));
+  CHECKL(FUNCHECK(cclass->describe));
+  CHECKL(FUNCHECK(cclass->debugMixin));
+  CHECKS(PoolClass, cclass);
   return TRUE;
 }
 
@@ -85,17 +85,17 @@ Bool PoolCheck(Pool pool)
   CHECKS(Pool, pool);
   /* Break modularity for checking efficiency */
   CHECKL(pool->serial < ArenaGlobals(pool->arena)->poolSerial);
-  CHECKD(PoolClass, pool->class);
+  CHECKD(PoolClass, pool->cclass);
   CHECKU(Arena, pool->arena);
   CHECKL(RingCheck(&pool->arenaRing));
   CHECKL(RingCheck(&pool->bufferRing));
   /* Cannot check pool->bufferSerial */
   CHECKL(RingCheck(&pool->segRing));
   CHECKL(AlignCheck(pool->alignment));
-  /* normally pool->format iff pool->class->attr&AttrFMT, but not */
+  /* normally pool->format iff pool->cclass->attr&AttrFMT, but not */
   /* during pool initialization */
   if (pool->format != NULL) {
-    CHECKL((pool->class->attr & AttrFMT) != 0);
+    CHECKL((pool->cclass->attr & AttrFMT) != 0);
   }
   CHECKL(pool->fillMutatorSize >= 0.0);
   CHECKL(pool->emptyMutatorSize >= 0.0);
@@ -110,17 +110,17 @@ Bool PoolCheck(Pool pool)
  * Initialize the generic fields of the pool and calls class-specific
  * init.  See <design/pool/#align>.  */
 
-Res PoolInit(Pool pool, Arena arena, PoolClass class, ...)
+Res PoolInit(Pool pool, Arena arena, PoolClass cclass, ...)
 {
   Res res;
   va_list args;
-  va_start(args, class);
-  res = PoolInitV(pool, arena, class, args);
+  va_start(args, cclass);
+  res = PoolInitV(pool, arena, cclass, args);
   va_end(args);
   return res;
 }
 
-Res PoolInitV(Pool pool, Arena arena, PoolClass class, va_list args)
+Res PoolInitV(Pool pool, Arena arena, PoolClass cclass, va_list args)
 {
   Res res;
   Word classId;
@@ -128,19 +128,19 @@ Res PoolInitV(Pool pool, Arena arena, PoolClass class, va_list args)
 
   AVER(pool != NULL);
   AVERT(Arena, arena);
-  AVERT(PoolClass, class);
+  AVERT(PoolClass, cclass);
   globals = ArenaGlobals(arena);
 
-  pool->class = class;
+  pool->cclass = cclass;
   /* label the pool class with its name */
-  if (!class->labelled) {
+  if (!cclass->labelled) {
     /* We could still get multiple labelling if multiple instances of */
     /* the pool class get created simultaneously, but it's not worth */
     /* putting another lock in the code. */
-    class->labelled = TRUE;
-    classId = EventInternString(class->name);
+    cclass->labelled = TRUE;
+    classId = EventInternString(cclass->name);
     /* @@@@ this breaks <design/type/#addr.use> */
-    EventLabelAddr((Addr)class, classId);
+    EventLabelAddr((Addr)cclass, classId);
   }
 
   pool->arena = arena;
@@ -150,7 +150,7 @@ Res PoolInitV(Pool pool, Arena arena, PoolClass class, va_list args)
   pool->bufferSerial = (Serial)0;
   pool->alignment = MPS_PF_ALIGN;
   pool->format = NULL;
-  pool->fix = class->fix;
+  pool->fix = cclass->fix;
   pool->fillMutatorSize = 0.0;
   pool->emptyMutatorSize = 0.0;
   pool->fillInternalSize = 0.0;
@@ -164,7 +164,7 @@ Res PoolInitV(Pool pool, Arena arena, PoolClass class, va_list args)
   AVERT(Pool, pool);
 
   /* Do class-specific initialization. */
-  res = (*class->init)(pool, args);
+  res = (*cclass->init)(pool, args);
   if (res != ResOK)
     goto failInit;
 
@@ -185,18 +185,18 @@ failInit:
 /* PoolCreate, PoolCreateV: Allocate and initialise pool */
 
 Res PoolCreate(Pool *poolReturn, Arena arena,
-               PoolClass class, ...)
+               PoolClass cclass, ...)
 {
   Res res;
   va_list args;
-  va_start(args, class);
-  res = PoolCreateV(poolReturn, arena, class, args);
+  va_start(args, cclass);
+  res = PoolCreateV(poolReturn, arena, cclass, args);
   va_end(args);
   return res;
 }
 
 Res PoolCreateV(Pool *poolReturn, Arena arena, 
-                PoolClass class, va_list args)
+                PoolClass cclass, va_list args)
 {
   Res res;
   Pool pool;
@@ -204,11 +204,11 @@ Res PoolCreateV(Pool *poolReturn, Arena arena,
 
   AVER(poolReturn != NULL);
   AVERT(Arena, arena);
-  AVERT(PoolClass, class);
+  AVERT(PoolClass, cclass);
 
   /* .space.alloc: Allocate the pool instance structure with the size */
   /* requested  in the pool class.  See .space.free */
-  res = ControlAlloc(&base, arena, class->size,
+  res = ControlAlloc(&base, arena, cclass->size,
                      /* withReservoirPermit */ FALSE);
   if (res != ResOK)
     goto failControlAlloc;
@@ -216,10 +216,10 @@ Res PoolCreateV(Pool *poolReturn, Arena arena,
   /* base is the address of the class-specific pool structure. */
   /* We calculate the address of the generic pool structure within the */
   /* instance by using the offset information from the class. */
-  pool = (Pool)PointerAdd(base, class->offset);
+  pool = (Pool)PointerAdd(base, cclass->offset);
 
   /* Initialize the pool. */ 
-  res = PoolInitV(pool, arena, class, args);
+  res = PoolInitV(pool, arena, cclass, args);
   if (res != ResOK)
     goto failPoolInit;
  
@@ -227,7 +227,7 @@ Res PoolCreateV(Pool *poolReturn, Arena arena,
   return ResOK;
 
 failPoolInit:
-  ControlFree(arena, base, class->size);
+  ControlFree(arena, base, cclass->size);
 failControlAlloc:
   return res;
 }
@@ -240,7 +240,7 @@ void PoolFinish(Pool pool)
   AVERT(Pool, pool); 
  
   /* Do any class-specific finishing. */
-  (*pool->class->finish)(pool);
+  (*pool->cclass->finish)(pool);
 
   /* Detach the pool from the arena, and unsig it. */
   RingRemove(&pool->arenaRing);
@@ -258,21 +258,21 @@ void PoolFinish(Pool pool)
 
 void PoolDestroy(Pool pool)
 {
-  PoolClass class;
+  PoolClass cclass;
   Arena arena;
   Addr base;
 
   AVERT(Pool, pool); 
  
-  class = pool->class; /* } In case PoolFinish changes these */
+  cclass = pool->cclass; /* } In case PoolFinish changes these */
   arena = pool->arena; /* } */
 
   /* Finish the pool instance structure. */
   PoolFinish(pool);
 
   /* .space.free: Free the pool instance structure.  See .space.alloc */
-  base = AddrSub((Addr)pool, (Size)(class->offset));
-  ControlFree(arena, base, (Size)(class->size));
+  base = AddrSub((Addr)pool, (Size)(cclass->offset));
+  ControlFree(arena, base, (Size)(cclass->size));
 }
 
 
@@ -281,7 +281,7 @@ void PoolDestroy(Pool pool)
 BufferClass PoolDefaultBufferClass(Pool pool)
 {
   AVERT(Pool, pool);
-  return (*pool->class->bufferClass)();
+  return (*pool->cclass->bufferClass)();
 }
 
 
@@ -294,11 +294,11 @@ Res PoolAlloc(Addr *pReturn, Pool pool, Size size,
 
   AVER(pReturn != NULL);
   AVERT(Pool, pool);
-  AVER((pool->class->attr & AttrALLOC) != 0);
+  AVER((pool->cclass->attr & AttrALLOC) != 0);
   AVER(size > 0);
   AVER(BoolCheck(withReservoirPermit));
 
-  res = (*pool->class->alloc)(pReturn, pool, size, withReservoirPermit);
+  res = (*pool->cclass->alloc)(pReturn, pool, size, withReservoirPermit);
   if (res != ResOK)
     return res;
   /* Make sure that the allocated address was in the pool's memory. */
@@ -324,11 +324,11 @@ Res PoolAlloc(Addr *pReturn, Pool pool, Size size,
 void PoolFree(Pool pool, Addr old, Size size)
 {
   AVERT(Pool, pool);
-  AVER((pool->class->attr & AttrFREE) != 0);
+  AVER((pool->cclass->attr & AttrFREE) != 0);
   AVER(old != NULL);
   /* The pool methods should check that old is in pool. */
   AVER(size > 0);
-  (*pool->class->free)(pool, old, size);
+  (*pool->cclass->free)(pool, old, size);
  
   EVENT3(PoolFree, pool, old, size);
 }
@@ -344,7 +344,7 @@ Res PoolAccess(Pool pool, Seg seg, Addr addr,
   /* Can't check mode as there is no check method */
   /* Can't check MutatorFaultContext as there is no check method */
 
-  return (*pool->class->access)(pool, seg, addr, mode, context);
+  return (*pool->cclass->access)(pool, seg, addr, mode, context);
 }
 
 
@@ -357,7 +357,7 @@ Res PoolWhiten(Pool pool, Trace trace, Seg seg)
   AVERT(Seg, seg);
   AVER(PoolArena(pool) == trace->arena);
   AVER(SegPool(seg) == pool);
-  return (*pool->class->whiten)(pool, trace, seg);
+  return (*pool->cclass->whiten)(pool, trace, seg);
 }
 
 void PoolGrey(Pool pool, Trace trace, Seg seg)
@@ -367,7 +367,7 @@ void PoolGrey(Pool pool, Trace trace, Seg seg)
   AVERT(Seg, seg);
   AVER(pool->arena == trace->arena);
   AVER(SegPool(seg) == pool);
-  (*pool->class->grey)(pool, trace, seg);
+  (*pool->cclass->grey)(pool, trace, seg);
 }
 
 void PoolBlacken(Pool pool, TraceSet traceSet, Seg seg)
@@ -376,7 +376,7 @@ void PoolBlacken(Pool pool, TraceSet traceSet, Seg seg)
   AVERT(TraceSet, traceSet);
   AVERT(Seg, seg);
   AVER(SegPool(seg) == pool);
-  (*pool->class->blacken)(pool, traceSet, seg);
+  (*pool->cclass->blacken)(pool, traceSet, seg);
 }
 
 
@@ -402,7 +402,7 @@ Res PoolScan(Bool *totalReturn, ScanState ss, Pool pool, Seg seg)
   /* Should only scan segments which contain grey objects. */
   AVER(TraceSetInter(SegGrey(seg), ss->traces) != TraceSetEMPTY);
 
-  return (*pool->class->scan)(totalReturn, ss, pool, seg);
+  return (*pool->cclass->scan)(totalReturn, ss, pool, seg);
 }
 
 
@@ -438,7 +438,7 @@ Res PoolFixEmergency(Pool pool, ScanState ss, Seg seg, Addr *refIO)
   /* Should only be fixing references to white segments. */
   AVER(TraceSetInter(SegWhite(seg), ss->traces) != TraceSetEMPTY);
 
-  res = (pool->class->fixEmergency)(pool, ss, seg, refIO);
+  res = (pool->cclass->fixEmergency)(pool, ss, seg, refIO);
   AVER(res == ResOK);
   return res;
 }
@@ -459,7 +459,7 @@ void PoolReclaim(Pool pool, Trace trace, Seg seg)
   /* Should only be reclaiming segments which are still white. */
   AVER_CRITICAL(TraceSetIsMember(SegWhite(seg), trace));
 
-  (*pool->class->reclaim)(pool, trace, seg);
+  (*pool->cclass->reclaim)(pool, trace, seg);
 }
 
 
@@ -476,7 +476,7 @@ void PoolTraceEnd(Pool pool, Trace trace)
   AVERT(Trace, trace);
   AVER(pool->arena == trace->arena);
 
-  (*pool->class->traceEnd)(pool, trace);
+  (*pool->cclass->traceEnd)(pool, trace);
 }
 
 
@@ -490,7 +490,7 @@ void PoolWalk(Pool pool, Seg seg, FormattedObjectsStepMethod f,
   AVER(FUNCHECK(f));
   /* p and s are arbitrary values, hence can't be checked. */
 
-  (*pool->class->walk)(pool, seg, f, p, s);
+  (*pool->cclass->walk)(pool, seg, f, p, s);
 }
 
 
@@ -505,7 +505,7 @@ void PoolFreeWalk(Pool pool, FreeBlockStepMethod f, void *p)
   AVER(FUNCHECK(f));
   /* p is arbitrary, hence can't be checked. */
 
-  (*pool->class->freewalk)(pool, f, p);
+  (*pool->cclass->freewalk)(pool, f, p);
 }
 
 
@@ -522,7 +522,7 @@ Res PoolDescribe(Pool pool, mps_lib_FILE *stream)
   res = WriteF(stream,
                "Pool $P ($U) {\n", (WriteFP)pool, (WriteFU)pool->serial,
                "  class $P (\"$S\")\n",
-               (WriteFP)pool->class, pool->class->name,
+               (WriteFP)pool->cclass, pool->cclass->name,
                "  arena $P ($U)\n",
                (WriteFP)pool->arena, (WriteFU)pool->arena->serial,
                "  alignment $W\n", (WriteFW)pool->alignment,
@@ -544,7 +544,7 @@ Res PoolDescribe(Pool pool, mps_lib_FILE *stream)
                NULL);
   if (res != ResOK) return res;
 
-  res = (*pool->class->describe)(pool, stream);
+  res = (*pool->cclass->describe)(pool, stream);
   if (res != ResOK) return res;
 
   RING_FOR(node, &pool->bufferRing, nextNode) {

@@ -115,7 +115,7 @@ typedef struct amcSegStruct *amcSeg;
 typedef struct amcSegStruct {
   GCSegStruct gcSegStruct;  /* superclass fields must come first */
   int *segTypeP;            /* .segtype */
-  Bool new;                 /* .seg-ramp-new */
+  Bool nnew;                 /* .seg-ramp-new */
   Sig sig;                  /* <code/misc.h#sig> */
 } amcSegStruct;
 
@@ -135,7 +135,7 @@ static Bool amcSegCheck(amcSeg amcseg)
   if(*amcseg->segTypeP == AMCPTypeNailboard) {
     CHECKL(SegNailed(amcSeg2Seg(amcseg)) != TraceSetEMPTY);
   }
-  CHECKL(BoolCheck(amcseg->new));
+  CHECKL(BoolCheck(amcseg->nnew));
   return TRUE;
 }
 
@@ -162,7 +162,7 @@ static Res AMCSegInit(Seg seg, Pool pool, Addr base, Size size,
     return res;
 
   amcseg->segTypeP = segtype; /* .segtype */
-  amcseg->new = TRUE;
+  amcseg->nnew = TRUE;
   amcseg->sig = amcSegSig;
   AVERT(amcSeg, amcseg);
 
@@ -355,14 +355,14 @@ static Res AMCSegDescribe(Seg seg, mps_lib_FILE *stream)
 
 /* amcSegClass -- Class definition for AMC segments */
 
-DEFINE_SEG_CLASS(amcSegClass, class)
+DEFINE_SEG_CLASS(amcSegClass, cclass)
 {
-  INHERIT_CLASS(class, GCSegClass);
-  SegClassMixInNoSplitMerge(class);  /* no support for this (yet) */
-  class->name = "AMCSEG";
-  class->size = sizeof(amcSegStruct);
-  class->init = AMCSegInit;
-  class->describe = AMCSegDescribe;
+  INHERIT_CLASS(cclass, GCSegClass);
+  SegClassMixInNoSplitMerge(cclass);  /* no support for this (yet) */
+  cclass->name = "AMCSEG";
+  cclass->size = sizeof(amcSegStruct);
+  cclass->init = AMCSegInit;
+  cclass->describe = AMCSegDescribe;
 }
 
 
@@ -660,13 +660,13 @@ static void AMCBufFinish(Buffer buffer)
 
 /* amcBufClass -- The class definition */
 
-DEFINE_BUFFER_CLASS(amcBufClass, class)
+DEFINE_BUFFER_CLASS(amcBufClass, cclass)
 {
-  INHERIT_CLASS(class, SegBufClass);
-  class->name = "AMCBUF";
-  class->size = sizeof(amcBufStruct);
-  class->init = AMCBufInit;
-  class->finish = AMCBufFinish;
+  INHERIT_CLASS(cclass, SegBufClass);
+  cclass->name = "AMCBUF";
+  cclass->size = sizeof(amcBufStruct);
+  cclass->init = AMCBufInit;
+  cclass->finish = AMCBufFinish;
 }
 
 
@@ -1159,7 +1159,7 @@ static Res AMCBufferFill(Addr *baseReturn, Addr *limitReturn,
   {
     gen->pgen.newSize += alignedSize;
   } else {
-    Seg2amcSeg(seg)->new = FALSE;
+    Seg2amcSeg(seg)->nnew = FALSE;
   }
   PoolGenUpdateZones(&gen->pgen, seg);
 
@@ -1282,11 +1282,11 @@ static void AMCRampEnd(Pool pool, Buffer buf)
     RING_FOR(node, PoolSegRing(pool), nextNode) {
       Seg seg = SegOfPoolRing(node);
 
-      if(amcSegGen(seg) == amc->rampGen && !Seg2amcSeg(seg)->new
+      if(amcSegGen(seg) == amc->rampGen && !Seg2amcSeg(seg)->nnew
          && SegWhite(seg) == TraceSetEMPTY)
       {
         pgen->newSize += SegSize(seg);
-        Seg2amcSeg(seg)->new = TRUE;
+        Seg2amcSeg(seg)->nnew = TRUE;
       }
     }
   }
@@ -1392,9 +1392,9 @@ static Res AMCWhiten(Pool pool, Trace trace, Seg seg)
 
   gen = amcSegGen(seg);
   AVERT(amcGen, gen);
-  if(Seg2amcSeg(seg)->new) {
+  if(Seg2amcSeg(seg)->nnew) {
     gen->pgen.newSize -= SegSize(seg);
-    Seg2amcSeg(seg)->new = FALSE;
+    Seg2amcSeg(seg)->nnew = FALSE;
   }
 
   /* Ensure we are forwarding into the right generation. */
@@ -2289,7 +2289,7 @@ static void amcWalkAll(Pool pool, FormattedObjectsStepMethod f,
   Arena arena;
   Ring ring, next, node;
 
-  AVER(IsSubclassPoly(pool->class, AMCPoolClassGet()));
+  AVER(IsSubclassPoly(pool->cclass, AMCPoolClassGet()));
 
   arena = PoolArena(pool);
   ring = PoolSegRing(pool);
@@ -2492,7 +2492,7 @@ static Bool AMCCheck(AMC amc)
 {
   CHECKS(AMC, amc);
   CHECKD(Pool, &amc->poolStruct);
-  CHECKL(IsSubclassPoly(amc->poolStruct.class, EnsureAMCPoolClass()));
+  CHECKL(IsSubclassPoly(amc->poolStruct.cclass, EnsureAMCPoolClass()));
   CHECKL(RankSetCheck(amc->rankSet));
   CHECKL(RingCheck(&amc->genRing));
   CHECKL(BoolCheck(amc->gensBooted));

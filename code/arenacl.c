@@ -186,7 +186,7 @@ static void ClientChunkFinish(Chunk chunk)
  * .arena.init: Once the arena has been allocated, we call ArenaInit
  * to do the generic part of init.
  */
-static Res ClientArenaInit(Arena *arenaReturn, ArenaClass class,
+static Res ClientArenaInit(Arena *arenaReturn, ArenaClass cclass,
                            va_list args)
 {
   Arena arena;
@@ -200,7 +200,7 @@ static Res ClientArenaInit(Arena *arenaReturn, ArenaClass class,
   size = va_arg(args, Size);
   base = va_arg(args, Addr);
   AVER(arenaReturn != NULL);
-  AVER((ArenaClass)mps_arena_class_cl() == class);
+  AVER((ArenaClass)mps_arena_class_cl() == cclass);
   AVER(base != (Addr)0);
 
   clArenaSize = SizeAlignUp(sizeof(ClientArenaStruct), MPS_PF_ALIGN);
@@ -218,7 +218,7 @@ static Res ClientArenaInit(Arena *arenaReturn, ArenaClass class,
 
   arena = ClientArena2Arena(clientArena);
   /* <code/arena.c#init.caller> */
-  res = ArenaInit(arena, class);
+  res = ArenaInit(arena, cclass);
   if (res != ResOK)
     return res;
 

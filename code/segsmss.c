@@ -284,15 +284,15 @@ failSuper:
 
 /* AMSTSegClass -- Class definition for AMST segments */
 
-DEFINE_SEG_CLASS(AMSTSegClass, class)
+DEFINE_SEG_CLASS(AMSTSegClass, cclass)
 {
-  INHERIT_CLASS(class, AMSSegClass);
-  class->name = "AMSTSEG";
-  class->size = sizeof(AMSTSegStruct);
-  class->init = amstSegInit;
-  class->finish = amstSegFinish;
-  class->split = amstSegSplit;
-  class->merge = amstSegMerge;
+  INHERIT_CLASS(cclass, AMSSegClass);
+  cclass->name = "AMSTSEG";
+  cclass->size = sizeof(AMSTSegStruct);
+  cclass->init = amstSegInit;
+  cclass->finish = amstSegFinish;
+  cclass->split = amstSegSplit;
+  cclass->merge = amstSegMerge;
 }
 
 

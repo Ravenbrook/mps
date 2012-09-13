@@ -364,7 +364,7 @@ Res TraceAddWhite(Trace trace, Seg seg)
   if(TraceSetIsMember(SegWhite(seg), trace)) {
     trace->white = ZoneSetUnion(trace->white, ZoneSetOfSeg(trace->arena, seg));
     /* if the pool is a moving GC, then condemned objects may move */
-    if(pool->class->attr & AttrMOVINGGC) {
+    if(pool->cclass->attr & AttrMOVINGGC) {
       trace->mayMove = ZoneSetUnion(trace->mayMove,
                                     ZoneSetOfSeg(trace->arena, seg));
     }
@@ -413,7 +413,7 @@ Res TraceCondemnZones(Trace trace, ZoneSet condemnedSet)
       /* the requested zone set.  Otherwise, we would bloat the */
       /* foundation to no gain.  Note that this doesn't exclude */
       /* any segments from which the condemned set was derived, */
-      if((SegPool(seg)->class->attr & AttrGC) != 0
+      if((SegPool(seg)->cclass->attr & AttrGC) != 0
           && ZoneSetSuper(condemnedSet, ZoneSetOfSeg(arena, seg))) {
         res = TraceAddWhite(trace, seg);
         if(res != ResOK)
@@ -819,7 +819,7 @@ static void traceReclaim(Trace trace)
       AVER_CRITICAL(!TraceSetIsMember(SegGrey(seg), trace));
 
       if(TraceSetIsMember(SegWhite(seg), trace)) {
-        AVER_CRITICAL((SegPool(seg)->class->attr & AttrGC) != 0);
+        AVER_CRITICAL((SegPool(seg)->cclass->attr & AttrGC) != 0);
         STATISTIC(++trace->reclaimCount);
         PoolReclaim(SegPool(seg), trace, seg);
 
@@ -1644,7 +1644,7 @@ static void TraceStartGenDesc_diag(GenDesc desc, Bool top, Index i)
     DIAG_DECL( PoolGen gen = RING_ELT(PoolGen, genRing, n); )
     DIAG_WRITEF(( DIAG_STREAM,
       "           PoolGen $U ($S)", 
-      (WriteFU)gen->nr, (WriteFS)gen->pool->class->name,
+      (WriteFU)gen->nr, (WriteFS)gen->pool->cclass->name,
       " totalSize $U", (WriteFU)gen->totalSize,
       " newSize $U\n", (WriteFU)gen->newSizeAtCreate,
       NULL ));
@@ -1697,7 +1697,7 @@ Res TraceStart(Trace trace, double mortality, double finishingTime)
       /* segments may only belong to scannable pools. */
       if(SegRankSet(seg) != RankSetEMPTY) {
         /* Segments with ranks may only belong to scannable pools. */
-        AVER((SegPool(seg)->class->attr & AttrSCAN) != 0);
+        AVER((SegPool(seg)->cclass->attr & AttrSCAN) != 0);
 
         /* Turn the segment grey if there might be a reference in it */
         /* to the white set.  This is done by seeing if the summary */
@@ -1713,7 +1713,7 @@ Res TraceStart(Trace trace, double mortality, double finishingTime)
           }
         }
 
-        if((SegPool(seg)->class->attr & AttrGC)
+        if((SegPool(seg)->cclass->attr & AttrGC)
             && !TraceSetIsMember(SegWhite(seg), trace)) {
           trace->notCondemned += size;
         }
@@ -1824,7 +1824,7 @@ void TraceQuantum(Trace trace)
 
         if(traceFindGrey(&seg, &rank, arena, trace->ti)) {
           Res res;
-          AVER((SegPool(seg)->class->attr & AttrSCAN) != 0);
+          AVER((SegPool(seg)->cclass->attr & AttrSCAN) != 0);
           res = traceScanSeg(TraceSetSingle(trace), rank, arena, seg);
           /* Allocation failures should be handled by emergency mode, and we
              don't expect any other error in a normal GC trace. */

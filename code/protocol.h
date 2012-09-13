@@ -27,8 +27,8 @@
 /* to be used outside this file. This is a polymorphic macro */
 /* named as a function. See <design/protocol/#introspect.c-lang> */
 
-#define ProtocolClassSetSuperclassPoly(class, super) \
-  (((ProtocolClass)(class))->superclass) = (ProtocolClass)(super)
+#define ProtocolClassSetSuperclassPoly(cclass, super) \
+  (((ProtocolClass)(cclass))->superclass) = (ProtocolClass)(super)
 
 
 /* DEFINE_CLASS -- the standard macro for defining a ProtocolClass */
@@ -131,7 +131,7 @@ typedef struct ProtocolClassStruct {
 
 typedef struct ProtocolInstStruct {
   Sig sig;                      /* <design/sig/> */
-  ProtocolClass class;          /* the class  */
+  ProtocolClass cclass;          /* the class  */
 } ProtocolInstStruct;
 
 
@@ -145,7 +145,7 @@ extern ProtocolClass ProtocolClassGet(void);
 
 /* Checking functions */
 
-extern Bool ProtocolClassCheck(ProtocolClass class);
+extern Bool ProtocolClassCheck(ProtocolClass cclass);
 extern Bool ProtocolInstCheck(ProtocolInst pro);
 
 
@@ -164,10 +164,10 @@ extern Bool ProtocolIsSubclass(ProtocolClass sub, ProtocolClass super);
 /* as functions. See <design/protocol/#introspect.c-lang> */
 
 
-#define ProtocolClassSuperclassPoly(class) \
-  (((ProtocolClass)(class))->superclass)
+#define ProtocolClassSuperclassPoly(cclass) \
+  (((ProtocolClass)(cclass))->superclass)
 
-#define ClassOfPoly(inst) ((ProtocolInst)(inst)->class)
+#define ClassOfPoly(inst) ((ProtocolInst)(inst)->cclass)
 
 #define IsSubclassPoly(sub, super) \
    ProtocolIsSubclass((ProtocolClass)(sub), (ProtocolClass)(super))

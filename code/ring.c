@@ -74,18 +74,18 @@ void (RingFinish)(Ring ring)
 /* RingAppend -- add a ring node to the end of a ring
  */
 
-void (RingAppend)(Ring ring, Ring new)
+void (RingAppend)(Ring ring, Ring nnew)
 {
-  RingAppend(ring, new);                /* <code/mpm.h#ring.append> */
+  RingAppend(ring, nnew);                /* <code/mpm.h#ring.append> */
 }
 
 
 /* RingInsert -- add a ring node to the start of a ring
  */
 
-void (RingInsert)(Ring ring, Ring new)
+void (RingInsert)(Ring ring, Ring nnew)
 {
-  RingInsert(ring, new);                /* <code/mpm.h#ring.insert> */
+  RingInsert(ring, nnew);                /* <code/mpm.h#ring.insert> */
 }
 
 

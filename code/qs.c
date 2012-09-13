@@ -107,18 +107,18 @@ static mps_word_t regtag[NREGS];
 static void cons(mps_word_t tag0, mps_addr_t value0, QSCell tail)
 {
   mps_addr_t p;
-  QSCell new;
+  QSCell nnew;
 
   do {
     die(mps_reserve(&p, ap, sizeof(QSCellStruct)),
         "cons");
-    new = (QSCell)p;
-    new->tag = tag0;
-    new->value = value0;
-    new->tail = tail;
+    nnew = (QSCell)p;
+    nnew->tag = tag0;
+    nnew->value = value0;
+    nnew->tail = tail;
   } while(!mps_commit(ap, p, sizeof(QSCellStruct)));
 
-  reg[0] = (mps_addr_t)new;
+  reg[0] = (mps_addr_t)nnew;
   regtag[0] = QSRef;
   return;
 }

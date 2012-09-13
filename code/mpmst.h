@@ -96,7 +96,7 @@ typedef struct mps_class_s {
 typedef struct mps_pool_s {     /* generic structure */
   Sig sig;                      /* <design/sig/> */
   Serial serial;                /* from arena->poolSerial */
-  PoolClass class;              /* pool class structure */
+  PoolClass cclass;              /* pool class structure */
   Arena arena;                  /* owning arena */
   RingStruct arenaRing;         /* link in list of pools in arena */
   RingStruct bufferRing;        /* allocation buffers are attached to pool */
@@ -196,7 +196,7 @@ typedef struct MessageClassStruct {
   MessageType type;             /* Message Type */
 
   /* generic methods */
-  MessageDeleteMethod delete;   /* terminates a message */
+  MessageDeleteMethod ddelete;   /* terminates a message */
 
   /* methods specific to MessageTypeFinalization */
   MessageFinalizationRefMethod finalizationRef;       
@@ -221,7 +221,7 @@ typedef struct MessageClassStruct {
 typedef struct mps_message_s {
   Sig sig;                      /* <design/sig/> */
   Arena arena;                  /* owning arena */
-  MessageClass class;           /* Message Class Structure */
+  MessageClass cclass;           /* Message Class Structure */
   Clock postedClock;            /* mps_clock() at post time, or 0 */
   RingStruct queueRing;         /* Message queue ring */
 } MessageStruct;
@@ -266,7 +266,7 @@ typedef struct SegClassStruct {
 
 typedef struct SegStruct {      /* segment structure */
   Sig sig;                      /* <code/misc.h#sig> */
-  SegClass class;               /* segment class structure */
+  SegClass cclass;               /* segment class structure */
   Tract firstTract;             /* first tract of segment */
   RingStruct poolRing;          /* link in list of segs in pool */
   Addr limit;                   /* limit of segment */
@@ -357,7 +357,7 @@ typedef struct BufferClassStruct {
 
 typedef struct BufferStruct {
   Sig sig;                      /* <design/sig/> */
-  BufferClass class;            /* buffer class structure */
+  BufferClass cclass;            /* buffer class structure */
   Serial serial;                /* from pool->bufferSerial */
   Arena arena;                  /* owning arena */
   Pool pool;                    /* owning pool */
@@ -412,7 +412,7 @@ typedef struct mps_fmt_s {
   mps_fmt_isfwd_t isMoved;
   mps_fmt_copy_t copy;
   mps_fmt_pad_t pad;
-  mps_fmt_class_t class;        /* pointer indicating class */
+  mps_fmt_class_t cclass;        /* pointer indicating class */
   Size headerSize;              /* size of header */
 } FormatStruct;
 
@@ -608,7 +608,7 @@ typedef struct mps_arena_s {
   GlobalsStruct globals; /* must be first, see <design/arena/#globals> */
   Serial serial;
 
-  ArenaClass class;             /* arena class structure */
+  ArenaClass cclass;             /* arena class structure */
 
   Bool poolReady;               /* <design/arena/#pool.ready> */
   MVStruct controlPoolStruct;   /* <design/arena/#pool> */

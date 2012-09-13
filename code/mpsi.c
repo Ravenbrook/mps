@@ -611,7 +611,7 @@ mps_res_t mps_pool_create(mps_pool_t *mps_pool_o, mps_arena_t arena,
 }
 
 mps_res_t mps_pool_create_v(mps_pool_t *mps_pool_o, mps_arena_t arena,
-                            mps_class_t class, va_list args)
+                            mps_class_t cclass, va_list args)
 {
   Pool pool;
   Res res;
@@ -620,9 +620,9 @@ mps_res_t mps_pool_create_v(mps_pool_t *mps_pool_o, mps_arena_t arena,
 
   AVER(mps_pool_o != NULL);
   AVERT(Arena, arena);
-  AVERT(PoolClass, class);
+  AVERT(PoolClass, cclass);
 
-  res = PoolCreateV(&pool, arena, class, args);
+  res = PoolCreateV(&pool, arena, cclass, args);
 
   ArenaLeave(arena);
 

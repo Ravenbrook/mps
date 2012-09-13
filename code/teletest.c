@@ -38,11 +38,11 @@ static Count argCount;
 
 static void callControl(mps_word_t reset, mps_word_t flip)
 {
-  mps_word_t old, new;
+  mps_word_t old, nnew;
   old = mps_telemetry_control(reset, flip);
-  new = mps_telemetry_control((mps_word_t)0, (mps_word_t)0);
+  nnew = mps_telemetry_control((mps_word_t)0, (mps_word_t)0);
 
-  (void)printf(WORD_FORMAT " -> " WORD_FORMAT "\n", old, new);
+  (void)printf(WORD_FORMAT " -> " WORD_FORMAT "\n", old, nnew);
 }
 
 
