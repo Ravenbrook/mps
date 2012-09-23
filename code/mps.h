@@ -22,6 +22,12 @@
  * .sources: [The design of the MPS Interface to C](../design/interface-c).
  */
 
+/** @file mps.h @brief Memory Pool System interface to C
+ *
+ * This is the documentation of the Memory Pool System interface to C
+ * programs.
+ */
+
 #ifndef mps_h
 #define mps_h
 
@@ -79,20 +85,32 @@ typedef unsigned mps_rank_t;    /* ranks (unsigned) */
 typedef unsigned mps_message_type_t;    /* message type (unsigned) */
 typedef unsigned long mps_clock_t;  /* processor time */
 
-/* Result Codes */
+/** Result Codes
+
+  Many MPS functions return a result code while passing back result
+  values through [out parameters][].  These codes have broadly the same
+  meaning whichever function they are returned from, but consult the
+  individual function documentation for the specific meaning in context.
+  
+  A function that succeeds always returns \ref MPS_RES_OK, which is zero
+  and will be zero in future versions of the MPS.
+  
+  [out parameters]: http://en.wikipedia.org/wiki/Call_by_reference#Call_by_reference
+*/
+
 /* .result-codes: Keep in sync with <code/mpmtypes.h#result-codes> */
 /* and the check in <code/mpsi.c#check.rc> */
 
 enum {
-  MPS_RES_OK = 0,               /* success (always zero) */
-  MPS_RES_FAIL,                 /* unspecified failure */
-  MPS_RES_RESOURCE,             /* unable to obtain resources */
-  MPS_RES_MEMORY,               /* unable to obtain memory */
-  MPS_RES_LIMIT,                /* limitation reached */
-  MPS_RES_UNIMPL,               /* unimplemented facility */
-  MPS_RES_IO,                   /* system I/O error */
-  MPS_RES_COMMIT_LIMIT,         /* arena commit limit exceeded */
-  MPS_RES_PARAM                 /* illegal user parameter value */
+  MPS_RES_OK = 0,               /**< success (always zero) */
+  MPS_RES_FAIL,                 /**< unspecified failure */
+  MPS_RES_RESOURCE,             /**< unable to obtain resources */
+  MPS_RES_MEMORY,               /**< unable to obtain memory */
+  MPS_RES_LIMIT,                /**< limitation reached */
+  MPS_RES_UNIMPL,               /**< unimplemented facility */
+  MPS_RES_IO,                   /**< system I/O error */
+  MPS_RES_COMMIT_LIMIT,         /**< arena commit limit exceeded */
+  MPS_RES_PARAM                 /**< illegal user parameter value */
 };
 
 /* <a id="message.types"> Keep in sync with
