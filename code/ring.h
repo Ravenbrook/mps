@@ -27,12 +27,12 @@ typedef struct RingStruct {     /* double-ended queue structure */
 
 #define RingNONE ((Ring)0)
 
-extern Bool RingCheck(Ring ring);
-extern Bool RingCheckSingle(Ring ring);
-extern Bool RingIsSingle(Ring ring);
+EXTERN Bool RingCheck(Ring ring);
+EXTERN Bool RingCheckSingle(Ring ring);
+EXTERN Bool RingIsSingle(Ring ring);
 
 /* .ring.init: */
-extern void (RingInit)(Ring ring);
+EXTERN void (RingInit)(Ring ring);
 #define RingInit(ring) \
   BEGIN \
     Ring _ring = (ring); \
@@ -43,7 +43,7 @@ extern void (RingInit)(Ring ring);
   END
 
 /* .ring.finish: */
-extern void (RingFinish)(Ring ring);
+EXTERN void (RingFinish)(Ring ring);
 #define RingFinish(ring) \
   BEGIN \
     Ring _ring = (ring); \
@@ -53,7 +53,7 @@ extern void (RingFinish)(Ring ring);
   END
 
 /* .ring.append: */
-extern void (RingAppend)(Ring ring, Ring new);
+EXTERN void (RingAppend)(Ring ring, Ring new);
 #define RingAppend(ring, new) \
   BEGIN \
     Ring _ring = (ring), _new = (new); \
@@ -66,7 +66,7 @@ extern void (RingAppend)(Ring ring, Ring new);
   END
 
 /* .ring.insert: */
-extern void (RingInsert)(Ring ring, Ring new);
+EXTERN void (RingInsert)(Ring ring, Ring new);
 #define RingInsert(ring, new) \
   BEGIN \
     Ring _ring = (ring), _new = (new); \
@@ -79,7 +79,7 @@ extern void (RingInsert)(Ring ring, Ring new);
   END
 
 /* .ring.remove: */
-extern void (RingRemove)(Ring old);
+EXTERN void (RingRemove)(Ring old);
 #define RingRemove(old) \
   BEGIN \
     Ring _old = (old); \
@@ -92,11 +92,11 @@ extern void (RingRemove)(Ring old);
   END
 
 /* .ring.next: */
-extern Ring (RingNext)(Ring ring);
+EXTERN Ring (RingNext)(Ring ring);
 #define RingNext(ring)  ((ring)->next)
 
 /* .ring.prev: */
-extern Ring (RingPrev)(Ring ring);
+EXTERN Ring (RingPrev)(Ring ring);
 #define RingPrev(ring)  ((ring)->prev)
 
 /* .ring.elt: See <design/ring/#elt> */

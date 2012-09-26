@@ -32,10 +32,10 @@
  * stack itself.
  */
 
-extern Res StackScan(ScanState ss, Addr *stackBot);
+EXTERN Res StackScan(ScanState ss, Addr *stackBot);
 
 
-extern Res StackScanInner(ScanState ss,
+EXTERN Res StackScanInner(ScanState ss,
                           Addr *stackBot,
                           Addr *stackTop,
                           Count nSavedRegs);

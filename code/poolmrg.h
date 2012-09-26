@@ -12,9 +12,9 @@
 
 typedef struct MRGStruct *MRG;
 
-extern PoolClass PoolClassMRG(void);
-extern Res MRGRegister(Pool, Ref);
-extern Res MRGDeregister(Pool, Ref);
+EXTERN PoolClass PoolClassMRG(void);
+EXTERN Res MRGRegister(Pool, Ref);
+EXTERN Res MRGDeregister(Pool, Ref);
 
 #endif /* poolmrg_h */
 

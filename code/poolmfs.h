@@ -32,10 +32,10 @@
 
 typedef struct MFSStruct *MFS;
 
-extern PoolClass PoolClassMFS(void);
+EXTERN PoolClass PoolClassMFS(void);
 
-extern Bool MFSCheck(MFS mfs);
-extern Pool (MFSPool)(MFS mfs);
+EXTERN Bool MFSCheck(MFS mfs);
+EXTERN Pool (MFSPool)(MFS mfs);
 
 
 typedef const struct MFSInfoStruct *MFSInfo;
@@ -44,7 +44,7 @@ struct MFSInfoStruct {
   Size unitSizeMin;             /* minimum unit size */
 };
 
-extern MFSInfo MFSGetInfo(void);
+EXTERN MFSInfo MFSGetInfo(void);
 
 #endif /* poolmfs_h */
 

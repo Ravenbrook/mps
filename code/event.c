@@ -38,12 +38,13 @@ static Count eventUserCount;
 static Serial EventInternSerial;
 
 /* Buffers in which events are recorded, from the top down. */
-char EventBuffer[EventKindLIMIT][EventBufferSIZE];
+EXTERN_DEF char EventBuffer[EventKindLIMIT][EventBufferSIZE];
 
 /* Pointers to last written event in each buffer. */
-char *EventLast[EventKindLIMIT];
+EXTERN_DEF char *EventLast[EventKindLIMIT];
 
-EventControlSet EventKindControl;       /* Bit set used to control output. */
+/* Bit set used to control output. */
+EXTERN_DEF EventControlSet EventKindControl;
 
 
 /* EventFlush -- flush event buffer to the event stream */

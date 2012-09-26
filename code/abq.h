@@ -24,17 +24,17 @@
 /* Prototypes  */
 
 typedef struct ABQStruct *ABQ;
-extern Res ABQInit(Arena arena, ABQ abq, void *owner, Count items);
-extern Bool ABQCheck(ABQ abq);
-extern void ABQFinish(Arena arena, ABQ abq);
-extern Res ABQPush(ABQ abq, CBSBlock block);
-extern Res ABQPop(ABQ abq, CBSBlock *blockReturn);
-extern Res ABQPeek(ABQ abq, CBSBlock *blockReturn);
-extern Res ABQDelete(ABQ abq, CBSBlock block);
-extern Res ABQDescribe(ABQ abq, mps_lib_FILE *stream);
-extern Bool ABQIsEmpty(ABQ abq);
-extern Bool ABQIsFull(ABQ abq);
-extern Count ABQDepth(ABQ abq);
+EXTERN Res ABQInit(Arena arena, ABQ abq, void *owner, Count items);
+EXTERN Bool ABQCheck(ABQ abq);
+EXTERN void ABQFinish(Arena arena, ABQ abq);
+EXTERN Res ABQPush(ABQ abq, CBSBlock block);
+EXTERN Res ABQPop(ABQ abq, CBSBlock *blockReturn);
+EXTERN Res ABQPeek(ABQ abq, CBSBlock *blockReturn);
+EXTERN Res ABQDelete(ABQ abq, CBSBlock block);
+EXTERN Res ABQDescribe(ABQ abq, mps_lib_FILE *stream);
+EXTERN Bool ABQIsEmpty(ABQ abq);
+EXTERN Bool ABQIsFull(ABQ abq);
+EXTERN Count ABQDepth(ABQ abq);
 
 
 /* Types */

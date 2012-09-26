@@ -31,9 +31,9 @@ typedef struct TractStruct { /* Tract structure */
 } TractStruct;
 
 
-extern Addr (TractBase)(Tract tract);
+EXTERN Addr (TractBase)(Tract tract);
 #define TractBase(tract)         ((tract)->base)
-extern Addr TractLimit(Tract tract);
+EXTERN Addr TractLimit(Tract tract);
 
 #define TractPool(tract)         ((tract)->pool)
 #define TractP(tract)            ((tract)->p)
@@ -43,9 +43,9 @@ extern Addr TractLimit(Tract tract);
 #define TractWhite(tract)        ((tract)->white)
 #define TractSetWhite(tract, w)  ((void)((tract)->white = (w)))
 
-extern Bool TractCheck(Tract tract);
-extern void TractInit(Tract tract, Pool pool, Addr base);
-extern void TractFinish(Tract tract);
+EXTERN Bool TractCheck(Tract tract);
+EXTERN void TractInit(Tract tract, Pool pool, Addr base);
+EXTERN void TractFinish(Tract tract);
 
 
 /* TRACT_*SEG -- Test / set / unset seg->tract associations
@@ -157,15 +157,15 @@ typedef struct ChunkStruct {
 #define ChunkPagesToSize(chunk, pages) ((Size)(pages) << (chunk)->pageShift)
 #define ChunkSizeToPages(chunk, size) ((Count)((size) >> (chunk)->pageShift))
 
-extern Bool ChunkCheck(Chunk chunk);
-extern Res ChunkInit(Chunk chunk, Arena arena,
+EXTERN Bool ChunkCheck(Chunk chunk);
+EXTERN Res ChunkInit(Chunk chunk, Arena arena,
                      Addr base, Addr limit, Align pageSize, BootBlock boot);
-extern void ChunkFinish(Chunk chunk);
+EXTERN void ChunkFinish(Chunk chunk);
 
-extern Bool ChunkCacheEntryCheck(ChunkCacheEntry entry);
-extern void ChunkCacheEntryInit(ChunkCacheEntry entry);
+EXTERN Bool ChunkCacheEntryCheck(ChunkCacheEntry entry);
+EXTERN void ChunkCacheEntryInit(ChunkCacheEntry entry);
 
-extern Bool ChunkOfAddr(Chunk *chunkReturn, Arena arena, Addr addr);
+EXTERN Bool ChunkOfAddr(Chunk *chunkReturn, Arena arena, Addr addr);
 
 /* CHUNK_OF_ADDR -- return the chunk containing an address
  *
@@ -186,8 +186,8 @@ extern Bool ChunkOfAddr(Chunk *chunkReturn, Arena arena, Addr addr);
 
 /* Page table functions */
 
-extern Tract TractOfBaseAddr(Arena arena, Addr addr);
-extern Bool TractOfAddr(Tract *tractReturn, Arena arena, Addr addr);
+EXTERN Tract TractOfBaseAddr(Arena arena, Addr addr);
+EXTERN Bool TractOfAddr(Tract *tractReturn, Arena arena, Addr addr);
 
 /* TRACT_OF_ADDR -- return the tract containing an address */
 
@@ -219,7 +219,7 @@ extern Bool TractOfAddr(Tract *tractReturn, Arena arena, Addr addr);
 #define INDEX_OF_ADDR(chunk, addr) \
   ((Index)ChunkSizeToPages(chunk, AddrOffset((chunk)->base, addr)))
 
-extern Index IndexOfAddr(Chunk chunk, Addr addr);
+EXTERN Index IndexOfAddr(Chunk chunk, Addr addr);
 
 
 /* PageIndexBase -- map page index to base address of page
@@ -242,8 +242,8 @@ extern Index IndexOfAddr(Chunk chunk, Addr addr);
   END
 
 
-extern Bool TractFirst(Tract *tractReturn, Arena arena);
-extern Bool TractNext(Tract *tractReturn, Arena arena, Addr addr);
+EXTERN Bool TractFirst(Tract *tractReturn, Arena arena);
+EXTERN Bool TractNext(Tract *tractReturn, Arena arena, Addr addr);
 
 
 /* TRACT_TRACT_FOR -- iterate over a range of tracts
@@ -273,9 +273,9 @@ extern Bool TractNext(Tract *tractReturn, Arena arena, Addr addr);
   TRACT_TRACT_FOR(tract, addr, arena, TractOfBaseAddr(arena, base), limit)
 
 
-extern void PageAlloc(Chunk chunk, Index pi, Pool pool);
-extern void PageInit(Chunk chunk, Index pi);
-extern void PageFree(Chunk chunk, Index pi);
+EXTERN void PageAlloc(Chunk chunk, Index pi, Pool pool);
+EXTERN void PageInit(Chunk chunk, Index pi);
+EXTERN void PageFree(Chunk chunk, Index pi);
 
 
 #endif /* tract_h */

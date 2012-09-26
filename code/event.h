@@ -24,27 +24,27 @@
 typedef Word EventStringId;
 typedef Word EventControlSet;
 
-extern void EventSync(void);
-extern void EventInit(void);
-extern void EventFinish(void);
-extern EventControlSet EventControl(EventControlSet resetMask,
+EXTERN void EventSync(void);
+EXTERN void EventInit(void);
+EXTERN void EventFinish(void);
+EXTERN EventControlSet EventControl(EventControlSet resetMask,
                                     EventControlSet flipMask);
-extern EventStringId EventInternString(const char *label);
-extern EventStringId EventInternGenString(size_t, const char *label);
-extern void EventLabelAddr(Addr addr, Word id);
-extern Res EventFlush(EventKind kind);
-extern Res EventDescribe(Event event, mps_lib_FILE *stream);
-extern Res EventWrite(Event event, mps_lib_FILE *stream);
-extern void EventDump(mps_lib_FILE *stream);
+EXTERN EventStringId EventInternString(const char *label);
+EXTERN EventStringId EventInternGenString(size_t, const char *label);
+EXTERN void EventLabelAddr(Addr addr, Word id);
+EXTERN Res EventFlush(EventKind kind);
+EXTERN Res EventDescribe(Event event, mps_lib_FILE *stream);
+EXTERN Res EventWrite(Event event, mps_lib_FILE *stream);
+EXTERN void EventDump(mps_lib_FILE *stream);
 
 
 #ifdef EVENT
 
 /* Event writing support */
 
-extern char EventBuffer[EventKindLIMIT][EventBufferSIZE];
-extern char *EventLast[EventKindLIMIT];
-extern Word EventKindControl;
+EXTERN char EventBuffer[EventKindLIMIT][EventBufferSIZE];
+EXTERN char *EventLast[EventKindLIMIT];
+EXTERN Word EventKindControl;
 
 
 /* Events are written into the buffer from the top down, so that a backtrace

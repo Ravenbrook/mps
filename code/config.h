@@ -171,6 +171,28 @@
 #endif
 
 
+/* CONFIG_UNIT_SINGLE -- compile MPS as a single translation unit
+ *
+ * When MPS is being compiled as "mps.c" using a command like
+ * `cc -Os -c mps.c` then the results are better if inter-module
+ * declarations are declared "static" rather than "extern", etc.  This
+ * allows more aggressive inlining and speed optimisation as well as dead
+ * code elimination.
+ */
+
+#ifdef CONFIG_UNIT_SINGLE
+#define STATIC          static
+#define EXTERN          static
+#define EXTERN_DEF      static
+#define EXPORT          extern
+#else
+#define STATIC          static
+#define EXTERN          extern
+#define EXTERN_DEF
+#define EXPORT          extern
+#endif
+
+
 #define MPS_VARIETY_STRING \
   MPS_ASSERT_STRING "." MPS_LOG_STRING "." MPS_STATS_STRING
 

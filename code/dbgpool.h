@@ -55,15 +55,15 @@ typedef struct PoolDebugMixinStruct {
 } PoolDebugMixinStruct;
 
 
-extern Bool PoolDebugMixinCheck(PoolDebugMixin dbg);
+EXTERN Bool PoolDebugMixinCheck(PoolDebugMixin dbg);
 
-extern void PoolClassMixInDebug(PoolClass class);
+EXTERN void PoolClassMixInDebug(PoolClass class);
 
-extern void DebugPoolCheckFences(Pool pool);
-extern void DebugPoolCheckFreeSpace(Pool pool);
+EXTERN void DebugPoolCheckFences(Pool pool);
+EXTERN void DebugPoolCheckFreeSpace(Pool pool);
 
-extern void DebugPoolFreeSplat(Pool pool, Addr base, Addr limit);
-extern void DebugPoolFreeCheck(Pool pool, Addr base, Addr limit);
+EXTERN void DebugPoolFreeSplat(Pool pool, Addr base, Addr limit);
+EXTERN void DebugPoolFreeCheck(Pool pool, Addr base, Addr limit);
 
 
 #endif /* dbgpool_h */

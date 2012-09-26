@@ -25,7 +25,7 @@ typedef struct PoolNStruct *PoolN;
 
 /* PoolClassN -- returns the PoolClass for the null pool class */
 
-extern PoolClass PoolClassN(void);
+EXTERN PoolClass PoolClassN(void);
 
 
 /* PoolNCheck -- check a pool of class N
@@ -34,7 +34,7 @@ extern PoolClass PoolClassN(void);
  * protocol defined in <design/check/>.
  */
 
-extern Bool PoolNCheck(PoolN poolN);
+EXTERN Bool PoolNCheck(PoolN poolN);
 
 
 #endif /* pooln_h */

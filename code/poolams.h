@@ -165,31 +165,31 @@ typedef struct AMSSegStruct {
 
 /* the rest */
 
-extern Res AMSInitInternal(AMS ams, Format format, Chain chain,
+EXTERN Res AMSInitInternal(AMS ams, Format format, Chain chain,
                            Bool shareAllocTable);
-extern void AMSFinish(Pool pool);
-extern Bool AMSCheck(AMS ams);
+EXTERN void AMSFinish(Pool pool);
+EXTERN Bool AMSCheck(AMS ams);
 
-extern Res AMSScan(Bool *totalReturn, ScanState ss, Pool pool, Seg seg);
+EXTERN Res AMSScan(Bool *totalReturn, ScanState ss, Pool pool, Seg seg);
 
 #define AMSChain(ams) ((ams)->chain)
 
-extern void AMSSegFreeWalk(AMSSeg amsseg, FreeBlockStepMethod f, void *p);
+EXTERN void AMSSegFreeWalk(AMSSeg amsseg, FreeBlockStepMethod f, void *p);
 
-extern void AMSSegFreeCheck(AMSSeg amsseg);
+EXTERN void AMSSegFreeCheck(AMSSeg amsseg);
 
 
 typedef SegClass AMSSegClass;
 typedef SegClassStruct AMSSegClassStruct;
-extern AMSSegClass AMSSegClassGet(void);
-extern Bool AMSSegCheck(AMSSeg seg);
+EXTERN AMSSegClass AMSSegClassGet(void);
+EXTERN Bool AMSSegCheck(AMSSeg seg);
 
 
 typedef PoolClass AMSPoolClass;
 typedef PoolClassStruct AMSPoolClassStruct;
 
-extern AMSPoolClass AMSPoolClassGet(void);
-extern AMSPoolClass AMSDebugPoolClassGet(void);
+EXTERN AMSPoolClass AMSPoolClassGet(void);
+EXTERN AMSPoolClass AMSDebugPoolClassGet(void);
 
 
 #endif /* poolams_h */

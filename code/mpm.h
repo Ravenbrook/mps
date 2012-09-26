@@ -28,7 +28,7 @@
 
 /* MPMCheck -- check MPM assumptions */
 
-extern Bool MPMCheck(void);
+EXTERN Bool MPMCheck(void);
 
 
 /* Miscellaneous Checks -- see <code/mpm.c> */
@@ -36,29 +36,29 @@ extern Bool MPMCheck(void);
 /* <design/type/#bool.check> */
 #define BoolCheck(b) ((unsigned)(b) <= 1)
 
-extern Bool FunCheck(Fun f);
+EXTERN Bool FunCheck(Fun f);
 #define FUNCHECK(f)     (FunCheck((Fun)f))
 
-extern Bool ShiftCheck(Shift shift);
-extern Bool AttrCheck(Attr attr);
-extern Bool RootVarCheck(RootVar rootVar);
+EXTERN Bool ShiftCheck(Shift shift);
+EXTERN Bool AttrCheck(Attr attr);
+EXTERN Bool RootVarCheck(RootVar rootVar);
 
 
 /* Address/Size Interface -- see <code/mpm.c> */
 
-extern Bool AlignCheck(Align align);
+EXTERN Bool AlignCheck(Align align);
 
-extern Bool (WordIsAligned)(Word word, Align align);
+EXTERN Bool (WordIsAligned)(Word word, Align align);
 #define WordIsAligned(w, a)     (((w) & ((a) - 1)) == 0)
 
-extern Word (WordAlignUp)(Word word, Align align);
+EXTERN Word (WordAlignUp)(Word word, Align align);
 #define WordAlignUp(w, a)       (((w) + (a) - 1) & ~((Word)(a) - 1))
 
 /* Rounds w up to a multiple of r, see <code/mpm.c> for exact behaviour */
-extern Word (WordRoundUp)(Word word, Size round);
+EXTERN Word (WordRoundUp)(Word word, Size round);
 #define WordRoundUp(w, r)       (((w)+(r)-1) - ((w)+(r)-1)%(r))
 
-extern Word (WordAlignDown)(Word word, Align align);
+EXTERN Word (WordAlignDown)(Word word, Align align);
 #define WordAlignDown(w, a)     ((w) & ~((Word)(a) - 1))
 
 #define size_tAlignUp(s, a) ((size_t)WordAlignUp((Word)(s), a))
@@ -78,7 +78,7 @@ extern Word (WordAlignDown)(Word word, Align align);
 #define AddrOffset(b, l) \
   ((Size)(PointerOffset((void *)(b), (void *)(l))))
 
-extern Addr (AddrAlignDown)(Addr addr, Align align);
+EXTERN Addr (AddrAlignDown)(Addr addr, Align align);
 #define AddrAlignDown(p, a) ((Addr)WordAlignDown((Word)(p), a))
 
 #define AlignWord(s)            ((Word)(s))
@@ -99,17 +99,17 @@ extern Addr (AddrAlignDown)(Addr addr, Align align);
 #define AlignIsAligned(a1, a2)  WordIsAligned((Word)(a1), a2)
 
 
-extern Addr (AddrSet)(Addr target, Byte value, Size size);
+EXTERN Addr (AddrSet)(Addr target, Byte value, Size size);
 /* This is one of the places that implements Addr, so it's allowed to */
 /* convert to void *, see <design/type/#addr.ops.mem>. */
 #define AddrSet(target, value, size) \
   mps_lib_memset(target, (int)(value), size)
 
-extern Addr (AddrCopy)(Addr target, Addr source, Size size);
+EXTERN Addr (AddrCopy)(Addr target, Addr source, Size size);
 #define AddrCopy(target, source, size) \
   mps_lib_memcpy(target, source, size)
 
-extern int (AddrComp)(Addr a, Addr b, Size size);
+EXTERN int (AddrComp)(Addr a, Addr b, Size size);
 #define AddrComp(a, b, size) \
   mps_lib_memcmp(a, b, size)
 
@@ -127,7 +127,7 @@ extern int (AddrComp)(Addr a, Addr b, Size size);
 
 /* Result codes */
 
-extern Bool ResIsAllocFailure(Res res);
+EXTERN Bool ResIsAllocFailure(Res res);
 
 
 /* Logs and Powers
@@ -141,22 +141,22 @@ extern Bool ResIsAllocFailure(Res res);
  * SizeFloorLog2 returns the floor of the logarithm in base 2 of size.
  * size can be any positive non-zero value.  */
 
-extern Bool SizeIsP2(Size size);
-extern Shift SizeLog2(Size size);
-extern Shift SizeFloorLog2(Size size);
+EXTERN Bool SizeIsP2(Size size);
+EXTERN Shift SizeLog2(Size size);
+EXTERN Shift SizeFloorLog2(Size size);
 
-extern Bool WordIsP2(Word word);
+EXTERN Bool WordIsP2(Word word);
 
 /* Formatted Output -- see <design/writef/>, <code/mpm.c> */
 
-extern Res WriteF(mps_lib_FILE *stream, ...);
-extern Res WriteF_v(mps_lib_FILE *stream, va_list args);
-extern Res WriteF_firstformat_v(mps_lib_FILE *stream,
+EXTERN Res WriteF(mps_lib_FILE *stream, ...);
+EXTERN Res WriteF_v(mps_lib_FILE *stream, va_list args);
+EXTERN Res WriteF_firstformat_v(mps_lib_FILE *stream,
                                 const char *firstformat, va_list args);
 
 #if defined(DIAG_WITH_STREAM_AND_WRITEF)
-extern int Stream_fputc(int c, mps_lib_FILE *stream);
-extern int Stream_fputs(const char *s, mps_lib_FILE *stream);
+EXTERN int Stream_fputc(int c, mps_lib_FILE *stream);
+EXTERN int Stream_fputs(const char *s, mps_lib_FILE *stream);
 #else
 #define Stream_fputc mps_lib_fputc
 #define Stream_fputs mps_lib_fputs
@@ -165,112 +165,112 @@ extern int Stream_fputs(const char *s, mps_lib_FILE *stream);
 
 /* Miscellaneous support -- see <code/mpm.c> */
 
-extern size_t StringLength(const char *s);
-extern Bool StringEqual(const char *s1, const char *s2);
+EXTERN size_t StringLength(const char *s);
+EXTERN Bool StringEqual(const char *s1, const char *s2);
 
 
 /* Version Determination
  *
  * See <design/version-library/>.  */
 
-extern char *MPSVersion(void);
+EXTERN char *MPSVersion(void);
 
 
 /* Pool Interface -- see impl.c.pool */
 
-extern Res PoolInit(Pool pool, Arena arena, PoolClass class, ...);
-extern Res PoolInitV(Pool pool, Arena arena, PoolClass class, va_list args);
-extern void PoolFinish(Pool pool);
-extern Bool PoolClassCheck(PoolClass class);
-extern Bool PoolCheck(Pool pool);
-extern Res PoolDescribe(Pool pool, mps_lib_FILE *stream);
+EXTERN Res PoolInit(Pool pool, Arena arena, PoolClass class, ...);
+EXTERN Res PoolInitV(Pool pool, Arena arena, PoolClass class, va_list args);
+EXTERN void PoolFinish(Pool pool);
+EXTERN Bool PoolClassCheck(PoolClass class);
+EXTERN Bool PoolCheck(Pool pool);
+EXTERN Res PoolDescribe(Pool pool, mps_lib_FILE *stream);
 
 #define PoolArena(pool)         ((pool)->arena)
 #define PoolAlignment(pool)     ((pool)->alignment)
 #define PoolSegRing(pool)       (&(pool)->segRing)
 
-extern Bool PoolFormat(Format *formatReturn, Pool pool);
+EXTERN Bool PoolFormat(Format *formatReturn, Pool pool);
 
-extern double PoolMutatorAllocSize(Pool pool);
+EXTERN double PoolMutatorAllocSize(Pool pool);
 
-extern Bool PoolOfAddr(Pool *poolReturn, Arena arena, Addr addr);
-extern Bool PoolHasAddr(Pool pool, Addr addr);
+EXTERN Bool PoolOfAddr(Pool *poolReturn, Arena arena, Addr addr);
+EXTERN Bool PoolHasAddr(Pool pool, Addr addr);
 
-extern Res PoolCreate(Pool *poolReturn, Arena arena, PoolClass class, ...);
-extern Res PoolCreateV(Pool *poolReturn, Arena arena, PoolClass class,
+EXTERN Res PoolCreate(Pool *poolReturn, Arena arena, PoolClass class, ...);
+EXTERN Res PoolCreateV(Pool *poolReturn, Arena arena, PoolClass class,
                        va_list arg);
-extern void PoolDestroy(Pool pool);
-extern BufferClass PoolDefaultBufferClass(Pool pool);
-extern Res PoolAlloc(Addr *pReturn, Pool pool, Size size,
+EXTERN void PoolDestroy(Pool pool);
+EXTERN BufferClass PoolDefaultBufferClass(Pool pool);
+EXTERN Res PoolAlloc(Addr *pReturn, Pool pool, Size size,
                      Bool withReservoirPermit);
-extern void PoolFree(Pool pool, Addr old, Size size);
-extern Res PoolTraceBegin(Pool pool, Trace trace);
-extern Res PoolAccess(Pool pool, Seg seg, Addr addr,
+EXTERN void PoolFree(Pool pool, Addr old, Size size);
+EXTERN Res PoolTraceBegin(Pool pool, Trace trace);
+EXTERN Res PoolAccess(Pool pool, Seg seg, Addr addr,
                       AccessSet mode, MutatorFaultContext context);
-extern Res PoolWhiten(Pool pool, Trace trace, Seg seg);
-extern void PoolGrey(Pool pool, Trace trace, Seg seg);
-extern void PoolBlacken(Pool pool, TraceSet traceSet, Seg seg);
-extern Res PoolScan(Bool *totalReturn, ScanState ss, Pool pool, Seg seg);
-extern Res (PoolFix)(Pool pool, ScanState ss, Seg seg, Addr *refIO);
+EXTERN Res PoolWhiten(Pool pool, Trace trace, Seg seg);
+EXTERN void PoolGrey(Pool pool, Trace trace, Seg seg);
+EXTERN void PoolBlacken(Pool pool, TraceSet traceSet, Seg seg);
+EXTERN Res PoolScan(Bool *totalReturn, ScanState ss, Pool pool, Seg seg);
+EXTERN Res (PoolFix)(Pool pool, ScanState ss, Seg seg, Addr *refIO);
 #define PoolFix(pool, ss, seg, refIO) \
   ((*(pool)->fix)(pool, ss, seg, refIO))
-extern Res PoolFixEmergency(Pool pool, ScanState ss, Seg seg, Addr *refIO);
-extern void PoolReclaim(Pool pool, Trace trace, Seg seg);
-extern void PoolTraceEnd(Pool pool, Trace trace);
-extern void PoolWalk(Pool pool, Seg seg, FormattedObjectsStepMethod f,
+EXTERN Res PoolFixEmergency(Pool pool, ScanState ss, Seg seg, Addr *refIO);
+EXTERN void PoolReclaim(Pool pool, Trace trace, Seg seg);
+EXTERN void PoolTraceEnd(Pool pool, Trace trace);
+EXTERN void PoolWalk(Pool pool, Seg seg, FormattedObjectsStepMethod f,
                      void *v, size_t s);
-extern void PoolFreeWalk(Pool pool, FreeBlockStepMethod f, void *p);
-extern Res PoolTrivInit(Pool pool, va_list arg);
-extern void PoolTrivFinish(Pool pool);
-extern Res PoolNoAlloc(Addr *pReturn, Pool pool, Size size,
+EXTERN void PoolFreeWalk(Pool pool, FreeBlockStepMethod f, void *p);
+EXTERN Res PoolTrivInit(Pool pool, va_list arg);
+EXTERN void PoolTrivFinish(Pool pool);
+EXTERN Res PoolNoAlloc(Addr *pReturn, Pool pool, Size size,
                        Bool withReservoirPermit);
-extern Res PoolTrivAlloc(Addr *pReturn, Pool pool, Size size,
+EXTERN Res PoolTrivAlloc(Addr *pReturn, Pool pool, Size size,
                          Bool withReservoirPermit);
-extern void PoolNoFree(Pool pool, Addr old, Size size);
-extern void PoolTrivFree(Pool pool, Addr old, Size size);
-extern Res PoolNoBufferFill(Addr *baseReturn, Addr *limitReturn,
+EXTERN void PoolNoFree(Pool pool, Addr old, Size size);
+EXTERN void PoolTrivFree(Pool pool, Addr old, Size size);
+EXTERN Res PoolNoBufferFill(Addr *baseReturn, Addr *limitReturn,
                             Pool pool, Buffer buffer, Size size,
                             Bool withReservoirPermit);
-extern Res PoolTrivBufferFill(Addr *baseReturn, Addr *limitReturn,
+EXTERN Res PoolTrivBufferFill(Addr *baseReturn, Addr *limitReturn,
                               Pool pool, Buffer buffer, Size size,
                               Bool withReservoirPermit);
-extern void PoolNoBufferEmpty(Pool pool, Buffer buffer,
+EXTERN void PoolNoBufferEmpty(Pool pool, Buffer buffer,
                               Addr init, Addr limit);
-extern void PoolTrivBufferEmpty(Pool pool, Buffer buffer,
+EXTERN void PoolTrivBufferEmpty(Pool pool, Buffer buffer,
                                 Addr init, Addr limit);
-extern Res PoolTrivDescribe(Pool pool, mps_lib_FILE *stream);
-extern Res PoolNoTraceBegin(Pool pool, Trace trace);
-extern Res PoolTrivTraceBegin(Pool pool, Trace trace);
-extern Res PoolNoAccess(Pool pool, Seg seg, Addr addr,
+EXTERN Res PoolTrivDescribe(Pool pool, mps_lib_FILE *stream);
+EXTERN Res PoolNoTraceBegin(Pool pool, Trace trace);
+EXTERN Res PoolTrivTraceBegin(Pool pool, Trace trace);
+EXTERN Res PoolNoAccess(Pool pool, Seg seg, Addr addr,
                         AccessSet mode, MutatorFaultContext context);
-extern Res PoolSegAccess(Pool pool, Seg seg, Addr addr,
+EXTERN Res PoolSegAccess(Pool pool, Seg seg, Addr addr,
                          AccessSet mode, MutatorFaultContext context);
-extern Res PoolSingleAccess(Pool pool, Seg seg, Addr addr,
+EXTERN Res PoolSingleAccess(Pool pool, Seg seg, Addr addr,
                             AccessSet mode, MutatorFaultContext context);
-extern Res PoolNoWhiten(Pool pool, Trace trace, Seg seg);
-extern Res PoolTrivWhiten(Pool pool, Trace trace, Seg seg);
-extern void PoolNoGrey(Pool pool, Trace trace, Seg seg);
-extern void PoolTrivGrey(Pool pool, Trace trace, Seg seg);
-extern void PoolNoBlacken(Pool pool, TraceSet traceSet, Seg seg);
-extern void PoolTrivBlacken(Pool pool, TraceSet traceSet, Seg seg);
-extern Res PoolNoScan(Bool *totalReturn, ScanState ss, Pool pool, Seg seg);
-extern Res PoolNoFix(Pool pool, ScanState ss, Seg seg, Ref *refIO);
-extern void PoolNoReclaim(Pool pool, Trace trace, Seg seg);
-extern void PoolTrivTraceEnd(Pool pool, Trace trace);
-extern void PoolNoRampBegin(Pool pool, Buffer buf, Bool collectAll);
-extern void PoolTrivRampBegin(Pool pool, Buffer buf, Bool collectAll);
-extern void PoolNoRampEnd(Pool pool, Buffer buf);
-extern void PoolTrivRampEnd(Pool pool, Buffer buf);
-extern Res PoolNoFramePush(AllocFrame *frameReturn, Pool pool, Buffer buf);
-extern Res PoolTrivFramePush(AllocFrame *frameReturn, Pool pool, Buffer buf);
-extern Res PoolNoFramePop(Pool pool, Buffer buf, AllocFrame frame);
-extern Res PoolTrivFramePop(Pool pool, Buffer buf, AllocFrame frame);
-extern void PoolNoFramePopPending(Pool pool, Buffer buf, AllocFrame frame);
-extern void PoolNoWalk(Pool pool, Seg seg, FormattedObjectsStepMethod step,
+EXTERN Res PoolNoWhiten(Pool pool, Trace trace, Seg seg);
+EXTERN Res PoolTrivWhiten(Pool pool, Trace trace, Seg seg);
+EXTERN void PoolNoGrey(Pool pool, Trace trace, Seg seg);
+EXTERN void PoolTrivGrey(Pool pool, Trace trace, Seg seg);
+EXTERN void PoolNoBlacken(Pool pool, TraceSet traceSet, Seg seg);
+EXTERN void PoolTrivBlacken(Pool pool, TraceSet traceSet, Seg seg);
+EXTERN Res PoolNoScan(Bool *totalReturn, ScanState ss, Pool pool, Seg seg);
+EXTERN Res PoolNoFix(Pool pool, ScanState ss, Seg seg, Ref *refIO);
+EXTERN void PoolNoReclaim(Pool pool, Trace trace, Seg seg);
+EXTERN void PoolTrivTraceEnd(Pool pool, Trace trace);
+EXTERN void PoolNoRampBegin(Pool pool, Buffer buf, Bool collectAll);
+EXTERN void PoolTrivRampBegin(Pool pool, Buffer buf, Bool collectAll);
+EXTERN void PoolNoRampEnd(Pool pool, Buffer buf);
+EXTERN void PoolTrivRampEnd(Pool pool, Buffer buf);
+EXTERN Res PoolNoFramePush(AllocFrame *frameReturn, Pool pool, Buffer buf);
+EXTERN Res PoolTrivFramePush(AllocFrame *frameReturn, Pool pool, Buffer buf);
+EXTERN Res PoolNoFramePop(Pool pool, Buffer buf, AllocFrame frame);
+EXTERN Res PoolTrivFramePop(Pool pool, Buffer buf, AllocFrame frame);
+EXTERN void PoolNoFramePopPending(Pool pool, Buffer buf, AllocFrame frame);
+EXTERN void PoolNoWalk(Pool pool, Seg seg, FormattedObjectsStepMethod step,
                        void *p, size_t s);
-extern void PoolNoFreeWalk(Pool pool, FreeBlockStepMethod f, void *p);
-extern PoolDebugMixin PoolNoDebugMixin(Pool pool);
-extern BufferClass PoolNoBufferClass(void);
+EXTERN void PoolNoFreeWalk(Pool pool, FreeBlockStepMethod f, void *p);
+EXTERN PoolDebugMixin PoolNoDebugMixin(Pool pool);
+EXTERN BufferClass PoolNoBufferClass(void);
 
 #define ClassOfPool(pool) ((pool)->class)
 #define SuperclassOfPool(pool) \
@@ -278,17 +278,17 @@ extern BufferClass PoolNoBufferClass(void);
 
 
 /* Abstract Pool Classes Interface -- see <code/poolabs.c> */
-extern void PoolClassMixInAllocFree(PoolClass class);
-extern void PoolClassMixInBuffer(PoolClass class);
-extern void PoolClassMixInScan(PoolClass class);
-extern void PoolClassMixInFormat(PoolClass class);
-extern void PoolClassMixInCollect(PoolClass class);
-extern AbstractPoolClass AbstractPoolClassGet(void);
-extern AbstractAllocFreePoolClass AbstractAllocFreePoolClassGet(void);
-extern AbstractBufferPoolClass AbstractBufferPoolClassGet(void);
-extern AbstractBufferPoolClass AbstractSegBufPoolClassGet(void);
-extern AbstractScanPoolClass AbstractScanPoolClassGet(void);
-extern AbstractCollectPoolClass AbstractCollectPoolClassGet(void);
+EXTERN void PoolClassMixInAllocFree(PoolClass class);
+EXTERN void PoolClassMixInBuffer(PoolClass class);
+EXTERN void PoolClassMixInScan(PoolClass class);
+EXTERN void PoolClassMixInFormat(PoolClass class);
+EXTERN void PoolClassMixInCollect(PoolClass class);
+EXTERN AbstractPoolClass AbstractPoolClassGet(void);
+EXTERN AbstractAllocFreePoolClass AbstractAllocFreePoolClassGet(void);
+EXTERN AbstractBufferPoolClass AbstractBufferPoolClassGet(void);
+EXTERN AbstractBufferPoolClass AbstractSegBufPoolClassGet(void);
+EXTERN AbstractScanPoolClass AbstractScanPoolClassGet(void);
+EXTERN AbstractCollectPoolClass AbstractCollectPoolClassGet(void);
 
 /* DEFINE_POOL_CLASS
  *
@@ -303,42 +303,42 @@ extern AbstractCollectPoolClass AbstractCollectPoolClassGet(void);
 
 /* Message Interface -- see <design/message/> */
 /* -- Internal (MPM) Interface -- functions for message originator */
-extern Bool MessageCheck(Message message);
-extern Bool MessageClassCheck(MessageClass class);
-extern Bool MessageTypeCheck(MessageType type);
-extern void MessageInit(Arena arena, Message message,
+EXTERN Bool MessageCheck(Message message);
+EXTERN Bool MessageClassCheck(MessageClass class);
+EXTERN Bool MessageTypeCheck(MessageType type);
+EXTERN void MessageInit(Arena arena, Message message,
                         MessageClass class, MessageType type);
-extern void MessageFinish(Message message);
-extern Arena MessageArena(Message message);
-extern Bool MessageOnQueue(Message message);
-extern void MessagePost(Arena arena, Message message);
-extern void MessageEmpty(Arena arena);
+EXTERN void MessageFinish(Message message);
+EXTERN Arena MessageArena(Message message);
+EXTERN Bool MessageOnQueue(Message message);
+EXTERN void MessagePost(Arena arena, Message message);
+EXTERN void MessageEmpty(Arena arena);
 /* -- Delivery (Client) Interface -- functions for recipient */
-extern void MessageTypeEnable(Arena arena, MessageType type);
-extern void MessageTypeDisable(Arena arena, MessageType type);
-extern Bool MessagePoll(Arena arena);
-extern Bool MessageQueueType(MessageType *typeReturn, Arena arena);
-extern Bool MessageGet(Message *messageReturn, Arena arena,
+EXTERN void MessageTypeEnable(Arena arena, MessageType type);
+EXTERN void MessageTypeDisable(Arena arena, MessageType type);
+EXTERN Bool MessagePoll(Arena arena);
+EXTERN Bool MessageQueueType(MessageType *typeReturn, Arena arena);
+EXTERN Bool MessageGet(Message *messageReturn, Arena arena,
                        MessageType type);
-extern void MessageDiscard(Arena arena, Message message);
+EXTERN void MessageDiscard(Arena arena, Message message);
 /* -- Message Methods, Generic */
-extern MessageType MessageGetType(Message message);
-extern MessageClass MessageGetClass(Message message);
-extern Clock MessageGetClock(Message message);
+EXTERN MessageType MessageGetType(Message message);
+EXTERN MessageClass MessageGetClass(Message message);
+EXTERN Clock MessageGetClock(Message message);
 /* -- Message Method Dispatchers, Type-specific */
-extern void MessageFinalizationRef(Ref *refReturn,
+EXTERN void MessageFinalizationRef(Ref *refReturn,
                                    Arena arena, Message message);
-extern Size MessageGCLiveSize(Message message);
-extern Size MessageGCCondemnedSize(Message message);
-extern Size MessageGCNotCondemnedSize(Message message);
-extern const char *MessageGCStartWhy(Message message);
+EXTERN Size MessageGCLiveSize(Message message);
+EXTERN Size MessageGCCondemnedSize(Message message);
+EXTERN Size MessageGCNotCondemnedSize(Message message);
+EXTERN const char *MessageGCStartWhy(Message message);
 /* -- Message Method Stubs, Type-specific */
-extern void MessageNoFinalizationRef(Ref *refReturn,
+EXTERN void MessageNoFinalizationRef(Ref *refReturn,
                                      Arena arena, Message message);
-extern Size MessageNoGCLiveSize(Message message);
-extern Size MessageNoGCCondemnedSize(Message message);
-extern Size MessageNoGCNotCondemnedSize(Message message);
-extern const char *MessageNoGCStartWhy(Message message);
+EXTERN Size MessageNoGCLiveSize(Message message);
+EXTERN Size MessageNoGCCondemnedSize(Message message);
+EXTERN Size MessageNoGCNotCondemnedSize(Message message);
+EXTERN const char *MessageNoGCStartWhy(Message message);
 
 
 /* Trace Interface -- see <code/trace.c> */
@@ -363,12 +363,12 @@ extern const char *MessageNoGCStartWhy(Message message);
 #define TRACE_SET_ITER_END(ti, trace, ts, arena) } END
 
 
-extern void ScanStateInit(ScanState ss, TraceSet ts, Arena arena,
+EXTERN void ScanStateInit(ScanState ss, TraceSet ts, Arena arena,
                           Rank rank, ZoneSet white);
-extern void ScanStateFinish(ScanState ss);
-extern Bool ScanStateCheck(ScanState ss);
-extern void ScanStateSetSummary(ScanState ss, RefSet summary);
-extern RefSet ScanStateSummary(ScanState ss);
+EXTERN void ScanStateFinish(ScanState ss);
+EXTERN Bool ScanStateCheck(ScanState ss);
+EXTERN void ScanStateSetSummary(ScanState ss, RefSet summary);
+EXTERN RefSet ScanStateSummary(ScanState ss);
 
 /* See impl.h.mpmst.ss */
 #define ScanStateZoneShift(ss)             ((Shift)(ss)->ss_s._zs)
@@ -378,38 +378,38 @@ extern RefSet ScanStateSummary(ScanState ss);
 #define ScanStateSetWhite(ss, zs)          ((void)((ss)->ss_s._w = (zs)))
 #define ScanStateSetUnfixedSummary(ss, rs) ((void)((ss)->ss_s._ufs = (rs)))
 
-extern Bool TraceIdCheck(TraceId id);
-extern Bool TraceSetCheck(TraceSet ts);
-extern Bool TraceCheck(Trace trace);
-extern Res TraceCreate(Trace *traceReturn, Arena arena, int why);
-extern void TraceDestroy(Trace trace);
+EXTERN Bool TraceIdCheck(TraceId id);
+EXTERN Bool TraceSetCheck(TraceSet ts);
+EXTERN Bool TraceCheck(Trace trace);
+EXTERN Res TraceCreate(Trace *traceReturn, Arena arena, int why);
+EXTERN void TraceDestroy(Trace trace);
 
-extern Res TraceAddWhite(Trace trace, Seg seg);
-extern Res TraceCondemnZones(Trace trace, ZoneSet condemnedSet);
-extern Res TraceStart(Trace trace, double mortality, double finishingTime);
-extern Size TracePoll(Globals globals);
+EXTERN Res TraceAddWhite(Trace trace, Seg seg);
+EXTERN Res TraceCondemnZones(Trace trace, ZoneSet condemnedSet);
+EXTERN Res TraceStart(Trace trace, double mortality, double finishingTime);
+EXTERN Size TracePoll(Globals globals);
 
-extern Rank TraceRankForAccess(Arena arena, Seg seg);
-extern void TraceSegAccess(Arena arena, Seg seg, AccessSet mode);
+EXTERN Rank TraceRankForAccess(Arena arena, Seg seg);
+EXTERN void TraceSegAccess(Arena arena, Seg seg, AccessSet mode);
 
-extern void TraceQuantum(Trace trace);
-extern Res TraceStartCollectAll(Trace *traceReturn, Arena arena, int why);
+EXTERN void TraceQuantum(Trace trace);
+EXTERN Res TraceStartCollectAll(Trace *traceReturn, Arena arena, int why);
 
 /* traceanc.c -- Trace Ancillary */
 
-extern Bool TraceStartMessageCheck(TraceStartMessage message);
-extern const char *TraceStartWhyToString(int why);
-extern void TracePostStartMessage(Trace trace);
-extern Bool TraceMessageCheck(TraceMessage message);  /* trace end */
-extern void TracePostMessage(Trace trace);  /* trace end */
-extern Bool TraceIdMessagesCheck(Arena arena, TraceId ti);
-extern Res TraceIdMessagesCreate(Arena arena, TraceId ti);
-extern void TraceIdMessagesDestroy(Arena arena, TraceId ti);
+EXTERN Bool TraceStartMessageCheck(TraceStartMessage message);
+EXTERN const char *TraceStartWhyToString(int why);
+EXTERN void TracePostStartMessage(Trace trace);
+EXTERN Bool TraceMessageCheck(TraceMessage message);  /* trace end */
+EXTERN void TracePostMessage(Trace trace);  /* trace end */
+EXTERN Bool TraceIdMessagesCheck(Arena arena, TraceId ti);
+EXTERN Res TraceIdMessagesCreate(Arena arena, TraceId ti);
+EXTERN void TraceIdMessagesDestroy(Arena arena, TraceId ti);
 
 /* Collection control parameters */
 
-extern double TraceTopGenMortality;
-extern double TraceWorkFactor;
+EXTERN double TraceTopGenMortality;
+EXTERN double TraceWorkFactor;
 
 
 /* Equivalent to <code/mps.h> MPS_SCAN_BEGIN */
@@ -461,11 +461,11 @@ extern double TraceWorkFactor;
     } \
   END
 
-extern Res TraceScanArea(ScanState ss, Addr *base, Addr *limit);
-extern Res TraceScanAreaTagged(ScanState ss, Addr *base, Addr *limit);
-extern Res TraceScanAreaMasked(ScanState ss,
+EXTERN Res TraceScanArea(ScanState ss, Addr *base, Addr *limit);
+EXTERN Res TraceScanAreaTagged(ScanState ss, Addr *base, Addr *limit);
+EXTERN Res TraceScanAreaMasked(ScanState ss,
                                Addr *base, Addr *limit, Word mask);
-extern void TraceScanSingleRef(TraceSet ts, Rank rank, Arena arena,
+EXTERN void TraceScanSingleRef(TraceSet ts, Rank rank, Arena arena,
                                Seg seg, Ref *refIO);
 
 
@@ -481,25 +481,25 @@ extern void TraceScanSingleRef(TraceSet ts, Rank rank, Arena arena,
 #define ARENA_SUPERCLASS(className) \
   ((ArenaClass)SUPERCLASS(className))
 
-extern AbstractArenaClass AbstractArenaClassGet(void);
-extern Bool ArenaClassCheck(ArenaClass class);
+EXTERN AbstractArenaClass AbstractArenaClassGet(void);
+EXTERN Bool ArenaClassCheck(ArenaClass class);
 
-extern Bool ArenaCheck(Arena arena);
-extern Res ArenaCreateV(Arena *arenaReturn, ArenaClass class, va_list args);
-extern void ArenaDestroy(Arena arena);
-extern Res ArenaInit(Arena arena, ArenaClass class);
-extern void ArenaFinish(Arena arena);
-extern Res ArenaDescribe(Arena arena, mps_lib_FILE *stream);
-extern Res ArenaDescribeTracts(Arena arena, mps_lib_FILE *stream);
-extern Bool ArenaAccess(Addr addr, AccessSet mode, MutatorFaultContext context);
+EXTERN Bool ArenaCheck(Arena arena);
+EXTERN Res ArenaCreateV(Arena *arenaReturn, ArenaClass class, va_list args);
+EXTERN void ArenaDestroy(Arena arena);
+EXTERN Res ArenaInit(Arena arena, ArenaClass class);
+EXTERN void ArenaFinish(Arena arena);
+EXTERN Res ArenaDescribe(Arena arena, mps_lib_FILE *stream);
+EXTERN Res ArenaDescribeTracts(Arena arena, mps_lib_FILE *stream);
+EXTERN Bool ArenaAccess(Addr addr, AccessSet mode, MutatorFaultContext context);
 
-extern Bool GlobalsCheck(Globals arena);
-extern Res GlobalsInit(Globals arena);
-extern void GlobalsFinish(Globals arena);
-extern Res GlobalsCompleteCreate(Globals arenaGlobals);
-extern void GlobalsPrepareToDestroy(Globals arenaGlobals);
-extern Res GlobalsDescribe(Globals arena, mps_lib_FILE *stream);
-extern Ring GlobalsRememberedSummaryRing(Globals);
+EXTERN Bool GlobalsCheck(Globals arena);
+EXTERN Res GlobalsInit(Globals arena);
+EXTERN void GlobalsFinish(Globals arena);
+EXTERN Res GlobalsCompleteCreate(Globals arenaGlobals);
+EXTERN void GlobalsPrepareToDestroy(Globals arenaGlobals);
+EXTERN Res GlobalsDescribe(Globals arena, mps_lib_FILE *stream);
+EXTERN Ring GlobalsRememberedSummaryRing(Globals);
 
 #define ArenaGlobals(arena) (&(arena)->globals)
 #define GlobalsArena(glob) PARENT(ArenaStruct, globals, glob)
@@ -514,43 +514,43 @@ extern Ring GlobalsRememberedSummaryRing(Globals);
 #define ArenaGreyRing(arena, rank) (&(arena)->greyRing[rank])
 
 
-extern void (ArenaEnter)(Arena arena);
-extern void (ArenaLeave)(Arena arena);
+EXTERN void (ArenaEnter)(Arena arena);
+EXTERN void (ArenaLeave)(Arena arena);
 
 #if defined(THREAD_SINGLE) && defined(PROTECTION_NONE)
 #define ArenaEnter(arena)  UNUSED(arena)
 #define ArenaLeave(arena)  UNUSED(arena)
 #endif
 
-extern void ArenaEnterRecursive(Arena arena);
-extern void ArenaLeaveRecursive(Arena arena);
+EXTERN void ArenaEnterRecursive(Arena arena);
+EXTERN void ArenaLeaveRecursive(Arena arena);
 
-extern void (ArenaPoll)(Globals globals);
+EXTERN void (ArenaPoll)(Globals globals);
 #ifdef MPS_PROD_EPCORE
 #define ArenaPoll(globals)  UNUSED(globals)
 #endif
 /* .nogc.why: ScriptWorks doesn't use MM-provided incremental GC, so */
 /* doesn't need to poll when allocating. */
 
-extern Bool (ArenaStep)(Globals globals, double interval, double multiplier);
-extern void ArenaClamp(Globals globals);
-extern void ArenaRelease(Globals globals);
-extern void ArenaPark(Globals globals);
-extern void ArenaExposeRemember(Globals globals, int remember);
-extern void ArenaRestoreProtection(Globals globals);
-extern Res ArenaStartCollect(Globals globals, int why);
-extern Res ArenaCollect(Globals globals, int why);
-extern Bool ArenaHasAddr(Arena arena, Addr addr);
+EXTERN Bool (ArenaStep)(Globals globals, double interval, double multiplier);
+EXTERN void ArenaClamp(Globals globals);
+EXTERN void ArenaRelease(Globals globals);
+EXTERN void ArenaPark(Globals globals);
+EXTERN void ArenaExposeRemember(Globals globals, int remember);
+EXTERN void ArenaRestoreProtection(Globals globals);
+EXTERN Res ArenaStartCollect(Globals globals, int why);
+EXTERN Res ArenaCollect(Globals globals, int why);
+EXTERN Bool ArenaHasAddr(Arena arena, Addr addr);
 
-extern void ArenaSetEmergency(Arena arena, Bool emergency);
-extern Bool ArenaEmergency(Arena arean);
+EXTERN void ArenaSetEmergency(Arena arena, Bool emergency);
+EXTERN Bool ArenaEmergency(Arena arean);
 
-extern Res ControlInit(Arena arena);
-extern void ControlFinish(Arena arena);
-extern Res ControlAlloc(void **baseReturn, Arena arena, size_t size,
+EXTERN Res ControlInit(Arena arena);
+EXTERN void ControlFinish(Arena arena);
+EXTERN Res ControlAlloc(void **baseReturn, Arena arena, size_t size,
                         Bool withReservoirPermit);
-extern void ControlFree(Arena arena, void *base, size_t size);
-extern Res ControlDescribe(Arena arena, mps_lib_FILE *stream);
+EXTERN void ControlFree(Arena arena, void *base, size_t size);
+EXTERN Res ControlDescribe(Arena arena, mps_lib_FILE *stream);
 
 
 /* Peek/Poke
@@ -563,13 +563,13 @@ extern Res ControlDescribe(Arena arena, mps_lib_FILE *stream);
  * may not be in arena managed memory.  */
 
 /* Peek reads a value */
-extern Ref ArenaPeek(Arena arena, Ref *p);
+EXTERN Ref ArenaPeek(Arena arena, Ref *p);
 /* Same, but p must be in seg */
-extern Ref ArenaPeekSeg(Arena arena, Seg seg, Ref *p);
+EXTERN Ref ArenaPeekSeg(Arena arena, Seg seg, Ref *p);
 /* Poke stores a value */
-extern void ArenaPoke(Arena arena, Ref *p, Ref ref);
+EXTERN void ArenaPoke(Arena arena, Ref *p, Ref ref);
 /* Same, but p must be in seg */
-extern void ArenaPokeSeg(Arena arena, Seg seg, Ref *p, Ref ref);
+EXTERN void ArenaPokeSeg(Arena arena, Seg seg, Ref *p, Ref ref);
 
 
 /* Read/Write
@@ -584,85 +584,85 @@ extern void ArenaPokeSeg(Arena arena, Seg seg, Ref *p, Ref ref);
 Ref ArenaRead(Arena arena, Ref *p);
 
 
-extern Size ArenaReserved(Arena arena);
-extern Size ArenaCommitted(Arena arena);
-extern Size ArenaSpareCommitted(Arena arena);
+EXTERN Size ArenaReserved(Arena arena);
+EXTERN Size ArenaCommitted(Arena arena);
+EXTERN Size ArenaSpareCommitted(Arena arena);
 
-extern Size ArenaCommitLimit(Arena arena);
-extern Res ArenaSetCommitLimit(Arena arena, Size limit);
-extern Size ArenaSpareCommitLimit(Arena arena);
-extern void ArenaSetSpareCommitLimit(Arena arena, Size limit);
-extern void ArenaNoSpareCommitExceeded(Arena arena);
+EXTERN Size ArenaCommitLimit(Arena arena);
+EXTERN Res ArenaSetCommitLimit(Arena arena, Size limit);
+EXTERN Size ArenaSpareCommitLimit(Arena arena);
+EXTERN void ArenaSetSpareCommitLimit(Arena arena, Size limit);
+EXTERN void ArenaNoSpareCommitExceeded(Arena arena);
 
-extern double ArenaMutatorAllocSize(Arena arena);
-extern Size ArenaAvail(Arena arena);
+EXTERN double ArenaMutatorAllocSize(Arena arena);
+EXTERN Size ArenaAvail(Arena arena);
 
-extern Res ArenaExtend(Arena, Addr base, Size size);
+EXTERN Res ArenaExtend(Arena, Addr base, Size size);
 
-extern void ArenaCompact(Arena arena, Trace trace);
+EXTERN void ArenaCompact(Arena arena, Trace trace);
 
-extern Res ArenaFinalize(Arena arena, Ref obj);
-extern Res ArenaDefinalize(Arena arena, Ref obj);
+EXTERN Res ArenaFinalize(Arena arena, Ref obj);
+EXTERN Res ArenaDefinalize(Arena arena, Ref obj);
 
-extern Bool ArenaIsReservedAddr(Arena arena, Addr addr);
+EXTERN Bool ArenaIsReservedAddr(Arena arena, Addr addr);
 
 #define ArenaReservoir(arena) (&(arena)->reservoirStruct)
 
-extern Bool ReservoirCheck(Reservoir reservoir);
-extern Res ReservoirInit(Reservoir reservoir, Arena arena);
-extern void ReservoirFinish (Reservoir reservoir);
-extern Size ReservoirLimit(Reservoir reservoir);
-extern void ReservoirSetLimit(Reservoir reservoir, Size size);
-extern Size ReservoirAvailable(Reservoir reservoir);
-extern Res ReservoirEnsureFull(Reservoir reservoir);
-extern void ReservoirDeposit(Reservoir reservoir, Addr base, Size size);
-extern Res ReservoirWithdraw(Addr *baseReturn, Tract *baseTractReturn,
+EXTERN Bool ReservoirCheck(Reservoir reservoir);
+EXTERN Res ReservoirInit(Reservoir reservoir, Arena arena);
+EXTERN void ReservoirFinish (Reservoir reservoir);
+EXTERN Size ReservoirLimit(Reservoir reservoir);
+EXTERN void ReservoirSetLimit(Reservoir reservoir, Size size);
+EXTERN Size ReservoirAvailable(Reservoir reservoir);
+EXTERN Res ReservoirEnsureFull(Reservoir reservoir);
+EXTERN void ReservoirDeposit(Reservoir reservoir, Addr base, Size size);
+EXTERN Res ReservoirWithdraw(Addr *baseReturn, Tract *baseTractReturn,
                              Reservoir reservoir, Size size, Pool pool);
 
-extern Res ArenaAlloc(Addr *baseReturn, SegPref pref,
+EXTERN Res ArenaAlloc(Addr *baseReturn, SegPref pref,
                       Size size, Pool pool, Bool withReservoirPermit);
-extern void ArenaFree(Addr base, Size size, Pool pool);
+EXTERN void ArenaFree(Addr base, Size size, Pool pool);
 
-extern Res ArenaNoExtend(Arena arena, Addr base, Size size);
+EXTERN Res ArenaNoExtend(Arena arena, Addr base, Size size);
 
 
 /* Locus interface */
 
-extern Bool SegPrefCheck(SegPref pref);
-extern SegPref SegPrefDefault(void);
-extern void SegPrefExpress(SegPref pref, SegPrefKind kind, void *p);
+EXTERN Bool SegPrefCheck(SegPref pref);
+EXTERN SegPref SegPrefDefault(void);
+EXTERN void SegPrefExpress(SegPref pref, SegPrefKind kind, void *p);
 
-extern void LocusInit(Arena arena);
-extern void LocusFinish(Arena arena);
-extern Bool LocusCheck(Arena arena);
+EXTERN void LocusInit(Arena arena);
+EXTERN void LocusFinish(Arena arena);
+EXTERN Bool LocusCheck(Arena arena);
 
 
 /* Segment interface */
 
-extern Res SegAlloc(Seg *segReturn, SegClass class, SegPref pref,
+EXTERN Res SegAlloc(Seg *segReturn, SegClass class, SegPref pref,
                     Size size, Pool pool, Bool withReservoirPermit, ...);
-extern void SegFree(Seg seg);
-extern Bool SegOfAddr(Seg *segReturn, Arena arena, Addr addr);
-extern Bool SegFirst(Seg *segReturn, Arena arena);
-extern Bool SegNext(Seg *segReturn, Arena arena, Addr addr);
-extern void SegSetWhite(Seg seg, TraceSet white);
-extern void SegSetGrey(Seg seg, TraceSet grey);
-extern void SegSetRankSet(Seg seg, RankSet rankSet);
-extern void SegSetRankAndSummary(Seg seg, RankSet rankSet, RefSet summary);
-extern Res SegMerge(Seg *mergedSegReturn, Seg segLo, Seg segHi,
+EXTERN void SegFree(Seg seg);
+EXTERN Bool SegOfAddr(Seg *segReturn, Arena arena, Addr addr);
+EXTERN Bool SegFirst(Seg *segReturn, Arena arena);
+EXTERN Bool SegNext(Seg *segReturn, Arena arena, Addr addr);
+EXTERN void SegSetWhite(Seg seg, TraceSet white);
+EXTERN void SegSetGrey(Seg seg, TraceSet grey);
+EXTERN void SegSetRankSet(Seg seg, RankSet rankSet);
+EXTERN void SegSetRankAndSummary(Seg seg, RankSet rankSet, RefSet summary);
+EXTERN Res SegMerge(Seg *mergedSegReturn, Seg segLo, Seg segHi,
                     Bool withReservoirPermit, ...);
-extern Res SegSplit(Seg *segLoReturn, Seg *segHiReturn, Seg seg, Addr at,
+EXTERN Res SegSplit(Seg *segLoReturn, Seg *segHiReturn, Seg seg, Addr at,
                     Bool withReservoirPermit, ...);
-extern Res SegDescribe(Seg seg, mps_lib_FILE *stream);
-extern void SegSetSummary(Seg seg, RefSet summary);
-extern Buffer SegBuffer(Seg seg);
-extern void SegSetBuffer(Seg seg, Buffer buffer);
-extern Bool SegCheck(Seg seg);
-extern Bool GCSegCheck(GCSeg gcseg);
-extern Bool SegClassCheck(SegClass class);
-extern SegClass SegClassGet(void);
-extern SegClass GCSegClassGet(void);
-extern void SegClassMixInNoSplitMerge(SegClass class);
+EXTERN Res SegDescribe(Seg seg, mps_lib_FILE *stream);
+EXTERN void SegSetSummary(Seg seg, RefSet summary);
+EXTERN Buffer SegBuffer(Seg seg);
+EXTERN void SegSetBuffer(Seg seg, Buffer buffer);
+EXTERN Bool SegCheck(Seg seg);
+EXTERN Bool GCSegCheck(GCSeg gcseg);
+EXTERN Bool SegClassCheck(SegClass class);
+EXTERN SegClass SegClassGet(void);
+EXTERN SegClass GCSegClassGet(void);
+EXTERN void SegClassMixInNoSplitMerge(SegClass class);
 
 
 /* DEFINE_SEG_CLASS -- define a segment class */
@@ -676,9 +676,9 @@ extern void SegClassMixInNoSplitMerge(SegClass class);
 
 #define ClassOfSeg(seg) ((seg)->class)
 
-extern Size SegSize(Seg seg);
-extern Addr (SegBase)(Seg seg);
-extern Addr (SegLimit)(Seg seg);
+EXTERN Size SegSize(Seg seg);
+EXTERN Addr (SegBase)(Seg seg);
+EXTERN Addr (SegLimit)(Seg seg);
 #define SegBase(seg)            (TractBase((seg)->firstTract))
 #define SegLimit(seg)           ((seg)->limit)
 #define SegPool(seg)            (TractPool((seg)->firstTract))
@@ -706,15 +706,15 @@ extern Addr (SegLimit)(Seg seg);
 
 /* Buffer Interface -- see <code/buffer.c> */
 
-extern Res BufferCreate(Buffer *bufferReturn, BufferClass class,
+EXTERN Res BufferCreate(Buffer *bufferReturn, BufferClass class,
                         Pool pool, Bool isMutator, ...);
-extern Res BufferCreateV(Buffer *bufferReturn, BufferClass class,
+EXTERN Res BufferCreateV(Buffer *bufferReturn, BufferClass class,
                          Pool pool, Bool isMutator, va_list args);
-extern void BufferDestroy(Buffer buffer);
-extern Bool BufferCheck(Buffer buffer);
-extern Bool SegBufCheck(SegBuf segbuf);
-extern Res BufferDescribe(Buffer buffer, mps_lib_FILE *stream);
-extern Res BufferReserve(Addr *pReturn, Buffer buffer, Size size,
+EXTERN void BufferDestroy(Buffer buffer);
+EXTERN Bool BufferCheck(Buffer buffer);
+EXTERN Bool SegBufCheck(SegBuf segbuf);
+EXTERN Res BufferDescribe(Buffer buffer, mps_lib_FILE *stream);
+EXTERN Res BufferReserve(Addr *pReturn, Buffer buffer, Size size,
                          Bool withReservoirPermit);
 /* macro equivalent for BufferReserve, keep in sync with <code/buffer.c> */
 /* TODO: Perhaps this isn't really necessary now that we build the MPS with
@@ -727,10 +727,10 @@ extern Res BufferReserve(Addr *pReturn, Buffer buffer, Size size,
       ResOK) : \
    BufferFill(pReturn, buffer, size, withReservoirPermit))
 
-extern Res BufferFill(Addr *pReturn, Buffer buffer, Size size,
+EXTERN Res BufferFill(Addr *pReturn, Buffer buffer, Size size,
                       Bool withReservoirPermit);
 
-extern Bool BufferCommit(Buffer buffer, Addr p, Size size);
+EXTERN Bool BufferCommit(Buffer buffer, Addr p, Size size);
 /* macro equivalent for BufferCommit, keep in sync with <code/buffer.c> */
 /* TODO: Perhaps this isn't really necessary now that we build the MPS with
  more global optimisation and inlining. RB 2012-09-07 */
@@ -738,50 +738,50 @@ extern Bool BufferCommit(Buffer buffer, Addr p, Size size);
   (BufferAP(buffer)->init = BufferAlloc(buffer), \
    BufferAP(buffer)->limit != 0 || BufferTrip(buffer, p, size))
 
-extern Bool BufferTrip(Buffer buffer, Addr p, Size size);
-extern void BufferFinish(Buffer buffer);
-extern Bool BufferIsReset(Buffer buffer);
-extern Bool BufferIsReady(Buffer buffer);
-extern Bool BufferIsMutator(Buffer buffer);
-extern void BufferSetAllocAddr(Buffer buffer, Addr addr);
-extern void BufferAttach(Buffer buffer,
+EXTERN Bool BufferTrip(Buffer buffer, Addr p, Size size);
+EXTERN void BufferFinish(Buffer buffer);
+EXTERN Bool BufferIsReset(Buffer buffer);
+EXTERN Bool BufferIsReady(Buffer buffer);
+EXTERN Bool BufferIsMutator(Buffer buffer);
+EXTERN void BufferSetAllocAddr(Buffer buffer, Addr addr);
+EXTERN void BufferAttach(Buffer buffer,
                          Addr base, Addr limit, Addr init, Size size);
-extern void BufferDetach(Buffer buffer, Pool pool);
-extern void BufferFlip(Buffer buffer);
+EXTERN void BufferDetach(Buffer buffer, Pool pool);
+EXTERN void BufferFlip(Buffer buffer);
 
-extern mps_ap_t (BufferAP)(Buffer buffer);
+EXTERN mps_ap_t (BufferAP)(Buffer buffer);
 #define BufferAP(buffer)        (&(buffer)->ap_s)
-extern Buffer BufferOfAP(mps_ap_t ap);
+EXTERN Buffer BufferOfAP(mps_ap_t ap);
 #define BufferOfAP(ap)          PARENT(BufferStruct, ap_s, ap)
 
 #define BufferArena(buffer) ((buffer)->arena)
 #define BufferPool(buffer)  ((buffer)->pool)
 
-extern Seg BufferSeg(Buffer buffer);
+EXTERN Seg BufferSeg(Buffer buffer);
 
-extern RankSet BufferRankSet(Buffer buffer);
-extern void BufferSetRankSet(Buffer buffer, RankSet rankset);
+EXTERN RankSet BufferRankSet(Buffer buffer);
+EXTERN void BufferSetRankSet(Buffer buffer, RankSet rankset);
 
 #define BufferBase(buffer)      ((buffer)->base)
 #define BufferGetInit(buffer) /* see .trans.bufferinit */ \
   ((Addr)(BufferAP(buffer)->init))
 #define BufferAlloc(buffer)     ((Addr)(BufferAP(buffer)->alloc))
 #define BufferLimit(buffer)     ((buffer)->poolLimit)
-extern Addr BufferScanLimit(Buffer buffer);
+EXTERN Addr BufferScanLimit(Buffer buffer);
 
-extern void BufferReassignSeg(Buffer buffer, Seg seg);
+EXTERN void BufferReassignSeg(Buffer buffer, Seg seg);
 
-extern Bool BufferIsTrapped(Buffer buffer);
-extern Bool BufferIsTrappedByMutator(Buffer buffer);
+EXTERN Bool BufferIsTrapped(Buffer buffer);
+EXTERN Bool BufferIsTrappedByMutator(Buffer buffer);
 
-extern void BufferRampBegin(Buffer buffer, AllocPattern pattern);
-extern Res BufferRampEnd(Buffer buffer);
-extern void BufferRampReset(Buffer buffer);
+EXTERN void BufferRampBegin(Buffer buffer, AllocPattern pattern);
+EXTERN Res BufferRampEnd(Buffer buffer);
+EXTERN void BufferRampReset(Buffer buffer);
 
-extern Res BufferFramePush(AllocFrame *frameReturn, Buffer buffer);
-extern Res BufferFramePop(Buffer buffer, AllocFrame frame);
-extern FrameState BufferFrameState(Buffer buffer);
-extern void BufferFrameSetState(Buffer buffer, FrameState state);
+EXTERN Res BufferFramePush(AllocFrame *frameReturn, Buffer buffer);
+EXTERN Res BufferFramePop(Buffer buffer, AllocFrame frame);
+EXTERN FrameState BufferFrameState(Buffer buffer);
+EXTERN void BufferFrameSetState(Buffer buffer, FrameState state);
 
 
 /* DEFINE_BUFFER_CLASS -- define a buffer class */
@@ -792,19 +792,19 @@ extern void BufferFrameSetState(Buffer buffer, FrameState state);
 #define BUFFER_SUPERCLASS(className) \
   ((BufferClass)SUPERCLASS(className))
 
-extern Bool BufferClassCheck(BufferClass class);
-extern BufferClass BufferClassGet(void);
-extern BufferClass SegBufClassGet(void);
-extern BufferClass RankBufClassGet(void);
+EXTERN Bool BufferClassCheck(BufferClass class);
+EXTERN BufferClass BufferClassGet(void);
+EXTERN BufferClass SegBufClassGet(void);
+EXTERN BufferClass RankBufClassGet(void);
 
-extern AllocPattern AllocPatternRamp(void);
-extern AllocPattern AllocPatternRampCollectAll(void);
+EXTERN AllocPattern AllocPatternRamp(void);
+EXTERN AllocPattern AllocPatternRampCollectAll(void);
 
 
 /* Format Interface -- see <code/format.c> */
 
-extern Bool FormatCheck(Format format);
-extern Res FormatCreate(Format *formatReturn, Arena arena,
+EXTERN Bool FormatCheck(Format format);
+EXTERN Res FormatCreate(Format *formatReturn, Arena arena,
                         Align alignment,
                         FormatVariety variety,
                         mps_fmt_scan_t scan,
@@ -815,15 +815,15 @@ extern Res FormatCreate(Format *formatReturn, Arena arena,
                         mps_fmt_pad_t pad,
                         mps_fmt_class_t class,
                         Size headerSize);
-extern void FormatDestroy(Format format);
-extern Arena FormatArena(Format format);
-extern Res FormatDescribe(Format format, mps_lib_FILE *stream);
+EXTERN void FormatDestroy(Format format);
+EXTERN Arena FormatArena(Format format);
+EXTERN Res FormatDescribe(Format format, mps_lib_FILE *stream);
 
 
 /* Reference Interface -- see <code/ref.c> */
 
-extern Bool RankCheck(Rank rank);
-extern Bool RankSetCheck(RankSet rankSet);
+EXTERN Bool RankCheck(Rank rank);
+EXTERN Bool RankSetCheck(RankSet rankSet);
 
 #define RankSetIsMember(rs, r)  BS_IS_MEMBER((rs), (r))
 #define RankSetSingle(r)        BS_SINGLE(RankSet, (r))
@@ -858,21 +858,21 @@ extern Bool RankSetCheck(RankSet rankSet);
 #define ZoneSetSuper(zs1, zs2) BS_SUPER(zs1, zs2)
 #define ZoneSetComp(zs)        BS_COMP(zs)
 
-extern ZoneSet ZoneSetOfRange(Arena arena, Addr base, Addr limit);
-extern ZoneSet ZoneSetOfSeg(Arena arena, Seg seg);
+EXTERN ZoneSet ZoneSetOfRange(Arena arena, Addr base, Addr limit);
+EXTERN ZoneSet ZoneSetOfSeg(Arena arena, Seg seg);
 
 
 /* Shield Interface -- see <code/shield.c> */
 
-extern void (ShieldRaise)(Arena arena, Seg seg, AccessSet mode);
-extern void (ShieldLower)(Arena arena, Seg seg, AccessSet mode);
-extern void (ShieldEnter)(Arena arena);
-extern void (ShieldLeave)(Arena arena);
-extern void (ShieldExpose)(Arena arena, Seg seg);
-extern void (ShieldCover)(Arena arena, Seg seg);
-extern void (ShieldSuspend)(Arena arena);
-extern void (ShieldResume)(Arena arena);
-extern void (ShieldFlush)(Arena arena);
+EXTERN void (ShieldRaise)(Arena arena, Seg seg, AccessSet mode);
+EXTERN void (ShieldLower)(Arena arena, Seg seg, AccessSet mode);
+EXTERN void (ShieldEnter)(Arena arena);
+EXTERN void (ShieldLeave)(Arena arena);
+EXTERN void (ShieldExpose)(Arena arena, Seg seg);
+EXTERN void (ShieldCover)(Arena arena, Seg seg);
+EXTERN void (ShieldSuspend)(Arena arena);
+EXTERN void (ShieldResume)(Arena arena);
+EXTERN void (ShieldFlush)(Arena arena);
 
 #if defined(THREAD_SINGLE) && defined(PROTECTION_NONE)
 #define ShieldRaise(arena, seg, mode) \
@@ -900,85 +900,85 @@ extern void (ShieldFlush)(Arena arena);
  * per platform, see <code/prot.c>* for the various implementations, and
  * <design/prot/>* for the corresponding designs. */
 
-extern void ProtSetup(void);
+EXTERN void ProtSetup(void);
 
-extern void ProtSet(Addr base, Addr limit, AccessSet mode);
-extern void ProtTramp(void **resultReturn, void *(*f)(void *, size_t),
+EXTERN void ProtSet(Addr base, Addr limit, AccessSet mode);
+EXTERN void ProtTramp(void **resultReturn, void *(*f)(void *, size_t),
                       void *p, size_t s);
-extern void ProtSync(Arena arena);
-extern Bool ProtCanStepInstruction(MutatorFaultContext context);
-extern Res ProtStepInstruction(MutatorFaultContext context);
+EXTERN void ProtSync(Arena arena);
+EXTERN Bool ProtCanStepInstruction(MutatorFaultContext context);
+EXTERN Res ProtStepInstruction(MutatorFaultContext context);
 
 
 /* Mutator Fault Context */
 
-extern Addr MutatorFaultContextSP(MutatorFaultContext mfc);
-extern Res MutatorFaultContextScan(ScanState ss, MutatorFaultContext mfc);
+EXTERN Addr MutatorFaultContextSP(MutatorFaultContext mfc);
+EXTERN Res MutatorFaultContextScan(ScanState ss, MutatorFaultContext mfc);
 
 
 /* Location Dependency -- see <code/ld.c> */
 
-extern void LDReset(mps_ld_t ld, Arena arena);
-extern void LDAdd(mps_ld_t ld, Arena arena, Addr addr);
-extern Bool LDIsStale(mps_ld_t ld, Arena arena, Addr addr);
-extern void LDAge(Arena arena, RefSet moved);
-extern void LDMerge(mps_ld_t ld, Arena arena, mps_ld_t from);
+EXTERN void LDReset(mps_ld_t ld, Arena arena);
+EXTERN void LDAdd(mps_ld_t ld, Arena arena, Addr addr);
+EXTERN Bool LDIsStale(mps_ld_t ld, Arena arena, Addr addr);
+EXTERN void LDAge(Arena arena, RefSet moved);
+EXTERN void LDMerge(mps_ld_t ld, Arena arena, mps_ld_t from);
 
 
 /* Root Interface -- see <code/root.c> */
 
-extern Res RootCreateTable(Root *rootReturn, Arena arena,
+EXTERN Res RootCreateTable(Root *rootReturn, Arena arena,
                            Rank rank, RootMode mode,
                            Addr *base, Addr *limit);
-extern Res RootCreateTableMasked(Root *rootReturn, Arena arena,
+EXTERN Res RootCreateTableMasked(Root *rootReturn, Arena arena,
                                  Rank rank, RootMode mode,
                                  Addr *base, Addr *limit,
                                  Word mask);
-extern Res RootCreateReg(Root *rootReturn, Arena arena,
+EXTERN Res RootCreateReg(Root *rootReturn, Arena arena,
                            Rank rank, Thread thread,
                            mps_reg_scan_t scan,
                            void *p, size_t s);
-extern Res RootCreateFmt(Root *rootReturn, Arena arena,
+EXTERN Res RootCreateFmt(Root *rootReturn, Arena arena,
                            Rank rank, RootMode mode,
                            mps_fmt_scan_t scan,
                            Addr base, Addr limit);
-extern Res RootCreateFun(Root *rootReturn, Arena arena,
+EXTERN Res RootCreateFun(Root *rootReturn, Arena arena,
                         Rank rank, mps_root_scan_t scan,
                         void *p, size_t s);
-extern void RootDestroy(Root root);
-extern Bool RootModeCheck(RootMode mode);
-extern Bool RootCheck(Root root);
-extern Res RootDescribe(Root root, mps_lib_FILE *stream);
-extern Res RootsDescribe(Globals arenaGlobals, mps_lib_FILE *stream);
-extern Rank RootRank(Root root);
-extern AccessSet RootPM(Root root);
-extern RefSet RootSummary(Root root);
-extern void RootGrey(Root root, Trace trace);
-extern Res RootScan(ScanState ss, Root root);
-extern Arena RootArena(Root root);
-extern Bool RootOfAddr(Root *root, Arena arena, Addr addr);
-extern void RootAccess(Root root, AccessSet mode);
+EXTERN void RootDestroy(Root root);
+EXTERN Bool RootModeCheck(RootMode mode);
+EXTERN Bool RootCheck(Root root);
+EXTERN Res RootDescribe(Root root, mps_lib_FILE *stream);
+EXTERN Res RootsDescribe(Globals arenaGlobals, mps_lib_FILE *stream);
+EXTERN Rank RootRank(Root root);
+EXTERN AccessSet RootPM(Root root);
+EXTERN RefSet RootSummary(Root root);
+EXTERN void RootGrey(Root root, Trace trace);
+EXTERN Res RootScan(ScanState ss, Root root);
+EXTERN Arena RootArena(Root root);
+EXTERN Bool RootOfAddr(Root *root, Arena arena, Addr addr);
+EXTERN void RootAccess(Root root, AccessSet mode);
 typedef Res (*RootIterateFn)(Root root, void *p);
-extern Res RootsIterate(Globals arena, RootIterateFn f, void *p);
+EXTERN Res RootsIterate(Globals arena, RootIterateFn f, void *p);
 
 
 /* VM Interface -- see <code/vm.c>* */
 
-extern Align VMAlign(VM vm);
-extern Bool VMCheck(VM vm);
-extern Res VMCreate(VM *VMReturn, Size size);
-extern void VMDestroy(VM vm);
-extern Addr VMBase(VM vm);
-extern Addr VMLimit(VM vm);
-extern Res VMMap(VM vm, Addr base, Addr limit);
-extern void VMUnmap(VM vm, Addr base, Addr limit);
-extern Size VMReserved(VM vm);
-extern Size VMMapped(VM vm);
+EXTERN Align VMAlign(VM vm);
+EXTERN Bool VMCheck(VM vm);
+EXTERN Res VMCreate(VM *VMReturn, Size size);
+EXTERN void VMDestroy(VM vm);
+EXTERN Addr VMBase(VM vm);
+EXTERN Addr VMLimit(VM vm);
+EXTERN Res VMMap(VM vm, Addr base, Addr limit);
+EXTERN void VMUnmap(VM vm, Addr base, Addr limit);
+EXTERN Size VMReserved(VM vm);
+EXTERN Size VMMapped(VM vm);
 
 
 /* Stack Probe */
 
-extern void StackProbe(Size depth);
+EXTERN void StackProbe(Size depth);
 
 
 /* STATISTIC -- gather statistics (in some varieties)
@@ -1028,10 +1028,10 @@ mps_lib_FILE *DiagStream(void);
  * Note: do not call these directly; use the DIAG_*F macros below.
  */
 
-extern void DiagSingleF(const char *tag, ...);
-extern void DiagFirstF(const char *tag, ...);
-extern void DiagMoreF(const char *format, ...);
-extern void DiagEnd(const char *tag);
+EXTERN void DiagSingleF(const char *tag, ...);
+EXTERN void DiagFirstF(const char *tag, ...);
+EXTERN void DiagMoreF(const char *format, ...);
+EXTERN void DiagEnd(const char *tag);
 
 
 #if defined(DIAG_WITH_STREAM_AND_WRITEF)

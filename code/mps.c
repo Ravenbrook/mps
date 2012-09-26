@@ -19,6 +19,9 @@
  */
 
 
+#define CONFIG_UNIT_SINGLE /* Single translation unit compile. See config.h */
+
+
 /* Platform interface
  *
  * This must be included first as it defines symbols which affect system

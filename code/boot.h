@@ -23,12 +23,12 @@ typedef struct BootBlockStruct
 } BootBlockStruct;
 
 
-extern Res BootBlockInit(BootBlockStruct *boot, void *base, void *limit);
-extern void BootBlockFinish(BootBlock boot);
-extern Res BootAlloc(void **pReturn, BootBlock boot, size_t size,
+EXTERN Res BootBlockInit(BootBlockStruct *boot, void *base, void *limit);
+EXTERN void BootBlockFinish(BootBlock boot);
+EXTERN Res BootAlloc(void **pReturn, BootBlock boot, size_t size,
                      size_t align);
-extern size_t BootAllocated(BootBlock boot);
-extern Bool BootBlockCheck(BootBlock boot);
+EXTERN size_t BootAllocated(BootBlock boot);
+EXTERN Bool BootBlockCheck(BootBlock boot);
 
 
 #endif /* boot_h */

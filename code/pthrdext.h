@@ -41,28 +41,28 @@ typedef struct PThreadextStruct {
 
 /*  PThreadextCheck -- Check a pthreadext */
 
-extern Bool PThreadextCheck(PThreadext pthreadext);
+EXTERN Bool PThreadextCheck(PThreadext pthreadext);
 
 
 /*  PThreadextInit -- Initialize a pthreadext */
 
-extern void PThreadextInit(PThreadext pthreadext, pthread_t id);
+EXTERN void PThreadextInit(PThreadext pthreadext, pthread_t id);
 
 
 /*  PThreadextFinish -- Finish a pthreadext */
 
-extern void PThreadextFinish(PThreadext pthreadext);
+EXTERN void PThreadextFinish(PThreadext pthreadext);
 
 
 /*  PThreadextSuspend -- Suspend a pthreadext and return its context. */
 
-extern Res PThreadextSuspend(PThreadext pthreadext,
+EXTERN Res PThreadextSuspend(PThreadext pthreadext,
                              MutatorFaultContext *contextReturn);
 
 
 /*  PThreadextResume --  Resume a suspended pthreadext */
 
-extern Res PThreadextResume(PThreadext pthreadext);
+EXTERN Res PThreadextResume(PThreadext pthreadext);
 
 
 #endif /* pthreadext_h */

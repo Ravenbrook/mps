@@ -43,42 +43,42 @@ typedef struct SplayNodeStruct {
 } SplayNodeStruct;
 
 
-extern Bool SplayTreeCheck(SplayTree tree);
-extern Bool SplayNodeCheck(SplayNode node);
-extern void SplayTreeInit(SplayTree tree, SplayCompareMethod compare,
+EXTERN Bool SplayTreeCheck(SplayTree tree);
+EXTERN Bool SplayNodeCheck(SplayNode node);
+EXTERN void SplayTreeInit(SplayTree tree, SplayCompareMethod compare,
                           SplayUpdateNodeMethod updateNode);
-extern void SplayNodeInit(SplayNode node);
-extern void SplayNodeFinish(SplayNode node);
-extern void SplayTreeFinish(SplayTree tree);
+EXTERN void SplayNodeInit(SplayNode node);
+EXTERN void SplayNodeFinish(SplayNode node);
+EXTERN void SplayTreeFinish(SplayTree tree);
 
-extern Res SplayTreeInsert(SplayTree tree, SplayNode node, void *key);
-extern Res SplayTreeDelete(SplayTree tree, SplayNode node, void *key);
+EXTERN Res SplayTreeInsert(SplayTree tree, SplayNode node, void *key);
+EXTERN Res SplayTreeDelete(SplayTree tree, SplayNode node, void *key);
 
-extern Res SplayTreeSearch(SplayNode *nodeReturn,
+EXTERN Res SplayTreeSearch(SplayNode *nodeReturn,
                            SplayTree tree, void *key );
-extern Res SplayTreeNeighbours(SplayNode *leftReturn,
+EXTERN Res SplayTreeNeighbours(SplayNode *leftReturn,
                                SplayNode *rightReturn,
                                SplayTree tree, void *key);
 
-extern SplayNode SplayTreeFirst(SplayTree tree, void *zeroKey);
-extern SplayNode SplayTreeNext(SplayTree tree, SplayNode oldNode,
+EXTERN SplayNode SplayTreeFirst(SplayTree tree, void *zeroKey);
+EXTERN SplayNode SplayTreeNext(SplayTree tree, SplayNode oldNode,
                                void *oldKey);
 
-extern Bool SplayFindFirst(SplayNode *nodeReturn, SplayTree tree,
+EXTERN Bool SplayFindFirst(SplayNode *nodeReturn, SplayTree tree,
                            SplayTestNodeMethod testNode,
                            SplayTestTreeMethod testTree,
                            void *closureP, Size closureS);
-extern Bool SplayFindLast(SplayNode *nodeReturn, SplayTree tree,
+EXTERN Bool SplayFindLast(SplayNode *nodeReturn, SplayTree tree,
                           SplayTestNodeMethod testNode,
                           SplayTestTreeMethod testTree,
                           void *closureP, Size closureS);
 
-extern void SplayNodeRefresh(SplayTree tree, SplayNode node, void *key);
+EXTERN void SplayNodeRefresh(SplayTree tree, SplayNode node, void *key);
 
-extern Res SplayTreeDescribe(SplayTree tree, mps_lib_FILE *stream,
+EXTERN Res SplayTreeDescribe(SplayTree tree, mps_lib_FILE *stream,
                              SplayNodeDescribeMethod nodeDescribe);
 
-extern Bool SplayRoot(SplayNode *nodeReturn, SplayTree tree);
+EXTERN Bool SplayRoot(SplayNode *nodeReturn, SplayTree tree);
 
 
 #endif /* splay_h */

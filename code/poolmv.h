@@ -46,7 +46,7 @@
 
 typedef struct MVStruct *MV;
 
-extern PoolClass PoolClassMV(void);
+EXTERN PoolClass PoolClassMV(void);
 
 extern Bool MVCheck(MV mv);
 

@@ -74,25 +74,25 @@ typedef struct mps_chain_s {
 } ChainStruct;
 
 
-extern Res ChainCreate(Chain *chainReturn, Arena arena, size_t genCount,
+EXTERN Res ChainCreate(Chain *chainReturn, Arena arena, size_t genCount,
                        GenParamStruct *params);
-extern void ChainDestroy(Chain chain);
-extern Bool ChainCheck(Chain chain);
+EXTERN void ChainDestroy(Chain chain);
+EXTERN Bool ChainCheck(Chain chain);
 
-extern double ChainDeferral(Chain chain);
-extern Res ChainCondemnAuto(double *mortalityReturn, Chain chain, Trace trace);
-extern Res ChainCondemnAll(Chain chain, Trace trace);
-extern void ChainStartGC(Chain chain, Trace trace);
-extern void ChainEndGC(Chain chain, Trace trace);
-extern size_t ChainGens(Chain chain);
+EXTERN double ChainDeferral(Chain chain);
+EXTERN Res ChainCondemnAuto(double *mortalityReturn, Chain chain, Trace trace);
+EXTERN Res ChainCondemnAll(Chain chain, Trace trace);
+EXTERN void ChainStartGC(Chain chain, Trace trace);
+EXTERN void ChainEndGC(Chain chain, Trace trace);
+EXTERN size_t ChainGens(Chain chain);
 
 
-extern Bool PoolGenCheck(PoolGen gen);
-extern Res PoolGenInit(PoolGen gen, Chain chain, Serial nr, Pool pool);
-extern void PoolGenFinish(PoolGen gen);
-extern void PoolGenFlip(PoolGen gen);
+EXTERN Bool PoolGenCheck(PoolGen gen);
+EXTERN Res PoolGenInit(PoolGen gen, Chain chain, Serial nr, Pool pool);
+EXTERN void PoolGenFinish(PoolGen gen);
+EXTERN void PoolGenFlip(PoolGen gen);
 #define PoolGenNr(gen) ((gen)->nr)
-extern void PoolGenUpdateZones(PoolGen gen, Seg seg);
+EXTERN void PoolGenUpdateZones(PoolGen gen, Seg seg);
 
 
 #endif /* chain_h */

@@ -17,7 +17,7 @@
 
 #define ThreadSig       ((Sig)0x519286ED) /* SIGnature THREaD */
 
-extern Bool ThreadCheck(Thread thread);
+EXTERN Bool ThreadCheck(Thread thread);
 
 
 /*  ThreadCheckSimple
@@ -25,10 +25,10 @@ extern Bool ThreadCheck(Thread thread);
  *  Simple thread-safe check of a thread object.
  */
 
-extern Bool ThreadCheckSimple(Thread thread);
+EXTERN Bool ThreadCheckSimple(Thread thread);
 
 
-extern Res ThreadDescribe(Thread thread, mps_lib_FILE *stream);
+EXTERN Res ThreadDescribe(Thread thread, mps_lib_FILE *stream);
 
 
 /*  Register/Deregister
@@ -40,9 +40,9 @@ extern Res ThreadDescribe(Thread thread, mps_lib_FILE *stream);
  *  Threads must not be multiply registered in the same arena.
  */
 
-extern Res ThreadRegister(Thread *threadReturn, Arena arena);
+EXTERN Res ThreadRegister(Thread *threadReturn, Arena arena);
 
-extern void ThreadDeregister(Thread thread, Arena arena);
+EXTERN void ThreadDeregister(Thread thread, Arena arena);
 
 
 /*  ThreadRingSuspend/Resume
@@ -52,8 +52,8 @@ extern void ThreadDeregister(Thread thread, Arena arena);
  *  nor is any attempt to resume it made.
  */
 
-extern void ThreadRingSuspend(Ring threadRing);
-extern void ThreadRingResume(Ring threadRing);
+EXTERN void ThreadRingSuspend(Ring threadRing);
+EXTERN void ThreadRingResume(Ring threadRing);
 
 
 /*  ThreadRingThread
@@ -62,12 +62,12 @@ extern void ThreadRingResume(Ring threadRing);
  *  thread ring.
  */
 
-extern Thread ThreadRingThread(Ring threadRing);
+EXTERN Thread ThreadRingThread(Ring threadRing);
 
 
-extern Arena ThreadArena(Thread thread);
+EXTERN Arena ThreadArena(Thread thread);
 
-extern Res ThreadScan(ScanState ss, Thread thread, void *stackBot);
+EXTERN Res ThreadScan(ScanState ss, Thread thread, void *stackBot);
 
 
 #endif /* th_h */

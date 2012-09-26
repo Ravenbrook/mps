@@ -35,24 +35,24 @@ typedef struct TableStruct {
   Word deletedKey;              /* key marking deleted entries */
 } TableStruct;
 
-extern Res TableCreate(Table *tableReturn,
+EXTERN Res TableCreate(Table *tableReturn,
                        Count length,
                        TableAllocMethod tableAlloc,
                        TableFreeMethod tableFree,
                        void *allocClosure,
                        Word unusedKey,
                        Word deletedKey);
-extern void TableDestroy(Table table);
-extern Bool TableCheck(Table table);
-extern Res TableDefine(Table table, Word key, void *value);
-extern Res TableRedefine(Table table, Word key, void *value);
-extern Bool TableLookup(void **valueReturn, Table table, Word key);
-extern Res TableRemove(Table table, Word key);
-extern Count TableCount(Table table);
-extern void TableMap(Table table,
+EXTERN void TableDestroy(Table table);
+EXTERN Bool TableCheck(Table table);
+EXTERN Res TableDefine(Table table, Word key, void *value);
+EXTERN Res TableRedefine(Table table, Word key, void *value);
+EXTERN Bool TableLookup(void **valueReturn, Table table, Word key);
+EXTERN Res TableRemove(Table table, Word key);
+EXTERN Count TableCount(Table table);
+EXTERN void TableMap(Table table,
                      void(*fun)(void *closure, Word key, void *value),
                      void *closure);
-extern Res TableGrow(Table table, Count extraCapacity);
+EXTERN Res TableGrow(Table table, Count extraCapacity);
 
 
 #endif /* table_h */

@@ -41,12 +41,12 @@ typedef struct SACStruct {
 typedef struct mps_sac_classes_s *SACClasses;
 
 
-extern Res SACCreate(SAC *sac_o, Pool pool, Count classesCount,
+EXTERN Res SACCreate(SAC *sac_o, Pool pool, Count classesCount,
                      SACClasses classes);
-extern void SACDestroy(SAC sac);
-extern Res SACFill(Addr *p_o, SAC sac, Size size, Bool hasReservoirPermit);
-extern void SACEmpty(SAC sac, Addr p, Size size);
-extern void SACFlush(SAC sac);
+EXTERN void SACDestroy(SAC sac);
+EXTERN Res SACFill(Addr *p_o, SAC sac, Size size, Bool hasReservoirPermit);
+EXTERN void SACEmpty(SAC sac, Addr p, Size size);
+EXTERN void SACFlush(SAC sac);
 
 
 #endif /* sac_h */

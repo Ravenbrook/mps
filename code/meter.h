@@ -33,10 +33,10 @@ typedef struct MeterStruct
 } MeterStruct;
 
 
-extern void MeterInit(Meter meter, char* name, void *owner);
-extern void MeterAccumulate(Meter meter, Size amount);
-extern Res MeterWrite(Meter meter, mps_lib_FILE *stream);
-extern void MeterEmit(Meter meter);
+EXTERN void MeterInit(Meter meter, char* name, void *owner);
+EXTERN void MeterAccumulate(Meter meter, Size amount);
+EXTERN Res MeterWrite(Meter meter, mps_lib_FILE *stream);
+EXTERN void MeterEmit(Meter meter);
 
 #define METER_DECL(meter) STATISTIC_DECL(struct MeterStruct meter)
 #define METER_INIT(meter, init, owner) \

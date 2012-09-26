@@ -13,7 +13,7 @@
 
 #include "mpm.h"
 
-extern PoolClass PoolClassMVT(void);
+EXTERN PoolClass PoolClassMVT(void);
 
 #endif /* poolmv2_h */
 

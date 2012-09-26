@@ -93,7 +93,7 @@
  * Supports allocation of locks.
  */
 
-extern size_t LockSize(void);
+EXTERN size_t LockSize(void);
 
 
 /*  LockInit/Finish
@@ -102,8 +102,8 @@ extern size_t LockSize(void);
  *  owner after initialisation.
  */
 
-extern void LockInit(Lock lock);
-extern void LockFinish(Lock lock);
+EXTERN void LockInit(Lock lock);
+EXTERN void LockFinish(Lock lock);
 
 
 /*  LockClaimRecursive
@@ -114,7 +114,7 @@ extern void LockFinish(Lock lock);
  *  This can be called recursively.
  */
 
-extern void LockClaimRecursive(Lock lock);
+EXTERN void LockClaimRecursive(Lock lock);
 
 
 /*  LockReleaseRecursive
@@ -124,7 +124,7 @@ extern void LockClaimRecursive(Lock lock);
  *  This must not be called without possession of the lock.
  */
 
-extern void LockReleaseRecursive(Lock lock);
+EXTERN void LockReleaseRecursive(Lock lock);
 
 
 /*  LockClaim
@@ -135,7 +135,7 @@ extern void LockReleaseRecursive(Lock lock);
  *  matched by a call to LockReleaseMPM.
  */
 
-extern void LockClaim(Lock lock);
+EXTERN void LockClaim(Lock lock);
 
 
 /*  LockReleaseMPM
@@ -145,12 +145,12 @@ extern void LockClaim(Lock lock);
  *  a single claim.
  */
 
-extern void LockReleaseMPM(Lock lock);
+EXTERN void LockReleaseMPM(Lock lock);
 
 
 /*  LockCheck -- Validation */
 
-extern Bool LockCheck(Lock lock);
+EXTERN Bool LockCheck(Lock lock);
 
 
 /*  == Global locks == */
@@ -164,7 +164,7 @@ extern Bool LockCheck(Lock lock);
  *  This can be called recursively.
  */
 
-extern void LockClaimGlobalRecursive(void);
+EXTERN void LockClaimGlobalRecursive(void);
 
 
 /*  LockReleaseGlobalRecursive
@@ -175,7 +175,7 @@ extern void LockClaimGlobalRecursive(void);
  *  the lock.
  */
 
-extern void LockReleaseGlobalRecursive(void);
+EXTERN void LockReleaseGlobalRecursive(void);
 
 
 /*  LockClaimGlobal
@@ -185,7 +185,7 @@ extern void LockReleaseGlobalRecursive(void);
  *  It must be matched by a call to LockReleaseGlobal.
  */
 
-extern void LockClaimGlobal(void);
+EXTERN void LockClaimGlobal(void);
 
 
 /*  LockReleaseGlobal
@@ -195,7 +195,7 @@ extern void LockClaimGlobal(void);
  *  It therefore should only be called with a single claim.
  */
 
-extern void LockReleaseGlobal(void);
+EXTERN void LockReleaseGlobal(void);
 
 
 #elif defined(THREAD_SINGLE)

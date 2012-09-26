@@ -37,7 +37,7 @@
   static Bool DERIVE_GUARDIAN(className) = FALSE; \
   static DERIVE_STRUCT(className) DERIVE_STATIC_STORAGE(className); \
   static void DERIVE_ENSURE_INTERNAL(className)(className); \
-  extern className DERIVE_ENSURE(className)(void); \
+  EXTERN className DERIVE_ENSURE(className)(void); \
   className DERIVE_ENSURE(className)(void) \
   { \
     if (DERIVE_GUARDIAN(className) == FALSE) { \
@@ -52,7 +52,7 @@
     return &DERIVE_STATIC_STORAGE(className); \
   } \
   /* old name for backward compatibility */ \
-  extern className DERIVE_ENSURE_OLD(className)(void); \
+  EXTERN className DERIVE_ENSURE_OLD(className)(void); \
   className DERIVE_ENSURE_OLD(className)(void) \
   { \
     return DERIVE_ENSURE(className)(); \
@@ -140,13 +140,13 @@ typedef struct ProtocolInstStruct {
  * Function name conforms to standard conventions for
  * protocols.
  */
-extern ProtocolClass ProtocolClassGet(void);
+EXTERN ProtocolClass ProtocolClassGet(void);
 
 
 /* Checking functions */
 
-extern Bool ProtocolClassCheck(ProtocolClass class);
-extern Bool ProtocolInstCheck(ProtocolInst pro);
+EXTERN Bool ProtocolClassCheck(ProtocolClass class);
+EXTERN Bool ProtocolInstCheck(ProtocolInst pro);
 
 
 /* ProtocolIsSubclass - use macro IsSubclass to access this.
@@ -154,7 +154,7 @@ extern Bool ProtocolInstCheck(ProtocolInst pro);
  * A predicate for testing subclass relationships.
  * A protocol class is always a subclass of itself.
  */
-extern Bool ProtocolIsSubclass(ProtocolClass sub, ProtocolClass super);
+EXTERN Bool ProtocolIsSubclass(ProtocolClass sub, ProtocolClass super);
 
 
 /* Protocol introspection interface */

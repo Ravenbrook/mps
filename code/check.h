@@ -100,7 +100,7 @@ enum {
 };
 
 #ifdef CHECKLEVEL_DYNAMIC
-extern unsigned CheckLevel;
+EXTERN unsigned CheckLevel;
 #undef CHECKLEVEL
 #define CHECKLEVEL CheckLevel
 #endif

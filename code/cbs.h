@@ -62,10 +62,10 @@ typedef struct CBSBlockStruct {
 } CBSBlockStruct;
 
 
-extern Bool CBSCheck(CBS cbs);
-extern Bool CBSBlockCheck(CBSBlock block);
+EXTERN Bool CBSCheck(CBS cbs);
+EXTERN Bool CBSBlockCheck(CBSBlock block);
 
-extern Res CBSInit(Arena arena, CBS cbs, void *owner,
+EXTERN Res CBSInit(Arena arena, CBS cbs, void *owner,
                    CBSChangeSizeMethod new,
                    CBSChangeSizeMethod delete,
                    CBSChangeSizeMethod grow,
@@ -74,25 +74,25 @@ extern Res CBSInit(Arena arena, CBS cbs, void *owner,
                    Align alignment,
                    Bool mayUseInline,
                    Bool fastFind);
-extern void CBSFinish(CBS cbs);
+EXTERN void CBSFinish(CBS cbs);
 
-extern Res CBSInsert(CBS cbs, Addr base, Addr limit);
-extern Res CBSInsertReturningRange(Addr *baseReturn, Addr *limitReturn,
+EXTERN Res CBSInsert(CBS cbs, Addr base, Addr limit);
+EXTERN Res CBSInsertReturningRange(Addr *baseReturn, Addr *limitReturn,
                                    CBS cbs, Addr base, Addr limit);
-extern Res CBSDelete(CBS cbs, Addr base, Addr limit);
-extern void CBSIterate(CBS cbs, CBSIterateMethod iterate, void *closureP);
-extern void CBSIterateLarge(CBS cbs, CBSIterateMethod iterate, void *closureP);
-extern void CBSSetMinSize(CBS cbs, Size minSize);
+EXTERN Res CBSDelete(CBS cbs, Addr base, Addr limit);
+EXTERN void CBSIterate(CBS cbs, CBSIterateMethod iterate, void *closureP);
+EXTERN void CBSIterateLarge(CBS cbs, CBSIterateMethod iterate, void *closureP);
+EXTERN void CBSSetMinSize(CBS cbs, Size minSize);
 
-extern Res CBSDescribe(CBS cbs, mps_lib_FILE *stream);
-extern Res CBSBlockDescribe(CBSBlock block, mps_lib_FILE *stream);
+EXTERN Res CBSDescribe(CBS cbs, mps_lib_FILE *stream);
+EXTERN Res CBSBlockDescribe(CBSBlock block, mps_lib_FILE *stream);
 
 /* CBSBlockBase -- See <design/cbs/#function.cbs.block.base> */
 #define CBSBlockBase(block) ((block)->base)
 /* CBSBlockLimit -- See <design/cbs/#function.cbs.block.limit> */
 #define CBSBlockLimit(block) ((block)->limit)
 #define CBSBlockSize(block) AddrOffset((block)->base, (block)->limit)
-extern Size (CBSBlockSize)(CBSBlock block);
+EXTERN Size (CBSBlockSize)(CBSBlock block);
 
 typedef unsigned CBSFindDelete;
 enum {
@@ -102,12 +102,12 @@ enum {
   CBSFindDeleteENTIRE   /* delete entire range */
 };
 
-extern Bool CBSFindFirst(Addr *baseReturn, Addr *limitReturn,
+EXTERN Bool CBSFindFirst(Addr *baseReturn, Addr *limitReturn,
                          CBS cbs, Size size, CBSFindDelete findDelete);
-extern Bool CBSFindLast(Addr *baseReturn, Addr *limitReturn,
+EXTERN Bool CBSFindLast(Addr *baseReturn, Addr *limitReturn,
                         CBS cbs, Size size, CBSFindDelete findDelete);
 
-extern Bool CBSFindLargest(Addr *baseReturn, Addr *limitReturn,
+EXTERN Bool CBSFindLargest(Addr *baseReturn, Addr *limitReturn,
                            CBS cbs, CBSFindDelete findDelete);
 
 
