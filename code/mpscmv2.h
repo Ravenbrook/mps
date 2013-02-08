@@ -1,11 +1,11 @@
-/* mpscmvt2.h: MEMORY POOL SYSTEM CLASS "MVT"
+/* mpscmv2.h: MEMORY POOL SYSTEM CLASS "MVT"
  *
  * $Id: //info.ravenbrook.com/project/mps/branch/2012-10-09/user-guide/code/mpscmvt.h#1 $
- * Copyright (c) 2001-2012 Ravenbrook Limited.  See end of file for license.
+ * Copyright (c) 2001-2013 Ravenbrook Limited.  See end of file for license.
  */
 
-#ifndef mpscmvt2_h
-#define mpscmvt2_h
+#ifndef mpscmv2_h
+#define mpscmv2_h
 
 /* The MVT pool class used to be named MV2. This file is for backwards
  * compatibility with programs that used the old name. */
@@ -17,7 +17,7 @@
 
 /* C. COPYRIGHT AND LICENSE
  *
- * Copyright (C) 2001-2012 Ravenbrook Limited <http://www.ravenbrook.com/>.
+ * Copyright (C) 2001-2013 Ravenbrook Limited <http://www.ravenbrook.com/>.
  * All rights reserved.  This is an open source license.  Contact
  * Ravenbrook for commercial licensing options.
  * 
