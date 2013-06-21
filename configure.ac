@@ -86,6 +86,11 @@ case $host in
       CPP="$CC -I/usr/local/include -E"
       PFMCFLAGS="$CFLAGS_GC"
     ;;
+  armv6l-*-linux*)
+      AC_MSG_RESULT([Linux ARMv6])
+      MPS_TARGET_NAME=lia6gc
+      PFMCFLAGS="$CFLAGS_GC"
+    ;;
   *)
     AC_MSG_ERROR([MPS does not support this platform out of the box.  See manual/build.txt])
 esac
