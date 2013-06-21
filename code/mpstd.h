@@ -209,6 +209,19 @@
 #define MPS_PF_ALIGN    8
 
 
+#elif defined(__linux__) && defined(__arm__) && defined(__GNUC__)
+#define MPS_PF_LIA6GC
+#define MPS_PF_STRING   "lia6gc"
+#define MPS_OS_LI
+#define MPS_ARCH_A6
+#define MPS_BUILD_GC
+#define MPS_T_WORD      unsigned long
+#define MPS_T_ULONGEST  unsigned long
+#define MPS_WORD_WIDTH  32
+#define MPS_WORD_SHIFT  5
+#define MPS_PF_ALIGN    8 /* FIXME: deduced from malloc */
+
+
 #else
 #error "The MPS Kit does not have a configuration for this platform out of the box; see manual/build.txt"
 #endif

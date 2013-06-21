@@ -210,6 +210,20 @@
 #include "span.c"       /* generic stack probe FIXME: Is this correct? */
 #include "mpsiw3.c"     /* Windows interface layer extras */
 
+/* Linux on ARM v6 with GCC */
+
+#elif defined(MPS_PF_LIA6GC)
+
+#include "lockli.c"     /* Linux locks */
+#include "than.c"       /* Posix threading */
+/* #include "pthrdext.c"    Posix thread extensions */
+#include "vmix.c"       /* Posix virtual memory */
+#include "protan.c"
+#include "prmcan.c"
+#include "span.c"       /* generic stack probe */
+#include "ssan.c"       /* generic stack scan */
+
+
 #else
 
 #error "Unknown platform -- can't determine platform specific parts."
