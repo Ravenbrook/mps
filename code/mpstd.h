@@ -31,9 +31,11 @@
  * Alignment of 4 would work, but the MS library uses 8 bytes for
  * doubles and __int64, so we choose that.  The actual granularity of
  * VC malloc is 16!
+ * PellesC in MS compatibility mode defines _MSC_VER but isn't compatible
+ * enough for MPS purposes.
  */
 
-#if defined(_MSC_VER) && defined(_WIN32) && defined(_M_IX86)
+#if defined(_MSC_VER) && defined(_WIN32) && defined(_M_IX86) && !defined(__POCC__)
 #if defined(CONFIG_PF_STRING) && ! defined(CONFIG_PF_W3I3MV)
 #error "specified CONFIG_PF_... inconsistent with detected w3i3mv"
 #endif
@@ -42,6 +44,28 @@
 #define MPS_OS_W3
 #define MPS_ARCH_I3
 #define MPS_BUILD_MV
+#define MPS_T_WORD      unsigned long
+#define MPS_T_ULONGEST  unsigned long
+#define MPS_WORD_WIDTH  32
+#define MPS_WORD_SHIFT  5
+#define MPS_PF_ALIGN    8
+
+
+/* PellesC version 7.0. PellesC HTML help files.
+ * Command Line Tools, POCC Compiler, Predefined Preprocessor Symbols.
+ * _M_IX86 is only defined in MS compatibility mode, so we use
+ * __POCC_TARGET__ instead.
+ */
+
+#elif defined(__POCC__) && defined(_WIN32) && (__POCC_TARGET__ == 1)
+#if defined(CONFIG_PF_STRING) && ! defined(CONFIG_PF_W3I3PC)
+#error "specified CONFIG_PF_... inconsistent with detected w3i3pc"
+#endif
+#define MPS_PF_W3I3PC
+#define MPS_PF_STRING   "w3i3pc"
+#define MPS_OS_W3
+#define MPS_ARCH_I3
+#define MPS_BUILD_PC
 #define MPS_T_WORD      unsigned long
 #define MPS_T_ULONGEST  unsigned long
 #define MPS_WORD_WIDTH  32
