@@ -41,7 +41,7 @@
 #define EVENT_VERSION_MINOR  ((unsigned)4)
 
 
-/* EVENT_LIST -- list of event types and general properties
+/* EVENT_LISTN -- list of event types and general properties
  *
  * These specify:
  *   - Type: The name of the event type, without the leading "Event";
@@ -65,12 +65,18 @@
  * TODO: Add a doc string to each event type.
  *
  * See also EVENT_*_PARAMS for definition of event parameters.
+ *
+ * This list is broken into pieces, each of which are about 30 lines
+ * in size due to a bug in the PellesC preprocessor. When adding a
+ * new set of events, be sure to keep the clustering into smaller
+ * lists in place. If you add a new EVENT_LIST, find all existing
+ * locations using EVENT_LIST1 and add the new list.
  */
  
 #define EventNameMAX ((size_t)19)
 #define EventCodeMAX ((EventCode)0x0082)
 
-#define EVENT_LIST(EVENT, X) \
+#define EVENT_LIST1(EVENT, X) \
   /*       0123456789012345678 <- don't exceed without changing EventNameMAX */ \
   EVENT(X, AMCGenCreate       , 0x0001,  TRUE, Pool) \
   EVENT(X, AMCGenDestroy      , 0x0002,  TRUE, Pool) \
@@ -103,6 +109,8 @@
   EVENT(X, TraceCreate        , 0x001d,  TRUE, Trace) \
   EVENT(X, TraceDestroy       , 0x001e,  TRUE, Trace) \
   EVENT(X, SegSetGrey         , 0x001f,  TRUE, Seg) \
+
+#define EVENT_LIST2(EVENT, X) \
   EVENT(X, TraceFlipBegin     , 0x0020,  TRUE, Trace) \
   EVENT(X, TraceFlipEnd       , 0x0021,  TRUE, Trace) \
   EVENT(X, TraceReclaim       , 0x0022,  TRUE, Seg) \
@@ -133,7 +141,9 @@
   EVENT(X, BufferInit         , 0x0036,  TRUE, Pool) \
   EVENT(X, BufferFinish       , 0x0037,  TRUE, Pool) \
   /* EVENT(X, MVTFinish          , 0x0038, TRUE, Pool) */ \
-  EVENT(X, BufferFill         , 0x0039,  TRUE, Seg) \
+  EVENT(X, BufferFill         , 0x0039,  TRUE, Seg)
+
+#define EVENT_LIST3(EVENT, X) \
   EVENT(X, BufferEmpty        , 0x003A,  TRUE, Seg) \
   EVENT(X, SegAllocFail       , 0x003B,  TRUE, Seg) \
   EVENT(X, TraceScanSeg       , 0x003C,  TRUE, Seg) \
@@ -164,7 +174,9 @@
   EVENT(X, ReservoirLimitSet  , 0x0062,  TRUE, Arena) \
   EVENT(X, CommitLimitSet     , 0x0063,  TRUE, Arena) \
   EVENT(X, SpareCommitLimitSet, 0x0064,  TRUE, Arena) \
-  EVENT(X, ArenaAlloc         , 0x0065,  TRUE, Arena) \
+  EVENT(X, ArenaAlloc         , 0x0065,  TRUE, Arena)
+
+#define EVENT_LIST4(EVENT, X) \
   EVENT(X, ArenaFree          , 0x0066,  TRUE, Arena) \
   EVENT(X, ArenaAllocFail     , 0x0067,  TRUE, Arena) \
   EVENT(X, SegMerge           , 0x0068,  TRUE, Seg) \

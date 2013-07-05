@@ -168,7 +168,10 @@ void EventInit(void)
     Event##name##ParamLIMIT \
   };
 
-  EVENT_LIST(EVENT_CHECK_ENUM, X)
+  EVENT_LIST1(EVENT_CHECK_ENUM, X)
+  EVENT_LIST2(EVENT_CHECK_ENUM, X)
+  EVENT_LIST3(EVENT_CHECK_ENUM, X)
+  EVENT_LIST4(EVENT_CHECK_ENUM, X)
 
   /* Check consistency of the event definitions.  These are all compile-time
      checks and should get optimised away. */
@@ -199,7 +202,10 @@ void EventInit(void)
   AVER((EventKind)Event##name##Kind < EventKindLIMIT); \
   EVENT_##name##_PARAMS(EVENT_PARAM_CHECK, name)
 
-  EVENT_LIST(EVENT_CHECK, X)
+  EVENT_LIST1(EVENT_CHECK, X)
+  EVENT_LIST2(EVENT_CHECK, X)
+  EVENT_LIST3(EVENT_CHECK, X)
+  EVENT_LIST4(EVENT_CHECK, X)
   
   /* Ensure that no event can be larger than the maximum event size. */
   AVER(EventBufferSIZE <= EventSizeMAX);
@@ -353,7 +359,10 @@ Res EventDescribe(Event event, mps_lib_FILE *stream)
     if (res != ResOK) return res; \
     break;
 
-  EVENT_LIST(EVENT_DESC, X)
+  EVENT_LIST1(EVENT_DESC, X)
+  EVENT_LIST2(EVENT_DESC, X)
+  EVENT_LIST3(EVENT_DESC, X)
+  EVENT_LIST4(EVENT_DESC, X)
 
   default:
     res = WriteF(stream, "  event type unknown", NULL);
@@ -392,7 +401,10 @@ Res EventWrite(Event event, mps_lib_FILE *stream)
                  NULL); \
     if (res != ResOK) return res; \
     break;
-  EVENT_LIST(EVENT_WRITE, X)
+  EVENT_LIST1(EVENT_WRITE, X)
+  EVENT_LIST2(EVENT_WRITE, X)
+  EVENT_LIST3(EVENT_WRITE, X)
+  EVENT_LIST4(EVENT_WRITE, X)
 
   default:
     res = WriteF(stream, " <unknown code $U>", event->any.code, NULL);

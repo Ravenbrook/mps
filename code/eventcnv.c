@@ -280,7 +280,10 @@ static void readLog(FILE *stream)
       case code:                                        \
         EVENT_##name##_PARAMS(EVENT_PARAM_PRINT, name)  \
         break;
-      EVENT_LIST(EVENT_PRINT, X)
+      EVENT_LIST1(EVENT_PRINT, X)
+      EVENT_LIST2(EVENT_PRINT, X)
+      EVENT_LIST3(EVENT_PRINT, X)
+      EVENT_LIST4(EVENT_PRINT, X)
     default:
       evwarn("Unknown event code %d", code);
     }
