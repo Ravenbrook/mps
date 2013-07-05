@@ -49,6 +49,7 @@ typedef union EventClockUnion {
    using Microsoft Visual Studio 6 because of support for CodeView debugging
    information. */
 
+#define WIN32_LEAN_AND_MEAN
 #include <windows.h> /* KILL IT WITH FIRE! */
 
 #define EVENT_CLOCK(lvalue) \

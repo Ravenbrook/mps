@@ -16,6 +16,7 @@
 #pragma warning(disable: 4115 4201 4209 4214)
 #endif
 
+#define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 
 #ifdef MPS_BUILD_MV

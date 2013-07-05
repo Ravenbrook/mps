@@ -11,6 +11,7 @@
 #define mpsw3_h
 
 #include "mps.h"               /* needed for mps_tramp_t */
+#define WIN32_LEAN_AND_MEAN
 #include <windows.h>           /* needed for SEH filter */
 
 
