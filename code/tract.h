@@ -164,9 +164,6 @@ extern Res ChunkInit(Chunk chunk, Arena arena,
                      Addr base, Addr limit, Align pageSize, BootBlock boot);
 extern void ChunkFinish(Chunk chunk);
 
-extern Bool ChunkCacheEntryCheck(ChunkCacheEntry entry);
-extern void ChunkCacheEntryInit(ChunkCacheEntry entry);
-
 extern Bool ChunkOfAddr(Chunk *chunkReturn, Arena arena, Addr addr);
 
 

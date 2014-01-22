@@ -518,18 +518,6 @@ typedef struct TraceStruct {
 } TraceStruct;
 
 
-/* ChunkCacheEntryStruct -- cache entry in the chunk cache */
-
-#define ChunkCacheEntrySig ((Sig)0x519C80CE) /* SIGnature CHUnk Cache Entry */
-
-typedef struct ChunkCacheEntryStruct {
-  Sig sig;
-  Chunk chunk;
-  Addr base;
-  Addr limit;
-} ChunkCacheEntryStruct;
-
-
 /* ArenaClassStruct -- generic arena class interface */
 
 #define ArenaClassSig   ((Sig)0x519A6C1A) /* SIGnature ARena CLAss */
