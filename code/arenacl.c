@@ -277,14 +277,15 @@ failChunkCreate:
 static void ClientArenaFinish(Arena arena)
 {
   ClientArena clientArena;
-  Ring node, next;
+  RNode node;
+  Addr next;
 
   clientArena = Arena2ClientArena(arena);
   AVERT(ClientArena, clientArena);
 
   /* destroy all chunks */
-  RING_FOR(node, &arena->chunkRing, next) {
-    Chunk chunk = RING_ELT(Chunk, chunkRing, node);
+  RTREE_FOR(node, &arena->chunkRTree, next) {
+    Chunk chunk = ChunkOfRNode(node);
     clientChunkDestroy(chunk);
   }
 
@@ -319,16 +320,17 @@ static Res ClientArenaExtend(Arena arena, Addr base, Size size)
 static Size ClientArenaReserved(Arena arena)
 {
   Size size;
-  Ring node, nextNode;
+  RNode node;
+  Addr next;
 
   AVERT(Arena, arena);
 
   size = 0;
   /* .req.extend.slow */
-  RING_FOR(node, &arena->chunkRing, nextNode) {
-    Chunk chunk = RING_ELT(Chunk, chunkRing, node);
+  RTREE_FOR(node, &arena->chunkRTree, next) {
+    Chunk chunk = ChunkOfRNode(node);
     AVERT(Chunk, chunk);
-    size += AddrOffset(chunk->base, chunk->limit);
+    size += AddrOffset(ChunkBase(chunk), ChunkLimit(chunk));
   }
 
   return size;
@@ -394,7 +396,8 @@ static Res ClientAlloc(Addr *baseReturn, Tract *baseTractReturn,
 {
   Arena arena;
   Res res;
-  Ring node, nextNode;
+  RNode node;
+  Addr next;
   Size pages;
 
   AVER(baseReturn != NULL);
@@ -415,8 +418,8 @@ static Res ClientAlloc(Addr *baseReturn, Tract *baseTractReturn,
   pages = ChunkSizeToPages(arena->primary, size);
 
   /* .req.extend.slow */
-  RING_FOR(node, &arena->chunkRing, nextNode) {
-    Chunk chunk = RING_ELT(Chunk, chunkRing, node);
+  RTREE_FOR(node, &arena->chunkRTree, next) {
+    Chunk chunk = ChunkOfRNode(node);
     res = chunkAlloc(baseReturn, baseTractReturn, pref, pages, pool, chunk);
     if (res == ResOK || res == ResCOMMIT_LIMIT) {
       return res;

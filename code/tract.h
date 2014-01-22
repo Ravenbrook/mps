@@ -10,6 +10,7 @@
 
 #include "mpmtypes.h"
 #include "ring.h"
+#include "rtree.h"
 #include "bt.h"
 
 
@@ -138,11 +139,9 @@ typedef struct ChunkStruct {
   Sig sig;              /* <design/sig/> */
   Serial serial;        /* serial within the arena */
   Arena arena;          /* parent arena */
-  RingStruct chunkRing; /* ring of all chunks in arena */
+  RNodeStruct rNode;    /* range tree of chunks */
   Size pageSize;        /* size of pages */
   Shift pageShift;      /* log2 of page size, for shifts */
-  Addr base;            /* base address of chunk */
-  Addr limit;           /* limit address of chunk */
   Index allocBase;      /* index of first page allocatable to clients */
   Index pages;          /* index of the page after the last allocatable page */
   BT allocTable;        /* page allocation table */
@@ -156,6 +155,9 @@ typedef struct ChunkStruct {
 #define ChunkPageShift(chunk) ((chunk)->pageShift)
 #define ChunkPagesToSize(chunk, pages) ((Size)(pages) << (chunk)->pageShift)
 #define ChunkSizeToPages(chunk, size) ((Count)((size) >> (chunk)->pageShift))
+#define ChunkBase(chunk) ((chunk)->rNode.base)
+#define ChunkLimit(chunk) ((chunk)->rNode.limit)
+#define ChunkOfRNode(node) PARENT(ChunkStruct, rNode, (node))
 
 extern Bool ChunkCheck(Chunk chunk);
 extern Res ChunkInit(Chunk chunk, Arena arena,
@@ -166,16 +168,6 @@ extern Bool ChunkCacheEntryCheck(ChunkCacheEntry entry);
 extern void ChunkCacheEntryInit(ChunkCacheEntry entry);
 
 extern Bool ChunkOfAddr(Chunk *chunkReturn, Arena arena, Addr addr);
-
-/* CHUNK_OF_ADDR -- return the chunk containing an address
- *
- * arena and addr are evaluated multiple times.
- */
-
-#define CHUNK_OF_ADDR(chunkReturn, arena, addr) \
-  (((arena)->chunkCache.base <= (addr) && (addr) < (arena)->chunkCache.limit) \
-   ? (*(chunkReturn) = (arena)->chunkCache.chunk, TRUE) \
-   : ChunkOfAddr(chunkReturn, arena, addr))
 
 
 /* AddrPageBase -- the base of the page this address is on */
@@ -195,11 +187,11 @@ extern Bool TractOfAddr(Tract *tractReturn, Arena arena, Addr addr);
   BEGIN \
     Arena _arena = (arena); \
     Addr _addr = (addr); \
-    Chunk _chunk; \
-    Index _i; \
+    RNode _node; \
     \
-    if (CHUNK_OF_ADDR(&_chunk, _arena, _addr)) { \
-      _i = INDEX_OF_ADDR(_chunk, _addr); \
+    if (RTREE_FIND(&_node, &_arena->chunkRTree, _addr)) { \
+      Chunk _chunk = ChunkOfRNode(_node); \
+      Index _i = INDEX_OF_ADDR(_chunk, _addr); \
       if (BTGet(_chunk->allocTable, _i)) \
         *(tractReturn) = PageTract(&_chunk->pageTable[_i]); \
       else \
@@ -217,7 +209,7 @@ extern Bool TractOfAddr(Tract *tractReturn, Arena arena, Addr addr);
  */
 
 #define INDEX_OF_ADDR(chunk, addr) \
-  ((Index)ChunkSizeToPages(chunk, AddrOffset((chunk)->base, addr)))
+  ((Index)ChunkSizeToPages(chunk, AddrOffset(ChunkBase(chunk), addr)))
 
 extern Index IndexOfAddr(Chunk chunk, Addr addr);
 
@@ -228,7 +220,7 @@ extern Index IndexOfAddr(Chunk chunk, Addr addr);
  */
 
 #define PageIndexBase(chunk, i) \
-  AddrAdd((chunk)->base, ChunkPagesToSize(chunk, i))
+  AddrAdd(ChunkBase(chunk), ChunkPagesToSize(chunk, i))
 
 
 /* TractAverContiguousRange -- verify that range is contiguous */
@@ -238,7 +230,7 @@ extern Index IndexOfAddr(Chunk chunk, Addr addr);
     Chunk _ch = NULL; \
     \
     UNUSED(_ch); \
-    AVER(ChunkOfAddr(&_ch, arena, rangeBase) && (rangeLimit) <= _ch->limit); \
+    AVER(ChunkOfAddr(&_ch, arena, rangeBase) && (rangeLimit) <= ChunkLimit(_ch)); \
   END
 
 

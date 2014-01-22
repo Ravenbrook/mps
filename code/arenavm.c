@@ -111,12 +111,12 @@ static Bool VMChunkCheck(VMChunk vmchunk)
   CHECKL(vmchunk->overheadMappedLimit <= (Addr)chunk->pageTable);
   /* check pageTableMapped table */
   CHECKL(vmchunk->pageTableMapped != NULL);
-  CHECKL((Addr)vmchunk->pageTableMapped >= chunk->base);
+  CHECKL((Addr)vmchunk->pageTableMapped >= ChunkBase(chunk));
   CHECKL(AddrAdd((Addr)vmchunk->pageTableMapped, BTSize(chunk->pageTablePages))
          <= vmchunk->overheadMappedLimit);
   /* check noSparePages table */
   CHECKL(vmchunk->noSparePages != NULL);
-  CHECKL((Addr)vmchunk->noSparePages >= chunk->base);
+  CHECKL((Addr)vmchunk->noSparePages >= ChunkBase(chunk));
   CHECKL(AddrAdd((Addr)vmchunk->noSparePages, BTSize(chunk->pageTablePages))
          <= vmchunk->overheadMappedLimit);
   /* .improve.check-table: Could check the consistency of the tables. */
@@ -392,7 +392,7 @@ static Res VMChunkInit(Chunk chunk, BootBlock boot)
   vmChunk->noSparePages = p;
 
   /* Actually commit all the tables. <design/arenavm/>.@@@@ */
-  overheadLimit = AddrAdd(chunk->base, (Size)BootAllocated(boot));
+  overheadLimit = AddrAdd(ChunkBase(chunk), (Size)BootAllocated(boot));
   if (vmChunk->overheadMappedLimit < overheadLimit) {
     overheadLimit = AddrAlignUp(overheadLimit, ChunkPageSize(chunk));
     res = vmArenaMap(VMChunkVMArena(vmChunk), vmChunk->vm,
@@ -598,7 +598,7 @@ static Res VMArenaInit(Arena *arenaReturn, ArenaClass class, ArgList args)
   /* bits in a word).  Fail if the chunk is so small stripes are smaller */
   /* than pages.  Note that some zones are discontiguous in the chunk if */
   /* the size is not a power of 2.  See <design/arena/#class.fields>. */
-  chunkSize = AddrOffset(chunk->base, chunk->limit);
+  chunkSize = AddrOffset(ChunkBase(chunk), ChunkLimit(chunk));
   arena->zoneShift = SizeFloorLog2(chunkSize >> MPS_WORD_SHIFT);
   arena->alignment = chunk->pageSize;
 
@@ -608,7 +608,7 @@ static Res VMArenaInit(Arena *arenaReturn, ArenaClass class, ArgList args)
   else
     EVENT3(ArenaCreateVMNZ, arena, userSize, chunkSize);
 
-  vmArena->extended(arena, chunk->base, chunkSize);
+  vmArena->extended(arena, ChunkBase(chunk), chunkSize);
   
   *arenaReturn = arena;
   return ResOK;
@@ -629,8 +629,9 @@ failVMCreate:
 static void VMArenaFinish(Arena arena)
 {
   VMArena vmArena;
-  Ring node, next;
   VM arenaVM;
+  RNode node;
+  Addr next;
 
   vmArena = Arena2VMArena(arena);
   AVERT(VMArena, vmArena);
@@ -639,9 +640,8 @@ static void VMArenaFinish(Arena arena)
   sparePagesPurge(vmArena);
   /* destroy all chunks, including the primary */
   arena->primary = NULL;
-  RING_FOR(node, &arena->chunkRing, next) {
-    Chunk chunk = RING_ELT(Chunk, chunkRing, node);
-    vmChunkDestroy(chunk);
+  RTREE_FOR(node, &arena->chunkRTree, next) {
+    vmChunkDestroy(ChunkOfRNode(node));
   }
   AVER(arena->committed == VMMapped(arenaVM));
 
@@ -659,14 +659,14 @@ static void VMArenaFinish(Arena arena)
  *
  * Add up the reserved space from all the chunks.
  */
+
 static Size VMArenaReserved(Arena arena)
 {
-  Size reserved;
-  Ring node, next;
-
-  reserved = 0;
-  RING_FOR(node, &arena->chunkRing, next) {
-    VMChunk vmChunk = Chunk2VMChunk(RING_ELT(Chunk, chunkRing, node));
+  Size reserved = 0;
+  RNode node;
+  Addr next;
+  RTREE_FOR(node, &arena->chunkRTree, next) {
+    VMChunk vmChunk = Chunk2VMChunk(ChunkOfRNode(node));
     reserved += VMReserved(vmChunk->vm);
   }
   return reserved;
@@ -917,9 +917,9 @@ static Bool pagesFindFreeInArea(Index *baseReturn, Chunk chunk, Size size,
 
   AVER(AddrIsAligned(base, ChunkPageSize(chunk)));
   AVER(AddrIsAligned(limit, ChunkPageSize(chunk)));
-  AVER(chunk->base <= base);
+  AVER(ChunkBase(chunk) <= base);
   AVER(base < limit);
-  AVER(limit <= chunk->limit);
+  AVER(limit <= ChunkLimit(chunk));
   AVER(size <= AddrOffset(base, limit));
   AVER(size > (Size)0);
   AVER(SizeIsAligned(size, ChunkPageSize(chunk)));
@@ -957,6 +957,7 @@ static Bool pagesFindFreeInArea(Index *baseReturn, Chunk chunk, Size size,
  * allocates pages from top down globally, as opposed to (currently)
  * just within an interval.
  */
+
 static Bool pagesFindFreeInZones(Index *baseReturn, VMChunk *chunkReturn,
                                  VMArena vmArena, Size size, ZoneSet zones,
                                  Bool downwards)
@@ -964,14 +965,15 @@ static Bool pagesFindFreeInZones(Index *baseReturn, VMChunk *chunkReturn,
   Arena arena;
   Addr chunkBase, base, limit;
   Size zoneSize;
-  Ring node, next;
+  RNode node;
+  Addr next;
 
   arena = VMArena2Arena(vmArena);
   zoneSize = (Size)1 << arena->zoneShift;
 
   /* Should we check chunk cache first? */
-  RING_FOR(node, &arena->chunkRing, next) {
-    Chunk chunk = RING_ELT(Chunk, chunkRing, node);
+  RTREE_FOR(node, &arena->chunkRTree, next) {
+    Chunk chunk = ChunkOfRNode(node);
     AVERT(Chunk, chunk);
 
     /* .alloc.skip: The first address available for arena allocation, */
@@ -979,7 +981,7 @@ static Bool pagesFindFreeInZones(Index *baseReturn, VMChunk *chunkReturn,
     chunkBase = PageIndexBase(chunk, chunk->allocBase);
 
     base = chunkBase;
-    while(base < chunk->limit) {
+    while(base < ChunkLimit(chunk)) {
       if (ZoneSetIsMember(arena, zones, base)) {
         /* Search for a run of zone stripes which are in the ZoneSet */
         /* and the arena.  Adding the zoneSize might wrap round (to */
@@ -992,19 +994,19 @@ static Bool pagesFindFreeInZones(Index *baseReturn, VMChunk *chunkReturn,
 
           AVER(limit > base || limit == (Addr)0);
 
-          if (limit >= chunk->limit || limit < base) {
-            limit = chunk->limit;
+          if (limit >= ChunkLimit(chunk) || limit < base) {
+            limit = ChunkLimit(chunk);
             break;
           }
 
           AVER(base < limit);
-          AVER(limit < chunk->limit);
+          AVER(limit < ChunkLimit(chunk));
         } while(ZoneSetIsMember(arena, zones, limit));
 
         /* If the ZoneSet was universal, then the area found ought to */
         /* be the whole chunk. */
         AVER(zones != ZoneSetUNIV
-             || (base == chunkBase && limit == chunk->limit));
+             || (base == chunkBase && limit == ChunkLimit(chunk)));
 
         /* Try to allocate a page in the area. */
         if (AddrOffset(base, limit) >= size
@@ -1020,14 +1022,14 @@ static Bool pagesFindFreeInZones(Index *baseReturn, VMChunk *chunkReturn,
         /* base is aligned to zoneSize, which is a power of two). */
         base = AddrAlignUp(AddrAdd(base, 1), zoneSize);
         AVER(base > chunkBase || base == (Addr)0);
-        if (base >= chunk->limit || base < chunkBase) {
-          base = chunk->limit;
+        if (base >= ChunkLimit(chunk) || base < chunkBase) {
+          base = ChunkLimit(chunk);
           break;
         }
       }
     }
 
-    AVER(base == chunk->limit);
+    AVER(base == ChunkLimit(chunk));
   }
 
   return FALSE;
@@ -1217,8 +1219,8 @@ static Res vmArenaExtend(VMArena vmArena, Size size)
 vmArenaExtend_Done:
   EVENT2(vmArenaExtendDone, chunkSize, VMArenaReserved(VMArena2Arena(vmArena)));
   vmArena->extended(VMArena2Arena(vmArena),
-		    newChunk->base,
-		    AddrOffset(newChunk->base, newChunk->limit));
+		    ChunkBase(newChunk),
+		    AddrOffset(ChunkBase(newChunk), ChunkLimit(newChunk)));
 
   return res;
 }
@@ -1587,11 +1589,12 @@ static void vmArenaUnmapSpareRange(VMChunk vmChunk,
  */
 static void sparePagesPurge(VMArena vmArena)
 {
-  Ring node, next;
+  RNode node;
+  Addr next;
   Arena arena = VMArena2Arena(vmArena);
 
-  RING_FOR(node, &arena->chunkRing, next) {
-    Chunk chunk = RING_ELT(Chunk, chunkRing, node);
+  RTREE_FOR(node, &arena->chunkRTree, next) {
+    Chunk chunk = ChunkOfRNode(node);
     VMChunk vmChunk = Chunk2VMChunk(chunk);
     Index spareBaseIndex, spareLimitIndex;
     Index tablePageCursor = 0;
@@ -1723,7 +1726,8 @@ static void VMFree(Addr base, Size size, Pool pool)
 static void VMCompact(Arena arena, Trace trace)
 {
   VMArena vmArena;
-  Ring node, next;
+  RNode node;
+  Addr next;
   Size vmem1;
 
   vmArena = Arena2VMArena(arena);
@@ -1734,12 +1738,12 @@ static void VMCompact(Arena arena, Trace trace)
 
   /* Destroy any empty chunks (except the primary). */
   sparePagesPurge(vmArena);
-  RING_FOR(node, &arena->chunkRing, next) {
-    Chunk chunk = RING_ELT(Chunk, chunkRing, node);
+  RTREE_FOR(node, &arena->chunkRTree, next) {
+    Chunk chunk = ChunkOfRNode(node);
     if(chunk != arena->primary
        && BTIsResRange(chunk->allocTable, 0, chunk->pages)) {
-      Addr base = chunk->base;
-      Size size = AddrOffset(chunk->base, chunk->limit);
+      Addr base = ChunkBase(chunk);
+      Size size = AddrOffset(ChunkBase(chunk), ChunkLimit(chunk));
 
       vmChunkDestroy(chunk);
 

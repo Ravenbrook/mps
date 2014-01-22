@@ -139,9 +139,8 @@ Bool ArenaCheck(Arena arena)
   if (arena->primary != NULL) {
     CHECKD(Chunk, arena->primary);
   }
-  CHECKL(RingCheck(&arena->chunkRing));
+  CHECKD(RTree, &arena->chunkRTree);
   /* nothing to check for chunkSerial */
-  CHECKD(ChunkCacheEntry, &arena->chunkCache);
 
   CHECKL(LocusCheck(arena));
   
@@ -180,9 +179,8 @@ Res ArenaInit(Arena arena, ArenaClass class)
   arena->lastTractBase = NULL;
 
   arena->primary = NULL;
-  RingInit(&arena->chunkRing);
+  RTreeInit(&arena->chunkRTree);
   arena->chunkSerial = (Serial)0;
-  ChunkCacheEntryInit(&arena->chunkCache);
 
   LocusInit(arena);
   
@@ -281,7 +279,7 @@ void ArenaFinish(Arena arena)
   arena->sig = SigInvalid;
   GlobalsFinish(ArenaGlobals(arena));
   LocusFinish(arena);
-  RingFinish(&arena->chunkRing);
+  RTreeFinish(&arena->chunkRTree);
 }
 
 

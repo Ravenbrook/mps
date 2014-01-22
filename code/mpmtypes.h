@@ -110,6 +110,8 @@ typedef struct AllocFrameStruct *AllocFrame; /* <design/alloc-frame/> */
 typedef struct ReservoirStruct *Reservoir;   /* <design/reservoir/> */
 typedef struct StackContextStruct *StackContext;
 typedef unsigned FindDelete;    /* <design/cbs/> */
+typedef struct RTreeStruct *RTree;
+typedef struct RNodeStruct *RNode;
 
 
 /* Arena*Method -- see <code/mpmst.h#ArenaClassStruct> */

@@ -27,6 +27,9 @@
 #include "protocol.h"
 #include "ring.h"
 #include "chain.h"
+#include "splay.h"
+#include "rtree.h"
+#include "meter.h"
 
 
 /* PoolClassStruct -- pool class structure
@@ -630,9 +633,8 @@ typedef struct mps_arena_s {
   Addr lastTractBase;           /* base address of lastTract */
 
   Chunk primary;                /* the primary chunk */
-  RingStruct chunkRing;         /* all the chunks */
+  RTreeStruct chunkRTree;       /* all the chunks */
   Serial chunkSerial;           /* next chunk number */
-  ChunkCacheEntryStruct chunkCache; /* just one entry */
 
   /* locus fields (<code/locus.c>) */
   GenDescStruct topGen;         /* generation descriptor for dynamic gen */
