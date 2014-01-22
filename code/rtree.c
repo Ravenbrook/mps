@@ -9,6 +9,12 @@
 
 SRCID(rtree, "$Id$");
 
+
+/* TODO: Use this throughout the MPS */
+#define ADDR_IN_AREA(base, limit, addr) ((base) <= (addr) && (addr) < (limit))
+#define RNODE_HAS_ADDR(node, addr) ADDR_IN_AREA((node)->base, (node)->limit, addr)
+
+
 Bool RTreeCheck(RTree tree)
 {
   UNUSED(tree);
@@ -91,7 +97,7 @@ static RNode descend(RTree tree, Addr addr)
   
   node = tree->root;
   parent = NULL;
-  while (node != NULL && !(node->base <= addr && addr < node->limit)) {
+  while (node != NULL && !RNODE_HAS_ADDR(node, addr)) {
     RNode child;
     if (addr < node->base) {
       child = node->left;
@@ -233,6 +239,32 @@ static void ascend(RTree tree, Addr addr, RNode node)
 }
 
 
+/* hoist -- bring a node containing addr (or neighbour) to the root
+ *
+ * This is equivalent to ascend(tree, addr, descend(tree, addr)) but
+ * shortcuts the case where a containing node is already at the root, avoiding
+ * pointer manipulation.
+ */
+
+static RNode hoist(RTree tree, Addr addr)
+{
+  RNode node;
+
+  AVERT(RTree, tree);
+  /* addr is arbitrary */
+  
+  if (tree->root == NULL)
+    return NULL;
+  
+  if (RNODE_HAS_ADDR(tree->root, addr))
+    return tree->root;
+  
+  node = descend(tree, addr);
+  ascend(tree, addr, node);
+  return node;
+}
+
+
 Bool RTreeFind(RNode *nodeReturn, RTree tree, Addr addr)
 {
   RNode node;
@@ -241,8 +273,7 @@ Bool RTreeFind(RNode *nodeReturn, RTree tree, Addr addr)
   AVERT(RTree, tree);
   /* addr is arbitrary */
 
-  node = descend(tree, addr);
-  ascend(tree, addr, node);
+  node = hoist(tree, addr);
   if (node == NULL)
     return FALSE;
   *nodeReturn = node;
@@ -258,9 +289,9 @@ void RTreeInsert(RTree tree, RNode node)
   AVERT(RNode, node);
   AVER(node->left == NULL);
   AVER(node->right == NULL);
-  
+
   exists = descend(tree, node->base);
-  AVER(exists == NULL);
+  AVER(exists == NULL); /* TODO: what defensive action can we take? */
   splay(tree, node->base, node);
 }
 
@@ -303,17 +334,21 @@ void RTreeDelete(RTree tree, RNode node)
 }
 
 
+/* RTreeFirst, RTreeNext -- tree traversal
+ *
+ * It may at first look seem horribly inefficient to traverse a tree by
+ * splaying each node to the root, but it's known to be O(n log log n)
+ * and conjectured to be O(n) <http://www.maths.tcd.ie/report_series/tcdmath/tcdm0207.pdf>.
+ * However, it may be worth having an alternative implementation when the
+ * tree is small to reduce overheads.
+ */
+
 RNode RTreeFirst(RTree tree)
 {
-  RNode node;
-
   AVERT(RTree, tree);
   
   /* Splay the least node in the tree to the root. */
-  node = descend(tree, (Addr)0);
-  ascend(tree, (Addr)0, node);
-  AVER(node == NULL || tree->root == node);
-
+  hoist(tree, (Addr)0);
   return tree->root;
 }
 
@@ -322,25 +357,28 @@ RNode RTreeNext(RTree tree, Addr prev)
   RTreeStruct subtree;
 
   /* The loop is allowed to change the tree, so try to splay
-     the current node back to the root.  This might bring either
-     the nearest right- or left- neighbour to the top if node
-     was deleted.  On the other hand, if the tree wasn't changed then
+     the current node back to the root.  If the node was deleted
+     or replaced this could bring a neighbour or a new node with the same
+     base address to the top.  If the tree wasn't changed then
      it's a trivial operation. */
-  ascend(tree, prev, descend(tree, prev));
+  hoist(tree, prev);
   
   if (tree->root == NULL) /* nothing left in the tree */
     return NULL;
 
-  if (tree->root->base > prev) /* progress */
+  if (tree->root->base > prev) /* ensure monotonic progress */
     return tree->root;
     
   /* If the node is still at the root, or its nearest left neighbour is
      there, or a similar replacement node is there, then we must search
      for the nearest right neighbour in the right subtree. */
+  RTreeInit(&subtree);
   subtree.root = tree->root->right;
-  ascend(&subtree, prev, descend(&subtree, prev));
-  AVER(subtree.root == NULL || subtree.root->left == NULL);
+  hoist(&subtree, prev);
   tree->root->right = subtree.root;
+  /* Either there was no next node, or the next node had better not have
+     any left children, or it wasn't the next node. */
+  AVER(tree->root->right == NULL || tree->root->right->left == NULL);
   return tree->root->right;
 }
 
