@@ -13,7 +13,7 @@
 #include "meter.h"
 #include "mpmtypes.h"
 #include "range.h"
-#include "splay.h"
+#include "rtree.h"
 
 
 typedef struct CBSStruct *CBS;
@@ -24,7 +24,7 @@ typedef Bool (*CBSIterateMethod)(CBS cbs, Range range,
 #define CBSSig ((Sig)0x519CB599) /* SIGnature CBS */
 
 typedef struct CBSStruct {
-  SplayTreeStruct tree;
+  RTreeStruct tree;
   Count treeSize;
   Pool blockPool;
   Align alignment;

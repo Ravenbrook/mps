@@ -11,25 +11,34 @@ SRCID(rtree, "$Id$");
 
 
 /* TODO: Use this throughout the MPS */
+/* Could use (Word)(addr - base) < (Word)(limit - base) */
 #define ADDR_IN_AREA(base, limit, addr) ((base) <= (addr) && (addr) < (limit))
 #define RNODE_HAS_ADDR(node, addr) ADDR_IN_AREA((node)->base, (node)->limit, addr)
 
 
+/* TODO: Consider using a sentinel node rather than NULL */
+static RNodeStruct RTreeLeaf = {SigInvalid, NULL, NULL, NULL, NULL};
+#define RTREE_LEAF (&RTreeLeaf)
+
 Bool RTreeCheck(RTree tree)
 {
-  UNUSED(tree);
+  CHECKS(RTree, tree);
   CHECKL(tree != NULL);
   return TRUE;
 }
 
 Bool RNodeCheck(RNode node)
 {
-  UNUSED(node);
+  CHECKS(RNode, node);
   CHECKL(node != NULL);
-  if (node->left != NULL)
+  if (node->left != RTREE_LEAF) {
     CHECKD(RNode, node->left);
-  if (node->right != NULL)
+    AVER(node->left->limit <= node->base);
+  }
+  if (node->right != RTREE_LEAF) {
     CHECKD(RNode, node->right);
+    AVER(node->limit <= node->right->base);
+  }
   CHECKL(node->base != NULL);
   CHECKL(node->limit != NULL);
   CHECKL(node->base < node->limit);
@@ -40,7 +49,7 @@ Bool RNodeCheck(RNode node)
 void RTreeInit(RTree tree)
 {
   AVER(tree != NULL);
-  tree->root = NULL;
+  tree->root = RTREE_LEAF;
   tree->sig = RTreeSig;
   AVERT(RTree, tree);
 }
@@ -48,29 +57,35 @@ void RTreeInit(RTree tree)
 void RTreeFinish(RTree tree)
 {
   AVERT(RTree, tree);
-  AVER(tree->root == NULL); /* tree should've been emptied */
+  AVER(tree->root == RTREE_LEAF); /* tree should've been emptied */
   tree->sig = SigInvalid;
 }
 
+void RTreeReset(RTree tree)
+{
+  AVERT(RTree, tree);
+  RTreeInit(tree);
+}
 
 void RNodeInit(RNode node, Addr base, Addr limit)
 {
   AVER(node != NULL);
-  node->left = NULL;
-  node->right = NULL;
+  AVER(node != RTREE_LEAF);
+  node->left = RTREE_LEAF;
+  node->right = RTREE_LEAF;
   node->base = base;
   node->limit = limit;
   node->sig = RNodeSig;
   AVERT(RNode, node);
 }
 
-
 void RNodeFinish(RNode node)
 {
+  AVER(node != RTREE_LEAF);
   AVERT(RNode, node);
   /* The node should've been deleted from any tree. */
-  AVER(node->left == NULL);
-  AVER(node->right == NULL);
+  AVER(node->left == RTREE_LEAF);
+  AVER(node->right == RTREE_LEAF);
   node->sig = SigInvalid;
 }
 
@@ -80,7 +95,7 @@ void RNodeFinish(RNode node)
  * Descend the tree, reversing pointers as we go, until we find
  * a node containing addr or run out of nodes.  If a match was found,
  * return the node with the match, and tree->root points at that node's
- * parent (and reversed tree).  If there was no match, return NULL, and
+ * parent (and reversed tree).  If there was no match, return RTREE_LEAF, and
  * tree->root points at one of key's nearest neighbours (and a reversed
  * tree).
  *
@@ -96,8 +111,8 @@ static RNode descend(RTree tree, Addr addr)
   /* addr is arbitrary */
   
   node = tree->root;
-  parent = NULL;
-  while (node != NULL && !RNODE_HAS_ADDR(node, addr)) {
+  parent = RTREE_LEAF;
+  while (node != RTREE_LEAF && !RNODE_HAS_ADDR(node, addr)) {
     RNode child;
     if (addr < node->base) {
       child = node->left;
@@ -135,11 +150,11 @@ static void splay(RTree tree, Addr addr, RNode node) {
   AVERT(RNode, node);
 
   parent = tree->root;
-  while (parent != NULL) {
+  while (parent != RTREE_LEAF) {
     RNode grandparent, ggp;
     if (addr < parent->base) {
       grandparent = parent->left;
-      if (grandparent == NULL) { /* zig */
+      if (grandparent == RTREE_LEAF) { /* zig */
         parent->left = node->right;
         node->right = parent;
         break;
@@ -161,7 +176,7 @@ static void splay(RTree tree, Addr addr, RNode node) {
     } else { /* same as above with "right" and "left" swapped! */
       AVER(addr >= parent->limit);
       grandparent = parent->right;
-      if (grandparent == NULL) { /* zag */
+      if (grandparent == RTREE_LEAF) { /* zag */
         parent->right = node->left;
         node->left = parent;
         break;
@@ -181,6 +196,11 @@ static void splay(RTree tree, Addr addr, RNode node) {
         node->left = parent;
       }
     }
+    
+    AVER(RNodeCheck(node));
+    AVER(RNodeCheck(parent));
+    AVER(RNodeCheck(grandparent));
+
     parent = ggp;
   }
   tree->root = node;
@@ -191,7 +211,8 @@ static void splay(RTree tree, Addr addr, RNode node) {
  *
  * This can be used after descend() to get the parent of the found node,
  * or the nearest neighbour of the not-found node.  Returns NULL if there
- * is no such node (because the inverted tree is empty).
+ * is no such node (because the inverted tree is empty).  Essentially,
+ * this undoes one level of tree inversion.
  */
 
 static RNode pop(RTree tree, Addr addr)
@@ -202,25 +223,28 @@ static RNode pop(RTree tree, Addr addr)
   /* addr is abitrary */
 
   node = tree->root;
-  if (node == NULL)
+  if (node == RTREE_LEAF)
     return NULL;
   if (addr < node->base) {
     parent = node->left;
-    node->left = NULL;
+    node->left = RTREE_LEAF;
   } else {
     AVER(addr >= node->limit);
     parent = node->right;
-    node->right = NULL;
+    node->right = RTREE_LEAF;
   }
   tree->root = parent;
   return node;
 }
 
 
-/* ascend -- ascend the tree even if node is NULL
+/* ascend -- ascend the tree even if node is RTREE_LEAF
  *
  * Like splay() except that ascend(tree, addr, descend(tree, addr))
  * is valid even when addr is not found in the tree.
+ *
+ * "Ascend" is both transitive and intransitive.  It ascends the tree, and
+ * the node ascends to the top.
  */
 
 static void ascend(RTree tree, Addr addr, RNode node)
@@ -228,7 +252,7 @@ static void ascend(RTree tree, Addr addr, RNode node)
   AVERT(RTree, tree);
   /* addr is arbitrary */
   
-  if (node != NULL) {
+  if (node != RTREE_LEAF) {
     AVERT(RNode, node);
     splay(tree, addr, node);
   } else {
@@ -236,32 +260,6 @@ static void ascend(RTree tree, Addr addr, RNode node)
     if (node != NULL)
       splay(tree, addr, node);
   }
-}
-
-
-/* hoist -- bring a node containing addr (or neighbour) to the root
- *
- * This is equivalent to ascend(tree, addr, descend(tree, addr)) but
- * shortcuts the case where a containing node is already at the root, avoiding
- * pointer manipulation.
- */
-
-static RNode hoist(RTree tree, Addr addr)
-{
-  RNode node;
-
-  AVERT(RTree, tree);
-  /* addr is arbitrary */
-  
-  if (tree->root == NULL)
-    return NULL;
-  
-  if (RNODE_HAS_ADDR(tree->root, addr))
-    return tree->root;
-  
-  node = descend(tree, addr);
-  ascend(tree, addr, node);
-  return node;
 }
 
 
@@ -273,9 +271,12 @@ Bool RTreeFind(RNode *nodeReturn, RTree tree, Addr addr)
   AVERT(RTree, tree);
   /* addr is arbitrary */
 
-  node = hoist(tree, addr);
-  if (node == NULL)
+  node = descend(tree, addr);
+  ascend(tree, addr, node);
+  
+  if (node == RTREE_LEAF)
     return FALSE;
+
   *nodeReturn = node;
   return TRUE;
 }
@@ -287,11 +288,11 @@ void RTreeInsert(RTree tree, RNode node)
 
   AVERT(RTree, tree);
   AVERT(RNode, node);
-  AVER(node->left == NULL);
-  AVER(node->right == NULL);
+  AVER(node->left == RTREE_LEAF);
+  AVER(node->right == RTREE_LEAF);
 
   exists = descend(tree, node->base);
-  AVER(exists == NULL); /* TODO: what defensive action can we take? */
+  AVER(exists == RTREE_LEAF); /* TODO: what defensive action can we take? */
   splay(tree, node->base, node);
 }
 
@@ -306,31 +307,69 @@ void RTreeDelete(RTree tree, RNode node)
   exists = descend(tree, node->base);
   AVER(exists == node);
 
-  if (exists == NULL || /* defensive */
-      (node->left == NULL && node->right == NULL))
-    ascend(tree, node->base, NULL);
-  else {
+  if (exists == RTREE_LEAF || /* defensive */
+      (node->left == RTREE_LEAF && node->right == RTREE_LEAF)) {
+    /* Ascend without the node, removing it from the tree. */
+    ascend(tree, node->base, RTREE_LEAF);
+  } else {
     /* Find a nearest neighbour node in one of node's subtrees. */
     RTreeStruct subtree;
     RNode replacement;
     RTreeInit(&subtree);
-    if (node->left != NULL)
+
+    if (node->left != RTREE_LEAF) {
       subtree.root = node->left;
-    else
+      exists = descend(&subtree, node->base);
+      AVER(exists == RTREE_LEAF); /* overlapping node in subtree */
+      replacement = pop(&subtree, node->base);
+      AVER(replacement->right == RTREE_LEAF);
+      
+      /* Bypass the replacement node in the subtree. */
+      ascend(&subtree, node->base, replacement->left);
+      
+      /* Replace the node to be deleted with the replacement. */
+      replacement->left = subtree.root;
+      replacement->right = node->right;
+      
+      /* Splay the replacement into the inverted main tree, bypassing
+         the node to be deleted. */
+      splay(tree, node->base, replacement);
+    } else {
+      /* Same as above, with right and left swapped! */
       subtree.root = node->right;
-    exists = descend(&subtree, node->base);
-    AVER(exists == NULL); /* overlapping node in subtree */
-    replacement = pop(&subtree, node->base);
-    /* Splay the replacement to the top of the subtree. */
-    splay(&subtree, node->base, replacement);
-    AVER(subtree.root == replacement);
-    /* Splay the subtree into the main tree, bypassing node. */
-    splay(tree, node->base, subtree.root);
+      exists = descend(&subtree, node->base);
+      AVER(exists == RTREE_LEAF); /* overlapping node in subtree */
+      replacement = pop(&subtree, node->base);
+      AVER(replacement->left == RTREE_LEAF);
+      
+      /* Bypass the replacement node in the subtree. */
+      ascend(&subtree, node->base, replacement->right);
+      
+      /* Replace the node to be deleted with the replacement. */
+      replacement->right = subtree.root;
+      replacement->left = node->left;
+      
+      /* Splay the replacement into the inverted main tree, bypassing
+         the node to be deleted. */
+      splay(tree, node->base, replacement);
+    }
+    
+    /* Possible improvement: Detach the replacement node and push it
+       into the main inverted tree, replacing node, then attach the
+       subtree root to the main inverted tree, then splay replacement's
+       child right to the top of the whole tree.  This avoids a possible
+       missed rotation at the junction of the subtree and the main tree.
+       Be careful: the key on the way up will need to be replacement->base. */
+
+    /* Other possible improvement: The replacement is always the left- or
+       right-most descendent of the node's child, so there's no need to
+       do pointer comparisons to find it, though you should still splay
+       on the way back up. */
   }
 
   /* Remove references to tree from node, for safety, and for RNodeFinish. */
-  node->left = NULL;
-  node->right = NULL;
+  node->left = RTREE_LEAF;
+  node->right = RTREE_LEAF;
 }
 
 
@@ -348,7 +387,11 @@ RNode RTreeFirst(RTree tree)
   AVERT(RTree, tree);
   
   /* Splay the least node in the tree to the root. */
-  hoist(tree, (Addr)0);
+  /* TODO: This doesn't require a descend that uses comparisons, since
+     it always goes left. */
+  ascend(tree, (Addr)0, descend(tree, (Addr)0));
+  if (tree->root == RTREE_LEAF)
+    return NULL;
   return tree->root;
 }
 
@@ -361,9 +404,9 @@ RNode RTreeNext(RTree tree, Addr prev)
      or replaced this could bring a neighbour or a new node with the same
      base address to the top.  If the tree wasn't changed then
      it's a trivial operation. */
-  hoist(tree, prev);
+  ascend(tree, prev, descend(tree, prev));
   
-  if (tree->root == NULL) /* nothing left in the tree */
+  if (tree->root == RTREE_LEAF) /* nothing left in the tree */
     return NULL;
 
   if (tree->root->base > prev) /* ensure monotonic progress */
@@ -374,11 +417,16 @@ RNode RTreeNext(RTree tree, Addr prev)
      for the nearest right neighbour in the right subtree. */
   RTreeInit(&subtree);
   subtree.root = tree->root->right;
-  hoist(&subtree, prev);
+  /* TODO: This doesn't require a descend that uses comparisons, since
+     it always goes left. */
+  ascend(&subtree, prev, descend(&subtree, prev));
   tree->root->right = subtree.root;
   /* Either there was no next node, or the next node had better not have
      any left children, or it wasn't the next node. */
-  AVER(tree->root->right == NULL || tree->root->right->left == NULL);
+  if (tree->root->right == RTREE_LEAF)
+    return NULL;
+  AVER(tree->root->right->left == RTREE_LEAF);
+  /* Could do one extra rotation to bring this to the top. */
   return tree->root->right;
 }
 
@@ -397,7 +445,106 @@ void RTreeIterate(RTree tree, RTreeIterator iterator,
     if (!(*iterator)(tree, node, closureP, size))
       break;
   }
-}    
+}
+
+
+Bool RTreeFindFirst(RNode *nodeReturn, RTree tree,
+                    RTreeTestNodeMethod testNode,
+                    RTreeTestTreeMethod testTree,
+                    void *closureP, Size closureS)
+{
+  RNode node;
+  Addr next;
+
+  AVER(nodeReturn != NULL);
+  AVERT(RTree, tree);
+  AVER(FUNCHECK(testNode));
+  AVER(FUNCHECK(testTree));
+  /* closureP and closureS arbitrary */
+
+  /* FIXME: Temporary O(n) implementation! */
+  RTREE_FOR(node, tree, next) {
+    if ((*testNode)(tree, node, closureP, closureS)) {
+      *nodeReturn = node;
+      return TRUE;
+    }
+  }
+  return FALSE;
+}
+
+
+Bool RTreeNeighbours(RNode *leftReturn, RNode *rightReturn,
+                     RTree tree, Addr addr)
+{
+  RNode node;
+  RTreeStruct subtree;
+  
+  AVERT(RTree, tree);
+  AVER(leftReturn != NULL);
+  AVER(rightReturn != NULL);
+  /* addr arbitrary */
+  
+  node = descend(tree, addr);
+  if (node != RTREE_LEAF) {
+    ascend(tree, addr, node);
+    return FALSE;
+  }
+
+  node = pop(tree, addr);
+  if (node == NULL) {
+    AVER(tree->root == RTREE_LEAF);
+    /* No need to ascend an empty tree. */
+    *leftReturn = *rightReturn = NULL;
+    return TRUE;
+  }
+  
+  splay(tree, addr, node);
+
+  RTreeInit(&subtree);
+  if (addr < node->base) { /* node is the right neighbour */
+    RNode left;
+    *rightReturn = node;
+    subtree.root = node->left;
+    left = descend(&subtree, addr); /* TODO: Use faster descend_right */
+    AVER(left == RTREE_LEAF);
+    left = pop(&subtree, addr);
+    *leftReturn = left;
+    if (left != NULL) {
+      splay(&subtree, addr, left);
+      node->left = left;
+    }
+  } else {
+    RNode right;
+    AVER(addr >= node->limit);
+    *leftReturn = node;
+    subtree.root = node->right;
+    right = descend(&subtree, addr); /* TODO: Use faster descend_left */
+    AVER(right == RTREE_LEAF);
+    right = pop(&subtree, addr);
+    *rightReturn = right;
+    if (right != NULL) {
+      splay(&subtree, addr, right);
+      node->right = right;
+    }
+  }
+
+  return TRUE;
+}
+
+
+static Count RNodeDebugSize(RNode node)
+{
+  if (node == RTREE_LEAF)
+    return 0;
+  AVERT(RNode, node);
+  return 1 + RNodeDebugSize(node->left) + RNodeDebugSize(node->right);
+}
+
+Count RTreeDebugSize(RTree tree)
+{
+  AVERT(RTree, tree);
+  return RNodeDebugSize(tree->root);
+}
 
 
 /* C. COPYRIGHT AND LICENSE

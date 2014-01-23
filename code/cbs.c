@@ -13,7 +13,7 @@
  */
 
 #include "cbs.h"
-#include "splay.h"
+#include "rtree.h"
 #include "meter.h"
 #include "poolmfs.h"
 #include "mpm.h"
@@ -23,22 +23,20 @@ SRCID(cbs, "$Id$");
 
 typedef struct CBSBlockStruct *CBSBlock;
 typedef struct CBSBlockStruct {
-  SplayNodeStruct node;
-  Addr base;
-  Addr limit;
+  RNodeStruct node;
   Size maxSize; /* accurate maximum block size of sub-tree */
 } CBSBlockStruct;
 
-#define CBSBlockBase(block) ((block)->base)
-#define CBSBlockLimit(block) ((block)->limit)
-#define CBSBlockSize(block) AddrOffset((block)->base, (block)->limit)
+#define CBSBlockBase(block) ((block)->node.base)
+#define CBSBlockLimit(block) ((block)->node.limit)
+#define CBSBlockSize(block) AddrOffset(CBSBlockBase(block), CBSBlockLimit(block))
 
 
 #define cbsOfTree(_tree) PARENT(CBSStruct, tree, (_tree))
 #define cbsBlockOfNode(_node) PARENT(CBSBlockStruct, node, (_node))
 #define treeOfCBS(cbs) (&((cbs)->tree))
 #define nodeOfCBSBlock(block) (&((block)->node))
-#define keyOfCBSBlock(block) ((void *)&((block)->base))
+#define keyOfCBSBlock(block) ((void *)&((block)->node.base))
 
 
 /* cbsEnter, cbsLeave -- Avoid re-entrance
@@ -73,13 +71,12 @@ Bool CBSCheck(CBS cbs)
   /* See .enter-leave.simple. */
   CHECKS(CBS, cbs);
   CHECKL(cbs != NULL);
-  CHECKL(SplayTreeCheck(treeOfCBS(cbs)));
+  CHECKD(RTree, treeOfCBS(cbs));
   /* nothing to check about treeSize */
   CHECKD(Pool, cbs->blockPool);
   CHECKL(BoolCheck(cbs->fastFind));
   CHECKL(BoolCheck(cbs->inCBS));
   /* No MeterCheck */
-
   return TRUE;
 }
 
@@ -89,7 +86,7 @@ static Bool CBSBlockCheck(CBSBlock block)
   /* See .enter-leave.simple. */
   UNUSED(block); /* Required because there is no signature */
   CHECKL(block != NULL);
-  CHECKL(SplayNodeCheck(nodeOfCBSBlock(block)));
+  CHECKD(RNode, nodeOfCBSBlock(block));
 
   /* If the block is in the middle of being deleted, */
   /* the pointers will be equal. */
@@ -99,45 +96,15 @@ static Bool CBSBlockCheck(CBSBlock block)
 }
 
 
-/* cbsCompare -- Compare key to [base,limit)
- *
- * See <design/splay/#type.splay.compare.method>
- */
-
-static Compare cbsCompare(void *key, SplayNode node)
-{
-  Addr base1, base2, limit2;
-  CBSBlock cbsBlock;
-
-  /* NULL key compares less than everything. */
-  if (key == NULL)
-    return CompareLESS;
-
-  AVER(node != NULL);
-
-  base1 = *(Addr *)key;
-  cbsBlock = cbsBlockOfNode(node);
-  base2 = cbsBlock->base;
-  limit2 = cbsBlock->limit;
-
-  if (base1 < base2)
-    return CompareLESS;
-  else if (base1 >= limit2)
-    return CompareGREATER;
-  else
-    return CompareEQUAL;
-}
-
-
 /* cbsTestNode, cbsTestTree -- test for nodes larger than the S parameter */
 
-static Bool cbsTestNode(SplayTree tree, SplayNode node,
+static Bool cbsTestNode(RTree tree, RNode node,
                         void *closureP, Size size)
 {
   CBSBlock block;
 
-  AVERT(SplayTree, tree);
-  AVERT(SplayNode, node);
+  AVERT(RTree, tree);
+  AVERT(RNode, node);
   AVER(closureP == NULL);
   AVER(size > 0);
   AVER(cbsOfTree(tree)->fastFind);
@@ -147,13 +114,13 @@ static Bool cbsTestNode(SplayTree tree, SplayNode node,
   return CBSBlockSize(block) >= size;
 }
 
-static Bool cbsTestTree(SplayTree tree, SplayNode node,
+static Bool cbsTestTree(RTree tree, RNode node,
                         void *closureP, Size size)
 {
   CBSBlock block;
 
-  AVERT(SplayTree, tree);
-  AVERT(SplayNode, node);
+  AVERT(RTree, tree);
+  AVERT(RNode, node);
   AVER(closureP == NULL);
   AVER(size > 0);
   AVER(cbsOfTree(tree)->fastFind);
@@ -164,39 +131,40 @@ static Bool cbsTestTree(SplayTree tree, SplayNode node,
 }
 
 
+#if 0
 /* cbsUpdateNode -- update size info after restructuring */
 
-static void cbsUpdateNode(SplayTree tree, SplayNode node,
-                          SplayNode leftChild, SplayNode rightChild)
+static void cbsUpdateNode(RTree tree, RNode node)
 {
   Size maxSize;
   CBSBlock block;
 
-  AVERT(SplayTree, tree);
-  AVERT(SplayNode, node);
-  if (leftChild != NULL)
-    AVERT(SplayNode, leftChild);
-  if (rightChild != NULL)
-    AVERT(SplayNode, rightChild);
+  AVERT(RTree, tree);
+  AVERT(RNode, node);
+  if (node->left != NULL)
+    AVERT(RNode, node->left);
+  if (node->right != NULL)
+    AVERT(RNode, node->right);
   AVER(cbsOfTree(tree)->fastFind);
 
   block = cbsBlockOfNode(node);
   maxSize = CBSBlockSize(block);
 
-  if (leftChild != NULL) {
-    Size size = cbsBlockOfNode(leftChild)->maxSize;
+  if (node->left != NULL) {
+    Size size = cbsBlockOfNode(node->left)->maxSize;
     if (size > maxSize)
       maxSize = size;
   }
 
-  if (rightChild != NULL) {
-    Size size = cbsBlockOfNode(rightChild)->maxSize;
+  if (node->right != NULL) {
+    Size size = cbsBlockOfNode(node->right)->maxSize;
     if (size > maxSize)
       maxSize = size;
   }
 
   block->maxSize = maxSize;
 }
+#endif
 
 
 /* CBSInit -- Initialise a CBS structure
@@ -218,8 +186,7 @@ Res CBSInit(Arena arena, CBS cbs, void *owner, Align alignment,
   if (ArgPick(&arg, args, MPS_KEY_CBS_EXTEND_BY))
     extendBy = arg.val.size;
 
-  SplayTreeInit(treeOfCBS(cbs), &cbsCompare,
-                fastFind ? &cbsUpdateNode : NULL);
+  RTreeInit(treeOfCBS(cbs));
   MPS_ARGS_BEGIN(pcArgs) {
     MPS_ARGS_ADD(pcArgs, MPS_KEY_MFS_UNIT_SIZE, sizeof(CBSBlockStruct));
     MPS_ARGS_ADD(pcArgs, MPS_KEY_EXTEND_BY, extendBy);
@@ -259,7 +226,8 @@ void CBSFinish(CBS cbs)
 
   cbs->sig = SigInvalid;
 
-  SplayTreeFinish(treeOfCBS(cbs));
+  RTreeReset(treeOfCBS(cbs)); /* discard blocks en masse */
+  RTreeFinish(treeOfCBS(cbs));
   PoolDestroy(cbs->blockPool);
 }
 
@@ -273,19 +241,15 @@ void CBSFinish(CBS cbs)
 
 static void cbsBlockDelete(CBS cbs, CBSBlock block)
 {
-  Res res;
-
   AVERT(CBS, cbs);
   AVERT(CBSBlock, block);
 
   METER_ACC(cbs->treeSearch, cbs->treeSize);
-  res = SplayTreeDelete(treeOfCBS(cbs), nodeOfCBSBlock(block),
-                        keyOfCBSBlock(block));
-  AVER(res == ResOK); /* Must be possible to delete node */
+  RTreeDelete(treeOfCBS(cbs), nodeOfCBSBlock(block));
   STATISTIC(--cbs->treeSize);
 
   /* make invalid */
-  block->limit = block->base;
+  block->node.limit = block->node.base;
 
   PoolFree(cbs->blockPool, (Addr)block, sizeof(CBSBlockStruct));
 
@@ -294,6 +258,8 @@ static void cbsBlockDelete(CBS cbs, CBSBlock block)
 
 static void cbsBlockShrunk(CBS cbs, CBSBlock block, Size oldSize)
 {
+  UNUSED(cbs); UNUSED(block); UNUSED(oldSize);
+#if 0
   Size newSize;
 
   AVERT(CBS, cbs);
@@ -307,10 +273,13 @@ static void cbsBlockShrunk(CBS cbs, CBSBlock block, Size oldSize)
                      keyOfCBSBlock(block));
     AVER(CBSBlockSize(block) <= block->maxSize);
   }
+#endif
 }
 
 static void cbsBlockGrew(CBS cbs, CBSBlock block, Size oldSize)
 {
+  UNUSED(cbs); UNUSED(block); UNUSED(oldSize);
+#if 0
   Size newSize;
 
   AVERT(CBS, cbs);
@@ -324,6 +293,7 @@ static void cbsBlockGrew(CBS cbs, CBSBlock block, Size oldSize)
                      keyOfCBSBlock(block));
     AVER(CBSBlockSize(block) <= block->maxSize);
   }
+#endif
 }
 
 /* cbsBlockAlloc -- allocate a new block and set its base and limit,
@@ -345,9 +315,7 @@ static Res cbsBlockAlloc(CBSBlock *blockReturn, CBS cbs, Range range)
     goto failPoolAlloc;
   block = (CBSBlock)p;
 
-  SplayNodeInit(nodeOfCBSBlock(block));
-  block->base = RangeBase(range);
-  block->limit = RangeLimit(range);
+  RNodeInit(nodeOfCBSBlock(block), RangeBase(range), RangeLimit(range));
   block->maxSize = CBSBlockSize(block);
 
   AVERT(CBSBlock, block);
@@ -363,15 +331,11 @@ failPoolAlloc:
 
 static void cbsBlockInsert(CBS cbs, CBSBlock block)
 {
-  Res res;
-
   AVERT(CBS, cbs);
   AVERT(CBSBlock, block);
 
   METER_ACC(cbs->treeSearch, cbs->treeSize);
-  res = SplayTreeInsert(treeOfCBS(cbs), nodeOfCBSBlock(block),
-                        keyOfCBSBlock(block));
-  AVER(res == ResOK);
+  RTreeInsert(treeOfCBS(cbs), nodeOfCBSBlock(block));
   STATISTIC(++cbs->treeSize);
 }
 
@@ -382,7 +346,7 @@ static Res cbsInsertIntoTree(Range rangeReturn, CBS cbs, Range range)
 {
   Res res;
   Addr base, limit, newBase, newLimit;
-  SplayNode leftSplay, rightSplay;
+  RNode leftNode, rightNode;
   CBSBlock leftCBS, rightCBS;
   Bool leftMerge, rightMerge;
   Size oldSize;
@@ -396,11 +360,15 @@ static Res cbsInsertIntoTree(Range rangeReturn, CBS cbs, Range range)
   limit = RangeLimit(range);
 
   METER_ACC(cbs->treeSearch, cbs->treeSize);
-  res = SplayTreeNeighbours(&leftSplay, &rightSplay,
-                            treeOfCBS(cbs), (void *)&base);
-  if (res != ResOK)
+  
+  if (!RTreeNeighbours(&leftNode, &rightNode, treeOfCBS(cbs), base)) {
+    res = ResFAIL;
     goto fail;
-
+  }
+  
+  /* Note, one neighbour will be at the tree root, and the other its
+     direct child. */
+  
   /* The two cases below are not quite symmetrical, because base was
    * passed into the call to SplayTreeNeighbours(), but limit was not.
    * So we know that if there is a left neighbour, then leftCBS->limit
@@ -410,45 +378,49 @@ static Res cbsInsertIntoTree(Range rangeReturn, CBS cbs, Range range)
    * range to fit, we need limit <= rightCBS->base too. Hence the extra
    * check and the possibility of failure in the second case.
    */
-  if (leftSplay == NULL) {
+  if (leftNode == NULL) {
     leftCBS = NULL;
     leftMerge = FALSE;
   } else {
-    leftCBS = cbsBlockOfNode(leftSplay);
-    AVER(leftCBS->limit <= base);
-    leftMerge = leftCBS->limit == base;
+    leftCBS = cbsBlockOfNode(leftNode);
+    AVER(CBSBlockLimit(leftCBS) <= base);
+    leftMerge = CBSBlockLimit(leftCBS) == base;
   }
 
-  if (rightSplay == NULL) {
+  if (rightNode == NULL) {
     rightCBS = NULL;
     rightMerge = FALSE;
   } else {
-    rightCBS = cbsBlockOfNode(rightSplay);
+    rightCBS = cbsBlockOfNode(rightNode);
     if (rightCBS != NULL && limit > CBSBlockLimit(rightCBS)) {
       res = ResFAIL;
       goto fail;
     }
-    rightMerge = rightCBS->base == limit;
+    rightMerge = CBSBlockBase(rightCBS) == limit;
   }
 
   newBase = leftMerge ? CBSBlockBase(leftCBS) : base;
   newLimit = rightMerge ? CBSBlockLimit(rightCBS) : limit;
+  
+  /* .node.poke: Note that it's OK to directly change the ranges in the tree
+     nodes because we know that we're not making them overlap, so the tree's
+     invariants are not violated. */
 
   if (leftMerge && rightMerge) {
     Size oldLeftSize = CBSBlockSize(leftCBS);
     Addr rightLimit = CBSBlockLimit(rightCBS);
     cbsBlockDelete(cbs, rightCBS);
-    leftCBS->limit = rightLimit;
+    leftCBS->node.limit = rightLimit;
     cbsBlockGrew(cbs, leftCBS, oldLeftSize);
 
   } else if (leftMerge) {
     oldSize = CBSBlockSize(leftCBS);
-    leftCBS->limit = limit;
+    leftCBS->node.limit = limit;
     cbsBlockGrew(cbs, leftCBS, oldSize);
 
   } else if (rightMerge) {
     oldSize = CBSBlockSize(rightCBS);
-    rightCBS->base = base;
+    rightCBS->node.base = base;
     cbsBlockGrew(cbs, rightCBS, oldSize);
 
   } else {
@@ -490,6 +462,7 @@ Res CBSInsert(Range rangeReturn, CBS cbs, Range range)
   res = cbsInsertIntoTree(rangeReturn, cbs, range);
 
   cbsLeave(cbs);
+  AVERT(CBS, cbs);
   return res;
 }
 
@@ -500,7 +473,7 @@ static Res cbsDeleteFromTree(Range rangeReturn, CBS cbs, Range range)
 {
   Res res;
   CBSBlock cbsBlock;
-  SplayNode node;
+  RNode node = NULL;
   Addr base, limit, oldBase, oldLimit;
   Size oldSize;
 
@@ -513,18 +486,20 @@ static Res cbsDeleteFromTree(Range rangeReturn, CBS cbs, Range range)
   limit = RangeLimit(range);
 
   METER_ACC(cbs->treeSearch, cbs->treeSize);
-  res = SplayTreeSearch(&node, treeOfCBS(cbs), (void *)&base);
-  if (res != ResOK)
+  if (!RTreeFind(&node, treeOfCBS(cbs), base)) {
+    res = ResFAIL;
     goto failSplayTreeSearch;
+  }
+    
   cbsBlock = cbsBlockOfNode(node);
 
-  if (limit > cbsBlock->limit) {
+  if (limit > CBSBlockLimit(cbsBlock)) {
     res = ResFAIL;
     goto failLimitCheck;
   }
 
-  oldBase = cbsBlock->base;
-  oldLimit = cbsBlock->limit;
+  oldBase = CBSBlockBase(cbsBlock);
+  oldLimit = CBSBlockLimit(cbsBlock);
   oldSize = CBSBlockSize(cbsBlock);
   RangeInit(rangeReturn, oldBase, oldLimit);
 
@@ -535,13 +510,13 @@ static Res cbsDeleteFromTree(Range rangeReturn, CBS cbs, Range range)
   } else if (base == oldBase) {
     /* remaining fragment at right */
     AVER(limit < oldLimit);
-    cbsBlock->base = limit;
+    cbsBlock->node.base = limit; /* .node.poke */
     cbsBlockShrunk(cbs, cbsBlock, oldSize);
 
   } else if (limit == oldLimit) {
     /* remaining fragment at left */
     AVER(base > oldBase);
-    cbsBlock->limit = base;
+    cbsBlock->node.limit = base;  /* .node.poke */
     cbsBlockShrunk(cbs, cbsBlock, oldSize);
 
   } else {
@@ -556,7 +531,7 @@ static Res cbsDeleteFromTree(Range rangeReturn, CBS cbs, Range range)
     if (res != ResOK) {
       goto failAlloc;
     }
-    cbsBlock->limit = base;
+    cbsBlock->node.limit = base; /* .node.poke */
     cbsBlockShrunk(cbs, cbsBlock, oldSize);
     cbsBlockInsert(cbs, newBlock);
   }
@@ -590,10 +565,12 @@ Res CBSDelete(Range rangeReturn, CBS cbs, Range range)
   res = cbsDeleteFromTree(rangeReturn, cbs, range);
 
   cbsLeave(cbs);
+  AVERT(CBS, cbs);
   return res;
 }
 
 
+#if 0
 static Res cbsBlockDescribe(CBSBlock block, mps_lib_FILE *stream)
 {
   Res res;
@@ -602,8 +579,8 @@ static Res cbsBlockDescribe(CBSBlock block, mps_lib_FILE *stream)
 
   res = WriteF(stream,
                "[$P,$P) {$U}",
-               (WriteFP)block->base,
-               (WriteFP)block->limit,
+               (WriteFP)CBSBlockBase(block),
+               (WriteFP)CBSBlockLimit(block),
                (WriteFU)block->maxSize,
                NULL);
   return res;
@@ -619,6 +596,7 @@ static Res cbsSplayNodeDescribe(SplayNode node, mps_lib_FILE *stream)
   res = cbsBlockDescribe(cbsBlockOfNode(node), stream);
   return res;
 }
+#endif
 
 
 /* CBSIterate -- Iterate all blocks in CBS
@@ -630,30 +608,30 @@ static Res cbsSplayNodeDescribe(SplayNode node, mps_lib_FILE *stream)
 void CBSIterate(CBS cbs, CBSIterateMethod iterate,
                 void *closureP, Size closureS)
 {
-  SplayNode node;
-  SplayTree tree;
+  RNode node;
+  Addr next;
   CBSBlock cbsBlock;
 
   AVERT(CBS, cbs);
   cbsEnter(cbs);
   AVER(FUNCHECK(iterate));
 
-  tree = treeOfCBS(cbs);
   /* .splay-iterate.slow: We assume that splay tree iteration does */
-  /* searches and meter it. */
+  /* searches and meter it.  FIXME: True of RTrees? */
   METER_ACC(cbs->treeSearch, cbs->treeSize);
-  node = SplayTreeFirst(tree, NULL);
-  while(node != NULL) {
+
+  RTREE_FOR(node, treeOfCBS(cbs), next) {
     RangeStruct range;
     cbsBlock = cbsBlockOfNode(node);
     RangeInit(&range, CBSBlockBase(cbsBlock), CBSBlockLimit(cbsBlock));
     if (!(*iterate)(cbs, &range, closureP, closureS))
       break;
     METER_ACC(cbs->treeSearch, cbs->treeSize);
-    node = SplayTreeNext(tree, node, keyOfCBSBlock(cbsBlock));
+    AVERT(CBS, cbs);
   }
 
   cbsLeave(cbs);
+  AVERT(CBS, cbs);
   return;
 }
 
@@ -737,7 +715,7 @@ Bool CBSFindFirst(Range rangeReturn, Range oldRangeReturn,
                   CBS cbs, Size size, FindDelete findDelete)
 {
   Bool found;
-  SplayNode node;
+  RNode node;
 
   AVERT(CBS, cbs);
   cbsEnter(cbs);
@@ -750,7 +728,7 @@ Bool CBSFindFirst(Range rangeReturn, Range oldRangeReturn,
   AVERT(FindDelete, findDelete);
 
   METER_ACC(cbs->treeSearch, cbs->treeSize);
-  found = SplayFindFirst(&node, treeOfCBS(cbs), &cbsTestNode,
+  found = RTreeFindFirst(&node, treeOfCBS(cbs), &cbsTestNode,
                          &cbsTestTree, NULL, size);
   if (found) {
     CBSBlock block;
@@ -767,6 +745,40 @@ Bool CBSFindFirst(Range rangeReturn, Range oldRangeReturn,
   return found;
 }
 
+
+Bool CBSFindLast(Range rangeReturn, Range oldRangeReturn,
+                 CBS cbs, Size size, FindDelete findDelete)
+{
+  UNUSED(rangeReturn);
+  UNUSED(oldRangeReturn);
+  UNUSED(cbs);
+  UNUSED(size);
+  UNUSED(findDelete);
+  NOTREACHED;
+  return FALSE;
+}
+
+Bool CBSFindLargest(Range rangeReturn, Range oldRangeReturn,
+                    CBS cbs, Size size, FindDelete findDelete)
+{
+  UNUSED(rangeReturn);
+  UNUSED(oldRangeReturn);
+  UNUSED(cbs);
+  UNUSED(size);
+  UNUSED(findDelete);
+  NOTREACHED;
+  return FALSE;
+}
+
+Res CBSDescribe(CBS cbs, mps_lib_FILE *stream)
+{
+  UNUSED(cbs);
+  UNUSED(stream);
+  NOTREACHED;
+  return ResUNIMPL;
+}
+
+#if 0
 
 /* CBSFindLast -- find the last block of at least the given size */
 
@@ -787,7 +799,7 @@ Bool CBSFindLast(Range rangeReturn, Range oldRangeReturn,
   AVERT(FindDelete, findDelete);
 
   METER_ACC(cbs->treeSearch, cbs->treeSize);
-  found = SplayFindLast(&node, treeOfCBS(cbs), &cbsTestNode,
+  found = RTreeFindLast(&node, treeOfCBS(cbs), &cbsTestNode,
                         &cbsTestTree, NULL, size);
   if (found) {
     CBSBlock block;
@@ -871,7 +883,7 @@ Res CBSDescribe(CBS cbs, mps_lib_FILE *stream)
                NULL);
   if (res != ResOK) return res;
 
-  res = SplayTreeDescribe(treeOfCBS(cbs), stream, &cbsSplayNodeDescribe);
+  res = RTreeDescribe(treeOfCBS(cbs), stream, &cbsSplayNodeDescribe);
   if (res != ResOK) return res;
 
   res = METER_WRITE(cbs->treeSearch, stream);
@@ -880,6 +892,8 @@ Res CBSDescribe(CBS cbs, mps_lib_FILE *stream)
   res = WriteF(stream, "}\n", NULL);
   return res;
 }
+
+#endif
 
 
 /* C. COPYRIGHT AND LICENSE

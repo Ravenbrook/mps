@@ -35,11 +35,13 @@ extern void RTreeInit(RTree tree);
 extern void RNodeInit(RNode node, Addr base, Addr limit);
 extern void RNodeFinish(RNode node);
 extern void RTreeFinish(RTree tree);
+extern void RTreeReset(RTree tree);
 
 extern void RTreeInsert(RTree tree, RNode node);
 extern void RTreeDelete(RTree tree, RNode node);
 extern Bool RTreeFind(RNode *nodeReturn, RTree tree, Addr addr);
 
+/* TODO: Call different function to avoid checking root again? */
 #define RTREE_FIND(nodeReturn, tree, addr) \
   ((tree)->root != NULL && \
    (tree)->root->base <= (addr) && \
@@ -58,6 +60,22 @@ extern RNode RTreeNext(RTree tree, Addr prev);
 typedef Bool (*RTreeIterator)(RTree, RNode, void *, Size);
 extern void RTreeIterate(RTree tree, RTreeIterator iterator,
                          void *closureP, Size size);
+
+typedef Bool (*RTreeTestNodeMethod)(RTree tree, RNode node,
+                                    void *closureP, Size closureS);
+typedef Bool (*RTreeTestTreeMethod)(RTree tree, RNode node,
+                                    void *closureP, Size closureS);
+typedef void (*RTreeUpdateNodeMethod)(RTree tree, RNode node);
+
+extern Bool RTreeFindFirst(RNode *nodeReturn, RTree rtree,
+                           RTreeTestNodeMethod testNode,
+                           RTreeTestTreeMethod testTree,
+                           void *closureP, Size closureS);
+
+extern Bool RTreeNeighbours(RNode *leftReturn, RNode *rightReturn,
+                            RTree tree, Addr addr);
+
+extern Count RTreeDebugSize(RTree tree);
 
 
 #endif /* rtree_h */
