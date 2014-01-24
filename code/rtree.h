@@ -12,11 +12,14 @@
 #include "mpmtypes.h"
 
 
+typedef void (*RTreeUpdateMethod)(RTree tree, RNode node);
+
 #define RTreeSig ((Sig)0x519626EE) /* SIGnature RTREE */
 
 typedef struct RTreeStruct {
   Sig sig;
   RNode root;
+  RTreeUpdateMethod update;
 } RTreeStruct;
 
 
@@ -28,14 +31,20 @@ typedef struct RNodeStruct {
   Addr base, limit;
 } RNodeStruct;
 
+extern RNodeStruct RTreeLeaf;
+/* #define RTREE_LEAF (&RTreeLeaf) */
+#define RTREE_LEAF NULL
+
 
 extern Bool RTreeCheck(RTree tree);
 extern Bool RNodeCheck(RNode node);
-extern void RTreeInit(RTree tree);
+extern void RTreeInit(RTree tree, RTreeUpdateMethod update);
 extern void RNodeInit(RNode node, Addr base, Addr limit);
 extern void RNodeFinish(RNode node);
 extern void RTreeFinish(RTree tree);
 extern void RTreeReset(RTree tree);
+
+extern void RTreeTrivUpdate(RTree tree, RNode node);
 
 extern void RTreeInsert(RTree tree, RNode node);
 extern void RTreeDelete(RTree tree, RNode node);
@@ -43,7 +52,7 @@ extern Bool RTreeFind(RNode *nodeReturn, RTree tree, Addr addr);
 
 /* TODO: Call different function to avoid checking root again? */
 #define RTREE_FIND(nodeReturn, tree, addr) \
-  ((tree)->root != NULL && \
+  (/* (tree)->root != NULL && */ \
    (tree)->root->base <= (addr) && \
    (addr) < (tree)->root->limit ? \
      (*(nodeReturn) = (tree)->root, TRUE) : \
