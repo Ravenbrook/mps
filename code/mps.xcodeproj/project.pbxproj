@@ -3602,15 +3602,6 @@
 			};
 			name = Release;
 		};
-		224CC798175E1821002FF81B /* WE */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				GCC_GENERATE_TEST_COVERAGE_FILES = NO;
-				GCC_INSTRUMENT_PROGRAM_FLOW_ARCS = NO;
-				PRODUCT_NAME = "$(TARGET_NAME)";
-			};
-			name = WE;
-		};
 		2291A5BA175CAB2F001D4920 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -3628,15 +3619,6 @@
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
 			name = Release;
-		};
-		2291A5BC175CAB2F001D4920 /* WE */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				GCC_GENERATE_TEST_COVERAGE_FILES = NO;
-				GCC_INSTRUMENT_PROGRAM_FLOW_ARCS = NO;
-				PRODUCT_NAME = "$(TARGET_NAME)";
-			};
-			name = WE;
 		};
 		2291A5CE175CAFCA001D4920 /* Debug */ = {
 			isa = XCBuildConfiguration;
@@ -3656,15 +3638,6 @@
 			};
 			name = Release;
 		};
-		2291A5D0175CAFCA001D4920 /* WE */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				GCC_GENERATE_TEST_COVERAGE_FILES = NO;
-				GCC_INSTRUMENT_PROGRAM_FLOW_ARCS = NO;
-				PRODUCT_NAME = "$(TARGET_NAME)";
-			};
-			name = WE;
-		};
 		2291A5E0175CB05F001D4920 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -3683,15 +3656,6 @@
 			};
 			name = Release;
 		};
-		2291A5E2175CB05F001D4920 /* WE */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				GCC_GENERATE_TEST_COVERAGE_FILES = NO;
-				GCC_INSTRUMENT_PROGRAM_FLOW_ARCS = NO;
-				PRODUCT_NAME = "$(TARGET_NAME)";
-			};
-			name = WE;
-		};
 		22CDE8F116E9E97E00366D0A /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -3705,13 +3669,6 @@
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
 			name = Release;
-		};
-		22CDE8F316E9E97E00366D0A /* WE */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				PRODUCT_NAME = "$(TARGET_NAME)";
-			};
-			name = WE;
 		};
 		22FA177216E8D6FC0098B23F /* Debug */ = {
 			isa = XCBuildConfiguration;
@@ -3731,15 +3688,6 @@
 			};
 			name = Release;
 		};
-		22FA177416E8D6FC0098B23F /* WE */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				GCC_GENERATE_TEST_COVERAGE_FILES = NO;
-				GCC_INSTRUMENT_PROGRAM_FLOW_ARCS = NO;
-				PRODUCT_NAME = "$(TARGET_NAME)";
-			};
-			name = WE;
-		};
 		2D07B9751636FC9900DB751B /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -3758,14 +3706,6 @@
 			};
 			name = Release;
 		};
-		2D07B9771636FC9900DB751B /* WE */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				GCC_C_LANGUAGE_STANDARD = c99;
-				PRODUCT_NAME = "$(TARGET_NAME)";
-			};
-			name = WE;
-		};
 		2D604B9F16514B1A003AAF46 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -3781,13 +3721,6 @@
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
 			name = Release;
-		};
-		2D604BA116514B1A003AAF46 /* WE */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				PRODUCT_NAME = "$(TARGET_NAME)";
-			};
-			name = WE;
 		};
 		3104AFBA156D357B000A585A /* Debug */ = {
 			isa = XCBuildConfiguration;
@@ -4217,7 +4150,23 @@
 			};
 			name = Release;
 		};
-		318387EB15DC30CC008E4EA0 /* WE */ = {
+		318DA8CA1892B0F30089718C /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				GCC_TREAT_WARNINGS_AS_ERRORS = NO;
+				PRODUCT_NAME = djbench;
+			};
+			name = Debug;
+		};
+		318DA8CB1892B0F30089718C /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				GCC_TREAT_WARNINGS_AS_ERRORS = NO;
+				PRODUCT_NAME = djbench;
+			};
+			name = Release;
+		};
+		318DA8D41892C0D00089718C /* RASH */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ARCHS = "$(ARCHS_STANDARD_32_64_BIT)";
@@ -4226,8 +4175,8 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				GCC_C_LANGUAGE_STANDARD = ansi;
-				GCC_OPTIMIZATION_LEVEL = 2;
-				GCC_PREPROCESSOR_DEFINITIONS = CONFIG_VAR_WE;
+				GCC_OPTIMIZATION_LEVEL = s;
+				GCC_PREPROCESSOR_DEFINITIONS = CONFIG_VAR_RASH;
 				GCC_TREAT_IMPLICIT_FUNCTION_DECLARATIONS_AS_ERRORS = YES;
 				GCC_TREAT_INCOMPATIBLE_POINTER_TYPE_WARNINGS_AS_ERRORS = YES;
 				GCC_TREAT_WARNINGS_AS_ERRORS = YES;
@@ -4273,17 +4222,17 @@
 					"-Wno-extended-offsetof",
 				);
 			};
-			name = WE;
+			name = RASH;
 		};
-		318387EC15DC30CC008E4EA0 /* WE */ = {
+		318DA8D51892C0D00089718C /* RASH */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				COMBINE_HIDPI_IMAGES = YES;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
-			name = WE;
+			name = RASH;
 		};
-		318387ED15DC30CC008E4EA0 /* WE */ = {
+		318DA8D61892C0D00089718C /* RASH */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
@@ -4291,299 +4240,358 @@
 				EXECUTABLE_PREFIX = lib;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
-			name = WE;
+			name = RASH;
 		};
-		318387EE15DC30CC008E4EA0 /* WE */ = {
+		318DA8D71892C0D00089718C /* RASH */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				GCC_GENERATE_TEST_COVERAGE_FILES = NO;
 				GCC_INSTRUMENT_PROGRAM_FLOW_ARCS = NO;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
-			name = WE;
+			name = RASH;
 		};
-		318387EF15DC30CC008E4EA0 /* WE */ = {
+		318DA8D81892C0D00089718C /* RASH */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				GCC_GENERATE_TEST_COVERAGE_FILES = NO;
 				GCC_INSTRUMENT_PROGRAM_FLOW_ARCS = NO;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
-			name = WE;
+			name = RASH;
 		};
-		318387F015DC30CC008E4EA0 /* WE */ = {
+		318DA8D91892C0D00089718C /* RASH */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				GCC_GENERATE_TEST_COVERAGE_FILES = NO;
 				GCC_INSTRUMENT_PROGRAM_FLOW_ARCS = NO;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
-			name = WE;
+			name = RASH;
 		};
-		318387F115DC30CC008E4EA0 /* WE */ = {
+		318DA8DA1892C0D00089718C /* RASH */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				GCC_GENERATE_TEST_COVERAGE_FILES = NO;
 				GCC_INSTRUMENT_PROGRAM_FLOW_ARCS = NO;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
-			name = WE;
+			name = RASH;
 		};
-		318387F215DC30CC008E4EA0 /* WE */ = {
+		318DA8DB1892C0D00089718C /* RASH */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				GCC_GENERATE_TEST_COVERAGE_FILES = NO;
 				GCC_INSTRUMENT_PROGRAM_FLOW_ARCS = NO;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
-			name = WE;
+			name = RASH;
 		};
-		318387F315DC30CC008E4EA0 /* WE */ = {
+		318DA8DC1892C0D00089718C /* RASH */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				GCC_GENERATE_TEST_COVERAGE_FILES = NO;
 				GCC_INSTRUMENT_PROGRAM_FLOW_ARCS = NO;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
-			name = WE;
+			name = RASH;
 		};
-		318387F415DC30CC008E4EA0 /* WE */ = {
+		318DA8DD1892C0D00089718C /* RASH */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				GCC_GENERATE_TEST_COVERAGE_FILES = NO;
 				GCC_INSTRUMENT_PROGRAM_FLOW_ARCS = NO;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
-			name = WE;
+			name = RASH;
 		};
-		318387F515DC30CC008E4EA0 /* WE */ = {
+		318DA8DE1892C0D00089718C /* RASH */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				GCC_GENERATE_TEST_COVERAGE_FILES = NO;
 				GCC_INSTRUMENT_PROGRAM_FLOW_ARCS = NO;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
-			name = WE;
+			name = RASH;
 		};
-		318387F615DC30CC008E4EA0 /* WE */ = {
+		318DA8DF1892C0D00089718C /* RASH */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				GCC_GENERATE_TEST_COVERAGE_FILES = NO;
 				GCC_INSTRUMENT_PROGRAM_FLOW_ARCS = NO;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
-			name = WE;
+			name = RASH;
 		};
-		318387F715DC30CC008E4EA0 /* WE */ = {
+		318DA8E01892C0D00089718C /* RASH */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				GCC_GENERATE_TEST_COVERAGE_FILES = NO;
 				GCC_INSTRUMENT_PROGRAM_FLOW_ARCS = NO;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
-			name = WE;
+			name = RASH;
 		};
-		318387F815DC30CC008E4EA0 /* WE */ = {
+		318DA8E11892C0D00089718C /* RASH */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				GCC_GENERATE_TEST_COVERAGE_FILES = NO;
 				GCC_INSTRUMENT_PROGRAM_FLOW_ARCS = NO;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
-			name = WE;
+			name = RASH;
 		};
-		318387F915DC30CC008E4EA0 /* WE */ = {
+		318DA8E21892C0D00089718C /* RASH */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				GCC_GENERATE_TEST_COVERAGE_FILES = NO;
 				GCC_INSTRUMENT_PROGRAM_FLOW_ARCS = NO;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
-			name = WE;
+			name = RASH;
 		};
-		318387FA15DC30CC008E4EA0 /* WE */ = {
+		318DA8E31892C0D00089718C /* RASH */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				GCC_GENERATE_TEST_COVERAGE_FILES = NO;
 				GCC_INSTRUMENT_PROGRAM_FLOW_ARCS = NO;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
-			name = WE;
+			name = RASH;
 		};
-		318387FB15DC30CC008E4EA0 /* WE */ = {
+		318DA8E41892C0D00089718C /* RASH */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				GCC_GENERATE_TEST_COVERAGE_FILES = NO;
 				GCC_INSTRUMENT_PROGRAM_FLOW_ARCS = NO;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
-			name = WE;
+			name = RASH;
 		};
-		318387FC15DC30CC008E4EA0 /* WE */ = {
+		318DA8E51892C0D00089718C /* RASH */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				GCC_GENERATE_TEST_COVERAGE_FILES = NO;
 				GCC_INSTRUMENT_PROGRAM_FLOW_ARCS = NO;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
-			name = WE;
+			name = RASH;
 		};
-		318387FD15DC30CC008E4EA0 /* WE */ = {
+		318DA8E61892C0D00089718C /* RASH */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				GCC_GENERATE_TEST_COVERAGE_FILES = NO;
 				GCC_INSTRUMENT_PROGRAM_FLOW_ARCS = NO;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
-			name = WE;
+			name = RASH;
 		};
-		318387FE15DC30CC008E4EA0 /* WE */ = {
+		318DA8E71892C0D00089718C /* RASH */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				GCC_GENERATE_TEST_COVERAGE_FILES = NO;
 				GCC_INSTRUMENT_PROGRAM_FLOW_ARCS = NO;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
-			name = WE;
+			name = RASH;
 		};
-		318387FF15DC30CC008E4EA0 /* WE */ = {
+		318DA8E81892C0D00089718C /* RASH */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				GCC_GENERATE_TEST_COVERAGE_FILES = NO;
 				GCC_INSTRUMENT_PROGRAM_FLOW_ARCS = NO;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
-			name = WE;
+			name = RASH;
 		};
-		3183880015DC30CC008E4EA0 /* WE */ = {
+		318DA8E91892C0D00089718C /* RASH */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				GCC_GENERATE_TEST_COVERAGE_FILES = NO;
 				GCC_INSTRUMENT_PROGRAM_FLOW_ARCS = NO;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
-			name = WE;
+			name = RASH;
 		};
-		3183880115DC30CC008E4EA0 /* WE */ = {
+		318DA8EA1892C0D00089718C /* RASH */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				GCC_GENERATE_TEST_COVERAGE_FILES = NO;
 				GCC_INSTRUMENT_PROGRAM_FLOW_ARCS = NO;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
-			name = WE;
+			name = RASH;
 		};
-		3183880215DC30CC008E4EA0 /* WE */ = {
+		318DA8EB1892C0D00089718C /* RASH */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				GCC_GENERATE_TEST_COVERAGE_FILES = NO;
 				GCC_INSTRUMENT_PROGRAM_FLOW_ARCS = NO;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
-			name = WE;
+			name = RASH;
 		};
-		3183880315DC30CC008E4EA0 /* WE */ = {
+		318DA8EC1892C0D00089718C /* RASH */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				GCC_GENERATE_TEST_COVERAGE_FILES = NO;
 				GCC_INSTRUMENT_PROGRAM_FLOW_ARCS = NO;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
-			name = WE;
+			name = RASH;
 		};
-		3183880415DC30CC008E4EA0 /* WE */ = {
+		318DA8ED1892C0D00089718C /* RASH */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				GCC_GENERATE_TEST_COVERAGE_FILES = NO;
 				GCC_INSTRUMENT_PROGRAM_FLOW_ARCS = NO;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
-			name = WE;
+			name = RASH;
 		};
-		3183880515DC30CC008E4EA0 /* WE */ = {
+		318DA8EE1892C0D00089718C /* RASH */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				GCC_GENERATE_TEST_COVERAGE_FILES = NO;
 				GCC_INSTRUMENT_PROGRAM_FLOW_ARCS = NO;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
-			name = WE;
+			name = RASH;
 		};
-		3183880615DC30CC008E4EA0 /* WE */ = {
+		318DA8EF1892C0D00089718C /* RASH */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				GCC_GENERATE_TEST_COVERAGE_FILES = NO;
 				GCC_INSTRUMENT_PROGRAM_FLOW_ARCS = NO;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
-			name = WE;
+			name = RASH;
 		};
-		3183880715DC30CC008E4EA0 /* WE */ = {
+		318DA8F01892C0D00089718C /* RASH */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				GCC_GENERATE_TEST_COVERAGE_FILES = NO;
 				GCC_INSTRUMENT_PROGRAM_FLOW_ARCS = NO;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
-			name = WE;
+			name = RASH;
 		};
-		3183880815DC30CC008E4EA0 /* WE */ = {
+		318DA8F11892C0D00089718C /* RASH */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				GCC_GENERATE_TEST_COVERAGE_FILES = NO;
 				GCC_INSTRUMENT_PROGRAM_FLOW_ARCS = NO;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
-			name = WE;
+			name = RASH;
 		};
-		3183880915DC30CC008E4EA0 /* WE */ = {
+		318DA8F21892C0D00089718C /* RASH */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				GCC_GENERATE_TEST_COVERAGE_FILES = NO;
 				GCC_INSTRUMENT_PROGRAM_FLOW_ARCS = NO;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
-			name = WE;
+			name = RASH;
 		};
-		3183880A15DC30CC008E4EA0 /* WE */ = {
+		318DA8F31892C0D00089718C /* RASH */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				GCC_GENERATE_TEST_COVERAGE_FILES = NO;
 				GCC_INSTRUMENT_PROGRAM_FLOW_ARCS = NO;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
-			name = WE;
+			name = RASH;
 		};
-		3183880B15DC30CC008E4EA0 /* WE */ = {
+		318DA8F41892C0D00089718C /* RASH */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				GCC_GENERATE_TEST_COVERAGE_FILES = NO;
+				GCC_INSTRUMENT_PROGRAM_FLOW_ARCS = NO;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+			};
+			name = RASH;
+		};
+		318DA8F51892C0D00089718C /* RASH */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				GCC_GENERATE_TEST_COVERAGE_FILES = NO;
+				GCC_INSTRUMENT_PROGRAM_FLOW_ARCS = NO;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+			};
+			name = RASH;
+		};
+		318DA8F61892C0D00089718C /* RASH */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				GCC_GENERATE_TEST_COVERAGE_FILES = NO;
+				GCC_INSTRUMENT_PROGRAM_FLOW_ARCS = NO;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+			};
+			name = RASH;
+		};
+		318DA8F71892C0D00089718C /* RASH */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				GCC_GENERATE_TEST_COVERAGE_FILES = NO;
+				GCC_INSTRUMENT_PROGRAM_FLOW_ARCS = NO;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+			};
+			name = RASH;
+		};
+		318DA8F81892C0D00089718C /* RASH */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				GCC_GENERATE_TEST_COVERAGE_FILES = NO;
+				GCC_INSTRUMENT_PROGRAM_FLOW_ARCS = NO;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+			};
+			name = RASH;
+		};
+		318DA8F91892C0D00089718C /* RASH */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
-			name = WE;
+			name = RASH;
 		};
-		318DA8CA1892B0F30089718C /* Debug */ = {
+		318DA8FA1892C0D00089718C /* RASH */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				GCC_C_LANGUAGE_STANDARD = c99;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+			};
+			name = RASH;
+		};
+		318DA8FB1892C0D00089718C /* RASH */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				PRODUCT_NAME = "$(TARGET_NAME)";
+			};
+			name = RASH;
+		};
+		318DA8FC1892C0D00089718C /* RASH */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				PRODUCT_NAME = "$(TARGET_NAME)";
+			};
+			name = RASH;
+		};
+		318DA8FD1892C0D00089718C /* RASH */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				GCC_TREAT_WARNINGS_AS_ERRORS = NO;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+			};
+			name = RASH;
+		};
+		318DA8FE1892C0D00089718C /* RASH */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				GCC_TREAT_WARNINGS_AS_ERRORS = NO;
 				PRODUCT_NAME = djbench;
 			};
-			name = Debug;
-		};
-		318DA8CB1892B0F30089718C /* Release */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				GCC_TREAT_WARNINGS_AS_ERRORS = NO;
-				PRODUCT_NAME = djbench;
-			};
-			name = Release;
-		};
-		318DA8CC1892B0F30089718C /* WE */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				GCC_TREAT_WARNINGS_AS_ERRORS = NO;
-				PRODUCT_NAME = djbench;
-			};
-			name = WE;
+			name = RASH;
 		};
 		31D60015156D3CB200337B26 /* Debug */ = {
 			isa = XCBuildConfiguration;
@@ -4761,7 +4769,7 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				GCC_C_LANGUAGE_STANDARD = ansi;
-				GCC_OPTIMIZATION_LEVEL = 2;
+				GCC_OPTIMIZATION_LEVEL = s;
 				GCC_PREPROCESSOR_DEFINITIONS = CONFIG_VAR_HOT;
 				GCC_TREAT_IMPLICIT_FUNCTION_DECLARATIONS_AS_ERRORS = YES;
 				GCC_TREAT_INCOMPATIBLE_POINTER_TYPE_WARNINGS_AS_ERRORS = YES;
@@ -4866,14 +4874,6 @@
 			};
 			name = Release;
 		};
-		31FCAE1217692403008C034C /* WE */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				GCC_TREAT_WARNINGS_AS_ERRORS = NO;
-				PRODUCT_NAME = "$(TARGET_NAME)";
-			};
-			name = WE;
-		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -4882,7 +4882,7 @@
 			buildConfigurations = (
 				224CC796175E1821002FF81B /* Debug */,
 				224CC797175E1821002FF81B /* Release */,
-				224CC798175E1821002FF81B /* WE */,
+				318DA8E91892C0D00089718C /* RASH */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
@@ -4892,7 +4892,7 @@
 			buildConfigurations = (
 				2291A5BA175CAB2F001D4920 /* Debug */,
 				2291A5BB175CAB2F001D4920 /* Release */,
-				2291A5BC175CAB2F001D4920 /* WE */,
+				318DA8E11892C0D00089718C /* RASH */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
@@ -4902,7 +4902,7 @@
 			buildConfigurations = (
 				2291A5CE175CAFCA001D4920 /* Debug */,
 				2291A5CF175CAFCA001D4920 /* Release */,
-				2291A5D0175CAFCA001D4920 /* WE */,
+				318DA8E61892C0D00089718C /* RASH */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
@@ -4912,7 +4912,7 @@
 			buildConfigurations = (
 				2291A5E0175CB05F001D4920 /* Debug */,
 				2291A5E1175CB05F001D4920 /* Release */,
-				2291A5E2175CB05F001D4920 /* WE */,
+				318DA8E51892C0D00089718C /* RASH */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
@@ -4922,7 +4922,7 @@
 			buildConfigurations = (
 				22CDE8F116E9E97E00366D0A /* Debug */,
 				22CDE8F216E9E97E00366D0A /* Release */,
-				22CDE8F316E9E97E00366D0A /* WE */,
+				318DA8FC1892C0D00089718C /* RASH */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
@@ -4932,7 +4932,7 @@
 			buildConfigurations = (
 				22FA177216E8D6FC0098B23F /* Debug */,
 				22FA177316E8D6FC0098B23F /* Release */,
-				22FA177416E8D6FC0098B23F /* WE */,
+				318DA8DA1892C0D00089718C /* RASH */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
@@ -4942,7 +4942,7 @@
 			buildConfigurations = (
 				2D07B9751636FC9900DB751B /* Debug */,
 				2D07B9761636FC9900DB751B /* Release */,
-				2D07B9771636FC9900DB751B /* WE */,
+				318DA8FA1892C0D00089718C /* RASH */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
@@ -4952,7 +4952,7 @@
 			buildConfigurations = (
 				2D604B9F16514B1A003AAF46 /* Debug */,
 				2D604BA016514B1A003AAF46 /* Release */,
-				2D604BA116514B1A003AAF46 /* WE */,
+				318DA8FB1892C0D00089718C /* RASH */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
@@ -4962,7 +4962,7 @@
 			buildConfigurations = (
 				3104AFBA156D357B000A585A /* Debug */,
 				3104AFBB156D357B000A585A /* Release */,
-				318387EF15DC30CC008E4EA0 /* WE */,
+				318DA8DD1892C0D00089718C /* RASH */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
@@ -4972,7 +4972,7 @@
 			buildConfigurations = (
 				3104AFD0156D35E2000A585A /* Debug */,
 				3104AFD1156D35E2000A585A /* Release */,
-				318387F315DC30CC008E4EA0 /* WE */,
+				318DA8F21892C0D00089718C /* RASH */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
@@ -4982,7 +4982,7 @@
 			buildConfigurations = (
 				3104AFE5156D3682000A585A /* Debug */,
 				3104AFE6156D3682000A585A /* Release */,
-				318387F415DC30CC008E4EA0 /* WE */,
+				318DA8D91892C0D00089718C /* RASH */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
@@ -4992,7 +4992,7 @@
 			buildConfigurations = (
 				3104AFF3156D37A0000A585A /* Debug */,
 				3104AFF4156D37A0000A585A /* Release */,
-				318387EC15DC30CC008E4EA0 /* WE */,
+				318DA8D51892C0D00089718C /* RASH */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
@@ -5002,7 +5002,7 @@
 			buildConfigurations = (
 				3104B011156D38F3000A585A /* Debug */,
 				3104B012156D38F3000A585A /* Release */,
-				318387F515DC30CC008E4EA0 /* WE */,
+				318DA8DB1892C0D00089718C /* RASH */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
@@ -5012,7 +5012,7 @@
 			buildConfigurations = (
 				3104B02A156D39D4000A585A /* Debug */,
 				3104B02B156D39D4000A585A /* Release */,
-				318387F615DC30CC008E4EA0 /* WE */,
+				318DA8DC1892C0D00089718C /* RASH */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
@@ -5022,7 +5022,7 @@
 			buildConfigurations = (
 				3104B045156D3AD8000A585A /* Debug */,
 				3104B046156D3AD8000A585A /* Release */,
-				318387F715DC30CC008E4EA0 /* WE */,
+				318DA8F31892C0D00089718C /* RASH */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
@@ -5032,7 +5032,7 @@
 			buildConfigurations = (
 				3114A597156E913C001E0AA3 /* Debug */,
 				3114A598156E913C001E0AA3 /* Release */,
-				318387FE15DC30CC008E4EA0 /* WE */,
+				318DA8EB1892C0D00089718C /* RASH */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
@@ -5042,7 +5042,7 @@
 			buildConfigurations = (
 				3114A5AF156E92C0001E0AA3 /* Debug */,
 				3114A5B0156E92C0001E0AA3 /* Release */,
-				318387FF15DC30CC008E4EA0 /* WE */,
+				318DA8F11892C0D00089718C /* RASH */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
@@ -5052,7 +5052,7 @@
 			buildConfigurations = (
 				3114A5C5156E9315001E0AA3 /* Debug */,
 				3114A5C6156E9315001E0AA3 /* Release */,
-				3183880015DC30CC008E4EA0 /* WE */,
+				318DA8E71892C0D00089718C /* RASH */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
@@ -5062,7 +5062,7 @@
 			buildConfigurations = (
 				3114A5DE156E93A0001E0AA3 /* Debug */,
 				3114A5DF156E93A0001E0AA3 /* Release */,
-				3183880115DC30CC008E4EA0 /* WE */,
+				318DA8E81892C0D00089718C /* RASH */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
@@ -5072,7 +5072,7 @@
 			buildConfigurations = (
 				3114A5F7156E93E7001E0AA3 /* Debug */,
 				3114A5F8156E93E7001E0AA3 /* Release */,
-				3183880215DC30CC008E4EA0 /* WE */,
+				318DA8DE1892C0D00089718C /* RASH */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
@@ -5082,7 +5082,7 @@
 			buildConfigurations = (
 				3114A60D156E9430001E0AA3 /* Debug */,
 				3114A60E156E9430001E0AA3 /* Release */,
-				3183880315DC30CC008E4EA0 /* WE */,
+				318DA8E31892C0D00089718C /* RASH */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
@@ -5092,7 +5092,7 @@
 			buildConfigurations = (
 				3114A624156E9485001E0AA3 /* Debug */,
 				3114A625156E9485001E0AA3 /* Release */,
-				3183880415DC30CC008E4EA0 /* WE */,
+				318DA8F51892C0D00089718C /* RASH */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
@@ -5102,7 +5102,7 @@
 			buildConfigurations = (
 				3114A63B156E94DB001E0AA3 /* Debug */,
 				3114A63C156E94DB001E0AA3 /* Release */,
-				3183880515DC30CC008E4EA0 /* WE */,
+				318DA8D71892C0D00089718C /* RASH */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
@@ -5112,7 +5112,7 @@
 			buildConfigurations = (
 				3114A654156E9596001E0AA3 /* Debug */,
 				3114A655156E9596001E0AA3 /* Release */,
-				3183880615DC30CC008E4EA0 /* WE */,
+				318DA8E41892C0D00089718C /* RASH */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
@@ -5122,7 +5122,7 @@
 			buildConfigurations = (
 				3114A66A156E95D9001E0AA3 /* Debug */,
 				3114A66B156E95D9001E0AA3 /* Release */,
-				3183880715DC30CC008E4EA0 /* WE */,
+				318DA8E21892C0D00089718C /* RASH */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
@@ -5132,7 +5132,7 @@
 			buildConfigurations = (
 				3114A684156E9669001E0AA3 /* Debug */,
 				3114A685156E9669001E0AA3 /* Release */,
-				3183880815DC30CC008E4EA0 /* WE */,
+				318DA8EF1892C0D00089718C /* RASH */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
@@ -5142,7 +5142,7 @@
 			buildConfigurations = (
 				3114A69D156E971B001E0AA3 /* Debug */,
 				3114A69E156E971B001E0AA3 /* Release */,
-				3183880915DC30CC008E4EA0 /* WE */,
+				318DA8EC1892C0D00089718C /* RASH */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
@@ -5152,7 +5152,7 @@
 			buildConfigurations = (
 				3114A6B4156E9759001E0AA3 /* Debug */,
 				3114A6B5156E9759001E0AA3 /* Release */,
-				3183880A15DC30CC008E4EA0 /* WE */,
+				318DA8F61892C0D00089718C /* RASH */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
@@ -5162,7 +5162,7 @@
 			buildConfigurations = (
 				3114A6CE156E9815001E0AA3 /* Debug */,
 				3114A6CF156E9815001E0AA3 /* Release */,
-				3183880B15DC30CC008E4EA0 /* WE */,
+				318DA8F91892C0D00089718C /* RASH */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
@@ -5172,7 +5172,7 @@
 			buildConfigurations = (
 				3124CAC0156BE3EC00753214 /* Debug */,
 				3124CAC1156BE3EC00753214 /* Release */,
-				318387F015DC30CC008E4EA0 /* WE */,
+				318DA8DF1892C0D00089718C /* RASH */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
@@ -5182,7 +5182,7 @@
 			buildConfigurations = (
 				3124CADC156BE64A00753214 /* Debug */,
 				3124CADD156BE64A00753214 /* Release */,
-				318387F215DC30CC008E4EA0 /* WE */,
+				318DA8EE1892C0D00089718C /* RASH */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
@@ -5192,7 +5192,7 @@
 			buildConfigurations = (
 				3124CAF3156BE7F300753214 /* Debug */,
 				3124CAF4156BE7F300753214 /* Release */,
-				318387EE15DC30CC008E4EA0 /* WE */,
+				318DA8D81892C0D00089718C /* RASH */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
@@ -5202,7 +5202,7 @@
 			buildConfigurations = (
 				318DA8CA1892B0F30089718C /* Debug */,
 				318DA8CB1892B0F30089718C /* Release */,
-				318DA8CC1892B0F30089718C /* WE */,
+				318DA8FE1892C0D00089718C /* RASH */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
@@ -5212,7 +5212,7 @@
 			buildConfigurations = (
 				31D60015156D3CB200337B26 /* Debug */,
 				31D60016156D3CB200337B26 /* Release */,
-				318387F815DC30CC008E4EA0 /* WE */,
+				318DA8E01892C0D00089718C /* RASH */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
@@ -5222,7 +5222,7 @@
 			buildConfigurations = (
 				31D6002F156D3D3F00337B26 /* Debug */,
 				31D60030156D3D3F00337B26 /* Release */,
-				318387F915DC30CC008E4EA0 /* WE */,
+				318DA8EA1892C0D00089718C /* RASH */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
@@ -5232,7 +5232,7 @@
 			buildConfigurations = (
 				31D60046156D3EC700337B26 /* Debug */,
 				31D60047156D3EC700337B26 /* Release */,
-				318387FA15DC30CC008E4EA0 /* WE */,
+				318DA8F01892C0D00089718C /* RASH */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
@@ -5242,7 +5242,7 @@
 			buildConfigurations = (
 				31D6005C156D3F3500337B26 /* Debug */,
 				31D6005D156D3F3500337B26 /* Release */,
-				318387FB15DC30CC008E4EA0 /* WE */,
+				318DA8F71892C0D00089718C /* RASH */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
@@ -5252,7 +5252,7 @@
 			buildConfigurations = (
 				31D60079156D3FBC00337B26 /* Debug */,
 				31D6007A156D3FBC00337B26 /* Release */,
-				318387FC15DC30CC008E4EA0 /* WE */,
+				318DA8F81892C0D00089718C /* RASH */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
@@ -5262,7 +5262,7 @@
 			buildConfigurations = (
 				31D60094156D402900337B26 /* Debug */,
 				31D60095156D402900337B26 /* Release */,
-				318387FD15DC30CC008E4EA0 /* WE */,
+				318DA8F41892C0D00089718C /* RASH */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
@@ -5272,7 +5272,7 @@
 			buildConfigurations = (
 				31EEABDF156AAE9E00714D05 /* Debug */,
 				31EEABE0156AAE9E00714D05 /* Release */,
-				318387EB15DC30CC008E4EA0 /* WE */,
+				318DA8D41892C0D00089718C /* RASH */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
@@ -5282,7 +5282,7 @@
 			buildConfigurations = (
 				31EEABFD156AAF9D00714D05 /* Debug */,
 				31EEABFE156AAF9D00714D05 /* Release */,
-				318387ED15DC30CC008E4EA0 /* WE */,
+				318DA8D61892C0D00089718C /* RASH */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
@@ -5292,7 +5292,7 @@
 			buildConfigurations = (
 				31EEAC6D156AB52600714D05 /* Debug */,
 				31EEAC6E156AB52600714D05 /* Release */,
-				318387F115DC30CC008E4EA0 /* WE */,
+				318DA8ED1892C0D00089718C /* RASH */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
@@ -5302,7 +5302,7 @@
 			buildConfigurations = (
 				31FCAE1017692403008C034C /* Debug */,
 				31FCAE1117692403008C034C /* Release */,
-				31FCAE1217692403008C034C /* WE */,
+				318DA8FD1892C0D00089718C /* RASH */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

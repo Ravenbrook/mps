@@ -1737,7 +1737,9 @@ static void VMCompact(Arena arena, Trace trace)
   vmem1 = VMArenaReserved(arena);
 
   /* Destroy any empty chunks (except the primary). */
-  sparePagesPurge(vmArena);
+  /* TODO: Avoid a scan of the allocTable by keeping a count of allocated
+     pages in a chunk. */
+  /* TODO: Avoid oscillations in chunk creation by adding some hysteresis. */
   RTREE_FOR(node, &arena->chunkRTree, next) {
     Chunk chunk = ChunkOfRNode(node);
     if(chunk != arena->primary
@@ -1745,6 +1747,7 @@ static void VMCompact(Arena arena, Trace trace)
       Addr base = ChunkBase(chunk);
       Size size = AddrOffset(ChunkBase(chunk), ChunkLimit(chunk));
 
+      sparePagesPurge(vmArena);
       vmChunkDestroy(chunk);
 
       vmArena->contracted(arena, base, size);
