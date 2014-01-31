@@ -439,6 +439,15 @@ static Bool splayDown(RTree tree, Addr addr)
       if (child == RTREE_LEAF)
         break;
       else if (addr < child->base) {
+        node = stepDownRight(node, &left);
+        if (node->left == RTREE_LEAF)
+          break;
+        node = stepDownLeft(node, &right);
+      } else if (addr < child->limit) {
+        node = stepDownRight(node, &left);
+        found = TRUE;
+        break;
+      } else { /* addr >= child->limit */
         RNode grandchild = child->right;
         if (grandchild == RTREE_LEAF) {
           node = stepDownRight(node, &left);
@@ -446,15 +455,6 @@ static Bool splayDown(RTree tree, Addr addr)
         }
         zag(child, node); /* FIXME: will need to update zagged node */
         node = stepDownRight(child, &left);
-      } else if (addr < child->limit) {
-        node = stepDownRight(node, &left);
-        found = TRUE;
-        break;
-      } else { /* addr >= child->limit */
-        node = stepDownRight(node, &left);
-        if (node->left == RTREE_LEAF)
-          break;
-        node = stepDownLeft(node, &right);
       }
     }
   }
