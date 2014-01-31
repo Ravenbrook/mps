@@ -179,7 +179,7 @@ Res ArenaInit(Arena arena, ArenaClass class)
   arena->lastTractBase = NULL;
 
   arena->primary = NULL;
-  RTreeInit(&arena->chunkRTree);
+  RTreeInit(&arena->chunkRTree, RTreeTrivUpdate);
   arena->chunkSerial = (Serial)0;
 
   LocusInit(arena);

@@ -197,6 +197,20 @@ static RNode stepUp(RNode node, RNode *parentIO, Addr addr)
   }
 }
 
+static RNode runUpRight(RNode node, RNode parent)
+{
+  while (parent != RTREE_LEAF)
+    node = stepUpRight(node, &parent);
+  return node;
+}
+
+static RNode runUpLeft(RNode node, RNode parent)
+{
+  while (parent != RTREE_LEAF)
+    node = stepUpLeft(node, &parent);
+  return node;
+}
+
 
 /* descend -- descend tree searching for range, reversing pointers
  *
@@ -308,7 +322,8 @@ static RNode zagzig(RNode node, RNode parent, RNode grandparent)
 
 static void update(RTree tree, RNode node)
 {
-  (*tree->update)(tree, node);
+  if (tree->update != RTreeTrivUpdate)
+    (*tree->update)(tree, node);
 }
 
 static void splay(RTree tree, Addr addr, RNode node) {
@@ -366,6 +381,89 @@ static void splay(RTree tree, Addr addr, RNode node) {
 
   update(tree, node);
   tree->root = node;
+}
+
+
+static Bool splayDown(RTree tree, Addr addr)
+{
+  RNode node;
+  RNode right = RTREE_LEAF;
+  RNode left = RTREE_LEAF;
+  Bool found = FALSE;
+  
+  if (tree->root == RTREE_LEAF)
+    return FALSE;
+  
+  node = tree->root;
+  for (;;) {
+    if (addr < node->base) {
+      RNode child = node->left;
+      if (child == RTREE_LEAF)
+        break;
+      else if (addr < child->base) {
+        RNode grandchild = child->left;
+        if (grandchild == RTREE_LEAF) {
+          node->left = right;
+          right = node;
+          node = child;
+          break;
+        }
+        node->left = child->right;
+        child->right = node;
+        child->left = right;
+        right = child;
+        node = grandchild;
+      } else if (addr < child->limit) { /* zig? */
+        node->left = right;
+        right = node;
+        node = child;
+        found = TRUE;
+        break;
+      } else { /* addr >= child->limit */
+        RNode grandchild = child->right;
+        node->left = right;
+        right = node;
+        if (grandchild == RTREE_LEAF) {
+          node = child;
+          break;
+        }
+        child->right = left;
+        left = child;
+        node = grandchild;
+      }
+    } else if (addr < node->limit) {
+      found = TRUE;
+      break;
+    } else { /* addr >= node->limit */
+      RNode child = node->right;
+      if (child == RTREE_LEAF)
+        break;
+      else if (addr < child->base) {
+        RNode grandchild = child->right;
+        if (grandchild == RTREE_LEAF) {
+          node = stepDownRight(node, &left);
+          break;
+        }
+        zag(child, node); /* FIXME: will need to update zagged node */
+        node = stepDownRight(child, &left);
+      } else if (addr < child->limit) {
+        node = stepDownRight(node, &left);
+        found = TRUE;
+        break;
+      } else { /* addr >= child->limit */
+        node = stepDownRight(node, &left);
+        if (node->left == RTREE_LEAF)
+          break;
+        node = stepDownLeft(node, &right);
+      }
+    }
+  }
+  
+  node->right = runUpRight(node->right, right);
+  node->left = runUpLeft(node->left, left);
+  tree->root = node;
+
+  return found;
 }
 
 
@@ -522,8 +620,6 @@ static void ascendRight(RTree tree, RNode node)
 
 Bool RTreeFind(RNode *nodeReturn, RTree tree, Addr addr)
 {
-  RNode node;
-
   AVER(nodeReturn != NULL);
   AVERT(RTree, tree);
   /* addr is arbitrary */
@@ -532,7 +628,14 @@ Bool RTreeFind(RNode *nodeReturn, RTree tree, Addr addr)
     *nodeReturn = tree->root;
     return TRUE;
   }
+  
+  if (!splayDown(tree, addr))
+    return FALSE;
 
+  *nodeReturn = tree->root;
+  return TRUE;
+}
+/*
   node = descend(tree, addr);
   ascend(tree, addr, node);
   
@@ -542,6 +645,7 @@ Bool RTreeFind(RNode *nodeReturn, RTree tree, Addr addr)
   *nodeReturn = node;
   return TRUE;
 }
+*/
 
 
 void RTreeInsert(RTree tree, RNode node)
@@ -654,6 +758,8 @@ RNode RTreeFirst(RTree tree)
 RNode RTreeNext(RTree tree, Addr prev)
 {
   RTreeStruct subtree;
+  
+  AVERT_CRITICAL(RTree, tree);
 
   if (tree->root == RTREE_LEAF) /* nothing left in the tree */
     return NULL;
@@ -668,20 +774,23 @@ RNode RTreeNext(RTree tree, Addr prev)
   
   if (tree->root->base > prev) /* ensure monotonic progress */
     return tree->root;
-    
-  /* If the node is still at the root, or its nearest left neighbour is
-     there, or a similar replacement node is there, then we must search
+
+  if (tree->root->right == RTREE_LEAF) /* no more nodes */
+    return NULL;
+  
+  /* The previous node is still at the root, or its nearest left neighbour is
+     there, or a similar replacement node is there, so we must search
      for the nearest right neighbour in the right subtree. */
   RTreeInit(&subtree, tree->update);
   subtree.root = tree->root->right;
   descendLeft(&subtree);
-  if (subtree.root == RTREE_LEAF)
-    return NULL;
   ascendRight(&subtree, RTREE_LEAF);
-  tree->root->right = subtree.root;
-  AVER(tree->root->right->left == RTREE_LEAF);
-  /* Could do one extra rotation to bring this to the top. */
-  return tree->root->right;
+  /* Rotate successor to top. */
+  AVER(subtree.root->left == RTREE_LEAF);
+  tree->root->right = RTREE_LEAF;
+  subtree.root->left = tree->root;
+  tree->root = subtree.root;
+  return tree->root;
 }
 
 

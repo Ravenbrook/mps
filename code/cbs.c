@@ -131,7 +131,6 @@ static Bool cbsTestTree(RTree tree, RNode node,
 }
 
 
-#if 0
 /* cbsUpdateNode -- update size info after restructuring */
 
 static void cbsUpdateNode(RTree tree, RNode node)
@@ -141,22 +140,22 @@ static void cbsUpdateNode(RTree tree, RNode node)
 
   AVERT(RTree, tree);
   AVERT(RNode, node);
-  if (node->left != NULL)
+  if (node->left != RTREE_LEAF)
     AVERT(RNode, node->left);
-  if (node->right != NULL)
+  if (node->right != RTREE_LEAF)
     AVERT(RNode, node->right);
   AVER(cbsOfTree(tree)->fastFind);
 
   block = cbsBlockOfNode(node);
   maxSize = CBSBlockSize(block);
 
-  if (node->left != NULL) {
+  if (node->left != RTREE_LEAF) {
     Size size = cbsBlockOfNode(node->left)->maxSize;
     if (size > maxSize)
       maxSize = size;
   }
 
-  if (node->right != NULL) {
+  if (node->right != RTREE_LEAF) {
     Size size = cbsBlockOfNode(node->right)->maxSize;
     if (size > maxSize)
       maxSize = size;
@@ -164,7 +163,6 @@ static void cbsUpdateNode(RTree tree, RNode node)
 
   block->maxSize = maxSize;
 }
-#endif
 
 
 /* CBSInit -- Initialise a CBS structure
@@ -186,7 +184,10 @@ Res CBSInit(Arena arena, CBS cbs, void *owner, Align alignment,
   if (ArgPick(&arg, args, MPS_KEY_CBS_EXTEND_BY))
     extendBy = arg.val.size;
 
-  RTreeInit(treeOfCBS(cbs));
+  if (fastFind)
+    RTreeInit(treeOfCBS(cbs), cbsUpdateNode);
+  else
+    RTreeInit(treeOfCBS(cbs), RTreeTrivUpdate);
   MPS_ARGS_BEGIN(pcArgs) {
     MPS_ARGS_ADD(pcArgs, MPS_KEY_MFS_UNIT_SIZE, sizeof(CBSBlockStruct));
     MPS_ARGS_ADD(pcArgs, MPS_KEY_EXTEND_BY, extendBy);
@@ -462,7 +463,6 @@ Res CBSInsert(Range rangeReturn, CBS cbs, Range range)
   res = cbsInsertIntoTree(rangeReturn, cbs, range);
 
   cbsLeave(cbs);
-  AVERT(CBS, cbs);
   return res;
 }
 
@@ -565,7 +565,6 @@ Res CBSDelete(Range rangeReturn, CBS cbs, Range range)
   res = cbsDeleteFromTree(rangeReturn, cbs, range);
 
   cbsLeave(cbs);
-  AVERT(CBS, cbs);
   return res;
 }
 
@@ -631,7 +630,6 @@ void CBSIterate(CBS cbs, CBSIterateMethod iterate,
   }
 
   cbsLeave(cbs);
-  AVERT(CBS, cbs);
   return;
 }
 
