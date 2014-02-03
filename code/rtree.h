@@ -12,7 +12,7 @@
 #include "mpmtypes.h"
 
 
-typedef void (*RTreeUpdateMethod)(RTree tree, RNode node);
+typedef void (*RTreeUpdateMethod)(RNode node);
 
 #define RTreeSig ((Sig)0x519626EE) /* SIGnature RTREE */
 
@@ -44,7 +44,7 @@ extern void RNodeFinish(RNode node);
 extern void RTreeFinish(RTree tree);
 extern void RTreeReset(RTree tree);
 
-extern void RTreeTrivUpdate(RTree tree, RNode node);
+extern void RTreeTrivUpdate(RNode node);
 
 extern void RTreeInsert(RTree tree, RNode node);
 extern void RTreeDelete(RTree tree, RNode node);

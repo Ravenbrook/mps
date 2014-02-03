@@ -133,18 +133,16 @@ static Bool cbsTestTree(RTree tree, RNode node,
 
 /* cbsUpdateNode -- update size info after restructuring */
 
-static void cbsUpdateNode(RTree tree, RNode node)
+static void cbsUpdateNode(RNode node)
 {
   Size maxSize;
   CBSBlock block;
 
-  AVERT(RTree, tree);
   AVERT(RNode, node);
   if (node->left != RTREE_LEAF)
     AVERT(RNode, node->left);
   if (node->right != RTREE_LEAF)
     AVERT(RNode, node->right);
-  AVER(cbsOfTree(tree)->fastFind);
 
   block = cbsBlockOfNode(node);
   maxSize = CBSBlockSize(block);
