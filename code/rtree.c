@@ -823,31 +823,46 @@ Bool RTreeFind(RNode *nodeReturn, RTree tree, Addr addr)
   *nodeReturn = tree->root;
   return TRUE;
 }
-/*
-  node = descend(tree, addr);
-  ascend(tree, addr, node);
-  
-  if (node == RTREE_LEAF)
-    return FALSE;
-
-  *nodeReturn = node;
-  return TRUE;
-}
-*/
 
 
 void RTreeInsert(RTree tree, RNode node)
 {
-  RNode exists;
+  Bool b;
 
   AVERT(RTree, tree);
   AVERT(RNode, node);
   AVER(node->left == RTREE_LEAF);
   AVER(node->right == RTREE_LEAF);
+  
+  if (tree->root == RTREE_LEAF) {
+    tree->root = node;
+    return;
+  }
 
+  /* TODO: This could be done better by returning the split left and right
+     subtrees and not stopping at the terminal node on the way down, then
+     just graft those trees onto the node. */
+  
+  b = splayDown(tree, node->base);
+  AVER(!b); /* TODO: what defensive action can we take? */
+  if (node->base < tree->root->base) {
+    node->left = tree->root->left;
+    tree->root->left = RTREE_LEAF;
+    node->right = tree->root;
+    tree->root = node;
+  } else {
+    AVER(node->base >= tree->root->limit);
+    node->right = tree->root->right;
+    tree->root->right = RTREE_LEAF;
+    node->left = tree->root;
+    tree->root = node;
+  }
+  
+#if 0
   exists = descend(tree, node->base);
   AVER(exists == RTREE_LEAF); /* TODO: what defensive action can we take? */
   splayUp(tree, node->base, node);
+#endif
 }
 
 
