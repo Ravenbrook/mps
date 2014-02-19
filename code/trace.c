@@ -399,9 +399,7 @@ Res TraceCondemnZones(Trace trace, ZoneSet condemnedSet)
   arena = trace->arena;
 
   if(SegFirst(&seg, arena)) {
-    Addr base;
     do {
-      base = SegBase(seg);
       /* Segment should be black now. */
       AVER(!TraceSetIsMember(SegGrey(seg), trace));
       AVER(!TraceSetIsMember(SegWhite(seg), trace));
@@ -1264,7 +1262,7 @@ mps_res_t _mps_fix2(mps_ss_t mps_ss, mps_addr_t *mps_ref_io)
 
   /* The zone test should already have been passed by MPS_FIX1 in mps.h. */
   AVER_CRITICAL(ZoneSetInter(ScanStateWhite(ss),
-                             ZoneSetAdd(ss->arena, ZoneSetEMPTY, ref)) !=
+                             ZoneSetAddAddr(ss->arena, ZoneSetEMPTY, ref)) !=
                 ZoneSetEMPTY);
 
   STATISTIC(++ss->fixRefCount);
@@ -1533,7 +1531,6 @@ failBegin:
 
 /* Collection control parameters */
 
-double TraceTopGenMortality = 0.51;
 double TraceWorkFactor = 0.25;
 
 
@@ -1773,12 +1770,12 @@ Res TraceStartCollectAll(Trace *traceReturn, Arena arena, int why)
   if(res != ResOK) /* should try some other trace, really @@@@ */
     goto failCondemn;
   finishingTime = ArenaAvail(arena)
-                  - trace->condemned * (1.0 - TraceTopGenMortality);
+                  - trace->condemned * (1.0 - arena->topGen.mortality);
   if(finishingTime < 0) {
     /* Run out of time, should really try a smaller collection. @@@@ */
     finishingTime = 0.0;
   }
-  res = TraceStart(trace, TraceTopGenMortality, finishingTime);
+  res = TraceStart(trace, arena->topGen.mortality, finishingTime);
   if (res != ResOK)
     goto failStart;
   *traceReturn = trace;
@@ -1821,12 +1818,12 @@ Size TracePoll(Globals globals)
     double dynamicDeferral;
 
     /* Compute dynamic criterion.  See strategy.lisp-machine. */
-    AVER(TraceTopGenMortality >= 0.0);
-    AVER(TraceTopGenMortality <= 1.0);
+    AVER(arena->topGen.mortality >= 0.0);
+    AVER(arena->topGen.mortality <= 1.0);
     sFoundation = (Size)0; /* condemning everything, only roots @@@@ */
     /* @@@@ sCondemned should be scannable only */
     sCondemned = ArenaCommitted(arena) - ArenaSpareCommitted(arena);
-    sSurvivors = (Size)(sCondemned * (1 - TraceTopGenMortality));
+    sSurvivors = (Size)(sCondemned * (1 - arena->topGen.mortality));
     tTracePerScan = sFoundation + (sSurvivors * (1 + TraceCopyScanRATIO));
     AVER(TraceWorkFactor >= 0);
     AVER(sSurvivors + tTracePerScan * TraceWorkFactor <= (double)SizeMAX);
