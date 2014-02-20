@@ -277,7 +277,7 @@ static Res MVTInit(Pool pool, ArgList args)
   if (abqDepth < 3)
     abqDepth = 3;
 
-  res = CBSInit(arena, MVTCBS(mvt), (void *)mvt, align, FALSE, args);
+  res = CBSInit(arena, MVTCBS(mvt), (void *)mvt, align, TRUE, args);
   if (res != ResOK)
     goto failCBS;
  
@@ -1438,13 +1438,25 @@ static Bool MVTContingencySearch(Addr *baseReturn, Addr *limitReturn,
   cls.hardSteps = 0;
 
   FreelistFlushToCBS(MVTFreelist(mvt), MVTCBS(mvt));
+  
+  if (TRUE) {
+    RangeStruct r;
+    if (CBSFindFirst(&r, &cls.range, MVTCBS(mvt), min * 2, FindDeleteNONE))
+      goto found;
+  }
 
   CBSIterate(MVTCBS(mvt), MVTCBSContingencyCallback, (void *)&cls, 0);
+  if (cls.found)
+    goto found;
+
   FreelistIterate(MVTFreelist(mvt), MVTFreelistContingencyCallback,
                   (void *)&cls, 0);
-  if (!cls.found)
-    return FALSE;
+  if (cls.found)
+    goto found;
 
+  return FALSE;
+
+found:
   AVER(RangeSize(&cls.range) >= min);
   METER_ACC(mvt->contingencySearches, cls.steps);
   if (cls.hardSteps) {

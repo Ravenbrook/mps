@@ -654,6 +654,184 @@ static Bool splayDown(RTree tree, Addr addr)
 }
 
 
+static void splayDownUpdateLeft(RTree tree, RTreeUpdateMethod update)
+{
+  RNode node;
+  RNode right = RTREE_LEAF; /* reversed subtree all preceeding addr */
+#ifdef RTREE_DEBUG
+  Count count = debugCount(tree->root);
+#endif
+
+  AVERT(RTree, tree);
+  AVER(FUNCHECK(update));
+  
+  if (tree->root == RTREE_LEAF)
+    return;
+  
+  node = tree->root;
+  for (;;) {
+    RNode child = node->left;
+    if (child == RTREE_LEAF)
+      break;
+    else {
+      RNode grandchild = child->left;
+      if (grandchild == RTREE_LEAF) {
+        node = stepDownLeft(node, &right);
+        break;
+      }
+      zigUpdate(child, node, update);
+      node = stepDownLeft(child, &right);
+    }
+  }
+  
+  node->right = runUpRightUpdate(node->right, right, update);
+  node->left = RTREE_LEAF;
+  update(node);
+  tree->root = node;
+
+#ifdef RTREE_DEBUG
+  AVER(debugCount(node) == count);
+#endif
+}
+
+static void splayDownUpdateRight(RTree tree, RTreeUpdateMethod update)
+{
+  RNode node;
+  RNode left = RTREE_LEAF;  /* reversed subtree all succeeding addr */
+#ifdef RTREE_DEBUG
+  Count count = debugCount(tree->root);
+#endif
+
+  AVERT(RTree, tree);
+  AVER(FUNCHECK(update));
+  
+  if (tree->root == RTREE_LEAF)
+    return;
+  
+  node = tree->root;
+  for (;;) {
+    RNode child = node->right;
+    if (child == RTREE_LEAF)
+      break;
+    else {
+      RNode grandchild = child->right;
+      if (grandchild == RTREE_LEAF) {
+        node = stepDownRight(node, &left);
+        break;
+      }
+      zagUpdate(child, node, update);
+      node = stepDownRight(child, &left);
+    }
+  }
+  
+  node->right = RTREE_LEAF;
+  node->left = runUpLeftUpdate(node->left, left, update);
+  update(node);
+  tree->root = node;
+
+#ifdef RTREE_DEBUG
+  AVER(debugCount(node) == count);
+#endif
+}
+
+
+static void splayDownFastLeft(RTree tree)
+{
+  RNode node = tree->root;
+  RNode right = RTREE_LEAF, *rightLink = &right;
+#ifdef RTREE_DEBUG
+  Count count = debugCount(node);
+#endif
+  
+  if (node == RTREE_LEAF)
+    return;
+  
+  for (;;) {
+    RNode child = node->left;
+    if (child == RTREE_LEAF)
+      break;
+    if (child->left == RTREE_LEAF) {
+      *rightLink = node;
+      rightLink = &node->left;
+      node = child;
+      break;
+    }
+    node->left = child->right;
+    child->right = node;
+    *rightLink = child;
+    rightLink = &child->left;
+    node = child->left;
+  }
+  
+  *rightLink = node->right;
+  node->left = RTREE_LEAF;
+  node->right = right;
+  tree->root = node;
+
+#ifdef RTREE_DEBUG
+  AVER(debugCount(node) == count);
+#endif
+}
+
+static void splayDownFastRight(RTree tree)
+{
+  RNode node = tree->root;
+  RNode left = RTREE_LEAF, *leftLink = &left;
+#ifdef RTREE_DEBUG
+  Count count = debugCount(node);
+#endif
+  
+  if (node == RTREE_LEAF)
+    return;
+  
+  for (;;) {
+    RNode child = node->right;
+    if (child == RTREE_LEAF)
+      break;
+    else {
+      if (child->right == RTREE_LEAF) {
+        *leftLink = node;
+        leftLink = &node->right;
+        node = child;
+        break;
+      }
+      node->right = child->left;
+      child->left = node;
+      *leftLink = child;
+      leftLink = &child->right;
+      node = child->right;
+    }
+  }
+  
+  *leftLink = node->left;
+  node->left = left;
+  node->right = RTREE_LEAF;
+  tree->root = node;
+
+#ifdef RTREE_DEBUG
+  AVER(debugCount(node) == count);
+#endif
+}
+
+static void splayDownLeft(RTree tree)
+{
+  AVERT(RTree, tree);
+  if (tree->update == RTreeTrivUpdate)
+    splayDownFastLeft(tree);
+  else
+    splayDownUpdateLeft(tree, tree->update);
+}
+
+static void splayDownRight(RTree tree)
+{
+  AVERT(RTree, tree);
+  if (tree->update == RTreeTrivUpdate)
+    splayDownFastRight(tree);
+  else
+    splayDownUpdateRight(tree, tree->update);
+}
+
+
 /* splayLeft, splayRight -- ascend and balance after descendRight, descendLeft
  *
  * After applying descendRight you need not (and may not be able to) use a
@@ -848,15 +1026,18 @@ void RTreeInsert(RTree tree, RNode node)
   if (node->base < tree->root->base) {
     node->left = tree->root->left;
     tree->root->left = RTREE_LEAF;
+    (*tree->update)(tree->root);
     node->right = tree->root;
     tree->root = node;
   } else {
     AVER(node->base >= tree->root->limit);
     node->right = tree->root->right;
     tree->root->right = RTREE_LEAF;
+    (*tree->update)(tree->root);
     node->left = tree->root;
     tree->root = node;
   }
+  (*tree->update)(tree->root);
   
 #if 0
   exists = descend(tree, node->base);
@@ -868,70 +1049,51 @@ void RTreeInsert(RTree tree, RNode node)
 
 void RTreeDelete(RTree tree, RNode node)
 {
-  RNode exists;
-  
+  Bool b;
+
   AVERT(RTree, tree);
   AVERT(RNode, node);
+  
+  b = splayDown(tree, node->base);
+  AVER(b);
+  AVER(tree->root == node);
 
-  exists = descend(tree, node->base);
-  AVER(exists == node);
-
-  if (exists == RTREE_LEAF || /* defensive */
-      (node->left == RTREE_LEAF && node->right == RTREE_LEAF)) {
-    /* Ascend without the node, removing it from the tree. */
-    ascend(tree, node->base, RTREE_LEAF);
-  } else {
-    /* Find a nearest neighbour node in one of node's subtrees. */
+  if (node->left == RTREE_LEAF)
+    tree->root = node->right;
+  else if (node->right == RTREE_LEAF)
+    tree->root = node->left;
+  else {
+    /* Find a nearest neighbour node in a subtree. */
     RTreeStruct subtree;
-    RNode replacement;
     RTreeInit(&subtree, tree->update);
-
-    if (node->left != RTREE_LEAF) {
-      subtree.root = node->left;
-      descendRight(&subtree);
-      replacement = stepUpLeft(RTREE_LEAF, &subtree.root);
-      AVER(replacement->right == RTREE_LEAF);
-      
-      /* Bypass the replacement node in the subtree. */
-      ascendLeft(&subtree, replacement->left);
-      
-      /* Replace the node to be deleted with the replacement. */
-      replacement->left = subtree.root;
-      replacement->right = node->right;
-      
-      /* Splay the replacement into the inverted main tree, bypassing
-         the node to be deleted. */
-      splayUp(tree, node->base, replacement);
-    } else {
-      /* Same as above, with right and left swapped! */
-      subtree.root = node->right;
-      descendLeft(&subtree);
-      replacement = stepUpRight(RTREE_LEAF, &subtree.root);
-      AVER(replacement->left == RTREE_LEAF);
-      
-      /* Bypass the replacement node in the subtree. */
-      ascendRight(&subtree, replacement->right);
-      
-      /* Replace the node to be deleted with the replacement. */
-      replacement->right = subtree.root;
-      replacement->left = node->left;
-      
-      /* Splay the replacement into the inverted main tree, bypassing
-         the node to be deleted. */
-      splayUp(tree, node->base, replacement);
-    }
-    
-    /* Possible improvement: Detach the replacement node and push it
-       into the main inverted tree, replacing node, then attach the
-       subtree root to the main inverted tree, then splay replacement's
-       child right to the top of the whole tree.  This avoids a possible
-       missed rotation at the junction of the subtree and the main tree.
-       Be careful: the key on the way up will need to be replacement->base. */
+    subtree.root = node->left;
+    splayDownRight(&subtree);
+    AVER(subtree.root != RTREE_LEAF);
+    AVER(subtree.root->right == RTREE_LEAF);
+    subtree.root->right = node->right;
+    tree->root = subtree.root;
   }
+  (*tree->update)(tree->root);
 
   /* Remove references to tree from node, for safety, and for RNodeFinish. */
   node->left = RTREE_LEAF;
   node->right = RTREE_LEAF;
+}
+
+
+void RTreeRefresh(RTree tree, RNode node)
+{
+  Bool b;
+
+  AVERT(RTree, tree);
+  AVERT(RNode, node);
+  
+  if (tree->update == RTreeTrivUpdate)
+    return;
+  
+  b = splayDown(tree, node->base);
+  AVER(b);
+  AVER(tree->root == node);
 }
 
 
@@ -948,13 +1110,11 @@ RNode RTreeFirst(RTree tree)
 {
   AVERT(RTree, tree);
   
-  /* Splay the least node in the tree to the root. */
-  /* TODO: This doesn't require a descend that uses comparisons, since
-     it always goes left. */
-  descendLeft(tree);
-  ascendRight(tree, RTREE_LEAF);
   if (tree->root == RTREE_LEAF)
     return NULL;
+
+  /* Splay the least node in the tree to the root. */
+  splayDownLeft(tree);
   return tree->root;
 }
 
@@ -973,7 +1133,7 @@ RNode RTreeNext(RTree tree, Addr prev)
      base address to the top.  If the tree wasn't changed then
      it's a trivial operation. */
   if (!RNODE_HAS_ADDR(tree->root, prev))
-    ascend(tree, prev, descend(tree, prev));
+    splayDown(tree, prev);
   
   if (tree->root->base > prev) /* ensure monotonic progress */
     return tree->root;
@@ -986,13 +1146,14 @@ RNode RTreeNext(RTree tree, Addr prev)
      for the nearest right neighbour in the right subtree. */
   RTreeInit(&subtree, tree->update);
   subtree.root = tree->root->right;
-  descendLeft(&subtree);
-  ascendRight(&subtree, RTREE_LEAF);
+  splayDownLeft(&subtree);
   /* Rotate successor to top. */
   AVER(subtree.root->left == RTREE_LEAF);
   tree->root->right = RTREE_LEAF;
+  tree->update(tree->root);
   subtree.root->left = tree->root;
   tree->root = subtree.root;
+  tree->update(tree->root);
   return tree->root;
 }
 
@@ -1020,14 +1181,41 @@ Bool RTreeFindFirst(RNode *nodeReturn, RTree tree,
                     void *closureP, Size closureS)
 {
   RNode node;
-  Addr next;
 
   AVER(nodeReturn != NULL);
   AVERT(RTree, tree);
   AVER(FUNCHECK(testNode));
   AVER(FUNCHECK(testTree));
   /* closureP and closureS arbitrary */
+  
+  node = tree->root;
+  if (node == RTREE_LEAF)
+    return FALSE;
 
+  if (!(*testTree)(tree, node, closureP, closureS))
+    return FALSE;
+  
+  for (;;) {
+    if (node->left != RTREE_LEAF &&
+        (*testTree)(tree, node->left, closureP, closureS)) {
+      node = node->left;
+    } else if ((*testNode)(tree, node, closureP, closureS)) {
+      *nodeReturn = node;
+      splayDown(tree, node->base);
+      return TRUE;
+    } else if (node->right != RTREE_LEAF &&
+               (*testTree)(tree, node->right, closureP, closureS)) {
+      node = node->right;
+    } else {
+      NOTREACHED;
+      return FALSE;
+    }
+  }
+  
+  /* FIXME: Doesn't splay found node to root. */
+  /* FIXME: Doesn't allow testNode to fail and continue search. */
+#if 0
+  Addr next;
   /* FIXME: Temporary O(n) implementation! */
   RTREE_FOR(node, tree, next) {
     if ((*testNode)(tree, node, closureP, closureS)) {
@@ -1035,6 +1223,7 @@ Bool RTreeFindFirst(RNode *nodeReturn, RTree tree,
       return TRUE;
     }
   }
+#endif
   return FALSE;
 }
 
@@ -1050,19 +1239,14 @@ Bool RTreeNeighbours(RNode *leftReturn, RNode *rightReturn,
   AVER(rightReturn != NULL);
   /* addr arbitrary */
   
-  node = descend(tree, addr);
-  if (node != RTREE_LEAF) { /* found addr in tree */
-    splayUp(tree, addr, node);
-    return FALSE;
-  }
-
   if (tree->root == RTREE_LEAF) {
-    /* No need to ascend an empty tree. */
     *leftReturn = *rightReturn = NULL;
     return TRUE;
   }
 
-  ascend(tree, addr, node);
+  if (splayDown(tree, addr)) /* found addr in tree */
+    return FALSE;
+
   node = tree->root; /* a neighbour of addr */
 
   RTreeInit(&subtree, tree->update);
@@ -1071,13 +1255,10 @@ Bool RTreeNeighbours(RNode *leftReturn, RNode *rightReturn,
     if (node->left == RTREE_LEAF)
       *leftReturn = NULL;
     else {
-      RNode left;
       subtree.root = node->left;
-      descendRight(&subtree);
-      left = stepUpLeft(RTREE_LEAF, &subtree.root);
-      splayLeft(&subtree, left);
-      node->left = left;
-      *leftReturn = left;
+      splayDownRight(&subtree);
+      node->left = subtree.root;
+      *leftReturn = subtree.root;
     }
   } else {
     /* Same as above with left and right swapped! */
@@ -1086,13 +1267,10 @@ Bool RTreeNeighbours(RNode *leftReturn, RNode *rightReturn,
     if (node->right == RTREE_LEAF)
       *rightReturn = NULL;
     else {
-      RNode right;
       subtree.root = node->right;
-      descendLeft(&subtree);
-      right = stepUpRight(RTREE_LEAF, &subtree.root);
-      splayRight(&subtree, right);
-      node->right = right;
-      *rightReturn = right;
+      splayDownLeft(&subtree);
+      node->right = subtree.root;
+      *rightReturn = subtree.root;
     }
   }
 

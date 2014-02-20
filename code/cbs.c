@@ -64,6 +64,24 @@ static void cbsLeave(CBS cbs)
 }
 
 
+#if 0
+static Size cbsTreeCheck(RNode node)
+{
+  if (node != RTREE_LEAF) {
+    CBSBlock block = cbsBlockOfNode(node);
+    Size size = CBSBlockSize(block);
+    Size left = cbsTreeCheck(node->left);
+    Size right = cbsTreeCheck(node->right);
+    if (left > size) size = left;
+    if (right > size) size = right;
+    AVER(block->maxSize == size);
+    return size;
+  }
+  return 0;
+}
+#endif
+
+
 /* CBSCheck -- Check CBS */
 
 Bool CBSCheck(CBS cbs)
@@ -77,6 +95,9 @@ Bool CBSCheck(CBS cbs)
   CHECKL(BoolCheck(cbs->fastFind));
   CHECKL(BoolCheck(cbs->inCBS));
   /* No MeterCheck */
+#if 0
+  (void)cbsTreeCheck(treeOfCBS(cbs)->root);
+#endif
   return TRUE;
 }
 
@@ -257,42 +278,34 @@ static void cbsBlockDelete(CBS cbs, CBSBlock block)
 
 static void cbsBlockShrunk(CBS cbs, CBSBlock block, Size oldSize)
 {
-  UNUSED(cbs); UNUSED(block); UNUSED(oldSize);
-#if 0
   Size newSize;
 
-  AVERT(CBS, cbs);
+  /* AVERT(CBS, cbs); */
   AVERT(CBSBlock, block);
 
   newSize = CBSBlockSize(block);
   AVER(oldSize > newSize);
 
   if (cbs->fastFind) {
-    SplayNodeRefresh(treeOfCBS(cbs), nodeOfCBSBlock(block),
-                     keyOfCBSBlock(block));
+    RTreeRefresh(treeOfCBS(cbs), nodeOfCBSBlock(block));
     AVER(CBSBlockSize(block) <= block->maxSize);
   }
-#endif
 }
 
 static void cbsBlockGrew(CBS cbs, CBSBlock block, Size oldSize)
 {
-  UNUSED(cbs); UNUSED(block); UNUSED(oldSize);
-#if 0
   Size newSize;
 
-  AVERT(CBS, cbs);
+  /* AVERT(CBS, cbs); */
   AVERT(CBSBlock, block);
 
   newSize = CBSBlockSize(block);
   AVER(oldSize < newSize);
 
   if (cbs->fastFind) {
-    SplayNodeRefresh(treeOfCBS(cbs), nodeOfCBSBlock(block),
-                     keyOfCBSBlock(block));
+    RTreeRefresh(treeOfCBS(cbs), nodeOfCBSBlock(block));
     AVER(CBSBlockSize(block) <= block->maxSize);
   }
-#endif
 }
 
 /* cbsBlockAlloc -- allocate a new block and set its base and limit,
@@ -701,6 +714,9 @@ static void cbsFindDeleteRange(Range rangeReturn, Range oldRangeReturn,
        deleted from one end of the block, so cbsDeleteFromTree did not
        need to allocate a new block. */
     AVER(res == ResOK);
+  } else {
+    /* FIXME: Implement RangeCopy macro */
+    mps_lib_memcpy(oldRangeReturn, rangeReturn, sizeof(RangeStruct));
   }
 }
 

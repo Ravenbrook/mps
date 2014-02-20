@@ -50,6 +50,8 @@ extern void RTreeInsert(RTree tree, RNode node);
 extern void RTreeDelete(RTree tree, RNode node);
 extern Bool RTreeFind(RNode *nodeReturn, RTree tree, Addr addr);
 
+extern void RTreeRefresh(RTree tree, RNode node);
+
 /* TODO: Call different function to avoid checking root again? */
 #define RTREE_FIND(nodeReturn, tree, addr) \
   (/* (tree)->root != NULL && */ \
