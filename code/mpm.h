@@ -383,7 +383,7 @@ extern Res TraceCreate(Trace *traceReturn, Arena arena, int why);
 extern void TraceDestroy(Trace trace);
 
 extern Res TraceAddWhite(Trace trace, Seg seg);
-extern Res TraceCondemnZones(Trace trace, ZoneSet condemnedSet);
+extern Res TraceCondemnZones(Trace trace, ZoneSet condemnedSet, Epoch epoch);
 extern Res TraceStart(Trace trace, double mortality, double finishingTime);
 extern Size TracePoll(Globals globals);
 
@@ -655,6 +655,10 @@ extern Res SegSplit(Seg *segLoReturn, Seg *segHiReturn, Seg seg, Addr at,
                     Bool withReservoirPermit);
 extern Res SegDescribe(Seg seg, mps_lib_FILE *stream);
 extern void SegSetSummary(Seg seg, RefSet summary);
+extern Epoch SegRefEpoch(Seg seg);
+extern Epoch SegBirthEpoch(Seg seg);
+extern void SegSetRefEpoch(Seg seg, Epoch epoch);
+extern void SegSetBirthEpoch(Seg seg, Epoch epoch);
 extern Buffer SegBuffer(Seg seg);
 extern void SegSetBuffer(Seg seg, Buffer buffer);
 extern Bool SegCheck(Seg seg);
@@ -913,6 +917,10 @@ extern Res MutatorFaultContextScan(ScanState ss, MutatorFaultContext mfc);
 
 
 /* Location Dependency -- see <code/ld.c> */
+
+#define EPOCH_INFINITY ((Epoch)-1)
+#define EPOCH_MIN(a, b) ((a) < (b) ? (a) : (b))
+#define EPOCH_MAX(a, b) ((a) > (b) ? (a) : (b))
 
 extern void LDReset(mps_ld_t ld, Arena arena);
 extern void LDAdd(mps_ld_t ld, Arena arena, Addr addr);

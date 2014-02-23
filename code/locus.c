@@ -159,6 +159,7 @@ Res ChainCreate(Chain *chainReturn, Arena arena, size_t genCount,
 
   for (i = 0; i < genCount; ++i) {
     gens[i].zones = ZoneSetEMPTY;
+    gens[i].epoch = (Epoch)0;
     gens[i].capacity = params[i].capacity;
     gens[i].mortality = params[i].mortality;
     gens[i].proflow = 1.0; /* @@@@ temporary */
@@ -314,6 +315,7 @@ Res ChainCondemnAuto(double *mortalityReturn, Chain chain, Trace trace)
   GenDesc gen;
   ZoneSet condemnedSet = ZoneSetEMPTY;
   Size condemnedSize = 0, survivorSize = 0, genNewSize, genTotalSize;
+  Epoch earliest = EPOCH_INFINITY;
 
   AVERT(Chain, chain);
   AVERT(Trace, trace);
@@ -332,6 +334,17 @@ Res ChainCondemnAuto(double *mortalityReturn, Chain chain, Trace trace)
     survivorSize += (Size)(genNewSize * (1.0 - gen->mortality))
                     /* predict survivors will survive again */
                     + (genTotalSize - genNewSize);
+    if (gen->epoch < earliest)
+      earliest = gen->epoch;
+    /* NOTE: This should work more generally than just for gen 0 but we would
+     * either need to promote segments that are nailed to the next generation
+     * or make a gen's epoch get earlier when being forwarded an older objects.
+     *
+     * NOTE: this should be updated just after aging the epoch at flip; it's
+     * not so add 1.
+     */
+    if (chain->gens - gen == 0)
+      gen->epoch = chain->arena->epoch+1;
 
     /* is there another one to consider? */
     currGenSerial += 1;
@@ -348,7 +361,7 @@ Res ChainCondemnAuto(double *mortalityReturn, Chain chain, Trace trace)
   
   /* Condemn everything in these zones. */
   if (condemnedSet != ZoneSetEMPTY) {
-    res = TraceCondemnZones(trace, condemnedSet);
+    res = TraceCondemnZones(trace, condemnedSet, earliest);
     if (res != ResOK)
       return res;
   }
@@ -479,6 +492,7 @@ void LocusInit(Arena arena)
   /* TODO: The mortality estimate here is unjustifiable.  Dynamic generation
      decision making needs to be improved and this constant removed. */
   gen->zones = ZoneSetEMPTY;
+  gen->epoch = (Epoch)0;
   gen->capacity = 0; /* unused */
   gen->mortality = 0.51;
   gen->proflow = 0.0;

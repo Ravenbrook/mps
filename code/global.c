@@ -969,6 +969,7 @@ void ArenaPokeSeg(Arena arena, Seg seg, Ref *p, Ref ref)
   summary = SegSummary(seg);
   summary = RefSetAdd(arena, summary, (Addr)ref);
   SegSetSummary(seg, summary);
+  /* FIXME update ref epoch */
   ShieldCover(arena, seg);
 }
 

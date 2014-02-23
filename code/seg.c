@@ -1101,6 +1101,11 @@ Bool GCSegCheck(GCSeg gcseg)
     CHECKL(BufferRankSet(gcseg->buffer) == SegRankSet(seg));
   }
 
+  CHECKL(gcseg->birthEpoch == EPOCH_INFINITY ||
+    gcseg->birthEpoch <= PoolArena(SegPool(seg))->epoch);
+  CHECKL(gcseg->refEpoch == EPOCH_INFINITY ||
+    gcseg->refEpoch <= PoolArena(SegPool(seg))->epoch);
+
   /* The segment should be on a grey ring if and only if it is grey. */
   CHECKL(RingCheck(&gcseg->greyRing));
   CHECKL((seg->grey == TraceSetEMPTY) ==
@@ -1143,6 +1148,8 @@ static Res gcSegInit(Seg seg, Pool pool, Addr base, Size size,
     return res;
 
   gcseg->summary = RefSetEMPTY;
+  gcseg->birthEpoch = EPOCH_INFINITY;
+  gcseg->refEpoch = EPOCH_INFINITY;
   gcseg->buffer = NULL;
   RingInit(&gcseg->greyRing);
   gcseg->sig = GCSegSig;
@@ -1392,16 +1399,65 @@ static void gcSegSetSummary(Seg seg, RefSet summary)
 
   AVER(seg->rankSet != RankSetEMPTY);
 
-  /* Note: !RefSetSuper is a test for a strict subset */
-  if (!RefSetSuper(summary, RefSetUNIV)) {
-    if (RefSetSuper(oldSummary, RefSetUNIV))
-      ShieldRaise(arena, seg, AccessWRITE);
-  } else {
-    if (!RefSetSuper(oldSummary, RefSetUNIV))
-      ShieldLower(arena, seg, AccessWRITE);
+  if (gcseg->refEpoch == EPOCH_INFINITY) {
+    /* Note: !RefSetSuper is a test for a strict subset */
+    if (!RefSetSuper(summary, RefSetUNIV)) {
+      if (RefSetSuper(oldSummary, RefSetUNIV))
+        ShieldRaise(arena, seg, AccessWRITE);
+    } else {
+      if (!RefSetSuper(oldSummary, RefSetUNIV))
+        ShieldLower(arena, seg, AccessWRITE);
+    }
   }
 }
 
+void SegSetRefEpoch(Seg seg, Epoch epoch) {
+  GCSeg gcseg;
+  Epoch oldEpoch;
+  Arena arena;
+
+  gcseg = SegGCSeg(seg);
+  AVERT(GCSeg, gcseg);
+
+  arena = PoolArena(SegPool(seg));
+  oldEpoch = gcseg->refEpoch;
+
+  AVER(seg->rankSet != RankSetEMPTY);
+
+  oldEpoch = gcseg->refEpoch;
+  gcseg->refEpoch = epoch;
+  if (seg->rankSet != RankSetEMPTY && gcseg->summary == RefSetUNIV) {
+    if (epoch != EPOCH_INFINITY) {
+      if (oldEpoch == EPOCH_INFINITY)
+        ShieldRaise(arena, seg, AccessWRITE);
+    } else {
+      if (oldEpoch != EPOCH_INFINITY)
+        ShieldLower(arena, seg, AccessWRITE);
+    }
+  }
+}
+ 
+void SegSetBirthEpoch(Seg seg, Epoch epoch) {
+  GCSeg gcseg;
+
+  gcseg = SegGCSeg(seg);
+  AVERT(GCSeg, gcseg);
+  gcseg->birthEpoch = epoch;
+}
+
+Epoch SegRefEpoch(Seg seg) {
+  GCSeg gcseg;
+  gcseg = SegGCSeg(seg);
+  AVERT(GCSeg, gcseg);
+  return gcseg->refEpoch;
+}
+
+Epoch SegBirthEpoch(Seg seg) {
+  GCSeg gcseg;
+  gcseg = SegGCSeg(seg);
+  AVERT(GCSeg, gcseg);
+  return gcseg->birthEpoch;
+}
 
 /* gcSegSetRankSummary -- GCSeg method to set both rank set and summary */
 
@@ -1421,6 +1477,7 @@ static void gcSegSetRankSummary(Seg seg, RankSet rankSet, RefSet summary)
 
   /* rankSet == RankSetEMPTY implies summary == RefSetEMPTY */
   AVER(rankSet != RankSetEMPTY || summary == RefSetEMPTY);
+  AVER(gcseg->refEpoch == EPOCH_INFINITY);
 
   arena = PoolArena(SegPool(seg));
 

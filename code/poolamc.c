@@ -414,6 +414,15 @@ static amcGen amcSegGen(Seg seg)
   }
 }
 
+static void amcSegSetGen(Seg seg, amcGen gen)
+{
+  if(amcSegHasNailboard(seg)) {
+    amcNailboard Nailboard = amcSegNailboard(seg);
+    Nailboard->gen = gen;
+  } else {
+    amcSegSetTypeP(seg, &gen->type);
+  }
+}
 
 /* AMCStruct -- pool AMC descriptor
  *
@@ -784,6 +793,35 @@ static Res amcGenDescribe(amcGen gen, mps_lib_FILE *stream)
   return res;
 }
 
+/* amcSegPromote */
+static void amcSegPromote(Seg seg, Pool pool) {
+  AMC amc;
+  amcGen gen, newgen;
+  Size size;
+
+  amc = Pool2AMC(pool);
+  AVERT(AMC, amc);
+  gen = amcSegGen(seg);
+  AVERT(amcGen, gen);
+  if (gen->pgen.nr == 0) {
+    size = SegSize(seg);
+    
+    newgen = amc->gen[gen->pgen.nr + 1];
+    --gen->segs;
+    gen->pgen.totalSize -= size;
+
+    ++newgen->segs;
+    newgen->pgen.totalSize += size;
+
+    /* TODO: Is this right? */
+    if (Seg2amcSeg(seg)->new) {
+      gen->pgen.newSize -= size;
+      newgen->pgen.newSize += size;
+    }
+
+    amcSegSetGen(seg, newgen);
+  }
+}
 
 /* amcSegCreateNailboard -- create nailboard for segment */
 
@@ -1200,10 +1238,15 @@ static Res AMCBufferFill(Addr *baseReturn, Addr *limitReturn,
   AVER(alignedSize == SegSize(seg));
 
   /* <design/seg/#field.rankSet.start> */
-  if(BufferRankSet(buffer) == RankSetEMPTY)
+  if(BufferRankSet(buffer) == RankSetEMPTY) {
     SegSetRankAndSummary(seg, BufferRankSet(buffer), RefSetEMPTY);
-  else
+  } else {
     SegSetRankAndSummary(seg, BufferRankSet(buffer), RefSetUNIV);
+#ifdef EPOCH_FORWARD
+    if (!BufferIsMutator(buffer))
+      SegSetRefEpoch(seg, (Epoch)0);
+#endif
+  }
 
   /* Put the segment in the generation indicated by the buffer. */
   ++gen->segs;
@@ -1404,6 +1447,7 @@ static Res AMCWhiten(Pool pool, Trace trace, Seg seg)
         /* There is an active buffer, make sure it's nailed. */
         if(!amcSegHasNailboard(seg)) {
           if(SegNailed(seg) == TraceSetEMPTY) {
+            amcSegPromote(seg, pool);
             res = amcSegCreateNailboard(seg, pool);
             if(res != ResOK) {
               /* Can't create nailboard, don't condemn. */
@@ -1437,6 +1481,10 @@ static Res AMCWhiten(Pool pool, Trace trace, Seg seg)
       }
     }
   }
+
+#ifdef EPOCH_FORWARD
+  SegSetRefEpoch(seg, EPOCH_MIN(PoolArena(pool)->epoch, SegRefEpoch(seg)));
+#endif
 
   SegSetWhite(seg, TraceSetAdd(SegWhite(seg), trace));
   trace->condemned += SegSize(seg);
@@ -1811,6 +1859,7 @@ static Res AMCFix(Pool pool, ScanState ss, Seg seg, Ref *refIO)
     /* we will lose some pointer fixes because we introduced a */
     /* nailboard). */
     if(SegNailed(seg) == TraceSetEMPTY) {
+      amcSegPromote(seg, pool);
       res = amcSegCreateNailboard(seg, pool);
       if(res != ResOK)
         return res;
@@ -1881,6 +1930,8 @@ static Res AMCFix(Pool pool, ScanState ss, Seg seg, Ref *refIO)
         grey = TraceSetUnion(grey, ss->traces);
       SegSetGrey(toSeg, TraceSetUnion(SegGrey(toSeg), grey));
       SegSetSummary(toSeg, RefSetUnion(SegSummary(toSeg), SegSummary(seg)));
+      SegSetRefEpoch(toSeg, EPOCH_MAX(SegRefEpoch(toSeg), SegRefEpoch(seg)));
+      SegSetBirthEpoch(toSeg, EPOCH_MIN(SegBirthEpoch(toSeg), SegBirthEpoch(seg)));
 
       /* <design/trace/#fix.copy> */
       (void)AddrCopy(newRef, ref, length);  /* .exposed.seg */
@@ -1951,6 +2002,7 @@ static Res AMCHeaderFix(Pool pool, ScanState ss, Seg seg, Ref *refIO)
     /* we will lose some pointer fixes because we introduced a */
     /* nailboard). */
     if(SegNailed(seg) == TraceSetEMPTY) {
+      amcSegPromote(seg, pool);
       res = amcSegCreateNailboard(seg, pool);
       if(res != ResOK)
         return res;
@@ -2025,6 +2077,10 @@ static Res AMCHeaderFix(Pool pool, ScanState ss, Seg seg, Ref *refIO)
         grey = TraceSetUnion(grey, ss->traces);
       SegSetGrey(toSeg, TraceSetUnion(SegGrey(toSeg), grey));
       SegSetSummary(toSeg, RefSetUnion(SegSummary(toSeg), SegSummary(seg)));
+#ifdef EPOCH_FORWARD
+      SegSetRefEpoch(toSeg, EPOCH_MAX(SegRefEpoch(toSeg), SegRefEpoch(seg)));
+#endif
+      SegSetBirthEpoch(toSeg, EPOCH_MIN(SegBirthEpoch(toSeg), SegBirthEpoch(seg)));
 
       /* <design/trace/#fix.copy> */
       (void)AddrCopy(newBase, AddrSub(ref, headerSize), length);  /* .exposed.seg */

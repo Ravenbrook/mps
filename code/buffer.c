@@ -670,6 +670,20 @@ void BufferAttach(Buffer buffer, Addr base, Addr limit,
   /* run any class-specific attachment method */
   buffer->class->attach(buffer, base, limit, init, size);
 
+  {
+    Pool pool = BufferPool(buffer);
+
+    if ((pool->class->attr & AttrGC) != 0) {
+      GCSeg gcseg = SegGCSeg(BufferSeg(buffer));
+      Epoch now = PoolArena(pool)->epoch;
+      AVERT(GCSeg, gcseg);
+      if(now < gcseg->birthEpoch) {
+        AVER(gcseg->birthEpoch == EPOCH_INFINITY);
+        gcseg->birthEpoch = now;
+      }
+    }
+  }
+
   AVERT(Buffer, buffer);
   EVENT4(BufferFill, buffer, size, base, filled);
 }

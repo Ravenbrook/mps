@@ -151,6 +151,7 @@ Bool TraceCheck(Trace trace)
 {
   CHECKS(Trace, trace);
   CHECKU(Arena, trace->arena);
+  CHECKL(trace->epoch <= trace->arena->epoch);
   CHECKL(TraceIdCheck(trace->ti));
   CHECKL(trace == &trace->arena->trace[trace->ti]);
   CHECKL(TraceSetIsMember(trace->arena->busyTraces, trace));
@@ -385,7 +386,7 @@ Res TraceAddWhite(Trace trace, Seg seg)
  * @@@@ This function would be more efficient if there were a cheaper
  * way to select the segments in a particular zone set.  */
 
-Res TraceCondemnZones(Trace trace, ZoneSet condemnedSet)
+Res TraceCondemnZones(Trace trace, ZoneSet condemnedSet, Epoch epoch)
 {
   Seg seg;
   Arena arena;
@@ -395,8 +396,11 @@ Res TraceCondemnZones(Trace trace, ZoneSet condemnedSet)
   AVER(condemnedSet != ZoneSetEMPTY);
   AVER(trace->state == TraceINIT);
   AVER(trace->white == ZoneSetEMPTY);
+  AVER(trace->epoch == (Epoch)0);
 
   arena = trace->arena;
+  AVER(epoch <= arena->epoch);
+  trace->epoch = epoch;
 
   if(SegFirst(&seg, arena)) {
     do {
@@ -411,7 +415,8 @@ Res TraceCondemnZones(Trace trace, ZoneSet condemnedSet)
       /* foundation to no gain.  Note that this doesn't exclude */
       /* any segments from which the condemned set was derived, */
       if((SegPool(seg)->class->attr & AttrGC) != 0
-          && ZoneSetSuper(condemnedSet, ZoneSetOfSeg(arena, seg))) {
+          && ZoneSetSuper(condemnedSet, ZoneSetOfSeg(arena, seg))
+          && SegBirthEpoch(seg) >= epoch) {
         res = TraceAddWhite(trace, seg);
         if(res != ResOK)
           return res;
@@ -570,7 +575,11 @@ static Res traceFlip(Trace trace)
   /* Update location dependency structures. */
   /* mayMove is a conservative approximation of the zones of objects */
   /* which may move during this collection. */
-  if(trace->mayMove != ZoneSetEMPTY) {
+  if(TRUE || trace->mayMove != ZoneSetEMPTY) {
+    /* FIXME: Epoch's only advance when mayMove non-empty, but we are
+     * also using time to measure age of objects.  It could be that
+     * these things are distinct. Since we are borrowing epoch for timing
+     * flips, we need to make this unconditional. */
     LDAge(arena, trace->mayMove);
   }
 
@@ -691,6 +700,7 @@ found:
   trace->arena = arena;
   trace->why = why;
   trace->white = ZoneSetEMPTY;
+  trace->epoch = (Epoch)0;
   trace->mayMove = ZoneSetEMPTY;
   trace->ti = ti;
   trace->state = TraceINIT;
@@ -1136,6 +1146,8 @@ static Res traceScanSegRes(TraceSet ts, Rank rank, Arena arena, Seg seg)
       SegSetSummary(seg, ScanStateSummary(ss));
     }
 
+    SegSetRefEpoch(seg, EPOCH_MIN(arena->epoch, SegRefEpoch(seg)));
+
     ScanStateFinish(ss);
   }
 
@@ -1187,8 +1199,8 @@ void TraceSegAccess(Arena arena, Seg seg, AccessSet mode)
 
   /* If it's a write access, then the segment must have a summary that */
   /* is smaller than the mutator's summary (which is assumed to be */
-  /* RefSetUNIV). */
-  AVER((mode & SegSM(seg) & AccessWRITE) == 0 || SegSummary(seg) != RefSetUNIV);
+  /* RefSetUNIV); or the ref epoch is less than infinity. */
+  AVER((mode & SegSM(seg) & AccessWRITE) == 0 || SegSummary(seg) != RefSetUNIV || SegRefEpoch(seg) < EPOCH_INFINITY);
 
   EVENT3(TraceAccess, arena, seg, mode);
 
@@ -1226,8 +1238,10 @@ void TraceSegAccess(Arena arena, Seg seg, AccessSet mode)
 
   /* The write barrier handling must come after the read barrier, */
   /* because the latter may set the summary and raise the write barrier. */
-  if((mode & SegSM(seg) & AccessWRITE) != 0)      /* write barrier? */
+  if((mode & SegSM(seg) & AccessWRITE) != 0) {    /* write barrier? */
     SegSetSummary(seg, RefSetUNIV);
+    SegSetRefEpoch(seg, EPOCH_INFINITY);
+  }
 
   /* The segment must now be accessible. */
   AVER((mode & SegSM(seg)) == AccessSetEMPTY);
@@ -1623,7 +1637,8 @@ Res TraceStart(Trace trace, double mortality, double finishingTime)
         /* to the white set.  This is done by seeing if the summary */
         /* of references in the segment intersects with the */
         /* approximation to the white set. */
-        if(ZoneSetInter(SegSummary(seg), trace->white) != ZoneSetEMPTY) {
+        if(ZoneSetInter(SegSummary(seg), trace->white) != ZoneSetEMPTY
+           && SegRefEpoch(seg) >= trace->epoch) {
           /* Note: can a white seg get greyed as well?  At this point */
           /* we still assume it may.  (This assumption runs out in */
           /* PoolTrivGrey). */

@@ -293,6 +293,8 @@ typedef struct GCSegStruct {    /* GC segment structure */
   SegStruct segStruct;          /* superclass fields must come first */
   RingStruct greyRing;          /* link in list of grey segs */
   RefSet summary;               /* summary of references out of seg */
+  Epoch refEpoch;               /* lastest epoch references may refer to */
+  Epoch birthEpoch;             /* objects allocated in or after this epoch */
   Buffer buffer;                /* non-NULL if seg is buffered */
   Sig sig;                      /* <design/sig/> */
 } GCSegStruct;
@@ -474,6 +476,7 @@ typedef struct TraceStruct {
   Arena arena;                  /* owning arena */
   int why;                      /* why the trace began */
   ZoneSet white;                /* zones in the white set */
+  Epoch epoch;                  /* earliest epoch in white set */
   ZoneSet mayMove;              /* zones containing possibly moving objs */
   TraceState state;             /* current state of trace */
   Rank band;                    /* current band */
