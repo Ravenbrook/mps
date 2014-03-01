@@ -87,16 +87,11 @@ static Bool entryIsActive(Table table, TableEntry entry)
 }
 
 
-/* tableFind -- finds the entry for this key, or NULL
- *
- * .worst: In the worst case, this looks at every slot before giving up,
- * but that's what you have to do in a closed hash table, to make sure
- * that all the items still fit in after growing the table.
- */
+/* <https://en.wikipedia.org/wiki/Universal_hashing> */
 
 static Word wrand(void)
 {
-  return ((Word)rand() << 32) | rand();
+  return ((Word)rand() << 32) | (Word)rand();
 }
 
 static void tableRandHash(Table table)
@@ -123,6 +118,14 @@ static Index pos1(Table table, Word key)
   return (Word)(table->uhc * key + table->uhd) >>
          (sizeof(Word) * CHAR_BIT - table->log2length);
 }
+
+
+/* tableFind -- finds the entry for this key, or NULL
+ *
+ * .worst: In the worst case, this looks at every slot before giving up,
+ * but that's what you have to do in a closed hash table, to make sure
+ * that all the items still fit in after growing the table.
+ */
 
 static TableEntry tableFind(Table table, Word key)
 {
@@ -164,6 +167,7 @@ static Res place(Table table, Word *keyIO, void **valueIO)
     if (tk == key)
       return ResFAIL;
     tv = table->array[pos].value;
+    /* cuckoo! */
     table->array[pos].key = key;
     table->array[pos].value = value;
     if (tk == table->unusedKey || tk == table->deletedKey) {
@@ -180,6 +184,7 @@ static Res place(Table table, Word *keyIO, void **valueIO)
   
   return ResLIMIT;
 }
+
 
 /* TableGrow -- increase the capacity of the table
  *
@@ -214,7 +219,7 @@ Res TableGrow(Table table, Count extraCapacity)
   TableEntry oldArray, newArray;
   Count oldLength, newLength;
   Count required, minimum;
-  Count i, found;
+  Count i;
   Count oldCount;
 
   required = table->count + extraCapacity;
