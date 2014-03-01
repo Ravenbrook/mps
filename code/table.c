@@ -94,29 +94,34 @@ static Bool entryIsActive(Table table, TableEntry entry)
  * that all the items still fit in after growing the table.
  */
 
+static Word wrand(void)
+{
+  return ((Word)rand() << 32) | rand();
+}
+
 static void tableRandHash(Table table)
 {
   table->log2length = SizeLog2(table->length);
   do
-    table->uha = (Word)rand();
+    table->uha = wrand();
   while ((table->uha & 1) == 0);
-  table->uhb = (Word)rand() & (table->length - 1);
+  table->uhb = wrand() & (table->length - 1);
   do
-    table->uhc = (Word)rand();
+    table->uhc = wrand();
   while ((table->uhc & 1) == 0);
-  table->uhd = (Word)rand() & (table->length - 1);
+  table->uhd = wrand() & (table->length - 1);
 }
 
 static Index pos0(Table table, Word key)
 {
-  return tableHash(table->uha * key + table->uhb) >>
-         (sizeof(int) * CHAR_BIT - table->log2length);
+  return (Word)(table->uha * key + table->uhb) >>
+         (sizeof(Word) * CHAR_BIT - table->log2length);
 }
 
 static Index pos1(Table table, Word key)
 {
-  return tableHash(table->uhc * key + table->uhd) >>
-         (sizeof(int) * CHAR_BIT - table->log2length);
+  return (Word)(table->uhc * key + table->uhd) >>
+         (sizeof(Word) * CHAR_BIT - table->log2length);
 }
 
 static TableEntry tableFind(Table table, Word key)
@@ -364,7 +369,7 @@ extern Res TableDefine(Table table, Word key, void *value)
     Res res = place(table, &key, &value);
     if (res != ResLIMIT)
       return res;
-    TableGrow(table, table->length);
+    TableGrow(table, table->count);
   }
 }
   

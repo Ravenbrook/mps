@@ -1405,6 +1405,8 @@
 		31D6007B156D3FCC00337B26 /* zmess.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = zmess.c; sourceTree = "<group>"; };
 		31D6008C156D402900337B26 /* steptest */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = steptest; sourceTree = BUILT_PRODUCTS_DIR; };
 		31D60098156D403C00337B26 /* steptest.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = steptest.c; sourceTree = "<group>"; };
+		31EA4B5D18C17CE8006B0D77 /* table.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = table.c; sourceTree = "<group>"; };
+		31EA4B5E18C17CE8006B0D77 /* table.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = table.h; sourceTree = "<group>"; };
 		31EEABF5156AAF7C00714D05 /* mpsi.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = mpsi.c; sourceTree = "<group>"; };
 		31EEABFB156AAF9D00714D05 /* libmps.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = libmps.a; sourceTree = BUILT_PRODUCTS_DIR; };
 		31EEAC01156AB21B00714D05 /* mpm.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = mpm.c; sourceTree = "<group>"; };
@@ -2117,6 +2119,8 @@
 				31EEAC30156AB2F200714D05 /* ring.c */,
 				311F2F7317398B7100C15B6A /* ring.h */,
 				31EEAC1C156AB2B200714D05 /* root.c */,
+				3112ED3B18ABC75200CC531A /* sa.c */,
+				3112ED3A18ABC57F00CC531A /* sa.h */,
 				31EEAC31156AB2F200714D05 /* sac.c */,
 				311F2F7417398B7100C15B6A /* sac.h */,
 				311F2F7517398B8E00C15B6A /* sc.h */,
@@ -2125,6 +2129,8 @@
 				31EEAC43156AB32500714D05 /* splay.c */,
 				311F2F7617398B8E00C15B6A /* splay.h */,
 				311F2F7717398B8E00C15B6A /* ss.h */,
+				31EA4B5D18C17CE8006B0D77 /* table.c */,
+				31EA4B5E18C17CE8006B0D77 /* table.h */,
 				311F2F7817398B8E00C15B6A /* th.h */,
 				311F2F7917398B8E00C15B6A /* thw3.h */,
 				31EEAC1E156AB2B200714D05 /* trace.c */,
@@ -2133,8 +2139,6 @@
 				311F2F7A17398B8E00C15B6A /* tract.h */,
 				31EEAC44156AB32500714D05 /* version.c */,
 				31EEAC0E156AB27B00714D05 /* walk.c */,
-				3112ED3A18ABC57F00CC531A /* sa.h */,
-				3112ED3B18ABC75200CC531A /* sa.c */,
 			);
 			name = "MPM Core";
 			sourceTree = "<group>";
