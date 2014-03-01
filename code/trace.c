@@ -9,6 +9,7 @@
 
 #include "chain.h"
 #include "mpm.h"
+#include "table.h"
 #include <limits.h> /* for LONG_MAX */
 
 SRCID(trace, "$Id$");
@@ -75,10 +76,12 @@ void ScanStateInit(ScanState ss, TraceSet ts, Arena arena,
      in TraceFix. */
   ss->fix = NULL;
   ss->fixClosure = NULL;
+  AVER(TraceSetIsSingle(ts));
   TRACE_SET_ITER(ti, trace, ts, arena) {
     if (ss->fix == NULL) {
       ss->fix = trace->fix;
       ss->fixClosure = trace->fixClosure;
+      ss->whiteTable = trace->whiteTable;
     } else {
       AVER(ss->fix == trace->fix);
       AVER(ss->fixClosure == trace->fixClosure);
@@ -352,11 +355,23 @@ Res TraceAddWhite(Trace trace, Seg seg)
   pool = SegPool(seg);
   AVERT(Pool, pool);
 
+  {
+    Tract tract;
+    Addr base;
+    TRACT_TRACT_FOR(tract, base, trace->arena, seg->firstTract, seg->limit) {
+      Word key = (Word)AddrAlignDown(SegBase(seg), ArenaAlign(PoolArena(pool)));
+      res = TableDefine(trace->whiteTable, key, seg);
+      AVER(res == ResOK); /* no error path to remove entries */
+      if (res != ResOK)
+        goto failDefine;
+    }
+  }
+
   /* Give the pool the opportunity to turn the segment white. */
   /* If it fails, unwind. */
   res = PoolWhiten(pool, trace, seg);
   if(res != ResOK)
-    return res;
+    goto failWhiten;
 
   /* Add the segment to the approximation of the white set if the */
   /* pool made it white. */
@@ -368,8 +383,13 @@ Res TraceAddWhite(Trace trace, Seg seg)
                                     ZoneSetOfSeg(trace->arena, seg));
     }
   }
-
+  
   return ResOK;
+
+failWhiten:
+  /* TableRemove(trace->whiteTable, key); */
+failDefine:
+  return res;
 }
 
 
@@ -670,10 +690,27 @@ static void traceCopySizes(Trace trace)
  * This code is written to be adaptable to allocating Trace objects
  * dynamically.  */
 
+static void *whiteTableAlloc(void *closure, Size size)
+{
+  void *p;
+  Arena arena = (Arena)closure;
+  Res res = ControlAlloc(&p, arena, size, FALSE);
+  if (res != ResOK)
+    return NULL;
+  return p;
+}
+
+static void whiteTableFree(void *closure, void *p, Size size)
+{
+  Arena arena = (Arena)closure;
+  ControlFree(arena, p, size);
+}
+
 Res TraceCreate(Trace *traceReturn, Arena arena, int why)
 {
   TraceId ti;
   Trace trace;
+  Res res;
 
   AVER(traceReturn != NULL);
   AVERT(Arena, arena);
@@ -687,6 +724,12 @@ Res TraceCreate(Trace *traceReturn, Arena arena, int why)
 found:
   trace = ArenaTrace(arena, ti);
   AVER(trace->sig == SigInvalid);       /* <design/arena/#trace.invalid> */
+
+  res = TableCreate(&trace->whiteTable, 1024,
+                    whiteTableAlloc, whiteTableFree,
+                    arena, (Word)1, (Word)2);
+  if (res != ResOK)
+    return res;
 
   trace->arena = arena;
   trace->why = why;
@@ -799,6 +842,7 @@ void TraceDestroy(Trace trace)
   trace->sig = SigInvalid;
   trace->arena->busyTraces = TraceSetDel(trace->arena->busyTraces, trace);
   trace->arena->flippedTraces = TraceSetDel(trace->arena->flippedTraces, trace);
+  TableDestroy(trace->whiteTable);
   EVENT1(TraceDestroy, trace);
 }
 
@@ -1251,7 +1295,8 @@ mps_res_t _mps_fix2(mps_ss_t mps_ss, mps_addr_t *mps_ref_io)
 {
   ScanState ss = PARENT(ScanStateStruct, ss_s, mps_ss);
   Ref ref;
-  Tract tract;
+  void *value;
+  Word key;
 
   /* Special AVER macros are used on the critical path. */
   /* See <design/trace/#fix.noaver> */
@@ -1268,57 +1313,32 @@ mps_res_t _mps_fix2(mps_ss_t mps_ss, mps_addr_t *mps_ref_io)
   STATISTIC(++ss->fixRefCount);
   EVENT4(TraceFix, ss, mps_ref_io, ref, ss->rank);
 
-  TRACT_OF_ADDR(&tract, ss->arena, ref);
-  if(tract) {
-    if(TraceSetInter(TractWhite(tract), ss->traces) != TraceSetEMPTY) {
-      Seg seg;
-      if(TRACT_SEG(&seg, tract)) {
-        Res res;
-        Pool pool;
-        STATISTIC(++ss->segRefCount);
-        STATISTIC(++ss->whiteSegRefCount);
-        EVENT1(TraceFixSeg, seg);
-        EVENT0(TraceFixWhite);
-        pool = TractPool(tract);
-        res = (*ss->fix)(pool, ss, seg, &ref);
-        if(res != ResOK) {
-          /* PoolFixEmergency should never fail. */
-          AVER_CRITICAL(ss->fix != PoolFixEmergency);
-          /* Fix protocol (de facto): if Fix fails, ref must be unchanged
-           * Justification for this restriction:
-           * A: it simplifies;
-           * B: it's reasonable (given what may cause Fix to fail);
-           * C: the code (here) already assumes this: it returns without 
-           *    updating ss->fixedSummary.  RHSK 2007-03-21.
-           */
-          AVER(ref == (Ref)*mps_ref_io);
-          return res;
-        }
-      } else {
-        /* Only tracts with segments ought to have been condemned. */
-        /* SegOfAddr FALSE => a ref into a non-seg Tract (poolmv etc) */
-        /* .notwhite: ...But it should NOT be white.  
-         * [I assert this both from logic, and from inspection of the 
-         * current condemn code.  RHSK 2010-11-30]
-         */
-        NOTREACHED;
-      }
-    } else {
-      /* Tract isn't white. Don't compute seg for non-statistical */
-      /* variety. See <design/trace/#fix.tractofaddr> */
-      STATISTIC_STAT
-        ({
-          Seg seg;
-          if(TRACT_SEG(&seg, tract)) {
-            ++ss->segRefCount;
-            EVENT1(TraceFixSeg, seg);
-          }
-        });
+  key = (Word)AddrAlignDown(ref, ArenaAlign(ss->arena));
+  if (TableLookup(&value, ss->whiteTable, key)) {
+    Seg seg = (Seg)value;
+    Res res;
+    Pool pool;
+    AVERT(Seg, seg);
+    AVER(TraceSetInter(TractWhite(seg->firstTract), ss->traces) != TraceSetEMPTY);
+    STATISTIC(++ss->segRefCount);
+    STATISTIC(++ss->whiteSegRefCount);
+    EVENT1(TraceFixSeg, seg);
+    EVENT0(TraceFixWhite);
+    pool = TractPool(seg->firstTract);
+    res = (*ss->fix)(pool, ss, seg, &ref);
+    if(res != ResOK) {
+      /* PoolFixEmergency should never fail. */
+      AVER_CRITICAL(ss->fix != PoolFixEmergency);
+      /* Fix protocol (de facto): if Fix fails, ref must be unchanged
+       * Justification for this restriction:
+       * A: it simplifies;
+       * B: it's reasonable (given what may cause Fix to fail);
+       * C: the code (here) already assumes this: it returns without 
+       *    updating ss->fixedSummary.  RHSK 2007-03-21.
+       */
+      AVER(ref == (Ref)*mps_ref_io);
+      return res;
     }
-  } else {
-    /* See <design/trace/#exact.legal> */
-    AVER(ss->rank < RankEXACT
-         || !ArenaIsReservedAddr(ss->arena, ref));
   }
 
   /* See <design/trace/#fix.fixed.all> */
