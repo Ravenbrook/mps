@@ -26,6 +26,7 @@ typedef struct TableEntryStruct {
 typedef struct TableStruct {
   Sig sig;                      /* <design/sig/> */
   Count length;                 /* Number of slots in the array */
+  Shift log2length;
   Count count;                  /* Active entries in the table */
   TableEntry array;             /* Array of table slots */
   TableAllocMethod alloc;
@@ -33,6 +34,8 @@ typedef struct TableStruct {
   void *allocClosure;
   Word unusedKey;               /* key marking unused (undefined) entries */
   Word deletedKey;              /* key marking deleted entries */
+  Word uha, uhb;                /* universal hash inputs */
+  Word uhc, uhd;                /* universal hash inputs */
 } TableStruct;
 
 extern Res TableCreate(Table *tableReturn,

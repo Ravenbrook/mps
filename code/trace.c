@@ -725,7 +725,7 @@ found:
   trace = ArenaTrace(arena, ti);
   AVER(trace->sig == SigInvalid);       /* <design/arena/#trace.invalid> */
 
-  res = TableCreate(&trace->whiteTable, 1024,
+  res = TableCreate(&trace->whiteTable, 4,
                     whiteTableAlloc, whiteTableFree,
                     arena, (Word)1, (Word)2);
   if (res != ResOK)

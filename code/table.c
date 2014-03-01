@@ -11,6 +11,7 @@
 #include "mpm.h"
 
 #include <stddef.h>
+#include <stdlib.h>
 
 
 SRCID(table, "$Id$");
@@ -93,31 +94,87 @@ static Bool entryIsActive(Table table, TableEntry entry)
  * that all the items still fit in after growing the table.
  */
 
-static TableEntry tableFind(Table table, Word key, Bool skip_deleted)
+static void tableRandHash(Table table)
 {
-  Hash hash;
-  Index i;
-  Word mask;
+  table->log2length = SizeLog2(table->length);
+  do
+    table->uha = (Word)rand();
+  while ((table->uha & 1) == 0);
+  table->uhb = (Word)rand() & (table->length - 1);
+  do
+    table->uhc = (Word)rand();
+  while ((table->uhc & 1) == 0);
+  table->uhd = (Word)rand() & (table->length - 1);
+}
 
-  /* .find.visit: Ensure the length is a power of two so that the stride
-     is coprime and so visits all entries in the array eventually. */
-  AVER_CRITICAL(WordIsP2(table->length)); /* .find.visit */
+static Index pos0(Table table, Word key)
+{
+  return tableHash(table->uha * key + table->uhb) >>
+         (sizeof(int) * CHAR_BIT - table->log2length);
+}
 
-  mask = table->length - 1; 
-  hash = tableHash(key) & mask;
-  i = hash;
-  do {
-    Word k = table->array[i].key;
-    if (k == key ||
-        k == table->unusedKey ||
-        (!skip_deleted && key == table->deletedKey))
-      return &table->array[i];
-    i = (i + (hash | 1)) & mask; /* .find.visit */
-  } while(i != hash);
+static Index pos1(Table table, Word key)
+{
+  return tableHash(table->uhc * key + table->uhd) >>
+         (sizeof(int) * CHAR_BIT - table->log2length);
+}
+
+static TableEntry tableFind(Table table, Word key)
+{
+  Index pos;
+
+  pos = pos0(table, key);
+  if (table->array[pos].key == key)
+    return &table->array[pos];
+  pos = pos1(table, key);
+  if (table->array[pos].key == key)
+    return &table->array[pos];
 
   return NULL;
 }
 
+static Res place(Table table, Word *keyIO, void **valueIO)
+{
+  Index i;
+  Word key = *keyIO;
+  void *value = *valueIO;
+
+  for (i = 0; i < table->length; ++i) {
+    Index pos;
+    Word tk;
+    void *tv;
+
+    pos = pos0(table, key);
+    tk = table->array[pos].key;
+    if (tk == key)
+      return ResFAIL;
+    if (tk == table->unusedKey || tk == table->deletedKey) {
+      table->array[pos].key = key;
+      table->array[pos].value = value;
+      ++table->count;
+      return ResOK;
+    }
+    pos = pos1(table, key);
+    tk = table->array[pos].key;
+    if (tk == key)
+      return ResFAIL;
+    tv = table->array[pos].value;
+    table->array[pos].key = key;
+    table->array[pos].value = value;
+    if (tk == table->unusedKey || tk == table->deletedKey) {
+      ++table->count;
+      return ResOK;
+    }
+
+    key = tk;
+    value = tv;
+  }
+  
+  *keyIO = key;
+  *valueIO = value;
+  
+  return ResLIMIT;
+}
 
 /* TableGrow -- increase the capacity of the table
  *
@@ -145,7 +202,7 @@ static TableEntry tableFind(Table table, Word key, Bool skip_deleted)
  *     occupancy <= capacity < enough <= cSlots
  */
 
-#define SPACEFRACTION 0.75      /* .hash.spacefraction */
+#define SPACEFRACTION 0.5      /* .hash.spacefraction */
 
 Res TableGrow(Table table, Count extraCapacity)
 {
@@ -153,6 +210,7 @@ Res TableGrow(Table table, Count extraCapacity)
   Count oldLength, newLength;
   Count required, minimum;
   Count i, found;
+  Count oldCount;
 
   required = table->count + extraCapacity;
   if (required < table->count)  /* overflow? */
@@ -174,8 +232,10 @@ Res TableGrow(Table table, Count extraCapacity)
     newLength = doubled;
   }
 
+#if 0
   if (newLength == oldLength)   /* already enough space? */
     return ResOK;
+#endif
 
   /* TODO: An event would be good here */
 
@@ -185,27 +245,30 @@ Res TableGrow(Table table, Count extraCapacity)
   if(newArray == NULL)
     return ResMEMORY;
 
-  for(i = 0; i < newLength; ++i) {
-    newArray[i].key = table->unusedKey;
-    newArray[i].value = NULL;
-  }
- 
   table->length = newLength;
   table->array = newArray;
 
-  found = 0;
+  oldCount = table->count;
+retry:
+  tableRandHash(table);
+
+  for (i = 0; i < newLength; ++i) {
+    newArray[i].key = table->unusedKey;
+    newArray[i].value = NULL;
+  }
+
+  table->count = 0;
   for(i = 0; i < oldLength; ++i) {
     if (entryIsActive(table, &oldArray[i])) {
-      TableEntry entry;
-      entry = tableFind(table, oldArray[i].key, FALSE /* none deleted */);
-      AVER(entry != NULL);
-      AVER(entry->key == table->unusedKey);
-      entry->key = oldArray[i].key;
-      entry->value = oldArray[i].value;
-      ++found;
+      Word key = oldArray[i].key;
+      void *value = oldArray[i].value;
+      Res res = place(table, &key, &value);
+      if (res == ResLIMIT)
+        goto retry;
+      AVER(res == ResOK);
     }
   }
-  AVER(found == table->count);
+  AVER(table->count == oldCount);
 
   if (oldLength > 0) {
     AVER(oldArray != NULL);
@@ -281,7 +344,7 @@ extern void TableDestroy(Table table)
 
 extern Bool TableLookup(void **valueReturn, Table table, Word key)
 {
-  TableEntry entry = tableFind(table, key, TRUE /* skip deleted */);
+  TableEntry entry = tableFind(table, key);
 
   if(entry == NULL || !entryIsActive(table, entry))
     return FALSE;
@@ -294,34 +357,17 @@ extern Bool TableLookup(void **valueReturn, Table table, Word key)
 
 extern Res TableDefine(Table table, Word key, void *value)
 {
-  TableEntry entry;
-  
   AVER(key != table->unusedKey);
   AVER(key != table->deletedKey);
 
-  if (table->count >= table->length * SPACEFRACTION) {
-    Res res = TableGrow(table, 1);
-    if(res != ResOK) return res;
-    entry = tableFind(table, key, FALSE /* no deletions yet */);
-    AVER(entry != NULL);
-    if (entryIsActive(table, entry))
-      return ResFAIL;
-  } else {
-    entry = tableFind(table, key, TRUE /* skip deleted */);
-    if (entry != NULL && entryIsActive(table, entry))
-      return ResFAIL;
-    /* Search again to find the best slot, deletions included. */
-    entry = tableFind(table, key, FALSE /* don't skip deleted */);
-    AVER(entry != NULL);
+  for (;;) {
+    Res res = place(table, &key, &value);
+    if (res != ResLIMIT)
+      return res;
+    TableGrow(table, table->length);
   }
-
-  entry->key = key;
-  entry->value = value;
-  ++table->count;
-
-  return ResOK;
 }
-
+  
 
 /* TableRedefine -- redefine an existing mapping */
 
@@ -332,7 +378,7 @@ extern Res TableRedefine(Table table, Word key, void *value)
   AVER(key != table->unusedKey);
   AVER(key != table->deletedKey);
 
-  entry = tableFind(table, key, TRUE /* skip deletions */);
+  entry = tableFind(table, key);
   if (entry == NULL || !entryIsActive(table, entry))
     return ResFAIL;
   AVER(entry->key == key);
@@ -350,7 +396,7 @@ extern Res TableRemove(Table table, Word key)
   AVER(key != table->unusedKey);
   AVER(key != table->deletedKey);
 
-  entry = tableFind(table, key, TRUE);
+  entry = tableFind(table, key);
   if (entry == NULL || !entryIsActive(table, entry))
     return ResFAIL;
   entry->key = table->deletedKey;
