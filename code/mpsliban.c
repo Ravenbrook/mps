@@ -98,6 +98,11 @@ void *(mps_lib_memcpy)(void *s1, const void *s2, size_t n)
   return memcpy(s1, s2, n);
 }
 
+char *(mps_lib_strncpy)(char *s1, const char *s2, size_t n)
+{
+  return strncpy(s1, s2, n);
+}
+
 int (mps_lib_memcmp)(const void *s1, const void *s2, size_t n)
 {
   return memcmp(s1, s2, n);

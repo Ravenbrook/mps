@@ -59,6 +59,7 @@ extern mps_lib_assert_fail_t mps_lib_assert_fail_install(mps_lib_assert_fail_t);
    `memcmp` from string.h. */
 extern void *(mps_lib_memset)(void *, int, size_t);
 extern void *(mps_lib_memcpy)(void *, const void *, size_t);
+extern char *(mps_lib_strncpy)(char *, const char *, size_t);
 extern int (mps_lib_memcmp)(const void *, const void *, size_t);
 
 /* Return a measure of time since process start.  Equivalent to `clock`

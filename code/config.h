@@ -119,6 +119,7 @@
 #if defined(CONFIG_LOG)
 /* TELEMETRY = LOG = EVENTs */
 #define EVENT
+#define EVENT_CALL
 #if defined(CONFIG_LOG_ALL)
 #define EVENT_ALL 1     /* log events on critical path */
 #define MPS_LOG_STRING "logtastic"

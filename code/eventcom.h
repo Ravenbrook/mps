@@ -91,6 +91,15 @@ typedef char EventFS[EventStringLengthMAX + sizeof('\0')]; /* string */
 typedef double EventFD;                 /* double */
 typedef int EventFB;                    /* boolean */
 
+/* Event parameter types, for indexing by macro on the event parameter sort */
+typedef EventFP EventPP;                /* pointer to C object */
+typedef EventFA EventPA;                /* address on the heap */
+typedef EventFW EventPW;                /* word */
+typedef EventFU EventPU;                /* unsigned integer */
+typedef char *EventPS;                  /* string */
+typedef EventFD EventPD;                /* double */
+typedef EventFB EventPB;                /* boolean */
+
 /* Event packing bitfield specifiers */
 #define EventFP_BITFIELD
 #define EventFA_BITFIELD

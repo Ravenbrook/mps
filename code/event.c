@@ -432,6 +432,35 @@ void EventDump(mps_lib_FILE *stream)
   }
 }
 
+#ifdef EVENT_CALL
+
+#define EVENT_CALL_ASSIGN_P(index) _event->f##index = p##index;
+#define EVENT_CALL_ASSIGN_A(index) _event->f##index = p##index;
+#define EVENT_CALL_ASSIGN_W(index) _event->f##index = p##index;
+#define EVENT_CALL_ASSIGN_U(index) _event->f##index = p##index;
+#define EVENT_CALL_ASSIGN_D(index) _event->f##index = p##index;
+#define EVENT_CALL_ASSIGN_B(index) _event->f##index = p##index;
+
+#define EVENT_CALL_ASSIGN_S(index) \
+  mps_lib_strncpy(_event->f##index, p##index, EventStringLengthMAX + sizeof('\0'));
+
+#define EVENT_CALL_ARG(X, index, sort, ident) \
+  EVENT_CALL_ASSIGN_##sort(index)
+
+#define EVENT_CALL_FUNCTION_DEFINE(X, name, _code, always, kind) \
+  EVENT_CALL_NOINLINE void EventCall##name( \
+    EVENT_##name##_PARAMS(EVENT_CALL_PARAM, X) \
+    int dummy) { \
+    UNUSED(dummy); \
+    EVENT_BEGIN(name, sizeof(Event##name##Struct)) \
+    EVENT_##name##_PARAMS(EVENT_CALL_ARG, X) \
+    EVENT_END(name, sizeof(Event##name##Struct)); \
+  }
+
+
+EVENT_LIST(EVENT_CALL_FUNCTION_DEFINE, X)
+
+#endif /* EVENT_CALL not */
 
 #else /* EVENT, not */
 

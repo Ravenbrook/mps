@@ -71,6 +71,63 @@ extern Word EventKindControl;
   END
 
 
+#define EVENT2S(name, p0, length, string) \
+BEGIN \
+size_t _string_len = (length); \
+size_t size; \
+AVER(_string_len <= EventStringLengthMAX); \
+size = offsetof(Event##name##Struct, f1) + _string_len + sizeof('\0'); \
+EVENT_BEGIN(name, size) \
+_event->f0 = (p0); \
+mps_lib_memcpy(_event->f1, (string), _string_len); \
+_event->f1[_string_len] = '\0'; \
+EVENT_END(name, size); \
+END
+
+#ifdef EVENT_CALL
+
+#if !defined(EVENT_CALL_NOINLINE) && (defined(MPS_BUILD_LL) || defined(MPS_BUILD_GC))
+#define EVENT_CALL_NOINLINE __attribute__ ((noinline))
+#endif
+
+#define EVENT_CALL_PARAM(X, index, sort, ident) \
+  EventP##sort p##index,
+
+#define EVENT_CALL_FUNCTION_DECLARE(X, name, _code, always, kind) \
+  EVENT_CALL_NOINLINE extern void EventCall##name( \
+    EVENT_##name##_PARAMS(EVENT_CALL_PARAM, X) \
+    int dummy);
+
+EVENT_LIST(EVENT_CALL_FUNCTION_DECLARE, X)
+
+#define EVENT0(name) EventCall##name(0);
+/* The following lines were generated with
+   python -c 'for i in range(1,22): print "#define EVENT%d(name, %s) EventCall##name(%s, 0)" % (i, ", ".join(["p%d" % j for j in range(0, i)]), ", ".join(["(p%d)" % j for j in range(0, i)]))'
+ */
+#define EVENT1(name, p0) EventCall##name((p0), 0)
+#define EVENT2(name, p0, p1) EventCall##name((p0), (p1), 0)
+#define EVENT3(name, p0, p1, p2) EventCall##name((p0), (p1), (p2), 0)
+#define EVENT4(name, p0, p1, p2, p3) EventCall##name((p0), (p1), (p2), (p3), 0)
+#define EVENT5(name, p0, p1, p2, p3, p4) EventCall##name((p0), (p1), (p2), (p3), (p4), 0)
+#define EVENT6(name, p0, p1, p2, p3, p4, p5) EventCall##name((p0), (p1), (p2), (p3), (p4), (p5), 0)
+#define EVENT7(name, p0, p1, p2, p3, p4, p5, p6) EventCall##name((p0), (p1), (p2), (p3), (p4), (p5), (p6), 0)
+#define EVENT8(name, p0, p1, p2, p3, p4, p5, p6, p7) EventCall##name((p0), (p1), (p2), (p3), (p4), (p5), (p6), (p7), 0)
+#define EVENT9(name, p0, p1, p2, p3, p4, p5, p6, p7, p8) EventCall##name((p0), (p1), (p2), (p3), (p4), (p5), (p6), (p7), (p8), 0)
+#define EVENT10(name, p0, p1, p2, p3, p4, p5, p6, p7, p8, p9) EventCall##name((p0), (p1), (p2), (p3), (p4), (p5), (p6), (p7), (p8), (p9), 0)
+#define EVENT11(name, p0, p1, p2, p3, p4, p5, p6, p7, p8, p9, p10) EventCall##name((p0), (p1), (p2), (p3), (p4), (p5), (p6), (p7), (p8), (p9), (p10), 0)
+#define EVENT12(name, p0, p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11) EventCall##name((p0), (p1), (p2), (p3), (p4), (p5), (p6), (p7), (p8), (p9), (p10), (p11), 0)
+#define EVENT13(name, p0, p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12) EventCall##name((p0), (p1), (p2), (p3), (p4), (p5), (p6), (p7), (p8), (p9), (p10), (p11), (p12), 0)
+#define EVENT14(name, p0, p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13) EventCall##name((p0), (p1), (p2), (p3), (p4), (p5), (p6), (p7), (p8), (p9), (p10), (p11), (p12), (p13), 0)
+#define EVENT15(name, p0, p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13, p14) EventCall##name((p0), (p1), (p2), (p3), (p4), (p5), (p6), (p7), (p8), (p9), (p10), (p11), (p12), (p13), (p14), 0)
+#define EVENT16(name, p0, p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13, p14, p15) EventCall##name((p0), (p1), (p2), (p3), (p4), (p5), (p6), (p7), (p8), (p9), (p10), (p11), (p12), (p13), (p14), (p15), 0)
+#define EVENT17(name, p0, p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13, p14, p15, p16) EventCall##name((p0), (p1), (p2), (p3), (p4), (p5), (p6), (p7), (p8), (p9), (p10), (p11), (p12), (p13), (p14), (p15), (p16), 0)
+#define EVENT18(name, p0, p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13, p14, p15, p16, p17) EventCall##name((p0), (p1), (p2), (p3), (p4), (p5), (p6), (p7), (p8), (p9), (p10), (p11), (p12), (p13), (p14), (p15), (p16), (p17), 0)
+#define EVENT19(name, p0, p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13, p14, p15, p16, p17, p18) EventCall##name((p0), (p1), (p2), (p3), (p4), (p5), (p6), (p7), (p8), (p9), (p10), (p11), (p12), (p13), (p14), (p15), (p16), (p17), (p18), 0)
+#define EVENT20(name, p0, p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13, p14, p15, p16, p17, p18, p19) EventCall##name((p0), (p1), (p2), (p3), (p4), (p5), (p6), (p7), (p8), (p9), (p10), (p11), (p12), (p13), (p14), (p15), (p16), (p17), (p18), (p19), 0)
+#define EVENT21(name, p0, p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13, p14, p15, p16, p17, p18, p19, p20) EventCall##name((p0), (p1), (p2), (p3), (p4), (p5), (p6), (p7), (p8), (p9), (p10), (p11), (p12), (p13), (p14), (p15), (p16), (p17), (p18), (p19), (p20), 0)
+
+#else /* EVENT_CALL not */
+
 /* EVENTn -- event emitting macros
  *
  * The macros EVENT0, EVENT1, etc. are used throughout the MPS to emit an
@@ -78,20 +135,6 @@ extern Word EventKindControl;
  * an event buffer, which is flushed to the telemetry output stream when
  * full.  EVENT2S is a special case that takes a variable length string.
  */
-
-#define EVENT2S(name, p0, length, string) \
-  BEGIN \
-    size_t _string_len = (length); \
-    size_t size; \
-    AVER(_string_len <= EventStringLengthMAX); \
-    size = offsetof(Event##name##Struct, f1) + _string_len + sizeof('\0'); \
-    EVENT_BEGIN(name, size) \
-      _event->f0 = (p0); \
-      mps_lib_memcpy(_event->f1, (string), _string_len); \
-      _event->f1[_string_len] = '\0'; \
-    EVENT_END(name, size); \
-  END
-
 
 #define EVENT0(name) EVENT_BEGIN(name, sizeof(EventAnyStruct)) EVENT_END(name, sizeof(EventAnyStruct))
 /* The following lines were generated with
@@ -119,6 +162,7 @@ extern Word EventKindControl;
 #define EVENT20(name, p0, p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13, p14, p15, p16, p17, p18, p19) EVENT_BEGIN(name, sizeof(Event##name##Struct)) _event->f0 = (p0); _event->f1 = (p1); _event->f2 = (p2); _event->f3 = (p3); _event->f4 = (p4); _event->f5 = (p5); _event->f6 = (p6); _event->f7 = (p7); _event->f8 = (p8); _event->f9 = (p9); _event->f10 = (p10); _event->f11 = (p11); _event->f12 = (p12); _event->f13 = (p13); _event->f14 = (p14); _event->f15 = (p15); _event->f16 = (p16); _event->f17 = (p17); _event->f18 = (p18); _event->f19 = (p19); EVENT_END(name, sizeof(Event##name##Struct))
 #define EVENT21(name, p0, p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13, p14, p15, p16, p17, p18, p19, p20) EVENT_BEGIN(name, sizeof(Event##name##Struct)) _event->f0 = (p0); _event->f1 = (p1); _event->f2 = (p2); _event->f3 = (p3); _event->f4 = (p4); _event->f5 = (p5); _event->f6 = (p6); _event->f7 = (p7); _event->f8 = (p8); _event->f9 = (p9); _event->f10 = (p10); _event->f11 = (p11); _event->f12 = (p12); _event->f13 = (p13); _event->f14 = (p14); _event->f15 = (p15); _event->f16 = (p16); _event->f17 = (p17); _event->f18 = (p18); _event->f19 = (p19); _event->f20 = (p20); EVENT_END(name, sizeof(Event##name##Struct))
 
+#endif /* EVENT_CALL, not */
 
 #else /* EVENT not */
 
