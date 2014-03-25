@@ -234,6 +234,22 @@
 #define MPS_PF_ALIGN    8
 
 
+#elif defined(EMSCRIPTEN)
+#if defined(CONFIG_PF_STRING) && ! defined(CONFIG_PF_EMI3LL)
+#error "specified CONFIG_PF_... inconsistent with detected emi3ll"
+#endif
+#define MPS_PF_EMI3LL
+#define MPS_PF_STRING   "emi3gc"
+#define MPS_OS_EM
+#define MPS_ARCH_I3
+#define MPS_BUILD_LL
+#define MPS_T_WORD      unsigned long
+#define MPS_T_ULONGEST  unsigned long
+#define MPS_WORD_WIDTH  32
+#define MPS_WORD_SHIFT  5
+#define MPS_PF_ALIGN    4
+
+
 #else
 #error "The MPS Kit does not have a configuration for this platform out of the box; see manual/build.txt"
 #endif

@@ -214,6 +214,18 @@
 #include "spw3i6mv.c"   /* Windows on 64-bit stack probe for Microsoft C */
 #include "mpsiw3.c"     /* Windows interface layer extras */
 
+/* Emscripten */
+
+#elif defined(MPS_PF_EMI3LL)
+
+#include "lockan.c"     /* generic locks */
+#include "than.c"       /* generic single threading */
+#include "vman.c"       /* generic virtual memory */
+#include "protan.c"     /* generic protection */
+#include "prmcan.c"     /* generic mutator context */
+#include "span.c"       /* generic stack probe */
+#include "ssan.c"       /* generic stack scan */
+
 #else
 
 #error "Unknown platform -- can't determine platform specific parts."
