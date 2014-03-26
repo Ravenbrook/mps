@@ -55,7 +55,10 @@ ENUM_DECLARE(EventKind)
     Event##name##Kind = EventKind##kind,
 
 enum EventDefinitionsEnum {
-  EVENT_LIST(EVENT_ENUM, X)
+  EVENT_LIST1(EVENT_ENUM, X)
+  EVENT_LIST2(EVENT_ENUM, X)
+  EVENT_LIST3(EVENT_ENUM, X)
+  EVENT_LIST4(EVENT_ENUM, X)
   EventEnumWarningSuppressor    /* suppress comma-at-end-of-enum warning */
 };
 
@@ -109,7 +112,10 @@ typedef int EventFB;                    /* boolean */
     EVENT_##name##_PARAMS(EVENT_STRUCT_FIELD, X) \
   } Event##name##Struct;
 
-EVENT_LIST(EVENT_STRUCT, X)
+EVENT_LIST1(EVENT_STRUCT, X)
+EVENT_LIST2(EVENT_STRUCT, X)
+EVENT_LIST3(EVENT_STRUCT, X)
+EVENT_LIST4(EVENT_STRUCT, X)
 
 
 /* Event -- event union type
@@ -124,7 +130,10 @@ EVENT_LIST(EVENT_STRUCT, X)
 
 typedef union EventUnion {
   EventAnyStruct any;
-  EVENT_LIST(EVENT_UNION_MEMBER, X)
+  EVENT_LIST1(EVENT_UNION_MEMBER, X)
+  EVENT_LIST2(EVENT_UNION_MEMBER, X)
+  EVENT_LIST3(EVENT_UNION_MEMBER, X)
+  EVENT_LIST4(EVENT_UNION_MEMBER, X)
 } EventUnion, *Event;
 
 

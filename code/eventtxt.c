@@ -389,7 +389,10 @@ static void readLog(FILE *input)
   for (i=0; i <= EventCodeMAX; ++i)
     eventName[i] = NULL;
 
-  EVENT_LIST(EVENT_SET_NAME, X);
+  EVENT_LIST1(EVENT_SET_NAME, X);
+  EVENT_LIST2(EVENT_SET_NAME, X);
+  EVENT_LIST3(EVENT_SET_NAME, X);
+  EVENT_LIST4(EVENT_SET_NAME, X);
 
   while (TRUE) { /* loop for each event */
     char line[MAX_LOG_LINE_LENGTH];
@@ -469,7 +472,10 @@ static void readLog(FILE *input)
     }
 
     switch(code) {
-      EVENT_LIST(EVENT_PROCESS, X);
+      EVENT_LIST1(EVENT_PROCESS, X);
+      EVENT_LIST2(EVENT_PROCESS, X);
+      EVENT_LIST3(EVENT_PROCESS, X);
+      EVENT_LIST4(EVENT_PROCESS, X);
     default:
       printf("Unknown event.");
     }

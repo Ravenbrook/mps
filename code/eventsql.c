@@ -556,7 +556,10 @@ const char *createStatements[] = {
   "                                      completed INTEGER,"
   "                                      serial INTEGER PRIMARY KEY AUTOINCREMENT)",
 
-  EVENT_LIST(EVENT_TABLE_CREATE, X)
+  EVENT_LIST1(EVENT_TABLE_CREATE, X)
+  EVENT_LIST2(EVENT_TABLE_CREATE, X)
+  EVENT_LIST3(EVENT_TABLE_CREATE, X)
+  EVENT_LIST4(EVENT_TABLE_CREATE, X)
 };
 
 /* makeTables makes all the tables. */
@@ -686,14 +689,20 @@ static void fillGlueTables(sqlite3 *db)
   statement = prepareStatement(db, 
                                "INSERT OR IGNORE INTO event_type (name, code, always, kind)"
                                "VALUES (?, ?, ?, ?)");
-  EVENT_LIST(EVENT_TYPE_DO_INSERT, X);
+  EVENT_LIST1(EVENT_TYPE_DO_INSERT, X);
+  EVENT_LIST2(EVENT_TYPE_DO_INSERT, X);
+  EVENT_LIST3(EVENT_TYPE_DO_INSERT, X);
+  EVENT_LIST4(EVENT_TYPE_DO_INSERT, X);
         
   finalizeStatement(db, statement);
 
   statement = prepareStatement(db,
                                "INSERT OR IGNORE INTO event_param (type, param_index, sort, ident)"
                                "VALUES (?, ?, ?, ?)");
-  EVENT_LIST(EVENT_TYPE_INSERT_PARAMS, X);
+  EVENT_LIST1(EVENT_TYPE_INSERT_PARAMS, X);
+  EVENT_LIST2(EVENT_TYPE_INSERT_PARAMS, X);
+  EVENT_LIST3(EVENT_TYPE_INSERT_PARAMS, X);
+  EVENT_LIST4(EVENT_TYPE_INSERT_PARAMS, X);
         
   finalizeStatement(db, statement);
 }
@@ -813,10 +822,16 @@ static int64 readLog(FILE *input,
   int64 eventCount = 0;
 
   /* declare statements for every event type */
-  EVENT_LIST(EVENT_TYPE_DECLARE_STATEMENT, X);
+  EVENT_LIST1(EVENT_TYPE_DECLARE_STATEMENT, X);
+  EVENT_LIST2(EVENT_TYPE_DECLARE_STATEMENT, X);
+  EVENT_LIST3(EVENT_TYPE_DECLARE_STATEMENT, X);
+  EVENT_LIST4(EVENT_TYPE_DECLARE_STATEMENT, X);
 
   /* prepare statements for every event type */
-  EVENT_LIST(EVENT_TYPE_PREPARE_STATEMENT, X);
+  EVENT_LIST1(EVENT_TYPE_PREPARE_STATEMENT, X);
+  EVENT_LIST2(EVENT_TYPE_PREPARE_STATEMENT, X);
+  EVENT_LIST3(EVENT_TYPE_PREPARE_STATEMENT, X);
+  EVENT_LIST4(EVENT_TYPE_PREPARE_STATEMENT, X);
 
   runStatement(db, "BEGIN", "Transaction start");
 
@@ -862,7 +877,10 @@ static int64 readLog(FILE *input,
     /* Write event to SQLite. */
     switch (code) {
       /* this macro sets statement and last_index */
-      EVENT_LIST(EVENT_TYPE_WRITE_SQL, X);
+      EVENT_LIST1(EVENT_TYPE_WRITE_SQL, X);
+      EVENT_LIST2(EVENT_TYPE_WRITE_SQL, X);
+      EVENT_LIST3(EVENT_TYPE_WRITE_SQL, X);
+      EVENT_LIST4(EVENT_TYPE_WRITE_SQL, X);
     default:
       error("Event %llu has Unknown event code %d", eventCount, code);
     }
@@ -900,7 +918,10 @@ static int64 readLog(FILE *input,
   logFileCompleted(db, eventCount);
 
   /* finalize all the statements */
-  EVENT_LIST(EVENT_TYPE_FINALIZE_STATEMENT, X);
+  EVENT_LIST1(EVENT_TYPE_FINALIZE_STATEMENT, X);
+  EVENT_LIST2(EVENT_TYPE_FINALIZE_STATEMENT, X);
+  EVENT_LIST3(EVENT_TYPE_FINALIZE_STATEMENT, X);
+  EVENT_LIST4(EVENT_TYPE_FINALIZE_STATEMENT, X);
 
   return eventCount;
 }
