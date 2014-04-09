@@ -1,5 +1,16 @@
 # .travis.yml -- Travis CI configuration for the MPS
 # $Id$
+# See <http://about.travis-ci.org/docs/user/languages/c/>.
+language: c
+compiler:
+  - clang
+  - gcc
+notifications:
+  email:
+    - mps-travis@ravenbrook.com
+  irc: "irc.freenode.net#memorypoolsystem"
+
+
 # Coverity scan: see <https://scan.coverity.com/travis_ci>
 
 env:
@@ -16,4 +27,4 @@ addons:
     notification_email: mps-travis@ravenbrook.com
     build_command_prepend: ./configure
     build_command: make
-    branch_pattern: coverity
+    branch_pattern: dev/2014-04-09/coverity
