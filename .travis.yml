@@ -9,3 +9,22 @@ notifications:
   email:
     - mps-travis@ravenbrook.com
   irc: "irc.freenode.net#memorypoolsystem"
+
+
+# Coverity scan: see <https://scan.coverity.com/travis_ci>
+
+env:
+  global:
+   # The next declration is the encrypted COVERITY_SCAN_TOKEN, created
+   #   via the "travis encrypt" command using the project repo's public key
+   - secure: "qqsobqrjP/IzzLd4eDnHqJCXCZTis4/nwPG0ZQ3Bym3KERSipzcuruztxpLkg3pFt1WhCBzYLXil0n918E5QlvdUKsNT1xjvVCUwjhraQNKxGmDh8OdyRgl2TzBndwAMzo+zsswCyk21tJCYyAEMEvhNFa/D/KHHAaC5/Ag4p6s="
+
+addons:
+  coverity_scan:
+    project:
+      name: "Ravenbrook/mps-temporary"
+      description: "Memory Pool System"
+    notification_email: mps-travis@ravenbrook.com
+    build_command_prepend: ./configure
+    build_command: make
+    branch_pattern: coverity
