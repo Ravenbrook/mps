@@ -27,7 +27,7 @@ addons:
     notification_email: mps-travis@ravenbrook.com
     build_command_prepend: ./configure
     build_command: make
-    branch_pattern: dev/2014-04-09/coverity
+    branch_pattern: dev.2014-04-09.coverity
 
 script:
   - echo "COVERITY_SCAN = $COVERITY_SCAN"
