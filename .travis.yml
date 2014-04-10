@@ -28,3 +28,6 @@ addons:
     build_command_prepend: ./configure
     build_command: make
     branch_pattern: dev/2014-04-09/coverity
+
+script:
+  - echo "COVERITY_SCAN = $COVERITY_SCAN"
