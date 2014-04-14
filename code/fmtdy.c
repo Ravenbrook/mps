@@ -521,13 +521,16 @@ static mps_res_t dylan_scan(mps_ss_t mps_ss,
                             mps_addr_t base, mps_addr_t limit)
 {
   mps_res_t res;
+  mps_addr_t p = base;
+  mps_addr_t lastp;
 
-  while(base < limit) {
-    res = dylan_scan1(mps_ss, &base);
+  while(p < limit) {
+    lastp = p;
+    res = dylan_scan1(mps_ss, &p);
     if(res) return res;
   }
 
-  assert(base == limit);
+  assert(p == limit);
 
   return MPS_RES_OK;
 }

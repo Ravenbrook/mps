@@ -89,6 +89,7 @@ static Bool GenDescCheck(GenDesc gen)
 {
   CHECKS(GenDesc, gen);
   /* nothing to check for zones */
+  /* nothing to check for contents */
   /* nothing to check for capacity */
   CHECKL(gen->mortality >= 0.0);
   CHECKL(gen->mortality <= 1.0);
@@ -159,7 +160,11 @@ Res ChainCreate(Chain *chainReturn, Arena arena, size_t genCount,
 
   for (i = 0; i < genCount; ++i) {
     gens[i].zones = ZoneSetEMPTY;
-    gens[i].epoch = (Epoch)0;
+    ZEIInitEmpty(&gens[i].contents);
+    /* We add future eras into the approximation, to allow for future
+     * allocation in any generation */
+    /* FIXME: This is dodgy because the zone approx is empty */
+    ZEIGrowFuture(&gens[i].contents, arena);
     gens[i].capacity = params[i].capacity;
     gens[i].mortality = params[i].mortality;
     gens[i].proflow = 1.0; /* @@@@ temporary */
@@ -302,6 +307,61 @@ double ChainDeferral(Chain chain)
 }
 
 
+/* chainCondemnGens - Condemn gens 0 to topCondemnedGenSerial */
+
+static void chainCondemnGens(ZEI condemned, Chain chain, Serial top)
+{
+  Serial i;
+  GenDesc gen, togen;
+  /* We need to step backwards through the generations, so that
+   * contents are forwarded before they are cleared, and
+   * are added (forwarded to) after they are cleared. */
+  ZEIInitEmpty(condemned);
+  i = top;
+  do {
+    gen = &chain->gens[i];
+
+    /* This ain't necessarily so:
+     * We might forward to the same generation or a different generation.
+     */
+    if(i+1 == chain->genCount) {
+      togen = &chain->arena->topGen;
+    } else {
+      togen = &chain->gens[i+1];
+    }
+    /* Update contents with zones that have been allocated in. This needs to be
+     * done here because this is not kept up to date.
+     * FIXME: this is a hack, perhaps this should done while allocating. */
+    ZEIGrowZoneSet(&gen->contents, gen->zones);
+    /* This may not be necessary as we are really relying on the EraFirst
+     * approximation. */
+    /* don't do this so buffered segs with future eras get condemned.
+     * FIXME: think about this 
+     */
+    /* ZEIBoundPast(&gen->contents, chain->arena); */
+    /* We make a superset of all the condemned segments */
+    ZEIGrow(condemned, &gen->contents);
+    /* forward the contents to where they will go to */
+    /* NOTE: this relies on the order in which this forwarding is done. */
+    ZEIGrow(&togen->contents, &gen->contents);
+    /* We're forwarding what was in generation, now start afresh. */
+    AVER(togen != gen);
+    ZEIInitEmpty(&gen->contents);
+    if(i <= 0)
+      break;
+    --i;
+  } while (i < top);
+  EraAge(chain->arena);
+  /* We might allocate in any generation in the future.
+   * Since we have just restricted the approximation to the past to accumulate
+   * the condemned sets accurately, we need to grow it here.
+   */
+  for(i = 0; i <= top; i++) {  /* inclusive */
+    gen = &chain->gens[i];
+    ZEIGrowFuture(&gen->contents, chain->arena);
+  }
+}
+
 /* ChainCondemnAuto -- condemn approriate parts of this chain
  *
  * This is only called if ChainDeferral returned a value sufficiently
@@ -313,13 +373,13 @@ Res ChainCondemnAuto(double *mortalityReturn, Chain chain, Trace trace)
   Res res;
   Serial topCondemnedGenSerial, currGenSerial;
   GenDesc gen;
-  ZoneSet condemnedSet = ZoneSetEMPTY;
   Size condemnedSize = 0, survivorSize = 0, genNewSize, genTotalSize;
-  Epoch earliest = EPOCH_INFINITY;
+  ZEIStruct condemned;
 
   AVERT(Chain, chain);
   AVERT(Trace, trace);
 
+  ZEIInitEmpty(&condemned);
   /* Find lowest gen within its capacity, set topCondemnedGenSerial to the */
   /* preceeding one. */
   currGenSerial = 0;
@@ -328,23 +388,11 @@ Res ChainCondemnAuto(double *mortalityReturn, Chain chain, Trace trace)
   genNewSize = GenDescNewSize(gen);
   do { /* At this point, we've decided to collect currGenSerial. */
     topCondemnedGenSerial = currGenSerial;
-    condemnedSet = ZoneSetUnion(condemnedSet, gen->zones);
     genTotalSize = GenDescTotalSize(gen);
     condemnedSize += genTotalSize;
     survivorSize += (Size)(genNewSize * (1.0 - gen->mortality))
                     /* predict survivors will survive again */
                     + (genTotalSize - genNewSize);
-    if (gen->epoch < earliest)
-      earliest = gen->epoch;
-    /* NOTE: This should work more generally than just for gen 0 but we would
-     * either need to promote segments that are nailed to the next generation
-     * or make a gen's epoch get earlier when being forwarded an older objects.
-     *
-     * NOTE: this should be updated just after aging the epoch at flip; it's
-     * not so add 1.
-     */
-    if (chain->gens - gen == 0)
-      gen->epoch = chain->arena->epoch+1;
 
     /* is there another one to consider? */
     currGenSerial += 1;
@@ -355,13 +403,16 @@ Res ChainCondemnAuto(double *mortalityReturn, Chain chain, Trace trace)
     genNewSize = GenDescNewSize(gen);
   } while (genNewSize >= gen->capacity * (Size)1024);
   
-  AVER(condemnedSet != ZoneSetEMPTY || condemnedSize == 0);
+  chainCondemnGens(&condemned, chain, topCondemnedGenSerial);
+
+  AVER(!ZEIIsEmpty(&condemned) || condemnedSize == 0);
   EVENT3(ChainCondemnAuto, chain, topCondemnedGenSerial, chain->genCount);
   UNUSED(topCondemnedGenSerial); /* only used for EVENT */
   
-  /* Condemn everything in these zones. */
-  if (condemnedSet != ZoneSetEMPTY) {
-    res = TraceCondemnZones(trace, condemnedSet, earliest);
+  /* Condemn everything (entirely) in condemned approx. */
+  /* FIXME: Is condemned empty if it contains future eras */
+  if (!ZEIIsEmpty(&condemned)) {
+    res = TraceCondemnZones(trace, &condemned);
     if (res != ResOK)
       return res;
   }
@@ -378,6 +429,9 @@ Res ChainCondemnAll(Chain chain, Trace trace)
   Ring node, nextNode;
   Bool haveWhiteSegs = FALSE;
   Res res;
+  ZEIStruct condemned;
+
+  chainCondemnGens(&condemned, chain, (Serial)chain->genCount - 1);
 
   /* Condemn every segment in every pool using this chain. */
   /* Finds the pools by iterating over the PoolGens in gen 0. */
@@ -492,7 +546,7 @@ void LocusInit(Arena arena)
   /* TODO: The mortality estimate here is unjustifiable.  Dynamic generation
      decision making needs to be improved and this constant removed. */
   gen->zones = ZoneSetEMPTY;
-  gen->epoch = (Epoch)0;
+  ZEIInitEmpty(&gen->contents);
   gen->capacity = 0; /* unused */
   gen->mortality = 0.51;
   gen->proflow = 0.0;

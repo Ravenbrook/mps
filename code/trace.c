@@ -42,7 +42,7 @@ Bool ScanStateCheck(ScanState ss)
   CHECKL(ScanStateZoneShift(ss) == ss->arena->zoneShift);
   white = ZoneSetEMPTY;
   TRACE_SET_ITER(ti, trace, ss->traces, ss->arena)
-    white = ZoneSetUnion(white, ss->arena->trace[ti].white);
+    white = ZoneSetUnion(white, TraceWhiteZoneSet(trace));
   TRACE_SET_ITER_END(ti, trace, ss->traces, ss->arena);
   CHECKL(ScanStateWhite(ss) == white);
   CHECKU(Arena, ss->arena);
@@ -151,11 +151,11 @@ Bool TraceCheck(Trace trace)
 {
   CHECKS(Trace, trace);
   CHECKU(Arena, trace->arena);
-  CHECKL(trace->epoch <= trace->arena->epoch);
+  /* Nothing to check for white */
   CHECKL(TraceIdCheck(trace->ti));
   CHECKL(trace == &trace->arena->trace[trace->ti]);
   CHECKL(TraceSetIsMember(trace->arena->busyTraces, trace));
-  CHECKL(ZoneSetSub(trace->mayMove, trace->white));
+  CHECKL(ZoneSetSub(trace->mayMove, TraceWhiteZoneSet(trace)));
   /* Use trace->state to check more invariants. */
   switch(trace->state) {
     case TraceINIT:
@@ -322,20 +322,18 @@ static void traceSetUpdateCounts(TraceSet ts, Arena arena, ScanState ss,
 
 /* traceSetWhiteUnion
  *
- * Returns a ZoneSet describing the union of the white sets of all the
- * specified traces.  */
+ * Returns an approximation of the union of the white approximations of
+ * all the specified traces.  */
 
-static ZoneSet traceSetWhiteUnion(TraceSet ts, Arena arena)
+static void traceSetWhiteUnion(ZEI white, TraceSet ts, Arena arena)
 {
   TraceId ti;
   Trace trace;
-  ZoneSet white = ZoneSetEMPTY;
 
+  ZEIInitEmpty(white);
   TRACE_SET_ITER(ti, trace, ts, arena)
-    white = ZoneSetUnion(white, trace->white);
+    ZEIGrow(white, &trace->white);
   TRACE_SET_ITER_END(ti, trace, ts, arena);
-
-  return white;
 }
 
 
@@ -345,6 +343,7 @@ Res TraceAddWhite(Trace trace, Seg seg)
 {
   Res res;
   Pool pool;
+  ZEIStruct contents;
 
   AVERT(Trace, trace);
   AVERT(Seg, seg);
@@ -362,11 +361,12 @@ Res TraceAddWhite(Trace trace, Seg seg)
   /* Add the segment to the approximation of the white set if the */
   /* pool made it white. */
   if(TraceSetIsMember(SegWhite(seg), trace)) {
-    trace->white = ZoneSetUnion(trace->white, ZoneSetOfSeg(trace->arena, seg));
+    ZEIOfSeg(&contents, seg, trace->arena);
+    ZEIGrow(&trace->white, &contents);
     /* if the pool is a moving GC, then condemned objects may move */
     if(pool->class->attr & AttrMOVINGGC) {
       trace->mayMove = ZoneSetUnion(trace->mayMove,
-                                    ZoneSetOfSeg(trace->arena, seg));
+                                    ZEIZoneSet(&contents));
     }
   }
 
@@ -386,21 +386,19 @@ Res TraceAddWhite(Trace trace, Seg seg)
  * @@@@ This function would be more efficient if there were a cheaper
  * way to select the segments in a particular zone set.  */
 
-Res TraceCondemnZones(Trace trace, ZoneSet condemnedSet, Epoch epoch)
+Res TraceCondemnZones(Trace trace, ZEI condemned)
 {
   Seg seg;
   Arena arena;
   Res res;
+  ZEIStruct contents;
 
   AVERT(Trace, trace);
-  AVER(condemnedSet != ZoneSetEMPTY);
+  AVER(!ZEIIsEmpty(condemned));
   AVER(trace->state == TraceINIT);
-  AVER(trace->white == ZoneSetEMPTY);
-  AVER(trace->epoch == (Epoch)0);
+  AVER(ZEIIsEmpty(&trace->white));
 
   arena = trace->arena;
-  AVER(epoch <= arena->epoch);
-  trace->epoch = epoch;
 
   if(SegFirst(&seg, arena)) {
     do {
@@ -414,20 +412,22 @@ Res TraceCondemnZones(Trace trace, ZoneSet condemnedSet, Epoch epoch)
       /* the requested zone set.  Otherwise, we would bloat the */
       /* foundation to no gain.  Note that this doesn't exclude */
       /* any segments from which the condemned set was derived, */
-      if((SegPool(seg)->class->attr & AttrGC) != 0
-          && ZoneSetSuper(condemnedSet, ZoneSetOfSeg(arena, seg))
-          && SegBirthEpoch(seg) >= epoch) {
-        res = TraceAddWhite(trace, seg);
-        if(res != ResOK)
-          return res;
+      if ((SegPool(seg)->class->attr & AttrGC) != 0) {
+        ZEIOfSeg(&contents, seg, arena);
+        ZEIBoundPast(&contents, arena); /* FIXME a bit of a hack to cope with buffered segs, which have future eras on them */
+        if (ZEIContains(condemned, &contents)) {
+          res = TraceAddWhite(trace, seg);
+          if(res != ResOK)
+            return res;
+        }
       }
     } while (SegNext(&seg, arena, seg));
   }
 
-  EVENT3(TraceCondemnZones, trace, condemnedSet, trace->white);
+  EVENT3(TraceCondemnZones, trace, ZEIZoneSet(condemned), TraceWhiteZoneSet(trace));
 
   /* The trace's white set must be a subset of the condemned set */
-  AVER(ZoneSetSuper(condemnedSet, trace->white));
+  AVER(ZEIContains(condemned, &trace->white));
 
   return ResOK;
 }
@@ -455,13 +455,16 @@ static void traceFlipBuffers(Globals arena)
 
 static Res traceScanRootRes(TraceSet ts, Rank rank, Arena arena, Root root)
 {
-  ZoneSet white;
+  ZEIStruct white;
   Res res;
   ScanStateStruct ss;
+  ZoneSet whiteZones;
 
-  white = traceSetWhiteUnion(ts, arena);
+  traceSetWhiteUnion(&white, ts, arena);
 
-  ScanStateInit(&ss, ts, arena, rank, white);
+  whiteZones = ZEIZoneSet(&white);
+
+  ScanStateInit(&ss, ts, arena, rank, whiteZones);
 
   res = RootScan(&ss, root);
 
@@ -575,11 +578,7 @@ static Res traceFlip(Trace trace)
   /* Update location dependency structures. */
   /* mayMove is a conservative approximation of the zones of objects */
   /* which may move during this collection. */
-  if(TRUE || trace->mayMove != ZoneSetEMPTY) {
-    /* FIXME: Epoch's only advance when mayMove non-empty, but we are
-     * also using time to measure age of objects.  It could be that
-     * these things are distinct. Since we are borrowing epoch for timing
-     * flips, we need to make this unconditional. */
+  if(trace->mayMove != ZoneSetEMPTY) {
     LDAge(arena, trace->mayMove);
   }
 
@@ -699,8 +698,7 @@ found:
 
   trace->arena = arena;
   trace->why = why;
-  trace->white = ZoneSetEMPTY;
-  trace->epoch = (Epoch)0;
+  ZEIInitEmpty(&trace->white);
   trace->mayMove = ZoneSetEMPTY;
   trace->ti = ti;
   trace->state = TraceINIT;
@@ -1088,24 +1086,28 @@ RefSet ScanStateSummary(ScanState ss)
 static Res traceScanSegRes(TraceSet ts, Rank rank, Arena arena, Seg seg)
 {
   Bool wasTotal;
-  ZoneSet white;
+  ZoneSet whiteZones;
+  ZEIStruct summary, white;
   Res res;
 
   /* The reason for scanning a segment is that it's grey. */
   AVER(TraceSetInter(ts, SegGrey(seg)) != TraceSetEMPTY);
   EVENT4(TraceScanSeg, ts, rank, arena, seg);
 
-  white = traceSetWhiteUnion(ts, arena);
+  traceSetWhiteUnion(&white, ts, arena);
 
+  SegGetSummary(&summary, seg);
   /* Only scan a segment if it refers to the white set. */
-  if(ZoneSetInter(white, SegSummary(seg)) == ZoneSetEMPTY) {
+  if(!ZEIMeets(&white, &summary)) {
     PoolBlacken(SegPool(seg), ts, seg);
     /* Setup result code to return later. */
     res = ResOK;
   } else {      /* scan it */
     ScanStateStruct ssStruct;
     ScanState ss = &ssStruct;
-    ScanStateInit(ss, ts, arena, rank, white);
+    
+    whiteZones = ZEIZoneSet(&white);
+    ScanStateInit(ss, ts, arena, rank, whiteZones);
 
     /* Expose the segment to make sure we can scan it. */
     ShieldExpose(arena, seg);
@@ -1134,19 +1136,30 @@ static Res traceScanSegRes(TraceSet ts, Rank rank, Arena arena, Seg seg)
     /* .verify.segsummary: were the seg contents, as found by this 
      * scan, consistent with the recorded SegSummary?
      */
-    AVER(RefSetSub(ScanStateUnfixedSummary(ss), SegSummary(seg)));
+    /* We need to read the summary again, since it could change
+     * during scanning.*/
+    SegGetSummary(&summary, seg);
+    AVER(RefSetSub(ScanStateUnfixedSummary(ss), ZEIZoneSet(&summary)));
 
+    /* The summary zones are set according to the ZoneSet discovered
+     * during scanning.  Scanning doesn't accumulate an era interval
+     * for references. */
     if(res != ResOK || !wasTotal) {
       /* scan was partial, so... */
       /* scanned summary should be ORed into segment summary. */
-      SegSetSummary(seg, RefSetUnion(SegSummary(seg), ScanStateSummary(ss)));
+      ZEIGrowZoneSet(&summary, ScanStateSummary(ss));
     } else {
       /* all objects on segment have been scanned, so... */
       /* scanned summary should replace the segment summary. */
-      SegSetSummary(seg, ScanStateSummary(ss));
+      ZEISetZoneSet(&summary, ScanStateSummary(ss));
     }
-
-    SegSetRefEpoch(seg, EPOCH_MIN(arena->epoch, SegRefEpoch(seg)));
+    
+    /* It's correct to bound by the past, because either the segment is
+     * not write protected, and so the era interval is universal.
+     * Or the segment is write protected and so the referenced eras cannot
+     * have changed, and cannot be to future eras. */
+    ZEIBoundPast(&summary, arena);
+    SegSetSummary(seg, &summary);
 
     ScanStateFinish(ss);
   }
@@ -1198,9 +1211,8 @@ void TraceSegAccess(Arena arena, Seg seg, AccessSet mode)
        || TraceSetInter(SegGrey(seg), arena->flippedTraces) != TraceSetEMPTY);
 
   /* If it's a write access, then the segment must have a summary that */
-  /* is smaller than the mutator's summary (which is assumed to be */
-  /* RefSetUNIV); or the ref epoch is less than infinity. */
-  AVER((mode & SegSM(seg) & AccessWRITE) == 0 || SegSummary(seg) != RefSetUNIV || SegRefEpoch(seg) < EPOCH_INFINITY);
+  /* is smaller than the mutator's summary (which is assumed to be full). */
+  AVER((mode & SegSM(seg) & AccessWRITE) == 0 || !SegSummaryIsFull(seg));
 
   EVENT3(TraceAccess, arena, seg, mode);
 
@@ -1239,8 +1251,9 @@ void TraceSegAccess(Arena arena, Seg seg, AccessSet mode)
   /* The write barrier handling must come after the read barrier, */
   /* because the latter may set the summary and raise the write barrier. */
   if((mode & SegSM(seg) & AccessWRITE) != 0) {    /* write barrier? */
-    SegSetSummary(seg, RefSetUNIV);
-    SegSetRefEpoch(seg, EPOCH_INFINITY);
+    ZEIStruct summary;
+    ZEIInitFull(&summary);
+    SegSetSummary(seg, &summary);
   }
 
   /* The segment must now be accessible. */
@@ -1348,19 +1361,24 @@ mps_res_t _mps_fix2(mps_ss_t mps_ss, mps_addr_t *mps_ref_io)
 static Res traceScanSingleRefRes(TraceSet ts, Rank rank, Arena arena,
                                  Seg seg, Ref *refIO)
 {
-  RefSet summary;
-  ZoneSet white;
+  ZEIStruct summary;
+  ZEIStruct white;
+  ZoneSet whiteZones;
   Res res;
   ScanStateStruct ss;
 
   EVENT4(TraceScanSingleRef, ts, rank, arena, (Addr)refIO);
 
-  white = traceSetWhiteUnion(ts, arena);
-  if(ZoneSetInter(SegSummary(seg), white) == ZoneSetEMPTY) {
+  traceSetWhiteUnion(&white, ts, arena);
+
+  SegGetSummary(&summary, seg);
+  if(!ZEIMeets(&summary, &white)) {
     return ResOK;
   }
 
-  ScanStateInit(&ss, ts, arena, rank, white);
+  whiteZones = ZEIZoneSet(&white);
+
+  ScanStateInit(&ss, ts, arena, rank, whiteZones);
   ShieldExpose(arena, seg);
 
   TRACE_SCAN_BEGIN(&ss) {
@@ -1368,10 +1386,7 @@ static Res traceScanSingleRefRes(TraceSet ts, Rank rank, Arena arena,
   } TRACE_SCAN_END(&ss);
   ss.scannedSize = sizeof *refIO;
 
-  summary = SegSummary(seg);
-  summary = RefSetAdd(arena, summary, *refIO);
-  SegSetSummary(seg, summary);
-  ShieldCover(arena, seg);
+  SegSummaryGrowRefPast(seg, *refIO);
 
   traceSetUpdateCounts(ts, arena, &ss, traceAccountingPhaseSingleScan);
   ScanStateFinish(&ss);
@@ -1568,7 +1583,7 @@ static Res rootGrey(Root root, void *p)
   AVERT(Root, root);
   AVERT(Trace, trace);
 
-  if(ZoneSetInter(RootSummary(root), trace->white) != ZoneSetEMPTY) {
+  if(ZoneSetInter(RootSummary(root), TraceWhiteZoneSet(trace)) != ZoneSetEMPTY) {
     RootGrey(root, trace);
   }
 
@@ -1604,6 +1619,8 @@ Res TraceStart(Trace trace, double mortality, double finishingTime)
   Arena arena;
   Res res;
   Seg seg;
+  ZEIStruct summary;
+  ZEI white;
 
   AVERT(Trace, trace);
   AVER(trace->state == TraceINIT);
@@ -1612,6 +1629,7 @@ Res TraceStart(Trace trace, double mortality, double finishingTime)
   AVER(finishingTime >= 0.0);
 
   arena = trace->arena;
+  white = &trace->white;
   
   /* From the already set up white set, derive a grey set. */
 
@@ -1634,11 +1652,9 @@ Res TraceStart(Trace trace, double mortality, double finishingTime)
         AVER((SegPool(seg)->class->attr & AttrSCAN) != 0);
 
         /* Turn the segment grey if there might be a reference in it */
-        /* to the white set.  This is done by seeing if the summary */
-        /* of references in the segment intersects with the */
-        /* approximation to the white set. */
-        if(ZoneSetInter(SegSummary(seg), trace->white) != ZoneSetEMPTY
-           && SegRefEpoch(seg) >= trace->epoch) {
+        /* to the white set. */
+        SegGetSummary(&summary, seg);
+        if(ZEIMeets(&summary, white)) {
           /* Note: can a white seg get greyed as well?  At this point */
           /* we still assume it may.  (This assumption runs out in */
           /* PoolTrivGrey). */
@@ -1700,7 +1716,7 @@ Res TraceStart(Trace trace, double mortality, double finishingTime)
 
   EVENT8(TraceStart, trace, mortality, finishingTime,
          trace->condemned, trace->notCondemned,
-         trace->foundation, trace->white,
+         trace->foundation, TraceWhiteZoneSet(trace),
          trace->rate);
 
   STATISTIC_STAT(EVENT7(TraceStatCondemn, trace,

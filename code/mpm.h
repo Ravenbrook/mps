@@ -383,7 +383,7 @@ extern Res TraceCreate(Trace *traceReturn, Arena arena, int why);
 extern void TraceDestroy(Trace trace);
 
 extern Res TraceAddWhite(Trace trace, Seg seg);
-extern Res TraceCondemnZones(Trace trace, ZoneSet condemnedSet, Epoch epoch);
+extern Res TraceCondemnZones(Trace trace, ZEI condemned);
 extern Res TraceStart(Trace trace, double mortality, double finishingTime);
 extern Size TracePoll(Globals globals);
 
@@ -464,6 +464,8 @@ extern Res TraceScanAreaMasked(ScanState ss,
                                Addr *base, Addr *limit, Word mask);
 extern void TraceScanSingleRef(TraceSet ts, Rank rank, Arena arena,
                                Seg seg, Ref *refIO);
+
+#define TraceWhiteZoneSet(trace) ZEIZoneSet(&(trace)->white)
 
 
 /* Arena Interface -- see <code/arena.c> */
@@ -654,11 +656,11 @@ extern Res SegMerge(Seg *mergedSegReturn, Seg segLo, Seg segHi,
 extern Res SegSplit(Seg *segLoReturn, Seg *segHiReturn, Seg seg, Addr at,
                     Bool withReservoirPermit);
 extern Res SegDescribe(Seg seg, mps_lib_FILE *stream);
-extern void SegSetSummary(Seg seg, RefSet summary);
-extern Epoch SegRefEpoch(Seg seg);
-extern Epoch SegBirthEpoch(Seg seg);
-extern void SegSetRefEpoch(Seg seg, Epoch epoch);
-extern void SegSetBirthEpoch(Seg seg, Epoch epoch);
+extern void SegSetSummary(Seg seg, ZEI summary);
+extern void SegGetSummary(ZEI summary, Seg seg);
+extern void SegSummaryGrowRefPast(Seg seg, Ref ref);
+extern Bool SegSummaryIsFull(Seg seg);
+extern EraInterval SegContents(Seg seg);
 extern Buffer SegBuffer(Seg seg);
 extern void SegSetBuffer(Seg seg, Buffer buffer);
 extern Bool SegCheck(Seg seg);
@@ -700,8 +702,6 @@ extern Addr (SegLimit)(Seg seg);
 #define SegOfPoolRing(node)     (RING_ELT(Seg, poolRing, (node)))
 #define SegOfGreyRing(node)     (&(RING_ELT(GCSeg, greyRing, (node)) \
                                    ->segStruct))
-
-#define SegSummary(seg)         (((GCSeg)(seg))->summary)
 
 #define SegSetPM(seg, mode)     ((void)((seg)->pm = (mode)))
 #define SegSetSM(seg, mode)     ((void)((seg)->sm = (mode)))
@@ -862,6 +862,76 @@ extern ZoneSet ZoneSetOfRange(Arena arena, Addr base, Addr limit);
 extern ZoneSet ZoneSetOfSeg(Arena arena, Seg seg);
 
 
+/* Approximations */
+
+extern void ZoneApproxInitEmpty(ZoneApprox za);
+extern void ZoneApproxInitFull(ZoneApprox za);
+extern void ZoneApproxCopy(ZoneApprox dest, ZoneApprox src);
+extern void ZoneApproxGrow(ZoneApprox za, ZoneApprox extra);
+extern void ZoneApproxBound(ZoneApprox za, ZoneApprox bound);
+extern Bool ZoneApproxMeets(ZoneApprox a, ZoneApprox b);
+extern Bool ZoneApproxContains(ZoneApprox a, ZoneApprox b);
+extern Bool ZoneApproxIsEmpty(ZoneApprox za);
+extern Bool ZoneApproxIsFull(ZoneApprox za);
+extern Bool ZoneApproxOfRef(ZoneApprox za, Ref b);
+
+#define EraZERO ((Era)0)
+#define EraMIN ((Era)1)
+#define EraINFINITY ((Era)-1)
+
+extern void EraFirstInitEmpty(EraFirst ef);
+extern void EraFirstInitFull(EraFirst ef);
+extern void EraFirstCopy(EraFirst dest, EraFirst src);
+extern void EraFirstGrow(EraFirst ef, EraFirst extra);
+extern void EraFirstBound(EraFirst ef, EraFirst bound);
+extern Bool EraFirstMeets(EraFirst a, EraFirst b);
+extern Bool EraFirstContains(EraFirst a, EraFirst b);
+extern Bool EraFirstIsEmpty(EraFirst ef);
+extern Bool EraFirstIsFull(EraFirst ef);
+
+extern void EraLastInitEmpty(EraLast el);
+extern void EraLastInitFull(EraLast el);
+extern void EraLastCopy(EraLast dest, EraLast src);
+extern void EraLastGrow(EraLast el, EraLast extra);
+extern void EraLastBound(EraLast el, EraLast bound);
+extern Bool EraLastMeets(EraLast a, EraLast b);
+extern Bool EraLastContains(EraLast a, EraLast b);
+extern Bool EraLastIsEmpty(EraLast el);
+extern Bool EraLastIsFull(EraLast el);
+
+extern void EraIntervalInitEmpty(EraInterval ei);
+extern void EraIntervalInitFull(EraInterval ei);
+extern void EraIntervalCopy(EraInterval dest, EraInterval src);
+extern void EraIntervalGrow(EraInterval ei, EraInterval extra);
+extern void EraIntervalBound(EraInterval ei, EraInterval bound);
+extern Bool EraIntervalMeets(EraInterval a, EraInterval b);
+extern Bool EraIntervalContains(EraInterval a, EraInterval b);
+extern Bool EraIntervalIsEmpty(EraInterval ei);
+extern Bool EraIntervalIsFull(EraInterval ei);
+
+extern void ZEIInitEmpty(ZEI zei);
+extern void ZEIInitFull(ZEI zei);
+extern void ZEICopy(ZEI dest, ZEI src);
+extern void ZEIGrow(ZEI zei, ZEI extra);
+extern void ZEIBound(ZEI zei, ZEI bound);
+extern Bool ZEIMeets(ZEI a, ZEI b);
+extern Bool ZEIContains(ZEI a, ZEI b);
+extern Bool ZEIIsEmpty(ZEI zei);
+extern Bool ZEIIsFull(ZEI zei);
+
+extern ZoneSet ZEIZoneSet(ZEI zei);
+extern void ZEISetZoneSet(ZEI zei, ZoneSet zones);
+
+extern void EraAge(Arena arena);
+extern void EraIntervalBoundPast(EraInterval eras, Arena arena);
+extern void EraIntervalBoundFuture(EraInterval eras, Arena arena);
+extern void ZEIGrowFuture(ZEI zei, Arena arena);
+extern void ZEIGrowZoneSet(ZEI zei, ZoneSet zones);
+extern void ZEIBoundPast(ZEI zei, Arena arena);
+extern void ZEIOfSeg(ZEI zei, Seg seg, Arena arena);
+extern void ZEIOfRef(ZEI zei, Ref ref, Arena arena);
+
+
 /* Shield Interface -- see <code/shield.c> */
 
 extern void (ShieldRaise)(Arena arena, Seg seg, AccessSet mode);
@@ -917,10 +987,6 @@ extern Res MutatorFaultContextScan(ScanState ss, MutatorFaultContext mfc);
 
 
 /* Location Dependency -- see <code/ld.c> */
-
-#define EPOCH_INFINITY ((Epoch)-1)
-#define EPOCH_MIN(a, b) ((a) < (b) ? (a) : (b))
-#define EPOCH_MAX(a, b) ((a) > (b) ? (a) : (b))
 
 extern void LDReset(mps_ld_t ld, Arena arena);
 extern void LDAdd(mps_ld_t ld, Arena arena, Addr addr);

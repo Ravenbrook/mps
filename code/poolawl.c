@@ -857,6 +857,7 @@ static Res awlScanObject(Arena arena, AWL awl, ScanState ss,
   Bool dependent;       /* is there a dependent object? */
   Addr dependentObject; /* base address of dependent object */
   Seg dependentSeg = NULL; /* segment of dependent object */
+  ZEIStruct summary;
 
   AVERT(Arena, arena);
   AVERT(AWL, awl);
@@ -868,10 +869,11 @@ static Res awlScanObject(Arena arena, AWL awl, ScanState ss,
   dependentObject = awl->findDependent(base);
   dependent = SegOfAddr(&dependentSeg, arena, dependentObject);
   if (dependent) {
-      /* <design/poolawl/#fun.scan.pass.object.dependent.expose> */
-      ShieldExpose(arena, dependentSeg);
-      /* <design/poolawl/#fun.scan.pass.object.dependent.summary> */
-      SegSetSummary(dependentSeg, RefSetUNIV);
+    /* <design/poolawl/#fun.scan.pass.object.dependent.expose> */
+    ShieldExpose(arena, dependentSeg);
+    /* <design/poolawl/#fun.scan.pass.object.dependent.summary> */
+    ZEIInitFull(&summary);
+    SegSetSummary(dependentSeg, &summary);
   }
 
   res = (*format->scan)(&ss->ss_s, base, limit);

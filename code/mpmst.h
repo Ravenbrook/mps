@@ -26,6 +26,31 @@
 
 #include "protocol.h"
 #include "ring.h"
+
+/* ZoneApprox, EraInterval, ZEIStruct - approximation structures */
+
+struct ZoneApproxStruct {
+  ZoneSet zones;
+};
+
+struct EraFirstStruct {
+  Era era;
+};
+
+struct EraLastStruct {
+  Era era;
+};
+
+struct EraIntervalStruct {
+  EraFirstStruct min;
+  EraLastStruct max;
+};
+
+struct ZEIStruct {
+  ZoneApproxStruct za;
+  EraIntervalStruct eras;
+};
+
 #include "chain.h"
 
 
@@ -246,6 +271,7 @@ typedef struct SegClassStruct {
   SegInitMethod init;           /* initialize the segment */
   SegFinishMethod finish;       /* finish the segment */
   SegSetSummaryMethod setSummary; /* set the segment summary  */
+  SegGetSummaryMethod getSummary; /* get the segment summary  */
   SegBufferMethod buffer;       /* get the segment buffer  */
   SegSetBufferMethod setBuffer; /* set the segment buffer  */
   SegSetGreyMethod setGrey;     /* change greyness of segment */
@@ -292,9 +318,8 @@ typedef struct SegStruct {      /* segment structure */
 typedef struct GCSegStruct {    /* GC segment structure */
   SegStruct segStruct;          /* superclass fields must come first */
   RingStruct greyRing;          /* link in list of grey segs */
-  RefSet summary;               /* summary of references out of seg */
-  Epoch refEpoch;               /* lastest epoch references may refer to */
-  Epoch birthEpoch;             /* objects allocated in or after this epoch */
+  ZEIStruct summary;            /* summary of references out of seg */
+  EraIntervalStruct contents;         /* objects allocated in this era interval */
   Buffer buffer;                /* non-NULL if seg is buffered */
   Sig sig;                      /* <design/sig/> */
 } GCSegStruct;
@@ -475,8 +500,7 @@ typedef struct TraceStruct {
   TraceId ti;                   /* index into TraceSets */
   Arena arena;                  /* owning arena */
   int why;                      /* why the trace began */
-  ZoneSet white;                /* zones in the white set */
-  Epoch epoch;                  /* earliest epoch in white set */
+  ZEIStruct white;              /* white set approximation */
   ZoneSet mayMove;              /* zones containing possibly moving objs */
   TraceState state;             /* current state of trace */
   Rank band;                    /* current band */
@@ -685,6 +709,8 @@ typedef struct mps_arena_s {
   STATISTIC_DECL(Count writeBarrierHitCount); /* write barrier hits */
   RingStruct chainRing;         /* ring of chains */
 
+  Era era;
+  
   /* location dependency fields (<code/ld.c>) */
   Epoch epoch;                     /* <design/arena/#ld.epoch> */
   RefSet prehistory;               /* <design/arena/#ld.prehistory> */

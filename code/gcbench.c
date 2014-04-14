@@ -72,11 +72,18 @@ static obj_t mkvector(mps_ap_t ap, size_t n) {
 }
 
 static obj_t aref(obj_t v, size_t i) {
+  assert(v != 2);
+  assert(*(long*)v != 2);
   return DYLAN_VECTOR_SLOT(v, i);
 }
 
 static void aset(obj_t v, size_t i, obj_t val) {
+  assert(v != 1);
+  assert(val != 2);
+  assert(v != 2);
+  assert(*(long*)v != 2);
   DYLAN_VECTOR_SLOT(v, i) = val;
+  assert(aref(v, i) != 1);
 }
 
 /* mktree - make a tree of nodes with depth d. */
@@ -87,13 +94,19 @@ static obj_t mktree(mps_ap_t ap, unsigned d, obj_t leaf) {
   tree = mkvector(ap, width);
   for (i = 0; i < width; ++i) {
     aset(tree, i, mktree(ap, d - 1, leaf));
+    assert(aref(tree, i) != 1);
   }
   return tree;
 }
 
 static obj_t random_subtree(obj_t tree, unsigned levels) {
   while(tree != objNULL && levels > 0) {
-    tree = aref(tree, rnd() % width);
+    size_t index = rnd() % width;
+    obj_t next = aref(tree, index);
+    if (next == 1) {
+      assert(FALSE);
+    }
+    tree = next;
     --levels;
   }
   return tree;

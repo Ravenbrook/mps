@@ -798,15 +798,22 @@ static void amcSegPromote(Seg seg, Pool pool) {
   AMC amc;
   amcGen gen, newgen;
   Size size;
+  Serial nr, fwdnr;
 
   amc = Pool2AMC(pool);
   AVERT(AMC, amc);
   gen = amcSegGen(seg);
   AVERT(amcGen, gen);
-  if (gen->pgen.nr == 0) {
+  if (gen->pgen.nr == 0 || TRUE) { /*FIXME remove if? */
     size = SegSize(seg);
-    
-    newgen = amc->gen[gen->pgen.nr + 1];
+    nr = gen->pgen.nr;
+    /* FIXME: does the top gen have a chain? */
+    if (nr >= gen->pgen.chain->genCount) {
+      fwdnr = nr;
+    } else {
+      fwdnr = nr + 1;
+    }
+    newgen = amc->gen[fwdnr];
     --gen->segs;
     gen->pgen.totalSize -= size;
 
@@ -1204,6 +1211,7 @@ static Res AMCBufferFill(Addr *baseReturn, Addr *limitReturn,
   PoolGen pgen;
   amcBuf amcbuf;
   Bool isRamping;
+  ZEIStruct summary;
 
   AVERT(Pool, pool);
   amc = Pool2AMC(pool);
@@ -1239,13 +1247,13 @@ static Res AMCBufferFill(Addr *baseReturn, Addr *limitReturn,
 
   /* <design/seg/#field.rankSet.start> */
   if(BufferRankSet(buffer) == RankSetEMPTY) {
-    SegSetRankAndSummary(seg, BufferRankSet(buffer), RefSetEMPTY);
+  /* If BufferRankSet is empty the seg is unprotectable */
+  /* FIXME: Is Summary RefSet or ZEI or nothing */
+    ZEIInitEmpty(&summary);
+    SegSetRankAndSummary(seg, BufferRankSet(buffer), ZoneSetEMPTY);
   } else {
-    SegSetRankAndSummary(seg, BufferRankSet(buffer), RefSetUNIV);
-#ifdef EPOCH_FORWARD
-    if (!BufferIsMutator(buffer))
-      SegSetRefEpoch(seg, (Epoch)0);
-#endif
+    ZEIInitFull(&summary);
+    SegSetRankAndSummary(seg, BufferRankSet(buffer), ZoneSetUNIV);
   }
 
   /* Put the segment in the generation indicated by the buffer. */
@@ -1482,10 +1490,6 @@ static Res AMCWhiten(Pool pool, Trace trace, Seg seg)
     }
   }
 
-#ifdef EPOCH_FORWARD
-  SegSetRefEpoch(seg, EPOCH_MIN(PoolArena(pool)->epoch, SegRefEpoch(seg)));
-#endif
-
   SegSetWhite(seg, TraceSetAdd(SegWhite(seg), trace));
   trace->condemned += SegSize(seg);
 
@@ -1638,6 +1642,7 @@ static Res amcScanNailed(Bool *totalReturn, ScanState ss, Pool pool,
 
   if(loops > 1) {
     RefSet refset;
+    ZEIStruct summary;
 
     AVER(ArenaEmergency(PoolArena(pool)));
 
@@ -1651,9 +1656,10 @@ static Res amcScanNailed(Bool *totalReturn, ScanState ss, Pool pool,
      */
   
     refset = ScanStateSummary(ss);
-
+    SegGetSummary(&summary, seg);
+    
     /* A rare event, which might prompt a rare defect to appear. */
-    EVENT6(amcScanNailed, loops, SegSummary(seg), ScanStateWhite(ss), 
+    EVENT6(amcScanNailed, loops, ZEIZoneSet(&summary), ScanStateWhite(ss),
            ScanStateUnfixedSummary(ss), ss->fixedSummary, refset);
   
     ScanStateSetSummary(ss, refset);
@@ -1834,6 +1840,11 @@ static Res AMCFix(Pool pool, ScanState ss, Seg seg, Ref *refIO)
   amcGen gen;          /* generation of old copy of object */
   TraceSet grey;       /* greyness of object being relocated */
   Seg toSeg;           /* segment to which object is being relocated */
+  ZEIStruct summary;
+  ZEIStruct toSummary;
+  PoolGen pgen;
+  Serial nr;
+  GenDesc genDesc;
 
   /* <design/trace/#fix.noaver> */
   AVERT_CRITICAL(Pool, pool);
@@ -1929,9 +1940,23 @@ static Res AMCFix(Pool pool, ScanState ss, Seg seg, Ref *refIO)
       if(SegRankSet(seg) != RankSetEMPTY) /* not for AMCZ */
         grey = TraceSetUnion(grey, ss->traces);
       SegSetGrey(toSeg, TraceSetUnion(SegGrey(toSeg), grey));
-      SegSetSummary(toSeg, RefSetUnion(SegSummary(toSeg), SegSummary(seg)));
-      SegSetRefEpoch(toSeg, EPOCH_MAX(SegRefEpoch(toSeg), SegRefEpoch(seg)));
-      SegSetBirthEpoch(toSeg, EPOCH_MIN(SegBirthEpoch(toSeg), SegBirthEpoch(seg)));
+      /* Both seg and toSeg must be protectable GCSegs. 
+       * the from seg is protectable because it is being scanned
+       * The to seg is protectable because it is the forwarding buffer
+       * for a protectable seg. */
+      SegGetSummary(&summary, seg);
+      SegGetSummary(&toSummary, toSeg);
+      ZEIGrow(&toSummary, &summary);
+      SegSetSummary(toSeg, &toSummary);
+      EraIntervalGrow(SegContents(toSeg), SegContents(seg));
+      pgen = &amcSegGen(toSeg)->pgen;
+      nr = pgen->nr;
+      if(nr < pgen->chain->genCount) {
+        genDesc = &pgen->chain->gens[nr];
+      } else {
+        genDesc = &arena->topGen;
+      }
+      EraIntervalGrow(&genDesc->contents.eras, SegContents(seg));
 
       /* <design/trace/#fix.copy> */
       (void)AddrCopy(newRef, ref, length);  /* .exposed.seg */
@@ -1977,6 +2002,11 @@ static Res AMCHeaderFix(Pool pool, ScanState ss, Seg seg, Ref *refIO)
   amcGen gen;          /* generation of old copy of object */
   TraceSet grey;       /* greyness of object being relocated */
   Seg toSeg;           /* segment to which object is being relocated */
+  ZEIStruct summary;
+  ZEIStruct toSummary;
+  PoolGen pgen;
+  Serial nr;
+  GenDesc genDesc;
 
   /* <design/trace/#fix.noaver> */
   AVERT_CRITICAL(Pool, pool);
@@ -2002,6 +2032,7 @@ static Res AMCHeaderFix(Pool pool, ScanState ss, Seg seg, Ref *refIO)
     /* we will lose some pointer fixes because we introduced a */
     /* nailboard). */
     if(SegNailed(seg) == TraceSetEMPTY) {
+      /* FIXME: Is this promote in the right place? */
       amcSegPromote(seg, pool);
       res = amcSegCreateNailboard(seg, pool);
       if(res != ResOK)
@@ -2076,11 +2107,24 @@ static Res AMCHeaderFix(Pool pool, ScanState ss, Seg seg, Ref *refIO)
       if(SegRankSet(seg) != RankSetEMPTY) /* not for AMCZ */
         grey = TraceSetUnion(grey, ss->traces);
       SegSetGrey(toSeg, TraceSetUnion(SegGrey(toSeg), grey));
-      SegSetSummary(toSeg, RefSetUnion(SegSummary(toSeg), SegSummary(seg)));
-#ifdef EPOCH_FORWARD
-      SegSetRefEpoch(toSeg, EPOCH_MAX(SegRefEpoch(toSeg), SegRefEpoch(seg)));
-#endif
-      SegSetBirthEpoch(toSeg, EPOCH_MIN(SegBirthEpoch(toSeg), SegBirthEpoch(seg)));
+      /* Both seg and toSeg must be protectable GCSegs. 
+       * the from seg is protectable because it is being scanned
+       * The to seg is protectable because it is the forwarding buffer
+       * for a protectable seg. */
+      SegGetSummary(&summary, seg);
+      SegGetSummary(&toSummary, toSeg);
+      ZEIGrow(&toSummary, &summary);
+      SegSetSummary(toSeg, &toSummary);
+      EraIntervalGrow(SegContents(toSeg), SegContents(seg));
+      pgen = &amcSegGen(toSeg)->pgen;
+      nr = pgen->nr;
+      if(nr < pgen->chain->genCount) {
+        genDesc = &pgen->chain->gens[nr];
+      } else {
+        genDesc = &arena->topGen;
+      }
+      EraIntervalGrow(&genDesc->contents.eras, SegContents(seg));
+
 
       /* <design/trace/#fix.copy> */
       (void)AddrCopy(newBase, AddrSub(ref, headerSize), length);  /* .exposed.seg */

@@ -196,6 +196,8 @@ Bool GlobalsCheck(Globals arenaGlobals)
   CHECKL(arena->tracedTime >= 0.0);
   /* no check for arena->lastWorldCollect (Clock) */
 
+  CHECKL(arena->era >= EraMIN && arena->era < EraINFINITY);
+  
   /* can't write a check for arena->epoch */
 
   /* check that each history entry is a subset of the next oldest */
@@ -313,6 +315,8 @@ Res GlobalsInit(Globals arenaGlobals)
     RingInit(&arena->greyRing[rank]);
   STATISTIC(arena->writeBarrierHitCount = 0);
   RingInit(&arena->chainRing);
+
+  arena->era = EraMIN;
 
   arena->epoch = (Epoch)0;              /* <code/ld.c> */
   arena->prehistory = RefSetEMPTY;
@@ -955,8 +959,6 @@ void ArenaPoke(Arena arena, Ref *p, Ref ref)
 
 void ArenaPokeSeg(Arena arena, Seg seg, Ref *p, Ref ref)
 {
-  RefSet summary;
-
   AVERT(Arena, arena);
   AVERT(Seg, seg);
   AVER(SegBase(seg) <= (Addr)p);
@@ -966,10 +968,8 @@ void ArenaPokeSeg(Arena arena, Seg seg, Ref *p, Ref ref)
 
   ShieldExpose(arena, seg);
   *p = ref;
-  summary = SegSummary(seg);
-  summary = RefSetAdd(arena, summary, (Addr)ref);
-  SegSetSummary(seg, summary);
-  /* FIXME update ref epoch */
+  /* This must be a protectable GC Seg */
+  SegSummaryGrowRefPast(seg, ref);
   ShieldCover(arena, seg);
 }
 

@@ -81,6 +81,15 @@ ZoneSet ZoneSetOfSeg(Arena arena, Seg seg)
 }
 
 
+/* ZEIOfSeg -- calculate approximation of seg contents */
+
+void ZEIOfSeg(ZEI zei, Seg seg, Arena arena)
+{
+  AVERT(Seg, seg);
+  EraIntervalCopy(&zei->eras, SegContents(seg));
+  ZEISetZoneSet(zei, ZoneSetOfSeg(arena, seg));
+}
+
 /* C. COPYRIGHT AND LICENSE
  *
  * Copyright (C) 2001-2002 Ravenbrook Limited <http://www.ravenbrook.com/>.
