@@ -294,11 +294,23 @@ typedef struct SegStruct {      /* segment structure */
 typedef struct GCSegStruct {    /* GC segment structure */
   SegStruct segStruct;          /* superclass fields must come first */
   RingStruct greyRing;          /* link in list of grey segs */
-  RingStruct pgenRing;          /* link in list of poolgens */
   RefSet summary;               /* summary of references out of seg */
   Buffer buffer;                /* non-NULL if seg is buffered */
   Sig sig;                      /* <design/sig/> */
 } GCSegStruct;
+
+
+/* GenSegStruct -- Generation segments structure
+ *
+ * GenSeg is a subclass of GCSeg with support for generations. */
+
+#define GenSegSig      ((Sig)0x5199E45E) /* SIGnature GEN SEg  */
+
+typedef struct GenSegStruct {   /* Gen segment structure */
+  GCSegStruct gcsegStruct;      /* superclass fields must come first */
+  RingStruct pgenRing;          /* link in list of poolgens */
+  Sig sig;                      /* <design/sig/> */
+} GenSegStruct;
 
 
 /* SegPrefStruct -- segment preference structure

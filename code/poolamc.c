@@ -85,7 +85,7 @@ typedef struct amcSegStruct *amcSeg;
 #define amcSegSig      ((Sig)0x519A3C59) /* SIGnature AMC SeG */
 
 typedef struct amcSegStruct {
-  GCSegStruct gcSegStruct;  /* superclass fields must come first */
+  GenSegStruct genSegStruct;/* superclass fields must come first */
   amcGen gen;               /* generation this segment belongs to */
   Nailboard board;          /* nailboard for this segment or NULL if none */
   Bool new;                 /* .seg-ramp-new */
@@ -99,7 +99,7 @@ typedef struct amcSegStruct {
 static Bool amcSegCheck(amcSeg amcseg)
 {
   CHECKS(amcSeg, amcseg);
-  CHECKD(GCSeg, &amcseg->gcSegStruct);
+  CHECKD(GenSeg, &amcseg->genSegStruct);
   CHECKU(amcGen, amcseg->gen);
   if (amcseg->board) {
     CHECKD(Nailboard, amcseg->board);
@@ -335,7 +335,7 @@ static Res AMCSegDescribe(Seg seg, mps_lib_FILE *stream)
 
 DEFINE_SEG_CLASS(amcSegClass, class)
 {
-  INHERIT_CLASS(class, GCSegClass);
+  INHERIT_CLASS(class, GenSegClass);
   SegClassMixInNoSplitMerge(class);  /* no support for this (yet) */
   class->name = "AMCSEG";
   class->size = sizeof(amcSegStruct);

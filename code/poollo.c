@@ -44,7 +44,7 @@ typedef struct LOSegStruct *LOSeg;
 #define LOSegSig      ((Sig)0x519705E9) /* SIGnature LO SEG */
 
 typedef struct LOSegStruct {
-  GCSegStruct gcSegStruct;  /* superclass fields must come first */
+  GenSegStruct genSegStruct;/* superclass fields must come first */
   LO lo;                    /* owning LO */
   BT mark;                  /* mark bit table */
   BT alloc;                 /* alloc bit table */
@@ -67,7 +67,7 @@ static void loSegFinish(Seg seg);
 
 DEFINE_SEG_CLASS(LOSegClass, class)
 {
-  INHERIT_CLASS(class, GCSegClass);
+  INHERIT_CLASS(class, GenSegClass);
   SegClassMixInNoSplitMerge(class);
   class->name = "LOSEG";
   class->size = sizeof(LOSegStruct);
@@ -82,7 +82,7 @@ DEFINE_SEG_CLASS(LOSegClass, class)
 static Bool LOSegCheck(LOSeg loseg)
 {
   CHECKS(LOSeg, loseg);
-  CHECKD(GCSeg, &loseg->gcSegStruct);
+  CHECKD(GenSeg, &loseg->genSegStruct);
   CHECKU(LO, loseg->lo);
   CHECKL(loseg->mark != NULL);
   CHECKL(loseg->alloc != NULL);

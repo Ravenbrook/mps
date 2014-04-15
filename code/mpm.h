@@ -671,9 +671,11 @@ extern Buffer SegBuffer(Seg seg);
 extern void SegSetBuffer(Seg seg, Buffer buffer);
 extern Bool SegCheck(Seg seg);
 extern Bool GCSegCheck(GCSeg gcseg);
+extern Bool GenSegCheck(GenSeg genseg);
 extern Bool SegClassCheck(SegClass class);
 extern SegClass SegClassGet(void);
 extern SegClass GCSegClassGet(void);
+extern SegClass GenSegClassGet(void);
 extern void SegClassMixInNoSplitMerge(SegClass class);
 
 

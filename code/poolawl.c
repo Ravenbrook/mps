@@ -104,16 +104,13 @@ static Bool AWLCheck(AWL awl);
   (AddrOffset((base), (p)) >> (awl)->alignShift)
 
 
-/* AWLSegStruct -- AWL segment subclass
- *
- * Subclass of GCSeg
- */
+/* AWLSegStruct -- AWL segment subclass */
 
 #define AWLSegSig ((Sig)0x519A3759) /* SIGnature AWL SeG */
 
 /* <design/poolawl/#seg> */
 typedef struct AWLSegStruct {
-  GCSegStruct gcSegStruct;  /* superclass fields must come first */
+  GenSegStruct genSegStruct;  /* superclass fields must come first */
   BT mark;
   BT scanned;
   BT alloc;
@@ -134,7 +131,7 @@ extern SegClass AWLSegClassGet(void);
 static Bool AWLSegCheck(AWLSeg awlseg)
 {
   CHECKS(AWLSeg, awlseg);
-  CHECKD(GCSeg, &awlseg->gcSegStruct);
+  CHECKD(GenSeg, &awlseg->genSegStruct);
   CHECKL(awlseg->mark != NULL);
   CHECKL(awlseg->scanned != NULL);
   CHECKL(awlseg->alloc != NULL);
@@ -282,7 +279,7 @@ static void AWLSegFinish(Seg seg)
 
 DEFINE_SEG_CLASS(AWLSegClass, class)
 {
-  INHERIT_CLASS(class, GCSegClass);
+  INHERIT_CLASS(class, GenSegClass);
   SegClassMixInNoSplitMerge(class);  /* no support for this (yet) */
   class->name = "AWLSEG";
   class->size = sizeof(AWLSegStruct);

@@ -36,6 +36,14 @@ SRCID(seg, "$Id$");
 
 #define SegGCSeg(seg)             ((GCSeg)(seg))
 
+/* GCSegGenSeg -- convert GCSeg to GenSeg */
+
+#define GCSegGenSeg(gcseg)        ((GenSeg)(gcseg))
+
+/* SegGenSeg -- convert generic Seg to GenSeg */
+
+#define SegGenSeg(seg)            GCSegGenSeg(SegGCSeg(seg))
+
 /* SegPoolRing -- Pool ring accessor */
 
 #define SegPoolRing(seg)          (&(seg)->poolRing)
@@ -1105,9 +1113,6 @@ Bool GCSegCheck(GCSeg gcseg)
   CHECKD_NOSIG(Ring, &gcseg->greyRing);
   CHECKL((seg->grey == TraceSetEMPTY) ==
          RingIsSingle(&gcseg->greyRing));
-  CHECKD_NOSIG(Ring, &gcseg->pgenRing);
-  /* Can't check !RingIsSingle() because seg doesn't get placed in generation until ChainAlloc */
-  /* CHECKL(!RingIsSingle(&gcseg->pgenRing)); */
 
   if (seg->rankSet == RankSetEMPTY) {
     /* <design/seg/#field.rankSet.empty> */
@@ -1148,7 +1153,6 @@ static Res gcSegInit(Seg seg, Pool pool, Addr base, Size size,
   gcseg->summary = RefSetEMPTY;
   gcseg->buffer = NULL;
   RingInit(&gcseg->greyRing);
-  RingInit(&gcseg->pgenRing);
   gcseg->sig = GCSegSig;
 
   AVERT(GCSeg, gcseg);
@@ -1172,7 +1176,6 @@ static void gcSegFinish(Seg seg)
     RingRemove(&gcseg->greyRing);
     seg->grey = TraceSetEMPTY;
   }
-  RingRemove(&gcseg->pgenRing);
   gcseg->summary = RefSetEMPTY;
 
   gcseg->sig = SigInvalid;
@@ -1649,6 +1652,201 @@ static Res gcSegDescribe(Seg seg, mps_lib_FILE *stream)
 }
 
 
+/* Class GenSeg -- Segment class with Generational GC support
+ */
+
+
+/* GenSegCheck -- check the integrity of a GenSeg */
+
+Bool GenSegCheck(GenSeg genseg)
+{
+  GCSeg gcseg;
+  CHECKS(GenSeg, genseg);
+  gcseg = &genseg->gcsegStruct;
+  CHECKD(GCSeg, gcseg);
+
+  CHECKD_NOSIG(Ring, &genseg->pgenRing);
+  /* Can't check !RingIsSingle() because seg doesn't get placed in generation until ChainAlloc */
+  /* CHECKL(!RingIsSingle(&genseg->pgenRing)); */
+
+  return TRUE;
+}
+
+
+/* genSegInit -- method to initialize a GenSeg */
+
+static Res genSegInit(Seg seg, Pool pool, Addr base, Size size,
+                      Bool withReservoirPermit, ArgList args)
+{
+  SegClass super;
+  GenSeg genseg;
+  Arena arena;
+  Align align;
+  Res res;
+
+  AVERT(Seg, seg);
+  AVERT(Pool, pool);
+  arena = PoolArena(pool);
+  align = ArenaAlign(arena);
+  AVER(AddrIsAligned(base, align));
+  AVER(SizeIsAligned(size, align));
+  genseg = SegGenSeg(seg);
+  AVER(&genseg->gcsegStruct == SegGCSeg(seg));
+  AVERT(Bool, withReservoirPermit);
+
+  /* Initialize the superclass fields first via next-method call */
+  super = SEG_SUPERCLASS(GenSegClass);
+  res = super->init(seg, pool, base, size, withReservoirPermit, args);
+  if (ResOK != res)
+    return res;
+
+  RingInit(&genseg->pgenRing);
+  genseg->sig = GenSegSig;
+
+  AVERT(GenSeg, genseg);
+  return ResOK;
+}
+
+
+/* genSegFinish -- finish a GenSeg */
+
+static void genSegFinish(Seg seg)
+{
+  SegClass super;
+  GenSeg genseg;
+
+  AVERT(Seg, seg);
+  genseg = SegGenSeg(seg);
+  AVERT(GenSeg, genseg);
+
+  RingRemove(&genseg->pgenRing);
+  RingFinish(&genseg->pgenRing);
+
+  genseg->sig = SigInvalid;
+
+  /* finish the superclass fields last */
+  super = SEG_SUPERCLASS(GenSegClass);
+  super->finish(seg);
+}
+
+
+/* genSegMerge -- GenSeg merge method */
+
+static Res genSegMerge(Seg seg, Seg segHi,
+                      Addr base, Addr mid, Addr limit,
+                      Bool withReservoirPermit)
+{
+  SegClass super;
+  GenSeg genseg, gensegHi;
+  Res res;
+
+  AVERT(Seg, seg);
+  AVERT(Seg, segHi);
+  genseg = SegGenSeg(seg);
+  gensegHi = SegGenSeg(segHi);
+  AVERT(GenSeg, genseg);
+  AVERT(GenSeg, gensegHi);
+  AVER(base < mid);
+  AVER(mid < limit);
+  AVER(SegBase(seg) == base);
+  AVER(SegLimit(seg) == mid);
+  AVER(SegBase(segHi) == mid);
+  AVER(SegLimit(segHi) == limit);
+  AVERT(Bool, withReservoirPermit);
+
+  /* Merge the superclass fields via next-method call */
+  super = SEG_SUPERCLASS(GenSegClass);
+  res = super->merge(seg, segHi, base, mid, limit,
+                     withReservoirPermit);
+  if (res != ResOK)
+    goto failSuper;
+
+  /* Would like to check they belong to the same generation. */
+  /* AVER(genseg->pgen == gensegHi->pgen); */
+
+  /* Finish gensegHi. */
+  gensegHi->sig = SigInvalid;
+  RingRemove(&gensegHi->pgenRing);
+  RingFinish(&gensegHi->pgenRing);
+
+  AVERT(GenSeg, genseg);
+  return ResOK;
+
+failSuper:
+  AVERT(GenSeg, genseg);
+  AVERT(GenSeg, gensegHi);
+  return res;
+}
+
+
+/* genSegSplit -- GenSeg split method */
+
+static Res genSegSplit(Seg seg, Seg segHi,
+                       Addr base, Addr mid, Addr limit,
+                       Bool withReservoirPermit)
+{
+  SegClass super;
+  GenSeg genseg, gensegHi;
+  Res res;
+
+  AVERT(Seg, seg);
+  AVER(segHi != NULL);  /* can't check fully, it's not initialized */
+  genseg = SegGenSeg(seg);
+  gensegHi = SegGenSeg(segHi);
+  AVERT(GenSeg, genseg);
+  AVER(base < mid);
+  AVER(mid < limit);
+  AVER(SegBase(seg) == base);
+  AVER(SegLimit(seg) == limit);
+  AVERT(Bool, withReservoirPermit);
+ 
+  /* Split the superclass fields via next-method call */
+  super = SEG_SUPERCLASS(GenSegClass);
+  res = super->split(seg, segHi, base, mid, limit,
+                     withReservoirPermit);
+  if (res != ResOK)
+    goto failSuper;
+
+  /* Full initialization for segHi. */
+  RingInit(&gensegHi->pgenRing);
+  gensegHi->sig = GenSegSig;
+
+  /* Put segHi in the same poolgen as seg */
+  AVER(!RingIsSingle(&genseg->pgenRing));
+  RingAppend(&genseg->pgenRing, &gensegHi->pgenRing);
+
+  AVERT(GenSeg, genseg);
+  AVERT(GenSeg, gensegHi);
+  return ResOK;
+
+failSuper:
+  AVERT(GenSeg, genseg);
+  return res;
+}
+
+
+/* genSegDescribe -- GenSeg description method */
+
+static Res genSegDescribe(Seg seg, mps_lib_FILE *stream)
+{
+  Res res;
+  SegClass super;
+  GenSeg genseg;
+
+  if (!TESTT(Seg, seg)) return ResFAIL;
+  if (stream == NULL) return ResFAIL;
+  genseg = SegGenSeg(seg);
+  if (!TESTT(GenSeg, genseg)) return ResFAIL;
+
+  /* Describe the superclass fields first via next-method call */
+  super = SEG_SUPERCLASS(GenSegClass);
+  res = super->describe(seg, stream);
+  if (res != ResOK) return res;
+
+  return ResOK;
+}
+
+
 /* SegClassCheck -- check a segment class */
 
 Bool SegClassCheck(SegClass class)
@@ -1715,6 +1913,24 @@ DEFINE_CLASS(GCSegClass, class)
   class->merge = gcSegMerge;
   class->split = gcSegSplit;
   class->describe = gcSegDescribe;
+  AVERT(SegClass, class);
+}
+
+
+/* GenSegClass -- Generational GC-supporting segment class definition */
+
+typedef SegClassStruct GenSegClassStruct;
+
+DEFINE_CLASS(GenSegClass, class)
+{
+  INHERIT_CLASS(class, GCSegClass);
+  class->name = "GENSEG";
+  class->size = sizeof(GenSegStruct);
+  class->init = genSegInit;
+  class->finish = genSegFinish;
+  class->merge = genSegMerge;
+  class->split = genSegSplit;
+  class->describe = genSegDescribe;
   AVERT(SegClass, class);
 }
 

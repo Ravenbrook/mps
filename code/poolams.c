@@ -48,7 +48,7 @@ Bool AMSSegCheck(AMSSeg amsseg)
 {
   Seg seg = AMSSeg2Seg(amsseg);
   CHECKS(AMSSeg, amsseg);
-  CHECKD(GCSeg, &amsseg->gcSegStruct);
+  CHECKD(GenSeg, &amsseg->genSegStruct);
   CHECKU(AMS, amsseg->ams);
   CHECKL(AMS2Pool(amsseg->ams) == SegPool(seg));
   CHECKD_NOSIG(Ring, &amsseg->segRing);
@@ -610,7 +610,7 @@ static Res AMSSegDescribe(Seg seg, mps_lib_FILE *stream)
 
 DEFINE_CLASS(AMSSegClass, class)
 {
-  INHERIT_CLASS(class, GCSegClass);
+  INHERIT_CLASS(class, GenSegClass);
   class->name = "AMSSEG";
   class->size = sizeof(AMSSegStruct);
   class->init = AMSSegInit;

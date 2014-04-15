@@ -55,7 +55,7 @@ typedef struct AMSStruct {
 
 
 typedef struct AMSSegStruct {
-  GCSegStruct gcSegStruct;  /* superclass fields must come first */
+  GenSegStruct genSegStruct;  /* superclass fields must come first */
   AMS ams;               /* owning ams */
   RingStruct segRing;    /* ring that this seg belongs to */
   Count grains;          /* number of grains */

@@ -247,7 +247,7 @@ Res ChainAlloc(Seg *segReturn, PoolGen pgen,
   Seg seg;
   ZoneSet zones, moreZones;
   Arena arena;
-  GCSeg gcseg;
+  GenSeg genseg;
   Chain chain;
   Serial genNr;
 
@@ -270,10 +270,10 @@ Res ChainAlloc(Seg *segReturn, PoolGen pgen,
   res = SegAlloc(&seg, class, &pref, size, pgen->pool, withReservoirPermit, args);
   if (res != ResOK)
     return res;
-  gcseg = PARENT(GCSegStruct, segStruct, seg);
-  AVERT(GCSeg, gcseg);
+  genseg = (GenSeg)(seg);
+  AVERT(GenSeg, genseg);
   /* FIXME: should this be in SegAlloc? */
-  RingAppend(&pgen->segRing, &gcseg->pgenRing);
+  RingAppend(&pgen->segRing, &genseg->pgenRing);
 
   moreZones = ZoneSetUnion(zones, ZoneSetOfSeg(arena, seg));
   

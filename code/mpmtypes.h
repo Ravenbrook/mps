@@ -90,8 +90,10 @@ typedef struct ChunkCacheEntryStruct *ChunkCacheEntry; /* <code/tract.c> */
 typedef union PageUnion *Page;          /* <code/tract.c> */
 typedef struct SegStruct *Seg;          /* <code/seg.c> */
 typedef struct GCSegStruct *GCSeg;      /* <code/seg.c> */
+typedef struct GenSegStruct *GenSeg;      /* <code/seg.c> */
 typedef struct SegClassStruct *SegClass; /* <code/seg.c> */
 typedef SegClass GCSegClass;            /* <code/seg.c> */
+typedef SegClass GenSegClass;            /* <code/seg.c> */
 typedef struct SegPrefStruct *SegPref;  /* design.mps.pref, <code/locus.c> */
 typedef int SegPrefKind;                /* design.mps.pref, <code/locus.c> */
 typedef struct mps_arena_class_s *ArenaClass; /* <design/arena/> */
