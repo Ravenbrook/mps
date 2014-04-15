@@ -294,6 +294,7 @@ typedef struct SegStruct {      /* segment structure */
 typedef struct GCSegStruct {    /* GC segment structure */
   SegStruct segStruct;          /* superclass fields must come first */
   RingStruct greyRing;          /* link in list of grey segs */
+  RingStruct pgenRing;          /* link in list of poolgens */
   RefSet summary;               /* summary of references out of seg */
   Buffer buffer;                /* non-NULL if seg is buffered */
   Sig sig;                      /* <design/sig/> */

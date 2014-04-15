@@ -291,9 +291,9 @@ static Res loSegCreate(LOSeg *loSegReturn, Pool pool, Size size,
   lo = PoolPoolLO(pool);
   AVERT(LO, lo);
 
-  res = ChainAlloc(&seg, lo->chain, lo->pgen.nr, EnsureLOSegClass(),
+  res = ChainAlloc(&seg, &lo->pgen, EnsureLOSegClass(),
                    SizeAlignUp(size, ArenaAlign(PoolArena(pool))),
-                   pool, withReservoirPermit, argsNone);
+                   withReservoirPermit, argsNone);
   if (res != ResOK)
     return res;
 

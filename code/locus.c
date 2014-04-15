@@ -235,9 +235,11 @@ size_t ChainGens(Chain chain)
 
 
 /* ChainAlloc -- allocate tracts in a generation */
+/* FIXME: rename PoolGenAlloc? */
 
-Res ChainAlloc(Seg *segReturn, Chain chain, Serial genNr, SegClass class,
-               Size size, Pool pool, Bool withReservoirPermit,
+Res ChainAlloc(Seg *segReturn, PoolGen pgen,
+               SegClass class, Size size,
+               Bool withReservoirPermit,
                ArgList args)
 {
   SegPrefStruct pref;
@@ -245,7 +247,13 @@ Res ChainAlloc(Seg *segReturn, Chain chain, Serial genNr, SegClass class,
   Seg seg;
   ZoneSet zones, moreZones;
   Arena arena;
+  GCSeg gcseg;
+  Chain chain;
+  Serial genNr;
 
+  AVERT(PoolGen, pgen);
+  chain = pgen->chain;
+  genNr = pgen->nr;
   AVERT(Chain, chain);
   AVER(genNr <= chain->genCount);
 
@@ -259,9 +267,13 @@ Res ChainAlloc(Seg *segReturn, Chain chain, Serial genNr, SegClass class,
   pref.high = FALSE;
   pref.zones = zones;
   pref.avoid = ZoneSetBlacklist(arena);
-  res = SegAlloc(&seg, class, &pref, size, pool, withReservoirPermit, args);
+  res = SegAlloc(&seg, class, &pref, size, pgen->pool, withReservoirPermit, args);
   if (res != ResOK)
     return res;
+  gcseg = PARENT(GCSegStruct, segStruct, seg);
+  AVERT(GCSeg, gcseg);
+  /* FIXME: should this be in SegAlloc? */
+  RingAppend(&pgen->segRing, &gcseg->pgenRing);
 
   moreZones = ZoneSetUnion(zones, ZoneSetOfSeg(arena, seg));
   
@@ -424,6 +436,7 @@ Res PoolGenInit(PoolGen gen, Chain chain, Serial nr, Pool pool)
   gen->pool = pool;
   gen->chain = chain;
   RingInit(&gen->genRing);
+  RingInit(&gen->segRing); /* Starts empty */
   gen->totalSize = (Size)0;
   gen->newSize = (Size)0;
   gen->sig = PoolGenSig;
@@ -447,6 +460,8 @@ void PoolGenFinish(PoolGen gen)
 
   gen->sig = SigInvalid;
   RingRemove(&gen->genRing);
+  RingFinish(&gen->genRing);
+  RingFinish(&gen->segRing);
 }
 
 
@@ -459,6 +474,7 @@ Bool PoolGenCheck(PoolGen gen)
   CHECKU(Pool, gen->pool);
   CHECKU(Chain, gen->chain);
   CHECKD_NOSIG(Ring, &gen->genRing);
+  CHECKD_NOSIG(Ring, &gen->segRing);
   CHECKL(gen->newSize <= gen->totalSize);
   return TRUE;
 }

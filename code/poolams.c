@@ -686,14 +686,14 @@ static Res AMSSegCreate(Seg *segReturn, Pool pool, Size size,
   if (res != ResOK)
     goto failSize;
 
-  res = ChainAlloc(&seg, ams->chain, ams->pgen.nr, (*ams->segClass)(),
-                   prefSize, pool, withReservoirPermit, argsNone);
+  res = ChainAlloc(&seg, &ams->pgen, (*ams->segClass)(),
+                   prefSize, withReservoirPermit, argsNone);
   if (res != ResOK) { /* try to allocate one that's just large enough */
     Size minSize = SizeAlignUp(size, ArenaAlign(arena));
     if (minSize == prefSize)
       goto failSeg;
-    res = ChainAlloc(&seg, ams->chain, ams->pgen.nr, (*ams->segClass)(),
-                     prefSize, pool, withReservoirPermit, argsNone);
+    res = ChainAlloc(&seg, &ams->pgen, (*ams->segClass)(),
+                     prefSize, withReservoirPermit, argsNone);
     if (res != ResOK)
       goto failSeg;
   }

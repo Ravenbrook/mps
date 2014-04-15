@@ -1105,6 +1105,9 @@ Bool GCSegCheck(GCSeg gcseg)
   CHECKD_NOSIG(Ring, &gcseg->greyRing);
   CHECKL((seg->grey == TraceSetEMPTY) ==
          RingIsSingle(&gcseg->greyRing));
+  CHECKD_NOSIG(Ring, &gcseg->pgenRing);
+  /* Can't check !RingIsSingle() because seg doesn't get placed in generation until ChainAlloc */
+  /* CHECKL(!RingIsSingle(&gcseg->pgenRing)); */
 
   if (seg->rankSet == RankSetEMPTY) {
     /* <design/seg/#field.rankSet.empty> */
@@ -1145,6 +1148,7 @@ static Res gcSegInit(Seg seg, Pool pool, Addr base, Size size,
   gcseg->summary = RefSetEMPTY;
   gcseg->buffer = NULL;
   RingInit(&gcseg->greyRing);
+  RingInit(&gcseg->pgenRing);
   gcseg->sig = GCSegSig;
 
   AVERT(GCSeg, gcseg);
@@ -1168,6 +1172,7 @@ static void gcSegFinish(Seg seg)
     RingRemove(&gcseg->greyRing);
     seg->grey = TraceSetEMPTY;
   }
+  RingRemove(&gcseg->pgenRing);
   gcseg->summary = RefSetEMPTY;
 
   gcseg->sig = SigInvalid;

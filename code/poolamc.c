@@ -1017,8 +1017,8 @@ static Res AMCBufferFill(Addr *baseReturn, Addr *limitReturn,
   alignedSize = SizeAlignUp(size, ArenaAlign(arena));
   MPS_ARGS_BEGIN(args) {
     MPS_ARGS_ADD_FIELD(args, amcKeySegGen, p, gen);
-    res = ChainAlloc(&seg, amc->chain, PoolGenNr(pgen), amcSegClassGet(),
-                     alignedSize, pool, withReservoirPermit, args);
+    res = ChainAlloc(&seg, pgen, amcSegClassGet(),
+                     alignedSize, withReservoirPermit, args);
   } MPS_ARGS_END(args);
   if(res != ResOK)
     return res;

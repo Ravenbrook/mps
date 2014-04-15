@@ -49,6 +49,7 @@ typedef struct PoolGenStruct {
   Chain chain;        /* chain this belongs to */
   /* link in ring of all PoolGen's in this GenDesc (locus) */
   RingStruct genRing;
+  RingStruct segRing; /* ring of all Seg's in this generation */
   Size totalSize;     /* total size of segs in gen in this pool */
   Size newSize;       /* size allocated since last GC */
   /* newSize when TraceCreate was called. This is used in the
@@ -85,8 +86,8 @@ extern Res ChainCondemnAll(Chain chain, Trace trace);
 extern void ChainStartGC(Chain chain, Trace trace);
 extern void ChainEndGC(Chain chain, Trace trace);
 extern size_t ChainGens(Chain chain);
-extern Res ChainAlloc(Seg *segReturn, Chain chain, Serial genNr,
-                      SegClass class, Size size, Pool pool,
+extern Res ChainAlloc(Seg *segReturn, PoolGen pgen,
+                      SegClass class, Size size,
                       Bool withReservoirPermit, ArgList args);
 
 extern Bool PoolGenCheck(PoolGen gen);
