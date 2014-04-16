@@ -391,48 +391,6 @@ However, bit table still has to be iterated over to count the free
 grains. Also, in a debug pool, each white block has to be splatted.
 
 
-Segment merging and splitting
-.............................
-
-_`.split-merge`: We provide methods for splitting and merging AMS
-segments. The pool implementation doesn't cause segments to be split
-or merged -- but a subclass might want to do this (see
-`.stress.split-merge`_). The methods serve as an example of how to
-implement this facility.
-
-_`.split-merge.constrain`: There are some additional constraints on
-what segments may be split or merged:
-
-- _`.split-merge.constrain.align`: Segments may only be split or
-  merged at an address which is aligned to the pool alignment as well
-  as to the arena alignment.
-
-  _`.split-merge.constrain.align.justify`: This constraint is implied
-  by the design of allocation and colour tables, which cannot
-  represent segments starting at unaligned addresses. The constraint
-  only arises if the pool alignment is larger than the arena
-  alignment. There's no requirement to split segments at unaligned
-  addresses.
-
-- _`.split-merge.constrain.empty`: The higher segment must be empty.
-  That is, the higher segment passed to ``SegMerge()`` must be empty,
-  and the higher segment returned by ``SegSplit()`` must be empty.
-
-  _`.split-merge.constrain.empty.justify`: This constraint makes the
-  code significantly simpler. There's no requirement for a more
-  complex solution at the moment (as the purpose is primarily
-  pedagogic).
-
-_`.split-merge.fail`: The split and merge methods are not proper
-anti-methods for each other (see
-design.mps.seg.split-merge.fail.anti.no). Methods will not reverse the
-side-effects of their counterparts if the allocation of the colour and
-allocation bit tables should fail. Client methods which over-ride
-split and merge should not be written in such a way that they might
-detect failure after calling the next method, unless they have reason
-to know that the bit table allocations will not fail.
-
-
 Testing
 -------
 
@@ -440,11 +398,6 @@ _`.stress`: There's a stress test, MMsrc!amsss.c, that does 800 kB of
 allocation, enough for about three GCs. It uses a modified Dylan
 format, and checks for corruption by the GC. Both ambiguous and exact
 roots are tested.
-
-_`.stress.split-merge`: There's also a stress test for segment
-splitting and merging, MMsrc!segsmss.c. This is similar to amsss.c --
-but it defines a subclass of AMS, and causes segments to be split and
-merged. Both buffered and non-buffered segments are split / merged.
 
 
 Notes
@@ -482,6 +435,8 @@ Document History
 - 2002-06-20 NB_ Re-imported from Global Graphics.
 
 - 2013-05-23 GDR_ Converted to reStructuredText.
+
+- 2014-04-16 GDR_ Removed material on splitting and merging.
 
 .. _NB: http://www.ravenbrook.com/consultants/nb/
 .. _RB: http://www.ravenbrook.com/consultants/rb/
