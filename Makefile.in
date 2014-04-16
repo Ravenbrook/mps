@@ -46,9 +46,9 @@ clean-xcode-build:
 install-xcode-build: make-install-dirs build-via-xcode
 	$(INSTALL_DATA) code/mps*.h $(prefix)/include/
 	$(INSTALL_DATA) code/xc/Debug/libmps.a $(prefix)/lib/libmps-debug.a
-	$(INSTALL_DATA) code/xc/Debug/libmps.dylib $(prefix)/lib/libmps-debug.dylib
+	$(INSTALL_DATA) code/xc/Debug/mps.dylib $(prefix)/lib/libmps-debug.dylib
 	$(INSTALL_DATA) code/xc/Release/libmps.a $(prefix)/lib/libmps.a
-	$(INSTALL_DATA) code/xc/Release/libmps.dylib $(prefix)/lib/libmps.dylib
+	$(INSTALL_DATA) code/xc/Release/mps.dylib $(prefix)/lib/libmps.dylib
 	$(INSTALL_PROGRAM) $(addprefix code/xc/Release/,$(EXTRA_TARGETS)) $(prefix)/bin
 
 Makefile: Makefile.in config.status
