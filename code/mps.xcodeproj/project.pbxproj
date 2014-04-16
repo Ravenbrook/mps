@@ -1336,7 +1336,7 @@
 		2231BB6718CA97DC002D6322 /* locusss */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = locusss; sourceTree = BUILT_PRODUCTS_DIR; };
 		2231BB6818CA9834002D6322 /* locbwcss.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = locbwcss.c; sourceTree = "<group>"; };
 		2231BB6918CA983C002D6322 /* locusss.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = locusss.c; sourceTree = "<group>"; };
-		223A19A518FD2CE200AF81C1 /* libmps.dylib */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.dylib"; includeInIndex = 0; path = libmps.dylib; sourceTree = BUILT_PRODUCTS_DIR; };
+		223A19A518FD2CE200AF81C1 /* mps.dylib */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.dylib"; includeInIndex = 0; path = mps.dylib; sourceTree = BUILT_PRODUCTS_DIR; };
 		224CC799175E1821002FF81B /* fotest */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = fotest; sourceTree = BUILT_PRODUCTS_DIR; };
 		224CC79E175E3202002FF81B /* fotest.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = fotest.c; sourceTree = "<group>"; };
 		22561A9618F4263300372C66 /* testthr.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = testthr.h; sourceTree = "<group>"; };
@@ -2283,7 +2283,7 @@
 				22FACEED18880983000FDBC1 /* airtest */,
 				22C2ACAF18BE400A006B3677 /* nailboardtest */,
 				22F846BD18F437B900982BA7 /* lockut */,
-				223A19A518FD2CE200AF81C1 /* libmps.dylib */,
+				223A19A518FD2CE200AF81C1 /* mps.dylib */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -2526,7 +2526,7 @@
 			);
 			name = "mps-shared";
 			productName = "mps-shared";
-			productReference = 223A19A518FD2CE200AF81C1 /* libmps.dylib */;
+			productReference = 223A19A518FD2CE200AF81C1 /* mps.dylib */;
 			productType = "com.apple.product-type.library.dynamic";
 		};
 		224CC78C175E1821002FF81B /* fotest */ = {
@@ -4432,7 +4432,7 @@
 				CLANG_WARN_ENUM_CONVERSION = YES;
 				CLANG_WARN_INT_CONVERSION = YES;
 				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
-				EXECUTABLE_PREFIX = lib;
+				EXECUTABLE_PREFIX = "";
 				GCC_C_LANGUAGE_STANDARD = gnu99;
 				GCC_DYNAMIC_NO_PIC = NO;
 				GCC_ENABLE_OBJC_EXCEPTIONS = YES;
@@ -4466,7 +4466,7 @@
 				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
 				COPY_PHASE_STRIP = YES;
 				ENABLE_NS_ASSERTIONS = NO;
-				EXECUTABLE_PREFIX = lib;
+				EXECUTABLE_PREFIX = "";
 				GCC_C_LANGUAGE_STANDARD = gnu99;
 				GCC_ENABLE_OBJC_EXCEPTIONS = YES;
 				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
@@ -4494,7 +4494,7 @@
 				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
 				COPY_PHASE_STRIP = YES;
 				ENABLE_NS_ASSERTIONS = NO;
-				EXECUTABLE_PREFIX = lib;
+				EXECUTABLE_PREFIX = "";
 				GCC_C_LANGUAGE_STANDARD = gnu99;
 				GCC_ENABLE_OBJC_EXCEPTIONS = YES;
 				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
@@ -5729,6 +5729,7 @@
 				223A19A818FD2CE200AF81C1 /* RASH */,
 			);
 			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
 		};
 		224CC795175E1821002FF81B /* Build configuration list for PBXNativeTarget "fotest" */ = {
 			isa = XCConfigurationList;
