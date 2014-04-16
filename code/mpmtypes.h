@@ -166,12 +166,6 @@ typedef void (*SegSetSummaryMethod)(Seg seg, RefSet summary);
 typedef Buffer (*SegBufferMethod)(Seg seg);
 typedef void (*SegSetBufferMethod)(Seg seg, Buffer buffer);
 typedef Res (*SegDescribeMethod)(Seg seg, mps_lib_FILE *stream);
-typedef Res (*SegMergeMethod)(Seg seg, Seg segHi,
-                              Addr base, Addr mid, Addr limit,
-                              Bool withReservoirPermit);
-typedef Res (*SegSplitMethod)(Seg seg, Seg segHi,
-                              Addr base, Addr mid, Addr limit,
-                              Bool withReservoirPermit);
 
 /* Buffer*Method -- see <design/buffer/> */
 
@@ -184,7 +178,6 @@ typedef void (*BufferDetachMethod)(Buffer buffer);
 typedef Seg (*BufferSegMethod)(Buffer buffer);
 typedef RankSet (*BufferRankSetMethod)(Buffer buffer);
 typedef void (*BufferSetRankSetMethod)(Buffer buffer, RankSet rankSet);
-typedef void (*BufferReassignSegMethod)(Buffer buffer, Seg seg);
 typedef Res (*BufferDescribeMethod)(Buffer buffer, mps_lib_FILE *stream);
 
 

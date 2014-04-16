@@ -47,7 +47,6 @@ ALL_TEST_CASES="
     poolncv
     qs
     sacss
-    segsmss
     steptest
     walkt0
     zmess

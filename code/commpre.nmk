@@ -89,7 +89,6 @@ TEST_TARGETS=\
     poolncv.exe \
     qs.exe \
     sacss.exe \
-    segsmss.exe \
     steptest.exe \
     teletest.exe \
     walkt0.exe \

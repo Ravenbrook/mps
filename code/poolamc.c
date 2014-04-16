@@ -336,7 +336,6 @@ static Res AMCSegDescribe(Seg seg, mps_lib_FILE *stream)
 DEFINE_SEG_CLASS(amcSegClass, class)
 {
   INHERIT_CLASS(class, GCSegClass);
-  SegClassMixInNoSplitMerge(class);  /* no support for this (yet) */
   class->name = "AMCSEG";
   class->size = sizeof(amcSegStruct);
   class->init = AMCSegInit;
