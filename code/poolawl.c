@@ -283,7 +283,6 @@ static void AWLSegFinish(Seg seg)
 DEFINE_SEG_CLASS(AWLSegClass, class)
 {
   INHERIT_CLASS(class, GCSegClass);
-  SegClassMixInNoSplitMerge(class);  /* no support for this (yet) */
   class->name = "AWLSEG";
   class->size = sizeof(AWLSegStruct);
   class->init = AWLSegInit;

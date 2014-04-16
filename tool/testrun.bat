@@ -52,7 +52,6 @@ set ALL_TEST_CASES=^
     poolncv.exe ^
     qs.exe ^
     sacss.exe ^
-    segsmss.exe ^
     steptest.exe ^
     walkt0.exe ^
     zmess.exe

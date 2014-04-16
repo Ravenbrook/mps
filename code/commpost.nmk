@@ -222,9 +222,6 @@ $(PFM)\$(VARIETY)\qs.exe: $(PFM)\$(VARIETY)\qs.obj \
 $(PFM)\$(VARIETY)\sacss.exe: $(PFM)\$(VARIETY)\sacss.obj \
 	$(PFM)\$(VARIETY)\mps.lib $(TESTLIBOBJ)
 
-$(PFM)\$(VARIETY)\segsmss.exe: $(PFM)\$(VARIETY)\segsmss.obj \
-	$(PFM)\$(VARIETY)\mps.lib $(FMTTESTOBJ) $(TESTLIBOBJ)
-
 $(PFM)\$(VARIETY)\steptest.exe: $(PFM)\$(VARIETY)\steptest.obj \
 	$(PFM)\$(VARIETY)\mps.lib $(FMTTESTOBJ) $(TESTLIBOBJ)
 

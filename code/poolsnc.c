@@ -258,7 +258,6 @@ static Res sncSegInit(Seg seg, Pool pool, Addr base, Size size,
 DEFINE_SEG_CLASS(SNCSegClass, class)
 {
   INHERIT_CLASS(class, GCSegClass);
-  SegClassMixInNoSplitMerge(class);  /* no support for this (yet) */
   class->name = "SNCSEG";
   class->size = sizeof(SNCSegStruct);
   class->init = sncSegInit;

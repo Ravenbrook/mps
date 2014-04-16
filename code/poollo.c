@@ -68,7 +68,6 @@ static void loSegFinish(Seg seg);
 DEFINE_SEG_CLASS(LOSegClass, class)
 {
   INHERIT_CLASS(class, GCSegClass);
-  SegClassMixInNoSplitMerge(class);
   class->name = "LOSEG";
   class->size = sizeof(LOSegStruct);
   class->init = loSegInit;

@@ -255,8 +255,6 @@ typedef struct SegClassStruct {
   SegSetRankSetMethod setRankSet; /* change rank set of segment */
   SegSetRankSummaryMethod setRankSummary; /* change rank set & summary */
   SegDescribeMethod describe;   /* describe the contents of the seg */
-  SegMergeMethod merge;         /* merge two adjacent segments */
-  SegSplitMethod split;         /* split a segment into two */
   Sig sig;                      /* .class.end-sig */
 } SegClassStruct;
 
@@ -341,7 +339,6 @@ typedef struct BufferClassStruct {
   BufferSegMethod seg;          /* seg of buffer */
   BufferRankSetMethod rankSet;  /* rank set of buffer */
   BufferSetRankSetMethod setRankSet; /* change rank set of buffer */
-  BufferReassignSegMethod reassignSeg; /* change seg of attached buffer */
   Sig sig;                      /* .class.end-sig */
 } BufferClassStruct;
 

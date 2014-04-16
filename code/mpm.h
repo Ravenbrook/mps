@@ -661,10 +661,6 @@ extern void SegSetWhite(Seg seg, TraceSet white);
 extern void SegSetGrey(Seg seg, TraceSet grey);
 extern void SegSetRankSet(Seg seg, RankSet rankSet);
 extern void SegSetRankAndSummary(Seg seg, RankSet rankSet, RefSet summary);
-extern Res SegMerge(Seg *mergedSegReturn, Seg segLo, Seg segHi,
-                    Bool withReservoirPermit);
-extern Res SegSplit(Seg *segLoReturn, Seg *segHiReturn, Seg seg, Addr at,
-                    Bool withReservoirPermit);
 extern Res SegDescribe(Seg seg, mps_lib_FILE *stream);
 extern void SegSetSummary(Seg seg, RefSet summary);
 extern Buffer SegBuffer(Seg seg);
@@ -674,7 +670,6 @@ extern Bool GCSegCheck(GCSeg gcseg);
 extern Bool SegClassCheck(SegClass class);
 extern SegClass SegClassGet(void);
 extern SegClass GCSegClassGet(void);
-extern void SegClassMixInNoSplitMerge(SegClass class);
 
 
 /* DEFINE_SEG_CLASS -- define a segment class */
@@ -779,8 +774,6 @@ extern void BufferSetRankSet(Buffer buffer, RankSet rankset);
 #define BufferAlloc(buffer)     ((Addr)(BufferAP(buffer)->alloc))
 #define BufferLimit(buffer)     ((buffer)->poolLimit)
 extern Addr BufferScanLimit(Buffer buffer);
-
-extern void BufferReassignSeg(Buffer buffer, Seg seg);
 
 extern Bool BufferIsTrapped(Buffer buffer);
 extern Bool BufferIsTrappedByMutator(Buffer buffer);

@@ -298,7 +298,6 @@ static Res MRGRefSegInit(Seg seg, Pool pool, Addr base, Size size,
 DEFINE_SEG_CLASS(MRGLinkSegClass, class)
 {
   INHERIT_CLASS(class, SegClass);
-  SegClassMixInNoSplitMerge(class);  /* no support for this */
   class->name = "MRGLSEG";
   class->size = sizeof(MRGLinkSegStruct);
   class->init = MRGLinkSegInit;
@@ -311,7 +310,6 @@ DEFINE_SEG_CLASS(MRGLinkSegClass, class)
 DEFINE_SEG_CLASS(MRGRefSegClass, class)
 {
   INHERIT_CLASS(class, GCSegClass);
-  SegClassMixInNoSplitMerge(class);  /* no support for this */
   class->name = "MRGRSEG";
   class->size = sizeof(MRGRefSegStruct);
   class->init = MRGRefSegInit;
