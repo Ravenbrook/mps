@@ -55,12 +55,35 @@ typedef unsigned Rank;
 typedef unsigned RankSet;
 typedef unsigned RootMode;
 typedef Size Epoch;                     /* design.mps.ld */
+typedef Size Era;
 typedef unsigned TraceId;               /* <design/trace/> */
 typedef unsigned TraceSet;              /* <design/trace/> */
 typedef unsigned TraceState;            /* <design/trace/> */
 typedef unsigned AccessSet;             /* <design/type/#access-set> */
 typedef unsigned Attr;                  /* <design/type/#attr> */
 typedef int RootVar;                    /* <design/type/#rootvar> */
+
+/* Approximations */
+/* ZoneApprox uses ZoneSet */
+typedef struct ZoneApproxStruct ZoneApproxStruct;
+typedef ZoneApproxStruct *ZoneApprox;
+
+/* Earliest era interval [Era, EraINFINITY] */
+typedef struct EraFirstStruct EraFirstStruct;
+typedef EraFirstStruct *EraFirst;
+
+/* Latest era interval [EraMIN, era] */
+typedef struct EraLastStruct EraLastStruct;
+typedef EraLastStruct *EraLast;
+
+/* Latest era interval [min, max] */
+typedef struct EraIntervalStruct EraIntervalStruct;
+typedef EraIntervalStruct *EraInterval;
+
+/* ZoneSet approx and era interval */
+typedef struct ZEIStruct ZEIStruct;
+typedef ZEIStruct *ZEI;
+
 
 typedef Word *BT;                       /* <design/bt/> */
 typedef struct BootBlockStruct *BootBlock; /* <code/boot.c> */
@@ -164,7 +187,8 @@ typedef void (*SegSetWhiteMethod)(Seg seg, TraceSet white);
 typedef void (*SegSetRankSetMethod)(Seg seg, RankSet rankSet);
 typedef void (*SegSetRankSummaryMethod)(Seg seg, RankSet rankSet,
                                         RefSet summary);
-typedef void (*SegSetSummaryMethod)(Seg seg, RefSet summary);
+typedef void (*SegSetSummaryMethod)(Seg seg, ZEI summary);
+typedef void (*SegGetSummaryMethod)(ZEI summary, Seg seg);
 typedef Buffer (*SegBufferMethod)(Seg seg);
 typedef void (*SegSetBufferMethod)(Seg seg, Buffer buffer);
 typedef Res (*SegDescribeMethod)(Seg seg, mps_lib_FILE *stream);

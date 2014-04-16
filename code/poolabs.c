@@ -447,8 +447,7 @@ Res PoolSingleAccess(Pool pool, Seg seg, Addr addr,
     ref = *(Ref *)addr;
     /* .tagging: ought to check the reference for a tag.  But
      * this is conservative. */
-    SegSetSummary(seg, RefSetAdd(arena, SegSummary(seg), ref));
-
+    SegSummaryGrowRefPast(seg, ref);
     ShieldCover(arena, seg);
 
     return ResOK;

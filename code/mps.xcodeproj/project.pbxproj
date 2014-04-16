@@ -1633,6 +1633,7 @@
 		31FCAE18176924D4008C034C /* scheme.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = scheme.c; path = ../example/scheme/scheme.c; sourceTree = "<group>"; };
 		6313D46618A3FDC900EB03EF /* gcbench.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = gcbench.c; sourceTree = "<group>"; };
 		6313D47218A400B200EB03EF /* gcbench */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = gcbench; sourceTree = BUILT_PRODUCTS_DIR; };
+		632858F618D7703900D2308B /* zei.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = zei.c; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -2372,6 +2373,7 @@
 				310F5D7218B6675F007EFCBC /* tree.h */,
 				31EEAC44156AB32500714D05 /* version.c */,
 				31EEAC0E156AB27B00714D05 /* walk.c */,
+				632858F618D7703900D2308B /* zei.c */,
 			);
 			name = "MPM Core";
 			sourceTree = "<group>";

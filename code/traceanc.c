@@ -642,7 +642,7 @@ typedef struct RememberedSummaryBlockStruct {
   RingStruct globalRing;        /* link on globals->rememberedSummaryRing */
   struct SummaryPair {
     Addr base;
-    RefSet summary;
+    ZEIStruct summary;
   } the[RememberedSummaryBLOCK];
 } RememberedSummaryBlockStruct;
 
@@ -655,16 +655,16 @@ static void rememberedSummaryBlockInit(struct RememberedSummaryBlockStruct *bloc
   RingInit(&block->globalRing);
   for(i = 0; i < RememberedSummaryBLOCK; ++ i) {
     block->the[i].base = (Addr)0;
-    block->the[i].summary = RefSetUNIV;
+    ZEIInitFull(&block->the[i].summary);
   }
 }
 
-static Res arenaRememberSummaryOne(Globals global, Addr base, RefSet summary)
+static Res arenaRememberSummaryOne(Globals global, Addr base, ZEI summary)
 {
   Arena arena;
   RememberedSummaryBlock block;
 
-  AVER(summary != RefSetUNIV);
+  AVER(!ZEIIsFull(summary));
 
   arena = GlobalsArena(global);
 
@@ -686,9 +686,9 @@ static Res arenaRememberSummaryOne(Globals global, Addr base, RefSet summary)
     RingPrev(GlobalsRememberedSummaryRing(global)));
   AVER(global->rememberedSummaryIndex < RememberedSummaryBLOCK);
   AVER(block->the[global->rememberedSummaryIndex].base == (Addr)0);
-  AVER(block->the[global->rememberedSummaryIndex].summary == RefSetUNIV);
+  AVER(ZEIIsFull(&block->the[global->rememberedSummaryIndex].summary));
   block->the[global->rememberedSummaryIndex].base = base;
-  block->the[global->rememberedSummaryIndex].summary = summary;
+  ZEICopy(&block->the[global->rememberedSummaryIndex].summary, summary);
   ++ global->rememberedSummaryIndex;
   if(global->rememberedSummaryIndex >= RememberedSummaryBLOCK) {
     AVER(global->rememberedSummaryIndex == RememberedSummaryBLOCK);
@@ -707,6 +707,7 @@ void ArenaExposeRemember(Globals globals, int remember)
 {
   Seg seg;
   Arena arena;
+  ZEIStruct summary;
 
   AVERT(Globals, globals);
 
@@ -720,11 +721,9 @@ void ArenaExposeRemember(Globals globals, int remember)
       base = SegBase(seg);
       if(IsSubclassPoly(ClassOfSeg(seg), GCSegClassGet())) {
         if(remember) {
-          RefSet summary;
-
-          summary = SegSummary(seg);
-          if(summary != RefSetUNIV) {
-            Res res = arenaRememberSummaryOne(globals, base, summary);
+          SegGetSummary(&summary, seg);
+          if(!ZEIIsFull(&summary)) {
+            Res res = arenaRememberSummaryOne(globals, base, &summary);
             if(res != ResOK) {
               /* If we got an error then stop trying to remember any
               protections. */
@@ -732,7 +731,8 @@ void ArenaExposeRemember(Globals globals, int remember)
             }
           }
         }
-        SegSetSummary(seg, RefSetUNIV);
+        ZEIInitFull(&summary);
+        SegSetSummary(seg, &summary);
         AVER(SegSM(seg) == AccessSetEMPTY);
       }
     } while(SegNext(&seg, arena, seg));
@@ -756,13 +756,13 @@ void ArenaRestoreProtection(Globals globals)
       Bool b;
 
       if(block->the[i].base == (Addr)0) {
-        AVER(block->the[i].summary == RefSetUNIV);
+        AVER(ZEIIsFull(&block->the[i].summary));
         continue;
       }
       b = SegOfAddr(&seg, arena, block->the[i].base);
       if(b && SegBase(seg) == block->the[i].base) {
         AVER(IsSubclassPoly(ClassOfSeg(seg), GCSegClassGet()));
-        SegSetSummary(seg, block->the[i].summary);
+        SegSetSummary(seg, &block->the[i].summary);
       } else {
         /* Either seg has gone or moved, both of which are */
         /* client errors. */

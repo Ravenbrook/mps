@@ -29,6 +29,7 @@ typedef struct GenDescStruct *GenDesc;
 typedef struct GenDescStruct {
   Sig sig;
   ZoneSet zones; /* zoneset for this generation */
+  ZEIStruct contents;   /* approximation of contents of generation */
   Size capacity; /* capacity in kB */
   double mortality;
   double proflow; /* predicted proportion of survivors promoted */

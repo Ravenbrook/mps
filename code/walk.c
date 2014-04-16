@@ -191,7 +191,7 @@ static void rootsStepClosureInit(rootsStepClosure rsc,
   /* First initialize the ScanState superclass */
   ss = &rsc->ssStruct;
   ScanStateInit(ss, TraceSetSingle(trace), GlobalsArena(arena), RankAMBIG,
-                trace->white);
+                TraceWhiteZoneSet(trace));
 
   /* Initialize the fix method in the ScanState */
   ss->fix = rootFix;

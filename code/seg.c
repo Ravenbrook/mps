@@ -213,7 +213,7 @@ failInit:
 
 
 /* SegFinish -- finish a segment */
-
+/* .seg.finish.merge: Segs are also finished when merging */
 static void SegFinish(Seg seg)
 {
   Arena arena;
@@ -305,25 +305,47 @@ void SegSetRankSet(Seg seg, RankSet rankSet)
 {
   AVERT(Seg, seg);
   AVERT(RankSet, rankSet);
-  AVER(rankSet != RankSetEMPTY || SegSummary(seg) == RefSetEMPTY);
   seg->class->setRankSet(seg, rankSet);
 }
 
 
 /* SegSetSummary -- change the summary on a segment */
 
-void SegSetSummary(Seg seg, RefSet summary)
+void SegSetSummary(Seg seg, ZEI summary)
 {
   AVERT(Seg, seg);
-  AVER(summary == RefSetEMPTY || SegRankSet(seg) != RankSetEMPTY);
-
+  AVER(ZEIIsEmpty(summary) || SegRankSet(seg) != RankSetEMPTY);
 #ifdef PROTECTION_NONE
-  summary = RefSetUNIV;
+  {
+    ZEI full;
+    ZEIInitFull(full);
+    /* FIXME: what about if */
+    seg->class->setSummary(seg, &full);
+    return;
+  }
 #endif
-  if (summary != SegSummary(seg))
-    seg->class->setSummary(seg, summary);
+  /* FIXME: Can't do SegSummary on non gc seg. */
+  /* Is it a gc seg or not ? */
+  seg->class->setSummary(seg, summary);
 }
 
+
+/* SegGetSummary -- get the summary on a segment */
+
+void SegGetSummary(ZEI summary, Seg seg)
+{
+  AVERT(Seg, seg);
+  seg->class->getSummary(summary, seg);
+}
+
+/* SegSummaryIsFull -- test if the summary on a segment is full */
+
+Bool SegSummaryIsFull(Seg seg)
+{
+  ZEIStruct summary;
+  SegGetSummary(&summary, seg);
+  return ZEIIsFull(&summary);
+}
 
 /* SegSetRankAndSummary -- set both the rank set and the summary */
 
@@ -360,6 +382,21 @@ void SegSetBuffer(Seg seg, Buffer buffer)
   seg->class->setBuffer(seg, buffer);
 }
 
+/* SegSegSummaryGrowRefPast - add one reference */
+
+void SegSummaryGrowRefPast(Seg seg, Ref ref)
+{
+  ZEIStruct summary;
+  ZEIStruct extra;
+  Arena arena = PoolArena(SegPool(seg));
+
+  /* FIXME: this doesn't seem like good code */
+  ZEIInitFull(&extra);
+  ZEIBoundPast(&extra, arena);
+  ZEISetZoneSet(&extra, ZoneSetAddAddr(arena, ZoneSetEMPTY, ref));
+  ZEIGrow(&summary, &extra);
+  SegSetSummary(seg, &summary);
+}
 
 /* SegDescribe -- describe a segment */
 
@@ -819,7 +856,17 @@ static void segNoSetRankSet(Seg seg, RankSet rankSet)
 
 /* segNoSetSummary -- non-method to set the summary of a segment */
 
-static void segNoSetSummary(Seg seg, RefSet summary)
+static void segNoSetSummary(Seg seg, ZEI summary)
+{
+  AVERT(Seg, seg);
+  UNUSED(summary);
+  NOTREACHED;
+}
+
+
+/* segNoGetSummary -- non-method to get the summary of a segment */
+
+static void segNoGetSummary(ZEI summary, Seg seg)
 {
   AVERT(Seg, seg);
   UNUSED(summary);
@@ -935,6 +982,7 @@ static Res segTrivMerge(Seg seg, Seg segHi,
   AVER(addr == seg->limit);
 
   /* Finish segHi. */
+  /* seg.finish.merge */
   RingRemove(SegPoolRing(segHi));
   RingFinish(SegPoolRing(segHi));
   segHi->sig = SigInvalid;
@@ -1109,6 +1157,9 @@ Bool GCSegCheck(GCSeg gcseg)
     CHECKL(BufferRankSet(gcseg->buffer) == SegRankSet(seg));
   }
 
+  /* Nothing to check for summary */
+  /* Nothing to check for contents */
+
   /* The segment should be on a grey ring if and only if it is grey. */
   CHECKD_NOSIG(Ring, &gcseg->greyRing);
   CHECKL((seg->grey == TraceSetEMPTY) ==
@@ -1116,7 +1167,7 @@ Bool GCSegCheck(GCSeg gcseg)
 
   if (seg->rankSet == RankSetEMPTY) {
     /* <design/seg/#field.rankSet.empty> */
-    CHECKL(gcseg->summary == RefSetEMPTY);
+    CHECKL(ZEIIsEmpty(&gcseg->summary));
   }
 
   return TRUE;
@@ -1150,7 +1201,9 @@ static Res gcSegInit(Seg seg, Pool pool, Addr base, Size size,
   if (ResOK != res)
     return res;
 
-  gcseg->summary = RefSetEMPTY;
+  /* reference summary approximation is empty until rank is set */
+  ZEIInitEmpty(&gcseg->summary);
+  EraIntervalInitEmpty(&gcseg->contents);
   gcseg->buffer = NULL;
   RingInit(&gcseg->greyRing);
   gcseg->sig = GCSegSig;
@@ -1161,7 +1214,7 @@ static Res gcSegInit(Seg seg, Pool pool, Addr base, Size size,
 
 
 /* gcSegFinish -- finish a GC segment */
-
+/* .seg.finish.merge.gc: Segs are also finished when merging */
 static void gcSegFinish(Seg seg)
 {
   SegClass super;
@@ -1176,7 +1229,7 @@ static void gcSegFinish(Seg seg)
     RingRemove(&gcseg->greyRing);
     seg->grey = TraceSetEMPTY;
   }
-  gcseg->summary = RefSetEMPTY;
+  ZEIInitEmpty(&gcseg->summary);
 
   gcseg->sig = SigInvalid;
 
@@ -1362,17 +1415,28 @@ static void gcSegSetRankSet(Seg seg, RankSet rankSet)
 
   if (oldRankSet == RankSetEMPTY) {
     if (rankSet != RankSetEMPTY) {
-      AVER(gcseg->summary == RefSetEMPTY);
+      AVER(ZEIIsEmpty(&gcseg->summary));
       ShieldRaise(arena, seg, AccessWRITE);
     }
   } else {
     if (rankSet == RankSetEMPTY) {
-      AVER(gcseg->summary == RefSetEMPTY);
+      AVER(ZEIIsEmpty(&gcseg->summary));
       ShieldLower(arena, seg, AccessWRITE);
     }
   }
 }
 
+
+/* gcSegGetSummary -- GCSeg method to get the summary on a segment */
+
+static void gcSegGetSummary(ZEI summary, Seg seg)
+{
+  GCSeg gcseg;
+  AVERT(Seg, seg); /* TODO: maybe AVER_CRITICAL */
+  gcseg = SegGCSeg(seg);
+  AVERT(GCSeg, gcseg);
+  ZEICopy(summary, &gcseg->summary);
+}
 
 /* gcSegSetSummary -- GCSeg method to change the summary on a segment
  *
@@ -1380,13 +1444,13 @@ static void gcSegSetRankSet(Seg seg, RankSet rankSet)
  * segment contains references, and its summary is strictly smaller
  * than the summary of the unprotectable data (i.e. the mutator).
  * We don't maintain such a summary, assuming that the mutator can
- * access all references, so its summary is RefSetUNIV.
+ * access all references, so its summary is full.
  */
 
-static void gcSegSetSummary(Seg seg, RefSet summary)
+static void gcSegSetSummary(Seg seg, ZEI summary)
 {
   GCSeg gcseg;
-  RefSet oldSummary;
+  Bool wasShielded;
   Arena arena;
 
   AVERT_CRITICAL(Seg, seg);                 /* .seg.method.check */
@@ -1394,22 +1458,30 @@ static void gcSegSetSummary(Seg seg, RefSet summary)
   AVERT_CRITICAL(GCSeg, gcseg);
   AVER_CRITICAL(&gcseg->segStruct == seg);
 
-  arena = PoolArena(SegPool(seg));
-  oldSummary = gcseg->summary;
-  gcseg->summary = summary;
+  wasShielded = !ZEIIsFull(&gcseg->summary);
+  ZEICopy(&gcseg->summary, summary);
 
   AVER(seg->rankSet != RankSetEMPTY);
 
-  /* Note: !RefSetSuper is a test for a strict subset */
-  if (!RefSetSuper(summary, RefSetUNIV)) {
-    if (RefSetSuper(oldSummary, RefSetUNIV))
+  arena = PoolArena(SegPool(seg));
+
+  if (!ZEIIsFull(summary)) {
+    if (!wasShielded)
       ShieldRaise(arena, seg, AccessWRITE);
   } else {
-    if (!RefSetSuper(oldSummary, RefSetUNIV))
+    if (wasShielded)
       ShieldLower(arena, seg, AccessWRITE);
   }
 }
 
+EraInterval SegContents(Seg seg)
+{
+  GCSeg gcseg;
+
+  gcseg = SegGCSeg(seg);
+  AVERT(GCSeg, gcseg);
+  return &gcseg->contents;
+}
 
 /* gcSegSetRankSummary -- GCSeg method to set both rank set and summary */
 
@@ -1432,11 +1504,18 @@ static void gcSegSetRankSummary(Seg seg, RankSet rankSet, RefSet summary)
 
   arena = PoolArena(SegPool(seg));
 
-  wasShielded = (seg->rankSet != RankSetEMPTY && gcseg->summary != RefSetUNIV);
+  wasShielded = (seg->rankSet != RankSetEMPTY && !ZEIIsFull(&gcseg->summary));
   willbeShielded = (rankSet != RankSetEMPTY && summary != RefSetUNIV);
+  AVER(!willbeShielded);
+  if (rankSet == RankSetEMPTY) {
+    AVER(summary == RefSetEMPTY);
+    ZEIInitEmpty(&gcseg->summary);
+  } else {
+    AVER(summary == RefSetUNIV);
+    ZEIInitFull(&gcseg->summary);
+  }
 
   seg->rankSet = BS_BITFIELD(Rank, rankSet);
-  gcseg->summary = summary;
 
   if (willbeShielded && !wasShielded) {
     ShieldRaise(arena, seg, AccessWRITE);
@@ -1491,9 +1570,10 @@ static Res gcSegMerge(Seg seg, Seg segHi,
   SegClass super;
   GCSeg gcseg, gcsegHi;
   TraceSet grey;
-  RefSet summary;
+  ZEIStruct summary;
   Buffer buf;
   Res res;
+  Bool wasShielded, shielded;
 
   AVERT(Seg, seg);
   AVERT(Seg, segHi);
@@ -1520,17 +1600,21 @@ static Res gcSegMerge(Seg seg, Seg segHi,
                      withReservoirPermit);
   if (res != ResOK)
     goto failSuper;
-
+/* FIXME what test exercises gcSegMerge? */
   /* Update fields of gcseg. Finish gcsegHi. */
-  summary = RefSetUnion(gcseg->summary, gcsegHi->summary);
-  if (summary != gcseg->summary) {
-    gcSegSetSummary(seg, summary);
+  ZEICopy(&summary, &gcseg->summary);
+  ZEIGrow(&summary, &gcsegHi->summary);
+  wasShielded = !ZEIIsFull(&gcseg->summary);
+  gcSegSetSummary(seg, &summary);
+  shielded = !ZEIIsFull(&gcseg->summary);
+  if (wasShielded ^ shielded) {
     /* <design/seg/#split-merge.shield.re-flush> */
     ShieldFlush(PoolArena(SegPool(seg)));
   }
 
+  /* .seg.finish.merge.gc */
   gcSegSetGreyInternal(segHi, grey, TraceSetEMPTY);
-  gcsegHi->summary = RefSetEMPTY;
+  ZEIInitEmpty(&gcsegHi->summary);
   gcsegHi->sig = SigInvalid;
   RingFinish(&gcsegHi->greyRing);
 
@@ -1595,6 +1679,7 @@ static Res gcSegSplit(Seg seg, Seg segHi,
 
   /* Full initialization for segHi. */
   gcsegHi->summary = gcseg->summary;
+  ZEICopy(&gcsegHi->summary, &gcseg->summary);
   gcsegHi->buffer = NULL;
   RingInit(&gcsegHi->greyRing);
   gcsegHi->sig = GCSegSig;
@@ -1636,7 +1721,11 @@ static Res gcSegDescribe(Seg seg, mps_lib_FILE *stream)
   if (res != ResOK) return res;
 
   res = WriteF(stream,
-               "  summary $W\n", (WriteFW)gcseg->summary,
+               "  summary zones $W\n", (WriteFW)gcseg->summary.za.zones,
+               "  summary era min $U\n", (WriteFU)gcseg->summary.eras.min.era,
+               "  summary era max $U\n", (WriteFU)gcseg->summary.eras.max.era,
+               "  era min $U\n", (WriteFU)gcseg->contents.min.era,
+               "  era max $U\n", (WriteFU)gcseg->contents.max.era,
                NULL);
   if (res != ResOK) return res;
 
@@ -1877,8 +1966,9 @@ DEFINE_CLASS(SegClass, class)
   class->size = sizeof(SegStruct);
   class->init = segTrivInit;
   class->finish = segTrivFinish;
-  class->setSummary = segNoSetSummary; 
-  class->buffer = segNoBuffer; 
+  class->setSummary = segNoSetSummary;
+  class->getSummary = segNoGetSummary;
+  class->buffer = segNoBuffer;
   class->setBuffer = segNoSetBuffer; 
   class->setGrey = segNoSetGrey;
   class->setWhite = segNoSetWhite;
@@ -1903,8 +1993,9 @@ DEFINE_CLASS(GCSegClass, class)
   class->size = sizeof(GCSegStruct);
   class->init = gcSegInit;
   class->finish = gcSegFinish;
-  class->setSummary = gcSegSetSummary; 
-  class->buffer = gcSegBuffer; 
+  class->setSummary = gcSegSetSummary;
+  class->getSummary = gcSegGetSummary;
+  class->buffer = gcSegBuffer;
   class->setBuffer = gcSegSetBuffer; 
   class->setGrey = gcSegSetGrey;
   class->setWhite = gcSegSetWhite;

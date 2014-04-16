@@ -81,6 +81,16 @@ ZoneSet ZoneSetOfSeg(Arena arena, Seg seg)
 }
 
 
+/* ZEIOfSeg -- calculate approximation of seg contents */
+
+void ZEIOfSeg(ZEI zei, Seg seg, Arena arena)
+{
+  AVERT(Seg, seg);
+  EraIntervalCopy(&zei->eras, SegContents(seg));
+  ZEISetZoneSet(zei, ZoneSetOfSeg(arena, seg));
+}
+
+
 /* RangeInZoneSetFirst -- find an area of address space within a zone set
  *
  * Given a range of addresses, find the first sub-range of at least size that

@@ -323,6 +323,13 @@ void BufferDetach(Buffer buffer, Pool pool)
     /* Use of lightweight frames must have been disabled by now */
     AVER(BufferFrameState(buffer) == BufferFrameDISABLED);
 
+    if ((pool->class->attr & AttrGC) != 0 && buffer->isMutator) {
+      /* NOTE: the mutator is longer allocating on the segment so limit eras to past */
+      Seg seg = BufferSeg(buffer);
+      GCSeg gcseg = SegGCSeg(seg);
+      AVERT(GCSeg, gcseg);
+      EraIntervalBoundPast(SegContents(seg), buffer->arena);
+    }
     /* run any class-specific detachment method */
     buffer->class->detach(buffer);
 
@@ -670,10 +677,39 @@ void BufferAttach(Buffer buffer, Addr base, Addr limit,
   /* run any class-specific attachment method */
   buffer->class->attach(buffer, base, limit, init, size);
 
+  {
+    Seg seg;
+    Pool pool = BufferPool(buffer);
+    EraIntervalStruct eras;
+
+    seg = BufferSeg(buffer);
+
+    /* We need to record on a segment an approximation of the eras
+     * the objects in the segment were created in.
+     * There are various ways to do this:
+     * 1. Keep track of the eras on the buffer and copy them over at detach.
+     * 2. ...
+     * 3a. Union any seg mutator buffer with future.
+     * 3b. Limit eras to past on detach.
+     * Forwarding buffers need to behave differently
+     */
+    if ((pool->class->attr & AttrGC) != 0) {
+      GCSeg gcseg = SegGCSeg(BufferSeg(buffer));
+      AVERT(GCSeg, gcseg);
+      EraIntervalInitFull(&eras);
+      /* NOTE: It's up to the pools to update eras for non-mutator buffers.  In
+       * particular forwarding buffers need to have the EraInterval updated from
+       * the (segments of) objects they are forwarding from. */
+      if (buffer->isMutator) {
+        EraIntervalBoundFuture(&eras, buffer->arena);
+        EraIntervalGrow(SegContents(seg), &eras);
+      }
+    }
+  }
+
   AVERT(Buffer, buffer);
   EVENT4(BufferFill, buffer, size, base, filled);
 }
-
 
 /* BufferFill -- refill an empty buffer
  *
@@ -699,6 +735,7 @@ Res BufferFill(Addr *pReturn, Buffer buffer, Size size,
 
   /* If we're here because the buffer was trapped, then we attempt */
   /* the allocation here. */
+  /* FIXME: no don't; just unflip and detach the buffer. */
   if (!BufferIsReset(buffer) && buffer->ap_s.limit == (Addr)0) {
     /* .fill.unflip: If the buffer is flipped then we unflip the buffer. */
     if (buffer->mode & BufferModeFLIPPED) {
@@ -711,6 +748,10 @@ Res BufferFill(Addr *pReturn, Buffer buffer, Size size,
     }
 
     /* .fill.logged: If the buffer is logged then we leave it logged. */
+    /* FIXME: the buffer's seg may have been forwarded to a new generation, so
+     * don't do any more allocation here. */
+    AVER(buffer->ap_s.alloc == buffer->ap_s.init);
+    if (FALSE) {
     next = AddrAdd(buffer->ap_s.alloc, size);
     if (next > (Addr)buffer->ap_s.alloc &&
         next <= (Addr)buffer->poolLimit) {
@@ -721,11 +762,12 @@ Res BufferFill(Addr *pReturn, Buffer buffer, Size size,
       *pReturn = buffer->ap_s.init;
       return ResOK;
     }
+    }
   }
 
   /* There really isn't enough room for the allocation now. */
-  AVER(AddrAdd(buffer->ap_s.alloc, size) > buffer->poolLimit ||
-       AddrAdd(buffer->ap_s.alloc, size) < (Addr)buffer->ap_s.alloc);
+  /* AVER(AddrAdd(buffer->ap_s.alloc, size) > buffer->poolLimit ||
+       AddrAdd(buffer->ap_s.alloc, size) < (Addr)buffer->ap_s.alloc); */
 
   BufferDetach(buffer, pool);
 
@@ -846,7 +888,7 @@ Bool BufferTrip(Buffer buffer, Addr p, Size size)
     buffer->ap_s.alloc = p;
     return FALSE;
   }
-
+  
   /* Emit event including class if logged */
   if (buffer->mode & BufferModeLOGGED) {
     Bool b;
