@@ -373,62 +373,6 @@ Res TraceAddWhite(Trace trace, Seg seg)
 }
 
 
-/* TraceCondemnZones -- condemn all objects in the given zones
- *
- * TraceCondemnZones is passed a trace in state TraceINIT, and a set of
- * objects to condemn.
- *
- * @@@@ For efficiency, we ought to find the condemned set and the
- * foundation in one search of the segment ring.  This hasn't been done
- * because some pools still use TraceAddWhite for the condemned set.
- *
- * @@@@ This function would be more efficient if there were a cheaper
- * way to select the segments in a particular zone set.  */
-
-Res TraceCondemnZones(Trace trace, ZoneSet condemnedSet)
-{
-  Seg seg;
-  Arena arena;
-  Res res;
-
-  AVERT(Trace, trace);
-  AVER(condemnedSet != ZoneSetEMPTY);
-  AVER(trace->state == TraceINIT);
-  AVER(trace->white == ZoneSetEMPTY);
-
-  arena = trace->arena;
-
-  if(SegFirst(&seg, arena)) {
-    do {
-      /* Segment should be black now. */
-      AVER(!TraceSetIsMember(SegGrey(seg), trace));
-      AVER(!TraceSetIsMember(SegWhite(seg), trace));
-
-      /* A segment can only be white if it is GC-able. */
-      /* This is indicated by the pool having the GC attribute */
-      /* We only condemn segments that fall entirely within */
-      /* the requested zone set.  Otherwise, we would bloat the */
-      /* foundation to no gain.  Note that this doesn't exclude */
-      /* any segments from which the condemned set was derived, */
-      if(PoolHasAttr(SegPool(seg), AttrGC)
-         && ZoneSetSuper(condemnedSet, ZoneSetOfSeg(arena, seg)))
-      {
-        res = TraceAddWhite(trace, seg);
-        if(res != ResOK)
-          return res;
-      }
-    } while (SegNext(&seg, arena, seg));
-  }
-
-  EVENT3(TraceCondemnZones, trace, condemnedSet, trace->white);
-
-  /* The trace's white set must be a subset of the condemned set */
-  AVER(ZoneSetSuper(condemnedSet, trace->white));
-
-  return ResOK;
-}
-
-
 /* traceFlipBuffers -- flip all buffers in the arena */
 
 static void traceFlipBuffers(Globals arena)
@@ -1518,6 +1462,10 @@ static Res traceCondemnAll(Trace trace)
       goto failBegin;
     haveWhiteSegs = TRUE;
   }
+  res = ChainCondemnGen(&arena->topGen, trace);
+  if(res != ResOK)
+    goto failBegin;
+  haveWhiteSegs = TRUE;
   /* Notify all the chains. */
   RING_FOR(chainNode, &arena->chainRing, nextChainNode) {
     Chain chain = RING_ELT(Chain, chainRing, chainNode);

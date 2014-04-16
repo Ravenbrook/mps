@@ -309,6 +309,41 @@ double ChainDeferral(Chain chain)
 }
 
 
+/* ChainCondemnGen -- condemn everything in the gen */
+/* FIXME: name this differently? */
+
+Res ChainCondemnGen(GenDesc gen, Trace trace)
+{
+  Bool haveWhiteSegs = FALSE;
+  Ring node, nextNode;
+  Res res;
+  AVERT(GenDesc, gen);
+  AVERT(Trace, trace);
+
+  RING_FOR(node, &gen->locusRing, nextNode) {
+    PoolGen pgen = RING_ELT(PoolGen, genRing, node);
+    Ring segNode, nextSegNode;
+
+    AVERT(PoolGen, pgen);
+    RING_FOR(segNode, &pgen->segRing, nextSegNode) {
+      GenSeg genseg = PARENT(GenSegStruct, pgenRing, segNode);
+      Seg seg = &genseg->gcsegStruct.segStruct;
+      AVERT(GenSeg, genseg);
+      res = TraceAddWhite(trace, seg);
+      if (res != ResOK)
+        goto failBegin;
+      haveWhiteSegs = TRUE;
+    }
+  }
+ 
+  return ResOK;
+
+failBegin:
+  AVER(!haveWhiteSegs); /* Would leave white sets inconsistent. */
+  return res;
+}
+
+
 /* ChainCondemnAuto -- condemn approriate parts of this chain
  *
  * This is only called if ChainDeferral returned a value sufficiently
@@ -317,10 +352,10 @@ double ChainDeferral(Chain chain)
  */
 Res ChainCondemnAuto(double *mortalityReturn, Chain chain, Trace trace)
 {
+  Bool haveWhiteSegs = FALSE;
   Res res;
   Serial topCondemnedGenSerial, currGenSerial;
   GenDesc gen;
-  ZoneSet condemnedSet = ZoneSetEMPTY;
   Size condemnedSize = 0, survivorSize = 0, genNewSize, genTotalSize;
 
   AVERT(Chain, chain);
@@ -334,12 +369,15 @@ Res ChainCondemnAuto(double *mortalityReturn, Chain chain, Trace trace)
   genNewSize = GenDescNewSize(gen);
   do { /* At this point, we've decided to collect currGenSerial. */
     topCondemnedGenSerial = currGenSerial;
-    condemnedSet = ZoneSetUnion(condemnedSet, gen->zones);
     genTotalSize = GenDescTotalSize(gen);
     condemnedSize += genTotalSize;
     survivorSize += (Size)(genNewSize * (1.0 - gen->mortality))
                     /* predict survivors will survive again */
                     + (genTotalSize - genNewSize);
+    res = ChainCondemnGen(gen, trace);
+    if (res != ResOK)
+      goto failBegin;
+    haveWhiteSegs = TRUE;
 
     /* is there another one to consider? */
     currGenSerial += 1;
@@ -350,47 +388,34 @@ Res ChainCondemnAuto(double *mortalityReturn, Chain chain, Trace trace)
     genNewSize = GenDescNewSize(gen);
   } while (genNewSize >= gen->capacity * (Size)1024);
   
-  AVER(condemnedSet != ZoneSetEMPTY || condemnedSize == 0);
   EVENT3(ChainCondemnAuto, chain, topCondemnedGenSerial, chain->genCount);
   UNUSED(topCondemnedGenSerial); /* only used for EVENT */
-  
-  /* Condemn everything in these zones. */
-  if (condemnedSet != ZoneSetEMPTY) {
-    res = TraceCondemnZones(trace, condemnedSet);
-    if (res != ResOK)
-      return res;
-  }
 
   *mortalityReturn = 1.0 - (double)survivorSize / condemnedSize;
   return ResOK;
+  
+failBegin:
+  AVER(!haveWhiteSegs); /* Would leave white sets inconsistent. */
+  return res;
 }
 
 
-/* ChainCondemnAll -- condemn everything in the chain */
+/* ChainCondemnAll -- condemn everything in the chain
+ * 
+ * The dynamic generation is not condemned
+ */
 
 Res ChainCondemnAll(Chain chain, Trace trace)
 {
-  Ring node, nextNode;
   Bool haveWhiteSegs = FALSE;
+  Serial i;
   Res res;
 
-  /* Condemn every segment in every pool using this chain. */
-  /* Finds the pools by iterating over the PoolGens in gen 0. */
-  RING_FOR(node, &chain->gens[0].locusRing, nextNode) {
-    PoolGen nursery = RING_ELT(PoolGen, genRing, node);
-    Pool pool = nursery->pool;
-    Ring segNode, nextSegNode;
-
-    AVERT(Pool, pool);
-    AVER(PoolHasAttr(pool, AttrGC));
-    RING_FOR(segNode, PoolSegRing(pool), nextSegNode) {
-      Seg seg = SegOfPoolRing(segNode);
-
-      res = TraceAddWhite(trace, seg);
-      if (res != ResOK)
-        goto failBegin;
-      haveWhiteSegs = TRUE;
-    }
+  for(i = 0; i < chain->genCount; i++) {
+    res = ChainCondemnGen(&chain->gens[i], trace);
+    if (res != ResOK)
+      goto failBegin;
+    haveWhiteSegs = TRUE;
   }
  
   return ResOK;
