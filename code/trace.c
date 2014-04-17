@@ -347,6 +347,11 @@ Res TraceAddWhite(Trace trace, Seg seg)
 
   AVERT(Trace, trace);
   AVERT(Seg, seg);
+  /* FIXME this is a hack to allow multiple condemnation of segs
+   * this happens because pinned segs that are condemned in gen 0
+   * may be promoted to gen 1, then condemned again. */
+  if (TraceSetIsMember(SegWhite(seg), trace))
+    return ResOK;
   AVER(!TraceSetIsMember(SegWhite(seg), trace)); /* .start.black */
 
   pool = SegPool(seg);
@@ -522,6 +527,7 @@ static Res traceFlip(Trace trace)
   if(trace->mayMove != ZoneSetEMPTY) {
     LDAge(arena, trace->mayMove);
   }
+  EraAge(arena);
 
   /* .root.rank: At the moment we must scan all roots, because we don't have */
   /* a mechanism for shielding them.  There can't be any weak or final roots */
@@ -1101,6 +1107,7 @@ static Res traceScanSegRes(TraceSet ts, Rank rank, Arena arena, Seg seg)
      * Or the segment is write protected and so the referenced eras cannot
      * have changed, and cannot be to future eras. */
     ZEIBoundPast(&summary, arena);
+    AVER(!ZEIIsFull(&summary));
     SegSetSummary(seg, &summary);
 
     ScanStateFinish(ss);

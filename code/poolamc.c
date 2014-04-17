@@ -737,6 +737,7 @@ static void amcSegPromote(Seg seg, Pool pool) {
   amcGen gen, newgen;
   Size size;
   Serial nr, fwdnr;
+  GenSeg genseg;
 
   amc = Pool2AMC(pool);
   AVERT(AMC, amc);
@@ -763,6 +764,10 @@ static void amcSegPromote(Seg seg, Pool pool) {
       gen->pgen.newSize -= size;
       newgen->pgen.newSize += size;
     }
+    /* FIXME: add some abstraction here */
+    genseg = (GenSeg)seg;
+    RingRemove(&genseg->pgenRing);
+    RingAppend(&newgen->pgen.segRing, &genseg->pgenRing);
 
     amcSegSetGen(seg, newgen);
   }
@@ -1803,6 +1808,7 @@ static Res AMCFix(Pool pool, ScanState ss, Seg seg, Ref *refIO)
     } while(!BUFFER_COMMIT(buffer, newRef, length));
     ss->copiedSize += length;
 
+    AVER(newRef != NULL);
     (*format->move)(ref, newRef);  /* .exposed.seg */
   } else {
     /* reference to broken heart (which should be snapped out -- */
@@ -2155,6 +2161,7 @@ static void AMCReclaim(Pool pool, Trace trace, Seg seg)
 
   if(SegNailed(seg) != TraceSetEMPTY) {
     amcReclaimNailed(pool, trace, seg);
+    AVER(SegWhite(seg) == TraceSetEMPTY);
     return;
   }
 

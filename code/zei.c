@@ -210,7 +210,7 @@ Bool EraIntervalIsEmpty(EraInterval ei)
 
 Bool EraIntervalIsFull(EraInterval ei)
 {
-  return EraFirstIsFull(&ei->min) || EraLastIsFull(&ei->max);
+  return EraFirstIsFull(&ei->min) && EraLastIsFull(&ei->max);
 }
 
 void ZEIInitEmpty(ZEI zei)
