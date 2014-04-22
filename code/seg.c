@@ -391,6 +391,7 @@ void SegSummaryGrowRefPast(Seg seg, Ref ref)
   Arena arena = PoolArena(SegPool(seg));
 
   /* FIXME: this doesn't seem like good code */
+  SegGetSummary(&summary, seg);
   ZEIInitFull(&extra);
   ZEIBoundPast(&extra, arena);
   ZEISetZoneSet(&extra, ZoneSetAddAddr(arena, ZoneSetEMPTY, ref));
