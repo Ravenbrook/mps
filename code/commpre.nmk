@@ -168,7 +168,8 @@ MPMCOMMON=\
     <tract> \
     <tree> \
     <vmw3> \
-    <walk>
+    <walk> \
+    <zei>
 PLINTH = <mpsliban> <mpsioan>
 AMC = <poolamc>
 AMS = <poolams> <poolamsi>
