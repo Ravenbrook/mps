@@ -10,9 +10,9 @@
  * references by testing for intersection.
  */
 
-SRCID(zei, "$Id$");
-
 #include "mpm.h"
+
+SRCID(zei, "$Id$");
 
 void ZoneApproxInitEmpty(ZoneApprox za)
 {

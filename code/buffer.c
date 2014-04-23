@@ -326,7 +326,8 @@ void BufferDetach(Buffer buffer, Pool pool)
     if ((pool->class->attr & AttrGC) != 0 && buffer->isMutator) {
       /* NOTE: the mutator is longer allocating on the segment so limit eras to past */
       Seg seg = BufferSeg(buffer);
-      GCSeg gcseg = SegGCSeg(seg);
+      /* FIXME: use SegGCSeg */
+      GCSeg gcseg = (GCSeg)seg;
       AVERT(GCSeg, gcseg);
       EraIntervalBoundPast(SegContents(seg), buffer->arena);
     }
@@ -678,11 +679,8 @@ void BufferAttach(Buffer buffer, Addr base, Addr limit,
   buffer->class->attach(buffer, base, limit, init, size);
 
   {
-    Seg seg;
     Pool pool = BufferPool(buffer);
     EraIntervalStruct eras;
-
-    seg = BufferSeg(buffer);
 
     /* We need to record on a segment an approximation of the eras
      * the objects in the segment were created in.
@@ -694,7 +692,12 @@ void BufferAttach(Buffer buffer, Addr base, Addr limit,
      * Forwarding buffers need to behave differently
      */
     if ((pool->class->attr & AttrGC) != 0) {
-      GCSeg gcseg = SegGCSeg(BufferSeg(buffer));
+      Seg seg;
+      GCSeg gcseg;
+      seg = BufferSeg(buffer);
+      /* FIXME: use SegGCSeg */
+      gcseg = (GCSeg)seg;
+      
       AVERT(GCSeg, gcseg);
       EraIntervalInitFull(&eras);
       /* NOTE: It's up to the pools to update eras for non-mutator buffers.  In

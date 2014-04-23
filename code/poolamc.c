@@ -1680,9 +1680,6 @@ static Res AMCFix(Pool pool, ScanState ss, Seg seg, Ref *refIO)
   Seg toSeg;           /* segment to which object is being relocated */
   ZEIStruct summary;
   ZEIStruct toSummary;
-  PoolGen pgen;
-  Serial nr;
-  GenDesc genDesc;
 
   /* <design/trace/#fix.noaver> */
   AVERT_CRITICAL(Pool, pool);
@@ -1792,14 +1789,6 @@ static Res AMCFix(Pool pool, ScanState ss, Seg seg, Ref *refIO)
       ZEIGrow(&toSummary, &summary);
       SegSetSummary(toSeg, &toSummary);
       EraIntervalGrow(SegContents(toSeg), SegContents(seg));
-      pgen = &amcSegGen(toSeg)->pgen;
-      nr = pgen->nr;
-      if(nr < pgen->chain->genCount) {
-        genDesc = &pgen->chain->gens[nr];
-      } else {
-        genDesc = &arena->topGen;
-      }
-      EraIntervalGrow(&genDesc->contents.eras, SegContents(seg));
 
       /* <design/trace/#fix.copy> */
       (void)AddrCopy(newRef, ref, length);  /* .exposed.seg */
@@ -1849,9 +1838,6 @@ static Res AMCHeaderFix(Pool pool, ScanState ss, Seg seg, Ref *refIO)
   Seg toSeg;           /* segment to which object is being relocated */
   ZEIStruct summary;
   ZEIStruct toSummary;
-  PoolGen pgen;
-  Serial nr;
-  GenDesc genDesc;
 
   /* <design/trace/#fix.noaver> */
   AVERT_CRITICAL(Pool, pool);
@@ -1964,15 +1950,6 @@ static Res AMCHeaderFix(Pool pool, ScanState ss, Seg seg, Ref *refIO)
       ZEIGrow(&toSummary, &summary);
       SegSetSummary(toSeg, &toSummary);
       EraIntervalGrow(SegContents(toSeg), SegContents(seg));
-      pgen = &amcSegGen(toSeg)->pgen;
-      nr = pgen->nr;
-      if(nr < pgen->chain->genCount) {
-        genDesc = &pgen->chain->gens[nr];
-      } else {
-        genDesc = &arena->topGen;
-      }
-      EraIntervalGrow(&genDesc->contents.eras, SegContents(seg));
-
 
       /* <design/trace/#fix.copy> */
       (void)AddrCopy(newBase, AddrSub(ref, headerSize), length);  /* .exposed.seg */

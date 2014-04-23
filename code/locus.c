@@ -84,7 +84,6 @@ static Bool GenDescCheck(GenDesc gen)
 {
   CHECKS(GenDesc, gen);
   /* nothing to check for zones */
-  /* nothing to check for contents */
   /* nothing to check for capacity */
   CHECKL(gen->mortality >= 0.0);
   CHECKL(gen->mortality <= 1.0);
@@ -155,11 +154,6 @@ Res ChainCreate(Chain *chainReturn, Arena arena, size_t genCount,
 
   for (i = 0; i < genCount; ++i) {
     gens[i].zones = ZoneSetEMPTY;
-    ZEIInitEmpty(&gens[i].contents);
-    /* We add future eras into the approximation, to allow for future
-     * allocation in any generation */
-    /* FIXME: This is dodgy because the zone approx is empty */
-    ZEIGrowFuture(&gens[i].contents, arena);
     gens[i].capacity = params[i].capacity;
     gens[i].mortality = params[i].mortality;
     gens[i].proflow = 1.0; /* @@@@ temporary */
@@ -522,7 +516,6 @@ void LocusInit(Arena arena)
   /* TODO: The mortality estimate here is unjustifiable.  Dynamic generation
      decision making needs to be improved and this constant removed. */
   gen->zones = ZoneSetEMPTY;
-  ZEIInitEmpty(&gen->contents);
   gen->capacity = 0; /* unused */
   gen->mortality = 0.51;
   gen->proflow = 0.0;
