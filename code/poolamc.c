@@ -1780,14 +1780,15 @@ static Res AMCFix(Pool pool, ScanState ss, Seg seg, Ref *refIO)
       if(SegRankSet(seg) != RankSetEMPTY) /* not for AMCZ */
         grey = TraceSetUnion(grey, ss->traces);
       SegSetGrey(toSeg, TraceSetUnion(SegGrey(toSeg), grey));
-      /* Both seg and toSeg must be protectable GCSegs. 
-       * the from seg is protectable because it is being scanned
-       * The to seg is protectable because it is the forwarding buffer
-       * for a protectable seg. */
-      SegGetSummary(&summary, seg);
-      SegGetSummary(&toSummary, toSeg);
-      ZEIGrow(&toSummary, &summary);
-      SegSetSummary(toSeg, &toSummary);
+      /* seg must be a GCSegs. 
+       * the from seg is a GCSeg because it is being scanned
+       * The to seg is a GCSeg but may be in a leaf pool */
+      if (toSeg->rankSet != RankSetEMPTY) {
+        SegGetSummary(&summary, seg);
+        SegGetSummary(&toSummary, toSeg);
+        ZEIGrow(&toSummary, &summary);
+        SegSetSummary(toSeg, &toSummary);
+      }
       EraIntervalGrow(SegContents(toSeg), SegContents(seg));
 
       /* <design/trace/#fix.copy> */
@@ -1941,14 +1942,15 @@ static Res AMCHeaderFix(Pool pool, ScanState ss, Seg seg, Ref *refIO)
       if(SegRankSet(seg) != RankSetEMPTY) /* not for AMCZ */
         grey = TraceSetUnion(grey, ss->traces);
       SegSetGrey(toSeg, TraceSetUnion(SegGrey(toSeg), grey));
-      /* Both seg and toSeg must be protectable GCSegs. 
-       * the from seg is protectable because it is being scanned
-       * The to seg is protectable because it is the forwarding buffer
-       * for a protectable seg. */
-      SegGetSummary(&summary, seg);
-      SegGetSummary(&toSummary, toSeg);
-      ZEIGrow(&toSummary, &summary);
-      SegSetSummary(toSeg, &toSummary);
+      /* seg must be a GCSegs. 
+       * the from seg is a GCSeg because it is being scanned
+       * The to seg is a GCSeg but may be in a leaf pool */
+      if (toSeg->rankSet != RankSetEMPTY) {
+        SegGetSummary(&summary, seg);
+        SegGetSummary(&toSummary, toSeg);
+        ZEIGrow(&toSummary, &summary);
+        SegSetSummary(toSeg, &toSummary);
+      }
       EraIntervalGrow(SegContents(toSeg), SegContents(seg));
 
       /* <design/trace/#fix.copy> */
