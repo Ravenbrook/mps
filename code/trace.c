@@ -1336,6 +1336,7 @@ static Res traceScanSingleRefRes(TraceSet ts, Rank rank, Arena arena,
   ss.scannedSize = sizeof *refIO;
 
   SegSummaryGrowRefPast(seg, *refIO);
+  ShieldCover(arena, seg);
 
   traceSetUpdateCounts(ts, arena, &ss, traceAccountingPhaseSingleScan);
   ScanStateFinish(&ss);
