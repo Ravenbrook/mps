@@ -299,13 +299,21 @@ Res ChainAlloc(Seg *segReturn, PoolGen pgen,
 
 double ChainDeferral(Chain chain)
 {
+  double time = DBL_MAX;
+  size_t i;
+
   AVERT(Chain, chain);
 
-  if (chain->activeTraces != TraceSetEMPTY)
-    return DBL_MAX;
-  else
-    return chain->gens[0].capacity * 1024.0
-           - (double)GenDescNewSize(&chain->gens[0]);
+  if (chain->activeTraces == TraceSetEMPTY) {
+    for (i = 0; i < chain->genCount; ++i) {
+      double genTime = chain->gens[i].capacity * 1024.0
+        - (double)GenDescNewSize(&chain->gens[i]);
+      if (genTime < time)
+        time = genTime;
+    }
+  }
+
+  return time;
 }
 
 
@@ -354,22 +362,37 @@ Res ChainCondemnAuto(double *mortalityReturn, Chain chain, Trace trace)
 {
   Bool haveWhiteSegs = FALSE;
   Res res;
-  Serial topCondemnedGenSerial, currGenSerial;
+  size_t topCondemnedGen, i;
   GenDesc gen;
   Size condemnedSize = 0, survivorSize = 0, genNewSize, genTotalSize;
 
   AVERT(Chain, chain);
   AVERT(Trace, trace);
 
-  /* Find lowest gen within its capacity, set topCondemnedGenSerial to the */
-  /* preceeding one. */
-  currGenSerial = 0;
-  gen = &chain->gens[0];
-  AVERT(GenDesc, gen);
-  genNewSize = GenDescNewSize(gen);
-  do { /* At this point, we've decided to collect currGenSerial. */
-    topCondemnedGenSerial = currGenSerial;
+  /* Find the highest generation that's over capacity. We will condemn
+   * this and all lower generations in the chain. */
+  topCondemnedGen = chain->genCount;
+  for (;;) {
+    /* It's an error to call this function unless some generation is
+     * over capacity as reported by ChainDeferral. */
+    AVER(topCondemnedGen > 0);
+    if (topCondemnedGen == 0)
+      return ResFAIL;
+    -- topCondemnedGen;
+    gen = &chain->gens[topCondemnedGen];
+    AVERT(GenDesc, gen);
+    genNewSize = GenDescNewSize(gen);
+    if (genNewSize >= gen->capacity * (Size)1024)
+      break;
+  }
+
+  /* At this point, we've decided to condemn topCondemnedGen and all
+   * lower generations. */
+  for (i = 0; i <= topCondemnedGen; ++i) {
+    gen = &chain->gens[i];
+    AVERT(GenDesc, gen);
     genTotalSize = GenDescTotalSize(gen);
+    genNewSize = GenDescNewSize(gen);
     condemnedSize += genTotalSize;
     survivorSize += (Size)(genNewSize * (1.0 - gen->mortality))
                     /* predict survivors will survive again */
@@ -378,48 +401,13 @@ Res ChainCondemnAuto(double *mortalityReturn, Chain chain, Trace trace)
     if (res != ResOK)
       goto failBegin;
     haveWhiteSegs = TRUE;
-
-    /* is there another one to consider? */
-    currGenSerial += 1;
-    if (currGenSerial >= chain->genCount)
-      break; /* reached the top */
-    gen = &chain->gens[currGenSerial];
-    AVERT(GenDesc, gen);
-    genNewSize = GenDescNewSize(gen);
-  } while (genNewSize >= gen->capacity * (Size)1024);
-  
-  EVENT3(ChainCondemnAuto, chain, topCondemnedGenSerial, chain->genCount);
-  UNUSED(topCondemnedGenSerial); /* only used for EVENT */
+  }
+   
+  EVENT3(ChainCondemnAuto, chain, topCondemnedGen, chain->genCount);
   
   *mortalityReturn = 1.0 - (double)survivorSize / condemnedSize;
   return ResOK;
   
-failBegin:
-  AVER(!haveWhiteSegs); /* Would leave white sets inconsistent. */
-  return res;
-}
-
-
-/* ChainCondemnAll -- condemn everything in the chain
- * 
- * The dynamic generation is not condemned
- */
-
-Res ChainCondemnAll(Chain chain, Trace trace)
-{
-  Bool haveWhiteSegs = FALSE;
-  Serial i;
-  Res res;
-
-  for(i = 0; i < chain->genCount; i++) {
-    res = ChainCondemnGen(&chain->gens[i], trace);
-    if (res != ResOK)
-      goto failBegin;
-    haveWhiteSegs = TRUE;
-  }
- 
-  return ResOK;
-
 failBegin:
   AVER(!haveWhiteSegs); /* Would leave white sets inconsistent. */
   return res;
@@ -453,9 +441,11 @@ void ChainEndGC(Chain chain, Trace trace)
 Res PoolGenInit(PoolGen gen, Chain chain, Serial nr, Pool pool)
 {
   /* Can't check gen, because it's not been initialized. */
+  AVER(gen != NULL);
   AVERT(Chain, chain);
   AVER(nr <= chain->genCount);
   AVERT(Pool, pool);
+  AVER(PoolHasAttr(pool, AttrGC));
 
   gen->nr = nr;
   gen->pool = pool;

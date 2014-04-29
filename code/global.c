@@ -1141,7 +1141,7 @@ void ArenaSetEmergency(Arena arena, Bool emergency)
   AVERT(Arena, arena);
   AVERT(Bool, emergency);
 
-  EVENT2(ArenaSetEmergency, arena, BOOL(emergency));
+  EVENT2(ArenaSetEmergency, arena, BOOLOF(emergency));
 
   arena->emergency = emergency;
 }

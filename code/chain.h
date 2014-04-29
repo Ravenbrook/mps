@@ -82,7 +82,6 @@ extern Bool ChainCheck(Chain chain);
 
 extern double ChainDeferral(Chain chain);
 extern Res ChainCondemnAuto(double *mortalityReturn, Chain chain, Trace trace);
-extern Res ChainCondemnAll(Chain chain, Trace trace);
 extern Res ChainCondemnGen(GenDesc gen, Trace trace);
 extern void ChainStartGC(Chain chain, Trace trace);
 extern void ChainEndGC(Chain chain, Trace trace);

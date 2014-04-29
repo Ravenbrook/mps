@@ -1480,25 +1480,31 @@ static Res traceCondemnAll(Trace trace)
 {
   Res res;
   Arena arena;
-  Ring chainNode, nextChainNode;
+  Ring poolNode, nextPoolNode, chainNode, nextChainNode;
   Bool haveWhiteSegs = FALSE;
 
   arena = trace->arena;
   AVERT(Arena, arena);
-  /* Condemn all the chains. */
-  RING_FOR(chainNode, &arena->chainRing, nextChainNode) {
-    Chain chain = RING_ELT(Chain, chainRing, chainNode);
 
-    AVERT(Chain, chain);
-    res = ChainCondemnAll(chain, trace);
-    if(res != ResOK)
-      goto failBegin;
-    haveWhiteSegs = TRUE;
+  /* Condemn all segments in pools with the GC attribute. */
+  RING_FOR(poolNode, &ArenaGlobals(arena)->poolRing, nextPoolNode) {
+    Pool pool = RING_ELT(Pool, arenaRing, poolNode);
+    AVERT(Pool, pool);
+
+    if (PoolHasAttr(pool, AttrGC)) {
+      Ring segNode, nextSegNode;
+      RING_FOR(segNode, PoolSegRing(pool), nextSegNode) {
+        Seg seg = SegOfPoolRing(segNode);
+        AVERT(Seg, seg);
+
+        res = TraceAddWhite(trace, seg);
+        if (res != ResOK)
+          goto failBegin;
+        haveWhiteSegs = TRUE;
+      }
+    }
   }
-  res = ChainCondemnGen(&arena->topGen, trace);
-  if(res != ResOK)
-    goto failBegin;
-  haveWhiteSegs = TRUE;
+
   /* Notify all the chains. */
   RING_FOR(chainNode, &arena->chainRing, nextChainNode) {
     Chain chain = RING_ELT(Chain, chainRing, chainNode);
@@ -1508,7 +1514,14 @@ static Res traceCondemnAll(Trace trace)
   return ResOK;
 
 failBegin:
-  AVER(!haveWhiteSegs); /* Would leave white sets inconsistent. */
+  /* .whiten.fail: If we successfully whitened one or more segments,
+   * but failed to whiten them all, then the white sets would now be
+   * inconsistent. This can't happen in practice (at time of writing)
+   * because all PoolWhiten methods always succeed. If we ever have a
+   * pool class that fails to whiten a segment, then this assertion
+   * will be triggered. In that case, we'll have to recover here by
+   * blackening the segments again. */
+  AVER(!haveWhiteSegs);
   return res;
 }
 
@@ -1551,7 +1564,7 @@ static void TraceStartPoolGen(Chain chain, GenDesc desc, Bool top, Index i)
   Ring n, nn;
   RING_FOR(n, &desc->locusRing, nn) {
     PoolGen gen = RING_ELT(PoolGen, genRing, n);
-    EVENT11(TraceStartPoolGen, chain, BOOL(top), i, desc,
+    EVENT11(TraceStartPoolGen, chain, BOOLOF(top), i, desc,
             desc->capacity, desc->mortality, desc->zones,
             gen->pool, gen->nr, gen->totalSize,
             gen->newSizeAtCreate);
