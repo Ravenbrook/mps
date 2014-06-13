@@ -24,8 +24,8 @@ except for blocks that are :term:`pinned <pinning>` by
 
 It uses :term:`generational garbage collection`. That is, it exploits
 assumptions about object lifetimes and inter-connection variously
-referred to as "the generational hypothesis". In particular, the
-following tendencies will be efficiently exploited by an AMC pool:
+referred to as "the :term:`generational hypothesis`". In particular,
+the following tendencies will be efficiently exploited by an AMC pool:
 
 - most objects die young;
 
@@ -72,8 +72,10 @@ AMC properties
 
 * Blocks are :term:`scanned <scan>`.
 
-* Blocks may only be referenced by :term:`base pointers` (unless they
-  have :term:`in-band headers`).
+* Blocks may be referenced by :term:`interior pointers` (unless
+  :c:macro:`MPS_KEY_INTERIOR` is set to ``FALSE``, in which case only
+  :term:`base pointers`, or :term:`client pointers` if the blocks
+  have :term:`in-band headers`, are supported).
 
 * Blocks may be protected by :term:`barriers (1)`.
 
@@ -113,7 +115,7 @@ AMC interface
       method`, a :term:`forward method`, an :term:`is-forwarded
       method` and a :term:`padding method`.
 
-    It accepts two optional keyword arguments:
+    It accepts four optional keyword arguments:
 
     * :c:macro:`MPS_KEY_CHAIN` (type :c:type:`mps_chain_t`) specifies
       the :term:`generation chain` for the pool. If not specified, the
@@ -124,6 +126,10 @@ AMC interface
       reference>` :term:`interior pointers` to blocks in the pool keep
       objects alive. If this is ``FALSE``, then only :term:`client
       pointers` keep objects alive.
+
+    * :c:macro:`MPS_KEY_EXTEND_BY` (type :c:type:`size_t`,
+      default 4096) is the default :term:`size` of segment that the pool will
+      request from the :term:`arena`.
 
     For example::
 

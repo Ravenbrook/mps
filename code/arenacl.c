@@ -61,6 +61,7 @@ typedef struct ClientChunkStruct {
 
 /* ClientChunkCheck -- check the consistency of a client chunk */
 
+ATTRIBUTE_UNUSED
 static Bool ClientChunkCheck(ClientChunk clChunk)
 {
   Chunk chunk;
@@ -77,6 +78,7 @@ static Bool ClientChunkCheck(ClientChunk clChunk)
 
 /* ClientArenaCheck -- check the consistency of a client arena */
 
+ATTRIBUTE_UNUSED
 static Bool ClientArenaCheck(ClientArena clientArena)
 {
   CHECKS(ClientArena, clientArena);
@@ -106,7 +108,7 @@ static Res clientChunkCreate(Chunk *chunkReturn, Addr base, Addr limit,
 
   /* Initialize boot block. */
   /* Chunk has to be page-aligned, and the boot allocs must be within it. */
-  alignedBase = AddrAlignUp(base, ARENA_CLIENT_PAGE_SIZE);
+  alignedBase = AddrAlignUp(base, ARENA_CLIENT_GRAIN_SIZE);
   AVER(alignedBase < limit);
   res = BootBlockInit(boot, (void *)alignedBase, (void *)limit);
   if (res != ResOK)
@@ -120,8 +122,8 @@ static Res clientChunkCreate(Chunk *chunkReturn, Addr base, Addr limit,
   clChunk = p;  chunk = ClientChunk2Chunk(clChunk);
 
   res = ChunkInit(chunk, ClientArena2Arena(clientArena),
-                  alignedBase, AddrAlignDown(limit, ARENA_CLIENT_PAGE_SIZE),
-                  ARENA_CLIENT_PAGE_SIZE, boot);
+                  alignedBase, AddrAlignDown(limit, ARENA_CLIENT_GRAIN_SIZE),
+                  ARENA_CLIENT_GRAIN_SIZE, boot);
   if (res != ResOK)
     goto failChunkInit;
 
@@ -171,15 +173,26 @@ static Res ClientChunkInit(Chunk chunk, BootBlock boot)
 
 /* clientChunkDestroy -- destroy a ClientChunk */
 
-static void clientChunkDestroy(Chunk chunk)
+static Bool clientChunkDestroy(Tree tree, void *closureP, Size closureS)
 {
+  Chunk chunk;
   ClientChunk clChunk;
 
+  AVERT(Tree, tree);
+  AVER(closureP == UNUSED_POINTER);
+  UNUSED(closureP);
+  AVER(closureS == UNUSED_SIZE);
+  UNUSED(closureS);
+  
+  chunk = ChunkOfTree(tree);
+  AVERT(Chunk, chunk);
   clChunk = Chunk2ClientChunk(chunk);
   AVERT(ClientChunk, clChunk);
 
   clChunk->sig = SigInvalid;
   ChunkFinish(chunk);
+
+  return TRUE;
 }
 
 
@@ -252,7 +265,7 @@ static Res ClientArenaInit(Arena *arenaReturn, ArenaClass class, ArgList args)
 
   arena = ClientArena2Arena(clientArena);
   /* <code/arena.c#init.caller> */
-  res = ArenaInit(arena, class, ARENA_CLIENT_PAGE_SIZE, args);
+  res = ArenaInit(arena, class, ARENA_CLIENT_GRAIN_SIZE, args);
   if (res != ResOK)
     return res;
 
@@ -269,7 +282,7 @@ static Res ClientArenaInit(Arena *arenaReturn, ArenaClass class, ArgList args)
   /* bits in a word). Note that some zones are discontiguous in the */
   /* arena if the size is not a power of 2. */
   arena->zoneShift = SizeFloorLog2(size >> MPS_WORD_SHIFT);
-  AVER(arena->alignment == ChunkPageSize(arena->primary));
+  AVER(ArenaGrainSize(arena) == ChunkPageSize(arena->primary));
 
   EVENT3(ArenaCreateCL, arena, size, base);
   AVERT(ClientArena, clientArena);
@@ -288,16 +301,15 @@ failChunkCreate:
 static void ClientArenaFinish(Arena arena)
 {
   ClientArena clientArena;
-  Ring node, next;
 
   clientArena = Arena2ClientArena(arena);
   AVERT(ClientArena, clientArena);
 
-  /* destroy all chunks */
-  RING_FOR(node, &arena->chunkRing, next) {
-    Chunk chunk = RING_ELT(Chunk, chunkRing, node);
-    clientChunkDestroy(chunk);
-  }
+  /* Destroy all chunks, including the primary. See
+   * <design/arena/#chunk.delete> */
+  arena->primary = NULL;
+  TreeTraverseAndDelete(&arena->chunkTree, clientChunkDestroy,
+                        UNUSED_POINTER, UNUSED_SIZE);
 
   clientArena->sig = SigInvalid;
 
@@ -339,7 +351,7 @@ static Size ClientArenaReserved(Arena arena)
   RING_FOR(node, &arena->chunkRing, nextNode) {
     Chunk chunk = RING_ELT(Chunk, chunkRing, node);
     AVERT(Chunk, chunk);
-    size += AddrOffset(chunk->base, chunk->limit);
+    size += ChunkSize(chunk);
   }
 
   return size;

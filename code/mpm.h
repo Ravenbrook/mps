@@ -87,6 +87,9 @@ extern Addr (AddrAlignDown)(Addr addr, Align align);
 
 #define AddrIsAligned(p, a)     WordIsAligned((Word)(p), a)
 #define AddrAlignUp(p, a)       ((Addr)WordAlignUp((Word)(p), a))
+#define AddrRoundUp(p, r)       ((Addr)WordRoundUp((Word)(p), r))
+
+#define ReadonlyAddrAdd(p, s) ((ReadonlyAddr)((const char *)(p) + (s)))
 
 #define SizeIsAligned(s, a)     WordIsAligned((Word)(s), a)
 #define SizeAlignUp(s, a)       ((Size)WordAlignUp((Word)(s), a))
@@ -153,9 +156,9 @@ extern Bool (WordIsP2)(Word word);
 
 /* Formatted Output -- see <design/writef/>, <code/mpm.c> */
 
-extern Res WriteF(mps_lib_FILE *stream, ...);
-extern Res WriteF_v(mps_lib_FILE *stream, va_list args);
-extern Res WriteF_firstformat_v(mps_lib_FILE *stream,
+extern Res WriteF(mps_lib_FILE *stream, Count depth, ...);
+extern Res WriteF_v(mps_lib_FILE *stream, Count depth, va_list args);
+extern Res WriteF_firstformat_v(mps_lib_FILE *stream, Count depth,
                                 const char *firstformat, va_list args);
 
 
@@ -178,7 +181,7 @@ extern Res PoolInit(Pool pool, Arena arena, PoolClass class, ArgList args);
 extern void PoolFinish(Pool pool);
 extern Bool PoolClassCheck(PoolClass class);
 extern Bool PoolCheck(Pool pool);
-extern Res PoolDescribe(Pool pool, mps_lib_FILE *stream);
+extern Res PoolDescribe(Pool pool, mps_lib_FILE *stream, Count depth);
 
 /* Must be thread-safe. See <design/interface-c/#thread-safety>. */
 #define PoolArena(pool)         ((pool)->arena)
@@ -221,6 +224,9 @@ extern Res PoolAddrObject(Addr *pReturn, Pool pool, Seg seg, Addr addr);
 extern void PoolWalk(Pool pool, Seg seg, FormattedObjectsStepMethod f,
                      void *v, size_t s);
 extern void PoolFreeWalk(Pool pool, FreeBlockStepMethod f, void *p);
+extern Size PoolTotalSize(Pool pool);
+extern Size PoolFreeSize(Pool pool);
+
 extern Res PoolTrivInit(Pool pool, ArgList arg);
 extern void PoolTrivFinish(Pool pool);
 extern Res PoolNoAlloc(Addr *pReturn, Pool pool, Size size,
@@ -239,7 +245,7 @@ extern void PoolNoBufferEmpty(Pool pool, Buffer buffer,
                               Addr init, Addr limit);
 extern void PoolTrivBufferEmpty(Pool pool, Buffer buffer,
                                 Addr init, Addr limit);
-extern Res PoolTrivDescribe(Pool pool, mps_lib_FILE *stream);
+extern Res PoolTrivDescribe(Pool pool, mps_lib_FILE *stream, Count depth);
 extern Res PoolNoTraceBegin(Pool pool, Trace trace);
 extern Res PoolTrivTraceBegin(Pool pool, Trace trace);
 extern Res PoolNoAccess(Pool pool, Seg seg, Addr addr,
@@ -274,6 +280,7 @@ extern void PoolNoWalk(Pool pool, Seg seg, FormattedObjectsStepMethod step,
 extern void PoolTrivFreeWalk(Pool pool, FreeBlockStepMethod f, void *p);
 extern PoolDebugMixin PoolNoDebugMixin(Pool pool);
 extern BufferClass PoolNoBufferClass(void);
+extern Size PoolNoSize(Pool pool);
 
 #define ClassOfPool(pool) ((pool)->class)
 #define SuperclassOfPool(pool) \
@@ -281,13 +288,11 @@ extern BufferClass PoolNoBufferClass(void);
 
 
 /* Abstract Pool Classes Interface -- see <code/poolabs.c> */
-extern void PoolClassMixInAllocFree(PoolClass class);
 extern void PoolClassMixInBuffer(PoolClass class);
 extern void PoolClassMixInScan(PoolClass class);
 extern void PoolClassMixInFormat(PoolClass class);
 extern void PoolClassMixInCollect(PoolClass class);
 extern AbstractPoolClass AbstractPoolClassGet(void);
-extern AbstractAllocFreePoolClass AbstractAllocFreePoolClassGet(void);
 extern AbstractBufferPoolClass AbstractBufferPoolClassGet(void);
 extern AbstractBufferPoolClass AbstractSegBufPoolClassGet(void);
 extern AbstractScanPoolClass AbstractScanPoolClassGet(void);
@@ -397,6 +402,7 @@ extern void TraceSegAccess(Arena arena, Seg seg, AccessSet mode);
 
 extern void TraceQuantum(Trace trace);
 extern Res TraceStartCollectAll(Trace *traceReturn, Arena arena, int why);
+extern Res TraceDescribe(Trace trace, mps_lib_FILE *stream, Count depth);
 
 /* traceanc.c -- Trace Ancillary */
 
@@ -489,14 +495,14 @@ extern Bool ArenaClassCheck(ArenaClass class);
 extern Bool ArenaCheck(Arena arena);
 extern Res ArenaCreate(Arena *arenaReturn, ArenaClass class, ArgList args);
 extern void ArenaDestroy(Arena arena);
-extern Res ArenaInit(Arena arena, ArenaClass class, Align alignment,
+extern Res ArenaInit(Arena arena, ArenaClass class, Size grainSize,
                      ArgList args);
 extern void ArenaFinish(Arena arena);
-extern Res ArenaDescribe(Arena arena, mps_lib_FILE *stream);
-extern Res ArenaDescribeTracts(Arena arena, mps_lib_FILE *stream);
+extern Res ArenaDescribe(Arena arena, mps_lib_FILE *stream, Count depth);
+extern Res ArenaDescribeTracts(Arena arena, mps_lib_FILE *stream, Count depth);
 extern Bool ArenaAccess(Addr addr, AccessSet mode, MutatorFaultContext context);
-extern Res ArenaFreeCBSInsert(Arena arena, Addr base, Addr limit);
-extern void ArenaFreeCBSDelete(Arena arena, Addr base, Addr limit);
+extern Res ArenaFreeLandInsert(Arena arena, Addr base, Addr limit);
+extern void ArenaFreeLandDelete(Arena arena, Addr base, Addr limit);
 
 
 extern Bool GlobalsCheck(Globals arena);
@@ -504,7 +510,7 @@ extern Res GlobalsInit(Globals arena);
 extern void GlobalsFinish(Globals arena);
 extern Res GlobalsCompleteCreate(Globals arenaGlobals);
 extern void GlobalsPrepareToDestroy(Globals arenaGlobals);
-extern Res GlobalsDescribe(Globals arena, mps_lib_FILE *stream);
+extern Res GlobalsDescribe(Globals arena, mps_lib_FILE *stream, Count depth);
 extern Ring GlobalsRememberedSummaryRing(Globals);
 
 #define ArenaGlobals(arena) (&(arena)->globals)
@@ -515,27 +521,38 @@ extern Ring GlobalsRememberedSummaryRing(Globals);
 #define ArenaTrace(arena, ti)   (&(arena)->trace[ti])
 #define ArenaZoneShift(arena)   ((arena)->zoneShift)
 #define ArenaStripeSize(arena)  ((Size)1 << ArenaZoneShift(arena))
-#define ArenaAlign(arena)       ((arena)->alignment)
+#define ArenaGrainSize(arena)   ((arena)->grainSize)
 #define ArenaGreyRing(arena, rank) (&(arena)->greyRing[rank])
 #define ArenaPoolRing(arena) (&ArenaGlobals(arena)->poolRing)
+#define ArenaChunkTree(arena) RVALUE((arena)->chunkTree)
+
+extern Bool ArenaGrainSizeCheck(Size size);
+#define AddrArenaGrainUp(addr, arena) AddrAlignUp(addr, ArenaGrainSize(arena))
+#define AddrArenaGrainDown(addr, arena) AddrAlignDown(addr, ArenaGrainSize(arena))
+#define AddrIsArenaGrain(addr, arena) AddrIsAligned(addr, ArenaGrainSize(arena))
+#define SizeArenaGrains(size, arena) SizeAlignUp(size, ArenaGrainSize(arena))
+#define SizeIsArenaGrains(size, arena) SizeIsAligned(size, ArenaGrainSize(arena))
+
+extern void ArenaEnterLock(Arena arena, Bool recursive);
+extern void ArenaLeaveLock(Arena arena, Bool recursive);
 
 extern void (ArenaEnter)(Arena arena);
 extern void (ArenaLeave)(Arena arena);
+extern void (ArenaPoll)(Globals globals);
 
-#if defined(THREAD_SINGLE) && defined(PROTECTION_NONE)
+#if defined(SHIELD)
+#define ArenaEnter(arena)  ArenaEnterLock(arena, FALSE)
+#define ArenaLeave(arena)  ArenaLeaveLock(arena, FALSE)
+#elif defined(SHIELD_NONE)
 #define ArenaEnter(arena)  UNUSED(arena)
-#define ArenaLeave(arena)  UNUSED(arena)
-#endif
+#define ArenaLeave(arena)  AVER(arena->busyTraces == TraceSetEMPTY)
+#define ArenaPoll(globals)  UNUSED(globals)
+#else
+#error "No shield configuration."
+#endif  /* SHIELD */
 
 extern void ArenaEnterRecursive(Arena arena);
 extern void ArenaLeaveRecursive(Arena arena);
-
-extern void (ArenaPoll)(Globals globals);
-#ifdef MPS_PROD_EPCORE
-#define ArenaPoll(globals)  UNUSED(globals)
-#endif
-/* .nogc.why: ScriptWorks doesn't use MM-provided incremental GC, so */
-/* doesn't need to poll when allocating. */
 
 extern Bool (ArenaStep)(Globals globals, double interval, double multiplier);
 extern void ArenaClamp(Globals globals);
@@ -547,6 +564,7 @@ extern Res ArenaStartCollect(Globals globals, int why);
 extern Res ArenaCollect(Globals globals, int why);
 extern Bool ArenaHasAddr(Arena arena, Addr addr);
 extern Res ArenaAddrObject(Addr *pReturn, Arena arena, Addr addr);
+extern void ArenaChunkInsert(Arena arena, Chunk chunk);
 
 extern void ArenaSetEmergency(Arena arena, Bool emergency);
 extern Bool ArenaEmergency(Arena arean);
@@ -556,7 +574,7 @@ extern void ControlFinish(Arena arena);
 extern Res ControlAlloc(void **baseReturn, Arena arena, size_t size,
                         Bool withReservoirPermit);
 extern void ControlFree(Arena arena, void *base, size_t size);
-extern Res ControlDescribe(Arena arena, mps_lib_FILE *stream);
+extern Res ControlDescribe(Arena arena, mps_lib_FILE *stream, Count depth);
 
 
 /* Peek/Poke
@@ -611,8 +629,6 @@ extern void ArenaCompact(Arena arena, Trace trace);
 extern Res ArenaFinalize(Arena arena, Ref obj);
 extern Res ArenaDefinalize(Arena arena, Ref obj);
 
-extern Bool ArenaIsReservedAddr(Arena arena, Addr addr);
-
 #define ArenaReservoir(arena) (&(arena)->reservoirStruct)
 #define ReservoirPool(reservoir) (&(reservoir)->poolStruct)
 
@@ -656,7 +672,6 @@ extern Bool SegOfAddr(Seg *segReturn, Arena arena, Addr addr);
 extern Bool SegFirst(Seg *segReturn, Arena arena);
 extern Bool SegNext(Seg *segReturn, Arena arena, Seg seg);
 extern Bool SegNextOfRing(Seg *segReturn, Arena arena, Pool pool, Ring next);
-extern Bool SegFindAboveAddr(Seg *segReturn, Arena arena, Addr addr);
 extern void SegSetWhite(Seg seg, TraceSet white);
 extern void SegSetGrey(Seg seg, TraceSet grey);
 extern void SegSetRankSet(Seg seg, RankSet rankSet);
@@ -665,7 +680,7 @@ extern Res SegMerge(Seg *mergedSegReturn, Seg segLo, Seg segHi,
                     Bool withReservoirPermit);
 extern Res SegSplit(Seg *segLoReturn, Seg *segHiReturn, Seg seg, Addr at,
                     Bool withReservoirPermit);
-extern Res SegDescribe(Seg seg, mps_lib_FILE *stream);
+extern Res SegDescribe(Seg seg, mps_lib_FILE *stream, Count depth);
 extern void SegSetSummary(Seg seg, RefSet summary);
 extern Buffer SegBuffer(Seg seg);
 extern void SegSetBuffer(Seg seg, Buffer buffer);
@@ -711,10 +726,10 @@ extern Addr (SegLimit)(Seg seg);
 
 #define SegSummary(seg)         (((GCSeg)(seg))->summary)
 
-#define SegSetPM(seg, mode)     ((void)((seg)->pm = (mode)))
-#define SegSetSM(seg, mode)     ((void)((seg)->sm = (mode)))
-#define SegSetDepth(seg, d)     ((void)((seg)->depth = (d)))
-#define SegSetNailed(seg, ts)   ((void)((seg)->nailed = (ts)))
+#define SegSetPM(seg, mode)     ((void)((seg)->pm = BS_BITFIELD(Access, (mode))))
+#define SegSetSM(seg, mode)     ((void)((seg)->sm = BS_BITFIELD(Access, (mode))))
+#define SegSetDepth(seg, d)     ((void)((seg)->depth = BITFIELD(unsigned, (d), ShieldDepthWIDTH)))
+#define SegSetNailed(seg, ts)   ((void)((seg)->nailed = BS_BITFIELD(Trace, (ts))))
 
 
 /* Buffer Interface -- see <code/buffer.c> */
@@ -724,7 +739,7 @@ extern Res BufferCreate(Buffer *bufferReturn, BufferClass class,
 extern void BufferDestroy(Buffer buffer);
 extern Bool BufferCheck(Buffer buffer);
 extern Bool SegBufCheck(SegBuf segbuf);
-extern Res BufferDescribe(Buffer buffer, mps_lib_FILE *stream);
+extern Res BufferDescribe(Buffer buffer, mps_lib_FILE *stream, Count depth);
 extern Res BufferReserve(Addr *pReturn, Buffer buffer, Size size,
                          Bool withReservoirPermit);
 /* macro equivalent for BufferReserve, keep in sync with <code/buffer.c> */
@@ -812,7 +827,7 @@ extern AllocPattern AllocPatternRamp(void);
 extern AllocPattern AllocPatternRampCollectAll(void);
 
 
-/* FindDelete -- see <code/cbs.c> and <code/freelist.c> */
+/* FindDelete -- see <code/land.c> */
 
 extern Bool FindDeleteCheck(FindDelete findDelete);
 
@@ -823,7 +838,7 @@ extern Bool FormatCheck(Format format);
 extern Res FormatCreate(Format *formatReturn, Arena arena, ArgList args);
 extern void FormatDestroy(Format format);
 extern Arena FormatArena(Format format);
-extern Res FormatDescribe(Format format, mps_lib_FILE *stream);
+extern Res FormatDescribe(Format format, mps_lib_FILE *stream, Count depth);
 
 
 /* Reference Interface -- see <code/ref.c> */
@@ -893,7 +908,9 @@ extern void (ShieldSuspend)(Arena arena);
 extern void (ShieldResume)(Arena arena);
 extern void (ShieldFlush)(Arena arena);
 
-#if defined(THREAD_SINGLE) && defined(PROTECTION_NONE)
+#if defined(SHIELD)
+/* Nothing to do: functions declared in all shield configurations. */
+#elif defined(SHIELD_NONE)
 #define ShieldRaise(arena, seg, mode) \
   BEGIN UNUSED(arena); UNUSED(seg); UNUSED(mode); END
 #define ShieldLower(arena, seg, mode) \
@@ -907,7 +924,9 @@ extern void (ShieldFlush)(Arena arena);
 #define ShieldSuspend(arena) BEGIN UNUSED(arena); END
 #define ShieldResume(arena) BEGIN UNUSED(arena); END
 #define ShieldFlush(arena) BEGIN UNUSED(arena); END
-#endif
+#else
+#error "No shield configuration."
+#endif  /* SHIELD */
 
 
 /* Protection Interface
@@ -922,8 +941,6 @@ extern void (ShieldFlush)(Arena arena);
 extern void ProtSetup(void);
 
 extern void ProtSet(Addr base, Addr limit, AccessSet mode);
-extern void ProtTramp(void **resultReturn, void *(*f)(void *, size_t),
-                      void *p, size_t s);
 extern void ProtSync(Arena arena);
 extern Bool ProtCanStepInstruction(MutatorFaultContext context);
 extern Res ProtStepInstruction(MutatorFaultContext context);
@@ -968,8 +985,8 @@ extern Res RootCreateFun(Root *rootReturn, Arena arena,
 extern void RootDestroy(Root root);
 extern Bool RootModeCheck(RootMode mode);
 extern Bool RootCheck(Root root);
-extern Res RootDescribe(Root root, mps_lib_FILE *stream);
-extern Res RootsDescribe(Globals arenaGlobals, mps_lib_FILE *stream);
+extern Res RootDescribe(Root root, mps_lib_FILE *stream, Count depth);
+extern Res RootsDescribe(Globals arenaGlobals, mps_lib_FILE *stream, Count depth);
 extern Rank RootRank(Root root);
 extern AccessSet RootPM(Root root);
 extern RefSet RootSummary(Root root);
@@ -984,7 +1001,7 @@ extern Res RootsIterate(Globals arena, RootIterateFn f, void *p);
 
 /* VM Interface -- see <code/vm.c>* */
 
-extern Align VMAlign(VM vm);
+extern Size VMPageSize(VM vm);
 extern Bool VMCheck(VM vm);
 extern Res VMParamFromArgs(void *params, size_t paramSize, ArgList args);
 extern Res VMCreate(VM *VMReturn, Size size, void *params);
@@ -995,6 +1012,37 @@ extern Res VMMap(VM vm, Addr base, Addr limit);
 extern void VMUnmap(VM vm, Addr base, Addr limit);
 extern Size VMReserved(VM vm);
 extern Size VMMapped(VM vm);
+
+
+/* Land Interface -- see <design/land/> */
+
+extern Bool LandCheck(Land land);
+#define LandArena(land) ((land)->arena)
+#define LandAlignment(land) ((land)->alignment)
+extern Size LandSize(Land land);
+extern Res LandInit(Land land, LandClass class, Arena arena, Align alignment, void *owner, ArgList args);
+extern Res LandCreate(Land *landReturn, Arena arena, LandClass class, Align alignment, void *owner, ArgList args);
+extern void LandDestroy(Land land);
+extern void LandFinish(Land land);
+extern Res LandInsert(Range rangeReturn, Land land, Range range);
+extern Res LandDelete(Range rangeReturn, Land land, Range range);
+extern Bool LandIterate(Land land, LandVisitor visitor, void *closureP, Size closureS);
+extern Bool LandIterateAndDelete(Land land, LandDeleteVisitor visitor, void *closureP, Size closureS);
+extern Bool LandFindFirst(Range rangeReturn, Range oldRangeReturn, Land land, Size size, FindDelete findDelete);
+extern Bool LandFindLast(Range rangeReturn, Range oldRangeReturn, Land land, Size size, FindDelete findDelete);
+extern Bool LandFindLargest(Range rangeReturn, Range oldRangeReturn, Land land, Size size, FindDelete findDelete);
+extern Res LandFindInZones(Bool *foundReturn, Range rangeReturn, Range oldRangeReturn, Land land, Size size, ZoneSet zoneSet, Bool high);
+extern Res LandDescribe(Land land, mps_lib_FILE *stream, Count depth);
+extern Bool LandFlush(Land dest, Land src);
+
+extern Size LandSlowSize(Land land);
+extern Bool LandClassCheck(LandClass class);
+extern LandClass LandClassGet(void);
+#define LAND_SUPERCLASS(className) ((LandClass)SUPERCLASS(className))
+#define DEFINE_LAND_CLASS(className, var) \
+  DEFINE_ALIAS_CLASS(className, LandClass, var)
+#define IsLandSubclass(land, className) \
+  IsSubclassPoly((land)->class, className ## Get())
 
 
 /* Stack Probe */

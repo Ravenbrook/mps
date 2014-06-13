@@ -146,31 +146,26 @@ Bool BufferCheck(Buffer buffer)
  *
  * See <code/mpmst.h> for structure definitions.  */
 
-Res BufferDescribe(Buffer buffer, mps_lib_FILE *stream)
+Res BufferDescribe(Buffer buffer, mps_lib_FILE *stream, Count depth)
 {
   Res res;
-  char abzMode[5];
 
   if (!TESTT(Buffer, buffer)) return ResFAIL;
   if (stream == NULL) return ResFAIL;
 
-  abzMode[0] = (char)( (buffer->mode & BufferModeTRANSITION)  ? 't' : '_' );
-  abzMode[1] = (char)( (buffer->mode & BufferModeLOGGED)      ? 'l' : '_' );
-  abzMode[2] = (char)( (buffer->mode & BufferModeFLIPPED)     ? 'f' : '_' );
-  abzMode[3] = (char)( (buffer->mode & BufferModeATTACHED)    ? 'a' : '_' );
-  abzMode[4] = '\0';
-
-  res = WriteF(stream,
+  res = WriteF(stream, depth,
                "Buffer $P ($U) {\n",
                (WriteFP)buffer, (WriteFU)buffer->serial,
                "  class $P (\"$S\")\n",
                (WriteFP)buffer->class, buffer->class->name,
                "  Arena $P\n",       (WriteFP)buffer->arena,
                "  Pool $P\n",        (WriteFP)buffer->pool,
-               buffer->isMutator ?
-                 "  Mutator Buffer\n" : "  Internal Buffer\n",
-               "  mode $S (TRANSITION, LOGGED, FLIPPED, ATTACHED)\n",
-                       (WriteFS)abzMode,
+               "  ", buffer->isMutator ? "Mutator" : "Internal", " Buffer\n",
+               "  mode $C$C$C$C (TRANSITION, LOGGED, FLIPPED, ATTACHED)\n",
+               (WriteFC)((buffer->mode & BufferModeTRANSITION) ? 't' : '_'),
+               (WriteFC)((buffer->mode & BufferModeLOGGED)     ? 'l' : '_'),
+               (WriteFC)((buffer->mode & BufferModeFLIPPED)    ? 'f' : '_'),
+               (WriteFC)((buffer->mode & BufferModeATTACHED)   ? 'a' : '_'),
                "  fillSize $UKb\n",  (WriteFU)(buffer->fillSize / 1024),
                "  emptySize $UKb\n", (WriteFU)(buffer->emptySize / 1024),
                "  alignment $W\n",   (WriteFW)buffer->alignment,
@@ -183,10 +178,10 @@ Res BufferDescribe(Buffer buffer, mps_lib_FILE *stream)
                NULL);
   if (res != ResOK) return res;
 
-  res = buffer->class->describe(buffer, stream);
+  res = buffer->class->describe(buffer, stream, depth + 2);
   if (res != ResOK) return res;
 
-  res = WriteF(stream, "} Buffer $P ($U)\n",
+  res = WriteF(stream, depth, "} Buffer $P ($U)\n",
                (WriteFP)buffer, (WriteFU)buffer->serial,
                NULL);
   return res;
@@ -204,8 +199,6 @@ static Res BufferInit(Buffer buffer, BufferClass class,
   AVER(buffer != NULL);
   AVERT(BufferClass, class);
   AVERT(Pool, pool);
-  /* The PoolClass should support buffer protocols */
-  AVER(PoolHasAttr(pool, AttrBUF));
  
   arena = PoolArena(pool);
   /* Initialize the buffer.  See <code/mpmst.h> for a definition of */
@@ -382,8 +375,6 @@ void BufferFinish(Buffer buffer)
 
   pool = BufferPool(buffer);
 
-  /* The PoolClass should support buffer protocols */
-  AVER(PoolHasAttr(pool, AttrBUF));
   AVER(BufferIsReady(buffer));
 
   /* <design/alloc-frame/#lw-frame.sync.trip> */
@@ -980,20 +971,21 @@ Bool BufferIsTrappedByMutator(Buffer buffer)
  *
  * Just represent the two patterns by two different pointers to dummies.  */
 
-AllocPatternStruct AllocPatternRampStruct = {'\0'};
+static AllocPatternStruct AllocPatternRampStruct = {'\0'};
 
 AllocPattern AllocPatternRamp(void)
 {
   return &AllocPatternRampStruct;
 }
 
-AllocPatternStruct AllocPatternRampCollectAllStruct = {'\0'};
+static AllocPatternStruct AllocPatternRampCollectAllStruct = {'\0'};
 
 AllocPattern AllocPatternRampCollectAll(void)
 {
   return &AllocPatternRampCollectAllStruct;
 }
 
+ATTRIBUTE_UNUSED
 static Bool AllocPatternCheck(AllocPattern pattern)
 {
   CHECKL(pattern == &AllocPatternRampCollectAllStruct
@@ -1075,7 +1067,7 @@ static Res bufferTrivInit(Buffer buffer, Pool pool, ArgList args)
   AVERT(Buffer, buffer);
   AVERT(Pool, pool);
   UNUSED(args);
-  EVENT3(BufferInit, buffer, pool, buffer->isMutator);
+  EVENT3(BufferInit, buffer, pool, BOOLOF(buffer->isMutator));
   return ResOK;
 }
 
@@ -1169,10 +1161,11 @@ static void bufferNoReassignSeg(Buffer buffer, Seg seg)
 
 /* bufferTrivDescribe -- basic Buffer describe method */
 
-static Res bufferTrivDescribe(Buffer buffer, mps_lib_FILE *stream)
+static Res bufferTrivDescribe(Buffer buffer, mps_lib_FILE *stream, Count depth)
 {
   if (!TESTT(Buffer, buffer)) return ResFAIL;
   if (stream == NULL) return ResFAIL;
+  UNUSED(depth);
   /* dispatching function does it all */
   return ResOK;
 }
@@ -1288,7 +1281,7 @@ static Res segBufInit(Buffer buffer, Pool pool, ArgList args)
   segbuf->rankSet = RankSetEMPTY;
   
   AVERT(SegBuf, segbuf);
-  EVENT3(BufferInitSeg, buffer, pool, buffer->isMutator);
+  EVENT3(BufferInitSeg, buffer, pool, BOOLOF(buffer->isMutator));
   return ResOK;
 }
 
@@ -1427,7 +1420,7 @@ static void segBufReassignSeg (Buffer buffer, Seg seg)
 
 /* segBufDescribe --  describe method for SegBuf */
 
-static Res segBufDescribe(Buffer buffer, mps_lib_FILE *stream)
+static Res segBufDescribe(Buffer buffer, mps_lib_FILE *stream, Count depth)
 {
   SegBuf segbuf;
   BufferClass super;
@@ -1440,12 +1433,12 @@ static Res segBufDescribe(Buffer buffer, mps_lib_FILE *stream)
 
   /* Describe the superclass fields first via next-method call */
   super = BUFFER_SUPERCLASS(SegBufClass);
-  res = super->describe(buffer, stream);
+  res = super->describe(buffer, stream, depth);
   if (res != ResOK) return res;
 
-  res = WriteF(stream,
-               "  Seg $P\n",         (WriteFP)segbuf->seg,
-               "  rankSet $U\n",     (WriteFU)segbuf->rankSet,
+  res = WriteF(stream, depth,
+               "Seg $P\n",         (WriteFP)segbuf->seg,
+               "rankSet $U\n",     (WriteFU)segbuf->rankSet,
                NULL);
 
   return res;
@@ -1515,7 +1508,7 @@ static Res rankBufInit(Buffer buffer, Pool pool, ArgList args)
   BufferSetRankSet(buffer, RankSetSingle(rank));
 
   /* There's nothing to check that the superclass doesn't, so no AVERT. */
-  EVENT4(BufferInitRank, buffer, pool, buffer->isMutator, rank);
+  EVENT4(BufferInitRank, buffer, pool, BOOLOF(buffer->isMutator), rank);
   return ResOK;
 }
 

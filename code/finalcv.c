@@ -18,14 +18,15 @@
  * This code was created by first copying <code/weakcv.c>
  */
 
-#include "testlib.h"
-#include "mpslib.h"
-#include "mps.h"
-#include "mpscamc.h"
-#include "mpsavm.h"
 #include "fmtdy.h"
 #include "fmtdytst.h"
+#include "mpm.h"
+#include "mps.h"
+#include "mpsavm.h"
+#include "mpscamc.h"
+#include "mpslib.h"
 #include "mpstd.h"
+#include "testlib.h"
 
 #include <stdio.h> /* printf */
 
@@ -141,6 +142,8 @@ static void *test(void *arg, size_t s)
   }
   p = NULL;
 
+  die(ArenaDescribe(arena, mps_lib_get_stdout(), 0), "ArenaDescribe");
+
   mps_message_type_enable(arena, mps_message_type_finalization());
 
   /* <design/poolmrg/#test.promise.ut.churn> */
@@ -199,6 +202,7 @@ static void *test(void *arg, size_t s)
 
   /* @@@@ <design/poolmrg/#test.promise.ut.nofinal.check> missing */
 
+  mps_arena_park(arena);
   mps_ap_destroy(ap);
   mps_root_destroy(mps_root[1]);
   mps_root_destroy(mps_root[0]);

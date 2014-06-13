@@ -15,7 +15,6 @@ SRCID(range, "$Id$");
 
 Bool RangeCheck(Range range)
 {
-  CHECKS(Range, range);
   CHECKL(range->base <= range->limit);
 
   return TRUE;
@@ -29,29 +28,32 @@ void RangeInit(Range range, Addr base, Addr limit)
   range->base = base;
   range->limit = limit;
 
-  range->sig = RangeSig;
   AVERT(Range, range);
+}
+
+void RangeInitSize(Range range, Addr base, Size size)
+{
+  RangeInit(range, base, AddrAdd(base, size));
 }
 
 void RangeFinish(Range range)
 {
   AVERT(Range, range);
-  range->sig = SigInvalid;
 }
 
-Res RangeDescribe(Range range, mps_lib_FILE *stream)
+Res RangeDescribe(Range range, mps_lib_FILE *stream, Count depth)
 {
   Res res;
 
   AVERT(Range, range);
   AVER(stream != NULL);
 
-  res = WriteF(stream,
-               "Range $P\n{\n", (WriteFP)range,
+  res = WriteF(stream, depth,
+               "Range $P {\n", (WriteFP)range,
                "  base: $P\n", (WriteFP)RangeBase(range),
                "  limit: $P\n", (WriteFP)RangeLimit(range),
                "  size: $U\n", (WriteFU)RangeSize(range),
-               "}\n", NULL);
+               "} Range $P\n", (WriteFP)range, NULL);
   if (res != ResOK) {
     return res;
   }

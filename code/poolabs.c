@@ -18,7 +18,6 @@
  *
  * .hierarchy: define the following hierarchy of abstract pool classes:
  *    AbstractPoolClass     - implements init, finish, describe
- *     AbstractAllocFreePoolClass - implements alloc & free
  *     AbstractBufferPoolClass - implements the buffer protocol
  *      AbstractSegBufPoolClass - uses SegBuf buffer class
  *       AbstractScanPoolClass - implements basic scanning
@@ -31,7 +30,6 @@ SRCID(poolabs, "$Id$");
 
 
 typedef PoolClassStruct AbstractPoolClassStruct;
-typedef PoolClassStruct AbstractAllocFreePoolClassStruct;
 typedef PoolClassStruct AbstractBufferPoolClassStruct;
 typedef PoolClassStruct AbstractSegBufPoolClassStruct;
 typedef PoolClassStruct AbstractScanPoolClassStruct;
@@ -49,23 +47,11 @@ typedef PoolClassStruct AbstractCollectPoolClassStruct;
  */
 
 
-/* PoolClassMixInAllocFree -- mix in the protocol for Alloc / Free */
-
-void PoolClassMixInAllocFree(PoolClass class)
-{
-  /* Can't check class because it's not initialized yet */
-  class->attr |= (AttrALLOC | AttrFREE);
-  class->alloc = PoolTrivAlloc;
-  class->free = PoolTrivFree;
-}
-
-
 /* PoolClassMixInBuffer -- mix in the protocol for buffer reserve / commit */
 
 void PoolClassMixInBuffer(PoolClass class)
 {
   /* Can't check class because it's not initialized yet */
-  class->attr |= AttrBUF;
   class->bufferFill = PoolTrivBufferFill;
   class->bufferEmpty = PoolTrivBufferEmpty;
   /* By default, buffered pools treat frame operations as NOOPs */
@@ -81,7 +67,6 @@ void PoolClassMixInBuffer(PoolClass class)
 void PoolClassMixInScan(PoolClass class)
 {
   /* Can't check class because it's not initialized yet */
-  class->attr |= AttrSCAN;
   class->access = PoolSegAccess;
   class->blacken = PoolTrivBlacken;
   class->grey = PoolTrivGrey;
@@ -160,14 +145,10 @@ DEFINE_CLASS(AbstractPoolClass, class)
   class->bufferClass = PoolNoBufferClass;
   class->describe = PoolTrivDescribe;
   class->debugMixin = PoolNoDebugMixin;
+  class->totalSize = PoolNoSize;
+  class->freeSize = PoolNoSize;
   class->labelled = FALSE;
   class->sig = PoolClassSig;
-}
-
-DEFINE_CLASS(AbstractAllocFreePoolClass, class)
-{
-  INHERIT_CLASS(class, AbstractPoolClass);
-  PoolClassMixInAllocFree(class);
 }
 
 DEFINE_CLASS(AbstractBufferPoolClass, class)
@@ -311,11 +292,13 @@ void PoolTrivBufferEmpty(Pool pool, Buffer buffer, Addr init, Addr limit)
 }
 
 
-Res PoolTrivDescribe(Pool pool, mps_lib_FILE *stream)
+Res PoolTrivDescribe(Pool pool, mps_lib_FILE *stream, Count depth)
 {
   AVERT(Pool, pool);
   AVER(stream != NULL);
-  return WriteF(stream, "  No class-specific description available.\n", NULL);
+  return WriteF(stream, depth,
+                "No class-specific description available.\n",
+                NULL);
 }
 
 
@@ -659,7 +642,8 @@ Res PoolNoAddrObject(Addr *pReturn, Pool pool, Seg seg, Addr addr)
   AVERT(Pool, pool);
   AVERT(Seg, seg);
   AVER(SegPool(seg) == pool);
-  AVER(SegBase(seg) <= addr && addr < SegLimit(seg));
+  AVER(SegBase(seg) <= addr);
+  AVER(addr < SegLimit(seg));
   return ResUNIMPL;
 }
 
@@ -693,6 +677,14 @@ BufferClass PoolNoBufferClass(void)
 {
   NOTREACHED;
   return NULL;
+}
+
+
+Size PoolNoSize(Pool pool)
+{
+  AVERT(Pool, pool);
+  NOTREACHED;
+  return UNUSED_SIZE;
 }
 
 
