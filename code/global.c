@@ -37,10 +37,6 @@ static Bool arenaRingInit = FALSE;
 static RingStruct arenaRing;       /* <design/arena/#static.ring> */
 static Serial arenaSerial;         /* <design/arena/#static.serial> */
 
-/* forward declarations */
-void arenaEnterLock(Arena, int);
-void arenaLeaveLock(Arena, int);
-
 
 /* arenaClaimRingLock, arenaReleaseRingLock -- lock/release the arena ring
  *
@@ -397,25 +393,7 @@ void GlobalsFinish(Globals arenaGlobals)
   Arena arena;
   Rank rank;
   
-  /* Check that the tear-down is complete: that the client has
-   * destroyed all data structures associated with the arena. We do
-   * this *before* calling AVERT(Globals, arenaGlobals) because the
-   * AVERT will crash if there are any remaining data structures, and
-   * it is politer to assert than to crash. (The crash would happen
-   * because by this point in the code the control pool has been
-   * destroyed and so the address space containing all these rings has
-   * potentially been unmapped, and so RingCheck dereferences a
-   * pointer into that unmapped memory.) See job000652. */
   arena = GlobalsArena(arenaGlobals);
-  AVER(RingIsSingle(&arena->formatRing));
-  AVER(RingIsSingle(&arena->chainRing));
-  AVER(RingIsSingle(&arena->messageRing));
-  AVER(RingIsSingle(&arena->threadRing));
-  for(rank = 0; rank < RankLIMIT; ++rank)
-    AVER(RingIsSingle(&arena->greyRing[rank]));
-  AVER(RingIsSingle(&arenaGlobals->poolRing));
-  AVER(RingIsSingle(&arenaGlobals->rootRing));
-
   AVERT(Globals, arenaGlobals);
 
   STATISTIC_STAT(EVENT2(ArenaWriteFaults, arena,
@@ -445,8 +423,13 @@ void GlobalsPrepareToDestroy(Globals arenaGlobals)
   TraceId ti;
   Trace trace;
   Chain defaultChain;
+  Rank rank;
 
   AVERT(Globals, arenaGlobals);
+
+  /* Park the arena before destroying the default chain, to ensure
+   * that there are no traces using that chain. */
+  ArenaPark(arenaGlobals);
 
   arena = GlobalsArena(arenaGlobals);
   arenaDenounce(arena);
@@ -499,6 +482,31 @@ void GlobalsPrepareToDestroy(Globals arenaGlobals)
     arena->finalPool = NULL;
     PoolDestroy(pool);
   }
+
+  /* Check that the tear-down is complete: that the client has
+   * destroyed all data structures associated with the arena. We do
+   * this here rather than in GlobalsFinish because by the time that
+   * is called, the control pool has been destroyed and so the address
+   * space containing all these rings has potentially been unmapped,
+   * and so RingCheck dereferences a pointer into that unmapped memory
+   * and we get a crash instead of an assertion. See job000652.
+   */
+  AVER(RingIsSingle(&arena->formatRing));
+  AVER(RingIsSingle(&arena->chainRing));
+  AVER(RingIsSingle(&arena->messageRing));
+  AVER(RingIsSingle(&arena->threadRing));
+  AVER(RingIsSingle(&arenaGlobals->rootRing));
+  for(rank = 0; rank < RankLIMIT; ++rank)
+    AVER(RingIsSingle(&arena->greyRing[rank]));
+
+  /* At this point the following pools still exist:
+   * 0. arena->freeCBSBlockPoolStruct
+   * 1. arena->reservoirStruct
+   * 2. arena->controlPoolStruct
+   * 3. arena->controlPoolStruct.blockPoolStruct
+   * 4. arena->controlPoolStruct.spanPoolStruct
+   */
+  AVER(RingLength(&arenaGlobals->poolRing) == 5);
 }
 
 
@@ -512,26 +520,15 @@ Ring GlobalsRememberedSummaryRing(Globals global)
 
 /* ArenaEnter -- enter the state where you can look at the arena */
 
-/* TODO: The THREAD_SINGLE and PROTECTION_NONE build configs aren't regularly
-   tested, though they might well be useful for embedded custom targets.
-   Should test them.  RB 2012-09-03 */
-
-#if defined(THREAD_SINGLE) && defined(PROTECTION_NONE)
 void (ArenaEnter)(Arena arena)
 {
-  /* Don't need to lock, just check. */
   AVERT(Arena, arena);
+  ArenaEnter(arena);
 }
-#else
-void ArenaEnter(Arena arena)
-{
-  arenaEnterLock(arena, 0);
-}
-#endif
 
 /*  The recursive argument specifies whether to claim the lock
     recursively or not. */
-void arenaEnterLock(Arena arena, int recursive)
+void ArenaEnterLock(Arena arena, Bool recursive)
 {
   Lock lock;
 
@@ -566,25 +563,18 @@ void arenaEnterLock(Arena arena, int recursive)
 
 void ArenaEnterRecursive(Arena arena)
 {
-  arenaEnterLock(arena, 1);
+  ArenaEnterLock(arena, TRUE);
 }
 
 /* ArenaLeave -- leave the state where you can look at MPM data structures */
 
-#if defined(THREAD_SINGLE) && defined(PROTECTION_NONE)
 void (ArenaLeave)(Arena arena)
 {
-  /* Don't need to lock, just check. */
   AVERT(Arena, arena);
+  ArenaLeave(arena);
 }
-#else
-void ArenaLeave(Arena arena)
-{
-  arenaLeaveLock(arena, 0);
-}
-#endif
 
-void arenaLeaveLock(Arena arena, int recursive)
+void ArenaLeaveLock(Arena arena, Bool recursive)
 {
   Lock lock;
 
@@ -608,7 +598,7 @@ void arenaLeaveLock(Arena arena, int recursive)
 
 void ArenaLeaveRecursive(Arena arena)
 {
-  arenaLeaveLock(arena, 1);
+  ArenaLeaveLock(arena, TRUE);
 }
 
 /* mps_exception_info -- pointer to exception info
@@ -617,6 +607,7 @@ void ArenaLeaveRecursive(Arena arena)
  * version.  The format is platform-specific.  We won't necessarily
  * publish this.  */
 
+extern MutatorFaultContext mps_exception_info;
 MutatorFaultContext mps_exception_info = NULL;
 
 
@@ -708,14 +699,7 @@ Bool ArenaAccess(Addr addr, AccessSet mode, MutatorFaultContext context)
  * series of manual steps for looking around.  This might be worthwhile
  * if we introduce background activities other than tracing.  */
 
-#ifdef MPS_PROD_EPCORE
 void (ArenaPoll)(Globals globals)
-{
-  /* Don't poll, just check. */
-  AVERT(Globals, globals);
-}
-#else
-void ArenaPoll(Globals globals)
 {
   Arena arena;
   Clock start;
@@ -770,7 +754,6 @@ void ArenaPoll(Globals globals)
 
   globals->insidePoll = FALSE;
 }
-#endif
 
 /* Work out whether we have enough time here to collect the world,
  * and whether much time has passed since the last time we did that
@@ -1025,87 +1008,99 @@ Ref ArenaRead(Arena arena, Ref *p)
 
 /* GlobalsDescribe -- describe the arena globals */
 
-Res GlobalsDescribe(Globals arenaGlobals, mps_lib_FILE *stream)
+Res GlobalsDescribe(Globals arenaGlobals, mps_lib_FILE *stream, Count depth)
 {
   Res res;
   Arena arena;
   Ring node, nextNode;
   Index i;
+  TraceId ti;
+  Trace trace;
 
   if (!TESTT(Globals, arenaGlobals)) return ResFAIL;
   if (stream == NULL) return ResFAIL;
 
   arena = GlobalsArena(arenaGlobals);
-  res = WriteF(stream,
-               "  mpsVersion $S\n", arenaGlobals->mpsVersionString,
-               "  lock $P\n", (WriteFP)arenaGlobals->lock,
-               "  pollThreshold $U kB\n",
+  res = WriteF(stream, depth,
+               "mpsVersion $S\n", arenaGlobals->mpsVersionString,
+               "lock $P\n", (WriteFP)arenaGlobals->lock,
+               "pollThreshold $U kB\n",
                (WriteFU)(arenaGlobals->pollThreshold / 1024),
                arenaGlobals->insidePoll ? "inside poll\n" : "outside poll\n",
                arenaGlobals->clamped ? "clamped\n" : "released\n",
-               "  fillMutatorSize $U kB\n",
-                 (WriteFU)(arenaGlobals->fillMutatorSize / 1024),
-               "  emptyMutatorSize $U kB\n",
-                 (WriteFU)(arenaGlobals->emptyMutatorSize / 1024),
-               "  allocMutatorSize $U kB\n",
-                 (WriteFU)(arenaGlobals->allocMutatorSize / 1024),
-               "  fillInternalSize $U kB\n",
-                 (WriteFU)(arenaGlobals->fillInternalSize / 1024),
-               "  emptyInternalSize $U kB\n",
-                 (WriteFU)(arenaGlobals->emptyInternalSize / 1024),
-               "  poolSerial $U\n", (WriteFU)arenaGlobals->poolSerial,
-               "  rootSerial $U\n", (WriteFU)arenaGlobals->rootSerial,
-               "  formatSerial $U\n", (WriteFU)arena->formatSerial,
-               "  threadSerial $U\n", (WriteFU)arena->threadSerial,
+               "fillMutatorSize $U kB\n",
+               (WriteFU)(arenaGlobals->fillMutatorSize / 1024),
+               "emptyMutatorSize $U kB\n",
+               (WriteFU)(arenaGlobals->emptyMutatorSize / 1024),
+               "allocMutatorSize $U kB\n",
+               (WriteFU)(arenaGlobals->allocMutatorSize / 1024),
+               "fillInternalSize $U kB\n",
+               (WriteFU)(arenaGlobals->fillInternalSize / 1024),
+               "emptyInternalSize $U kB\n",
+               (WriteFU)(arenaGlobals->emptyInternalSize / 1024),
+               "poolSerial $U\n", (WriteFU)arenaGlobals->poolSerial,
+               "rootSerial $U\n", (WriteFU)arenaGlobals->rootSerial,
+               "formatSerial $U\n", (WriteFU)arena->formatSerial,
+               "threadSerial $U\n", (WriteFU)arena->threadSerial,
                arena->insideShield ? "inside shield\n" : "outside shield\n",
-               "  busyTraces    $B\n", (WriteFB)arena->busyTraces,
-               "  flippedTraces $B\n", (WriteFB)arena->flippedTraces,
-               /* @@@@ no TraceDescribe function */
-               "  epoch $U\n", (WriteFU)arena->epoch,
+               "busyTraces    $B\n", (WriteFB)arena->busyTraces,
+               "flippedTraces $B\n", (WriteFB)arena->flippedTraces,
+               "epoch $U\n", (WriteFU)arena->epoch,
+               "prehistory = $B\n", (WriteFB)arena->prehistory,
+               "history {\n",
+               "  [note: indices are raw, not rotated]\n",
                NULL);
   if (res != ResOK) return res;
 
   for(i=0; i < LDHistoryLENGTH; ++ i) {
-    res = WriteF(stream,
-                 "    history[$U] = $B\n", i, arena->history[i],
+    res = WriteF(stream, depth + 2,
+                 "[$U] = $B\n", i, arena->history[i],
                  NULL);
     if (res != ResOK) return res;
   }
 
-  res = WriteF(stream,
-               "    [note: indices are raw, not rotated]\n"
-               "    prehistory = $B\n", (WriteFB)arena->prehistory,
-               NULL);
-  if (res != ResOK) return res;
-
-  res = WriteF(stream,
-               "  suspended $S\n", arena->suspended ? "YES" : "NO",
-               "  shDepth $U\n", arena->shDepth,
-               "  shCacheI $U\n", arena->shCacheI,
+  res = WriteF(stream, depth,
+               "} history\n",
+               "suspended $S\n", arena->suspended ? "YES" : "NO",
+               "shDepth $U\n", arena->shDepth,
+               "shCacheI $U\n", arena->shCacheI,
                /* @@@@ should SegDescribe the cached segs? */
                NULL);
   if (res != ResOK) return res;
 
-  res = RootsDescribe(arenaGlobals, stream);
+  res = RootsDescribe(arenaGlobals, stream, depth);
   if (res != ResOK) return res;
 
   RING_FOR(node, &arenaGlobals->poolRing, nextNode) {
     Pool pool = RING_ELT(Pool, arenaRing, node);
-    res = PoolDescribe(pool, stream);
+    res = PoolDescribe(pool, stream, depth);
     if (res != ResOK) return res;
   }
 
   RING_FOR(node, &arena->formatRing, nextNode) {
     Format format = RING_ELT(Format, arenaRing, node);
-    res = FormatDescribe(format, stream);
+    res = FormatDescribe(format, stream, depth);
     if (res != ResOK) return res;
   }
 
   RING_FOR(node, &arena->threadRing, nextNode) {
     Thread thread = ThreadRingThread(node);
-    res = ThreadDescribe(thread, stream);
+    res = ThreadDescribe(thread, stream, depth);
     if (res != ResOK) return res;
   }
+
+  RING_FOR(node, &arena->chainRing, nextNode) {
+    Chain chain = RING_ELT(Chain, chainRing, node);
+    res = ChainDescribe(chain, stream, depth);
+    if (res != ResOK) return res;
+  }
+
+  TRACE_SET_ITER(ti, trace, TraceSetUNIV, arena)
+    if (TraceSetIsMember(arena->busyTraces, trace)) {
+      res = TraceDescribe(trace, stream, depth);
+      if (res != ResOK) return res;
+    }
+  TRACE_SET_ITER_END(ti, trace, TraceSetUNIV, arena);
 
   /* @@@@ What about grey rings? */
   return res;
@@ -1131,7 +1126,7 @@ void ArenaSetEmergency(Arena arena, Bool emergency)
   AVERT(Arena, arena);
   AVERT(Bool, emergency);
 
-  EVENT2(ArenaSetEmergency, arena, emergency);
+  EVENT2(ArenaSetEmergency, arena, BOOLOF(emergency));
 
   arena->emergency = emergency;
 }

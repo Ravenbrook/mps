@@ -113,7 +113,7 @@
 
 #define testArenaSIZE   ((size_t)16<<20)
 
-/* usually (ArenaAlign / sizeof(Ref)) = 1024 */
+/* usually (ArenaGrainSize / sizeof(Ref)) = 1024 */
 /* so choose 3000 to force 3 segments of guardians */
 #define myrootCOUNT 3000
 
@@ -381,6 +381,7 @@ static void *testscriptB(void *arg, size_t s)
 
   testscriptC(arena, script);
 
+  mps_arena_park(arena);
   mps_ap_destroy(ap);
   mps_root_destroy(root_table);
   mps_pool_destroy(amc);

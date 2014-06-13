@@ -390,6 +390,7 @@ Res TraceCondemnZones(Trace trace, ZoneSet condemnedSet)
   Seg seg;
   Arena arena;
   Res res;
+  Bool haveWhiteSegs = FALSE;
 
   AVERT(Trace, trace);
   AVER(condemnedSet != ZoneSetEMPTY);
@@ -415,7 +416,8 @@ Res TraceCondemnZones(Trace trace, ZoneSet condemnedSet)
       {
         res = TraceAddWhite(trace, seg);
         if(res != ResOK)
-          return res;
+          goto failBegin;
+        haveWhiteSegs = TRUE;
       }
     } while (SegNext(&seg, arena, seg));
   }
@@ -426,6 +428,10 @@ Res TraceCondemnZones(Trace trace, ZoneSet condemnedSet)
   AVER(ZoneSetSuper(condemnedSet, trace->white));
 
   return ResOK;
+
+failBegin:
+  AVER(!haveWhiteSegs); /* See .whiten.fail. */
+  return res;
 }
 
 
@@ -628,33 +634,6 @@ failRootFlip:
   return res;
 }
 
-/* traceCopySizes -- preserve size information for later use
- *
- * A PoolGen's newSize is important information that we want to emit in
- * a diagnostic message at TraceStart.  In order to do that we must copy
- * the information before Whiten changes it.  This function does that.
- */
-
-static void traceCopySizes(Trace trace)
-{
-  Ring node, nextNode;
-  Index i;
-  Arena arena = trace->arena;
-
-  RING_FOR(node, &arena->chainRing, nextNode) {
-    Chain chain = RING_ELT(Chain, chainRing, node);
-
-    for(i = 0; i < chain->genCount; ++i) {
-      Ring n, nn;
-      GenDesc desc = &chain->gens[i];
-      RING_FOR(n, &desc->locusRing, nn) {
-        PoolGen gen = RING_ELT(PoolGen, genRing, n);
-        gen->newSizeAtCreate = gen->newSize;
-      }
-    }
-  }
-  return;
-}
 
 /* TraceCreate -- create a Trace object
  *
@@ -670,6 +649,17 @@ static void traceCopySizes(Trace trace)
  *
  * This code is written to be adaptable to allocating Trace objects
  * dynamically.  */
+
+static void TraceCreatePoolGen(GenDesc gen)
+{
+  Ring n, nn;
+  RING_FOR(n, &gen->locusRing, nn) {
+    PoolGen pgen = RING_ELT(PoolGen, genRing, n);
+    EVENT11(TraceCreatePoolGen, gen, gen->capacity, gen->mortality, gen->zones,
+            pgen->pool, pgen->totalSize, pgen->freeSize, pgen->newSize,
+            pgen->oldSize, pgen->newDeferredSize, pgen->oldDeferredSize);
+  }
+}
 
 Res TraceCreate(Trace *traceReturn, Arena arena, int why)
 {
@@ -741,7 +731,24 @@ found:
   /* .. _request.dylan.160098: https://info.ravenbrook.com/project/mps/import/2001-11-05/mmprevol/request/dylan/160098 */
   ShieldSuspend(arena);
 
-  traceCopySizes(trace);
+  STATISTIC_STAT ({
+    /* Iterate over all chains, all GenDescs within a chain, and all
+     * PoolGens within a GenDesc. */
+    Ring node;
+    Ring nextNode;
+
+    RING_FOR(node, &arena->chainRing, nextNode) {
+      Chain chain = RING_ELT(Chain, chainRing, node);
+      Index i;
+      for (i = 0; i < chain->genCount; ++i) {
+        GenDesc gen = &chain->gens[i];
+        TraceCreatePoolGen(gen);
+      }
+    }
+
+    /* Now do topgen GenDesc, and all PoolGens within it. */
+    TraceCreatePoolGen(&arena->topGen);
+  });
 
   *traceReturn = trace;
   return ResOK;
@@ -1253,7 +1260,12 @@ mps_res_t _mps_fix2(mps_ss_t mps_ss, mps_addr_t *mps_ref_io)
 {
   ScanState ss = PARENT(ScanStateStruct, ss_s, mps_ss);
   Ref ref;
+  Chunk chunk;
+  Index i;
   Tract tract;
+  Seg seg;
+  Res res;
+  Pool pool;
 
   /* Special AVER macros are used on the critical path. */
   /* See <design/trace/#fix.noaver> */
@@ -1270,59 +1282,70 @@ mps_res_t _mps_fix2(mps_ss_t mps_ss, mps_addr_t *mps_ref_io)
   STATISTIC(++ss->fixRefCount);
   EVENT4(TraceFix, ss, mps_ref_io, ref, ss->rank);
 
-  TRACT_OF_ADDR(&tract, ss->arena, ref);
-  if(tract) {
-    if(TraceSetInter(TractWhite(tract), ss->traces) != TraceSetEMPTY) {
-      Seg seg;
-      if(TRACT_SEG(&seg, tract)) {
-        Res res;
-        Pool pool;
-        STATISTIC(++ss->segRefCount);
-        STATISTIC(++ss->whiteSegRefCount);
-        EVENT1(TraceFixSeg, seg);
-        EVENT0(TraceFixWhite);
-        pool = TractPool(tract);
-        res = (*ss->fix)(pool, ss, seg, &ref);
-        if(res != ResOK) {
-          /* PoolFixEmergency should never fail. */
-          AVER_CRITICAL(ss->fix != PoolFixEmergency);
-          /* Fix protocol (de facto): if Fix fails, ref must be unchanged
-           * Justification for this restriction:
-           * A: it simplifies;
-           * B: it's reasonable (given what may cause Fix to fail);
-           * C: the code (here) already assumes this: it returns without 
-           *    updating ss->fixedSummary.  RHSK 2007-03-21.
-           */
-          AVER(ref == (Ref)*mps_ref_io);
-          return res;
-        }
-      } else {
-        /* Only tracts with segments ought to have been condemned. */
-        /* SegOfAddr FALSE => a ref into a non-seg Tract (poolmv etc) */
-        /* .notwhite: ...But it should NOT be white.  
-         * [I assert this both from logic, and from inspection of the 
-         * current condemn code.  RHSK 2010-11-30]
-         */
-        NOTREACHED;
-      }
-    } else {
-      /* Tract isn't white. Don't compute seg for non-statistical */
-      /* variety. See <design/trace/#fix.tractofaddr> */
-      STATISTIC_STAT
-        ({
-          Seg seg;
-          if(TRACT_SEG(&seg, tract)) {
-            ++ss->segRefCount;
-            EVENT1(TraceFixSeg, seg);
-          }
-        });
-    }
-  } else {
-    /* See <design/trace/#exact.legal> */
-    AVER(ss->rank < RankEXACT
-         || !ArenaIsReservedAddr(ss->arena, ref));
+  /* This sequence of tests is equivalent to calling TractOfAddr(),
+   * but inlined so that we can distinguish between "not pointing to
+   * chunk" and "pointing to chunk but not to tract" so that we can
+   * check the rank in the latter case. See
+   * <design/trace/#fix.tractofaddr.inline>
+   *
+   * If compilers fail to do a good job of inlining ChunkOfAddr and
+   * TreeFind then it may become necessary to inline at least the
+   * comparison against the root of the tree. See
+   * <https://info.ravenbrook.com/mail/2014/06/11/13-32-08/0/>
+   */
+  if (!ChunkOfAddr(&chunk, ss->arena, ref))
+    /* Reference points outside MPS-managed address space: ignore. */
+    goto done;
+
+  i = INDEX_OF_ADDR(chunk, ref);
+  if (!BTGet(chunk->allocTable, i)) {
+    /* Reference points into a chunk but not to an allocated tract.
+     * See <design/trace/#exact.legal> */
+    AVER_CRITICAL(ss->rank < RankEXACT);
+    goto done;
   }
 
+  tract = PageTract(&chunk->pageTable[i]);
+  if (TraceSetInter(TractWhite(tract), ss->traces) == TraceSetEMPTY) {
+    /* Reference points to a tract that is not white for any of the
+     * active traces. See <design/trace/#fix.tractofaddr> */
+    STATISTIC_STAT
+      ({
+        if(TRACT_SEG(&seg, tract)) {
+          ++ss->segRefCount;
+          EVENT1(TraceFixSeg, seg);
+        }
+      });
+    goto done;
+  }
+
+  if (!TRACT_SEG(&seg, tract)) {
+    /* Tracts without segments must not be condemned. */
+    NOTREACHED;
+    goto done;
+  }
+
+  STATISTIC(++ss->segRefCount);
+  STATISTIC(++ss->whiteSegRefCount);
+  EVENT1(TraceFixSeg, seg);
+  EVENT0(TraceFixWhite);
+  pool = TractPool(tract);
+  res = (*ss->fix)(pool, ss, seg, &ref);
+  if (res != ResOK) {
+    /* PoolFixEmergency must not fail. */
+    AVER_CRITICAL(ss->fix != PoolFixEmergency);
+    /* Fix protocol (de facto): if Fix fails, ref must be unchanged
+     * Justification for this restriction:
+     * A: it simplifies;
+     * B: it's reasonable (given what may cause Fix to fail);
+     * C: the code (here) already assumes this: it returns without 
+     *    updating ss->fixedSummary.  RHSK 2007-03-21.
+     */
+    AVER_CRITICAL(ref == (Ref)*mps_ref_io);
+    return res;
+  }
+
+done:
   /* See <design/trace/#fix.fixed.all> */
   ss->fixedSummary = RefSetAdd(ss->arena, ss->fixedSummary, ref);
   
@@ -1503,21 +1526,31 @@ static Res traceCondemnAll(Trace trace)
 {
   Res res;
   Arena arena;
-  Ring chainNode, nextChainNode;
+  Ring poolNode, nextPoolNode, chainNode, nextChainNode;
   Bool haveWhiteSegs = FALSE;
 
   arena = trace->arena;
   AVERT(Arena, arena);
-  /* Condemn all the chains. */
-  RING_FOR(chainNode, &arena->chainRing, nextChainNode) {
-    Chain chain = RING_ELT(Chain, chainRing, chainNode);
 
-    AVERT(Chain, chain);
-    res = ChainCondemnAll(chain, trace);
-    if(res != ResOK)
-      goto failBegin;
-    haveWhiteSegs = TRUE;
+  /* Condemn all segments in pools with the GC attribute. */
+  RING_FOR(poolNode, &ArenaGlobals(arena)->poolRing, nextPoolNode) {
+    Pool pool = RING_ELT(Pool, arenaRing, poolNode);
+    AVERT(Pool, pool);
+
+    if (PoolHasAttr(pool, AttrGC)) {
+      Ring segNode, nextSegNode;
+      RING_FOR(segNode, PoolSegRing(pool), nextSegNode) {
+        Seg seg = SegOfPoolRing(segNode);
+        AVERT(Seg, seg);
+
+        res = TraceAddWhite(trace, seg);
+        if (res != ResOK)
+          goto failBegin;
+        haveWhiteSegs = TRUE;
+      }
+    }
   }
+
   /* Notify all the chains. */
   RING_FOR(chainNode, &arena->chainRing, nextChainNode) {
     Chain chain = RING_ELT(Chain, chainRing, chainNode);
@@ -1527,7 +1560,14 @@ static Res traceCondemnAll(Trace trace)
   return ResOK;
 
 failBegin:
-  AVER(!haveWhiteSegs); /* Would leave white sets inconsistent. */
+  /* .whiten.fail: If we successfully whitened one or more segments,
+   * but failed to whiten them all, then the white sets would now be
+   * inconsistent. This can't happen in practice (at time of writing)
+   * because all PoolWhiten methods always succeed. If we ever have a
+   * pool class that fails to whiten a segment, then this assertion
+   * will be triggered. In that case, we'll have to recover here by
+   * blackening the segments again. */
+  AVER(!haveWhiteSegs);
   return res;
 }
 
@@ -1541,9 +1581,9 @@ double TraceWorkFactor = 0.25;
  *
  * TraceStart should be passed a trace with state TraceINIT, i.e.,
  * recently returned from TraceCreate, with some condemned segments
- * added.  mortality is the fraction of the condemned set expected to
- * survive.  finishingTime is relative to the current polling clock, see
- * <design/arena/#poll.clock>.
+ * added. mortality is the fraction of the condemned set expected not
+ * to survive. finishingTime is relative to the current polling clock,
+ * see <design/arena/#poll.clock>.
  *
  * .start.black: All segments are black w.r.t. a newly allocated trace.
  * However, if TraceStart initialized segments to black when it
@@ -1562,19 +1602,6 @@ static Res rootGrey(Root root, void *p)
   }
 
   return ResOK;
-}
-
-
-static void TraceStartPoolGen(Chain chain, GenDesc desc, Bool top, Index i)
-{
-  Ring n, nn;
-  RING_FOR(n, &desc->locusRing, nn) {
-    PoolGen gen = RING_ELT(PoolGen, genRing, n);
-    EVENT11(TraceStartPoolGen, chain, top, i, desc,
-            desc->capacity, desc->mortality, desc->zones,
-            gen->pool, gen->nr, gen->totalSize,
-            gen->newSizeAtCreate);
-  }
 }
 
 
@@ -1642,26 +1669,6 @@ Res TraceStart(Trace trace, double mortality, double finishingTime)
     } while (SegNext(&seg, arena, seg));
   }
 
-  STATISTIC_STAT ({
-    /* @@ */
-    /* Iterate over all chains, all GenDescs within a chain, */
-    /* (and all PoolGens within a GenDesc).  */
-    Ring node;
-    Ring nextNode;
-    Index i;
-    
-    RING_FOR(node, &arena->chainRing, nextNode) {
-      Chain chain = RING_ELT(Chain, chainRing, node);
-      for(i = 0; i < chain->genCount; ++i) {
-        GenDesc desc = &chain->gens[i];
-        TraceStartPoolGen(chain, desc, FALSE, i);
-      }
-    }
-    
-    /* Now do topgen GenDesc (and all PoolGens within it). */
-    TraceStartPoolGen(NULL, &arena->topGen, TRUE, 0);
-  });
-
   res = RootsIterate(ArenaGlobals(arena), rootGrey, (void *)trace);
   AVER(res == ResOK);
 
@@ -1715,7 +1722,10 @@ Res TraceStart(Trace trace, double mortality, double finishingTime)
 void TraceQuantum(Trace trace)
 {
   Size pollEnd;
-  Arena arena = trace->arena;
+  Arena arena;
+
+  AVERT(Trace, trace);
+  arena = trace->arena;
 
   pollEnd = traceWorkClock(trace) + trace->rate;
   do {
@@ -1896,6 +1906,51 @@ failCondemn:
   ArenaSetEmergency(arena, FALSE);
 failStart:
   return (Size)0;
+}
+
+
+/* TraceDescribe -- describe a trace */
+
+Res TraceDescribe(Trace trace, mps_lib_FILE *stream, Count depth)
+{
+  Res res;
+  const char *state;
+
+  if (!TESTT(Trace, trace)) return ResFAIL;
+  if (stream == NULL) return ResFAIL;
+
+  switch (trace->state) {
+  case TraceINIT:      state = "INIT";      break;
+  case TraceUNFLIPPED: state = "UNFLIPPED"; break;
+  case TraceFLIPPED:   state = "FLIPPED";   break;
+  case TraceRECLAIM:   state = "RECLAIM";   break;
+  case TraceFINISHED:  state = "FINISHED";  break;
+  default:             state = "unknown";   break;
+  }
+
+  res = WriteF(stream, depth,
+               "Trace $P ($U) {\n", (WriteFP)trace, (WriteFU)trace->ti,
+               "  arena $P ($U)\n", (WriteFP)trace->arena,
+               (WriteFU)trace->arena->serial,
+               "  why \"$S\"\n", (WriteFS)TraceStartWhyToString(trace->why),
+               "  state $S\n", (WriteFS)state,
+               "  band $U\n", (WriteFU)trace->band,
+               "  white   $B\n", (WriteFB)trace->white,
+               "  mayMove $B\n", (WriteFB)trace->mayMove,
+               "  chain $P\n", (WriteFP)trace->chain,
+               "  condemned $U\n", (WriteFU)trace->condemned,
+               "  notCondemned $U\n", (WriteFU)trace->notCondemned,
+               "  foundation $U\n", (WriteFU)trace->foundation,
+               "  rate $U\n", (WriteFU)trace->rate,
+               "  rootScanSize $U\n", (WriteFU)trace->rootScanSize,
+               "  rootCopiedSize $U\n", (WriteFU)trace->rootCopiedSize,
+               "  segScanSize $U\n", (WriteFU)trace->segScanSize,
+               "  segCopiedSize $U\n", (WriteFU)trace->segCopiedSize,
+               "  forwardedSize $U\n", (WriteFU)trace->forwardedSize,
+               "  preservedInPlaceSize $U\n", (WriteFU)trace->preservedInPlaceSize,
+               "} Trace $P\n", (WriteFP)trace,
+               NULL);
+  return res;
 }
 
 

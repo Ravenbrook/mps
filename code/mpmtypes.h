@@ -33,6 +33,7 @@ typedef void (*Fun)(void);              /* <design/type/#fun> */
 typedef MPS_T_WORD Word;                /* <design/type/#word> */
 typedef unsigned char Byte;             /* <design/type/#byte> */
 typedef struct AddrStruct *Addr;        /* <design/type/#addr> */
+typedef const struct AddrStruct *ReadonlyAddr; /* <design/type/#readonlyaddr> */
 typedef Word Size;                      /* <design/type/#size> */
 typedef Word Count;                     /* <design/type/#count> */
 typedef Word Index;                     /* <design/type/#index> */
@@ -76,7 +77,6 @@ typedef struct LockStruct *Lock;        /* <code/lock.c>* */
 typedef struct mps_pool_s *Pool;        /* <design/pool/> */
 typedef struct mps_class_s *PoolClass;  /* <code/poolclas.c> */
 typedef PoolClass AbstractPoolClass;    /* <code/poolabs.c> */
-typedef PoolClass AbstractAllocFreePoolClass; /* <code/poolabs.c> */
 typedef PoolClass AbstractBufferPoolClass; /* <code/poolabs.c> */
 typedef PoolClass AbstractSegBufPoolClass; /* <code/poolabs.c> */
 typedef PoolClass AbstractScanPoolClass; /* <code/poolabs.c> */
@@ -108,7 +108,10 @@ typedef struct AllocPatternStruct *AllocPattern;
 typedef struct AllocFrameStruct *AllocFrame; /* <design/alloc-frame/> */
 typedef struct ReservoirStruct *Reservoir;   /* <design/reservoir/> */
 typedef struct StackContextStruct *StackContext;
-typedef unsigned FindDelete;    /* <design/cbs/> */
+typedef struct RangeStruct *Range;      /* <design/range/> */
+typedef struct LandStruct *Land;        /* <design/land/> */
+typedef struct LandClassStruct *LandClass; /* <design/land/> */
+typedef unsigned FindDelete;            /* <design/land/> */
 
 
 /* Arena*Method -- see <code/mpmst.h#ArenaClassStruct> */
@@ -125,7 +128,7 @@ typedef void (*ArenaFreeMethod)(Addr base, Size size, Pool pool);
 typedef Res (*ArenaChunkInitMethod)(Chunk chunk, BootBlock boot);
 typedef void (*ArenaChunkFinishMethod)(Chunk chunk);
 typedef void (*ArenaCompactMethod)(Arena arena, Trace trace);
-typedef Res (*ArenaDescribeMethod)(Arena arena, mps_lib_FILE *stream);
+typedef Res (*ArenaDescribeMethod)(Arena arena, mps_lib_FILE *stream, Count depth);
 typedef Res (*ArenaPagesMarkAllocatedMethod)(Arena arena, Chunk chunk,
                                              Index baseIndex, Count pages,
                                              Pool pool);
@@ -165,7 +168,7 @@ typedef void (*SegSetRankSummaryMethod)(Seg seg, RankSet rankSet,
 typedef void (*SegSetSummaryMethod)(Seg seg, RefSet summary);
 typedef Buffer (*SegBufferMethod)(Seg seg);
 typedef void (*SegSetBufferMethod)(Seg seg, Buffer buffer);
-typedef Res (*SegDescribeMethod)(Seg seg, mps_lib_FILE *stream);
+typedef Res (*SegDescribeMethod)(Seg seg, mps_lib_FILE *stream, Count depth);
 typedef Res (*SegMergeMethod)(Seg seg, Seg segHi,
                               Addr base, Addr mid, Addr limit,
                               Bool withReservoirPermit);
@@ -185,7 +188,7 @@ typedef Seg (*BufferSegMethod)(Buffer buffer);
 typedef RankSet (*BufferRankSetMethod)(Buffer buffer);
 typedef void (*BufferSetRankSetMethod)(Buffer buffer, RankSet rankSet);
 typedef void (*BufferReassignSegMethod)(Buffer buffer, Seg seg);
-typedef Res (*BufferDescribeMethod)(Buffer buffer, mps_lib_FILE *stream);
+typedef Res (*BufferDescribeMethod)(Buffer buffer, mps_lib_FILE *stream, Count depth);
 
 
 /* Pool*Method -- see <design/class-interface/> */
@@ -232,8 +235,9 @@ typedef void (*PoolWalkMethod)(Pool pool, Seg seg,
                                void *v, size_t s);
 typedef void (*PoolFreeWalkMethod)(Pool pool, FreeBlockStepMethod f, void *p);
 typedef BufferClass (*PoolBufferClassMethod)(void);
-typedef Res (*PoolDescribeMethod)(Pool pool, mps_lib_FILE *stream);
+typedef Res (*PoolDescribeMethod)(Pool pool, mps_lib_FILE *stream, Count depth);
 typedef PoolDebugMixin (*PoolDebugMixinMethod)(Pool pool);
+typedef Size (*PoolSizeMethod)(Pool pool);
 
 
 /* Messages
@@ -261,6 +265,22 @@ typedef struct TraceStartMessageStruct *TraceStartMessage;
 typedef struct TraceMessageStruct *TraceMessage;  /* trace end */
 
 
+/* Land*Method -- see <design/land/> */
+
+typedef Res (*LandInitMethod)(Land land, ArgList args);
+typedef void (*LandFinishMethod)(Land land);
+typedef Size (*LandSizeMethod)(Land land);
+typedef Res (*LandInsertMethod)(Range rangeReturn, Land land, Range range);
+typedef Res (*LandDeleteMethod)(Range rangeReturn, Land land, Range range);
+typedef Bool (*LandVisitor)(Land land, Range range, void *closureP, Size closureS);
+typedef Bool (*LandDeleteVisitor)(Bool *deleteReturn, Land land, Range range, void *closureP, Size closureS);
+typedef Bool (*LandIterateMethod)(Land land, LandVisitor visitor, void *closureP, Size closureS);
+typedef Bool (*LandIterateAndDeleteMethod)(Land land, LandDeleteVisitor visitor, void *closureP, Size closureS);
+typedef Bool (*LandFindMethod)(Range rangeReturn, Range oldRangeReturn, Land land, Size size, FindDelete findDelete);
+typedef Res (*LandFindInZonesMethod)(Bool *foundReturn, Range rangeReturn, Range oldRangeReturn, Land land, Size size, ZoneSet zoneSet, Bool high);
+typedef Res (*LandDescribeMethod)(Land land, mps_lib_FILE *stream, Count depth);
+
+
 /* CONSTANTS */
 
 
@@ -271,7 +291,7 @@ typedef struct TraceMessageStruct *TraceMessage;  /* trace end */
 #define AccessSetEMPTY  ((AccessSet)0) /* <design/type/#access-set> */
 #define AccessREAD      ((AccessSet)(1<<0))
 #define AccessWRITE     ((AccessSet)(1<<1))
-#define AccessSetWIDTH  (2)
+#define AccessLIMIT     (2)
 #define RefSetEMPTY     BS_EMPTY(RefSet)
 #define RefSetUNIV      BS_UNIV(RefSet)
 #define ZoneSetEMPTY    BS_EMPTY(ZoneSet)
@@ -281,22 +301,9 @@ typedef struct TraceMessageStruct *TraceMessage;  /* trace end */
 #define RankSetEMPTY    BS_EMPTY(RankSet)
 #define RankSetUNIV     ((RankSet)((1u << RankLIMIT) - 1))
 #define AttrFMT         ((Attr)(1<<0))  /* <design/type/#attr> */
-#define AttrSCAN        ((Attr)(1<<1))
-#define AttrPM_NO_READ  ((Attr)(1<<2))
-#define AttrPM_NO_WRITE ((Attr)(1<<3))
-#define AttrALLOC       ((Attr)(1<<4))
-#define AttrFREE        ((Attr)(1<<5))
-#define AttrBUF         ((Attr)(1<<6))
-#define AttrBUF_RESERVE ((Attr)(1<<7))
-#define AttrBUF_ALLOC   ((Attr)(1<<8))
-#define AttrGC          ((Attr)(1<<9))
-#define AttrINCR_RB     ((Attr)(1<<10))
-#define AttrINCR_WB     ((Attr)(1<<11))
-#define AttrMOVINGGC    ((Attr)(1<<12))
-#define AttrMASK        (AttrFMT | AttrSCAN | AttrPM_NO_READ | \
-                         AttrPM_NO_WRITE | AttrALLOC | AttrFREE | \
-                         AttrBUF | AttrBUF_RESERVE | AttrBUF_ALLOC | \
-                         AttrGC | AttrINCR_RB | AttrINCR_WB | AttrMOVINGGC)
+#define AttrGC          ((Attr)(1<<1))
+#define AttrMOVINGGC    ((Attr)(1<<2))
+#define AttrMASK        (AttrFMT | AttrGC | AttrMOVINGGC)
 
 
 /* Segment preferences */
@@ -407,7 +414,7 @@ enum {
 };
 
 
-/* FindDelete operations -- see <design/cbs/> and <design/freelist/> */
+/* FindDelete operations -- see <design/land/> */
 
 enum {
   FindDeleteNONE = 1, /* don't delete after finding */

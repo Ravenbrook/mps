@@ -164,6 +164,21 @@ void SplayDebugUpdate(SplayTree splay, Tree tree)
 }
 
 
+/* SplayDebugCount -- count and check order of tree
+ *
+ * This function may be called from a debugger or temporarily inserted
+ * during development to check a tree's integrity.  It may not be called
+ * from the production MPS because it uses indefinite stack depth.
+ * See <code/tree.c#.note.stack>.
+ */
+
+Count SplayDebugCount(SplayTree splay)
+{
+  AVERT(SplayTree, splay);
+  return TreeDebugCount(SplayTreeRoot(splay), splay->compare, splay->nodeKey);
+}
+
+
 /* SplayZig -- move to left child, prepending to right tree
  *
  * Link the top node of the middle tree into the left child of the
@@ -679,7 +694,7 @@ static Compare SplaySplay(SplayTree splay, TreeKey key, TreeCompare compare)
   SplayStateStruct stateStruct;
 
 #ifdef SPLAY_DEBUG
-  Count count = TreeDebugCount(SplayTreeRoot(tree), tree->compare, tree->nodeKey);
+  Count count = SplayDebugCount(splay);
 #endif
 
   /* Short-circuit common cases.  Splay trees often bring recently
@@ -699,7 +714,7 @@ static Compare SplaySplay(SplayTree splay, TreeKey key, TreeCompare compare)
   SplayTreeSetRoot(splay, stateStruct.middle);
 
 #ifdef SPLAY_DEBUG
-  AVER(count == TreeDebugCount(SplayTreeRoot(tree), tree->compare, tree->nodeKey));
+  AVER(count == SplayDebugCount(splay));
 #endif
 
   return cmp;
@@ -894,7 +909,7 @@ Bool SplayTreeNeighbours(Tree *leftReturn, Tree *rightReturn,
   Bool found;
   Compare cmp;
 #ifdef SPLAY_DEBUG
-  Count count = TreeDebugCount(SplayTreeRoot(tree), tree->compare, tree->nodeKey);
+  Count count = SplayDebugCount(splay);
 #endif
 
 
@@ -936,7 +951,7 @@ Bool SplayTreeNeighbours(Tree *leftReturn, Tree *rightReturn,
   SplayTreeSetRoot(splay, stateStruct.middle);
 
 #ifdef SPLAY_DEBUG
-  AVER(count == TreeDebugCount(SplayTreeRoot(tree), tree->compare, tree->nodeKey));
+  AVER(count == SplayDebugCount(splay));
 #endif
 
   return found;
@@ -945,20 +960,19 @@ Bool SplayTreeNeighbours(Tree *leftReturn, Tree *rightReturn,
 
 /* SplayTreeFirst, SplayTreeNext -- iterators
  *
- * SplayTreeFirst receives a key that must precede all
- * nodes in the tree.  It returns TreeEMPTY if the tree is empty.
- * Otherwise, it splays the tree to the first node, and returns the
- * new root.
+ * SplayTreeFirst returns TreeEMPTY if the tree is empty. Otherwise,
+ * it splays the tree to the first node, and returns the new root.
  *
  * SplayTreeNext takes a tree and splays it to the successor of a key
- * and returns the new root.  Returns TreeEMPTY is there are no successors.
+ * and returns the new root. Returns TreeEMPTY is there are no
+ * successors.
  *
  * SplayTreeFirst and SplayTreeNext do not require the tree to remain
  * unmodified.
  *
  * IMPORTANT: Iterating over the tree using these functions will leave
  * the tree totally unbalanced, throwing away optimisations of the tree
- * shape caused by previous splays.  Consider using TreeTraverse instead.
+ * shape caused by previous splays. Consider using TreeTraverse instead.
  */
 
 Tree SplayTreeFirst(SplayTree splay) {
@@ -989,10 +1003,10 @@ Tree SplayTreeNext(SplayTree splay, TreeKey oldKey) {
   default:
     NOTREACHED;
     /* defensive fall-through */
-  case CompareGREATER:
+  case CompareLESS:
     return SplayTreeRoot(splay);
 
-  case CompareLESS:
+  case CompareGREATER:
   case CompareEQUAL:
     return SplayTreeSuccessor(splay);
   }
@@ -1006,22 +1020,22 @@ Tree SplayTreeNext(SplayTree splay, TreeKey oldKey) {
  */
 
 static Res SplayNodeDescribe(Tree node, mps_lib_FILE *stream,
-                             SplayNodeDescribeMethod nodeDescribe) {
+                             TreeDescribeMethod nodeDescribe)
+{
   Res res;
 
-#if defined(AVER_AND_CHECK)
   if (!TreeCheck(node)) return ResFAIL;
-  /* stream and nodeDescribe checked by SplayTreeDescribe */
-#endif
+  if (stream == NULL) return ResFAIL;
+  if (!FUNCHECK(nodeDescribe)) return ResFAIL;
 
-  res = WriteF(stream, "( ", NULL);
+  res = WriteF(stream, 0, "( ", NULL);
   if (res != ResOK) return res;
 
   if (TreeHasLeft(node)) {
     res = SplayNodeDescribe(TreeLeft(node), stream, nodeDescribe);
     if (res != ResOK) return res;
 
-    res = WriteF(stream, " / ", NULL);
+    res = WriteF(stream, 0, " / ", NULL);
     if (res != ResOK) return res;
   }
 
@@ -1029,14 +1043,14 @@ static Res SplayNodeDescribe(Tree node, mps_lib_FILE *stream,
   if (res != ResOK) return res;
 
   if (TreeHasRight(node)) {
-    res = WriteF(stream, " \\ ", NULL);
+    res = WriteF(stream, 0, " \\ ", NULL);
     if (res != ResOK) return res;
 
     res = SplayNodeDescribe(TreeRight(node), stream, nodeDescribe);
     if (res != ResOK) return res;
   }
 
-  res = WriteF(stream, " )", NULL);
+  res = WriteF(stream, 0, " )", NULL);
   if (res != ResOK) return res;
 
   return ResOK;
@@ -1318,33 +1332,50 @@ void SplayNodeRefresh(SplayTree splay, Tree node)
 }
 
 
+/* SplayNodeInit -- initialize client property without splaying */
+
+void SplayNodeInit(SplayTree splay, Tree node)
+{
+  AVERT(SplayTree, splay);
+  AVERT(Tree, node);
+  AVER(!TreeHasLeft(node)); /* otherwise, call SplayNodeRefresh */
+  AVER(!TreeHasRight(node)); /* otherwise, call SplayNodeRefresh */
+  AVER(SplayHasUpdate(splay)); /* otherwise, why call? */
+
+  splay->updateNode(splay, node);
+}
+
+
 /* SplayTreeDescribe -- Describe a splay tree
  *
  * See <design/splay/#function.splay.tree.describe>.
  */
 
-Res SplayTreeDescribe(SplayTree splay, mps_lib_FILE *stream,
-                      SplayNodeDescribeMethod nodeDescribe) {
+Res SplayTreeDescribe(SplayTree splay, mps_lib_FILE *stream, Count depth,
+                      TreeDescribeMethod nodeDescribe)
+{
   Res res;
 
-#if defined(AVER_AND_CHECK)
-  if (!SplayTreeCheck(splay)) return ResFAIL;
+  if (!TESTT(SplayTree, splay)) return ResFAIL;
   if (stream == NULL) return ResFAIL;
   if (!FUNCHECK(nodeDescribe)) return ResFAIL;
-#endif
 
-  res = WriteF(stream,
+  res = WriteF(stream, depth,
                "Splay $P {\n", (WriteFP)splay,
                "  compare $F\n", (WriteFF)splay->compare,
+               "  nodeKey $F\n", (WriteFF)splay->nodeKey,
+               "  updateNode $F\n", (WriteFF)splay->updateNode,
                NULL);
   if (res != ResOK) return res;
 
   if (SplayTreeRoot(splay) != TreeEMPTY) {
+    res = WriteF(stream, depth, "  tree ", NULL);
+    if (res != ResOK) return res;
     res = SplayNodeDescribe(SplayTreeRoot(splay), stream, nodeDescribe);
     if (res != ResOK) return res;
   }
 
-  res = WriteF(stream, "\n}\n", NULL);
+  res = WriteF(stream, depth, "\n} Splay $P\n", (WriteFP)splay, NULL);
   return res;
 }
 

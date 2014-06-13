@@ -147,8 +147,57 @@
  *     cc -O2 -c -DCONFIG_PLINTH_NONE mps.c
  */
 
-#if defined(CONFIG_PLINTH_NONE)
+#if !defined(CONFIG_PLINTH_NONE)
+#define PLINTH
+#else
 #define PLINTH_NONE
+#endif
+
+
+/* CONFIG_PF_ANSI -- use the ANSI platform 
+ *
+ * This symbol tells mps.c to exclude the sources for the
+ * auto-detected platform, and use the generic ("ANSI") platform
+ * instead.
+ */
+
+#if defined(CONFIG_PF_ANSI)
+#define PLATFORM_ANSI
+#endif
+
+
+/* CONFIG_THREAD_SINGLE -- support single-threaded execution only
+ *
+ * This symbol causes the MPS to be built for single-threaded
+ * execution only, where locks are not needed and so lock operations
+ * can be defined as no-ops by lock.h.
+ */
+
+#if !defined(CONFIG_THREAD_SINGLE)
+#define LOCK
+#else
+#define LOCK_NONE
+#endif
+
+
+/* CONFIG_POLL_NONE -- no support for polling
+ *
+ * This symbol causes the MPS to built without support for polling.
+ * This means that garbage collections will only happen if requested
+ * explicitly via mps_arena_collect() or mps_arena_step(), but it also
+ * means that protection is not needed, and so shield operations can
+ * be replaced with no-ops in mpm.h.
+ */
+
+#if !defined(CONFIG_POLL_NONE)
+#define REMEMBERED_SET
+#define SHIELD
+#else
+#if !defined(CONFIG_THREAD_SINGLE)
+#error "CONFIG_POLL_NONE without CONFIG_THREAD_SINGLE"
+#endif
+#define REMEMBERED_SET_NONE
+#define SHIELD_NONE
 #endif
 
 
@@ -231,6 +280,30 @@
 #define ATTRIBUTE_NO_SANITIZE_ADDRESS
 #endif
 
+/* Attribute for functions that do not return.
+ * GCC: <http://gcc.gnu.org/onlinedocs/gcc/Function-Attributes.html>
+ * Clang: <http://clang.llvm.org/docs/AttributeReference.html#id1>
+ */
+#if defined(MPS_BUILD_GC) || defined(MPS_BUILD_LL)
+#define ATTRIBUTE_NORETURN __attribute__((__noreturn__))
+#else
+#define ATTRIBUTE_NORETURN
+#endif
+
+/* Attribute for functions that may be unused in some build configurations.
+ * GCC: <http://gcc.gnu.org/onlinedocs/gcc/Function-Attributes.html>
+ *
+ * This attribute must be applied to all Check functions, otherwise
+ * the RASH variety fails to compile with -Wunused-function. (It
+ * should not be applied to functions that are unused in all build
+ * configurations: these functions should not be compiled.)
+ */
+#if defined(MPS_BUILD_GC) || defined(MPS_BUILD_LL)
+#define ATTRIBUTE_UNUSED __attribute__((__unused__))
+#else
+#define ATTRIBUTE_UNUSED
+#endif
+
 
 /* EPVMDefaultSubsequentSegSIZE is a default for the alignment of
  * subsequent segments (non-initial at each save level) in EPVM.  See
@@ -243,11 +316,6 @@
 /* Buffer Configuration -- see <code/buffer.c> */
 
 #define BUFFER_RANK_DEFAULT (mps_rank_exact())
-
-
-/* CBS Configuration -- see <code/cbs.c> */
-
-#define CBS_EXTEND_BY_DEFAULT ((Size)4096)
 
 
 /* Format defaults: see <code/format.c> */
@@ -265,13 +333,14 @@
 /* Pool AMC Configuration -- see <code/poolamc.c> */
 
 #define AMC_INTERIOR_DEFAULT TRUE
-/* AMC treats segments of this many pages (or more) as "Large" */
-#define AMCLargeSegPAGES ((Count)8)
+/* AMC treats segments larger than this as "Large" */
+#define AMC_LARGE_SIZE_DEFAULT ((Size)32768)
+#define AMC_EXTEND_BY_DEFAULT  ((Size)4096)
 
 
 /* Pool AMS Configuration -- see <code/poolams.c> */
 
-#define AMS_SUPPORT_AMBIGUOUS_DEFAULT FALSE
+#define AMS_SUPPORT_AMBIGUOUS_DEFAULT TRUE
 #define AMS_GEN_DEFAULT       0
 
 
@@ -291,6 +360,7 @@
 
 /* Pool MV Configuration -- see <code/poolmv.c> */
 
+#define MV_ALIGN_DEFAULT      MPS_PF_ALIGN
 #define MV_EXTEND_BY_DEFAULT  ((Size)65536)
 #define MV_AVG_SIZE_DEFAULT   ((Size)32)
 #define MV_MAX_SIZE_DEFAULT   ((Size)65536)
@@ -309,6 +379,7 @@
 #define MVFF_SLOT_HIGH_DEFAULT   FALSE
 #define MVFF_ARENA_HIGH_DEFAULT  FALSE
 #define MVFF_FIRST_FIT_DEFAULT   TRUE
+#define MVFF_SPARE_DEFAULT       0.75
 
 
 /* Pool MVT Configuration -- see <code/poolmv2.c> */
@@ -324,16 +395,16 @@
 
 /* Arena Configuration -- see <code/arena.c>
  *
- * .client.seg-size: ARENA_CLIENT_PAGE_SIZE is the size in bytes of a
- * "page" (i.e., segment granule) in the client arena.  It's set at 8192
- * with no particular justification.
+ * .client.seg-size: ARENA_CLIENT_GRAIN_SIZE is the size in bytes of a
+ * grain in the client arena. It's set at 8192 with no particular
+ * justification.
  */
 
 #define ArenaPollALLOCTIME (65536.0)
 
 #define ARENA_ZONESHIFT         ((Shift)20)
 
-#define ARENA_CLIENT_PAGE_SIZE          ((Size)8192)
+#define ARENA_CLIENT_GRAIN_SIZE          ((Size)8192)
 
 #define ARENA_DEFAULT_ZONED     TRUE
 
@@ -356,11 +427,15 @@
    pool to be very heavily used. */
 #define CONTROL_EXTEND_BY 4096
 
+#define VM_ARENA_SIZE_DEFAULT ((Size)1 << 28)
+
 
 /* Stack configuration */
 
 /* Currently StackProbe has a useful implementation only on Windows. */
-#if defined(MPS_OS_W3) && defined(MPS_ARCH_I3)
+#if defined(PLATFORM_ANSI)
+#define StackProbeDEPTH ((Size)0)
+#elif defined(MPS_OS_W3) && defined(MPS_ARCH_I3)
 #define StackProbeDEPTH ((Size)500)
 #elif defined(MPS_OS_W3) && defined(MPS_ARCH_I6)
 #define StackProbeDEPTH ((Size)500)
@@ -377,7 +452,7 @@
 
 /* VM Configuration -- see <code/vm*.c> */
 
-#define VMANPageALIGNMENT ((Align)4096)
+#define VMAN_PAGE_SIZE ((Align)4096)
 #define VMJunkBYTE ((unsigned char)0xA9)
 #define VMParamSize (sizeof(Word))
 
@@ -389,6 +464,7 @@
  *
  * Source      Symbols                   Header        Feature
  * =========== ========================= ============= ====================
+ * eventtxt.c  setenv                    <stdlib.h>    _GNU_SOURCE
  * lockli.c    pthread_mutexattr_settype <pthread.h>   _XOPEN_SOURCE >= 500
  * prmci3li.c  REG_EAX etc.              <ucontext.h>  _GNU_SOURCE
  * prmci6li.c  REG_RAX etc.              <ucontext.h>  _GNU_SOURCE
@@ -407,9 +483,14 @@
 
 #if defined(MPS_OS_LI)
 
+#if defined(_XOPEN_SOURCE) && _XOPEN_SOURCE < 500
+#undef _XOPEN_SOURCE
+#endif
+#if !defined(_XOPEN_SOURCE)
 #define _XOPEN_SOURCE 500
+#endif
 
-#ifndef _GNU_SOURCE
+#if !defined(_GNU_SOURCE)
 #define _GNU_SOURCE
 #endif
 
@@ -535,9 +616,6 @@
 
 #define MPS_PROD_STRING         "mps"
 #define MPS_PROD_MPS
-#define THREAD_MULTI
-#define PROTECTION
-#define PROD_CHECKLEVEL_INITIAL CheckLevelSHALLOW
 
 /* TODO: This should be proportional to the memory usage of the MPS, not
    a constant.  That will require design, and then some interface and

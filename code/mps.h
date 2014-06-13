@@ -1,7 +1,7 @@
 /* mps.h: RAVENBROOK MEMORY POOL SYSTEM C INTERFACE
  *
  * $Id$
- * Copyright (c) 2001-2013 Ravenbrook Limited.  See end of file for license.
+ * Copyright (c) 2001-2014 Ravenbrook Limited.  See end of file for license.
  * Portions copyright (c) 2002 Global Graphics Software.
  *
  * THIS HEADER IS NOT DOCUMENTATION.
@@ -13,7 +13,7 @@
  * `MPS_` or `_mps_` and may use any identifiers with these prefixes in
  * future.
  *
- * .naming.internal: Any idenfitier beginning with underscore is for
+ * .naming.internal: Any identifier beginning with an underscore is for
  * internal use within the interface and may change or be withdrawn without
  * warning.
  *
@@ -176,6 +176,9 @@ extern const struct mps_key_s _mps_key_rank;
 extern const struct mps_key_s _mps_key_extend_by;
 #define MPS_KEY_EXTEND_BY       (&_mps_key_extend_by)
 #define MPS_KEY_EXTEND_BY_FIELD size
+extern const struct mps_key_s _mps_key_large_size;
+#define MPS_KEY_LARGE_SIZE      (&_mps_key_large_size)
+#define MPS_KEY_LARGE_SIZE_FIELD size
 extern const struct mps_key_s _mps_key_min_size;
 #define MPS_KEY_MIN_SIZE        (&_mps_key_min_size)
 #define MPS_KEY_MIN_SIZE_FIELD  size
@@ -188,9 +191,9 @@ extern const struct mps_key_s _mps_key_max_size;
 extern const struct mps_key_s _mps_key_align;
 #define MPS_KEY_ALIGN           (&_mps_key_align)
 #define MPS_KEY_ALIGN_FIELD     align
-extern const struct mps_key_s _mps_key_cbs_extend_by;
-#define MPS_KEY_CBS_EXTEND_BY   (&_mps_key_cbs_extend_by)
-#define MPS_KEY_CBS_EXTEND_BY_FIELD size
+extern const struct mps_key_s _mps_key_spare;
+#define MPS_KEY_SPARE           (&_mps_key_spare)
+#define MPS_KEY_SPARE_FIELD     double
 extern const struct mps_key_s _mps_key_interior;
 #define MPS_KEY_INTERIOR        (&_mps_key_interior)
 #define MPS_KEY_INTERIOR_FIELD  b
@@ -227,20 +230,22 @@ extern const struct mps_key_s _mps_key_fmt_class;
 /* Maximum length of a keyword argument list. */
 #define MPS_ARGS_MAX          32
 
+extern void _mps_args_set_key(mps_arg_s args[MPS_ARGS_MAX], unsigned i,
+                              mps_key_t key);
+
 #define MPS_ARGS_BEGIN(_var) \
   MPS_BEGIN \
     mps_arg_s _var[MPS_ARGS_MAX]; \
     unsigned _var##_i = 0; \
-    _var[_var##_i].key = MPS_KEY_ARGS_END; \
+    _mps_args_set_key(_var, _var##_i, MPS_KEY_ARGS_END); \
     MPS_BEGIN
 
 #define MPS_ARGS_ADD_FIELD(_var, _key, _field, _val)  \
   MPS_BEGIN \
-    /* TODO: AVER(_var##_i + 1 < MPS_ARGS_MAX); */ \
-    _var[_var##_i].key = (_key); \
+    _mps_args_set_key(_var, _var##_i, _key); \
     _var[_var##_i].val._field = (_val); \
     ++_var##_i; \
-    _var[_var##_i].key = MPS_KEY_ARGS_END; \
+    _mps_args_set_key(_var, _var##_i, MPS_KEY_ARGS_END); \
   MPS_END
 
 #define MPS_ARGS_ADD(_var, _key, _val) \
@@ -248,9 +253,8 @@ extern const struct mps_key_s _mps_key_fmt_class;
 
 #define MPS_ARGS_DONE(_var) \
   MPS_BEGIN \
-    /* TODO: AVER(_var##_i < MPS_ARGS_MAX); */ \
-    _var[_var##_i].key = MPS_KEY_ARGS_END; \
-    /* TODO: _var##_i = MPS_ARGS_MAX; */ \
+    _mps_args_set_key(_var, _var##_i, MPS_KEY_ARGS_END); \
+    _var##_i = MPS_ARGS_MAX; \
   MPS_END
 
 #define MPS_ARGS_END(_var) \
@@ -325,9 +329,9 @@ typedef struct _mps_sac_s {
 
 /* .sacc: Keep in sync with <code/sac.h>. */
 typedef struct mps_sac_class_s {
-  size_t _block_size;
-  size_t _cached_count;
-  unsigned _frequency;
+  size_t mps_block_size;
+  size_t mps_cached_count;
+  unsigned mps_frequency;
 } mps_sac_class_s;
 
 #define mps_sac_classes_s mps_sac_class_s
@@ -471,6 +475,11 @@ extern mps_res_t mps_pool_create_v(mps_pool_t *, mps_arena_t,
 extern mps_res_t mps_pool_create_k(mps_pool_t *, mps_arena_t,
                                    mps_class_t, mps_arg_s []);
 extern void mps_pool_destroy(mps_pool_t);
+extern size_t mps_pool_total_size(mps_pool_t);
+extern size_t mps_pool_free_size(mps_pool_t);
+
+
+/* Chains */
 
 /* .gen-param: This structure must match <code/chain.h#gen-param>. */
 typedef struct mps_gen_param_s {
@@ -481,6 +490,9 @@ typedef struct mps_gen_param_s {
 extern mps_res_t mps_chain_create(mps_chain_t *, mps_arena_t,
                                   size_t, mps_gen_param_s *);
 extern void mps_chain_destroy(mps_chain_t);
+
+
+/* Manual Allocation */
 
 extern mps_res_t mps_alloc(mps_addr_t *, mps_pool_t, size_t);
 extern mps_res_t mps_alloc_v(mps_addr_t *, mps_pool_t, size_t, va_list);
@@ -812,7 +824,7 @@ extern mps_res_t _mps_fix2(mps_ss_t, mps_addr_t *);
 
 /* C. COPYRIGHT AND LICENSE
  *
- * Copyright (C) 2001-2013 Ravenbrook Limited <http://www.ravenbrook.com/>.
+ * Copyright (C) 2001-2014 Ravenbrook Limited <http://www.ravenbrook.com/>.
  * All rights reserved.  This is an open source license.  Contact
  * Ravenbrook for commercial licensing options.
  * 
