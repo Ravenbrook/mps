@@ -5,19 +5,18 @@
  *
  * .sources: <design/arena/> is the main design document.  */
 
-#include "tract.h"
-#include "poolmv.h"
-#include "mpm.h"
-#include "cbs.h"
 #include "bt.h"
+#include "cbs.h"
+#include "mpm.h"
 #include "poolmfs.h"
-#include "mpscmfs.h"
+#include "poolmvff.h"
+#include "tract.h"
 
 
 SRCID(arena, "$Id$");
 
 
-#define ArenaControlPool(arena) MVPool(&(arena)->controlPoolStruct)
+#define ArenaControlPool(arena) MVFFPool(&(arena)->controlPoolStruct)
 #define ArenaCBSBlockPool(arena) MFSPool(&(arena)->freeCBSBlockPoolStruct)
 #define ArenaFreeLand(arena) CBSLand(&(arena)->freeLandStruct)
 
@@ -136,7 +135,7 @@ Bool ArenaCheck(Arena arena)
 
   CHECKL(BoolCheck(arena->poolReady));
   if (arena->poolReady) { /* <design/arena/#pool.ready> */
-    CHECKD(MV, &arena->controlPoolStruct);
+    CHECKD(MVFF, &arena->controlPoolStruct);
     CHECKD(Reservoir, &arena->reservoirStruct);
   }
 
@@ -426,8 +425,8 @@ Res ControlInit(Arena arena)
   AVERT(Arena, arena);
   MPS_ARGS_BEGIN(args) {
     MPS_ARGS_ADD(args, MPS_KEY_EXTEND_BY, CONTROL_EXTEND_BY);
-    res = PoolInit(MVPool(&arena->controlPoolStruct), arena,
-                   PoolClassMV(), args);
+    res = PoolInit(MVFFPool(&arena->controlPoolStruct), arena,
+                   PoolClassMVFF(), args);
   } MPS_ARGS_END(args);
   if (res != ResOK)
     return res;
@@ -442,7 +441,7 @@ void ControlFinish(Arena arena)
 {
   AVERT(Arena, arena);
   arena->poolReady = FALSE;
-  PoolFinish(MVPool(&arena->controlPoolStruct));
+  PoolFinish(MVFFPool(&arena->controlPoolStruct));
 }
 
 
@@ -583,7 +582,7 @@ Res ArenaDescribeTracts(Arena arena, mps_lib_FILE *stream, Count depth)
 /* ControlAlloc -- allocate a small block directly from the control pool
  *
  * .arena.control-pool: Actually the block will be allocated from the
- * control pool, which is an MV pool embedded in the arena itself.
+ * control pool, which is an MVFF pool embedded in the arena itself.
  *
  * .controlalloc.addr: In implementations where Addr is not compatible
  * with void* (<design/type/#addr.use>), ControlAlloc must take care of

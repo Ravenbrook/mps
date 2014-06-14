@@ -23,53 +23,19 @@
 #include "failover.h"
 #include "freelist.h"
 #include "mpm.h"
-#include "mpscmvff.h"
-#include "mpscmfs.h"
 #include "poolmfs.h"
+#include "poolmvff.h"
 
 SRCID(poolmvff, "$Id$");
 
 
-/* Would go in poolmvff.h if the class had any MPS-internal clients. */
-extern PoolClass PoolClassMVFF(void);
-
-
-/* MVFFStruct -- MVFF (Manual Variable First Fit) pool outer structure
- *
- * The signature is placed at the end, see
- * <design/pool/#outer-structure.sig>
- */
-
-#define MVFFSig           ((Sig)0x5193FFF9) /* SIGnature MVFF */
-
-typedef struct MVFFStruct *MVFF;
-typedef struct MVFFStruct {     /* MVFF pool outer structure */
-  PoolStruct poolStruct;        /* generic structure */
-  SegPrefStruct segPrefStruct;  /* the preferences for allocation */
-  Size extendBy;                /* size to extend pool by */
-  Size avgSize;                 /* client estimate of allocation size */
-  double spare;                 /* spare space fraction, see MVFFReduce */
-  MFSStruct cbsBlockPoolStruct; /* stores blocks for CBSs */
-  CBSStruct totalCBSStruct;     /* all memory allocated from the arena */
-  CBSStruct freeCBSStruct;      /* free memory (primary) */
-  FreelistStruct flStruct;      /* free memory (secondary, for emergencies) */
-  FailoverStruct foStruct;      /* free memory (fail-over mechanism) */
-  Bool firstFit;                /* as opposed to last fit */
-  Bool slotHigh;                /* prefers high part of large block */
-  Sig sig;                      /* <design/sig/> */
-} MVFFStruct;
-
-
 #define PoolMVFF(pool)     PARENT(MVFFStruct, poolStruct, pool)
-#define MVFFPool(mvff)     (&(mvff)->poolStruct)
 #define MVFFTotalLand(mvff)  CBSLand(&(mvff)->totalCBSStruct)
 #define MVFFFreePrimary(mvff)   CBSLand(&(mvff)->freeCBSStruct)
 #define MVFFFreeSecondary(mvff)  FreelistLand(&(mvff)->flStruct)
 #define MVFFFreeLand(mvff)  FailoverLand(&(mvff)->foStruct)
 #define MVFFSegPref(mvff)   (&(mvff)->segPrefStruct)
 #define MVFFBlockPool(mvff) MFSPool(&(mvff)->cbsBlockPoolStruct)
-
-static Bool MVFFCheck(MVFF mvff);
 
 
 /* MVFFDebug -- MVFFDebug class */
@@ -765,7 +731,7 @@ mps_class_t mps_class_mvff_debug(void)
 /* MVFFCheck -- check the consistency of an MVFF structure */
 
 ATTRIBUTE_UNUSED
-static Bool MVFFCheck(MVFF mvff)
+Bool MVFFCheck(MVFF mvff)
 {
   CHECKS(MVFF, mvff);
   CHECKD(Pool, MVFFPool(mvff));

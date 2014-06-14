@@ -702,6 +702,31 @@ typedef struct FreelistStruct {
 } FreelistStruct;
 
 
+/* MVFFStruct -- MVFF (Manual Variable First Fit) pool outer structure
+ *
+ * The signature is placed at the end, see
+ * <design/pool/#outer-structure.sig>
+ */
+
+#define MVFFSig           ((Sig)0x5193FFF9) /* SIGnature MVFF */
+
+typedef struct MVFFStruct {     /* MVFF pool outer structure */
+  PoolStruct poolStruct;        /* generic structure */
+  SegPrefStruct segPrefStruct;  /* the preferences for allocation */
+  Size extendBy;                /* size to extend pool by */
+  Size avgSize;                 /* client estimate of allocation size */
+  double spare;                 /* spare space fraction, see MVFFReduce */
+  MFSStruct cbsBlockPoolStruct; /* stores blocks for CBSs */
+  CBSStruct totalCBSStruct;     /* all memory allocated from the arena */
+  CBSStruct freeCBSStruct;      /* free memory (primary) */
+  FreelistStruct flStruct;      /* free memory (secondary, for emergencies) */
+  FailoverStruct foStruct;      /* free memory (fail-over mechanism) */
+  Bool firstFit;                /* as opposed to last fit */
+  Bool slotHigh;                /* prefers high part of large block */
+  Sig sig;                      /* <design/sig/> */
+} MVFFStruct;
+
+
 /* ArenaStruct -- generic arena
  *
  * See <code/arena.c>.  */
@@ -715,7 +740,7 @@ typedef struct mps_arena_s {
   ArenaClass class;             /* arena class structure */
 
   Bool poolReady;               /* <design/arena/#pool.ready> */
-  MVStruct controlPoolStruct;   /* <design/arena/#pool> */
+  MVFFStruct controlPoolStruct; /* <design/arena/#pool> */
 
   ReservoirStruct reservoirStruct; /* <design/reservoir/> */
 
