@@ -373,35 +373,22 @@ Res ChainCondemnAuto(double *mortalityReturn, Chain chain, Trace trace)
   AVERT(Chain, chain);
   AVERT(Trace, trace);
 
-  /* Find the highest generation that's over capacity. We will condemn
-   * this and all lower generations in the chain. */
-  topCondemnedGen = chain->genCount;
-  for (;;) {
+  /* Condemn all gens that are over capacity. */
+  for (i = 0; i < chain->genCount; ++i) {
     /* It's an error to call this function unless some generation is
      * over capacity as reported by ChainDeferral. */
-    AVER(topCondemnedGen > 0);
-    if (topCondemnedGen == 0)
-      return ResFAIL;
-    -- topCondemnedGen;
-    gen = &chain->gens[topCondemnedGen];
-    AVERT(GenDesc, gen);
-    genNewSize = GenDescNewSize(gen);
-    if (genNewSize >= gen->capacity * (Size)1024)
-      break;
-  }
-
-  /* At this point, we've decided to condemn topCondemnedGen and all
-   * lower generations. */
-  for (i = 0; i <= topCondemnedGen; ++i) {
     gen = &chain->gens[i];
     AVERT(GenDesc, gen);
-    condemnedSet = ZoneSetUnion(condemnedSet, gen->zones);
-    genTotalSize = GenDescTotalSize(gen);
     genNewSize = GenDescNewSize(gen);
-    condemnedSize += genTotalSize;
-    survivorSize += (Size)(genNewSize * (1.0 - gen->mortality))
-                    /* predict survivors will survive again */
-                    + (genTotalSize - genNewSize);
+    if (genNewSize >= gen->capacity * (Size)1024) {
+      condemnedSet = ZoneSetUnion(condemnedSet, gen->zones);
+      genTotalSize = GenDescTotalSize(gen);
+      condemnedSize += genTotalSize;
+      survivorSize += (Size)(genNewSize * (1.0 - gen->mortality))
+                      /* predict survivors will survive again */
+                      + (genTotalSize - genNewSize);
+      topCondemnedGen = i;
+    }
   }
   
   AVER(condemnedSet != ZoneSetEMPTY || condemnedSize == 0);
