@@ -607,13 +607,14 @@ static Res traceFlip(Trace trace)
   /* grey objects so that it can't obtain white pointers.  This is */
   /* achieved by read protecting all segments containing objects */
   /* which are grey for any of the flipped traces. */
-  for(rank = RankMIN; rank < RankLIMIT; ++rank)
-    RING_FOR(node, ArenaGreyRing(arena, rank), nextNode) {
-      Seg seg = SegOfGreyRing(node);
-      if(TraceSetInter(SegGrey(seg), arena->flippedTraces) == TraceSetEMPTY
-          && TraceSetIsMember(SegGrey(seg), trace))
-        ShieldRaise(arena, seg, AccessREAD);
-    }
+  if (arena->incremental)
+    for(rank = RankMIN; rank < RankLIMIT; ++rank)
+      RING_FOR(node, ArenaGreyRing(arena, rank), nextNode) {
+        Seg seg = SegOfGreyRing(node);
+        if(TraceSetInter(SegGrey(seg), arena->flippedTraces) == TraceSetEMPTY
+            && TraceSetIsMember(SegGrey(seg), trace))
+          ShieldRaise(arena, seg, AccessREAD);
+      }
 
   /* @@@@ When write barrier collection is implemented, this is where */
   /* write protection should be removed for all segments which are */
@@ -1134,7 +1135,10 @@ static Res traceScanSegRes(TraceSet ts, Rank rank, Arena arena, Seg seg)
      * scan, consistent with the recorded SegSummary?
      */
     AVER(RefSetSub(ScanStateUnfixedSummary(ss), SegSummary(seg)));
+    
 
+    SegSetSummary(seg, RefSetUNIV);
+#if 0
     if(res != ResOK || !wasTotal) {
       /* scan was partial, so... */
       /* scanned summary should be ORed into segment summary. */
@@ -1144,6 +1148,7 @@ static Res traceScanSegRes(TraceSet ts, Rank rank, Arena arena, Seg seg)
       /* scanned summary should replace the segment summary. */
       SegSetSummary(seg, ScanStateSummary(ss));
     }
+#endif
 
     ScanStateFinish(ss);
   }
@@ -1485,11 +1490,11 @@ Res TraceScanAreaMasked(ScanState ss, Word *base, Word *limit, Word mask,
     if (p >= limit)
       goto out;
     word = *p++;
-#ifdef MPS_RECOGNIZE_ZERO_TAG // Original MPS code
- // My code that tests for zero tagged pointers and tagged pointers
+#ifdef MPS_RECOGNIZE_ZERO_TAG /* Original MPS code */
+ /* My code that tests for zero tagged pointers and tagged pointers */
     if (!( (word & ZERO_TAG_MASK) == 0 || (word&mask) == pattern)) goto loop;
 #else
-    // Original MPS code
+    /* Original MPS code */
     if ((word & mask) != pattern)
       goto loop;
 #endif
@@ -1876,7 +1881,9 @@ Size TracePoll(Globals globals)
     trace = ArenaTrace(arena, (TraceId)0);
     AVER(arena->busyTraces == TraceSetSingle(trace));
     oldScanned = traceWorkClock(trace);
-    TraceQuantum(trace);
+    do {
+      TraceQuantum(trace);
+    } while(!arena->incremental && trace->state != TraceFINISHED);
     scannedSize = traceWorkClock(trace) - oldScanned;
     if(trace->state == TraceFINISHED) {
       TraceDestroy(trace);
