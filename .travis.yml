@@ -1,0 +1,13 @@
+# .travis.yml -- Travis CI configuration for the MPS
+# $Id$
+# See <http://about.travis-ci.org/docs/user/languages/c/>.
+language: c
+compiler:
+  - clang
+  - gcc
+notifications:
+  email:
+    - mps-travis@ravenbrook.com
+  irc: "irc.freenode.net#memorypoolsystem"
+script:
+  - ./configure --prefix=$PWD/prefix && make install && make test
