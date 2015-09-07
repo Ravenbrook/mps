@@ -197,6 +197,8 @@ Res ArenaInit(Arena arena, ArenaClass class, Size grainSize, ArgList args)
 {
   Res res;
   Bool zoned = ARENA_DEFAULT_ZONED;
+  Size commitLimit = ARENA_DEFAULT_COMMIT_LIMIT;
+  Size spareCommitLimit = ARENA_DEFAULT_SPARE_COMMIT_LIMIT;
   mps_arg_s arg;
 
   AVER(arena != NULL);
@@ -205,16 +207,18 @@ Res ArenaInit(Arena arena, ArenaClass class, Size grainSize, ArgList args)
   
   if (ArgPick(&arg, args, MPS_KEY_ARENA_ZONED))
     zoned = arg.val.b;
+  if (ArgPick(&arg, args, MPS_KEY_ARENA_COMMIT_LIMIT))
+    commitLimit = arg.val.size;
+  if (ArgPick(&arg, args, MPS_KEY_ARENA_SPARE_COMMIT_LIMIT))
+    spareCommitLimit = arg.val.size;
 
   arena->class = class;
 
   arena->reserved = (Size)0;
   arena->committed = (Size)0;
-  /* commitLimit may be overridden by init (but probably not */
-  /* as there's not much point) */
-  arena->commitLimit = (Size)-1;
+  arena->commitLimit = commitLimit;
   arena->spareCommitted = (Size)0;
-  arena->spareCommitLimit = ARENA_INIT_SPARE_COMMIT_LIMIT;
+  arena->spareCommitLimit = spareCommitLimit;
   arena->grainSize = grainSize;
   /* zoneShift is usually overridden by init */
   arena->zoneShift = ARENA_ZONESHIFT;
@@ -285,8 +289,10 @@ ARG_DEFINE_KEY(VMW3_TOP_DOWN, Bool);
 
 /* ArenaCreate -- create the arena and call initializers */
 
-ARG_DEFINE_KEY(ARENA_SIZE, Size);
+ARG_DEFINE_KEY(ARENA_COMMIT_LIMIT, Size);
 ARG_DEFINE_KEY(ARENA_GRAIN_SIZE, Size);
+ARG_DEFINE_KEY(ARENA_SIZE, Size);
+ARG_DEFINE_KEY(ARENA_SPARE_COMMIT_LIMIT, Size);
 ARG_DEFINE_KEY(ARENA_ZONED, Bool);
 
 static Res arenaFreeLandInit(Arena arena)
@@ -376,6 +382,31 @@ failStripeSize:
   (*class->finish)(arena);
 failInit:
   return res;
+}
+
+
+/* ArenaConfigure -- configure an arena */
+
+Res ArenaConfigure(Arena arena, ArgList args)
+{
+  Res res;
+  mps_arg_s arg;
+
+  AVERT(Arena, arena);
+  AVERT(ArgList, args);
+
+  if (ArgPick(&arg, args, MPS_KEY_ARENA_COMMIT_LIMIT)) {
+    Size limit = arg.val.size;
+    res = ArenaSetCommitLimit(arena, limit);
+    if (res != ResOK)
+      return res;
+  }
+  if (ArgPick(&arg, args, MPS_KEY_ARENA_SPARE_COMMIT_LIMIT)) {
+    Size limit = arg.val.size;
+    (void)ArenaSetSpareCommitLimit(arena, limit);
+  }
+
+  return (*arena->class->configure)(arena, args);
 }
 
 
@@ -993,10 +1024,19 @@ void ArenaFreeLandDelete(Arena arena, Addr base, Addr limit)
 }
 
 
-static Res arenaAllocFromLand(Tract *tractReturn, ZoneSet zones, Bool high,
-                             Size size, Pool pool)
+/* ArenaFreeLandAlloc -- allocate a continguous range of tracts of
+ * size bytes from the arena's free land.
+ *
+ * size, zones, and high are as for LandFindInZones.
+ *
+ * If successful, mark the allocated tracts as belonging to pool, set
+ * *tractReturn to point to the first tract in the range, and return
+ * ResOK.
+ */
+
+Res ArenaFreeLandAlloc(Tract *tractReturn, Arena arena, ZoneSet zones,
+                       Bool high, Size size, Pool pool)
 {
-  Arena arena;
   RangeStruct range, oldRange;
   Chunk chunk;
   Bool found, b;
@@ -1005,10 +1045,11 @@ static Res arenaAllocFromLand(Tract *tractReturn, ZoneSet zones, Bool high,
   Res res;
   
   AVER(tractReturn != NULL);
+  AVERT(Arena, arena);
   /* ZoneSet is arbitrary */
   AVER(size > (Size)0);
   AVERT(Pool, pool);
-  arena = PoolArena(pool);
+  AVER(arena == PoolArena(pool));
   AVER(SizeIsArenaGrains(size, arena));
   
   if (!arena->zoned)
@@ -1067,105 +1108,6 @@ failMark:
 }
 
 
-/* arenaAllocPolicy -- arena allocation policy implementation
- *
- * This is the code responsible for making decisions about where to allocate
- * memory.  Avoid distributing code for doing this elsewhere, so that policy
- * can be maintained and adjusted.
- *
- * TODO: This currently duplicates the policy from VMAllocPolicy in
- * //info.ravenbrook.com/project/mps/master/code/arenavm.c#36 in order
- * to avoid disruption to clients, but needs revision.
- */
-
-static Res arenaAllocPolicy(Tract *tractReturn, Arena arena, LocusPref pref,
-                            Size size, Pool pool)
-{
-  Res res;
-  Tract tract;
-  ZoneSet zones, moreZones, evenMoreZones;
-
-  AVER(tractReturn != NULL);
-  AVERT(LocusPref, pref);
-  AVER(size > (Size)0);
-  AVERT(Pool, pool);
-  
-  /* Don't attempt to allocate if doing so would definitely exceed the
-     commit limit. */
-  if (arena->spareCommitted < size) {
-    Size necessaryCommitIncrease = size - arena->spareCommitted;
-    if (arena->committed + necessaryCommitIncrease > arena->commitLimit
-        || arena->committed + necessaryCommitIncrease < arena->committed) {
-      return ResCOMMIT_LIMIT;
-    }
-  }
-
-  /* Plan A: allocate from the free Land in the requested zones */
-  zones = ZoneSetDiff(pref->zones, pref->avoid);
-  if (zones != ZoneSetEMPTY) {
-    res = arenaAllocFromLand(&tract, zones, pref->high, size, pool);
-    if (res == ResOK)
-      goto found;
-  }
-
-  /* Plan B: add free zones that aren't blacklisted */
-  /* TODO: Pools without ambiguous roots might not care about the blacklist. */
-  /* TODO: zones are precious and (currently) never deallocated, so we
-     should consider extending the arena first if address space is plentiful.
-     See also job003384. */
-  moreZones = ZoneSetUnion(pref->zones, ZoneSetDiff(arena->freeZones, pref->avoid));
-  if (moreZones != zones) {
-    res = arenaAllocFromLand(&tract, moreZones, pref->high, size, pool);
-    if (res == ResOK)
-      goto found;
-  }
-  
-  /* Plan C: Extend the arena, then try A and B again. */
-  if (moreZones != ZoneSetEMPTY) {
-    res = arena->class->grow(arena, pref, size);
-    if (res != ResOK)
-      return res;
-    if (zones != ZoneSetEMPTY) {
-      res = arenaAllocFromLand(&tract, zones, pref->high, size, pool);
-      if (res == ResOK)
-        goto found;
-    }
-    if (moreZones != zones) {
-      zones = ZoneSetUnion(zones, ZoneSetDiff(arena->freeZones, pref->avoid));
-      res = arenaAllocFromLand(&tract, moreZones, pref->high, size, pool);
-      if (res == ResOK)
-        goto found;
-    }
-  }
-
-  /* Plan D: add every zone that isn't blacklisted.  This might mix GC'd
-     objects with those from other generations, causing the zone check
-     to give false positives and slowing down the collector. */
-  /* TODO: log an event for this */
-  evenMoreZones = ZoneSetDiff(ZoneSetUNIV, pref->avoid);
-  if (evenMoreZones != moreZones) {
-    res = arenaAllocFromLand(&tract, evenMoreZones, pref->high, size, pool);
-    if (res == ResOK)
-      goto found;
-  }
-
-  /* Last resort: try anywhere.  This might put GC'd objects in zones where
-     common ambiguous bit patterns pin them down, causing the zone check
-     to give even more false positives permanently, and possibly retaining
-     garbage indefinitely. */
-  res = arenaAllocFromLand(&tract, ZoneSetUNIV, pref->high, size, pool);
-  if (res == ResOK)
-    goto found;
-
-  /* Uh oh. */
-  return res;
-
-found:
-  *tractReturn = tract;
-  return ResOK;
-}
-
-
 /* ArenaAlloc -- allocate some tracts from the arena */
 
 Res ArenaAlloc(Addr *baseReturn, LocusPref pref, Size size, Pool pool,
@@ -1198,7 +1140,7 @@ Res ArenaAlloc(Addr *baseReturn, LocusPref pref, Size size, Pool pool,
     }
   }
 
-  res = arenaAllocPolicy(&tract, arena, pref, size, pool);
+  res = PolicyAlloc(&tract, arena, pref, size, pool);
   if (res != ResOK) {
     if (withReservoirPermit) {
       Res resRes = ReservoirWithdraw(&base, &tract, reservoir, size, pool);
@@ -1393,7 +1335,29 @@ Size ArenaAvail(Arena arena)
      this information from the operating system.  It also depends on the
      arena class, of course. */
 
+  AVER(sSwap >= arena->committed);
   return sSwap - arena->committed + arena->spareCommitted;
+}
+
+
+/* ArenaCollectable -- return estimate of collectable memory in arena */
+
+Size ArenaCollectable(Arena arena)
+{
+  /* Conservative estimate -- see job003929. */
+  return ArenaScannable(arena);
+}
+
+
+/* ArenaScannable -- return estimate of scannable memory in arena */
+
+Size ArenaScannable(Arena arena)
+{
+  /* Conservative estimate -- see job003929. */
+  Size committed = ArenaCommitted(arena);
+  Size spareCommitted = ArenaSpareCommitted(arena);
+  AVER(committed >= spareCommitted);
+  return committed - spareCommitted;
 }
 
 
