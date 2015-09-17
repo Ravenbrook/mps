@@ -1487,7 +1487,7 @@ Res TraceScanAreaMasked(ScanState ss, Word *base, Word *limit, Word mask,
     word = *p++;
 #ifdef MPS_RECOGNIZE_ZERO_TAG // Original MPS code
  // My code that tests for zero tagged pointers and tagged pointers
-    if (!( (word & 0x7) == 0 || (word&mask) == pattern)) goto loop;
+    if (!( (word & ZERO_TAG_MASK) == 0 || (word&mask) == pattern)) goto loop;
 #else
     // Original MPS code
     if ((word & mask) != pattern)
