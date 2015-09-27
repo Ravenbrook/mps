@@ -204,7 +204,7 @@ mps_res_t mps_arena_commit_limit_set(mps_arena_t arena, size_t limit)
 void mps_arena_spare_commit_limit_set(mps_arena_t arena, size_t limit)
 {
   ArenaEnter(arena);
-  ArenaSetSpareCommitLimit(arena, limit);
+  (void)ArenaSetSpareCommitLimit(arena, limit);
   ArenaLeave(arena);
 
   return;
@@ -347,6 +347,20 @@ mps_res_t mps_arena_create_k(mps_arena_t *mps_arena_o,
   ArenaLeave(arena);
   *mps_arena_o = (mps_arena_t)arena;
   return MPS_RES_OK;
+}
+
+
+/*  mps_arena_configure -- configure an arena object */
+
+mps_res_t mps_arena_configure(mps_arena_t arena, mps_arg_s args[])
+{
+  Res res;
+
+  ArenaEnter(arena);
+  res = ArenaConfigure(arena, args);
+  ArenaLeave(arena);
+
+  return (mps_res_t)res;
 }
 
 

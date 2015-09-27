@@ -498,6 +498,7 @@ extern Bool ArenaClassCheck(ArenaClass class);
 
 extern Bool ArenaCheck(Arena arena);
 extern Res ArenaCreate(Arena *arenaReturn, ArenaClass class, ArgList args);
+extern Res ArenaConfigure(Arena arena, ArgList args);
 extern void ArenaDestroy(Arena arena);
 extern Res ArenaInit(Arena arena, ArenaClass class, Size grainSize,
                      ArgList args);
@@ -620,7 +621,7 @@ extern Size ArenaSpareCommitted(Arena arena);
 extern Size ArenaCommitLimit(Arena arena);
 extern Res ArenaSetCommitLimit(Arena arena, Size limit);
 extern Size ArenaSpareCommitLimit(Arena arena);
-extern void ArenaSetSpareCommitLimit(Arena arena, Size limit);
+extern Res ArenaSetSpareCommitLimit(Arena arena, Size limit);
 extern Size ArenaNoPurgeSpare(Arena arena, Size size);
 extern Res ArenaNoGrow(Arena arena, LocusPref pref, Size size);
 
