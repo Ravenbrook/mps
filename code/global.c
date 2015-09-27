@@ -226,16 +226,23 @@ Bool GlobalsCheck(Globals arenaGlobals)
 
 /* GlobalsInit -- initialize the globals of the arena */
 
-Res GlobalsInit(Globals arenaGlobals)
+ARG_DEFINE_KEY(AP_LOGGED, Bool);
+
+Res GlobalsInit(Globals arenaGlobals, ArgList args)
 {
   Arena arena;
   Index i;
   Rank rank;
   TraceId ti;
+  Bool ap_logged = ARENA_DEFAULT_AP_LOGGED;
+  mps_arg_s arg;
 
   /* This is one of the first things that happens, */
   /* so check static consistency here. */
   AVER(MPMCheck());
+
+  if (ArgPick(&arg, args, MPS_KEY_AP_LOGGED))
+    ap_logged = arg.val.b;
 
   arenaClaimRingLock();
   /* Ensure static things are initialized. */
@@ -268,7 +275,7 @@ Res GlobalsInit(Globals arenaGlobals)
   arenaGlobals->emptyInternalSize = 0.0;
 
   arenaGlobals->mpsVersionString = MPSVersion();
-  arenaGlobals->bufferLogging = FALSE;
+  arenaGlobals->bufferLogging = ap_logged;
   RingInit(&arenaGlobals->poolRing);
   arenaGlobals->poolSerial = (Serial)0;
   RingInit(&arenaGlobals->rootRing);

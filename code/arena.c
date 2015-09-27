@@ -236,7 +236,7 @@ Res ArenaInit(Arena arena, ArenaClass class, Size grainSize, ArgList args)
   
   LocusInit(arena);
   
-  res = GlobalsInit(ArenaGlobals(arena));
+  res = GlobalsInit(ArenaGlobals(arena), args);
   if (res != ResOK)
     goto failGlobalsInit;
 
@@ -395,6 +395,10 @@ Res ArenaConfigure(Arena arena, ArgList args)
   AVERT(Arena, arena);
   AVERT(ArgList, args);
 
+  if (ArgPick(&arg, args, MPS_KEY_AP_LOGGED)) {
+    Bool ap_logged = arg.val.b;
+    arenaGlobals(arena)->bufferLogging = ap_logged;
+  }
   if (ArgPick(&arg, args, MPS_KEY_COMMIT_LIMIT)) {
     Size limit = arg.val.size;
     res = ArenaSetCommitLimit(arena, limit);

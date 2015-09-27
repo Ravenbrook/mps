@@ -177,9 +177,19 @@ Bit  Name        Description
 2    ``Trace``   Per :term:`trace` or scan.
 3    ``Seg``     Per :term:`page` (segment).
 4    ``Ref``     Per :term:`reference` or :term:`fix`.
-5    ``Object``  Per allocation, :term:`block`, or :term:`object`.
+5    ``Object``  Per allocation [1]_, :term:`block`, or :term:`object`.
 6    ``User``    User-invoked events: see :c:func:`mps_telemetry_intern`.
 ===  ==========  ========================================================
+
+.. note::
+
+    .. [1] Allocations on an :term:`allocation point` via
+           :c:func:`mps_reserve` and :c:func:`mps_commit` are not
+           logged to the telemetry stream, even if the ``Object``
+           category is enabled, unless the
+           :c:macro:`MPS_KEY_AP_LOGGED` keyword argument was set to
+           true when the allocation point was created. See
+           :c:func:`mps_ap_create_k` for details.
 
 
 .. index::

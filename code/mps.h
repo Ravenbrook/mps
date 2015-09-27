@@ -207,6 +207,9 @@ extern const struct mps_key_s _mps_key_SPARE;
 extern const struct mps_key_s _mps_key_INTERIOR;
 #define MPS_KEY_INTERIOR        (&_mps_key_INTERIOR)
 #define MPS_KEY_INTERIOR_FIELD  b
+extern const struct mps_key_s _mps_key_AP_LOGGED;
+#define MPS_KEY_AP_LOGGED       (&_mps_key_AP_LOGGED)
+#define MPS_KEY_AP_LOGGED_FIELD b
 
 extern const struct mps_key_s _mps_key_VMW3_TOP_DOWN;
 #define MPS_KEY_VMW3_TOP_DOWN   (&_mps_key_VMW3_TOP_DOWN)

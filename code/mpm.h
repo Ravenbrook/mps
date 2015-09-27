@@ -511,7 +511,7 @@ extern void ArenaFreeLandDelete(Arena arena, Addr base, Addr limit);
 
 
 extern Bool GlobalsCheck(Globals arena);
-extern Res GlobalsInit(Globals arena);
+extern Res GlobalsInit(Globals arena, ArgList args);
 extern void GlobalsFinish(Globals arena);
 extern Res GlobalsCompleteCreate(Globals arenaGlobals);
 extern void GlobalsPrepareToDestroy(Globals arenaGlobals);

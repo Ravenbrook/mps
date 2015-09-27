@@ -17,15 +17,22 @@ New features
    specifying the minimum size of the memory segments that the pool
    requests from the :term:`arena`.
 
-#. The function :c:func:`mps_arena_create_k` accepts two new
-   :term:`keyword arguments`. :c:macro:`MPS_KEY_COMMIT_LIMIT`
-   sets the :term:`commit limit` for the arena, and
-   :c:macro:`MPS_KEY_SPARE_COMMIT_LIMIT` sets the :term:`spare
-   commit limit` for the arena.
+#. The function :c:func:`mps_arena_create_k` accepts three new
+   :term:`keyword arguments`. :c:macro:`MPS_KEY_COMMIT_LIMIT` sets the
+   :term:`commit limit` for the arena;
+   :c:macro:`MPS_KEY_SPARE_COMMIT_LIMIT` sets the :term:`spare commit
+   limit` for the arena; and :c:macro:`MPS_KEY_AP_LOGGED` specifies
+   whether calls to :c:func:`mps_reserve` and :c:func:`mps_commit` are
+   logged to the :term:`telemetry stream`.
 
 #. The new function :c:func:`mps_arena_configure` provides a
    :term:`keyword argument` interface for changing the properties of
    an arena.
+
+#. The function :c:func:`mps_ap_create_k` accepts one new
+   :term:`keyword argument`. :c:macro:`MPS_KEY_AP_LOGGED` specifies
+   whether calls to :c:func:`mps_reserve` and :c:func:`mps_commit` are
+   logged to the :term:`telemetry stream`.
 
 
 Interface changes

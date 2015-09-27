@@ -105,10 +105,31 @@ many small objects. They must be used according to the
 
     ``pool`` is the pool.
 
-    ``args`` are :term:`keyword arguments` specific to the pool class
-    to which ``pool`` belong. See the documentation for that pool
-    class. (Most pool classes don't take any keyword arguments; in
-    those cases you can pass :c:macro:`mps_args_none`.)
+    ``args`` are :term:`keyword arguments`.
+
+    Allocation points for all pool classes accept one optional keyword
+    argument:
+
+    * :c:macro:`MPS_KEY_AP_LOGGED` (type :c:type:`mps_bool_t`). If
+      true, then all :c:func:`mps_reserve` and :c:func:`mps_commit`
+      calls on this allocation point will be logged to the
+      :term:`telemetry stream`, under the ``Object`` event category in
+      the :term:`telemetry filter`.
+
+      This option defaults to false, but the default can be changed by
+      passing the :c:macro:`MPS_KEY_AP_LOGGED` keyword argument to
+      :c:func:`mps_arena_create_k` or :c:func:`mps_arena_configure`.
+
+      .. warning::
+
+          This option is intended to be used for debugging. It greatly
+          reduces allocation performance, even if the ``Object`` event
+          category is not enabled in the :term:`telemetry filter` (and
+          so no events are emitted), because it causes the MPS to take
+          a lock on each call to :c:func:`mps_reserve` or
+          :c:func:`mps_commit`.
+
+    For other keyword arguments, see the pool class documentation.
 
     Returns :c:macro:`MPS_RES_OK` if successful, or another
     :term:`result code` if not.

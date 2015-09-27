@@ -199,12 +199,20 @@ static Res BufferInit(Buffer buffer, BufferClass class,
 {
   Arena arena;
   Res res;
+  Bool logged;
+  mps_arg_s arg;
 
   AVER(buffer != NULL);
   AVERT(BufferClass, class);
   AVERT(Pool, pool);
+  AVERT(Bool, isMutator);
+  AVERT(ArgList, args);
  
   arena = PoolArena(pool);
+  logged = ArenaGlobals(arena)->bufferLogging;
+  if (ArgPick(&arg, args, MPS_KEY_AP_LOGGED))
+    logged = arg.val.b;
+
   /* Initialize the buffer.  See <code/mpmst.h> for a definition of */
   /* the structure.  sig and serial comes later .init.sig-serial */
   buffer->arena = arena;
@@ -212,7 +220,7 @@ static Res BufferInit(Buffer buffer, BufferClass class,
   buffer->pool = pool;
   RingInit(&buffer->poolRing);
   buffer->isMutator = isMutator;
-  if (ArenaGlobals(arena)->bufferLogging) {
+  if (logged) {
     buffer->mode = BufferModeLOGGED;
   } else {
     buffer->mode = 0;

@@ -82,14 +82,26 @@ the way that they acquire the memory to be managed.
 
     ``arena_class`` is the :term:`arena class`.
 
-    ``args`` are :term:`keyword arguments` specific to the arena
-    class. See the documentation for the arena class.
+    ``args`` are :term:`keyword arguments`.
 
     Returns :c:macro:`MPS_RES_OK` if the arena is created
     successfully, or another :term:`result code` otherwise.
 
     The arena persists until it is destroyed by calling
     :c:func:`mps_arena_destroy`.
+
+    All arena classes accept one optional keyword argument:
+
+    * :c:macro:`MPS_KEY_AP_LOGGED` (type :c:type:`mps_bool_t`, default
+      false). If true, then :term:`allocation points` created in this
+      arena will log all allocation to the :term:`telemetry stream`.
+      See :c:func:`mps_ap_create_k` for details.
+
+      The value may be overridden for individual allocation points by
+      passing the :c:macro:`MPS_KEY_AP_LOGGED` keyword argument to
+      :c:func:`mps_ap_create_k`.
+
+    For other keyword arguments, see the arena class documentation.
 
 
 .. c:function:: mps_res_t mps_arena_configure(mps_arena_t arena, mps_arg_s args[])
@@ -99,10 +111,14 @@ the way that they acquire the memory to be managed.
     ``arena`` is the arena to configure.
 
     ``args`` are :term:`keyword arguments` specifying configuration
-    parameters. See the documentation for the arena class.
+    parameters.
 
     Returns :c:macro:`MPS_RES_OK` if the arena was configured
     successfully, or another :term:`result code` otherwise.
+
+    All arena classes accept the keyword argument
+    :c:macro:`MPS_KEY_AP_LOGGED` as described above. For other keyword
+    arguments, see the documentation for the arena class.
 
 
 .. c:function:: void mps_arena_destroy(mps_arena_t arena)
