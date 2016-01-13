@@ -1,0 +1,47 @@
+.. mode: -*- rst -*-
+
+Range trees
+===========
+
+:Tag: design.mps.rtree
+:Author: Richard Brooksby
+:Date: 2014-01-22
+:Status: draft document
+:Revision: $Id$
+:Copyright: See `Copyright and License`_.
+:Index terms:   pair: range trees; design
+
+
+Introduction
+------------
+
+_`.intro`: This document explains the design of "range trees" -- binary
+splay trees of address ranges, as implemented in impl.c.rtree.
+
+_`.readership`: This document is intended for any MM developer.
+
+_`.source`: design.mps.splay
+
+
+Overview
+--------
+
+_`.overview`:
+
+- Drop-in replacement for rings.
+- Replaces impl.c.splay.
+
+
+Requirements
+------------
+
+_`.req.stack`: Must do all non-debugging operations with stack usage
+bounded by a constant size.  The MPS in general must have bounded stack
+usage so that operations can be guaranteed to complete without stack
+extension faults.  In particular, in CET the stack extension is
+implemented in mutator code that may access the heap, so the heap must
+be consistent when a stack extension fault occurs.  This means the MPS
+must guarantee to complete an atomic update of the mutator's graph
+without causing a fault.  For this reason, tree operations are
+implemented using pointer reversal.
+
