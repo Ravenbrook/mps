@@ -94,13 +94,8 @@
 /* Plinth */
 
 #if defined(PLINTH)     /* see CONFIG_PLINTH_NONE in config.h  */
-#if defined(MPS_OS_W3)
-#include "mpslibw3.c"
-#include "mpsiow3.c"
-#else
 #include "mpsliban.c"
 #include "mpsioan.c"
-#endif
 #endif
 
 /* Generic ("ANSI") platform */

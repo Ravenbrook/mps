@@ -60,7 +60,7 @@ static mps_addr_t exactRoots[exactRootsCOUNT];
 static mps_addr_t ambigRoots[ambigRootsCOUNT];
 
 
-static mps_word_t collections;
+static unsigned collections;
 static mps_arena_t arena;
 static mps_root_t exactRoot, ambigRoot;
 static unsigned long objs = 0;
@@ -203,14 +203,14 @@ static void test_pool(const char *name, mps_pool_t pool, size_t roots_count,
         size_t condemned = mps_message_gc_condemned_size(arena, msg);
         size_t not_condemned = mps_message_gc_not_condemned_size(arena, msg);
 
-        printf("\nCollection %lu finished:\n", collections++);
+        printf("\nCollection %u finished:\n", collections++);
         printf("live %"PRIuLONGEST"\n", (ulongest_t)live);
         printf("condemned %"PRIuLONGEST"\n", (ulongest_t)condemned);
         printf("not_condemned %"PRIuLONGEST"\n", (ulongest_t)not_condemned);
 
       } else if (type == mps_message_type_gc_start()) {
-        printf("\nCollection %lu started, %lu objects, committed=%lu.\n",
-               (unsigned long)collections, objs,
+        printf("\nCollection %u started, %lu objects, committed=%lu.\n",
+               collections, objs,
                (unsigned long)mps_arena_committed(arena));
 
         for (i = 0; i < exactRootsCOUNT; ++i)
