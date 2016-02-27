@@ -7,18 +7,21 @@
  */
 
 #include "mps.c"
-
-#include <time.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <alloca.h>
-#include <pthread.h>
-#include "getopt.h"
 #include "testlib.h"
-
+#include "testthr.h"
 #include "fmtdy.h"
 #include "fmtdytst.h"
+#include "mpm.h"
+
+#ifdef MPS_OS_W3
+#include "getopt.h"
+#else
+#include <getopt.h>
+#endif
+
+#include <stdio.h> /* fprintf, printf, putchars, sscanf, stderr, stdout */
+#include <stdlib.h> /* alloca, exit, EXIT_FAILURE, EXIT_SUCCESS, strtoul */
+#include <time.h> /* clock, CLOCKS_PER_SEC */
 
 #define RESMUST(expr) \
   do { \
@@ -48,15 +51,17 @@ static double preuse = 0.2;       /* probability of reuse */
 static double pupdate = 0.1;      /* probability of update */
 static unsigned ngen = 0;         /* number of generations specified */
 static mps_gen_param_s gen[genLIMIT]; /* generation parameters */
-static size_t arenasize = 256ul * 1024 * 1024; /* arena size */
+static size_t arena_size = 256ul * 1024 * 1024; /* arena size */
+static size_t arena_grain_size = 1; /* arena grain size */
 static unsigned pinleaf = FALSE;  /* are leaf objects pinned at start */
+static mps_bool_t zoned = TRUE;   /* arena allocates using zones */
 
 typedef struct gcthread_s *gcthread_t;
 
 typedef void *(*gcthread_fn_t)(gcthread_t thread);
 
 struct gcthread_s {
-    pthread_t pthread;
+    testthr_t thread;
     mps_thr_t mps_thread;
     mps_root_t reg_root;
     mps_ap_t ap;
@@ -83,7 +88,8 @@ static void aset(obj_t v, size_t i, obj_t val) {
 static obj_t mktree(mps_ap_t ap, unsigned d, obj_t leaf) {
   obj_t tree;
   size_t i;
-  if (d <= 0) return leaf;
+  if (d <= 0)
+    return leaf;
   tree = mkvector(ap, width);
   for (i = 0; i < width; ++i) {
     aset(tree, i, mktree(ap, d - 1, leaf));
@@ -189,23 +195,12 @@ static void weave(gcthread_fn_t fn)
   
   for (t = 0; t < nthreads; ++t) {
     gcthread_t thread = &threads[t];
-    int err;
     thread->fn = fn;
-    err = pthread_create(&thread->pthread, NULL, start, thread);
-    if (err != 0) {
-      fprintf(stderr, "Unable to create thread: %d\n", err);
-      exit(EXIT_FAILURE);
-    }
+    testthr_create(&thread->thread, start, thread);
   }
   
-  for (t = 0; t < nthreads; ++t) {
-    gcthread_t thread = &threads[t];
-    int err = pthread_join(thread->pthread, NULL);
-    if (err != 0) {
-      fprintf(stderr, "Unable to join thread: %d\n", err);
-      exit(EXIT_FAILURE);
-    }
-  }
+  for (t = 0; t < nthreads; ++t)
+    testthr_join(&threads[t].thread, NULL);
 }
 
 static void weave1(gcthread_fn_t fn)
@@ -219,27 +214,29 @@ static void weave1(gcthread_fn_t fn)
 
 static void watch(gcthread_fn_t fn, const char *name)
 {
-  clock_t start, finish;
+  clock_t begin, end;
   
-  start = clock();
+  begin = clock();
   if (nthreads == 1)
     weave1(fn);
   else
     weave(fn);
-  finish = clock();
+  end = clock();
   
-  printf("%s: %g\n", name, (double)(finish - start) / CLOCKS_PER_SEC);
+  printf("%s: %g\n", name, (double)(end - begin) / CLOCKS_PER_SEC);
 }
 
 
 /* Setup MPS arena and call benchmark. */
 
 static void arena_setup(gcthread_fn_t fn,
-                        mps_class_t pool_class,
+                        mps_pool_class_t pool_class,
                         const char *name)
 {
   MPS_ARGS_BEGIN(args) {
-    MPS_ARGS_ADD(args, MPS_KEY_ARENA_SIZE, arenasize);
+    MPS_ARGS_ADD(args, MPS_KEY_ARENA_SIZE, arena_size);
+    MPS_ARGS_ADD(args, MPS_KEY_ARENA_GRAIN_SIZE, arena_grain_size);
+    MPS_ARGS_ADD(args, MPS_KEY_ARENA_ZONED, zoned);
     RESMUST(mps_arena_create_k(&arena, mps_arena_class_vm(), args));
   } MPS_ARGS_END(args);
   RESMUST(dylan_fmt(&format, arena));
@@ -255,6 +252,9 @@ static void arena_setup(gcthread_fn_t fn,
     RESMUST(mps_pool_create_k(&pool, arena, pool_class, args));
   } MPS_ARGS_END(args);
   watch(fn, name);
+  mps_arena_park(arena);
+  printf("%u chunks\n", (unsigned)TreeDebugCount(ArenaChunkTree(arena),
+                                                 ChunkCompare, ChunkKey));
   mps_pool_destroy(pool);
   mps_fmt_destroy(format);
   if (ngen > 0)
@@ -266,26 +266,28 @@ static void arena_setup(gcthread_fn_t fn,
 /* Command-line options definitions.  See getopt_long(3). */
 
 static struct option longopts[] = {
-  {"help",      no_argument,        NULL,   'h'},
-  {"nthreads",  required_argument,  NULL,   't'},
-  {"niter",     required_argument,  NULL,   'i'},
-  {"npass",     required_argument,  NULL,   'p'},
-  {"gen",       required_argument,  NULL,   'g'},
-  {"arena-size",required_argument,  NULL,   'm'},
-  {"width",     required_argument,  NULL,   'w'},
-  {"depth",     required_argument,  NULL,   'd'},
-  {"preuse",    required_argument,  NULL,   'r'},
-  {"pupdate",   required_argument,  NULL,   'u'},
-  {"pin-leaf",  no_argument,        NULL,   'l'},
-  {"seed",      required_argument,  NULL,   'x'},
-  {NULL,        0,                  NULL,   0}
+  {"help",             no_argument,       NULL, 'h'},
+  {"nthreads",         required_argument, NULL, 't'},
+  {"niter",            required_argument, NULL, 'i'},
+  {"npass",            required_argument, NULL, 'p'},
+  {"gen",              required_argument, NULL, 'g'},
+  {"arena-size",       required_argument, NULL, 'm'},
+  {"arena-grain-size", required_argument, NULL, 'a'},
+  {"width",            required_argument, NULL, 'w'},
+  {"depth",            required_argument, NULL, 'd'},
+  {"preuse",           required_argument, NULL, 'r'},
+  {"pupdate",          required_argument, NULL, 'u'},
+  {"pin-leaf",         no_argument,       NULL, 'l'},
+  {"seed",             required_argument, NULL, 'x'},
+  {"arena-unzoned",    no_argument,       NULL, 'z'},
+  {NULL,               0,                 NULL, 0  }
 };
 
 
 static struct {
   const char *name;
   gcthread_fn_t fn;
-  mps_class_t (*pool_class)(void);
+  mps_pool_class_t (*pool_class)(void);
 } pools[] = {
   {"amc", gc_tree, mps_class_amc},
   {"ams", gc_tree, mps_class_ams},
@@ -307,7 +309,7 @@ int main(int argc, char *argv[]) {
   }
   putchar('\n');
   
-  while ((ch = getopt_long(argc, argv, "ht:i:p:g:m:w:d:r:u:lx:", longopts, NULL)) != -1)
+  while ((ch = getopt_long(argc, argv, "ht:i:p:g:m:a:w:d:r:u:lx:z", longopts, NULL)) != -1)
     switch (ch) {
     case 't':
       nthreads = (unsigned)strtoul(optarg, NULL, 10);
@@ -329,8 +331,8 @@ int main(int argc, char *argv[]) {
         double mort = 0.0;
         cap = (size_t)strtoul(optarg, &p, 10);
         switch(toupper(*p)) {
-        case 'G': cap *= 1024;
-        case 'M': cap *= 1024;
+        case 'G': cap <<= 20; p++; break;
+        case 'M': cap <<= 10; p++; break;
         case 'K': p++; break;
         default: cap = 0; break;
         }
@@ -349,11 +351,29 @@ int main(int argc, char *argv[]) {
       break;
     case 'm': {
         char *p;
-        arenasize = (unsigned)strtoul(optarg, &p, 10);
+        arena_size = (unsigned)strtoul(optarg, &p, 10);
         switch(toupper(*p)) {
-        case 'G': arenasize *= 1024;
-        case 'M': arenasize *= 1024;
-        case 'K': arenasize *= 1024; break;
+        case 'G': arena_size <<= 30; break;
+        case 'M': arena_size <<= 20; break;
+        case 'K': arena_size <<= 10; break;
+        case '\0': break;
+        default:
+          fprintf(stderr, "Bad arena size %s\n", optarg);
+          return EXIT_FAILURE;
+        }
+      }
+      break;
+    case 'a': {
+        char *p;
+        arena_grain_size = (unsigned)strtoul(optarg, &p, 10);
+        switch(toupper(*p)) {
+        case 'G': arena_grain_size <<= 30; break;
+        case 'M': arena_grain_size <<= 20; break;
+        case 'K': arena_grain_size <<= 10; break;
+        case '\0': break;
+        default:
+          fprintf(stderr, "Bad arena grain size %s\n", optarg);
+          return EXIT_FAILURE;
         }
       }
       break;
@@ -375,30 +395,37 @@ int main(int argc, char *argv[]) {
     case 'x':
       seed = strtoul(optarg, NULL, 10);
       break;
+    case 'z':
+      zoned = FALSE;
+      break;
     default:
+      /* This is printed in parts to keep within the 509 character
+         limit for string literals in portable standard C. */
       fprintf(stderr,
               "Usage: %s [option...] [test...]\n"
               "Options:\n"
+              "  -m n, --arena-size=n[KMG]?\n"
+              "    Initial size of arena (default %lu).\n"
+              "  -a n, --arena-grain-size=n[KMG]?\n"
+              "    Arena grain size (default %lu).\n"
               "  -t n, --nthreads=n\n"
               "    Launch n threads each running the test (default %u).\n"
               "  -i n, --niter=n\n"
               "    Iterate each test n times (default %u).\n"
               "  -p n, --npass=n\n"
-              "    Pass over the tree n times (default %u).\n"
+              "    Pass over the tree n times (default %u).\n",
+              argv[0],
+              (unsigned long)arena_size,
+              (unsigned long)arena_grain_size,
+              nthreads,
+              niter,
+              npass);
+      fprintf(stderr,
               "  -g c,m, --gen=c[KMG],m\n"
               "    Generation with capacity c (in Kb) and mortality m\n"
               "    Use multiple times for multiple generations.\n"
-              "  -m n, --arena-size=n[KMG]?\n"
-              "    Initial size of arena (default %lu).\n"
               "  -w n, --width=n\n"
-              "    Width of tree nodes made (default %lu)\n",
-              argv[0],
-              nthreads,
-              niter,
-              npass,
-              (unsigned long)arenasize,
-              (unsigned long)width);
-      fprintf(stderr,
+              "    Width of tree nodes made (default %lu)\n"
               "  -d n, --depth=n\n"
               "    Depth of tree made (default %u)\n"
               "  -r p, --preuse=p\n"
@@ -408,27 +435,33 @@ int main(int argc, char *argv[]) {
               "  -l --pin-leaf\n"
               "    Make a pinned object to use for leaves.\n"
               "  -x n, --seed=n\n"
-              "    Random number seed (default from entropy)\n"
-              "Tests:\n"
-              "  amc   pool class AMC\n"
-              "  ams   pool class AMS\n",
+              "    Random number seed (default from entropy)\n",
+              (unsigned long)width,
               depth,
               preuse,
               pupdate);
+      fprintf(stderr,
+              "  -z, --arena-unzoned\n"
+              "    Disable zoned allocation in the arena\n"
+              "Tests:\n"
+              "  amc   pool class AMC\n"
+              "  ams   pool class AMS\n");
       return EXIT_FAILURE;
     }
   argc -= optind;
   argv += optind;
 
   printf("seed: %lu\n", seed);
-  
+  (void)fflush(stdout);
+
   while (argc > 0) {
-    for (i = 0; i < sizeof(pools) / sizeof(pools[0]); ++i)
+    for (i = 0; i < NELEMS(pools); ++i)
       if (strcmp(argv[0], pools[i].name) == 0)
         goto found;
     fprintf(stderr, "unknown pool test \"%s\"\n", argv[0]);
     return EXIT_FAILURE;
   found:
+    (void)mps_lib_assert_fail_install(assert_die);
     rnd_state_set(seed);
     arena_setup(pools[i].fn, pools[i].pool_class(), pools[i].name);
     --argc;

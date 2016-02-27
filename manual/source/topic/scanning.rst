@@ -56,12 +56,12 @@ region to be scanned. They must carry out the following steps:
       a pointer to a location containing the reference.
 
    #. If :c:func:`MPS_FIX2` returns a :term:`result code` other than
-      :c:func:`MPS_RES_OK`, return this result code from the scanning
+      :c:macro:`MPS_RES_OK`, return this result code from the scanning
       function as soon as practicable.
 
    #. If :c:func:`MPS_FIX2` returns :c:macro:`MPS_RES_OK`, it may have
-      updated the reference. If necessary, make sure that the updated
-      reference is stored back to the region being scanned.
+      updated the reference. Make sure that the updated reference is
+      stored back into the region being scanned.
 
 #. Call the macro :c:func:`MPS_SCAN_END` on the scan state.
 
@@ -180,7 +180,7 @@ so that it cannot move.
 
 You could use this fact to optimize the scan by avoiding the need to
 reassemble and store the updated reference after calling
-:c:func:`MPS_FIX2`
+:c:func:`MPS_FIX2`.
 
 .. note::
 
@@ -361,16 +361,14 @@ Scanning interface
 
 .. c:function:: MPS_FIX_CALL(ss, call)
 
-    Call a function from within a :term:`scan method`, between
-    :c:func:`MPS_SCAN_BEGIN` and :c:func:`MPS_SCAN_END`, passing
-    the :term:`scan state` correctly.
+    Call a function to do some scanning, from within a :term:`scan
+    method`, between :c:func:`MPS_SCAN_BEGIN` and
+    :c:func:`MPS_SCAN_END`, passing the :term:`scan state` correctly.
 
     ``ss`` is the scan state that was passed to the scan method.
 
     ``call`` is an expression containing a function call where ``ss``
     is one of the arguments.
-
-    Returns the result of evaluating the expression ``call``.
 
     Between :c:func:`MPS_SCAN_BEGIN` and :c:func:`MPS_SCAN_END`, the
     scan state is in a special state, and must not be passed to a
@@ -378,6 +376,9 @@ Scanning interface
     have a structure shared between two :term:`object formats`, you
     must wrap the call with :c:func:`MPS_FIX_CALL` to ensure that the
     scan state is passed correctly.
+
+    The function being called must use :c:func:`MPS_SCAN_BEGIN` and
+    :c:func:`MPS_SCAN_END` appropriately.
 
     In example below, the scan method ``obj_scan`` fixes the object's
     ``left`` and ``right`` references, but delegates the scanning of
@@ -392,12 +393,14 @@ Scanning interface
             mps_res_t res;
             MPS_SCAN_BEGIN(ss) {
                 for (obj = base; obj < limit; obj++) {
-                    if (MPS_FIX12(ss, &obj->left) != MPS_RES_OK)
+                    res = MPS_FIX12(ss, &obj->left);
+                    if (res != MPS_RES_OK)
                         return res;
                     MPS_FIX_CALL(ss, res = data_scan(ss, &obj->data));
                     if (res != MPS_RES_OK)
                         return res;
-                    if (MPS_FIX12(ss, &obj->right) != MPS_RES_OK)
+                    res = MPS_FIX12(ss, &obj->right);
+                    if (res != MPS_RES_OK)
                         return res;
                 }
             } MPS_SCAN_END(ss);
@@ -406,9 +409,11 @@ Scanning interface
 
     .. warning::
 
-         Use of :c:func:`MPS_FIX_CALL` is best avoided, as it forces
-         values out of registers. The gains in simplicity of the code
-         need to be measured against the loss in performance.
+         Use of :c:func:`MPS_FIX_CALL` is best avoided, as it may
+         force values out of registers (depending on compiler
+         optimisations such as inlining). The gains in simplicity of
+         the code ought to be measured against the loss in
+         performance.
 
 
 .. index::
@@ -463,15 +468,18 @@ Fixing interface
 
     :term:`Fix` a :term:`reference`.
 
-    ``ss`` is the :term:`scan state` that was passed to the scan method.
+    ``ss`` is the :term:`scan state` that was passed to the
+    :term:`scan method`.
 
     ``ref_io`` points to the reference.
 
-    Returns :c:macro:`MPS_RES_OK` if successful: in this case the
-    reference may have been updated, and the scan method must continue
-    to scan the :term:`block`. If it returns any other result, the
-    :term:`scan method` must return that result as soon as possible,
-    without fixing any further references.
+    Returns :c:macro:`MPS_RES_OK` if successful. In this case the
+    reference may have been updated, and so the scan method must store
+    the updated reference back to the region being scanned. The scan
+    method must continue to scan the :term:`block`.
+
+    If it returns any other result, the scan method must return that
+    result as soon as possible, without fixing any further references.
 
     This macro must only be used within a :term:`scan method`, between
     :c:func:`MPS_SCAN_BEGIN` and :c:func:`MPS_SCAN_END`.
@@ -493,29 +501,3 @@ Fixing interface
         In the case where the scan method does not need to do anything
         between :c:func:`MPS_FIX1` and :c:func:`MPS_FIX2`, you can use
         the convenience macro :c:func:`MPS_FIX12`.
-
-
-.. c:function:: mps_res_t mps_fix(mps_ss_t ss, mps_addr_t *ref_io)
-
-    .. deprecated:: starting with version 1.111.
-
-        Use :c:func:`MPS_FIX1` and :c:func:`MPS_FIX2` instead.
-
-    :term:`Fix` a :term:`reference`.
-
-    This is a function equivalent to::
-
-        MPS_SCAN_BEGIN(ss);
-        MPS_FIX12(ss, ref_io);
-        MPS_SCAN_END(ss);
-
-    Because :term:`scanning <scan>` is an operation on the
-    :term:`critical path`, we recommend that you use
-    :c:func:`MPS_FIX12` (or :c:func:`MPS_FIX1` and :c:func:`MPS_FIX2`)
-    to ensure that the "stage 1 fix" is inlined.
-
-    .. note::
-
-        If you call this between :c:func:`MPS_SCAN_BEGIN` and
-        :c:func:`MPS_SCAN_END`, you must use :c:func:`MPS_FIX_CALL` to
-        ensure that the scan state is passed correctly.

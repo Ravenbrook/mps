@@ -1,7 +1,7 @@
 # commpost.nmk: SECOND COMMON FRAGMENT FOR PLATFORMS USING NMAKE -*- makefile -*-
 #
 # $Id$
-# Copyright (c) 2001-2013 Ravenbrook Limited.  See end of file for license.
+# Copyright (c) 2001-2014 Ravenbrook Limited.  See end of file for license.
 #
 # DESCRIPTION
 #
@@ -24,10 +24,13 @@ $(ALL_TARGETS) $(OPTIONAL_TARGETS):
 
 # "clean" removes the directory containing the build results.
 # Depends on there being no file called "clean".
+# Note that we suspend error processing on the if line because rmdir
+# sometimes exits with an error and the message "The directory is not
+# empty" even if the /s option is given. See job003854.
 
 clean:
 	$(ECHO) $(PFM): $@
-	-echo y | rmdir/s $(PFM)
+	-if exist $(PFM) rmdir /q /s $(PFM)
 
 # target target
 # %%VARIETY: When adding a new variety, optionally, add a recursive make
@@ -39,8 +42,8 @@ clean:
 !IFDEF TARGET
 !IFNDEF VARIETY
 target:
-	$(MAKE) /nologo /f $(PFM).nmk VARIETY=hot variety
 	$(MAKE) /nologo /f $(PFM).nmk VARIETY=cool variety
+	$(MAKE) /nologo /f $(PFM).nmk VARIETY=hot variety
 !ENDIF
 !ENDIF
 
@@ -53,20 +56,79 @@ variety: $(PFM)\$(VARIETY)\$(TARGET)
 !ENDIF
 !ENDIF
 
-mpsicv.cov:
-	$(MAKE) /nologo /f $(PFM).nmk TARGET=$@ VARIETY=cv variety
-
-# testrun
+# testrun testci testall testansi testpollnone
 # Runs automated test cases.
 
-testrun: $(AUTO_TEST_TARGETS)
+testrun testci testall testansi testpollnone: $(TEST_TARGETS)
 !IFDEF VARIETY
-	set MPS_TESTLIB_NOABORT=true
-	..\tool\testrun.bat $(PFM) $(VARIETY) $(AUTO_TEST_TARGETS)
+	..\tool\testrun.bat $(PFM) $(VARIETY) $@
 !ELSE
-	$(MAKE) /nologo /f $(PFM).nmk VARIETY=hot testrun
-	$(MAKE) /nologo /f $(PFM).nmk VARIETY=cool testrun
+	$(MAKE) /nologo /f $(PFM).nmk VARIETY=cool $@
+	$(MAKE) /nologo /f $(PFM).nmk VARIETY=hot $@
 !ENDIF
+
+
+# FLAGS AMALGAMATION
+#
+# %%VARIETY: When adding a new variety, add the following macros that
+# expand to sets of flags that the variety should use:
+#
+# CFLAGS --  when compiling C;
+# CFLAGSSQL -- when compiling mpseventsql;
+# LINKFLAGS -- when building executables;
+# LIBFLAGS -- when building libraries.
+
+!IF "$(VARIETY)" == "hot"
+CFLAGS=$(CFLAGSCOMMONPRE) $(CFHOT) $(CFLAGSCOMMONPOST)
+CFLAGSSQL=$(CFLAGSSQLPRE) $(CFHOT) $(CFLAGSSQLPOST)
+LINKFLAGS=$(LINKFLAGSCOMMON) $(LFHOT)
+LIBFLAGS=$(LIBFLAGSCOMMON) $(LIBFLAGSHOT)
+
+!ELSEIF "$(VARIETY)" == "cool"
+CFLAGS=$(CFLAGSCOMMONPRE) $(CFCOOL) $(CFLAGSCOMMONPOST)
+CFLAGSSQL=$(CFLAGSSQLPRE) $(CFCOOL) $(CFLAGSSQLPOST)
+LINKFLAGS=$(LINKFLAGSCOMMON) $(LFCOOL)
+LIBFLAGS=$(LIBFLAGSCOMMON) $(LIBFLAGSCOOL)
+
+!ELSEIF "$(VARIETY)" == "rash"
+CFLAGS=$(CFLAGSCOMMONPRE) $(CFRASH) $(CFLAGSCOMMONPOST)
+CFLAGSSQL=$(CFLAGSSQLPRE) $(CFRASH) $(CFLAGSSQLPOST)
+LINKFLAGS=$(LINKFLAGSCOMMON) $(LFRASH)
+LIBFLAGS=$(LIBFLAGSCOMMON) $(LIBFLAGSRASH)
+
+!ENDIF
+
+
+# SOURCE TO OBJECT FILE MAPPINGS
+#
+# %%PART: When adding a new part, add new macros which expand to the object
+# files included in the part
+#
+# Note: nmake doesn't expand variables within a string replacement
+# operation. We work around this by writing out a temporary makefile
+# and including it.
+
+TEMPMAKE=$(TEMP)\mps.nmk
+!IF [echo MPMOBJ0 = $$(MPM:[=$(PFM)\$(VARIETY)\) > $(TEMPMAKE)] == 0 \
+ && [echo FMTDYOBJ0 = $$(FMTDY:[=$(PFM)\$(VARIETY)\) >> $(TEMPMAKE)] == 0 \
+ && [echo FMTTESTOBJ0 = $$(FMTTEST:[=$(PFM)\$(VARIETY)\) >> $(TEMPMAKE)] == 0 \
+ && [echo FMTSCHEMEOBJ0 = $$(FMTSCHEME:[=$(PFM)\$(VARIETY)\) >> $(TEMPMAKE)] == 0 \
+ && [echo POOLNOBJ0 = $$(POOLN:[=$(PFM)\$(VARIETY)\) >> $(TEMPMAKE)] == 0 \
+ && [echo TESTLIBOBJ0 = $$(TESTLIB:[=$(PFM)\$(VARIETY)\) >> $(TEMPMAKE)] == 0 \
+ && [echo TESTTHROBJ0 = $$(TESTTHR:[=$(PFM)\$(VARIETY)\) >> $(TEMPMAKE)] == 0
+!INCLUDE $(TEMPMAKE)
+!IF [del $(TEMPMAKE)] != 0
+!ERROR Failed to delete $(TEMPMAKE)
+!ENDIF
+!ENDIF
+
+MPMOBJ = $(MPMOBJ0:]=.obj)
+FMTDYOBJ = $(FMTDYOBJ0:]=.obj)
+FMTTESTOBJ = $(FMTTESTOBJ0:]=.obj)
+FMTSCHEMEOBJ = $(FMTSCHEMEOBJ0:]=.obj)
+POOLNOBJ = $(POOLNOBJ0:]=.obj)
+TESTLIBOBJ = $(TESTLIBOBJ0:]=.obj)
+TESTTHROBJ = $(TESTTHROBJ0:]=.obj)
 
 
 # THE MPS LIBRARY
@@ -96,12 +158,9 @@ $(PFM)\hot\mps.lib: $(PFM)\hot\mps.obj
 	$(ECHO) $@
 	$(LIBMAN) $(LIBFLAGS) /OUT:$@ $**
 
-$(PFM)\cool\mps.lib: \
-  $(MPMOBJ) $(AMCOBJ) $(AMSOBJ) $(AWLOBJ) $(LOOBJ) $(SNCOBJ) \
-  $(MVFFOBJ) $(PLINTHOBJ) $(POOLNOBJ)
+$(PFM)\cool\mps.lib: $(MPMOBJ)
 	$(ECHO) $@
-	cl /c $(CFLAGS) /Fd$(PFM)\$(VARIETY)\ /Fo$(PFM)\$(VARIETY)\version.o version.c
-	$(LIBMAN) $(LIBFLAGS) /OUT:$@ $** $(PFM)\$(VARIETY)\version.o
+	$(LIBMAN) $(LIBFLAGS) /OUT:$@ $**
 
 
 # OTHER GENUINE TARGETS
@@ -118,6 +177,9 @@ $(PFM)\cool\mps.lib: \
 $(PFM)\$(VARIETY)\abqtest.exe: $(PFM)\$(VARIETY)\abqtest.obj \
 	$(PFM)\$(VARIETY)\mps.lib $(TESTLIBOBJ)
 
+$(PFM)\$(VARIETY)\airtest.exe: $(PFM)\$(VARIETY)\airtest.obj \
+	$(PFM)\$(VARIETY)\mps.lib $(FMTSCHEMEOBJ) $(TESTLIBOBJ)
+
 $(PFM)\$(VARIETY)\amcss.exe: $(PFM)\$(VARIETY)\amcss.obj \
 	$(PFM)\$(VARIETY)\mps.lib $(FMTTESTOBJ) $(TESTLIBOBJ)
 
@@ -125,7 +187,7 @@ $(PFM)\$(VARIETY)\amcsshe.exe: $(PFM)\$(VARIETY)\amcsshe.obj \
 	$(PFM)\$(VARIETY)\mps.lib $(FMTTESTOBJ) $(TESTLIBOBJ)
 
 $(PFM)\$(VARIETY)\amcssth.exe: $(PFM)\$(VARIETY)\amcssth.obj \
-	$(PFM)\$(VARIETY)\mps.lib $(FMTTESTOBJ) $(TESTLIBOBJ)
+	$(PFM)\$(VARIETY)\mps.lib $(FMTTESTOBJ) $(TESTLIBOBJ) $(TESTTHROBJ)
 
 $(PFM)\$(VARIETY)\amsss.exe: $(PFM)\$(VARIETY)\amsss.obj \
 	$(PFM)\$(VARIETY)\mps.lib $(FMTTESTOBJ) $(TESTLIBOBJ)
@@ -147,6 +209,10 @@ $(PFM)\$(VARIETY)\awluthe.exe:  $(PFM)\$(VARIETY)\awluthe.obj \
 	$(FMTTESTOBJ) \
 	$(PFM)\$(VARIETY)\mps.lib $(TESTLIBOBJ)
 
+$(PFM)\$(VARIETY)\awlutth.exe:  $(PFM)\$(VARIETY)\awlutth.obj \
+	$(FMTTESTOBJ) \
+	$(PFM)\$(VARIETY)\mps.lib $(TESTLIBOBJ) $(TESTTHROBJ)
+
 $(PFM)\$(VARIETY)\btcv.exe: $(PFM)\$(VARIETY)\btcv.obj \
 	$(PFM)\$(VARIETY)\mps.lib $(TESTLIBOBJ)
 
@@ -156,14 +222,14 @@ $(PFM)\$(VARIETY)\bttest.exe: $(PFM)\$(VARIETY)\bttest.obj \
 $(PFM)\$(VARIETY)\cvmicv.exe: $(PFM)\$(VARIETY)\cvmicv.obj \
 	$(PFM)\$(VARIETY)\mps.lib $(FMTTESTOBJ) $(TESTLIBOBJ)
 
+$(PFM)\$(VARIETY)\djbench.exe: $(PFM)\$(VARIETY)\djbench.obj \
+	$(TESTLIBOBJ) $(TESTTHROBJ)
+
 $(PFM)\$(VARIETY)\exposet0.exe: $(PFM)\$(VARIETY)\exposet0.obj \
 	$(PFM)\$(VARIETY)\mps.lib $(FMTTESTOBJ) $(TESTLIBOBJ)	
 
 $(PFM)\$(VARIETY)\expt825.exe: $(PFM)\$(VARIETY)\expt825.obj \
 	$(PFM)\$(VARIETY)\mps.lib $(FMTTESTOBJ) $(TESTLIBOBJ)
-
-$(PFM)\$(VARIETY)\fbmtest.exe: $(PFM)\$(VARIETY)\fbmtest.obj \
-	$(PFM)\$(VARIETY)\mps.lib $(TESTLIBOBJ)
 
 $(PFM)\$(VARIETY)\finalcv.exe: $(PFM)\$(VARIETY)\finalcv.obj \
 	$(PFM)\$(VARIETY)\mps.lib $(FMTTESTOBJ) $(TESTLIBOBJ)
@@ -174,14 +240,20 @@ $(PFM)\$(VARIETY)\finaltest.exe: $(PFM)\$(VARIETY)\finaltest.obj \
 $(PFM)\$(VARIETY)\fotest.exe: $(PFM)\$(VARIETY)\fotest.obj \
 	$(PFM)\$(VARIETY)\mps.lib $(TESTLIBOBJ)
 
+$(PFM)\$(VARIETY)\gcbench.exe: $(PFM)\$(VARIETY)\gcbench.obj \
+	$(FMTTESTOBJ) $(TESTLIBOBJ) $(TESTTHROBJ)
+
+$(PFM)\$(VARIETY)\landtest.exe: $(PFM)\$(VARIETY)\landtest.obj \
+	$(PFM)\$(VARIETY)\mps.lib $(TESTLIBOBJ)
+
 $(PFM)\$(VARIETY)\locbwcss.exe: $(PFM)\$(VARIETY)\locbwcss.obj \
 	$(PFM)\$(VARIETY)\mps.lib $(TESTLIBOBJ)
 
 $(PFM)\$(VARIETY)\lockcov.exe: $(PFM)\$(VARIETY)\lockcov.obj \
 	$(PFM)\$(VARIETY)\mps.lib $(TESTLIBOBJ)
 
-$(PFM)\$(VARIETY)\lockutw3.exe: $(PFM)\$(VARIETY)\lockutw3.obj \
-	$(PFM)\$(VARIETY)\mps.lib $(TESTLIBOBJ)
+$(PFM)\$(VARIETY)\lockut.exe: $(PFM)\$(VARIETY)\lockut.obj \
+	$(PFM)\$(VARIETY)\mps.lib $(TESTLIBOBJ) $(TESTTHROBJ)
 
 $(PFM)\$(VARIETY)\locusss.exe: $(PFM)\$(VARIETY)\locusss.obj \
 	$(PFM)\$(VARIETY)\mps.lib $(TESTLIBOBJ)
@@ -201,8 +273,11 @@ $(PFM)\$(VARIETY)\mpsicv.exe: $(PFM)\$(VARIETY)\mpsicv.obj \
 $(PFM)\$(VARIETY)\mv2test.exe: $(PFM)\$(VARIETY)\mv2test.obj \
 	$(PFM)\$(VARIETY)\mps.lib $(TESTLIBOBJ)
 
-$(PFM)\$(VARIETY)\poolncv.exe:  $(PFM)\$(VARIETY)\poolncv.obj \
+$(PFM)\$(VARIETY)\nailboardtest.exe: $(PFM)\$(VARIETY)\nailboardtest.obj \
 	$(PFM)\$(VARIETY)\mps.lib $(TESTLIBOBJ)
+
+$(PFM)\$(VARIETY)\poolncv.exe: $(PFM)\$(VARIETY)\poolncv.obj \
+	$(PFM)\$(VARIETY)\mps.lib $(TESTLIBOBJ) $(POOLNOBJ)
 
 $(PFM)\$(VARIETY)\qs.exe: $(PFM)\$(VARIETY)\qs.obj \
 	$(PFM)\$(VARIETY)\mps.lib $(TESTLIBOBJ)
@@ -271,13 +346,13 @@ $(PFM)\$(VARIETY)\mpseventsql.obj: $(PFM)\$(VARIETY)\eventsql.obj
 	$(ECHO) $@
 	@if not exist $(PFM) mkdir $(PFM)
 	@if not exist $(PFM)\$(VARIETY) mkdir $(PFM)\$(VARIETY)
-	cl /c $(CFLAGS) /Fd$(PFM)\$(VARIETY)\ /Fo$@ $<
+	$(CC) /c $(CFLAGS) /Fo$@ $<
 
 $(PFM)\$(VARIETY)\sqlite3.obj:
 	$(ECHO) $@
 	@if not exist $(PFM) mkdir $(PFM)
 	@if not exist $(PFM)\$(VARIETY) mkdir $(PFM)\$(VARIETY)
-        cl /c $(CFLAGSSQL) /Fd$(PFM)\$(VARIETY)\ /Fo$@ sqlite3.c
+        $(CC) /c $(CFLAGSSQL) /Fo$@ sqlite3.c
 
 {}.asm{$(PFM)\$(VARIETY)}.obj:
 	$(ECHO) $@
@@ -299,12 +374,12 @@ $(PFM)\$(VARIETY)\sqlite3.obj:
 
 {$(PFM)\$(VARIETY)}.obj{$(PFM)\$(VARIETY)}.exe:
 	$(ECHO) $@
-	$(LINKER) $(LINKFLAGS) /PDB:$*.pdb /OUT:$@ $(**)
+	$(LINKER) $(LINKFLAGS) /OUT:$@ $(**)
 
 
 # C. COPYRIGHT AND LICENSE
 #
-# Copyright (C) 2001-2013 Ravenbrook Limited <http://www.ravenbrook.com/>.
+# Copyright (C) 2001-2014 Ravenbrook Limited <http://www.ravenbrook.com/>.
 # All rights reserved.  This is an open source license.  Contact
 # Ravenbrook for commercial licensing options.
 # 

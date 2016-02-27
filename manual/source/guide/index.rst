@@ -9,7 +9,8 @@ Guide
    overview
    build
    lang
+   vector
    debug
    perf
    advanced
-
+   malloc

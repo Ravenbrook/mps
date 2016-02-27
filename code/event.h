@@ -33,7 +33,7 @@ extern EventStringId EventInternString(const char *label);
 extern EventStringId EventInternGenString(size_t, const char *label);
 extern void EventLabelAddr(Addr addr, Word id);
 extern void EventFlush(EventKind kind);
-extern Res EventDescribe(Event event, mps_lib_FILE *stream);
+extern Res EventDescribe(Event event, mps_lib_FILE *stream, Count depth);
 extern Res EventWrite(Event event, mps_lib_FILE *stream);
 extern void EventDump(mps_lib_FILE *stream);
 
@@ -87,7 +87,7 @@ extern Word EventKindControl;
     size = offsetof(Event##name##Struct, f1) + _string_len + sizeof('\0'); \
     EVENT_BEGIN(name, size) \
       _event->f0 = (p0); \
-      mps_lib_memcpy(_event->f1, (string), _string_len); \
+      (void)mps_lib_memcpy(_event->f1, (string), _string_len); \
       _event->f1[_string_len] = '\0'; \
     EVENT_END(name, size); \
   END

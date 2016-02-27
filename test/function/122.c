@@ -84,7 +84,7 @@ mycell *a[4], *b[4];
 static void test(void)
 {
  mps_chain_t chain;
- mycell *w, *x, *y;
+ mycell *x;
 
  cdie(mps_arena_create(&arena, mps_arena_class_vm(), (size_t) 1024*1024*30),
       "create arena");
@@ -133,7 +133,7 @@ static void test(void)
  die(allocrdumb(&a[0], aplo, 64, mps_rank_exact()), "alloc");
  die(allocrdumb(&a[1], apamc, 64, mps_rank_exact()), "alloc");
  die(allocrdumb(&a[3], apawl, 64, mps_rank_exact()), "alloc");
- a[2] = (mycell *)((int)a[3] | 4);
+ a[2] = (mycell *)((mps_word_t)a[3] | 4);
 
  die(allocrdumb(&b[0], aplo, 64, mps_rank_exact()), "alloc");
  die(allocrdumb(&b[1], apamc, 64, mps_rank_exact()), "alloc");
@@ -148,14 +148,15 @@ static void test(void)
   mps_stack_scan_ambig, stackpointer, 0), "create stack root");
 
  x = allocdumb(apamc, 64, mps_rank_exact());
- y = allocdumb(apamc, 64, mps_rank_exact());
- w = allocdumb(apamc, 64, mps_rank_exact());
+ (void)allocdumb(apamc, 64, mps_rank_exact());
+ (void)allocdumb(apamc, 64, mps_rank_exact());
  rootcount = 0;
  speccount = 0;
  walkroots(x);
  report("count2", "%ld", rootcount);
  report("countspec", "%ld", speccount);
 
+ mps_arena_park(arena);
  mps_ap_destroy(apamc);
  mps_ap_destroy(aplo);
  mps_ap_destroy(apawl);

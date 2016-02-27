@@ -1,7 +1,7 @@
-/* prmci6w3.c: PROTECTION MUTATOR CONTEXT INTEL 386 (Win32)
+/* prmci6w3.c: PROTECTION MUTATOR CONTEXT INTEL x64 (Windows)
  *
  * $Id$
- * Copyright (c) 2001-2013 Ravenbrook Limited.  See end of file for license.
+ * Copyright (c) 2001-2014 Ravenbrook Limited.  See end of file for license.
  *
  * PURPOSE
  *
@@ -13,7 +13,7 @@
  *
  * ASSUMPTIONS
  *
- * .assume.regref: The resisters in the context can be modified by
+ * .assume.regref: The registers in the context can be modified by
  * storing into an MRef pointer.
  */
 
@@ -22,6 +22,10 @@
 #include "mpm.h"
 
 SRCID(prmci6w3, "$Id$");
+
+#if !defined(MPS_OS_W3) || !defined(MPS_ARCH_I6)
+#error "prmci6w3.c is specific to MPS_OS_W3 and MPS_ARCH_I6"
+#endif
 
 
 /* Prmci6AddressHoldingReg -- Return an address for a given machine register */
@@ -52,9 +56,10 @@ MRef Prmci6AddressHoldingReg(MutatorFaultContext context, unsigned int regnum)
   case 13: return (MRef)&wincont->R13;
   case 14: return (MRef)&wincont->R14;
   case 15: return (MRef)&wincont->R15;
+  default:
+    NOTREACHED;
+    return NULL; /* suppress warning */
   }
-  NOTREACHED;
-  return NULL; /* suppress warning */
 }
 
 
@@ -86,7 +91,7 @@ void Prmci6StepOverIns(MutatorFaultContext context, Size inslen)
 
 /* C. COPYRIGHT AND LICENSE
  *
- * Copyright (C) 2001-2013 Ravenbrook Limited <http://www.ravenbrook.com/>.
+ * Copyright (C) 2001-2014 Ravenbrook Limited <http://www.ravenbrook.com/>.
  * All rights reserved.  This is an open source license.  Contact
  * Ravenbrook for commercial licensing options.
  * 

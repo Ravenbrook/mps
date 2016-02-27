@@ -1,7 +1,7 @@
 /* pool.c: POOL IMPLEMENTATION
  *
  * $Id$
- * Copyright (c) 2001-2013 Ravenbrook Limited.  See end of file for license.
+ * Copyright (c) 2001-2015 Ravenbrook Limited.  See end of file for license.
  * Portions copyright (C) 2001 Global Graphics Software.
  *
  * DESIGN
@@ -18,9 +18,6 @@
  * .purpose.dispatch: Dispatch functions that implement the generic
  * function dispatch mechanism for Pool Classes (PoolAlloc, PoolFix,
  * etc.).
- * .purpose.core: A selection of default, trivial, or useful methods
- * that Pool Classes can use as the implementations for some of their
- * methods (such as PoolTrivWhiten, PoolNoFix, etc.).
  *
  * SOURCES
  *
@@ -40,13 +37,14 @@ SRCID(pool, "$Id$");
 
 Bool PoolClassCheck(PoolClass class)
 {
-  CHECKL(ProtocolClassCheck(&class->protocol));
+  CHECKD(ProtocolClass, &class->protocol);
   CHECKL(class->name != NULL); /* Should be <=6 char C identifier */
   CHECKL(class->size >= sizeof(PoolStruct));
   /* Offset of generic Pool within class-specific instance cannot be */
   /* greater than the size of the class-specific portion of the instance */
   CHECKL(class->offset <= (size_t)(class->size - sizeof(PoolStruct)));
   CHECKL(AttrCheck(class->attr));
+  CHECKL(!(class->attr & AttrMOVINGGC) || (class->attr & AttrGC));
   CHECKL(FUNCHECK(class->varargs));
   CHECKL(FUNCHECK(class->init));
   CHECKL(FUNCHECK(class->finish));
@@ -74,6 +72,8 @@ Bool PoolClassCheck(PoolClass class)
   CHECKL(FUNCHECK(class->bufferClass));
   CHECKL(FUNCHECK(class->describe));
   CHECKL(FUNCHECK(class->debugMixin));
+  CHECKL(FUNCHECK(class->totalSize));
+  CHECKL(FUNCHECK(class->freeSize));
   CHECKS(PoolClass, class);
   return TRUE;
 }
@@ -89,35 +89,32 @@ Bool PoolCheck(Pool pool)
   CHECKL(pool->serial < ArenaGlobals(pool->arena)->poolSerial);
   CHECKD(PoolClass, pool->class);
   CHECKU(Arena, pool->arena);
-  CHECKL(RingCheck(&pool->arenaRing));
-  CHECKL(RingCheck(&pool->bufferRing));
+  CHECKD_NOSIG(Ring, &pool->arenaRing);
+  CHECKD_NOSIG(Ring, &pool->bufferRing);
   /* Cannot check pool->bufferSerial */
-  CHECKL(RingCheck(&pool->segRing));
+  CHECKD_NOSIG(Ring, &pool->segRing);
   CHECKL(AlignCheck(pool->alignment));
-  /* normally pool->format iff pool->class->attr&AttrFMT, but not */
-  /* during pool initialization */
-  if (pool->format != NULL) {
-    CHECKL((pool->class->attr & AttrFMT) != 0);
-  }
-  CHECKL(pool->fillMutatorSize >= 0.0);
-  CHECKL(pool->emptyMutatorSize >= 0.0);
-  CHECKL(pool->fillInternalSize >= 0.0);
-  CHECKL(pool->emptyInternalSize >= 0.0);
+  /* normally pool->format iff PoolHasAttr(pool, AttrFMT), but during
+   * pool initialization pool->format may not yet be set. */
+  CHECKL(pool->format == NULL || PoolHasAttr(pool, AttrFMT));
   return TRUE;
 }
 
 
 /* Common keywords to PoolInit */
 
-ARG_DEFINE_KEY(format, Format);
-ARG_DEFINE_KEY(chain, Chain);
-ARG_DEFINE_KEY(gen, Cant);
-ARG_DEFINE_KEY(rank, Rank);
-ARG_DEFINE_KEY(extend_by, Size);
-ARG_DEFINE_KEY(min_size, Size);
-ARG_DEFINE_KEY(mean_size, Size);
-ARG_DEFINE_KEY(max_size, Size);
-ARG_DEFINE_KEY(align, Align);
+ARG_DEFINE_KEY(FORMAT, Format);
+ARG_DEFINE_KEY(CHAIN, Chain);
+ARG_DEFINE_KEY(GEN, Cant);
+ARG_DEFINE_KEY(RANK, Rank);
+ARG_DEFINE_KEY(EXTEND_BY, Size);
+ARG_DEFINE_KEY(LARGE_SIZE, Size);
+ARG_DEFINE_KEY(MIN_SIZE, Size);
+ARG_DEFINE_KEY(MEAN_SIZE, Size);
+ARG_DEFINE_KEY(MAX_SIZE, Size);
+ARG_DEFINE_KEY(ALIGN, Align);
+ARG_DEFINE_KEY(SPARE, double);
+ARG_DEFINE_KEY(INTERIOR, Bool);
 
 
 /* PoolInit -- initialize a pool
@@ -156,10 +153,6 @@ Res PoolInit(Pool pool, Arena arena, PoolClass class, ArgList args)
   pool->alignment = MPS_PF_ALIGN;
   pool->format = NULL;
   pool->fix = class->fix;
-  pool->fillMutatorSize = 0.0;
-  pool->emptyMutatorSize = 0.0;
-  pool->fillInternalSize = 0.0;
-  pool->emptyInternalSize = 0.0;
 
   /* Initialise signature last; see <design/sig/> */
   pool->sig = PoolSig;
@@ -288,9 +281,8 @@ Res PoolAlloc(Addr *pReturn, Pool pool, Size size,
 
   AVER(pReturn != NULL);
   AVERT(Pool, pool);
-  AVER((pool->class->attr & AttrALLOC) != 0);
   AVER(size > 0);
-  AVER(BoolCheck(withReservoirPermit));
+  AVERT(Bool, withReservoirPermit);
 
   res = (*pool->class->alloc)(pReturn, pool, size, withReservoirPermit);
   if (res != ResOK)
@@ -304,7 +296,6 @@ Res PoolAlloc(Addr *pReturn, Pool pool, Size size,
 
   /* All PoolAllocs should advance the allocation clock, so we count */
   /* it all in the fillMutatorSize field. */
-  pool->fillMutatorSize += size;
   ArenaGlobals(PoolArena(pool))->fillMutatorSize += size;
 
   EVENT3(PoolAlloc, pool, *pReturn, size);
@@ -318,10 +309,10 @@ Res PoolAlloc(Addr *pReturn, Pool pool, Size size,
 void PoolFree(Pool pool, Addr old, Size size)
 {
   AVERT(Pool, pool);
-  AVER((pool->class->attr & AttrFREE) != 0);
   AVER(old != NULL);
   /* The pool methods should check that old is in pool. */
   AVER(size > 0);
+  AVER(AddrIsAligned(old, pool->alignment));
   AVER(PoolHasRange(pool, old, AddrAdd(old, size)));
 
   (*pool->class->free)(pool, old, size);
@@ -337,7 +328,7 @@ Res PoolAccess(Pool pool, Seg seg, Addr addr,
   AVERT(Seg, seg);
   AVER(SegBase(seg) <= addr);
   AVER(addr < SegLimit(seg));
-  /* Can't check mode as there is no check method */
+  AVERT(AccessSet, mode);
   /* Can't check MutatorFaultContext as there is no check method */
 
   return (*pool->class->access)(pool, seg, addr, mode, context);
@@ -409,14 +400,14 @@ Res PoolScan(Bool *totalReturn, ScanState ss, Pool pool, Seg seg)
 
 Res (PoolFix)(Pool pool, ScanState ss, Seg seg, Addr *refIO)
 {
-  AVERT(Pool, pool);
-  AVERT(ScanState, ss);
-  AVERT(Seg, seg);
-  AVER(pool == SegPool(seg));
-  AVER(refIO != NULL);
+  AVERT_CRITICAL(Pool, pool);
+  AVERT_CRITICAL(ScanState, ss);
+  AVERT_CRITICAL(Seg, seg);
+  AVER_CRITICAL(pool == SegPool(seg));
+  AVER_CRITICAL(refIO != NULL);
 
   /* Should only be fixing references to white segments. */
-  AVER(TraceSetInter(SegWhite(seg), ss->traces) != TraceSetEMPTY);
+  AVER_CRITICAL(TraceSetInter(SegWhite(seg), ss->traces) != TraceSetEMPTY);
 
   return PoolFix(pool, ss, seg, refIO);
 }
@@ -425,17 +416,17 @@ Res PoolFixEmergency(Pool pool, ScanState ss, Seg seg, Addr *refIO)
 {
   Res res;
 
-  AVERT(Pool, pool);
-  AVERT(ScanState, ss);
-  AVERT(Seg, seg);
-  AVER(pool == SegPool(seg));
-  AVER(refIO != NULL);
+  AVERT_CRITICAL(Pool, pool);
+  AVERT_CRITICAL(ScanState, ss);
+  AVERT_CRITICAL(Seg, seg);
+  AVER_CRITICAL(pool == SegPool(seg));
+  AVER_CRITICAL(refIO != NULL);
 
   /* Should only be fixing references to white segments. */
-  AVER(TraceSetInter(SegWhite(seg), ss->traces) != TraceSetEMPTY);
+  AVER_CRITICAL(TraceSetInter(SegWhite(seg), ss->traces) != TraceSetEMPTY);
 
   res = (pool->class->fixEmergency)(pool, ss, seg, refIO);
-  AVER(res == ResOK);
+  AVER_CRITICAL(res == ResOK);
   return res;
 }
 
@@ -488,15 +479,15 @@ Res PoolAddrObject(Addr *pReturn, Pool pool, Seg seg, Addr addr)
   AVERT(Pool, pool);
   AVERT(Seg, seg);
   AVER(pool == SegPool(seg));
-  AVER(SegBase(seg) <= addr && addr < SegLimit(seg));
+  AVER(SegBase(seg) <= addr);
+  AVER(addr < SegLimit(seg));
   return (*pool->class->addrObject)(pReturn, pool, seg, addr);
 }
 
 
 /* PoolWalk -- walk objects in this segment */
 
-void PoolWalk(Pool pool, Seg seg, FormattedObjectsStepMethod f,
-              void *p, size_t s)
+void PoolWalk(Pool pool, Seg seg, FormattedObjectsVisitor f, void *p, size_t s)
 {
   AVERT(Pool, pool);
   AVERT(Seg, seg);
@@ -512,7 +503,7 @@ void PoolWalk(Pool pool, Seg seg, FormattedObjectsStepMethod f,
  * PoolFreeWalk is not required to find all free blocks.
  */
 
-void PoolFreeWalk(Pool pool, FreeBlockStepMethod f, void *p)
+void PoolFreeWalk(Pool pool, FreeBlockVisitor f, void *p)
 {
   AVERT(Pool, pool);
   AVER(FUNCHECK(f));
@@ -522,54 +513,70 @@ void PoolFreeWalk(Pool pool, FreeBlockStepMethod f, void *p)
 }
 
 
+/* PoolTotalSize -- return total memory allocated from arena */
+
+Size PoolTotalSize(Pool pool)
+{
+  AVERT(Pool, pool);
+
+  return (*pool->class->totalSize)(pool);
+}
+
+
+/* PoolFreeSize -- return free memory (unused by client program) */
+
+Size PoolFreeSize(Pool pool)
+{
+  AVERT(Pool, pool);
+
+  return (*pool->class->freeSize)(pool);
+}
+
+
 /* PoolDescribe -- describe a pool */
 
-Res PoolDescribe(Pool pool, mps_lib_FILE *stream)
+Res PoolDescribe(Pool pool, mps_lib_FILE *stream, Count depth)
 {
   Res res;
   Ring node, nextNode;
 
-  if (!TESTT(Pool, pool)) return ResFAIL;
-  if (stream == NULL) return ResFAIL;
+  if (!TESTT(Pool, pool))
+    return ResFAIL;
+  if (stream == NULL)
+    return ResFAIL;
  
-  res = WriteF(stream,
+  res = WriteF(stream, depth,
                "Pool $P ($U) {\n", (WriteFP)pool, (WriteFU)pool->serial,
                "  class $P (\"$S\")\n",
-               (WriteFP)pool->class, pool->class->name,
+               (WriteFP)pool->class, (WriteFS)pool->class->name,
                "  arena $P ($U)\n",
                (WriteFP)pool->arena, (WriteFU)pool->arena->serial,
                "  alignment $W\n", (WriteFW)pool->alignment,
                NULL);
-  if (res != ResOK) return res;
+  if (res != ResOK)
+    return res;
   if (NULL != pool->format) {
-    res = FormatDescribe(pool->format, stream);
-    if (res != ResOK) return res;
+    res = FormatDescribe(pool->format, stream, depth + 2);
+    if (res != ResOK)
+      return res;
   }
-  res = WriteF(stream,
-               "  fillMutatorSize $UKb\n",
-                 (WriteFU)(pool->fillMutatorSize / 1024),
-               "  emptyMutatorSize $UKb\n",
-                 (WriteFU)(pool->emptyMutatorSize / 1024),
-               "  fillInternalSize $UKb\n",
-                 (WriteFU)(pool->fillInternalSize / 1024),
-               "  emptyInternalSize $UKb\n",
-                 (WriteFU)(pool->emptyInternalSize / 1024),
-               NULL);
-  if (res != ResOK) return res;
 
-  res = (*pool->class->describe)(pool, stream);
-  if (res != ResOK) return res;
+  res = (*pool->class->describe)(pool, stream, depth + 2);
+  if (res != ResOK)
+    return res;
 
   RING_FOR(node, &pool->bufferRing, nextNode) {
     Buffer buffer = RING_ELT(Buffer, poolRing, node);
-    res = BufferDescribe(buffer, stream);
-    if (res != ResOK) return res;
+    res = BufferDescribe(buffer, stream, depth + 2);
+    if (res != ResOK)
+      return res;
   }
 
-  res = WriteF(stream,
+  res = WriteF(stream, depth,
                "} Pool $P ($U)\n", (WriteFP)pool, (WriteFU)pool->serial,
                NULL);
-  if (res != ResOK) return res;
+  if (res != ResOK)
+    return res;
 
   return ResOK;
 }
@@ -598,7 +605,7 @@ Bool PoolFormat(Format *formatReturn, Pool pool)
 
 /* PoolOfAddr -- return the pool containing the given address
  *
- * If the address points to a page assigned to a pool, this returns TRUE
+ * If the address points to a tract assigned to a pool, this returns TRUE
  * and sets *poolReturn to that pool.  Otherwise, it returns FALSE, and
  * *poolReturn is unchanged.
  */
@@ -627,29 +634,32 @@ Bool PoolOfAddr(Pool *poolReturn, Arena arena, Addr addr)
  */
 Bool PoolOfRange(Pool *poolReturn, Arena arena, Addr base, Addr limit)
 {
-  Pool pool;
+  Bool havePool = FALSE;
+  Pool pool = NULL;
   Tract tract;
+  Addr addr, alignedBase, alignedLimit;
 
   AVER(poolReturn != NULL);
   AVERT(Arena, arena);
   AVER(base < limit);
 
-  if (!TractOfAddr(&tract, arena, base)) 
-    return FALSE;
+  alignedBase = AddrArenaGrainDown(base, arena);
+  alignedLimit = AddrArenaGrainUp(limit, arena);
 
-  pool = TractPool(tract);
-  if (!pool)
-    return FALSE;
-
-  while (TractLimit(tract) < limit) {
-    if (!TractNext(&tract, arena, TractBase(tract)))
+  TRACT_FOR(tract, addr, arena, alignedBase, alignedLimit) {
+    Pool p = TractPool(tract);
+    if (havePool && pool != p)
       return FALSE;
-    if (TractPool(tract) != pool)
-      return FALSE;
+    pool = p;
+    havePool = TRUE;
   }
 
-  *poolReturn = pool;
-  return TRUE;
+  if (havePool) {
+    *poolReturn = pool;
+    return TRUE;
+  } else {
+    return FALSE;
+  }
 }
 
 
@@ -684,7 +694,7 @@ Bool PoolHasRange(Pool pool, Addr base, Addr limit)
 
 /* C. COPYRIGHT AND LICENSE
  *
- * Copyright (C) 2001-2013 Ravenbrook Limited <http://www.ravenbrook.com/>.
+ * Copyright (C) 2001-2015 Ravenbrook Limited <http://www.ravenbrook.com/>.
  * All rights reserved.  This is an open source license.  Contact
  * Ravenbrook for commercial licensing options.
  * 

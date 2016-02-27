@@ -207,7 +207,11 @@ Memory Management Glossary: M
         though any conservative representation of a predicate on the
         :term:`memory location` of the object can be used. In
         particular, storing the mark bit within the object can lead to
-        poor :term:`locality of reference`.
+        poor :term:`locality of reference` and to poor cache
+        performance, because the marking phases ends up setting the
+        :term:`dirty bit` on all :term:`pages` in the :term:`working
+        set`. An alternative is to store the mark bits separately:
+        see :term:`bitmap marking`.
 
         .. seealso:: :term:`sweep <sweeping>`, :term:`compact <compaction>`.
 
@@ -534,6 +538,11 @@ Memory Management Glossary: M
         efficient choice for multi-threaded systems.
 
         .. bibref:: :ref:`Bartlett (1989) <BARTLETT89>`, :ref:`Yip (1991) <YIP91>`.
+
+        .. mps:specific::
+
+            The :ref:`pool-amc` pool class implements mostly-copying
+            garbage collection.
 
     mostly-exact garbage collection
 

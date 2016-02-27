@@ -1,7 +1,7 @@
 /* abq.h: QUEUE INTERFACE
  *
  * $Id$
- * Copyright (c) 2001 Ravenbrook Limited.  See end of file for license.
+ * Copyright (c) 2001-2014 Ravenbrook Limited.  See end of file for license.
  *
  * .purpose: A fixed-length FIFO queue.
  *
@@ -23,8 +23,8 @@
 /* Prototypes  */
 
 typedef struct ABQStruct *ABQ;
-typedef Res (*ABQDescribeElement)(void *element, mps_lib_FILE *stream);
-typedef Bool (*ABQIterateMethod)(Bool *deleteReturn, void *element, void *closureP, Size closureS);
+typedef Res (*ABQDescribeElement)(void *element, mps_lib_FILE *stream, Count depth);
+typedef Bool (*ABQVisitor)(Bool *deleteReturn, void *element, void *closureP, Size closureS);
 
 extern Res ABQInit(Arena arena, ABQ abq, void *owner, Count elements, Size elementSize);
 extern Bool ABQCheck(ABQ abq);
@@ -32,11 +32,11 @@ extern void ABQFinish(Arena arena, ABQ abq);
 extern Bool ABQPush(ABQ abq, void *element);
 extern Bool ABQPop(ABQ abq, void *elementReturn);
 extern Bool ABQPeek(ABQ abq, void *elementReturn);
-extern Res ABQDescribe(ABQ abq, ABQDescribeElement describeElement, mps_lib_FILE *stream);
+extern Res ABQDescribe(ABQ abq, ABQDescribeElement describeElement, mps_lib_FILE *stream, Count depth);
 extern Bool ABQIsEmpty(ABQ abq);
 extern Bool ABQIsFull(ABQ abq);
 extern Count ABQDepth(ABQ abq);
-extern void ABQIterate(ABQ abq, ABQIterateMethod iterate, void *closureP, Size closureS);
+extern void ABQIterate(ABQ abq, ABQVisitor visitor, void *closureP, Size closureS);
 
 
 /* Types */
@@ -63,7 +63,7 @@ typedef struct ABQStruct
 
 /* C. COPYRIGHT AND LICENSE
  *
- * Copyright (C) 2001-2002 Ravenbrook Limited <http://www.ravenbrook.com/>.
+ * Copyright (C) 2001-2014 Ravenbrook Limited <http://www.ravenbrook.com/>.
  * All rights reserved.  This is an open source license.  Contact
  * Ravenbrook for commercial licensing options.
  * 

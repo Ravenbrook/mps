@@ -1,7 +1,7 @@
 /* sac.c: SEGREGATED ALLOCATION CACHES
  *
  * $Id$
- * Copyright (c) 2001 Ravenbrook Limited.  See end of file for license.
+ * Copyright (c) 2001-2014 Ravenbrook Limited.  See end of file for license.
  */
 
 #include "mpm.h"
@@ -32,6 +32,7 @@ static Bool sacFreeListBlockCheck(SACFreeListBlock fb)
   return TRUE;
 }
 
+ATTRIBUTE_UNUSED
 static Bool SACCheck(SAC sac)
 {
   Index i, j;
@@ -48,27 +49,33 @@ static Bool SACCheck(SAC sac)
   CHECKL(esac->_middle > 0);
   /* check classes above middle */
   prevSize = esac->_middle;
-  for (j = sac->middleIndex + 1, i = 0;
-       j <= sac->classesCount; ++j, i += 2) {
+  for (j = sac->middleIndex + 1, i = 0; j < sac->classesCount; ++j, i += 2) {
     CHECKL(prevSize < esac->_freelists[i]._size);
     b = sacFreeListBlockCheck(&(esac->_freelists[i]));
-    if (!b) return b;
+    if (!b)
+      return b;
     prevSize = esac->_freelists[i]._size;
   }
   /* check overlarge class */
-  CHECKL(esac->_freelists[i-2]._size == SizeMAX);
-  CHECKL(esac->_freelists[i-2]._count == 0);
-  CHECKL(esac->_freelists[i-2]._count_max == 0);
-  CHECKL(esac->_freelists[i-2]._blocks == NULL);
+  CHECKL(prevSize < esac->_freelists[i]._size);
+  b = sacFreeListBlockCheck(&(esac->_freelists[i]));
+  if (!b)
+    return b;
+  CHECKL(esac->_freelists[i]._size == SizeMAX);
+  CHECKL(esac->_freelists[i]._count == 0);
+  CHECKL(esac->_freelists[i]._count_max == 0);
+  CHECKL(esac->_freelists[i]._blocks == NULL);
   /* check classes below middle */
   prevSize = esac->_middle;
   for (j = sac->middleIndex, i = 1; j > 0; --j, i += 2) {
     CHECKL(prevSize > esac->_freelists[i]._size);
     b = sacFreeListBlockCheck(&(esac->_freelists[i]));
-    if (!b) return b;
+    if (!b)
+      return b;
     prevSize = esac->_freelists[i]._size;
   }
   /* check smallest class */
+  CHECKL(prevSize > esac->_freelists[i]._size);
   CHECKL(esac->_freelists[i]._size == 0);
   b = sacFreeListBlockCheck(&(esac->_freelists[i]));
   return b;
@@ -113,10 +120,10 @@ Res SACCreate(SAC *sacReturn, Pool pool, Count classesCount,
   /* to be large enough, but that gets complicated, if you have to */
   /* merge classes because of the adjustment. */
   for (i = 0; i < classesCount; ++i) {
-    AVER(classes[i]._block_size > 0);
-    AVER(SizeIsAligned(classes[i]._block_size, PoolAlignment(pool)));
-    AVER(prevSize < classes[i]._block_size);
-    prevSize = classes[i]._block_size;
+    AVER(classes[i].mps_block_size > 0);
+    AVER(SizeIsAligned(classes[i].mps_block_size, PoolAlignment(pool)));
+    AVER(prevSize < classes[i].mps_block_size);
+    prevSize = classes[i].mps_block_size;
     /* no restrictions on count */
     /* no restrictions on frequency */
   }
@@ -124,7 +131,7 @@ Res SACCreate(SAC *sacReturn, Pool pool, Count classesCount,
   /* Calculate frequency scale */
   for (i = 0; i < classesCount; ++i) {
     unsigned oldFreq = totalFreq;
-    totalFreq += classes[i]._frequency;
+    totalFreq += classes[i].mps_frequency;
     AVER(oldFreq <= totalFreq); /* check for overflow */
     UNUSED(oldFreq); /* <code/mpm.c#check.unused> */
   }
@@ -132,10 +139,11 @@ Res SACCreate(SAC *sacReturn, Pool pool, Count classesCount,
   /* Find middle one */
   totalFreq /= 2;
   for (i = 0; i < classesCount; ++i) {
-    if (totalFreq < classes[i]._frequency) break;
-    totalFreq -= classes[i]._frequency;
+    if (totalFreq < classes[i].mps_frequency)
+      break;
+    totalFreq -= classes[i].mps_frequency;
   }
-  if (totalFreq <= classes[i]._frequency / 2)
+  if (totalFreq <= classes[i].mps_frequency / 2)
     middleIndex = i;
   else
     middleIndex = i + 1; /* there must exist another class at i+1 */
@@ -151,9 +159,9 @@ Res SACCreate(SAC *sacReturn, Pool pool, Count classesCount,
   /* It's important this matches SACFind. */
   esac = ExternalSACOfSAC(sac);
   for (j = middleIndex + 1, i = 0; j < classesCount; ++j, i += 2) {
-    esac->_freelists[i]._size = classes[j]._block_size;
+    esac->_freelists[i]._size = classes[j].mps_block_size;
     esac->_freelists[i]._count = 0;
-    esac->_freelists[i]._count_max = classes[j]._cached_count;
+    esac->_freelists[i]._count_max = classes[j].mps_cached_count;
     esac->_freelists[i]._blocks = NULL;
   }
   esac->_freelists[i]._size = SizeMAX;
@@ -161,19 +169,19 @@ Res SACCreate(SAC *sacReturn, Pool pool, Count classesCount,
   esac->_freelists[i]._count_max = 0;
   esac->_freelists[i]._blocks = NULL;
   for (j = middleIndex, i = 1; j > 0; --j, i += 2) {
-    esac->_freelists[i]._size = classes[j-1]._block_size;
+    esac->_freelists[i]._size = classes[j-1].mps_block_size;
     esac->_freelists[i]._count = 0;
-    esac->_freelists[i]._count_max = classes[j]._cached_count;
+    esac->_freelists[i]._count_max = classes[j].mps_cached_count;
     esac->_freelists[i]._blocks = NULL;
   }
   esac->_freelists[i]._size = 0;
   esac->_freelists[i]._count = 0;
-  esac->_freelists[i]._count_max = classes[j]._cached_count;
+  esac->_freelists[i]._count_max = classes[j].mps_cached_count;
   esac->_freelists[i]._blocks = NULL;
 
   /* finish init */
   esac->_trapped = FALSE;
-  esac->_middle = classes[middleIndex]._block_size;
+  esac->_middle = classes[middleIndex].mps_block_size;
   sac->pool = pool;
   sac->classesCount = classesCount;
   sac->middleIndex = middleIndex;
@@ -249,7 +257,7 @@ Res SACFill(Addr *p_o, SAC sac, Size size, Bool hasReservoirPermit)
   AVER(p_o != NULL);
   AVERT(SAC, sac);
   AVER(size != 0);
-  AVER(BoolCheck(hasReservoirPermit));
+  AVERT(Bool, hasReservoirPermit);
   esac = ExternalSACOfSAC(sac);
 
   sacFind(&i, &blockSize, sac, size);
@@ -384,7 +392,7 @@ void SACFlush(SAC sac)
 
 /* C. COPYRIGHT AND LICENSE
  *
- * Copyright (C) 2001-2002 Ravenbrook Limited <http://www.ravenbrook.com/>.
+ * Copyright (C) 2001-2014 Ravenbrook Limited <http://www.ravenbrook.com/>.
  * All rights reserved.  This is an open source license.  Contact
  * Ravenbrook for commercial licensing options.
  * 

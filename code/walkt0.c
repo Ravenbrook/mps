@@ -1,7 +1,7 @@
 /* walkt0.c: WALK TEST 0
  *
  * $Id$
- * Copyright (c) 1998-2013 Ravenbrook Limited.  See end of file for license.
+ * Copyright (c) 1998-2014 Ravenbrook Limited.  See end of file for license.
  *
  * Loosely based on <code/steptest.c>.
  */
@@ -11,15 +11,14 @@
 #include "testlib.h"
 #include "mpslib.h"
 #include "mpscamc.h"
+#include "mpscams.h"
+#include "mpscawl.h"
+#include "mpsclo.h"
 #include "mpsavm.h"
 #include "mpstd.h"
-#ifdef MPS_OS_W3
-#include "mpsw3.h"
-#endif
 #include "mps.h"
 
-#include <stdlib.h>
-#include <string.h>
+#include <stdio.h> /* printf */
 
 #define testArenaSIZE     ((size_t)((size_t)64 << 20))
 #define avLEN             3
@@ -128,9 +127,8 @@ static void stepper(mps_addr_t object, mps_fmt_t format,
 
 /* test -- the body of the test */
 
-static void *test(void *arg, size_t s)
+static void *test(mps_arena_t arena, mps_pool_class_t pool_class)
 {
-    mps_arena_t arena;
     mps_chain_t chain;
     mps_fmt_t format;
     mps_pool_t pool;
@@ -139,14 +137,14 @@ static void *test(void *arg, size_t s)
     unsigned long objs;
     struct stepper_data sdStruct, *sd;
 
-    arena = (mps_arena_t)arg;
-    (void)s; /* unused */
-
     die(dylan_fmt(&format, arena), "fmt_create");
     die(mps_chain_create(&chain, arena, genCOUNT, testChain), "chain_create");
 
-    die(mps_pool_create(&pool, arena, mps_class_amc(), format, chain),
-        "pool_create(amc)");
+    MPS_ARGS_BEGIN(args) {
+        MPS_ARGS_ADD(args, MPS_KEY_FORMAT, format);
+        MPS_ARGS_ADD(args, MPS_KEY_CHAIN, chain);
+        die(mps_pool_create_k(&pool, arena, pool_class, args), "pool_create");
+    } MPS_ARGS_END(args);
 
     die(mps_ap_create(&ap, pool, mps_rank_exact()), "ap_create");
 
@@ -186,11 +184,14 @@ static void *test(void *arg, size_t s)
     /* Note: stepper finds more than we expect, due to pad objects */
     /* printf("stepper found %ld objs\n", sd->count); */
 
+
+    mps_arena_park(arena);
     mps_ap_destroy(ap);
     mps_root_destroy(exactRoot);
     mps_pool_destroy(pool);
     mps_chain_destroy(chain);
     mps_fmt_destroy(format);
+    mps_arena_release(arena);
 
     return NULL;
 }
@@ -199,16 +200,20 @@ int main(int argc, char *argv[])
 {
     mps_arena_t arena;
     mps_thr_t thread;
-    void *r;
 
-    randomize(argc, argv);
-    mps_lib_assert_fail_install(assert_die);
+    testlib_init(argc, argv);
 
     die(mps_arena_create(&arena, mps_arena_class_vm(),
                          testArenaSIZE),
         "arena_create");
     die(mps_thread_reg(&thread, arena), "thread_reg");
-    mps_tramp(&r, test, arena, 0);
+
+    test(arena, mps_class_amc());
+    test(arena, mps_class_amcz());
+    /* TODO: test(arena, mps_class_ams()); -- see job003738 */
+    test(arena, mps_class_awl());
+    test(arena, mps_class_lo());
+
     mps_thread_dereg(thread);
     mps_arena_destroy(arena);
 
@@ -219,7 +224,7 @@ int main(int argc, char *argv[])
 
 /* C. COPYRIGHT AND LICENSE
  *
- * Copyright (c) 2001-2013 Ravenbrook Limited <http://www.ravenbrook.com/>.
+ * Copyright (c) 2001-2014 Ravenbrook Limited <http://www.ravenbrook.com/>.
  * All rights reserved.  This is an open source license.  Contact
  * Ravenbrook for commercial licensing options.
  *

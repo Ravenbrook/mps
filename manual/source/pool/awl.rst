@@ -59,7 +59,7 @@ AWL properties
 
 * Supports allocation via :term:`allocation points`. If an allocation
   point is created in an AWL pool, the call to
-  :c:func:`mps_ap_create_k` accepts one keyword argument,
+  :c:func:`mps_ap_create_k` accepts one optional keyword argument,
   :c:macro:`MPS_KEY_RANK`.
 
 * Supports :term:`allocation frames` but does not use them to improve
@@ -118,8 +118,9 @@ deletion of keys in a :term:`weak-value hash table`), an AWL pool
 allows each object to have a :dfn:`dependent object`. (This is where
 the "Linked" in the name of the pool class comes from.)
 
-The dependent object is specified by the ``find_dependent`` argument
-to :c:func:`mps_pool_create` when creating an AWL pool. This is a
+The dependent object is specified by the
+:c:macro:`MPS_KEY_AWL_FIND_DEPENDENT` keyword argument to
+:c:func:`mps_pool_create_k` when creating an AWL pool. This is a
 function of type :c:type:`mps_awl_find_dependent_t` that takes the
 address of an object in the pool and returns the address of its
 dependent object (or a null pointer if there is no corresponding
@@ -282,11 +283,10 @@ the format of objects allocated in it:
   that it does not look like an aligned pointer.
 
   "Aligned pointer" means a word whose numeric value (that is, its
-  value when treated as an unsigned integer) is a multiple of the
-  architecture's :term:`natural alignment` (see
-  :c:macro:`MPS_PF_ALIGN`). If you're using a 32-bit architecture,
-  that means that an aligned pointer is a multiple of 4 and its bottom
-  two bits are both zero.
+  value when treated as an unsigned integer) is a multiple of the size
+  of a pointer. If you're using a 64-bit architecture, that means that
+  an aligned pointer is a multiple of 8 and its bottom three bits are
+  zero.
 
   The bottom line is that references from an object in an AWL pool
   must be untagged and aligned, and integers must be tagged with a
@@ -308,25 +308,26 @@ AWL interface
 
    #include "mpscawl.h"
 
-.. c:function:: mps_class_t mps_class_awl(void)
+.. c:function:: mps_pool_class_t mps_class_awl(void)
 
     Return the :term:`pool class` for an AWL (Automatic Weak Linked)
     :term:`pool`.
 
     When creating an AWL pool, :c:func:`mps_pool_create_k` requires
-    two :term:`keyword arguments`:
+    one :term:`keyword argument`:
 
     * :c:macro:`MPS_KEY_FORMAT` (type :c:type:`mps_fmt_t`) specifies
       the :term:`object format` for the objects allocated in the pool.
       The format must provide a :term:`scan method` and a :term:`skip
       method`.
 
+    It accepts three optional keyword arguments:
+
     * :c:macro:`MPS_KEY_AWL_FIND_DEPENDENT` (type
       :c:type:`mps_awl_find_dependent_t`) is a function that specifies
       how to find the :term:`dependent object` for an object in the
-      pool.
-
-    It accepts two optional keyword arguments:
+      pool. This defaults to a function that always returns ``NULL``
+      (meaning that there is no dependent object).
 
     * :c:macro:`MPS_KEY_CHAIN` (type :c:type:`mps_chain_t`) specifies
       the :term:`generation chain` for the pool. If not specified, the
@@ -349,18 +350,8 @@ AWL interface
             res = mps_pool_create_k(&pool, arena, mps_class_awl(), args);
         } MPS_ARGS_END(args);
 
-    .. deprecated:: starting with version 1.112.
-
-        When using :c:func:`mps_pool_create`, pass the format and
-        find-dependent function like this::
-
-            mps_res_t mps_pool_create(mps_pool_t *pool_o, mps_arena_t arena, 
-                                      mps_class_t mps_class_awl(),
-                                      mps_fmt_t fmt,
-                                      mps_awl_find_dependent_t find_dependent)
-
     When creating an :term:`allocation point` on an AWL pool,
-    :c:func:`mps_ap_create_k` accepts one keyword argument:
+    :c:func:`mps_ap_create_k` accepts one optional keyword argument:
 
     * :c:macro:`MPS_KEY_RANK` (type :c:type:`mps_rank_t`, default
       :c:func:`mps_rank_exact`) specifies the :term:`rank` of
@@ -376,13 +367,6 @@ AWL interface
             MPS_ARGS_ADD(args, MPS_KEY_RANK, mps_rank_weak());
             res = mps_ap_create_k(&ap, awl_pool, args);
         } MPS_ARGS_END(args);
-
-    .. deprecated:: starting with version 1.112.
-
-        When using :c:func:`mps_ap_create`, pass the rank like this::
-
-            mps_res_t mps_ap_create(mps_ap_t *ap_o, mps_pool_t pool,
-                                    mps_rank_t rank)
 
 
 .. c:type:: mps_addr_t (*mps_awl_find_dependent_t)(mps_addr_t addr)

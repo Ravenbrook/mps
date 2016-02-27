@@ -1,7 +1,7 @@
 /* fbmtest.c: FREE BLOCK MANAGEMENT TEST
  *
  *  $Id$
- * Copyright (c) 2001-2013 Ravenbrook Limited.  See end of file for license.
+ * Copyright (c) 2001-2014 Ravenbrook Limited.  See end of file for license.
  *
  * The MPS contains two free block management modules:
  *
@@ -21,12 +21,9 @@
 #include "mpm.h"
 #include "mps.h"
 #include "mpsavm.h"
-#include "mpstd.h"
 #include "testlib.h"
 
-#include <stdarg.h>
-#include <stdlib.h>
-#include <time.h>
+#include <stdio.h> /* printf */
 
 SRCID(fbmtest, "$Id$");
 
@@ -41,7 +38,7 @@ SRCID(fbmtest, "$Id$");
 static Count NAllocateTried, NAllocateSucceeded, NDeallocateTried,
   NDeallocateSucceeded;
 
-static int verbose = 0;
+static Bool verbose = FALSE;
 
 typedef unsigned FBMType;
 enum {
@@ -83,13 +80,15 @@ static Index (indexOfAddr)(FBMState state, Addr a)
 static void describe(FBMState state) {
   switch (state->type) {
   case FBMTypeCBS:
-    CBSDescribe(state->the.cbs, mps_lib_get_stdout());
+    die(CBSDescribe(state->the.cbs, mps_lib_get_stdout(), 0),
+        "CBSDescribe");
     break;
   case FBMTypeFreelist:
-    FreelistDescribe(state->the.fl, mps_lib_get_stdout());
+    die(FreelistDescribe(state->the.fl, mps_lib_get_stdout(), 0),
+        "FreelistDescribe");
     break;
   default:
-    fail();
+    cdie(0, "invalid state->type");
     break;
   }
 }
@@ -100,6 +99,7 @@ static Bool checkCallback(Range range, void *closureP, Size closureS)
   Addr base, limit;
   CheckFBMClosure cl = (CheckFBMClosure)closureP;
 
+  AVER(closureS == UNUSED_SIZE);
   UNUSED(closureS);
   Insist(cl != NULL);
 
@@ -151,13 +151,13 @@ static void check(FBMState state)
 
   switch (state->type) {
   case FBMTypeCBS:
-    CBSIterate(state->the.cbs, checkCBSCallback, (void *)&closure, 0);
+    CBSIterate(state->the.cbs, checkCBSCallback, &closure, UNUSED_SIZE);
     break;
   case FBMTypeFreelist:
-    FreelistIterate(state->the.fl, checkFLCallback, (void *)&closure, 0);
+    FreelistIterate(state->the.fl, checkFLCallback, &closure, UNUSED_SIZE);
     break;
   default:
-    fail();
+    cdie(0, "invalid state->type");
     return;
   }
 
@@ -311,7 +311,7 @@ static void allocate(FBMState state, Addr base, Addr limit)
     res = FreelistDelete(&oldRange, state->the.fl, &range);
     break;
   default:
-    fail();
+    cdie(0, "invalid state->type");
     return;
   }
 
@@ -387,7 +387,7 @@ static void deallocate(FBMState state, Addr base, Addr limit)
     res = FreelistInsert(&freeRange, state->the.fl, &range);
     break;
   default:
-    fail();
+    cdie(0, "invalid state->type");
     return;
   }
 
@@ -432,20 +432,23 @@ static void find(FBMState state, Size size, Bool high, FindDelete findDelete)
     remainderLimit = origLimit = addrOfIndex(state, expectedLimit);
 
     switch(findDelete) {
-    case FindDeleteNONE: {
+    case FindDeleteNONE:
       /* do nothing */
-    } break;
-    case FindDeleteENTIRE: {
+      break;
+    case FindDeleteENTIRE:
       remainderBase = remainderLimit;
-    } break;
-    case FindDeleteLOW: {
+      break;
+    case FindDeleteLOW:
       expectedLimit = expectedBase + size;
       remainderBase = addrOfIndex(state, expectedLimit);
-    } break;
-    case FindDeleteHIGH: {
+      break;
+    case FindDeleteHIGH:
       expectedBase = expectedLimit - size;
       remainderLimit = addrOfIndex(state, expectedBase);
-    } break;
+      break;
+    default:
+      cdie(0, "invalid findDelete");
+      break;
     }
 
     if (findDelete != FindDeleteNONE) {
@@ -467,7 +470,7 @@ static void find(FBMState state, Size size, Bool high, FindDelete findDelete)
       (&foundRange, &oldRange, state->the.fl, size * state->align, findDelete);
     break;
   default:
-    fail();
+    cdie(0, "invalid state->type");
     return;
   }
 
@@ -528,9 +531,7 @@ static void test(FBMState state, unsigned n) {
       size = fbmRnd(ArraySize / 10) + 1;
       high = fbmRnd(2) ? TRUE : FALSE;
       switch(fbmRnd(6)) {
-      case 0:
-      case 1:
-      case 2: findDelete = FindDeleteNONE; break;
+      default: findDelete = FindDeleteNONE; break;
       case 3: findDelete = FindDeleteLOW; break;
       case 4: findDelete = FindDeleteHIGH; break;
       case 5: findDelete = FindDeleteENTIRE; break;
@@ -538,11 +539,13 @@ static void test(FBMState state, unsigned n) {
       find(state, size, high, findDelete);
       break;
     default:
-      fail();
+      cdie(0, "invalid state->type");
       return;
     }
     if ((i + 1) % 1000 == 0)
       check(state);
+    if (i == 100)
+      describe(state);
   }
 }
 
@@ -560,8 +563,8 @@ extern int main(int argc, char *argv[])
   CBSStruct cbsStruct;
   Align align;
 
-  randomize(argc, argv);
-  align = (1 << rnd() % 4) * MPS_PF_ALIGN;
+  testlib_init(argc, argv);
+  align = sizeof(void *) << (rnd() % 4);
 
   NAllocateTried = NAllocateSucceeded = NDeallocateTried =
     NDeallocateSucceeded = 0;
@@ -585,7 +588,8 @@ extern int main(int argc, char *argv[])
            (char *)dummyBlock + ArraySize);
   }
 
-  die((mps_res_t)CBSInit(arena, &cbsStruct, arena, align, TRUE, mps_args_none),
+  die((mps_res_t)CBSInit(&cbsStruct, arena, arena, align,
+                         /* fastFind */ TRUE, /* zoned */ FALSE, mps_args_none),
       "failed to initialise CBS");
   state.type = FBMTypeCBS;
   state.align = align;
@@ -604,10 +608,14 @@ extern int main(int argc, char *argv[])
 
   mps_arena_destroy(arena);
 
-  printf("\nNumber of allocations attempted: %ld\n", NAllocateTried);
-  printf("Number of allocations succeeded: %ld\n", NAllocateSucceeded);
-  printf("Number of deallocations attempted: %ld\n", NDeallocateTried);
-  printf("Number of deallocations succeeded: %ld\n", NDeallocateSucceeded);
+  printf("\nNumber of allocations attempted: %"PRIuLONGEST"\n",
+         (ulongest_t)NAllocateTried);
+  printf("Number of allocations succeeded: %"PRIuLONGEST"\n",
+         (ulongest_t)NAllocateSucceeded);
+  printf("Number of deallocations attempted: %"PRIuLONGEST"\n",
+         (ulongest_t)NDeallocateTried);
+  printf("Number of deallocations succeeded: %"PRIuLONGEST"\n",
+         (ulongest_t)NDeallocateSucceeded);
   printf("%s: Conclusion: Failed to find any defects.\n", argv[0]);
   return 0;
 }
@@ -615,7 +623,7 @@ extern int main(int argc, char *argv[])
 
 /* C. COPYRIGHT AND LICENSE
  *
- * Copyright (c) 2001-2013 Ravenbrook Limited <http://www.ravenbrook.com/>.
+ * Copyright (c) 2001-2014 Ravenbrook Limited <http://www.ravenbrook.com/>.
  * All rights reserved.  This is an open source license.  Contact
  * Ravenbrook for commercial licensing options.
  * 

@@ -1,7 +1,7 @@
 /* bttest.c: BIT TABLE TEST
  *
  * $Id$
- * Copyright (c) 2001-2013 Ravenbrook Limited.  See end of file for license.
+ * Copyright (c) 2001-2014 Ravenbrook Limited.  See end of file for license.
  */
 
 
@@ -10,11 +10,10 @@
 #include "mpsavm.h"
 #include "testlib.h"
 #include "mpslib.h"
-
-#include <stdlib.h>
-#include <stdarg.h>
 #include "mpstd.h"
-#include <time.h>
+
+#include <stdio.h> /* fflush, fgets, printf, putchar, puts */
+#include <stdlib.h> /* exit, strtol */
 
 SRCID(bttest, "$Id$");
 
@@ -125,7 +124,7 @@ static void get(void)
 {
   if (argInRange(0)) {
     Bool b = (BTGet)(bt, args[0]);
-    printf(b ? "TRUE\n" : "FALSE\n");
+    puts(b ? "TRUE" : "FALSE");
   }
 }
 
@@ -148,7 +147,7 @@ static void isSetRange(void)
 {
   if (checkDefaultRange(0)) {
     Bool b = BTIsSetRange(bt, args[0], args[1]);
-    printf(b ? "TRUE\n" : "FALSE\n");
+    puts(b ? "TRUE" : "FALSE");
   }
 }
 
@@ -157,7 +156,7 @@ static void isResRange(void)
 {
   if (checkDefaultRange(0)) {
     Bool b = BTIsResRange(bt, args[0], args[1]);
-    printf(b ? "TRUE\n" : "FALSE\n");
+    puts(b ? "TRUE" : "FALSE");
   }
 }
 
@@ -312,11 +311,6 @@ static void obeyCommand(const char *command)
 }
 
 
-#ifdef MPS_BUILD_MV
-/* disable "conversion from int to char" */
-#pragma warning(disable: 4244)
-#endif
-
 static void showBT(void) {
   Index i;
   char c;
@@ -325,7 +319,7 @@ static void showBT(void) {
   i = 0;
   while((i < btSize) && (i < 50)) {
     if (i % 10 == 0)
-      c = (char)((i / 10) % 10) + '0';
+      c = (char)(((i / 10) % 10) + '0');
     else
       c = ' ';
     putchar(c);
@@ -334,7 +328,7 @@ static void showBT(void) {
   putchar('\n');
   i = 0;
   while((i < btSize) && (i < 50)) {
-    c = (char)(i % 10) +'0';
+    c = (char)((i % 10) +'0');
     putchar(c);
     ++ i;
   }
@@ -353,11 +347,6 @@ static void showBT(void) {
   putchar('\n');
 }
 
-#ifdef MPS_BUILD_MV
-/* disable "conversion from int to char" */
-#pragma warning(default: 4244)
-#endif
-     
 
 #define testArenaSIZE (((size_t)64)<<20)
 
@@ -366,7 +355,7 @@ extern int main(int argc, char *argv[])
   bt = NULL;
   btSize = 0;
 
-  testlib_unused(argc); testlib_unused(argv);
+  testlib_init(argc, argv);
 
   die(mps_arena_create((mps_arena_t*)&arena, mps_arena_class_vm(),
                        testArenaSIZE),
@@ -374,7 +363,7 @@ extern int main(int argc, char *argv[])
   while(1) {
     char input[100];
     printf("bt test> ");
-    fflush(stdout);
+    (void)fflush(stdout);
     if (fgets(input, 100, stdin)) {
       obeyCommand(input);
       showBT();
@@ -387,7 +376,7 @@ extern int main(int argc, char *argv[])
 
 /* C. COPYRIGHT AND LICENSE
  *
- * Copyright (C) 2001-2013 Ravenbrook Limited <http://www.ravenbrook.com/>.
+ * Copyright (C) 2001-2014 Ravenbrook Limited <http://www.ravenbrook.com/>.
  * All rights reserved.  This is an open source license.  Contact
  * Ravenbrook for commercial licensing options.
  * 

@@ -1,12 +1,9 @@
-/* protli.c: PROTECTION FOR LINUX (INTEL 386)
+/* protli.c: PROTECTION FOR LINUX
  *
  *  $Id$
- *  Copyright (c) 2001 Ravenbrook Limited.  See end of file for license.
+ *  Copyright (c) 2001-2014 Ravenbrook Limited.  See end of file for license.
  *
  * SOURCES
- *
- * .source.i486: Intel486 Microprocessor Family Programmer's
- * Reference Manual
  *
  * .source.linux.kernel: Linux kernel source files.
  */
@@ -15,9 +12,6 @@
 
 #ifndef MPS_OS_LI
 #error "protli.c is Linux-specific, but MPS_OS_LI is not set"
-#endif
-#ifndef PROTECTION
-#error "protli.c implements protection, but PROTECTION is not set"
 #endif
 
 #include <limits.h>
@@ -28,6 +22,9 @@
 
 SRCID(protli, "$Id$");
 
+#if !defined(MPS_OS_LI)
+#error "protli.c is specific to MPS_OS_LI"
+#endif
 
 
 /* The previously-installed signal action, as returned by */
@@ -140,9 +137,10 @@ void ProtSetup(void)
   AVER(result == 0);
 }
 
+
 /* C. COPYRIGHT AND LICENSE
  *
- * Copyright (C) 2001-2002 Ravenbrook Limited <http://www.ravenbrook.com/>.
+ * Copyright (C) 2001-2014 Ravenbrook Limited <http://www.ravenbrook.com/>.
  * All rights reserved.  This is an open source license.  Contact
  * Ravenbrook for commercial licensing options.
  * 

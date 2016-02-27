@@ -167,7 +167,7 @@ Memory Management Glossary: P
         mutator changing :term:`objects` while collection
         occurs. The problem is similar to that of :term:`incremental
         GC <incremental garbage collection>`, but harder. The solution
-        typically involves :term:`barrier (1)`.
+        typically involves :term:`barriers (1)`.
 
         .. similar:: :term:`incremental <incremental garbage collection>`.
 
@@ -222,7 +222,7 @@ Memory Management Glossary: P
 
         .. link::
 
-            `Class java.lang.ref.PhantomReference <http://download.java.net/jdk8/docs/api/java/lang/ref/PhantomReference.html>`_, `Reference Objects and Garbage Collection <http://pawlan.com/monica/articles/refobjs/>`_.
+            `Class java.lang.ref.PhantomReference <http://docs.oracle.com/javase/8/docs/api/java/lang/ref/PhantomReference.html>`_, `Reference Objects and Garbage Collection <http://pawlan.com/monica/articles/refobjs/>`_.
 
     phantom reference
 
@@ -239,7 +239,7 @@ Memory Management Glossary: P
 
         .. link::
 
-            `Class java.lang.ref.PhantomReference <http://download.java.net/jdk8/docs/api/java/lang/ref/PhantomReference.html>`_, `Reference Objects and Garbage Collection <http://pawlan.com/monica/articles/refobjs/>`_.
+            `Class java.lang.ref.PhantomReference <http://docs.oracle.com/javase/8/docs/api/java/lang/ref/PhantomReference.html>`_, `Reference Objects and Garbage Collection <http://pawlan.com/monica/articles/refobjs/>`_.
 
     physical address
 
@@ -302,15 +302,15 @@ Memory Management Glossary: P
         .. aka:: *pig in the snake*.
 
         In a :term:`generational <generational garbage collection>`
-        collector, when a large and long-lived :term:`object` is
+        collector, when long-lived :term:`objects` are
         :term:`allocated` in :term:`nursery space`, collection effort
-        will be wasted as that object survives and is :term:`promoted
-        <promotion>` from :term:`generation` to generation. This is
-        especially noticeable in a :term:`copying collector <copying
-        garbage collection>`, where the large object will be copied
-        many times. This difficulty is similar to that of a python
-        which swallows its prey whole and is somewhat immobilized as
-        it digests it.
+        will be wasted as those objects survive and are
+        :term:`promoted <promotion>` from :term:`generation` to
+        generation. This is especially noticeable in a :term:`copying
+        collector <copying garbage collection>`, where long-lived
+        objects will be copied many times. This difficulty is similar
+        to that of a python which swallows its prey whole and is
+        somewhat immobilized as it digests it.
 
         Modern collectors permit objects to be allocated directly into
         appropriate generations or pools to avoid this problem.
@@ -320,6 +320,14 @@ Memory Management Glossary: P
         by remapping, incremental copying, or not copying at all).
 
         .. seealso:: :term:`generational garbage collection`.
+
+        .. mps:specific::
+
+            A :term:`pool` can be configured to allocate into a
+            specific :term:`generation` in its :term:`generation
+            chain` by setting the :c:macro:`MPS_KEY_GEN`
+            :term:`keyword argument` when calling
+            :c:func:`mps_pool_create_k`.
 
     pig in the snake
 
@@ -390,8 +398,8 @@ Memory Management Glossary: P
 
         .. mps:specific::
 
-            A value of type :c:type:`mps_class_t` describing a class
-            of :term:`pools` that manage memory according to
+            A value of type :c:type:`mps_pool_class_t` describing a
+            class of :term:`pools` that manage memory according to
             particular policy. See :ref:`pool`.
 
     precise garbage collection

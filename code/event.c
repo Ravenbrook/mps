@@ -1,7 +1,7 @@
 /* event.c: EVENT LOGGING
  *
  * $Id$
- * Copyright (c) 2001-2013 Ravenbrook Limited.  See end of file for license.
+ * Copyright (c) 2001-2014 Ravenbrook Limited.  See end of file for license.
  *
  * .sources: mps.design.event
  *
@@ -44,13 +44,13 @@ char EventBuffer[EventKindLIMIT][EventBufferSIZE];
 char *EventLast[EventKindLIMIT];
 
 /* Pointers to the last even written out of each buffer. */
-char *EventWritten[EventKindLIMIT];
+static char *EventWritten[EventKindLIMIT];
 
 EventControlSet EventKindControl;       /* Bit set used to control output. */
 
 
 /* A single event structure output once per buffer flush. */
-EventEventClockSyncStruct eventClockSyncStruct;
+static EventEventClockSyncStruct eventClockSyncStruct;
 
 
 /* eventClockSync -- Populate and write the clock sync event. */
@@ -192,7 +192,8 @@ void EventInit(void)
   AVER(size_tAlignUp(sizeof(Event##name##Struct), MPS_PF_ALIGN) \
        <= EventSizeMAX); \
   AVER(Event##name##Code == code); \
-  AVER(0 <= code && code <= EventCodeMAX); \
+  AVER(0 <= code); \
+  AVER(code <= EventCodeMAX); \
   AVER(sizeof(#name) - 1 <= EventNameMAX); \
   AVER((Bool)Event##name##Always == always); \
   AVERT(Bool, always); \
@@ -200,7 +201,7 @@ void EventInit(void)
   AVER((EventKind)Event##name##Kind < EventKindLIMIT); \
   EVENT_##name##_PARAMS(EVENT_PARAM_CHECK, name)
 
-  EVENT_LIST(EVENT_CHECK, X)
+  EVENT_LIST(EVENT_CHECK, X);
   
   /* Ensure that no event can be larger than the maximum event size. */
   AVER(EventBufferSIZE <= EventSizeMAX);
@@ -319,7 +320,7 @@ void EventLabelAddr(Addr addr, EventStringId id)
   " $U", (WriteFU)event->name.f##index,
 
 
-Res EventDescribe(Event event, mps_lib_FILE *stream)
+Res EventDescribe(Event event, mps_lib_FILE *stream, Count depth)
 {
   Res res;
 
@@ -329,15 +330,18 @@ Res EventDescribe(Event event, mps_lib_FILE *stream)
   if (stream == NULL)
     return ResFAIL;
 
-  res = WriteF(stream,
+  res = WriteF(stream, depth,
                "Event $P {\n", (WriteFP)event,
                "  code $U\n", (WriteFU)event->any.code,
                "  clock ", NULL);
-  if (res != ResOK) return res;
-  res = EVENT_CLOCK_WRITE(stream, event->any.clock);
-  if (res != ResOK) return res;
-  res = WriteF(stream, "\n  size $U\n", (WriteFU)event->any.size, NULL);
-  if (res != ResOK) return res;
+  if (res != ResOK)
+    return res;
+  res = EVENT_CLOCK_WRITE(stream, depth, event->any.clock);
+  if (res != ResOK)
+    return res;
+  res = WriteF(stream, depth, "\n  size $U\n", (WriteFU)event->any.size, NULL);
+  if (res != ResOK)
+    return res;
 
   switch (event->any.code) {
 
@@ -347,23 +351,25 @@ Res EventDescribe(Event event, mps_lib_FILE *stream)
 
 #define EVENT_DESC(X, name, _code, always, kind) \
   case _code: \
-    res = WriteF(stream, \
+    res = WriteF(stream, depth, \
                  "  event \"$S\"", (WriteFS)#name, \
                  EVENT_##name##_PARAMS(EVENT_DESC_PARAM, name) \
                  NULL); \
-    if (res != ResOK) return res; \
+    if (res != ResOK) \
+      return res; \
     break;
 
   EVENT_LIST(EVENT_DESC, X)
 
   default:
-    res = WriteF(stream, "  event type unknown", NULL);
-    if (res != ResOK) return res;
+    res = WriteF(stream, depth, "  event type unknown", NULL);
+    if (res != ResOK)
+      return res;
     /* TODO: Hexdump unknown event contents. */
     break;
   }
   
-  res = WriteF(stream,
+  res = WriteF(stream, depth,
                "\n} Event $P\n", (WriteFP)event,
                NULL);
   return res;
@@ -374,10 +380,12 @@ Res EventWrite(Event event, mps_lib_FILE *stream)
 {
   Res res;
   
-  if (event == NULL) return ResFAIL;
-  if (stream == NULL) return ResFAIL;
+  if (event == NULL)
+    return ResFAIL;
+  if (stream == NULL)
+    return ResFAIL;
 
-  res = EVENT_CLOCK_WRITE(stream, event->any.clock);
+  res = EVENT_CLOCK_WRITE(stream, 0, event->any.clock);
   if (res != ResOK)
     return res;
 
@@ -388,16 +396,19 @@ Res EventWrite(Event event, mps_lib_FILE *stream)
 
 #define EVENT_WRITE(X, name, code, always, kind) \
   case code: \
-    res = WriteF(stream, " $S", #name, \
+    res = WriteF(stream, 0, " $S", (WriteFS)#name, \
                  EVENT_##name##_PARAMS(EVENT_WRITE_PARAM, name) \
                  NULL); \
-    if (res != ResOK) return res; \
+    if (res != ResOK) \
+      return res; \
     break;
   EVENT_LIST(EVENT_WRITE, X)
 
   default:
-    res = WriteF(stream, " <unknown code $U>", event->any.code, NULL);
-    if (res != ResOK) return res;
+    res = WriteF(stream, 0, " <unknown code $U>",
+                 (WriteFU)event->any.code, NULL);
+    if (res != ResOK)
+      return res;
     /* TODO: Hexdump unknown event contents. */
     break;
   }
@@ -416,18 +427,18 @@ void EventDump(mps_lib_FILE *stream)
   /* This can happen if there's a backtrace very early in the life of
      the MPS, and will cause an access violation if we continue. */
   if (!eventInited) {
-    WriteF(stream, "No events\n", NULL);
+    (void)WriteF(stream, 0, "No events\n", NULL);
     return;
   }
 
   for (kind = 0; kind < EventKindLIMIT; ++kind) {
     for (event = (Event)EventLast[kind];
-         event < (Event)(EventBuffer[kind] + EventBufferSIZE);
+         (char *)event < EventBuffer[kind] + EventBufferSIZE;
          event = (Event)((char *)event + event->any.size)) {
       /* Try to keep going even if there's an error, because this is used as a
          backtrace and we'll take what we can get. */
       (void)EventWrite(event, stream);
-      (void)WriteF(stream, "\n", NULL);
+      (void)WriteF(stream, 0, "\n", NULL);
     }
   }
 }
@@ -468,7 +479,7 @@ EventStringId EventInternString(const char *label)
   UNUSED(label);
   /* EventInternString is reached in varieties without events, but the result
      is not used for anything. */
-  return (EventStringId)0x9024EAC8;
+  return (EventStringId)0x4026EAC8;
 }
 
 
@@ -477,7 +488,7 @@ Word EventInternGenString(size_t len, const char *label)
   UNUSED(len); UNUSED(label);
   /* EventInternGenString is reached in varieties without events, but
      the result is not used for anything. */
-  return (EventStringId)0x9024EAC8;
+  return (EventStringId)0x4026EAC8;
 }
 
 
@@ -490,10 +501,11 @@ void EventLabelAddr(Addr addr, Word id)
 }
 
 
-Res EventDescribe(Event event, mps_lib_FILE *stream)
+Res EventDescribe(Event event, mps_lib_FILE *stream, Count depth)
 {
   UNUSED(event);
   UNUSED(stream);
+  UNUSED(depth);
   return ResUNIMPL;
 }
 
@@ -517,7 +529,7 @@ extern void EventDump(mps_lib_FILE *stream)
 
 /* C. COPYRIGHT AND LICENSE
  *
- * Copyright (C) 2001-2013 Ravenbrook Limited <http://www.ravenbrook.com/>.
+ * Copyright (C) 2001-2014 Ravenbrook Limited <http://www.ravenbrook.com/>.
  * All rights reserved.  This is an open source license.  Contact
  * Ravenbrook for commercial licensing options.
  * 

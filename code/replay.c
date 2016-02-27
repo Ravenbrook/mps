@@ -1,5 +1,5 @@
 /* replay.c: Allocation replayer
- * Copyright (c) 2001 Ravenbrook Limited.  See end of file for license.
+ * Copyright (c) 2001-2014 Ravenbrook Limited.  See end of file for license.
  *
  * $Id$
  */
@@ -21,7 +21,7 @@
 #include "mpstd.h"
 
 
-#ifdef MPS_PF_W3I6MV
+#if defined(MPS_OS_W3) && defined(MPS_ARCH_I6)
 #define PRIuLONGEST "llu"
 #define PRIXPTR     "016llX"
 typedef unsigned long long ulongest_t;
@@ -47,6 +47,7 @@ static Word eventTime = 0; /* current event time */
 
 /* error -- error signalling */
 
+ATTRIBUTE_FORMAT((printf, 1, 2))
 static void error(const char *format, ...)
 {
   va_list args;
@@ -126,8 +127,10 @@ static void readLog(EventProc proc)
     Res res;
 
     res = EventRead(&event, proc);
-    if (res == ResFAIL) break; /* eof */
-    if (res != ResOK) error("Truncated log");
+    if (res == ResFAIL)
+      break; /* eof */
+    if (res != ResOK)
+      error("Truncated log");
     eventTime = event->any.clock;
     EventRecord(proc, event, eventTime);
     EventReplay(event, eventTime);
@@ -185,7 +188,7 @@ int main(int argc, char *argv[])
 
 /* C. COPYRIGHT AND LICENSE
  *
- * Copyright (C) 2001-2002 Ravenbrook Limited <http://www.ravenbrook.com/>.
+ * Copyright (C) 2001-2014 Ravenbrook Limited <http://www.ravenbrook.com/>.
  * All rights reserved.  This is an open source license.  Contact
  * Ravenbrook for commercial licensing options.
  * 

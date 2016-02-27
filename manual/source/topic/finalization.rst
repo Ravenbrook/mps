@@ -51,7 +51,7 @@ the block was allocated.
     to do the finalization. In such an implementation, the client
     program's finalization code may end up running concurrently with
     other code that accesses the underlying resource, and so access to
-    the resource need to be guarded with a lock, but then an unlucky
+    the resource needs to be guarded with a lock, but then an unlucky
     scheduling of finalization can result in deadlock. See :ref:`Boehm
     (2002) <BOEHM02>` for a detailed discussion of this issue.
 
@@ -84,6 +84,15 @@ calling :c:func:`mps_message_discard`.
     retrieving its finalization message from the message queue. This
     will cause it to be finalized again should all strong references
     disappear again.
+
+.. note::
+
+    Calling :c:func:`mps_message_discard` does not reclaim the space
+    occupied by the finalized block (that happens at the next
+    collection, if the block is found to be dead at that point), and
+    so the block must remain validly formatted (:term:`scannable <scan
+    method>`, :term:`skippable <skip method>`, and so on). It might
+    make sense to replace it with a :term:`padding object`.
 
 See :ref:`topic-message` for details of the message mechanism.
 
@@ -123,12 +132,12 @@ Cautions
     finalization. The MPS does not finalize a block until it
     determines that the block is finalizable, which may require a full
     garbage collection in the worst case, and such a collection may
-    not :ref:`scheduled <topic-collection-schedule>` for some time. Or
-    the block may never become finalizable because it is incorrectly
-    determined to be reachable due to an :term:`ambiguous reference`
-    pointing to it. Or the block may never become finalizable because
-    it remains reachable through a reference, even if that reference
-    might never be used.
+    not be :ref:`scheduled <topic-collection-schedule>` for some time.
+    Or the block may never become finalizable because it is
+    incorrectly determined to be reachable due to an :term:`ambiguous
+    reference` pointing to it. Or the block may never become
+    finalizable because it remains reachable through a reference, even
+    if that reference might never be used.
 
 #.  Even when blocks are finalized in a reasonably timely fashion, the
     client needs to process the finalization messages in time to avoid
@@ -157,12 +166,13 @@ Cautions
     prompt release of scarce resources. For example, Scheme provides
     the ``(with-input-from-file)`` procedure which specifies that the
     created port has :term:`dynamic extent` (and so can be closed as
-    soon as the procedure exits).
+    soon as the procedure exits, even if it is still reachable).
 
 #.  The MPS does not finalize objects in the context of
     :c:func:`mps_arena_destroy` or :c:func:`mps_pool_destroy`.
-    :c:func:`mps_pool_destroy` should therefore not be invoked on pools
-    containing objects registered for finalization.
+    Moreover, if you have pools containing objects registered for
+    finalization, you must destroy these pools by following the “safe
+    tear-down” procedure described under :c:func:`mps_pool_destroy`.
 
     .. note::
 
@@ -180,13 +190,8 @@ Cautions
 
     .. note::
 
-        You can safely destroy pools containing objects registered for
-        finalization if you follow the "safe tear-down" procedure
-        described under :c:func:`mps_pool_destroy`, but the objects do
-        not get finalized.
-
-        The only reliable way to ensure that all finalizable object
-        gets finalized is to maintain a table of :term:`weak
+        The only reliable way to ensure that all finalizable objects
+        are finalized is to maintain a table of :term:`weak
         references (1)` to all such objects. The weak references don't
         prevent the objects from being finalized, but you can iterate
         over the list at an appropriate point and finalize any
@@ -216,10 +221,8 @@ Finalization interface
     :term:`result code` if not.
 
     This function registers the block pointed to by ``*ref_p`` for
-    finalization. This block must have been allocated from a
-    :term:`pool` in ``arena``. Violations of this constraint may not
-    be checked by the MPS, and may be unsafe, causing the MPS to crash
-    in undefined ways.
+    finalization. This block must have been allocated from an
+    automatically managed :term:`pool` in ``arena``.
 
     .. note::
 
@@ -246,6 +249,13 @@ Finalization interface
         This function receives a pointer to a reference. This is to
         avoid placing the restriction on the :term:`client program`
         that the C call stack be a :term:`root`.
+
+    .. warning::
+
+        Definalization is not yet efficient: the current
+        implementation just loops over all finalized objects. If you
+        need efficient definalization, please :ref:`contact us
+        <contact>`.
 
 
 .. index::

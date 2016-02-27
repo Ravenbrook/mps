@@ -1,13 +1,12 @@
 /* clock.h -- Fast clocks and timers
  *
- * Copyright (c) 2001-2013 Ravenbrook Limited.  See end of file for license.
+ * Copyright (c) 2001-2014 Ravenbrook Limited.  See end of file for license.
  * $Id$
  */
 
 #ifndef clock_h
 #define clock_h
 
-#include <limits.h>
 #include "mpmtypes.h" /* for Word */
 
 
@@ -15,10 +14,6 @@
  *
  * On platforms that support it, we want to stamp events with a very cheap
  * and fast high-resolution timer.
- *
- * TODO: This is a sufficiently complicated nest of ifdefs that it should
- * be quarantined in its own header with KEEP OUT signs attached.
- * RB 2012-09-11
  */
 
 /* Microsoft C provides an intrinsic for the Intel rdtsc instruction.
@@ -33,6 +28,12 @@ typedef union EventClockUnion {
   } half;
   unsigned __int64 whole;
 } EventClockUnion;
+
+#define EVENT_CLOCK_MAKE(lvalue, low, high) \
+  BEGIN \
+  ((EventClockUnion*)&(lvalue))->half.low = (low); \
+  ((EventClockUnion*)&(lvalue))->half.high = (high); \
+  END
 
 #if _MSC_VER >= 1400
 
@@ -49,7 +50,7 @@ typedef union EventClockUnion {
    using Microsoft Visual Studio 6 because of support for CodeView debugging
    information. */
 
-#include <windows.h> /* KILL IT WITH FIRE! */
+#include "mpswin.h" /* KILL IT WITH FIRE! */
 
 #define EVENT_CLOCK(lvalue) \
   BEGIN \
@@ -70,8 +71,8 @@ typedef union EventClockUnion {
           (*(EventClockUnion *)&(clock)).half.high, \
           (*(EventClockUnion *)&(clock)).half.low)
 
-#define EVENT_CLOCK_WRITE(stream, clock) \
-  WriteF(stream, "$W$W", \
+#define EVENT_CLOCK_WRITE(stream, depth, clock)  \
+  WriteF(stream, depth, "$W$W", \
          (*(EventClockUnion *)&(clock)).half.high, \
          (*(EventClockUnion *)&(clock)).half.low, \
          NULL)
@@ -90,8 +91,8 @@ typedef union EventClockUnion {
 
 #endif
 
-#define EVENT_CLOCK_WRITE(stream, clock) \
-  WriteF(stream, "$W", (WriteFW)(clock), NULL)
+#define EVENT_CLOCK_WRITE(stream, depth, clock) \
+  WriteF(stream, depth, "$W", (WriteFW)(clock), NULL)
 
 #endif
 
@@ -105,6 +106,9 @@ typedef union EventClockUnion {
 /* Use __extension__ to enable use of a 64-bit type on 32-bit pedantic
    GCC or Clang. */
 __extension__ typedef unsigned long long EventClock;
+
+#define EVENT_CLOCK_MAKE(lvalue, low, high) \
+  ((lvalue) = ((EventClock)(high) << 32) + ((EventClock)(low) & (0xfffffffful)))
 
 /* Clang provides a cross-platform builtin for a fast timer, but it
    was not available on Mac OS X 10.8 until the release of XCode 4.6.
@@ -140,8 +144,8 @@ __extension__ typedef unsigned long long EventClock;
           (unsigned long)((clock) >> 32), \
           (unsigned long)((clock) & 0xffffffff))
 
-#define EVENT_CLOCK_WRITE(stream, clock) \
-  WriteF(stream, "$W$W", (WriteFW)((clock) >> 32), (WriteFW)clock, NULL)
+#define EVENT_CLOCK_WRITE(stream, depth, clock) \
+  WriteF(stream, depth, "$W$W", (WriteFW)((clock) >> 32), (WriteFW)clock, NULL)
 
 #endif /* Intel, GCC or Clang */
 
@@ -149,6 +153,9 @@ __extension__ typedef unsigned long long EventClock;
 #ifndef EVENT_CLOCK
 
 typedef mps_clock_t EventClock;
+
+#define EVENT_CLOCK_MAKE(lvalue, low, high) \
+  ((lvalue) = ((EventClock)(high) << 32) + ((EventClock)(low) & (0xfffffffful)))
 
 #define EVENT_CLOCK(lvalue) \
   BEGIN \
@@ -158,8 +165,8 @@ typedef mps_clock_t EventClock;
 #define EVENT_CLOCK_PRINT(stream, clock) \
   fprintf(stream, "%lu", (unsigned long)clock)
 
-#define EVENT_CLOCK_WRITE(stream, clock) \
-  WriteF(stream, "$W", (WriteFW)clock, NULL)
+#define EVENT_CLOCK_WRITE(stream, depth, clock) \
+  WriteF(stream, depth, "$W", (WriteFW)clock, NULL)
 
 #endif
 
@@ -169,7 +176,7 @@ typedef mps_clock_t EventClock;
 
 /* C. COPYRIGHT AND LICENSE
  *
- * Copyright (C) 2001-2013 Ravenbrook Limited <http://www.ravenbrook.com/>.
+ * Copyright (C) 2001-2014 Ravenbrook Limited <http://www.ravenbrook.com/>.
  * All rights reserved.  This is an open source license.  Contact
  * Ravenbrook for commercial licensing options.
  * 

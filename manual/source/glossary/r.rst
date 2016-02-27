@@ -39,7 +39,7 @@ Memory Management Glossary: R
         .. mps:specific::
 
             A value of :c:type:`mps_rank_t` indicating whether a
-            :term:`root` is :term:`ambiguous <ambiguous root>`
+            :term:`reference` is :term:`ambiguous <ambiguous root>`
             (:c:func:`mps_rank_ambig`), :term:`exact <exact root>`
             (:c:func:`mps_rank_exact`) or :term:`weak <weak root>`
             (:c:func:`mps_rank_weak`).
@@ -93,7 +93,7 @@ Memory Management Glossary: R
 
         .. link::
 
-            `Package java.lang.ref <http://download.java.net/jdk8/docs/api/java/lang/ref/package-summary.html>`_, `Reference Objects and Garbage Collection <http://pawlan.com/monica/articles/refobjs/>`_.
+            `Package java.lang.ref <http://docs.oracle.com/javase/8/docs/api/java/lang/ref/package-summary.html>`_, `Reference Objects and Garbage Collection <http://pawlan.com/monica/articles/refobjs/>`_.
 
     read barrier
 
@@ -317,7 +317,7 @@ Memory Management Glossary: R
 
         .. link::
 
-            `Package java.lang.ref <http://download.java.net/jdk8/docs/api/java/lang/ref/package-summary.html>`_, `Reference Objects and Garbage Collection <http://pawlan.com/monica/articles/refobjs/>`_.
+            `Package java.lang.ref <http://docs.oracle.com/javase/8/docs/api/java/lang/ref/package-summary.html>`_, `Reference Objects and Garbage Collection <http://pawlan.com/monica/articles/refobjs/>`_.
 
         .. bibref:: :ref:`Dybvig et al. (1993) <DBE93>`.
 
@@ -471,6 +471,11 @@ Memory Management Glossary: R
 
         .. seealso:: :term:`mapping`, :term:`mmap`.
 
+        .. mps:specific::
+
+            The function :c:func:`mps_arena_reserved` returns the
+            total address space reserved by an arena.
+
     resident
 
         In a :term:`cache (2)` system, that part of the cached storage
@@ -509,6 +514,14 @@ Memory Management Glossary: R
         reference to the object.
 
         .. mps:specific:: See :ref:`topic-finalization`.
+
+    retention
+
+        The failure to :term:`recycle` :term:`floating garbage`, due
+        to some approximation or optimization in the :term:`garbage
+        collector`; also the amount of memory thus retained.
+
+        .. bibref:: :ref:`Boehm (2001) <BOEHM01>`.
 
     ROM
 

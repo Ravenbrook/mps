@@ -1,7 +1,7 @@
 /* mpsicv.c: MPSI COVERAGE TEST
  *
  * $Id$
- * Copyright (c) 2001-2013 Ravenbrook Limited.  See end of file for license.
+ * Copyright (c) 2001-2014 Ravenbrook Limited.  See end of file for license.
  * Portions copyright (c) 2002 Global Graphics Software.
  */
 
@@ -15,18 +15,13 @@
 #include "fmtdytst.h"
 #include "mps.h"
 #include "mpstd.h"
-#ifdef MPS_OS_W3
-#  include "mpsw3.h"
-#endif
-#include <stdlib.h>
-#include <stdarg.h>
-#include <math.h>
-#include <string.h>
+
+#include <stdio.h> /* printf */
 
 
 #define exactRootsCOUNT  49
 #define ambigRootsCOUNT  49
-#define OBJECTS          200000
+#define OBJECTS          100000
 #define patternFREQ      100
 
 /* objNULL needs to be odd so that it's ignored in exactRoots. */
@@ -94,8 +89,6 @@ struct tlonglong {
 
 /* alignmentTest -- test default alignment is acceptable */
 
-#define max(a, b) (((a) > (b)) ? (a) : (b))
-
 static void alignmentTest(mps_arena_t arena)
 {
   mps_pool_t pool;
@@ -137,11 +130,13 @@ static mps_addr_t make(void)
 
   do {
     MPS_RESERVE_BLOCK(res, pMps, ap, sizeMps);
-    if (res != MPS_RES_OK) die(res, "MPS_RESERVE_BLOCK");
+    if (res != MPS_RES_OK)
+      die(res, "MPS_RESERVE_BLOCK");
     HeaderInit(pMps);
     pCli = PtrMps2Cli(pMps);
     res = dylan_init(pCli, sizeCli, exactRoots, exactRootsCOUNT);
-    if (res != MPS_RES_OK) die(res, "dylan_init");
+    if (res != MPS_RES_OK)
+      die(res, "dylan_init");
   } while(!mps_commit(ap, pMps, sizeMps));
 
   return pCli;
@@ -160,11 +155,13 @@ static mps_addr_t make_with_permit(void)
 
   do {
     MPS_RESERVE_WITH_RESERVOIR_PERMIT_BLOCK(res, pMps, ap, sizeMps);
-    if (res != MPS_RES_OK) die(res, "MPS_RESERVE_WITH_RESERVOIR_PERMIT_BLOCK");
+    if (res != MPS_RES_OK)
+      die(res, "MPS_RESERVE_WITH_RESERVOIR_PERMIT_BLOCK");
     HeaderInit(pMps);
     pCli = PtrMps2Cli(pMps);
     res = dylan_init(pCli, sizeCli, exactRoots, exactRootsCOUNT);
-    if (res != MPS_RES_OK) die(res, "dylan_init");
+    if (res != MPS_RES_OK)
+      die(res, "dylan_init");
   } while(!mps_commit(ap, pMps, sizeMps));
 
   return pCli;
@@ -183,11 +180,13 @@ static mps_addr_t make_no_inline(void)
 
   do {
     res = (mps_reserve)(&pMps, ap, sizeMps);
-    if (res != MPS_RES_OK) die(res, "(mps_reserve)");
+    if (res != MPS_RES_OK)
+      die(res, "(mps_reserve)");
     HeaderInit(pMps);
     pCli = PtrMps2Cli(pMps);
     res = dylan_init(pCli, sizeCli, exactRoots, exactRootsCOUNT);
-    if (res != MPS_RES_OK) die(res, "dylan_init");
+    if (res != MPS_RES_OK)
+      die(res, "dylan_init");
   } while(!(mps_commit)(ap, pMps, sizeMps));
 
   return pCli;
@@ -234,6 +233,7 @@ static void ap_create_v_test(mps_pool_t pool, ...)
 /* addr_pool_test
  *
  * intended to test:
+ *   mps_arena_has_addr
  *   mps_addr_pool
  *   mps_addr_fmt
  */
@@ -271,6 +271,7 @@ static void addr_pool_test(mps_arena_t arena,
   addr = obj1;
   pool = poolDistinguished;
   fmt = fmtDistinguished;
+  cdie(mps_arena_has_addr(arena, addr), "mps_arena_has_addr 0a");
   b = mps_addr_pool(&pool, arena, addr);
   /* printf("b %d; pool %p; sig %lx\n", b, (void *)pool,
             b ? ((mps_word_t*)pool)[0] : (mps_word_t)0); */
@@ -284,6 +285,7 @@ static void addr_pool_test(mps_arena_t arena,
   addr = obj2;
   pool = poolDistinguished;
   fmt = fmtDistinguished;
+  cdie(mps_arena_has_addr(arena, addr), "mps_arena_has_addr 0b");
   b = mps_addr_pool(&pool, arena, addr);
   /* printf("b %d; pool %p; sig %lx\n", b, (void *)pool,
             b ? ((mps_word_t*)pool)[0] : (mps_word_t)0); */
@@ -297,6 +299,7 @@ static void addr_pool_test(mps_arena_t arena,
   addr = &pool;  /* point at stack, not in any chunk */
   pool = poolDistinguished;
   fmt = fmtDistinguished;
+  cdie(mps_arena_has_addr(arena, addr) == FALSE, "mps_arena_has_addr 5");
   b = mps_addr_pool(&pool, arena, addr);
   cdie(b == FALSE && pool == poolDistinguished, "mps_addr_pool 5");
   b = mps_addr_fmt(&fmt, arena, addr);
@@ -321,6 +324,7 @@ static mps_res_t root_single(mps_ss_t ss, void *p, size_t s)
  *   mps_arena_reserved
  * incidentally tests:
  *   mps_alloc
+ *   mps_arena_commit_limit_set
  *   mps_class_mv
  *   mps_pool_create
  *   mps_pool_destroy
@@ -404,7 +408,7 @@ static void *test(void *arg, size_t s)
 
   if (rnd() & 1) {
     printf("Using auto_header format.\n");
-    EnsureHeaderFormat(&format, arena);
+    die(EnsureHeaderFormat(&format, arena), "EnsureHeaderFormat");
     ap_headerSIZE = headerSIZE;  /* from fmthe.h */
   } else {
     printf("Using normal format (no implicit object header: client pointers point at start of storage).\n");
@@ -518,7 +522,8 @@ static void *test(void *arg, size_t s)
 
     if (rnd() % patternFREQ == 0) {
       switch(rnd() % 4) {
-      case 0: case 1:
+      case 0: /* fall through */
+      case 1:
         die(mps_ap_alloc_pattern_begin(ap, ramp), "alloc_pattern_begin");
         ++rampCount;
         break;
@@ -530,7 +535,7 @@ static void *test(void *arg, size_t s)
           --rampCount;
         }
         break;
-      case 3:
+      default:
         die(mps_ap_alloc_pattern_reset(ap), "alloc_pattern_reset");
         rampCount = 0;
         break;
@@ -558,6 +563,8 @@ static void *test(void *arg, size_t s)
 
   mps_free(mv, alloced_obj, 32);
   alloc_v_test(mv);
+
+  mps_arena_park(arena);
   mps_pool_destroy(mv);
   mps_ap_destroy(ap);
   mps_root_destroy(fmtRoot);
@@ -583,8 +590,7 @@ int main(int argc, char *argv[])
   void *r;
   void *marker = &marker;
 
-  randomize(argc, argv);
-  mps_lib_assert_fail_install(assert_die);
+  testlib_init(argc, argv);
 
   die(mps_arena_create(&arena, mps_arena_class_vm(), TEST_ARENA_SIZE),
       "arena_create");
@@ -596,7 +602,6 @@ int main(int argc, char *argv[])
                           marker, (size_t)0),
       "root_create_reg");
 
-  (mps_tramp)(&r, test, arena, 0);  /* non-inlined trampoline */
   mps_tramp(&r, test, arena, 0);
   mps_root_destroy(reg_root);
   mps_thread_dereg(thread);
@@ -609,7 +614,7 @@ int main(int argc, char *argv[])
 
 /* C. COPYRIGHT AND LICENSE
  *
- * Copyright (c) 2001-2013 Ravenbrook Limited <http://www.ravenbrook.com/>.
+ * Copyright (c) 2001-2014 Ravenbrook Limited <http://www.ravenbrook.com/>.
  * All rights reserved.  This is an open source license.  Contact
  * Ravenbrook for commercial licensing options.
  * 

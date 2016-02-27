@@ -1,19 +1,17 @@
 /* protw3.c: PROTECTION FOR WIN32
  *
  *  $Id$
- *  Copyright (c) 2001 Ravenbrook Limited.  See end of file for license.
+ *  Copyright (c) 2001-2015 Ravenbrook Limited.  See end of file for license.
  */
 
 #include "mpm.h"
 /* prmcw3.h needed to share MutatorFaultContextStruct declation */
 /* with <code/prmcw3i3.c> */
 #include "prmcw3.h"
+#include "vm.h"
 
 #ifndef MPS_OS_W3
 #error "protw3.c is Win32-specific, but MPS_OS_W3 is not set"
-#endif
-#ifndef PROTECTION
-#error "protw3.c implements protection, but PROTECTION is not set"
 #endif
 
 #include "mpswin.h"
@@ -28,6 +26,7 @@ void ProtSet(Addr base, Addr limit, AccessSet mode)
 
   AVER(base < limit);
   AVER(base != 0);
+  AVERT(AccessSet, mode);
 
   newProtect = PAGE_EXECUTE_READWRITE;
   if((mode & AccessWRITE) != 0)
@@ -109,11 +108,22 @@ LONG WINAPI ProtSEHfilter(LPEXCEPTION_POINTERS info)
 
 void ProtSetup(void)
 {
+  void *handler;
   /* See "AddVectoredExceptionHandler function (Windows)"
      <http://msdn.microsoft.com/en-us/library/windows/desktop/ms679274%28v=vs.85%29.aspx> */
   /* ProtSetup is called only once per process, not once per arena, so
      this exception handler is only installed once. */
-  AddVectoredExceptionHandler(1uL, ProtSEHfilter);
+  handler = AddVectoredExceptionHandler(1uL, ProtSEHfilter);
+  AVER(handler != NULL);
+}
+
+
+/* ProtGranularity -- return the granularity of protection */
+
+Size ProtGranularity(void)
+{
+  /* Individual pages can be protected. */
+  return PageSize();
 }
 
 
@@ -129,27 +139,9 @@ void ProtSync(Arena arena)
 }
 
 
-/* ProtTramp -- wrap a mutator thread in a Structured Exception Handler filter
- *
- * This was the method by which we installed an exception handler on Windows
- * prior to MPS 1.111.  Now we are using Vectored Exception Handlers, so this
- * is deprecated and just calls through to the mutator function.
- */
-
-void ProtTramp(void **resultReturn, void *(*f)(void *, size_t),
-               void *p, size_t s)
-{
-  AVER(resultReturn != NULL);
-  AVER(FUNCHECK(f));
-  /* Can't check p and s as they are interpreted by the client */
-
-  *resultReturn = f(p, s);
-}
-
-
 /* C. COPYRIGHT AND LICENSE
  *
- * Copyright (C) 2001-2002 Ravenbrook Limited <http://www.ravenbrook.com/>.
+ * Copyright (C) 2001-2015 Ravenbrook Limited <http://www.ravenbrook.com/>.
  * All rights reserved.  This is an open source license.  Contact
  * Ravenbrook for commercial licensing options.
  * 

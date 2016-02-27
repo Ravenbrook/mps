@@ -1,7 +1,7 @@
 /* buffer.c: ALLOCATION BUFFER IMPLEMENTATION
  *
  * $Id$
- * Copyright (c) 2001-2013 Ravenbrook Limited.  See end of file for license.
+ * Copyright (c) 2001-2014 Ravenbrook Limited.  See end of file for license.
  *
  * .purpose: This is (part of) the implementation of allocation buffers.
  * Several macros which also form part of the implementation are in
@@ -19,10 +19,8 @@
  *
  * TRANSGRESSIONS
  *
- * .trans.mod: There are several instances where pool structures are
- * directly accessed by this module because <code/pool.c> does not provide
- * an adequate (or adequately documented) interface.  They bear this
- * tag.
+ * .trans.mod: pool->bufferSerial is directly accessed by this module
+ * because <code/pool.c> does not provide an interface.
  */
 
 #include "mpm.h"
@@ -45,7 +43,7 @@ Bool BufferCheck(Buffer buffer)
   CHECKU(Arena, buffer->arena);
   CHECKU(Pool, buffer->pool);
   CHECKL(buffer->arena == buffer->pool->arena);
-  CHECKL(RingCheck(&buffer->poolRing)); /* <design/check/#type.no-sig> */
+  CHECKD_NOSIG(Ring, &buffer->poolRing);
   CHECKL(BoolCheck(buffer->isMutator));
   CHECKL(buffer->fillSize >= 0.0);
   CHECKL(buffer->emptySize >= 0.0);
@@ -146,47 +144,48 @@ Bool BufferCheck(Buffer buffer)
  *
  * See <code/mpmst.h> for structure definitions.  */
 
-Res BufferDescribe(Buffer buffer, mps_lib_FILE *stream)
+Res BufferDescribe(Buffer buffer, mps_lib_FILE *stream, Count depth)
 {
   Res res;
-  char abzMode[5];
 
-  if (!TESTT(Buffer, buffer)) return ResFAIL;
-  if (stream == NULL) return ResFAIL;
+  if (!TESTT(Buffer, buffer))
+    return ResFAIL;
+  if (stream == NULL)
+    return ResFAIL;
 
-  abzMode[0] = (char)( (buffer->mode & BufferModeTRANSITION)  ? 't' : '_' );
-  abzMode[1] = (char)( (buffer->mode & BufferModeLOGGED)      ? 'l' : '_' );
-  abzMode[2] = (char)( (buffer->mode & BufferModeFLIPPED)     ? 'f' : '_' );
-  abzMode[3] = (char)( (buffer->mode & BufferModeATTACHED)    ? 'a' : '_' );
-  abzMode[4] = '\0';
-
-  res = WriteF(stream,
+  res = WriteF(stream, depth,
                "Buffer $P ($U) {\n",
                (WriteFP)buffer, (WriteFU)buffer->serial,
                "  class $P (\"$S\")\n",
-               (WriteFP)buffer->class, buffer->class->name,
+               (WriteFP)buffer->class, (WriteFS)buffer->class->name,
                "  Arena $P\n",       (WriteFP)buffer->arena,
                "  Pool $P\n",        (WriteFP)buffer->pool,
-               buffer->isMutator ?
-                 "  Mutator Buffer\n" : "  Internal Buffer\n",
-               "  mode $S (TRANSITION, LOGGED, FLIPPED, ATTACHED)\n",
-                       (WriteFS)abzMode,
+               "  ", buffer->isMutator ? "Mutator" : "Internal", " Buffer\n",
+               "  mode $C$C$C$C (TRANSITION, LOGGED, FLIPPED, ATTACHED)\n",
+               (WriteFC)((buffer->mode & BufferModeTRANSITION) ? 't' : '_'),
+               (WriteFC)((buffer->mode & BufferModeLOGGED)     ? 'l' : '_'),
+               (WriteFC)((buffer->mode & BufferModeFLIPPED)    ? 'f' : '_'),
+               (WriteFC)((buffer->mode & BufferModeATTACHED)   ? 'a' : '_'),
                "  fillSize $UKb\n",  (WriteFU)(buffer->fillSize / 1024),
                "  emptySize $UKb\n", (WriteFU)(buffer->emptySize / 1024),
                "  alignment $W\n",   (WriteFW)buffer->alignment,
-               "  base $A\n",        buffer->base,
-               "  initAtFlip $A\n",  buffer->initAtFlip,
-               "  init $A\n",        buffer->ap_s.init,
-               "  alloc $A\n",       buffer->ap_s.alloc,
-               "  limit $A\n",       buffer->ap_s.limit,
-               "  poolLimit $A\n",   buffer->poolLimit,
+               "  base $A\n",        (WriteFA)buffer->base,
+               "  initAtFlip $A\n",  (WriteFA)buffer->initAtFlip,
+               "  init $A\n",        (WriteFA)buffer->ap_s.init,
+               "  alloc $A\n",       (WriteFA)buffer->ap_s.alloc,
+               "  limit $A\n",       (WriteFA)buffer->ap_s.limit,
+               "  poolLimit $A\n",   (WriteFA)buffer->poolLimit,
+               "  alignment $W\n",   (WriteFW)buffer->alignment,
+               "  rampCount $U\n",   (WriteFU)buffer->rampCount,
                NULL);
-  if (res != ResOK) return res;
+  if (res != ResOK)
+    return res;
 
-  res = buffer->class->describe(buffer, stream);
-  if (res != ResOK) return res;
+  res = buffer->class->describe(buffer, stream, depth + 2);
+  if (res != ResOK)
+    return res;
 
-  res = WriteF(stream, "} Buffer $P ($U)\n",
+  res = WriteF(stream, depth, "} Buffer $P ($U)\n",
                (WriteFP)buffer, (WriteFU)buffer->serial,
                NULL);
   return res;
@@ -204,8 +203,6 @@ static Res BufferInit(Buffer buffer, BufferClass class,
   AVER(buffer != NULL);
   AVERT(BufferClass, class);
   AVERT(Pool, pool);
-  /* The PoolClass should support buffer protocols */
-  AVER((pool->class->attr & AttrBUF)); /* .trans.mod */
  
   arena = PoolArena(pool);
   /* Initialize the buffer.  See <code/mpmst.h> for a definition of */
@@ -222,7 +219,7 @@ static Res BufferInit(Buffer buffer, BufferClass class,
   }
   buffer->fillSize = 0.0;
   buffer->emptySize = 0.0;
-  buffer->alignment = pool->alignment; /* .trans.mod */
+  buffer->alignment = PoolAlignment(pool);
   buffer->base = (Addr)0;
   buffer->initAtFlip = (Addr)0;
   /* In the next three assignments we really mean zero, not NULL, because
@@ -329,12 +326,10 @@ void BufferDetach(Buffer buffer, Pool pool)
     spare = AddrOffset(init, limit);
     buffer->emptySize += spare;
     if (buffer->isMutator) {
-      buffer->pool->emptyMutatorSize += spare;
       ArenaGlobals(buffer->arena)->emptyMutatorSize += spare;
       ArenaGlobals(buffer->arena)->allocMutatorSize +=
         AddrOffset(buffer->base, init);
     } else {
-      buffer->pool->emptyInternalSize += spare;
       ArenaGlobals(buffer->arena)->emptyInternalSize += spare;
     }
 
@@ -382,8 +377,6 @@ void BufferFinish(Buffer buffer)
 
   pool = BufferPool(buffer);
 
-  /* The PoolClass should support buffer protocols */
-  AVER((pool->class->attr & AttrBUF)); /* .trans.mod */
   AVER(BufferIsReady(buffer));
 
   /* <design/alloc-frame/#lw-frame.sync.trip> */
@@ -605,7 +598,7 @@ Res BufferReserve(Addr *pReturn, Buffer buffer, Size size,
   AVER(size > 0);
   AVER(SizeIsAligned(size, BufferPool(buffer)->alignment));
   AVER(BufferIsReady(buffer));
-  AVER(BoolCheck(withReservoirPermit));
+  AVERT(Bool, withReservoirPermit);
 
   /* Is there enough room in the unallocated portion of the buffer to */
   /* satisfy the request?  If so, just increase the alloc marker and */
@@ -660,10 +653,8 @@ void BufferAttach(Buffer buffer, Addr base, Addr limit,
       Size prealloc = AddrOffset(base, init);
       ArenaGlobals(buffer->arena)->allocMutatorSize -= prealloc;
     }
-    buffer->pool->fillMutatorSize += filled;
     ArenaGlobals(buffer->arena)->fillMutatorSize += filled;
   } else {
-    buffer->pool->fillInternalSize += filled;
     ArenaGlobals(buffer->arena)->fillInternalSize += filled;
   }
 
@@ -980,20 +971,21 @@ Bool BufferIsTrappedByMutator(Buffer buffer)
  *
  * Just represent the two patterns by two different pointers to dummies.  */
 
-AllocPatternStruct AllocPatternRampStruct = {'\0'};
+static AllocPatternStruct AllocPatternRampStruct = {'\0'};
 
 AllocPattern AllocPatternRamp(void)
 {
   return &AllocPatternRampStruct;
 }
 
-AllocPatternStruct AllocPatternRampCollectAllStruct = {'\0'};
+static AllocPatternStruct AllocPatternRampCollectAllStruct = {'\0'};
 
 AllocPattern AllocPatternRampCollectAll(void)
 {
   return &AllocPatternRampCollectAllStruct;
 }
 
+ATTRIBUTE_UNUSED
 static Bool AllocPatternCheck(AllocPattern pattern)
 {
   CHECKL(pattern == &AllocPatternRampCollectAllStruct
@@ -1075,7 +1067,7 @@ static Res bufferTrivInit(Buffer buffer, Pool pool, ArgList args)
   AVERT(Buffer, buffer);
   AVERT(Pool, pool);
   UNUSED(args);
-  EVENT3(BufferInit, buffer, pool, buffer->isMutator);
+  EVENT3(BufferInit, buffer, pool, BOOLOF(buffer->isMutator));
   return ResOK;
 }
 
@@ -1169,10 +1161,13 @@ static void bufferNoReassignSeg(Buffer buffer, Seg seg)
 
 /* bufferTrivDescribe -- basic Buffer describe method */
 
-static Res bufferTrivDescribe(Buffer buffer, mps_lib_FILE *stream)
+static Res bufferTrivDescribe(Buffer buffer, mps_lib_FILE *stream, Count depth)
 {
-  if (!TESTT(Buffer, buffer)) return ResFAIL;
-  if (stream == NULL) return ResFAIL;
+  if (!TESTT(Buffer, buffer))
+    return ResFAIL;
+  if (stream == NULL)
+    return ResFAIL;
+  UNUSED(depth);
   /* dispatching function does it all */
   return ResOK;
 }
@@ -1182,7 +1177,7 @@ static Res bufferTrivDescribe(Buffer buffer, mps_lib_FILE *stream)
 
 Bool BufferClassCheck(BufferClass class)
 {
-  CHECKL(ProtocolClassCheck(&class->protocol));
+  CHECKD(ProtocolClass, &class->protocol);
   CHECKL(class->name != NULL); /* Should be <=6 char C identifier */
   CHECKL(class->size >= sizeof(BufferStruct));
   CHECKL(FUNCHECK(class->varargs));
@@ -1220,6 +1215,7 @@ DEFINE_CLASS(BufferClass, class)
   class->setRankSet = bufferNoSetRankSet;
   class->reassignSeg = bufferNoReassignSeg;
   class->sig = BufferClassSig;
+  AVERT(BufferClass, class);
 }
 
 
@@ -1240,7 +1236,7 @@ Bool SegBufCheck(SegBuf segbuf)
 
   CHECKS(SegBuf, segbuf);
   buffer = &segbuf->bufferStruct;
-  CHECKL(BufferCheck(buffer));
+  CHECKD(Buffer, buffer);
   CHECKL(RankSetCheck(segbuf->rankSet));
 
   if (buffer->mode & BufferModeTRANSITION) {
@@ -1250,7 +1246,7 @@ Bool SegBufCheck(SegBuf segbuf)
   } else {
     /* The buffer is attached to a segment. */
     CHECKL(segbuf->seg != NULL);
-    CHECKL(SegCheck(segbuf->seg));
+    CHECKD(Seg, segbuf->seg);
     /* To avoid recursive checking, leave it to SegCheck to make */
     /* sure the buffer and segment fields tally. */
    
@@ -1287,7 +1283,7 @@ static Res segBufInit(Buffer buffer, Pool pool, ArgList args)
   segbuf->rankSet = RankSetEMPTY;
   
   AVERT(SegBuf, segbuf);
-  EVENT3(BufferInitSeg, buffer, pool, buffer->isMutator);
+  EVENT3(BufferInitSeg, buffer, pool, BOOLOF(buffer->isMutator));
   return ResOK;
 }
 
@@ -1426,25 +1422,29 @@ static void segBufReassignSeg (Buffer buffer, Seg seg)
 
 /* segBufDescribe --  describe method for SegBuf */
 
-static Res segBufDescribe(Buffer buffer, mps_lib_FILE *stream)
+static Res segBufDescribe(Buffer buffer, mps_lib_FILE *stream, Count depth)
 {
   SegBuf segbuf;
   BufferClass super;
   Res res;
 
-  if (!TESTT(Buffer, buffer)) return ResFAIL;
-  if (stream == NULL) return ResFAIL;
+  if (!TESTT(Buffer, buffer))
+    return ResFAIL;
+  if (stream == NULL)
+    return ResFAIL;
   segbuf = BufferSegBuf(buffer);
-  if (!TESTT(SegBuf, segbuf)) return ResFAIL;
+  if (!TESTT(SegBuf, segbuf))
+    return ResFAIL;
 
   /* Describe the superclass fields first via next-method call */
   super = BUFFER_SUPERCLASS(SegBufClass);
-  res = super->describe(buffer, stream);
-  if (res != ResOK) return res;
+  res = super->describe(buffer, stream, depth);
+  if (res != ResOK)
+    return res;
 
-  res = WriteF(stream,
-               "  Seg $P\n",         (WriteFP)segbuf->seg,
-               "  rankSet $U\n",     (WriteFU)segbuf->rankSet,
+  res = WriteF(stream, depth,
+               "Seg $P\n",         (WriteFP)segbuf->seg,
+               "rankSet $U\n",     (WriteFU)segbuf->rankSet,
                NULL);
 
   return res;
@@ -1472,6 +1472,7 @@ DEFINE_CLASS(SegBufClass, class)
   class->rankSet = segBufRankSet;
   class->setRankSet = segBufSetRankSet;
   class->reassignSeg = segBufReassignSeg;
+  AVERT(BufferClass, class);
 }
 
 
@@ -1485,7 +1486,7 @@ static void rankBufVarargs(ArgStruct args[MPS_ARGS_MAX], va_list varargs)
   args[0].key = MPS_KEY_RANK;
   args[0].val.rank = va_arg(varargs, Rank);
   args[1].key = MPS_KEY_ARGS_END;
-  AVER(ArgListCheck(args));
+  AVERT(ArgList, args);
 }
 
 /* rankBufInit -- RankBufClass init method */
@@ -1499,10 +1500,10 @@ static Res rankBufInit(Buffer buffer, Pool pool, ArgList args)
 
   AVERT(Buffer, buffer);
   AVERT(Pool, pool);
-  AVER(ArgListCheck(args));
+  AVERT(ArgList, args);
   if (ArgPick(&arg, args, MPS_KEY_RANK))
     rank = arg.val.rank;
-  AVER(RankCheck(rank));
+  AVERT(Rank, rank);
 
   /* Initialize the superclass fields first via next-method call */
   super = BUFFER_SUPERCLASS(RankBufClass);
@@ -1513,7 +1514,7 @@ static Res rankBufInit(Buffer buffer, Pool pool, ArgList args)
   BufferSetRankSet(buffer, RankSetSingle(rank));
 
   /* There's nothing to check that the superclass doesn't, so no AVERT. */
-  EVENT4(BufferInitRank, buffer, pool, buffer->isMutator, rank);
+  EVENT4(BufferInitRank, buffer, pool, BOOLOF(buffer->isMutator), rank);
   return ResOK;
 }
 
@@ -1532,12 +1533,13 @@ DEFINE_CLASS(RankBufClass, class)
   class->name = "RANKBUF";
   class->varargs = rankBufVarargs;
   class->init = rankBufInit;
+  AVERT(BufferClass, class);
 }
 
 
 /* C. COPYRIGHT AND LICENSE
  *
- * Copyright (C) 2001-2013 Ravenbrook Limited <http://www.ravenbrook.com/>.
+ * Copyright (C) 2001-2014 Ravenbrook Limited <http://www.ravenbrook.com/>.
  * All rights reserved.  This is an open source license.  Contact
  * Ravenbrook for commercial licensing options.
  * 

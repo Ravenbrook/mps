@@ -1,7 +1,7 @@
 /* exposet0.c: ARENA EXPOSE TEST
  *
  * $Id$
- * Copyright (c) 2001-2013 Ravenbrook Limited.  See end of file for license.
+ * Copyright (c) 2001-2014 Ravenbrook Limited.  See end of file for license.
  * Portions copyright (C) 2002 Global Graphics Software.
  * 
  * The primary purpose of this test is to test that mps_arena_expose does
@@ -19,12 +19,9 @@
 #include "mpscamc.h"
 #include "mpsavm.h"
 #include "mpstd.h"
-#ifdef MPS_OS_W3
-#include "mpsw3.h"
-#endif
 #include "mps.h"
-#include <stdlib.h>
-#include <string.h>
+
+#include <stdio.h> /* fflush, printf, puts, stdout */
 
 
 /* These values have been tuned in the hope of getting one dynamic collection. */
@@ -75,12 +72,6 @@ static void report(mps_arena_t arena)
     printf("not_condemned %"PRIuLONGEST"\n", (ulongest_t)not_condemned);
 
     mps_message_discard(arena, message);
-
-    if (condemned > (gen1SIZE + gen2SIZE + (size_t)128) * 1024)
-      /* When condemned size is larger than could happen in a gen 2
-       * collection (discounting ramps, natch), guess that was a dynamic
-       * collection, and reset the commit limit, so it doesn't run out. */
-      die(mps_arena_commit_limit_set(arena, 2 * testArenaSIZE), "set limit");
   }
 }
 
@@ -115,15 +106,7 @@ static void test_stepper(mps_addr_t object, mps_fmt_t fmt, mps_pool_t pool,
   testlib_unused(fmt);
   testlib_unused(pool);
   testlib_unused(s);
-#ifdef MPS_OS_W3
-  __try {
-    dylan_mutate(object);
-  } __except(EXCEPTION_EXECUTE_HANDLER) {
-    error("Unexpected exception.\n");
-  }
-#else
   dylan_mutate(object);
-#endif
       
   (*(unsigned long *)p)++;
 }
@@ -185,7 +168,8 @@ static void *test(void *arg, size_t s)
 
     if (collections != c) {
       collections = c;
-      printf("\nCollection %lu started, %lu objects.\n", c, objs);
+      printf("\nCollection %"PRIuLONGEST" started, %lu objects.\n",
+             (ulongest_t)c, objs);
 
       report(arena);
       for (i = 0; i < exactRootsCOUNT; ++i) {
@@ -231,13 +215,14 @@ static void *test(void *arg, size_t s)
     if (objs % 1024 == 0) {
       report(arena);
       putchar('.');
-      fflush(stdout);
+      (void)fflush(stdout);
     }
 
     ++objs;
   }
 
   (void)mps_commit(busy_ap, busy_init, 64);
+  mps_arena_park(arena);
   mps_ap_destroy(busy_ap);
   mps_ap_destroy(ap);
   mps_root_destroy(exactRoot);
@@ -255,13 +240,12 @@ int main(int argc, char *argv[])
   mps_thr_t thread;
   void *r;
 
-  randomize(argc, argv);
-  mps_lib_assert_fail_install(assert_die);
+  testlib_init(argc, argv);
 
   die(mps_arena_create(&arena, mps_arena_class_vm(), 2*testArenaSIZE),
       "arena_create");
   mps_message_type_enable(arena, mps_message_type_gc());
-  die(mps_arena_commit_limit_set(arena, testArenaSIZE), "set limit");
+  die(mps_arena_commit_limit_set(arena, 2*testArenaSIZE), "set limit");
   die(mps_thread_reg(&thread, arena), "thread_reg");
   mps_tramp(&r, test, arena, 0);
   mps_thread_dereg(thread);
@@ -275,7 +259,7 @@ int main(int argc, char *argv[])
 
 /* C. COPYRIGHT AND LICENSE
  *
- * Copyright (c) 2001-2013 Ravenbrook Limited <http://www.ravenbrook.com/>.
+ * Copyright (c) 2001-2014 Ravenbrook Limited <http://www.ravenbrook.com/>.
  * All rights reserved.  This is an open source license.  Contact
  * Ravenbrook for commercial licensing options.
  * 

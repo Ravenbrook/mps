@@ -1,7 +1,7 @@
 /* root.c: ROOT IMPLEMENTATION
  *
  * $Id$
- * Copyright (c) 2001 Ravenbrook Limited.  See end of file for license.
+ * Copyright (c) 2001-2015 Ravenbrook Limited.  See end of file for license.
  *
  * .purpose: This is the implementation of the root datatype.
  *
@@ -98,7 +98,7 @@ Bool RootCheck(Root root)
   CHECKS(Root, root);
   CHECKU(Arena, root->arena);
   CHECKL(root->serial < ArenaGlobals(root->arena)->rootSerial);
-  CHECKL(RingCheck(&root->arenaRing));
+  CHECKD_NOSIG(Ring, &root->arenaRing);
   CHECKL(RankCheck(root->rank));
   CHECKL(TraceSetCheck(root->grey));
   /* Don't need to check var here, because of the switch below */
@@ -121,7 +121,7 @@ Bool RootCheck(Root root)
 
     case RootREG:
     CHECKL(root->the.reg.scan != NULL);
-    CHECKL(ThreadCheck(root->the.reg.thread));
+    CHECKD_NOSIG(Thread, root->the.reg.thread); /* <design/check/#hidden-type> */
     break;
 
     case RootFMT:
@@ -139,7 +139,7 @@ Bool RootCheck(Root root)
     CHECKL(root->protBase != (Addr)0);
     CHECKL(root->protLimit != (Addr)0);
     CHECKL(root->protBase < root->protLimit);
-    /* there is no AccessSetCheck */
+    CHECKL(AccessSetCheck(root->pm));
   } else {
     CHECKL(root->protBase == (Addr)0);
     CHECKL(root->protLimit == (Addr)0);
@@ -218,16 +218,16 @@ static Res rootCreateProtectable(Root *rootReturn, Arena arena,
   if (mode & RootModePROTECTABLE) {
     root->protectable = TRUE;
     if (mode & RootModePROTECTABLE_INNER) {
-      root->protBase = AddrAlignUp(base, ArenaAlign(arena));
-      root->protLimit = AddrAlignDown(limit, ArenaAlign(arena));
+      root->protBase = AddrArenaGrainUp(base, arena);
+      root->protLimit = AddrArenaGrainDown(limit, arena);
       if (!(root->protBase < root->protLimit)) {
         /* root had no inner pages */
         root->protectable = FALSE;
         root->mode &=~ (RootModePROTECTABLE|RootModePROTECTABLE_INNER);
       }
     } else {
-      root->protBase = AddrAlignDown(base, ArenaAlign(arena));
-      root->protLimit = AddrAlignUp(limit, ArenaAlign(arena));
+      root->protBase = AddrArenaGrainDown(base, arena);
+      root->protLimit = AddrArenaGrainUp(limit, arena);
     }
   }
 
@@ -261,9 +261,11 @@ Res RootCreateTable(Root *rootReturn, Arena arena,
 
   AVER(rootReturn != NULL);
   AVERT(Arena, arena);
-  AVER(RankCheck(rank));
+  AVERT(Rank, rank);
   AVER(base != 0);
-  AVER(base < limit); 
+  AVER(AddrIsAligned(base, sizeof(Word)));
+  AVER(base < limit);
+  AVER(AddrIsAligned(limit, sizeof(Word)));
 
   theUnion.table.base = base;
   theUnion.table.limit = limit;
@@ -281,7 +283,7 @@ Res RootCreateTableMasked(Root *rootReturn, Arena arena,
 
   AVER(rootReturn != NULL);
   AVERT(Arena, arena);
-  AVER(RankCheck(rank));
+  AVERT(Rank, rank);
   AVER(base != 0);
   AVER(base < limit);
   /* Can't check anything about mask. */
@@ -302,8 +304,9 @@ Res RootCreateReg(Root *rootReturn, Arena arena,
 
   AVER(rootReturn != NULL);
   AVERT(Arena, arena);
-  AVER(RankCheck(rank));
+  AVERT(Rank, rank);
   AVERT(Thread, thread);
+  AVER(ThreadArena(thread) == arena);
   AVER(scan != NULL);
 
   theUnion.reg.scan = scan;
@@ -314,6 +317,13 @@ Res RootCreateReg(Root *rootReturn, Arena arena,
   return rootCreate(rootReturn, arena, rank, (RootMode)0, RootREG, &theUnion);
 }
 
+/* RootCreateFmt -- create root from block of formatted objects
+ *
+ * .fmt.no-align-check: Note that we don't check the alignment of base
+ * and limit. That's because we're only given the scan function, so we
+ * don't know the format's alignment requirements.
+ */
+
 Res RootCreateFmt(Root *rootReturn, Arena arena,
                   Rank rank, RootMode mode, mps_fmt_scan_t scan,
                   Addr base, Addr limit)
@@ -322,7 +332,7 @@ Res RootCreateFmt(Root *rootReturn, Arena arena,
 
   AVER(rootReturn != NULL);
   AVERT(Arena, arena);
-  AVER(RankCheck(rank));
+  AVERT(Rank, rank);
   AVER(FUNCHECK(scan));
   AVER(base != 0);
   AVER(base < limit);
@@ -342,7 +352,7 @@ Res RootCreateFun(Root *rootReturn, Arena arena, Rank rank,
 
   AVER(rootReturn != NULL);
   AVERT(Arena, arena);
-  AVER(RankCheck(rank));
+  AVERT(Rank, rank);
   AVER(FUNCHECK(scan));
 
   theUnion.fun.scan = scan;
@@ -374,9 +384,9 @@ void RootDestroy(Root root)
 }
 
 
-/* RootArena -- return the rank of a root
+/* RootArena -- return the arena of a root
  *
- * Must be thread-safe.  */
+ * Must be thread-safe. See <design/interface-c/#check.testt> */
 
 Arena RootArena(Root root)
 {
@@ -548,7 +558,7 @@ Bool RootOfAddr(Root *rootReturn, Arena arena, Addr addr)
 void RootAccess(Root root, AccessSet mode)
 {
   AVERT(Root, root);
-  /* Can't AVERT mode. */
+  AVERT(AccessSet, mode);
   AVER((root->pm & mode) != AccessSetEMPTY);
   AVER(mode == AccessWRITE); /* only write protection supported */
 
@@ -580,74 +590,99 @@ Res RootsIterate(Globals arena, RootIterateFn f, void *p)
 
 /* RootDescribe -- describe a root */
 
-Res RootDescribe(Root root, mps_lib_FILE *stream)
+Res RootDescribe(Root root, mps_lib_FILE *stream, Count depth)
 {
   Res res;
 
-  if (!TESTT(Root, root)) return ResFAIL;
-  if (stream == NULL) return ResFAIL;
+  if (!TESTT(Root, root))
+    return ResFAIL;
+  if (stream == NULL)
+    return ResFAIL;
 
-  res = WriteF(stream,
+  res = WriteF(stream, depth,
                "Root $P ($U) {\n", (WriteFP)root, (WriteFU)root->serial,
                "  arena $P ($U)\n", (WriteFP)root->arena,
                (WriteFU)root->arena->serial,
                "  rank $U\n", (WriteFU)root->rank,
                "  grey $B\n", (WriteFB)root->grey,
                "  summary $B\n", (WriteFB)root->summary,
+               "  mode",
+               root->mode == 0 ? " NONE" : "",
+               root->mode & RootModeCONSTANT ? " CONSTANT" : "",
+               root->mode & RootModePROTECTABLE ? " PROTECTABLE" : "",
+               root->mode & RootModePROTECTABLE_INNER ? " INNER" : "",
+               "\n",
+               "  protectable $S", WriteFYesNo(root->protectable),
+               "  protBase $A", (WriteFA)root->protBase,
+               "  protLimit $A", (WriteFA)root->protLimit,
+               "  pm",
+               root->pm == AccessSetEMPTY ? " EMPTY" : "",
+               root->pm & AccessREAD ? " READ" : "",
+               root->pm & AccessWRITE ? " WRITE" : "",
                NULL);
-  if (res != ResOK) return res;
+  if (res != ResOK)
+    return res;
 
   switch(root->var) {
     case RootTABLE:
-    res = WriteF(stream,
-                 "  table base $A limit $A\n",
-                 root->the.table.base, root->the.table.limit,
+    res = WriteF(stream, depth + 2,
+                 "table base $A limit $A\n",
+                 (WriteFA)root->the.table.base,
+                 (WriteFA)root->the.table.limit,
                  NULL);
-    if (res != ResOK) return res;
+    if (res != ResOK)
+      return res;
     break;
 
     case RootTABLE_MASKED:
-    res = WriteF(stream, "  table base $A limit $A mask $B\n",
-                 root->the.tableMasked.base, root->the.tableMasked.limit,
-                 root->the.tableMasked.mask,
+    res = WriteF(stream, depth + 2,
+                 "table base $A limit $A mask $B\n",
+                 (WriteFA)root->the.tableMasked.base,
+                 (WriteFA)root->the.tableMasked.limit,
+                 (WriteFB)root->the.tableMasked.mask,
                  NULL);
-    if (res != ResOK) return res;
+    if (res != ResOK)
+      return res;
     break;
 
     case RootFUN:
-    res = WriteF(stream,
-                 "  scan function $F\n", (WriteFF)root->the.fun.scan,
-                 "  environment p $P s $W\n",
-                 root->the.fun.p, (WriteFW)root->the.fun.s,
+    res = WriteF(stream, depth + 2,
+                 "scan function $F\n", (WriteFF)root->the.fun.scan,
+                 "environment p $P s $W\n",
+                 (WriteFP)root->the.fun.p, (WriteFW)root->the.fun.s,
                  NULL);
-    if (res != ResOK) return res;
+    if (res != ResOK)
+      return res;
     break;
 
     case RootREG:
-    res = WriteF(stream,
-                 "  thread $P\n", (WriteFP)root->the.reg.thread,
-                 "  environment p $P", root->the.reg.p,
+    res = WriteF(stream, depth + 2,
+                 "thread $P\n", (WriteFP)root->the.reg.thread,
+                 "environment p $P", (WriteFP)root->the.reg.p,
                  NULL);
-    if (res != ResOK) return res;
+    if (res != ResOK)
+      return res;
     break;
 
     case RootFMT:
-    res = WriteF(stream,
-                 "  scan function $F\n", (WriteFF)root->the.fmt.scan,
-                 "  format base $A limit $A\n",
-                 root->the.fmt.base, root->the.fmt.limit,
+    res = WriteF(stream, depth + 2,
+                 "scan function $F\n", (WriteFF)root->the.fmt.scan,
+                 "format base $A limit $A\n",
+                 (WriteFA)root->the.fmt.base, (WriteFA)root->the.fmt.limit,
                  NULL);
-    if (res != ResOK) return res;
+    if (res != ResOK)
+      return res;
     break;
           
     default:
     NOTREACHED;
   }
 
-  res = WriteF(stream,
+  res = WriteF(stream, depth,
                "} Root $P ($U)\n", (WriteFP)root, (WriteFU)root->serial,
                NULL);
-  if (res != ResOK) return res;
+  if (res != ResOK)
+    return res;
 
   return ResOK;
 }
@@ -655,15 +690,16 @@ Res RootDescribe(Root root, mps_lib_FILE *stream)
 
 /* RootsDescribe -- describe all roots */
 
-Res RootsDescribe(Globals arenaGlobals, mps_lib_FILE *stream)
+Res RootsDescribe(Globals arenaGlobals, mps_lib_FILE *stream, Count depth)
 {
   Res res = ResOK;
   Ring node, next;
 
   RING_FOR(node, &arenaGlobals->rootRing, next) {
     Root root = RING_ELT(Root, arenaRing, node);
-    res = RootDescribe(root, stream); /* this outputs too much */
-    if (res != ResOK) return res;
+    res = RootDescribe(root, stream, depth);
+    if (res != ResOK)
+      return res;
   }
   return res;
 }
@@ -671,7 +707,7 @@ Res RootsDescribe(Globals arenaGlobals, mps_lib_FILE *stream)
 
 /* C. COPYRIGHT AND LICENSE
  *
- * Copyright (C) 2001-2002 Ravenbrook Limited <http://www.ravenbrook.com/>.
+ * Copyright (C) 2001-2015 Ravenbrook Limited <http://www.ravenbrook.com/>.
  * All rights reserved.  This is an open source license.  Contact
  * Ravenbrook for commercial licensing options.
  * 

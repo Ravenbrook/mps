@@ -1,7 +1,7 @@
 /* thw3i3.c: WIN32 THREAD MANAGER
  *
  * $Id$
- * Copyright (c) 2001 Ravenbrook Limited.  See end of file for license.
+ * Copyright (c) 2001-2014 Ravenbrook Limited.  See end of file for license.
  *
  * Implements thread registration, suspension, and stack
  * scanning.  See <design/thread-manager/>.
@@ -60,7 +60,7 @@ Bool ThreadCheck(Thread thread)
   CHECKS(Thread, thread);
   CHECKU(Arena, thread->arena);
   CHECKL(thread->serial < thread->arena->threadSerial);
-  CHECKL(RingCheck(&thread->arenaRing));
+  CHECKD_NOSIG(Ring, &thread->arenaRing);
   return TRUE;
 }
 
@@ -109,6 +109,7 @@ Res ThreadRegister(Thread *threadReturn, Arena arena)
   thread->serial = arena->threadSerial;
   ++arena->threadSerial;
   thread->arena = arena;
+  thread->alive = TRUE;
 
   AVERT(Thread, thread);
 
@@ -138,60 +139,66 @@ void ThreadDeregister(Thread thread, Arena arena)
 }
 
 
-/*  Map over threads on ring calling f on each one except the
- *  current thread.
+/* mapThreadRing -- map over threads on ring calling a function on
+ * each one except the current thread.
+ *
+ * Threads that are found to be dead (that is, if func returns FALSE)
+ * are moved to deadRing.
  */
-static void mapThreadRing(Ring ring, void (*f)(Thread thread))
+
+static void mapThreadRing(Ring threadRing, Ring deadRing, Bool (*func)(Thread))
 {
-  Ring node;
+  Ring node, next;
   DWORD id;
 
+  AVERT(Ring, threadRing);
+  AVERT(Ring, deadRing);
+  AVER(FUNCHECK(func));
+
   id = GetCurrentThreadId();
-  node = RingNext(ring);
-  while(node != ring) {
-    Ring next = RingNext(node);
-    Thread thread;
-
-    thread = RING_ELT(Thread, arenaRing, node);
+  RING_FOR(node, threadRing, next) {
+    Thread thread = RING_ELT(Thread, arenaRing, node);
     AVERT(Thread, thread);
-    if(id != thread->id) /* .thread.id */
-      (*f)(thread);
-
-    node = next;
+    AVER(thread->alive);
+    if (id != thread->id /* .thread.id */
+        && !(*func)(thread)) 
+    {
+      thread->alive = FALSE;
+      RingRemove(&thread->arenaRing);
+      RingAppend(deadRing, &thread->arenaRing);
+    }
   }
 }
 
-static void suspend(Thread thread)
+static Bool suspendThread(Thread thread)
 {
   /* .thread.handle.susp-res */
   /* .error.suspend */
-  /* In the error case (SuspendThread returning 0xFFFFFFFF), we */
-  /* assume the thread has been destroyed (as part of process shutdown). */
-  /* In which case we simply continue. */
+  /* In the error case (SuspendThread returning -1), we */
+  /* assume the thread has been terminated. */
   /* [GetLastError appears to return 5 when SuspendThread is called */
-  /* on a destroyed thread, but I'm not sufficiently confident of this */
+  /* on a terminated thread, but I'm not sufficiently confident of this */
   /* to check -- drj 1998-04-09] */
-  (void)SuspendThread(thread->handle);
+  return SuspendThread(thread->handle) != (DWORD)-1;
 }
 
-void ThreadRingSuspend(Ring ring)
+void ThreadRingSuspend(Ring threadRing, Ring deadRing)
 {
-  mapThreadRing(ring, suspend);
+  mapThreadRing(threadRing, deadRing, suspendThread);
 }
 
-static void resume(Thread thread)
+static Bool resumeThread(Thread thread)
 {
   /* .thread.handle.susp-res */
   /* .error.resume */
-  /* In the error case (ResumeThread returning 0xFFFFFFFF), we */
-  /* assume the thread has been destroyed (as part of process shutdown). */
-  /* In which case we simply continue. */
-  (void)ResumeThread(thread->handle);
+  /* In the error case (ResumeThread returning -1), we */
+  /* assume the thread has been terminated. */
+  return ResumeThread(thread->handle) != (DWORD)-1;
 }
 
-void ThreadRingResume(Ring ring)
+void ThreadRingResume(Ring threadRing, Ring deadRing)
 {
-  mapThreadRing(ring, resume);
+  mapThreadRing(threadRing, deadRing, resumeThread);
 }
 
 
@@ -204,22 +211,23 @@ Thread ThreadRingThread(Ring threadRing)
   return thread;
 }
 
-/* Must be thread-safe.  See <design/interface-c/#thread-safety>. */
+/* Must be thread-safe. See <design/interface-c/#check.testt>. */
+
 Arena ThreadArena(Thread thread)
 {
-  /* Can't AVER thread as that would not be thread-safe */
-  /* AVERT(Thread, thread); */
+  AVER(TESTT(Thread, thread));
   return thread->arena;
 }
 
-Res ThreadDescribe(Thread thread, mps_lib_FILE *stream)
+Res ThreadDescribe(Thread thread, mps_lib_FILE *stream, Count depth)
 {
   Res res;
  
-  res = WriteF(stream,
+  res = WriteF(stream, depth,
                "Thread $P ($U) {\n", (WriteFP)thread, (WriteFU)thread->serial,
                "  arena $P ($U)\n", 
                (WriteFP)thread->arena, (WriteFU)thread->arena->serial,
+               "  alive $S\n", WriteFYesNo(thread->alive),
                "  handle $W\n",      (WriteFW)thread->handle,
                "  id $U\n",          (WriteFU)thread->id,
                "} Thread $P ($U)\n", (WriteFP)thread, (WriteFU)thread->serial,
@@ -233,7 +241,7 @@ Res ThreadDescribe(Thread thread, mps_lib_FILE *stream)
 
 /* C. COPYRIGHT AND LICENSE
  *
- * Copyright (C) 2001-2002 Ravenbrook Limited <http://www.ravenbrook.com/>.
+ * Copyright (C) 2001-2014 Ravenbrook Limited <http://www.ravenbrook.com/>.
  * All rights reserved.  This is an open source license.  Contact
  * Ravenbrook for commercial licensing options.
  * 

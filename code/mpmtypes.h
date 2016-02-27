@@ -1,7 +1,7 @@
 /* mpmtypes.h: MEMORY POOL MANAGER TYPES
  *
  * $Id$
- * Copyright (c) 2001-2002, 2006 Ravenbrook Limited.  See end of file for license.
+ * Copyright (c) 2001-2014 Ravenbrook Limited.  See end of file for license.
  * Portions copyright (c) 2001 Global Graphics Software.
  *
  * .design: <design/type/>
@@ -33,6 +33,7 @@ typedef void (*Fun)(void);              /* <design/type/#fun> */
 typedef MPS_T_WORD Word;                /* <design/type/#word> */
 typedef unsigned char Byte;             /* <design/type/#byte> */
 typedef struct AddrStruct *Addr;        /* <design/type/#addr> */
+typedef const struct AddrStruct *ReadonlyAddr; /* <design/type/#readonlyaddr> */
 typedef Word Size;                      /* <design/type/#size> */
 typedef Word Count;                     /* <design/type/#count> */
 typedef Word Index;                     /* <design/type/#index> */
@@ -41,7 +42,7 @@ typedef unsigned Shift;                 /* <design/type/#shift> */
 typedef unsigned Serial;                /* <design/type/#serial> */
 typedef Addr Ref;                       /* <design/type/#ref> */
 typedef void *Pointer;                  /* <design/type/#pointer> */
-typedef Word Clock;                     /* processor time */
+typedef Word Clock;                     /* <design/type/#clock> */
 typedef MPS_T_ULONGEST ULongest;        /* <design/type/#ulongest> */
 
 typedef mps_arg_s ArgStruct;
@@ -60,7 +61,6 @@ typedef unsigned TraceSet;              /* <design/trace/> */
 typedef unsigned TraceState;            /* <design/trace/> */
 typedef unsigned AccessSet;             /* <design/type/#access-set> */
 typedef unsigned Attr;                  /* <design/type/#attr> */
-typedef unsigned FormatVariety;        
 typedef int RootVar;                    /* <design/type/#rootvar> */
 
 typedef Word *BT;                       /* <design/bt/> */
@@ -75,9 +75,8 @@ typedef unsigned FrameState;            /* <design/alloc-frame/> */
 typedef struct mps_fmt_s *Format;       /* design.mps.format */
 typedef struct LockStruct *Lock;        /* <code/lock.c>* */
 typedef struct mps_pool_s *Pool;        /* <design/pool/> */
-typedef struct mps_class_s *PoolClass;  /* <code/poolclas.c> */
+typedef struct mps_pool_class_s *PoolClass;  /* <code/poolclas.c> */
 typedef PoolClass AbstractPoolClass;    /* <code/poolabs.c> */
-typedef PoolClass AbstractAllocFreePoolClass; /* <code/poolabs.c> */
 typedef PoolClass AbstractBufferPoolClass; /* <code/poolabs.c> */
 typedef PoolClass AbstractSegBufPoolClass; /* <code/poolabs.c> */
 typedef PoolClass AbstractScanPoolClass; /* <code/poolabs.c> */
@@ -93,8 +92,8 @@ typedef struct SegStruct *Seg;          /* <code/seg.c> */
 typedef struct GCSegStruct *GCSeg;      /* <code/seg.c> */
 typedef struct SegClassStruct *SegClass; /* <code/seg.c> */
 typedef SegClass GCSegClass;            /* <code/seg.c> */
-typedef struct SegPrefStruct *SegPref;  /* design.mps.pref, <code/locus.c> */
-typedef int SegPrefKind;                /* design.mps.pref, <code/locus.c> */
+typedef struct LocusPrefStruct *LocusPref; /* <design/locus/>, <code/locus.c> */
+typedef int LocusPrefKind;              /* <design/locus/>, <code/locus.c> */
 typedef struct mps_arena_class_s *ArenaClass; /* <design/arena/> */
 typedef ArenaClass AbstractArenaClass;  /* <code/arena.c> */
 typedef struct mps_arena_s *Arena;      /* <design/arena/> */
@@ -109,7 +108,10 @@ typedef struct AllocPatternStruct *AllocPattern;
 typedef struct AllocFrameStruct *AllocFrame; /* <design/alloc-frame/> */
 typedef struct ReservoirStruct *Reservoir;   /* <design/reservoir/> */
 typedef struct StackContextStruct *StackContext;
-typedef unsigned FindDelete;    /* <design/cbs/> */
+typedef struct RangeStruct *Range;      /* <design/range/> */
+typedef struct LandStruct *Land;        /* <design/land/> */
+typedef struct LandClassStruct *LandClass; /* <design/land/> */
+typedef unsigned FindDelete;            /* <design/land/> */
 
 
 /* Arena*Method -- see <code/mpmst.h#ArenaClassStruct> */
@@ -118,16 +120,18 @@ typedef void (*ArenaVarargsMethod)(ArgStruct args[], va_list varargs);
 typedef Res (*ArenaInitMethod)(Arena *arenaReturn,
                                ArenaClass class, ArgList args);
 typedef void (*ArenaFinishMethod)(Arena arena);
-typedef Size (*ArenaReservedMethod)(Arena arena);
 typedef Size (*ArenaPurgeSpareMethod)(Arena arena, Size size);
 typedef Res (*ArenaExtendMethod)(Arena arena, Addr base, Size size);
-typedef Res (*ArenaAllocMethod)(Addr *baseReturn, Tract *baseTractReturn,
-                                SegPref pref, Size size, Pool pool);
+typedef Res (*ArenaGrowMethod)(Arena arena, LocusPref pref, Size size);
 typedef void (*ArenaFreeMethod)(Addr base, Size size, Pool pool);
 typedef Res (*ArenaChunkInitMethod)(Chunk chunk, BootBlock boot);
 typedef void (*ArenaChunkFinishMethod)(Chunk chunk);
 typedef void (*ArenaCompactMethod)(Arena arena, Trace trace);
-typedef Res (*ArenaDescribeMethod)(Arena arena, mps_lib_FILE *stream);
+typedef Res (*ArenaDescribeMethod)(Arena arena, mps_lib_FILE *stream, Count depth);
+typedef Res (*ArenaPagesMarkAllocatedMethod)(Arena arena, Chunk chunk,
+                                             Index baseIndex, Count pages,
+                                             Pool pool);
+
 
 /* These are not generally exposed and public, but are part of a commercial
    extension to the MPS. */
@@ -143,11 +147,11 @@ typedef Res (*TraceFixMethod)(ScanState ss, Ref *refIO);
 /* Heap Walker */
 
 /* This type is used by the PoolClass method Walk */
-typedef void (*FormattedObjectsStepMethod)(Addr obj, Format fmt, Pool pool,
+typedef void (*FormattedObjectsVisitor)(Addr obj, Format fmt, Pool pool,
                                            void *v, size_t s);
 
 /* This type is used by the PoolClass method Walk */
-typedef void (*FreeBlockStepMethod)(Addr base, Addr limit, Pool pool, void *p);
+typedef void (*FreeBlockVisitor)(Addr base, Addr limit, Pool pool, void *p);
 
 
 /* Seg*Method -- see <design/seg/> */
@@ -163,7 +167,7 @@ typedef void (*SegSetRankSummaryMethod)(Seg seg, RankSet rankSet,
 typedef void (*SegSetSummaryMethod)(Seg seg, RefSet summary);
 typedef Buffer (*SegBufferMethod)(Seg seg);
 typedef void (*SegSetBufferMethod)(Seg seg, Buffer buffer);
-typedef Res (*SegDescribeMethod)(Seg seg, mps_lib_FILE *stream);
+typedef Res (*SegDescribeMethod)(Seg seg, mps_lib_FILE *stream, Count depth);
 typedef Res (*SegMergeMethod)(Seg seg, Seg segHi,
                               Addr base, Addr mid, Addr limit,
                               Bool withReservoirPermit);
@@ -183,7 +187,7 @@ typedef Seg (*BufferSegMethod)(Buffer buffer);
 typedef RankSet (*BufferRankSetMethod)(Buffer buffer);
 typedef void (*BufferSetRankSetMethod)(Buffer buffer, RankSet rankSet);
 typedef void (*BufferReassignSegMethod)(Buffer buffer, Seg seg);
-typedef Res (*BufferDescribeMethod)(Buffer buffer, mps_lib_FILE *stream);
+typedef Res (*BufferDescribeMethod)(Buffer buffer, mps_lib_FILE *stream, Count depth);
 
 
 /* Pool*Method -- see <design/class-interface/> */
@@ -225,13 +229,13 @@ typedef void (*PoolFramePopPendingMethod)(Pool pool, Buffer buf,
                                           AllocFrame frame);
 typedef Res (*PoolAddrObjectMethod)(Addr *pReturn,
                                     Pool pool, Seg seg, Addr addr);
-typedef void (*PoolWalkMethod)(Pool pool, Seg seg,
-                               FormattedObjectsStepMethod f,
+typedef void (*PoolWalkMethod)(Pool pool, Seg seg, FormattedObjectsVisitor f,
                                void *v, size_t s);
-typedef void (*PoolFreeWalkMethod)(Pool pool, FreeBlockStepMethod f, void *p);
+typedef void (*PoolFreeWalkMethod)(Pool pool, FreeBlockVisitor f, void *p);
 typedef BufferClass (*PoolBufferClassMethod)(void);
-typedef Res (*PoolDescribeMethod)(Pool pool, mps_lib_FILE *stream);
+typedef Res (*PoolDescribeMethod)(Pool pool, mps_lib_FILE *stream, Count depth);
 typedef PoolDebugMixin (*PoolDebugMixinMethod)(Pool pool);
+typedef Size (*PoolSizeMethod)(Pool pool);
 
 
 /* Messages
@@ -259,6 +263,22 @@ typedef struct TraceStartMessageStruct *TraceStartMessage;
 typedef struct TraceMessageStruct *TraceMessage;  /* trace end */
 
 
+/* Land*Method -- see <design/land/> */
+
+typedef Res (*LandInitMethod)(Land land, ArgList args);
+typedef void (*LandFinishMethod)(Land land);
+typedef Size (*LandSizeMethod)(Land land);
+typedef Res (*LandInsertMethod)(Range rangeReturn, Land land, Range range);
+typedef Res (*LandDeleteMethod)(Range rangeReturn, Land land, Range range);
+typedef Bool (*LandVisitor)(Land land, Range range, void *closureP, Size closureS);
+typedef Bool (*LandDeleteVisitor)(Bool *deleteReturn, Land land, Range range, void *closureP, Size closureS);
+typedef Bool (*LandIterateMethod)(Land land, LandVisitor visitor, void *closureP, Size closureS);
+typedef Bool (*LandIterateAndDeleteMethod)(Land land, LandDeleteVisitor visitor, void *closureP, Size closureS);
+typedef Bool (*LandFindMethod)(Range rangeReturn, Range oldRangeReturn, Land land, Size size, FindDelete findDelete);
+typedef Res (*LandFindInZonesMethod)(Bool *foundReturn, Range rangeReturn, Range oldRangeReturn, Land land, Size size, ZoneSet zoneSet, Bool high);
+typedef Res (*LandDescribeMethod)(Land land, mps_lib_FILE *stream, Count depth);
+
+
 /* CONSTANTS */
 
 
@@ -269,7 +289,7 @@ typedef struct TraceMessageStruct *TraceMessage;  /* trace end */
 #define AccessSetEMPTY  ((AccessSet)0) /* <design/type/#access-set> */
 #define AccessREAD      ((AccessSet)(1<<0))
 #define AccessWRITE     ((AccessSet)(1<<1))
-#define AccessSetWIDTH  (2)
+#define AccessLIMIT     (2)
 #define RefSetEMPTY     BS_EMPTY(RefSet)
 #define RefSetUNIV      BS_UNIV(RefSet)
 #define ZoneSetEMPTY    BS_EMPTY(ZoneSet)
@@ -279,41 +299,17 @@ typedef struct TraceMessageStruct *TraceMessage;  /* trace end */
 #define RankSetEMPTY    BS_EMPTY(RankSet)
 #define RankSetUNIV     ((RankSet)((1u << RankLIMIT) - 1))
 #define AttrFMT         ((Attr)(1<<0))  /* <design/type/#attr> */
-#define AttrSCAN        ((Attr)(1<<1))
-#define AttrPM_NO_READ  ((Attr)(1<<2))
-#define AttrPM_NO_WRITE ((Attr)(1<<3))
-#define AttrALLOC       ((Attr)(1<<4))
-#define AttrFREE        ((Attr)(1<<5))
-#define AttrBUF         ((Attr)(1<<6))
-#define AttrBUF_RESERVE ((Attr)(1<<7))
-#define AttrBUF_ALLOC   ((Attr)(1<<8))
-#define AttrGC          ((Attr)(1<<9))
-#define AttrINCR_RB     ((Attr)(1<<10))
-#define AttrINCR_WB     ((Attr)(1<<11))
-#define AttrMOVINGGC    ((Attr)(1<<12))
-#define AttrMASK        (AttrFMT | AttrSCAN | AttrPM_NO_READ | \
-                         AttrPM_NO_WRITE | AttrALLOC | AttrFREE | \
-                         AttrBUF | AttrBUF_RESERVE | AttrBUF_ALLOC | \
-                         AttrGC | AttrINCR_RB | AttrINCR_WB | AttrMOVINGGC)
+#define AttrGC          ((Attr)(1<<1))
+#define AttrMOVINGGC    ((Attr)(1<<2))
+#define AttrMASK        (AttrFMT | AttrGC | AttrMOVINGGC)
 
 
-/* Format varieties */
+/* Locus preferences */
 enum {
-  FormatVarietyA = 1,
-  FormatVarietyB,
-  FormatVarietyAutoHeader,
-  FormatVarietyFixed,
-  FormatVarietyLIMIT
-};
-
-
-/* Segment preferences */
-enum {
-  SegPrefHigh = 1,
-  SegPrefLow, 
-  SegPrefZoneSet,
-  SegPrefCollected,
-  SegPrefLIMIT
+  LocusPrefHIGH = 1,
+  LocusPrefLOW, 
+  LocusPrefZONESET,
+  LocusPrefLIMIT
 };
 
 
@@ -337,6 +333,7 @@ enum {
 /* This is checked by <code/mpsi.c#check>. */
 
 enum {
+  RankMIN = 0,
   RankAMBIG = 0,
   RankEXACT = 1,
   RankFINAL = 2,
@@ -416,7 +413,7 @@ enum {
 };
 
 
-/* FindDelete operations -- see <design/cbs/> and <design/freelist/> */
+/* FindDelete operations -- see <design/land/> */
 
 enum {
   FindDeleteNONE = 1, /* don't delete after finding */
@@ -463,7 +460,7 @@ typedef double WriteFD;
 
 /* C. COPYRIGHT AND LICENSE
  *
- * Copyright (C) 2001-2002, 2006 Ravenbrook Limited <http://www.ravenbrook.com/>.
+ * Copyright (C) 2001-2014 Ravenbrook Limited <http://www.ravenbrook.com/>.
  * All rights reserved.  This is an open source license.  Contact
  * Ravenbrook for commercial licensing options.
  * 

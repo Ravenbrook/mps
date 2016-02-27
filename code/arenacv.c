@@ -1,7 +1,7 @@
 /* arenacv.c: ARENA COVERAGE TEST
  *
  * $Id$
- * Copyright (c) 2001-2013 Ravenbrook Limited.  See end of file for license.
+ * Copyright (c) 2001-2014 Ravenbrook Limited.  See end of file for license.
  *
  * .coverage: At the moment, we're only trying to cover the new code
  * (partial mapping of the page table and vm overflow).
@@ -14,14 +14,15 @@
  * being allocated; this requires using two adjacent zones.
  */
 
-#include <stdlib.h>
-
 #include "mpm.h"
 #include "poolmv.h"
 #include "testlib.h"
 #include "mpslib.h"
 #include "mpsavm.h"
 #include "mpsacl.h"
+
+#include <stdio.h> /* printf */
+#include <stdlib.h> /* malloc */
 
 
 #define tractsSIZE 500
@@ -54,7 +55,7 @@ typedef struct AllocInfoStruct {
   } the;
 } AllocInfoStruct;
 
-typedef Res (*AllocFun)(AllocInfoStruct *aiReturn, SegPref pref,
+typedef Res (*AllocFun)(AllocInfoStruct *aiReturn, LocusPref pref,
                         Size size, Pool pool);
 
 typedef void (*FreeFun)(AllocInfo ai);
@@ -86,9 +87,76 @@ typedef struct AllocatorClassStruct {
 } AllocatorClassStruct;
 
 
+/* tractSearchInChunk -- find a tract in a chunk
+ *
+ * .tract-search: Searches for a tract in the chunk starting at page
+ * index i, return FALSE if there is none.
+ */
+
+static Bool tractSearchInChunk(Tract *tractReturn, Chunk chunk, Index i)
+{
+  AVER_CRITICAL(chunk->allocBase <= i);
+  AVER_CRITICAL(i <= chunk->pages);
+
+  while (i < chunk->pages
+         && !(BTGet(chunk->allocTable, i)
+              && PageIsAllocated(ChunkPage(chunk, i)))) {
+    ++i;
+  }
+  if (i == chunk->pages)
+    return FALSE;
+  AVER(i < chunk->pages);
+  *tractReturn = PageTract(ChunkPage(chunk, i));
+  return TRUE;
+}
+
+
+/* tractSearch -- find next tract above address
+ *
+ * Searches for the next tract in increasing address order.
+ * The tract returned is the next one along from addr (i.e.,
+ * it has a base address bigger than addr and no other tract
+ * with a base address bigger than addr has a smaller base address).
+ *
+ * Returns FALSE if there is no tract to find (end of the arena).
+ */
+
+static Bool tractSearch(Tract *tractReturn, Arena arena, Addr addr)
+{
+  Bool b;
+  Chunk chunk;
+  Tree tree;
+
+  b = ChunkOfAddr(&chunk, arena, addr);
+  if (b) {
+    Index i;
+
+    i = INDEX_OF_ADDR(chunk, addr);
+    /* There are fewer pages than addresses, therefore the */
+    /* page index can never wrap around */
+    AVER_CRITICAL(i+1 != 0);
+
+    if (tractSearchInChunk(tractReturn, chunk, i+1)) {
+      return TRUE;
+    }
+  }
+  while (TreeFindNext(&tree, ArenaChunkTree(arena), TreeKeyOfAddrVar(addr),
+                      ChunkCompare))
+  {
+    chunk = ChunkOfTree(tree);
+    addr = chunk->base;
+    /* Start from allocBase to skip the tables. */
+    if (tractSearchInChunk(tractReturn, chunk, chunk->allocBase)) {
+      return TRUE;
+    }
+  }
+  return FALSE;
+}
+
+
 /* Implementation of the tract-based interchangability interface */
 
-static Res allocAsTract(AllocInfoStruct *aiReturn, SegPref pref,
+static Res allocAsTract(AllocInfoStruct *aiReturn, LocusPref pref,
                         Size size, Pool pool)
 {
   Res res;
@@ -113,10 +181,10 @@ static Bool firstAsTract(AllocInfoStruct *aiReturn, Arena arena)
 {
   Bool res;
   Tract tract;
-  res = TractFirst(&tract, arena);
+  res = tractSearch(&tract, arena, 0);
   if (res) {
     aiReturn->the.tractData.base = TractBase(tract);
-    aiReturn->the.tractData.size = ArenaAlign(arena);;
+    aiReturn->the.tractData.size = ArenaGrainSize(arena);;
     aiReturn->the.tractData.pool = TractPool(tract);
   }
   return res;
@@ -127,10 +195,10 @@ static Bool nextAsTract(AllocInfoStruct *nextReturn, AllocInfo ai,
 {
   Bool res;
   Tract tract;
-  res = TractNext(&tract, arena, ai->the.tractData.base);
+  res = tractSearch(&tract, arena, ai->the.tractData.base);
   if (res) {
     nextReturn->the.tractData.base = TractBase(tract);
-    nextReturn->the.tractData.size = ArenaAlign(arena);;
+    nextReturn->the.tractData.size = ArenaGrainSize(arena);;
     nextReturn->the.tractData.pool = TractPool(tract);
   }
   return res;
@@ -176,7 +244,7 @@ static AllocatorClassStruct allocatorTractStruct = {
 
 /* Implementation of the segment-based interchangability interface */
 
-static Res allocAsSeg(AllocInfoStruct *aiReturn, SegPref pref,
+static Res allocAsSeg(AllocInfoStruct *aiReturn, LocusPref pref,
                       Size size, Pool pool)
 {
   Res res;
@@ -261,12 +329,12 @@ static void testAllocAndIterate(Arena arena, Pool pool,
                                 AllocatorClass allocator)
 {
   AllocInfoStruct offsetRegion, gapRegion, newRegion, topRegion;
-  SegPrefStruct pref;
+  LocusPrefStruct pref;
   Count offset, gap, new;
   ZoneSet zone = (ZoneSet)2;
   int i;
 
-  SegPrefInit(&pref);
+  LocusPrefInit(&pref);
   
   /* Testing the behaviour with various sizes of gaps in the page table. */
 
@@ -329,13 +397,12 @@ static void testAllocAndIterate(Arena arena, Pool pool,
         allocator->free(&offsetRegion);
       }
     }
-    SegPrefExpress(&pref, SegPrefZoneSet, &zone);
+    LocusPrefExpress(&pref, LocusPrefZONESET, &zone);
   }
-
 }
 
 
-static void testPageTable(ArenaClass class, Size size, Addr addr)
+static void testPageTable(ArenaClass class, Size size, Addr addr, Bool zoned)
 {
   Arena arena; Pool pool;
   Size pageSize;
@@ -344,12 +411,13 @@ static void testPageTable(ArenaClass class, Size size, Addr addr)
   MPS_ARGS_BEGIN(args) {
     MPS_ARGS_ADD(args, MPS_KEY_ARENA_SIZE, size);
     MPS_ARGS_ADD(args, MPS_KEY_ARENA_CL_BASE, addr);
+    MPS_ARGS_ADD(args, MPS_KEY_ARENA_ZONED, zoned);
     die(ArenaCreate(&arena, class, args), "ArenaCreate");
   } MPS_ARGS_END(args);
 
   die(PoolCreate(&pool, arena, PoolClassMV(), argsNone), "PoolCreate");
 
-  pageSize = ArenaAlign(arena);
+  pageSize = ArenaGrainSize(arena);
   tractsPerPage = pageSize / sizeof(TractStruct);
   printf("%ld tracts per page in the page table.\n", (long)tractsPerPage);
 
@@ -360,6 +428,10 @@ static void testPageTable(ArenaClass class, Size size, Addr addr)
   /* test segment allocation and iteration */
   testAllocAndIterate(arena, pool, pageSize, tractsPerPage,
                       &allocatorSegStruct);
+
+  die(ArenaDescribe(arena, mps_lib_get_stdout(), 0), "ArenaDescribe");
+  die(ArenaDescribeTracts(arena, mps_lib_get_stdout(), 0),
+      "ArenaDescribeTracts");
 
   PoolDestroy(pool);
   ArenaDestroy(arena);
@@ -398,14 +470,15 @@ static void testSize(Size size)
 int main(int argc, char *argv[])
 {
   void *block;
-  testlib_unused(argc);
 
-  testPageTable((ArenaClass)mps_arena_class_vm(), TEST_ARENA_SIZE, 0);
-  testPageTable((ArenaClass)mps_arena_class_vmnz(), TEST_ARENA_SIZE, 0);
+  testlib_init(argc, argv);
+
+  testPageTable((ArenaClass)mps_arena_class_vm(), TEST_ARENA_SIZE, 0, TRUE);
+  testPageTable((ArenaClass)mps_arena_class_vm(), TEST_ARENA_SIZE, 0, FALSE);
 
   block = malloc(TEST_ARENA_SIZE);
   cdie(block != NULL, "malloc");
-  testPageTable((ArenaClass)mps_arena_class_cl(), TEST_ARENA_SIZE, block);
+  testPageTable((ArenaClass)mps_arena_class_cl(), TEST_ARENA_SIZE, block, FALSE);
 
   testSize(TEST_ARENA_SIZE);
 
@@ -416,7 +489,7 @@ int main(int argc, char *argv[])
 
 /* C. COPYRIGHT AND LICENSE
  *
- * Copyright (c) 2001-2013 Ravenbrook Limited <http://www.ravenbrook.com/>.
+ * Copyright (c) 2001-2014 Ravenbrook Limited <http://www.ravenbrook.com/>.
  * All rights reserved.  This is an open source license.  Contact
  * Ravenbrook for commercial licensing options.
  * 

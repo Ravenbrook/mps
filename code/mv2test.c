@@ -1,24 +1,21 @@
 /* mv2test.c: POOLMVT STRESS TEST
  *
  * $Id$
- * Copyright (c) 2001-2013 Ravenbrook Limited.  See end of file for license.
+ * Copyright (c) 2001-2014 Ravenbrook Limited.  See end of file for license.
  */
 
-#include <stdio.h>
+#include <math.h>
 #include <stdarg.h>
-#include "mpstd.h"
+#include <stdio.h>
 #include <time.h>
 
-#include "mpscmvt.h"
+#include "mpm.h"
 #include "mps.h"
-
-typedef mps_word_t mps_count_t;  /* machine word (target dep.) */
-
-#include "mpslib.h"
 #include "mpsavm.h"
+#include "mpscmvt.h"
+#include "mpslib.h"
+#include "mpstd.h"
 #include "testlib.h"
-
-#include <math.h>
 
 /* expdev() -- exponentially distributed random deviates
  *
@@ -38,11 +35,9 @@ static double expdev(void)
 }
 
 
-#define max(a, b) (((a) > (b)) ? (a) : (b))
-
-static size_t min;
-static size_t mean;
-static size_t max;
+static size_t size_min;
+static size_t size_mean;
+static size_t size_max;
 static int verbose = 0;
 static mps_pool_t pool;
 
@@ -50,8 +45,8 @@ static size_t randomSize(unsigned long i)
 {
   /* Distribution centered on mean.  Verify that allocations
      below min and above max are handled correctly */
-  size_t s = (max - mean)/4;
-  size_t m = mean;
+  size_t s = (size_max - size_mean)/4;
+  size_t m = size_mean;
   double r;
   double x;
 
@@ -73,13 +68,11 @@ static size_t randomSize(unsigned long i)
 #define TEST_SET_SIZE 1234
 #define TEST_LOOPS 27
 
-#define alignUp(w, a) (((w) + (a) - 1) & ~((size_t)(a) - 1))
-
-static mps_res_t make(mps_addr_t *p, mps_ap_t ap, size_t size)
+static mps_res_t make(mps_addr_t *p, mps_ap_t ap, size_t size, mps_align_t align)
 {
   mps_res_t res;
 
-  size = alignUp(size, MPS_PF_ALIGN);
+  size = alignUp(size, align);
  
   do {
     MPS_RESERVE_BLOCK(res, *p, ap, size);
@@ -91,8 +84,9 @@ static mps_res_t make(mps_addr_t *p, mps_ap_t ap, size_t size)
 }
 
 
-static mps_res_t stress(mps_class_t class, mps_arena_t arena,
-                        size_t (*size)(unsigned long i), mps_arg_s args[])
+static mps_res_t stress(mps_arena_t arena, mps_align_t align,
+                        size_t (*size)(unsigned long i),
+                        mps_pool_class_t pool_class, mps_arg_s args[])
 {
   mps_res_t res;
   mps_ap_t ap;
@@ -100,8 +94,9 @@ static mps_res_t stress(mps_class_t class, mps_arena_t arena,
   int *ps[TEST_SET_SIZE];
   size_t ss[TEST_SET_SIZE];
 
-  res = mps_pool_create_k(&pool, arena, class, args);
-  if(res != MPS_RES_OK) return res;
+  res = mps_pool_create_k(&pool, arena, pool_class, args);
+  if (res != MPS_RES_OK)
+    return res;
 
   die(mps_ap_create(&ap, pool, mps_rank_exact()), "BufferCreate");
 
@@ -109,16 +104,20 @@ static mps_res_t stress(mps_class_t class, mps_arena_t arena,
   for(i=0; i<TEST_SET_SIZE; ++i) {
     ss[i] = (*size)(i);
 
-    res = make((mps_addr_t *)&ps[i], ap, ss[i]);
+    res = make((mps_addr_t *)&ps[i], ap, ss[i], align);
     if(res != MPS_RES_OK)
       ss[i] = 0;
     else
       *ps[i] = 1; /* Write something, so it gets swap. */
 
     if (verbose) {
-      if(i && i%4==0) putchar('\n');
+      if (i && i%4==0)
+        putchar('\n');
       printf("%"PRIwWORD PRIXLONGEST" %6"PRIXLONGEST" ",
              (ulongest_t)ps[i], (ulongest_t)ss[i]);
+    }
+    if (i == 100) {
+      PoolDescribe(pool, mps_lib_get_stdout(), 0);
     }
   }
   if (verbose) {
@@ -148,13 +147,14 @@ static mps_res_t stress(mps_class_t class, mps_arena_t arena,
     /* allocate some new objects */
     for(i=x; i<TEST_SET_SIZE; ++i) {
       size_t s = (*size)(i);
-      res = make((mps_addr_t *)&ps[i], ap, s);
+      res = make((mps_addr_t *)&ps[i], ap, s, align);
       if(res != MPS_RES_OK)
         break;
       ss[i] = s;
      
       if (verbose) {
-        if(i && i%4==0) putchar('\n');
+        if (i && i%4==0)
+          putchar('\n');
         printf("%"PRIwWORD PRIXLONGEST" %6"PRIXLONGEST" ",
                (ulongest_t)ps[i], (ulongest_t)ss[i]);
       }
@@ -170,38 +170,46 @@ static mps_res_t stress(mps_class_t class, mps_arena_t arena,
 }
 
 
-static void stress_with_arena_class(mps_arena_class_t aclass)
+static void test_in_arena(mps_arena_class_t arena_class, mps_arg_s *arena_args)
 {
   mps_arena_t arena;
 
-  die(mps_arena_create(&arena, aclass, testArenaSIZE),
+  die(mps_arena_create_k(&arena, arena_class, arena_args),
       "mps_arena_create");
 
-  min = MPS_PF_ALIGN;
-  mean = 42;
-  max = 8192;
+  size_min = MPS_PF_ALIGN;
+  size_mean = 42;
+  size_max = 8192;
 
   MPS_ARGS_BEGIN(args) {
-    MPS_ARGS_ADD(args, MPS_KEY_MIN_SIZE, min);
-    MPS_ARGS_ADD(args, MPS_KEY_MEAN_SIZE, mean);
-    MPS_ARGS_ADD(args, MPS_KEY_MAX_SIZE, max);
+    mps_align_t align = sizeof(void *) << (rnd() % 4);
+    MPS_ARGS_ADD(args, MPS_KEY_ALIGN, align);
+    MPS_ARGS_ADD(args, MPS_KEY_MIN_SIZE, size_min);
+    MPS_ARGS_ADD(args, MPS_KEY_MEAN_SIZE, size_mean);
+    MPS_ARGS_ADD(args, MPS_KEY_MAX_SIZE, size_max);
     MPS_ARGS_ADD(args, MPS_KEY_MVT_RESERVE_DEPTH, TEST_SET_SIZE/2);
     MPS_ARGS_ADD(args, MPS_KEY_MVT_FRAG_LIMIT, 0.3);
-    die(stress(mps_class_mvt(), arena, randomSize, args), "stress MVT");
+    die(stress(arena, align, randomSize, mps_class_mvt(), args), "stress MVT");
   } MPS_ARGS_END(args);
 
   mps_arena_destroy(arena);
-
-  return;
 }
 
 
 int main(int argc, char *argv[])
 {
-  randomize(argc, argv);
+  testlib_init(argc, argv);
 
-  stress_with_arena_class(mps_arena_class_vm());
-  stress_with_arena_class(mps_arena_class_vmnz());
+  MPS_ARGS_BEGIN(args) {
+    MPS_ARGS_ADD(args, MPS_KEY_ARENA_SIZE, testArenaSIZE);
+    test_in_arena(mps_arena_class_vm(), args);
+  } MPS_ARGS_END(args);
+
+  MPS_ARGS_BEGIN(args) {
+    MPS_ARGS_ADD(args, MPS_KEY_ARENA_SIZE, testArenaSIZE);
+    MPS_ARGS_ADD(args, MPS_KEY_ARENA_ZONED, FALSE);
+    test_in_arena(mps_arena_class_vm(), args);
+  } MPS_ARGS_END(args);
 
   printf("%s: Conclusion: Failed to find any defects.\n", argv[0]);
   return 0;
@@ -210,7 +218,7 @@ int main(int argc, char *argv[])
 
 /* C. COPYRIGHT AND LICENSE
  *
- * Copyright (c) 2001-2013 Ravenbrook Limited <http://www.ravenbrook.com/>.
+ * Copyright (c) 2001-2014 Ravenbrook Limited <http://www.ravenbrook.com/>.
  * All rights reserved.  This is an open source license.  Contact
  * Ravenbrook for commercial licensing options.
  * 

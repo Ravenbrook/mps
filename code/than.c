@@ -1,15 +1,11 @@
 /* than.c: ANSI THREADS MANAGER
  *
  *  $Id$
- *  Copyright (c) 2001 Ravenbrook Limited.  See end of file for license.
+ *  Copyright (c) 2001-2014 Ravenbrook Limited.  See end of file for license.
  *
  *  This is a single-threaded implementation of the threads manager.
  *  Has stubs for thread suspension.
- *  See <design/thread-manager/>.
- *
- *  .single: We only expect at most one thread on the ring.
- *
- *  This supports the <code/th.h>
+ *  See <design/thread-manager/#impl.an>.
  */
 
 #include "mpm.h"
@@ -30,7 +26,7 @@ Bool ThreadCheck(Thread thread)
   CHECKS(Thread, thread);
   CHECKU(Arena, thread->arena);
   CHECKL(thread->serial < thread->arena->threadSerial);
-  CHECKL(RingCheck(&thread->arenaRing));
+  CHECKD_NOSIG(Ring, &thread->arenaRing);
   return TRUE;
 }
 
@@ -53,7 +49,8 @@ Res ThreadRegister(Thread *threadReturn, Arena arena)
 
   res = ControlAlloc(&p, arena, sizeof(ThreadStruct),
                      /* withReservoirPermit */ FALSE);
-  if(res != ResOK) return res;
+  if (res != ResOK)
+    return res;
   thread = (Thread)p;
 
   thread->arena = arena;
@@ -66,7 +63,6 @@ Res ThreadRegister(Thread *threadReturn, Arena arena)
   AVERT(Thread, thread);
 
   ring = ArenaThreadRing(arena);
-  AVER(RingCheckSingle(ring));  /* .single */
 
   RingAppend(ring, &thread->arenaRing);
 
@@ -90,16 +86,16 @@ void ThreadDeregister(Thread thread, Arena arena)
 }
 
 
-void ThreadRingSuspend(Ring threadRing)
+void ThreadRingSuspend(Ring threadRing, Ring deadRing)
 {
   AVERT(Ring, threadRing);
-  return;
+  AVERT(Ring, deadRing);
 }
 
-void ThreadRingResume(Ring threadRing)
+void ThreadRingResume(Ring threadRing, Ring deadRing)
 {
   AVERT(Ring, threadRing);
-  return;
+  AVERT(Ring, deadRing);
 }
 
 Thread ThreadRingThread(Ring threadRing)
@@ -112,11 +108,11 @@ Thread ThreadRingThread(Ring threadRing)
 }
 
 
-/* Must be thread-safe.  See <design/interface-c/#thread-safety>. */
+/* Must be thread-safe. See <design/interface-c/#check.testt>. */
+
 Arena ThreadArena(Thread thread)
 {
-  /* Can't AVER thread as that would not be thread-safe */
-  /* AVERT(Thread, thread); */
+  AVER(TESTT(Thread, thread));
   return thread->arena;
 }
 
@@ -128,17 +124,18 @@ Res ThreadScan(ScanState ss, Thread thread, void *stackBot)
 }
 
 
-Res ThreadDescribe(Thread thread, mps_lib_FILE *stream)
+Res ThreadDescribe(Thread thread, mps_lib_FILE *stream, Count depth)
 {
   Res res;
  
-  res = WriteF(stream,
+  res = WriteF(stream, depth,
                "Thread $P ($U) {\n", (WriteFP)thread, (WriteFU)thread->serial,
                "  arena $P ($U)\n", 
                (WriteFP)thread->arena, (WriteFU)thread->arena->serial,
                "} Thread $P ($U)\n", (WriteFP)thread, (WriteFU)thread->serial,
                NULL);
-  if(res != ResOK) return res;
+  if (res != ResOK)
+    return res;
 
   return ResOK;
 }
@@ -146,7 +143,7 @@ Res ThreadDescribe(Thread thread, mps_lib_FILE *stream)
 
 /* C. COPYRIGHT AND LICENSE
  *
- * Copyright (C) 2001-2002 Ravenbrook Limited <http://www.ravenbrook.com/>.
+ * Copyright (C) 2001-2014 Ravenbrook Limited <http://www.ravenbrook.com/>.
  * All rights reserved.  This is an open source license.  Contact
  * Ravenbrook for commercial licensing options.
  * 

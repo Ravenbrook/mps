@@ -3,7 +3,7 @@
 # comm.gmk: COMMON GNUMAKEFILE FRAGMENT
 #
 # $Id$
-# Copyright (c) 2001-2013 Ravenbrook Limited.  See end of file for license.
+# Copyright (c) 2001-2014 Ravenbrook Limited.  See end of file for license.
 #
 # DESCRIPTION
 #
@@ -15,8 +15,8 @@
 # Assumes the following variables and definitions:
 # EXTRA_TARGETS     a list of extra targets to build
 # CFLAGSCOMPILER    a list of flags for all compilations
-# CFLAGSSTRICT      a list of flags for almost all compilations
-# CFLAGSLAX         a list of flags for compilations which can't be as
+# CFLAGSCOMPILERSTRICT a list of flags for almost all compilations
+# CFLAGSCOMPILERLAX a list of flags for compilations which can't be as
 #                   strict (e.g. because they have to include a third-
 #                   party header file that isn't -ansi -pedantic).
 # CFLAGSDEBUG       a list of flags for compilations with maximum debug
@@ -36,7 +36,6 @@
 # NOISY   if defined and non-empty, causes commands to be emitted
 # MPMPF   platform-dependent C sources for the "mpm" part
 # MPMS    assembler sources for the "mpm" part (.s files)
-# MPMPS   pre-processor assembler sources for the "mpm" part (.S files)
 #
 # %%PART: When adding a new part, add a new parameter above for the
 # files included in the part.
@@ -108,31 +107,28 @@ endif
 # These flags are included in all compilations.
 # Avoid using PFMDEFS in platform makefiles, as they prevent the MPS being
 # built with a simple command like "cc -c mps.c".
-CFLAGSCOMMON = $(PFMDEFS) $(CFLAGSCOMPILER) $(CFLAGSCOMPILERSTRICT)
+CFLAGSCOMMONSTRICT = $(PFMDEFS) $(CFLAGSCOMPILER) $(CFLAGSCOMPILERSTRICT)
 CFLAGSCOMMONLAX = $(PFMDEFS) $(CFLAGSCOMPILER) $(CFLAGSCOMPILERLAX)
 
 # %%VARIETY: When adding a new variety, define a macro containing the set
 # of flags for the new variety.
 
 # These flags are added to compilations for the indicated variety.
-CFRASH = -DCONFIG_VAR_RASH -DNDEBUG $(CFLAGSOPT)
-CFHOT  = -DCONFIG_VAR_HOT  -DNDEBUG $(CFLAGSOPT)
-CFCOOL = -DCONFIG_VAR_COOL          $(CFLAGSDEBUG)
+CFRASH = -DCONFIG_VAR_RASH $(CFLAGSOPT)
+CFHOT  = -DCONFIG_VAR_HOT  $(CFLAGSOPT)
+CFCOOL = -DCONFIG_VAR_COOL $(CFLAGSDEBUG)
 
-# Bind CFLAGS to the appropriate set of flags for the variety.
-# %%VARIETY: When adding a new variety, add a test for the variety and set
-# CFLAGS here.
+# Bind CFLAGSVARIETY to the appropriate set of flags for the variety.
+# %%VARIETY: When adding a new variety, add a test for the variety and
+# set CFLAGSVARIETY here.
 ifeq ($(VARIETY),rash)
-CFLAGS=$(CFLAGSCOMMON) $(CFRASH)
-CFLAGSLAX=$(CFLAGSCOMMONLAX) $(CFRASH)
+CFLAGSVARIETY=$(CFRASH)
 else
 ifeq ($(VARIETY),hot)
-CFLAGS=$(CFLAGSCOMMON) $(CFHOT)
-CFLAGSLAX=$(CFLAGSCOMMONLAX) $(CFHOT)
+CFLAGSVARIETY=$(CFHOT)
 else
 ifeq ($(VARIETY),cool)
-CFLAGS=$(CFLAGSCOMMON) $(CFCOOL)
-CFLAGSLAX=$(CFLAGSCOMMONLAX) $(CFCOOL)
+CFLAGSVARIETY=$(CFCOOL)
 else
 ifneq ($(VARIETY),)
 $(error Variety "$(VARIETY)" not recognized: must be rash/hot/cool)
@@ -141,7 +137,8 @@ endif
 endif
 endif
 
-
+CFLAGSSTRICT=$(CFLAGSCOMMONSTRICT) $(CFLAGSVARIETY) $(CFLAGS)
+CFLAGSLAX=$(CFLAGSCOMMONLAX) $(CFLAGSVARIETY) $(CFLAGS)
 ARFLAGS=rc$(ARFLAGSPFM)
 
 
@@ -159,18 +156,65 @@ POOLN = pooln.c
 MV2 = poolmv2.c
 MVFF = poolmvff.c
 TESTLIB = testlib.c
+TESTTHR = testthrix.c
 FMTDY = fmtdy.c fmtno.c
 FMTDYTST = fmtdy.c fmtno.c fmtdytst.c
 FMTHETST = fmthe.c fmtdy.c fmtno.c fmtdytst.c
+FMTSCM = fmtscheme.c
 PLINTH = mpsliban.c mpsioan.c
-EVENTPROC = eventcnv.c table.c
-MPMCOMMON = abq.c arena.c arenacl.c arenavm.c arg.c boot.c bt.c         \
-    buffer.c cbs.c dbgpool.c dbgpooli.c event.c format.c         \
-    freelist.c global.c ld.c locus.c message.c meter.c mpm.c mpsi.c     \
-    pool.c poolabs.c poolmfs.c poolmrg.c poolmv.c protocol.c range.c    \
-    ref.c reserv.c ring.c root.c sa.c sac.c seg.c shield.c splay.c ss.c      \
-    table.c trace.c traceanc.c tract.c walk.c
-MPM = $(MPMCOMMON) $(MPMPF)
+MPMCOMMON = \
+    abq.c \
+    arena.c \
+    arenacl.c \
+    arenavm.c \
+    arg.c \
+    boot.c \
+    bt.c \
+    buffer.c \
+    cbs.c \
+    dbgpool.c \
+    dbgpooli.c \
+    event.c \
+    failover.c \
+    format.c \
+    freelist.c \
+    global.c \
+    land.c \
+    ld.c \
+    locus.c \
+    message.c \
+    meter.c \
+    mpm.c \
+    mpsi.c \
+    nailboard.c \
+    policy.c \
+    pool.c \
+    poolabs.c \
+    poolmfs.c \
+    poolmrg.c \
+    poolmv.c \
+    protocol.c \
+    range.c \
+    ref.c \
+    reserv.c \
+    ring.c \
+    root.c \
+    sa.c \
+    sac.c \
+    seg.c \
+    shield.c \
+    splay.c \
+    ss.c \
+    table.c \
+    trace.c \
+    traceanc.c \
+    tract.c \
+    tree.c \
+    version.c \
+    vm.c \
+    walk.c
+POOLS = $(AMC) $(AMS) $(AWL) $(LO) $(MV2) $(MVFF) $(SNC)
+MPM = $(MPMCOMMON) $(MPMPF) $(POOLS) $(PLINTH)
 
 
 # These map the source file lists onto object files and dependency files
@@ -182,35 +226,14 @@ MPM = $(MPMCOMMON) $(MPMPF)
 ifdef VARIETY
 MPMOBJ = $(MPM:%.c=$(PFM)/$(VARIETY)/%.o) \
          $(MPMS:%.s=$(PFM)/$(VARIETY)/%.o)
-MPMDEP = $(MPM:%.c=$(PFM)/$(VARIETY)/%.d)
-AMCOBJ = $(AMC:%.c=$(PFM)/$(VARIETY)/%.o)
-AMCDEP = $(AMC:%.c=$(PFM)/$(VARIETY)/%.d)
-AMSOBJ = $(AMS:%.c=$(PFM)/$(VARIETY)/%.o)
-AMSDEP = $(AMS:%.c=$(PFM)/$(VARIETY)/%.d)
-AWLOBJ = $(AWL:%.c=$(PFM)/$(VARIETY)/%.o)
-AWLDEP = $(AWL:%.c=$(PFM)/$(VARIETY)/%.d)
-LOOBJ = $(LO:%.c=$(PFM)/$(VARIETY)/%.o)
-LODEP = $(LO:%.c=$(PFM)/$(VARIETY)/%.d)
-SNCOBJ = $(SNC:%.c=$(PFM)/$(VARIETY)/%.o)
-SNCDEP = $(SNC:%.c=$(PFM)/$(VARIETY)/%.d)
-POOLNOBJ = $(POOLN:%.c=$(PFM)/$(VARIETY)/%.o)
-POOLNDEP = $(POOLN:%.c=$(PFM)/$(VARIETY)/%.d)
-MV2OBJ = $(MV2:%.c=$(PFM)/$(VARIETY)/%.o)
-MV2DEP = $(MV2:%.c=$(PFM)/$(VARIETY)/%.d)
-MVFFOBJ = $(MVFF:%.c=$(PFM)/$(VARIETY)/%.o)
-MVFFDEP = $(MVFF:%.c=$(PFM)/$(VARIETY)/%.d)
-
-TESTLIBOBJ = $(TESTLIB:%.c=$(PFM)/$(VARIETY)/%.o)
-TESTLIBDEP = $(TESTLIB:%.c=$(PFM)/$(VARIETY)/%.d)
 FMTDYOBJ = $(FMTDY:%.c=$(PFM)/$(VARIETY)/%.o)
-FMTDYDEP = $(FMTDY:%.c=$(PFM)/$(VARIETY)/%.d)
 FMTDYTSTOBJ = $(FMTDYTST:%.c=$(PFM)/$(VARIETY)/%.o)
 FMTHETSTOBJ = $(FMTHETST:%.c=$(PFM)/$(VARIETY)/%.o)
-FMTHETSTDEP = $(FMTHETST:%.c=$(PFM)/$(VARIETY)/%.d)
+FMTSCMOBJ = $(FMTSCM:%.c=$(PFM)/$(VARIETY)/%.o)
 PLINTHOBJ = $(PLINTH:%.c=$(PFM)/$(VARIETY)/%.o)
-PLINTHDEP = $(PLINTH:%.c=$(PFM)/$(VARIETY)/%.d)
-EVENTPROCOBJ = $(EVENTPROC:%.c=$(PFM)/$(VARIETY)/%.o)
-EVENTPROCDEP = $(EVENTPROC:%.c=$(PFM)/$(VARIETY)/%.d)
+POOLNOBJ = $(POOLN:%.c=$(PFM)/$(VARIETY)/%.o)
+TESTLIBOBJ = $(TESTLIB:%.c=$(PFM)/$(VARIETY)/%.o)
+TESTTHROBJ = $(TESTTHR:%.c=$(PFM)/$(VARIETY)/%.o)
 endif
 
 
@@ -221,30 +244,58 @@ endif
 
 LIB_TARGETS=mps.a mpsplan.a
 
-# If it is suitable for running regularly (for example, after every
-# build) as an automated test case, add it to AUTO_TEST_TARGETS.
+# Test executables go in TEST_TARGETS.
 
-AUTO_TEST_TARGETS=abqtest amcss amcsshe amcssth amsss amssshe apss      \
-    arenacv awlut awluthe awlutth btcv exposet0 expt825 fbmtest finalcv \
-    finaltest fotest lockcov locv messtest mpmss mpsicv mv2test         \
-    poolncv qs sacss segsmss steptest walkt0 zmess
-
-# If it is not runnable as an automated test case, but is buildable,
-# add it to OTHER_TEST_TARGETS with a note.
-#
-# bttest and teletest -- interactive and so cannot be run unattended.
-# zcoll -- takes too long to be useful as a regularly run smoke test.
-
-OTHER_TEST_TARGETS=bttest teletest zcoll
+TEST_TARGETS=\
+    abqtest \
+    airtest \
+    amcss \
+    amcsshe \
+    amcssth \
+    amsss \
+    amssshe \
+    apss \
+    arenacv \
+    awlut \
+    awluthe \
+    awlutth \
+    btcv \
+    bttest \
+    djbench \
+    exposet0 \
+    expt825 \
+    finalcv \
+    finaltest \
+    fotest \
+    gcbench \
+    landtest \
+    locbwcss \
+    lockcov \
+    lockut \
+    locusss \
+    locv \
+    messtest \
+    mpmss \
+    mpsicv \
+    mv2test \
+    nailboardtest \
+    poolncv \
+    qs \
+    sacss \
+    segsmss \
+    steptest \
+    teletest \
+    walkt0 \
+    zcoll \
+    zmess
 
 # This target records programs that we were once able to build but
 # can't at the moment:
-# 
-# replay -- depends on the EPVM pool.
 
-UNBUILDABLE_TARGETS=replay
+UNBUILDABLE_TARGETS=\
+    replay # depends on the EPVM pool
 
-ALL_TARGETS=$(LIB_TARGETS) $(AUTO_TEST_TARGETS) $(OTHER_TEST_TARGETS) $(EXTRA_TARGETS)
+ALL_TARGETS=$(LIB_TARGETS) $(TEST_TARGETS) $(EXTRA_TARGETS)
 
 
 # == Pseudo-targets ==
@@ -252,15 +303,24 @@ ALL_TARGETS=$(LIB_TARGETS) $(AUTO_TEST_TARGETS) $(OTHER_TEST_TARGETS) $(EXTRA_TA
 all: $(ALL_TARGETS)
 
 
-# Run the automated tests.
+# == Automated test suites ==
+#
+# testrun = "smoke test", fast enough to run before every commit
+# testci = continuous integration tests, must be known good
+# testall = all test cases, for ensuring quality of a release
+# testansi = tests that run on the generic ("ANSI") platform
+# testpollnone = tests that run on the generic platform with CONFIG_POLL_NONE
 
-testrun: $(AUTO_TEST_TARGETS)
-	../tool/testrun.sh $(addprefix $(PFM)/$(VARIETY)/,$(AUTO_TEST_TARGETS))
+TEST_SUITES=testrun testci testall testansi testpollnone
+
+$(addprefix $(PFM)/$(VARIETY)/,$(TEST_SUITES)): $(TEST_TARGETS)
+	../tool/testrun.sh -s "$(notdir $@)" "$(PFM)/$(VARIETY)"
+
 
 # These convenience targets allow one to type "make foo" to build target
 # foo in selected varieties (or none, for the latter rule).
 
-$(ALL_TARGETS): phony
+$(ALL_TARGETS) $(TEST_SUITES): phony
 ifdef VARIETY
 	$(MAKE) -f $(PFM).gmk TARGET=$@ variety
 else
@@ -275,17 +335,25 @@ clean: phony
 	$(ECHO) "$(PFM): $@"
 	rm -rf "$(PFM)"
 
-# "target" builds some varieties of the target named in the TARGET macro.
+# "target" builds some varieties of the target named in the TARGET
+# macro.
+#
 # %%VARIETY: When adding a new target, optionally add a recursive make call
 # for the new variety, if it should be built by default.  It probably
 # shouldn't without a product design decision and an update of the readme
 # and build manual!
+#
+# Note that we build VARIETY=cool before VARIETY=hot because
+# the former doesn't need to optimize and so detects errors more
+# quickly; and because the former uses file-at-a-time compilation and
+# so can pick up where it left off instead of having to start from the
+# beginning of mps.c
 
 ifdef TARGET
 ifndef VARIETY
 target: phony
-	$(MAKE) -f $(PFM).gmk VARIETY=hot variety
 	$(MAKE) -f $(PFM).gmk VARIETY=cool variety
+	$(MAKE) -f $(PFM).gmk VARIETY=hot variety
 endif
 endif
 
@@ -321,10 +389,7 @@ endif
 
 $(PFM)/rash/mps.a: $(PFM)/rash/mps.o
 $(PFM)/hot/mps.a: $(PFM)/hot/mps.o
-
-$(PFM)/cool/mps.a: \
-  $(MPMOBJ) $(AMCOBJ) $(AMSOBJ) $(AWLOBJ) $(LOOBJ) $(SNCOBJ) \
-  $(MV2OBJ) $(MVFFOBJ) $(PLINTHOBJ) $(POOLNOBJ)
+$(PFM)/cool/mps.a: $(MPMOBJ)
 
 
 # OTHER GENUINE TARGETS
@@ -341,6 +406,9 @@ ifdef VARIETY
 $(PFM)/$(VARIETY)/abqtest: $(PFM)/$(VARIETY)/abqtest.o \
 	$(TESTLIBOBJ) $(PFM)/$(VARIETY)/mps.a
 
+$(PFM)/$(VARIETY)/airtest: $(PFM)/$(VARIETY)/airtest.o \
+	$(FMTSCMOBJ) $(TESTLIBOBJ) $(PFM)/$(VARIETY)/mps.a
+
 $(PFM)/$(VARIETY)/amcss: $(PFM)/$(VARIETY)/amcss.o \
 	$(FMTDYTSTOBJ) $(TESTLIBOBJ) $(PFM)/$(VARIETY)/mps.a
 
@@ -348,7 +416,7 @@ $(PFM)/$(VARIETY)/amcsshe: $(PFM)/$(VARIETY)/amcsshe.o \
 	$(FMTHETSTOBJ) $(TESTLIBOBJ) $(PFM)/$(VARIETY)/mps.a
 
 $(PFM)/$(VARIETY)/amcssth: $(PFM)/$(VARIETY)/amcssth.o \
-	$(FMTDYTSTOBJ) $(TESTLIBOBJ) $(PFM)/$(VARIETY)/mps.a
+	$(FMTDYTSTOBJ) $(TESTLIBOBJ) $(TESTTHROBJ) $(PFM)/$(VARIETY)/mps.a
 
 $(PFM)/$(VARIETY)/amsss: $(PFM)/$(VARIETY)/amsss.o \
 	$(FMTDYTSTOBJ) $(TESTLIBOBJ) $(PFM)/$(VARIETY)/mps.a
@@ -369,7 +437,7 @@ $(PFM)/$(VARIETY)/awluthe: $(PFM)/$(VARIETY)/awluthe.o \
         $(FMTHETSTOBJ) $(TESTLIBOBJ) $(PFM)/$(VARIETY)/mps.a
 
 $(PFM)/$(VARIETY)/awlutth: $(PFM)/$(VARIETY)/awlutth.o \
-	$(FMTDYTSTOBJ) $(TESTLIBOBJ) $(PFM)/$(VARIETY)/mps.a
+	$(FMTDYTSTOBJ) $(TESTLIBOBJ) $(TESTTHROBJ) $(PFM)/$(VARIETY)/mps.a
 
 $(PFM)/$(VARIETY)/btcv: $(PFM)/$(VARIETY)/btcv.o \
 	$(TESTLIBOBJ) $(PFM)/$(VARIETY)/mps.a
@@ -377,14 +445,14 @@ $(PFM)/$(VARIETY)/btcv: $(PFM)/$(VARIETY)/btcv.o \
 $(PFM)/$(VARIETY)/bttest: $(PFM)/$(VARIETY)/bttest.o \
 	$(TESTLIBOBJ) $(PFM)/$(VARIETY)/mps.a
 
+$(PFM)/$(VARIETY)/djbench: $(PFM)/$(VARIETY)/djbench.o \
+	$(TESTLIBOBJ) $(TESTTHROBJ)
+
 $(PFM)/$(VARIETY)/exposet0: $(PFM)/$(VARIETY)/exposet0.o \
 	$(FMTDYTSTOBJ) $(TESTLIBOBJ) $(PFM)/$(VARIETY)/mps.a
 
 $(PFM)/$(VARIETY)/expt825: $(PFM)/$(VARIETY)/expt825.o \
 	$(FMTDYTSTOBJ) $(TESTLIBOBJ) $(PFM)/$(VARIETY)/mps.a
-
-$(PFM)/$(VARIETY)/fbmtest: $(PFM)/$(VARIETY)/fbmtest.o \
-	$(TESTLIBOBJ) $(PFM)/$(VARIETY)/mps.a
 
 $(PFM)/$(VARIETY)/finalcv: $(PFM)/$(VARIETY)/finalcv.o \
 	$(FMTDYTSTOBJ) $(TESTLIBOBJ) $(PFM)/$(VARIETY)/mps.a
@@ -395,7 +463,22 @@ $(PFM)/$(VARIETY)/finaltest: $(PFM)/$(VARIETY)/finaltest.o \
 $(PFM)/$(VARIETY)/fotest: $(PFM)/$(VARIETY)/fotest.o \
 	$(TESTLIBOBJ) $(PFM)/$(VARIETY)/mps.a
 
+$(PFM)/$(VARIETY)/gcbench: $(PFM)/$(VARIETY)/gcbench.o \
+	$(FMTDYTSTOBJ) $(TESTLIBOBJ) $(TESTTHROBJ)
+
+$(PFM)/$(VARIETY)/landtest: $(PFM)/$(VARIETY)/landtest.o \
+	$(TESTLIBOBJ) $(PFM)/$(VARIETY)/mps.a
+
+$(PFM)/$(VARIETY)/locbwcss: $(PFM)/$(VARIETY)/locbwcss.o \
+	$(TESTLIBOBJ) $(PFM)/$(VARIETY)/mps.a
+
 $(PFM)/$(VARIETY)/lockcov: $(PFM)/$(VARIETY)/lockcov.o \
+	$(TESTLIBOBJ) $(PFM)/$(VARIETY)/mps.a
+
+$(PFM)/$(VARIETY)/lockut: $(PFM)/$(VARIETY)/lockut.o \
+	$(TESTLIBOBJ) $(TESTTHROBJ) $(PFM)/$(VARIETY)/mps.a
+
+$(PFM)/$(VARIETY)/locusss: $(PFM)/$(VARIETY)/locusss.o \
 	$(TESTLIBOBJ) $(PFM)/$(VARIETY)/mps.a
 
 $(PFM)/$(VARIETY)/locv: $(PFM)/$(VARIETY)/locv.o \
@@ -413,8 +496,11 @@ $(PFM)/$(VARIETY)/mpsicv: $(PFM)/$(VARIETY)/mpsicv.o \
 $(PFM)/$(VARIETY)/mv2test: $(PFM)/$(VARIETY)/mv2test.o \
 	$(TESTLIBOBJ) $(PFM)/$(VARIETY)/mps.a
 
-$(PFM)/$(VARIETY)/poolncv: $(PFM)/$(VARIETY)/poolncv.o \
+$(PFM)/$(VARIETY)/nailboardtest: $(PFM)/$(VARIETY)/nailboardtest.o \
 	$(TESTLIBOBJ) $(PFM)/$(VARIETY)/mps.a
+
+$(PFM)/$(VARIETY)/poolncv: $(PFM)/$(VARIETY)/poolncv.o \
+	$(POOLNOBJ) $(TESTLIBOBJ) $(PFM)/$(VARIETY)/mps.a
 
 $(PFM)/$(VARIETY)/qs: $(PFM)/$(VARIETY)/qs.o \
 	$(TESTLIBOBJ) $(PFM)/$(VARIETY)/mps.a
@@ -465,11 +551,11 @@ endif
 
 # Object files
 
-define run-cc
+define run-cc-strict
 $(ECHO) "$(PFM): $@"
 mkdir -p $(PFM)
 mkdir -p $(PFM)/$(VARIETY)
-$(CC) $(CFLAGS) -c -o $@ $<
+$(CC) $(CFLAGSSTRICT) -c -o $@ $<
 endef
 
 define run-cc-lax
@@ -481,16 +567,16 @@ endef
 
 # .rule.c-to-o:
 $(PFM)/$(VARIETY)/%.o: %.c
-	$(run-cc)
+	$(run-cc-strict)
 
 $(PFM)/$(VARIETY)/eventsql.o: eventsql.c
 	$(run-cc-lax)                              
 
 $(PFM)/$(VARIETY)/%.o: %.s
-	$(run-cc)
+	$(run-cc-strict)
 
 $(PFM)/$(VARIETY)/%.o: %.S
-	$(run-cc)
+	$(run-cc-strict)
 
 # Dependencies
 #
@@ -517,18 +603,28 @@ else
 ifeq ($(VARIETY),hot)
 include $(PFM)/$(VARIETY)/mps.d
 else
-# %%PART: When adding a new part, add the dependency file macro for the new
-# part here.
-include $(MPMDEP) $(AMSDEP) $(AMCDEP) $(LODEP) \
-  $(AWLDEP) $(POOLNDEP) $(TESTLIBDEP) $(FMTDYDEP) $(FMTHETSTDEP) \
-  $(PLINTHDEP) $(EVENTPROCDEP)
-endif
-endif
+include $(MPM:%.c=$(PFM)/$(VARIETY)/%.d)
+endif # VARIETY != hot
+endif # VARIETY != rash
 
-endif
-endif
+# %%PART: When adding a new part, add the dependencies file for the
+# new part here.
+include \
+    $(FMTDY:%.c=$(PFM)/$(VARIETY)/%.d) \
+    $(FMTDYTST:%.c=$(PFM)/$(VARIETY)/%.d) \
+    $(FMTHETST:%.c=$(PFM)/$(VARIETY)/%.d) \
+    $(FMTSCM:%.c=$(PFM)/$(VARIETY)/%.d) \
+    $(PLINTH:%.c=$(PFM)/$(VARIETY)/%.d) \
+    $(POOLN:%.c=$(PFM)/$(VARIETY)/%.d) \
+    $(TESTLIB:%.c=$(PFM)/$(VARIETY)/%.d) \
+    $(TESTTHR:%.c=$(PFM)/$(VARIETY)/%.d) \
+    $(EXTRA_TARGETS:mps%=$(PFM)/$(VARIETY)/%.d) \
+    $(TEST_TARGETS:%=$(PFM)/$(VARIETY)/%.d)
 
-endif
+endif # !defined TARGET
+endif # !defined VARIETY
+
+endif # !defined gendep
 
 # Library
 
@@ -539,19 +635,18 @@ endif
 $(PFM)/$(VARIETY)/%.a:
 	$(ECHO) "$(PFM): $@"
 	rm -f $@
-	$(CC) $(CFLAGS) -c -o $(PFM)/$(VARIETY)/version.o version.c
-	$(AR) $(ARFLAGS) $@ $^ $(PFM)/$(VARIETY)/version.o
+	$(AR) $(ARFLAGS) $@ $^
 	$(RANLIB) $@
 
 # Executable
 
 $(PFM)/$(VARIETY)/%:
 	$(ECHO) "$(PFM): $@"
-	$(CC) $(CFLAGS) $(LINKFLAGS) -o $@ $^ $(LIBS)
+	$(CC) $(CFLAGSSTRICT) $(LINKFLAGS) -o $@ $^ $(LIBS)
 
 $(PFM)/$(VARIETY)/mpseventsql:
 	$(ECHO) "$(PFM): $@"
-	$(CC) $(CFLAGS) $(LINKFLAGS) -o $@ $^ $(LIBS) -lsqlite3
+	$(CC) $(CFLAGSLAX) $(LINKFLAGS) -o $@ $^ $(LIBS) -lsqlite3
 
 # Special targets for development
 
@@ -567,7 +662,7 @@ find-puns: phony
 
 # C. COPYRIGHT AND LICENSE
 #
-# Copyright (c) 2001-2013 Ravenbrook Limited <http://www.ravenbrook.com/>.
+# Copyright (c) 2001-2014 Ravenbrook Limited <http://www.ravenbrook.com/>.
 # All rights reserved.  This is an open source license.  Contact
 # Ravenbrook for commercial licensing options.
 # 

@@ -1,7 +1,7 @@
 /* pooln.c: NULL POOL CLASS
  *
  * $Id$
- * Copyright (c) 2001 Ravenbrook Limited.  See end of file for license.
+ * Copyright (c) 2001-2014 Ravenbrook Limited.  See end of file for license.
  */
 
 #include "pooln.h"
@@ -71,7 +71,7 @@ static Res NAlloc(Addr *pReturn, Pool pool, Size size,
 
   AVER(pReturn != NULL);
   AVER(size > 0);
-  AVER(BoolCheck(withReservoirPermit));
+  AVERT(Bool, withReservoirPermit);
 
   return ResLIMIT;  /* limit of nil blocks exceeded */
 }
@@ -110,7 +110,7 @@ static Res NBufferFill(Addr *baseReturn, Addr *limitReturn,
   AVERT(Buffer, buffer);
   AVER(BufferIsReset(buffer));
   AVER(size > 0);
-  AVER(BoolCheck(withReservoirPermit));
+  AVERT(Bool, withReservoirPermit);
 
   NOTREACHED;   /* can't create buffers, so shouldn't fill them */
   return ResUNIMPL;
@@ -133,7 +133,7 @@ static void NBufferEmpty(Pool pool, Buffer buffer,
 
 /* NDescribe -- describe method for class N */
 
-static Res NDescribe(Pool pool, mps_lib_FILE *stream)
+static Res NDescribe(Pool pool, mps_lib_FILE *stream, Count depth)
 {
   PoolN poolN;
 
@@ -142,6 +142,7 @@ static Res NDescribe(Pool pool, mps_lib_FILE *stream)
   AVERT(PoolN, poolN);
 
   UNUSED(stream); /* TODO: should output something here */
+  UNUSED(depth);
 
   return ResOK;
 }
@@ -270,8 +271,7 @@ DEFINE_POOL_CLASS(NPoolClass, this)
   this->name = "N";
   this->size = sizeof(PoolNStruct);
   this->offset = offsetof(PoolNStruct, poolStruct);
-  this->attr = AttrSCAN | AttrALLOC | AttrFREE | AttrBUF |
-                 AttrBUF_RESERVE | AttrGC;
+  this->attr |= AttrGC;
   this->init = NInit;
   this->finish = NFinish;
   this->alloc = NAlloc;
@@ -287,6 +287,7 @@ DEFINE_POOL_CLASS(NPoolClass, this)
   this->reclaim = NReclaim;
   this->traceEnd = NTraceEnd;
   this->describe = NDescribe;
+  AVERT(PoolClass, this);
 }
 
 
@@ -303,8 +304,8 @@ PoolClass PoolClassN(void)
 Bool PoolNCheck(PoolN poolN)
 {
   CHECKL(poolN != NULL);
-  CHECKD(Pool, &poolN->poolStruct);
-  CHECKL(poolN->poolStruct.class == EnsureNPoolClass());
+  CHECKD(Pool, PoolNPool(poolN));
+  CHECKL(PoolNPool(poolN)->class == EnsureNPoolClass());
   UNUSED(poolN); /* <code/mpm.c#check.unused> */
 
   return TRUE;
@@ -313,7 +314,7 @@ Bool PoolNCheck(PoolN poolN)
 
 /* C. COPYRIGHT AND LICENSE
  *
- * Copyright (C) 2001-2002 Ravenbrook Limited <http://www.ravenbrook.com/>.
+ * Copyright (C) 2001-2014 Ravenbrook Limited <http://www.ravenbrook.com/>.
  * All rights reserved.  This is an open source license.  Contact
  * Ravenbrook for commercial licensing options.
  * 

@@ -1,7 +1,7 @@
 /* steptest.c: TEST FOR ARENA STEPPING
  *
  * $Id$
- * Copyright (c) 1998-2013 Ravenbrook Limited.  See end of file for license.
+ * Copyright (c) 1998-2014 Ravenbrook Limited.  See end of file for license.
  *
  * Loosely based on <code/amcss.c>.
  */
@@ -14,12 +14,10 @@
 #include "mpscamc.h"
 #include "mpsavm.h"
 #include "mpstd.h"
-#ifdef MPS_OS_W3
-#include "mpsw3.h"
-#endif
 #include "mps.h"
-#include <stdlib.h>
-#include <string.h>
+
+#include <math.h> /* pow */
+#include <stdio.h> /* fflush, printf, putchar, stdout */
 
 #define testArenaSIZE     ((size_t)((size_t)64 << 20))
 #define avLEN             3
@@ -46,24 +44,6 @@ static mps_gen_param_s testChain[genCOUNT] = {
     {gen3SIZE, gen3MORTALITY},
 };
 
-/* run the test several times, calling mps_arena_step at a different
- * frequency each time.  When we call it often, tracing is never done
- * during allocation.  When we call it never, tracing is always done
- * during allocation.
- */
-
-static unsigned long step_frequencies[] = {
-    1000,
-    5000,
-    10000,
-    1000000000, /* one billion */
-};
-
-#define TESTS (sizeof(step_frequencies) / sizeof(step_frequencies[0]))
-
-static unsigned test_number = 0;
-
-
 /* objNULL needs to be odd so that it's ignored in exactRoots. */
 #define objNULL           ((mps_addr_t)MPS_WORD_CONST(0xDECEA5ED))
 
@@ -74,19 +54,19 @@ static mps_addr_t ambigRoots[ambigRootsCOUNT];
 
 /* Things we want to measure.  Times are all in microseconds. */
 
-double alloc_time;       /* Time spent allocating */
-double max_alloc_time;   /* Max time taken to allocate one object */
-double step_time;        /* Time spent in mps_arena_step returning 1 */
-double max_step_time;    /* Max time of mps_arena_step returning 1 */
-double no_step_time;     /* Time spent in mps_arena_step returning 0 */
-double max_no_step_time; /* Max time of mps_arena_step returning 0 */
+static double alloc_time;       /* Time spent allocating */
+static double max_alloc_time;   /* Max time taken to allocate one object */
+static double step_time;        /* Time spent in mps_arena_step returning 1 */
+static double max_step_time;    /* Max time of mps_arena_step returning 1 */
+static double no_step_time;     /* Time spent in mps_arena_step returning 0 */
+static double max_no_step_time; /* Max time of mps_arena_step returning 0 */
 
-double total_clock_time; /* Time spent reading the clock */
-long clock_reads;        /* Number of times clock is read */
-long steps;              /* # of mps_arena_step calls returning 1 */
-long no_steps;           /* # of mps_arena_step calls returning 0 */
-size_t alloc_bytes;      /* # of bytes allocated */
-long commit_failures;    /* # of times mps_commit fails */
+static double total_clock_time; /* Time spent reading the clock */
+static long clock_reads;        /* Number of times clock is read */
+static long steps;              /* # of mps_arena_step calls returning 1 */
+static long no_steps;           /* # of mps_arena_step calls returning 0 */
+static size_t alloc_bytes;      /* # of bytes allocated */
+static long commit_failures;    /* # of times mps_commit fails */
 
 
 /* Operating-system dependent timing.  Defines two functions, void
@@ -97,6 +77,8 @@ long commit_failures;    /* # of times mps_commit fails */
  */
 
 #ifdef MPS_OS_W3
+
+#include "mpswin.h"
 
 static HANDLE currentProcess;
 
@@ -109,7 +91,8 @@ static double my_clock(void)
 {
     FILETIME ctime, etime, ktime, utime;
     double dk, du;
-    GetProcessTimes(currentProcess, &ctime, &etime, &ktime, &utime);
+    cdie(GetProcessTimes(currentProcess, &ctime, &etime, &ktime, &utime) != 0,
+         "GetProcessTimes");
     dk = ktime.dwHighDateTime * 4096.0 * 1024.0 * 1024.0 +
         ktime.dwLowDateTime;
     dk /= 10.0;
@@ -151,7 +134,7 @@ static double my_clock(void)
  * on thrush.ravenbrook.com on 2002-06-28, clock_time goes from 5.43
  * us near process start to 7.45 us later). */
 
-double clock_time;      /* current estimate of time to read the clock */
+static double clock_time;      /* current estimate of time to read the clock */
 
 /* take at least this many microseconds to set the clock */
 #define CLOCK_TIME_SET 10000
@@ -297,9 +280,8 @@ static void test_step(mps_arena_t arena, double multiplier)
 
 /* test -- the body of the test */
 
-static void *test(void *arg, size_t s)
+static void test(mps_arena_t arena, unsigned long step_period)
 {
-    mps_arena_t arena;
     mps_fmt_t format;
     mps_chain_t chain;
     mps_root_t exactRoot, ambigRoot;
@@ -311,9 +293,6 @@ static void *test(void *arg, size_t s)
     mps_word_t collections, old_collections;
     double total_mps_time, total_time;
     double t1;
-
-    arena = (mps_arena_t)arg;
-    (void)s; /* unused */
 
     die(dylan_fmt(&format, arena), "fmt_create");
     die(mps_chain_create(&chain, arena, genCOUNT, testChain), "chain_create");
@@ -338,8 +317,7 @@ static void *test(void *arg, size_t s)
                               &ambigRoots[0], ambigRootsCOUNT),
         "root_create_table(ambig)");
 
-    printf("Stepping every %lu allocations.\n",
-           (unsigned long)step_frequencies[test_number]);
+    printf("Stepping every %lu allocations.\n", step_period);
 
     mps_message_type_enable(arena, mps_message_type_gc());
 
@@ -378,7 +356,7 @@ static void *test(void *arg, size_t s)
 
         ++objs;
 
-        if (objs % step_frequencies[test_number] == 0)
+        if (objs % step_period == 0)
             test_step(arena, 0.0);
 
         if (objs % multiStepFREQ == 0)
@@ -391,7 +369,7 @@ static void *test(void *arg, size_t s)
         if (collections > old_collections) {
             old_collections = collections;
             putchar('.');
-            fflush(stdout);
+            (void)fflush(stdout);
         }
     }
 
@@ -419,8 +397,8 @@ static void *test(void *arg, size_t s)
     printf("Collection statistics:\n");
     printf("  %"PRIuLONGEST" collections\n", (ulongest_t)collections);
     printf("  %"PRIuLONGEST" bytes condemned.\n", (ulongest_t)condemned);
-    printf("  %lu bytes not condemned.\n",
-           (unsigned long)not_condemned);
+    printf("  %"PRIuLONGEST" bytes not condemned.\n",
+           (ulongest_t)not_condemned);
     printf("  %"PRIuLONGEST" bytes survived.\n", (ulongest_t)live);
     if (condemned) {
         printf("  Mortality %5.2f%%.\n",
@@ -429,10 +407,10 @@ static void *test(void *arg, size_t s)
                ((double)condemned/(condemned + not_condemned)) * 100.0);
     }
     if (collections) {
-        printf("  Condemned per collection %lu bytes.\n",
-               (unsigned long)condemned/collections);
-        printf("  Reclaimed per collection %lu bytes.\n",
-               (unsigned long)(condemned - live)/collections);
+        printf("  Condemned per collection %"PRIuLONGEST" bytes.\n",
+               (ulongest_t)condemned/collections);
+        printf("  Reclaimed per collection %"PRIuLONGEST" bytes.\n",
+               (ulongest_t)(condemned - live)/collections);
     }
 
     printf("Allocation statistics:\n");
@@ -478,40 +456,27 @@ static void *test(void *arg, size_t s)
     printf("   %"PRIuLONGEST" clock reads; ", (ulongest_t)clock_reads);
     print_time("", total_clock_time / clock_reads, " per read;");
     print_time(" recently measured as ", clock_time, ").\n");
+
+    mps_arena_park(arena);
     mps_ap_destroy(ap);
     mps_root_destroy(exactRoot);
     mps_root_destroy(ambigRoot);
     mps_pool_destroy(pool);
     mps_chain_destroy(chain);
     mps_fmt_destroy(format);
-
-    return NULL;
 }
 
 int main(int argc, char *argv[])
 {
+    mps_arena_t arena;
     prepare_clock();
-
-    randomize(argc, argv);
-    mps_lib_assert_fail_install(assert_die);
-
-    while (test_number < TESTS) {
-        mps_arena_t arena;
-        mps_thr_t thread;
-        void *r;
-
-        set_clock_timing();
-        die(mps_arena_create(&arena, mps_arena_class_vm(),
-                             testArenaSIZE),
-            "arena_create");
-        mps_arena_clamp(arena);
-        die(mps_thread_reg(&thread, arena), "thread_reg");
-        mps_tramp(&r, test, arena, 0);
-        mps_thread_dereg(thread);
-        mps_arena_destroy(arena);
-        ++ test_number;
-    }
-
+    testlib_init(argc, argv);
+    set_clock_timing();
+    die(mps_arena_create(&arena, mps_arena_class_vm(), testArenaSIZE),
+        "arena_create");
+    mps_arena_clamp(arena);
+    test(arena, (unsigned long)pow(10, rnd() % 10));
+    mps_arena_destroy(arena);
     printf("%s: Conclusion: Failed to find any defects.\n", argv[0]);
     return 0;
 }
@@ -519,7 +484,7 @@ int main(int argc, char *argv[])
 
 /* C. COPYRIGHT AND LICENSE
  *
- * Copyright (c) 2001-2013 Ravenbrook Limited <http://www.ravenbrook.com/>.
+ * Copyright (c) 2001-2014 Ravenbrook Limited <http://www.ravenbrook.com/>.
  * All rights reserved.  This is an open source license.  Contact
  * Ravenbrook for commercial licensing options.
  *

@@ -33,8 +33,6 @@ static void test(void) {
  mps_chain_t chain;
  mps_ap_t aplo;
 
- mycell *a;
-
  long int j;
 
  cdie(mps_arena_create(&arena, mps_arena_class_vm(), (size_t)1024*1024*30),
@@ -62,11 +60,12 @@ static void test(void) {
  /* alloc lots in an LO pool; it should be collected away */
 
  for(j=0; j<1000; j++) {
-  a = allocdumb(aplo, 1024ul*1024, mps_rank_exact());
+  (void)allocdumb(aplo, 1024ul*1024, mps_rank_exact());
  }
 
  /* (total allocated is 1000 M) */
 
+ mps_arena_park(arena);
  mps_root_destroy(root0);
  mps_root_destroy(root1);
  comment("Destroyed roots.");

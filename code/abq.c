@@ -1,7 +1,7 @@
 /* abq.c: QUEUE IMPLEMENTATION
  *
  * $Id$
- * Copyright (c) 2001 Ravenbrook Limited.  See end of file for license.
+ * Copyright (c) 2001-2014 Ravenbrook Limited.  See end of file for license.
  *
  * .purpose: A fixed-length FIFO queue.
  *
@@ -107,7 +107,7 @@ Bool ABQPush(ABQ abq, void *element)
   if (ABQIsFull(abq))
     return FALSE;
  
-  mps_lib_memcpy(ABQElement(abq, abq->in), element, abq->elementSize);
+  (void)mps_lib_memcpy(ABQElement(abq, abq->in), element, abq->elementSize);
   abq->in = ABQNextIndex(abq, abq->in);
 
   AVERT(ABQ, abq);
@@ -126,7 +126,7 @@ Bool ABQPop(ABQ abq, void *elementReturn)
   if (ABQIsEmpty(abq))
     return FALSE;
 
-  mps_lib_memcpy(elementReturn, ABQElement(abq, abq->out), abq->elementSize);
+  (void)mps_lib_memcpy(elementReturn, ABQElement(abq, abq->out), abq->elementSize);
 
   abq->out = ABQNextIndex(abq, abq->out);
  
@@ -146,7 +146,7 @@ Bool ABQPeek(ABQ abq, void *elementReturn)
   if (ABQIsEmpty(abq))
     return FALSE;
 
-  mps_lib_memcpy(elementReturn, ABQElement(abq, abq->out), abq->elementSize);
+  (void)mps_lib_memcpy(elementReturn, ABQElement(abq, abq->out), abq->elementSize);
 
   /* Identical to pop, but don't increment out */
 
@@ -156,49 +156,40 @@ Bool ABQPeek(ABQ abq, void *elementReturn)
 
 
 /* ABQDescribe -- Describe an ABQ */
-Res ABQDescribe(ABQ abq, ABQDescribeElement describeElement, mps_lib_FILE *stream)
+Res ABQDescribe(ABQ abq, ABQDescribeElement describeElement, mps_lib_FILE *stream, Count depth)
 {
   Res res;
   Index index;
 
-  if (!TESTT(ABQ, abq)) return ResFAIL;
-  if (stream == NULL) return ResFAIL;
+  if (!TESTT(ABQ, abq))
+    return ResFAIL;
+  if (stream == NULL)
+    return ResFAIL;
 
-  res = WriteF(stream,
-               "ABQ $P\n{\n", (WriteFP)abq,
-               "  elements: $U \n", (WriteFU)abq->elements,
-               "  in: $U \n", (WriteFU)abq->in,
-               "  out: $U \n", (WriteFU)abq->out,
-               "  queue: \n",
+  res = WriteF(stream, depth,
+               "ABQ $P {\n", (WriteFP)abq,
+               "  elements $U\n", (WriteFU)abq->elements,
+               "  elementSize $W\n", (WriteFW)abq->elementSize,
+               "  in $U\n", (WriteFU)abq->in,
+               "  out $U\n", (WriteFU)abq->out,
+               "  queue:\n",
                NULL);
   if(res != ResOK)
     return res;
 
   for (index = abq->out; index != abq->in; ) {
-    res = (*describeElement)(ABQElement(abq, index), stream);
+    res = (*describeElement)(ABQElement(abq, index), stream, depth + 2);
     if(res != ResOK)
       return res;
     index = ABQNextIndex(abq, index);
   }
 
-  res = WriteF(stream, "\n", NULL);
-  if(res != ResOK)
-    return res;
+  METER_WRITE(abq->push, stream, depth + 2);
+  METER_WRITE(abq->pop, stream, depth + 2);
+  METER_WRITE(abq->peek, stream, depth + 2);
+  METER_WRITE(abq->delete, stream, depth + 2);
 
-  res = METER_WRITE(abq->push, stream);
-  if(res != ResOK)
-    return res;
-  res = METER_WRITE(abq->pop, stream);
-  if(res != ResOK)
-    return res;
-  res = METER_WRITE(abq->peek, stream);
-  if(res != ResOK)
-    return res;
-  res = METER_WRITE(abq->delete, stream);
-  if(res != ResOK)
-    return res;
- 
-  res = WriteF(stream, "}\n", NULL);
+  res = WriteF(stream, depth, "} ABQ $P\n", (WriteFP)abq, NULL);
   if(res != ResOK)
     return res;
  
@@ -240,13 +231,13 @@ Count ABQDepth(ABQ abq)
 }
 
 
-/* ABQIterate -- call 'iterate' for each element in an ABQ */
-void ABQIterate(ABQ abq, ABQIterateMethod iterate, void *closureP, Size closureS)
+/* ABQIterate -- call 'visitor' for each element in an ABQ */
+void ABQIterate(ABQ abq, ABQVisitor visitor, void *closureP, Size closureS)
 {
   Index copy, index, in;
 
   AVERT(ABQ, abq);
-  AVER(FUNCHECK(iterate));
+  AVER(FUNCHECK(visitor));
 
   copy = abq->out;
   index = abq->out;
@@ -256,12 +247,12 @@ void ABQIterate(ABQ abq, ABQIterateMethod iterate, void *closureP, Size closureS
     void *element = ABQElement(abq, index);
     Bool delete = FALSE;
     Bool cont;
-    cont = (*iterate)(&delete, element, closureP, closureS);
+    cont = (*visitor)(&delete, element, closureP, closureS);
     AVERT(Bool, cont);
     AVERT(Bool, delete);
     if (!delete) {
       if (copy != index)
-        mps_lib_memcpy(ABQElement(abq, copy), element, abq->elementSize);
+        (void)mps_lib_memcpy(ABQElement(abq, copy), element, abq->elementSize);
       copy = ABQNextIndex(abq, copy);
     }
     index = ABQNextIndex(abq, index);
@@ -272,8 +263,8 @@ void ABQIterate(ABQ abq, ABQIterateMethod iterate, void *closureP, Size closureS
   /* If any elements were deleted, need to copy remainder of queue. */
   if (copy != index) {
     while (index != in) {
-      mps_lib_memcpy(ABQElement(abq, copy), ABQElement(abq, index),
-                     abq->elementSize);
+      (void)mps_lib_memcpy(ABQElement(abq, copy), ABQElement(abq, index),
+                           abq->elementSize);
       copy = ABQNextIndex(abq, copy);
       index = ABQNextIndex(abq, index);
     }
@@ -311,7 +302,7 @@ static void *ABQElement(ABQ abq, Index index) {
 
 /* C. COPYRIGHT AND LICENSE
  *
- * Copyright (C) 2001-2002 Ravenbrook Limited <http://www.ravenbrook.com/>.
+ * Copyright (C) 2001-2014 Ravenbrook Limited <http://www.ravenbrook.com/>.
  * All rights reserved.  This is an open source license.  Contact
  * Ravenbrook for commercial licensing options.
  * 

@@ -1,47 +1,93 @@
-@rem $Id: //info.ravenbrook.com/project/mps/master/tool/testrun.sh#1 $
-@rem Copyright (c) 2013 Ravenbrook Limited. See end of file for license.
+@rem $Id$
+@rem Copyright (c) 2013-2014 Ravenbrook Limited. See end of file for license.
+@rem 
+@rem This program runs a series of test cases, capturing the output of
+@rem each one to a temporary file. In addition, the output of any test
+@rem case that fails gets printed to standard output so that it is not
+@rem lost when the test is running on a temporary build server (see
+@rem job003489). Finally, it prints a summary of passes and failures, and
+@rem if there were any failures, it exits with a non-zero status code.
+@rem
+@rem Usage:
+@rem 
+@rem     testrun.bat PLATFORM VARIETY ( SUITE | CASE1 CASE2 ... )
 
 @echo off
+
+@rem Find test case database in same directory as this script.
+@rem The incantation %%~dpF% expands %%F to a drive letter and path only.
+@rem See "help for" for more details.
+for %%F in ("%0") do set TEST_CASE_DB=%%~dpF%testcases.txt
 
 set PFM=%1
 shift
 set VARIETY=%1
 shift
+set TESTSUITE=%1
 
-set TEST_COUNT=0
-set FAIL_COUNT=0
-set SEPARATOR=----------------------------------------
-set LOGDIR=%TMP%\mps-%VARIETY%-log
+@rem Make a temporary output directory for the test logs.
+set LOGDIR=%TMP%\mps-%PFM%-%VARIETY%-log
+echo MPS test suite
 echo Logging test output to %LOGDIR%
-rmdir /q /s %LOGDIR%
+echo Test directory: %PFM%\%VARIETY%
+if exist %LOGDIR% rmdir /q /s %LOGDIR%
 mkdir %LOGDIR%
 
-:loop
-if "%1"=="" goto continue
-    set /a TEST_COUNT=%TEST_COUNT%+1
-    echo Running %1
-    %PFM%\%VARIETY%\%1 > %LOGDIR%\%1
-    if "%errorlevel%"=="0" goto success
-        echo %SEPARATOR%%SEPARATOR%
-        type %LOGDIR%\%1
-        echo %SEPARATOR%%SEPARATOR%
-        set /a FAIL_COUNT=%FAIL_COUNT%+1
-    :success
+@rem Determine which tests to run.
+set EXCLUDE=
+if "%TESTSUITE%"=="testrun"      set EXCLUDE=LNX
+if "%TESTSUITE%"=="testci"       set EXCLUDE=BNX
+if "%TESTSUITE%"=="testall"      set EXCLUDE=NX
+if "%TESTSUITE%"=="testansi"     set EXCLUDE=LNTX
+if "%TESTSUITE%"=="testpollnone" set EXCLUDE=LNPTX
+
+@rem Ensure that test cases don't pop up dialog box on abort()
+set MPS_TESTLIB_NOABORT=true
+set TEST_COUNT=0
+set PASS_COUNT=0
+set FAIL_COUNT=0
+set SEPARATOR=----------------------------------------
+
+if "%EXCLUDE%"=="" goto :args
+for /f "tokens=1" %%T IN ('type %TEST_CASE_DB% ^|^
+     findstr /b /r [abcdefghijklmnopqrstuvwxyz] ^|^
+     findstr /v /r =[%EXCLUDE%]') do call :run_test %%T
+goto :done
+
+:args
+if "%1"=="" goto :done
+call :run_test %1
 shift
-goto loop
-:continue
+goto :args
 
-if "%FAIL_COUNT%"=="0" goto allpass
-    echo Tests: %TEST_COUNT%  Failures: %FAIL_COUNT%
-    exit 1
+:done
+if "%FAIL_COUNT%"=="0" (
+    echo Tests: %TEST_COUNT%. All tests pass.
+    exit /b 0
+) else (
+    echo Tests: %TEST_COUNT%. Passes: %PASS_COUNT%. Failures: %FAIL_COUNT%.
+    exit /b 1
+)
 
-:allpass
-echo Tests: %TEST_COUNT%  All tests pass.
+:run_test
+set /a TEST_COUNT=%TEST_COUNT%+1
+set LOGTEST=%LOGDIR%\%TEST_COUNT%-%1
+echo Running %1
+%PFM%\%VARIETY%\%1 > %LOGTEST%
+if "%errorlevel%"=="0" (
+    set /a PASS_COUNT=%PASS_COUNT%+1
+) else (
+    echo %SEPARATOR%%SEPARATOR%
+    type %LOGTEST%
+    echo %SEPARATOR%%SEPARATOR%
+    set /a FAIL_COUNT=%FAIL_COUNT%+1
+)
+exit /b
 
 
 @rem C. COPYRIGHT AND LICENSE
 @rem
-@rem Copyright (C) 2013 Ravenbrook Limited <http://www.ravenbrook.com/>.
+@rem Copyright (C) 2013-2014 Ravenbrook Limited <http://www.ravenbrook.com/>.
 @rem All rights reserved.  This is an open source license.  Contact
 @rem Ravenbrook for commercial licensing options.
 @rem 

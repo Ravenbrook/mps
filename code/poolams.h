@@ -1,7 +1,7 @@
 /* poolams.h: AUTOMATIC MARK & SWEEP POOL CLASS INTERFACE
  *
  * $Id$
- * Copyright (c) 2001 Ravenbrook Limited.  See end of file for license.
+ * Copyright (c) 2001-2014 Ravenbrook Limited.  See end of file for license.
  * Portions copyright (C) 2002 Global Graphics Software.
  *
  * .purpose: Internal interface to AMS functionality.  */
@@ -41,7 +41,6 @@ typedef Res (*AMSSegSizePolicyFunction)(Size *sizeReturn,
 typedef struct AMSStruct {
   PoolStruct poolStruct;       /* generic pool structure */
   Shift grainShift;            /* log2 of grain size */
-  Chain chain;                 /* chain used by this pool */
   PoolGenStruct pgen;          /* generation representing the pool */
   Size size;                   /* total segment size of the pool */
   AMSSegSizePolicyFunction segSize; /* SegSize policy */
@@ -58,9 +57,10 @@ typedef struct AMSSegStruct {
   GCSegStruct gcSegStruct;  /* superclass fields must come first */
   AMS ams;               /* owning ams */
   RingStruct segRing;    /* ring that this seg belongs to */
-  Count grains;          /* number of grains */
-  Count free;            /* number of free grains */
-  Count newAlloc;        /* number of grains allocated since last GC */
+  Count grains;          /* total grains */
+  Count freeGrains;      /* free grains */
+  Count oldGrains;       /* grains allocated prior to last collection */
+  Count newGrains;       /* grains allocated since last collection */
   Bool allocTableInUse;  /* allocTable is used */
   Index firstFree;       /* 1st free grain, if allocTable is not used */
   BT allocTable;         /* set if grain is allocated */
@@ -79,8 +79,8 @@ typedef struct AMSSegStruct {
 #define Seg2AMSSeg(seg) ((AMSSeg)(seg))
 #define AMSSeg2Seg(amsseg) ((Seg)(amsseg))
 
-#define Pool2AMS(pool) PARENT(AMSStruct, poolStruct, pool)
-#define AMS2Pool(ams) (&(ams)->poolStruct)
+#define PoolAMS(pool) PARENT(AMSStruct, poolStruct, pool)
+#define AMSPool(ams) (&(ams)->poolStruct)
 
 
 /* macros for abstracting index/address computations */
@@ -175,7 +175,7 @@ extern Res AMSScan(Bool *totalReturn, ScanState ss, Pool pool, Seg seg);
 
 #define AMSChain(ams) ((ams)->chain)
 
-extern void AMSSegFreeWalk(AMSSeg amsseg, FreeBlockStepMethod f, void *p);
+extern void AMSSegFreeWalk(AMSSeg amsseg, FreeBlockVisitor f, void *p);
 
 extern void AMSSegFreeCheck(AMSSeg amsseg);
 
@@ -198,7 +198,7 @@ extern AMSPoolClass AMSDebugPoolClassGet(void);
 
 /* C. COPYRIGHT AND LICENSE
  *
- * Copyright (C) 2001-2002 Ravenbrook Limited <http://www.ravenbrook.com/>.
+ * Copyright (C) 2001-2014 Ravenbrook Limited <http://www.ravenbrook.com/>.
  * All rights reserved.  This is an open source license.  Contact
  * Ravenbrook for commercial licensing options.
  *

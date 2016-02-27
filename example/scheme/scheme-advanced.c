@@ -37,6 +37,7 @@
 #include <assert.h>
 #include <ctype.h>
 #include <errno.h>
+#include <getopt.h>
 #include <setjmp.h>
 #include <stdarg.h>
 #include <stddef.h>
@@ -409,6 +410,7 @@ static void error(const char *format, ...)
   if (error_handler) {
     longjmp(*error_handler, 1);
   } else {
+    fflush(stdout);
     fprintf(stderr, "Fatal error during initialization: %s\n",
             error_message);
     abort();
@@ -422,7 +424,7 @@ static void error(const char *format, ...)
  * that type.
  *
  * These functions illustrate the two-phase MPS Allocation Point
- * Protocol with `reserve` and `commmit`.  This protocol allows very fast
+ * Protocol with `reserve` and `commit`.  This protocol allows very fast
  * in-line allocation without locking, but there is a very tiny chance that
  * the object must be re-initialized.  In nearly all cases, however, it's
  * just a pointer bump. See topic/allocation.
@@ -798,13 +800,13 @@ static int string_equalp(obj_t obj1, obj_t obj2)
           0 == strcmp(obj1->string.string, obj2->string.string));
 }
 
-static int buckets_find(obj_t tbl, buckets_t buckets, obj_t key, mps_ld_t ld, size_t *b)
+static int buckets_find(obj_t tbl, buckets_t buckets, obj_t key, int add, size_t *b)
 {
   unsigned long i, h, probe;
   unsigned long l = UNTAG_COUNT(buckets->length) - 1;
   int result = 0;
   assert(TYPE(tbl) == TYPE_TABLE);
-  h = tbl->table.hash(key, ld);
+  h = tbl->table.hash(key, add ? &tbl->table.ld : NULL);
   probe = (h >> 8) | 1;
   h &= l;
   i = h;
@@ -861,7 +863,7 @@ static int table_rehash(obj_t tbl, size_t new_length, obj_t key, size_t *key_buc
     if (old_key != obj_unused && old_key != obj_deleted) {
       int found;
       size_t b;
-      found = buckets_find(tbl, new_keys, old_key, &tbl->table.ld, &b);
+      found = buckets_find(tbl, new_keys, old_key, 1, &b);
       assert(found);            /* new table shouldn't be full */
       assert(new_keys->bucket[b] == obj_unused); /* shouldn't be in new table */
       new_keys->bucket[b] = old_key;
@@ -885,18 +887,28 @@ static int table_rehash(obj_t tbl, size_t new_length, obj_t key, size_t *key_buc
  * moved by the garbage collector: in this case we need to re-hash the
  * table. See topic/location.
  */
+static int table_find(obj_t tbl, obj_t key, int add, size_t *b)
+{
+  if (!buckets_find(tbl, tbl->table.keys, key, add, b)) {
+    return 0;
+  } else if ((tbl->table.keys->bucket[*b] == obj_unused
+              || tbl->table.keys->bucket[*b] == obj_deleted)
+             && mps_ld_isstale(&tbl->table.ld, arena, key)) {
+    return table_rehash(tbl, UNTAG_COUNT(tbl->table.keys->length), key, b);
+  } else {
+    return 1;
+  }
+}
+
 static obj_t table_ref(obj_t tbl, obj_t key)
 {
   size_t b;
   assert(TYPE(tbl) == TYPE_TABLE);
-  if (buckets_find(tbl, tbl->table.keys, key, NULL, &b)) {
+  if (table_find(tbl, key, 0, &b)) {
     obj_t k = tbl->table.keys->bucket[b];
     if (k != obj_unused && k != obj_deleted)
       return tbl->table.values->bucket[b];
   }
-  if (mps_ld_isstale(&tbl->table.ld, arena, key))
-    if (table_rehash(tbl, UNTAG_COUNT(tbl->table.keys->length), key, &b))
-      return tbl->table.values->bucket[b];
   return NULL;
 }
 
@@ -904,7 +916,7 @@ static int table_try_set(obj_t tbl, obj_t key, obj_t value)
 {
   size_t b;
   assert(TYPE(tbl) == TYPE_TABLE);
-  if (!buckets_find(tbl, tbl->table.keys, key, &tbl->table.ld, &b))
+  if (!table_find(tbl, key, 1, &b))
     return 0;
   if (tbl->table.keys->bucket[b] == obj_unused) {
     tbl->table.keys->bucket[b] = key;
@@ -940,17 +952,9 @@ static void table_delete(obj_t tbl, obj_t key)
 {
   size_t b;
   assert(TYPE(tbl) == TYPE_TABLE);
-  if(!buckets_find(tbl, tbl->table.keys, key, NULL, &b) ||
-     tbl->table.keys->bucket[b] == obj_unused ||
-     tbl->table.keys->bucket[b] == obj_deleted)
-  {
-    if(!mps_ld_isstale(&tbl->table.ld, arena, key))
-      return;
-    if(!table_rehash(tbl, UNTAG_COUNT(tbl->table.keys->length), key, &b))
-      return;
-  }
-  if(tbl->table.keys->bucket[b] != obj_unused &&
-     tbl->table.keys->bucket[b] != obj_deleted) 
+  if(table_find(tbl, key, 0, &b)
+     && tbl->table.keys->bucket[b] != obj_unused
+     && tbl->table.keys->bucket[b] != obj_deleted) 
   {
     tbl->table.keys->bucket[b] = obj_deleted;
     tbl->table.keys->deleted
@@ -987,22 +991,12 @@ static char *symbol_name(obj_t symbol)
 }
 
 
-/* port_close -- close and definalize a port                         %%MPS
- *
- * Ports objects are registered for finalization when they are created
- * (see make_port). When closed, we definalize them. This is purely an
- * optimization: it would be harmless to finalize them because setting
- * 'stream' to NULL prevents the stream from being closed multiple
- * times. See topic/finalization.
- */
 static void port_close(obj_t port)
 {
   assert(TYPE(port) == TYPE_PORT);
   if(port->port.stream != NULL) {
-    mps_addr_t port_ref = port;
     fclose(port->port.stream);
     port->port.stream = NULL;
-    mps_definalize(arena, &port_ref);
   }
 }
 
@@ -2011,8 +2005,6 @@ static obj_t entry_do(obj_t env, obj_t op_env, obj_t operator, obj_t operands)
       return result;
     }
   }
-  error("%s: unimplemented", operator->operator.name);
-  return obj_error;
 }
 
 
@@ -4005,9 +3997,9 @@ static mps_res_t obj_scan(mps_ss_t ss, mps_addr_t base, mps_addr_t limit)
         break;
       default:
         assert(0);
+        fflush(stdout);
         fprintf(stderr, "Unexpected object on the heap\n");
         abort();
-        return MPS_RES_FAIL;
       }
     }
   } MPS_SCAN_END(ss);
@@ -4076,9 +4068,9 @@ static mps_addr_t obj_skip(mps_addr_t base)
     break;
   default:
     assert(0);
+    fflush(stdout);
     fprintf(stderr, "Unexpected object on the heap\n");
     abort();
-    return NULL;
   }
   return base;
 }
@@ -4322,7 +4314,7 @@ static int start(int argc, char *argv[])
   mps_addr_t ref;
   mps_res_t res;
   mps_root_t globals_root;
-  int exit_code;
+  int exit_code = EXIT_SUCCESS;
 
   total = (size_t)0;
   error_handler = &jb;
@@ -4370,20 +4362,24 @@ static int start(int argc, char *argv[])
              make_operator(optab[i].name, optab[i].entry,
                            obj_empty, obj_empty, env, op_env));
   } else {
+    fflush(stdout);
     fprintf(stderr,
             "Fatal error during initialization: %s\n",
             error_message);
     abort();
   }
 
-  if(argc >= 2) {
+  if (argc > 0) {
     /* Non-interactive file execution */
     if(setjmp(*error_handler) != 0) {
+      fflush(stdout);
       fprintf(stderr, "%s\n", error_message);
+      fflush(stderr);
       exit_code = EXIT_FAILURE;
     } else {
-      load(env, op_env, make_string(strlen(argv[1]), argv[1]));
-      exit_code = EXIT_SUCCESS;
+      int a;
+      for (a = 0; a < argc; ++a)
+        load(env, op_env, make_string(strlen(argv[a]), argv[a]));
     }
   } else {
     /* Ask the MPS to tell us when it's garbage collecting so that we can
@@ -4398,12 +4394,15 @@ static int start(int argc, char *argv[])
          "If you recurse too much the interpreter may crash from using too much C stack.");
     for(;;) {
       if(setjmp(*error_handler) != 0) {
+        fflush(stdout);
         fprintf(stderr, "%s\n", error_message);
+        fflush(stderr);
       }
 
       mps_chat();
       printf("%lu, %lu> ", (unsigned long)total,
              (unsigned long)mps_collections(arena));
+      fflush(stdout);
       obj = read(input);
       if(obj == obj_eof) break;
       obj = eval(env, op_env, obj);
@@ -4413,7 +4412,6 @@ static int start(int argc, char *argv[])
       }
     }
     puts("Bye.");
-    exit_code = EXIT_SUCCESS;
   }
 
   /* See comment at the end of `main` about cleaning up. */
@@ -4446,6 +4444,7 @@ static mps_gen_param_s obj_gen_params[] = {
 
 int main(int argc, char *argv[])
 {
+  size_t arenasize = 32ul * 1024 * 1024;
   mps_res_t res;
   mps_chain_t obj_chain;
   mps_fmt_t obj_fmt, buckets_fmt;
@@ -4453,11 +4452,41 @@ int main(int argc, char *argv[])
   mps_root_t reg_root;
   int exit_code;
   void *marker = &marker;
+  int ch;
   
+  while ((ch = getopt(argc, argv, "m:")) != -1)
+    switch (ch) {
+    case 'm': {
+        char *p;
+        arenasize = (unsigned)strtoul(optarg, &p, 10);
+        switch(toupper(*p)) {
+        case 'G': arenasize <<= 30; break;
+        case 'M': arenasize <<= 20; break;
+        case 'K': arenasize <<= 10; break;
+        case '\0': break;
+        default:
+          fprintf(stderr, "Bad arena size %s\n", optarg);
+          return EXIT_FAILURE;
+        }
+      }
+      break;
+    default:
+      fprintf(stderr,
+              "Usage: %s [option...] [file...]\n"
+              "Options:\n"
+              "  -m n, --arena-size=n[KMG]?\n"
+              "    Initial size of arena (default %lu).\n",
+              argv[0],
+              (unsigned long)arenasize);
+      return EXIT_FAILURE;
+    }
+  argc -= optind;
+  argv += optind;
+
   /* Create an MPS arena.  There is usually only one of these in a process.
      It holds all the MPS "global" state and is where everything happens. */
   MPS_ARGS_BEGIN(args) {
-    MPS_ARGS_ADD(args, MPS_KEY_ARENA_SIZE, 32 * 1024 * 1024);
+    MPS_ARGS_ADD(args, MPS_KEY_ARENA_SIZE, arenasize);
     res = mps_arena_create_k(&arena, mps_arena_class_vm(),  args);
   } MPS_ARGS_END(args);
   if (res != MPS_RES_OK) error("Couldn't create arena");

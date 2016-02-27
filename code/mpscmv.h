@@ -1,7 +1,7 @@
 /* mpscmv.h: MEMORY POOL SYSTEM CLASS "MV"
  *
  * $Id$
- * Copyright (c) 2001 Ravenbrook Limited.  See end of file for license.
+ * Copyright (c) 2001-2014 Ravenbrook Limited.  See end of file for license.
  */
 
 #ifndef mpscmv_h
@@ -9,17 +9,18 @@
 
 #include "mps.h"
 
-extern size_t mps_mv_free_size(mps_pool_t mps_pool);
-extern size_t mps_mv_size(mps_pool_t mps_pool);
-extern mps_class_t mps_class_mv(void);
-extern mps_class_t mps_class_mv_debug(void);
+#define mps_mv_free_size mps_pool_free_size
+#define mps_mv_size mps_pool_total_size
+
+extern mps_pool_class_t mps_class_mv(void);
+extern mps_pool_class_t mps_class_mv_debug(void);
 
 #endif /* mpscmv_h */
 
 
 /* C. COPYRIGHT AND LICENSE
  *
- * Copyright (C) 2001-2002 Ravenbrook Limited <http://www.ravenbrook.com/>.
+ * Copyright (C) 2001-2014 Ravenbrook Limited <http://www.ravenbrook.com/>.
  * All rights reserved.  This is an open source license.  Contact
  * Ravenbrook for commercial licensing options.
  * 

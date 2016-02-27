@@ -1,7 +1,7 @@
 /* fmtdytst.c: DYLAN FORMAT TEST CODE
  *
  * $Id$
- * Copyright (c) 2001 Ravenbrook Limited.  See end of file for license.
+ * Copyright (c) 2001-2014 Ravenbrook Limited.  See end of file for license.
  *
  * .readership: MPS developers, Dylan developers.
  */
@@ -16,12 +16,6 @@
 #include <stdlib.h>
 
 #define unused(param)   ((void)param)
-
-#ifdef MPS_BUILD_MV
-/* windows.h causes warnings about "unreferenced inline function */
-/* has been removed". */
-#pragma warning(disable: 4514)
-#endif /* MPS_BUILD_MV */
 
 
 static mps_word_t *ww = NULL;
@@ -79,8 +73,12 @@ mps_res_t dylan_make_wrappers(void)
  * If the raw memory is large enough, initialises it to a dylan-vector,
  * whose slots are initialised to either dylan-ints, or valid refs, at 
  * random.
- * Caller must supply an array of (at least 1) valid refs to copy, via
- * the "refs" and "nr_refs" arguments.
+ *
+ * Caller must supply an array of valid refs to copy, via the "refs"
+ * and "nr_refs" arguments. If "nr_refs" is 0, all slots are
+ * initialized to dylan-ints: this may be useful for making leaf
+ * objects.
+ *
  * (Makes a pad if the raw memory is too small to hold a dylan-vector)
  */
 
@@ -106,7 +104,7 @@ mps_res_t dylan_init(mps_addr_t addr, size_t size,
     for(i = 0; i < t; ++i) {
       mps_word_t r = rnd();
 
-      if(r & 1)
+      if(nr_refs == 0 || (r & 1))
         p[2+i] = ((r & ~(mps_word_t)3) | 1); /* random int */
       else
         p[2+i] = (mps_word_t)refs[(r >> 1) % nr_refs]; /* random ptr */
@@ -222,7 +220,7 @@ mps_bool_t dylan_check(mps_addr_t addr)
 
 /* C. COPYRIGHT AND LICENSE
  *
- * Copyright (C) 2001-2002 Ravenbrook Limited <http://www.ravenbrook.com/>.
+ * Copyright (C) 2001-2014 Ravenbrook Limited <http://www.ravenbrook.com/>.
  * All rights reserved.  This is an open source license.  Contact
  * Ravenbrook for commercial licensing options.
  *

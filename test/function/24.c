@@ -10,6 +10,8 @@ END_HEADER
 #include "testlib.h"
 #include "mpscamc.h"
 
+#define OBJSIZE (10 * (1u << 20))
+
 #define genCOUNT (3)
 
 static mps_gen_param_s testChain[genCOUNT] = {
@@ -19,15 +21,13 @@ void *stackpointer;
 
 static mps_res_t myscan(mps_ss_t ss, mps_addr_t base, mps_addr_t limit)
 {
- MPS_SCAN_BEGIN(ss)
  comment("Scan: %p", base);
- MPS_SCAN_END(ss);
  return MPS_RES_OK;
 }
 
 static mps_addr_t myskip(mps_addr_t object)
 {
- return (mps_addr_t) ((char *) object + 1);
+ return (mps_addr_t) ((char *) object + OBJSIZE);
 }
 
 static void mycopy(mps_addr_t object, mps_addr_t to)
@@ -100,13 +100,14 @@ static void test(void)
  for(i=1; i<1000; i++)
  {
   do
-  { die(mps_reserve(&p, ap, 10*1024*1024), "Reserve: ");
+  { die(mps_reserve(&p, ap, OBJSIZE), "Reserve: ");
   }
-  while (!mps_commit(ap, p, 10*1024*1024));
+  while (!mps_commit(ap, p, OBJSIZE));
   comment("%i at %p", i, p);
   comment("%i objects of 10 megabytes each allocated", i);
  }
 
+ mps_arena_park(arena);
  mps_ap_destroy(ap);
  mps_pool_destroy(pool);
  mps_fmt_destroy(format);

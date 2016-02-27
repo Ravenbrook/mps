@@ -1,7 +1,7 @@
 /* mpmst.h: MEMORY POOL MANAGER DATA STRUCTURES
  *
  * $Id$
- * Copyright (c) 2001-2013 Ravenbrook Limited.  See end of file for license.
+ * Copyright (c) 2001-2014 Ravenbrook Limited.  See end of file for license.
  * Portions copyright (C) 2001 Global Graphics Software.
  *
  * .design: This header file crosses module boundaries.  The relevant
@@ -28,6 +28,8 @@
 #include "ring.h"
 #include "chain.h"
 #include "table.h"
+#include "splay.h"
+#include "meter.h"
 
 
 /* PoolClassStruct -- pool class structure
@@ -47,7 +49,7 @@
 
 #define PoolClassSig    ((Sig)0x519C7A55) /* SIGnature pool CLASS */
 
-typedef struct mps_class_s {
+typedef struct mps_pool_class_s {
   ProtocolClassStruct protocol;
   const char *name;             /* class name string */
   size_t size;                  /* size of outer structure */
@@ -80,6 +82,8 @@ typedef struct mps_class_s {
   PoolBufferClassMethod bufferClass; /* default BufferClass of pool */
   PoolDescribeMethod describe;  /* describe the contents of the pool */
   PoolDebugMixinMethod debugMixin; /* find the debug mixin, if any */
+  PoolSizeMethod totalSize;     /* total memory allocated from arena */
+  PoolSizeMethod freeSize;      /* free memory (unused by client program) */
   Bool labelled;                /* whether it has been EventLabelled */
   Sig sig;                      /* .class.end-sig */
 } PoolClassStruct;
@@ -108,10 +112,6 @@ typedef struct mps_pool_s {     /* generic structure */
   Align alignment;              /* alignment for units */
   Format format;                /* format only if class->attr&AttrFMT */
   PoolFixMethod fix;            /* fix method */
-  double fillMutatorSize;       /* bytes filled, mutator buffers */
-  double emptyMutatorSize;      /* bytes emptied, mutator buffers */
-  double fillInternalSize;      /* bytes filled, internal buffers */
-  double emptyInternalSize;     /* bytes emptied, internal buffers */
 } PoolStruct;
 
 
@@ -132,9 +132,11 @@ typedef struct MFSStruct {      /* MFS outer structure */
   PoolStruct poolStruct;        /* generic structure */
   Size unroundedUnitSize;       /* the unit size requested */
   Size extendBy;                /* arena alloc size rounded using unitSize */
+  Bool extendSelf;              /* whether to allocate tracts */
   Size unitSize;                /* rounded for management purposes */
-  Word unitsPerExtent;          /* number of units per arena alloc */
   struct MFSHeaderStruct *freeList; /* head of the free list */
+  Size total;                   /* total size allocated from arena */
+  Size free;                    /* free space in pool */
   Tract tractList;              /* the first tract */
   Sig sig;                      /* <design/sig/> */
 } MFSStruct;
@@ -157,7 +159,7 @@ typedef struct MVStruct {       /* MV pool outer structure */
   Size extendBy;                /* segment size to extend pool by */
   Size avgSize;                 /* client estimate of allocation size */
   Size maxSize;                 /* client estimate of maximum size */
-  Size space;                   /* total free space in pool */
+  Size free;                    /* free space in pool */
   Size lost;                    /* <design/poolmv/#lost> */
   RingStruct spans;             /* span chain */
   Sig sig;                      /* <design/sig/> */
@@ -274,8 +276,8 @@ typedef struct SegStruct {      /* segment structure */
   RingStruct poolRing;          /* link in list of segs in pool */
   Addr limit;                   /* limit of segment */
   unsigned depth : ShieldDepthWIDTH; /* see <code/shield.c#def.depth> */
-  AccessSet pm : AccessSetWIDTH; /* protection mode, <code/shield.c> */
-  AccessSet sm : AccessSetWIDTH; /* shield mode, <code/shield.c> */
+  AccessSet pm : AccessLIMIT;   /* protection mode, <code/shield.c> */
+  AccessSet sm : AccessLIMIT;   /* shield mode, <code/shield.c> */
   TraceSet grey : TraceLIMIT;   /* traces for which seg is grey */
   TraceSet white : TraceLIMIT;  /* traces for which seg is white */
   TraceSet nailed : TraceLIMIT; /* traces for which seg has nailed objects */
@@ -299,22 +301,21 @@ typedef struct GCSegStruct {    /* GC segment structure */
 } GCSegStruct;
 
 
-/* SegPrefStruct -- segment preference structure
+/* LocusPrefStruct -- locus preference structure
  *
- * .seg-pref: arena memory users (pool class code) need a way of
- * expressing preferences about the segments they allocate.
- *
- * .seg-pref.misleading: The name is historical and misleading. SegPref
- * objects need have nothing to do with segments. @@@@ */
+ * .locus-pref: arena memory users (pool class code) need a way of
+ * expressing preferences about the locus of the segments they
+ * allocate. See <design/locus/>.
+ */
 
-#define SegPrefSig      ((Sig)0x5195E9B6) /* SIGnature SEG PRef */
+#define LocusPrefSig      ((Sig)0x51970CB6) /* SIGnature LOCus PRef */
 
-typedef struct SegPrefStruct {  /* segment placement preferences */
+typedef struct LocusPrefStruct { /* locus placement preferences */
   Sig sig;                      /* <code/misc.h#sig> */
   Bool high;                    /* high or low */
   ZoneSet zones;                /* preferred zones */
-  Bool isCollected;             /* whether segment will be collected */
-} SegPrefStruct;
+  ZoneSet avoid;                /* zones to avoid */
+} LocusPrefStruct;
 
 
 /* BufferClassStruct -- buffer class structure
@@ -516,18 +517,6 @@ typedef struct TraceStruct {
 } TraceStruct;
 
 
-/* ChunkCacheEntryStruct -- cache entry in the chunk cache */
-
-#define ChunkCacheEntrySig ((Sig)0x519C80CE) /* SIGnature CHUnk Cache Entry */
-
-typedef struct ChunkCacheEntryStruct {
-  Sig sig;
-  Chunk chunk;
-  Addr base;
-  Addr limit;
-} ChunkCacheEntryStruct;
-
-
 /* ArenaClassStruct -- generic arena class interface */
 
 #define ArenaClassSig   ((Sig)0x519A6C1A) /* SIGnature ARena CLAss */
@@ -540,15 +529,15 @@ typedef struct mps_arena_class_s {
   ArenaVarargsMethod varargs;
   ArenaInitMethod init;
   ArenaFinishMethod finish;
-  ArenaReservedMethod reserved;
   ArenaPurgeSpareMethod purgeSpare;
   ArenaExtendMethod extend;
-  ArenaAllocMethod alloc;
+  ArenaGrowMethod grow;
   ArenaFreeMethod free;
   ArenaChunkInitMethod chunkInit;
   ArenaChunkFinishMethod chunkFinish;
   ArenaCompactMethod compact;
   ArenaDescribeMethod describe;
+  ArenaPagesMarkAllocatedMethod pagesMarkAllocated;
   Sig sig;
 } ArenaClassStruct;
 
@@ -604,6 +593,112 @@ typedef struct GlobalsStruct {
 } GlobalsStruct;
 
 
+/* LandClassStruct -- land class structure
+ *
+ * See <design/land/>.
+ */
+
+#define LandClassSig    ((Sig)0x5197A4DC) /* SIGnature LAND Class */
+
+typedef struct LandClassStruct {
+  ProtocolClassStruct protocol;
+  const char *name;             /* class name string */
+  size_t size;                  /* size of outer structure */
+  LandSizeMethod sizeMethod;    /* total size of ranges in land */
+  LandInitMethod init;          /* initialize the land */
+  LandFinishMethod finish;      /* finish the land */
+  LandInsertMethod insert;      /* insert a range into the land */
+  LandDeleteMethod delete;      /* delete a range from the land */
+  LandIterateMethod iterate;    /* iterate over ranges in the land */
+  LandIterateAndDeleteMethod iterateAndDelete; /* iterate and maybe delete */
+  LandFindMethod findFirst;     /* find first range of given size */
+  LandFindMethod findLast;      /* find last range of given size */
+  LandFindMethod findLargest;   /* find largest range */
+  LandFindInZonesMethod findInZones; /* find first range of given size in zone set */
+  LandDescribeMethod describe;  /* describe the land */
+  Sig sig;                      /* .class.end-sig */
+} LandClassStruct;
+
+
+/* LandStruct -- generic land structure
+ *
+ * See <design/land/>, <code/land.c>
+ */
+
+#define LandSig ((Sig)0x5197A4D9) /* SIGnature LAND */
+
+typedef struct LandStruct {
+  Sig sig;                      /* <design/sig/> */
+  LandClass class;              /* land class structure */
+  Arena arena;                  /* owning arena */
+  Align alignment;              /* alignment of addresses */
+  Bool inLand;                  /* prevent reentrance */
+} LandStruct;
+
+
+/* CBSStruct -- coalescing block structure
+ *
+ * CBS is a Land implementation that maintains a collection of
+ * disjoint ranges in a splay tree.
+ *
+ * See <code/cbs.c>.
+ */
+
+#define CBSSig ((Sig)0x519CB599) /* SIGnature CBS */
+
+typedef struct CBSStruct {
+  LandStruct landStruct;        /* superclass fields come first */
+  SplayTreeStruct splayTreeStruct;
+  STATISTIC_DECL(Count treeSize);
+  Pool blockPool;               /* pool that manages blocks */
+  Size blockStructSize;         /* size of block structure */
+  Bool ownPool;                 /* did we create blockPool? */
+  Size size;                    /* total size of ranges in CBS */
+  /* meters for sizes of search structures at each op */
+  METER_DECL(treeSearch);
+  Sig sig;                      /* .class.end-sig */
+} CBSStruct;
+
+
+/* FailoverStruct -- fail over from one land to another
+ *
+ * Failover is a Land implementation that combines two other Lands,
+ * using primary until it fails, and then using secondary.
+ *
+ * See <code/failover.c>.
+ */
+
+#define FailoverSig ((Sig)0x519FA170) /* SIGnature FAILOver */
+
+typedef struct FailoverStruct {
+  LandStruct landStruct;        /* superclass fields come first */
+  Land primary;                 /* use this land normally */
+  Land secondary;               /* but use this one if primary fails */
+  Sig sig;                      /* .class.end-sig */
+} FailoverStruct;
+
+
+/* FreelistStruct -- address-ordered freelist
+ *
+ * Freelist is a subclass of Land that maintains a collection of
+ * disjoint ranges in an address-ordered freelist.
+ *
+ * See <code/freelist.c>.
+ */
+
+#define FreelistSig ((Sig)0x519F6331) /* SIGnature FREEL */
+
+typedef union FreelistBlockUnion *FreelistBlock;
+
+typedef struct FreelistStruct {
+  LandStruct landStruct;        /* superclass fields come first */
+  FreelistBlock list;           /* first block in list or NULL if empty */
+  Count listSize;               /* number of blocks in list */
+  Size size;                    /* total size of ranges in list */
+  Sig sig;                      /* .class.end-sig */
+} FreelistStruct;
+
+
 /* ArenaStruct -- generic arena
  *
  * See <code/arena.c>.  */
@@ -621,22 +716,29 @@ typedef struct mps_arena_s {
 
   ReservoirStruct reservoirStruct; /* <design/reservoir/> */
 
-  Size committed;               /* amount of committed RAM */
+  Size reserved;                /* total reserved address space */
+  Size committed;               /* total committed memory */
   Size commitLimit;             /* client-configurable commit limit */
 
   Size spareCommitted;          /* Amount of memory in hysteresis fund */
   Size spareCommitLimit;        /* Limit on spareCommitted */
 
   Shift zoneShift;              /* see also <code/ref.c> */
-  Align alignment;              /* minimum alignment of tracts */
+  Size grainSize;               /* <design/arena/#grain> */
 
   Tract lastTract;              /* most recently allocated tract */
   Addr lastTractBase;           /* base address of lastTract */
 
   Chunk primary;                /* the primary chunk */
-  RingStruct chunkRing;         /* all the chunks */
+  RingStruct chunkRing;         /* all the chunks, in a ring for iteration */
+  Tree chunkTree;               /* all the chunks, in a tree for fast lookup */
   Serial chunkSerial;           /* next chunk number */
-  ChunkCacheEntryStruct chunkCache; /* just one entry */
+
+  Bool hasFreeLand;              /* Is freeLand available? */
+  MFSStruct freeCBSBlockPoolStruct;
+  CBSStruct freeLandStruct;
+  ZoneSet freeZones;            /* zones not yet allocated */
+  Bool zoned;                   /* use zoned allocation? */
 
   /* locus fields (<code/locus.c>) */
   GenDescStruct topGen;         /* generation descriptor for dynamic gen */
@@ -656,6 +758,7 @@ typedef struct mps_arena_s {
 
   /* thread fields (<code/thread.c>) */
   RingStruct threadRing;        /* ring of attached threads */
+  RingStruct deadRing;          /* ring of dead threads */
   Serial threadSerial;          /* serial of next thread */
  
   /* shield fields (<code/shield.c>) */
@@ -709,7 +812,7 @@ typedef struct AllocPatternStruct {
 
 /* C. COPYRIGHT AND LICENSE
  *
- * Copyright (C) 2001-2013 Ravenbrook Limited <http://www.ravenbrook.com/>.
+ * Copyright (C) 2001-2014 Ravenbrook Limited <http://www.ravenbrook.com/>.
  * All rights reserved.  This is an open source license.  Contact
  * Ravenbrook for commercial licensing options.
  * 

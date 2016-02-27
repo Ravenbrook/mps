@@ -1,7 +1,7 @@
 /* misc.h: MISCELLANEOUS DEFINITIONS
  *
  * $Id$
- * Copyright (c) 2001 Ravenbrook Limited.  See end of file for license.
+ * Copyright (c) 2001-2014 Ravenbrook Limited.  See end of file for license.
  * Portions copyright (C) 2001 Global Graphics Software.
  *
  * Small general things which are useful for C but aren't part of the
@@ -13,13 +13,19 @@
 #ifndef misc_h
 #define misc_h
 
-#include <stddef.h>
-
 
 typedef int Bool;                       /* <design/type/#bool> */
 enum BoolEnum {
   FALSE = 0,
   TRUE = 1
+};
+
+
+typedef int Compare;
+enum CompareEnum {
+  CompareLESS = -1,
+  CompareEQUAL = 0,
+  CompareGREATER = 1
 };
 
 
@@ -42,6 +48,7 @@ typedef const struct SrcIdStruct {
 #define SRCID(id, scmid) \
   static SrcIdStruct id ## FileSrcIdStruct = \
   {__FILE__, (scmid), __DATE__, __TIME__}; \
+  extern SrcId id ## SrcId; \
   SrcId id ## SrcId = &id ## FileSrcIdStruct
 
 
@@ -95,8 +102,8 @@ typedef const struct SrcIdStruct {
  * NELEMS(a) expands into an expression that is the number
  * of elements in the array a.
  *
- * WARNING: expands a more than once (you'd have to write obviously
- * perverse code for this to matter though).
+ * WARNING: expands a more than once (but only in the context of
+ * sizeof, so does not cause double evaluation).
  */
 
 #define NELEMS(a) (sizeof(a)/sizeof((a)[0]))
@@ -145,6 +152,18 @@ typedef const struct SrcIdStruct {
 #define UNUSED(param)   ((void)param)
 
 
+/* UNUSED_POINTER, UNUSED_SIZE -- values for unused arguments 
+ *
+ * Use these values for unused pointer, size closure arguments and
+ * check them in the callback or visitor.
+ *
+ * Ensure that they have high bits set on 64-bit platforms for maximum
+ * unusability.
+ */
+#define UNUSED_POINTER (Pointer)((Word)~0xFFFFFFFF | (Word)0xB60405ED) /* PointeR UNUSED */
+#define UNUSED_SIZE ((Size)~0xFFFFFFFF | (Size)0x520405ED) /* SiZe UNUSED */
+
+
 /* PARENT -- parent structure
  *
  * Given a pointer to a field of a structure this returns a pointer to
@@ -160,6 +179,29 @@ typedef const struct SrcIdStruct {
 
 #define PARENT(type, field, p) \
   ((type *)(void *)((char *)(p) - offsetof(type, field)))
+
+
+
+/* BOOLFIELD -- declare a Boolean bitfield
+ *
+ * A Boolean bitfield needs to be unsigned (not Bool), so that its
+ * values are 0 and 1 (not 0 and -1), in order to avoid a sign
+ * conversion (which would be a compiler error) when assigning TRUE to
+ * the field.
+ *
+ * See <design/type/#bool.bitfield>
+ */
+#define BOOLFIELD(name) unsigned name : 1
+
+
+/* BITFIELD -- coerce a value into a bitfield
+ *
+ * This coerces value to the given width and type in a way that avoids
+ * warnings from gcc -Wconversion about possible loss of data.
+ */
+
+#define BITFIELD(type, value, width) ((type)value & (((type)1 << (width)) - 1))
+#define BOOLOF(v) BITFIELD(unsigned, (v), 1)
 
 
 /* Bit Sets -- sets of integers in [0,N-1].
@@ -183,6 +225,7 @@ typedef const struct SrcIdStruct {
 #define BS_SUB(s1, s2)          BS_SUPER((s2), (s1))
 #define BS_IS_SINGLE(s)         (  ((s) != 0)  &&  (((s) & ((s)-1)) == 0)  )
 #define BS_SYM_DIFF(s1, s2)     ((s1) ^ (s2))
+#define BS_BITFIELD(ty, s)      BITFIELD(ty ## Set, (s), ty ## LIMIT)
 
 
 #endif /* misc_h */
@@ -190,7 +233,7 @@ typedef const struct SrcIdStruct {
 
 /* C. COPYRIGHT AND LICENSE
  *
- * Copyright (C) 2001-2002 Ravenbrook Limited <http://www.ravenbrook.com/>.
+ * Copyright (C) 2001-2014 Ravenbrook Limited <http://www.ravenbrook.com/>.
  * All rights reserved.  This is an open source license.  Contact
  * Ravenbrook for commercial licensing options.
  * 

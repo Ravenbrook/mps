@@ -5,7 +5,7 @@ TEST_HEADER
  language = c
  link = testlib.o newfmt.o
 OUTPUT_SPEC
- errtext = create ap: MEMORY
+ errtext = create ap: COMMIT_LIMIT
 END_HEADER
 */
 
@@ -40,6 +40,7 @@ static void test(void)
 
  cdie(mps_arena_create(&arena, mps_arena_class_vm(), mmqaArenaSIZE),
       "create arena");
+ die(mps_arena_commit_limit_set(arena, 1ul << 30), "commit_limit_set");
  die(mps_thread_reg(&thread, arena), "register thread");
  die(mps_root_create_reg(&root, arena, mps_rank_ambig(), 0, thread,
                          mps_stack_scan_ambig, stackpointer, 0),
@@ -48,14 +49,14 @@ static void test(void)
  die(mps_chain_create(&chain, arena, genCOUNT, testChain), "chain_create");
 
  die(mps_pool_create(&pool, arena, mps_class_mv(),
-                     1024*32, 1024*16, 1024*256),
-     "pool");
+                     (size_t)(1024*32), (size_t)(1024*16), (size_t)(1024*256)),
+     "create MV pool");
 
  while (mps_alloc(&q, pool, 64*1024)==MPS_RES_OK);
  p = 0;
 
  cdie(mmqa_pool_create_chain(&pool, arena, mps_class_amc(), format, chain),
-      "create pool");
+      "create AMC pool");
 
  while (1) {
   p++;

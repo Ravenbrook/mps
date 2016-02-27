@@ -7,10 +7,11 @@
 #include "sa.h"
 #include "mpm.h"
 #include "bt.h"
+#include "vm.h"
 
 static Index pagesLength(SparseArray sa)
 {
-  return (sa->length * sa->elementSize + VMAlign(sa->vm) - 1) >> sa->shift;
+  return (sa->length * sa->elementSize + VMPageSize(sa->vm) - 1) >> sa->shift;
 }
 
 void SparseArrayInit(SparseArray sa,
@@ -25,8 +26,8 @@ void SparseArrayInit(SparseArray sa,
   sa->mapped = mapped;
   sa->pages = pages;
   sa->vm = vm;
-  AVER(SizeIsP2(VMAlign(vm)));
-  sa->shift = SizeLog2(VMAlign(vm));
+  AVER(SizeIsP2(VMPageSize(vm)));
+  sa->shift = SizeLog2(VMPageSize(vm));
   BTResRange(mapped, 0, length);
   BTResRange(pages, 0, pagesLength(sa));
 
@@ -48,14 +49,12 @@ Bool SparseArrayCheck(SparseArray sa)
   CHECKS(SparseArray, sa);
   CHECKL(sa->base != NULL);
   CHECKL(sa->elementSize >= 1);
-  /* TODO: CHECKD(VM, sa->vm); once VMStruct becomes visible */
-  CHECKL(VMCheck(sa->vm));
-  CHECKL(sa->elementSize <= VMAlign(sa->vm));
+  CHECKD_NOSIG(VM, sa->vm); /* <design/check/#hidden-type> */
+  CHECKL(sa->elementSize <= VMPageSize(sa->vm));
   CHECKL(sa->length > 0);
-  /* TODO: Make BTCheck extern and use everywhere. */
-  /* CHECKL(BTCheck(sa->mapped)); */
-  /* CHECKL(BTCheck(sa->pages)); */
-  CHECKL(sa->shift == SizeLog2(VMAlign(sa->vm)));
+  CHECKD_NOSIG(BT, sa->mapped);
+  CHECKD_NOSIG(BT, sa->pages);
+  CHECKL(sa->shift == SizeLog2(VMPageSize(sa->vm)));
   return TRUE;
 }
   
@@ -141,7 +140,7 @@ void SparseArrayUnmap(SparseArray sa, Index baseEI, Index limitEI)
      the page on which the base element resides.  If any elements between
      there and baseMI are defined, we can't unmap that page, so bump up. */
   baseMI = (baseEI * sa->elementSize) >> sa->shift;
-  i = SizeAlignDown(baseEI * sa->elementSize, VMAlign(sa->vm)) / sa->elementSize;
+  i = SizeAlignDown(baseEI * sa->elementSize, VMPageSize(sa->vm)) / sa->elementSize;
   if (i < baseEI && !BTIsResRange(sa->mapped, i, baseEI))
     ++baseMI;
 
@@ -149,7 +148,7 @@ void SparseArrayUnmap(SparseArray sa, Index baseEI, Index limitEI)
      the page on which the last element resides.  If any elements between
      limitMI and there are defined, we can't unmap that page, so bump down. */
   limitMI = ((limitEI * sa->elementSize - 1) >> sa->shift) + 1;
-  i = (SizeAlignUp(limitEI * sa->elementSize, VMAlign(sa->vm)) +
+  i = (SizeAlignUp(limitEI * sa->elementSize, VMPageSize(sa->vm)) +
        sa->elementSize - 1) / sa->elementSize;
   if (i > sa->length)
     i = sa->length;

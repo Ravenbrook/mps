@@ -131,7 +131,7 @@ Memory Management Glossary: C
 
         A cactus stack is a :term:`stack` with branches. When
         diagrammed, its shape resembles that of a `saguaro cactus
-        <http://www.azstarnet.com/%7Efosnp/factsaboutsaguaros.html>`_.
+        <http://en.wikipedia.org/wiki/Saguaro>`_.
 
         In languages that support :term:`continuations`,
         :term:`activation records` can have :term:`indefinite extent`.
@@ -581,16 +581,6 @@ Memory Management Glossary: C
             valid, even functions on the :term:`critical path`. See
             :ref:`guide-build`. Compare :term:`hot` and :term:`rash`.
 
-    copy method
-
-        .. mps:specific::
-
-            A copy method is one of the methods in an :term:`object
-            format`. Formerly, the MPS called this method to copy a
-            :term:`formatted object` during :term:`moving garbage
-            collection <moving garbage collector>`. Now it just copies
-            the bytes and the copy method is ignored.
-
     copying garbage collection
 
         .. aka:: *scavenging garbage collection*.
@@ -614,6 +604,12 @@ Memory Management Glossary: C
         .. similar:: :term:`moving <moving garbage collector>`.
 
         .. seealso:: :term:`broken heart`, :term:`forwarding pointer`, :term:`two-space collector`.
+
+        .. mps:specific::
+
+            The :ref:`pool-amc` pool class implements copying garbage
+            collection (more precisely, :term:`mostly-copying garbage
+            collection`).
 
     core
 

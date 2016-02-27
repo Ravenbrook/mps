@@ -31,12 +31,12 @@ typedef struct SparseArrayStruct {
   BT mapped;            /* whether elements exist in the array */
   BT pages;             /* whether underlying pages are mapped */
   VM vm;                /* where pages are mapped from */
-  Shift shift;          /* SizeLog2(VMAlign(vm)) TODO: VMShift(vm) */
+  Shift shift;          /* SizeLog2(VMPageSize(vm)) TODO: VMShift(vm) */
 } SparseArrayStruct;
 
 extern void SparseArrayInit(SparseArray sa,
                             void *base, Size elementSize, Index length,
-                            BT defined, BT mapped, VM vm);
+                            BT mapped, BT pages, VM vm);
 extern void SparseArrayFinish(SparseArray sa);
 extern Bool SparseArrayCheck(SparseArray sa);
 

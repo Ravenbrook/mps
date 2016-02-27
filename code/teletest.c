@@ -1,7 +1,7 @@
 /* teletest.c: TELEMETRY TEST
  *
  * $Id$
- * Copyright (c) 2001-2013 Ravenbrook Limited.  See end of file for license.
+ * Copyright (c) 2001-2014 Ravenbrook Limited.  See end of file for license.
  *
  * .source: The command parser here was taken and adapted from bttest.c.
  */
@@ -12,25 +12,17 @@
 #include "testlib.h"
 #include "mpslib.h"
 
-#include <stdlib.h>
+#include <stdio.h> /* fflush, fgets, printf, stdin, stdout */
+#include <stdlib.h> /* exit, EXIT_SUCCESS, strtoul */
 
 SRCID(teletest, "$Id$");
 
 
 static mps_arena_t arena;
 
-
+#define WORD_FORMAT "0x%0" PRIwWORD PRIuLONGEST
 #define MAX_ARGS 3
 #define INPUT_BUFFER_SIZE 512
-
-#if (MPS_WORD_WIDTH == 32)
-#define WORD_FORMAT "0x%08lx"
-#elif (MPS_WORD_WIDTH == 64)
-#define WORD_FORMAT "0x%016lx"
-#else
-#error "Unrecognized word width"
-#endif
-
 
 static mps_word_t args[MAX_ARGS];
 static char *stringArg;
@@ -43,7 +35,8 @@ static void callControl(mps_word_t reset, mps_word_t flip)
   old = mps_telemetry_control(reset, flip);
   new = mps_telemetry_control((mps_word_t)0, (mps_word_t)0);
 
-  (void)printf(WORD_FORMAT " -> " WORD_FORMAT "\n", old, new);
+  printf(WORD_FORMAT " -> " WORD_FORMAT "\n",
+         (ulongest_t)old, (ulongest_t)new);
 }
 
 
@@ -58,7 +51,7 @@ static void doRead(void)
   mps_word_t old;
   old = mps_telemetry_control((mps_word_t)0, (mps_word_t)0);
       
-  (void)printf(WORD_FORMAT "\n", old);
+  (void)printf(WORD_FORMAT "\n", (ulongest_t)old);
 }
 
 
@@ -85,7 +78,7 @@ static void doIntern(void)
   mps_word_t id;
 
   id = mps_telemetry_intern(stringArg);
-  (void)printf(WORD_FORMAT "\n", id);
+  (void)printf(WORD_FORMAT "\n", (ulongest_t)id);
 }
 
 static void doLabel(void)
@@ -200,8 +193,7 @@ static void obeyCommand(char *command)
 
 extern int main(int argc, char *argv[])
 {
-  testlib_unused(argc);
-  testlib_unused(argv);
+  testlib_init(argc, argv);
 
   die(mps_arena_create((mps_arena_t*)&arena, mps_arena_class_vm(),
                        testArenaSIZE),
@@ -210,20 +202,21 @@ extern int main(int argc, char *argv[])
   while(1) {
     char input[INPUT_BUFFER_SIZE];
     printf("telemetry test> ");
-    fflush(stdout);
+    (void)fflush(stdout);
     if (fgets(input, INPUT_BUFFER_SIZE , stdin)) {
       obeyCommand(input);
     } else {
-      doQuit();
+      break;
     }
   }
+  mps_arena_destroy(arena);
   return EXIT_SUCCESS;
 }
 
 
 /* C. COPYRIGHT AND LICENSE
  *
- * Copyright (C) 2001-2013 Ravenbrook Limited <http://www.ravenbrook.com/>.
+ * Copyright (C) 2001-2014 Ravenbrook Limited <http://www.ravenbrook.com/>.
  * All rights reserved.  This is an open source license.  Contact
  * Ravenbrook for commercial licensing options.
  * 

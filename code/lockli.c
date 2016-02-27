@@ -1,7 +1,7 @@
 /* lockli.c: RECURSIVE LOCKS FOR POSIX SYSTEMS
  *
  * $Id$
- * Copyright (c) 2001-2013 Ravenbrook Limited.  See end of file for license.
+ * Copyright (c) 2001-2014 Ravenbrook Limited.  See end of file for license.
  *
  * .linux: This implementation currently just supports LinuxThreads
  * (platform MPS_OS_LI), Single Unix i/f.
@@ -72,7 +72,7 @@ typedef struct LockStruct {
 
 /* LockSize -- size of a LockStruct */
 
-size_t LockSize(void)
+size_t (LockSize)(void)
 {
   return sizeof(LockStruct);
 }
@@ -80,7 +80,7 @@ size_t LockSize(void)
 
 /* LockCheck -- check a lock */
 
-Bool LockCheck(Lock lock)
+Bool (LockCheck)(Lock lock)
 {
   CHECKS(Lock, lock);
   /* While claims can't be very large, I don't dare to put a limit on it. */
@@ -91,7 +91,7 @@ Bool LockCheck(Lock lock)
 
 /* LockInit -- initialize a lock */
 
-void LockInit(Lock lock)
+void (LockInit)(Lock lock)
 {
   pthread_mutexattr_t attr;
   int res;
@@ -113,7 +113,7 @@ void LockInit(Lock lock)
 
 /* LockFinish -- finish a lock */
 
-void LockFinish(Lock lock)
+void (LockFinish)(Lock lock)
 {
   int res;
 
@@ -128,7 +128,7 @@ void LockFinish(Lock lock)
 
 /* LockClaim -- claim a lock (non-recursive) */
 
-void LockClaim(Lock lock)
+void (LockClaim)(Lock lock)
 {
   int res;
 
@@ -145,9 +145,9 @@ void LockClaim(Lock lock)
 }
 
 
-/* LockReleaseMPM -- release a lock (non-recursive) */
+/* LockRelease -- release a lock (non-recursive) */
 
-void LockReleaseMPM(Lock lock)
+void (LockRelease)(Lock lock)
 {
   int res;
 
@@ -162,7 +162,7 @@ void LockReleaseMPM(Lock lock)
 
 /* LockClaimRecursive -- claim a lock (recursive) */
 
-void LockClaimRecursive(Lock lock)
+void (LockClaimRecursive)(Lock lock)
 {
   int res;
 
@@ -182,7 +182,7 @@ void LockClaimRecursive(Lock lock)
 
 /* LockReleaseRecursive -- release a lock (recursive) */
 
-void LockReleaseRecursive(Lock lock)
+void (LockReleaseRecursive)(Lock lock)
 {
   int res;
 
@@ -217,7 +217,7 @@ static void globalLockInit(void)
 
 /* LockClaimGlobalRecursive -- claim the global recursive lock */
 
-void LockClaimGlobalRecursive(void)
+void (LockClaimGlobalRecursive)(void)
 {
   int res;
 
@@ -230,7 +230,7 @@ void LockClaimGlobalRecursive(void)
 
 /* LockReleaseGlobalRecursive -- release the global recursive lock */
 
-void LockReleaseGlobalRecursive(void)
+void (LockReleaseGlobalRecursive)(void)
 {
   LockReleaseRecursive(globalRecLock);
 }
@@ -238,7 +238,7 @@ void LockReleaseGlobalRecursive(void)
 
 /* LockClaimGlobal -- claim the global non-recursive lock */
 
-void LockClaimGlobal(void)
+void (LockClaimGlobal)(void)
 {
   int res;
 
@@ -251,15 +251,15 @@ void LockClaimGlobal(void)
 
 /* LockReleaseGlobal -- release the global non-recursive lock */
 
-void LockReleaseGlobal(void)
+void (LockReleaseGlobal)(void)
 {
-  LockReleaseMPM(globalLock);
+  LockRelease(globalLock);
 }
 
 
 /* C. COPYRIGHT AND LICENSE
  *
- * Copyright (C) 2001-2013 Ravenbrook Limited <http://www.ravenbrook.com/>.
+ * Copyright (C) 2001-2014 Ravenbrook Limited <http://www.ravenbrook.com/>.
  * All rights reserved.  This is an open source license.  Contact
  * Ravenbrook for commercial licensing options.
  * 

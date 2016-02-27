@@ -1,7 +1,7 @@
 /* arenacl.c: ARENA CLASS USING CLIENT MEMORY
  *
  * $Id$
- * Copyright (c) 2001-2013 Ravenbrook Limited.  See end of file for license.
+ * Copyright (c) 2001-2014 Ravenbrook Limited.  See end of file for license.
  *
  * .design: See <design/arena/#client>.
  *
@@ -61,13 +61,14 @@ typedef struct ClientChunkStruct {
 
 /* ClientChunkCheck -- check the consistency of a client chunk */
 
+ATTRIBUTE_UNUSED
 static Bool ClientChunkCheck(ClientChunk clChunk)
 {
   Chunk chunk;
 
   CHECKS(ClientChunk, clChunk);
   chunk = ClientChunk2Chunk(clChunk);
-  CHECKL(ChunkCheck(chunk));
+  CHECKD(Chunk, chunk);
   CHECKL(clChunk->freePages <= chunk->pages);
   /* check they don't overlap (knowing the order) */
   CHECKL((Addr)(chunk + 1) < (Addr)chunk->allocTable);
@@ -77,19 +78,28 @@ static Bool ClientChunkCheck(ClientChunk clChunk)
 
 /* ClientArenaCheck -- check the consistency of a client arena */
 
+ATTRIBUTE_UNUSED
 static Bool ClientArenaCheck(ClientArena clientArena)
 {
+  Arena arena;
+
   CHECKS(ClientArena, clientArena);
-  CHECKD(Arena, ClientArena2Arena(clientArena));
+  arena = ClientArena2Arena(clientArena);
+  CHECKD(Arena, arena);
+  /* See <code/arena.c#.reserved.check> */
+  CHECKL(arena->committed <= arena->reserved);
+  CHECKL(arena->spareCommitted == 0);
+
   return TRUE;
 }
 
 
 /* clientChunkCreate -- create a ClientChunk */
 
-static Res clientChunkCreate(Chunk *chunkReturn, Addr base, Addr limit,
-                             ClientArena clientArena)
+static Res clientChunkCreate(Chunk *chunkReturn, ClientArena clientArena,
+                             Addr base, Addr limit)
 {
+  Arena arena;
   ClientChunk clChunk;
   Chunk chunk;
   Addr alignedBase;
@@ -99,14 +109,15 @@ static Res clientChunkCreate(Chunk *chunkReturn, Addr base, Addr limit,
   void *p;
 
   AVER(chunkReturn != NULL);
+  AVERT(ClientArena, clientArena);
+  arena = ClientArena2Arena(clientArena);
   AVER(base != (Addr)0);
-  /* TODO: Should refuse on small chunks, instead of AVERring. */
   AVER(limit != (Addr)0);
   AVER(limit > base);
 
   /* Initialize boot block. */
   /* Chunk has to be page-aligned, and the boot allocs must be within it. */
-  alignedBase = AddrAlignUp(base, ARENA_CLIENT_PAGE_SIZE);
+  alignedBase = AddrAlignUp(base, ArenaGrainSize(arena));
   AVER(alignedBase < limit);
   res = BootBlockInit(boot, (void *)alignedBase, (void *)limit);
   if (res != ResOK)
@@ -117,16 +128,17 @@ static Res clientChunkCreate(Chunk *chunkReturn, Addr base, Addr limit,
   res = BootAlloc(&p, boot, sizeof(ClientChunkStruct), MPS_PF_ALIGN);
   if (res != ResOK)
     goto failChunkAlloc;
-  clChunk = p;  chunk = ClientChunk2Chunk(clChunk);
+  clChunk = p;
+  chunk = ClientChunk2Chunk(clChunk);
 
-  res = ChunkInit(chunk, ClientArena2Arena(clientArena),
-                  alignedBase, AddrAlignDown(limit, ARENA_CLIENT_PAGE_SIZE),
-                  ARENA_CLIENT_PAGE_SIZE, boot);
+  res = ChunkInit(chunk, arena, alignedBase,
+                  AddrAlignDown(limit, ArenaGrainSize(arena)),
+                  AddrOffset(base, limit), boot);
   if (res != ResOK)
     goto failChunkInit;
 
-  ClientArena2Arena(clientArena)->committed +=
-    AddrOffset(base, PageIndexBase(chunk, chunk->allocBase));
+  arena->committed += ChunkPagesToSize(chunk, chunk->allocBase);
+
   BootBlockFinish(boot);
 
   clChunk->sig = ClientChunkSig;
@@ -152,7 +164,6 @@ static Res ClientChunkInit(Chunk chunk, BootBlock boot)
   /* chunk is supposed to be uninitialized, so don't check it. */
   clChunk = Chunk2ClientChunk(chunk);
   AVERT(BootBlock, boot);
-  UNUSED(boot);
 
   /* TODO: An old comment claimed this is too large.
      Does it fail to exclude the page table or something? */
@@ -171,15 +182,35 @@ static Res ClientChunkInit(Chunk chunk, BootBlock boot)
 
 /* clientChunkDestroy -- destroy a ClientChunk */
 
-static void clientChunkDestroy(Chunk chunk)
+static Bool clientChunkDestroy(Tree tree, void *closureP, Size closureS)
 {
+  Arena arena;
+  Chunk chunk;
   ClientChunk clChunk;
+  Size size;
 
+  AVERT(Tree, tree);
+  AVER(closureP == UNUSED_POINTER);
+  UNUSED(closureP);
+  AVER(closureS == UNUSED_SIZE);
+  UNUSED(closureS);
+  
+  chunk = ChunkOfTree(tree);
+  AVERT(Chunk, chunk);
+  arena = ChunkArena(chunk);  
+  AVERT(Arena, arena);
   clChunk = Chunk2ClientChunk(chunk);
   AVERT(ClientChunk, clChunk);
+  AVER(chunk->pages == clChunk->freePages);
+
+  size = ChunkPagesToSize(chunk, chunk->allocBase);
+  AVER(arena->committed >= size);
+  arena->committed -= size;
 
   clChunk->sig = SigInvalid;
   ChunkFinish(chunk);
+
+  return TRUE;
 }
 
 
@@ -188,7 +219,7 @@ static void clientChunkDestroy(Chunk chunk)
 static void ClientChunkFinish(Chunk chunk)
 {
   /* Can't check chunk as it's not valid anymore. */
-  UNUSED(chunk); NOOP;
+  UNUSED(chunk);
 }
 
 
@@ -201,7 +232,7 @@ static void ClientArenaVarargs(ArgStruct args[MPS_ARGS_MAX], va_list varargs)
   args[1].key = MPS_KEY_ARENA_CL_BASE;
   args[1].val.addr = va_arg(varargs, Addr);
   args[2].key = MPS_KEY_ARGS_END;
-  AVER(ArgListCheck(args));
+  AVERT(ArgList, args);
 }
 
 
@@ -213,7 +244,7 @@ static void ClientArenaVarargs(ArgStruct args[MPS_ARGS_MAX], va_list varargs)
  * to do the generic part of init.
  */
 
-ARG_DEFINE_KEY(arena_cl_addr, Addr);
+ARG_DEFINE_KEY(ARENA_CL_BASE, Addr);
 
 static Res ClientArenaInit(Arena *arenaReturn, ArenaClass class, ArgList args)
 {
@@ -222,20 +253,30 @@ static Res ClientArenaInit(Arena *arenaReturn, ArenaClass class, ArgList args)
   Size size;
   Size clArenaSize;   /* aligned size of ClientArenaStruct */
   Addr base, limit, chunkBase;
+  Align grainSize = 1;
   Res res;
   Chunk chunk;
   mps_arg_s arg;
   
   AVER(arenaReturn != NULL);
   AVER((ArenaClass)mps_arena_class_cl() == class);
-  AVER(ArgListCheck(args));
+  AVERT(ArgList, args);
   
   ArgRequire(&arg, args, MPS_KEY_ARENA_SIZE);
   size = arg.val.size;
   ArgRequire(&arg, args, MPS_KEY_ARENA_CL_BASE);
   base = arg.val.addr;
+  if (ArgPick(&arg, args, MPS_KEY_ARENA_GRAIN_SIZE))
+    grainSize = arg.val.size;
+  grainSize = SizeAlignUp(grainSize, ARENA_CLIENT_GRAIN_SIZE);
+  grainSize = SizeAlignUp(grainSize, ProtGranularity());
 
   AVER(base != (Addr)0);
+  AVERT(ArenaGrainSize, grainSize);
+
+  if (size < grainSize * MPS_WORD_WIDTH)
+    /* Not enough room for a full complement of zones. */
+    return ResMEMORY;
 
   clArenaSize = SizeAlignUp(sizeof(ClientArenaStruct), MPS_PF_ALIGN);
   if (size < clArenaSize)
@@ -252,14 +293,14 @@ static Res ClientArenaInit(Arena *arenaReturn, ArenaClass class, ArgList args)
 
   arena = ClientArena2Arena(clientArena);
   /* <code/arena.c#init.caller> */
-  res = ArenaInit(arena, class);
+  res = ArenaInit(arena, class, grainSize, args);
   if (res != ResOK)
     return res;
 
   /* have to have a valid arena before calling ChunkCreate */
   clientArena->sig = ClientArenaSig;
 
-  res = clientChunkCreate(&chunk, chunkBase, limit, clientArena);
+  res = clientChunkCreate(&chunk, clientArena, chunkBase, limit);
   if (res != ResOK)
     goto failChunkCreate;
   arena->primary = chunk;
@@ -269,7 +310,7 @@ static Res ClientArenaInit(Arena *arenaReturn, ArenaClass class, ArgList args)
   /* bits in a word). Note that some zones are discontiguous in the */
   /* arena if the size is not a power of 2. */
   arena->zoneShift = SizeFloorLog2(size >> MPS_WORD_SHIFT);
-  arena->alignment = ChunkPageSize(arena->primary);
+  AVER(ArenaGrainSize(arena) == ChunkPageSize(arena->primary));
 
   EVENT3(ArenaCreateCL, arena, size, base);
   AVERT(ClientArena, clientArena);
@@ -288,18 +329,21 @@ failChunkCreate:
 static void ClientArenaFinish(Arena arena)
 {
   ClientArena clientArena;
-  Ring node, next;
 
   clientArena = Arena2ClientArena(arena);
   AVERT(ClientArena, clientArena);
 
-  /* destroy all chunks */
-  RING_FOR(node, &arena->chunkRing, next) {
-    Chunk chunk = RING_ELT(Chunk, chunkRing, node);
-    clientChunkDestroy(chunk);
-  }
+  /* Destroy all chunks, including the primary. See
+   * <design/arena/#chunk.delete> */
+  arena->primary = NULL;
+  TreeTraverseAndDelete(&arena->chunkTree, clientChunkDestroy,
+                        UNUSED_POINTER, UNUSED_SIZE);
 
   clientArena->sig = SigInvalid;
+
+  /* Destroying the chunks should leave nothing behind. */
+  AVER(arena->reserved == 0);
+  AVER(arena->committed == 0);
 
   ArenaFinish(arena); /* <code/arena.c#finish.caller> */
 }
@@ -320,126 +364,43 @@ static Res ClientArenaExtend(Arena arena, Addr base, Size size)
   limit = AddrAdd(base, size);
  
   clientArena = Arena2ClientArena(arena);
-  res = clientChunkCreate(&chunk, base, limit, clientArena);
+  res = clientChunkCreate(&chunk, clientArena, base, limit);
   return res;
 }
 
 
-/* ClientArenaReserved -- return the amount of reserved address space */
+/* ClientArenaPagesMarkAllocated -- Mark the pages allocated */
 
-static Size ClientArenaReserved(Arena arena)
+static Res ClientArenaPagesMarkAllocated(Arena arena, Chunk chunk,
+                                         Index baseIndex, Count pages,
+                                         Pool pool)
 {
-  Size size;
-  Ring node, nextNode;
-
-  AVERT(Arena, arena);
-
-  size = 0;
-  /* .req.extend.slow */
-  RING_FOR(node, &arena->chunkRing, nextNode) {
-    Chunk chunk = RING_ELT(Chunk, chunkRing, node);
-    AVERT(Chunk, chunk);
-    size += AddrOffset(chunk->base, chunk->limit);
-  }
-
-  return size;
-}
-
-
-/* chunkAlloc -- allocate some tracts in a chunk */
-
-static Res chunkAlloc(Addr *baseReturn, Tract *baseTractReturn,
-                      SegPref pref, Size pages, Pool pool, Chunk chunk)
-{
-  Index baseIndex, limitIndex, indx;
-  Bool b;
-  Arena arena;
+  Index i;
   ClientChunk clChunk;
-
-  AVER(baseReturn != NULL);
-  AVER(baseTractReturn != NULL);
+  
+  AVERT(Arena, arena);
+  AVERT(Chunk, chunk);
   clChunk = Chunk2ClientChunk(chunk);
+  AVERT(ClientChunk, clChunk);
+  AVER(chunk->allocBase <= baseIndex);
+  AVER(pages > 0);
+  AVER(baseIndex + pages <= chunk->pages);
+  AVERT(Pool, pool);
 
-  if (pages > clChunk->freePages)
-    return ResRESOURCE;
+  for (i = 0; i < pages; ++i)
+    PageAlloc(chunk, baseIndex + i, pool);
 
-  arena = chunk->arena;
-
-  if (pref->high)
-    b = BTFindShortResRangeHigh(&baseIndex, &limitIndex, chunk->allocTable,
-                                chunk->allocBase, chunk->pages, pages);
-  else
-    b = BTFindShortResRange(&baseIndex, &limitIndex, chunk->allocTable,
-                            chunk->allocBase, chunk->pages, pages);
-
-  if (!b)
-    return ResRESOURCE;
-
-  /* Check commit limit.  Note that if there are multiple reasons */
-  /* for failing the allocation we attempt to return other result codes */
-  /* in preference to ResCOMMIT_LIMIT.  See <design/arena/#commit-limit> */
-  if (ArenaCommitted(arena) + pages * ChunkPageSize(chunk)
-      > arena->commitLimit) {
-    return ResCOMMIT_LIMIT;
-  }
-
-  /* Initialize the generic tract structures. */
-  AVER(limitIndex > baseIndex);
-  for(indx = baseIndex; indx < limitIndex; ++indx) {
-    PageAlloc(chunk, indx, pool);
-  }
-
+  arena->committed += ChunkPagesToSize(chunk, pages);
+  AVER(clChunk->freePages >= pages);
   clChunk->freePages -= pages;
-
-  *baseReturn = PageIndexBase(chunk, baseIndex);
-  *baseTractReturn = PageTract(ChunkPage(chunk, baseIndex));
 
   return ResOK;
 }
 
 
-/* ClientAlloc -- allocate a region from the arena */
+/* ClientArenaFree - free a region in the arena */
 
-static Res ClientAlloc(Addr *baseReturn, Tract *baseTractReturn,
-                       SegPref pref, Size size, Pool pool)
-{
-  Arena arena;
-  Res res;
-  Ring node, nextNode;
-  Size pages;
-
-  AVER(baseReturn != NULL);
-  AVER(baseTractReturn != NULL);
-  AVERT(SegPref, pref);
-  AVER(size > 0);
-  AVERT(Pool, pool);
-
-  arena = PoolArena(pool);
-  AVERT(Arena, arena);
-  /* All chunks have same pageSize. */
-  AVER(SizeIsAligned(size, ChunkPageSize(arena->primary)));
-  /* NULL is used as a discriminator (see */
-  /* <design/arenavm/#table.disc>), therefore the real pool */
-  /* must be non-NULL. */
-  AVER(pool != NULL);
-
-  pages = ChunkSizeToPages(arena->primary, size);
-
-  /* .req.extend.slow */
-  RING_FOR(node, &arena->chunkRing, nextNode) {
-    Chunk chunk = RING_ELT(Chunk, chunkRing, node);
-    res = chunkAlloc(baseReturn, baseTractReturn, pref, pages, pool, chunk);
-    if (res == ResOK || res == ResCOMMIT_LIMIT) {
-      return res;
-    }
-  }
-  return ResRESOURCE;
-}
-
-
-/* ClientFree - free a region in the arena */
-
-static void ClientFree(Addr base, Size size, Pool pool)
+static void ClientArenaFree(Addr base, Size size, Pool pool)
 {
   Arena arena;
   Chunk chunk = NULL;           /* suppress "may be used uninitialized" */
@@ -480,6 +441,8 @@ static void ClientFree(Addr base, Size size, Pool pool)
   AVER(BTIsSetRange(chunk->allocTable, baseIndex, limitIndex));
   BTResRange(chunk->allocTable, baseIndex, limitIndex);
 
+  AVER(arena->committed >= size);
+  arena->committed -= size;
   clChunk->freePages += pages;
 }
 
@@ -495,12 +458,12 @@ DEFINE_ARENA_CLASS(ClientArenaClass, this)
   this->varargs = ClientArenaVarargs;
   this->init = ClientArenaInit;
   this->finish = ClientArenaFinish;
-  this->reserved = ClientArenaReserved;
   this->extend = ClientArenaExtend;
-  this->alloc = ClientAlloc;
-  this->free = ClientFree;
+  this->pagesMarkAllocated = ClientArenaPagesMarkAllocated;
+  this->free = ClientArenaFree;
   this->chunkInit = ClientChunkInit;
   this->chunkFinish = ClientChunkFinish;
+  AVERT(ArenaClass, this);
 }
 
 
@@ -514,7 +477,7 @@ mps_arena_class_t mps_arena_class_cl(void)
 
 /* C. COPYRIGHT AND LICENSE
  *
- * Copyright (C) 2001-2013 Ravenbrook Limited <http://www.ravenbrook.com/>.
+ * Copyright (C) 2001-2014 Ravenbrook Limited <http://www.ravenbrook.com/>.
  * All rights reserved.  This is an open source license.  Contact
  * Ravenbrook for commercial licensing options.
  * 

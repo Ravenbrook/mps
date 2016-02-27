@@ -1,7 +1,7 @@
 /* config.h: MPS CONFIGURATION
  *
  * $Id$
- * Copyright (c) 2001-2013 Ravenbrook Limited.  See end of file for license.
+ * Copyright (c) 2001-2014 Ravenbrook Limited.  See end of file for license.
  * Portions copyright (c) 2002 Global Graphics Software.
  *
  * PURPOSE
@@ -147,8 +147,57 @@
  *     cc -O2 -c -DCONFIG_PLINTH_NONE mps.c
  */
 
-#if defined(CONFIG_PLINTH_NONE)
+#if !defined(CONFIG_PLINTH_NONE)
+#define PLINTH
+#else
 #define PLINTH_NONE
+#endif
+
+
+/* CONFIG_PF_ANSI -- use the ANSI platform 
+ *
+ * This symbol tells mps.c to exclude the sources for the
+ * auto-detected platform, and use the generic ("ANSI") platform
+ * instead.
+ */
+
+#if defined(CONFIG_PF_ANSI)
+#define PLATFORM_ANSI
+#endif
+
+
+/* CONFIG_THREAD_SINGLE -- support single-threaded execution only
+ *
+ * This symbol causes the MPS to be built for single-threaded
+ * execution only, where locks are not needed and so lock operations
+ * can be defined as no-ops by lock.h.
+ */
+
+#if !defined(CONFIG_THREAD_SINGLE)
+#define LOCK
+#else
+#define LOCK_NONE
+#endif
+
+
+/* CONFIG_POLL_NONE -- no support for polling
+ *
+ * This symbol causes the MPS to built without support for polling.
+ * This means that garbage collections will only happen if requested
+ * explicitly via mps_arena_collect() or mps_arena_step(), but it also
+ * means that protection is not needed, and so shield operations can
+ * be replaced with no-ops in mpm.h.
+ */
+
+#if !defined(CONFIG_POLL_NONE)
+#define REMEMBERED_SET
+#define SHIELD
+#else
+#if !defined(CONFIG_THREAD_SINGLE)
+#error "CONFIG_POLL_NONE without CONFIG_THREAD_SINGLE"
+#endif
+#define REMEMBERED_SET_NONE
+#define SHIELD_NONE
 #endif
 
 
@@ -160,55 +209,99 @@
 
 #include "mpstd.h"
 
-/* Suppress Visual C warnings at warning level 4, */
-/* see mail.richard.1997-09-25.13-26. */
-/* Essentially the same settings are done in testlib.h. */
+/* Suppress Visual C warnings at /W4 (warning level 4) */
+/* This is also done in testlib.h. */
 
 #ifdef MPS_BUILD_MV
 
-/* "unreferenced inline function has been removed" (windows.h) */
-#pragma warning(disable: 4514)
-
-/* "constant conditional" (MPS_END) */
+/* "constant conditional" (provoked by MPS_END) */
 #pragma warning(disable: 4127)
 
-/* "unreachable code" (ASSERT, if cond is constantly true). */
-#pragma warning(disable: 4702)
-
-/* "expression evaluates to a function which is missing an argument list" */
-#pragma warning(disable: 4550)
-
-/* "local variable is initialized but not referenced" */
-#pragma warning(disable: 4189)
-
-/* "not all control paths return a value" */
-#pragma warning(disable: 4715)
-
-/* MSVC 2.0 generates a warning when using NOCHECK or UNUSED */
-#ifdef _MSC_VER
-#if _MSC_VER < 1000
-#pragma warning(disable: 4705)
-#endif
-#else /* _MSC_VER */
-#error "Expected _MSC_VER to be defined for builder.mv"
-#endif /* _MSC_VER */
-
-
-/* Non-checking varieties give many spurious warnings because parameters
- * are suddenly unused, etc.  We aren't interested in these
- */
-
-#if defined(AVER_AND_CHECK_NONE)
-
-/* "unreferenced formal parameter" */
-#pragma warning(disable: 4100)
-
-/* "unreferenced local function has been removed" */
-#pragma warning(disable: 4505)
-
-#endif /* AVER_AND_CHECK_NONE */
-
 #endif /* MPS_BUILD_MV */
+
+
+/* Suppress Pelles C warnings at /W2 (warning level 2) */
+/* Some of the same settings are done in testlib.h. */
+
+#ifdef MPS_BUILD_PC
+
+/* "Unreachable code" (provoked by AVER, if condition is constantly true). */
+#pragma warn(disable: 2154)
+
+/* "Consider changing type to 'size_t' for loop variable" */
+#pragma warn(disable: 2804)
+
+#endif /* MPS_BUILD_PC */
+
+
+/* MPS_FILE -- expands to __FILE__ in nested macros */
+
+#ifdef MPS_BUILD_PC
+
+/* Pelles C loses definition of __FILE__ in deeply nested macro
+ * expansions. See <http://forum.pellesc.de/index.php?topic=5474.0>
+ */
+#define MPS_FILE "<__FILE__ unavailable in " MPS_PF_STRING ">"
+
+#else
+
+#define MPS_FILE __FILE__
+
+#endif
+
+
+/* Function attributes */
+/* Some of these are also defined in testlib.h */
+
+/* Attribute for functions that take a printf-like format argument, so
+ * that the compiler can check the format specifiers against the types
+ * of the arguments.
+ * GCC: <http://gcc.gnu.org/onlinedocs/gcc/Function-Attributes.html#index-Wformat-2850>
+ * Clang: <http://clang.llvm.org/docs/AttributeReference.html#format-gnu-format>
+ */
+#if defined(MPS_BUILD_GC) || defined(MPS_BUILD_LL)
+#define ATTRIBUTE_FORMAT(ARGLIST) __attribute__((__format__ ARGLIST))
+#else
+#define ATTRIBUTE_FORMAT(ARGLIST)
+#endif
+
+/* Attribute for functions that should not be instrumented by Clang's
+ * address sanitizer.
+ * <http://clang.llvm.org/docs/AddressSanitizer.html#attribute-no-sanitize-address>
+ */
+#if defined(MPS_BUILD_LL)
+#if __has_feature(address_sanitizer)
+#define ATTRIBUTE_NO_SANITIZE_ADDRESS __attribute__((__no_sanitize_address__))
+#else
+#define ATTRIBUTE_NO_SANITIZE_ADDRESS
+#endif
+#else
+#define ATTRIBUTE_NO_SANITIZE_ADDRESS
+#endif
+
+/* Attribute for functions that do not return.
+ * GCC: <http://gcc.gnu.org/onlinedocs/gcc/Function-Attributes.html>
+ * Clang: <http://clang.llvm.org/docs/AttributeReference.html#id1>
+ */
+#if defined(MPS_BUILD_GC) || defined(MPS_BUILD_LL)
+#define ATTRIBUTE_NORETURN __attribute__((__noreturn__))
+#else
+#define ATTRIBUTE_NORETURN
+#endif
+
+/* Attribute for functions that may be unused in some build configurations.
+ * GCC: <http://gcc.gnu.org/onlinedocs/gcc/Function-Attributes.html>
+ *
+ * This attribute must be applied to all Check functions, otherwise
+ * the RASH variety fails to compile with -Wunused-function. (It
+ * should not be applied to functions that are unused in all build
+ * configurations: these functions should not be compiled.)
+ */
+#if defined(MPS_BUILD_GC) || defined(MPS_BUILD_LL)
+#define ATTRIBUTE_UNUSED __attribute__((__unused__))
+#else
+#define ATTRIBUTE_UNUSED
+#endif
 
 
 /* EPVMDefaultSubsequentSegSIZE is a default for the alignment of
@@ -224,11 +317,6 @@
 #define BUFFER_RANK_DEFAULT (mps_rank_exact())
 
 
-/* CBS Configuration -- see <code/cbs.c> */
-
-#define CBS_EXTEND_BY_DEFAULT ((Size)4096)
-
-
 /* Format defaults: see <code/format.c> */
 
 #define FMT_ALIGN_DEFAULT ((Align)MPS_PF_ALIGN)
@@ -241,15 +329,27 @@
 #define FMT_CLASS_DEFAULT (&FormatDefaultClass)
 
 
+/* Pool AMC Configuration -- see <code/poolamc.c> */
+
+#define AMC_INTERIOR_DEFAULT TRUE
+/* AMC treats objects larger than or equal to this as "Large" */
+#define AMC_LARGE_SIZE_DEFAULT ((Size)32768)
+#define AMC_EXTEND_BY_DEFAULT  ((Size)8192)
+
+
 /* Pool AMS Configuration -- see <code/poolams.c> */
 
-#define AMS_SUPPORT_AMBIGUOUS_DEFAULT FALSE
+#define AMS_SUPPORT_AMBIGUOUS_DEFAULT TRUE
 #define AMS_GEN_DEFAULT       0
 
 
 /* Pool AWL Configuration -- see <code/poolawl.c> */
 
 #define AWL_GEN_DEFAULT       0
+#define AWL_HAVE_SEG_SA_LIMIT   TRUE
+#define AWL_SEG_SA_LIMIT        200     /* TODO: Improve guesswork with measurements */
+#define AWL_HAVE_TOTAL_SA_LIMIT FALSE
+#define AWL_TOTAL_SA_LIMIT      0
 
 
 /* Pool LO Configuration -- see <code/poollo.c> */
@@ -259,6 +359,7 @@
 
 /* Pool MV Configuration -- see <code/poolmv.c> */
 
+#define MV_ALIGN_DEFAULT      MPS_PF_ALIGN
 #define MV_EXTEND_BY_DEFAULT  ((Size)65536)
 #define MV_AVG_SIZE_DEFAULT   ((Size)32)
 #define MV_MAX_SIZE_DEFAULT   ((Size)65536)
@@ -277,6 +378,7 @@
 #define MVFF_SLOT_HIGH_DEFAULT   FALSE
 #define MVFF_ARENA_HIGH_DEFAULT  FALSE
 #define MVFF_FIRST_FIT_DEFAULT   TRUE
+#define MVFF_SPARE_DEFAULT       0.75
 
 
 /* Pool MVT Configuration -- see <code/poolmv2.c> */
@@ -290,48 +392,81 @@
 #define MVT_FRAG_LIMIT_DEFAULT    30
 
 
-/* Arena Configuration -- see <code/arena.c>
- *
- * .client.seg-size: ARENA_CLIENT_PAGE_SIZE is the size in bytes of a
- * "page" (i.e., segment granule) in the client arena.  It's set at 8192
- * with no particular justification.
- */
+/* Arena Configuration -- see <code/arena.c> */
 
 #define ArenaPollALLOCTIME (65536.0)
 
 #define ARENA_ZONESHIFT         ((Shift)20)
 
-#define ARENA_CLIENT_PAGE_SIZE          ((Size)8192)
+/* .client.seg-size: ARENA_CLIENT_GRAIN_SIZE is the minimum size, in
+ * bytes, of a grain in the client arena. It's set at 8192 with no
+ * particular justification. */
+
+#define ARENA_CLIENT_GRAIN_SIZE          ((Size)8192)
+
+#define ARENA_DEFAULT_COMMIT_LIMIT ((Size)-1)
+
+/* TODO: This should be proportional to the memory usage of the MPS, not
+ * a constant.  That will require design, and then some interface and
+ * documenation changes. */
+#define ARENA_DEFAULT_SPARE_COMMIT_LIMIT   ((Size)10uL*1024uL*1024uL)
+
+#define ARENA_DEFAULT_ZONED     TRUE
+
+/* ARENA_MINIMUM_COLLECTABLE_SIZE is the minimum size (in bytes) of
+ * collectable memory that might be considered worthwhile to run a
+ * full garbage collection. */
+
+#define ARENA_MINIMUM_COLLECTABLE_SIZE ((Size)1000000)
+
+/* ARENA_DEFAULT_COLLECTION_RATE is an estimate of the MPS's
+ * collection rate (in bytes per second), for use in the case where
+ * there isn't enough data to use a measured value. */
+
+#define ARENA_DEFAULT_COLLECTION_RATE (25000000.0)
+
+/* ARENA_DEFAULT_COLLECTION_OVERHEAD is an estimate of the MPS's
+ * collection overhead (in seconds), for use in the case where there
+ * isn't enough data to use a measured value. */
+
+#define ARENA_DEFAULT_COLLECTION_OVERHEAD (0.1)
+
+/* ARENA_MAX_COLLECT_FRACTION is the maximum fraction of runtime that
+ * ArenaStep is prepared to spend in collections. */
+
+#define ARENA_MAX_COLLECT_FRACTION (0.1)
+
+/* ArenaDefaultZONESET is the zone set used by LocusPrefDEFAULT.
+ *
+ * TODO: This is left over from before branches 2014-01-29/mps-chain-zones
+ * and 2014-01-17/cbs-tract-alloc reformed allocation, and may now be
+ * doing more harm than good. Experiment with setting to ZoneSetUNIV. */
 
 #define ArenaDefaultZONESET (ZoneSetUNIV << (MPS_WORD_WIDTH / 2))
-/* @@@@ knows the implementation of ZoneSets */
 
-/* .segpref.default: For EPcore, non-DL segments should be placed high */
-/* to reduce fragmentation of DL pools (see request.epcore.170193_). */
-/* .. _request.epcore.170193: https://info.ravenbrook.com/project/mps/import/2001-11-05/mmprevol/request/epcore/170193 */
-#define SegPrefDEFAULT { \
-  SegPrefSig,          /* sig */ \
-  TRUE,                /* high */ \
+/* LocusPrefDEFAULT is the allocation preference used by manual pool
+ * classes (these don't care where they allocate). */
+
+#define LocusPrefDEFAULT { \
+  LocusPrefSig,        /* sig */ \
+  FALSE,               /* high */ \
   ArenaDefaultZONESET, /* zoneSet */ \
-  FALSE,               /* isCollected */ \
+  ZoneSetEMPTY,        /* avoid */ \
 }
 
 #define LDHistoryLENGTH ((Size)4)
 
-/* Value of MPS_KEY_EXTEND_BY for the arena control pool.
-   Deliberately smaller than the default, because we don't expect the control
-   pool to be very heavily used. */
-#define CONTROL_EXTEND_BY 4096
+/* Value of MPS_KEY_EXTEND_BY for the arena control pool. */
+#define CONTROL_EXTEND_BY ((Size)32768)
+
+#define VM_ARENA_SIZE_DEFAULT ((Size)1 << 28)
 
 
-/* Stack configuration */
+/* Stack configuration -- see <code/sp*.c> */
 
-/* Currently StackProbe has a useful implementation only on
- * Intel platforms and only when using Microsoft build tools (builder.mv)
- */
-#if defined(MPS_ARCH_I3) && defined(MPS_BUILD_MV)
-#define StackProbeDEPTH ((Size)500)
-#elif defined(MPS_PF_W3I6MV)
+/* Currently StackProbe has a useful implementation only on Windows. */
+#if defined(MPS_OS_W3)
+/* See <design/sp/#sol.depth.analysis> for a justification of this value. */
 #define StackProbeDEPTH ((Size)500)
 #else
 #define StackProbeDEPTH ((Size)0)
@@ -346,7 +481,7 @@
 
 /* VM Configuration -- see <code/vm*.c> */
 
-#define VMANPageALIGNMENT ((Align)4096)
+#define VMAN_PAGE_SIZE ((Align)4096)
 #define VMJunkBYTE ((unsigned char)0xA9)
 #define VMParamSize (sizeof(Word))
 
@@ -358,6 +493,7 @@
  *
  * Source      Symbols                   Header        Feature
  * =========== ========================= ============= ====================
+ * eventtxt.c  setenv                    <stdlib.h>    _GNU_SOURCE
  * lockli.c    pthread_mutexattr_settype <pthread.h>   _XOPEN_SOURCE >= 500
  * prmci3li.c  REG_EAX etc.              <ucontext.h>  _GNU_SOURCE
  * prmci6li.c  REG_RAX etc.              <ucontext.h>  _GNU_SOURCE
@@ -376,9 +512,14 @@
 
 #if defined(MPS_OS_LI)
 
+#if defined(_XOPEN_SOURCE) && _XOPEN_SOURCE < 500
+#undef _XOPEN_SOURCE
+#endif
+#if !defined(_XOPEN_SOURCE)
 #define _XOPEN_SOURCE 500
+#endif
 
-#ifndef _GNU_SOURCE
+#if !defined(_GNU_SOURCE)
 #define _GNU_SOURCE
 #endif
 
@@ -504,40 +645,18 @@
 
 #define MPS_PROD_STRING         "mps"
 #define MPS_PROD_MPS
-#define THREAD_MULTI
-#define PROTECTION
-#define PROD_CHECKLEVEL_INITIAL CheckLevelSHALLOW
-
-/* TODO: This should be proportional to the memory usage of the MPS, not
-   a constant.  That will require design, and then some interface and
-   documenation changes. */
-#define ARENA_INIT_SPARE_COMMIT_LIMIT   ((Size)10uL*1024uL*1024uL)
-
-
-/* Pool Class AMC configuration */
-
-/* AMC treats segments of this many pages (or more) as "Large" */
-#define AMCLargeSegPAGES ((Count)8)
-
-
-/* Pool Class AWL configuration -- see poolawl.c for usage */
-
-#define AWL_HAVE_SEG_SA_LIMIT   TRUE
-#define AWL_SEG_SA_LIMIT        200     /* TODO: Improve guesswork with measurements */
-#define AWL_HAVE_TOTAL_SA_LIMIT FALSE
-#define AWL_TOTAL_SA_LIMIT      0
 
 
 /* Default chain for GC pools
  *
  * TODO: The default should be to measure liveness and make sensible
- * decisions.
+ * decisions. See job003794.
  */
 
 #define ChainDEFAULT \
   { \
-    {  8 * 1024, 0.85 }, /* 8MiB nursery */ \
-    { 32 * 1024, 0.45 }  /* 32MiB second gen, after which dynamic */ \
+    {  8 * 1024, 0.85 }, /* nursery */ \
+    { 36 * 1024, 0.45 }  /* second gen, after which dynamic */ \
   }
 
 
@@ -546,7 +665,7 @@
 
 /* C. COPYRIGHT AND LICENSE
  *
- * Copyright (C) 2001-2013 Ravenbrook Limited <http://www.ravenbrook.com/>.
+ * Copyright (C) 2001-2014 Ravenbrook Limited <http://www.ravenbrook.com/>.
  * All rights reserved.  This is an open source license.  Contact
  * Ravenbrook for commercial licensing options.
  *

@@ -1,7 +1,7 @@
 /* amcsshe.c: POOL CLASS AMC STRESS TEST WITH HEADER
  *
  * $Id$
- * Copyright (c) 2001-2013 Ravenbrook Limited.  See end of file for license.
+ * Copyright (c) 2001-2014 Ravenbrook Limited.  See end of file for license.
  * Portions copyright (c) 2002 Global Graphics Software.
  */
 
@@ -12,18 +12,15 @@
 #include "mpscamc.h"
 #include "mpsavm.h"
 #include "mpstd.h"
-#ifdef MPS_OS_W3
-#include "mpsw3.h"
-#endif
 #include "mps.h"
-#include <stdlib.h>
-#include <string.h>
+
+#include <stdio.h> /* fflush, printf, putchar */
 
 
 /* These values have been tuned in the hope of getting one dynamic collection. */
 #define headerFACTOR      ((float)(20 + headerSIZE) / 20)
 /* headerFACTOR measures how much larger objects are compared to fmtdy. */
-#define testArenaSIZE     ((size_t)(1000*headerFACTOR)*1024)
+#define testArenaSIZE     ((size_t)(2000*headerFACTOR)*1024)
 #define gen1SIZE          ((size_t)(150*headerFACTOR))
 #define gen2SIZE          ((size_t)(170*headerFACTOR))
 #define avLEN             3
@@ -51,7 +48,7 @@ static mps_addr_t exactRoots[exactRootsCOUNT];
 static mps_addr_t ambigRoots[ambigRootsCOUNT];
 static mps_addr_t bogusRoots[bogusRootsCOUNT];
 
-static mps_addr_t make(void)
+static mps_addr_t make(size_t roots_count)
 {
   size_t length = rnd() % (2*avLEN);
   size_t size = (length+2) * sizeof(mps_word_t);
@@ -63,7 +60,7 @@ static mps_addr_t make(void)
     if (res)
       die(res, "MPS_RESERVE_BLOCK");
     userP = (mps_addr_t)((char*)p + headerSIZE);
-    res = dylan_init(userP, size, exactRoots, exactRootsCOUNT);
+    res = dylan_init(userP, size, exactRoots, roots_count);
     if (res)
       die(res, "dylan_init");
     ((int*)p)[0] = realHeader;
@@ -94,27 +91,15 @@ static void report(mps_arena_t arena)
     printf("not_condemned %"PRIuLONGEST"\n", (ulongest_t)not_condemned);
 
     mps_message_discard(arena, message);
-
-    if (condemned > (gen1SIZE + gen2SIZE + (size_t)128) * 1024) {
-      /* When condemned size is larger than could happen in a gen 2
-       * collection (discounting ramps, natch), guess that was a dynamic
-       * collection, and reset the commit limit, so it doesn't run out.
-       *
-       * GDR 2013-03-07: Fiddling with the commit limit was causing
-       * the test to fail sometimes (see job003432), so I've commented
-       * out this feature.
-       */
-      /*die(mps_arena_commit_limit_set(arena, 2 * testArenaSIZE), "set limit");*/
-    }
   }
 }
 
 
 /* test -- the body of the test */
 
-static void *test(void *arg, size_t s)
+static void *test(mps_arena_t arena, mps_pool_class_t pool_class,
+                  size_t roots_count)
 {
-  mps_arena_t arena;
   mps_fmt_t format;
   mps_chain_t chain;
   mps_root_t exactRoot, ambigRoot, bogusRoot;
@@ -125,13 +110,10 @@ static void *test(void *arg, size_t s)
   mps_ap_t busy_ap;
   mps_addr_t busy_init;
 
-  arena = (mps_arena_t)arg;
-  (void)s; /* unused */
-
   die(EnsureHeaderFormat(&format, arena), "fmt_create");
   die(mps_chain_create(&chain, arena, genCOUNT, testChain), "chain_create");
 
-  die(mps_pool_create(&pool, arena, mps_class_amc(), format, chain),
+  die(mps_pool_create(&pool, arena, pool_class, format, chain),
       "pool_create(amc)");
 
   die(mps_ap_create(&ap, pool, mps_rank_exact()), "BufferCreate");
@@ -173,7 +155,8 @@ static void *test(void *arg, size_t s)
 
     if (collections != c) {
       collections = c;
-      printf("\nCollection %lu, %lu objects.\n", c, objs);
+      printf("\nCollection %"PRIuLONGEST", %lu objects.\n",
+             (ulongest_t)c, objs);
       report(arena);
       for (r = 0; r < exactRootsCOUNT; ++r) {
         if (exactRoots[r] != objNULL)
@@ -219,13 +202,13 @@ static void *test(void *arg, size_t s)
       i = (r >> 1) % exactRootsCOUNT;
       if (exactRoots[i] != objNULL)
         die(HeaderFormatCheck(exactRoots[i]), "wrapper check");
-      exactRoots[i] = make();
+      exactRoots[i] = make(roots_count);
       if (exactRoots[(exactRootsCOUNT-1) - i] != objNULL)
         dylan_write(exactRoots[(exactRootsCOUNT-1) - i],
                     exactRoots, exactRootsCOUNT);
     } else {
       i = (r >> 1) % ambigRootsCOUNT;
-      ambigRoots[(ambigRootsCOUNT-1) - i] = make();
+      ambigRoots[(ambigRootsCOUNT-1) - i] = make(roots_count);
       /* Create random interior pointers */
       ambigRoots[i] = (mps_addr_t)((char *)(ambigRoots[i/2]) + 1);
     }
@@ -236,13 +219,14 @@ static void *test(void *arg, size_t s)
     if (objs % 1024 == 0) {
       report(arena);
       putchar('.');
-      fflush(stdout);
+      (void)fflush(stdout);
     }
 
     ++objs;
   }
 
   (void)mps_commit(busy_ap, busy_init, 64);
+  mps_arena_park(arena);
   mps_ap_destroy(busy_ap);
   mps_ap_destroy(ap);
   mps_root_destroy(exactRoot);
@@ -251,6 +235,7 @@ static void *test(void *arg, size_t s)
   mps_pool_destroy(pool);
   mps_chain_destroy(chain);
   mps_fmt_destroy(format);
+  mps_arena_release(arena);
 
   return NULL;
 }
@@ -260,21 +245,19 @@ int main(int argc, char *argv[])
 {
   mps_arena_t arena;
   mps_thr_t thread;
-  void *r;
 
-  randomize(argc, argv);
-  mps_lib_assert_fail_install(assert_die);
+  testlib_init(argc, argv);
 
-  die(mps_arena_create(&arena, mps_arena_class_vm(), 3*testArenaSIZE),
-      "arena_create\n");
+  MPS_ARGS_BEGIN(args) {
+    MPS_ARGS_ADD(args, MPS_KEY_ARENA_SIZE, testArenaSIZE);
+    MPS_ARGS_ADD(args, MPS_KEY_ARENA_GRAIN_SIZE, rnd_grain(testArenaSIZE));
+    MPS_ARGS_ADD(args, MPS_KEY_COMMIT_LIMIT, testArenaSIZE);
+    die(mps_arena_create_k(&arena, mps_arena_class_vm(), args), "arena_create");
+  } MPS_ARGS_END(args);
   mps_message_type_enable(arena, mps_message_type_gc());
-  /* GDR 2013-03-07: Fiddling with the commit limit was causing
-   * the test to fail sometimes (see job003432), so I've commented
-   * out this feature.
-   */
-  /*die(mps_arena_commit_limit_set(arena, testArenaSIZE), "set limit");*/
   die(mps_thread_reg(&thread, arena), "thread_reg");
-  mps_tramp(&r, test, arena, 0);
+  test(arena, mps_class_amc(), exactRootsCOUNT);
+  test(arena, mps_class_amcz(), 0);
   mps_thread_dereg(thread);
   mps_arena_destroy(arena);
 
@@ -285,7 +268,7 @@ int main(int argc, char *argv[])
 
 /* C. COPYRIGHT AND LICENSE
  *
- * Copyright (c) 2001-2013 Ravenbrook Limited <http://www.ravenbrook.com/>.
+ * Copyright (c) 2001-2014 Ravenbrook Limited <http://www.ravenbrook.com/>.
  * All rights reserved.  This is an open source license.  Contact
  * Ravenbrook for commercial licensing options.
  * 

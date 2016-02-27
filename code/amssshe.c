@@ -1,7 +1,7 @@
 /* amssshe.c: POOL CLASS AMS STRESS TEST WITH HEADERS
  *
  * $Id$
- * Copyright (c) 2001-2013 Ravenbrook Limited.  See end of file for license.
+ * Copyright (c) 2001-2014 Ravenbrook Limited.  See end of file for license.
  *
  * .design: Adapted from amsss.c.
  */
@@ -13,14 +13,9 @@
 #include "mpscams.h"
 #include "mpsavm.h"
 #include "mpstd.h"
-#ifdef MPS_OS_W3
-#include "mpsw3.h"
-#endif
 #include "mps.h"
-#include <stdlib.h>
-#include <stdarg.h>
-#include <math.h>
-#include <string.h>
+
+#include <stdio.h> /* fflush, printf */
 
 
 #define exactRootsCOUNT 50
@@ -111,7 +106,7 @@ static void *test(void *arg, size_t s)
       lastStep = totalSize;
       printf("\nSize %"PRIuLONGEST" bytes, %lu objects.\n",
              (ulongest_t)totalSize, objs);
-      fflush(stdout);
+      (void)fflush(stdout);
       for(i = 0; i < exactRootsCOUNT; ++i)
         cdie(exactRoots[i] == objNULL || dylan_check(exactRoots[i]),
              "all roots check");
@@ -139,11 +134,12 @@ static void *test(void *arg, size_t s)
     ++objs;
     if (objs % 256 == 0) {
       printf(".");
-      fflush(stdout);
+      (void)fflush(stdout);
     }
   }
 
   (void)mps_commit(busy_ap, busy_init, 64);
+  mps_arena_park(arena);
   mps_ap_destroy(busy_ap);
   mps_ap_destroy(ap);
   mps_root_destroy(exactRoot);
@@ -151,6 +147,7 @@ static void *test(void *arg, size_t s)
   mps_pool_destroy(pool);
   mps_chain_destroy(chain);
   mps_fmt_destroy(format);
+  mps_arena_release(arena);
 
   return NULL;
 }
@@ -162,11 +159,13 @@ int main(int argc, char *argv[])
   mps_thr_t thread;
   void *r;
 
-  randomize(argc, argv);
-  mps_lib_assert_fail_install(assert_die);
+  testlib_init(argc, argv);
 
-  die(mps_arena_create(&arena, mps_arena_class_vm(), testArenaSIZE),
-      "arena_create");
+  MPS_ARGS_BEGIN(args) {
+    MPS_ARGS_ADD(args, MPS_KEY_ARENA_SIZE, testArenaSIZE);
+    MPS_ARGS_ADD(args, MPS_KEY_ARENA_GRAIN_SIZE, rnd_grain(testArenaSIZE));
+    die(mps_arena_create_k(&arena, mps_arena_class_vm(), args), "arena_create");
+  } MPS_ARGS_END(args);
   die(mps_thread_reg(&thread, arena), "thread_reg");
   mps_tramp(&r, test, arena, 0);
   mps_thread_dereg(thread);
@@ -179,7 +178,7 @@ int main(int argc, char *argv[])
 
 /* C. COPYRIGHT AND LICENSE
  *
- * Copyright (c) 2001-2013 Ravenbrook Limited <http://www.ravenbrook.com/>.
+ * Copyright (c) 2001-2014 Ravenbrook Limited <http://www.ravenbrook.com/>.
  * All rights reserved.  This is an open source license.  Contact
  * Ravenbrook for commercial licensing options.
  * 

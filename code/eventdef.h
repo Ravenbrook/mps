@@ -1,7 +1,7 @@
 /* <code/eventdef.h> -- Event Logging Definitions
  *
  * $Id$
- * Copyright (c) 2001-2013 Ravenbrook Limited.  See end of file for license.
+ * Copyright (c) 2001-2014 Ravenbrook Limited.  See end of file for license.
  *
  * .source: <design/telemetry/>
  *
@@ -31,14 +31,13 @@
  * the median version when changing an existing event,
  * and the major version when changing the format of the event file.
  *
- * TODO: These should go into a header that appears at the start of a
- * telemetry stream, but they aren't currently used.  Keep updating them
- * anyway.  RB 2012-09-07
+ * These are passed as parameters to the EventInit event at the start
+ * of a telemetry stream, allowing that stream to be identified.
  */
 
 #define EVENT_VERSION_MAJOR  ((unsigned)1)
-#define EVENT_VERSION_MEDIAN ((unsigned)1)
-#define EVENT_VERSION_MINOR  ((unsigned)6)
+#define EVENT_VERSION_MEDIAN ((unsigned)4)
+#define EVENT_VERSION_MINOR  ((unsigned)0)
 
 
 /* EVENT_LIST -- list of event types and general properties
@@ -96,7 +95,7 @@
   EVENT(X, PoolFinish         , 0x0016,  TRUE, Pool) \
   EVENT(X, PoolAlloc          , 0x0017,  TRUE, Object) \
   EVENT(X, PoolFree           , 0x0018,  TRUE, Object) \
-  EVENT(X, CBSInit            , 0x0019,  TRUE, Pool) \
+  EVENT(X, LandInit           , 0x0019,  TRUE, Pool) \
   EVENT(X, Intern             , 0x001a,  TRUE, User) \
   EVENT(X, Label              , 0x001b,  TRUE, User) \
   EVENT(X, TraceStart         , 0x001c,  TRUE, Trace) \
@@ -116,8 +115,8 @@
   /* TraceScanArea{Tagged} abuses kind, see .kind.abuse */ \
   EVENT(X, TraceScanArea      , 0x0029,  TRUE, Seg) \
   EVENT(X, TraceScanAreaTagged, 0x002a,  TRUE, Seg) \
-  EVENT(X, VMCreate           , 0x002b,  TRUE, Arena) \
-  EVENT(X, VMDestroy          , 0x002c,  TRUE, Arena) \
+  EVENT(X, VMInit             , 0x002b,  TRUE, Arena) \
+  EVENT(X, VMFinish           , 0x002c,  TRUE, Arena) \
   EVENT(X, VMMap              , 0x002d,  TRUE, Seg) \
   EVENT(X, VMUnmap            , 0x002e,  TRUE, Seg) \
   EVENT(X, ArenaExtend        , 0x002f,  TRUE, Arena) \
@@ -188,13 +187,13 @@
   EVENT(X, VMCompact          , 0x0079,  TRUE, Arena) \
   EVENT(X, amcScanNailed      , 0x0080,  TRUE, Seg) \
   EVENT(X, AMCTraceEnd        , 0x0081,  TRUE, Trace) \
-  EVENT(X, TraceStartPoolGen  , 0x0082,  TRUE, Trace) \
+  EVENT(X, TraceCreatePoolGen , 0x0082,  TRUE, Trace) \
   /* new events for performance analysis of large heaps. */ \
   EVENT(X, TraceCondemnZones  , 0x0083,  TRUE, Trace) \
   EVENT(X, ArenaGenZoneAdd    , 0x0084,  TRUE, Arena) \
   EVENT(X, ArenaUseFreeZone   , 0x0085,  TRUE, Arena) \
-  EVENT(X, ArenaBlacklistZone , 0x0086,  TRUE, Arena)
-  
+  /* EVENT(X, ArenaBlacklistZone , 0x0086,  TRUE, Arena) */
+
 
 /* Remember to update EventNameMAX and EventCodeMAX above! 
    (These are checked in EventInit.) */
@@ -312,8 +311,8 @@
   PARAM(X,  1, A, old) \
   PARAM(X,  2, W, size)
 
-#define EVENT_CBSInit_PARAMS(PARAM, X) \
-  PARAM(X,  0, P, cbs) \
+#define EVENT_LandInit_PARAMS(PARAM, X) \
+  PARAM(X,  0, P, land) \
   PARAM(X,  1, P, owner)
 
 #define EVENT_Intern_PARAMS(PARAM, X) \
@@ -369,12 +368,12 @@
   PARAM(X,  1, P, base) \
   PARAM(X,  2, P, limit)
 
-#define EVENT_VMCreate_PARAMS(PARAM, X) \
+#define EVENT_VMInit_PARAMS(PARAM, X) \
   PARAM(X,  0, P, vm) \
   PARAM(X,  1, A, base) \
   PARAM(X,  2, A, limit)
 
-#define EVENT_VMDestroy_PARAMS(PARAM, X) \
+#define EVENT_VMFinish_PARAMS(PARAM, X) \
   PARAM(X,  0, P, vm)
 
 #define EVENT_VMMap_PARAMS(PARAM, X) \
@@ -505,7 +504,8 @@
   PARAM(X,  0, P, pool) \
   PARAM(X,  1, P, arena) \
   PARAM(X,  2, W, extendBy) \
-  PARAM(X,  3, W, unitSize)
+  PARAM(X,  3, B, extendSelf) \
+  PARAM(X,  4, W, unitSize)
 
 #define EVENT_PoolInitAMS_PARAMS(PARAM, X) \
   PARAM(X,  0, P, pool) \
@@ -692,8 +692,8 @@
 #define EVENT_AMCTraceEnd_PARAMS(PARAM, X) \
   PARAM(X,  0, W, epoch)        /* current arena epoch */ \
   PARAM(X,  1, U, why)          /* reason trace started */ \
-  PARAM(X,  2, W, align)        /* arena alignment */ \
-  PARAM(X,  3, W, large)        /* AMCLargeSegPAGES */ \
+  PARAM(X,  2, W, grainSize)    /* arena grain size */ \
+  PARAM(X,  3, W, large)        /* AMC large size */ \
   PARAM(X,  4, W, pRetMin)      /* threshold for event */ \
   /* remaining parameters are copy of PageRetStruct, which see */ \
   PARAM(X,  5, W, pCond) \
@@ -713,18 +713,18 @@
   PARAM(X, 19, W, pRL) \
   PARAM(X, 20, W, pRLr)
 
-#define EVENT_TraceStartPoolGen_PARAMS(PARAM, X) \
-  PARAM(X,  0, P, chain)        /* chain (or NULL for topGen) */ \
-  PARAM(X,  1, B, top)          /* 1 for topGen, 0 otherwise */ \
-  PARAM(X,  2, W, index)        /* index of generation in the chain */ \
-  PARAM(X,  3, P, gendesc)      /* generation description */ \
-  PARAM(X,  4, W, capacity)     /* capacity of generation */ \
-  PARAM(X,  5, D, mortality)    /* mortality of generation */ \
-  PARAM(X,  6, W, zone)         /* zone set of generation */ \
-  PARAM(X,  7, P, pool)         /* pool */ \
-  PARAM(X,  8, W, serial)       /* pool gen serial number */ \
-  PARAM(X,  9, W, totalSize)    /* total size of pool gen */ \
-  PARAM(X, 10, W, newSizeAtCreate) /* new size of pool gen at trace create */
+#define EVENT_TraceCreatePoolGen_PARAMS(PARAM, X) \
+  PARAM(X,  0, P, gendesc)      /* generation description */ \
+  PARAM(X,  1, W, capacity)     /* capacity of generation */ \
+  PARAM(X,  2, D, mortality)    /* mortality of generation */ \
+  PARAM(X,  3, W, zone)         /* zone set of generation */ \
+  PARAM(X,  4, P, pool)         /* pool */ \
+  PARAM(X,  5, W, totalSize)    /* total size of pool gen */ \
+  PARAM(X,  6, W, freeSize)     /* free size of pool gen */ \
+  PARAM(X,  7, W, newSize)      /* new size of pool gen */ \
+  PARAM(X,  8, W, oldSize)      /* old size of pool gen */ \
+  PARAM(X,  9, W, newDeferredSize) /* new size (deferred) of pool gen */ \
+  PARAM(X, 10, W, oldDeferredSize) /* old size (deferred) of pool gen */
 
 #define EVENT_TraceCondemnZones_PARAMS(PARAM, X) \
   PARAM(X,  0, P, trace)        /* the trace */ \
@@ -733,23 +733,19 @@
 
 #define EVENT_ArenaGenZoneAdd_PARAMS(PARAM, X) \
   PARAM(X,  0, P, arena)        /* the arena */ \
-  PARAM(X,  1, W, gen)          /* the generation number */ \
+  PARAM(X,  1, P, gendesc)      /* the generation description */ \
   PARAM(X,  2, W, zoneSet)      /* the new zoneSet */
 
 #define EVENT_ArenaUseFreeZone_PARAMS(PARAM, X) \
   PARAM(X,  0, P, arena)        /* the arena */ \
   PARAM(X,  1, W, zoneSet)      /* zones that aren't free any longer */
 
-#define EVENT_ArenaBlacklistZone_PARAMS(PARAM, X) \
-  PARAM(X,  0, P, arena)        /* the arena */ \
-  PARAM(X,  1, W, zoneSet)      /* the blacklist zoneset */
-
 
 #endif /* eventdef_h */
 
 /* C. COPYRIGHT AND LICENSE
  *
- * Copyright (C) 2001-2013 Ravenbrook Limited <http://www.ravenbrook.com/>.
+ * Copyright (C) 2001-2014 Ravenbrook Limited <http://www.ravenbrook.com/>.
  * All rights reserved.  This is an open source license.  Contact
  * Ravenbrook for commercial licensing options.
  * 

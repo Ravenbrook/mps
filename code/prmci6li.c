@@ -1,7 +1,7 @@
 /* prmci6li.c: PROTECTION MUTATOR CONTEXT x64 (LINUX)
  *
  * $Id$
- * Copyright (c) 2001-2013 Ravenbrook Limited.  See end of file for license.
+ * Copyright (c) 2001-2014 Ravenbrook Limited.  See end of file for license.
  *
  * .purpose: This module implements the part of the protection module
  * that decodes the MutatorFaultContext. 
@@ -14,12 +14,12 @@
  *
  * ASSUMPTIONS
  *
- * .sp: The stack pointer in the context is uc_stack.ss_sp.
+ * .sp: The stack pointer in the context is RSP.
  *
  * .context.regroots: The root regs are assumed to be recorded in the context
  * at pointer-aligned boundaries.
  *
- * .assume.regref: The resisters in the context can be modified by
+ * .assume.regref: The registers in the context can be modified by
  * storing into an MRef pointer.
  */
 
@@ -28,17 +28,28 @@
 
 SRCID(prmci6li, "$Id$");
 
+#if !defined(MPS_OS_LI) || !defined(MPS_ARCH_I6)
+#error "prmci6li.c is specific to MPS_OS_LI and MPS_ARCH_I6"
+#endif
+
 
 /* Prmci6AddressHoldingReg -- return an address of a register in a context */
 
 MRef Prmci6AddressHoldingReg(MutatorFaultContext mfc, unsigned int regnum)
 {
-  Word *gregs;
+  MRef gregs;
 
+  AVER(mfc != NULL);
   AVER(NONNEGATIVE(regnum));
   AVER(regnum <= 15);
+  AVER(mfc->ucontext != NULL);
 
-  gregs = (Word *)&mfc->ucontext->uc_mcontext.gregs;
+  /* TODO: The current arrangement of the fix operation (taking a Ref *)
+     forces us to pun these registers (actually `int` on LII6GC).  We can
+     suppress the warning by casting through `void *` and this might make
+     it safe, but does it really?  RB 2012-09-10 */
+  AVER(sizeof(void *) == sizeof(*mfc->ucontext->uc_mcontext.gregs));
+  gregs = (void *)mfc->ucontext->uc_mcontext.gregs;
 
   /* .assume.regref */
   /* The register numbers (REG_RAX etc.) are defined in <ucontext.h>
@@ -61,13 +72,14 @@ MRef Prmci6AddressHoldingReg(MutatorFaultContext mfc, unsigned int regnum)
     case 13: return &gregs[REG_R13];
     case 14: return &gregs[REG_R14];
     case 15: return &gregs[REG_R15];
+    default:
+      NOTREACHED;
+      return NULL;  /* Avoids compiler warning. */
   }
-  NOTREACHED;
-  return (MRef)NULL;  /* Avoids compiler warning. */
 }
 
 
-/* Prmci3DecodeFaultContext -- decode fault to find faulting address and IP */
+/* Prmci6DecodeFaultContext -- decode fault to find faulting address and IP */
 
 void Prmci6DecodeFaultContext(MRef *faultmemReturn,
                               Byte **insvecReturn,
@@ -79,7 +91,7 @@ void Prmci6DecodeFaultContext(MRef *faultmemReturn,
 }
 
 
-/* Prmci3StepOverIns -- modify context to step over instruction */
+/* Prmci6StepOverIns -- modify context to step over instruction */
 
 void Prmci6StepOverIns(MutatorFaultContext mfc, Size inslen)
 {
@@ -111,7 +123,7 @@ Res MutatorFaultContextScan(ScanState ss, MutatorFaultContext mfc)
 
 /* C. COPYRIGHT AND LICENSE
  *
- * Copyright (C) 2001-2013 Ravenbrook Limited <http://www.ravenbrook.com/>.
+ * Copyright (C) 2001-2014 Ravenbrook Limited <http://www.ravenbrook.com/>.
  * All rights reserved.  This is an open source license.  Contact
  * Ravenbrook for commercial licensing options.
  * 

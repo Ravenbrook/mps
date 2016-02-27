@@ -1,7 +1,7 @@
 /* zmess.c: Message test
  *
  * $Id$
- * Copyright (c) 2008 Ravenbrook Limited.  See end of file for license.
+ * Copyright (c) 2008-2014 Ravenbrook Limited.  See end of file for license.
  * Portions copyright (C) 2002 Global Graphics Software.
  *
  * OBJECTIVE
@@ -107,15 +107,13 @@
 #include "fmtdy.h"
 #include "fmtdytst.h"
 #include "mpstd.h"
-#ifdef MPS_OS_W3
-#include "mpsw3.h"
-#endif
-#include <stdlib.h>
+
+#include <stdio.h> /* printf */
 
 
 #define testArenaSIZE   ((size_t)16<<20)
 
-/* usually (ArenaAlign / sizeof(Ref)) = 1024 */
+/* usually (ArenaGrainSize / sizeof(Ref)) = 1024 */
 /* so choose 3000 to force 3 segments of guardians */
 #define myrootCOUNT 3000
 
@@ -179,7 +177,8 @@ static void report(mps_arena_t arena, const char *pm, Bool discard)
         mps_message_finalization_ref(&objaddr, arena, message);
         obj = objaddr;
         objind = DYLAN_INT_INT(DYLAN_VECTOR_SLOT(obj, 0));
-        printf("    Finalization for object %lu at %p\n", objind, objaddr);
+        printf("    Finalization for object %"PRIuLONGEST" at %p\n",
+               (ulongest_t)objind, objaddr);
         cdie(myroot[objind] == NULL, "finalized live");
         cdie(state[objind] == finalizableSTATE, "not finalizable");
         state[objind] = finalizedSTATE;
@@ -242,7 +241,7 @@ static void testscriptC(mps_arena_t arena, const char *script)
       }
       case 'C': {
         printf("  Collect\n");
-        mps_arena_collect(arena);
+        die(mps_arena_collect(arena), "mps_arena_collect");
         break;
       }
       case 'F': {
@@ -308,7 +307,7 @@ static void *testscriptB(void *arg, size_t s)
   mps_root_t root_table;
   mps_ap_t ap;
   mps_root_t root_stackreg;
-  int i;
+  size_t i;
   int N = myrootCOUNT - 1;
   void *stack_starts_here;  /* stack scanning starts here */
 
@@ -382,6 +381,7 @@ static void *testscriptB(void *arg, size_t s)
 
   testscriptC(arena, script);
 
+  mps_arena_park(arena);
   mps_ap_destroy(ap);
   mps_root_destroy(root_table);
   mps_pool_destroy(amc);
@@ -441,6 +441,9 @@ static void testscriptA(const char *script)
  *
  * TIMCA_remote returns a Bool, true for let "ControlAlloc succeed".
  */
+
+#ifdef TEST_CONTROLALLOC_FAILURE
+
 static const char *TIMCA_str = "";
 static int TIMCA_done = 0;
 static void TIMCA_setup(const char *string)
@@ -480,15 +483,15 @@ Bool TIMCA_remote(void)
   return succeed;
 }
 
+#endif  /* TEST_CONTROLALLOC_FAILURE */
+
 
 /* main -- runs various test scripts
  *
  */
 int main(int argc, char *argv[])
 {
-
-  randomize(argc, argv);
-  mps_lib_assert_fail_install(assert_die);
+  testlib_init(argc, argv);
 
   /* Scripts that should fail (uncomment to show failure is detected) */
   /*testscriptA("C.");*/
@@ -536,7 +539,8 @@ int main(int argc, char *argv[])
    *
    * See <design/message-gc#lifecycle>.
    */
-  if(0) {
+#if TEST_CONTROLALLOC_FAILURE
+  {
     /* ArenaCreate unable to pre-allocate: THESE SHOULD FAIL */
     /* manually edit if(0) -> if(1) to test these */
     if(0) {
@@ -563,6 +567,7 @@ int main(int argc, char *argv[])
     
     TIMCA_setup("");  /* must reset it! */
   }
+#endif
 
   printf("%s: Conclusion: Failed to find any defects.\n", argv[0]);
   return 0;
@@ -571,7 +576,7 @@ int main(int argc, char *argv[])
 
 /* C. COPYRIGHT AND LICENSE
  *
- * Copyright (c) 2001-2013 Ravenbrook Limited <http://www.ravenbrook.com/>.
+ * Copyright (c) 2001-2014 Ravenbrook Limited <http://www.ravenbrook.com/>.
  * All rights reserved.  This is an open source license.  Contact
  * Ravenbrook for commercial licensing options.
  * 

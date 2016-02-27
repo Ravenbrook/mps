@@ -1,7 +1,7 @@
 /* table.h: A dictionary mapping a Word to a void*
  *
  * $Id$
- * Copyright (c) 2001 Ravenbrook Limited.  See end of file for license.
+ * Copyright (c) 2001-2014 Ravenbrook Limited.  See end of file for license.
  *
  * .note.good-hash: As is common in hash table implementations, we
  * assume that the hash function is good.
@@ -15,56 +15,6 @@
 
 
 SRCID(table, "$Id$");
-
-
-/* tableHash -- return a hash value from an address
- *
- * This uses a single cycle of an MLCG, more commonly seen as a 
- * pseudorandom number generator.  It works extremely well as a 
- * hash function.
- *
- * (In particular, it is substantially better than simply doing this:
- *   seed = (unsigned long)addr * 48271;
- * Tested by RHSK 2010-12-28.)
- *
- * This MLCG is a full period generator: it cycles through every 
- * number from 1 to m-1 before repeating.  Therefore, no two numbers 
- * in that range hash to the same value.  Furthermore, it has prime 
- * modulus, which tends to avoid recurring patterns in the low-order 
- * bits, which is good because the hash will be used modulus the 
- * number of slots in the table.
- *
- * Of course it's only a 31-bit cycle, so we start by losing the top 
- * bit of the address, but that's hardly a great problem.
- *
- * See `rnd` in testlib.c for more technical details.
- *
- * The implementation is quite subtle.  See rnd() in testlib.c, where 
- * it has been exhaustively (ie: totally) tested.  RHSK 2010-12-28.
- *
- * NOTE: According to NB, still a fine function for producing a 31-bit hash
- * value, although of course it only hashes on the lower 31 bits of the
- * key; we could cheaply make it choose a different 31 bits if we'd prefer
- * (e.g. ((key >> 2) & 0x7FFFFFFF)), or combine more of the key bits (e.g.
- * ((key ^ (key >> 31)) & 0x7fffffff)).
- */
- 
-#define R_m 2147483647UL
-#define R_a 48271UL
-
-typedef Word Hash;
-
-static Hash tableHash(Word key)
-{
-  Hash hash = (Hash)(key & 0x7FFFFFFF);
-  /* requires m == 2^31-1, a < 2^16 */
-  Hash bot = R_a * (hash & 0x7FFF);
-  Hash top = R_a * (hash >> 15);
-  hash = bot + ((top & 0xFFFF) << 15) + (top >> 16);
-  if(hash > R_m)
-    hash -= R_m;
-  return hash;
-}
 
 
 Bool TableCheck(Table table)
@@ -295,8 +245,8 @@ retry:
 
 extern Res TableCreate(Table *tableReturn,
                        Count length,
-                       TableAllocMethod tableAlloc,
-                       TableFreeMethod tableFree,
+                       TableAllocFunction tableAlloc,
+                       TableFreeFunction tableFree,
                        void *allocClosure,
                        Word unusedKey,
                        Word deletedKey)
@@ -438,7 +388,7 @@ extern Count TableCount(Table table)
 
 /* C. COPYRIGHT AND LICENSE
  *
- * Copyright (C) 2001-2002 Ravenbrook Limited <http://www.ravenbrook.com/>.
+ * Copyright (C) 2001-2014 Ravenbrook Limited <http://www.ravenbrook.com/>.
  * All rights reserved.  This is an open source license.  Contact
  * Ravenbrook for commercial licensing options.
  * 

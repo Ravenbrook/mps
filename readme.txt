@@ -72,26 +72,28 @@ Supported target platforms
 
 The MPS is currently supported for deployment on:
 
-- Windows XP or later on IA-32 and x86-64, using Microsoft Visual C/C++;
+- Windows XP or later, on IA-32 and x86-64, using Microsoft Visual C/C++;
 
-- Linux (Ubuntu 11 and RHEL 6.3 known good, otherwise YMMV) on IA-32
-  using GCC and on x86-64 using GCC or Clang/LLVM;
+- Linux 2.4 or later, on IA-32 using GCC and on x86-64 using GCC or
+  Clang/LLVM;
 
 - FreeBSD 7 or later, on IA-32 and x86-64, using GCC;
 
-- Mac OS X 10.4 or later, on IA-32 and x86-64, using Clang/LLVM.
-
-The MPS will *not* work in a multi-threaded 32-bit application on 64-bit
-Windows 7.  This is due to a serious fault in Microsoft's WOW64 emulator
-that we are powerless to correct.  It is due to be fixed in Windows 8.
-(See `WOW64 bug: GetThreadContext() may return stale contents
-<http://zachsaw.blogspot.co.uk/2010/11/wow64-bug-getthreadcontext-may-
-return.html>`__.)
+- OS X 10.4 or later, on IA-32 and x86-64, using Clang/LLVM.
 
 The MPS is highly portable and has run on many other processors and
 operating systems in the past (see `Building the MPS
 <manual/guide/build.html>`__). Most of the MPS is written in very pure
 ANSI C and compiles without warnings on anything.
+
+.. warning::
+
+    If you are running a multi-threaded 32-bit application on 64-bit
+    Windows 7 via the WOW64 emulator, then you must install this
+    hotfix from Microsoft:
+    `<http://support.microsoft.com/kb/2864432/en-us>`__. See
+    `<http://zachsaw.blogspot.co.uk/2010/11/wow64-bug-getthreadcontext-may-return.html>`__
+    for a description of the problem.
 
 
 Getting help
@@ -129,6 +131,7 @@ Document History
 2012-09-05  RB_    Considerably reduced ready for version 1.110.  Now 
                    brought to you in glorious reStructuredText.
 2014-01-13  GDR_   Updated supported platforms.
+2014-07-04  GDR_   Link to hotfix for WOW64 bug.
 ==========  =====  ======================================================
 
 .. _GDR: mailto:gdr@ravenbrook.com

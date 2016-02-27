@@ -54,7 +54,7 @@ AMCZ interface
 
    #include "mpscamc.h"
 
-.. c:function:: mps_class_t mps_class_amcz(void)
+.. c:function:: mps_pool_class_t mps_class_amcz(void)
 
     Return the :term:`pool class` for an AMCZ (Automatic
     Mostly-Copying Zero-rank) :term:`pool`.
@@ -68,11 +68,17 @@ AMCZ interface
       method`, an :term:`is-forwarded method` and a :term:`padding
       method`.
 
-    It accepts one optional keyword argument:
+    It accepts two optional keyword arguments:
 
     * :c:macro:`MPS_KEY_CHAIN` (type :c:type:`mps_chain_t`) specifies
       the :term:`generation chain` for the pool. If not specified, the
       pool will use the arena's default chain.
+
+    * :c:macro:`MPS_KEY_INTERIOR` (type :c:type:`mps_bool_t`, default
+      ``TRUE``) specifies whether :term:`ambiguous <ambiguous
+      reference>` :term:`interior pointers` to blocks in the pool keep
+      objects alive. If this is ``FALSE``, then only :term:`client
+      pointers` keep objects alive.
 
     For example::
 
@@ -81,12 +87,11 @@ AMCZ interface
             res = mps_pool_create_k(&pool, arena, mps_class_amcz(), args);
         } MPS_ARGS_END(args);
 
-    .. deprecated:: starting with version 1.112.
+        
+.. index::
+   pair: AMCZ; introspection
 
-        When using :c:func:`mps_pool_create`, pass the format and
-        chain like this::
+AMCZ introspection
+------------------
 
-            mps_res_t mps_pool_create(mps_pool_t *pool_o, mps_arena_t arena, 
-                                      mps_class_t mps_class_amcz(),
-                                      mps_fmt_t fmt,
-                                      mps_chain_t chain)
+See :ref:`pool-amc-introspection`.

@@ -1,7 +1,7 @@
 /* expt825.c: Test for bug described in job000825
  *
  * $Id$
- * Copyright (c) 2001-2013 Ravenbrook Limited.  See end of file for license.
+ * Copyright (c) 2001-2014 Ravenbrook Limited.  See end of file for license.
  * Portions copyright (C) 2002 Global Graphics Software.
  *
  * DESIGN
@@ -34,10 +34,8 @@
 #include "fmtdy.h"
 #include "fmtdytst.h"
 #include "mpstd.h"
-#ifdef MPS_OS_W3
-#include "mpsw3.h"
-#endif
-#include <stdlib.h>
+
+#include <stdio.h> /* printf, fflush, stdout */
 
 
 #define testArenaSIZE   ((size_t)16<<20)
@@ -86,7 +84,8 @@ static void register_numbered_tree(mps_word_t tree, mps_arena_t arena)
 {
     /* don't finalize ints */
     if ((tree & 1) == 0) {
-        mps_finalize(arena, (mps_addr_t *)&tree);
+        mps_addr_t addr = (void *)tree;
+        die(mps_finalize(arena, &addr), "mps_finalize");
         register_numbered_tree(DYLAN_VECTOR_SLOT(tree, 0), arena);
         register_numbered_tree(DYLAN_VECTOR_SLOT(tree, 1), arena);
     }
@@ -124,8 +123,8 @@ static void register_indirect_tree(mps_word_t tree, mps_arena_t arena)
 {
     /* don't finalize ints */
     if ((tree & 1) == 0) {
-        mps_word_t indirect = DYLAN_VECTOR_SLOT(tree,2);
-        mps_finalize(arena, (mps_addr_t *)&indirect);
+        mps_addr_t indirect = (void *)DYLAN_VECTOR_SLOT(tree,2);
+        die(mps_finalize(arena, &indirect), "mps_finalize");
         register_indirect_tree(DYLAN_VECTOR_SLOT(tree, 0), arena);
         register_indirect_tree(DYLAN_VECTOR_SLOT(tree, 1), arena);
     }
@@ -186,7 +185,7 @@ static void *test(void *arg, size_t s)
          (mps_collections(arena) < collectionCOUNT)) {
           mps_word_t final_this_time = 0;
           printf("Collecting...");
-          fflush(stdout);
+          (void)fflush(stdout);
           die(mps_arena_collect(arena), "collect");
           printf(" Done.\n");
           while (mps_message_poll(arena)) {
@@ -202,8 +201,10 @@ static void *test(void *arg, size_t s)
                   testlib_unused(obj);
           }
           finals += final_this_time;
-          printf("%lu objects finalized: total %lu of %lu\n",
-                 final_this_time, finals, object_count);
+          printf("%"PRIuLONGEST" objects finalized: total %"PRIuLONGEST
+                 " of %"PRIuLONGEST"\n",
+                 (ulongest_t)final_this_time, (ulongest_t)finals,
+                 (ulongest_t)object_count);
   }
 
   object_count = 0;
@@ -227,7 +228,7 @@ static void *test(void *arg, size_t s)
          (mps_collections(arena) < collectionCOUNT)) {
           mps_word_t final_this_time = 0;
           printf("Collecting...");
-          fflush(stdout);
+          (void)fflush(stdout);
           die(mps_arena_collect(arena), "collect");
           printf(" Done.\n");
           while (mps_message_poll(arena)) {
@@ -243,10 +244,13 @@ static void *test(void *arg, size_t s)
                   testlib_unused(obj);
           }
           finals += final_this_time;
-          printf("%lu objects finalized: total %lu of %lu\n",
-                 final_this_time, finals, object_count);
+          printf("%"PRIuLONGEST" objects finalized: total %"PRIuLONGEST
+                 " of %"PRIuLONGEST"\n",
+                 (ulongest_t)final_this_time, (ulongest_t)finals,
+                 (ulongest_t)object_count);
   }
 
+  mps_arena_park(arena);
   mps_ap_destroy(ap);
   mps_root_destroy(mps_root);
   mps_pool_destroy(amc);
@@ -262,7 +266,8 @@ int main(int argc, char *argv[])
   mps_arena_t arena;
   mps_thr_t thread;
   void *r;
-  testlib_unused(argc);
+
+  testlib_init(argc, argv);
 
   die(mps_arena_create(&arena, mps_arena_class_vm(), testArenaSIZE),
       "arena_create\n");
@@ -278,7 +283,7 @@ int main(int argc, char *argv[])
 
 /* C. COPYRIGHT AND LICENSE
  *
- * Copyright (c) 2001-2013 Ravenbrook Limited <http://www.ravenbrook.com/>.
+ * Copyright (c) 2001-2014 Ravenbrook Limited <http://www.ravenbrook.com/>.
  * All rights reserved.  This is an open source license.  Contact
  * Ravenbrook for commercial licensing options.
  *

@@ -1,30 +1,28 @@
 /* amcss.c: POOL CLASS AMC STRESS TEST
  *
  * $Id$
- * Copyright (c) 2001-2013 Ravenbrook Limited.  See end of file for license.
+ * Copyright (c) 2001-2014 Ravenbrook Limited.  See end of file for license.
  * Portions copyright (C) 2002 Global Graphics Software.
  */
 
 #include "fmtdy.h"
 #include "fmtdytst.h"
 #include "testlib.h"
+#include "mpm.h"
 #include "mpslib.h"
 #include "mpscamc.h"
 #include "mpsavm.h"
 #include "mpstd.h"
-#ifdef MPS_OS_W3
-#include "mpsw3.h"
-#endif
 #include "mps.h"
 #include "mpslib.h"
-#include <stdlib.h>
-#include <string.h>
+
+#include <stdio.h> /* fflush, printf, putchar */
 
 
 /* These values have been tuned in the hope of getting one dynamic collection. */
 #define testArenaSIZE     ((size_t)1000*1024)
-#define gen1SIZE          ((size_t)150)
-#define gen2SIZE          ((size_t)170)
+#define gen1SIZE          ((size_t)20)
+#define gen2SIZE          ((size_t)85)
 #define avLEN             3
 #define exactRootsCOUNT   180
 #define ambigRootsCOUNT   50
@@ -46,14 +44,15 @@ static mps_gen_param_s testChain[genCOUNT] = {
 static mps_ap_t ap;
 static mps_addr_t exactRoots[exactRootsCOUNT];
 static mps_addr_t ambigRoots[ambigRootsCOUNT];
+static size_t scale;            /* Overall scale factor. */
+static unsigned long nCollsStart;
+static unsigned long nCollsDone;
 
 
 /* report -- report statistics from any messages */
 
 static void report(mps_arena_t arena)
 {
-  static int nCollsStart = 0;
-  static int nCollsDone = 0;
   mps_message_type_t type;
     
   while(mps_message_queue_type(&type, arena)) {
@@ -63,7 +62,7 @@ static void report(mps_arena_t arena)
 
     if (type == mps_message_type_gc_start()) {
       nCollsStart += 1;
-      printf("\n{\n  Collection %d started.  Because:\n", nCollsStart);
+      printf("\n{\n  Collection %lu started.  Because:\n", nCollsStart);
       printf("    %s\n", mps_message_gc_start_why(arena, message));
       printf("    clock: %"PRIuLONGEST"\n", (ulongest_t)mps_message_clock(arena, message));
 
@@ -75,25 +74,12 @@ static void report(mps_arena_t arena)
       condemned = mps_message_gc_condemned_size(arena, message);
       not_condemned = mps_message_gc_not_condemned_size(arena, message);
 
-      printf("\n  Collection %d finished:\n", nCollsDone);
+      printf("\n  Collection %lu finished:\n", nCollsDone);
       printf("    live %"PRIuLONGEST"\n", (ulongest_t)live);
       printf("    condemned %"PRIuLONGEST"\n", (ulongest_t)condemned);
       printf("    not_condemned %"PRIuLONGEST"\n", (ulongest_t)not_condemned);
       printf("    clock: %"PRIuLONGEST"\n", (ulongest_t)mps_message_clock(arena, message));
       printf("}\n");
-
-      if(condemned > (gen1SIZE + gen2SIZE + (size_t)128) * 1024) {
-        /* When condemned size is larger than could happen in a gen 2
-         * collection (discounting ramps, natch), guess that was a dynamic
-         * collection, and reset the commit limit, so it doesn't run out.
-         *
-         * GDR 2013-03-12: Fiddling with the commit limit was causing
-         * the test to fail sometimes (see job003440), so I've commented
-         * out this feature.
-         */
-        /* die(mps_arena_commit_limit_set(arena, 2 * testArenaSIZE), "set limit"); */
-      }
-
     } else {
       cdie(0, "unknown message type");
       break;
@@ -101,25 +87,25 @@ static void report(mps_arena_t arena)
 
     mps_message_discard(arena, message);
   }
-
-  return;
 }
 
 
 /* make -- create one new object */
 
-static mps_addr_t make(void)
+static mps_addr_t make(size_t rootsCount)
 {
-  size_t length = rnd() % (2*avLEN);
+  static unsigned long calls = 0;
+  size_t length = rnd() % (scale * avLEN);
   size_t size = (length+2) * sizeof(mps_word_t);
   mps_addr_t p;
   mps_res_t res;
+  ++ calls;
 
   do {
     MPS_RESERVE_BLOCK(res, p, ap, size);
     if (res)
       die(res, "MPS_RESERVE_BLOCK");
-    res = dylan_init(p, size, exactRoots, exactRootsCOUNT);
+    res = dylan_init(p, size, exactRoots, rootsCount);
     if (res)
       die(res, "dylan_init");
   } while(!mps_commit(ap, p, size));
@@ -141,7 +127,8 @@ static void test_stepper(mps_addr_t object, mps_fmt_t fmt, mps_pool_t pool,
 
 /* test -- the body of the test */
 
-static void test(mps_arena_t arena)
+static void test(mps_arena_t arena, mps_pool_class_t pool_class,
+                 size_t roots_count)
 {
   mps_fmt_t format;
   mps_chain_t chain;
@@ -153,11 +140,12 @@ static void test(mps_arena_t arena)
   mps_ap_t busy_ap;
   mps_addr_t busy_init;
   mps_pool_t pool;
+  int described = 0; 
 
   die(dylan_fmt(&format, arena), "fmt_create");
   die(mps_chain_create(&chain, arena, genCOUNT, testChain), "chain_create");
 
-  die(mps_pool_create(&pool, arena, mps_class_amc(), format, chain),
+  die(mps_pool_create(&pool, arena, pool_class, format, chain),
       "pool_create(amc)");
 
   die(mps_ap_create(&ap, pool, mps_rank_exact()), "BufferCreate");
@@ -181,6 +169,8 @@ static void test(mps_arena_t arena)
   /* create an ap, and leave it busy */
   die(mps_reserve(&busy_init, busy_ap, 64), "mps_reserve busy");
 
+  nCollsStart = 0;
+  nCollsDone = 0;
   collections = 0;
   rampSwitch = rampSIZE;
   die(mps_ap_alloc_pattern_begin(ap, ramp), "pattern begin (ap)");
@@ -188,15 +178,18 @@ static void test(mps_arena_t arena)
   ramping = 1;
   objs = 0;
   while (collections < collectionsCOUNT) {
-    mps_word_t c;
     size_t r;
 
-    c = mps_collections(arena);
-    if (collections != c) {
-      collections = c;
-      report(arena);
+    report(arena);
+    if (collections != nCollsStart) {
+      if (!described) {
+        die(ArenaDescribe(arena, mps_lib_get_stdout(), 0), "ArenaDescribe");
+        described = TRUE;
+      }
+      collections = nCollsStart;
 
-      printf("%lu objects (mps_collections says: %lu)\n", objs, c);
+      printf("%lu objects (nCollsStart=%"PRIuLONGEST")\n", objs,
+             (ulongest_t)collections);
 
       /* test mps_arena_has_addr */
       {
@@ -268,13 +261,13 @@ static void test(mps_arena_t arena)
       i = (r >> 1) % exactRootsCOUNT;
       if (exactRoots[i] != objNULL)
         cdie(dylan_check(exactRoots[i]), "dying root check");
-      exactRoots[i] = make();
+      exactRoots[i] = make(roots_count);
       if (exactRoots[(exactRootsCOUNT-1) - i] != objNULL)
         dylan_write(exactRoots[(exactRootsCOUNT-1) - i],
                     exactRoots, exactRootsCOUNT);
     } else {
       i = (r >> 1) % ambigRootsCOUNT;
-      ambigRoots[(ambigRootsCOUNT-1) - i] = make();
+      ambigRoots[(ambigRootsCOUNT-1) - i] = make(roots_count);
       /* Create random interior pointers */
       ambigRoots[i] = (mps_addr_t)((char *)(ambigRoots[i/2]) + 1);
     }
@@ -285,13 +278,14 @@ static void test(mps_arena_t arena)
     if (objs % 1024 == 0) {
       report(arena);
       putchar('.');
-      fflush(stdout);
+      (void)fflush(stdout);
     }
 
     ++objs;
   }
 
   (void)mps_commit(busy_ap, busy_init, 64);
+  mps_arena_park(arena);
   mps_ap_destroy(busy_ap);
   mps_ap_destroy(ap);
   mps_root_destroy(exactRoot);
@@ -299,27 +293,33 @@ static void test(mps_arena_t arena)
   mps_pool_destroy(pool);
   mps_chain_destroy(chain);
   mps_fmt_destroy(format);
+  mps_arena_release(arena);
 }
 
 int main(int argc, char *argv[])
 {
+  size_t i, grainSize;
   mps_arena_t arena;
   mps_thr_t thread;
 
-  randomize(argc, argv);
-  mps_lib_assert_fail_install(assert_die);
-  
-  die(mps_arena_create(&arena, mps_arena_class_vm(), 2*testArenaSIZE),
-      "arena_create");
+  testlib_init(argc, argv);
+
+  scale = (size_t)1 << (rnd() % 6);
+  for (i = 0; i < genCOUNT; ++i) testChain[i].mps_capacity *= scale;
+  grainSize = rnd_grain(scale * testArenaSIZE);
+  printf("Picked scale=%lu grainSize=%lu\n", (unsigned long)scale, (unsigned long)grainSize);
+
+  MPS_ARGS_BEGIN(args) {
+    MPS_ARGS_ADD(args, MPS_KEY_ARENA_SIZE, scale * testArenaSIZE);
+    MPS_ARGS_ADD(args, MPS_KEY_ARENA_GRAIN_SIZE, grainSize);
+    MPS_ARGS_ADD(args, MPS_KEY_COMMIT_LIMIT, scale * testArenaSIZE);
+    die(mps_arena_create_k(&arena, mps_arena_class_vm(), args), "arena_create");
+  } MPS_ARGS_END(args);
   mps_message_type_enable(arena, mps_message_type_gc());
   mps_message_type_enable(arena, mps_message_type_gc_start());
-  /* GDR 2013-03-12: Fiddling with the commit limit was causing
-   * the test to fail sometimes (see job003440), so I've commented
-   * out this feature.
-   */
-  /*die(mps_arena_commit_limit_set(arena, testArenaSIZE), "set limit");*/
   die(mps_thread_reg(&thread, arena), "thread_reg");
-  test(arena);
+  test(arena, mps_class_amc(), exactRootsCOUNT);
+  test(arena, mps_class_amcz(), 0);
   mps_thread_dereg(thread);
   report(arena);
   mps_arena_destroy(arena);
@@ -331,7 +331,7 @@ int main(int argc, char *argv[])
 
 /* C. COPYRIGHT AND LICENSE
  *
- * Copyright (c) 2001-2013 Ravenbrook Limited <http://www.ravenbrook.com/>.
+ * Copyright (c) 2001-2014 Ravenbrook Limited <http://www.ravenbrook.com/>.
  * All rights reserved.  This is an open source license.  Contact
  * Ravenbrook for commercial licensing options.
  * 

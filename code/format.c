@@ -1,7 +1,7 @@
 /* format.c: OBJECT FORMATS
  *
  * $Id$
- * Copyright (c) 2001 Ravenbrook Limited.  See end of file for license.
+ * Copyright (c) 2001-2014 Ravenbrook Limited.  See end of file for license.
  * Portions copyright (c) 2002 Global Graphics Software.
  *
  * DESIGN
@@ -21,7 +21,7 @@ Bool FormatCheck(Format format)
   CHECKS(Format, format);
   CHECKU(Arena, format->arena);
   CHECKL(format->serial < format->arena->formatSerial);
-  CHECKL(RingCheck(&format->arenaRing));
+  CHECKD_NOSIG(Ring, &format->arenaRing);
   CHECKL(AlignCheck(format->alignment));
   /* TODO: Define the concept of the maximum alignment it is possible to
      request from the MPS, document and provide an interface to it, and then
@@ -88,14 +88,14 @@ static mps_addr_t FormatDefaultClass(mps_addr_t object)
 
 /* FormatCreate -- create a format */
 
-ARG_DEFINE_KEY(fmt_align, Align);
-ARG_DEFINE_KEY(fmt_scan, Fun);
-ARG_DEFINE_KEY(fmt_skip, Fun);
-ARG_DEFINE_KEY(fmt_fwd, Fun);
-ARG_DEFINE_KEY(fmt_isfwd, Fun);
-ARG_DEFINE_KEY(fmt_pad, Fun);
-ARG_DEFINE_KEY(fmt_header_size, Size);
-ARG_DEFINE_KEY(fmt_class, Fun);
+ARG_DEFINE_KEY(FMT_ALIGN, Align);
+ARG_DEFINE_KEY(FMT_SCAN, Fun);
+ARG_DEFINE_KEY(FMT_SKIP, Fun);
+ARG_DEFINE_KEY(FMT_FWD, Fun);
+ARG_DEFINE_KEY(FMT_ISFWD, Fun);
+ARG_DEFINE_KEY(FMT_PAD, Fun);
+ARG_DEFINE_KEY(FMT_HEADER_SIZE, Size);
+ARG_DEFINE_KEY(FMT_CLASS, Fun);
 
 Res FormatCreate(Format *formatReturn, Arena arena, ArgList args)
 {
@@ -114,7 +114,7 @@ Res FormatCreate(Format *formatReturn, Arena arena, ArgList args)
 
   AVER(formatReturn != NULL);
   AVERT(Arena, arena);
-  AVER(ArgListCheck(args));
+  AVERT(ArgList, args);
 
   if (ArgPick(&arg, args, MPS_KEY_FMT_ALIGN))
     fmtAlign = arg.val.align;
@@ -181,23 +181,22 @@ void FormatDestroy(Format format)
 
 /* FormatArena -- find the arena of a format
  *
- * Must be thread-safe.  See <design/interface-c/#thread-safety>. */
+ * Must be thread-safe. See <design/interface-c/#check.testt>. */
 
 Arena FormatArena(Format format)
 {
-  /* Can't AVER format as that would not be thread-safe */
-  /* AVERT(Format, format); */
+  AVER(TESTT(Format, format));
   return format->arena;
 }
 
 
 /* FormatDescribe -- describe a format */
 
-Res FormatDescribe(Format format, mps_lib_FILE *stream)
+Res FormatDescribe(Format format, mps_lib_FILE *stream, Count depth)
 {
   Res res;
  
-  res = WriteF(stream,
+  res = WriteF(stream, depth,
                "Format $P ($U) {\n", (WriteFP)format, (WriteFU)format->serial,
                "  arena $P ($U)\n",
                (WriteFP)format->arena, (WriteFU)format->arena->serial,
@@ -207,9 +206,11 @@ Res FormatDescribe(Format format, mps_lib_FILE *stream)
                "  move $F\n", (WriteFF)format->move,
                "  isMoved $F\n", (WriteFF)format->isMoved,
                "  pad $F\n", (WriteFF)format->pad,
+               "  headerSize $W\n", (WriteFW)format->headerSize,
                "} Format $P ($U)\n", (WriteFP)format, (WriteFU)format->serial,
                NULL);
-  if (res != ResOK) return res;
+  if (res != ResOK)
+    return res;
 
   return ResOK;
 }
@@ -217,7 +218,7 @@ Res FormatDescribe(Format format, mps_lib_FILE *stream)
 
 /* C. COPYRIGHT AND LICENSE
  *
- * Copyright (C) 2001-2002 Ravenbrook Limited <http://www.ravenbrook.com/>.
+ * Copyright (C) 2001-2014 Ravenbrook Limited <http://www.ravenbrook.com/>.
  * All rights reserved.  This is an open source license.  Contact
  * Ravenbrook for commercial licensing options.
  * 

@@ -10,51 +10,42 @@
 #define cbs_h
 
 #include "arg.h"
-#include "meter.h"
 #include "mpmtypes.h"
+#include "mpmst.h"
 #include "range.h"
 #include "splay.h"
 
+typedef struct CBSBlockStruct *CBSBlock;
+typedef struct CBSBlockStruct {
+  TreeStruct treeStruct;
+  Addr base;
+  Addr limit;
+} CBSBlockStruct;
+
+typedef struct CBSFastBlockStruct *CBSFastBlock;
+typedef struct CBSFastBlockStruct {
+  struct CBSBlockStruct cbsBlockStruct;
+  Size maxSize; /* accurate maximum block size of sub-tree */
+} CBSFastBlockStruct;
+
+typedef struct CBSZonedBlockStruct *CBSZonedBlock;
+typedef struct CBSZonedBlockStruct {
+  struct CBSFastBlockStruct cbsFastBlockStruct;
+  ZoneSet zones; /* union zone set of all ranges in sub-tree */
+} CBSZonedBlockStruct;
 
 typedef struct CBSStruct *CBS;
-typedef Bool (*CBSIterateMethod)(CBS cbs, Range range,
-                                 void *closureP, Size closureS);
-
-
-#define CBSSig ((Sig)0x519CB599) /* SIGnature CBS */
-
-typedef struct CBSStruct {
-  SplayTreeStruct splayTree;
-  Count splayTreeSize;
-  Pool blockPool;
-  Align alignment;
-  Bool fastFind;
-  Bool inCBS; /* prevent reentrance */
-  /* meters for sizes of search structures at each op */
-  METER_DECL(splaySearch);
-  Sig sig; /* sig at end because embeded */
-} CBSStruct;
 
 extern Bool CBSCheck(CBS cbs);
+#define CBSLand(cbs) (&(cbs)->landStruct)
 
-extern Res CBSInit(Arena arena, CBS cbs, void *owner,
-                   Align alignment, Bool fastFind, ArgList args);
-extern void CBSFinish(CBS cbs);
+extern LandClass CBSLandClassGet(void);
+extern LandClass CBSFastLandClassGet(void);
+extern LandClass CBSZonedLandClassGet(void);
 
-extern Res CBSInsert(Range rangeReturn, CBS cbs, Range range);
-extern Res CBSDelete(Range rangeReturn, CBS cbs, Range range);
-extern void CBSIterate(CBS cbs, CBSIterateMethod iterate,
-                       void *closureP, Size closureS);
-
-extern Res CBSDescribe(CBS cbs, mps_lib_FILE *stream);
-
-extern Bool CBSFindFirst(Range rangeReturn, Range oldRangeReturn,
-                         CBS cbs, Size size, FindDelete findDelete);
-extern Bool CBSFindLast(Range rangeReturn, Range oldRangeReturn,
-                        CBS cbs, Size size, FindDelete findDelete);
-extern Bool CBSFindLargest(Range rangeReturn, Range oldRangeReturn,
-                           CBS cbs, Size size, FindDelete findDelete);
-
+extern const struct mps_key_s _mps_key_cbs_block_pool;
+#define CBSBlockPool (&_mps_key_cbs_block_pool)
+#define CBSBlockPool_FIELD pool
 
 #endif /* cbs_h */
 

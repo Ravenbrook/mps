@@ -1,7 +1,7 @@
 /* prmci3li.c: PROTECTION MUTATOR CONTEXT INTEL 386 (LINUX)
  *
  * $Id$
- * Copyright (c) 2001-2013 Ravenbrook Limited.  See end of file for license.
+ * Copyright (c) 2001-2014 Ravenbrook Limited.  See end of file for license.
  *
  * .purpose: This module implements the part of the protection module
  * that decodes the MutatorFaultContext. 
@@ -17,12 +17,12 @@
  *
  * ASSUMPTIONS
  *
- * .sp: The stack pointer in the context is uc_stack.ss_sp.
+ * .sp: The stack pointer in the context is ESP.
  *
  * .context.regroots: The root regs are assumed to be recorded in the context
  * at pointer-aligned boundaries.
  *
- * .assume.regref: The resisters in the context can be modified by
+ * .assume.regref: The registers in the context can be modified by
  * storing into an MRef pointer.
  */
 
@@ -31,35 +31,47 @@
 
 SRCID(prmci3li, "$Id$");
 
+#if !defined(MPS_OS_LI) || !defined(MPS_ARCH_I3)
+#error "prmci3li.c is specific to MPS_OS_LI and MPS_ARCH_I3"
+#endif
+
 
 /* Prmci3AddressHoldingReg -- return an address of a register in a context */
 
 MRef Prmci3AddressHoldingReg(MutatorFaultContext mfc, unsigned int regnum)
 {
+  MRef gregs;
+
+  AVER(mfc != NULL);
   AVER(NONNEGATIVE(regnum));
   AVER(regnum <= 7);
+  AVER(mfc->ucontext != NULL);
+
+  /* TODO: The current arrangement of the fix operation (taking a Ref *)
+     forces us to pun these registers (actually `int` on LII3GC).  We can
+     suppress the warning by casting through `void *` and this might make
+     it safe, but does it really?  RB 2012-09-10 */
+  AVER(sizeof(void *) == sizeof(*mfc->ucontext->uc_mcontext.gregs));
+  gregs = (void *)mfc->ucontext->uc_mcontext.gregs;
 
   /* .source.i486 */
   /* .assume.regref */
   /* The register numbers (REG_EAX etc.) are defined in <ucontext.h>
      but only if _GNU_SOURCE is defined: see .feature.li in
      config.h. */
-  /* TODO: The current arrangement of the fix operation (taking a Ref *)
-     forces us to pun these registers (actually `int` on LII3GC).  We can
-     suppress the warning my casting through `char *` and this might make
-     it safe, but does it really?  RB 2012-09-10 */
   switch (regnum) {
-    case 0: return (MRef)((char *)&mfc->ucontext->uc_mcontext.gregs[REG_EAX]);
-    case 1: return (MRef)((char *)&mfc->ucontext->uc_mcontext.gregs[REG_ECX]);
-    case 2: return (MRef)((char *)&mfc->ucontext->uc_mcontext.gregs[REG_EDX]);
-    case 3: return (MRef)((char *)&mfc->ucontext->uc_mcontext.gregs[REG_EBX]);
-    case 4: return (MRef)((char *)&mfc->ucontext->uc_mcontext.gregs[REG_ESP]);
-    case 5: return (MRef)((char *)&mfc->ucontext->uc_mcontext.gregs[REG_EBP]);
-    case 6: return (MRef)((char *)&mfc->ucontext->uc_mcontext.gregs[REG_ESI]);
-    case 7: return (MRef)((char *)&mfc->ucontext->uc_mcontext.gregs[REG_EDI]);
+    case 0: return &gregs[REG_EAX];
+    case 1: return &gregs[REG_ECX];
+    case 2: return &gregs[REG_EDX];
+    case 3: return &gregs[REG_EBX];
+    case 4: return &gregs[REG_ESP];
+    case 5: return &gregs[REG_EBP];
+    case 6: return &gregs[REG_ESI];
+    case 7: return &gregs[REG_EDI];
+    default:
+      NOTREACHED;
+      return NULL;  /* Avoids compiler warning. */
   }
-  NOTREACHED;
-  return (MRef)NULL;  /* Avoids compiler warning. */
 }
 
 
@@ -107,7 +119,7 @@ Res MutatorFaultContextScan(ScanState ss, MutatorFaultContext mfc)
 
 /* C. COPYRIGHT AND LICENSE
  *
- * Copyright (C) 2001-2013 Ravenbrook Limited <http://www.ravenbrook.com/>.
+ * Copyright (C) 2001-2014 Ravenbrook Limited <http://www.ravenbrook.com/>.
  * All rights reserved.  This is an open source license.  Contact
  * Ravenbrook for commercial licensing options.
  * 

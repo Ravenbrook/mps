@@ -218,10 +218,12 @@ static void test(void)
   tracegraph(b[1]);
   tracegraph(b[2]);
   tracegraph(b[3]);
-  
+
+  comment("f[0] = %p", f[0]); /* avoid compiler warning about used f */
   comment("ok");
  }
 
+ mps_arena_park(arena);
  mps_ap_destroy(apamc);
  mps_ap_destroy(aplo);
  mps_ap_destroy(apawl);

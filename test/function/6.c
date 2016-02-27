@@ -61,7 +61,7 @@ static void test(void)
 
  for (j = 1; j < 100; j++) {
   comment("%i of 100", j);
-  p = allocdumb(ap, sizeof(mps_ld_s));
+  p = allocdumb(ap, sizeof(mycell));
   ld = (mps_ld_t) getdata(p);
  
   b = a;
@@ -79,6 +79,8 @@ static void test(void)
   }
  }
 
+ mps_arena_park(arena);
+ mps_arena_park(arena);
  mps_ap_destroy(ap);
  mps_pool_destroy(pool);
  mps_chain_destroy(chain);

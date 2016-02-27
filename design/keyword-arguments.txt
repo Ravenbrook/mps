@@ -103,10 +103,10 @@ but ``arg.h`` provides a macro for this::
 We define keys as static structures (rather than, say, an enum) because:
 
 - The set of keys can be extended indefinitely.
-- The set of keys can be extended by indepdently linked modules.
+- The set of keys can be extended by independently linked modules.
 - The structure contents allow strong checking of argument lists.
 
-In the MPS Interface, we declare keys like this::
+In the MPS C Interface, we declare keys like this::
 
     extern const struct mps_key_s _mps_key_extend_by;
     #define MPS_KEY_EXTEND_BY (&_mps_key_extend_by)
@@ -136,6 +136,9 @@ arena or pool class. For example::
 
 This leaves the main body of code, and any future code, free to just
 handle keyword arguments only.
+
+Varargs methods must be thread-safe as they are called without taking
+the arena lock.
 
 The use of varargs is deprecated in the manual and the interface and these
 methods can be deleted at some point in the future.

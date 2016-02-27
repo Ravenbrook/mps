@@ -12,16 +12,21 @@ import os
 import os.path
 import glob
 import re
+import shutil
 import sys
 from sphinx.util.console import bold
 
 TYPES = '''
 
-    AccessSet Accumulation Addr Align AP Arg Arena Attr Bool BT Buffer
-    Byte Clock Compare Count Epoch Format Fun Index LD Lock Message
-    Pointer Pool PThreadext Rank RankSet Ref Res Reservoir Ring Root
-    RootVar ScanState Seg Serial Shift Sig Size Space SplayNode
-    SplayTree Thread Trace TraceId TraceSet ULongest VM Word
+    AccessSet Accumulation Addr Align AllocFrame AllocPattern AP Arg
+    Arena Attr Bool BootBlock BT Buffer BufferMode Byte Chain Chunk
+    Clock Compare Count Epoch FindDelete Format FrameState Fun GenDesc
+    Globals Index Land LD Lock LocusPref LocusPrefKind Message
+    MessageType MutatorFaultContext Page Pointer Pool PoolGen
+    PThreadext Range Rank RankSet ReadonlyAddr Ref RefSet Res
+    Reservoir Ring Root RootMode RootVar ScanState Seg SegBuf Serial
+    Shift Sig Size Space SplayNode SplayTree StackContext Thread Trace
+    TraceId TraceSet TraceStartWhy TraceState ULongest VM Word ZoneSet
 
 '''
 
@@ -37,6 +42,8 @@ typedef = re.compile(r'^``typedef ([^`]*)``$', re.MULTILINE)
 func = re.compile(r'``([A-Za-z][A-Za-z0-9_]+\(\))``')
 typename = re.compile(r'``({0}|[A-Z][A-Za-z0-9_]*(?:Class|Struct|Method)|mps_[a-z_]+_[stu])``(?:      )?'
                       .format('|'.join(map(re.escape, TYPES.split()))))
+design_ref = re.compile(r'^( *\.\. _design\.mps\.(?:[^:\n]+): (?:[^#:\n]+))$', re.MULTILINE)
+design_frag_ref = re.compile(r'^( *\.\. _design\.mps\.([^:\n]+)\.([^:\n]+): (?:[^#:\n]+))#\3$', re.MULTILINE)
 history = re.compile(r'^Document History\n.*',
                      re.MULTILINE | re.IGNORECASE | re.DOTALL)
 
@@ -111,6 +118,8 @@ def convert_file(name, source, dest):
     s = macro.sub(r':c:macro:`\1`', s)
     s = secnum.sub(secnum_sub, s)
     s = citation.sub(citation_sub, s)
+    s = design_ref.sub(r'\1.html', s)
+    s = design_frag_ref.sub(r'\1.html#design.mps.\2.\3', s)
     s = history.sub('', s)
     try:
         os.makedirs(os.path.dirname(dest))
@@ -119,6 +128,15 @@ def convert_file(name, source, dest):
     with open(dest, 'wb') as out:
         out.write(s.encode('utf-8'))
 
+def newer(src, target):
+    """Return True if src is newer (that is, modified more recently) than
+    target, False otherwise.
+
+    """
+    return (not os.path.isfile(target)
+            or os.path.getmtime(target) < os.path.getmtime(src)
+            or os.path.getmtime(target) < os.path.getmtime(__file__))
+
 # Mini-make
 def convert_updated(app):
     app.info(bold('converting MPS design documents'))
@@ -126,8 +144,11 @@ def convert_updated(app):
         name = os.path.splitext(os.path.basename(design))[0]
         if name == 'index': continue
         converted = 'source/design/%s.rst' % name
-        if (not os.path.isfile(converted)
-            or os.path.getmtime(converted) < os.path.getmtime(design)
-            or os.path.getmtime(converted) < os.path.getmtime(__file__)):
+        if newer(design, converted):
             app.info('converting design %s' % name)
             convert_file(name, design, converted)
+    for diagram in glob.iglob('../design/*.svg'):
+        target = os.path.join('source/design/', os.path.basename(diagram))
+        if newer(diagram, target):
+            shutil.copyfile(diagram, target)
+

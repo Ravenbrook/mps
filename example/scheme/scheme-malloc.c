@@ -1,6 +1,6 @@
 /* scheme.c -- SCHEME INTERPRETER EXAMPLE FOR THE MEMORY POOL SYSTEM
  *
- * Copyright (c) 2001-2013 Ravenbrook Limited.  See end of file for license.
+ * Copyright (c) 2001-2014 Ravenbrook Limited.  See end of file for license.
  * 
  * TO DO
  * - unbounded integers, other number types.
@@ -279,6 +279,7 @@ static void error(char *format, ...)
   if (error_handler) {
     longjmp(*error_handler, 1);
   } else {
+    fflush(stdout);
     fprintf(stderr, "Fatal error during initialization: %s\n",
             error_message);
     abort();
@@ -1728,8 +1729,6 @@ static obj_t entry_do(obj_t env, obj_t op_env, obj_t operator, obj_t operands)
       return result;
     }
   }
-  error("%s: unimplemented", operator->operator.name);
-  return obj_error;
 }
 
 
@@ -3598,6 +3597,7 @@ int main(int argc, char *argv[])
              make_operator(optab[i].name, optab[i].entry,
                            obj_empty, obj_empty, env, op_env));
   } else {
+    fflush(stdout);
     fprintf(stderr,
             "Fatal error during initialization: %s\n",
             error_message);
@@ -3607,18 +3607,24 @@ int main(int argc, char *argv[])
   if(argc >= 2) {
     /* Non-interactive file execution */
     if(setjmp(*error_handler) != 0) {
+      fflush(stdout);
       fprintf(stderr, "%s\n", error_message);
       return EXIT_FAILURE;
     }
-    load(env, op_env, argv[1]);
+    for (i = 1; i < argc; ++i)
+      load(env, op_env, argv[i]);
     return EXIT_SUCCESS;
   } else {
     /* Interactive read-eval-print loop */
     puts("Scheme Test Harness");
     for(;;) {
-      if(setjmp(*error_handler) != 0)
+      if(setjmp(*error_handler) != 0) {
+        fflush(stdout);
         fprintf(stderr, "%s\n", error_message);
+        fflush(stderr);
+      }
       printf("%lu> ", (unsigned long)total);
+      fflush(stdout);
       obj = read(input);
       if(obj == obj_eof) break;
       obj = eval(env, op_env, obj);
@@ -3635,7 +3641,7 @@ int main(int argc, char *argv[])
 
 /* C. COPYRIGHT AND LICENSE
  *
- * Copyright (C) 2001-2013 Ravenbrook Limited <http://www.ravenbrook.com/>.
+ * Copyright (C) 2001-2014 Ravenbrook Limited <http://www.ravenbrook.com/>.
  * All rights reserved.  This is an open source license.  Contact
  * Ravenbrook for commercial licensing options.
  * 

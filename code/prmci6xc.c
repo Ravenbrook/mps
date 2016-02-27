@@ -1,7 +1,7 @@
-/* prmci6xc.c: PROTECTION MUTATOR CONTEXT x64 (MAC OS X)
+/* prmci6xc.c: PROTECTION MUTATOR CONTEXT x64 (OS X)
  *
  * $Id$
- * Copyright (c) 2001-2013 Ravenbrook Limited.  See end of file for license.
+ * Copyright (c) 2001-2014 Ravenbrook Limited.  See end of file for license.
  *
  * .purpose: This module implements the part of the protection module
  * that decodes the MutatorFaultContext. 
@@ -9,62 +9,72 @@
  *
  * SOURCES
  *
- * .source.linux.kernel: Linux kernel source files.
- *
  *
  * ASSUMPTIONS
+ *
+ * .sp: The stack pointer in the context is RSP.
  *
  * .context.regroots: The root regs are assumed to be recorded in the context
  * at pointer-aligned boundaries.
  *
- * .assume.regref: The resisters in the context can be modified by
+ * .assume.regref: The registers in the context can be modified by
  * storing into an MRef pointer.
  */
 
 #include "prmcxc.h"
 #include "prmci6.h"
 
-SRCID(prmci6li, "$Id$");
+SRCID(prmci6xc, "$Id$");
+
+#if !defined(MPS_OS_XC) || !defined(MPS_ARCH_I6)
+#error "prmci6xc.c is specific to MPS_OS_XC and MPS_ARCH_I6"
+#endif
 
 
 /* Prmci6AddressHoldingReg -- return an address of a register in a context */
 
 MRef Prmci6AddressHoldingReg(MutatorFaultContext mfc, unsigned int regnum)
 {
+  THREAD_STATE_S *threadState;
+
+  AVER(mfc != NULL);
   AVER(NONNEGATIVE(regnum));
   AVER(regnum <= 15);
+  AVER(mfc->threadState != NULL);
+  threadState = mfc->threadState;
 
   /* .assume.regref */
   /* The register numbers (REG_RAX etc.) are defined in <ucontext.h>
      but only if _XOPEN_SOURCE is defined: see .feature.xc in
      config.h. */
   /* MRef (a Word *) is not compatible with pointers to the register
-     types (actually a __uint64_t).  To avoid aliasing optimization
-     problems, The registers are cast through (char *) */
+     types (actually a __uint64_t). To avoid aliasing optimization
+     problems, the registers are cast through (void *). */
   switch (regnum) {
-    case  0: return (MRef)((char *)&mfc->threadState->__rax);
-    case  1: return (MRef)((char *)&mfc->threadState->__rcx);
-    case  2: return (MRef)((char *)&mfc->threadState->__rdx);
-    case  3: return (MRef)((char *)&mfc->threadState->__rbx);
-    case  4: return (MRef)((char *)&mfc->threadState->__rsp);
-    case  5: return (MRef)((char *)&mfc->threadState->__rbp);
-    case  6: return (MRef)((char *)&mfc->threadState->__rsi);
-    case  7: return (MRef)((char *)&mfc->threadState->__rdi);
-    case  8: return (MRef)((char *)&mfc->threadState->__r8);
-    case  9: return (MRef)((char *)&mfc->threadState->__r9);
-    case 10: return (MRef)((char *)&mfc->threadState->__r10);
-    case 11: return (MRef)((char *)&mfc->threadState->__r11);
-    case 12: return (MRef)((char *)&mfc->threadState->__r12);
-    case 13: return (MRef)((char *)&mfc->threadState->__r13);
-    case 14: return (MRef)((char *)&mfc->threadState->__r14);
-    case 15: return (MRef)((char *)&mfc->threadState->__r15);
+    case  0: return (void *)&threadState->__rax;
+    case  1: return (void *)&threadState->__rcx;
+    case  2: return (void *)&threadState->__rdx;
+    case  3: return (void *)&threadState->__rbx;
+    case  4: return (void *)&threadState->__rsp;
+    case  5: return (void *)&threadState->__rbp;
+    case  6: return (void *)&threadState->__rsi;
+    case  7: return (void *)&threadState->__rdi;
+    case  8: return (void *)&threadState->__r8;
+    case  9: return (void *)&threadState->__r9;
+    case 10: return (void *)&threadState->__r10;
+    case 11: return (void *)&threadState->__r11;
+    case 12: return (void *)&threadState->__r12;
+    case 13: return (void *)&threadState->__r13;
+    case 14: return (void *)&threadState->__r14;
+    case 15: return (void *)&threadState->__r15;
+    default:
+      NOTREACHED;
+      return NULL;  /* Avoids compiler warning. */
   }
-  NOTREACHED;
-  return (MRef)NULL;  /* Avoids compiler warning. */
 }
 
 
-/* Prmci3DecodeFaultContext -- decode fault to find faulting address and IP */
+/* Prmci6DecodeFaultContext -- decode fault to find faulting address and IP */
 
 void Prmci6DecodeFaultContext(MRef *faultmemReturn,
                               Byte **insvecReturn,
@@ -75,7 +85,7 @@ void Prmci6DecodeFaultContext(MRef *faultmemReturn,
 }
 
 
-/* Prmci3StepOverIns -- modify context to step over instruction */
+/* Prmci6StepOverIns -- modify context to step over instruction */
 
 void Prmci6StepOverIns(MutatorFaultContext mfc, Size inslen)
 {
@@ -107,7 +117,7 @@ Res MutatorFaultContextScan(ScanState ss, MutatorFaultContext mfc)
 
 /* C. COPYRIGHT AND LICENSE
  *
- * Copyright (C) 2001-2013 Ravenbrook Limited <http://www.ravenbrook.com/>.
+ * Copyright (C) 2001-2014 Ravenbrook Limited <http://www.ravenbrook.com/>.
  * All rights reserved.  This is an open source license.  Contact
  * Ravenbrook for commercial licensing options.
  * 

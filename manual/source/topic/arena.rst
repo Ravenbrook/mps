@@ -92,32 +92,6 @@ the way that they acquire the memory to be managed.
     :c:func:`mps_arena_destroy`.
 
 
-.. c:function:: mps_res_t mps_arena_create(mps_arena_t *arena_o, mps_arena_class_t arena_class, ...)
-
-    .. deprecated:: starting with version 1.112.
-
-        Use :c:func:`mps_arena_create_k` instead: the :term:`keyword
-        arguments` interface is more reliable and produces better
-        error messages.
-
-    An alternative to :c:func:`mps_arena_create_k` that takes its
-    extra arguments using the standard :term:`C` variable argument
-    list mechanism.
-
-
-.. c:function:: mps_res_t mps_arena_create_v(mps_arena_t *arena_o, mps_arena_class_t arena_class, va_list args)
-
-    .. deprecated:: starting with version 1.112.
-
-        Use :c:func:`mps_arena_create_k` instead: the :term:`keyword
-        arguments` interface is more reliable and produces better
-        error messages.
-
-    An alternative to :c:func:`mps_arena_create_k` that takes its
-    extra arguments using the standard :term:`C` ``va_list``
-    mechanism.
-
-
 .. c:function:: void mps_arena_destroy(mps_arena_t arena)
 
     Destroy an :term:`arena`.
@@ -165,6 +139,21 @@ Client arenas
     * :c:macro:`MPS_KEY_ARENA_SIZE` (type :c:type:`size_t`) is its
       size.
 
+    It also accepts two optional keyword arguments:
+
+    * :c:macro:`MPS_KEY_COMMIT_LIMIT` (type :c:type:`size_t`) is
+      the maximum amount of memory, in :term:`bytes (1)`, that the MPS
+      will use out of the provided chunk (or chunks, if the arena is
+      extended). See :c:func:`mps_arena_commit_limit` for details. The
+      default commit limit is the maximum value of the
+      :c:type:`size_t` type.
+
+    * :c:macro:`MPS_KEY_ARENA_GRAIN_SIZE` (type :c:type:`size_t`,
+      default 8192) is the granularity with which the arena will
+      manage memory internally. It must be a power of 2. Larger
+      granularity reduces overheads, but increases
+      :term:`fragmentation` and :term:`retention`.
+
     For example::
 
         MPS_ARGS_BEGIN(args) {
@@ -183,15 +172,6 @@ Client arenas
         call :c:func:`mps_arena_extend` later on.
 
         Client arenas have no mechanism for returning unused memory.
-
-    .. deprecated:: starting with version 1.112.
-
-        When using :c:func:`mps_arena_create`, pass the size and base
-        address like this::
-
-            mps_res_t mps_arena_create(mps_arena_t *arena_o,
-                                       mps_arena_class_t mps_arena_class_cl,
-                                       size_t size, mps_addr_t base)
 
 
 .. c:function:: mps_res_t mps_arena_extend(mps_arena_t arena, mps_addr_t base, size_t size)
@@ -233,18 +213,26 @@ Virtual memory arenas
     more efficient.
 
     When creating a virtual memory arena, :c:func:`mps_arena_create_k`
-    requires one :term:`keyword argument`:
+    accepts four optional :term:`keyword arguments` on all platforms:
 
-    * :c:macro:`MPS_KEY_ARENA_SIZE` (type :c:type:`size_t`). is the
-      initial amount of virtual address space, in :term:`bytes (1)`,
-      that the arena will reserve (this space is initially reserved so
-      that the arena can subsequently use it without interference from
-      other parts of the program, but most of it is not committed, so
-      it doesn't require any RAM or backing store). The arena may
-      allocate more virtual address space beyond this initial
-      reservation as and when it deems it necessary. The MPS is most
-      efficient if you reserve an address space that is several times
-      larger than your peak memory usage.
+    * :c:macro:`MPS_KEY_ARENA_SIZE` (type :c:type:`size_t`, default
+      256 :term:`megabytes`) is the initial amount of virtual address
+      space, in :term:`bytes (1)`, that the arena will reserve (this
+      space is initially reserved so that the arena can subsequently
+      use it without interference from other parts of the program, but
+      most of it is not committed, so it doesn't require any RAM or
+      backing store). The arena may allocate more virtual address
+      space beyond this initial reservation as and when it deems it
+      necessary. The MPS is most efficient if you reserve an address
+      space that is several times larger than your peak memory usage.
+
+      If you specify a value for :c:macro:`MPS_KEY_ARENA_SIZE` that's
+      too small for the virtual memory arena, then the MPS rounds it
+      up to the minimum and continues. The minimum size for the
+      virtual memory arena is :c:macro:`MPS_WORD_WIDTH` ×
+      :c:macro:`MPS_KEY_ARENA_GRAIN_SIZE` bytes. For example, on a
+      64-bit platform with a 4 :term:`kilobyte` page size, this is
+      256\ :term:`kilobytes`.
 
       .. note::
 
@@ -252,12 +240,35 @@ Virtual memory arenas
           more times it has to extend its address space, the less
           efficient garbage collection will become.
 
-    An optional :term:`keyword argument` may be passed, but is
-    only used on the Windows operating system:
+    * :c:macro:`MPS_KEY_COMMIT_LIMIT` (type :c:type:`size_t`) is
+      the maximum amount of main memory, in :term:`bytes (1)`, that
+      the MPS will obtain from the operating system. See
+      :c:func:`mps_arena_commit_limit` for details. The default commit
+      limit is the maximum value of the :c:type:`size_t` type.
 
-    * :c:macro:`MPS_KEY_VMW3_TOP_DOWN` (type :c:type:`mps_bool_t`). If
-      true, the arena will allocate address space starting at the
-      highest possible address and working downwards through memory.
+    * :c:macro:`MPS_KEY_ARENA_GRAIN_SIZE` (type :c:type:`size_t`) is
+      the granularity with which the arena will manage memory
+      internally. It must be a power of 2. If not provided, the
+      operating system's page size is used. Larger granularity reduces
+      overheads, but increases :term:`fragmentation` and
+      :term:`retention`.
+
+      If you specify a value of :c:macro:`MPS_KEY_ARENA_GRAIN_SIZE`
+      that's smaller than the operating system page size, the MPS
+      rounds it up to the page size and continues.
+
+    * :c:macro:`MPS_KEY_SPARE_COMMIT_LIMIT` (type
+      :c:type:`size_t`, default 0) is the spare commit limit in
+      :term:`bytes (1)`. See :c:func:`mps_arena_spare_commit_limit`
+      for details.
+
+    A fifth optional :term:`keyword argument` may be passed, but it
+    only has any effect on the Windows operating system:
+
+    * :c:macro:`MPS_KEY_VMW3_TOP_DOWN` (type :c:type:`mps_bool_t`,
+      default false). If true, the arena will allocate address space
+      starting at the highest possible address and working downwards
+      through memory.
 
       .. note::
 
@@ -273,24 +284,16 @@ Virtual memory arenas
 
     If the MPS fails to allocate memory for the internal arena
     structures, :c:func:`mps_arena_create_k` returns
-    :c:macro:`MPS_RES_MEMORY`. Either ``size`` was far too small or
-    the operating system refused to provide enough memory.
+    :c:macro:`MPS_RES_MEMORY`. Either :c:macro:`MPS_KEY_ARENA_SIZE`
+    was far too small or the operating system refused to provide
+    enough memory.
 
     For example::
 
         MPS_ARGS_BEGIN(args) {
             MPS_ARGS_ADD(args, MPS_KEY_ARENA_SIZE, size);
-            res = mps_arena_create_k(&arena, mps_arena_class_cl(), args);
+            res = mps_arena_create_k(&arena, mps_arena_class_vm(), args);
         } MPS_ARGS_END(args);
-
-    .. deprecated:: starting with version 1.112.
-
-        When using :c:func:`mps_arena_create`, pass the size like
-        this::
-
-            mps_res_t mps_arena_create(mps_arena_t *arena_o,
-                                       mps_arena_class_t arena_class_vm(),
-                                       size_t size)
 
 
 .. index::
@@ -314,10 +317,42 @@ Arena properties
 
     ``arena`` is the arena to return the commit limit for.
 
-    Returns the commit limit in :term:`bytes (1)`. The commit limit
-    controls how much memory the MPS can obtain from the operating
-    system, and can be changed by calling
-    :c:func:`mps_arena_commit_limit_set`.
+    Returns the commit limit in :term:`bytes (1)`.
+
+    For a :term:`client arena`, this this the maximum amount of
+    memory, in :term:`bytes (1)`, that the MPS will use out of the
+    chunks provided by the client to the arena.
+
+    For a :term:`virtual memory arena`, this is the maximum amount of
+    memory that the MPS will map to RAM via the operating system's
+    virtual memory interface.
+
+    The commit limit can be set by passing the
+    :c:macro:`MPS_KEY_COMMIT_LIMIT` :term:`keyword argument` to
+    :c:func:`mps_arena_create_k`. It can be changed by calling
+    :c:func:`mps_arena_commit_limit_set`. The
+    commit limit cannot be set to a value that is lower than the
+    number of bytes that the MPS is using. If an attempt is made to
+    set the commit limit to a value greater than or equal to that
+    returned by :c:func:`mps_arena_committed` then it will succeed. If
+    an attempt is made to set the commit limit to a value less than
+    that returned by :c:func:`mps_arena_committed` then it will
+    succeed only if the amount committed by the MPS can be reduced by
+    reducing the amount of spare committed memory; in such a case the
+    spare committed memory will be reduced appropriately and the
+    attempt will succeed.
+
+    .. note::
+
+        The commit limit puts a limit on all memory committed by the
+        MPS. The :term:`spare committed memory` (that is, memory
+        committed by the MPS but not currently in use, neither by the
+        :term:`client program`, or by the MPS itself) can be limited
+        separately; see :c:func:`mps_arena_spare_committed`. Note that
+        "spare committed" memory is subject to both limits; there
+        cannot be more spare committed memory than the spare commit
+        limit, and there can't be so much spare committed memory that
+        there is more committed memory than the commit limit.
 
 
 .. c:function:: mps_res_t mps_arena_commit_limit_set(mps_arena_t arena, size_t limit)
@@ -331,29 +366,7 @@ Arena properties
     Returns :c:macro:`MPS_RES_OK` if successful, or another
     :term:`result code` if not.
 
-    If successful, the commit limit for ``arena`` is set to ``limit``. The
-    commit limit controls how much memory the MPS will obtain from the
-    operating system. The commit limit cannot be set to a value that
-    is lower than the number of bytes that the MPS is using. If an
-    attempt is made to set the commit limit to a value greater than or
-    equal to that returned by :c:func:`mps_arena_committed` then it
-    will succeed. If an attempt is made to set the commit limit to a
-    value less than that returned by :c:func:`mps_arena_committed`
-    then it will succeed only if the amount committed by the MPS can
-    be reduced by reducing the amount of spare committed memory; in
-    such a case the spare committed memory will be reduced
-    appropriately and the attempt will succeed.
-
-    .. note::
-
-        :c:func:`mps_arena_commit_limit_set` puts a limit on all
-        memory committed by the MPS. The :term:`spare committed
-        memory` can be limited separately with
-        :c:func:`mps_arena_spare_commit_limit_set`. Note that "spare
-        committed" memory is subject to both limits; there cannot be
-        more spare committed memory than the spare commit limit, and
-        there can't be so much spare committed memory that there is
-        more committed memory than the commit limit.
+    See :c:func:`mps_arena_spare_commit_limit` for details.
 
 
 .. c:function:: size_t mps_arena_committed(mps_arena_t arena)
@@ -363,8 +376,17 @@ Arena properties
 
     ``arena`` is the arena.
 
-    Returns the total amount of memory that has been committed to RAM
+    Returns the total amount of memory that has been committed for use
     by the MPS, in :term:`bytes (1)`.
+
+    For a :term:`virtual memory arena`, this is the amount of memory
+    mapped to RAM by the operating system's virtual memory interface.
+
+    For a :term:`client arena`, this is the amount of memory marked as
+    in use in the arena's page tables. This is not particularly
+    meaningful by itself, but it corresponds to the amount of mapped
+    memory that the MPS would use if switched to a virtual memory
+    arena.
 
     The committed memory is generally larger than the sum of the sizes
     of the allocated :term:`blocks`. The reasons for this are:
@@ -392,11 +414,11 @@ Arena properties
     state>`). If it is called when the arena is in the unclamped state
     then the value may change after this function returns. A possible
     use might be to call it just after :c:func:`mps_arena_collect` to
-    (over-)estimate the size of the heap.
+    estimate the size of the heap.
 
     If you want to know how much memory the MPS is using then you're
-    probably interested in the value ``mps_arena_committed() -
-    mps_arena_spare_committed()``.
+    probably interested in the value :c:func:`mps_arena_committed` −
+    :c:func:`mps_arena_spare_committed`.
 
     The amount of committed memory can be limited with the function
     :c:func:`mps_arena_commit_limit`.
@@ -419,12 +441,12 @@ Arena properties
 
     .. note::
 
-        For a client arena, the reserved address may be lower than the
-        sum of the :c:macro:`MPS_KEY_ARENA_SIZE` keyword argument
-        passed to :c:func:`mps_arena_create_k` and the ``size``
-        arguments passed to :c:func:`mps_arena_extend`, because the
-        arena may be unable to use the whole of each chunk for reasons
-        of alignment.
+        For a :term:`client arena`, the reserved address space may be
+        lower than the sum of the :c:macro:`MPS_KEY_ARENA_SIZE`
+        keyword argument passed to :c:func:`mps_arena_create_k` and
+        the ``size`` arguments passed to :c:func:`mps_arena_extend`,
+        because the arena may be unable to use the whole of each chunk
+        for reasons of alignment.
 
 
 .. c:function:: size_t mps_arena_spare_commit_limit(mps_arena_t arena)
@@ -435,32 +457,20 @@ Arena properties
     ``arena`` is the arena to return the spare commit limit for.
 
     Returns the spare commit limit in :term:`bytes (1)`. The spare
-    commit limit can be changed by calling
-    :c:func:`mps_arena_spare_commit_limit_set`.
+    commit limit is the maximum amount of :term:`spare committed
+    memory` (that is, memory committed by the MPS but not currently in
+    use, neither by the :term:`client program`, or by the MPS itself)
+    the MPS is allowed to have.
 
-
-.. c:function:: void mps_arena_spare_commit_limit_set(mps_arena_t arena, size_t limit)
-
-    Change the :term:`spare commit limit` for an :term:`arena`.
-
-    ``arena`` is the arena to change the spare commit limit for.
-
-    ``limit`` is the new spare commit limit in :term:`bytes (1)`.
-
-    The spare commit limit is the maximum amount of :term:`spare
-    committed memory` the MPS is allowed to have. Setting it to a
-    value lower than the current amount of spare committed memory
-    causes spare committed memory to be uncommitted so as to bring the
-    value under the limit. In particular, setting it to 0 will mean
-    that the MPS will have no spare committed memory.
-
-    Non-virtual-memory arena classes (for example, a :term:`client
-    arena`) do not have spare committed memory. For these arenas, this
-    function functions sets a value but has no other effect.
-
-    Initially the spare commit limit is a configuration-dependent
-    value. The value of the limit can be retrieved by the function
-    :c:func:`mps_arena_spare_commit_limit`.
+    The spare commit limit can be set by passing the
+    :c:macro:`MPS_KEY_SPARE_COMMIT_LIMIT` :term:`keyword
+    argument` to :c:func:`mps_arena_create_k`. It can be changed
+    by calling :c:func:`mps_arena_spare_commit_limit_set`.
+    Setting it to a value lower than
+    the current amount of spare committed memory causes spare
+    committed memory to be uncommitted so as to bring the value under
+    the limit. In particular, setting it to 0 will mean that the MPS
+    will have no spare committed memory.
 
 
 .. c:function:: size_t mps_arena_spare_committed(mps_arena_t arena)
@@ -482,12 +492,35 @@ Arena properties
     memory by :c:func:`mps_arena_committed` and is restricted by
     :c:func:`mps_arena_commit_limit`.
 
-    The amount of "spare committed" memory can be limited by calling
-    :c:func:`mps_arena_spare_commit_limit_set`, and the value of that
-    limit can be retrieved with
-    :c:func:`mps_arena_spare_commit_limit`. This is analogous to the
-    functions for limiting the amount of :term:`committed <mapped>`
-    memory.
+    The amount of "spare committed" memory can be limited passing the
+    :c:macro:`MPS_KEY_SPARE_COMMIT_LIMIT` :term:`keyword
+    argument` to :c:func:`mps_arena_create_k` or by calling
+    :c:func:`mps_arena_spare_commit_limit_set`. The value of the limit can be
+    retrieved with :c:func:`mps_arena_spare_commit_limit`. This is
+    analogous to the functions for limiting the amount of
+    :term:`committed <mapped>` memory.
+
+    .. note::
+
+        :term:`Client arenas` do not use spare committed memory, and
+        so this function always returns 0.
+
+
+.. c:function:: void mps_arena_spare_commit_limit_set(mps_arena_t arena, size_t limit)
+
+    Change the :term:`spare commit limit` for an :term:`arena`.
+
+    ``arena`` is the arena to change the spare commit limit for.
+
+    ``limit`` is the new spare commit limit in :term:`bytes (1)`.
+
+    Non-virtual-memory arena classes (for example, a :term:`client
+    arena`) do not have spare committed memory. For these arenas, this
+    function sets a value but has no other effect.
+
+    Initially the spare commit limit is a configuration-dependent
+    value. The value of the limit can be retrieved by the function
+    :c:func:`mps_arena_spare_commit_limit`.
 
 
 .. index::
@@ -505,7 +538,7 @@ An arena is always in one of three states.
    In the *unclamped state*, garbage collection may take place,
    objects may move in memory, references may be updated,
    :term:`location dependencies` may become stale, virtual memory may
-   be requested from or return to the operating system, and other
+   be requested from or returned to the operating system, and other
    kinds of background activity may occur. This is the normal state.
 
 #. .. index::
@@ -530,19 +563,19 @@ An arena is always in one of three states.
 
 Here's a summary:
 
-======================================== ================================== ============================= ===========================
-State                                    unclamped                          clamped                       parked
-======================================== ================================== ============================= ===========================
-Collections may be running?              yes                                yes                           no
-New collections may start?               yes                                no                            no
-Objects may move?                        yes                                no                            no
-Location dependencies may become stale?  yes                                no                            no
-Memory may be returned to the OS?        yes                                no                            no
-Functions that leave arena in this state :c:func:`mps_arena_create`,        :c:func:`mps_arena_clamp`,    :c:func:`mps_arena_park`,
-                                         :c:func:`mps_arena_release`,       :c:func:`mps_arena_step`      :c:func:`mps_arena_collect`
-                                         :c:func:`mps_arena_start_collect`, 
-                                         :c:func:`mps_arena_step`           
-======================================== ================================== ============================= ===========================
+============================================ ================================== ============================= ===========================
+State                                        unclamped                          clamped                       parked
+============================================ ================================== ============================= ===========================
+Collections may be running?                  yes                                yes                           no
+New collections may start?                   yes                                no                            no
+Objects may move?                            yes                                no                            no
+Location dependencies may become stale?      yes                                no                            no
+Memory may be returned to the OS?            yes                                no                            no
+Functions that leave the arena in this state :c:func:`mps_arena_create_k`,      :c:func:`mps_arena_clamp`,    :c:func:`mps_arena_park`,
+                                             :c:func:`mps_arena_release`,       :c:func:`mps_arena_step`      :c:func:`mps_arena_collect`
+                                             :c:func:`mps_arena_start_collect`, 
+                                             :c:func:`mps_arena_step`           
+============================================ ================================== ============================= ===========================
 
 The clamped and parked states are important when introspecting and
 debugging. If you are examining the contents of the heap, you don't
@@ -555,7 +588,7 @@ before inspecting memory, and::
 
     (gdb) print mps_arena_release(arena)
 
-afterward.
+afterwards.
 
 The results of introspection functions like
 :c:func:`mps_arena_has_addr` only remain valid while the arena remains
@@ -691,24 +724,7 @@ provides a function, :c:func:`mps_arena_step`, for making use of idle
 time to make memory management progress.
 
 Here's an example illustrating the use of this function in a program's
-event loop. When the program is idle (there are no client actions to
-perform), it requests that the MPS spend up to 10 milliseconds on
-incremental work, by calling ``mps_arena_step(arena, 0.010,
-0.0)``. When this returns false to indicate that there is no more work
-to do, the program blocks on the client for two seconds: if this times
-out, it predicts that the user will remain idle for at least a further
-second, so it calls ``mps_arena_step(arena, 0.010, 100.0)`` to tell
-that it's a good time to start a collection taking up to 10 ms × 100
-= 1 second, but not to pause for more than 10 ms.
-
-The program remains responsive: the MPS doesn't take control for more
-than a few milliseconds at a time (at most 10). But at the same time,
-major collection work can get done at times when the program would
-otherwise be idle. Of course the numbers here are only for
-illustration and should be chosen based on the requirements of the
-application.
-
-::
+event loop. ::
 
     for (;;) { /* event loop */
         for (;;) {
@@ -727,6 +743,23 @@ application.
             mps_arena_step(arena, 0.010, 100.0);
         }
     }
+
+When the program is idle (there are no client actions to perform), it
+requests that the MPS spend up to 10 milliseconds on incremental work,
+by calling ``mps_arena_step(arena, 0.010, 0.0)``. When this returns
+false to indicate that there is no more work to do, the program blocks
+on the client for two seconds: if this times out, it predicts that the
+user will remain idle for at least a further second, so it calls
+``mps_arena_step(arena, 0.010, 100.0)`` to tell that it's a good time
+to start a collection taking up to 10 ms × 100 = 1 second, but not to
+pause for more than 10 ms.
+
+The program remains responsive: the MPS doesn't take control for more
+than a few milliseconds at a time (at most 10). But at the same time,
+major collection work can get done at times when the program would
+otherwise be idle. Of course the numbers here are only for
+illustration; they should be chosen based on the requirements of the
+application.
 
 
 .. c:function:: mps_bool_t mps_arena_step(mps_arena_t arena, double interval, double multiplier)
@@ -811,114 +844,3 @@ Arena introspection
         return storage to the operating system). For reliable results
         call this function and interpret the result while the arena is
         in the :term:`parked state`.
-
-
-.. index::
-   pair: arena; protection
-
-Protection interface
---------------------
-
-.. c:function:: void mps_arena_expose(mps_arena_t arena)
-
-    .. deprecated:: starting with version 1.111.
-
-    Ensure that the MPS is not protecting any :term:`page` in the
-    :term:`arena` with a :term:`read barrier` or :term:`write
-    barrier`.
-
-    ``mps_arena`` is the arena to expose.
-
-    This is expected to only be useful for debugging. The arena is
-    left in the :term:`clamped state`.
-
-    Since barriers are used during a collection, calling this function
-    has the same effect as calling :c:func:`mps_arena_park`: all
-    collections are run to completion, and the arena is clamped so
-    that no new collections begin. The MPS also uses barriers to
-    maintain :term:`remembered sets`, so calling this
-    function will effectively destroy the remembered sets and any
-    optimization gains from them.
-
-    Calling this function is time-consuming: any active collections
-    will be run to completion; and the next collection will have to
-    recompute all the remembered sets by scanning the entire arena.
-
-    The recomputation of the remembered sets can be avoided by calling
-    :c:func:`mps_arena_unsafe_expose_remember_protection` instead of
-    :c:func:`mps_arena_expose`, and by calling
-    :c:func:`mps_arena_unsafe_restore_protection` before calling
-    :c:func:`mps_arena_release`. Those functions have unsafe aspects
-    and place restrictions on what the :term:`client program` can do
-    (basically no exposed data can be changed).
-
-
-.. c:function:: void mps_arena_unsafe_expose_remember_protection(mps_arena_t arena)
-
-    .. deprecated:: starting with version 1.111.
-
-    Ensure that the MPS is not protecting any :term:`page` in the
-    :term:`arena` with a :term:`read barrier` or :term:`write
-    barrier`. In addition, request the MPS to remember some parts of its
-    internal state so that they can be restored later.
-
-    ``mps_arena`` is the arena to expose.
-
-    This function is the same as :c:func:`mps_arena_expose`, but
-    additionally causes the MPS to remember its protection state. The
-    remembered protection state can optionally be restored later by
-    calling the :c:func:`mps_arena_unsafe_restore_protection` function.
-    This is an optimization that avoids the MPS having to recompute
-    all the remembered sets by scanning the entire arena.
-
-    However, restoring the remembered protections is only safe if the
-    contents of the exposed pages have not been changed; therefore
-    this function should only be used if you do not intend to change
-    the pages, and the remembered protection must only be restored if
-    the pages have not been changed.
-
-    The MPS will only remember the protection state if resources
-    (memory) are available. If memory is low then only some or
-    possibly none of the protection state will be remembered, with a
-    corresponding necessity to recompute it later. The MPS provides no
-    mechanism for the :term:`client program` to determine whether the
-    MPS has in fact remembered the protection state.
-
-    The remembered protection state, if any, is discarded after
-    calling :c:func:`mps_arena_unsafe_restore_protection`, or as soon
-    as the arena leaves the :term:`clamped state` by calling
-    :c:func:`mps_arena_release`.
-
-
-.. c:function:: void mps_arena_unsafe_restore_protection(mps_arena_t arena)
-
-    .. deprecated:: starting with version 1.111.
-
-    Restore the remembered protection state for an :term:`arena`.
-
-    ``mps_arena`` is the arena to restore the protection state for.
-
-    This function restores the protection state that the MPS has
-    remembered when the :term:`client program` called
-    :c:func:`mps_arena_unsafe_expose_remember_protection`. The purpose
-    of remembering and restoring the protection state is to avoid the
-    need for the MPS to recompute all the :term:`remembered sets` by scanning the entire arena, that occurs when
-    :c:func:`mps_arena_expose` is used, and which causes the next
-    :term:`garbage collection` to be slow.
-
-    The client program must not change the exposed data between the
-    call to :c:func:`mps_arena_unsafe_expose_remember_protection` and
-    :c:func:`mps_arena_unsafe_restore_protection`. If the client
-    program has changed the exposed data then
-    :c:func:`mps_arena_unsafe_restore_protection` must not be called:
-    in this case simply call :c:func:`mps_arena_release`.
-
-    Calling this function does not release the arena from the clamped
-    state: :c:func:`mps_arena_release` must be called to continue
-    normal collections.
-
-    Calling this function causes the MPS to forget the remember
-    protection state; as a consequence the same remembered state
-    cannot be restored more than once.
-
-

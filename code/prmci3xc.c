@@ -1,7 +1,7 @@
 /* prmci3xc.c: PROTECTION MUTATOR CONTEXT INTEL 386 (MAC OS X)
  *
  * $Id$
- * Copyright (c) 2001-2013 Ravenbrook Limited.  See end of file for license.
+ * Copyright (c) 2001-2014 Ravenbrook Limited.  See end of file for license.
  *
  * .purpose: This module implements the part of the protection module
  * that decodes the MutatorFaultContext. 
@@ -20,22 +20,31 @@
  * .context.regroots: The root regs are assumed to be recorded in the context
  * at pointer-aligned boundaries.
  *
- * .assume.regref: The resisters in the context can be modified by
+ * .assume.regref: The registers in the context can be modified by
  * storing into an MRef pointer.
  */
 
 #include "prmcxc.h"
 #include "prmci3.h"
 
-SRCID(prmci3li, "$Id$");
+SRCID(prmci3xc, "$Id$");
+
+#if !defined(MPS_OS_XC) || !defined(MPS_ARCH_I3)
+#error "prmci3xc.c is specific to MPS_OS_XC and MPS_ARCH_I3"
+#endif
 
 
 /* Prmci3AddressHoldingReg -- return an address of a register in a context */
 
 MRef Prmci3AddressHoldingReg(MutatorFaultContext mfc, unsigned int regnum)
 {
+  THREAD_STATE_S *threadState;
+
+  AVER(mfc != NULL);
   AVER(NONNEGATIVE(regnum));
   AVER(regnum <= 7);
+  AVER(mfc->threadState != NULL);
+  threadState = mfc->threadState;
 
   /* .source.i486 */
   /* .assume.regref */
@@ -44,20 +53,21 @@ MRef Prmci3AddressHoldingReg(MutatorFaultContext mfc, unsigned int regnum)
      config.h. */
   /* TODO: The current arrangement of the fix operation (taking a Ref *)
      forces us to pun these registers (actually `int` on LII3GC).  We can
-     suppress the warning my casting through `char *` and this might make
+     suppress the warning by casting through `void *` and this might make
      it safe, but does it really?  RB 2012-09-10 */
   switch (regnum) {
-    case 0: return (MRef)((char *)&mfc->threadState->__eax);
-    case 1: return (MRef)((char *)&mfc->threadState->__ecx);
-    case 2: return (MRef)((char *)&mfc->threadState->__edx);
-    case 3: return (MRef)((char *)&mfc->threadState->__ebx);
-    case 4: return (MRef)((char *)&mfc->threadState->__esp);
-    case 5: return (MRef)((char *)&mfc->threadState->__ebp);
-    case 6: return (MRef)((char *)&mfc->threadState->__esi);
-    case 7: return (MRef)((char *)&mfc->threadState->__edi);
+    case 0: return (void *)&threadState->__eax;
+    case 1: return (void *)&threadState->__ecx;
+    case 2: return (void *)&threadState->__edx;
+    case 3: return (void *)&threadState->__ebx;
+    case 4: return (void *)&threadState->__esp;
+    case 5: return (void *)&threadState->__ebp;
+    case 6: return (void *)&threadState->__esi;
+    case 7: return (void *)&threadState->__edi;
+    default:
+      NOTREACHED;
+      return NULL;  /* Avoids compiler warning. */
   }
-  NOTREACHED;
-  return (MRef)NULL;  /* Avoids compiler warning. */
 }
 
 
@@ -104,7 +114,7 @@ Res MutatorFaultContextScan(ScanState ss, MutatorFaultContext mfc)
 
 /* C. COPYRIGHT AND LICENSE
  *
- * Copyright (C) 2001-2013 Ravenbrook Limited <http://www.ravenbrook.com/>.
+ * Copyright (C) 2001-2014 Ravenbrook Limited <http://www.ravenbrook.com/>.
  * All rights reserved.  This is an open source license.  Contact
  * Ravenbrook for commercial licensing options.
  * 

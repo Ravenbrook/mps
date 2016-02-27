@@ -1,7 +1,7 @@
 /* meter.c: METERS
  *
  * $Id$
- * Copyright (c) 2001-2013 Ravenbrook Limited.  See end of file for license.
+ * Copyright (c) 2001-2014 Ravenbrook Limited.  See end of file for license.
  *
  * TRANSGRESSIONS
  *
@@ -64,30 +64,30 @@ void MeterAccumulate(Meter meter, Size amount)
 
 /* MeterWrite -- describe method for meters */
 
-Res MeterWrite(Meter meter, mps_lib_FILE *stream)
+Res MeterWrite(Meter meter, mps_lib_FILE *stream, Count depth)
 {
   Res res = ResOK;
 
-  res = WriteF(stream,
-               "meter $S {", meter->name,
-               "count: $U", meter->count,
+  res = WriteF(stream, depth,
+               "meter \"$S\" {", (WriteFS)meter->name,
+               "count: $U", (WriteFU)meter->count,
                NULL);
   if (res != ResOK)
     return res;
   if (meter->count > 0) {
     double mean = meter->total / (double)meter->count;
    
-    res = WriteF(stream,
-                 ", total: $D", meter->total,
-                 ", max: $U", meter->max,
-                 ", min: $U", meter->min,
-                 ", mean: $D", mean,
-                 ", mean^2: $D", meter->meanSquared,
+    res = WriteF(stream, 0,
+                 ", total $D", (WriteFD)meter->total,
+                 ", max $U", (WriteFU)meter->max,
+                 ", min $U", (WriteFU)meter->min,
+                 ", mean $D", (WriteFD)mean,
+                 ", meanSquared $D", (WriteFD)meter->meanSquared,
                  NULL);
     if (res != ResOK)
       return res;
   }
-  res = WriteF(stream, "}\n", NULL);
+  res = WriteF(stream, 0, "}\n", NULL);
 
   return res;
 }
@@ -98,13 +98,13 @@ Res MeterWrite(Meter meter, mps_lib_FILE *stream)
 void MeterEmit(Meter meter)
 {
   EVENT6(MeterValues, meter, meter->total, meter->meanSquared,
-               meter->count, meter->max, meter->min);
+         meter->count, meter->max, meter->min);
 }
 
 
 /* C. COPYRIGHT AND LICENSE
  *
- * Copyright (C) 2001-2013 Ravenbrook Limited <http://www.ravenbrook.com/>.
+ * Copyright (C) 2001-2014 Ravenbrook Limited <http://www.ravenbrook.com/>.
  * All rights reserved.  This is an open source license.  Contact
  * Ravenbrook for commercial licensing options.
  * 

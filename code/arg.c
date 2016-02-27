@@ -1,7 +1,7 @@
 /* arg.c: ARGUMENT LISTS
  *
  * $Id$
- * Copyright (c) 2013 Ravenbrook Limited.  See end of file for license.
+ * Copyright (c) 2013-2014 Ravenbrook Limited.  See end of file for license.
  *
  * .source: See <design/keyword-arguments.rst>.
  */
@@ -52,7 +52,7 @@ Bool ArgCheckAddr(Arg arg) {
 }
 
 Bool ArgCheckPoolDebugOptions(Arg arg) {
-  CHECKL(PoolDebugOptionsCheck((PoolDebugOptions)arg->val.pool_debug_options));
+  CHECKD_NOSIG(PoolDebugOptions, (PoolDebugOptions)arg->val.pool_debug_options);
   return TRUE;
 }
 
@@ -99,8 +99,13 @@ Bool ArgCheckdouble(Arg arg) {
   return TRUE;
 }
 
+Bool ArgCheckPool(Arg arg) {
+  CHECKD(Pool, arg->val.pool);
+  return TRUE;
+}
 
-ARG_DEFINE_KEY(args_end, Shouldnt);
+
+ARG_DEFINE_KEY(ARGS_END, Shouldnt);
 
 ArgStruct mps_args_none[] = {{MPS_KEY_ARGS_END, {0}}};
 
@@ -133,7 +138,7 @@ Bool ArgListCheck(ArgList args)
   CHECKL(args != NULL);
   for (i = 0; args[i].key != MPS_KEY_ARGS_END; ++i) {
     CHECKL(i < MPS_ARGS_MAX);
-    CHECKL(ArgCheck(&args[i]));
+    CHECKD_NOSIG(Arg, &args[i]);
   }
   return TRUE;
 }
@@ -145,7 +150,7 @@ Bool ArgPick(ArgStruct *argOut, ArgList args, Key key) {
   Index i;
   
   AVER(argOut != NULL);
-  AVER(ArgListCheck(args));
+  AVERT(ArgList, args);
   AVERT(Key, key);
 
   for (i = 0; args[i].key != MPS_KEY_ARGS_END; ++i)
@@ -154,6 +159,7 @@ Bool ArgPick(ArgStruct *argOut, ArgList args, Key key) {
   return FALSE;
 
 found:
+  AVERT(Arg, &args[i]);
   *argOut = args[i];
   for(;;) {
     args[i] = args[i + 1];
@@ -168,9 +174,8 @@ found:
 /* ArgRequire -- take a required argument out of the argument list by keyword */
 
 void ArgRequire(ArgStruct *argOut, ArgList args, Key key) {
-  if (ArgPick(argOut, args, key))
-    return;
-  NOTREACHED;
+  Bool b = ArgPick(argOut, args, key);
+  ASSERT(b, key->name);
 }
 
 
@@ -180,14 +185,14 @@ void ArgTrivVarargs(ArgStruct args[MPS_ARGS_MAX], va_list varargs)
 {
   UNUSED(varargs);
   args[0].key = MPS_KEY_ARGS_END;
-  AVER(ArgListCheck(args));
+  AVERT(ArgList, args);
 }
 
 
 
 /* C. COPYRIGHT AND LICENSE
  *
- * Copyright (C) 2001-2013 Ravenbrook Limited <http://www.ravenbrook.com/>.
+ * Copyright (C) 2001-2014 Ravenbrook Limited <http://www.ravenbrook.com/>.
  * All rights reserved.  This is an open source license.  Contact
  * Ravenbrook for commercial licensing options.
  * 

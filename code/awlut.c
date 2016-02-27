@@ -1,7 +1,7 @@
 /* awlut.c: POOL CLASS AWL UNIT TEST
  *
  * $Id$
- * Copyright (c) 2001-2013 Ravenbrook Limited.  See end of file for license.
+ * Copyright (c) 2001-2014 Ravenbrook Limited.  See end of file for license.
  *
  * DESIGN
  *
@@ -16,10 +16,9 @@
 #include "mpslib.h"
 #include "mps.h"
 #include "mpstd.h"
-#ifdef MPS_OS_W3
-#include "mpsw3.h"
-#endif
-#include <string.h>
+
+#include <stdio.h> /* printf */
+#include <string.h> /* strlen */
 
 
 #define testArenaSIZE     ((size_t)64<<20)
@@ -118,7 +117,7 @@ static mps_word_t *alloc_string(const char *s, mps_ap_t ap)
  * .assume.dylan-obj
  */
 
-static mps_word_t *alloc_table(unsigned long n, mps_ap_t ap)
+static mps_word_t *alloc_table(size_t n, mps_ap_t ap)
 {
   size_t objsize;
   void *p;
@@ -127,7 +126,7 @@ static mps_word_t *alloc_table(unsigned long n, mps_ap_t ap)
   objsize = (3 + n) * sizeof(mps_word_t);
   objsize = size_tAlignUp(objsize, MPS_PF_ALIGN);
   do {
-    unsigned long i;
+    size_t i;
 
     die(mps_reserve(&p, ap, objsize), "Reserve Table\n");
     object = p;
@@ -145,7 +144,7 @@ static mps_word_t *alloc_table(unsigned long n, mps_ap_t ap)
 /* gets the nth slot from a table
  * .assume.dylan-obj
  */
-static mps_word_t *table_slot(mps_word_t *table, unsigned long n)
+static mps_word_t *table_slot(mps_word_t *table, size_t n)
 {
   return (mps_word_t *)table[3+n];
 }
@@ -154,8 +153,7 @@ static mps_word_t *table_slot(mps_word_t *table, unsigned long n)
 /* sets the nth slot in a table
  * .assume.dylan-obj
  */
-static void set_table_slot(mps_word_t *table,
-                           unsigned long n, mps_word_t *p)
+static void set_table_slot(mps_word_t *table, size_t n, mps_word_t *p)
 {
   cdie(table[0] == (mps_word_t)table_wrapper, "set_table_slot");
   table[3+n] = (mps_word_t)p;
@@ -182,7 +180,7 @@ static void test(mps_arena_t arena,
   mps_word_t *exacttable;
   mps_word_t *preserve[TABLE_SLOTS];    /* preserves objects in the weak */
                                         /* table by referring to them */
-  unsigned long i, j;
+  size_t i, j;
   void *p;
 
   exacttable = alloc_table(TABLE_SLOTS, exactap);
@@ -194,11 +192,12 @@ static void test(mps_arena_t arena,
 
   for(i = 0; i < TABLE_SLOTS; ++i) {
     mps_word_t *string;
-    /* Ensure that the last entry in the table is preserved, so that
-     * we don't get a false positive due to the local variable
-     * 'string' keeping this entry alive (see job003436).
+    /* Ensure that the first and last entries in the table are
+     * preserved, so that we don't get false positives due to the
+     * local variables 'weak_table' and 'string' keeping these entries
+     * alive (see job003436).
      */
-    if (rnd() % 2 == 0 || i + 1 == TABLE_SLOTS) {
+    if (rnd() % 2 == 0 || i == 0 || i + 1 == TABLE_SLOTS) {
       string = alloc_string("iamalive", leafap);
       preserve[i] = string;
     } else {
@@ -216,17 +215,19 @@ static void test(mps_arena_t arena,
     }
   }
   
-  mps_arena_collect(arena);
+  die(mps_arena_collect(arena), "mps_arena_collect");
   mps_arena_release(arena);
 
   for(i = 0; i < TABLE_SLOTS; ++i) {
     if (preserve[i] == 0) {
       if (table_slot(weaktable, i)) {
-        error("Strongly unreachable weak table entry found, slot %lu.\n", i);
+        error("Strongly unreachable weak table entry found, "
+              "slot %"PRIuLONGEST".\n", (ulongest_t)i);
       } else {
         if (table_slot(exacttable, i) != 0) {
           error("Weak table entry deleted, but corresponding "
-                "exact table entry not deleted, slot %lu.\n", i);
+                "exact table entry not deleted, slot %"PRIuLONGEST".\n",
+                (ulongest_t)i);
         }
       }
     }
@@ -274,9 +275,6 @@ static void *setup(void *v, size_t s)
   die(mps_fmt_create_A(&dylanweakfmt, arena, dylan_fmt_A_weak()),
       "Format Create (weak)\n");
   MPS_ARGS_BEGIN(args) {
-    /* Ask the leafpool to allocate in the nursery, as we're using it to test
-       weaknesss and want things to die in it promptly. */
-    MPS_ARGS_ADD(args, MPS_KEY_GEN, 0);
     MPS_ARGS_ADD(args, MPS_KEY_FORMAT, dylanfmt);
     die(mps_pool_create_k(&leafpool, arena, mps_class_lo(), args),
         "Leaf Pool Create\n");
@@ -316,8 +314,7 @@ int main(int argc, char *argv[])
   mps_thr_t thread;
   void *r;
 
-  randomize(argc, argv);
-  mps_lib_assert_fail_install(assert_die);
+  testlib_init(argc, argv);
 
   initialise_wrapper(wrapper_wrapper);
   initialise_wrapper(string_wrapper);
@@ -339,7 +336,7 @@ int main(int argc, char *argv[])
 
 /* C. COPYRIGHT AND LICENSE
  *
- * Copyright (c) 2001-2013 Ravenbrook Limited <http://www.ravenbrook.com/>.
+ * Copyright (c) 2001-2014 Ravenbrook Limited <http://www.ravenbrook.com/>.
  * All rights reserved.  This is an open source license.  Contact
  * Ravenbrook for commercial licensing options.
  * 

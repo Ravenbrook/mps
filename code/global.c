@@ -1,7 +1,7 @@
 /* global.c: ARENA-GLOBAL INTERFACES
  *
  * $Id$
- * Copyright (c) 2001-2013 Ravenbrook Limited.  See end of file for license.
+ * Copyright (c) 2001-2014 Ravenbrook Limited.  See end of file for license.
  * Portions copyright (C) 2002 Global Graphics Software.
  *
  * .sources: See <design/arena/>.  design.mps.thread-safety is relevant
@@ -36,10 +36,6 @@ SRCID(global, "$Id$");
 static Bool arenaRingInit = FALSE;
 static RingStruct arenaRing;       /* <design/arena/#static.ring> */
 static Serial arenaSerial;         /* <design/arena/#static.serial> */
-
-/* forward declarations */
-void arenaEnterLock(Arena, int);
-void arenaLeaveLock(Arena, int);
 
 
 /* arenaClaimRingLock, arenaReleaseRingLock -- lock/release the arena ring
@@ -119,7 +115,7 @@ Bool GlobalsCheck(Globals arenaGlobals)
   CHECKS(Globals, arenaGlobals);
   arena = GlobalsArena(arenaGlobals);
   CHECKL(arena->serial < arenaSerial); 
-  CHECKL(RingCheck(&arenaGlobals->globalRing));
+  CHECKD_NOSIG(Ring, &arenaGlobals->globalRing);
 
   CHECKL(MPSVersion() == arenaGlobals->mpsVersionString);
 
@@ -138,16 +134,17 @@ Bool GlobalsCheck(Globals arenaGlobals)
   CHECKL(arenaGlobals->emptyInternalSize >= 0.0);
 
   CHECKL(BoolCheck(arenaGlobals->bufferLogging));
-  CHECKL(RingCheck(&arenaGlobals->poolRing));
-  CHECKL(RingCheck(&arenaGlobals->rootRing));
-  CHECKL(RingCheck(&arenaGlobals->rememberedSummaryRing));
+  CHECKD_NOSIG(Ring, &arenaGlobals->poolRing);
+  CHECKD_NOSIG(Ring, &arenaGlobals->rootRing);
+  CHECKD_NOSIG(Ring, &arenaGlobals->rememberedSummaryRing);
   CHECKL(arenaGlobals->rememberedSummaryIndex < RememberedSummaryBLOCK);
   /* <code/global.c#remembered.summary> RingIsSingle imples index == 0 */
   CHECKL(!RingIsSingle(&arenaGlobals->rememberedSummaryRing) ||
     arenaGlobals->rememberedSummaryIndex == 0);
-  CHECKL(RingCheck(&arena->formatRing));
-  CHECKL(RingCheck(&arena->messageRing));
-  /* Don't check enabledMessageTypes */
+  CHECKD_NOSIG(Ring, &arena->formatRing);
+  CHECKD_NOSIG(Ring, &arena->messageRing);
+  if (arena->enabledMessageTypes != NULL)
+    CHECKD_NOSIG(BT, arena->enabledMessageTypes);
   CHECKL(BoolCheck(arena->isFinalPool));
   if (arena->isFinalPool) {
     CHECKD(Pool, arena->finalPool);
@@ -155,7 +152,8 @@ Bool GlobalsCheck(Globals arenaGlobals)
     CHECKL(arena->finalPool == NULL);
   }
 
-  CHECKL(RingCheck(&arena->threadRing));
+  CHECKD_NOSIG(Ring, &arena->threadRing);
+  CHECKD_NOSIG(Ring, &arena->deadRing);
 
   CHECKL(BoolCheck(arena->insideShield));
   CHECKL(arena->shCacheLimit <= ShieldCacheSIZE);
@@ -188,9 +186,9 @@ Bool GlobalsCheck(Globals arenaGlobals)
     CHECKL(TraceIdMessagesCheck(arena, ti));
   TRACE_SET_ITER_END(ti, trace, TraceSetUNIV, arena);
 
-  for(rank = 0; rank < RankLIMIT; ++rank)
-    CHECKL(RingCheck(&arena->greyRing[rank]));
-  CHECKL(RingCheck(&arena->chainRing));
+  for(rank = RankMIN; rank < RankLIMIT; ++rank)
+    CHECKD_NOSIG(Ring, &arena->greyRing[rank]);
+  CHECKD_NOSIG(Ring, &arena->chainRing);
 
   CHECKL(arena->tracedSize >= 0.0);
   CHECKL(arena->tracedTime >= 0.0);
@@ -212,6 +210,8 @@ Bool GlobalsCheck(Globals arenaGlobals)
 
   /* we also check the statics now. <design/arena/#static.check> */
   CHECKL(BoolCheck(arenaRingInit));
+  /* Can't CHECKD_NOSIG here because &arenaRing is never NULL and GCC
+   * will warn about a constant comparison. */
   CHECKL(RingCheck(&arenaRing));
 
   CHECKL(BoolCheck(arena->emergency));
@@ -278,6 +278,7 @@ Res GlobalsInit(Globals arenaGlobals)
   arenaGlobals->rememberedSummaryIndex = 0;
 
   RingInit(&arena->threadRing);
+  RingInit(&arena->deadRing);
   arena->threadSerial = (Serial)0;
   RingInit(&arena->formatRing);
   arena->formatSerial = (Serial)0;
@@ -309,7 +310,7 @@ Res GlobalsInit(Globals arenaGlobals)
     arena->tMessage[ti] = NULL;
   }
 
-  for(rank = 0; rank < RankLIMIT; ++rank)
+  for(rank = RankMIN; rank < RankLIMIT; ++rank)
     RingInit(&arena->greyRing[rank]);
   STATISTIC(arena->writeBarrierHitCount = 0);
   RingInit(&arena->chainRing);
@@ -394,25 +395,7 @@ void GlobalsFinish(Globals arenaGlobals)
   Arena arena;
   Rank rank;
   
-  /* Check that the tear-down is complete: that the client has
-   * destroyed all data structures associated with the arena. We do
-   * this *before* calling AVERT(Globals, arenaGlobals) because the
-   * AVERT will crash if there are any remaining data structures, and
-   * it is politer to assert than to crash. (The crash would happen
-   * because by this point in the code the control pool has been
-   * destroyed and so the address space containing all these rings has
-   * potentially been unmapped, and so RingCheck dereferences a
-   * pointer into that unmapped memory.) See job000652. */
   arena = GlobalsArena(arenaGlobals);
-  AVER(RingIsSingle(&arena->formatRing));
-  AVER(RingIsSingle(&arena->chainRing));
-  AVER(RingIsSingle(&arena->messageRing));
-  AVER(RingIsSingle(&arena->threadRing));
-  for(rank = 0; rank < RankLIMIT; ++rank)
-    AVER(RingIsSingle(&arena->greyRing[rank]));
-  AVER(RingIsSingle(&arenaGlobals->poolRing));
-  AVER(RingIsSingle(&arenaGlobals->rootRing));
-
   AVERT(Globals, arenaGlobals);
 
   STATISTIC_STAT(EVENT2(ArenaWriteFaults, arena,
@@ -424,7 +407,8 @@ void GlobalsFinish(Globals arenaGlobals)
   RingFinish(&arena->chainRing);
   RingFinish(&arena->messageRing);
   RingFinish(&arena->threadRing);
-  for(rank = 0; rank < RankLIMIT; ++rank)
+  RingFinish(&arena->deadRing);
+  for(rank = RankMIN; rank < RankLIMIT; ++rank)
     RingFinish(&arena->greyRing[rank]);
   RingFinish(&arenaGlobals->rootRing);
   RingFinish(&arenaGlobals->poolRing);
@@ -441,20 +425,28 @@ void GlobalsPrepareToDestroy(Globals arenaGlobals)
   Arena arena;
   TraceId ti;
   Trace trace;
+  Chain defaultChain;
+  Rank rank;
 
   AVERT(Globals, arenaGlobals);
+
+  /* Park the arena before destroying the default chain, to ensure
+   * that there are no traces using that chain. */
+  ArenaPark(arenaGlobals);
 
   arena = GlobalsArena(arenaGlobals);
   arenaDenounce(arena);
 
-  ChainDestroy(arenaGlobals->defaultChain);
+  defaultChain = arenaGlobals->defaultChain;
   arenaGlobals->defaultChain = NULL;
+  ChainDestroy(defaultChain);
 
-  LockReleaseMPM(arenaGlobals->lock);
+  LockRelease(arenaGlobals->lock);
   /* Theoretically, another thread could grab the lock here, but it's */
   /* not worth worrying about, since an attempt after the lock has been */
   /* destroyed would lead to a crash just the same. */
   LockFinish(arenaGlobals->lock);
+  arenaGlobals->lock = NULL;
 
   TRACE_SET_ITER(ti, trace, TraceSetUNIV, arena)
     /* <design/message-gc/#lifecycle> */
@@ -493,6 +485,32 @@ void GlobalsPrepareToDestroy(Globals arenaGlobals)
     arena->finalPool = NULL;
     PoolDestroy(pool);
   }
+
+  /* Check that the tear-down is complete: that the client has
+   * destroyed all data structures associated with the arena. We do
+   * this here rather than in GlobalsFinish because by the time that
+   * is called, the control pool has been destroyed and so the address
+   * space containing all these rings has potentially been unmapped,
+   * and so RingCheck dereferences a pointer into that unmapped memory
+   * and we get a crash instead of an assertion. See job000652.
+   */
+  AVER(RingIsSingle(&arena->formatRing));
+  AVER(RingIsSingle(&arena->chainRing));
+  AVER(RingIsSingle(&arena->messageRing));
+  AVER(RingIsSingle(&arena->threadRing));
+  AVER(RingIsSingle(&arena->deadRing));
+  AVER(RingIsSingle(&arenaGlobals->rootRing));
+  for(rank = RankMIN; rank < RankLIMIT; ++rank)
+    AVER(RingIsSingle(&arena->greyRing[rank]));
+
+  /* At this point the following pools still exist:
+   * 0. arena->freeCBSBlockPoolStruct
+   * 1. arena->reservoirStruct
+   * 2. arena->controlPoolStruct
+   * 3. arena->controlPoolStruct.blockPoolStruct
+   * 4. arena->controlPoolStruct.spanPoolStruct
+   */
+  AVER(RingLength(&arenaGlobals->poolRing) == 5);
 }
 
 
@@ -506,26 +524,15 @@ Ring GlobalsRememberedSummaryRing(Globals global)
 
 /* ArenaEnter -- enter the state where you can look at the arena */
 
-/* TODO: The THREAD_SINGLE and PROTECTION_NONE build configs aren't regularly
-   tested, though they might well be useful for embedded custom targets.
-   Should test them.  RB 2012-09-03 */
-
-#if defined(THREAD_SINGLE) && defined(PROTECTION_NONE)
 void (ArenaEnter)(Arena arena)
 {
-  /* Don't need to lock, just check. */
   AVERT(Arena, arena);
+  ArenaEnter(arena);
 }
-#else
-void ArenaEnter(Arena arena)
-{
-  arenaEnterLock(arena, 0);
-}
-#endif
 
 /*  The recursive argument specifies whether to claim the lock
     recursively or not. */
-void arenaEnterLock(Arena arena, int recursive)
+void ArenaEnterLock(Arena arena, Bool recursive)
 {
   Lock lock;
 
@@ -545,7 +552,7 @@ void arenaEnterLock(Arena arena, int recursive)
   } else {
     LockClaim(lock);
   }
-  AVERT(Arena, arena); /* can't AVER it until we've got the lock */
+  AVERT(Arena, arena); /* can't AVERT it until we've got the lock */
   if(recursive) {
     /* already in shield */
   } else {
@@ -560,25 +567,18 @@ void arenaEnterLock(Arena arena, int recursive)
 
 void ArenaEnterRecursive(Arena arena)
 {
-  arenaEnterLock(arena, 1);
+  ArenaEnterLock(arena, TRUE);
 }
 
 /* ArenaLeave -- leave the state where you can look at MPM data structures */
 
-#if defined(THREAD_SINGLE) && defined(PROTECTION_NONE)
 void (ArenaLeave)(Arena arena)
 {
-  /* Don't need to lock, just check. */
   AVERT(Arena, arena);
+  ArenaLeave(arena);
 }
-#else
-void ArenaLeave(Arena arena)
-{
-  arenaLeaveLock(arena, 0);
-}
-#endif
 
-void arenaLeaveLock(Arena arena, int recursive)
+void ArenaLeaveLock(Arena arena, Bool recursive)
 {
   Lock lock;
 
@@ -595,14 +595,14 @@ void arenaLeaveLock(Arena arena, int recursive)
   if(recursive) {
     LockReleaseRecursive(lock);
   } else {
-    LockReleaseMPM(lock);
+    LockRelease(lock);
   }
   return;
 }
 
 void ArenaLeaveRecursive(Arena arena)
 {
-  arenaLeaveLock(arena, 1);
+  ArenaLeaveLock(arena, TRUE);
 }
 
 /* mps_exception_info -- pointer to exception info
@@ -611,6 +611,7 @@ void ArenaLeaveRecursive(Arena arena)
  * version.  The format is platform-specific.  We won't necessarily
  * publish this.  */
 
+extern MutatorFaultContext mps_exception_info;
 MutatorFaultContext mps_exception_info = NULL;
 
 
@@ -629,7 +630,7 @@ Bool ArenaAccess(Addr addr, AccessSet mode, MutatorFaultContext context)
 
   arenaClaimRingLock();    /* <design/arena/#lock.ring> */
   mps_exception_info = context;
-  AVER(RingCheck(&arenaRing));
+  AVERT(Ring, &arenaRing);
 
   RING_FOR(node, &arenaRing, nextNode) {
     Globals arenaGlobals = RING_ELT(Globals, globalRing, node);
@@ -656,7 +657,8 @@ Bool ArenaAccess(Addr addr, AccessSet mode, MutatorFaultContext context)
         res = PoolAccess(SegPool(seg), seg, addr, mode, context);
         AVER(res == ResOK); /* Mutator can't continue unless this succeeds */
       } else {
-        /* Protection was already cleared: nothing to do now. */
+        /* Protection was already cleared, for example by another thread
+           or a fault in a nested exception handler: nothing to do now. */
       }
       EVENT4(ArenaAccess, arena, count, addr, mode);
       ArenaLeave(arena);
@@ -702,20 +704,12 @@ Bool ArenaAccess(Addr addr, AccessSet mode, MutatorFaultContext context)
  * series of manual steps for looking around.  This might be worthwhile
  * if we introduce background activities other than tracing.  */
 
-#ifdef MPS_PROD_EPCORE
 void (ArenaPoll)(Globals globals)
-{
-  /* Don't poll, just check. */
-  AVERT(Globals, globals);
-}
-#else
-void ArenaPoll(Globals globals)
 {
   Arena arena;
   Clock start;
   Count quanta;
   Size tracedSize;
-  double nextPollThreshold = 0.0;
 
   AVERT(Globals, globals);
 
@@ -723,92 +717,36 @@ void ArenaPoll(Globals globals)
     return;
   if (globals->insidePoll)
     return;
-  if(globals->fillMutatorSize < globals->pollThreshold)
+  arena = GlobalsArena(globals);
+  if (!PolicyPoll(arena))
     return;
 
   globals->insidePoll = TRUE;
 
   /* fillMutatorSize has advanced; call TracePoll enough to catch up. */
-  arena = GlobalsArena(globals);
   start = ClockNow();
   quanta = 0;
 
   EVENT3(ArenaPoll, arena, start, 0);
 
-  while(globals->pollThreshold <= globals->fillMutatorSize) {
+  do {
     tracedSize = TracePoll(globals);
-
-    if(tracedSize == 0) {
-      /* No work to do.  Sleep until NOW + a bit. */
-      nextPollThreshold = globals->fillMutatorSize + ArenaPollALLOCTIME;
-    } else {
-      /* We did one quantum of work; consume one unit of 'time'. */
+    if (tracedSize > 0) {
       quanta += 1;
       arena->tracedSize += tracedSize;
-      nextPollThreshold = globals->pollThreshold + ArenaPollALLOCTIME;
     }
-
-    /* Advance pollThreshold; check: enough precision? */
-    AVER(nextPollThreshold > globals->pollThreshold);
-    globals->pollThreshold = nextPollThreshold;
-  }
+  } while (PolicyPollAgain(arena, start, tracedSize));
 
   /* Don't count time spent checking for work, if there was no work to do. */
   if(quanta > 0) {
     arena->tracedTime += (ClockNow() - start) / (double) ClocksPerSec();
   }
 
-  AVER(globals->fillMutatorSize < globals->pollThreshold);
+  AVER(!PolicyPoll(arena));
 
   EVENT3(ArenaPoll, arena, start, quanta);
 
   globals->insidePoll = FALSE;
-}
-#endif
-
-/* Work out whether we have enough time here to collect the world,
- * and whether much time has passed since the last time we did that
- * opportunistically. */
-static Bool arenaShouldCollectWorld(Arena arena,
-                                    double interval,
-                                    double multiplier,
-                                    Clock now,
-                                    Clock clocks_per_sec)
-{
-  double scanRate;
-  Size arenaSize;
-  double arenaScanTime;
-  double sinceLastWorldCollect;
-
-  /* don't collect the world if we're not given any time */
-  if ((interval > 0.0) && (multiplier > 0.0)) {
-    /* don't collect the world if we're already collecting. */
-    if (arena->busyTraces == TraceSetEMPTY) {
-      /* don't collect the world if it's very small */
-      arenaSize = ArenaCommitted(arena) - ArenaSpareCommitted(arena);
-      if (arenaSize > 1000000) {
-        /* how long would it take to collect the world? */
-        if ((arena->tracedSize > 1000000.0) &&
-            (arena->tracedTime > 1.0))
-          scanRate = arena->tracedSize / arena->tracedTime;
-        else
-          scanRate = 25000000.0; /* a reasonable default. */
-        arenaScanTime = arenaSize / scanRate;
-        arenaScanTime += 0.1;   /* for overheads. */
-
-        /* how long since we last collected the world? */
-        sinceLastWorldCollect = ((now - arena->lastWorldCollect) /
-                                 (double) clocks_per_sec);
-        /* have to be offered enough time, and it has to be a long time
-         * since we last did it. */
-        if ((interval * multiplier > arenaScanTime) &&
-            sinceLastWorldCollect > arenaScanTime * 10.0) {
-          return TRUE;
-        }
-      }
-    }
-  }
-  return FALSE;
 }
 
 Bool ArenaStep(Globals globals, double interval, double multiplier)
@@ -832,8 +770,8 @@ Bool ArenaStep(Globals globals, double interval, double multiplier)
 
   stepped = FALSE;
 
-  if (arenaShouldCollectWorld(arena, interval, multiplier,
-                              start, clocks_per_sec))
+  if (PolicyShouldCollectWorld(arena, interval, multiplier,
+                               start, clocks_per_sec))
   {
     Res res;
     Trace trace;
@@ -868,17 +806,19 @@ Bool ArenaStep(Globals globals, double interval, double multiplier)
 Res ArenaFinalize(Arena arena, Ref obj)
 {
   Res res;
+  Pool refpool;
 
   AVERT(Arena, arena);
-  AVER(ArenaHasAddr(arena, (Addr)obj));
+  AVER(PoolOfAddr(&refpool, arena, (Addr)obj));
+  AVER(PoolHasAttr(refpool, AttrGC));
 
   if (!arena->isFinalPool) {
-    Pool pool;
+    Pool finalpool;
 
-    res = PoolCreate(&pool, arena, PoolClassMRG(), argsNone);
+    res = PoolCreate(&finalpool, arena, PoolClassMRG(), argsNone);
     if (res != ResOK)
       return res;
-    arena->finalPool = pool;
+    arena->finalPool = finalpool;
     arena->isFinalPool = TRUE;
   }
 
@@ -1019,87 +959,110 @@ Ref ArenaRead(Arena arena, Ref *p)
 
 /* GlobalsDescribe -- describe the arena globals */
 
-Res GlobalsDescribe(Globals arenaGlobals, mps_lib_FILE *stream)
+Res GlobalsDescribe(Globals arenaGlobals, mps_lib_FILE *stream, Count depth)
 {
   Res res;
   Arena arena;
   Ring node, nextNode;
   Index i;
+  TraceId ti;
+  Trace trace;
 
-  if (!TESTT(Globals, arenaGlobals)) return ResFAIL;
-  if (stream == NULL) return ResFAIL;
+  if (!TESTT(Globals, arenaGlobals))
+    return ResFAIL;
+  if (stream == NULL)
+    return ResFAIL;
 
   arena = GlobalsArena(arenaGlobals);
-  res = WriteF(stream,
-               "  mpsVersion $S\n", arenaGlobals->mpsVersionString,
-               "  lock $P\n", (WriteFP)arenaGlobals->lock,
-               "  pollThreshold $U kB\n",
+  res = WriteF(stream, depth,
+               "mpsVersion $S\n", (WriteFS)arenaGlobals->mpsVersionString,
+               "lock $P\n", (WriteFP)arenaGlobals->lock,
+               "pollThreshold $U kB\n",
                (WriteFU)(arenaGlobals->pollThreshold / 1024),
-               arenaGlobals->insidePoll ? "inside poll\n" : "outside poll\n",
+               arenaGlobals->insidePoll ? "inside" : "outside", " poll\n",
                arenaGlobals->clamped ? "clamped\n" : "released\n",
-               "  fillMutatorSize $U kB\n",
-                 (WriteFU)(arenaGlobals->fillMutatorSize / 1024),
-               "  emptyMutatorSize $U kB\n",
-                 (WriteFU)(arenaGlobals->emptyMutatorSize / 1024),
-               "  allocMutatorSize $U kB\n",
-                 (WriteFU)(arenaGlobals->allocMutatorSize / 1024),
-               "  fillInternalSize $U kB\n",
-                 (WriteFU)(arenaGlobals->fillInternalSize / 1024),
-               "  emptyInternalSize $U kB\n",
-                 (WriteFU)(arenaGlobals->emptyInternalSize / 1024),
-               "  poolSerial $U\n", (WriteFU)arenaGlobals->poolSerial,
-               "  rootSerial $U\n", (WriteFU)arenaGlobals->rootSerial,
-               "  formatSerial $U\n", (WriteFU)arena->formatSerial,
-               "  threadSerial $U\n", (WriteFU)arena->threadSerial,
-               arena->insideShield ? "inside shield\n" : "outside shield\n",
-               "  busyTraces    $B\n", (WriteFB)arena->busyTraces,
-               "  flippedTraces $B\n", (WriteFB)arena->flippedTraces,
-               /* @@@@ no TraceDescribe function */
-               "  epoch $U\n", (WriteFU)arena->epoch,
+               "fillMutatorSize $U kB\n",
+               (WriteFU)(arenaGlobals->fillMutatorSize / 1024),
+               "emptyMutatorSize $U kB\n",
+               (WriteFU)(arenaGlobals->emptyMutatorSize / 1024),
+               "allocMutatorSize $U kB\n",
+               (WriteFU)(arenaGlobals->allocMutatorSize / 1024),
+               "fillInternalSize $U kB\n",
+               (WriteFU)(arenaGlobals->fillInternalSize / 1024),
+               "emptyInternalSize $U kB\n",
+               (WriteFU)(arenaGlobals->emptyInternalSize / 1024),
+               "poolSerial $U\n", (WriteFU)arenaGlobals->poolSerial,
+               "rootSerial $U\n", (WriteFU)arenaGlobals->rootSerial,
+               "formatSerial $U\n", (WriteFU)arena->formatSerial,
+               "threadSerial $U\n", (WriteFU)arena->threadSerial,
+               arena->insideShield ? "inside" : "outside", " shield\n",
+               "busyTraces    $B\n", (WriteFB)arena->busyTraces,
+               "flippedTraces $B\n", (WriteFB)arena->flippedTraces,
+               "epoch $U\n", (WriteFU)arena->epoch,
+               "prehistory = $B\n", (WriteFB)arena->prehistory,
+               "history {\n",
+               "  [note: indices are raw, not rotated]\n",
                NULL);
-  if (res != ResOK) return res;
+  if (res != ResOK)
+    return res;
 
   for(i=0; i < LDHistoryLENGTH; ++ i) {
-    res = WriteF(stream,
-                 "    history[$U] = $B\n", i, arena->history[i],
+    res = WriteF(stream, depth + 2,
+                 "[$U] = $B\n", (WriteFU)i, (WriteFB)arena->history[i],
                  NULL);
-    if (res != ResOK) return res;
+    if (res != ResOK)
+      return res;
   }
 
-  res = WriteF(stream,
-               "    [note: indices are raw, not rotated]\n"
-               "    prehistory = $B\n", (WriteFB)arena->prehistory,
-               NULL);
-  if (res != ResOK) return res;
-
-  res = WriteF(stream,
-               "  suspended $S\n", arena->suspended ? "YES" : "NO",
-               "  shDepth $U\n", arena->shDepth,
-               "  shCacheI $U\n", arena->shCacheI,
+  res = WriteF(stream, depth,
+               "} history\n",
+               "suspended $S\n", WriteFYesNo(arena->suspended),
+               "shDepth $U\n", (WriteFU)arena->shDepth,
+               "shCacheI $U\n", (WriteFU)arena->shCacheI,
                /* @@@@ should SegDescribe the cached segs? */
                NULL);
-  if (res != ResOK) return res;
+  if (res != ResOK)
+    return res;
 
-  res = RootsDescribe(arenaGlobals, stream);
-  if (res != ResOK) return res;
+  res = RootsDescribe(arenaGlobals, stream, depth);
+  if (res != ResOK)
+    return res;
 
   RING_FOR(node, &arenaGlobals->poolRing, nextNode) {
     Pool pool = RING_ELT(Pool, arenaRing, node);
-    res = PoolDescribe(pool, stream);
-    if (res != ResOK) return res;
+    res = PoolDescribe(pool, stream, depth);
+    if (res != ResOK)
+      return res;
   }
 
   RING_FOR(node, &arena->formatRing, nextNode) {
     Format format = RING_ELT(Format, arenaRing, node);
-    res = FormatDescribe(format, stream);
-    if (res != ResOK) return res;
+    res = FormatDescribe(format, stream, depth);
+    if (res != ResOK)
+      return res;
   }
 
   RING_FOR(node, &arena->threadRing, nextNode) {
     Thread thread = ThreadRingThread(node);
-    res = ThreadDescribe(thread, stream);
-    if (res != ResOK) return res;
+    res = ThreadDescribe(thread, stream, depth);
+    if (res != ResOK)
+      return res;
   }
+
+  RING_FOR(node, &arena->chainRing, nextNode) {
+    Chain chain = RING_ELT(Chain, chainRing, node);
+    res = ChainDescribe(chain, stream, depth);
+    if (res != ResOK)
+      return res;
+  }
+
+  TRACE_SET_ITER(ti, trace, TraceSetUNIV, arena)
+    if (TraceSetIsMember(arena->busyTraces, trace)) {
+      res = TraceDescribe(trace, stream, depth);
+      if (res != ResOK)
+        return res;
+    }
+  TRACE_SET_ITER_END(ti, trace, TraceSetUNIV, arena);
 
   /* @@@@ What about grey rings? */
   return res;
@@ -1125,7 +1088,7 @@ void ArenaSetEmergency(Arena arena, Bool emergency)
   AVERT(Arena, arena);
   AVERT(Bool, emergency);
 
-  EVENT2(ArenaSetEmergency, arena, emergency);
+  EVENT2(ArenaSetEmergency, arena, BOOLOF(emergency));
 
   arena->emergency = emergency;
 }
@@ -1140,7 +1103,7 @@ Bool ArenaEmergency(Arena arena)
 
 /* C. COPYRIGHT AND LICENSE
  *
- * Copyright (C) 2001-2013 Ravenbrook Limited <http://www.ravenbrook.com/>.
+ * Copyright (C) 2001-2014 Ravenbrook Limited <http://www.ravenbrook.com/>.
  * All rights reserved.  This is an open source license.  Contact
  * Ravenbrook for commercial licensing options.
  * 

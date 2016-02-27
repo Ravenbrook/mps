@@ -1,7 +1,7 @@
 /* qs.c: QUICKSORT
  *
  *  $Id$
- *  Copyright (c) 2001 Ravenbrook Limited.  See end of file for license.
+ *  Copyright (c) 2001-2014 Ravenbrook Limited.  See end of file for license.
  *
  *  The purpose of this program is to act as a "real" client of the MM.
  *  It is a test, but (hopefully) less contrived than some of the other
@@ -29,10 +29,9 @@
 #include "mpscamc.h"
 #include "mpscmv.h"
 #include "mpstd.h"
-#ifdef MPS_OS_W3
-#include "mpsw3.h"
-#endif
-#include <stdlib.h>
+
+#include <stdio.h> /* printf */
+#include <stdlib.h> /* qsort */
 
 
 #define testArenaSIZE ((size_t)1000*1024)
@@ -51,7 +50,7 @@ static mps_addr_t isMoved(mps_addr_t object);
 static void copy(mps_addr_t object, mps_addr_t to);
 static void pad(mps_addr_t base, size_t size);
 
-struct mps_fmt_A_s fmt_A_s =
+static struct mps_fmt_A_s fmt_A_s =
   {
     (mps_align_t)4,
     scan, skip, copy,
@@ -186,7 +185,7 @@ static void swap(void)
 
 static void makerndlist(unsigned l)
 {
-  unsigned i;
+  size_t i;
   mps_word_t r;
   mps_addr_t addr;
 
@@ -318,15 +317,14 @@ static void validate(void)
   for(i = 0; i < listl; ++i) {
     cdie(((QSCell)reg[1])->tag == QSInt, "validate int");
     if((mps_word_t)((QSCell)reg[1])->value != list[i]) {
-      fprintf(stdout,
-              "mps_res_t: Element %"PRIuLONGEST" of the two lists do not match.\n",
-              (ulongest_t)i);
+        printf("mps_res_t: Element %"PRIuLONGEST" of the "
+               "two lists do not match.\n", (ulongest_t)i);
       return;
     }
     reg[1] = (mps_addr_t)((QSCell)reg[1])->tail;
   }
   cdie(reg[1] == (mps_word_t)0, "validate end");
-  fprintf(stdout, "Note: Lists compare equal.\n");
+  printf("Note: Lists compare equal.\n");
 }
 
 
@@ -335,7 +333,6 @@ static void *go(void *p, size_t s)
   mps_fmt_t format;
   mps_chain_t chain;
   mps_addr_t base;
-  mps_addr_t *addr;
 
   testlib_unused(p);
   testlib_unused(s);
@@ -358,9 +355,7 @@ static void *go(void *p, size_t s)
       "RootCreateTable");
   
   base = &activationStack;
-  addr = base;
-  die(mps_root_create_table(&actroot, arena, mps_rank_ambig(), 0,
-                            addr, sizeof(QSCell)/sizeof(mps_addr_t)),
+  die(mps_root_create_table(&actroot, arena, mps_rank_ambig(), 0, base, 1),
       "RootCreateTable");
 
   /* makes a random list */
@@ -372,6 +367,7 @@ static void *go(void *p, size_t s)
   qsort(list, listl, sizeof(mps_word_t), &compare);
   validate();
 
+  mps_arena_park(arena);
   mps_root_destroy(regroot);
   mps_root_destroy(actroot);
   mps_ap_destroy(ap);
@@ -379,6 +375,7 @@ static void *go(void *p, size_t s)
   mps_pool_destroy(mpool);
   mps_chain_destroy(chain);
   mps_fmt_destroy(format);
+  mps_arena_release(arena);
 
   return NULL;
 }
@@ -528,11 +525,11 @@ int main(int argc, char *argv[])
 {
   void *r;
 
-  randomize(argc, argv);
-  mps_lib_assert_fail_install(assert_die);
+  testlib_init(argc, argv);
 
   die(mps_arena_create(&arena, mps_arena_class_vm(), testArenaSIZE),
       "mps_arena_create");
+
   mps_tramp(&r, &go, NULL, 0);
   mps_arena_destroy(arena);
 
@@ -543,7 +540,7 @@ int main(int argc, char *argv[])
 
 /* C. COPYRIGHT AND LICENSE
  *
- * Copyright (c) 2001-2013 Ravenbrook Limited <http://www.ravenbrook.com/>.
+ * Copyright (c) 2001-2014 Ravenbrook Limited <http://www.ravenbrook.com/>.
  * All rights reserved.  This is an open source license.  Contact
  * Ravenbrook for commercial licensing options.
  * 

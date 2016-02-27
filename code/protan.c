@@ -1,7 +1,7 @@
 /* protan.c: ANSI MEMORY PROTECTION
  *
  * $Id$
- * Copyright (c) 2001 Ravenbrook Limited.  See end of file for license.
+ * Copyright (c) 2001-2015 Ravenbrook Limited.  See end of file for license.
  *
  *
  * DESIGN
@@ -22,13 +22,21 @@ void ProtSetup(void)
 }
 
 
+/* ProtGranularity -- return the granularity of protection */
+
+Size ProtGranularity(void)
+{
+  /* Any range of addresses can be "protected" since ProtSet does nothing. */
+  return (Size)MPS_PF_ALIGN;
+}
+
+
 /* ProtSet -- set the protection for a page */
 
 void ProtSet(Addr base, Addr limit, AccessSet pm)
 {
   AVER(base < limit);
-  /* .improve.protset.check: There is nor AccessSetCheck, so we */
-  /* don't check it. */
+  AVERT(AccessSet, pm);
   UNUSED(pm);
   NOOP;
 }
@@ -50,37 +58,22 @@ void ProtSync(Arena arena)
 
     synced = TRUE;
     if (SegFirst(&seg, arena)) {
-      Addr base;
       do {
-        base = SegBase(seg);
         if (SegPM(seg) != AccessSetEMPTY) { /* <design/protan/#fun.sync.seg> */
           ShieldEnter(arena);
           TraceSegAccess(arena, seg, SegPM(seg));
           ShieldLeave(arena);
           synced = FALSE;
         }
-      } while(SegNext(&seg, arena, base));
+      } while(SegNext(&seg, arena, seg));
     }
   } while(!synced);
 }
 
 
-/* ProtTramp -- protection trampoline */
-
-void ProtTramp(void **rReturn, void *(*f)(void *, size_t),
-               void *p, size_t s)
-{
-  AVER(rReturn != NULL);
-  AVER(FUNCHECK(f));
-  /* Can't check p and s as they are interpreted by the client */
-
-  *(rReturn) = (*(f))(p, s);
-}
-
-
 /* C. COPYRIGHT AND LICENSE
  *
- * Copyright (C) 2001-2002 Ravenbrook Limited <http://www.ravenbrook.com/>.
+ * Copyright (C) 2001-2015 Ravenbrook Limited <http://www.ravenbrook.com/>.
  * All rights reserved.  This is an open source license.  Contact
  * Ravenbrook for commercial licensing options.
  * 

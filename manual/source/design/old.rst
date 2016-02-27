@@ -25,10 +25,8 @@ Old design
     diag
     finalize
     fix
-    interface-c
     io
     lib
-    lock
     locus
     message
     message-gc
@@ -43,8 +41,6 @@ Old design
     poolmv
     poolmvt
     poolmvff
-    prot
-    protan
     protli
     protsu
     protocol
@@ -54,19 +50,13 @@ Old design
     scan
     seg
     shield
-    splay
     sso1al
     strategy
     telemetry
     tests
-    thread-manager
     thread-safety
     trace
-    type
     version-library
     version
-    vm
-    vman
     vmo1
     vmso
-    writef

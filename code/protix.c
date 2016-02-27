@@ -1,14 +1,14 @@
 /* protix.c: PROTECTION FOR UNIX
  *
  *  $Id$
- *  Copyright (c) 2001,2007 Ravenbrook Limited.  See end of file for license.
+ *  Copyright (c) 2001-2015 Ravenbrook Limited.  See end of file for license.
  *
  *  Somewhat generic across different Unix systems.  Shared between
- *  Darwin (OS X), FreeBSD, and Linux.
+ *  OS X, FreeBSD, and Linux.
  *
- *  This file does not contain a signal handler.  That's in protsgix.c
- *  (for FreeBSD and Darwin on Intel); in protxcpp.c (for Darwin on
- *  PowerPC); in protlii3.c (for Intel Linux).
+ *  This file does not contain a signal handler. That's in protsgix.c for
+ *  historical reasons (there used to be separate implementations for the
+ *  different flavours of Unix).
  *
  *
  *  SOURCES
@@ -20,12 +20,11 @@
  *  ASSUMPTIONS
  *
  *  .assume.mprotect.base: We assume that the first argument to mprotect can
- *    be safely passed as a void *.  Single UNIX Specification Version 2
- *    (aka X/OPEN XSH5) says that the parameter is a void *.  Some
- *    Unix-likes may declare this parameter as a caddr_t.  FreeBSD used to
- *    do this (on the now very obsolete FreeBSD 2.2.x series).  The
- *    Darwin man page documents it as caddr_t but it appears to be
- *    implemented correctly as void *.  caddr_t is usually char *.
+ *    be safely passed as a void *. Single UNIX Specification Version 2 (aka
+ *    X/OPEN XSH5) says that the parameter is a void *. Some Unix-likes may
+ *    declare this parameter as a caddr_t. FreeBSD used to do this (on the now
+ *    very obsolete FreeBSD 2.2.x series), as did OS X, but both now implement
+ *    it correctly as void *. caddr_t is usually char *.
  *
  *  .assume.write-only:  More of an anti-assumption really.  We
  *    assume that asking the OS for a write-only page (that is, flags =
@@ -40,12 +39,10 @@
  */
 
 #include "mpm.h"
+#include "vm.h"
 
 #if !defined(MPS_OS_LI) && !defined(MPS_OS_FR) && !defined(MPS_OS_XC)
 #error "protix.c is Unix-specific, currently for MPS_OS_LI FR XC"
-#endif
-#ifndef PROTECTION
-#error "protix.c implements protection, but PROTECTION is not set"
 #endif
 
 #include <limits.h>
@@ -69,6 +66,7 @@ void ProtSet(Addr base, Addr limit, AccessSet mode)
   AVER(base < limit);
   AVER(base != 0);
   AVER(AddrOffset(base, limit) <= INT_MAX);     /* should be redundant */
+  AVERT(AccessSet, mode);
 
   /* Convert between MPS AccessSet and UNIX PROT thingies.
      In this function, AccessREAD means protect against read accesses
@@ -114,28 +112,18 @@ void ProtSync(Arena arena)
 }
 
 
-/* ProtTramp -- protection trampoline
- *
- * The protection trampoline is trivial under Unix, as there is
- * nothing that needs to be done in the dynamic context of the mutator in
- * order to catch faults.  (Contrast this with Win32 Structured Exception
- * Handling.)
- */
+/* ProtGranularity -- return the granularity of protection */
 
-void ProtTramp(void **resultReturn, void *(*f)(void *, size_t),
-               void *p, size_t s)
+Size ProtGranularity(void)
 {
-  AVER(resultReturn != NULL);
-  AVER(FUNCHECK(f));
-  /* Can't check p and s as they are interpreted by the client */
-
-  *resultReturn = (*f)(p, s);
+  /* Individual pages can be protected. */
+  return PageSize();
 }
 
 
 /* C. COPYRIGHT AND LICENSE
  *
- * Copyright (C) 2001-2007 Ravenbrook Limited <http://www.ravenbrook.com/>.
+ * Copyright (C) 2001-2015 Ravenbrook Limited <http://www.ravenbrook.com/>.
  * All rights reserved.  This is an open source license.  Contact
  * Ravenbrook for commercial licensing options.
  * 

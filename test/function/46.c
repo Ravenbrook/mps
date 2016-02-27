@@ -140,6 +140,7 @@ static void test(void)
   RC;
  }
 
+ mps_arena_park(arena);
  mps_ap_destroy(apamc);
  comment("Destroyed aps.");
 
@@ -169,6 +170,6 @@ int main(void)
  stackpointer=&m; /* hack to get stack pointer */
 
  easy_tramp(test);
- report("result", "unknown");
+ pass();
  return 0;
 }

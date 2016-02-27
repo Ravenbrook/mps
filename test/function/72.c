@@ -7,7 +7,7 @@ TEST_HEADER
 OUTPUT_SPEC
  assert = true
  assertfile P= trace.c
- assertline = 963
+ assertcond = ss->rank < RankEXACT
 END_HEADER
 */
 
@@ -80,6 +80,7 @@ static void test(void)
 
  fail();
  
+ mps_arena_park(arena);
  mps_ap_destroy(ap);
  comment("Destroyed ap.");
 

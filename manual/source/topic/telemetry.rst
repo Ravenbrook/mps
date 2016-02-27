@@ -68,7 +68,7 @@ The telemetry system relies on three utility programs:
   SQLite database for further analysis.
 
 You must build and install these programs as described in
-:ref:`guide-build`. Thee programs are described in more detail below.
+:ref:`guide-build`. These programs are described in more detail below.
 
 
 .. index::
@@ -110,7 +110,7 @@ The MPS writes the telemetry to the log in an encoded form for speed.
 It can be decoded using the :ref:`mpseventcnv <telemetry-mpseventcnv>`
 and :ref:`mpseventtxt <telemetry-mpseventtxt>` programs::
 
-    (gdb) shell mpseventcnv | mpseventtxt | sort > mpsio.txt
+    (gdb) shell mpseventcnv | sort | mpseventtxt > mpsio.txt
 
 The ``sort`` is useful because the events are not necessarily written
 to the telemetry file in time order, but each event starts with a
@@ -388,41 +388,6 @@ further analysis by running :program:`mpseventsql`.
 Telemetry interface
 -------------------
 
-.. c:function:: mps_word_t mps_telemetry_control(mps_word_t reset_mask, mps_word_t flip_mask)
-
-    .. deprecated:: starting with version 1.111.
-
-        Use :c:func:`mps_telemetry_get`, :c:func:`mps_telemetry_reset`,
-        and :c:func:`mps_telemetry_set` instead.
-
-    Update and return the :term:`telemetry filter`.
-
-    ``reset_mask`` is a :term:`bitmask` indicating the bits in the
-    telemetry filter that should be reset.
-
-    ``flip_mask`` is a bitmask indicating the bits in the telemetry
-    filter whose value should be flipped after the resetting.
-
-    Returns the previous value of the telemetry filter, prior to the
-    reset and the flip.
-
-    The parameters ``reset_mask`` and ``flip_mask`` allow the
-    specification of any binary operation on the filter control. For
-    typical operations, the parameters should be set as follows:
-
-    ============  ==============  =============
-    Operation     ``reset_mask``  ``flip_mask``
-    ============  ==============  =============
-    ``set(M)``    ``M``           ``M``        
-    ------------  --------------  -------------
-    ``reset(M)``  ``M``           ``0``        
-    ------------  --------------  -------------
-    ``flip(M)``   ``0``           ``M``        
-    ------------  --------------  -------------
-    ``read()``    ``0``           ``0``        
-    ============  ==============  =============
-
-
 .. c:function:: void mps_telemetry_flush(void)
 
     Flush the internal event buffers into the :term:`telemetry stream`.
@@ -431,8 +396,7 @@ Telemetry interface
     stream itself. This ensures that even the latest events are now
     properly recorded, should the :term:`client program` terminate
     (uncontrollably as a result of a bug, for example) or some
-    interactive tool require access to the telemetry stream. You could
-    even try calling this from a debugger after a problem.
+    interactive tool require access to the telemetry stream.
 
     .. note::
 
@@ -548,3 +512,26 @@ used in queries, for example:
         If the ``User`` event category is not turned on in the
         :term:`telemetry filter` (via :c:func:`mps_telemetry_control`)
         then calling this function has no effect.
+
+
+.. index::
+   pair: telemetry; customizing
+
+Customizing the telemetry system
+--------------------------------
+
+If you need the telemetry system to support features not described
+here (for example, you need to transmit telemetry data over a network
+rather than writing it to a file on the local filesystem) then you may
+be able to do so by providing your own implementation of the
+:ref:`topic-plinth-io`.
+
+When it first needs to output telemetry, the MPS call the plinth
+function :c:func:`mps_io_create` to create an I/O stream. It then
+calls :c:func:`mps_io_write` to write binary data to the stream
+and :c:func:`mps_io_flush` to flush the stream in response to
+:c:func:`mps_telemetry_flush`. By providing your own implementations
+of these functions, you can direct the telemetry stream wherever you
+like.
+
+See :ref:`topic-plinth` for details.

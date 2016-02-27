@@ -40,7 +40,9 @@ Must satisfy request.dylan.170123_.
 _`.req.obj-format`: Only objects of a certain format need be
 supported. This format is a subset of the Dylan Object Format. The
 pool uses the first slot in the fixed part of an object to store an
-association. See mail.drj.1997-03-11.12-05
+association. See `mail.drj.1997-03-11.12-05`_.
+
+.. _mail.drj.1997-03-11.12-05: https://info.ravenbrook.com/project/mps/mail/1997/03/11/12-05/0.txt
 
 
 Definitions
@@ -157,7 +159,7 @@ AWL pools to be 1.
 
 _`.awlseg`: The pool defines a segment class ``AWLSegClass``, which is
 a subclass of ``GCSegClass`` (see
-design.mps.seg.over.hierarchy.gcseg). All segments allocated by the
+design.mps.seg.over.hierarchy.gcseg_). All segments allocated by the
 pool are instances of this class, and are of type ``AWLSeg``, for
 which the structure is::
 
@@ -173,9 +175,13 @@ which the structure is::
       Sig sig;
     }
 
+.. _design.mps.seg.over.hierarchy.gcseg: seg#over.hierarchy.gcseg
+
 _`.awlseg.bt`: The mark, alloc, and scanned fields are bit-tables (see
-design.mps.bt). Each bit in the table corresponds to a a single
+design.mps.bt_). Each bit in the table corresponds to a a single
 alignment grain in the pool.
+
+.. _design.mps.bt: bt
 
 _`.awlseg.mark`: The mark bit table is used to record mark bits during
 a trace. ``AWLCondemn()`` (see `.fun.condemn`_ below) sets all the
@@ -409,7 +415,9 @@ perform another pass (see `.fun.scan.pass`_ above).
 ``Res AWLFix(Pool pool, ScanState ss, Seg seg, Ref *refIO)``
 
 _`.fun.fix`: ``ss->wasMarked`` is set to ``TRUE`` (clear compliance
-with design.mps.fix.protocol.was-marked.conservative).
+with design.mps.fix.protocol.was-marked.conservative_).
+
+.. _design.mps.fix.protocol.was-marked.conservative: fix#protocol.was-marked.conservative
 
 If the rank (``ss->rank``) is ``RankAMBIG`` then fix returns
 immediately unless the reference is aligned to the pool alignment.
@@ -451,7 +459,7 @@ objects. Now reclaim doesn't need to check that the objects are
 allocated before skipping them. There may be a corresponding change
 for scan as well.
 
-``Res AWLDescribe(Pool pool, mps_lib_FILE *stream)``
+``Res AWLDescribe(Pool pool, mps_lib_FILE *stream, Count depth)``
 
 _`.fun.describe`:
 
@@ -463,10 +471,11 @@ Internal
 
 _`.fun.awlsegcreate`: Creates a segment of class ``AWLSegClass`` of size at least ``size``.
 
-_`.fun.awlsegcreate.size.round`: ``size`` is rounded up to an
-``ArenaAlign`` before requesting the segment.
+_`.fun.awlsegcreate.size.round`: ``size`` is rounded up to the arena
+grain size before requesting the segment.
+
 _`.fun.awlsegcreate.size.round.justify`: The arena requires that all
-segment sizes are aligned to the ``ArenaAlign``.
+segment sizes are rounded up to the arena grain size.
 
 _`.fun.awlsegcreate.where`: The segment is allocated using a
 generation preference, using the generation number stored in the

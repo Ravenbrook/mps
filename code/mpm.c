@@ -1,7 +1,7 @@
 /* mpm.c: GENERAL MPM SUPPORT
  *
  * $Id$
- * Copyright (c) 2001 Ravenbrook Limited.  See end of file for license.
+ * Copyright (c) 2001-2015 Ravenbrook Limited.  See end of file for license.
  *
  * .purpose: Miscellaneous support for the implementation of the MPM
  * and pool classes.
@@ -10,6 +10,8 @@
 
 #include "check.h"
 #include "mpm.h"
+#include "vm.h"
+
 #include <stdarg.h>
 /* Get some floating constants for WriteDouble */
 #include <float.h>
@@ -77,7 +79,16 @@ Bool MPMCheck(void)
     CHECKL(-(DBL_MIN_10_EXP) <= DBL_MAX_10_EXP);
   }
 
-  return TRUE; 
+  /* The granularity of memory mapping must be a multiple of the
+   * granularity of protection (or we might not be able to protect an
+   * arena grain). */
+  CHECKL(PageSize() % ProtGranularity() == 0);
+
+  /* StackProbe mustn't skip over the stack guard page. See
+   * <design/sp/#sol.depth.constraint>. */
+  CHECKL(StackProbeDEPTH * sizeof(Word) < PageSize());
+
+  return TRUE;
 }
 
 
@@ -117,10 +128,21 @@ Bool AttrCheck(Attr attr)
 
 Bool AlignCheck(Align align)
 {
-  CHECKL(align > 0 && (align & (align - 1)) == 0);
+  CHECKL(align > 0);
+  CHECKL((align & (align - 1)) == 0);
   /* .check.unused: Check methods for signatureless types don't use */
   /* their argument in hot varieties, so UNUSED is needed. */
   UNUSED(align);
+  return TRUE;
+}
+
+
+/* AccessSetCheck -- check that an access set is valid */
+
+Bool AccessSetCheck(AccessSet mode)
+{
+  CHECKL(mode < ((ULongest)1 << AccessLIMIT));
+  UNUSED(mode); /* see .check.unused */
   return TRUE;
 }
 
@@ -132,7 +154,7 @@ Bool AlignCheck(Align align)
 
 Bool (WordIsAligned)(Word word, Align align)
 {
-  AVER(AlignCheck(align));
+  AVERT(Align, align);
   return WordIsAligned(word, align);
 }
 
@@ -141,7 +163,7 @@ Bool (WordIsAligned)(Word word, Align align)
 
 Word (WordAlignUp)(Word word, Align align)
 {
-  AVER(AlignCheck(align));
+  AVERT(Align, align);
   return WordAlignUp(word, align);
 }
 
@@ -167,23 +189,23 @@ Word (WordRoundUp)(Word word, Size modulus)
 
 Word (WordAlignDown)(Word word, Align alignment)
 {
-  AVER(AlignCheck(alignment));
+  AVERT(Align, alignment);
   return WordAlignDown(word, alignment);
 }
 
 
 /* SizeIsP2 -- test whether a size is a power of two */
 
-Bool SizeIsP2(Size size)
+Bool (SizeIsP2)(Size size)
 {
-  return WordIsP2((Word)size);
+  return SizeIsP2(size);
 }
 
 /* WordIsP2 -- tests whether a word is a power of two */
 
-Bool WordIsP2(Word word)
+Bool (WordIsP2)(Word word)
 {
-  return word > 0 && (word & (word - 1)) == 0;  
+  return WordIsP2(word);
 }
 
 
@@ -212,7 +234,7 @@ Shift SizeLog2(Size size)
 
 Addr (AddrAlignDown)(Addr addr, Align alignment)
 {
-  AVER(AlignCheck(alignment));
+  AVERT(Align, alignment);
   return AddrAlignDown(addr, alignment);
 }
 
@@ -430,34 +452,35 @@ static Res WriteDouble(mps_lib_FILE *stream, double d)
  * .writef.check: See .check.writef.
  */
 
-Res WriteF(mps_lib_FILE *stream, ...)
+Res WriteF(mps_lib_FILE *stream, Count depth, ...)
 {
   Res res;
   va_list args;
  
-  va_start(args, stream);
-  res = WriteF_v(stream, args);
+  va_start(args, depth);
+  res = WriteF_v(stream, depth, args);
   va_end(args);
   return res;
 }
 
-Res WriteF_v(mps_lib_FILE *stream, va_list args)
+Res WriteF_v(mps_lib_FILE *stream, Count depth, va_list args)
 {
   const char *firstformat;
   Res res;
 
   firstformat = va_arg(args, const char *);
-  res = WriteF_firstformat_v(stream, firstformat, args);
+  res = WriteF_firstformat_v(stream, depth, firstformat, args);
   return res;
 }
 
-Res WriteF_firstformat_v(mps_lib_FILE *stream, 
+Res WriteF_firstformat_v(mps_lib_FILE *stream, Count depth, 
                          const char *firstformat, va_list args)
 {
   const char *format;
   int r;
   size_t i;
   Res res;
+  Bool start_of_line = TRUE;
 
   AVER(stream != NULL);
 
@@ -468,9 +491,19 @@ Res WriteF_firstformat_v(mps_lib_FILE *stream,
       break;
 
     while(*format != '\0') {
+      if (start_of_line) {
+        for (i = 0; i < depth; ++i) {
+          mps_lib_fputc(' ', stream);
+        }
+        start_of_line = FALSE;
+      }
       if (*format != '$') {
         r = mps_lib_fputc(*format, stream); /* Could be more efficient */
-        if (r == mps_lib_EOF) return ResIO;
+        if (r == mps_lib_EOF)
+          return ResIO;
+        if (*format == '\n') {
+          start_of_line = TRUE;
+        }
       } else {
         ++format;
         AVER(*format != '\0');
@@ -480,75 +513,86 @@ Res WriteF_firstformat_v(mps_lib_FILE *stream,
             WriteFA addr = va_arg(args, WriteFA);
             res = WriteULongest(stream, (ULongest)addr, 16,
                                 (sizeof(WriteFA) * CHAR_BIT + 3) / 4);
-            if (res != ResOK) return res;
+            if (res != ResOK)
+              return res;
           } break;
 
           case 'P': {                   /* pointer, see .writef.p */
             WriteFP p = va_arg(args, WriteFP);
             res = WriteULongest(stream, (ULongest)p, 16,
                                 (sizeof(WriteFP) * CHAR_BIT + 3)/ 4);
-            if (res != ResOK) return res;
+            if (res != ResOK)
+              return res;
           } break;
 
           case 'F': {                   /* function */
             WriteFF f = va_arg(args, WriteFF);
             Byte *b = (Byte *)&f;
-            /* ISO C forbits casting function pointers to integer, so
+            /* ISO C forbids casting function pointers to integer, so
                decode bytes (see design.writef.f). 
                TODO: Be smarter about endianness. */
             for(i=0; i < sizeof(WriteFF); i++) {
               res = WriteULongest(stream, (ULongest)(b[i]), 16,
                                   (CHAR_BIT + 3) / 4);
-              if (res != ResOK) return res;
+              if (res != ResOK)
+                return res;
             }
           } break;
            
           case 'S': {                   /* string */
             WriteFS s = va_arg(args, WriteFS);
             r = mps_lib_fputs((const char *)s, stream);
-            if (r == mps_lib_EOF) return ResIO;
+            if (r == mps_lib_EOF)
+              return ResIO;
           } break;
        
           case 'C': {                   /* character */
             WriteFC c = va_arg(args, WriteFC); /* promoted */
             r = mps_lib_fputc((int)c, stream);
-            if (r == mps_lib_EOF) return ResIO;
+            if (r == mps_lib_EOF)
+              return ResIO;
           } break;
        
           case 'W': {                   /* word */
             WriteFW w = va_arg(args, WriteFW);
             res = WriteULongest(stream, (ULongest)w, 16,
                                 (sizeof(WriteFW) * CHAR_BIT + 3) / 4);
-            if (res != ResOK) return res;
+            if (res != ResOK)
+              return res;
           } break;
 
           case 'U': {                   /* decimal, see .writef.p */
             WriteFU u = va_arg(args, WriteFU);
             res = WriteULongest(stream, (ULongest)u, 10, 0);
-            if (res != ResOK) return res;
+            if (res != ResOK)
+              return res;
           } break;
 
           case '3': {                   /* decimal for thousandths */
             WriteFU u = va_arg(args, WriteFU);
             res = WriteULongest(stream, (ULongest)u, 10, 3);
-            if (res != ResOK) return res;
+            if (res != ResOK)
+              return res;
           } break;
 
           case 'B': {                   /* binary, see .writef.p */
             WriteFB b = va_arg(args, WriteFB);
             res = WriteULongest(stream, (ULongest)b, 2, sizeof(WriteFB) * CHAR_BIT);
-            if (res != ResOK) return res;
+            if (res != ResOK)
+              return res;
           } break;
        
           case '$': {                   /* dollar char */
             r = mps_lib_fputc('$', stream);
-            if (r == mps_lib_EOF) return ResIO;
+            if (r == mps_lib_EOF)
+              return ResIO;
           } break;
 
           case 'D': {                   /* double */
             WriteFD d = va_arg(args, WriteFD);
             res = WriteDouble(stream, d);
-            if (res != ResOK) return res;
+            if (res != ResOK)
+              return res;
           } break;
               
           default:
@@ -604,7 +648,7 @@ Bool StringEqual(const char *s1, const char *s2)
 
 /* C. COPYRIGHT AND LICENSE
  *
- * Copyright (C) 2001-2002 Ravenbrook Limited <http://www.ravenbrook.com/>.
+ * Copyright (C) 2001-2015 Ravenbrook Limited <http://www.ravenbrook.com/>.
  * All rights reserved.  This is an open source license.  Contact
  * Ravenbrook for commercial licensing options.
  * 

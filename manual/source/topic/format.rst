@@ -179,6 +179,20 @@ There are some cautions to be observed when using in-band headers:
 #. Not all :term:`pool classes` support objects with in-band headers.
    See the documentation for the pool class.
 
+.. note::
+
+    A :term:`client program` that allocates objects with
+    :term:`in-band headers` has to make a choice about how to
+    represent references to those objects. It can represent them using
+    :term:`base pointers` (which is convenient for allocation, since
+    :c:func:`mps_reserve` returns a base pointer, but requires
+    decoding when scanning) or using :term:`client pointers` (which is
+    convenient for scanning, since the :term:`scan method` takes a
+    client pointer, but requires encoding on allocation). Either
+    approach will work, but :term:`client pointers` are normally the
+    better choice, since scanning is normally more
+    performance-critical than allocation.
+   
 
 .. index::
    pair: object format; cautions
@@ -217,6 +231,13 @@ Cautions
    program.
 
 #. Format methods must be re-entrant.
+
+#. Format methods must use no more than 64 words of stack space.
+
+   This restriction is necessary to avoid stack overflow in the MPS;
+   see :ref:`design-sp` for details. If your application has format
+   methods that need more stack space than this, :ref:`contact us
+   <contact>`.
 
 #. Format methods must not:
 
@@ -379,6 +400,11 @@ Format methods
     indicate references within the objects by calling
     :c:func:`MPS_FIX1` and :c:func:`MPS_FIX2`.
 
+    If the object format is capable of creating forwarding objects or
+    padding objects, the scan method must be able to scan these
+    objects. (In the case of the forwarding object, the scan method
+    should not fix the pointer to the new location.)
+
     .. seealso::
 
         :ref:`topic-scanning`.
@@ -400,6 +426,10 @@ Format methods
 
         In either case, the result is the sum of ``addr`` and the size
         of the block containing the object.
+
+    If the object format is capable of creating forwarding objects or
+    padding objects, the skip method must be able to skip these
+    objects.
 
     A skip method is not allowed to fail.
 
@@ -468,21 +498,26 @@ Object format introspection
 
     Each :term:`pool class` determines for which objects the stepper
     function is called. Typically, all validly formatted objects are
-    visited. During a :term:`trace` this will in general be only the
-    :term:`black` objects, though the :ref:`pool-lo` pool, for
-    example, will walk all objects since they are validly formatted
-    whether they are black or :term:`white`. :term:`Padding objects`
-    may be visited at the pool class's discretion: the :term:`client
-    program` should handle this case.
-
-    .. seealso::
-
-        :ref:`topic-arena`.
+    visited. :term:`Padding objects` may be visited at the pool
+    class's discretion: the stepper function must handle this
+    case.
 
     .. note::
 
         This function is intended for heap analysis, tuning, and
         debugging, not for frequent use in production.
+
+    .. warning::
+
+        If a garbage collection is currently in progress (that is, if
+        the arena is in the :term:`clamped <clamped state>` or
+        :term:`unclamped state`), then only objects that are known to
+        be currently valid are visited.
+
+        For the most reliable results, ensure the arena is in the
+        :term:`parked state` by calling :c:func:`mps_arena_park`
+        before calling this function (and release it by calling
+        :c:func:`mps_arena_release` afterwards, if desired).
 
 
 .. c:type:: void (*mps_formatted_objects_stepper_t)(mps_addr_t addr, mps_fmt_t fmt, mps_pool_t pool, void *p, size_t s)
@@ -514,141 +549,3 @@ Object format introspection
     c. memory not managed by the MPS;
 
     It must not access other memory managed by the MPS.
-
-    .. seealso::
-
-        :ref:`topic-arena`.
-
-
-Obsolete interface
-------------------
-
-.. deprecated:: starting with version 1.112.
-
-    Use :c:func:`mps_ap_create_k` instead: the :term:`keyword
-    arguments` interface is more flexible and easier to understand.
-
-Formerly the only way to create object formats was to describe the
-format in the form of a *format variant structure*.
-
-There are four format variants.
-
-* Variant A (:c:type:`mps_fmt_A_s`): for objects without
-  :term:`in-band headers`.
-
-* Variant B (:c:type:`mps_fmt_B_s`): as variant A, but with the
-  addition of a class method.
-
-* Variant auto-header (:c:type:`mps_fmt_auto_header_s`): for objects
-  with :term:`in-band headers`.
-
-* Variant fixed (:c:type:`mps_fmt_fixed_s`): for fixed-size objects.
-
-The client program creates an object format by construct a format
-variant structure and then calling the appropriate ``mps_fmt_create_``
-function for the variant. The variant structure can then be disposed
-of.
-
-
-.. c:type:: mps_fmt_A_s
-
-    The type of the structure used to create an :term:`object format`
-    of variant A. ::
-
-        typedef struct mps_fmt_A_s {
-            mps_align_t     align;
-            mps_fmt_scan_t  scan;
-            mps_fmt_skip_t  skip;
-            mps_fmt_copy_t  copy;
-            mps_fmt_fwd_t   fwd;
-            mps_fmt_isfwd_t isfwd;
-            mps_fmt_pad_t   pad;
-        } mps_fmt_A_s;
-
-    The fields of this structure correspond to the keyword arguments
-    to :c:func:`mps_fmt_create_k`, except for ``copy``, which is not
-    used. In older versions of the MPS this was a :term:`copy method`
-    that copied objects belonging to this format.
-
-
-.. c:function:: mps_res_t mps_fmt_create_A(mps_fmt_t *fmt_o, mps_arena_t arena, mps_fmt_A_s *fmt_A)
-
-    Create an :term:`object format` based on a description of an
-    object format of variant A.
-
-
-.. c:type:: mps_fmt_B_s
-
-    The type of the structure used to create an :term:`object format`
-    of variant B. ::
-
-        typedef struct mps_fmt_B_s {
-            mps_align_t     align;
-            mps_fmt_scan_t  scan;
-            mps_fmt_skip_t  skip;
-            mps_fmt_copy_t  copy;
-            mps_fmt_fwd_t   fwd;
-            mps_fmt_isfwd_t isfwd;
-            mps_fmt_pad_t   pad;
-            mps_fmt_class_t mps_class;
-        } mps_fmt_B_s;
-
-    Variant B is the same as variant A except for the addition of the
-    ``mps_class`` method. See :c:type:`mps_fmt_A_s`.
-
-
-.. c:function:: mps_res_t mps_fmt_create_B(mps_fmt_t *fmt_o, mps_arena_t arena, mps_fmt_B_s *fmt_B)
-
-    Create an :term:`object format` based on a description of an
-    object format of variant B.
-
-
-.. c:type:: mps_fmt_auto_header_s
-
-    The type of the structure used to create an :term:`object format`
-    of variant auto-header. ::
-
-        typedef struct mps_fmt_auto_header_s {
-            mps_align_t     align;
-            mps_fmt_scan_t  scan;
-            mps_fmt_skip_t  skip;
-            mps_fmt_fwd_t   fwd;
-            mps_fmt_isfwd_t isfwd;
-            mps_fmt_pad_t   pad;
-            size_t          mps_headerSize;
-        } mps_fmt_auto_header_s;
-
-    Variant auto-header is the same as variant A except for the
-    removal of the unused ``copy`` method, and the addition of the
-    ``mps_headerSize`` field. See :c:type:`mps_fmt_A_s`.
-
-
-.. c:function:: mps_res_t mps_fmt_create_auto_header(mps_fmt_t *fmt_o, mps_arena_t arena, mps_fmt_auto_header_s *fmt_ah)
-
-    Create an :term:`object format` based on a description of an
-    object format of variant auto-header.
-
-
-.. c:type:: mps_fmt_fixed_s
-
-    The type of the structure used to create an :term:`object format`
-    of variant fixed. ::
-
-        typedef struct mps_fmt_fixed_s {
-            mps_align_t     align;
-            mps_fmt_scan_t  scan;
-            mps_fmt_fwd_t   fwd;
-            mps_fmt_isfwd_t isfwd;
-            mps_fmt_pad_t   pad;
-        } mps_fmt_fixed_s;
-
-    Variant fixed is the same as variant A except for the removal of
-    the unused ``copy`` method, and the lack of a ``skip`` method
-    (this is not needed because the objects are fixed in size). See
-    :c:type:`mps_fmt_A_s`.
-
-
-.. c:function:: mps_res_t mps_fmt_create_fixed(mps_fmt_t *fmt_o, mps_arena_t arena, mps_fmt_fixed_s *fmt_fixed)
-
-    Create an :term:`object format` based on a description of an
-    object format of variant fixed.

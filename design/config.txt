@@ -20,6 +20,9 @@ _`.intro`: This document describes how the `Memory Pool System
 that it can target different architectures, operating systems, build
 environments, varieties, and products.
 
+_`.readership`: Any MPS developer; anyone porting the MPS to a new
+platform.
+
 
 
 Requirements
@@ -97,6 +100,10 @@ as a dimension of configuration since `.req.prod`_ has been retired.
 
 _`.def.target`: The *target* is the result of the build.
 
+_`.def.option`: An *option* is a feature of the MPS that is not
+selected via the *platform* and *variety*. See `.opt`_.
+
+
 
 Overview
 --------
@@ -150,7 +157,7 @@ _`.build.cc`: A consequence of this approach is that it should always
 be possible to build a complete target with a single UNIX command line
 calling the compiler driver (usually "cc" or "gcc"), for example::
 
-    cc -o main -DCONFIG_VAR_DF foo.c bar.c baz.s -lz
+    cc -o main -DCONFIG_VAR_COOL foo.c bar.c baz.s -lz
 
 _`.build.defs`: The "defs" are the set of preprocessor macros which are to be 
 predefined when compiling the module sources::
@@ -180,7 +187,7 @@ _`.var.rash`: ``RASH``
     bugs tend to be extremely expensive to deal with.
 
 _`.default.hot`: If no ``CONFIG_VAR`` is present, ``HOT`` is assumed in
-`config.h`_.
+config.h_.
 
 _`.build.srcs`: The "srcs" are the set of sources that must be
 compiled in order to build the target. The set of sources may vary
@@ -190,7 +197,7 @@ may be required to build different architectures.
 .. note::
 
     This is a dependency between the makefile (or whatever) and the
-    module configuration in `config.h`_.
+    module configuration in config.h_.
 
 _`.build.libs`: The "libs" are the set of libraries to which the
 compiled sources must be linked in order to build the target. For
@@ -284,7 +291,7 @@ Publishing division of Harlequin.
 Implementation
 --------------
 
-_`.impl`: The two implementation files `config.h`_ and `mpstd.h`_ can be
+_`.impl`: The two implementation files config.h_ and mpstd.h_ can be
 seen as preprocessor programs which "accept" build parameters and "emit"
 configuration parameters (`.fig.impl`_).  The build parameters are
 defined either by the builder (in the case of target detection) or by
@@ -299,8 +306,8 @@ Build parameters            Source file    Configuration parameters
 ``_WIN32``                  ⟶ ``mpstd.h``  ⟶ ``MPS_OS_W3``, etc.
 =========================== ============== ===========================================
 
-_`.impl.dep`: No source code, other than the directives in `config.h`_
-and `mpstd.h`_, should depend on any build parameters.  That is,
+_`.impl.dep`: No source code, other than the directives in config.h_
+and mpstd.h_, should depend on any build parameters.  That is,
 identifers beginning "CONFIG\_" should only appear in impl.h.config. 
 Code may depend on configuration parameters in certain, limited ways, as
 defined below (`.conf`_).
@@ -313,18 +320,20 @@ Target platform detection
 .........................
 
 _`.pf`: The target platform is "detected" by the preprocessor directives in 
-`mpstd.h`_.
+mpstd.h_.
 
 _`.pf.form`: This file consists of sets of directives of the form::
 
     #elif <conjunction of builder predefinitions>
     #define MPS_PF_<platform code>
+    #define MPS_PF_STRING "<platform code>"
     #define MPS_OS_<operating system code>
     #define MPS_ARCH_<architecture code>
     #define MPS_BUILD_<builder code>
     #define MPS_T_WORD     <word type>
     #define MPS_T_ULONGEST <longest unsigned integer type>
-    #define MPS_WORD_SHIFT <word shift>
+    #define MPS_WORD_WIDTH <word width in bits>
+    #define MPS_WORD_SHIFT <log to the base 2 of word width>
     #define MPS_PF_ALIGN   <minimum alignment>
 
 _`.pf.detect`: The conjunction of builder predefinitions is a constant
@@ -351,11 +360,13 @@ the the target detected (`.pf.detect`_).  For example::
 _`.pf.word`: The declaration of ``MPS_T_WORD`` defines the unsigned
 integral type which corresponds, on the detected target, to the
 machine word. It is used to defined the MPS Word type
-(design.mps.type.word). For example::
+(design.mps.type.word_). For example::
 
     #define MPS_T_WORD      unsigned long
 
-We avoid using ``typedef`` here because `mpstd.h`_ could potentially
+.. _design.mps.type.word: type#word
+
+We avoid using ``typedef`` here because mpstd.h_ could potentially
 be included in assembly language source code.
 
 _`.pf.word-width`: The declaration of ``MPS_WORD_WIDTH`` defines the
@@ -511,6 +522,33 @@ For example, this sort of thing::
     }
 
 This violates `.no-spaghetti`_.
+
+
+Configuration options
+---------------------
+
+_`.opt`: Options select features of the MPS that are not selected by the *platform* and the *variety*.
+
+_`.opt.support`: The features selected by options are not supported or
+documented in the public interface. This is to keep the complexity of
+the MPS manageable: at present the number of supported configuration
+is *platforms* × *varieties* (at time of writing, 9 × 3 = 27). Each
+supported option would double (or worse) the number of supported
+configurations.
+
+_`.opt.ansi`: ``CONFIG_PF_ANSI`` tells ``mps.c`` to exclude the
+sources for the auto-detected platform, and use the generic ("ANSI")
+platform instead.
+
+_`.opt.thread`: ``CONFIG_THREAD_SINGLE`` causes the MPS to be built
+for single-threaded execution only, where locks are not needed and so
+lock operations can be defined as no-ops by ``lock.h``.
+
+_`.opt.poll`: ``CONFIG_POLL_NONE`` causes the MPS to be built without
+support for polling. This means that garbage collections will only
+happen if requested explicitly via ``mps_arena_collect()`` or
+``mps_arena_step()``, but it also means that protection is not needed,
+and so shield operations can be replaced with no-ops in ``mpm.h``.
 
 
 To document

@@ -14,22 +14,18 @@
 #include "mpmtypes.h"
 
 
-/* Signatures */
-
-#define RangeSig ((Sig)0x5196A493) /* SIGnature RANGE */
-
-
 /* Prototypes */
-
-typedef struct RangeStruct *Range;
 
 #define RangeBase(range) ((range)->base)
 #define RangeLimit(range) ((range)->limit)
 #define RangeSize(range) (AddrOffset(RangeBase(range), RangeLimit(range)))
+#define RangeContains(range, addr) ((range)->base <= (addr) && (addr) < (range)->limit)
+#define RangeIsEmpty(range) (RangeSize(range) == 0)
 
 extern void RangeInit(Range range, Addr base, Addr limit);
+extern void RangeInitSize(Range range, Addr base, Size size);
 extern void RangeFinish(Range range);
-extern Res RangeDescribe(Range range, mps_lib_FILE *stream);
+extern Res RangeDescribe(Range range, mps_lib_FILE *stream, Count depth);
 extern Bool RangeCheck(Range range);
 extern Bool RangeIsAligned(Range range, Align align);
 extern Bool RangesOverlap(Range range1, Range range2);
@@ -38,12 +34,12 @@ extern Bool RangesEqual(Range range1, Range range2);
 extern Addr (RangeBase)(Range range);
 extern Addr (RangeLimit)(Range range);
 extern Size (RangeSize)(Range range);
+extern void RangeCopy(Range to, Range from);
 
 
 /* Types */
 
 typedef struct RangeStruct {
-  Sig sig;
   Addr base;
   Addr limit;
 } RangeStruct;
