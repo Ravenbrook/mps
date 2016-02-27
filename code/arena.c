@@ -233,6 +233,10 @@ Res ArenaInit(Arena arena, ArenaClass class, Size grainSize, ArgList args)
   RingInit(&arena->chunkRing);
   arena->chunkTree = TreeEMPTY;
   arena->chunkSerial = (Serial)0;
+  SplayTreeInit(ArenaSegSplay(arena),
+                SegCompare,
+                SegKey,
+                SplayTrivUpdate);
   
   LocusInit(arena);
   
@@ -398,6 +402,7 @@ void ArenaFinish(Arena arena)
   arena->sig = SigInvalid;
   GlobalsFinish(ArenaGlobals(arena));
   LocusFinish(arena);
+  SplayTreeFinish(ArenaSegSplay(arena));
   RingFinish(&arena->chunkRing);
   AVER(ArenaChunkTree(arena) == TreeEMPTY);
 }
