@@ -170,7 +170,6 @@ static Res SegInit(Seg seg, Pool pool, Addr base, Size size,
     AVER(TractP(tract) == NULL);
     AVER(!TractHasSeg(tract));
     AVER(TractPool(tract) == pool);
-    AVER(TractWhite(tract) == TraceSetEMPTY);
     TRACT_SET_SEG(tract, seg);
     if (addr == base) {
       AVER(seg->firstTract == NULL);
@@ -232,7 +231,6 @@ static void SegFinish(Seg seg)
   
   TRACT_TRACT_FOR(tract, addr, arena, seg->firstTract, limit) {
     AVERT(Tract, tract);
-    TractSetWhite(tract, TraceSetEMPTY);
     TRACT_UNSET_SEG(tract);
   }
   AVER(addr == seg->limit);
@@ -706,7 +704,6 @@ Bool SegCheck(Seg seg)
       CHECKD_NOSIG(Tract, tract);
       CHECKL(TRACT_SEG(&trseg, tract));
       CHECKL(trseg == seg);
-      CHECKL(TractWhite(tract) == seg->white);
       CHECKL(TractPool(tract) == pool);
     }
     CHECKL(addr == seg->limit);
@@ -1259,9 +1256,7 @@ static void gcSegSetGrey(Seg seg, TraceSet grey)
 static void gcSegSetWhite(Seg seg, TraceSet white)
 {
   GCSeg gcseg;
-  Tract tract;
   Arena arena;
-  Addr addr, limit;
 
   AVERT_CRITICAL(Seg, seg);            /* .seg.method.check */
   AVERT_CRITICAL(TraceSet, white);     /* .seg.method.check */
@@ -1271,17 +1266,6 @@ static void gcSegSetWhite(Seg seg, TraceSet white)
 
   arena = PoolArena(SegPool(seg));
   AVERT_CRITICAL(Arena, arena);
-  limit = SegLimit(seg);
-  /* Each tract of the segment records white traces */
-  TRACT_TRACT_FOR(tract, addr, arena, seg->firstTract, limit) {
-    Seg trseg = NULL; /* suppress compiler warning */
-
-    AVERT_CRITICAL(Tract, tract);
-    AVER_CRITICAL(TRACT_SEG(&trseg, tract));
-    AVER_CRITICAL(trseg == seg);
-    TractSetWhite(tract, BS_BITFIELD(Trace, white));
-  }
-  AVER(addr == limit);
 
   seg->white = BS_BITFIELD(Trace, white);
 }
