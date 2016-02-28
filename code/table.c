@@ -324,7 +324,9 @@ extern Res TableDefine(Table table, Word key, void *value)
     Res res = place(table, &key, &value);
     if (res != ResLIMIT)
       return res;
-    TableGrow(table, table->count);
+    res = TableGrow(table, table->count);
+    AVER(res == ResOK);
+    /* Should randomize the hash functions and rehash in place. */
   }
 }
   
