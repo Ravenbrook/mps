@@ -137,8 +137,7 @@ void SegFree(Seg seg)
 static Res SegInit(Seg seg, Pool pool, Addr base, Size size,
                    Bool withReservoirPermit, ArgList args)
 {
-  Tract tract;
-  Addr addr, limit;
+  Addr limit;
   Arena arena;
   SegClass class;
   Res res;
@@ -162,23 +161,9 @@ static Res SegInit(Seg seg, Pool pool, Addr base, Size size,
   seg->pm = AccessSetEMPTY;
   seg->sm = AccessSetEMPTY;
   seg->depth = 0;
-  seg->firstTract = NULL;
+  seg->firstTract = TractOfBaseAddr(arena, base);
 
   seg->sig = SegSig;  /* set sig now so tract checks will see it */
-
-  TRACT_FOR(tract, addr, arena, base, limit) {
-    AVERT(Tract, tract);
-    AVER(TractP(tract) == NULL);
-    AVER(!TractHasSeg(tract));
-    AVER(TractPool(tract) == pool);
-    TRACT_SET_SEG(tract, seg);
-    if (addr == base) {
-      AVER(seg->firstTract == NULL);
-      seg->firstTract = tract;
-    }
-    AVER(seg->firstTract != NULL);
-  }
-  AVER(addr == seg->limit);
 
   RingInit(SegPoolRing(seg));
   TreeInit(SegTree(seg));
@@ -196,10 +181,6 @@ static Res SegInit(Seg seg, Pool pool, Addr base, Size size,
 
 failInit:
   RingFinish(SegPoolRing(seg));
-  TRACT_FOR(tract, addr, arena, base, limit) {
-    AVERT(Tract, tract);
-    TRACT_UNSET_SEG(tract);
-  }
   seg->sig = SigInvalid;
   return res;
 }
@@ -210,8 +191,6 @@ failInit:
 static void SegFinish(Seg seg)
 {
   Arena arena;
-  Addr addr, limit;
-  Tract tract;
   SegClass class;
   Bool b;
 
@@ -232,14 +211,6 @@ static void SegFinish(Seg seg)
   /* See <code/shield.c#shield.flush> */
   ShieldFlush(PoolArena(SegPool(seg)));
 
-  limit = SegLimit(seg);
-  
-  TRACT_TRACT_FOR(tract, addr, arena, seg->firstTract, limit) {
-    AVERT(Tract, tract);
-    TRACT_UNSET_SEG(tract);
-  }
-  AVER(addr == seg->limit);
-
   b = SplayTreeDelete(ArenaSegSplay(arena), SegTree(seg));
   AVER(b); /* seg should be in arena splay tree */
   RingRemove(SegPoolRing(seg));
@@ -254,7 +225,6 @@ static void SegFinish(Seg seg)
   /* fund are not protected) */
   AVER(seg->sm == AccessSetEMPTY);
   AVER(seg->pm == AccessSetEMPTY);
- 
 }
 
 
@@ -267,7 +237,7 @@ Compare SegCompare(Tree tree, TreeKey key)
 
   AVERT_CRITICAL(Tree, tree);
   AVER_CRITICAL(tree != TreeEMPTY);
-  AVER_CRITICAL(key != NULL);
+  /* Can't check anything about key -- it's an arbitrary address. */
 
   seg = segOfTree(tree);
   addr = (Addr)key; /* FIXME: See baseOfKey in cbs.c */
@@ -735,11 +705,7 @@ Bool SegCheck(Seg seg)
     Tract tract;
     Addr addr;
     TRACT_TRACT_FOR(tract, addr, arena, seg->firstTract, seg->limit) {
-      Seg trseg = NULL; /* suppress compiler warning */
-
       CHECKD_NOSIG(Tract, tract);
-      CHECKL(TRACT_SEG(&trseg, tract));
-      CHECKL(trseg == seg);
       CHECKL(TractPool(tract) == pool);
     }
     CHECKL(addr == seg->limit);
@@ -752,7 +718,7 @@ Bool SegCheck(Seg seg)
   /*  CHECKL(RingNext(&seg->poolRing) != &seg->poolRing); */
 
   CHECKD_NOSIG(Ring, &seg->poolRing);
-   
+
   /* "pm", "sm", and "depth" not checked.  See .check.shield. */
   CHECKL(RankSetCheck(seg->rankSet));
   if (seg->rankSet == RankSetEMPTY) {
@@ -913,8 +879,6 @@ static Res segTrivMerge(Seg seg, Seg segHi,
 {
   Pool pool;
   Arena arena;
-  Tract tract;
-  Addr addr;
 
   AVERT(Seg, seg);
   AVERT(Seg, segHi);
@@ -946,14 +910,6 @@ static Res segTrivMerge(Seg seg, Seg segHi,
   /* no need to update fields which match. See .similar */
 
   seg->limit = limit;
-  TRACT_FOR(tract, addr, arena, mid, limit) {
-    AVERT(Tract, tract);
-    AVER(TractHasSeg(tract));
-    AVER(segHi == TractP(tract));
-    AVER(TractPool(tract) == pool);
-    TRACT_SET_SEG(tract, seg);
-  }
-  AVER(addr == seg->limit);
 
   /* Finish segHi. */
   RingRemove(SegPoolRing(segHi));
@@ -990,9 +946,7 @@ static Res segTrivSplit(Seg seg, Seg segHi,
                         Addr base, Addr mid, Addr limit,
                         Bool withReservoirPermit)
 {
-  Tract tract;
   Pool pool;
-  Addr addr;
   Arena arena;
 
   AVERT(Seg, seg);
@@ -1027,19 +981,7 @@ static Res segTrivSplit(Seg seg, Seg segHi,
   segHi->sig = SegSig;
   RingInit(SegPoolRing(segHi));
 
-  TRACT_FOR(tract, addr, arena, mid, limit) {
-    AVERT(Tract, tract);
-    AVER(TractHasSeg(tract));
-    AVER(seg == TractP(tract));
-    AVER(TractPool(tract) == pool);
-    TRACT_SET_SEG(tract, segHi);
-    if (addr == mid) {
-      AVER(segHi->firstTract == NULL);
-      segHi->firstTract = tract;
-    }
-    AVER(segHi->firstTract != NULL);
-  }
-  AVER(addr == segHi->limit);
+  segHi->firstTract = TractOfBaseAddr(arena, mid);
 
   RingAppend(&pool->segRing, SegPoolRing(segHi));
   AVERT(Seg, seg);
