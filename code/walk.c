@@ -246,6 +246,30 @@ static Res rootWalkGrey(Root root, void *p)
 
 /* ArenaRootsWalk -- walks all the root in the arena */
 
+static Bool rootsWalkWhiteVisit(Seg seg, void *closureP, Size closureS)
+{
+  Trace trace = closureP;
+  AVER(closureS == sizeof(*trace));
+  /* TODO: Should use segment class test here? */
+  if (PoolHasAttr(SegPool(seg), AttrGC)) {
+    Res res = TraceAddWhite(trace, seg);
+    AVER(res == ResOK);
+  }
+  return TRUE;
+}
+
+static Bool rootsWalkBlackVisit(Seg seg, void *closureP, Size closureS)
+{
+  Trace trace = closureP;
+  AVER(closureS == sizeof(*trace));
+  /* TODO: Should use segment class test here? */
+  if (PoolHasAttr(SegPool(seg), AttrGC)) {
+    SegSetGrey(seg, TraceSetDel(SegGrey(seg), trace));
+    SegSetWhite(seg, TraceSetDel(SegWhite(seg), trace));
+  }
+  return TRUE;
+}
+
 static Res ArenaRootsWalk(Globals arenaGlobals, mps_roots_stepper_t f,
                           void *p, size_t s)
 {
@@ -256,7 +280,6 @@ static Res ArenaRootsWalk(Globals arenaGlobals, mps_roots_stepper_t f,
   ScanState ss;
   Rank rank;
   Res res;
-  Seg seg;
 
   AVERT(Globals, arenaGlobals);
   AVER(FUNCHECK(f));
@@ -276,14 +299,7 @@ static Res ArenaRootsWalk(Globals arenaGlobals, mps_roots_stepper_t f,
 
   /* ArenaRootsWalk only passes references to GCable pools to the client. */
   /* NOTE: I'm not sure why this is. RB 2012-07-24 */
-  if (SegFirst(&seg, arena)) {
-    do {
-      if (PoolHasAttr(SegPool(seg), AttrGC)) {
-        res = TraceAddWhite(trace, seg);
-        AVER(res == ResOK);
-      }
-    } while (SegNext(&seg, arena, seg));
-  }
+  SegTraverse(arena, rootsWalkWhiteVisit, trace, sizeof(*trace));
 
   /* Make the roots grey so that they are scanned */
   res = RootsIterate(arenaGlobals, rootWalkGrey, trace);
@@ -302,14 +318,7 @@ static Res ArenaRootsWalk(Globals arenaGlobals, mps_roots_stepper_t f,
   }
 
   /* Turn segments black again. */
-  if (SegFirst(&seg, arena)) {
-    do {
-      if (PoolHasAttr(SegPool(seg), AttrGC)) {
-        SegSetGrey(seg, TraceSetDel(SegGrey(seg), trace));
-        SegSetWhite(seg, TraceSetDel(SegWhite(seg), trace));
-      }
-    } while (SegNext(&seg, arena, seg));
-  }
+  SegTraverse(arena, rootsWalkBlackVisit, trace, sizeof(*trace));
 
   rootsStepClosureFinish(rsc);
   /* Make this trace look like any other finished trace. */
