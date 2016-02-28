@@ -1581,7 +1581,7 @@ static void AMSBlacken(Pool pool, TraceSet traceSet, Seg seg)
 
 /* AMSReclaim -- the pool class reclamation method */
 
-static void AMSReclaim(Pool pool, Trace trace, Seg seg)
+static Bool AMSReclaim(Pool pool, Trace trace, Seg seg)
 {
   AMS ams;
   AMSSeg amsseg;
@@ -1643,13 +1643,17 @@ static void AMSReclaim(Pool pool, Trace trace, Seg seg)
   amsseg->colourTablesInUse = FALSE;
   SegSetWhite(seg, TraceSetDel(SegWhite(seg), trace));
 
-  if (amsseg->freeGrains == grains && SegBuffer(seg) == NULL)
+  if (amsseg->freeGrains == grains && SegBuffer(seg) == NULL) {
     /* No survivors */
     PoolGenFree(&ams->pgen, seg,
                 AMSGrainsSize(ams, amsseg->freeGrains),
                 AMSGrainsSize(ams, amsseg->oldGrains),
                 AMSGrainsSize(ams, amsseg->newGrains),
                 FALSE);
+    return TRUE;
+  }
+
+  return FALSE;
 }
 
 

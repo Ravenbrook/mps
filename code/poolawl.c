@@ -1106,7 +1106,7 @@ static Res AWLFix(Pool pool, ScanState ss, Seg seg, Ref *refIO)
 
 /* AWLReclaim -- reclaim dead objects in an AWL segment */
 
-static void AWLReclaim(Pool pool, Trace trace, Seg seg)
+static Bool AWLReclaim(Pool pool, Trace trace, Seg seg)
 {
   Addr base;
   AWL awl;
@@ -1181,13 +1181,17 @@ static void AWLReclaim(Pool pool, Trace trace, Seg seg)
   trace->preservedInPlaceSize += preservedInPlaceSize;
   SegSetWhite(seg, TraceSetDel(SegWhite(seg), trace));
 
-  if (awlseg->freeGrains == awlseg->grains && buffer == NULL)
+  if (awlseg->freeGrains == awlseg->grains && buffer == NULL) {
     /* No survivors */
     PoolGenFree(&awl->pgen, seg,
                 AWLGrainsSize(awl, awlseg->freeGrains),
                 AWLGrainsSize(awl, awlseg->oldGrains),
                 AWLGrainsSize(awl, awlseg->newGrains),
                 FALSE);
+    return TRUE;
+  }
+
+  return FALSE;
 }
 
 

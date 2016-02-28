@@ -1698,7 +1698,7 @@ returnRes:
 
 /* amcReclaimNailed -- reclaim what you can from a nailed segment */
 
-static void amcReclaimNailed(Pool pool, Trace trace, Seg seg)
+static Bool amcReclaimNailed(Pool pool, Trace trace, Seg seg)
 {
   Addr p, limit;
   Arena arena;
@@ -1798,7 +1798,10 @@ static void amcReclaimNailed(Pool pool, Trace trace, Seg seg)
     AVER(SegBuffer(seg) == NULL);
 
     PoolGenFree(&gen->pgen, seg, 0, SegSize(seg), 0, Seg2amcSeg(seg)->deferred);
+    return TRUE;
   }
+
+  return FALSE;
 }
 
 
@@ -1806,7 +1809,7 @@ static void amcReclaimNailed(Pool pool, Trace trace, Seg seg)
  *
  * See <design/poolamc/#reclaim>.
  */
-static void AMCReclaim(Pool pool, Trace trace, Seg seg)
+static Bool AMCReclaim(Pool pool, Trace trace, Seg seg)
 {
   AMC amc;
   amcGen gen;
@@ -1834,8 +1837,7 @@ static void AMCReclaim(Pool pool, Trace trace, Seg seg)
   }
 
   if(SegNailed(seg) != TraceSetEMPTY) {
-    amcReclaimNailed(pool, trace, seg);
-    return;
+    return amcReclaimNailed(pool, trace, seg);
   }
 
   /* We may not free a buffered seg.  (But all buffered + condemned */
@@ -1845,6 +1847,8 @@ static void AMCReclaim(Pool pool, Trace trace, Seg seg)
   trace->reclaimSize += SegSize(seg);
 
   PoolGenFree(&gen->pgen, seg, 0, SegSize(seg), 0, Seg2amcSeg(seg)->deferred);
+
+  return TRUE;
 }
 
 

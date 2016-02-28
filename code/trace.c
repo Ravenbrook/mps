@@ -404,43 +404,68 @@ failDefine:
  * because some pools still use TraceAddWhite for the condemned set.
  *
  * @@@@ This function would be more efficient if there were a cheaper
- * way to select the segments in a particular zone set.  */
+ * way to select the segments in a particular zone set.
+ */
+
+typedef struct TraceCondemnZonesClosureStruct {
+  Trace trace;
+  ZoneSet condemnedSet;
+  Res res;
+  Bool haveWhiteSegs;
+} TraceCondemnZonesClosureStruct, *TraceCondemnZonesClosure;
+
+static Bool traceCondemnZonesVisit(Seg seg, void *closureP, Size closureS)
+{
+  TraceCondemnZonesClosure tcz = closureP;
+  Trace trace = tcz->trace;
+  Arena arena = tcz->trace->arena;
+  ZoneSet condemnedSet = tcz->condemnedSet;
+  Bool haveWhiteSegs = FALSE;
+
+  AVER(closureS == sizeof(*tcz));
+
+  /* Segment should be black now. */
+  AVER(!TraceSetIsMember(SegGrey(seg), trace));
+  AVER(!TraceSetIsMember(SegWhite(seg), trace));
+
+  /* A segment can only be white if it is GC-able. */
+  /* This is indicated by the pool having the GC attribute */
+  /* We only condemn segments that fall entirely within */
+  /* the requested zone set.  Otherwise, we would bloat the */
+  /* foundation to no gain.  Note that this doesn't exclude */
+  /* any segments from which the condemned set was derived, */
+  if(PoolHasAttr(SegPool(seg), AttrGC)
+     && ZoneSetSuper(condemnedSet, ZoneSetOfSeg(arena, seg)))
+  {
+    Res res = TraceAddWhite(trace, seg);
+    if(res != ResOK) {
+      tcz->res = res;
+      return FALSE;
+    }
+    haveWhiteSegs = TRUE;
+  }
+
+  tcz->haveWhiteSegs = haveWhiteSegs;
+  return TRUE;
+}
 
 Res TraceCondemnZones(Trace trace, ZoneSet condemnedSet)
 {
-  Seg seg;
-  Arena arena;
-  Res res;
-  Bool haveWhiteSegs = FALSE;
+  TraceCondemnZonesClosureStruct tczStruct;
 
   AVERT(Trace, trace);
   AVER(condemnedSet != ZoneSetEMPTY);
   AVER(trace->state == TraceINIT);
   AVER(trace->white == ZoneSetEMPTY);
 
-  arena = trace->arena;
-
-  if(SegFirst(&seg, arena)) {
-    do {
-      /* Segment should be black now. */
-      AVER(!TraceSetIsMember(SegGrey(seg), trace));
-      AVER(!TraceSetIsMember(SegWhite(seg), trace));
-
-      /* A segment can only be white if it is GC-able. */
-      /* This is indicated by the pool having the GC attribute */
-      /* We only condemn segments that fall entirely within */
-      /* the requested zone set.  Otherwise, we would bloat the */
-      /* foundation to no gain.  Note that this doesn't exclude */
-      /* any segments from which the condemned set was derived, */
-      if(PoolHasAttr(SegPool(seg), AttrGC)
-         && ZoneSetSuper(condemnedSet, ZoneSetOfSeg(arena, seg)))
-      {
-        res = TraceAddWhite(trace, seg);
-        if(res != ResOK)
-          goto failBegin;
-        haveWhiteSegs = TRUE;
-      }
-    } while (SegNext(&seg, arena, seg));
+  tczStruct.trace = trace;
+  tczStruct.condemnedSet = condemnedSet;
+  tczStruct.haveWhiteSegs = FALSE;
+  tczStruct.res = ResOK;
+  if (!SegTraverse(trace->arena, traceCondemnZonesVisit, &tczStruct, sizeof(tczStruct))) {
+    AVER(tczStruct.res != ResOK);
+    AVER(!tczStruct.haveWhiteSegs); /* See .whiten.fail. */
+    return tczStruct.res;
   }
 
   EVENT3(TraceCondemnZones, trace, condemnedSet, trace->white);
@@ -449,10 +474,6 @@ Res TraceCondemnZones(Trace trace, ZoneSet condemnedSet)
   AVER(ZoneSetSuper(condemnedSet, trace->white));
 
   return ResOK;
-
-failBegin:
-  AVER(!haveWhiteSegs); /* See .whiten.fail. */
-  return res;
 }
 
 
@@ -860,53 +881,58 @@ void TraceDestroy(Trace trace)
 
 /* traceReclaim -- reclaim the remaining objects white for this trace */
 
+static Bool traceReclaimVisit(Seg seg, void *closureP, Size closureS)
+{
+  Trace trace = closureP;
+  Pool pool;
+
+  AVERT_CRITICAL(Trace, trace);
+  AVERT_CRITICAL(Seg, seg);
+  AVER_CRITICAL(closureS == sizeof(*trace));
+
+  /* There shouldn't be any grey stuff left for this trace. */
+  AVER_CRITICAL(!TraceSetIsMember(SegGrey(seg), trace));
+
+  if (!TraceSetIsMember(SegWhite(seg), trace))
+    return FALSE;
+
+  pool = SegPool(seg);
+  AVER_CRITICAL(PoolHasAttr(pool, AttrGC));
+  STATISTIC(++trace->reclaimCount);
+
+  if (PoolReclaim(pool, trace, seg))
+    return TRUE;
+
+  /* If the segment still exists, it should no longer be white. */
+  /* TODO: The code from the class-specific reclaim methods to
+     unwhiten the segment could in fact be moved here. */
+  AVERT_CRITICAL(Seg, seg);
+  AVER_CRITICAL(!TraceSetIsMember(SegWhite(seg), trace));
+
+  return FALSE;
+}
+
 static void traceReclaim(Trace trace)
 {
   Arena arena;
-  Seg seg;
   Ring node, nextNode;
 
+  AVERT(Trace, trace);
   AVER(trace->state == TraceRECLAIM);
 
-  EVENT1(TraceReclaim, trace);
   arena = trace->arena;
-  if(SegFirst(&seg, arena)) {
-    Pool pool;
-    Ring next;
-    do {
-      Addr base = SegBase(seg);
-      pool = SegPool(seg);
-      next = RingNext(SegPoolRing(seg));
 
-      /* There shouldn't be any grey stuff left for this trace. */
-      AVER_CRITICAL(!TraceSetIsMember(SegGrey(seg), trace));
+  EVENT1(TraceReclaim, trace);
 
-      if(TraceSetIsMember(SegWhite(seg), trace)) {
-        AVER_CRITICAL(PoolHasAttr(pool, AttrGC));
-        STATISTIC(++trace->reclaimCount);
-        PoolReclaim(pool, trace, seg);
-
-        /* If the segment still exists, it should no longer be white. */
-        /* Note that the seg returned by this SegOfAddr may not be */
-        /* the same as the one above, but in that case it's new and */
-        /* still shouldn't be white for this trace. */
-
-        /* The code from the class-specific reclaim methods to */
-        /* unwhiten the segment could in fact be moved here.   */
-        {
-          Seg nonWhiteSeg = NULL;       /* prevents compiler warning */
-          AVER_CRITICAL(!(SegOfAddr(&nonWhiteSeg, arena, base)
-                          && TraceSetIsMember(SegWhite(nonWhiteSeg), trace)));
-          UNUSED(nonWhiteSeg); /* <code/mpm.c#check.unused> */
-        }
-      }
-    } while(SegNextOfRing(&seg, arena, pool, next));
-  }
+  /* TODO: This isn't very nice, as it rebalances the segment splay
+     tree and destroys any optimisation discovered by splaying. */
+  SegTraverseAndDelete(arena, traceReclaimVisit, trace, sizeof(*trace));
 
   trace->state = TraceFINISHED;
+  arena = trace->arena;
 
   /* Call each pool's TraceEnd method -- do end-of-trace work */
-  RING_FOR(node, &ArenaGlobals(arena)->poolRing, nextNode) {
+  RING_FOR(node, ArenaPoolRing(arena), nextNode) {
     Pool pool = RING_ELT(Pool, arenaRing, node);
     PoolTraceEnd(pool, trace);
   }
