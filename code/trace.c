@@ -347,6 +347,8 @@ Res TraceAddWhite(Trace trace, Seg seg)
 {
   Res res;
   Pool pool;
+  Addr addr;
+  Size grainSize;
 
   AVERT(Trace, trace);
   AVERT(Seg, seg);
@@ -354,18 +356,15 @@ Res TraceAddWhite(Trace trace, Seg seg)
 
   pool = SegPool(seg);
   AVERT(Pool, pool);
+  grainSize = ArenaGrainSize(PoolArena(pool));
 
-  {
-    Tract tract;
-    Addr base;
-    TRACT_TRACT_FOR(tract, base, trace->arena, seg->firstTract, seg->limit) {
-      Word key = (Word)TractBase(tract);
-      AVER(AddrIsAligned(TractBase(tract), ArenaGrainSize(PoolArena(pool))));
-      res = TableDefine(trace->whiteTable, key, seg);
-      AVER(res == ResOK); /* no error path to remove entries */
-      if (res != ResOK)
-        goto failDefine;
-    }
+  /* Add all the grains in the segment to the white table so that the
+     segment can be looked up fast in TraceFix. */
+  for (addr = SegBase(seg); addr < SegLimit(seg); addr = AddrAdd(addr, grainSize)) {
+    res = TableDefine(trace->whiteTable, (Word)addr, seg);
+    AVER(res == ResOK); /* no error path to remove entries */
+    if (res != ResOK)
+      goto failDefine;
   }
 
   /* Give the pool the opportunity to turn the segment white. */
@@ -388,8 +387,9 @@ Res TraceAddWhite(Trace trace, Seg seg)
   return ResOK;
 
 failWhiten:
-  /* TableRemove(trace->whiteTable, key); */
+  /* FIXME: TableRemove(trace->whiteTable, key); */
 failDefine:
+  /* FIXME: Remove partial entries in table. */
   return res;
 }
 
