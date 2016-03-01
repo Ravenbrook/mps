@@ -138,7 +138,7 @@ typedef struct MFSStruct {      /* MFS outer structure */
   struct MFSHeaderStruct *freeList; /* head of the free list */
   Size total;                   /* total size allocated from arena */
   Size free;                    /* free space in pool */
-  Tract tractList;              /* the first tract */
+  Addr extentList;              /* linked list of extents */
   Sig sig;                      /* <design/sig/> */
 } MFSStruct;
 

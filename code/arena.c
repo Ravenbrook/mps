@@ -435,8 +435,8 @@ static void arenaFreeLandFinish(Arena arena)
 
   /* The CBS block pool can't free its own memory via ArenaFree because
    * that would use the free land. */
-  MFSFinishTracts(ArenaCBSBlockPool(arena), arenaMFSPageFreeVisitor,
-                  UNUSED_POINTER, UNUSED_SIZE);
+  MFSFinishExtents(ArenaCBSBlockPool(arena), arenaMFSPageFreeVisitor,
+                   UNUSED_POINTER, UNUSED_SIZE);
 
   arena->hasFreeLand = FALSE;
   LandFinish(ArenaFreeLand(arena));

@@ -106,15 +106,17 @@ static Res MFSInit(Pool pool, ArgList args)
   if (unitSize < UNIT_MIN)
     unitSize = UNIT_MIN;
   unitSize = SizeAlignUp(unitSize, MPS_PF_ALIGN);
-  if (extendBy < unitSize)
-    extendBy = unitSize;
+  /* Ensure extents have space for at least one unit and the linked
+     list of extents. */
+  if (extendBy < unitSize + sizeof(Addr))
+    extendBy = unitSize + sizeof(Addr);
   extendBy = SizeArenaGrains(extendBy, arena);
 
   mfs->extendBy = extendBy;
   mfs->extendSelf = extendSelf;
   mfs->unitSize = unitSize;
   mfs->freeList = NULL;
-  mfs->tractList = NULL;
+  mfs->extentList = NULL;
   mfs->total = 0;
   mfs->free = 0;
   mfs->sig = MFSSig;
@@ -125,8 +127,8 @@ static Res MFSInit(Pool pool, ArgList args)
 }
 
 
-void MFSFinishTracts(Pool pool, MFSTractVisitor visitor,
-                     void *closureP, Size closureS)
+void MFSFinishExtents(Pool pool, MFSExtentVisitor visitor,
+                      void *closureP, Size closureS)
 {
   MFS mfs;
 
@@ -134,16 +136,16 @@ void MFSFinishTracts(Pool pool, MFSTractVisitor visitor,
   mfs = PoolPoolMFS(pool);
   AVERT(MFS, mfs);
   
-  while (mfs->tractList != NULL) {
-    Tract nextTract = (Tract)TractP(mfs->tractList);   /* .tract.chain */
-    visitor(pool, TractBase(mfs->tractList), mfs->extendBy, closureP, closureS);
-    mfs->tractList = nextTract;
+  while (mfs->extentList != NULL) {
+    Addr nextExtent = *(Addr *)AddrSub(AddrAdd(mfs->extentList, mfs->extendBy), sizeof(Addr)); /* .extent.chain */
+    visitor(pool, mfs->extentList, mfs->extendBy, closureP, closureS);
+    mfs->extentList = nextExtent;
   }
 }
 
 
-static void MFSTractFreeVisitor(Pool pool, Addr base, Size size,
-                                void *closureP, Size closureS)
+static void MFSExtentFreeVisitor(Pool pool, Addr base, Size size,
+                                 void *closureP, Size closureS)
 {
   AVER(closureP == UNUSED_POINTER);
   AVER(closureS == UNUSED_SIZE);
@@ -161,7 +163,7 @@ static void MFSFinish(Pool pool)
   mfs = PoolPoolMFS(pool);
   AVERT(MFS, mfs);
 
-  MFSFinishTracts(pool, MFSTractFreeVisitor, UNUSED_POINTER, UNUSED_SIZE);
+  MFSFinishExtents(pool, MFSExtentFreeVisitor, UNUSED_POINTER, UNUSED_SIZE);
 
   mfs->sig = SigInvalid;
 }
@@ -170,7 +172,6 @@ static void MFSFinish(Pool pool)
 void MFSExtend(Pool pool, Addr base, Size size)
 {
   MFS mfs;
-  Tract tract;
   Word i, unitsPerExtent;
   Size unitSize;
   Header header = NULL;
@@ -185,13 +186,9 @@ void MFSExtend(Pool pool, Addr base, Size size)
      being inserted from elsewhere then it must have been set up correctly. */
   AVER(PoolHasAddr(pool, base));
   
-  /* .tract.chain: chain first tracts through TractP(tract) */
-  tract = TractOfBaseAddr(PoolArena(pool), base);
-
-  AVER(TractPool(tract) == pool);
-
-  TractSetP(tract, (void *)mfs->tractList);
-  mfs->tractList = tract;
+  /* .extent.chain: chain extents through pointer just below limit */
+  *(Addr *)AddrSub(AddrAdd(base, size), sizeof(Addr)) = mfs->extentList;
+  mfs->extentList = base;
 
   /* Update accounting */
   mfs->total += size;
@@ -202,7 +199,7 @@ void MFSExtend(Pool pool, Addr base, Size size)
   /* free list. */
 
   unitSize = mfs->unitSize;
-  unitsPerExtent = size/unitSize;
+  unitsPerExtent = (size - sizeof(Addr))/unitSize;
   AVER(unitsPerExtent > 0);
 
 #define SUB(b, s, i)    ((Header)AddrAdd(b, (s)*(i)))
@@ -352,7 +349,7 @@ static Res MFSDescribe(Pool pool, mps_lib_FILE *stream, Count depth)
                "freeList $P\n", (WriteFP)mfs->freeList,
                "total $W\n", (WriteFW)mfs->total,
                "free $W\n", (WriteFW)mfs->free,
-               "tractList $P\n", (WriteFP)mfs->tractList,
+               "extentList $P\n", (WriteFP)mfs->extentList,
                NULL);
   if (res != ResOK)
     return res;
@@ -405,9 +402,7 @@ Bool MFSCheck(MFS mfs)
   CHECKL(SizeIsArenaGrains(mfs->extendBy, arena));
   CHECKL(SizeAlignUp(mfs->unroundedUnitSize, PoolAlignment(MFSPool(mfs))) ==
          mfs->unitSize);
-  if(mfs->tractList != NULL) {
-    CHECKD_NOSIG(Tract, mfs->tractList);
-  }
+  /* Can't check extentList. */
   CHECKL(mfs->free <= mfs->total);
   CHECKL((mfs->total - mfs->free) % mfs->unitSize == 0);
   return TRUE;
