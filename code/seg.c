@@ -153,6 +153,8 @@ static Res SegInit(Seg seg, Pool pool, Addr base, Size size,
   AVERT(Bool, withReservoirPermit);
 
   limit = AddrAdd(base, size);
+
+  /* IMPORTANT: Keep in sync with segTrivSplit. */
   seg->limit = limit;
   seg->rankSet = RankSetEMPTY;
   seg->white = TraceSetEMPTY;
@@ -162,11 +164,9 @@ static Res SegInit(Seg seg, Pool pool, Addr base, Size size,
   seg->sm = AccessSetEMPTY;
   seg->depth = 0;
   seg->firstTract = TractOfBaseAddr(arena, base);
-
-  seg->sig = SegSig;  /* set sig now so tract checks will see it */
-
   RingInit(SegPoolRing(seg));
   TreeInit(SegTree(seg));
+  seg->sig = SegSig;  /* set sig now so tract checks will see it */
 
   /* Class specific initialization comes last */
   res = class->init(seg, pool, base, size, withReservoirPermit, args);
@@ -211,8 +211,10 @@ static void SegFinish(Seg seg)
   /* See <code/shield.c#shield.flush> */
   ShieldFlush(PoolArena(SegPool(seg)));
 
+  /* IMPORTANT: Keep in sync with SegFinish. */
   b = SplayTreeDelete(ArenaSegSplay(arena), SegTree(seg));
   AVER(b); /* seg should be in arena splay tree */
+  TreeFinish(SegTree(seg));
   RingRemove(SegPoolRing(seg));
   RingFinish(SegPoolRing(seg));
 
@@ -920,6 +922,7 @@ static Res segTrivMerge(Seg seg, Seg segHi,
 {
   Pool pool;
   Arena arena;
+  Bool b;
 
   AVERT(Seg, seg);
   AVERT(Seg, segHi);
@@ -950,12 +953,19 @@ static Res segTrivMerge(Seg seg, Seg segHi,
 
   /* no need to update fields which match. See .similar */
 
-  seg->limit = limit;
 
   /* Finish segHi. */
+  /* IMPORTANT: Keep in sync with SegFinish. */
+  b = SplayTreeDelete(ArenaSegSplay(arena), SegTree(segHi));
+  AVER(b); /* seg should be in arena splay tree */
+  TreeFinish(SegTree(segHi));
   RingRemove(SegPoolRing(segHi));
   RingFinish(SegPoolRing(segHi));
   segHi->sig = SigInvalid;
+
+  /* This does not affect seg's position in the segment tree, since it
+     is address ordered and no segments overlap. */
+  seg->limit = limit;
 
   AVERT(Seg, seg);
   return ResOK;
@@ -989,6 +999,7 @@ static Res segTrivSplit(Seg seg, Seg segHi,
 {
   Pool pool;
   Arena arena;
+  Bool b;
 
   AVERT(Seg, seg);
   AVER(segHi != NULL);  /* can't check fully, it's not initialized */
@@ -1007,8 +1018,12 @@ static Res segTrivSplit(Seg seg, Seg segHi,
   /* See <design/seg/#split-merge.shield> & <code/shield.c#def.depth> */
   AVER(seg->depth == 0);
  
-  /* Full initialization for segHi. Just modify seg. */
+  /* Full initialization for segHi. Just modify seg. Note that this
+     does not affect seg's position in the segment tree, since it is
+     address-ordered and no segments overlap. */
   seg->limit = mid;
+
+  /* IMPORTANT: Keep in sync with SegInit. */
   segHi->limit = limit;
   segHi->rankSet = seg->rankSet;
   segHi->white = seg->white;
@@ -1019,14 +1034,17 @@ static Res segTrivSplit(Seg seg, Seg segHi,
   segHi->depth = seg->depth;
   segHi->firstTract = NULL;
   segHi->class = seg->class;
-  segHi->sig = SegSig;
-  RingInit(SegPoolRing(segHi));
-
   segHi->firstTract = TractOfBaseAddr(arena, mid);
+  RingInit(SegPoolRing(segHi));
+  TreeInit(SegTree(segHi));
+  segHi->sig = SegSig;
 
-  RingAppend(&pool->segRing, SegPoolRing(segHi));
   AVERT(Seg, seg);
   AVERT(Seg, segHi);
+
+  RingAppend(&pool->segRing, SegPoolRing(segHi));
+  b = SplayTreeInsert(ArenaSegSplay(arena), SegTree(segHi));
+  AVER(b); /* not already in tree */
   return ResOK;
 }
 
