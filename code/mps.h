@@ -125,34 +125,40 @@ typedef mps_addr_t (*mps_fmt_class_t)(mps_addr_t);
 
 typedef void (*mps_fun_t)(void);
 
+typedef mps_addr_t (*mps_addr_method_t)(mps_addr_t);
+
+#define _mps_VAL_ENUM(R, X) \
+  R(X, mps_bool_t, b, "boolean") \
+  R(X, char, c, "character") \
+  R(X, const char *, string, "string") \
+  R(X, int, i, "integer") \
+  R(X, unsigned, u, "unsigned integer") \
+  R(X, long, l, "long integer") \
+  R(X, unsigned long, ul, "unsigned long integer") \
+  R(X, float, f, "float") \
+  R(X, double, d, "double float") \
+  R(X, size_t, size, "size") \
+  R(X, mps_fun_t, fun, "function") \
+  R(X, mps_addr_t, addr, "address") \
+  R(X, mps_fmt_t, format, "format") \
+  R(X, mps_chain_t, chain, "chain") \
+  R(X, struct mps_pool_debug_option_s *, pool_debug_options, "pool debug options") \
+  R(X, mps_addr_method_t, addr_method, "address method") \
+  R(X, mps_align_t, align, "alignment") \
+  R(X, mps_word_t, count, "count") \
+  R(X, void *, p, "generic pointer") \
+  R(X, mps_rank_t, rank, "reference rank") \
+  R(X, mps_fmt_scan_t, fmt_scan, "format scan method") \
+  R(X, mps_fmt_skip_t, fmt_skip, "format skip method") \
+  R(X, mps_fmt_fwd_t, fmt_fwd, "format forwarding method") \
+  R(X, mps_fmt_isfwd_t, fmt_isfwd, "format forwarding test method") \
+  R(X, mps_fmt_pad_t, fmt_pad, "format padding method") \
+  R(X, mps_fmt_class_t, fmt_class, "format class method") \
+  R(X, mps_pool_t, pool, "memory pool")
+
+#define _mps_VAL_ROW(_, type, ident, doc) type ident;
 typedef union mps_val_u {
-  mps_bool_t b;
-  char c;
-  const char *string;
-  int i;
-  unsigned u;
-  long l;
-  unsigned long ul;
-  float f;
-  double d;
-  size_t size;
-  mps_fun_t fun;
-  mps_addr_t addr;
-  mps_fmt_t format;
-  mps_chain_t chain;
-  struct mps_pool_debug_option_s *pool_debug_options;
-  mps_addr_t (*addr_method)(mps_addr_t);
-  mps_align_t align;
-  mps_word_t count;
-  void *p;
-  mps_rank_t rank;
-  mps_fmt_scan_t fmt_scan;
-  mps_fmt_skip_t fmt_skip;
-  mps_fmt_fwd_t fmt_fwd;
-  mps_fmt_isfwd_t fmt_isfwd;
-  mps_fmt_pad_t fmt_pad;
-  mps_fmt_class_t fmt_class;
-  mps_pool_t pool;
+  _mps_VAL_ENUM(_mps_VAL_ROW, _)
 } mps_val_u;
 
 typedef struct mps_arg_s {
