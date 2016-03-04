@@ -22,6 +22,9 @@
 #include <stdio.h> /* fprintf, printf, putchars, sscanf, stderr, stdout */
 #include <stdlib.h> /* alloca, exit, EXIT_FAILURE, EXIT_SUCCESS, strtoul */
 #include <time.h> /* clock, CLOCKS_PER_SEC */
+#include <string.h>
+#include <limits.h>
+
 
 #define RESMUST(expr) \
   do { \
@@ -225,6 +228,133 @@ static void watch(gcthread_fn_t fn, const char *name)
 }
 
 
+/* Settable keywords. */
+
+static mps_bool_t parse_size(mps_arg_s *arg, const char *s)
+{
+  char *end;
+  arg->val.size = strtoul(s, &end, 10);
+  return end > s && *end == '\0';
+}
+
+static mps_bool_t parse_b(mps_arg_s *arg, const char *s)
+{
+  struct {
+    const char *string;
+    mps_bool_t value;
+  } map[] = {
+    {"true", 1}, {"yes", 1}, {"1", 1},
+    {"false", 0}, {"no", 0}, {"0", 0}
+  };
+  size_t i;
+  for (i = 0; i < sizeof(map)/sizeof(map[0]); ++i)
+    if (strcasecmp(s, map[i].string) == 0) {
+      arg->val.b = map[i].value;
+      return 1;
+    }
+  return 0;
+}
+
+static mps_bool_t parse_d(mps_arg_s *arg, const char *s)
+{
+  char *end;
+  arg->val.d = strtod(s, &end);
+  return end > s && *end == '\0';
+}
+
+static mps_bool_t parse_u(mps_arg_s *arg, const char *s)
+{
+  char *end;
+  unsigned long ul = strtoul(s, &end, 10);
+  arg->val.u = (unsigned)strtoul(s, &end, 10);
+  return ul <= UINT_MAX && end > s && *end == '\0';
+}
+
+static mps_bool_t parse_align(mps_arg_s *arg, const char *s)
+{
+  char *end;
+  arg->val.align = strtoul(s, &end, 10);
+  return arg->val.align > 0 &&
+    (arg->val.align & (arg->val.align - 1)) == 0 &&
+    end > s && *end == '\0';
+}
+
+#undef ALIGN
+
+#define KEY_ROW(X, ident, kind, doc) KEY_ROW_##kind(X, ident, kind, doc)
+#define KEY_ROW_YES(_, ident, kind, doc) \
+  {#ident, MPS_KEY_##ident, parse_##kind, doc},
+#define KEY_ROW_NO(_, ident, kind, doc)
+#define KEY_ROW_size KEY_ROW_YES
+#define KEY_ROW_b KEY_ROW_YES
+#define KEY_ROW_d KEY_ROW_YES
+#define KEY_ROW_format KEY_ROW_NO
+#define KEY_ROW_chain KEY_ROW_NO
+#define KEY_ROW_u KEY_ROW_YES
+#define KEY_ROW_rank KEY_ROW_NO
+#define KEY_ROW_align KEY_ROW_YES
+#define KEY_ROW_fmt_scan KEY_ROW_NO
+#define KEY_ROW_fmt_skip KEY_ROW_NO
+#define KEY_ROW_fmt_fwd KEY_ROW_NO
+#define KEY_ROW_fmt_isfwd KEY_ROW_NO
+#define KEY_ROW_fmt_pad KEY_ROW_NO
+#define KEY_ROW_fmt_class KEY_ROW_NO
+
+static struct {
+  const char *ident;
+  mps_key_t key;
+  mps_bool_t (*parse)(mps_arg_s *arg, const char *s);
+  const char *doc;
+} keywords[] = {
+  _mps_KEY_ENUM(KEY_ROW, _)
+};
+
+static mps_arg_s arena_args[MPS_ARGS_MAX];
+static unsigned arena_arg_count = 0;
+static mps_arg_s pool_args[MPS_ARGS_MAX];
+static unsigned pool_arg_count;
+
+static void append_args(mps_arg_s args[], unsigned *i_io, mps_arg_s more[], unsigned count)
+{
+  unsigned i;
+  for (i = 0; i < count; ++i) {
+    _mps_args_set_key(args, *i_io + i, more[i].key);
+    args[*i_io + i].val = more[i].val;
+  }
+  _mps_args_set_key(args, *i_io + count, MPS_KEY_ARGS_END);
+  *i_io += count;
+}
+
+static void arg_option(mps_arg_s args[], unsigned *count_io, const char *opt)
+{
+  unsigned count = *count_io;
+  char *val;
+  size_t i;
+  if (count >= MPS_ARGS_MAX) {
+    fprintf(stderr, "Too many keyword arguments: %s\n", opt);
+    exit(EXIT_FAILURE);
+  }
+  val = strchr(opt, '=');
+  if (val == NULL) {
+    fprintf(stderr, "Missing '=' in keyword argument: %s\n", opt);
+    exit(EXIT_FAILURE);
+  }
+  *val++ = '\0';
+  for (i = 0; i < sizeof(keywords)/sizeof(keywords[0]); ++i)
+    if (strcasecmp(opt, keywords[i].ident) == 0)
+      goto found;
+  fprintf(stderr, "Unknown keyword: %s\n", opt);
+  exit(EXIT_FAILURE);
+found:
+  args[count].key = keywords[i].key;
+  if (!keywords[i].parse(&args[count], val)) {
+    fprintf(stderr, "Illegal value for keyword: %s=%s\n", opt, val);
+    exit(EXIT_FAILURE);
+  }
+  *count_io = count + 1;
+}
+
+
 /* Setup MPS arena and call benchmark. */
 
 static void arena_setup(gcthread_fn_t fn,
@@ -235,6 +365,7 @@ static void arena_setup(gcthread_fn_t fn,
     MPS_ARGS_ADD(args, MPS_KEY_ARENA_SIZE, arena_size);
     MPS_ARGS_ADD(args, MPS_KEY_ARENA_GRAIN_SIZE, arena_grain_size);
     MPS_ARGS_ADD(args, MPS_KEY_ARENA_ZONED, zoned);
+    append_args(args, &args_i, arena_args, arena_arg_count);
     RESMUST(mps_arena_create_k(&arena, mps_arena_class_vm(), args));
   } MPS_ARGS_END(args);
   RESMUST(dylan_fmt(&format, arena));
@@ -247,6 +378,7 @@ static void arena_setup(gcthread_fn_t fn,
     MPS_ARGS_ADD(args, MPS_KEY_FORMAT, format);
     if (ngen > 0)
       MPS_ARGS_ADD(args, MPS_KEY_CHAIN, chain);
+    append_args(args, &args_i, pool_args, pool_arg_count);
     RESMUST(mps_pool_create_k(&pool, arena, pool_class, args));
   } MPS_ARGS_END(args);
   watch(fn, name);
@@ -278,6 +410,8 @@ static struct option longopts[] = {
   {"pin-leaf",         no_argument,       NULL, 'l'},
   {"seed",             required_argument, NULL, 'x'},
   {"arena-unzoned",    no_argument,       NULL, 'z'},
+  {"pool-arg",         required_argument, NULL, 'P'},
+  {"arena-arg",        required_argument, NULL, 'A'},
   {NULL,               0,                 NULL, 0  }
 };
 
@@ -307,7 +441,7 @@ int main(int argc, char *argv[]) {
   }
   putchar('\n');
   
-  while ((ch = getopt_long(argc, argv, "ht:i:p:g:m:a:w:d:r:u:lx:z", longopts, NULL)) != -1)
+  while ((ch = getopt_long(argc, argv, "ht:i:p:g:m:a:w:d:r:u:lx:zP:A:", longopts, NULL)) != -1)
     switch (ch) {
     case 't':
       nthreads = (unsigned)strtoul(optarg, NULL, 10);
@@ -395,6 +529,12 @@ int main(int argc, char *argv[]) {
       break;
     case 'z':
       zoned = FALSE;
+      break;
+    case 'A':
+      arg_option(arena_args, &arena_arg_count, optarg);
+      break;
+    case 'P':
+      arg_option(pool_args, &pool_arg_count, optarg);
       break;
     default:
       /* This is printed in parts to keep within the 509 character

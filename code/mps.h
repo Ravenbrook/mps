@@ -125,42 +125,76 @@ typedef mps_addr_t (*mps_fmt_class_t)(mps_addr_t);
 
 typedef void (*mps_fun_t)(void);
 
+typedef union mps_val_u {
+  mps_bool_t b;
+  char c;
+  const char *string;
+  int i;
+  unsigned u;
+  long l;
+  unsigned long ul;
+  float f;
+  double d;
+  size_t size;
+  mps_fun_t fun;
+  mps_addr_t addr;
+  mps_fmt_t format;
+  mps_chain_t chain;
+  struct mps_pool_debug_option_s *pool_debug_options;
+  mps_addr_t (*addr_method)(mps_addr_t);
+  mps_align_t align;
+  mps_word_t count;
+  void *p;
+  mps_rank_t rank;
+  mps_fmt_scan_t fmt_scan;
+  mps_fmt_skip_t fmt_skip;
+  mps_fmt_fwd_t fmt_fwd;
+  mps_fmt_isfwd_t fmt_isfwd;
+  mps_fmt_pad_t fmt_pad;
+  mps_fmt_class_t fmt_class;
+  mps_pool_t pool;
+} mps_val_u;
+
 typedef struct mps_arg_s {
   mps_key_t key;
-  union {
-    mps_bool_t b;
-    char c;
-    const char *string;
-    int i;
-    unsigned u;
-    long l;
-    unsigned long ul;
-    float f;
-    double d;
-    size_t size;
-    mps_fun_t fun;
-    mps_addr_t addr;
-    mps_fmt_t format;
-    mps_chain_t chain;
-    struct mps_pool_debug_option_s *pool_debug_options;
-    mps_addr_t (*addr_method)(mps_addr_t);
-    mps_align_t align;
-    mps_word_t count;
-    void *p;
-    mps_rank_t rank;
-    mps_fmt_scan_t fmt_scan;
-    mps_fmt_skip_t fmt_skip;
-    mps_fmt_fwd_t fmt_fwd;
-    mps_fmt_isfwd_t fmt_isfwd;
-    mps_fmt_pad_t fmt_pad;
-    mps_fmt_class_t fmt_class;
-    mps_pool_t pool;
-  } val;
+  mps_val_u val;
 } mps_arg_s;
 
 extern const struct mps_key_s _mps_key_ARGS_END;
 #define MPS_KEY_ARGS_END        (&_mps_key_ARGS_END)
 extern mps_arg_s mps_args_none[];
+
+#define _mps_KEY_ENUM(R, X) \
+  R(X, ARENA_GRAIN_SIZE,   size,      "arena grain size")               \
+  R(X, ARENA_SIZE,         size,      "arena size")                     \
+  R(X, ARENA_ZONED,        b,         "arena zoned")                    \
+  R(X, FORMAT,             format,    "format")                         \
+  R(X, CHAIN,              chain,     "chain")                          \
+  R(X, GEN,                u,         "generation")                     \
+  R(X, RANK,               rank,      "rank")                           \
+  R(X, COMMIT_LIMIT,       size,      "commit limit")                   \
+  R(X, SPARE_COMMIT_LIMIT, size,      "spare commit limit")             \
+  R(X, EXTEND_BY,          size,      "extend by")                      \
+  R(X, LARGE_SIZE,         size,      "large size")                     \
+  R(X, MIN_SIZE,           size,      "minimum size")                   \
+  R(X, MEAN_SIZE,          size,      "mean size")                      \
+  R(X, MAX_SIZE,           size,      "maximum size")                   \
+  R(X, ALIGN,              align,     "alignment")                      \
+  R(X, SPARE,              d,         "spare")                          \
+  R(X, INTERIOR,           b,         "interior")                       \
+  R(X, VMW3_TOP_DOWN,      b,         "allocate Win32 virtual memory top down") \
+  R(X, FMT_ALIGN,          align,     "format alignment")               \
+  R(X, FMT_HEADER_SIZE,    size,      "format header size")             \
+  R(X, FMT_SCAN,           fmt_scan,  "format scan method")             \
+  R(X, FMT_SKIP,           fmt_skip,  "format skip method")             \
+  R(X, FMT_FWD,            fmt_fwd,   "format forwarding method")       \
+  R(X, FMT_ISFWD,          fmt_isfwd, "format forwarded test method")   \
+  R(X, FMT_PAD,            fmt_pad,   "format padding method")          \
+  R(X, FMT_CLASS,          fmt_class, "format class method")
+
+#define _mps_KEY_STRUCT_DECL(_, ident, kind, doc) \
+  extern const struct mps_key_s _mps_key_##ident;
+_mps_KEY_ENUM(_mps_KEY_STRUCT_DECL, _)
 
 extern const struct mps_key_s _mps_key_ARENA_GRAIN_SIZE;
 #define MPS_KEY_ARENA_GRAIN_SIZE (&_mps_key_ARENA_GRAIN_SIZE)
