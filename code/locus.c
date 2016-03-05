@@ -19,11 +19,11 @@
 SRCID(locus, "$Id$");
 
 
-/* SegPrefCheck -- check the consistency of a segment preference */
+/* LocusPrefCheck -- check the consistency of a locus preference */
 
-Bool SegPrefCheck(SegPref pref)
+Bool LocusPrefCheck(LocusPref pref)
 {
-  CHECKS(SegPref, pref);
+  CHECKS(LocusPref, pref);
   CHECKL(BoolCheck(pref->high));
   /* zones can't be checked because it's arbitrary. */
   /* avoid can't be checked because it's arbitrary. */
@@ -31,58 +31,79 @@ Bool SegPrefCheck(SegPref pref)
 }
 
 
-/* SegPrefDefault -- return a segment preference representing the defaults */
+/* LocusPrefDefault -- return a locus preference representing the defaults */
 
-static SegPrefStruct segPrefDefault = SegPrefDEFAULT;
+static LocusPrefStruct locusPrefDefault = LocusPrefDEFAULT;
 
-SegPref SegPrefDefault(void)
+LocusPref LocusPrefDefault(void)
 {
-  return &segPrefDefault;
+  return &locusPrefDefault;
 }
 
-/* SegPrefInit -- initialise a segment preference to the defaults */
+/* LocusPrefInit -- initialise a locus preference to the defaults */
 
-void SegPrefInit(SegPref pref)
+void LocusPrefInit(LocusPref pref)
 {
-  (void)mps_lib_memcpy(pref, &segPrefDefault, sizeof(SegPrefStruct));
+  (void)mps_lib_memcpy(pref, &locusPrefDefault, sizeof(LocusPrefStruct));
 }
 
 
-/* SegPrefExpress -- express a segment preference */
+/* LocusPrefExpress -- express a locus preference */
 
-void SegPrefExpress(SegPref pref, SegPrefKind kind, void *p)
+void LocusPrefExpress(LocusPref pref, LocusPrefKind kind, void *p)
 {
-  AVERT(SegPref, pref);
-  AVER(pref != &segPrefDefault);
+  AVERT(LocusPref, pref);
+  AVER(pref != &locusPrefDefault);
 
   switch(kind) {
-  case SegPrefHigh:
+  case LocusPrefHIGH:
     AVER(p == NULL);
     pref->high = TRUE;
     break;
 
-  case SegPrefLow:
+  case LocusPrefLOW:
     AVER(p == NULL);
     pref->high = FALSE;
     break;
 
-  case SegPrefZoneSet:
+  case LocusPrefZONESET:
     AVER(p != NULL);
     pref->zones = *(ZoneSet *)p;
     break;
 
   default:
     /* Unknown kinds are ignored for binary compatibility. */
-    /* See design.mps.pref. */
     break;
   }
+}
+
+
+/* LocusPrefDescribe -- describe a locus preference */
+
+Res LocusPrefDescribe(LocusPref pref, mps_lib_FILE *stream, Count depth)
+{
+  Res res;
+
+  if (!TESTT(LocusPref, pref))
+    return ResFAIL;
+  if (stream == NULL)
+    return ResFAIL;
+
+  res = WriteF(stream, depth,
+               "LocusPref $P {\n", (WriteFP)pref,
+               "  high $S\n", WriteFYesNo(pref->high),
+               "  zones $B\n", (WriteFB)pref->zones,
+               "  avoid $B\n", (WriteFB)pref->avoid,
+               "} LocusPref $P\n", (WriteFP)pref,
+               NULL);
+  return res;
 }
 
 
 /* GenDescCheck -- check a GenDesc */
 
 ATTRIBUTE_UNUSED
-static Bool GenDescCheck(GenDesc gen)
+Bool GenDescCheck(GenDesc gen)
 {
   CHECKS(GenDesc, gen);
   /* nothing to check for zones */
@@ -96,10 +117,12 @@ static Bool GenDescCheck(GenDesc gen)
 
 /* GenDescNewSize -- return effective size of generation */
 
-static Size GenDescNewSize(GenDesc gen)
+Size GenDescNewSize(GenDesc gen)
 {
   Size size = 0;
   Ring node, nextNode;
+
+  AVERT(GenDesc, gen);
 
   RING_FOR(node, &gen->locusRing, nextNode) {
     PoolGen pgen = RING_ELT(PoolGen, genRing, node);
@@ -112,10 +135,12 @@ static Size GenDescNewSize(GenDesc gen)
 
 /* GenDescTotalSize -- return total size of generation */
 
-static Size GenDescTotalSize(GenDesc gen)
+Size GenDescTotalSize(GenDesc gen)
 {
   Size size = 0;
   Ring node, nextNode;
+
+  AVERT(GenDesc, gen);
 
   RING_FOR(node, &gen->locusRing, nextNode) {
     PoolGen pgen = RING_ELT(PoolGen, genRing, node);
@@ -133,21 +158,25 @@ Res GenDescDescribe(GenDesc gen, mps_lib_FILE *stream, Count depth)
   Res res;
   Ring node, nextNode;
 
-  if (!TESTT(GenDesc, gen)) return ResFAIL;
-  if (stream == NULL) return ResFAIL;
+  if (!TESTT(GenDesc, gen))
+    return ResFAIL;
+  if (stream == NULL)
+    return ResFAIL;
 
   res = WriteF(stream, depth,
                "GenDesc $P {\n", (WriteFP)gen,
                "  zones $B\n", (WriteFB)gen->zones,
-               "  capacity $U\n", (WriteFU)gen->capacity,
+               "  capacity $W\n", (WriteFW)gen->capacity,
                "  mortality $D\n", (WriteFD)gen->mortality,
                NULL);
-  if (res != ResOK) return res;
+  if (res != ResOK)
+    return res;
 
   RING_FOR(node, &gen->locusRing, nextNode) {
     PoolGen pgen = RING_ELT(PoolGen, genRing, node);
     res = PoolGenDescribe(pgen, stream, depth + 2);
-    if (res != ResOK) return res;
+    if (res != ResOK)
+      return res;
   }
 
   res = WriteF(stream, depth, "} GenDesc $P\n", (WriteFP)gen, NULL);
@@ -286,7 +315,7 @@ GenDesc ChainGen(Chain chain, Index gen)
 Res PoolGenAlloc(Seg *segReturn, PoolGen pgen, SegClass class, Size size,
                  Bool withReservoirPermit, ArgList args)
 {
-  SegPrefStruct pref;
+  LocusPrefStruct pref;
   Res res;
   Seg seg;
   ZoneSet zones, moreZones;
@@ -304,7 +333,7 @@ Res PoolGenAlloc(Seg *segReturn, PoolGen pgen, SegClass class, Size size,
   gen = pgen->gen;
   zones = gen->zones;
 
-  SegPrefInit(&pref);
+  LocusPrefInit(&pref);
   pref.high = FALSE;
   pref.zones = zones;
   pref.avoid = ZoneSetBlacklist(arena);
@@ -356,69 +385,6 @@ double ChainDeferral(Chain chain)
 }
 
 
-/* ChainCondemnAuto -- condemn approriate parts of this chain
- *
- * This is only called if ChainDeferral returned a value sufficiently
- * low that the tracer decided to start the collection.  (Usually
- * such values are less than zero; see <design/trace/>)
- */
-Res ChainCondemnAuto(double *mortalityReturn, Chain chain, Trace trace)
-{
-  Res res;
-  size_t topCondemnedGen, i;
-  GenDesc gen;
-  ZoneSet condemnedSet = ZoneSetEMPTY;
-  Size condemnedSize = 0, survivorSize = 0, genNewSize, genTotalSize;
-
-  AVERT(Chain, chain);
-  AVERT(Trace, trace);
-
-  /* Find the highest generation that's over capacity. We will condemn
-   * this and all lower generations in the chain. */
-  topCondemnedGen = chain->genCount;
-  for (;;) {
-    /* It's an error to call this function unless some generation is
-     * over capacity as reported by ChainDeferral. */
-    AVER(topCondemnedGen > 0);
-    if (topCondemnedGen == 0)
-      return ResFAIL;
-    -- topCondemnedGen;
-    gen = &chain->gens[topCondemnedGen];
-    AVERT(GenDesc, gen);
-    genNewSize = GenDescNewSize(gen);
-    if (genNewSize >= gen->capacity * (Size)1024)
-      break;
-  }
-
-  /* At this point, we've decided to condemn topCondemnedGen and all
-   * lower generations. */
-  for (i = 0; i <= topCondemnedGen; ++i) {
-    gen = &chain->gens[i];
-    AVERT(GenDesc, gen);
-    condemnedSet = ZoneSetUnion(condemnedSet, gen->zones);
-    genTotalSize = GenDescTotalSize(gen);
-    genNewSize = GenDescNewSize(gen);
-    condemnedSize += genTotalSize;
-    survivorSize += (Size)(genNewSize * (1.0 - gen->mortality))
-                    /* predict survivors will survive again */
-                    + (genTotalSize - genNewSize);
-  }
-  
-  AVER(condemnedSet != ZoneSetEMPTY || condemnedSize == 0);
-  EVENT3(ChainCondemnAuto, chain, topCondemnedGen, chain->genCount);
-  
-  /* Condemn everything in these zones. */
-  if (condemnedSet != ZoneSetEMPTY) {
-    res = TraceCondemnZones(trace, condemnedSet);
-    if (res != ResOK)
-      return res;
-  }
-
-  *mortalityReturn = 1.0 - (double)survivorSize / condemnedSize;
-  return ResOK;
-}
-
-
 /* ChainStartGC -- called to notify start of GC for this chain */
 
 void ChainStartGC(Chain chain, Trace trace)
@@ -448,19 +414,23 @@ Res ChainDescribe(Chain chain, mps_lib_FILE *stream, Count depth)
   Res res;
   size_t i;
 
-  if (!TESTT(Chain, chain)) return ResFAIL;
-  if (stream == NULL) return ResFAIL;
+  if (!TESTT(Chain, chain))
+    return ResFAIL;
+  if (stream == NULL)
+    return ResFAIL;
 
   res = WriteF(stream, depth,
                "Chain $P {\n", (WriteFP)chain,
                "  arena $P\n", (WriteFP)chain->arena,
                "  activeTraces $B\n", (WriteFB)chain->activeTraces,
                NULL);
-  if (res != ResOK) return res;
+  if (res != ResOK)
+    return res;
 
   for (i = 0; i < chain->genCount; ++i) {
     res = GenDescDescribe(&chain->gens[i], stream, depth + 2);
-    if (res != ResOK) return res;
+    if (res != ResOK)
+      return res;
   }
 
   res = WriteF(stream, depth,
@@ -729,8 +699,10 @@ Res PoolGenDescribe(PoolGen pgen, mps_lib_FILE *stream, Count depth)
 {
   Res res;
 
-  if (!TESTT(PoolGen, pgen)) return ResFAIL;
-  if (stream == NULL) return ResFAIL;
+  if (!TESTT(PoolGen, pgen))
+    return ResFAIL;
+  if (stream == NULL)
+    return ResFAIL;
   
   res = WriteF(stream, depth,
                "PoolGen $P {\n", (WriteFP)pgen,

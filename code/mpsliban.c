@@ -70,7 +70,7 @@ static void mps_lib_assert_fail_default(const char *file, unsigned line,
                 "The MPS detected a problem!\n"
                 "%s:%u: MPS ASSERTION FAILED: %s\n"
                 "See the \"Assertions\" section in the reference manual:\n"
-                "http://ravenbrook.com/project/mps/master/manual/html/topic/error.html#assertions\n",
+                "http://www.ravenbrook.com/project/mps/master/manual/html/topic/error.html#assertions\n",
                 file, line, condition);
   /* Ensure the message is output even if stderr is buffered. */
   (void)fflush(stderr);
@@ -110,9 +110,6 @@ int (mps_lib_memcmp)(const void *s1, const void *s2, size_t n)
   return memcmp(s1, s2, n);
 }
 
-
-/* @@@@ Platform specific conversion? */
-/* See http://devworld.apple.com/dev/techsupport/insidemac/OSUtilities/OSUtilities-94.html#MARKER-9-32 */
 
 /* If your platform has a low-resolution clock(), and there are
  * higher-resolution clocks readily available, then using one of those

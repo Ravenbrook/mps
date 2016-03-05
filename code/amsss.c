@@ -108,7 +108,7 @@ static mps_addr_t make(void)
 static mps_pool_debug_option_s freecheckOptions =
   { NULL, 0, "Dead", 4 };
 
-static void test_pool(mps_class_t pool_class, mps_arg_s args[],
+static void test_pool(mps_pool_class_t pool_class, mps_arg_s args[],
                       mps_bool_t haveAmbiguous)
 {
   mps_pool_t pool;
@@ -209,9 +209,9 @@ int main(int argc, char *argv[])
   MPS_ARGS_BEGIN(args) {
     MPS_ARGS_ADD(args, MPS_KEY_ARENA_SIZE, testArenaSIZE);
     MPS_ARGS_ADD(args, MPS_KEY_ARENA_GRAIN_SIZE, rnd_grain(testArenaSIZE));
+    MPS_ARGS_ADD(args, MPS_KEY_COMMIT_LIMIT, 2 * testArenaSIZE);
     die(mps_arena_create_k(&arena, mps_arena_class_vm(), args), "arena_create");
   } MPS_ARGS_END(args);
-  die(mps_arena_commit_limit_set(arena, 2 * testArenaSIZE), "commit_limit_set");
 
   mps_message_type_enable(arena, mps_message_type_gc_start());
   mps_message_type_enable(arena, mps_message_type_gc());

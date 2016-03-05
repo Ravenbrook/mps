@@ -72,7 +72,7 @@ static void MFSVarargs(ArgStruct args[MPS_ARGS_MAX], va_list varargs)
   AVERT(ArgList, args);
 }
 
-ARG_DEFINE_KEY(mfs_unit_size, Size);
+ARG_DEFINE_KEY(MFS_UNIT_SIZE, Size);
 ARG_DEFINE_KEY(MFSExtendSelf, Bool);
 
 static Res MFSInit(Pool pool, ArgList args)
@@ -94,6 +94,8 @@ static Res MFSInit(Pool pool, ArgList args)
   if (ArgPick(&arg, args, MFSExtendSelf))
     extendSelf = arg.val.b;
 
+  AVER(unitSize > 0);
+  AVER(extendBy > 0);
   AVERT(Bool, extendSelf);
  
   mfs = PoolPoolMFS(pool);
@@ -247,12 +249,13 @@ static Res MFSAlloc(Addr *pReturn, Pool pool, Size size,
   if(f == NULL)
   {
     Addr base;
-    
+
+    /* See design.mps.bootstrap.land.sol.pool. */
     if (!mfs->extendSelf)
       return ResLIMIT;
 
     /* Create a new region and attach it to the pool. */
-    res = ArenaAlloc(&base, SegPrefDefault(), mfs->extendBy, pool,
+    res = ArenaAlloc(&base, LocusPrefDefault(), mfs->extendBy, pool,
                      withReservoirPermit);
     if(res != ResOK)
       return res;
@@ -342,13 +345,17 @@ static Res MFSDescribe(Pool pool, mps_lib_FILE *stream, Count depth)
   AVER(stream != NULL);
 
   res = WriteF(stream, depth,
-               "unrounded unit size $W\n", (WriteFW)mfs->unroundedUnitSize,
-               "unit size $W\n",           (WriteFW)mfs->unitSize,
-               "extent size $W\n",         (WriteFW)mfs->extendBy,
-               "free list begins at $P\n", (WriteFP)mfs->freeList,
-               "tract list begin at $P\n", (WriteFP)mfs->tractList,
+               "unroundedUnitSize $W\n", (WriteFW)mfs->unroundedUnitSize,
+               "extendBy $W\n", (WriteFW)mfs->extendBy,
+               "extendSelf $S\n", WriteFYesNo(mfs->extendSelf),
+               "unitSize $W\n", (WriteFW)mfs->unitSize,
+               "freeList $P\n", (WriteFP)mfs->freeList,
+               "total $W\n", (WriteFW)mfs->total,
+               "free $W\n", (WriteFW)mfs->free,
+               "tractList $P\n", (WriteFP)mfs->tractList,
                NULL);
-  if(res != ResOK) return res;
+  if (res != ResOK)
+    return res;
 
   return ResOK;
 }
@@ -378,9 +385,9 @@ PoolClass PoolClassMFS(void)
 }
 
 
-mps_class_t mps_class_mfs(void)
+mps_pool_class_t mps_class_mfs(void)
 {
-  return (mps_class_t)PoolClassMFS();
+  return (mps_pool_class_t)PoolClassMFS();
 }
 
 

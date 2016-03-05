@@ -19,10 +19,8 @@
  *
  * TRANSGRESSIONS
  *
- * .trans.mod: There are several instances where pool structures are
- * directly accessed by this module because <code/pool.c> does not provide
- * an adequate (or adequately documented) interface.  They bear this
- * tag.
+ * .trans.mod: pool->bufferSerial is directly accessed by this module
+ * because <code/pool.c> does not provide an interface.
  */
 
 #include "mpm.h"
@@ -150,14 +148,16 @@ Res BufferDescribe(Buffer buffer, mps_lib_FILE *stream, Count depth)
 {
   Res res;
 
-  if (!TESTT(Buffer, buffer)) return ResFAIL;
-  if (stream == NULL) return ResFAIL;
+  if (!TESTT(Buffer, buffer))
+    return ResFAIL;
+  if (stream == NULL)
+    return ResFAIL;
 
   res = WriteF(stream, depth,
                "Buffer $P ($U) {\n",
                (WriteFP)buffer, (WriteFU)buffer->serial,
                "  class $P (\"$S\")\n",
-               (WriteFP)buffer->class, buffer->class->name,
+               (WriteFP)buffer->class, (WriteFS)buffer->class->name,
                "  Arena $P\n",       (WriteFP)buffer->arena,
                "  Pool $P\n",        (WriteFP)buffer->pool,
                "  ", buffer->isMutator ? "Mutator" : "Internal", " Buffer\n",
@@ -169,17 +169,21 @@ Res BufferDescribe(Buffer buffer, mps_lib_FILE *stream, Count depth)
                "  fillSize $UKb\n",  (WriteFU)(buffer->fillSize / 1024),
                "  emptySize $UKb\n", (WriteFU)(buffer->emptySize / 1024),
                "  alignment $W\n",   (WriteFW)buffer->alignment,
-               "  base $A\n",        buffer->base,
-               "  initAtFlip $A\n",  buffer->initAtFlip,
-               "  init $A\n",        buffer->ap_s.init,
-               "  alloc $A\n",       buffer->ap_s.alloc,
-               "  limit $A\n",       buffer->ap_s.limit,
-               "  poolLimit $A\n",   buffer->poolLimit,
+               "  base $A\n",        (WriteFA)buffer->base,
+               "  initAtFlip $A\n",  (WriteFA)buffer->initAtFlip,
+               "  init $A\n",        (WriteFA)buffer->ap_s.init,
+               "  alloc $A\n",       (WriteFA)buffer->ap_s.alloc,
+               "  limit $A\n",       (WriteFA)buffer->ap_s.limit,
+               "  poolLimit $A\n",   (WriteFA)buffer->poolLimit,
+               "  alignment $W\n",   (WriteFW)buffer->alignment,
+               "  rampCount $U\n",   (WriteFU)buffer->rampCount,
                NULL);
-  if (res != ResOK) return res;
+  if (res != ResOK)
+    return res;
 
   res = buffer->class->describe(buffer, stream, depth + 2);
-  if (res != ResOK) return res;
+  if (res != ResOK)
+    return res;
 
   res = WriteF(stream, depth, "} Buffer $P ($U)\n",
                (WriteFP)buffer, (WriteFU)buffer->serial,
@@ -215,7 +219,7 @@ static Res BufferInit(Buffer buffer, BufferClass class,
   }
   buffer->fillSize = 0.0;
   buffer->emptySize = 0.0;
-  buffer->alignment = pool->alignment; /* .trans.mod */
+  buffer->alignment = PoolAlignment(pool);
   buffer->base = (Addr)0;
   buffer->initAtFlip = (Addr)0;
   /* In the next three assignments we really mean zero, not NULL, because
@@ -322,12 +326,10 @@ void BufferDetach(Buffer buffer, Pool pool)
     spare = AddrOffset(init, limit);
     buffer->emptySize += spare;
     if (buffer->isMutator) {
-      buffer->pool->emptyMutatorSize += spare;
       ArenaGlobals(buffer->arena)->emptyMutatorSize += spare;
       ArenaGlobals(buffer->arena)->allocMutatorSize +=
         AddrOffset(buffer->base, init);
     } else {
-      buffer->pool->emptyInternalSize += spare;
       ArenaGlobals(buffer->arena)->emptyInternalSize += spare;
     }
 
@@ -651,10 +653,8 @@ void BufferAttach(Buffer buffer, Addr base, Addr limit,
       Size prealloc = AddrOffset(base, init);
       ArenaGlobals(buffer->arena)->allocMutatorSize -= prealloc;
     }
-    buffer->pool->fillMutatorSize += filled;
     ArenaGlobals(buffer->arena)->fillMutatorSize += filled;
   } else {
-    buffer->pool->fillInternalSize += filled;
     ArenaGlobals(buffer->arena)->fillInternalSize += filled;
   }
 
@@ -1163,8 +1163,10 @@ static void bufferNoReassignSeg(Buffer buffer, Seg seg)
 
 static Res bufferTrivDescribe(Buffer buffer, mps_lib_FILE *stream, Count depth)
 {
-  if (!TESTT(Buffer, buffer)) return ResFAIL;
-  if (stream == NULL) return ResFAIL;
+  if (!TESTT(Buffer, buffer))
+    return ResFAIL;
+  if (stream == NULL)
+    return ResFAIL;
   UNUSED(depth);
   /* dispatching function does it all */
   return ResOK;
@@ -1426,15 +1428,19 @@ static Res segBufDescribe(Buffer buffer, mps_lib_FILE *stream, Count depth)
   BufferClass super;
   Res res;
 
-  if (!TESTT(Buffer, buffer)) return ResFAIL;
-  if (stream == NULL) return ResFAIL;
+  if (!TESTT(Buffer, buffer))
+    return ResFAIL;
+  if (stream == NULL)
+    return ResFAIL;
   segbuf = BufferSegBuf(buffer);
-  if (!TESTT(SegBuf, segbuf)) return ResFAIL;
+  if (!TESTT(SegBuf, segbuf))
+    return ResFAIL;
 
   /* Describe the superclass fields first via next-method call */
   super = BUFFER_SUPERCLASS(SegBufClass);
   res = super->describe(buffer, stream, depth);
-  if (res != ResOK) return res;
+  if (res != ResOK)
+    return res;
 
   res = WriteF(stream, depth,
                "Seg $P\n",         (WriteFP)segbuf->seg,

@@ -1,7 +1,7 @@
 /* seg.c: SEGMENTS
  *
  * $Id$
- * Copyright (c) 2001-2014 Ravenbrook Limited.  See end of file for license.
+ * Copyright (c) 2001-2015 Ravenbrook Limited.  See end of file for license.
  *
  * .design: The design for this module is <design/seg/>.
  *
@@ -54,7 +54,7 @@ static Res SegInit(Seg seg, Pool pool, Addr base, Size size,
 
 /* SegAlloc -- allocate a segment from the arena */
 
-Res SegAlloc(Seg *segReturn, SegClass class, SegPref pref,
+Res SegAlloc(Seg *segReturn, SegClass class, LocusPref pref,
              Size size, Pool pool, Bool withReservoirPermit, ArgList args)
 {
   Res res;
@@ -65,7 +65,7 @@ Res SegAlloc(Seg *segReturn, SegClass class, SegPref pref,
 
   AVER(segReturn != NULL);
   AVERT(SegClass, class);
-  AVERT(SegPref, pref);
+  AVERT(LocusPref, pref);
   AVER(size > (Size)0);
   AVERT(Pool, pool);
   AVERT(Bool, withReservoirPermit);
@@ -363,8 +363,10 @@ Res SegDescribe(Seg seg, mps_lib_FILE *stream, Count depth)
   Res res;
   Pool pool;
 
-  if (!TESTT(Seg, seg)) return ResFAIL;
-  if (stream == NULL) return ResFAIL;
+  if (!TESTT(Seg, seg))
+    return ResFAIL;
+  if (stream == NULL)
+    return ResFAIL;
 
   pool = SegPool(seg);
 
@@ -372,17 +374,40 @@ Res SegDescribe(Seg seg, mps_lib_FILE *stream, Count depth)
                "Segment $P [$A,$A) {\n", (WriteFP)seg,
                (WriteFA)SegBase(seg), (WriteFA)SegLimit(seg),
                "  class $P (\"$S\")\n",
-               (WriteFP)seg->class, seg->class->name,
+               (WriteFP)seg->class, (WriteFS)seg->class->name,
                "  pool $P ($U)\n",
                (WriteFP)pool, (WriteFU)pool->serial,
+               "  depth $U\n", seg->depth,
+               "  pm",
+               seg->pm == AccessSetEMPTY ? " EMPTY" : "",
+               seg->pm & AccessREAD ? " READ" : "",
+               seg->pm & AccessWRITE ? " WRITE" : "",
+               "\n",
+               "  sm",
+               seg->sm == AccessSetEMPTY ? " EMPTY" : "",
+               seg->sm & AccessREAD ? " READ" : "",
+               seg->sm & AccessWRITE ? " WRITE" : "",
+               "\n",
+               "  grey $B\n", (WriteFB)seg->grey,
+               "  white $B\n", (WriteFB)seg->white,
+               "  nailed $B\n", (WriteFB)seg->nailed,
+               "  rankSet",
+               seg->rankSet == RankSetEMPTY ? " EMPTY" : "",
+               BS_IS_MEMBER(seg->rankSet, RankAMBIG) ? " AMBIG" : "",
+               BS_IS_MEMBER(seg->rankSet, RankEXACT) ? " EXACT" : "",
+               BS_IS_MEMBER(seg->rankSet, RankFINAL) ? " FINAL" : "",
+               BS_IS_MEMBER(seg->rankSet, RankWEAK)  ? " WEAK"  : "",
                NULL);
-  if (res != ResOK) return res;
+  if (res != ResOK)
+    return res;
 
   res = seg->class->describe(seg, stream, depth + 2);
-  if (res != ResOK) return res;
+  if (res != ResOK)
+    return res;
 
   res = WriteF(stream, 0, "\n", NULL);
-  if (res != ResOK) return res;
+  if (res != ResOK)
+    return res;
 
   res = WriteF(stream, depth, "} Segment $P\n", (WriteFP)seg, NULL);
   return res;
@@ -505,7 +530,7 @@ Bool SegNextOfRing(Seg *segReturn, Arena arena, Pool pool, Ring next)
   AVER_CRITICAL(segReturn != NULL); /* .seg.critical */
   AVERT_CRITICAL(Arena, arena);
   AVERT_CRITICAL(Pool, pool);
-  AVER_CRITICAL(RingCheck(next));
+  AVERT_CRITICAL(Ring, next);
   
   if (next == PoolSegRing(pool)) {
     if (!PoolNext(&pool, arena, pool) ||
@@ -997,8 +1022,10 @@ static Res segTrivDescribe(Seg seg, mps_lib_FILE *stream, Count depth)
 {
   Res res;
 
-  if (!TESTT(Seg, seg)) return ResFAIL;
-  if (stream == NULL) return ResFAIL;
+  if (!TESTT(Seg, seg))
+    return ResFAIL;
+  if (stream == NULL)
+    return ResFAIL;
 
   res = WriteF(stream, depth,
                "shield depth $U\n", (WriteFU)seg->depth,
@@ -1148,7 +1175,7 @@ static void gcSegSetGreyInternal(Seg seg, TraceSet oldGrey, TraceSet grey)
   if (oldGrey == TraceSetEMPTY) {
     if (grey != TraceSetEMPTY) {
       AVER(RankSetIsSingle(seg->rankSet));
-      for(rank = 0; rank < RankLIMIT; ++rank)
+      for(rank = RankMIN; rank < RankLIMIT; ++rank)
         if (RankSetIsMember(seg->rankSet, rank)) {
           /* NOTE: We push the segment onto the front of the queue, so that
              we preserve some locality of scanning, and so that we tend to
@@ -1198,7 +1225,7 @@ static void gcSegSetGrey(Seg seg, TraceSet grey)
   Arena arena;
  
   AVERT_CRITICAL(Seg, seg);            /* .seg.method.check */
-  AVER_CRITICAL(TraceSetCheck(grey));  /* .seg.method.check */
+  AVERT_CRITICAL(TraceSet, grey);      /* .seg.method.check */
   AVER(seg->rankSet != RankSetEMPTY);
   gcseg = SegGCSeg(seg);
   AVERT_CRITICAL(GCSeg, gcseg);
@@ -1239,7 +1266,7 @@ static void gcSegSetWhite(Seg seg, TraceSet white)
   Addr addr, limit;
 
   AVERT_CRITICAL(Seg, seg);            /* .seg.method.check */
-  AVER_CRITICAL(TraceSetCheck(white)); /* .seg.method.check */
+  AVERT_CRITICAL(TraceSet, white);     /* .seg.method.check */
   gcseg = SegGCSeg(seg);
   AVERT_CRITICAL(GCSeg, gcseg);
   AVER_CRITICAL(&gcseg->segStruct == seg);
@@ -1282,7 +1309,7 @@ static void gcSegSetRankSet(Seg seg, RankSet rankSet)
   Arena arena;
 
   AVERT_CRITICAL(Seg, seg);                /* .seg.method.check */
-  AVER_CRITICAL(RankSetCheck(rankSet));    /* .seg.method.check */
+  AVERT_CRITICAL(RankSet, rankSet);        /* .seg.method.check */
   AVER_CRITICAL(rankSet == RankSetEMPTY
                 || RankSetIsSingle(rankSet)); /* .seg.method.check */
   gcseg = SegGCSeg(seg);
@@ -1353,7 +1380,7 @@ static void gcSegSetRankSummary(Seg seg, RankSet rankSet, RefSet summary)
   Arena arena;
 
   AVERT_CRITICAL(Seg, seg);                    /* .seg.method.check */
-  AVER_CRITICAL(RankSetCheck(rankSet));        /* .seg.method.check */
+  AVERT_CRITICAL(RankSet, rankSet);            /* .seg.method.check */
   AVER_CRITICAL(rankSet == RankSetEMPTY
                 || RankSetIsSingle(rankSet));  /* .seg.method.check */
   gcseg = SegGCSeg(seg);
@@ -1558,27 +1585,33 @@ static Res gcSegDescribe(Seg seg, mps_lib_FILE *stream, Count depth)
   SegClass super;
   GCSeg gcseg;
 
-  if (!TESTT(Seg, seg)) return ResFAIL;
-  if (stream == NULL) return ResFAIL;
+  if (!TESTT(Seg, seg))
+    return ResFAIL;
+  if (stream == NULL)
+    return ResFAIL;
   gcseg = SegGCSeg(seg);
-  if (!TESTT(GCSeg, gcseg)) return ResFAIL;
+  if (!TESTT(GCSeg, gcseg))
+    return ResFAIL;
 
   /* Describe the superclass fields first via next-method call */
   super = SEG_SUPERCLASS(GCSegClass);
   res = super->describe(seg, stream, depth);
-  if (res != ResOK) return res;
+  if (res != ResOK)
+    return res;
 
   res = WriteF(stream, depth,
                "summary $W\n", (WriteFW)gcseg->summary,
                NULL);
-  if (res != ResOK) return res;
+  if (res != ResOK)
+    return res;
 
   if (gcseg->buffer == NULL) {
     res = WriteF(stream, depth, "buffer: NULL\n", NULL);
   } else {
     res = BufferDescribe(gcseg->buffer, stream, depth);
   }
-  if (res != ResOK) return res;
+  if (res != ResOK)
+    return res;
 
   return ResOK;
 }
@@ -1670,7 +1703,7 @@ void SegClassMixInNoSplitMerge(SegClass class)
 
 /* C. COPYRIGHT AND LICENSE
  *
- * Copyright (C) 2001-2014 Ravenbrook Limited <http://www.ravenbrook.com/>.
+ * Copyright (C) 2001-2015 Ravenbrook Limited <http://www.ravenbrook.com/>.
  * All rights reserved.  This is an open source license.  Contact
  * Ravenbrook for commercial licensing options.
  * 

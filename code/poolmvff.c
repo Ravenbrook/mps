@@ -45,7 +45,7 @@ extern PoolClass PoolClassMVFF(void);
 typedef struct MVFFStruct *MVFF;
 typedef struct MVFFStruct {     /* MVFF pool outer structure */
   PoolStruct poolStruct;        /* generic structure */
-  SegPrefStruct segPrefStruct;  /* the preferences for allocation */
+  LocusPrefStruct locusPrefStruct; /* the preferences for allocation */
   Size extendBy;                /* size to extend pool by */
   Size avgSize;                 /* client estimate of allocation size */
   double spare;                 /* spare space fraction, see MVFFReduce */
@@ -66,7 +66,7 @@ typedef struct MVFFStruct {     /* MVFF pool outer structure */
 #define MVFFFreePrimary(mvff)   CBSLand(&(mvff)->freeCBSStruct)
 #define MVFFFreeSecondary(mvff)  FreelistLand(&(mvff)->flStruct)
 #define MVFFFreeLand(mvff)  FailoverLand(&(mvff)->foStruct)
-#define MVFFSegPref(mvff)   (&(mvff)->segPrefStruct)
+#define MVFFLocusPref(mvff) (&(mvff)->locusPrefStruct)
 #define MVFFBlockPool(mvff) MFSPool(&(mvff)->cbsBlockPoolStruct)
 
 static Bool MVFFCheck(MVFF mvff);
@@ -122,7 +122,7 @@ static void MVFFReduce(MVFF mvff)
   targetFree = freeLimit / 2;
 
   /* Each time around this loop we either break, or we free at least
-     one page back to the arena, thus ensuring that eventually the
+     one grain back to the arena, thus ensuring that eventually the
      loop will terminate */
 
   /* NOTE: If this code becomes very hot, then the test of whether there's
@@ -133,7 +133,7 @@ static void MVFFReduce(MVFF mvff)
          && LandFindLargest(&freeRange, &oldFreeRange, MVFFFreeLand(mvff),
                             grainSize, FindDeleteNONE))
   {
-    RangeStruct pageRange, oldRange;
+    RangeStruct grainRange, oldRange;
     Size size;
     Res res;
     Addr base, limit;
@@ -143,7 +143,7 @@ static void MVFFReduce(MVFF mvff)
     base = AddrAlignUp(RangeBase(&freeRange), grainSize);
     limit = AddrAlignDown(RangeLimit(&freeRange), grainSize);
     
-    /* Give up if this block doesn't contain a whole aligned page,
+    /* Give up if this block doesn't contain a whole aligned grain,
        even though smaller better-aligned blocks might, because
        LandFindLargest won't be able to find those anyway. */
     if (base >= limit)
@@ -155,12 +155,12 @@ static void MVFFReduce(MVFF mvff)
     if (size > freeSize - targetFree)
       size = SizeAlignUp(freeSize - targetFree, grainSize);
 
-    /* Calculate the range of pages we can return to the arena near the
+    /* Calculate the range of grains we can return to the arena near the
        top end of the free memory (because we're first fit). */
-    RangeInit(&pageRange, AddrSub(limit, size), limit);
-    AVER(!RangeIsEmpty(&pageRange));
-    AVER(RangesNest(&freeRange, &pageRange));
-    AVER(RangeIsAligned(&pageRange, grainSize));
+    RangeInit(&grainRange, AddrSub(limit, size), limit);
+    AVER(!RangeIsEmpty(&grainRange));
+    AVER(RangesNest(&freeRange, &grainRange));
+    AVER(RangeIsAligned(&grainRange, grainSize));
 
     /* Delete the range from the free list before attempting to delete
        it from the total allocated memory, so that we don't have
@@ -168,21 +168,21 @@ static void MVFFReduce(MVFF mvff)
        to delete from the TotalCBS we add back to the free list, which
        can't fail. */
 
-    res = LandDelete(&oldRange, MVFFFreeLand(mvff), &pageRange);
+    res = LandDelete(&oldRange, MVFFFreeLand(mvff), &grainRange);
     if (res != ResOK)
       break;
-    freeSize -= RangeSize(&pageRange);
+    freeSize -= RangeSize(&grainRange);
     AVER(freeSize == LandSize(MVFFFreeLand(mvff)));
 
-    res = LandDelete(&oldRange, MVFFTotalLand(mvff), &pageRange);
+    res = LandDelete(&oldRange, MVFFTotalLand(mvff), &grainRange);
     if (res != ResOK) {
       RangeStruct coalescedRange;
-      res = LandInsert(&coalescedRange, MVFFFreeLand(mvff), &pageRange);
+      res = LandInsert(&coalescedRange, MVFFFreeLand(mvff), &grainRange);
       AVER(res == ResOK);
       break;
     }
 
-    ArenaFree(RangeBase(&pageRange), RangeSize(&pageRange), MVFFPool(mvff));
+    ArenaFree(RangeBase(&grainRange), RangeSize(&grainRange), MVFFPool(mvff));
   }
 }
 
@@ -222,13 +222,13 @@ static Res MVFFExtend(Range rangeReturn, MVFF mvff, Size size,
 
   allocSize = SizeArenaGrains(allocSize, arena);
 
-  res = ArenaAlloc(&base, MVFFSegPref(mvff), allocSize, pool,
+  res = ArenaAlloc(&base, MVFFLocusPref(mvff), allocSize, pool,
                    withReservoirPermit);
   if (res != ResOK) {
     /* try again with a range just large enough for object */
     /* see <design/poolmvff/#design.seg-fail> */
     allocSize = SizeArenaGrains(size, arena);
-    res = ArenaAlloc(&base, MVFFSegPref(mvff), allocSize, pool,
+    res = ArenaAlloc(&base, MVFFLocusPref(mvff), allocSize, pool,
                      withReservoirPermit);
     if (res != ResOK)
       return res;
@@ -445,9 +445,9 @@ static void MVFFDebugVarargs(ArgStruct args[MPS_ARGS_MAX], va_list varargs)
 
 /* MVFFInit -- initialize method for MVFF */
 
-ARG_DEFINE_KEY(mvff_slot_high, Bool);
-ARG_DEFINE_KEY(mvff_arena_high, Bool);
-ARG_DEFINE_KEY(mvff_first_fit, Bool);
+ARG_DEFINE_KEY(MVFF_SLOT_HIGH, Bool);
+ARG_DEFINE_KEY(MVFF_ARENA_HIGH, Bool);
+ARG_DEFINE_KEY(MVFF_FIRST_FIT, Bool);
 
 static Res MVFFInit(Pool pool, ArgList args)
 {
@@ -469,7 +469,7 @@ static Res MVFFInit(Pool pool, ArgList args)
   /* .arg: class-specific additional arguments; see */
   /* <design/poolmvff/#method.init> */
   /* .arg.check: we do the same checks here and in MVFFCheck */
-  /* except for arenaHigh, which is stored only in the segPref. */
+  /* except for arenaHigh, which is stored only in the locusPref. */
   
   if (ArgPick(&arg, args, MPS_KEY_EXTEND_BY))
     extendBy = arg.val.size;
@@ -518,8 +518,9 @@ static Res MVFFInit(Pool pool, ArgList args)
   mvff->firstFit = firstFit;
   mvff->spare = spare;
 
-  SegPrefInit(MVFFSegPref(mvff));
-  SegPrefExpress(MVFFSegPref(mvff), arenaHigh ? SegPrefHigh : SegPrefLow, NULL);
+  LocusPrefInit(MVFFLocusPref(mvff));
+  LocusPrefExpress(MVFFLocusPref(mvff),
+                   arenaHigh ? LocusPrefHIGH : LocusPrefLOW, NULL);
 
   /* An MFS pool is explicitly initialised for the two CBSs partly to
    * share space, but mostly to avoid a call to PoolCreate, so that
@@ -594,6 +595,7 @@ static Bool mvffFinishVisitor(Bool *deleteReturn, Land land, Range range,
   AVER(closureP != NULL);
   pool = closureP;
   AVERT(Pool, pool);
+  AVER(closureS == UNUSED_SIZE);
   UNUSED(closureS);
 
   ArenaFree(RangeBase(range), RangeSize(range), pool);
@@ -611,7 +613,8 @@ static void MVFFFinish(Pool pool)
   AVERT(MVFF, mvff);
   mvff->sig = SigInvalid;
 
-  b = LandIterateAndDelete(MVFFTotalLand(mvff), mvffFinishVisitor, pool, 0);
+  b = LandIterateAndDelete(MVFFTotalLand(mvff), mvffFinishVisitor, pool,
+                           UNUSED_SIZE);
   AVER(b);
   AVER(LandSize(MVFFTotalLand(mvff)) == 0);
 
@@ -672,10 +675,13 @@ static Res MVFFDescribe(Pool pool, mps_lib_FILE *stream, Count depth)
   Res res;
   MVFF mvff;
 
-  if (!TESTT(Pool, pool)) return ResFAIL;
+  if (!TESTT(Pool, pool))
+    return ResFAIL;
   mvff = PoolMVFF(pool);
-  if (!TESTT(MVFF, mvff)) return ResFAIL;
-  if (stream == NULL) return ResFAIL;
+  if (!TESTT(MVFF, mvff))
+    return ResFAIL;
+  if (stream == NULL)
+    return ResFAIL;
 
   res = WriteF(stream, depth,
                "MVFF $P {\n", (WriteFP)mvff,
@@ -687,21 +693,27 @@ static Res MVFFDescribe(Pool pool, mps_lib_FILE *stream, Count depth)
                "  slotHigh  $U\n",  (WriteFU)mvff->slotHigh,
                "  spare     $D\n",  (WriteFD)mvff->spare,
                NULL);
-  if (res != ResOK) return res;
+  if (res != ResOK)
+    return res;
 
-  /* TODO: SegPrefDescribe(MVFFSegPref(mvff), stream); */
+  res = LocusPrefDescribe(MVFFLocusPref(mvff), stream, depth + 2);
+  if (res != ResOK)
+    return res;
 
   /* Don't describe MVFFBlockPool(mvff) otherwise it'll appear twice
    * in the output of GlobalDescribe. */
 
   res = LandDescribe(MVFFTotalLand(mvff), stream, depth + 2);
-  if (res != ResOK) return res;
+  if (res != ResOK)
+    return res;
 
   res = LandDescribe(MVFFFreePrimary(mvff), stream, depth + 2);
-  if (res != ResOK) return res;
+  if (res != ResOK)
+    return res;
 
   res = LandDescribe(MVFFFreeSecondary(mvff), stream, depth + 2);
-  if (res != ResOK) return res;
+  if (res != ResOK)
+    return res;
 
   res = WriteF(stream, depth, "} MVFF $P\n", (WriteFP)mvff, NULL);
   return res;
@@ -752,14 +764,14 @@ DEFINE_POOL_CLASS(MVFFDebugPoolClass, this)
 
 /* MPS Interface Extensions. */
 
-mps_class_t mps_class_mvff(void)
+mps_pool_class_t mps_class_mvff(void)
 {
-  return (mps_class_t)(MVFFPoolClassGet());
+  return (mps_pool_class_t)(MVFFPoolClassGet());
 }
 
-mps_class_t mps_class_mvff_debug(void)
+mps_pool_class_t mps_class_mvff_debug(void)
 {
-  return (mps_class_t)(MVFFDebugPoolClassGet());
+  return (mps_pool_class_t)(MVFFDebugPoolClassGet());
 }
 
 
@@ -771,7 +783,7 @@ static Bool MVFFCheck(MVFF mvff)
   CHECKS(MVFF, mvff);
   CHECKD(Pool, MVFFPool(mvff));
   CHECKL(IsSubclassPoly(MVFFPool(mvff)->class, MVFFPoolClassGet()));
-  CHECKD(SegPref, MVFFSegPref(mvff));
+  CHECKD(LocusPref, MVFFLocusPref(mvff));
   CHECKL(mvff->extendBy >= ArenaGrainSize(PoolArena(MVFFPool(mvff))));
   CHECKL(mvff->avgSize > 0);                    /* see .arg.check */
   CHECKL(mvff->avgSize <= mvff->extendBy);      /* see .arg.check */

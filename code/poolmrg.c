@@ -524,7 +524,7 @@ static Res MRGSegPairCreate(MRGRefSeg *refSegReturn, MRG mrg,
   linkSegSize = SizeArenaGrains(linkSegSize, arena);
 
   res = SegAlloc(&segLink, EnsureMRGLinkSegClass(),
-                 SegPrefDefault(), linkSegSize, pool,
+                 LocusPrefDefault(), linkSegSize, pool,
                  withReservoirPermit, argsNone);
   if (res != ResOK)
     goto failLinkSegAlloc;
@@ -533,7 +533,7 @@ static Res MRGSegPairCreate(MRGRefSeg *refSegReturn, MRG mrg,
   MPS_ARGS_BEGIN(args) {
     MPS_ARGS_ADD_FIELD(args, mrgKeyLinkSeg, p, linkseg); /* .ref.initarg */
     res = SegAlloc(&segRefPart, EnsureMRGRefSegClass(),
-                   SegPrefDefault(), mrg->extendBy, pool,
+                   LocusPrefDefault(), mrg->extendBy, pool,
                    withReservoirPermit, args);
   } MPS_ARGS_END(args);
   if (res != ResOK)
@@ -745,7 +745,12 @@ Res MRGRegister(Pool pool, Ref ref)
 }
 
 
-/* MRGDeregister -- deregister (once) an object for finalization */
+/* MRGDeregister -- deregister (once) an object for finalization
+ *
+ * TODO: Definalization loops over all finalizable objects in the heap,
+ * and so using it could accidentally be disastrous for performance.
+ * See job003953 and back out changelist 187123 if this is fixed.
+ */
 
 Res MRGDeregister(Pool pool, Ref obj)
 {
@@ -804,16 +809,21 @@ static Res MRGDescribe(Pool pool, mps_lib_FILE *stream, Count depth)
   RefPart refPart;
   Res res;
 
-  if (!TESTT(Pool, pool)) return ResFAIL;
+  if (!TESTT(Pool, pool))
+    return ResFAIL;
   mrg = PoolMRG(pool);
-  if (!TESTT(MRG, mrg)) return ResFAIL;
-  if (stream == NULL) return ResFAIL;
+  if (!TESTT(MRG, mrg))
+    return ResFAIL;
+  if (stream == NULL)
+    return ResFAIL;
 
   arena = PoolArena(pool);
-  res = WriteF(stream, depth, "extendBy $W\n", mrg->extendBy, NULL);
-  if (res != ResOK) return res;
+  res = WriteF(stream, depth, "extendBy $W\n", (WriteFW)mrg->extendBy, NULL);
+  if (res != ResOK)
+    return res;
   res = WriteF(stream, depth, "Entry queue:\n", NULL);
-  if (res != ResOK) return res;
+  if (res != ResOK)
+    return res;
   RING_FOR(node, &mrg->entryRing, nextNode) {
     Bool outsideShield = !arena->insideShield;
     refPart = MRGRefPartOfLink(linkOfRing(node), arena);
@@ -826,7 +836,8 @@ static Res MRGDescribe(Pool pool, mps_lib_FILE *stream, Count depth)
     if (outsideShield) {
       ShieldLeave(arena);
     }
-    if (res != ResOK) return res;
+    if (res != ResOK)
+      return res;
   }
 
   return ResOK;

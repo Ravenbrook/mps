@@ -167,7 +167,8 @@ Bool ChunkCheck(Chunk chunk)
 
 /* ChunkInit -- initialize generic part of chunk */
 
-Res ChunkInit(Chunk chunk, Arena arena, Addr base, Addr limit, BootBlock boot)
+Res ChunkInit(Chunk chunk, Arena arena, Addr base, Addr limit, Size reserved,
+              BootBlock boot)
 {
   Size size;
   Count pages;
@@ -186,12 +187,13 @@ Res ChunkInit(Chunk chunk, Arena arena, Addr base, Addr limit, BootBlock boot)
 
   chunk->serial = (arena->chunkSerial)++;
   chunk->arena = arena;
-  RingInit(&chunk->chunkRing);
+  RingInit(&chunk->arenaRing);
 
   chunk->pageSize = ArenaGrainSize(arena);
   chunk->pageShift = pageShift = SizeLog2(chunk->pageSize);
   chunk->base = base;
   chunk->limit = limit;
+  chunk->reserved = reserved;
   size = ChunkSize(chunk);
 
   chunk->pages = pages = size >> pageShift;
@@ -262,17 +264,16 @@ void ChunkFinish(Chunk chunk)
                         PageIndexBase(chunk, chunk->allocBase),
                         chunk->limit);
 
+  ArenaChunkRemoved(arena, chunk);
+
   chunk->sig = SigInvalid;
 
   TreeFinish(&chunk->chunkTree);
-  RingRemove(&chunk->chunkRing);
-
-  if (chunk->arena->primary == chunk)
-    chunk->arena->primary = NULL;
+  RingRemove(&chunk->arenaRing);
 
   /* Finish all other fields before class finish, because they might be */
   /* unmapped there. */
-  (chunk->arena->class->chunkFinish)(chunk);
+  (*arena->class->chunkFinish)(chunk);
 }
 
 
@@ -359,10 +360,13 @@ Res ChunkNodeDescribe(Tree node, mps_lib_FILE *stream)
 {
   Chunk chunk;
 
-  if (!TreeCheck(node)) return ResFAIL;
-  if (stream == NULL) return ResFAIL;
+  if (!TreeCheck(node))
+    return ResFAIL;
+  if (stream == NULL)
+    return ResFAIL;
   chunk = ChunkOfTree(node);
-  if (!TESTT(Chunk, chunk)) return ResFAIL;
+  if (!TESTT(Chunk, chunk))
+    return ResFAIL;
 
   return WriteF(stream, 0, "[$P,$P)", (WriteFP)chunk->base,
                 (WriteFP)chunk->limit, NULL);

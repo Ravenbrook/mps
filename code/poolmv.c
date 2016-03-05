@@ -1,7 +1,7 @@
 /* poolmv.c: MANUAL VARIABLE POOL
  *
  * $Id$
- * Copyright (c) 2001-2014 Ravenbrook Limited.  See end of file for license.
+ * Copyright (c) 2001-2015 Ravenbrook Limited.  See end of file for license.
  * Portions copyright (C) 2002 Global Graphics Software.
  *
  * **** RESTRICTION: This pool may not allocate from the arena control
@@ -260,7 +260,7 @@ static Res MVInit(Pool pool, ArgList args)
     res = PoolInit(mvBlockPool(mv), arena, PoolClassMFS(), piArgs);
   } MPS_ARGS_END(piArgs);
   if(res != ResOK)
-    return res;
+    goto failBlockPoolInit;
 
   spanExtendBy = sizeof(MVSpanStruct) * (maxSize/extendBy);
 
@@ -270,7 +270,7 @@ static Res MVInit(Pool pool, ArgList args)
     res = PoolInit(mvSpanPool(mv), arena, PoolClassMFS(), piArgs);
   } MPS_ARGS_END(piArgs);
   if(res != ResOK)
-    return res;
+    goto failSpanPoolInit;
 
   mv->extendBy = extendBy;
   mv->avgSize  = avgSize;
@@ -284,6 +284,11 @@ static Res MVInit(Pool pool, ArgList args)
   AVERT(MV, mv);
   EVENT5(PoolInitMV, pool, arena, extendBy, avgSize, maxSize);
   return ResOK;
+
+failSpanPoolInit:
+  PoolFinish(mvBlockPool(mv));
+failBlockPoolInit:
+  return res;
 }
 
 
@@ -455,7 +460,8 @@ static Res MVSpanFree(MVSpan span, Addr base, Addr limit, Pool blockPool)
         /* block must be split into two parts.  */
         res = PoolAlloc(&addr, blockPool, sizeof(MVBlockStruct),
                         /* withReservoirPermit */ FALSE);
-        if(res != ResOK) return res;
+        if (res != ResOK)
+          return res;
         new = (MVBlock)addr;
 
         freeAreaSize = AddrOffset(base, limit);
@@ -564,11 +570,11 @@ static Res MVAlloc(Addr *pReturn, Pool pool, Size size,
   arena = PoolArena(pool);
   regionSize = SizeArenaGrains(regionSize, arena);
 
-  res = ArenaAlloc(&base, SegPrefDefault(), regionSize, pool,
+  res = ArenaAlloc(&base, LocusPrefDefault(), regionSize, pool,
                    withReservoirPermit);
   if(res != ResOK) { /* try again with a region big enough for this object */
     regionSize = SizeArenaGrains(size, arena);
-    res = ArenaAlloc(&base, SegPrefDefault(), regionSize, pool,
+    res = ArenaAlloc(&base, LocusPrefDefault(), regionSize, pool,
                      withReservoirPermit);
     if (res != ResOK) {
       PoolFree(mvSpanPool(mv), (Addr)span, sizeof(MVSpanStruct));
@@ -742,10 +748,13 @@ static Res MVDescribe(Pool pool, mps_lib_FILE *stream, Count depth)
   char c;
   Ring spans, node = NULL, nextNode; /* gcc whinge stop */
 
-  if(!TESTT(Pool, pool)) return ResFAIL;
+  if (!TESTT(Pool, pool))
+    return ResFAIL;
   mv = PoolMV(pool);
-  if(!TESTT(MV, mv)) return ResFAIL;
-  if(stream == NULL) return ResFAIL;
+  if (!TESTT(MV, mv))
+    return ResFAIL;
+  if (stream == NULL)
+    return ResFAIL;
 
   res = WriteF(stream, depth,
                "blockPool $P ($U)\n",
@@ -769,7 +778,8 @@ static Res MVDescribe(Pool pool, mps_lib_FILE *stream, Count depth)
     MVBlock block;
     span = RING_ELT(MVSpan, spans, node);
     res = WriteF(stream, depth, "MVSpan $P {\n", (WriteFP)span, NULL);
-    if(res != ResOK) return res;
+    if (res != ResOK)
+      return res;
 
     res = WriteF(stream, depth + 2,
                  "span    $P\n", (WriteFP)span,
@@ -778,19 +788,22 @@ static Res MVDescribe(Pool pool, mps_lib_FILE *stream, Count depth)
                  "blocks  $U\n", (WriteFU)span->blockCount,
                  "largest ",
                  NULL);
-    if(res != ResOK) return res;
+    if (res != ResOK)
+      return res;
 
     if (span->largestKnown) /* .design.largest */
       res = WriteF(stream, 0, "$W\n", (WriteFW)span->largest, NULL);
     else
       res = WriteF(stream, 0, "unknown\n", NULL);
-    if(res != ResOK) return res;
+    if (res != ResOK)
+      return res;
 
     block = span->blocks;
 
     for(i = span->base.base; i < span->limit.limit; i = AddrAdd(i, length)) {
-      res = WriteF(stream, depth + 2, "$A ", i, NULL);
-      if(res != ResOK) return res;
+      res = WriteF(stream, depth + 2, "$A ", (WriteFA)i, NULL);
+      if (res != ResOK)
+        return res;
 
       for(j = i;
           j < AddrAdd(i, length) && j < span->limit.limit;
@@ -812,14 +825,17 @@ static Res MVDescribe(Pool pool, mps_lib_FILE *stream, Count depth)
           c = ']';
         else /* j > block->base && j < block->limit */
           c = '=';
-        res = WriteF(stream, 0, "$C", c, NULL);
-        if(res != ResOK) return res;
+        res = WriteF(stream, 0, "$C", (WriteFC)c, NULL);
+        if (res != ResOK)
+          return res;
       }
       res = WriteF(stream, 0, "\n", NULL);
-      if(res != ResOK) return res;
+      if (res != ResOK)
+        return res;
     }
     res = WriteF(stream, depth, "} MVSpan $P\n", (WriteFP)span, NULL);
-    if(res != ResOK) return res;
+    if (res != ResOK)
+      return res;
   }
 
   return ResOK;
@@ -872,14 +888,14 @@ DEFINE_POOL_CLASS(MVDebugPoolClass, this)
  * Note this is an MPS interface extension
  */
 
-mps_class_t mps_class_mv(void)
+mps_pool_class_t mps_class_mv(void)
 {
-  return (mps_class_t)(EnsureMVPoolClass());
+  return (mps_pool_class_t)(EnsureMVPoolClass());
 }
 
-mps_class_t mps_class_mv_debug(void)
+mps_pool_class_t mps_class_mv_debug(void)
 {
-  return (mps_class_t)(EnsureMVDebugPoolClass());
+  return (mps_pool_class_t)(EnsureMVDebugPoolClass());
 }
 
 
@@ -902,7 +918,7 @@ Bool MVCheck(MV mv)
 
 /* C. COPYRIGHT AND LICENSE
  *
- * Copyright (C) 2001-2014 Ravenbrook Limited <http://www.ravenbrook.com/>.
+ * Copyright (C) 2001-2015 Ravenbrook Limited <http://www.ravenbrook.com/>.
  * All rights reserved.  This is an open source license.  Contact
  * Ravenbrook for commercial licensing options.
  * 

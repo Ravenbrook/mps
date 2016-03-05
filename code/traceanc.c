@@ -564,7 +564,8 @@ void ArenaRelease(Globals globals)
 }
 
 
-/* ArenaPark -- finish all current collections and clamp the arena */
+/* ArenaPark -- finish all current collections and clamp the arena,
+ * thus leaving the arena parked. */
 
 void ArenaPark(Globals globals)
 {
@@ -578,9 +579,9 @@ void ArenaPark(Globals globals)
   globals->clamped = TRUE;
 
   while(arena->busyTraces != TraceSetEMPTY) {
-    /* Poll active traces to make progress. */
+    /* Advance all active traces. */
     TRACE_SET_ITER(ti, trace, arena->busyTraces, arena)
-      TraceQuantum(trace);
+      TraceAdvance(trace);
       if(trace->state == TraceFINISHED) {
         TraceDestroy(trace);
       }
@@ -616,7 +617,7 @@ failStart:
   return res;
 }
 
-/* ArenaCollect -- collect everything in arena; leave clamped */
+/* ArenaCollect -- collect everything in arena; leave parked */
 
 Res ArenaCollect(Globals globals, int why)
 {
@@ -673,7 +674,7 @@ static Res arenaRememberSummaryOne(Globals global, Addr base, RefSet summary)
     RememberedSummaryBlock newBlock;
     int res;
 
-    res = ControlAlloc(&p, arena, sizeof *newBlock, 0);
+    res = ControlAlloc(&p, arena, sizeof *newBlock, FALSE);
     if(res != ResOK) {
       return res;
     }
@@ -703,12 +704,13 @@ static Res arenaRememberSummaryOne(Globals global, Addr base, RefSet summary)
    protection state or not (for later restoration with
    ArenaRestoreProtection).
    */
-void ArenaExposeRemember(Globals globals, int remember)
+void ArenaExposeRemember(Globals globals, Bool remember)
 {
   Seg seg;
   Arena arena;
 
   AVERT(Globals, globals);
+  AVERT(Bool, remember);
 
   ArenaPark(globals);
 

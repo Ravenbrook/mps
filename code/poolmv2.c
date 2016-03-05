@@ -215,11 +215,11 @@ static void MVTVarargs(ArgStruct args[MPS_ARGS_MAX], va_list varargs)
  * minSize, meanSize, maxSize, reserveDepth, fragLimit
  */
 
-ARG_DEFINE_KEY(mvt_min_size, Size);
-ARG_DEFINE_KEY(mvt_mean_size, Size);
-ARG_DEFINE_KEY(mvt_max_size, Size);
-ARG_DEFINE_KEY(mvt_reserve_depth, Count);
-ARG_DEFINE_KEY(mvt_frag_limit, double);
+ARG_DEFINE_KEY(MVT_MIN_SIZE, Size);
+ARG_DEFINE_KEY(MVT_MEAN_SIZE, Size);
+ARG_DEFINE_KEY(MVT_MAX_SIZE, Size);
+ARG_DEFINE_KEY(MVT_RESERVE_DEPTH, Count);
+ARG_DEFINE_KEY(MVT_FRAG_LIMIT, double);
 
 static Res MVTInit(Pool pool, ArgList args)
 {
@@ -1027,10 +1027,13 @@ static Res MVTDescribe(Pool pool, mps_lib_FILE *stream, Count depth)
   Res res;
   MVT mvt;
 
-  if (!TESTT(Pool, pool)) return ResFAIL;
+  if (!TESTT(Pool, pool))
+    return ResFAIL;
   mvt = PoolMVT(pool);
-  if (!TESTT(MVT, mvt)) return ResFAIL;
-  if (stream == NULL) return ResFAIL;
+  if (!TESTT(MVT, mvt))
+    return ResFAIL;
+  if (stream == NULL)
+    return ResFAIL;
 
   res = WriteF(stream, depth,
                "MVT $P {\n", (WriteFP)mvt,
@@ -1041,8 +1044,8 @@ static Res MVTDescribe(Pool pool, mps_lib_FILE *stream, Count depth)
                "  reuseSize: $U\n", (WriteFU)mvt->reuseSize,
                "  fillSize: $U\n", (WriteFU)mvt->fillSize,
                "  availLimit: $U\n", (WriteFU)mvt->availLimit,
-               "  abqOverflow: $S\n", mvt->abqOverflow?"TRUE":"FALSE",
-               "  splinter: $S\n", mvt->splinter?"TRUE":"FALSE",
+               "  abqOverflow: $S\n", WriteFYesNo(mvt->abqOverflow),
+               "  splinter: $S\n", WriteFYesNo(mvt->splinter),
                "  splinterBase: $A\n", (WriteFA)mvt->splinterBase,
                "  splinterLimit: $A\n", (WriteFU)mvt->splinterLimit,
                "  size: $U\n", (WriteFU)mvt->size,
@@ -1050,17 +1053,22 @@ static Res MVTDescribe(Pool pool, mps_lib_FILE *stream, Count depth)
                "  available: $U\n", (WriteFU)mvt->available,
                "  unavailable: $U\n", (WriteFU)mvt->unavailable,
                NULL);
-  if(res != ResOK) return res;
+  if (res != ResOK)
+    return res;
 
   res = LandDescribe(MVTFreePrimary(mvt), stream, depth + 2);
-  if(res != ResOK) return res;
+  if (res != ResOK)
+    return res;
   res = LandDescribe(MVTFreeSecondary(mvt), stream, depth + 2);
-  if(res != ResOK) return res;
+  if (res != ResOK)
+    return res;
   res = LandDescribe(MVTFreeLand(mvt), stream, depth + 2);
-  if(res != ResOK) return res;
+  if (res != ResOK)
+    return res;
   res = ABQDescribe(MVTABQ(mvt), (ABQDescribeElement)RangeDescribe, stream,
                     depth + 2);
-  if(res != ResOK) return res;
+  if (res != ResOK)
+    return res;
 
   METER_WRITE(mvt->segAllocs, stream, depth + 2);
   METER_WRITE(mvt->segFrees, stream, depth + 2);
@@ -1115,9 +1123,9 @@ PoolClass PoolClassMVT(void)
 
 /* mps_class_mvt -- the class of an mvt pool */
 
-mps_class_t mps_class_mvt(void)
+mps_pool_class_t mps_class_mvt(void)
 {
-  return (mps_class_t)(PoolClassMVT());
+  return (mps_pool_class_t)(PoolClassMVT());
 }
 
 
@@ -1130,9 +1138,8 @@ mps_class_t mps_class_mvt(void)
 static Res MVTSegAlloc(Seg *segReturn, MVT mvt, Size size,
                        Bool withReservoirPermit)
 {
-  Res res = SegAlloc(segReturn, SegClassGet(),
-                     SegPrefDefault(), size, MVTPool(mvt), withReservoirPermit,
-                     argsNone);
+  Res res = SegAlloc(segReturn, SegClassGet(), LocusPrefDefault(), size,
+                     MVTPool(mvt), withReservoirPermit, argsNone);
 
   if (res == ResOK) {
     Size segSize = SegSize(*segReturn);

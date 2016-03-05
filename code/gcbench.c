@@ -7,12 +7,17 @@
  */
 
 #include "mps.c"
-#include "getopt.h"
 #include "testlib.h"
 #include "testthr.h"
 #include "fmtdy.h"
 #include "fmtdytst.h"
 #include "mpm.h"
+
+#ifdef MPS_OS_W3
+#include "getopt.h"
+#else
+#include <getopt.h>
+#endif
 
 #include <stdio.h> /* fprintf, printf, putchars, sscanf, stderr, stdout */
 #include <stdlib.h> /* alloca, exit, EXIT_FAILURE, EXIT_SUCCESS, strtoul */
@@ -84,7 +89,8 @@ static void aset(obj_t v, size_t i, obj_t val) {
 static obj_t mktree(mps_ap_t ap, unsigned d, obj_t leaf) {
   obj_t tree;
   size_t i;
-  if (d <= 0) return leaf;
+  if (d <= 0)
+    return leaf;
   tree = mkvector(ap, width);
   for (i = 0; i < width; ++i) {
     aset(tree, i, mktree(ap, d - 1, leaf));
@@ -171,10 +177,8 @@ static void *start(void *p) {
   gcthread_t thread = p;
   void *marker;
   RESMUST(mps_thread_reg(&thread->mps_thread, arena));
-  RESMUST(mps_root_create_reg(&thread->reg_root, arena, 
-                              mps_rank_ambig(), (mps_rm_t)0,
-                              thread->mps_thread, &mps_stack_scan_ambig,
-                              &marker, (size_t)0));
+  RESMUST(mps_root_create_thread(&thread->reg_root, arena,
+                                 thread->mps_thread, &marker));
   RESMUST(mps_ap_create_k(&thread->ap, pool, mps_args_none));
   thread->fn(thread);
   mps_ap_destroy(thread->ap);
@@ -225,7 +229,7 @@ static void watch(gcthread_fn_t fn, const char *name)
 /* Setup MPS arena and call benchmark. */
 
 static void arena_setup(gcthread_fn_t fn,
-                        mps_class_t pool_class,
+                        mps_pool_class_t pool_class,
                         const char *name)
 {
   MPS_ARGS_BEGIN(args) {
@@ -284,7 +288,7 @@ static struct option longopts[] = {
 static struct {
   const char *name;
   gcthread_fn_t fn;
-  mps_class_t (*pool_class)(void);
+  mps_pool_class_t (*pool_class)(void);
 } pools[] = {
   {"amc", gc_tree, mps_class_amc},
   {"ams", gc_tree, mps_class_ams},
@@ -457,7 +461,7 @@ int main(int argc, char *argv[]) {
   (void)fflush(stdout);
 
   while (argc > 0) {
-    for (i = 0; i < sizeof(pools) / sizeof(pools[0]); ++i)
+    for (i = 0; i < NELEMS(pools); ++i)
       if (strcmp(argv[0], pools[i].name) == 0)
         goto found;
     fprintf(stderr, "unknown pool test \"%s\"\n", argv[0]);

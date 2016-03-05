@@ -130,11 +130,13 @@ static mps_addr_t make(void)
 
   do {
     MPS_RESERVE_BLOCK(res, pMps, ap, sizeMps);
-    if (res != MPS_RES_OK) die(res, "MPS_RESERVE_BLOCK");
+    if (res != MPS_RES_OK)
+      die(res, "MPS_RESERVE_BLOCK");
     HeaderInit(pMps);
     pCli = PtrMps2Cli(pMps);
     res = dylan_init(pCli, sizeCli, exactRoots, exactRootsCOUNT);
-    if (res != MPS_RES_OK) die(res, "dylan_init");
+    if (res != MPS_RES_OK)
+      die(res, "dylan_init");
   } while(!mps_commit(ap, pMps, sizeMps));
 
   return pCli;
@@ -153,11 +155,13 @@ static mps_addr_t make_with_permit(void)
 
   do {
     MPS_RESERVE_WITH_RESERVOIR_PERMIT_BLOCK(res, pMps, ap, sizeMps);
-    if (res != MPS_RES_OK) die(res, "MPS_RESERVE_WITH_RESERVOIR_PERMIT_BLOCK");
+    if (res != MPS_RES_OK)
+      die(res, "MPS_RESERVE_WITH_RESERVOIR_PERMIT_BLOCK");
     HeaderInit(pMps);
     pCli = PtrMps2Cli(pMps);
     res = dylan_init(pCli, sizeCli, exactRoots, exactRootsCOUNT);
-    if (res != MPS_RES_OK) die(res, "dylan_init");
+    if (res != MPS_RES_OK)
+      die(res, "dylan_init");
   } while(!mps_commit(ap, pMps, sizeMps));
 
   return pCli;
@@ -176,11 +180,13 @@ static mps_addr_t make_no_inline(void)
 
   do {
     res = (mps_reserve)(&pMps, ap, sizeMps);
-    if (res != MPS_RES_OK) die(res, "(mps_reserve)");
+    if (res != MPS_RES_OK)
+      die(res, "(mps_reserve)");
     HeaderInit(pMps);
     pCli = PtrMps2Cli(pMps);
     res = dylan_init(pCli, sizeCli, exactRoots, exactRootsCOUNT);
-    if (res != MPS_RES_OK) die(res, "dylan_init");
+    if (res != MPS_RES_OK)
+      die(res, "dylan_init");
   } while(!(mps_commit)(ap, pMps, sizeMps));
 
   return pCli;
@@ -227,6 +233,7 @@ static void ap_create_v_test(mps_pool_t pool, ...)
 /* addr_pool_test
  *
  * intended to test:
+ *   mps_arena_has_addr
  *   mps_addr_pool
  *   mps_addr_fmt
  */
@@ -264,6 +271,7 @@ static void addr_pool_test(mps_arena_t arena,
   addr = obj1;
   pool = poolDistinguished;
   fmt = fmtDistinguished;
+  cdie(mps_arena_has_addr(arena, addr), "mps_arena_has_addr 0a");
   b = mps_addr_pool(&pool, arena, addr);
   /* printf("b %d; pool %p; sig %lx\n", b, (void *)pool,
             b ? ((mps_word_t*)pool)[0] : (mps_word_t)0); */
@@ -277,6 +285,7 @@ static void addr_pool_test(mps_arena_t arena,
   addr = obj2;
   pool = poolDistinguished;
   fmt = fmtDistinguished;
+  cdie(mps_arena_has_addr(arena, addr), "mps_arena_has_addr 0b");
   b = mps_addr_pool(&pool, arena, addr);
   /* printf("b %d; pool %p; sig %lx\n", b, (void *)pool,
             b ? ((mps_word_t*)pool)[0] : (mps_word_t)0); */
@@ -290,6 +299,7 @@ static void addr_pool_test(mps_arena_t arena,
   addr = &pool;  /* point at stack, not in any chunk */
   pool = poolDistinguished;
   fmt = fmtDistinguished;
+  cdie(mps_arena_has_addr(arena, addr) == FALSE, "mps_arena_has_addr 5");
   b = mps_addr_pool(&pool, arena, addr);
   cdie(b == FALSE && pool == poolDistinguished, "mps_addr_pool 5");
   b = mps_addr_fmt(&fmt, arena, addr);
@@ -314,6 +324,7 @@ static mps_res_t root_single(mps_ss_t ss, void *p, size_t s)
  *   mps_arena_reserved
  * incidentally tests:
  *   mps_alloc
+ *   mps_arena_commit_limit_set
  *   mps_class_mv
  *   mps_pool_create
  *   mps_pool_destroy
@@ -585,11 +596,16 @@ int main(int argc, char *argv[])
       "arena_create");
   die(mps_thread_reg(&thread, arena), "thread_reg");
 
-  die(mps_root_create_reg(&reg_root, arena,
-                          mps_rank_ambig(), (mps_rm_t)0,
-                          thread, &mps_stack_scan_ambig,
-                          marker, (size_t)0),
-      "root_create_reg");
+  if (rnd() % 2) {
+    die(mps_root_create_reg(&reg_root, arena,
+                            mps_rank_ambig(), (mps_rm_t)0,
+                            thread, &mps_stack_scan_ambig,
+                            marker, (size_t)0),
+        "root_create_reg");
+  } else {
+    die(mps_root_create_thread(&reg_root, arena, thread, marker),
+        "root_create_thread");
+  }
 
   mps_tramp(&r, test, arena, 0);
   mps_root_destroy(reg_root);

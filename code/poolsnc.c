@@ -387,6 +387,7 @@ static Res SNCInit(Pool pool, ArgList args)
   format = arg.val.format;
 
   AVERT(Format, format);
+  AVER(FormatArena(format) == PoolArena(pool));
   pool->format = format;
   snc->freeSegs = NULL;
   snc->sig = SNCSig;
@@ -446,7 +447,7 @@ static Res SNCBufferFill(Addr *baseReturn, Addr *limitReturn,
   /* No free seg, so create a new one */
   arena = PoolArena(pool);
   asize = SizeArenaGrains(size, arena);
-  res = SegAlloc(&seg, SNCSegClassGet(), SegPrefDefault(),
+  res = SegAlloc(&seg, SNCSegClassGet(), LocusPrefDefault(),
                  asize, pool, withReservoirPermit, argsNone);
   if (res != ResOK)
     return res;
@@ -526,7 +527,7 @@ static Res SNCScan(Bool *totalReturn, ScanState ss, Pool pool, Seg seg)
   }
  
   if (base < limit) {
-    res = (*format->scan)(&ss->ss_s, base, limit);
+    res = FormatScan(format, ss, base, limit);
     if (res != ResOK) {
       *totalReturn = FALSE;
       return res;
@@ -534,8 +535,6 @@ static Res SNCScan(Bool *totalReturn, ScanState ss, Pool pool, Seg seg)
   } else {
     AVER(base == limit);
   }
-
-  ss->scannedSize += AddrOffset(base, limit);
 
   *totalReturn = TRUE;
   return ResOK;
@@ -624,7 +623,7 @@ static void SNCFramePopPending(Pool pool, Buffer buf, AllocFrame frame)
 }
 
 
-static void SNCWalk(Pool pool, Seg seg, FormattedObjectsStepMethod f,
+static void SNCWalk(Pool pool, Seg seg, FormattedObjectsVisitor f,
                     void *p, size_t s)
 {
   AVERT(Pool, pool);
@@ -687,9 +686,9 @@ DEFINE_POOL_CLASS(SNCPoolClass, this)
 }
 
 
-mps_class_t mps_class_snc(void)
+mps_pool_class_t mps_class_snc(void)
 {
-  return (mps_class_t)SNCPoolClassGet();
+  return (mps_pool_class_t)SNCPoolClassGet();
 }
 
 

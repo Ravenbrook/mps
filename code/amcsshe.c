@@ -97,7 +97,8 @@ static void report(mps_arena_t arena)
 
 /* test -- the body of the test */
 
-static void *test(mps_arena_t arena, mps_class_t pool_class, size_t roots_count)
+static void *test(mps_arena_t arena, mps_pool_class_t pool_class,
+                  size_t roots_count)
 {
   mps_fmt_t format;
   mps_chain_t chain;
@@ -250,10 +251,10 @@ int main(int argc, char *argv[])
   MPS_ARGS_BEGIN(args) {
     MPS_ARGS_ADD(args, MPS_KEY_ARENA_SIZE, testArenaSIZE);
     MPS_ARGS_ADD(args, MPS_KEY_ARENA_GRAIN_SIZE, rnd_grain(testArenaSIZE));
+    MPS_ARGS_ADD(args, MPS_KEY_COMMIT_LIMIT, testArenaSIZE);
     die(mps_arena_create_k(&arena, mps_arena_class_vm(), args), "arena_create");
   } MPS_ARGS_END(args);
   mps_message_type_enable(arena, mps_message_type_gc());
-  die(mps_arena_commit_limit_set(arena, testArenaSIZE), "set limit");
   die(mps_thread_reg(&thread, arena), "thread_reg");
   test(arena, mps_class_amc(), exactRootsCOUNT);
   test(arena, mps_class_amcz(), 0);

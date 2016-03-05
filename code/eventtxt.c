@@ -138,7 +138,8 @@ static void printStr(const char *str)
   putchar('"');
   for (i = 0; str[i] != '\0'; ++i) {
     char c = str[i];
-    if (c == '"' || c == '\\') putchar('\\');
+    if (c == '"' || c == '\\')
+      putchar('\\');
     putchar(c);
   }
   putchar('"');
@@ -249,7 +250,7 @@ static void createTables(mps_pool_t pool)
   res = TableCreate(&internTable,
                     (size_t)1<<4,
                     tableAlloc, tableFree, pool,
-                    (Word)-1, (Word)-2); 
+                    (TableKey)-1, (TableKey)-2); 
   if (res != ResOK)
     everror("Couldn't make intern table.");
 
@@ -279,7 +280,7 @@ static void recordIntern(mps_pool_t pool, char *p)
   if (res != MPS_RES_OK)
     everror("Couldn't allocate space for a string.");
   (void)strcpy(copy, string);
-  res = TableDefine(internTable, (Word)stringId, (void *)copy);
+  res = TableDefine(internTable, (TableKey)stringId, (void *)copy);
   if (res != ResOK)
     everror("Couldn't create an intern mapping.");
 }
@@ -358,7 +359,7 @@ static void recordLabel(mps_pool_t pool, EventClock clock, char *p)
     return;
   }
 
-  if (TableLookup(&tmp, labelTable, address)) {
+  if (TableLookup(&tmp, labelTable, (TableKey)address)) {
     list = tmp;
   } else {
     /* First label for this address */
@@ -367,7 +368,7 @@ static void recordLabel(mps_pool_t pool, EventClock clock, char *p)
       everror("Can't allocate space for a label list");
     list = tmp;
     list->n = 0;
-    res = TableDefine(labelTable, (Word)address, list);
+    res = TableDefine(labelTable, (TableKey)address, list);
     if (res != ResOK)
       everror("Couldn't create a label mapping.");
   }
@@ -407,13 +408,13 @@ static void printAddr(EventClock clock, ulongest_t addr, const char *ident)
   void *tmp;
         
   printf("%s:%0*" PRIXLONGEST, ident, hexWordWidth, addr);
-  if (TableLookup(&tmp, labelTable, addr)) {
+  if (TableLookup(&tmp, labelTable, (TableKey)addr)) {
     LabelList list = tmp;
     size_t pos = labelFind(list, clock);
     if (pos > 0) {
       ulongest_t id = list->labels[pos - 1].id;
       putchar('[');
-      if (TableLookup(&tmp, internTable, id))
+      if (TableLookup(&tmp, internTable, (TableKey)id))
         printStr((char *)tmp);
       else
         printf("unknown label %" PRIXLONGEST, id);

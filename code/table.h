@@ -1,7 +1,9 @@
 /* table.h: Interface for a dictionary
- * Copyright (c) 2001 Ravenbrook Limited.  See end of file for license.
  *
  * $Id$
+ * Copyright (c) 2001-2014 Ravenbrook Limited.  See end of file for license.
+ *
+ * A table is a hashed mapping from keys to values.
  */
 
 #ifndef table_h
@@ -13,44 +15,47 @@
 
 typedef struct TableStruct *Table;
 
-#define TableSig        ((Sig)0x5192AB13) /* SIGnature TABLE */
-
-typedef void *(*TableAllocMethod)(void *closure, size_t size);
-typedef void (*TableFreeMethod)(void *closure, void *p, size_t size);
+typedef Word TableKey;
+typedef void *TableValue;
 
 typedef struct TableEntryStruct {
-  Word key;
-  void *value;
+  TableKey key;
+  TableValue value;
 } TableEntryStruct, *TableEntry;
+
+typedef void *(*TableAllocFunction)(void *closure, size_t size);
+typedef void (*TableFreeFunction)(void *closure, void *p, size_t size);
+
+#define TableSig        ((Sig)0x5192AB13) /* SIGnature TABLE */
 
 typedef struct TableStruct {
   Sig sig;                      /* <design/sig/> */
   Count length;                 /* Number of slots in the array */
   Count count;                  /* Active entries in the table */
   TableEntry array;             /* Array of table slots */
-  TableAllocMethod alloc;
-  TableFreeMethod free;
+  TableAllocFunction alloc;
+  TableFreeFunction free;
   void *allocClosure;
-  Word unusedKey;               /* key marking unused (undefined) entries */
-  Word deletedKey;              /* key marking deleted entries */
+  TableKey unusedKey;           /* key marking unused (undefined) entries */
+  TableKey deletedKey;          /* key marking deleted entries */
 } TableStruct;
 
 extern Res TableCreate(Table *tableReturn,
                        Count length,
-                       TableAllocMethod tableAlloc,
-                       TableFreeMethod tableFree,
+                       TableAllocFunction tableAlloc,
+                       TableFreeFunction tableFree,
                        void *allocClosure,
-                       Word unusedKey,
-                       Word deletedKey);
+                       TableKey unusedKey,
+                       TableKey deletedKey);
 extern void TableDestroy(Table table);
 extern Bool TableCheck(Table table);
-extern Res TableDefine(Table table, Word key, void *value);
-extern Res TableRedefine(Table table, Word key, void *value);
-extern Bool TableLookup(void **valueReturn, Table table, Word key);
-extern Res TableRemove(Table table, Word key);
+extern Res TableDefine(Table table, TableKey key, TableValue value);
+extern Res TableRedefine(Table table, TableKey key, TableValue value);
+extern Bool TableLookup(TableValue *valueReturn, Table table, TableKey key);
+extern Res TableRemove(Table table, TableKey key);
 extern Count TableCount(Table table);
 extern void TableMap(Table table,
-                     void(*fun)(void *closure, Word key, void *value),
+                     void(*fun)(void *closure, TableKey key, TableValue value),
                      void *closure);
 extern Res TableGrow(Table table, Count extraCapacity);
 
@@ -60,7 +65,7 @@ extern Res TableGrow(Table table, Count extraCapacity);
 
 /* C. COPYRIGHT AND LICENSE
  *
- * Copyright (C) 2001-2002 Ravenbrook Limited <http://www.ravenbrook.com/>.
+ * Copyright (C) 2001-2014 Ravenbrook Limited <http://www.ravenbrook.com/>.
  * All rights reserved.  This is an open source license.  Contact
  * Ravenbrook for commercial licensing options.
  * 

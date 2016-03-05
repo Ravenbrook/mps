@@ -48,7 +48,7 @@
 
 #define PoolClassSig    ((Sig)0x519C7A55) /* SIGnature pool CLASS */
 
-typedef struct mps_class_s {
+typedef struct mps_pool_class_s {
   ProtocolClassStruct protocol;
   const char *name;             /* class name string */
   size_t size;                  /* size of outer structure */
@@ -111,10 +111,6 @@ typedef struct mps_pool_s {     /* generic structure */
   Align alignment;              /* alignment for units */
   Format format;                /* format only if class->attr&AttrFMT */
   PoolFixMethod fix;            /* fix method */
-  double fillMutatorSize;       /* bytes filled, mutator buffers */
-  double emptyMutatorSize;      /* bytes emptied, mutator buffers */
-  double fillInternalSize;      /* bytes filled, internal buffers */
-  double emptyInternalSize;     /* bytes emptied, internal buffers */
 } PoolStruct;
 
 
@@ -305,22 +301,21 @@ typedef struct GCSegStruct {    /* GC segment structure */
 } GCSegStruct;
 
 
-/* SegPrefStruct -- segment preference structure
+/* LocusPrefStruct -- locus preference structure
  *
- * .seg-pref: arena memory users (pool class code) need a way of
- * expressing preferences about the segments they allocate.
- *
- * .seg-pref.misleading: The name is historical and misleading. SegPref
- * objects need have nothing to do with segments. @@@@ */
+ * .locus-pref: arena memory users (pool class code) need a way of
+ * expressing preferences about the locus of the segments they
+ * allocate. See <design/locus/>.
+ */
 
-#define SegPrefSig      ((Sig)0x5195E9B6) /* SIGnature SEG PRef */
+#define LocusPrefSig      ((Sig)0x51970CB6) /* SIGnature LOCus PRef */
 
-typedef struct SegPrefStruct {  /* segment placement preferences */
+typedef struct LocusPrefStruct { /* locus placement preferences */
   Sig sig;                      /* <code/misc.h#sig> */
   Bool high;                    /* high or low */
   ZoneSet zones;                /* preferred zones */
   ZoneSet avoid;                /* zones to avoid */
-} SegPrefStruct;
+} LocusPrefStruct;
 
 
 /* BufferClassStruct -- buffer class structure
@@ -532,7 +527,6 @@ typedef struct mps_arena_class_s {
   ArenaVarargsMethod varargs;
   ArenaInitMethod init;
   ArenaFinishMethod finish;
-  ArenaReservedMethod reserved;
   ArenaPurgeSpareMethod purgeSpare;
   ArenaExtendMethod extend;
   ArenaGrowMethod grow;
@@ -720,7 +714,8 @@ typedef struct mps_arena_s {
 
   ReservoirStruct reservoirStruct; /* <design/reservoir/> */
 
-  Size committed;               /* amount of committed RAM */
+  Size reserved;                /* total reserved address space */
+  Size committed;               /* total committed memory */
   Size commitLimit;             /* client-configurable commit limit */
 
   Size spareCommitted;          /* Amount of memory in hysteresis fund */
@@ -762,6 +757,7 @@ typedef struct mps_arena_s {
 
   /* thread fields (<code/thread.c>) */
   RingStruct threadRing;        /* ring of attached threads */
+  RingStruct deadRing;          /* ring of dead threads */
   Serial threadSerial;          /* serial of next thread */
  
   /* shield fields (<code/shield.c>) */
@@ -798,7 +794,7 @@ typedef struct mps_arena_s {
 
   Bool emergency;               /* garbage collect in emergency mode? */
 
-  Addr *stackAtArenaEnter;  /* NULL or top of client stack, in the thread */
+  Word *stackAtArenaEnter;  /* NULL or hot end of client stack, in the thread */
                             /* that then entered the MPS. */
 
   Sig sig;

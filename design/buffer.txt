@@ -15,8 +15,8 @@ Allocation buffers and allocation points
 Introduction
 ------------
 
-_`.scope`: This document describes the design of allocation buffers
-and allocation points.
+_`.scope`: This is the design of allocation buffers and allocation
+points.
 
 _`.purpose`: The purpose of this document is to record design
 decisions made concerning allocation buffers and allocation points and
@@ -48,11 +48,12 @@ the archives if you can't find what you want here.
     2006-06-09.
 
 _`.source.synchronize`: For a discussion of the synchronization
-issues:
+issues, see `mail.richard.1995-05-19.17-10`_,
+`mail.ptw.1995-05-19.19-15`_, and `mail.richard.1995-05-24.10-18`_.
 
-* `mail.richard.1995-05-19.17-10 </project/mps/mail/1995/05/19/17-10/0.txt>`_
-* `mail.ptw.1995-05-19.19-15 </project/mps/mail/1995/05/19/19-15/0.txt>`_
-* `mail.richard.1995-05-24.10-18 </project/mps/mail/1995/05/24/10-18/0.txt>`_
+.. _mail.richard.1995-05-19.17-10: https://info.ravenbrook.com/project/mps/mail/1995/05/19/17-10/0.txt
+.. _mail.ptw.1995-05-19.19-15: https://info.ravenbrook.com/project/mps/mail/1995/05/19/19-15/0.txt
+.. _mail.richard.1995-05-24.10-18: https://info.ravenbrook.com/project/mps/mail/1995/05/24/10-18/0.txt
 
 .. note::
 
@@ -60,33 +61,39 @@ issues:
     incorrect. The operations should be in the other order. DRJ.
 
 _`.source.interface`: For a description of the buffer interface in C
-prototypes:
+prototypes, see `mail.richard.1997-04-28.09-25`_.
 
-* `mail.richard.1997-04-28.09-25(0) </project/mps/mail/1997/04/28/09-25/0.txt>`_
+.. _mail.richard.1997-04-28.09-25: https://info.ravenbrook.com/project/mps/mail/1997/04/28/09-25/0.txt
 
 _`.source.qa`: Discussions with QA were useful in pinning down the
 semantics and understanding of some obscure but important boundary
-cases. See the thread starting
-`mail.richard.tucker.1997-05-12.09-45(0)
-</project/mps/mail/1997/05/12/09-45/0.txt>`_ with subject "notes on
-our allocation points discussion":
+cases. See the thread with subject "notes on our allocation points
+discussion" and messages `mail.richard.tucker.1997-05-12.09-45`_,
+`mail.ptw.1997-05-12.12-46`_, `mail.richard.1997-05-12.13-15`_,
+`mail.richard.1997-05-12.13-28`_, `mail.ptw.1997-05-13.15-15`_,
+`mail.sheep.1997-05-14.11-52`_, `mail.rit.1997-05-15.09-19`_,
+`mail.ptw.1997-05-15.21-22`_, `mail.ptw.1997-05-15.21-35`_,
+`mail.rit.1997-05-16.08-02`_, `mail.rit.1997-05-16.08-42`_,
+`mail.ptw.1997-05-16.12-36`_, `mail.ptw.1997-05-16.12-47`_,
+`mail.richard.1997-05-19.15-46`_, `mail.richard.1997-05-19.15-56`_,
+and `mail.ptw.1997-05-20.20-47`_.
 
-* `mail.richard.tucker.1997-05-12.09-45 </project/mps/mail/1997/05/12/09-45/0.txt>`_
-* `mail.ptw.1997-05-12.12-46(1) </project/mps/mail/1997/05/12/12-46/1.txt>`_
-* `mail.richard.1997-05-12.13-15 </project/mps/mail/1997/05/12/13-15/0.txt>`_
-* `mail.richard.1997-05-12.13-28 </project/mps/mail/1997/05/12/13-28/0.txt>`_
-* `mail.ptw.1997-05-13.15-15 </project/mps/mail/1997/05/13/15-15/0.txt>`_
-* `mail.sheep.1997-05-14.11-52 </project/mps/mail/1997/05/14/11-52/0.txt>`_
-* `mail.rit.1997-05-15.09-19 </project/mps/mail/1997/05/15/09-19/0.txt>`_
-* `mail.ptw.1997-05-15.21-22 </project/mps/mail/1997/05/15/21-22/0.txt>`_
-* `mail.ptw.1997-05-15.21-35 </project/mps/mail/1997/05/15/21-35/0.txt>`_
-* `mail.rit.1997-05-16.08-02 </project/mps/mail/1997/05/16/08-02/0.txt>`_
-* `mail.rit.1997-05-16.08-42 </project/mps/mail/1997/05/16/08-42/0.txt>`_
-* `mail.ptw.1997-05-16.12-36 </project/mps/mail/1997/05/16/12-36/0.txt>`_
-* `mail.ptw.1997-05-16.12-47 </project/mps/mail/1997/05/16/12-47/0.txt>`_
-* `mail.richard.1997-05-19.15-46 </project/mps/mail/1997/05/19/15-46/0.txt>`_
-* `mail.richard.1997-05-19.15-56 </project/mps/mail/1997/05/19/15-56/0.txt>`_
-* `mail.ptw.1997-05-20.20-47 </project/mps/mail/1997/05/20/20-47/0.txt>`_
+.. _mail.richard.tucker.1997-05-12.09-45: https://info.ravenbrook.com/project/mps/mail/1997/05/12/09-45/0.txt
+.. _mail.ptw.1997-05-12.12-46: https://info.ravenbrook.com/project/mps/mail/1997/05/12/12-46/1.txt
+.. _mail.richard.1997-05-12.13-15: https://info.ravenbrook.com/project/mps/mail/1997/05/12/13-15/0.txt
+.. _mail.richard.1997-05-12.13-28: https://info.ravenbrook.com/project/mps/mail/1997/05/12/13-28/0.txt
+.. _mail.ptw.1997-05-13.15-15: https://info.ravenbrook.com/project/mps/mail/1997/05/13/15-15/0.txt
+.. _mail.sheep.1997-05-14.11-52: https://info.ravenbrook.com/project/mps/mail/1997/05/14/11-52/0.txt
+.. _mail.rit.1997-05-15.09-19: https://info.ravenbrook.com/project/mps/mail/1997/05/15/09-19/0.txt
+.. _mail.ptw.1997-05-15.21-22: https://info.ravenbrook.com/project/mps/mail/1997/05/15/21-22/0.txt
+.. _mail.ptw.1997-05-15.21-35: https://info.ravenbrook.com/project/mps/mail/1997/05/15/21-35/0.txt
+.. _mail.rit.1997-05-16.08-02: https://info.ravenbrook.com/project/mps/mail/1997/05/16/08-02/0.txt
+.. _mail.rit.1997-05-16.08-42: https://info.ravenbrook.com/project/mps/mail/1997/05/16/08-42/0.txt
+.. _mail.ptw.1997-05-16.12-36: https://info.ravenbrook.com/project/mps/mail/1997/05/16/12-36/0.txt
+.. _mail.ptw.1997-05-16.12-47: https://info.ravenbrook.com/project/mps/mail/1997/05/16/12-47/0.txt
+.. _mail.richard.1997-05-19.15-46: https://info.ravenbrook.com/project/mps/mail/1997/05/19/15-46/0.txt
+.. _mail.richard.1997-05-19.15-56: https://info.ravenbrook.com/project/mps/mail/1997/05/19/15-56/0.txt
+.. _mail.ptw.1997-05-20.20-47: https://info.ravenbrook.com/project/mps/mail/1997/05/20/20-47/0.txt
 
 
 
@@ -121,7 +128,9 @@ Classes
 -------
 
 _`.class.hierarchy`: The ``Buffer`` data structure is designed to be
-subclassable (see design.mps.protocol).
+subclassable (see design.mps.protocol_).
+
+.. _design.mps.protocol: protocol
 
 _`.class.hierarchy.buffer`: The basic buffer class (``BufferClass``)
 supports basic allocation-point buffering, and is appropriate for
@@ -171,14 +180,18 @@ _`.subclassing`: Pools may create their own subclasses of the standard
 buffer classes. This is sometimes useful if the pool needs to add an
 extra field to the buffer. The convenience macro
 ``DEFINE_BUFFER_CLASS()`` may be used to define subclasses of buffer
-classes. See design.mps.protocol.int.define-special.
+classes. See design.mps.protocol.int.define-special_.
+
+.. _design.mps.protocol.int.define-special: protocol#int.define-special
 
 _`.replay`: To work with the allocation replayer (see
-design.mps.telemetry.replayer), the buffer class has to emit an event
+design.mps.telemetry.replayer_), the buffer class has to emit an event
 for each call to an external interface, containing all the parameters
 passed by the user. If a new event type is required to carry this
 information, the replayer (impl.c.eventrep) must then be extended to
 recreate the call.
+
+.. _design.mps.telemetry.replayer: telemetry#replayer
 
 _`.replay.pool-buffer`: The replayer must also be updated if the
 association of buffer class to pool or the buffer class hierarchy is
@@ -281,13 +294,11 @@ pool using the ``PoolClass`` ``BufferEmpty()`` method).
 _`.count.generic`: These fields are maintained by the generic buffer 
 code in ``BufferAttach()`` and ``BufferDetach()``.
 
-_`.count.other`: Similar count fields are maintained in the pool and
-the arena. They are maintained on an internal (buffers used internally
-by the MPS) and external (buffers used for mutator allocation points)
-basis. The fields are also updated by the buffer code. The fields are:
+_`.count.other`: Similar count fields are maintained in the arena.
+They are maintained on an internal (buffers used internally by the
+MPS) and external (buffers used for mutator allocation points) basis.
+The fields are also updated by the buffer code. The fields are:
 
-- in the pool: ``fillMutatorSize``, ``fillInternalSize``,
-  ``emptyMutatorSize``, and ``emptyInternalSize`` (4 fields);
 - in the arena, ``fillMutatorSize``, ``fillInternalSize``,
   ``emptyMutatorSize``, ``emptyInternalSize``, and
   ``allocMutatorSize`` (5 fields).
@@ -397,8 +408,6 @@ Memory Barriers will need to be placed at the points indicated.
 ::
 
  * DESIGN
- *
- * design.mps.buffer.
  *
  * An allocation buffer is an interface to a pool which provides
  * very fast allocation, and defers the need for synchronization in
@@ -606,7 +615,9 @@ _`.method.arena`: Returns the arena which owns a buffer.
 _`.method.arena.thread-safe`: ``BufferArena()`` must be thread safe
 (see impl.c.mpsi.thread-safety). This is achieved simple because the
 underlying operation is a read of shared-non-mutable data (see
-design.mps.thread-safety).
+design.mps.thread-safety_).
+
+.. _design.mps.thread-safety: thread-safety
 
 ``Pool BufferPool(Buffer buffer)``
 
@@ -714,7 +725,9 @@ Document History
   ``BufferSpace()``, ``BufferSet()`` and ``BufferReset()`` are now
   ``BufferArena()``, ``BufferAttach()`` and ``BufferDetach()``
   respectively; ``BufferExpose()`` and ``BufferCover()`` have been
-  moved to the Shield interface; see design.mps.shield).
+  moved to the Shield interface; see design.mps.shield_).
+
+  .. _design.mps.shield: shield
 
 .. _RB: http://www.ravenbrook.com/consultants/rb/
 .. _GDR: http://www.ravenbrook.com/consultants/gdr/

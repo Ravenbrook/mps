@@ -38,7 +38,7 @@ static void check_allocated_size(mps_pool_t pool, size_t allocated)
 
 static mps_res_t stress(mps_arena_t arena, mps_pool_debug_option_s *options,
                         size_t (*size)(size_t i), mps_align_t align,
-                        const char *name, mps_class_t pool_class,
+                        const char *name, mps_pool_class_t pool_class,
                         mps_arg_s *args)
 {
   mps_res_t res;
@@ -95,7 +95,8 @@ static mps_res_t stress(mps_arena_t arena, mps_pool_debug_option_s *options,
     for (i=testSetSIZE/2; i<testSetSIZE; ++i) {
       ss[i] = (*size)(i);
       res = mps_alloc((mps_addr_t *)&ps[i], pool, ss[i]);
-      if (res != MPS_RES_OK) return res;
+      if (res != MPS_RES_OK)
+        return res;
       allocated += alignUp(ss[i], align) + debugOverhead;
     }
     check_allocated_size(pool, allocated);
@@ -171,6 +172,7 @@ static void testInArena(mps_arena_class_t arena_class, mps_arg_s *arena_args,
     MPS_ARGS_ADD(args, MPS_KEY_MVFF_ARENA_HIGH, TRUE);
     MPS_ARGS_ADD(args, MPS_KEY_MVFF_SLOT_HIGH, TRUE);
     MPS_ARGS_ADD(args, MPS_KEY_MVFF_FIRST_FIT, TRUE);
+    MPS_ARGS_ADD(args, MPS_KEY_SPARE, rnd_double());
     die(stress(arena, NULL, randomSize8, align, "MVFF",
                mps_class_mvff(), args), "stress MVFF");
   } MPS_ARGS_END(args);
@@ -181,6 +183,7 @@ static void testInArena(mps_arena_class_t arena_class, mps_arg_s *arena_args,
     MPS_ARGS_ADD(args, MPS_KEY_MVFF_ARENA_HIGH, TRUE);
     MPS_ARGS_ADD(args, MPS_KEY_MVFF_SLOT_HIGH, TRUE);
     MPS_ARGS_ADD(args, MPS_KEY_MVFF_FIRST_FIT, TRUE);
+    MPS_ARGS_ADD(args, MPS_KEY_SPARE, rnd_double());
     MPS_ARGS_ADD(args, MPS_KEY_POOL_DEBUG_OPTIONS, options);
     die(stress(arena, options, randomSize8, align, "MVFF debug",
                mps_class_mvff_debug(), args), "stress MVFF debug");

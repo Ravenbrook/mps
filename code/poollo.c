@@ -401,8 +401,7 @@ static void loSegReclaim(LOSeg loseg, Trace trace)
 /* This walks over _all_ objects in the heap, whether they are */
 /* black or white, they are still validly formatted as this is */
 /* a leaf pool, so there can't be any dangling references */
-static void LOWalk(Pool pool, Seg seg,
-                   FormattedObjectsStepMethod f,
+static void LOWalk(Pool pool, Seg seg, FormattedObjectsVisitor f,
                    void *p, size_t s)
 {
   Addr base;
@@ -505,8 +504,10 @@ static Res LOInit(Pool pool, ArgList args)
     gen = arg.val.u;
   
   AVERT(Format, pool->format);
+  AVER(FormatArena(pool->format) == arena);
   AVERT(Chain, chain);
   AVER(gen <= ChainGens(chain));
+  AVER(chain->arena == arena);
 
   pool->alignment = pool->format->alignment;
   lo->alignShift = SizeLog2((Size)PoolAlignment(pool));
@@ -850,9 +851,9 @@ DEFINE_POOL_CLASS(LOPoolClass, this)
 
 /* mps_class_lo -- the external interface to get the LO pool class */
 
-mps_class_t mps_class_lo(void)
+mps_pool_class_t mps_class_lo(void)
 {
-  return (mps_class_t)EnsureLOPoolClass();
+  return (mps_pool_class_t)EnsureLOPoolClass();
 }
 
 

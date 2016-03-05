@@ -19,7 +19,7 @@ making it available for allocation.
     :c:func:`mps_alloc` or via an :term:`allocation point`.
 
 
-.. c:function:: mps_res_t mps_pool_create_k(mps_pool_t *pool_o, mps_arena_t arena, mps_class_t class, mps_arg_s args[])
+.. c:function:: mps_res_t mps_pool_create_k(mps_pool_t *pool_o, mps_arena_t arena, mps_pool_class_t pool_class, mps_arg_s args[])
 
     Create a :term:`pool` in an :term:`arena`.
 
@@ -28,7 +28,7 @@ making it available for allocation.
 
     ``arena`` is the arena in which to create the pool.
 
-    ``class`` is the :term:`pool class` of the new pool.
+    ``pool_class`` is the :term:`pool class` of the new pool.
 
     ``args`` are :term:`keyword arguments` specific to the pool class.
     See the documentation for the pool class.
@@ -38,31 +38,6 @@ making it available for allocation.
 
     The pool persists until it is destroyed by calling
     :c:func:`mps_pool_destroy`.
-
-
-.. c:function:: mps_res_t mps_pool_create(mps_pool_t *pool_o, mps_arena_t arena, mps_class_t class, ...)
-
-    .. deprecated:: starting with version 1.112.
-
-        Use :c:func:`mps_pool_create_k` instead: the :term:`keyword
-        arguments` interface is more reliable and produces better
-        error messages.
-
-    An alternative to :c:func:`mps_pool_create_k` that takes its
-    extra arguments using the standard :term:`C` variable argument
-    list mechanism.
-
-
-.. c:function:: mps_res_t mps_pool_create_v(mps_pool_t *pool_o, mps_arena_t arena, mps_class_t class, va_list args)
-
-    .. deprecated:: starting with version 1.112.
-
-        Use :c:func:`mps_pool_create_k` instead: the :term:`keyword
-        arguments` interface is more reliable and produces better
-        error messages.
-
-    An alternative to :c:func:`mps_pool_create_k` that takes its extra
-    arguments using the standard :term:`C` ``va_list`` mechanism.
 
 
 .. c:function:: void mps_pool_destroy(mps_pool_t pool)
@@ -83,12 +58,12 @@ making it available for allocation.
 
     .. warning::
 
-        It is not safe to destroy an :term:`automatically managed
-        <automatic memory management>` pool if it contains any objects
+        It is not safe to carry on running the :term:`garbage
+        collector` after destroying an :term:`automatically managed
+        <automatic memory management>` pool that contains any objects
         that are :term:`reachable` from your roots, or any objects
         that have been registered for :term:`finalization` but not yet
-        finalized, and then to carry on running the :term:`garbage
-        collector`.
+        finalized.
 
         Our recommended approach is to destroy automatically managed
         pools just before destroying the arena, and then only while
@@ -119,14 +94,9 @@ return a block of memory to the pool) and others are
 See the :ref:`pool` for a list of pool classes.
 
 
-.. c:type:: mps_class_t
+.. c:type:: mps_pool_class_t
 
     The type of :term:`pool classes`.
-
-    .. note::
-
-        This should really have been called ``mps_pool_class_t`` but
-        it is too late to change it now.
 
 
 .. index::

@@ -45,6 +45,7 @@
 #include "poolabs.c"
 #include "trace.c"
 #include "traceanc.c"
+#include "scan.c"
 #include "root.c"
 #include "seg.c"
 #include "format.c"
@@ -79,6 +80,7 @@
 #include "land.c"
 #include "failover.c"
 #include "vm.c"
+#include "policy.c"
 
 /* Additional pool classes */
 
@@ -138,9 +140,9 @@
 #include "span.c"       /* generic stack probe */
 #include "ssixi6.c"     /* Posix on 64-bit Intel stack scan */
 
-/* FreeBSD on 32-bit Intel built with GCC */
+/* FreeBSD on 32-bit Intel built with GCC or Clang */
 
-#elif defined(MPS_PF_FRI3GC)
+#elif defined(MPS_PF_FRI3GC) || defined(MPS_PF_FRI3LL)
 
 #include "lockix.c"     /* Posix locks */
 #include "thix.c"       /* Posix threading */
@@ -153,9 +155,9 @@
 #include "span.c"       /* generic stack probe */
 #include "ssixi3.c"     /* Posix on 32-bit Intel stack scan */
 
-/* FreeBSD on 64-bit Intel built with GCC */
+/* FreeBSD on 64-bit Intel built with GCC or Clang */
 
-#elif defined(MPS_PF_FRI6GC)
+#elif defined(MPS_PF_FRI6GC) || defined(MPS_PF_FRI6LL)
 
 #include "lockix.c"     /* Posix locks */
 #include "thix.c"       /* Posix threading */
@@ -214,7 +216,6 @@
 #include "mpsiw3.c"     /* Windows interface layer extras */
 
 /* Windows on 64-bit Intel with Microsoft Visual Studio */
-/* ssw3i6.asm is also required, but can't be included here */
 
 #elif defined(MPS_PF_W3I6MV)
 

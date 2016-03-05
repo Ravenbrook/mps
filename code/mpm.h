@@ -1,7 +1,7 @@
 /* mpm.h: MEMORY POOL MANAGER DEFINITIONS
  *
  * $Id$
- * Copyright (c) 2001-2014 Ravenbrook Limited.  See end of file for license.
+ * Copyright (c) 2001-2015 Ravenbrook Limited.  See end of file for license.
  * Portions copyright (C) 2002 Global Graphics Software.
  *
  * .trans.bufferinit: The Buffer data structure has an Init field and
@@ -18,6 +18,8 @@
 
 #include "event.h"
 #include "lock.h"
+#include "prot.h"
+#include "sp.h"
 #include "th.h"
 #include "ss.h"
 #include "mpslib.h"
@@ -44,6 +46,7 @@ extern Bool FunCheck(Fun f);
 extern Bool ShiftCheck(Shift shift);
 extern Bool AttrCheck(Attr attr);
 extern Bool RootVarCheck(RootVar rootVar);
+extern Bool AccessSetCheck(AccessSet mode);
 
 
 /* Address/Size Interface -- see <code/mpm.c> */
@@ -160,6 +163,7 @@ extern Res WriteF(mps_lib_FILE *stream, Count depth, ...);
 extern Res WriteF_v(mps_lib_FILE *stream, Count depth, va_list args);
 extern Res WriteF_firstformat_v(mps_lib_FILE *stream, Count depth,
                                 const char *firstformat, va_list args);
+#define WriteFYesNo(condition) ((WriteFS)((condition) ? "YES" : "NO"))
 
 
 /* Miscellaneous support -- see <code/mpm.c> */
@@ -221,9 +225,9 @@ extern Res PoolFixEmergency(Pool pool, ScanState ss, Seg seg, Addr *refIO);
 extern void PoolReclaim(Pool pool, Trace trace, Seg seg);
 extern void PoolTraceEnd(Pool pool, Trace trace);
 extern Res PoolAddrObject(Addr *pReturn, Pool pool, Seg seg, Addr addr);
-extern void PoolWalk(Pool pool, Seg seg, FormattedObjectsStepMethod f,
+extern void PoolWalk(Pool pool, Seg seg, FormattedObjectsVisitor f,
                      void *v, size_t s);
-extern void PoolFreeWalk(Pool pool, FreeBlockStepMethod f, void *p);
+extern void PoolFreeWalk(Pool pool, FreeBlockVisitor f, void *p);
 extern Size PoolTotalSize(Pool pool);
 extern Size PoolFreeSize(Pool pool);
 
@@ -275,9 +279,9 @@ extern Res PoolTrivFramePop(Pool pool, Buffer buf, AllocFrame frame);
 extern void PoolNoFramePopPending(Pool pool, Buffer buf, AllocFrame frame);
 extern void PoolTrivFramePopPending(Pool pool, Buffer buf, AllocFrame frame);
 extern Res PoolNoAddrObject(Addr *pReturn, Pool pool, Seg seg, Addr addr);
-extern void PoolNoWalk(Pool pool, Seg seg, FormattedObjectsStepMethod step,
+extern void PoolNoWalk(Pool pool, Seg seg, FormattedObjectsVisitor f,
                        void *p, size_t s);
-extern void PoolTrivFreeWalk(Pool pool, FreeBlockStepMethod f, void *p);
+extern void PoolTrivFreeWalk(Pool pool, FreeBlockVisitor f, void *p);
 extern PoolDebugMixin PoolNoDebugMixin(Pool pool);
 extern BufferClass PoolNoBufferClass(void);
 extern Size PoolNoSize(Pool pool);
@@ -400,7 +404,7 @@ extern Size TracePoll(Globals globals);
 extern Rank TraceRankForAccess(Arena arena, Seg seg);
 extern void TraceSegAccess(Arena arena, Seg seg, AccessSet mode);
 
-extern void TraceQuantum(Trace trace);
+extern void TraceAdvance(Trace trace);
 extern Res TraceStartCollectAll(Trace *traceReturn, Arena arena, int why);
 extern Res TraceDescribe(Trace trace, mps_lib_FILE *stream, Count depth);
 
@@ -469,10 +473,9 @@ extern double TraceWorkFactor;
     } \
   END
 
-extern Res TraceScanArea(ScanState ss, Addr *base, Addr *limit);
-extern Res TraceScanAreaTagged(ScanState ss, Addr *base, Addr *limit);
-extern Res TraceScanAreaMasked(ScanState ss,
-                               Addr *base, Addr *limit, Word mask);
+extern Res TraceScanArea(ScanState ss, Word *base, Word *limit,
+                         mps_area_scan_t scan_area,
+                         void *closure);
 extern void TraceScanSingleRef(TraceSet ts, Rank rank, Arena arena,
                                Seg seg, Ref *refIO);
 
@@ -517,6 +520,7 @@ extern Ring GlobalsRememberedSummaryRing(Globals);
 #define GlobalsArena(glob) PARENT(ArenaStruct, globals, glob)
 
 #define ArenaThreadRing(arena)  (&(arena)->threadRing)
+#define ArenaDeadRing(arena)    (&(arena)->deadRing)
 #define ArenaEpoch(arena)       ((arena)->epoch) /* .epoch.ts */
 #define ArenaTrace(arena, ti)   (&(arena)->trace[ti])
 #define ArenaZoneShift(arena)   ((arena)->zoneShift)
@@ -558,13 +562,14 @@ extern Bool (ArenaStep)(Globals globals, double interval, double multiplier);
 extern void ArenaClamp(Globals globals);
 extern void ArenaRelease(Globals globals);
 extern void ArenaPark(Globals globals);
-extern void ArenaExposeRemember(Globals globals, int remember);
+extern void ArenaExposeRemember(Globals globals, Bool remember);
 extern void ArenaRestoreProtection(Globals globals);
 extern Res ArenaStartCollect(Globals globals, int why);
 extern Res ArenaCollect(Globals globals, int why);
 extern Bool ArenaHasAddr(Arena arena, Addr addr);
 extern Res ArenaAddrObject(Addr *pReturn, Arena arena, Addr addr);
 extern void ArenaChunkInsert(Arena arena, Chunk chunk);
+extern void ArenaChunkRemoved(Arena arena, Chunk chunk);
 
 extern void ArenaSetEmergency(Arena arena, Bool emergency);
 extern Bool ArenaEmergency(Arena arean);
@@ -617,10 +622,10 @@ extern Res ArenaSetCommitLimit(Arena arena, Size limit);
 extern Size ArenaSpareCommitLimit(Arena arena);
 extern void ArenaSetSpareCommitLimit(Arena arena, Size limit);
 extern Size ArenaNoPurgeSpare(Arena arena, Size size);
-extern Res ArenaNoGrow(Arena arena, SegPref pref, Size size);
+extern Res ArenaNoGrow(Arena arena, LocusPref pref, Size size);
 
-extern double ArenaMutatorAllocSize(Arena arena);
 extern Size ArenaAvail(Arena arena);
+extern Size ArenaCollectable(Arena arena);
 
 extern Res ArenaExtend(Arena, Addr base, Size size);
 
@@ -643,19 +648,34 @@ extern Bool ReservoirDeposit(Reservoir reservoir, Addr *baseIO, Size *sizeIO);
 extern Res ReservoirWithdraw(Addr *baseReturn, Tract *baseTractReturn,
                              Reservoir reservoir, Size size, Pool pool);
 
-extern Res ArenaAlloc(Addr *baseReturn, SegPref pref,
+extern Res ArenaAlloc(Addr *baseReturn, LocusPref pref,
                       Size size, Pool pool, Bool withReservoirPermit);
+extern Res ArenaFreeLandAlloc(Tract *tractReturn, Arena arena, ZoneSet zones,
+                              Bool high, Size size, Pool pool);
 extern void ArenaFree(Addr base, Size size, Pool pool);
 
 extern Res ArenaNoExtend(Arena arena, Addr base, Size size);
 
 
+/* Policy interface */
+
+extern Res PolicyAlloc(Tract *tractReturn, Arena arena, LocusPref pref,
+                       Size size, Pool pool);
+extern Bool PolicyShouldCollectWorld(Arena arena, double interval,
+                                     double multiplier, Clock now,
+                                     Clock clocks_per_sec);
+extern Bool PolicyStartTrace(Trace *traceReturn, Arena arena);
+extern Bool PolicyPoll(Arena arena);
+extern Bool PolicyPollAgain(Arena arena, Clock start, Size tracedSize);
+
+
 /* Locus interface */
 
-extern Bool SegPrefCheck(SegPref pref);
-extern SegPref SegPrefDefault(void);
-extern void SegPrefInit(SegPref pref);
-extern void SegPrefExpress(SegPref pref, SegPrefKind kind, void *p);
+extern Bool LocusPrefCheck(LocusPref pref);
+extern LocusPref LocusPrefDefault(void);
+extern void LocusPrefInit(LocusPref pref);
+extern void LocusPrefExpress(LocusPref pref, LocusPrefKind kind, void *p);
+extern Res LocusPrefDescribe(LocusPref pref, mps_lib_FILE *stream, Count depth);
 
 extern void LocusInit(Arena arena);
 extern void LocusFinish(Arena arena);
@@ -664,7 +684,7 @@ extern Bool LocusCheck(Arena arena);
 
 /* Segment interface */
 
-extern Res SegAlloc(Seg *segReturn, SegClass class, SegPref pref,
+extern Res SegAlloc(Seg *segReturn, SegClass class, LocusPref pref,
                     Size size, Pool pool, Bool withReservoirPermit,
                     ArgList args);
 extern void SegFree(Seg seg);
@@ -839,6 +859,7 @@ extern Res FormatCreate(Format *formatReturn, Arena arena, ArgList args);
 extern void FormatDestroy(Format format);
 extern Arena FormatArena(Format format);
 extern Res FormatDescribe(Format format, mps_lib_FILE *stream, Count depth);
+extern Res FormatScan(Format format, ScanState ss, Addr base, Addr limit);
 
 
 /* Reference Interface -- see <code/ref.c> */
@@ -929,30 +950,6 @@ extern void (ShieldFlush)(Arena arena);
 #endif  /* SHIELD */
 
 
-/* Protection Interface
- *
- * See <design/prot/> for the design of the generic interface including
- * the contracts for these functions.
- *
- * This interface has several different implementations, typically one
- * per platform, see <code/prot.c>* for the various implementations, and
- * <design/prot/>* for the corresponding designs. */
-
-extern void ProtSetup(void);
-
-extern Size ProtGranularity(void);
-extern void ProtSet(Addr base, Addr limit, AccessSet mode);
-extern void ProtSync(Arena arena);
-extern Bool ProtCanStepInstruction(MutatorFaultContext context);
-extern Res ProtStepInstruction(MutatorFaultContext context);
-
-
-/* Mutator Fault Context */
-
-extern Addr MutatorFaultContextSP(MutatorFaultContext mfc);
-extern Res MutatorFaultContextScan(ScanState ss, MutatorFaultContext mfc);
-
-
 /* Location Dependency -- see <code/ld.c> */
 
 extern void LDReset(mps_ld_t ld, Arena arena);
@@ -965,17 +962,26 @@ extern void LDMerge(mps_ld_t ld, Arena arena, mps_ld_t from);
 
 /* Root Interface -- see <code/root.c> */
 
-extern Res RootCreateTable(Root *rootReturn, Arena arena,
-                           Rank rank, RootMode mode,
-                           Addr *base, Addr *limit);
-extern Res RootCreateTableMasked(Root *rootReturn, Arena arena,
-                                 Rank rank, RootMode mode,
-                                 Addr *base, Addr *limit,
-                                 Word mask);
-extern Res RootCreateReg(Root *rootReturn, Arena arena,
-                           Rank rank, Thread thread,
-                           mps_reg_scan_t scan,
-                           void *p, size_t s);
+extern Res RootCreateArea(Root *rootReturn, Arena arena,
+                          Rank rank, RootMode mode,
+                          Word *base, Word *limit,
+                          mps_area_scan_t scan_area,
+                          void *closure);
+extern Res RootCreateAreaTagged(Root *rootReturn, Arena arena,
+                                Rank rank, RootMode mode,
+                                Word *base, Word *limit,
+                                mps_area_scan_t scan_area,
+                                Word mask, Word pattern);
+extern Res RootCreateThread(Root *rootReturn, Arena arena,
+                            Rank rank, Thread thread,
+                            mps_area_scan_t scan_area,
+                            void *closure,
+                            Word *stackCold);
+extern Res RootCreateThreadTagged(Root *rootReturn, Arena arena,
+                                  Rank rank, Thread thread,
+                                  mps_area_scan_t scan_area,
+                                  Word mask, Word pattern,
+                                  Word *stackCold);
 extern Res RootCreateFmt(Root *rootReturn, Arena arena,
                            Rank rank, RootMode mode,
                            mps_fmt_scan_t scan,
@@ -1031,11 +1037,6 @@ extern LandClass LandClassGet(void);
   IsSubclassPoly((land)->class, className ## Get())
 
 
-/* Stack Probe */
-
-extern void StackProbe(Size depth);
-
-
 /* STATISTIC -- gather statistics (in some varieties)
  *
  * The argument of STATISTIC is an expression; the expansion followed by
@@ -1076,7 +1077,7 @@ extern void StackProbe(Size depth);
 
 /* C. COPYRIGHT AND LICENSE
  *
- * Copyright (C) 2001-2014 Ravenbrook Limited <http://www.ravenbrook.com/>.
+ * Copyright (C) 2001-2015 Ravenbrook Limited <http://www.ravenbrook.com/>.
  * All rights reserved.  This is an open source license.  Contact
  * Ravenbrook for commercial licensing options.
  * 

@@ -1,7 +1,7 @@
 /* land.c: LAND (COLLECTION OF ADDRESS RANGES) IMPLEMENTATION
  *
  * $Id$
- * Copyright (c) 2014 Ravenbrook Limited.  See end of file for license.
+ * Copyright (c) 2014-2015 Ravenbrook Limited.  See end of file for license.
  *
  * .design: <design/land/>
  */
@@ -282,7 +282,7 @@ Bool LandFindFirst(Range rangeReturn, Range oldRangeReturn, Land land, Size size
   AVER(oldRangeReturn != NULL);
   AVERT(Land, land);
   AVER(SizeIsAligned(size, land->alignment));
-  AVER(FindDeleteCheck(findDelete));
+  AVERT(FindDelete, findDelete);
   landEnter(land);
 
   b = (*land->class->findFirst)(rangeReturn, oldRangeReturn, land, size,
@@ -306,7 +306,7 @@ Bool LandFindLast(Range rangeReturn, Range oldRangeReturn, Land land, Size size,
   AVER(oldRangeReturn != NULL);
   AVERT(Land, land);
   AVER(SizeIsAligned(size, land->alignment));
-  AVER(FindDeleteCheck(findDelete));
+  AVERT(FindDelete, findDelete);
   landEnter(land);
 
   b = (*land->class->findLast)(rangeReturn, oldRangeReturn, land, size,
@@ -330,7 +330,7 @@ Bool LandFindLargest(Range rangeReturn, Range oldRangeReturn, Land land, Size si
   AVER(oldRangeReturn != NULL);
   AVERT(Land, land);
   AVER(SizeIsAligned(size, land->alignment));
-  AVER(FindDeleteCheck(findDelete));
+  AVERT(FindDelete, findDelete);
   landEnter(land);
 
   b = (*land->class->findLargest)(rangeReturn, oldRangeReturn, land, size,
@@ -376,16 +376,18 @@ Res LandDescribe(Land land, mps_lib_FILE *stream, Count depth)
 {
   Res res;
 
-  if (!TESTT(Land, land)) return ResFAIL;
-  if (stream == NULL) return ResFAIL;
+  if (!TESTT(Land, land))
+    return ResFAIL;
+  if (stream == NULL)
+    return ResFAIL;
 
   res = WriteF(stream, depth,
                "Land $P {\n", (WriteFP)land,
                "  class $P", (WriteFP)land->class,
-               " (\"$S\")\n", land->class->name,
+               " (\"$S\")\n", (WriteFS)land->class->name,
                "  arena $P\n", (WriteFP)land->arena,
                "  align $U\n", (WriteFU)land->alignment,
-               "  inLand: $U\n", (WriteFU)land->inLand,
+               "  inLand $S\n", WriteFYesNo(land->inLand),
                NULL);
   if (res != ResOK)
     return res;
@@ -468,7 +470,7 @@ Bool LandClassCheck(LandClass class)
 static Res landTrivInit(Land land, ArgList args)
 {
   AVERT(Land, land);
-  AVER(ArgListCheck(args));
+  AVERT(ArgList, args);
   UNUSED(args);
   return ResOK;
 }
@@ -553,7 +555,7 @@ static Bool landNoFind(Range rangeReturn, Range oldRangeReturn, Land land, Size 
   AVER(oldRangeReturn != NULL);
   AVERT(Land, land);
   UNUSED(size);
-  AVER(FindDeleteCheck(findDelete));
+  AVERT(FindDelete, findDelete);
   return ResUNIMPL;
 }
 
@@ -565,7 +567,7 @@ static Res landNoFindInZones(Bool *foundReturn, Range rangeReturn, Range oldRang
   AVERT(Land, land);
   UNUSED(size);
   UNUSED(zoneSet);
-  AVER(BoolCheck(high));
+  AVERT(Bool, high);
   return ResUNIMPL;
 }
 
@@ -604,7 +606,7 @@ DEFINE_CLASS(LandClass, class)
 
 /* C. COPYRIGHT AND LICENSE
  *
- * Copyright (C) 2014 Ravenbrook Limited <http://www.ravenbrook.com/>.
+ * Copyright (C) 2014-2015 Ravenbrook Limited <http://www.ravenbrook.com/>.
  * All rights reserved.  This is an open source license.  Contact
  * Ravenbrook for commercial licensing options.
  *

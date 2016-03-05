@@ -1,7 +1,7 @@
 /* table.h: A dictionary mapping a Word to a void*
  *
  * $Id$
- * Copyright (c) 2001 Ravenbrook Limited.  See end of file for license.
+ * Copyright (c) 2001-2014 Ravenbrook Limited.  See end of file for license.
  *
  * .note.good-hash: As is common in hash table implementations, we
  * assume that the hash function is good.
@@ -53,7 +53,7 @@ SRCID(table, "$Id$");
 
 typedef Word Hash;
 
-static Hash tableHash(Word key)
+static Hash tableHash(TableKey key)
 {
   Hash hash = (Hash)(key & 0x7FFFFFFF);
   /* requires m == 2^31-1, a < 2^16 */
@@ -93,7 +93,7 @@ static Bool entryIsActive(Table table, TableEntry entry)
  * that all the items still fit in after growing the table.
  */
 
-static TableEntry tableFind(Table table, Word key, Bool skip_deleted)
+static TableEntry tableFind(Table table, TableKey key, Bool skip_deleted)
 {
   Hash hash;
   Index i;
@@ -222,11 +222,11 @@ Res TableGrow(Table table, Count extraCapacity)
 
 extern Res TableCreate(Table *tableReturn,
                        Count length,
-                       TableAllocMethod tableAlloc,
-                       TableFreeMethod tableFree,
+                       TableAllocFunction tableAlloc,
+                       TableFreeFunction tableFree,
                        void *allocClosure,
-                       Word unusedKey,
-                       Word deletedKey)
+                       TableKey unusedKey,
+                       TableKey deletedKey)
 {
   Table table;
   Res res;
@@ -279,7 +279,7 @@ extern void TableDestroy(Table table)
 
 /* TableLookup -- look up */
 
-extern Bool TableLookup(void **valueReturn, Table table, Word key)
+extern Bool TableLookup(TableValue *valueReturn, Table table, TableKey key)
 {
   TableEntry entry = tableFind(table, key, TRUE /* skip deleted */);
 
@@ -292,7 +292,7 @@ extern Bool TableLookup(void **valueReturn, Table table, Word key)
 
 /* TableDefine -- add a new mapping */
 
-extern Res TableDefine(Table table, Word key, void *value)
+extern Res TableDefine(Table table, TableKey key, TableValue value)
 {
   TableEntry entry;
   
@@ -301,7 +301,8 @@ extern Res TableDefine(Table table, Word key, void *value)
 
   if (table->count >= table->length * SPACEFRACTION) {
     Res res = TableGrow(table, 1);
-    if(res != ResOK) return res;
+    if (res != ResOK)
+      return res;
     entry = tableFind(table, key, FALSE /* no deletions yet */);
     AVER(entry != NULL);
     if (entryIsActive(table, entry))
@@ -325,7 +326,7 @@ extern Res TableDefine(Table table, Word key, void *value)
 
 /* TableRedefine -- redefine an existing mapping */
 
-extern Res TableRedefine(Table table, Word key, void *value)
+extern Res TableRedefine(Table table, TableKey key, TableValue value)
 {
   TableEntry entry;
  
@@ -343,7 +344,7 @@ extern Res TableRedefine(Table table, Word key, void *value)
 
 /* TableRemove -- remove a mapping */
 
-extern Res TableRemove(Table table, Word key)
+extern Res TableRemove(Table table, TableKey key)
 {
   TableEntry entry;
 
@@ -362,7 +363,7 @@ extern Res TableRemove(Table table, Word key)
 /* TableMap -- apply a function to all the mappings */
 
 extern void TableMap(Table table,
-                     void (*fun)(void *closure, Word key, void*value),
+                     void (*fun)(void *closure, TableKey key, TableValue value),
                      void *closure)
 {
   Index i;
@@ -382,7 +383,7 @@ extern Count TableCount(Table table)
 
 /* C. COPYRIGHT AND LICENSE
  *
- * Copyright (C) 2001-2002 Ravenbrook Limited <http://www.ravenbrook.com/>.
+ * Copyright (C) 2001-2014 Ravenbrook Limited <http://www.ravenbrook.com/>.
  * All rights reserved.  This is an open source license.  Contact
  * Ravenbrook for commercial licensing options.
  * 

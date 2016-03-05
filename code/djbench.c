@@ -13,9 +13,14 @@
 
 #include "mps.c"
 
-#include "getopt.h"
 #include "testlib.h"
 #include "testthr.h"
+
+#ifdef MPS_OS_W3
+#include "getopt.h"
+#else
+#include <getopt.h>
+#endif
 
 #include <stdio.h> /* fprintf, stderr */
 #include <stdlib.h> /* alloca, exit, EXIT_SUCCESS, EXIT_FAILURE */
@@ -67,7 +72,8 @@ static size_t arena_grain_size = 1; /* arena grain size */
           if (blocks[k].p == NULL) { \
             size_t s = rnd() % ((sizeof(void *) << (rnd() % sshift)) - 1); \
             void *p = NULL; \
-            if (s > 0) alloc(p, s); \
+            if (s > 0) \
+              alloc(p, s); \
             blocks[k].p = p; \
             blocks[k].s = s; \
           } else { \
@@ -166,7 +172,7 @@ static void watch(dj_t dj, const char *name)
 
 /* Wrap a call to dj benchmark that doesn't require MPS setup */
 
-static void wrap(dj_t dj, mps_class_t dummy, const char *name)
+static void wrap(dj_t dj, mps_pool_class_t dummy, const char *name)
 {
   (void)dummy;
   pool = NULL;
@@ -176,7 +182,7 @@ static void wrap(dj_t dj, mps_class_t dummy, const char *name)
 
 /* Wrap a call to a dj benchmark that requires MPS setup */
 
-static void arena_wrap(dj_t dj, mps_class_t pool_class, const char *name)
+static void arena_wrap(dj_t dj, mps_pool_class_t pool_class, const char *name)
 {
   MPS_ARGS_BEGIN(args) {
     MPS_ARGS_ADD(args, MPS_KEY_ARENA_SIZE, arena_size);
@@ -213,16 +219,16 @@ static struct option longopts[] = {
 
 /* Test definitions. */
 
-static mps_class_t dummy_class(void)
+static mps_pool_class_t dummy_class(void)
 {
   return NULL;
 }
 
 static struct {
   const char *name;
-  void (*wrap)(dj_t, mps_class_t, const char *name);
+  void (*wrap)(dj_t, mps_pool_class_t, const char *name);
   dj_t dj;
-  mps_class_t (*pool_class)(void);
+  mps_pool_class_t (*pool_class)(void);
 } pools[] = {
   {"mvt",   arena_wrap, dj_reserve, mps_class_mvt},
   {"mvff",  arena_wrap, dj_reserve, mps_class_mvff},
@@ -356,7 +362,7 @@ int main(int argc, char *argv[]) {
   (void)fflush(stdout);
 
   while (argc > 0) {
-    for (i = 0; i < sizeof(pools) / sizeof(pools[0]); ++i)
+    for (i = 0; i < NELEMS(pools); ++i)
       if (strcmp(argv[0], pools[i].name) == 0)
         goto found;
     fprintf(stderr, "unknown pool test \"%s\"\n", argv[0]);

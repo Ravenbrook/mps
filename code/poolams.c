@@ -85,7 +85,7 @@ Bool AMSSegCheck(AMSSeg amsseg)
 
 /* AMSSegFreeWalk -- walk the free space in a segment */
 
-void AMSSegFreeWalk(AMSSeg amsseg, FreeBlockStepMethod f, void *p)
+void AMSSegFreeWalk(AMSSeg amsseg, FreeBlockVisitor f, void *p)
 {
   Pool pool;
   Seg seg;
@@ -103,7 +103,8 @@ void AMSSegFreeWalk(AMSSeg amsseg, FreeBlockStepMethod f, void *p)
     while (next < amsseg->grains) {
       Bool found = BTFindLongResRange(&base, &limit, amsseg->allocTable,
                                       next, amsseg->grains, 1);
-      if (!found) break;
+      if (!found)
+        break;
       (*f)(AMS_INDEX_ADDR(seg, base), AMS_INDEX_ADDR(seg, limit), pool, p);
       next = limit + 1;
     }
@@ -522,11 +523,11 @@ failCreateTablesLo:
 
 /* AMSSegDescribe -- describe an AMS segment */
 
-#define WRITE_BUFFER_LIMIT(stream, seg, i, buffer, accessor, char) \
+#define WRITE_BUFFER_LIMIT(stream, seg, i, buffer, accessor, code) \
   BEGIN \
     if ((buffer) != NULL \
        && (i) == AMS_ADDR_INDEX(seg, accessor(buffer))) { \
-      Res _res = WriteF(stream, 0, char, NULL); \
+      Res _res = WriteF(stream, 0, code, NULL); \
       if (_res != ResOK) return _res; \
     } \
   END
@@ -539,15 +540,19 @@ static Res AMSSegDescribe(Seg seg, mps_lib_FILE *stream, Count depth)
   Buffer buffer;               /* the segment's buffer, if it has one */
   Index i;
 
-  if (!TESTT(Seg, seg)) return ResFAIL;
-  if (stream == NULL) return ResFAIL;
+  if (!TESTT(Seg, seg))
+    return ResFAIL;
+  if (stream == NULL)
+    return ResFAIL;
   amsseg = Seg2AMSSeg(seg);
-  if (!TESTT(AMSSeg, amsseg)) return ResFAIL;
+  if (!TESTT(AMSSeg, amsseg))
+    return ResFAIL;
 
   /* Describe the superclass fields first via next-method call */
   super = SEG_SUPERCLASS(AMSSegClass);
   res = super->describe(seg, stream, depth);
-  if (res != ResOK) return res;
+  if (res != ResOK)
+    return res;
 
   buffer = SegBuffer(seg);
 
@@ -558,7 +563,8 @@ static Res AMSSegDescribe(Seg seg, mps_lib_FILE *stream, Count depth)
                "  oldGrains   $W\n", (WriteFW)amsseg->oldGrains,
                "  newGrains   $W\n", (WriteFW)amsseg->newGrains,
                NULL);
-  if (res != ResOK) return res;
+  if (res != ResOK)
+    return res;
   if (amsseg->allocTableInUse)
     res = WriteF(stream, depth,
                  "alloctable $P\n", (WriteFP)amsseg->allocTable,
@@ -567,23 +573,27 @@ static Res AMSSegDescribe(Seg seg, mps_lib_FILE *stream, Count depth)
     res = WriteF(stream, depth,
                  "firstFree $W\n", (WriteFW)amsseg->firstFree,
                  NULL);
-  if (res != ResOK) return res;
+  if (res != ResOK)
+    return res;
   res = WriteF(stream, depth,
                "tables: nongrey $P, nonwhite $P\n",
                (WriteFP)amsseg->nongreyTable,
                (WriteFP)amsseg->nonwhiteTable,
                "map:",
                NULL);
-  if (res != ResOK) return res;
+  if (res != ResOK)
+    return res;
 
   for (i=0; i < amsseg->grains; ++i) {
     char c = 0;
 
     if (i % 64 == 0) {
       res = WriteF(stream, 0, "\n", NULL);
-      if (res != ResOK) return res;
+      if (res != ResOK)
+        return res;
       res = WriteF(stream, depth, "  ", NULL);
-      if (res != ResOK) return res;
+      if (res != ResOK)
+        return res;
     }
 
     WRITE_BUFFER_LIMIT(stream, seg, i, buffer, BufferBase, "[");
@@ -604,7 +614,7 @@ static Res AMSSegDescribe(Seg seg, mps_lib_FILE *stream, Count depth)
         c = '.';
     } else
       c = ' ';
-    res = WriteF(stream, 0, "$C", c, NULL);
+    res = WriteF(stream, 0, "$C", (WriteFC)c, NULL);
     if (res != ResOK)
       return res;
 
@@ -775,7 +785,7 @@ static void AMSDebugVarargs(ArgStruct args[MPS_ARGS_MAX], va_list varargs)
  *  allocated in the pool.  See <design/poolams/#init>.
  */
 
-ARG_DEFINE_KEY(ams_support_ambiguous, Bool);
+ARG_DEFINE_KEY(AMS_SUPPORT_AMBIGUOUS, Bool);
 
 static Res AMSInit(Pool pool, ArgList args)
 {
@@ -821,13 +831,15 @@ Res AMSInitInternal(AMS ams, Format format, Chain chain, unsigned gen,
   Res res;
 
   /* Can't check ams, it's not initialized. */
-  AVERT(Format, format);
-  AVERT(Chain, chain);
-  AVER(gen <= ChainGens(chain));
-
   pool = AMSPool(ams);
   AVERT(Pool, pool);
+  AVERT(Format, format);
+  AVER(FormatArena(format) == PoolArena(pool));
   pool->format = format;
+  AVERT(Chain, chain);
+  AVER(gen <= ChainGens(chain));
+  AVER(chain->arena == PoolArena(pool));
+
   pool->alignment = pool->format->alignment;
   ams->grainShift = SizeLog2(PoolAlignment(pool));
 
@@ -1306,12 +1318,12 @@ static Res amsScanObject(Seg seg, Index i, Addr p, Addr next, void *clos)
 
   /* @@@@ This isn't quite right for multiple traces. */
   if (closure->scanAllObjects || AMS_IS_GREY(seg, i)) {
-    res = (*format->scan)(&closure->ss->ss_s,
-                          AddrAdd(p, format->headerSize),
-                          AddrAdd(next, format->headerSize));
+    res = FormatScan(format,
+                     closure->ss,
+                     AddrAdd(p, format->headerSize),
+                     AddrAdd(next, format->headerSize));
     if (res != ResOK)
       return res;
-    closure->ss->scannedSize += AddrOffset(p, next);
     if (!closure->scanAllObjects) {
       Index j = AMS_ADDR_INDEX(seg, next);
       AVER(!AMS_IS_INVALID_COLOUR(seg, i));
@@ -1400,7 +1412,7 @@ Res AMSScan(Bool *totalReturn, ScanState ss, Pool pool, Seg seg)
             next = AddrAdd(p, alignment);
           }
           j = AMS_ADDR_INDEX(seg, next);
-          res = (*format->scan)(&ss->ss_s, clientP, clientNext);
+          res = FormatScan(format, ss, clientP, clientNext);
           if (res != ResOK) {
             /* <design/poolams/#marked.scan.fail> */
             amsseg->marksChanged = TRUE;
@@ -1410,7 +1422,6 @@ Res AMSScan(Bool *totalReturn, ScanState ss, Pool pool, Seg seg)
           /* Check that there haven't been any ambiguous fixes during the */
           /* scan, because AMSFindGrey won't work otherwise. */
           AVER_CRITICAL(!amsseg->ambiguousFixes);
-          ss->scannedSize += AddrOffset(p, next);
           AMS_GREY_BLACKEN(seg, i);
           if (i+1 < j)
             AMS_RANGE_WHITE_BLACKEN(seg, i+1, j);
@@ -1643,7 +1654,7 @@ static void AMSReclaim(Pool pool, Trace trace, Seg seg)
 
 /* AMSFreeWalk -- free block walking method of the pool class */
 
-static void AMSFreeWalk(Pool pool, FreeBlockStepMethod f, void *p)
+static void AMSFreeWalk(Pool pool, FreeBlockVisitor f, void *p)
 {
   AMS ams;
   Ring node, ring, nextNode;    /* for iterating over the segments */
@@ -1697,10 +1708,13 @@ static Res AMSDescribe(Pool pool, mps_lib_FILE *stream, Count depth)
   Ring node, nextNode;
   Res res;
 
-  if (!TESTT(Pool, pool)) return ResFAIL;
+  if (!TESTT(Pool, pool))
+    return ResFAIL;
   ams = PoolAMS(pool);
-  if (!TESTT(AMS, ams)) return ResFAIL;
-  if (stream == NULL) return ResFAIL;
+  if (!TESTT(AMS, ams))
+    return ResFAIL;
+  if (stream == NULL)
+    return ResFAIL;
 
   res = WriteF(stream, depth,
                "AMS $P {\n", (WriteFP)ams,
@@ -1708,18 +1722,21 @@ static Res AMSDescribe(Pool pool, mps_lib_FILE *stream, Count depth)
                (WriteFP)pool, (WriteFU)pool->serial,
                "  grain shift $U\n", (WriteFU)ams->grainShift,
                NULL);
-  if (res != ResOK) return res;
+  if (res != ResOK)
+    return res;
 
   res = WriteF(stream, depth + 2,
                "segments: * black  + grey  - white  . alloc  ! bad\n"
                "buffers: [ base  < scan limit  | init  > alloc  ] limit\n",
                NULL);
-  if (res != ResOK) return res;
+  if (res != ResOK)
+    return res;
 
   RING_FOR(node, &ams->segRing, nextNode) {
     AMSSeg amsseg = RING_ELT(AMSSeg, segRing, node);
     res = SegDescribe(AMSSeg2Seg(amsseg), stream, depth + 2);
-    if (res != ResOK) return res;
+    if (res != ResOK)
+      return res;
   }
 
   res = WriteF(stream, depth, "} AMS $P\n",(WriteFP)ams, NULL);

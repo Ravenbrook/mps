@@ -1,7 +1,7 @@
 /* mpscmvff.h: MEMORY POOL SYSTEM CLASS "MVFF"
  *
  * $Id$
- * Copyright (c) 2001-2013 Ravenbrook Limited.  See end of file for license.
+ * Copyright (c) 2001-2014 Ravenbrook Limited.  See end of file for license.
  */
 
 #ifndef mpscmvff_h
@@ -9,28 +9,28 @@
 
 #include "mps.h"
 
-extern const struct mps_key_s _mps_key_mvff_slot_high;
-#define MPS_KEY_MVFF_SLOT_HIGH (&_mps_key_mvff_slot_high)
+extern const struct mps_key_s _mps_key_MVFF_SLOT_HIGH;
+#define MPS_KEY_MVFF_SLOT_HIGH (&_mps_key_MVFF_SLOT_HIGH)
 #define MPS_KEY_MVFF_SLOT_HIGH_FIELD b
-extern const struct mps_key_s _mps_key_mvff_arena_high;
-#define MPS_KEY_MVFF_ARENA_HIGH (&_mps_key_mvff_arena_high)
+extern const struct mps_key_s _mps_key_MVFF_ARENA_HIGH;
+#define MPS_KEY_MVFF_ARENA_HIGH (&_mps_key_MVFF_ARENA_HIGH)
 #define MPS_KEY_MVFF_ARENA_HIGH_FIELD b
-extern const struct mps_key_s _mps_key_mvff_first_fit;
-#define MPS_KEY_MVFF_FIRST_FIT (&_mps_key_mvff_first_fit)
+extern const struct mps_key_s _mps_key_MVFF_FIRST_FIT;
+#define MPS_KEY_MVFF_FIRST_FIT (&_mps_key_MVFF_FIRST_FIT)
 #define MPS_KEY_MVFF_FIRST_FIT_FIELD b
 
 #define mps_mvff_free_size mps_pool_free_size
 #define mps_mvff_size mps_pool_total_size
 
-extern mps_class_t mps_class_mvff(void);
-extern mps_class_t mps_class_mvff_debug(void);
+extern mps_pool_class_t mps_class_mvff(void);
+extern mps_pool_class_t mps_class_mvff_debug(void);
 
 #endif /* mpscmvff_h */
 
 
 /* C. COPYRIGHT AND LICENSE
  *
- * Copyright (C) 2001-2013 Ravenbrook Limited <http://www.ravenbrook.com/>.
+ * Copyright (C) 2001-2014 Ravenbrook Limited <http://www.ravenbrook.com/>.
  * All rights reserved.  This is an open source license.  Contact
  * Ravenbrook for commercial licensing options.
  * 

@@ -51,7 +51,8 @@ typedef struct mps_pool_s   *mps_pool_t;   /* pool */
 typedef struct mps_chain_s  *mps_chain_t;  /* chain */
 typedef struct mps_fmt_s    *mps_fmt_t;    /* object format */
 typedef struct mps_root_s   *mps_root_t;   /* root */
-typedef struct mps_class_s  *mps_class_t;  /* pool class */
+typedef struct mps_pool_class_s  *mps_pool_class_t;  /* pool class */
+typedef mps_pool_class_t mps_class_t;      /* deprecated alias */
 typedef struct mps_thr_s    *mps_thr_t;    /* thread registration */
 typedef struct mps_ap_s     *mps_ap_t;     /* allocation point */
 typedef struct mps_ld_s     *mps_ld_t;     /* location dependency */
@@ -101,7 +102,14 @@ _mps_ENUM_DEF(_mps_RES_ENUM, MPS_RES_)
 /* see design.mps.root-interface */
 /* see design.mps.format-interface */
 
+typedef struct mps_scan_tag_s *mps_scan_tag_t;
+typedef struct mps_scan_tag_s {
+  mps_word_t mask;
+  mps_word_t pattern;
+} mps_scan_tag_s;
+
 typedef mps_res_t (*mps_root_scan_t)(mps_ss_t, void *, size_t);
+typedef mps_res_t (*mps_area_scan_t)(mps_ss_t, void *, void *, void *);
 typedef mps_res_t (*mps_fmt_scan_t)(mps_ss_t, mps_addr_t, mps_addr_t);
 typedef mps_res_t (*mps_reg_scan_t)(mps_ss_t, mps_thr_t,
                                     void *, size_t);
@@ -150,87 +158,93 @@ typedef struct mps_arg_s {
   } val;
 } mps_arg_s;
 
-extern const struct mps_key_s _mps_key_args_end;
-#define MPS_KEY_ARGS_END        (&_mps_key_args_end)
+extern const struct mps_key_s _mps_key_ARGS_END;
+#define MPS_KEY_ARGS_END        (&_mps_key_ARGS_END)
 extern mps_arg_s mps_args_none[];
 
-extern const struct mps_key_s _mps_key_arena_size;
-#define MPS_KEY_ARENA_SIZE      (&_mps_key_arena_size)
-#define MPS_KEY_ARENA_SIZE_FIELD size
-extern const struct mps_key_s _mps_key_arena_grain_size;
-#define MPS_KEY_ARENA_GRAIN_SIZE (&_mps_key_arena_grain_size)
+extern const struct mps_key_s _mps_key_ARENA_GRAIN_SIZE;
+#define MPS_KEY_ARENA_GRAIN_SIZE (&_mps_key_ARENA_GRAIN_SIZE)
 #define MPS_KEY_ARENA_GRAIN_SIZE_FIELD size
-extern const struct mps_key_s _mps_key_arena_zoned;
-#define MPS_KEY_ARENA_ZONED     (&_mps_key_arena_zoned)
+extern const struct mps_key_s _mps_key_ARENA_SIZE;
+#define MPS_KEY_ARENA_SIZE      (&_mps_key_ARENA_SIZE)
+#define MPS_KEY_ARENA_SIZE_FIELD size
+extern const struct mps_key_s _mps_key_ARENA_ZONED;
+#define MPS_KEY_ARENA_ZONED     (&_mps_key_ARENA_ZONED)
 #define MPS_KEY_ARENA_ZONED_FIELD b
-extern const struct mps_key_s _mps_key_arena_incremental;
-#define MPS_KEY_ARENA_INCREMENTAL     (&_mps_key_arena_incremental)
+extern const struct mps_key_s _mps_key_FORMAT;
+#define MPS_KEY_FORMAT          (&_mps_key_FORMAT)
+extern const struct mps_key_s _mps_key_ARENA_INCREMENTAL;
+#define MPS_KEY_ARENA_INCREMENTAL     (&_mps_key_ARENA_INCREMENTAL)
 #define MPS_KEY_ARENA_INCREMENTAL_FIELD b
-extern const struct mps_key_s _mps_key_format;
-#define MPS_KEY_FORMAT          (&_mps_key_format)
 #define MPS_KEY_FORMAT_FIELD    format
-extern const struct mps_key_s _mps_key_chain;
-#define MPS_KEY_CHAIN           (&_mps_key_chain)
+extern const struct mps_key_s _mps_key_CHAIN;
+#define MPS_KEY_CHAIN           (&_mps_key_CHAIN)
 #define MPS_KEY_CHAIN_FIELD     chain
-extern const struct mps_key_s _mps_key_gen;
-#define MPS_KEY_GEN             (&_mps_key_gen)
+extern const struct mps_key_s _mps_key_GEN;
+#define MPS_KEY_GEN             (&_mps_key_GEN)
 #define MPS_KEY_GEN_FIELD       u
-extern const struct mps_key_s _mps_key_rank;
-#define MPS_KEY_RANK            (&_mps_key_rank)
+extern const struct mps_key_s _mps_key_RANK;
+#define MPS_KEY_RANK            (&_mps_key_RANK)
 #define MPS_KEY_RANK_FIELD      rank
+extern const struct mps_key_s _mps_key_COMMIT_LIMIT;
+#define MPS_KEY_COMMIT_LIMIT (&_mps_key_COMMIT_LIMIT)
+#define MPS_KEY_COMMIT_LIMIT_FIELD size
+extern const struct mps_key_s _mps_key_SPARE_COMMIT_LIMIT;
+#define MPS_KEY_SPARE_COMMIT_LIMIT (&_mps_key_SPARE_COMMIT_LIMIT)
+#define MPS_KEY_SPARE_COMMIT_LIMIT_FIELD size
 
-extern const struct mps_key_s _mps_key_extend_by;
-#define MPS_KEY_EXTEND_BY       (&_mps_key_extend_by)
+extern const struct mps_key_s _mps_key_EXTEND_BY;
+#define MPS_KEY_EXTEND_BY       (&_mps_key_EXTEND_BY)
 #define MPS_KEY_EXTEND_BY_FIELD size
-extern const struct mps_key_s _mps_key_large_size;
-#define MPS_KEY_LARGE_SIZE      (&_mps_key_large_size)
+extern const struct mps_key_s _mps_key_LARGE_SIZE;
+#define MPS_KEY_LARGE_SIZE      (&_mps_key_LARGE_SIZE)
 #define MPS_KEY_LARGE_SIZE_FIELD size
-extern const struct mps_key_s _mps_key_min_size;
-#define MPS_KEY_MIN_SIZE        (&_mps_key_min_size)
+extern const struct mps_key_s _mps_key_MIN_SIZE;
+#define MPS_KEY_MIN_SIZE        (&_mps_key_MIN_SIZE)
 #define MPS_KEY_MIN_SIZE_FIELD  size
-extern const struct mps_key_s _mps_key_mean_size;
-#define MPS_KEY_MEAN_SIZE       (&_mps_key_mean_size)
+extern const struct mps_key_s _mps_key_MEAN_SIZE;
+#define MPS_KEY_MEAN_SIZE       (&_mps_key_MEAN_SIZE)
 #define MPS_KEY_MEAN_SIZE_FIELD size
-extern const struct mps_key_s _mps_key_max_size;
-#define MPS_KEY_MAX_SIZE        (&_mps_key_max_size)
+extern const struct mps_key_s _mps_key_MAX_SIZE;
+#define MPS_KEY_MAX_SIZE        (&_mps_key_MAX_SIZE)
 #define MPS_KEY_MAX_SIZE_FIELD  size
-extern const struct mps_key_s _mps_key_align;
-#define MPS_KEY_ALIGN           (&_mps_key_align)
+extern const struct mps_key_s _mps_key_ALIGN;
+#define MPS_KEY_ALIGN           (&_mps_key_ALIGN)
 #define MPS_KEY_ALIGN_FIELD     align
-extern const struct mps_key_s _mps_key_spare;
-#define MPS_KEY_SPARE           (&_mps_key_spare)
-#define MPS_KEY_SPARE_FIELD     double
-extern const struct mps_key_s _mps_key_interior;
-#define MPS_KEY_INTERIOR        (&_mps_key_interior)
+extern const struct mps_key_s _mps_key_SPARE;
+#define MPS_KEY_SPARE           (&_mps_key_SPARE)
+#define MPS_KEY_SPARE_FIELD     d
+extern const struct mps_key_s _mps_key_INTERIOR;
+#define MPS_KEY_INTERIOR        (&_mps_key_INTERIOR)
 #define MPS_KEY_INTERIOR_FIELD  b
 
-extern const struct mps_key_s _mps_key_vmw3_top_down;
-#define MPS_KEY_VMW3_TOP_DOWN   (&_mps_key_vmw3_top_down)
+extern const struct mps_key_s _mps_key_VMW3_TOP_DOWN;
+#define MPS_KEY_VMW3_TOP_DOWN   (&_mps_key_VMW3_TOP_DOWN)
 #define MPS_KEY_VMW3_TOP_DOWN_FIELD b
 
-extern const struct mps_key_s _mps_key_fmt_align;
-#define MPS_KEY_FMT_ALIGN   (&_mps_key_fmt_align)
+extern const struct mps_key_s _mps_key_FMT_ALIGN;
+#define MPS_KEY_FMT_ALIGN   (&_mps_key_FMT_ALIGN)
 #define MPS_KEY_FMT_ALIGN_FIELD align
-extern const struct mps_key_s _mps_key_fmt_header_size;
-#define MPS_KEY_FMT_HEADER_SIZE   (&_mps_key_fmt_header_size)
+extern const struct mps_key_s _mps_key_FMT_HEADER_SIZE;
+#define MPS_KEY_FMT_HEADER_SIZE   (&_mps_key_FMT_HEADER_SIZE)
 #define MPS_KEY_FMT_HEADER_SIZE_FIELD size
-extern const struct mps_key_s _mps_key_fmt_scan;
-#define MPS_KEY_FMT_SCAN   (&_mps_key_fmt_scan)
+extern const struct mps_key_s _mps_key_FMT_SCAN;
+#define MPS_KEY_FMT_SCAN   (&_mps_key_FMT_SCAN)
 #define MPS_KEY_FMT_SCAN_FIELD fmt_scan
-extern const struct mps_key_s _mps_key_fmt_skip;
-#define MPS_KEY_FMT_SKIP   (&_mps_key_fmt_skip)
+extern const struct mps_key_s _mps_key_FMT_SKIP;
+#define MPS_KEY_FMT_SKIP   (&_mps_key_FMT_SKIP)
 #define MPS_KEY_FMT_SKIP_FIELD fmt_skip
-extern const struct mps_key_s _mps_key_fmt_fwd;
-#define MPS_KEY_FMT_FWD   (&_mps_key_fmt_fwd)
+extern const struct mps_key_s _mps_key_FMT_FWD;
+#define MPS_KEY_FMT_FWD   (&_mps_key_FMT_FWD)
 #define MPS_KEY_FMT_FWD_FIELD fmt_fwd
-extern const struct mps_key_s _mps_key_fmt_isfwd;
-#define MPS_KEY_FMT_ISFWD   (&_mps_key_fmt_isfwd)
+extern const struct mps_key_s _mps_key_FMT_ISFWD;
+#define MPS_KEY_FMT_ISFWD   (&_mps_key_FMT_ISFWD)
 #define MPS_KEY_FMT_ISFWD_FIELD fmt_isfwd
-extern const struct mps_key_s _mps_key_fmt_pad;
-#define MPS_KEY_FMT_PAD   (&_mps_key_fmt_pad)
+extern const struct mps_key_s _mps_key_FMT_PAD;
+#define MPS_KEY_FMT_PAD   (&_mps_key_FMT_PAD)
 #define MPS_KEY_FMT_PAD_FIELD fmt_pad
-extern const struct mps_key_s _mps_key_fmt_class;
-#define MPS_KEY_FMT_CLASS   (&_mps_key_fmt_class)
+extern const struct mps_key_s _mps_key_FMT_CLASS;
+#define MPS_KEY_FMT_CLASS   (&_mps_key_FMT_CLASS)
 #define MPS_KEY_FMT_CLASS_FIELD fmt_class
 
 /* Maximum length of a keyword argument list. */
@@ -296,12 +310,12 @@ extern mps_rank_t mps_rank_weak(void);
 /* Root Modes */
 /* .rm: Keep in sync with <code/mpmtypes.h#rm> */
 
-#define MPS_RM_CONST    (((mps_rm_t)1<<0))
-#define MPS_RM_PROT     (((mps_rm_t)1<<1))
+#define MPS_RM_CONST      (((mps_rm_t)1<<0))
+#define MPS_RM_PROT       (((mps_rm_t)1<<1))
+#define MPS_RM_PROT_INNER (((mps_rm_t)1<<1))
 
 
 /* Allocation Point */
-/* .ap: Keep in sync with <code/mpmst.h#ap>. */
 
 typedef struct mps_ap_s {       /* allocation point descriptor */
   mps_addr_t init;              /* limit of initialized memory */
@@ -475,11 +489,11 @@ extern void mps_fmt_destroy(mps_fmt_t);
 /* Pools */
 
 extern mps_res_t mps_pool_create(mps_pool_t *, mps_arena_t,
-                                 mps_class_t, ...);
+                                 mps_pool_class_t, ...);
 extern mps_res_t mps_pool_create_v(mps_pool_t *, mps_arena_t,
-                                   mps_class_t, va_list);
+                                   mps_pool_class_t, va_list);
 extern mps_res_t mps_pool_create_k(mps_pool_t *, mps_arena_t,
-                                   mps_class_t, mps_arg_s []);
+                                   mps_pool_class_t, mps_arg_s []);
 extern void mps_pool_destroy(mps_pool_t);
 extern size_t mps_pool_total_size(mps_pool_t);
 extern size_t mps_pool_free_size(mps_pool_t);
@@ -667,6 +681,15 @@ extern mps_res_t mps_root_create_table_masked(mps_root_t *, mps_arena_t,
                                               mps_rank_t, mps_rm_t,
                                               mps_addr_t *, size_t,
                                               mps_word_t);
+extern mps_res_t mps_root_create_area(mps_root_t *, mps_arena_t,
+                                      mps_rank_t, mps_rm_t,
+                                      void *, void *,
+                                      mps_area_scan_t, void *);
+extern mps_res_t mps_root_create_area_tagged(mps_root_t *, mps_arena_t,
+                                             mps_rank_t, mps_rm_t,
+                                             void *, void *,
+                                             mps_area_scan_t,
+                                             mps_word_t, mps_word_t);
 extern mps_res_t mps_root_create_fmt(mps_root_t *, mps_arena_t,
                                      mps_rank_t, mps_rm_t,
                                      mps_fmt_scan_t, mps_addr_t,
@@ -674,6 +697,18 @@ extern mps_res_t mps_root_create_fmt(mps_root_t *, mps_arena_t,
 extern mps_res_t mps_root_create_reg(mps_root_t *, mps_arena_t,
                                      mps_rank_t, mps_rm_t, mps_thr_t,
                                      mps_reg_scan_t, void *, size_t);
+extern mps_res_t mps_root_create_thread(mps_root_t *, mps_arena_t,
+                                        mps_thr_t, void *);
+extern mps_res_t mps_root_create_thread_scanned(mps_root_t *, mps_arena_t,
+                                                mps_rank_t, mps_rm_t, mps_thr_t,
+                                                mps_area_scan_t,
+                                                void *,
+                                                void *);
+extern mps_res_t mps_root_create_thread_tagged(mps_root_t *, mps_arena_t,
+                                               mps_rank_t, mps_rm_t, mps_thr_t,
+                                               mps_area_scan_t,
+                                               mps_word_t, mps_word_t,
+                                               void *);
 extern void mps_root_destroy(mps_root_t);
 
 extern mps_res_t mps_stack_scan_ambig(mps_ss_t, mps_thr_t,
@@ -777,8 +812,8 @@ typedef struct mps_pool_debug_option_s {
   size_t free_size;
 } mps_pool_debug_option_s;
 
-extern const struct mps_key_s _mps_key_pool_debug_options;
-#define MPS_KEY_POOL_DEBUG_OPTIONS (&_mps_key_pool_debug_options)
+extern const struct mps_key_s _mps_key_POOL_DEBUG_OPTIONS;
+#define MPS_KEY_POOL_DEBUG_OPTIONS (&_mps_key_POOL_DEBUG_OPTIONS)
 #define MPS_KEY_POOL_DEBUG_OPTIONS_FIELD pool_debug_options
 
 extern void mps_pool_check_fenceposts(mps_pool_t);
@@ -786,6 +821,11 @@ extern void mps_pool_check_free_space(mps_pool_t);
 
 
 /* Scanner Support */
+
+extern mps_res_t mps_scan_area(mps_ss_t, void *, void *, void *);
+extern mps_res_t mps_scan_area_masked(mps_ss_t, void *, void *, void *);
+extern mps_res_t mps_scan_area_tagged(mps_ss_t, void *, void *, void *);
+extern mps_res_t mps_scan_area_tagged_or_zero(mps_ss_t, void *, void *, void *);
 
 extern mps_res_t mps_fix(mps_ss_t, mps_addr_t *);
 
