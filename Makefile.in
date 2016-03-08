@@ -91,16 +91,17 @@ bin_PROGRAMS = bin/amcss$(EXEEXT)
 TESTS = bin/amcss$(EXEEXT)
 subdir = .
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
-am__aclocal_m4_deps = $(top_srcdir)/tool/autoconf/build-aux/ax_append_compile_flags.m4 \
-	$(top_srcdir)/tool/autoconf/build-aux/ax_append_flag.m4 \
-	$(top_srcdir)/tool/autoconf/build-aux/ax_append_link_flags.m4 \
-	$(top_srcdir)/tool/autoconf/build-aux/ax_check_compile_flag.m4 \
-	$(top_srcdir)/tool/autoconf/build-aux/ax_check_link_flag.m4 \
-	$(top_srcdir)/tool/autoconf/build-aux/ax_compiler_flags.m4 \
-	$(top_srcdir)/tool/autoconf/build-aux/ax_compiler_flags_cflags.m4 \
-	$(top_srcdir)/tool/autoconf/build-aux/ax_compiler_flags_gir.m4 \
-	$(top_srcdir)/tool/autoconf/build-aux/ax_compiler_flags_ldflags.m4 \
-	$(top_srcdir)/tool/autoconf/build-aux/ax_require_defined.m4 \
+am__aclocal_m4_deps =  \
+	$(top_srcdir)/tool/autoconf/macro/ax_append_compile_flags.m4 \
+	$(top_srcdir)/tool/autoconf/macro/ax_append_flag.m4 \
+	$(top_srcdir)/tool/autoconf/macro/ax_append_link_flags.m4 \
+	$(top_srcdir)/tool/autoconf/macro/ax_check_compile_flag.m4 \
+	$(top_srcdir)/tool/autoconf/macro/ax_check_link_flag.m4 \
+	$(top_srcdir)/tool/autoconf/macro/ax_compiler_flags.m4 \
+	$(top_srcdir)/tool/autoconf/macro/ax_compiler_flags_cflags.m4 \
+	$(top_srcdir)/tool/autoconf/macro/ax_compiler_flags_gir.m4 \
+	$(top_srcdir)/tool/autoconf/macro/ax_compiler_flags_ldflags.m4 \
+	$(top_srcdir)/tool/autoconf/macro/ax_require_defined.m4 \
 	$(top_srcdir)/configure.ac
 am__configure_deps = $(am__aclocal_m4_deps) $(CONFIGURE_DEPENDENCIES) \
 	$(ACLOCAL_M4)
@@ -1233,6 +1234,9 @@ uninstall-am: uninstall-binPROGRAMS uninstall-libLIBRARIES
 .PRECIOUS: Makefile
 
 
+# The fine Automake manual talks about how "tests *will* be run" but
+# fails to tell you how to run them.  It turns out you have to "make
+# check", but most things, like Travis CI, expect "make test".
 .PHONY: test
 test: check
 

@@ -22,7 +22,7 @@ AC_INIT([Memory Pool System Kit],
         [http://www.ravenbrook.com/project/mps/])
 AC_CONFIG_AUX_DIR(tool/autoconf/build-aux)
 AC_CONFIG_SRCDIR([code/mps.c])
-AC_CONFIG_MACRO_DIR([tool/autoconf/build-aux])
+AC_CONFIG_MACRO_DIR([tool/autoconf/macro])
 
 # Automake configuration
 AM_INIT_AUTOMAKE([foreign subdir-objects])
