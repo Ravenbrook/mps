@@ -14,6 +14,7 @@
 
 @SET_MAKE@
 
+
 VPATH = @srcdir@
 am__is_gnu_make = { \
   if test -z '$(MAKELEVEL)'; then \
@@ -86,6 +87,7 @@ POST_INSTALL = :
 NORMAL_UNINSTALL = :
 PRE_UNINSTALL = :
 POST_UNINSTALL = :
+bin_PROGRAMS = amcss$(EXEEXT)
 subdir = .
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/configure.ac
@@ -125,8 +127,8 @@ am__uninstall_files_from_dir = { \
     || { echo " ( cd '$$dir' && rm -f" $$files ")"; \
          $(am__cd) "$$dir" && rm -f $$files; }; \
   }
-am__installdirs = "$(DESTDIR)$(libdir)"
-LIBRARIES = $(lib_LIBRARIES)
+am__installdirs = "$(DESTDIR)$(libdir)" "$(DESTDIR)$(bindir)"
+LIBRARIES = $(lib_LIBRARIES) $(noinst_LIBRARIES)
 AR = ar
 ARFLAGS = cru
 AM_V_AR = $(am__v_AR_@AM_V@)
@@ -136,8 +138,17 @@ am__v_AR_1 =
 libmps_a_AR = $(AR) $(ARFLAGS)
 libmps_a_LIBADD =
 am__dirstamp = $(am__leading_dot)dirstamp
-am_libmps_a_OBJECTS = src/mps.$(OBJEXT)
+am_libmps_a_OBJECTS = code/mps.$(OBJEXT)
 libmps_a_OBJECTS = $(am_libmps_a_OBJECTS)
+testlib_a_AR = $(AR) $(ARFLAGS)
+testlib_a_LIBADD =
+am_testlib_a_OBJECTS = code/testlib.$(OBJEXT) code/fmtdy.$(OBJEXT) \
+	code/fmtdytst.$(OBJEXT) code/fmtno.$(OBJEXT)
+testlib_a_OBJECTS = $(am_testlib_a_OBJECTS)
+PROGRAMS = $(bin_PROGRAMS)
+am_amcss_OBJECTS = code/amcss.$(OBJEXT)
+amcss_OBJECTS = $(am_amcss_OBJECTS)
+amcss_DEPENDENCIES = testlib.a libmps.a
 AM_V_P = $(am__v_P_@AM_V@)
 am__v_P_ = $(am__v_P_@AM_DEFAULT_V@)
 am__v_P_0 = false
@@ -166,8 +177,9 @@ AM_V_CCLD = $(am__v_CCLD_@AM_V@)
 am__v_CCLD_ = $(am__v_CCLD_@AM_DEFAULT_V@)
 am__v_CCLD_0 = @echo "  CCLD    " $@;
 am__v_CCLD_1 = 
-SOURCES = $(libmps_a_SOURCES)
-DIST_SOURCES = $(libmps_a_SOURCES)
+SOURCES = $(libmps_a_SOURCES) $(testlib_a_SOURCES) $(amcss_SOURCES)
+DIST_SOURCES = $(libmps_a_SOURCES) $(testlib_a_SOURCES) \
+	$(amcss_SOURCES)
 am__can_run_installinfo = \
   case $$AM_UPDATE_INFO_DIR in \
     n|no|NO) false;; \
@@ -312,7 +324,11 @@ top_build_prefix = @top_build_prefix@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
 lib_LIBRARIES = libmps.a
-libmps_a_SOURCES = src/mps.c
+libmps_a_SOURCES = code/mps.c
+noinst_LIBRARIES = testlib.a
+testlib_a_SOURCES = code/testlib.c code/fmtdy.c code/fmtdytst.c code/fmtno.c
+amcss_SOURCES = code/amcss.c
+amcss_LDADD = testlib.a libmps.a -lpthread -lm
 all: all-am
 
 .SUFFIXES:
@@ -383,27 +399,97 @@ uninstall-libLIBRARIES:
 
 clean-libLIBRARIES:
 	-test -z "$(lib_LIBRARIES)" || rm -f $(lib_LIBRARIES)
-src/$(am__dirstamp):
-	@$(MKDIR_P) src
-	@: > src/$(am__dirstamp)
-src/$(DEPDIR)/$(am__dirstamp):
-	@$(MKDIR_P) src/$(DEPDIR)
-	@: > src/$(DEPDIR)/$(am__dirstamp)
-src/mps.$(OBJEXT): src/$(am__dirstamp) src/$(DEPDIR)/$(am__dirstamp)
+
+clean-noinstLIBRARIES:
+	-test -z "$(noinst_LIBRARIES)" || rm -f $(noinst_LIBRARIES)
+code/$(am__dirstamp):
+	@$(MKDIR_P) code
+	@: > code/$(am__dirstamp)
+code/$(DEPDIR)/$(am__dirstamp):
+	@$(MKDIR_P) code/$(DEPDIR)
+	@: > code/$(DEPDIR)/$(am__dirstamp)
+code/mps.$(OBJEXT): code/$(am__dirstamp) \
+	code/$(DEPDIR)/$(am__dirstamp)
 
 libmps.a: $(libmps_a_OBJECTS) $(libmps_a_DEPENDENCIES) $(EXTRA_libmps_a_DEPENDENCIES) 
 	$(AM_V_at)-rm -f libmps.a
 	$(AM_V_AR)$(libmps_a_AR) libmps.a $(libmps_a_OBJECTS) $(libmps_a_LIBADD)
 	$(AM_V_at)$(RANLIB) libmps.a
+code/testlib.$(OBJEXT): code/$(am__dirstamp) \
+	code/$(DEPDIR)/$(am__dirstamp)
+code/fmtdy.$(OBJEXT): code/$(am__dirstamp) \
+	code/$(DEPDIR)/$(am__dirstamp)
+code/fmtdytst.$(OBJEXT): code/$(am__dirstamp) \
+	code/$(DEPDIR)/$(am__dirstamp)
+code/fmtno.$(OBJEXT): code/$(am__dirstamp) \
+	code/$(DEPDIR)/$(am__dirstamp)
+
+testlib.a: $(testlib_a_OBJECTS) $(testlib_a_DEPENDENCIES) $(EXTRA_testlib_a_DEPENDENCIES) 
+	$(AM_V_at)-rm -f testlib.a
+	$(AM_V_AR)$(testlib_a_AR) testlib.a $(testlib_a_OBJECTS) $(testlib_a_LIBADD)
+	$(AM_V_at)$(RANLIB) testlib.a
+install-binPROGRAMS: $(bin_PROGRAMS)
+	@$(NORMAL_INSTALL)
+	@list='$(bin_PROGRAMS)'; test -n "$(bindir)" || list=; \
+	if test -n "$$list"; then \
+	  echo " $(MKDIR_P) '$(DESTDIR)$(bindir)'"; \
+	  $(MKDIR_P) "$(DESTDIR)$(bindir)" || exit 1; \
+	fi; \
+	for p in $$list; do echo "$$p $$p"; done | \
+	sed 's/$(EXEEXT)$$//' | \
+	while read p p1; do if test -f $$p \
+	  ; then echo "$$p"; echo "$$p"; else :; fi; \
+	done | \
+	sed -e 'p;s,.*/,,;n;h' \
+	    -e 's|.*|.|' \
+	    -e 'p;x;s,.*/,,;s/$(EXEEXT)$$//;$(transform);s/$$/$(EXEEXT)/' | \
+	sed 'N;N;N;s,\n, ,g' | \
+	$(AWK) 'BEGIN { files["."] = ""; dirs["."] = 1 } \
+	  { d=$$3; if (dirs[d] != 1) { print "d", d; dirs[d] = 1 } \
+	    if ($$2 == $$4) files[d] = files[d] " " $$1; \
+	    else { print "f", $$3 "/" $$4, $$1; } } \
+	  END { for (d in files) print "f", d, files[d] }' | \
+	while read type dir files; do \
+	    if test "$$dir" = .; then dir=; else dir=/$$dir; fi; \
+	    test -z "$$files" || { \
+	      echo " $(INSTALL_PROGRAM_ENV) $(INSTALL_PROGRAM) $$files '$(DESTDIR)$(bindir)$$dir'"; \
+	      $(INSTALL_PROGRAM_ENV) $(INSTALL_PROGRAM) $$files "$(DESTDIR)$(bindir)$$dir" || exit $$?; \
+	    } \
+	; done
+
+uninstall-binPROGRAMS:
+	@$(NORMAL_UNINSTALL)
+	@list='$(bin_PROGRAMS)'; test -n "$(bindir)" || list=; \
+	files=`for p in $$list; do echo "$$p"; done | \
+	  sed -e 'h;s,^.*/,,;s/$(EXEEXT)$$//;$(transform)' \
+	      -e 's/$$/$(EXEEXT)/' \
+	`; \
+	test -n "$$list" || exit 0; \
+	echo " ( cd '$(DESTDIR)$(bindir)' && rm -f" $$files ")"; \
+	cd "$(DESTDIR)$(bindir)" && rm -f $$files
+
+clean-binPROGRAMS:
+	-test -z "$(bin_PROGRAMS)" || rm -f $(bin_PROGRAMS)
+code/amcss.$(OBJEXT): code/$(am__dirstamp) \
+	code/$(DEPDIR)/$(am__dirstamp)
+
+amcss$(EXEEXT): $(amcss_OBJECTS) $(amcss_DEPENDENCIES) $(EXTRA_amcss_DEPENDENCIES) 
+	@rm -f amcss$(EXEEXT)
+	$(AM_V_CCLD)$(LINK) $(amcss_OBJECTS) $(amcss_LDADD) $(LIBS)
 
 mostlyclean-compile:
 	-rm -f *.$(OBJEXT)
-	-rm -f src/*.$(OBJEXT)
+	-rm -f code/*.$(OBJEXT)
 
 distclean-compile:
 	-rm -f *.tab.c
 
-@AMDEP_TRUE@@am__include@ @am__quote@src/$(DEPDIR)/mps.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@code/$(DEPDIR)/amcss.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@code/$(DEPDIR)/fmtdy.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@code/$(DEPDIR)/fmtdytst.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@code/$(DEPDIR)/fmtno.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@code/$(DEPDIR)/mps.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@code/$(DEPDIR)/testlib.Po@am__quote@
 
 .c.o:
 @am__fastdepCC_TRUE@	$(AM_V_CC)depbase=`echo $@ | sed 's|[^/]*$$|$(DEPDIR)/&|;s|\.o$$||'`;\
@@ -645,9 +731,9 @@ distcleancheck: distclean
 	       exit 1; } >&2
 check-am: all-am
 check: check-am
-all-am: Makefile $(LIBRARIES)
+all-am: Makefile $(LIBRARIES) $(PROGRAMS)
 installdirs:
-	for dir in "$(DESTDIR)$(libdir)"; do \
+	for dir in "$(DESTDIR)$(libdir)" "$(DESTDIR)$(bindir)"; do \
 	  test -z "$$dir" || $(MKDIR_P) "$$dir"; \
 	done
 install: install-am
@@ -676,19 +762,20 @@ clean-generic:
 distclean-generic:
 	-test -z "$(CONFIG_CLEAN_FILES)" || rm -f $(CONFIG_CLEAN_FILES)
 	-test . = "$(srcdir)" || test -z "$(CONFIG_CLEAN_VPATH_FILES)" || rm -f $(CONFIG_CLEAN_VPATH_FILES)
-	-rm -f src/$(DEPDIR)/$(am__dirstamp)
-	-rm -f src/$(am__dirstamp)
+	-rm -f code/$(DEPDIR)/$(am__dirstamp)
+	-rm -f code/$(am__dirstamp)
 
 maintainer-clean-generic:
 	@echo "This command is intended for maintainers to use"
 	@echo "it deletes files that may require special tools to rebuild."
 clean: clean-am
 
-clean-am: clean-generic clean-libLIBRARIES mostlyclean-am
+clean-am: clean-binPROGRAMS clean-generic clean-libLIBRARIES \
+	clean-noinstLIBRARIES mostlyclean-am
 
 distclean: distclean-am
 	-rm -f $(am__CONFIG_DISTCLEAN_FILES)
-	-rm -rf src/$(DEPDIR)
+	-rm -rf code/$(DEPDIR)
 	-rm -f Makefile
 distclean-am: clean-am distclean-compile distclean-generic \
 	distclean-tags
@@ -711,7 +798,7 @@ install-dvi: install-dvi-am
 
 install-dvi-am:
 
-install-exec-am: install-libLIBRARIES
+install-exec-am: install-binPROGRAMS install-libLIBRARIES
 
 install-html: install-html-am
 
@@ -736,7 +823,7 @@ installcheck-am:
 maintainer-clean: maintainer-clean-am
 	-rm -f $(am__CONFIG_DISTCLEAN_FILES)
 	-rm -rf $(top_srcdir)/autom4te.cache
-	-rm -rf src/$(DEPDIR)
+	-rm -rf code/$(DEPDIR)
 	-rm -f Makefile
 maintainer-clean-am: distclean-am maintainer-clean-generic
 
@@ -752,17 +839,18 @@ ps: ps-am
 
 ps-am:
 
-uninstall-am: uninstall-libLIBRARIES
+uninstall-am: uninstall-binPROGRAMS uninstall-libLIBRARIES
 
 .MAKE: install-am install-strip
 
 .PHONY: CTAGS GTAGS TAGS all all-am am--refresh check check-am clean \
-	clean-cscope clean-generic clean-libLIBRARIES cscope \
-	cscopelist-am ctags ctags-am dist dist-all dist-bzip2 \
-	dist-gzip dist-lzip dist-shar dist-tarZ dist-xz dist-zip \
-	distcheck distclean distclean-compile distclean-generic \
-	distclean-tags distcleancheck distdir distuninstallcheck dvi \
-	dvi-am html html-am info info-am install install-am \
+	clean-binPROGRAMS clean-cscope clean-generic \
+	clean-libLIBRARIES clean-noinstLIBRARIES cscope cscopelist-am \
+	ctags ctags-am dist dist-all dist-bzip2 dist-gzip dist-lzip \
+	dist-shar dist-tarZ dist-xz dist-zip distcheck distclean \
+	distclean-compile distclean-generic distclean-tags \
+	distcleancheck distdir distuninstallcheck dvi dvi-am html \
+	html-am info info-am install install-am install-binPROGRAMS \
 	install-data install-data-am install-dvi install-dvi-am \
 	install-exec install-exec-am install-html install-html-am \
 	install-info install-info-am install-libLIBRARIES install-man \
@@ -770,7 +858,8 @@ uninstall-am: uninstall-libLIBRARIES
 	install-strip installcheck installcheck-am installdirs \
 	maintainer-clean maintainer-clean-generic mostlyclean \
 	mostlyclean-compile mostlyclean-generic pdf pdf-am ps ps-am \
-	tags tags-am uninstall uninstall-am uninstall-libLIBRARIES
+	tags tags-am uninstall uninstall-am uninstall-binPROGRAMS \
+	uninstall-libLIBRARIES
 
 .PRECIOUS: Makefile
 
