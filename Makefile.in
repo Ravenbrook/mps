@@ -87,7 +87,7 @@ POST_INSTALL = :
 NORMAL_UNINSTALL = :
 PRE_UNINSTALL = :
 POST_UNINSTALL = :
-bin_PROGRAMS = amcss$(EXEEXT)
+bin_PROGRAMS = bin/amcss$(EXEEXT)
 subdir = .
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/configure.ac
@@ -135,20 +135,20 @@ AM_V_AR = $(am__v_AR_@AM_V@)
 am__v_AR_ = $(am__v_AR_@AM_DEFAULT_V@)
 am__v_AR_0 = @echo "  AR      " $@;
 am__v_AR_1 = 
-libmps_a_AR = $(AR) $(ARFLAGS)
-libmps_a_LIBADD =
+lib_libmps_a_AR = $(AR) $(ARFLAGS)
+lib_libmps_a_LIBADD =
 am__dirstamp = $(am__leading_dot)dirstamp
-am_libmps_a_OBJECTS = code/mps.$(OBJEXT)
-libmps_a_OBJECTS = $(am_libmps_a_OBJECTS)
-testlib_a_AR = $(AR) $(ARFLAGS)
-testlib_a_LIBADD =
-am_testlib_a_OBJECTS = code/testlib.$(OBJEXT) code/fmtdy.$(OBJEXT) \
+am_lib_libmps_a_OBJECTS = code/mps.$(OBJEXT)
+lib_libmps_a_OBJECTS = $(am_lib_libmps_a_OBJECTS)
+lib_libtest_a_AR = $(AR) $(ARFLAGS)
+lib_libtest_a_LIBADD =
+am_lib_libtest_a_OBJECTS = code/testlib.$(OBJEXT) code/fmtdy.$(OBJEXT) \
 	code/fmtdytst.$(OBJEXT) code/fmtno.$(OBJEXT)
-testlib_a_OBJECTS = $(am_testlib_a_OBJECTS)
+lib_libtest_a_OBJECTS = $(am_lib_libtest_a_OBJECTS)
 PROGRAMS = $(bin_PROGRAMS)
-am_amcss_OBJECTS = code/amcss.$(OBJEXT)
-amcss_OBJECTS = $(am_amcss_OBJECTS)
-amcss_DEPENDENCIES = testlib.a libmps.a
+am_bin_amcss_OBJECTS = code/amcss.$(OBJEXT)
+bin_amcss_OBJECTS = $(am_bin_amcss_OBJECTS)
+bin_amcss_DEPENDENCIES = lib/libtest.a lib/libmps.a
 AM_V_P = $(am__v_P_@AM_V@)
 am__v_P_ = $(am__v_P_@AM_DEFAULT_V@)
 am__v_P_0 = false
@@ -177,9 +177,10 @@ AM_V_CCLD = $(am__v_CCLD_@AM_V@)
 am__v_CCLD_ = $(am__v_CCLD_@AM_DEFAULT_V@)
 am__v_CCLD_0 = @echo "  CCLD    " $@;
 am__v_CCLD_1 = 
-SOURCES = $(libmps_a_SOURCES) $(testlib_a_SOURCES) $(amcss_SOURCES)
-DIST_SOURCES = $(libmps_a_SOURCES) $(testlib_a_SOURCES) \
-	$(amcss_SOURCES)
+SOURCES = $(lib_libmps_a_SOURCES) $(lib_libtest_a_SOURCES) \
+	$(bin_amcss_SOURCES)
+DIST_SOURCES = $(lib_libmps_a_SOURCES) $(lib_libtest_a_SOURCES) \
+	$(bin_amcss_SOURCES)
 am__can_run_installinfo = \
   case $$AM_UPDATE_INFO_DIR in \
     n|no|NO) false;; \
@@ -323,12 +324,12 @@ target_alias = @target_alias@
 top_build_prefix = @top_build_prefix@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
-lib_LIBRARIES = libmps.a
-libmps_a_SOURCES = code/mps.c
-noinst_LIBRARIES = testlib.a
-testlib_a_SOURCES = code/testlib.c code/fmtdy.c code/fmtdytst.c code/fmtno.c
-amcss_SOURCES = code/amcss.c
-amcss_LDADD = testlib.a libmps.a -lpthread -lm
+lib_LIBRARIES = lib/libmps.a
+lib_libmps_a_SOURCES = code/mps.c
+noinst_LIBRARIES = lib/libtest.a
+lib_libtest_a_SOURCES = code/testlib.c code/fmtdy.c code/fmtdytst.c code/fmtno.c
+bin_amcss_SOURCES = code/amcss.c
+bin_amcss_LDADD = lib/libtest.a lib/libmps.a -lpthread -lm
 all: all-am
 
 .SUFFIXES:
@@ -410,11 +411,14 @@ code/$(DEPDIR)/$(am__dirstamp):
 	@: > code/$(DEPDIR)/$(am__dirstamp)
 code/mps.$(OBJEXT): code/$(am__dirstamp) \
 	code/$(DEPDIR)/$(am__dirstamp)
+lib/$(am__dirstamp):
+	@$(MKDIR_P) lib
+	@: > lib/$(am__dirstamp)
 
-libmps.a: $(libmps_a_OBJECTS) $(libmps_a_DEPENDENCIES) $(EXTRA_libmps_a_DEPENDENCIES) 
-	$(AM_V_at)-rm -f libmps.a
-	$(AM_V_AR)$(libmps_a_AR) libmps.a $(libmps_a_OBJECTS) $(libmps_a_LIBADD)
-	$(AM_V_at)$(RANLIB) libmps.a
+lib/libmps.a: $(lib_libmps_a_OBJECTS) $(lib_libmps_a_DEPENDENCIES) $(EXTRA_lib_libmps_a_DEPENDENCIES) lib/$(am__dirstamp)
+	$(AM_V_at)-rm -f lib/libmps.a
+	$(AM_V_AR)$(lib_libmps_a_AR) lib/libmps.a $(lib_libmps_a_OBJECTS) $(lib_libmps_a_LIBADD)
+	$(AM_V_at)$(RANLIB) lib/libmps.a
 code/testlib.$(OBJEXT): code/$(am__dirstamp) \
 	code/$(DEPDIR)/$(am__dirstamp)
 code/fmtdy.$(OBJEXT): code/$(am__dirstamp) \
@@ -424,10 +428,10 @@ code/fmtdytst.$(OBJEXT): code/$(am__dirstamp) \
 code/fmtno.$(OBJEXT): code/$(am__dirstamp) \
 	code/$(DEPDIR)/$(am__dirstamp)
 
-testlib.a: $(testlib_a_OBJECTS) $(testlib_a_DEPENDENCIES) $(EXTRA_testlib_a_DEPENDENCIES) 
-	$(AM_V_at)-rm -f testlib.a
-	$(AM_V_AR)$(testlib_a_AR) testlib.a $(testlib_a_OBJECTS) $(testlib_a_LIBADD)
-	$(AM_V_at)$(RANLIB) testlib.a
+lib/libtest.a: $(lib_libtest_a_OBJECTS) $(lib_libtest_a_DEPENDENCIES) $(EXTRA_lib_libtest_a_DEPENDENCIES) lib/$(am__dirstamp)
+	$(AM_V_at)-rm -f lib/libtest.a
+	$(AM_V_AR)$(lib_libtest_a_AR) lib/libtest.a $(lib_libtest_a_OBJECTS) $(lib_libtest_a_LIBADD)
+	$(AM_V_at)$(RANLIB) lib/libtest.a
 install-binPROGRAMS: $(bin_PROGRAMS)
 	@$(NORMAL_INSTALL)
 	@list='$(bin_PROGRAMS)'; test -n "$(bindir)" || list=; \
@@ -472,10 +476,13 @@ clean-binPROGRAMS:
 	-test -z "$(bin_PROGRAMS)" || rm -f $(bin_PROGRAMS)
 code/amcss.$(OBJEXT): code/$(am__dirstamp) \
 	code/$(DEPDIR)/$(am__dirstamp)
+bin/$(am__dirstamp):
+	@$(MKDIR_P) bin
+	@: > bin/$(am__dirstamp)
 
-amcss$(EXEEXT): $(amcss_OBJECTS) $(amcss_DEPENDENCIES) $(EXTRA_amcss_DEPENDENCIES) 
-	@rm -f amcss$(EXEEXT)
-	$(AM_V_CCLD)$(LINK) $(amcss_OBJECTS) $(amcss_LDADD) $(LIBS)
+bin/amcss$(EXEEXT): $(bin_amcss_OBJECTS) $(bin_amcss_DEPENDENCIES) $(EXTRA_bin_amcss_DEPENDENCIES) bin/$(am__dirstamp)
+	@rm -f bin/amcss$(EXEEXT)
+	$(AM_V_CCLD)$(LINK) $(bin_amcss_OBJECTS) $(bin_amcss_LDADD) $(LIBS)
 
 mostlyclean-compile:
 	-rm -f *.$(OBJEXT)
@@ -762,8 +769,10 @@ clean-generic:
 distclean-generic:
 	-test -z "$(CONFIG_CLEAN_FILES)" || rm -f $(CONFIG_CLEAN_FILES)
 	-test . = "$(srcdir)" || test -z "$(CONFIG_CLEAN_VPATH_FILES)" || rm -f $(CONFIG_CLEAN_VPATH_FILES)
+	-rm -f bin/$(am__dirstamp)
 	-rm -f code/$(DEPDIR)/$(am__dirstamp)
 	-rm -f code/$(am__dirstamp)
+	-rm -f lib/$(am__dirstamp)
 
 maintainer-clean-generic:
 	@echo "This command is intended for maintainers to use"
