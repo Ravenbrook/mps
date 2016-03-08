@@ -14,6 +14,16 @@
 #include <stdlib.h>
 
 
+/* Attribute for functions that do not return.
+ * GCC: <http://gcc.gnu.org/onlinedocs/gcc/Function-Attributes.html>
+ * Clang: <http://clang.llvm.org/docs/AttributeReference.html#id1>
+ */
+#if defined(__GNUC__) /* includes Clang */
+#define ATTRIBUTE_NORETURN __attribute__((__noreturn__))
+#else
+#define ATTRIBUTE_NORETURN
+#endif
+
 #define notreached()    assert(0)
 #define unused(param)   ((void)param)
 
@@ -38,6 +48,7 @@ mps_addr_t no_skip(mps_addr_t object)
     return 0;
 }
 
+ATTRIBUTE_NORETURN
 void no_copy(mps_addr_t old,
              mps_addr_t new)
 {
@@ -45,6 +56,7 @@ void no_copy(mps_addr_t old,
     notreached();
 }
 
+ATTRIBUTE_NORETURN
 void no_fwd(mps_addr_t old,
             mps_addr_t new)
 {
@@ -59,6 +71,7 @@ mps_addr_t no_isfwd(mps_addr_t object)
     return 0;
 }
 
+ATTRIBUTE_NORETURN
 void no_pad(mps_addr_t addr,
             size_t size)
 {

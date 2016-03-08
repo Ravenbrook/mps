@@ -334,6 +334,7 @@ static struct {
 /* verror -- die with message */
 
 ATTRIBUTE_FORMAT((printf, 1, 0))
+ATTRIBUTE_NORETURN
 void verror(const char *format, va_list args)
 {
   (void)fflush(stdout); /* synchronize */
@@ -357,6 +358,7 @@ void verror(const char *format, va_list args)
 /* error -- die with message */
 
 ATTRIBUTE_FORMAT((printf, 1, 2))
+ATTRIBUTE_NORETURN
 void error(const char *format, ...)
 {
  va_list args;
@@ -400,6 +402,7 @@ void cdie(int res, const char *s)
 
 /* assert_die -- always die on assertion */
 
+ATTRIBUTE_NORETURN
 void assert_die(const char *file, unsigned line, const char *condition)
 {
   error("%s:%u: MPS ASSERTION FAILED: %s\n", file, line, condition);
