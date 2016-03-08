@@ -4,7 +4,11 @@
 language: c
 os:
   - linux
+    - install:
+      - sudo apt-get install automake autoconf
   - osx
+    - install:
+      - brew install automake autoconf
 compiler:
   - clang
   - gcc
