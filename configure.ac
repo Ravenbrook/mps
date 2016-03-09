@@ -26,6 +26,9 @@ AC_CONFIG_MACRO_DIR([tool/autoconf/macro])
 
 # Automake configuration
 AM_INIT_AUTOMAKE([foreign subdir-objects])
+# Don't rerun automake by default.  Allows Travis CI etc. to build
+# even without a compatible version of automake.
+AM_MAINTAINER_MODE([disable])
 
 # Checks for programs.
 AC_LANG_C
