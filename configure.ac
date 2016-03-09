@@ -13,7 +13,7 @@
 #     autoreconf -vif
 #
 
-# AC_PREREQ([2.69])
+AC_PREREQ([2.64])
 # http://www.gnu.org/software/autoconf/manual/autoconf.html#Initializing-configure
 AC_INIT([Memory Pool System Kit],
         m4_esyscmd_s([sed -n '/^#define MPS_RELEASE "\(.*\)"$/{s/.*"\(.*\)"/\1/;p;}' code/version.c]),

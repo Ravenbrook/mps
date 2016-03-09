@@ -8,6 +8,9 @@ os:
 compiler:
   - clang
   - gcc
+install:
+  - test "$TRAVIS_OS_NAME" == "linux" && sudo apt-get -qq update
+  - test "$TRAVIS_OS_NAME" == "linux" && sudo apt-get install -y automake1.11 autoconf2.64
 matrix:
   exclude:
     - os: osx
@@ -17,4 +20,4 @@ notifications:
     - mps-travis@ravenbrook.com
   irc: "irc.freenode.net#memorypoolsystem"
 script:
-  - autoreconf -if && ./configure --prefix=$PWD/prefix && make install && make test
+  - autoreconf -vif && ./configure --prefix=$PWD/prefix && make install && make test
