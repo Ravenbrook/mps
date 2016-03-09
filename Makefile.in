@@ -94,13 +94,7 @@ ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps =  \
 	$(top_srcdir)/tool/autoconf/macro/ax_append_compile_flags.m4 \
 	$(top_srcdir)/tool/autoconf/macro/ax_append_flag.m4 \
-	$(top_srcdir)/tool/autoconf/macro/ax_append_link_flags.m4 \
 	$(top_srcdir)/tool/autoconf/macro/ax_check_compile_flag.m4 \
-	$(top_srcdir)/tool/autoconf/macro/ax_check_link_flag.m4 \
-	$(top_srcdir)/tool/autoconf/macro/ax_compiler_flags.m4 \
-	$(top_srcdir)/tool/autoconf/macro/ax_compiler_flags_cflags.m4 \
-	$(top_srcdir)/tool/autoconf/macro/ax_compiler_flags_gir.m4 \
-	$(top_srcdir)/tool/autoconf/macro/ax_compiler_flags_ldflags.m4 \
 	$(top_srcdir)/tool/autoconf/macro/ax_require_defined.m4 \
 	$(top_srcdir)/configure.ac
 am__configure_deps = $(am__aclocal_m4_deps) $(CONFIGURE_DEPENDENCIES) \
@@ -482,13 +476,11 @@ PACKAGE_URL = @PACKAGE_URL@
 PACKAGE_VERSION = @PACKAGE_VERSION@
 PATH_SEPARATOR = @PATH_SEPARATOR@
 RANLIB = @RANLIB@
-SED = @SED@
+SCHEME_CFLAGS = @SCHEME_CFLAGS@
 SET_MAKE = @SET_MAKE@
 SHELL = @SHELL@
 STRIP = @STRIP@
 VERSION = @VERSION@
-WARN_LDFLAGS = @WARN_LDFLAGS@
-WARN_SCANNERFLAGS = @WARN_SCANNERFLAGS@
 abs_builddir = @abs_builddir@
 abs_srcdir = @abs_srcdir@
 abs_top_builddir = @abs_top_builddir@
@@ -533,16 +525,16 @@ top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
 lib_LIBRARIES = lib/libmps.a
 lib_libmps_a_SOURCES = code/mps.c
-lib_libmps_a_CFLAGS = $(MPS_CFLAGS)
+lib_libmps_a_CFLAGS = @MPS_CFLAGS@
 noinst_LIBRARIES = lib/libtest.a
 lib_libtest_a_SOURCES = code/testlib.c code/fmtdy.c code/fmtdytst.c code/fmtno.c
-lib_libtest_a_CFLAGS = $(MPS_CFLAGS)
+lib_libtest_a_CFLAGS = @MPS_CFLAGS@
 bin_amcss_SOURCES = code/amcss.c
 bin_amcss_LDADD = lib/libtest.a lib/libmps.a -lpthread -lm
-lib_amcss_CFLAGS = $(MPS_CFLAGS)
+lib_amcss_CFLAGS = @MPS_CFLAGS@
 bin_scheme_SOURCES = example/scheme/scheme.c
 bin_scheme_LDADD = lib/libmps.a -lpthread -lm
-bin_scheme_CFLAGS = -I code -O -g3 $(SCHEME_CFLAGS)
+bin_scheme_CFLAGS = -I code -O -g3 @SCHEME_CFLAGS@
 all: all-am
 
 .SUFFIXES:

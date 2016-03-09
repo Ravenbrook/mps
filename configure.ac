@@ -37,20 +37,75 @@ AC_PROG_CC([clang gcc cl cc])
 AC_PROG_CC_C89
 AC_PROG_RANLIB
 
+echo "CC=$CC"
+
+AX_APPEND_COMPILE_FLAGS([ dnl
+	-std=c89 dnl
+	-pedantic dnl
+	-Wall dnl
+	-Werror dnl
+	-Wpointer-arith dnl
+	-Wstrict-prototypes dnl
+	-Wmissing-prototypes dnl
+	-Winline dnl
+	-Waggregate-return dnl
+	-Wnested-externs dnl
+	-Wcast-qual dnl
+	-Wstrict-aliasing=2], SCHEME_CFLAGS)
+
+echo "SCHEME_CFLAGS=$SCHEME_CFLAGS"
+
+case $CC in
+clang)	AX_APPEND_COMPILE_FLAGS([ dnl
+                -std=c89 dnl
+                -pedantic dnl
+                -Waggregate-return dnl
+                -Wall dnl
+                -Wcast-qual dnl
+                -Wconversion dnl
+                -Wduplicate-enum dnl
+                -Werror dnl
+                -Wextra dnl
+                -Winline dnl
+                -Wmissing-prototypes dnl
+                -Wmissing-variable-declarations dnl
+                -Wnested-externs dnl
+                -Wno-extended-offsetof dnl
+                -Wpointer-arith dnl
+                -Wshadow dnl
+                -Wstrict-aliasing=2 dnl
+                -Wstrict-prototypes dnl
+                -Wunreachable-code dnl
+                -Wwrite-strings], MPS_CFLAGS)
+        AX_APPEND_COMPILE_FLAGS([-Wno-extended-offsetof], SCHEME_CFLAGS)
+	;;
+gcc)
+	AX_APPEND_COMPILE_FLAGS([ dnl
+                -std=c89 dnl
+                -pedantic dnl
+		-Waggregate-return dnl
+		-Wall dnl
+		-Wcast-qual dnl
+		-Werror dnl
+		-Wextra dnl
+		-Winline dnl
+		-Wmissing-prototypes dnl
+		-Wnested-externs dnl
+		-Wpointer-arith dnl
+		-Wshadow dnl
+		-Wstrict-aliasing=2 dnl
+		-Wstrict-prototypes dnl
+		-Wswitch-default dnl
+		-Wwrite-strings], MPS_CFLAGS)
+	;;
+esac
+
 # Compiler flags autoconf extension
-AX_COMPILER_FLAGS(MPS_CFLAGS)
-AX_APPEND_COMPILE_FLAGS([-Wno-cast-align -std=c89 -pedantic -Waggregate-return -Wall -Wcast-qual -Wconversion -Wduplicate-enum -Werror -Wextra -Winline -Wmissing-prototypes -Wmissing-variable-declarations -Wnested-externs -Wno-extended-offsetof -Wpointer-arith -Wshadow -Wstrict-aliasing=2 -Wstrict-prototypes -Wunreachable-code -Wwrite-strings -Wno-error=redundant-decls], MPS_CFLAGS)
-AX_APPEND_COMPILE_FLAGS([-Wno-format-nonliteral -Wno-missing-noreturn], SCHEME_CFLAGS)
+#AX_COMPILER_FLAGS(MPS_CFLAGS)
+#AX_APPEND_COMPILE_FLAGS([-Wno-format-nonliteral -Wno-missing-noreturn], SCHEME_CFLAGS)
 
-# Check for Clang/LLVM.
-AC_CHECK_DECL([__clang__],[CLANG=yes],[CLANG=no])
-
-# These flags aren't used for building the MPS, but for sample programs.
-CFLAGS_GC="-ansi -pedantic -Wall -Werror -Wpointer-arith \
-           -Wstrict-prototypes -Wmissing-prototypes \
-           -Winline -Waggregate-return -Wnested-externs \
-           -Wcast-qual -Wstrict-aliasing=2 -O -g3 -pthread"
-CFLAGS_LL="$CFLAGS_GC -Wno-extended-offsetof"
+AC_SUBST(MPS_CFLAGS)
+AC_SUBST(SCHEME_CFLAGS)
 
 AC_CONFIG_FILES(Makefile example/scheme/Makefile)
 
