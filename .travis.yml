@@ -16,6 +16,11 @@ matrix:
   exclude:
     - os: osx
       compiler: gcc
+before install:
+  - test "$TRAVIS_OS_NAME" == "osx" && brew update
+  - test "$TRAVIS_OS_NAME" == "osx" && brew install automake autoconf
+  - test "$TRAVIS_OS_NAME" == "linux" && apt-get -qq update
+  - test "$TRAVIS_OS_NAME" == "linux" && apt-get install -y automake autoconf
 notifications:
   email:
     - mps-travis@ravenbrook.com
