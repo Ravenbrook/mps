@@ -4,9 +4,10 @@
 # Copyright (C) 2012-2014 Ravenbrook Limited.  See end of file for license.
 #
 # YOU DON'T NEED AUTOCONF TO BUILD THE MPS
-# This is just here for people who want or expect a configure script.
-# See [Building the Memory Pool System](manual/build.txt) for how best
-# to build and integrate the MPS.
+#
+# Automake and Autoconf are here for developers of the MPS itself.
+# See "Building the Memory Pool System" (manual/build.txt) for how
+# best to build and integrate the MPS into your application.
 #
 # Generate the configure script with
 #
@@ -34,11 +35,12 @@ AM_MAINTAINER_MODE([disable])
 AC_LANG_C
 AC_PROG_CC([clang gcc cl cc])
 AC_PROG_CC_C89
+AC_PROG_RANLIB
 
 # Compiler flags autoconf extension
-AX_COMPILER_FLAGS(CFLAGS)
-AX_APPEND_COMPILE_FLAGS([-Wno-cast-align -std=c89 -pedantic -Waggregate-return -Wall -Wcast-qual -Wconversion -Wduplicate-enum -Werror -Wextra -Winline -Wmissing-prototypes -Wmissing-variable-declarations -Wnested-externs -Wno-extended-offsetof -Wpointer-arith -Wshadow -Wstrict-aliasing=2 -Wstrict-prototypes -Wunreachable-code -Wwrite-strings -Wno-error=redundant-decls], CFLAGS)
-AC_PROG_RANLIB
+AX_COMPILER_FLAGS(MPS_CFLAGS)
+AX_APPEND_COMPILE_FLAGS([-Wno-cast-align -std=c89 -pedantic -Waggregate-return -Wall -Wcast-qual -Wconversion -Wduplicate-enum -Werror -Wextra -Winline -Wmissing-prototypes -Wmissing-variable-declarations -Wnested-externs -Wno-extended-offsetof -Wpointer-arith -Wshadow -Wstrict-aliasing=2 -Wstrict-prototypes -Wunreachable-code -Wwrite-strings -Wno-error=redundant-decls], MPS_CFLAGS)
+AX_APPEND_COMPILE_FLAGS([-Wno-format-nonliteral -Wno-missing-noreturn], SCHEME_CFLAGS)
 
 # Check for Clang/LLVM.
 AC_CHECK_DECL([__clang__],[CLANG=yes],[CLANG=no])

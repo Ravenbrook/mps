@@ -87,7 +87,7 @@ POST_INSTALL = :
 NORMAL_UNINSTALL = :
 PRE_UNINSTALL = :
 POST_UNINSTALL = :
-bin_PROGRAMS = bin/amcss$(EXEEXT)
+bin_PROGRAMS = bin/amcss$(EXEEXT) bin/scheme$(EXEEXT)
 TESTS = bin/amcss$(EXEEXT)
 subdir = .
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
@@ -150,17 +150,24 @@ am__v_AR_1 =
 lib_libmps_a_AR = $(AR) $(ARFLAGS)
 lib_libmps_a_LIBADD =
 am__dirstamp = $(am__leading_dot)dirstamp
-am_lib_libmps_a_OBJECTS = code/mps.$(OBJEXT)
+am_lib_libmps_a_OBJECTS = code/lib_libmps_a-mps.$(OBJEXT)
 lib_libmps_a_OBJECTS = $(am_lib_libmps_a_OBJECTS)
 lib_libtest_a_AR = $(AR) $(ARFLAGS)
 lib_libtest_a_LIBADD =
-am_lib_libtest_a_OBJECTS = code/testlib.$(OBJEXT) code/fmtdy.$(OBJEXT) \
-	code/fmtdytst.$(OBJEXT) code/fmtno.$(OBJEXT)
+am_lib_libtest_a_OBJECTS = code/lib_libtest_a-testlib.$(OBJEXT) \
+	code/lib_libtest_a-fmtdy.$(OBJEXT) \
+	code/lib_libtest_a-fmtdytst.$(OBJEXT) \
+	code/lib_libtest_a-fmtno.$(OBJEXT)
 lib_libtest_a_OBJECTS = $(am_lib_libtest_a_OBJECTS)
 PROGRAMS = $(bin_PROGRAMS)
 am_bin_amcss_OBJECTS = code/amcss.$(OBJEXT)
 bin_amcss_OBJECTS = $(am_bin_amcss_OBJECTS)
 bin_amcss_DEPENDENCIES = lib/libtest.a lib/libmps.a
+am_bin_scheme_OBJECTS = example/scheme/bin_scheme-scheme.$(OBJEXT)
+bin_scheme_OBJECTS = $(am_bin_scheme_OBJECTS)
+bin_scheme_DEPENDENCIES = lib/libmps.a
+bin_scheme_LINK = $(CCLD) $(bin_scheme_CFLAGS) $(CFLAGS) $(AM_LDFLAGS) \
+	$(LDFLAGS) -o $@
 AM_V_P = $(am__v_P_@AM_V@)
 am__v_P_ = $(am__v_P_@AM_DEFAULT_V@)
 am__v_P_0 = false
@@ -177,6 +184,10 @@ DEFAULT_INCLUDES = -I.@am__isrc@
 depcomp = $(SHELL) $(top_srcdir)/tool/autoconf/build-aux/depcomp
 am__depfiles_maybe = depfiles
 am__mv = mv -f
+AM_V_lt = $(am__v_lt_@AM_V@)
+am__v_lt_ = $(am__v_lt_@AM_DEFAULT_V@)
+am__v_lt_0 = --silent
+am__v_lt_1 = 
 COMPILE = $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) \
 	$(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
 AM_V_CC = $(am__v_CC_@AM_V@)
@@ -190,9 +201,9 @@ am__v_CCLD_ = $(am__v_CCLD_@AM_DEFAULT_V@)
 am__v_CCLD_0 = @echo "  CCLD    " $@;
 am__v_CCLD_1 = 
 SOURCES = $(lib_libmps_a_SOURCES) $(lib_libtest_a_SOURCES) \
-	$(bin_amcss_SOURCES)
+	$(bin_amcss_SOURCES) $(bin_scheme_SOURCES)
 DIST_SOURCES = $(lib_libmps_a_SOURCES) $(lib_libtest_a_SOURCES) \
-	$(bin_amcss_SOURCES)
+	$(bin_amcss_SOURCES) $(bin_scheme_SOURCES)
 am__can_run_installinfo = \
   case $$AM_UPDATE_INFO_DIR in \
     n|no|NO) false;; \
@@ -457,8 +468,10 @@ LDFLAGS = @LDFLAGS@
 LIBOBJS = @LIBOBJS@
 LIBS = @LIBS@
 LTLIBOBJS = @LTLIBOBJS@
+MAINT = @MAINT@
 MAKEINFO = @MAKEINFO@
 MKDIR_P = @MKDIR_P@
+MPS_CFLAGS = @MPS_CFLAGS@
 OBJEXT = @OBJEXT@
 PACKAGE = @PACKAGE@
 PACKAGE_BUGREPORT = @PACKAGE_BUGREPORT@
@@ -520,17 +533,23 @@ top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
 lib_LIBRARIES = lib/libmps.a
 lib_libmps_a_SOURCES = code/mps.c
+lib_libmps_a_CFLAGS = $(MPS_CFLAGS)
 noinst_LIBRARIES = lib/libtest.a
 lib_libtest_a_SOURCES = code/testlib.c code/fmtdy.c code/fmtdytst.c code/fmtno.c
+lib_libtest_a_CFLAGS = $(MPS_CFLAGS)
 bin_amcss_SOURCES = code/amcss.c
 bin_amcss_LDADD = lib/libtest.a lib/libmps.a -lpthread -lm
+lib_amcss_CFLAGS = $(MPS_CFLAGS)
+bin_scheme_SOURCES = example/scheme/scheme.c
+bin_scheme_LDADD = lib/libmps.a -lpthread -lm
+bin_scheme_CFLAGS = -I code -O -g3 $(SCHEME_CFLAGS)
 all: all-am
 
 .SUFFIXES:
 .SUFFIXES: .c .log .o .obj .test .test$(EXEEXT) .trs
 am--refresh: Makefile
 	@:
-$(srcdir)/Makefile.in:  $(srcdir)/Makefile.am  $(am__configure_deps)
+$(srcdir)/Makefile.in: @MAINTAINER_MODE_TRUE@ $(srcdir)/Makefile.am  $(am__configure_deps)
 	@for dep in $?; do \
 	  case '$(am__configure_deps)' in \
 	    *$$dep*) \
@@ -556,9 +575,9 @@ Makefile: $(srcdir)/Makefile.in $(top_builddir)/config.status
 $(top_builddir)/config.status: $(top_srcdir)/configure $(CONFIG_STATUS_DEPENDENCIES)
 	$(SHELL) ./config.status --recheck
 
-$(top_srcdir)/configure:  $(am__configure_deps)
+$(top_srcdir)/configure: @MAINTAINER_MODE_TRUE@ $(am__configure_deps)
 	$(am__cd) $(srcdir) && $(AUTOCONF)
-$(ACLOCAL_M4):  $(am__aclocal_m4_deps)
+$(ACLOCAL_M4): @MAINTAINER_MODE_TRUE@ $(am__aclocal_m4_deps)
 	$(am__cd) $(srcdir) && $(ACLOCAL) $(ACLOCAL_AMFLAGS)
 $(am__aclocal_m4_deps):
 example/scheme/Makefile: $(top_builddir)/config.status $(top_srcdir)/example/scheme/Makefile.in
@@ -603,7 +622,7 @@ code/$(am__dirstamp):
 code/$(DEPDIR)/$(am__dirstamp):
 	@$(MKDIR_P) code/$(DEPDIR)
 	@: > code/$(DEPDIR)/$(am__dirstamp)
-code/mps.$(OBJEXT): code/$(am__dirstamp) \
+code/lib_libmps_a-mps.$(OBJEXT): code/$(am__dirstamp) \
 	code/$(DEPDIR)/$(am__dirstamp)
 lib/$(am__dirstamp):
 	@$(MKDIR_P) lib
@@ -613,13 +632,13 @@ lib/libmps.a: $(lib_libmps_a_OBJECTS) $(lib_libmps_a_DEPENDENCIES) $(EXTRA_lib_l
 	$(AM_V_at)-rm -f lib/libmps.a
 	$(AM_V_AR)$(lib_libmps_a_AR) lib/libmps.a $(lib_libmps_a_OBJECTS) $(lib_libmps_a_LIBADD)
 	$(AM_V_at)$(RANLIB) lib/libmps.a
-code/testlib.$(OBJEXT): code/$(am__dirstamp) \
+code/lib_libtest_a-testlib.$(OBJEXT): code/$(am__dirstamp) \
 	code/$(DEPDIR)/$(am__dirstamp)
-code/fmtdy.$(OBJEXT): code/$(am__dirstamp) \
+code/lib_libtest_a-fmtdy.$(OBJEXT): code/$(am__dirstamp) \
 	code/$(DEPDIR)/$(am__dirstamp)
-code/fmtdytst.$(OBJEXT): code/$(am__dirstamp) \
+code/lib_libtest_a-fmtdytst.$(OBJEXT): code/$(am__dirstamp) \
 	code/$(DEPDIR)/$(am__dirstamp)
-code/fmtno.$(OBJEXT): code/$(am__dirstamp) \
+code/lib_libtest_a-fmtno.$(OBJEXT): code/$(am__dirstamp) \
 	code/$(DEPDIR)/$(am__dirstamp)
 
 lib/libtest.a: $(lib_libtest_a_OBJECTS) $(lib_libtest_a_DEPENDENCIES) $(EXTRA_lib_libtest_a_DEPENDENCIES) lib/$(am__dirstamp)
@@ -677,20 +696,35 @@ bin/$(am__dirstamp):
 bin/amcss$(EXEEXT): $(bin_amcss_OBJECTS) $(bin_amcss_DEPENDENCIES) $(EXTRA_bin_amcss_DEPENDENCIES) bin/$(am__dirstamp)
 	@rm -f bin/amcss$(EXEEXT)
 	$(AM_V_CCLD)$(LINK) $(bin_amcss_OBJECTS) $(bin_amcss_LDADD) $(LIBS)
+example/scheme/$(am__dirstamp):
+	@$(MKDIR_P) example/scheme
+	@: > example/scheme/$(am__dirstamp)
+example/scheme/$(DEPDIR)/$(am__dirstamp):
+	@$(MKDIR_P) example/scheme/$(DEPDIR)
+	@: > example/scheme/$(DEPDIR)/$(am__dirstamp)
+example/scheme/bin_scheme-scheme.$(OBJEXT):  \
+	example/scheme/$(am__dirstamp) \
+	example/scheme/$(DEPDIR)/$(am__dirstamp)
+
+bin/scheme$(EXEEXT): $(bin_scheme_OBJECTS) $(bin_scheme_DEPENDENCIES) $(EXTRA_bin_scheme_DEPENDENCIES) bin/$(am__dirstamp)
+	@rm -f bin/scheme$(EXEEXT)
+	$(AM_V_CCLD)$(bin_scheme_LINK) $(bin_scheme_OBJECTS) $(bin_scheme_LDADD) $(LIBS)
 
 mostlyclean-compile:
 	-rm -f *.$(OBJEXT)
 	-rm -f code/*.$(OBJEXT)
+	-rm -f example/scheme/*.$(OBJEXT)
 
 distclean-compile:
 	-rm -f *.tab.c
 
 @AMDEP_TRUE@@am__include@ @am__quote@code/$(DEPDIR)/amcss.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@code/$(DEPDIR)/fmtdy.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@code/$(DEPDIR)/fmtdytst.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@code/$(DEPDIR)/fmtno.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@code/$(DEPDIR)/mps.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@code/$(DEPDIR)/testlib.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@code/$(DEPDIR)/lib_libmps_a-mps.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@code/$(DEPDIR)/lib_libtest_a-fmtdy.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@code/$(DEPDIR)/lib_libtest_a-fmtdytst.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@code/$(DEPDIR)/lib_libtest_a-fmtno.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@code/$(DEPDIR)/lib_libtest_a-testlib.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@example/scheme/$(DEPDIR)/bin_scheme-scheme.Po@am__quote@
 
 .c.o:
 @am__fastdepCC_TRUE@	$(AM_V_CC)depbase=`echo $@ | sed 's|[^/]*$$|$(DEPDIR)/&|;s|\.o$$||'`;\
@@ -707,6 +741,90 @@ distclean-compile:
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='$<' object='$@' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(COMPILE) -c -o $@ `$(CYGPATH_W) '$<'`
+
+code/lib_libmps_a-mps.o: code/mps.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(lib_libmps_a_CFLAGS) $(CFLAGS) -MT code/lib_libmps_a-mps.o -MD -MP -MF code/$(DEPDIR)/lib_libmps_a-mps.Tpo -c -o code/lib_libmps_a-mps.o `test -f 'code/mps.c' || echo '$(srcdir)/'`code/mps.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) code/$(DEPDIR)/lib_libmps_a-mps.Tpo code/$(DEPDIR)/lib_libmps_a-mps.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='code/mps.c' object='code/lib_libmps_a-mps.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(lib_libmps_a_CFLAGS) $(CFLAGS) -c -o code/lib_libmps_a-mps.o `test -f 'code/mps.c' || echo '$(srcdir)/'`code/mps.c
+
+code/lib_libmps_a-mps.obj: code/mps.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(lib_libmps_a_CFLAGS) $(CFLAGS) -MT code/lib_libmps_a-mps.obj -MD -MP -MF code/$(DEPDIR)/lib_libmps_a-mps.Tpo -c -o code/lib_libmps_a-mps.obj `if test -f 'code/mps.c'; then $(CYGPATH_W) 'code/mps.c'; else $(CYGPATH_W) '$(srcdir)/code/mps.c'; fi`
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) code/$(DEPDIR)/lib_libmps_a-mps.Tpo code/$(DEPDIR)/lib_libmps_a-mps.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='code/mps.c' object='code/lib_libmps_a-mps.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(lib_libmps_a_CFLAGS) $(CFLAGS) -c -o code/lib_libmps_a-mps.obj `if test -f 'code/mps.c'; then $(CYGPATH_W) 'code/mps.c'; else $(CYGPATH_W) '$(srcdir)/code/mps.c'; fi`
+
+code/lib_libtest_a-testlib.o: code/testlib.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(lib_libtest_a_CFLAGS) $(CFLAGS) -MT code/lib_libtest_a-testlib.o -MD -MP -MF code/$(DEPDIR)/lib_libtest_a-testlib.Tpo -c -o code/lib_libtest_a-testlib.o `test -f 'code/testlib.c' || echo '$(srcdir)/'`code/testlib.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) code/$(DEPDIR)/lib_libtest_a-testlib.Tpo code/$(DEPDIR)/lib_libtest_a-testlib.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='code/testlib.c' object='code/lib_libtest_a-testlib.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(lib_libtest_a_CFLAGS) $(CFLAGS) -c -o code/lib_libtest_a-testlib.o `test -f 'code/testlib.c' || echo '$(srcdir)/'`code/testlib.c
+
+code/lib_libtest_a-testlib.obj: code/testlib.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(lib_libtest_a_CFLAGS) $(CFLAGS) -MT code/lib_libtest_a-testlib.obj -MD -MP -MF code/$(DEPDIR)/lib_libtest_a-testlib.Tpo -c -o code/lib_libtest_a-testlib.obj `if test -f 'code/testlib.c'; then $(CYGPATH_W) 'code/testlib.c'; else $(CYGPATH_W) '$(srcdir)/code/testlib.c'; fi`
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) code/$(DEPDIR)/lib_libtest_a-testlib.Tpo code/$(DEPDIR)/lib_libtest_a-testlib.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='code/testlib.c' object='code/lib_libtest_a-testlib.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(lib_libtest_a_CFLAGS) $(CFLAGS) -c -o code/lib_libtest_a-testlib.obj `if test -f 'code/testlib.c'; then $(CYGPATH_W) 'code/testlib.c'; else $(CYGPATH_W) '$(srcdir)/code/testlib.c'; fi`
+
+code/lib_libtest_a-fmtdy.o: code/fmtdy.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(lib_libtest_a_CFLAGS) $(CFLAGS) -MT code/lib_libtest_a-fmtdy.o -MD -MP -MF code/$(DEPDIR)/lib_libtest_a-fmtdy.Tpo -c -o code/lib_libtest_a-fmtdy.o `test -f 'code/fmtdy.c' || echo '$(srcdir)/'`code/fmtdy.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) code/$(DEPDIR)/lib_libtest_a-fmtdy.Tpo code/$(DEPDIR)/lib_libtest_a-fmtdy.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='code/fmtdy.c' object='code/lib_libtest_a-fmtdy.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(lib_libtest_a_CFLAGS) $(CFLAGS) -c -o code/lib_libtest_a-fmtdy.o `test -f 'code/fmtdy.c' || echo '$(srcdir)/'`code/fmtdy.c
+
+code/lib_libtest_a-fmtdy.obj: code/fmtdy.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(lib_libtest_a_CFLAGS) $(CFLAGS) -MT code/lib_libtest_a-fmtdy.obj -MD -MP -MF code/$(DEPDIR)/lib_libtest_a-fmtdy.Tpo -c -o code/lib_libtest_a-fmtdy.obj `if test -f 'code/fmtdy.c'; then $(CYGPATH_W) 'code/fmtdy.c'; else $(CYGPATH_W) '$(srcdir)/code/fmtdy.c'; fi`
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) code/$(DEPDIR)/lib_libtest_a-fmtdy.Tpo code/$(DEPDIR)/lib_libtest_a-fmtdy.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='code/fmtdy.c' object='code/lib_libtest_a-fmtdy.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(lib_libtest_a_CFLAGS) $(CFLAGS) -c -o code/lib_libtest_a-fmtdy.obj `if test -f 'code/fmtdy.c'; then $(CYGPATH_W) 'code/fmtdy.c'; else $(CYGPATH_W) '$(srcdir)/code/fmtdy.c'; fi`
+
+code/lib_libtest_a-fmtdytst.o: code/fmtdytst.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(lib_libtest_a_CFLAGS) $(CFLAGS) -MT code/lib_libtest_a-fmtdytst.o -MD -MP -MF code/$(DEPDIR)/lib_libtest_a-fmtdytst.Tpo -c -o code/lib_libtest_a-fmtdytst.o `test -f 'code/fmtdytst.c' || echo '$(srcdir)/'`code/fmtdytst.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) code/$(DEPDIR)/lib_libtest_a-fmtdytst.Tpo code/$(DEPDIR)/lib_libtest_a-fmtdytst.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='code/fmtdytst.c' object='code/lib_libtest_a-fmtdytst.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(lib_libtest_a_CFLAGS) $(CFLAGS) -c -o code/lib_libtest_a-fmtdytst.o `test -f 'code/fmtdytst.c' || echo '$(srcdir)/'`code/fmtdytst.c
+
+code/lib_libtest_a-fmtdytst.obj: code/fmtdytst.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(lib_libtest_a_CFLAGS) $(CFLAGS) -MT code/lib_libtest_a-fmtdytst.obj -MD -MP -MF code/$(DEPDIR)/lib_libtest_a-fmtdytst.Tpo -c -o code/lib_libtest_a-fmtdytst.obj `if test -f 'code/fmtdytst.c'; then $(CYGPATH_W) 'code/fmtdytst.c'; else $(CYGPATH_W) '$(srcdir)/code/fmtdytst.c'; fi`
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) code/$(DEPDIR)/lib_libtest_a-fmtdytst.Tpo code/$(DEPDIR)/lib_libtest_a-fmtdytst.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='code/fmtdytst.c' object='code/lib_libtest_a-fmtdytst.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(lib_libtest_a_CFLAGS) $(CFLAGS) -c -o code/lib_libtest_a-fmtdytst.obj `if test -f 'code/fmtdytst.c'; then $(CYGPATH_W) 'code/fmtdytst.c'; else $(CYGPATH_W) '$(srcdir)/code/fmtdytst.c'; fi`
+
+code/lib_libtest_a-fmtno.o: code/fmtno.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(lib_libtest_a_CFLAGS) $(CFLAGS) -MT code/lib_libtest_a-fmtno.o -MD -MP -MF code/$(DEPDIR)/lib_libtest_a-fmtno.Tpo -c -o code/lib_libtest_a-fmtno.o `test -f 'code/fmtno.c' || echo '$(srcdir)/'`code/fmtno.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) code/$(DEPDIR)/lib_libtest_a-fmtno.Tpo code/$(DEPDIR)/lib_libtest_a-fmtno.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='code/fmtno.c' object='code/lib_libtest_a-fmtno.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(lib_libtest_a_CFLAGS) $(CFLAGS) -c -o code/lib_libtest_a-fmtno.o `test -f 'code/fmtno.c' || echo '$(srcdir)/'`code/fmtno.c
+
+code/lib_libtest_a-fmtno.obj: code/fmtno.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(lib_libtest_a_CFLAGS) $(CFLAGS) -MT code/lib_libtest_a-fmtno.obj -MD -MP -MF code/$(DEPDIR)/lib_libtest_a-fmtno.Tpo -c -o code/lib_libtest_a-fmtno.obj `if test -f 'code/fmtno.c'; then $(CYGPATH_W) 'code/fmtno.c'; else $(CYGPATH_W) '$(srcdir)/code/fmtno.c'; fi`
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) code/$(DEPDIR)/lib_libtest_a-fmtno.Tpo code/$(DEPDIR)/lib_libtest_a-fmtno.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='code/fmtno.c' object='code/lib_libtest_a-fmtno.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(lib_libtest_a_CFLAGS) $(CFLAGS) -c -o code/lib_libtest_a-fmtno.obj `if test -f 'code/fmtno.c'; then $(CYGPATH_W) 'code/fmtno.c'; else $(CYGPATH_W) '$(srcdir)/code/fmtno.c'; fi`
+
+example/scheme/bin_scheme-scheme.o: example/scheme/scheme.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(bin_scheme_CFLAGS) $(CFLAGS) -MT example/scheme/bin_scheme-scheme.o -MD -MP -MF example/scheme/$(DEPDIR)/bin_scheme-scheme.Tpo -c -o example/scheme/bin_scheme-scheme.o `test -f 'example/scheme/scheme.c' || echo '$(srcdir)/'`example/scheme/scheme.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) example/scheme/$(DEPDIR)/bin_scheme-scheme.Tpo example/scheme/$(DEPDIR)/bin_scheme-scheme.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='example/scheme/scheme.c' object='example/scheme/bin_scheme-scheme.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(bin_scheme_CFLAGS) $(CFLAGS) -c -o example/scheme/bin_scheme-scheme.o `test -f 'example/scheme/scheme.c' || echo '$(srcdir)/'`example/scheme/scheme.c
+
+example/scheme/bin_scheme-scheme.obj: example/scheme/scheme.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(bin_scheme_CFLAGS) $(CFLAGS) -MT example/scheme/bin_scheme-scheme.obj -MD -MP -MF example/scheme/$(DEPDIR)/bin_scheme-scheme.Tpo -c -o example/scheme/bin_scheme-scheme.obj `if test -f 'example/scheme/scheme.c'; then $(CYGPATH_W) 'example/scheme/scheme.c'; else $(CYGPATH_W) '$(srcdir)/example/scheme/scheme.c'; fi`
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) example/scheme/$(DEPDIR)/bin_scheme-scheme.Tpo example/scheme/$(DEPDIR)/bin_scheme-scheme.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='example/scheme/scheme.c' object='example/scheme/bin_scheme-scheme.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(bin_scheme_CFLAGS) $(CFLAGS) -c -o example/scheme/bin_scheme-scheme.obj `if test -f 'example/scheme/scheme.c'; then $(CYGPATH_W) 'example/scheme/scheme.c'; else $(CYGPATH_W) '$(srcdir)/example/scheme/scheme.c'; fi`
 
 ID: $(am__tagged_files)
 	$(am__define_uniq_tagged_files); mkid -fID $$unique
@@ -1133,6 +1251,8 @@ distclean-generic:
 	-rm -f bin/$(am__dirstamp)
 	-rm -f code/$(DEPDIR)/$(am__dirstamp)
 	-rm -f code/$(am__dirstamp)
+	-rm -f example/scheme/$(DEPDIR)/$(am__dirstamp)
+	-rm -f example/scheme/$(am__dirstamp)
 	-rm -f lib/$(am__dirstamp)
 
 maintainer-clean-generic:
@@ -1145,7 +1265,7 @@ clean-am: clean-binPROGRAMS clean-generic clean-libLIBRARIES \
 
 distclean: distclean-am
 	-rm -f $(am__CONFIG_DISTCLEAN_FILES)
-	-rm -rf code/$(DEPDIR)
+	-rm -rf code/$(DEPDIR) example/scheme/$(DEPDIR)
 	-rm -f Makefile
 distclean-am: clean-am distclean-compile distclean-generic \
 	distclean-tags
@@ -1193,7 +1313,7 @@ installcheck-am:
 maintainer-clean: maintainer-clean-am
 	-rm -f $(am__CONFIG_DISTCLEAN_FILES)
 	-rm -rf $(top_srcdir)/autom4te.cache
-	-rm -rf code/$(DEPDIR)
+	-rm -rf code/$(DEPDIR) example/scheme/$(DEPDIR)
 	-rm -f Makefile
 maintainer-clean-am: distclean-am maintainer-clean-generic
 
