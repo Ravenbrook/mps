@@ -9,8 +9,7 @@ compiler:
   - clang
   - gcc
 install:
-  - test "$TRAVIS_OS_NAME" = "linux" && sudo apt-get -qq update
-  - test "$TRAVIS_OS_NAME" = "linux" && sudo apt-get install -y automake1.11 autoconf2.64
+  - if test "$TRAVIS_OS_NAME" = "linux"; then sudo apt-get -qq update && sudo apt-get install -y automake autoconf; fi
 matrix:
   exclude:
     - os: osx
