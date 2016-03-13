@@ -37,7 +37,7 @@
 
 #define EVENT_VERSION_MAJOR  ((unsigned)1)
 #define EVENT_VERSION_MEDIAN ((unsigned)5)
-#define EVENT_VERSION_MINOR  ((unsigned)0)
+#define EVENT_VERSION_MINOR  ((unsigned)1)
 
 
 /* EVENT_LIST -- list of event types and general properties
@@ -67,7 +67,7 @@
  */
  
 #define EventNameMAX ((size_t)19)
-#define EventCodeMAX ((EventCode)0x0087)
+#define EventCodeMAX ((EventCode)0x0088)
 
 #define EVENT_LIST(EVENT, X) \
   /*       0123456789012345678 <- don't exceed without changing EventNameMAX */ \
@@ -193,7 +193,8 @@
   EVENT(X, ArenaGenZoneAdd    , 0x0084,  TRUE, Arena) \
   EVENT(X, ArenaUseFreeZone   , 0x0085,  TRUE, Arena) \
   /* EVENT(X, ArenaBlacklistZone , 0x0086,  TRUE, Arena) */ \
-  EVENT(X, PauseTimeSet       , 0x0087,  TRUE, Arena)
+  EVENT(X, PauseTimeSet       , 0x0087,  TRUE, Arena) \
+  EVENT(X, WorkingSizeUpdate  , 0x0088,  TRUE, Arena)
 
 
 /* Remember to update EventNameMAX and EventCodeMAX above! 
@@ -744,6 +745,13 @@
 #define EVENT_PauseTimeSet_PARAMS(PARAM, X) \
   PARAM(X,  0, P, arena)        /* the arena */ \
   PARAM(X,  1, D, pauseTime)    /* the new maximum pause time, in seconds */
+
+#define EVENT_WorkingSizeUpdate_PARAMS(PARAM, X) \
+  PARAM(X,  0, P, arena)        /* the arena */ \
+  PARAM(X,  1, W, now)          /* current time */ \
+  PARAM(X,  2, W, committed)    /* total committed memory */ \
+  PARAM(X,  3, W, newSize)      /* new working size */ \
+  PARAM(X,  4, D, tau)          /* time constant */
 
 
 #endif /* eventdef_h */

@@ -349,10 +349,11 @@ failStart:
  * should return to the mutator.
  */
 
-Bool PolicyPoll(Arena arena)
+Bool PolicyPoll(Arena arena, Clock now)
 {
   Globals globals;
   AVERT(Arena, arena);
+  (void)ArenaWorkingSizeUpdate(arena, now);
   globals = ArenaGlobals(arena);
   return globals->pollThreshold <= globals->fillMutatorSize;
 }

@@ -416,6 +416,12 @@
 
 #define ARENA_DEFAULT_PAUSE_TIME (0.1)
 
+/* ARENA_DEFAULT_WORKING_SIZE_TAU is the "time constant" for the
+ * exponentially weighted moving average computation of the working
+ * size. */
+
+#define ARENA_DEFAULT_WORKING_SIZE_TAU (10.0)
+
 #define ARENA_DEFAULT_ZONED     TRUE
 
 /* ARENA_MINIMUM_COLLECTABLE_SIZE is the minimum size (in bytes) of

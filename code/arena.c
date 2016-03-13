@@ -150,6 +150,7 @@ Bool ArenaCheck(Arena arena)
   CHECKL(arena->committed <= arena->commitLimit);
   CHECKL(arena->spareCommitted <= arena->committed);
   CHECKL(0.0 <= arena->pauseTime);
+  CHECKL(0.0 < arena->workingSizeTau);
 
   CHECKL(ShiftCheck(arena->zoneShift));
   CHECKL(ArenaGrainSizeCheck(arena->grainSize));
@@ -201,6 +202,7 @@ Res ArenaInit(Arena arena, ArenaClass class, Size grainSize, ArgList args)
   Size commitLimit = ARENA_DEFAULT_COMMIT_LIMIT;
   Size spareCommitLimit = ARENA_DEFAULT_SPARE_COMMIT_LIMIT;
   double pauseTime = ARENA_DEFAULT_PAUSE_TIME;
+  double workingSizeTau = ARENA_DEFAULT_WORKING_SIZE_TAU;
   mps_arg_s arg;
 
   AVER(arena != NULL);
@@ -215,6 +217,8 @@ Res ArenaInit(Arena arena, ArenaClass class, Size grainSize, ArgList args)
     spareCommitLimit = arg.val.size;
   if (ArgPick(&arg, args, MPS_KEY_PAUSE_TIME))
     pauseTime = arg.val.d;
+  if (ArgPick(&arg, args, MPS_KEY_WORKING_SIZE_TAU))
+    workingSizeTau = arg.val.d;
 
   arena->class = class;
 
@@ -223,6 +227,9 @@ Res ArenaInit(Arena arena, ArenaClass class, Size grainSize, ArgList args)
   arena->commitLimit = commitLimit;
   arena->spareCommitted = (Size)0;
   arena->spareCommitLimit = spareCommitLimit;
+  arena->workingSize = (Size)0;
+  arena->workingSizeUpdated = (Clock)0;
+  arena->workingSizeTau = workingSizeTau;
   arena->pauseTime = pauseTime;
   arena->grainSize = grainSize;
   /* zoneShift is usually overridden by init */
@@ -300,6 +307,7 @@ ARG_DEFINE_KEY(ARENA_ZONED, Bool);
 ARG_DEFINE_KEY(COMMIT_LIMIT, Size);
 ARG_DEFINE_KEY(SPARE_COMMIT_LIMIT, Size);
 ARG_DEFINE_KEY(PAUSE_TIME, double);
+ARG_DEFINE_KEY(WORKING_SIZE_TAU, double);
 
 static Res arenaFreeLandInit(Arena arena)
 {
@@ -376,6 +384,10 @@ Res ArenaCreate(Arena *arenaReturn, ArenaClass class, ArgList args)
     goto failGlobalsCompleteCreate;
 
   AVERT(Arena, arena);
+
+  /* Get the working size computation started. */
+  (void)ArenaWorkingSizeSet(arena);
+
   *arenaReturn = arena;
   return ResOK;
 
@@ -521,25 +533,24 @@ Res ArenaDescribe(Arena arena, mps_lib_FILE *stream, Count depth)
   }
 
   res = WriteF(stream, depth + 2,
-               "reserved         $W\n", (WriteFW)arena->reserved,
-               "committed        $W\n", (WriteFW)arena->committed,
-               "commitLimit      $W\n", (WriteFW)arena->commitLimit,
-               "spareCommitted   $W\n", (WriteFW)arena->spareCommitted,
-               "spareCommitLimit $W\n", (WriteFW)arena->spareCommitLimit,
-               "zoneShift        $U\n", (WriteFU)arena->zoneShift,
-               "grainSize        $W\n", (WriteFW)arena->grainSize,
-               "lastTract        $P\n", (WriteFP)arena->lastTract,
-               "lastTractBase    $P\n", (WriteFP)arena->lastTractBase,
-               "primary          $P\n", (WriteFP)arena->primary,
-               "hasFreeLand      $S\n", WriteFYesNo(arena->hasFreeLand),
-               "freeZones        $B\n", (WriteFB)arena->freeZones,
-               "zoned            $S\n", WriteFYesNo(arena->zoned),
-               NULL);
-  if (res != ResOK)
-    return res;
-
-  res = WriteF(stream, depth + 2,
-               "droppedMessages $U$S\n", (WriteFU)arena->droppedMessages,
+               "reserved           $W\n", (WriteFW)arena->reserved,
+               "committed          $W\n", (WriteFW)arena->committed,
+               "commitLimit        $W\n", (WriteFW)arena->commitLimit,
+               "spareCommitted     $W\n", (WriteFW)arena->spareCommitted,
+               "spareCommitLimit   $W\n", (WriteFW)arena->spareCommitLimit,
+               "pauseTime          $D\n", (WriteFD)arena->pauseTime,
+               "workingSize        $W\n", (WriteFW)arena->workingSize,
+               "workingSizeUpdated $W\n", (WriteFW)arena->workingSizeUpdated,
+               "workingSizeTau     $D\n", (WriteFD)arena->workingSizeTau,
+               "zoneShift          $U\n", (WriteFU)arena->zoneShift,
+               "grainSize          $W\n", (WriteFW)arena->grainSize,
+               "lastTract          $P\n", (WriteFP)arena->lastTract,
+               "lastTractBase      $P\n", (WriteFP)arena->lastTractBase,
+               "primary            $P\n", (WriteFP)arena->primary,
+               "hasFreeLand        $S\n", WriteFYesNo(arena->hasFreeLand),
+               "freeZones          $B\n", (WriteFB)arena->freeZones,
+               "zoned              $S\n", WriteFYesNo(arena->zoned),
+               "droppedMessages    $U$S\n", (WriteFU)arena->droppedMessages,
                (arena->droppedMessages == 0 ? "" : "  -- MESSAGES DROPPED!"),
                NULL);
   if (res != ResOK)
@@ -1261,6 +1272,57 @@ void ArenaSetPauseTime(Arena arena, double pauseTime)
   arena->pauseTime = pauseTime;
   EVENT2(PauseTimeSet, arena, pauseTime);
 }
+
+Size ArenaWorkingSize(Arena arena)
+{
+  AVERT(Arena, arena);
+  return arena->workingSize;
+}
+
+Size ArenaWorkingSizeSet(Arena arena)
+{
+  AVERT(Arena, arena);
+  arena->workingSize = arena->committed;
+  arena->workingSizeUpdated = ClockNow();
+  return arena->workingSize;
+}
+
+double ArenaWorkingSizeTau(Arena arena)
+{
+  AVERT(Arena, arena);
+  return arena->workingSizeTau;
+}
+
+void ArenaWorkingSizeTauSet(Arena arena, double tau)
+{
+  AVERT(Arena, arena);
+  AVER(0 <= tau);
+  arena->workingSizeTau = tau;
+}
+
+void ArenaWorkingSizeUpdate(Arena arena, Clock now)
+{
+  Size newSize;
+  double tau, dt, alpha;
+
+  AVERT(Arena, arena);
+  AVER(arena->workingSizeUpdated <= now);
+
+  tau = arena->workingSizeTau;
+  if (tau == 0.0) {
+    alpha = 1;
+  } else {
+    dt = (now - arena->workingSizeUpdated) / (double)ClocksPerSec();
+    alpha = 1 - mps_lib_exp(- dt / tau);
+  }
+  newSize = (Size)((1 - alpha) * arena->workingSize + alpha * arena->committed);
+
+  EVENT5(WorkingSizeUpdate, arena, now, arena->committed, newSize, tau);
+
+  arena->workingSize = newSize;
+  arena->workingSizeUpdated = now;
+}
+
 
 /* Used by arenas which don't use spare committed memory */
 Size ArenaNoPurgeSpare(Arena arena, Size size)

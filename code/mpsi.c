@@ -235,6 +235,46 @@ void mps_arena_pause_time_set(mps_arena_t arena, double pause_time)
   ArenaLeave(arena);
 }
 
+size_t mps_arena_working_size(mps_arena_t arena)
+{
+  size_t working_size;
+
+  ArenaEnter(arena);
+  working_size = ArenaWorkingSize(arena);
+  ArenaLeave(arena);
+
+  return working_size;
+}
+
+size_t mps_arena_working_size_set(mps_arena_t arena)
+{
+  size_t working_size;
+
+  ArenaEnter(arena);
+  working_size = ArenaWorkingSizeSet(arena);
+  ArenaLeave(arena);
+
+  return working_size;
+}
+
+double mps_arena_working_size_tau(mps_arena_t arena)
+{
+  double tau;
+
+  ArenaEnter(arena);
+  tau = ArenaWorkingSizeTau(arena);
+  ArenaLeave(arena);
+
+  return tau;  
+}
+
+void mps_arena_working_size_tau_set(mps_arena_t arena, double tau)
+{
+  ArenaEnter(arena);
+  ArenaWorkingSizeTauSet(arena, tau);
+  ArenaLeave(arena);
+}
+
 
 void mps_arena_clamp(mps_arena_t arena)
 {

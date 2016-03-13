@@ -717,19 +717,16 @@ void (ArenaPoll)(Globals globals)
 
   if (globals->clamped)
     return;
+  AVER(!globals->insidePoll);
   if (globals->insidePoll)
     return;
+
+  start = ClockNow();
   arena = GlobalsArena(globals);
-  if (!PolicyPoll(arena))
+  if (!PolicyPoll(arena, start))
     return;
 
   globals->insidePoll = TRUE;
-
-  /* fillMutatorSize has advanced; call TracePoll enough to catch up. */
-  start = ClockNow();
-
-  EVENT3(ArenaPoll, arena, start, FALSE);
-
   do {
     moreWork = TracePoll(&tracedWork, globals);
     if (moreWork) {

@@ -27,6 +27,7 @@
 #include "mpstd.h"
 #include "event.h"
 
+#include <math.h>
 #include <time.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -139,6 +140,12 @@ mps_clock_t mps_clocks_per_sec(void)
 {
   /* must correspond to whatever mps_clock() does */
   return (mps_clock_t)CLOCKS_PER_SEC;
+}
+
+
+double mps_lib_exp(double x)
+{
+  return exp(x);
 }
 
 

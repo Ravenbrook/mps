@@ -54,7 +54,6 @@ extern void mps_lib_assert_fail(const char *, unsigned, const char *);
 typedef void (*mps_lib_assert_fail_t)(const char *, unsigned, const char *);
 extern mps_lib_assert_fail_t mps_lib_assert_fail_install(mps_lib_assert_fail_t);
 
-
 /* Set, copy, or compare memory.  Analagous to `memset`, `memcpy`, and
    `memcmp` from string.h. */
 extern void *(mps_lib_memset)(void *, int, size_t);
@@ -66,6 +65,8 @@ extern int (mps_lib_memcmp)(const void *, const void *, size_t);
 extern mps_clock_t mps_clock(void);
 extern mps_clock_t mps_clocks_per_sec(void);
 
+/* Compute the exponential function. Equivalent to `exp` from time.h */
+extern double mps_lib_exp(double);
 
 /* Return a telemetry control word from somewhere.  This controls which kinds
    of events get output to the telemetry stream.  Each bit in the word

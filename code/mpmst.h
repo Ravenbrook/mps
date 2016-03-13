@@ -557,7 +557,7 @@ typedef struct GlobalsStruct {
 
   /* polling fields (<code/global.c>) */
   double pollThreshold;         /* <design/arena/#poll> */
-  Bool insidePoll;
+  Bool insidePoll;              /* running inside ArenaPoll? */
   Bool clamped;                 /* prevent background activity */
   double fillMutatorSize;       /* total bytes filled, mutator buffers */
   double emptyMutatorSize;      /* total bytes emptied, mutator buffers */
@@ -720,6 +720,10 @@ typedef struct mps_arena_s {
   Size spareCommitted;          /* Amount of memory in hysteresis fund */
   Size spareCommitLimit;        /* Limit on spareCommitted */
   double pauseTime;             /* Maximum pause time, in seconds. */
+
+  Size workingSize;             /* working size estimate */
+  Clock workingSizeUpdated;     /* time when working size was last updated */
+  double workingSizeTau;        /* time constant for moving avg (seconds) */
 
   Shift zoneShift;              /* see also <code/ref.c> */
   Size grainSize;               /* <design/arena/#grain> */
