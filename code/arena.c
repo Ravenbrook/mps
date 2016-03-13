@@ -150,7 +150,7 @@ Bool ArenaCheck(Arena arena)
   CHECKL(arena->committed <= arena->commitLimit);
   CHECKL(arena->spareCommitted <= arena->committed);
   CHECKL(0.0 <= arena->pauseTime);
-  CHECKL(0.0 < arena->workingSizeTau);
+  CHECKL(0.0 <= arena->workingSizeTau);
 
   CHECKL(ShiftCheck(arena->zoneShift));
   CHECKL(ArenaGrainSizeCheck(arena->grainSize));

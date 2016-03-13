@@ -65,7 +65,7 @@ extern int (mps_lib_memcmp)(const void *, const void *, size_t);
 extern mps_clock_t mps_clock(void);
 extern mps_clock_t mps_clocks_per_sec(void);
 
-/* Compute the exponential function. Equivalent to `exp` from time.h */
+/* Compute the exponential function. Equivalent to `exp` from math.h */
 extern double mps_lib_exp(double);
 
 /* Return a telemetry control word from somewhere.  This controls which kinds
