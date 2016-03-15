@@ -736,7 +736,7 @@ void (ArenaPoll)(Globals globals)
 
   /* Don't count time spent checking for work, if there was no work to do. */
   if (workWasDone) {
-    ArenaAccumulateTime(arena, start);
+    ArenaAccumulateTime(arena, start, ClockNow());
   }
 
   EVENT3(ArenaPoll, arena, start, BOOLOF(workWasDone));
@@ -796,7 +796,7 @@ Bool ArenaStep(Globals globals, double interval, double multiplier)
   } while (now < intervalEnd);
 
   if (workWasDone) {
-    ArenaAccumulateTime(arena, start);
+    ArenaAccumulateTime(arena, start, now);
   }
 
   return workWasDone;
