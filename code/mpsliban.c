@@ -204,6 +204,148 @@ unsigned long mps_lib_telemetry_control(void)
 }
 
 
+/* FIXME -- interpret keyword arguments from environment variables */
+
+static mps_bool_t parse_size(mps_arg_s *arg, const char *s)
+{
+  char *end;
+  arg->val.size = strtoul(s, &end, 10);
+  /* TODO: KMGTPE suffixes */
+  return end > s && *end == '\0';
+}
+
+static mps_bool_t parse_b(mps_arg_s *arg, const char *s)
+{
+  struct {
+    const char *string;
+    mps_bool_t value;
+  } map[] = {
+    {"true", 1}, {"yes", 1}, {"1", 1},
+    {"false", 0}, {"no", 0}, {"0", 0}
+  };
+  size_t i;
+  for (i = 0; i < sizeof(map)/sizeof(map[0]); ++i)
+    if (striequal(s, map[i].string)) {
+      arg->val.b = map[i].value;
+      return 1;
+    }
+  return 0;
+}
+
+static mps_bool_t parse_d(mps_arg_s *arg, const char *s)
+{
+  char *end;
+  arg->val.d = strtod(s, &end);
+  return end > s && *end == '\0';
+}
+
+static mps_bool_t parse_u(mps_arg_s *arg, const char *s)
+{
+  char *end;
+  unsigned long ul = strtoul(s, &end, 10);
+  arg->val.u = (unsigned)strtoul(s, &end, 10);
+  return ul <= UINT_MAX && end > s && *end == '\0';
+}
+
+static mps_bool_t parse_align(mps_arg_s *arg, const char *s)
+{
+  char *end;
+  arg->val.align = strtoul(s, &end, 10);
+  /* TODO: KMGTPE suffixes */
+  return arg->val.align > 0 &&
+    (arg->val.align & (arg->val.align - 1)) == 0 &&
+    end > s && *end == '\0';
+}
+
+#define KEY_ROW(X, ident, kind, doc) KEY_ROW_##kind(X, ident, kind, doc)
+#define KEY_ROW_YES(_, ident, kind, doc) \
+  {#ident, MPS_KEY_##ident, parse_##kind, doc},
+#define KEY_ROW_NO(_, ident, kind, doc)
+#define KEY_ROW_size KEY_ROW_YES
+#define KEY_ROW_b KEY_ROW_YES
+#define KEY_ROW_d KEY_ROW_YES
+#define KEY_ROW_format KEY_ROW_NO
+#define KEY_ROW_chain KEY_ROW_NO
+#define KEY_ROW_u KEY_ROW_YES
+#define KEY_ROW_rank KEY_ROW_NO
+#define KEY_ROW_align KEY_ROW_YES
+#define KEY_ROW_fmt_scan KEY_ROW_NO
+#define KEY_ROW_fmt_skip KEY_ROW_NO
+#define KEY_ROW_fmt_fwd KEY_ROW_NO
+#define KEY_ROW_fmt_isfwd KEY_ROW_NO
+#define KEY_ROW_fmt_pad KEY_ROW_NO
+#define KEY_ROW_fmt_class KEY_ROW_NO
+
+static struct {
+  const char *ident;
+  mps_key_t key;
+  mps_bool_t (*parse)(mps_arg_s *arg, const char *s);
+  const char *doc;
+} keywords[] = {
+  _mps_KEY_ENUM(KEY_ROW, _)
+};
+
+
+/* parse_setting -- parse a keyword assignment setting
+ *
+ * Parse a string like "SIZE=16K" into a keyword argument.
+ */
+
+static mps_res_t parse_setting(mps_arg_s *arg_out, const char *opt)
+{
+  char *val;
+  size_t i;
+  val = strchr(opt, '=');
+  if (val == NULL)
+    return MPS_RES_PARAM;
+  *val++ = '\0';
+  for (i = 0; i < sizeof(keywords)/sizeof(keywords[0]); ++i)
+    if (striequal(opt, keywords[i].ident))
+      goto found;
+  return MPS_RES_PARAM;
+found:
+  if (!keywords[i].parse(arg_out, val))
+    return MPS_RES_PARAM;
+  arg_out->key = keywords[i].key;
+  return MPS_RES_OK;
+}
+
+
+/* parse_settings -- parse multiple settings into keyword arguments
+ *
+ * Parses a string like "SIZE=16K ZONED=yes" into an argument array.
+ * Ignores unparseable arguments.  Uses no more than length array entries.
+ * Returns number of arguments parsed.
+ */
+
+static unsigned parse_settings(mps_arg_s args[], unsigned length, char *opts)
+{
+  unsigned count = 0;
+  char *word;
+  const char *sep = " ";
+  for (word = strtok(opts, sep); word != NULL; word = strtok(NULL, opts)) {
+    if (count >= length)
+      return count;
+    if (parse_setting(&args[count], word) == MPS_RES_OK)
+      ++count;
+  }
+  return count;
+}
+
+static unsigned parse_envar(mps_arg_s args[], unsigned length, const char *name)
+{
+  return parse_settings(args, length, getenv(name));
+}
+
+static void strupper(char *s)
+{
+  while (*s != '\0') {
+    *s = (char)toupper(*s);
+    ++s;
+  }
+}
+
+
 /* C. COPYRIGHT AND LICENSE
  *
  * Copyright (C) 2001-2014 Ravenbrook Limited <http://www.ravenbrook.com/>.
