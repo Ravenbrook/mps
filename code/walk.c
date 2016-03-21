@@ -258,7 +258,7 @@ static Res rootWalk(Root root, void *p)
     /* set the root for the benefit of the fix method */
     ScanState2rootsStepClosure(ss)->root = root;
     /* Scan it */
-    ScanStateSetSummary(ss, RefSetEMPTY);
+    ScanStateSetSummary(ss, RefSetEmpty);
     return RootScan(ss, root);
   } else
     return ResOK;

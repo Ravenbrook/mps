@@ -29,7 +29,7 @@ typedef struct RootStruct {
   RingStruct arenaRing;         /* attachment to arena */
   Rank rank;                    /* rank of references in this root */
   TraceSet grey;                /* traces for which root is grey */
-  RefSet summary;               /* summary of references in root */
+  RefSetStruct summary;         /* summary of references in root */
   RootMode mode;                /* mode */
   Bool protectable;             /* Can protect root? */
   Addr protBase;                /* base of protectable area */
@@ -203,7 +203,7 @@ static Res rootCreate(Root *rootReturn, Arena arena,
   root->var = type;
   root->the  = *theUnionP;
   root->grey = TraceSetEMPTY;
-  root->summary = RefSetUNIV;
+  RefSetCopy(&root->summary, RefSetUniv);
   root->mode = mode;
   root->pm = AccessSetEMPTY;
   root->protectable = FALSE;
@@ -481,10 +481,10 @@ AccessSet RootPM(Root root)
 
 /* RootSummary -- return the summary of a root */
 
-RefSet RootSummary(Root root)
+void RootGetSummary(RefSet summaryReturn, Root root)
 {
   AVERT(Root, root);
-  return root->summary;
+  RefSetCopy(summaryReturn, &root->summary);
 }
 
 
@@ -504,15 +504,15 @@ static void rootSetSummary(Root root, RefSet summary)
   AVERT(Root, root);
   /* Can't check summary */
   if (root->protectable) {
-    if (summary == RefSetUNIV) {
-      root->summary = summary;
-      root->pm &= ~AccessWRITE;
+    if (RefSetIsUniv(summary)) {
+      RefSetCopy(&root->summary, summary);
+      root->pm = BS_DIFF(root->pm, AccessWRITE);
     } else {
-      root->pm |= AccessWRITE;
-      root->summary = summary;
+      root->pm = BS_UNION(root->pm, AccessWRITE);
+      RefSetCopy(&root->summary, summary);
     }
   } else
-    AVER(root->summary == RefSetUNIV);
+    AVER(RefSetIsUniv(&root->summary));
 }
 
 
@@ -529,7 +529,12 @@ Res RootScan(ScanState ss, Root root)
   if (TraceSetInter(root->grey, ss->traces) == TraceSetEMPTY)
     return ResOK;
 
-  AVER(ScanStateSummary(ss) == RefSetEMPTY);
+  /* FIXME: Express this better. */
+  {
+    RefSetStruct summary;
+    ScanStateGetSummary(&summary, ss);
+    AVER(RefSetIsEmpty(&summary));
+  }
 
   if (root->pm != AccessSetEMPTY) {
     ProtSet(root->protBase, root->protLimit, AccessSetEMPTY);
@@ -597,8 +602,13 @@ Res RootScan(ScanState ss, Root root)
 
   AVER(res == ResOK);
   root->grey = TraceSetDiff(root->grey, ss->traces);
-  rootSetSummary(root, ScanStateSummary(ss));
-  EVENT3(RootScan, root, ss->traces, ScanStateSummary(ss));
+  {
+    RefSetStruct summary;
+    ScanStateGetSummary(&summary, ss);
+    rootSetSummary(root, &summary);
+    /* FIXME: Consider how to log summaries */
+    EVENT3(RootScan, root, ss->traces, RefSetZones(&summary));
+  }
 
 failScan:
   if (root->pm != AccessSetEMPTY) {
@@ -644,7 +654,8 @@ void RootAccess(Root root, AccessSet mode)
   AVER((root->pm & mode) != AccessSetEMPTY);
   AVER(mode == AccessWRITE); /* only write protection supported */
 
-  rootSetSummary(root, RefSetUNIV);
+  /* FIXME: Express idea of mutator refset here */
+  rootSetSummary(root, RefSetUniv);
 
   /* Access must now be allowed. */
   AVER((root->pm & mode) == AccessSetEMPTY);
@@ -687,20 +698,29 @@ Res RootDescribe(Root root, mps_lib_FILE *stream, Count depth)
                (WriteFU)root->arena->serial,
                "  rank $U\n", (WriteFU)root->rank,
                "  grey $B\n", (WriteFB)root->grey,
-               "  summary $B\n", (WriteFB)root->summary,
+               NULL);
+  if (res != ResOK)
+    return res;
+
+  res = RefSetDescribe(&root->summary, stream, depth + 2);
+  if (res != ResOK)
+    return res;
+  
+  res = WriteF(stream, depth,
                "  mode",
                root->mode == 0 ? " NONE" : "",
                root->mode & RootModeCONSTANT ? " CONSTANT" : "",
                root->mode & RootModePROTECTABLE ? " PROTECTABLE" : "",
                root->mode & RootModePROTECTABLE_INNER ? " INNER" : "",
                "\n",
-               "  protectable $S", WriteFYesNo(root->protectable),
-               "  protBase $A", (WriteFA)root->protBase,
-               "  protLimit $A", (WriteFA)root->protLimit,
+               "  protectable $S\n", WriteFYesNo(root->protectable),
+               "  protBase $A\n", (WriteFA)root->protBase,
+               "  protLimit $A\n", (WriteFA)root->protLimit,
                "  pm",
                root->pm == AccessSetEMPTY ? " EMPTY" : "",
                root->pm & AccessREAD ? " READ" : "",
                root->pm & AccessWRITE ? " WRITE" : "",
+               "\n",
                NULL);
   if (res != ResOK)
     return res;

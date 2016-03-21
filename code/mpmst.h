@@ -237,6 +237,16 @@ typedef struct SegStruct {      /* segment structure */
 } SegStruct;
 
 
+/* RefSetStruct -- approximation to a set of references
+ *
+ * See design.mps.refset.
+ */
+
+typedef struct RefSetStruct {
+  ZoneSet zones;                /* set of zones referenced */
+} RefSetStruct;
+
+
 /* GCSegStruct -- GCable segment structure
  *
  * .seggc: GCSeg is a subclass of Seg with support for buffered
@@ -247,7 +257,7 @@ typedef struct SegStruct {      /* segment structure */
 typedef struct GCSegStruct {    /* GC segment structure */
   SegStruct segStruct;          /* superclass fields must come first */
   RingStruct greyRing;          /* link in list of grey segs */
-  RefSet summary;               /* summary of references out of seg */
+  RefSetStruct summary;         /* summary of references out of seg */
   Buffer buffer;                /* non-NULL if seg is buffered */
   RingStruct genRing;           /* link in list of segs in gen */
   Sig sig;                      /* <design/sig/> */
@@ -407,7 +417,7 @@ typedef struct ScanStateStruct {
   TraceSet traces;              /* traces to scan for */
   Rank rank;                    /* reference rank of scanning */
   Bool wasMarked;               /* design.mps.fix.protocol.was-ready */
-  RefSet fixedSummary;          /* accumulated summary of fixed references */
+  RefSetStruct fixedSummary;    /* accumulated summary of fixed references */
   STATISTIC_DECL(Count fixRefCount) /* refs which pass zone check */
   STATISTIC_DECL(Count segRefCount) /* refs which refer to segs */
   STATISTIC_DECL(Count whiteSegRefCount) /* refs which refer to white segs */
@@ -695,8 +705,8 @@ typedef struct ShieldStruct {
 typedef struct HistoryStruct {
   Sig sig;                         /* design.mps.sig */
   Epoch epoch;                     /* <design/arena/#ld.epoch> */
-  RefSet prehistory;               /* <design/arena/#ld.prehistory> */
-  RefSet history[LDHistoryLENGTH]; /* <design/arena/#ld.history> */
+  RefSetStruct prehistory;               /* <design/arena/#ld.prehistory> */
+  RefSetStruct history[LDHistoryLENGTH]; /* <design/arena/#ld.history> */
 } HistoryStruct;  
 
 

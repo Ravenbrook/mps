@@ -13,6 +13,88 @@
 SRCID(ref, "$Id$");
 
 
+static RefSetStruct refSetEmptyStruct = {ZoneSetEMPTY};
+static RefSetStruct refSetUnivStruct  = {ZoneSetUNIV};
+
+RefSet RefSetEmpty = &refSetEmptyStruct;
+RefSet RefSetUniv  = &refSetUnivStruct;
+
+void RefSetInit(RefSet rs)
+{
+  rs->zones = ZoneSetEMPTY;
+}
+
+void RefSetFromZones(RefSet rs, ZoneSet zs)
+{
+  rs->zones = zs;
+}
+
+Res RefSetDescribe(RefSet rs, mps_lib_FILE *stream, Count depth)
+{
+  return WriteF(stream, depth,
+                "RefSet $P {\n", (WriteFP)rs,
+                "  zones $B\n",  (WriteFB)rs->zones,
+                "} RefSet $P\n", (WriteFP)rs,
+                NULL);
+}
+
+void RefSetCopy(RefSet to, RefSet from)
+{
+  to->zones = from->zones;
+}
+
+Bool RefSetIsEmpty(RefSet rs)
+{
+  return rs->zones == ZoneSetEMPTY;
+}
+
+Bool RefSetIsUniv(RefSet rs)
+{
+  return rs->zones == ZoneSetUNIV;
+}
+
+ZoneSet RefSetZones(RefSet rs)
+{
+  return rs->zones;
+}
+
+void RefSetAddMutatorRef(RefSet rs, Arena arena, Ref ref)
+{
+  rs->zones = ZoneSetAddAddr(arena, rs->zones, (Addr)ref);
+}
+
+void RefSetAddFixedRef(RefSet rs, Arena arena, Ref ref)
+{
+  rs->zones = ZoneSetAddAddr(arena, rs->zones, (Addr)ref);
+}
+
+Bool RefSetSub(RefSet rs1, RefSet rs2)
+{
+  return ZoneSetSub(rs1->zones, rs2->zones);
+}
+
+void RefSetUnion(RefSet rs1, RefSet rs2)
+{
+  rs1->zones = ZoneSetUnion(rs1->zones, rs2->zones);
+}
+
+/* FIXME: Check if this is used anywhere. */
+void RefSetDiff(RefSet rs1, RefSet rs2)
+{
+  rs1->zones = ZoneSetDiff(rs1->zones, rs2->zones);
+}
+
+Bool RefSetEqual(RefSet rs1, RefSet rs2)
+{
+  return rs1->zones && rs2->zones;
+}
+
+Bool RefSetInterZones(RefSet rs, ZoneSet zs)
+{
+  return ZoneSetInter(rs->zones, zs) != ZoneSetEMPTY;
+}
+
+
 /* RankCheck -- check a rank value */
 
 Bool RankCheck(Rank rank)

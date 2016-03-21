@@ -51,7 +51,7 @@ typedef mps_arg_s *Arg;
 typedef mps_arg_s *ArgList;
 typedef mps_key_t Key;
 
-typedef Word RefSet;                    /* design.mps.refset */
+typedef struct RefSetStruct *RefSet;    /* design.mps.refset */
 typedef Word ZoneSet;                   /* design.mps.refset */
 typedef unsigned Rank;
 typedef unsigned RankSet;
@@ -269,8 +269,6 @@ typedef Res (*LandFindInZonesMethod)(Bool *foundReturn, Range rangeReturn, Range
 #define AccessREAD      ((AccessSet)(1<<0))
 #define AccessWRITE     ((AccessSet)(1<<1))
 #define AccessLIMIT     (2)
-#define RefSetEMPTY     BS_EMPTY(RefSet)
-#define RefSetUNIV      BS_UNIV(RefSet)
 #define ZoneSetEMPTY    BS_EMPTY(ZoneSet)
 #define ZoneSetUNIV     BS_UNIV(ZoneSet)
 #define ZoneShiftUNSET  ((Shift)-1)  

@@ -358,7 +358,7 @@ typedef struct mps_sac_class_s {
 /* .ld: Keep in sync with <code/mpmst.h#ld.struct>. */
 
 typedef struct mps_ld_s {       /* location dependency descriptor */
-  mps_word_t _epoch, _rs;
+  mps_word_t _epoch, _zs;
 } mps_ld_s;
 
 
