@@ -869,6 +869,7 @@ extern Bool RefSetIsUniv(RefSet rs);
 extern Bool RefSetEqual(RefSet rs1, RefSet rs2);
 extern RefSet RefSetUnion(RefSet rs1, RefSet rs2);
 extern RefSet RefSetFromZones(ZoneSet zones);
+extern Res RefSetDescribe(RefSet rs, mps_lib_FILE *stream, Count depth);
 
 /* Zone sets -- see design.mps.refset */
 

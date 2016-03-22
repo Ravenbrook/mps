@@ -680,7 +680,16 @@ Res RootDescribe(Root root, mps_lib_FILE *stream, Count depth)
                (WriteFU)root->arena->serial,
                "  rank $U\n", (WriteFU)root->rank,
                "  grey $B\n", (WriteFB)root->grey,
-               "  summary $B\n", (WriteFB)root->summary.zones,
+               "  summary =\n",
+               NULL);
+  if (res != ResOK)
+    return res;
+
+  res = RefSetDescribe(root->summary, stream, depth + 2);
+  if (res != ResOK)
+    return res;
+  
+  res = WriteF(stream, depth,
                "  mode",
                root->mode == 0 ? " NONE" : "",
                root->mode & RootModeCONSTANT ? " CONSTANT" : "",

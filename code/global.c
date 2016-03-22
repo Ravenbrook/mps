@@ -1004,17 +1004,29 @@ Res GlobalsDescribe(Globals arenaGlobals, mps_lib_FILE *stream, Count depth)
                "busyTraces    $B\n", (WriteFB)arena->busyTraces,
                "flippedTraces $B\n", (WriteFB)arena->flippedTraces,
                "epoch $U\n", (WriteFU)arena->epoch,
-               "prehistory = $B\n", (WriteFB)arena->prehistory.zones,
+               "prehistory =\n",
+               NULL);
+  if (res != ResOK)
+    return res;
+
+  res = RefSetDescribe(arena->prehistory, stream, depth + 2);
+  if (res != ResOK)
+    return res;
+
+  res = WriteF(stream, depth,
                "history {\n",
                "  [note: indices are raw, not rotated]\n",
                NULL);
   if (res != ResOK)
     return res;
 
-  for(i=0; i < LDHistoryLENGTH; ++ i) {
+  for(i = 0; i < LDHistoryLENGTH; ++i) {
     res = WriteF(stream, depth + 2,
-                 "[$U] = $B\n", (WriteFU)i, (WriteFB)arena->history[i].zones,
+                 "[$U] =\n", (WriteFU)i,
                  NULL);
+    if (res != ResOK)
+      return res;
+    res = RefSetDescribe(arena->history[i], stream, depth + 4);
     if (res != ResOK)
       return res;
   }

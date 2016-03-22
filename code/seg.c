@@ -1570,8 +1570,12 @@ static Res gcSegDescribe(Seg seg, mps_lib_FILE *stream, Count depth)
     return res;
 
   res = WriteF(stream, depth,
-               "summary $B\n", (WriteFB)gcseg->summary.zones,
+               "summary =\n",
                NULL);
+  if (res != ResOK)
+    return res;
+
+  res = RefSetDescribe(gcseg->summary, stream, depth + 2);
   if (res != ResOK)
     return res;
 

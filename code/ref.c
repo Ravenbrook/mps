@@ -66,6 +66,15 @@ RefSet RefSetFromZones(ZoneSet zones)
   return rs;
 }
 
+Res RefSetDescribe(RefSet rs, mps_lib_FILE *stream, Count depth)
+{
+  return WriteF(stream, depth,
+                "RefSet {\n",
+                "  zones = $B\n", (WriteFB)rs.zones,
+                "} RefSet\n",
+                NULL);
+}
+
 
 /* RankCheck -- check a rank value */
 
