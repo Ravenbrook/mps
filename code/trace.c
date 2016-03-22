@@ -1102,9 +1102,10 @@ void ScanStateGetSummary(RefSetStruct *summaryReturn, ScanState ss)
 {
   AVERT(ScanState, ss);
 
-  *summaryReturn = RefSetUnion(ss->fixedSummary,
-                               RefSetFromZones(ZoneSetDiff(ScanStateUnfixedSummary(ss),
-                                                           ScanStateWhite(ss))));
+  RefSetCopy(summaryReturn, ss->fixedSummary);
+  RefSetUnion(summaryReturn,
+              RefSetFromZones(ZoneSetDiff(ScanStateUnfixedSummary(ss),
+                                          ScanStateWhite(ss))));
 }
 
 
@@ -1193,7 +1194,7 @@ static Res traceScanSegRes(TraceSet ts, Rank rank, Arena arena, Seg seg)
       if (res != ResOK || !wasTotal) {
         RefSetStruct oldSummary;
         SegGetSummary(&oldSummary, seg);
-        newSummary = RefSetUnion(newSummary, oldSummary);
+        RefSetUnion(&newSummary, oldSummary);
       }
 
       SegSetSummary(seg, newSummary);

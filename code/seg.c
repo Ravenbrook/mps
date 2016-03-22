@@ -1525,7 +1525,8 @@ static Res gcSegMerge(Seg seg, Seg segHi,
     goto failSuper;
 
   /* Update fields of gcseg. Finish gcsegHi. */
-  summary = RefSetUnion(gcseg->summary, gcsegHi->summary);
+  RefSetCopy(&summary, gcseg->summary);
+  RefSetUnion(&summary, gcsegHi->summary);
   if (!RefSetEqual(summary, gcseg->summary)) {
     gcSegSetSummary(seg, summary);
     /* <design/seg/#split-merge.shield.re-flush> */

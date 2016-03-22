@@ -16,6 +16,11 @@ SRCID(ref, "$Id$");
 RefSet RefSetEMPTY = {ZoneSetEMPTY};
 RefSet RefSetUNIV  = {ZoneSetUNIV};
 
+void RefSetCopy(RefSetStruct *rsReturn, RefSet rs)
+{
+  rsReturn->zones = rs.zones;
+}
+
 Bool RefSetSub(RefSet rs1, RefSet rs2)
 {
   return ZoneSetSub(rs1.zones, rs2.zones);
@@ -51,11 +56,9 @@ Bool RefSetIsUniv(RefSet rs)
   return rs.zones == ZoneSetUNIV;
 }
 
-RefSet RefSetUnion(RefSet rs1, RefSet rs2)
+void RefSetUnion(RefSetStruct *rsIO, RefSet rs2)
 {
-  RefSet rs;
-  rs.zones = ZoneSetUnion(rs1.zones, rs2.zones);
-  return rs;
+  rsIO->zones = ZoneSetUnion(rsIO->zones, rs2.zones);
 }
 
 RefSet RefSetFromZones(ZoneSet zones)

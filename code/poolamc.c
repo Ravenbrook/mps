@@ -1663,7 +1663,7 @@ static Res AMCFix(Pool pool, ScanState ss, Seg seg, Ref *refIO)
         grey = TraceSetUnion(grey, ss->traces);
         SegGetSummary(&fromSummary, seg);
         SegGetSummary(&toSummary, toSeg);
-        toSummary = RefSetUnion(toSummary, fromSummary);
+        RefSetUnion(&toSummary, fromSummary);
         SegSetSummary(toSeg, toSummary);
       } else {
         AVER(SegRankSet(toSeg) == RankSetEMPTY);

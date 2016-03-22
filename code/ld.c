@@ -202,10 +202,10 @@ void LDAge(Arena arena, RefSet rs)
   /* to all the sets in the history, including the set for the */
   /* current epoch. */
   for (i = 0; i < LDHistoryLENGTH; ++i)
-    arena->history[i] = RefSetUnion(arena->history[i], rs);
+    RefSetUnion(&arena->history[i], rs);
 
   /* This is the union of all movement since time zero. */
-  arena->prehistory = RefSetUnion(arena->prehistory, rs);
+  RefSetUnion(&arena->prehistory, rs);
 
   /* Advance the epoch by one. */
   ++arena->epoch;

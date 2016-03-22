@@ -868,6 +868,7 @@ extern Bool RankSetCheck(RankSet rankSet);
 
 extern RefSet RefSetEMPTY;
 extern RefSet RefSetUNIV;
+extern void RefSetCopy(RefSetStruct *rsReturn, RefSet rs);
 extern Bool RefSetSub(RefSet rs1, RefSet rs2);
 extern Bool RefSetSuper(RefSet rs1, RefSet rs2);
 extern void RefSetAdd(RefSetStruct *rsIO, Arena arena, Ref ref);
@@ -875,7 +876,7 @@ extern Bool RefSetInterZones(RefSet rs, ZoneSet zs);
 extern Bool RefSetIsEmpty(RefSet rs);
 extern Bool RefSetIsUniv(RefSet rs);
 extern Bool RefSetEqual(RefSet rs1, RefSet rs2);
-extern RefSet RefSetUnion(RefSet rs1, RefSet rs2);
+extern void RefSetUnion(RefSetStruct *rsIO, RefSet rs2);
 extern RefSet RefSetFromZones(ZoneSet zones);
 extern Res RefSetDescribe(RefSet rs, mps_lib_FILE *stream, Count depth);
 
