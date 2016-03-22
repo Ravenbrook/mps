@@ -868,6 +868,8 @@ extern Bool RankSetCheck(RankSet rankSet);
 
 extern RefSet RefSetEMPTY;
 extern RefSet RefSetUNIV;
+extern void RefSetEmpty(RefSetStruct *rsReturn);
+extern void RefSetUniv(RefSetStruct *rsReturn);
 extern void RefSetCopy(RefSetStruct *rsReturn, RefSet rs);
 extern Bool RefSetSub(RefSet rs1, RefSet rs2);
 extern Bool RefSetSuper(RefSet rs1, RefSet rs2);

@@ -659,7 +659,7 @@ static void rememberedSummaryBlockInit(struct RememberedSummaryBlockStruct *bloc
   RingInit(&block->globalRing);
   for(i = 0; i < RememberedSummaryBLOCK; ++ i) {
     block->the[i].base = (Addr)0;
-    RefSetCopy(&block->the[i].summary, RefSetUNIV);
+    RefSetUniv(&block->the[i].summary);
   }
 }
 

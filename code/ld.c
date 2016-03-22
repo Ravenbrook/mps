@@ -197,7 +197,7 @@ void LDAge(Arena arena, RefSet rs)
   /* Replace the entry for epoch - LDHistoryLENGTH by an empty */
   /* set which will become the set which has moved since the */
   /* current epoch. */
-  RefSetCopy(&arena->history[arena->epoch % LDHistoryLENGTH], RefSetEMPTY);
+  RefSetEmpty(&arena->history[arena->epoch % LDHistoryLENGTH]);
 
   /* Record the fact that the moved set has moved, by adding it */
   /* to all the sets in the history, including the set for the */

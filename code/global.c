@@ -319,9 +319,9 @@ Res GlobalsInit(Globals arenaGlobals)
   RingInit(&arena->chainRing);
 
   arena->epoch = (Epoch)0;              /* <code/ld.c> */
-  RefSetCopy(&arena->prehistory, RefSetEMPTY);
+  RefSetEmpty(&arena->prehistory);
   for(i = 0; i < LDHistoryLENGTH; ++i)
-    RefSetCopy(&arena->history[i], RefSetEMPTY);
+    RefSetEmpty(&arena->history[i]);
 
   arena->emergency = FALSE;
 

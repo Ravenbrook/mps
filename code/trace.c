@@ -95,7 +95,7 @@ void ScanStateInit(ScanState ss, TraceSet ts, Arena arena,
   ss->traces = ts;
   ScanStateSetZoneShift(ss, arena->zoneShift);
   ScanStateSetUnfixedSummary(ss, ZoneSetEMPTY);
-  RefSetCopy(&ss->fixedSummary, RefSetEMPTY);
+  RefSetEmpty(&ss->fixedSummary);
   ss->arena = arena;
   ss->wasMarked = TRUE;
   ScanStateSetWhite(ss, white);

@@ -1158,7 +1158,7 @@ static Res gcSegInit(Seg seg, Pool pool, Addr base, Size size, ArgList args)
   if (ResOK != res)
     return res;
 
-  RefSetCopy(&gcseg->summary, RefSetEMPTY);
+  RefSetEmpty(&gcseg->summary);
   gcseg->buffer = NULL;
   RingInit(&gcseg->greyRing);
   gcseg->sig = GCSegSig;
@@ -1186,7 +1186,7 @@ static void gcSegFinish(Seg seg)
   }
 
   /* FIXME: Shouldn't this be using SegSetSummary to remove barriers? */
-  RefSetCopy(&gcseg->summary, RefSetEMPTY);
+  RefSetEmpty(&gcseg->summary);
 
   gcseg->sig = SigInvalid;
 
@@ -1538,7 +1538,7 @@ static Res gcSegMerge(Seg seg, Seg segHi,
   }
 
   gcSegSetGreyInternal(segHi, grey, TraceSetEMPTY);
-  RefSetCopy(&gcsegHi->summary, RefSetEMPTY);
+  RefSetEmpty(&gcsegHi->summary);
   gcsegHi->sig = SigInvalid;
   RingFinish(&gcsegHi->greyRing);
 

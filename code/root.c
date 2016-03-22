@@ -195,7 +195,7 @@ static Res rootCreate(Root *rootReturn, Arena arena,
   root->var = type;
   root->the  = *theUnionP;
   root->grey = TraceSetEMPTY;
-  RefSetCopy(&root->summary, RefSetUNIV);
+  RefSetUniv(&root->summary);
   root->mode = mode;
   root->pm = AccessSetEMPTY;
   root->protectable = FALSE;

@@ -18,6 +18,16 @@ static RefSetStruct RefSetUnivStruct  = {ZoneSetUNIV};
 RefSet RefSetEMPTY = &RefSetEmptyStruct;
 RefSet RefSetUNIV  = &RefSetUnivStruct;
 
+void RefSetEmpty(RefSetStruct *rsReturn)
+{
+  rsReturn->zones = ZoneSetEMPTY;
+}
+
+void RefSetUniv(RefSetStruct *rsReturn)
+{
+  rsReturn->zones = ZoneSetUNIV;
+}
+
 void RefSetCopy(RefSetStruct *rsReturn, RefSet rs)
 {
   rsReturn->zones = rs->zones;
