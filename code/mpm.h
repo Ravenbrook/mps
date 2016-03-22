@@ -988,7 +988,7 @@ extern Res RootDescribe(Root root, mps_lib_FILE *stream, Count depth);
 extern Res RootsDescribe(Globals arenaGlobals, mps_lib_FILE *stream, Count depth);
 extern Rank RootRank(Root root);
 extern AccessSet RootPM(Root root);
-extern RefSet RootSummary(Root root);
+extern Bool RootMayReferenceZones(Root root, ZoneSet zs);
 extern void RootGrey(Root root, Trace trace);
 extern Res RootScan(ScanState ss, Root root);
 extern Arena RootArena(Root root);

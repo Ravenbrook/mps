@@ -29,7 +29,7 @@ typedef struct RootStruct {
   RingStruct arenaRing;         /* attachment to arena */
   Rank rank;                    /* rank of references in this root */
   TraceSet grey;                /* traces for which root is grey */
-  RefSet summary;               /* summary of references in root */
+  RefSetStruct summary;         /* summary of references in root */
   RootMode mode;                /* mode */
   Bool protectable;             /* Can protect root? */
   Addr protBase;                /* base of protectable area */
@@ -471,12 +471,9 @@ AccessSet RootPM(Root root)
 }
 
 
-/* RootSummary -- return the summary of a root */
-
-RefSet RootSummary(Root root)
+Bool RootMayReferenceZones(Root root, ZoneSet zs)
 {
-  AVERT(Root, root);
-  return root->summary;
+  return RefSetInterZones(root->summary, zs);
 }
 
 

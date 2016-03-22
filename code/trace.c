@@ -1580,7 +1580,7 @@ static Res rootGrey(Root root, void *p)
   AVERT(Root, root);
   AVERT(Trace, trace);
 
-  if (RefSetInterZones(RootSummary(root), trace->white))
+  if (RootMayReferenceZones(root, trace->white))
     RootGrey(root, trace);
 
   return ResOK;
