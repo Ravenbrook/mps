@@ -344,11 +344,11 @@ Bool SegSummaryIsUniv(Seg seg)
 }
 
 
-Bool SegMayReferenceZones(Seg seg, ZoneSet zones)
+Bool SegDoesNotReferenceZones(Seg seg, ZoneSet zones)
 {
   RefSetStruct summary;
   SegGetSummary(&summary, seg);
-  return RefSetInterZones(summary, zones);
+  return !RefSetInterZones(summary, zones);
 }
 
 

@@ -471,9 +471,9 @@ AccessSet RootPM(Root root)
 }
 
 
-Bool RootMayReferenceZones(Root root, ZoneSet zs)
+Bool RootDoesNotReferenceZones(Root root, ZoneSet zs)
 {
-  return RefSetInterZones(root->summary, zs);
+  return !RefSetInterZones(root->summary, zs);
 }
 
 

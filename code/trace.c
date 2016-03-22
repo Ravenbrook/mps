@@ -1144,7 +1144,7 @@ static Res traceScanSegRes(TraceSet ts, Rank rank, Arena arena, Seg seg)
   white = traceSetWhiteUnion(ts, arena);
 
   /* Only scan a segment if it refers to the white set. */
-  if (!SegMayReferenceZones(seg, white)) {
+  if (SegDoesNotReferenceZones(seg, white)) {
     PoolBlacken(SegPool(seg), ts, seg);
     /* Setup result code to return later. */
     res = ResOK;
@@ -1421,7 +1421,7 @@ static Res traceScanSingleRefRes(TraceSet ts, Rank rank, Arena arena,
   EVENT4(TraceScanSingleRef, ts, rank, arena, (Addr)refIO);
 
   white = traceSetWhiteUnion(ts, arena);
-  if (!SegMayReferenceZones(seg, white)) {
+  if (SegDoesNotReferenceZones(seg, white)) {
     return ResOK;
   }
 
@@ -1580,8 +1580,10 @@ static Res rootGrey(Root root, void *p)
   AVERT(Root, root);
   AVERT(Trace, trace);
 
-  if (RootMayReferenceZones(root, trace->white))
-    RootGrey(root, trace);
+  if (RootDoesNotReferenceZones(root, trace->white))
+    return ResOK;
+  
+  RootGrey(root, trace);
 
   return ResOK;
 }
@@ -1633,7 +1635,7 @@ Res TraceStart(Trace trace, double mortality, double finishingTime)
         /* to the white set.  This is done by seeing if the summary */
         /* of references in the segment intersects with the */
         /* approximation to the white set. */
-        if (SegMayReferenceZones(seg, trace->white)) {
+        if (!SegDoesNotReferenceZones(seg, trace->white)) {
           /* Note: can a white seg get greyed as well?  At this point */
           /* we still assume it may.  (This assumption runs out in */
           /* PoolTrivGrey). */
