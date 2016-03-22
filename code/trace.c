@@ -1075,8 +1075,9 @@ static Bool traceFindGrey(Seg *segReturn, Rank *rankReturn,
 /* ScanStateSetSummary -- set the summary of scanned references
  *
  * This function sets unfixedSummary and fixedSummary such that
- * ScanStateSummary will return the summary passed.  Subsequently fixed
- * references are accumulated into this result.  */
+ * ScanStateGetSummary will return the summary passed.  Subsequently
+ * fixed references are accumulated into this result.
+ */
 
 void ScanStateSetSummary(ScanState ss, RefSet summary)
 {
@@ -1085,11 +1086,11 @@ void ScanStateSetSummary(ScanState ss, RefSet summary)
 
   ScanStateSetUnfixedSummary(ss, ZoneSetEMPTY);
   ss->fixedSummary = summary;
-  AVER(RefSetEqual(ScanStateSummary(ss), summary));
+  AVER(ScanStateSummaryEqual(ss, summary));
 }
 
 
-/* ScanStateSummary -- calculate the summary of scanned references
+/* ScanStateGetSummary -- calculate the summary of scanned references
  *
  * The summary of the scanned references is the summary of the unfixed
  * references, minus the white set, plus the summary of the fixed
@@ -1097,13 +1098,29 @@ void ScanStateSetSummary(ScanState ss, RefSet summary)
  * the white set, and accumulates a summary of references after they
  * have been fixed.  */
 
-RefSet ScanStateSummary(ScanState ss)
+void ScanStateGetSummary(RefSetStruct *summaryReturn, ScanState ss)
 {
   AVERT(ScanState, ss);
 
-  return RefSetUnion(ss->fixedSummary,
-                     RefSetFromZones(ZoneSetDiff(ScanStateUnfixedSummary(ss),
-                                                 ScanStateWhite(ss))));
+  *summaryReturn = RefSetUnion(ss->fixedSummary,
+                               RefSetFromZones(ZoneSetDiff(ScanStateUnfixedSummary(ss),
+                                                           ScanStateWhite(ss))));
+}
+
+
+Bool ScanStateSummaryIsEmpty(ScanState ss)
+{
+  RefSetStruct summary;
+  ScanStateGetSummary(&summary, ss);
+  return RefSetIsEmpty(summary);
+}
+
+
+Bool ScanStateSummaryEqual(ScanState ss, RefSet rs)
+{
+  RefSetStruct summary;
+  ScanStateGetSummary(&summary, ss);
+  return RefSetEqual(summary, rs);
 }
 
 
@@ -1166,14 +1183,16 @@ static Res traceScanSegRes(TraceSet ts, Rank rank, Arena arena, Seg seg)
     /* FIXME: Need to combine unfixed summary with full refset of segment somehow. */
     AVER(RefSetSub(RefSetFromZones(ScanStateUnfixedSummary(ss)), SegSummary(seg)));
 
-    if(res != ResOK || !wasTotal) {
-      /* scan was partial, so... */
-      /* scanned summary should be ORed into segment summary. */
-      SegSetSummary(seg, RefSetUnion(SegSummary(seg), ScanStateSummary(ss)));
-    } else {
-      /* all objects on segment have been scanned, so... */
-      /* scanned summary should replace the segment summary. */
-      SegSetSummary(seg, ScanStateSummary(ss));
+    {
+      RefSetStruct summary;
+      ScanStateGetSummary(&summary, ss);
+
+      /* If the scan was partial, the scanned summary must be unioned
+         into the segment summary rather than replacing it. */
+      if (res != ResOK || !wasTotal)
+        summary = RefSetUnion(summary, SegSummary(seg));
+
+      SegSetSummary(seg, summary);
     }
 
     ScanStateFinish(ss);

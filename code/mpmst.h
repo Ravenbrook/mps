@@ -273,7 +273,7 @@ typedef struct SegStruct {      /* segment structure */
 typedef struct GCSegStruct {    /* GC segment structure */
   SegStruct segStruct;          /* superclass fields must come first */
   RingStruct greyRing;          /* link in list of grey segs */
-  RefSet summary;               /* summary of references out of seg */
+  RefSetStruct summary;         /* summary of references out of seg */
   Buffer buffer;                /* non-NULL if seg is buffered */
   Sig sig;                      /* <design/sig/> */
 } GCSegStruct;
@@ -430,7 +430,7 @@ typedef struct ScanStateStruct {
   TraceSet traces;              /* traces to scan for */
   Rank rank;                    /* reference rank of scanning */
   Bool wasMarked;               /* design.mps.fix.protocol.was-ready */
-  RefSet fixedSummary;          /* accumulated summary of fixed references */
+  RefSetStruct fixedSummary;    /* accumulated summary of fixed references */
   STATISTIC_DECL(Count fixRefCount); /* refs which pass zone check */
   STATISTIC_DECL(Count segRefCount); /* refs which refer to segs */
   STATISTIC_DECL(Count whiteSegRefCount); /* refs which refer to white segs */
@@ -766,8 +766,8 @@ typedef struct mps_arena_s {
 
   /* location dependency fields (<code/ld.c>) */
   Epoch epoch;                     /* <design/arena/#ld.epoch> */
-  RefSet prehistory;               /* <design/arena/#ld.prehistory> */
-  RefSet history[LDHistoryLENGTH]; /* <design/arena/#ld.history> */
+  RefSetStruct prehistory;         /* <design/arena/#ld.prehistory> */
+  RefSetStruct history[LDHistoryLENGTH]; /* <design/arena/#ld.history> */
 
   Bool emergency;               /* garbage collect in emergency mode? */
 

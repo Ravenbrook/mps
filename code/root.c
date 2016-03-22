@@ -521,7 +521,7 @@ Res RootScan(ScanState ss, Root root)
   if (TraceSetInter(root->grey, ss->traces) == TraceSetEMPTY)
     return ResOK;
 
-  AVER(RefSetIsEmpty(ScanStateSummary(ss)));
+  AVER(ScanStateSummaryIsEmpty(ss));
 
   if (root->pm != AccessSetEMPTY) {
     ProtSet(root->protBase, root->protLimit, AccessSetEMPTY);
@@ -589,9 +589,14 @@ Res RootScan(ScanState ss, Root root)
 
   AVER(res == ResOK);
   root->grey = TraceSetDiff(root->grey, ss->traces);
-  rootSetSummary(root, ScanStateSummary(ss));
-  /* FIXME: Consider how to log refsets */
-  EVENT3(RootScan, root, ss->traces, ScanStateSummary(ss).zones);
+  {
+    RefSetStruct summary;
+    ScanStateGetSummary(&summary, ss);
+    rootSetSummary(root, summary);
+    
+    /* FIXME: Consider how to log refsets */
+    EVENT3(RootScan, root, ss->traces, summary.zones);
+  }
 
 failScan:
   if (root->pm != AccessSetEMPTY) {

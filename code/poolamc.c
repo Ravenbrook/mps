@@ -1359,11 +1359,11 @@ static Res amcScanNailed(Bool *totalReturn, ScanState ss, Pool pool,
      * purely unfixed.  In this one case, unfixedSummary is not 
      * accurate, and cannot be used to verify the SegSummary (see 
      * impl/trace/#verify.segsummary).  Use ScanStateSetSummary to 
-     * store ScanStateSummary in ss.fixedSummary and reset 
+     * store scan state summary in ss.fixedSummary and reset 
      * ss.unfixedSummary.  See job001548.
      */
-  
-    refset = ScanStateSummary(ss);
+
+    ScanStateGetSummary(&refset, ss);
 
     /* A rare event, which might prompt a rare defect to appear. */
     /* FIXME: Consider how to log refsets */
