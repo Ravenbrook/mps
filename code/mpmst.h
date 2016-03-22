@@ -263,6 +263,13 @@ typedef struct SegStruct {      /* segment structure */
 } SegStruct;
 
 
+/* RefSetStruct -- conservative approximation of a set of references */
+
+typedef struct RefSetStruct {
+  ZoneSet zones;
+} RefSetStruct;
+
+
 /* GCSegStruct -- GCable segment structure
  *
  * .seggc: GCSeg is a subclass of Seg with support for buffered
@@ -411,7 +418,7 @@ typedef struct mps_fmt_s {
  *
  *   zs  Shift   zoneShift       copy of arena->zoneShift.  See .ss.zone
  *   w   ZoneSet white           white set, for inline fix test
- *   ufs RefSet  unfixedSummary  accumulated summary of scanned references
+ *   ufs ZoneSet  unfixedSummary accumulated summary of scanned references
  *
  * NOTE: The mps_ss structure used to be obfuscated to preserve Harlequin's
  * trade secrets in the MPS technology.  These days they just seek to

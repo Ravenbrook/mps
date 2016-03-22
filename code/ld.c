@@ -134,6 +134,7 @@ void LDAdd(mps_ld_t ld, Arena arena, Addr addr)
  * .stale.old: Otherwise, if the dependency is older than the length
  * of the history, check it against all movement that has ever occured.
  */
+
 Bool LDIsStaleAny(mps_ld_t ld, Arena arena)
 {
   RefSet rs;
@@ -148,11 +149,11 @@ Bool LDIsStaleAny(mps_ld_t ld, Arena arena)
   /* Load the history refset, _then_ check to see if it's recent.
    * This may in fact load an okay refset, which we decide to throw
    * away and use the pre-history instead. */
-  rs = arena->history[ld->_epoch % LDHistoryLENGTH];
+  rs = &arena->history[ld->_epoch % LDHistoryLENGTH];
   /* .stale.recent */
   /* .stale.recent.conservative */
   if (arena->epoch - ld->_epoch > LDHistoryLENGTH) {
-    rs = arena->prehistory;     /* .stale.old */
+    rs = &arena->prehistory;     /* .stale.old */
   }
 
   return RefSetInterZones(rs, ld->_zones);
@@ -196,7 +197,7 @@ void LDAge(Arena arena, RefSet rs)
   /* Replace the entry for epoch - LDHistoryLENGTH by an empty */
   /* set which will become the set which has moved since the */
   /* current epoch. */
-  arena->history[arena->epoch % LDHistoryLENGTH] = RefSetEMPTY;
+  RefSetCopy(&arena->history[arena->epoch % LDHistoryLENGTH], RefSetEMPTY);
 
   /* Record the fact that the moved set has moved, by adding it */
   /* to all the sets in the history, including the set for the */

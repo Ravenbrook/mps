@@ -109,7 +109,6 @@ Bool GlobalsCheck(Globals arenaGlobals)
   Trace trace;
   Index i;
   Size depth;
-  RefSet rs;
   Rank rank;
 
   CHECKS(Globals, arenaGlobals);
@@ -194,19 +193,21 @@ Bool GlobalsCheck(Globals arenaGlobals)
   CHECKL(arena->tracedTime >= 0.0);
   /* no check for arena->lastWorldCollect (Clock) */
 
-  /* can't write a check for arena->epoch */
-
-  /* check that each history entry is a subset of the next oldest */
-  rs = RefSetEMPTY;
-  /* note this loop starts from 1; there is no history age 0 */
-  for (i=1; i <= LDHistoryLENGTH; ++ i) {
-    /* check history age 'i'; 'j' is the history index. */
-    Index j = (arena->epoch + LDHistoryLENGTH - i) % LDHistoryLENGTH;
-    CHECKL(RefSetSub(rs, arena->history[j]));
-    rs = arena->history[j];
+  {
+    /* can't write a check for arena->epoch */
+    
+    /* check that each history entry is a subset of the next oldest */
+    RefSet rs = RefSetEMPTY;
+    /* note this loop starts from 1; there is no history age 0 */
+    for (i = 1; i <= LDHistoryLENGTH; ++i) {
+      /* check history age 'i'; 'j' is the history index. */
+      Index j = (arena->epoch + LDHistoryLENGTH - i) % LDHistoryLENGTH;
+      CHECKL(RefSetSub(rs, &arena->history[j]));
+      rs = &arena->history[j];
+    }
+    /* the oldest history entry must be a subset of the prehistory */
+    CHECKL(RefSetSub(rs, &arena->prehistory));
   }
-  /* the oldest history entry must be a subset of the prehistory */
-  CHECKL(RefSetSub(rs, arena->prehistory));
 
   /* we also check the statics now. <design/arena/#static.check> */
   CHECKL(BoolCheck(arenaRingInit));
@@ -318,9 +319,9 @@ Res GlobalsInit(Globals arenaGlobals)
   RingInit(&arena->chainRing);
 
   arena->epoch = (Epoch)0;              /* <code/ld.c> */
-  arena->prehistory = RefSetEMPTY;
+  RefSetCopy(&arena->prehistory, RefSetEMPTY);
   for(i = 0; i < LDHistoryLENGTH; ++i)
-    arena->history[i] = RefSetEMPTY;
+    RefSetCopy(&arena->history[i], RefSetEMPTY);
 
   arena->emergency = FALSE;
 
@@ -1005,7 +1006,7 @@ Res GlobalsDescribe(Globals arenaGlobals, mps_lib_FILE *stream, Count depth)
   if (res != ResOK)
     return res;
 
-  res = RefSetDescribe(arena->prehistory, stream, depth + 2);
+  res = RefSetDescribe(&arena->prehistory, stream, depth + 2);
   if (res != ResOK)
     return res;
 
@@ -1022,7 +1023,7 @@ Res GlobalsDescribe(Globals arenaGlobals, mps_lib_FILE *stream, Count depth)
                  NULL);
     if (res != ResOK)
       return res;
-    res = RefSetDescribe(arena->history[i], stream, depth + 4);
+    res = RefSetDescribe(&arena->history[i], stream, depth + 4);
     if (res != ResOK)
       return res;
   }

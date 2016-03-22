@@ -1379,7 +1379,7 @@ static Res amcScanNailed(Bool *totalReturn, ScanState ss, Pool pool,
              refset.zones);
     }
   
-    ScanStateSetSummary(ss, refset);
+    ScanStateSetSummary(ss, &refset);
   }
   
   *totalReturn = total;
@@ -1663,8 +1663,8 @@ static Res AMCFix(Pool pool, ScanState ss, Seg seg, Ref *refIO)
         grey = TraceSetUnion(grey, ss->traces);
         SegGetSummary(&fromSummary, seg);
         SegGetSummary(&toSummary, toSeg);
-        RefSetUnion(&toSummary, fromSummary);
-        SegSetSummary(toSeg, toSummary);
+        RefSetUnion(&toSummary, &fromSummary);
+        SegSetSummary(toSeg, &toSummary);
       } else {
         AVER(SegRankSet(toSeg) == RankSetEMPTY);
       }

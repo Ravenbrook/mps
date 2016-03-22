@@ -314,7 +314,7 @@ static void SegSummaryAddRef(Seg seg, Ref ref)
   RefSetStruct summary;
   SegGetSummary(&summary, seg);
   RefSetAdd(&summary, SegArena(seg), ref);
-  SegSetSummary(seg, summary);
+  SegSetSummary(seg, &summary);
 }
 
 void SegSummaryAddFixedRef(Seg seg, Ref ref)
@@ -331,8 +331,10 @@ void SegSummaryAddMutatorRef(Seg seg, Ref ref)
 Bool SegSummaryIsEmpty(Seg seg)
 {
   RefSetStruct summary;
+  /* FIXME: This and similar functions could just do
+     RefSetIsEmpty(&seg->summary) if they were passed a GCSeg. */
   SegGetSummary(&summary, seg);
-  return RefSetIsEmpty(summary);
+  return RefSetIsEmpty(&summary);
 }
 
 
@@ -340,7 +342,7 @@ Bool SegSummaryIsUniv(Seg seg)
 {
   RefSetStruct summary;
   SegGetSummary(&summary, seg);
-  return RefSetIsUniv(summary);
+  return RefSetIsUniv(&summary);
 }
 
 
@@ -348,7 +350,7 @@ Bool SegDoesNotReferenceZones(Seg seg, ZoneSet zones)
 {
   RefSetStruct summary;
   SegGetSummary(&summary, seg);
-  return !RefSetInterZones(summary, zones);
+  return !RefSetInterZones(&summary, zones);
 }
 
 
@@ -356,14 +358,14 @@ Bool SegSummarySuper(Seg seg, RefSet rs)
 {
   RefSetStruct summary;
   SegGetSummary(&summary, seg);
-  return RefSetSuper(summary, rs);
+  return RefSetSuper(&summary, rs);
 }
 
 Bool SegSummaryEqual(Seg seg, RefSet rs)
 {
   RefSetStruct summary;
   SegGetSummary(&summary, seg);
-  return RefSetEqual(summary, rs);
+  return RefSetEqual(&summary, rs);
 }
 
 
@@ -1126,7 +1128,7 @@ Bool GCSegCheck(GCSeg gcseg)
 
   if (seg->rankSet == RankSetEMPTY) {
     /* <design/seg/#field.rankSet.empty> */
-    CHECKL(RefSetIsEmpty(gcseg->summary));
+    CHECKL(RefSetIsEmpty(&gcseg->summary));
   }
 
   return TRUE;
@@ -1156,7 +1158,7 @@ static Res gcSegInit(Seg seg, Pool pool, Addr base, Size size, ArgList args)
   if (ResOK != res)
     return res;
 
-  gcseg->summary = RefSetEMPTY;
+  RefSetCopy(&gcseg->summary, RefSetEMPTY);
   gcseg->buffer = NULL;
   RingInit(&gcseg->greyRing);
   gcseg->sig = GCSegSig;
@@ -1182,7 +1184,9 @@ static void gcSegFinish(Seg seg)
     RingRemove(&gcseg->greyRing);
     seg->grey = TraceSetEMPTY;
   }
-  gcseg->summary = RefSetEMPTY;
+
+  /* FIXME: Shouldn't this be using SegSetSummary to remove barriers? */
+  RefSetCopy(&gcseg->summary, RefSetEMPTY);
 
   gcseg->sig = SigInvalid;
 
@@ -1369,12 +1373,12 @@ static void gcSegSetRankSet(Seg seg, RankSet rankSet)
 
   if (oldRankSet == RankSetEMPTY) {
     if (rankSet != RankSetEMPTY) {
-      AVER(RefSetIsEmpty(gcseg->summary));
+      AVER(RefSetIsEmpty(&gcseg->summary));
       ShieldRaise(arena, seg, AccessWRITE);
     }
   } else {
     if (rankSet == RankSetEMPTY) {
-      AVER(RefSetIsEmpty(gcseg->summary));
+      AVER(RefSetIsEmpty(&gcseg->summary));
       ShieldLower(arena, seg, AccessWRITE);
     }
   }
@@ -1393,7 +1397,7 @@ static void gcSegSetRankSet(Seg seg, RankSet rankSet)
 static void gcSegSetSummary(Seg seg, RefSet summary)
 {
   GCSeg gcseg;
-  RefSet oldSummary;
+  RefSetStruct oldSummary;
   Arena arena;
 
   AVERT_CRITICAL(Seg, seg);                 /* .seg.method.check */
@@ -1402,16 +1406,16 @@ static void gcSegSetSummary(Seg seg, RefSet summary)
   AVER_CRITICAL(&gcseg->segStruct == seg);
 
   arena = PoolArena(SegPool(seg));
-  oldSummary = gcseg->summary;
-  gcseg->summary = summary;
+  RefSetCopy(&oldSummary, &gcseg->summary);
+  RefSetCopy(&gcseg->summary, summary);
 
   AVER(seg->rankSet != RankSetEMPTY);
 
   if (!RefSetIsUniv(summary)) {
-    if (RefSetIsUniv(oldSummary))
+    if (RefSetIsUniv(&oldSummary))
       ShieldRaise(arena, seg, AccessWRITE);
   } else {
-    if (!RefSetIsUniv(oldSummary))
+    if (!RefSetIsUniv(&oldSummary))
       ShieldLower(arena, seg, AccessWRITE);
   }
 }
@@ -1438,11 +1442,11 @@ static void gcSegSetRankSummary(Seg seg, RankSet rankSet, RefSet summary)
 
   arena = PoolArena(SegPool(seg));
 
-  wasShielded = (seg->rankSet != RankSetEMPTY && !RefSetIsUniv(gcseg->summary));
+  wasShielded = (seg->rankSet != RankSetEMPTY && !RefSetIsUniv(&gcseg->summary));
   willbeShielded = (rankSet != RankSetEMPTY && !RefSetIsUniv(summary));
 
   seg->rankSet = BS_BITFIELD(Rank, rankSet);
-  gcseg->summary = summary;
+  RefSetCopy(&gcseg->summary, summary);
 
   if (willbeShielded && !wasShielded) {
     ShieldRaise(arena, seg, AccessWRITE);
@@ -1496,7 +1500,7 @@ static Res gcSegMerge(Seg seg, Seg segHi,
   SegClass super;
   GCSeg gcseg, gcsegHi;
   TraceSet grey;
-  RefSet summary;
+  RefSetStruct summary;
   Buffer buf;
   Res res;
 
@@ -1525,16 +1529,16 @@ static Res gcSegMerge(Seg seg, Seg segHi,
     goto failSuper;
 
   /* Update fields of gcseg. Finish gcsegHi. */
-  RefSetCopy(&summary, gcseg->summary);
-  RefSetUnion(&summary, gcsegHi->summary);
-  if (!RefSetEqual(summary, gcseg->summary)) {
-    gcSegSetSummary(seg, summary);
+  RefSetCopy(&summary, &gcseg->summary);
+  RefSetUnion(&summary, &gcsegHi->summary);
+  if (!RefSetEqual(&summary, &gcseg->summary)) {
+    gcSegSetSummary(seg, &summary);
     /* <design/seg/#split-merge.shield.re-flush> */
     ShieldFlush(PoolArena(SegPool(seg)));
   }
 
   gcSegSetGreyInternal(segHi, grey, TraceSetEMPTY);
-  gcsegHi->summary = RefSetEMPTY;
+  RefSetCopy(&gcsegHi->summary, RefSetEMPTY);
   gcsegHi->sig = SigInvalid;
   RingFinish(&gcsegHi->greyRing);
 
@@ -1646,7 +1650,7 @@ static Res gcSegDescribe(Seg seg, mps_lib_FILE *stream, Count depth)
   if (res != ResOK)
     return res;
 
-  res = RefSetDescribe(gcseg->summary, stream, depth + 2);
+  res = RefSetDescribe(&gcseg->summary, stream, depth + 2);
   if (res != ResOK)
     return res;
 

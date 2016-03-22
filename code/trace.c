@@ -95,7 +95,7 @@ void ScanStateInit(ScanState ss, TraceSet ts, Arena arena,
   ss->traces = ts;
   ScanStateSetZoneShift(ss, arena->zoneShift);
   ScanStateSetUnfixedSummary(ss, ZoneSetEMPTY);
-  ss->fixedSummary = RefSetEMPTY;
+  RefSetCopy(&ss->fixedSummary, RefSetEMPTY);
   ss->arena = arena;
   ss->wasMarked = TRUE;
   ScanStateSetWhite(ss, white);
@@ -589,7 +589,7 @@ static Res traceFlip(Trace trace)
     RefSetStruct mayMove;
     /* FIXME: Consider how mayMove could be a RefSet */
     RefSetFromZones(&mayMove, trace->mayMove);
-    LDAge(arena, mayMove);
+    LDAge(arena, &mayMove);
   }
 
   /* .root.rank: At the moment we must scan all roots, because we don't have */
@@ -1087,7 +1087,7 @@ void ScanStateSetSummary(ScanState ss, RefSet summary)
   /* Can't check summary, as it can be anything. */
 
   ScanStateSetUnfixedSummary(ss, ZoneSetEMPTY);
-  ss->fixedSummary = summary;
+  RefSetCopy(&ss->fixedSummary, summary);
   AVER(ScanStateSummaryEqual(ss, summary));
 }
 
@@ -1098,7 +1098,8 @@ void ScanStateSetSummary(ScanState ss, RefSet summary)
  * references, minus the white set, plus the summary of the fixed
  * references.  This is because TraceFix is called for all references in
  * the white set, and accumulates a summary of references after they
- * have been fixed.  */
+ * have been fixed.
+ */
 
 void ScanStateGetSummary(RefSetStruct *summaryReturn, ScanState ss)
 {
@@ -1108,8 +1109,8 @@ void ScanStateGetSummary(RefSetStruct *summaryReturn, ScanState ss)
 
   RefSetFromZones(&unfixed, ZoneSetDiff(ScanStateUnfixedSummary(ss),
                                         ScanStateWhite(ss)));
-  RefSetCopy(summaryReturn, ss->fixedSummary);
-  RefSetUnion(summaryReturn, unfixed);
+  RefSetCopy(summaryReturn, &ss->fixedSummary);
+  RefSetUnion(summaryReturn, &unfixed);
 }
 
 
@@ -1117,7 +1118,7 @@ Bool ScanStateSummaryIsEmpty(ScanState ss)
 {
   RefSetStruct summary;
   ScanStateGetSummary(&summary, ss);
-  return RefSetIsEmpty(summary);
+  return RefSetIsEmpty(&summary);
 }
 
 
@@ -1125,7 +1126,7 @@ Bool ScanStateSummaryEqual(ScanState ss, RefSet rs)
 {
   RefSetStruct summary;
   ScanStateGetSummary(&summary, ss);
-  return RefSetEqual(summary, rs);
+  return RefSetEqual(&summary, rs);
 }
 
 
@@ -1188,7 +1189,7 @@ static Res traceScanSegRes(TraceSet ts, Rank rank, Arena arena, Seg seg)
     {
       RefSetStruct unfixed;
       RefSetFromZones(&unfixed, ScanStateUnfixedSummary(ss));
-      AVER(SegSummarySuper(seg, unfixed));
+      AVER(SegSummarySuper(seg, &unfixed));
     }
 
     {
@@ -1200,10 +1201,10 @@ static Res traceScanSegRes(TraceSet ts, Rank rank, Arena arena, Seg seg)
       if (res != ResOK || !wasTotal) {
         RefSetStruct oldSummary;
         SegGetSummary(&oldSummary, seg);
-        RefSetUnion(&newSummary, oldSummary);
+        RefSetUnion(&newSummary, &oldSummary);
       }
 
-      SegSetSummary(seg, newSummary);
+      SegSetSummary(seg, &newSummary);
     }
 
     ScanStateFinish(ss);

@@ -13,52 +13,54 @@
 SRCID(ref, "$Id$");
 
 
-RefSet RefSetEMPTY = {ZoneSetEMPTY};
-RefSet RefSetUNIV  = {ZoneSetUNIV};
+static RefSetStruct RefSetEmptyStruct = {ZoneSetEMPTY};
+static RefSetStruct RefSetUnivStruct  = {ZoneSetUNIV};
+RefSet RefSetEMPTY = &RefSetEmptyStruct;
+RefSet RefSetUNIV  = &RefSetUnivStruct;
 
 void RefSetCopy(RefSetStruct *rsReturn, RefSet rs)
 {
-  rsReturn->zones = rs.zones;
+  rsReturn->zones = rs->zones;
 }
 
 Bool RefSetSub(RefSet rs1, RefSet rs2)
 {
-  return ZoneSetSub(rs1.zones, rs2.zones);
+  return ZoneSetSub(rs1->zones, rs2->zones);
 }
 
 Bool RefSetSuper(RefSet rs1, RefSet rs2)
 {
-  return ZoneSetSuper(rs1.zones, rs2.zones);
+  return ZoneSetSuper(rs1->zones, rs2->zones);
 }
 
-void RefSetAdd(RefSet *rsIO, Arena arena, Ref ref)
+void RefSetAdd(RefSetStruct *rsIO, Arena arena, Ref ref)
 {
   rsIO->zones = ZoneSetAddAddr(arena, rsIO->zones, (Addr)ref);
 }
 
 Bool RefSetInterZones(RefSet rs, ZoneSet zs)
 {
-  return ZoneSetInter(rs.zones, zs) != ZoneSetEMPTY;
+  return ZoneSetInter(rs->zones, zs) != ZoneSetEMPTY;
 }
 
 Bool RefSetIsEmpty(RefSet rs)
 {
-  return rs.zones == ZoneSetEMPTY;
+  return rs->zones == ZoneSetEMPTY;
 }
 
 Bool RefSetEqual(RefSet rs1, RefSet rs2)
 {
-  return rs1.zones == rs2.zones;
+  return rs1->zones == rs2->zones;
 }
 
 Bool RefSetIsUniv(RefSet rs)
 {
-  return rs.zones == ZoneSetUNIV;
+  return rs->zones == ZoneSetUNIV;
 }
 
 void RefSetUnion(RefSetStruct *rsIO, RefSet rs2)
 {
-  rsIO->zones = ZoneSetUnion(rsIO->zones, rs2.zones);
+  rsIO->zones = ZoneSetUnion(rsIO->zones, rs2->zones);
 }
 
 void RefSetFromZones(RefSetStruct *rsReturn, ZoneSet zones)
@@ -69,9 +71,9 @@ void RefSetFromZones(RefSetStruct *rsReturn, ZoneSet zones)
 Res RefSetDescribe(RefSet rs, mps_lib_FILE *stream, Count depth)
 {
   return WriteF(stream, depth,
-                "RefSet {\n",
-                "  zones = $B\n", (WriteFB)rs.zones,
-                "} RefSet\n",
+                "RefSet $P {\n",  (WriteFP)rs,
+                "  zones = $B\n", (WriteFB)rs->zones,
+                "} RefSet $P\n",  (WriteFP)rs,
                 NULL);
 }
 

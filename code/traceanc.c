@@ -646,7 +646,7 @@ typedef struct RememberedSummaryBlockStruct {
   RingStruct globalRing;        /* link on globals->rememberedSummaryRing */
   struct SummaryPair {
     Addr base;
-    RefSet summary;
+    RefSetStruct summary;
   } the[RememberedSummaryBLOCK];
 } RememberedSummaryBlockStruct;
 
@@ -659,7 +659,7 @@ static void rememberedSummaryBlockInit(struct RememberedSummaryBlockStruct *bloc
   RingInit(&block->globalRing);
   for(i = 0; i < RememberedSummaryBLOCK; ++ i) {
     block->the[i].base = (Addr)0;
-    block->the[i].summary = RefSetUNIV;
+    RefSetCopy(&block->the[i].summary, RefSetUNIV);
   }
 }
 
@@ -690,9 +690,9 @@ static Res arenaRememberSummaryOne(Globals global, Addr base, RefSet summary)
     RingPrev(GlobalsRememberedSummaryRing(global)));
   AVER(global->rememberedSummaryIndex < RememberedSummaryBLOCK);
   AVER(block->the[global->rememberedSummaryIndex].base == (Addr)0);
-  AVER(RefSetIsUniv(block->the[global->rememberedSummaryIndex].summary));
+  AVER(RefSetIsUniv(&block->the[global->rememberedSummaryIndex].summary));
   block->the[global->rememberedSummaryIndex].base = base;
-  block->the[global->rememberedSummaryIndex].summary = summary;
+  RefSetCopy(&block->the[global->rememberedSummaryIndex].summary, summary);
   ++ global->rememberedSummaryIndex;
   if(global->rememberedSummaryIndex >= RememberedSummaryBLOCK) {
     AVER(global->rememberedSummaryIndex == RememberedSummaryBLOCK);
@@ -728,8 +728,8 @@ void ArenaExposeRemember(Globals globals, Bool remember)
           RefSetStruct summary;
 
           SegGetSummary(&summary, seg);
-          if (!RefSetIsUniv(summary)) {
-            Res res = arenaRememberSummaryOne(globals, base, summary);
+          if (!RefSetIsUniv(&summary)) {
+            Res res = arenaRememberSummaryOne(globals, base, &summary);
             if(res != ResOK) {
               /* If we got an error then stop trying to remember any
               protections. */
@@ -761,13 +761,13 @@ void ArenaRestoreProtection(Globals globals)
       Bool b;
 
       if(block->the[i].base == (Addr)0) {
-        AVER(RefSetIsUniv(block->the[i].summary));
+        AVER(RefSetIsUniv(&block->the[i].summary));
         continue;
       }
       b = SegOfAddr(&seg, arena, block->the[i].base);
       if(b && SegBase(seg) == block->the[i].base) {
         AVER(IsSubclassPoly(ClassOfSeg(seg), GCSegClassGet()));
-        SegSetSummary(seg, block->the[i].summary);
+        SegSetSummary(seg, &block->the[i].summary);
       } else {
         /* Either seg has gone or moved, both of which are */
         /* client errors. */

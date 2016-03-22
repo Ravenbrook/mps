@@ -195,7 +195,7 @@ static Res rootCreate(Root *rootReturn, Arena arena,
   root->var = type;
   root->the  = *theUnionP;
   root->grey = TraceSetEMPTY;
-  root->summary = RefSetUNIV;
+  RefSetCopy(&root->summary, RefSetUNIV);
   root->mode = mode;
   root->pm = AccessSetEMPTY;
   root->protectable = FALSE;
@@ -473,7 +473,7 @@ AccessSet RootPM(Root root)
 
 Bool RootDoesNotReferenceZones(Root root, ZoneSet zs)
 {
-  return !RefSetInterZones(root->summary, zs);
+  return !RefSetInterZones(&root->summary, zs);
 }
 
 
@@ -494,14 +494,14 @@ static void rootSetSummary(Root root, RefSet summary)
   /* Can't check summary */
   if (root->protectable) {
     if (RefSetIsUniv(summary)) {
-      root->summary = summary;
+      RefSetCopy(&root->summary, summary);
       root->pm &= ~AccessWRITE;
     } else {
       root->pm |= AccessWRITE;
-      root->summary = summary;
+      RefSetCopy(&root->summary, summary);
     }
   } else
-    AVER(RefSetIsUniv(root->summary));
+    AVER(RefSetIsUniv(&root->summary));
 }
 
 
@@ -589,7 +589,7 @@ Res RootScan(ScanState ss, Root root)
   {
     RefSetStruct summary;
     ScanStateGetSummary(&summary, ss);
-    rootSetSummary(root, summary);
+    rootSetSummary(root, &summary);
     
     /* FIXME: Consider how to log refsets */
     EVENT3(RootScan, root, ss->traces, summary.zones);
@@ -687,7 +687,7 @@ Res RootDescribe(Root root, mps_lib_FILE *stream, Count depth)
   if (res != ResOK)
     return res;
 
-  res = RefSetDescribe(root->summary, stream, depth + 2);
+  res = RefSetDescribe(&root->summary, stream, depth + 2);
   if (res != ResOK)
     return res;
   

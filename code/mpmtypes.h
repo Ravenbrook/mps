@@ -52,9 +52,7 @@ typedef mps_arg_s *ArgList;
 typedef mps_key_t Key;
 
 typedef Word ZoneSet;                   /* design.mps.refset */
-typedef struct RefSetStruct {
-  ZoneSet zones;
-} RefSetStruct, RefSet;                 /* design.mps.refset */
+typedef struct RefSetStruct *RefSet;    /* design.mps.refset */
 typedef unsigned Rank;
 typedef unsigned RankSet;
 typedef unsigned RootMode;
