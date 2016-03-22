@@ -1337,11 +1337,11 @@ static void gcSegSetSummary(Seg seg, RefSet summary)
 
   AVER(seg->rankSet != RankSetEMPTY);
 
-  if (RefSetStrictSub(summary, RefSetUNIV)) {
-    if (RefSetSuper(oldSummary, RefSetUNIV))
+  if (!RefSetIsUniv(summary)) {
+    if (RefSetIsUniv(oldSummary))
       ShieldRaise(arena, seg, AccessWRITE);
   } else {
-    if (RefSetStrictSub(oldSummary, RefSetUNIV))
+    if (!RefSetIsUniv(oldSummary))
       ShieldLower(arena, seg, AccessWRITE);
   }
 }

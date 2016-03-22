@@ -862,7 +862,6 @@ extern RefSet RefSetEMPTY;
 extern RefSet RefSetUNIV;
 extern Bool RefSetSub(RefSet rs1, RefSet rs2);
 extern Bool RefSetSuper(RefSet rs1, RefSet rs2);
-#define RefSetStrictSub(rs1, rs2) (!RefSetSuper(rs1, rs2))
 extern RefSet RefSetAdd(Arena arena, RefSet rs, Ref ref);
 extern Bool RefSetInterZones(RefSet rs, ZoneSet zs);
 extern Bool RefSetIsEmpty(RefSet rs);
