@@ -1350,16 +1350,16 @@ static Res amcScanNailed(Bool *totalReturn, ScanState ss, Pool pool,
   } while(moreScanning);
 
   if(loops > 1) {
-    RefSet refset;
+    RefSetStruct refset;
 
     AVER(ArenaEmergency(PoolArena(pool)));
 
-    /* Looped: fixed refs (from 1st pass) were seen by MPS_FIX1
-     * (in later passes), so the "ss.unfixedSummary" is _not_
-     * purely unfixed.  In this one case, unfixedSummary is not 
-     * accurate, and cannot be used to verify the SegSummary (see 
-     * impl/trace/#verify.segsummary).  Use ScanStateSetSummary to 
-     * store scan state summary in ss.fixedSummary and reset 
+    /* Looped: fixed refs (from 1st pass) were seen by MPS_FIX1 (in
+     * later passes), so the "ss.unfixedSummary" is _not_ purely
+     * unfixed.  In this one case, unfixedSummary is not accurate, and
+     * cannot be used to verify the segment summary (see
+     * impl/trace/#verify.segsummary).  Use ScanStateSetSummary to
+     * store scan state summary in ss.fixedSummary and reset
      * ss.unfixedSummary.  See job001548.
      */
 
@@ -1367,13 +1367,17 @@ static Res amcScanNailed(Bool *totalReturn, ScanState ss, Pool pool,
 
     /* A rare event, which might prompt a rare defect to appear. */
     /* FIXME: Consider how to log refsets */
-    EVENT6(amcScanNailed,
-           loops,
-           SegSummary(seg).zones,
-           ScanStateWhite(ss), 
-           ScanStateUnfixedSummary(ss),
-           ss->fixedSummary.zones,
-           refset.zones);
+    {
+      RefSetStruct segSummary;
+      SegGetSummary(&segSummary, seg);
+      EVENT6(amcScanNailed,
+             loops,
+             segSummary.zones,
+             ScanStateWhite(ss), 
+             ScanStateUnfixedSummary(ss),
+             ss->fixedSummary.zones,
+             refset.zones);
+    }
   
     ScanStateSetSummary(ss, refset);
   }
@@ -1655,8 +1659,12 @@ static Res AMCFix(Pool pool, ScanState ss, Seg seg, Ref *refIO)
       /* union the greyness and the summaries together. */
       grey = SegGrey(seg);
       if(SegRankSet(seg) != RankSetEMPTY) { /* not for AMCZ */
+        RefSetStruct fromSummary, toSummary;
         grey = TraceSetUnion(grey, ss->traces);
-        SegSetSummary(toSeg, RefSetUnion(SegSummary(toSeg), SegSummary(seg)));
+        SegGetSummary(&fromSummary, seg);
+        SegGetSummary(&toSummary, toSeg);
+        toSummary = RefSetUnion(toSummary, fromSummary);
+        SegSetSummary(toSeg, toSummary);
       } else {
         AVER(SegRankSet(toSeg) == RankSetEMPTY);
       }

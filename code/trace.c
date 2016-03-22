@@ -1144,7 +1144,7 @@ static Res traceScanSegRes(TraceSet ts, Rank rank, Arena arena, Seg seg)
   white = traceSetWhiteUnion(ts, arena);
 
   /* Only scan a segment if it refers to the white set. */
-  if (!RefSetInterZones(SegSummary(seg), white)) {
+  if (!SegMayReferenceZones(seg, white)) {
     PoolBlacken(SegPool(seg), ts, seg);
     /* Setup result code to return later. */
     res = ResOK;
@@ -1178,21 +1178,25 @@ static Res traceScanSegRes(TraceSet ts, Rank rank, Arena arena, Seg seg)
     /* Following is true whether or not scan was total. */
     /* See <design/scan/#summary.subset>. */
     /* .verify.segsummary: were the seg contents, as found by this 
-     * scan, consistent with the recorded SegSummary?
+     * scan, consistent with the recorded segment summary?
      */
     /* FIXME: Need to combine unfixed summary with full refset of segment somehow. */
-    AVER(RefSetSub(RefSetFromZones(ScanStateUnfixedSummary(ss)), SegSummary(seg)));
+    AVER(SegSummarySuper(seg, RefSetFromZones(ScanStateUnfixedSummary(ss))));
+    /* AVER(RefSetSub(RefSetFromZones(ScanStateUnfixedSummary(ss)), SegSummary(seg))); */
 
     {
-      RefSetStruct summary;
-      ScanStateGetSummary(&summary, ss);
+      RefSetStruct newSummary;
+      ScanStateGetSummary(&newSummary, ss);
 
       /* If the scan was partial, the scanned summary must be unioned
          into the segment summary rather than replacing it. */
-      if (res != ResOK || !wasTotal)
-        summary = RefSetUnion(summary, SegSummary(seg));
+      if (res != ResOK || !wasTotal) {
+        RefSetStruct oldSummary;
+        SegGetSummary(&oldSummary, seg);
+        newSummary = RefSetUnion(newSummary, oldSummary);
+      }
 
-      SegSetSummary(seg, summary);
+      SegSetSummary(seg, newSummary);
     }
 
     ScanStateFinish(ss);
@@ -1248,7 +1252,7 @@ void TraceSegAccess(Arena arena, Seg seg, AccessSet mode)
   /* If it's a write access, then the segment must have a summary that */
   /* is smaller than the mutator's summary (which is assumed to be */
   /* RefSetUNIV). */
-  AVER((mode & SegSM(seg) & AccessWRITE) == 0 || !RefSetIsUniv(SegSummary(seg)));
+  AVER((mode & SegSM(seg) & AccessWRITE) == 0 || !SegSummaryIsUniv(seg));
 
   EVENT3(TraceAccess, arena, seg, mode);
 
@@ -1410,7 +1414,6 @@ done:
 static Res traceScanSingleRefRes(TraceSet ts, Rank rank, Arena arena,
                                  Seg seg, Ref *refIO)
 {
-  RefSet summary;
   ZoneSet white;
   Res res;
   ScanStateStruct ss;
@@ -1418,7 +1421,7 @@ static Res traceScanSingleRefRes(TraceSet ts, Rank rank, Arena arena,
   EVENT4(TraceScanSingleRef, ts, rank, arena, (Addr)refIO);
 
   white = traceSetWhiteUnion(ts, arena);
-  if (!RefSetInterZones(SegSummary(seg), white)) {
+  if (!SegMayReferenceZones(seg, white)) {
     return ResOK;
   }
 
@@ -1430,9 +1433,8 @@ static Res traceScanSingleRefRes(TraceSet ts, Rank rank, Arena arena,
   } TRACE_SCAN_END(&ss);
   ss.scannedSize = sizeof *refIO;
 
-  summary = SegSummary(seg);
-  summary = RefSetAdd(arena, summary, *refIO);
-  SegSetSummary(seg, summary);
+  SegSummaryAddFixedRef(seg, *refIO);
+
   ShieldCover(arena, seg);
 
   traceSetUpdateCounts(ts, arena, &ss, traceAccountingPhaseSingleScan);
@@ -1631,7 +1633,7 @@ Res TraceStart(Trace trace, double mortality, double finishingTime)
         /* to the white set.  This is done by seeing if the summary */
         /* of references in the segment intersects with the */
         /* approximation to the white set. */
-        if (RefSetInterZones(SegSummary(seg), trace->white)) {
+        if (SegMayReferenceZones(seg, trace->white)) {
           /* Note: can a white seg get greyed as well?  At this point */
           /* we still assume it may.  (This assumption runs out in */
           /* PoolTrivGrey). */

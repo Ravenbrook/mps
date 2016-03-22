@@ -419,11 +419,11 @@ Res PoolSingleAccess(Pool pool, Seg seg, Addr addr,
     res = ProtStepInstruction(context);
     AVER(res == ResOK);
 
-    /* Update SegSummary according to the possibly changed reference. */
+    /* Update segment summary according to the possibly changed reference. */
     ref = *(Ref *)addr;
     /* .tagging: ought to check the reference for a tag.  But
      * this is conservative. */
-    SegSetSummary(seg, RefSetAdd(arena, SegSummary(seg), ref));
+    SegSummaryAddMutatorRef(seg, ref);
 
     ShieldCover(arena, seg);
 

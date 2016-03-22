@@ -900,8 +900,6 @@ void ArenaPoke(Arena arena, Ref *p, Ref ref)
 
 void ArenaPokeSeg(Arena arena, Seg seg, Ref *p, Ref ref)
 {
-  RefSet summary;
-
   AVERT(Arena, arena);
   AVERT(Seg, seg);
   AVER(SegBase(seg) <= (Addr)p);
@@ -911,9 +909,7 @@ void ArenaPokeSeg(Arena arena, Seg seg, Ref *p, Ref ref)
 
   ShieldExpose(arena, seg);
   *p = ref;
-  summary = SegSummary(seg);
-  summary = RefSetAdd(arena, summary, ref);
-  SegSetSummary(seg, summary);
+  SegSummaryAddMutatorRef(seg, ref);
   ShieldCover(arena, seg);
 }
 

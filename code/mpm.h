@@ -685,7 +685,15 @@ extern void SegSetRankAndSummary(Seg seg, RankSet rankSet, RefSet summary);
 extern Res SegMerge(Seg *mergedSegReturn, Seg segLo, Seg segHi);
 extern Res SegSplit(Seg *segLoReturn, Seg *segHiReturn, Seg seg, Addr at);
 extern Res SegDescribe(Seg seg, mps_lib_FILE *stream, Count depth);
+extern void SegGetSummary(RefSetStruct *summaryReturn, Seg seg);
 extern void SegSetSummary(Seg seg, RefSet summary);
+extern void SegSummaryAddMutatorRef(Seg seg, Ref ref);
+extern void SegSummaryAddFixedRef(Seg seg, Ref ref);
+extern Bool SegSummaryIsEmpty(Seg seg);
+extern Bool SegSummaryIsUniv(Seg seg);
+extern Bool SegMayReferenceZones(Seg seg, ZoneSet zones);
+extern Bool SegSummaryEqual(Seg seg, RefSet rs);
+extern Bool SegSummarySuper(Seg seg, RefSet rs);
 extern Buffer SegBuffer(Seg seg);
 extern void SegSetBuffer(Seg seg, Buffer buffer);
 extern Bool SegCheck(Seg seg);
@@ -713,6 +721,7 @@ extern Addr (SegLimit)(Seg seg);
 #define SegBase(seg)            (TractBase((seg)->firstTract))
 #define SegLimit(seg)           ((seg)->limit)
 #define SegPool(seg)            (TractPool((seg)->firstTract))
+#define SegArena(seg)           PoolArena(SegPool(seg))
 /* .bitfield.promote: The bit field accesses need to be cast to the */
 /* right type, otherwise they'll be promoted to signed int, see */
 /* standard.ansic.6.2.1.1. */
@@ -727,9 +736,6 @@ extern Addr (SegLimit)(Seg seg);
 #define SegOfPoolRing(node)     (RING_ELT(Seg, poolRing, (node)))
 #define SegOfGreyRing(node)     (&(RING_ELT(GCSeg, greyRing, (node)) \
                                    ->segStruct))
-
-#define SegSummary(seg)         (((GCSeg)(seg))->summary)
-
 #define SegSetPM(seg, mode)     ((void)((seg)->pm = BS_BITFIELD(Access, (mode))))
 #define SegSetSM(seg, mode)     ((void)((seg)->sm = BS_BITFIELD(Access, (mode))))
 #define SegSetDepth(seg, d)     ((void)((seg)->depth = BITFIELD(unsigned, (d), ShieldDepthWIDTH)))

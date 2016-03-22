@@ -292,8 +292,78 @@ void SegSetRankSet(Seg seg, RankSet rankSet)
 {
   AVERT(Seg, seg);
   AVERT(RankSet, rankSet);
-  AVER(rankSet != RankSetEMPTY || RefSetIsEmpty(SegSummary(seg)));
+  AVER(rankSet != RankSetEMPTY || SegSummaryIsEmpty(seg));
   seg->class->setRankSet(seg, rankSet);
+}
+
+
+/* SegGetSummary -- get the summary of a segment */
+
+void SegGetSummary(RefSetStruct *summaryReturn, Seg seg)
+{
+  AVERT(Seg, seg);
+  AVER(summaryReturn != NULL);
+
+  /* FIXME: This is how it was expressed when it was SegSummary. */
+  *summaryReturn = ((GCSeg)seg)->summary;
+}
+  
+
+static void SegSummaryAddRef(Seg seg, Ref ref)
+{
+  RefSetStruct summary;
+  SegGetSummary(&summary, seg);
+  summary = RefSetAdd(SegArena(seg), summary, ref);
+  SegSetSummary(seg, summary);
+}
+
+void SegSummaryAddFixedRef(Seg seg, Ref ref)
+{
+  SegSummaryAddRef(seg, ref);
+}
+
+void SegSummaryAddMutatorRef(Seg seg, Ref ref)
+{
+  SegSummaryAddRef(seg, ref);
+}
+
+
+Bool SegSummaryIsEmpty(Seg seg)
+{
+  RefSetStruct summary;
+  SegGetSummary(&summary, seg);
+  return RefSetIsEmpty(summary);
+}
+
+
+Bool SegSummaryIsUniv(Seg seg)
+{
+  RefSetStruct summary;
+  SegGetSummary(&summary, seg);
+  return RefSetIsUniv(summary);
+}
+
+
+Bool SegMayReferenceZones(Seg seg, ZoneSet zones)
+{
+  RefSetStruct summary;
+  SegGetSummary(&summary, seg);
+  return RefSetInterZones(summary, zones);
+}
+
+
+Bool SegSummarySuper(Seg seg, RefSet rs)
+{
+  RefSetStruct summary;
+  SegGetSummary(&summary, seg);
+  return RefSetSuper(summary, rs);
+}
+
+Bool SegSummaryEqual(Seg seg, RefSet rs)
+{
+  RefSetStruct summary;
+  SegGetSummary(&summary, seg);
+  return RefSetEqual(summary, rs);
 }
 
 
@@ -310,7 +380,7 @@ void SegSetSummary(Seg seg, RefSet summary)
   summary = RefSetUNIV;
 #endif
 
-  if (!RefSetEqual(summary, SegSummary(seg)))
+  if (!SegSummaryEqual(seg, summary))
     seg->class->setSummary(seg, summary);
 }
 

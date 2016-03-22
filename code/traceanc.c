@@ -725,9 +725,9 @@ void ArenaExposeRemember(Globals globals, Bool remember)
       base = SegBase(seg);
       if(IsSubclassPoly(ClassOfSeg(seg), GCSegClassGet())) {
         if(remember) {
-          RefSet summary;
+          RefSetStruct summary;
 
-          summary = SegSummary(seg);
+          SegGetSummary(&summary, seg);
           if (!RefSetIsUniv(summary)) {
             Res res = arenaRememberSummaryOne(globals, base, summary);
             if(res != ResOK) {
