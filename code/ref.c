@@ -26,10 +26,9 @@ Bool RefSetSuper(RefSet rs1, RefSet rs2)
   return ZoneSetSuper(rs1.zones, rs2.zones);
 }
 
-RefSet RefSetAdd(Arena arena, RefSet rs, Ref ref)
+void RefSetAdd(RefSet *rsIO, Arena arena, Ref ref)
 {
-  rs.zones = ZoneSetAddAddr(arena, rs.zones, (Addr)ref);
-  return rs;
+  rsIO->zones = ZoneSetAddAddr(arena, rsIO->zones, (Addr)ref);
 }
 
 Bool RefSetInterZones(RefSet rs, ZoneSet zs)

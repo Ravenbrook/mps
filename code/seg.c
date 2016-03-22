@@ -313,7 +313,7 @@ static void SegSummaryAddRef(Seg seg, Ref ref)
 {
   RefSetStruct summary;
   SegGetSummary(&summary, seg);
-  summary = RefSetAdd(SegArena(seg), summary, ref);
+  RefSetAdd(&summary, SegArena(seg), ref);
   SegSetSummary(seg, summary);
 }
 

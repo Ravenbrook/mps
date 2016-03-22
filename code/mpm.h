@@ -870,7 +870,7 @@ extern RefSet RefSetEMPTY;
 extern RefSet RefSetUNIV;
 extern Bool RefSetSub(RefSet rs1, RefSet rs2);
 extern Bool RefSetSuper(RefSet rs1, RefSet rs2);
-extern RefSet RefSetAdd(Arena arena, RefSet rs, Ref ref);
+extern void RefSetAdd(RefSetStruct *rsIO, Arena arena, Ref ref);
 extern Bool RefSetInterZones(RefSet rs, ZoneSet zs);
 extern Bool RefSetIsEmpty(RefSet rs);
 extern Bool RefSetIsUniv(RefSet rs);

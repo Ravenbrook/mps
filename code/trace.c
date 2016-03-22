@@ -1402,7 +1402,7 @@ mps_res_t _mps_fix2(mps_ss_t mps_ss, mps_addr_t *mps_ref_io)
 
 done:
   /* See <design/trace/#fix.fixed.all> */
-  ss->fixedSummary = RefSetAdd(ss->arena, ss->fixedSummary, ref);
+  RefSetAdd(&ss->fixedSummary, ss->arena, ref);
   
   *mps_ref_io = (mps_addr_t)ref;
   return ResOK;
