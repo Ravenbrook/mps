@@ -57,6 +57,7 @@ typedef unsigned Rank;
 typedef unsigned RankSet;
 typedef unsigned RootMode;
 typedef Size Epoch;                     /* design.mps.ld */
+typedef struct EraStruct *Era;
 typedef unsigned TraceId;               /* <design/trace/> */
 typedef unsigned TraceSet;              /* <design/trace/> */
 typedef unsigned TraceState;            /* <design/trace/> */
@@ -282,6 +283,9 @@ typedef Res (*LandDescribeMethod)(Land land, mps_lib_FILE *stream, Count depth);
 #define SigInvalid      ((Sig)0x51915BAD)
 
 #define SizeMAX         ((Size)-1)
+#define EpochMAX        SizeMAX
+#define EraEARLIEST     0
+#define EraLATEST       EpochMAX
 #define AccessSetEMPTY  ((AccessSet)0) /* <design/type/#access-set> */
 #define AccessREAD      ((AccessSet)(1<<0))
 #define AccessWRITE     ((AccessSet)(1<<1))

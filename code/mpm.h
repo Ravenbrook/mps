@@ -864,6 +864,22 @@ extern Bool RankSetCheck(RankSet rankSet);
 #define AddrZone(arena, addr) \
   (((Word)(addr) >> (arena)->zoneShift) & (MPS_WORD_WIDTH - 1))
 
+
+/* Eras -- see ref.c */
+
+extern void EraEmpty(EraStruct *eraReturn);
+extern void EraUniv(EraStruct *eraReturn);
+extern void EraCopy(EraStruct *eraReturn, Era era);
+extern Bool EraSub(Era era1, Era era2);
+extern Bool EraSuper(Era era1, Era era2);
+extern Epoch EpochMin(Epoch epoch1, Epoch epoch2);
+extern Epoch EpochMax(Epoch epoch1, Epoch epoch2);
+extern void EraUnion(EraStruct *eraReturn, Era era);
+extern Bool EraIsEmpty(Era era);
+extern Bool EraIsUniv(Era era);
+extern Bool EraEqual(Era era1, Era era2);
+extern Res EraDescribe(Era era, mps_lib_FILE *stream, Count depth);
+
 /* Reference sets -- see design.mps.refset */
 
 extern RefSet RefSetEMPTY;

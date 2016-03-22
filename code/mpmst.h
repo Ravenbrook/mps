@@ -263,10 +263,23 @@ typedef struct SegStruct {      /* segment structure */
 } SegStruct;
 
 
+/* EraStruct -- interval of time measured in epochs
+ *
+ * Used as an approximate to a set of allocated objects based on the
+ * epochs of their allocations.
+ */
+
+typedef struct EraStruct {
+  Epoch start;                  /* at most earliest object epoch */
+  Epoch end;                    /* at least latest object epoch plus one */
+} EraStruct;
+
+
 /* RefSetStruct -- conservative approximation of a set of references */
 
 typedef struct RefSetStruct {
-  ZoneSet zones;
+  ZoneSet zones;                /* superset of zones referenced */
+  EraStruct era;                /* superset of object epochs referenced */
 } RefSetStruct;
 
 

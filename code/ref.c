@@ -13,39 +13,126 @@
 SRCID(ref, "$Id$");
 
 
-static RefSetStruct RefSetEmptyStruct = {ZoneSetEMPTY};
-static RefSetStruct RefSetUnivStruct  = {ZoneSetUNIV};
+static RefSetStruct RefSetEmptyStruct = {ZoneSetEMPTY, {0, 0}};
+static RefSetStruct RefSetUnivStruct  = {ZoneSetUNIV, {EraEARLIEST, EraLATEST}};
 RefSet RefSetEMPTY = &RefSetEmptyStruct;
 RefSet RefSetUNIV  = &RefSetUnivStruct;
+
+#define RefSetEra(rs) (&(rs)->era)
+
+void EraEmpty(EraStruct *eraReturn)
+{
+  eraReturn->start = 0;
+  eraReturn->end   = 0;
+}
+
+void EraUniv(EraStruct *eraReturn)
+{
+  eraReturn->start = EraEARLIEST;
+  eraReturn->end   = EraLATEST;
+}
+
+void EraCopy(EraStruct *eraReturn, Era era)
+{
+  eraReturn->start = era->start;
+  eraReturn->end   = era->end;
+}
+
+Bool EraSub(Era era1, Era era2)
+{
+  return (era1->start >= era2->start &&
+          era1->end   <= era2->end);
+}
+
+Bool EraSuper(Era era1, Era era2)
+{
+  return (era1->start <= era2->start &&
+          era1->end   >= era2->end);
+}
+
+Epoch EpochMin(Epoch epoch1, Epoch epoch2)
+{
+  if (epoch1 < epoch2)
+    return epoch1;
+  else
+    return epoch2;
+}
+
+Epoch EpochMax(Epoch epoch1, Epoch epoch2)
+{
+  if (epoch1 > epoch2)
+    return epoch1;
+  else
+    return epoch2;
+}
+
+void EraUnion(EraStruct *eraReturn, Era era)
+{
+  eraReturn->start = EpochMin(eraReturn->start, era->start);
+  eraReturn->end   = EpochMax(eraReturn->end,   era->end);
+}
+
+Bool EraIsEmpty(Era era)
+{
+  return era->start == era->end;
+}
+
+Bool EraIsUniv(Era era)
+{
+  return (era->start == EraEARLIEST &&
+          era->end   == EraLATEST);
+}
+
+Bool EraEqual(Era era1, Era era2)
+{
+  return (era1->start == era2->start &&
+          era1->end   == era2->end);
+}
+
+Res EraDescribe(Era era, mps_lib_FILE *stream, Count depth)
+{
+  return WriteF(stream, depth,
+                "Era $P {\n",     (WriteFP)era,
+                "  start = $U\n", (WriteFU)era->start,
+                "  end   = $U\n", (WriteFU)era->end,
+                "} Era $P\n",     (WriteFP)era,
+                NULL);
+}
 
 void RefSetEmpty(RefSetStruct *rsReturn)
 {
   rsReturn->zones = ZoneSetEMPTY;
+  EraEmpty(RefSetEra(rsReturn));
 }
 
 void RefSetUniv(RefSetStruct *rsReturn)
 {
   rsReturn->zones = ZoneSetUNIV;
+  EraUniv(RefSetEra(rsReturn));
 }
 
 void RefSetCopy(RefSetStruct *rsReturn, RefSet rs)
 {
   rsReturn->zones = rs->zones;
+  EraCopy(RefSetEra(rsReturn), RefSetEra(rs));
 }
 
 Bool RefSetSub(RefSet rs1, RefSet rs2)
 {
-  return ZoneSetSub(rs1->zones, rs2->zones);
+  return (ZoneSetSub(rs1->zones, rs2->zones) &&
+          EraSub(RefSetEra(rs1), RefSetEra(rs2)));
 }
 
 Bool RefSetSuper(RefSet rs1, RefSet rs2)
 {
-  return ZoneSetSuper(rs1->zones, rs2->zones);
+  return (ZoneSetSuper(rs1->zones, rs2->zones) &&
+          EraSuper(RefSetEra(rs1), RefSetEra(rs2)));
 }
 
 void RefSetAdd(RefSetStruct *rsIO, Arena arena, Ref ref)
 {
   rsIO->zones = ZoneSetAddAddr(arena, rsIO->zones, (Addr)ref);
+  EraUniv(RefSetEra(rsIO));
 }
 
 Bool RefSetInterZones(RefSet rs, ZoneSet zs)
@@ -55,36 +142,56 @@ Bool RefSetInterZones(RefSet rs, ZoneSet zs)
 
 Bool RefSetIsEmpty(RefSet rs)
 {
-  return rs->zones == ZoneSetEMPTY;
+  return (rs->zones == ZoneSetEMPTY ||
+          EraIsEmpty(RefSetEra(rs)));
 }
 
 Bool RefSetEqual(RefSet rs1, RefSet rs2)
 {
-  return rs1->zones == rs2->zones;
+  return (rs1->zones == rs2->zones &&
+          EraEqual(RefSetEra(rs1), RefSetEra(rs2)));
 }
 
 Bool RefSetIsUniv(RefSet rs)
 {
-  return rs->zones == ZoneSetUNIV;
+  return (rs->zones == ZoneSetUNIV &&
+          EraIsUniv(RefSetEra(rs)));
 }
 
 void RefSetUnion(RefSetStruct *rsIO, RefSet rs2)
 {
   rsIO->zones = ZoneSetUnion(rsIO->zones, rs2->zones);
+  EraUnion(RefSetEra(rsIO), RefSetEra(rs2));
 }
 
 void RefSetFromZones(RefSetStruct *rsReturn, ZoneSet zones)
 {
   rsReturn->zones = zones;
+  EraUniv(RefSetEra(rsReturn));
 }
 
 Res RefSetDescribe(RefSet rs, mps_lib_FILE *stream, Count depth)
 {
-  return WriteF(stream, depth,
-                "RefSet $P {\n",  (WriteFP)rs,
-                "  zones = $B\n", (WriteFB)rs->zones,
-                "} RefSet $P\n",  (WriteFP)rs,
-                NULL);
+  Res res;
+  
+  res = WriteF(stream, depth,
+               "RefSet $P {\n",  (WriteFP)rs,
+               "  zones = $B\n", (WriteFB)rs->zones,
+               NULL);
+  if (res != ResOK)
+    return res;
+
+  res = EraDescribe(RefSetEra(rs), stream, depth + 2);
+  if (res != ResOK)
+    return res;
+
+  res = WriteF(stream, depth,
+               "} RefSet $P\n",  (WriteFP)rs,
+               NULL);
+  if (res != ResOK)
+    return res;
+
+  return ResOK;
 }
 
 
