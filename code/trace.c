@@ -586,8 +586,10 @@ static Res traceFlip(Trace trace)
   /* mayMove is a conservative approximation of the zones of objects */
   /* which may move during this collection. */
   if(trace->mayMove != ZoneSetEMPTY) {
+    RefSetStruct mayMove;
     /* FIXME: Consider how mayMove could be a RefSet */
-    LDAge(arena, RefSetFromZones(trace->mayMove));
+    RefSetFromZones(&mayMove, trace->mayMove);
+    LDAge(arena, mayMove);
   }
 
   /* .root.rank: At the moment we must scan all roots, because we don't have */
@@ -1100,12 +1102,14 @@ void ScanStateSetSummary(ScanState ss, RefSet summary)
 
 void ScanStateGetSummary(RefSetStruct *summaryReturn, ScanState ss)
 {
+  RefSetStruct unfixed;
+  
   AVERT(ScanState, ss);
 
+  RefSetFromZones(&unfixed, ZoneSetDiff(ScanStateUnfixedSummary(ss),
+                                        ScanStateWhite(ss)));
   RefSetCopy(summaryReturn, ss->fixedSummary);
-  RefSetUnion(summaryReturn,
-              RefSetFromZones(ZoneSetDiff(ScanStateUnfixedSummary(ss),
-                                          ScanStateWhite(ss))));
+  RefSetUnion(summaryReturn, unfixed);
 }
 
 
@@ -1181,9 +1185,11 @@ static Res traceScanSegRes(TraceSet ts, Rank rank, Arena arena, Seg seg)
     /* .verify.segsummary: were the seg contents, as found by this 
      * scan, consistent with the recorded segment summary?
      */
-    /* FIXME: Need to combine unfixed summary with full refset of segment somehow. */
-    AVER(SegSummarySuper(seg, RefSetFromZones(ScanStateUnfixedSummary(ss))));
-    /* AVER(RefSetSub(RefSetFromZones(ScanStateUnfixedSummary(ss)), SegSummary(seg))); */
+    {
+      RefSetStruct unfixed;
+      RefSetFromZones(&unfixed, ScanStateUnfixedSummary(ss));
+      AVER(SegSummarySuper(seg, unfixed));
+    }
 
     {
       RefSetStruct newSummary;

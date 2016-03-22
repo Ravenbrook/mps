@@ -61,11 +61,9 @@ void RefSetUnion(RefSetStruct *rsIO, RefSet rs2)
   rsIO->zones = ZoneSetUnion(rsIO->zones, rs2.zones);
 }
 
-RefSet RefSetFromZones(ZoneSet zones)
+void RefSetFromZones(RefSetStruct *rsReturn, ZoneSet zones)
 {
-  RefSet rs;
-  rs.zones = zones;
-  return rs;
+  rsReturn->zones = zones;
 }
 
 Res RefSetDescribe(RefSet rs, mps_lib_FILE *stream, Count depth)
