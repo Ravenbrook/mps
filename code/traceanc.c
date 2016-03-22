@@ -668,7 +668,7 @@ static Res arenaRememberSummaryOne(Globals global, Addr base, RefSet summary)
   Arena arena;
   RememberedSummaryBlock block;
 
-  AVER(summary != RefSetUNIV);
+  AVER(!RefSetIsUniv(summary));
 
   arena = GlobalsArena(global);
 
@@ -690,7 +690,7 @@ static Res arenaRememberSummaryOne(Globals global, Addr base, RefSet summary)
     RingPrev(GlobalsRememberedSummaryRing(global)));
   AVER(global->rememberedSummaryIndex < RememberedSummaryBLOCK);
   AVER(block->the[global->rememberedSummaryIndex].base == (Addr)0);
-  AVER(block->the[global->rememberedSummaryIndex].summary == RefSetUNIV);
+  AVER(RefSetIsUniv(block->the[global->rememberedSummaryIndex].summary));
   block->the[global->rememberedSummaryIndex].base = base;
   block->the[global->rememberedSummaryIndex].summary = summary;
   ++ global->rememberedSummaryIndex;
@@ -728,7 +728,7 @@ void ArenaExposeRemember(Globals globals, Bool remember)
           RefSet summary;
 
           summary = SegSummary(seg);
-          if(summary != RefSetUNIV) {
+          if (!RefSetIsUniv(summary)) {
             Res res = arenaRememberSummaryOne(globals, base, summary);
             if(res != ResOK) {
               /* If we got an error then stop trying to remember any
@@ -761,7 +761,7 @@ void ArenaRestoreProtection(Globals globals)
       Bool b;
 
       if(block->the[i].base == (Addr)0) {
-        AVER(block->the[i].summary == RefSetUNIV);
+        AVER(RefSetIsUniv(block->the[i].summary));
         continue;
       }
       b = SegOfAddr(&seg, arena, block->the[i].base);

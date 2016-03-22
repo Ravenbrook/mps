@@ -380,10 +380,10 @@ extern RefSet ScanStateSummary(ScanState ss);
 /* See impl.h.mpmst.ss */
 #define ScanStateZoneShift(ss)             ((Shift)(ss)->ss_s._zs)
 #define ScanStateWhite(ss)                 ((ZoneSet)(ss)->ss_s._w)
-#define ScanStateUnfixedSummary(ss)        ((RefSet)(ss)->ss_s._ufs)
+#define ScanStateUnfixedSummary(ss)        ((ZoneSet)(ss)->ss_s._ufs)
 #define ScanStateSetZoneShift(ss, shift)   ((void)((ss)->ss_s._zs = (shift)))
 #define ScanStateSetWhite(ss, zs)          ((void)((ss)->ss_s._w = (zs)))
-#define ScanStateSetUnfixedSummary(ss, rs) ((void)((ss)->ss_s._ufs = (rs)))
+#define ScanStateSetUnfixedSummary(ss, zs) ((void)((ss)->ss_s._ufs = (zs)))
 
 extern Bool TraceIdCheck(TraceId id);
 extern Bool TraceSetCheck(TraceSet ts);
@@ -430,7 +430,7 @@ extern double TraceWorkFactor;
     { \
       Shift SCANzoneShift = ScanStateZoneShift(ss); \
       ZoneSet SCANwhite = ScanStateWhite(ss); \
-      RefSet SCANsummary = ScanStateUnfixedSummary(ss); \
+      ZoneSet SCANsummary = ScanStateUnfixedSummary(ss); \
       Word SCANt; \
       mps_addr_t SCANref; \
       Res SCANres; \
@@ -856,16 +856,20 @@ extern Bool RankSetCheck(RankSet rankSet);
 #define AddrZone(arena, addr) \
   (((Word)(addr) >> (arena)->zoneShift) & (MPS_WORD_WIDTH - 1))
 
-#define RefSetUnion(rs1, rs2)   BS_UNION((rs1), (rs2))
-#define RefSetInter(rs1, rs2)   BS_INTER((rs1), (rs2))
-#define RefSetDiff(rs1, rs2)    BS_DIFF((rs1), (rs2))
-#define RefSetAdd(arena, rs, addr) \
-  BS_ADD(RefSet, rs, AddrZone(arena, addr))
-#define RefSetIsMember(arena, rs, addr) \
-  BS_IS_MEMBER(rs, AddrZone(arena, addr))
-#define RefSetSuper(rs1, rs2)   BS_SUPER((rs1), (rs2))
-#define RefSetSub(rs1, rs2)     BS_SUB((rs1), (rs2))
+/* Reference sets -- see design.mps.refset */
 
+extern RefSet RefSetEMPTY;
+extern RefSet RefSetUNIV;
+extern Bool RefSetSub(RefSet rs1, RefSet rs2);
+extern Bool RefSetSuper(RefSet rs1, RefSet rs2);
+#define RefSetStrictSub(rs1, rs2) (!RefSetSuper(rs1, rs2))
+extern RefSet RefSetAdd(Arena arena, RefSet rs, Ref ref);
+extern Bool RefSetInterZones(RefSet rs, ZoneSet zs);
+extern Bool RefSetIsEmpty(RefSet rs);
+extern Bool RefSetIsUniv(RefSet rs);
+extern Bool RefSetEqual(RefSet rs1, RefSet rs2);
+extern RefSet RefSetUnion(RefSet rs1, RefSet rs2);
+extern RefSet RefSetFromZones(ZoneSet zones);
 
 /* Zone sets -- see design.mps.refset */
 

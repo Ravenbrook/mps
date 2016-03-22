@@ -1366,8 +1366,14 @@ static Res amcScanNailed(Bool *totalReturn, ScanState ss, Pool pool,
     refset = ScanStateSummary(ss);
 
     /* A rare event, which might prompt a rare defect to appear. */
-    EVENT6(amcScanNailed, loops, SegSummary(seg), ScanStateWhite(ss), 
-           ScanStateUnfixedSummary(ss), ss->fixedSummary, refset);
+    /* FIXME: Consider how to log refsets */
+    EVENT6(amcScanNailed,
+           loops,
+           SegSummary(seg).zones,
+           ScanStateWhite(ss), 
+           ScanStateUnfixedSummary(ss),
+           ss->fixedSummary.zones,
+           refset.zones);
   
     ScanStateSetSummary(ss, refset);
   }

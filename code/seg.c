@@ -292,7 +292,7 @@ void SegSetRankSet(Seg seg, RankSet rankSet)
 {
   AVERT(Seg, seg);
   AVERT(RankSet, rankSet);
-  AVER(rankSet != RankSetEMPTY || SegSummary(seg) == RefSetEMPTY);
+  AVER(rankSet != RankSetEMPTY || RefSetIsEmpty(SegSummary(seg)));
   seg->class->setRankSet(seg, rankSet);
 }
 
@@ -302,7 +302,7 @@ void SegSetRankSet(Seg seg, RankSet rankSet)
 void SegSetSummary(Seg seg, RefSet summary)
 {
   AVERT(Seg, seg);
-  AVER(summary == RefSetEMPTY || SegRankSet(seg) != RankSetEMPTY);
+  AVER(RefSetIsEmpty(summary) || SegRankSet(seg) != RankSetEMPTY);
 
 #if defined(REMEMBERED_SET_NONE)
   /* Without protection, we can't maintain the remembered set because
@@ -310,7 +310,7 @@ void SegSetSummary(Seg seg, RefSet summary)
   summary = RefSetUNIV;
 #endif
 
-  if (summary != SegSummary(seg))
+  if (!RefSetEqual(summary, SegSummary(seg)))
     seg->class->setSummary(seg, summary);
 }
 
@@ -1056,7 +1056,7 @@ Bool GCSegCheck(GCSeg gcseg)
 
   if (seg->rankSet == RankSetEMPTY) {
     /* <design/seg/#field.rankSet.empty> */
-    CHECKL(gcseg->summary == RefSetEMPTY);
+    CHECKL(RefSetIsEmpty(gcseg->summary));
   }
 
   return TRUE;
@@ -1299,12 +1299,12 @@ static void gcSegSetRankSet(Seg seg, RankSet rankSet)
 
   if (oldRankSet == RankSetEMPTY) {
     if (rankSet != RankSetEMPTY) {
-      AVER(gcseg->summary == RefSetEMPTY);
+      AVER(RefSetIsEmpty(gcseg->summary));
       ShieldRaise(arena, seg, AccessWRITE);
     }
   } else {
     if (rankSet == RankSetEMPTY) {
-      AVER(gcseg->summary == RefSetEMPTY);
+      AVER(RefSetIsEmpty(gcseg->summary));
       ShieldLower(arena, seg, AccessWRITE);
     }
   }
@@ -1337,12 +1337,11 @@ static void gcSegSetSummary(Seg seg, RefSet summary)
 
   AVER(seg->rankSet != RankSetEMPTY);
 
-  /* Note: !RefSetSuper is a test for a strict subset */
-  if (!RefSetSuper(summary, RefSetUNIV)) {
+  if (RefSetStrictSub(summary, RefSetUNIV)) {
     if (RefSetSuper(oldSummary, RefSetUNIV))
       ShieldRaise(arena, seg, AccessWRITE);
   } else {
-    if (!RefSetSuper(oldSummary, RefSetUNIV))
+    if (RefSetStrictSub(oldSummary, RefSetUNIV))
       ShieldLower(arena, seg, AccessWRITE);
   }
 }
@@ -1365,12 +1364,12 @@ static void gcSegSetRankSummary(Seg seg, RankSet rankSet, RefSet summary)
   AVER_CRITICAL(&gcseg->segStruct == seg);
 
   /* rankSet == RankSetEMPTY implies summary == RefSetEMPTY */
-  AVER(rankSet != RankSetEMPTY || summary == RefSetEMPTY);
+  AVER(rankSet != RankSetEMPTY || RefSetIsEmpty(summary));
 
   arena = PoolArena(SegPool(seg));
 
-  wasShielded = (seg->rankSet != RankSetEMPTY && gcseg->summary != RefSetUNIV);
-  willbeShielded = (rankSet != RankSetEMPTY && summary != RefSetUNIV);
+  wasShielded = (seg->rankSet != RankSetEMPTY && !RefSetIsUniv(gcseg->summary));
+  willbeShielded = (rankSet != RankSetEMPTY && !RefSetIsUniv(summary));
 
   seg->rankSet = BS_BITFIELD(Rank, rankSet);
   gcseg->summary = summary;
@@ -1457,7 +1456,7 @@ static Res gcSegMerge(Seg seg, Seg segHi,
 
   /* Update fields of gcseg. Finish gcsegHi. */
   summary = RefSetUnion(gcseg->summary, gcsegHi->summary);
-  if (summary != gcseg->summary) {
+  if (!RefSetEqual(summary, gcseg->summary)) {
     gcSegSetSummary(seg, summary);
     /* <design/seg/#split-merge.shield.re-flush> */
     ShieldFlush(PoolArena(SegPool(seg)));
@@ -1571,7 +1570,7 @@ static Res gcSegDescribe(Seg seg, mps_lib_FILE *stream, Count depth)
     return res;
 
   res = WriteF(stream, depth,
-               "summary $W\n", (WriteFW)gcseg->summary,
+               "summary $B\n", (WriteFB)gcseg->summary.zones,
                NULL);
   if (res != ResOK)
     return res;

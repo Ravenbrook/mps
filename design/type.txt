@@ -412,7 +412,7 @@ intended.
 .. note:: This isn't too clear -- richard
 
 
-``typedef Word RefSet``
+``typedef RefSetStruct RefSet``
 
 _`.refset`: ``RefSet`` is a conservative approximation to a set of
 references. See design.mps.refset.
@@ -677,8 +677,7 @@ which we know very little about.
 
 ``typedef Word ZoneSet``
 
-_`.zoneset`: ``ZoneSet`` is a conservative approximation to a set of
-zones. See design.mps.refset.
+_`.zoneset`: ``ZoneSet`` is an exact set of zones. See design.mps.refset.
 
 
 Abstract types
@@ -710,6 +709,8 @@ Document History
 
 - 2013-03-12 GDR_ Converted to reStructuredText.
 
+- 2016-03-22 RB_ Clarified difference between RefSet and ZoneSet.
+    
 .. _RB: http://www.ravenbrook.com/consultants/rb/
 .. _GDR: http://www.ravenbrook.com/consultants/gdr/
 

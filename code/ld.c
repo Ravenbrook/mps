@@ -44,6 +44,8 @@
  * "wrapped" with an ShieldExpose/Cover pair if and only if the access
  * is taking place inside the arena.  Currently this is only the case for
  * LDReset.
+ *
+ * FIXME: Consider an LD with a RefSet, not just a ZoneSet.
  */
 
 #include "mpm.h"
@@ -69,7 +71,7 @@ void LDReset(mps_ld_t ld, Arena arena)
   if (b)
     ShieldExpose(arena, seg);   /* .ld.access */
   ld->_epoch = arena->epoch;
-  ld->_rs = RefSetEMPTY;
+  ld->_zones = ZoneSetEMPTY;
   if (b)
     ShieldCover(arena, seg);
 }
@@ -108,7 +110,7 @@ void LDAdd(mps_ld_t ld, Arena arena, Addr addr)
   AVER(TESTT(Arena, arena)); /* see .add.lock-free */
   AVER(ld->_epoch <= arena->epoch);
 
-  ld->_rs = RefSetAdd(arena, ld->_rs, addr);
+  ld->_zones = ZoneSetAddAddr(arena, ld->_zones, addr);
 }
 
 
@@ -153,7 +155,7 @@ Bool LDIsStaleAny(mps_ld_t ld, Arena arena)
     rs = arena->prehistory;     /* .stale.old */
   }
 
-  return RefSetInter(ld->_rs, rs) != RefSetEMPTY;
+  return RefSetInterZones(rs, ld->_zones);
 }
 
 
@@ -189,7 +191,7 @@ void LDAge(Arena arena, RefSet rs)
   Size i;
 
   AVERT(Arena, arena);
-  AVER(rs != RefSetEMPTY);
+  AVER(!RefSetIsEmpty(rs));
 
   /* Replace the entry for epoch - LDHistoryLENGTH by an empty */
   /* set which will become the set which has moved since the */
@@ -199,7 +201,7 @@ void LDAge(Arena arena, RefSet rs)
   /* Record the fact that the moved set has moved, by adding it */
   /* to all the sets in the history, including the set for the */
   /* current epoch. */
-  for(i = 0; i < LDHistoryLENGTH; ++i)
+  for (i = 0; i < LDHistoryLENGTH; ++i)
     arena->history[i] = RefSetUnion(arena->history[i], rs);
 
   /* This is the union of all movement since time zero. */
@@ -232,7 +234,7 @@ void LDMerge(mps_ld_t ld, Arena arena, mps_ld_t from)
     ld->_epoch = from->_epoch;
 
   /* The set of references added is the union of the two. */
-  ld->_rs = RefSetUnion(ld->_rs, from->_rs);
+  ld->_zones = ZoneSetUnion(ld->_zones, from->_zones);
 }
 
 

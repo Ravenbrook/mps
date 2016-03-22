@@ -94,7 +94,7 @@ void ScanStateInit(ScanState ss, TraceSet ts, Arena arena,
   ss->rank = rank;
   ss->traces = ts;
   ScanStateSetZoneShift(ss, arena->zoneShift);
-  ScanStateSetUnfixedSummary(ss, RefSetEMPTY);
+  ScanStateSetUnfixedSummary(ss, ZoneSetEMPTY);
   ss->fixedSummary = RefSetEMPTY;
   ss->arena = arena;
   ss->wasMarked = TRUE;
@@ -586,7 +586,8 @@ static Res traceFlip(Trace trace)
   /* mayMove is a conservative approximation of the zones of objects */
   /* which may move during this collection. */
   if(trace->mayMove != ZoneSetEMPTY) {
-    LDAge(arena, trace->mayMove);
+    /* FIXME: Consider how mayMove could be a RefSet */
+    LDAge(arena, RefSetFromZones(trace->mayMove));
   }
 
   /* .root.rank: At the moment we must scan all roots, because we don't have */
@@ -1082,9 +1083,9 @@ void ScanStateSetSummary(ScanState ss, RefSet summary)
   AVERT(ScanState, ss);
   /* Can't check summary, as it can be anything. */
 
-  ScanStateSetUnfixedSummary(ss, RefSetEMPTY);
+  ScanStateSetUnfixedSummary(ss, ZoneSetEMPTY);
   ss->fixedSummary = summary;
-  AVER(ScanStateSummary(ss) == summary);
+  AVER(RefSetEqual(ScanStateSummary(ss), summary));
 }
 
 
@@ -1101,8 +1102,8 @@ RefSet ScanStateSummary(ScanState ss)
   AVERT(ScanState, ss);
 
   return RefSetUnion(ss->fixedSummary,
-                     RefSetDiff(ScanStateUnfixedSummary(ss),
-                                ScanStateWhite(ss)));
+                     RefSetFromZones(ZoneSetDiff(ScanStateUnfixedSummary(ss),
+                                                 ScanStateWhite(ss))));
 }
 
 
@@ -1126,7 +1127,7 @@ static Res traceScanSegRes(TraceSet ts, Rank rank, Arena arena, Seg seg)
   white = traceSetWhiteUnion(ts, arena);
 
   /* Only scan a segment if it refers to the white set. */
-  if(ZoneSetInter(white, SegSummary(seg)) == ZoneSetEMPTY) {
+  if (!RefSetInterZones(SegSummary(seg), white)) {
     PoolBlacken(SegPool(seg), ts, seg);
     /* Setup result code to return later. */
     res = ResOK;
@@ -1162,7 +1163,8 @@ static Res traceScanSegRes(TraceSet ts, Rank rank, Arena arena, Seg seg)
     /* .verify.segsummary: were the seg contents, as found by this 
      * scan, consistent with the recorded SegSummary?
      */
-    AVER(RefSetSub(ScanStateUnfixedSummary(ss), SegSummary(seg)));
+    /* FIXME: Need to combine unfixed summary with full refset of segment somehow. */
+    AVER(RefSetSub(RefSetFromZones(ScanStateUnfixedSummary(ss)), SegSummary(seg)));
 
     if(res != ResOK || !wasTotal) {
       /* scan was partial, so... */
@@ -1227,7 +1229,7 @@ void TraceSegAccess(Arena arena, Seg seg, AccessSet mode)
   /* If it's a write access, then the segment must have a summary that */
   /* is smaller than the mutator's summary (which is assumed to be */
   /* RefSetUNIV). */
-  AVER((mode & SegSM(seg) & AccessWRITE) == 0 || SegSummary(seg) != RefSetUNIV);
+  AVER((mode & SegSM(seg) & AccessWRITE) == 0 || !RefSetIsUniv(SegSummary(seg)));
 
   EVENT3(TraceAccess, arena, seg, mode);
 
@@ -1397,7 +1399,7 @@ static Res traceScanSingleRefRes(TraceSet ts, Rank rank, Arena arena,
   EVENT4(TraceScanSingleRef, ts, rank, arena, (Addr)refIO);
 
   white = traceSetWhiteUnion(ts, arena);
-  if(ZoneSetInter(SegSummary(seg), white) == ZoneSetEMPTY) {
+  if (!RefSetInterZones(SegSummary(seg), white)) {
     return ResOK;
   }
 
@@ -1557,9 +1559,8 @@ static Res rootGrey(Root root, void *p)
   AVERT(Root, root);
   AVERT(Trace, trace);
 
-  if(ZoneSetInter(RootSummary(root), trace->white) != ZoneSetEMPTY) {
+  if (RefSetInterZones(RootSummary(root), trace->white))
     RootGrey(root, trace);
-  }
 
   return ResOK;
 }
@@ -1611,7 +1612,7 @@ Res TraceStart(Trace trace, double mortality, double finishingTime)
         /* to the white set.  This is done by seeing if the summary */
         /* of references in the segment intersects with the */
         /* approximation to the white set. */
-        if(ZoneSetInter(SegSummary(seg), trace->white) != ZoneSetEMPTY) {
+        if (RefSetInterZones(SegSummary(seg), trace->white)) {
           /* Note: can a white seg get greyed as well?  At this point */
           /* we still assume it may.  (This assumption runs out in */
           /* PoolTrivGrey). */

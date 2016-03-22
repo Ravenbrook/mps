@@ -496,7 +496,7 @@ static void rootSetSummary(Root root, RefSet summary)
   AVERT(Root, root);
   /* Can't check summary */
   if (root->protectable) {
-    if (summary == RefSetUNIV) {
+    if (RefSetIsUniv(summary)) {
       root->summary = summary;
       root->pm &= ~AccessWRITE;
     } else {
@@ -504,7 +504,7 @@ static void rootSetSummary(Root root, RefSet summary)
       root->summary = summary;
     }
   } else
-    AVER(root->summary == RefSetUNIV);
+    AVER(RefSetIsUniv(root->summary));
 }
 
 
@@ -521,7 +521,7 @@ Res RootScan(ScanState ss, Root root)
   if (TraceSetInter(root->grey, ss->traces) == TraceSetEMPTY)
     return ResOK;
 
-  AVER(ScanStateSummary(ss) == RefSetEMPTY);
+  AVER(RefSetIsEmpty(ScanStateSummary(ss)));
 
   if (root->pm != AccessSetEMPTY) {
     ProtSet(root->protBase, root->protLimit, AccessSetEMPTY);
@@ -590,7 +590,8 @@ Res RootScan(ScanState ss, Root root)
   AVER(res == ResOK);
   root->grey = TraceSetDiff(root->grey, ss->traces);
   rootSetSummary(root, ScanStateSummary(ss));
-  EVENT3(RootScan, root, ss->traces, ScanStateSummary(ss));
+  /* FIXME: Consider how to log refsets */
+  EVENT3(RootScan, root, ss->traces, ScanStateSummary(ss).zones);
 
 failScan:
   if (root->pm != AccessSetEMPTY) {
@@ -679,7 +680,7 @@ Res RootDescribe(Root root, mps_lib_FILE *stream, Count depth)
                (WriteFU)root->arena->serial,
                "  rank $U\n", (WriteFU)root->rank,
                "  grey $B\n", (WriteFB)root->grey,
-               "  summary $B\n", (WriteFB)root->summary,
+               "  summary $B\n", (WriteFB)root->summary.zones,
                "  mode",
                root->mode == 0 ? " NONE" : "",
                root->mode & RootModeCONSTANT ? " CONSTANT" : "",

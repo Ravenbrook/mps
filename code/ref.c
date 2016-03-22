@@ -13,6 +13,60 @@
 SRCID(ref, "$Id$");
 
 
+RefSet RefSetEMPTY = {ZoneSetEMPTY};
+RefSet RefSetUNIV  = {ZoneSetUNIV};
+
+Bool RefSetSub(RefSet rs1, RefSet rs2)
+{
+  return ZoneSetSub(rs1.zones, rs2.zones);
+}
+
+Bool RefSetSuper(RefSet rs1, RefSet rs2)
+{
+  return ZoneSetSuper(rs1.zones, rs2.zones);
+}
+
+RefSet RefSetAdd(Arena arena, RefSet rs, Ref ref)
+{
+  rs.zones = ZoneSetAddAddr(arena, rs.zones, (Addr)ref);
+  return rs;
+}
+
+Bool RefSetInterZones(RefSet rs, ZoneSet zs)
+{
+  return ZoneSetInter(rs.zones, zs) != ZoneSetEMPTY;
+}
+
+Bool RefSetIsEmpty(RefSet rs)
+{
+  return rs.zones == ZoneSetEMPTY;
+}
+
+Bool RefSetEqual(RefSet rs1, RefSet rs2)
+{
+  return rs1.zones == rs2.zones;
+}
+
+Bool RefSetIsUniv(RefSet rs)
+{
+  return rs.zones == ZoneSetUNIV;
+}
+
+RefSet RefSetUnion(RefSet rs1, RefSet rs2)
+{
+  RefSet rs;
+  rs.zones = ZoneSetUnion(rs1.zones, rs2.zones);
+  return rs;
+}
+
+RefSet RefSetFromZones(ZoneSet zones)
+{
+  RefSet rs;
+  rs.zones = zones;
+  return rs;
+}
+
+
 /* RankCheck -- check a rank value */
 
 Bool RankCheck(Rank rank)
@@ -35,7 +89,7 @@ Bool RankSetCheck(RankSet rankSet)
 
 /* ZoneSetOfRange -- calculate the zone set of a range of addresses */
 
-RefSet ZoneSetOfRange(Arena arena, Addr base, Addr limit)
+ZoneSet ZoneSetOfRange(Arena arena, Addr base, Addr limit)
 {
   Word zbase, zlimit;
 

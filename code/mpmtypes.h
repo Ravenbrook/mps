@@ -51,8 +51,10 @@ typedef mps_arg_s *Arg;
 typedef mps_arg_s *ArgList;
 typedef mps_key_t Key;
 
-typedef Word RefSet;                    /* design.mps.refset */
 typedef Word ZoneSet;                   /* design.mps.refset */
+typedef struct {
+  ZoneSet zones;
+} RefSet;                               /* design.mps.refset */
 typedef unsigned Rank;
 typedef unsigned RankSet;
 typedef unsigned RootMode;
@@ -286,8 +288,6 @@ typedef Res (*LandDescribeMethod)(Land land, mps_lib_FILE *stream, Count depth);
 #define AccessREAD      ((AccessSet)(1<<0))
 #define AccessWRITE     ((AccessSet)(1<<1))
 #define AccessLIMIT     (2)
-#define RefSetEMPTY     BS_EMPTY(RefSet)
-#define RefSetUNIV      BS_UNIV(RefSet)
 #define ZoneSetEMPTY    BS_EMPTY(ZoneSet)
 #define ZoneSetUNIV     BS_UNIV(ZoneSet)
 #define TraceSetEMPTY   BS_EMPTY(TraceSet)

@@ -912,7 +912,7 @@ void ArenaPokeSeg(Arena arena, Seg seg, Ref *p, Ref ref)
   ShieldExpose(arena, seg);
   *p = ref;
   summary = SegSummary(seg);
-  summary = RefSetAdd(arena, summary, (Addr)ref);
+  summary = RefSetAdd(arena, summary, ref);
   SegSetSummary(seg, summary);
   ShieldCover(arena, seg);
 }
@@ -1004,7 +1004,7 @@ Res GlobalsDescribe(Globals arenaGlobals, mps_lib_FILE *stream, Count depth)
                "busyTraces    $B\n", (WriteFB)arena->busyTraces,
                "flippedTraces $B\n", (WriteFB)arena->flippedTraces,
                "epoch $U\n", (WriteFU)arena->epoch,
-               "prehistory = $B\n", (WriteFB)arena->prehistory,
+               "prehistory = $B\n", (WriteFB)arena->prehistory.zones,
                "history {\n",
                "  [note: indices are raw, not rotated]\n",
                NULL);
@@ -1013,7 +1013,7 @@ Res GlobalsDescribe(Globals arenaGlobals, mps_lib_FILE *stream, Count depth)
 
   for(i=0; i < LDHistoryLENGTH; ++ i) {
     res = WriteF(stream, depth + 2,
-                 "[$U] = $B\n", (WriteFU)i, (WriteFB)arena->history[i],
+                 "[$U] = $B\n", (WriteFU)i, (WriteFB)arena->history[i].zones,
                  NULL);
     if (res != ResOK)
       return res;
