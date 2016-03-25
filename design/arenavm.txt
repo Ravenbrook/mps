@@ -40,11 +40,11 @@ these blocks in order to facilitate garbage collection:
 
 _`.overview.gc.zone`: Allocation of blocks with specific zones. This
 means that the generic fix function (design.mps.fix_) can use a fast
-refset test to eliminate references to addresses that are not in the
-condemned set. This assumes that a pool class that uses this placement
-appropriately is being used (such as the generation placement policy
-used by AMC: see design.mps.poolamc_) and that the pool selects the
-condemned sets to coincide with zone stripes.
+zone set membership test to eliminate references to addresses that are
+not in the condemned set. This assumes that a pool class that uses
+this placement appropriately is being used (such as the generation
+placement policy used by AMC: see design.mps.poolamc_) and that the
+pool selects the condemned sets to coincide with zone stripes.
 
 .. _design.mps.fix: fix
 .. _design.mps.poolamc: poolamc
@@ -82,10 +82,10 @@ Placement
 
 _`.req.fun.place`: It must be possible for pools to obtain tracts at
 particular addresses. Such addresses shall be declared by the pool
-specifying what refset zones the tracts should lie in and what refset
-zones the tracts should not lie in. It is acceptable for the arena to
-not always honour the request in terms of placement if it has run out
-of suitable addresses.
+specifying which zones the tracts should lie in and which zones the
+tracts should not lie in. It is acceptable for the arena to not always
+honour the request in terms of placement if it has run out of suitable
+addresses.
 
 Arena partition
 ...............

@@ -51,7 +51,7 @@ typedef mps_arg_s *Arg;
 typedef mps_arg_s *ArgList;
 typedef mps_key_t Key;
 
-typedef struct RefSetStruct *RefSet;    /* design.mps.refset */
+typedef struct RefSetStruct *RefSet;    /* design.mps.refset.type */
 typedef Word ZoneSet;                   /* design.mps.refset */
 typedef unsigned Rank;
 typedef unsigned RankSet;
