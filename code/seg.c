@@ -1195,6 +1195,7 @@ static Res gcSegInit(Seg seg, Pool pool, Addr base, Size size, ArgList args)
   RefSetEmpty(&gcseg->summary);
   gcseg->buffer = NULL;
   RingInit(&gcseg->greyRing);
+  RingInit(&gcseg->genRing);
 
   /* This will be modified when a buffer is attached. */
   /* FIXME: Consider how to handle non-buffered segment allocation. */
