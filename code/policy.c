@@ -238,9 +238,17 @@ static Res policyCondemnChain(double *mortalityReturn, Chain chain, Trace trace)
 
   /* At this point, we've decided to condemn topCondemnedGen and all
    * lower generations. */
+  TraceCondemnStart(trace);
+  
   for (i = 0; i <= topCondemnedGen; ++i) {
+    Ring node, next;
     gen = &chain->gens[i];
     AVERT(GenDesc, gen);
+    RING_FOR(node, &gen->segRing, next) {
+      GCSeg gcseg = RING_ELT(GCSeg, genRing, node);
+      res = TraceAddWhite(trace, &gcseg->segStruct);
+      AVER(res == ResOK); /* FIXME: Hack! */
+    }
     condemnedSet = ZoneSetUnion(condemnedSet, gen->zones);
     genTotalSize = GenDescTotalSize(gen);
     genNewSize = GenDescNewSize(gen);
@@ -249,16 +257,11 @@ static Res policyCondemnChain(double *mortalityReturn, Chain chain, Trace trace)
                     /* predict survivors will survive again */
                     + (genTotalSize - genNewSize);
   }
+
+  TraceCondemnEnd(trace);
   
   AVER(condemnedSet != ZoneSetEMPTY || condemnedSize == 0);
   EVENT3(ChainCondemnAuto, chain, topCondemnedGen, chain->genCount);
-  
-  /* Condemn everything in these zones. */
-  if (condemnedSet != ZoneSetEMPTY) {
-    res = TraceCondemnZones(trace, condemnedSet);
-    if (res != ResOK)
-      return res;
-  }
 
   *mortalityReturn = 1.0 - (double)survivorSize / condemnedSize;
   return ResOK;

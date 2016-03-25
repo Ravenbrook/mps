@@ -355,7 +355,10 @@ Res TraceAddWhite(Trace trace, Seg seg)
   Pool pool;
 
   AVERT(Trace, trace);
+  AVER(trace->state == TraceINIT);
   AVERT(Seg, seg);
+  AVER(SegIsGC(seg));
+  AVER(!TraceSetIsMember(SegGrey(seg), trace));
   AVER(!TraceSetIsMember(SegWhite(seg), trace)); /* .start.black */
 
   pool = SegPool(seg);
@@ -392,9 +395,9 @@ Res TraceAddWhite(Trace trace, Seg seg)
 }
 
 
-/* TraceCondemnZones -- condemn all objects in the given zones
+/* TraceCondemn -- condemn objects in a reference set
  *
- * TraceCondemnZones is passed a trace in state TraceINIT, and a set of
+ * TraceCondemn is passed a trace in state TraceINIT, and a set of
  * objects to condemn.
  *
  * @@@@ For efficiency, we ought to find the condemned set and the
@@ -402,59 +405,27 @@ Res TraceAddWhite(Trace trace, Seg seg)
  * because some pools still use TraceAddWhite for the condemned set.
  *
  * @@@@ This function would be more efficient if there were a cheaper
- * way to select the segments in a particular zone set.  */
+ * way to select the segments in a particular zone set.
+ */
 
-Res TraceCondemnZones(Trace trace, ZoneSet condemnedSet)
+void TraceCondemnStart(Trace trace)
 {
-  Seg seg;
-  Arena arena;
-  Res res;
-
   AVERT(Trace, trace);
-  AVER(condemnedSet != ZoneSetEMPTY);
   AVER(trace->state == TraceINIT);
   AVER(RefSetIsEmpty(&trace->whiteStruct));
 
-  arena = trace->arena;
+  ShieldHold(trace->arena); /* .whiten.hold */
+}
 
-  ShieldHold(arena); /* .whiten.hold */
+void TraceCondemnEnd(Trace trace)
+{
+  AVERT(Trace, trace);
+  AVER(trace->state == TraceINIT);
 
-  if(SegFirst(&seg, arena)) {
-    do {
-      /* Segment should be black now. */
-      AVER(!TraceSetIsMember(SegGrey(seg), trace));
-      AVER(!TraceSetIsMember(SegWhite(seg), trace));
-
-      /* A segment can only be white if it is GC-able. */
-      /* This is indicated by the pool having the GC attribute */
-      /* We only condemn segments that fall entirely within */
-      /* the requested zone set.  Otherwise, we would bloat the */
-      /* foundation to no gain.  Note that this doesn't exclude */
-      /* any segments from which the condemned set was derived, */
-      if(PoolHasAttr(SegPool(seg), AttrGC)
-         && ZoneSetSuper(condemnedSet, ZoneSetOfSeg(arena, seg)))
-      {
-        res = TraceAddWhite(trace, seg);
-        if(res != ResOK)
-          goto failBegin;
-      }
-    } while (SegNext(&seg, arena, seg));
-  }
-
-  ShieldRelease(arena);
+  ShieldRelease(trace->arena);
 
   /* FIXME: Think how to log reference sets in events. */
-  EVENT3(TraceCondemnZones, trace, condemnedSet, trace->whiteStruct.zones);
-
-  /* The trace's white set must be a subset of the condemned set */
-  AVER(ZoneSetSuper(condemnedSet, RefSetZones(&trace->whiteStruct)));
-
-  return ResOK;
-
-failBegin:
-  ShieldRelease(arena);
-  AVER(TraceIsEmpty(trace)); /* See .whiten.fail. */
-  return res;
+  /* EVENT3(TraceCondemnZones, trace, condemnedSet->zones, trace->whiteStruct.zones); */
 }
 
 
