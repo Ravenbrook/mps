@@ -1677,7 +1677,7 @@ mps_res_t mps_fix(mps_ss_t mps_ss, mps_addr_t *ref_io)
 
 mps_word_t mps_collections(mps_arena_t arena)
 {
-  return ArenaEpoch(arena); /* thread safe: see <code/arena.h#epoch.ts> */
+  return ArenaEpoch(arena) - EpochMIN; /* thread safe: see <code/arena.h#epoch.ts> */
 }
 
 
