@@ -1,7 +1,7 @@
 /* ref.c: REFERENCES
  *
  * $Id$
- * Copyright (c) 2001 Ravenbrook Limited.  See end of file for license.
+ * Copyright (c) 2001-2016 Ravenbrook Limited.  See end of file for license.
  *
  * .purpose: Implement operations on Ref, RefSet, ZoneSet, and Rank.
  *
@@ -535,13 +535,9 @@ ZoneSet ZoneSetBlacklist(Arena arena)
 }
 
 
-
-
-
-
 /* C. COPYRIGHT AND LICENSE
  *
- * Copyright (C) 2001-2002 Ravenbrook Limited <http://www.ravenbrook.com/>.
+ * Copyright (C) 2001-2016 Ravenbrook Limited <http://www.ravenbrook.com/>.
  * All rights reserved.  This is an open source license.  Contact
  * Ravenbrook for commercial licensing options.
  * 

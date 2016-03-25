@@ -417,6 +417,8 @@ Res TraceCondemnZones(Trace trace, ZoneSet condemnedSet)
 
   arena = trace->arena;
 
+  ShieldHold(arena); /* .whiten.hold */
+
   if(SegFirst(&seg, arena)) {
     do {
       /* Segment should be black now. */
@@ -439,6 +441,8 @@ Res TraceCondemnZones(Trace trace, ZoneSet condemnedSet)
     } while (SegNext(&seg, arena, seg));
   }
 
+  ShieldRelease(arena);
+
   /* FIXME: Think how to log reference sets in events. */
   EVENT3(TraceCondemnZones, trace, condemnedSet, trace->whiteStruct.zones);
 
@@ -448,6 +452,7 @@ Res TraceCondemnZones(Trace trace, ZoneSet condemnedSet)
   return ResOK;
 
 failBegin:
+  ShieldRelease(arena);
   AVER(TraceIsEmpty(trace)); /* See .whiten.fail. */
   return res;
 }
@@ -583,7 +588,7 @@ static Res traceFlip(Trace trace)
 
   arena = trace->arena;
   rfc.arena = arena;
-  ShieldSuspend(arena);
+  ShieldHold(arena);
 
   AVER(trace->state == TraceUNFLIPPED);
   AVER(!TraceSetIsMember(arena->flippedTraces, trace));
@@ -647,11 +652,11 @@ static Res traceFlip(Trace trace)
 
   EVENT2(TraceFlipEnd, trace, arena);
 
-  ShieldResume(arena);
+  ShieldRelease(arena);
   return ResOK;
 
 failRootFlip:
-  ShieldResume(arena);
+  ShieldRelease(arena);
   return res;
 }
 
@@ -744,13 +749,6 @@ found:
   AVERT(Trace, trace);
 
   EVENT3(TraceCreate, trace, arena, (EventFU)why);
-
-  /* We suspend the mutator threads so that the PoolWhiten methods */
-  /* can calculate white sets without the mutator allocating in */
-  /* buffers under our feet. */
-  /* @@@@ This is a short-term fix for request.dylan.160098_. */
-  /* .. _request.dylan.160098: https://info.ravenbrook.com/project/mps/import/2001-11-05/mmprevol/request/dylan/160098 */
-  ShieldSuspend(arena);
 
   STATISTIC_STAT ({
     /* Iterate over all chains, all GenDescs within a chain, and all
@@ -1199,9 +1197,28 @@ static Res traceScanSegRes(TraceSet ts, Rank rank, Arena arena, Seg seg)
      * collects a set of zones, not an approximation, and that it
      * should be consistent every time.
      */
-    AVER(ZoneSetSuper(SegGCSeg(seg)->summary.zones, ScanStateUnfixedSummary(ss)));
+    AVER(ZoneSetSuper(SegGCSeg(seg)->summary.zones,
+                      ScanStateUnfixedSummary(ss)));
 
-    {
+    /* Write barrier deferral -- see design.mps.write-barrier.deferral. */
+    /* Did the segment refer to the white set?  We talk in terms of
+       zones, not reference sets, because MPS_FIX1 only collects a
+       zone set. */
+    if (ZoneSetInter(ScanStateUnfixedSummary(ss),
+                     RefSetZones(&whiteStruct)) == ZoneSetEMPTY) {
+      /* Boring scan.  One step closer to raising the write barrier. */
+      if (seg->defer > 0)
+        --seg->defer;
+    } else {
+      /* Interesting scan. Defer raising the write barrier. */
+      if (seg->defer < WB_DEFER_DELAY)
+        seg->defer = WB_DEFER_DELAY;
+    }
+
+    /* Only apply the write barrier if it is not deferred. */
+    if (seg->defer > 0) {
+      SegSetSummary(seg, RefSetUNIV);
+    } else {
       RefSetStruct newSummary;
       ScanStateGetSummary(&newSummary, ss);
 
@@ -1263,24 +1280,34 @@ static Res traceScanSeg(TraceSet ts, Rank rank, Arena arena, Seg seg)
 void TraceSegAccess(Arena arena, Seg seg, AccessSet mode)
 {
   Res res;
+  AccessSet shieldHit;
+  Bool readHit, writeHit;
 
   AVERT(Arena, arena);
   AVERT(Seg, seg);
   AVERT(AccessSet, mode);
 
+  shieldHit = BS_INTER(mode, SegSM(seg));
+  readHit = BS_INTER(shieldHit, AccessREAD) != AccessSetEMPTY;
+  writeHit = BS_INTER(shieldHit, AccessWRITE) != AccessSetEMPTY;
+
   /* If it's a read access, then the segment must be grey for a trace */
   /* which is flipped. */
-  AVER((mode & SegSM(seg) & AccessREAD) == 0
-       || TraceSetInter(SegGrey(seg), arena->flippedTraces) != TraceSetEMPTY);
+  AVER(!readHit ||
+       TraceSetInter(SegGrey(seg), arena->flippedTraces) != TraceSetEMPTY);
 
   /* If it's a write access, then the segment must have a summary that */
   /* is smaller than the mutator's summary (which is assumed to be */
   /* RefSetUNIV). */
-  AVER((mode & SegSM(seg) & AccessWRITE) == 0 || !SegSummaryIsUniv(seg));
+  AVER(!writeHit || !SegSummaryIsUniv(seg));
 
   EVENT3(TraceAccess, arena, seg, mode);
 
-  if((mode & SegSM(seg) & AccessREAD) != 0) {   /* read barrier? */
+  /* Write barrier deferral -- see design.mps.write-barrier.deferral. */
+  if (writeHit)
+    seg->defer = WB_DEFER_HIT;
+
+  if (readHit) {
     Trace trace;
     TraceId ti;
     Rank rank;
@@ -1318,11 +1345,11 @@ void TraceSegAccess(Arena arena, Seg seg, AccessSet mode)
      to the future, we don't record this information and raise the
      write barrier, because the mutator wants to write to the
      segment! */
-  if((mode & SegSM(seg) & AccessWRITE) != 0)      /* write barrier? */
+  if (writeHit)
     SegSetSummary(seg, RefSetUNIV);
 
   /* The segment must now be accessible. */
-  AVER((mode & SegSM(seg)) == AccessSetEMPTY);
+  AVER(BS_INTER(mode, SegSM(seg)) == AccessSetEMPTY);
 }
 
 
@@ -1525,7 +1552,7 @@ Res TraceScanArea(ScanState ss, Word *base, Word *limit,
      it's safe to accumulate now so that we can tail-call
      scan_area. */
   ss->scannedSize += AddrOffset(base, limit);
-  
+
   return scan_area(&ss->ss_s, base, limit, closure);
 }
 
@@ -1540,6 +1567,14 @@ static Res traceCondemnAll(Trace trace)
 
   arena = trace->arena;
   AVERT(Arena, arena);
+
+  /* .whiten.hold: We suspend the mutator threads so that the
+     PoolWhiten methods can calculate white sets without the mutator
+     allocating in buffers under our feet. See request.dylan.160098
+     <https://info.ravenbrook.com/project/mps/import/2001-11-05/mmprevol/request/dylan/160098>. */
+  /* TODO: Consider how to avoid this suspend in order to implement
+     incremental condemn. */
+  ShieldHold(arena);
 
   /* Condemn all segments in pools with the GC attribute. */
   RING_FOR(poolNode, &ArenaGlobals(arena)->poolRing, nextPoolNode) {
@@ -1558,6 +1593,8 @@ static Res traceCondemnAll(Trace trace)
       }
     }
   }
+
+  ShieldRelease(arena);
 
   if (TraceIsEmpty(trace))
     return ResFAIL;
@@ -1579,6 +1616,7 @@ failBegin:
    * will be triggered. In that case, we'll have to recover here by
    * blackening the segments again. */
   AVER(TraceIsEmpty(trace));
+  ShieldRelease(arena);
   return res;
 }
 
