@@ -165,7 +165,8 @@ _`.impl.splay.zones`: In the ``CBSZonedLandClass`` class,
 ``cbsFindInZones()`` uses the update/refresh facility of splay trees
 to store, in each block, the union of the zones of the ranges in the
 tree rooted at the corresponding splay node. This allows rapid
-location of a block in a set of zones.
+location of a block in a set of zones.  It is used to implement
+design.mps.arenavm.req.fun.place.
 
 
 Low memory behaviour
