@@ -34,17 +34,17 @@ Bool ScanStateCheck(ScanState ss)
 {
   TraceId ti;
   Trace trace;
-  ZoneSet white;
+  RefSetStruct whiteStruct;
 
   CHECKS(ScanState, ss);
   CHECKL(FUNCHECK(ss->fix));
   /* Can't check ss->fixClosure. */
   CHECKL(ScanStateZoneShift(ss) == ss->arena->zoneShift);
-  white = ZoneSetEMPTY;
+  RefSetEmpty(&whiteStruct);
   TRACE_SET_ITER(ti, trace, ss->traces, ss->arena)
-    white = ZoneSetUnion(white, ss->arena->trace[ti].white);
+    RefSetUnion(&whiteStruct, &ss->arena->trace[ti].whiteStruct);
   TRACE_SET_ITER_END(ti, trace, ss->traces, ss->arena);
-  CHECKL(ScanStateWhite(ss) == white);
+  CHECKL(ScanStateWhite(ss) == RefSetZones(&whiteStruct));
   CHECKU(Arena, ss->arena);
   /* Summaries could be anything, and can't be checked. */
   CHECKL(TraceSetCheck(ss->traces));
@@ -59,7 +59,7 @@ Bool ScanStateCheck(ScanState ss)
 /* ScanStateInit -- Initialize a ScanState object */
 
 void ScanStateInit(ScanState ss, TraceSet ts, Arena arena,
-                   Rank rank, ZoneSet white)
+                   Rank rank, RefSet white)
 {
   TraceId ti;
   Trace trace;
@@ -98,7 +98,7 @@ void ScanStateInit(ScanState ss, TraceSet ts, Arena arena,
   RefSetEmpty(&ss->fixedSummary);
   ss->arena = arena;
   ss->wasMarked = TRUE;
-  ScanStateSetWhite(ss, white);
+  ScanStateSetWhite(ss, RefSetZones(white));
   STATISTIC(ss->fixRefCount = (Count)0);
   STATISTIC(ss->segRefCount = (Count)0);
   STATISTIC(ss->whiteSegRefCount = (Count)0);
@@ -154,7 +154,7 @@ Bool TraceCheck(Trace trace)
   CHECKL(TraceIdCheck(trace->ti));
   CHECKL(trace == &trace->arena->trace[trace->ti]);
   CHECKL(TraceSetIsMember(trace->arena->busyTraces, trace));
-  CHECKL(ZoneSetSub(trace->mayMove, trace->white));
+  CHECKL(ZoneSetSub(trace->mayMove, RefSetZones(&trace->whiteStruct)));
   /* Use trace->state to check more invariants. */
   switch(trace->state) {
     case TraceINIT:
@@ -323,19 +323,18 @@ static void traceSetUpdateCounts(TraceSet ts, Arena arena, ScanState ss,
 /* traceSetWhiteUnion
  *
  * Returns a ZoneSet describing the union of the white sets of all the
- * specified traces.  */
+ * specified traces.
+ */
 
-static ZoneSet traceSetWhiteUnion(TraceSet ts, Arena arena)
+static void traceSetWhiteUnion(RefSetStruct *rsReturn, TraceSet ts, Arena arena)
 {
   TraceId ti;
   Trace trace;
-  ZoneSet white = ZoneSetEMPTY;
 
+  RefSetEmpty(rsReturn);
   TRACE_SET_ITER(ti, trace, ts, arena)
-    white = ZoneSetUnion(white, trace->white);
+    RefSetUnion(rsReturn, &trace->whiteStruct);
   TRACE_SET_ITER_END(ti, trace, ts, arena);
-
-  return white;
 }
 
 
@@ -371,7 +370,17 @@ Res TraceAddWhite(Trace trace, Seg seg)
   /* Add the segment to the approximation of the white set if the */
   /* pool made it white. */
   if(TraceSetIsMember(SegWhite(seg), trace)) {
-    trace->white = ZoneSetUnion(trace->white, ZoneSetOfSeg(trace->arena, seg));
+    RefSetStruct segRefSetStruct;
+
+    /* We might be looking at a buffered segment that has an
+       indefinite future.  In fact, we only condemn objects are far as
+       the buffer limit, and they're all in the past or present.  In
+       general, we don't condemn any future objects, in fact.  FIXME:
+       Can we just bound the result of SegGetRefSet? */
+    SegGetRefSet(&segRefSetStruct, seg);
+    RefSetBoundNotFuture(&segRefSetStruct, trace->arena);
+    RefSetUnion(&trace->whiteStruct, &segRefSetStruct);
+
     /* if the pool is a moving GC, then condemned objects may move */
     if(PoolHasAttr(pool, AttrMOVINGGC)) {
       trace->mayMove = ZoneSetUnion(trace->mayMove,
@@ -404,7 +413,7 @@ Res TraceCondemnZones(Trace trace, ZoneSet condemnedSet)
   AVERT(Trace, trace);
   AVER(condemnedSet != ZoneSetEMPTY);
   AVER(trace->state == TraceINIT);
-  AVER(trace->white == ZoneSetEMPTY);
+  AVER(RefSetIsEmpty(&trace->whiteStruct));
 
   arena = trace->arena;
 
@@ -430,10 +439,11 @@ Res TraceCondemnZones(Trace trace, ZoneSet condemnedSet)
     } while (SegNext(&seg, arena, seg));
   }
 
-  EVENT3(TraceCondemnZones, trace, condemnedSet, trace->white);
+  /* FIXME: Think how to log reference sets in events. */
+  EVENT3(TraceCondemnZones, trace, condemnedSet, trace->whiteStruct.zones);
 
   /* The trace's white set must be a subset of the condemned set */
-  AVER(ZoneSetSuper(condemnedSet, trace->white));
+  AVER(ZoneSetSuper(condemnedSet, RefSetZones(&trace->whiteStruct)));
 
   return ResOK;
 
@@ -465,13 +475,13 @@ static void traceFlipBuffers(Globals arena)
 
 static Res traceScanRootRes(TraceSet ts, Rank rank, Arena arena, Root root)
 {
-  ZoneSet white;
+  RefSetStruct whiteStruct;
   Res res;
   ScanStateStruct ss;
 
-  white = traceSetWhiteUnion(ts, arena);
+  traceSetWhiteUnion(&whiteStruct, ts, arena);
 
-  ScanStateInit(&ss, ts, arena, rank, white);
+  ScanStateInit(&ss, ts, arena, rank, &whiteStruct);
 
   res = RootScan(&ss, root);
 
@@ -692,7 +702,7 @@ found:
 
   trace->arena = arena;
   trace->why = why;
-  trace->white = ZoneSetEMPTY;
+  RefSetEmpty(&trace->whiteStruct);
   trace->mayMove = ZoneSetEMPTY;
   trace->ti = ti;
   trace->state = TraceINIT;
@@ -1140,24 +1150,24 @@ Bool ScanStateSummaryEqual(ScanState ss, RefSet rs)
 static Res traceScanSegRes(TraceSet ts, Rank rank, Arena arena, Seg seg)
 {
   Bool wasTotal;
-  ZoneSet white;
+  RefSetStruct whiteStruct;
   Res res;
 
   /* The reason for scanning a segment is that it's grey. */
   AVER(TraceSetInter(ts, SegGrey(seg)) != TraceSetEMPTY);
   EVENT4(TraceScanSeg, ts, rank, arena, seg);
 
-  white = traceSetWhiteUnion(ts, arena);
+  traceSetWhiteUnion(&whiteStruct, ts, arena);
 
   /* Only scan a segment if it refers to the white set. */
-  if (SegDoesNotReferenceZones(seg, white)) {
+  if (SegDoesNotReference(seg, &whiteStruct)) {
     PoolBlacken(SegPool(seg), ts, seg);
     /* Setup result code to return later. */
     res = ResOK;
   } else {      /* scan it */
     ScanStateStruct ssStruct;
     ScanState ss = &ssStruct;
-    ScanStateInit(ss, ts, arena, rank, white);
+    ScanStateInit(ss, ts, arena, rank, &whiteStruct);
 
     /* Expose the segment to make sure we can scan it. */
     ShieldExpose(arena, seg);
@@ -1183,14 +1193,13 @@ static Res traceScanSegRes(TraceSet ts, Rank rank, Arena arena, Seg seg)
 
     /* Following is true whether or not scan was total. */
     /* See <design/scan/#summary.subset>. */
-    /* .verify.segsummary: were the seg contents, as found by this 
-     * scan, consistent with the recorded segment summary?
+    /* .verify.segsummary: were the seg contents, as found by this
+     * scan, consistent with the recorded segment summary?  Note that
+     * we are checking using an implementation detail that MPS_FIX1
+     * collects a set of zones, not an approximation, and that it
+     * should be consistent every time.
      */
-    {
-      RefSetStruct unfixed;
-      RefSetFromZones(&unfixed, ScanStateUnfixedSummary(ss));
-      AVER(SegSummarySuper(seg, &unfixed));
-    }
+    AVER(ZoneSetSuper(SegGCSeg(seg)->summary.zones, ScanStateUnfixedSummary(ss)));
 
     {
       RefSetStruct newSummary;
@@ -1204,6 +1213,13 @@ static Res traceScanSegRes(TraceSet ts, Rank rank, Arena arena, Seg seg)
         RefSetUnion(&newSummary, &oldSummary);
       }
 
+      /* We can at any time bound the summary reference set to not
+         future and write protect the segment.  So why do it here in
+         particular?  Because we might be raising the barrier anyway.
+         FIXME: This is a policy decision and needs noting as such.
+         See also design.mps.refset.flip-past and
+         design.mps.refset.slow-scan. */
+      RefSetBoundNotFuture(&newSummary, arena);
       SegSetSummary(seg, &newSummary);
     }
 
@@ -1296,8 +1312,12 @@ void TraceSegAccess(Arena arena, Seg seg, AccessSet mode)
     STATISTIC(++arena->writeBarrierHitCount);
   }
 
-  /* The write barrier handling must come after the read barrier, */
-  /* because the latter may set the summary and raise the write barrier. */
+  /* The write barrier handling must come after the read barrier,
+     because the latter may set the summary and raise the write
+     barrier.  Note that even though we know the mutator can't refer
+     to the future, we don't record this information and raise the
+     write barrier, because the mutator wants to write to the
+     segment! */
   if((mode & SegSM(seg) & AccessWRITE) != 0)      /* write barrier? */
     SegSetSummary(seg, RefSetUNIV);
 
@@ -1422,18 +1442,18 @@ done:
 static Res traceScanSingleRefRes(TraceSet ts, Rank rank, Arena arena,
                                  Seg seg, Ref *refIO)
 {
-  ZoneSet white;
+  RefSetStruct whiteStruct;
   Res res;
   ScanStateStruct ss;
 
   EVENT4(TraceScanSingleRef, ts, rank, arena, (Addr)refIO);
 
-  white = traceSetWhiteUnion(ts, arena);
-  if (SegDoesNotReferenceZones(seg, white)) {
-    return ResOK;
-  }
+  traceSetWhiteUnion(&whiteStruct, ts, arena);
 
-  ScanStateInit(&ss, ts, arena, rank, white);
+  if (SegDoesNotReference(seg, &whiteStruct))
+    return ResOK;
+
+  ScanStateInit(&ss, ts, arena, rank, &whiteStruct);
   ShieldExpose(arena, seg);
 
   TRACE_SCAN_BEGIN(&ss) {
@@ -1588,7 +1608,7 @@ static Res rootGrey(Root root, void *p)
   AVERT(Root, root);
   AVERT(Trace, trace);
 
-  if (RootDoesNotReferenceZones(root, trace->white))
+  if (RootDoesNotReference(root, &trace->whiteStruct))
     return ResOK;
   
   RootGrey(root, trace);
@@ -1643,7 +1663,7 @@ Res TraceStart(Trace trace, double mortality, double finishingTime)
         /* to the white set.  This is done by seeing if the summary */
         /* of references in the segment intersects with the */
         /* approximation to the white set. */
-        if (!SegDoesNotReferenceZones(seg, trace->white)) {
+        if (!SegDoesNotReference(seg, &trace->whiteStruct)) {
           /* Note: can a white seg get greyed as well?  At this point */
           /* we still assume it may.  (This assumption runs out in */
           /* PoolTrivGrey). */
@@ -1686,10 +1706,11 @@ Res TraceStart(Trace trace, double mortality, double finishingTime)
   }
 
   /* TODO: compute rate of scanning here. */
+  /* FIXME: How to log refsets? */
 
   EVENT8(TraceStart, trace, mortality, finishingTime,
          trace->condemned, trace->notCondemned,
-         trace->foundation, trace->white,
+         trace->foundation, trace->whiteStruct.zones,
          trace->quantumWork);
 
   STATISTIC_STAT(EVENT7(TraceStatCondemn, trace,
@@ -1873,7 +1894,15 @@ Res TraceDescribe(Trace trace, mps_lib_FILE *stream, Count depth)
                "  why \"$S\"\n", (WriteFS)TraceStartWhyToString(trace->why),
                "  state $S\n", (WriteFS)state,
                "  band $U\n", (WriteFU)trace->band,
-               "  white   $B\n", (WriteFB)trace->white,
+               NULL);
+  if (res != ResOK)
+    return res;
+
+  res = RefSetDescribe(&trace->whiteStruct, stream, depth + 2);
+  if (res != ResOK)
+    return res;
+                       
+  res = WriteF(stream, depth,
                "  mayMove $B\n", (WriteFB)trace->mayMove,
                "  chain $P\n", (WriteFP)trace->chain,
                "  condemned $U\n", (WriteFU)trace->condemned,

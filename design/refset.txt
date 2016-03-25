@@ -44,6 +44,18 @@ Generalised placement
 .improv.placement: Generalise design.mps.arenavm.req.fun.place for
 other reference set properties, not just zones.
 
+.improv.flip-past: On all supported OSs, a read barrier implies a
+write barrier, and so we know that after flip, every reference in a
+grey segment is to an object in the past (not including the epoch
+after flip).
+
+.improv.slow-scan: If we set the scan state white zone set to
+universal, _mps_fix2 will be called on every reference, and we could
+accumulate an accuate era for the referenced pointers.  That's the
+only way we can ever increase the start of the summary era for a
+segment (I think).  But a world collection does this, so can we take
+advantage?
+
 
 References
 ----------

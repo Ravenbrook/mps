@@ -32,10 +32,6 @@
 SRCID(seg, "$Id$");
 
 
-/* SegGCSeg -- convert generic Seg to GCSeg */
-
-#define SegGCSeg(seg)             ((GCSeg)(seg))
-
 /* SegPoolRing -- Pool ring accessor */
 
 #define SegPoolRing(seg)          (&(seg)->poolRing)
@@ -307,7 +303,15 @@ void SegGetSummary(RefSetStruct *summaryReturn, Seg seg)
   /* FIXME: This is how it was expressed when it was SegSummary. */
   *summaryReturn = ((GCSeg)seg)->summary;
 }
-  
+
+
+void SegGetRefSet(RefSetStruct *rsReturn, Seg seg)
+{
+  AVER(SegIsGC(seg));
+  rsReturn->zones = ZoneSetOfSeg(SegArena(seg), seg);
+  EraCopy(RefSetEra(rsReturn), GCSegEra(SegGCSeg(seg)));
+}
+
 
 static void SegSummaryAddRef(Seg seg, Ref ref)
 {
@@ -343,6 +347,14 @@ Bool SegSummaryIsUniv(Seg seg)
   RefSetStruct summary;
   SegGetSummary(&summary, seg);
   return RefSetIsUniv(&summary);
+}
+
+
+Bool SegDoesNotReference(Seg seg, RefSet rs)
+{
+  RefSetStruct summary;
+  SegGetSummary(&summary, seg);
+  return !RefSetInter(&summary, rs);
 }
 
 
@@ -1131,6 +1143,8 @@ Bool GCSegCheck(GCSeg gcseg)
     CHECKL(RefSetIsEmpty(&gcseg->summary));
   }
 
+  CHECKD_NOSIG(Era, &gcseg->eraStruct);
+
   return TRUE;
 }
 
@@ -1161,6 +1175,11 @@ static Res gcSegInit(Seg seg, Pool pool, Addr base, Size size, ArgList args)
   RefSetEmpty(&gcseg->summary);
   gcseg->buffer = NULL;
   RingInit(&gcseg->greyRing);
+
+  /* This will be modified when a buffer is attached. */
+  /* FIXME: Consider how to handle non-buffered segment allocation. */
+  EraInitEmpty(GCSegEra(gcseg));
+
   gcseg->sig = GCSegSig;
 
   AVERT(GCSeg, gcseg);

@@ -443,7 +443,8 @@ Bool BufferIsMutator(Buffer buffer)
 
 /* BufferSetUnflipped
  *
- * Unflip a buffer if it was flipped.  */
+ * Unflip a buffer if it was flipped.
+ */
 
 static void BufferSetUnflipped(Buffer buffer)
 {
@@ -455,6 +456,22 @@ static void BufferSetUnflipped(Buffer buffer)
     buffer->ap_s.limit = buffer->poolLimit;
   }
   buffer->initAtFlip = (Addr)0;
+
+  /* There is going to be allocation into this segment, starting from now. */
+  /* FIXME: Consider forwarding buffers. */
+  /* FIXME: Consider moving this whole paragraph to ref.c */
+  /* FIXME: Should be in segBufUnflip or similar. */
+  if (IsSubclassPoly(buffer->class, SegBufClassGet())) {
+    Seg seg = BufferSeg(buffer);
+    if (buffer->isMutator && SegIsGC(seg)) {
+      GCSeg gcseg = SegGCSeg(seg);
+      EraStruct allocEraStruct;
+      AVERT(GCSeg, gcseg);
+      EraInitUniv(&allocEraStruct);
+      EraBoundNotPast(&allocEraStruct, BufferArena(buffer));
+      EraUnion(GCSegEra(gcseg), &allocEraStruct);
+    }
+  }
 }
 
 
@@ -876,6 +893,22 @@ void BufferFlip(Buffer buffer)
     /* TODO: Is a memory barrier required here? */
     buffer->ap_s.limit = (Addr)0;
     buffer->mode |= BufferModeFLIPPED;
+
+    /* Once the buffer is flipped there can be no further allocation
+       in it, at least for now.  This helps to bound the era of
+       objects being forwarded out of the buffered segment. */
+    /* FIXME: should be in a segBufFlip method. */
+    /* FIXME: What if the buffer is on *part* of the segment? */
+    /* FIXME: Might not need to include the current epoch if this is
+       called *after* ++epoch. */
+    if (IsSubclassPoly(buffer->class, SegBufClassGet())) {
+      Seg seg = BufferSeg(buffer);
+      if (buffer->isMutator && SegIsGC(seg)) {
+        GCSeg gcseg = SegGCSeg(seg);
+        AVERT(GCSeg, gcseg);
+        EraBoundNotFuture(GCSegEra(gcseg), BufferArena(buffer));
+      }
+    }
   }
 }
 
@@ -1330,6 +1363,21 @@ static void segBufAttach(Buffer buffer, Addr base, Addr limit,
   SegSetBuffer(seg, buffer);
   segbuf->seg = seg;
 
+  /* There is going to be allocation into this segment, starting from now. */
+  /* FIXME: Consider forwarding buffers. */
+  /* FIXME: Consider moving this whole paragraph to ref.c */
+  /* FIXME: Consider noticing that a buffer is attached in
+     SegGetRefSet rather than poking it from here. */
+  /* FIXME: Give the buffer its own ref set for contents and union them. */
+  if (buffer->isMutator && SegIsGC(seg)) {
+    GCSeg gcseg = SegGCSeg(seg);
+    EraStruct allocEraStruct;
+    AVERT(GCSeg, gcseg);
+    EraInitUniv(&allocEraStruct);
+    EraBoundNotPast(&allocEraStruct, BufferArena(buffer));
+    EraUnion(GCSegEra(gcseg), &allocEraStruct);
+  }
+
   AVERT(SegBuf, segbuf);
 }
 
@@ -1349,6 +1397,17 @@ static void segBufDetach(Buffer buffer)
   AVER(seg != NULL);
   SegSetBuffer(seg, NULL);
   segbuf->seg = NULL;
+
+  /* We know that there will be no further allocation in this
+     segment, and so no objects in the future. */
+  /* FIXME: Do we really know this?  Aren't we assuming a lot about
+     pool behaviour? */
+  /* FIXME: Consider moving this whole paragraph to ref.c */
+  if (buffer->isMutator && SegIsGC(seg)) {
+    GCSeg gcseg = SegGCSeg(seg);
+    AVERT(GCSeg, gcseg);
+    EraBoundNotFuture(GCSegEra(gcseg), BufferArena(buffer));
+  }
 }
 
 

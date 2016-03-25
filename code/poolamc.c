@@ -1656,7 +1656,10 @@ static Res AMCFix(Pool pool, ScanState ss, Seg seg, Ref *refIO)
       ShieldExpose(arena, toSeg);
 
       /* Since we're moving an object from one segment to another, */
-      /* union the greyness and the summaries together. */
+      /* union the greyness, summaries, and eras together. */
+      /* FIXME: Consider poking all this information into the *buffer*
+         not the segment, since we're forwarding into one. That would
+         seem more natural. */
       grey = SegGrey(seg);
       if(SegRankSet(seg) != RankSetEMPTY) { /* not for AMCZ */
         RefSetStruct fromSummary, toSummary;
@@ -1668,6 +1671,7 @@ static Res AMCFix(Pool pool, ScanState ss, Seg seg, Ref *refIO)
       } else {
         AVER(SegRankSet(toSeg) == RankSetEMPTY);
       }
+      EraUnion(GCSegEra(SegGCSeg(toSeg)), GCSegEra(SegGCSeg(seg)));
       SegSetGrey(toSeg, TraceSetUnion(SegGrey(toSeg), grey));
 
       /* <design/trace/#fix.copy> */

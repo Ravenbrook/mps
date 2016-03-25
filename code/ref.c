@@ -13,23 +13,52 @@
 SRCID(ref, "$Id$");
 
 
-static RefSetStruct RefSetEmptyStruct = {ZoneSetEMPTY, {0, 0}};
+static RefSetStruct RefSetEmptyStruct = {ZoneSetEMPTY, {EraLATEST, EraEARLIEST - 1}};
 static RefSetStruct RefSetUnivStruct  = {ZoneSetUNIV, {EraEARLIEST, EraLATEST}};
 RefSet RefSetEMPTY = &RefSetEmptyStruct;
 RefSet RefSetUNIV  = &RefSetUnivStruct;
 
-#define RefSetEra(rs) (&(rs)->era)
-
-void EraEmpty(EraStruct *eraReturn)
+Era RefSetEra(RefSet rs)
 {
-  eraReturn->start = 0;
-  eraReturn->end   = 0;
+  return &rs->era;
 }
 
-void EraUniv(EraStruct *eraReturn)
+Bool EraCheck(Era era)
+{
+  CHECKL(era != NULL);
+  CHECKL(era->start >= EraEARLIEST);
+  /* CHECKL(era->end == EraEARLIEST - 1 || era->start <= era->end); */
+  /* If we could determine the era arena we could check start <= epoch. */
+  return TRUE;
+}
+
+void EraInitEmpty(EraStruct *eraReturn)
+{
+  AVER(EraEARLIEST - 1 == 0);
+  eraReturn->start = EraLATEST;
+  eraReturn->end   = EraEARLIEST - 1;
+}
+
+Bool EraIsEmpty(Era era)
+{
+  return era->start > era->end;
+}
+
+/* FIXME: Rename to EraWhenever? EraAllTime? */
+void EraInitUniv(EraStruct *eraReturn)
 {
   eraReturn->start = EraEARLIEST;
   eraReturn->end   = EraLATEST;
+}
+
+void EraBoundNotPast(EraStruct *eraReturn, Arena arena)
+{
+  eraReturn->start = EpochMax(eraReturn->start, ArenaEpoch(arena));
+}
+
+void EraBoundNotFuture(EraStruct *eraReturn, Arena arena)
+{
+  eraReturn->end = EpochMin(eraReturn->end, ArenaEpoch(arena));
 }
 
 void EraCopy(EraStruct *eraReturn, Era era)
@@ -40,14 +69,18 @@ void EraCopy(EraStruct *eraReturn, Era era)
 
 Bool EraSub(Era era1, Era era2)
 {
-  return (era1->start >= era2->start &&
-          era1->end   <= era2->end);
+  return (EraIsEmpty(era1) ||
+          (!EraIsEmpty(era2) &&
+           (era1->start >= era2->start &&
+            era1->end   <= era2->end)));
 }
 
 Bool EraSuper(Era era1, Era era2)
 {
-  return (era1->start <= era2->start &&
-          era1->end   >= era2->end);
+  return (EraIsEmpty(era2) ||
+          (!EraIsEmpty(era1) &&
+           (era1->start <= era2->start &&
+            era1->end   >= era2->end)));
 }
 
 Epoch EpochMin(Epoch epoch1, Epoch epoch2)
@@ -68,13 +101,12 @@ Epoch EpochMax(Epoch epoch1, Epoch epoch2)
 
 void EraUnion(EraStruct *eraReturn, Era era)
 {
-  eraReturn->start = EpochMin(eraReturn->start, era->start);
-  eraReturn->end   = EpochMax(eraReturn->end,   era->end);
-}
-
-Bool EraIsEmpty(Era era)
-{
-  return era->start == era->end;
+  if (EraIsEmpty(eraReturn))
+    EraCopy(eraReturn, era);
+  else {
+    eraReturn->start = EpochMin(eraReturn->start, era->start);
+    eraReturn->end   = EpochMax(eraReturn->end,   era->end);
+  }
 }
 
 Bool EraIsUniv(Era era)
@@ -83,10 +115,19 @@ Bool EraIsUniv(Era era)
           era->end   == EraLATEST);
 }
 
+Bool EraIntersects(Era era1, Era era2)
+{
+  return (!EraIsEmpty(era1) &&
+          !EraIsEmpty(era2) &&
+          era1->start <= era2->end &&
+          era2->start <= era1->end);
+}
+    
 Bool EraEqual(Era era1, Era era2)
 {
-  return (era1->start == era2->start &&
-          era1->end   == era2->end);
+  return ((EraIsEmpty(era1) && EraIsEmpty(era2)) ||
+          (era1->start == era2->start &&
+           era1->end   == era2->end));
 }
 
 Res EraDescribe(Era era, mps_lib_FILE *stream, Count depth)
@@ -102,13 +143,13 @@ Res EraDescribe(Era era, mps_lib_FILE *stream, Count depth)
 void RefSetEmpty(RefSetStruct *rsReturn)
 {
   rsReturn->zones = ZoneSetEMPTY;
-  EraEmpty(RefSetEra(rsReturn));
+  EraInitEmpty(RefSetEra(rsReturn));
 }
 
 void RefSetUniv(RefSetStruct *rsReturn)
 {
   rsReturn->zones = ZoneSetUNIV;
-  EraUniv(RefSetEra(rsReturn));
+  EraInitUniv(RefSetEra(rsReturn));
 }
 
 void RefSetCopy(RefSetStruct *rsReturn, RefSet rs)
@@ -132,7 +173,13 @@ Bool RefSetSuper(RefSet rs1, RefSet rs2)
 void RefSetAdd(RefSetStruct *rsIO, Arena arena, Ref ref)
 {
   rsIO->zones = ZoneSetAddAddr(arena, rsIO->zones, (Addr)ref);
-  EraUniv(RefSetEra(rsIO));
+  EraInitUniv(RefSetEra(rsIO));
+}
+
+Bool RefSetInter(RefSet rs1, RefSet rs2)
+{
+  return (ZoneSetInter(rs1->zones, rs2->zones) != ZoneSetEMPTY &&
+          EraIntersects(RefSetEra(rs1), RefSetEra(rs2)));
 }
 
 Bool RefSetInterZones(RefSet rs, ZoneSet zs)
@@ -167,7 +214,17 @@ void RefSetUnion(RefSetStruct *rsIO, RefSet rs2)
 void RefSetFromZones(RefSetStruct *rsReturn, ZoneSet zones)
 {
   rsReturn->zones = zones;
-  EraUniv(RefSetEra(rsReturn));
+  EraInitUniv(RefSetEra(rsReturn));
+}
+
+ZoneSet RefSetZones(RefSet rs)
+{
+  return rs->zones;
+}
+
+void RefSetBoundNotFuture(RefSetStruct *rsIO, Arena arena)
+{
+  EraBoundNotFuture(RefSetEra(rsIO), arena);
 }
 
 Res RefSetDescribe(RefSet rs, mps_lib_FILE *stream, Count depth)
@@ -252,6 +309,10 @@ ZoneSet ZoneSetOfRange(Arena arena, Addr base, Addr limit)
  *
  * .rsor.def: The zone set of a segment is the union of the zones the
  * segment occupies.
+ *
+ * TODO: Exact references can only refer to the start of an object, so
+ * a large object in a seg of it's own has a different zone set as far
+ * as exact references are concerned.
  */
 
 ZoneSet ZoneSetOfSeg(Arena arena, Seg seg)

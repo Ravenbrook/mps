@@ -371,7 +371,7 @@ extern const char *MessageNoGCStartWhy(Message message);
 
 
 extern void ScanStateInit(ScanState ss, TraceSet ts, Arena arena,
-                          Rank rank, ZoneSet white);
+                          Rank rank, RefSet white);
 extern void ScanStateFinish(ScanState ss);
 extern Bool ScanStateCheck(ScanState ss);
 extern void ScanStateSetSummary(ScanState ss, RefSet summary);
@@ -691,6 +691,7 @@ extern void SegSummaryAddMutatorRef(Seg seg, Ref ref);
 extern void SegSummaryAddFixedRef(Seg seg, Ref ref);
 extern Bool SegSummaryIsEmpty(Seg seg);
 extern Bool SegSummaryIsUniv(Seg seg);
+extern Bool SegDoesNotReference(Seg seg, RefSet rs);
 extern Bool SegDoesNotReferenceZones(Seg seg, ZoneSet zones);
 extern Bool SegSummaryEqual(Seg seg, RefSet rs);
 extern Bool SegSummarySuper(Seg seg, RefSet rs);
@@ -702,7 +703,10 @@ extern Bool SegClassCheck(SegClass class);
 extern SegClass SegClassGet(void);
 extern SegClass GCSegClassGet(void);
 extern void SegClassMixInNoSplitMerge(SegClass class);
-
+#define SegIsGC(seg) IsSubclassPoly(ClassOfSeg(seg), GCSegClassGet())
+#define SegGCSeg(seg) PARENT(GCSegStruct, segStruct, seg)
+#define GCSegEra(gcseg) (&(gcseg)->eraStruct)
+extern void SegGetRefSet(RefSetStruct *rsReturn, Seg seg);
 
 /* DEFINE_SEG_CLASS -- define a segment class */
 
@@ -867,8 +871,11 @@ extern Bool RankSetCheck(RankSet rankSet);
 
 /* Eras -- see ref.c */
 
-extern void EraEmpty(EraStruct *eraReturn);
-extern void EraUniv(EraStruct *eraReturn);
+extern void EraInitEmpty(EraStruct *eraReturn);
+extern void EraInitUniv(EraStruct *eraReturn);
+extern Bool EraCheck(Era era);
+extern void EraFinish(Era era);
+extern Res EraDescribe(Era era, mps_lib_FILE *stream, Count depth);
 extern void EraCopy(EraStruct *eraReturn, Era era);
 extern Bool EraSub(Era era1, Era era2);
 extern Bool EraSuper(Era era1, Era era2);
@@ -877,8 +884,11 @@ extern Epoch EpochMax(Epoch epoch1, Epoch epoch2);
 extern void EraUnion(EraStruct *eraReturn, Era era);
 extern Bool EraIsEmpty(Era era);
 extern Bool EraIsUniv(Era era);
+extern void EraBoundNotPast(EraStruct *eraReturn, Arena arena);
+extern void EraBoundNotFuture(EraStruct *eraReturn, Arena arena);
+extern void EraNoteAttach(Era era);
 extern Bool EraEqual(Era era1, Era era2);
-extern Res EraDescribe(Era era, mps_lib_FILE *stream, Count depth);
+extern Bool EraIntersects(Era era1, Era era2);
 
 /* Reference sets -- see design.mps.refset */
 
@@ -890,12 +900,16 @@ extern void RefSetCopy(RefSetStruct *rsReturn, RefSet rs);
 extern Bool RefSetSub(RefSet rs1, RefSet rs2);
 extern Bool RefSetSuper(RefSet rs1, RefSet rs2);
 extern void RefSetAdd(RefSetStruct *rsIO, Arena arena, Ref ref);
+extern Bool RefSetInter(RefSet rs1, RefSet rs2);
 extern Bool RefSetInterZones(RefSet rs, ZoneSet zs);
 extern Bool RefSetIsEmpty(RefSet rs);
 extern Bool RefSetIsUniv(RefSet rs);
 extern Bool RefSetEqual(RefSet rs1, RefSet rs2);
 extern void RefSetUnion(RefSetStruct *rsIO, RefSet rs2);
+extern ZoneSet RefSetZones(RefSet rs);
+extern Era RefSetEra(RefSet rs);
 extern void RefSetFromZones(RefSetStruct *rsReturn, ZoneSet zones);
+extern void RefSetBoundNotFuture(RefSetStruct *rsIO, Arena arena);
 extern Res RefSetDescribe(RefSet rs, mps_lib_FILE *stream, Count depth);
 
 /* Zone sets -- see design.mps.refset */
@@ -1007,6 +1021,7 @@ extern Res RootDescribe(Root root, mps_lib_FILE *stream, Count depth);
 extern Res RootsDescribe(Globals arenaGlobals, mps_lib_FILE *stream, Count depth);
 extern Rank RootRank(Root root);
 extern AccessSet RootPM(Root root);
+extern Bool RootDoesNotReference(Root root, RefSet rs);
 extern Bool RootDoesNotReferenceZones(Root root, ZoneSet zs);
 extern void RootGrey(Root root, Trace trace);
 extern Res RootScan(ScanState ss, Root root);

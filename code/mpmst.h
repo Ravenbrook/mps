@@ -271,7 +271,7 @@ typedef struct SegStruct {      /* segment structure */
 
 typedef struct EraStruct {
   Epoch start;                  /* at most earliest object epoch */
-  Epoch end;                    /* at least latest object epoch plus one */
+  Epoch end;                    /* at least latest object epoch */
 } EraStruct;
 
 
@@ -294,6 +294,7 @@ typedef struct GCSegStruct {    /* GC segment structure */
   SegStruct segStruct;          /* superclass fields must come first */
   RingStruct greyRing;          /* link in list of grey segs */
   RefSetStruct summary;         /* summary of references out of seg */
+  EraStruct eraStruct;          /* era of segment contents */
   Buffer buffer;                /* non-NULL if seg is buffered */
   Sig sig;                      /* <design/sig/> */
 } GCSegStruct;
@@ -474,7 +475,7 @@ typedef struct TraceStruct {
   TraceId ti;                   /* index into TraceSets */
   Arena arena;                  /* owning arena */
   int why;                      /* why the trace began */
-  ZoneSet white;                /* zones in the white set */
+  RefSetStruct whiteStruct;     /* reference set of condemned objects */
   ZoneSet mayMove;              /* zones containing possibly moving objs */
   TraceState state;             /* current state of trace */
   Rank band;                    /* current band */

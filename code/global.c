@@ -318,7 +318,7 @@ Res GlobalsInit(Globals arenaGlobals)
   STATISTIC(arena->writeBarrierHitCount = 0);
   RingInit(&arena->chainRing);
 
-  arena->epoch = (Epoch)0;              /* <code/ld.c> */
+  arena->epoch = EpochMIN;
   RefSetEmpty(&arena->prehistory);
   for(i = 0; i < LDHistoryLENGTH; ++i)
     RefSetEmpty(&arena->history[i]);

@@ -284,8 +284,9 @@ typedef Res (*LandDescribeMethod)(Land land, mps_lib_FILE *stream, Count depth);
 
 #define SizeMAX         ((Size)-1)
 #define EpochMAX        SizeMAX
-#define EraEARLIEST     0
+#define EraEARLIEST     1              /* FIXME: Explain why in ref.c */
 #define EraLATEST       EpochMAX
+#define EpochMIN        EraEARLIEST    /* FIXME: Explain why in ref.c */
 #define AccessSetEMPTY  ((AccessSet)0) /* <design/type/#access-set> */
 #define AccessREAD      ((AccessSet)(1<<0))
 #define AccessWRITE     ((AccessSet)(1<<1))
