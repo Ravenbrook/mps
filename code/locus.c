@@ -347,6 +347,15 @@ GenDesc ChainGen(Chain chain, Index gen)
  * accounting.
  */
 
+static void PoolGenAccountForAlloc(PoolGen pgen, Size size)
+{
+  pgen->totalSize += size;
+  STATISTIC_STAT ({
+    ++ pgen->segs;
+    pgen->freeSize += size;
+  });
+}  
+
 Res PoolGenAlloc(Seg *segReturn, PoolGen pgen, SegClass class, Size size,
                  ArgList args)
 {
@@ -388,12 +397,8 @@ Res PoolGenAlloc(Seg *segReturn, PoolGen pgen, SegClass class, Size size,
     EVENT3(ArenaGenZoneAdd, arena, gen, moreZones);
   }
 
-  size = SegSize(seg);
-  pgen->totalSize += size;
-  STATISTIC_STAT ({
-    ++ pgen->segs;
-    pgen->freeSize += size;
-  });
+  PoolGenAccountForAlloc(pgen, SegSize(seg));
+
   *segReturn = seg;
   return ResOK;
 }
@@ -701,20 +706,10 @@ void PoolGenAccountForSegMerge(PoolGen pgen)
  * See <design/strategy/#accounting.op.free>
  */
 
-void PoolGenFree(PoolGen pgen, Seg seg, Size freeSize, Size oldSize,
-                 Size newSize, Bool deferred)
+static void PoolGenAccountForFree(PoolGen pgen, Size size,
+                                  Size oldSize, Size newSize,
+                                  Bool deferred)
 {
-  Size size;
-
-  AVERT(PoolGen, pgen);
-  AVERT(Seg, seg);
-
-  size = SegSize(seg);
-  AVER(freeSize + oldSize + newSize == size);
-
-  AVER(SegIsGC(seg));
-  RingRemove(&SegGCSeg(seg)->genRing);
-
   /* Pretend to age and reclaim the contents of the segment to ensure
    * that the entire segment is accounted as free. */
   PoolGenAccountForAge(pgen, newSize, deferred);
@@ -728,7 +723,91 @@ void PoolGenFree(PoolGen pgen, Seg seg, Size freeSize, Size oldSize,
     AVER(pgen->freeSize >= size);
     pgen->freeSize -= size;
   });
+}  
+
+void PoolGenFree(PoolGen pgen, Seg seg, Size freeSize, Size oldSize,
+                 Size newSize, Bool deferred)
+{
+  Size size;
+
+  AVERT(PoolGen, pgen);
+  AVERT(Seg, seg);
+
+  size = SegSize(seg);
+  AVER(freeSize + oldSize + newSize == size);
+
+  PoolGenAccountForFree(pgen, size, oldSize, newSize, deferred);
+
+  AVER(SegIsGC(seg));
+  RingRemove(&SegGCSeg(seg)->genRing);
+  
   SegFree(seg);
+}
+
+
+/* PoolGenMove -- move a segment from one generation to another */
+
+void PoolGenMove(Seg seg, PoolGen fromPGen, PoolGen toPGen,
+                 Size oldSize, Size newSize, Bool deferred)
+{
+  GenDesc fromGen, toGen;
+  GCSeg gcseg;
+  Size size, freeSize;
+
+  AVERT(Seg, seg);
+  AVER(SegIsGC(seg));
+  AVERT(PoolGen, fromPGen);
+  AVERT(PoolGen, toPGen);
+
+  fromGen = fromPGen->gen;
+  toGen = toPGen->gen;
+  gcseg = SegGCSeg(seg);
+  size = SegSize(seg);
+  AVER(oldSize <= size);
+  AVER(newSize <= size);
+  AVER(oldSize + newSize <= size);
+  freeSize = size - (oldSize + newSize);
+
+  /* FIXME: Can this be lifted into "subtract" and "add" operations
+     that are shared with AccountForAlloc, AccountForFree, etc.? */
+  AVER(fromPGen->totalSize >= size);
+  fromPGen->totalSize -= size;
+  toPGen->totalSize += size;
+  STATISTIC_STAT({
+    AVER(fromPGen->segs > 0);
+    --fromPGen->segs;
+    ++toPGen->segs;
+  });
+  if (deferred) {
+    AVER(fromPGen->newDeferredSize >= newSize);
+    fromPGen->newDeferredSize -= newSize;
+    toPGen->newDeferredSize += newSize;
+    STATISTIC_STAT({
+      AVER(fromPGen->oldDeferredSize >= oldSize);
+      fromPGen->oldDeferredSize -= oldSize;
+      toPGen->oldDeferredSize += oldSize;
+    });
+  } else {
+    AVER(fromPGen->newSize >= newSize);
+    fromPGen->newSize -= newSize;
+    toPGen->newSize += newSize;
+    STATISTIC_STAT({
+      AVER(fromPGen->oldSize >= oldSize);
+      fromPGen->oldSize -= oldSize;
+      toPGen->oldSize += oldSize;
+    });
+  }
+  STATISTIC_STAT({
+    AVER(fromPGen->freeSize >= freeSize);
+    fromPGen->freeSize -= freeSize;
+    toPGen->freeSize += freeSize;
+  });
+
+  RingRemove(&gcseg->genRing);
+  RingAppend(&toGen->segRing, &gcseg->genRing);
+  
+  AVERT(PoolGen, fromPGen);
+  AVERT(PoolGen, toPGen);
 }
 
 

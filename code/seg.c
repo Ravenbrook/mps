@@ -1163,6 +1163,8 @@ Bool GCSegCheck(GCSeg gcseg)
     CHECKL(RefSetIsEmpty(&gcseg->summary));
   }
 
+  CHECKD_NOSIG(Ring, &gcseg->genRing);
+
   CHECKD_NOSIG(Era, &gcseg->eraStruct);
 
   return TRUE;
@@ -1234,6 +1236,7 @@ static void gcSegFinish(Seg seg)
   AVER(gcseg->buffer == NULL);
 
   RingFinish(&gcseg->greyRing);
+  RingFinish(&gcseg->genRing);
 
   /* finish the superclass fields last */
   super = SEG_SUPERCLASS(GCSegClass);

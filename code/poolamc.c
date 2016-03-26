@@ -43,7 +43,8 @@ extern SegClass amcSegClassGet(void);
 typedef struct amcGenStruct {
   PoolGenStruct pgen;
   RingStruct amcRing;           /* link in list of gens in pool */
-  Buffer forward;               /* forwarding buffer */
+  amcGen next;                  /* where to promote to */
+  Buffer forward;               /* forwarding buffer in nextGen */
   Sig sig;                      /* <code/misc.h#sig> */
 } amcGenStruct;
 
@@ -353,7 +354,6 @@ DEFINE_SEG_CLASS(amcSegClass, class)
 }
 
 
-
 /* amcSegHasNailboard -- test whether the segment has a nailboard
  *
  * See <design/poolamc/#fix.nail.distinguish>.
@@ -381,6 +381,25 @@ static amcGen amcSegGen(Seg seg)
 {
   amcSeg amcseg = Seg2amcSeg(seg);
   return amcseg->gen;
+}
+
+
+/* amcSegPromote -- move a segment to the next generation */
+
+static void amcSegPromote(Seg seg)
+{
+  amcGen gen, nextGen;
+  amcSeg amcseg;
+  Size size;
+  gen = amcSegGen(seg);
+  amcseg = Seg2amcSeg(seg);
+  nextGen = gen->next;
+  size = SegSize(seg);
+  PoolGenMove(seg, &gen->pgen, &nextGen->pgen,
+              amcseg->old ? size : 0, /* FIXME: Huh? */
+              amcseg->old ? 0 : size,
+              amcseg->deferred); /* FIXME: What? */
+  amcseg->gen = nextGen;
 }
 
 
@@ -425,6 +444,8 @@ static Bool amcGenCheck(amcGen gen)
   amc = amcGenAMC(gen);
   CHECKU(AMC, amc);
   CHECKD(Buffer, gen->forward);
+  if (gen->next != NULL) /* .amcgen.next.init */
+    CHECKD(amcGen, gen->next);
   CHECKD_NOSIG(Ring, &gen->amcRing);
 
   return TRUE;
@@ -604,6 +625,7 @@ static Res amcGenCreate(amcGen *genReturn, AMC amc, GenDesc gen)
     goto failGenInit;
   RingInit(&amcgen->amcRing);
   amcgen->forward = buffer;
+  amcgen->next = NULL; /* .amcgen.next.init */
   amcgen->sig = amcGenSig;
 
   AVERT(amcGen, amcgen);
@@ -817,9 +839,11 @@ static Res amcInitComm(Pool pool, RankSet rankSet, ArgList args)
     /* Set up forwarding buffers. */
     for(i = 0; i < genCount; ++i) {
       amcBufSetGen(amc->gen[i]->forward, amc->gen[i+1]);
+      amc->gen[i]->next = amc->gen[i+1]; /* .amcgen.next-init: FIXME: This isn't good. */
     }
     /* Dynamic gen forwards to itself. */
     amcBufSetGen(amc->gen[genCount]->forward, amc->gen[genCount]);
+    amc->gen[genCount]->next = amc->gen[genCount]; /* .amcgen.next-init */
   }
   amc->nursery = amc->gen[0];
   amc->rampGen = amc->gen[genCount-1]; /* last ephemeral gen */
@@ -1184,6 +1208,10 @@ static Res AMCWhiten(Pool pool, Trace trace, Seg seg)
             }
             ++trace->nailCount;
             SegSetNailed(seg, TraceSetSingle(trace));
+
+            /* FIXME: Consider promoting the segment here. It think
+               not, because the object should be very new, or even
+               invalid. */
           } else {
             /* Segment is nailed already, cannot create a nailboard */
             /* (see .nail.new), just give up condemning. */
@@ -1587,7 +1615,10 @@ static Res AMCFix(Pool pool, ScanState ss, Seg seg, Ref *refIO)
       if(res != ResOK)
         return res;
       ++ss->nailCount;
+      /* FIXME: Redundant with amcFixInPlace? */
       SegSetNailed(seg, TraceSetUnion(SegNailed(seg), ss->traces));
+      /* FIXME: This ought to happen in amcFixInPlace. */
+      amcSegPromote(seg);
     }
     amcFixInPlace(pool, seg, ss, refIO);
     return ResOK;
@@ -1812,6 +1843,7 @@ static void amcReclaimNailed(Pool pool, Trace trace, Seg seg)
  *
  * See <design/poolamc/#reclaim>.
  */
+
 static void AMCReclaim(Pool pool, Trace trace, Seg seg)
 {
   AMC amc;
