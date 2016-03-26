@@ -187,6 +187,47 @@ Res GenDescDescribe(GenDesc gen, mps_lib_FILE *stream, Count depth)
 
 /* ChainCreate -- create a generation chain */
 
+static Bool GenParamCheck(GenParamStruct *params)
+{
+  CHECKL(params != NULL);
+  CHECKL(params->capacity > 0);
+  CHECKL(params->mortality > 0.0);
+  CHECKL(params->mortality < 1.0);
+  return TRUE;
+}
+
+static void GenDescInit(GenDescStruct *gen, GenParamStruct *params)
+{
+  AVER(gen != NULL);
+  AVER(GenParamCheck(params));
+  gen->zones = ZoneSetEMPTY;
+  gen->capacity = params->capacity;
+  gen->mortality = params->mortality;
+  RingInit(&gen->locusRing);
+  RingInit(&gen->segRing);
+  gen->sig = GenDescSig;
+  AVERT(GenDesc, gen);
+}
+
+static void ChainInit(ChainStruct *chain, Arena arena, GenDescStruct *gens, Count genCount)
+{
+  AVER(chain != NULL);
+  AVERT(Arena, arena);
+  AVER(gens != NULL);
+  AVER(genCount > 0);
+
+  chain->arena = arena;
+  RingInit(&chain->chainRing);
+  chain->activeTraces = TraceSetEMPTY;
+  chain->genCount = genCount;
+  chain->gens = gens;
+  chain->sig = ChainSig;
+
+  AVERT(Chain, chain);
+
+  RingAppend(&arena->chainRing, &chain->chainRing);
+}
+
 Res ChainCreate(Chain *chainReturn, Arena arena, size_t genCount,
                 GenParamStruct *params)
 {
@@ -200,41 +241,22 @@ Res ChainCreate(Chain *chainReturn, Arena arena, size_t genCount,
   AVERT(Arena, arena);
   AVER(genCount > 0);
   AVER(params != NULL);
-  for (i = 0; i < genCount; ++i) {
-    AVER(params[i].capacity > 0);
-    AVER(params[i].mortality > 0.0);
-    AVER(params[i].mortality < 1.0);
-  }
 
   res = ControlAlloc(&p, arena, genCount * sizeof(GenDescStruct));
   if (res != ResOK)
     return res;
   gens = (GenDescStruct *)p;
 
-  for (i = 0; i < genCount; ++i) {
-    gens[i].zones = ZoneSetEMPTY;
-    gens[i].capacity = params[i].capacity;
-    gens[i].mortality = params[i].mortality;
-    RingInit(&gens[i].locusRing);
-    RingInit(&gens[i].segRing);
-    gens[i].sig = GenDescSig;
-    AVERT(GenDesc, &gens[i]);
-  }
+  for (i = 0; i < genCount; ++i)
+    GenDescInit(&gens[i], &params[i]);
 
   res = ControlAlloc(&p, arena, sizeof(ChainStruct));
   if (res != ResOK)
     goto failChainAlloc;
   chain = (Chain)p;
 
-  chain->arena = arena;
-  RingInit(&chain->chainRing);
-  chain->activeTraces = TraceSetEMPTY;
-  chain->genCount = genCount;
-  chain->gens = gens;
-  chain->sig = ChainSig;
+  ChainInit(chain, arena, gens, genCount);
 
-  RingAppend(&arena->chainRing, &chain->chainRing);
-  AVERT(Chain, chain);
   *chainReturn = chain;
   return ResOK;
 
@@ -264,6 +286,14 @@ Bool ChainCheck(Chain chain)
 
 /* ChainDestroy -- destroy a chain */
 
+static void GenDescFinish(GenDesc gen)
+{
+  AVERT(GenDesc, gen);
+  RingFinish(&gen->locusRing);
+  RingFinish(&gen->segRing);
+  gen->sig = SigInvalid;
+}
+
 void ChainDestroy(Chain chain)
 {
   Arena arena;
@@ -277,12 +307,12 @@ void ChainDestroy(Chain chain)
   genCount = chain->genCount;
   RingRemove(&chain->chainRing);
   chain->sig = SigInvalid;
-  for (i = 0; i < genCount; ++i) {
-    RingFinish(&chain->gens[i].locusRing);
-    RingFinish(&chain->gens[i].segRing);
-    chain->gens[i].sig = SigInvalid;
-  }
+
+  for (i = 0; i < genCount; ++i)
+    GenDescFinish(&chain->gens[i]);
+
   RingFinish(&chain->chainRing);
+
   ControlFree(arena, chain->gens, genCount * sizeof(GenDescStruct));
   ControlFree(arena, chain, sizeof(ChainStruct));
 }
@@ -311,8 +341,10 @@ GenDesc ChainGen(Chain chain, Index gen)
 }
 
 
-/* PoolGenAlloc -- allocate a segment in a pool generation and update
- * accounting
+/* PoolGenAlloc -- allocate a segment in a pool generation
+ *
+ * Allocates a GCSeg, attaches it to the generation, and updates
+ * accounting.
  */
 
 Res PoolGenAlloc(Seg *segReturn, PoolGen pgen, SegClass class, Size size,
