@@ -42,7 +42,6 @@ typedef union PagePoolUnion {
 
 typedef struct TractStruct { /* Tract structure */
   PagePoolUnion pool; /* MUST BE FIRST (<design/arena/#tract.field> pool) */
-  void *p;                     /* pointer for use of owning pool */
   Addr base;                   /* Base address of the tract */
 } TractStruct;
 
@@ -54,8 +53,6 @@ extern Addr TractLimit(Tract tract, Arena arena);
 #define TractHasPool(tract) \
   ((tract)->pool.state == PageStateALLOC && TractPool(tract))
 #define TractPool(tract)         ((tract)->pool.pool)
-#define TractP(tract)            ((tract)->p)
-#define TractSetP(tract, pp)     ((void)((tract)->p = (pp)))
 
 extern Bool TractCheck(Tract tract);
 extern void TractInit(Tract tract, Pool pool, Addr base);

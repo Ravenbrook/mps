@@ -59,7 +59,6 @@ void TractInit(Tract tract, Pool pool, Addr base)
 
   tract->pool.pool = pool;
   tract->base = base;
-  tract->p = NULL;
 
   AVERT(Tract, tract);
 
