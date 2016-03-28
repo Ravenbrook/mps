@@ -143,7 +143,7 @@ static Res SegInit(Seg seg, Pool pool, Addr base, Size size, ArgList args)
 
   /* IMPORTANT: Keep in sync with segTrivSplit. */
   limit = AddrAdd(base, size);
-  RangeInit(SegRange(seg), base, limit);
+  NodeInit(SegNode(seg), base, limit);
   seg->pool = pool;
   seg->rankSet = RankSetEMPTY;
   seg->white = TraceSetEMPTY;
@@ -155,7 +155,6 @@ static Res SegInit(Seg seg, Pool pool, Addr base, Size size, ArgList args)
   seg->depth = 0;
   seg->queued = FALSE;
   RingInit(SegPoolRing(seg));
-  TreeInit(SegTree(seg));
   seg->treeZones = ZoneSetEMPTY; /* set by SegUpdate */
   seg->sig = SegSig;  /* set sig now so tract checks will see it */
 
@@ -217,7 +216,8 @@ static void SegFinish(Seg seg)
   /* IMPORTANT: Keep in sync with segTrivMerge. */
   b = SplayTreeDelete(ArenaSegSplay(arena), SegTree(seg));
   AVER(b); /* seg should be in arena splay tree */
-  TreeFinish(SegTree(seg));
+
+  NodeFinish(SegNode(seg));
   RingRemove(SegPoolRing(seg));
   RingFinish(SegPoolRing(seg));
 
@@ -233,7 +233,7 @@ static void SegFinish(Seg seg)
 }
 
 
-#define segOfTree(_tree) TREE_ELT(Seg, treeStruct, _tree)
+#define segOfTree(_tree) PARENT(SegStruct, nodeStruct, NodeOfTree(_tree))
 
 Compare SegCompare(Tree tree, TreeKey key)
 {
@@ -1043,9 +1043,11 @@ static Res segTrivMerge(Seg seg, Seg segHi,
   /* IMPORTANT: Keep in sync with SegFinish. */
   b = SplayTreeDelete(ArenaSegSplay(arena), SegTree(segHi));
   AVER(b); /* seg should be in arena splay tree */
-  TreeFinish(SegTree(segHi));
+
+  NodeFinish(SegNode(segHi));
   RingRemove(SegPoolRing(segHi));
   RingFinish(SegPoolRing(segHi));
+
   segHi->sig = SigInvalid;
 
   /* This does not affect seg's position in the segment tree, since it
@@ -1104,7 +1106,7 @@ static Res segTrivSplit(Seg seg, Seg segHi,
      address-ordered and no segments overlap. */
   /* IMPORTANT: Keep in sync with SegInit. */
   RangeSetLimit(SegRange(seg), mid);
-  RangeInit(SegRange(segHi), mid, limit);
+  NodeInit(SegNode(segHi), mid, limit);
   segHi->pool = pool;
   segHi->rankSet = seg->rankSet;
   segHi->white = seg->white;
@@ -1116,7 +1118,6 @@ static Res segTrivSplit(Seg seg, Seg segHi,
   segHi->queued = seg->queued;
   segHi->class = seg->class;
   RingInit(SegPoolRing(segHi));
-  TreeInit(SegTree(segHi));
   segHi->sig = SegSig;
 
   AVERT(Seg, seg);

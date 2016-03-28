@@ -29,6 +29,7 @@
 #include "mpmtypes.h"
 #include "mpmst.h"
 #include "range.h"
+#include "node.h"
 
 
 /* MPMCheck -- check MPM assumptions */
@@ -727,7 +728,8 @@ extern void SegUpdate(SplayTree splay, Tree tree);
 extern Size SegSize(Seg seg);
 extern Addr (SegBase)(Seg seg);
 extern Addr (SegLimit)(Seg seg);
-#define SegRange(seg)           (&(seg)->rangeStruct)
+#define SegNode(seg)            (&(seg)->nodeStruct)
+#define SegRange(seg)           NodeRange(SegNode(seg))
 #define SegBase(seg)            RangeBase(SegRange(seg))
 #define SegLimit(seg)           RangeLimit(SegRange(seg))
 #define SegPool(seg)            ((seg)->pool)
@@ -742,7 +744,7 @@ extern Addr (SegLimit)(Seg seg);
 #define SegWhite(seg)           ((TraceSet)(seg)->white)
 #define SegNailed(seg)          ((TraceSet)(seg)->nailed)
 #define SegPoolRing(seg)        (&(seg)->poolRing)
-#define SegTree(seg)            (&(seg)->treeStruct)
+#define SegTree(seg)            NodeTree(SegNode(seg))
 #define SegOfPoolRing(node)     (RING_ELT(Seg, poolRing, (node)))
 #define SegOfGreyRing(node)     (&(RING_ELT(GCSeg, greyRing, (node)) \
                                    ->segStruct))

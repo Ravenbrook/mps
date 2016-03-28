@@ -251,10 +251,9 @@ typedef struct NodeStruct {
 typedef struct SegStruct {      /* segment structure */
   Sig sig;                      /* <code/misc.h#sig> */
   SegClass class;               /* segment class structure */
-  RangeStruct rangeStruct;      /* address range of segment memory */
+  NodeStruct nodeStruct;        /* node of segment memory */
   Pool pool;                    /* pool that owns this segment */
   RingStruct poolRing;          /* link in list of segs in pool */
-  TreeStruct treeStruct;        /* tree of all segments by address */
   ZoneSet treeZones;            /* union of all zones in sub-tree */
   unsigned depth : ShieldDepthWIDTH; /* see design.mps.shield.def.depth */
   BOOLFIELD(queued);            /* in shield queue? */
