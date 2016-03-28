@@ -1,51 +1,44 @@
-/* cbs.h: CBS -- Coalescing Block Structure
+/* node.c -- binary trees of address ranges
  *
  * $Id$
- * Copyright (c) 2001 Ravenbrook Limited.  See end of file for license.
- *
- * .source: <design/cbs/>.
+ * Copyright (C) 2016 Ravenbrook Limited.  See end of file for license.
  */
 
-#ifndef cbs_h
-#define cbs_h
-
-#include "arg.h"
-#include "mpmtypes.h"
-#include "mpmst.h"
+#include "node.h"
+#include "tree.h"
 #include "range.h"
-#include "splay.h"
+#include "mpm.h"
 
-typedef struct CBSFastBlockStruct *CBSFastBlock;
-typedef struct CBSFastBlockStruct {
-  struct NodeStruct nodeStruct;
-  Size maxSize; /* accurate maximum block size of sub-tree */
-} CBSFastBlockStruct;
 
-typedef struct CBSZonedBlockStruct *CBSZonedBlock;
-typedef struct CBSZonedBlockStruct {
-  struct CBSFastBlockStruct cbsFastBlockStruct;
-  ZoneSet zones; /* union zone set of all ranges in sub-tree */
-} CBSZonedBlockStruct;
+void NodeInit(Node node, Addr base, Addr limit)
+{
+  AVER(node != NULL);
+  TreeInit(NodeTree(node));
+  RangeInit(NodeRange(node), base, limit);
+  AVERT(Node, node);
+}
 
-typedef struct CBSStruct *CBS;
 
-extern Bool CBSCheck(CBS cbs);
-#define CBSLand(cbs) (&(cbs)->landStruct)
+Bool NodeCheck(Node node)
+{
+  CHECKL(node != NULL);
+  CHECKD_NOSIG(Tree, NodeTree(node));
+  CHECKD_NOSIG(Range, NodeRange(node));
+  return TRUE;
+}
 
-extern LandClass CBSLandClassGet(void);
-extern LandClass CBSFastLandClassGet(void);
-extern LandClass CBSZonedLandClassGet(void);
 
-extern const struct mps_key_s _mps_key_cbs_block_pool;
-#define CBSBlockPool (&_mps_key_cbs_block_pool)
-#define CBSBlockPool_FIELD pool
-
-#endif /* cbs_h */
+void NodeFinish(Node node)
+{
+  AVERT(Node, node);
+  TreeFinish(NodeTree(node));
+  RangeFinish(NodeRange(node));
+}
 
 
 /* C. COPYRIGHT AND LICENSE
  *
- * Copyright (C) 2001-2002 Ravenbrook Limited <http://www.ravenbrook.com/>.
+ * Copyright (C) 2013 Ravenbrook Limited <http://www.ravenbrook.com/>.
  * All rights reserved.  This is an open source license.  Contact
  * Ravenbrook for commercial licensing options.
  * 
