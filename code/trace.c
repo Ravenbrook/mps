@@ -517,7 +517,13 @@ Res TraceCondemnZones(Trace trace, ZoneSet condemnedSet)
     return res;
   }
 
-  ShieldHold(trace->arena); /* .whiten.hold */
+  /* .whiten.hold: We suspend the mutator threads so that the
+     PoolWhiten methods can calculate white sets without the mutator
+     allocating in buffers under our feet. See request.dylan.160098
+     <https://info.ravenbrook.com/project/mps/import/2001-11-05/mmprevol/request/dylan/160098>. */
+  /* TODO: Consider how to avoid this suspend in order to implement
+     incremental condemn. */
+  ShieldHold(trace->arena);
 
   tczStruct.trace = trace;
   tczStruct.condemnedSet = condemnedSet;
@@ -540,8 +546,15 @@ Res TraceCondemnZones(Trace trace, ZoneSet condemnedSet)
   return ResOK;
 
 failBegin:
+  /* .whiten.fail: If we successfully whitened one or more segments,
+     but failed to whiten them all, then the white sets would now be
+     inconsistent. This can't happen in practice (at time of writing)
+     because all PoolWhiten methods always succeed. If we ever have a
+     pool class that fails to whiten a segment, then this assertion
+     will be triggered. In that case, we'll have to recover here by
+     blackening the segments again. */
   ShieldRelease(trace->arena);
-  AVER(TraceIsEmpty(trace)); /* See .whiten.fail. */
+  AVER(TraceIsEmpty(trace));
   return res;
 }
 
@@ -1627,68 +1640,23 @@ Res TraceScanArea(ScanState ss, Word *base, Word *limit,
 static Res traceCondemnAll(Trace trace)
 {
   Res res;
-  Arena arena;
-  Ring poolNode, nextPoolNode, chainNode, nextChainNode;
+  Ring chainNode, nextChainNode;
 
-  arena = trace->arena;
-  AVERT(Arena, arena);
-
-  /* .whiten.hold: We suspend the mutator threads so that the
-     PoolWhiten methods can calculate white sets without the mutator
-     allocating in buffers under our feet. See request.dylan.160098
-     <https://info.ravenbrook.com/project/mps/import/2001-11-05/mmprevol/request/dylan/160098>. */
-  /* TODO: Consider how to avoid this suspend in order to implement
-     incremental condemn. */
-  ShieldHold(arena);
-
-  res = whiteTableCreate(arena);
-  if (res != ResOK) {
-    AVER(res != ResMEMORY);
+  res = TraceCondemnZones(trace, ZoneSetUNIV);
+  if (res != ResOK)
     return res;
-  }
-
-  /* Condemn all segments in pools with the GC attribute. */
-  RING_FOR(poolNode, &ArenaGlobals(arena)->poolRing, nextPoolNode) {
-    Pool pool = RING_ELT(Pool, arenaRing, poolNode);
-    AVERT(Pool, pool);
-
-    if (PoolHasAttr(pool, AttrGC)) {
-      Ring segNode, nextSegNode;
-      RING_FOR(segNode, PoolSegRing(pool), nextSegNode) {
-        Seg seg = SegOfPoolRing(segNode);
-        AVERT(Seg, seg);
-
-        res = TraceAddWhite(trace, seg);
-        if (res != ResOK)
-          goto failBegin;
-      }
-    }
-  }
-
-  ShieldRelease(arena);
 
   if (TraceIsEmpty(trace))
     return ResFAIL;
 
   /* Notify all the chains. */
-  RING_FOR(chainNode, &arena->chainRing, nextChainNode) {
+  RING_FOR(chainNode, &trace->arena->chainRing, nextChainNode) {
     Chain chain = RING_ELT(Chain, chainRing, chainNode);
 
     ChainStartGC(chain, trace);
   }
-  return ResOK;
 
-failBegin:
-  /* .whiten.fail: If we successfully whitened one or more segments,
-   * but failed to whiten them all, then the white sets would now be
-   * inconsistent. This can't happen in practice (at time of writing)
-   * because all PoolWhiten methods always succeed. If we ever have a
-   * pool class that fails to whiten a segment, then this assertion
-   * will be triggered. In that case, we'll have to recover here by
-   * blackening the segments again. */
-  AVER(TraceIsEmpty(trace));
-  ShieldRelease(arena);
-  return res;
+  return ResOK;
 }
 
 
