@@ -125,6 +125,12 @@ void SegFree(Seg seg)
 
 /* SegInit -- initialize a segment */
 
+static void PoolNodeInit(PoolNode poolNode, Pool pool, Addr base, Addr limit)
+{
+  NodeInit(PoolNodeNode(poolNode), base, limit);
+  poolNode->pool = pool;
+}
+
 static Res SegInit(Seg seg, Pool pool, Addr base, Size size, ArgList args)
 {
   Addr limit;
@@ -143,8 +149,7 @@ static Res SegInit(Seg seg, Pool pool, Addr base, Size size, ArgList args)
 
   /* IMPORTANT: Keep in sync with segTrivSplit. */
   limit = AddrAdd(base, size);
-  NodeInit(SegNode(seg), base, limit);
-  seg->pool = pool;
+  PoolNodeInit(SegPoolNode(seg), pool, base, limit);
   seg->rankSet = RankSetEMPTY;
   seg->white = TraceSetEMPTY;
   seg->nailed = TraceSetEMPTY;
@@ -177,6 +182,13 @@ failInit:
 
 
 /* SegFinish -- finish a segment */
+
+static void PoolNodeFinish(PoolNode poolNode)
+{
+  NodeFinish(PoolNodeNode(poolNode));
+  /* FIXME: this crashes segsmss, indicating reliance on dead data. */
+  /* poolNode->pool = (Pool)0xF191583D; */
+}
 
 static void SegFinish(Seg seg)
 {
@@ -217,7 +229,7 @@ static void SegFinish(Seg seg)
   b = SplayTreeDelete(ArenaSegSplay(arena), SegTree(seg));
   AVER(b); /* seg should be in arena splay tree */
 
-  NodeFinish(SegNode(seg));
+  PoolNodeFinish(SegPoolNode(seg));
   RingRemove(SegPoolRing(seg));
   RingFinish(SegPoolRing(seg));
 
@@ -233,7 +245,7 @@ static void SegFinish(Seg seg)
 }
 
 
-#define segOfTree(_tree) PARENT(SegStruct, nodeStruct, NodeOfTree(_tree))
+#define segOfTree(_tree) SegOfPoolNode(PoolNodeOfNode(NodeOfTree(_tree)))
 
 Compare SegCompare(Tree tree, TreeKey key)
 {
@@ -1044,7 +1056,7 @@ static Res segTrivMerge(Seg seg, Seg segHi,
   b = SplayTreeDelete(ArenaSegSplay(arena), SegTree(segHi));
   AVER(b); /* seg should be in arena splay tree */
 
-  NodeFinish(SegNode(segHi));
+  PoolNodeFinish(SegPoolNode(segHi));
   RingRemove(SegPoolRing(segHi));
   RingFinish(SegPoolRing(segHi));
 
@@ -1106,8 +1118,7 @@ static Res segTrivSplit(Seg seg, Seg segHi,
      address-ordered and no segments overlap. */
   /* IMPORTANT: Keep in sync with SegInit. */
   RangeSetLimit(SegRange(seg), mid);
-  NodeInit(SegNode(segHi), mid, limit);
-  segHi->pool = pool;
+  PoolNodeInit(SegPoolNode(segHi), pool, mid, limit);
   segHi->rankSet = seg->rankSet;
   segHi->white = seg->white;
   segHi->nailed = seg->nailed;

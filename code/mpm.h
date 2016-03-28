@@ -728,11 +728,18 @@ extern void SegUpdate(SplayTree splay, Tree tree);
 extern Size SegSize(Seg seg);
 extern Addr (SegBase)(Seg seg);
 extern Addr (SegLimit)(Seg seg);
-#define SegNode(seg)            (&(seg)->nodeStruct)
+
+#define PoolNodeNode(poolNode)  (&(poolNode)->nodeStruct)
+#define PoolNodePool(poolNode)  ((poolNode)->pool)
+#define PoolNodeOfNode(node)    PARENT(PoolNodeStruct, nodeStruct, node)
+                      
+#define SegPoolNode(seg)        (&(seg)->poolNodeStruct)
+#define SegOfPoolNode(poolNode) PARENT(SegStruct, poolNodeStruct, poolNode)
+#define SegNode(seg)            PoolNodeNode(SegPoolNode(seg))
 #define SegRange(seg)           NodeRange(SegNode(seg))
 #define SegBase(seg)            RangeBase(SegRange(seg))
 #define SegLimit(seg)           RangeLimit(SegRange(seg))
-#define SegPool(seg)            ((seg)->pool)
+#define SegPool(seg)            PoolNodePool(SegPoolNode(seg))
 /* .bitfield.promote: The bit field accesses need to be cast to the */
 /* right type, otherwise they'll be promoted to signed int, see */
 /* standard.ansic.6.2.1.1. */

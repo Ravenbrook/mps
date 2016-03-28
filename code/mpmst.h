@@ -240,6 +240,14 @@ typedef struct NodeStruct {
 } NodeStruct;
 
 
+/* PoolNodeStruct -- address range belonging to a pool */
+
+typedef struct PoolNodeStruct {
+  NodeStruct nodeStruct;
+  Pool pool;
+} PoolNodeStruct;
+
+
 /* SegStruct -- segment structure
  *
  * .seg: Segments are the basic units of protection and tracer activity
@@ -251,8 +259,7 @@ typedef struct NodeStruct {
 typedef struct SegStruct {      /* segment structure */
   Sig sig;                      /* <code/misc.h#sig> */
   SegClass class;               /* segment class structure */
-  NodeStruct nodeStruct;        /* node of segment memory */
-  Pool pool;                    /* pool that owns this segment */
+  PoolNodeStruct poolNodeStruct; /* node of segment memory */
   RingStruct poolRing;          /* link in list of segs in pool */
   ZoneSet treeZones;            /* union of all zones in sub-tree */
   unsigned depth : ShieldDepthWIDTH; /* see design.mps.shield.def.depth */
