@@ -52,10 +52,9 @@ typedef struct ProtSyncClosureStruct {
   Bool synced;
 } ProtSyncClosureStruct, *ProtSyncClosure;
 
-static Bool protSyncVisit(Seg seg, void *closureP, Size closureS)
+static Bool protSyncVisit(Seg seg, void *closure)
 {
-  ProtSyncClosure psc = closureP;
-  AVER(closureS == sizeof(*psc));
+  ProtSyncClosure psc = closure;
   
   if (SegPM(seg) != AccessSetEMPTY) { /* <design/protan/#fun.sync.seg> */
     Arena arena = psc->arena;
@@ -64,6 +63,8 @@ static Bool protSyncVisit(Seg seg, void *closureP, Size closureS)
     ShieldLeave(arena);
     psc->synced = FALSE;
   }
+
+  return TRUE;
 }
 
 void ProtSync(Arena arena)
@@ -75,7 +76,7 @@ void ProtSync(Arena arena)
   pscStruct.arena = arena;
   do {
     pscStruct.synced = TRUE;
-    SegTraverse(arena, protSyncVisit, &pscStruct, sizeof(pscStruct));
+    (void)SegTraverse(arena, protSyncVisit, &pscStruct);
   } while(!pscStruct.synced);
 }
 
