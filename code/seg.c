@@ -44,7 +44,10 @@ static Res SegInit(Seg seg, Pool pool, Addr base, Size size,
 /* Generic interface support */
 
 
-/* SegAlloc -- allocate a segment from the arena */
+/* SegAlloc -- allocate a segment from the arena
+ *
+ * c.f. PoolNodeAlloc.
+ */
 
 Res SegAlloc(Seg *segReturn, SegClass class, LocusPref pref,
              Size size, Pool pool, ArgList args)

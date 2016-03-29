@@ -18,12 +18,18 @@
 #define PoolNodeTree(poolNode) NodeTree(PoolNodeNode(poolNode))
 #define PoolNodeRange(poolNode) NodeRange(PoolNodeNode(poolNode))
 
-#define PoolNodeBase(block) NodeBase(PoolNodeNode(poolNode))
-#define PoolNodeLimit(block) NodeLimit(PoolNodeNode(poolNode))
+#define PoolNodeBase(poolNode) NodeBase(PoolNodeNode(poolNode))
+#define PoolNodeLimit(poolNode) NodeLimit(PoolNodeNode(poolNode))
+#define PoolNodeSetBase(poolNode, addr) NodeSetBase(PoolNodeNode(poolNode), addr)
+#define PoolNodeSetLimit(poolNode, addr) NodeSetLimit(PoolNodeNode(poolNode), addr)
 
 extern void PoolNodeInit(PoolNode poolNode, Addr base, Addr limit, Pool pool);
 extern Bool PoolNodeCheck(PoolNode poolNode);
 extern void PoolNodeFinish(PoolNode poolNode);
+
+extern Res PoolNodeAlloc(PoolNode *nodeReturn, LocusPref pref,
+                         Pool pool, Size size,
+                         Pool poolNodePool, Size poolNodeSize);
 
 #endif /* poolnode_h */
 

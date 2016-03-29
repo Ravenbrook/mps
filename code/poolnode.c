@@ -34,6 +34,120 @@ Bool PoolNodeCheck(PoolNode poolNode)
 }
 
 
+/* PoolNodeInsert -- coalescing insert range into pool node tree
+ *
+ * FIXME: Too much code in common with CBSInsert, though the tests are
+ * different, and so may be justified by performance of CBSInsert.
+ * Need to test.  *This* code could be more general, though, calling a
+ * coalescing tree insert that takes functions for tests and merges.
+ */
+
+static Res PoolNodeInsert(PoolNode *nodeReturn,
+                          SplayTree splay,
+                          Addr base, Addr limit, Pool pool,
+                          Pool poolNodePool, Size poolNodeSize)
+{
+  PoolNode poolNode;
+  Bool b;
+  Tree left, right;
+
+  AVERT(SplayTree, splay);
+  AVER(base < limit);
+  AVERT(Pool, pool);
+  AVERT(Pool, poolNodePool);
+
+  splay = ArenaPoolNodeSplay(PoolArena(pool));
+  b = SplayTreeNeighbours(&left, &right, splay, base);
+  AVER(b); /* should not already be in the tree */
+
+  /* Can coalesce left? */
+  if (left != TreeEMPTY &&
+      PoolNodePool(PoolNodeOfTree(left)) == pool &&
+      PoolNodeLimit(PoolNodeOfTree(left)) == base) {
+
+    /* Can coalesce right? */
+    if (right != TreeEMPTY &&
+        PoolNodePool(PoolNodeOfTree(right)) == pool &&
+        limit == PoolNodeBase(PoolNodeOfTree(right))) {
+
+      /* coalesce right side, freeing right node */
+      limit = PoolNodeLimit(PoolNodeOfTree(right));
+      b = SplayTreeDelete(splay, NodeKey(right));
+      AVER(b); /* should be in the tree, we just found it! */
+      PoolFree(poolNodePool, (Addr)PoolNodeOfTree(right), poolNodeSize);
+    }
+
+    /* coalesce left side, returning left node */
+    PoolNodeSetLimit(PoolNodeOfTree(left), limit);
+    poolNode = PoolNodeOfTree(left);
+
+  } else {
+
+    /* Can coalesce right? */
+    if (right != TreeEMPTY &&
+        PoolNodePool(PoolNodeOfTree(right)) == pool &&
+        limit == PoolNodeBase(PoolNodeOfTree(right))) {
+
+      /* coalesce right side, returning right node */
+      PoolNodeSetBase(PoolNodeOfTree(right), base);
+      poolNode = PoolNodeOfTree(right);
+
+    } else {
+
+      /* can't coalesce, so make new node */
+      Addr p;
+      Res res = PoolAlloc(&p, poolNodePool, poolNodeSize);
+      if (res != ResOK)
+        return res;
+      poolNode = (PoolNode)p;
+      PoolNodeInit(poolNode, base, limit, pool);
+      SplayTreeInsert(splay, PoolNodeTree(poolNode));
+    }
+  }
+
+  *nodeReturn = poolNode;
+  return ResOK;
+}
+
+
+/* PoolNodeAlloc -- coalescing insert pool node into tree */
+
+Res PoolNodeAlloc(PoolNode *nodeReturn, LocusPref pref,
+                  Pool pool, Size size,
+                  Pool poolNodePool, Size poolNodeSize)
+{
+  Res res;
+  Addr base;
+  PoolNode poolNode;
+
+  AVER(nodeReturn != NULL);
+  AVERT(LocusPref, pref);
+  AVERT(Pool, pool);
+  AVER(size > 0);
+  AVERT(Pool, poolNodePool);
+
+  /* TOOD: Convert ArenaAlloc to return a range */
+  res = ArenaAlloc(&base, pref, size, pool);
+  if (res != ResOK)
+    goto failArenaAlloc;
+
+  res = PoolNodeInsert(&poolNode,
+                       ArenaPoolNodeSplay(PoolArena(pool)),
+                       base, AddrAdd(base, size), pool,
+                       poolNodePool, poolNodeSize);
+  if (res != ResOK)
+    goto failNodeInsert;
+
+  *nodeReturn = poolNode;
+  return ResOK;
+
+failNodeInsert:
+  ArenaFree(base, size, pool);
+failArenaAlloc:
+  return res;
+}
+
+
 /* C. COPYRIGHT AND LICENSE
  *
  * Copyright (C) 2013 Ravenbrook Limited <http://www.ravenbrook.com/>.
