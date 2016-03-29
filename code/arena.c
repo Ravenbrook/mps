@@ -12,6 +12,7 @@
 #include "bt.h"
 #include "poolmfs.h"
 #include "mpscmfs.h"
+#include "poolnode.h"
 
 
 SRCID(arena, "$Id$");
@@ -237,9 +238,13 @@ Res ArenaInit(Arena arena, ArenaClass class, Size grainSize, ArgList args)
   RingInit(&arena->chunkRing);
   arena->chunkTree = TreeEMPTY;
   arena->chunkSerial = (Serial)0;
+  SplayTreeInit(ArenaPoolNodeSplay(arena),
+                NodeCompare,
+                NodeKey,
+                SplayTrivUpdate);
   SplayTreeInit(ArenaSegSplay(arena),
-                SegCompare,
-                SegKey,
+                NodeCompare,
+                NodeKey,
                 SegUpdate);
   
   LocusInit(arena);
@@ -400,6 +405,7 @@ void ArenaFinish(Arena arena)
   GlobalsFinish(ArenaGlobals(arena));
   LocusFinish(arena);
   SplayTreeFinish(ArenaSegSplay(arena));
+  SplayTreeFinish(ArenaPoolNodeSplay(arena));
   RingFinish(&arena->chunkRing);
   AVER(ArenaChunkTree(arena) == TreeEMPTY);
 }

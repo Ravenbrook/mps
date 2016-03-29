@@ -30,6 +30,7 @@
 #include "mpmst.h"
 #include "range.h"
 #include "node.h"
+#include "poolnode.h"
 
 
 /* MPMCheck -- check MPM assumptions */
@@ -538,6 +539,7 @@ extern Ring GlobalsRememberedSummaryRing(Globals);
 #define ArenaPoolRing(arena) (&ArenaGlobals(arena)->poolRing)
 #define ArenaChunkTree(arena) RVALUE((arena)->chunkTree)
 #define ArenaShield(arena)      (&(arena)->shieldStruct)
+#define ArenaPoolNodeSplay(arena) (&(arena)->poolNodeSplayTreeStruct)
 #define ArenaSegSplay(arena)    (&(arena)->segSplayTreeStruct)
 
 extern Bool ArenaGrainSizeCheck(Size size);
@@ -729,10 +731,6 @@ extern Size SegSize(Seg seg);
 extern Addr (SegBase)(Seg seg);
 extern Addr (SegLimit)(Seg seg);
 
-#define PoolNodeNode(poolNode)  (&(poolNode)->nodeStruct)
-#define PoolNodePool(poolNode)  ((poolNode)->pool)
-#define PoolNodeOfNode(node)    PARENT(PoolNodeStruct, nodeStruct, node)
-                      
 #define SegPoolNode(seg)        (&(seg)->poolNodeStruct)
 #define SegOfPoolNode(poolNode) PARENT(SegStruct, poolNodeStruct, poolNode)
 #define SegNode(seg)            PoolNodeNode(SegPoolNode(seg))

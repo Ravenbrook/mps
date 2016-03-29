@@ -793,6 +793,7 @@ typedef struct mps_arena_s {
   ZoneSet freeZones;            /* zones not yet allocated */
   Bool zoned;                   /* use zoned allocation? */
 
+  SplayTreeStruct poolNodeSplayTreeStruct; /* tree of all non-segment pool nodes */
   SplayTreeStruct segSplayTreeStruct; /* tree of all segments */
 
   /* locus fields (<code/locus.c>) */

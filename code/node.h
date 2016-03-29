@@ -8,6 +8,7 @@
 #define node_h
 
 #include "mpmtypes.h"
+#include "tree.h"
 
 #define NodeTree(node) (&(node)->treeStruct)
 #define NodeRange(node) (&(node)->rangeStruct)
@@ -23,6 +24,9 @@
 extern void NodeInit(Node node, Addr base, Addr limit);
 extern Bool NodeCheck(Node node);
 extern void NodeFinish(Node node);
+
+extern Compare NodeCompare(Tree tree, TreeKey key);
+extern TreeKey NodeKey(Tree tree);
 
 #endif /* node_h */
 

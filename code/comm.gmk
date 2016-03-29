@@ -188,6 +188,7 @@ MPMCOMMON = \
     mpsi.c \
     nailboard.c \
     node.c \
+    poolnode.c \
     policy.c \
     pool.c \
     poolabs.c \

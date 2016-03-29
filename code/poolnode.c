@@ -1,4 +1,4 @@
-/* node.c -- binary trees of address ranges
+/* poolnode.c -- binary tree maps of address ranges to pools
  *
  * $Id$
  * Copyright (C) 2016 Ravenbrook Limited.  See end of file for license.
@@ -10,60 +10,27 @@
 #include "mpm.h"
 
 
-void NodeInit(Node node, Addr base, Addr limit)
+void PoolNodeInit(PoolNode poolNode, Addr base, Addr limit, Pool pool)
 {
-  AVER(node != NULL);
-  TreeInit(NodeTree(node));
-  RangeInit(NodeRange(node), base, limit);
-  AVERT(Node, node);
+  NodeInit(PoolNodeNode(poolNode), base, limit);
+  poolNode->pool = pool;
 }
 
 
-Bool NodeCheck(Node node)
+void PoolNodeFinish(PoolNode poolNode)
 {
-  CHECKL(node != NULL);
-  CHECKD_NOSIG(Tree, NodeTree(node));
-  CHECKD_NOSIG(Range, NodeRange(node));
+  NodeFinish(PoolNodeNode(poolNode));
+  /* FIXME: this crashes segsmss, indicating reliance on dead data. */
+  /* poolNode->pool = (Pool)0xF191583D; */
+}
+
+
+Bool PoolNodeCheck(PoolNode poolNode)
+{
+  CHECKL(poolNode != NULL);
+  CHECKD_NOSIG(Node, PoolNodeNode(poolNode));
+  CHECKU(Pool, PoolNodePool(poolNode));
   return TRUE;
-}
-
-
-void NodeFinish(Node node)
-{
-  AVERT(Node, node);
-  TreeFinish(NodeTree(node));
-  RangeFinish(NodeRange(node));
-}
-
-
-/* NodeCompare -- address-ordered node comparison for trees */
-
-Compare NodeCompare(Tree tree, TreeKey key)
-{
-  Node node;
-  Addr addr;
-
-  AVERT_CRITICAL(Tree, tree);
-  AVER_CRITICAL(tree != TreeEMPTY);
-  /* Can't check anything about key -- it's an arbitrary address. */
-
-  node = NodeOfTree(tree);
-  addr = (Addr)key; /* FIXME: See baseOfKey in cbs.c */
-
-  if (addr < NodeBase(node))
-    return CompareLESS;
-  else if (addr >= NodeLimit(node))
-    return CompareGREATER;
-  else
-    return CompareEQUAL;
-}
-
-
-/* NodeKey -- tree key function for nodes */
-
-TreeKey NodeKey(Tree tree)
-{
-  return (TreeKey)NodeBase(NodeOfTree(tree)); /* FIXME: See cbsBlockKey in cbs.c */
 }
 
 

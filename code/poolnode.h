@@ -1,71 +1,31 @@
-/* node.c -- binary trees of address ranges
+/* poolnode.h -- binary tree maps of address ranges to pools
  *
  * $Id$
  * Copyright (C) 2016 Ravenbrook Limited.  See end of file for license.
  */
 
+#ifndef poolnode_h
+#define poolnode_h
+
+#include "mpmtypes.h"
 #include "node.h"
-#include "tree.h"
-#include "range.h"
-#include "mpm.h"
 
+#define PoolNodeNode(poolNode)  (&(poolNode)->nodeStruct)
+#define PoolNodePool(poolNode)  ((poolNode)->pool)
+#define PoolNodeOfNode(node)    PARENT(PoolNodeStruct, nodeStruct, node)
+#define PoolNodeOfTree(tree)    PoolNodeOfNode(NodeOfTree(tree))
+                      
+#define PoolNodeTree(poolNode) NodeTree(PoolNodeNode(poolNode))
+#define PoolNodeRange(poolNode) NodeRange(PoolNodeNode(poolNode))
 
-void NodeInit(Node node, Addr base, Addr limit)
-{
-  AVER(node != NULL);
-  TreeInit(NodeTree(node));
-  RangeInit(NodeRange(node), base, limit);
-  AVERT(Node, node);
-}
+#define PoolNodeBase(block) NodeBase(PoolNodeNode(poolNode))
+#define PoolNodeLimit(block) NodeLimit(PoolNodeNode(poolNode))
 
+extern void PoolNodeInit(PoolNode poolNode, Addr base, Addr limit, Pool pool);
+extern Bool PoolNodeCheck(PoolNode poolNode);
+extern void PoolNodeFinish(PoolNode poolNode);
 
-Bool NodeCheck(Node node)
-{
-  CHECKL(node != NULL);
-  CHECKD_NOSIG(Tree, NodeTree(node));
-  CHECKD_NOSIG(Range, NodeRange(node));
-  return TRUE;
-}
-
-
-void NodeFinish(Node node)
-{
-  AVERT(Node, node);
-  TreeFinish(NodeTree(node));
-  RangeFinish(NodeRange(node));
-}
-
-
-/* NodeCompare -- address-ordered node comparison for trees */
-
-Compare NodeCompare(Tree tree, TreeKey key)
-{
-  Node node;
-  Addr addr;
-
-  AVERT_CRITICAL(Tree, tree);
-  AVER_CRITICAL(tree != TreeEMPTY);
-  /* Can't check anything about key -- it's an arbitrary address. */
-
-  node = NodeOfTree(tree);
-  addr = (Addr)key; /* FIXME: See baseOfKey in cbs.c */
-
-  if (addr < NodeBase(node))
-    return CompareLESS;
-  else if (addr >= NodeLimit(node))
-    return CompareGREATER;
-  else
-    return CompareEQUAL;
-}
-
-
-/* NodeKey -- tree key function for nodes */
-
-TreeKey NodeKey(Tree tree)
-{
-  return (TreeKey)NodeBase(NodeOfTree(tree)); /* FIXME: See cbsBlockKey in cbs.c */
-}
-
+#endif /* poolnode_h */
 
 /* C. COPYRIGHT AND LICENSE
  *

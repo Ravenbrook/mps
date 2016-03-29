@@ -125,12 +125,6 @@ void SegFree(Seg seg)
 
 /* SegInit -- initialize a segment */
 
-static void PoolNodeInit(PoolNode poolNode, Pool pool, Addr base, Addr limit)
-{
-  NodeInit(PoolNodeNode(poolNode), base, limit);
-  poolNode->pool = pool;
-}
-
 static Res SegInit(Seg seg, Pool pool, Addr base, Size size, ArgList args)
 {
   Addr limit;
@@ -149,7 +143,7 @@ static Res SegInit(Seg seg, Pool pool, Addr base, Size size, ArgList args)
 
   /* IMPORTANT: Keep in sync with segTrivSplit. */
   limit = AddrAdd(base, size);
-  PoolNodeInit(SegPoolNode(seg), pool, base, limit);
+  PoolNodeInit(SegPoolNode(seg), base, limit, pool);
   seg->rankSet = RankSetEMPTY;
   seg->white = TraceSetEMPTY;
   seg->nailed = TraceSetEMPTY;
@@ -182,13 +176,6 @@ failInit:
 
 
 /* SegFinish -- finish a segment */
-
-static void PoolNodeFinish(PoolNode poolNode)
-{
-  NodeFinish(PoolNodeNode(poolNode));
-  /* FIXME: this crashes segsmss, indicating reliance on dead data. */
-  /* poolNode->pool = (Pool)0xF191583D; */
-}
 
 static void SegFinish(Seg seg)
 {
@@ -246,31 +233,6 @@ static void SegFinish(Seg seg)
 
 
 #define segOfTree(_tree) SegOfPoolNode(PoolNodeOfNode(NodeOfTree(_tree)))
-
-Compare SegCompare(Tree tree, TreeKey key)
-{
-  Seg seg;
-  Addr addr;
-
-  AVERT_CRITICAL(Tree, tree);
-  AVER_CRITICAL(tree != TreeEMPTY);
-  /* Can't check anything about key -- it's an arbitrary address. */
-
-  seg = segOfTree(tree);
-  addr = (Addr)key; /* FIXME: See baseOfKey in cbs.c */
-
-  if (addr < SegBase(seg))
-    return CompareLESS;
-  else if (addr >= SegLimit(seg))
-    return CompareGREATER;
-  else
-    return CompareEQUAL;
-}
-
-TreeKey SegKey(Tree tree)
-{
-  return (TreeKey)SegBase(segOfTree(tree)); /* FIXME: See cbsBlockKey in cbs.c */
-}
 
 void SegUpdate(SplayTree splay, Tree tree)
 {
@@ -566,7 +528,7 @@ Bool SegTraverse(Arena arena, SegVisitor visit, void *closure)
   stvStruct.closure = closure;
   stvStruct.zs = ZoneSetUNIV; /* not used */
   return TreeTraverse(SplayTreeRoot(ArenaSegSplay(arena)),
-                      SegCompare, SegKey,
+                      NodeCompare, NodeKey,
                       segTraverseVisit,
                       &stvStruct);
 }
@@ -578,7 +540,7 @@ Bool SegTraverseInZones(Arena arena, ZoneSet zs, SegVisitor visit, void *closure
   stvStruct.closure = closure;
   stvStruct.zs = zs;
   return TreeTraversePartial(SplayTreeRoot(ArenaSegSplay(arena)),
-                             SegCompare, SegKey,
+                             NodeCompare, NodeKey,
                              segTraverseFilter,
                              TreeNoRange,
                              segTraverseVisit,
@@ -840,7 +802,7 @@ Bool SegCheck(Seg seg)
   CHECKU(Pool, pool);
   arena = PoolArena(pool);
   CHECKU(Arena, arena);
-  CHECKD_NOSIG(Range, SegRange(seg));
+  CHECKD_NOSIG(PoolNode, SegPoolNode(seg));
   /* FIXME: Use RangeIsAligned. */
   CHECKL(AddrIsArenaGrain(SegBase(seg), arena));
   CHECKL(AddrIsArenaGrain(SegLimit(seg), arena));
@@ -1118,7 +1080,7 @@ static Res segTrivSplit(Seg seg, Seg segHi,
      address-ordered and no segments overlap. */
   /* IMPORTANT: Keep in sync with SegInit. */
   RangeSetLimit(SegRange(seg), mid);
-  PoolNodeInit(SegPoolNode(segHi), pool, mid, limit);
+  PoolNodeInit(SegPoolNode(segHi), mid, limit, pool);
   segHi->rankSet = seg->rankSet;
   segHi->white = seg->white;
   segHi->nailed = seg->nailed;

@@ -65,6 +65,7 @@
 #include "meter.c"
 #include "tree.c"
 #include "node.c"
+#include "poolnode.c"
 #include "splay.c"
 #include "cbs.c"
 #include "ss.c"
