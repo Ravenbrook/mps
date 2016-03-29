@@ -1,4 +1,4 @@
-/* node.c -- binary trees of address ranges
+/* node.h -- binary trees of address ranges
  *
  * $Id$
  * Copyright (C) 2016 Ravenbrook Limited.  See end of file for license.
