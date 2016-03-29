@@ -1672,6 +1672,14 @@
 		31942AA91C8EC446001AAF32 /* sp.txt */ = {isa = PBXFileReference; lastKnownFileType = text; name = sp.txt; path = ../design/sp.txt; sourceTree = "<group>"; };
 		31942AAB1C8EC446001AAF32 /* ss.txt */ = {isa = PBXFileReference; lastKnownFileType = text; name = ss.txt; path = ../design/ss.txt; sourceTree = "<group>"; };
 		31942AB01C8EC446001AAF32 /* testthr.txt */ = {isa = PBXFileReference; lastKnownFileType = text; name = testthr.txt; path = ../design/testthr.txt; sourceTree = "<group>"; };
+		31A078A81CAAA70B009725A0 /* node.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = node.c; sourceTree = "<group>"; };
+		31A078A91CAAA70B009725A0 /* node.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = node.h; sourceTree = "<group>"; };
+		31A078AA1CAAA70B009725A0 /* policy.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = policy.c; sourceTree = "<group>"; };
+		31A078AB1CAAA70B009725A0 /* poolmvff.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = poolmvff.h; sourceTree = "<group>"; };
+		31A078AC1CAAA70B009725A0 /* poolnode.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = poolnode.c; sourceTree = "<group>"; };
+		31A078AD1CAAA70B009725A0 /* poolnode.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = poolnode.h; sourceTree = "<group>"; };
+		31A078AE1CAAA70B009725A0 /* table.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = table.c; sourceTree = "<group>"; };
+		31A078AF1CAAA70B009725A0 /* table.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = table.h; sourceTree = "<group>"; };
 		31A47BA3156C1E130039B1C2 /* mps.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = mps.c; sourceTree = "<group>"; };
 		31A47BA5156C1E5E0039B1C2 /* ssixi3.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = ssixi3.c; sourceTree = "<group>"; };
 		31C83ADD1786281C0031A0DB /* protxc.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = protxc.h; sourceTree = "<group>"; };
@@ -2410,7 +2418,6 @@
 		31EEABF4156AAF6500714D05 /* MPM Core */ = {
 			isa = PBXGroup;
 			children = (
-				31942A671C8EC3FC001AAF32 /* locus.h */,
 				3114A645156E9525001E0AA3 /* abq.c */,
 				2291A5EA175CB503001D4920 /* abq.h */,
 				31EEAC05156AB27B00714D05 /* arena.c */,
@@ -2446,6 +2453,7 @@
 				31EEAC2B156AB2F200714D05 /* ld.c */,
 				311F2F5E17398B0E00C15B6A /* lock.h */,
 				31EEAC08156AB27B00714D05 /* locus.c */,
+				31942A671C8EC3FC001AAF32 /* locus.h */,
 				31EEAC2C156AB2F200714D05 /* message.c */,
 				31EEAC42156AB32500714D05 /* meter.c */,
 				311F2F5F17398B0E00C15B6A /* meter.h */,
@@ -2466,14 +2474,20 @@
 				311F2F6B17398B4C00C15B6A /* mpswin.h */,
 				22E30E821886FF1400D98EA9 /* nailboard.c */,
 				22E30E831886FF1400D98EA9 /* nailboard.h */,
+				31A078A81CAAA70B009725A0 /* node.c */,
+				31A078A91CAAA70B009725A0 /* node.h */,
+				31A078AA1CAAA70B009725A0 /* policy.c */,
 				31EEAC09156AB27B00714D05 /* pool.c */,
 				31EEAC0A156AB27B00714D05 /* poolabs.c */,
 				31EEAC2D156AB2F200714D05 /* poolmfs.c */,
 				22FACEDC18880933000FDBC1 /* poolmfs.h */,
 				31EEAC2E156AB2F200714D05 /* poolmrg.c */,
 				22FACEDD18880933000FDBC1 /* poolmrg.h */,
+				31A078AB1CAAA70B009725A0 /* poolmvff.h */,
 				22FACEDE18880933000FDBC1 /* pooln.c */,
 				22FACEDF18880933000FDBC1 /* pooln.h */,
+				31A078AC1CAAA70B009725A0 /* poolnode.c */,
+				31A078AD1CAAA70B009725A0 /* poolnode.h */,
 				311F2F6D17398B6300C15B6A /* prmci3.h */,
 				311F2F6E17398B6300C15B6A /* prmci6.h */,
 				311F2F6F17398B6300C15B6A /* prmcix.h */,
@@ -2499,6 +2513,8 @@
 				311F2F7617398B8E00C15B6A /* splay.h */,
 				22FACEDA1888088A000FDBC1 /* ss.c */,
 				311F2F7717398B8E00C15B6A /* ss.h */,
+				31A078AE1CAAA70B009725A0 /* table.c */,
+				31A078AF1CAAA70B009725A0 /* table.h */,
 				311F2F7817398B8E00C15B6A /* th.h */,
 				311F2F7917398B8E00C15B6A /* thw3.h */,
 				31EEAC1E156AB2B200714D05 /* trace.c */,
