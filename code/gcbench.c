@@ -58,6 +58,7 @@ static size_t arena_size = 256ul * 1024 * 1024; /* arena size */
 static size_t arena_grain_size = 1; /* arena grain size */
 static unsigned pinleaf = FALSE;  /* are leaf objects pinned at start */
 static mps_bool_t zoned = TRUE;   /* arena allocates using zones */
+static double pause_time = ARENA_DEFAULT_PAUSE_TIME; /* maximum pause time */
 
 typedef struct gcthread_s *gcthread_t;
 
@@ -365,6 +366,7 @@ static void arena_setup(gcthread_fn_t fn,
     MPS_ARGS_ADD(args, MPS_KEY_ARENA_SIZE, arena_size);
     MPS_ARGS_ADD(args, MPS_KEY_ARENA_GRAIN_SIZE, arena_grain_size);
     MPS_ARGS_ADD(args, MPS_KEY_ARENA_ZONED, zoned);
+    MPS_ARGS_ADD(args, MPS_KEY_PAUSE_TIME, pause_time);
     append_args(args, &args_i, arena_args, arena_arg_count);
     RESMUST(mps_arena_create_k(&arena, mps_arena_class_vm(), args));
   } MPS_ARGS_END(args);
@@ -410,7 +412,8 @@ static struct option longopts[] = {
   {"pin-leaf",         no_argument,       NULL, 'l'},
   {"seed",             required_argument, NULL, 'x'},
   {"arena-unzoned",    no_argument,       NULL, 'z'},
-  {"pool-arg",         required_argument, NULL, 'P'},
+  {"pause-time",       required_argument, NULL, 'P'},
+  {"pool-arg",         required_argument, NULL, 'k'},
   {"arena-arg",        required_argument, NULL, 'A'},
   {NULL,               0,                 NULL, 0  }
 };
@@ -441,7 +444,7 @@ int main(int argc, char *argv[]) {
   }
   putchar('\n');
   
-  while ((ch = getopt_long(argc, argv, "ht:i:p:g:m:a:w:d:r:u:lx:zP:A:", longopts, NULL)) != -1)
+  while ((ch = getopt_long(argc, argv, "ht:i:p:g:m:a:w:d:r:u:lx:zP:k:A:", longopts, NULL)) != -1)
     switch (ch) {
     case 't':
       nthreads = (unsigned)strtoul(optarg, NULL, 10);
@@ -530,10 +533,13 @@ int main(int argc, char *argv[]) {
     case 'z':
       zoned = FALSE;
       break;
+    case 'P':
+      pause_time = strtod(optarg, NULL);
+      break;
     case 'A':
       arg_option(arena_args, &arena_arg_count, optarg);
       break;
-    case 'P':
+    case 'k':
       arg_option(pool_args, &pool_arg_count, optarg);
       break;
     default:
@@ -581,9 +587,12 @@ int main(int argc, char *argv[]) {
       fprintf(stderr,
               "  -z, --arena-unzoned\n"
               "    Disable zoned allocation in the arena\n"
+              "  -P t, --pause-time\n"
+              "    Maximum pause time in seconds (default %f) \n"
               "Tests:\n"
               "  amc   pool class AMC\n"
-              "  ams   pool class AMS\n");
+              "  ams   pool class AMS\n",
+              pause_time);
       return EXIT_FAILURE;
     }
   argc -= optind;
