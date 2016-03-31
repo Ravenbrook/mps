@@ -142,7 +142,8 @@ static Res SegInit(Seg seg, Pool pool, Addr base, Size size, ArgList args)
   AVERT(SegClass, class);
 
   limit = AddrAdd(base, size);
-  seg->limit = limit;
+  RangeInit(SegRange(seg), base, limit);
+  seg->pool = pool;
   seg->rankSet = RankSetEMPTY;
   seg->white = TraceSetEMPTY;
   seg->nailed = TraceSetEMPTY;
@@ -152,7 +153,6 @@ static Res SegInit(Seg seg, Pool pool, Addr base, Size size, ArgList args)
   seg->defer = WB_DEFER_INIT;
   seg->depth = 0;
   seg->queued = FALSE;
-  seg->firstTract = NULL;
 
   seg->sig = SegSig;  /* set sig now so tract checks will see it */
 
@@ -163,13 +163,8 @@ static Res SegInit(Seg seg, Pool pool, Addr base, Size size, ArgList args)
     AVER(TractPool(tract) == pool);
     AVER(TractWhite(tract) == TraceSetEMPTY);
     TRACT_SET_SEG(tract, seg);
-    if (addr == base) {
-      AVER(seg->firstTract == NULL);
-      seg->firstTract = tract;
-    }
-    AVER(seg->firstTract != NULL);
   }
-  AVER(addr == seg->limit);
+  AVER(addr == SegLimit(seg));
 
   RingInit(SegPoolRing(seg));
 
@@ -198,7 +193,7 @@ failInit:
 static void SegFinish(Seg seg)
 {
   Arena arena;
-  Addr addr, limit;
+  Addr base, addr, limit;
   Tract tract;
   SegClass class;
 
@@ -227,14 +222,14 @@ static void SegFinish(Seg seg)
     ShieldFlush(PoolArena(SegPool(seg)));
   AVER(!seg->queued);
 
+  base = SegBase(seg);
   limit = SegLimit(seg);
-  
-  TRACT_TRACT_FOR(tract, addr, arena, seg->firstTract, limit) {
+  TRACT_FOR(tract, addr, arena, base, limit) {
     AVERT(Tract, tract);
     TractSetWhite(tract, TraceSetEMPTY);
     TRACT_UNSET_SEG(tract);
   }
-  AVER(addr == seg->limit);
+  AVER(addr == SegLimit(seg));
 
   RingRemove(SegPoolRing(seg));
   RingFinish(SegPoolRing(seg));
@@ -679,14 +674,13 @@ Bool SegCheck(Seg seg)
   /* can't assume nailed is subset of white - mightn't be during whiten */
   /* CHECKL(TraceSetSub(seg->nailed, seg->white)); */
   CHECKL(TraceSetCheck(seg->grey));
-  CHECKD_NOSIG(Tract, seg->firstTract);
   pool = SegPool(seg);
   CHECKU(Pool, pool);
   arena = PoolArena(pool);
   CHECKU(Arena, arena);
-  CHECKL(AddrIsArenaGrain(TractBase(seg->firstTract), arena));
-  CHECKL(AddrIsArenaGrain(seg->limit, arena));
-  CHECKL(seg->limit > TractBase(seg->firstTract));
+  CHECKD_NOSIG(Range, SegRange(seg));
+  CHECKL(!RangeIsEmpty(SegRange(seg)));
+  CHECKL(RangeIsAligned(SegRange(seg), ArenaGrainSize(arena)));
   /* Can't BoolCheck seg->queued because compilers warn about that on
      single-bit fields. */
 
@@ -698,7 +692,7 @@ Bool SegCheck(Seg seg)
   {
     Tract tract;
     Addr addr;
-    TRACT_TRACT_FOR(tract, addr, arena, seg->firstTract, seg->limit) {
+    TRACT_FOR(tract, addr, arena, SegBase(seg), SegLimit(seg)) {
       Seg trseg = NULL; /* suppress compiler warning */
 
       CHECKD_NOSIG(Tract, tract);
@@ -707,7 +701,7 @@ Bool SegCheck(Seg seg)
       CHECKL(TractWhite(tract) == seg->white);
       CHECKL(TractPool(tract) == pool);
     }
-    CHECKL(addr == seg->limit);
+    CHECKL(addr == SegLimit(seg));
   }
 #endif  /* AVER_AND_CHECK_ALL */
 
@@ -916,7 +910,7 @@ static Res segTrivMerge(Seg seg, Seg segHi,
 
   /* no need to update fields which match. See .similar */
 
-  seg->limit = limit;
+  RangeSetLimit(SegRange(seg), limit);
   TRACT_FOR(tract, addr, arena, mid, limit) {
     AVERT(Tract, tract);
     AVER(TractHasSeg(tract));
@@ -924,7 +918,7 @@ static Res segTrivMerge(Seg seg, Seg segHi,
     AVER(TractPool(tract) == pool);
     TRACT_SET_SEG(tract, seg);
   }
-  AVER(addr == seg->limit);
+  AVER(addr == SegLimit(seg));
 
   /* Finish segHi. */
   RingRemove(SegPoolRing(segHi));
@@ -980,8 +974,9 @@ static Res segTrivSplit(Seg seg, Seg segHi,
   AVER(!seg->queued);
  
   /* Full initialization for segHi. Just modify seg. */
-  seg->limit = mid;
-  segHi->limit = limit;
+  RangeSetLimit(SegRange(seg), mid);
+  RangeInit(SegRange(segHi), mid, limit);
+  segHi->pool = pool;
   segHi->rankSet = seg->rankSet;
   segHi->white = seg->white;
   segHi->nailed = seg->nailed;
@@ -990,7 +985,6 @@ static Res segTrivSplit(Seg seg, Seg segHi,
   segHi->sm = seg->sm;
   segHi->depth = seg->depth;
   segHi->queued = seg->queued;
-  segHi->firstTract = NULL;
   segHi->class = seg->class;
   segHi->sig = SegSig;
   RingInit(SegPoolRing(segHi));
@@ -1001,13 +995,8 @@ static Res segTrivSplit(Seg seg, Seg segHi,
     AVER(seg == TractP(tract));
     AVER(TractPool(tract) == pool);
     TRACT_SET_SEG(tract, segHi);
-    if (addr == mid) {
-      AVER(segHi->firstTract == NULL);
-      segHi->firstTract = tract;
-    }
-    AVER(segHi->firstTract != NULL);
   }
-  AVER(addr == segHi->limit);
+  AVER(addr == SegLimit(segHi));
 
   RingAppend(&pool->segRing, SegPoolRing(segHi));
   AVERT(Seg, seg);
@@ -1260,7 +1249,7 @@ static void gcSegSetWhite(Seg seg, TraceSet white)
   GCSeg gcseg;
   Tract tract;
   Arena arena;
-  Addr addr, limit;
+  Addr addr, base, limit;
 
   AVERT_CRITICAL(Seg, seg);            /* .seg.method.check */
   AVERT_CRITICAL(TraceSet, white);     /* .seg.method.check */
@@ -1270,11 +1259,11 @@ static void gcSegSetWhite(Seg seg, TraceSet white)
 
   arena = PoolArena(SegPool(seg));
   AVERT_CRITICAL(Arena, arena);
+  base = SegBase(seg);
   limit = SegLimit(seg);
   /* Each tract of the segment records white traces */
-  TRACT_TRACT_FOR(tract, addr, arena, seg->firstTract, limit) {
+  TRACT_FOR(tract, addr, arena, base, limit) {
     Seg trseg = NULL; /* suppress compiler warning */
-
     AVERT_CRITICAL(Tract, tract);
     AVER_CRITICAL(TRACT_SEG(&trseg, tract));
     AVER_CRITICAL(trseg == seg);

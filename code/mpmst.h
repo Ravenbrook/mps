@@ -240,19 +240,28 @@ typedef struct SegClassStruct {
 } SegClassStruct;
 
 
+/* RangeStruct -- address range */
+
+typedef struct RangeStruct {
+  Addr base;
+  Addr limit;
+} RangeStruct;
+
+
 /* SegStruct -- segment structure
  *
  * .seg: Segments are the basic units of protection and tracer activity
- * for allocated memory.  See <design/seg/>.  */
+ * for allocated memory.  See <design/seg/>.
+ */
 
 #define SegSig      ((Sig)0x5195E999) /* SIGnature SEG  */
 
 typedef struct SegStruct {      /* segment structure */
   Sig sig;                      /* <code/misc.h#sig> */
   SegClass class;               /* segment class structure */
-  Tract firstTract;             /* first tract of segment */
+  RangeStruct rangeStruct;      /* address range of segment memory */
+  Pool pool;                    /* pool that owns this segment */
   RingStruct poolRing;          /* link in list of segs in pool */
-  Addr limit;                   /* limit of segment */
   unsigned depth : ShieldDepthWIDTH; /* see design.mps.shield.def.depth */
   BOOLFIELD(queued);            /* in shield queue? */
   AccessSet pm : AccessLIMIT;   /* protection mode, <code/shield.c> */
