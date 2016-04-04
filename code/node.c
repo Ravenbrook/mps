@@ -1,51 +1,86 @@
-/* cbs.h: CBS -- Coalescing Block Structure
+/* node.c -- binary trees of address ranges
  *
  * $Id$
- * Copyright (c) 2001 Ravenbrook Limited.  See end of file for license.
- *
- * .source: <design/cbs/>.
+ * Copyright (C) 2016 Ravenbrook Limited.  See end of file for license.
  */
 
-#ifndef cbs_h
-#define cbs_h
-
-#include "arg.h"
-#include "mpmtypes.h"
-#include "mpmst.h"
+#include "node.h"
+#include "tree.h"
 #include "range.h"
-#include "splay.h"
+#include "mpm.h"
 
-typedef struct CBSFastBlockStruct *CBSFastBlock;
-typedef struct CBSFastBlockStruct {
-  struct NodeStruct nodeStruct;
-  Size maxSize; /* accurate maximum block size of sub-tree */
-} CBSFastBlockStruct;
 
-typedef struct CBSZonedBlockStruct *CBSZonedBlock;
-typedef struct CBSZonedBlockStruct {
-  struct CBSFastBlockStruct cbsFastBlockStruct;
-  ZoneSet zones; /* union zone set of all ranges in sub-tree */
-} CBSZonedBlockStruct;
+void NodeInit(Node node, Addr base, Addr limit)
+{
+  AVER(node != NULL);
+  TreeInit(NodeTree(node));
+  RangeInit(NodeRange(node), base, limit);
+  AVERT(Node, node);
+}
 
-typedef struct CBSStruct *CBS;
 
-extern Bool CBSCheck(CBS cbs);
-#define CBSLand(cbs) (&(cbs)->landStruct)
+void NodeInitFromRange(Node node, Range range)
+{
+  AVER(node != NULL);
+  TreeInit(NodeTree(node));
+  RangeCopy(NodeRange(node), range);
+  AVERT(Node, node);
+}
 
-extern LandClass CBSLandClassGet(void);
-extern LandClass CBSFastLandClassGet(void);
-extern LandClass CBSZonedLandClassGet(void);
 
-extern const struct mps_key_s _mps_key_cbs_block_pool;
-#define CBSBlockPool (&_mps_key_cbs_block_pool)
-#define CBSBlockPool_FIELD pool
+Bool NodeCheck(Node node)
+{
+  CHECKL(node != NULL);
+  CHECKD_NOSIG(Tree, NodeTree(node));
+  CHECKD_NOSIG(Range, NodeRange(node));
+  return TRUE;
+}
 
-#endif /* cbs_h */
+
+void NodeFinish(Node node)
+{
+  AVERT(Node, node);
+  TreeFinish(NodeTree(node));
+  RangeFinish(NodeRange(node));
+}
+
+
+/* NodeCompare -- Compare key to [base,limit)
+ *
+ * See <design/splay/#type.splay.compare.method>
+ */
+
+Compare NodeCompare(Tree tree, TreeKey key)
+{
+  Addr base1, base2, limit2;
+  Node block;
+
+  AVERT_CRITICAL(Tree, tree);
+  AVER_CRITICAL(tree != TreeEMPTY);
+  AVER_CRITICAL(key != NULL);
+
+  base1 = NodeBaseOfKey(key);
+  block = NodeOfTree(tree);
+  base2 = NodeBase(block);
+  limit2 = NodeLimit(block);
+
+  if (base1 < base2)
+    return CompareLESS;
+  else if (base1 >= limit2)
+    return CompareGREATER;
+  else
+    return CompareEQUAL;
+}
+
+TreeKey NodeKey(Tree tree)
+{
+  return NodeKeyOfBaseVar(NodeBase(NodeOfTree(tree)));
+}
 
 
 /* C. COPYRIGHT AND LICENSE
  *
- * Copyright (C) 2001-2002 Ravenbrook Limited <http://www.ravenbrook.com/>.
+ * Copyright (C) 2016 Ravenbrook Limited <http://www.ravenbrook.com/>.
  * All rights reserved.  This is an open source license.  Contact
  * Ravenbrook for commercial licensing options.
  * 

@@ -1,51 +1,52 @@
-/* cbs.h: CBS -- Coalescing Block Structure
+/* node.c -- binary trees of address ranges
  *
  * $Id$
- * Copyright (c) 2001 Ravenbrook Limited.  See end of file for license.
- *
- * .source: <design/cbs/>.
+ * Copyright (C) 2016 Ravenbrook Limited.  See end of file for license.
  */
 
-#ifndef cbs_h
-#define cbs_h
+#ifndef node_h
+#define node_h
 
-#include "arg.h"
 #include "mpmtypes.h"
-#include "mpmst.h"
-#include "range.h"
-#include "splay.h"
+#include "tree.h"
 
-typedef struct CBSFastBlockStruct *CBSFastBlock;
-typedef struct CBSFastBlockStruct {
-  struct NodeStruct nodeStruct;
-  Size maxSize; /* accurate maximum block size of sub-tree */
-} CBSFastBlockStruct;
+#define NodeTree(node) (&(node)->treeStruct)
+#define NodeRange(node) (&(node)->rangeStruct)
+#define NodeOfTree(tree) PARENT(NodeStruct, treeStruct, tree)
+#define NodeOfRange(range) PARENT(NodeStruct, rangeStruct, range)
 
-typedef struct CBSZonedBlockStruct *CBSZonedBlock;
-typedef struct CBSZonedBlockStruct {
-  struct CBSFastBlockStruct cbsFastBlockStruct;
-  ZoneSet zones; /* union zone set of all ranges in sub-tree */
-} CBSZonedBlockStruct;
+#define NodeBase(block) RangeBase(NodeRange(block))
+#define NodeLimit(block) RangeLimit(NodeRange(block))
+#define NodeSetBase(block, addr) RangeSetBase(NodeRange(block), addr)
+#define NodeSetLimit(block, addr) RangeSetLimit(NodeRange(block), addr)
+#define NodeSize(block) RangeSize(NodeRange(block))
 
-typedef struct CBSStruct *CBS;
+extern void NodeInit(Node node, Addr base, Addr limit);
+extern void NodeInitFromRange(Node node, Range range);
+extern Bool NodeCheck(Node node);
+extern void NodeFinish(Node node);
 
-extern Bool CBSCheck(CBS cbs);
-#define CBSLand(cbs) (&(cbs)->landStruct)
 
-extern LandClass CBSLandClassGet(void);
-extern LandClass CBSFastLandClassGet(void);
-extern LandClass CBSZonedLandClassGet(void);
+/* Functions for nodes in trees
+ *
+ * We pass the ndoe base directly as a TreeKey (void *) assuming that
+ * Addr can be encoded, and possibly breaking <design/type/#addr.use>.
+ * On an exotic platform where this isn't true, pass the address of
+ * base.  i.e. add an &
+ */
 
-extern const struct mps_key_s _mps_key_cbs_block_pool;
-#define CBSBlockPool (&_mps_key_cbs_block_pool)
-#define CBSBlockPool_FIELD pool
+#define NodeKeyOfBaseVar(baseVar) ((TreeKey)(baseVar))
+#define NodeBaseOfKey(key)        ((Addr)(key))
 
-#endif /* cbs_h */
+extern Compare NodeCompare(Tree tree, TreeKey key);
+extern TreeKey NodeKey(Tree tree);
 
+
+#endif /* node_h */
 
 /* C. COPYRIGHT AND LICENSE
  *
- * Copyright (C) 2001-2002 Ravenbrook Limited <http://www.ravenbrook.com/>.
+ * Copyright (C) 2016 Ravenbrook Limited <http://www.ravenbrook.com/>.
  * All rights reserved.  This is an open source license.  Contact
  * Ravenbrook for commercial licensing options.
  * 

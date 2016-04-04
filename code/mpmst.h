@@ -241,12 +241,26 @@ typedef struct SegClassStruct {
 } SegClassStruct;
 
 
-/* RangeStruct -- address range */
+/* RangeStruct -- address range
+ *
+ * See design.mps.range, range.h, range.c.
+ */
 
 typedef struct RangeStruct {
   Addr base;
   Addr limit;
 } RangeStruct;
+
+
+/* NodeStruct -- address range in a tree
+ *
+ * See node.h, node.c.
+ */
+
+typedef struct NodeStruct {
+  TreeStruct treeStruct;
+  RangeStruct rangeStruct;
+} NodeStruct;
 
 
 /* SegStruct -- segment structure
