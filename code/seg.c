@@ -140,7 +140,7 @@ static Res SegInit(Seg seg, Pool pool, Addr base, Size size, ArgList args)
 
   /* IMPORTANT: Keep in sync with segTrivSplit. */
   limit = AddrAdd(base, size);
-  RangeInit(SegRange(seg), base, limit);
+  NodeInit(SegNode(seg), base, limit);
   seg->pool = pool;
   seg->rankSet = RankSetEMPTY;
   seg->white = TraceSetEMPTY;
@@ -151,7 +151,7 @@ static Res SegInit(Seg seg, Pool pool, Addr base, Size size, ArgList args)
   seg->defer = WB_DEFER_INIT;
   seg->depth = 0;
   seg->queued = FALSE;
-
+  RingInit(SegPoolRing(seg));
   seg->sig = SegSig;  /* set sig now so tract checks will see it */
 
   TRACT_FOR(tract, addr, arena, base, limit) {
@@ -164,18 +164,17 @@ static Res SegInit(Seg seg, Pool pool, Addr base, Size size, ArgList args)
   }
   AVER(addr == SegLimit(seg));
 
-  RingInit(SegPoolRing(seg));
-  TreeInit(SegTree(seg));
-
   /* Class specific initialization comes last */
   res = class->init(seg, pool, base, size, args);
   if (res != ResOK)
     goto failInit;
    
   AVERT(Seg, seg);
+
   RingAppend(&pool->segRing, SegPoolRing(seg));
   b = SplayTreeInsert(ArenaSegSplay(arena), SegTree(seg));
   AVER(b); /* not already in tree */
+
   return ResOK;
 
 failInit:
@@ -184,6 +183,7 @@ failInit:
     AVERT(Tract, tract);
     TRACT_UNSET_SEG(tract);
   }
+  NodeFinish(SegNode(seg));
   seg->sig = SigInvalid;
   return res;
 }
@@ -236,9 +236,10 @@ static void SegFinish(Seg seg)
   /* IMPORTANT: Keep in sync with segTrivMerge. */
   b = SplayTreeDelete(ArenaSegSplay(arena), SegTree(seg));
   AVER(b); /* seg should be in arena splay tree */
-  TreeFinish(SegTree(seg));
   RingRemove(SegPoolRing(seg));
+
   RingFinish(SegPoolRing(seg));
+  NodeFinish(SegNode(seg));
 
   seg->sig = SigInvalid;
 
@@ -249,7 +250,6 @@ static void SegFinish(Seg seg)
   /* fund are not protected) */
   AVER(seg->sm == AccessSetEMPTY);
   AVER(seg->pm == AccessSetEMPTY);
- 
 }
 
 
@@ -931,9 +931,11 @@ static Res segTrivMerge(Seg seg, Seg segHi,
   /* IMPORTANT: Keep in sync with SegFinish. */
   b = SplayTreeDelete(ArenaSegSplay(arena), SegTree(segHi));
   AVER(b); /* seg should be in arena splay tree */
-  TreeFinish(SegTree(segHi));
   RingRemove(SegPoolRing(segHi));
+
   RingFinish(SegPoolRing(segHi));
+  NodeFinish(SegNode(segHi));
+
   segHi->sig = SigInvalid;
 
   /* This does not affect seg's position in the segment tree, since it
@@ -994,7 +996,8 @@ static Res segTrivSplit(Seg seg, Seg segHi,
      address-ordered and no segments overlap. */
   /* IMPORTANT: Keep in sync with SegInit. */
   RangeSetLimit(SegRange(seg), mid);
-  RangeInit(SegRange(segHi), mid, limit);
+
+  NodeInit(SegNode(segHi), mid, limit);
   segHi->pool = pool;
   segHi->rankSet = seg->rankSet;
   segHi->white = seg->white;
@@ -1006,9 +1009,7 @@ static Res segTrivSplit(Seg seg, Seg segHi,
   segHi->queued = seg->queued;
   segHi->class = seg->class;
   RingInit(SegPoolRing(segHi));
-  TreeInit(SegTree(segHi));
   segHi->sig = SegSig;
-  RingInit(SegPoolRing(segHi));
 
   TRACT_FOR(tract, addr, arena, mid, limit) {
     AVERT(Tract, tract);
@@ -1025,6 +1026,7 @@ static Res segTrivSplit(Seg seg, Seg segHi,
   RingAppend(&pool->segRing, SegPoolRing(segHi));
   b = SplayTreeInsert(ArenaSegSplay(arena), SegTree(segHi));
   AVER(b); /* not already in tree */
+
   return ResOK;
 }
 
