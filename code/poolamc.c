@@ -1679,6 +1679,15 @@ updateReference:
   res = ResOK;
 
 returnRes:
+  /* We don't need to maintain the remembered set on white segments,
+     so get rid of it now to avoid unnecessary write protection costs.
+     Don't do this for nailed segments, because they go on the grey
+     list and the summary can be used to skip them later.  TODO: This
+     might not be wise for multiple traces, since another trace might
+     be able to eliminate this segment from scanning, and we have not
+     yet proved that its contents are dead. */
+  if (SegRankSet(seg) != RankSetEMPTY)
+    SegSetSummary(seg, RefSetUNIV);
   ShieldCover(arena, seg);  /* .exposed.seg */
   return res;
 }
