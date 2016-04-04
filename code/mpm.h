@@ -536,6 +536,7 @@ extern Ring GlobalsRememberedSummaryRing(Globals);
 #define ArenaGreyRing(arena, rank) (&(arena)->greyRing[rank])
 #define ArenaPoolRing(arena) (&ArenaGlobals(arena)->poolRing)
 #define ArenaChunkTree(arena) RVALUE((arena)->chunkTree)
+#define ArenaSegSplay(arena)    (&(arena)->segSplayTreeStruct)
 #define ArenaShield(arena)      (&(arena)->shieldStruct)
 
 extern Bool ArenaGrainSizeCheck(Size size);
@@ -703,6 +704,8 @@ extern Bool SegClassCheck(SegClass class);
 extern SegClass SegClassGet(void);
 extern SegClass GCSegClassGet(void);
 extern void SegClassMixInNoSplitMerge(SegClass class);
+extern Compare SegCompare(Tree tree, TreeKey key);
+extern TreeKey SegKey(Tree tree);
 
 
 /* DEFINE_SEG_CLASS -- define a segment class */
@@ -734,6 +737,7 @@ extern Addr (SegLimit)(Seg seg);
 #define SegWhite(seg)           ((TraceSet)(seg)->white)
 #define SegNailed(seg)          ((TraceSet)(seg)->nailed)
 #define SegPoolRing(seg)        (&(seg)->poolRing)
+#define SegTree(seg)            (&(seg)->treeStruct)
 #define SegOfPoolRing(node)     (RING_ELT(Seg, poolRing, (node)))
 #define SegOfGreyRing(node)     (&(RING_ELT(GCSeg, greyRing, (node)) \
                                    ->segStruct))
