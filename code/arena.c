@@ -12,6 +12,7 @@
 #include "bt.h"
 #include "poolmfs.h"
 #include "mpscmfs.h"
+#include "node.h"
 
 
 SRCID(arena, "$Id$");
@@ -238,8 +239,8 @@ Res ArenaInit(Arena arena, ArenaClass class, Size grainSize, ArgList args)
   arena->chunkTree = TreeEMPTY;
   arena->chunkSerial = (Serial)0;
   SplayTreeInit(ArenaSegSplay(arena),
-                SegCompare,
-                SegKey,
+                NodeCompare,
+                NodeKey,
                 SplayTrivUpdate);
   
   LocusInit(arena);

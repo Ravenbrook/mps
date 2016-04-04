@@ -57,7 +57,7 @@ Compare NodeCompare(Tree tree, TreeKey key)
 
   AVERT_CRITICAL(Tree, tree);
   AVER_CRITICAL(tree != TreeEMPTY);
-  AVER_CRITICAL(key != NULL);
+  /* key could be any address including NULL */
 
   base1 = NodeBaseOfKey(key);
   block = NodeOfTree(tree);

@@ -250,34 +250,6 @@ static void SegFinish(Seg seg)
 }
 
 
-#define segOfTree(_tree) TREE_ELT(Seg, treeStruct, _tree)
-
-Compare SegCompare(Tree tree, TreeKey key)
-{
-  Seg seg;
-  Addr addr;
-
-  AVERT_CRITICAL(Tree, tree);
-  AVER_CRITICAL(tree != TreeEMPTY);
-  AVER_CRITICAL(key != NULL);
-
-  seg = segOfTree(tree);
-  addr = (Addr)key; /* FIXME: See baseOfKey in cbs.c */
-
-  if (addr < SegBase(seg))
-    return CompareLESS;
-  else if (addr >= SegLimit(seg))
-    return CompareGREATER;
-  else
-    return CompareEQUAL;
-}
-
-TreeKey SegKey(Tree tree)
-{
-  return (TreeKey)SegBase(segOfTree(tree)); /* FIXME: See cbsBlockKey in cbs.c */
-}
-
-
 /* SegSetGrey -- change the greyness of a segment
  *
  * Sets the segment greyness to the trace set grey.
@@ -478,7 +450,7 @@ Bool SegOfAddr(Seg *segReturn, Arena arena, Addr addr)
   AVER_CRITICAL(segReturn != NULL);   /* .seg.critical FIXME: maybe not with white-cuckoo */
   AVERT_CRITICAL(Arena, arena);       /* .seg.critical */
   if (SplayTreeFind(&tree, ArenaSegSplay(arena), (TreeKey)addr)) { /* FIXME: cast */
-    *segReturn = segOfTree(tree);
+    *segReturn = SegOfTree(tree);
     return TRUE;
   } else {
     return FALSE;
