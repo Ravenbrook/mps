@@ -711,7 +711,7 @@ static Res VMArenaGrow(Arena arena, LocusPref pref, Size size)
   {
     unsigned fidelity = 8;  /* max fraction of addr-space we may 'waste' */
     Size chunkHalf;
-    Size chunkMin = 4 * 1024;  /* typical single page */
+    Size chunkMin = 4 * ArenaGrainSize(arena); /* FIXME: What is the actual minimum? */
     Size sliceSize;
     
     if (vmArena->extendMin > chunkMin)

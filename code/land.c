@@ -198,6 +198,7 @@ Res LandInsert(Range rangeReturn, Land land, Range range)
   AVERT(Land, land);
   AVERT(Range, range);
   AVER(RangeIsAligned(range, land->alignment));
+  AVER(RangeSize(range) > 0);
   landEnter(land);
 
   res = (*land->class->insert)(rangeReturn, land, range);
