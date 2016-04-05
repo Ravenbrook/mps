@@ -1,7 +1,7 @@
 /* mpmtypes.h: MEMORY POOL MANAGER TYPES
  *
  * $Id$
- * Copyright (c) 2001-2014 Ravenbrook Limited.  See end of file for license.
+ * Copyright (c) 2001-2016 Ravenbrook Limited.  See end of file for license.
  * Portions copyright (c) 2001 Global Graphics Software.
  *
  * .design: <design/type/>
@@ -26,7 +26,7 @@
 
 /* TYPES */
 
-typedef unsigned long Sig;              /* <design/sig/> */
+typedef struct SigStruct *Sig;          /* <design/sig/> */
 typedef int Res;                        /* <design/type/#res> */
 
 typedef void (*Fun)(void);              /* <design/type/#fun> */
@@ -458,7 +458,7 @@ typedef double WriteFD;
 
 /* C. COPYRIGHT AND LICENSE
  *
- * Copyright (C) 2001-2014 Ravenbrook Limited <http://www.ravenbrook.com/>.
+ * Copyright (C) 2001-2016 Ravenbrook Limited <http://www.ravenbrook.com/>.
  * All rights reserved.  This is an open source license.  Contact
  * Ravenbrook for commercial licensing options.
  * 

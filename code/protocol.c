@@ -1,16 +1,28 @@
 /* pool.c: PROTOCOL IMPLEMENTATION
  *
  * $Id$
- * Copyright (c) 2001-2014 Ravenbrook Limited.  See end of file for license.
+ * Copyright (c) 2001-2016 Ravenbrook Limited.  See end of file for license.
  *
  * DESIGN
  *
  * .design: See <design/protocol/>
  */
 
+#include "protocol.h"
 #include "mpm.h"
 
 SRCID(protocol, "$Id$");
+
+
+SigStruct ProtocolClassSigStruct = {
+  ProtocolClassPrime,
+  "ProtocolClass"
+};
+
+SigStruct ProtocolInstSigStruct = {
+  ProtocolInstPrime,
+  "ProtocolInst"
+};
 
 
 /* ProtocolClassCheck -- check a protocol class */
@@ -127,7 +139,7 @@ DEFINE_CLASS(ProtocolClass, theClass)
 
 /* C. COPYRIGHT AND LICENSE
  *
- * Copyright (C) 2001-2014 Ravenbrook Limited <http://www.ravenbrook.com/>.
+ * Copyright (C) 2001-2016 Ravenbrook Limited <http://www.ravenbrook.com/>.
  * All rights reserved.  This is an open source license.  Contact
  * Ravenbrook for commercial licensing options.
  * 

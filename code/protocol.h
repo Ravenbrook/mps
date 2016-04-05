@@ -1,7 +1,7 @@
 /* protocol.h: PROTOCOL INHERITANCE DEFINITIONS
  *
  * $Id$
- * Copyright (c) 2001 Ravenbrook Limited.  See end of file for license.
+ * Copyright (c) 2001-2016 Ravenbrook Limited.  See end of file for license.
  */
 
 #ifndef protocol_h
@@ -9,6 +9,14 @@
 
 #include "config.h"
 #include "mpmtypes.h"
+
+
+typedef struct SigStruct {
+  unsigned long typeId;
+  const char *name;
+} SigStruct;
+
+#define SigIsA(ty, val) ((val) != NULL && (val)->sig != NULL && (val)->sig.typeId % (ty) == 0)
 
 
 /* Name derivation macros. These are not intended to be used */
@@ -82,9 +90,15 @@
   DEFINE_CLASS(className, var)
 
 
+extern SigStruct ProtocolClassSigStruct;
+#define ProtocolClassSig &ProtocolClassSigStruct
+#define ProtocolClassPrime 2
+#define ProtocolClassTypeId ProtocolClassPrime
 
-#define ProtocolClassSig ((Sig)0x519B60C7) /* SIGnature PROtocol CLass */
-#define ProtocolInstSig  ((Sig)0x519B6014) /* SIGnature PROtocol INst */
+extern SigStruct ProtocolInstSigStruct;
+#define ProtocolInstSig &ProtocolInstSigStruct
+#define ProtocolInstPrime 3
+#define ProtocolInstTypeId ProtocolInstPrime
 
 
 /* ProtocolClass -- the class containing the support for the protocol */
@@ -188,7 +202,7 @@ extern Bool ProtocolIsSubclass(ProtocolClass sub, ProtocolClass super);
 
 /* C. COPYRIGHT AND LICENSE
  *
- * Copyright (C) 2001-2002 Ravenbrook Limited <http://www.ravenbrook.com/>.
+ * Copyright (C) 2001-2016 Ravenbrook Limited <http://www.ravenbrook.com/>.
  * All rights reserved.  This is an open source license.  Contact
  * Ravenbrook for commercial licensing options.
  * 

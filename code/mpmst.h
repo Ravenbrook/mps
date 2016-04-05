@@ -46,7 +46,10 @@
  * causes the compiler to complain if the class structure is extended
  * without modifying static initializers.  */
 
-#define PoolClassSig    ((Sig)0x519C7A55) /* SIGnature pool CLASS */
+extern SigStruct PoolClassSigStruct;
+#define PoolClassSig &PoolClassSigStruct
+#define PoolClassPrime 5
+#define PoolClassTypeId (PoolClassPrime * ProtocolClassTypeId)
 
 typedef struct mps_pool_class_s {
   ProtocolClassStruct protocol;
@@ -97,7 +100,10 @@ typedef struct mps_pool_class_s {
  * class-specific part of the pool's state.  See <code/pool.c>,
  * <design/pool/>.  */
 
-#define PoolSig         ((Sig)0x519B0019) /* SIGnature POOL */
+extern SigStruct PoolSigStruct;
+#define PoolSig &PoolSigStruct
+#define PoolPrime 7
+#define PoolTypeId (PoolPrime * ProtocolInstTypeId)
 
 typedef struct mps_pool_s {     /* generic structure */
   Sig sig;                      /* <design/sig/> */
@@ -125,7 +131,10 @@ typedef struct mps_pool_s {     /* generic structure */
  * The signature is placed at the end, see
  * <design/pool/#outer-structure.sig>. */
 
-#define MFSSig          ((Sig)0x5193F599) /* SIGnature MFS */
+extern SigStruct MFSSigStruct;
+#define MFSSig &MFSSigStruct
+#define MFSPrime 11
+#define MFSTypeId (MFSPrime * PoolTypeId)
 
 typedef struct MFSStruct {      /* MFS outer structure */
   PoolStruct poolStruct;        /* generic structure */
@@ -149,7 +158,10 @@ typedef struct MFSStruct {      /* MFS outer structure */
  * control pool structure which is inlined in the arena.  Normally,
  * pool outer structures are declared with the pools.  */
 
-#define MVSig           ((Sig)0x5193B999) /* SIGnature MV */
+extern SigStruct MVSigStruct;
+#define MVSig &MVSigStruct
+#define MVPrime 13
+#define MVTypeId (MVPrime * PoolTypeId)
 
 typedef struct MVStruct {       /* MV pool outer structure */
   PoolStruct poolStruct;        /* generic structure */

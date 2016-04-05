@@ -1,7 +1,7 @@
 /* pool.c: POOL IMPLEMENTATION
  *
  * $Id$
- * Copyright (c) 2001-2015 Ravenbrook Limited.  See end of file for license.
+ * Copyright (c) 2001-2016 Ravenbrook Limited.  See end of file for license.
  * Portions copyright (C) 2001 Global Graphics Software.
  *
  * DESIGN
@@ -31,6 +31,10 @@
 #include "mpm.h"
 
 SRCID(pool, "$Id$");
+
+
+SigStruct PoolClassSigStruct = {PoolClassTypeId, "PoolClass"};
+SigStruct PoolSigStruct = {PoolTypeId, "Pool"};
 
 
 /* PoolClassCheck -- check a pool class */
@@ -700,7 +704,7 @@ Bool PoolHasRange(Pool pool, Addr base, Addr limit)
 
 /* C. COPYRIGHT AND LICENSE
  *
- * Copyright (C) 2001-2015 Ravenbrook Limited <http://www.ravenbrook.com/>.
+ * Copyright (C) 2001-2016 Ravenbrook Limited <http://www.ravenbrook.com/>.
  * All rights reserved.  This is an open source license.  Contact
  * Ravenbrook for commercial licensing options.
  * 
