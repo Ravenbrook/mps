@@ -28,6 +28,7 @@
 #include "arg.h"
 #include "mpmtypes.h"
 #include "mpmst.h"
+#include "class.h"
 
 
 /* MPMCheck -- check MPM assumptions */
