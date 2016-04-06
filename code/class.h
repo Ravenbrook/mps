@@ -96,13 +96,13 @@
 #define CLASSES(CLASS, X) \
   /*       ident     prime   super      doc */ \
   CLASS(X, Inst,         3,  NoSuper,   "base type of instances") \
-  CLASS(X, InstClass,    5,  Inst,      "class of all instances") \
-  CLASS(X, ClassClass,   7,  NoSuper,   "class of all classes") \
+  CLASS(X, InstClass,    5,  NoSuper,   "class of all instances") \
+  CLASS(X, ClassClass,   7,  InstClass, "class of all classes") \
   CLASS(X, Land,        11,  Inst,      "set of address ranges") \
   CLASS(X, LandClass,   13,  InstClass, "class of lands") \
   CLASS(X, CBS,         17,  Land,      "coalescing block structure") \
   CLASS(X, CBSFast,     19,  CBS,       "CBS with size property") \
-  CLASS(X, CBSZoned,    23,  CBSFast,   "CBSFast with zone seg property") \
+  CLASS(X, CBSZoned,    23,  CBSFast,   "CBSFast with zone set property") \
   CLASS(X, Freelist,    27,  Land,      "freelist land") \
   CLASS(X, Failover,    29,  Land,      "failover land")
 
@@ -119,6 +119,20 @@ CLASSES(CLASS_TYPE, UNUSED)
 typedef struct InstStruct *Inst;
 typedef struct InstClassStruct *InstClass;
 typedef struct ClassClassStruct *ClassClass;
+
+
+/* ClassIndexEnum -- unique index for each class
+ *
+ * This declares enum constants such as ClassIndexInst numbering the
+ * classes starting at zero.
+ */
+
+#define CLASS_INDEX_ENUM(prefix, ident, prime, super, doc) prefix ## ident,
+
+typedef enum ClassIndexEnum {
+  CLASSES(CLASS_INDEX_ENUM, ClassIndex)
+  ClassIndexLIMIT
+} ClassIndexEnum;
 
 
 /* ClassPrimeEnum -- unique prime for each class
