@@ -80,16 +80,7 @@ Res LandInit(Land land, LandClass class, Arena arena, Align alignment, void *own
   AVERC(LandClass, class);
   AVERT(Align, alignment);
 
-  InstInit((Inst)land);
-  
-  land->instClass = MustBeA(InstClass, class);
-  land->inLand = TRUE;
-  land->alignment = alignment;
-  land->arena = arena;
-
-  AVERC(Land, land);
-
-  res = (*class->init)(land, args);
+  res = (*class->init)(land, arena, alignment, args);
   if (res != ResOK)
     goto failInit;
 
@@ -98,7 +89,7 @@ Res LandInit(Land land, LandClass class, Arena arena, Align alignment, void *own
   return ResOK;
 
  failInit:
-  InstFinish(MustBeA(Inst, land));
+  InstFinish(MustBeA(Inst, land)); /* FIXME: Should be done by method? */
   return res;
 }
 
@@ -168,8 +159,6 @@ void LandFinish(Land land)
   landEnter(land);
 
   Method(Land, land, finish)(land);
-
-  InstFinish(MustBeA(Inst, land));
 }
 
 
@@ -468,18 +457,27 @@ Bool LandClassCheck(Inst inst)
 }
 
 
-Res LandTrivInit(Land land, ArgList args)
+Res LandTrivInit(Land land, Arena arena, Align alignment, ArgList args)
 {
-  AVERC(Land, land);
+  AVER(land != NULL); /* FIXME: express intention */
   AVERT(ArgList, args);
   UNUSED(args);
+
+  InstInit((Inst)land);
+  
+  land->instClass = MustBeA(InstClass, LandClassGet());
+  land->inLand = TRUE;
+  land->alignment = alignment;
+  land->arena = arena;
+
+  AVERC(Land, land);
   return ResOK;
 }
 
-static void landTrivFinish(Land land)
+void LandTrivFinish(Land land)
 {
   AVERC(Land, land);
-  NOOP;
+  InstFinish(MustBeA(Inst, land));
 }
 
 static Size landNoSize(Land land)
@@ -594,7 +592,7 @@ void LandClassInit(LandClass class)
   class->size = sizeof(LandStruct);
   class->init = LandTrivInit;
   class->sizeMethod = landNoSize;
-  class->finish = landTrivFinish;
+  class->finish = LandTrivFinish;
   class->insert = landNoInsert;
   class->delete = landNoDelete;
   class->iterate = landNoIterate;
@@ -606,6 +604,17 @@ void LandClassInit(LandClass class)
   class->describe = landTrivDescribe;
   class->sig = LandClassSig;
   AVERC(LandClass, class);
+}
+
+LandClass LandClassGet(void)
+{
+  static LandClassStruct classStruct;
+  static LandClass class = NULL;
+  if (class == NULL) {
+    LandClassInit(&classStruct);
+    class = &classStruct;
+  }
+  return class;
 }
 
 

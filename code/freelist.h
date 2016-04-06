@@ -14,7 +14,7 @@
 
 typedef struct FreelistStruct *Freelist;
 
-#define FreelistLand(fl) MustBeA(Land, fl)
+#define FreelistLand(fl) CouldBeA(Land, fl)
 
 extern Bool FreelistCheck(Inst inst);
 

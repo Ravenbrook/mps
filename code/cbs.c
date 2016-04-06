@@ -233,18 +233,22 @@ static void cbsUpdateZonedNode(SplayTree splay, Tree tree)
 
 ARG_DEFINE_KEY(cbs_block_pool, Pool);
 
-static Res cbsInitComm(Land land, ArgList args, SplayUpdateNodeFunction update,
-                       Size blockStructSize)
+static Res cbsInitComm(Land land, LandClass class,
+                       Arena arena, Align alignment, ArgList args,
+                       SplayUpdateNodeFunction update, Size blockStructSize)
 {
   CBS cbs;
   ArgStruct arg;
   Res res;
   Pool blockPool = NULL;
 
-  AVERC(Land, land);
-  res = LandTrivInit(land, args); /* FIXME: should be LandInit or super->init? */
+  AVER(land != NULL); /* FIXME: express intention */
+
+  res = LandTrivInit(land, arena, alignment, args); /* FIXME: should be LandInit or super->init? */
   if (res != ResOK)
     return res;
+
+  land->instClass = MustBeA(InstClass, class); /* FIXME: How to avoid forgetting this step? */
 
   if (ArgPick(&arg, args, CBSBlockPool))
     blockPool = arg.val.pool;
@@ -275,21 +279,24 @@ static Res cbsInitComm(Land land, ArgList args, SplayUpdateNodeFunction update,
   return ResOK;
 }
 
-static Res cbsInit(Land land, ArgList args)
+static Res cbsInit(Land land, Arena arena, Align alignment, ArgList args)
 {
-  return cbsInitComm(land, args, SplayTrivUpdate,
+  return cbsInitComm(land, CBSClassGet(),
+                     arena, alignment, args, SplayTrivUpdate,
                      sizeof(CBSBlockStruct));
 }
 
-static Res cbsInitFast(Land land, ArgList args)
+static Res cbsInitFast(Land land, Arena arena, Align alignment, ArgList args)
 {
-  return cbsInitComm(land, args, cbsUpdateFastNode,
+  return cbsInitComm(land, CBSFastClassGet(),
+                     arena, alignment, args, cbsUpdateFastNode,
                      sizeof(CBSFastBlockStruct));
 }
 
-static Res cbsInitZoned(Land land, ArgList args)
+static Res cbsInitZoned(Land land, Arena arena, Align alignment, ArgList args)
 {
-  return cbsInitComm(land, args, cbsUpdateZonedNode,
+  return cbsInitComm(land, CBSZonedClassGet(),
+                     arena, alignment, args, cbsUpdateZonedNode,
                      sizeof(CBSZonedBlockStruct));
 }
 
@@ -309,7 +316,7 @@ static void cbsFinish(Land land)
 
   METER_EMIT(&cbs->treeSearch);
 
-  InstFinish((Inst)cbs); /* FIXME: should be LandFinish or super->finish */
+  LandTrivFinish(land); /* FIXME: should be LandFinish? */
 
   SplayTreeFinish(cbsSplay(cbs));
   if (cbs->ownPool)
@@ -1198,6 +1205,17 @@ void CBSClassInit(LandClass class)
   class->findInZones = cbsFindInZones;
   class->describe = cbsDescribe;
   AVERC(LandClass, class);
+}
+
+LandClass CBSClassGet(void)
+{
+  static LandClassStruct classStruct;
+  static LandClass class = NULL;
+  if (class == NULL) {
+    CBSClassInit(&classStruct);
+    class = &classStruct;
+  }
+  return class;
 }
 
 void CBSFastClassInit(LandClass class)

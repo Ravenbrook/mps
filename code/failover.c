@@ -32,7 +32,7 @@ Bool FailoverCheck(Inst inst)
 }
 
 
-static Res failoverInit(Land land, ArgList args)
+static Res failoverInit(Land land, Arena arena, Align alignment, ArgList args)
 {
   Failover fo;
   Land primary, secondary;
@@ -40,7 +40,7 @@ static Res failoverInit(Land land, ArgList args)
   Res res;
 
   AVERC(Land, land);
-  res = LandTrivInit(land, args); /* FIXME: should be LandInit or super->init? */
+  res = LandTrivInit(land, arena, alignment, args); /* FIXME: should be LandInit or super->init? */
   if (res != ResOK)
     return res;
 
@@ -66,7 +66,7 @@ static void failoverFinish(Land land)
   fo = failoverOfLand(land);
   AVERC(Failover, fo);
 
-  InstFinish(MustBeA(Inst, fo)); /* FIXME: Should be LandFinish or super->finish */
+  LandTrivFinish(land); /* FIXME: Should be LandFinish or super->finish */
 
   /* FIXME: Shouldn't this be finishing the lands inside? */
 }

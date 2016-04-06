@@ -40,6 +40,7 @@ typedef struct CBSStruct *CBS;
 extern Bool CBSCheck(Inst inst);
 #define CBSLand(cbs) CouldBeA(Land, cbs)
 
+extern LandClass CBSClassGet(void);
 extern LandClass CBSFastClassGet(void);
 extern LandClass CBSZonedClassGet(void);
 extern void CBSClassInit(LandClass class);

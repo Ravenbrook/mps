@@ -1009,8 +1009,10 @@ extern Res RootsIterate(Globals arena, RootIterateFn f, void *p);
 #define LandAlignment(land) ((land)->alignment)
 extern Size LandSize(Land land);
 extern void LandClassInit(LandClass class);
+extern LandClass LandClassGet(void);
 extern Res LandInit(Land land, LandClass class, Arena arena, Align alignment, void *owner, ArgList args);
-extern Res LandTrivInit(Land land, ArgList args);
+extern Res LandTrivInit(Land land, Arena arena, Align alignment, ArgList args);
+extern void LandTrivFinish(Land land);
 extern Res LandCreate(Land *landReturn, Arena arena, LandClass class, Align alignment, void *owner, ArgList args);
 extern void LandDestroy(Land land);
 extern void LandFinish(Land land);

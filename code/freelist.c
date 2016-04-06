@@ -186,13 +186,13 @@ Bool FreelistCheck(Inst inst)
 }
 
 
-static Res freelistInit(Land land, ArgList args)
+static Res freelistInit(Land land, Arena arena, Align alignment, ArgList args)
 {
   Freelist fl;
   Res res;
 
   AVERC(Land, land);
-  res = LandTrivInit(land, args); /* FIXME: should be LandInit or super->init? */
+  res = LandTrivInit(land, arena, alignment, args); /* FIXME: should be LandInit or super->init? */
   if (res != ResOK)
     return res;
 
@@ -216,7 +216,9 @@ static void freelistFinish(Land land)
   AVERC(Land, land);
   fl = freelistOfLand(land);
   AVERC(Freelist, fl);
-  InstFinish(MustBeA(Inst, fl)); /* FIXME: Should be LandFinish or super->finish */
+
+  LandTrivFinish(land); /* FIXME: Should be LandFinish or super->finish */
+  
   fl->list = freelistEND;
 }
 
