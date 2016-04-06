@@ -606,7 +606,6 @@ typedef struct GlobalsStruct {
   FIELD(X, LandFindMethod, findLast, "find last range of given size") \
   FIELD(X, LandFindMethod, findLargest, "find largest range") \
   FIELD(X, LandFindInZonesMethod, findInZones, "find first range of given size in zone set") \
-  FIELD(X, LandDescribeMethod, describe, "describe the land") \
   FIELD(X, Sig, sig, ".class.end-sig")
 
 CLASS_DEFSTRUCT(LandClass)

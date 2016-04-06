@@ -361,34 +361,30 @@ Res LandFindInZones(Bool *foundReturn, Range rangeReturn, Range oldRangeReturn, 
  * See <design/land/#function.describe>
  */
 
-Res LandDescribe(Land land, mps_lib_FILE *stream, Count depth)
+Res LandTrivDescribe(Inst inst, mps_lib_FILE *stream, Count depth)
 {
+  Land land = CouldBeA(Land, inst);
   Res res;
 
-#if 0
-  if (!TESTT(Land, land))
+  if (!TESTC(Land, land))
     return ResFAIL;
   if (stream == NULL)
     return ResFAIL;
-#endif
 
-  res = WriteF(stream, depth,
-               "Land $P {\n", (WriteFP)land,
-               "  class $P", (WriteFP)land->instClass,
-               " (\"$S\")\n", (WriteFS)ClassNameOfInst(land),
-               "  arena $P\n", (WriteFP)land->arena,
-               "  align $U\n", (WriteFU)land->alignment,
-               "  inLand $S\n", WriteFYesNo(land->inLand),
-               NULL);
+  res = InstDescribe(inst, stream, depth);
   if (res != ResOK)
     return res;
 
-  res = Method(Land, land, describe)(land, stream, depth + 2);
-  if (res != ResOK)
-    return res;
+  return WriteF(stream, depth + 2,
+                "arena  $P\n", (WriteFP)land->arena,
+                "align  $U\n", (WriteFU)land->alignment,
+                "inLand $S\n", WriteFYesNo(land->inLand),
+                NULL);
+}
 
-  res = WriteF(stream, depth, "} Land $P\n", (WriteFP)land, NULL);
-  return ResOK;
+Res LandDescribe(Land land, mps_lib_FILE *stream, Count depth)
+{
+  return Method(Land, land, describe)(CouldBeA(Inst, land), stream, depth);
 }
 
 
@@ -565,21 +561,6 @@ static Res landNoFindInZones(Bool *foundReturn, Range rangeReturn, Range oldRang
   return ResUNIMPL;
 }
 
-static Res landTrivDescribe(Land land, mps_lib_FILE *stream, Count depth)
-{
-#if 0
-  if (!TESTT(Land, land))
-    return ResFAIL;
-  if (stream == NULL)
-    return ResFAIL;
-#endif
-  UNUSED(land);
-  UNUSED(stream);
-  UNUSED(depth);
-  /* dispatching function does it all */
-  return ResOK;
-}
-
 void LandClassInit(LandClass class)
 {
   /* FIXME: Macroize this paragraph. */
@@ -600,7 +581,7 @@ void LandClassInit(LandClass class)
   class->findLast = landNoFind;
   class->findLargest = landNoFind;
   class->findInZones = landNoFindInZones;
-  class->describe = landTrivDescribe;
+  class->describe = LandTrivDescribe;
   class->sig = LandClassSig;
   AVERC(LandClass, class);
 }

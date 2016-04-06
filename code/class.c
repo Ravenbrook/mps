@@ -24,7 +24,8 @@ static InstClassStruct InstClassInvalidStruct = {
   "invalid class",
   ClassPrimeInvalid,
   ClassTypeIdInvalid,
-  NULL
+  /* check */ NULL,
+  /* describe */ NULL
 };
 
 
@@ -62,6 +63,19 @@ Bool InstCheck(Inst inst)
   return TRUE;
 }
 
+Res InstDescribe(Inst inst, mps_lib_FILE *stream, Count depth)
+{
+  if (!TESTC(Inst, inst))
+    return ResPARAM;
+  if (stream == NULL)
+    return ResPARAM;
+
+  return WriteF(stream, depth, "$S $P\n",
+                (WriteFS)ClassNameOfInst(inst),
+                (WriteFP)inst,
+                NULL);
+}
+
 
 /* InstClassInit -- initialise the class of instances */
 
@@ -80,6 +94,7 @@ void InstClassInit(InstClass instClass)
   instClass->typeId = ClassTypeIdInst;
   /* instClass->super = NULL; */
   instClass->check = InstCheck;
+  instClass->describe = InstDescribe;
 
   AVERC(InstClass, instClass);
 }

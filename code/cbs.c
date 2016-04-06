@@ -1103,46 +1103,80 @@ fail:
  * See <design/land/#function.describe>.
  */
 
-static Res cbsDescribe(Land land, mps_lib_FILE *stream, Count depth)
+static Res cbsDescribeComm(Inst inst, mps_lib_FILE *stream, Count depth)
 {
-  CBS cbs = CouldBeA(CBS, land);
+  CBS cbs = CouldBeA(CBS, inst);
   Res res;
-  Res (*describe)(Tree, mps_lib_FILE *);
 
-  if (!TESTC(Land, land))
-    return ResFAIL;
   if (!TESTC(CBS, cbs))
-    return ResFAIL;
-  if (stream == NULL)
-    return ResFAIL;
+    return ResPARAM;
 
-  res = WriteF(stream, depth,
-               "CBS $P {\n", (WriteFP)cbs,
-               "  blockPool: $P\n", (WriteFP)cbsBlockPool(cbs),
-               "  ownPool: $U\n", (WriteFU)cbs->ownPool,
-               "  treeSize: $U\n", (WriteFU)cbs->treeSize,
+  res = LandTrivDescribe(inst, stream, depth);
+  if (res != ResOK)
+    return res;
+
+  res = WriteF(stream, depth + 2,
+               "blockPool $P\n", (WriteFP)cbsBlockPool(cbs),
+               "ownPool   $U\n", (WriteFU)cbs->ownPool,
+               "treeSize  $U\n", (WriteFU)cbs->treeSize,
                NULL);
   if (res != ResOK)
     return res;
 
   METER_WRITE(cbs->treeSearch, stream, depth + 2);
 
-  if (IsA(CBSZoned, land))
-    describe = cbsZonedSplayNodeDescribe;
-  else if (IsA(CBSFast, land))
-    describe = cbsFastSplayNodeDescribe;
-  else
-    describe = cbsSplayNodeDescribe;
+  return ResOK;
+}
 
-  res = SplayTreeDescribe(cbsSplay(cbs), stream, depth + 2, describe);
+static Res cbsDescribe(Inst inst, mps_lib_FILE *stream, Count depth)
+{
+  CBS cbs = CouldBeA(CBS, inst);
+  Res res;
+
+  if (!TESTC(CBS, cbs))
+    return ResPARAM;
+
+  res = cbsDescribeComm(inst, stream, depth);
   if (res != ResOK)
     return res;
 
-  res = WriteF(stream, depth, "} CBS $P\n", (WriteFP)cbs, NULL);
-
-  res = WriteF(stream, 0, "}\n", NULL);
-  return res;
+  return SplayTreeDescribe(cbsSplay(cbs), stream, depth + 2,
+                           cbsSplayNodeDescribe);
 }
+
+static Res cbsFastDescribe(Inst inst, mps_lib_FILE *stream, Count depth)
+{
+  CBSFast cbs = CouldBeA(CBSFast, inst);
+  Res res;
+
+  if (!TESTC(CBSFast, cbs))
+    return ResPARAM;
+
+  res = cbsDescribeComm(inst, stream, depth);
+  if (res != ResOK)
+    return res;
+
+  return SplayTreeDescribe(cbsSplay(cbs), stream, depth + 2,
+                           cbsFastSplayNodeDescribe);
+}
+
+
+static Res cbsZonedDescribe(Inst inst, mps_lib_FILE *stream, Count depth)
+{
+  CBSFast cbs = CouldBeA(CBSFast, inst);
+  Res res;
+
+  if (!TESTC(CBSZoned, cbs))
+    return ResPARAM;
+
+  res = cbsDescribeComm(inst, stream, depth);
+  if (res != ResOK)
+    return res;
+
+  return SplayTreeDescribe(cbsSplay(cbs), stream, depth + 2,
+                           cbsZonedSplayNodeDescribe);
+}
+
 
 void CBSClassInit(LandClass class)
 {
@@ -1186,6 +1220,7 @@ void CBSFastClassInit(LandClass class)
   class->typeId = ClassTypeIdCBSFast;
 
   class->init = cbsInitFast;
+  class->describe = cbsFastDescribe;
   AVERC(LandClass, class);
 }
 
@@ -1208,6 +1243,7 @@ void CBSZonedClassInit(LandClass class)
   class->typeId = ClassTypeIdCBSZoned;
   
   class->init = cbsInitZoned;
+  class->describe = cbsZonedDescribe;
   AVERC(LandClass, class);
 }
 

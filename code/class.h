@@ -151,14 +151,16 @@ typedef enum ClassTypeIdEnum {
 typedef const char *ClassName;
 typedef unsigned ClassTypeId;
 typedef Bool (*CheckMethod)(Inst inst);
+typedef Res (*DescribeMethod)(Inst inst, mps_lib_FILE *stream, Count depth);
 
 #define InstClassFIELDS(FIELD, X) \
   InstFIELDS(FIELD, X) \
-  FIELD(X, ClassName,   className, "human readable class name") \
-  FIELD(X, ClassTypeId, prime,     "unique prime for this class") \
-  FIELD(X, ClassTypeId, typeId,    "product of class prime and superclass typeId") \
+  FIELD(X, ClassName,      className, "human readable class name") \
+  FIELD(X, ClassTypeId,    prime,     "unique prime for this class") \
+  FIELD(X, ClassTypeId,    typeId,    "product of class prime and superclass typeId") \
   /* FIELD(X, InstClass,   super,     "superclass") */ \
-  FIELD(X, CheckMethod, check,     "check consistency of instance")
+  FIELD(X, CheckMethod,    check,     "check consistency of instance") \
+  FIELD(X, DescribeMethod, describe,  "print description of instance")
 
 
 /* ClassClass -- the class of all classes */
@@ -197,6 +199,7 @@ CLASSES(CLASS_CHECK, UNUSED)
 extern void InstClassInit(InstClass instClass);
 extern Res InstInit(Inst inst);
 extern void InstFinish(Inst inst);
+extern Res InstDescribe(Inst inst, mps_lib_FILE *stream, Count depth);
 #define ClassNameOfInst(inst) ((inst)->instClass->className)
 
 

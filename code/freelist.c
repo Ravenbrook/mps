@@ -748,33 +748,35 @@ static Bool freelistDescribeVisitor(Land land, Range range,
 }
 
 
-static Res freelistDescribe(Land land, mps_lib_FILE *stream, Count depth)
+static Res freelistDescribe(Inst inst, mps_lib_FILE *stream, Count depth)
 {
-  Freelist fl = CouldBeA(Freelist, land);
+  Freelist fl = CouldBeA(Freelist, inst);
   Res res;
   Bool b;
   FreelistDescribeClosureStruct closure;
 
-  if (!TESTC(Land, land))
-    return ResFAIL;
   if (!TESTC(Freelist, fl))
-    return ResFAIL;
+    return ResPARAM;
   if (stream == NULL)
-    return ResFAIL;
+    return ResPARAM;
 
-  res = WriteF(stream, depth,
-               "Freelist $P {\n", (WriteFP)fl,
-               "  listSize = $U\n", (WriteFU)fl->listSize,
-               "  size = $U\n", (WriteFU)fl->size,
+  res = LandTrivDescribe(inst, stream, depth);
+  if (res != ResOK)
+    return res;
+  
+  res = WriteF(stream, depth + 2,
+               "listSize $U\n", (WriteFU)fl->listSize,
+               "size     $U\n", (WriteFU)fl->size,
                NULL);
+  if (res != ResOK)
+    return res;
 
   closure.stream = stream;
   closure.depth = depth + 2;
-  b = LandIterate(land, freelistDescribeVisitor, &closure);
+  b = LandIterate(CouldBeA(Land, inst), freelistDescribeVisitor, &closure);
   if (!b)
     return ResFAIL;
 
-  res = WriteF(stream, depth, "} Freelist $P\n", (WriteFP)fl, NULL);
   return res;
 }
 

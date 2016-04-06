@@ -243,27 +243,24 @@ static Bool failoverFindInZones(Bool *foundReturn, Range rangeReturn, Range oldR
 }
 
 
-static Res failoverDescribe(Land land, mps_lib_FILE *stream, Count depth)
+static Res failoverDescribe(Inst inst, mps_lib_FILE *stream, Count depth)
 {
-  Failover fo = CouldBeA(Failover, land);
+  Failover fo = CouldBeA(Failover, inst);
   Res res;
 
-  if (!TESTC(Land, land))
-    return ResFAIL;
   if (!TESTC(Failover, fo))
-    return ResFAIL;
+    return ResPARAM;
   if (stream == NULL)
-    return ResFAIL;
-  
-  res = WriteF(stream, depth,
-               "Failover $P {\n", (WriteFP)fo,
-               "  primary = $P ($S)\n", (WriteFP)fo->primary,
-               (WriteFS)ClassNameOfInst(fo->primary),
-               "  secondary = $P ($S)\n", (WriteFP)fo->secondary,
-               (WriteFS)ClassNameOfInst(fo->secondary),
-               "}\n", NULL);
+    return ResPARAM;
 
-  return res;
+  res = LandTrivDescribe(inst, stream, depth);
+  if (res != ResOK)
+    return res;
+  
+  return WriteF(stream, depth + 2,
+                "primary   $P ($S)\n", (WriteFP)fo->primary,   (WriteFS)ClassNameOfInst(fo->primary),
+                "secondary $P ($S)\n", (WriteFP)fo->secondary, (WriteFS)ClassNameOfInst(fo->secondary),
+                NULL);
 }
 
 
