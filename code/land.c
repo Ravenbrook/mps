@@ -59,7 +59,6 @@ Bool LandCheck(Inst inst)
 {
   Land land = MustBeA(Land, inst);
   /* .enter-leave.simple */
-  CHECKDC(LandClass, land->instClass);
   CHECKU(Arena, land->arena);
   CHECKL(AlignCheck(land->alignment));
   CHECKL(BoolCheck(land->inLand));

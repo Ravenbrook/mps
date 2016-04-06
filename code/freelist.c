@@ -191,7 +191,7 @@ static Res freelistInit(Land land, Arena arena, Align alignment, ArgList args)
   Freelist fl;
   Res res;
 
-  AVERC(Land, land);
+  AVER(land != NULL); /* FIXME: express intention */
   res = LandTrivInit(land, arena, alignment, args); /* FIXME: should be LandInit or super->init? */
   if (res != ResOK)
     return res;

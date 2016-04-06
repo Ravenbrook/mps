@@ -45,13 +45,38 @@
 
 #define CouldBeA(_class, inst) ((_class)inst)
 
-#define AVERC(_class, val) ASSERT(_class ## Check(MustBeA(Inst, val)), "ClassCheck " #_class ": " #val)
-#define CHECKC AVERC
-#define CHECKDC AVERC
-#define AVERC_CRITICAL AVERC
 
-/* FIXME: Double check probably not necessary. */
-#define Method(_class, inst, meth) (MustBeSub(_class, MustBeA(_class, inst)->instClass)->meth)
+/* Checking macros.  These will move into check.h. */
+
+#define TESTC(class, val)           IsA(class, val)
+
+#define ASSERT_CLASSCHECK(class, val) \
+  ASSERT(class ## Check(CouldBeA(Inst, val)), "ClassCheck " #class ": " #val)
+
+#if defined(AVER_AND_CHECK_NONE)
+#define AVERC(class, val)           DISCARD(class ## Check(MustBeA(Inst, val)))
+#define CHECKC(class, val)          DISCARD(MustBeA(class, val))
+#else
+#define AVERC                       ASSERT_CLASSCHECK
+#define CHECKC(class, val) \
+  ASSERT(TESTC(class, val), "ClassCheck " #class ": " #val)
+#endif
+
+#if defined(AVER_AND_CHECK_ALL)
+#define AVERC_CRITICAL              ASSERT_CLASSCHECK
+#else
+#define AVERC_CRITICAL(class, val)  DISCARD(class ## Check(MustBeA(Inst, val)))
+#endif
+
+#define CHECKDC(class, val) \
+  CHECK_BY_LEVEL(NOOP, \
+                 CHECKC(class, val), \
+                 ASSERT_CLASSCHECK(class, val))
+
+
+/* Method -- dynamic dispatch method call */
+
+#define Method(_class, inst, meth) (MustBeSub(_class, (inst)->instClass)->meth)
 
 
 /* CLASSES -- the table of classes
