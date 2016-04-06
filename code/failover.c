@@ -14,9 +14,6 @@
 SRCID(failover, "$Id$");
 
 
-#define failoverOfLand(land) MustBeA(Failover, land)
-
-
 ARG_DEFINE_KEY(failover_primary, Pointer);
 ARG_DEFINE_KEY(failover_secondary, Pointer);
 
@@ -44,12 +41,14 @@ static Res failoverInit(Land land, Arena arena, Align alignment, ArgList args)
   if (res != ResOK)
     return res;
 
+  land->instClass = MustBeA(InstClass, FailoverClassGet());
+  fo = MustBeA(Failover, land);
+
   ArgRequire(&arg, args, FailoverPrimary);
   primary = arg.val.p;
   ArgRequire(&arg, args, FailoverSecondary);
   secondary = arg.val.p;
 
-  fo = failoverOfLand(land);
   fo->primary = primary;
   fo->secondary = secondary;
 
@@ -60,39 +59,23 @@ static Res failoverInit(Land land, Arena arena, Align alignment, ArgList args)
 
 static void failoverFinish(Land land)
 {
-  Failover fo;
-
-  AVERC(Land, land);
-  fo = failoverOfLand(land);
-  AVERC(Failover, fo);
-
   LandTrivFinish(land); /* FIXME: Should be LandFinish or super->finish */
-
-  /* FIXME: Shouldn't this be finishing the lands inside? */
 }
 
 
 static Size failoverSize(Land land)
 {
-  Failover fo;
-
-  AVERC(Land, land);
-  fo = failoverOfLand(land);
-  AVERC(Failover, fo);
-
+  Failover fo = MustBeA(Failover, land);
   return LandSize(fo->primary) + LandSize(fo->secondary);
 }
 
 
 static Res failoverInsert(Range rangeReturn, Land land, Range range)
 {
-  Failover fo;
+  Failover fo = MustBeA(Failover, land);
   Res res;
 
   AVER(rangeReturn != NULL);
-  AVERC(Land, land);
-  fo = failoverOfLand(land);
-  AVERC(Failover, fo);
   AVERT(Range, range);
 
   /* Provide more opportunities for coalescence. See
@@ -110,14 +93,11 @@ static Res failoverInsert(Range rangeReturn, Land land, Range range)
 
 static Res failoverDelete(Range rangeReturn, Land land, Range range)
 {
-  Failover fo;
+  Failover fo = MustBeA(Failover, land);
   Res res;
   RangeStruct oldRange, dummyRange, left, right;
 
   AVER(rangeReturn != NULL);
-  AVERC(Land, land);
-  fo = failoverOfLand(land);
-  AVERC(Failover, fo);
   AVERT(Range, range);
 
   /* Prefer efficient search in the primary. See
@@ -181,11 +161,8 @@ static Res failoverDelete(Range rangeReturn, Land land, Range range)
 
 static Bool failoverIterate(Land land, LandVisitor visitor, void *closure)
 {
-  Failover fo;
+  Failover fo = MustBeA(Failover, land);
 
-  AVERC(Land, land);
-  fo = failoverOfLand(land);
-  AVERC(Failover, fo);
   AVER(visitor != NULL);
 
   return LandIterate(fo->primary, visitor, closure)
@@ -195,13 +172,10 @@ static Bool failoverIterate(Land land, LandVisitor visitor, void *closure)
 
 static Bool failoverFindFirst(Range rangeReturn, Range oldRangeReturn, Land land, Size size, FindDelete findDelete)
 {
-  Failover fo;
+  Failover fo = MustBeA(Failover, land);
 
   AVER(rangeReturn != NULL);
   AVER(oldRangeReturn != NULL);
-  AVERC(Land, land);
-  fo = failoverOfLand(land);
-  AVERC(Failover, fo);
   AVERT(FindDelete, findDelete);
 
   /* See <design/failover/#impl.assume.flush>. */
@@ -214,13 +188,10 @@ static Bool failoverFindFirst(Range rangeReturn, Range oldRangeReturn, Land land
 
 static Bool failoverFindLast(Range rangeReturn, Range oldRangeReturn, Land land, Size size, FindDelete findDelete)
 {
-  Failover fo;
+  Failover fo = MustBeA(Failover, land);
 
   AVER(rangeReturn != NULL);
   AVER(oldRangeReturn != NULL);
-  AVERC(Land, land);
-  fo = failoverOfLand(land);
-  AVERC(Failover, fo);
   AVERT(FindDelete, findDelete);
 
   /* See <design/failover/#impl.assume.flush>. */
@@ -233,13 +204,10 @@ static Bool failoverFindLast(Range rangeReturn, Range oldRangeReturn, Land land,
 
 static Bool failoverFindLargest(Range rangeReturn, Range oldRangeReturn, Land land, Size size, FindDelete findDelete)
 {
-  Failover fo;
+  Failover fo = MustBeA(Failover, land);
 
   AVER(rangeReturn != NULL);
   AVER(oldRangeReturn != NULL);
-  AVERC(Land, land);
-  fo = failoverOfLand(land);
-  AVERC(Failover, fo);
   AVERT(FindDelete, findDelete);
 
   /* See <design/failover/#impl.assume.flush>. */
@@ -252,7 +220,7 @@ static Bool failoverFindLargest(Range rangeReturn, Range oldRangeReturn, Land la
 
 static Bool failoverFindInZones(Bool *foundReturn, Range rangeReturn, Range oldRangeReturn, Land land, Size size, ZoneSet zoneSet, Bool high)
 {
-  Failover fo;
+  Failover fo = MustBeA(Failover, land);
   Bool found = FALSE;
   Res res;
 
@@ -260,9 +228,6 @@ static Bool failoverFindInZones(Bool *foundReturn, Range rangeReturn, Range oldR
   AVER(foundReturn != NULL);
   AVER(rangeReturn != NULL);
   AVER(oldRangeReturn != NULL);
-  AVERC(Land, land);
-  fo = failoverOfLand(land);
-  AVERC(Failover, fo);
   /* AVERT(ZoneSet, zoneSet); */
   AVERT(Bool, high);
 
@@ -280,19 +245,15 @@ static Bool failoverFindInZones(Bool *foundReturn, Range rangeReturn, Range oldR
 
 static Res failoverDescribe(Land land, mps_lib_FILE *stream, Count depth)
 {
-  Failover fo;
+  Failover fo = CouldBeA(Failover, land);
   Res res;
 
-#if 0
-  if (!TESTT(Land, land))
+  if (!TESTC(Land, land))
     return ResFAIL;
-  fo = failoverOfLand(land);
-  if (!TESTT(Failover, fo))
+  if (!TESTC(Failover, fo))
     return ResFAIL;
   if (stream == NULL)
     return ResFAIL;
-#endif
-  fo = MustBeA(Failover, land); /* FIXME: Avoid assert */
   
   res = WriteF(stream, depth,
                "Failover $P {\n", (WriteFP)fo,

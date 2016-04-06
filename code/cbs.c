@@ -26,7 +26,6 @@ SRCID(cbs, "$Id$");
 #define CBSBlockSize(block) AddrOffset((block)->base, (block)->limit)
 
 
-#define cbsOfLand(land) MustBeA(CBS, land)
 #define cbsSplay(cbs) (&((cbs)->splayTreeStruct))
 #define cbsOfSplay(_splay) PARENT(CBSStruct, splayTreeStruct, _splay)
 #define cbsBlockTree(block) (&((block)->treeStruct))
@@ -249,11 +248,11 @@ static Res cbsInitComm(Land land, LandClass class,
     return res;
 
   land->instClass = MustBeA(InstClass, class); /* FIXME: How to avoid forgetting this step? */
+  cbs = MustBeA(CBS, land);
 
   if (ArgPick(&arg, args, CBSBlockPool))
     blockPool = arg.val.pool;
 
-  cbs = cbsOfLand(land);
   SplayTreeInit(cbsSplay(cbs), cbsCompare, cbsKey, update);
 
   if (blockPool != NULL) {
@@ -308,11 +307,7 @@ static Res cbsInitZoned(Land land, Arena arena, Align alignment, ArgList args)
 
 static void cbsFinish(Land land)
 {
-  CBS cbs;
-
-  AVERC(Land, land);
-  cbs = cbsOfLand(land);
-  AVERC(CBS, cbs);
+  CBS cbs = MustBeA(CBS, land);
 
   METER_EMIT(&cbs->treeSearch);
 
@@ -331,12 +326,7 @@ static void cbsFinish(Land land)
 
 static Size cbsSize(Land land)
 {
-  CBS cbs;
-
-  AVERC(Land, land);
-  cbs = cbsOfLand(land);
-  AVERC(CBS, cbs);
-
+  CBS cbs = MustBeA(CBS, land);
   return cbs->size;
 }
 
@@ -469,7 +459,7 @@ static void cbsBlockInsert(CBS cbs, CBSBlock block)
 
 static Res cbsInsert(Range rangeReturn, Land land, Range range)
 {
-  CBS cbs;
+  CBS cbs = MustBeA(CBS, land);
   Bool b;
   Res res;
   Addr base, limit, newBase, newLimit;
@@ -479,11 +469,9 @@ static Res cbsInsert(Range rangeReturn, Land land, Range range)
   Size oldSize;
 
   AVER(rangeReturn != NULL);
-  AVERC(Land, land);
   AVERT(Range, range);
   AVER(RangeIsAligned(range, LandAlignment(land)));
 
-  cbs = cbsOfLand(land);
   base = RangeBase(range);
   limit = RangeLimit(range);
 
@@ -574,15 +562,13 @@ fail:
 
 static Res cbsDelete(Range rangeReturn, Land land, Range range)
 {
-  CBS cbs;
+  CBS cbs = MustBeA(CBS, land);
   Res res;
   CBSBlock cbsBlock;
   Tree tree;
   Addr base, limit, oldBase, oldLimit;
   Size oldSize;
 
-  AVERC(Land, land);
-  cbs = cbsOfLand(land);
   AVER(rangeReturn != NULL);
   AVERT(Range, range);
   AVER(RangeIsAligned(range, LandAlignment(land)));
@@ -761,13 +747,10 @@ static Bool cbsIterateVisit(Tree tree, void *closure)
 
 static Bool cbsIterate(Land land, LandVisitor visitor, void *visitorClosure)
 {
-  CBS cbs;
+  CBS cbs = MustBeA(CBS, land);
   SplayTree splay;
   CBSIterateClosure iterateClosure;
 
-  AVERC(Land, land);
-  cbs = cbsOfLand(land);
-  AVERC(CBS, cbs);
   AVER(FUNCHECK(visitor));
 
   splay = cbsSplay(cbs);
@@ -799,7 +782,7 @@ static Bool cbsIterateAndDeleteVisit(Tree tree, void *closure)
 {
   CBSIterateAndDeleteClosure *my = closure;
   Land land = my->land;
-  CBS cbs = cbsOfLand(land);
+  CBS cbs = MustBeA(CBS, land);
   CBSBlock cbsBlock = cbsBlockOfTree(tree);
   Bool deleteNode = FALSE;
   RangeStruct range;
@@ -816,13 +799,10 @@ static Bool cbsIterateAndDeleteVisit(Tree tree, void *closure)
 static Bool cbsIterateAndDelete(Land land, LandDeleteVisitor visitor,
                                 void *visitorClosure)
 {
-  CBS cbs;
+  CBS cbs = MustBeA(CBS, land);
   SplayTree splay;
   CBSIterateAndDeleteClosure iterateClosure;
 
-  AVERC(Land, land);
-  cbs = cbsOfLand(land);
-  AVERC(CBS, cbs);
   AVER(FUNCHECK(visitor));
 
   splay = cbsSplay(cbs);
@@ -906,13 +886,9 @@ static void cbsFindDeleteRange(Range rangeReturn, Range oldRangeReturn,
 static Bool cbsFindFirst(Range rangeReturn, Range oldRangeReturn,
                          Land land, Size size, FindDelete findDelete)
 {
-  CBS cbs;
+  CBS cbs = MustBeA(CBSFast, land);
   Bool found;
   Tree tree;
-
-  AVERC(Land, land);
-  cbs = cbsOfLand(land);
-  AVERC(CBSFast, cbs);
 
   AVER(rangeReturn != NULL);
   AVER(oldRangeReturn != NULL);
@@ -986,13 +962,9 @@ static Bool cbsTestTreeInZones(SplayTree splay, Tree tree,
 static Bool cbsFindLast(Range rangeReturn, Range oldRangeReturn,
                         Land land, Size size, FindDelete findDelete)
 {
-  CBS cbs;
+  CBS cbs = MustBeA(CBSFast, land);
   Bool found;
   Tree tree;
-
-  AVERC(Land, land);
-  cbs = cbsOfLand(land);
-  AVERC(CBSFast, cbs);
 
   AVER(rangeReturn != NULL);
   AVER(oldRangeReturn != NULL);
@@ -1023,12 +995,8 @@ static Bool cbsFindLast(Range rangeReturn, Range oldRangeReturn,
 static Bool cbsFindLargest(Range rangeReturn, Range oldRangeReturn,
                            Land land, Size size, FindDelete findDelete)
 {
-  CBS cbs;
+  CBS cbs = MustBeA(CBSFast, land);
   Bool found = FALSE;
-
-  AVERC(Land, land);
-  cbs = cbsOfLand(land);
-  AVERC(CBSFast, cbs);
 
   AVER(rangeReturn != NULL);
   AVER(oldRangeReturn != NULL);
@@ -1064,7 +1032,7 @@ static Res cbsFindInZones(Bool *foundReturn, Range rangeReturn,
                           Range oldRangeReturn, Land land, Size size,
                           ZoneSet zoneSet, Bool high)
 {
-  CBS cbs;
+  CBS cbs = MustBeA(CBSZoned, land);
   CBSBlock block;
   Tree tree;
   cbsTestNodeInZonesClosureStruct closure;
@@ -1076,9 +1044,6 @@ static Res cbsFindInZones(Bool *foundReturn, Range rangeReturn,
   AVER(foundReturn != NULL);
   AVER(rangeReturn != NULL);
   AVER(oldRangeReturn != NULL);
-  AVERC(Land, land);
-  cbs = cbsOfLand(land);
-  AVERC(CBSZoned, cbs);
   /* AVERT(ZoneSet, zoneSet); */
   AVERT(Bool, high);
 
@@ -1140,22 +1105,17 @@ fail:
 
 static Res cbsDescribe(Land land, mps_lib_FILE *stream, Count depth)
 {
-  CBS cbs;
+  CBS cbs = CouldBeA(CBS, land);
   Res res;
   Res (*describe)(Tree, mps_lib_FILE *);
 
-#if 0
-  if (!TESTT(Land, land))
+  if (!TESTC(Land, land))
     return ResFAIL;
-  cbs = cbsOfLand(land);
-  if (!TESTT(CBS, cbs))
+  if (!TESTC(CBS, cbs))
     return ResFAIL;
   if (stream == NULL)
     return ResFAIL;
-#endif
 
-  cbs = MustBeA(CBS, land); /* FIXME: Avoid assertion here */
-  
   res = WriteF(stream, depth,
                "CBS $P {\n", (WriteFP)cbs,
                "  blockPool: $P\n", (WriteFP)cbsBlockPool(cbs),

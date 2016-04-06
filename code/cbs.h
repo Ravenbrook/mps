@@ -35,7 +35,7 @@ typedef struct CBSZonedBlockStruct {
   ZoneSet zones; /* union zone set of all ranges in sub-tree */
 } CBSZonedBlockStruct;
 
-typedef struct CBSStruct *CBS;
+typedef struct CBSStruct *CBS, *CBSFast, *CBSZoned;
 
 extern Bool CBSCheck(Inst inst);
 #define CBSLand(cbs) CouldBeA(Land, cbs)
