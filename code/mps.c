@@ -80,6 +80,7 @@
 #include "failover.c"
 #include "vm.c"
 #include "policy.c"
+#include "class.c"
 
 /* Additional pool classes */
 

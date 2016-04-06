@@ -91,7 +91,7 @@ static mps_res_t make(mps_addr_t *p, mps_ap_t ap, size_t size)
 
 static void set_oom(Land land, int oom)
 {
-  CBS cbs = PARENT(CBSStruct, landStruct, land);
+  CBS cbs = MustBeA(CBS, land);
   cbs->blockPool->class = oom ? OOMPoolClassGet() : PoolClassMFS();
 }
 
