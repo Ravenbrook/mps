@@ -522,7 +522,7 @@ static Res MVFFInit(Pool pool, ArgList args)
 
   MPS_ARGS_BEGIN(liArgs) {
     MPS_ARGS_ADD(liArgs, CBSBlockPool, MVFFBlockPool(mvff));
-    res = LandInit(MVFFTotalLand(mvff), CBSFastLandClassGet(), arena, align,
+    res = LandInit(MVFFTotalLand(mvff), CBSFastClassGet(), arena, align,
                    mvff, liArgs);
   } MPS_ARGS_END(liArgs);
   if (res != ResOK)
@@ -530,13 +530,13 @@ static Res MVFFInit(Pool pool, ArgList args)
 
   MPS_ARGS_BEGIN(liArgs) {
     MPS_ARGS_ADD(liArgs, CBSBlockPool, MVFFBlockPool(mvff));
-    res = LandInit(MVFFFreePrimary(mvff), CBSFastLandClassGet(), arena, align,
+    res = LandInit(MVFFFreePrimary(mvff), CBSFastClassGet(), arena, align,
                    mvff, liArgs);
   } MPS_ARGS_END(liArgs);
   if (res != ResOK)
     goto failFreePrimaryInit;
 
-  res = LandInit(MVFFFreeSecondary(mvff), FreelistLandClassGet(), arena, align,
+  res = LandInit(MVFFFreeSecondary(mvff), FreelistClassGet(), arena, align,
                  mvff, mps_args_none);
   if (res != ResOK)
     goto failFreeSecondaryInit;
@@ -544,7 +544,7 @@ static Res MVFFInit(Pool pool, ArgList args)
   MPS_ARGS_BEGIN(foArgs) {
     MPS_ARGS_ADD(foArgs, FailoverPrimary, MVFFFreePrimary(mvff));
     MPS_ARGS_ADD(foArgs, FailoverSecondary, MVFFFreeSecondary(mvff));
-    res = LandInit(MVFFFreeLand(mvff), FailoverLandClassGet(), arena, align,
+    res = LandInit(MVFFFreeLand(mvff), FailoverClassGet(), arena, align,
                    mvff, foArgs);
   } MPS_ARGS_END(foArgs);
   if (res != ResOK)
@@ -577,7 +577,7 @@ static Bool mvffFinishVisitor(Bool *deleteReturn, Land land, Range range,
   Pool pool;
 
   AVER(deleteReturn != NULL);
-  AVERT(Land, land);
+  AVERC(Land, land);
   AVERT(Range, range);
   AVER(closure != NULL);
   pool = closure;
@@ -774,10 +774,10 @@ static Bool MVFFCheck(MVFF mvff)
   CHECKL(mvff->spare >= 0.0);                   /* see .arg.check */
   CHECKL(mvff->spare <= 1.0);                   /* see .arg.check */
   CHECKD(MFS, &mvff->cbsBlockPoolStruct);
-  CHECKD(CBS, &mvff->totalCBSStruct);
-  CHECKD(CBS, &mvff->freeCBSStruct);
-  CHECKD(Freelist, &mvff->flStruct);
-  CHECKD(Failover, &mvff->foStruct);
+  CHECKDC(CBS, &mvff->totalCBSStruct);
+  CHECKDC(CBS, &mvff->freeCBSStruct);
+  CHECKDC(Freelist, &mvff->flStruct);
+  CHECKDC(Failover, &mvff->foStruct);
   CHECKL(LandSize(MVFFTotalLand(mvff)) >= LandSize(MVFFFreeLand(mvff)));
   CHECKL(SizeIsAligned(LandSize(MVFFFreeLand(mvff)), PoolAlignment(MVFFPool(mvff))));
   CHECKL(SizeIsArenaGrains(LandSize(MVFFTotalLand(mvff)), PoolArena(MVFFPool(mvff))));

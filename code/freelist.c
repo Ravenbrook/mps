@@ -13,7 +13,7 @@
 SRCID(freelist, "$Id$");
 
 
-#define freelistOfLand(land) PARENT(FreelistStruct, landStruct, land)
+#define freelistOfLand(land) MustBeA(Freelist, land)
 #define freelistAlignment(fl) LandAlignment(FreelistLand(fl))
 
 
@@ -82,7 +82,7 @@ typedef union FreelistBlockUnion {
 
 static Addr freelistBlockLimit(Freelist fl, FreelistBlock block)
 {
-  AVERT(Freelist, fl);
+  AVERC(Freelist, fl);
   if (freelistBlockIsSmall(block)) {
     return AddrAdd(freelistBlockBase(block), freelistAlignment(fl));
   } else {
@@ -130,7 +130,7 @@ static void freelistBlockSetLimit(Freelist fl, FreelistBlock block, Addr limit)
 {
   Size size;
 
-  AVERT(Freelist, fl);
+  AVERC(Freelist, fl);
   AVERT(FreelistBlock, block);
   AVER(AddrIsAligned(limit, freelistAlignment(fl)));
   AVER(freelistBlockBase(block) < limit);
@@ -154,7 +154,7 @@ static FreelistBlock freelistBlockInit(Freelist fl, Addr base, Addr limit)
 {
   FreelistBlock block;
 
-  AVERT(Freelist, fl);
+  AVERC(Freelist, fl);
   AVER(base != NULL);
   AVER(AddrIsAligned(base, freelistAlignment(fl)));
   AVER(base < limit);
@@ -168,12 +168,11 @@ static FreelistBlock freelistBlockInit(Freelist fl, Addr base, Addr limit)
 }
 
 
-Bool FreelistCheck(Freelist fl)
+Bool FreelistCheck(Inst inst)
 {
-  Land land;
-  CHECKS(Freelist, fl);
-  land = FreelistLand(fl);
-  CHECKD(Land, land);
+  Freelist fl = MustBeA(Freelist, inst);
+  Land land = MustBeA(Land, fl);
+  CHECKC(Land, land);
   CHECKL(AlignCheck(FreelistMinimumAlignment));
   CHECKL(sizeof(struct FreelistBlockSmall) < sizeof(struct FreelistBlockLarge));
   CHECKL(sizeof(struct FreelistBlockSmall) <= freelistAlignment(fl));
@@ -190,12 +189,10 @@ Bool FreelistCheck(Freelist fl)
 static Res freelistInit(Land land, ArgList args)
 {
   Freelist fl;
-  LandClass super;
   Res res;
 
-  AVERT(Land, land);
-  super = LAND_SUPERCLASS(FreelistLandClass);
-  res = (*super->init)(land, args);
+  AVERC(Land, land);
+  res = LandTrivInit(land, args); /* FIXME: should be LandInit or super->init? */
   if (res != ResOK)
     return res;
 
@@ -207,8 +204,7 @@ static Res freelistInit(Land land, ArgList args)
   fl->listSize = 0;
   fl->size = 0;
 
-  fl->sig = FreelistSig;
-  AVERT(Freelist, fl);
+  AVERC(Freelist, fl);
   return ResOK;
 }
 
@@ -217,10 +213,10 @@ static void freelistFinish(Land land)
 {
   Freelist fl;
 
-  AVERT(Land, land);
+  AVERC(Land, land);
   fl = freelistOfLand(land);
-  AVERT(Freelist, fl);
-  fl->sig = SigInvalid;
+  AVERC(Freelist, fl);
+  InstFinish(MustBeA(Inst, fl)); /* FIXME: Should be LandFinish or super->finish */
   fl->list = freelistEND;
 }
 
@@ -229,9 +225,9 @@ static Size freelistSize(Land land)
 {
   Freelist fl;
 
-  AVERT(Land, land);
+  AVERC(Land, land);
   fl = freelistOfLand(land);
-  AVERT(Freelist, fl);
+  AVERC(Freelist, fl);
   return fl->size;
 }
 
@@ -256,7 +252,7 @@ static Size freelistSize(Land land)
 static void freelistBlockSetPrevNext(Freelist fl, FreelistBlock prev,
                                      FreelistBlock next, int delta)
 {
-  AVERT(Freelist, fl);
+  AVERC(Freelist, fl);
 
   if (prev == freelistEND) {
     fl->list = next;
@@ -283,9 +279,9 @@ static Res freelistInsert(Range rangeReturn, Land land, Range range)
   Bool coalesceLeft, coalesceRight;
 
   AVER(rangeReturn != NULL);
-  AVERT(Land, land);
+  AVERC(Land, land);
   fl = freelistOfLand(land);
-  AVERT(Freelist, fl);
+  AVERC(Freelist, fl);
   AVERT(Range, range);
   AVER(RangeIsAligned(range, freelistAlignment(fl)));
 
@@ -360,7 +356,7 @@ static void freelistDeleteFromBlock(Range rangeReturn, Freelist fl,
   Addr base, limit, blockBase, blockLimit;
 
   AVER(rangeReturn != NULL);
-  AVERT(Freelist, fl);
+  AVERC(Freelist, fl);
   AVERT(Range, range);
   AVER(RangeIsAligned(range, freelistAlignment(fl)));
   AVER(prev == freelistEND || freelistBlockNext(prev) == block);
@@ -409,9 +405,9 @@ static Res freelistDelete(Range rangeReturn, Land land, Range range)
   Addr base, limit;
 
   AVER(rangeReturn != NULL);
-  AVERT(Land, land);
+  AVERC(Land, land);
   fl = freelistOfLand(land);
-  AVERT(Freelist, fl);
+  AVERC(Freelist, fl);
   AVERT(Range, range);
 
   base = RangeBase(range);
@@ -449,9 +445,9 @@ static Bool freelistIterate(Land land, LandVisitor visitor,
   Freelist fl;
   FreelistBlock cur, next;
 
-  AVERT(Land, land);
+  AVERC(Land, land);
   fl = freelistOfLand(land);
-  AVERT(Freelist, fl);
+  AVERC(Freelist, fl);
   AVER(FUNCHECK(visitor));
   /* closure arbitrary */
 
@@ -476,9 +472,9 @@ static Bool freelistIterateAndDelete(Land land, LandDeleteVisitor visitor,
   Freelist fl;
   FreelistBlock prev, cur, next;
 
-  AVERT(Land, land);
+  AVERC(Land, land);
   fl = freelistOfLand(land);
-  AVERT(Freelist, fl);
+  AVERC(Freelist, fl);
   AVER(FUNCHECK(visitor));
   /* closure arbitrary */
 
@@ -529,7 +525,7 @@ static void freelistFindDeleteFromBlock(Range rangeReturn, Range oldRangeReturn,
 
   AVER(rangeReturn != NULL);
   AVER(oldRangeReturn != NULL);
-  AVERT(Freelist, fl);
+  AVERC(Freelist, fl);
   AVER(SizeIsAligned(size, freelistAlignment(fl)));
   AVERT(FindDelete, findDelete);
   AVER(prev == freelistEND || freelistBlockNext(prev) == block);
@@ -578,9 +574,9 @@ static Bool freelistFindFirst(Range rangeReturn, Range oldRangeReturn,
 
   AVER(rangeReturn != NULL);
   AVER(oldRangeReturn != NULL);
-  AVERT(Land, land);
+  AVERC(Land, land);
   fl = freelistOfLand(land);
-  AVERT(Freelist, fl);
+  AVERC(Freelist, fl);
   AVER(SizeIsAligned(size, freelistAlignment(fl)));
   AVERT(FindDelete, findDelete);
 
@@ -611,9 +607,9 @@ static Bool freelistFindLast(Range rangeReturn, Range oldRangeReturn,
 
   AVER(rangeReturn != NULL);
   AVER(oldRangeReturn != NULL);
-  AVERT(Land, land);
+  AVERC(Land, land);
   fl = freelistOfLand(land);
-  AVERT(Freelist, fl);
+  AVERC(Freelist, fl);
   AVER(SizeIsAligned(size, freelistAlignment(fl)));
   AVERT(FindDelete, findDelete);
 
@@ -648,9 +644,9 @@ static Bool freelistFindLargest(Range rangeReturn, Range oldRangeReturn,
 
   AVER(rangeReturn != NULL);
   AVER(oldRangeReturn != NULL);
-  AVERT(Land, land);
+  AVERC(Land, land);
   fl = freelistOfLand(land);
-  AVERT(Freelist, fl);
+  AVERC(Freelist, fl);
   AVERT(FindDelete, findDelete);
 
   prev = freelistEND;
@@ -690,9 +686,9 @@ static Res freelistFindInZones(Bool *foundReturn, Range rangeReturn,
   AVER(FALSE); /* TODO: this code is completely untested! */
   AVER(rangeReturn != NULL);
   AVER(oldRangeReturn != NULL);
-  AVERT(Land, land);
+  AVERC(Land, land);
   fl = freelistOfLand(land);
-  AVERT(Freelist, fl);
+  AVERC(Freelist, fl);
   /* AVERT(ZoneSet, zoneSet); */
   AVERT(Bool, high);
 
@@ -760,13 +756,17 @@ static Bool freelistDescribeVisitor(Land land, Range range,
   Res res;
   FreelistDescribeClosure my = closure;
 
+#if 0
   if (!TESTT(Land, land))
     return FALSE;
   if (!RangeCheck(range))
     return FALSE;
   if (my->stream == NULL)
     return FALSE;
+#endif
 
+  UNUSED(land);
+  
   res = WriteF(my->stream, my->depth,
                "[$P,", (WriteFP)RangeBase(range),
                "$P)", (WriteFP)RangeLimit(range),
@@ -784,6 +784,7 @@ static Res freelistDescribe(Land land, mps_lib_FILE *stream, Count depth)
   Bool b;
   FreelistDescribeClosureStruct closure;
 
+#if 0
   if (!TESTT(Land, land))
     return ResFAIL;
   fl = freelistOfLand(land);
@@ -791,7 +792,10 @@ static Res freelistDescribe(Land land, mps_lib_FILE *stream, Count depth)
     return ResFAIL;
   if (stream == NULL)
     return ResFAIL;
+#endif
 
+  fl = MustBeA(Freelist, land); /* FIXME: Avoid assert */
+  
   res = WriteF(stream, depth,
                "Freelist $P {\n", (WriteFP)fl,
                "  listSize = $U\n", (WriteFU)fl->listSize,
@@ -809,10 +813,10 @@ static Res freelistDescribe(Land land, mps_lib_FILE *stream, Count depth)
 }
 
 
-DEFINE_LAND_CLASS(FreelistLandClass, class)
+void FreelistClassInit(LandClass class)
 {
-  INHERIT_CLASS(class, LandClass);
-  class->name = "FREELIST";
+  LandClassInit((LandClass)class);
+  class->className = "Freelist";
   class->size = sizeof(FreelistStruct);
   class->init = freelistInit;
   class->finish = freelistFinish;
@@ -826,7 +830,18 @@ DEFINE_LAND_CLASS(FreelistLandClass, class)
   class->findLargest = freelistFindLargest;
   class->findInZones = freelistFindInZones;
   class->describe = freelistDescribe;
-  AVERT(LandClass, class);
+  AVERC(LandClass, class);
+}
+
+LandClass FreelistClassGet(void)
+{
+  static LandClassStruct classStruct;
+  static LandClass class = NULL;
+  if (class == NULL) {
+    FreelistClassInit(&classStruct);
+    class = &classStruct;
+  }
+  return class;
 }
 
 

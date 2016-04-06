@@ -23,34 +23,68 @@
  *  <http://www.stroustrup.com/fast_dynamic_casting.pdf>.
  */
 
-#define IsA(ty, inst) ((inst)->klass->typeId % ClassTypeId ## ty == 0)
+#define IsSub(class, subclass) ((subclass)->typeId % ClassTypeId ## class == 0)
+#define IsA(class, inst) IsSub(class, (inst)->instClass)
 
 
 /* MustBeA -- subtype or die */
 
-#define MustBeA(_class, inst) \
+#define XMUSTBEA(_class, inst, condstring) \
   ((inst) != NULL && \
-   (inst)->klass != NULL && \
+   (inst)->instClass != NULL && \
    IsA(_class, inst) ? \
    (_class)(inst) : \
-   (_class)mps_lib_assert_fail(MPS_FILE, __LINE__, "MustBeA " #_class ": " #inst))
+   (_class)mps_lib_assert_fail(MPS_FILE, __LINE__, condstring))
+
+#define MustBeA(_class, inst) XMUSTBEA(_class, inst, "MustBeA " #_class ": " #inst)
+
+#define MustBeSub(class, subclass) \
+  (IsSub(class, subclass) ? \
+   (class ## Class)subclass : \
+   (class ## Class)mps_lib_assert_fail(MPS_FILE, __LINE__, "MustBeSub " #class ": " #subclass))
+
+#define CouldBeA(_class, inst) ((_class)inst)
+
+#define AVERC(_class, val) ASSERT(_class ## Check(MustBeA(Inst, val)), "ClassCheck " #_class ": " #val)
+#define CHECKC AVERC
+#define CHECKDC AVERC
+#define AVERC_CRITICAL AVERC
+
+/* FIXME: Double check probably not necessary. */
+#define Method(_class, inst, meth) (MustBeSub(_class, MustBeA(_class, inst)->instClass)->meth)
 
 
-/* CLASSES -- the table of classes */
+/* CLASSES -- the table of classes
+ *
+ * FIXME: Static check of primality, etc.
+ */
 
 #define CLASSES(CLASS, X) \
-  /*       ident   prime  super  doc */ \
-  CLASS(X, Inst,       3,  NONE, "base type of instances") \
-  CLASS(X, Class,      5,  Inst, "base class of all classes") \
-  CLASS(X, ClassClass, 7,  NONE, "class of all classes")
+  /*       ident     prime   super      doc */ \
+  CLASS(X, Inst,         3,  NoSuper,   "base type of instances") \
+  CLASS(X, InstClass,    5,  Inst,      "class of all instances") \
+  CLASS(X, ClassClass,   7,  NoSuper,   "class of all classes") \
+  CLASS(X, Land,        11,  Inst,      "set of address ranges") \
+  CLASS(X, LandClass,   13,  InstClass, "class of lands") \
+  CLASS(X, CBS,         17,  Land,      "coalescing block structure") \
+  CLASS(X, CBSFast,     19,  CBS,       "CBS with size property") \
+  CLASS(X, CBSZoned,    23,  CBSFast,   "CBSFast with zone seg property") \
+  CLASS(X, Freelist,    27,  Land,      "freelist land") \
+  CLASS(X, Failover,    29,  Land,      "failover land")
 
 
 /* Declare types for all classes. */
 
+#if 0
 #define CLASS_TYPE(UNUSED, ident, prime, super, doc) \
   typedef struct ident ## Struct *ident;
 
 CLASSES(CLASS_TYPE, UNUSED)
+#endif
+
+typedef struct InstStruct *Inst;
+typedef struct InstClassStruct *InstClass;
+typedef struct ClassClassStruct *ClassClass;
 
 
 /* ClassPrimeEnum -- unique prime for each class
@@ -62,8 +96,7 @@ CLASSES(CLASS_TYPE, UNUSED)
 
 typedef enum ClassPrimeEnum {
   CLASSES(CLASS_PRIME_ENUM, ClassPrime)
-  ClassPrimeNONE = 1,
-  ClassPrimeILLEGAL = 2
+  ClassPrimeInvalid = 2
 } ClassPrimeEnum;
 
 
@@ -73,18 +106,19 @@ typedef enum ClassPrimeEnum {
  */
 
 #define CLASS_TYPEID_ENUM(prefix, ident, prime, super, doc) \
-  prefix ## ident = prime * ClassPrime ## super,
+  prefix ## ident = prime * ClassTypeId ## super,
 
 typedef enum ClassTypeIdEnum {
+  ClassTypeIdNoSuper = 1,
   CLASSES(CLASS_TYPEID_ENUM, ClassTypeId)
-  ClassTypeIdNONE = 1
+  ClassTypeIdInvalid = 2
 } ClassTypeIdEnum;
 
 
 /* Inst -- the base type of all instances */
 
 #define InstFIELDS(FIELD, X) \
-  FIELD(X, Class, klass, "class of this instance")
+  FIELD(X, InstClass, instClass, "class of this instance")
 
 
 /* Class -- the base class of all classes */
@@ -93,18 +127,19 @@ typedef const char *ClassName;
 typedef unsigned ClassTypeId;
 typedef Bool (*CheckMethod)(Inst inst);
 
-#define ClassFIELDS(FIELD, X) \
+#define InstClassFIELDS(FIELD, X) \
   InstFIELDS(FIELD, X) \
   FIELD(X, ClassName,   className, "human readable class name") \
   FIELD(X, ClassTypeId, prime,     "unique prime for this class") \
   FIELD(X, ClassTypeId, typeId,    "product of class prime and superclass typeId") \
+  /* FIELD(X, InstClass,   super,     "superclass") */ \
   FIELD(X, CheckMethod, check,     "check consistency of instance")
 
 
 /* ClassClass -- the class of all classes */
 
 #define ClassClassFIELDS(FIELD, X) \
-  ClassFIELDS(FIELD, X)
+  InstClassFIELDS(FIELD, X)
 
 
 /* Declare structure types for all classes. */
@@ -116,7 +151,14 @@ typedef Bool (*CheckMethod)(Inst inst);
     ident ## FIELDS(CLASS_STRUCT_FIELD, UNUSED) \
   } ident ## Struct;
 
+#define CLASS_DEFSTRUCT(ident) CLASS_STRUCT(UNUSED, ident, UNUSED, UNUSED, UNUSED)
+
+#if 0
 CLASSES(CLASS_STRUCT, UNUSED)
+#endif
+CLASS_DEFSTRUCT(Inst)
+CLASS_DEFSTRUCT(InstClass)
+CLASS_DEFSTRUCT(ClassClass)
 
 
 /* Declare check methods for all classes. */
@@ -127,8 +169,10 @@ CLASSES(CLASS_STRUCT, UNUSED)
 CLASSES(CLASS_CHECK, UNUSED)
 
 
-extern ClassInit(Class klass);
+extern void InstClassInit(InstClass instClass);
 extern Res InstInit(Inst inst);
+extern void InstFinish(Inst inst);
+#define ClassNameOfInst(inst) ((inst)->instClass->className)
 
 
 #endif /* class_h */

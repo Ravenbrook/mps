@@ -1,7 +1,7 @@
 /* failover.h: FAILOVER ALLOCATOR INTERFACE
  *
  * $Id$
- * Copyright (c) 2014 Ravenbrook Limited.  See end of file for license.
+ * Copyright (c) 2014-2016 Ravenbrook Limited.  See end of file for license.
  *
  * .source: <design/failover/>.
  */
@@ -10,14 +10,16 @@
 #define failover_h
 
 #include "mpmtypes.h"
+#include "class.h"
 
 typedef struct FailoverStruct *Failover;
 
-#define FailoverLand(fo) (&(fo)->landStruct)
+#define FailoverLand(fo) MustBeA(Land, fo)
 
-extern Bool FailoverCheck(Failover failover);
+extern Bool FailoverCheck(Inst inst);
 
-extern LandClass FailoverLandClassGet(void);
+extern void FailoverClassInit(LandClass class);
+extern LandClass FailoverClassGet(void);
 
 extern const struct mps_key_s _mps_key_failover_primary;
 #define FailoverPrimary (&_mps_key_failover_primary)
@@ -31,7 +33,7 @@ extern const struct mps_key_s _mps_key_failover_secondary;
 
 /* C. COPYRIGHT AND LICENSE
  *
- * Copyright (C) 2014 Ravenbrook Limited <http://www.ravenbrook.com/>.
+ * Copyright (C) 2014-2016 Ravenbrook Limited <http://www.ravenbrook.com/>.
  * All rights reserved.  This is an open source license.  Contact
  * Ravenbrook for commercial licensing options.
  * 

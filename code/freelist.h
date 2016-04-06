@@ -10,17 +10,19 @@
 #define freelist_h
 
 #include "mpmtypes.h"
+#include "class.h"
 
 typedef struct FreelistStruct *Freelist;
 
-#define FreelistLand(fl) (&(fl)->landStruct)
+#define FreelistLand(fl) MustBeA(Land, fl)
 
-extern Bool FreelistCheck(Freelist freelist);
+extern Bool FreelistCheck(Inst inst);
 
 /* See <design/freelist/#impl.grain.align> */
 #define FreelistMinimumAlignment ((Align)sizeof(FreelistBlock))
 
-extern LandClass FreelistLandClassGet(void);
+extern void FreelistClassInit(LandClass class);
+extern LandClass FreelistClassGet(void);
 
 #endif /* freelist.h */
 

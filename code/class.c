@@ -10,31 +10,49 @@
 #include "mpm.h" /* for FUNCHECK */
 
 
-/* ClassCheck -- check whether object is a valid class */
+static InstClassStruct classInstClassStruct;
+static InstClass classInstClass = NULL;
 
-Bool ClassCheck(Inst inst)
+static struct ClassClassStruct classClassClassStruct;
+static ClassClass classClassClass = NULL;
+
+
+#define InstClassInvalid &InstClassInvalidStruct
+
+static InstClassStruct InstClassInvalidStruct = {
+  InstClassInvalid,
+  "invalid class",
+  ClassPrimeInvalid,
+  ClassTypeIdInvalid,
+  NULL
+};
+
+
+/* InstClassCheck -- check whether object is a instance class */
+
+Bool InstClassCheck(Inst inst)
 {
-  Class klass = MustBeA(Class, inst);
-  CHECKL(klass->className != NULL);
+  InstClass instClass = MustBeA(InstClass, inst);
+  CHECKL(instClass->className != NULL);
   /* CHECKL(IsPrime(klass->prime)); */
-  CHECKL(klass->typeId % klass->prime == 0);
-  CHECKL(FUNCHECK(klass->check));
+  CHECKL(instClass->typeId % instClass->prime == 0);
+  CHECKL(FUNCHECK(instClass->check));
   return TRUE;
 }
 
 
 /* ClassClassInit -- initialise a class of classes */
 
-static Res ClassClassInit(ClassClass klass)
+static void ClassClassInit(ClassClass classClass)
 {
-  AVER(klass != NULL);
-  klass->klass = MustBeA(Class, klass); /* special little knot */
-  klass->className = "Class";
-  klass->prime = ClassPrimeClass;
-  klass->typeId = ClassTypeIdClass;
-  klass->check = ClassCheck;
-  AVERT(Class, MustBeA(Inst, klass));
-  return ResOK;
+  AVER(classClass != NULL);
+  classClass->instClass = CouldBeA(InstClass, classClass); /* special little knot */
+  classClass->className = "Class";
+  classClass->prime = ClassPrimeInstClass;
+  classClass->typeId = ClassTypeIdInstClass;
+  /* classClass->super = &classInstClassStruct; */
+  classClass->check = InstClassCheck;
+  AVERC(InstClass, classClass);
 }
 
 
@@ -45,28 +63,25 @@ Bool InstCheck(Inst inst)
 }
 
 
-/* ClassInit -- initialise the base class of objects */
+/* InstClassInit -- initialise the class of instances */
 
-Res ClassInit(Class klass)
+void InstClassInit(InstClass instClass)
 {
-  static struct ClassClassStruct classClassStruct;
-  static ClassClass classClass = NULL;
+  AVER(instClass != NULL);
 
-  AVER(klass != NULL);
-
-  if (classClass == NULL) {
-    ClassClassInit(&classClassStruct);
-    classClass = &classClassStruct;
+  if (classClassClass == NULL) {
+    ClassClassInit(&classClassClassStruct);
+    classClassClass = &classClassClassStruct;
   }
 
-  klass->klass = MustBeA(Class, classClass);
-  klass->className = "Inst";
-  klass->prime = ClassPrimeInst;
-  klass->typeId = ClassTypeIdInst;
-  klass->check = InstCheck;
+  instClass->instClass = MustBeA(InstClass, classClassClass);
+  instClass->className = "Inst";
+  instClass->prime = ClassPrimeInst;
+  instClass->typeId = ClassTypeIdInst;
+  /* instClass->super = NULL; */
+  instClass->check = InstCheck;
 
-  AVERT(Class, MustBeA(Inst, klass));
-  return ResOK;
+  AVERC(InstClass, instClass);
 }
 
 
@@ -74,21 +89,22 @@ Res ClassInit(Class klass)
 
 Res InstInit(Inst inst)
 {
-  static ClassStruct classStruct;
-  static Class klass = NULL;
-
-  if (klass == NULL) {
-    Res res = ClassInit(&classStruct);
-    if (res != ResOK)
-      return res;
-    klass = &classStruct;
+  if (classInstClass == NULL) {
+    InstClassInit(&classInstClassStruct);
+    classInstClass = &classInstClassStruct;
   }
 
   AVER(inst != NULL);
-  inst->klass = klass;
+  inst->instClass = classInstClass;
 
-  AVERT(Inst, inst);
+  AVERC(Inst, inst);
   return ResOK;
+}
+
+void InstFinish(Inst inst)
+{
+  AVERC(Inst, inst);
+  inst->instClass = InstClassInvalid;
 }
 
 

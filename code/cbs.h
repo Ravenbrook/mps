@@ -14,6 +14,7 @@
 #include "mpmst.h"
 #include "range.h"
 #include "splay.h"
+#include "class.h"
 
 typedef struct CBSBlockStruct *CBSBlock;
 typedef struct CBSBlockStruct {
@@ -36,12 +37,14 @@ typedef struct CBSZonedBlockStruct {
 
 typedef struct CBSStruct *CBS;
 
-extern Bool CBSCheck(CBS cbs);
-#define CBSLand(cbs) (&(cbs)->landStruct)
+extern Bool CBSCheck(Inst inst);
+#define CBSLand(cbs) CouldBeA(Land, cbs)
 
-extern LandClass CBSLandClassGet(void);
-extern LandClass CBSFastLandClassGet(void);
-extern LandClass CBSZonedLandClassGet(void);
+extern LandClass CBSFastClassGet(void);
+extern LandClass CBSZonedClassGet(void);
+extern void CBSClassInit(LandClass class);
+extern void CBSFastClassInit(LandClass class);
+extern void CBSZonedClassInit(LandClass class);
 
 extern const struct mps_key_s _mps_key_cbs_block_pool;
 #define CBSBlockPool (&_mps_key_cbs_block_pool)

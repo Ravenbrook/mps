@@ -279,12 +279,12 @@ static Res MVTInit(Pool pool, ArgList args)
   if (abqDepth < 3)
     abqDepth = 3;
 
-  res = LandInit(MVTFreePrimary(mvt), CBSFastLandClassGet(), arena, align, mvt,
+  res = LandInit(MVTFreePrimary(mvt), CBSFastClassGet(), arena, align, mvt,
                  mps_args_none);
   if (res != ResOK)
     goto failFreePrimaryInit;
  
-  res = LandInit(MVTFreeSecondary(mvt), FreelistLandClassGet(), arena, align,
+  res = LandInit(MVTFreeSecondary(mvt), FreelistClassGet(), arena, align,
                  mvt, mps_args_none);
   if (res != ResOK)
     goto failFreeSecondaryInit;
@@ -292,7 +292,7 @@ static Res MVTInit(Pool pool, ArgList args)
   MPS_ARGS_BEGIN(foArgs) {
     MPS_ARGS_ADD(foArgs, FailoverPrimary, MVTFreePrimary(mvt));
     MPS_ARGS_ADD(foArgs, FailoverSecondary, MVTFreeSecondary(mvt));
-    res = LandInit(MVTFreeLand(mvt), FailoverLandClassGet(), arena, align, mvt,
+    res = LandInit(MVTFreeLand(mvt), FailoverClassGet(), arena, align, mvt,
                    foArgs);
   } MPS_ARGS_END(foArgs);
   if (res != ResOK)
@@ -384,10 +384,10 @@ static Bool MVTCheck(MVT mvt)
   CHECKS(MVT, mvt);
   CHECKD(Pool, MVTPool(mvt));
   CHECKL(MVTPool(mvt)->class == MVTPoolClassGet());
-  CHECKD(CBS, &mvt->cbsStruct);
+  CHECKDC(CBS, &mvt->cbsStruct);
   CHECKD(ABQ, &mvt->abqStruct);
-  CHECKD(Freelist, &mvt->flStruct);
-  CHECKD(Failover, &mvt->foStruct);
+  CHECKDC(Freelist, &mvt->flStruct);
+  CHECKDC(Failover, &mvt->foStruct);
   CHECKL(mvt->reuseSize >= 2 * mvt->fillSize);
   CHECKL(mvt->fillSize >= mvt->maxSize);
   CHECKL(mvt->maxSize >= mvt->meanSize);
@@ -1205,7 +1205,7 @@ static Bool MVTRefillVisitor(Land land, Range range,
 {
   MVT mvt;
 
-  AVERT(Land, land);
+  AVERC(Land, land);
   mvt = closure;
   AVERT(MVT, mvt);
 
@@ -1256,7 +1256,7 @@ static Bool MVTContingencyVisitor(Land land, Range range,
   Addr base, limit;
   MVTContigencyClosure cl;
 
-  AVERT(Land, land);
+  AVERC(Land, land);
   AVERT(Range, range);
   AVER(closure != NULL);
   cl = closure;

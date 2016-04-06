@@ -1004,11 +1004,13 @@ extern Res RootsIterate(Globals arena, RootIterateFn f, void *p);
 
 /* Land Interface -- see <design/land/> */
 
-extern Bool LandCheck(Land land);
+/* extern Bool LandCheck(Land land); */
 #define LandArena(land) ((land)->arena)
 #define LandAlignment(land) ((land)->alignment)
 extern Size LandSize(Land land);
+extern void LandClassInit(LandClass class);
 extern Res LandInit(Land land, LandClass class, Arena arena, Align alignment, void *owner, ArgList args);
+extern Res LandTrivInit(Land land, ArgList args);
 extern Res LandCreate(Land *landReturn, Arena arena, LandClass class, Align alignment, void *owner, ArgList args);
 extern void LandDestroy(Land land);
 extern void LandFinish(Land land);
@@ -1024,13 +1026,7 @@ extern Res LandDescribe(Land land, mps_lib_FILE *stream, Count depth);
 extern Bool LandFlush(Land dest, Land src);
 
 extern Size LandSlowSize(Land land);
-extern Bool LandClassCheck(LandClass class);
-extern LandClass LandClassGet(void);
-#define LAND_SUPERCLASS(className) ((LandClass)SUPERCLASS(className))
-#define DEFINE_LAND_CLASS(className, var) \
-  DEFINE_ALIAS_CLASS(className, LandClass, var)
-#define IsLandSubclass(land, className) \
-  IsSubclassPoly((land)->class, className ## Get())
+extern Bool LandClassCheck(Inst inst);
 
 
 /* STATISTIC -- gather statistics (in some varieties)

@@ -29,6 +29,7 @@
 #include "locus.h"
 #include "splay.h"
 #include "meter.h"
+#include "class.h"
 
 
 /* PoolClassStruct -- pool class structure
@@ -591,24 +592,24 @@ typedef struct GlobalsStruct {
 
 #define LandClassSig    ((Sig)0x5197A4DC) /* SIGnature LAND Class */
 
-typedef struct LandClassStruct {
-  ProtocolClassStruct protocol;
-  const char *name;             /* class name string */
-  size_t size;                  /* size of outer structure */
-  LandSizeMethod sizeMethod;    /* total size of ranges in land */
-  LandInitMethod init;          /* initialize the land */
-  LandFinishMethod finish;      /* finish the land */
-  LandInsertMethod insert;      /* insert a range into the land */
-  LandDeleteMethod delete;      /* delete a range from the land */
-  LandIterateMethod iterate;    /* iterate over ranges in the land */
-  LandIterateAndDeleteMethod iterateAndDelete; /* iterate and maybe delete */
-  LandFindMethod findFirst;     /* find first range of given size */
-  LandFindMethod findLast;      /* find last range of given size */
-  LandFindMethod findLargest;   /* find largest range */
-  LandFindInZonesMethod findInZones; /* find first range of given size in zone set */
-  LandDescribeMethod describe;  /* describe the land */
-  Sig sig;                      /* .class.end-sig */
-} LandClassStruct;
+#define LandClassFIELDS(FIELD, X) \
+  InstClassFIELDS(FIELD, X) \
+  FIELD(X, size_t,  size, "size of outer structure") \
+  FIELD(X, LandSizeMethod, sizeMethod, "total size of ranges in land") \
+  FIELD(X, LandInitMethod, init, "initialize the land") \
+  FIELD(X, LandFinishMethod, finish, "finish the land") \
+  FIELD(X, LandInsertMethod, insert, "insert a range into the land") \
+  FIELD(X, LandDeleteMethod, delete, "delete a range from the land") \
+  FIELD(X, LandIterateMethod, iterate, "iterate over ranges in the land") \
+  FIELD(X, LandIterateAndDeleteMethod, iterateAndDelete, "iterate and maybe delete") \
+  FIELD(X, LandFindMethod, findFirst, "find first range of given size") \
+  FIELD(X, LandFindMethod, findLast, "find last range of given size") \
+  FIELD(X, LandFindMethod, findLargest, "find largest range") \
+  FIELD(X, LandFindInZonesMethod, findInZones, "find first range of given size in zone set") \
+  FIELD(X, LandDescribeMethod, describe, "describe the land") \
+  FIELD(X, Sig, sig, ".class.end-sig")
+
+CLASS_DEFSTRUCT(LandClass)
 
 
 /* LandStruct -- generic land structure
@@ -618,13 +619,13 @@ typedef struct LandClassStruct {
 
 #define LandSig ((Sig)0x5197A4D9) /* SIGnature LAND */
 
-typedef struct LandStruct {
-  Sig sig;                      /* <design/sig/> */
-  LandClass class;              /* land class structure */
-  Arena arena;                  /* owning arena */
-  Align alignment;              /* alignment of addresses */
-  Bool inLand;                  /* prevent reentrance */
-} LandStruct;
+#define LandFIELDS(FIELD, X) \
+  InstFIELDS(FIELD, X) \
+  FIELD(X, Arena, arena, "owning arena") \
+  FIELD(X, Align, alignment, "alignment of addresses") \
+  FIELD(X, Bool, inLand, "prevent reentrance")
+
+CLASS_DEFSTRUCT(Land)
 
 
 /* CBSStruct -- coalescing block structure
@@ -635,20 +636,17 @@ typedef struct LandStruct {
  * See <code/cbs.c>.
  */
 
-#define CBSSig ((Sig)0x519CB599) /* SIGnature CBS */
+#define CBSFIELDS(FIELD, X) \
+  LandFIELDS(FIELD, X) \
+  FIELD(X, SplayTreeStruct, splayTreeStruct, "splay tree of nodes") \
+  FIELD(X, Count, treeSize, "splay tree size") /* FIXME: This was a STATISTIC_DECL */ \
+  FIELD(X, Pool, blockPool, "pool that manages blocks") \
+  FIELD(X, Size, blockStructSize, "size of block structure") \
+  FIELD(X, Bool, ownPool, "did we create blockPool?") \
+  FIELD(X, Size, size, "total size of ranges in CBS") \
+  FIELD(X, MeterStruct, treeSearch, "meters for sizes of search") /* FIXME: This was a METER_DECL */
 
-typedef struct CBSStruct {
-  LandStruct landStruct;        /* superclass fields come first */
-  SplayTreeStruct splayTreeStruct;
-  STATISTIC_DECL(Count treeSize);
-  Pool blockPool;               /* pool that manages blocks */
-  Size blockStructSize;         /* size of block structure */
-  Bool ownPool;                 /* did we create blockPool? */
-  Size size;                    /* total size of ranges in CBS */
-  /* meters for sizes of search structures at each op */
-  METER_DECL(treeSearch);
-  Sig sig;                      /* .class.end-sig */
-} CBSStruct;
+CLASS_DEFSTRUCT(CBS)
 
 
 /* FailoverStruct -- fail over from one land to another
@@ -659,14 +657,12 @@ typedef struct CBSStruct {
  * See <code/failover.c>.
  */
 
-#define FailoverSig ((Sig)0x519FA170) /* SIGnature FAILOver */
+#define FailoverFIELDS(FIELD, X) \
+  LandFIELDS(FIELD, X) \
+  FIELD(X, Land, primary, "use this land normally") \
+  FIELD(X, Land, secondary, "but use this one if primary fails")
 
-typedef struct FailoverStruct {
-  LandStruct landStruct;        /* superclass fields come first */
-  Land primary;                 /* use this land normally */
-  Land secondary;               /* but use this one if primary fails */
-  Sig sig;                      /* .class.end-sig */
-} FailoverStruct;
+CLASS_DEFSTRUCT(Failover)
 
 
 /* FreelistStruct -- address-ordered freelist
@@ -677,17 +673,15 @@ typedef struct FailoverStruct {
  * See <code/freelist.c>.
  */
 
-#define FreelistSig ((Sig)0x519F6331) /* SIGnature FREEL */
-
 typedef union FreelistBlockUnion *FreelistBlock;
 
-typedef struct FreelistStruct {
-  LandStruct landStruct;        /* superclass fields come first */
-  FreelistBlock list;           /* first block in list or NULL if empty */
-  Count listSize;               /* number of blocks in list */
-  Size size;                    /* total size of ranges in list */
-  Sig sig;                      /* .class.end-sig */
-} FreelistStruct;
+#define FreelistFIELDS(FIELD, X) \
+  LandFIELDS(FIELD, X) \
+  FIELD(X, FreelistBlock, list, "first block in list or NULL if empty") \
+  FIELD(X, Count, listSize, "number of blocks in list") \
+  FIELD(X, Size, size, "total size of ranges in list")
+
+CLASS_DEFSTRUCT(Freelist)
 
 
 /* SortStruct -- extra memory required by sorting
