@@ -783,8 +783,8 @@ static Res freelistDescribe(Inst inst, mps_lib_FILE *stream, Count depth)
 
 void FreelistClassInit(LandClass class)
 {
-  LandClassInit((LandClass)class);
-  class->className = "Freelist";
+  CLASS_INHERIT(class, Freelist, Land, Land);
+  
   class->size = sizeof(FreelistStruct);
   class->init = freelistInit;
   class->finish = freelistFinish;

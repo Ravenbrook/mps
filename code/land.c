@@ -563,11 +563,7 @@ static Res landNoFindInZones(Bool *foundReturn, Range rangeReturn, Range oldRang
 
 void LandClassInit(LandClass class)
 {
-  /* FIXME: Macroize this paragraph. */
-  InstClassInit((InstClass)class);
-  class->className = "Land";
-  class->prime = ClassPrimeLand;
-  class->typeId = ClassTypeIdLand;
+  CLASS_INHERIT(class, Land, Inst, Inst);
   
   class->size = sizeof(LandStruct);
   class->init = LandTrivInit;

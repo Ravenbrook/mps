@@ -1180,10 +1180,7 @@ static Res cbsZonedDescribe(Inst inst, mps_lib_FILE *stream, Count depth)
 
 void CBSClassInit(LandClass class)
 {
-  LandClassInit(class);
-  class->className = "CBS";
-  class->prime = ClassPrimeCBS;
-  class->typeId = ClassTypeIdCBS;
+  CLASS_INHERIT(class, CBS, Land, Land);
   
   class->size = sizeof(CBSStruct);
   class->init = cbsInit;
@@ -1214,10 +1211,7 @@ LandClass CBSClassGet(void)
 
 void CBSFastClassInit(LandClass class)
 {
-  CBSClassInit(class);
-  class->className = "CBSFast";
-  class->prime = ClassPrimeCBSFast;
-  class->typeId = ClassTypeIdCBSFast;
+  CLASS_INHERIT(class, CBSFast, CBS, Land);
 
   class->init = cbsInitFast;
   class->describe = cbsFastDescribe;
@@ -1237,10 +1231,7 @@ LandClass CBSFastClassGet(void)
 
 void CBSZonedClassInit(LandClass class)
 {
-  CBSFastClassInit(class);
-  class->className = "CBSZoned";
-  class->prime = ClassPrimeCBSZoned;
-  class->typeId = ClassTypeIdCBSZoned;
+  CLASS_INHERIT(class, CBSZoned, CBS, Land);
   
   class->init = cbsInitZoned;
   class->describe = cbsZonedDescribe;

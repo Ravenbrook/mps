@@ -266,8 +266,8 @@ static Res failoverDescribe(Inst inst, mps_lib_FILE *stream, Count depth)
 
 void FailoverClassInit(LandClass class)
 {
-  LandClassInit(class);
-  class->className = "Failover";
+  CLASS_INHERIT(class, Failover, Land, Land);
+  
   class->size = sizeof(FailoverStruct);
   class->init = failoverInit;
   class->finish = failoverFinish;

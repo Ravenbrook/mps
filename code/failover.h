@@ -14,7 +14,7 @@
 
 typedef struct FailoverStruct *Failover;
 
-#define FailoverLand(fo) MustBeA(Land, fo)
+#define FailoverLand(fo) CouldBeA(Land, fo)
 
 extern Bool FailoverCheck(Inst inst);
 

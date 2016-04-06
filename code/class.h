@@ -79,6 +79,15 @@
 #define Method(_class, inst, meth) (MustBeSub(_class, (inst)->instClass)->meth)
 
 
+#define CLASS_INHERIT(var, _class, super, kind) \
+  BEGIN \
+    super ## ClassInit(MustBeSub(kind, var)); \
+    (var)->className = #_class; \
+    (var)->prime = ClassPrime ## _class; \
+    (var)->typeId = ClassTypeId ## _class; \
+  END
+
+
 /* CLASSES -- the table of classes
  *
  * FIXME: Static check of primality, etc.
