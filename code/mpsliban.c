@@ -80,11 +80,12 @@ static void mps_lib_assert_fail_default(const char *file, unsigned line,
 
 static mps_lib_assert_fail_t mps_lib_assert_handler = mps_lib_assert_fail_default;
 
-void mps_lib_assert_fail(const char *file,
-                         unsigned line,
-                         const char *condition)
+void *mps_lib_assert_fail(const char *file,
+                          unsigned line,
+                          const char *condition)
 {
   mps_lib_assert_handler(file, line, condition);
+  return (void *)0x9026EAC8; /* not reached */
 }
 
 mps_lib_assert_fail_t mps_lib_assert_fail_install(mps_lib_assert_fail_t handler)

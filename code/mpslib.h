@@ -43,7 +43,7 @@ extern int mps_lib_fputs(const char *, mps_lib_FILE *);
    the condition, and preferably allow for debugging, though in a production
    environment it can return and the MPS will attempt to continue, though
    this may cause failure of the process soon after. */
-extern void mps_lib_assert_fail(const char *, unsigned, const char *);
+extern void *mps_lib_assert_fail(const char *, unsigned, const char *);
 
 /* The default ANSI plinth in mpsliban.c allows the assertion handler to be
    replaced by passing a replacement to `mps_lib_assert_fail_install`,

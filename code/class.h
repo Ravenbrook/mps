@@ -7,13 +7,42 @@
 #ifndef class_h
 #define class_h
 
+#include "mpmtypes.h"
+#include "check.h"
+#include "mpslib.h"
+
+
+/* IsA -- subtype predicate
+ *
+ * An instance is a subtype of another type if its typeId is
+ * divisible by the other type's typeId, because each type has
+ * a unique prime.
+ *
+ * "Fast Dynamic Casting"; Michael Gibbs, Bjarne
+ *  Stroustrup; 2004;
+ *  <http://www.stroustrup.com/fast_dynamic_casting.pdf>.
+ */
+
+#define IsA(ty, inst) ((inst)->klass->typeId % ClassTypeId ## ty == 0)
+
+
+/* MustBeA -- subtype or die */
+
+#define MustBeA(_class, inst) \
+  ((inst) != NULL && \
+   (inst)->klass != NULL && \
+   IsA(_class, inst) ? \
+   (_class)(inst) : \
+   (_class)mps_lib_assert_fail(MPS_FILE, __LINE__, "MustBeA " #_class ": " #inst))
+
 
 /* CLASSES -- the table of classes */
 
 #define CLASSES(CLASS, X) \
   /*       ident   prime  super  doc */ \
   CLASS(X, Inst,       3,  NONE, "base type of instances") \
-  CLASS(X, Class,      5,  Inst, "base class of all classes")
+  CLASS(X, Class,      5,  Inst, "base class of all classes") \
+  CLASS(X, ClassClass, 7,  NONE, "class of all classes")
 
 
 /* Declare types for all classes. */
@@ -67,20 +96,39 @@ typedef Bool (*CheckMethod)(Inst inst);
 #define ClassFIELDS(FIELD, X) \
   InstFIELDS(FIELD, X) \
   FIELD(X, ClassName,   className, "human readable class name") \
+  FIELD(X, ClassTypeId, prime,     "unique prime for this class") \
   FIELD(X, ClassTypeId, typeId,    "product of class prime and superclass typeId") \
   FIELD(X, CheckMethod, check,     "check consistency of instance")
+
+
+/* ClassClass -- the class of all classes */
+
+#define ClassClassFIELDS(FIELD, X) \
+  ClassFIELDS(FIELD, X)
 
 
 /* Declare structure types for all classes. */
 
 #define CLASS_STRUCT_FIELD(UNUSED, type, ident, doc) type ident;
 
-#define CLASS_STRUCT(UNUSED, ident, prime, super, doc)   \
+#define CLASS_STRUCT(UNUSED, ident, prime, super, doc) \
   typedef struct ident ## Struct { \
     ident ## FIELDS(CLASS_STRUCT_FIELD, UNUSED) \
   } ident ## Struct;
 
 CLASSES(CLASS_STRUCT, UNUSED)
+
+
+/* Declare check methods for all classes. */
+
+#define CLASS_CHECK(UNUSED, ident, prime, super, doc) \
+  extern Res ident ## Check(Inst inst);
+
+CLASSES(CLASS_CHECK, UNUSED)
+
+
+extern ClassInit(Class klass);
+extern Res InstInit(Inst inst);
 
 
 #endif /* class_h */

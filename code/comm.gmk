@@ -171,6 +171,7 @@ MPMCOMMON = \
     boot.c \
     bt.c \
     buffer.c \
+    class.c \
     cbs.c \
     dbgpool.c \
     dbgpooli.c \
