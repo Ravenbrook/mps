@@ -361,7 +361,7 @@ Res LandFindInZones(Bool *foundReturn, Range rangeReturn, Range oldRangeReturn, 
  * See <design/land/#function.describe>
  */
 
-Res LandTrivDescribe(Inst inst, mps_lib_FILE *stream, Count depth)
+Res LandAbsDescribe(Inst inst, mps_lib_FILE *stream, Count depth)
 {
   Land land = CouldBeA(Land, inst);
   Res res;
@@ -452,7 +452,7 @@ Bool LandClassCheck(Inst inst)
 }
 
 
-Res LandTrivInit(Land land, Arena arena, Align alignment, ArgList args)
+Res LandAbsInit(Land land, Arena arena, Align alignment, ArgList args)
 {
   AVER(land != NULL); /* FIXME: express intention */
   AVERT(ArgList, args);
@@ -469,7 +469,7 @@ Res LandTrivInit(Land land, Arena arena, Align alignment, ArgList args)
   return ResOK;
 }
 
-void LandTrivFinish(Land land)
+void LandAbsFinish(Land land)
 {
   AVERC(Land, land);
   InstFinish(MustBeA(Inst, land));
@@ -566,9 +566,9 @@ void LandClassInit(LandClass class)
   CLASS_INHERIT(class, Land, Inst, Inst);
   
   class->size = sizeof(LandStruct);
-  class->init = LandTrivInit;
+  class->init = LandAbsInit;
   class->sizeMethod = landNoSize;
-  class->finish = LandTrivFinish;
+  class->finish = LandAbsFinish;
   class->insert = landNoInsert;
   class->delete = landNoDelete;
   class->iterate = landNoIterate;
@@ -577,7 +577,7 @@ void LandClassInit(LandClass class)
   class->findLast = landNoFind;
   class->findLargest = landNoFind;
   class->findInZones = landNoFindInZones;
-  class->describe = LandTrivDescribe;
+  class->describe = LandAbsDescribe;
   class->sig = LandClassSig;
   AVERC(LandClass, class);
 }

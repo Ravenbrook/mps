@@ -37,7 +37,7 @@ static Res failoverInit(Land land, Arena arena, Align alignment, ArgList args)
   Res res;
 
   AVER(land != NULL); /* FIXME: express intention */
-  res = LandTrivInit(land, arena, alignment, args); /* FIXME: should be LandInit or super->init? */
+  res = LandAbsInit(land, arena, alignment, args); /* FIXME: should be LandInit or super->init? */
   if (res != ResOK)
     return res;
 
@@ -59,7 +59,7 @@ static Res failoverInit(Land land, Arena arena, Align alignment, ArgList args)
 
 static void failoverFinish(Land land)
 {
-  LandTrivFinish(land); /* FIXME: Should be LandFinish or super->finish */
+  LandAbsFinish(land); /* FIXME: Should be LandFinish or super->finish */
 }
 
 
@@ -253,7 +253,7 @@ static Res failoverDescribe(Inst inst, mps_lib_FILE *stream, Count depth)
   if (stream == NULL)
     return ResPARAM;
 
-  res = LandTrivDescribe(inst, stream, depth);
+  res = LandAbsDescribe(inst, stream, depth);
   if (res != ResOK)
     return res;
   

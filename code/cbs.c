@@ -243,7 +243,7 @@ static Res cbsInitComm(Land land, LandClass class,
 
   AVER(land != NULL); /* FIXME: express intention */
 
-  res = LandTrivInit(land, arena, alignment, args); /* FIXME: should be LandInit or super->init? */
+  res = LandAbsInit(land, arena, alignment, args); /* FIXME: should be LandInit or super->init? */
   if (res != ResOK)
     return res;
 
@@ -311,7 +311,7 @@ static void cbsFinish(Land land)
 
   METER_EMIT(&cbs->treeSearch);
 
-  LandTrivFinish(land); /* FIXME: should be LandFinish? */
+  LandAbsFinish(land); /* FIXME: should be LandFinish? */
 
   SplayTreeFinish(cbsSplay(cbs));
   if (cbs->ownPool)
@@ -1111,7 +1111,7 @@ static Res cbsDescribeComm(Inst inst, mps_lib_FILE *stream, Count depth)
   if (!TESTC(CBS, cbs))
     return ResPARAM;
 
-  res = LandTrivDescribe(inst, stream, depth);
+  res = LandAbsDescribe(inst, stream, depth);
   if (res != ResOK)
     return res;
 
