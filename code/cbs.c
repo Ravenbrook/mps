@@ -305,13 +305,13 @@ static Res cbsInitZoned(Land land, Arena arena, Align alignment, ArgList args)
  * See <design/land/#function.finish>.
  */
 
-static void cbsFinish(Land land)
+static void cbsFinish(Inst inst)
 {
-  CBS cbs = MustBeA(CBS, land);
+  CBS cbs = MustBeA(CBS, inst);
 
   METER_EMIT(&cbs->treeSearch);
 
-  LandAbsFinish(land); /* FIXME: should be LandFinish? */
+  LandAbsFinish(inst); /* FIXME: should be LandFinish? */
 
   SplayTreeFinish(cbsSplay(cbs));
   if (cbs->ownPool)

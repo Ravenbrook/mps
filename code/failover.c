@@ -57,9 +57,9 @@ static Res failoverInit(Land land, Arena arena, Align alignment, ArgList args)
 }
 
 
-static void failoverFinish(Land land)
+static void failoverFinish(Inst inst)
 {
-  LandAbsFinish(land); /* FIXME: Should be LandFinish or super->finish */
+  LandAbsFinish(inst); /* FIXME: Should be LandFinish or super->finish */
 }
 
 

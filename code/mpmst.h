@@ -592,12 +592,9 @@ typedef struct GlobalsStruct {
 
 #define LandClassSig    ((Sig)0x5197A4DC) /* SIGnature LAND Class */
 
-#define LandClassFIELDS(FIELD, X) \
-  InstClassFIELDS(FIELD, X) \
-  FIELD(X, size_t,  size, "size of outer structure") \
+#define LandClassMETHODS(FIELD, X) \
   FIELD(X, LandSizeMethod, sizeMethod, "total size of ranges in land") \
   FIELD(X, LandInitMethod, init, "initialize the land") \
-  FIELD(X, LandFinishMethod, finish, "finish the land") \
   FIELD(X, LandInsertMethod, insert, "insert a range into the land") \
   FIELD(X, LandDeleteMethod, delete, "delete a range from the land") \
   FIELD(X, LandIterateMethod, iterate, "iterate over ranges in the land") \
@@ -605,7 +602,12 @@ typedef struct GlobalsStruct {
   FIELD(X, LandFindMethod, findFirst, "find first range of given size") \
   FIELD(X, LandFindMethod, findLast, "find last range of given size") \
   FIELD(X, LandFindMethod, findLargest, "find largest range") \
-  FIELD(X, LandFindInZonesMethod, findInZones, "find first range of given size in zone set") \
+  FIELD(X, LandFindInZonesMethod, findInZones, "find first range of given size in zone set")
+
+#define LandClassFIELDS(FIELD, X) \
+  InstClassFIELDS(FIELD, X) \
+  FIELD(X, size_t,  size, "size of outer structure") \
+  LandClassMETHODS(FIELD, X) \
   FIELD(X, Sig, sig, ".class.end-sig")
 
 CLASS_DEFSTRUCT(LandClass)

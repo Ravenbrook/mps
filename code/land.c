@@ -156,8 +156,7 @@ void LandFinish(Land land)
 {
   AVERC(Land, land);
   landEnter(land);
-
-  Method(Land, land, finish)(land);
+  Method(Inst, land, finish)(MustBeA(Inst, land));
 }
 
 
@@ -438,15 +437,7 @@ Bool LandClassCheck(Inst inst)
   LandClass class = MustBeSub(Land, MustBeA(InstClass, inst));
   InstClassCheck(inst);
   CHECKL(class->size >= sizeof(LandStruct));
-  CHECKL(FUNCHECK(class->init));
-  CHECKL(FUNCHECK(class->finish));
-  CHECKL(FUNCHECK(class->insert));
-  CHECKL(FUNCHECK(class->delete));
-  CHECKL(FUNCHECK(class->findFirst));
-  CHECKL(FUNCHECK(class->findLast));
-  CHECKL(FUNCHECK(class->findLargest));
-  CHECKL(FUNCHECK(class->findInZones));
-  CHECKL(FUNCHECK(class->describe));
+  LandClassMETHODS(CHECKM, class);
   CHECKS(LandClass, class);
   return TRUE;
 }
@@ -469,10 +460,10 @@ Res LandAbsInit(Land land, Arena arena, Align alignment, ArgList args)
   return ResOK;
 }
 
-void LandAbsFinish(Land land)
+void LandAbsFinish(Inst inst)
 {
-  AVERC(Land, land);
-  InstFinish(MustBeA(Inst, land));
+  AVERC(Land, inst);
+  InstFinish(inst);
 }
 
 static Size landNoSize(Land land)

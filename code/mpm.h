@@ -1012,7 +1012,7 @@ extern void LandClassInit(LandClass class);
 extern LandClass LandClassGet(void);
 extern Res LandInit(Land land, LandClass class, Arena arena, Align alignment, void *owner, ArgList args);
 extern Res LandAbsInit(Land land, Arena arena, Align alignment, ArgList args);
-extern void LandAbsFinish(Land land);
+extern void LandAbsFinish(Inst inst);
 extern Res LandAbsDescribe(Inst inst, mps_lib_FILE *stream, Count depth);
 extern Res LandCreate(Land *landReturn, Arena arena, LandClass class, Align alignment, void *owner, ArgList args);
 extern void LandDestroy(Land land);

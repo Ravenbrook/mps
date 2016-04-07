@@ -210,11 +210,11 @@ static Res freelistInit(Land land, Arena arena, Align alignment, ArgList args)
 }
 
 
-static void freelistFinish(Land land)
+static void freelistFinish(Inst inst)
 {
-  Freelist fl = MustBeA(Freelist, land);
+  Freelist fl = MustBeA(Freelist, inst);
 
-  LandAbsFinish(land); /* FIXME: Should be LandFinish or super->finish */
+  LandAbsFinish(inst); /* FIXME: Should be LandFinish or super->finish */
   
   fl->list = freelistEND;
 }

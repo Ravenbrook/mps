@@ -73,6 +73,10 @@
                  CHECKC(class, val), \
                  ASSERT_CLASSCHECK(class, val))
 
+#define CHECKM(var, type, ident, doc) \
+  CHECK_BY_LEVEL(NOOP, \
+                 ASSERT((var)->ident != NULL, "Missing method: " #ident), \
+                 ASSERT((var)->ident != NULL, "Missing method: " #ident));
 
 /* Method -- dynamic dispatch method call */
 
@@ -85,18 +89,22 @@
     (var)->className = #_class; \
     (var)->prime = ClassPrime ## _class; \
     (var)->typeId = ClassTypeId ## _class; \
+    (var)->check = _class ## Check; \
   END
 
 
 /* CLASSES -- the table of classes
  *
  * FIXME: Static check of primality, etc.
+ *
+ * .invalid.prime: Do not use the prime number 2, as it is reserved
+ * for the invalid class.
  */
 
 #define CLASSES(CLASS, X) \
   /*       ident     prime   super      doc */ \
   CLASS(X, Inst,         3,  NoSuper,   "base type of instances") \
-  CLASS(X, InstClass,    5,  NoSuper,   "class of all instances") \
+  CLASS(X, InstClass,    5,  Inst,      "class of all instances")    \
   CLASS(X, ClassClass,   7,  InstClass, "class of all classes") \
   CLASS(X, Land,        11,  Inst,      "set of address ranges") \
   CLASS(X, LandClass,   13,  InstClass, "class of lands") \
@@ -144,7 +152,7 @@ typedef enum ClassIndexEnum {
 
 typedef enum ClassPrimeEnum {
   CLASSES(CLASS_PRIME_ENUM, ClassPrime)
-  ClassPrimeInvalid = 2
+  ClassPrimeInvalid = 2 /* .invalid.prime */
 } ClassPrimeEnum;
 
 
@@ -159,7 +167,7 @@ typedef enum ClassPrimeEnum {
 typedef enum ClassTypeIdEnum {
   ClassTypeIdNoSuper = 1,
   CLASSES(CLASS_TYPEID_ENUM, ClassTypeId)
-  ClassTypeIdInvalid = 2
+  ClassTypeIdInvalid = 2 /* .invalid.prime */
 } ClassTypeIdEnum;
 
 
@@ -175,15 +183,20 @@ typedef const char *ClassName;
 typedef unsigned ClassTypeId;
 typedef Bool (*CheckMethod)(Inst inst);
 typedef Res (*DescribeMethod)(Inst inst, mps_lib_FILE *stream, Count depth);
+typedef void (*FinishMethod)(Inst inst);
 
+#define InstClassMETHODS(FIELD, X) \
+  FIELD(X, CheckMethod,    check,     "check consistency of instance") \
+  FIELD(X, DescribeMethod, describe,  "print description of instance") \
+  FIELD(X, FinishMethod,   finish,    "finish the instance")
+  
 #define InstClassFIELDS(FIELD, X) \
   InstFIELDS(FIELD, X) \
   FIELD(X, ClassName,      className, "human readable class name") \
   FIELD(X, ClassTypeId,    prime,     "unique prime for this class") \
   FIELD(X, ClassTypeId,    typeId,    "product of class prime and superclass typeId") \
   /* FIELD(X, InstClass,   super,     "superclass") */ \
-  FIELD(X, CheckMethod,    check,     "check consistency of instance") \
-  FIELD(X, DescribeMethod, describe,  "print description of instance")
+  InstClassMETHODS(FIELD, X)
 
 
 /* ClassClass -- the class of all classes */
@@ -223,6 +236,7 @@ extern void InstClassInit(InstClass instClass);
 extern Res InstInit(Inst inst);
 extern void InstFinish(Inst inst);
 extern Res InstDescribe(Inst inst, mps_lib_FILE *stream, Count depth);
+extern Res ClassDescribe(Inst inst, mps_lib_FILE *stream, Count depth);
 #define ClassNameOfInst(inst) ((inst)->instClass->className)
 
 

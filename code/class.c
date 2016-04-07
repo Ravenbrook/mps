@@ -17,15 +17,35 @@ static struct ClassClassStruct classClassClassStruct;
 static ClassClass classClassClass = NULL;
 
 
+/* InstClassInvalid -- the invalid class
+ *
+ * When an instance is finished its class pointer is changed to this
+ * class, to guard against it being used again by mistake.
+ */
+
 #define InstClassInvalid &InstClassInvalidStruct
+
+static Bool InstNoCheck(Inst inst)
+{
+  UNUSED(inst);
+  NOTREACHED;
+  return FALSE;
+}
+
+static void InstNoFinish(Inst inst)
+{
+  UNUSED(inst);
+  NOTREACHED;
+}
 
 static InstClassStruct InstClassInvalidStruct = {
   InstClassInvalid,
   "invalid class",
   ClassPrimeInvalid,
   ClassTypeIdInvalid,
-  /* check */ NULL,
-  /* describe */ NULL
+  InstNoCheck,
+  InstDescribe, /* it's still possible to describe one */
+  InstNoFinish
 };
 
 
@@ -37,8 +57,32 @@ Bool InstClassCheck(Inst inst)
   CHECKL(instClass->className != NULL);
   /* CHECKL(IsPrime(klass->prime)); */
   CHECKL(instClass->typeId % instClass->prime == 0);
-  CHECKL(FUNCHECK(instClass->check));
+  InstClassMETHODS(CHECKM, instClass);
   return TRUE;
+}
+
+
+/* ClassDescribe -- describe a class */
+
+Res ClassDescribe(Inst inst, mps_lib_FILE *stream, Count depth)
+{
+  InstClass class = CouldBeA(InstClass, inst);
+  Res res;
+
+  if (!TESTC(InstClass, class))
+    return ResPARAM;
+  if (stream == NULL)
+    return ResPARAM;
+  
+  res = InstDescribe(inst, stream, depth);
+  if (res != ResOK)
+    return res;
+
+  return WriteF(stream, depth + 2,
+                "name   \"$S\"\n", (WriteFS)class->className,
+                "prime  $U\n",     (WriteFU)class->prime,
+                "typeId $U\n",     (WriteFU)class->typeId,
+                NULL);
 }
 
 
@@ -53,6 +97,8 @@ static void ClassClassInit(ClassClass classClass)
   classClass->typeId = ClassTypeIdInstClass;
   /* classClass->super = &classInstClassStruct; */
   classClass->check = InstClassCheck;
+  classClass->describe = ClassDescribe;
+  classClass->finish = InstNoFinish;
   AVERC(InstClass, classClass);
 }
 
@@ -95,6 +141,7 @@ void InstClassInit(InstClass instClass)
   /* instClass->super = NULL; */
   instClass->check = InstCheck;
   instClass->describe = InstDescribe;
+  instClass->finish = InstFinish;
 
   AVERC(InstClass, instClass);
 }
