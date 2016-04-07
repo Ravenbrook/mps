@@ -6,6 +6,7 @@ Memory Pool System Release Build Procedure
 :revision: $Id$
 :confidentiality: public
 :copyright: See `C. Copyright and License`_
+:readership: Ravenbrook MPS developers
 
 
 1. Introduction
@@ -95,12 +96,23 @@ All relative paths are relative to
    Check that the test suite passes.
 
 #. Repeat for all supported platforms. On Windows the sequence of
-   commands to run the test suite are::
+   commands to run the test suite for 32-bit are::
+
+        cd version\$VERSION\code
+        nmake /f w3i3mv.nmk testrun
+
+   and for 64-bit::
 
         cd version\$VERSION\code
         nmake /f w3i6mv.nmk testrun
 
    On other platforms they are as shown above.
+
+   You may omit this step for platforms where a continuous integration
+   system has passed the test suite at the exact changelevel.  Check
+   the `Travis CI build history`_.
+
+   .. _`Travis CI build history`: https://travis-ci.org/Ravenbrook/mps/builds
 
 #. Check that there are no performance regressions by comparing the
    benchmarks (``djbench`` and ``gcbench``) for the last release and
@@ -116,14 +128,17 @@ Run the script ``tool/release``, passing the options:
 * ``-b BRANCH`` — branch to make the release from: for example ``version/1.113``
 * ``-C CHANGELEVEL`` — changelevel at which to make the release
 * ``-d "DESCRIPTION"`` — description of the release
-* ``-y`` — yes, really make the release
 
 If omitted, the project and branch are deduced from the current
 directory, and the changelevel defaults to the most recent change on
 the branch. A typical invocation looks like this::
 
-    tool/release -b version/1.113 -d "Improved interface to generation chains." -y
+    tool/release -b version/1.113 -d "Improved interface to generation chains."
 
+Visually check the output of the script against `6. Making the release
+(manual procedure)`_, and when satisfied, repeat the invocation with
+the ``-y`` option.
+    
 
 6. Making the release (manual procedure)
 ----------------------------------------
@@ -210,20 +225,27 @@ On a Unix (including OS X) machine:
    updater <http://info.ravenbrook.com/infosys/cgi/data_update.cgi>`__,
    select “mps” from the dropdown, and hit “Find releases”.
 
-#. Make a git tag for the release::
+#. Make a git tag for the release.  You can use an existing clone if
+   you have one, or::
 
-        git clone git-fusion@raven.ravenbrook.com:mps-version-$VERSION
-        cd mps-version-$VERSION
-        git tag -a release-$RELEASE -F - <<END
+        git clone ssh://git@perforce.ravenbrook.com:1622/mps
+        cd mps
+	git log -n 5 origin/version/$VERSION
+
+   Determine the correct commit for the release, then::
+     
+        git tag -a release-$RELEASE -F - $COMMIT <<END
         Memory Pool System Kit release $RELEASE.
         See <http://www.ravenbrook.com/project/mps/release/>.
         END
-        git push --tags git@github.com:Ravenbrook/mps.git
+        git push --tags
+
+#. Repeat for the public MPS repository <https://github.com/Ravenbrook/mps>.
 
 #. Go to the `list of releases on Github
-   <https://github.com/Ravenbrook/mps/releases>`__ and
-   select "Draft a new release". Select the tag you just pushed, and
-   set the title and description to match the other releases.
+   <https://github.com/Ravenbrook/mps/releases>`__ and edit the tag
+   you just pushed, setting the title and description to match
+   previous releases.
 
 #. Inform the project manager and staff by e-mail to
    mps-staff@ravenbrook.com.
@@ -260,6 +282,7 @@ B. Document History
 2013-03-20  GDR_   Ensure that manual HTML is up to date before making a release.
 2014-01-13  GDR_   Make procedure less error-prone by giving exact sequence of commands (where possible) based on experience of release 1.112.0.
 2016-01-28  RB_    Git repository renamed from mps-temporary to mps.
+2016-04-07  RB_    Updated test procedures for 1.115.0, and Git-related procedures for Git Fusion 2 installation.
 ==========  =====  ==========================================================
 
 .. _RB: mailto:rb@ravenbrook.com
