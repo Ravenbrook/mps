@@ -86,6 +86,17 @@
 #define Method(_class, inst, meth) (MustBeSub(_class, (inst)->instClass)->meth)
 
 
+/* CLASS_INHERIT -- inherit a superclass
+ *
+ * A ClassInit function inherits from a superclass by calling the
+ * superclass init function and then overriding (or appending) fields.
+ * This macro takes care of that, and ensures that the essential class
+ * identification fields are updated, since the IsSub check will break
+ * if they aren't.  It also enforces the rule that every class should
+ * have its own check method, though we're more relaxed about describe
+ * and finish.
+ */
+
 #define CLASS_INHERIT(var, _class, super, kind) \
   BEGIN \
     super ## ClassInit(MustBeSub(kind, var)); \
