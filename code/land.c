@@ -437,7 +437,7 @@ Bool LandClassCheck(Inst inst)
   LandClass class = MustBeSub(Land, MustBeA(InstClass, inst));
   InstClassCheck(inst);
   CHECKL(class->size >= sizeof(LandStruct));
-  LandClassMETHODS(CHECKM, class);
+  CLASS_CHECK_METHODS(Land, class);
   CHECKS(LandClass, class);
   return TRUE;
 }

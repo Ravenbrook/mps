@@ -57,7 +57,7 @@ Bool InstClassCheck(Inst inst)
   CHECKL(instClass->className != NULL);
   /* CHECKL(IsPrime(klass->prime)); */
   CHECKL(instClass->typeId % instClass->prime == 0);
-  InstClassMETHODS(CHECKM, instClass);
+  CLASS_CHECK_METHODS(Inst, instClass);
   return TRUE;
 }
 

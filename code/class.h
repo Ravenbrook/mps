@@ -29,14 +29,12 @@
 
 /* MustBeA -- subtype or die */
 
-#define XMUSTBEA(_class, inst, condstring) \
+#define MustBeA(_class, inst) XMUSTBEA(_class, inst, ) \
   ((inst) != NULL && \
    (inst)->instClass != NULL && \
    IsA(_class, inst) ? \
    (_class)(inst) : \
-   (_class)mps_lib_assert_fail(MPS_FILE, __LINE__, condstring))
-
-#define MustBeA(_class, inst) XMUSTBEA(_class, inst, "MustBeA " #_class ": " #inst)
+   (_class)mps_lib_assert_fail(MPS_FILE, __LINE__, "MustBeA " #_class ": " #inst))
 
 #define MustBeSub(class, subclass) \
   (IsSub(class, subclass) ? \
@@ -77,6 +75,11 @@
   CHECK_BY_LEVEL(NOOP, \
                  ASSERT((var)->ident != NULL, "Missing method: " #ident), \
                  ASSERT((var)->ident != NULL, "Missing method: " #ident));
+
+#define CLASS_CHECK_METHODS(ident, var) \
+  BEGIN \
+    ident ## ClassMETHODS(CHECKM, var) \
+  END
 
 /* Method -- dynamic dispatch method call */
 
