@@ -395,10 +395,12 @@ static void amcSegPromote(Seg seg)
   amcseg = Seg2amcSeg(seg);
   nextGen = gen->next;
   size = SegSize(seg);
-  PoolGenMove(seg, &gen->pgen, &nextGen->pgen,
-              amcseg->old ? size : 0, /* FIXME: Huh? */
-              amcseg->old ? 0 : size,
-              amcseg->deferred); /* FIXME: What? */
+  PoolGenPromote(seg,
+                 &gen->pgen,
+                 &nextGen->pgen,
+                 amcseg->old ? size : 0,
+                 amcseg->old ? 0 : size,
+                 amcseg->deferred);
   amcseg->gen = nextGen;
 }
 

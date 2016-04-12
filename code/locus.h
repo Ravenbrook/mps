@@ -100,8 +100,8 @@ extern Res PoolGenAlloc(Seg *segReturn, PoolGen pgen, SegClass class,
                         Size size, ArgList args);
 extern void PoolGenFree(PoolGen pgen, Seg seg, Size freeSize, Size oldSize,
                         Size newSize, Bool deferred);
-extern void PoolGenMove(Seg seg, PoolGen fromPGen, PoolGen toPGen,
-                        Size oldSize, Size newSize, Bool deferred);
+extern void PoolGenPromote(Seg seg, PoolGen fromPGen, PoolGen toPGen,
+                           Size oldSize, Size newSize, Bool deferred);
 extern void PoolGenAccountForFill(PoolGen pgen, Size size, Bool deferred);
 extern void PoolGenAccountForEmpty(PoolGen pgen, Size unused, Bool deferred);
 extern void PoolGenAccountForAge(PoolGen pgen, Size aged, Bool deferred);

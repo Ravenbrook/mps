@@ -280,7 +280,15 @@ credit *old* or *oldDeferred*.
 _`.accounting.op.reclaim`: Reclaim dead memory. Debit *old* or
 *oldDeferred*, credit *free*.
 
-_`.accounting.op.undefer`: Stop deferring the accounting of memory. Debit *oldDeferred*, credit *old*. Debit *newDeferred*, credit *new*.
+_`.accounting.op.undefer`: Stop deferring the accounting of
+memory. Debit *oldDeferred*, credit *old*. Debit *newDeferred*, credit
+*new*.
+
+_`.accounting.op.promote`: Promote a segment from one generation to
+another, containing objects preserved in place by the collector. Free
+the segment in the old generation (`.accounting.op.free`_), allocate
+the segment in the new generation (`.accounting.op.alloc`_), fill it
+(`.accounting.op.fill`_), and age it (`.accounting.op.age`_).
 
 
 Ramps

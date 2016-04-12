@@ -745,14 +745,14 @@ void PoolGenFree(PoolGen pgen, Seg seg, Size freeSize, Size oldSize,
 }
 
 
-/* PoolGenMove -- move a segment from one generation to another */
+/* PoolGenMove -- promote a segment from one generation to another */
 
-void PoolGenMove(Seg seg, PoolGen fromPGen, PoolGen toPGen,
-                 Size oldSize, Size newSize, Bool deferred)
+void PoolGenPromote(Seg seg, PoolGen fromPGen, PoolGen toPGen,
+                    Size oldSize, Size newSize, Bool deferred)
 {
   GenDesc fromGen, toGen;
   GCSeg gcseg;
-  Size size, freeSize;
+  Size size;
 
   AVERT(Seg, seg);
   AVER(SegIsGC(seg));
@@ -766,43 +766,12 @@ void PoolGenMove(Seg seg, PoolGen fromPGen, PoolGen toPGen,
   AVER(oldSize <= size);
   AVER(newSize <= size);
   AVER(oldSize + newSize <= size);
-  freeSize = size - (oldSize + newSize);
 
-  /* FIXME: Can this be lifted into "subtract" and "add" operations
-     that are shared with AccountForAlloc, AccountForFree, etc.? */
-  AVER(fromPGen->totalSize >= size);
-  fromPGen->totalSize -= size;
-  toPGen->totalSize += size;
-  STATISTIC_STAT({
-    AVER(fromPGen->segs > 0);
-    --fromPGen->segs;
-    ++toPGen->segs;
-  });
-  if (deferred) {
-    AVER(fromPGen->newDeferredSize >= newSize);
-    fromPGen->newDeferredSize -= newSize;
-    toPGen->newDeferredSize += newSize;
-    STATISTIC_STAT({
-      AVER(fromPGen->oldDeferredSize >= oldSize);
-      fromPGen->oldDeferredSize -= oldSize;
-      toPGen->oldDeferredSize += oldSize;
-    });
-  } else {
-    AVER(fromPGen->newSize >= newSize);
-    fromPGen->newSize -= newSize;
-    toPGen->newSize += newSize;
-    STATISTIC_STAT({
-      AVER(fromPGen->oldSize >= oldSize);
-      fromPGen->oldSize -= oldSize;
-      toPGen->oldSize += oldSize;
-    });
-  }
-  STATISTIC_STAT({
-    AVER(fromPGen->freeSize >= freeSize);
-    fromPGen->freeSize -= freeSize;
-    toPGen->freeSize += freeSize;
-  });
-
+  PoolGenAccountForFree(fromPGen, size, oldSize, newSize, deferred);
+  PoolGenAccountForAlloc(toPGen, size);
+  PoolGenAccountForFill(toPGen, oldSize + newSize, deferred);
+  PoolGenAccountForAge(toPGen, oldSize, deferred);
+  
   RingRemove(&gcseg->genRing);
   RingAppend(&toGen->segRing, &gcseg->genRing);
   
