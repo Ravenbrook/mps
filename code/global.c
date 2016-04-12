@@ -122,7 +122,6 @@ Bool GlobalsCheck(Globals arenaGlobals)
   if (arenaGlobals->lock != NULL)
     CHECKD_NOSIG(Lock, arenaGlobals->lock);
 
-  /* no check possible on pollThreshold */
   CHECKL(BoolCheck(arenaGlobals->insidePoll));
   CHECKL(BoolCheck(arenaGlobals->clamped));
   CHECKL(arenaGlobals->fillMutatorSize >= 0.0);
@@ -261,7 +260,6 @@ Res GlobalsInit(Globals arenaGlobals)
 
   arenaGlobals->lock = NULL;
 
-  arenaGlobals->pollThreshold = 0.0;
   arenaGlobals->insidePoll = FALSE;
   arenaGlobals->clamped = FALSE;
   arenaGlobals->fillMutatorSize = 0.0;
@@ -709,9 +707,10 @@ Bool ArenaAccess(Addr addr, AccessSet mode, MutatorFaultContext context)
 void (ArenaPoll)(Globals globals)
 {
   Arena arena;
-  Clock start;
+  Clock start, now, end;
   Bool moreWork, workWasDone = FALSE;
   Work tracedWork;
+  double sliceTime;
 
   AVERT(Globals, globals);
 
@@ -732,14 +731,24 @@ void (ArenaPoll)(Globals globals)
     if (moreWork) {
       workWasDone = TRUE;
     }
-  } while (PolicyPollAgain(arena, start, moreWork, tracedWork));
+    now = ClockNow();
+  } while (PolicyPollAgain(arena, start, now, moreWork, tracedWork));
 
   /* Don't count time spent checking for work, if there was no work to do. */
   if (workWasDone) {
-    ArenaAccumulateTime(arena, start, ClockNow());
+    end = now;
+    AVER(start <= end);
+    sliceTime = ClockIntervalSeconds(start, end);
+    arena->tracedTime += sliceTime;
+    arena->lastSliceTime = sliceTime;
+    arena->lastSliceEnd = end;
+    arena->lastSlice = TRUE;
+  } else {
+    end = start;
+    sliceTime = 0.0;
   }
 
-  EVENT3(ArenaPoll, arena, start, BOOLOF(workWasDone));
+  EVENT5(ArenaPoll, arena, start, BOOLOF(workWasDone), end, sliceTime);
 
   globals->insidePoll = FALSE;
 }
@@ -774,9 +783,7 @@ Bool ArenaStep(Globals globals, double interval, double multiplier)
       trace = ArenaTrace(arena, (TraceId)0);
     } else {
       /* No traces are running: consider collecting the world. */
-      if (PolicyShouldCollectWorld(arena, availableEnd - now, now,
-                                   clocks_per_sec))
-      {
+      if (PolicyShouldCollectWorld(arena, availableEnd - now, now)) {
         Res res;
         res = TraceStartCollectAll(&trace, arena, TraceStartWhyOPPORTUNISM);
         if (res != ResOK)
@@ -980,8 +987,6 @@ Res GlobalsDescribe(Globals arenaGlobals, mps_lib_FILE *stream, Count depth)
   res = WriteF(stream, depth,
                "mpsVersion $S\n", (WriteFS)arenaGlobals->mpsVersionString,
                "lock $P\n", (WriteFP)arenaGlobals->lock,
-               "pollThreshold $U kB\n",
-               (WriteFU)(arenaGlobals->pollThreshold / 1024),
                arenaGlobals->insidePoll ? "inside" : "outside", " poll\n",
                arenaGlobals->clamped ? "clamped\n" : "released\n",
                "fillMutatorSize $U kB\n",

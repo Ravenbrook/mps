@@ -486,7 +486,6 @@ typedef struct TraceStruct {
   Size condemned;               /* condemned bytes */
   Size notCondemned;            /* collectable but not condemned */
   Size foundation;              /* initial grey set size */
-  Work quantumWork;             /* tracing work to be done in each poll */
   STATISTIC_DECL(Count greySegCount); /* number of grey segs */
   STATISTIC_DECL(Count greySegMax); /* max number of grey segs */
   STATISTIC_DECL(Count rootScanCount); /* number of roots scanned */
@@ -556,7 +555,6 @@ typedef struct GlobalsStruct {
   Lock lock;                    /* arena's lock */
 
   /* polling fields (<code/global.c>) */
-  double pollThreshold;         /* <design/arena/#poll> */
   Bool insidePoll;              /* running inside ArenaPoll? */
   Bool clamped;                 /* prevent background activity */
   double fillMutatorSize;       /* total bytes filled, mutator buffers */
@@ -724,6 +722,9 @@ typedef struct mps_arena_s {
   Size workingSize;             /* working size estimate */
   Clock workingSizeUpdated;     /* time when working size was last updated */
   double workingSizeTau;        /* time constant for moving avg (seconds) */
+  Bool lastSlice;               /* are the lastSlice fields valid? */
+  double lastSliceTime;         /* duration of last slice of incremental work */
+  Clock lastSliceEnd;           /* time at which last slice of work finished */
 
   Shift zoneShift;              /* see also <code/ref.c> */
   Size grainSize;               /* <design/arena/#grain> */

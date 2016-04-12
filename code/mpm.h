@@ -131,6 +131,7 @@ extern int (AddrComp)(Addr a, Addr b, Size size);
 
 #define ClockNow() ((Clock)mps_clock())
 #define ClocksPerSec() ((Clock)mps_clocks_per_sec())
+#define ClockIntervalSeconds(start, end) (((end)-(start))/(double)ClocksPerSec())
 
 
 /* Result codes */
@@ -400,7 +401,7 @@ extern void TraceDestroyFinished(Trace trace);
 extern Bool TraceIsEmpty(Trace trace);
 extern Res TraceAddWhite(Trace trace, Seg seg);
 extern Res TraceCondemnZones(Trace trace, ZoneSet condemnedSet);
-extern Res TraceStart(Trace trace, double mortality, double finishingTime);
+extern Res TraceStart(Trace trace);
 extern Bool TracePoll(Work *workReturn, Globals globals);
 
 extern Rank TraceRankForAccess(Arena arena, Seg seg);
@@ -672,10 +673,10 @@ extern Res ArenaNoExtend(Arena arena, Addr base, Size size);
 extern Res PolicyAlloc(Tract *tractReturn, Arena arena, LocusPref pref,
                        Size size, Pool pool);
 extern Bool PolicyShouldCollectWorld(Arena arena, double availableTime,
-                                     Clock now, Clock clocks_per_sec);
+                                     Clock now);
 extern Bool PolicyStartTrace(Trace *traceReturn, Arena arena);
 extern Bool PolicyPoll(Arena arena, Clock now);
-extern Bool PolicyPollAgain(Arena arena, Clock start, Bool moreWork, Work tracedWork);
+extern Bool PolicyPollAgain(Arena arena, Clock start, Clock now, Bool moreWork, Work tracedWork);
 
 
 /* Locus interface */

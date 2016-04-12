@@ -166,8 +166,7 @@ static double policyCollectionTime(Arena arena)
  * opportunistically.
  */
 
-Bool PolicyShouldCollectWorld(Arena arena, double availableTime,
-                              Clock now, Clock clocks_per_sec)
+Bool PolicyShouldCollectWorld(Arena arena, double availableTime, Clock now)
 {
   Size collectableSize;
   double collectionTime, sinceLastWorldCollect;
@@ -189,8 +188,7 @@ Bool PolicyShouldCollectWorld(Arena arena, double availableTime,
   collectionTime = policyCollectionTime(arena);
 
   /* How long since we last collected the world? */
-  sinceLastWorldCollect = ((now - arena->lastWorldCollect) /
-                           (double) clocks_per_sec);
+  sinceLastWorldCollect = ClockIntervalSeconds(arena->lastWorldCollect, now);
 
   /* Offered enough time, and long enough since we last did it? */
   return availableTime > collectionTime
@@ -329,7 +327,7 @@ Bool PolicyStartTrace(Trace *traceReturn, Arena arena)
         goto nothingCondemned;
       trace->chain = firstChain;
       ChainStartGC(firstChain, trace);
-      res = TraceStart(trace, mortality, trace->condemned * TraceWorkFactor);
+      res = TraceStart(trace);
       /* We don't expect normal GC traces to fail to start. */
       AVER(res == ResOK);
       *traceReturn = trace;
@@ -354,11 +352,22 @@ failStart:
 
 Bool PolicyPoll(Arena arena, Clock now)
 {
-  Globals globals;
+  double space, currentRatio, targetRatio;
+
   AVERT(Arena, arena);
   (void)ArenaWorkingSizeUpdate(arena, now);
-  globals = ArenaGlobals(arena);
-  return globals->pollThreshold <= globals->fillMutatorSize;
+  if (!arena->lastSlice)
+    return TRUE;
+
+  space = ClockIntervalSeconds(arena->lastSliceEnd, now);
+  if (space == 0)
+    return FALSE;
+
+  currentRatio = arena->lastSliceTime / space;
+
+  targetRatio = arena->committed / arena->workingSize * 10.0;
+
+  return currentRatio <= targetRatio;
 }
 
 
@@ -368,43 +377,26 @@ Bool PolicyPoll(Arena arena, Clock now)
  * should return to the mutator.
  *
  * start is the clock time when the MPS was entered.
+ * now is the current clock time.
  * moreWork and tracedWork are the results of the last call to TracePoll.
  */
 
-Bool PolicyPollAgain(Arena arena, Clock start, Bool moreWork, Work tracedWork)
+Bool PolicyPollAgain(Arena arena, Clock start, Clock now, Bool moreWork,
+                     Work tracedWork)
 {
-  Bool moreTime;
-  Globals globals;
-  double nextPollThreshold;
-
   AVERT(Arena, arena);
   UNUSED(tracedWork);
 
+  /* If there's an emergency, must keep working until it's over. */
   if (ArenaEmergency(arena))
     return TRUE;
 
-  /* Is there more work to do and more time to do it in? */
-  moreTime = (ClockNow() - start) < ArenaPauseTime(arena) * ClocksPerSec();
-  if (moreWork && moreTime)
-    return TRUE;
+  /* Is there any more work to do? */
+  if (!moreWork)
+    return FALSE;
 
-  /* We're not going to do more work now, so calculate when to come back. */
-
-  globals = ArenaGlobals(arena);
-
-  if (moreWork) {
-    /* We did one quantum of work; consume one unit of 'time'. */
-    nextPollThreshold = globals->pollThreshold + ArenaPollALLOCTIME;
-  } else {
-    /* No more work to do.  Sleep until NOW + a bit. */
-    nextPollThreshold = globals->fillMutatorSize + ArenaPollALLOCTIME;
-  }
-
-  /* Advance pollThreshold; check: enough precision? */
-  AVER(nextPollThreshold > globals->pollThreshold);
-  globals->pollThreshold = nextPollThreshold;
-
-  return FALSE;
+  /* Is there more time to do it in? */
+  return ClockIntervalSeconds(start, now) < ArenaPauseTime(arena);
 }
 
 

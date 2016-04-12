@@ -151,6 +151,8 @@ Bool ArenaCheck(Arena arena)
   CHECKL(arena->spareCommitted <= arena->committed);
   CHECKL(0.0 <= arena->pauseTime);
   CHECKL(0.0 <= arena->workingSizeTau);
+  CHECKL(BoolCheck(arena->lastSlice));
+  CHECKL(!arena->lastSlice || 0 <= arena->lastSliceTime);
 
   CHECKL(ShiftCheck(arena->zoneShift));
   CHECKL(ArenaGrainSizeCheck(arena->grainSize));
@@ -230,6 +232,9 @@ Res ArenaInit(Arena arena, ArenaClass class, Size grainSize, ArgList args)
   arena->workingSize = (Size)0;
   arena->workingSizeUpdated = (Clock)0;
   arena->workingSizeTau = workingSizeTau;
+  arena->lastSlice = FALSE;
+  arena->lastSliceTime = 0;
+  arena->lastSliceEnd = (Clock)0;
   arena->pauseTime = pauseTime;
   arena->grainSize = grainSize;
   /* zoneShift is usually overridden by init */
@@ -541,6 +546,10 @@ Res ArenaDescribe(Arena arena, mps_lib_FILE *stream, Count depth)
                "pauseTime          $D\n", (WriteFD)arena->pauseTime,
                "workingSize        $W\n", (WriteFW)arena->workingSize,
                "workingSizeUpdated $W\n", (WriteFW)arena->workingSizeUpdated,
+               "workingSizeTau     $D\n", (WriteFD)arena->workingSizeTau,
+               "lastSlice          $S\n", WriteFYesNo(arena->lastSlice),
+               "lastSliceTime      $D\n", (WriteFD)arena->lastSliceTime,
+               "lastSliceEnd       $W\n", (WriteFW)arena->lastSliceEnd,
                "workingSizeTau     $D\n", (WriteFD)arena->workingSizeTau,
                "zoneShift          $U\n", (WriteFU)arena->zoneShift,
                "grainSize          $W\n", (WriteFW)arena->grainSize,
@@ -1312,7 +1321,7 @@ void ArenaWorkingSizeUpdate(Arena arena, Clock now)
   if (tau == 0.0) {
     alpha = 1;
   } else {
-    dt = (now - arena->workingSizeUpdated) / (double)ClocksPerSec();
+    dt = ClockIntervalSeconds(arena->workingSizeUpdated, now);
     alpha = 1 - mps_lib_exp(- dt / tau);
   }
   newSize = (Size)((1 - alpha) * arena->workingSize + alpha * arena->committed);
@@ -1417,7 +1426,7 @@ void ArenaAccumulateTime(Arena arena, Clock start, Clock end)
 {
   AVERT(Arena, arena);
   AVER(start <= end);
-  arena->tracedTime += (end - start) / (double) ClocksPerSec();
+  arena->tracedTime += ClockIntervalSeconds(start, end);
 }
 
 

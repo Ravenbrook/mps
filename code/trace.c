@@ -701,7 +701,6 @@ found:
   trace->condemned = (Size)0;   /* nothing condemned yet */
   trace->notCondemned = (Size)0;
   trace->foundation = (Size)0;  /* nothing grey yet */
-  trace->quantumWork = (Work)0; /* computed in TraceStart */
   STATISTIC(trace->greySegCount = (Count)0);
   STATISTIC(trace->greySegMax = (Count)0);
   STATISTIC(trace->rootScanCount = (Count)0);
@@ -1541,9 +1540,7 @@ double TraceWorkFactor = 0.25;
  *
  * TraceStart should be passed a trace with state TraceINIT, i.e.,
  * recently returned from TraceCreate, with some condemned segments
- * added. mortality is the fraction of the condemned set expected not
- * to survive. finishingTime is relative to the current polling clock,
- * see <design/arena/#poll.clock>.
+ * added.
  *
  * .start.black: All segments are black w.r.t. a newly allocated trace.
  * However, if TraceStart initialized segments to black when it
@@ -1575,7 +1572,7 @@ static Res rootGrey(Root root, void *p)
  * grey-mutator tracing.
  */
 
-Res TraceStart(Trace trace, double mortality, double finishingTime)
+Res TraceStart(Trace trace)
 {
   Arena arena;
   Res res;
@@ -1583,9 +1580,6 @@ Res TraceStart(Trace trace, double mortality, double finishingTime)
 
   AVERT(Trace, trace);
   AVER(trace->state == TraceINIT);
-  AVER(0.0 <= mortality);
-  AVER(mortality <= 1.0);
-  AVER(finishingTime >= 0.0);
   AVER(trace->condemned > 0);
 
   arena = trace->arena;
@@ -1635,35 +1629,8 @@ Res TraceStart(Trace trace, double mortality, double finishingTime)
 
   STATISTIC_STAT(EVENT2(ArenaWriteFaults, arena, arena->writeBarrierHitCount));
 
-  /* Calculate the rate of scanning. */
-  {
-    Size sSurvivors = (Size)(trace->condemned * (1.0 - mortality));
-    double nPolls = finishingTime / ArenaPollALLOCTIME;
-
-    /* There must be at least one poll. */
-    if(nPolls < 1.0)
-      nPolls = 1.0;
-    /* We use casting to long to truncate nPolls down to the nearest */
-    /* integer, so try to make sure it fits. */
-    if(nPolls >= (double)LONG_MAX)
-      nPolls = (double)LONG_MAX;
-    /* One quantum of work equals total tracing work divided by number
-     * of polls, plus one to ensure it's not zero. */
-    trace->quantumWork
-      = (trace->foundation + sSurvivors) / (unsigned long)nPolls + 1;
-  }
-
-  /* TODO: compute rate of scanning here. */
-
-  EVENT8(TraceStart, trace, mortality, finishingTime,
-         trace->condemned, trace->notCondemned,
-         trace->foundation, trace->white,
-         trace->quantumWork);
-
-  STATISTIC_STAT(EVENT7(TraceStatCondemn, trace,
-                        trace->condemned, trace->notCondemned,
-                        trace->foundation, trace->quantumWork,
-                        mortality, finishingTime));
+  EVENT5(TraceStart, trace, trace->condemned, trace->notCondemned,
+         trace->foundation, trace->white);
 
   trace->state = TraceUNFLIPPED;
   TracePostStartMessage(trace);
@@ -1736,7 +1703,6 @@ Res TraceStartCollectAll(Trace *traceReturn, Arena arena, int why)
 {
   Trace trace = NULL;
   Res res;
-  double finishingTime;
 
   AVERT(Arena, arena);
   AVER(arena->busyTraces == TraceSetEMPTY);
@@ -1746,13 +1712,7 @@ Res TraceStartCollectAll(Trace *traceReturn, Arena arena, int why)
   res = traceCondemnAll(trace);
   if(res != ResOK) /* should try some other trace, really @@@@ */
     goto failCondemn;
-  finishingTime = ArenaAvail(arena)
-                  - trace->condemned * (1.0 - arena->topGen.mortality);
-  if(finishingTime < 0) {
-    /* Run out of time, should really try a smaller collection. @@@@ */
-    finishingTime = 0.0;
-  }
-  res = TraceStart(trace, arena->topGen.mortality, finishingTime);
+  res = TraceStart(trace);
   if (res != ResOK)
     goto failStart;
   *traceReturn = trace;
@@ -1784,7 +1744,7 @@ Bool TracePoll(Work *workReturn, Globals globals)
 {
   Trace trace;
   Arena arena;
-  Work oldWork, newWork, work, endWork;
+  Work oldWork, newWork, work;
 
   AVERT(Globals, globals);
   arena = GlobalsArena(globals);
@@ -1799,10 +1759,7 @@ Bool TracePoll(Work *workReturn, Globals globals)
 
   AVER(arena->busyTraces == TraceSetSingle(trace));
   oldWork = traceWork(trace);
-  endWork = oldWork + trace->quantumWork;
-  do {
-    TraceAdvance(trace);
-  } while (trace->state != TraceFINISHED && traceWork(trace) < endWork);
+  TraceAdvance(trace);
   newWork = traceWork(trace);
   AVER(newWork >= oldWork);
   work = newWork - oldWork;
@@ -1847,7 +1804,6 @@ Res TraceDescribe(Trace trace, mps_lib_FILE *stream, Count depth)
                "  condemned $U\n", (WriteFU)trace->condemned,
                "  notCondemned $U\n", (WriteFU)trace->notCondemned,
                "  foundation $U\n", (WriteFU)trace->foundation,
-               "  quantumWork $U\n", (WriteFU)trace->quantumWork,
                "  rootScanSize $U\n", (WriteFU)trace->rootScanSize,
                "  rootCopiedSize $U\n", (WriteFU)trace->rootCopiedSize,
                "  segScanSize $U\n", (WriteFU)trace->segScanSize,

@@ -36,8 +36,8 @@
  */
 
 #define EVENT_VERSION_MAJOR  ((unsigned)1)
-#define EVENT_VERSION_MEDIAN ((unsigned)5)
-#define EVENT_VERSION_MINOR  ((unsigned)1)
+#define EVENT_VERSION_MEDIAN ((unsigned)6)
+#define EVENT_VERSION_MINOR  ((unsigned)0)
 
 
 /* EVENT_LIST -- list of event types and general properties
@@ -138,7 +138,7 @@
   EVENT(X, TraceScanSeg       , 0x003C,  TRUE, Seg) \
   /* TraceScanSingleRef abuses kind, see .kind.abuse */ \
   EVENT(X, TraceScanSingleRef , 0x003D,  TRUE, Seg) \
-  EVENT(X, TraceStatCondemn   , 0x003E,  TRUE, Trace) \
+  /* EVENT(X, TraceStatCondemn   , 0x003E,  TRUE, Trace) */ \
   EVENT(X, TraceStatScan      , 0x003F,  TRUE, Trace) \
   EVENT(X, TraceStatFix       , 0x0040,  TRUE, Trace) \
   EVENT(X, TraceStatReclaim   , 0x0041,  TRUE, Trace) \
@@ -444,15 +444,6 @@
   PARAM(X,  2, P, arena) \
   PARAM(X,  3, A, refIO)
 
-#define EVENT_TraceStatCondemn_PARAMS(PARAM, X) \
-  PARAM(X,  0, P, trace) \
-  PARAM(X,  1, W, condemned) \
-  PARAM(X,  2, W, notCondemned) \
-  PARAM(X,  3, W, foundation) \
-  PARAM(X,  4, W, quantumWork) \
-  PARAM(X,  5, D, mortality) \
-  PARAM(X,  6, D, finishingTime)
-
 #define EVENT_TraceStatScan_PARAMS(PARAM, X) \
   PARAM(X,  0, P, trace) \
   PARAM(X,  1, W, rootScanCount) \
@@ -655,9 +646,11 @@
   PARAM(X,  3, U, mode)
 
 #define EVENT_ArenaPoll_PARAMS(PARAM, X) \
-  PARAM(X,  0, P, arena) \
-  PARAM(X,  1, W, start) \
-  PARAM(X,  2, B, workWasDone)
+  PARAM(X,  0, P, arena)        /* arena that was polled */ \
+  PARAM(X,  1, W, start)        /* time poll started */ \
+  PARAM(X,  2, B, workWasDone)  /* was any collection work done? */ \
+  PARAM(X,  3, W, end)          /* if work was done, time it ended */ \
+  PARAM(X,  4, D, sliceTime)    /* if work was done, poll time in seconds */
 
 #define EVENT_ArenaSetEmergency_PARAMS(PARAM, X) \
   PARAM(X,  0, P, arena) \
@@ -670,13 +663,10 @@
 
 #define EVENT_TraceStart_PARAMS(PARAM, X) \
   PARAM(X,  0, P, trace)        /* trace being started */ \
-  PARAM(X,  1, D, mortality)    /* as passed to TraceStart */ \
-  PARAM(X,  2, D, finishingTime) /* as passed to TraceStart */ \
-  PARAM(X,  3, W, condemned)    /* condemned bytes */ \
-  PARAM(X,  4, W, notCondemned) /* collectible but not condemned bytes */ \
-  PARAM(X,  5, W, foundation)   /* foundation size */ \
-  PARAM(X,  6, W, white)        /* white reference set */ \
-  PARAM(X,  7, W, quantumWork)  /* tracing work to be done in each poll */
+  PARAM(X,  1, W, condemned)    /* condemned bytes */ \
+  PARAM(X,  2, W, notCondemned) /* collectible but not condemned bytes */ \
+  PARAM(X,  3, W, foundation)   /* foundation size */ \
+  PARAM(X,  4, W, white)        /* white reference set */
 
 #define EVENT_VMCompact_PARAMS(PARAM, X) \
   PARAM(X,  0, W, vmem0)        /* pre-collection reserved size */ \
