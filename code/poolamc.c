@@ -1528,27 +1528,155 @@ fixInPlace: /* see <design/poolamc/>.Nailboard.emergency */
 }
 
 
+/* amcFixAmbig -- fix an ambiguous reference */
+
+static Res AMCFixAmbig(Pool pool, ScanState ss, Seg seg, Ref *refIO)
+{
+  /* .nail.new: Check to see whether we need a Nailboard for this seg.
+     We use "SegNailed(seg) == TraceSetEMPTY" rather than
+     "!amcSegHasNailboard(seg)" because this avoids setting up a new
+     nailboard when the segment was nailed, but had no nailboard.
+     This must be avoided because otherwise assumptions in
+     AMCFixEmergency will be wrong (essentially we will lose some
+     pointer fixes because we introduced a nailboard). */
+  if (SegNailed(seg) == TraceSetEMPTY) {
+    Res res = amcSegCreateNailboard(seg, pool);
+    if (res != ResOK)
+      return res;
+    ++ss->nailCount;
+    SegSetNailed(seg, TraceSetUnion(SegNailed(seg), ss->traces));
+  }
+  amcFixInPlace(pool, seg, ss, refIO);
+  return ResOK;
+}
+
+/* amcFixIsNailed -- determine whether a referent is nailed down */
+
+static Bool AMCFixIsNailed(Pool pool, Seg seg, Ref ref, Addr clientQ)
+{
+  AMC amc = PoolAMC(pool);
+  return (SegNailed(seg) != TraceSetEMPTY &&
+          !(amcSegHasNailboard(seg) &&
+            !amc->pinned(amc, amcSegNailboard(seg), ref, clientQ)));
+}
+
+/* amcFixForward -- forward a referent to another generation */
+
+static Res AMCFixForward(Pool pool, ScanState ss, Seg seg, Ref *refIO, Addr clientQ)
+{
+  Arena arena = PoolArena(pool);
+  Buffer buffer = amcSegGen(seg)->forward;
+  Ref ref = *refIO;
+  Ref newRef;
+  Size size = AddrOffset(ref, clientQ);
+  Format format = pool->format;
+  Addr base = AddrSub(ref, format->headerSize);
+  Addr newBase;
+  Seg toSeg;
+  
+  AVER_CRITICAL(buffer != NULL);
+
+  ss->wasMarked = FALSE; /* design.mps.fix.protocol.was-marked */
+
+  do {
+    Res res = BUFFER_RESERVE(&newBase, buffer, size);
+    if (res != ResOK)
+      return res;
+
+    toSeg = BufferSeg(buffer);
+    ShieldExpose(arena, toSeg);
+    (void)AddrCopy(newBase, base, size); /* <design/trace/#fix.copy> */
+    ShieldCover(arena, toSeg);
+  } while (!BUFFER_COMMIT(buffer, newBase, size));
+  ss->copiedSize += size;
+
+  /* We're moving an object from one segment to another, so we must
+     union the summaries and greyness, and we must ensure that the new
+     copy is grey for the traces for which we just preserved it. */
+  if (SegRankSet(seg) != RankSetEMPTY) { /* optimization for AMCZ */
+    TraceSet grey = TraceSetUnion(SegGrey(seg), ss->traces);
+    SegSetGrey(toSeg, TraceSetUnion(SegGrey(toSeg), grey));
+    SegSetSummary(toSeg, RefSetUnion(SegSummary(toSeg), SegSummary(seg)));
+  } else {
+    AVER(SegRankSet(toSeg) == RankSetEMPTY);
+  }
+
+  /* Break the heart of the old copy, and update the reference to
+     point to the new copy. */
+  newRef = AddrAdd(newBase, format->headerSize);
+  format->move(ref, newRef);
+  *refIO = newRef;
+
+  STATISTIC_STAT(++ss->forwardedCount);
+  ss->forwardedSize += size;
+  EVENT1(AMCFixForward, newRef);
+
+  return ResOK;
+}
+
+static Res AMCFixUnmoved(Pool pool, ScanState ss, Seg seg, Ref *refIO)
+{
+  Ref ref = *refIO;
+  Format format = pool->format;
+  Addr clientQ = format->skip(ref); /* .exposed.seg */
+
+  /* If object is nailed already then we mustn't copy it: */
+  if (AMCFixIsNailed(pool, seg, ref, clientQ)) {
+    /* Segment only needs greying if there are new traces for which we
+       are nailing. */
+    if (!TraceSetSub(ss->traces, SegNailed(seg))) {
+      if (SegRankSet(seg) != RankSetEMPTY) /* not for AMCZ */
+        SegSetGrey(seg, TraceSetUnion(SegGrey(seg), ss->traces));
+      SegSetNailed(seg, TraceSetUnion(SegNailed(seg), ss->traces));
+    }
+    return ResOK;
+  }
+
+  if (ss->rank == RankWEAK) {
+    /* Object is not preserved (neither moved, nor nailed) hence,
+       reference should be splatted. */
+    *refIO = (Addr)0;
+    return ResOK;
+  }
+
+  /* Object is not preserved yet (neither moved, nor nailed) so
+     should be preserved by forwarding. */
+  return AMCFixForward(pool, ss, seg, refIO, clientQ);
+}
+
+static Res AMCFixExact(Pool pool, ScanState ss, Seg seg, Ref *refIO)
+{
+  Arena arena = pool->arena;
+  Format format = pool->format;
+  Ref ref = *refIO;
+  Ref newRef;
+  Res res;
+  
+  ShieldExpose(arena, seg);
+  newRef = format->isMoved(ref);
+
+  if (newRef == (Addr)0) {
+    res = AMCFixUnmoved(pool, ss, seg, refIO);
+  } else {
+    /* Reference to broken heart, and must be snapped out. */
+    /* TODO: Consider adding to (non-existent) snap-out cache here. */
+    *refIO = newRef;
+    res = ResOK;
+    STATISTIC_STAT(++ss->snapCount);
+  }
+
+  ShieldCover(arena, seg);
+  return res;
+}
+
+
 /* AMCFix -- fix a reference to the pool
  *
  * See <design/poolamc/#fix>.
  */
+
 static Res AMCFix(Pool pool, ScanState ss, Seg seg, Ref *refIO)
 {
-  Arena arena;
-  AMC amc;
-  Res res;
-  Format format;       /* cache of pool->format */
-  Size headerSize;     /* cache of pool->format->headerSize */
-  Ref ref;             /* reference to be fixed */
-  Addr base;           /* base address of reference */
-  Ref newRef;          /* new location, if moved */
-  Addr newBase;        /* base address of new copy */
-  Size length;         /* length of object to be relocated */
-  Buffer buffer;       /* buffer to allocate new copy into */
-  amcGen gen;          /* generation of old copy of object */
-  TraceSet grey;       /* greyness of object being relocated */
-  Seg toSeg;           /* segment to which object is being relocated */
-
   /* <design/trace/#fix.noaver> */
   AVERT_CRITICAL(Pool, pool);
   AVERT_CRITICAL(ScanState, ss);
@@ -1556,131 +1684,16 @@ static Res AMCFix(Pool pool, ScanState ss, Seg seg, Ref *refIO)
   AVER_CRITICAL(refIO != NULL);
   EVENT0(AMCFix);
 
-  /* For the moment, assume that the object was already marked. */
-  /* (See <design/fix/#protocol.was-marked>.) */
+  /* For the moment, assume that the object was already marked.  (See
+     <design/fix/#protocol.was-marked>.) */
+  /* TODO: The design says that all fix methods should set this, so
+     why not set it in TraceFix? */
   ss->wasMarked = TRUE;
 
-  /* If the reference is ambiguous, set up the datastructures for */
-  /* managing a nailed segment.  This involves marking the segment */
-  /* as nailed, and setting up a per-word mark table */
-  if(ss->rank == RankAMBIG) {
-    /* .nail.new: Check to see whether we need a Nailboard for */
-    /* this seg.  We use "SegNailed(seg) == TraceSetEMPTY" */
-    /* rather than "!amcSegHasNailboard(seg)" because this avoids */
-    /* setting up a new nailboard when the segment was nailed, but */
-    /* had no nailboard.  This must be avoided because otherwise */
-    /* assumptions in AMCFixEmergency will be wrong (essentially */
-    /* we will lose some pointer fixes because we introduced a */
-    /* nailboard). */
-    if(SegNailed(seg) == TraceSetEMPTY) {
-      res = amcSegCreateNailboard(seg, pool);
-      if(res != ResOK)
-        return res;
-      ++ss->nailCount;
-      SegSetNailed(seg, TraceSetUnion(SegNailed(seg), ss->traces));
-    }
-    amcFixInPlace(pool, seg, ss, refIO);
-    return ResOK;
-  }
+  if (ss->rank == RankAMBIG)
+    return AMCFixAmbig(pool, ss, seg, refIO);
 
-  amc = PoolAMC(pool);
-  AVERT_CRITICAL(AMC, amc);
-  format = pool->format;
-  headerSize = format->headerSize;
-  ref = *refIO;
-  AVER_CRITICAL(AddrAdd(SegBase(seg), headerSize) <= ref);
-  base = AddrSub(ref, headerSize);
-  AVER_CRITICAL(AddrIsAligned(base, PoolAlignment(pool)));  
-  AVER_CRITICAL(ref < SegLimit(seg)); /* see .ref-limit */
-  arena = pool->arena;
-
-  /* .exposed.seg: Statements tagged ".exposed.seg" below require */
-  /* that "seg" (that is: the 'from' seg) has been ShieldExposed. */
-  ShieldExpose(arena, seg);
-  newRef = (*format->isMoved)(ref);  /* .exposed.seg */
-
-  if(newRef == (Addr)0) {
-    Addr clientQ;
-    clientQ = (*format->skip)(ref);
-
-    /* If object is nailed already then we mustn't copy it: */
-    if (SegNailed(seg) != TraceSetEMPTY
-        && !(amcSegHasNailboard(seg)
-             && !(*amc->pinned)(amc, amcSegNailboard(seg), ref, clientQ)))
-    {
-      /* Segment only needs greying if there are new traces for */
-      /* which we are nailing. */
-      if(!TraceSetSub(ss->traces, SegNailed(seg))) {
-        if(SegRankSet(seg) != RankSetEMPTY) /* not for AMCZ */
-          SegSetGrey(seg, TraceSetUnion(SegGrey(seg), ss->traces));
-        SegSetNailed(seg, TraceSetUnion(SegNailed(seg), ss->traces));
-      }
-      res = ResOK;
-      goto returnRes;
-    } else if(ss->rank == RankWEAK) {
-      /* Object is not preserved (neither moved, nor nailed) */
-      /* hence, reference should be splatted. */
-      goto updateReference;
-    }
-    /* Object is not preserved yet (neither moved, nor nailed) */
-    /* so should be preserved by forwarding. */
-
-    /* <design/fix/#protocol.was-marked> */
-    ss->wasMarked = FALSE;
-
-    /* Get the forwarding buffer from the object's generation. */
-    gen = amcSegGen(seg);
-    buffer = gen->forward;
-    AVER_CRITICAL(buffer != NULL);
-
-    length = AddrOffset(ref, clientQ);  /* .exposed.seg */
-    STATISTIC_STAT(++ss->forwardedCount);
-    ss->forwardedSize += length;
-    do {
-      res = BUFFER_RESERVE(&newBase, buffer, length);
-      if (res != ResOK)
-        goto returnRes;
-      newRef = AddrAdd(newBase, headerSize);
-
-      toSeg = BufferSeg(buffer);
-      ShieldExpose(arena, toSeg);
-
-      /* Since we're moving an object from one segment to another, */
-      /* union the greyness and the summaries together. */
-      grey = SegGrey(seg);
-      if(SegRankSet(seg) != RankSetEMPTY) { /* not for AMCZ */
-        grey = TraceSetUnion(grey, ss->traces);
-        SegSetSummary(toSeg, RefSetUnion(SegSummary(toSeg), SegSummary(seg)));
-      } else {
-        AVER(SegRankSet(toSeg) == RankSetEMPTY);
-      }
-      SegSetGrey(toSeg, TraceSetUnion(SegGrey(toSeg), grey));
-
-      /* <design/trace/#fix.copy> */
-      (void)AddrCopy(newBase, base, length);  /* .exposed.seg */
-
-      ShieldCover(arena, toSeg);
-    } while (!BUFFER_COMMIT(buffer, newBase, length));
-    ss->copiedSize += length;
-
-    (*format->move)(ref, newRef);  /* .exposed.seg */
-
-    EVENT1(AMCFixForward, newRef);
-  } else {
-    /* reference to broken heart (which should be snapped out -- */
-    /* consider adding to (non-existent) snap-out cache here) */
-    STATISTIC_STAT(++ss->snapCount);
-  }
-
-  /* .fix.update: update the reference to whatever the above code */
-  /* decided it should be */
-updateReference:
-  *refIO = newRef;
-  res = ResOK;
-
-returnRes:
-  ShieldCover(arena, seg);  /* .exposed.seg */
-  return res;
+  return AMCFixExact(pool, ss, seg, refIO);
 }
 
 
