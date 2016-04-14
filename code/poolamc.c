@@ -1024,10 +1024,14 @@ static void AMCBufferEmpty(Pool pool, Buffer buffer,
   AVER(BufferIsReady(buffer));
   seg = BufferSeg(buffer);
   AVERT(Seg, seg);
-  AVER(init <= limit);
+  AVER(init <= limit || limit == 0);
 
   arena = BufferArena(buffer);
-  if(SegSize(seg) < amc->largeSize) {
+  if (limit == 0) {
+    /* Buffer was trapped on a white segment. */
+    limit = SegLimit(seg);
+  }
+  if (SegSize(seg) < amc->largeSize) {
     /* Small or Medium segment: buffer had the entire seg. */
     AVER(limit == SegLimit(seg));
   } else {
@@ -1037,9 +1041,9 @@ static void AMCBufferEmpty(Pool pool, Buffer buffer,
 
   /* <design/poolamc/#flush.pad> */
   size = AddrOffset(init, limit);
-  if(size > 0) {
+  if (size > 0) {
     ShieldExpose(arena, seg);
-    (*pool->format->pad)(init, size);
+    pool->format->pad(init, size);
     ShieldCover(arena, seg);
   }
 
@@ -1141,7 +1145,6 @@ static Res AMCWhiten(Pool pool, Trace trace, Seg seg)
   AMC amc;
   Buffer buffer;
   amcSeg amcseg;
-  Res res;
 
   AVERT(Pool, pool);
   AVERT(Trace, trace);
@@ -1149,61 +1152,12 @@ static Res AMCWhiten(Pool pool, Trace trace, Seg seg)
   amcseg = Seg2amcSeg(seg);
 
   buffer = SegBuffer(seg);
-  if(buffer != NULL) {
-    AVERT(Buffer, buffer);
-
-    if(!BufferIsMutator(buffer)) {      /* forwarding buffer */
+  if (buffer != NULL) {
+    if (BufferIsMutator(buffer)) {
+      /* buffer->poolLimit = 0; get orf my laaand! */
+    } else { /* forwarding buffer */
       AVER(BufferIsReady(buffer));
       BufferDetach(buffer, pool);
-    } else {                            /* mutator buffer */
-      if(BufferScanLimit(buffer) == SegBase(seg)) {
-        /* There's nothing but the buffer, don't condemn. */
-        return ResOK;
-      }
-      /* [The following else-if section is just a comment added in */
-      /*  1998-10-08.  It has never worked.  RHSK 2007-01-16] */
-      /* else if (BufferScanLimit(buffer) == BufferLimit(buffer)) { */
-        /* The buffer is full, so it won't be used by the mutator. */
-        /* @@@@ We should detach it, but can't for technical */
-        /* reasons. */
-        /* BufferDetach(buffer, pool); */
-      /* } */
-      else {
-        /* There is an active buffer, make sure it's nailed. */
-        if(!amcSegHasNailboard(seg)) {
-          if(SegNailed(seg) == TraceSetEMPTY) {
-            res = amcSegCreateNailboard(seg, pool);
-            if(res != ResOK) {
-              /* Can't create nailboard, don't condemn. */
-              return ResOK;
-            }
-            if(BufferScanLimit(buffer) != BufferLimit(buffer)) {
-              NailboardSetRange(amcSegNailboard(seg),
-                                BufferScanLimit(buffer),
-                                BufferLimit(buffer));
-            }
-            ++trace->nailCount;
-            SegSetNailed(seg, TraceSetSingle(trace));
-          } else {
-            /* Segment is nailed already, cannot create a nailboard */
-            /* (see .nail.new), just give up condemning. */
-            return ResOK;
-          }
-        } else {
-          /* We have a nailboard, the buffer must be nailed already. */
-          AVER(BufferScanLimit(buffer) == BufferLimit(buffer)
-               || NailboardIsSetRange(amcSegNailboard(seg), 
-                                      BufferScanLimit(buffer),
-                                      BufferLimit(buffer)));
-          /* Nail it for this trace as well. */
-          SegSetNailed(seg, TraceSetAdd(SegNailed(seg), trace));
-        }
-        /* We didn't condemn the buffer, subtract it from the count. */
-        /* @@@@ We could subtract all the nailed grains. */
-        /* Relies on unsigned arithmetic wrapping round */
-        /* on under- and overflow (which it does). */
-        condemned -= AddrOffset(BufferScanLimit(buffer), BufferLimit(buffer));
-      }
     }
   }
 
@@ -1537,10 +1491,12 @@ static Res AMCFixAmbig(Pool pool, ScanState ss, Seg seg, Ref *refIO)
 
   /* Ignore references to the invalid part of a buffer.  Nothing there
      should be preserved. */
-  if (buffer != NULL &&
-      ref >= BufferScanLimit(buffer) &&
-      ref < BufferLimit(buffer))
-    return ResOK;
+  if (buffer != NULL) {
+    AVER_CRITICAL(BufferIsTrapped(buffer)); /* buffer *has* an invalid part */
+    if (ref >= BufferScanLimit(buffer) &&
+        ref < BufferLimit(buffer))
+      return ResOK;
+  }
 
   /* .nail.new: Check to see whether we need a Nailboard for this seg.
      We use "SegNailed(seg) == TraceSetEMPTY" rather than
@@ -1667,8 +1623,13 @@ static Res AMCFixExact(Pool pool, ScanState ss, Seg seg, Ref *refIO)
   AVER_CRITICAL(AddrAdd(SegBase(seg), format->headerSize) <= ref);
   AVER_CRITICAL(ref < SegLimit(seg)); /* see .ref-limit */
 
-  /* No exact references to the invalid part of a buffer. */
+  /* No exact references to the invalid part of a buffer.  That would
+     mean the mutator has not waited until a successful mps_ap_commit
+     to create an exact reference to an object. */
   /* TODO: Lift into TraceFix */
+  /* Check buffer has an invalid part. */
+  AVER_CRITICAL(SegBuffer(seg) == NULL || BufferIsTrapped(SegBuffer(seg)));
+  /* Check reference is not to the invalid part. */
   AVER_CRITICAL(SegBuffer(seg) == NULL ||
                 ref < BufferScanLimit(SegBuffer(seg)) ||
                 ref >= BufferLimit(SegBuffer(seg)));
@@ -1820,10 +1781,46 @@ static void amcReclaimNailed(Pool pool, Trace trace, Seg seg)
 }
 
 
+/* amcReclaimBuffered -- recycle a buffered segment
+ *
+ * We can't reclaim the part of the segment that's still in use by the
+ * mutator, so we just pad over the rest.
+ *
+ * TODO: That this is likely to lead to a segment with just two
+ * padding objects on it when the trapped buffer is emptied.  If we
+ * could detect this case we could recycle the segment then, rather
+ * than at the next collection.
+ */
+
+static void amcReclaimBuffered(Pool pool, Trace trace, Seg seg)
+{
+  Arena arena = PoolArena(pool);
+  Buffer buffer = SegBuffer(seg);
+  Format format = pool->format;
+  Addr base = SegBase(seg);
+  Addr limit = BufferScanLimit(buffer);
+  Size size = AddrOffset(base, limit);
+
+  AVER(BufferIsTrapped(buffer));
+
+  if (size > PoolAlignment(pool)) {
+    ShieldExpose(arena, seg);
+    format->pad(base, size);
+    ShieldCover(arena, seg);
+    trace->reclaimSize += size;
+  } else {
+    AVER(size == 0);
+  }
+
+  SegSetWhite(seg, TraceSetDel(SegWhite(seg), trace));
+}
+
+
 /* AMCReclaim -- recycle a segment if it is still white
  *
  * See <design/poolamc/#reclaim>.
  */
+
 static void AMCReclaim(Pool pool, Trace trace, Seg seg)
 {
   AMC amc;
@@ -1851,18 +1848,14 @@ static void AMCReclaim(Pool pool, Trace trace, Seg seg)
     }
   }
 
-  if(SegNailed(seg) != TraceSetEMPTY) {
+  if(SegNailed(seg) != TraceSetEMPTY)
     amcReclaimNailed(pool, trace, seg);
-    return;
+  else if (SegBuffer(seg) != NULL)
+    amcReclaimBuffered(pool, trace, seg);
+  else {
+    trace->reclaimSize += SegSize(seg);
+    PoolGenFree(&gen->pgen, seg, 0, SegSize(seg), 0, Seg2amcSeg(seg)->deferred);
   }
-
-  /* We may not free a buffered seg.  (But all buffered + condemned */
-  /* segs should have been nailed anyway). */
-  AVER(SegBuffer(seg) == NULL);
-
-  trace->reclaimSize += SegSize(seg);
-
-  PoolGenFree(&gen->pgen, seg, 0, SegSize(seg), 0, Seg2amcSeg(seg)->deferred);
 }
 
 

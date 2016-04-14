@@ -568,7 +568,7 @@ Res BufferFill(Addr *pReturn, Buffer buffer, Size size)
 {
   Res res;
   Pool pool;
-  Addr base, limit, next;
+  Addr base, limit;
 
   AVER(pReturn != NULL);
   AVERT(Buffer, buffer);
@@ -580,7 +580,9 @@ Res BufferFill(Addr *pReturn, Buffer buffer, Size size)
 
   /* If we're here because the buffer was trapped, then we attempt */
   /* the allocation here. */
+#if 0
   if (!BufferIsReset(buffer) && buffer->ap_s.limit == (Addr)0) {
+    Addr next;
     /* .fill.unflip: If the buffer is flipped then we unflip the buffer. */
     if (buffer->mode & BufferModeFLIPPED) {
       BufferSetUnflipped(buffer);
@@ -602,7 +604,8 @@ Res BufferFill(Addr *pReturn, Buffer buffer, Size size)
   /* There really isn't enough room for the allocation now. */
   AVER(AddrAdd(buffer->ap_s.alloc, size) > buffer->poolLimit ||
        AddrAdd(buffer->ap_s.alloc, size) < (Addr)buffer->ap_s.alloc);
-
+#endif
+  
   BufferDetach(buffer, pool);
 
   /* Ask the pool for some memory. */
@@ -755,8 +758,8 @@ void BufferFlip(Buffer buffer)
 {
   AVERT(Buffer, buffer);
 
-  if (BufferRankSet(buffer) != RankSetEMPTY
-      && (buffer->mode & BufferModeFLIPPED) == 0
+  if (/* BufferRankSet(buffer) != RankSetEMPTY
+         && */ (buffer->mode & BufferModeFLIPPED) == 0
       && !BufferIsReset(buffer)) {
     AVER(buffer->initAtFlip == (Addr)0);
     buffer->initAtFlip = buffer->ap_s.init;
@@ -777,6 +780,7 @@ void BufferFlip(Buffer buffer)
 
 Addr BufferScanLimit(Buffer buffer)
 {
+  /* AVER(buffer->arena->shieldStruct.suspended); Walk doesn't obey this */
   if (buffer->mode & BufferModeFLIPPED) {
     return buffer->initAtFlip;
   } else {
@@ -1116,11 +1120,13 @@ Bool SegBufCheck(SegBuf segbuf)
     CHECKD(Seg, segbuf->seg);
     /* To avoid recursive checking, leave it to SegCheck to make */
     /* sure the buffer and segment fields tally. */
-   
+
+#if 0
     if (buffer->mode & BufferModeFLIPPED) {
       /* Only buffers that allocate pointers get flipped. */
       CHECKL(segbuf->rankSet != RankSetEMPTY);
     }
+#endif
   }
 
   return TRUE;
