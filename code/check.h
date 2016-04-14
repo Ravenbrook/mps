@@ -51,7 +51,7 @@
 
 #define ASSERT(cond, condstring) \
   BEGIN \
-  if (__builtin_expect((cond) == FALSE, FALSE)) \
+    if (cond) NOOP; else \
       mps_lib_assert_fail(MPS_FILE, __LINE__, (condstring)); \
   END
 
