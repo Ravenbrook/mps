@@ -1532,6 +1532,16 @@ fixInPlace: /* see <design/poolamc/>.Nailboard.emergency */
 
 static Res AMCFixAmbig(Pool pool, ScanState ss, Seg seg, Ref *refIO)
 {
+  Buffer buffer = SegBuffer(seg);
+  Ref ref = *refIO;
+
+  /* Ignore references to the invalid part of a buffer.  Nothing there
+     should be preserved. */
+  if (buffer != NULL &&
+      ref >= BufferScanLimit(buffer) &&
+      ref < BufferLimit(buffer))
+    return ResOK;
+
   /* .nail.new: Check to see whether we need a Nailboard for this seg.
      We use "SegNailed(seg) == TraceSetEMPTY" rather than
      "!amcSegHasNailboard(seg)" because this avoids setting up a new
@@ -1651,6 +1661,17 @@ static Res AMCFixExact(Pool pool, ScanState ss, Seg seg, Ref *refIO)
   Ref ref = *refIO;
   Ref newRef;
   Res res;
+
+  /* No references outside the segment. */
+  /* TODO: Lift into TraceFix */
+  AVER_CRITICAL(AddrAdd(SegBase(seg), format->headerSize) <= ref);
+  AVER_CRITICAL(ref < SegLimit(seg)); /* see .ref-limit */
+
+  /* No exact references to the invalid part of a buffer. */
+  /* TODO: Lift into TraceFix */
+  AVER_CRITICAL(SegBuffer(seg) == NULL ||
+                ref < BufferScanLimit(SegBuffer(seg)) ||
+                ref >= BufferLimit(SegBuffer(seg)));
   
   ShieldExpose(arena, seg);
   newRef = format->isMoved(ref);
