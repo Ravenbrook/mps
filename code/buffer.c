@@ -104,7 +104,7 @@ Bool BufferCheck(Buffer buffer)
         CHECKL(buffer->base <= buffer->initAtFlip);
         CHECKL(buffer->initAtFlip <= (Addr)buffer->ap_s.init);
       }
-      /* Nothing special to check in the logged mode. */
+      /* Nothing special to check in the logged or evicted mode. */
     } else {
       CHECKL(buffer->initAtFlip == (Addr)0);
     }
@@ -135,11 +135,12 @@ Res BufferDescribe(Buffer buffer, mps_lib_FILE *stream, Count depth)
                "  Arena $P\n",       (WriteFP)buffer->arena,
                "  Pool $P\n",        (WriteFP)buffer->pool,
                "  ", buffer->isMutator ? "Mutator" : "Internal", " Buffer\n",
-               "  mode $C$C$C$C (TRANSITION, LOGGED, FLIPPED, ATTACHED)\n",
+               "  mode $C$C$C$C$C (TRANSITION, LOGGED, FLIPPED, ATTACHED, EVICTED)\n",
                (WriteFC)((buffer->mode & BufferModeTRANSITION) ? 't' : '_'),
                (WriteFC)((buffer->mode & BufferModeLOGGED)     ? 'l' : '_'),
                (WriteFC)((buffer->mode & BufferModeFLIPPED)    ? 'f' : '_'),
                (WriteFC)((buffer->mode & BufferModeATTACHED)   ? 'a' : '_'),
+	       (WriteFC)((buffer->mode & BufferModeEVICTED)    ? 'e' : '_'),
                "  fillSize $UKb\n",  (WriteFU)(buffer->fillSize / 1024),
                "  emptySize $UKb\n", (WriteFU)(buffer->emptySize / 1024),
                "  alignment $W\n",   (WriteFW)buffer->alignment,
@@ -309,7 +310,10 @@ void BufferDetach(Buffer buffer, Pool pool)
     buffer->ap_s.limit = (mps_addr_t)0;
     buffer->poolLimit = (Addr)0;
     buffer->mode &=
-      ~(BufferModeATTACHED|BufferModeFLIPPED|BufferModeTRANSITION);
+      ~(BufferModeATTACHED |
+	BufferModeFLIPPED |
+	BufferModeTRANSITION |
+	BufferModeEVICTED);
 
     EVENT2(BufferEmpty, buffer, spare);
   }
@@ -448,11 +452,14 @@ Res BufferFramePush(AllocFrame *frameReturn, Buffer buffer)
   AVERT(Buffer, buffer);
   AVER(frameReturn != NULL);
 
-
   /* Process any flip */
   if (!BufferIsReset(buffer) && buffer->ap_s.limit == (Addr)0) {
-    /* .fill.unflip: If the buffer is flipped then we unflip the buffer. */
+    /* .fill.unflip: If the buffer is flipped then we unflip the
+       buffer, because we know that we're not between reserve and
+       commit.  A flip that could've invalidated an object would've
+       caused a trap on commit before reaching here. */
     if (buffer->mode & BufferModeFLIPPED) {
+      AVER(buffer->ap_s.init == buffer->ap_s.alloc);
       BufferSetUnflipped(buffer);
     }
   }
@@ -578,33 +585,35 @@ Res BufferFill(Addr *pReturn, Buffer buffer, Size size)
 
   pool = BufferPool(buffer);
 
-  /* If we're here because the buffer was trapped, then we attempt */
-  /* the allocation here. */
-#if 0
-  if (!BufferIsReset(buffer) && buffer->ap_s.limit == (Addr)0) {
-    Addr next;
-    /* .fill.unflip: If the buffer is flipped then we unflip the buffer. */
-    if (buffer->mode & BufferModeFLIPPED) {
-      BufferSetUnflipped(buffer);
-    }
-
-    /* .fill.logged: If the buffer is logged then we leave it logged. */
-    next = AddrAdd(buffer->ap_s.alloc, size);
-    if (next > (Addr)buffer->ap_s.alloc &&
-        next <= (Addr)buffer->poolLimit) {
-      buffer->ap_s.alloc = next;
-      if (buffer->mode & BufferModeLOGGED) {
-        EVENT3(BufferReserve, buffer, buffer->ap_s.init, size);
+  /* If we're here because the buffer was trapped for a reason other
+     than eviction, then we attempt the allocation here. */
+  /* .fill.evict: If the buffer is evicted, detach and fill it as if
+     it were full. */
+  if ((buffer->mode & BufferModeEVICTED) == 0) {
+    if (!BufferIsReset(buffer) && buffer->ap_s.limit == (Addr)0) {
+      Addr next;
+      /* .fill.unflip: If the buffer is flipped then we unflip the buffer. */
+      if (buffer->mode & BufferModeFLIPPED) {
+	BufferSetUnflipped(buffer);
       }
-      *pReturn = buffer->ap_s.init;
-      return ResOK;
-    }
-  }
 
-  /* There really isn't enough room for the allocation now. */
-  AVER(AddrAdd(buffer->ap_s.alloc, size) > buffer->poolLimit ||
-       AddrAdd(buffer->ap_s.alloc, size) < (Addr)buffer->ap_s.alloc);
-#endif
+      /* .fill.logged: If the buffer is logged then we leave it logged. */
+      next = AddrAdd(buffer->ap_s.alloc, size);
+      if (next > (Addr)buffer->ap_s.alloc &&
+	  next <= (Addr)buffer->poolLimit) {
+	buffer->ap_s.alloc = next;
+	if (buffer->mode & BufferModeLOGGED) {
+	  EVENT3(BufferReserve, buffer, buffer->ap_s.init, size);
+	}
+	*pReturn = buffer->ap_s.init;
+	return ResOK;
+      }
+    }
+
+    /* There really isn't enough room for the allocation now. */
+    AVER(AddrAdd(buffer->ap_s.alloc, size) > buffer->poolLimit ||
+	 AddrAdd(buffer->ap_s.alloc, size) < (Addr)buffer->ap_s.alloc);
+  }
   
   BufferDetach(buffer, pool);
 
@@ -743,29 +752,53 @@ Bool BufferTrip(Buffer buffer, Addr p, Size size)
 /* BufferFlip -- trap buffer at GC flip time
  *
  * .flip: Tells the buffer that a flip has occurred.  If the buffer is
- * between reserve and commit, and has a rank (i.e. references), and has
- * the two-phase protocol, then the object being initialized is
- * invalidated by failing the next commit.  The buffer code handles this
- * automatically (ie the pool implementation is not involved).  If the
- * buffer is reset there is no effect, since there is no object to
- * invalidate.  If the buffer is already flipped there is no effect,
- * since the object is already invalid by a previous trace.  The buffer
- * becomes unflipped at the next reserve or commit operation (actually
- * reserve because commit is lazy).  This is handled by BufferFill
- * (.fill.unflip) or BufferTrip (.trip.unflip).  */
+ * between reserve and commit, and has a rank (i.e. references), and
+ * has the two-phase protocol, then the object being initialized is
+ * invalidated by failing the next commit.  The buffer code handles
+ * this automatically (ie the pool implementation is not involved).
+ * If the buffer is reset there is no effect, since there is no object
+ * to invalidate.  If the buffer is already flipped there is no
+ * effect, since the object is already invalid by a previous trace.
+ * The buffer becomes unflipped at the next reserve or commit
+ * operation (actually reserve because commit is lazy).  This is
+ * handled by BufferFill (.fill.unflip) or BufferTrip (.trip.unflip).
+ * Buffers can be flipped and evicted at the same time (.evict).
+ */
 
 void BufferFlip(Buffer buffer)
 {
   AVERT(Buffer, buffer);
 
-  if (/* BufferRankSet(buffer) != RankSetEMPTY
-         && */ (buffer->mode & BufferModeFLIPPED) == 0
-      && !BufferIsReset(buffer)) {
+  if (BufferRankSet(buffer) != RankSetEMPTY &&
+      (buffer->mode & BufferModeFLIPPED) == 0 &&
+      !BufferIsReset(buffer)) {
     AVER(buffer->initAtFlip == (Addr)0);
     buffer->initAtFlip = buffer->ap_s.init;
     /* TODO: Is a memory barrier required here? */
     buffer->ap_s.limit = (Addr)0;
     buffer->mode |= BufferModeFLIPPED;
+  }
+}
+
+
+/* BufferEvict -- trap buffer to force it off a segment
+ *
+ * .evict: The pool that owns a buffer might want to prevent it from
+ * making further allocations on a segment.  This is done by trapping
+ * the buffer, and forcing a buffer empty and fill at the next reserve
+ * (.reserve.evict).  A buffer can be evicted and flipped at the same
+ * time (.flip).
+ */
+
+void BufferEvict(Buffer buffer)
+{
+  AVERT(Buffer, buffer);
+
+  if ((buffer->mode & BufferModeEVICTED) == 0 &&
+      !BufferIsReset(buffer)) {
+    /* TODO: Is a memory barrier required here? */
+    buffer->ap_s.limit = (Addr)0;
+    buffer->mode |= BufferModeEVICTED;
   }
 }
 
@@ -780,7 +813,7 @@ void BufferFlip(Buffer buffer)
 
 Addr BufferScanLimit(Buffer buffer)
 {
-  /* AVER(buffer->arena->shieldStruct.suspended); Walk doesn't obey this */
+  /* AVER(buffer->arena->shieldStruct.suspended); Walk doesn't obey this. FIXME: Make this work! */
   if (buffer->mode & BufferModeFLIPPED) {
     return buffer->initAtFlip;
   } else {
@@ -834,7 +867,9 @@ void BufferReassignSeg(Buffer buffer, Seg seg)
 Bool BufferIsTrapped(Buffer buffer)
 {
   /* Can't check buffer, see .check.use-trapped */
-  return (buffer->mode & (BufferModeFLIPPED|BufferModeLOGGED)) != 0;
+  return (buffer->mode & (BufferModeFLIPPED |
+			  BufferModeLOGGED |
+			  BufferModeEVICTED)) != 0;
 }
 
 

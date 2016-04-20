@@ -313,6 +313,7 @@ enum {
 #define BufferModeFLIPPED       ((BufferMode)(1<<1))
 #define BufferModeLOGGED        ((BufferMode)(1<<2))
 #define BufferModeTRANSITION    ((BufferMode)(1<<3))
+#define BufferModeEVICTED       ((BufferMode)(1<<4))
 
 
 /* Rank constants -- see <design/type/#rank> */

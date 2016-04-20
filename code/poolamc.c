@@ -1168,7 +1168,9 @@ static Res AMCWhiten(Pool pool, Trace trace, Seg seg)
   buffer = SegBuffer(seg);
   if (buffer != NULL) {
     if (BufferIsMutator(buffer)) {
-      /* buffer->poolLimit = 0; get orf my laaand! */
+      /* TODO: This could wait until flip, but the pool doesn't have a
+	 hook then. Perhaps override buffer->class->flip? */
+      BufferEvict(buffer);
     } else { /* forwarding buffer */
       AVER(BufferIsReady(buffer));
       BufferDetach(buffer, pool);
@@ -1821,7 +1823,7 @@ static void amcReclaimBuffered(Pool pool, Trace trace, Seg seg)
   Addr limit = BufferScanLimit(buffer);
   Size size = AddrOffset(base, limit);
 
-  AVER(BufferIsTrapped(buffer));
+  AVER(BufferIsTrapped(buffer)); /* TODO: Could be BufferIsEvicted */
 
   if (size > PoolAlignment(pool)) {
     ShieldExpose(arena, seg);
@@ -1831,6 +1833,12 @@ static void amcReclaimBuffered(Pool pool, Trace trace, Seg seg)
   } else {
     AVER(size == 0);
   }
+
+  /* At this point the segment is technically empty.  There are no objects
+     below BufferScanlimit, and the buffer is evicted.  The only reason we
+     can't free the segment is that the mutator might be writing between
+     the AP's init and alloc.  Once the buffer moves on, the segment will
+     be recycled in a future GC. */
 
   SegSetWhite(seg, TraceSetDel(SegWhite(seg), trace));
 }
@@ -1867,6 +1875,8 @@ static void AMCReclaim(Pool pool, Trace trace, Seg seg)
       amc->rampMode = RampOUTSIDE;
     }
   }
+
+  /* TODO: Consider unevicting the buffer. */
 
   if(SegNailed(seg) != TraceSetEMPTY)
     amcReclaimNailed(pool, trace, seg);

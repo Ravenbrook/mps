@@ -786,6 +786,7 @@ extern void BufferAttach(Buffer buffer,
                          Addr base, Addr limit, Addr init, Size size);
 extern void BufferDetach(Buffer buffer, Pool pool);
 extern void BufferFlip(Buffer buffer);
+extern void BufferEvict(Buffer buffer);
 
 extern mps_ap_t (BufferAP)(Buffer buffer);
 #define BufferAP(buffer)        (&(buffer)->ap_s)
