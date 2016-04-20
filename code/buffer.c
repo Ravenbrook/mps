@@ -1156,12 +1156,10 @@ Bool SegBufCheck(SegBuf segbuf)
     /* To avoid recursive checking, leave it to SegCheck to make */
     /* sure the buffer and segment fields tally. */
 
-#if 0
     if (buffer->mode & BufferModeFLIPPED) {
       /* Only buffers that allocate pointers get flipped. */
       CHECKL(segbuf->rankSet != RankSetEMPTY);
     }
-#endif
   }
 
   return TRUE;
