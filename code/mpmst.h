@@ -320,6 +320,7 @@ typedef struct BufferClassStruct {
   BufferSegMethod seg;          /* seg of buffer */
   BufferRankSetMethod rankSet;  /* rank set of buffer */
   BufferSetRankSetMethod setRankSet; /* change rank set of buffer */
+  BufferFlipMethod flip;        /* trap buffer at GC flip time */
   BufferReassignSegMethod reassignSeg; /* change seg of attached buffer */
   Sig sig;                      /* .class.end-sig */
 } BufferClassStruct;

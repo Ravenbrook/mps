@@ -765,7 +765,7 @@ Bool BufferTrip(Buffer buffer, Addr p, Size size)
  * Buffers can be flipped and evicted at the same time (.evict).
  */
 
-void BufferFlip(Buffer buffer)
+void BufferAbsFlip(Buffer buffer)
 {
   AVERT(Buffer, buffer);
 
@@ -778,6 +778,12 @@ void BufferFlip(Buffer buffer)
     buffer->ap_s.limit = (Addr)0;
     buffer->mode |= BufferModeFLIPPED;
   }
+}
+
+void BufferFlip(Buffer buffer)
+{
+  AVERT(Buffer, buffer);
+  buffer->class->flip(buffer);
 }
 
 
@@ -1095,6 +1101,7 @@ Bool BufferClassCheck(BufferClass class)
   CHECKL(FUNCHECK(class->rankSet));
   CHECKL(FUNCHECK(class->setRankSet));
   CHECKL(FUNCHECK(class->reassignSeg));
+  CHECKL(FUNCHECK(class->flip));
   CHECKL(FUNCHECK(class->describe));
   CHECKS(BufferClass, class);
   return TRUE;
@@ -1120,6 +1127,7 @@ DEFINE_CLASS(BufferClass, class)
   class->rankSet = bufferTrivRankSet;
   class->setRankSet = bufferNoSetRankSet;
   class->reassignSeg = bufferNoReassignSeg;
+  class->flip = BufferAbsFlip;
   class->sig = BufferClassSig;
   AVERT(BufferClass, class);
 }

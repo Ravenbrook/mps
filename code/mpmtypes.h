@@ -185,6 +185,7 @@ typedef Seg (*BufferSegMethod)(Buffer buffer);
 typedef RankSet (*BufferRankSetMethod)(Buffer buffer);
 typedef void (*BufferSetRankSetMethod)(Buffer buffer, RankSet rankSet);
 typedef void (*BufferReassignSegMethod)(Buffer buffer, Seg seg);
+typedef void (*BufferFlipMethod)(Buffer buffer);
 typedef Res (*BufferDescribeMethod)(Buffer buffer, mps_lib_FILE *stream, Count depth);
 
 

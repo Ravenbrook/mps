@@ -504,6 +504,19 @@ static void amcBufSetGen(Buffer buffer, amcGen gen)
 }
 
 
+/* amcBufFlip -- trap the buffer at GC flip time */
+
+static void amcBufFlip(Buffer buffer)
+{
+  BufferAbsFlip(buffer);
+  /* We evict the buffer from its current segment as well as flipping
+     it, so that no black objects can appear on the same segment as
+     white ones, something that AMC can't represent.  This forces
+     objects allocated by the black mutator onto a new segment. */
+  BufferEvict(buffer);
+}
+
+
 ARG_DEFINE_KEY(ap_hash_arrays, Bool);
 
 #define amcKeyAPHashArrays (&_mps_key_ap_hash_arrays)
@@ -579,6 +592,7 @@ DEFINE_BUFFER_CLASS(amcBufClass, class)
   class->size = sizeof(amcBufStruct);
   class->init = AMCBufInit;
   class->finish = AMCBufFinish;
+  class->flip = amcBufFlip;
   AVERT(BufferClass, class);
 }
 
@@ -1167,12 +1181,9 @@ static Res AMCWhiten(Pool pool, Trace trace, Seg seg)
 
   buffer = SegBuffer(seg);
   if (buffer != NULL) {
-    if (BufferIsMutator(buffer)) {
-      /* TODO: This could wait until flip, but the pool doesn't have a
-	 hook then. Perhaps override buffer->class->flip? */
-      BufferEvict(buffer);
-    } else { /* forwarding buffer */
+    if (!BufferIsMutator(buffer)) { /* forwarding buffer */
       AVER(BufferIsReady(buffer));
+      /* TODO: Is this necessary, or just a good idea? */
       BufferDetach(buffer, pool);
     }
   }
