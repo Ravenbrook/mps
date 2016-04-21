@@ -1166,6 +1166,7 @@ static void AMCRampEnd(Pool pool, Buffer buf)
  * If the segment has a mutator buffer on it, we nail the buffer,
  * because we can't scan or reclaim uncommitted buffers.
  */
+
 static Res AMCWhiten(Pool pool, Trace trace, Seg seg)
 {
   Size condemned = 0;
@@ -1181,6 +1182,9 @@ static Res AMCWhiten(Pool pool, Trace trace, Seg seg)
 
   buffer = SegBuffer(seg);
   if (buffer != NULL) {
+    /* TODO: Consider evicting mutator segments here, to avoid
+       problems in future such as continuing to allocate onto a
+       promoted segment in the wrong generation. */
     if (!BufferIsMutator(buffer)) { /* forwarding buffer */
       AVER(BufferIsReady(buffer));
       /* TODO: Is this necessary, or just a good idea? */
