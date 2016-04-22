@@ -550,8 +550,7 @@ void PoolGenAccountForEmpty(PoolGen pgen, Size used, Size unused, Bool deferred)
  *
  * Call this when memory is condemned via PoolWhiten. The parameters
  * specify the amount of memory that was buffered/new and is now being
- * condemned for the first time. The deferred flag is as for
- * PoolGenAccountForEmpty.
+ * condemned. The deferred flag is as for PoolGenAccountForEmpty.
  *
  * See <design/strategy/#accounting.op.age>
  */

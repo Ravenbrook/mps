@@ -478,7 +478,7 @@ static void amcBufFlip(Buffer buffer)
   PoolGen pgen;
   Size wasBuffered;
   
-  BufferAbsFlip(buffer);
+  BufferAbsFlip(buffer); /* FIXME: NextMethod */
 
   seg = BufferSeg(buffer);
   if (seg == NULL)
@@ -985,22 +985,10 @@ static Res AMCBufferFill(Addr *baseReturn, Addr *limitReturn,
     limit = AddrAdd(base, grainsSize);
     AVER(limit == SegLimit(seg));
   } else {
-    /* Large segment: ONLY give the buffer the size requested, and */
-    /* pad the remainder of the segment: see job001811. */
-    Size padSize;
-
+    /* Large segment: ONLY give the buffer the size requested.  The
+       remainder of the segment will be padded on empty (.empty.pad). */
     limit = AddrAdd(base, size);
     AVER(limit <= SegLimit(seg));
-
-    /* TODO: Move this padding to AMCBufferEmpty? */
-    padSize = grainsSize - size;
-    AVER(SizeIsAligned(padSize, PoolAlignment(pool)));
-    AVER(AddrAdd(limit, padSize) == SegLimit(seg));
-    if(padSize > 0) {
-      ShieldExpose(arena, seg);
-      (*pool->format->pad)(limit, padSize);
-      ShieldCover(arena, seg);
-    }
   }
 
   /* Account the entire segment as buffered. */
@@ -1024,9 +1012,9 @@ static void AMCBufferEmpty(Pool pool, Buffer buffer,
   amcSeg amcseg = MustBeA(amcSeg, seg);
   amcGen amcgen = amcseg->gen;
   PoolGen pgen = &amcgen->pgen;
-  Size bufferSize = AddrOffset(BufferBase(buffer), limit); /* FIXME: abstract this */
+  Size used = AddrOffset(BufferBase(buffer), SegLimit(seg));
   Arena arena = BufferArena(buffer);
-  Size size;
+  Size padSize;
 
   AVERT(Buffer, buffer);
   AVER(BufferIsReady(buffer));
@@ -1038,24 +1026,25 @@ static void AMCBufferEmpty(Pool pool, Buffer buffer,
      job001811. */
   AVER(limit == SegLimit(seg) || SegSize(seg) >= amc->largeSize);
 
-  /* <design/poolamc/#flush.pad> */
-  size = AddrOffset(init, limit);
-  if (size > 0) {
+  /* .empty.pad: Pad out the rest of the segment, including the tail end
+      of a large object (design.mps.poolamc.flush.pad). */
+  padSize = AddrOffset(init, SegLimit(seg));
+  if (padSize > 0) { /* FIXME: Should be defensive like in amcReclaimBuffered? */
     ShieldExpose(arena, seg);
-    pool->format->pad(init, size);
+    pool->format->pad(init, padSize);
     ShieldCover(arena, seg);
   }
 
   if (amcseg->old) {
-    /* These are only true while we don't have pre-flip allocation. */
-    AVER(BufferIsTrapped); /* .flip.evict */
+    /* FIXME: These are only true while we don't have pre-flip allocation. */
+    AVER(BufferIsTrapped(buffer)); /* .flip.evict */
     /* FIXME: Why are these false at mps_ap_destroy? */
     /* AVER(BufferBase(buffer) == init);  .flip.base */
     /* AVER(bufferSize == size);  .flip.base */
-    PoolGenAccountForAge(pgen, bufferSize, 0, amcseg->deferred);
+    PoolGenAccountForAge(pgen, used, 0, amcseg->deferred);
   } else {
-    AVER(bufferSize == SegSize(seg));
-    PoolGenAccountForEmpty(pgen, bufferSize, 0, amcseg->deferred);
+    AVER(used == SegSize(seg)); /* we don't partially buffer new segments */
+    PoolGenAccountForEmpty(pgen, used, 0, amcseg->deferred);
   }
 }
 
@@ -1195,6 +1184,11 @@ static Res AMCWhiten(Pool pool, Trace trace, Seg seg)
     PoolGenAccountForAge(&gen->pgen, 0, SegSize(seg), amcseg->deferred);
   amcseg->old = TRUE;
 
+  /* FIXME: This may over-estimate the condemned amount and cause a
+     trace to go ahead that has no contents.  Although the mutator may
+     create new white objects in the buffer, it may not.  Need to look
+     at all updates to trace->condemned and compare with the mortality
+     branch. */
   trace->condemned += SegSize(seg);
   SegSetWhite(seg, TraceSetAdd(SegWhite(seg), trace));
 
@@ -1801,9 +1795,8 @@ static void amcReclaimBuffered(Pool pool, Trace trace, Seg seg)
 {
   Arena arena = PoolArena(pool);
   Buffer buffer = SegBuffer(seg);
-  Format format = pool->format;
   Addr base = SegBase(seg);
-  Addr limit = BufferScanLimit(buffer);
+  Addr limit = BufferBase(buffer); /* .flip.base */
   Size size = AddrOffset(base, limit);
 
   AVER(BufferIsTrapped(buffer)); /* TODO: Could be BufferIsEvicted */
@@ -1813,12 +1806,16 @@ static void amcReclaimBuffered(Pool pool, Trace trace, Seg seg)
 
   if (size > PoolAlignment(pool)) {
     ShieldExpose(arena, seg);
-    format->pad(base, size);
+    pool->format->pad(base, size);
     ShieldCover(arena, seg);
     STATISTIC(trace->reclaimSize += size);
   } else {
     AVER(size == 0);
   }
+
+  /* FIXME: To design: Morally this area should perhaps be accounted
+     as "free", but AMC can't allocate it, and it's been replaced by
+     an old padding object. */
 
   /* At this point the segment is technically empty.  There are no objects
      below BufferScanlimit, and the buffer is evicted.  The only reason we
@@ -1861,6 +1858,8 @@ static void AMCReclaim(Pool pool, Trace trace, Seg seg)
 
   /* TODO: Consider unevicting the buffer. */
 
+  /* This will ensure that the contents are accounted for as old on a
+     buffered segment when it is eventually emptied. */
   AVER_CRITICAL(MustBeA(amcSeg, seg)->old);
 
   if(SegNailed(seg) != TraceSetEMPTY)
