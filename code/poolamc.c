@@ -1167,7 +1167,7 @@ static Res AMCWhiten(Pool pool, Trace trace, Seg seg)
   AVERT(Trace, trace);
   AVERT(amcGen, gen);
 
-  /* TODO: Consider evicting mutator segments here, to avoid problems
+  /* TODO: Consider evicting mutator buffers here, to avoid problems
      in future such as continuing to allocate onto a promoted segment
      in the wrong generation. */
 
