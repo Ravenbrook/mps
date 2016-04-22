@@ -75,12 +75,6 @@ enum {
 
 /* amcSegStruct -- AMC-specific fields appended to GCSegStruct
  *
- * .seg.accounted-as-buffered: The "accountedAsBuffered" flag is TRUE
- * if the segment has an atached buffer and is accounted against the
- * pool generation's bufferedSize. But note that if this is FALSE, the
- * segment might still have an attached buffer -- this happens if the
- * segment was condemned while the buffer was attached.
- *
  * .seg.old: The "old" flag is TRUE if the segment has been collected
  * at least once, and so its size is accounted against the pool
  * generation's oldSize.
@@ -102,7 +96,6 @@ typedef struct amcSegStruct {
   GCSegStruct gcSegStruct;  /* superclass fields must come first */
   amcGen gen;               /* generation this segment belongs to */
   Nailboard board;          /* nailboard for this segment or NULL if none */
-  BOOLFIELD(accountedAsBuffered); /* .seg.accounted-as-buffered */
   BOOLFIELD(old);           /* .seg.old */
   BOOLFIELD(deferred);      /* .seg.deferred */
   Sig sig;                  /* <code/misc.h#sig> */
@@ -149,7 +142,6 @@ static Res AMCSegInit(Seg seg, Pool pool, Addr base, Size size, ArgList args)
 
   amcseg->gen = amcgen;
   amcseg->board = NULL;
-  amcseg->accountedAsBuffered = FALSE;
   amcseg->old = FALSE;
   amcseg->deferred = FALSE;
 
@@ -479,11 +471,42 @@ static void amcBufSetGen(Buffer buffer, amcGen gen)
 
 static void amcBufFlip(Buffer buffer)
 {
+  Addr init;
+  Seg seg;
+  amcSeg amcseg;
+  amcGen amcgen;
+  PoolGen pgen;
+  Size wasBuffered;
+  
   BufferAbsFlip(buffer);
-  /* We evict the buffer from its current segment as well as flipping
-     it, so that no black objects can appear on the same segment as
-     white ones, something that AMC can't represent.  This forces
-     objects allocated by the black mutator onto a new segment. */
+
+  seg = BufferSeg(buffer);
+  if (seg == NULL)
+    return;
+
+  amcseg = MustBeA(amcSeg, seg);
+  if (!amcseg->old)
+    return;
+
+  AVER(BufferIsMutator(buffer)); /* .whiten.detach */
+  AVER(SegWhite(seg) != TraceSetEMPTY);
+
+  /* Any objects between the buffer base and init were allocated
+     white, so account them as old. */
+  amcgen = amcseg->gen;
+  pgen = &amcgen->pgen;
+  init = BufferScanLimit(buffer);
+  wasBuffered = AddrOffset(BufferBase(buffer), init);
+  PoolGenAccountForAge(pgen, wasBuffered, 0, amcseg->deferred);
+
+  /* .flip.base: Shift the buffer base up over them, to keep the total
+     buffered account equal to the total size of the buffers. */
+  buffer->base = init; /* FIXME: Abstract this */
+  
+  /* .flip.evict: We evict the buffer from its current segment as well
+     as flipping it, so that no black objects can appear after white
+     objects on the same segment, something that AMC can't
+     represent. */
   BufferEvict(buffer);
 }
 
@@ -871,7 +894,6 @@ static void AMCFinish(Pool pool)
     amcGen gen = amcSegGen(seg);
     amcSeg amcseg = MustBeA(amcSeg, seg);
     AVERT(amcSeg, amcseg);
-    AVER(!amcseg->accountedAsBuffered);
     PoolGenFree(&gen->pgen, seg,
                 0,
                 amcseg->old ? SegSize(seg) : 0,
@@ -969,7 +991,8 @@ static Res AMCBufferFill(Addr *baseReturn, Addr *limitReturn,
 
     limit = AddrAdd(base, size);
     AVER(limit <= SegLimit(seg));
-    
+
+    /* TODO: Move this padding to AMCBufferEmpty? */
     padSize = grainsSize - size;
     AVER(SizeIsAligned(padSize, PoolAlignment(pool)));
     AVER(AddrAdd(limit, padSize) == SegLimit(seg));
@@ -980,8 +1003,8 @@ static Res AMCBufferFill(Addr *baseReturn, Addr *limitReturn,
     }
   }
 
+  /* Account the entire segment as buffered. */
   PoolGenAccountForFill(pgen, SegSize(seg));
-  MustBeA(amcSeg, seg)->accountedAsBuffered = TRUE;
 
   *baseReturn = base;
   *limitReturn = limit;
@@ -997,29 +1020,23 @@ static void AMCBufferEmpty(Pool pool, Buffer buffer,
                            Addr init, Addr limit)
 {
   AMC amc = MustBeA(AMCZPool, pool);
+  Seg seg = BufferSeg(buffer);
+  amcSeg amcseg = MustBeA(amcSeg, seg);
+  amcGen amcgen = amcseg->gen;
+  PoolGen pgen = &amcgen->pgen;
+  Size bufferSize = AddrOffset(BufferBase(buffer), limit); /* FIXME: abstract this */
+  Arena arena = BufferArena(buffer);
   Size size;
-  Arena arena;
-  Seg seg;
-  amcSeg amcseg;
 
   AVERT(Buffer, buffer);
   AVER(BufferIsReady(buffer));
-  seg = BufferSeg(buffer);
-  AVERT(Seg, seg);
-  AVER(init <= limit || limit == 0);
+  AVER(limit > SegBase(seg));
+  AVER(limit <= SegLimit(seg));
 
-  arena = BufferArena(buffer);
-  if (limit == 0) {
-    /* Buffer was trapped on a white segment. */
-    limit = SegLimit(seg);
-  }
-  if (SegSize(seg) < amc->largeSize) {
-    /* Small or Medium segment: buffer had the entire seg. */
-    AVER(limit == SegLimit(seg));
-  } else {
-    /* Large segment: buffer had only the size requested; job001811. */
-    AVER(limit <= SegLimit(seg));
-  }
+  /* On a small or medium segment the buffer had the entire seg.  On a
+     large segment the buffer had only the size requested;
+     job001811. */
+  AVER(limit == SegLimit(seg) || SegSize(seg) >= amc->largeSize);
 
   /* <design/poolamc/#flush.pad> */
   size = AddrOffset(init, limit);
@@ -1029,12 +1046,16 @@ static void AMCBufferEmpty(Pool pool, Buffer buffer,
     ShieldCover(arena, seg);
   }
 
-  amcseg = MustBeA(amcSeg, seg);
-  if (amcseg->accountedAsBuffered) {
-    /* Account the entire buffer (including the padding object) as used. */
-    PoolGenAccountForEmpty(&amcSegGen(seg)->pgen, SegSize(seg), 0,
-                           amcseg->deferred);
-    amcseg->accountedAsBuffered = FALSE;
+  if (amcseg->old) {
+    /* These are only true while we don't have pre-flip allocation. */
+    AVER(BufferIsTrapped); /* .flip.evict */
+    /* FIXME: Why are these false at mps_ap_destroy? */
+    /* AVER(BufferBase(buffer) == init);  .flip.base */
+    /* AVER(bufferSize == size);  .flip.base */
+    PoolGenAccountForAge(pgen, bufferSize, 0, amcseg->deferred);
+  } else {
+    AVER(bufferSize == SegSize(seg));
+    PoolGenAccountForEmpty(pgen, bufferSize, 0, amcseg->deferred);
   }
 }
 
@@ -1102,13 +1123,42 @@ static void AMCRampEnd(Pool pool, Buffer buf)
          && amcseg->deferred
          && SegWhite(seg) == TraceSetEMPTY)
       {
-        if (!amcseg->accountedAsBuffered)
-          PoolGenUndefer(pgen,
-                         amcseg->old ? SegSize(seg) : 0,
-                         amcseg->old ? 0 : SegSize(seg));
+        Buffer buffer = SegBuffer(seg);
+        Size size;
+        if (buffer != NULL)
+          size = AddrOffset(SegBase(seg), BufferBase(buffer));
+        else
+          size = SegSize(seg);
+        PoolGenUndefer(pgen,
+                       amcseg->old ? size : 0,
+                       amcseg->old ? 0 : size);
         amcseg->deferred = FALSE;
       }
     }
+  }
+}
+
+
+/* amcEnsureForward -- ensure we are forwarding into the right generation
+ *
+ * see <design/poolamc/#gen.ramp>
+ */
+
+static void amcEnsureForward(Pool pool, amcGen gen)
+{
+  AMC amc = MustBeA(AMCZPool, pool);
+  
+  /* This switching needs to be more complex for multiple traces. */
+  AVER(TraceSetIsSingle(PoolArena(pool)->busyTraces));
+
+  if (amc->rampMode == RampBEGIN && gen == amc->rampGen) {
+    BufferDetach(gen->forward, pool);
+    amcBufSetGen(gen->forward, gen);
+    amc->rampMode = RampRAMPING;
+  } else if (amc->rampMode == RampFINISH && gen == amc->rampGen) {
+    BufferDetach(gen->forward, pool);
+    amcBufSetGen(gen->forward, amc->afterRampGen);
+    amc->rampMode = RampCOLLECTING;
   }
 }
 
@@ -1121,57 +1171,35 @@ static void AMCRampEnd(Pool pool, Buffer buf)
 
 static Res AMCWhiten(Pool pool, Trace trace, Seg seg)
 {
-  Size condemned = 0;
-  amcGen gen;
-  AMC amc = MustBeA(AMCZPool, pool);
-  Buffer buffer;
   amcSeg amcseg = MustBeA(amcSeg, seg);
+  amcGen gen = amcseg->gen;
+  Buffer buffer = SegBuffer(seg);
 
   AVERT(Trace, trace);
-
-  buffer = SegBuffer(seg);
-  if (buffer != NULL) {
-    /* TODO: Consider evicting mutator segments here, to avoid
-       problems in future such as continuing to allocate onto a
-       promoted segment in the wrong generation. */
-    if (!BufferIsMutator(buffer)) { /* forwarding buffer */
-      AVER(BufferIsReady(buffer));
-      /* TODO: Is this necessary, or just a good idea? */
-      BufferDetach(buffer, pool);
-    }
-  }
-
-  SegSetWhite(seg, TraceSetAdd(SegWhite(seg), trace));
-  condemned += SegSize(seg);
-  trace->condemned += condemned;
-
-  gen = amcSegGen(seg);
   AVERT(amcGen, gen);
-  if (!amcseg->old) {
-    amcseg->old = TRUE;
-    if (amcseg->accountedAsBuffered) {
-      /* Note that the segment remains buffered but the buffer contents
-       * are accounted as old. See .seg.accounted-as-buffered. */
-      amcseg->accountedAsBuffered = FALSE;
-      PoolGenAccountForAge(&gen->pgen, SegSize(seg), 0, amcseg->deferred);
-    } else
-      PoolGenAccountForAge(&gen->pgen, 0, SegSize(seg), amcseg->deferred);
+
+  /* TODO: Consider evicting mutator segments here, to avoid problems
+     in future such as continuing to allocate onto a promoted segment
+     in the wrong generation. */
+
+  /* .whiten.detach: Detach forwarding buffers. */
+  /* TODO: Is this necessary, or just a good idea? */
+  if (buffer != NULL && !BufferIsMutator(buffer)) {
+    AVER(BufferIsReady(buffer));
+    BufferDetach(buffer, pool);
+    buffer = SegBuffer(seg);
+    AVER(buffer == NULL);
   }
 
-  /* Ensure we are forwarding into the right generation. */
+  if (!amcseg->old && buffer == NULL)
+    PoolGenAccountForAge(&gen->pgen, 0, SegSize(seg), amcseg->deferred);
+  amcseg->old = TRUE;
 
-  /* see <design/poolamc/#gen.ramp> */
-  /* This switching needs to be more complex for multiple traces. */
-  AVER(TraceSetIsSingle(PoolArena(pool)->busyTraces));
-  if(amc->rampMode == RampBEGIN && gen == amc->rampGen) {
-    BufferDetach(gen->forward, pool);
-    amcBufSetGen(gen->forward, gen);
-    amc->rampMode = RampRAMPING;
-  } else if(amc->rampMode == RampFINISH && gen == amc->rampGen) {
-    BufferDetach(gen->forward, pool);
-    amcBufSetGen(gen->forward, amc->afterRampGen);
-    amc->rampMode = RampCOLLECTING;
-  }
+  trace->condemned += SegSize(seg);
+  SegSetWhite(seg, TraceSetAdd(SegWhite(seg), trace));
+
+  /* TODO: This shouldn't be in AMCWhiten. */
+  amcEnsureForward(pool, gen);
 
   return ResOK;
 }
@@ -1655,7 +1683,10 @@ static Res AMCFix(Pool pool, ScanState ss, Seg seg, Ref *refIO)
 }
 
 
-/* amcReclaimNailed -- reclaim what you can from a nailed segment */
+/* amcReclaimNailed -- reclaim what you can from a nailed segment
+ *
+ * TODO: Consider splitting and partially freeing the segment.
+ */
 
 static void amcReclaimNailed(Pool pool, Trace trace, Seg seg)
 {
@@ -1777,6 +1808,9 @@ static void amcReclaimBuffered(Pool pool, Trace trace, Seg seg)
 
   AVER(BufferIsTrapped(buffer)); /* TODO: Could be BufferIsEvicted */
 
+  /* TODO: Consider splitting and freeing the segment up to the
+     buffer's init poitner. */
+
   if (size > PoolAlignment(pool)) {
     ShieldExpose(arena, seg);
     format->pad(base, size);
@@ -1826,6 +1860,8 @@ static void AMCReclaim(Pool pool, Trace trace, Seg seg)
   }
 
   /* TODO: Consider unevicting the buffer. */
+
+  AVER_CRITICAL(MustBeA(amcSeg, seg)->old);
 
   if(SegNailed(seg) != TraceSetEMPTY)
     amcReclaimNailed(pool, trace, seg);
