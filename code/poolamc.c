@@ -478,7 +478,7 @@ static void amcBufFlip(Buffer buffer)
   PoolGen pgen;
   Size wasBuffered;
   
-  BufferAbsFlip(buffer); /* FIXME: NextMethod */
+  NextMethod(Buffer, amcBuf, flip)(buffer);
 
   seg = BufferSeg(buffer);
   if (seg == NULL)
@@ -1004,6 +1004,7 @@ static Res AMCBufferFill(Addr *baseReturn, Addr *limitReturn,
  *
  * See <design/poolamc/#flush>.
  */
+
 static void AMCBufferEmpty(Pool pool, Buffer buffer,
                            Addr init, Addr limit)
 {
@@ -1184,11 +1185,11 @@ static Res AMCWhiten(Pool pool, Trace trace, Seg seg)
     PoolGenAccountForAge(&gen->pgen, 0, SegSize(seg), amcseg->deferred);
   amcseg->old = TRUE;
 
-  /* FIXME: This may over-estimate the condemned amount and cause a
-     trace to go ahead that has no contents.  Although the mutator may
-     create new white objects in the buffer, it may not.  Need to look
-     at all updates to trace->condemned and compare with the mortality
-     branch. */
+  /* FIXME: .whiten.condemned: This may over-estimate the condemned
+     amount and cause a trace to go ahead that has no contents.
+     Although the mutator may create new white objects in the buffer,
+     it may not.  Need to look at all updates to trace->condemned and
+     compare with the mortality branch. */
   trace->condemned += SegSize(seg);
   SegSetWhite(seg, TraceSetAdd(SegWhite(seg), trace));
 

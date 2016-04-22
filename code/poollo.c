@@ -35,6 +35,9 @@ typedef LO LOPool;
 #define LOPoolCheck LOCheck
 DECLARE_CLASS(Pool, LOPool, AbstractSegBufPool);
 DECLARE_CLASS(Seg, LOSeg, GCSeg);
+typedef SegBuf LOBuffer;
+#define LOBufferCheck SegBufCheck
+DECLARE_CLASS(Buffer, LOBuffer, SegBuf);
 
 
 /* forward declaration */
@@ -63,6 +66,8 @@ typedef struct LOSegStruct {
 static Res loSegInit(Seg seg, Pool pool, Addr base, Size size, ArgList args);
 static void loSegFinish(Seg seg);
 static Count loSegGrains(LOSeg loseg);
+static void loBufferFlip(Buffer buffer);
+static Res loBufferInit(Buffer buffer, Pool pool, Bool isMutator, ArgList args);
 
 
 /* LOSegClass -- Class definition for LO segments */
@@ -74,6 +79,25 @@ DEFINE_CLASS(Seg, LOSeg, klass)
   klass->size = sizeof(LOSegStruct);
   klass->init = loSegInit;
   klass->finish = loSegFinish;
+}
+
+
+DEFINE_CLASS(Buffer, LOBuffer, klass)
+{
+  INHERIT_CLASS(klass, LOBuffer, SegBuf);
+  klass->init = loBufferInit;
+  klass->flip = loBufferFlip;
+}
+
+
+/* TODO: Any way to avoid this having to exist? */
+static Res loBufferInit(Buffer buffer, Pool pool, Bool isMutator, ArgList args)
+{
+  Res res = NextMethod(Buffer, LOBuffer, init)(buffer, pool, isMutator, args);
+  if (res != ResOK)
+    return res;
+  SetClassOfPoly(buffer, CLASS(LOBuffer));
+  return ResOK;
 }
 
 
@@ -620,7 +644,7 @@ static void LOBufferEmpty(Pool pool, Buffer buffer, Addr init, Addr limit)
 
   AVER(AddrIsAligned(base, PoolAlignment(pool)));
   AVER(segBase <= base);
-  AVER(base < SegLimit(seg));
+  AVER(base <= SegLimit(seg));
   AVER(segBase <= init);
   AVER(init <= SegLimit(seg));
 
@@ -633,11 +657,21 @@ static void LOBufferEmpty(Pool pool, Buffer buffer, Addr init, Addr limit)
     loSegFree(loseg, initIndex, limitIndex);
 
   unusedGrains = limitIndex - initIndex;
-  AVER(loseg->bufferedGrains >= unusedGrains);
-  usedGrains = loseg->bufferedGrains - unusedGrains;
   loseg->freeGrains += unusedGrains;
-  loseg->bufferedGrains = 0;
-  loseg->newGrains += usedGrains;
+  if (loseg->bufferedGrains > 0) {
+    AVER(loseg->bufferedGrains >= unusedGrains);
+    usedGrains = loseg->bufferedGrains - unusedGrains;
+    loseg->bufferedGrains = 0;
+    loseg->newGrains += usedGrains;
+  } else {
+    AVER(loseg->oldGrains >= unusedGrains); /* because we aged the whole buffer when whitening */
+    usedGrains = 0;
+    loseg->oldGrains -= unusedGrains;
+  }
+
+  /* FIXME: What about a pre-flip empty?  The buffered area should be
+     accounted as old. */
+  
   PoolGenAccountForEmpty(lo->pgen, LOGrainsSize(lo, usedGrains),
                          LOGrainsSize(lo, unusedGrains), FALSE);
 }
@@ -649,46 +683,85 @@ static Res LOWhiten(Pool pool, Trace trace, Seg seg)
 {
   LO lo = MustBeA(LOPool, pool);
   LOSeg loseg = MustBeA(LOSeg, seg);
-  Buffer buffer;
-  Count grains, agedGrains, uncondemnedGrains;
+  Size condemnedSize;
+  Count grains;
 
   AVERT(Trace, trace);
   AVER(SegWhite(seg) == TraceSetEMPTY);
 
   grains = loSegGrains(loseg);
 
-  /* Whiten allocated objects; leave free areas black. */
-  buffer = SegBuffer(seg);
-  if (buffer != NULL) {
-    Addr base = SegBase(seg);
-    Index scanLimitIndex = loIndexOfAddr(base, lo, BufferScanLimit(buffer));
-    Index limitIndex = loIndexOfAddr(base, lo, BufferLimit(buffer));
-    uncondemnedGrains = limitIndex - scanLimitIndex;
-    if (0 < scanLimitIndex)
-      BTCopyInvertRange(loseg->alloc, loseg->mark, 0, scanLimitIndex);
-    if (limitIndex < grains)
-      BTCopyInvertRange(loseg->alloc, loseg->mark, limitIndex, grains);
-  } else {
-    uncondemnedGrains = (Count)0;
-    BTCopyInvertRange(loseg->alloc, loseg->mark, 0, grains);
-  }
+  /* Whiten allocated objects, including any buffered areas. */
+  BTCopyInvertRange(loseg->alloc, loseg->mark, 0, grains);
 
-
-  /* The unused part of the buffer remains buffered: the rest becomes old. */
-  AVER(loseg->bufferedGrains >= uncondemnedGrains);
-  agedGrains = loseg->bufferedGrains - uncondemnedGrains;
-  PoolGenAccountForAge(lo->pgen, LOGrainsSize(lo, agedGrains),
-                       LOGrainsSize(lo, loseg->newGrains), FALSE);
-  loseg->oldGrains += agedGrains + loseg->newGrains;
-  loseg->bufferedGrains = uncondemnedGrains;
+  /* Age allocated objects except for buffered areas. */
+  PoolGenAccountForAge(lo->pgen, 0, LOGrainsSize(lo, loseg->newGrains), FALSE);
+  loseg->oldGrains += loseg->newGrains;
   loseg->newGrains = 0;
 
-  trace->condemned += LOGrainsSize(lo, loseg->oldGrains);
-  SegSetWhite(seg, TraceSetAdd(SegWhite(seg), trace));
+  /* Account for the old and buffered areas as condemned, as the
+     mutator can still allocate white objects in the buffered
+     area. FIXME: See impl.c.poolamc.whiten.condemned. */
+  condemnedSize = LOGrainsSize(lo, loseg->oldGrains + loseg->bufferedGrains);
+  if (condemnedSize > 0) {
+    trace->condemned += condemnedSize;
+    SegSetWhite(seg, TraceSetAdd(SegWhite(seg), trace));
+  }
 
   return ResOK;
 }
 
+
+static void loBufferFlip(Buffer buffer)
+{
+  Seg seg;
+  LOSeg loseg;
+  LO lo;
+  Addr segBase, init, limit;
+  Index bufferBaseIndex, initIndex, limitIndex;
+  Size wasBuffered;
+  Count agedGrains;
+  
+  NextMethod(Buffer, LOBuffer, flip)(buffer);
+
+  seg = BufferSeg(buffer);
+  if (seg == NULL)
+    return;
+
+  loseg = MustBeA(LOSeg, seg);
+  lo = MustBeA(LOPool, BufferPool(buffer));
+
+  /* Any objects between the buffer base and init were allocated
+     white, so account them as old. */
+  /* FIXME: Common code with amcBufFlip. */
+  init = BufferScanLimit(buffer);
+  wasBuffered = AddrOffset(BufferBase(buffer), init);
+  PoolGenAccountForAge(lo->pgen, wasBuffered, 0, FALSE);
+
+  /* Repeat the above accounting locally. */
+  segBase = SegBase(seg);
+  bufferBaseIndex = loIndexOfAddr(segBase, lo, BufferBase(buffer));
+  initIndex = loIndexOfAddr(segBase, lo, init);
+  agedGrains = initIndex - bufferBaseIndex;
+  loseg->oldGrains += agedGrains;
+  AVER(loseg->bufferedGrains >= agedGrains);
+  loseg->bufferedGrains -= agedGrains;
+
+  /* .flip.base: Shift the buffer base up over them, to keep the total
+     buffered account equal to the total size of the buffers. */
+  /* FIXME: Common code with amcBufFlip. */
+  buffer->base = init; /* FIXME: Abstract this */
+
+  /* After the flip, the mutator is allocating black.  Mark the unused
+     part of the buffer to ensure the objects there stay alive.  When
+     the buffer is emptied, allocations in this area will be accounted
+     for as new. */
+  limit = BufferLimit(buffer);
+  limitIndex = loIndexOfAddr(segBase, lo, limit);
+  if (initIndex < limitIndex) /* FIXME: Could detach if empty? */
+    BTSetRange(loseg->mark, initIndex, limitIndex);
+}
+  
 
 static Res LOFix(Pool pool, ScanState ss, Seg seg, Ref *refIO)
 {
@@ -795,6 +868,7 @@ DEFINE_CLASS(Pool, LOPool, klass)
   klass->reclaim = LOReclaim;
   klass->walk = LOWalk;
   klass->totalSize = LOTotalSize;
+  klass->bufferClass = LOBufferClassGet;
   klass->freeSize = LOFreeSize;
 }
 
