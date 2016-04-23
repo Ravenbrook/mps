@@ -691,10 +691,12 @@ static Res LOWhiten(Pool pool, Trace trace, Seg seg)
 
   grains = loSegGrains(loseg);
 
-  /* Whiten allocated objects, including any buffered areas. */
-  BTCopyInvertRange(loseg->alloc, loseg->mark, 0, grains);
+  /* Whiten the whole segment, including any buffered areas.  Pre-flip
+     buffered allocation is white, post-flip black (.flip.mark). */
+  BTResRange(loseg->mark, 0, grains);
 
-  /* Age allocated objects except for buffered areas. */
+  /* Age new objects.  Buffered areas aren't accounted until flip
+     (.flip.age). */
   PoolGenAccountForAge(lo->pgen, 0, LOGrainsSize(lo, loseg->newGrains), FALSE);
   loseg->oldGrains += loseg->newGrains;
   loseg->newGrains = 0;
@@ -731,8 +733,8 @@ static void loBufferFlip(Buffer buffer)
   loseg = MustBeA(LOSeg, seg);
   lo = MustBeA(LOPool, BufferPool(buffer));
 
-  /* Any objects between the buffer base and init were allocated
-     white, so account them as old. */
+  /* .flip.age: Any objects between the buffer base and init were
+     allocated white, so account them as old. */
   /* FIXME: Common code with amcBufFlip. */
   init = BufferScanLimit(buffer);
   wasBuffered = AddrOffset(BufferBase(buffer), init);
@@ -747,15 +749,19 @@ static void loBufferFlip(Buffer buffer)
   AVER(loseg->bufferedGrains >= agedGrains);
   loseg->bufferedGrains -= agedGrains;
 
+  /* FIXME: Also need to account for these objects to trace->condemned
+     for the traces for white they are now white, rather than doing it
+     prematurely in LOWhiten. */
+
   /* .flip.base: Shift the buffer base up over them, to keep the total
      buffered account equal to the total size of the buffers. */
   /* FIXME: Common code with amcBufFlip. */
   buffer->base = init; /* FIXME: Abstract this */
 
-  /* After the flip, the mutator is allocating black.  Mark the unused
-     part of the buffer to ensure the objects there stay alive.  When
-     the buffer is emptied, allocations in this area will be accounted
-     for as new. */
+  /* .flip.mark: After the flip, the mutator is allocating black.
+     Mark the unused part of the buffer to ensure the objects there
+     stay alive.  When the buffer is emptied, allocations in this area
+     will be accounted for as new. */
   limit = BufferLimit(buffer);
   limitIndex = loIndexOfAddr(segBase, lo, limit);
   if (initIndex < limitIndex) /* FIXME: Could detach if empty? */
