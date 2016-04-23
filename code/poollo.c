@@ -52,7 +52,7 @@ typedef struct LOSegStruct *LOSeg;
 
 typedef struct LOSegStruct {
   GCSegStruct gcSegStruct;  /* superclass fields must come first */
-  BT mark;                  /* mark bit table */
+  BT mark;                  /* NULL or mark bit table */
   BT alloc;                 /* alloc bit table */
   Count freeGrains;         /* free grains */
   Count bufferedGrains;     /* grains in buffers */
@@ -110,7 +110,6 @@ static Bool LOSegCheck(LOSeg loseg)
   LO lo = MustBeA(LOPool, SegPool(seg));
   CHECKS(LOSeg, loseg);
   CHECKD(GCSeg, &loseg->gcSegStruct);
-  CHECKL(loseg->mark != NULL);
   CHECKL(loseg->alloc != NULL);
   /* Could check exactly how many bits are set in the alloc table. */
   CHECKL(loseg->freeGrains + loseg->bufferedGrains + loseg->newGrains
@@ -143,16 +142,12 @@ static Res loSegInit(Seg seg, Pool pool, Addr base, Size size, ArgList args)
 
   grains = size >> lo->alignShift;
   tablebytes = BTSize(grains);
-  res = ControlAlloc(&p, arena, tablebytes);
-  if(res != ResOK)
-    goto failMarkTable;
-  loseg->mark = p;
+  loseg->mark = NULL;
   res = ControlAlloc(&p, arena, tablebytes);
   if(res != ResOK)
     goto failAllocTable;
   loseg->alloc = p;
   BTResRange(loseg->alloc, 0, grains);
-  BTSetRange(loseg->mark, 0, grains);
   loseg->freeGrains = grains;
   loseg->bufferedGrains = (Count)0;
   loseg->newGrains = (Count)0;
@@ -165,8 +160,6 @@ static Res loSegInit(Seg seg, Pool pool, Addr base, Size size, ArgList args)
   return ResOK;
 
 failAllocTable:
-  ControlFree(arena, loseg->mark, tablebytes);
-failMarkTable:
   NextMethod(Seg, LOSeg, finish)(seg);
 failSuperInit:
   AVER(res != ResOK);
@@ -189,7 +182,9 @@ static void loSegFinish(Seg seg)
   grains = loSegGrains(loseg);
   tablesize = BTSize(grains);
   ControlFree(arena, loseg->alloc, tablesize);
-  ControlFree(arena, loseg->mark, tablesize);
+  if (loseg->mark != NULL) {
+    ControlFree(arena, loseg->mark, tablesize);
+  }
 
   NextMethod(Seg, LOSeg, finish)(seg);
 }
@@ -223,7 +218,6 @@ static void loSegFree(LOSeg loseg, Index baseIndex, Index limitIndex)
 
   AVER(BTIsSetRange(loseg->alloc, baseIndex, limitIndex));
   BTResRange(loseg->alloc, baseIndex, limitIndex);
-  BTSetRange(loseg->mark, baseIndex, limitIndex);
 }
 
 
@@ -321,6 +315,7 @@ static void loSegReclaim(LOSeg loseg, Trace trace)
 
   AVERT(LOSeg, loseg);
   AVERT(Trace, trace);
+  AVER(loseg->mark != NULL);
 
   base = SegBase(seg);
   limit = SegLimit(seg);
@@ -384,6 +379,8 @@ static void loSegReclaim(LOSeg loseg, Trace trace)
   STATISTIC(trace->preservedInPlaceCount += preservedInPlaceCount);
   trace->preservedInPlaceSize += preservedInPlaceSize;
 
+  ControlFree(PoolArena(pool), loseg->mark, BTSize(loSegGrains(loseg)));
+  loseg->mark = NULL;
   SegSetWhite(seg, TraceSetDel(SegWhite(seg), trace));
 
   if (!marked) {
@@ -597,16 +594,19 @@ static Res LOBufferFill(Addr *baseReturn, Addr *limitReturn,
 
 found:
   {
-    Index baseIndex, limitIndex;
-    Addr segBase;
+    Addr segBase = SegBase(seg);
+    Index baseIndex = loIndexOfAddr(segBase, lo, base);
+    Index limitIndex = loIndexOfAddr(segBase, lo, limit);
 
-    segBase = SegBase(seg);
-    /* mark the newly buffered region as allocated */
-    baseIndex = loIndexOfAddr(segBase, lo, base);
-    limitIndex = loIndexOfAddr(segBase, lo, limit);
+    /* Mark the newly buffered region as allocated */
     AVER(BTIsResRange(loseg->alloc, baseIndex, limitIndex));
-    AVER(BTIsSetRange(loseg->mark, baseIndex, limitIndex));
     BTSetRange(loseg->alloc, baseIndex, limitIndex);
+
+    /* If the segment is condemned, mark the newly buffered region as
+       black.  FIXME: Could be white pre-flip. */
+    if (loseg->mark != NULL)
+      BTSetRange(loseg->mark, baseIndex, limitIndex);
+
     AVER(loseg->freeGrains >= limitIndex - baseIndex);
     loseg->freeGrains -= limitIndex - baseIndex;
     loseg->bufferedGrains += limitIndex - baseIndex;
@@ -685,11 +685,19 @@ static Res LOWhiten(Pool pool, Trace trace, Seg seg)
   LOSeg loseg = MustBeA(LOSeg, seg);
   Size condemnedSize;
   Count grains;
+  Res res;
+  void *p;
 
   AVERT(Trace, trace);
   AVER(SegWhite(seg) == TraceSetEMPTY);
 
   grains = loSegGrains(loseg);
+
+  AVER(loseg->mark == NULL);
+  res = ControlAlloc(&p, PoolArena(pool), BTSize(grains));
+  if (res != ResOK)
+    return res;
+  loseg->mark = p;
 
   /* Whiten the whole segment, including any buffered areas.  Pre-flip
      buffered allocation is white, post-flip black (.flip.mark). */
@@ -804,6 +812,7 @@ static Res LOFix(Pool pool, ScanState ss, Seg seg, Ref *refIO)
   case RankWEAK: {
     Size i = AddrOffset(SegBase(seg), base) >> lo->alignShift;
 
+    AVER_CRITICAL(loseg->mark != NULL);
     if(!BTGet(loseg->mark, i)) {
       ss->wasMarked = FALSE;  /* <design/fix/#protocol.was-marked> */
       if(ss->rank == RankWEAK) {
