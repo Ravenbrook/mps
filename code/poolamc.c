@@ -1560,6 +1560,9 @@ static Res AMCFixForward(Pool pool, ScanState ss, Seg seg, Ref *refIO, Addr clie
      copy is grey for the traces for which we just preserved it. */
   if (SegRankSet(seg) != RankSetEMPTY) { /* optimization for AMCZ */
     TraceSet grey = TraceSetUnion(SegGrey(seg), ss->traces);
+    /* TODO: The toSeg only needs to become grey for traces for which
+       its updated summary intersects the white set.  See also
+       design.mps.poolams.fix.to-black. */
     SegSetGrey(toSeg, TraceSetUnion(SegGrey(toSeg), grey));
     SegSetSummary(toSeg, RefSetUnion(SegSummary(toSeg), SegSummary(seg)));
   } else {
