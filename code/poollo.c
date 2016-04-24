@@ -91,6 +91,7 @@ DEFINE_CLASS(Buffer, LOBuffer, klass)
 
 
 /* TODO: Any way to avoid this having to exist? */
+/* TODO: Duplicate of awlBufferInit. */
 static Res loBufferInit(Buffer buffer, Pool pool, Bool isMutator, ArgList args)
 {
   Res res = NextMethod(Buffer, LOBuffer, init)(buffer, pool, isMutator, args);
@@ -298,6 +299,8 @@ static Res loSegCreate(LOSeg *loSegReturn, Pool pool, Size size)
 /* loSegReclaim -- reclaim white objects in an LO segment
  *
  * Could consider implementing this using Walk.
+ *
+ * TODO: Duplicate of AWLReclaim.
  */
 
 static void loSegReclaim(LOSeg loseg, Trace trace)
@@ -555,6 +558,11 @@ static void LOFinish(Pool pool)
 }
 
 
+/* LOBufferFill -- BufferFull method for LO
+ *
+ * TODO: Duplicate of AWLBufferFill.
+ */
+
 static Res LOBufferFill(Addr *baseReturn, Addr *limitReturn,
                         Pool pool, Buffer buffer,
                         Size size)
@@ -705,7 +713,8 @@ static Res LOWhiten(Pool pool, Trace trace, Seg seg)
 
   /* Age new objects.  Buffered areas aren't accounted until flip
      (.flip.age). */
-  PoolGenAccountForAge(lo->pgen, 0, LOGrainsSize(lo, loseg->newGrains), FALSE);
+  PoolGenAccountForAge(lo->pgen, 0,
+                       LOGrainsSize(lo, loseg->newGrains), FALSE);
   loseg->oldGrains += loseg->newGrains;
   loseg->newGrains = 0;
 

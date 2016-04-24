@@ -101,6 +101,9 @@ static Bool AWLCheck(AWL awl);
 typedef AWL AWLPool;
 #define AWLPoolCheck AWLCheck
 DECLARE_CLASS(Pool, AWLPool, AbstractCollectPool);
+typedef SegBuf AWLBuffer;
+#define AWLBufferCheck SegBufCheck
+DECLARE_CLASS(Buffer, AWLBuffer, RankBuf);
 
 
 /* Conversion between indexes and Addrs */
@@ -134,6 +137,7 @@ typedef struct AWLSegStruct {
 } AWLSegStruct, *AWLSeg;
 
 DECLARE_CLASS(Seg, AWLSeg, GCSeg);
+
 
 ATTRIBUTE_UNUSED
 static Bool AWLSegCheck(AWLSeg awlseg)
@@ -282,6 +286,95 @@ DEFINE_CLASS(Seg, AWLSeg, klass)
   klass->size = sizeof(AWLSegStruct);
   klass->init = AWLSegInit;
   klass->finish = AWLSegFinish;
+}
+
+
+/* TODO: Any way to avoid this having to exist? */
+/* TODO: Duplicate of loBufferInit. */
+static Res awlBufferInit(Buffer buffer, Pool pool, Bool isMutator, ArgList args)
+{
+  Res res = NextMethod(Buffer, AWLBuffer, init)(buffer, pool, isMutator, args);
+  if (res != ResOK)
+    return res;
+  SetClassOfPoly(buffer, CLASS(AWLBuffer));
+  return ResOK;
+}
+
+
+/* awlRangeBlacken -- helper function that works on a range */
+
+static void awlRangeBlacken(AWLSeg awlseg, Index base, Index limit)
+{
+  if (base != limit) {
+    AVER(base < limit);
+    AVER(limit <= awlseg->grains);
+    BTSetRange(awlseg->mark, base, limit);
+    BTSetRange(awlseg->scanned, base, limit);
+  }
+}
+
+
+/* TODO: Duplicate of loBufferFlip, except that it sets "scanned". */
+static void awlBufferFlip(Buffer buffer)
+{
+  Seg seg;
+  AWLSeg awlseg;
+  AWL awl;
+  Addr segBase, init, limit;
+  Index bufferBaseIndex, initIndex, limitIndex;
+  Size wasBuffered;
+  Count agedGrains;
+  
+  NextMethod(Buffer, AWLBuffer, flip)(buffer);
+
+  seg = BufferSeg(buffer);
+  if (seg == NULL)
+    return;
+
+  awlseg = MustBeA(AWLSeg, seg);
+  awl = MustBeA(AWLPool, BufferPool(buffer));
+
+  /* .flip.age: Any objects between the buffer base and init were
+     allocated white, so account them as old. */
+  /* FIXME: Common code with amcBufFlip. */
+  init = BufferScanLimit(buffer);
+  wasBuffered = AddrOffset(BufferBase(buffer), init);
+  PoolGenAccountForAge(awl->pgen, wasBuffered, 0, FALSE);
+
+  /* Repeat the above accounting locally. */
+  segBase = SegBase(seg);
+  bufferBaseIndex = awlIndexOfAddr(segBase, awl, BufferBase(buffer));
+  initIndex = awlIndexOfAddr(segBase, awl, init);
+  agedGrains = initIndex - bufferBaseIndex;
+  awlseg->oldGrains += agedGrains;
+  AVER(awlseg->bufferedGrains >= agedGrains);
+  awlseg->bufferedGrains -= agedGrains;
+
+  /* FIXME: Also need to account for these objects to trace->condemned
+     for the traces for white they are now white, rather than doing it
+     prematurely in LOWhiten. */
+
+  /* .flip.base: Shift the buffer base up over them, to keep the total
+     buffered account equal to the total size of the buffers. */
+  /* FIXME: Common code with amcBufFlip. */
+  buffer->base = init; /* FIXME: Abstract this */
+
+  /* .flip.mark: After the flip, the mutator is allocating black.
+     Mark the unused part of the buffer to ensure the objects there
+     stay alive.  When the buffer is emptied, allocations in this area
+     will be accounted for as new. */
+  limit = BufferLimit(buffer);
+  limitIndex = awlIndexOfAddr(segBase, awl, limit);
+  if (initIndex < limitIndex) /* FIXME: Could detach if empty? */
+    awlRangeBlacken(awlseg, initIndex, limitIndex);
+}
+  
+
+DEFINE_CLASS(Buffer, AWLBuffer, klass)
+{
+  INHERIT_CLASS(klass, AWLBuffer, RankBuf);
+  klass->init = awlBufferInit;
+  klass->flip = awlBufferFlip;
 }
 
 
@@ -604,7 +697,10 @@ static void AWLFinish(Pool pool)
 }
 
 
-/* AWLBufferFill -- BufferFill method for AWL */
+/* AWLBufferFill -- BufferFill method for AWL
+ *
+ * TODO: Duplcate of LOBufferFill.
+ */
 
 static Res AWLBufferFill(Addr *baseReturn, Addr *limitReturn,
                          Pool pool, Buffer buffer, Size size)
@@ -614,15 +710,16 @@ static Res AWLBufferFill(Addr *baseReturn, Addr *limitReturn,
   Res res;
   Ring node, nextNode;
   AWLSeg awlseg;
+  Seg seg;
 
   AVER(baseReturn != NULL);
   AVER(limitReturn != NULL);
   AVERC(Buffer, buffer);
   AVER(size > 0);
 
+  /* Try to find a segment with enough space already. */
   RING_FOR(node, &pool->segRing, nextNode) {
-    Seg seg = SegOfPoolRing(node);
-    
+    seg = SegOfPoolRing(node);
     awlseg = MustBeA(AWLSeg, seg);
 
     /* Only try to allocate in the segment if it is not already */
@@ -634,31 +731,34 @@ static Res AWLBufferFill(Addr *baseReturn, Addr *limitReturn,
       goto found;
   }
 
-  /* No free space in existing awlsegs, so create new awlseg */
-
+  /* No segment had enough space, so make a new one. */
   res = AWLSegCreate(&awlseg, BufferRankSet(buffer), pool, size);
   if (res != ResOK)
     return res;
+  seg = MustBeA(Seg, awlseg);
   base = SegBase(MustBeA(Seg, awlseg));
   limit = SegLimit(MustBeA(Seg, awlseg));
 
 found:
   {
-    Index i, j;
-    Seg seg = MustBeA(Seg, awlseg);
-    i = awlIndexOfAddr(SegBase(seg), awl, base);
-    j = awlIndexOfAddr(SegBase(seg), awl, limit);
-    AVER(i < j);
-    BTSetRange(awlseg->alloc, i, j);
-    /* Objects are allocated black. */
-    /* Shouldn't this depend on trace phase?  @@@@ */
-    BTSetRange(awlseg->mark, i, j);
-    BTSetRange(awlseg->scanned, i, j);
-    AVER(awlseg->freeGrains >= j - i);
-    awlseg->freeGrains -= j - i;
-    awlseg->bufferedGrains += j - i;
-    PoolGenAccountForFill(awl->pgen, AddrOffset(base, limit));
+    Addr segBase = SegBase(seg);
+    Index baseIndex = awlIndexOfAddr(segBase, awl, base);
+    Index limitIndex = awlIndexOfAddr(segBase, awl, limit);
+
+    AVER(BTIsResRange(awlseg->alloc, baseIndex, limitIndex));
+    BTSetRange(awlseg->alloc, baseIndex, limitIndex);
+
+    /* Mark the newly buffered region as black.  FIXME: Could be white
+       pre-flip. */
+    awlRangeBlacken(awlseg, baseIndex, limitIndex);
+
+    AVER(awlseg->freeGrains >= limitIndex - baseIndex);
+    awlseg->freeGrains -= limitIndex - baseIndex;
+    awlseg->bufferedGrains += limitIndex - baseIndex;
   }
+
+  PoolGenAccountForFill(awl->pgen, AddrOffset(base, limit));
+
   *baseReturn = base;
   *limitReturn = limit;
   return ResOK;
@@ -715,8 +815,7 @@ static Res AWLWhiten(Pool pool, Trace trace, Seg seg)
 {
   AWL awl = MustBeA(AWLPool, pool);
   AWLSeg awlseg = MustBeA(AWLSeg, seg);
-  Buffer buffer = SegBuffer(seg);
-  Count agedGrains, uncondemnedGrains;
+  Size condemnedSize;
 
   /* All parameters checked by generic PoolWhiten. */
 
@@ -724,38 +823,20 @@ static Res AWLWhiten(Pool pool, Trace trace, Seg seg)
   /* see <design/poolawl/#fun.condemn> */
   AVER(SegWhite(seg) == TraceSetEMPTY);
 
-  if(buffer == NULL) {
-    awlRangeWhiten(awlseg, 0, awlseg->grains);
-    uncondemnedGrains = (Count)0;
-  } else {
-    /* Whiten everything except the buffer. */
-    Addr base = SegBase(seg);
-    Index scanLimitIndex = awlIndexOfAddr(base, awl, BufferScanLimit(buffer));
-    Index limitIndex = awlIndexOfAddr(base, awl, BufferLimit(buffer));
-    uncondemnedGrains = limitIndex - scanLimitIndex;
-    awlRangeWhiten(awlseg, 0, scanLimitIndex);
-    awlRangeWhiten(awlseg, limitIndex, awlseg->grains);
+  /* Whiten the whole segment, including any buffered areas.  Pre-flip
+     buffered allocation is white, post-flip black (.flip.mark). */
+  awlRangeWhiten(awlseg, 0, awlseg->grains);
 
-    /* Check the buffer is black. */
-    /* This really ought to change when we have a non-trivial */
-    /* pre-flip phase. @@@@ ('coz then we'll be allocating white) */
-    if(scanLimitIndex != limitIndex) {
-      AVER(BTIsSetRange(awlseg->mark, scanLimitIndex, limitIndex));
-      AVER(BTIsSetRange(awlseg->scanned, scanLimitIndex, limitIndex));
-    }
-  }
-
-  /* The unused part of the buffer remains buffered: the rest becomes old. */
-  AVER(awlseg->bufferedGrains >= uncondemnedGrains);
-  agedGrains = awlseg->bufferedGrains - uncondemnedGrains;
-  PoolGenAccountForAge(awl->pgen, AWLGrainsSize(awl, agedGrains),
+  /* The unused part of the buffer remains buffered: the rest becomes
+     old. */
+  PoolGenAccountForAge(awl->pgen, 0,
                        AWLGrainsSize(awl, awlseg->newGrains), FALSE);
-  awlseg->oldGrains += agedGrains + awlseg->newGrains;
-  awlseg->bufferedGrains = uncondemnedGrains;
+  awlseg->oldGrains += awlseg->newGrains;
   awlseg->newGrains = 0;
 
-  if (awlseg->oldGrains > 0) {
-    trace->condemned += AWLGrainsSize(awl, awlseg->oldGrains);
+  condemnedSize = AWLGrainsSize(awl, awlseg->oldGrains + awlseg->bufferedGrains);
+  if (condemnedSize > 0) {
+    trace->condemned += condemnedSize;
     SegSetWhite(seg, TraceSetAdd(SegWhite(seg), trace));
   }
   
@@ -1020,7 +1101,10 @@ static Res AWLFix(Pool pool, ScanState ss, Seg seg, Ref *refIO)
 }
 
 
-/* AWLReclaim -- reclaim dead objects in an AWL segment */
+/* AWLReclaim -- reclaim dead objects in an AWL segment
+ *
+ * TODO: Duplicate of LOReclaim.
+ */
 
 static void AWLReclaim(Pool pool, Trace trace, Seg seg)
 {
@@ -1083,6 +1167,7 @@ static void AWLReclaim(Pool pool, Trace trace, Seg seg)
   STATISTIC(trace->reclaimSize += AWLGrainsSize(awl, reclaimedGrains));
   STATISTIC(trace->preservedInPlaceCount += preservedInPlaceCount);
   trace->preservedInPlaceSize += preservedInPlaceSize;
+
   SegSetWhite(seg, TraceSetDel(SegWhite(seg), trace));
 
   if (awlseg->freeGrains == awlseg->grains && buffer == NULL) {
@@ -1218,7 +1303,7 @@ DEFINE_CLASS(Pool, AWLPool, klass)
   klass->varargs = AWLVarargs;
   klass->init = AWLInit;
   klass->finish = AWLFinish;
-  klass->bufferClass = RankBufClassGet;
+  klass->bufferClass = AWLBufferClassGet;
   klass->bufferFill = AWLBufferFill;
   klass->bufferEmpty = AWLBufferEmpty;
   klass->access = AWLAccess;
