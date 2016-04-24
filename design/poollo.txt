@@ -141,7 +141,7 @@ _`.loseg.decl`: The declaration of the structure is as follows::
     typedef struct LOSegStruct {
       GCSegStruct gcSegStruct;  /* superclass fields must come first */
       LO lo;                    /* owning LO */
-      BT mark;                  /* mark bit table */
+      BT mark;                  /* NULL or mark bit table */
       BT alloc;                 /* alloc bit table */
       Count free;               /* number of free grains */
       Sig sig;                  /* impl.h.misc.sig */
@@ -158,17 +158,17 @@ but might be inefficient in terms of space in some circumstances.
 
 .. _design.mps.bt: bt
 
-_`.loseg.mark`: This is a Bit Table that is used to mark objects
-during a trace. Each grain in the segment is associated with 1 bit in
-this table. When ``LOFix()`` (see `.fun.fix`_ below) is called the
-address is converted to a grain within the segment and the
-corresponding bit in this table is set.
+_`.loseg.mark`: This is a Bit Table that is used to mark objects on
+white segments during a trace. The table is allocated and reset when a
+segment is whitened during condemn. Each grain in the segment is
+associated with one bit in this table. When ``LOFix()`` (see
+`.fun.fix`_ below) is called the address is converted to a grain
+within the segment and the corresponding bit in this table is set. The
+table is used to recycle unmaked objects at reclaim.
 
 _`.loseg.alloc`: This is a Bit Table that is used to record which
-addresses are allocated. Addresses that are allocated and are not
-buffered have their corresponding bit in this table set. If a bit in
-this table is reset then either the address is free or is being
-buffered.
+addresses are not free for allocation, including addresses allocated
+to buffers.
 
 _`.loseg.diagram`: The following diagram is now obsolete. It's also
 not very interesting - but I've left the sources in case anyone ever
