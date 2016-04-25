@@ -15,6 +15,8 @@ Interface changes
 
 #. Allocation frames are no longer deprecated. See :ref:`topic-frame`.
 
+#. :c:macro:`MPS_KEY_AMS_SUPPORT_AMBIGUOUS` is deprecated, and no
+   longer has any effect.
 
 Other changes
 .............

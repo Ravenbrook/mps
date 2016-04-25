@@ -75,11 +75,6 @@ Bool AMSSegCheck(AMSSeg amsseg)
   CHECKD_NOSIG(BT, amsseg->nongreyTable);
   CHECKD_NOSIG(BT, amsseg->nonwhiteTable);
 
-  /* If tables are shared, they mustn't both be in use. */
-  CHECKL(!(amsseg->ams->shareAllocTable
-           && amsseg->allocTableInUse
-           && amsseg->colourTablesInUse));
-
   return TRUE;
 }
 
@@ -157,6 +152,7 @@ static Res amsCreateTables(AMS ams, BT *allocReturn,
   AVER(nonwhiteReturn != NULL);
   AVERT(Arena, arena);
   AVER(length > 0);
+  UNUSED(ams);
 
   res = BTCreate(&allocTable, arena, length);
   if (res != ResOK)
@@ -164,13 +160,9 @@ static Res amsCreateTables(AMS ams, BT *allocReturn,
   res = BTCreate(&nongreyTable, arena, length);
   if (res != ResOK)
     goto failGrey;
-  if (ams->shareAllocTable)
-    nonwhiteTable = allocTable;
-  else {
-    res = BTCreate(&nonwhiteTable, arena, length);
-    if (res != ResOK)
-      goto failWhite;
-  }
+  res = BTCreate(&nonwhiteTable, arena, length);
+  if (res != ResOK)
+    goto failWhite;
 
 #if defined(AVER_AND_CHECK_ALL)
   /* Invalidate the colour tables in checking varieties. The algorithm
@@ -206,9 +198,9 @@ static void amsDestroyTables(AMS ams, BT allocTable,
   AVER(nonwhiteTable != NULL);
   AVERT(Arena, arena);
   AVER(length > 0);
+  UNUSED(ams);
 
-  if (!ams->shareAllocTable)
-    BTDestroy(nonwhiteTable, arena, length);
+  BTDestroy(nonwhiteTable, arena, length);
   BTDestroy(nongreyTable, arena, length);
   BTDestroy(allocTable, arena, length);
 }
@@ -379,8 +371,7 @@ static Res AMSSegMerge(Seg seg, Seg segHi,
 
   MERGE_TABLES(allocTable, BTResRange);
   MERGE_TABLES(nongreyTable, BTSetRange);
-  if (!ams->shareAllocTable)
-    MERGE_TABLES(nonwhiteTable, BTSetRange);
+  MERGE_TABLES(nonwhiteTable, BTSetRange);
 
   amsseg->grains = allGrains;
   amsseg->freeGrains = amsseg->freeGrains + amssegHi->freeGrains;
@@ -781,7 +772,6 @@ static Res AMSInit(Pool pool, Arena arena, PoolClass klass, ArgList args)
 {
   Res res;
   Chain chain;
-  Bool supportAmbiguous = AMS_SUPPORT_AMBIGUOUS_DEFAULT;
   unsigned gen = AMS_GEN_DEFAULT;
   ArgStruct arg;
   AMS ams;
@@ -799,8 +789,6 @@ static Res AMSInit(Pool pool, Arena arena, PoolClass klass, ArgList args)
   }
   if (ArgPick(&arg, args, MPS_KEY_GEN))
     gen = arg.val.u;
-  if (ArgPick(&arg, args, MPS_KEY_AMS_SUPPORT_AMBIGUOUS))
-    supportAmbiguous = arg.val.b;
 
   AVERT(Chain, chain);
   AVER(gen <= ChainGens(chain));
@@ -817,7 +805,6 @@ static Res AMSInit(Pool pool, Arena arena, PoolClass klass, ArgList args)
   ams->grainShift = SizeLog2(PoolAlignment(pool));
   /* .ambiguous.noshare: If the pool is required to support ambiguous */
   /* references, the alloc and white tables cannot be shared. */
-  ams->shareAllocTable = !supportAmbiguous;
   ams->pgen = NULL;
 
   RingInit(&ams->segRing);
@@ -1044,18 +1031,6 @@ static void AMSBufferEmpty(Pool pool, Buffer buffer, Addr init, Addr limit)
       AVER(limitIndex <= amsseg->firstFree);
       if (limitIndex == amsseg->firstFree) /* is it at the end? */ {
         amsseg->firstFree = initIndex;
-      } else if (ams->shareAllocTable && amsseg->colourTablesInUse) {
-        /* The nonwhiteTable is shared with allocTable and in use, so we
-         * mustn't start using allocTable. In this case we know: 1. the
-         * segment has been condemned (because colour tables are turned
-         * on in AMSWhiten); 2. the segment has not yet been reclaimed
-         * (because colour tables are turned off in AMSReclaim); 3. the
-         * unused portion of the buffer is black (see AMSWhiten). So we
-         * need to whiten the unused portion of the buffer. The
-         * allocTable will be turned back on (if necessary) in
-         * AMSReclaim, when we know that the nonwhite grains are exactly
-         * the allocated grains.
-         */
       } else {
         /* start using allocTable */
         amsseg->allocTableInUse = TRUE;
@@ -1130,18 +1105,7 @@ static Res AMSWhiten(Pool pool, Trace trace, Seg seg)
       BTResRange(amsseg->allocTable, amsseg->firstFree, amsseg->grains);
   }
 
-  /* Start using allocTable as the white table, if so configured. */
-  if (ams->shareAllocTable) {
-    if (amsseg->allocTableInUse) {
-      /* During the collection, it can't use allocTable for AMS_ALLOCED, so */
-      /* make it use firstFree. */
-      amsseg->allocTableInUse = FALSE;
-      /* Could find a better value for firstFree, but probably not worth it. */
-      amsseg->firstFree = amsseg->grains;
-    }
-  } else { /* Otherwise, use it as alloc table. */
-    amsseg->allocTableInUse = TRUE;
-  }
+  amsseg->allocTableInUse = TRUE;
 
   buffer = SegBuffer(seg);
   if (buffer != NULL) { /* <design/poolams/#condemn.buffer> */
@@ -1223,10 +1187,6 @@ static Res amsIterate(Seg seg, AMSObjectFunction f, void *closure)
   format = AMSPool(ams)->format;
   AVERT(Format, format);
   alignment = PoolAlignment(AMSPool(ams));
-
-  /* If we're using the alloc table as a white table, we can't use it to */
-  /* determine where there are objects. */
-  AVER(!(ams->shareAllocTable && amsseg->colourTablesInUse));
 
   p = SegBase(seg);
   limit = SegLimit(seg);
@@ -1479,10 +1439,6 @@ static Res AMSFix(Pool pool, ScanState ss, Seg seg, Ref *refIO)
 
   switch (ss->rank) {
   case RankAMBIG:
-    if (PoolAMS(pool)->shareAllocTable)
-      /* In this state, the pool doesn't support ambiguous references (see */
-      /* .ambiguous.noshare), so this is not a reference. */
-      break;
     /* not a real pointer if not aligned or not allocated */
     if (!AddrIsAligned(base, PoolAlignment(pool))
        || !AMS_ALLOCED(seg, i)) {
@@ -1615,13 +1571,8 @@ static void AMSReclaim(Pool pool, Trace trace, Seg seg)
          || BTIsResRange(amsseg->nonwhiteTable,
                          amsseg->firstFree, grains));
   } else {
-    if (ams->shareAllocTable) {
-      /* Stop using allocTable as the white table. */
-      amsseg->allocTableInUse = TRUE;
-    } else {
-      AVER(amsseg->allocTableInUse);
-      BTCopyRange(amsseg->nonwhiteTable, amsseg->allocTable, 0, grains);
-    }
+    AVER(amsseg->allocTableInUse);
+    BTCopyRange(amsseg->nonwhiteTable, amsseg->allocTable, 0, grains);
   }
 
   reclaimedGrains = nowFree - amsseg->freeGrains;

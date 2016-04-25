@@ -50,7 +50,6 @@ typedef struct AMSStruct {
   AMSRingFunction allocRing;   /* fn to get the ring to allocate from */
   AMSSegsDestroyFunction segsDestroy;
   AMSSegClassFunction segClass;/* fn to get the class for segments */
-  Bool shareAllocTable;        /* the alloc table is also used as white table */
   Sig sig;                     /* <design/pool/#outer-structure.sig> */
 } AMSStruct;
 

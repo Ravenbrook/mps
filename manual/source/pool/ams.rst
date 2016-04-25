@@ -56,9 +56,7 @@ AMS properties
   never promoted out of the generation in which they are allocated.
 
 * Blocks may contain :term:`exact references` to blocks in the same or
-  other pools, or :term:`ambiguous references` (unless the
-  :c:macro:`MPS_KEY_AMS_SUPPORT_AMBIGUOUS` keyword argument is set to
-  ``FALSE`` when creating the pool). Blocks may not contain
+  other pools, or :term:`ambiguous references`. Blocks may not contain
   :term:`weak references (1)`, and may not use :term:`remote
   references`.
 
@@ -127,10 +125,6 @@ AMS interface
       Note that AWL does not use generational garbage collection, so
       blocks remain in this generation and are not promoted.
 
-    * :c:macro:`MPS_KEY_AMS_SUPPORT_AMBIGUOUS` (type
-      :c:type:`mps_bool_t`, default ``TRUE``) specifies whether
-      references to blocks in the pool may be ambiguous.
-
     For example::
 
         MPS_ARGS_BEGIN(args) {
@@ -164,8 +158,7 @@ AMS interface
 
     When creating a debugging AMS pool, :c:func:`mps_pool_create_k`
     accepts the following keyword arguments:
-    :c:macro:`MPS_KEY_FORMAT`, :c:macro:`MPS_KEY_CHAIN`,
-    :c:macro:`MPS_KEY_GEN`, and
-    :c:macro:`MPS_KEY_AMS_SUPPORT_AMBIGUOUS` are as described above,
-    and :c:macro:`MPS_KEY_POOL_DEBUG_OPTIONS` specifies the debugging
+    :c:macro:`MPS_KEY_FORMAT`, :c:macro:`MPS_KEY_CHAIN`, and
+    :c:macro:`MPS_KEY_GEN`, are as described above, and
+    :c:macro:`MPS_KEY_POOL_DEBUG_OPTIONS` specifies the debugging
     options. See :c:type:`mps_pool_debug_option_s`.

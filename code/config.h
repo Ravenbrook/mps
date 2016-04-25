@@ -353,7 +353,6 @@
 
 /* Pool AMS Configuration -- see <code/poolams.c> */
 
-#define AMS_SUPPORT_AMBIGUOUS_DEFAULT TRUE
 #define AMS_GEN_DEFAULT       0
 
 
