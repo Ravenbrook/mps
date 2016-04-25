@@ -234,7 +234,6 @@ static Bool loSegFindFree(Addr *bReturn, Addr *lReturn,
   Pool pool = SegPool(seg);
   LO lo = MustBeA(LOPool, pool);
   Count agrains;
-  Count grains;
   Addr segBase;
 
   AVER(bReturn != NULL);
@@ -250,15 +249,13 @@ static Bool loSegFindFree(Addr *bReturn, Addr *lReturn,
   AVER(agrains <= loseg->freeGrains);
   AVER(size <= SegSize(seg));
 
-  if(SegBuffer(seg) != NULL)
-    /* Don't bother trying to allocate from a buffered segment */
+  /* Don't bother trying to allocate from a buffered segment */
+  if (SegBuffer(seg) != NULL)
     return FALSE;
 
-  grains = loSegGrains(loseg);
-  if(!BTFindLongResRange(&baseIndex, &limitIndex, loseg->alloc,
-                     0, grains, agrains)) {
+  if (!BTFindLongResRange(&baseIndex, &limitIndex, loseg->alloc,
+                          0, loSegGrains(loseg), agrains))
     return FALSE;
-  }
 
   /* check that BTFindLongResRange really did find enough space */
   AVER(baseIndex < limitIndex);

@@ -126,7 +126,6 @@ typedef struct AWLSegStruct {
   BT mark;
   BT scanned;
   BT alloc;
-  Count grains;
   Count freeGrains;         /* free grains */
   Count bufferedGrains;     /* grains in buffers */
   Count newGrains;          /* grains allocated since last collection */
@@ -142,14 +141,16 @@ DECLARE_CLASS(Seg, AWLSeg, GCSeg);
 ATTRIBUTE_UNUSED
 static Bool AWLSegCheck(AWLSeg awlseg)
 {
+  Seg seg = MustBeA(Seg, awlseg);
+  AWL awl = MustBeA(AWLPool, SegPool(seg));
   CHECKS(AWLSeg, awlseg);
   CHECKD(GCSeg, &awlseg->gcSegStruct);
   CHECKL(awlseg->mark != NULL);
   CHECKL(awlseg->scanned != NULL);
   CHECKL(awlseg->alloc != NULL);
-  CHECKL(awlseg->grains > 0);
-  CHECKL(awlseg->grains == awlseg->freeGrains + awlseg->bufferedGrains
-         + awlseg->newGrains + awlseg->oldGrains);
+  CHECKL(awlseg->freeGrains + awlseg->bufferedGrains +
+         awlseg->newGrains + awlseg->oldGrains ==
+         SegSize(seg) >> awl->alignShift);
   return TRUE;
 }
 
@@ -183,7 +184,7 @@ static Res AWLSegInit(Seg seg, Pool pool, Addr base, Size size, ArgList args)
   AWL awl = MustBeA(AWLPool, pool);
   Arena arena;
   RankSet rankSet;
-  Count bits;        /* number of grains */
+  Count grains;
   Res res;
   Size tableSize;
   void *v;
@@ -207,8 +208,8 @@ static Res AWLSegInit(Seg seg, Pool pool, Addr base, Size size, ArgList args)
   arena = PoolArena(pool);
   /* no useful checks for base and size */
 
-  bits = size >> awl->alignShift;
-  tableSize = BTSize(bits);
+  grains = size >> awl->alignShift;
+  tableSize = BTSize(grains);
   res = ControlAlloc(&v, arena, tableSize);
   if (res != ResOK)
     goto failControlAllocMark;
@@ -221,12 +222,11 @@ static Res AWLSegInit(Seg seg, Pool pool, Addr base, Size size, ArgList args)
   if (res != ResOK)
     goto failControlAllocAlloc;
   awlseg->alloc = v;
-  awlseg->grains = bits;
-  BTResRange(awlseg->mark, 0, bits);
-  BTResRange(awlseg->scanned, 0, bits);
-  BTResRange(awlseg->alloc, 0, bits);
+  BTResRange(awlseg->mark, 0, grains);
+  BTResRange(awlseg->scanned, 0, grains);
+  BTResRange(awlseg->alloc, 0, grains);
   SegSetRankAndSummary(seg, rankSet, RefSetUNIV);
-  awlseg->freeGrains = bits;
+  awlseg->freeGrains = grains;
   awlseg->bufferedGrains = (Count)0;
   awlseg->newGrains = (Count)0;
   awlseg->oldGrains = (Count)0;
@@ -260,13 +260,12 @@ static void AWLSegFinish(Seg seg)
   AWL awl = MustBeA(AWLPool, pool);
   Arena arena = PoolArena(pool);
   Size tableSize;
-  Count segGrains;
+  Count grains;
 
   /* This is one of the few places where it is easy to check */
   /* awlseg->grains, so we do */
-  segGrains = SegSize(seg) >> awl->alignShift;
-  AVER(segGrains == awlseg->grains);
-  tableSize = BTSize(segGrains);
+  grains = SegSize(seg) >> awl->alignShift;
+  tableSize = BTSize(grains);
   ControlFree(arena, awlseg->alloc, tableSize);
   ControlFree(arena, awlseg->scanned, tableSize);
   ControlFree(arena, awlseg->mark, tableSize);
@@ -301,13 +300,23 @@ static Res awlBufferInit(Buffer buffer, Pool pool, Bool isMutator, ArgList args)
 }
 
 
+ATTRIBUTE_UNUSED
+static Count awlSegGrains(AWLSeg awlseg)
+{
+  Seg seg = MustBeA(Seg, awlseg);
+  AWL awl = MustBeA(AWLPool, SegPool(seg));
+  Size size = SegSize(seg);
+  return size >> awl->alignShift;
+}
+
+
 /* awlRangeBlacken -- helper function that works on a range */
 
 static void awlRangeBlacken(AWLSeg awlseg, Index base, Index limit)
 {
   if (base != limit) {
     AVER(base < limit);
-    AVER(limit <= awlseg->grains);
+    AVER(limit <= awlSegGrains(awlseg));
     BTSetRange(awlseg->mark, base, limit);
     BTSetRange(awlseg->scanned, base, limit);
   }
@@ -380,15 +389,16 @@ DEFINE_CLASS(Buffer, AWLBuffer, klass)
 
 /* Single access pattern control parameters
  *
- * These control the number of expensive emulated single-accesses we allow
- * before we give up and scan a segment at whatever rank, possibly causing
- * retention of weak objects.
+ * These control the number of expensive emulated single-accesses we
+ * allow before we give up and scan a segment at whatever rank,
+ * possibly causing retention of weak objects.
  *
- * AWLSegSALimit is the number of accesses for a single segment in a GC cycle.
- * AWLTotalSALimit is the total number of accesses during a GC cycle.
+ * AWLSegSALimit is the number of accesses for a single segment in a
+ * GC cycle.  AWLTotalSALimit is the total number of accesses during a
+ * GC cycle.
  *
- * These should be set in config.h, but are here in static variables so that
- * it's possible to tweak them in a debugger.
+ * These should be set in config.h, but are here in static variables
+ * so that it's possible to tweak them in a debugger.
  */
 
 extern Count AWLSegSALimit;
@@ -556,9 +566,9 @@ static Res AWLSegCreate(AWLSeg *awlsegReturn,
 static Bool AWLSegAlloc(Addr *baseReturn, Addr *limitReturn,
                         AWLSeg awlseg, AWL awl, Size size)
 {
+  Seg seg = MustBeA(Seg, awlseg);
   Count n;        /* number of grains equivalent to alloc size */
   Index i, j;
-  Seg seg = MustBeA(Seg, awlseg);
 
   AVER(baseReturn != NULL);
   AVER(limitReturn != NULL);
@@ -569,7 +579,8 @@ static Bool AWLSegAlloc(Addr *baseReturn, Addr *limitReturn,
   if (size > SegSize(seg))
     return FALSE;
   n = size >> awl->alignShift;
-  if (!BTFindLongResRange(&i, &j, awlseg->alloc, 0, awlseg->grains, n))
+  if (!BTFindLongResRange(&i, &j, awlseg->alloc,
+                          0, awlSegGrains(awlseg), n))
     return FALSE;
   *baseReturn = awlAddrOfIndex(SegBase(seg), awl, i);
   *limitReturn = awlAddrOfIndex(SegBase(seg),awl, j);
@@ -805,7 +816,7 @@ static void awlRangeWhiten(AWLSeg awlseg, Index base, Index limit)
 {
   if(base != limit) {
     AVER(base < limit);
-    AVER(limit <= awlseg->grains);
+    AVER(limit <= awlSegGrains(awlseg));
     BTResRange(awlseg->mark, base, limit);
     BTResRange(awlseg->scanned, base, limit);
   }
@@ -825,7 +836,7 @@ static Res AWLWhiten(Pool pool, Trace trace, Seg seg)
 
   /* Whiten the whole segment, including any buffered areas.  Pre-flip
      buffered allocation is white, post-flip black (.flip.mark). */
-  awlRangeWhiten(awlseg, 0, awlseg->grains);
+  awlRangeWhiten(awlseg, 0, awlSegGrains(awlseg));
 
   /* The unused part of the buffer remains buffered: the rest becomes
      old. */
@@ -850,7 +861,7 @@ static Res AWLWhiten(Pool pool, Trace trace, Seg seg)
 static void AWLRangeGrey(AWLSeg awlseg, Index base, Index limit)
 {
   /* AWLSeg not checked as that's already been done */
-  AVER(limit <= awlseg->grains);
+  AVER(limit <= awlSegGrains(awlseg));
   /* copes with degenerate case as that makes caller simpler */
   if (base < limit) {
     BTSetRange(awlseg->mark, base, limit);
@@ -871,7 +882,7 @@ static void AWLGrey(Pool pool, Trace trace, Seg seg)
     AWLSeg awlseg = MustBeA(AWLSeg, seg);
 
     SegSetGrey(seg, TraceSetAdd(SegGrey(seg), trace));
-    if (SegBuffer(seg) != NULL) {
+    if (SegBuffer(seg) != NULL) { /* FIXME: Check this! */
       Addr base = SegBase(seg);
       Buffer buffer = SegBuffer(seg);
 
@@ -880,9 +891,9 @@ static void AWLGrey(Pool pool, Trace trace, Seg seg)
                    awlIndexOfAddr(base, awl, BufferScanLimit(buffer)));
       AWLRangeGrey(awlseg,
                    awlIndexOfAddr(base, awl, BufferLimit(buffer)),
-                   awlseg->grains);
+                   awlSegGrains(awlseg));
     } else {
-      AWLRangeGrey(awlseg, 0, awlseg->grains);
+      AWLRangeGrey(awlseg, 0, awlSegGrains(awlseg));
     }
   }
 }
@@ -898,7 +909,7 @@ static void AWLBlacken(Pool pool, TraceSet traceSet, Seg seg)
 
   AVERT(TraceSet, traceSet);
 
-  BTSetRange(awlseg->scanned, 0, awlseg->grains);
+  BTSetRange(awlseg->scanned, 0, awlSegGrains(awlseg));
 }
 
 
@@ -1111,7 +1122,7 @@ static void AWLReclaim(Pool pool, Trace trace, Seg seg)
   AWL awl = MustBeA(AWLPool, pool);
   AWLSeg awlseg = MustBeA(AWLSeg, seg);
   Addr base = SegBase(seg);
-  Count grains = awlseg->grains;
+  Count grains = awlSegGrains(awlseg);
   Buffer buffer = SegBuffer(seg);
   Addr bufferSkip, bufferLimit;
   Format format = pool->format;
@@ -1200,7 +1211,7 @@ static void AWLReclaim(Pool pool, Trace trace, Seg seg)
 
   /* Destroy entirely free segment. */
   /* TODO: Consider keeping spare segments. */
-  if (awlseg->freeGrains == awlseg->grains && buffer == NULL) {
+  if (awlseg->freeGrains == grains && buffer == NULL) {
     AVER(awlseg->oldGrains == 0);
     AVER(awlseg->newGrains == 0);
     AVER(awlseg->bufferedGrains == 0);
