@@ -195,6 +195,10 @@ DECLARE_CLASS(Pool, AMSDebugPool, AMSPool);
 
 DECLARE_CLASS(Seg, AMSSeg, GCSeg);
 
+typedef SegBuf AMSBuffer;
+#define AMSBufferCheck SegBufCheck
+DECLARE_CLASS(Buffer, AMSBuffer, RankBuf);
+
 
 #endif /* poolams_h */
 

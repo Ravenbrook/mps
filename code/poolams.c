@@ -622,6 +622,81 @@ DEFINE_CLASS(Seg, AMSSeg, klass)
 }
 
 
+/* TODO: Any way to avoid this having to exist? */
+/* TODO: Duplicate of loBufferInit. */
+static Res amsBufferInit(Buffer buffer, Pool pool, Bool isMutator, ArgList args)
+{
+  Res res = NextMethod(Buffer, AMSBuffer, init)(buffer, pool, isMutator, args);
+  if (res != ResOK)
+    return res;
+  SetClassOfPoly(buffer, CLASS(AMSBuffer));
+  return ResOK;
+}
+
+
+/* TODO: Duplicate of loBufferFlip, except that it sets "scanned". */
+static void amsBufferFlip(Buffer buffer)
+{
+  Seg seg;
+  AMSSeg amsseg;
+  AMS ams;
+  Addr init, limit;
+  Index bufferBaseIndex, initIndex, limitIndex;
+  Size wasBuffered;
+  Count agedGrains;
+  
+  NextMethod(Buffer, AMSBuffer, flip)(buffer);
+
+  seg = BufferSeg(buffer);
+  if (seg == NULL)
+    return;
+
+  amsseg = MustBeA(AMSSeg, seg);
+  ams = MustBeA(AMSPool, BufferPool(buffer));
+
+  /* .flip.age: Any objects between the buffer base and init were
+     allocated white, so account them as old. */
+  /* FIXME: Common code with amcBufFlip. */
+  init = BufferScanLimit(buffer);
+  wasBuffered = AddrOffset(BufferBase(buffer), init);
+  PoolGenAccountForAge(ams->pgen, wasBuffered, 0, FALSE);
+
+  /* Repeat the above accounting locally. */
+  bufferBaseIndex = AMS_ADDR_INDEX(seg, BufferBase(buffer));
+  initIndex = AMS_ADDR_INDEX(seg, init);
+  agedGrains = initIndex - bufferBaseIndex;
+  amsseg->oldGrains += agedGrains;
+  AVER(amsseg->bufferedGrains >= agedGrains);
+  amsseg->bufferedGrains -= agedGrains;
+
+  /* FIXME: Also need to account for these objects to trace->condemned
+     for the traces for white they are now white, rather than doing it
+     prematurely in AWLWhiten. */
+
+  /* .flip.base: Shift the buffer base up over them, to keep the total
+     buffered account equal to the total size of the buffers. */
+  /* FIXME: Common code with amcBufFlip. */
+  buffer->base = init; /* FIXME: Abstract this */
+
+  /* .flip.mark: After the flip, the mutator is allocating black.
+     Mark the unused part of the buffer to ensure the objects there
+     stay alive.  When the buffer is emptied, allocations in this area
+     will be accounted for as new. */
+  limit = BufferLimit(buffer);
+  limitIndex = AMS_ADDR_INDEX(seg, limit);
+  if (initIndex < limitIndex) /* FIXME: Could detach if empty? */
+    AMS_RANGE_WHITE_BLACKEN(seg, initIndex, limitIndex);
+}
+  
+
+DEFINE_CLASS(Buffer, AMSBuffer, klass)
+{
+  INHERIT_CLASS(klass, AMSBuffer, RankBuf);
+  klass->init = amsBufferInit;
+  klass->flip = amsBufferFlip;
+}
+
+
 /* AMSPoolRing -- the ring of segments in the pool */
 
 static Ring AMSPoolRing(AMS ams, RankSet rankSet, Size size)
@@ -975,7 +1050,8 @@ static Res AMSBufferFill(Addr *baseReturn, Addr *limitReturn,
 
 found:
   AVER(b);
-  baseAddr = AMS_INDEX_ADDR(seg, base); limitAddr = AMS_INDEX_ADDR(seg, limit);
+  baseAddr = AMS_INDEX_ADDR(seg, base);
+  limitAddr = AMS_INDEX_ADDR(seg, limit);
   DebugPoolFreeCheck(pool, baseAddr, limitAddr);
   allocatedSize = AddrOffset(baseAddr, limitAddr);
 
@@ -1076,24 +1152,17 @@ static void amsRangeWhiten(Seg seg, Index base, Index limit)
 
 static Res AMSWhiten(Pool pool, Trace trace, Seg seg)
 {
-  AMS ams;
-  AMSSeg amsseg;
-  Buffer buffer;                /* the seg's buffer, if it has one */
-  Count agedGrains, uncondemnedGrains;
-
-  AVERT(Pool, pool);
-  ams = PoolAMS(pool);
-  AVERT(AMS, ams);
-
-  AVERT(Trace, trace);
-  AVERT(Seg, seg);
-
-  amsseg = Seg2AMSSeg(seg);
-  AVERT(AMSSeg, amsseg);
+  AMS ams = MustBeA(AMSPool, pool);
+  AMSSeg amsseg = MustBeA(AMSSeg, seg);
+  Size condemnedSize;
 
   /* <design/poolams/#colour.single> */
   AVER(SegWhite(seg) == TraceSetEMPTY);
   AVER(!amsseg->colourTablesInUse);
+
+  condemnedSize = AMSGrainsSize(ams, amsseg->newGrains + amsseg->oldGrains + amsseg->bufferedGrains);
+  if (condemnedSize == 0)
+    return ResOK;
 
   amsseg->colourTablesInUse = TRUE;
 
@@ -1107,40 +1176,21 @@ static Res AMSWhiten(Pool pool, Trace trace, Seg seg)
 
   amsseg->allocTableInUse = TRUE;
 
-  buffer = SegBuffer(seg);
-  if (buffer != NULL) { /* <design/poolams/#condemn.buffer> */
-    Index scanLimitIndex, limitIndex;
-    scanLimitIndex = AMS_ADDR_INDEX(seg, BufferScanLimit(buffer));
-    limitIndex = AMS_ADDR_INDEX(seg, BufferLimit(buffer));
-
-    amsRangeWhiten(seg, 0, scanLimitIndex);
-    if (scanLimitIndex < limitIndex)
-      AMS_RANGE_BLACKEN(seg, scanLimitIndex, limitIndex);
-    amsRangeWhiten(seg, limitIndex, amsseg->grains);
-    /* We didn't condemn the buffer, subtract it from the count. */
-    uncondemnedGrains = limitIndex - scanLimitIndex;
-  } else { /* condemn whole seg */
-    amsRangeWhiten(seg, 0, amsseg->grains);
-    uncondemnedGrains = (Count)0;
-  }
+  /* Whiten the whole segment, including any buffered areas.  Pre-flip
+     buffered allocation is white, post-flip black (.flip.mark). */
+  amsRangeWhiten(seg, 0, amsseg->grains);
 
   /* The unused part of the buffer remains buffered: the rest becomes old. */
-  AVER(amsseg->bufferedGrains >= uncondemnedGrains);
-  agedGrains = amsseg->bufferedGrains - uncondemnedGrains;
-  PoolGenAccountForAge(ams->pgen, AMSGrainsSize(ams, agedGrains),
+  PoolGenAccountForAge(ams->pgen, 0,
                        AMSGrainsSize(ams, amsseg->newGrains), FALSE);
-  amsseg->oldGrains += agedGrains + amsseg->newGrains;
-  amsseg->bufferedGrains = uncondemnedGrains;
+  amsseg->oldGrains += amsseg->newGrains;
   amsseg->newGrains = 0;
+
   amsseg->marksChanged = FALSE; /* <design/poolams/#marked.condemn> */
   amsseg->ambiguousFixes = FALSE;
 
-  if (amsseg->oldGrains > 0) {
-    trace->condemned += AMSGrainsSize(ams, amsseg->oldGrains);
-    SegSetWhite(seg, TraceSetAdd(SegWhite(seg), trace));
-  } else {
-    amsseg->colourTablesInUse = FALSE;
-  }
+  trace->condemned += condemnedSize;
+  SegSetWhite(seg, TraceSetAdd(SegWhite(seg), trace));
 
   return ResOK;
 }
@@ -1708,7 +1758,7 @@ DEFINE_CLASS(Pool, AMSPool, klass)
   klass->varargs = AMSVarargs;
   klass->init = AMSInit;
   klass->finish = AMSFinish;
-  klass->bufferClass = RankBufClassGet;
+  klass->bufferClass = AMSBufferClassGet;
   klass->bufferFill = AMSBufferFill;
   klass->bufferEmpty = AMSBufferEmpty;
   klass->whiten = AMSWhiten;
