@@ -123,9 +123,9 @@ DECLARE_CLASS(Buffer, AWLBuffer, RankBuf);
 /* <design/poolawl/#seg> */
 typedef struct AWLSegStruct {
   GCSegStruct gcSegStruct;  /* superclass fields must come first */
-  BT mark;
-  BT scanned;
-  BT alloc;
+  BT mark;                  /* NULL or mark bit table on white segs */
+  BT scanned;               /* NULL or scanned table on white segs */
+  BT alloc;                 /* alloc bit table */
   Count freeGrains;         /* free grains */
   Count bufferedGrains;     /* grains in buffers */
   Count newGrains;          /* grains allocated since last collection */
@@ -145,8 +145,8 @@ static Bool AWLSegCheck(AWLSeg awlseg)
   AWL awl = MustBeA(AWLPool, SegPool(seg));
   CHECKS(AWLSeg, awlseg);
   CHECKD(GCSeg, &awlseg->gcSegStruct);
-  CHECKL(awlseg->mark != NULL);
-  CHECKL(awlseg->scanned != NULL);
+  CHECKL((SegWhite(seg) == TraceSetEMPTY) == (awlseg->mark == NULL));
+  CHECKL((SegWhite(seg) == TraceSetEMPTY) == (awlseg->scanned == NULL));
   CHECKL(awlseg->alloc != NULL);
   CHECKL(awlseg->freeGrains + awlseg->bufferedGrains +
          awlseg->newGrains + awlseg->oldGrains ==
@@ -186,7 +186,6 @@ static Res AWLSegInit(Seg seg, Pool pool, Addr base, Size size, ArgList args)
   RankSet rankSet;
   Count grains;
   Res res;
-  Size tableSize;
   void *v;
   ArgStruct arg;
 
@@ -209,22 +208,13 @@ static Res AWLSegInit(Seg seg, Pool pool, Addr base, Size size, ArgList args)
   /* no useful checks for base and size */
 
   grains = size >> awl->alignShift;
-  tableSize = BTSize(grains);
-  res = ControlAlloc(&v, arena, tableSize);
+  res = ControlAlloc(&v, arena, BTSize(grains));
   if (res != ResOK)
-    goto failControlAllocMark;
-  awlseg->mark = v;
-  res = ControlAlloc(&v, arena, tableSize);
-  if (res != ResOK)
-    goto failControlAllocScanned;
-  awlseg->scanned = v;
-  res = ControlAlloc(&v, arena, tableSize);
-  if (res != ResOK)
-    goto failControlAllocAlloc;
+    goto failAllocTable;
   awlseg->alloc = v;
-  BTResRange(awlseg->mark, 0, grains);
-  BTResRange(awlseg->scanned, 0, grains);
   BTResRange(awlseg->alloc, 0, grains);
+  awlseg->mark = NULL;
+  awlseg->scanned = NULL;
   SegSetRankAndSummary(seg, rankSet, RefSetUNIV);
   awlseg->freeGrains = grains;
   awlseg->bufferedGrains = (Count)0;
@@ -239,11 +229,7 @@ static Res AWLSegInit(Seg seg, Pool pool, Addr base, Size size, ArgList args)
 
   return ResOK;
 
-failControlAllocAlloc:
-  ControlFree(arena, awlseg->scanned, tableSize);
-failControlAllocScanned:
-  ControlFree(arena, awlseg->mark, tableSize);
-failControlAllocMark:
+failAllocTable:
   NextMethod(Seg, AWLSeg, finish)(seg);
 failSuperInit:
   AVER(res != ResOK);
@@ -267,8 +253,10 @@ static void AWLSegFinish(Seg seg)
   grains = SegSize(seg) >> awl->alignShift;
   tableSize = BTSize(grains);
   ControlFree(arena, awlseg->alloc, tableSize);
-  ControlFree(arena, awlseg->scanned, tableSize);
-  ControlFree(arena, awlseg->mark, tableSize);
+  if (awlseg->scanned != NULL)
+    ControlFree(arena, awlseg->scanned, tableSize);
+  if (awlseg->mark != NULL)
+    ControlFree(arena, awlseg->mark, tableSize);
   awlseg->sig = SigInvalid;
 
   /* finish the superclass fields last */
@@ -759,9 +747,11 @@ found:
     AVER(BTIsResRange(awlseg->alloc, baseIndex, limitIndex));
     BTSetRange(awlseg->alloc, baseIndex, limitIndex);
 
-    /* Mark the newly buffered region as black.  FIXME: Could be white
-       pre-flip. */
-    awlRangeBlacken(awlseg, baseIndex, limitIndex);
+    /* If the segment is condemned, mark the newly buffered region as
+       black.  FIXME: Pre-flip, should be white in condemned segments,
+       and grey otherwise. */
+    if (awlseg->mark != NULL)
+      awlRangeBlacken(awlseg, baseIndex, limitIndex);
 
     AVER(awlseg->freeGrains >= limitIndex - baseIndex);
     awlseg->freeGrains -= limitIndex - baseIndex;
@@ -822,17 +812,43 @@ static void awlRangeWhiten(AWLSeg awlseg, Index base, Index limit)
   }
 }
 
+
+/* AWLWhiten -- whiten a segment
+ *
+ * FIXME: Common code with LOWhiten.
+ */
+
 static Res AWLWhiten(Pool pool, Trace trace, Seg seg)
 {
   AWL awl = MustBeA(AWLPool, pool);
   AWLSeg awlseg = MustBeA(AWLSeg, seg);
   Size condemnedSize;
+  Size tableSize;
+  Res res;
+  void *p;
 
   /* All parameters checked by generic PoolWhiten. */
 
   /* Can only whiten for a single trace, */
   /* see <design/poolawl/#fun.condemn> */
   AVER(SegWhite(seg) == TraceSetEMPTY);
+
+  /* Account for the new, old, and buffered areas as condemned, as the
+     mutator can still allocate white objects in the buffered
+     area. FIXME: See impl.c.poolamc.whiten.condemned. */
+  condemnedSize = AWLGrainsSize(awl, awlseg->newGrains + awlseg->oldGrains + awlseg->bufferedGrains);
+  if (condemnedSize == 0)
+    return ResOK;
+
+  tableSize = BTSize(awlSegGrains(awlseg));
+  res = ControlAlloc(&p, PoolArena(pool), tableSize);
+  if (res != ResOK)
+    goto failMarkTable;
+  awlseg->mark = p;
+  res = ControlAlloc(&p, PoolArena(pool), tableSize);
+  if (res != ResOK)
+    goto failScanTable;
+  awlseg->scanned = p;
 
   /* Whiten the whole segment, including any buffered areas.  Pre-flip
      buffered allocation is white, post-flip black (.flip.mark). */
@@ -845,13 +861,15 @@ static Res AWLWhiten(Pool pool, Trace trace, Seg seg)
   awlseg->oldGrains += awlseg->newGrains;
   awlseg->newGrains = 0;
 
-  condemnedSize = AWLGrainsSize(awl, awlseg->oldGrains + awlseg->bufferedGrains);
-  if (condemnedSize > 0) {
-    trace->condemned += condemnedSize;
-    SegSetWhite(seg, TraceSetAdd(SegWhite(seg), trace));
-  }
+  trace->condemned += condemnedSize;
+  SegSetWhite(seg, TraceSetAdd(SegWhite(seg), trace));
   
   return ResOK;
+
+failScanTable:
+  ControlFree(PoolArena(pool), awlseg->mark, tableSize);
+failMarkTable:
+  return res;
 }
 
 
@@ -870,6 +888,8 @@ static void AWLRangeGrey(AWLSeg awlseg, Index base, Index limit)
     AVER(base == limit);
   }
 }
+
+/* FIXME: This seems bogus. */
 
 static void AWLGrey(Pool pool, Trace trace, Seg seg)
 {
@@ -909,7 +929,8 @@ static void AWLBlacken(Pool pool, TraceSet traceSet, Seg seg)
 
   AVERT(TraceSet, traceSet);
 
-  BTSetRange(awlseg->scanned, 0, awlSegGrains(awlseg));
+  if (awlseg->scanned != NULL) /* segment is white */
+    BTSetRange(awlseg->scanned, 0, awlSegGrains(awlseg));
 }
 
 
@@ -968,6 +989,8 @@ static Res awlScanSinglePass(Bool *anyScannedReturn,
 
   AVERT(ScanState, ss);
   AVERT(Bool, scanAllObjects);
+  AVER(scanAllObjects || awlseg->mark != NULL);
+  AVER(scanAllObjects || awlseg->scanned != NULL);
 
   *anyScannedReturn = FALSE;
   p = base;
@@ -1001,7 +1024,8 @@ static Res awlScanSinglePass(Bool *anyScannedReturn,
       if (res != ResOK)
         return res;
       *anyScannedReturn = TRUE;
-      BTSet(awlseg->scanned, i);
+      if (awlseg->scanned != NULL)
+        BTSet(awlseg->scanned, i);
     }
     objectLimit = AddrSub(objectLimit, format->headerSize);
     AVER(p < objectLimit);
@@ -1178,18 +1202,10 @@ static void AWLReclaim(Pool pool, Trace trace, Seg seg)
     AVER_CRITICAL(BTIsSetRange(awlseg->alloc, i, j));
 
     if (!BTIsResRange(awlseg->mark, i, j)) { /* object marked? */
-      /* FIXME: These shouldn't be necessary. */
-      AVER(BTGet(awlseg->scanned, i));
-      BTSetRange(awlseg->mark, i, j);
-      BTSetRange(awlseg->scanned, i, j);
-
+      AVER_CRITICAL(BTGet(awlseg->scanned, i)); /* should be black */
       preservedInPlaceSize += AddrOffset(p, q);
       STATISTIC(++trace->preservedInPlaceCount);
     } else {
-      /* FIXME: These shouldn't be necessary. */
-      BTResRange(awlseg->mark, i, j);
-      BTSetRange(awlseg->scanned, i, j);
-
       BTResRange(awlseg->alloc, i, j);
       reclaimedGrains += j - i;
     }
@@ -1207,6 +1223,11 @@ static void AWLReclaim(Pool pool, Trace trace, Seg seg)
   STATISTIC(trace->reclaimSize += AWLGrainsSize(awl, reclaimedGrains));
   trace->preservedInPlaceSize += preservedInPlaceSize;
 
+  ControlFree(PoolArena(pool), awlseg->mark, BTSize(awlSegGrains(awlseg)));
+  awlseg->mark = NULL;
+  ControlFree(PoolArena(pool), awlseg->scanned, BTSize(awlSegGrains(awlseg)));
+  awlseg->scanned = NULL;
+              
   SegSetWhite(seg, TraceSetDel(SegWhite(seg), trace));
 
   /* Destroy entirely free segment. */
@@ -1308,7 +1329,7 @@ static void AWLWalk(Pool pool, Seg seg, FormattedObjectsVisitor f,
     next = format->skip(object);
     next = AddrSub(next, format->headerSize);
     AVER(AddrIsAligned(next, PoolAlignment(pool)));
-    if (BTGet(awlseg->mark, i) && BTGet(awlseg->scanned, i))
+    if (awlseg->mark == NULL || (BTGet(awlseg->mark, i) && BTGet(awlseg->scanned, i)))
       (*f)(object, pool->format, pool, p, s);
     object = next;
   }

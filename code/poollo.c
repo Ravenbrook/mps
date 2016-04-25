@@ -52,7 +52,7 @@ typedef struct LOSegStruct *LOSeg;
 
 typedef struct LOSegStruct {
   GCSegStruct gcSegStruct;  /* superclass fields must come first */
-  BT mark;                  /* NULL or mark bit table */
+  BT mark;                  /* NULL or mark bit table on white segs */
   BT alloc;                 /* alloc bit table */
   Count freeGrains;         /* free grains */
   Count bufferedGrains;     /* grains in buffers */
@@ -111,8 +111,10 @@ static Bool LOSegCheck(LOSeg loseg)
   LO lo = MustBeA(LOPool, SegPool(seg));
   CHECKS(LOSeg, loseg);
   CHECKD(GCSeg, &loseg->gcSegStruct);
+  CHECKL((SegWhite(seg) == TraceSetEMPTY) == (loseg->mark == NULL));
   CHECKL(loseg->alloc != NULL);
   /* Could check exactly how many bits are set in the alloc table. */
+  /* CHECKL(BTCountResRange(loseg->alloc, 0, ...); */
   CHECKL(loseg->freeGrains + loseg->bufferedGrains + loseg->newGrains
          + loseg->oldGrains
          == SegSize(seg) >> lo->alignShift);
@@ -127,9 +129,7 @@ static Res loSegInit(Seg seg, Pool pool, Addr base, Size size, ArgList args)
   LOSeg loseg;
   LO lo = MustBeA(LOPool, pool);
   Res res;
-  Size tablebytes;      /* # bytes in each control array */
   Arena arena = PoolArena(pool);
-  /* number of bits needed in each control array */
   Count grains;
   void *p;
 
@@ -142,9 +142,8 @@ static Res loSegInit(Seg seg, Pool pool, Addr base, Size size, ArgList args)
   AVER(SegWhite(seg) == TraceSetEMPTY);
 
   grains = size >> lo->alignShift;
-  tablebytes = BTSize(grains);
   loseg->mark = NULL;
-  res = ControlAlloc(&p, arena, tablebytes);
+  res = ControlAlloc(&p, arena, BTSize(grains));
   if(res != ResOK)
     goto failAllocTable;
   loseg->alloc = p;
@@ -392,6 +391,7 @@ static void loSegReclaim(LOSeg loseg, Trace trace)
 
   ControlFree(PoolArena(pool), loseg->mark, BTSize(loSegGrains(loseg)));
   loseg->mark = NULL;
+
   SegSetWhite(seg, TraceSetDel(SegWhite(seg), trace));
 
   /* Destroy entirely free segment. */
@@ -697,31 +697,38 @@ static void LOBufferEmpty(Pool pool, Buffer buffer, Addr init, Addr limit)
 }
 
 
-/* LOWhiten -- whiten a segment */
+/* LOWhiten -- whiten a segment
+ *
+ * FIXME: Common code with AWLWhiten.
+ */
 
 static Res LOWhiten(Pool pool, Trace trace, Seg seg)
 {
   LO lo = MustBeA(LOPool, pool);
   LOSeg loseg = MustBeA(LOSeg, seg);
   Size condemnedSize;
-  Count grains;
   Res res;
   void *p;
 
   AVERT(Trace, trace);
   AVER(SegWhite(seg) == TraceSetEMPTY);
 
-  grains = loSegGrains(loseg);
+  /* Account for the new, old, and buffered areas as condemned, as the
+     mutator can still allocate white objects in the buffered
+     area. FIXME: See impl.c.poolamc.whiten.condemned. */
+  condemnedSize = LOGrainsSize(lo, loseg->newGrains + loseg->oldGrains + loseg->bufferedGrains);
+  if (condemnedSize == 0)
+    return ResOK;
 
   AVER(loseg->mark == NULL);
-  res = ControlAlloc(&p, PoolArena(pool), BTSize(grains));
+  res = ControlAlloc(&p, PoolArena(pool), BTSize(loSegGrains(loseg)));
   if (res != ResOK)
     return res;
   loseg->mark = p;
 
   /* Whiten the whole segment, including any buffered areas.  Pre-flip
      buffered allocation is white, post-flip black (.flip.mark). */
-  BTResRange(loseg->mark, 0, grains);
+  BTResRange(loseg->mark, 0, loSegGrains(loseg));
 
   /* Age new objects.  Buffered areas aren't accounted until flip
      (.flip.age). */
@@ -730,14 +737,8 @@ static Res LOWhiten(Pool pool, Trace trace, Seg seg)
   loseg->oldGrains += loseg->newGrains;
   loseg->newGrains = 0;
 
-  /* Account for the old and buffered areas as condemned, as the
-     mutator can still allocate white objects in the buffered
-     area. FIXME: See impl.c.poolamc.whiten.condemned. */
-  condemnedSize = LOGrainsSize(lo, loseg->oldGrains + loseg->bufferedGrains);
-  if (condemnedSize > 0) {
-    trace->condemned += condemnedSize;
-    SegSetWhite(seg, TraceSetAdd(SegWhite(seg), trace));
-  }
+  trace->condemned += condemnedSize;
+  SegSetWhite(seg, TraceSetAdd(SegWhite(seg), trace));
 
   return ResOK;
 }
