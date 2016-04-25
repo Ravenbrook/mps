@@ -228,13 +228,13 @@ _`.fun.segreclaim`: For all the contiguous allocated regions in the
 segment it locates the boundaries of all the objects in that region by
 repeatedly skipping (by calling ``format->skip``) from the beginning
 of the region (the beginning of the region is guaranteed to coincide
-with the beginning of an object). For each object it examines the bit
-in the mark bit table that corresponds to the beginning of the object.
-If that bit is set then the object has been marked as a result of a
-previous call to ``LOFix()``, the object is preserved by doing
-nothing. If that bit is not set then the object has not been marked
-and should be reclaimed; the object is reclaimed by resetting the
-appropriate range of bits in the segment's free bit table.
+with the beginning of an object). For each object it examines the bits
+in the mark bit table that corresponds to the object.  If any of those
+bits are set then the object has been marked as a result of a previous
+call to ``LOFix()``, the object is preserved by doing nothing. If that
+bit is not set then the object has not been marked and should be
+reclaimed; the object is reclaimed by resetting the appropriate range
+of bits in the segment's free bit table.
 
 .. note::
 
@@ -257,6 +257,8 @@ Document History
 - 2002-06-07 RB_ Converted from MMInfo database design document.
 
 - 2013-05-23 GDR_ Converted to reStructuredText.
+
+- 2016-04-25 RB_ Updating to track reforms in code.
 
 .. _RB: http://www.ravenbrook.com/consultants/rb/
 .. _GDR: http://www.ravenbrook.com/consultants/gdr/
