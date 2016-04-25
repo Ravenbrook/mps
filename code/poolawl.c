@@ -978,14 +978,14 @@ static Res awlScanSinglePass(Bool *anyScannedReturn,
 {
   AWL awl = MustBeA(AWLPool, pool);
   AWLSeg awlseg = MustBeA(AWLSeg, seg);
+  Addr base = SegBase(seg);
+  Count grains = awlSegGrains(awlseg);
   Arena arena = PoolArena(pool);
   Buffer buffer = SegBuffer(seg);
+  Addr bufferSkip, bufferLimit;
   Format format = pool->format;
-  Addr base = SegBase(seg);
-  Addr limit = SegLimit(seg);
-  Addr bufferScanLimit;
-  Addr p;
-  Addr hp;
+  Size headerSize = format->headerSize;
+  Index i;
 
   AVERT(ScanState, ss);
   AVERT(Bool, scanAllObjects);
@@ -993,46 +993,63 @@ static Res awlScanSinglePass(Bool *anyScannedReturn,
   AVER(scanAllObjects || awlseg->scanned != NULL);
 
   *anyScannedReturn = FALSE;
-  p = base;
-  if (buffer != NULL && BufferScanLimit(buffer) != BufferLimit(buffer))
-    bufferScanLimit = BufferScanLimit(buffer);
-  else
-    bufferScanLimit = limit;
 
-  while(p < limit) {
-    Index i;        /* the index into the bit tables corresponding to p */
-    Addr objectLimit;
+  /* FIXME: Duplicate code with AWLReclaim */
+  bufferSkip = (Addr)0;
+  bufferLimit = (Addr)0;
+  if (buffer != NULL) {
+    Addr scanLimit = BufferScanLimit(buffer);
+    bufferLimit = BufferLimit(buffer);
+    if (scanLimit != bufferLimit)
+      bufferSkip = scanLimit;
+  }
 
-    /* <design/poolawl/#fun.scan.pass.buffer> */
-    if (p == bufferScanLimit) {
-      p = BufferLimit(buffer);
-      continue;
-    }
+  i = 0;
+  while(i < grains) {
+    Addr p, q;
+    Index j;
 
-    i = awlIndexOfAddr(base, awl, p);
+    /* TODO: It would be more efficient to use BTFind*Range here. */
     if (!BTGet(awlseg->alloc, i)) {
-      p = AddrAdd(p, PoolAlignment(pool));
+      ++i;
       continue;
     }
-    hp = AddrAdd(p, format->headerSize);
-    objectLimit = (format->skip)(hp);
+
+    p = awlAddrOfIndex(base, awl, i);
+    
+    /* <design/poolawl/#fun.scan.pass.buffer> */
+    if (p == bufferSkip) {
+      i = awlIndexOfAddr(base, awl, bufferLimit);
+      continue;
+    }
+
+    q = format->skip(AddrAdd(p, headerSize));
+    q = AddrSub(q, headerSize);
+    j = awlIndexOfAddr(base, awl, q);
+    
+    AVER_CRITICAL(j <= grains);
+    AVER_CRITICAL(AddrIsAligned(q, PoolAlignment(pool)));
+    /* Object should be entirely allocated. */
+    AVER_CRITICAL(BTIsSetRange(awlseg->alloc, i, j));
+
     /* <design/poolawl/#fun.scan.pass.object> */
-    if (scanAllObjects
-        || (BTGet(awlseg->mark, i) && !BTGet(awlseg->scanned, i))) {
+    if (scanAllObjects ||
+        (BTGet(awlseg->mark, i) && !BTGet(awlseg->scanned, i))) {
       Res res = awlScanObject(arena, awl, ss, pool->format,
-                              hp, objectLimit);
+                              AddrAdd(p, headerSize), AddrAdd(q, headerSize));
       if (res != ResOK)
         return res;
       *anyScannedReturn = TRUE;
+
+      /* TODO: Extending the mark bits to the whole object could save
+         a pass on reclaim.  See AMSScan and AMSReclaim. */
       if (awlseg->scanned != NULL)
         BTSet(awlseg->scanned, i);
     }
-    objectLimit = AddrSub(objectLimit, format->headerSize);
-    AVER(p < objectLimit);
-    AVER(AddrIsAligned(objectLimit, PoolAlignment(pool)));
-    p = objectLimit;
+
+    i = j;
   }
-  AVER(p == limit);
+  AVER(i == grains);
 
   return ResOK;
 }
