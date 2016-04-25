@@ -421,8 +421,6 @@ Res TraceCondemnZones(Trace trace, ZoneSet condemnedSet)
 
   arena = trace->arena;
 
-  ShieldHold(arena); /* .whiten.hold */
-
   if(SegFirst(&seg, arena)) {
     do {
       /* Segment should be black now. */
@@ -444,8 +442,6 @@ Res TraceCondemnZones(Trace trace, ZoneSet condemnedSet)
       }
     } while (SegNext(&seg, arena, seg));
   }
-
-  ShieldRelease(arena);
 
   EVENT3(TraceCondemnZones, trace, condemnedSet, trace->white);
 
@@ -1529,14 +1525,6 @@ static Res traceCondemnAll(Trace trace)
   arena = trace->arena;
   AVERT(Arena, arena);
 
-  /* .whiten.hold: We suspend the mutator threads so that the
-     PoolWhiten methods can calculate white sets without the mutator
-     allocating in buffers under our feet. See request.dylan.160098
-     <https://info.ravenbrook.com/project/mps/import/2001-11-05/mmprevol/request/dylan/160098>. */
-  /* TODO: Consider how to avoid this suspend in order to implement
-     incremental condemn. */
-  ShieldHold(arena);
-
   /* Condemn all segments in pools with the GC attribute. */
   RING_FOR(poolNode, &ArenaGlobals(arena)->poolRing, nextPoolNode) {
     Pool pool = RING_ELT(Pool, arenaRing, poolNode);
@@ -1556,8 +1544,6 @@ static Res traceCondemnAll(Trace trace)
       }
     }
   }
-
-  ShieldRelease(arena);
 
   if (TraceIsEmpty(trace))
     return ResFAIL;
@@ -1579,7 +1565,6 @@ failBegin:
    * will be triggered. In that case, we'll have to recover here by
    * blackening the segments again. */
   AVER(TraceIsEmpty(trace));
-  ShieldRelease(arena);
   return res;
 }
 
