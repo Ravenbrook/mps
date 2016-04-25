@@ -310,19 +310,18 @@ static void loSegReclaim(LOSeg loseg, Trace trace)
   Addr bufferSkip, bufferLimit;
   Pool pool = SegPool(seg);
   LO lo = MustBeA(LOPool, pool);
-  Addr p, base, limit;
+  Addr base = SegBase(seg);
+  Count grains = loSegGrains(loseg);
   Count reclaimedGrains = (Count)0;
   Size preservedInPlaceSize = (Size)0;
   Format format = NULL; /* supress "may be used uninitialized" warning */
   Size headerSize;
+  Index i;
   Bool b;
 
   AVERT(LOSeg, loseg);
   AVERT(Trace, trace);
   AVER(loseg->mark != NULL);
-
-  base = SegBase(seg);
-  limit = SegLimit(seg);
 
   /* If the segment has a buffer we skip over the buffered area.
      Although this is potentially an asynchronous read of the
@@ -336,26 +335,29 @@ static void loSegReclaim(LOSeg loseg, Trace trace)
       bufferSkip = scanLimit;
 
     AVER(loseg->bufferedGrains >=
-         loIndexOfAddr(base, lo, bufferLimit) - loIndexOfAddr(base, lo, scanLimit));
+         loIndexOfAddr(base, lo, bufferLimit) -
+         loIndexOfAddr(base, lo, scanLimit));
   }
 
   b = PoolFormat(&format, pool);
   AVER(b);
   headerSize = format->headerSize;
 
-  p = base;
-  while (p < limit) {
-    Addr q;
-    Index i = loIndexOfAddr(base, lo, p), j;
+  i = 0;
+  while (i < grains) {
+    Addr p, q;
+    Index j;
 
     /* TODO: It would be more efficient to use BTFind*Range here. */
     if (!BTGet(loseg->alloc, i)) { /* grain is free? */
-      p = AddrAdd(p, pool->alignment);
+      ++i;
       continue;
     }
 
+    p = loAddrOfIndex(base, lo, i);
+
     if (p == bufferSkip) {
-      p = bufferLimit;
+      i = loIndexOfAddr(base, lo, bufferLimit);
       continue;
     }
 
@@ -364,6 +366,8 @@ static void loSegReclaim(LOSeg loseg, Trace trace)
     q = AddrSub(q, headerSize);
     j = loIndexOfAddr(base, lo, q);
 
+    AVER_CRITICAL(j <= grains);
+    AVER_CRITICAL(AddrIsAligned(q, PoolAlignment(pool)));
     /* Object should be entirely allocated. */
     AVER_CRITICAL(BTIsSetRange(loseg->alloc, i, j));
 
@@ -375,11 +379,12 @@ static void loSegReclaim(LOSeg loseg, Trace trace)
       loSegFree(loseg, i, j);
       reclaimedGrains += j - i;
     }
-    p = q;
-  }
-  AVER(p == limit);
 
-  AVER(reclaimedGrains <= loSegGrains(loseg));
+    i = j;
+  }
+  AVER(i == grains);
+
+  AVER(reclaimedGrains <= grains);
   AVER(loseg->oldGrains >= reclaimedGrains);
   loseg->oldGrains -= reclaimedGrains;
   loseg->freeGrains += reclaimedGrains;
@@ -394,9 +399,10 @@ static void loSegReclaim(LOSeg loseg, Trace trace)
 
   /* Destroy entirely free segment. */
   /* TODO: Consider keeping spare segments. */
-  if (loseg->oldGrains == 0 && loseg->newGrains == 0 && buffer == NULL) {
+  if (loseg->freeGrains == grains && buffer == NULL) {
+    AVER(loseg->oldGrains == 0);
+    AVER(loseg->newGrains == 0);
     AVER(loseg->bufferedGrains == 0);
-    AVER(loseg->freeGrains == loSegGrains(loseg));
     PoolGenFree(lo->pgen, seg,
                 LOGrainsSize(lo, loseg->freeGrains),
                 LOGrainsSize(lo, loseg->oldGrains),

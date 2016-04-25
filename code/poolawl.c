@@ -352,7 +352,7 @@ static void awlBufferFlip(Buffer buffer)
 
   /* FIXME: Also need to account for these objects to trace->condemned
      for the traces for white they are now white, rather than doing it
-     prematurely in LOWhiten. */
+     prematurely in AWLWhiten. */
 
   /* .flip.base: Shift the buffer base up over them, to keep the total
      buffered account equal to the total size of the buffers. */
@@ -1111,67 +1111,98 @@ static void AWLReclaim(Pool pool, Trace trace, Seg seg)
   AWL awl = MustBeA(AWLPool, pool);
   AWLSeg awlseg = MustBeA(AWLSeg, seg);
   Addr base = SegBase(seg);
+  Count grains = awlseg->grains;
   Buffer buffer = SegBuffer(seg);
+  Addr bufferSkip, bufferLimit;
   Format format = pool->format;
-  Count reclaimedGrains = (Count)0;
-  Count preservedInPlaceCount = (Count)0;
-  Size preservedInPlaceSize = (Size)0;
+  Size headerSize = format->headerSize;
+  Count reclaimedGrains = 0;
+  Size preservedInPlaceSize = 0;
   Index i;
 
   AVERT(Trace, trace);
 
+  /* If the segment has a buffer we skip over the buffered area.
+     Although this is potentially an asynchronous read of the
+     allocation point init pointer, it's conservative. */
+  bufferSkip = (Addr)0; /* can't match within the segment */
+  bufferLimit = (Addr)0; /* suppress uninitialized warning */
+  if (buffer != NULL) {
+    Addr scanLimit = BufferScanLimit(buffer);
+    bufferLimit = BufferLimit(buffer);
+    if (scanLimit != bufferLimit)
+      bufferSkip = scanLimit;
+
+    AVER(awlseg->bufferedGrains >=
+         awlIndexOfAddr(base, awl, bufferLimit) -
+         awlIndexOfAddr(base, awl, scanLimit));
+  }
+
   i = 0;
-  while(i < awlseg->grains) {
+  while(i < grains) {
     Addr p, q;
     Index j;
 
-    if(!BTGet(awlseg->alloc, i)) {
+    /* TODO: It would be more efficient to use BTFind*Range here. */
+    if (!BTGet(awlseg->alloc, i)) {
       ++i;
       continue;
     }
+
     p = awlAddrOfIndex(base, awl, i);
-    if (buffer != NULL
-        && p == BufferScanLimit(buffer)
-        && BufferScanLimit(buffer) != BufferLimit(buffer))
-    {
-      i = awlIndexOfAddr(base, awl, BufferLimit(buffer));
+
+    if (p == bufferSkip) {
+      i = awlIndexOfAddr(base, awl, bufferLimit);
       continue;
     }
-    q = format->skip(AddrAdd(p, format->headerSize));
-    q = AddrSub(q, format->headerSize);
-    AVER(AddrIsAligned(q, PoolAlignment(pool)));
+
+    /* Find the limit of the object. */
+    q = format->skip(AddrAdd(p, headerSize));
+    q = AddrSub(q, headerSize);
     j = awlIndexOfAddr(base, awl, q);
-    AVER(j <= awlseg->grains);
-    if(BTGet(awlseg->mark, i)) {
+
+    AVER_CRITICAL(j <= grains);
+    AVER_CRITICAL(AddrIsAligned(q, PoolAlignment(pool)));
+    /* Object should be entirely allocated. */
+    AVER_CRITICAL(BTIsSetRange(awlseg->alloc, i, j));
+
+    if (!BTIsResRange(awlseg->mark, i, j)) { /* object marked? */
+      /* FIXME: These shouldn't be necessary. */
       AVER(BTGet(awlseg->scanned, i));
       BTSetRange(awlseg->mark, i, j);
       BTSetRange(awlseg->scanned, i, j);
-      ++preservedInPlaceCount;
+
       preservedInPlaceSize += AddrOffset(p, q);
+      STATISTIC(++trace->preservedInPlaceCount);
     } else {
+      /* FIXME: These shouldn't be necessary. */
       BTResRange(awlseg->mark, i, j);
       BTSetRange(awlseg->scanned, i, j);
+
       BTResRange(awlseg->alloc, i, j);
       reclaimedGrains += j - i;
     }
+
     i = j;
   }
-  AVER(i == awlseg->grains);
+  AVER(i == grains);
 
-  AVER(reclaimedGrains <= awlseg->grains);
+  AVER(reclaimedGrains <= grains);
   AVER(awlseg->oldGrains >= reclaimedGrains);
   awlseg->oldGrains -= reclaimedGrains;
   awlseg->freeGrains += reclaimedGrains;
   PoolGenAccountForReclaim(awl->pgen, AWLGrainsSize(awl, reclaimedGrains), FALSE);
 
   STATISTIC(trace->reclaimSize += AWLGrainsSize(awl, reclaimedGrains));
-  STATISTIC(trace->preservedInPlaceCount += preservedInPlaceCount);
   trace->preservedInPlaceSize += preservedInPlaceSize;
 
   SegSetWhite(seg, TraceSetDel(SegWhite(seg), trace));
 
+  /* Destroy entirely free segment. */
+  /* TODO: Consider keeping spare segments. */
   if (awlseg->freeGrains == awlseg->grains && buffer == NULL) {
-    /* No survivors */
+    AVER(awlseg->oldGrains == 0);
+    AVER(awlseg->newGrains == 0);
     AVER(awlseg->bufferedGrains == 0);
     PoolGenFree(awl->pgen, seg,
                 AWLGrainsSize(awl, awlseg->freeGrains),
