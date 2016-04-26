@@ -187,8 +187,13 @@ static void test_trees(int mode, const char *name, mps_arena_t arena,
       printf("Allocating...");
       (void)fflush(stdout);
       object_alloc = 0;
-      while (object_alloc < 1000 && !mps_message_poll(arena))
-        (void)DYLAN_INT(object_alloc++);
+      while (object_alloc < 1000 && !mps_message_poll(arena)) {
+	mps_word_t vectron;
+	/* Allocate without incrementing object_count, just to try to cause a collection. */
+	die(make_dylan_vector(&vectron, ap, 1), "make_dylan_vector, by Vectron!");
+	DYLAN_VECTOR_SLOT(vectron, 0) = DYLAN_INT(object_alloc);
+	++object_alloc;
+      }
       printf(" Done.\n");
       break;
     }
