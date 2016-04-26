@@ -293,6 +293,7 @@ static Res loSegCreate(LOSeg *loSegReturn, Pool pool, Size size)
 
 
 /* loSegTraverse -- apply a visitor to all objects in a segment */
+/* FIXME: Duplicate of awlSegTraverse */
 
 typedef Bool (*LOSegVisitor)(LOSeg loseg, Index i, Index j, Addr p, Addr q, void *closure);
 static Bool loSegTraverse(LOSeg loseg, LOSegVisitor visit, void *closure)
@@ -375,6 +376,8 @@ static Bool loSegTraverse(LOSeg loseg, LOSegVisitor visit, void *closure)
  * This walks over _all_ objects in the heap, whether they are black
  * or white, they are still validly formatted as this is a leaf pool,
  * so there can't be any dangling references
+ *
+ * FIXME: Duplicate code with AWLWalk.
  */
 
 typedef struct LOWalkClosureStruct {
@@ -402,21 +405,21 @@ static void LOWalk(Pool pool, Seg seg, FormattedObjectsVisitor f,
 {
   LOSeg loseg = MustBeA(LOSeg, seg);
   Bool b;
-  LOWalkClosureStruct wcsStruct;
+  LOWalkClosureStruct wcStruct;
 
   AVERT(Pool, pool);
   AVERT(Seg, seg);
   AVER(FUNCHECK(f));
   /* p and s are arbitrary closures and can't be checked */
 
-  wcsStruct.f = f;
-  wcsStruct.pool = pool;
-  b = PoolFormat(&wcsStruct.format, pool);
+  wcStruct.f = f;
+  wcStruct.pool = pool;
+  b = PoolFormat(&wcStruct.format, pool);
   AVER(b);
-  wcsStruct.headerSize = wcsStruct.format->headerSize;
-  wcsStruct.p = p;
-  wcsStruct.s = s;
-  (void)loSegTraverse(loseg, loWalkVisitor, &wcsStruct);
+  wcStruct.headerSize = wcStruct.format->headerSize;
+  wcStruct.p = p;
+  wcStruct.s = s;
+  (void)loSegTraverse(loseg, loWalkVisitor, &wcStruct);
 }
 
 
@@ -836,7 +839,7 @@ static void LOReclaim(Pool pool, Trace trace, Seg seg)
 {
   LOSeg loseg = MustBeA(LOSeg, seg);
   LO lo = MustBeA(LOPool, pool);
-  LOSegReclaimClosureStruct rcsStruct;
+  LOSegReclaimClosureStruct rcStruct;
   Count reclaimedGrains;
   Size preservedInPlaceSize;
 
@@ -844,12 +847,12 @@ static void LOReclaim(Pool pool, Trace trace, Seg seg)
   AVER(TraceSetIsMember(SegWhite(seg), trace));
   AVER(loseg->mark != NULL);
 
-  rcsStruct.trace = trace;
-  rcsStruct.preservedInPlaceSize = 0;
-  rcsStruct.reclaimedGrains = 0;
-  (void)loSegTraverse(loseg, loSegReclaimVisitor, &rcsStruct);
-  reclaimedGrains = rcsStruct.reclaimedGrains;
-  preservedInPlaceSize = rcsStruct.preservedInPlaceSize;
+  rcStruct.trace = trace;
+  rcStruct.preservedInPlaceSize = 0;
+  rcStruct.reclaimedGrains = 0;
+  (void)loSegTraverse(loseg, loSegReclaimVisitor, &rcStruct);
+  reclaimedGrains = rcStruct.reclaimedGrains;
+  preservedInPlaceSize = rcStruct.preservedInPlaceSize;
   
   AVER(reclaimedGrains <= loSegGrains(loseg));
   AVER(loseg->oldGrains >= reclaimedGrains);

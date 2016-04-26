@@ -935,24 +935,23 @@ static void AWLBlacken(Pool pool, TraceSet traceSet, Seg seg)
 
 
 /* awlScanObject -- scan a single object */
-/* base and limit are both offset by the header size */
 
-static Res awlScanObject(Arena arena, AWL awl, ScanState ss,
-                         Format format, Addr base, Addr limit)
+static Res awlScanObject(AWL awl, ScanState ss, Addr base, Addr limit)
 {
   Res res;
   Bool dependent;       /* is there a dependent object? */
   Addr dependentObject; /* base address of dependent object */
   Seg dependentSeg = NULL; /* segment of dependent object */
+  Pool pool = MustBeA(AbstractPool, awl);
+  Arena arena = PoolArena(pool);
+  Format format = pool->format;
 
-  AVERT(Arena, arena);
   AVERT(AWL, awl);
   AVERT(ScanState, ss);
-  AVERT(Format, format);
   AVER(base != 0);
   AVER(base < limit);
 
-  dependentObject = awl->findDependent(base);
+  dependentObject = awl->findDependent(AddrAdd(base, format->headerSize));
   dependent = SegOfAddr(&dependentSeg, arena, dependentObject);
   if (dependent) {
       /* <design/poolawl/#fun.scan.pass.object.dependent.expose> */
@@ -961,7 +960,9 @@ static Res awlScanObject(Arena arena, AWL awl, ScanState ss,
       SegSetSummary(dependentSeg, RefSetUNIV);
   }
 
-  res = FormatScan(format, ss, base, limit);
+  res = FormatScan(format, ss,
+                   AddrAdd(base, format->headerSize),
+                   AddrAdd(limit, format->headerSize));
 
   if (dependent)
     ShieldCover(arena, dependentSeg);
@@ -970,31 +971,23 @@ static Res awlScanObject(Arena arena, AWL awl, ScanState ss,
 }
 
 
-/* awlScanSinglePass -- a single scan pass over a segment */
+/* awlSegTraverse -- apply a visitor to all objects in a segment */
+/* FIXME: Duplicate of loSegTraverse */
 
-static Res awlScanSinglePass(Bool *anyScannedReturn,
-                             ScanState ss, Pool pool,
-                             Seg seg, Bool scanAllObjects)
+typedef Res (*AWLSegVisitor)(AWLSeg awlseg, Index i, Index j, Addr p, Addr q, void *closure);
+static Res awlSegTraverse(AWLSeg awlseg, AWLSegVisitor visit, void *closure)
 {
+  Seg seg = MustBeA(Seg, awlseg);
+  Pool pool = SegPool(seg);
   AWL awl = MustBeA(AWLPool, pool);
-  AWLSeg awlseg = MustBeA(AWLSeg, seg);
   Addr base = SegBase(seg);
   Count grains = awlSegGrains(awlseg);
-  Arena arena = PoolArena(pool);
   Buffer buffer = SegBuffer(seg);
   Addr bufferSkip, bufferLimit;
   Format format = pool->format;
   Size headerSize = format->headerSize;
   Index i;
 
-  AVERT(ScanState, ss);
-  AVERT(Bool, scanAllObjects);
-  AVER(scanAllObjects || awlseg->mark != NULL);
-  AVER(scanAllObjects || awlseg->scanned != NULL);
-
-  *anyScannedReturn = FALSE;
-
-  /* FIXME: Duplicate code with AWLReclaim */
   bufferSkip = (Addr)0;
   bufferLimit = (Addr)0;
   if (buffer != NULL) {
@@ -1008,6 +1001,7 @@ static Res awlScanSinglePass(Bool *anyScannedReturn,
   while(i < grains) {
     Addr p, q;
     Index j;
+    Res res;
 
     /* TODO: It would be more efficient to use BTFind*Range here. */
     if (!BTGet(awlseg->alloc, i)) {
@@ -1032,20 +1026,9 @@ static Res awlScanSinglePass(Bool *anyScannedReturn,
     /* Object should be entirely allocated. */
     AVER_CRITICAL(BTIsSetRange(awlseg->alloc, i, j));
 
-    /* <design/poolawl/#fun.scan.pass.object> */
-    if (scanAllObjects ||
-        (BTGet(awlseg->mark, i) && !BTGet(awlseg->scanned, i))) {
-      Res res = awlScanObject(arena, awl, ss, pool->format,
-                              AddrAdd(p, headerSize), AddrAdd(q, headerSize));
-      if (res != ResOK)
-        return res;
-      *anyScannedReturn = TRUE;
-
-      /* TODO: Extending the mark bits to the whole object could save
-         a pass on reclaim.  See AMSScan and AMSReclaim. */
-      if (awlseg->scanned != NULL)
-        BTSet(awlseg->scanned, i);
-    }
+    res = visit(awlseg, i, j, p, q, closure);
+    if (res != ResOK)
+      return res;
 
     i = j;
   }
@@ -1055,12 +1038,67 @@ static Res awlScanSinglePass(Bool *anyScannedReturn,
 }
 
 
+/* awlScanSinglePass -- a single scan pass over a segment */
+
+typedef struct AWLScanClosureStruct {
+  Bool *anyScannedReturn;
+  ScanState ss;
+  Bool scanAllObjects;
+  AWL awl;
+} AWLScanClosureStruct, *AWLScanClosure;
+
+static Res awlScanVisitor(AWLSeg awlseg, Index i, Index j, Addr p, Addr q, void *closure)
+{
+  AWLScanClosure my = closure;
+  UNUSED(j);
+
+  /* <design/poolawl/#fun.scan.pass.object> */
+  if (my->scanAllObjects ||
+      (BTGet(awlseg->mark, i) && !BTGet(awlseg->scanned, i))) {
+    Res res = awlScanObject(my->awl, my->ss, p, q);
+    if (res != ResOK)
+      return res;
+
+    *my->anyScannedReturn = TRUE;
+
+    /* TODO: Extending the mark bits to the whole object could save
+       a pass on reclaim.  See AMSScan and AMSReclaim. */
+    if (awlseg->scanned != NULL)
+      BTSet(awlseg->scanned, i);
+  }
+
+  return ResOK;
+}
+
+static Res awlScanSinglePass(Bool *anyScannedReturn,
+                             ScanState ss, Pool pool,
+                             Seg seg, Bool scanAllObjects)
+{
+  AWL awl = MustBeA(AWLPool, pool);
+  AWLSeg awlseg = MustBeA(AWLSeg, seg);
+  AWLScanClosureStruct scStruct;
+
+  AVERT(ScanState, ss);
+  AVERT(Bool, scanAllObjects);
+  AVER(scanAllObjects || awlseg->mark != NULL);
+  AVER(scanAllObjects || awlseg->scanned != NULL);
+
+  *anyScannedReturn = FALSE;
+
+  scStruct.anyScannedReturn = anyScannedReturn;
+  scStruct.ss = ss;
+  scStruct.scanAllObjects = scanAllObjects;
+  scStruct.awl = awl;
+  return awlSegTraverse(awlseg, awlScanVisitor, &scStruct);
+}
+
+
 /* AWLScan -- segment scan method for AWL */
 
 static Res AWLScan(Bool *totalReturn, ScanState ss, Pool pool, Seg seg)
 {
   AWL awl = MustBeA(AWLPool, pool);
-  Bool anyScanned;
+  Bool anyScanned; /* TODO: Calculate from a field in ss? */
   Bool scanAllObjects;
   Res res;
 
@@ -1090,7 +1128,7 @@ static Res AWLScan(Bool *totalReturn, ScanState ss, Pool pool, Seg seg)
   /* we are done if we scanned all the objects or if we did a pass */
   /* and didn't scan any objects (since then, no new object can have */
   /* gotten fixed) */
-  } while(!scanAllObjects && anyScanned);
+  } while (!scanAllObjects && anyScanned);
 
   *totalReturn = scanAllObjects;
   AWLNoteScan(awl, seg, ss);
@@ -1158,80 +1196,48 @@ static Res AWLFix(Pool pool, ScanState ss, Seg seg, Ref *refIO)
  * TODO: Duplicate of LOReclaim.
  */
 
+typedef struct AWLSegReclaimClosureStruct {
+  Trace trace;
+  Size preservedInPlaceSize;
+  Count reclaimedGrains;
+} AWLSegReclaimClosureStruct, *AWLSegReclaimClosure;
+
+static Res awlSegReclaimVisitor(AWLSeg awlseg, Index i, Index j, Addr p, Addr q, void *closure)
+{
+  AWLSegReclaimClosure my = closure;
+  
+  if (!BTIsResRange(awlseg->mark, i, j)) { /* object marked? */
+    my->preservedInPlaceSize += AddrOffset(p, q);
+    STATISTIC(++my->trace->preservedInPlaceCount);
+  } else {
+    /* This object is not marked, so free it */
+    BTResRange(awlseg->alloc, i, j);
+    my->reclaimedGrains += j - i;
+  }
+
+  return ResOK;
+}
+
 static void AWLReclaim(Pool pool, Trace trace, Seg seg)
 {
-  AWL awl = MustBeA(AWLPool, pool);
   AWLSeg awlseg = MustBeA(AWLSeg, seg);
-  Addr base = SegBase(seg);
-  Count grains = awlSegGrains(awlseg);
-  Buffer buffer = SegBuffer(seg);
-  Addr bufferSkip, bufferLimit;
-  Format format = pool->format;
-  Size headerSize = format->headerSize;
-  Count reclaimedGrains = 0;
-  Size preservedInPlaceSize = 0;
-  Index i;
+  AWL awl = MustBeA(AWLPool, pool);
+  AWLSegReclaimClosureStruct rcStruct;
+  Count reclaimedGrains;
+  Size preservedInPlaceSize;
 
   AVERT(Trace, trace);
+  AVER(TraceSetIsMember(SegWhite(seg), trace));
+  AVER(awlseg->mark != NULL);
 
-  /* If the segment has a buffer we skip over the buffered area.
-     Although this is potentially an asynchronous read of the
-     allocation point init pointer, it's conservative. */
-  bufferSkip = (Addr)0; /* can't match within the segment */
-  bufferLimit = (Addr)0; /* suppress uninitialized warning */
-  if (buffer != NULL) {
-    Addr scanLimit = BufferScanLimit(buffer);
-    bufferLimit = BufferLimit(buffer);
-    if (scanLimit != bufferLimit)
-      bufferSkip = scanLimit;
+  rcStruct.trace = trace;
+  rcStruct.preservedInPlaceSize = 0;
+  rcStruct.reclaimedGrains = 0;
+  (void)awlSegTraverse(awlseg, awlSegReclaimVisitor, &rcStruct);
+  reclaimedGrains = rcStruct.reclaimedGrains;
+  preservedInPlaceSize = rcStruct.preservedInPlaceSize;
 
-    AVER(awlseg->bufferedGrains >=
-         awlIndexOfAddr(base, awl, bufferLimit) -
-         awlIndexOfAddr(base, awl, scanLimit));
-  }
-
-  i = 0;
-  while(i < grains) {
-    Addr p, q;
-    Index j;
-
-    /* TODO: It would be more efficient to use BTFind*Range here. */
-    if (!BTGet(awlseg->alloc, i)) {
-      ++i;
-      continue;
-    }
-
-    p = awlAddrOfIndex(base, awl, i);
-
-    if (p == bufferSkip) {
-      i = awlIndexOfAddr(base, awl, bufferLimit);
-      continue;
-    }
-
-    /* Find the limit of the object. */
-    q = format->skip(AddrAdd(p, headerSize));
-    q = AddrSub(q, headerSize);
-    j = awlIndexOfAddr(base, awl, q);
-
-    AVER_CRITICAL(j <= grains);
-    AVER_CRITICAL(AddrIsAligned(q, PoolAlignment(pool)));
-    /* Object should be entirely allocated. */
-    AVER_CRITICAL(BTIsSetRange(awlseg->alloc, i, j));
-
-    if (!BTIsResRange(awlseg->mark, i, j)) { /* object marked? */
-      AVER_CRITICAL(BTGet(awlseg->scanned, i)); /* should be black */
-      preservedInPlaceSize += AddrOffset(p, q);
-      STATISTIC(++trace->preservedInPlaceCount);
-    } else {
-      BTResRange(awlseg->alloc, i, j);
-      reclaimedGrains += j - i;
-    }
-
-    i = j;
-  }
-  AVER(i == grains);
-
-  AVER(reclaimedGrains <= grains);
+  AVER(reclaimedGrains <= awlSegGrains(awlseg));
   AVER(awlseg->oldGrains >= reclaimedGrains);
   awlseg->oldGrains -= reclaimedGrains;
   awlseg->freeGrains += reclaimedGrains;
@@ -1249,7 +1255,7 @@ static void AWLReclaim(Pool pool, Trace trace, Seg seg)
 
   /* Destroy entirely free segment. */
   /* TODO: Consider keeping spare segments. */
-  if (awlseg->freeGrains == grains && buffer == NULL) {
+  if (awlseg->freeGrains == awlSegGrains(awlseg) && SegBuffer(seg) == NULL) {
     AVER(awlseg->oldGrains == 0);
     AVER(awlseg->newGrains == 0);
     AVER(awlseg->bufferedGrains == 0);
@@ -1303,53 +1309,46 @@ static Res AWLAccess(Pool pool, Seg seg, Addr addr,
 
 /* AWLWalk -- walk all objects */
 
+typedef struct AWLWalkClosureStruct {
+  FormattedObjectsVisitor f;
+  Pool pool;
+  Format format;
+  Size headerSize;
+  void *p;
+  size_t s;
+} AWLWalkClosureStruct, *AWLWalkClosure;
+
+static Res awlWalkVisitor(AWLSeg awlseg, Index i, Index j, Addr p, Addr q, void *closure)
+{
+  AWLWalkClosure my = closure;
+  UNUSED(awlseg);
+  UNUSED(i);
+  UNUSED(j);
+  UNUSED(q);
+  (*my->f)(AddrAdd(p, my->headerSize), my->format, my->pool, my->p, my->s);
+  return ResOK;
+}
+
 static void AWLWalk(Pool pool, Seg seg, FormattedObjectsVisitor f,
                     void *p, size_t s)
 {
-  AWL awl = MustBeA(AWLPool, pool);
   AWLSeg awlseg = MustBeA(AWLSeg, seg);
-  Format format = pool->format;
-  Addr object, base, limit;
+  Bool b;
+  AWLWalkClosureStruct wcStruct;
 
+  AVERT(Pool, pool);
+  AVERT(Seg, seg);
   AVER(FUNCHECK(f));
   /* p and s are arbitrary closures and can't be checked */
 
-  base = SegBase(seg);
-  object = base;
-  limit = SegLimit(seg);
-
-  while(object < limit) {
-    /* object is a slight misnomer because it might point to a */
-    /* free grain */
-    Addr next;
-    Index i;
-
-    if (SegBuffer(seg) != NULL) {
-      Buffer buffer = SegBuffer(seg);
-      if (object == BufferScanLimit(buffer)
-          && BufferScanLimit(buffer) != BufferLimit(buffer)) {
-        /* skip over buffered area */
-        object = BufferLimit(buffer);
-        continue;
-      }
-      /* since we skip over the buffered area we are always */
-      /* either before the buffer, or after it, never in it */
-      AVER(object < BufferGetInit(buffer) || BufferLimit(buffer) <= object);
-    }
-    i = awlIndexOfAddr(base, awl, object);
-    if (!BTGet(awlseg->alloc, i)) {
-      /* This grain is free */
-      object = AddrAdd(object, PoolAlignment(pool));
-      continue;
-    }
-    object = AddrAdd(object, format->headerSize);
-    next = format->skip(object);
-    next = AddrSub(next, format->headerSize);
-    AVER(AddrIsAligned(next, PoolAlignment(pool)));
-    if (awlseg->mark == NULL || (BTGet(awlseg->mark, i) && BTGet(awlseg->scanned, i)))
-      (*f)(object, pool->format, pool, p, s);
-    object = next;
-  }
+  wcStruct.f = f;
+  wcStruct.pool = pool;
+  b = PoolFormat(&wcStruct.format, pool);
+  AVER(b);
+  wcStruct.headerSize = wcStruct.format->headerSize;
+  wcStruct.p = p;
+  wcStruct.s = s;
+  (void)awlSegTraverse(awlseg, awlWalkVisitor, &wcStruct);
 }
 
 
