@@ -668,12 +668,27 @@ static Res LOWhiten(Pool pool, Trace trace, Seg seg)
 {
   LO lo = MustBeA(LOPool, pool);
   LOSeg loseg = MustBeA(LOSeg, seg);
+  Buffer buffer = SegBuffer(seg);
   Size condemnedSize;
   Res res;
   void *p;
 
   AVERT(Trace, trace);
   AVER(SegWhite(seg) == TraceSetEMPTY);
+
+  /* Empty the initialzed part of any buffer into the segment.  This
+     is valid at any time.  We do it here as an optimisation to helps
+     to condemn as much as possible. */
+  if (buffer != NULL) {
+    Addr init = BufferScanLimit(buffer);
+    Size wasBuffered = AddrOffset(BufferBase(buffer), init);
+    Count used = wasBuffered >> lo->alignShift;
+    PoolGenAccountForEmpty(lo->pgen, wasBuffered, 0, FALSE);
+    AVER(loseg->bufferedGrains >= used);
+    loseg->bufferedGrains -= used;
+    loseg->newGrains += used;
+    buffer->base = init;
+  }
 
   /* Account for the new and old areas as condemned.  Any buffered
      area is added to condemned at flip (.flip.condemned).  TODO: This

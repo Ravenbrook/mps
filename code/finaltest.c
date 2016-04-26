@@ -185,13 +185,12 @@ static void test_trees(int mode, const char *name, mps_arena_t arena,
     root[i] = 0;
   }
 
-  while (finals < object_count && collections < collectionCOUNT) {
+  for (;;) {
     mps_message_type_t type;
     mps_word_t final_this_time = 0;
     switch (mode) {
     default:
     case ModePARK:
-      alloc_junk(arena, ap);
       printf("Collecting...");
       (void)fflush(stdout);
       die(mps_arena_collect(arena), "collect");
@@ -227,6 +226,10 @@ static void test_trees(int mode, const char *name, mps_arena_t arena,
     printf("%"PRIuLONGEST" objects finalized: total %"PRIuLONGEST
            " of %"PRIuLONGEST"\n", (ulongest_t)final_this_time,
            (ulongest_t)finals, (ulongest_t)object_count);
+    if (finals >= object_count || collections >= collectionCOUNT)
+      break;
+    if (mode == ModePARK)
+      alloc_junk(arena, ap);
   }
   
   if (finals != object_count) {

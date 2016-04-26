@@ -1157,11 +1157,25 @@ static Res AMSWhiten(Pool pool, Trace trace, Seg seg)
 {
   AMS ams = MustBeA(AMSPool, pool);
   AMSSeg amsseg = MustBeA(AMSSeg, seg);
+  Buffer buffer = SegBuffer(seg);
   Size condemnedSize;
 
   /* <design/poolams/#colour.single> */
   AVER(SegWhite(seg) == TraceSetEMPTY);
   AVER(!amsseg->colourTablesInUse);
+
+  /* Empty the initialzed part of any buffer into the segment.  This
+     is valid at any time.  We do it here as an optimisation to helps
+     to condemn as much as possible. */
+  if (buffer != NULL) {
+    Addr init = BufferScanLimit(buffer);
+    Size wasBuffered = AddrOffset(BufferBase(buffer), init);
+    Count used = AMSGrains(ams, wasBuffered);
+    PoolGenAccountForEmpty(ams->pgen, wasBuffered, 0, FALSE);
+    amsseg->bufferedGrains -= used;
+    amsseg->newGrains += used;
+    buffer->base = init;
+  }
 
   /* Account for the new and old areas as condemned.  Any buffered
      area is added to condemned at flip (.flip.condemned).  TODO: This
