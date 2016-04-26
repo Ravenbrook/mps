@@ -769,9 +769,10 @@ Bool BufferTrip(Buffer buffer, Addr p, Size size)
  * Buffers can be flipped and evicted at the same time (.evict).
  */
 
-void BufferAbsFlip(Buffer buffer)
+void BufferAbsFlip(Buffer buffer, Trace trace)
 {
   AVERT(Buffer, buffer);
+  UNUSED(trace);
 
   if (BufferRankSet(buffer) != RankSetEMPTY &&
       (buffer->mode & BufferModeFLIPPED) == 0 &&
@@ -784,10 +785,10 @@ void BufferAbsFlip(Buffer buffer)
   }
 }
 
-void BufferFlip(Buffer buffer)
+void BufferFlip(Buffer buffer, Trace trace)
 {
   AVERT(Buffer, buffer);
-  Method(Buffer, buffer, flip)(buffer);
+  Method(Buffer, buffer, flip)(buffer, trace);
 }
 
 

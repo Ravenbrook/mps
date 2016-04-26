@@ -66,7 +66,7 @@ typedef struct LOSegStruct {
 static Res loSegInit(Seg seg, Pool pool, Addr base, Size size, ArgList args);
 static void loSegFinish(Seg seg);
 static Count loSegGrains(LOSeg loseg);
-static void loBufferFlip(Buffer buffer);
+static void loBufferFlip(Buffer buffer, Trace trace);
 static Res loBufferInit(Buffer buffer, Pool pool, Bool isMutator, ArgList args);
 
 
@@ -630,24 +630,32 @@ static void LOBufferEmpty(Pool pool, Buffer buffer, Addr init, Addr limit)
   if (initIndex < limitIndex)
     loSegFree(loseg, initIndex, limitIndex);
 
-  unusedGrains = limitIndex - initIndex;
-  loseg->freeGrains += unusedGrains;
-  if (loseg->bufferedGrains > 0) {
-    AVER(loseg->bufferedGrains >= unusedGrains);
-    usedGrains = loseg->bufferedGrains - unusedGrains;
-    loseg->bufferedGrains = 0;
-    loseg->newGrains += usedGrains;
-  } else {
-    AVER(loseg->oldGrains >= unusedGrains); /* because we aged the whole buffer when whitening */
-    usedGrains = 0;
-    loseg->oldGrains -= unusedGrains;
-  }
+  /* Mark bits, if they exist, are left in a random state. */
 
-  /* FIXME: What about a pre-flip empty?  The buffered area should be
-     accounted as old. */
-  
+  unusedGrains = limitIndex - initIndex;
+  AVER(loseg->bufferedGrains >= unusedGrains);
+  loseg->freeGrains += unusedGrains;
+  usedGrains = loseg->bufferedGrains - unusedGrains;
+  loseg->bufferedGrains = 0;
+  loseg->newGrains += usedGrains;
   PoolGenAccountForEmpty(lo->pgen, LOGrainsSize(lo, usedGrains),
-                         LOGrainsSize(lo, unusedGrains), FALSE);
+			 LOGrainsSize(lo, unusedGrains), FALSE);
+
+  /* If we're emptying a buffer on a condemned segment before the flip
+     then the buffer was allocating white, so age the objects so we
+     must age the objects to account for them as old. */
+  if (SegWhite(seg) != TraceSetEMPTY &&
+      !TraceSetInter(SegWhite(seg), PoolArena(pool)->flippedTraces))
+  {
+    PoolGenAccountForAge(lo->pgen, 0, LOGrainsSize(lo, usedGrains), FALSE);
+    /* The only new grains should be the ones we've just added. */
+    AVER(loseg->newGrains == usedGrains);
+    loseg->oldGrains += usedGrains;
+    loseg->newGrains -= usedGrains;
+    /* There is no pre-flip allocation yet.  Retain the above code for
+       the future. RB 2016-04-26 */
+    NOTREACHED;
+  }
 }
 
 
@@ -667,17 +675,18 @@ static Res LOWhiten(Pool pool, Trace trace, Seg seg)
   AVERT(Trace, trace);
   AVER(SegWhite(seg) == TraceSetEMPTY);
 
-  /* Account for the new, old, and buffered areas as condemned, as the
-     mutator can still allocate white objects in the buffered
-     area. FIXME: See impl.c.poolamc.whiten.condemned. */
-  condemnedSize = LOGrainsSize(lo, loseg->newGrains + loseg->oldGrains + loseg->bufferedGrains);
+  /* Account for the new and old areas as condemned.  Any buffered
+     area is added to condemned at flip (.flip.condemned).  TODO: This
+     may lead to cancellation of collections that could reclaim white
+     objects in the buffer. */
+  condemnedSize = LOGrainsSize(lo, loseg->newGrains + loseg->oldGrains);
   if (condemnedSize == 0)
     return ResOK;
 
   AVER(loseg->mark == NULL);
   res = ControlAlloc(&p, PoolArena(pool), BTSize(loSegGrains(loseg)));
   if (res != ResOK)
-    return res;
+    return res; /* FIXME: Mustn't fail, see impl.c.trace.whiten.fail. */
   loseg->mark = p;
 
   /* Whiten the whole segment, including any buffered areas.  Pre-flip
@@ -698,7 +707,7 @@ static Res LOWhiten(Pool pool, Trace trace, Seg seg)
 }
 
 
-static void loBufferFlip(Buffer buffer)
+static void loBufferFlip(Buffer buffer, Trace trace)
 {
   Seg seg;
   LOSeg loseg;
@@ -708,10 +717,10 @@ static void loBufferFlip(Buffer buffer)
   Size wasBuffered;
   Count agedGrains;
   
-  NextMethod(Buffer, LOBuffer, flip)(buffer);
+  NextMethod(Buffer, LOBuffer, flip)(buffer, trace);
 
   seg = BufferSeg(buffer);
-  if (seg == NULL)
+  if (seg == NULL || !TraceSetIsMember(SegWhite(seg), trace))
     return;
 
   loseg = MustBeA(LOSeg, seg);
@@ -733,9 +742,12 @@ static void loBufferFlip(Buffer buffer)
   AVER(loseg->bufferedGrains >= agedGrains);
   loseg->bufferedGrains -= agedGrains;
 
-  /* FIXME: Also need to account for these objects to trace->condemned
-     for the traces for white they are now white, rather than doing it
-     prematurely in LOWhiten. */
+  /* .flip.condemned: Account for these objects to trace->condemned
+     for the traces for white they are now white.  TODO: Need to
+     iterate over SegWhite(seg) if segments can be condemend for
+     multiple traces. */
+  AVER(SegWhite(seg) == TraceSetSingle(trace));
+  trace->condemned += wasBuffered;
 
   /* .flip.base: Shift the buffer base up over them, to keep the total
      buffered account equal to the total size of the buffers. */

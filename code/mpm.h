@@ -750,7 +750,7 @@ extern void BufferSetAllocAddr(Buffer buffer, Addr addr);
 extern void BufferAttach(Buffer buffer,
                          Addr base, Addr limit, Addr init, Size size);
 extern void BufferDetach(Buffer buffer, Pool pool);
-extern void BufferFlip(Buffer buffer);
+extern void BufferFlip(Buffer buffer, Trace trace);
 extern void BufferEvict(Buffer buffer);
 
 extern mps_ap_t (BufferAP)(Buffer buffer);
@@ -783,7 +783,7 @@ extern void BufferRampReset(Buffer buffer);
 
 extern Res BufferFramePush(AllocFrame *frameReturn, Buffer buffer);
 extern Res BufferFramePop(Buffer buffer, AllocFrame frame);
-extern void BufferAbsFlip(Buffer buffer);
+extern void BufferAbsFlip(Buffer buffer, Trace trace);
 
 extern Bool BufferClassCheck(BufferClass klass);
 DECLARE_CLASS(Inst, BufferClass, InstClass);

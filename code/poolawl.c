@@ -312,7 +312,7 @@ static void awlRangeBlacken(AWLSeg awlseg, Index base, Index limit)
 
 
 /* TODO: Duplicate of loBufferFlip, except that it sets "scanned". */
-static void awlBufferFlip(Buffer buffer)
+static void awlBufferFlip(Buffer buffer, Trace trace)
 {
   Seg seg;
   AWLSeg awlseg;
@@ -322,10 +322,10 @@ static void awlBufferFlip(Buffer buffer)
   Size wasBuffered;
   Count agedGrains;
   
-  NextMethod(Buffer, AWLBuffer, flip)(buffer);
+  NextMethod(Buffer, AWLBuffer, flip)(buffer, trace);
 
   seg = BufferSeg(buffer);
-  if (seg == NULL)
+  if (seg == NULL || !TraceSetIsMember(SegWhite(seg), trace))
     return;
 
   awlseg = MustBeA(AWLSeg, seg);
@@ -347,9 +347,12 @@ static void awlBufferFlip(Buffer buffer)
   AVER(awlseg->bufferedGrains >= agedGrains);
   awlseg->bufferedGrains -= agedGrains;
 
-  /* FIXME: Also need to account for these objects to trace->condemned
-     for the traces for white they are now white, rather than doing it
-     prematurely in AWLWhiten. */
+  /* .flip.condemned: Account for these objects to trace->condemned
+     for the traces for white they are now white.  TODO: Need to
+     iterate over SegWhite(seg) if segments can be condemend for
+     multiple traces. */
+  AVER(SegWhite(seg) == TraceSetSingle(trace));
+  trace->condemned += wasBuffered;
 
   /* .flip.base: Shift the buffer base up over them, to keep the total
      buffered account equal to the total size of the buffers. */
@@ -833,12 +836,13 @@ static Res AWLWhiten(Pool pool, Trace trace, Seg seg)
   /* see <design/poolawl/#fun.condemn> */
   AVER(SegWhite(seg) == TraceSetEMPTY);
 
-  /* Account for the new, old, and buffered areas as condemned, as the
-     mutator can still allocate white objects in the buffered
-     area. FIXME: See impl.c.poolamc.whiten.condemned. */
-  condemnedSize = AWLGrainsSize(awl, awlseg->newGrains + awlseg->oldGrains + awlseg->bufferedGrains);
+  /* Account for the new and old areas as condemned.  Any buffered
+     area is added to condemned at flip (.flip.condemned).  TODO: This
+     may lead to cancellation of collections that could reclaim white
+     objects in the buffer. */
+  condemnedSize = AWLGrainsSize(awl, awlseg->newGrains + awlseg->oldGrains);
   if (condemnedSize == 0)
-    return ResOK;
+    return ResOK; /* FIXME: Mustn't fail, see impl.c.trace.whiten.fail. */
 
   tableSize = BTSize(awlSegGrains(awlseg));
   res = ControlAlloc(&p, PoolArena(pool), tableSize);
@@ -870,52 +874,6 @@ failScanTable:
   ControlFree(PoolArena(pool), awlseg->mark, tableSize);
 failMarkTable:
   return res;
-}
-
-
-/* AWLGrey -- Grey method for AWL pools */
-
-/* AWLRangeGrey -- subroutine for AWLGrey */
-static void AWLRangeGrey(AWLSeg awlseg, Index base, Index limit)
-{
-  /* AWLSeg not checked as that's already been done */
-  AVER(limit <= awlSegGrains(awlseg));
-  /* copes with degenerate case as that makes caller simpler */
-  if (base < limit) {
-    BTSetRange(awlseg->mark, base, limit);
-    BTResRange(awlseg->scanned, base, limit);
-  } else {
-    AVER(base == limit);
-  }
-}
-
-/* FIXME: This seems bogus. */
-
-static void AWLGrey(Pool pool, Trace trace, Seg seg)
-{
-  AVERT(Pool, pool);
-  AVERT(Trace, trace);
-  AVERT(Seg, seg);
-
-  if (!TraceSetIsMember(SegWhite(seg), trace)) {
-    AWL awl = MustBeA(AWLPool, pool);
-    AWLSeg awlseg = MustBeA(AWLSeg, seg);
-
-    SegSetGrey(seg, TraceSetAdd(SegGrey(seg), trace));
-    if (SegBuffer(seg) != NULL) { /* FIXME: Check this! */
-      Addr base = SegBase(seg);
-      Buffer buffer = SegBuffer(seg);
-
-      AWLRangeGrey(awlseg,
-                   0,
-                   awlIndexOfAddr(base, awl, BufferScanLimit(buffer)));
-      AWLRangeGrey(awlseg,
-                   awlIndexOfAddr(base, awl, BufferLimit(buffer)),
-                   awlSegGrains(awlseg));
-    } else {
-      AWLRangeGrey(awlseg, 0, awlSegGrains(awlseg));
-    }
-  }
 }
 
 
@@ -1387,7 +1345,6 @@ DEFINE_CLASS(Pool, AWLPool, klass)
   klass->bufferEmpty = AWLBufferEmpty;
   klass->access = AWLAccess;
   klass->whiten = AWLWhiten;
-  klass->grey = AWLGrey;
   klass->blacken = AWLBlacken;
   klass->scan = AWLScan;
   klass->fix = AWLFix;

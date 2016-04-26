@@ -469,7 +469,7 @@ static void amcBufSetGen(Buffer buffer, amcGen gen)
 
 /* amcBufFlip -- trap the buffer at GC flip time */
 
-static void amcBufFlip(Buffer buffer)
+static void amcBufFlip(Buffer buffer, Trace trace)
 {
   Addr init;
   Seg seg;
@@ -478,10 +478,10 @@ static void amcBufFlip(Buffer buffer)
   PoolGen pgen;
   Size wasBuffered;
   
-  NextMethod(Buffer, amcBuf, flip)(buffer);
+  NextMethod(Buffer, amcBuf, flip)(buffer, trace);
 
   seg = BufferSeg(buffer);
-  if (seg == NULL)
+  if (seg == NULL || !TraceSetIsMember(SegWhite(seg), trace))
     return;
 
   amcseg = MustBeA(amcSeg, seg);

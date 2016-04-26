@@ -635,7 +635,7 @@ static Res amsBufferInit(Buffer buffer, Pool pool, Bool isMutator, ArgList args)
 
 
 /* TODO: Duplicate of loBufferFlip, except that it sets "scanned". */
-static void amsBufferFlip(Buffer buffer)
+static void amsBufferFlip(Buffer buffer, Trace trace)
 {
   Seg seg;
   AMSSeg amsseg;
@@ -645,10 +645,10 @@ static void amsBufferFlip(Buffer buffer)
   Size wasBuffered;
   Count agedGrains;
   
-  NextMethod(Buffer, AMSBuffer, flip)(buffer);
+  NextMethod(Buffer, AMSBuffer, flip)(buffer, trace);
 
   seg = BufferSeg(buffer);
-  if (seg == NULL)
+  if (seg == NULL || !TraceSetIsMember(SegWhite(seg), trace))
     return;
 
   amsseg = MustBeA(AMSSeg, seg);
@@ -669,9 +669,12 @@ static void amsBufferFlip(Buffer buffer)
   AVER(amsseg->bufferedGrains >= agedGrains);
   amsseg->bufferedGrains -= agedGrains;
 
-  /* FIXME: Also need to account for these objects to trace->condemned
-     for the traces for white they are now white, rather than doing it
-     prematurely in AWLWhiten. */
+  /* .flip.condemned: Account for these objects to trace->condemned
+     for the traces for white they are now white.  TODO: Need to
+     iterate over SegWhite(seg) if segments can be condemend for
+     multiple traces. */
+  AVER(SegWhite(seg) == TraceSetSingle(trace));
+  trace->condemned += wasBuffered;
 
   /* .flip.base: Shift the buffer base up over them, to keep the total
      buffered account equal to the total size of the buffers. */
@@ -1160,7 +1163,11 @@ static Res AMSWhiten(Pool pool, Trace trace, Seg seg)
   AVER(SegWhite(seg) == TraceSetEMPTY);
   AVER(!amsseg->colourTablesInUse);
 
-  condemnedSize = AMSGrainsSize(ams, amsseg->newGrains + amsseg->oldGrains + amsseg->bufferedGrains);
+  /* Account for the new and old areas as condemned.  Any buffered
+     area is added to condemned at flip (.flip.condemned).  TODO: This
+     may lead to cancellation of collections that could reclaim white
+     objects in the buffer. */
+  condemnedSize = AMSGrainsSize(ams, amsseg->newGrains + amsseg->oldGrains);
   if (condemnedSize == 0)
     return ResOK;
 

@@ -459,7 +459,7 @@ failBegin:
 
 /* traceFlipBuffers -- flip all buffers in the arena */
 
-static void traceFlipBuffers(Globals arena)
+static void traceFlipBuffers(Globals arena, Trace trace)
 {
   Ring nodep, nextp;
 
@@ -469,7 +469,7 @@ static void traceFlipBuffers(Globals arena)
 
     AVERT(Pool, pool);
     RING_FOR(nodeb, &pool->bufferRing, nextb) {
-      BufferFlip(RING_ELT(Buffer, poolRing, nodeb));
+      BufferFlip(RING_ELT(Buffer, poolRing, nodeb), trace);
     }
   }
 }
@@ -594,7 +594,7 @@ static Res traceFlip(Trace trace)
 
   EVENT2(TraceFlipBegin, trace, arena);
 
-  traceFlipBuffers(ArenaGlobals(arena));
+  traceFlipBuffers(ArenaGlobals(arena), trace);
 
   /* Update location dependency structures. */
   /* mayMove is a conservative approximation of the zones of objects */
