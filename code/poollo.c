@@ -292,14 +292,10 @@ static Res loSegCreate(LOSeg *loSegReturn, Pool pool, Size size)
 }
 
 
-/* loSegReclaim -- reclaim white objects in an LO segment
- *
- * Could consider implementing this using Walk.
- *
- * TODO: Duplicate of AWLReclaim.
- */
+/* loSegTraverse -- apply a visitor to all objects in a segment */
 
-static void loSegReclaim(LOSeg loseg, Trace trace)
+typedef Bool (*LOSegVisitor)(LOSeg loseg, Index i, Index j, Addr p, Addr q, void *closure);
+static Bool loSegTraverse(LOSeg loseg, LOSegVisitor visit, void *closure)
 {
   Seg seg = MustBeA(Seg, loseg);
   Buffer buffer = SegBuffer(seg);
@@ -308,16 +304,12 @@ static void loSegReclaim(LOSeg loseg, Trace trace)
   LO lo = MustBeA(LOPool, pool);
   Addr base = SegBase(seg);
   Count grains = loSegGrains(loseg);
-  Count reclaimedGrains = (Count)0;
-  Size preservedInPlaceSize = (Size)0;
   Format format = NULL; /* supress "may be used uninitialized" warning */
   Size headerSize;
   Index i;
   Bool b;
 
   AVERT(LOSeg, loseg);
-  AVERT(Trace, trace);
-  AVER(loseg->mark != NULL);
 
   /* If the segment has a buffer we skip over the buffered area.
      Although this is potentially an asynchronous read of the
@@ -367,46 +359,16 @@ static void loSegReclaim(LOSeg loseg, Trace trace)
     /* Object should be entirely allocated. */
     AVER_CRITICAL(BTIsSetRange(loseg->alloc, i, j));
 
-    if (!BTIsResRange(loseg->mark, i, j)) { /* object marked? */
-      preservedInPlaceSize += AddrOffset(p, q);
-      STATISTIC(++trace->preservedInPlaceCount);
-    } else {
-      /* This object is not marked, so free it */
-      loSegFree(loseg, i, j);
-      reclaimedGrains += j - i;
-    }
+    if (!visit(loseg, i, j, p, q, closure))
+      return FALSE;
 
     i = j;
   }
   AVER(i == grains);
 
-  AVER(reclaimedGrains <= grains);
-  AVER(loseg->oldGrains >= reclaimedGrains);
-  loseg->oldGrains -= reclaimedGrains;
-  loseg->freeGrains += reclaimedGrains;
-  PoolGenAccountForReclaim(lo->pgen, LOGrainsSize(lo, reclaimedGrains), FALSE);
-
-  STATISTIC(trace->reclaimSize += LOGrainsSize(lo, reclaimedGrains));
-  trace->preservedInPlaceSize += preservedInPlaceSize;
-
-  ControlFree(PoolArena(pool), loseg->mark, BTSize(loSegGrains(loseg)));
-  loseg->mark = NULL;
-
-  SegSetWhite(seg, TraceSetDel(SegWhite(seg), trace));
-
-  /* Destroy entirely free segment. */
-  /* TODO: Consider keeping spare segments. */
-  if (loseg->freeGrains == grains && buffer == NULL) {
-    AVER(loseg->oldGrains == 0);
-    AVER(loseg->newGrains == 0);
-    AVER(loseg->bufferedGrains == 0);
-    PoolGenFree(lo->pgen, seg,
-                LOGrainsSize(lo, loseg->freeGrains),
-                LOGrainsSize(lo, loseg->oldGrains),
-                LOGrainsSize(lo, loseg->newGrains),
-                FALSE);
-  }
+  return TRUE;
 }
+
 
 /* This walks over _all_ objects in the heap, whether they are */
 /* black or white, they are still validly formatted as this is */
@@ -854,18 +816,81 @@ static Res LOFix(Pool pool, ScanState ss, Seg seg, Ref *refIO)
 }
 
 
+/* LOReclaim -- reclaim white objects in an LO segment
+ *
+ * TODO: Duplicate of AWLReclaim.
+ */
+
+typedef struct LOSegReclaimClosureStruct {
+  Trace trace;
+  Size preservedInPlaceSize;
+  Count reclaimedGrains;
+} LOSegReclaimClosureStruct, *LOSegReclaimClosure;
+
+static Bool loSegReclaimVisitor(LOSeg loseg, Index i, Index j, Addr p, Addr q, void *closure)
+{
+  LOSegReclaimClosure my = closure;
+  
+  if (!BTIsResRange(loseg->mark, i, j)) { /* object marked? */
+    my->preservedInPlaceSize += AddrOffset(p, q);
+    STATISTIC(++my->trace->preservedInPlaceCount);
+  } else {
+    /* This object is not marked, so free it */
+    loSegFree(loseg, i, j);
+    my->reclaimedGrains += j - i;
+  }
+
+  return TRUE;
+}
+
 static void LOReclaim(Pool pool, Trace trace, Seg seg)
 {
   LOSeg loseg = MustBeA(LOSeg, seg);
+  LO lo = MustBeA(LOPool, pool);
+  LOSegReclaimClosureStruct rcsStruct;
+  Count reclaimedGrains;
+  Size preservedInPlaceSize;
 
   AVERT(Trace, trace);
   AVER(TraceSetIsMember(SegWhite(seg), trace));
-  UNUSED(pool);
+  AVER(loseg->mark != NULL);
 
-  loSegReclaim(loseg, trace);
+  rcsStruct.trace = trace;
+  rcsStruct.preservedInPlaceSize = 0;
+  rcsStruct.reclaimedGrains = 0;
+  (void)loSegTraverse(loseg, loSegReclaimVisitor, &rcsStruct);
+  reclaimedGrains = rcsStruct.reclaimedGrains;
+  preservedInPlaceSize = rcsStruct.preservedInPlaceSize;
+  
+  AVER(reclaimedGrains <= loSegGrains(loseg));
+  AVER(loseg->oldGrains >= reclaimedGrains);
+  loseg->oldGrains -= reclaimedGrains;
+  loseg->freeGrains += reclaimedGrains;
+  PoolGenAccountForReclaim(lo->pgen, LOGrainsSize(lo, reclaimedGrains), FALSE);
+
+  STATISTIC(trace->reclaimSize += LOGrainsSize(lo, reclaimedGrains));
+  trace->preservedInPlaceSize += preservedInPlaceSize;
+
+  ControlFree(PoolArena(pool), loseg->mark, BTSize(loSegGrains(loseg)));
+  loseg->mark = NULL;
+
+  SegSetWhite(seg, TraceSetDel(SegWhite(seg), trace));
+
+  /* Destroy entirely free segment. */
+  /* TODO: Consider keeping spare segments. */
+  if (loseg->freeGrains == loSegGrains(loseg) && SegBuffer(seg) == NULL) {
+    AVER(loseg->oldGrains == 0);
+    AVER(loseg->newGrains == 0);
+    AVER(loseg->bufferedGrains == 0);
+    PoolGenFree(lo->pgen, seg,
+                LOGrainsSize(lo, loseg->freeGrains),
+                LOGrainsSize(lo, loseg->oldGrains),
+                LOGrainsSize(lo, loseg->newGrains),
+                FALSE);
+  }
 }
 
-
+  
 /* LOTotalSize -- total memory allocated from the arena */
 /* TODO: This code is repeated in AMS */
 
