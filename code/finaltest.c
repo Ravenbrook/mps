@@ -141,6 +141,21 @@ static void register_indirect_tree(mps_word_t tree, mps_arena_t arena)
 
 static void *root[rootCOUNT];
 
+static void alloc_junk(mps_arena_t arena, mps_ap_t ap)
+{
+  int object_alloc = 0;
+  printf("Allocating...");
+  (void)fflush(stdout);
+  while (object_alloc < 1000 && !mps_message_poll(arena)) {
+    mps_word_t vectron;
+    /* Allocate without incrementing object_count, just to try to cause a collection. */
+    die(make_dylan_vector(&vectron, ap, 1), "make_dylan_vector, by Vectron!");
+    DYLAN_VECTOR_SLOT(vectron, 0) = DYLAN_INT(object_alloc);
+    ++object_alloc;
+  }
+  printf(" Done.\n");
+}
+
 static void test_trees(int mode, const char *name, mps_arena_t arena,
                        mps_pool_t pool, mps_ap_t ap,
                        mps_word_t (*make)(mps_word_t, mps_ap_t),
@@ -149,7 +164,6 @@ static void test_trees(int mode, const char *name, mps_arena_t arena,
   size_t collections = 0;
   size_t finals = 0;
   size_t i;
-  int object_alloc;
   PoolClass klass = ClassOfPoly(Pool, pool);
 
   object_count = 0;
@@ -177,6 +191,7 @@ static void test_trees(int mode, const char *name, mps_arena_t arena,
     switch (mode) {
     default:
     case ModePARK:
+      alloc_junk(arena, ap);
       printf("Collecting...");
       (void)fflush(stdout);
       die(mps_arena_collect(arena), "collect");
@@ -184,17 +199,7 @@ static void test_trees(int mode, const char *name, mps_arena_t arena,
       break;
     case ModePOLL:
       mps_arena_release(arena);
-      printf("Allocating...");
-      (void)fflush(stdout);
-      object_alloc = 0;
-      while (object_alloc < 1000 && !mps_message_poll(arena)) {
-	mps_word_t vectron;
-	/* Allocate without incrementing object_count, just to try to cause a collection. */
-	die(make_dylan_vector(&vectron, ap, 1), "make_dylan_vector, by Vectron!");
-	DYLAN_VECTOR_SLOT(vectron, 0) = DYLAN_INT(object_alloc);
-	++object_alloc;
-      }
-      printf(" Done.\n");
+      alloc_junk(arena, ap);
       break;
     }
     {
