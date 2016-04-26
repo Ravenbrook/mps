@@ -370,64 +370,53 @@ static Bool loSegTraverse(LOSeg loseg, LOSegVisitor visit, void *closure)
 }
 
 
-/* This walks over _all_ objects in the heap, whether they are */
-/* black or white, they are still validly formatted as this is */
-/* a leaf pool, so there can't be any dangling references */
+/* LOWalk -- apply a visitor to all objects in a segment
+ *
+ * This walks over _all_ objects in the heap, whether they are black
+ * or white, they are still validly formatted as this is a leaf pool,
+ * so there can't be any dangling references
+ */
+
+typedef struct LOWalkClosureStruct {
+  FormattedObjectsVisitor f;
+  Pool pool;
+  Format format;
+  Size headerSize;
+  void *p;
+  size_t s;
+} LOWalkClosureStruct, *LOWalkClosure;
+
+static Bool loWalkVisitor(LOSeg loseg, Index i, Index j, Addr p, Addr q, void *closure)
+{
+  LOWalkClosure my = closure;
+  UNUSED(loseg);
+  UNUSED(i);
+  UNUSED(j);
+  UNUSED(q);
+  my->f(AddrAdd(p, my->headerSize), my->format, my->pool, my->p, my->s);
+  return TRUE;
+}
+
 static void LOWalk(Pool pool, Seg seg, FormattedObjectsVisitor f,
                    void *p, size_t s)
 {
-  Addr base;
-  LO lo = MustBeA(LOPool, pool);
   LOSeg loseg = MustBeA(LOSeg, seg);
-  Index i, grains;
-  Format format = NULL; /* suppress "may be used uninitialized" warning */
   Bool b;
+  LOWalkClosureStruct wcsStruct;
 
   AVERT(Pool, pool);
   AVERT(Seg, seg);
   AVER(FUNCHECK(f));
   /* p and s are arbitrary closures and can't be checked */
 
-  b = PoolFormat(&format, pool);
+  wcsStruct.f = f;
+  wcsStruct.pool = pool;
+  b = PoolFormat(&wcsStruct.format, pool);
   AVER(b);
-
-  base = SegBase(seg);
-  grains = loSegGrains(loseg);
-  i = 0;
-
-  while(i < grains) {
-    /* object is a slight misnomer because it might point to a */
-    /* free grain */
-    Addr object = loAddrOfIndex(base, lo, i);
-    Addr next;
-    Index j;
-
-    if(SegBuffer(seg) != NULL) {
-      Buffer buffer = SegBuffer(seg);
-      if(object == BufferScanLimit(buffer) &&
-         BufferScanLimit(buffer) != BufferLimit(buffer)) {
-        /* skip over buffered area */
-        object = BufferLimit(buffer);
-        i = loIndexOfAddr(base, lo, object);
-        continue;
-      }
-      /* since we skip over the buffered area we are always */
-      /* either before the buffer, or after it, never in it */
-      AVER(object < BufferGetInit(buffer) || BufferLimit(buffer) <= object);
-    }
-    if(!BTGet(loseg->alloc, i)) {
-      /* This grain is free */
-      ++i;
-      continue;
-    }
-    object = AddrAdd(object, format->headerSize);
-    next = (*format->skip)(object);
-    next = AddrSub(next, format->headerSize);
-    j = loIndexOfAddr(base, lo, next);
-    AVER(i < j);
-    (*f)(object, pool->format, pool, p, s);
-    i = j;
-  }
+  wcsStruct.headerSize = wcsStruct.format->headerSize;
+  wcsStruct.p = p;
+  wcsStruct.s = s;
+  (void)loSegTraverse(loseg, loWalkVisitor, &wcsStruct);
 }
 
 
