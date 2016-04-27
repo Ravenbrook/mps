@@ -1175,7 +1175,7 @@ static Res AMSWhiten(Pool pool, Trace trace, Seg seg)
     PoolGenAccountForEmpty(ams->pgen, wasBuffered, 0, FALSE);
     amsseg->bufferedGrains -= used;
     amsseg->newGrains += used;
-    buffer->base = init;
+    BufferSetBase(buffer, init);
   }
 
   /* Account for the new and old areas as condemned.  Any buffered

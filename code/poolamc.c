@@ -485,8 +485,7 @@ static void amcBufFlip(Buffer buffer, Trace trace)
     return;
 
   amcseg = MustBeA(amcSeg, seg);
-  if (!amcseg->old)
-    return;
+  AVER(amcseg->old);
 
   AVER(BufferIsMutator(buffer)); /* .whiten.detach */
   AVER(SegWhite(seg) != TraceSetEMPTY);
@@ -498,6 +497,13 @@ static void amcBufFlip(Buffer buffer, Trace trace)
   init = BufferScanLimit(buffer);
   wasBuffered = AddrOffset(BufferBase(buffer), init);
   PoolGenAccountForAge(pgen, wasBuffered, 0, amcseg->deferred);
+
+  /* .flip.condemned: Account for these objects to trace->condemned
+     for the traces for white they are now white.  TODO: Need to
+     iterate over SegWhite(seg) if segments can be condemend for
+     multiple traces. */
+  AVER(SegWhite(seg) == TraceSetSingle(trace));
+  trace->condemned += wasBuffered;
 
   /* .flip.base: Shift the buffer base up over them, to keep the total
      buffered account equal to the total size of the buffers. */
@@ -1041,7 +1047,6 @@ static void AMCBufferEmpty(Pool pool, Buffer buffer,
     AVER(BufferIsTrapped(buffer)); /* .flip.evict */
     PoolGenAccountForAge(pgen, used, 0, amcseg->deferred);
   } else {
-    AVER(used == SegSize(seg)); /* we don't partially buffer new segments */
     PoolGenAccountForEmpty(pgen, used, 0, amcseg->deferred);
   }
 }
@@ -1161,16 +1166,14 @@ static Res AMCWhiten(Pool pool, Trace trace, Seg seg)
   amcSeg amcseg = MustBeA(amcSeg, seg);
   amcGen gen = amcseg->gen;
   Buffer buffer = SegBuffer(seg);
+  Size condemnedSize, wasBuffered = 0;
 
   AVERT(Trace, trace);
   AVERT(amcGen, gen);
 
-  /* TODO: Consider evicting mutator buffers here, to avoid problems
-     in future such as continuing to allocate onto a promoted segment
-     in the wrong generation. */
-
-  /* .whiten.detach: Detach forwarding buffers. */
-  /* TODO: Is this necessary, or just a good idea? */
+  /* .whiten.detach: Detach forwarding buffers, because stuff
+     forwarded from other generations is "new" and can't be mixed with
+     the old stuff in this segment any more. */
   if (buffer != NULL && !BufferIsMutator(buffer)) {
     AVER(BufferIsReady(buffer));
     BufferDetach(buffer, pool);
@@ -1178,16 +1181,43 @@ static Res AMCWhiten(Pool pool, Trace trace, Seg seg)
     AVER(buffer == NULL);
   }
 
-  if (!amcseg->old && buffer == NULL)
-    PoolGenAccountForAge(&gen->pgen, 0, SegSize(seg), amcseg->deferred);
+  /* Empty the initialzed part of any buffer into the segment.  This
+     is valid at any time.  We do it here as an optimisation to helps
+     to condemn as much as possible. */
+  if (buffer != NULL) {
+    Addr init = BufferScanLimit(buffer);
+    wasBuffered = AddrOffset(BufferBase(buffer), init);
+    /* We can't mix new and old on an AMC segment, but the buffer
+       should've been evicted at the last flip (.flip.evict), and so
+       we're not adding any new stuff to an old segment here. */
+    AVER(!amcseg->old || wasBuffered == 0);
+    PoolGenAccountForEmpty(&gen->pgen, wasBuffered, 0, amcseg->deferred);
+    BufferSetBase(buffer, init);
+  }
+
+  /* If there's no buffer on the segment, then the whole thing is new.
+     Otherwise, it's new up to the base of the buffer.  The mutator
+     could allocate more white objects until flip, and these are
+     accounted for at flip (.flip.condemned). */
+  if (buffer == NULL)
+    condemnedSize = SegSize(seg);
+  else
+    condemnedSize = AddrOffset(SegBase(seg), BufferBase(buffer));
+
+  AVER(condemnedSize >= wasBuffered);
+
+  if (condemnedSize == 0) /* Anything to condemn? */
+    return ResOK;
+
+  /* TODO: Consider evicting mutator buffers here, to avoid problems
+     in future such as continuing to allocate onto a promoted segment
+     in the wrong generation, when we have segment promotion. */
+
+  if (!amcseg->old)
+    PoolGenAccountForAge(&gen->pgen, 0, condemnedSize, amcseg->deferred);
   amcseg->old = TRUE;
 
-  /* FIXME: .whiten.condemned: This may over-estimate the condemned
-     amount and cause a trace to go ahead that has no contents.
-     Although the mutator may create new white objects in the buffer,
-     it may not.  Need to look at all updates to trace->condemned and
-     compare with the mortality branch. */
-  trace->condemned += SegSize(seg);
+  trace->condemned += condemnedSize;
   SegSetWhite(seg, TraceSetAdd(SegWhite(seg), trace));
 
   /* TODO: This shouldn't be in AMCWhiten. */

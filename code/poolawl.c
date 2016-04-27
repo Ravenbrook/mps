@@ -850,7 +850,7 @@ static Res AWLWhiten(Pool pool, Trace trace, Seg seg)
     AVER(awlseg->bufferedGrains >= used);
     awlseg->bufferedGrains -= used;
     awlseg->newGrains += used;
-    buffer->base = init;
+    BufferSetBase(buffer, init);
   }
 
   /* Account for the new and old areas as condemned.  Any buffered
@@ -859,7 +859,7 @@ static Res AWLWhiten(Pool pool, Trace trace, Seg seg)
      objects in the buffer. */
   condemnedSize = AWLGrainsSize(awl, awlseg->newGrains + awlseg->oldGrains);
   if (condemnedSize == 0)
-    return ResOK; /* FIXME: Mustn't fail, see impl.c.trace.whiten.fail. */
+    return ResOK;
 
   tableSize = BTSize(awlSegGrains(awlseg));
   res = ControlAlloc(&p, PoolArena(pool), tableSize);
@@ -890,7 +890,7 @@ static Res AWLWhiten(Pool pool, Trace trace, Seg seg)
 failScanTable:
   ControlFree(PoolArena(pool), awlseg->mark, tableSize);
 failMarkTable:
-  return res;
+  return res; /* FIXME: Mustn't fail, see impl.c.trace.whiten.fail. */
 }
 
 

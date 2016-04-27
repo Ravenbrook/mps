@@ -689,7 +689,7 @@ static Res LOWhiten(Pool pool, Trace trace, Seg seg)
     AVER(loseg->bufferedGrains >= used);
     loseg->bufferedGrains -= used;
     loseg->newGrains += used;
-    buffer->base = init;
+    BufferSetBase(buffer, init);
   }
 
   /* Account for the new and old areas as condemned.  Any buffered
@@ -769,7 +769,7 @@ static void loBufferFlip(Buffer buffer, Trace trace)
   /* .flip.base: Shift the buffer base up over them, to keep the total
      buffered account equal to the total size of the buffers. */
   /* FIXME: Common code with amcBufFlip. */
-  buffer->base = init; /* FIXME: Abstract this */
+  BufferSetBase(buffer, init);
 
   /* .flip.mark: After the flip, the mutator is allocating black.
      Mark the unused part of the buffer to ensure the objects there
