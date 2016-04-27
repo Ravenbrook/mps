@@ -679,7 +679,7 @@ static void amsBufferFlip(Buffer buffer, Trace trace)
   /* .flip.base: Shift the buffer base up over them, to keep the total
      buffered account equal to the total size of the buffers. */
   /* FIXME: Common code with amcBufFlip. */
-  buffer->base = init; /* FIXME: Abstract this */
+  BufferSetBase(buffer, init);
 
   /* .flip.mark: After the flip, the mutator is allocating black.
      Mark the unused part of the buffer to ensure the objects there
@@ -1020,7 +1020,7 @@ static Res AMSBufferFill(Addr *baseReturn, Addr *limitReturn,
   AVER(SizeIsAligned(size, PoolAlignment(pool)));
 
   /* Check that we're not in the grey mutator phase (see */
-  /* <design/poolams/#fill.colour>). */
+  /* <design/poolams/#fill.colour>).  See job004022. */
   AVER(PoolArena(pool)->busyTraces == PoolArena(pool)->flippedTraces);
 
   rankSet = BufferRankSet(buffer);
@@ -1035,6 +1035,7 @@ static Res AMSBufferFill(Addr *baseReturn, Addr *limitReturn,
       if (SegRankSet(seg) == rankSet
           && SegBuffer(seg) == NULL
           /* Can't use a white or grey segment, see d.m.p.fill.colour. */
+	  /* See also job004022. */
           && SegWhite(seg) == TraceSetEMPTY
           && SegGrey(seg) == TraceSetEMPTY)
       {

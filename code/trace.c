@@ -587,7 +587,6 @@ static Res traceFlip(Trace trace)
 
   arena = trace->arena;
   rfc.arena = arena;
-  ShieldHold(arena);
 
   AVER(trace->state == TraceUNFLIPPED);
   AVER(!TraceSetIsMember(arena->flippedTraces, trace));
@@ -1626,7 +1625,12 @@ Res TraceStart(Trace trace, double mortality, double finishingTime)
   AVER(trace->condemned > 0);
 
   arena = trace->arena;
-  
+
+  /* TODO: The MPS can't yet deal with grey allocation, so we must
+     discover the foundation atomically with the flip. See
+     job004022 for analysis. */
+  ShieldHold(arena);
+
   /* From the already set up white set, derive a grey set. */
 
   /* @@@@ Instead of iterating over all the segments, we could */

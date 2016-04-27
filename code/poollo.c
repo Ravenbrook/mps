@@ -577,7 +577,9 @@ found:
     BTSetRange(loseg->alloc, baseIndex, limitIndex);
 
     /* If the segment is condemned, mark the newly buffered region as
-       black.  FIXME: Could be white pre-flip. */
+       black.  TODO: Pre-flip, should be white.  For the moment,
+       assert that we're post-flip.  See job004022. */
+    AVER(PoolArena(pool)->busyTraces == PoolArena(pool)->flippedTraces);
     if (loseg->mark != NULL)
       BTSetRange(loseg->mark, baseIndex, limitIndex);
 

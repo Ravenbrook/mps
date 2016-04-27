@@ -501,7 +501,7 @@ static void amcBufFlip(Buffer buffer, Trace trace)
 
   /* .flip.base: Shift the buffer base up over them, to keep the total
      buffered account equal to the total size of the buffers. */
-  buffer->base = init; /* FIXME: Abstract this */
+  BufferSetBase(buffer, init);
   
   /* .flip.evict: We evict the buffer from its current segment as well
      as flipping it, so that no black objects can appear after white

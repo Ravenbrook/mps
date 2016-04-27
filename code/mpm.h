@@ -767,6 +767,7 @@ extern RankSet BufferRankSet(Buffer buffer);
 extern void BufferSetRankSet(Buffer buffer, RankSet rankset);
 
 #define BufferBase(buffer)      ((buffer)->base)
+#define BufferSetBase(buffer, addr) BEGIN (buffer)->base = (addr); END
 #define BufferGetInit(buffer) /* see .trans.bufferinit */ \
   ((Addr)(BufferAP(buffer)->init))
 #define BufferAlloc(buffer)     ((Addr)(BufferAP(buffer)->alloc))

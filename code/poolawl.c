@@ -357,7 +357,7 @@ static void awlBufferFlip(Buffer buffer, Trace trace)
   /* .flip.base: Shift the buffer base up over them, to keep the total
      buffered account equal to the total size of the buffers. */
   /* FIXME: Common code with amcBufFlip. */
-  buffer->base = init; /* FIXME: Abstract this */
+  BufferSetBase(buffer, init);
 
   /* .flip.mark: After the flip, the mutator is allocating black.
      Mark the unused part of the buffer to ensure the objects there
@@ -751,8 +751,10 @@ found:
     BTSetRange(awlseg->alloc, baseIndex, limitIndex);
 
     /* If the segment is condemned, mark the newly buffered region as
-       black.  FIXME: Pre-flip, should be white in condemned segments,
-       and grey otherwise. */
+       black.  TODO: Pre-flip, should be white in condemned segments,
+       and grey otherwise.  For the moment, assert that we're
+       post-flip.  See job004022. */
+    AVER(PoolArena(pool)->busyTraces == PoolArena(pool)->flippedTraces);
     if (awlseg->mark != NULL)
       awlRangeBlacken(awlseg, baseIndex, limitIndex);
 
