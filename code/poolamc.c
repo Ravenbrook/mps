@@ -1037,11 +1037,8 @@ static void AMCBufferEmpty(Pool pool, Buffer buffer,
   }
 
   if (amcseg->old) {
-    /* FIXME: These are only true while we don't have pre-flip allocation. */
+    /* TODO: This is only true while we don't have pre-flip allocation. */
     AVER(BufferIsTrapped(buffer)); /* .flip.evict */
-    /* FIXME: Why are these false at mps_ap_destroy? */
-    /* AVER(BufferBase(buffer) == init);  .flip.base */
-    /* AVER(bufferSize == size);  .flip.base */
     PoolGenAccountForAge(pgen, used, 0, amcseg->deferred);
   } else {
     AVER(used == SegSize(seg)); /* we don't partially buffer new segments */
