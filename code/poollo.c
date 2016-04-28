@@ -50,10 +50,13 @@ typedef struct LOSegStruct *LOSeg;
 
 #define LOSegSig      ((Sig)0x519705E9) /* SIGnature LO SEG */
 
+/* TODO: Split alloc and mark into separate subclasses. */
+/* TODO: Four extra words per segment for accounting is too expensive. */
+
 typedef struct LOSegStruct {
   GCSegStruct gcSegStruct;  /* superclass fields must come first */
-  BT mark;                  /* NULL or mark bit table on white segs */
   BT alloc;                 /* alloc bit table */
+  BT mark;                  /* NULL or mark bit table on white segs */
   Count freeGrains;         /* free grains */
   Count bufferedGrains;     /* grains in buffers */
   Count newGrains;          /* grains allocated since last collection */
@@ -689,8 +692,9 @@ static Res LOWhiten(Pool pool, Trace trace, Seg seg)
   AVER(SegWhite(seg) == TraceSetEMPTY);
 
   /* Empty the initialzed part of any buffer into the segment.  This
-     is valid at any time.  We do it here as an optimisation to helps
-     to condemn as much as possible. */
+     operation is valid at any time.  We do it here to get a more
+     accurate size for the condemned set.  It is not necessary for
+     correctness. */
   if (buffer != NULL) {
     Addr init = BufferScanLimit(buffer);
     Size wasBuffered = AddrOffset(BufferBase(buffer), init);
@@ -702,25 +706,29 @@ static Res LOWhiten(Pool pool, Trace trace, Seg seg)
     BufferSetBase(buffer, init);
   }
 
-  /* Account for the new and old areas as condemned.  Any buffered
-     area is added to condemned at flip (.flip.condemned).  TODO: This
-     may lead to cancellation of collections that could reclaim white
-     objects in the buffer. */
+  /* Account for the new and old areas as condemned.  Any further
+     objects allocated in a buffered area will be added to the
+     condemned size at flip (.flip.condemned). */
   condemnedSize = LOGrainsSize(lo, loseg->newGrains + loseg->oldGrains);
   if (condemnedSize == 0)
     return ResOK;
 
   AVER(loseg->mark == NULL);
   res = ControlAlloc(&p, PoolArena(pool), BTSize(loSegGrains(loseg)));
-  if (res != ResOK)
-    return res; /* FIXME: Mustn't fail, see impl.c.trace.whiten.fail. */
+  if (res != ResOK) {
+    /* Whiten methods are currently not allowed to fail
+       (implc.c.trace.whiten.fail) so just don't whiten this segment.
+       TODO: Deal with the failure in trace.c. */
+    return ResOK;
+  }
   loseg->mark = p;
 
   /* Whiten the whole segment, including any buffered areas.  Pre-flip
      buffered allocation is white, post-flip black (.flip.mark). */
   BTResRange(loseg->mark, 0, loSegGrains(loseg));
 
-  /* Age new objects.  Buffered areas aren't accounted until flip
+  /* Transfer new objects to the old account.  Further objects
+     allocated white before the flip are transferred at flip
      (.flip.age). */
   PoolGenAccountForAge(lo->pgen, 0,
                        LOGrainsSize(lo, loseg->newGrains), FALSE);

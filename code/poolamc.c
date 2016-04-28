@@ -1835,6 +1835,10 @@ static void amcReclaimBuffered(Pool pool, Trace trace, Seg seg)
   /* TODO: Consider splitting and freeing the segment up to the
      buffer's init poitner. */
 
+  /* FIXME: To design: Morally this area should perhaps be accounted
+     as "free", but AMC can't allocate it, and it's been replaced by
+     an old padding object. */
+
   if (size > PoolAlignment(pool)) {
     ShieldExpose(arena, seg);
     pool->format->pad(base, size);
@@ -1843,10 +1847,6 @@ static void amcReclaimBuffered(Pool pool, Trace trace, Seg seg)
   } else {
     AVER(size == 0);
   }
-
-  /* FIXME: To design: Morally this area should perhaps be accounted
-     as "free", but AMC can't allocate it, and it's been replaced by
-     an old padding object. */
 
   /* At this point the segment is technically empty.  There are no objects
      below BufferScanlimit, and the buffer is evicted.  The only reason we

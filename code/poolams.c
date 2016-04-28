@@ -687,7 +687,7 @@ static void amsBufferFlip(Buffer buffer, Trace trace)
      will be accounted for as new. */
   limit = BufferLimit(buffer);
   limitIndex = AMS_ADDR_INDEX(seg, limit);
-  if (initIndex < limitIndex) /* FIXME: Could detach if empty? */
+  if (initIndex < limitIndex)
     AMS_RANGE_WHITE_BLACKEN(seg, initIndex, limitIndex);
 }
   
