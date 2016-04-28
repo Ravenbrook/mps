@@ -1317,6 +1317,8 @@ static void gcSegSetRankSet(Seg seg, RankSet rankSet)
 static void gcSegSyncWriteBarrier(Seg seg, Arena arena)
 {
   /* Can't check seg -- this function enforces invariants tested by SegCheck. */
+  /* For pre-flip tracing, need to raise the write barrier if the
+     segment is black for an unflipped trace.  See job004023. */
   if (SegSummary(seg) == RefSetUNIV)
     ShieldLower(arena, seg, AccessWRITE);
   else
