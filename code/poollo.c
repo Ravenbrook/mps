@@ -293,7 +293,7 @@ static Res loSegCreate(LOSeg *loSegReturn, Pool pool, Size size)
 
 
 /* loSegTraverse -- apply a visitor to all objects in a segment */
-/* FIXME: Duplicate of awlSegTraverse */
+/* TODO: Unify with awlSegTraverse */
 
 typedef Bool (*LOSegVisitor)(LOSeg loseg, Index i, Index j, Addr p, Addr q, void *closure);
 static Bool loSegTraverse(LOSeg loseg, LOSegVisitor visit, void *closure)
@@ -377,7 +377,7 @@ static Bool loSegTraverse(LOSeg loseg, LOSegVisitor visit, void *closure)
  * or white, they are still validly formatted as this is a leaf pool,
  * so there can't be any dangling references
  *
- * FIXME: Duplicate code with AWLWalk.
+ * TODO: Unify with AWLWalk.
  */
 
 typedef struct LOWalkClosureStruct {
@@ -580,8 +580,13 @@ found:
        black.  TODO: Pre-flip, should be white.  For the moment,
        assert that we're post-flip.  See job004022. */
     AVER(PoolArena(pool)->busyTraces == PoolArena(pool)->flippedTraces);
-    if (loseg->mark != NULL)
-      BTSetRange(loseg->mark, baseIndex, limitIndex);
+    if (loseg->mark != NULL) {
+      if (TraceSetDiff(SegWhite(seg),
+                       PoolArena(pool)->flippedTraces) == TraceSetEMPTY)
+        BTSetRange(loseg->mark, baseIndex, limitIndex);
+      else
+        AVER(BTIsResRange(loseg->mark, baseIndex, limitIndex));
+    }
 
     AVER(loseg->freeGrains >= limitIndex - baseIndex);
     loseg->freeGrains -= limitIndex - baseIndex;
@@ -676,6 +681,11 @@ static Res LOWhiten(Pool pool, Trace trace, Seg seg)
   void *p;
 
   AVERT(Trace, trace);
+
+  /* This pool only maintains one set of mark bits, so the segment can
+     only be white for one trace.  For multiple traces, we could add
+     more mark bits, or refuse to condemn the segment for more than
+     one trace. */
   AVER(SegWhite(seg) == TraceSetEMPTY);
 
   /* Empty the initialzed part of any buffer into the segment.  This
