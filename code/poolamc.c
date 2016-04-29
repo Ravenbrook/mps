@@ -1036,10 +1036,12 @@ static void AMCBufferEmpty(Pool pool, Buffer buffer,
   /* .empty.pad: Pad out the rest of the segment, including the tail end
       of a large object (design.mps.poolamc.flush.pad). */
   padSize = AddrOffset(init, SegLimit(seg));
-  if (padSize > 0) { /* FIXME: Should be defensive like in amcReclaimBuffered? */
+  if (padSize >= PoolAlignment(pool)) {
     ShieldExpose(arena, seg);
     pool->format->pad(init, padSize);
     ShieldCover(arena, seg);
+  } else {
+    AVER(padSize == 0);
   }
 
   if (amcseg->old) {
@@ -1814,12 +1816,9 @@ static void amcReclaimNailed(Pool pool, Trace trace, Seg seg)
 /* amcReclaimBuffered -- recycle a buffered segment
  *
  * We can't reclaim the part of the segment that's still in use by the
- * mutator, so we just pad over the rest.
- *
- * TODO: That this is likely to lead to a segment with just two
- * padding objects on it when the trapped buffer is emptied.  If we
- * could detect this case we could recycle the segment then, rather
- * than at the next collection.
+ * mutator, so we just pad over the rest.  This are is accounted as
+ * allocated, not free, ecause the padding object is treated like any
+ * other mutator object.
  */
 
 static void amcReclaimBuffered(Pool pool, Trace trace, Seg seg)
@@ -1835,10 +1834,6 @@ static void amcReclaimBuffered(Pool pool, Trace trace, Seg seg)
   /* TODO: Consider splitting and freeing the segment up to the
      buffer's init poitner. */
 
-  /* FIXME: To design: Morally this area should perhaps be accounted
-     as "free", but AMC can't allocate it, and it's been replaced by
-     an old padding object. */
-
   if (size > PoolAlignment(pool)) {
     ShieldExpose(arena, seg);
     pool->format->pad(base, size);
@@ -1848,11 +1843,13 @@ static void amcReclaimBuffered(Pool pool, Trace trace, Seg seg)
     AVER(size == 0);
   }
 
-  /* At this point the segment is technically empty.  There are no objects
-     below BufferScanlimit, and the buffer is evicted.  The only reason we
-     can't free the segment is that the mutator might be writing between
-     the AP's init and alloc.  Once the buffer moves on, the segment will
-     be recycled in a future GC. */
+  /* At this point the segment is technically empty.  There are no
+     objects below BufferScanlimit, and the buffer is evicted.  The
+     only reason we can't free the segment is that the mutator might
+     be writing between the AP's init and alloc.  Once the buffer
+     moves on, the segment will be recycled in a future GC.  TODO:
+     Find a way to detect this at buffer empty, and so recycle the
+     segment more promptly. */
 
   SegSetWhite(seg, TraceSetDel(SegWhite(seg), trace));
 }
