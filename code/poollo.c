@@ -29,6 +29,12 @@ typedef struct LOStruct {
   Sig sig;
 } LOStruct;
 
+#define loIndexOfAddr(base, lo, p) \
+  (AddrOffset((base), (p)) >> (lo)->alignShift)
+
+#define loAddrOfIndex(base, lo, i) \
+  (AddrAdd((base), LOGrainsSize((lo), (i))))
+
 #define LOGrainsSize(lo, grains) ((grains) << (lo)->alignShift)
 
 typedef LO LOPool;
@@ -205,14 +211,6 @@ static Count loSegGrains(LOSeg loseg)
   Size size = SegSize(seg);
   return size >> lo->alignShift;
 }
-
-
-/* Conversion between indexes and Addrs */
-#define loIndexOfAddr(base, lo, p) \
-  (AddrOffset((base), (p)) >> (lo)->alignShift)
-
-#define loAddrOfIndex(base, lo, i) \
-  (AddrAdd((base), LOGrainsSize((lo), (i))))
 
 
 /* loSegFree -- mark block from baseIndex to limitIndex free */
