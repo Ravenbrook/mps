@@ -51,7 +51,7 @@ typedef struct LOSegStruct *LOSeg;
 #define LOSegSig      ((Sig)0x519705E9) /* SIGnature LO SEG */
 
 /* TODO: Split alloc and mark into separate subclasses. */
-/* TODO: Four extra words per segment for accounting is too expensive. */
+/* TODO: Four extra words per segment for accounting is too expensive.  See job004024. */
 
 typedef struct LOSegStruct {
   GCSegStruct gcSegStruct;  /* superclass fields must come first */
@@ -121,6 +121,10 @@ static Bool LOSegCheck(LOSeg loseg)
   CHECKL(loseg->freeGrains + loseg->bufferedGrains + loseg->newGrains
          + loseg->oldGrains
          == SegSize(seg) >> lo->alignShift);
+  CHECKL(SegBuffer(seg) == NULL ||
+         loseg->bufferedGrains ==
+         loIndexOfAddr(SegBase(seg), lo, BufferLimit(SegBuffer(seg))) -
+         loIndexOfAddr(SegBase(seg), lo, BufferBase(SegBuffer(seg))));
   return TRUE;
 }
 
@@ -296,7 +300,7 @@ static Res loSegCreate(LOSeg *loSegReturn, Pool pool, Size size)
 
 
 /* loSegTraverse -- apply a visitor to all objects in a segment */
-/* TODO: Unify with awlSegTraverse */
+/* TODO: Unify with awlSegTraverse.  See job004025. */
 
 typedef Bool (*LOSegVisitor)(LOSeg loseg, Index i, Index j, Addr p, Addr q, void *closure);
 static Bool loSegTraverse(LOSeg loseg, LOSegVisitor visit, void *closure)
@@ -671,7 +675,7 @@ static void LOBufferEmpty(Pool pool, Buffer buffer, Addr init, Addr limit)
 
 /* LOWhiten -- whiten a segment
  *
- * FIXME: Common code with AWLWhiten.
+ * TODO: Unify with AWLWhiten.  See job004025.
  */
 
 static Res LOWhiten(Pool pool, Trace trace, Seg seg)
@@ -763,7 +767,7 @@ static void loBufferFlip(Buffer buffer, Trace trace)
 
   /* .flip.age: Any objects between the buffer base and init were
      allocated white, so account them as old. */
-  /* FIXME: Common code with amcBufFlip. */
+  /* TODO: Unify with amcBufFlip.  See job004025. */
   init = BufferScanLimit(buffer);
   wasBuffered = AddrOffset(BufferBase(buffer), init);
   PoolGenAccountForAge(lo->pgen, wasBuffered, 0, FALSE);
@@ -786,7 +790,7 @@ static void loBufferFlip(Buffer buffer, Trace trace)
 
   /* .flip.base: Shift the buffer base up over them, to keep the total
      buffered account equal to the total size of the buffers. */
-  /* FIXME: Common code with amcBufFlip. */
+  /* TODO: Unify with amcBufFlip.  See job004025. */
   BufferSetBase(buffer, init);
 
   /* .flip.mark: After the flip, the mutator is allocating black.
@@ -795,7 +799,7 @@ static void loBufferFlip(Buffer buffer, Trace trace)
      will be accounted for as new. */
   limit = BufferLimit(buffer);
   limitIndex = loIndexOfAddr(segBase, lo, limit);
-  if (initIndex < limitIndex) /* FIXME: Could detach if empty? */
+  if (initIndex < limitIndex)
     BTSetRange(loseg->mark, initIndex, limitIndex);
 }
   

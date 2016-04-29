@@ -656,7 +656,7 @@ static void amsBufferFlip(Buffer buffer, Trace trace)
 
   /* .flip.age: Any objects between the buffer base and init were
      allocated white, so account them as old. */
-  /* FIXME: Common code with amcBufFlip. */
+  /* TODo: Unify with amcBufFlip.  See job004025. */
   init = BufferScanLimit(buffer);
   wasBuffered = AddrOffset(BufferBase(buffer), init);
   PoolGenAccountForAge(ams->pgen, wasBuffered, 0, FALSE);
@@ -678,7 +678,7 @@ static void amsBufferFlip(Buffer buffer, Trace trace)
 
   /* .flip.base: Shift the buffer base up over them, to keep the total
      buffered account equal to the total size of the buffers. */
-  /* FIXME: Common code with amcBufFlip. */
+  /* TODO: Unify with amcBufFlip. See job004025. */
   BufferSetBase(buffer, init);
 
   /* .flip.mark: After the flip, the mutator is allocating black.

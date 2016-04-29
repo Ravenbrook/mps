@@ -333,7 +333,7 @@ static void awlBufferFlip(Buffer buffer, Trace trace)
 
   /* .flip.age: Any objects between the buffer base and init were
      allocated white, so account them as old. */
-  /* FIXME: Common code with amcBufFlip. */
+  /* TODO: Unify with amcBufFlip. See job004025. */
   init = BufferScanLimit(buffer);
   wasBuffered = AddrOffset(BufferBase(buffer), init);
   PoolGenAccountForAge(awl->pgen, wasBuffered, 0, FALSE);
@@ -356,7 +356,7 @@ static void awlBufferFlip(Buffer buffer, Trace trace)
 
   /* .flip.base: Shift the buffer base up over them, to keep the total
      buffered account equal to the total size of the buffers. */
-  /* FIXME: Common code with amcBufFlip. */
+  /* TODO: Unify with amcBufFlip.  See job004025. */
   BufferSetBase(buffer, init);
 
   /* .flip.mark: After the flip, the mutator is allocating black.
@@ -820,7 +820,7 @@ static void awlRangeWhiten(AWLSeg awlseg, Index base, Index limit)
 
 /* AWLWhiten -- whiten a segment
  *
- * FIXME: Common code with LOWhiten.
+ * TODO: Unify with LOWhiten.  See job004025.
  */
 
 static Res AWLWhiten(Pool pool, Trace trace, Seg seg)
@@ -947,7 +947,7 @@ static Res awlScanObject(AWL awl, ScanState ss, Addr base, Addr limit)
 
 
 /* awlSegTraverse -- apply a visitor to all objects in a segment */
-/* FIXME: Duplicate of loSegTraverse */
+/* TODO: Unify with loSegTraverse. See job004025. */
 
 typedef Res (*AWLSegVisitor)(AWLSeg awlseg, Index i, Index j, Addr p, Addr q, void *closure);
 static Res awlSegTraverse(AWLSeg awlseg, AWLSegVisitor visit, void *closure)
