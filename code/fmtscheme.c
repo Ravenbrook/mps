@@ -243,7 +243,7 @@ obj_t scheme_make_table(mps_ap_t ap, size_t length, hash_t hashf, cmp_t cmpf)
 
 /* MPS Format */
 
-static mps_res_t obj_scan(mps_ss_t ss, mps_addr_t base, mps_addr_t limit)
+mps_res_t scheme_scan(mps_ss_t ss, mps_addr_t base, mps_addr_t limit)
 {
 #define FIX(ref) \
   do { \
@@ -338,7 +338,7 @@ static mps_res_t obj_scan(mps_ss_t ss, mps_addr_t base, mps_addr_t limit)
   return MPS_RES_OK;
 }
 
-static mps_addr_t obj_skip(mps_addr_t base)
+mps_addr_t scheme_skip(mps_addr_t base)
 {
   obj_t obj = base;
   switch (TYPE(obj)) {
@@ -401,7 +401,7 @@ static mps_addr_t obj_skip(mps_addr_t base)
   return base;
 }
 
-static mps_addr_t obj_isfwd(mps_addr_t addr)
+mps_addr_t scheme_isfwd(mps_addr_t addr)
 {
   obj_t obj = addr;
   switch (TYPE(obj)) {
@@ -414,12 +414,12 @@ static mps_addr_t obj_isfwd(mps_addr_t addr)
   }
 }
 
-static void obj_fwd(mps_addr_t old, mps_addr_t new)
+void scheme_fwd(mps_addr_t old, mps_addr_t new)
 {
   obj_t obj = old;
-  mps_addr_t limit = obj_skip(old);
+  mps_addr_t limit = scheme_skip(old);
   size_t size = (size_t)((char *)limit - (char *)old);
-  cdie(size >= ALIGN_WORD(sizeof(fwd2_s)), "bad size in obj_fwd");
+  cdie(size >= ALIGN_WORD(sizeof(fwd2_s)), "bad size in scheme_fwd");
   if (size == ALIGN_WORD(sizeof(fwd2_s))) {
     TYPE(obj) = TYPE_FWD2;
     obj->fwd2.fwd = new;
@@ -430,10 +430,10 @@ static void obj_fwd(mps_addr_t old, mps_addr_t new)
   }
 }
 
-static void obj_pad(mps_addr_t addr, size_t size)
+void scheme_pad(mps_addr_t addr, size_t size)
 {
   obj_t obj = addr;
-  cdie(size >= ALIGN_WORD(sizeof(pad1_s)), "bad size in obj_pad");
+  cdie(size >= ALIGN_WORD(sizeof(pad1_s)), "bad size in scheme_pad");
   if (size == ALIGN_WORD(sizeof(pad1_s))) {
     TYPE(obj) = TYPE_PAD1;
   } else {
@@ -447,11 +447,11 @@ void scheme_fmt(mps_fmt_t *fmt)
   mps_res_t res;
   MPS_ARGS_BEGIN(args) {
     MPS_ARGS_ADD(args, MPS_KEY_FMT_ALIGN, ALIGNMENT);
-    MPS_ARGS_ADD(args, MPS_KEY_FMT_SCAN, obj_scan);
-    MPS_ARGS_ADD(args, MPS_KEY_FMT_SKIP, obj_skip);
-    MPS_ARGS_ADD(args, MPS_KEY_FMT_FWD, obj_fwd);
-    MPS_ARGS_ADD(args, MPS_KEY_FMT_ISFWD, obj_isfwd);
-    MPS_ARGS_ADD(args, MPS_KEY_FMT_PAD, obj_pad);
+    MPS_ARGS_ADD(args, MPS_KEY_FMT_SCAN, scheme_scan);
+    MPS_ARGS_ADD(args, MPS_KEY_FMT_SKIP, scheme_skip);
+    MPS_ARGS_ADD(args, MPS_KEY_FMT_FWD, scheme_fwd);
+    MPS_ARGS_ADD(args, MPS_KEY_FMT_ISFWD, scheme_isfwd);
+    MPS_ARGS_ADD(args, MPS_KEY_FMT_PAD, scheme_pad);
     res = mps_fmt_create_k(fmt, scheme_arena, args);
   } MPS_ARGS_END(args);
   if (res != MPS_RES_OK) error("Couldn't create obj format");

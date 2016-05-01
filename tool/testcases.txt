@@ -10,6 +10,7 @@ amsss          =P
 amssshe        =P
 apss
 arenacv
+arenath        =T
 awlut
 awluthe
 awlutth        =T

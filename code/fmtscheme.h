@@ -182,6 +182,11 @@ extern obj_t scheme_make_vector(mps_ap_t ap, size_t length, obj_t fill);
 extern obj_t scheme_make_buckets(mps_ap_t ap, size_t length);
 extern obj_t scheme_make_table(mps_ap_t ap, size_t length, hash_t hashf,
                                cmp_t cmpf);
+extern mps_res_t scheme_scan(mps_ss_t ss, mps_addr_t base, mps_addr_t limit);
+extern mps_addr_t scheme_skip(mps_addr_t base);
+extern mps_addr_t scheme_isfwd(mps_addr_t addr);
+extern void scheme_fwd(mps_addr_t old, mps_addr_t new);
+extern void scheme_pad(mps_addr_t addr, size_t size);
 extern void scheme_fmt(mps_fmt_t *fmt);
 
 extern mps_arena_t scheme_arena;

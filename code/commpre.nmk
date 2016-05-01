@@ -67,6 +67,7 @@ TEST_TARGETS=\
     amssshe.exe \
     apss.exe \
     arenacv.exe \
+    arenath.exe \
     awlut.exe \
     awluthe.exe \
     awlutth.exe \

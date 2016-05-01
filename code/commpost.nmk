@@ -201,6 +201,9 @@ $(PFM)\$(VARIETY)\apss.exe: $(PFM)\$(VARIETY)\apss.obj \
 $(PFM)\$(VARIETY)\arenacv.exe:  $(PFM)\$(VARIETY)\arenacv.obj \
 	$(PFM)\$(VARIETY)\mps.lib $(TESTLIBOBJ)
 
+$(PFM)\$(VARIETY)\arenath.exe:  $(PFM)\$(VARIETY)\arenath.obj \
+	$(PFM)\$(VARIETY)\mps.lib $(FMTSCMOBJ) $(TESTTHOBJ) $(TESTLIBOBJ)
+
 $(PFM)\$(VARIETY)\awlut.exe: $(PFM)\$(VARIETY)\awlut.obj \
         $(FMTTESTOBJ) \
 	$(PFM)\$(VARIETY)\mps.lib $(TESTLIBOBJ)

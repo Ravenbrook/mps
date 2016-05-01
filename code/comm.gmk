@@ -256,6 +256,7 @@ TEST_TARGETS=\
     amssshe \
     apss \
     arenacv \
+    arenath \
     awlut \
     awluthe \
     awlutth \
@@ -466,6 +467,9 @@ $(PFM)/$(VARIETY)/apss: $(PFM)/$(VARIETY)/apss.o \
 
 $(PFM)/$(VARIETY)/arenacv: $(PFM)/$(VARIETY)/arenacv.o \
 	$(TESTLIBOBJ) $(PFM)/$(VARIETY)/mps.a
+
+$(PFM)/$(VARIETY)/arenath: $(PFM)/$(VARIETY)/arenath.o \
+	$(FMTSCMOBJ) $(TESTTHROBJ) $(TESTLIBOBJ) $(PFM)/$(VARIETY)/mps.a
 
 $(PFM)/$(VARIETY)/awlut: $(PFM)/$(VARIETY)/awlut.o \
 	$(FMTDYTSTOBJ) $(TESTLIBOBJ) $(PFM)/$(VARIETY)/mps.a
