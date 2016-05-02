@@ -1,7 +1,7 @@
 /* poolmvff.c: First Fit Manual Variable Pool
  *
  * $Id$
- * Copyright (c) 2001-2014 Ravenbrook Limited.  See end of file for license.
+ * Copyright (c) 2001-2016 Ravenbrook Limited.  See end of file for license.
  * Portions copyright (C) 2002 Global Graphics Software.
  *
  * .purpose: This is a pool class for manually managed objects of
@@ -673,26 +673,24 @@ static Size MVFFFreeSize(Pool pool)
 
 static Res MVFFDescribe(Pool pool, mps_lib_FILE *stream, Count depth)
 {
+  MVFF mvff = CouldBeA(MVFFPool, pool);
   Res res;
-  MVFF mvff;
 
-  if (!TESTT(Pool, pool))
-    return ResFAIL;
-  mvff = PoolMVFF(pool);
-  if (!TESTT(MVFF, mvff))
-    return ResFAIL;
+  if (!TESTC(MVFFPool, mvff))
+    return ResPARAM;
   if (stream == NULL)
-    return ResFAIL;
+    return ResPARAM;
 
-  res = WriteF(stream, depth,
-               "MVFF $P {\n", (WriteFP)mvff,
-               "  pool $P ($U)\n",
-               (WriteFP)pool, (WriteFU)pool->serial,
-               "  extendBy  $W\n",  (WriteFW)mvff->extendBy,
-               "  avgSize   $W\n",  (WriteFW)mvff->avgSize,
-               "  firstFit  $U\n",  (WriteFU)mvff->firstFit,
-               "  slotHigh  $U\n",  (WriteFU)mvff->slotHigh,
-               "  spare     $D\n",  (WriteFD)mvff->spare,
+  res = NextMethod(Pool, MVFFPool, describe)(pool, stream, depth);
+  if (res != ResOK)
+    return res;
+
+  res = WriteF(stream, depth + 2,
+               "extendBy  $W\n",  (WriteFW)mvff->extendBy,
+               "avgSize   $W\n",  (WriteFW)mvff->avgSize,
+               "firstFit  $U\n",  (WriteFU)mvff->firstFit,
+               "slotHigh  $U\n",  (WriteFU)mvff->slotHigh,
+               "spare     $D\n",  (WriteFD)mvff->spare,
                NULL);
   if (res != ResOK)
     return res;
@@ -716,8 +714,7 @@ static Res MVFFDescribe(Pool pool, mps_lib_FILE *stream, Count depth)
   if (res != ResOK)
     return res;
 
-  res = WriteF(stream, depth, "} MVFF $P\n", (WriteFP)mvff, NULL);
-  return res;
+  return ResOK;
 }
 
 
@@ -799,23 +796,9 @@ static Bool MVFFCheck(MVFF mvff)
 }
 
 
-/* Return the CBS of an MVFF pool for the benefit of fotest.c. */
-
-extern Land _mps_mvff_cbs(Pool);
-Land _mps_mvff_cbs(Pool pool) {
-  MVFF mvff;
-
-  AVERT(Pool, pool);
-  mvff = PoolMVFF(pool);
-  AVERT(MVFF, mvff);
-
-  return MVFFFreePrimary(mvff);
-}
-
-
 /* C. COPYRIGHT AND LICENSE
  *
- * Copyright (C) 2001-2014 Ravenbrook Limited <http://www.ravenbrook.com/>.
+ * Copyright (C) 2001-2016 Ravenbrook Limited <http://www.ravenbrook.com/>.
  * All rights reserved.  This is an open source license.  Contact
  * Ravenbrook for commercial licensing options.
  * 
