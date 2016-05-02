@@ -31,6 +31,7 @@ static mps_res_t scan(mps_ss_t ss, mps_addr_t base, mps_addr_t limit)
   return res;
 }
 
+ATTRIBUTE_NOINLINE
 static void test(void *marker)
 {
   mps_arena_t arena;
@@ -77,6 +78,7 @@ static void test(void *marker)
     }
   }
 
+  mps_arena_park(arena);
   mps_ap_destroy(ap);
   mps_pool_destroy(pool);
   mps_fmt_destroy(fmt);
