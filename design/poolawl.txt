@@ -426,7 +426,7 @@ whether the rank (``ss->rank``) is ``RankWEAK`` or not. If the rank is
 weak then the reference is adjusted to 0 (see design.mps.weakness) and
 fix returns. If the rank is something else then the mark bit
 corresponding to the referenced grain is set, and the segment is
-greyed using ``TraceSegGreyen()``.
+greyed using ``SegSetGrey()``.
 
 .. _design.mps.fix.was-marked.not: fix#was-marked-not
 
