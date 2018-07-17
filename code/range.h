@@ -40,7 +40,6 @@ extern void (RangeSetLimit)(Range range, Addr addr);
 extern Size (RangeSize)(Range range);
 extern void RangeCopy(Range to, Range from);
 
-
 #endif /* range_h */
 
 
