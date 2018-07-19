@@ -61,38 +61,61 @@ _`.over.hierarchy.mutatorseg`: ``MutatorSeg`` is a subclass of
 ``GCSeg`` implementing hardware barriers. It is suitable for handing
 out to the mutator.
 
+_`.over.hierarchy.marksweepseg`: ``MarkSweepSeg`` is a subclass of
+``MutatorSeg`` implementing mark-and-sweep collection of leaf objects.
 
-Data Structure
---------------
+
+Data Structures
+---------------
+
+Seg class
+.........
 
 ``typedef struct SegStruct *Seg``
-``typedef struct GCSegStruct *GCSeg``
 
-The implementations are as follows::
+The implementation is::
 
     typedef struct SegStruct {      /* segment structure */
+      InstStruct instStruct;
       Sig sig;                      /* <code/misc.h#sig> */
-      SegClass class;               /* segment class structure */
       Tract firstTract;             /* first tract of segment */
       RingStruct poolRing;          /* link in list of segs in pool */
       Addr limit;                   /* limit of segment */
-      unsigned depth : ShieldDepthWIDTH; /* see <code/shield.c#def.depth> */
+      unsigned depth : ShieldDepthWIDTH; /* see <design/shield#.def.depth> */
+      BOOLFIELD(queued);            /* in shield queue? */
       AccessSet pm : AccessLIMIT;   /* protection mode, <code/shield.c> */
       AccessSet sm : AccessLIMIT;   /* shield mode, <code/shield.c> */
       TraceSet grey : TraceLIMIT;   /* traces for which seg is grey */
       TraceSet white : TraceLIMIT;  /* traces for which seg is white */
       TraceSet nailed : TraceLIMIT; /* traces for which seg has nailed objects */
       RankSet rankSet : RankLIMIT;  /* ranks of references in this seg */
+      unsigned defer : WB_DEFER_BITS; /* defer write barrier for this many scans */
     } SegStruct;
 
-    typedef struct GCSegStruct {    /* GC segment structure */
-      SegStruct segStruct;          /* superclass fields must come first */
-      RingStruct greyRing;          /* link in list of grey segs */
-      RefSet summary;               /* summary of references out of seg */
-      Buffer buffer;                /* non-NULL if seg is buffered */
-      Sig sig;                      /* design.mps.sig */
-    } GCSegStruct;
+_`.field.depth`: The ``depth`` field is used by the Shield
+(impl.c.shield) to manage protection of the segment. It is initialized
+to zero by ``SegInit()``.
 
+_`.field.pm`: The ``pm`` field is used by the Shield (impl.c.shield)
+to manage protection of the segment. It is initialized to
+``AccessSetEMPTY`` by ``SegInit()``. The field is used by both the
+shield and the ANSI fake protection (impl.c.protan).
+
+_`.field.sm`: The ``sm`` field is used by the Shield (impl.c.shield)
+to manage protection of the segment. It is initialized to
+``AccessSetEMPTY`` by ``SegInit()``.
+
+_`.field.grey`: The ``grey`` field is the set of traces for which
+there may be grey objects (i.e containing references to white objects)
+in the segment. More precisely, if there is a reference to a white
+object for a trace in the segment then that trace will appear in the
+``grey`` field. It is initialized to ``TraceSetEMPTY`` by ``SegInit()``.
+
+_`.field.white`: The ``white`` field is the set of traces for which
+there may be white objects in the segment. More precisely, if there is
+a white object for a trace in the segment then that trace will appear
+in the ``white`` field. It is initialized to ``TraceSetEMPTY`` by
+``SegInit()``.
 
 _`.field.rankSet`: The ``rankSet`` field represents the set of ranks
 of the references in the segment. It is initialized to empty by
@@ -108,37 +131,22 @@ cannot contain black or grey references.
 _`.field.rankSet.start`: If references are stored in the segment then
 it must be updated, along with the summary (`.field.summary.start`_).
 
-_`.field.depth`: The ``depth`` field is used by the Shield
-(impl.c.shield) to manage protection of the segment. It is initialized
-to zero by ``SegInit()``.
 
-_`.field.sm`: The ``sm`` field is used by the Shield (impl.c.shield)
-to manage protection of the segment. It is initialized to
-``AccessSetEMPTY`` by ``SegInit()``.
+GCSeg class
+...........
 
-_`.field.pm`: The ``pm`` field is used by the Shield (impl.c.shield)
-to manage protection of the segment. It is initialized to
-``AccessSetEMPTY`` by ``SegInit()``. The field is used by both the
-shield and the ANSI fake protection (impl.c.protan).
+``typedef struct GCSegStruct *GCSeg``
 
-_`.field.black`: The ``black`` field is the set of traces for which
-there may be black objects (that is, objects containing references,
-but no references to white objects) in the segment. More precisely, if
-there is a black object for a trace in the segment then that trace
-will appear in the ``black`` field. It is initialized to
-``TraceSetEMPTY`` by ``SegInit()``.
+The implementation is as follows::
 
-_`.field.grey`: The ``grey`` field is the set of traces for which
-there may be grey objects (i.e containing references to white objects)
-in the segment. More precisely, if there is a reference to a white
-object for a trace in the segment then that trace will appear in the
-``grey`` field. It is initialized to ``TraceSetEMPTY`` by ``SegInit()``.
-
-_`.field.white`: The ``white`` field is the set of traces for which
-there may be white objects in the segment. More precisely, if there is
-a white object for a trace in the segment then that trace will appear
-in the ``white`` field. It is initialized to ``TraceSetEMPTY`` by
-``SegInit()``.
+    typedef struct GCSegStruct {    /* GC segment structure */
+      SegStruct segStruct;          /* superclass fields must come first */
+      RingStruct greyRing;          /* link in list of grey segs */
+      RefSet summary;               /* summary of references out of seg */
+      Buffer buffer;                /* non-NULL if seg is buffered */
+      RingStruct genRing;           /* link in list of segs in gen */
+      Sig sig;                      /* <design/sig> */
+    } GCSegStruct;
 
 _`.field.summary`: The ``summary`` field is an approximation to the
 set of all references in the segment. If there is a reference ``R`` in
@@ -155,6 +163,50 @@ allocating in the segment. The field is initialized to ``NULL`` by
 
 _`.field.buffer.owner`: This buffer must belong to the same pool as
 the segment, because only that pool has the right to attach it.
+
+
+MarkSweepSeg class
+..................
+
+``typedef struct MarkSweepSegStruct *MarkSweepSeg``
+
+The implementation is as follows::
+
+    typedef struct MarkSweepSegStruct {
+      GCSegStruct gcSegStruct;  /* superclass fields must come first */
+      BT mark;                  /* mark bit table */
+      BT alloc;                 /* alloc bit table */
+      Count freeGrains;         /* free grains */
+      Count bufferedGrains;     /* grains in buffers */
+      Count newGrains;          /* grains allocated since last collection */
+      Count oldGrains;          /* grains allocated prior to last collection */
+      Sig sig;                  /* <code/misc.h#sig> */
+    } MarkSweepSegStruct;
+
+_`.field.alloc`: The ``alloc`` field is a bit table (see
+design.mps.bt_) of allocated grains. The table has one bit for each
+grain in the segment. When a buffer is filled from the segment, the
+alloc bits corresponding to the buffer are set. When a buffer is
+emptied, or an object is reclaimed, the alloc bits corresponding to
+the unused part of the buffer, or to the reclaimed object, are reset.
+
+.. _design.mps.bt: bt
+
+_`.field.mark`: The ``mark`` field is a bit table of marked grains.
+The mark table is initialized when the segment is whitened, by
+inverting the alloc table (so that allocated objects are unmarked).
+
+_`.marksweep.fix`: When a reference to a mark-sweep segment is fixed,
+unaligned ambiguous references are ignored and unaligned exact
+references are errors. Otherwise, the mark bit for the grain
+corresponding to the reference is set. Note that there is no check
+that the reference refers to a valid object boundary.
+
+_`.marksweep.reclaim`: When a mark-sweep segment is reclaimed, the
+objects are located by starting at the base of the segment and
+repeatedly calling the pool's format's skip method. The mark bit for
+the first grain in each object is consulted to determine which objects
+to retain and which to free.
 
 
 Interface

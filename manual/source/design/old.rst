@@ -31,7 +31,6 @@ Old design
     poolamc
     poolams
     poolawl
-    poollo
     poolmfs
     poolmrg
     poolmvt
@@ -40,7 +39,6 @@ Old design
     pthreadext
     root
     scan
-    seg
     strategy
     telemetry
     trace

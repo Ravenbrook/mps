@@ -6,7 +6,7 @@ TEST_HEADER
  link = myfmt.o testlib.o
 OUTPUT_SPEC
  assert = true
- assertfile P= poollo.c
+ assertfile P= marksweep.c
  assertcond = ss->rank == RankAMBIG
 END_HEADER
 */

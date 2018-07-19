@@ -252,14 +252,18 @@ static void AWLSegFinish(Inst inst)
   AWLSeg awlseg = MustBeA(AWLSeg, seg);
   Pool pool = SegPool(seg);
   Arena arena = PoolArena(pool);
-  Size tableSize;
-  Count segGrains;
+  Count grains = PoolSizeGrains(pool, SegSize(seg));
+  Size tableSize = BTSize(grains);
 
-  /* This is one of the few places where it is easy to check */
-  /* awlseg->grains, so we do */
-  segGrains = PoolSizeGrains(pool, SegSize(seg));
-  AVER(segGrains == awlseg->grains);
-  tableSize = BTSize(segGrains);
+  AVER(!SegHasBuffer(seg));
+  AVER(awlseg->bufferedGrains == 0);
+  AVER(grains == awlseg->freeGrains + awlseg->oldGrains + awlseg->newGrains);
+  PoolGenFree(PoolSegPoolGen(pool, seg), seg,
+              PoolGrainsSize(pool, awlseg->freeGrains),
+              PoolGrainsSize(pool, awlseg->oldGrains),
+              PoolGrainsSize(pool, awlseg->newGrains),
+              FALSE);
+
   ControlFree(arena, awlseg->mark, 3 * tableSize);
   awlseg->sig = SigInvalid;
 
@@ -613,15 +617,7 @@ static void AWLFinish(Inst inst)
   ring = &pool->segRing;
   RING_FOR(node, ring, nextNode) {
     Seg seg = SegOfPoolRing(node);
-    AWLSeg awlseg = MustBeA(AWLSeg, seg);
-    AVER(!SegHasBuffer(seg));
-    AVERT(AWLSeg, awlseg);
-    AVER(awlseg->bufferedGrains == 0);
-    PoolGenFree(awl->pgen, seg,
-                PoolGrainsSize(pool, awlseg->freeGrains),
-                PoolGrainsSize(pool, awlseg->oldGrains),
-                PoolGrainsSize(pool, awlseg->newGrains),
-                FALSE);
+    SegFree(seg);
   }
   awl->sig = SigInvalid;
   PoolGenFinish(awl->pgen);
@@ -1114,13 +1110,7 @@ static void awlSegReclaim(Seg seg, Trace trace)
   SegSetWhite(seg, TraceSetDel(SegWhite(seg), trace));
 
   if (awlseg->freeGrains == awlseg->grains && !hasBuffer) {
-    /* No survivors */
-    AVER(awlseg->bufferedGrains == 0);
-    PoolGenFree(pgen, seg,
-                PoolGrainsSize(pool, awlseg->freeGrains),
-                PoolGrainsSize(pool, awlseg->oldGrains),
-                PoolGrainsSize(pool, awlseg->newGrains),
-                FALSE);
+    SegFree(seg);
   }
 }
 
