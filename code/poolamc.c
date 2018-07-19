@@ -174,7 +174,15 @@ static Res AMCSegInit(Seg seg, Pool pool, Addr base, Size size, ArgList args)
 static void amcSegFinish(Inst inst)
 {
   Seg seg = MustBeA(Seg, inst);
+  Pool pool = SegPool(seg);
   amcSeg amcseg = MustBeA(amcSeg, seg);
+
+  AVER(!SegHasBuffer(seg));
+  AVER(!amcseg->accountedAsBuffered);
+  PoolGenAccountForFree(PoolSegPoolGen(pool, seg), 0,
+                        amcseg->old ? SegSize(seg) : 0,
+                        amcseg->old ? 0 : SegSize(seg),
+                        amcseg->deferred);
 
   amcseg->sig = SigInvalid;
 
@@ -882,15 +890,7 @@ static void AMCFinish(Inst inst)
   ring = PoolSegRing(pool);
   RING_FOR(node, ring, nextNode) {
     Seg seg = SegOfPoolRing(node);
-    amcGen gen = amcSegGen(seg);
-    amcSeg amcseg = MustBeA(amcSeg, seg);
-    AVERT(amcSeg, amcseg);
-    AVER(!amcseg->accountedAsBuffered);
-    PoolGenFree(&gen->pgen, seg,
-                0,
-                amcseg->old ? SegSize(seg) : 0,
-                amcseg->old ? 0 : SegSize(seg),
-                amcseg->deferred);
+    SegFree(seg);
   }
 
   /* Disassociate forwarding buffers from gens before they are */
@@ -1795,11 +1795,7 @@ static void amcSegReclaimNailed(Pool pool, Trace trace, Seg seg)
   if(preservedInPlaceCount == 0
      && (!SegHasBuffer(seg))
      && (SegNailed(seg) == TraceSetEMPTY)) {
-
-    /* We may not free a buffered seg. */
-    AVER(!SegHasBuffer(seg));
-
-    PoolGenFree(pgen, seg, 0, SegSize(seg), 0, MustBeA(amcSeg, seg)->deferred);
+    SegFree(seg);
   }
 }
 
@@ -1844,7 +1840,7 @@ static void amcSegReclaim(Seg seg, Trace trace)
   STATISTIC(trace->reclaimSize += SegSize(seg));
 
   GenDescSurvived(gen->pgen.gen, trace, amcseg->forwarded[trace->ti], 0);
-  PoolGenFree(&gen->pgen, seg, 0, SegSize(seg), 0, amcseg->deferred);
+  SegFree(seg);
 }
 
 

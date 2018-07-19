@@ -1497,6 +1497,7 @@
 		224CC79E175E3202002FF81B /* fotest.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = fotest.c; sourceTree = "<group>"; };
 		22561A9618F4263300372C66 /* testthr.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = testthr.h; sourceTree = "<group>"; };
 		22561A9718F4263300372C66 /* testthrix.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = testthrix.c; sourceTree = "<group>"; };
+		228D2E0C2100C3D600EE3F37 /* marksweep.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = marksweep.c; sourceTree = "<group>"; };
 		2291A5A8175CAA51001D4920 /* poolmv2.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = poolmv2.h; sourceTree = "<group>"; };
 		2291A5A9175CAA9B001D4920 /* awlutth.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = awlutth.c; sourceTree = "<group>"; };
 		2291A5AA175CAA9B001D4920 /* exposet0.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = exposet0.c; sourceTree = "<group>"; };
@@ -2567,6 +2568,7 @@
 				311F2F5E17398B0E00C15B6A /* lock.h */,
 				31EEAC08156AB27B00714D05 /* locus.c */,
 				31942A671C8EC3FC001AAF32 /* locus.h */,
+				228D2E0C2100C3D600EE3F37 /* marksweep.c */,
 				31EEAC2C156AB2F200714D05 /* message.c */,
 				31EEAC42156AB32500714D05 /* meter.c */,
 				311F2F5F17398B0E00C15B6A /* meter.h */,

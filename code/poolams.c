@@ -287,16 +287,26 @@ static void AMSSegFinish(Inst inst)
 {
   Seg seg = MustBeA(Seg, inst);
   AMSSeg amsseg = MustBeA(AMSSeg, seg);
-  AMS ams = amsseg->ams;
+  Pool pool = SegPool(seg);
+  AMS ams = MustBeA(AMSPool, pool);
   Arena arena = PoolArena(AMSPool(ams));
+  Count grains = PoolSizeGrains(pool, SegSize(seg));
 
   AVERT(AMSSeg, amsseg);
+  AVER(amsseg->ams == ams);
   AVER(!SegHasBuffer(seg));
+  AVER(amsseg->bufferedGrains == 0);
+  AVER(grains == amsseg->freeGrains + amsseg->oldGrains + amsseg->newGrains);
+  AMSSegFreeCheck(amsseg);
+  PoolGenAccountForFree(ams->pgen,
+                        PoolGrainsSize(pool, amsseg->freeGrains),
+                        PoolGrainsSize(pool, amsseg->oldGrains),
+                        PoolGrainsSize(pool, amsseg->newGrains),
+                        FALSE);
 
   /* keep the destructions in step with AMSSegInit failure cases */
   amsDestroyTables(ams, amsseg->allocTable, amsseg->nongreyTable,
-                   amsseg->nonwhiteTable, arena, amsseg->grains);
-
+                   amsseg->nonwhiteTable, arena, grains);
   amsseg->sig = SigInvalid;
 
   /* finish the superclass fields last */
@@ -724,23 +734,12 @@ failSize:
 
 static void AMSSegsDestroy(AMS ams)
 {
-  Pool pool = AMSPool(ams);
   Ring ring, node, next;     /* for iterating over the segments */
 
   ring = PoolSegRing(AMSPool(ams));
   RING_FOR(node, ring, next) {
     Seg seg = SegOfPoolRing(node);
-    AMSSeg amsseg = Seg2AMSSeg(seg);
-    AVER(!SegHasBuffer(seg));
-    AVERT(AMSSeg, amsseg);
-    AVER(amsseg->ams == ams);
-    AVER(amsseg->bufferedGrains == 0);
-    AMSSegFreeCheck(amsseg);
-    PoolGenFree(ams->pgen, seg,
-                PoolGrainsSize(pool, amsseg->freeGrains),
-                PoolGrainsSize(pool, amsseg->oldGrains),
-                PoolGrainsSize(pool, amsseg->newGrains),
-                FALSE);
+    SegFree(seg);
   }
 }
 
@@ -1618,13 +1617,7 @@ static void amsSegReclaim(Seg seg, Trace trace)
   SegSetWhite(seg, TraceSetDel(SegWhite(seg), trace));
 
   if (amsseg->freeGrains == grains && !SegHasBuffer(seg)) {
-    /* No survivors */
-    AVER(amsseg->bufferedGrains == 0);
-    PoolGenFree(pgen, seg,
-                PoolGrainsSize(pool, amsseg->freeGrains),
-                PoolGrainsSize(pool, amsseg->oldGrains),
-                PoolGrainsSize(pool, amsseg->newGrains),
-                FALSE);
+    SegFree(seg);
   }
 }
 

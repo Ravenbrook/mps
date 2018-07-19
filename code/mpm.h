@@ -677,6 +677,7 @@ DECLARE_CLASS(Inst, SegClass, InstClass);
 DECLARE_CLASS(Seg, Seg, Inst);
 DECLARE_CLASS(Seg, GCSeg, Seg);
 DECLARE_CLASS(Seg, MutatorSeg, GCSeg);
+DECLARE_CLASS(Seg, MarkSweepSeg, MutatorSeg);
 #define SegGCSeg(seg) MustBeA(GCSeg, (seg))
 extern void SegClassMixInNoSplitMerge(SegClass klass);
 

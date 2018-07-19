@@ -684,9 +684,11 @@ void PoolGenAccountForEmpty(PoolGen pgen, Size used, Size unused, Bool deferred)
 /* PoolGenAccountForAge -- accounting for condemning
  *
  * Call this when memory is condemned via PoolWhiten, or when
- * artificially ageing memory in PoolGenFree. The size parameter
- * should be the amount of memory that is being condemned for the
- * first time. The deferred flag is as for PoolGenAccountForEmpty.
+ * artificially ageing memory in PoolGenAccountForFree. The wasBuffered
+ * parameter must be the amount of memory that was previously accounted
+ * as buffered, and wasNew must be the amount of memory accounted as new
+ * that is being condemned for the first time. The deferred flag is as
+ * for PoolGenAccountForEmpty.
  *
  * See <design/strategy/#accounting.op.age>
  */
@@ -776,12 +778,20 @@ void PoolGenAccountForSegMerge(PoolGen pgen)
 }
 
 
-/* PoolGenAccountForFree -- accounting for the freeing of a segment */
+/* PoolGenAccountForFree -- accounting for the freeing of a segment
+ *
+ * Pass the amount of memory in the segment that is accounted as free,
+ * old, or new, respectively. The deferred flag is as for
+ * PoolGenAccountForEmpty.
+ *
+ * See <design/strategy/#accounting.op.free>
+ */
 
-static void PoolGenAccountForFree(PoolGen pgen, Size size,
-                                  Size oldSize, Size newSize,
-                                  Bool deferred)
+void PoolGenAccountForFree(PoolGen pgen, Size freeSize, Size oldSize,
+                           Size newSize, Bool deferred)
 {
+  Size size = freeSize + oldSize + newSize;
+
   /* Pretend to age and reclaim the contents of the segment to ensure
    * that the entire segment is accounted as free. */
   PoolGenAccountForAge(pgen, 0, newSize, deferred);
@@ -793,34 +803,6 @@ static void PoolGenAccountForFree(PoolGen pgen, Size size,
   -- pgen->segs;
   AVER(pgen->freeSize >= size);
   pgen->freeSize -= size;
-}
-
-
-/* PoolGenFree -- free a segment and update accounting
- *
- * Pass the amount of memory in the segment that is accounted as free,
- * old, or new, respectively. The deferred flag is as for
- * PoolGenAccountForEmpty.
- *
- * See <design/strategy/#accounting.op.free>
- */
-
-void PoolGenFree(PoolGen pgen, Seg seg, Size freeSize, Size oldSize,
-                 Size newSize, Bool deferred)
-{
-  Size size;
-
-  AVERT(PoolGen, pgen);
-  AVERT(Seg, seg);
-
-  size = SegSize(seg);
-  AVER(freeSize + oldSize + newSize == size);
-
-  PoolGenAccountForFree(pgen, size, oldSize, newSize, deferred);
-
-  RingRemove(&SegGCSeg(seg)->genRing);
-
-  SegFree(seg);
 }
 
 

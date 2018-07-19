@@ -113,8 +113,8 @@ extern Res PoolGenInit(PoolGen pgen, GenDesc gen, Pool pool);
 extern void PoolGenFinish(PoolGen pgen);
 extern Res PoolGenAlloc(Seg *segReturn, PoolGen pgen, SegClass klass,
                         Size size, ArgList args);
-extern void PoolGenFree(PoolGen pgen, Seg seg, Size freeSize, Size oldSize,
-                        Size newSize, Bool deferred);
+extern void PoolGenAccountForFree(PoolGen pgen, Size freeSize, Size oldSize,
+                                  Size newSize, Bool deferred);
 extern void PoolGenAccountForFill(PoolGen pgen, Size size);
 extern void PoolGenAccountForEmpty(PoolGen pgen, Size used, Size unused, Bool deferred);
 extern void PoolGenAccountForAge(PoolGen pgen, Size wasBuffered, Size wasNew, Bool deferred);

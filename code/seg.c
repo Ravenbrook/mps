@@ -1502,6 +1502,8 @@ static void gcSegFinish(Inst inst)
   AVER(gcseg->buffer == NULL); /* <design/check/#.common> */
 
   RingFinish(&gcseg->greyRing);
+  if (!RingIsSingle(&gcseg->genRing)) /* FIXME */
+    RingRemove(&gcseg->genRing);
   RingFinish(&gcseg->genRing);
 
   /* finish the superclass fields last */

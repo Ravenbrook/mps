@@ -81,6 +81,7 @@
 #include "failover.c"
 #include "vm.c"
 #include "policy.c"
+#include "marksweep.c"
 
 /* Additional pool classes */
 

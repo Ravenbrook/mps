@@ -182,6 +182,7 @@ MPMCOMMON = \
     land.c \
     ld.c \
     locus.c \
+    marksweep.c \
     message.c \
     meter.c \
     mpm.c \
