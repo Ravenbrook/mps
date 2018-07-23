@@ -257,7 +257,7 @@ static void poolRecreate(void *logPool, void *logArena,
   found = TableLookup(&entry, arenaTable, (TableKey)logArena);
   verify(found);
   va_start(args, bufferClassLevel);
-  eres = mps_pool_create_v(&pool, (mps_arena_t)entry, class, args);
+  eres = mps_pool_create_v(&pool, (mps_arena_t)entry, klass, args);
   verifyMPS(eres);
   va_end(args);
   rep = malloc(sizeof(poolRepStruct));
@@ -559,11 +559,6 @@ void EventReplay(Event event, Word etime)
     verify(found);
     (void)mps_arena_spare_commit_limit_set((mps_arena_t)entry,
                                            (size_t)event->pw.w1);
-  } break;
-  case EventReservoirLimitSet: { /* arena, limit */
-    found = TableLookup(&entry, arenaTable, (TableKey)event->pw.p0);
-    verify(found);
-    mps_reservoir_limit_set((mps_arena_t)entry, (size_t)event->pw.w1);
   } break;
   case EventVMMap: case EventVMUnmap:
   case EventVMInit: case EventVMFinish:

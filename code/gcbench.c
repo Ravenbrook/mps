@@ -1,7 +1,7 @@
 /* gcbench.c -- "GC" Benchmark on ANSI C library
  *
  * $Id$
- * Copyright 2014 Ravenbrook Limited.  See end of file for license.
+ * Copyright (c) 2014-2018 Ravenbrook Limited.  See end of file for license.
  *
  * This is an allocation stress benchmark test for gc pools
  */
@@ -72,22 +72,26 @@ struct gcthread_s {
 
 typedef mps_word_t obj_t;
 
-static obj_t mkvector(mps_ap_t ap, size_t n) {
+static obj_t mkvector(mps_ap_t ap, size_t n)
+{
   mps_word_t v;
   RESMUST(make_dylan_vector(&v, ap, n));
   return v;
 }
 
-static obj_t aref(obj_t v, size_t i) {
+static obj_t aref(obj_t v, size_t i)
+{
   return DYLAN_VECTOR_SLOT(v, i);
 }
 
-static void aset(obj_t v, size_t i, obj_t val) {
+static void aset(obj_t v, size_t i, obj_t val)
+{
   DYLAN_VECTOR_SLOT(v, i) = val;
 }
 
 /* mktree - make a tree of nodes with depth d. */
-static obj_t mktree(mps_ap_t ap, unsigned d, obj_t leaf) {
+static obj_t mktree(mps_ap_t ap, unsigned d, obj_t leaf)
+{
   obj_t tree;
   size_t i;
   if (d <= 0)
@@ -99,7 +103,8 @@ static obj_t mktree(mps_ap_t ap, unsigned d, obj_t leaf) {
   return tree;
 }
 
-static obj_t random_subtree(obj_t tree, unsigned levels) {
+static obj_t random_subtree(obj_t tree, unsigned levels)
+{
   while(tree != objNULL && levels > 0) {
     tree = aref(tree, rnd() % width);
     --levels;
@@ -115,7 +120,8 @@ static obj_t random_subtree(obj_t tree, unsigned levels) {
  * NOTE: Changing preuse will dramatically change how much work
  * is done.  In particular, if preuse==1, the old tree is returned
  * unchanged. */
-static obj_t new_tree(mps_ap_t ap, obj_t oldtree, unsigned d) {
+static obj_t new_tree(mps_ap_t ap, obj_t oldtree, unsigned d)
+{
   obj_t subtree;
   size_t i;
   if (rnd_double() < preuse) {
@@ -134,7 +140,8 @@ static obj_t new_tree(mps_ap_t ap, obj_t oldtree, unsigned d) {
 /* Update tree to be identical tree but with nodes reallocated
  * with probability pupdate.  This avoids writing to vector slots
  * if unecessary. */
-static obj_t update_tree(mps_ap_t ap, obj_t oldtree, unsigned d) {
+static obj_t update_tree(mps_ap_t ap, obj_t oldtree, unsigned d)
+{
   obj_t tree;
   size_t i;
   if (oldtree == objNULL || d == 0)
@@ -157,7 +164,8 @@ static obj_t update_tree(mps_ap_t ap, obj_t oldtree, unsigned d) {
   return tree;
 }
 
-static void *gc_tree(gcthread_t thread) {
+static void *gc_tree(gcthread_t thread)
+{
   unsigned i, j;
   mps_ap_t ap = thread->ap;
   obj_t leaf = pinleaf ? mktree(ap, 1, objNULL) : objNULL;
@@ -174,7 +182,8 @@ static void *gc_tree(gcthread_t thread) {
 }
 
 /* start -- start routine for each thread */
-static void *start(void *p) {
+static void *start(void *p)
+{
   gcthread_t thread = p;
   void *marker;
   RESMUST(mps_thread_reg(&thread->mps_thread, arena));
@@ -255,8 +264,6 @@ static void arena_setup(gcthread_fn_t fn,
   } MPS_ARGS_END(args);
   watch(fn, name);
   mps_arena_park(arena);
-  printf("%u chunks\n", (unsigned)TreeDebugCount(ArenaChunkTree(arena),
-                                                 ChunkCompare, ChunkKey));
   mps_pool_destroy(pool);
   mps_fmt_destroy(format);
   if (ngen > 0)
@@ -295,23 +302,19 @@ static struct {
 } pools[] = {
   {"amc", gc_tree, mps_class_amc},
   {"ams", gc_tree, mps_class_ams},
+  {"awl", gc_tree, mps_class_awl},
 };
 
 
 /* Command-line driver */
 
-int main(int argc, char *argv[]) {
+int main(int argc, char *argv[])
+{
   int ch;
   unsigned i;
-  int k;
+  mps_bool_t seed_specified = FALSE;
 
   seed = rnd_seed();
-  for(k=0; k<argc; k++) {
-    printf("%s", argv[k]);
-    if (k + 1 < argc)
-      putchar(' ');
-  }
-  putchar('\n');
   
   while ((ch = getopt_long(argc, argv, "ht:i:p:g:m:a:w:d:r:u:lx:zP:W:",
                            longopts, NULL)) != -1)
@@ -399,6 +402,7 @@ int main(int argc, char *argv[]) {
       break;
     case 'x':
       seed = strtoul(optarg, NULL, 10);
+      seed_specified = TRUE;
       break;
     case 'z':
       zoned = FALSE;
@@ -469,8 +473,10 @@ int main(int argc, char *argv[]) {
   argc -= optind;
   argv += optind;
 
-  printf("seed: %lu\n", seed);
-  (void)fflush(stdout);
+  if (!seed_specified) {
+    printf("seed: %lu\n", seed);
+    (void)fflush(stdout);
+  }
 
   while (argc > 0) {
     for (i = 0; i < NELEMS(pools); ++i)
@@ -492,7 +498,7 @@ int main(int argc, char *argv[]) {
 
 /* C. COPYRIGHT AND LICENSE
  *
- * Copyright (c) 2001-2014 Ravenbrook Limited <http://www.ravenbrook.com/>.
+ * Copyright (c) 2014-2018 Ravenbrook Limited <http://www.ravenbrook.com/>.
  * All rights reserved.  This is an open source license.  Contact
  * Ravenbrook for commercial licensing options.
  * 

@@ -1,7 +1,7 @@
 /* mpmss.c: MPM STRESS TEST
  *
  * $Id$
- * Copyright (c) 2001-2014 Ravenbrook Limited.  See end of file for license.
+ * Copyright (c) 2001-2016 Ravenbrook Limited.  See end of file for license.
  * Portions copyright (C) 2002 Global Graphics Software.
  */
 
@@ -57,11 +57,12 @@ static mps_res_t stress(mps_arena_t arena, mps_pool_debug_option_s *options,
 
   /* allocate a load of objects */
   for (i=0; i<testSetSIZE; ++i) {
+    mps_addr_t obj;
     ss[i] = (*size)(i);
-
-    res = mps_alloc((mps_addr_t *)&ps[i], pool, ss[i]);
+    res = mps_alloc(&obj, pool, ss[i]);
     if (res != MPS_RES_OK)
       return res;
+    ps[i] = obj;
     allocated += alignUp(ss[i], align) + debugOverhead;
     if (ss[i] >= sizeof(ps[i]))
       *ps[i] = 1; /* Write something, so it gets swap. */
@@ -93,10 +94,12 @@ static mps_res_t stress(mps_arena_t arena, mps_pool_debug_option_s *options,
     }
     /* allocate some new objects */
     for (i=testSetSIZE/2; i<testSetSIZE; ++i) {
+      mps_addr_t obj;
       ss[i] = (*size)(i);
-      res = mps_alloc((mps_addr_t *)&ps[i], pool, ss[i]);
+      res = mps_alloc(&obj, pool, ss[i]);
       if (res != MPS_RES_OK)
         return res;
+      ps[i] = obj;
       allocated += alignUp(ss[i], align) + debugOverhead;
     }
     check_allocated_size(pool, allocated);
@@ -158,8 +161,8 @@ static mps_pool_debug_option_s fenceOptions = {
 
 /* testInArena -- test all the pool classes in the given arena */
 
-static void testInArena(mps_arena_class_t arena_class, mps_arg_s *arena_args,
-                        mps_pool_debug_option_s *options)
+static void testInArena(mps_arena_class_t arena_class, size_t arena_grain_size,
+                        mps_arg_s *arena_args, mps_pool_debug_option_s *options)
 {
   mps_arena_t arena;
 
@@ -167,7 +170,7 @@ static void testInArena(mps_arena_class_t arena_class, mps_arg_s *arena_args,
       "mps_arena_create");
 
   MPS_ARGS_BEGIN(args) {
-    mps_align_t align = sizeof(void *) << (rnd() % 4);
+    mps_align_t align = rnd_align(sizeof(void *), arena_grain_size);
     MPS_ARGS_ADD(args, MPS_KEY_ALIGN, align);
     MPS_ARGS_ADD(args, MPS_KEY_MVFF_ARENA_HIGH, TRUE);
     MPS_ARGS_ADD(args, MPS_KEY_MVFF_SLOT_HIGH, TRUE);
@@ -178,7 +181,7 @@ static void testInArena(mps_arena_class_t arena_class, mps_arg_s *arena_args,
   } MPS_ARGS_END(args);
 
   MPS_ARGS_BEGIN(args) {
-    mps_align_t align = sizeof(void *) << (rnd() % 4);
+    mps_align_t align = rnd_align(sizeof(void *), arena_grain_size);
     MPS_ARGS_ADD(args, MPS_KEY_ALIGN, align);
     MPS_ARGS_ADD(args, MPS_KEY_MVFF_ARENA_HIGH, TRUE);
     MPS_ARGS_ADD(args, MPS_KEY_MVFF_SLOT_HIGH, TRUE);
@@ -190,14 +193,14 @@ static void testInArena(mps_arena_class_t arena_class, mps_arg_s *arena_args,
   } MPS_ARGS_END(args);
 
   MPS_ARGS_BEGIN(args) {
-    mps_align_t align = (mps_align_t)1 << (rnd() % 6);
+    mps_align_t align = rnd_align(sizeof(void *), arena_grain_size);
     MPS_ARGS_ADD(args, MPS_KEY_ALIGN, align);
     die(stress(arena, NULL, randomSize, align, "MV",
                mps_class_mv(), args), "stress MV");
   } MPS_ARGS_END(args);
 
   MPS_ARGS_BEGIN(args) {
-    mps_align_t align = (mps_align_t)1 << (rnd() % 6);
+    mps_align_t align = sizeof(void *) << (rnd() % 4);
     MPS_ARGS_ADD(args, MPS_KEY_ALIGN, align);
     MPS_ARGS_ADD(args, MPS_KEY_POOL_DEBUG_OPTIONS, options);
     die(stress(arena, options, randomSize, align, "MV debug",
@@ -220,18 +223,22 @@ static void testInArena(mps_arena_class_t arena_class, mps_arg_s *arena_args,
 
 int main(int argc, char *argv[])
 {
+  size_t arena_grain_size;
+  
   testlib_init(argc, argv);
 
+  arena_grain_size = rnd_grain(testArenaSIZE);
   MPS_ARGS_BEGIN(args) {
     MPS_ARGS_ADD(args, MPS_KEY_ARENA_SIZE, testArenaSIZE);
-    MPS_ARGS_ADD(args, MPS_KEY_ARENA_GRAIN_SIZE, rnd_grain(testArenaSIZE));
-    testInArena(mps_arena_class_vm(), args, &bothOptions);
+    MPS_ARGS_ADD(args, MPS_KEY_ARENA_GRAIN_SIZE, arena_grain_size);
+    testInArena(mps_arena_class_vm(), arena_grain_size, args, &bothOptions);
   } MPS_ARGS_END(args);
 
+  arena_grain_size = rnd_grain(smallArenaSIZE);
   MPS_ARGS_BEGIN(args) {
     MPS_ARGS_ADD(args, MPS_KEY_ARENA_SIZE, smallArenaSIZE);
-    MPS_ARGS_ADD(args, MPS_KEY_ARENA_GRAIN_SIZE, rnd_grain(smallArenaSIZE));
-    testInArena(mps_arena_class_vm(), args, &fenceOptions);
+    MPS_ARGS_ADD(args, MPS_KEY_ARENA_GRAIN_SIZE, arena_grain_size);
+    testInArena(mps_arena_class_vm(), arena_grain_size, args, &fenceOptions);
   } MPS_ARGS_END(args);
 
   printf("%s: Conclusion: Failed to find any defects.\n", argv[0]);
@@ -241,7 +248,7 @@ int main(int argc, char *argv[])
 
 /* C. COPYRIGHT AND LICENSE
  *
- * Copyright (c) 2001-2014 Ravenbrook Limited <http://www.ravenbrook.com/>.
+ * Copyright (c) 2001-2016 Ravenbrook Limited <http://www.ravenbrook.com/>.
  * All rights reserved.  This is an open source license.  Contact
  * Ravenbrook for commercial licensing options.
  * 
