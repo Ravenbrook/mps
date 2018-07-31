@@ -209,7 +209,7 @@ static Res VMArenaDescribe(Inst inst, mps_lib_FILE *stream, Count depth)
                "extendBy: $U\n", (WriteFU)vmArena->extendBy,
                "extendMin: $U\n", (WriteFU)vmArena->extendMin,
                NULL);
-  if (res != ResOK)
+  if(res != ResOK)
     return res;
 
   res = LandDescribe(VMArenaSpareLand(vmArena), stream, depth + 2);
