@@ -1016,9 +1016,10 @@ Res ArenaFreeLandInsert(Arena arena, Addr base, Addr limit)
 Res ArenaFreeLandDelete(Arena arena, Addr base, Addr limit)
 {
   RangeStruct range, oldRange;
+  Land freeLand = ArenaFreeLand(arena);
 
   RangeInit(&range, base, limit);
-  return LandDelete(&oldRange, ArenaFreeLand(arena), &range);
+  return LandDelete(&oldRange, freeLand, &range);
 }
 
 

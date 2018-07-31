@@ -180,7 +180,7 @@ static Bool VMArenaCheck(VMArena vmArena)
 
   CHECKD(Pool, VMArenaCBSBlockPool(vmArena));
   CHECKD(Land, VMArenaSpareLand(vmArena));
-  CHECKL(LandSize(VMArenaSpareLand(vmArena)) == arena->spareCommitted);
+  CHECKL((LandSize)(VMArenaSpareLand(vmArena)) == arena->spareCommitted);
 
   /* FIXME: Can't check VMParams */
 
@@ -739,7 +739,7 @@ failVMInit:
 
 static void vmArenaMFSFreeExtent(Pool pool, Addr base, Size size, void *closure)
 {
-  Chunk chunk;
+  Chunk chunk = NULL;       /* suppress "may be used uninitialized" */
   Bool foundChunk;
 
   AVERT(Pool, pool);
@@ -755,14 +755,15 @@ static void vmArenaMFSFreeExtent(Pool pool, Addr base, Size size, void *closure)
 static void VMArenaDestroy(Arena arena)
 {
   VMArena vmArena = MustBeA(VMArena, arena);
+  Land spareLand = VMArenaSpareLand(vmArena);
   VMStruct vmStruct;
   VM vm = &vmStruct;
 
   EVENT1(ArenaDestroy, vmArena);
 
   /* Unmap all remaining spare memory. */
-  VMPurgeSpare(arena, LandSize(VMArenaSpareLand(vmArena)));
-  AVER(LandSize(VMArenaSpareLand(vmArena)) == 0);
+  VMPurgeSpare(arena, LandSize(spareLand));
+  AVER(LandSize(spareLand) == 0);
   AVER(arena->spareCommitted == 0);
 
   /* The CBS block pool can't free its own memory via ArenaFree
@@ -874,6 +875,7 @@ static void spareRangeRelease(VMChunk vmChunk, Index piBase, Index piLimit)
   Chunk chunk = VMChunk2Chunk(vmChunk);
   Arena arena = ChunkArena(chunk);
   VMArena vmArena = VMChunkVMArena(vmChunk);
+  Land spareLand = VMArenaSpareLand(vmArena);
   RangeStruct range, containingRange;
   Res res;
 
@@ -881,7 +883,7 @@ static void spareRangeRelease(VMChunk vmChunk, Index piBase, Index piLimit)
   RangeInit(&range, PageIndexBase(chunk, piBase),
             PageIndexBase(chunk, piLimit));
   
-  res = LandDelete(&containingRange, VMArenaSpareLand(vmArena), &range);
+  res = LandDelete(&containingRange, spareLand, &range);
   if (res != ResOK) {
     /* Range could not be deleted from the spare memory land because
        it splits the containing range and so needs to allocate a
@@ -894,13 +896,13 @@ static void spareRangeRelease(VMChunk vmChunk, Index piBase, Index piLimit)
     AVER(res == ResLIMIT);
     RangeInit(&extendRange, extendBase, extendLimit);
     AVER(!RangesOverlap(&extendRange, &range));
-    res = LandDelete(&containingRange, VMArenaSpareLand(vmArena), &extendRange);
+    res = LandDelete(&containingRange, spareLand, &extendRange);
     AVER(res == ResOK);
     AVER(arena->spareCommitted >= RangeSize(&extendRange));
     arena->spareCommitted -= RangeSize(&extendRange);
     PageAlloc(chunk, extendBasePI, VMArenaCBSBlockPool(vmArena));
     MFSExtend(VMArenaCBSBlockPool(vmArena), extendBase, extendLimit);
-    res = LandDelete(&containingRange, VMArenaSpareLand(vmArena), &range);
+    res = LandDelete(&containingRange, spareLand, &range);
     AVER(res == ResOK);
   }
   AVER(arena->spareCommitted >= RangeSize(&range));
@@ -1059,7 +1061,7 @@ static Bool vmArenaUnmapSpareRange(Bool *deleteReturn, Land land, Range range,
 {
   VMArenaUnmapSpareClosure closure = p;
   Arena arena;
-  Chunk chunk;
+  Chunk chunk = NULL;       /* suppress "may be used uninitialized" */
   Bool foundChunk;
 
   AVER(deleteReturn != NULL);
@@ -1086,6 +1088,7 @@ static Bool vmArenaUnmapSpareRange(Bool *deleteReturn, Land land, Range range,
 static Size vmArenaUnmapSpare(Arena arena, Size size, Chunk filter)
 {
   VMArena vmArena = MustBeA(VMArena, arena);
+  Land spareLand = VMArenaSpareLand(vmArena);
   VMArenaUnmapSpareClosureStruct closure;
 
   if (filter != NULL)
@@ -1095,10 +1098,9 @@ static Size vmArenaUnmapSpare(Arena arena, Size size, Chunk filter)
   closure.size = size;
   closure.filter = filter;
   closure.unmapped = 0;
-  (void)LandIterateAndDelete(VMArenaSpareLand(vmArena), vmArenaUnmapSpareRange,
-                             &closure);
+  (void)LandIterateAndDelete(spareLand, vmArenaUnmapSpareRange, &closure);
 
-  AVER(LandSize(VMArenaSpareLand(vmArena)) == arena->spareCommitted);
+  AVER(LandSize(spareLand) == arena->spareCommitted);
 
   return closure.unmapped;
 }
@@ -1115,6 +1117,7 @@ static void VMFree(Addr base, Size size, Pool pool)
 {
   Arena arena;
   VMArena vmArena;
+  Land spareLand;
   Chunk chunk = NULL;           /* suppress "may be used uninitialized" */
   Count pages;
   Index pi, piBase, piLimit;
@@ -1127,6 +1130,7 @@ static void VMFree(Addr base, Size size, Pool pool)
   AVERT(Pool, pool);
   arena = PoolArena(pool);
   vmArena = MustBeA(VMArena, arena);
+  spareLand = VMArenaSpareLand(vmArena);
 
   /* All chunks have same pageSize. */
   AVER(SizeIsAligned(size, ChunkPageSize(arena->primary)));
@@ -1156,7 +1160,7 @@ static void VMFree(Addr base, Size size, Pool pool)
 
   /* Freed range is now spare memory, so add it to spare memory land. */
   RangeInitSize(&range, base, size);
-  res = LandInsert(&containingRange, VMArenaSpareLand(vmArena), &range);
+  res = LandInsert(&containingRange, spareLand, &range);
   if (res != ResOK) {
     /* The freed range could not be inserted into the spare memory
        land because the block pool is full. Allocate the first grain
@@ -1178,7 +1182,7 @@ static void VMFree(Addr base, Size size, Pool pool)
     RangeSetBase(&range, extendLimit);
     AVERT(Range, &range);
     if (!RangeIsEmpty(&range)) {
-      res = LandInsert(&containingRange, VMArenaSpareLand(vmArena), &range);
+      res = LandInsert(&containingRange, spareLand, &range);
       AVER(res == ResOK);
     }
   }
