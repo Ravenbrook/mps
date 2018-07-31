@@ -1009,32 +1009,15 @@ Res ArenaFreeLandInsert(Arena arena, Addr base, Addr limit)
 }
 
 
-/* ArenaFreeLandDelete -- remove range from arena's free land, maybe
- * extending block pool
- *
- * This is called from ChunkFinish in order to remove address space from
- * the arena.
- *
- * IMPORTANT: May only be called on whole chunk ranges, because we don't
- * deal with the case where the range is coalesced.  This restriction would
- * be easy to lift by extending the block pool on error, but doesn't happen,
- * so we can't test that path.
- */
+/* ArenaFreeLandDelete -- remove range from arena's free land if
+ * possible without extending block pool */
 
-void ArenaFreeLandDelete(Arena arena, Addr base, Addr limit)
+Res ArenaFreeLandDelete(Arena arena, Addr base, Addr limit)
 {
   RangeStruct range, oldRange;
-  Res res;
-  Land land;
 
   RangeInit(&range, base, limit);
-  land = ArenaFreeLand(arena);
-  res = LandDelete(&oldRange, land, &range);
-  
-  /* Shouldn't be any other kind of failure because we were only deleting
-     a non-coalesced block.  See .chunk.no-coalesce and
-     <code/cbs.c#.delete.alloc>. */
-  AVER(res == ResOK);
+  return LandDelete(&oldRange, ArenaFreeLand(arena), &range);
 }
 
 

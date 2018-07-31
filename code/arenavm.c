@@ -72,16 +72,18 @@ typedef struct VMArenaStruct {  /* VM arena structure */
   ArenaStruct arenaStruct;
   VMStruct vmStruct;            /* VM descriptor for VM containing arena */
   char vmParams[VMParamSize];   /* VM parameter block */
-  Size spareSize;               /* total size of spare pages */
   Size extendBy;                /* desired arena increment */
   Size extendMin;               /* minimum arena increment */
   ArenaVMExtendedCallback extended;
   ArenaVMContractedCallback contracted;
-  RingStruct spareRing;         /* spare (free but mapped) tracts */
+  MFSStruct cbsBlockPoolStruct; /* stores blocks for CBSs */  
+  CBSStruct spareLandStruct;    /* spare memory */
   Sig sig;                      /* <design/sig/> */
 } VMArenaStruct;
 
 #define VMArenaVM(vmarena) (&(vmarena)->vmStruct)
+#define VMArenaCBSBlockPool(vmarena) MFSPool(&(vmarena)->cbsBlockPoolStruct)
+#define VMArenaSpareLand(vmarena) CBSLand(&(vmarena)->spareLandStruct)
 
 
 /* Forward declarations */
@@ -90,6 +92,7 @@ static Size VMPurgeSpare(Arena arena, Size size);
 static void chunkUnmapSpare(Chunk chunk);
 DECLARE_CLASS(Arena, VMArena, AbstractArena);
 static void VMCompact(Arena arena, Trace trace);
+static void pageDescUnmap(VMChunk vmChunk, Index basePI, Index limitPI);
 
 
 /* VMChunkCheck -- check the consistency of a VM chunk */
@@ -163,8 +166,6 @@ static Bool VMArenaCheck(VMArena vmArena)
   CHECKS(VMArena, vmArena);
   arena = MustBeA(AbstractArena, vmArena);
   CHECKD(Arena, arena);
-  /* spare pages are committed, so must be less spare than committed. */
-  CHECKL(vmArena->spareSize <= arena->committed);
 
   CHECKL(vmArena->extendBy > 0);
   CHECKL(vmArena->extendMin <= vmArena->extendBy);
@@ -176,8 +177,10 @@ static Bool VMArenaCheck(VMArena vmArena)
     /* count of committed, but we don't have all day. */
     CHECKL(VMMapped(VMChunkVM(primary)) <= arena->committed);
   }
-  
-  CHECKD_NOSIG(Ring, &vmArena->spareRing);
+
+  CHECKD(Pool, VMArenaCBSBlockPool(vmArena));
+  CHECKD(Land, VMArenaSpareLand(vmArena));
+  CHECKL(LandSize(VMArenaSpareLand(vmArena)) == arena->spareCommitted);
 
   /* FIXME: Can't check VMParams */
 
@@ -202,10 +205,15 @@ static Res VMArenaDescribe(Inst inst, mps_lib_FILE *stream, Count depth)
   if (res != ResOK)
     return res;
 
-  res = WriteF(stream, depth,
-               "  spareSize:     $U\n", (WriteFU)vmArena->spareSize,
+  res = WriteF(stream, depth + 2,
+               "extendBy: $U\n", (WriteFU)vmArena->extendBy,
+               "extendMin: $U\n", (WriteFU)vmArena->extendMin,
                NULL);
-  if(res != ResOK)
+  if (res != ResOK)
+    return res;
+
+  res = LandDescribe(VMArenaSpareLand(vmArena), stream, depth + 2);
+  if (res != ResOK)
     return res;
 
   /* TODO: incomplete -- some fields are not Described */
@@ -254,6 +262,29 @@ static void vmArenaUnmap(VMArena vmArena, VM vm, Addr base, Addr limit)
 
   VMUnmap(vm, base, limit);
   arena->committed -= size;
+}
+
+
+/* chunkUnmapRange -- unmap range of addresses in a chunk */
+
+static void chunkUnmapRange(Chunk chunk, Addr base, Addr limit)
+{
+  VMArena vmArena;
+  VMChunk vmChunk;
+  Index basePI, limitPI, i;
+
+  AVERT(Chunk, chunk);
+  AVER(base < limit);
+
+  vmArena = MustBeA(VMArena, ChunkArena(chunk));
+  vmChunk = Chunk2VMChunk(chunk);
+  basePI = INDEX_OF_ADDR(chunk, base);
+  limitPI = INDEX_OF_ADDR(chunk, limit);
+
+  for (i = basePI; i < limitPI; ++i)
+    PageInit(chunk, i);
+  vmArenaUnmap(vmArena, VMChunkVM(vmChunk), base, limit);
+  pageDescUnmap(vmChunk, basePI, limitPI);
 }
 
 
@@ -606,10 +637,36 @@ static Res VMArenaCreate(Arena *arenaReturn, ArgList args)
   arena->reserved = VMReserved(vm);
   arena->committed = VMMapped(vm);
 
+  /* Initialize a pool to hold the CBS blocks for the spare memory
+     land. This pool can't be allowed to extend itself using
+     ArenaAlloc because it is needed to implement ArenaAlloc (in the
+     case where allocation hits the commit limit and so spare memory
+     needs to be purged), so MFSExtendSelf is set to FALSE. Failures
+     to extend are handled where the spare memory land is used. */
+
+  MPS_ARGS_BEGIN(piArgs) {
+    MPS_ARGS_ADD(piArgs, MPS_KEY_MFS_UNIT_SIZE, sizeof(RangeTreeStruct));
+    MPS_ARGS_ADD(piArgs, MPS_KEY_EXTEND_BY, grainSize);
+    MPS_ARGS_ADD(piArgs, MFSExtendSelf, FALSE);
+    res = PoolInit(VMArenaCBSBlockPool(vmArena), arena, PoolClassMFS(), piArgs);
+  } MPS_ARGS_END(piArgs);
+  AVER(res == ResOK); /* no allocation, no failure expected */
+  if (res != ResOK)
+    goto failMFSInit;
+
+  /* Initialise spare land. */
+  MPS_ARGS_BEGIN(liArgs) {
+    MPS_ARGS_ADD(liArgs, CBSBlockPool, VMArenaCBSBlockPool(vmArena));
+    res = LandInit(VMArenaSpareLand(vmArena), CLASS(CBS), arena,
+                   grainSize, arena, liArgs);
+  } MPS_ARGS_END(liArgs);
+  AVER(res == ResOK); /* no allocation, no failure expected */
+  if (res != ResOK)
+    goto failLandInit;
+  ++ ArenaGlobals(arena)->systemPools;
+
   /* Copy VM descriptor into its place in the arena. */
   VMCopy(VMArenaVM(vmArena), vm);
-  vmArena->spareSize = 0;
-  RingInit(&vmArena->spareRing);
 
   /* Copy the stack-allocated VM parameters into their home in the VMArena. */
   AVER(sizeof(vmArena->vmParams) == sizeof(vmParams));
@@ -667,6 +724,10 @@ static Res VMArenaCreate(Arena *arenaReturn, ArgList args)
   return ResOK;
 
 failChunkCreate:
+  LandFinish(VMArenaSpareLand(vmArena));
+failLandInit:
+  PoolFinish(VMArenaCBSBlockPool(vmArena));
+failMFSInit:
   NextMethod(Inst, VMArena, finish)(MustBeA(Inst, arena));
 failArenaInit:
   VMUnmap(vm, VMBase(vm), VMLimit(vm));
@@ -677,7 +738,23 @@ failVMInit:
 }
 
 
-/* VMArenaDestroy -- destroy the arena */
+static void vmArenaMFSExtentFreeVisitor(Pool pool, Addr base, Size size,
+                                        void *closure)
+{
+  Chunk chunk;
+  Bool foundChunk;
+
+  AVERT(Pool, pool);
+  AVER(closure == UNUSED_POINTER);
+  UNUSED(closure);
+  AVER(size == ArenaGrainSize(PoolArena(pool)));
+  UNUSED(size);
+
+  foundChunk = ChunkOfAddr(&chunk, PoolArena(pool), base);
+  AVER(foundChunk);
+  chunkUnmapRange(chunk, base, AddrAdd(base, size));
+}
+
 
 static void VMArenaDestroy(Arena arena)
 {
@@ -687,16 +764,23 @@ static void VMArenaDestroy(Arena arena)
 
   EVENT1(ArenaDestroy, vmArena);
 
+  VMPurgeSpare(arena, LandSize(VMArenaSpareLand(vmArena)));
+  AVER(LandSize(VMArenaSpareLand(vmArena)) == 0);
+  AVER(arena->spareCommitted == 0);
+  /* The CBS block pool can't free its own memory via ArenaFree because
+   * that would use the spare memory land. */
+  MFSFinishExtents(VMArenaCBSBlockPool(vmArena), vmArenaMFSExtentFreeVisitor,
+                   UNUSED_POINTER);
+  PoolFinish(VMArenaCBSBlockPool(vmArena));
+
   /* Destroy all chunks, including the primary. See
    * <design/arena/#chunk.delete> */
   arena->primary = NULL;
-  TreeTraverseAndDelete(&arena->chunkTree, vmChunkDestroy,
-                        UNUSED_POINTER);
-  
-  /* Destroying the chunks should have purged and removed all spare pages. */
-  RingFinish(&vmArena->spareRing);
+  TreeTraverseAndDelete(&arena->chunkTree, vmChunkDestroy, UNUSED_POINTER);
 
-  /* Destroying the chunks should leave only the arena's own VM. */
+  LandFinish(VMArenaSpareLand(vmArena));
+
+  /* Destroying the chunks must leave only the arena's own VM. */
   AVER(arena->reserved == VMReserved(VMArenaVM(vmArena)));
   AVER(arena->committed == VMMapped(VMArenaVM(vmArena)));
 
@@ -776,37 +860,48 @@ vmArenaGrow_Done:
 }
 
 
-/* pageState -- determine page state, even if unmapped
+/* sparePagesRelease -- release a range of spare pages in a chunk
  *
- * Parts of the page table may be unmapped if their corresponding pages are
- * free.
- */
-
-static unsigned pageState(VMChunk vmChunk, Index pi)
-{
-  Chunk chunk = VMChunk2Chunk(vmChunk);
-  if (SparseArrayIsMapped(&vmChunk->pages, pi))
-    return PageState(ChunkPage(chunk, pi));
-  return PageStateFREE;
-}
-
-
-/* sparePageRelease -- releases a spare page
+ * Either to allocate or to purge them.
  *
- * Either to allocate it or to purge it.
- * Temporarily leaves it in an inconsistent state.
+ * Temporarily leaves data structures in an inconsistent state (the
+ * pages are still marked as SPARE in the page table, but they are no
+ * longer in the spare memory land).
  */
-static void sparePageRelease(VMChunk vmChunk, Index pi)
+static void sparePagesRelease(VMChunk vmChunk, Index piBase, Index piLimit)
 {
   Chunk chunk = VMChunk2Chunk(vmChunk);
   Arena arena = ChunkArena(chunk);
-  Page page = ChunkPage(chunk, pi);
+  VMArena vmArena = VMChunkVMArena(vmChunk);
+  RangeStruct range, enclosingRange;
+  Res res;
 
-  AVER(PageState(page) == PageStateSPARE);
-  AVER(arena->spareCommitted >= ChunkPageSize(chunk));
-
-  arena->spareCommitted -= ChunkPageSize(chunk);
-  RingRemove(PageSpareRing(page));
+  AVER(piBase < piLimit);
+  RangeInit(&range, PageIndexBase(chunk, piBase),
+            PageIndexBase(chunk, piLimit));
+  
+  res = LandDelete(&enclosingRange, VMArenaSpareLand(vmArena), &range);
+  if (res != ResOK) {
+    /* Range could not be deleted from the spare memory land because
+       it splits an enclosing range but the block pool is full. Use
+       the first grain of the enclosing range to extend the block pool
+       and retry. */
+    Addr base = RangeBase(&enclosingRange);
+    Addr limit = AddrAdd(base, ArenaGrainSize(arena));
+    RangeStruct extendRange;
+    AVER(res == ResLIMIT);
+    RangeInit(&extendRange, base, limit);
+    res = LandDelete(&enclosingRange, VMArenaSpareLand(vmArena), &extendRange);
+    AVER(res == ResOK);
+    AVER(arena->spareCommitted >= RangeSize(&extendRange));
+    arena->spareCommitted -= RangeSize(&extendRange);
+    PageAlloc(chunk, INDEX_OF_ADDR(chunk, base), VMArenaCBSBlockPool(vmArena));
+    MFSExtend(VMArenaCBSBlockPool(vmArena), base, limit);
+    res = LandDelete(&enclosingRange, VMArenaSpareLand(vmArena), &range);
+    AVER(res == ResOK);
+  }
+  AVER(arena->spareCommitted >= RangeSize(&range));
+  arena->spareCommitted -= RangeSize(&range);
 }
 
 
@@ -847,6 +942,7 @@ static Res pagesMarkAllocated(VMArena vmArena, VMChunk vmChunk,
   
   limitPI = basePI + pages;
   AVER(limitPI <= chunk->pages);
+  AVER(BTIsResRange(chunk->allocTable, basePI, limitPI));
 
   /* NOTE: We could find a reset bit range in vmChunk->pages.pages in order
      to skip across hundreds of pages at once.  That could speed up really
@@ -854,10 +950,10 @@ static Res pagesMarkAllocated(VMArena vmArena, VMChunk vmChunk,
 
   cursor = basePI;
   while (BTFindLongResRange(&j, &k, vmChunk->pages.mapped, cursor, limitPI, 1)) {
-    for (i = cursor; i < j; ++i) {
-      sparePageRelease(vmChunk, i);
+    if (cursor < j)
+      sparePagesRelease(vmChunk, cursor, j);
+    for (i = cursor; i < j; ++i)
       PageAlloc(chunk, i, pool);
-    }
     res = pageDescMap(vmChunk, j, k);
     if (res != ResOK)
       goto failSAMap;
@@ -873,10 +969,10 @@ static Res pagesMarkAllocated(VMArena vmArena, VMChunk vmChunk,
     if (cursor == limitPI)
       return ResOK;
   }
-  for (i = cursor; i < limitPI; ++i) {
-    sparePageRelease(vmChunk, i);
+  if (cursor < limitPI)
+    sparePagesRelease(vmChunk, cursor, limitPI);
+  for (i = cursor; i < limitPI; ++i)
     PageAlloc(chunk, i, pool);
-  }
   return ResOK;
 
 failVMMap:
@@ -942,63 +1038,6 @@ static Bool VMChunkPageMapped(Chunk chunk, Index index)
 }
 
 
-/* chunkUnmapAroundPage -- unmap spare pages in a chunk including this one
- *
- * Unmap the spare page passed, and possibly other pages in the chunk,
- * unmapping at least the size passed if available.  The amount unmapped
- * may exceed the size by up to one page.  Returns the amount of memory
- * unmapped.
- *
- * To minimse unmapping calls, the page passed is coalesced with spare
- * pages above and below, even though these may have been more recently
- * made spare.
- */
-
-static Size chunkUnmapAroundPage(Chunk chunk, Size size, Page page)
-{
-  VMChunk vmChunk;
-  Size purged = 0;
-  Size pageSize;
-  Index basePI, limitPI;
-
-  AVERT(Chunk, chunk);
-  vmChunk = Chunk2VMChunk(chunk);
-  AVERT(VMChunk, vmChunk);
-  AVER(PageState(page) == PageStateSPARE);
-  /* size is arbitrary */
-
-  pageSize = ChunkPageSize(chunk);
-
-  basePI = (Index)(page - chunk->pageTable);
-  AVER(basePI < chunk->pages); /* page is within chunk's page table */
-  limitPI = basePI;
-
-  do {
-    sparePageRelease(vmChunk, limitPI);
-    ++limitPI;
-    purged += pageSize;
-  } while (purged < size &&
-           limitPI < chunk->pages &&
-           pageState(vmChunk, limitPI) == PageStateSPARE);
-  while (purged < size &&
-         basePI > 0 &&
-         pageState(vmChunk, basePI - 1) == PageStateSPARE) {
-    --basePI;
-    sparePageRelease(vmChunk, basePI);
-    purged += pageSize;
-  }
-
-  vmArenaUnmap(VMChunkVMArena(vmChunk),
-               VMChunkVM(vmChunk),
-               PageIndexBase(chunk, basePI),
-               PageIndexBase(chunk, limitPI));
-
-  pageDescUnmap(vmChunk, basePI, limitPI);
-
-  return purged;
-}
-
-
 /* arenaUnmapSpare -- return spare pages to the OS
  *
  * The size is the desired amount to purge, and the amount that was purged is
@@ -1006,41 +1045,60 @@ static Size chunkUnmapAroundPage(Chunk chunk, Size size, Page page)
  * unmapped.
  */
 
+typedef struct VMArenaUnmapSpareClosureStruct {
+  Arena arena;
+  Size size;                    /* desired amount to purge */
+  Chunk filter;                 /* NULL or chunk to unmap from */
+  Size purged;                  /* actual amount purged */
+} VMArenaUnmapSpareClosureStruct, *VMArenaUnmapSpareClosure;
+
+static Bool arenaUnmapSpareVisitor(Bool *deleteReturn, Land land, Range range,
+                                   void *p)
+{
+  VMArenaUnmapSpareClosure closure = p;
+  Arena arena;
+  Chunk chunk;
+  Bool foundChunk;
+
+  AVER(deleteReturn != NULL);
+  AVERT(Land, land);
+  AVERT(Range, range);
+  AVER(p != NULL);
+
+  arena = closure->arena;
+  foundChunk = ChunkOfAddr(&chunk, arena, RangeBase(range));
+  AVER(foundChunk);
+
+  if (closure->filter == NULL || closure->filter == chunk) {
+    Size size = RangeSize(range);
+    chunkUnmapRange(chunk, RangeBase(range), RangeLimit(range));
+    AVER(arena->spareCommitted >= size);
+    arena->spareCommitted -= size;
+    closure->purged += size;
+    *deleteReturn = TRUE;
+  }
+
+  return closure->purged < closure->size;
+}
+
 static Size arenaUnmapSpare(Arena arena, Size size, Chunk filter)
 {
   VMArena vmArena = MustBeA(VMArena, arena);
-  Ring node;
-  Size purged = 0;
+  VMArenaUnmapSpareClosureStruct closure;
 
   if (filter != NULL)
     AVERT(Chunk, filter);
 
-  /* Start by looking at the oldest page on the spare ring, to try to
-     get some LRU behaviour from the spare pages cache. */
-  /* RING_FOR won't work here, because chunkUnmapAroundPage deletes many
-     entries from the spareRing, often including the "next" entry.  However,
-     it doesn't delete entries from other chunks, so we can use them to step
-     around the ring. */
-  node = &vmArena->spareRing;
-  while (RingNext(node) != &vmArena->spareRing && purged < size) {
-    Ring next = RingNext(node);
-    Page page = PageOfSpareRing(next);
-    Chunk chunk = NULL; /* suppress uninit warning */
-    Bool b;
-    /* Use the fact that the page table resides in the chunk to find the
-       chunk that owns the page. */
-    b = ChunkOfAddr(&chunk, arena, (Addr)page);
-    AVER(b);
-    if (filter == NULL || chunk == filter) {
-      purged += chunkUnmapAroundPage(chunk, size - purged, page);
-      /* chunkUnmapAroundPage must delete the page it's passed from the ring,
-         or we can't make progress and there will be an infinite loop */
-      AVER(RingNext(node) != next);
-    } else
-      node = next;
-  }
+  closure.arena = arena;
+  closure.size = size;
+  closure.filter = filter;
+  closure.purged = 0;
+  (void)LandIterateAndDelete(VMArenaSpareLand(vmArena), arenaUnmapSpareVisitor,
+                             &closure);
 
-  return purged;
+  AVER(LandSize(VMArenaSpareLand(vmArena)) == arena->spareCommitted);
+
+  return closure.purged;
 }
 
 static Size VMPurgeSpare(Arena arena, Size size)
@@ -1068,6 +1126,8 @@ static void VMFree(Addr base, Size size, Pool pool)
   Count pages;
   Index pi, piBase, piLimit;
   Bool foundChunk;
+  RangeStruct range, enclosingRange;
+  Res res;
 
   AVER(base != NULL);
   AVER(size > (Size)0);
@@ -1089,8 +1149,7 @@ static void VMFree(Addr base, Size size, Pool pool)
   AVER(piBase < piLimit);
   AVER(piLimit <= chunk->pages);
 
-  /* loop from pageBase to pageLimit-1 inclusive */
-  /* Finish each Tract found, then convert them to spare pages. */
+  /* Finish each Tract in the region. */
   for(pi = piBase; pi < piLimit; ++pi) {
     Page page = ChunkPage(chunk, pi);
     Tract tract = PageTract(page);
@@ -1099,13 +1158,37 @@ static void VMFree(Addr base, Size size, Pool pool)
     TractFinish(tract);
     PageSetPool(page, NULL);
     PageSetType(page, PageStateSPARE);
-    /* We must init the page's rings because it is a union with the
-       tract and will contain junk. */
-    RingInit(PageSpareRing(page));
-    RingAppend(&vmArena->spareRing, PageSpareRing(page));
   }
-  arena->spareCommitted += ChunkPagesToSize(chunk, piLimit - piBase);
   BTResRange(chunk->allocTable, piBase, piLimit);
+
+  /* Freed range is now spare memory, so add it to spare memory land. */
+  RangeInitSize(&range, base, size);
+  res = LandInsert(&enclosingRange, VMArenaSpareLand(vmArena), &range);
+  if (res != ResOK) {
+    Addr limit;
+    /* Freed range could not be inserted into the spare memory land
+       because the block pool is full. Use the first grain of the
+       freed range to extend the block pool and retry with the rest of
+       the freed range. */
+    AVER(res == ResLIMIT);
+    limit = AddrAdd(base, ArenaGrainSize(arena));
+    res = ArenaFreeLandDelete(arena, base, limit);
+    if (res != ResOK) {
+      AVER(res == ResLIMIT);
+      /* Give up and unmap the memory immediately */
+      chunkUnmapRange(chunk, RangeBase(&range), RangeLimit(&range));
+      return;
+    }
+    PageAlloc(chunk, INDEX_OF_ADDR(chunk, base), VMArenaCBSBlockPool(vmArena));
+    MFSExtend(VMArenaCBSBlockPool(vmArena), base, limit);
+    RangeSetBase(&range, limit);
+    AVERT(Range, &range);
+    if (!RangeIsEmpty(&range)) {
+      res = LandInsert(&enclosingRange, VMArenaSpareLand(vmArena), &range);
+      AVER(res == ResOK);
+    }
+  }
+  arena->spareCommitted += RangeSize(&range);
 
   /* Consider returning memory to the OS. */
   /* TODO: Chunks are only destroyed when ArenaCompact is called, and
