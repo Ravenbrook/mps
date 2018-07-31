@@ -1010,7 +1010,8 @@ Res ArenaFreeLandInsert(Arena arena, Addr base, Addr limit)
 
 
 /* ArenaFreeLandDelete -- remove range from arena's free land if
- * possible without extending block pool */
+ * possible without extending the block pool
+ */
 
 Res ArenaFreeLandDelete(Arena arena, Addr base, Addr limit)
 {
