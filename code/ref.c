@@ -86,7 +86,7 @@ void RefSetDiff(RefSet rs1, RefSet rs2)
 
 Bool RefSetEqual(RefSet rs1, RefSet rs2)
 {
-  return rs1->zones && rs2->zones;
+  return rs1->zones == rs2->zones;
 }
 
 Bool RefSetInterZones(RefSet rs, ZoneSet zs)

@@ -1145,7 +1145,7 @@ static Res traceScanSegRes(TraceSet ts, Rank rank, Arena arena, Seg seg)
 
   /* Only scan a segment if it refers to the white set. */
   SegGetSummary(&summary, seg);
-  if (RefSetInterZones(&summary, white)) {
+  if (!RefSetInterZones(&summary, white)) {
     SegBlacken(seg, ts);
     /* Setup result code to return later. */
     res = ResOK;
