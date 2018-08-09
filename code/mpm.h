@@ -702,8 +702,6 @@ extern Addr (SegLimit)(Seg seg);
 #define SegOfGreyRing(node)     (&(RING_ELT(GCSeg, greyRing, (node)) \
                                    ->segStruct))
 
-#define SegSummary(seg)         (&((GCSeg)(seg))->summary)
-
 #define SegSetPM(seg, mode)     ((void)((seg)->pm = BS_BITFIELD(Access, (mode))))
 #define SegSetSM(seg, mode)     ((void)((seg)->sm = BS_BITFIELD(Access, (mode))))
 #define SegSetDepth(seg, d)     ((void)((seg)->depth = BITFIELD(unsigned, (d), ShieldDepthWIDTH)))

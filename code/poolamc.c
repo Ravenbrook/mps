@@ -1376,7 +1376,7 @@ static Res amcSegScanNailed(Bool *totalReturn, ScanState ss, Pool pool,
     /* Looped: fixed refs (from 1st pass) were seen by MPS_FIX1 (in
        later passes), so the "ss.unfixedZones" is _not_ purely
        unfixed.  In this one case, unfixedZones is not accurate, and
-       cannot be used to verify the SegSummary (see
+       cannot be used to verify the segment summary (see
        impl/trace/#verify.segsummary).  Use ScanStateSetSummary to
        store scan state summary in ss.fixedSummary and reset
        ss.unfixedSummary.  See job001548. */

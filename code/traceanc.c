@@ -771,19 +771,18 @@ void ArenaExposeRemember(Globals globals, Bool remember)
   ArenaPark(globals);
 
   arena = GlobalsArena(globals);
-  if(SegFirst(&seg, arena)) {
+  if (SegFirst(&seg, arena)) {
     Addr base;
 
     do {
       base = SegBase(seg);
       if (IsA(GCSeg, seg)) {
-        if(remember) {
-          RefSet summary;
-
-          summary = SegSummary(seg);
-          if (!RefSetIsUniv(summary)) {
-            Res res = arenaRememberSummaryOne(globals, base, summary);
-            if(res != ResOK) {
+        if (remember) {
+          RefSetStruct summary;
+          SegGetSummary(&summary, seg);
+          if (!RefSetIsUniv(&summary)) {
+            Res res = arenaRememberSummaryOne(globals, base, &summary);
+            if (res != ResOK) {
               /* If we got an error then stop trying to remember any
               protections. */
               remember = 0;
@@ -793,7 +792,7 @@ void ArenaExposeRemember(Globals globals, Bool remember)
         SegSetSummary(seg, RefSetUniv);
         AVER(SegSM(seg) == AccessSetEMPTY);
       }
-    } while(SegNext(&seg, arena, seg));
+    } while (SegNext(&seg, arena, seg));
   }
 }
 

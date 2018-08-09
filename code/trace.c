@@ -1180,7 +1180,7 @@ static Res traceScanSegRes(TraceSet ts, Rank rank, Arena arena, Seg seg)
     /* Following is true whether or not scan was total. */
     /* See <design/scan/#summary.subset>. */
     /* .verify.segsummary: were the seg contents, as found by this 
-     * scan, consistent with the recorded SegSummary?
+     * scan, consistent with the recorded segment summary?
      */
     /* FIXME: Express in terms of refsets */
     AVER(ZoneSetSub(ScanStateUnfixedZones(ss), RefSetZones(&summary))); /* FIXME: Update <design/check/#.common> */
@@ -1278,7 +1278,7 @@ void TraceSegAccess(Arena arena, Seg seg, AccessSet mode)
   /* If it's a write access, then the segment must have a summary that */
   /* is smaller than the mutator's summary (which is assumed to be */
   /* RefSetUniv). */
-  AVER(!writeHit || !RefSetIsUniv(SegSummary(seg)));
+  AVER(!writeHit || !RefSetIsUniv(&MustBeA(GCSeg, seg)->summary));
 
   EVENT3(TraceAccess, arena, seg, mode);
 

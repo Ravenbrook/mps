@@ -17,6 +17,9 @@
 SRCID(seg, "$Id$");
 
 
+#define segSummary(seg)         (&MustBeA(GCSeg, seg)->summary)
+
+
 /* forward declarations */
 
 static void SegFinish(Seg seg);
@@ -293,7 +296,7 @@ void SegSetRankSet(Seg seg, RankSet rankSet)
   AVERT(Seg, seg);
   AVERT(RankSet, rankSet);
   /* FIXME: Hidden cast to GCSeg in the next line */
-  AVER(rankSet != RankSetEMPTY || RefSetIsEmpty(SegSummary(seg)));
+  AVER(rankSet != RankSetEMPTY || RefSetIsEmpty(segSummary(seg)));
   Method(Seg, seg, setRankSet)(seg, rankSet);
 }
 
@@ -303,7 +306,7 @@ void SegSetRankSet(Seg seg, RankSet rankSet)
 void SegGetSummary(RefSet summaryReturn, Seg seg)
 {
   AVERT(Seg, seg);
-  RefSetCopy(summaryReturn, SegSummary(seg));
+  RefSetCopy(summaryReturn, segSummary(seg));
 }
 
 
@@ -320,7 +323,7 @@ void SegSetSummary(Seg seg, RefSet summary)
   summary = RefSetUniv;
 #endif
 
-  if (summary != SegSummary(seg))
+  if (!RefSetEqual(summary, segSummary(seg)))
     Method(Seg, seg, setSummary)(seg, summary);
 }
 
@@ -1329,7 +1332,7 @@ Res SegSingleAccess(Seg seg, Arena arena, Addr addr,
     res = MutatorContextStepInstruction(context);
     AVER(res == ResOK);
 
-    /* Update SegSummary according to the possibly changed reference. */
+    /* Update segment summary according to the possibly changed reference. */
     ref = *(Ref *)addr;
     /* .tagging: ought to check the reference for a tag.  But
      * this is conservative. */
@@ -1713,14 +1716,12 @@ static void mutatorSegSetRankSet(Seg seg, RankSet rankSet)
 
   if (oldRankSet == RankSetEMPTY) {
     if (rankSet != RankSetEMPTY) {
-      /* FIXME: Hidden cast to GCSeg in the next line */
-      AVER_CRITICAL(RefSetIsEmpty(SegSummary(seg)));
+      AVER_CRITICAL(RefSetIsEmpty(segSummary(seg)));
       ShieldRaise(PoolArena(SegPool(seg)), seg, AccessWRITE);
     }
   } else {
     if (rankSet == RankSetEMPTY) {
-      /* FIXME: Hidden cast to GCSeg in the next line */
-      AVER_CRITICAL(RefSetIsEmpty(SegSummary(seg)));
+      AVER_CRITICAL(RefSetIsEmpty(segSummary(seg)));
       ShieldLower(PoolArena(SegPool(seg)), seg, AccessWRITE);
     }
   }
@@ -1740,7 +1741,7 @@ static void mutatorSegSyncWriteBarrier(Seg seg)
 {
   Arena arena = PoolArena(SegPool(seg));
   /* Can't check seg -- this function enforces invariants tested by SegCheck. */
-  if (RefSetIsUniv(SegSummary(seg)))
+  if (RefSetIsUniv(segSummary(seg)))
     ShieldLower(arena, seg, AccessWRITE);
   else
     ShieldRaise(arena, seg, AccessWRITE);
@@ -1790,7 +1791,7 @@ static void gcSegSetRankSummary(Seg seg, RankSet rankSet, RefSet summary)
   AVERT_CRITICAL(GCSeg, gcseg);
   AVER_CRITICAL(&gcseg->segStruct == seg);
 
-  /* rankSet == RankSetEMPTY implies summary == RefSetEMPTY */
+  /* rankSet is empty implies summary is empty */
   AVER_CRITICAL(rankSet != RankSetEMPTY || RefSetIsEmpty(summary));
 
   seg->rankSet = BS_BITFIELD(Rank, rankSet);
@@ -1968,7 +1969,7 @@ static Res gcSegSplit(Seg seg, Seg segHi,
 
   /* Full initialization for segHi. */
   gcsegHi = SegGCSeg(segHi);
-  gcsegHi->summary = gcseg->summary;
+  RefSetCopy(&gcsegHi->summary, &gcseg->summary);
   gcsegHi->buffer = NULL;
   RingInit(&gcsegHi->greyRing);
   RingInit(&gcsegHi->genRing);
