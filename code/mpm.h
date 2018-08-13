@@ -574,11 +574,13 @@ extern void ArenaPokeSeg(Arena arena, Seg seg, Ref *p, Ref ref);
 extern Size ArenaReserved(Arena arena);
 extern Size ArenaCommitted(Arena arena);
 extern Size ArenaSpareCommitted(Arena arena);
+extern double ArenaSpare(Arena arena);
+extern void ArenaSetSpare(Arena arena, double spare);
+#define ArenaSpareCommitLimit(arena) ((Size)(ArenaCommitted(arena) * ArenaSpare(arena)))
+#define ArenaCurrentSpare(arena) ((double)ArenaSpareCommitted(arena) / ArenaCommitted(arena))
 
 extern Size ArenaCommitLimit(Arena arena);
 extern Res ArenaSetCommitLimit(Arena arena, Size limit);
-extern Size ArenaSpareCommitLimit(Arena arena);
-extern void ArenaSetSpareCommitLimit(Arena arena, Size limit);
 extern double ArenaPauseTime(Arena arena);
 extern void ArenaSetPauseTime(Arena arena, double pauseTime);
 extern Size ArenaNoPurgeSpare(Arena arena, Size size);
@@ -970,7 +972,9 @@ extern Size (LandSize)(Land land);
 extern Res LandInit(Land land, LandClass klass, Arena arena, Align alignment, void *owner, ArgList args);
 extern void LandFinish(Land land);
 extern Res (LandInsert)(Range rangeReturn, Land land, Range range);
+extern Res LandInsertSteal(Range rangeReturn, Land land, Range rangeIO);
 extern Res (LandDelete)(Range rangeReturn, Land land, Range range);
+extern Res LandDeleteSteal(Range rangeReturn, Land land, Range range);
 extern Bool (LandIterate)(Land land, LandVisitor visitor, void *closure);
 extern Bool (LandIterateAndDelete)(Land land, LandDeleteVisitor visitor, void *closure);
 extern Bool (LandFindFirst)(Range rangeReturn, Range oldRangeReturn, Land land, Size size, FindDelete findDelete);

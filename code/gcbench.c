@@ -56,6 +56,7 @@ static size_t arena_grain_size = 1; /* arena grain size */
 static unsigned pinleaf = FALSE;  /* are leaf objects pinned at start */
 static mps_bool_t zoned = TRUE;   /* arena allocates using zones */
 static double pause_time = ARENA_DEFAULT_PAUSE_TIME; /* maximum pause time */
+static double spare = ARENA_SPARE_DEFAULT; /* spare commit fraction */
 
 typedef struct gcthread_s *gcthread_t;
 
@@ -246,6 +247,7 @@ static void arena_setup(gcthread_fn_t fn,
     MPS_ARGS_ADD(args, MPS_KEY_ARENA_GRAIN_SIZE, arena_grain_size);
     MPS_ARGS_ADD(args, MPS_KEY_ARENA_ZONED, zoned);
     MPS_ARGS_ADD(args, MPS_KEY_PAUSE_TIME, pause_time);
+    MPS_ARGS_ADD(args, MPS_KEY_SPARE, spare);
     RESMUST(mps_arena_create_k(&arena, mps_arena_class_vm(), args));
   } MPS_ARGS_END(args);
   RESMUST(dylan_fmt(&format, arena));
@@ -288,6 +290,7 @@ static struct option longopts[] = {
   {"seed",             required_argument, NULL, 'x'},
   {"arena-unzoned",    no_argument,       NULL, 'z'},
   {"pause-time",       required_argument, NULL, 'P'},
+  {"spare",            required_argument, NULL, 'S'},
   {NULL,               0,                 NULL, 0  }
 };
 
@@ -313,7 +316,7 @@ int main(int argc, char *argv[])
 
   seed = rnd_seed();
   
-  while ((ch = getopt_long(argc, argv, "ht:i:p:g:m:a:w:d:r:u:lx:zP:",
+  while ((ch = getopt_long(argc, argv, "ht:i:p:g:m:a:w:d:r:u:lx:zP:S:",
                            longopts, NULL)) != -1)
     switch (ch) {
     case 't':
@@ -407,6 +410,9 @@ int main(int argc, char *argv[])
     case 'P':
       pause_time = strtod(optarg, NULL);
       break;
+    case 'S':
+      spare = strtod(optarg, NULL);
+      break;
     default:
       /* This is printed in parts to keep within the 509 character
          limit for string literals in portable standard C. */
@@ -414,15 +420,15 @@ int main(int argc, char *argv[])
               "Usage: %s [option...] [test...]\n"
               "Options:\n"
               "  -m n, --arena-size=n[KMG]?\n"
-              "    Initial size of arena (default %lu).\n"
+              "    Initial size of arena (default %lu)\n"
               "  -a n, --arena-grain-size=n[KMG]?\n"
-              "    Arena grain size (default %lu).\n"
+              "    Arena grain size (default %lu)\n"
               "  -t n, --nthreads=n\n"
-              "    Launch n threads each running the test (default %u).\n"
+              "    Launch n threads each running the test (default %u)\n"
               "  -i n, --niter=n\n"
-              "    Iterate each test n times (default %u).\n"
+              "    Iterate each test n times (default %u)\n"
               "  -p n, --npass=n\n"
-              "    Pass over the tree n times (default %u).\n",
+              "    Pass over the tree n times (default %u)\n",
               argv[0],
               (unsigned long)arena_size,
               (unsigned long)arena_grain_size,
@@ -432,7 +438,7 @@ int main(int argc, char *argv[])
       fprintf(stderr,
               "  -g c,m, --gen=c[KMG],m\n"
               "    Generation with capacity c (in Kb) and mortality m\n"
-              "    Use multiple times for multiple generations.\n"
+              "    Use multiple times for multiple generations\n"
               "  -w n, --width=n\n"
               "    Width of tree nodes made (default %lu)\n"
               "  -d n, --depth=n\n"
@@ -442,7 +448,7 @@ int main(int argc, char *argv[])
               "  -u p, --pupdate=p\n"
               "    Probability of updating a node (default %g)\n"
               "  -l --pin-leaf\n"
-              "    Make a pinned object to use for leaves.\n"
+              "    Make a pinned object to use for leaves\n"
               "  -x n, --seed=n\n"
               "    Random number seed (default from entropy)\n",
               (unsigned long)width,
@@ -453,11 +459,15 @@ int main(int argc, char *argv[])
               "  -z, --arena-unzoned\n"
               "    Disable zoned allocation in the arena\n"
               "  -P t, --pause-time\n"
-              "    Maximum pause time in seconds (default %f) \n"
+              "    Maximum pause time in seconds (default %f)\n"
+              "  -S f, --spare\n"
+              "    Maximum spare committed fraction (default %f)\n"
               "Tests:\n"
               "  amc   pool class AMC\n"
-              "  ams   pool class AMS\n",
-              pause_time);
+              "  ams   pool class AMS\n"
+              "  awl   pool class AWL\n",
+              pause_time,
+              spare);
       return EXIT_FAILURE;
     }
   argc -= optind;
