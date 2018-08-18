@@ -697,6 +697,7 @@ typedef struct ShieldStruct {
 typedef struct HistoryStruct {
   Sig sig;                         /* design.mps.sig */
   Epoch epoch;                     /* <design/arena/#ld.epoch> */
+  Count collections;               /* number of flips */
   RefSet prehistory;               /* <design/arena/#ld.prehistory> */
   RefSet history[LDHistoryLENGTH]; /* <design/arena/#ld.history> */
 } HistoryStruct;  

@@ -607,9 +607,7 @@ static Res traceFlip(Trace trace)
   /* Update location dependency structures. */
   /* mayMove is a conservative approximation of the zones of objects */
   /* which may move during this collection. */
-  if(trace->mayMove != ZoneSetEMPTY) {
-    LDAge(arena, trace->mayMove);
-  }
+  LDAdvance(arena, trace->mayMove);
 
   /* .root.rank: At the moment we must scan all roots, because we don't have */
   /* a mechanism for shielding them.  There can't be any weak or final roots */

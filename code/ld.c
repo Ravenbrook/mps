@@ -257,7 +257,6 @@ Bool LDIsStale(mps_ld_t ld, Arena arena, Addr addr)
   return LDIsStaleAny(ld, arena);
 }
 
-
 /* LDAge -- age the arena by adding a moved set
  *
  * This stores the fact that a set of references has changed in
@@ -268,7 +267,7 @@ Bool LDIsStale(mps_ld_t ld, Arena arena, Addr addr)
  * because it updates the notion of the 'current' and 'oldest' history
  * entries.
  */
-void LDAge(Arena arena, RefSet rs)
+static void LDAge(Arena arena, RefSet rs)
 {
   History history;
   Size i;
@@ -294,6 +293,25 @@ void LDAge(Arena arena, RefSet rs)
   /* Advance the epoch by one. */
   ++history->epoch;
   AVER(history->epoch != 0);      /* .epoch-size */
+}
+
+
+/* LDAdvance
+ *
+ * Advance History during flip.
+ */
+void LDAdvance(Arena arena, RefSet moved)
+{
+  History history;
+  history = ArenaHistory(arena);
+  AVERT(Arena, arena);
+
+  if(moved != ZoneSetEMPTY) {
+    LDAge(arena, moved);
+  }
+  ++history->collections;
+
+  AVER(history->collections != 0);
 }
 
 
