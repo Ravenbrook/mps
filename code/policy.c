@@ -197,25 +197,48 @@ Bool PolicyShouldCollectWorld(Arena arena, double availableTime,
     && sinceLastWorldCollect > collectionTime / ARENA_MAX_COLLECT_FRACTION;
 }
 
-
-/* policyCondemnChain -- condemn approriate parts of this chain
+/* policyCollectChain - work out generations to collect.
  *
- * If successful, set *mortalityReturn to an estimate of the mortality
- * of the condemned parts of this chain and return ResOK.
+ * *genReturn is set to top generation number to collect.
+ * *topReturn is set if collection of topGen is indicated.
+ */
+static Res policyCollectChainTime(Bool *topReturn, Count *genReturn, Chain chain)
+{
+  size_t topCondemnedGen;
+  Count collections;
+  Bool top;
+
+  AVER(topReturn != NULL);
+  AVER(genReturn != NULL);
+  AVERT(Chain, chain);
+
+  collections = ArenaCollections(chain->arena);
+  topCondemnedGen = SizeFloorLog2(collections ^ (collections+1));
+  top = (topCondemnedGen >= chain->genCount);
+  if (topCondemnedGen > chain->genCount - 1) {
+    topCondemnedGen = chain->genCount - 1;
+  }
+
+  *topReturn = top;
+  *genReturn = topCondemnedGen;
+  return ResOK;
+}
+
+/* policyCollectChainCapacity - work out generations to collect.
  *
  * This is only called if ChainDeferral returned a value sufficiently
  * low that we decided to start the collection. (Usually such values
  * are less than zero; see <design/strategy/#policy.start.chain>.)
+ *
+ * *genReturn is set to top generation number to collect.
  */
-
-static Res policyCondemnChain(double *mortalityReturn, Chain chain, Trace trace)
+static Res policyCollectChainCapacity(Count *genReturn, Chain chain)
 {
-  size_t topCondemnedGen, i;
+  size_t topCondemnedGen;
   GenDesc gen;
 
-  AVER(mortalityReturn != NULL);
+  AVER(genReturn != NULL);
   AVERT(Chain, chain);
-  AVERT(Trace, trace);
 
   /* Find the highest generation that's over capacity. We will condemn
    * this and all lower generations in the chain. */
@@ -233,6 +256,29 @@ static Res policyCondemnChain(double *mortalityReturn, Chain chain, Trace trace)
       break;
   }
 
+  *genReturn = topCondemnedGen;
+  return ResOK;
+}
+ 
+
+
+/* policyCondemnChain -- condemn approriate parts of this chain
+ *
+ * If successful, set *mortalityReturn to an estimate of the mortality
+ * of the condemned parts of this chain and return ResOK.
+ */
+
+static Res policyCondemnChain(double *mortalityReturn,
+                              Chain chain, size_t topCondemnedGen,
+                              Trace trace)
+{
+  size_t i;
+  GenDesc gen;
+
+  AVER(mortalityReturn != NULL);
+  AVERT(Chain, chain);
+  AVERT(Trace, trace);
+
   /* At this point, we've decided to condemn topCondemnedGen and all
    * lower generations. */
   TraceCondemnStart(trace);
@@ -241,6 +287,7 @@ static Res policyCondemnChain(double *mortalityReturn, Chain chain, Trace trace)
     AVERT(GenDesc, gen);
     GenDescStartTrace(gen, trace);
   }
+  
   EVENT3(ChainCondemnAuto, chain, topCondemnedGen, chain->genCount);
   return TraceCondemnEnd(mortalityReturn, trace);
 }
@@ -300,6 +347,7 @@ Bool PolicyStartTrace(Trace *traceReturn, Bool *collectWorldReturn,
       return TRUE;
     }
   }
+
   {
     /* Find the chain most over its capacity. */
     Ring node, nextNode;
@@ -320,22 +368,43 @@ Bool PolicyStartTrace(Trace *traceReturn, Bool *collectWorldReturn,
     /* If one was found, start collection on that chain. */
     if(firstTime < 0) {
       double mortality;
+      size_t topCondemnedGen = 0;
+      size_t topCondemnedGenTime = 0;
+      Bool top = FALSE; /* Does this chain indicate top collection? */
 
-      res = TraceCreate(&trace, arena, TraceStartWhyCHAIN_GEN0CAP);
+      res = policyCollectChainCapacity(&topCondemnedGen, firstChain);
       AVER(res == ResOK);
-      res = policyCondemnChain(&mortality, firstChain, trace);
-      if (res != ResOK) /* should try some other trace, really @@@@ */
-        goto failCondemn;
-      if (TraceIsEmpty(trace))
-        goto nothingCondemned;
-      res = TraceStart(trace, mortality, trace->condemned * TraceWorkFactor);
-      /* We don't expect normal GC traces to fail to start. */
+      res = policyCollectChainTime(&top, &topCondemnedGenTime, firstChain);
       AVER(res == ResOK);
-      *traceReturn = trace;
-      return TRUE;
+      if (topCondemnedGenTime > topCondemnedGen)
+        topCondemnedGen = topCondemnedGenTime;
+      if (top && collectWorldAllowed) {
+        /* Start full collection. */
+        res = TraceStartCollectAll(&trace, arena, TraceStartWhyCHAINFULL);
+        if (res != ResOK)
+          goto failStart;
+        *collectWorldReturn = TRUE;
+        *traceReturn = trace;
+        return TRUE;
+      } else {
+        res = TraceCreate(&trace, arena, TraceStartWhyCHAIN_GEN0CAP);
+        AVER(res == ResOK);
+        res = policyCondemnChain(&mortality,
+                                 firstChain, topCondemnedGen, trace);
+        if (res != ResOK) /* should try some other trace, really @@@@ */
+          goto failCondemn;
+        if (TraceIsEmpty(trace))
+          goto nothingCondemned;
+        res = TraceStart(trace, mortality, trace->condemned * TraceWorkFactor);
+        /* We don't expect normal GC traces to fail to start. */
+        AVER(res == ResOK);
+        *traceReturn = trace;
+        return TRUE;
+      }
     }
-  } /* (dynamicDeferral > 0.0) */
-  return FALSE;
+  }
+
+return FALSE;
 
 nothingCondemned:
 failCondemn:

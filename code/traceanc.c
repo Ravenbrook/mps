@@ -170,6 +170,9 @@ const char *TraceStartWhyToString(int why)
   case TraceStartWhyEXTENSION:
     r = "Extension: an MPS extension started the trace.";
     break;
+  case TraceStartWhyCHAINFULL:
+    r = "Chain is filling top generation.";
+    break;
   default:
     NOTREACHED;
     r = "Unknown reason (internal error).";

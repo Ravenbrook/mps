@@ -370,6 +370,7 @@ enum {
   TraceStartWhyCLIENTFULL_BLOCK, /* do full */
   TraceStartWhyWALK,            /* walking references -- see walk.c */
   TraceStartWhyEXTENSION,       /* MPS extension using traces */
+  TraceStartWhyCHAINFULL,       /* chain based full */
   TraceStartWhyLIMIT /* not a reason, the limit of the enum. */
 };
 
