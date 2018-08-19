@@ -106,6 +106,7 @@ Res HistoryDescribe(History history, mps_lib_FILE *stream, Count depth)
 
   res = WriteF(stream, depth,
                "History $P {\n",      (WriteFP)history,
+               "  collections= $U\n", (WriteFU)history->collections,
                "  epoch      = $U\n", (WriteFU)history->epoch,
                "  prehistory = $B\n", (WriteFB)history->prehistory,
                "  history {\n",
