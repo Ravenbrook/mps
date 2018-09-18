@@ -312,41 +312,9 @@ Bool PolicyStartTrace(Trace *traceReturn, Bool *collectWorldReturn,
   Res res;
   Trace trace;
   double TraceWorkFactor = 0.25;
-  /* Fix the mortality of the world to avoid runaway feedback between the
-     dynamic criterion and the mortality of the arena's top generation,
-     leading to all traces collecting the world. This is a (hopefully)
-     temporary hack, pending an improved scheduling algorithm. */
-  double TraceWorldMortality = 0.5;
 
   AVER(traceReturn != NULL);
   AVERT(Arena, arena);
-
-  if (collectWorldAllowed) {
-    Size sFoundation, sCondemned, sSurvivors, sConsTrace;
-    double tTracePerScan; /* tTrace/cScan */
-    double dynamicDeferral;
-
-    /* Compute dynamic criterion.  See strategy.lisp-machine. */
-    sFoundation = (Size)0; /* condemning everything, only roots @@@@ */
-    /* @@@@ sCondemned should be scannable only */
-    sCondemned = ArenaCommitted(arena) - ArenaSpareCommitted(arena);
-    sSurvivors = (Size)(sCondemned * (1 - TraceWorldMortality));
-    tTracePerScan = sFoundation + (sSurvivors * (1 + TraceCopyScanRATIO));
-    AVER(TraceWorkFactor >= 0);
-    AVER(sSurvivors + tTracePerScan * TraceWorkFactor <= (double)SizeMAX);
-    sConsTrace = (Size)(sSurvivors + tTracePerScan * TraceWorkFactor);
-    dynamicDeferral = (double)ArenaAvail(arena) - (double)sConsTrace;
-
-    if (dynamicDeferral < 0.0) {
-      /* Start full collection. */
-      res = TraceStartCollectAll(&trace, arena, TraceStartWhyDYNAMICCRITERION);
-      if (res != ResOK)
-        goto failStart;
-      *collectWorldReturn = TRUE;
-      *traceReturn = trace;
-      return TRUE;
-    }
-  }
 
   {
     /* Find the chain most over its capacity. */
