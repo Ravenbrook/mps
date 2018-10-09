@@ -12,6 +12,11 @@ Release 1.118.0
 New features
 ............
 
+#. The MPS no longer supports building for the xci3ll platform (macOS,
+   IA-32, Clang/LLVM) using Xcode. This is because Xcode 10.0 no
+   longer supports this platform. The platform is still supported via
+   the GNU Make toolchain.
+
 #. The arena's :term:`spare commit limit` is now expressed as a
    fraction of the :term:`committed <mapped>` memory (rather than a
    fixed size, as previously). This allows the :term:`spare committed
