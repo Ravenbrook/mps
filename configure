@@ -3608,7 +3608,7 @@ if ! $MAKE --version | grep -q "GNU" 2> /dev/null; then
   as_fn_error $? "MPS requires GNU make to build from configure, but see manual/build.txt" "$LINENO" 5
 fi
 
-EXTRA_TARGETS="mpseventcnv mpseventtxt"
+EXTRA_TARGETS="mpseventcnv mpseventpy mpseventtxt"
 ac_fn_c_check_header_mongrel "$LINENO" "sqlite3.h" "ac_cv_header_sqlite3_h" "$ac_includes_default"
 if test "x$ac_cv_header_sqlite3_h" = xyes; then :
   EXTRA_TARGETS="$EXTRA_TARGETS mpseventsql"
@@ -4799,12 +4799,13 @@ $as_echo "$as_me: WARNING: unrecognized options: $ac_unrecognized_opts" >&2;}
 fi
 
 
-echo 1>&2 "CONFIGURE/MAKE IS NOT THE BEST WAY TO BUILD THE MPS -- see <manual/build.txt>"
+echo 1>&2 "CONFIGURE/MAKE IS NOT THE BEST WAY TO BUILD THE MPS
+-- see <manual/build.txt> for alternative approaches"
 
 
 # C. COPYRIGHT AND LICENSE
 #
-# Copyright (C) 2012-2016 Ravenbrook Limited <http://www.ravenbrook.com/>.
+# Copyright (C) 2012-2018 Ravenbrook Limited <http://www.ravenbrook.com/>.
 # All rights reserved.  This is an open source license.  Contact
 # Ravenbrook for commercial licensing options.
 #

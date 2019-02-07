@@ -36,7 +36,7 @@ char EventBuffer[EventKindLIMIT][EventBufferSIZE];
 /* Pointers to last event logged into each buffer. */
 char *EventLast[EventKindLIMIT];
 
-/* Pointers to the last even written out of each buffer. */
+/* Pointers to the last event written out of each buffer. */
 static char *EventWritten[EventKindLIMIT];
 
 EventControlSet EventKindControl;       /* Bit set used to control output. */
@@ -53,7 +53,7 @@ static Res eventClockSync(void)
   Res res;
   size_t size;
 
-  size= size_tAlignUp(sizeof(eventClockSyncStruct), MPS_PF_ALIGN);
+  size= size_tAlignUp(sizeof(eventClockSyncStruct), EVENT_ALIGN);
   eventClockSyncStruct.code = EventEventClockSyncCode;
   eventClockSyncStruct.size = (EventSize)size;
   EVENT_CLOCK(eventClockSyncStruct.clock);
@@ -61,7 +61,7 @@ static Res eventClockSync(void)
   res = (Res)mps_io_write(eventIO, (void *)&eventClockSyncStruct, size);
   if (res != ResOK)
     goto failWrite;
-  
+
   res = ResOK;
 failWrite:
   return res;
@@ -103,7 +103,7 @@ void EventSync(void)
     if (BS_IS_MEMBER(EventKindControl, kind)) {
       size_t size;
       Res res;
-      
+
       AVER(EventBuffer[kind] <= EventLast[kind]);
       AVER(EventLast[kind] <= EventWritten[kind]);
       AVER(EventWritten[kind] <= EventBuffer[kind] + EventBufferSIZE);
@@ -125,7 +125,7 @@ void EventSync(void)
         /* Writing might be faster if the size is aligned to a multiple of the
            C library or kernel's buffer size.  We could pad out the buffer with
            a marker for this purpose. */
-      
+
         res = (Res)mps_io_write(eventIO, (void *)EventLast[kind], size);
         if (res == ResOK) {
           /* TODO: Consider taking some other action if a write fails. */
@@ -153,10 +153,10 @@ void EventInit(void)
      in the parameter definition macros are in order, and that parameter
      idents are unique. */
 
-#define EVENT_CHECK_ENUM_PARAM(name, index, sort, ident) \
+#define EVENT_CHECK_ENUM_PARAM(name, index, sort, ident, doc) \
   Event##name##Param##ident,
 
-#define EVENT_CHECK_ENUM(X, name, code, always, kind) \
+#define EVENT_CHECK_ENUM(X, name, code, used, kind) \
   enum Event##name##ParamEnum { \
     EVENT_##name##_PARAMS(EVENT_CHECK_ENUM_PARAM, name) \
     Event##name##ParamLIMIT \
@@ -167,35 +167,35 @@ void EventInit(void)
   /* Check consistency of the event definitions.  These are all compile-time
      checks and should get optimised away. */
 
-#define EVENT_PARAM_CHECK_P(name, index, ident)
-#define EVENT_PARAM_CHECK_A(name, index, ident)
-#define EVENT_PARAM_CHECK_W(name, index, ident)
-#define EVENT_PARAM_CHECK_U(name, index, ident)
-#define EVENT_PARAM_CHECK_D(name, index, ident)
-#define EVENT_PARAM_CHECK_B(name, index, ident)
-#define EVENT_PARAM_CHECK_S(name, index, ident) \
+#define EVENT_PARAM_CHECK_P(name, index)
+#define EVENT_PARAM_CHECK_A(name, index)
+#define EVENT_PARAM_CHECK_W(name, index)
+#define EVENT_PARAM_CHECK_U(name, index)
+#define EVENT_PARAM_CHECK_D(name, index)
+#define EVENT_PARAM_CHECK_B(name, index)
+#define EVENT_PARAM_CHECK_S(name, index) \
   AVER(index + 1 == Event##name##ParamLIMIT); /* strings must come last */
 
-#define EVENT_PARAM_CHECK(name, index, sort, ident) \
+#define EVENT_PARAM_CHECK(name, index, sort, ident, doc) \
   AVER(index == Event##name##Param##ident); \
   AVER(sizeof(EventF##sort) >= 0); /* check existence of type */ \
-  EVENT_PARAM_CHECK_##sort(name, index, ident)
+  EVENT_PARAM_CHECK_##sort(name, index)
 
-#define EVENT_CHECK(X, name, code, always, kind) \
-  AVER(size_tAlignUp(sizeof(Event##name##Struct), MPS_PF_ALIGN) \
+#define EVENT_CHECK(X, name, code, used, kind) \
+  AVER(size_tAlignUp(sizeof(Event##name##Struct), EVENT_ALIGN) \
        <= EventSizeMAX); \
   AVER(Event##name##Code == code); \
   AVER(0 <= code); \
   AVER(code <= EventCodeMAX); \
   AVER(sizeof(#name) - 1 <= EventNameMAX); \
-  AVER((Bool)Event##name##Always == always); \
-  AVERT(Bool, always); \
+  AVER((Bool)Event##name##Used == used); \
+  AVERT(Bool, used); \
   AVER(0 <= Event##name##Kind); \
   AVER((EventKind)Event##name##Kind < EventKindLIMIT); \
   EVENT_##name##_PARAMS(EVENT_PARAM_CHECK, name)
 
   EVENT_LIST(EVENT_CHECK, X);
-  
+
   /* Ensure that no event can be larger than the maximum event size. */
   AVER(EventBufferSIZE <= EventSizeMAX);
 
@@ -247,16 +247,16 @@ void EventFinish(void)
  *
  * TODO: Candy-machine interface is a transgression.
  */
-  
+
 EventControlSet EventControl(EventControlSet resetMask,
                              EventControlSet flipMask)
 {
   EventControlSet oldValue = EventKindControl;
-     
+
   /* EventKindControl = (EventKindControl & ~resetMask) ^ flipMask */
   EventKindControl =
     BS_SYM_DIFF(BS_DIFF(EventKindControl, resetMask), flipMask);
-      
+
   return oldValue;
 }
 
@@ -297,9 +297,19 @@ void EventLabelAddr(Addr addr, EventStringId id)
 }
 
 
+/* EventLabelPointer -- emit event to label pointer with the given id */
+
+void EventLabelPointer(Pointer pointer, EventStringId id)
+{
+  AVER((Serial)id < EventInternSerial);
+
+  EVENT2(LabelPointer, pointer, id);
+}
+
+
 /* Convert event parameter sort to WriteF arguments */
 
-#define EVENT_WRITE_PARAM_MOST(name, index, sort, ident) \
+#define EVENT_WRITE_PARAM_MOST(name, index, sort) \
   " $"#sort, (WriteF##sort)event->name.f##index,
 #define EVENT_WRITE_PARAM_A EVENT_WRITE_PARAM_MOST
 #define EVENT_WRITE_PARAM_P EVENT_WRITE_PARAM_MOST
@@ -307,7 +317,7 @@ void EventLabelAddr(Addr addr, EventStringId id)
 #define EVENT_WRITE_PARAM_W EVENT_WRITE_PARAM_MOST
 #define EVENT_WRITE_PARAM_D EVENT_WRITE_PARAM_MOST
 #define EVENT_WRITE_PARAM_S EVENT_WRITE_PARAM_MOST
-#define EVENT_WRITE_PARAM_B(name, index, sort, ident) \
+#define EVENT_WRITE_PARAM_B(name, index, sort) \
   " $U", (WriteFU)event->name.f##index,
 
 
@@ -336,12 +346,12 @@ Res EventDescribe(Event event, mps_lib_FILE *stream, Count depth)
 
   switch (event->any.code) {
 
-#define EVENT_DESC_PARAM(name, index, sort, ident) \
+#define EVENT_DESC_PARAM(name, index, sort, ident, doc) \
                  "\n  $S", (WriteFS)#ident, \
-                 EVENT_WRITE_PARAM_##sort(name, index, sort, ident)
+                 EVENT_WRITE_PARAM_##sort(name, index, sort)
 
-#define EVENT_DESC(X, name, _code, always, kind) \
-  case _code: \
+#define EVENT_DESC(X, name, code, used, kind) \
+  case code: \
     res = WriteF(stream, depth, \
                  "  event \"$S\"", (WriteFS)#name, \
                  EVENT_##name##_PARAMS(EVENT_DESC_PARAM, name) \
@@ -359,7 +369,7 @@ Res EventDescribe(Event event, mps_lib_FILE *stream, Count depth)
     /* TODO: Hexdump unknown event contents. */
     break;
   }
-  
+
   res = WriteF(stream, depth,
                "\n} Event $P\n", (WriteFP)event,
                NULL);
@@ -370,7 +380,7 @@ Res EventDescribe(Event event, mps_lib_FILE *stream, Count depth)
 Res EventWrite(Event event, mps_lib_FILE *stream)
 {
   Res res;
-  
+
   if (event == NULL)
     return ResFAIL;
   if (stream == NULL)
@@ -382,10 +392,10 @@ Res EventWrite(Event event, mps_lib_FILE *stream)
 
   switch (event->any.code) {
 
-#define EVENT_WRITE_PARAM(name, index, sort, ident) \
-  EVENT_WRITE_PARAM_##sort(name, index, sort, ident)
+#define EVENT_WRITE_PARAM(name, index, sort, ident, doc) \
+  EVENT_WRITE_PARAM_##sort(name, index, sort)
 
-#define EVENT_WRITE(X, name, code, always, kind) \
+#define EVENT_WRITE(X, name, code, used, kind) \
   case code: \
     res = WriteF(stream, 0, " $S", (WriteFS)#name, \
                  EVENT_##name##_PARAMS(EVENT_WRITE_PARAM, name) \
@@ -403,14 +413,13 @@ Res EventWrite(Event event, mps_lib_FILE *stream)
     /* TODO: Hexdump unknown event contents. */
     break;
   }
-  
+
   return ResOK;
 }
 
 
 void EventDump(mps_lib_FILE *stream)
 {
-  Event event;
   EventKind kind;
 
   AVER(stream != NULL);
@@ -423,13 +432,15 @@ void EventDump(mps_lib_FILE *stream)
   }
 
   for (kind = 0; kind < EventKindLIMIT; ++kind) {
-    for (event = (Event)EventLast[kind];
-         (char *)event < EventBuffer[kind] + EventBufferSIZE;
-         event = (Event)((char *)event + event->any.size)) {
-      /* Try to keep going even if there's an error, because this is used as a
-         backtrace and we'll take what we can get. */
+    char *cursor = EventLast[kind];
+    const char *end = EventBuffer[kind] + EventBufferSIZE;
+    while (cursor < end) {
+      Event event = (void *)cursor;
+      /* Try to keep going even if there's an error, because this is
+         used for debugging and we'll take what we can get. */
       (void)EventWrite(event, stream);
       (void)WriteF(stream, 0, "\n", NULL);
+      cursor += event->any.size;
     }
   }
 }
@@ -492,6 +503,15 @@ void EventLabelAddr(Addr addr, Word id)
 }
 
 
+void EventLabelPointer(Pointer pointer, Word id)
+{
+  UNUSED(pointer);
+  UNUSED(id);
+  /* EventLabelPointer is reached in varieties without events, but
+     doesn't have to do anything. */
+}
+
+
 Res EventDescribe(Event event, mps_lib_FILE *stream, Count depth)
 {
   UNUSED(event);
@@ -523,18 +543,18 @@ void EventDump(mps_lib_FILE *stream)
  * Copyright (C) 2001-2018 Ravenbrook Limited <http://www.ravenbrook.com/>.
  * All rights reserved.  This is an open source license.  Contact
  * Ravenbrook for commercial licensing options.
- * 
+ *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are
  * met:
- * 
+ *
  * 1. Redistributions of source code must retain the above copyright
  * notice, this list of conditions and the following disclaimer.
- * 
+ *
  * 2. Redistributions in binary form must reproduce the above copyright
  * notice, this list of conditions and the following disclaimer in the
  * documentation and/or other materials provided with the distribution.
- * 
+ *
  * 3. Redistributions in any form must be accompanied by information on how
  * to obtain complete source code for this software and any accompanying
  * software that uses this software.  The source code must either be
@@ -545,7 +565,7 @@ void EventDump(mps_lib_FILE *stream)
  * include source code for modules or files that typically accompany the
  * major components of the operating system on which the executable file
  * runs.
- * 
+ *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS
  * IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
  * TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR

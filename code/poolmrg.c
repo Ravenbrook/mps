@@ -1,13 +1,13 @@
 /* poolmrg.c: MANUAL RANK GUARDIAN POOL
  *
  * $Id$
- * Copyright (c) 2001-2016 Ravenbrook Limited.  See end of file for license.
+ * Copyright (c) 2001-2018 Ravenbrook Limited.  See end of file for license.
  * Portions copyright (C) 2002 Global Graphics Software.
  * 
  * 
  * DESIGN
  *
- * .design: See <design/poolmrg/>.
+ * .design: <design/poolmrg>.
  *
  * NOTES
  *
@@ -19,7 +19,7 @@
  *
  * TRANSGRESSIONS
  *
- * .addr.void-star: Breaks <design/type/#addr.use> all over the place,
+ * .addr.void-star: Breaks <design/type#.addr.use> all over the place,
  * accessing the segments acquired from SegAlloc with C pointers.  It
  * would not be practical to use ArenaPeek/Poke everywhere.  Blocks
  * acquired from ControlAlloc must be directly accessible from C, or else
@@ -84,19 +84,9 @@ typedef struct RefPartStruct {
  */
 static Ref MRGRefPartRef(Arena arena, RefPart refPart)
 {
-  Ref ref;
-
   AVER(refPart != NULL);
 
-  ref = ArenaRead(arena, &refPart->ref);
-  return ref;
-}
-
-static Ref *MRGRefPartRefAddr(RefPart refPart)
-{
-  AVER(refPart != NULL);
-
-  return &refPart->ref;
+  return ArenaRead(arena, &refPart->ref);
 }
 
 static void MRGRefPartSetRef(Arena arena, RefPart refPart, Ref ref)
@@ -113,10 +103,10 @@ static void MRGRefPartSetRef(Arena arena, RefPart refPart, Ref ref)
 
 typedef struct MRGStruct {
   PoolStruct poolStruct;    /* generic pool structure */
-  RingStruct entryRing;     /* <design/poolmrg/#poolstruct.entry> */
-  RingStruct freeRing;      /* <design/poolmrg/#poolstruct.free> */
-  RingStruct refRing;       /* <design/poolmrg/#poolstruct.refring> */
-  Size extendBy;            /* <design/poolmrg/#extend> */
+  RingStruct entryRing;     /* <design/poolmrg#.poolstruct.entry> */
+  RingStruct freeRing;      /* <design/poolmrg#.poolstruct.free> */
+  RingStruct refRing;       /* <design/poolmrg#.poolstruct.refring> */
+  Size extendBy;            /* <design/poolmrg#.extend> */
   Sig sig;                  /* <code/mps.h#sig> */
 } MRGStruct;
 
@@ -152,14 +142,14 @@ typedef struct MRGRefSegStruct *MRGRefSeg;
 
 typedef struct MRGLinkSegStruct {
   SegStruct segStruct;      /* superclass fields must come first */
-  MRGRefSeg refSeg;         /* <design/poolmrg/#mrgseg.link.refseg> */
+  MRGRefSeg refSeg;         /* <design/poolmrg#.mrgseg.link.refseg> */
   Sig sig;                  /* <code/misc.h#sig> */
 } MRGLinkSegStruct;
 
 typedef struct MRGRefSegStruct {
   GCSegStruct gcSegStruct;  /* superclass fields must come first */
-  RingStruct mrgRing;       /* <design/poolmrg/#mrgseg.ref.segring> */
-  MRGLinkSeg linkSeg;       /* <design/poolmrg/#mrgseg.ref.linkseg> */
+  RingStruct mrgRing;       /* <design/poolmrg#.mrgseg.ref.segring> */
+  MRGLinkSeg linkSeg;       /* <design/poolmrg#.mrgseg.ref.linkseg> */
   Sig sig;                  /* <code/misc.h#sig> */
 } MRGRefSegStruct;
 
@@ -175,7 +165,7 @@ static Res mrgRefSegScan(Bool *totalReturn, Seg seg, ScanState ss);
  *
  * .link.nullref: During initialization of a link segment the refSeg
  * field will be NULL. This will be initialized when the reference
- * segment is initialized.  See <design/poolmrg/#mrgseg.link.refseg>.
+ * segment is initialized.  <design/poolmrg#.mrgseg.link.refseg>.
  */
 
 ATTRIBUTE_UNUSED
@@ -278,7 +268,7 @@ static Res MRGRefSegInit(Seg seg, Pool pool, Addr base, Size size, ArgList args)
   /* no useful checks for base and size */
   AVERT(MRGLinkSeg, linkseg);
 
-  /* <design/seg/#field.rankset.start>, .improve.rank */
+  /* <design/seg#.field.rankset.start>, .improve.rank */
   SegSetRankSet(seg, RankSetSingle(RankFINAL));
 
   RingInit(&refseg->mrgRing);
@@ -350,7 +340,7 @@ static Count MRGGuardiansPerSeg(MRG mrg)
 }
 
 
-/* <design/poolmrg/#guardian.assoc> */
+/* <design/poolmrg#.guardian.assoc> */
 
 
 #define refPartOfIndex(refseg, index) \
@@ -421,7 +411,7 @@ static void MRGGuardianInit(MRG mrg, Link link, RefPart refPart)
   RingInit(&link->the.linkRing);
   link->state = MRGGuardianFREE;
   RingAppend(&mrg->freeRing, &link->the.linkRing);
-  /* <design/poolmrg/#free.overwrite> */
+  /* <design/poolmrg#.free.overwrite> */
   MRGRefPartSetRef(PoolArena(MustBeA(AbstractPool, mrg)), refPart, 0);
 }
 
@@ -457,7 +447,6 @@ static void MRGMessageDelete(Message message)
 static void MRGMessageFinalizationRef(Ref *refReturn,
                                       Arena arena, Message message)
 {
-  Ref *refp;
   Link link;
   Ref ref;
   RefPart refPart;
@@ -472,11 +461,7 @@ static void MRGMessageFinalizationRef(Ref *refReturn,
   AVER(link->state == MRGGuardianFINAL);
   refPart = MRGRefPartOfLink(link, arena);
 
-  refp = MRGRefPartRefAddr(refPart);
-
-  /* ensure that the reference is not (white and flipped) */
-  ref = ArenaRead(arena, refp);
-
+  ref = MRGRefPartRef(arena, refPart);
   AVER(ref != 0);
   *refReturn = ref;
 }
@@ -492,7 +477,7 @@ static MessageClassStruct MRGMessageClassStruct = {
   MessageNoGCCondemnedSize,    /* GCCondemnedSize */
   MessageNoGCNotCondemnedSize, /* GCNotCondemnedSize */
   MessageNoGCStartWhy,         /* GCStartWhy */
-  MessageClassSig              /* <design/message/#class.sig.double> */
+  MessageClassSig              /* <design/message#.class.sig.double> */
 };
 
 
@@ -716,7 +701,7 @@ static void MRGFinish(Inst inst)
 
   mrg->sig = SigInvalid;
   RingFinish(&mrg->refRing);
-  /* <design/poolmrg/#trans.no-finish> */
+  /* <design/poolmrg#.trans.no-finish> */
 
   NextMethod(Inst, MRGPool, finish)(inst);
 }
@@ -736,7 +721,7 @@ Res MRGRegister(Pool pool, Ref ref)
 
   AVER(ref != 0);
 
-  /* <design/poolmrg/#alloc.grow> */
+  /* <design/poolmrg#.alloc.grow> */
   if (RingIsSingle(&mrg->freeRing)) {
     res = MRGSegPairCreate(&junk, mrg);  
     if (res != ResOK)
@@ -747,12 +732,12 @@ Res MRGRegister(Pool pool, Ref ref)
 
   link = linkOfRing(freeNode);
   AVER(link->state == MRGGuardianFREE);
-  /* <design/poolmrg/#alloc.pop> */
+  /* <design/poolmrg#.alloc.pop> */
   RingRemove(freeNode);
   link->state = MRGGuardianPREFINAL;
   RingAppend(&mrg->entryRing, freeNode);
 
-  /* <design/poolmrg/#guardian.ref.alloc> */
+  /* <design/poolmrg#.guardian.ref.alloc> */
   refPart = MRGRefPartOfLink(link, arena);
   MRGRefPartSetRef(arena, refPart, ref);
 
@@ -878,7 +863,7 @@ PoolClass PoolClassMRG(void)
 
 /* C. COPYRIGHT AND LICENSE
  *
- * Copyright (C) 2001-2016 Ravenbrook Limited <http://www.ravenbrook.com/>.
+ * Copyright (C) 2001-2018 Ravenbrook Limited <http://www.ravenbrook.com/>.
  * All rights reserved.  This is an open source license.  Contact
  * Ravenbrook for commercial licensing options.
  * 

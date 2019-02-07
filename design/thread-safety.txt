@@ -209,8 +209,8 @@ design.mps.lock.req.global.binary_) that protects mutable data shared
 between all arenas (that is, the arena ring lock: see
 design.mps.arena.static.ring.lock_).
 
-.. _design.mps.lock.req.global.binary: lock#req-global-binary
-.. _design.mps.arena.static.ring.lock: arena#static-ring-lock
+.. _design.mps.lock.req.global.binary: lock#.req.global.binary
+.. _design.mps.arena.static.ring.lock: arena#.static.ring.lock
 
 _`.sol.global.once`: There is a global recursive lock (see
 design.mps.lock.req.global.recursive_) that protects static data which
@@ -220,8 +220,8 @@ claims the global recursive lock, checks to see if the data structure
 has been initialized yet, and does so if necessary (see
 design.mps.protocol.impl.define-class.lock_).
 
-.. _design.mps.lock.req.global.recursive: lock#req-global-recursive
-.. _design.mps.protocol.impl.define-class.lock: protocol#impl-define-class-lock
+.. _design.mps.lock.req.global.recursive: lock#.req.global.recursive
+.. _design.mps.protocol.impl.define-class.lock: protocol#.impl.define-class.lock
 
 _`.sol.deadlock`: A strict ordering is required between the global and
 arena locks to prevent deadlock. The binary global lock may not be
@@ -231,7 +231,7 @@ Each arena lock is independent of all other arena locks; that is, a
 thread may not attempt to claim more than one arena lock at a time.
 See design.mps.arena.lock.avoid_.
 
-.. _design.mps.arena.lock.avoid: arena#lock-avoid
+.. _design.mps.arena.lock.avoid: arena#.lock.avoid
 
 _`.sol.check`: The MPS interface design requires that a function must
 check the signatures on the data structures pointed to by its
@@ -242,8 +242,8 @@ checking interface provides a ``TESTT()`` macro that checks the
 signature in a thread-safe way (see
 design.mps.sig.check.arg.unlocked_).
 
-.. _design.mps.sig.check.arg: sig#check-arg
-.. _design.mps.sig.check.arg.unlocked: sig#check-arg-unlocked
+.. _design.mps.sig.check.arg: sig#.check.arg
+.. _design.mps.sig.check.arg.unlocked: sig#.check.arg.unlocked
 
 
 Fork safety
@@ -256,7 +256,7 @@ and in the parent and child processes just after fork (the "parent"
 and "child" handlers respectively).
 
 .. |pthread_atfork| replace:: ``pthread_atfork()``
-.. _pthread_atfork: http://pubs.opengroup.org/onlinepubs/9699919799/functions/pthread_atfork.html
+.. _pthread_atfork: https://pubs.opengroup.org/onlinepubs/9699919799/functions/pthread_atfork.html
 
 _`.sol.fork.lock`: In the prepare handler, the MPS takes all the
 locks: that is, the global locks, and then the arena lock for every
@@ -295,14 +295,14 @@ Document History
 
 - 2018-06-14 GDR_ Added fork safety design.
 
-.. _RB: http://www.ravenbrook.com/consultants/rb/
-.. _GDR: http://www.ravenbrook.com/consultants/gdr/
+.. _RB: https://www.ravenbrook.com/consultants/rb/
+.. _GDR: https://www.ravenbrook.com/consultants/gdr/
 
 
 Copyright and License
 ---------------------
 
-Copyright © 2013-2018 Ravenbrook Limited <http://www.ravenbrook.com/>.
+Copyright © 2013-2018 Ravenbrook Limited <https://www.ravenbrook.com/>.
 All rights reserved. This is an open source license. Contact
 Ravenbrook for commercial licensing options.
 

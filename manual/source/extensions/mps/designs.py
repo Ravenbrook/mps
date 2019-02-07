@@ -8,12 +8,15 @@
 #
 
 from __future__ import unicode_literals
+
+import glob
+from itertools import chain
 import os
 import os.path
-import glob
 import re
 import shutil
 import sys
+
 from sphinx.util.console import bold
 
 TYPES = '''
@@ -40,7 +43,9 @@ macrodef = re.compile(r'^``([A-Z][A-Z0-9_]+)``$', re.MULTILINE)
 macro = re.compile(r'``([A-Z][A-Z0-9_]+)``(?:       )?')
 typedef = re.compile(r'^``typedef ([^`]*)``$', re.MULTILINE) 
 func = re.compile(r'``([A-Za-z][A-Za-z0-9_]+\(\))``')
-typename = re.compile(r'``({0}|[A-Z][A-Za-z0-9_]*(?:Class|Struct|Method)|mps_[a-z_]+_[stu])``(?:      )?'
+typename = re.compile(r'``({0}|[A-Z][A-Za-z0-9_]*'
+                      r'(?:Class|Function|Method|Struct|Union)|'
+                      r'mps_[a-z_]+_[stu])``(?:      )?'
                       .format('|'.join(map(re.escape, TYPES.split()))))
 design_ref = re.compile(r'^( *\.\. _design\.mps\.(?:[^:\n]+): (?:[^#:\n]+))$', re.MULTILINE)
 design_frag_ref = re.compile(r'^( *\.\. _design\.mps\.([^:\n]+)\.([^:\n]+): (?:[^#:\n]+))#(.+)$', re.MULTILINE)
@@ -147,8 +152,9 @@ def convert_updated(app):
         if newer(design, converted):
             app.info('converting design %s' % name)
             convert_file(name, design, converted)
-    for diagram in glob.iglob('../design/*.svg'):
+    diagrams = chain(*[glob.iglob('../design/*.' + ext)
+                       for ext in 'png svg'.split()])
+    for diagram in diagrams:
         target = os.path.join('source/design/', os.path.basename(diagram))
         if newer(diagram, target):
             shutil.copyfile(diagram, target)
-

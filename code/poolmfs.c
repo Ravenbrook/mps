@@ -1,11 +1,11 @@
 /* poolmfs.c: MANUAL FIXED SMALL UNIT POOL
  *
  * $Id$
- * Copyright (c) 2001-2016 Ravenbrook Limited.  See end of file for license.
+ * Copyright (c) 2001-2018 Ravenbrook Limited.  See end of file for license.
  *
  * This is the implementation of the MFS pool class.
  *
- * See design.mps.poolmfs.
+ * <design/poolmfs>.
  *
  * .restriction: This pool cannot allocate from the arena control
  * pool (as the control pool is an instance of PoolClassMV and MV uses
@@ -116,7 +116,7 @@ static Res MFSInit(Pool pool, Arena arena, PoolClass klass, ArgList args)
   mfs->sig = MFSSig;
   AVERC(MFS, mfs);
 
-  EVENT5(PoolInitMFS, pool, arena, extendBy, BOOLOF(extendSelf), unitSize);
+  EVENT4(PoolInitMFS, pool, extendBy, BOOLOF(extendSelf), unitSize);
   return ResOK;
 
 failNextInit:
@@ -188,7 +188,7 @@ void MFSExtend(Pool pool, Addr base, Addr limit)
      extent. This transgresses the rule that pools should allocate
      control structures from another pool, because an MFS is required
      during bootstrap when no other pools are available. See
-     <design/poolmfs/#impl.extent-ring.justify> */
+     <design/poolmfs#.impl.extent-ring.justify> */
   mfsRing = (Ring)base;
   RingInit(mfsRing);
   RingAppend(&mfs->extentRing, mfsRing);
@@ -249,7 +249,7 @@ static Res MFSAlloc(Addr *pReturn, Pool pool, Size size)
   {
     Addr base;
 
-    /* See design.mps.bootstrap.land.sol.pool. */
+    /* <design/bootstrap#.land.sol.pool>. */
     if (!mfs->extendSelf)
       return ResLIMIT;
 
@@ -396,7 +396,7 @@ Bool MFSCheck(MFS mfs)
 
 /* C. COPYRIGHT AND LICENSE
  *
- * Copyright (C) 2001-2016 Ravenbrook Limited <http://www.ravenbrook.com/>.
+ * Copyright (C) 2001-2018 Ravenbrook Limited <http://www.ravenbrook.com/>.
  * All rights reserved.  This is an open source license.  Contact
  * Ravenbrook for commercial licensing options.
  * 

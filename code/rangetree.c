@@ -10,16 +10,7 @@
 #include "mpm.h"
 
 
-void RangeTreeInit(RangeTree rangeTree, Addr base, Addr limit)
-{
-  AVER(rangeTree != NULL);
-  TreeInit(RangeTreeTree(rangeTree));
-  RangeInit(RangeTreeRange(rangeTree), base, limit);
-  AVERT(RangeTree, rangeTree);
-}
-
-
-void RangeTreeInitFromRange(RangeTree rangeTree, Range range)
+void RangeTreeInit(RangeTree rangeTree, Range range)
 {
   AVER(rangeTree != NULL);
   TreeInit(RangeTreeTree(rangeTree));
@@ -47,7 +38,7 @@ void RangeTreeFinish(RangeTree rangeTree)
 
 /* RangeTreeCompare -- Compare key to [base,limit)
  *
- * See <design/splay/#type.splay.compare.method>
+ * <design/splay#.type.splay.compare.method>
  */
 
 Compare RangeTreeCompare(Tree tree, TreeKey key)

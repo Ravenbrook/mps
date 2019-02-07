@@ -12,6 +12,11 @@ Release 1.118.0
 New features
 ............
 
+#. The MPS no longer supports building for the xci3ll platform (macOS,
+   IA-32, Clang/LLVM) using Xcode. This is because Xcode 10.0 no
+   longer supports this platform. The platform is still supported via
+   the GNU Make toolchain.
+
 #. The arena's :term:`spare commit limit` is now expressed as a
    fraction of the :term:`committed <mapped>` memory (rather than a
    fixed size, as previously). This allows the :term:`spare committed
@@ -20,6 +25,11 @@ New features
    :c:func:`mps_arena_create_k`, or the function
    :c:func:`mps_arena_spare_set`, and query it using the function
    :c:func:`mps_arena_spare`.
+
+#. A new support tool, the **monitor**, implements a graphical user
+   interface for analysis of :ref:`topic-telemetry`. This is
+   experimental: the implementation is likely to change in future
+   versions of the MPS. See :ref:`design-monitor`.
 
 
 Interface changes
@@ -37,6 +47,14 @@ Interface changes
    :c:func:`mps_arena_spare_commit_limit_set` are now deprecated. Use
    :c:macro:`MPS_KEY_SPARE`, :c:func:`mps_arena_spare` and
    :c:func:`mps_arena_spare_set` instead.
+
+#. The format of the :term:`telemetry stream` has changed: Booleans
+   are no longer packed into bitfields, but are emitted as unsigned
+   bytes. This makes it possible to decode the telemetry stream using
+   the Python function |struct|_.
+
+   .. |struct| replace:: ``struct.unpack``
+   .. _struct: https://docs.python.org/3/library/struct.html#struct.unpack
 
 
 .. _release-notes-1.117:

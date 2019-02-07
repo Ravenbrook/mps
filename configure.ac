@@ -1,7 +1,7 @@
 # configure.ac -- autoconf configuration for the MPS    -*- Autoconf -*-
 #
 # $Id$
-# Copyright (C) 2012-2016 Ravenbrook Limited.  See end of file for license.
+# Copyright (C) 2012-2018 Ravenbrook Limited.  See end of file for license.
 #
 # YOU DON'T NEED AUTOCONF TO BUILD THE MPS
 # This is just here for people who want or expect a configure script.
@@ -147,7 +147,7 @@ if ! $MAKE --version | grep -q "GNU" 2> /dev/null; then
   AC_MSG_ERROR([MPS requires GNU make to build from configure, but see manual/build.txt])
 fi
 
-EXTRA_TARGETS="mpseventcnv mpseventtxt"
+EXTRA_TARGETS="mpseventcnv mpseventpy mpseventtxt"
 AC_CHECK_HEADER([sqlite3.h], [EXTRA_TARGETS="$EXTRA_TARGETS mpseventsql"])
 
 # Put platform compiler flags like -ansi -pedantic into CFLAGS only
@@ -170,12 +170,13 @@ AC_CONFIG_FILES(Makefile example/scheme/Makefile)
 
 AC_OUTPUT
 
-echo 1>&2 "CONFIGURE/MAKE IS NOT THE BEST WAY TO BUILD THE MPS -- see <manual/build.txt>"
+echo 1>&2 "CONFIGURE/MAKE IS NOT THE BEST WAY TO BUILD THE MPS
+-- see <manual/build.txt> for alternative approaches"
 
 
 # C. COPYRIGHT AND LICENSE
 #
-# Copyright (C) 2012-2016 Ravenbrook Limited <http://www.ravenbrook.com/>.
+# Copyright (C) 2012-2018 Ravenbrook Limited <http://www.ravenbrook.com/>.
 # All rights reserved.  This is an open source license.  Contact
 # Ravenbrook for commercial licensing options.
 # 

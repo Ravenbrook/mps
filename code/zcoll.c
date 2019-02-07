@@ -1,7 +1,7 @@
 /* zcoll.c: Collection test
  *
  * $Id$
- * Copyright (c) 2008-2014 Ravenbrook Limited.  See end of file for license.
+ * Copyright (c) 2008-2018 Ravenbrook Limited.  See end of file for license.
  * Portions copyright (C) 2002 Global Graphics Software.
  *
  * OBJECTIVE
@@ -345,7 +345,7 @@ static void CatalogCheck(void)
  * means the interior pointers are unmanaged references, and the 
  * code goes wrong.  The hack in poolamc.c#4 cures this, but not very 
  * nicely.  For further discussion, see:
- *    <http://info.ravenbrook.com/mail/2009/02/05/18-05-52/0.txt>
+ *    <https://info.ravenbrook.com/mail/2009/02/05/18-05-52/0.txt>
  */
 static void CatalogDo(mps_arena_t arena, mps_ap_t ap)
 {
@@ -548,8 +548,8 @@ static void stackwipe(void)
   /* Do some pointless work that the compiler won't optimise away, so that
      this function wipes over the stack by filling stuff into the "aw"
      array. */
-  
-  /* http://xkcd.com/710/ */
+
+  /* https://xkcd.com/710/ */
   /* I don't want my friends to stop calling; I just want the */
   /* compiler to stop optimising away my code. */
   
@@ -932,7 +932,7 @@ int main(int argc, char *argv[])
 
 /* C. COPYRIGHT AND LICENSE
  *
- * Copyright (c) 2008-2014 Ravenbrook Limited <http://www.ravenbrook.com/>.
+ * Copyright (c) 2008-2018 Ravenbrook Limited <http://www.ravenbrook.com/>.
  * All rights reserved.  This is an open source license.  Contact
  * Ravenbrook for commercial licensing options.
  * 
