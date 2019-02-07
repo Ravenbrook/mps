@@ -99,8 +99,8 @@ typedef mps_word_t mps_label_t;  /* telemetry label */
 _mps_ENUM_DEF(_mps_RES_ENUM, MPS_RES_)
 
 /* Format and Root Method Types */
-/* see design.mps.root-interface */
-/* see design.mps.format-interface */
+/* see <design/root-interface> */
+/* see <design/format-interface> */
 
 typedef struct mps_scan_tag_s *mps_scan_tag_t;
 typedef struct mps_scan_tag_s {
@@ -455,6 +455,8 @@ extern size_t mps_arena_spare_committed(mps_arena_t);
 
 extern size_t mps_arena_commit_limit(mps_arena_t);
 extern mps_res_t mps_arena_commit_limit_set(mps_arena_t, size_t);
+extern double mps_arena_spare(mps_arena_t);
+extern void mps_arena_spare_set(mps_arena_t, double);
 extern void mps_arena_spare_commit_limit_set(mps_arena_t, size_t);
 extern size_t mps_arena_spare_commit_limit(mps_arena_t);
 

@@ -3,7 +3,7 @@
  * $Id$
  * Copyright (c) 2014 Ravenbrook Limited.  See end of file for license.
  *
- * .design: <design/failover/>
+ * .design: <design/failover>
  *
  * .critical: In manual-allocation-bound programs using MVFF, many of
  * these functions are on the critical paths via mps_alloc (and then
@@ -82,7 +82,7 @@ static Res failoverInsert(Range rangeReturn, Land land, Range range)
   AVERT_CRITICAL(Range, range);
 
   /* Provide more opportunities for coalescence. See
-   * <design/failover/#impl.assume.flush>.
+   * <design/failover#.impl.assume.flush>.
    */
   (void)LandFlush(fo->primary, fo->secondary);
 
@@ -90,6 +90,26 @@ static Res failoverInsert(Range rangeReturn, Land land, Range range)
   if (res != ResOK && res != ResFAIL)
     res = LandInsert(rangeReturn, fo->secondary, range);
 
+  return res;
+}
+
+
+static Res failoverInsertSteal(Range rangeReturn, Land land, Range rangeIO)
+{
+  Failover fo = MustBeA(Failover, land);
+  Res res;
+
+  AVER(rangeReturn != NULL);
+  AVER(rangeReturn != rangeIO);
+  AVERT(Range, rangeIO);
+
+  /* Provide more opportunities for coalescence. See
+   * <design/failover#.impl.assume.flush>.
+   */
+  (void)LandFlush(fo->primary, fo->secondary);
+
+  res = LandInsertSteal(rangeReturn, fo->primary, rangeIO);
+  AVER(res == ResOK || res == ResFAIL);
   return res;
 }
 
@@ -104,7 +124,7 @@ static Res failoverDelete(Range rangeReturn, Land land, Range range)
   AVERT(Range, range);
 
   /* Prefer efficient search in the primary. See
-   * <design/failover/#impl.assume.flush>.
+   * <design/failover#.impl.assume.flush>.
    */
   (void)LandFlush(fo->primary, fo->secondary);
 
@@ -124,7 +144,7 @@ static Res failoverDelete(Range rangeReturn, Land land, Range range)
 
     /* Delete the whole of oldRange, and re-insert the fragments
      * (which might end up in the secondary). See
-     * <design/failover/#impl.assume.delete>.
+     * <design/failover#.impl.assume.delete>.
      */
     res = LandDelete(&dummyRange, fo->primary, &oldRange);
     if (res != ResOK)
@@ -162,6 +182,28 @@ static Res failoverDelete(Range rangeReturn, Land land, Range range)
 }
 
 
+static Res failoverDeleteSteal(Range rangeReturn, Land land, Range range)
+{
+  Failover fo = MustBeA(Failover, land);
+  Res res;
+
+  AVER(rangeReturn != NULL);
+  AVERT(Range, range);
+
+  /* Prefer efficient search in the primary. See
+   * <design/failover#.impl.assume.flush>.
+   */
+  (void)LandFlush(fo->primary, fo->secondary);
+
+  res = LandDeleteSteal(rangeReturn, fo->primary, range);
+  if (res == ResFAIL)
+    /* Not found in primary: try secondary. */
+    res = LandDeleteSteal(rangeReturn, fo->secondary, range);
+  AVER(res == ResOK || res == ResFAIL);
+  return res;
+}
+
+
 static Bool failoverIterate(Land land, LandVisitor visitor, void *closure)
 {
   Failover fo = MustBeA(Failover, land);
@@ -181,7 +223,7 @@ static Bool failoverFindFirst(Range rangeReturn, Range oldRangeReturn, Land land
   AVER_CRITICAL(oldRangeReturn != NULL);
   AVERT_CRITICAL(FindDelete, findDelete);
 
-  /* See <design/failover/#impl.assume.flush>. */
+  /* <design/failover#.impl.assume.flush>. */
   (void)LandFlush(fo->primary, fo->secondary);
 
   return LandFindFirst(rangeReturn, oldRangeReturn, fo->primary, size, findDelete)
@@ -197,7 +239,7 @@ static Bool failoverFindLast(Range rangeReturn, Range oldRangeReturn, Land land,
   AVER_CRITICAL(oldRangeReturn != NULL);
   AVERT_CRITICAL(FindDelete, findDelete);
 
-  /* See <design/failover/#impl.assume.flush>. */
+  /* <design/failover#.impl.assume.flush>. */
   (void)LandFlush(fo->primary, fo->secondary);
 
   return LandFindLast(rangeReturn, oldRangeReturn, fo->primary, size, findDelete)
@@ -213,7 +255,7 @@ static Bool failoverFindLargest(Range rangeReturn, Range oldRangeReturn, Land la
   AVER_CRITICAL(oldRangeReturn != NULL);
   AVERT_CRITICAL(FindDelete, findDelete);
 
-  /* See <design/failover/#impl.assume.flush>. */
+  /* <design/failover#.impl.assume.flush>. */
   (void)LandFlush(fo->primary, fo->secondary);
 
   return LandFindLargest(rangeReturn, oldRangeReturn, fo->primary, size, findDelete)
@@ -234,7 +276,7 @@ static Bool failoverFindInZones(Bool *foundReturn, Range rangeReturn, Range oldR
   /* AVERT_CRITICAL(ZoneSet, zoneSet); */
   AVERT_CRITICAL(Bool, high);
 
-  /* See <design/failover/#impl.assume.flush>. */
+  /* <design/failover#.impl.assume.flush>. */
   (void)LandFlush(fo->primary, fo->secondary);
 
   res = LandFindInZones(&found, rangeReturn, oldRangeReturn, fo->primary, size, zoneSet, high);
@@ -285,7 +327,9 @@ DEFINE_CLASS(Land, Failover, klass)
   klass->init = failoverInit;
   klass->sizeMethod = failoverSize;
   klass->insert = failoverInsert;
+  klass->insertSteal = failoverInsertSteal;
   klass->delete = failoverDelete;
+  klass->deleteSteal = failoverDeleteSteal;
   klass->iterate = failoverIterate;
   klass->findFirst = failoverFindFirst;
   klass->findLast = failoverFindLast;

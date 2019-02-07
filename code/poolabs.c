@@ -105,7 +105,7 @@ Res PoolAbsInit(Pool pool, Arena arena, PoolClass klass, ArgList args)
   pool->serial = ArenaGlobals(arena)->poolSerial;
   ++ArenaGlobals(arena)->poolSerial;
 
-  /* Initialise signature last; see <design/sig/> */
+  /* Initialise signature last; see <design/sig> */
   SetClassOfPoly(pool, CLASS(AbstractPool));
   pool->sig = PoolSig;
   AVERT(Pool, pool);
@@ -122,6 +122,8 @@ Res PoolAbsInit(Pool pool, Arena arena, PoolClass klass, ArgList args)
 void PoolAbsFinish(Inst inst)
 {
   Pool pool = MustBeA(AbstractPool, inst);
+ 
+  EVENT2(PoolFinish, pool, PoolArena(pool));
   
   /* Detach the pool from the arena and format, and unsig it. */
   RingRemove(PoolArenaRing(pool));
@@ -140,8 +142,6 @@ void PoolAbsFinish(Inst inst)
   RingFinish(&pool->segRing);
   RingFinish(&pool->bufferRing);
   RingFinish(&pool->arenaRing);
- 
-  EVENT1(PoolFinish, pool);
 }
 
 DEFINE_CLASS(Inst, PoolClass, klass)
@@ -202,7 +202,7 @@ DEFINE_CLASS(Pool, AbstractCollectPool, klass)
 
 /* PoolNo*, PoolTriv* -- Trivial and non-methods for Pool Classes
  *
- * See <design/pool/#no> and <design/pool/#triv>
+ * <design/pool#.no> and <design/pool#.triv>
  */
 
 Res PoolNoAlloc(Addr *pReturn, Pool pool, Size size)

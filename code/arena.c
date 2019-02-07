@@ -3,7 +3,7 @@
  * $Id$
  * Copyright (c) 2001-2018 Ravenbrook Limited.  See end of file for license.
  *
- * .sources: <design/arena/> is the main design document.  */
+ * .sources: <design/arena> is the main design document.  */
 
 #include "tract.h"
 #include "poolmvff.h"
@@ -27,7 +27,7 @@ SRCID(arena, "$Id$");
 Bool ArenaGrainSizeCheck(Size size)
 {
   CHECKL(size > 0);
-  /* <design/arena/#req.attr.block.align.min> */
+  /* <design/arena#.req.attr.block.align.min> */
   CHECKL(SizeIsAligned(size, MPS_PF_ALIGN));
   /* Grain size must be a power of 2 for the tract lookup and the
    * zones to work. */
@@ -178,7 +178,7 @@ Bool ArenaCheck(Arena arena)
   CHECKD(Globals, ArenaGlobals(arena));
 
   CHECKL(BoolCheck(arena->poolReady));
-  if (arena->poolReady) { /* <design/arena/#pool.ready> */
+  if (arena->poolReady) { /* <design/arena#.pool.ready> */
     CHECKD(MVFF, &arena->controlPoolStruct);
   }
 
@@ -190,6 +190,8 @@ Bool ArenaCheck(Arena arena)
    */
   CHECKL(arena->committed <= arena->commitLimit);
   CHECKL(arena->spareCommitted <= arena->committed);
+  CHECKL(0.0 <= arena->spare);
+  CHECKL(arena->spare <= 1.0);
   CHECKL(0.0 <= arena->pauseTime);
 
   CHECKL(arena->zoneShift == ZoneShiftUNSET
@@ -234,7 +236,7 @@ static Res ArenaAbsInit(Arena arena, Size grainSize, ArgList args)
   Res res;
   Bool zoned = ARENA_DEFAULT_ZONED;
   Size commitLimit = ARENA_DEFAULT_COMMIT_LIMIT;
-  Size spareCommitLimit = ARENA_DEFAULT_SPARE_COMMIT_LIMIT;
+  double spare = ARENA_SPARE_DEFAULT;
   double pauseTime = ARENA_DEFAULT_PAUSE_TIME;
   mps_arg_s arg;
 
@@ -245,8 +247,15 @@ static Res ArenaAbsInit(Arena arena, Size grainSize, ArgList args)
     zoned = arg.val.b;
   if (ArgPick(&arg, args, MPS_KEY_COMMIT_LIMIT))
     commitLimit = arg.val.size;
-  if (ArgPick(&arg, args, MPS_KEY_SPARE_COMMIT_LIMIT))
-    spareCommitLimit = arg.val.size;
+  /* MPS_KEY_SPARE_COMMIT_LIMIT is deprecated */
+  if (ArgPick(&arg, args, MPS_KEY_SPARE_COMMIT_LIMIT)) {
+    if (0 < commitLimit && commitLimit <= arg.val.size)
+      spare = (double)arg.val.size / (double)commitLimit;
+    else
+      spare = 1.0;
+  }
+  if (ArgPick(&arg, args, MPS_KEY_SPARE))
+    spare = arg.val.d;
   if (ArgPick(&arg, args, MPS_KEY_PAUSE_TIME))
     pauseTime = arg.val.d;
 
@@ -257,12 +266,12 @@ static Res ArenaAbsInit(Arena arena, Size grainSize, ArgList args)
   arena->committed = (Size)0;
   arena->commitLimit = commitLimit;
   arena->spareCommitted = (Size)0;
-  arena->spareCommitLimit = spareCommitLimit;
+  arena->spare = spare;
   arena->pauseTime = pauseTime;
   arena->grainSize = grainSize;
   /* zoneShift must be overridden by arena class init */
   arena->zoneShift = ZoneShiftUNSET;
-  arena->poolReady = FALSE;     /* <design/arena/#pool.ready> */
+  arena->poolReady = FALSE;     /* <design/arena#.pool.ready> */
   arena->lastTract = NULL;
   arena->lastTractBase = NULL;
   arena->hasFreeLand = FALSE;
@@ -300,6 +309,7 @@ static Res ArenaAbsInit(Arena arena, Size grainSize, ArgList args)
   if (res != ResOK)
     goto failMFSInit;
 
+  EventLabelPointer(ArenaCBSBlockPool(arena), EventInternString("CBSBlock"));
   return ResOK;
 
 failMFSInit:
@@ -507,7 +517,8 @@ Res ControlInit(Arena arena)
   } MPS_ARGS_END(args);
   if (res != ResOK)
     return res;
-  arena->poolReady = TRUE;      /* <design/arena/#pool.ready> */
+  arena->poolReady = TRUE;      /* <design/arena#.pool.ready> */
+  EventLabelPointer(&arena->controlPoolStruct, EventInternString("Control"));
   return ResOK;
 }
 
@@ -552,7 +563,7 @@ static Res ArenaAbsDescribe(Inst inst, mps_lib_FILE *stream, Count depth)
                "committed        $W\n", (WriteFW)arena->committed,
                "commitLimit      $W\n", (WriteFW)arena->commitLimit,
                "spareCommitted   $W\n", (WriteFW)arena->spareCommitted,
-               "spareCommitLimit $W\n", (WriteFW)arena->spareCommitLimit,
+               "spare            $D\n", (WriteFD)arena->spare,
                "zoneShift        $U\n", (WriteFU)arena->zoneShift,
                "grainSize        $W\n", (WriteFW)arena->grainSize,
                "lastTract        $P\n", (WriteFP)arena->lastTract,
@@ -666,7 +677,7 @@ Res ArenaDescribeTracts(Arena arena, mps_lib_FILE *stream, Count depth)
  * control pool, which is an MV pool embedded in the arena itself.
  *
  * .controlalloc.addr: In implementations where Addr is not compatible
- * with void* (<design/type/#addr.use>), ControlAlloc must take care of
+ * with void* <design/type#.addr.use>, ControlAlloc must take care of
  * allocating so that the block can be addressed with a void*.  */
 
 Res ControlAlloc(void **baseReturn, Arena arena, size_t size)
@@ -782,7 +793,7 @@ void ArenaChunkRemoved(Arena arena, Chunk chunk)
  * This is a primitive allocator used to allocate pages for the arena
  * Land. It is called rarely and can use a simple search. It may not
  * use the Land or any pool, because it is used as part of the
- * bootstrap.  See design.mps.bootstrap.land.sol.alloc.
+ * bootstrap.  <design/bootstrap#.land.sol.alloc>.
  */
 
 static Res arenaAllocPageInChunk(Addr *baseReturn, Chunk chunk, Pool pool)
@@ -892,7 +903,7 @@ static void arenaExcludePage(Arena arena, Range pageRange)
  * The arena's free land can't get memory for its block pool in the
  * usual way (via ArenaAlloc), because it is the mechanism behind
  * ArenaAlloc! So we extend the block pool via a back door (see
- * arenaExtendCBSBlockPool).  See design.mps.bootstrap.land.sol.pool.
+ * arenaExtendCBSBlockPool).  <design/bootstrap#.land.sol.pool>.
  *
  * Only fails if it can't get a page for the block pool.
  */
@@ -923,57 +934,6 @@ static Res arenaFreeLandInsertExtend(Range rangeReturn, Arena arena,
   }
   
   return ResOK;
-}
-
-
-/* arenaFreeLandInsertSteal -- add range to arena's free land, maybe
- * stealing memory
- *
- * See arenaFreeLandInsertExtend. This function may only be applied to
- * mapped pages and may steal them to store Land nodes if it's unable
- * to allocate space for CBS blocks.
- *
- * IMPORTANT: May update rangeIO.
- */
-
-static void arenaFreeLandInsertSteal(Range rangeReturn, Arena arena,
-                                     Range rangeIO)
-{
-  Res res;
-  
-  AVER(rangeReturn != NULL);
-  AVERT(Arena, arena);
-  AVERT(Range, rangeIO);
-
-  res = arenaFreeLandInsertExtend(rangeReturn, arena, rangeIO);
-  
-  if (res != ResOK) {
-    Land land;
-    Addr pageBase, pageLimit;
-    Tract tract;
-    AVER(ResIsAllocFailure(res));
-
-    /* Steal a page from the memory we're about to free. */
-    AVER(RangeSize(rangeIO) >= ArenaGrainSize(arena));
-    pageBase = RangeBase(rangeIO);
-    pageLimit = AddrAdd(pageBase, ArenaGrainSize(arena));
-    AVER(pageLimit <= RangeLimit(rangeIO));
-    RangeInit(rangeIO, pageLimit, RangeLimit(rangeIO));
-
-    /* Steal the tract from its owning pool. */
-    tract = TractOfBaseAddr(arena, pageBase);
-    TractFinish(tract);
-    TractInit(tract, ArenaCBSBlockPool(arena), pageBase);
-  
-    MFSExtend(ArenaCBSBlockPool(arena), pageBase, pageLimit);
-
-    /* Try again. */
-    land = ArenaFreeLand(arena);
-    res = LandInsert(rangeReturn, land, rangeIO);
-    AVER(res == ResOK); /* we just gave memory to the CBS block pool */
-  }
-
-  AVER(res == ResOK); /* not expecting other kinds of error from the Land */
 }
 
 
@@ -1146,7 +1106,7 @@ Res ArenaAlloc(Addr *baseReturn, LocusPref pref, Size size, Pool pool)
   
   base = TractBase(tract);
 
-  /* cache the tract - <design/arena/#tract.cache> */
+  /* cache the tract - <design/arena#.tract.cache> */
   arena->lastTract = tract;
   arena->lastTractBase = base;
 
@@ -1156,7 +1116,7 @@ Res ArenaAlloc(Addr *baseReturn, LocusPref pref, Size size, Pool pool)
   return ResOK;
 
 allocFail:
-   EVENT3(ArenaAllocFail, arena, size, pool); /* TODO: Should have res? */
+   EVENT4(ArenaAllocFail, arena, size, pool, (unsigned)res);
    return res;
 }
 
@@ -1166,10 +1126,8 @@ allocFail:
 void ArenaFree(Addr base, Size size, Pool pool)
 {
   Arena arena;
-  Addr limit;
-  Addr wholeBase;
-  Size wholeSize;
   RangeStruct range, oldRange;
+  Res res;
 
   AVERT(Pool, pool);
   AVER(base != NULL);
@@ -1179,26 +1137,30 @@ void ArenaFree(Addr base, Size size, Pool pool)
   AVER(AddrIsArenaGrain(base, arena));
   AVER(SizeIsArenaGrains(size, arena));
 
-  /* uncache the tract if in range - <design/arena/#tract.uncache> */
-  limit = AddrAdd(base, size);
-  if ((arena->lastTractBase >= base) && (arena->lastTractBase < limit)) {
+  RangeInitSize(&range, base, size);
+
+  /* uncache the tract if in range - <design/arena#.tract.uncache> */
+  if (base <= arena->lastTractBase && arena->lastTractBase < RangeLimit(&range))
+  {
     arena->lastTract = NULL;
     arena->lastTractBase = (Addr)0;
   }
   
-  wholeBase = base;
-  wholeSize = size;
-
-  RangeInit(&range, base, limit);
-
-  arenaFreeLandInsertSteal(&oldRange, arena, &range); /* may update range */
-
+  res = arenaFreeLandInsertExtend(&oldRange, arena, &range);
+  if (res != ResOK) {
+    Land land = ArenaFreeLand(arena);
+    res = LandInsertSteal(&oldRange, land, &range); /* may update range */
+    AVER(res == ResOK);
+    if (RangeIsEmpty(&range))
+      goto done;
+  }
   Method(Arena, arena, free)(RangeBase(&range), RangeSize(&range), pool);
 
+done:
   /* Freeing memory might create spare pages, but not more than this. */
-  CHECKL(arena->spareCommitted <= arena->spareCommitLimit);
+  AVER(arena->spareCommitted <= ArenaSpareCommitLimit(arena));
 
-  EVENT3(ArenaFree, arena, wholeBase, wholeSize);
+  EVENT4(ArenaFree, arena, base, size, pool);
 }
 
 
@@ -1220,25 +1182,29 @@ Size ArenaSpareCommitted(Arena arena)
   return arena->spareCommitted;
 }
 
-Size ArenaSpareCommitLimit(Arena arena)
+double ArenaSpare(Arena arena)
 {
   AVERT(Arena, arena);
-  return arena->spareCommitLimit;
+  return arena->spare;
 }
 
-void ArenaSetSpareCommitLimit(Arena arena, Size limit)
+void ArenaSetSpare(Arena arena, double spare)
 {
-  AVERT(Arena, arena);
-  /* Can't check limit, as all possible values are allowed. */
+  Size spareMax;
 
-  arena->spareCommitLimit = limit;
-  if (arena->spareCommitLimit < arena->spareCommitted) {
-    Size excess = arena->spareCommitted - arena->spareCommitLimit;
+  AVERT(Arena, arena);
+  AVER(0.0 <= spare);
+  AVER(spare <= 1.0);
+
+  arena->spare = spare;
+  EVENT2(ArenaSetSpare, arena, spare);
+
+  spareMax = ArenaSpareCommitLimit(arena);
+  if (arena->spareCommitted > spareMax) {
+    Size excess = arena->spareCommitted - spareMax;
     (void)Method(Arena, arena, purgeSpare)(arena, excess);
   }
-
-  EVENT2(SpareCommitLimitSet, arena, limit);
-}
+}  
 
 double ArenaPauseTime(Arena arena)
 {
@@ -1302,7 +1268,7 @@ Res ArenaSetCommitLimit(Arena arena, Size limit)
     arena->commitLimit = limit;
     res = ResOK;
   }
-  EVENT3(CommitLimitSet, arena, limit, (res == ResOK));
+  EVENT3(CommitLimitSet, arena, limit, (unsigned)res);
   return res;
 }
 

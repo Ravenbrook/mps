@@ -11,7 +11,7 @@
  *
  * .note.stack: It's important that the MPS have a bounded stack size,
  * and this is a problem for tree algorithms. Basically, we have to
- * avoid recursion. See design.mps.sp.sol.depth.no-recursion.
+ * avoid recursion. <design/sp#.sol.depth.no-recursion>.
  */
 
 #include "tree.h"
@@ -223,7 +223,7 @@ Bool TreeInsert(Tree *treeReturn, Tree root, Tree node,
  * TreeTraverse is generally superior if comparisons are cheap, but
  * TreeTraverseMorris does not require any comparison function.
  *
- * <http://en.wikipedia.org/wiki/Tree_traversal#Morris_in-order_traversal_using_threading>
+ * <https://en.wikipedia.org/wiki/Tree_traversal#Morris_in-order_traversal_using_threading>
  *
  * Joseph M. Morris (1979). "Traversing Binary Trees Simply and Cheaply".
  * Information Processing Letters 9:5 pp. 197–200.
@@ -425,7 +425,7 @@ void TreeRotateRight(Tree *treeIO)
 }
 
 
-/* TreeReverseLeftSpine -- reverse the pointers on the right spine
+/* TreeReverseLeftSpine -- reverse the pointers on the left spine
  *
  * Descends the left spine of a tree, updating each node's left child
  * to point to its parent instead.  The root's left child is set to
@@ -537,7 +537,7 @@ void TreeBalance(Tree *treeIO)
  * The visitor function must return TRUE to delete the current node,
  * or FALSE to keep it.
  *
- * See <design/arena/#chunk.delete.tricky>.
+ * <design/arena#.chunk.delete.tricky>.
  */
 void TreeTraverseAndDelete(Tree *treeIO, TreeVisitor visitor,
                            void *closure)

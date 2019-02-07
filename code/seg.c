@@ -3,7 +3,7 @@
  * $Id$
  * Copyright (c) 2001-2018 Ravenbrook Limited.  See end of file for license.
  *
- * .design: The design for this module is <design/seg/>.
+ * .design: The design for this module is <design/seg>.
  *
  * PURPOSE
  *
@@ -76,7 +76,7 @@ failInit:
 failControl:
   ArenaFree(base, size, pool);
 failArena:
-  EVENT3(SegAllocFail, arena, size, pool);
+  EVENT4(SegAllocFail, arena, size, pool, (unsigned)res);
   return res;
 }
 
@@ -114,7 +114,7 @@ static Res segAbsInit(Seg seg, Pool pool, Addr base, Size size, ArgList args)
   Arena arena;
   Addr addr, limit;
   Tract tract;
-  
+
   AVER(seg != NULL);
   AVERT(Pool, pool);
   arena = PoolArena(pool);
@@ -137,7 +137,7 @@ static Res segAbsInit(Seg seg, Pool pool, Addr base, Size size, ArgList args)
   seg->queued = FALSE;
   seg->firstTract = NULL;
   RingInit(SegPoolRing(seg));
-  
+
   TRACT_FOR(tract, addr, arena, base, limit) {
     AVERT(Tract, tract);
     AVER(!TractHasSeg(tract));
@@ -170,7 +170,7 @@ static Res SegInit(Seg seg, SegClass klass, Pool pool, Addr base, Size size, Arg
   res = klass->init(seg, pool, base, size, args);
   if (res != ResOK)
     return res;
-   
+
   AVERT(Seg, seg);
 
   return ResOK;
@@ -209,7 +209,7 @@ static void segAbsFinish(Inst inst)
   AVER(!seg->queued);
 
   limit = SegLimit(seg);
-  
+
   TRACT_TRACT_FOR(tract, addr, arena, seg->firstTract, limit) {
     AVERT(Tract, tract);
     TRACT_UNSET_SEG(tract);
@@ -219,7 +219,7 @@ static void segAbsFinish(Inst inst)
   RingFinish(SegPoolRing(seg));
 
   /* Check that the segment is not exposed, or in the shield */
-  /* cache (see <code/shield.c#def.depth>). */
+  /* cache <code/shield.c#def.depth>. */
   AVER(seg->depth == 0);
   /* Check not shielded or protected (so that pages in hysteresis */
   /* fund are not protected) */
@@ -332,7 +332,7 @@ void SegSetSummary(Seg seg, RefSet summary)
 
 void SegSetRankAndSummary(Seg seg, RankSet rankSet, RefSet summary)
 {
-  AVERT(Seg, seg); 
+  AVERT(Seg, seg);
   AVERT(RankSet, rankSet);
 
 #if defined(REMEMBERED_SET_NONE)
@@ -549,7 +549,7 @@ static Bool PoolWithSegs(Pool *poolReturn, Arena arena, Pool pool)
   AVER(poolReturn != NULL);
   AVERT(Arena, arena);
   AVERT(Pool, pool);
-  
+
   while (RingIsSingle(PoolSegRing(pool)))
     if (!PoolNext(&pool, arena, pool))
       return FALSE;
@@ -590,7 +590,7 @@ Bool SegNextOfRing(Seg *segReturn, Arena arena, Pool pool, Ring next)
   AVERT_CRITICAL(Arena, arena);
   AVERT_CRITICAL(Pool, pool);
   AVERT_CRITICAL(Ring, next);
-  
+
   if (next == PoolSegRing(pool)) {
     if (!PoolNext(&pool, arena, pool) ||
         !PoolWithSegs(&pool, arena, pool))
@@ -598,7 +598,7 @@ Bool SegNextOfRing(Seg *segReturn, Arena arena, Pool pool, Ring next)
     *segReturn = SegOfPoolRing(RingNext(PoolSegRing(pool)));
     return TRUE;
   }
-  
+
   *segReturn = SegOfPoolRing(next);
   return TRUE;
 }
@@ -613,7 +613,7 @@ Bool SegNext(Seg *segReturn, Arena arena, Seg seg)
 
 /* SegMerge -- Merge two adjacent segments
  *
- * See <design/seg/#merge>
+ * <design/seg#.merge>
  */
 
 Res SegMerge(Seg *mergedSegReturn, Seg segLo, Seg segHi)
@@ -636,7 +636,7 @@ Res SegMerge(Seg *mergedSegReturn, Seg segLo, Seg segHi)
   arena = PoolArena(SegPool(segLo));
 
   if (segLo->queued || segHi->queued)
-    ShieldFlush(arena);  /* see <design/seg/#split-merge.shield> */
+    ShieldFlush(arena);  /* see <design/seg#.split-merge.shield> */
 
   /* Invoke class-specific methods to do the merge */
   res = Method(Seg, segLo, merge)(segLo, segHi, base, mid, limit);
@@ -660,7 +660,7 @@ failMerge:
 /* SegSplit -- Split a segment
  *
  * The segment is split at the indicated position.
- * See <design/seg/#split>
+ * <design/seg#.split>
  */
 
 Res SegSplit(Seg *segLoReturn, Seg *segHiReturn, Seg seg, Addr at)
@@ -690,7 +690,7 @@ Res SegSplit(Seg *segLoReturn, Seg *segHiReturn, Seg seg, Addr at)
   AVER(!SegBuffer(&buffer, seg) || BufferLimit(buffer) <= at);
 
   if (seg->queued)
-    ShieldFlush(arena);  /* see <design/seg/#split-merge.shield> */
+    ShieldFlush(arena);  /* see <design/seg#.split-merge.shield> */
   AVER(SegSM(seg) == SegPM(seg));
 
   /* Allocate the new segment object from the control pool */
@@ -739,7 +739,7 @@ Res SegAccess(Seg seg, Arena arena, Addr addr,
 /* SegWhiten -- whiten objects */
 
 Res SegWhiten(Seg seg, Trace trace)
-{ 
+{
   AVERT(Seg, seg);
   AVERT(Trace, trace);
   AVER(PoolArena(SegPool(seg)) == trace->arena);
@@ -786,13 +786,14 @@ Res SegScan(Bool *totalReturn, Seg seg, ScanState ss)
   /* Should only scan segments which contain grey objects. */
   AVER(TraceSetInter(SegGrey(seg), ss->traces) != TraceSetEMPTY);
 
+  EVENT5(SegScan, seg, SegPool(seg), ss->arena, ss->traces, ss->rank);
   return Method(Seg, seg, scan)(totalReturn, seg, ss);
 }
 
 
 /* SegFix* -- fix a reference to an object in this segment
  *
- * See <design/pool/#req.fix>.
+ * <design/pool#.req.fix>.
  */
 
 Res SegFix(Seg seg, ScanState ss, Addr *refIO)
@@ -837,6 +838,7 @@ void SegReclaim(Seg seg, Trace trace)
   /* Should only be reclaiming segments which are still white. */
   AVER_CRITICAL(TraceSetIsMember(SegWhite(seg), trace));
 
+  EVENT4(SegReclaim, trace->arena, SegPool(seg), trace, seg);
   Method(Seg, seg, reclaim)(seg, trace);
 }
 
@@ -870,7 +872,7 @@ Bool SegCheck(Seg seg)
 {
   Arena arena;
   Pool pool;
- 
+
   CHECKS(Seg, seg);
   CHECKC(Seg, seg);
   CHECKL(TraceSetCheck(seg->white));
@@ -886,7 +888,7 @@ Bool SegCheck(Seg seg)
   CHECKL(AddrIsArenaGrain(TractBase(seg->firstTract), arena));
   CHECKL(AddrIsArenaGrain(seg->limit, arena));
   CHECKL(seg->limit > TractBase(seg->firstTract));
-  /* CHECKL(BoolCheck(seq->queued)); <design/type/#bool.bitfield.check> */
+  /* CHECKL(BoolCheck(seq->queued)); <design/type#.bool.bitfield.check> */
 
   /* Each tract of the segment must agree about the segment and its
    * pool. Note that even if the CHECKs are compiled away there is
@@ -915,25 +917,25 @@ Bool SegCheck(Seg seg)
 
   CHECKD_NOSIG(Ring, &seg->poolRing);
 
-  /* Shield invariants -- see design.mps.shield. */
-   
+  /* Shield invariants -- see <design/shield>. */
+
   /* The protection mode is never more than the shield mode
-     (design.mps.shield.inv.prot.shield). */
+     <design/shield#.inv.prot.shield>. */
   CHECKL(BS_DIFF(seg->pm, seg->sm) == 0);
 
   /* All unsynced segments have positive depth or are in the queue
-     (design.mps.shield.inv.unsynced.depth). */
+     <design/shield#.inv.unsynced.depth>. */
   CHECKL(seg->sm == seg->pm || seg->depth > 0 || seg->queued);
-  
+
   CHECKL(RankSetCheck(seg->rankSet));
   if (seg->rankSet == RankSetEMPTY) {
-    /* <design/seg/#field.rankSet.empty>: If there are no refs */
+    /* <design/seg#.field.rankSet.empty>: If there are no refs */
     /* in the segment then it cannot contain black or grey refs. */
     CHECKL(seg->grey == TraceSetEMPTY);
     CHECKL(seg->sm == AccessSetEMPTY);
     CHECKL(seg->pm == AccessSetEMPTY);
   } else {
-    /* <design/seg/#field.rankSet.single>: The Tracer only permits */
+    /* <design/seg#.field.rankSet.single>: The Tracer only permits */
     /* one rank per segment [ref?] so this field is either empty or a */
     /* singleton. */
     CHECKL(RankSetIsSingle(seg->rankSet));
@@ -1085,7 +1087,7 @@ static Res segNoMerge(Seg seg, Seg segHi,
 /* segTrivMerge -- Basic Seg merge method
  *
  * .similar: Segments must be "sufficiently similar".
- * See <design/seg/#merge.inv.similar>
+ * <design/seg#.merge.inv.similar>
  */
 
 static Res segTrivMerge(Seg seg, Seg segHi,
@@ -1120,7 +1122,7 @@ static Res segTrivMerge(Seg seg, Seg segHi,
   AVER(seg->depth == segHi->depth);
   AVER(seg->queued == segHi->queued);
   /* Neither segment may be exposed, or in the shield cache */
-  /* See <design/seg/#split-merge.shield> & <code/shield.c#def.depth> */
+  /* <design/seg#.split-merge.shield> & <code/shield.c#def.depth> */
   AVER(seg->depth == 0);
   AVER(!seg->queued);
 
@@ -1182,10 +1184,10 @@ static Res segTrivSplit(Seg seg, Seg segHi,
   AVER(SegLimit(seg) == limit);
 
   /* Segment may not be exposed, or in the shield queue */
-  /* See <design/seg/#split-merge.shield> & <code/shield.c#def.depth> */
+  /* <design/seg#.split-merge.shield> & <code/shield.c#def.depth> */
   AVER(seg->depth == 0);
   AVER(!seg->queued);
- 
+
   /* Full initialization for segHi. Just modify seg. */
   seg->limit = mid;
   AVERT(Seg, seg);
@@ -1322,8 +1324,8 @@ Res SegSingleAccess(Seg seg, Arena arena, Addr addr,
       if(WordIsAligned((Word)ref, sizeof(Word))) {
         Rank rank;
         /* See the note in TraceRankForAccess */
-        /* (<code/trace.c#scan.conservative>). */
-        
+        /* <code/trace.c#scan.conservative>. */
+
         rank = TraceRankForAccess(arena, seg);
         TraceScanSingleRef(arena->flippedTraces, rank, arena,
                            seg, (Ref *)addr);
@@ -1451,7 +1453,7 @@ Bool GCSegCheck(GCSeg gcseg)
 
   if (gcseg->buffer != NULL) {
     CHECKU(Buffer, gcseg->buffer);
-    /* <design/seg/#field.buffer.owner> */
+    /* <design/seg#.field.buffer.owner> */
     CHECKL(BufferPool(gcseg->buffer) == SegPool(seg));
     CHECKL(BufferRankSet(gcseg->buffer) == SegRankSet(seg));
   }
@@ -1462,7 +1464,7 @@ Bool GCSegCheck(GCSeg gcseg)
          RingIsSingle(&gcseg->greyRing));
 
   if (seg->rankSet == RankSetEMPTY) {
-    /* <design/seg/#field.rankSet.empty> */
+    /* <design/seg#.field.rankSet.empty> */
     CHECKL(RefSetIsEmpty(&gcseg->summary));
   }
 
@@ -1509,6 +1511,10 @@ static void gcSegFinish(Inst inst)
     RingRemove(&gcseg->greyRing);
     seg->grey = TraceSetEMPTY;
   }
+
+  EVENT5(SegSetSummary, PoolArena(SegPool(seg)), seg, SegSize(seg),
+         gcseg->summary->zones, RefSetEmpty->zones);
+
   RefSetInit(&gcseg->summary);
 
   gcseg->sig = SigInvalid;
@@ -1537,7 +1543,7 @@ static void gcSegSetGreyInternal(Seg seg, TraceSet oldGrey, TraceSet grey)
   GCSeg gcseg;
   Arena arena;
   Rank rank;
- 
+
   /* Internal method. Parameters are checked by caller */
   gcseg = SegGCSeg(seg);
   arena = PoolArena(SegPool(seg));
@@ -1609,7 +1615,7 @@ static void mutatorSegSetGrey(Seg seg, TraceSet grey)
 {
   TraceSet oldGrey, flippedTraces;
   Arena arena;
- 
+
   AVERT_CRITICAL(Seg, seg);            /* .seg.method.check */
 
   oldGrey = seg->grey;
@@ -1759,7 +1765,11 @@ static void gcSegSetSummary(Seg seg, RefSet summary)
   AVERT_CRITICAL(GCSeg, gcseg);
   AVER_CRITICAL(&gcseg->segStruct == seg);
 
+  EVENT5(SegSetSummary, PoolArena(SegPool(seg)), seg, SegSize(seg),
+         gcseg->summary->zones, summary->zones);
+
   RefSetCopy(&gcseg->summary, summary);
+
 
   AVER_CRITICAL(seg->rankSet != RankSetEMPTY);
 }
@@ -1795,6 +1805,10 @@ static void gcSegSetRankSummary(Seg seg, RankSet rankSet, RefSet summary)
   AVER_CRITICAL(rankSet != RankSetEMPTY || RefSetIsEmpty(summary));
 
   seg->rankSet = BS_BITFIELD(Rank, rankSet);
+
+  EVENT5(SegSetSummary, PoolArena(SegPool(seg)), seg, SegSize(seg),
+         gcseg->summary->zones, summary->zones);
+
   RefSetCopy(&gcseg->summary, summary);
 }
 
@@ -1855,7 +1869,7 @@ static void gcSegUnsetBuffer(Seg seg)
 /* gcSegMerge -- GCSeg merge method
  *
  * .buffer: Can't merge two segments both with buffers.
- * See <design/seg/#merge.inv.buffer>.
+ * <design/seg#.merge.inv.buffer>.
  */
 
 static Res gcSegMerge(Seg seg, Seg segHi,
@@ -1888,7 +1902,7 @@ static Res gcSegMerge(Seg seg, Seg segHi,
   /* Assume that the write barrier shield is being used to implement
      the remembered set only, and so we can merge the shield and
      protection modes by unioning the segment summaries.  See also
-     design.mps.seg.merge.inv.similar. */
+     <design/seg#.merge.inv.similar>. */
   RefSetCopy(&summary, &gcseg->summary);
   RefSetUnion(&summary, &gcsegHi->summary);
   SegSetSummary(seg, &summary);
@@ -1897,7 +1911,7 @@ static Res gcSegMerge(Seg seg, Seg segHi,
   if (SegPM(seg) != SegPM(segHi)) {
     /* This shield won't cope with a partially-protected segment, so
        flush the shield queue to bring both halves in sync.  See also
-       design.mps.seg.split-merge.shield.re-flush. */
+       <design/seg#.split-merge.shield.re-flush>. */
     ShieldFlush(PoolArena(SegPool(seg)));
   }
 
@@ -1950,7 +1964,7 @@ static Res gcSegSplit(Seg seg, Seg segHi,
   AVER(mid < limit);
   AVER(SegBase(seg) == base);
   AVER(SegLimit(seg) == limit);
- 
+
   grey = SegGrey(seg);
   buf = gcseg->buffer; /* Look for buffer to reassign to segHi */
   if (buf != NULL) {
@@ -1960,7 +1974,7 @@ static Res gcSegSplit(Seg seg, Seg segHi,
     } else {
       buf = NULL; /* buffer lies below split and is unaffected */
     }
-  }   
+  }
 
   /* Split the superclass fields via next-method call */
   res = NextMethod(Seg, GCSeg, split)(seg, segHi, base, mid, limit);
@@ -2131,8 +2145,8 @@ DEFINE_CLASS(Seg, Seg, klass)
   klass->instClassStruct.finish = segAbsFinish;
   klass->size = sizeof(SegStruct);
   klass->init = segAbsInit;
-  klass->setSummary = segNoSetSummary; 
-  klass->buffer = segNoBuffer; 
+  klass->setSummary = segNoSetSummary;
+  klass->buffer = segNoBuffer;
   klass->setBuffer = segNoSetBuffer;
   klass->unsetBuffer = segNoUnsetBuffer;
   klass->bufferFill = segNoBufferFill;
@@ -2169,8 +2183,8 @@ DEFINE_CLASS(Seg, GCSeg, klass)
   klass->instClassStruct.finish = gcSegFinish;
   klass->size = sizeof(GCSegStruct);
   klass->init = gcSegInit;
-  klass->setSummary = gcSegSetSummary; 
-  klass->buffer = gcSegBuffer; 
+  klass->setSummary = gcSegSetSummary;
+  klass->buffer = gcSegBuffer;
   klass->setBuffer = gcSegSetBuffer;
   klass->unsetBuffer = gcSegUnsetBuffer;
   klass->setGrey = gcSegSetGrey;
@@ -2199,7 +2213,7 @@ typedef SegClassStruct MutatorSegClassStruct;
 DEFINE_CLASS(Seg, MutatorSeg, klass)
 {
   INHERIT_CLASS(klass, MutatorSeg, GCSeg);
-  klass->setSummary = mutatorSegSetSummary; 
+  klass->setSummary = mutatorSegSetSummary;
   klass->setGrey = mutatorSegSetGrey;
   klass->flip = mutatorSegFlip;
   klass->setRankSet = mutatorSegSetRankSet;
@@ -2227,18 +2241,18 @@ void SegClassMixInNoSplitMerge(SegClass klass)
  * Copyright (C) 2001-2018 Ravenbrook Limited <http://www.ravenbrook.com/>.
  * All rights reserved.  This is an open source license.  Contact
  * Ravenbrook for commercial licensing options.
- * 
+ *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are
  * met:
- * 
+ *
  * 1. Redistributions of source code must retain the above copyright
  * notice, this list of conditions and the following disclaimer.
- * 
+ *
  * 2. Redistributions in binary form must reproduce the above copyright
  * notice, this list of conditions and the following disclaimer in the
  * documentation and/or other materials provided with the distribution.
- * 
+ *
  * 3. Redistributions in any form must be accompanied by information on how
  * to obtain complete source code for this software and any accompanying
  * software that uses this software.  The source code must either be
@@ -2249,7 +2263,7 @@ void SegClassMixInNoSplitMerge(SegClass klass)
  * include source code for modules or files that typically accompany the
  * major components of the operating system on which the executable file
  * runs.
- * 
+ *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS
  * IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
  * TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR

@@ -5,7 +5,7 @@
  * $Id$
  * Copyright (c) 2001-2016 Ravenbrook Limited.  See end of file for license.
  *
- * See design.mps.protocol.
+ * <design/protocol>.
  */
 
 #include "mpm.h"
@@ -140,8 +140,7 @@ void ClassRegister(InstClass klass)
   /* label the pool class with its name */
   EventInit();
   classId = EventInternString(ClassName(klass));
-  /* NOTE: this breaks <design/type/#addr.use> */
-  EventLabelAddr((Addr)klass, classId);
+  EventLabelPointer(klass, classId);
 }
 
 

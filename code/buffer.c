@@ -1,7 +1,7 @@
 /* buffer.c: ALLOCATION BUFFER IMPLEMENTATION
  *
  * $Id$
- * Copyright (c) 2001-2016 Ravenbrook Limited.  See end of file for license.
+ * Copyright (c) 2001-2018 Ravenbrook Limited.  See end of file for license.
  *
  * .purpose: This is (part of) the implementation of allocation buffers.
  * Several macros which also form part of the implementation are in
@@ -10,7 +10,7 @@
  *
  * DESIGN
  *
- * .design: See <design/buffer/>.
+ * .design: <design/buffer>.
  *
  * .ap.async: The mutator is allowed to change certain AP fields
  * asynchronously.  Functions that can be called on buffers not
@@ -143,8 +143,8 @@ static Res BufferAbsDescribe(Inst inst, mps_lib_FILE *stream, Count depth)
                 (WriteFC)((buffer->mode & BufferModeLOGGED)     ? 'l' : '_'),
                 (WriteFC)((buffer->mode & BufferModeFLIPPED)    ? 'f' : '_'),
                 (WriteFC)((buffer->mode & BufferModeATTACHED)   ? 'a' : '_'),
-                "fillSize $UKb\n",  (WriteFU)(buffer->fillSize / 1024),
-                "emptySize $UKb\n", (WriteFU)(buffer->emptySize / 1024),
+                "fillSize $U\n",    (WriteFU)buffer->fillSize,
+                "emptySize $U\n",   (WriteFU)buffer->emptySize,
                 "alignment $W\n",   (WriteFW)buffer->alignment,
                 "base $A\n",        (WriteFA)buffer->base,
                 "initAtFlip $A\n",  (WriteFA)buffer->initAtFlip,
@@ -231,7 +231,7 @@ static Res BufferInit(Buffer buffer, BufferClass klass,
 
 /* BufferCreate -- create an allocation buffer
  *
- * See <design/buffer/#method.create>.
+ * <design/buffer#.method.create>.
  */
 
 Res BufferCreate(Buffer *bufferReturn, BufferClass klass,
@@ -318,7 +318,8 @@ void BufferDetach(Buffer buffer, Pool pool)
 
 /* BufferDestroy -- destroy an allocation buffer
  *
- * See <design/buffer/#method.destroy>.  */
+ * <design/buffer#.method.destroy>.
+ */
 
 void BufferDestroy(Buffer buffer)
 {
@@ -439,7 +440,8 @@ void BufferSetAllocAddr(Buffer buffer, Addr addr)
 
 /* BufferFramePush
  *
- * See <design/alloc-frame/>.  */
+ * <design/alloc-frame>.
+ */
 
 Res BufferFramePush(AllocFrame *frameReturn, Buffer buffer)
 {
@@ -462,7 +464,8 @@ Res BufferFramePush(AllocFrame *frameReturn, Buffer buffer)
 
 /* BufferFramePop
  *
- * See <design/alloc-frame/>.  */
+ * <design/alloc-frame>.
+ */
 
 Res BufferFramePop(Buffer buffer, AllocFrame frame)
 {
@@ -478,7 +481,8 @@ Res BufferFramePop(Buffer buffer, AllocFrame frame)
 
 /* BufferReserve -- reserve memory from an allocation buffer
  *
- * .reserve: Keep in sync with <code/mps.h#reserve>.  */
+ * .reserve: Keep in sync with <code/mps.h#reserve>.
+ */
 
 Res BufferReserve(Addr *pReturn, Buffer buffer, Size size)
 {
@@ -539,7 +543,7 @@ void BufferAttach(Buffer buffer, Addr base, Addr limit,
   filled = AddrOffset(init, limit);
   buffer->fillSize += filled;
   if (buffer->isMutator) {
-    if (base != init) { /* see <design/buffer/#count.alloc.how> */
+    if (base != init) { /* see <design/buffer#.count.alloc.how> */
       Size prealloc = AddrOffset(base, init);
       ArenaGlobals(buffer->arena)->allocMutatorSize -= prealloc;
     }
@@ -634,7 +638,7 @@ Bool BufferCommit(Buffer buffer, Addr p, Size size)
   AVER(SizeIsAligned(size, BufferPool(buffer)->alignment));
   AVER(!BufferIsReady(buffer));
 
-  /* See <design/collection/#flip>. */
+  /* <design/collection#.flip>. */
   /* .commit.before: If a flip occurs before this point, when the */
   /* pool reads "initAtFlip" it will point below the object, so it */
   /* will be trashed and the commit must fail when trip is called.  */
@@ -1029,7 +1033,7 @@ Bool BufferClassCheck(BufferClass klass)
 
 /* BufferClass -- the vanilla buffer class definition
  *
- * See <design/buffer/#class.hierarchy.buffer>.  */
+ * <design/buffer#.class.hierarchy.buffer>.  */
 
 DEFINE_CLASS(Inst, BufferClass, klass)
 {
@@ -1243,7 +1247,7 @@ static Res segBufDescribe(Inst inst, mps_lib_FILE *stream, Count depth)
 /* SegBufClass -- SegBuf class definition
  *
  * Supports an association with a single segment when attached.  See
- * <design/buffer/#class.hierarchy.segbuf>.  */
+ * <design/buffer#.class.hierarchy.segbuf>.  */
 
 DEFINE_CLASS(Buffer, SegBuf, klass)
 {
@@ -1321,7 +1325,7 @@ DEFINE_CLASS(Buffer, RankBuf, klass)
 
 /* C. COPYRIGHT AND LICENSE
  *
- * Copyright (C) 2001-2016 Ravenbrook Limited <http://www.ravenbrook.com/>.
+ * Copyright (C) 2001-2018 Ravenbrook Limited <http://www.ravenbrook.com/>.
  * All rights reserved.  This is an open source license.  Contact
  * Ravenbrook for commercial licensing options.
  * 

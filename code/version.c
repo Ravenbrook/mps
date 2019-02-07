@@ -39,7 +39,7 @@ SRCID(version, "$Id$");
  * .release.old: before 2006-02-01 the style was "release.epcore.chub".
  */
 
-#define MPS_RELEASE "release/1.117.0"
+#define MPS_RELEASE "release/1.118.0"
 
 
 /* MPSCopyrightNotice -- copyright notice for the binary
@@ -58,7 +58,7 @@ char MPSCopyrightNotice[] =
  * The value of MPSVersion is a declared object comprising the
  * concatenation of all the version info. The "@(#)" prefix is the
  * convention used by the BSD Unix command what(1); see also
- * design.mps.version.impl.tool.
+ * <design/version#.impl.tool>.
  */
 
 extern char MPSVersionString[];
