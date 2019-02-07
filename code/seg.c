@@ -1513,7 +1513,7 @@ static void gcSegFinish(Inst inst)
   }
 
   EVENT5(SegSetSummary, PoolArena(SegPool(seg)), seg, SegSize(seg),
-         gcseg->summary.zones, RefSetEmpty->zones);
+         RefSetZones(&gcseg->summary), ZoneSetEMPTY);
 
   RefSetInit(&gcseg->summary);
 
@@ -1766,7 +1766,7 @@ static void gcSegSetSummary(Seg seg, RefSet summary)
   AVER_CRITICAL(&gcseg->segStruct == seg);
 
   EVENT5(SegSetSummary, PoolArena(SegPool(seg)), seg, SegSize(seg),
-         gcseg->summary.zones, summary->zones);
+         RefSetZones(&gcseg->summary), RefSetZones(summary));
 
   RefSetCopy(&gcseg->summary, summary);
 
@@ -1807,7 +1807,7 @@ static void gcSegSetRankSummary(Seg seg, RankSet rankSet, RefSet summary)
   seg->rankSet = BS_BITFIELD(Rank, rankSet);
 
   EVENT5(SegSetSummary, PoolArena(SegPool(seg)), seg, SegSize(seg),
-         gcseg->summary.zones, summary->zones);
+         RefSetZones(&gcseg->summary), RefSetZones(summary));
 
   RefSetCopy(&gcseg->summary, summary);
 }
