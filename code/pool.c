@@ -1,12 +1,12 @@
 /* pool.c: POOL IMPLEMENTATION
  *
  * $Id$
- * Copyright (c) 2001-2016 Ravenbrook Limited.  See end of file for license.
+ * Copyright (c) 2001-2018 Ravenbrook Limited.  See end of file for license.
  * Portions copyright (C) 2001 Global Graphics Software.
  *
  * DESIGN
  *
- * .design: See <design/pool/>.
+ * .design: <design/pool>.
  *
  * PURPOSE
  *
@@ -118,7 +118,7 @@ ARG_DEFINE_KEY(INTERIOR, Bool);
 /* PoolInit -- initialize a pool
  *
  * Initialize the generic fields of the pool and calls class-specific
- * init.  See <design/pool/#align>.
+ * init.  <design/pool#.align>.
  */
 
 Res PoolInit(Pool pool, Arena arena, PoolClass klass, ArgList args)
@@ -131,7 +131,8 @@ Res PoolInit(Pool pool, Arena arena, PoolClass klass, ArgList args)
   if (res != ResOK)
     return res;
 
-  EVENT3(PoolInit, pool, PoolArena(pool), ClassOfPoly(Pool, pool));
+  EVENT4(PoolInit, pool, PoolArena(pool), ClassOfPoly(Pool, pool),
+         pool->serial);
 
   return ResOK;
 }
@@ -233,7 +234,7 @@ Res PoolAlloc(Addr *pReturn, Pool pool, Size size)
   /* it all in the fillMutatorSize field. */
   ArenaGlobals(PoolArena(pool))->fillMutatorSize += size;
 
-  EVENT3(PoolAlloc, pool, *pReturn, size);
+  EVENT_CRITICAL3(PoolAlloc, pool, *pReturn, size);
 
   return ResOK;
 }
@@ -423,7 +424,7 @@ Bool PoolHasRange(Pool pool, Addr base, Addr limit)
 
 /* C. COPYRIGHT AND LICENSE
  *
- * Copyright (C) 2001-2016 Ravenbrook Limited <http://www.ravenbrook.com/>.
+ * Copyright (C) 2001-2018 Ravenbrook Limited <http://www.ravenbrook.com/>.
  * All rights reserved.  This is an open source license.  Contact
  * Ravenbrook for commercial licensing options.
  * 

@@ -12,7 +12,7 @@
  *
  * DESIGN
  *
- * See <design/config/>.
+ * <design/config>.
  */
 
 #ifndef config_h
@@ -238,7 +238,7 @@
 #ifdef MPS_BUILD_PC
 
 /* Pelles C loses definition of __FILE__ in deeply nested macro
- * expansions. See <http://forum.pellesc.de/index.php?topic=5474.0>
+ * expansions. See <https://forum.pellesc.de/index.php?topic=5474.0>
  */
 #define MPS_FILE "<__FILE__ unavailable in " MPS_PF_STRING ">"
 
@@ -255,8 +255,8 @@
 /* Attribute for functions that take a printf-like format argument, so
  * that the compiler can check the format specifiers against the types
  * of the arguments.
- * GCC: <http://gcc.gnu.org/onlinedocs/gcc/Function-Attributes.html#index-Wformat-2850>
- * Clang: <http://clang.llvm.org/docs/AttributeReference.html#format-gnu-format>
+ * GCC: <https://gcc.gnu.org/onlinedocs/gcc/Common-Function-Attributes.html#index-format-function-attribute>
+ * Clang: <https://clang.llvm.org/docs/AttributeReference.html#format-gnu-format>
  */
 #if defined(MPS_BUILD_GC) || defined(MPS_BUILD_LL)
 #define ATTRIBUTE_FORMAT(ARGLIST) __attribute__((__format__ ARGLIST))
@@ -266,7 +266,7 @@
 
 /* Attribute for functions that should not be instrumented by Clang's
  * address sanitizer.
- * <http://clang.llvm.org/docs/AddressSanitizer.html#attribute-no-sanitize-address>
+ * <https://clang.llvm.org/docs/AddressSanitizer.html#attribute-no-sanitize-address>
  */
 #if defined(MPS_BUILD_LL)
 #if __has_feature(address_sanitizer)
@@ -279,7 +279,7 @@
 #endif
 
 /* Attribute for functions that must not be inlined.
- * GCC: <http://gcc.gnu.org/onlinedocs/gcc/Common-Function-Attributes.html>
+ * GCC: <https://gcc.gnu.org/onlinedocs/gcc/Common-Function-Attributes.html#index-noinline-function-attribute>
  * MSVC: <https://docs.microsoft.com/en-us/cpp/cpp/noinline>
  */
 #if defined(MPS_BUILD_GC) || defined(MPS_BUILD_LL)
@@ -291,8 +291,8 @@
 #endif
 
 /* Attribute for functions that do not return.
- * GCC: <http://gcc.gnu.org/onlinedocs/gcc/Common-Function-Attributes.html>
- * Clang: <http://clang.llvm.org/docs/AttributeReference.html#id1>
+ * GCC: <https://gcc.gnu.org/onlinedocs/gcc/Common-Function-Attributes.html#index-noreturn-function-attribute>
+ * Clang: <https://clang.llvm.org/docs/AttributeReference.html#id1>
  */
 #if defined(MPS_BUILD_GC) || defined(MPS_BUILD_LL)
 #define ATTRIBUTE_NORETURN __attribute__((__noreturn__))
@@ -301,7 +301,7 @@
 #endif
 
 /* Attribute for functions that may be unused in some build configurations.
- * GCC: <http://gcc.gnu.org/onlinedocs/gcc/Common-Function-Attributes.html>
+ * GCC: <https://gcc.gnu.org/onlinedocs/gcc/Common-Function-Attributes.html#index-unused-function-attribute>
  *
  * This attribute must be applied to all Check functions, otherwise
  * the RASH variety fails to compile with -Wunused-function. (It
@@ -433,7 +433,7 @@
 #define ARENA_MINIMUM_COLLECTABLE_SIZE ((Size)1000000)
 
 /* ARENA_DEFAULT_COLLECTION_RATE is an estimate of the MPS's
- * collection rate (in work per second; see <design/type/#work>), for
+ * collection rate (in work per second; see <design/type#.work>), for
  * use in the case where there isn't enough data to use a measured
  * value. */
 
@@ -487,7 +487,7 @@
 
 /* Currently StackProbe has a useful implementation only on Windows. */
 #if defined(MPS_OS_W3) && !defined(CONFIG_PF_ANSI)
-/* See <design/sp/#sol.depth.analysis> for a justification of this value. */
+/* See <design/sp#.sol.depth.analysis> for a justification of this value. */
 #define StackProbeDEPTH ((Size)500)
 #else
 #define StackProbeDEPTH ((Size)0)
@@ -528,7 +528,7 @@
  * must turn on the same set of features.
  *
  * See "Feature Test Macros" in the Glibc Manual:
- * <http://www.gnu.org/software/libc/manual/html_node/Feature-Test-Macros.html>
+ * <https://www.gnu.org/software/libc/manual/html_node/Feature-Test-Macros.html>
  */
 
 #if defined(MPS_OS_LI)
@@ -601,7 +601,7 @@
 #if defined(MPS_OS_LI) || defined(MPS_OS_FR)
 
 /* PTHREADEXT_SIGSUSPEND -- signal used to suspend a thread
- * See <design/pthreadext/#impl.signals>
+ * <design/pthreadext#.impl.signals>
  */
 #if defined(CONFIG_PTHREADEXT_SIGSUSPEND)
 #define PTHREADEXT_SIGSUSPEND CONFIG_PTHREADEXT_SIGSUSPEND
@@ -610,7 +610,7 @@
 #endif
 
 /* PTHREADEXT_SIGRESUME -- signal used to resume a thread
- * See <design/pthreadext/#impl.signals>
+ * <design/pthreadext#.impl.signals>
  */
 #if defined(CONFIG_PTHREADEXT_SIGRESUME)
 #define PTHREADEXT_SIGRESUME CONFIG_PTHREADEXT_SIGRESUME
@@ -691,12 +691,12 @@
 
 /* Write barrier deferral
  *
- * See design.mps.write-barrier.deferral.
+ * <design/write-barrier#.deferral>.
  *
  * TODO: These settings were determined by trial and error, but should
  * be based on measurement of the protection overhead on each
  * platform.  We know it's extremely different between macOS and
- * Windows, for example.  See design.mps.write-barrier.improv.by-os.
+ * Windows, for example.  <design/write-barrier#.improv.by-os>.
  *
  * TODO: Consider basing the count on the amount of time that has
  * passed in the mutator rather than the number of scans.
@@ -713,7 +713,7 @@
 
 /* C. COPYRIGHT AND LICENSE
  *
- * Copyright (C) 2001-2018 Ravenbrook Limited <http://www.ravenbrook.com/>.
+ * Copyright (C) 2001-2018 Ravenbrook Limited <https://www.ravenbrook.com/>.
  * All rights reserved.  This is an open source license.  Contact
  * Ravenbrook for commercial licensing options.
  *

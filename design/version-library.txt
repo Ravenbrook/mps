@@ -95,7 +95,7 @@ expansion of the macro ``MPS_PROD_STRING`` defined by ``config.h``
 (impl.h.config). Note that there is now only one product, so this is
 always ``"mps"`` (see design.mps.config.req.prod_).
 
-.. _design.mps.config.req.prod: config#req-prod
+.. _design.mps.config.req.prod: config#.req.prod
 
 _`.impl.platform`: The string containing the name of the platform is
 the expansion of the macro ``MPS_PF_STRING`` defined by ``mpstd.h``
@@ -130,7 +130,7 @@ _`.impl.tool`: The version string starts with the characters
             Ravenbrook MPS, product.mps, release/1.117.0, platform.xci6ll, variety.asserted.logging.nonstats, compiled on Oct 18 2016 13:57:08
 
 .. |what| replace:: ``what(1)``
-.. _what: http://pubs.opengroup.org/onlinepubs/9699919799/utilities/what.html
+.. _what: https://pubs.opengroup.org/onlinepubs/9699919799/utilities/what.html
 
 
 Document History
@@ -142,14 +142,14 @@ Document History
 
 - 2013-03-11 GDR_ Converted to reStructuredText.
 
-.. _RB: http://www.ravenbrook.com/consultants/rb/
-.. _GDR: http://www.ravenbrook.com/consultants/gdr/
+.. _RB: https://www.ravenbrook.com/consultants/rb/
+.. _GDR: https://www.ravenbrook.com/consultants/gdr/
 
 
 Copyright and License
 ---------------------
 
-Copyright © 2013-2016 Ravenbrook Limited <http://www.ravenbrook.com/>.
+Copyright © 2013-2018 Ravenbrook Limited <https://www.ravenbrook.com/>.
 All rights reserved. This is an open source license. Contact
 Ravenbrook for commercial licensing options.
 

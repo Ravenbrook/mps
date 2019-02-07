@@ -38,7 +38,7 @@ _`.req.granularity`: The virtual mapping module must report the
 necessary for the arena to be able to portably determine its grain
 size; see design.mps.arena.def.grain_.)
 
-.. _design.mps.arena.def.grain: arena#def-grain
+.. _design.mps.arena.def.grain: arena#.def.grain
 
 _`.req.reserve`: The *reserve* operation must reserves a chunk of
 address space.
@@ -48,7 +48,7 @@ reserved chunk. (None of our supported operating systems can actually
 provide this feature, alas. We rely on co-operation with the client
 program.)
 
-_`.req.reserve.continguous`: The reserved chunk is a *contiguous*
+_`.req.reserve.contiguous`: The reserved chunk is a *contiguous*
 portion of address space. (Contiguity is needed for zones to work; see
 design.mps.arena.vm.overview.gc.zone_.)
 
@@ -122,7 +122,7 @@ _`.sol.overhead`: To meet `.req.reserve.contiguous`_,
 implementations ask the operating system for ``size + grainSize -
 pageSize`` bytes of address space. This ensures that wherever the
 operating system places the reserved address space, it contains a
-continguous region of ``size`` bytes aligned to a multiple of
+contiguous region of ``size`` bytes aligned to a multiple of
 ``grainSize``. The overhead is thus ``grainSize - pageSize``, and in
 the common case where ``grainSize`` is equal to ``pageSize``, this is
 zero.
@@ -266,7 +266,7 @@ _`.impl.ix.reserve`: Address space is reserved by calling |mmap|_,
 passing ``PROT_NONE`` and ``MAP_PRIVATE | MAP_ANON``.
 
 .. |mmap| replace:: ``mmap()``
-.. _mmap: http://pubs.opengroup.org/onlinepubs/9699919799/functions/mmap.html
+.. _mmap: https://pubs.opengroup.org/onlinepubs/9699919799/functions/mmap.html
 
 _`.impl.ix.anon.trans`: Note that ``MAP_ANON`` ("map anonymous
 memory not associated with any specific file") is an extension to
@@ -277,7 +277,7 @@ the file ``/dev/zero``.
 _`.impl.ix.release`: Address space is released by calling |munmap|_.
 
 .. |munmap| replace:: ``munmap()``
-.. _munmap: http://pubs.opengroup.org/onlinepubs/9699919799/functions/munmap.html
+.. _munmap: https://pubs.opengroup.org/onlinepubs/9699919799/functions/munmap.html
 
 _`.impl.ix.map`: Address space is mapped to main memory by calling
 |mmap|_, passing ``PROT_READ | PROT_WRITE | PROT_EXEC`` and
@@ -297,7 +297,7 @@ _`.impl.w3.page.size`: The page size is retrieved by calling
 |GetSystemInfo|_ and consulting ``SYSTEMINFO.dwPageSize``.
 
 .. |GetSystemInfo| replace:: ``GetSystemInfo()``
-.. _GetSystemInfo: http://msdn.microsoft.com/en-gb/library/windows/desktop/ms724381.aspx
+.. _GetSystemInfo: https://docs.microsoft.com/en-us/windows/desktop/api/sysinfoapi/nf-sysinfoapi-getsysteminfo
 
 _`.impl.w3.param`: Decodes the keyword argument
 ``MPS_KEY_VMW3_MEM_TOP_DOWN``, and if it is set, arranges for
@@ -308,13 +308,13 @@ _`.impl.w3.reserve`: Address space is reserved by calling
 ``MEM_TOP_DOWN``) and ``PAGE_NOACCESS``.
 
 .. |VirtualAlloc| replace:: ``VirtualAlloc()``
-.. _VirtualAlloc: http://msdn.microsoft.com/en-us/library/windows/desktop/aa366887.aspx
+.. _VirtualAlloc: https://msdn.microsoft.com/en-us/library/windows/desktop/aa366887.aspx
 
 _`.impl.w3.release`: Address space is released by calling
 |VirtualFree|_, passing ``MEM_RELEASE``.
 
 .. |VirtualFree| replace:: ``VirtualFree()``
-.. _VirtualFree: http://msdn.microsoft.com/en-us/library/windows/desktop/aa366892.aspx
+.. _VirtualFree: https://msdn.microsoft.com/en-us/library/windows/desktop/aa366892.aspx
 
 _`.impl.w3.map`: Address space is mapped to main memory by calling
 |VirtualAlloc|_, passing ``MEM_COMMIT`` and
@@ -362,14 +362,14 @@ Document History
 
 - 2014-10-22 GDR_ Refactor module description into requirements.
 
-.. _RB: http://www.ravenbrook.com/consultants/rb/
-.. _GDR: http://www.ravenbrook.com/consultants/gdr/
+.. _RB: https://www.ravenbrook.com/consultants/rb/
+.. _GDR: https://www.ravenbrook.com/consultants/gdr/
 
 
 Copyright and License
 ---------------------
 
-Copyright © 2013-2018 Ravenbrook Limited <http://www.ravenbrook.com/>.
+Copyright © 2013-2018 Ravenbrook Limited <https://www.ravenbrook.com/>.
 All rights reserved. This is an open source license. Contact
 Ravenbrook for commercial licensing options.
 

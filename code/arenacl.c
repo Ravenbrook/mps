@@ -3,7 +3,7 @@
  * $Id$
  * Copyright (c) 2001-2014 Ravenbrook Limited.  See end of file for license.
  *
- * .design: See <design/arena/#client>.
+ * .design: <design/arena#.client>.
  *
  * .improve.remember: One possible performance improvement is to
  * remember (a conservative approximation to) the indices of the first
@@ -30,7 +30,7 @@ DECLARE_CLASS(Arena, ClientArena, AbstractArena);
 
 typedef struct ClientArenaStruct {
   ArenaStruct arenaStruct; /* generic arena structure */
-  Sig sig;                 /* <design/sig/> */
+  Sig sig;                 /* <design/sig> */
 } ClientArenaStruct;
 typedef struct ClientArenaStruct *ClientArena;
 
@@ -45,7 +45,7 @@ typedef struct ClientChunkStruct {
   ChunkStruct chunkStruct;     /* generic chunk */
   Size freePages;              /* number of free pages in chunk */
   Addr pageBase;               /* base of first managed page in chunk */
-  Sig sig;                     /* <design/sig/> */
+  Sig sig;                     /* <design/sig> */
 } ClientChunkStruct;
 
 #define ClientChunk2Chunk(clchunk) (&(clchunk)->chunkStruct)
@@ -305,7 +305,9 @@ static Res ClientArenaCreate(Arena *arenaReturn, ArgList args)
   arena->zoneShift = SizeFloorLog2(size >> MPS_WORD_SHIFT);
   AVER(ArenaGrainSize(arena) == ChunkPageSize(arena->primary));
 
-  EVENT3(ArenaCreateCL, arena, size, base);
+  EVENT7(ArenaCreateCL, arena, size, base, grainSize,
+         ClassOfPoly(Arena, arena), ArenaGlobals(arena)->systemPools,
+         arena->serial);
   AVERT(ClientArena, clientArena);
   *arenaReturn = arena;
   return ResOK;
@@ -325,7 +327,7 @@ static void ClientArenaDestroy(Arena arena)
   ClientArena clientArena = MustBeA(ClientArena, arena);
 
   /* Destroy all chunks, including the primary. See
-   * <design/arena/#chunk.delete> */
+   * <design/arena#.chunk.delete> */
   arena->primary = NULL;
   TreeTraverseAndDelete(&arena->chunkTree, clientChunkDestroy,
                         UNUSED_POINTER);

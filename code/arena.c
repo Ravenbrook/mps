@@ -3,7 +3,7 @@
  * $Id$
  * Copyright (c) 2001-2018 Ravenbrook Limited.  See end of file for license.
  *
- * .sources: <design/arena/> is the main design document.  */
+ * .sources: <design/arena> is the main design document.  */
 
 #include "tract.h"
 #include "poolmvff.h"
@@ -27,7 +27,7 @@ SRCID(arena, "$Id$");
 Bool ArenaGrainSizeCheck(Size size)
 {
   CHECKL(size > 0);
-  /* <design/arena/#req.attr.block.align.min> */
+  /* <design/arena#.req.attr.block.align.min> */
   CHECKL(SizeIsAligned(size, MPS_PF_ALIGN));
   /* Grain size must be a power of 2 for the tract lookup and the
    * zones to work. */
@@ -178,7 +178,7 @@ Bool ArenaCheck(Arena arena)
   CHECKD(Globals, ArenaGlobals(arena));
 
   CHECKL(BoolCheck(arena->poolReady));
-  if (arena->poolReady) { /* <design/arena/#pool.ready> */
+  if (arena->poolReady) { /* <design/arena#.pool.ready> */
     CHECKD(MVFF, &arena->controlPoolStruct);
   }
 
@@ -271,7 +271,7 @@ static Res ArenaAbsInit(Arena arena, Size grainSize, ArgList args)
   arena->grainSize = grainSize;
   /* zoneShift must be overridden by arena class init */
   arena->zoneShift = ZoneShiftUNSET;
-  arena->poolReady = FALSE;     /* <design/arena/#pool.ready> */
+  arena->poolReady = FALSE;     /* <design/arena#.pool.ready> */
   arena->lastTract = NULL;
   arena->lastTractBase = NULL;
   arena->hasFreeLand = FALSE;
@@ -309,6 +309,7 @@ static Res ArenaAbsInit(Arena arena, Size grainSize, ArgList args)
   if (res != ResOK)
     goto failMFSInit;
 
+  EventLabelPointer(ArenaCBSBlockPool(arena), EventInternString("CBSBlock"));
   return ResOK;
 
 failMFSInit:
@@ -516,7 +517,8 @@ Res ControlInit(Arena arena)
   } MPS_ARGS_END(args);
   if (res != ResOK)
     return res;
-  arena->poolReady = TRUE;      /* <design/arena/#pool.ready> */
+  arena->poolReady = TRUE;      /* <design/arena#.pool.ready> */
+  EventLabelPointer(&arena->controlPoolStruct, EventInternString("Control"));
   return ResOK;
 }
 
@@ -675,7 +677,7 @@ Res ArenaDescribeTracts(Arena arena, mps_lib_FILE *stream, Count depth)
  * control pool, which is an MV pool embedded in the arena itself.
  *
  * .controlalloc.addr: In implementations where Addr is not compatible
- * with void* (<design/type/#addr.use>), ControlAlloc must take care of
+ * with void* <design/type#.addr.use>, ControlAlloc must take care of
  * allocating so that the block can be addressed with a void*.  */
 
 Res ControlAlloc(void **baseReturn, Arena arena, size_t size)
@@ -791,7 +793,7 @@ void ArenaChunkRemoved(Arena arena, Chunk chunk)
  * This is a primitive allocator used to allocate pages for the arena
  * Land. It is called rarely and can use a simple search. It may not
  * use the Land or any pool, because it is used as part of the
- * bootstrap.  See design.mps.bootstrap.land.sol.alloc.
+ * bootstrap.  <design/bootstrap#.land.sol.alloc>.
  */
 
 static Res arenaAllocPageInChunk(Addr *baseReturn, Chunk chunk, Pool pool)
@@ -901,7 +903,7 @@ static void arenaExcludePage(Arena arena, Range pageRange)
  * The arena's free land can't get memory for its block pool in the
  * usual way (via ArenaAlloc), because it is the mechanism behind
  * ArenaAlloc! So we extend the block pool via a back door (see
- * arenaExtendCBSBlockPool).  See design.mps.bootstrap.land.sol.pool.
+ * arenaExtendCBSBlockPool).  <design/bootstrap#.land.sol.pool>.
  *
  * Only fails if it can't get a page for the block pool.
  */
@@ -1104,7 +1106,7 @@ Res ArenaAlloc(Addr *baseReturn, LocusPref pref, Size size, Pool pool)
   
   base = TractBase(tract);
 
-  /* cache the tract - <design/arena/#tract.cache> */
+  /* cache the tract - <design/arena#.tract.cache> */
   arena->lastTract = tract;
   arena->lastTractBase = base;
 
@@ -1114,7 +1116,7 @@ Res ArenaAlloc(Addr *baseReturn, LocusPref pref, Size size, Pool pool)
   return ResOK;
 
 allocFail:
-   EVENT3(ArenaAllocFail, arena, size, pool); /* TODO: Should have res? */
+   EVENT4(ArenaAllocFail, arena, size, pool, (unsigned)res);
    return res;
 }
 
@@ -1137,7 +1139,7 @@ void ArenaFree(Addr base, Size size, Pool pool)
 
   RangeInitSize(&range, base, size);
 
-  /* uncache the tract if in range - <design/arena/#tract.uncache> */
+  /* uncache the tract if in range - <design/arena#.tract.uncache> */
   if (base <= arena->lastTractBase && arena->lastTractBase < RangeLimit(&range))
   {
     arena->lastTract = NULL;
@@ -1158,7 +1160,7 @@ done:
   /* Freeing memory might create spare pages, but not more than this. */
   AVER(arena->spareCommitted <= ArenaSpareCommitLimit(arena));
 
-  EVENT3(ArenaFree, arena, base, size);
+  EVENT4(ArenaFree, arena, base, size, pool);
 }
 
 
@@ -1266,7 +1268,7 @@ Res ArenaSetCommitLimit(Arena arena, Size limit)
     arena->commitLimit = limit;
     res = ResOK;
   }
-  EVENT3(CommitLimitSet, arena, limit, (res == ResOK));
+  EVENT3(CommitLimitSet, arena, limit, (unsigned)res);
   return res;
 }
 

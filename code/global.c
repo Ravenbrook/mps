@@ -4,7 +4,7 @@
  * Copyright (c) 2001-2018 Ravenbrook Limited.  See end of file for license.
  * Portions copyright (C) 2002 Global Graphics Software.
  *
- * .sources: See <design/arena/>.  design.mps.thread-safety is relevant
+ * .sources: <design/arena>.  <design/thread-safety> is relevant
  * to the functions ArenaEnter and ArenaLeave in this file.
  *
  *
@@ -12,10 +12,10 @@
  *
  * .static: Static data is used in ArenaAccess (in order to find the
  * appropriate arena) and GlobalsInit.  It's checked in GlobalsCheck.
- * See <design/arena/#static>.
+ * <design/arena#.static>.
  *
  * .non-mod: The Globals structure has many fields which properly belong
- * to other modules (see <code/mpmst.h>); GlobalsInit contains code which
+ * to other modules <code/mpmst.h>; GlobalsInit contains code which
  * breaks the usual module abstractions.  Such instances are documented
  * with a tag to the relevant module implementation.  Most of the
  * functions should be in some other module, they just ended up here by
@@ -31,15 +31,15 @@ SRCID(global, "$Id$");
 
 /* All static data objects are declared here. See .static */
 
-/* <design/arena/#static.ring.init> */
+/* <design/arena#.static.ring.init> */
 static Bool arenaRingInit = FALSE;
-static RingStruct arenaRing;       /* <design/arena/#static.ring> */
-static Serial arenaSerial;         /* <design/arena/#static.serial> */
+static RingStruct arenaRing;       /* <design/arena#.static.ring> */
+static Serial arenaSerial;         /* <design/arena#.static.serial> */
 
 
 /* arenaClaimRingLock, arenaReleaseRingLock -- lock/release the arena ring
  *
- * See <design/arena/#static.ring.lock>.  */
+ * <design/arena#.static.ring.lock>.  */
 
 static void arenaClaimRingLock(void)
 {
@@ -53,7 +53,7 @@ static void arenaReleaseRingLock(void)
 
 
 /* GlobalsClaimAll -- claim all MPS locks
- * <design/thread-safety/#sol.fork.lock>
+ * <design/thread-safety#.sol.fork.lock>
  */
 
 void GlobalsClaimAll(void)
@@ -64,7 +64,7 @@ void GlobalsClaimAll(void)
 }
 
 /* GlobalsReleaseAll -- release all MPS locks. GlobalsClaimAll must
- * previously have been called. <design/thread-safety/#sol.fork.lock> */
+ * previously have been called. <design/thread-safety#.sol.fork.lock> */
 
 void GlobalsReleaseAll(void)
 {
@@ -84,7 +84,7 @@ static void arenaReinitLock(Arena arena)
 
 /* GlobalsReinitializeAll -- reinitialize all MPS locks, and leave the
  * shield for all arenas. GlobalsClaimAll must previously have been
- * called. <design/thread-safety/#sol.fork.lock> */
+ * called. <design/thread-safety#.sol.fork.lock> */
 
 void GlobalsReinitializeAll(void)
 {
@@ -127,7 +127,7 @@ static void arenaDenounce(Arena arena)
   AVERT(Arena, arena);
 
   /* Temporarily give up the arena lock to avoid deadlock, */
-  /* see <design/thread-safety/#deadlock>. */
+  /* see <design/thread-safety#.deadlock>. */
   ArenaLeave(arena);
 
   /* Detach the arena from the global list. */
@@ -214,14 +214,14 @@ Bool GlobalsCheck(Globals arenaGlobals)
   CHECKL(TraceSetSuper(arena->busyTraces, arena->flippedTraces));
 
   TRACE_SET_ITER(ti, trace, TraceSetUNIV, arena)
-    /* <design/arena/#trace> */
+    /* <design/arena#.trace> */
     if (TraceSetIsMember(arena->busyTraces, trace)) {
       CHECKD(Trace, trace);
     } else {
-      /* <design/arena/#trace.invalid> */
+      /* <design/arena#.trace.invalid> */
       CHECKL(trace->sig == SigInvalid);
     }
-    /* <design/message-gc/> */
+    /* <design/message-gc> */
     CHECKL(TraceIdMessagesCheck(arena, ti));
   TRACE_SET_ITER_END(ti, trace, TraceSetUNIV, arena);
 
@@ -236,7 +236,7 @@ Bool GlobalsCheck(Globals arenaGlobals)
   /* can't write a check for arena->epoch */
   CHECKD(History, ArenaHistory(arena));
 
-  /* we also check the statics now. <design/arena/#static.check> */
+  /* we also check the statics now. <design/arena#.static.check> */
   CHECKL(BoolCheck(arenaRingInit));
   /* Can't CHECKD_NOSIG here because &arenaRing is never NULL and GCC
    * will warn about a constant comparison. */
@@ -272,7 +272,7 @@ Res GlobalsInit(Globals arenaGlobals)
   /* Ensure static things are initialized. */
   if (!arenaRingInit) {
     /* there isn't an arena ring yet */
-    /* <design/arena/#static.init> */
+    /* <design/arena#.static.init> */
     arenaRingInit = TRUE;
     RingInit(&arenaRing);
     arenaSerial = (Serial)0;
@@ -336,18 +336,17 @@ Res GlobalsInit(Globals arenaGlobals)
   ShieldInit(ArenaShield(arena));
 
   for (ti = 0; ti < TraceLIMIT; ++ti) {
-    /* <design/arena/#trace.invalid> */
+    /* <design/arena#.trace.invalid> */
     arena->trace[ti].sig = SigInvalid;
     /* ti must be valid so that TraceSetIsMember etc. always work */
     arena->trace[ti].ti = ti;
-    /* <design/message-gc/#lifecycle> */
+    /* <design/message-gc#.lifecycle> */
     arena->tsMessage[ti] = NULL;
     arena->tMessage[ti] = NULL;
   }
 
   for(rank = RankMIN; rank < RankLIMIT; ++rank)
     RingInit(&arena->greyRing[rank]);
-  STATISTIC(arena->writeBarrierHitCount = 0);
   RingInit(&arena->chainRing);
 
   HistoryInit(ArenaHistory(arena));
@@ -380,7 +379,7 @@ Res GlobalsCompleteCreate(Globals arenaGlobals)
   AVERT(Globals, arenaGlobals);
   arena = GlobalsArena(arenaGlobals);
 
-  /* initialize the message stuff, <design/message/> */
+  /* initialize the message stuff, <design/message> */
   {
     void *v;
 
@@ -392,7 +391,7 @@ Res GlobalsCompleteCreate(Globals arenaGlobals)
   }
   
   TRACE_SET_ITER(ti, trace, TraceSetUNIV, arena)
-    /* <design/message-gc/#lifecycle> */
+    /* <design/message-gc#.lifecycle> */
     res = TraceIdMessagesCreate(arena, ti);
     if(res != ResOK)
       return res;
@@ -404,11 +403,25 @@ Res GlobalsCompleteCreate(Globals arenaGlobals)
   arenaGlobals->lock = (Lock)p;
   LockInit(arenaGlobals->lock);
 
+  /* Create the arena's default generation chain. */
   {
     GenParamStruct params[] = ChainDEFAULT;
     res = ChainCreate(&arenaGlobals->defaultChain, arena, NELEMS(params), params);
     if (res != ResOK)
       goto failChainCreate;
+  }
+
+  /* Label generations in default generation chain, for telemetry. */
+  {
+    Chain chain = arenaGlobals->defaultChain;
+    char label[] = "DefGen-0";
+    char *gen_index = &label[(sizeof label) - 2];
+    size_t i;
+    AVER(*gen_index == '0');
+    for (i = 0; i < chain->genCount; ++i) {
+      *gen_index = "0123456789ABCDEF"[i % 16];
+      EventLabelPointer(&chain->gens[i], EventInternString(label));
+    }
   }
 
   arenaAnnounce(arena);
@@ -429,8 +442,6 @@ void GlobalsFinish(Globals arenaGlobals)
   
   arena = GlobalsArena(arenaGlobals);
   AVERT(Globals, arenaGlobals);
-
-  STATISTIC(EVENT2(ArenaWriteFaults, arena, arena->writeBarrierHitCount));
 
   arenaGlobals->sig = SigInvalid;
 
@@ -483,7 +494,7 @@ void GlobalsPrepareToDestroy(Globals arenaGlobals)
   arenaGlobals->lock = NULL;
 
   TRACE_SET_ITER(ti, trace, TraceSetUNIV, arena)
-    /* <design/message-gc/#lifecycle> */
+    /* <design/message-gc#.lifecycle> */
     TraceIdMessagesDestroy(arena, ti);
   TRACE_SET_ITER_END(ti, trace, TraceSetUNIV, arena);
 
@@ -507,7 +518,7 @@ void GlobalsPrepareToDestroy(Globals arenaGlobals)
     arena->enabledMessageTypes = NULL;
   }
 
-  /* destroy the final pool (see <design/finalize/>) */
+  /* destroy the final pool <design/finalize> */
   if (arena->isFinalPool) {
     /* All this subtlety is because PoolDestroy will call */
     /* ArenaCheck several times.  The invariant on finalPool */
@@ -617,7 +628,7 @@ void ArenaLeaveLock(Arena arena, Bool recursive)
   } else {
     ShieldLeave(arena);
   }
-  ProtSync(arena);              /* <design/prot/#if.sync> */
+  ProtSync(arena);              /* <design/prot#.if.sync> */
   if(recursive) {
     LockReleaseRecursive(lock);
   } else {
@@ -644,12 +655,11 @@ Bool ArenaBusy(Arena arena)
 
 Bool ArenaAccess(Addr addr, AccessSet mode, MutatorContext context)
 {
-  static Count count = 0;       /* used to match up ArenaAccess events */
   Seg seg;
   Ring node, nextNode;
   Res res;
 
-  arenaClaimRingLock();    /* <design/arena/#lock.ring> */
+  arenaClaimRingLock();    /* <design/arena#.lock.ring> */
   AVERT(Ring, &arenaRing);
 
   RING_FOR(node, &arenaRing, nextNode) {
@@ -657,8 +667,8 @@ Bool ArenaAccess(Addr addr, AccessSet mode, MutatorContext context)
     Arena arena = GlobalsArena(arenaGlobals);
     Root root;
 
-    ArenaEnter(arena);     /* <design/arena/#lock.arena> */
-    EVENT4(ArenaAccess, arena, ++count, addr, mode);
+    ArenaEnter(arena);     /* <design/arena#.lock.arena> */
+    EVENT3(ArenaAccessBegin, arena, addr, mode);
 
     /* @@@@ The code below assumes that Roots and Segs are disjoint. */
     /* It will fall over (in TraceSegAccess probably) if there is a */
@@ -679,7 +689,7 @@ Bool ArenaAccess(Addr addr, AccessSet mode, MutatorContext context)
         /* Protection was already cleared, for example by another thread
            or a fault in a nested exception handler: nothing to do now. */
       }
-      EVENT4(ArenaAccess, arena, count, addr, mode);
+      EVENT1(ArenaAccessEnd, arena);
       ArenaLeave(arena);
       return TRUE;
     } else if (RootOfAddr(&root, arena, addr)) {
@@ -687,7 +697,7 @@ Bool ArenaAccess(Addr addr, AccessSet mode, MutatorContext context)
       mode &= RootPM(root);
       if (mode != AccessSetEMPTY)
         RootAccess(root, mode);
-      EVENT4(ArenaAccess, arena, count, addr, mode);
+      EVENT1(ArenaAccessEnd, arena);
       ArenaLeave(arena);
       return TRUE;
     } else {
@@ -695,9 +705,9 @@ Bool ArenaAccess(Addr addr, AccessSet mode, MutatorContext context)
        * that activity in another thread (or even in the same thread,
        * via a signal or exception handler) caused the segment or root
        * to go away. So there's nothing to do now. */
+      EVENT1(ArenaAccessEnd, arena);
+      ArenaLeave(arena);
     }
-
-    ArenaLeave(arena);
   }
 
   arenaReleaseRingLock();
@@ -744,7 +754,7 @@ void (ArenaPoll)(Globals globals)
   /* fillMutatorSize has advanced; call TracePoll enough to catch up. */
   start = ClockNow();
 
-  EVENT3(ArenaPoll, arena, start, FALSE);
+  EVENT1(ArenaPollBegin, arena);
 
   do {
     moreWork = TracePoll(&tracedWork, &worldCollected, globals,
@@ -759,7 +769,7 @@ void (ArenaPoll)(Globals globals)
     ArenaAccumulateTime(arena, start, ClockNow());
   }
 
-  EVENT3(ArenaPoll, arena, start, BOOLOF(workWasDone));
+  EVENT2(ArenaPollEnd, arena, BOOLOF(workWasDone));
 
   globals->insidePoll = FALSE;
 }
@@ -825,7 +835,7 @@ Bool ArenaStep(Globals globals, double interval, double multiplier)
 
 /* ArenaFinalize -- registers an object for finalization
  *
- * See <design/finalize/>.  */
+ * <design/finalize>.  */
 
 Res ArenaFinalize(Arena arena, Ref obj)
 {
@@ -853,7 +863,7 @@ Res ArenaFinalize(Arena arena, Ref obj)
 
 /* ArenaDefinalize -- removes one finalization registration of an object
  *
- * See <design/finalize>.  */
+ * <design/finalize>.  */
 
 Res ArenaDefinalize(Arena arena, Ref obj)
 {

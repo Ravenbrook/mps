@@ -44,7 +44,7 @@ extern Bool MPMCheck(void);
 
 /* Miscellaneous Checks -- see <code/mpm.c> */
 
-/* <design/type/#bool.check> */
+/* <design/type#.bool.check> */
 #define BoolCheck(b) ((unsigned)(b) <= 1)
 
 extern Bool FunCheck(Fun f);
@@ -116,7 +116,7 @@ extern Addr (AddrAlignDown)(Addr addr, Align align);
 
 extern Addr (AddrSet)(Addr target, Byte value, Size size);
 /* This is one of the places that implements Addr, so it's allowed to */
-/* convert to void *, see <design/type/#addr.ops.mem>. */
+/* convert to void *, see <design/type#.addr.ops.mem>. */
 #define AddrSet(target, value, size) \
   mps_lib_memset(target, (int)(value), size)
 
@@ -164,7 +164,7 @@ extern Shift SizeFloorLog2(Size size);
 extern Bool (WordIsP2)(Word word);
 #define WordIsP2(word) ((word) > 0 && ((word) & ((word) - 1)) == 0)
 
-/* Formatted Output -- see <design/writef/>, <code/mpm.c> */
+/* Formatted Output -- see <design/writef>, <code/mpm.c> */
 
 extern Res WriteF(mps_lib_FILE *stream, Count depth, ...);
 extern Res WriteF_v(mps_lib_FILE *stream, Count depth, va_list args);
@@ -190,12 +190,12 @@ extern void QuickSort(void *array[], Count length,
 
 /* Version Determination
  *
- * See <design/version-library/>.  */
+ * <design/version-library>.  */
 
 extern char *MPSVersion(void);
 
 
-/* Pool Interface -- see impl.c.pool */
+/* Pool Interface -- see <code/pool.c> */
 
 extern Res PoolInit(Pool pool, Arena arena, PoolClass klass, ArgList args);
 extern void PoolFinish(Pool pool);
@@ -203,7 +203,7 @@ extern Bool PoolClassCheck(PoolClass klass);
 extern Bool PoolCheck(Pool pool);
 extern Res PoolDescribe(Pool pool, mps_lib_FILE *stream, Count depth);
 
-/* Must be thread-safe. See <design/interface-c/#thread-safety>. */
+/* Must be thread-safe. <design/interface-c#.thread-safety>. */
 #define PoolArena(pool)         ((pool)->arena)
 #define PoolAlignment(pool)     ((pool)->alignment)
 #define PoolSegRing(pool)       (&(pool)->segRing)
@@ -286,7 +286,7 @@ typedef Pool AbstractCollectPool;
 DECLARE_CLASS(Pool, AbstractCollectPool, AbstractSegBufPool);
 
 
-/* Message Interface -- see <design/message/> */
+/* Message Interface -- see <design/message> */
 /* -- Internal (MPM) Interface -- functions for message originator */
 extern Bool MessageCheck(Message message);
 extern Bool MessageClassCheck(MessageClass klass);
@@ -366,7 +366,7 @@ extern RefSet ScanStateSummary(ScanState ss);
 extern Bool TraceIdCheck(TraceId id);
 extern Bool TraceSetCheck(TraceSet ts);
 extern Bool TraceCheck(Trace trace);
-extern Res TraceCreate(Trace *traceReturn, Arena arena, int why);
+extern Res TraceCreate(Trace *traceReturn, Arena arena, TraceStartWhy why);
 extern void TraceDestroyInit(Trace trace);
 extern void TraceDestroyFinished(Trace trace);
 
@@ -382,13 +382,13 @@ extern Rank TraceRankForAccess(Arena arena, Seg seg);
 extern void TraceSegAccess(Arena arena, Seg seg, AccessSet mode);
 
 extern void TraceAdvance(Trace trace);
-extern Res TraceStartCollectAll(Trace *traceReturn, Arena arena, int why);
+extern Res TraceStartCollectAll(Trace *traceReturn, Arena arena, TraceStartWhy why);
 extern Res TraceDescribe(Trace trace, mps_lib_FILE *stream, Count depth);
 
 /* traceanc.c -- Trace Ancillary */
 
 extern Bool TraceStartMessageCheck(TraceStartMessage message);
-extern const char *TraceStartWhyToString(int why);
+extern const char *TraceStartWhyToString(TraceStartWhy why);
 extern void TracePostStartMessage(Trace trace);
 extern Bool TraceMessageCheck(TraceMessage message);  /* trace end */
 extern void TracePostMessage(Trace trace);  /* trace end */
@@ -527,8 +527,8 @@ extern void ArenaPark(Globals globals);
 extern void ArenaPostmortem(Globals globals);
 extern void ArenaExposeRemember(Globals globals, Bool remember);
 extern void ArenaRestoreProtection(Globals globals);
-extern Res ArenaStartCollect(Globals globals, int why);
-extern Res ArenaCollect(Globals globals, int why);
+extern Res ArenaStartCollect(Globals globals, TraceStartWhy why);
+extern Res ArenaCollect(Globals globals, TraceStartWhy why);
 extern Bool ArenaBusy(Arena arena);
 extern Bool ArenaHasAddr(Arena arena, Addr addr);
 extern void ArenaChunkInsert(Arena arena, Chunk chunk);
@@ -835,7 +835,7 @@ extern Bool RankSetCheck(RankSet rankSet);
 #define RefSetSub(rs1, rs2)     BS_SUB((rs1), (rs2))
 
 
-/* Zone sets -- see design.mps.refset */
+/* Zone sets -- see <design/refset> */
 
 #define ZoneSetUnion(zs1, zs2) BS_UNION(zs1, zs2)
 #define ZoneSetInter(zs1, zs2) BS_INTER(zs1, zs2)
@@ -963,7 +963,7 @@ typedef Res (*RootIterateFn)(Root root, void *p);
 extern Res RootsIterate(Globals arena, RootIterateFn f, void *p);
 
 
-/* Land Interface -- see <design/land/> */
+/* Land Interface -- see <design/land> */
 
 extern Bool LandCheck(Land land);
 #define LandArena(land) ((land)->arena)
@@ -1017,7 +1017,7 @@ DECLARE_CLASS(Land, Land, Inst);
 
 /* STATISTIC -- gather statistics (in some varieties)
  *
- * See <design/diag/#stat>.
+ * <design/diag#.stat>.
  */
 
 #if defined(STATISTICS)

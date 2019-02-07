@@ -1,12 +1,12 @@
 /* testthr.h: MULTI-THREADED TEST INTERFACE
  *
  * $Id$
- * Copyright (c) 2014-2016 Ravenbrook Limited.  See end of file for license.
+ * Copyright (c) 2014-2018 Ravenbrook Limited.  See end of file for license.
  *
  * .purpose: Simple interface to threads that makes it possible to
  * write test cases that are portable between Windows (using the
  * implementation in testthrw3.c) and Unix (using the implementation
- * in testthrix.c). See <design/testthr/>.
+ * in testthrix.c). <design/testthr>.
  */
 
 #ifndef testthr_h
@@ -34,7 +34,7 @@ typedef void *(*testthr_routine_t)(void *);
 #include "mpswin.h"
 
 /* On Windows, a thread is identified by a HANDLE.
- * <http://msdn.microsoft.com/en-us/library/windows/desktop/aa383751.aspx>
+ * <https://docs.microsoft.com/en-gb/windows/desktop/WinProg/windows-data-types>
  * But use a structure so that the thread has somewhere to store its
  * result for use by testthr_join.
  */
@@ -51,7 +51,7 @@ typedef struct testthr_t {
 
 /* In pthreads, a thread is identified by a pthread_t, which is
  * allowed "to be defined as a structure" [IEEE Std 1003.1, sys/types.h]
- * <http://pubs.opengroup.org/onlinepubs/9699919799/basedefs/sys_types.h.html>
+ * <https://pubs.opengroup.org/onlinepubs/9699919799/basedefs/sys_types.h.html>
  */
 typedef pthread_t testthr_t;
 
@@ -83,7 +83,7 @@ void testthr_join(testthr_t *thread, void **result_o);
 
 /* C. COPYRIGHT AND LICENSE
  *
- * Copyright (C) 2014-2016 Ravenbrook Limited <http://www.ravenbrook.com/>.
+ * Copyright (C) 2014-2018 Ravenbrook Limited <https://www.ravenbrook.com/>.
  * All rights reserved.  This is an open source license.  Contact
  * Ravenbrook for commercial licensing options.
  * 

@@ -5,7 +5,7 @@
  * See end of file for license.
  * Portions copyright (C) 2002 Global Graphics Software.
  *
- * .design: <design/trace/>.  */
+ * .design: <design/trace>.  */
 
 #include "locus.h"
 #include "mpm.h"
@@ -233,7 +233,7 @@ Bool traceBandAdvance(Trace trace)
     trace->band = RankMIN;
     return FALSE;
   }
-  EVENT3(TraceBandAdvance, trace->arena, trace->ti, trace->band);
+  EVENT3(TraceBandAdvance, trace->arena, trace, trace->band);
   return TRUE;
 }
 
@@ -371,7 +371,7 @@ Res TraceAddWhite(Trace trace, Seg seg)
     /* Pools must not condemn empty segments, otherwise we can't tell
        when a trace is empty and safe to destroy.  See .empty.size. */
     AVER(trace->condemned > condemnedBefore);
-    
+
     /* Add the segment to the approximation of the white set if the
        pool made it white. */
     trace->white = ZoneSetUnion(trace->white, ZoneSetOfSeg(trace->arena, seg));
@@ -629,7 +629,7 @@ static Res traceFlip(Trace trace)
   /* needs to change when we flip later (i.e. have a read-barrier     */
   /* collector), so that we allocate grey or white before the flip    */
   /* and black afterwards. For instance, see                          */
-  /* <design/poolams/#invariant.alloc>.                              */
+  /* <design/poolams#.invariant.alloc>.                              */
   /* (surely we mean "write-barrier" not "read-barrier" above? */
   /* drj 2003-02-19) */
 
@@ -688,7 +688,7 @@ static void traceCreatePoolGen(GenDesc gen)
   }
 }
 
-Res TraceCreate(Trace *traceReturn, Arena arena, int why)
+Res TraceCreate(Trace *traceReturn, Arena arena, TraceStartWhy why)
 {
   TraceId ti;
   Trace trace;
@@ -704,7 +704,7 @@ Res TraceCreate(Trace *traceReturn, Arena arena, int why)
 
 found:
   trace = ArenaTrace(arena, ti);
-  AVER(trace->sig == SigInvalid);       /* <design/arena/#trace.invalid> */
+  AVER(trace->sig == SigInvalid);       /* <design/arena#.trace.invalid> */
 
   trace->arena = arena;
   trace->why = why;
@@ -792,7 +792,7 @@ static void traceDestroyCommon(Trace trace)
    * manually allocated objects that were freed). See job003999. */
   ArenaCompact(trace->arena, trace);
 
-  EVENT1(TraceDestroy, trace);
+  EVENT2(TraceDestroy, trace->arena, trace);
 
   /* Hopefully the trace reclaimed some memory, so clear any emergency.
    * Do this before removing the trace from busyTraces, to avoid
@@ -832,7 +832,7 @@ void TraceDestroyFinished(Trace trace)
   AVERT(Trace, trace);
   AVER(trace->state == TraceFINISHED);
 
-  STATISTIC(EVENT13(TraceStatScan, trace,
+  STATISTIC(EVENT14(TraceStatScan, trace, trace->arena,
                     trace->rootScanCount, trace->rootScanSize,
                     trace->rootCopiedSize,
                     trace->segScanCount, trace->segScanSize,
@@ -841,14 +841,14 @@ void TraceDestroyFinished(Trace trace)
                     trace->singleCopiedSize,
                     trace->readBarrierHitCount, trace->greySegMax,
                     trace->pointlessScanCount));
-  STATISTIC(EVENT10(TraceStatFix, trace,
+  STATISTIC(EVENT11(TraceStatFix, trace, trace->arena,
                     trace->fixRefCount, trace->segRefCount,
                     trace->whiteSegRefCount,
                     trace->nailCount, trace->snapCount,
                     trace->forwardedCount, trace->forwardedSize,
                     trace->preservedInPlaceCount,
                     trace->preservedInPlaceSize));
-  STATISTIC(EVENT3(TraceStatReclaim, trace,
+  STATISTIC(EVENT4(TraceStatReclaim, trace, trace->arena,
                    trace->reclaimCount, trace->reclaimSize));
 
   traceDestroyCommon(trace);
@@ -864,9 +864,9 @@ static void traceReclaim(Trace trace)
 
   AVER(trace->state == TraceRECLAIM);
 
-  EVENT1(TraceReclaim, trace);
 
   arena = trace->arena;
+  EVENT2(TraceReclaim, trace, arena);
   RING_FOR(genNode, &trace->genRing, genNext) {
     Ring segNode, segNext;
     GenDesc gen = GenDescOfTraceRing(genNode, trace);
@@ -874,6 +874,7 @@ static void traceReclaim(Trace trace)
     RING_FOR(segNode, &gen->segRing, segNext) {
       GCSeg gcseg = RING_ELT(GCSeg, genRing, segNode);
       Seg seg = &gcseg->segStruct;
+
       /* There shouldn't be any grey stuff left for this trace. */
       AVER_CRITICAL(!TraceSetIsMember(SegGrey(seg), trace));
       if (TraceSetIsMember(SegWhite(seg), trace)) {
@@ -909,17 +910,17 @@ static void traceReclaim(Trace trace)
 }
 
 /* TraceRankForAccess -- Returns rank to scan at if we hit a barrier.
- * 
+ *
  * We assume a single trace as otherwise we need to implement rank
  * filters on scanning.
  *
  * .scan.conservative: It's safe to scan at EXACT unless the band is
  * WEAK and in that case the segment should be weak.
- * 
+ *
  * If the trace band is EXACT then we scan EXACT. This might prevent
  * finalisation messages and may preserve objects pointed to only by weak
  * references but tough luck -- the mutator wants to look.
- * 
+ *
  * If the trace band is FINAL and the segment is FINAL, we scan it FINAL.
  * Any objects not yet preserved deserve to die, and we're only giving
  * them a temporary reprieve.  All the objects on the segment should be FINAL,
@@ -927,12 +928,12 @@ static void traceReclaim(Trace trace)
  *
  * If the trace band is FINAL, and the segment is not FINAL, we scan at EXACT.
  * This is safe to do for FINAL and WEAK references.
- * 
- * If the trace band is WEAK then the segment must be weak only, and we 
+ *
+ * If the trace band is WEAK then the segment must be weak only, and we
  * scan at WEAK.  All other segments for this trace should be scanned by now.
  * We must scan at WEAK to avoid bringing any objects back to life.
- * 
- * See the message <http://info.ravenbrook.com/mail/2012/08/30/16-46-42/0.txt>
+ *
+ * See the message <https://info.ravenbrook.com/mail/2012/08/30/16-46-42/0.txt>
  * for a description of these semantics.
  */
 Rank TraceRankForAccess(Arena arena, Seg seg)
@@ -947,7 +948,7 @@ Rank TraceRankForAccess(Arena arena, Seg seg)
   AVERT(Seg, seg);
 
   band = RankLIMIT; /* initialize with invalid rank */
-  ts = arena->flippedTraces;    
+  ts = arena->flippedTraces;
   AVER(TraceSetIsSingle(ts));
   TRACE_SET_ITER(ti, trace, ts, arena)
     band = traceBand(trace);
@@ -976,7 +977,7 @@ Rank TraceRankForAccess(Arena arena, Seg seg)
   NOTREACHED;
   return RankEXACT;
 }
- 
+
 /* traceFindGrey -- find a grey segment
  *
  * This function finds the next segment to scan.  It does this according
@@ -1019,10 +1020,10 @@ Rank TraceRankForAccess(Arena arena, Seg seg)
  * whilst working in this band.  That's what we check, although we
  * expect to have to change the check if we introduce more ranks, or
  * start changing the semantics of them.  A flag is used to implement
- * this check.  See <http://info.ravenbrook.com/project/mps/issue/job001658/>.
- * 
+ * this check.  See <https://www.ravenbrook.com/project/mps/issue/job001658/>.
+ *
  * For further discussion on the semantics of rank based tracing see
- * <http://info.ravenbrook.com/mail/2007/06/25/11-35-57/0.txt>
+ * <https://info.ravenbrook.com/mail/2007/06/25/11-35-57/0.txt>
  */
 
 static Bool traceFindGrey(Seg *segReturn, Rank *rankReturn,
@@ -1063,7 +1064,7 @@ static Bool traceFindGrey(Seg *segReturn, Rank *rankReturn,
           }
           *segReturn = seg;
           *rankReturn = rank;
-          EVENT4(TraceFindGrey, arena, ti, seg, rank);
+          EVENT4(TraceFindGrey, arena, trace, seg, rank);
           return TRUE;
         }
       }
@@ -1129,7 +1130,6 @@ static Res traceScanSegRes(TraceSet ts, Rank rank, Arena arena, Seg seg)
 
   /* The reason for scanning a segment is that it's grey. */
   AVER(TraceSetInter(ts, SegGrey(seg)) != TraceSetEMPTY);
-  EVENT4(TraceScanSeg, ts, rank, arena, seg);
 
   white = traceSetWhiteUnion(ts, arena);
 
@@ -1165,13 +1165,13 @@ static Res traceScanSegRes(TraceSet ts, Rank rank, Arena arena, Seg seg)
     });
 
     /* Following is true whether or not scan was total. */
-    /* See <design/scan/#summary.subset>. */
-    /* .verify.segsummary: were the seg contents, as found by this 
+    /* <design/scan#.summary.subset>. */
+    /* .verify.segsummary: were the seg contents, as found by this
      * scan, consistent with the recorded SegSummary?
      */
     AVER(RefSetSub(ScanStateUnfixedSummary(ss), SegSummary(seg))); /* <design/check/#.common> */
 
-    /* Write barrier deferral -- see design.mps.write-barrier.deferral. */
+    /* Write barrier deferral -- see <design/write-barrier#.deferral>. */
     /* Did the segment refer to the white set? */
     if (ZoneSetInter(ScanStateUnfixedSummary(ss), white) == ZoneSetEMPTY) {
       /* Boring scan.  One step closer to raising the write barrier. */
@@ -1260,7 +1260,7 @@ void TraceSegAccess(Arena arena, Seg seg, AccessSet mode)
 
   EVENT3(TraceAccess, arena, seg, mode);
 
-  /* Write barrier deferral -- see design.mps.write-barrier.deferral. */
+  /* Write barrier deferral -- see <design/write-barrier#.deferral>. */
   if (writeHit)
     seg->defer = WB_DEFER_HIT;
 
@@ -1269,11 +1269,11 @@ void TraceSegAccess(Arena arena, Seg seg, AccessSet mode)
     TraceSet traces;
 
     AVER(SegRankSet(seg) != RankSetEMPTY);
-    
+
     /* Pick set of traces to scan for: */
     traces = arena->flippedTraces;
     rank = TraceRankForAccess(arena, seg);
-    res = traceScanSeg(traces, rank, arena, seg);      
+    res = traceScanSeg(traces, rank, arena, seg);
 
     /* Allocation failures should be handled my emergency mode, and we don't
        expect any other kind of failure in a normal GC that causes access
@@ -1292,8 +1292,6 @@ void TraceSegAccess(Arena arena, Seg seg, AccessSet mode)
         ++trace->readBarrierHitCount;
       TRACE_SET_ITER_END(ti, trace, traces, arena);
     });
-  } else {              /* write barrier */
-    STATISTIC(++arena->writeBarrierHitCount);
   }
 
   /* The write barrier handling must come after the read barrier, */
@@ -1330,7 +1328,7 @@ mps_res_t _mps_fix2(mps_ss_t mps_ss, mps_addr_t *mps_ref_io)
   Res res;
 
   /* Special AVER macros are used on the critical path. */
-  /* See <design/trace/#fix.noaver> */
+  /* <design/trace#.fix.noaver> */
   AVERT_CRITICAL(ScanState, ss);
   AVER_CRITICAL(mps_ref_io != NULL);
 
@@ -1342,13 +1340,13 @@ mps_res_t _mps_fix2(mps_ss_t mps_ss, mps_addr_t *mps_ref_io)
                 ZoneSetEMPTY);
 
   STATISTIC(++ss->fixRefCount);
-  EVENT4(TraceFix, ss, mps_ref_io, ref, ss->rank);
+  EVENT_CRITICAL4(TraceFix, ss, mps_ref_io, ref, ss->rank);
 
   /* This sequence of tests is equivalent to calling TractOfAddr(),
    * but inlined so that we can distinguish between "not pointing to
    * chunk" and "pointing to chunk but not to tract" so that we can
    * check the rank in the latter case. See
-   * <design/trace/#fix.tractofaddr.inline>
+   * <design/trace#.fix.tractofaddr.inline>
    *
    * If compilers fail to do a good job of inlining ChunkOfAddr and
    * TreeFind then it may become necessary to inline at least the
@@ -1362,7 +1360,7 @@ mps_res_t _mps_fix2(mps_ss_t mps_ss, mps_addr_t *mps_ref_io)
   i = INDEX_OF_ADDR(chunk, ref);
   if (!BTGet(chunk->allocTable, i)) {
     /* Reference points into a chunk but not to an allocated tract.
-     * See <design/trace/#exact.legal> */
+     * <design/trace#.exact.legal> */
     AVER_CRITICAL(ss->rank < RankEXACT); /* <design/check/#.common> */
     goto done;
   }
@@ -1377,18 +1375,17 @@ mps_res_t _mps_fix2(mps_ss_t mps_ss, mps_addr_t *mps_ref_io)
      this test when walking references in the roots. */
   if (TraceSetInter(SegWhite(seg), ss->traces) == TraceSetEMPTY) {
     /* Reference points to a segment that is not white for any of the
-     * active traces. See <design/trace/#fix.tractofaddr> */
+     * active traces. <design/trace#.fix.tractofaddr> */
     STATISTIC({
       ++ss->segRefCount;
-      EVENT1(TraceFixSeg, seg);
+      EVENT_CRITICAL1(TraceFixSeg, seg);
     });
     goto done;
   }
 
   STATISTIC(++ss->segRefCount);
   STATISTIC(++ss->whiteSegRefCount);
-  EVENT1(TraceFixSeg, seg);
-  EVENT0(TraceFixWhite);
+  EVENT_CRITICAL1(TraceFixSeg, seg);
   res = (*ss->fix)(seg, ss, &ref);
   if (res != ResOK) {
     /* SegFixEmergency must not fail. */
@@ -1397,7 +1394,7 @@ mps_res_t _mps_fix2(mps_ss_t mps_ss, mps_addr_t *mps_ref_io)
      * Justification for this restriction:
      * A: it simplifies;
      * B: it's reasonable (given what may cause Fix to fail);
-     * C: the code (here) already assumes this: it returns without 
+     * C: the code (here) already assumes this: it returns without
      *    updating ss->fixedSummary.  RHSK 2007-03-21.
      */
     AVER_CRITICAL(ref == (Ref)*mps_ref_io);
@@ -1405,9 +1402,9 @@ mps_res_t _mps_fix2(mps_ss_t mps_ss, mps_addr_t *mps_ref_io)
   }
 
 done:
-  /* See <design/trace/#fix.fixed.all> */
+  /* <design/trace#.fix.fixed.all> */
   ss->fixedSummary = RefSetAdd(ss->arena, ss->fixedSummary, ref);
-  
+
   *mps_ref_io = (mps_addr_t)ref;
   return ResOK;
 }
@@ -1423,7 +1420,7 @@ static Res traceScanSingleRefRes(TraceSet ts, Rank rank, Arena arena,
   Res res;
   ScanStateStruct ss;
 
-  EVENT4(TraceScanSingleRef, ts, rank, arena, (Addr)refIO);
+  EVENT4(TraceScanSingleRef, ts, rank, arena, refIO);
 
   white = traceSetWhiteUnion(ts, arena);
   if(ZoneSetInter(SegSummary(seg), white) == ZoneSetEMPTY) {
@@ -1512,7 +1509,7 @@ Res TraceScanArea(ScanState ss, Word *base, Word *limit,
  * recently returned from TraceCreate, with some condemned segments
  * added. mortality is the fraction of the condemned set expected not
  * to survive. finishingTime is relative to the current polling clock,
- * see <design/arena/#poll.clock>.
+ * see <design/arena#.poll.clock>.
  *
  * .start.black: All segments are black w.r.t. a newly allocated trace.
  * However, if TraceStart initialized segments to black when it
@@ -1558,7 +1555,7 @@ Res TraceStart(Trace trace, double mortality, double finishingTime)
   AVER(trace->condemned > 0);
 
   arena = trace->arena;
-  
+
   /* From the already set up white set, derive a grey set. */
 
   /* @@@@ Instead of iterating over all the segments, we could */
@@ -1602,8 +1599,6 @@ Res TraceStart(Trace trace, double mortality, double finishingTime)
   res = RootsIterate(ArenaGlobals(arena), rootGrey, (void *)trace);
   AVER(res == ResOK);
 
-  STATISTIC(EVENT2(ArenaWriteFaults, arena, arena->writeBarrierHitCount));
-
   /* Calculate the rate of scanning. */
   {
     Size sSurvivors = (Size)(trace->condemned * (1.0 - mortality));
@@ -1624,10 +1619,9 @@ Res TraceStart(Trace trace, double mortality, double finishingTime)
 
   /* TODO: compute rate of scanning here. */
 
-  EVENT8(TraceStart, trace, mortality, finishingTime,
-         trace->condemned, trace->notCondemned,
-         trace->foundation, trace->white,
-         trace->quantumWork);
+  EVENT9(TraceStart, trace->arena, trace, mortality, finishingTime,
+         trace->condemned, trace->notCondemned, trace->foundation,
+         trace->white, trace->quantumWork);
 
   trace->state = TraceUNFLIPPED;
   TracePostStartMessage(trace);
@@ -1639,7 +1633,7 @@ Res TraceStart(Trace trace, double mortality, double finishingTime)
 
 /* traceWork -- a measure of the work done for this trace.
  *
- * See design.mps.type.work.
+ * <design/type#.work>.
  */
 
 #define traceWork(trace) ((Work)((trace)->segScanSize + (trace)->rootScanSize))
@@ -1696,7 +1690,7 @@ void TraceAdvance(Trace trace)
  * "why" is a TraceStartWhy* enum member that specifies why the
  * collection is starting. */
 
-Res TraceStartCollectAll(Trace *traceReturn, Arena arena, int why)
+Res TraceStartCollectAll(Trace *traceReturn, Arena arena, TraceStartWhy why)
 {
   Trace trace = NULL;
   Res res;
@@ -1866,18 +1860,18 @@ Res TraceDescribe(Trace trace, mps_lib_FILE *stream, Count depth)
  * <http://www.ravenbrook.com/>.
  * All rights reserved.  This is an open source license.  Contact
  * Ravenbrook for commercial licensing options.
- * 
+ *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are
  * met:
- * 
+ *
  * 1. Redistributions of source code must retain the above copyright
  * notice, this list of conditions and the following disclaimer.
- * 
+ *
  * 2. Redistributions in binary form must reproduce the above copyright
  * notice, this list of conditions and the following disclaimer in the
  * documentation and/or other materials provided with the distribution.
- * 
+ *
  * 3. Redistributions in any form must be accompanied by information on how
  * to obtain complete source code for this software and any accompanying
  * software that uses this software.  The source code must either be
@@ -1888,7 +1882,7 @@ Res TraceDescribe(Trace trace, mps_lib_FILE *stream, Count depth)
  * include source code for modules or files that typically accompany the
  * major components of the operating system on which the executable file
  * runs.
- * 
+ *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS
  * IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
  * TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR

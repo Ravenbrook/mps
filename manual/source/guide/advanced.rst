@@ -452,6 +452,15 @@ it:
     14456, 2> ht
     #[hashtable]
 
+.. note::
+
+    If the hash table is being used to implement a *set* (that is,
+    there are no values, only keys), and if it doesn't matter that the
+    same key appears twice in the table (under the hashes of its old
+    and new addresses) then you may be able to skip the staleness
+    check when adding a key. This is a delicate optimization, however:
+    if you needed to iterate over the keys, or maintain a count of
+    keys, then it would not work.
 
 .. topics::
 
@@ -496,7 +505,7 @@ to be automatically reclaimed when they die. So AWL it is.
     now the only uses our customers have had for weak references are the
     ones supported by AWL. (In particular, AWL was designed around the
     requirements of weak hash tables in `Open Dylan
-    <http://opendylan.org/>`_.) If you need more general handling of
+    <https://opendylan.org/>`_.) If you need more general handling of
     weak references, :ref:`contact us <contact>`.
 
 All the references in a :term:`formatted object` belong to the same
@@ -877,7 +886,7 @@ Second, the leaf objects must be allocated on ``leaf_ap`` instead of
     res = mps_ap_create_k(&leaf_ap, leaf_pool, mps_args_none);
     if (res != MPS_RES_OK) error("Couldn't create leaf objects allocation point");
 
-Note that the new pool shared a :term:`generation chain` with the old
+Note that the new pool shares a :term:`generation chain` with the old
 pool. This is important, because the leaf objects live and die along
 with the non-leaf objects of similar ages.
 
