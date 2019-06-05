@@ -13,21 +13,12 @@
 
 #include "mpm.h"
 
+
+/* StackContext -- some of the mutator's state */
+
+typedef struct StackContextStruct StackContextStruct;
+
      
-/* StackContext -- some of the mutator's state
- *
- * The jumpBuffer is used to capture most of the mutator's state on
- * entry to the MPS, but can't capture it all.  See
- * <design/stack-scan#.sol.setjmp.scan>.
- */
-
-#include <setjmp.h>
-
-typedef struct StackContextStruct {
-  jmp_buf jumpBuffer;
-} StackContextStruct;
-
-
 /* StackHot -- capture a hot stack pointer
  *
  * Sets *stackOut to a stack pointer that includes the current frame.
@@ -59,6 +50,44 @@ void StackHot(void **stackOut);
 
 /* STACK_CONTEXT_SAVE -- save the callee-saves and stack pointer */
 
+#if (defined(MPS_OS_FR) || defined(MPS_OS_LI)) && defined(MPS_ARCH_I3)
+
+struct StackContextStruct {
+  Word calleeSave[4];
+};
+
+#define STACK_CONTEXT_SAVE(sc)                                       \
+  BEGIN                                                              \
+    __asm__ volatile ("mov %%ebx, %0" : "=m" ((sc)->calleeSave[0])); \
+    __asm__ volatile ("mov %%esi, %0" : "=m" ((sc)->calleeSave[1])); \
+    __asm__ volatile ("mov %%edi, %0" : "=m" ((sc)->calleeSave[2])); \
+    __asm__ volatile ("mov %%ebp, %0" : "=m" ((sc)->calleeSave[3])); \
+  END
+
+#elif (defined(MPS_OS_FR) || defined(MPS_OS_LI)) && defined(MPS_ARCH_I6)
+
+struct StackContextStruct {
+  Word calleeSave[6];
+};
+
+#define STACK_CONTEXT_SAVE(sc)                                       \
+  BEGIN                                                              \
+    __asm__ volatile ("mov %%rbp, %0" : "=m" ((sc)->calleeSave[0])); \
+    __asm__ volatile ("mov %%rbx, %0" : "=m" ((sc)->calleeSave[1])); \
+    __asm__ volatile ("mov %%r12, %0" : "=m" ((sc)->calleeSave[2])); \
+    __asm__ volatile ("mov %%r13, %0" : "=m" ((sc)->calleeSave[3])); \
+    __asm__ volatile ("mov %%r14, %0" : "=m" ((sc)->calleeSave[4])); \
+    __asm__ volatile ("mov %%r15, %0" : "=m" ((sc)->calleeSave[5])); \
+  END
+
+#else /* jmp_buf platforms */
+
+#include <setjmp.h>
+
+struct StackContextStruct {
+  jmp_buf jumpBuffer;
+};
+
 #if defined(MPS_OS_XC)
 
 /* We call _setjmp rather than setjmp because we can be confident what
@@ -74,7 +103,9 @@ void StackHot(void **stackOut);
 
 #define STACK_CONTEXT_SAVE(sc) ((void)setjmp((sc)->jumpBuffer))
 
-#endif /* platform defines */
+#endif /* jmp_buf platforms */
+
+#endif /* platform specific code */
 
 
 /* StackScan -- scan the mutator's stack and registers
