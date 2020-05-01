@@ -7,7 +7,7 @@ open source.
 The open source license for the MPS is the `2-Clause BSD License`_.
 
 This license applies to all material published in public MPS repositories by
-Ravenbrook Limited proir to 2020-05-01 marked with the earlier
+Ravenbrook Limited prior to 2020-05-01 marked with the earlier
 `Sleepycat License`_.  Such material is hereby relicensed under the
 `2-Clause BSD License`_.
 
