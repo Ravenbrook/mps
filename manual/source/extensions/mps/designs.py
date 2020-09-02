@@ -13,6 +13,7 @@ import os.path
 import glob
 import re
 import sys
+from sphinx.util import logging
 from sphinx.util.console import bold
 
 TYPES = '''
@@ -119,9 +120,11 @@ def convert_file(name, source, dest):
     with open(dest, 'wb') as out:
         out.write(s.encode('utf-8'))
 
+logger = logging.getLogger(__name__)
+
 # Mini-make
 def convert_updated(app):
-    app.info(bold('converting MPS design documents'))
+    logger.info(bold('converting MPS design documents'))
     for design in glob.iglob('../design/*.txt'):
         name = os.path.splitext(os.path.basename(design))[0]
         if name == 'index': continue
@@ -129,5 +132,5 @@ def convert_updated(app):
         if (not os.path.isfile(converted)
             or os.path.getmtime(converted) < os.path.getmtime(design)
             or os.path.getmtime(converted) < os.path.getmtime(__file__)):
-            app.info('converting design %s' % name)
+            logger.info('converting design %s' % name)
             convert_file(name, design, converted)
