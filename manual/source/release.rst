@@ -4,8 +4,6 @@ Release notes
 =============
 
 
-.. _release-notes-1.117:
-
 Release 1.117.0
 ---------------
 

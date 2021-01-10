@@ -225,7 +225,7 @@ void GenDescEndTrace(GenDesc gen, Trace trace)
   AVER(survived <= genTrace->condemned);
 
   if (genTrace->condemned > 0) {
-    double mortality = 1.0 - survived / (double)genTrace->condemned;
+    double mortality = 1.0 - (double)survived / (double)genTrace->condemned;
     double alpha = LocusMortalityALPHA;
     gen->mortality = gen->mortality * (1 - alpha) + mortality * alpha;
     EVENT6(TraceEndGen, trace, gen, genTrace->condemned, genTrace->forwarded,
