@@ -441,14 +441,14 @@ Res TraceCondemnEnd(double *mortalityReturn, Trace trace)
     }
     AVER(trace->condemned >= condemnedBefore);
     condemnedGen = trace->condemned - condemnedBefore;
-    casualtySize += (Size)((double)condemnedGen * gen->mortality);
+    casualtySize += (Size)DoubleProduct(condemnedGen, gen->mortality);
   }
   ShieldRelease(trace->arena);
 
   if (TraceIsEmpty(trace))
     return ResFAIL;
 
-  *mortalityReturn = (double)casualtySize / (double)trace->condemned;
+  *mortalityReturn = DoubleRatio(casualtySize, trace->condemned);
   return ResOK;
 
 failBegin:
@@ -1601,7 +1601,7 @@ Res TraceStart(Trace trace, double mortality, double finishingTime)
 
   /* Calculate the rate of scanning. */
   {
-    Size sSurvivors = (Size)((double)trace->condemned * (1.0 - mortality));
+    Size sSurvivors = (Size)DoubleProduct(trace->condemned, 1.0 - mortality);
     double nPolls = finishingTime / ArenaPollALLOCTIME;
 
     /* There must be at least one poll. */
@@ -1680,7 +1680,7 @@ void TraceAdvance(Trace trace)
 
   newWork = traceWork(trace);
   AVER(newWork >= oldWork);
-  arena->tracedWork += (double)(newWork - oldWork);
+  DoubleAccumulate(arena->tracedWork, newWork - oldWork);
 }
 
 
@@ -1721,8 +1721,7 @@ Res TraceStartCollectAll(Trace *traceReturn, Arena arena, TraceStartWhy why)
   res = TraceCondemnEnd(&mortality, trace);
   if(res != ResOK) /* should try some other trace, really @@@@ */
     goto failCondemn;
-  finishingTime = (double)ArenaAvail(arena)
-    - (double)trace->condemned * (1.0 - mortality);
+  finishingTime = ArenaAvail(arena) - DoubleProduct(trace->condemned, 1.0 - mortality);
   if(finishingTime < 0) {
     /* Run out of time, should really try a smaller collection. @@@@ */
     finishingTime = 0.0;

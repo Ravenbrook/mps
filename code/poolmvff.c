@@ -83,7 +83,7 @@ static void MVFFReduce(MVFF mvff)
      threshold fraction of the total memory. */
 
   totalLand = MVFFTotalLand(mvff);
-  freeLimit = (Size)((double)LandSize(totalLand) * mvff->spare);
+  freeLimit = (Size)DoubleProduct(LandSize(totalLand), mvff->spare);
   freeLand = MVFFFreeLand(mvff);
   freeSize = LandSize(freeLand);
   if (freeSize < freeLimit)

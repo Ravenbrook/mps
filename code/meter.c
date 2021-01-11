@@ -34,9 +34,6 @@ void MeterInit(Meter meter, const char *name, void *owner)
 void MeterAccumulate(Meter meter, Size amount)
 {
   Count count = meter->count + 1;
-  double total = meter->total;
-  double meanSquared = meter->meanSquared;
-  double dcount = (double)count;
 
   /* .limitation.variance: This computation accumulates a running
    * mean^2, minimizing overflow, but sacrificing numerical stability
@@ -45,10 +42,10 @@ void MeterAccumulate(Meter meter, Size amount)
     .stddev: stddev = sqrt(meanSquared - mean^2).
    */
   meter->count = count;
-  meter->total = total + (double)amount;
+  DoubleAccumulate(meter->total, amount);
   meter->meanSquared =
-    meanSquared / dcount * (dcount - 1.0)
-    + (double)amount / dcount * (double)amount;
+    DoubleProduct(DoubleRatio(meter->meanSquared, count), count - 1)
+    + DoubleProduct(DoubleRatio(amount, count), amount);
   if (amount > meter->max)
     meter->max = amount;
   if (amount < meter->min)

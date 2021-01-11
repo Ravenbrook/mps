@@ -573,8 +573,10 @@ extern Size ArenaCommitted(Arena arena);
 extern Size ArenaSpareCommitted(Arena arena);
 extern double ArenaSpare(Arena arena);
 extern void ArenaSetSpare(Arena arena, double spare);
-#define ArenaSpareCommitLimit(arena) ((Size)((double)ArenaCommitted(arena) * ArenaSpare(arena)))
-#define ArenaCurrentSpare(arena) ((double)ArenaSpareCommitted(arena) / (double)ArenaCommitted(arena))
+#define ArenaSpareCommitLimit(arena) \
+  ((Size)DoubleProduct(ArenaCommitted(arena), ArenaSpare(arena)))
+#define ArenaCurrentSpare(arena) \
+  DoubleRatio(ArenaSpareCommitted(arena), ArenaCommitted(arena))
 
 extern Size ArenaCommitLimit(Arena arena);
 extern Res ArenaSetCommitLimit(Arena arena, Size limit);
