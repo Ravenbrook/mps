@@ -245,6 +245,45 @@ typedef const struct SrcIdStruct {
 #define ERRNO_RESTORE END; errno = _saved_errno; END
 
 
+/* Macros silencing compiler warnings that have been analyzed and
+ * determined to be harmless. See <design/config/#.warning.silence>.
+ */
+
+
+/* DoubleAccumulate -- add an expression to a double-precision
+ * accumulator, for cases where loss of precision is acceptable.
+ */
+
+#define DoubleAccumulate(accumulator, addend) \
+  ((accumulator) += (double)(addend))
+
+
+/* DoubleDissipate -- subtract an expression from a double-precision
+ * accumulator, for cases where loss of precision is acceptable.
+ */
+
+#define DoubleDissipate(accumulator, subtrahend) \
+  ((accumulator) -= (double)(subtrahend))
+
+
+/* DoubleProduct -- double-precision product of two expressions, for
+ * cases where loss of precision is acceptable, for example computing
+ * a threshold as a proportion of a size.
+ */
+
+#define DoubleProduct(multiplicand, multiplier) \
+  ((double)(multiplicand) * (double)(multiplier))
+
+
+/* DoubleRatio -- double-precision ratio of two expressions, for cases
+ * where loss of precision is acceptable.
+ */
+
+#define DoubleRatio(dividend, divisor) \
+  ((double)(dividend) / (double)(divisor))
+
+
+
 #endif /* misc_h */
 
 
