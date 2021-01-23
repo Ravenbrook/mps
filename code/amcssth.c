@@ -43,6 +43,7 @@ static mps_gen_param_s testChain[genCOUNT] = {
 #define objNULL           ((mps_addr_t)MPS_WORD_CONST(0xDECEA5ED))
 
 
+static testthr_mutex_t exactRootsLock;
 static mps_addr_t exactRoots[exactRootsCOUNT];
 static mps_addr_t ambigRoots[ambigRootsCOUNT];
 
@@ -96,6 +97,7 @@ static void churn(mps_ap_t ap, size_t roots_count)
   ++objs;
   r = (size_t)rnd();
   if (r & 1) {
+    testthr_mutex_lock(&exactRootsLock);
     i = (r >> 1) % exactRootsCOUNT;
     if (exactRoots[i] != objNULL)
       cdie(dylan_check(exactRoots[i]), "dying root check");
@@ -103,9 +105,12 @@ static void churn(mps_ap_t ap, size_t roots_count)
     if (exactRoots[(exactRootsCOUNT-1) - i] != objNULL)
       dylan_write(exactRoots[(exactRootsCOUNT-1) - i],
                   exactRoots, exactRootsCOUNT);
+    testthr_mutex_unlock(&exactRootsLock);
   } else {
     i = (r >> 1) % ambigRootsCOUNT;
+    testthr_mutex_lock(&exactRootsLock);
     ambigRoots[(ambigRootsCOUNT-1) - i] = make(ap, roots_count);
+    testthr_mutex_unlock(&exactRootsLock);
     /* Create random interior pointers */
     ambigRoots[i] = (mps_addr_t)((char *)(ambigRoots[i/2]) + 1);
   }
@@ -203,9 +208,11 @@ static void test_pool(const char *name, mps_pool_t pool, size_t roots_count)
                (unsigned long)collections, objs,
                (unsigned long)mps_arena_committed(arena));
 
+        testthr_mutex_lock(&exactRootsLock);
         for (i = 0; i < exactRootsCOUNT; ++i)
           cdie(exactRoots[i] == objNULL || dylan_check(exactRoots[i]),
                "all roots check");
+        testthr_mutex_unlock(&exactRootsLock);
 
         if (collections >= collectionsCOUNT / 2 && !walked)
         {
@@ -227,12 +234,14 @@ static void test_pool(const char *name, mps_pool_t pool, size_t roots_count)
                 "pattern end (busy_ap)");
             ramping = 0;
             /* kill half of the roots */
+            testthr_mutex_lock(&exactRootsLock);
             for(i = 0; i < exactRootsCOUNT; i += 2) {
               if (exactRoots[i] != objNULL) {
                 cdie(dylan_check(exactRoots[i]), "ramp kill check");
                 exactRoots[i] = objNULL;
               }
             }
+            testthr_mutex_lock(&exactRootsLock);
           }
           if (begin_ramp) {
             die(mps_ap_alloc_pattern_begin(ap, ramp),
@@ -312,8 +321,10 @@ static void test_arena(void)
   die(mps_pool_create(&amcz_pool, arena, mps_class_amcz(), format, chain),
       "pool_create(amcz)");
 
+  testthr_mutex_init(&exactRootsLock);
   test_pool("AMC", amc_pool, exactRootsCOUNT);
   test_pool("AMCZ", amcz_pool, 0);
+  testthr_mutex_finish(&exactRootsLock);
 
   mps_arena_park(arena);
   mps_pool_destroy(amc_pool);

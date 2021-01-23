@@ -23,9 +23,9 @@ _`.readership`: Any MPS developer.
 _`.overview`: The MPS is designed to work in a multi-threaded
 environment (see design.mps.thread-safety_) and this needs to be
 tested on all supported platforms. The multi-threaded testing module
-provides an interface for creating and joining threads, so that
-multi-threaded test cases are portable to all platforms on which the
-MPS runs.
+provides interfaces for creating and joining threads, and for locking
+and unlocked mutexes, so that multi-threaded test cases are portable
+to all platforms on which the MPS runs.
 
 .. _design.mps.thread-safety: thread-safety
 
@@ -41,6 +41,10 @@ _`.req.join`: The module must provide an interface for joining a
 running thread: that is, waiting for the thread to finish and
 collecting a result. (Because we want to be able to test that the MPS
 behaves correctly when interacting with a finished thread.)
+
+_`.req.mutex`: The module must provide an interface for mutual
+exclusion. (Because we want to be able to write tests in which
+multiple threads modify the same data structure.)
 
 _`.req.portable`: The module must be easily portable to all the
 platforms on which the MPS runs.
@@ -94,6 +98,29 @@ until the target thread terminates (if necessary), and if ``result_o``
 is non-NULL, update ``*result_o`` with the return value of the
 thread's ``start()`` function.
 
+``typedef testthr_mutex_t``
+
+The type of (non-recursive) mutexes.
+
+``void testthr_mutex_init(testthr_mutex_t *mutex)``
+
+Initialize a mutex. Must be called before any other operation on the
+mutex.
+
+``void testthr_mutex_finish(testthr_mutex_t *mutex)``
+
+Finish a mutex. After this, the mutex must not be used until it has
+been re-initialized.
+
+``void testthr_mutex_lock(testthr_mutex_t *mutex)``
+
+Lock the mutex, blocking the current thread until the lock is
+acquired. The mutex must not be locked by the current thread.
+
+``void testthr_mutex_unlock(testthr_mutex_t *mutex)``
+
+Unlock the mutex.
+
 
 References
 ----------
@@ -108,6 +135,8 @@ Document History
 ----------------
 
 - 2014-10-21 GDR_ Initial draft.
+
+- 2021-01-23 GDR_ Add mutex interface.
 
 .. _GDR: https://www.ravenbrook.com/consultants/gdr/
 

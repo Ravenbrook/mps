@@ -23,6 +23,34 @@ void testthr_join(testthr_t *thread, void **result_o)
     error("pthread_join failed with result %d (%s)", res, strerror(res));
 }
 
+void testthr_mutex_init(testthr_mutex_t *mutex)
+{
+  int res = pthread_mutex_init(mutex, NULL);
+  if (res != 0)
+    error("pthread_mutex_init failed with result %d (%s)", res, strerror(res));
+}
+
+void testthr_mutex_finish(testthr_mutex_t *mutex)
+{
+  int res = pthread_mutex_destroy(mutex);
+  if (res != 0)
+    error("pthread_mutex_destroy failed with result %d (%s)", res, strerror(res));
+}
+
+void testthr_mutex_lock(testthr_mutex_t *mutex)
+{
+  int res = pthread_mutex_lock(mutex);
+  if (res != 0)
+    error("pthread_mutex_lock failed with result %d (%s)", res, strerror(res));
+}
+
+void testthr_mutex_unlock(testthr_mutex_t *mutex)
+{
+  int res = pthread_mutex_unlock(mutex);
+  if (res != 0)
+    error("pthread_mutex_unlock failed with result %d (%s)", res, strerror(res));
+}
+
 
 /* C. COPYRIGHT AND LICENSE
  *

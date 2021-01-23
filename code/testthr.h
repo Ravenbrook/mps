@@ -24,8 +24,9 @@ typedef void *(*testthr_routine_t)(void *);
 
 
 /* testthr_t -- type of thread identifiers
+ * testthr_mutex_t -- type of mutexes
  *
- * It is necessary to define it here (even though it requires some
+ * It is necessary to define these here (even though it requires some
  * #ifdefs) so that clients can allocate storage for them.
  */
 
@@ -45,6 +46,8 @@ typedef struct testthr_t {
   void *result;               /* result returned from start */
 } testthr_t;
 
+typedef CRITICAL_SECTION testthr_mutex_t;
+
 #elif defined(MPS_OS_FR) || defined(MPS_OS_LI) || defined(MPS_OS_XC)
 
 #include <pthread.h>
@@ -54,6 +57,8 @@ typedef struct testthr_t {
  * <https://pubs.opengroup.org/onlinepubs/9699919799/basedefs/sys_types.h.html>
  */
 typedef pthread_t testthr_t;
+
+typedef pthread_mutex_t testthr_mutex_t;
 
 #else
 #error "Unknown platform: can't determine a type for testthr_t."
@@ -77,6 +82,27 @@ void testthr_create(testthr_t *thread_o, testthr_routine_t start, void *arg);
  */
 
 void testthr_join(testthr_t *thread, void **result_o);
+
+
+/* testthr_mutex_init -- initialize mutex */
+
+void testthr_mutex_init(testthr_mutex_t *mutex);
+
+
+/* testthr_mutex_finish -- finish mutex */
+
+void testthr_mutex_finish(testthr_mutex_t *mutex);
+
+
+/* testthr_mutex_lock -- lock mutex (blocking if necessary) */
+
+void testthr_mutex_lock(testthr_mutex_t *mutex);
+
+
+/* testthr_mutex_unlock -- unlock mutex */
+
+void testthr_mutex_unlock(testthr_mutex_t *mutex);
+
 
 #endif /* testthr_h */
 

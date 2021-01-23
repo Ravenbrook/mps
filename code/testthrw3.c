@@ -37,6 +37,26 @@ void testthr_join(testthr_t *thread, void **result_o)
     *result_o = thread->result;
 }
 
+void testthr_mutex_init(testthr_mutex_t *mutex)
+{
+  InitializeCriticalSection(mutex);
+}
+
+void testthr_mutex_finish(testthr_mutex_t *mutex)
+{
+  DeleteCriticalSection(mutex);
+}
+
+void testthr_mutex_lock(testthr_mutex_t *mutex)
+{
+  EnterCriticalSection(mutex);
+}
+
+void testthr_mutex_unlock(testthr_mutex_t *mutex)
+{
+  LeaveCriticalSection(mutex);
+}
+
 
 /* C. COPYRIGHT AND LICENSE
  *
