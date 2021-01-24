@@ -45,6 +45,8 @@ typedef struct testthr_t {
   void *result;               /* result returned from start */
 } testthr_t;
 
+#define testthr_synchronize()
+
 #elif defined(MPS_OS_FR) || defined(MPS_OS_LI) || defined(MPS_OS_XC)
 
 #include <pthread.h>
@@ -54,6 +56,8 @@ typedef struct testthr_t {
  * <https://pubs.opengroup.org/onlinepubs/9699919799/basedefs/sys_types.h.html>
  */
 typedef pthread_t testthr_t;
+
+#define testthr_synchronize() (__sync_synchronize())
 
 #else
 #error "Unknown platform: can't determine a type for testthr_t."

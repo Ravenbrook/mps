@@ -90,19 +90,28 @@ static void test_stepper(mps_addr_t object, mps_fmt_t fmt, mps_pool_t pool,
 
 static void churn(mps_ap_t ap, size_t roots_count)
 {
-  size_t i;
+  size_t i, j;
   size_t r;
 
   ++objs;
   r = (size_t)rnd();
   if (r & 1) {
+    mps_addr_t root;
     i = (r >> 1) % exactRootsCOUNT;
-    if (exactRoots[i] != objNULL)
-      cdie(dylan_check(exactRoots[i]), "dying root check");
-    exactRoots[i] = make(ap, roots_count);
-    if (exactRoots[(exactRootsCOUNT-1) - i] != objNULL)
-      dylan_write(exactRoots[(exactRootsCOUNT-1) - i],
-                  exactRoots, exactRootsCOUNT);
+    root = exactRoots[i];
+    if (root != objNULL) {
+      testthr_synchronize();
+      cdie(dylan_check(root), "dying root check");
+    }
+    root = make(ap, roots_count);
+    testthr_synchronize();
+    exactRoots[i] = root;
+    j = exactRootsCOUNT - i - 1;
+    root = exactRoots[j];
+    if (root != objNULL) {
+      testthr_synchronize();
+      dylan_write(root, exactRoots, exactRootsCOUNT);
+    }
   } else {
     i = (r >> 1) % ambigRootsCOUNT;
     ambigRoots[(ambigRootsCOUNT-1) - i] = make(ap, roots_count);
@@ -203,9 +212,13 @@ static void test_pool(const char *name, mps_pool_t pool, size_t roots_count)
                (unsigned long)collections, objs,
                (unsigned long)mps_arena_committed(arena));
 
-        for (i = 0; i < exactRootsCOUNT; ++i)
-          cdie(exactRoots[i] == objNULL || dylan_check(exactRoots[i]),
-               "all roots check");
+        for (i = 0; i < exactRootsCOUNT; ++i) {
+          mps_root_t root = exactRoots[i];
+          if (root != objNULL) {
+            testthr_synchronize();
+            cdie(dylan_check(root), "all roots check");
+          }
+        }
 
         if (collections >= collectionsCOUNT / 2 && !walked)
         {
@@ -228,8 +241,10 @@ static void test_pool(const char *name, mps_pool_t pool, size_t roots_count)
             ramping = 0;
             /* kill half of the roots */
             for(i = 0; i < exactRootsCOUNT; i += 2) {
-              if (exactRoots[i] != objNULL) {
-                cdie(dylan_check(exactRoots[i]), "ramp kill check");
+              mps_root_t root = exactRoots[i];
+              if (root != objNULL) {
+                testthr_synchronize();
+                cdie(dylan_check(root), "ramp kill check");
                 exactRoots[i] = objNULL;
               }
             }
