@@ -29,7 +29,7 @@
 #define exactRootsCOUNT   180
 #define ambigRootsCOUNT   50
 #define genCOUNT          2
-#define collectionsCOUNT  37
+#define collectionsCOUNT  370
 #define rampSIZE          9
 #define initTestFREQ      6000
 
@@ -96,10 +96,16 @@ static void churn(mps_ap_t ap, size_t roots_count)
   ++objs;
   r = (size_t)rnd();
   if (r & 1) {
+    mps_addr_t root;
     i = (r >> 1) % exactRootsCOUNT;
-    if (exactRoots[i] != objNULL)
-      cdie(dylan_check(exactRoots[i]), "dying root check");
-    exactRoots[i] = make(ap, roots_count);
+    root = exactRoots[i]; /* read once to avoid race */
+    if (root != objNULL) {
+      __sync_synchronize(); /* ensure object is initialized before checking */
+      cdie(dylan_check(root), "dying root check");
+    }
+    root = make(ap, roots_count);
+    __sync_synchronize(); /* ensure object is initialized before MPS scans it */
+    exactRoots[i] = root;
     if (exactRoots[(exactRootsCOUNT-1) - i] != objNULL)
       dylan_write(exactRoots[(exactRootsCOUNT-1) - i],
                   exactRoots, exactRootsCOUNT);
