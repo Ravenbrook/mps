@@ -103,8 +103,10 @@ mps_res_t dylan_init(mps_addr_t addr, size_t size,
 
       if(nr_refs == 0 || (r & 1))
         p[2+i] = ((r & ~(mps_word_t)3) | 1); /* random int */
-      else
-        p[2+i] = (mps_word_t)refs[(r >> 1) % nr_refs]; /* random ptr */
+      else {
+        mps_word_t *ref = (mps_word_t *)&refs[(r >> 1) % nr_refs]; /* random ptr */
+        __atomic_load(ref, &p[2 + i], __ATOMIC_SEQ_CST);
+      }
     }
   } else {
     return MPS_RES_UNIMPL;
@@ -158,8 +160,10 @@ void dylan_write(mps_addr_t addr, mps_addr_t *refs, size_t nr_refs)
 
     if(r & 1)
       p[i] = ((r & ~(mps_word_t)3) | 1); /* random int */
-    else
-      p[i] = (mps_word_t)refs[(r >> 1) % nr_refs]; /* random ptr */
+    else {
+      mps_word_t *ref = (mps_word_t *)&refs[(r >> 1) % nr_refs]; /* random ptr */
+      __atomic_load(ref, &p[i], __ATOMIC_SEQ_CST);
+    }
   }
 }
 
