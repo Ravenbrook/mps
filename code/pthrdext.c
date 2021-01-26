@@ -110,8 +110,11 @@ static void suspendSignalHandler(int sig,
 static void resumeSignalHandler(int sig)
 {
   ERRNO_SAVE {
+    int status;
     AVER(sig == PTHREADEXT_SIGRESUME);
     UNUSED(sig);
+    status = sem_post(&pthreadextSem);
+    AVER(status == 0);
   } ERRNO_RESTORE;
 }
 
@@ -337,6 +340,13 @@ Res PThreadextResume(PThreadext target)
     /* Really want to resume the thread. Signal it to continue. */
     status = pthread_kill(target->id, PTHREADEXT_SIGRESUME);
     if (status == 0) {
+      /* Wait for the victim to acknowledge resume. */
+      while (sem_wait(&pthreadextSem) != 0) {
+        if (errno != EINTR) {
+          res = ResFAIL;
+          goto unlock;
+        }
+      }
       goto noteResumed;
     } else {
       res = ResFAIL;
