@@ -98,18 +98,15 @@ static void churn(mps_ap_t ap, size_t roots_count)
   if (r & 1) {
     mps_addr_t root;
     i = (r >> 1) % exactRootsCOUNT;
-    root = exactRoots[i];
+    __atomic_load(&exactRoots[i], &root, __ATOMIC_SEQ_CST);
     if (root != objNULL) {
-      testthr_synchronize();
       cdie(dylan_check(root), "dying root check");
     }
     root = make(ap, roots_count);
-    testthr_synchronize();
-    exactRoots[i] = root;
+    __atomic_store(&exactRoots[i], &root, __ATOMIC_SEQ_CST);
     j = exactRootsCOUNT - i - 1;
-    root = exactRoots[j];
+    __atomic_load(&exactRoots[j], &root, __ATOMIC_SEQ_CST);
     if (root != objNULL) {
-      testthr_synchronize();
       dylan_write(root, exactRoots, exactRootsCOUNT);
     }
   } else {
@@ -213,9 +210,9 @@ static void test_pool(const char *name, mps_pool_t pool, size_t roots_count)
                (unsigned long)mps_arena_committed(arena));
 
         for (i = 0; i < exactRootsCOUNT; ++i) {
-          mps_root_t root = exactRoots[i];
+          mps_addr_t root;
+          __atomic_load(&exactRoots[i], &root, __ATOMIC_SEQ_CST);
           if (root != objNULL) {
-            testthr_synchronize();
             cdie(dylan_check(root), "all roots check");
           }
         }
@@ -241,11 +238,12 @@ static void test_pool(const char *name, mps_pool_t pool, size_t roots_count)
             ramping = 0;
             /* kill half of the roots */
             for(i = 0; i < exactRootsCOUNT; i += 2) {
-              mps_root_t root = exactRoots[i];
+              mps_addr_t root;
+              __atomic_load(&exactRoots[i], &root, __ATOMIC_SEQ_CST);
               if (root != objNULL) {
-                testthr_synchronize();
                 cdie(dylan_check(root), "ramp kill check");
-                exactRoots[i] = objNULL;
+                root = objNULL;
+                __atomic_store(&exactRoots[i], &root, __ATOMIC_SEQ_CST);
               }
             }
           }
@@ -292,6 +290,8 @@ static void test_arena(void)
   mps_root_t reg_root;
   mps_pool_t amc_pool, amcz_pool;
   void *marker = &marker;
+
+  die(dylan_make_wrappers(), "make wrappers");
 
   MPS_ARGS_BEGIN(args) {
     MPS_ARGS_ADD(args, MPS_KEY_ARENA_SIZE, testArenaSIZE);
