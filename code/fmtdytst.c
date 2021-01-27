@@ -211,12 +211,16 @@ mps_addr_t dylan_read(mps_addr_t addr)
 
 mps_bool_t dylan_check(mps_addr_t addr)
 {
+  mps_word_t *wrapper;
   assert(addr != 0);
   assert(((mps_word_t)addr & (ALIGN-1)) == 0);
-  assert(dylan_wrapper_check((mps_word_t *)((mps_word_t *)addr)[0]));
+
+  __atomic_load((mps_word_t **)addr, &wrapper, __ATOMIC_SEQ_CST);
+  assert(dylan_wrapper_check(wrapper));
   /* .assert.unused: Asserts throw away their conditions */
-  /* in hot varieties, so UNUSED is needed. */
+  /* in NDEBUG varieties, so UNUSED is needed. */
   unused(addr);
+  unused(wrapper);
   return 1;
 }
 
