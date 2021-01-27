@@ -93,10 +93,11 @@ mps_res_t dylan_init(mps_addr_t addr, size_t size,
 
   /* If there is enough room, make a vector. */
   if(size >= sizeof(mps_word_t) * 2) {
-    mps_word_t *p = (mps_word_t *)addr;
+    mps_word_t *p = (mps_word_t *)addr, *ref;
     mps_word_t i, t = (size / sizeof(mps_word_t)) - 2;
 
-    p[0] = (mps_word_t)tvw;     /* install vector wrapper */
+    ref = (mps_word_t *)&tvw;   /* install vector wrapper */
+    __atomic_load(ref, &p[0], __ATOMIC_SEQ_CST);
     p[1] = (t << 2) | 1;        /* tag the vector length */
     for(i = 0; i < t; ++i) {
       mps_word_t r = rnd();
@@ -104,7 +105,7 @@ mps_res_t dylan_init(mps_addr_t addr, size_t size,
       if(nr_refs == 0 || (r & 1))
         p[2+i] = ((r & ~(mps_word_t)3) | 1); /* random int */
       else {
-        mps_word_t *ref = (mps_word_t *)&refs[(r >> 1) % nr_refs]; /* random ptr */
+        ref = (mps_word_t *)&refs[(r >> 1) % nr_refs]; /* random ptr */
         __atomic_load(ref, &p[2 + i], __ATOMIC_SEQ_CST);
       }
     }
@@ -119,7 +120,7 @@ mps_res_t make_dylan_vector(mps_word_t *v, mps_ap_t ap, size_t slots)
 {
   mps_res_t res;
   mps_addr_t addr;
-  mps_word_t *p;
+  mps_word_t *p, *ref;
   size_t size;
   size_t i;
 
@@ -135,7 +136,8 @@ mps_res_t make_dylan_vector(mps_word_t *v, mps_ap_t ap, size_t slots)
       return res;
 
     p = (mps_word_t *)addr;
-    p[0] = (mps_word_t)tvw;     /* install vector wrapper */
+    ref = (mps_word_t *)&tvw;   /* install vector wrapper */
+    __atomic_load(ref, &p[0], __ATOMIC_SEQ_CST);
     p[1] = (slots << 2) | 1;    /* tag the vector length */
     /* fill all slots with zero ints. */
     for (i=0; i<slots; ++i) {
