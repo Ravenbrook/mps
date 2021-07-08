@@ -31,11 +31,13 @@ Design
     monitor
     nailboard
     pool
+    poollo
     prmc
     prot
     protix
     range
     ring
+    seg
     shield
     sig
     sp

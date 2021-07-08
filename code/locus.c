@@ -691,9 +691,11 @@ void PoolGenAccountForEmpty(PoolGen pgen, Size used, Size unused, Bool deferred)
 /* PoolGenAccountForAge -- accounting for condemning
  *
  * Call this when memory is condemned via PoolWhiten, or when
- * artificially ageing memory in PoolGenFree. The size parameter
- * should be the amount of memory that is being condemned for the
- * first time. The deferred flag is as for PoolGenAccountForEmpty.
+ * artificially ageing memory in PoolGenAccountForFree. The wasBuffered
+ * parameter must be the amount of memory that was previously accounted
+ * as buffered, and wasNew must be the amount of memory accounted as new
+ * that is being condemned for the first time. The deferred flag is as
+ * for PoolGenAccountForEmpty.
  *
  * <design/strategy#.accounting.op.age>
  */
@@ -803,7 +805,7 @@ static void PoolGenAccountForFree(PoolGen pgen, Size size,
 }
 
 
-/* PoolGenFree -- free a segment and update accounting
+/* PoolGenFree -- update accounting prior to freeing a segment
  *
  * Pass the amount of memory in the segment that is accounted as free,
  * old, or new, respectively. The deferred flag is as for
@@ -826,8 +828,6 @@ void PoolGenFree(PoolGen pgen, Seg seg, Size freeSize, Size oldSize,
   PoolGenAccountForFree(pgen, size, oldSize, newSize, deferred);
 
   RingRemove(&SegGCSeg(seg)->genRing);
-
-  SegFree(seg);
 }
 
 

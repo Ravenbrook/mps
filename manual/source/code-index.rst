@@ -101,6 +101,7 @@ land.c        Land implementation. See design.mps.land_.
 ld.c          :ref:`topic-location` implementation.
 locus.c       Locus manager implementation. See design.mps.locus_.
 locus.h       Locus manager interface. See design.mps.locus_.
+marksweep.c   Mark-and-sweep segment implementation.
 message.c     :ref:`topic-message` implementation.
 meter.c       Debugging accumulator implementation.
 meter.h       Debugging accumulator interface.
