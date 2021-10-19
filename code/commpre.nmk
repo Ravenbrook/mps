@@ -141,6 +141,7 @@ MPMCOMMON=\
     [land] \
     [ld] \
     [locus] \
+    [marksweep] \
     [message] \
     [meter] \
     [mpm] \
