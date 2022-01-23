@@ -199,10 +199,10 @@ On a Unix (including macOS) machine:
         p4 -c $CLIENT client -d $CLIENT
         rm -rf /tmp/$CLIENT
 
-#. Edit the index of releases (``release/index.html``) and add the
+#. Edit the index of releases (``release/index.*``) and add the
    release to the table, in a manner consistent with previous releases.
 
-#. Edit the index of versions (``version/index.html``) and add the
+#. Edit the index of versions (``version/index.*``) and add the
    release to the list of releases for *VERSION*, in a manner consistent
    with previous releases.
 

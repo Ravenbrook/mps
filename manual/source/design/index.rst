@@ -45,6 +45,7 @@ Design
     testthr
     thread-manager
     thread-safety
+    transform
     type
     version-library
     vm
