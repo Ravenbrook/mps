@@ -49,6 +49,18 @@ New features
    may be more convenient than :c:func:`mps_pool_walk`. See
    :ref:`topic-transform`.
 
+#. A :term:`virtual memory arena` can now be configured to call
+   functions when it acquires a new chunk of :term:`address space`,
+   and when it returns a chunk of address space to the operation
+   system. This is intended to support dynamic function tables in
+   Windows. See :ref:`topic-arena-extension`.
+
+#. An :term:`allocation point` for a pool belonging to the class
+   :ref:`pool-amc` can now be configured so that allocations do not
+   provoke garbage collections, reducing the amount of re-hashing for
+   address-based hash tables using :term:`location dependency`. See
+   :ref:`pool-amc-hash-arrays`.
+
 
 Interface changes
 .................
