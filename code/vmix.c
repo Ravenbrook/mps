@@ -172,8 +172,26 @@ Res VMMap(VM vm, Addr base, Addr limit)
 
   size = AddrOffset(base, limit);
 
+  /**
+   * NOTE: Apple Silicon doesn't have support for specifying
+   * PROT_EXEC along with writable memory.
+   *
+   * We disable this unconditionally on that platform,
+   * pending a more proper solution.
+   *
+   * See apple developer documentation for more details:
+   * https://developer.apple.com/documentation/apple-silicon/porting-just-in-time-compilers-to-apple-silicon
+   *
+   * Also see github issue #75
+   */
+  #if defined(__APPLE__) && defined(__arm64__)
+    #define EXEC_FLAGS 0
+  #else
+    #define EXEC_FLAGS PROT_EXEC
+  #endif
+
   if(mmap((void *)base, (size_t)size,
-          PROT_READ | PROT_WRITE | PROT_EXEC,
+          PROT_READ | PROT_WRITE | EXEC_FLAGS,
           MAP_ANON | MAP_PRIVATE | MAP_FIXED,
           -1, 0)
      == MAP_FAILED) {

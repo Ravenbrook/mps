@@ -73,16 +73,34 @@ void ProtSet(Addr base, Addr limit, AccessSet mode)
      allowed, possibly that means other operations (read) are also
      allowed.
    */
+
+  /**
+   * NOTE: Apple Silicon doesn't have support for specifying
+   * PROT_EXEC along with writable memory.
+   *
+   * We disable this unconditionally on that platform,
+   * pending a more proper solution.
+   *
+   * See apple developer documentation for more details:
+   * https://developer.apple.com/documentation/apple-silicon/porting-just-in-time-compilers-to-apple-silicon
+   *
+   * Also see github issue #75
+   */
+  #if defined(__APPLE__) && defined(__arm64__)
+    #define EXEC_FLAGS 0
+  #else
+    #define EXEC_FLAGS PROT_EXEC
+  #endif
   switch(mode) {
   case AccessWRITE | AccessREAD:
   case AccessREAD:      /* forbids writes as well, see .assume.write-only */
     flags = PROT_NONE;
     break;
   case AccessWRITE:
-    flags = PROT_READ | PROT_EXEC;
+    flags = PROT_READ | EXEC_FLAGS;
     break;
   case AccessSetEMPTY:
-    flags = PROT_READ | PROT_WRITE | PROT_EXEC;
+    flags = PROT_READ | PROT_WRITE | EXEC_FLAGS;
     break;
   default:
     NOTREACHED;
