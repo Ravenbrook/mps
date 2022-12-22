@@ -710,6 +710,23 @@
 #define WB_DEFER_HIT   1  /* boring scans after barrier hit */
 
 
+/* Apple Hardened Runtime
+ *
+ * .hardened-runtime: On Apple Silicon, applications may be compiled
+ * with Hardened Runtime enabled. These applications have restricted
+ * capabilities: in particular, unless the "Allow Unsigned Executable
+ * Memory Entitlement" is enabled, these applications cannot create
+ * memory that is simultaneously writable and executable. Attempts to
+ * do so using mmap() and mprotect() fail with EACCES.
+ *
+ * See <https://developer.apple.com/documentation/security/hardened_runtime>
+ */
+#if defined(MPS_OS_XC) && defined(MPS_ARCH_A6)
+#define MAYBE_HARDENED_RUNTIME 1
+#else
+#define MAYBE_HARDENED_RUNTIME 0
+#endif
+
 #endif /* config_h */
 
 

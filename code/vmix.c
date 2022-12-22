@@ -47,6 +47,7 @@
 #include "vm.h"
 
 #include <errno.h> /* errno */
+#include <signal.h> /* sig_atomic_t */
 #include <sys/mman.h> /* see .feature.li in config.h */
 #include <sys/types.h> /* mmap, munmap */
 #include <unistd.h> /* getpagesize */
@@ -156,11 +157,17 @@ void VMFinish(VM vm)
 }
 
 
+/* Value to use for protection of newly allocated pages. */
+
+static sig_atomic_t vm_prot = PROT_READ | PROT_WRITE | PROT_EXEC;
+
+
 /* VMMap -- map the given range of memory */
 
 Res VMMap(VM vm, Addr base, Addr limit)
 {
   Size size;
+  void *result;
 
   AVERT(VM, vm);
   AVER(sizeof(void *) == sizeof(Addr));
@@ -172,11 +179,19 @@ Res VMMap(VM vm, Addr base, Addr limit)
 
   size = AddrOffset(base, limit);
 
-  if(mmap((void *)base, (size_t)size,
-          PROT_READ | PROT_WRITE | PROT_EXEC,
-          MAP_ANON | MAP_PRIVATE | MAP_FIXED,
-          -1, 0)
-     == MAP_FAILED) {
+  result = mmap((void *)base, (size_t)size, vm_prot,
+                MAP_ANON | MAP_PRIVATE | MAP_FIXED,
+                -1, 0);
+  if (MAYBE_HARDENED_RUNTIME && result == MAP_FAILED && errno == EACCES
+      && (vm_prot & PROT_WRITE) && (vm_prot & PROT_EXEC))
+  {
+    /* See <config.h#hardened-runtime>. */
+    vm_prot = PROT_READ | PROT_WRITE;
+    result = mmap((void *)base, (size_t)size, vm_prot,
+                  MAP_ANON | MAP_PRIVATE | MAP_FIXED,
+                  -1, 0);
+  }
+  if (result == MAP_FAILED) {
     AVER(errno == ENOMEM); /* .assume.mmap.err */
     return ResMEMORY;
   }

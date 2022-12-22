@@ -41,12 +41,20 @@
 
 #include "vm.h"
 
+#include <errno.h>
 #include <limits.h>
+#include <signal.h> /* sig_atomic_t */
 #include <stddef.h>
 #include <sys/mman.h>
 #include <sys/types.h>
 
 SRCID(protix, "$Id$");
+
+
+/* Value for memory protection corresponding to AccessSetEMPTY. */
+
+static sig_atomic_t prot_all = PROT_READ | PROT_WRITE | PROT_EXEC;
+
 
 /* ProtSet -- set protection
  *
@@ -55,7 +63,7 @@ SRCID(protix, "$Id$");
 
 void ProtSet(Addr base, Addr limit, AccessSet mode)
 {
-  int flags;
+  int flags, result;
 
   AVER(sizeof(size_t) == sizeof(Addr));
   AVER(base < limit);
@@ -82,7 +90,7 @@ void ProtSet(Addr base, Addr limit, AccessSet mode)
     flags = PROT_READ | PROT_EXEC;
     break;
   case AccessSetEMPTY:
-    flags = PROT_READ | PROT_WRITE | PROT_EXEC;
+    flags = prot_all;
     break;
   default:
     NOTREACHED;
@@ -90,7 +98,15 @@ void ProtSet(Addr base, Addr limit, AccessSet mode)
   }
 
   /* .assume.mprotect.base */
-  if(mprotect((void *)base, (size_t)AddrOffset(base, limit), flags) != 0)
+  result = mprotect((void *)base, (size_t)AddrOffset(base, limit), flags);
+  if (MAYBE_HARDENED_RUNTIME && result != 0 && errno == EACCES
+      && (flags & PROT_WRITE) && (flags & PROT_EXEC))
+  {
+    /* See <config.h#hardened-runtime>. */
+    prot_all = PROT_READ | PROT_WRITE;
+    result = mprotect((void *)base, (size_t)AddrOffset(base, limit), flags & prot_all);
+  }
+  if (result != 0)
     NOTREACHED;
 }
 
