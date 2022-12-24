@@ -68,7 +68,7 @@ mps_res_t dylan_make_wrappers(void)
   return MPS_RES_OK;
 }
 
-/* dylan_init -- turn raw memory into initialised dylan-vector (or pad)
+/* dylan_init -- turn raw memory into initialised dylan-vector
  *
  * If the raw memory is large enough, initialises it to a dylan-vector,
  * whose slots are initialised to either dylan-ints, or valid refs, at
@@ -78,8 +78,6 @@ mps_res_t dylan_make_wrappers(void)
  * and "nr_refs" arguments. If "nr_refs" is 0, all slots are
  * initialized to dylan-ints: this may be useful for making leaf
  * objects.
- *
- * (Makes a pad if the raw memory is too small to hold a dylan-vector)
  */
 
 mps_res_t dylan_init(mps_addr_t addr, size_t size,
@@ -93,8 +91,7 @@ mps_res_t dylan_init(mps_addr_t addr, size_t size,
   if (res != MPS_RES_OK)
     return res;
 
-  /* If there is enough room, make a vector, otherwise just */
-  /* make a padding object. */
+  /* If there is enough room, make a vector. */
   if(size >= sizeof(mps_word_t) * 2) {
     mps_word_t *p = (mps_word_t *)addr;
     mps_word_t i, t = (size / sizeof(mps_word_t)) - 2;
@@ -110,7 +107,7 @@ mps_res_t dylan_init(mps_addr_t addr, size_t size,
         p[2+i] = (mps_word_t)refs[(r >> 1) % nr_refs]; /* random ptr */
     }
   } else {
-    dylan_pad(addr, size);
+    return MPS_RES_UNIMPL;
   }
 
   return MPS_RES_OK;
