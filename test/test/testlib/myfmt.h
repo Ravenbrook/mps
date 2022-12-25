@@ -14,13 +14,10 @@ myfmt.h
 
  variable      default function
 
- formatcomments   1   print comments on scanning, fixing, copying
- copysurplus      1   copy the surplus space in objects when moving 
-
+ formatcomments   1   print comments on scanning, fixing
 */
 
 extern int formatcomments;
-extern int copysurplus;
 
 typedef struct mycell
   {
@@ -32,12 +29,7 @@ typedef struct mycell
 
 /* we don't have a separate type for leaf nodes;
    instead the scanning function doesn't fix null refs
-
-   the words after ref[1] are copied by mycopy,
-   (so you can use them to store data) as long as copysurplus=1
 */
-
-extern struct mps_fmt_A_s fmtA;
 
 mycell *allocone(mps_ap_t ap, mps_word_t data,
  mycell *ref0, mycell *ref1, size_t size);
@@ -45,6 +37,7 @@ mycell *allocone(mps_ap_t ap, mps_word_t data,
 mycell *allocheader(mps_ap_t ap, mps_word_t data,
  mycell *ref0, mycell *ref1, size_t size, size_t header);
 
-void fmtargs(mps_arg_s args[MPS_ARGS_MAX]);
+mps_res_t make_format(mps_fmt_t *fmt_o, mps_arena_t arena);
+mps_res_t make_format_header(mps_fmt_t *fmt_o, mps_arena_t arena, size_t header);
 
 #endif

@@ -29,25 +29,6 @@ static mycell *obj_table[MAXLDS];
 static mps_ld_t lds[MAXLDS];
 
 
-static void checklds(void)
-{
- int i;
-
- for (i=0; i < MAXLDS; i++) {
-  if (obj_table[i]->data.copycount != 0) {
-   asserts(mps_ld_isstale(lds[i], arena, (mps_addr_t) obj_table[i]),
-           "%d isn't stale but should be", i);
-   if (ranint(4) == 0) {
-    obj_table[i]->data.copycount = 0;
-    mps_ld_reset(lds[i], arena);
-    comment("reset %d", i);
-    mps_ld_add(lds[i], arena, (mps_addr_t) obj_table[i]);
-   }
-  }
- }
-}
-
-
 static void test(void *stack_pointer)
 {
  mps_pool_t poolmvff, poolawl, poolamc;
@@ -78,8 +59,7 @@ static void test(void *stack_pointer)
       "create table root");
 
  cdie(mps_root_create_thread(&root1, arena, thread, stack_pointer), "thread root");
- cdie(mps_fmt_create_A(&format, arena, &fmtA),
-      "create format");
+ cdie(make_format(&format, arena), "create format");
 
  cdie(mps_chain_create(&chain, arena, genCOUNT, testChain), "chain_create");
 
@@ -140,7 +120,6 @@ static void test(void *stack_pointer)
 
  for (i=0; i < 1000; i++) {
   comment("%d of 1000", i);
-  checklds();
   for (j=0; j < 8; j++) {
    a = allocdumb(apamc, 32*1024, mps_rank_exact());
   }

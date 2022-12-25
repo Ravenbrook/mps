@@ -39,7 +39,8 @@ static void test(void *stack_pointer)
       "create arena");
  die(mps_arena_commit_limit_set(arena, 1ul << 30), "commit_limit_set");
  die(mps_thread_reg(&thread, arena), "register thread");
- cdie(mps_root_create_thread(&root, arena, thread, stack_pointer), "thread root"); die(mps_fmt_create_A(&format, arena, &fmtA), "create format");
+ cdie(mps_root_create_thread(&root, arena, thread, stack_pointer), "thread root");
+ cdie(make_format(&format, arena), "create format");
  die(mps_chain_create(&chain, arena, genCOUNT, testChain), "chain_create");
 
  cdie(mps_pool_create_k(&pool, arena, mps_class_mvff(), mps_args_none), "pool");

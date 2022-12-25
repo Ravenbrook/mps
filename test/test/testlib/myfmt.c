@@ -14,54 +14,39 @@ enum {MCpadsingle, MCpadmany, MCheart, MCdata};
 
  variable      default function
 
- formatcomments   1   print comments on scanning, fixing, copying
- copysurplus      1   copy the surplus space in objects when moving 
-
+ formatcomments   1   print comments on scanning, fixing
 */
 
 int formatcomments=1;
-int copysurplus=1;
 
 /* we don't have a separate type for leaf nodes;
    instead the scanning function doesn't fix null refs
-
-   the words after ref[1] are copied by mycopy,
-   (so you can use them to store data) as long as copysurplus=1
 */
 
 static mps_res_t myscan(mps_ss_t ss, mps_addr_t base, mps_addr_t limit);
 static mps_addr_t myskip(mps_addr_t object);
 static void myfwd(mps_addr_t object, mps_addr_t to);
 static mps_addr_t myisfwd(mps_addr_t object);
-static void mycopy(mps_addr_t object, mps_addr_t to);
 static void mypad(mps_addr_t base, size_t size);
 
-struct mps_fmt_A_s fmtA =
+mps_res_t make_format_header(mps_fmt_t *fmt_o, mps_arena_t arena, size_t header)
 {
- MPS_PF_ALIGN,
- &myscan,
- &myskip,
- &mycopy,
- &myfwd,
- &myisfwd,
- &mypad
-};
+ mps_res_t res;
+ MPS_ARGS_BEGIN(args) {
+  MPS_ARGS_ADD(args, MPS_KEY_FMT_SCAN, myscan);
+  MPS_ARGS_ADD(args, MPS_KEY_FMT_SKIP, myskip);
+  MPS_ARGS_ADD(args, MPS_KEY_FMT_FWD, myfwd);
+  MPS_ARGS_ADD(args, MPS_KEY_FMT_ISFWD, myisfwd);
+  MPS_ARGS_ADD(args, MPS_KEY_FMT_PAD, mypad);
+  MPS_ARGS_ADD(args, MPS_KEY_FMT_HEADER_SIZE, header);
+  res = mps_fmt_create_k(fmt_o, arena, args);
+ } MPS_ARGS_END(args);
+ return res;
+}
 
-void fmtargs(mps_arg_s args[MPS_ARGS_MAX])
+mps_res_t make_format(mps_fmt_t *fmt_o, mps_arena_t arena)
 {
-  args[0].key = MPS_KEY_ALIGN;
-  args[0].val.align = MPS_PF_ALIGN;
-  args[1].key = MPS_KEY_FMT_SCAN;
-  args[1].val.fmt_scan = myscan;
-  args[2].key = MPS_KEY_FMT_SKIP;
-  args[2].val.fmt_skip = myskip;
-  args[3].key = MPS_KEY_FMT_FWD;
-  args[3].val.fmt_fwd = myfwd;
-  args[4].key = MPS_KEY_FMT_ISFWD;
-  args[4].val.fmt_isfwd = myisfwd;
-  args[5].key = MPS_KEY_FMT_PAD;
-  args[5].val.fmt_pad = mypad;
-  args[6].key = MPS_KEY_ARGS_END;
+  return make_format_header(fmt_o, arena, 0);
 }
 
 mycell *allocheader(mps_ap_t ap, mps_word_t data,
@@ -169,37 +154,6 @@ mps_addr_t myskip(mps_addr_t object)
    asserts(0, "skip: bizarre obj tag at %p.", obj);
    return 0; /* just to satisfy the compiler! */
  }
-}
-
-void mycopy(mps_addr_t object, mps_addr_t to)
-{
- mycell *boj = object;
-/* mycell *toj = to;
-*/
-
- commentif(formatcomments, "copy! %p -> %p\n", object, to);
-
-/* this line is bad, because the objects might overlap,
-   and then C doesn't guarantee to do the right thing!
-
-   *toj = *boj;
-*/
-
- asserts(boj->tag == MCdata, "Bad object tag in copy");
-
- if (copysurplus)
- {
-  memmove(to, object, boj->size);
- }
- else
- {
-  memmove(to, object, sizeof(mycell));
- }
-
-/* it's guaranteed that we won't have to copy a pad, so we
-   don't have to worry about fiddling the pointer
-*/
-
 }
 
 void mypad(mps_addr_t base, size_t size)

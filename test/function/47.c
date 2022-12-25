@@ -43,8 +43,7 @@ static void test(void *stack_pointer)
       "create exfmt root");
 
  cdie(mps_root_create_thread(&root1, arena, thread, stack_pointer), "thread root");
- cdie(mps_fmt_create_A(&format, arena, &fmtA),
-      "create format");
+ cdie(make_format(&format, arena), "create format");
 
  cdie(mps_pool_create(&poolawl, arena, mps_class_awl(), format, getassociated),
       "create awl pool");

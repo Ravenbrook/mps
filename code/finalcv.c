@@ -116,7 +116,7 @@ static void test(mps_arena_t arena, mps_pool_class_t pool_class)
 
   printf("---- finalcv: pool class %s ----\n", ClassName(pool_class));
 
-  die(mps_fmt_create_A(&fmt, arena, dylan_fmt_A()), "fmt_create\n");
+  die(dylan_fmt(&fmt, arena), "fmt_create");
   die(mps_chain_create(&chain, arena, genCOUNT, testChain), "chain_create");
   MPS_ARGS_BEGIN(args) {
     MPS_ARGS_ADD(args, MPS_KEY_CHAIN, chain);

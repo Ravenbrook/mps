@@ -447,7 +447,7 @@ static void test(mps_arena_t arena)
 
   die(mps_root_create_fmt(&fmtRoot, arena,
                           mps_rank_exact(), (mps_rm_t)0,
-                          dylan_fmt_A()->scan,
+                          dylan_scan,
                           alloced_obj,
                           (mps_addr_t)(((char*)alloced_obj)+asize)),
       "root_create_fmt");

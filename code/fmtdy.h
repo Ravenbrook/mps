@@ -16,15 +16,15 @@ extern mps_res_t dylan_scan1_weak(mps_ss_t, mps_addr_t *);
 
 /* Format */
 extern mps_fmt_A_s *dylan_fmt_A(void);
-extern mps_fmt_A_s *dylan_fmt_A_weak(void);
-extern mps_fmt_B_s *dylan_fmt_B(void);
-extern mps_fmt_B_s *dylan_fmt_B_weak(void);
 extern mps_res_t dylan_fmt(mps_fmt_t *, mps_arena_t);
 extern mps_res_t dylan_fmt_weak(mps_fmt_t *, mps_arena_t);
 
 extern mps_addr_t dylan_weak_dependent(mps_addr_t);
 
+extern mps_res_t dylan_scan(mps_ss_t mps_ss, mps_addr_t base, mps_addr_t limit);
 extern mps_addr_t dylan_skip(mps_addr_t);
+extern void dylan_fwd(mps_addr_t old, mps_addr_t new);
+extern mps_addr_t dylan_isfwd(mps_addr_t object);
 extern void dylan_pad(mps_addr_t, size_t);
 extern mps_bool_t dylan_ispad(mps_addr_t);
 extern int dylan_wrapper_check(mps_word_t *);

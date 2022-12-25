@@ -40,7 +40,6 @@ struct data
  mycell *assoc;
  size_t size;
  long int id;
- long int copycount;
  long int numrefs;
  int checkedflag;
  mps_rank_t rank;
@@ -55,7 +54,7 @@ union mycell
  struct data      data;
 };
 
-extern struct mps_fmt_A_s fmtA;
+mps_res_t make_format(mps_fmt_t *fmt_o, mps_arena_t arena);
 
 mycell *allocone(mps_ap_t ap, int size, mps_rank_t rank);
 mycell *allocdumb(mps_ap_t ap, size_t bytes, mps_rank_t rank);

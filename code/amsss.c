@@ -213,7 +213,7 @@ int main(int argc, char *argv[])
   mps_message_type_enable(arena, mps_message_type_gc_start());
   mps_message_type_enable(arena, mps_message_type_gc());
   die(mps_thread_reg(&thread, arena), "thread_reg");
-  die(mps_fmt_create_A(&format, arena, dylan_fmt_A()), "fmt_create");
+  die(dylan_fmt(&format, arena), "fmt_create");
   die(mps_chain_create(&chain, arena, 1, testChain), "chain_create");
 
   for (i = 0; i < 8; i++) {

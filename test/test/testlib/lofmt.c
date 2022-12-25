@@ -32,19 +32,21 @@ static mps_res_t myscan(mps_ss_t ss, mps_addr_t base, mps_addr_t limit);
 static mps_addr_t myskip(mps_addr_t object);
 static void myfwd(mps_addr_t object, mps_addr_t to);
 static mps_addr_t myisfwd(mps_addr_t object);
-static void mycopy(mps_addr_t object, mps_addr_t to);
 static void mypad(mps_addr_t base, size_t size);
 
-struct mps_fmt_A_s fmtLO =
+mps_res_t make_format(mps_fmt_t *fmt_o, mps_arena_t arena)
 {
- MPS_PF_ALIGN,
- &myscan,
- &myskip,
- &mycopy,
- &myfwd,
- &myisfwd,
- &mypad
-};
+ mps_res_t res;
+ MPS_ARGS_BEGIN(args) {
+  MPS_ARGS_ADD(args, MPS_KEY_FMT_SCAN, myscan);
+  MPS_ARGS_ADD(args, MPS_KEY_FMT_SKIP, myskip);
+  MPS_ARGS_ADD(args, MPS_KEY_FMT_FWD, myfwd);
+  MPS_ARGS_ADD(args, MPS_KEY_FMT_ISFWD, myisfwd);
+  MPS_ARGS_ADD(args, MPS_KEY_FMT_PAD, mypad);
+  res = mps_fmt_create_k(fmt_o, arena, args);
+ } MPS_ARGS_END(args);
+ return res;
+}
 
 /* in the following, size is the size_t of the data element
    of the lodata structure you want the object to have; i.e.
@@ -70,7 +72,6 @@ locell *alloclo(mps_ap_t ap, size_t size) {
   q=p;
   q->data.tag = LOdata;
   q->data.id = nextid;
-  q->data.copycount = 0;
   q->data.size = bytes;
  }
  while (!mps_commit(ap, p, bytes));
@@ -102,18 +103,6 @@ static mps_addr_t myskip(mps_addr_t object) {
    asserts(0, "loskip: bizarre obj tag at %p.", obj);
    return 0; /* not reached */
  }
-}
-
-static void mycopy(mps_addr_t object, mps_addr_t to)
-{
- locell *boj = object;
- locell *toj = to;
-
- asserts(allowlocopies, "locopy on LO object");
- asserts(boj->tag == LOdata, "locopy: non-data object");
-
- memmove(to, object, boj->data.size);
- toj->data.copycount = (toj->data.copycount)+1;
 }
 
 /* pad stores not its size but a pointer to the next object,
@@ -178,12 +167,6 @@ long int getloid(locell *obj)
 {
  asserts(obj->tag == LOdata, "getloid: non-data object.");
  return obj->data.id;
-}
-
-long int getlocopycount(locell *obj)
-{
- asserts(obj->tag == LOdata, "getlocopycount: non-data object.");
- return obj->data.copycount;
 }
 
 size_t getlosize(locell *obj)

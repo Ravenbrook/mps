@@ -36,7 +36,7 @@ static void test(void *stack_pointer)
 
  while (1) {
   p++;
-  die(mps_fmt_create_A(&format, arena, &fmtA), "create format");
+  cdie(make_format(&format, arena), "create format");
   report("format", "%i", p);
  }
 

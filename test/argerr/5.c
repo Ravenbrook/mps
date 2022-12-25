@@ -1,7 +1,7 @@
 /* 
 TEST_HEADER
  id = $Id$
- summary = UNALIGNED 1st arg to fmt_create_A
+ summary = UNALIGNED 1st arg to mps_fmt_create_k
  language = c
  link = testlib.o newfmt.o
 OUTPUT_SPEC
@@ -25,10 +25,7 @@ static void test(void *stack_pointer)
  cdie(mps_thread_reg(&thread, arena), "register thread");
 
  cdie(mps_root_create_thread(&root, arena, thread, stack_pointer), "thread root");
- cdie(
-  mps_fmt_create_A(UNALIGNED, arena, &fmtA),
-  "create format");
-
+ cdie(make_format(UNALIGNED, arena), "create format");
 }
 
 int main(void)

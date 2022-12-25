@@ -63,7 +63,7 @@ static void test(void *stack_pointer)
  /* because we know objects in the stack pool don't move, */
  /* we can do without roots.  Hooray! */
 
- cdie(mps_fmt_create_A(&format, arena, &fmtA), "create format");
+ cdie(make_format(&format, arena), "create format");
  cdie(mps_chain_create(&chain, arena, genCOUNT, testChain), "chain_create");
 
  die(mmqa_pool_create_chain(&pool, arena, mps_class_amc(), format, chain),

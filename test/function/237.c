@@ -164,7 +164,7 @@ static void test(void *stack_pointer)
   };
 
   die(mps_arena_create_k(&arena, mps_arena_class_vm(), mps_args_none), "mps_arena_create_k");
-  die(mps_fmt_create_A(&format, arena, &fmtA), "create format");
+  cdie(make_format(&format, arena), "create format");
   die(mps_chain_create(&chain, arena, 2, gen_params), "mps_chain_create");
   die(mps_thread_reg(&thread, arena), "mps_thread_reg");
   die(mps_root_create_thread(&root, arena, thread, stack_pointer), "mps_root_create_thread");

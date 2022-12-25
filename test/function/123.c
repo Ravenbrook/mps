@@ -49,9 +49,7 @@ static void test(void *stack_pointer)
  cdie(mps_root_create_table(&rootb, arena, mps_rank_ambig(), 0, addr, 1),
   "create root b");
 
- cdie(
-  mps_fmt_create_A(&format, arena, &fmtA),
-  "create format");
+ cdie(make_format(&format, arena), "create format");
 
  cdie(mps_chain_create(&chain, arena, genCOUNT, testChain), "chain_create");
 

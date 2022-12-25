@@ -47,17 +47,7 @@ static mps_res_t scan(mps_ss_t ss, mps_addr_t base, mps_addr_t limit);
 static mps_addr_t skip(mps_addr_t object);
 static void move(mps_addr_t object, mps_addr_t to);
 static mps_addr_t isMoved(mps_addr_t object);
-static void copy(mps_addr_t object, mps_addr_t to);
 static void pad(mps_addr_t base, size_t size);
-
-static struct mps_fmt_A_s fmt_A_s =
-  {
-    (mps_align_t)4,
-    scan, skip, copy,
-    move, isMoved,
-    pad
-  };
-
 
 
 /* Tags used by object format */
@@ -335,7 +325,15 @@ static void test(void)
   die(mps_pool_create_k(&mpool, arena, mps_class_mvff(), mps_args_none),
       "pool create");
 
-  die(mps_fmt_create_A(&format, arena, &fmt_A_s), "FormatCreate");
+  MPS_ARGS_BEGIN(args) {
+    MPS_ARGS_ADD(args, MPS_KEY_ALIGN, 4);
+    MPS_ARGS_ADD(args, MPS_KEY_FMT_SCAN, scan);
+    MPS_ARGS_ADD(args, MPS_KEY_FMT_SKIP, skip);
+    MPS_ARGS_ADD(args, MPS_KEY_FMT_FWD, move);
+    MPS_ARGS_ADD(args, MPS_KEY_FMT_ISFWD, isMoved);
+    MPS_ARGS_ADD(args, MPS_KEY_FMT_PAD, pad);
+    die(mps_fmt_create_k(&format, arena, args), "FormatCreate");
+  } MPS_ARGS_END(args);
   die(mps_chain_create(&chain, arena, genCOUNT, testChain), "chain_create");
   die(mps_pool_create(&pool, arena, mps_class_amc(), format, chain),
       "AMCCreate");
@@ -499,17 +497,6 @@ static mps_addr_t isMoved(mps_addr_t object)
     return (mps_addr_t)cell->value;
   }
   return (mps_addr_t)0;
-}
-
-
-static void copy(mps_addr_t object, mps_addr_t to)
-{
-  QSCell cells, celld;
-
-  cells = (QSCell)object;
-  celld = (QSCell)to;
-
-  *celld = *cells;
 }
 
 

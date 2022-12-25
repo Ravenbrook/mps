@@ -79,12 +79,8 @@ static void test(void *stack_pointer)
   mps_root_create_table(&root2a, arena2, mps_rank_exact(), 0, &objtab2[0], TABSIZE),
   "create root table");
 
- cdie(
-  mps_fmt_create_A(&format1, arena1, &fmtA),
-  "create format");
- cdie(
-  mps_fmt_create_A(&format2, arena2, &fmtA),
-  "create format");
+ cdie(make_format(&format1, arena1), "create format");
+ cdie(make_format(&format2, arena2), "create format");
 
  MPS_ARGS_BEGIN(args) {
    MPS_ARGS_ADD(args, MPS_KEY_FORMAT, format1);

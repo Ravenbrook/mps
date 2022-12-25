@@ -184,7 +184,7 @@ static void test(void *stack_pointer)
                             (mps_addr_t *)&b[0], 4),
       "create b root table");
 
- cdie(mps_fmt_create_A(&format, arena, &fmtA), "create format");
+ cdie(make_format(&format, arena), "create format");
  cdie(mps_chain_create(&chain, arena, genCOUNT, testChain), "chain_create");
 
  die(mmqa_pool_create_chain(&poolamc, arena, mps_class_amc(), format, chain),

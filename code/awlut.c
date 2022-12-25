@@ -305,10 +305,8 @@ static void setup(struct guff_s *guff)
 
   die(mps_root_create_thread(&stack, arena, thr, guff),
       "Root Create\n");
-  die(mps_fmt_create_A(&dylanfmt, arena, dylan_fmt_A()),
-      "Format Create\n");
-  die(mps_fmt_create_A(&dylanweakfmt, arena, dylan_fmt_A_weak()),
-      "Format Create (weak)\n");
+  die(dylan_fmt(&dylanfmt, arena), "Format Create");
+  die(dylan_fmt_weak(&dylanweakfmt, arena), "Format Create (weak)");
   MPS_ARGS_BEGIN(args) {
     MPS_ARGS_ADD(args, MPS_KEY_FORMAT, dylanfmt);
     die(mps_pool_create_k(&leafpool, arena, mps_class_lo(), args),

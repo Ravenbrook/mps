@@ -1,7 +1,7 @@
 /* $Id$
 lofmt.h
-   A format for the LO pool class. We have to allow for copying
-   and forwarding, but scan should never be called.
+   A format for the LO pool class. We have to allow for forwarding,
+   but scan should never be called.
 */
 
 #ifndef lofmt_h
@@ -36,7 +36,6 @@ struct lodata
  tag tag;
  size_t size;
  long int id;
- long int copycount;
  size_t len;
  char data[MAXSIZE];
 };
@@ -50,12 +49,11 @@ union locell
  struct lodata      data;
 };
 
-extern struct mps_fmt_A_s fmtLO;
+mps_res_t make_format(mps_fmt_t *fmt_o, mps_arena_t arena);
 
 locell *alloclo(mps_ap_t ap, size_t bytes);
 
 long int getloid(locell *obj);
-long int getlocopycount(locell *obj);
 size_t getlosize(locell *obj);
 
 #endif

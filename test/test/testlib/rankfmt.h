@@ -38,7 +38,6 @@ enum {
  SCANOBJ_COUNT, /* = read objects scanned */
  SCANPAD_COUNT, /* = pads scanned */
  SCANHEART_COUNT, /* = hearts scanned */
- COPY_COUNT,
  SKIP_COUNT,
  FWD_COUNT,
  ISFWD_COUNT,
@@ -53,7 +52,6 @@ extern int prevcounters[PAD_COUNT+1];
 extern int maxcounters[PAD_COUNT+1];
 
 
-long int maxcopy;
 int freeze;
 
 
@@ -90,7 +88,6 @@ struct data
  mycell *assoc;
  size_t size;
  long int id;
- long int copycount;
  long int numrefs;
  int checkedflag;
  mps_rank_t rank;
@@ -106,9 +103,7 @@ union mycell
  struct data      data;
 };
 
-
-extern struct mps_fmt_A_s fmtA;
-
+mps_res_t make_format(mps_fmt_t *fmt_o, mps_arena_t arena);
 
 mycell *allocone(mps_ap_t ap, int size, mps_rank_t rank);
 mycell *allocdumb(mps_ap_t ap, size_t bytes, mps_rank_t rank);
@@ -123,7 +118,6 @@ void setref(mycell *obj, int n, mycell *to);
 mycell *getref(mycell *obj, int n);
 
 long int getid(mycell *obj);
-long int getcopycount(mycell *obj);
 long int getsize(mycell *obj);
 
 
