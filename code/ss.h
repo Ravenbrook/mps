@@ -19,12 +19,20 @@
  * The jumpBuffer is used to capture most of the mutator's state on
  * entry to the MPS, but can't capture it all.  See
  * <design/stack-scan#.sol.setjmp.scan>.
+ *
+ * The stack capturing mechanism in STACK_CONTEXT_BEGIN puts the
+ * StackContextStruct on the stack, where it will later be scanned
+ * using TraceScanArea. The jumpBuffer must be allocated on the stack
+ * at an address with suitable alignment so that TraceScanArea will
+ * correctly fix any addresses therein. This is vital on platform XCA6
+ * where jmp_buf is declared as an array of int, which has 4-byte
+ * alignment, but we need it to have 8-byte alignment.
  */
 
 #include <setjmp.h>
 
 typedef struct StackContextStruct {
-  jmp_buf jumpBuffer;
+  ATTRIBUTE_ALIGNED(MPS_PF_ALIGN) jmp_buf jumpBuffer;
 } StackContextStruct;
 
 

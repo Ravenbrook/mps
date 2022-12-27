@@ -314,6 +314,16 @@
 #define ATTRIBUTE_UNUSED
 #endif
 
+/* Attribute for data structures that need to be allocated at
+ * addresses with a particular alignment.
+ * GCC: <https://gcc.gnu.org/onlinedocs/gcc/Common-Function-Attributes.html#index-aligned-function-attribute>
+ */
+#if defined(MPS_BUILD_GC) || defined(MPS_BUILD_LL)
+#define ATTRIBUTE_ALIGNED(ALIGNMENT) __attribute__((__aligned__(ALIGNMENT)))
+#else
+#define ATTRIBUTE_ALIGNED(ALIGNMENT)
+#endif
+
 
 /* Compiler extensions */
 
