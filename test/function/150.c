@@ -8,7 +8,7 @@ OUTPUT_SPEC
  count1 < 50
  count2 < 50
  collect = true
- collect_not_condemned <= 4096
+ collect_not_condemned_grains <= 1
  result = pass
 END_HEADER
 */
@@ -30,6 +30,7 @@ mps_arena_t arena;
 
 int final_count = 0;
 
+size_t grain_size = 0;
 
 enum {
  FINAL_DISCARD,
@@ -115,12 +116,12 @@ static void qpoll(mycell **ref, int faction)
 static void process_stats(mps_message_t message)
 {
  report("collect", "true");
- report("collect_live", "%ld",
-        mps_message_gc_live_size(arena, message));
- report("collect_condemned", "%ld",
-        mps_message_gc_condemned_size(arena, message));
- report("collect_not_condemned", "%ld",
-        mps_message_gc_not_condemned_size(arena, message));
+ report("collect_live_grains", "%ld",
+        mps_message_gc_live_size(arena, message) / grain_size);
+ report("collect_condemned_grains", "%ld",
+        mps_message_gc_condemned_size(arena, message) / grain_size);
+ report("collect_not_condemned_grains", "%ld",
+        mps_message_gc_not_condemned_size(arena, message) / grain_size);
  mps_message_discard(arena, message);
 }
 
@@ -190,6 +191,9 @@ static void test(void *stack_pointer)
  /* register loads of objects for finalization (1000*4) */
 
  a = allocone(apamc, 2, 1);
+
+ /* Deduce arena's grain size from the total size of the AMC pool. */
+ grain_size = mps_pool_total_size(poolamc);
 
  for (j=0; j<1000; j++) {
   b = allocone(apamc, 2, mps_rank_exact());
