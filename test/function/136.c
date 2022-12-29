@@ -6,7 +6,7 @@ TEST_HEADER
  link = testlib.o
 OUTPUT_SPEC
  assert = true
- limit < 160000
+ limit_grains < 40
 END_HEADER
 */
 
@@ -155,22 +155,36 @@ static void test(void *stack_pointer)
 {
   mps_thr_t thread;
   int symm;
-  size_t grainSize = 4096;
+  size_t grainSize, smallSize = 8;
   size_t comlimit;
   mps_bool_t slotHigh, arenaHigh, firstFit;
+  mps_pool_t pool;
+  mps_addr_t addr;
 
   MPS_ARGS_BEGIN(args) {
     MPS_ARGS_ADD(args, MPS_KEY_ARENA_SIZE, 1024*1024*50);
-    MPS_ARGS_ADD(args, MPS_KEY_ARENA_GRAIN_SIZE, grainSize);
     cdie(mps_arena_create_k(&arena, mps_arena_class_vm(), args),
          "create arena");
   } MPS_ARGS_END(args);
+
+  /* Deduce arena grain size by creating an MVFF pool, allocating a
+   * small object, and querying the total size. */
+  MPS_ARGS_BEGIN(args) {
+    MPS_ARGS_ADD(args, MPS_KEY_EXTEND_BY, smallSize);
+    MPS_ARGS_ADD(args, MPS_KEY_MEAN_SIZE, smallSize);
+    die(mps_pool_create_k(&pool, arena, mps_class_mvff(), args),
+        "create MVFF pool");
+  } MPS_ARGS_END(args);
+  die(mps_alloc(&addr, pool, smallSize), "allocate small object");
+  grainSize = mps_pool_total_size(pool);
+  mps_free(pool, addr, smallSize);
+  mps_pool_destroy(pool);
 
  cdie(mps_thread_reg(&thread, arena), "register thread");
 
  for (comlimit = 128 * grainSize; comlimit > 0; comlimit -= grainSize) {
    mps_arena_commit_limit_set(arena, comlimit);
-   report("limit", "%d", comlimit);
+   report("limit_grains", "%d", comlimit / grainSize);
    symm = ranint(8);
    slotHigh = (symm >> 2) & 1;
    arenaHigh = (symm >> 1) & 1;
