@@ -302,7 +302,7 @@ _`.impl.xc.prot.exec`: The approach in `.sol.prot.exec`_ of always
 making memory executable causes a difficulty on macOS on Apple
 Silicon. The virtual mapping module uses the same solution as the
 protection module, that is, detecting Apple Hardened Runtime, and
-dropping the request for executable memory. See
+retrying without the request for the memory to be executable. See
 design.mps.prot.impl.xc.prot.exec_ for details.
 
 .. _design.mps.prot.impl.xc.prot.exec: prot#.impl.xc.prot.exec

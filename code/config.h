@@ -714,7 +714,7 @@
  *
  * The MAYBE_HARDENED_RUNTIME macro is true if Apple's "Hardened
  * Runtime" feature may be enabled, and so calls to mmap() and
- * mprotect() with PROT_WRITE | PROT_EXEC will fail with EACCES.
+ * mprotect() with PROT_WRITE | PROT_EXEC may fail with EACCES.
  * See <design/prot#impl.xc.prot.exec> for details.
  */
 #if defined(MPS_OS_XC) && defined(MPS_ARCH_A6)
