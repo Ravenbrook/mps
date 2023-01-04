@@ -157,7 +157,10 @@ void VMFinish(VM vm)
 }
 
 
-/* Value to use for protection of newly allocated pages. */
+/* Value to use for protection of newly allocated pages.
+ * We use a global variable and not a constant so that we can clear
+ * the executable flag from future requests if Apple Hardened Runtime
+ * is detected. See <design/vm#impl.xc.prot.exec> for details. */
 
 static sig_atomic_t vm_prot = PROT_READ | PROT_WRITE | PROT_EXEC;
 
@@ -185,7 +188,10 @@ Res VMMap(VM vm, Addr base, Addr limit)
   if (MAYBE_HARDENED_RUNTIME && result == MAP_FAILED && errno == EACCES
       && (vm_prot & PROT_WRITE) && (vm_prot & PROT_EXEC))
   {
-    /* See <config.h#hardened-runtime>. */
+    /* Apple Hardened Runtime is enabled, so that we cannot have
+     * memory that is simultaneously writable and executable. Handle
+     * this by dropping the executable part of the request. See
+     * <design/vm#impl.xc.prot.exec> for details. */
     vm_prot = PROT_READ | PROT_WRITE;
     result = mmap((void *)base, (size_t)size, vm_prot,
                   MAP_ANON | MAP_PRIVATE | MAP_FIXED,

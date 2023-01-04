@@ -712,14 +712,10 @@
 
 /* Apple Hardened Runtime
  *
- * .hardened-runtime: On Apple Silicon, applications may be compiled
- * with Hardened Runtime enabled. These applications have restricted
- * capabilities: in particular, unless the "Allow Unsigned Executable
- * Memory Entitlement" is enabled, these applications cannot create
- * memory that is simultaneously writable and executable. Attempts to
- * do so using mmap() and mprotect() fail with EACCES.
- *
- * See <https://developer.apple.com/documentation/security/hardened_runtime>
+ * The MAYBE_HARDENED_RUNTIME macro is true if Apple's "Hardened
+ * Runtime" feature may be enabled, and so calls to mmap() and
+ * mprotect() with PROT_WRITE | PROT_EXEC will fail with EACCES.
+ * See <design/prot#impl.xc.prot.exec> for details.
  */
 #if defined(MPS_OS_XC) && defined(MPS_ARCH_A6)
 #define MAYBE_HARDENED_RUNTIME 1
