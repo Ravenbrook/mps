@@ -3,6 +3,7 @@
 # See <http://about.travis-ci.org/docs/user/languages/c/>.
 language: c
 os:
+  - freebsd
   - linux
   - osx
   # See "include" section for Windows
