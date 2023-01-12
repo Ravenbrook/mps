@@ -25,7 +25,10 @@ include ll.gmk
 
 # For SQLite3.
 LINKFLAGS += -L/usr/local/lib
-CFLAGSCOMPILER += -I/usr/local/include
+# -Wno-unknown-warning-option works around a bug in llvm-config
+# <https://stackoverflow.com/a/41673702>.  TODO: This is fixed in
+# later versions.  Can we make it conditional?
+CFLAGSCOMPILER += -I/usr/local/include -Wno-unknown-warning-option
 
 include comm.gmk
 
