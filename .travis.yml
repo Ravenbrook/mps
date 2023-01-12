@@ -22,6 +22,11 @@ matrix:
   exclude:
     - os: osx
       compiler: gcc
+  # lia6* not supported until commits ff8d9a315 and 598a57ebd, after version 1.117.
+  # See ``git log --oneline $(git merge-base master version/1.117) master .travis.yml | grep lia6``
+  exclude:
+    - os: linux
+      arch: arm64
 notifications:
   email:
     - mps-travis@ravenbrook.com
