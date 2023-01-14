@@ -85,6 +85,16 @@ test-xcode-build:
 
 test: @TEST_TARGET@
 
+# [Running the MMQA test suite seems to have the side effects of
+# cleaning, so I'm keeping it separate rather than just appending
+# "mmqa" to the normal make, for now.  RB 2023-01-14]
+
+testmmqa-make-build:
+	$(MAKE) $(TARGET_OPTS) testmmqa
+
+# [How can we run MMQA with Xcode?  RB 2023-01-14]
+
+testmmqa: testmmqa-make-build
 
 # C. COPYRIGHT AND LICENSE
 #
