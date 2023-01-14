@@ -46,6 +46,9 @@ them via their console or SSH or similar.  RB 2023-01-13]
 or use something like Emacs TRAMP to work on the guest.  RB
 2023-01-13]
 
+[Discuss architecture emulation, e.g. qemu-system-aarch64 on x86_64
+hosts etc. for smoke testing.  RB 2023-01-14]
+
 
 3. Host setup
 -------------
@@ -53,7 +56,7 @@ or use something like Emacs TRAMP to work on the guest.  RB
 3.1. Linux host
 ...............
 
-[virt-manager, LXD, VirtualBox]
+[virt-manager / virt-builder, LXD, VirtualBox]
 
 [LXD is appropriate for checking compilation against compiler
 toolchains and OS variants, but you're still running on the same
