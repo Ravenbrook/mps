@@ -56,7 +56,7 @@ hosts etc. for smoke testing.  RB 2023-01-14]
 3.1. Linux host
 ...............
 
-[virt-manager / virt-builder, LXD, VirtualBox]
+[virt-manager / virt-builder, LXD, VirtualBox (x86, x86_64 only)]
 
 [LXD is appropriate for checking compilation against compiler
 toolchains and OS variants, but you're still running on the same
@@ -82,13 +82,13 @@ QEMU/KVM really, but it's much better emulation.  RB 2023-01-14]
 3.2. Windows host
 ..................
 
-[VirtualBox]
+[VirtualBox (x86, x86_64 only)]
 
 
 3.3. macOS host
 ...............
 
-[VirtualBox]
+[VirtualBox (x86, x86_64 only)]
 
 
 4. Guest setup
