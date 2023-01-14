@@ -109,11 +109,28 @@ QEMU/KVM really, but it's much better emulation.  RB 2023-01-14]
 
 [Chocolatey, git, Visual Studio]
 
+[I know from recent experience that installing Chocolatey first allows
+a simple non-interactive installation of Visual Studio.  We can copy
+Travis CI's setup.  RB 2023-01-14]
+
+[It would be nice to have a remote login so that the build can be
+driven remotely without having to looking at and click on Windows.  RB
+2023-01-14]
+
 
 4.3. macOS guest
 ................
 
 [git, homebrew, Xcode]
+
+[Running a macOS guest on anything other than Apple hardware is (a)
+against the macOS T&Cs and (b) fiddly and unreliable.  That doesn't
+make this section useless, since you might want to isolate your MPS
+build and test environment, or test with multiple versions of macOS or
+its toolchain, using macOS VMs on macOS.  RB 2023-01-14]
+
+[Can you run x86_64 macOS VMs on Apple Silicon in any useful way?  RB
+2023-01-14]
 
 
 4.4. FreeBSD guest
