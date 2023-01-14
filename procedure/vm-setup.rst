@@ -78,17 +78,30 @@ QEMU/KVM really, but it's much better emulation.  RB 2023-01-14]
 
 [Ref target platforms.]
 
+[Where to get base images]
+
 4.1. Linux guest
 ................
+
+[Ubuntu or Debian, build-essential, git, clang/gcc]
+
 
 4.2. Windows guest
 ..................
 
+[Chocolatey, git, Visual Studio]
+
+
 4.3. macOS guest
 ................
 
+[git, homebrew, Xcode]
+
+
 4.4. FreeBSD guest
 ..................
+
+[git]
 
 
 A. References
