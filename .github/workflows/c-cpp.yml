@@ -1,0 +1,45 @@
+# .github/workflows/c-cpp.yml
+#
+# GitHub CI <https://docs.github.com/en/actions/automating-builds-and-tests/about-continuous-integration>
+#
+# Adapted from <https://github.com/actions/starter-workflows/blob/9f245d9aba830ad16a097a45c78331a05114d815/ci/c-cpp.yml>
+
+name: C/C++ CI
+
+on:
+  - push
+  - pull_request
+
+jobs:
+  build-posix:
+    # See <https://docs.github.com/en/actions/using-jobs/using-a-matrix-for-your-jobs#using-a-matrix-strategy>.
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+    - uses: actions/checkout@v3
+    - name: configure
+      run: ./configure
+    - name: make
+      run: make
+    - name: make test
+      run: make test
+    - name: make testmmqa
+      run: make testmmqa
+
+  build-windows:
+
+    runs-on: windows-latest
+
+    steps:
+    - uses: actions/checkout@v3
+    - name: make
+      # Using path to Visual Studio documented at <https://github.com/actions/runner-images/blob/e6fcf60b8e6c0f80a065327eaefe836881c28b68/images/win/Windows2022-Readme.md?plain=1#L215>.
+      run: |
+         call "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvarsall.bat" x64
+         cd code
+         nmake /f w3i6mv.nmk testci testansi testpollnone testmmqa
+      shell: cmd
