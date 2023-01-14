@@ -60,6 +60,21 @@ toolchains and OS variants, but you're still running on the same
 kernel, so it's not really good for testing the MPS.  Neither is a
 QEMU/KVM really, but it's much better emulation.  RB 2023-01-14]
 
+[From an `earlier experiment <keybase://chat/ravenbrook#mps/2352>`_::
+
+  lxc launch ubuntu:18.04 mps-build-ubuntu-18-amd64
+  lxc exec mps-build-ubuntu-18-amd64 -- bash --login
+  apt-get update
+  apt-get install -y build-essential
+  login -f ubuntu
+  git clone --depth 1 https://github.com/Ravenbrook/mps.git
+  cd mps
+  ./configure --prefix=$PWD/prefix && make install && make test
+  .......
+  Tests: 27. All tests pass.
+
+]
+
 
 3.2. Windows host
 ..................
