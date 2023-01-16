@@ -286,8 +286,8 @@ Bool PolicyStartTrace(Trace *traceReturn, Bool *collectWorldReturn,
     /* @@@@ sCondemned should be scannable only */
     sCondemned = ArenaCommitted(arena) - ArenaSpareCommitted(arena);
     sSurvivors = (Size)DoubleProduct(sCondemned, 1 - TraceWorldMortality);
-    tTracePerScan = sFoundation + DoubleProduct(sSurvivors,
-                                                1 + TraceCopyScanRATIO);
+    tTracePerScan = (double)sFoundation + DoubleProduct(sSurvivors,
+							1 + TraceCopyScanRATIO);
     AVER(TraceWorkFactor >= 0);
     sWorkTrace = (Size)DoubleProduct(tTracePerScan, TraceWorkFactor);
     AVER(sWorkTrace <= SizeMAX - sSurvivors);

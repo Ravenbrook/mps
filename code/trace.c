@@ -1784,7 +1784,7 @@ Res TraceStartCollectAll(Trace *traceReturn, Arena arena, TraceStartWhy why)
   res = TraceCondemnEnd(&mortality, trace);
   if(res != ResOK) /* should try some other trace, really @@@@ */
     goto failCondemn;
-  finishingTime = ArenaAvail(arena) - DoubleProduct(trace->condemned, 1.0 - mortality);
+  finishingTime = (double)ArenaAvail(arena) - DoubleProduct(trace->condemned, 1.0 - mortality);
   if(finishingTime < 0) {
     /* Run out of time, should really try a smaller collection. @@@@ */
     finishingTime = 0.0;
