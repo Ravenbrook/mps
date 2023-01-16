@@ -12,10 +12,21 @@ Release 1.118.0
 New features
 ............
 
-#. The MPS no longer supports building for the xci3ll platform (macOS,
-   IA-32, Clang/LLVM) using Xcode. This is because Xcode 10.0 no
-   longer supports this platform. The platform is still supported via
-   the GNU Make toolchain.
+#. New supported platforms:
+
+   * ``lia6gc`` (Linux, ARM64, GCC).
+   * ``lia6ll`` (Linux, ARM64, Clang/LLVM).
+   * ``xca6ll`` (macOS, ARM64, Clang/LLVM).
+
+   See :ref:`topic-platform-limitations` for limitations in the
+   support for Apple Hardened Runtime on ``xca6ll``.
+
+#. Support removed for platform:
+
+   * ``xci3ll`` (macOS, IA-32, Clang/LLVM).
+
+   Support for this platform was removed in macOS 10.15 (Catalina),
+   making it inconvenient to develop and test.
 
 #. The arena's :term:`spare commit limit` is now expressed as a
    fraction of the :term:`committed <mapped>` memory (rather than a
@@ -30,6 +41,11 @@ New features
    interface for analysis of :ref:`topic-telemetry`. This is
    experimental: the implementation is likely to change in future
    versions of the MPS. See :ref:`design-monitor`.
+
+#. The new function :c:func:`mps_pool_walk` visits all areas of
+   :term:`formatted objects` in a pool using the
+   :ref:`topic-scanning-protocol`. This allows the client program to
+   safely update references in the visited objects.
 
 
 Interface changes
@@ -61,6 +77,11 @@ Interface changes
 #. The deprecated function :c:func:`mps_fix` has been removed. Use
    the macro :c:func:`MPS_FIX12` instead.
 
+#. The deprecated function :c:func:`mps_telemetry_control` has been
+   removed. Use :c:func:`mps_telemetry_get`,
+   :c:func:`mps_telemetry_set` and :c:func:`mps_telemetry_reset`
+   instead.
+
 #. The keyword argument ``MPS_KEY_SPARE_COMMIT_LIMIT`` to
    :c:func:`mps_arena_create_k`, and the functions
    :c:func:`mps_arena_spare_commit_limit` and
@@ -75,6 +96,10 @@ Interface changes
 
    .. |unpack| replace:: :py:func:`struct.unpack`
    .. _unpack: https://docs.python.org/3/library/struct.html#struct.unpack
+
+#. The functions :c:func:`mps_formatted_objects_walk` and
+   :c:func:`mps_amc_apply` are deprecated in favour of the new
+   function :c:func:`mps_pool_walk`.
 
 
 Other changes
@@ -94,6 +119,10 @@ Other changes
    ``-Wimplicit-int-float-conversion``. See `GitHub issue #51`_.
 
    .. _GitHub issue #51: https://github.com/Ravenbrook/mps/issues/51
+
+#. The MPS now builds with ``clang -Wcomma``. See `GitHub issue #47`_.
+
+   .. _GitHub issue #47: https://github.com/Ravenbrook/mps/issues/47
 
 
 .. _release-notes-1.117:

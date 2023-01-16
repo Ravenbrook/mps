@@ -283,6 +283,13 @@ typedef const struct SrcIdStruct {
   ((double)(dividend) / (double)(divisor))
 
 
+/* Iterate over two expressions in parallel, avoiding warnings from
+ * clang -Wcomma -std=c89, while clearly expressing intention.  See
+ * <https://github.com/Ravenbrook/mps/pull/48#issuecomment-757458796>.
+ */
+
+#define ITER_PARALLEL(expr1, expr2) ((void)(expr1), expr2)
+
 
 #endif /* misc_h */
 
