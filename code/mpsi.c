@@ -292,29 +292,6 @@ void mps_arena_postmortem(mps_arena_t arena)
 }
 
 
-void mps_arena_expose(mps_arena_t arena)
-{
-  ArenaEnter(arena);
-  ArenaExposeRemember(ArenaGlobals(arena), FALSE);
-  ArenaLeave(arena);
-}
-
-/* Null implementations of remember and restore */
-void mps_arena_unsafe_expose_remember_protection(mps_arena_t arena)
-{
-  ArenaEnter(arena);
-  ArenaExposeRemember(ArenaGlobals(arena), TRUE);
-  ArenaLeave(arena);
-}
-
-void mps_arena_unsafe_restore_protection(mps_arena_t arena)
-{
-  ArenaEnter(arena);
-  ArenaRestoreProtection(ArenaGlobals(arena));
-  ArenaLeave(arena);
-}
-
-
 mps_res_t mps_arena_start_collect(mps_arena_t arena)
 {
   Res res;
@@ -808,7 +785,6 @@ mps_res_t mps_alloc(mps_addr_t *p_o, mps_pool_t pool, size_t size)
     AVER_CRITICAL(size > 0);
     /* Note: class may allow unaligned size, see */
     /* <design/pool#.method.alloc.size.align>. */
-    /* Rest ignored, see .varargs. */
 
     res = PoolAlloc(&p, pool, size);
 
@@ -819,19 +795,6 @@ mps_res_t mps_alloc(mps_addr_t *p_o, mps_pool_t pool, size_t size)
     return (mps_res_t)res;
   *p_o = (mps_addr_t)p;
   return MPS_RES_OK;
-}
-
-
-/* mps_alloc_v -- allocate in pool with varargs.  Deprecated in 1.112. */
-
-mps_res_t mps_alloc_v(mps_addr_t *p_o, mps_pool_t mps_pool, size_t size,
-                      va_list args)
-{
-  mps_res_t res;
-
-  UNUSED(args); /* See .varargs. */
-  res = mps_alloc(p_o, mps_pool, size);
-  return res;
 }
 
 
@@ -957,15 +920,6 @@ mps_res_t (mps_reserve)(mps_addr_t *p_o, mps_ap_t mps_ap, size_t size)
 
   return res;
 }
-
-
-
-mps_res_t mps_reserve_with_reservoir_permit(mps_addr_t *p_o,
-                                            mps_ap_t mps_ap, size_t size)
-{
-  return mps_reserve(p_o, mps_ap, size);
-}
-
 
 
 /* mps_commit -- commit initialized object, finishing allocation
@@ -1127,13 +1081,6 @@ mps_res_t mps_ap_fill(mps_addr_t *p_o, mps_ap_t mps_ap, size_t size)
 }
 
 
-mps_res_t mps_ap_fill_with_reservoir_permit(mps_addr_t *p_o, mps_ap_t mps_ap,
-                                            size_t size)
-{
-  return mps_ap_fill(p_o, mps_ap, size);
-}
-
-
 /* mps_ap_trip -- called by mps_commit when an AP is tripped
  *
  * .ap.trip.internal: mps_ap_trip is normally invoked by the
@@ -1229,7 +1176,7 @@ void mps_sac_flush(mps_sac_t mps_sac)
 /* mps_sac_fill -- alloc an object, and perhaps fill the cache */
 
 mps_res_t mps_sac_fill(mps_addr_t *p_o, mps_sac_t mps_sac, size_t size,
-                       mps_bool_t has_reservoir_permit)
+                       mps_bool_t unused)
 {
   SAC sac = SACOfExternalSAC(mps_sac);
   Arena arena;
@@ -1239,7 +1186,7 @@ mps_res_t mps_sac_fill(mps_addr_t *p_o, mps_sac_t mps_sac, size_t size,
   AVER(p_o != NULL);
   AVER(TESTT(SAC, sac));
   arena = SACArena(sac);
-  UNUSED(has_reservoir_permit); /* deprecated */
+  UNUSED(unused);
 
   ArenaEnter(arena);
 
@@ -1275,7 +1222,7 @@ void mps_sac_empty(mps_sac_t mps_sac, mps_addr_t p, size_t size)
 /* mps_sac_alloc -- alloc an object, using cached space if possible */
 
 mps_res_t mps_sac_alloc(mps_addr_t *p_o, mps_sac_t mps_sac, size_t size,
-                        mps_bool_t has_reservoir_permit)
+                        mps_bool_t unused)
 {
   Res res;
 
@@ -1283,7 +1230,7 @@ mps_res_t mps_sac_alloc(mps_addr_t *p_o, mps_sac_t mps_sac, size_t size,
   AVER(TESTT(SAC, SACOfExternalSAC(mps_sac)));
   AVER(size > 0);
 
-  MPS_SAC_ALLOC_FAST(res, *p_o, mps_sac, size, (has_reservoir_permit != 0));
+  MPS_SAC_ALLOC_FAST(res, *p_o, mps_sac, size, (unused != 0));
   return (mps_res_t)res;
 }
 
@@ -1630,18 +1577,6 @@ void mps_root_destroy(mps_root_t mps_root)
 }
 
 
-void (mps_tramp)(void **r_o,
-                 void *(*f)(void *p, size_t s),
-                 void *p, size_t s)
-{
-  AVER(r_o != NULL);
-  AVER(FUNCHECK(f));
-  /* Can't check p and s as they are interpreted by the client */
-
-  *r_o = (*f)(p, s);
-}
-
-
 mps_res_t mps_thread_reg(mps_thr_t *mps_thr_o, mps_arena_t arena)
 {
   Thread thread;
@@ -1726,17 +1661,6 @@ mps_bool_t mps_ld_isstale_any(mps_ld_t ld, mps_arena_t arena)
   b = LDIsStaleAny(ld, arena);
 
   return (mps_bool_t)b;
-}
-
-mps_res_t mps_fix(mps_ss_t mps_ss, mps_addr_t *ref_io)
-{
-  mps_res_t res;
-
-  MPS_SCAN_BEGIN(mps_ss) {
-    res = MPS_FIX12(mps_ss, ref_io);
-  } MPS_SCAN_END(mps_ss);
-
-  return res;
 }
 
 mps_word_t mps_collections(mps_arena_t arena)
@@ -1984,11 +1908,6 @@ const char *mps_message_gc_start_why(mps_arena_t arena,
 
 /* TODO: need to consider locking. See job003387, job003388. */
 
-mps_word_t mps_telemetry_control(mps_word_t resetMask, mps_word_t flipMask)
-{
-  return EventControl((Word)resetMask, (Word)flipMask);
-}
-
 void mps_telemetry_set(mps_word_t setMask)
 {
   (void)EventControl((Word)setMask, (Word)setMask);
@@ -2102,37 +2021,6 @@ mps_res_t mps_ap_alloc_pattern_reset(mps_ap_t mps_ap)
   ArenaLeave(arena);
 
   return MPS_RES_OK;
-}
-
-
-/* Low memory reservoir (deprecated -- see job003985) */
-
-
-/* mps_reservoir_limit_set -- set the reservoir size */
-
-void mps_reservoir_limit_set(mps_arena_t arena, size_t size)
-{
-  UNUSED(arena);
-  UNUSED(size);
-  NOOP;
-}
-
-
-/* mps_reservoir_limit -- return the reservoir size */
-
-size_t mps_reservoir_limit(mps_arena_t arena)
-{
-  UNUSED(arena);
-  return 0;
-}
-
-
-/* mps_reservoir_available -- return memory available in the reservoir */
-
-size_t mps_reservoir_available(mps_arena_t arena)
-{
-  UNUSED(arena);
-  return 0;
 }
 
 

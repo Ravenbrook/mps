@@ -206,18 +206,17 @@ void rnd_verify(int depth)
 
 mps_addr_t rnd_addr(void)
 {
-  mps_word_t res;
+  mps_word_t res = 0;
   unsigned bits;
 
-  for (bits = 0, res = 0; bits < ADDR_BITS;
-       bits += 31, res = res << 31 | (mps_word_t)rnd())
-    NOOP;
+  for (bits = 0; bits < ADDR_BITS; bits += 31)
+    res = res << 31 | (mps_word_t)rnd();
   return (mps_addr_t)res;
 }
 
 double rnd_double(void)
 {
-  return rnd() / R_m_float;
+  return (double)rnd() / R_m_float;
 }
 
 static unsigned sizelog2(size_t size)

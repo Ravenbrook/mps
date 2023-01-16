@@ -341,19 +341,26 @@ extern const char *MessageNoGCStartWhy(Message message);
 #define TraceSetComp(ts)            BS_COMP(ts)
 
 #define TRACE_SET_ITER(ti, trace, ts, arena) \
-  for(ti = 0, trace = ArenaTrace(arena, ti); ti < TraceLIMIT; \
-      ++ti, trace = ArenaTrace(arena, ti)) BEGIN \
-    if (TraceSetIsMember(ts, trace)) {
+  BEGIN \
+    for (ti = 0; ti < TraceLIMIT; ++ti) { \
+      trace = ArenaTrace(arena, ti); \
+      if (TraceSetIsMember(ts, trace)) {
 
-#define TRACE_SET_ITER_END(ti, trace, ts, arena) } END
+#define TRACE_SET_ITER_END(ti, trace, ts, arena) \
+      } \
+    } \
+  END
 
 
 extern void ScanStateInit(ScanState ss, TraceSet ts, Arena arena,
                           Rank rank, ZoneSet white);
+extern void ScanStateInitSeg(ScanState ss, TraceSet ts, Arena arena,
+                             Rank rank, ZoneSet white, Seg seg);
 extern void ScanStateFinish(ScanState ss);
 extern Bool ScanStateCheck(ScanState ss);
 extern void ScanStateSetSummary(ScanState ss, RefSet summary);
 extern RefSet ScanStateSummary(ScanState ss);
+extern void ScanStateUpdateSummary(ScanState ss, Seg seg, Bool wasTotal);
 
 /* See impl.h.mpmst.ss */
 #define ScanStateZoneShift(ss)             ((Shift)(ss)->ss_s._zs)
@@ -432,9 +439,9 @@ extern void TraceIdMessagesDestroy(Arena arena, TraceId ti);
    *(refIO) = SCANref, \
    SCANres)
 
-/* Equivalent to <code/mps.h> MPS_FIX */
+/* Equivalent to <code/mps.h> MPS_FIX12 */
 
-#define TRACE_FIX(ss, refIO) \
+#define TRACE_FIX12(ss, refIO) \
   (TRACE_FIX1(ss, *(refIO)) ? TRACE_FIX2(ss, refIO) : ResOK)
 
 /* Equivalent to <code/mps.h> MPS_SCAN_END */
@@ -445,6 +452,7 @@ extern void TraceIdMessagesDestroy(Arena arena, TraceId ti);
     } \
   END
 
+extern Res TraceScanFormat(ScanState ss, Addr base, Addr limit);
 extern Res TraceScanArea(ScanState ss, Word *base, Word *limit,
                          mps_area_scan_t scan_area,
                          void *closure);
@@ -465,7 +473,7 @@ extern Res ArenaDescribe(Arena arena, mps_lib_FILE *stream, Count depth);
 extern Res ArenaDescribeTracts(Arena arena, mps_lib_FILE *stream, Count depth);
 extern Bool ArenaAccess(Addr addr, AccessSet mode, MutatorContext context);
 extern Res ArenaFreeLandInsert(Arena arena, Addr base, Addr limit);
-extern void ArenaFreeLandDelete(Arena arena, Addr base, Addr limit);
+extern Res ArenaFreeLandDelete(Arena arena, Addr base, Addr limit);
 
 extern Bool GlobalsCheck(Globals arena);
 extern Res GlobalsInit(Globals arena);
@@ -473,7 +481,6 @@ extern void GlobalsFinish(Globals arena);
 extern Res GlobalsCompleteCreate(Globals arenaGlobals);
 extern void GlobalsPrepareToDestroy(Globals arenaGlobals);
 extern Res GlobalsDescribe(Globals arena, mps_lib_FILE *stream, Count depth);
-extern Ring GlobalsRememberedSummaryRing(Globals);
 extern void GlobalsArenaMap(void (*func)(Arena arena));
 extern void GlobalsClaimAll(void);
 extern void GlobalsReleaseAll(void);
@@ -525,8 +532,6 @@ extern void ArenaClamp(Globals globals);
 extern void ArenaRelease(Globals globals);
 extern void ArenaPark(Globals globals);
 extern void ArenaPostmortem(Globals globals);
-extern void ArenaExposeRemember(Globals globals, Bool remember);
-extern void ArenaRestoreProtection(Globals globals);
 extern Res ArenaStartCollect(Globals globals, TraceStartWhy why);
 extern Res ArenaCollect(Globals globals, TraceStartWhy why);
 extern Bool ArenaBusy(Arena arena);
@@ -576,8 +581,8 @@ extern Size ArenaCommitted(Arena arena);
 extern Size ArenaSpareCommitted(Arena arena);
 extern double ArenaSpare(Arena arena);
 extern void ArenaSetSpare(Arena arena, double spare);
-#define ArenaSpareCommitLimit(arena) ((Size)(ArenaCommitted(arena) * ArenaSpare(arena)))
-#define ArenaCurrentSpare(arena) ((double)ArenaSpareCommitted(arena) / ArenaCommitted(arena))
+#define ArenaSpareCommitLimit(arena) ((Size)((double)ArenaCommitted(arena) * ArenaSpare(arena)))
+#define ArenaCurrentSpare(arena) ((double)ArenaSpareCommitted(arena) / (double)ArenaCommitted(arena))
 
 extern Size ArenaCommitLimit(Arena arena);
 extern Res ArenaSetCommitLimit(Arena arena, Size limit);
@@ -807,7 +812,7 @@ extern Res FormatCreate(Format *formatReturn, Arena arena, ArgList args);
 extern void FormatDestroy(Format format);
 extern Arena FormatArena(Format format);
 extern Res FormatDescribe(Format format, mps_lib_FILE *stream, Count depth);
-extern Res FormatScan(Format format, ScanState ss, Addr base, Addr limit);
+extern mps_res_t FormatNoScan(mps_ss_t mps_ss, mps_addr_t base, mps_addr_t limit);
 
 
 /* Reference Interface -- see <code/ref.c> */

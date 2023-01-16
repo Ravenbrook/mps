@@ -188,11 +188,6 @@ Bool GlobalsCheck(Globals arenaGlobals)
   CHECKL(BoolCheck(arenaGlobals->bufferLogging));
   CHECKD_NOSIG(Ring, &arenaGlobals->poolRing);
   CHECKD_NOSIG(Ring, &arenaGlobals->rootRing);
-  CHECKD_NOSIG(Ring, &arenaGlobals->rememberedSummaryRing);
-  CHECKL(arenaGlobals->rememberedSummaryIndex < RememberedSummaryBLOCK);
-  /* <code/global.c#remembered.summary> RingIsSingle imples index == 0 */
-  CHECKL(!RingIsSingle(&arenaGlobals->rememberedSummaryRing) ||
-    arenaGlobals->rememberedSummaryIndex == 0);
   CHECKD_NOSIG(Ring, &arena->formatRing);
   CHECKD_NOSIG(Ring, &arena->messageRing);
   if (arena->enabledMessageTypes != NULL)
@@ -315,8 +310,6 @@ Res GlobalsInit(Globals arenaGlobals)
   arenaGlobals->systemPools = (Count)3;
   RingInit(&arenaGlobals->rootRing);
   arenaGlobals->rootSerial = (Serial)0;
-  RingInit(&arenaGlobals->rememberedSummaryRing);
-  arenaGlobals->rememberedSummaryIndex = 0;
 
   RingInit(&arena->threadRing);
   RingInit(&arena->deadRing);
@@ -553,14 +546,6 @@ void GlobalsPrepareToDestroy(Globals arenaGlobals)
 }
 
 
-Ring GlobalsRememberedSummaryRing(Globals global)
-{
-  AVERT(Globals, global);
-
-  return &global->rememberedSummaryRing;
-}
-
-
 /* ArenaEnter -- enter the state where you can look at the arena */
 
 void ArenaEnter(Arena arena)
@@ -792,9 +777,9 @@ Bool ArenaStep(Globals globals, double interval, double multiplier)
   clocks_per_sec = ClocksPerSec();
 
   start = now = ClockNow();
-  intervalEnd = start + (Clock)(interval * clocks_per_sec);
+  intervalEnd = start + (Clock)(interval * (double)clocks_per_sec);
   AVER(intervalEnd >= start);
-  availableEnd = start + (Clock)(interval * multiplier * clocks_per_sec);
+  availableEnd = start + (Clock)(interval * multiplier * (double)clocks_per_sec);
   AVER(availableEnd >= start);
 
   /* loop while there is work to do and time on the clock. */

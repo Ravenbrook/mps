@@ -40,17 +40,28 @@
 /* Function attributes */
 /* These are also defined in config.h */
 
-#if defined(MPS_BUILD_GC) || defined(MPS_BUILD_LL)
-
-/* GCC: <https://gcc.gnu.org/onlinedocs/gcc/Common-Function-Attributes.html#index-format-function-attribute>
+/* Attribute for functions that take a printf-like format argument, so
+ * that the compiler can check the format specifiers against the types
+ * of the arguments.
+ * GCC: <https://gcc.gnu.org/onlinedocs/gcc/Common-Function-Attributes.html#index-format-function-attribute>
  * Clang: <https://clang.llvm.org/docs/AttributeReference.html#format-gnu-format>
  */
+#if defined(MPS_BUILD_GC) || defined(MPS_BUILD_LL)
 #define ATTRIBUTE_FORMAT(ARGLIST) __attribute__((__format__ ARGLIST))
-
 #else
-
 #define ATTRIBUTE_FORMAT(ARGLIST)
+#endif
 
+/* Attribute for functions that must not be inlined.
+ * GCC: <https://gcc.gnu.org/onlinedocs/gcc/Common-Function-Attributes.html#index-noinline-function-attribute>
+ * MSVC: <https://docs.microsoft.com/en-us/cpp/cpp/noinline>
+ */
+#if defined(MPS_BUILD_GC) || defined(MPS_BUILD_LL)
+#define ATTRIBUTE_NOINLINE __attribute__((__noinline__))
+#elif defined(MPS_BUILD_MV)
+#define ATTRIBUTE_NOINLINE __declspec(noinline)
+#else
+#define ATTRIBUTE_NOINLINE
 #endif
 
 
@@ -93,7 +104,7 @@
  * tests to root out any incompatible assumptions by breaking.
  */
 
-#if defined(MPS_ARCH_I6)
+#if defined(MPS_ARCH_A6) || defined(MPS_ARCH_I6)
 #define PRIwWORD "16"
 #elif defined(MPS_ARCH_I3)
 #define PRIwWORD "8"

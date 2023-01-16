@@ -173,21 +173,6 @@ static mps_addr_t make_no_inline(void)
 }
 
 
-/* alloc_v_test -- test mps_alloc_v */
-
-static void alloc_v_test(mps_pool_t pool, ...)
-{
-  void *p;
-  size_t size = 32;
-  va_list args;
-
-  va_start(args, pool);
-  die(mps_alloc_v(&p, pool, size, args), "alloc_v");
-  va_end(args);
-  mps_free(pool, p, size);
-}
-
-
 static void pool_create_v_test(mps_arena_t arena, ...)
 {
   va_list args;
@@ -289,8 +274,15 @@ static void addr_pool_test(mps_arena_t arena,
 
 static mps_res_t root_single(mps_ss_t ss, void *p, size_t s)
 {
+  mps_res_t res;
+  mps_addr_t *ref = p;
   testlib_unused(s);
-  return mps_fix(ss, (mps_addr_t *)p);
+
+  MPS_SCAN_BEGIN(ss) {
+    res = MPS_FIX12(ss, ref);
+  } MPS_SCAN_END(ss);
+
+  return res;
 }
 
 
@@ -339,7 +331,7 @@ static void arena_commit_test(mps_arena_t arena)
   reserved = mps_arena_reserved(arena);
   Insist(0.0 <= spare);
   Insist(spare <= 1.0);
-  Insist(spare_committed <= spare * committed);
+  Insist((double)spare_committed <= spare * (double)committed);
   Insist(spare_committed < committed);
   Insist(committed <= reserved);
   Insist(committed <= limit);
@@ -358,9 +350,8 @@ static void arena_commit_test(mps_arena_t arena)
 }
 
 
-static void *test(void *arg, size_t s)
+static void test(mps_arena_t arena)
 {
-  mps_arena_t arena;
   mps_fmt_t format;
   mps_chain_t chain;
   mps_root_t exactAreaRoot, exactTableRoot, ambigAreaRoot, ambigTableRoot,
@@ -379,9 +370,6 @@ static void *test(void *arg, size_t s)
   mps_alloc_pattern_t ramp = mps_alloc_pattern_ramp();
   size_t rampCount = 0;
   mps_res_t res;
-
-  arena = (mps_arena_t)arg;
-  testlib_unused(s);
 
   if (rnd() & 1) {
     printf("Using auto_header format.\n");
@@ -494,19 +482,6 @@ static void *test(void *arg, size_t s)
         mps_arena_clamp(arena);
         clamp_until = i + 10000;
       }
-      if(collections % 6 == 0) {
-        mps_arena_expose(arena);
-        mps_arena_release(arena);
-      }
-      if(collections % 6 == 3) {
-        mps_arena_unsafe_expose_remember_protection(arena);
-        mps_arena_unsafe_restore_protection(arena);
-        mps_arena_release(arena);
-      }
-      if(collections % 6 == 4) {
-        mps_arena_unsafe_expose_remember_protection(arena);
-        mps_arena_release(arena);
-      }
       if(collections % 3 == 2) {
         mps_arena_park(arena);
         mps_arena_release(arena);
@@ -559,7 +534,6 @@ static void *test(void *arg, size_t s)
   mps_arena_release(arena);
 
   mps_free(mv, alloced_obj, 32);
-  alloc_v_test(mv);
 
   mps_arena_park(arena);
   mps_pool_destroy(mv);
@@ -573,8 +547,6 @@ static void *test(void *arg, size_t s)
   mps_pool_destroy(amcpool);
   mps_chain_destroy(chain);
   mps_fmt_destroy(format);
-
-  return NULL;
 }
 
 
@@ -586,7 +558,6 @@ int main(int argc, char *argv[])
   mps_arena_t arena;
   mps_thr_t thread;
   mps_root_t reg_root;
-  void *r;
   void *marker = &marker;
 
   testlib_init(argc, argv);
@@ -622,7 +593,7 @@ int main(int argc, char *argv[])
     break;
   }
 
-  mps_tramp(&r, test, arena, 0);
+  test(arena);
   switch (rnd() % 2) {
   default:
   case 0:

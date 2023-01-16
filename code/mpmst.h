@@ -402,6 +402,9 @@ typedef struct ScanStateStruct {
   Sig sig;                      /* <design/sig> */
   struct mps_ss_s ss_s;         /* .ss <http://bash.org/?400459> */
   Arena arena;                  /* owning arena */
+  mps_fmt_scan_t formatScan;    /* callback for scanning formatted objects */
+  mps_area_scan_t areaScan;     /* ditto via the area scanning interface */
+  void *areaScanClosure;        /* closure argument for areaScan */
   SegFixMethod fix;             /* third stage fix function */
   void *fixClosure;             /* see .ss.fix-closure */
   TraceSet traces;              /* traces to scan for */
@@ -533,12 +536,6 @@ typedef struct GlobalsStruct {
   /* root fields <code/root.c> */
   RingStruct rootRing;          /* ring of roots attached to arena */
   Serial rootSerial;            /* serial of next root */
-
-  /* remember summary <code/trace.c> */
-  RingStruct rememberedSummaryRing;
-  /* index into next free slot in block.  0 means that a new
-     block should be allocated and appended. */
-  Index rememberedSummaryIndex;
 
   /* locus <code/locus.c> */
   Chain defaultChain;           /* default chain for GC pool */

@@ -12,10 +12,21 @@ Release 1.118.0
 New features
 ............
 
-#. The MPS no longer supports building for the xci3ll platform (macOS,
-   IA-32, Clang/LLVM) using Xcode. This is because Xcode 10.0 no
-   longer supports this platform. The platform is still supported via
-   the GNU Make toolchain.
+#. New supported platforms:
+
+   * ``lia6gc`` (Linux, ARM64, GCC).
+   * ``lia6ll`` (Linux, ARM64, Clang/LLVM).
+   * ``xca6ll`` (macOS, ARM64, Clang/LLVM).
+
+   See :ref:`topic-platform-limitations` for limitations in the
+   support for Apple Hardened Runtime on ``xca6ll``.
+
+#. Support removed for platform:
+
+   * ``xci3ll`` (macOS, IA-32, Clang/LLVM).
+
+   Support for this platform was removed in macOS 10.15 (Catalina),
+   making it inconvenient to develop and test.
 
 #. The arena's :term:`spare commit limit` is now expressed as a
    fraction of the :term:`committed <mapped>` memory (rather than a
@@ -31,6 +42,11 @@ New features
    experimental: the implementation is likely to change in future
    versions of the MPS. See :ref:`design-monitor`.
 
+#. The new function :c:func:`mps_pool_walk` visits all areas of
+   :term:`formatted objects` in a pool using the
+   :ref:`topic-scanning-protocol`. This allows the client program to
+   safely update references in the visited objects.
+
 
 Interface changes
 .................
@@ -39,6 +55,31 @@ Interface changes
    functions ``mps_mv_free_size`` and ``mps_mv_size`` have been
    removed. Use :ref:`pool-mvff` and the generic functions
    :c:func:`mps_pool_free_size` and :c:func:`mps_pool_total_size`
+   instead.
+
+#. The deprecated function :c:func:`mps_tramp` has been removed. The
+   MPS has had no need for a trampoline, and client programs have not
+   needed to take any special precautions before calling functions in
+   the MPS, since version 1.111.
+
+#. The deprecated functions :c:func:`mps_arena_expose`,
+   :c:func:`mps_arena_unsafe_expose_remember_protection` and
+   :c:func:`mps_arena_unsafe_expose_restore_protection` have been
+   removed. If you need access to protected memory for debugging a
+   fatal error, use :c:func:`mps_arena_postmortem` instead.
+
+#. The deprecated reservoir functions
+   :c:func:`mps_ap_fill_with_reservoir_permit`,
+   :c:func:`mps_reservoir_available`, :c:func:`mps_reservoir_limit`,
+   :c:func:`mps_reservoir_limit_set` and
+   :c:func:`mps_reserve_with_reservoir_permit`, have been removed.
+
+#. The deprecated function :c:func:`mps_fix` has been removed. Use
+   the macro :c:func:`MPS_FIX12` instead.
+
+#. The deprecated function :c:func:`mps_telemetry_control` has been
+   removed. Use :c:func:`mps_telemetry_get`,
+   :c:func:`mps_telemetry_set` and :c:func:`mps_telemetry_reset`
    instead.
 
 #. The keyword argument ``MPS_KEY_SPARE_COMMIT_LIMIT`` to
@@ -51,10 +92,14 @@ Interface changes
 #. The format of the :term:`telemetry stream` has changed: Booleans
    are no longer packed into bitfields, but are emitted as unsigned
    bytes. This makes it possible to decode the telemetry stream using
-   the Python function |struct|_.
+   the Python function |unpack|_.
 
-   .. |struct| replace:: ``struct.unpack``
-   .. _struct: https://docs.python.org/3/library/struct.html#struct.unpack
+   .. |unpack| replace:: :py:func:`struct.unpack`
+   .. _unpack: https://docs.python.org/3/library/struct.html#struct.unpack
+
+#. The functions :c:func:`mps_formatted_objects_walk` and
+   :c:func:`mps_amc_apply` are deprecated in favour of the new
+   function :c:func:`mps_pool_walk`.
 
 
 Other changes
@@ -69,6 +114,15 @@ Other changes
    ``errno``. See `GitHub issue #10`_.
 
    .. _GitHub issue #10: https://github.com/Ravenbrook/mps/issues/10
+
+#. The MPS now builds with Clang 10 and
+   ``-Wimplicit-int-float-conversion``. See `GitHub issue #51`_.
+
+   .. _GitHub issue #51: https://github.com/Ravenbrook/mps/issues/51
+
+#. The MPS now builds with ``clang -Wcomma``. See `GitHub issue #47`_.
+
+   .. _GitHub issue #47: https://github.com/Ravenbrook/mps/issues/47
 
 
 .. _release-notes-1.117:
@@ -149,7 +203,7 @@ New features
    longer convenient to test against them.) See
    :ref:`guide-overview-platforms`.
 
-   .. _LinuxThreads: http://pauillac.inria.fr/~xleroy/linuxthreads/
+   .. _LinuxThreads: https://en.wikipedia.org/wiki/LinuxThreads
 
 #. New function :c:func:`mps_arena_postmortem` assists with postmortem
    debugging.

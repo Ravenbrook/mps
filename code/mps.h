@@ -436,9 +436,6 @@ extern void mps_arena_clamp(mps_arena_t);
 extern void mps_arena_release(mps_arena_t);
 extern void mps_arena_park(mps_arena_t);
 extern void mps_arena_postmortem(mps_arena_t);
-extern void mps_arena_expose(mps_arena_t);
-extern void mps_arena_unsafe_expose_remember_protection(mps_arena_t);
-extern void mps_arena_unsafe_restore_protection(mps_arena_t);
 extern mps_res_t mps_arena_start_collect(mps_arena_t);
 extern mps_res_t mps_arena_collect(mps_arena_t);
 extern mps_bool_t mps_arena_step(mps_arena_t, double, double);
@@ -501,6 +498,7 @@ extern mps_res_t mps_pool_create_k(mps_pool_t *, mps_arena_t,
 extern void mps_pool_destroy(mps_pool_t);
 extern size_t mps_pool_total_size(mps_pool_t);
 extern size_t mps_pool_free_size(mps_pool_t);
+extern mps_res_t mps_pool_walk(mps_pool_t, mps_area_scan_t, void *);
 
 
 /* Chains */
@@ -519,7 +517,6 @@ extern void mps_chain_destroy(mps_chain_t);
 /* Manual Allocation */
 
 extern mps_res_t mps_alloc(mps_addr_t *, mps_pool_t, size_t);
-extern mps_res_t mps_alloc_v(mps_addr_t *, mps_pool_t, size_t, va_list);
 extern void mps_free(mps_pool_t, mps_addr_t, size_t);
 
 
@@ -534,11 +531,6 @@ extern mps_res_t (mps_reserve)(mps_addr_t *, mps_ap_t, size_t);
 extern mps_bool_t (mps_commit)(mps_ap_t, mps_addr_t, size_t);
 
 extern mps_res_t mps_ap_fill(mps_addr_t *, mps_ap_t, size_t);
-
-/* mps_ap_fill_with_reservoir_permit is deprecated */
-extern mps_res_t mps_ap_fill_with_reservoir_permit(mps_addr_t *,
-                                                   mps_ap_t,
-                                                   size_t);
 
 extern mps_res_t (mps_ap_frame_push)(mps_frame_t *, mps_ap_t);
 extern mps_res_t (mps_ap_frame_pop)(mps_ap_t, mps_frame_t);
@@ -565,7 +557,7 @@ extern void mps_sac_flush(mps_sac_t);
 extern mps_res_t mps_sac_fill(mps_addr_t *, mps_sac_t, size_t, mps_bool_t);
 extern void mps_sac_empty(mps_sac_t, mps_addr_t, size_t);
 
-#define MPS_SAC_ALLOC_FAST(res_o, p_o, sac, size, has_reservoir_permit) \
+#define MPS_SAC_ALLOC_FAST(res_o, p_o, sac, size, unused) \
   MPS_BEGIN \
     size_t _mps_i, _mps_s; \
     \
@@ -585,8 +577,7 @@ extern void mps_sac_empty(mps_sac_t, mps_addr_t, size_t);
       --(sac)->_freelists[_mps_i]._count; \
       (res_o) = MPS_RES_OK; \
     } else \
-      (res_o) = mps_sac_fill(&(p_o), sac, _mps_s, \
-                             has_reservoir_permit); \
+      (res_o) = mps_sac_fill(&(p_o), sac, _mps_s, unused); \
   MPS_END
 
 #define MPS_SAC_FREE_FAST(sac, p, size) \
@@ -613,19 +604,9 @@ extern void mps_sac_empty(mps_sac_t, mps_addr_t, size_t);
   MPS_END
 
 /* backward compatibility */
-#define MPS_SAC_ALLOC(res_o, p_o, sac, size, has_reservoir_permit) \
-      MPS_SAC_ALLOC_FAST(res_o, p_o, sac, size, has_reservoir_permit)
+#define MPS_SAC_ALLOC(res_o, p_o, sac, size, unused) \
+      MPS_SAC_ALLOC_FAST(res_o, p_o, sac, size, unused)
 #define MPS_SAC_FREE(sac, p, size) MPS_SAC_FREE_FAST(sac, p, size)
-
-
-/* Low memory reservoir (deprecated) */
-
-extern void mps_reservoir_limit_set(mps_arena_t, size_t);
-extern size_t mps_reservoir_limit(mps_arena_t);
-extern size_t mps_reservoir_available(mps_arena_t);
-extern mps_res_t mps_reserve_with_reservoir_permit(mps_addr_t *,
-                                                   mps_ap_t,
-                                                   size_t);
 
 
 /* Reserve Macros */
@@ -652,9 +633,6 @@ extern mps_res_t mps_reserve_with_reservoir_permit(mps_addr_t *,
     } else \
       (_res_v) = mps_ap_fill(&(_p_v), _mps_ap, _size); \
   MPS_END
-
-
-#define MPS_RESERVE_WITH_RESERVOIR_PERMIT_BLOCK MPS_RESERVE_BLOCK
 
 
 /* Commit Macros */
@@ -711,10 +689,7 @@ extern mps_res_t mps_stack_scan_ambig(mps_ss_t, mps_thr_t,
                                       void *, size_t);
 
 
-/* Protection Trampoline and Thread Registration */
-
-typedef void *(*mps_tramp_t)(void *, size_t);
-extern void (mps_tramp)(void **, mps_tramp_t, void *, size_t);
+/* Thread Registration */
 
 extern mps_res_t mps_thread_reg(mps_thr_t *, mps_arena_t);
 extern void mps_thread_dereg(mps_thr_t);
@@ -769,7 +744,6 @@ extern mps_res_t mps_definalize(mps_arena_t, mps_addr_t *);
 
 /* Telemetry */
 
-extern mps_word_t mps_telemetry_control(mps_word_t, mps_word_t);
 extern void mps_telemetry_set(mps_word_t);
 extern void mps_telemetry_reset(mps_word_t);
 extern mps_word_t mps_telemetry_get(void);
@@ -822,8 +796,6 @@ extern mps_res_t mps_scan_area(mps_ss_t, void *, void *, void *);
 extern mps_res_t mps_scan_area_masked(mps_ss_t, void *, void *, void *);
 extern mps_res_t mps_scan_area_tagged(mps_ss_t, void *, void *, void *);
 extern mps_res_t mps_scan_area_tagged_or_zero(mps_ss_t, void *, void *, void *);
-
-extern mps_res_t mps_fix(mps_ss_t, mps_addr_t *);
 
 #define MPS_SCAN_BEGIN(ss) \
   MPS_BEGIN \

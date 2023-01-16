@@ -244,12 +244,15 @@ Cautions
 
    a. call library code;
 
-   b. perform a non-local exit (for example, by throwing an exception,
+   b. access MPS-managed memory in pools that protect their contents;
+
+   c. perform a non-local exit (for example, by throwing an exception,
       or calling :c:func:`longjmp`);
 
-   c. call any functions or macros in the MPS other than the fix
-      macros :c:func:`MPS_FIX1`, :c:func:`MPS_FIX12`, and
-      :c:func:`MPS_FIX2`.
+   d. call any functions or macros in the MPS other than
+      :c:func:`MPS_SCAN_BEGIN`, :c:func:`MPS_SCAN_END`,
+      :c:func:`MPS_FIX1`, :c:func:`MPS_FIX12`, :c:func:`MPS_FIX2`, and
+      :c:func:`MPS_FIX_CALL`.
 
    It's permissible to call other functions in the client program, but
    see :c:func:`MPS_FIX_CALL` for a restriction on passing the
@@ -260,12 +263,9 @@ Cautions
    a. memory inside the object or block that they have been asked to
       look at;
 
-   b. memory managed by the MPS that is in pools that do not protect
-      their contents;
+   b. MPS-managed memory in pools that do not protect their contents;
 
-   c. memory not managed by the MPS;
-
-   They must not access other memory managed by the MPS.
+   c. memory not managed by the MPS.
 
 
 .. index::
@@ -487,82 +487,3 @@ Object format introspection
         managed by a pool with an object format, but which is not
         inside a block allocated by that pool. It never returns a
         false negative.
-
-
-.. c:function:: void mps_arena_formatted_objects_walk(mps_arena_t arena, mps_formatted_objects_stepper_t f, void *p, size_t s)
-
-    Visit all :term:`formatted objects` in an
-    :term:`arena`.
-
-    ``arena`` is the arena whose formatted objects you want to visit.
-
-    ``f`` is a formatted objects stepper function. It will be called for
-    each formatted object in the arena. See
-    :c:type:`mps_formatted_objects_stepper_t`.
-
-    ``p`` and ``s`` are arguments that will be passed to ``f`` each time it
-    is called. This is intended to make it easy to pass, for example,
-    an array and its size as parameters.
-
-    Each :term:`pool class` determines for which objects the stepper
-    function is called. Typically, all validly formatted objects are
-    visited. :term:`Padding objects` may be visited at the pool
-    class's discretion: the stepper function must handle this
-    case.
-
-    .. warning::
-
-        The callback function must obey the restrictions documented
-        under :c:type:`mps_formatted_objects_stepper_t`.
-
-        If a garbage collection is currently in progress (that is, if
-        the arena is in the :term:`clamped <clamped state>` or
-        :term:`unclamped state`), then only objects that are known to
-        be currently valid are visited.
-
-        If you need to be certain that all objects are visited, or if
-        the callback function needs to follow references from the
-        object to automatically managed memory, you must ensure that
-        the arena is in the :term:`parked state` by calling
-        :c:func:`mps_arena_park` before calling this function (and
-        release it by calling :c:func:`mps_arena_release` afterwards,
-        if desired).
-
-        If your application has requirements for introspection that
-        can't be met under these restrictions, :ref:`contact us
-        <contact>`.
-
-
-.. c:type:: void (*mps_formatted_objects_stepper_t)(mps_addr_t addr, mps_fmt_t fmt, mps_pool_t pool, void *p, size_t s)
-
-    The type of a :term:`formatted objects`
-    :term:`stepper function`.
-    
-    A function of this type can be passed to
-    :c:func:`mps_arena_formatted_objects_walk`, in which case it will
-    be called for each formatted object in an :term:`arena`. It
-    receives five arguments:
-    
-    ``addr`` is the address of the object.
-
-    ``fmt`` is the :term:`object format` for that object.
-
-    ``pool`` is the :term:`pool` to which the object belongs.
-
-    ``p`` and ``s`` are the corresponding values that were passed to
-    :c:func:`mps_arena_formatted_objects_walk`.
-
-    The function may not call any function in the MPS. It may access:
-
-    a. memory inside the object or block pointed to by ``addr``;
-
-    b. memory managed by the MPS that is in pools that do not protect
-       their contents;
-
-    c. memory not managed by the MPS.
-
-    It must not:
-
-    d. access other memory managed by the MPS;
-
-    e. modify any of the references in the object.
