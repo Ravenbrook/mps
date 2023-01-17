@@ -84,6 +84,10 @@ QEMU/KVM really, but it's much better emulation.  RB 2023-01-14]
 
 [VirtualBox (x86, x86_64 only)]
 
+[WSL is useful for validating builds and running tools, but testing
+the MPS on WSL does not prove it passes on Linux.  And WSL is not a
+supported platform at the moment.]
+
 
 3.3. macOS host
 ...............
