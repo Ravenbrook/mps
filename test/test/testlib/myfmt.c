@@ -47,7 +47,7 @@ struct mps_fmt_A_s fmtA =
  &mypad
 };
 
-void fmtargs(mps_arg_s args[MPS_ARGS_MAX])
+void fmtargs(mps_arg_s args[FMTARGS_ARGS_MAX])
 {
   args[0].key = MPS_KEY_ALIGN;
   args[0].val.align = MPS_PF_ALIGN;
@@ -62,6 +62,8 @@ void fmtargs(mps_arg_s args[MPS_ARGS_MAX])
   args[5].key = MPS_KEY_FMT_PAD;
   args[5].val.fmt_pad = mypad;
   args[6].key = MPS_KEY_ARGS_END;
+  /* FIXME: Is asserts appropriate here? RB 2023-01-17 */
+  asserts(FMTARGS_ARGS_MAX > 6, "not enough room for format arguments");
 }
 
 mycell *allocheader(mps_ap_t ap, mps_word_t data,

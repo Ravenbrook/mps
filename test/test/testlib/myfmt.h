@@ -45,6 +45,7 @@ mycell *allocone(mps_ap_t ap, mps_word_t data,
 mycell *allocheader(mps_ap_t ap, mps_word_t data,
  mycell *ref0, mycell *ref1, size_t size, size_t header);
 
-void fmtargs(mps_arg_s args[MPS_ARGS_MAX]);
+#define FMTARGS_ARGS_MAX 7
+void fmtargs(mps_arg_s args[FMTARGS_ARGS_MAX]);
 
 #endif
