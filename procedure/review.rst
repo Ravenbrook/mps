@@ -34,14 +34,24 @@ tool.
   - Review is not just (or even mostly) looking at diffs, though
 GitHub encourages this idea.
   - History of MPS review.
-  - Why review is so important to the MPS.]
+  - Why review is so important to the MPS.
+  - Check against book.gilb93.handbook [Gilb_93]_.
+  - Check against kpa.pr, [CMU/SEI-93-TR-025]_, p L3-97
+]
 
 
 A. References
 -------------
 
+.. [CMU/SEU-93-TR-025] "Key Practices of the Capability Maturity
+                       ModelSM, Version 1.1"; Mark C. Paulk,
+                       Charles V. Weber, Suzanne M. Garcia, Mary Beth
+                       Chrissis, Marilyn Bush; Software Engineering
+                       Institute, Carnegie Mellon University; 1993-02;
+                       <https://resources.sei.cmu.edu/asset_files/TechnicalReport/1993_005_001_16214.pdf>.
+
 .. [Gilb_93] "Software Inspection"; Tom Gilb, Dorothy Graham; Addison
-            Wesley; 1993; ISBN 0-201-63181-4; book.gilb93.
+             Wesley; 1993; ISBN 0-201-63181-4; book.gilb93.
 
 
 B. Document History
