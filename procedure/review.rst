@@ -37,8 +37,7 @@ GitHub encourages this idea.
   - Why review is so important to the MPS.
   - Review is not just for code.
   - Check against book.gilb93.handbook [Gilb_93]_.
-  - Check against kpa.pr, [CMU/SEI-93-TR-025]_, p L3-97
-]
+  - Check against kpa.pr, [CMU/SEI-93-TR-025]_, p L3-97]
 
 
 2. Purpose
@@ -102,33 +101,30 @@ in book.gilb93.  Need to look this up. RB 2023-01-20]
 4. Phases
 ---------
 
-[Adapted from proc.review of 1995-08-02.  RB 2023-01-20]
+_`.phase`: The following procedures are performed more-or-less in
+order.
 
-_`.proc`: The following procedures are performed in order (expect
-where specified).  Note that the people mentioned are unlikely to be
-distinct.
-
-#. _`.phase.request`: Review commences when .role.author requests that
-   their document be reviewed.  There is no procedure for this.
-   [Relate to GitHub non-draft pull requests.  RB 2023-01-20]
+#. _`.phase.request`: .role.author requests that their work be
+   reviewed.  [How?  Relate to GitHub non-draft pull requests.  RB
+   2023-01-20]
 
 #. _`.phase.entry`: .role.author and .role.leader perform
-   proc.review.entry.  The rest of the Inspection process is only
+   `.entry`_.  The rest of the Inspection process is only
    entered when a specified set of entry criteria have been met.
 
-#. _`.phase.planning`: .role.leader selects a set of source
-   documentation, candidate documentation, checklists, rule sets,
-   checking rates, people, roles, and logging meeting rates to ensure
-   maximum productivity.
+#. _`.phase.planning`: .role.leader performs `.planning`_, selecting a
+   set of source documentation, candidate documentation, checklists,
+   rule sets, checking rates, people, roles, and logging meeting rates
+   to ensure maximum productivity.
 
 #. _`.phase.kickoff`: .role.leader, .role.checker, and sometimes the
-   .role.author perform proc.review.ko.
+   .role.author perform `.ko`_.
 
    The leader can elect to run a "kickoff" meeting prior to the
    checking.  Team improvement goals and corresponding strategies are
    adopted.  Any necessary instructions will be given.
 
-#. _`.phase.checking`: .role.checkers perform proc.review.check.
+#. _`.phase.check`: .role.checkers perform `.check`_.
 
    The checking phase has a recommended time or rate, but checkers
    have instructions to deviate from that whenever individual
@@ -140,8 +136,8 @@ distinct.
    logging meeting.  To do this each checker should have at least one
    special "checking role".
 
-#. _`.phase.logging`: The .role.leader, the .role.scribe, and
-   .role.checker perform proc.review.log.
+#. _`.phase.log`: The .role.leader, the .role.scribe, and
+   .role.checker perform `.log`_.
 
    The team concentrates on logging items at a rate of at least one
    per minute.  Items logged include potential defects (issues),
@@ -154,9 +150,10 @@ distinct.
    quantity of the documents.
 
 #. _`.phase.brainstorm`: .role.leader, .role.scribe, .role.checker,
-   and usually the .role.author perform proc.review.brainstorm.  The
-   followup is done by the .role.leader, and make take place any time
-   after the brainstorm meeting.  [What is the followup?  RB
+   and usually the .role.author perform `.brainstorm`_.
+
+   The followup is done by the .role.leader, and make take place any
+   time after the brainstorm meeting.  [What is the followup?  RB
    2023-01-20]
 
    Immediately after each logging meeting time is used to brainstorm
@@ -175,7 +172,7 @@ distinct.
 
    and .role.leader records this information.
 
-#. _`.phase.edit`: .role.editor performs proc.review.edit.
+#. _`.phase.edit`: .role.editor performs `.edit`_.
 
    Issue analysis and correction action is undertaken by an editor.
    Some written action must be taken on all logged issues -- if
@@ -186,8 +183,7 @@ distinct.
 
 #. _`.phase.quality`: The Quality [what?  RB 2023-01-20]
 
-#. _`.phase.exit`: .role.editor and .role.leader perform
-   proc.review.exit.
+#. _`.phase.exit`: .role.editor and .role.leader perform `.exit`_.
 
    The leader shall determine that some appropriate written action has
    been taken on all logged issues.  The leader is not responsible for
@@ -197,6 +193,57 @@ distinct.
    met before signing off completion of the Inspection.  These include
    follow-up completed, metrics delivered, planned rates kept to, and
    level of remaining defects within acceptable bounds.
+
+
+5. Procedures
+-------------
+
+5.1. Review Entry
+.................
+
+_`.entry`: [Placeholder.]
+
+
+5.2. Review Planning
+....................
+
+_`.planning`: [Placeholder.]
+
+
+5.3. Review Kickoff
+...................
+
+_`.ko`: [Placeholder.]
+
+
+5.4. Review Checking
+....................
+
+_`.check`: [Placeholder.]
+
+
+5.5. Review Logging
+...................
+
+_`.log`: [Placeholder.]
+
+
+5.6. Review Brainstorm
+......................
+
+_`.brainstorm`: [Placeholder.]
+
+
+5.7. Review Edit
+................
+
+_`.edit`: [Placeholder.]
+
+
+5.8. Review Exit
+................
+
+_`.exit`: [Placeholder.]
 
 
 A. References
