@@ -104,27 +104,27 @@ in book.gilb93.  Need to look this up. RB 2023-01-20]
 _`.phase`: The following procedures are performed more-or-less in
 order.
 
-#. _`.phase.request`: .role.author requests that their work be
+#. _`.phase.request`: `.role.author`_ requests that their work be
    reviewed.  [How?  Relate to GitHub non-draft pull requests.  RB
    2023-01-20]
 
-#. _`.phase.entry`: .role.author and .role.leader perform
+#. _`.phase.entry`: `.role.author`_ and `.role.leader`_ perform
    `.entry`_.  The rest of the Inspection process is only
    entered when a specified set of entry criteria have been met.
 
-#. _`.phase.planning`: .role.leader performs `.planning`_, selecting a
+#. _`.phase.planning`: `.role.leader`_ performs `.planning`_, selecting a
    set of source documentation, candidate documentation, checklists,
    rule sets, checking rates, people, roles, and logging meeting rates
    to ensure maximum productivity.
 
-#. _`.phase.kickoff`: .role.leader, .role.checker, and sometimes the
-   .role.author perform `.ko`_.
+#. _`.phase.kickoff`: `.role.leader`_, `.role.checker`_, and sometimes the
+   `.role.author`_ perform `.ko`_.
 
    The leader can elect to run a "kickoff" meeting prior to the
    checking.  Team improvement goals and corresponding strategies are
    adopted.  Any necessary instructions will be given.
 
-#. _`.phase.check`: .role.checkers perform `.check`_.
+#. _`.phase.check`: `.role.checker`_ perform `.check`_.
 
    The checking phase has a recommended time or rate, but checkers
    have instructions to deviate from that whenever individual
@@ -136,8 +136,8 @@ order.
    logging meeting.  To do this each checker should have at least one
    special "checking role".
 
-#. _`.phase.log`: The .role.leader, the .role.scribe, and
-   .role.checker perform `.log`_.
+#. _`.phase.log`: The `.role.leader`_, the `.role.scribe`_, and
+   `.role.checker`_ perform `.log`_.
 
    The team concentrates on logging items at a rate of at least one
    per minute.  Items logged include potential defects (issues),
@@ -149,10 +149,10 @@ order.
    new issues identified in the logging meeting as well as the
    quantity of the documents.
 
-#. _`.phase.brainstorm`: .role.leader, .role.scribe, .role.checker,
-   and usually the .role.author perform `.brainstorm`_.
+#. _`.phase.brainstorm`: `.role.leader`_, `.role.scribe`_, `.role.checker`_,
+   and usually the `.role.author`_ perform `.brainstorm`_.
 
-   The followup is done by the .role.leader, and make take place any
+   The followup is done by the `.role.leader`_, and make take place any
    time after the brainstorm meeting.  [What is the followup?  RB
    2023-01-20]
 
@@ -162,17 +162,17 @@ order.
    an hour.  The objective is to maximize production of useful ideas
    and personal commitment to change within that time.
 
-#. _`.phase.estimation`: .role.leader, .role.scribe, .role.checker,
-   and usually the .role.author spend a few minutes estimating how
+#. _`.phase.estimation`: `.role.leader`_, `.role.scribe`_, `.role.checker`_,
+   and usually the `.role.author`_ spend a few minutes estimating how
    productive the review was, by:
 
    - estimating the cost of the review (mostly work hours)
    - projecting what the defects would cost if uncorrected
    - projecting what similar defects would cost if not prevented
 
-   and .role.leader records this information.
+   and `.role.leader`_ records this information.
 
-#. _`.phase.edit`: .role.editor performs `.edit`_.
+#. _`.phase.edit`: `.role.editor`_ performs `.edit`_.
 
    Issue analysis and correction action is undertaken by an editor.
    Some written action must be taken on all logged issues -- if
@@ -183,7 +183,7 @@ order.
 
 #. _`.phase.quality`: The Quality [what?  RB 2023-01-20]
 
-#. _`.phase.exit`: .role.editor and .role.leader perform `.exit`_.
+#. _`.phase.exit`: `.role.editor`_ and `.role.leader`_ perform `.exit`_.
 
    The leader shall determine that some appropriate written action has
    been taken on all logged issues.  The leader is not responsible for
