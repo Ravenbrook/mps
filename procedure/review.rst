@@ -50,7 +50,7 @@ The purpose of the review procedure is:
 
 2. prevent future defects
 
-A defect is a failure to meet requirements.
+A defect is a way in which the work does not meet its requirements.
 
 As with any procedure, you can vary this one to meet this purpose, but
 you should probably read section [Insert reference to Rationale here.
@@ -70,27 +70,33 @@ Each person can takes on a number of rôles.
 
 Every role must be assigned to someone.
 
+Each role has tasks during each phase.
+
 [See also book.gilb93.proc.*.  RB 2023-01-20]
 
-_`.role.author`: wrote the work under review
+_`.role.leader`: The *leader* organises the review and ensures the
+procedures are executed.  The leader is responsible for managing the
+process in all respects for productive results.
 
-_`.role.checker`: checks the work during review 
+_`.role.author`: The *author* wrote the work under review.
 
-_`.role.editor`: edits the work to correct defects found by review
+_`.role.checker`: A *checker* checks the work during review.  There
+should be more than one checker, and the author can be a checker.
 
-_`.role.leader`: organises the review
+_`.role.editor`: The *editor* edits the work to correct defects found
+by review.  This is usually the author.
 
-_`.role.quality`: edits process to prevent defects found by review
+_`.role.quality`: The *quality* [Is this right? RB 2023-01-20] edits
+process to prevent future occurences of defects found by review.
 
-_`.role.scribe`: ensures defects are recorded
+_`.role.scribe`: The *scribe* ensures defects are recorded.
 
 _`.role.chief`: [Chief Inspection Leader in book.gilb93.  Need to look
 this up.  RB 2023-01-20]
 
-_`.role.manager`: ensures adequate resources are assigned to review
-[Project Manager in book.gilb93.  Need to look this up. RB 2023-01-20]
-
-Each role has tasks during each phase.
+_`.role.manager`: The *manager* ensures adequate resources are
+assigned to review and that reviews are happening.  [Project Manager
+in book.gilb93.  Need to look this up. RB 2023-01-20]
 
 
 4. Phases
@@ -102,28 +108,95 @@ _`.proc`: The following procedures are performed in order (expect
 where specified).  Note that the people mentioned are unlikely to be
 distinct.
 
-#. _`.request`: Review commences when the Author requests that his
-   document be reviewed.  There is no procedure for this.  [Relate to
-   GitHub non-draft pull requests.  RB 2023-01-20]
+#. _`.phase.request`: Review commences when .role.author requests that
+   their document be reviewed.  There is no procedure for this.
+   [Relate to GitHub non-draft pull requests.  RB 2023-01-20]
 
-#. _`.entry`: The Author and the Leader perform proc.review.entry.
+#. _`.phase.entry`: .role.author and .role.leader perform
+   proc.review.entry.  The rest of the Inspection process is only
+   entered when a specified set of entry criteria have been met.
 
-#. _`.kickoff`: The Leader, the Checkers, and sometimes the Author
-   perform proc.review.ko.
+#. _`.phase.planning`: .role.leader selects a set of source
+   documentation, candidate documentation, checklists, rule sets,
+   checking rates, people, roles, and logging meeting rates to ensure
+   maximum productivity.
 
-#. _`.checking`: The Checkers perform proc.review.check.
+#. _`.phase.kickoff`: .role.leader, .role.checker, and sometimes the
+   .role.author perform proc.review.ko.
 
-#. _`.logging`: The Leader, the Scribe, and the Checkers perform
-   proc.review.log.
+   The leader can elect to run a "kickoff" meeting prior to the
+   checking.  Team improvement goals and corresponding strategies are
+   adopted.  Any necessary instructions will be given.
 
-#. _`.brainstorm`: The Leader, the Scribe, the Checkers and usually
-   the Author perform proc.review.brainstorm.  The followup is done by
-   the Leader, and make take place any time after the brainstorm
-   meeting.
+#. _`.phase.checking`: .role.checkers perform proc.review.check.
 
-#. _`.edit`: The Editor performs proc.review.edit.
+   The checking phase has a recommended time or rate, but checkers
+   have instructions to deviate from that whenever individual
+   availability, role, or situation dictates, in order to increase
+   productivity.
 
-#. _`.exit`: The Editor and the Leader perform proc.review.exit.
+   The objective of individual checking is to identify a maximum of
+   unique major issues which no other checker will bring to the
+   logging meeting.  To do this each checker should have at least one
+   special "checking role".
+
+#. _`.phase.logging`: The .role.leader, the .role.scribe, and
+   .role.checker perform proc.review.log.
+
+   The team concentrates on logging items at a rate of at least one
+   per minute.  Items logged include potential defects (issues),
+   improvement suggestions, and questions of intent to the author.
+   The leader permits little other verbal meeting activity.  Meetings
+   last as maximum of two hours at the known optimum rate.  If
+   necessary, work must be chunked to avoid tiredness.  Optimum
+   checking rate for the meeting is determined by the percentage of
+   new issues identified in the logging meeting as well as the
+   quantity of the documents.
+
+#. _`.phase.brainstorm`: .role.leader, .role.scribe, .role.checker,
+   and usually the .role.author perform proc.review.brainstorm.  The
+   followup is done by the .role.leader, and make take place any time
+   after the brainstorm meeting.  [What is the followup?  RB
+   2023-01-20]
+
+   Immediately after each logging meeting time is used to brainstorm
+   the process causes of major defects, and to brainstorm improvements
+   to remove these causes.  The meeting shall last no more than half
+   an hour.  The objective is to maximize production of useful ideas
+   and personal commitment to change within that time.
+
+#. _`.phase.estimation`: .role.leader, .role.scribe, .role.checker,
+   and usually the .role.author spend a few minutes estimating how
+   productive the review was, by:
+
+   - estimating the cost of the review (mostly work hours)
+   - projecting what the defects would cost if uncorrected
+   - projecting what similar defects would cost if not prevented
+
+   and .role.leader records this information.
+
+#. _`.phase.edit`: .role.editor performs proc.review.edit.
+
+   Issue analysis and correction action is undertaken by an editor.
+   Some written action must be taken on all logged issues -- if
+   necessary by sending change requests to other authors.  The editor
+   makes the final classification of issues into defects, and reports
+   final defect metrics to the leader.  Edit also deals with
+   improvements and can deal with "questions to the author".
+
+#. _`.phase.quality`: The Quality [what?  RB 2023-01-20]
+
+#. _`.phase.exit`: .role.editor and .role.leader perform
+   proc.review.exit.
+
+   The leader shall determine that some appropriate written action has
+   been taken on all logged issues.  The leader is not responsible for
+   the correctness (the editor is).
+
+   The leader determines whether the formal exit criteria have been
+   met before signing off completion of the Inspection.  These include
+   follow-up completed, metrics delivered, planned rates kept to, and
+   level of remaining defects within acceptable bounds.
 
 
 A. References
