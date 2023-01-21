@@ -221,36 +221,36 @@ order.
 
 _`.entry`: [Placeholder.]
 
-#. _`.entry.product`: Determine exactly what product document is
-   involved, including revision.
+_`.entry.product`: Determine exactly what product document is
+involved, including revision.
 
-#. _`.entry.draft`: Ensure that the product document is available in a
-   suitable form and status (draft).
+_`.entry.draft`: Ensure that the product document is available in a
+suitable form and status (draft).
 
-#. _`.entry.time`: Estimate the checking rate and time.  A single
-   review should not have a checking time of more than one hour.
+_`.entry.time`: Estimate the checking rate and time.  A single review
+should not have a checking time of more than one hour.
 
-#. _`.entry.plan`: Plan when this review may take place and who should
-   attend.  Check with attendees if appropriate.
+_`.entry.plan`: Plan when this review may take place and who should
+attend.  Check with attendees if appropriate.
 
-#. _`.entry.record`: Create a review record for the product document
-   as "review.<tag>.<revision>".  [Where?  Needs specific instructions
-   for Git / GitHub.  RB 2023-01-20]
+_`.entry.record`: Create a review record for the product document as
+"review.<tag>.<revision>".  [Where?  Needs specific instructions for
+Git / GitHub.  RB 2023-01-20]
 
-#. _`.entry.source`: Determine and record the source documents.
+_`.entry.source`: Determine and record the source documents.
 
-#. _`.entry.rule`: Determine and record the rule documents.
+_`.entry.rule`: Determine and record the rule documents.
 
-#. _`.entry.check`: Determine and record the checklists, including
-   checking roles.
+_`.entry.check`: Determine and record the checklists, including
+checking roles.
 
-#. _`.entry.entry`: Determine and record the entry and exit criteria.
+_`.entry.entry`: Determine and record the entry and exit criteria.
 
-#. _`.entry.check-entry`: Check that the entry criteria hold.  Record
-   any transgressions.  Determine whether the transgressions merit
-   rejection at this stage.
+_`.entry.check-entry`: Check that the entry criteria hold.  Record any
+transgressions.  Determine whether the transgressions merit rejection
+at this stage.
 
-#. _`.invite`: Invite the Checkers to the kickoff meeting.
+_`.invite`: Invite the Checkers to the kickoff meeting.
 
 
 5.2. Review Planning
