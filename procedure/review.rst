@@ -247,7 +247,55 @@ _`.planning`: [Placeholder.]
 5.3. Review Kickoff
 ...................
 
+[Sourcec from [MM_proc.review.ko] and needs updating.  RB 2023-01-21]
+
 _`.ko`: [Placeholder.]
+
+
+In Advance
+~~~~~~~~~~
+
+[This section could be moved to the planning phase.  RB 2023-01-21]
+
+_`.ko.doc.prep`: In advance of the meeting, the leader ensures that checkers have 
+access to the necessary documents, either by supplying them with physical 
+copies, or by advising them of the documents in advance.
+
+_`.ko.train.prep`: If any checkers are not familiar with formal review, the leader 
+should ensure that they are briefed, and supplied with the relevant process 
+documents.
+
+
+At The Meeting
+~~~~~~~~~~~~~~
+
+_`.ko.record`: Times, objectives, and anything else appropriate should all be 
+recorded in the review record.
+
+_`.ko.doc.check`: In the meeting, the leader checks that all checkers have access to 
+all necessary documents.
+
+_`.ko.intro`: The leader may ask the author to prepare a short (one minute) 
+introduction to the product document.
+
+_`.ko.role`: The leader announces or negotiates any roles he wishes to assign, and 
+ensures that checkers understand their assignments.
+
+_`.ko.improve`: The leader announces any relevant metrics and negotiates objectives.
+
+_`.ko.log`: The leader announces the time of the logging meeting.  This should 
+normally be set at the estimate end of the kickoff meeting, plus the estimated 
+checking time, plus a short tea-break.  It should not normally be delayed to 
+another day.
+
+_`.ko.remind`: The leader reminds checkers of the immediate objective of review (see 
+process.review.goal.fix).
+
+_`.ko.author`: The leader reminds the author that he can withdraw the document from 
+review at any time.
+
+_`.ko.train.check`: The leader checks that checkers are familiar with their tasks and 
+solicits any questions or suggestions.
 
 
 5.4. Review Checking
@@ -326,7 +374,12 @@ A. References
 
 .. [MM_proc.review.exit] "Procedure for exiting a document from
 			 review"; Gavin Matthews; 1997-06-12;
-			 mminfo:proc.review.exit; //info.ravenbrook.com/project/mps/doc/2002-06-18/obsolete-mminfo/mminfo/proc/review/exit/index.txt#1.
+			 mminfo:proc.review.exit;
+			 //info.ravenbrook.com/project/mps/doc/2002-06-18/obsolete-mminfo/mminfo/proc/review/exit/index.txt#1.
+
+.. [MM_proc.review.ko] "Procedure for a review kickoff meeting"; Gavin
+		       Matthews; 1997-06-12; mminfo:proc.review.ko;
+		       //info.ravenbrook.com/project/mps/doc/2002-06-18/obsolete-mminfo/mminfo/proc/review/ko/index.txt#1.
 
 
 B. Document History
