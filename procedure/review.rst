@@ -37,7 +37,8 @@ GitHub encourages this idea.
   - Why review is so important to the MPS.
   - Review is not just for code.
   - Check against book.gilb93.handbook [Gilb_93]_.
-  - Check against kpa.pr, [CMU/SEI-93-TR-025]_, p L3-97]
+  - Check against kpa.pr, [CMU/SEI-93-TR-025]_, p L3-97
+  - Material from [MM_process.review]_.]
 
 
 2. Purpose
@@ -201,7 +202,7 @@ order.
 5.1. Review Entry
 .................
 
-[Sourced from [MM_proc.review.entry] and needs updating.  RB
+[Sourced from [MM_proc.review.entry]_ and needs updating.  RB
 2023-01-21]
 
 _`.entry`: [Placeholder.]
@@ -247,13 +248,13 @@ _`.planning`: [Placeholder.]
 5.3. Review Kickoff
 ...................
 
-[Sourced from [MM_proc.review.ko] and needs updating.  RB 2023-01-21]
+[Sourced from [MM_proc.review.ko]_ and needs updating.  RB 2023-01-21]
 
 _`.ko`: [Placeholder.]
 
 
-In Advance
-~~~~~~~~~~
+5.3.1. In Advance
+~~~~~~~~~~~~~~~~~
 
 [This section could be moved to the planning phase.  RB 2023-01-21]
 
@@ -266,8 +267,8 @@ should ensure that they are briefed, and supplied with the relevant process
 documents.
 
 
-At The Meeting
-~~~~~~~~~~~~~~
+5.3.2. At The Meeting
+~~~~~~~~~~~~~~~~~~~~~
 
 _`.ko.record`: Times, objectives, and anything else appropriate should all be 
 recorded in the review record.
@@ -302,15 +303,15 @@ solicits any questions or suggestions.
 5.4. Review Checking
 ....................
 
-[Sourced from [MM_proc.review.check] and needs updating.  RB 2023-01-21]
+[Sourced from [MM_proc.review.check]_ and needs updating.  RB 2023-01-21]
 
 _`.check`: [Placeholder.]
 
 [Note: not all issues are local to a line.  RB 2023-01-21]
 
 
-Start
-~~~~~
+5.4.1. Start
+~~~~~~~~~~~~
 
 _`.check.doc`: Ensure that you have all the relevant documents.
 
@@ -318,13 +319,14 @@ _`.check.ask`: Ask the review leader if you have any questions about
 checking procedure.
 
 
-Checking
-~~~~~~~~
+5.4.2. Checking
+~~~~~~~~~~~~~~~
 
 _`.check.source`: First, read any source documents.  Review is not
 directed at finding defects in source documents, but any found are a
-bonus.  They will be improvement suggestions (see `.class.imp`_).  Do
-not waste too much time finding defects in source documents.
+bonus.  They will be improvement suggestions (see class.imp [To what
+does this refer?  RB 2023-01-21]).  Do not waste too much time finding
+defects in source documents.
 
 _`.check.rule`: Ensure that you are familiar with all rule sets or
 check lists.
@@ -355,8 +357,8 @@ _`.check.class`: Classify each defect you find according to
 guide.review.class [Needs importing.  RB 2023-01-21].
 
 
-End
-~~~
+5.4.3. End
+~~~~~~~~~~
 
 _`.check.record`: At the end of checking, record (for each product
 document):
@@ -373,7 +375,7 @@ document):
 5.5. Review Logging
 ...................
 
-[Sourced from [MM_proc.review.log] and needs updating.  RB 2023-01-21]
+[Sourced from [MM_proc.review.log]_ and needs updating.  RB 2023-01-21]
 
 _`.log`: [Placeholder.]
 
@@ -381,8 +383,8 @@ _`.log.just`: The main reason for having joint logging sessions is so
 that new issues are found.
 
 
-During The Meeting
-~~~~~~~~~~~~~~~~~~
+5.5.1. During The Meeting
+~~~~~~~~~~~~~~~~~~~~~~~~~
 
 _`.log.record`: All information gathered should be recorded in the
 review log.  This may be deferred if the meeting is mediated by a
@@ -402,7 +404,8 @@ documents from review at any time.
 _`.log.decide`: The leader, in consultation with the author and
 editor, decides whether it is worth holding continuing with the
 logging meeting.  [Using what criteria?  We've never actually done
-this.  GavinM 1997-06-12] In particular, see `.exit.universal.rates`_.
+this.  GavinM 1997-06-12] In particular, see exit.universal.rates [To
+what does this refer?  RB 2023-01-21].
 
 _`.log.scribe`: Assign a scribe (usually the leader), and ensure the
 editor will be happy with the readability of the log.
@@ -481,8 +484,8 @@ brainstorm.  This will normally be a tea-break (10-15 minutes) after
 the end of the logging meeting.
 
 
-After The Meeting
-~~~~~~~~~~~~~~~~~
+5.5.2. After The Meeting
+~~~~~~~~~~~~~~~~~~~~~~~~
 
 _`.log.inform`: The reviewed document is now ready for edit (see proc.review.edit).  
 The review leader should inform the editor of this by mail.
@@ -491,7 +494,7 @@ The review leader should inform the editor of this by mail.
 5.6. Review Brainstorm
 ......................
 
-[Sourced from [MM_proc.review.brainstorm] and needs updating.  RB
+[Sourced from [MM_proc.review.brainstorm]_ and needs updating.  RB
 2023-01-21]
 
 _`.brainstorm`: [Placeholder.]
@@ -503,8 +506,8 @@ finding ways to prevent the reoccurance of defects.  This closes the
 process improvement loop.
 
 
-In Advance
-~~~~~~~~~~
+5.6.1. In Advance
+~~~~~~~~~~~~~~~~~
 
 _`.brainstorm.choose`: The leader chooses 3-6 major defects or groups
 of major defects (see guide.review.class.major [Needs importing.  RB
@@ -513,8 +516,8 @@ importance and his own experience of which defects can be most
 profitably attacked.
 
 
-In The Meeting
-~~~~~~~~~~~~~~
+5.6.2. In The Meeting
+~~~~~~~~~~~~~~~~~~~~~
 
 _`.brainstorm.time`: The process brainstorm should last no more than
 around 30 minutes.
@@ -541,8 +544,8 @@ criticisms of the review process and apply `.brainstorm.disc`_ to
 them.
 
 
-After The Meeting
-~~~~~~~~~~~~~~~~~
+5.6.3. After The Meeting
+~~~~~~~~~~~~~~~~~~~~~~~~
 
 _`.brainstorm.act`: The review leader should derive requests and
 solution suggestions for the process product from the record, and
@@ -559,7 +562,7 @@ _`.edit`: [Placeholder.]
 5.8. Review Exit
 ................
 
-[Sourced from [MM_proc.review.exit] and needs updating.  RB
+[Sourced from [MM_proc.review.exit]_ and needs updating.  RB
 2023-01-21]
 
 _`.exit`: [Placeholder.]
@@ -601,6 +604,10 @@ A. References
 
 .. [Gilb_93] "Software Inspection"; Tom Gilb, Dorothy Graham; Addison
              Wesley; 1993; ISBN 0-201-63181-4; book.gilb93.
+
+.. [MM_process.review] "The review process"; Richard Brooksby;
+		       1995-08-18; mminfo:process.review;
+		       //info.ravenbrook.com/project/mps/doc/2002-06-18/obsolete-mminfo/mminfo/process/review/index.txt#1.
 
 .. [MM_proc.review.brainstorm] "Procedure for process brainstorm in
 			       review"; Gavin Matthews; 1997-06-12;
