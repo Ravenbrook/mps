@@ -46,9 +46,9 @@ tool.
 
 The purpose of the review procedure is:
 
-1. find and correct major defects
+1. _`.goal.fix`: find and correct major defects
 
-2. prevent future defects
+2. _`.goal.prevent`: prevent future defects
 
 A defect is a way in which the work does not meet its requirements.
 
@@ -57,8 +57,8 @@ you should probably read section [Insert reference to Rationale here.
 RB 2023-01-20].
 
 
-3. Rôles
---------
+3. Review Rôles
+---------------
 
 [Reconstructed from memory and common sense, but needs checking
 against book.gilb93.  RB 2023-01-20]
@@ -76,20 +76,34 @@ Each role has tasks during each phase.
 
 _`.role.leader`: The *leader* organises the review and ensures the
 procedures are executed.  The leader is responsible for managing the
-process in all respects for productive results.
+process in all respects for productive results.  The leader is the
+person responsible for organizing and planning review.  They need not
+be distinct from the `.role.author`_.  It is helpful if the leader has
+received special instruction in review or inspection.
 
-_`.role.author`: The *author* wrote the work under review.
+_`.role.author`: The *author* wrote the work under review.  The author
+is the person primarily responsible for the production of the product
+document (see `.doc.product`_).
 
 _`.role.checker`: A *checker* checks the work during review.  There
-should be more than one checker, and the author can be a checker.
+should be more than one checker, and the author can be a checker.  A
+checker is any person who participates in the checking of product
+documents, and process brainstorming.  All review attendees are
+usually checkers.  Checkers may be asked by the leader to check with
+certain *checking roles* [ref?] in mind; this is to increase coverage
+and reduce duplication of issues.
 
 _`.role.editor`: The *editor* edits the work to correct defects found
-by review.  This is usually the author.
+by review.  This is usually the author.  The editor is the person
+responsible for acting on issues raised, and bringing the product
+document to review exit.  They are usually the author.
 
 _`.role.quality`: The *quality* [Is this right? RB 2023-01-20] edits
 process to prevent future occurences of defects found by review.
 
-_`.role.scribe`: The *scribe* ensures defects are recorded.
+_`.role.scribe`: The *scribe* ensures defects are recorded.  The
+scribe is the person who records information during review meetings.
+They are usually the same person as `.role.leader`_.
 
 _`.role.chief`: [Chief Inspection Leader in book.gilb93.  Need to look
 this up.  RB 2023-01-20]
@@ -392,11 +406,11 @@ logged medium, such as IRC.
 
 _`.log.metrics`: Gather individual metrics of:
 
-  - Issue counts by class;
+- Issue counts by class;
 
-  - Time spent checking;
+- Time spent checking;
 
-  - Amount of product document actually checked.
+- Amount of product document actually checked.
 
 _`.log.author`: The leader reminds the author that he may remove
 documents from review at any time.
