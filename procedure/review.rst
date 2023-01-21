@@ -8,7 +8,7 @@ Memory Pool System review procedure
 :date: 2023-01-19
 :confidentiality: public
 :copyright: See `C. Copyright and License`_
-:readership: MPS developers
+:readership: MPS developers, [incorporate roles. RB 2023-01-20]
 :status: draft
 
 
@@ -201,7 +201,41 @@ order.
 5.1. Review Entry
 .................
 
+[Sourced from [MM_proc.review.entry] and needs updating.  RB
+2023-01-21]
+
 _`.entry`: [Placeholder.]
+
+#. _`.entry.product`: Determine exactly what product document is
+   involved, including revision.
+
+#. _`.entry.draft`: Ensure that the product document is available in a
+   suitable form and status (draft).
+
+#. _`.entry.time`: Estimate the checking rate and time.  A single
+   review should not have a checking time of more than one hour.
+
+#. _`.entry.plan`: Plan when this review may take place and who should
+   attend.  Check with attendees if appropriate.
+
+#. _`.entry.record`: Create a review record for the product document
+   as "review.<tag>.<revision>".  [Where?  Needs specific instructions
+   for Git / GitHub.  RB 2023-01-20]
+
+#. _`.entry.source`: Determine and record the source documents.
+
+#. _`.entry.rule`: Determine and record the rule documents.
+
+#. _`.entry.check`: Determine and record the checklists, including
+   checking roles.
+
+#. _`.entry.entry`: Determine and record the entry and exit criteria.
+
+#. _`.entry.check-entry`: Check that the entry criteria hold.  Record
+   any transgressions.  Determine whether the transgressions merit
+   rejection at this stage.
+
+#. _`.invite`: Invite the Checkers to the kickoff meeting.
 
 
 5.2. Review Planning
@@ -258,6 +292,10 @@ A. References
 
 .. [Gilb_93] "Software Inspection"; Tom Gilb, Dorothy Graham; Addison
              Wesley; 1993; ISBN 0-201-63181-4; book.gilb93.
+
+.. [MM_proc.review.entry] "Procedure for review entry"; Gavin
+			  Matthews; 1997-06-02; mminfo:proc.review.entry;
+			  //info.ravenbrook.com/project/mps/doc/2002-06-18/obsolete-mminfo/mminfo/proc/review/entry/index.txt#1.
 
 
 B. Document History
