@@ -278,8 +278,9 @@ all necessary documents.
 _`.ko.intro`: The leader may ask the author to prepare a short (one minute) 
 introduction to the product document.
 
-_`.ko.role`: The leader announces or negotiates any roles he wishes to assign, and 
-ensures that checkers understand their assignments.
+_`.ko.role`: The leader announces or negotiates any checking roles he
+wishes to assign, and ensures that checkers understand their
+assignments.
 
 _`.ko.improve`: The leader announces any relevant metrics and negotiates objectives.
 
@@ -301,9 +302,72 @@ solicits any questions or suggestions.
 5.4. Review Checking
 ....................
 
+[Sourced from [MM_proc.review.check] and needs updating.  RB 2023-01-21]
+
 _`.check`: [Placeholder.]
 
 [Note: not all issues are local to a line.  RB 2023-01-21]
+
+
+Start
+~~~~~
+
+_`.check.doc`: Ensure that you have all the relevant documents.
+
+_`.check.ask`: Ask the review leader if you have any questions about
+checking procedure.
+
+
+Checking
+~~~~~~~~
+
+_`.check.source`: First, read any source documents.  Review is not
+directed at finding defects in source documents, but any found are a
+bonus.  They will be improvement suggestions (see `.class.imp`_).  Do
+not waste too much time finding defects in source documents.
+
+_`.check.rule`: Ensure that you are familiar with all rule sets or
+check lists.
+
+_`.check.role`: Ensure that you know and keep in mind the roles you
+have been assigned.
+
+_`.check.product`: Read through the product document (or documents) in
+the order specified.  Remember to read the product documents in
+reverse order if you were assigned a backwards checking role during
+`.ko.role`_ (see role.check.backwards [Needs importing.  RB
+2023-01-21]).
+
+_`.check.major`: Concentrate on finding major issues (see
+guide.review.class.major [Needs importing.  RB 2023-01-21]); this is
+of primary importance.
+
+_`.check.max`: Find as many issues as possible to help the author.
+
+_`.check.note`: Note all issues; you need not log them later.
+
+_`.check.rough`: Your log can be rough; concentrate on finding issues.
+
+_`.check.trouble`: Consult the leader if you have any questions, or if
+you are finding too many or too few issues.
+
+_`.check.class`: Classify each defect you find according to
+guide.review.class [Needs importing.  RB 2023-01-21].
+
+
+End
+~~~
+
+_`.check.record`: At the end of checking, record (for each product
+document):
+
+  - How many defects were found, by class (see `.check.class`_);
+
+  - How long was actually spent;
+
+  - How much of the product document was actually checked;
+
+  - Any problems encountered.
 
 
 5.5. Review Logging
@@ -542,6 +606,11 @@ A. References
 			       review"; Gavin Matthews; 1997-06-12;
 			       mminfo:proc.review.brainstorm;
 			       //info.ravenbrook.com/project/mps/doc/2002-06-18/obsolete-mminfo/mminfo/proc/review/brainstorm/index.txt#1.
+
+.. [MM_proc.review.check] "Procedure for checking in review"; Gavin
+			  Matthews; 1997-06-12;
+			  mminfo:proc.review.check;
+			  //info.ravenbrook.com/project/mps/doc/2002-06-18/obsolete-mminfo/mminfo/proc/review/check/index.txt#1.
 
 .. [MM_proc.review.entry] "Procedure for review entry"; Gavin
 			  Matthews; 1997-06-02; mminfo:proc.review.entry;
