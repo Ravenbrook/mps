@@ -25,10 +25,19 @@ issue #95 <https://github.com/Ravenbrook/mps/issues/95>`_.
 Since this document was created as part of `a project to migrate from
 Perforce to Git (and GitHub)
 <https://github.com/orgs/Ravenbrook/projects/1>`_, this procedure will
-give specifics on conducting review via GitHub.  But the general
-procedure is in no way specific to GitHub, Git, Perforce, or any other
-tool.
+give specifics on conducting review via GitHub.  But the process is in
+no way specific to GitHub, Git, Perforce, or any other tool.
 
+This procedure was created by locating `review process documents from
+the Harlequin MM Group <A. References>`_, incorporating the wisdom
+from thousands of hours of reviews.  The text was then edited to
+bring it up to date with current terms and tools.
+
+This procedure may seem overwhelming at first, but it can be executed
+quickly [how quickly? kpa.qpm! RB 2023-01-21] once you have learned
+it.  Hundreds of reviews have been conducted using it in the past, and
+every single one was profitable in terms of preventing defects versus
+cost of review [citation needed. RB 2023-01-21].
 
 [Notes for inclusion:
   - Review is not just (or even mostly) looking at diffs, though
