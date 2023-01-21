@@ -32,7 +32,7 @@ tool.
 
 [Notes for inclusion:
   - Review is not just (or even mostly) looking at diffs, though
-GitHub encourages this idea.
+    GitHub encourages this idea.
   - History of MPS review.
   - Why review is so important to the MPS.
   - Review is not just for code.
@@ -363,13 +363,13 @@ guide.review.class [Needs importing.  RB 2023-01-21].
 _`.check.record`: At the end of checking, record (for each product
 document):
 
-  - How many defects were found, by class (see `.check.class`_);
+- How many defects were found, by class (see `.check.class`_);
 
-  - How long was actually spent;
+- How long was actually spent;
 
-  - How much of the product document was actually checked;
+- How much of the product document was actually checked;
 
-  - Any problems encountered.
+- Any problems encountered.
 
 
 5.5. Review Logging
@@ -414,15 +414,14 @@ _`.log.explain`: The leader explains the order in which issues will be
 logged, and ensures everyone understand this.  He also explains the
 desired form of issues, namely:
 
-  - Location;
+- Location;
 
-  - Class, including "New" (N) if the issue was discovered during
-    logging (see guide.review.class [Needs importing.  RB
-    2023-01-21]);
+- Class, including "New" (N) if the issue was discovered during
+  logging (see guide.review.class [Needs importing.  RB 2023-01-21]);
 
-  - Description of issue, concentrating on how it breaks a rule,
-    rather than on possible solutions, naming the rule or checklist
-    question, if possible.
+- Description of issue, concentrating on how it breaks a rule, rather
+  than on possible solutions, naming the rule or checklist question,
+  if possible.
 
 _`.log.dup`: The leader should also explain that checkers should avoid
 logging issues that have are duplicates of ones already logged, ut
@@ -438,13 +437,13 @@ for other checkers and the editor.
 _`.log.fast`: Logging should more fairly brisky, however, and the
 leader should be firm in discouraging discussion of:
 
-  - Whether issues are genuine defects;
+- Whether issues are genuine defects;
 
-  - How a defect may be resolved;
+- How a defect may be resolved;
 
-  - The review process (other than to answer questions);
+- The review process (other than to answer questions);
 
-  - The answers to questions logged.
+- The answers to questions logged.
 
 [And encouraging the search for more defects, see `.log.just`_.
 RB 2023-01-21]
@@ -466,12 +465,12 @@ number, or fraction.  Other issues may be logged in writing.
 _`.log.non-major`: The leader takes all checkers through the product
 document in order, at each stage:
 
-  - Announcing the section being looked at;
+- Announcing the section being looked at;
 
-  - Asking who has issues in this section;
+- Asking who has issues in this section;
 
-  - Requesting issues from checkers.  [This may be unnecessary if
-    using an asynchronous medium, such as IRC.  GavinM 1997-06-12]
+- Requesting issues from checkers.  [This may be unnecessary if using
+  an asynchronous medium, such as IRC.  GavinM 1997-06-12]
 
 Note that improvement suggestions arising from specific parts of the
 product document can be logged at this stage.
