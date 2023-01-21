@@ -15,8 +15,8 @@ Memory Pool System review procedure
 1. Introduction
 ---------------
 
-This document will contain a procedure for reviewing changes to the
-MPS.
+This is the procedure for reviewing changes to the MPS in order to
+`prevent defects <2. Purpose>`_.
 
 This is a placeholder while we arrange to bring in documents from
 outside the MPS Git repository and tree.  For background, see `GitHub
@@ -34,10 +34,27 @@ from thousands of hours of reviews.  The text was then edited to
 bring it up to date with current terms and tools.
 
 This procedure may seem overwhelming at first, but it can be executed
-quickly [how quickly? kpa.qpm! RB 2023-01-21] once you have learned
-it.  Hundreds of reviews have been conducted using it in the past, and
+quickly [how quickly? kpa.qpm! RB 2023-01-21] once you have learned it
+[and how long does that take?  RB 2023-01-21].  [Insert example times
+here for different kinds of work.  RB 2023-01-21]
+
+Hundreds of reviews have been conducted using it in the past, and
 every single one was profitable in terms of preventing defects versus
-cost of review [citation needed. RB 2023-01-21].
+cost of review [citation needed. RB 2023-01-21].  This is in part
+because *defects in garbage collectors are extremely expensive to
+fix*.
+
+The process is largely derived from "Software Inspection" [Gilb_93]_.
+It was developed over years by Gavin Matthews of the Harlequin Memory
+Management Group, who was eventually trained in the art.
+
+The process is an example of "Peer Review" (kpa.pr), a key process
+area of level 3 of the Capability Maturity Model [CMU/SEI-93-TR-025]_,
+but also contributes a great deal to:
+
+- Defect Prevention (kpa.dp, level 5)
+- Process Change Management (kpa.pcm, level 5)
+- Quantitive Process Management (kpa.qpm, level 4)
 
 [Notes for inclusion:
   - Review is not just (or even mostly) looking at diffs, though
@@ -47,7 +64,6 @@ cost of review [citation needed. RB 2023-01-21].
   - Review is not just for code.
   - Check against book.gilb93.handbook [Gilb_93]_.
   - Check against kpa.pr, [CMU/SEI-93-TR-025]_, p L3-97
-  - Material from [MM_process.review]_.
   - proc.review.ref.]
 
 
@@ -70,8 +86,8 @@ RB 2023-01-20].
 3. Review Rôles
 ---------------
 
-[Reconstructed from memory and common sense, but needs checking
-against book.gilb93.  RB 2023-01-20]
+[Reconstructed from memory and common sense, and then sourced from
+[MM_process.review]_, but needs updating.  RB 2023-01-20]
 
 Reviews must involve more than one person.  There must be at least one
 checker who is not the author.
