@@ -277,7 +277,34 @@ _`.edit`: [Placeholder.]
 5.8. Review Exit
 ................
 
+[Sourced from [MM_proc.review.exit] and needs updating.  RB
+2023-01-21]
+
 _`.exit`: [Placeholder.]
+
+_`.exit.request`: The editor requests the leader to exit the document.
+
+_`.exit.check`: The leader checks that the document passes all
+relevant exit criteria.  These should be indicated in review record.
+ 
+_`.exit.check.fix`: If it doesn't pass all exit criteria, but it is
+possible to fix it, he may either fix it himself, or return it to the
+editor.
+
+_`.exit.check.fail`: If the document cannot be made to pass exit (if,
+say, there are two many estimated defects remaining), it may be passed
+back to development, and reviewed subsequently.  The document remains
+draft, and the review record becomes draft.  The reasons for failure
+should be documented in the review record.
+
+_`.exit.check.pass`: If it passes all criteria, the leader sets the
+document status to "accepted" and the review record to "draft".  The
+date of exit and any notes should be recorded in the review record.
+The document is now suitable for release as appropriate.
+
+_`.exit.inform`: The leader should inform all review participants and
+some archived mailing list (such as "mm"), of the result of the
+review, and any notes that seem appropriate.
 
 
 A. References
@@ -296,6 +323,10 @@ A. References
 .. [MM_proc.review.entry] "Procedure for review entry"; Gavin
 			  Matthews; 1997-06-02; mminfo:proc.review.entry;
 			  //info.ravenbrook.com/project/mps/doc/2002-06-18/obsolete-mminfo/mminfo/proc/review/entry/index.txt#1.
+
+.. [MM_proc.review.exit] "Procedure for exiting a document from
+			 review"; Gavin Matthews; 1997-06-12;
+			 mminfo:proc.review.exit; //info.ravenbrook.com/project/mps/doc/2002-06-18/obsolete-mminfo/mminfo/proc/review/exit/index.txt#1.
 
 
 B. Document History
