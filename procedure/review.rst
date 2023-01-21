@@ -569,6 +569,8 @@ to be made more specific.  RB 2023-01-21]
 5.7. Review Edit
 ................
 
+[Incorporate guide.review.edit.  RB 2023-01-21]
+
 _`.edit`: [Placeholder.]
 
 
@@ -603,6 +605,81 @@ The document is now suitable for release as appropriate.
 _`.exit.inform`: The leader should inform all review participants and
 some archived mailing list (such as "mm"), of the result of the
 review, and any notes that seem appropriate.
+
+
+6. Documents
+------------
+
+[Sourced from [MM_process.review]_ and needs updating.  RB 2023-01-21]
+
+_`.doc`: The review process involves a lot of documents.  This is a
+brief explanation of what they are:
+
+_`.doc.source`: Source document
+
+  A document from which the product document is derived.  Note that
+  this is nothing to do with source code.
+
+_`.doc.product`: Product document
+
+  The document developed from the source documents, and offered for
+  review.  The work under review.  The changes under review.  The word
+  product.
+
+_`.doc.record`: Review record
+
+  A document of type "review" that records the results of reviewing
+  one document.  This includes the issue log, and the brainstormed
+  improvement suggestions.
+
+_`.doc.issue`: Issue log
+
+  A record of issues raised during the logging meeting, specifying
+  their location, type, finder, and a brief description.  The issue
+  log also gives each issue an identifying number.
+
+_`.doc.rev`: Revised document
+
+  The result of performing the edit procedure on the Product document.
+
+_`.doc.acc`: Accepted document
+
+  The result of a Revised document passing exit.
+
+_`.doc.rule`: Rule
+
+  A rule set that a Product document is expected to obey.
+
+_`.doc.guide`: Guidelines
+
+  A "guide" document that a Product document may be expected to be in
+  line with.  [Explain how this is distinct from rules.  RB
+  2023-01-21]
+
+_`.doc.check`: Checklist
+
+  A list of questions, a negative answer to which indictes that a rule
+  has been broken (see .doc.rule).
+
+_`.doc.entry`: Entry criteria
+
+  Criteria that should be met before review to ensure that the
+  document is likely to pass exit.
+
+_`.doc.proc`: Procedures
+
+  Descriptions of the steps involved in completing any part of process
+  (development, review, or otherwise).
+
+_`.doc.imp`: Brainstormed improvement suggestions
+
+  Suggested improvements to process (and hence to some document)
+  arising from the process brainstorm.
+
+_`.doc.request`: Requests for change
+
+  An issue that the editor cannot deal with that is escalated to some
+  other tracking system, usually MM Evolution (see process.darwin).
 
 
 A. References
