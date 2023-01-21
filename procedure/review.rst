@@ -38,7 +38,8 @@ tool.
   - Review is not just for code.
   - Check against book.gilb93.handbook [Gilb_93]_.
   - Check against kpa.pr, [CMU/SEI-93-TR-025]_, p L3-97
-  - Material from [MM_process.review]_.]
+  - Material from [MM_process.review]_.
+  - proc.review.ref.]
 
 
 2. Purpose
@@ -569,9 +570,185 @@ to be made more specific.  RB 2023-01-21]
 5.7. Review Edit
 ................
 
-[Incorporate guide.review.edit.  RB 2023-01-21]
+[Sourced from [MM_guide.review.edit]_ and needs updating.  RB 2023-01-21]
 
 _`.edit`: [Placeholder.]
+
+_`.edit.log`: The log should be placed in the edit section of the
+review document.  The review document for a document of tag <tag> and
+revision <revision> will be review.<tag>.<revision>.
+
+_`.edit.order`: The log should be in numerical order, one issue per line.
+
+
+Edit comments
+~~~~~~~~~~~~~
+
+_`.edit.edit-comments`: The following describes the format of edit
+comments for each issue, indicating the action taken.  See
+guide.review.class for issue classification.
+
+
+Major Issues
+............
+
+_`.edit.major`: Major issues should receive one of the following
+responses:
+
+_`.edit.major.reject`: "Reject: <reason>"
+
+  reject the issue with a reason why it is not a valid issue.
+
+_`.edit.major.comment`: "Comment: <reason>"
+
+  it is a valid issue, but merely add a comment to the document, the
+  reason states why it cannot be fixed at this time.  Note that this
+  is not the same as fixing a defect in a comment.
+
+_`.edit.major.fix`: "Fix: <detail>"
+
+  fix the defect and give some indication of how.
+
+_`.edit.major.raise`: "Raise: <tag>"
+
+  escalate the defect, usually by creating a request in MM Evolution.
+
+_`.edit.major.other`: If a major defect results in a change to another document, that 
+document's tag must be quoted.
+
+
+Minor Issues
+............
+
+_`.edit.minor`: Minor issues should receive one of the following
+responses:
+
+_`.edit.minor.reject`: "Reject: <reason>"
+
+  reject is issue with a reason why it is  not a valid issue.
+
+_`.edit.minor.forget`: "Forget: <reason>"
+
+  it is a valid issue but is not worth taking any action over.
+  [Should we have this?]
+
+_`.edit.minor.comment`: "Comment: <reason>"
+
+  it is a valid issue, but merely add a comment to the document, the
+  reason states why it cannot be fixed at this time.  Note that this
+  is not the same as fixing a defect in a comment.
+
+_`.edit.minor.fix`: "Fix: <detail>"
+
+  fix the defect and give an indication of how; the detail is optional
+  where the fix is obvious.
+
+_`.edit.minor.raise`: "Raise: <tag>"
+
+  escalate the defect, usually by creating a request in MM Evolution.
+
+_`.edit.minor.other`: If a minor defect results in a change to another document, that 
+document's tag must be quoted.
+
+
+Comments
+........
+
+_`.edit.comment`: Comments on the product document should receive one of the following 
+responses:
+
+_`.edit.comment.reject`: "Reject: <reason>"
+
+  reject the comment with a reason why it is invalid.
+
+_`.edit.comment.forget`: "Forget: <reason>"
+
+  it is a valid comment, but isn't worth taking any action over.  The
+  reason is optional.
+
+_`.edit.comment.comment`: "Comment: <detail>"
+
+  a comment has been added to the document.  The detail is optional.
+
+_`.edit.comment.fix`: "Fix: <detail>"
+
+  the comment has resulted in a change to the product document.
+
+_`.edit.comment.other`: If a comment results in a change to another
+document, that document's tag must be quoted.
+
+
+Questions To The Author
+.......................
+
+_`.edit.question`: Questions to the author should receive one of the following 
+responses:
+
+_`.edit.question.mail`: "Mail: <tag>.."
+
+  the question is answered in the specified mail message(s).
+
+_`.edit.question.raise`: "Raise: <tag>"
+
+  the question has been escalated to the specified document, usually a
+  request in MM Evolution.
+
+
+Improvement Suggestions
+.......................
+
+[This clashes with the idea of a separate `.role.quality`_.  RB
+2023-01-21]
+
+_`.edit.improve`: Improvement suggestions should receive one of the
+following responses:
+
+_`.edit.improve.edit`: "Edit: <tag> <detail>"
+
+  edit of another document.  The detail is optional if it is obvious.
+
+_`.edit.improve.pass`: "Pass: <person>"
+
+  passed to another person, who has accepted it.
+
+_`.edit.improve.raise`: "Raise: <tag>"
+
+  elevated, usually to a request in MM Evolution.
+
+_`.edit.improve.reject`: "Reject: <reason>"
+
+  rejected because it is not a valid issue.
+
+_`.edit.improve.forget`: "Forget: <reason>"
+
+  it is a valid issue, but is not worth taking any action
+  over. [Should we have this?]
+
+
+Calculations
+~~~~~~~~~~~~
+
+[This section was found in guide.review.edit but seems out of place.
+RB 2021-01-21]
+
+_`.edit.manpower-used`: The manpower used is the time for entry,
+kickoff, checking, logging, brainstorm, edit, and exit.  Kickoff,
+checking, logging and brainstorm must be multiplies by the number of
+checkers.  Entry and kickoff may be assigned to another document
+reviewed at the same time.
+
+_`.edit.manpower-saved`: The default calculation is the number of
+major defects found and fixed, multiplies by 10 man-hours.  This
+represent the cost of a major defect found by QC.  If the defect would
+have reached customers, the estimate should be 100 man-hours.  A
+better estimate can be made, with justification.
+
+_`.edit.defects-remaining`: The calculation of defects remaining
+should use the estimate <major defects found>/<number of pages>.  The
+obvious adjustment must be made for sampling.  The number of
+unresolved major issues (raised) should be added.  [In an ideal world,
+I believe we should know what proportion of major defects we find, and
+use that.  Perhaps we could use 75%? - GavinM]
 
 
 5.8. Review Exit
@@ -695,35 +872,44 @@ A. References
 .. [Gilb_93] "Software Inspection"; Tom Gilb, Dorothy Graham; Addison
              Wesley; 1993; ISBN 0-201-63181-4; book.gilb93.
 
+.. [MM_guide.review.edit] "Guidelines for review edits"; Gavin
+			  Matthews; Harlequin Limited; 1996-10-31;
+			  mminfo:guide.review.edit;
+			  //info.ravenbrook.com/project/mps/doc/2002-06-18/obsolete-mminfo/mminfo/guide/review/edit/index.txt#1.
+
 .. [MM_process.review] "The review process"; Richard Brooksby;
-		       1995-08-18; mminfo:process.review;
+		       Harlequin Limited; 1995-08-18;
+		       mminfo:process.review;
 		       //info.ravenbrook.com/project/mps/doc/2002-06-18/obsolete-mminfo/mminfo/process/review/index.txt#1.
 
 .. [MM_proc.review.brainstorm] "Procedure for process brainstorm in
-			       review"; Gavin Matthews; 1997-06-12;
+			       review"; Gavin Matthews; Harelquin
+			       Limited; 1997-06-12;
 			       mminfo:proc.review.brainstorm;
 			       //info.ravenbrook.com/project/mps/doc/2002-06-18/obsolete-mminfo/mminfo/proc/review/brainstorm/index.txt#1.
 
 .. [MM_proc.review.check] "Procedure for checking in review"; Gavin
-			  Matthews; 1997-06-12;
+			  Matthews; Harlequin Limited; 1997-06-12;
 			  mminfo:proc.review.check;
 			  //info.ravenbrook.com/project/mps/doc/2002-06-18/obsolete-mminfo/mminfo/proc/review/check/index.txt#1.
 
 .. [MM_proc.review.entry] "Procedure for review entry"; Gavin
-			  Matthews; 1997-06-02; mminfo:proc.review.entry;
+			  Matthews; Harlequin Limited; 1997-06-02; mminfo:proc.review.entry;
 			  //info.ravenbrook.com/project/mps/doc/2002-06-18/obsolete-mminfo/mminfo/proc/review/entry/index.txt#1.
 
 .. [MM_proc.review.exit] "Procedure for exiting a document from
-			 review"; Gavin Matthews; 1997-06-12;
-			 mminfo:proc.review.exit;
+			 review"; Gavin Matthews; Harlequin Limited;
+			 1997-06-12; mminfo:proc.review.exit;
 			 //info.ravenbrook.com/project/mps/doc/2002-06-18/obsolete-mminfo/mminfo/proc/review/exit/index.txt#1.
 
 .. [MM_proc.review.ko] "Procedure for a review kickoff meeting"; Gavin
-		       Matthews; 1997-06-12; mminfo:proc.review.ko;
+		       Matthews; Harlequin Limited; 1997-06-12;
+		       mminfo:proc.review.ko;
 		       //info.ravenbrook.com/project/mps/doc/2002-06-18/obsolete-mminfo/mminfo/proc/review/ko/index.txt#1.
 
 .. [MM_proc.review.log] "Procedure for review logging meeting"; Gavin
-			Matthews; 1997-06-12; mminfo:proc.review.log;
+			Matthews; Harlequin Limited; 1997-06-12;
+			mminfo:proc.review.log;
 			//info.ravenbrook.com/project/mps/doc/2002-06-18/obsolete-mminfo/mminfo/proc/review/log/index.txt#1
 
 
