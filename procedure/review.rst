@@ -271,6 +271,9 @@ _`.entry.check`: Determine and record the checklists, including
 checking roles.
 
 _`.entry.entry`: Determine and record the entry and exit criteria.
+[These are available in mminfo:rule.entry.* and
+mminfo:rule.exit.universal, and these need to be referencable from
+here, probably in their own documents.  RB 2023-01-21]
 
 _`.entry.check-entry`: Check that the entry criteria hold.  Record any
 transgressions.  Determine whether the transgressions merit rejection
@@ -283,6 +286,9 @@ _`.invite`: Invite the Checkers to the kickoff meeting.
 ....................
 
 _`.planning`: [Placeholder.]
+
+[It seems that planning was folded into `.entry`_ in the MM Group.
+Consider.  RB 2023-01-21]
 
 
 5.3. Review Kickoff
