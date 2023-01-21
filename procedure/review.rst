@@ -427,7 +427,63 @@ The review leader should inform the editor of this by mail.
 5.6. Review Brainstorm
 ......................
 
+[Sourced from [MM_proc.review.brainstorm] and needs updating.  RB
+2023-01-21]
+
 _`.brainstorm`: [Placeholder.]
+
+_`.brainstorm.just`: The purpose of holding a process brainstorm
+meeting is to meet the second goal of review (see
+process.review.goal.prevent [Needs importing.  RB 2023-01-21]) by
+finding ways to prevent the reoccurance of defects.  This closes the
+process improvement loop.
+
+
+In Advance
+~~~~~~~~~~
+
+_`.brainstorm.choose`: The leader chooses 3-6 major defects or groups
+of major defects (see guide.review.class.major [Needs importing.  RB
+2023-01-21]) found in review.  They makes this choice based on their
+importance and his own experience of which defects can be most
+profitably attacked.
+
+
+In The Meeting
+~~~~~~~~~~~~~~
+
+_`.brainstorm.time`: The process brainstorm should last no more than
+around 30 minutes.
+
+_`.brainstorm.record`: The brainstorm should be recorded in the review
+log as best as the scribe may.  This may be deferred if the process
+brainstorm takes place by some logged medium, such as IRC.
+
+_`.brainstorm.remind`: The leader reminds participants that their
+purpose is to find process improvements that would have prevented
+major defects from occurring.
+
+_`.brainstorm.raise`: The leader raises each issue in turn, reminding
+participants of the issue, and asking how it happenned and what could
+have prevented it.
+
+_`.brainstorm.disc`: The participants should discuss each defect for
+no more than about five minutes.  They should focus on how the defect
+arose, and what improvement could prevent it.  The leader should be
+firm in curtailing discussion of how the defect can be fixed.
+
+_`.brainstorm.proc`: If time permits, the leader may solicit
+criticisms of the review process and apply `.brainstorm.disc`_ to
+them.
+
+
+After The Meeting
+~~~~~~~~~~~~~~~~~
+
+_`.brainstorm.act`: The review leader should derive requests and
+solution suggestions for the process product from the record, and
+should note these in the review record where appropriate.  [This needs
+to be made more specific.  RB 2023-01-21]
 
 
 5.7. Review Edit
@@ -481,6 +537,11 @@ A. References
 
 .. [Gilb_93] "Software Inspection"; Tom Gilb, Dorothy Graham; Addison
              Wesley; 1993; ISBN 0-201-63181-4; book.gilb93.
+
+.. [MM_proc.review.brainstorm] "Procedure for process brainstorm in
+			       review"; Gavin Matthews; 1997-06-12;
+			       mminfo:proc.review.brainstorm;
+			       //info.ravenbrook.com/project/mps/doc/2002-06-18/obsolete-mminfo/mminfo/proc/review/brainstorm/index.txt#1.
 
 .. [MM_proc.review.entry] "Procedure for review entry"; Gavin
 			  Matthews; 1997-06-02; mminfo:proc.review.entry;
