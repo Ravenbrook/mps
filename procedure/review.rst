@@ -116,8 +116,11 @@ should be more than one checker, and the author can be a checker.  A
 checker is any person who participates in the checking of product
 documents, and process brainstorming.  All review attendees are
 usually checkers.  Checkers may be asked by the leader to check with
-certain *checking roles* [ref?] in mind; this is to increase coverage
-and reduce duplication of issues.
+certain *checking roles* in mind; this is to increase coverage and
+reduce duplication of issues.  [Checking roles are available in
+mminfo:role.check.{backwards,clarity,consistency,convention,correctness,source}
+and these need to be referencable from here, possibly included in this
+document. RB 2023-01-21]
 
 _`.role.editor`: The *editor* edits the work to correct defects found
 by review.  This is usually the author.  The editor is the person
