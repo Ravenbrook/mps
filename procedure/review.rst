@@ -247,7 +247,7 @@ _`.planning`: [Placeholder.]
 5.3. Review Kickoff
 ...................
 
-[Sourcec from [MM_proc.review.ko] and needs updating.  RB 2023-01-21]
+[Sourced from [MM_proc.review.ko] and needs updating.  RB 2023-01-21]
 
 _`.ko`: [Placeholder.]
 
@@ -303,11 +303,125 @@ solicits any questions or suggestions.
 
 _`.check`: [Placeholder.]
 
+[Note: not all issues are local to a line.  RB 2023-01-21]
+
 
 5.5. Review Logging
 ...................
 
+[Sourced from [MM_proc.review.log] and needs updating.  RB 2023-01-21]
+
 _`.log`: [Placeholder.]
+
+_`.log.just`: The main reason for having joint logging sessions is so
+that new issues are found.
+
+
+During The Meeting
+~~~~~~~~~~~~~~~~~~
+
+_`.log.record`: All information gathered should be recorded in the
+review log.  This may be deferred if the meeting is mediated by a
+logged medium, such as IRC.
+
+_`.log.metrics`: Gather individual metrics of:
+
+  - Issue counts by class;
+
+  - Time spent checking;
+
+  - Amount of product document actually checked.
+
+_`.log.author`: The leader reminds the author that he may remove
+documents from review at any time.
+
+_`.log.decide`: The leader, in consultation with the author and
+editor, decides whether it is worth holding continuing with the
+logging meeting.  [Using what criteria?  We've never actually done
+this.  GavinM 1997-06-12] In particular, see `.exit.universal.rates`_.
+
+_`.log.scribe`: Assign a scribe (usually the leader), and ensure the
+editor will be happy with the readability of the log.
+
+_`.log.explain`: The leader explains the order in which issues will be
+logged, and ensures everyone understand this.  He also explains the
+desired form of issues, namely:
+
+  - Location;
+
+  - Class, including "New" (N) if the issue was discovered during
+    logging (see guide.review.class [Needs importing.  RB
+    2023-01-21]);
+
+  - Description of issue, concentrating on how it breaks a rule,
+    rather than on possible solutions, naming the rule or checklist
+    question, if possible.
+
+_`.log.dup`: The leader should also explain that checkers should avoid
+logging issues that have are duplicates of ones already logged, ut
+that if in doubt, they should log.
+
+_`.log.slow`: Issues are logged sufficienly slowly that all checkers
+can examine each issue.  This is so that checkers can find new issues.
+
+_`.log.order`: Unless instructed otherwise, checkers should try to
+list their issues in forwards document order.  This makes life easier
+for other checkers and the editor.
+
+_`.log.fast`: Logging should more fairly brisky, however, and the
+leader should be firm in discouraging discussion of:
+
+  - Whether issues are genuine defects;
+
+  - How a defect may be resolved;
+
+  - The review process (other than to answer questions);
+
+  - The answers to questions logged.
+
+[And encouraging the search for more defects, see `.log.just`_.
+RB 2023-01-21]
+
+[ There has been much experimentation with the order of logging, but
+this represents current best practice.  GavinM 1997-06-12 ]
+
+_`.log.major`: The leader calls upon all checkers, one by one, to list
+their major issues (see guide.review.class.major [Needs importing.  RB
+2023-01-21]), preferable in order of their occurance in the product
+document.  He may chunk the product document and go round the checkers
+several times, but this is unusal.
+
+_`.log.decide.non-major`: The leader may decide not to log all minor
+issues (see guide.review.class.minor [Needs importing.  RB
+2023-01-21]).  He should announce that each checker should offer some
+number, or fraction.  Other issues may be logged in writing.
+
+_`.log.non-major`: The leader takes all checkers through the product
+document in order, at each stage:
+
+  - Announcing the section being looked at;
+
+  - Asking who has issues in this section;
+
+  - Requesting issues from checkers.  [This may be unnecessary if
+    using an asynchronous medium, such as IRC.  GavinM 1997-06-12]
+
+Note that improvement suggestions arising from specific parts of the
+product document can be logged at this stage.
+
+_`.log.general`: The leader then requests, by checker, any general or
+new issues not already logged.
+
+_`.log.brainstorm`: The leader negotiates a time for the process
+brainstorm.  This will normally be a tea-break (10-15 minutes) after
+the end of the logging meeting.
+
+
+After The Meeting
+~~~~~~~~~~~~~~~~~
+
+_`.log.inform`: The reviewed document is now ready for edit (see proc.review.edit).  
+The review leader should inform the editor of this by mail.
 
 
 5.6. Review Brainstorm
@@ -380,6 +494,10 @@ A. References
 .. [MM_proc.review.ko] "Procedure for a review kickoff meeting"; Gavin
 		       Matthews; 1997-06-12; mminfo:proc.review.ko;
 		       //info.ravenbrook.com/project/mps/doc/2002-06-18/obsolete-mminfo/mminfo/proc/review/ko/index.txt#1.
+
+.. [MM_proc.review.log] "Procedure for review logging meeting"; Gavin
+			Matthews; 1997-06-12; mminfo:proc.review.log;
+			//info.ravenbrook.com/project/mps/doc/2002-06-18/obsolete-mminfo/mminfo/proc/review/log/index.txt#1
 
 
 B. Document History
