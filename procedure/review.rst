@@ -282,7 +282,7 @@ _`.entry.check-entry`: Check that the entry criteria hold.  Record any
 transgressions.  Determine whether the transgressions merit rejection
 at this stage.
 
-_`.invite`: Invite the Checkers to the kickoff meeting.
+_`.entry.invite`: Invite the Checkers to the kickoff meeting.
 
 
 5.2. Review Planning
