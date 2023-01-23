@@ -203,11 +203,13 @@ executed roughly in the order below.
 #. _`.phase.check`: `.role.checker`_ execute `.check`_, alone,
    according to their checking roles [ref?], looking for unique *major
    defects* that no other checker will bring to the logging meeting.
+   Checking continues during the next phase, `.phase.log`_.
 
 #. _`.phase.log`: The `.role.leader`_, the `.role.scribe`_, and
-   `.role.checker`_ execute `.log`_ to record what has been found, and
-   to find more major defects, stimulated by what has been found so
-   far.  Checking continues!
+   `.role.checker`_ execute `.log`_ together to record what has been
+   found, and to find more major defects, stimulated by what has been
+   found so far.  Checking `.phase.check`_ continues during this
+   phase.
 
 #. _`.phase.brainstorm`: `.role.leader`_, `.role.scribe`_,
    `.role.checker`_, execute `.brainstorm`_ to come up with ways of
@@ -226,13 +228,8 @@ executed roughly in the order below.
 #. _`.phase.edit`: `.role.editor`_ executes `.edit`_, analysing and
    correcting defects, but taking some action on *every* issue.
 
-#. _`.phase.pi`: `.role.improver`_ takes action to prevent major
-   defects by correcting *process causes*.  Actions include adding
-   rules or checklist items, updating procedures, creating tools, or
-   adding automated checks.  But they might also include filing
-   process issues, raising concerns with management, suggesting
-   wholesale review of working practices, requesting training for
-   staff, and so on.
+#. _`.phase.pi`: `.role.improver`_ executes `.pi`_ to prevent major
+   defects by correcting *process causes*.
 
 #. _`.phase.exit`: `.role.editor`_ and `.role.leader`_ perform
    `.exit`_.  If the revised change does not meet the exit criteria
@@ -735,6 +732,9 @@ _`.edit.edit-comments`: The following describes the format of edit
 comments for each issue, indicating the action taken.  See
 guide.review.class for issue classification.
 
+_`.edit.record`: [Insert details of how to record edits.  RB
+2023-01-23]
+
 
 Major Issues
 ............
@@ -844,32 +844,8 @@ _`.edit.question.raise`: "Raise: <tag>"
 Improvement Suggestions
 .......................
 
-[This clashes with the idea of a separate `.role.improver`_ and needs
-separating.  RB 2023-01-21]
-
-_`.edit.improve`: Improvement suggestions should receive one of the
-following responses:
-
-_`.edit.improve.edit`: "Edit: <tag> <detail>"
-
-  edit of another document.  The detail is optional if it is obvious.
-
-_`.edit.improve.pass`: "Pass: <person>"
-
-  passed to another person, who has accepted it.
-
-_`.edit.improve.raise`: "Raise: <tag>"
-
-  elevated, usually to a request in MM Evolution.
-
-_`.edit.improve.reject`: "Reject: <reason>"
-
-  rejected because it is not a valid issue.
-
-_`.edit.improve.forget`: "Forget: <reason>"
-
-  it is a valid issue, but is not worth taking any action
-  over. [Should we have this?]
+_`.edit.improve`: Improvement suggestions should be left for `.pi`_,
+unless you are also `.role.improver`_.
 
 
 Calculations
@@ -898,6 +874,63 @@ I believe we should know what proportion of major defects we find, and
 use that.  Perhaps we could use 75%? - GavinM]
 
 
+5.8. Process Improvement
+........................
+
+_`.pi`: The *process improvement procedure* must be executed by
+`.role.improver`_ to take action to prevent future defects, the
+review's secondary purpose (`.goal.prevent`_).
+
+_`.pi.scope`: The scope of actions that might be taken by the improver
+should not be limited, and could include:
+
+- filing process issues for later action
+- raising concerns with management
+- sending suggestions to anyone
+- suggesting wholesale review of working practices
+- requesting training for staff.
+
+as well as changes like:
+
+- adding rules or checklist items
+- updating procedures
+- creating tools
+- adding automated checks
+
+_`.pi.record`: [Insert details of how to record PI actions.  RB
+2023-01-23]
+
+_`.pi.log`: The log should be placed in the process improvement
+section of the review document.  [Needs updating.  RB 2023-01-23]
+
+_`.pi.action`: `.role.improver`_ must take a written action for every
+improvement suggestion logged (`.log`_).
+
+_`.pi.response`: Improvement suggestions should receive one of the
+following responses:
+
+_`.pi.edit`: "Edit: <tag> <detail>"
+
+  edit of another document.  The detail is optional if it is obvious.
+
+_`.pi.pass`: "Pass: <person>"
+
+  passed to another person, who has accepted it.
+
+_`.pi.raise`: "Raise: <tag>"
+
+  elevated, usually to a request in MM Evolution.
+
+_`.pi.reject`: "Reject: <reason>"
+
+  rejected because it is not a valid issue.
+
+_`.pi.forget`: "Forget: <reason>"
+
+  it is a valid issue, but is not worth taking any action
+  over. [Should we have this?]
+
+
 5.8. Review Exit
 ................
 
@@ -923,6 +956,9 @@ review.
 RB 2023-01-23]
 
 _`.exit.request`: The editor requests the leader to exit the document.  [Shouldn't this be in .edit?  RB 2023-01-23]
+
+_`.exit.record`: [Include details of how to record exit.  RB
+2023-01-23]
 
 _`.exit.check`: The leader checks that the document passes all
 relevant exit criteria.  These should be indicated in review record.
