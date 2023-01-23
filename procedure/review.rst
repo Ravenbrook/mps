@@ -321,29 +321,45 @@ balancing `2. Purpose`_ and cost.
 5.2. Review Planning
 ....................
 
-_`.planning`: [Placeholder.]
+_`.planning`: The *review planning procedure* should be executed when
+a change has passed `.entry`_.  The purpose of planning is to prepare
+the review and arrange for it to happen.
 
-[It seems that planning was folded into `.entry`_ in the MM Group.
-Consider.  RB 2023-01-21]
+_`.plan.record`: Create a record for the procedure.  On GitHub, you
+can start a comment on the pull request.  Record a *permalink* to the
+procedure you're following (this one) like::
+
+  Executing [review planning](https://github.com/Ravenbrook/mps/blob/d4ef690a7f2a3d3d6d0ed496eff46e09841b8633/procedure/review.rst#52-review-planning)
 
 _`.plan.time`: Estimate the checking rate and time.  A single review
-should not have a checking time of more than one hour.
+should not have a checking time of more than one hour.  Record your
+estimate.  [Insert example GitHub comment.]
 
 _`.plan.schedule`: Plan when this review may take place and who should
-attend.  Check with attendees if appropriate.
+attend.  Check with attendees if appropriate.  Record like::
 
-_`.plan.record`: Create a review record for the product document as
-"review.<tag>.<revision>".  [Where?  Needs specific instructions for
-Git / GitHub.  RB 2023-01-20]
+  @thejayps and @UNAA008 will review 2023-01-23 11:00 for about 2h.
 
-_`.plan.source`: Determine and record the source documents.
+_`.plan.source`: Determine and record the source documents
+(`.doc.source`_).  This *must* include the the reason the change is
+needed in terms of requirements.  [Entry should've ensured this.  RB
+2023-01-23]  On GitHub, this can be the GitHub issue linked from the
+pull request.
 
-_`.plan.rule`: Determine and record the rule documents.
+_`.plan.rule`: Determine and record the rules to apply (`.doc.rule`_).
+You can use the entry criteria recorded by `.entry.criteria`_ to
+select rule sets [from where?  RB 2023-01-23], but also consider the
+list of rule sets [where? RB 2023-01-23].  [We might want e.g. rules
+that apply to the critical path.  RB 2023-01-23]
 
-_`.plan.check`: Determine and record the checklists, including
-checking roles.
+_`.plan.check`: Determine and record the checklists to apply [how and
+from where?  RB 2023-01-23].
 
-_`.plan.invite`: Invite the Checkers to the kickoff meeting.
+_`.plan.roles`: Determine and record the checking roles to assign
+[how?  RB 2023-01-23].
+
+_`.plan.invite`: Invite the checkers (`.role.checker`_) to the kickoff
+meeting (`.ko`_).
 
 
 5.3. Review Kickoff
@@ -351,7 +367,9 @@ _`.plan.invite`: Invite the Checkers to the kickoff meeting.
 
 [Sourced from [MM_proc.review.ko]_ and needs updating.  RB 2023-01-21]
 
-_`.ko`: [Placeholder.]
+_`.ko`: `.role.leader`_ holds the *review kickoff* meeting to ensure
+that the review begins, and that everyone involved has what they need
+to carry out their roles.
 
 
 5.3.1. In Advance
