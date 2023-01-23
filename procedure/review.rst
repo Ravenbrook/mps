@@ -18,6 +18,9 @@ Memory Pool System review procedure
 This is the procedure for reviewing changes to the MPS in order to
 `prevent defects <2. Purpose>`_.
 
+[Insert time-to-execute estimates here based on measurements during
+testing of this procedure.  RB 2023-01-23.]
+
 This is a placeholder while we arrange to bring in documents from
 outside the MPS Git repository and tree.  For background, see `GitHub
 issue #95 <https://github.com/Ravenbrook/mps/issues/95>`_.
