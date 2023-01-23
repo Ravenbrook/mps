@@ -15,7 +15,7 @@ Memory Pool System review procedure
 1. Introduction
 ---------------
 
-This is the procedure for reviewing changes to the MPS in order to
+This is the procedure for reviewing a change to the MPS in order to
 `prevent defects <2. Purpose>`_.
 
 [Insert time-to-execute estimates here based on measurements during
@@ -80,6 +80,13 @@ The purpose of the review procedure is:
 2. _`.goal.prevent`: prevent future defects
 
 A defect is a way in which the work does not meet its requirements.
+
+A major defect is a defect that
+
+  will probably have significantly increased costs to find and fix
+  later in the development process, for example in testing or in use.
+
+  -- guide.review.class.major [Needs importing.  RB 2023-01-23]
 
 As with any procedure, you can vary this one to meet this purpose, but
 you should probably read section [Insert reference to Rationale here.
