@@ -140,16 +140,12 @@ exit.  The editor and `.role.author`_ are usually the same person.
 For example, they're the developer who submitted a pull request and
 needs to fix it up before it can be merged.
 
-_`.role.qal`: The *quality assurance leader* edits process to prevent
-future occurences of defects found by review.  [This comes from
-mminfo:book.gilb93.proc.quality.  In the MM Group, developers were
-expected to edit process as well.  If possible we'd like the editor to
-do this, so that they are involved and committed to process
-improvement and defect prevention.  But in the public FOSS MPS we
-might not be able to require a submitting developer to do that, so we
-should separate the role.  But "quality assurance leader" isn't a
-great name; what about "improver" from "process improvement"?  RB
-2023-01-23]
+_`.role.improver`: The *process improver* takes action to prevent
+future occurences of defects found by review.  This should be the same
+person as `.role.editor`_ so that they maintain a good understanding
+of (and commitment to) process improvement and defect prevention, but
+this isn't always possible, e.g. when `.role.author`_ is an outside
+contributor.
 
 _`.role.scribe`: The scribe is the person who records information (not
 just issues) during review meetings.  They are usually the same person
@@ -177,73 +173,74 @@ attend the review, and therefore is not assigned. RB 2023-01-20]
 4. Phases
 ---------
 
-_`.phase`: To review a change, the following procedures are executed
-more-or-less in the order below.
+_`.phase`: This section describes the phases of a review.  Each phase
+has a procedure.  The phases involve varying groups of people
+(`.role`_) and have diverse purposes.
+
+_`.phase.handbook`: This section can be used as a short "handbook" for
+people who are very familiar with the procedure.  (Compare with "A
+one-page inspection handbook" [Gilb_93]_.)
+
+_`.phase.order`: To review a change, the following procedures are
+executed roughly in the order below.
 
 #. _`.phase.request`: `.role.author`_ requests that their change be
    reviewed.  For example, they submit a GitHub pull request, or
    change a pull request state from "draft" to "ready to review".
 
-#. _`.phase.entry`: `.role.leader`_ executes *review entry*
-   (`.entry`_).  If the change doesn't meet the entry criteria then it
-   is rejected, and the rest of the review process is not executed.  A
-   `.role.author`_ who is an experienced `.role.leader`_ can do entry
-   on their own work.
+#. _`.phase.entry`: `.role.leader`_ executes `.entry`_.  If the change
+   doesn't meet the entry criteria then the change fails review, and
+   the rest of the review process is not executed.  A `.role.author`_
+   who is an experienced `.role.leader`_ can do entry on their own
+   work.
 
-#. _`.phase.planning`: `.role.leader`_ execute `.planning`_ to prepare
-   the review and arrange for it to happen.
+#. _`.phase.planning`: `.role.leader`_ executes `.planning`_ to
+   prepare the review and arrange for it to happen.
 
 #. _`.phase.kickoff`: `.role.leader`_, `.role.checker`_ execute
    `.ko`_, beginning the review.
 
-#. _`.phase.check`: `.role.checker`_ execute `.check`_ alone according
-   to their checking roles [ref?], looking for unique *major defects*
-   that no other checker will bring to the logging meeting.
+#. _`.phase.check`: `.role.checker`_ execute `.check`_, alone,
+   according to their checking roles [ref?], looking for unique *major
+   defects* that no other checker will bring to the logging meeting.
 
 #. _`.phase.log`: The `.role.leader`_, the `.role.scribe`_, and
-   `.role.checker`_ execute `.log`_ to record what has been found, but
-   also to stimulate one another to find more *major defects*.
+   `.role.checker`_ execute `.log`_ to record what has been found, and
+   to find more major defects, stimulated by what has been found so
+   far.  Checking continues!
 
 #. _`.phase.brainstorm`: `.role.leader`_, `.role.scribe`_,
    `.role.checker`_, execute `.brainstorm`_ to come up with ways of
    preventing defects in future.
 
-#. _`.phase.estimation`: `.role.leader`_, `.role.scribe`_, `.role.checker`_,
-   and usually the `.role.author`_ spend a few minutes estimating how
-   productive the review was, by:
+#. _`.phase.estimation`: `.role.leader`_, `.role.scribe`_,
+   `.role.checker`_ spend a few minutes estimating how productive the
+   review was, by:
 
    - estimating the cost of the review (mostly work hours)
    - projecting what the defects would cost if uncorrected
    - projecting what similar defects would cost if not prevented
 
-   and `.role.leader`_ records this information.
+   and `.role.scribe`_ records this information.
 
-#. _`.phase.edit`: `.role.editor`_ performs `.edit`_.
+#. _`.phase.edit`: `.role.editor`_ executes `.edit`_, analysing and
+   correcting defects, but taking some action on *every* issue.
 
-   Issue analysis and correction action is undertaken by an editor.
-   Some written action must be taken on all logged issues -- if
-   necessary by sending change requests to other authors.  The editor
-   makes the final classification of issues into defects, and reports
-   final defect metrics to the leader.  Edit also deals with
-   improvements and can deal with "questions to the author".
-
-#. _`.phase.quality`: The `.role.qal`_ takes action to prevent major
+#. _`.phase.pi`: `.role.improver`_ takes action to prevent major
    defects by correcting *process causes*.  Actions include adding
    rules or checklist items, updating procedures, creating tools, or
-   adding automated checks.  But they might also include raising
-   concerns with management, suggesting wholesale review of working
-   practices, requesting training for staff, and so on.
+   adding automated checks.  But they might also include filing
+   process issues, raising concerns with management, suggesting
+   wholesale review of working practices, requesting training for
+   staff, and so on.
 
-#. _`.phase.exit`: `.role.editor`_ and `.role.leader`_ perform `.exit`_.
+#. _`.phase.exit`: `.role.editor`_ and `.role.leader`_ perform
+   `.exit`_.  If the revised change does not meet the exit criteria
+   then it fails review.  Otherwise it passes and can go on to be
+   used, e.g. by being merged into the master codeline
+   (`proc.merge.pull-request`_).
 
-   The leader shall determine that some appropriate written action has
-   been taken on all logged issues.  The leader is not responsible for
-   the correctness (the editor is).
-
-   The leader determines whether the formal exit criteria have been
-   met before signing off completion of the Inspection.  These include
-   follow-up completed, metrics delivered, planned rates kept to, and
-   level of remaining defects within acceptable bounds.
+.. _proc.merge.pull-request: pull-request-merge.rst
 
 
 5. Procedures
@@ -484,7 +481,15 @@ document):
 
 [Sourced from [MM_proc.review.log]_ and needs updating.  RB 2023-01-21]
 
-_`.log`: [Placeholder.]
+_`.log`: The *review logging procedure* executed by `.role.leader`_
+and `.role.scribe`_ together with `.role.checker`_.  It has two
+purposes:
+
+1. to record issues for action
+
+2. to find more *major defects* by sharing what has been found so far.
+
+Checking continues during logging.
 
 _`.log.just`: The main reason for having joint logging sessions is so
 that new issues are found.
@@ -526,7 +531,11 @@ _`.log.decide`: The leader, in consultation with the author and
 editor, decides whether it is worth holding continuing with the
 logging meeting.  [Using what criteria?  We've never actually done
 this.  GavinM 1997-06-12] In particular, see exit.universal.rates [To
-what does this refer?  RB 2023-01-21].
+what does this refer?  RB 2023-01-21].  [It could be that many or very
+serious issues are logged very early in the meeting, and so the work
+needs major revision and a new review later.  But there's a risk that
+issues won't be found in a second review, which is why we never
+cancelled.  RB 2023-01-23]
 
 _`.log.scribe`: Assign a scribe (usually the leader), and ensure the
 editor will be happy with the readability of the log.
@@ -617,7 +626,12 @@ The review leader should inform the editor of this by mail.
 [Sourced from [MM_proc.review.brainstorm]_ and needs updating.  RB
 2023-01-21]
 
-_`.brainstorm`: [Placeholder.]
+_`.brainstorm`: The *review brainstorm procedure* should be executed
+by `.role.leader`_, `.role.scribe`_, and `.role.checker`_ right after
+`.log`_.  The purpose is to come up with ways of preventing defects in
+future.  The meeting should *not* analyse the defects found by the
+review, or suggest ways to fix those defects, except insofar as it is
+necessary to develop ways to *prevent* those defects.
 
 _`.brainstorm.just`: The purpose of holding a process brainstorm
 meeting is to meet the second goal of review (see
@@ -692,7 +706,20 @@ to be made more specific.  RB 2023-01-21]
 
 [Sourced from [MM_guide.review.edit]_ and needs updating.  RB 2023-01-21]
 
-_`.edit`: [Placeholder.]
+_`.edit`: The *review edit procedure* must be executed by
+`.role.editor`_ to analyse and correct defects, the review's primary
+purpose (`.goal.fix`_).
+
+[This text was in the phase section, and may need incorporating here.
+
+   Issue analysis and correction action is undertaken by an editor.
+   Some written action must be taken on all logged issues -- if
+   necessary by sending change requests to other authors.  The editor
+   makes the final classification of issues into defects, and reports
+   final defect metrics to the leader.  Edit also deals with
+   improvements and can deal with "questions to the author".
+
+RB 2023-01-23]
 
 _`.edit.log`: The log should be placed in the edit section of the
 review document.  The review document for a document of tag <tag> and
@@ -817,8 +844,8 @@ _`.edit.question.raise`: "Raise: <tag>"
 Improvement Suggestions
 .......................
 
-[This clashes with the idea of a separate `.role.qal`_.  RB
-2023-01-21]
+[This clashes with the idea of a separate `.role.improver`_ and needs
+separating.  RB 2023-01-21]
 
 _`.edit.improve`: Improvement suggestions should receive one of the
 following responses:
@@ -877,9 +904,25 @@ use that.  Perhaps we could use 75%? - GavinM]
 [Sourced from [MM_proc.review.exit]_ and needs updating.  RB
 2023-01-21]
 
-_`.exit`: [Placeholder.]
+_`.exit`: The *review exit procedure* is should be executed by
+`.role.leader`_ and `.role.editor`_ after editing (`.edit`_).  The
+purpose of exit is to check whether the revised change has passed
+review.
 
-_`.exit.request`: The editor requests the leader to exit the document.
+[This text was in the phase section and may need to be incorporated here:
+
+   The leader shall determine that some appropriate written action has
+   been taken on all logged issues.  The leader is not responsible for
+   the correctness (the editor is).
+
+   The leader determines whether the formal exit criteria have been
+   met before signing off completion of the Inspection.  These include
+   follow-up completed, metrics delivered, planned rates kept to, and
+   level of remaining defects within acceptable bounds.
+
+RB 2023-01-23]
+
+_`.exit.request`: The editor requests the leader to exit the document.  [Shouldn't this be in .edit?  RB 2023-01-23]
 
 _`.exit.check`: The leader checks that the document passes all
 relevant exit criteria.  These should be indicated in review record.
