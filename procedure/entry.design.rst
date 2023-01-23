@@ -1,14 +1,18 @@
-             ENTRY CRITERIA FOR REVIEW OF DESIGN DOCUMENTS
-                              entry.design
-                            incomplete rule
-                           gavinm 1998-04-14
+=============================================
+Entry criteria for review of design documents
+=============================================
 
-Scope: These entry criteria are to be used for reviews of design documents.  Our aim 
-is for failure to prevent entry.  In the meantime, failure of one of these 
-criteria must be documented in the review document and entry prevention is at 
-the leader's discretion.
+:tag: entry.design
+:type: rule
+:status: incomplete
+:author: Gavin Matthews
+:date: 1998-04-14
 
+_`.scope`: These entry criteria are to be used for reviews of design
+documents.  Our aim is for failure to prevent entry.  In the meantime,
+failure of one of these criteria must be documented in the review
+document and entry prevention is at the leader's discretion.
 
-.rfc: Any design document entering formal review must have previously been 
-reviewed informally, e.g. by e-mail RFC, or design brainstorm.
-
+_`.rfc`: Any design document entering formal review must have
+previously been reviewed informally, e.g. by e-mail RFC, or design
+brainstorm.

@@ -1,16 +1,19 @@
-                 REVIEW ENTRY CRITERIA FOR SOURCE CODE
-                               entry.impl
-                            incomplete rule
-                           gavinm 1996-07-24
+=====================================
+Review entry criteria for source code
+=====================================
 
-Scope: These are additional entry criteria for the review of code.  See 
-entry.universal.
+:tag: entry.impl
+:type: rule
+:status: incomplete
+:author: Gavin Matthews
+:date: 1996-07-24
 
+_`.scope`: These are additional entry criteria for the review of code.
+See entry.universal.
 
-.author: In the case of code there is often not a clear author.  In this case, 
-the leader may select one or more people who have edited the file recently, at 
-his discretion.
+_`.author`: In the case of code there is often not a clear author.  In
+this case, the leader may select one or more people who have edited
+the file recently, at his discretion.
 
-.auto-check: Source code should compile without errors.  Lint should have been 
-run where available.
-
+_`.auto-check`: Source code should compile without errors.  Lint
+should have been run where available.
