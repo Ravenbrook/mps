@@ -188,57 +188,25 @@ order.
    (`.entry`_).  If the change doesn't meet the entry criteria then it
    is rejected, and the rest of the review process is not executed.  A
    `.role.author`_ who is an experienced `.role.leader`_ can do entry
-   themselves on their own work.
+   on their own work.
 
-#. _`.phase.planning`: `.role.leader`_ performs `.planning`_, selecting a
-   set of source documentation, candidate documentation, checklists,
-   rule sets, checking rates, people, roles, and logging meeting rates
-   to ensure maximum productivity.
+#. _`.phase.planning`: `.role.leader`_ execute `.planning`_ to prepare
+   the review and arrange for it to happen.
 
-#. _`.phase.kickoff`: `.role.leader`_, `.role.checker`_, and sometimes the
-   `.role.author`_ perform `.ko`_.
+#. _`.phase.kickoff`: `.role.leader`_, `.role.checker`_ execute
+   `.ko`_, beginning the review.
 
-   The leader can elect to run a "kickoff" meeting prior to the
-   checking.  Team improvement goals and corresponding strategies are
-   adopted.  Any necessary instructions will be given.
-
-#. _`.phase.check`: `.role.checker`_ perform `.check`_.
-
-   The checking phase has a recommended time or rate, but checkers
-   have instructions to deviate from that whenever individual
-   availability, role, or situation dictates, in order to increase
-   productivity.
-
-   The objective of individual checking is to identify a maximum of
-   unique major issues which no other checker will bring to the
-   logging meeting.  To do this each checker should have at least one
-   special "checking role".
+#. _`.phase.check`: `.role.checker`_ execute `.check`_ alone according
+   to their checking roles [ref?], looking for unique *major defects*
+   that no other checker will bring to the logging meeting.
 
 #. _`.phase.log`: The `.role.leader`_, the `.role.scribe`_, and
-   `.role.checker`_ perform `.log`_.
+   `.role.checker`_ execute `.log`_ to record what has been found, but
+   also to stimulate one another to find more *major defects*.
 
-   The team concentrates on logging items at a rate of at least one
-   per minute.  Items logged include potential defects (issues),
-   improvement suggestions, and questions of intent to the author.
-   The leader permits little other verbal meeting activity.  Meetings
-   last as maximum of two hours at the known optimum rate.  If
-   necessary, work must be chunked to avoid tiredness.  Optimum
-   checking rate for the meeting is determined by the percentage of
-   new issues identified in the logging meeting as well as the
-   quantity of the documents.
-
-#. _`.phase.brainstorm`: `.role.leader`_, `.role.scribe`_, `.role.checker`_,
-   and usually the `.role.author`_ perform `.brainstorm`_.
-
-   The followup is done by the `.role.leader`_, and make take place any
-   time after the brainstorm meeting.  [What is the followup?  RB
-   2023-01-20]
-
-   Immediately after each logging meeting time is used to brainstorm
-   the process causes of major defects, and to brainstorm improvements
-   to remove these causes.  The meeting shall last no more than half
-   an hour.  The objective is to maximize production of useful ideas
-   and personal commitment to change within that time.
+#. _`.phase.brainstorm`: `.role.leader`_, `.role.scribe`_,
+   `.role.checker`_, execute `.brainstorm`_ to come up with ways of
+   preventing defects in future.
 
 #. _`.phase.estimation`: `.role.leader`_, `.role.scribe`_, `.role.checker`_,
    and usually the `.role.author`_ spend a few minutes estimating how
@@ -398,22 +366,24 @@ all necessary documents.
 _`.ko.intro`: The leader may ask the author to prepare a short (one minute) 
 introduction to the product document.
 
-_`.ko.role`: The leader announces or negotiates any checking roles he
-wishes to assign, and ensures that checkers understand their
+_`.ko.role`: The leader announces or negotiates any checking roles
+they wish to assign, and ensures that checkers understand their
 assignments.
 
 _`.ko.improve`: The leader announces any relevant metrics and negotiates objectives.
+
+[How about asking people for suggestions or experiments?  RB 2023-01-23]
 
 _`.ko.log`: The leader announces the time of the logging meeting.  This should 
 normally be set at the estimate end of the kickoff meeting, plus the estimated 
 checking time, plus a short tea-break.  It should not normally be delayed to 
 another day.
 
-_`.ko.remind`: The leader reminds checkers of the immediate objective of review (see 
-process.review.goal.fix).
+_`.ko.remind`: The leader reminds checkers of the purpose of review
+(see `2. Purpose`_).
 
-_`.ko.author`: The leader reminds the author that he can withdraw the document from 
-review at any time.
+_`.ko.author`: The leader reminds the author that they can withdraw the
+document from review at any time.
 
 _`.ko.train.check`: The leader checks that checkers are familiar with their tasks and 
 solicits any questions or suggestions.
@@ -424,9 +394,27 @@ solicits any questions or suggestions.
 
 [Sourced from [MM_proc.review.check]_ and needs updating.  RB 2023-01-21]
 
-_`.check`: [Placeholder.]
+_`.check`: The *checking procedure* should be executed by each
+individual `.role.checker`_ alone, carrying out their assigned
+checking roles [ref?] without conferring with other checkers.  The
+purpose of checking is to find *major defects* not found by other
+checkers.
 
 [Note: not all issues are local to a line.  RB 2023-01-21]
+
+[This text was in the phase section and might need to be incorporated here:
+
+   The checking phase has a recommended time or rate, but checkers
+   have instructions to deviate from that whenever individual
+   availability, role, or situation dictates, in order to increase
+   productivity.
+
+   The objective of individual checking is to identify a maximum of
+   unique major issues which no other checker will bring to the
+   logging meeting.  To do this each checker should have at least one
+   special "checking role".
+
+RB 2023-01-23]
 
 
 5.4.1. Start
@@ -500,6 +488,20 @@ _`.log`: [Placeholder.]
 
 _`.log.just`: The main reason for having joint logging sessions is so
 that new issues are found.
+
+[This text was in the phase section and may need incorporating here.
+
+   The team concentrates on logging items at a rate of at least one
+   per minute.  Items logged include potential defects (issues),
+   improvement suggestions, and questions of intent to the author.
+   The leader permits little other verbal meeting activity.  Meetings
+   last as maximum of two hours at the known optimum rate.  If
+   necessary, work must be chunked to avoid tiredness.  Optimum
+   checking rate for the meeting is determined by the percentage of
+   new issues identified in the logging meeting as well as the
+   quantity of the documents.
+
+RB 2023-01-23]
 
 
 5.5.1. During The Meeting
@@ -622,6 +624,20 @@ meeting is to meet the second goal of review (see
 process.review.goal.prevent [Needs importing.  RB 2023-01-21]) by
 finding ways to prevent the reoccurance of defects.  This closes the
 process improvement loop.
+
+[This text was in the phase section and may need incorporating here.
+
+   The followup is done by the `.role.leader`_, and make take place any
+   time after the brainstorm meeting.  [What is the followup?  RB
+   2023-01-20]
+
+   Immediately after each logging meeting time is used to brainstorm
+   the process causes of major defects, and to brainstorm improvements
+   to remove these causes.  The meeting shall last no more than half
+   an hour.  The objective is to maximize production of useful ideas
+   and personal commitment to change within that time.
+
+RB 2023-01-23]
 
 
 5.6.1. In Advance
