@@ -82,9 +82,10 @@ The purpose of the review procedure is:
 [What about getting required changes in to the MPS?  Review is not
 purely obstructive.  RB 2023-01-23]
 
-A defect is a way in which the work does not meet its requirements.
+_`.def.defect`: A defect is a way in which the work does not meet its
+requirements.
 
-A major defect is a defect that
+_`.def.defect.major`: A major defect is a defect that
 
   will probably have significantly increased costs to find and fix
   later in the development process, for example in testing or in use.
@@ -100,6 +101,8 @@ RB 2023-01-20].
 ---------------
 
 _`.role`: People taking part in review are given *roles*.
+
+_`.role.two`: All the roles can be covered by just two people.
 
 _`.role.all`: The leader (`.role.leader`_) must ensure that all roles
 are assigned to someone, to ensure that everything necessary gets
@@ -149,12 +152,13 @@ contributor.
 
 _`.role.scribe`: The scribe is the person who records information (not
 just issues) during review meetings.  They are usually the same person
-as `.role.leader`_.  During `.phase.check`_, review tools will often
-allow checkers to record issues as they check, in which case the
-scribe should just ensure that this has been done.  But the script
-also records information during other phases, such as how much time a
-review took, who was there, who did what, etc.  [Make sure necessary
-information to record is documented in this procedure.  RB 2023-01-23]
+as `.role.leader`_.  During `.phase.check`_, review tools (such as
+GitHub) will often allow checkers to record issues as they check, in
+which case the scribe should just ensure that this has been done.  The
+scribe also records information during other phases, such as how much
+time a review took, who was there, who did what, etc.  [Make sure
+necessary information to record is documented in this procedure under
+a uniform tag.  RB 2023-01-23]
 
 [The following two roles may not be relevant to this section.  They do
 not need to be assigned during a review.  RB 2023-01-23]
@@ -186,7 +190,7 @@ executed roughly in the order below.
 
 #. _`.phase.request`: `.role.author`_ requests that their change be
    reviewed.  For example, they submit a GitHub pull request, or
-   change a pull request state from "draft" to "ready to review".
+   update the pull request state from "draft" to "ready to review".
 
 #. _`.phase.entry`: `.role.leader`_ executes `.entry`_.  If the change
    doesn't meet the entry criteria then the change fails review, and
@@ -197,25 +201,26 @@ executed roughly in the order below.
 #. _`.phase.planning`: `.role.leader`_ executes `.planning`_ to
    prepare the review and arrange for it to happen.
 
-#. _`.phase.kickoff`: `.role.leader`_, `.role.checker`_ execute
+#. _`.phase.kickoff`: `.role.leader`_ and `.role.checker`_ execute
    `.ko`_, beginning the review.
 
-#. _`.phase.check`: `.role.checker`_ execute `.check`_, alone,
-   according to their checking roles [ref?], looking for unique *major
-   defects* that no other checker will bring to the logging meeting.
-   Checking continues during the next phase, `.phase.log`_.
+#. _`.phase.check`: `.role.checker`_ individually execute `.check`_,
+   according to their checking roles [ref?], looking for unique
+   `*major defects* <.def.defect.major>`_ that no other checker will
+   bring to the logging meeting.  Checking continues during the next
+   phase, `.phase.log`_.
 
-#. _`.phase.log`: The `.role.leader`_, the `.role.scribe`_, and
-   `.role.checker`_ execute `.log`_ together to record what has been
-   found, and to find more major defects, stimulated by what has been
-   found so far.  Checking `.phase.check`_ continues during this
+#. _`.phase.log`: `.role.leader`_, `.role.scribe`_, and
+   `.role.checker`_ together execute `.log`_ to share and record what
+   has been found, and to find more major defects, stimulated by what
+   has been found so far.  `.phase.check`_ continues during this
    phase.
 
-#. _`.phase.brainstorm`: `.role.leader`_, `.role.scribe`_,
+#. _`.phase.brainstorm`: `.role.leader`_, `.role.scribe`_, and
    `.role.checker`_, execute `.brainstorm`_ to come up with ways of
    preventing defects in future.
 
-#. _`.phase.estimation`: `.role.leader`_, `.role.scribe`_,
+#. _`.phase.estimation`: `.role.leader`_, `.role.scribe`_, and
    `.role.checker`_ spend a few minutes estimating how productive the
    review was, by:
 
@@ -226,10 +231,10 @@ executed roughly in the order below.
    and `.role.scribe`_ records this information.
 
 #. _`.phase.edit`: `.role.editor`_ executes `.edit`_, analysing and
-   correcting defects, but taking some action on *every* issue.
+   correcting defects, but taking *some* action on *every* issue.
 
 #. _`.phase.pi`: `.role.improver`_ executes `.pi`_ to prevent major
-   defects by correcting *process causes*.
+   defects by correcting *causes*.
 
 #. _`.phase.exit`: `.role.editor`_ and `.role.leader`_ perform
    `.exit`_.  If the revised change does not meet the exit criteria
@@ -318,7 +323,9 @@ _`.plan.check`: Determine and record the checklists to apply [how and
 from where?  RB 2023-01-23].
 
 _`.plan.roles`: Determine and record the checking roles to assign
-[how?  RB 2023-01-23].
+[how?  RB 2023-01-23].  [The leader and scribe will be somewhat
+occupied during logging.  RB 2023-01-23] [Always try to assign the
+backwards role.  RB 2023-01-23]
 
 _`.plan.invite`: Invite the checkers (`.role.checker`_) to the kickoff
 meeting (`.ko`_).
