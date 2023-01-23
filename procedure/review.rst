@@ -79,6 +79,9 @@ The purpose of the review procedure is:
 
 2. _`.goal.prevent`: prevent future defects
 
+[What about getting required changes in to the MPS?  Review is not
+purely obstructive.  RB 2023-01-23]
+
 A defect is a way in which the work does not meet its requirements.
 
 A major defect is a defect that
@@ -177,13 +180,15 @@ attend the review, and therefore is not assigned. RB 2023-01-20]
 _`.phase`: The following procedures are performed more-or-less in
 order.
 
-#. _`.phase.request`: `.role.author`_ requests that their work be
+#. _`.phase.request`: `.role.author`_ requests that their change be
    reviewed.  [How?  Relate to GitHub non-draft pull requests.  RB
    2023-01-20]
 
-#. _`.phase.entry`: `.role.author`_ and `.role.leader`_ perform
-   `.entry`_.  The rest of the Inspection process is only
-   entered when a specified set of entry criteria have been met.
+#. _`.phase.entry`: `.role.leader`_ executes *review entry*
+   (`.entry`_).  If the change doesn't meet the entry criteria then it
+   is rejected, and the rest of the review process is not executed.  A
+   `.role.author`_ who is an experienced `.role.leader`_ can do entry
+   themselves on their own work.
 
 #. _`.phase.planning`: `.role.leader`_ performs `.planning`_, selecting a
    set of source documentation, candidate documentation, checklists,
@@ -279,44 +284,38 @@ order.
 5.1. Review Entry
 .................
 
-[Sourced from [MM_proc.review.entry]_ and needs updating.  RB
-2023-01-21]
+_`.entry`: The *review entry procedure* should be executed when a
+change is submitted for review (`.phase.entry`_).  The purpose of
+entry is to check whether the change is ready for review before
+planning a review, committing resources, organizing meetings, etc.
 
-_`.entry`: [Placeholder.]
+_`.entry.record`: Create record for the procedure.  It needs to be
+permanent and referenceable.  On GitHub, you can start a comment on
+the pull request.  Record a *permalink* to the procedure you're
+following (this one) like::
 
-_`.entry.product`: Determine exactly what product document is
-involved, including revision.
+  Executing [review entry](https://github.com/Ravenbrook/mps/blob/d4ef690a7f2a3d3d6d0ed496eff46e09841b8633/procedure/review.rst#51-review-entry)
 
-_`.entry.draft`: Ensure that the product document is available in a
-suitable form and status (draft).
+_`.entry.change`: Determine and record exactly what the change is, and
+ensure it can be identified unambiguously and permanently.  For
+example, in Git by branch name and commit hash.  [Note: Git fails at
+this because merged branches forget their branch points.  We need some
+way to fix that.  RB 2023-01-23] On GitHub, this information is
+implicitly recorded by commenting on the pull request in
+`.entry.record`_.
 
-_`.entry.time`: Estimate the checking rate and time.  A single review
-should not have a checking time of more than one hour.
+_`.entry.criteria`: Determine and record the entry and exit criteria.
+Examine the types of documents altered by the change (code, design,
+etc.) then look up and record *permalinks* to the criteria for those
+types (e.g. entry.code, exit.design) along with entry.universal and
+exit.universal, which always apply.  [These are available in
+mminfo:rule.entry.* and mminfo:rule.exit.universal, and these need to
+be referencable from here, probably in their own documents.  RB
+2023-01-21]  [Insert example GitHub comment here.  RB 2023-01-23]
 
-_`.entry.plan`: Plan when this review may take place and who should
-attend.  Check with attendees if appropriate.
-
-_`.entry.record`: Create a review record for the product document as
-"review.<tag>.<revision>".  [Where?  Needs specific instructions for
-Git / GitHub.  RB 2023-01-20]
-
-_`.entry.source`: Determine and record the source documents.
-
-_`.entry.rule`: Determine and record the rule documents.
-
-_`.entry.check`: Determine and record the checklists, including
-checking roles.
-
-_`.entry.entry`: Determine and record the entry and exit criteria.
-[These are available in mminfo:rule.entry.* and
-mminfo:rule.exit.universal, and these need to be referencable from
-here, probably in their own documents.  RB 2023-01-21]
-
-_`.entry.check-entry`: Check that the entry criteria hold.  Record any
-transgressions.  Determine whether the transgressions merit rejection
-at this stage.
-
-_`.entry.invite`: Invite the Checkers to the kickoff meeting.
+_`.entry.check`: Check that the entry criteria hold.  Record any
+transgressions.  Decide whether to reject the change from review by
+balancing `2. Purpose`_ and cost.
 
 
 5.2. Review Planning
@@ -326,6 +325,25 @@ _`.planning`: [Placeholder.]
 
 [It seems that planning was folded into `.entry`_ in the MM Group.
 Consider.  RB 2023-01-21]
+
+_`.plan.time`: Estimate the checking rate and time.  A single review
+should not have a checking time of more than one hour.
+
+_`.plan.schedule`: Plan when this review may take place and who should
+attend.  Check with attendees if appropriate.
+
+_`.plan.record`: Create a review record for the product document as
+"review.<tag>.<revision>".  [Where?  Needs specific instructions for
+Git / GitHub.  RB 2023-01-20]
+
+_`.plan.source`: Determine and record the source documents.
+
+_`.plan.rule`: Determine and record the rule documents.
+
+_`.plan.check`: Determine and record the checklists, including
+checking roles.
+
+_`.plan.invite`: Invite the Checkers to the kickoff meeting.
 
 
 5.3. Review Kickoff
@@ -868,8 +886,11 @@ _`.doc.source`: Source document
 _`.doc.product`: Product document
 
   The document developed from the source documents, and offered for
-  review.  The work under review.  The changes under review.  The word
-  product.
+  review.  The work under review.  The changes under review.  The work
+  product.  [Much of this procedure has been rephrased in term of
+  reviewing a *change*, since this is a *change review procedure* and
+  the tools, such as GitHub, focus on reviewing change.  Introducing a
+  new product document is a change.  RB 2023-01-23]
 
 _`.doc.record`: Review record
 
