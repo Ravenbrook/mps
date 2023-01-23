@@ -93,63 +93,82 @@ you should probably read section [Insert reference to Rationale here.
 RB 2023-01-20].
 
 
-3. Review Rôles
+3. Review Roles
 ---------------
 
-[Reconstructed from memory and common sense, and then sourced from
-[MM_process.review]_, but needs updating.  RB 2023-01-20]
+_`.role`: People taking part in review are given *roles*.
 
-Reviews must involve more than one person.  There must be at least one
-checker who is not the author.
+_`.role.all`: The leader (`.role.leader`_) must ensure that all roles
+are assigned to someone, to ensure that everything necessary gets
+done.
 
-Each person can takes on a number of rôles.
+_`.role.everyone`: Every person taking part in review should be assigned at
+least one role, to make it clear what they need to do.
 
-Every role must be assigned to someone.
+[See also book.gilb93.proc.* to cover what roles need to do during
+phases.  RB 2023-01-20]
 
-Each role has tasks during each phase.
+_`.role.leader`: The *leader* organises and plans the review, and
+ensures the procedures are executed.  The leader is responsible for
+managing the process in all respects for productive results.  The
+author (`.role.author`_) can lead, but this should be avoided if not
+an experienced leader.  It is helpful if the leader has received
+special instruction in review or inspection.
 
-[See also book.gilb93.proc.*.  RB 2023-01-20]
+_`.role.author`: The *author* is the person responsible for the change
+under review (`.doc.product`_).  For example, they're the developer
+who submitted a pull request.
 
-_`.role.leader`: The *leader* organises the review and ensures the
-procedures are executed.  The leader is responsible for managing the
-process in all respects for productive results.  The leader is the
-person responsible for organizing and planning review.  They need not
-be distinct from the `.role.author`_.  It is helpful if the leader has
-received special instruction in review or inspection.
-
-_`.role.author`: The *author* wrote the work under review.  The author
-is the person primarily responsible for the production of the product
-document (see `.doc.product`_).
-
-_`.role.checker`: A *checker* checks the work during review.  There
-should be more than one checker, and the author can be a checker.  A
-checker is any person who participates in the checking of product
-documents, and process brainstorming.  All review attendees are
-usually checkers.  Checkers may be asked by the leader to check with
-certain *checking roles* in mind; this is to increase coverage and
-reduce duplication of issues.  [Checking roles are available in
+_`.role.checker`: A *checker* checks the change during review.  There
+must be more than one checker.  Every person taking part in a review
+is usually also a checker, including the author.  Checkers should be
+asked by the leader to check with certain *checking roles* in mind;
+this is to increase coverage and reduce duplication of issues.
+[Checking roles are available in
 mminfo:role.check.{backwards,clarity,consistency,convention,correctness,source}
 and these need to be referencable from here, possibly included in this
-document. RB 2023-01-21]
+document. RB 2023-01-21] ["Checking role" is too easily conflated with
+"review role" and should perhaps be renamed to method.  RB 2023-01-23]
+Checkers also take part defect prevention in `.phase.brainstorm`_.
 
-_`.role.editor`: The *editor* edits the work to correct defects found
-by review.  This is usually the author.  The editor is the person
-responsible for acting on issues raised, and bringing the product
-document to review exit.  They are usually the author.
+_`.role.editor`: The *editor* is the person responsible for acting on
+the issues found during review in order to bring the work to review
+exit.  The editor and `.role.author`_ are usually the same person.
+For example, they're the developer who submitted a pull request and
+needs to fix it up before it can be merged.
 
-_`.role.quality`: The *quality* [Is this right? RB 2023-01-20] edits
-process to prevent future occurences of defects found by review.
+_`.role.qal`: The *quality assurance leader* edits process to prevent
+future occurences of defects found by review.  [This comes from
+mminfo:book.gilb93.proc.quality.  In the MM Group, developers were
+expected to edit process as well.  If possible we'd like the editor to
+do this, so that they are involved and committed to process
+improvement and defect prevention.  But in the public FOSS MPS we
+might not be able to require a submitting developer to do that, so we
+should separate the role.  But "quality assurance leader" isn't a
+great name; what about "improver" from "process improvement"?  RB
+2023-01-23]
 
-_`.role.scribe`: The *scribe* ensures defects are recorded.  The
-scribe is the person who records information during review meetings.
-They are usually the same person as `.role.leader`_.
+_`.role.scribe`: The scribe is the person who records information (not
+just issues) during review meetings.  They are usually the same person
+as `.role.leader`_.  During `.phase.check`_, review tools will often
+allow checkers to record issues as they check, in which case the
+scribe should just ensure that this has been done.  But the script
+also records information during other phases, such as how much time a
+review took, who was there, who did what, etc.  [Make sure necessary
+information to record is documented in this procedure.  RB 2023-01-23]
+
+[The following two roles may not be relevant to this section.  They do
+not need to be assigned during a review.  RB 2023-01-23]
 
 _`.role.chief`: [Chief Inspection Leader in book.gilb93.  Need to look
-this up.  RB 2023-01-20]
+this up.  Probably an organizational role to do with communicating
+improvements to the review process.  Not relevant to the MPS.  RB
+2023-01-20]
 
 _`.role.manager`: The *manager* ensures adequate resources are
 assigned to review and that reviews are happening.  [Project Manager
-in book.gilb93.  Need to look this up. RB 2023-01-20]
+in book.gilb93.  Need to look this up.  Probably not required to
+attend the review, and therefore is not assigned. RB 2023-01-20]
 
 
 4. Phases
@@ -235,7 +254,12 @@ order.
    final defect metrics to the leader.  Edit also deals with
    improvements and can deal with "questions to the author".
 
-#. _`.phase.quality`: The Quality [what?  RB 2023-01-20]
+#. _`.phase.quality`: The `.role.qal`_ takes action to prevent major
+   defects by correcting *process causes*.  Actions include adding
+   rules or checklist items, updating procedures, creating tools, or
+   adding automated checks.  But they might also include raising
+   concerns with management, suggesting wholesale review of working
+   practices, requesting training for staff, and so on.
 
 #. _`.phase.exit`: `.role.editor`_ and `.role.leader`_ perform `.exit`_.
 
@@ -741,7 +765,7 @@ _`.edit.question.raise`: "Raise: <tag>"
 Improvement Suggestions
 .......................
 
-[This clashes with the idea of a separate `.role.quality`_.  RB
+[This clashes with the idea of a separate `.role.qal`_.  RB
 2023-01-21]
 
 _`.edit.improve`: Improvement suggestions should receive one of the
