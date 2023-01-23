@@ -177,12 +177,12 @@ attend the review, and therefore is not assigned. RB 2023-01-20]
 4. Phases
 ---------
 
-_`.phase`: The following procedures are performed more-or-less in
-order.
+_`.phase`: To review a change, the following procedures are executed
+more-or-less in the order below.
 
 #. _`.phase.request`: `.role.author`_ requests that their change be
-   reviewed.  [How?  Relate to GitHub non-draft pull requests.  RB
-   2023-01-20]
+   reviewed.  For example, they submit a GitHub pull request, or
+   change a pull request state from "draft" to "ready to review".
 
 #. _`.phase.entry`: `.role.leader`_ executes *review entry*
    (`.entry`_).  If the change doesn't meet the entry criteria then it
