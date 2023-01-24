@@ -15,13 +15,15 @@ Memory Pool System exit criteria for all documents
 _`.scope`: These exit criteria should be used for all reviews (see
 `proc.review.exit.criteria`_).
 
-.. _`proc.review.entry.criteria`: review.rst#58-review-exit
+.. _`proc.review.exit.criteria`: review.rst#58-review-exit
 
 _`.edit`: The editor has taken written action on all issues, recorded
 in the review record; these may include rejecting the issue.
 
 _`.quest`: All questions to the author (q) should have been answered
-in mail to mm, and possibly in documentation.
+in mail to mm, and possibly in documentation.  ["Mail to mm" is
+specific to the Harlequin MM Group.  GitHub comment responses are now
+sufficient.  RB 2023-01-24]
  
 _`.imp`: All improvement suggestions (I) should have resulted in one
 of the following:
@@ -32,7 +34,9 @@ of the following:
 - _`.imp.mail`: Passed on to someone responsible for the other
   document, and accepted.
 
-- _`.imp.issue`: Escalated to an InfoSys issue.
+- _`.imp.issue`: Escalated to an InfoSys issue.  ["InfoSys issue" is
+  specific to the Harlequin MM Group or Ravenbrook.  GitHub issues are
+  now sufficient.  RB 2023-01-24]
 
 - _`.imp.reject`: Rejected by the editor for a documented reason.
 

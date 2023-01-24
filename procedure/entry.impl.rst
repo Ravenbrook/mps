@@ -19,10 +19,13 @@ _`.scope`: These entry criteria are to be used for reviews of code
 
 _`.author`: In the case of code there is often not a clear author.  In
 this case, the leader may select one or more people who have edited
-the file recently, at their discretion.
+the file recently, at their discretion.  [This is out of place.  By
+the time entry criteria are being selected, the author role has been
+indentified.  See proc.review.role.author.  RB 2023-01-24]
 
-_`.auto-check`: Source code should compile without errors.  Lint
-should have been run where available.
+_`.auto-check`: Source code must compile without errors.  Lint should
+have been run where available.  [Seems like there are three criteria
+here: errors, warnings, and lint.  RB 2023-01-24]
 
 
 A. References

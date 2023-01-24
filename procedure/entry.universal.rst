@@ -15,33 +15,42 @@ Memory Pool System entry criteria for all reviews
 _`.scope`: These entry criteria are to be used for all reviews (see
 `proc.review.entry.criteria`_).
 
-.. _`proc.review.entry.criteria`: review.rst#51-review-entry
+_`.author`: The author_ of the document agrees to the review.
 
-_`.author`: The author of the document agrees to the review.
+_`.source-available`: The `source documents`_ are available in
+writing.  [What is the purpose of "in writing" here and how to express
+it now?  RB 2023-01-24]
 
-_`.source-available`: The source documents are available in writing.
-
-_`.source-approved`: The source documents will have exited review.
+_`.source-approved`: The `source documents`_ will have `exited review`_.
 Failing this, they should be mini-reviewed and the fact noted.
 Failing this, they should be marked as "UNREVIEWED".
 
 _`.rules-available`: The relevant rules are available in writing.
 
 _`.rules-approved`: The rule documents have exited review.  Failing
-this, see .source-approved.
+this, see `.source-approved`_.
 
 _`.brief-check`: The leader has performed a cursory examination and
 has found no more than one major defect (see guide.review.class.major
-[Needs importing and reference.  RB 2023-01-23]) per page.
+[Needs importing and reference.  RB 2023-01-23]) per page.  [This
+should go further up the list.  RB 2023-01-24]
 
 _`.plan`: There is a procedure for the review, including checking
 rates for this type of document.
 
 _`.training`: The leader has been formally trained and certified in
-Inspection.
+Inspection.  [This is unrealistic in the public MPS.  What can we say?
+RB 2023-01-24]
 
 _`.auto-check`: All automatic checks have been performed on the
-product document, and it has passed.
+product document, and it has passed.  [What counts as "all"?  This
+means all the ones that are implemented in the MPS, e.g.
+``make test``, CI checks, checks in ``tool/*``, etc.  RB 2023-01-24]
+
+.. _`proc.review.entry.criteria`: review.rst#51-review-entry
+.. _author: review.rst#3-review-roles
+.. _source documents: review.rst#6-documents
+.. _exited review: review.rst#4-phases
 
 
 A. References

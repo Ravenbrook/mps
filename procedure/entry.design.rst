@@ -19,7 +19,8 @@ documents (`proc.review.entry.criteria`_).
 
 _`.rfc`: Any design document entering formal review must have
 previously been reviewed informally, e.g. by e-mail RFC, or design
-brainstorm.
+brainstorm.  [This worked in the MM Group, but in public, by whom?
+With what outcome?  RB 2023-01-24]
 
 
 A. References
