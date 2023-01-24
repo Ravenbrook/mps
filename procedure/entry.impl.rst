@@ -12,8 +12,10 @@ Memory Pool System entry criteria for source code
 :copyright: See `C. Copyright and License`_
 :readership: MPS developers
 
-_`.scope`: These are additional entry criteria for the review of code.
-See entry.universal.
+_`.scope`: These entry criteria are to be used for reviews of code
+(see `proc.review.entry.criteria`_).
+
+.. _`proc.review.entry.criteria`: review.rst#51-review-entry.
 
 _`.author`: In the case of code there is often not a clear author.  In
 this case, the leader may select one or more people who have edited

@@ -13,9 +13,9 @@ Memory Pool System entry criteria for review of design documents
 :readership: MPS developers
 
 _`.scope`: These entry criteria are to be used for reviews of design
-documents.  Our aim is for failure to prevent entry.  In the meantime,
-failure of one of these criteria must be documented in the review
-document and entry prevention is at the leader's discretion.
+documents (`proc.review.entry.criteria`_).
+
+.. _`proc.review.entry.criteria`: review.rst#51-review-entry
 
 _`.rfc`: Any design document entering formal review must have
 previously been reviewed informally, e.g. by e-mail RFC, or design

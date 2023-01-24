@@ -12,8 +12,10 @@ Memory Pool System exit criteria for all documents
 :copyright: See `C. Copyright and License`_
 :readership: MPS developers
 
-_`.scope`: These criteria should be used for the exit from review of
-all documents.  See book.gilb93, page 202.
+_`.scope`: These exit criteria should be used for all reviews (see
+`proc.review.exit.criteria`_).
+
+.. _`proc.review.entry.criteria`: review.rst#58-review-exit
 
 _`.edit`: The editor has taken written action on all issues, recorded
 in the review record; these may include rejecting the issue.
