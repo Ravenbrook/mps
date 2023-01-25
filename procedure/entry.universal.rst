@@ -50,7 +50,7 @@ means all the ones that are implemented in the MPS, e.g.
 .. _`proc.review.entry.criteria`: review.rst#51-review-entry
 .. _author: review.rst#3-review-roles
 .. _source documents: review.rst#6-documents
-.. _exited review: review.rst#4-phases
+.. _exited review: review.rst#58-review-exit
 
 
 A. References
