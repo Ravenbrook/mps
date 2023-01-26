@@ -98,11 +98,14 @@ _`.def.defect.major`: A major defect is a defect that
   will probably have significantly increased costs to find and fix
   later in the development process, for example in testing or in use.
 
-  -- guide.review.class.major [Needs importing.  RB 2023-01-23]
+  -- `guide.review.class.major`_
 
 As with any procedure, you can vary this one to meet this purpose, but
 you should probably read section [Insert reference to Rationale here.
 RB 2023-01-20].
+
+.. FIXME: This needs importing to the MPS tree
+.. _guide.review.class.major: https://info.ravenbrook.com/project/mps/doc/2002-06-18/obsolete-mminfo/mminfo/guide/review/class
 
 
 3. Review Roles
@@ -139,7 +142,8 @@ is usually also a checker, including the author.  Checkers should be
 asked by the leader to check with certain *checking roles* in mind;
 this is to increase coverage and reduce duplication of issues.
 [Checking roles are available in
-mminfo:role.check.{backwards,clarity,consistency,convention,correctness,source}
+`mminfo:role.check.{backwards,clarity,consistency,convention,correctness,source}
+<https://info.ravenbrook.com/project/mps/doc/2002-06-18/obsolete-mminfo/mminfo/role/check>`__
 and these need to be referencable from here, possibly included in this
 document. RB 2023-01-21] ["Checking role" is too easily conflated with
 "review role" and should perhaps be renamed to method.  RB 2023-01-23]
@@ -453,12 +457,12 @@ have been assigned.
 _`.check.product`: Read through the product document (or documents) in
 the order specified.  Remember to read the product documents in
 reverse order if you were assigned a backwards checking role during
-`.ko.role`_ (see role.check.backwards [Needs importing.  RB
-2023-01-21]).
+`.ko.role`_ (see `role.check.backwards
+<https://info.ravenbrook.com/project/mps/doc/2002-06-18/obsolete-mminfo/mminfo/role/check/backwards>`__
+[Needs importing.  RB 2023-01-21]).
 
 _`.check.major`: Concentrate on finding major issues (see
-guide.review.class.major [Needs importing.  RB 2023-01-21]); this is
-of primary importance.
+`guide.review.class.major`_); this is of primary importance.
 
 _`.check.max`: Find as many issues as possible to help the author.
 
@@ -470,7 +474,10 @@ _`.check.trouble`: Consult the leader if you have any questions, or if
 you are finding too many or too few issues.
 
 _`.check.class`: Classify each defect you find according to
-guide.review.class [Needs importing.  RB 2023-01-21].
+`guide.review.class`_.
+
+.. FIXME: This needs importing to the MPS tree.
+.. _guide.review.class: https://info.ravenbrook.com/project/mps/doc/2002-06-18/obsolete-mminfo/mminfo/guide/review/class
 
 
 5.4.3. End
@@ -559,7 +566,7 @@ desired form of issues, namely:
 - Location;
 
 - Class, including "New" (N) if the issue was discovered during
-  logging (see guide.review.class [Needs importing.  RB 2023-01-21]);
+  logging (see `guide.review.class`_);
 
 - Description of issue, concentrating on how it breaks a rule, rather
   than on possible solutions, naming the rule or checklist question,
@@ -594,15 +601,18 @@ RB 2023-01-21]
 this represents current best practice.  GavinM 1997-06-12 ]
 
 _`.log.major`: The leader calls upon all checkers, one by one, to list
-their major issues (see guide.review.class.major [Needs importing.  RB
-2023-01-21]), preferable in order of their occurance in the product
-document.  He may chunk the product document and go round the checkers
-several times, but this is unusal.
+their major issues (see `guide.review.class.major`_), preferable in
+order of their occurance in the product document.  He may chunk the
+product document and go round the checkers several times, but this is
+unusal.
 
 _`.log.decide.non-major`: The leader may decide not to log all minor
-issues (see guide.review.class.minor [Needs importing.  RB
-2023-01-21]).  He should announce that each checker should offer some
-number, or fraction.  Other issues may be logged in writing.
+issues (see `guide.review.class.minor`_).  He should announce that
+each checker should offer some number, or fraction.  Other issues may
+be logged in writing.
+
+.. FIXME: This needs importing to the MPS tree.
+.. _guide.review.class.minor: https://info.ravenbrook.com/project/mps/doc/2002-06-18/obsolete-mminfo/mminfo/guide/review/class
 
 _`.log.non-major`: The leader takes all checkers through the product
 document in order, at each stage:
@@ -646,8 +656,7 @@ review, or suggest ways to fix those defects, except insofar as it is
 necessary to develop ways to *prevent* those defects.
 
 _`.brainstorm.just`: The purpose of holding a process brainstorm
-meeting is to meet the second goal of review (see
-process.review.goal.prevent [Needs importing.  RB 2023-01-21]) by
+meeting is to meet the second goal of review (`.goal.prevent`_) by
 finding ways to prevent the reoccurance of defects.  This closes the
 process improvement loop.
 
@@ -670,10 +679,9 @@ RB 2023-01-23]
 .................
 
 _`.brainstorm.choose`: The leader chooses 3-6 major defects or groups
-of major defects (see guide.review.class.major [Needs importing.  RB
-2023-01-21]) found in review.  They makes this choice based on their
-importance and his own experience of which defects can be most
-profitably attacked.
+of major defects (see `guide.review.class.major`_) found in review.
+They makes this choice based on their importance and his own
+experience of which defects can be most profitably attacked.
 
 
 5.6.2. In The Meeting
@@ -745,7 +753,7 @@ _`.edit.order`: The log should be in numerical order, one issue per line.
 
 _`.edit.edit-comments`: The following describes the format of edit
 comments for each issue, indicating the action taken.  See
-guide.review.class for issue classification.
+`guide.review.class`_ for issue classification.
 
 _`.edit.record`: [Insert details of how to record edits.  RB
 2023-01-23]
