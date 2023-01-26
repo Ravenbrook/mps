@@ -83,7 +83,7 @@ but also contributes a great deal to:
 
 The purpose of the review procedure is:
 
-1. _`.goal.fix`: find and correct major defects
+1. _`.goal.fix`: find and correct `major defects`_
 
 2. _`.goal.prevent`: prevent future defects
 
@@ -139,15 +139,10 @@ who submitted a pull request.
 _`.role.checker`: A *checker* checks the change during review.  There
 must be more than one checker.  Every person taking part in a review
 is usually also a checker, including the author.  Checkers should be
-asked by the leader to check with certain *checking roles* in mind;
-this is to increase coverage and reduce duplication of issues.
-[Checking roles are available in
-`mminfo:role.check.{backwards,clarity,consistency,convention,correctness,source}
-<https://info.ravenbrook.com/project/mps/doc/2002-06-18/obsolete-mminfo/mminfo/role/check>`__
-and these need to be referencable from here, possibly included in this
-document. RB 2023-01-21] ["Checking role" is too easily conflated with
-"review role" and should perhaps be renamed to method.  RB 2023-01-23]
-Checkers also take part defect prevention in `.phase.brainstorm`_.
+asked by the leader to check with certain *checking roles*
+(`.role.check`_) in mind; this is to increase coverage and reduce
+duplication of issues.  Checkers also take part defect prevention in
+`.phase.brainstorm`_.
 
 _`.role.editor`: The *editor* is the person responsible for acting on
 the issues found during review in order to bring the work to review
@@ -217,10 +212,10 @@ executed roughly in the order below.
    `.ko`_, beginning the review.
 
 #. _`.phase.check`: `.role.checker`_ individually execute `.check`_,
-   according to their checking roles [ref?], looking for unique
-   `*major defects* <.def.defect.major>`_ that no other checker will
-   bring to the logging meeting.  Checking continues during the next
-   phase, `.phase.log`_.
+   according to their checking roles (`.role.check`_), looking for
+   unique `major defects`_ that no other checker will bring to the
+   logging meeting.  Checking continues during the next phase,
+   `.phase.log`_.
 
 #. _`.phase.log`: `.role.leader`_, `.role.scribe`_, and
    `.role.checker`_ together execute `.log`_ to share and record what
@@ -245,8 +240,8 @@ executed roughly in the order below.
 #. _`.phase.edit`: `.role.editor`_ executes `.edit`_, analysing and
    correcting defects, but taking *some* action on *every* issue.
 
-#. _`.phase.pi`: `.role.improver`_ executes `.pi`_ to prevent major
-   defects by correcting *causes*.
+#. _`.phase.pi`: `.role.improver`_ executes `.pi`_ to prevent `major
+   defects`_ by correcting *causes*.
 
 #. _`.phase.exit`: `.role.editor`_ and `.role.leader`_ perform
    `.exit`_.  If the revised change does not meet the exit criteria
@@ -255,6 +250,8 @@ executed roughly in the order below.
    (`proc.merge.pull-request`_).
 
 .. _proc.merge.pull-request: pull-request-merge.rst
+
+.. _major defects: `.def.defect.major`_
 
 
 5. Procedures
@@ -334,10 +331,10 @@ that apply to the critical path.  RB 2023-01-23]
 _`.plan.check`: Determine and record the checklists to apply [how and
 from where?  RB 2023-01-23].
 
-_`.plan.roles`: Determine and record the checking roles to assign
-[how?  RB 2023-01-23].  [The leader and scribe will be somewhat
-occupied during logging.  RB 2023-01-23] [Always try to assign the
-backwards role.  RB 2023-01-23]
+_`.plan.roles`: Determine and record the checking roles
+(`.role.check`_) to assign [how?  RB 2023-01-23].  [The leader and
+scribe will be somewhat occupied during logging.  RB 2023-01-23]
+[Always try to assign the backwards role.  RB 2023-01-23]
 
 _`.plan.invite`: Invite the checkers (`.role.checker`_) to the kickoff
 meeting (`.ko`_).
@@ -380,8 +377,8 @@ _`.ko.intro`: The leader may ask the author to prepare a short (one minute)
 introduction to the product document.
 
 _`.ko.role`: The leader announces or negotiates any checking roles
-they wish to assign, and ensures that checkers understand their
-assignments.
+(`.role.check`_) they wish to assign, and ensures that checkers
+understand their assignments.
 
 _`.ko.improve`: The leader announces any relevant metrics and negotiates objectives.
 
@@ -409,9 +406,9 @@ solicits any questions or suggestions.
 
 _`.check`: The *checking procedure* should be executed by each
 individual `.role.checker`_ alone, carrying out their assigned
-checking roles [ref?] without conferring with other checkers.  The
-purpose of checking is to find *major defects* not found by other
-checkers.
+checking roles (`.role.check`_) without conferring with other
+checkers.  The purpose of checking is to find `major defects`_ not
+found by other checkers.
 
 [Note: not all issues are local to a line.  RB 2023-01-21]
 
@@ -456,10 +453,8 @@ have been assigned.
 
 _`.check.product`: Read through the product document (or documents) in
 the order specified.  Remember to read the product documents in
-reverse order if you were assigned a backwards checking role during
-`.ko.role`_ (see `role.check.backwards
-<https://info.ravenbrook.com/project/mps/doc/2002-06-18/obsolete-mminfo/mminfo/role/check/backwards>`__
-[Needs importing.  RB 2023-01-21]).
+reverse order if you were assigned `.role.check.backwards`_ during
+`.ko.role`_.
 
 _`.check.major`: Concentrate on finding major issues (see
 `guide.review.class.major`_); this is of primary importance.
@@ -506,7 +501,7 @@ purposes:
 
 1. to record issues for action
 
-2. to find more *major defects* by sharing what has been found so far.
+2. to find more `major defects`_ by sharing what has been found so far.
 
 Checking continues during logging.
 
@@ -1089,6 +1084,51 @@ I believe we should know what proportion of major defects we find, and
 use that.  Perhaps we could use 75%? - GavinM]
 
 
+8. Checking Roles
+=================
+
+["Checking role" is too easily conflated with "review role" and should
+perhaps be renamed to "method".  RB 2023-01-23]
+
+_`.role.check`: Checking roles are assigned (`.plan.roles`_) to
+`.role.checker`_ in order to focus their attention on different
+aspects of the change under review, and so increase the number of
+unique major defects found.
+
+_`.role.check.backwards`: The *backwards checking role* involves
+scanning the product document in reverse order, in order to increase
+the chances of finding major defects that won't be found by other
+checkers.  The checker should use their initiative in determining the
+granularity of this reversal; for example: in an implementation, the
+checker might read each function or type definition in turn from the
+end of the file; for other documents, the checker might read each
+subsection or paragraph from the end backwards.  For the convenience
+of other checkers and the editor, the backwards checker should their
+issues in forwards document order.  See `.log.order`_.  [This advice
+may no longer be relevant with automated tools.  RB 2023-01-26]
+
+_`.role.check.clarity`: The *clarity checking role* focuses on whether
+the product document is clear and obvious.  This is a good role to
+give to someone who has never seen the product document before, but
+who is in the intended readership.  Anything that is unclear to them
+is a defect.
+
+_`.role.check.consistency`: The *consistency checking role* focuses on
+whether the product document or documents are internally consistent.
+
+_`.role.check.convention`: The *convention checking role* concentrates
+on whether the product document complies with detailed conventions and
+rules.
+
+_`.role.check.correctness`: The *correctness checking role* focuses on
+whether the product document is correct, i.e. will have the intended
+consequences.
+
+_`.role.check.source`: The *source checking role* concentrates on
+whether the product document is consistent with any source documents,
+and whether dependencies and links are documented where appropriate.
+
+
 A. References
 =============
 
@@ -1149,6 +1189,7 @@ B. Document History
 ==========  =====  ==================================================
 2023-01-19  RB_    Created.
 2023-01-20  RB_    Importing material from MM Group proc.review.
+2023-01-26  RB_    Importing checking roles from MM Group documents.
 ==========  =====  ==================================================
 
 .. _RB: mailto:rb@ravenbrook.com
