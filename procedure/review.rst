@@ -13,7 +13,7 @@ Memory Pool System review procedure
 
 
 1. Introduction
----------------
+===============
 
 This is the procedure for reviewing a change to the MPS in order to
 `prevent defects <2. Purpose>`_.
@@ -71,7 +71,7 @@ but also contributes a great deal to:
 
 
 2. Purpose
-----------
+==========
 
 The purpose of the review procedure is:
 
@@ -98,7 +98,7 @@ RB 2023-01-20].
 
 
 3. Review Roles
----------------
+===============
 
 _`.role`: People taking part in review are given *roles*.
 
@@ -175,7 +175,7 @@ attend the review, and therefore is not assigned. RB 2023-01-20]
 
 
 4. Phases
----------
+=========
 
 _`.phase`: This section describes the phases of a review.  Each phase
 has a procedure.  The phases involve varying groups of people
@@ -246,10 +246,10 @@ executed roughly in the order below.
 
 
 5. Procedures
--------------
+=============
 
 5.1. Review Entry
-.................
+-----------------
 
 _`.entry`: The *review entry procedure* should be executed when a
 change is submitted for review (`.phase.entry`_).  The purpose of
@@ -286,7 +286,7 @@ balancing `2. Purpose`_ and cost.
 
 
 5.2. Review Planning
-....................
+--------------------
 
 _`.planning`: The *review planning procedure* should be executed when
 a change has passed `.entry`_.  The purpose of planning is to prepare
@@ -332,7 +332,7 @@ meeting (`.ko`_).
 
 
 5.3. Review Kickoff
-...................
+-------------------
 
 [Sourced from [MM_proc.review.ko]_ and needs updating.  RB 2023-01-21]
 
@@ -342,7 +342,7 @@ to carry out their roles.
 
 
 5.3.1. In Advance
-~~~~~~~~~~~~~~~~~
+.................
 
 [This section could be moved to the planning phase.  RB 2023-01-21]
 
@@ -356,7 +356,7 @@ documents.
 
 
 5.3.2. At The Meeting
-~~~~~~~~~~~~~~~~~~~~~
+.....................
 
 _`.ko.record`: Times, objectives, and anything else appropriate should all be 
 recorded in the review record.
@@ -391,7 +391,7 @@ solicits any questions or suggestions.
 
 
 5.4. Review Checking
-....................
+--------------------
 
 [Sourced from [MM_proc.review.check]_ and needs updating.  RB 2023-01-21]
 
@@ -419,7 +419,7 @@ RB 2023-01-23]
 
 
 5.4.1. Start
-~~~~~~~~~~~~
+............
 
 _`.check.doc`: Ensure that you have all the relevant documents.
 
@@ -428,7 +428,7 @@ checking procedure.
 
 
 5.4.2. Checking
-~~~~~~~~~~~~~~~
+...............
 
 _`.check.source`: First, read any source documents.  Review is not
 directed at finding defects in source documents, but any found are a
@@ -466,7 +466,7 @@ guide.review.class [Needs importing.  RB 2023-01-21].
 
 
 5.4.3. End
-~~~~~~~~~~
+..........
 
 _`.check.record`: At the end of checking, record (for each product
 document):
@@ -481,7 +481,7 @@ document):
 
 
 5.5. Review Logging
-...................
+-------------------
 
 [Sourced from [MM_proc.review.log]_ and needs updating.  RB 2023-01-21]
 
@@ -514,7 +514,7 @@ RB 2023-01-23]
 
 
 5.5.1. During The Meeting
-~~~~~~~~~~~~~~~~~~~~~~~~~
+.........................
 
 _`.log.record`: All information gathered should be recorded in the
 review log.  This may be deferred if the meeting is mediated by a
@@ -618,14 +618,14 @@ the end of the logging meeting.
 
 
 5.5.2. After The Meeting
-~~~~~~~~~~~~~~~~~~~~~~~~
+........................
 
 _`.log.inform`: The reviewed document is now ready for edit (see proc.review.edit).  
 The review leader should inform the editor of this by mail.
 
 
 5.6. Review Brainstorm
-......................
+----------------------
 
 [Sourced from [MM_proc.review.brainstorm]_ and needs updating.  RB
 2023-01-21]
@@ -659,7 +659,7 @@ RB 2023-01-23]
 
 
 5.6.1. In Advance
-~~~~~~~~~~~~~~~~~
+.................
 
 _`.brainstorm.choose`: The leader chooses 3-6 major defects or groups
 of major defects (see guide.review.class.major [Needs importing.  RB
@@ -669,7 +669,7 @@ profitably attacked.
 
 
 5.6.2. In The Meeting
-~~~~~~~~~~~~~~~~~~~~~
+.....................
 
 _`.brainstorm.time`: The process brainstorm should last no more than
 around 30 minutes.
@@ -697,7 +697,7 @@ them.
 
 
 5.6.3. After The Meeting
-~~~~~~~~~~~~~~~~~~~~~~~~
+........................
 
 _`.brainstorm.act`: The review leader should derive requests and
 solution suggestions for the process product from the record, and
@@ -706,7 +706,7 @@ to be made more specific.  RB 2023-01-21]
 
 
 5.7. Review Edit
-................
+----------------
 
 [Sourced from [MM_guide.review.edit]_ and needs updating.  RB 2023-01-21]
 
@@ -732,8 +732,8 @@ revision <revision> will be review.<tag>.<revision>.
 _`.edit.order`: The log should be in numerical order, one issue per line.
 
 
-Edit comments
-~~~~~~~~~~~~~
+5.7.1. Edit comments
+....................
 
 _`.edit.edit-comments`: The following describes the format of edit
 comments for each issue, indicating the action taken.  See
@@ -744,7 +744,7 @@ _`.edit.record`: [Insert details of how to record edits.  RB
 
 
 Major Issues
-............
+~~~~~~~~~~~~
 
 _`.edit.major`: Major issues should receive one of the following
 responses:
@@ -772,7 +772,7 @@ document's tag must be quoted.
 
 
 Minor Issues
-............
+~~~~~~~~~~~~
 
 _`.edit.minor`: Minor issues should receive one of the following
 responses:
@@ -806,7 +806,7 @@ document's tag must be quoted.
 
 
 Comments
-........
+~~~~~~~~
 
 _`.edit.comment`: Comments on the product document should receive one of the following 
 responses:
@@ -833,7 +833,7 @@ document, that document's tag must be quoted.
 
 
 Questions To The Author
-.......................
+~~~~~~~~~~~~~~~~~~~~~~~
 
 _`.edit.question`: Questions to the author should receive one of the following 
 responses:
@@ -849,14 +849,14 @@ _`.edit.question.raise`: "Raise: <tag>"
 
 
 Improvement Suggestions
-.......................
+~~~~~~~~~~~~~~~~~~~~~~~
 
 _`.edit.improve`: Improvement suggestions should be left for `.pi`_,
 unless you are also `.role.improver`_.
 
 
 5.8. Process Improvement
-........................
+------------------------
 
 _`.pi`: The *process improvement procedure* must be executed by
 `.role.improver`_ to take action to prevent future defects, the
@@ -913,7 +913,7 @@ _`.pi.forget`: "Forget: <reason>"
 
 
 5.8. Review Exit
-................
+----------------
 
 [Sourced from [MM_proc.review.exit]_ and needs updating.  RB
 2023-01-21]
@@ -967,7 +967,7 @@ review, and any notes that seem appropriate.
 
 
 6. Documents
-------------
+============
 
 [Sourced from [MM_process.review]_ and needs updating.  RB 2023-01-21]
 
@@ -1045,7 +1045,7 @@ _`.doc.request`: Requests for change
 
 
 7. Calculations
----------------
+===============
 
 [This section was found in guide.review.edit but seems out
 of place.  RB 2021-01-21]
@@ -1074,7 +1074,7 @@ use that.  Perhaps we could use 75%? - GavinM]
 
 
 A. References
--------------
+=============
 
 .. [CMU/SEU-93-TR-025] "Key Practices of the Capability Maturity
                        ModelSM, Version 1.1"; Mark C. Paulk,
@@ -1128,7 +1128,7 @@ A. References
 
 
 B. Document History
--------------------
+===================
 
 ==========  =====  ==================================================
 2023-01-19  RB_    Created.
@@ -1139,7 +1139,7 @@ B. Document History
 
 
 C. Copyright and License
-------------------------
+========================
 
 Copyright © 2023 `Ravenbrook Limited <https://www.ravenbrook.com/>`_.
 
