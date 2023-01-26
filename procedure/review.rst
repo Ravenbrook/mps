@@ -221,8 +221,8 @@ executed roughly in the order below.
    preventing defects in future.
 
 #. _`.phase.estimation`: `.role.leader`_, `.role.scribe`_, and
-   `.role.checker`_ spend a few minutes estimating how productive the
-   review was, by:
+   `.role.checker`_ spend a few minutes using `.calc`_ to estimate how
+   productive the review was, by:
 
    - estimating the cost of the review (mostly work hours)
    - projecting what the defects would cost if uncorrected
@@ -855,32 +855,6 @@ _`.edit.improve`: Improvement suggestions should be left for `.pi`_,
 unless you are also `.role.improver`_.
 
 
-Calculations
-~~~~~~~~~~~~
-
-[This section was found in guide.review.edit but seems out of place.
-RB 2021-01-21]
-
-_`.edit.manpower-used`: The manpower used is the time for entry,
-kickoff, checking, logging, brainstorm, edit, and exit.  Kickoff,
-checking, logging and brainstorm must be multiplies by the number of
-checkers.  Entry and kickoff may be assigned to another document
-reviewed at the same time.
-
-_`.edit.manpower-saved`: The default calculation is the number of
-major defects found and fixed, multiplies by 10 man-hours.  This
-represent the cost of a major defect found by QC.  If the defect would
-have reached customers, the estimate should be 100 man-hours.  A
-better estimate can be made, with justification.
-
-_`.edit.defects-remaining`: The calculation of defects remaining
-should use the estimate <major defects found>/<number of pages>.  The
-obvious adjustment must be made for sampling.  The number of
-unresolved major issues (raised) should be added.  [In an ideal world,
-I believe we should know what proportion of major defects we find, and
-use that.  Perhaps we could use 75%? - GavinM]
-
-
 5.8. Process Improvement
 ........................
 
@@ -963,6 +937,8 @@ review.
 RB 2023-01-23]
 
 _`.exit.request`: The editor requests the leader to exit the document.  [Shouldn't this be in .edit?  RB 2023-01-23]
+
+_`.exit.calc`: [Calculate and record final metrics using `.calc`_.  RB 2023-01-26]
 
 _`.exit.record`: [Include details of how to record exit.  RB
 2023-01-23]
@@ -1066,6 +1042,35 @@ _`.doc.request`: Requests for change
 
   An issue that the editor cannot deal with that is escalated to some
   other tracking system, usually MM Evolution (see process.darwin).
+
+
+7. Calculations
+---------------
+
+[This section was found in guide.review.edit but seems out
+of place.  RB 2021-01-21]
+
+_`.calc`: [Need to mention how this info is used.  Ref kpa.qpm.  RB
+2023-01-26]
+
+_`.calc.manpower-used`: The manpower used is the time for entry,
+kickoff, checking, logging, brainstorm, edit, and exit.  Kickoff,
+checking, logging and brainstorm must be multiplies by the number of
+checkers.  Entry and kickoff may be assigned to another document
+reviewed at the same time.
+
+_`.calc.manpower-saved`: The default calculation is the number of
+major defects found and fixed, multiplies by 10 man-hours.  This
+represent the cost of a major defect found by QC.  If the defect would
+have reached customers, the estimate should be 100 man-hours.  A
+better estimate can be made, with justification.
+
+_`.calc.defects-remaining`: The calculation of defects remaining
+should use the estimate <major defects found>/<number of pages>.  The
+obvious adjustment must be made for sampling.  The number of
+unresolved major issues (raised) should be added.  [In an ideal world,
+I believe we should know what proportion of major defects we find, and
+use that.  Perhaps we could use 75%? - GavinM]
 
 
 A. References
