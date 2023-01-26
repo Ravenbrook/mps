@@ -351,6 +351,7 @@ Formerly supported compiler toolchains:
 ``eg``  Experimental GNU Compiler System (EGCS)  ``MPS_BUILD_EG``
 ``gp``  GCC with profiling                       ``MPS_BUILD_GP``
 ``lc``  LCC                                      ``MPS_BUILD_LC``
+``m9``  Microsoft Visual C/C++ 9.0 [3]_          ``MPS_BUILD_M9``
 ``mw``  Metrowerks CodeWarrior                   ``MPS_BUILD_MW``
 ``pc``  Pelles C                                 ``MPS_BUILD_PC``
 ``sc``  SunPro C                                 ``MPS_BUILD_SC``
@@ -363,6 +364,9 @@ Formerly supported compiler toolchains:
 
     .. [2] This was the MIPSpro C compiler on IRIX; and the Digital C
            Compiler on OSF/1.
+
+    .. [3] Obsolete: the MPS used to make a distinction between
+           version 9.0 of Microsoft Visual C/C++ and older versions.
 
 
 .. index::
@@ -403,7 +407,7 @@ Platform    Status
 ``sos9sc``  *Not supported*
 ``sus8gc``  *Not supported*
 ``w3almv``  *Not supported*
-``w3i3m9``  *Not supported*
+``w3i3m9``  Corrected to ``w3i3mv``
 ``w3i3mv``  Supported
 ``w3i3pc``  *Not supported*
 ``w3i6mv``  Supported
@@ -416,3 +420,39 @@ Platform    Status
 ``xci6ll``  Supported
 ``xcppgc``  *Not supported*
 ==========  =======================
+
+
+.. index::
+   pair: platform; limitations
+   single: Hardened Runtime
+
+.. _topic-platform-limitations:
+
+Platform limitations
+--------------------
+
+This section documents limitations that affect individual platforms.
+
+``xca6ll``
+
+   On macOS on Apple Silicon, programs may enable `Hardened Runtime`_.
+   This feature rejects attempts to map or protect memory so that it
+   is simultaneously writable and executable. Therefore, when Hardened
+   Runtime is enabled, memory managed by the MPS is not executable.
+
+   .. _Hardened Runtime: https://developer.apple.com/documentation/security/hardened_runtime
+
+   If your program needs to write executable code into memory managed
+   by the MPS (for example, it uses just-in-time translation or
+   dynamic compilation), then you must either disable Hardened
+   Runtime, or configure the `Allow Unsigned Executable Memory
+   Entitlement`_.
+
+   .. _Allow Unsigned Executable Memory Entitlement: https://developer.apple.com/documentation/bundleresources/entitlements/com_apple_security_cs_allow-unsigned-executable-memory
+
+   Note that the MPS has no support for Apple's :c:macro:`MAP_JIT`
+   flag. If your application is using the `Allow Execution of
+   JIT-compiled Code Entitlement`_ and needs support for this flag,
+   please :ref:`contact us <contact>`.
+
+   .. _Allow Execution of JIT-compiled Code Entitlement: https://developer.apple.com/documentation/bundleresources/entitlements/com_apple_security_cs_allow-jit
