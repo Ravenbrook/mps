@@ -107,9 +107,11 @@ B. Document History
 2001-04-22  GDR_   Created based on rules originally in
                    [GDR-2001-05-23a]_ and [GDR 2001-05-23b]_,
 		   following the advice in [RB-2001-05-24]_.
+2023-01-26  RB_    Integrated to MPS Git and prepared for public use.
 ==========  =====  ==================================================
 
 .. _GDR: mailto:gdr@ravenbrook.com
+.. _RB: mailto:rb@ravenbrook.com
 
 
 C. Copyright and License

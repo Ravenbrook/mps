@@ -222,9 +222,11 @@ B. Document History
                    the advice in [RB-2001-05-24]_.
 2001-08-15  GDR_   Added warning about compatibility of division
                    operator between Python versions.
+2023-01-26  RB_    Integrated to MPS Git and prepared for public use.
 ==========  =====  ==================================================
 
 .. _GDR: mailto:gdr@ravenbrook.com
+.. _RB: mailto:rb@ravenbrook.com
 
 
 C. Copyright and License
