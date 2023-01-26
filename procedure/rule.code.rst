@@ -2,18 +2,17 @@
 Rules for source code
 =====================
 
+:Tag: rule.code
 :Author: Richard Brooksby <rb@ravenbrook.com>
 :Organization: Ravenbrook Limited
 :Date: 1998-06-30
-:Revision: $Id$
 :Readership: any programmer
 :Confidentiality: public
-:Copyright: Copyright 1998-2015 Ravenbrook Limited
-:License: http://creativecommons.org/licenses/by-sa/4.0/
+:Copyright: See `C. Copyright and License`_
 
 
 1. Introduction
----------------
+===============
 
 This document is a ruleset which can be applied to any source code. It
 is intended for use with an inspection procedure [Gilb-1995]_ but can
@@ -21,7 +20,7 @@ also be used for general guidance and review.
 
 
 2. Rules
---------
+========
 
 _`.adaptable`: Non-adaptable code may not be used where there is a more
 adaptable alternative.
@@ -64,7 +63,7 @@ _`.width`: Code should be no wider than 72 characters.
 
 
 3. Justification and commentary
--------------------------------
+===============================
 
 _`.justification-adaptable`: [Nothing written yet.  Note that
 “adaptability” is a measure of the cost of meeting new and changing
@@ -209,7 +208,7 @@ See [RB-2001-05-15]_.
 
 
 A. References
--------------
+=============
 
 .. [GDR-2001-05-25]
     "Rules for source code style";
@@ -249,24 +248,53 @@ A. References
 .. _`Addison-Wesley`: http://www.awl.com/
 .. _`Richard Brooksby`: mailto:rb@ravenbrook.com
 .. _`Gareth Rees`: mailto:gdr@ravenbrook.com
-.. _`Ravenbrook Limited`: https://www.ravenbrook.com/
   
 
 B. Document History
--------------------
+===================
 
-- 2001-04-22 GDR_ Created based on [RB-1998-06-30a]_.
-
-- 2001-05-15 GDR_ Added width rule, based on [RB-2001-05-15]_.
-
-- 2001-05-19 GDR_ Added branch-edits rule, based on RB's analysis in
-  job000070_.
-
-- 2001-05-25 GDR_ Added reference to style guide [GDR-2001-05-25]_ to
-  style rule.
-
-- 2015-12-16 RB_ Converted to ReStructuredText and released under
-  Creative Commons license.
+==========  =====  ==================================================
+2001-04-22  GDR_   Created based on [RB-1998-06-30a]_.
+2001-05-15  GDR_   Added width rule, based on [RB-2001-05-15]_.
+2001-05-19  GDR_   Added branch-edits rule, based on RB's analysis in
+                   job000070_.
+2001-05-25  GDR_   Added reference to style guide [GDR-2001-05-25]_
+                   to style rule.
+2015-12-16  RB_    Converted to ReStructuredText and released under
+                   Creative Commons license.
+2023-01-26  RB_    Integrated to MPS Git and prepared for public use.
+==========  =====  ==================================================
 
 .. _GDR: mailto:gdr@ravenbrook.com
 .. _RB: mailto:rb@ravenbrook.com
+
+
+C. Copyright and License
+========================
+
+Copyright © 1998-2023 `Ravenbrook Limited <https://www.ravenbrook.com/>`_.
+
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions are
+met:
+
+1. Redistributions of source code must retain the above copyright
+   notice, this list of conditions and the following disclaimer.
+
+2. Redistributions in binary form must reproduce the above copyright
+   notice, this list of conditions and the following disclaimer in the
+   documentation and/or other materials provided with the distribution.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+"AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+.. end

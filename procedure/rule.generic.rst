@@ -2,18 +2,17 @@
 Rules for all documents
 =======================
 
+:Tag: rule.generic
 :Author: Richard Brooksby <rb@ravenbrook.com>
 :Organization: Ravenbrook Limited
 :Date: 1998-06-30
-:Revision: $Id$
 :Readership: anyone
 :Confidentiality: public
-:Copyright: Copyright 1998-2015 Ravenbrook Limited
-:License: http://creativecommons.org/licenses/by-sa/4.0/
+:Copyright: See `C. Copyright and License`_
 
 
 1. Introduction
----------------
+===============
 
 This document is a set of rules which apply to any document.  The term
 document covers almost any work product, including source code. The
@@ -22,7 +21,7 @@ can also be used for general guidance and review.
 
 
 2. Rules
---------
+========
 
 _`.achieve`: A document must achieve (be consistent with) its purpose.
 
@@ -73,7 +72,7 @@ _`.standard`: A document must follow applicable standards.
 
 
 3. Justification and commentary
--------------------------------
+===============================
 
 This ruleset is designed to tackle the main causes of defects:
 
@@ -288,7 +287,7 @@ currencies, for example CAD, HKD, AUD, and NZD.
 
 
 A. References
--------------
+=============
 
 .. [Gilb-1988]
     “Principles of Software Engineering Management”;
@@ -318,28 +317,58 @@ A. References
 .. [RB-1998-06-30]
     “Generic Ruleset”;
     `Richard Brooksby`_;
-    Ravenbrook_;
+    `Ravenbrook Limited`_;
     1998-06-30.
 
 .. _`Addison-Wesley`: http://www.awl.com/
 .. _`ISO`: http://www.iso.ch/
 .. _`Richard Brooksby`: mailto:rb@ravenbrook.com
-.. _Ravenbrook: https://www.ravenbrook.com/
 
 
 B. Document History
--------------------
+===================
 
-- 2001-04-22 GDR_ Created based on [RB-1998-06-30]_.
-
-- 2001-06-07 GDR_ Added `.standard`_ rule.
-
-- 2001-07-11 GDR_ Moved rules ref-contents, ref-name and ref-sort from
-  XHTML ruleset because they apply to all documents, not just XHTML
-  documents.
-
-- 2015-12-15 RB_ Converted to ReStructuredText and released under
-  Creative Commons license.
+==========  =====  ==================================================
+2001-04-22  GDR_   Created based on [RB-1998-06-30]_.
+2001-06-07  GDR_   Added `.standard`_ rule.
+2001-07-11  GDR_   Moved rules ref-contents, ref-name and ref-sort
+                   from XHTML ruleset because they apply to all
+		   documents, not just XHTML documents.
+2015-12-15  RB_    Converted to ReStructuredText and released under
+                   Creative Commons license.
+2023-01-26  RB_    Integrated to MPS Git and prepared for public use.
+==========  =====  ==================================================
 
 .. _GDR: mailto:gdr@ravenbrook.com
 .. _RB: mailto:rb@ravenbrook.com
+
+
+C. Copyright and License
+========================
+
+Copyright © 1998-2023 `Ravenbrook Limited <https://www.ravenbrook.com/>`_.
+
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions are
+met:
+
+1. Redistributions of source code must retain the above copyright
+   notice, this list of conditions and the following disclaimer.
+
+2. Redistributions in binary form must reproduce the above copyright
+   notice, this list of conditions and the following disclaimer in the
+   documentation and/or other materials provided with the distribution.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+"AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+.. end
