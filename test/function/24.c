@@ -28,11 +28,6 @@ static mps_addr_t myskip(mps_addr_t object)
  return (mps_addr_t) ((char *) object + OBJSIZE);
 }
 
-static mps_addr_t myisfwd(mps_addr_t object)
-{
- return NULL;
-}
-
 static void test(void *stack_pointer)
 {
  mps_arena_t arena;

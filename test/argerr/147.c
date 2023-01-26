@@ -63,7 +63,6 @@ int counters[PAD_MULTI_COUNT+1];
 int prevcounters[PAD_MULTI_COUNT+1];
 int maxcounters[PAD_MULTI_COUNT+1] = {0};
 
-static long int maxcopy = 0;
 static int freeze=0;
 
 #define INCCOUNT(c) if(!freeze) counters[c]+=1
