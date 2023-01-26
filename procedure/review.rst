@@ -516,7 +516,28 @@ that new issues are found.
 RB 2023-01-23]
 
 
-5.5.1. During The Meeting
+5.5.1. Advice for the author
+............................
+
+[Imported from mminfo:book.gilb93.proc.author.logging.  RB 2023-01-26]
+
+- Report your own noted issues after giving your team-mates a chance.
+
+- Don't say 'I found that too!'
+
+- Thank your colleagues for their efforts on your behalf.
+
+- Learn as much as possible about avoiding the issues as an author.
+
+- Respect the opinion of your team-mates.  Do not justify or defend.
+
+- Check the logging for legibility and intelligibility.
+
+- Answer any 'questions of intent' logged by checkers at the end of
+  the logging meeting.
+
+
+5.5.2. During The Meeting
 .........................
 
 _`.log.record`: All information gathered should be recorded in the
@@ -619,7 +640,7 @@ brainstorm.  This will normally be a tea-break (10-15 minutes) after
 the end of the logging meeting.
 
 
-5.5.2. After The Meeting
+5.5.3. After The Meeting
 ........................
 
 _`.log.inform`: The reviewed document is now ready for edit (see proc.review.edit).  
@@ -730,6 +751,10 @@ review document.  The review document for a document of tag <tag> and
 revision <revision> will be review.<tag>.<revision>.
 
 _`.edit.order`: The log should be in numerical order, one issue per line.
+
+_`.edit.extra`: You may make corrections to defects which you spot
+yourself during editing work.  Log them like those found during
+`.check`_ or `.log`_ and inform `.role.leader`_ about them.
 
 
 5.7.1. Edit comments
