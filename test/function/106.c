@@ -78,7 +78,7 @@ static void test(void *stack_pointer)
 
  die(mps_thread_reg(&thread, arena), "register thread");
  cdie(mps_root_create_thread(&root, arena, thread, stack_pointer), "thread root");
- cdie(make_format_header(&format, arena), "create format");
+ cdie(make_format(&format, arena), "create format");
  cdie(mps_chain_create(&chain, arena, genCOUNT, testChain), "chain_create");
 
  die(mmqa_pool_create_chain(&pool, arena, mps_class_amcz(), format, chain),
