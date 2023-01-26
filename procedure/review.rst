@@ -41,6 +41,14 @@ quickly [how quickly? kpa.qpm! RB 2023-01-21] once you have learned it
 [and how long does that take?  RB 2023-01-21].  [Insert example times
 here for different kinds of work.  RB 2023-01-21]
 
+This procedure requires *training*, preferably by an experienced
+review leader (`.role.leader`_).  At the very least, do not apply this
+procedure to significant changes without first:
+
+- reading and understanding the whole document and the related rules
+
+- practising it on low-risk changes
+
 Hundreds of reviews have been conducted using it in the past, and
 every single one was profitable in terms of preventing defects versus
 cost of review [citation needed. RB 2023-01-21].  This is in part
