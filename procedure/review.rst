@@ -98,14 +98,11 @@ _`.def.defect.major`: A major defect is a defect that
   will probably have significantly increased costs to find and fix
   later in the development process, for example in testing or in use.
 
-  -- `guide.review.class.major`_
+  -- `.class.major`_
 
 As with any procedure, you can vary this one to meet this purpose, but
 you should probably read section [Insert reference to Rationale here.
 RB 2023-01-20].
-
-.. FIXME: This needs importing to the MPS tree
-.. _guide.review.class.major: https://info.ravenbrook.com/project/mps/doc/2002-06-18/obsolete-mminfo/mminfo/guide/review/class
 
 
 3. Review Roles
@@ -456,8 +453,8 @@ the order specified.  Remember to read the product documents in
 reverse order if you were assigned `.role.check.backwards`_ during
 `.ko.role`_.
 
-_`.check.major`: Concentrate on finding major issues (see
-`guide.review.class.major`_); this is of primary importance.
+_`.check.major`: Concentrate on finding `major defects`_; this is of
+primary importance.
 
 _`.check.max`: Find as many issues as possible to help the author.
 
@@ -468,11 +465,7 @@ _`.check.rough`: Your log can be rough; concentrate on finding issues.
 _`.check.trouble`: Consult the leader if you have any questions, or if
 you are finding too many or too few issues.
 
-_`.check.class`: Classify each defect you find according to
-`guide.review.class`_.
-
-.. FIXME: This needs importing to the MPS tree.
-.. _guide.review.class: https://info.ravenbrook.com/project/mps/doc/2002-06-18/obsolete-mminfo/mminfo/guide/review/class
+_`.check.class`: Classify each issue you find according to `.class`_.
 
 
 5.4.3. End
@@ -560,8 +553,8 @@ desired form of issues, namely:
 
 - Location;
 
-- Class, including "New" (N) if the issue was discovered during
-  logging (see `guide.review.class`_);
+- `.class`_, including `.class.new`_ (N) if the issue was discovered
+  during logging;
 
 - Description of issue, concentrating on how it breaks a rule, rather
   than on possible solutions, naming the rule or checklist question,
@@ -596,18 +589,14 @@ RB 2023-01-21]
 this represents current best practice.  GavinM 1997-06-12 ]
 
 _`.log.major`: The leader calls upon all checkers, one by one, to list
-their major issues (see `guide.review.class.major`_), preferable in
-order of their occurance in the product document.  He may chunk the
-product document and go round the checkers several times, but this is
-unusal.
+their `major defects`_, preferable in order of their occurance in the
+product document.  He may chunk the product document and go round the
+checkers several times, but this is unusal.
 
 _`.log.decide.non-major`: The leader may decide not to log all minor
-issues (see `guide.review.class.minor`_).  He should announce that
-each checker should offer some number, or fraction.  Other issues may
-be logged in writing.
-
-.. FIXME: This needs importing to the MPS tree.
-.. _guide.review.class.minor: https://info.ravenbrook.com/project/mps/doc/2002-06-18/obsolete-mminfo/mminfo/guide/review/class
+issues (`.class.minor`_).  He should announce that each
+checker should offer some number, or fraction.  Other issues may be
+logged in writing.
 
 _`.log.non-major`: The leader takes all checkers through the product
 document in order, at each stage:
@@ -674,9 +663,9 @@ RB 2023-01-23]
 .................
 
 _`.brainstorm.choose`: The leader chooses 3-6 major defects or groups
-of major defects (see `guide.review.class.major`_) found in review.
-They makes this choice based on their importance and his own
-experience of which defects can be most profitably attacked.
+of `major defects`_ found in review.  They makes this choice based on
+their importance and his own experience of which defects can be most
+profitably attacked.
 
 
 5.6.2. In The Meeting
@@ -747,8 +736,8 @@ _`.edit.order`: The log should be in numerical order, one issue per line.
 ....................
 
 _`.edit.edit-comments`: The following describes the format of edit
-comments for each issue, indicating the action taken.  See
-`guide.review.class`_ for issue classification.
+comments for each issue, indicating the action taken.  See `.class`_
+for issue classification.
 
 _`.edit.record`: [Insert details of how to record edits.  RB
 2023-01-23]
@@ -1129,6 +1118,61 @@ whether the product document is consistent with any source documents,
 and whether dependencies and links are documented where appropriate.
 
 
+9. Issue Classification
+=======================
+
+[Imported from mminfo:guide.review.class and needs updating.  RB
+2023-01-26]
+
+_`.class`: There are many possible schemes for defect classification,
+but only a coarse one is used here.  Any issue raised, must fall into
+one of the following classes.  The normal abbreviation is indicated.
+
+_`.class.major`: (M): A Major defect is a defect in the Product
+document that will probably have significantly increased costs to find
+and fix later in the development process, for example in testing or in
+use ([Gilb_93]_ p442).  A bug that is fixed after review typically
+takes one man-hour, after testing 10 man-hour, and in the field 100
+man-hours.  A defect that will waste downstream development effort is
+also major.  Typical major defects are:
+
+- In an implementation, potentially failing to behave as specified;
+
+- In an implementation, failing to validate foriegn data;
+
+- In a high-level document, being likely to cause major defects in
+  derived documents.
+
+_`.class.minor`: (m): A minor defect is any defect in the Product
+document whose cost to fix does not increase in time.  If there is a
+typo, then it doesn't matter when it's fixed.  Typical minor defects
+are:
+
+- an implementation, poor variable names;
+
+- in any human-readable text, typos where the meaning is clear.
+
+_`.class.comment`: (C): A comment is any remark about the product
+document.  Typical comments are:
+
+- suggestions for how an algorithm could be optimised in future;
+
+- praise.
+
+_`.class.imp`: (I): An improvement suggestion is any potential defect
+found in documents other than the product document.  Typical
+improvement suggestions are:
+
+- defects in source documents;
+
+- defects in rule sets, check lists, or procedures.
+
+_`.class.new`: (N): Any issue found during logging (as opposed to
+during checking) is a new issue.  This classification is orthogonal to
+the preceding.  It is important to mark new issues, in order to
+measure how worthwhile group logging sessions are (see `.log.just`_).
+
+
 A. References
 =============
 
@@ -1189,7 +1233,8 @@ B. Document History
 ==========  =====  ==================================================
 2023-01-19  RB_    Created.
 2023-01-20  RB_    Importing material from MM Group proc.review.
-2023-01-26  RB_    Importing checking roles from MM Group documents.
+2023-01-26  RB_    Importing checking roles and issue classification
+                   from MM Group documents.
 ==========  =====  ==================================================
 
 .. _RB: mailto:rb@ravenbrook.com
