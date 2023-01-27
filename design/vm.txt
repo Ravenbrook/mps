@@ -113,6 +113,14 @@ the client program to modify the behaviour of the virtual mapping
 implementation. (This is needed to implement the
 ``MPS_KEY_VMW3_MEM_TOP_DOWN`` keyword argument.)
 
+_`.req.prot.exec`: The virtual mapping module should allow mutators to
+write machine code into memory allocated by the MPS and then execute
+that code, for example, to implement just-in-time translation, or
+other forms of dynamic compilation. Compare
+design.mps.prot.req.prot.exec_.
+
+.. _design.mps.prot.req.prot.exec: prot#.req.prot.exec
+
 
 Design
 ------
@@ -143,6 +151,9 @@ is then passed to ``VMInit()``. The size of the buffer must be
 statically determinable so that the caller can allocate it on the
 stack: it is given by the constant ``VMParamSize``. Since this is
 potentially platform-dependent it is defined in ``config.h``.
+
+_`.sol.prot.exec`: The virtual mapping module maps memory as
+executable, if this is supported by the platform.
 
 
 Interface
@@ -287,6 +298,15 @@ _`.impl.ix.unmap`: Address space is unmapped from main memory by
 calling |mmap|_, passing ``PROT_NONE`` and ``MAP_ANON | MAP_PRIVATE |
 MAP_FIXED``.
 
+_`.impl.xc.prot.exec`: The approach in `.sol.prot.exec`_ of always
+making memory executable causes a difficulty on macOS on Apple
+Silicon. The virtual mapping module uses the same solution as the
+protection module, that is, detecting Apple Hardened Runtime, and
+retrying without the request for the memory to be executable. See
+design.mps.prot.impl.xc.prot.exec_ for details.
+
+.. _design.mps.prot.impl.xc.prot.exec: prot#.impl.xc.prot.exec
+
 
 Windows implementation
 ......................
@@ -369,41 +389,27 @@ Document History
 Copyright and License
 ---------------------
 
-Copyright © 2013-2018 Ravenbrook Limited <https://www.ravenbrook.com/>.
-All rights reserved. This is an open source license. Contact
-Ravenbrook for commercial licensing options.
+Copyright © 2013–2020 `Ravenbrook Limited <https://www.ravenbrook.com/>`_.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are
 met:
 
-#. Redistributions of source code must retain the above copyright
+1. Redistributions of source code must retain the above copyright
    notice, this list of conditions and the following disclaimer.
 
-#. Redistributions in binary form must reproduce the above copyright
+2. Redistributions in binary form must reproduce the above copyright
    notice, this list of conditions and the following disclaimer in the
    documentation and/or other materials provided with the distribution.
 
-#. Redistributions in any form must be accompanied by information on how
-   to obtain complete source code for this software and any
-   accompanying software that uses this software.  The source code must
-   either be included in the distribution or be available for no more than
-   the cost of distribution plus a nominal fee, and must be freely
-   redistributable under reasonable conditions.  For an executable file,
-   complete source code means the source code for all modules it contains.
-   It does not include source code for modules or files that typically
-   accompany the major components of the operating system on which the
-   executable file runs.
-
-**This software is provided by the copyright holders and contributors
-"as is" and any express or implied warranties, including, but not
-limited to, the implied warranties of merchantability, fitness for a
-particular purpose, or non-infringement, are disclaimed.  In no event
-shall the copyright holders and contributors be liable for any direct,
-indirect, incidental, special, exemplary, or consequential damages
-(including, but not limited to, procurement of substitute goods or
-services; loss of use, data, or profits; or business interruption)
-however caused and on any theory of liability, whether in contract,
-strict liability, or tort (including negligence or otherwise) arising in
-any way out of the use of this software, even if advised of the
-possibility of such damage.**
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+"AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.

@@ -1,7 +1,7 @@
 /* mpstd.h: RAVENBROOK MEMORY POOL SYSTEM TARGET DETECTION
  *
  * $Id$
- * Copyright (c) 2001-2018 Ravenbrook Limited.  See end of file for license.
+ * Copyright (c) 2001-2020 Ravenbrook Limited.  See end of file for license.
  * Portions copyright (C) 2001 Global Graphics Software.
  *
  * Detect the target platform using predefined preprocessor symbols
@@ -165,6 +165,25 @@
 #define MPS_PF_ALIGN    8
 
 
+/* Apple clang version 12.0, clang -E -dM */
+
+#elif defined(__APPLE__) && defined(__arm64__) && defined(__MACH__) \
+      && defined(__clang__)
+#if defined(CONFIG_PF_STRING) && ! defined(CONFIG_PF_XCA6LL)
+#error "specified CONFIG_PF_... inconsistent with detected xca6ll"
+#endif
+#define MPS_PF_XCA6LL
+#define MPS_PF_STRING   "xca6ll"
+#define MPS_OS_XC
+#define MPS_ARCH_A6
+#define MPS_BUILD_LL
+#define MPS_T_WORD      unsigned long
+#define MPS_T_ULONGEST  unsigned long
+#define MPS_WORD_WIDTH  64
+#define MPS_WORD_SHIFT  6
+#define MPS_PF_ALIGN    8
+
+
 /* Apple clang version 3.1, clang -E -dM */
 
 #elif defined(__APPLE__) && defined(__i386__) && defined(__MACH__) \
@@ -195,6 +214,44 @@
 #define MPS_PF_STRING   "xci6ll"
 #define MPS_OS_XC
 #define MPS_ARCH_I6
+#define MPS_BUILD_LL
+#define MPS_T_WORD      unsigned long
+#define MPS_T_ULONGEST  unsigned long
+#define MPS_WORD_WIDTH  64
+#define MPS_WORD_SHIFT  6
+#define MPS_PF_ALIGN    8
+
+
+/* GCC 7.5, gcc -E -dM */
+
+#elif defined(__linux__) && defined(__aarch64__) && defined(__GNUC__) \
+      && !defined(__clang__)
+#if defined(CONFIG_PF_STRING) && ! defined(CONFIG_PF_LIA6GC)
+#error "specified CONFIG_PF_... inconsistent with detected lia6gc"
+#endif
+#define MPS_PF_LIA6GC
+#define MPS_PF_STRING   "lia6gc"
+#define MPS_OS_LI
+#define MPS_ARCH_A6
+#define MPS_BUILD_GC
+#define MPS_T_WORD      unsigned long
+#define MPS_T_ULONGEST  unsigned long
+#define MPS_WORD_WIDTH  64
+#define MPS_WORD_SHIFT  6
+#define MPS_PF_ALIGN    8
+
+
+/* Clang/LLVM 10.0, clang -E -dM */
+
+#elif defined(__linux__) && defined(__aarch64__) && defined(__GNUC__) \
+      && defined(__clang__)
+#if defined(CONFIG_PF_STRING) && ! defined(CONFIG_PF_LIA6LL)
+#error "specified CONFIG_PF_... inconsistent with detected lia6ll"
+#endif
+#define MPS_PF_LIA6LL
+#define MPS_PF_STRING   "lia6ll"
+#define MPS_OS_LI
+#define MPS_ARCH_A6
 #define MPS_BUILD_LL
 #define MPS_T_WORD      unsigned long
 #define MPS_T_ULONGEST  unsigned long
@@ -345,41 +402,29 @@
 
 /* C. COPYRIGHT AND LICENSE
  *
- * Copyright (C) 2001-2018 Ravenbrook Limited <https://www.ravenbrook.com/>.
- * All rights reserved.  This is an open source license.  Contact
- * Ravenbrook for commercial licensing options.
+ * Copyright (C) 2001-2020 Ravenbrook Limited <https://www.ravenbrook.com/>.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are
  * met:
  *
  * 1. Redistributions of source code must retain the above copyright
- * notice, this list of conditions and the following disclaimer.
+ *    notice, this list of conditions and the following disclaimer.
  *
  * 2. Redistributions in binary form must reproduce the above copyright
- * notice, this list of conditions and the following disclaimer in the
- * documentation and/or other materials provided with the distribution.
- *
- * 3. Redistributions in any form must be accompanied by information on how
- * to obtain complete source code for this software and any accompanying
- * software that uses this software.  The source code must either be
- * included in the distribution or be available for no more than the cost
- * of distribution plus a nominal fee, and must be freely redistributable
- * under reasonable conditions.  For an executable file, complete source
- * code means the source code for all modules it contains. It does not
- * include source code for modules or files that typically accompany the
- * major components of the operating system on which the executable file
- * runs.
+ *    notice, this list of conditions and the following disclaimer in the
+ *    documentation and/or other materials provided with the
+ *    distribution.
  *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS
  * IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
- * TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR
- * PURPOSE, OR NON-INFRINGEMENT, ARE DISCLAIMED. IN NO EVENT SHALL THE
- * COPYRIGHT HOLDERS AND CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
- * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
- * NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF
- * USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON
- * ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
- * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
- * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ * TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
+ * PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+ * HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+ * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+ * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+ * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */

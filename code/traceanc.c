@@ -1,11 +1,11 @@
 /* traceanc.c: ANCILLARY SUPPORT FOR TRACER
  *
  * $Id$
- * Copyright (c) 2001-2018 Ravenbrook Limited.
+ * Copyright (c) 2001-2020 Ravenbrook Limited.
  * See end of file for license.
  * Portions copyright (C) 2002 Global Graphics Software.
  *
- * All this ancillary stuff was making trace.c very cluttered.  
+ * All this ancillary stuff was making trace.c very cluttered.
  * Put it here instead.  RHSK 2008-12-09.
  *
  * CONTENTS
@@ -17,8 +17,6 @@
  *   - TraceIdMessages.  Pre-allocated messages for traceid.
  *
  *   - ArenaRelease, ArenaClamp, ArenaPark.
- *
- *   - ArenaExposeRemember and ArenaRestoreProtection.
  */
 
 #include "mpm.h"
@@ -39,7 +37,7 @@
  *   mps_message_type_gc_start (enum macro)
  *   MPS_MESSAGE_TYPE_GC_START (enum)
  *
- * (Note: this should properly be called "trace begin", but it's much 
+ * (Note: this should properly be called "trace begin", but it's much
  * too late to change it now!)
  *
  * <design/message-gc>.
@@ -48,12 +46,12 @@
 #define TraceStartMessageSig ((Sig)0x51926535) /* SIGnature TRaceStartMeSsage */
 
 /* .whybuf:
- * .whybuf.len: Length (in chars) of a char buffer used to store the 
- * reason why a collection started in the TraceStartMessageStruct 
- * (used by mps_message_type_gc_start).  If the reason is too long to 
+ * .whybuf.len: Length (in chars) of a char buffer used to store the
+ * reason why a collection started in the TraceStartMessageStruct
+ * (used by mps_message_type_gc_start).  If the reason is too long to
  * fit, it must be truncated.
- * .whybuf.nul: Check insists that the last char in the array is NUL 
- * (even if there is another NUL earlier in the buffer); this makes 
+ * .whybuf.nul: Check insists that the last char in the array is NUL
+ * (even if there is another NUL earlier in the buffer); this makes
  * the NUL-termination check fast.
  */
 #define TRACE_START_MESSAGE_WHYBUF_LEN 128
@@ -137,10 +135,10 @@ static void traceStartMessageInit(Arena arena, TraceStartMessage tsMessage)
 
 /* TraceStartWhyToString -- why-code to text
  *
- * Converts a TraceStartWhy* code into a constant string describing 
+ * Converts a TraceStartWhy* code into a constant string describing
  * why a trace started.
  */
- 
+
 const char *TraceStartWhyToString(TraceStartWhy why)
 {
   const char *r;
@@ -243,7 +241,7 @@ void TracePostStartMessage(Trace trace)
  *   mps_message_type_gc (enum macro)
  *   MPS_MESSAGE_TYPE_GC (enum)
  *
- * (Note: this should properly be called "trace end", but it's much 
+ * (Note: this should properly be called "trace end", but it's much
  * too late to change it now!)
  *
  * <design/message-gc>.
@@ -369,7 +367,7 @@ void TracePostMessage(Trace trace)
 
   AVERT(Trace, trace);
   AVER(trace->state == TraceFINISHED);
-  
+
   arena = trace->arena;
   AVERT(Arena, arena);
 
@@ -389,7 +387,7 @@ void TracePostMessage(Trace trace)
   } else {
     arena->droppedMessages += 1;
   }
-  
+
   /* We have consumed the pre-allocated message */
   AVER(!arena->tMessage[ti]);
 }
@@ -401,15 +399,15 @@ void TracePostMessage(Trace trace)
 
 /* TraceIdMessagesCheck - pre-allocated messages for this traceid.
  *
- * Messages are absent when already sent, or when (exceptionally) 
- * ControlAlloc failed at the end of the previous trace.  If present, 
+ * Messages are absent when already sent, or when (exceptionally)
+ * ControlAlloc failed at the end of the previous trace.  If present,
  * they must be valid.
  *
- * Messages are pre-allocated all-or-nothing.  So if we've got a 
+ * Messages are pre-allocated all-or-nothing.  So if we've got a
  * start but no end, that's wrong.
  *
- * Note: this function does not take a pointer to a struct, so it is 
- * not a 'proper' _Check function.  It can be used in CHECKL, but 
+ * Note: this function does not take a pointer to a struct, so it is
+ * not a 'proper' _Check function.  It can be used in CHECKL, but
  * not CHECKD etc.
  */
 
@@ -438,11 +436,11 @@ Res TraceIdMessagesCreate(Arena arena, TraceId ti)
   TraceStartMessage tsMessage;
   TraceMessage tMessage;
   Res res;
-  
+
   /* Ensure we don't leak memory */
   AVER(!arena->tsMessage[ti]);
   AVER(!arena->tMessage[ti]);
-  
+
   res = ControlAlloc(&p, arena, sizeof(TraceStartMessageStruct));
   if(res != ResOK)
     goto failTraceStartMessage;
@@ -461,9 +459,9 @@ Res TraceIdMessagesCreate(Arena arena, TraceId ti)
 
   arena->tsMessage[ti] = tsMessage;
   arena->tMessage[ti] = tMessage;
-  
+
   AVER(TraceIdMessagesCheck(arena, ti));
-  
+
   return ResOK;
 
 failTraceMessage:
@@ -484,7 +482,7 @@ void TraceIdMessagesDestroy(Arena arena, TraceId ti)
 {
   TraceStartMessage tsMessage;
   TraceMessage tMessage;
-  
+
   AVER(TraceIdMessagesCheck(arena, ti));
 
   tsMessage = arena->tsMessage[ti];
@@ -514,10 +512,6 @@ void TraceIdMessagesDestroy(Arena arena, TraceId ti)
  */
 
 
-/* Forward Declarations */
-static void arenaForgetProtection(Globals globals);
-
-
 /* ArenaClamp -- clamp the arena (no optional collection increments) */
 
 void ArenaClamp(Globals globals)
@@ -533,7 +527,6 @@ void ArenaClamp(Globals globals)
 void ArenaRelease(Globals globals)
 {
   AVERT(Globals, globals);
-  arenaForgetProtection(globals);
   globals->clamped = FALSE;
   ArenaPoll(globals);
 }
@@ -573,7 +566,7 @@ void ArenaPark(Globals globals)
 
 
 /* arenaExpose -- discard all protection from MPS-managed memory
- * 
+ *
  * This is called by ArenaPostmortem, which we expect only to be used
  * after a fatal error. So we use the lowest-level description of the
  * MPS-managed memory (the chunk ring page tables) to avoid the risk
@@ -581,9 +574,7 @@ void ArenaPark(Globals globals)
  * corrupted.
  *
  * After calling this function memory may not be in a consistent
- * state, so it is not safe to continue running the MPS. If you need
- * to expose memory but continue running the MPS, use
- * ArenaExposeRemember instead.
+ * state, so it is not safe to continue running the MPS.
  */
 
 static void arenaExpose(Arena arena)
@@ -667,204 +658,31 @@ Res ArenaCollect(Globals globals, TraceStartWhy why)
 }
 
 
-
-/* --------  ExposeRemember and RestoreProtection  -------- */
-
-
-/* Low level stuff for Expose / Remember / Restore */
-
-typedef struct RememberedSummaryBlockStruct {
-  RingStruct globalRing;        /* link on globals->rememberedSummaryRing */
-  struct SummaryPair {
-    Addr base;
-    RefSetStruct summary;
-  } the[RememberedSummaryBLOCK];
-} RememberedSummaryBlockStruct;
-
-typedef struct RememberedSummaryBlockStruct *RememberedSummaryBlock;
-
-static void rememberedSummaryBlockInit(struct RememberedSummaryBlockStruct *block)
-{
-  size_t i;
-
-  RingInit(&block->globalRing);
-  for(i = 0; i < RememberedSummaryBLOCK; ++ i) {
-    block->the[i].base = (Addr)0;
-    RefSetCopy(&block->the[i].summary, RefSetUniv);
-  }
-}
-
-static Res arenaRememberSummaryOne(Globals global, Addr base, RefSet summary)
-{
-  Arena arena;
-  RememberedSummaryBlock block;
-
-  AVER(!RefSetIsUniv(summary));
-
-  arena = GlobalsArena(global);
-
-  if(global->rememberedSummaryIndex == 0) {
-    void *p;
-    RememberedSummaryBlock newBlock;
-    int res;
-
-    res = ControlAlloc(&p, arena, sizeof *newBlock);
-    if(res != ResOK) {
-      return res;
-    }
-    newBlock = p;
-    rememberedSummaryBlockInit(newBlock);
-    RingAppend(GlobalsRememberedSummaryRing(global),
-      &newBlock->globalRing);
-  }
-  block = RING_ELT(RememberedSummaryBlock, globalRing,
-    RingPrev(GlobalsRememberedSummaryRing(global)));
-  AVER(global->rememberedSummaryIndex < RememberedSummaryBLOCK);
-  AVER(block->the[global->rememberedSummaryIndex].base == (Addr)0);
-  AVER(RefSetIsUniv(&block->the[global->rememberedSummaryIndex].summary));
-  block->the[global->rememberedSummaryIndex].base = base;
-  RefSetCopy(&block->the[global->rememberedSummaryIndex].summary, summary);
-  ++ global->rememberedSummaryIndex;
-  if(global->rememberedSummaryIndex >= RememberedSummaryBLOCK) {
-    AVER(global->rememberedSummaryIndex == RememberedSummaryBLOCK);
-    global->rememberedSummaryIndex = 0;
-  }
-
-  return ResOK;
-}
-
-/* ArenaExposeRemember -- park arena and then lift all protection
-   barriers.  Parameter 'remember' specifies whether to remember the
-   protection state or not (for later restoration with
-   ArenaRestoreProtection).
-   */
-void ArenaExposeRemember(Globals globals, Bool remember)
-{
-  Seg seg;
-  Arena arena;
-
-  AVERT(Globals, globals);
-  AVERT(Bool, remember);
-
-  ArenaPark(globals);
-
-  arena = GlobalsArena(globals);
-  if (SegFirst(&seg, arena)) {
-    Addr base;
-
-    do {
-      base = SegBase(seg);
-      if (IsA(GCSeg, seg)) {
-        if (remember) {
-          RefSetStruct summary;
-          SegGetSummary(&summary, seg);
-          if (!RefSetIsUniv(&summary)) {
-            Res res = arenaRememberSummaryOne(globals, base, &summary);
-            if (res != ResOK) {
-              /* If we got an error then stop trying to remember any
-              protections. */
-              remember = 0;
-            }
-          }
-        }
-        SegSetSummary(seg, RefSetUniv);
-        AVER(SegSM(seg) == AccessSetEMPTY);
-      }
-    } while (SegNext(&seg, arena, seg));
-  }
-}
-
-void ArenaRestoreProtection(Globals globals)
-{
-  Ring node, next;
-  Arena arena;
-
-  arena = GlobalsArena(globals);
-
-  RING_FOR(node, GlobalsRememberedSummaryRing(globals), next) {
-    RememberedSummaryBlock block =
-      RING_ELT(RememberedSummaryBlock, globalRing, node);
-    size_t i;
-
-    for(i = 0; i < RememberedSummaryBLOCK; ++ i) {
-      Seg seg;
-      Bool b;
-
-      if(block->the[i].base == (Addr)0) {
-        AVER(RefSetIsUniv(&block->the[i].summary));
-        continue;
-      }
-      b = SegOfAddr(&seg, arena, block->the[i].base);
-      if(b && SegBase(seg) == block->the[i].base) {
-        AVER(IsA(GCSeg, seg));
-        SegSetSummary(seg, &block->the[i].summary);
-      } else {
-        /* Either seg has gone or moved, both of which are */
-        /* client errors. */
-        NOTREACHED;
-      }
-    }
-  }
-
-  arenaForgetProtection(globals);
-}
-
-static void arenaForgetProtection(Globals globals)
-{
-  Ring node, next;
-  Arena arena;
-
-  arena = GlobalsArena(globals);
-  /* Setting this early means that we preserve the invariant
-     <code/global.c#remembered.summary> */
-  globals->rememberedSummaryIndex = 0;
-  RING_FOR(node, GlobalsRememberedSummaryRing(globals), next) {
-    RememberedSummaryBlock block =
-      RING_ELT(RememberedSummaryBlock, globalRing, node);
-
-    RingRemove(node);
-    ControlFree(arena, block, sizeof *block);
-  }
-}
-
 /* C. COPYRIGHT AND LICENSE
  *
- * Copyright (C) 2001-2018 Ravenbrook Limited
- * <http://www.ravenbrook.com/>.
- * All rights reserved.  This is an open source license.  Contact
- * Ravenbrook for commercial licensing options.
- * 
+ * Copyright (C) 2001-2020 Ravenbrook Limited <https://www.ravenbrook.com/>.
+ *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are
  * met:
- * 
+ *
  * 1. Redistributions of source code must retain the above copyright
- * notice, this list of conditions and the following disclaimer.
- * 
+ *    notice, this list of conditions and the following disclaimer.
+ *
  * 2. Redistributions in binary form must reproduce the above copyright
- * notice, this list of conditions and the following disclaimer in the
- * documentation and/or other materials provided with the distribution.
- * 
- * 3. Redistributions in any form must be accompanied by information on how
- * to obtain complete source code for this software and any accompanying
- * software that uses this software.  The source code must either be
- * included in the distribution or be available for no more than the cost
- * of distribution plus a nominal fee, and must be freely redistributable
- * under reasonable conditions.  For an executable file, complete source
- * code means the source code for all modules it contains. It does not
- * include source code for modules or files that typically accompany the
- * major components of the operating system on which the executable file
- * runs.
- * 
+ *    notice, this list of conditions and the following disclaimer in the
+ *    documentation and/or other materials provided with the
+ *    distribution.
+ *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS
  * IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
- * TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR
- * PURPOSE, OR NON-INFRINGEMENT, ARE DISCLAIMED. IN NO EVENT SHALL THE
- * COPYRIGHT HOLDERS AND CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
- * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
- * NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF
- * USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON
- * ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
- * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
- * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ * TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
+ * PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+ * HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+ * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+ * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+ * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */

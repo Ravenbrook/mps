@@ -17,13 +17,21 @@ Scanning
 Memory Pool System, and the most critical of the memory management
 functions that have to be implemented by the :term:`client program`.
 
-Scanning is performed for two tasks: during :term:`tracing <trace>`,
-blocks are scanned in order to follow references, and so determine
-which blocks are :term:`reachable` and which are not. After objects
-have been moved in memory, blocks are scanned in order to identify
-references that need to be updated to point to the new locations of
-these objects. Both tasks use the same scanning protocol, described
-here.
+Scanning is used to carry out three tasks:
+
+#. During :term:`tracing <trace>`, blocks are scanned in order to
+   follow references, and so determine which blocks are
+   :term:`reachable` and which are not.
+
+#. After objects have been moved in memory, blocks are scanned in
+   order to identify references that need to be updated to point to
+   the new locations of these objects.
+
+#. When iterating over allocated blocks in a pool using
+   :c:func:`mps_pool_walk`, blocks are scanned in order to keep data
+   structures consistent when references are updated.
+
+All these tasks use the same protocol, described here.
 
 
 .. index::
@@ -40,7 +48,7 @@ root scanning functions of various types) but all take a :term:`scan
 state` argument of type :c:type:`mps_ss_t`, and a description of a
 region to be scanned. They must carry out the following steps:
 
-#. Call the macro :c:func:`MPS_SCAN_BEGIN` on the scan state.
+#. Call the macro :c:macro:`MPS_SCAN_BEGIN` on the scan state.
 
 #. For each reference in the region:
 
@@ -63,7 +71,7 @@ region to be scanned. They must carry out the following steps:
       updated the reference. Make sure that the updated reference is
       stored back into the region being scanned.
 
-#. Call the macro :c:func:`MPS_SCAN_END` on the scan state.
+#. Call the macro :c:macro:`MPS_SCAN_END` on the scan state.
 
 #. Return :c:macro:`MPS_RES_OK`.
 
@@ -309,83 +317,83 @@ Scanning interface
     MPS passes a scan state to the :term:`scan method` of an
     :term:`object format` when it needs to :term:`scan` for
     :term:`references` within a region of memory. The scan
-    method must pass the scan state to :c:func:`MPS_SCAN_BEGIN` and
-    :c:func:`MPS_SCAN_END` to delimit a sequence of fix operations,
+    method must pass the scan state to :c:macro:`MPS_SCAN_BEGIN` and
+    :c:macro:`MPS_SCAN_END` to delimit a sequence of fix operations,
     and to the functions :c:func:`MPS_FIX1`, :c:func:`MPS_FIX2` and
     :c:func:`MPS_FIX12` when fixing a :term:`reference`.
 
 
-.. c:function:: MPS_SCAN_BEGIN(mps_ss_t ss)
+.. c:macro:: MPS_SCAN_BEGIN(ss)
 
     Within a :term:`scan method`, set up local information required
     by :c:func:`MPS_FIX1`, :c:func:`MPS_FIX2` and
     :c:func:`MPS_FIX12`. The local information persists until
-    :c:func:`MPS_SCAN_END`.
+    :c:macro:`MPS_SCAN_END`.
 
     ``ss`` is the :term:`scan state` that was passed to the scan method.
 
     .. note::
 
-        Between :c:func:`MPS_SCAN_BEGIN` and :c:func:`MPS_SCAN_END`,
+        Between :c:macro:`MPS_SCAN_BEGIN` and :c:macro:`MPS_SCAN_END`,
         the scan state is in a special state, and must not be passed
         to a function. If you really need to do so, for example
         because you have an embedded structure shared between two scan
-        methods, you must wrap the call with :c:func:`MPS_FIX_CALL` to
+        methods, you must wrap the call with :c:macro:`MPS_FIX_CALL` to
         ensure that the scan state is passed correctly.
 
 
-.. c:function:: MPS_SCAN_END(mps_ss_t ss)
+.. c:macro:: MPS_SCAN_END(ss)
 
     Within a :term:`scan method`, terminate a block started by
-    :c:func:`MPS_SCAN_BEGIN`.
+    :c:macro:`MPS_SCAN_BEGIN`.
 
     ``ss`` is the :term:`scan state` that was passed to the scan
     method.
 
     .. note::
 
-        :c:func:`MPS_SCAN_END` ensures that the scan is completed, so
+        :c:macro:`MPS_SCAN_END` ensures that the scan is completed, so
         successful termination of a scan must invoke it. However, in
         case of an error it is allowed to return from the scan
-        method without invoking :c:func:`MPS_SCAN_END`.
+        method without invoking :c:macro:`MPS_SCAN_END`.
 
     .. note::
 
-        Between :c:func:`MPS_SCAN_BEGIN` and :c:func:`MPS_SCAN_END`, the
+        Between :c:macro:`MPS_SCAN_BEGIN` and :c:macro:`MPS_SCAN_END`, the
         scan state is in a special state, and must not be passed to a
         function. If you really need to do so, for example because you
         have an embedded structure shared between two scan methods, you
-        must wrap the call with :c:func:`MPS_FIX_CALL` to ensure that the
+        must wrap the call with :c:macro:`MPS_FIX_CALL` to ensure that the
         scan state is passed correctly.
 
 
-.. c:function:: MPS_FIX_CALL(ss, call)
+.. c:macro:: MPS_FIX_CALL(ss, call)
 
     Call a function to do some scanning, from within a :term:`scan
-    method`, between :c:func:`MPS_SCAN_BEGIN` and
-    :c:func:`MPS_SCAN_END`, passing the :term:`scan state` correctly.
+    method`, between :c:macro:`MPS_SCAN_BEGIN` and
+    :c:macro:`MPS_SCAN_END`, passing the :term:`scan state` correctly.
 
     ``ss`` is the scan state that was passed to the scan method.
 
     ``call`` is an expression containing a function call where ``ss``
     is one of the arguments.
 
-    Between :c:func:`MPS_SCAN_BEGIN` and :c:func:`MPS_SCAN_END`, the
+    Between :c:macro:`MPS_SCAN_BEGIN` and :c:macro:`MPS_SCAN_END`, the
     scan state is in a special state, and must not be passed to a
     function. If you really need to do so, for example because you
     have a structure shared between two :term:`object formats`, you
-    must wrap the call with :c:func:`MPS_FIX_CALL` to ensure that the
+    must wrap the call with :c:macro:`MPS_FIX_CALL` to ensure that the
     scan state is passed correctly.
 
-    The function being called must use :c:func:`MPS_SCAN_BEGIN` and
-    :c:func:`MPS_SCAN_END` appropriately.
+    The function being called must use :c:macro:`MPS_SCAN_BEGIN` and
+    :c:macro:`MPS_SCAN_END` appropriately.
 
     In example below, the scan method ``obj_scan`` fixes the object's
     ``left`` and ``right`` references, but delegates the scanning of
     references inside the object's ``data`` member to the function
     ``data_scan``. In order to ensure that the scan state is passed
     correctly to ``data_scan``, the call must be wrapped in
-    :c:func:`MPS_FIX_CALL`. ::
+    :c:macro:`MPS_FIX_CALL`. ::
 
         mps_res_t obj_scan(mps_ss_t ss, mps_addr_t base, mps_addr_t limit)
         {
@@ -409,7 +417,7 @@ Scanning interface
 
     .. warning::
 
-         Use of :c:func:`MPS_FIX_CALL` is best avoided, as it may
+         Use of :c:macro:`MPS_FIX_CALL` is best avoided, as it may
          force values out of registers (depending on compiler
          optimisations such as inlining). The gains in simplicity of
          the code ought to be measured against the loss in
@@ -438,7 +446,7 @@ Fixing interface
     method must invoke :c:func:`MPS_FIX2` to :term:`fix` ``ref``.
 
     This macro must only be used within a :term:`scan method`, between
-    :c:func:`MPS_SCAN_BEGIN` and :c:func:`MPS_SCAN_END`.
+    :c:macro:`MPS_SCAN_BEGIN` and :c:macro:`MPS_SCAN_END`.
 
     .. note::
 
@@ -482,7 +490,7 @@ Fixing interface
     result as soon as possible, without fixing any further references.
 
     This macro must only be used within a :term:`scan method`, between
-    :c:func:`MPS_SCAN_BEGIN` and :c:func:`MPS_SCAN_END`.
+    :c:macro:`MPS_SCAN_BEGIN` and :c:macro:`MPS_SCAN_END`.
 
     .. note::
 
@@ -545,6 +553,20 @@ the scanners, found in ``scan.c`` in the MPS source code.
     context.  For example, if the scanner was originally registered with
     :c:func:`mps_root_create_thread_tagged` then it is the value of
     the ``closure`` argument originally passed to that function.
+
+    .. note::
+
+        The reason that :c:data:`base` and :c:data:`limit` have type
+        :c:type:`void *` and not :c:type:`mps_addr_t` is that the
+        latter is used only for :term:`addresses` managed by the MPS,
+        but :c:type:`mps_area_scan_t` may also be used to scan
+        :term:`roots` that are not managed by the MPS.
+
+    .. warning::
+
+        Area scanning functions are subject to the same set of
+        restrictions as format scanning functions, described under
+        :ref:`topic-format-cautions`.
 
 .. c:function:: mps_res_t mps_scan_area(mps_ss_t ss, void *base, void *limit, void *closure)
 

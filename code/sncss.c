@@ -1,7 +1,7 @@
 /* sncss.c: SNC STRESS TEST
  *
  * $Id$
- * Copyright (c) 2014-2016 Ravenbrook Limited.  See end of file for license.
+ * Copyright (c) 2014-2020 Ravenbrook Limited.  See end of file for license.
  */
 
 #include "mpm.h"
@@ -40,7 +40,7 @@ static mps_res_t make(mps_addr_t *p, mps_ap_t ap, size_t size)
     obj->pad = 0;
   } while (!mps_commit(ap, addr, size));
 
-  *p = addr;     
+  *p = addr;
   return MPS_RES_OK;
 }
 
@@ -83,6 +83,28 @@ static void fmtVisitor(mps_addr_t object, mps_fmt_t format,
   else
     env->obj += obj->size;
 }
+
+
+/* area_scan -- area scanning function for mps_pool_walk */
+
+static mps_res_t area_scan(mps_ss_t ss, void *base, void *limit, void *closure)
+{
+  env_t env = closure;
+  testlib_unused(ss);
+  while (base < limit) {
+    mps_addr_t prev = base;
+    obj_t obj = base;
+    if (obj->pad)
+      env->pad += obj->size;
+    else
+      env->obj += obj->size;
+    base = fmtSkip(base);
+    Insist(prev < base);
+  }
+  Insist(base == limit);
+  return MPS_RES_OK;
+}
+
 
 #define AP_MAX 3                /* Number of allocation points */
 #define DEPTH_MAX 20            /* Maximum depth of frame push */
@@ -152,11 +174,10 @@ static void test(mps_pool_class_t pool_class)
     }
   }
 
+  mps_arena_park(arena);
   {
-    env_s env = {0, 0};
+    env_s env1 = {0, 0}, env2 = {0, 0};
     size_t alloc = 0;
-    size_t free = mps_pool_free_size(pool);
-    size_t total = mps_pool_total_size(pool);
 
     for (i = 0; i < NELEMS(aps); ++i) {
       ap_t a = &aps[i];
@@ -165,15 +186,12 @@ static void test(mps_pool_class_t pool_class)
       }
     }
 
-    mps_arena_formatted_objects_walk(arena, fmtVisitor, &env, 0);
+    mps_arena_formatted_objects_walk(arena, fmtVisitor, &env1, 0);
+    Insist(alloc == env1.obj);
 
-    printf("alloc=%lu obj=%lu pad=%lu free=%lu total=%lu\n",
-           (unsigned long)alloc,
-           (unsigned long)env.obj,
-           (unsigned long)env.pad,
-           (unsigned long)free,
-           (unsigned long)total);
-    Insist(alloc == env.obj);
+    die(mps_pool_walk(pool, area_scan, &env2), "mps_pool_walk");
+    Insist(alloc == env2.obj);
+    Insist(env1.pad == env2.pad);
   }
 
   for (i = 0; i < NELEMS(aps); ++i) {
@@ -197,41 +215,29 @@ int main(int argc, char *argv[])
 
 /* C. COPYRIGHT AND LICENSE
  *
- * Copyright (c) 2001-2016 Ravenbrook Limited <http://www.ravenbrook.com/>.
- * All rights reserved.  This is an open source license.  Contact
- * Ravenbrook for commercial licensing options.
- * 
+ * Copyright (C) 2014-2020 Ravenbrook Limited <https://www.ravenbrook.com/>.
+ *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are
  * met:
- * 
+ *
  * 1. Redistributions of source code must retain the above copyright
- * notice, this list of conditions and the following disclaimer.
- * 
+ *    notice, this list of conditions and the following disclaimer.
+ *
  * 2. Redistributions in binary form must reproduce the above copyright
- * notice, this list of conditions and the following disclaimer in the
- * documentation and/or other materials provided with the distribution.
- * 
- * 3. Redistributions in any form must be accompanied by information on how
- * to obtain complete source code for this software and any accompanying
- * software that uses this software.  The source code must either be
- * included in the distribution or be available for no more than the cost
- * of distribution plus a nominal fee, and must be freely redistributable
- * under reasonable conditions.  For an executable file, complete source
- * code means the source code for all modules it contains. It does not
- * include source code for modules or files that typically accompany the
- * major components of the operating system on which the executable file
- * runs.
- * 
+ *    notice, this list of conditions and the following disclaimer in the
+ *    documentation and/or other materials provided with the
+ *    distribution.
+ *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS
  * IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
- * TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR
- * PURPOSE, OR NON-INFRINGEMENT, ARE DISCLAIMED. IN NO EVENT SHALL THE
- * COPYRIGHT HOLDERS AND CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
- * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
- * NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF
- * USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON
- * ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
- * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
- * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ * TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
+ * PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+ * HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+ * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+ * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+ * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */

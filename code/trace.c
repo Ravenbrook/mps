@@ -1,7 +1,7 @@
 /* trace.c: GENERIC TRACER IMPLEMENTATION
  *
  * $Id$
- * Copyright (c) 2001-2018 Ravenbrook Limited.
+ * Copyright (c) 2001-2020 Ravenbrook Limited.
  * See end of file for license.
  * Portions copyright (C) 2002 Global Graphics Software.
  *
@@ -37,6 +37,9 @@ Bool ScanStateCheck(ScanState ss)
   ZoneSet white;
 
   CHECKS(ScanState, ss);
+  CHECKL(FUNCHECK(ss->formatScan));
+  CHECKL(FUNCHECK(ss->areaScan));
+  /* Can't check ss->areaScanClosure. */
   CHECKL(FUNCHECK(ss->fix));
   /* Can't check ss->fixClosure. */
   CHECKL(ScanStateZoneShift(ss) == ss->arena->zoneShift);
@@ -53,6 +56,15 @@ Bool ScanStateCheck(ScanState ss)
   CHECKL(BoolCheck(ss->wasMarked));
   /* @@@@ checks for counts missing */
   return TRUE;
+}
+
+
+/* traceNoAreaScan -- area scan function that must not be called */
+
+static mps_res_t traceNoAreaScan(mps_ss_t ss, void *base, void *limit, void *closure)
+{
+  UNUSED(closure);
+  return FormatNoScan(ss, base, limit);
 }
 
 
@@ -91,6 +103,8 @@ void ScanStateInit(ScanState ss, TraceSet ts, Arena arena,
   if (ss->fix == SegFix && ArenaEmergency(arena))
         ss->fix = SegFixEmergency;
 
+  ss->formatScan = FormatNoScan;
+  ss->areaScan = traceNoAreaScan;
   ss->rank = rank;
   ss->traces = ts;
   ScanStateSetZoneShift(ss, arena->zoneShift);
@@ -111,6 +125,21 @@ void ScanStateInit(ScanState ss, TraceSet ts, Arena arena,
   ss->sig = ScanStateSig;
 
   AVERT(ScanState, ss);
+}
+
+
+/* ScanStateInitSeg -- Initialize a ScanState object for scanning a segment */
+
+void ScanStateInitSeg(ScanState ss, TraceSet ts, Arena arena,
+                      Rank rank, ZoneSet white, Seg seg)
+{
+  Format format;
+  AVERT(Seg, seg);
+
+  ScanStateInit(ss, ts, arena, rank, white);
+  if (PoolFormat(&format, SegPool(seg))) {
+    ss->formatScan = format->scan;
+  }
 }
 
 
@@ -441,14 +470,14 @@ Res TraceCondemnEnd(double *mortalityReturn, Trace trace)
     }
     AVER(trace->condemned >= condemnedBefore);
     condemnedGen = trace->condemned - condemnedBefore;
-    casualtySize += (Size)(condemnedGen * gen->mortality);
+    casualtySize += (Size)((double)condemnedGen * gen->mortality);
   }
   ShieldRelease(trace->arena);
 
   if (TraceIsEmpty(trace))
     return ResFAIL;
 
-  *mortalityReturn = (double)casualtySize / trace->condemned;
+  *mortalityReturn = (double)casualtySize / (double)trace->condemned;
   return ResOK;
 
 failBegin:
@@ -1123,6 +1152,42 @@ void ScanStateGetSummary(RefSet summaryReturn, ScanState ss)
 }
 
 
+/* ScanStateUpdateSummary -- update segment summary after scan
+ *
+ * wasTotal is TRUE if we know that all references were scanned, FALSE
+ * if some references might not have been scanned.
+ */
+void ScanStateUpdateSummary(ScanState ss, Seg seg, Bool wasTotal)
+{
+  RefSetStruct summary;
+
+  AVERT(ScanState, ss);
+  AVERT(Seg, seg);
+  AVERT(Bool, wasTotal);
+
+  /* Only apply the write barrier if it is not deferred. */
+  if (seg->defer == 0) {
+    RefSetStruct ssSummary;
+
+    /* If we scanned every reference in the segment then we have a
+       complete summary we can set. Otherwise, we just have
+       information about more zones that the segment refers to. */
+    ScanStateGetSummary(&ssSummary, ss);
+    if (wasTotal) {
+      /* all objects on segment have been scanned, so... */
+      /* scanned summary should replace the segment summary. */
+      RefSetCopy(&summary, &ssSummary);
+    } else {
+      /* scan was partial, so... */
+      /* scanned summary should be ORed into segment summary. */
+      RefSetUnion(&summary, &ssSummary);
+    }
+  } else {
+    RefSetCopy(&summary, RefSetUniv);
+  }
+  SegSetSummary(seg, &summary);
+}
+
 /* traceScanSegRes -- scan a segment to remove greyness
  *
  * @@@@ During scanning, the segment should be write-shielded to prevent
@@ -1152,7 +1217,7 @@ static Res traceScanSegRes(TraceSet ts, Rank rank, Arena arena, Seg seg)
   } else {      /* scan it */
     ScanStateStruct ssStruct;
     ScanState ss = &ssStruct;
-    ScanStateInit(ss, ts, arena, rank, white);
+    ScanStateInitSeg(ss, ts, arena, rank, white, seg);
 
     /* Expose the segment to make sure we can scan it. */
     ShieldExpose(arena, seg);
@@ -1197,28 +1262,7 @@ static Res traceScanSegRes(TraceSet ts, Rank rank, Arena arena, Seg seg)
         seg->defer = WB_DEFER_DELAY;
     }
 
-    /* Only apply the write barrier if it is not deferred. */
-    if (seg->defer == 0) {
-      RefSetStruct ssSummary;
-
-      /* If we scanned every reference in the segment then we have a
-         complete summary we can set. Otherwise, we just have
-         information about more zones that the segment refers to. */
-      ScanStateGetSummary(&ssSummary, ss);
-      if (res != ResOK || !wasTotal) {
-        /* scan was partial, so... */
-        /* scanned summary should be ORed into segment summary. */
-        RefSetUnion(&summary, &ssSummary);
-      } else {
-        /* all objects on segment have been scanned, so... */
-        /* scanned summary should replace the segment summary. */
-        RefSetCopy(&summary, &ssSummary);
-      }
-    } else {
-      RefSetCopy(&summary, RefSetUniv);
-    }
-    SegSetSummary(seg, &summary);
-
+    ScanStateUpdateSummary(ss, seg, res == ResOK && wasTotal);
     ScanStateFinish(ss);
   }
 
@@ -1455,7 +1499,7 @@ static Res traceScanSingleRefRes(TraceSet ts, Rank rank, Arena arena,
   ShieldExpose(arena, seg);
 
   TRACE_SCAN_BEGIN(&ss) {
-    res = TRACE_FIX(&ss, refIO);
+    res = TRACE_FIX12(&ss, refIO);
   } TRACE_SCAN_END(&ss);
   ss.scannedSize = sizeof *refIO;
 
@@ -1498,16 +1542,36 @@ void TraceScanSingleRef(TraceSet ts, Rank rank, Arena arena,
 }
 
 
+/* TraceScanFormat -- scan a formatted area of memory for references
+ *
+ * This is a wrapper for format scanning functions, which should not
+ * otherwise be called directly from within the MPS.  This function
+ * checks arguments and takes care of accounting for the scanned
+ * memory.
+ */
+Res TraceScanFormat(ScanState ss, Addr base, Addr limit)
+{
+  AVERT_CRITICAL(ScanState, ss);
+  AVER_CRITICAL(base != NULL);
+  AVER_CRITICAL(limit != NULL);
+  AVER_CRITICAL(base < limit);
+
+  /* scannedSize is accumulated whether or not ss->formatScan
+   * succeeds, so it's safe to accumulate now so that we can tail-call
+   * ss->formatScan. */
+  ss->scannedSize += AddrOffset(base, limit);
+
+  return ss->formatScan(&ss->ss_s, base, limit);
+}
+
+
 /* TraceScanArea -- scan an area of memory for references
  *
  * This is a wrapper for area scanning functions, which should not
  * otherwise be called directly from within the MPS.  This function
  * checks arguments and takes care of accounting for the scanned
  * memory.
- *
- * c.f. FormatScan()
  */
-
 Res TraceScanArea(ScanState ss, Word *base, Word *limit,
                   mps_area_scan_t scan_area,
                   void *closure)
@@ -1630,7 +1694,7 @@ Res TraceStart(Trace trace, double mortality, double finishingTime)
 
   /* Calculate the rate of scanning. */
   {
-    Size sSurvivors = (Size)(trace->condemned * (1.0 - mortality));
+    Size sSurvivors = (Size)((double)trace->condemned * (1.0 - mortality));
     double nPolls = finishingTime / ArenaPollALLOCTIME;
 
     /* There must be at least one poll. */
@@ -1709,7 +1773,7 @@ void TraceAdvance(Trace trace)
 
   newWork = traceWork(trace);
   AVER(newWork >= oldWork);
-  arena->tracedWork += newWork - oldWork;
+  arena->tracedWork += (double)(newWork - oldWork);
 }
 
 
@@ -1750,7 +1814,8 @@ Res TraceStartCollectAll(Trace *traceReturn, Arena arena, TraceStartWhy why)
   res = TraceCondemnEnd(&mortality, trace);
   if(res != ResOK) /* should try some other trace, really @@@@ */
     goto failCondemn;
-  finishingTime = ArenaAvail(arena) - trace->condemned * (1.0 - mortality);
+  finishingTime = (double)ArenaAvail(arena)
+    - (double)trace->condemned * (1.0 - mortality);
   if(finishingTime < 0) {
     /* Run out of time, should really try a smaller collection. @@@@ */
     finishingTime = 0.0;
@@ -1885,42 +1950,29 @@ Res TraceDescribe(Trace trace, mps_lib_FILE *stream, Count depth)
 
 /* C. COPYRIGHT AND LICENSE
  *
- * Copyright (C) 2001-2018 Ravenbrook Limited
- * <http://www.ravenbrook.com/>.
- * All rights reserved.  This is an open source license.  Contact
- * Ravenbrook for commercial licensing options.
+ * Copyright (C) 2001-2020 Ravenbrook Limited <https://www.ravenbrook.com/>.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are
  * met:
  *
  * 1. Redistributions of source code must retain the above copyright
- * notice, this list of conditions and the following disclaimer.
+ *    notice, this list of conditions and the following disclaimer.
  *
  * 2. Redistributions in binary form must reproduce the above copyright
- * notice, this list of conditions and the following disclaimer in the
- * documentation and/or other materials provided with the distribution.
- *
- * 3. Redistributions in any form must be accompanied by information on how
- * to obtain complete source code for this software and any accompanying
- * software that uses this software.  The source code must either be
- * included in the distribution or be available for no more than the cost
- * of distribution plus a nominal fee, and must be freely redistributable
- * under reasonable conditions.  For an executable file, complete source
- * code means the source code for all modules it contains. It does not
- * include source code for modules or files that typically accompany the
- * major components of the operating system on which the executable file
- * runs.
+ *    notice, this list of conditions and the following disclaimer in the
+ *    documentation and/or other materials provided with the
+ *    distribution.
  *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS
  * IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
- * TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR
- * PURPOSE, OR NON-INFRINGEMENT, ARE DISCLAIMED. IN NO EVENT SHALL THE
- * COPYRIGHT HOLDERS AND CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
- * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
- * NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF
- * USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON
- * ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
- * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
- * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ * TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
+ * PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+ * HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+ * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+ * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+ * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */

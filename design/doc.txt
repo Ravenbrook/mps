@@ -60,8 +60,8 @@ Requirements
 
 _`.req.source`: Derived from [RB_2013-05-09]_.
 
-_`.req.easy`: It must be easy to read and write documentation must
-using standard text editors. Barriers to documentation must be low.
+_`.req.easy`: It must be easy to read and write documentation using
+standard text editors. Barriers to documentation must be low.
 
 _`.req.presentation`: It must be possible to process documentation
 into presentation formats, for example web pages.
@@ -179,11 +179,11 @@ and should contain a comma-separated, alphabetically ordered, list of
 ``:term:`` roles referring to glossary entries with similar meaning to
 the entry but which are not synonyms for it (`.ext.aka`_).
 
-_`.ext.specific`: The ``mps:specific`` directive an "In the MPS"
-section. This should be used in a glossary entry, and should contain
-an explanation of how the glossary entry pertains to the MPS. If the
-term is idiosyncratic to the MPS, for example "spare committed memory"
-then the entire glossary entry should consist of a single
+_`.ext.specific`: The ``mps:specific`` directive generates an "In the
+MPS" section. This should be used in a glossary entry, and should
+contain an explanation of how the glossary entry pertains to the MPS.
+If the term is idiosyncratic to the MPS, for example "spare committed
+memory" then the entire glossary entry should consist of a single
 ``mps:specific`` directive to make it clear that the term is not in
 general use.
 
@@ -205,6 +205,20 @@ is translated into a ``c:function`` directive::
 
     .. c:function:: void LandFinish(Land land)
 
+
+_`.fmt.function-decl`: A paragraph consisting of a macro
+declaration on a single line formatted as code, for example::
+
+    ``RING_FOR(node, ring, next)``
+
+is translated into a ``c:macro`` directive::
+
+    .. c:macro:: RING_FOR(node, ring, next)
+
+Macros are identified by having names consisting of capital letters,
+numbers, and underscore, or appearing in the list of exceptions given
+by the ``MACROS`` global in designs.py.
+
 _`.fmt.type-def`: A paragraph consisting of a type definition on a
 single line formatted as code, for example::
 
@@ -222,7 +236,7 @@ for example::
 
 is translated into a ``:c:func:`` role::
 
-    This saves a separate call to :c:func:`LandDelete()`, and uses the
+    This saves a separate call to :c:func:`LandDelete`, and uses the
     knowledge of exactly where we found the range.
 
 _`.fmt.type-ref`: The name of an MPS type formatted as code, for
@@ -281,6 +295,20 @@ into manual style::
 
     [Citation] Author. Date. "`Title <URL>`__".
 
+_`.fmt.link.relative`: Project-relative links must be specified using
+`named hyperlink targets`_ whose targets start with ``../``, for
+example::
+
+    ``#ifdefs``, such as in mps.c_.
+
+    .. _mps.c: ../code/mps.c
+
+The target is adjusted to reflect the different location of the manual
+sources relative to the design sources.
+
+.. _named hyperlink targets: https://docutils.sourceforge.io/docs/ref/rst/restructuredtext.html#hyperlink-targets
+
+
 
 References
 ----------
@@ -302,41 +330,27 @@ Document History
 Copyright and License
 ---------------------
 
-Copyright © 2018 Ravenbrook Limited <https://www.ravenbrook.com/>.
-All rights reserved. This is an open source license. Contact
-Ravenbrook for commercial licensing options.
+Copyright © 2018–2020 `Ravenbrook Limited <https://www.ravenbrook.com/>`_.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are
 met:
 
-#. Redistributions of source code must retain the above copyright
+1. Redistributions of source code must retain the above copyright
    notice, this list of conditions and the following disclaimer.
 
-#. Redistributions in binary form must reproduce the above copyright
+2. Redistributions in binary form must reproduce the above copyright
    notice, this list of conditions and the following disclaimer in the
    documentation and/or other materials provided with the distribution.
 
-#. Redistributions in any form must be accompanied by information on how
-   to obtain complete source code for this software and any
-   accompanying software that uses this software.  The source code must
-   either be included in the distribution or be available for no more than
-   the cost of distribution plus a nominal fee, and must be freely
-   redistributable under reasonable conditions.  For an executable file,
-   complete source code means the source code for all modules it contains.
-   It does not include source code for modules or files that typically
-   accompany the major components of the operating system on which the
-   executable file runs.
-
-**This software is provided by the copyright holders and contributors
-"as is" and any express or implied warranties, including, but not
-limited to, the implied warranties of merchantability, fitness for a
-particular purpose, or non-infringement, are disclaimed.  In no event
-shall the copyright holders and contributors be liable for any direct,
-indirect, incidental, special, exemplary, or consequential damages
-(including, but not limited to, procurement of substitute goods or
-services; loss of use, data, or profits; or business interruption)
-however caused and on any theory of liability, whether in contract,
-strict liability, or tort (including negligence or otherwise) arising in
-any way out of the use of this software, even if advised of the
-possibility of such damage.**
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+"AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.

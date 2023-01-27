@@ -175,6 +175,7 @@ prmci6.c      Mutator context implementation for x86-64.
 prmci6.h      Mutator context interface for x86-64.
 prmcix.c      Mutator context implementation for POSIX.
 prmcix.h      Mutator context interface for POSIX.
+prmclia6.c    Mutator context implementation for Linux, ARM64.
 prmclii3.c    Mutator context implementation for Linux, IA-32.
 prmclii6.c    Mutator context implementation for Linux, x86-64.
 prmcw3.c      Mutator context implementation for Windows.
@@ -183,6 +184,7 @@ prmcw3i3.c    Mutator context implementation for Windows, IA-32.
 prmcw3i6.c    Mutator context implementation for Windows, x86-64.
 prmcxc.c      Mutator context implementation for macOS.
 prmcxc.h      Mutator context interface for macOS.
+prmcxca6.c    Mutator context implementation for macOS, ARM64.
 prmcxci3.c    Mutator context implementation for macOS, IA-32.
 prmcxci6.c    Mutator context implementation for macOS, x86-64.
 prot.h        Protection interface. See design.mps.prot_.
@@ -249,6 +251,7 @@ File         Description
 ===========  ==================================================================
 eventcnv.c   :ref:`telemetry-mpseventcnv`.
 eventsql.c   :ref:`telemetry-mpseventsql`.
+eventpy.c    :ref:`telemetry-mpseventpy`.
 eventtxt.c   :ref:`telemetry-mpseventtxt`.
 getopt.h     Command-line option interface. Adapted from FreeBSD.
 getoptl.c    Command-line option implementation. Adapted from FreeBSD.
@@ -334,8 +337,6 @@ awlut.c           :ref:`pool-awl` unit test.
 awluthe.c         :ref:`pool-awl` unit test (using in-band headers).
 awlutth.c         :ref:`pool-awl` unit test (using multiple threads).
 btcv.c            Bit table coverage test.
-exposet0.c        :c:func:`mps_arena_expose` test.
-expt825.c         Regression test for job000825_.
 finalcv.c         :ref:`topic-finalization` coverage test.
 finaltest.c       :ref:`topic-finalization` test.
 forktest.c        :ref:`topic-thread-fork` test.
@@ -384,6 +385,8 @@ fri6gc.gmk     GNU makefile for platform FRI6GC.
 fri6ll.gmk     GNU makefile for platform FRI6LL.
 gc.gmk         GNU make fragment for GCC.
 gp.gmk         GNU make fragment for GCC/GProf (broken).
+lia6gc.gmk     GNU makefile for platform LIA6GC.
+lia6ll.gmk     GNU makefile for platform LIA6LL.
 lii3gc.gmk     GNU makefile for platform LII3GC.
 lii6gc.gmk     GNU makefile for platform LII6GC.
 lii6ll.gmk     GNU makefile for platform LII6LL.
@@ -394,6 +397,7 @@ w3i3mv.nmk     NMAKE file for platform W3I3MV.
 w3i3pc.nmk     NMAKE file for platform W3I3PC.
 w3i6mv.nmk     NMAKE file for platform W3I6MV.
 w3i6pc.nmk     NMAKE file for platform W3I6PC.
+xca6ll.gmk     GNU makefile for platform XCA6LL.
 xci3gc.gmk     GNU makefile for platform XCI3GC.
 xci3ll.gmk     GNU makefile for platform XCI3LL.
 xci6gc.gmk     GNU makefile for platform XCI6GC.

@@ -17,6 +17,7 @@ import re
 import shutil
 import sys
 
+from sphinx.util import logging
 from sphinx.util.console import bold
 
 TYPES = '''
@@ -33,13 +34,22 @@ TYPES = '''
 
 '''
 
+# Macros that are improperly named (not all-caps).
+MACROS = '''
+
+    ClassOfPoly CouldBeA IsA IsSubclass Method MustBeA
+    MustBeA_CRITICAL NextMethod SetClassOfPoly SuperclassPoly
+
+'''
+
 mode = re.compile(r'\.\. mode: .*\n')
 prefix = re.compile(r'^:Tag: ([a-z][a-z.0-9-]*[a-z0-9])$', re.MULTILINE)
 rst_tag = re.compile(r'^:(?:Author|Date|Status|Revision|Copyright|Organization|Format|Index terms|Readership):.*?$\n', re.MULTILINE | re.IGNORECASE)
 mps_tag = re.compile(r'_`\.([a-z][A-Za-z.0-9_-]*[A-Za-z0-9])`:')
 mps_ref = re.compile(r'`(\.[a-z][A-Za-z.0-9_-]*[A-Za-z0-9])`_(?:        )?')
 funcdef = re.compile(r'^``([^`]*\([^`]*\))``$', re.MULTILINE)
-macrodef = re.compile(r'^``([A-Z][A-Z0-9_]+)``$', re.MULTILINE)
+macrodef = re.compile(r'^``((?:[A-Z][A-Z0-9_]+|{})(?:\([^`]*\))?)``$'
+                      .format('|'.join(map(re.escape, MACROS.split()))), re.MULTILINE)
 macro = re.compile(r'``([A-Z][A-Z0-9_]+)``(?:       )?')
 typedef = re.compile(r'^``typedef ([^`]*)``$', re.MULTILINE) 
 func = re.compile(r'``([A-Za-z][A-Za-z0-9_]+\(\))``')
@@ -49,6 +59,7 @@ typename = re.compile(r'``({0}|[A-Z][A-Za-z0-9_]*'
                       .format('|'.join(map(re.escape, TYPES.split()))))
 design_ref = re.compile(r'^( *\.\. _design\.mps\.(?:[^:\n]+): (?:[^#:\n]+))$', re.MULTILINE)
 design_frag_ref = re.compile(r'^( *\.\. _design\.mps\.([^:\n]+)\.([^:\n]+): (?:[^#:\n]+))#(.+)$', re.MULTILINE)
+relative_link = re.compile(r'^( *\.\. _[\w\.]+: +\.\./)', re.MULTILINE)
 history = re.compile(r'^Document History\n.*',
                      re.MULTILINE | re.IGNORECASE | re.DOTALL)
 
@@ -114,8 +125,8 @@ def convert_file(name, source, dest):
     s = mps_tag.sub(r':mps:tag:`\1`', s)
     s = mps_ref.sub(r':mps:ref:`\1`', s)
     s = typedef.sub(r'.. c:type:: \1', s)
-    s = funcdef.sub(r'.. c:function:: \1', s)
     s = macrodef.sub(r'.. c:macro:: \1', s)
+    s = funcdef.sub(r'.. c:function:: \1', s)
     s = typename.sub(r':c:type:`\1`', s)
     s = func.sub(r':c:func:`\1`', s)
     s = macro.sub(r':c:macro:`\1`', s)
@@ -123,6 +134,7 @@ def convert_file(name, source, dest):
     s = citation.sub(citation_sub, s)
     s = design_ref.sub(r'\1.html', s)
     s = design_frag_ref.sub(r'\1.html#design.mps.\2.\3', s)
+    s = relative_link.sub(r'\1../../', s)
     s = history.sub('', s)
     # Don't try to format all the quoted code blocks as C.
     s = '.. highlight:: none\n\n' + s
@@ -142,15 +154,17 @@ def newer(src, target):
             or os.path.getmtime(target) < os.path.getmtime(src)
             or os.path.getmtime(target) < os.path.getmtime(__file__))
 
+logger = logging.getLogger(__name__)
+
 # Mini-make
 def convert_updated(app):
-    app.info(bold('converting MPS design documents'))
+    logger.info(bold('converting MPS design documents'))
     for design in glob.iglob('../design/*.txt'):
         name = os.path.splitext(os.path.basename(design))[0]
         if name == 'index': continue
         converted = 'source/design/%s.rst' % name
         if newer(design, converted):
-            app.info('converting design %s' % name)
+            logger.info('converting design %s' % name)
             convert_file(name, design, converted)
     diagrams = chain(*[glob.iglob('../design/*.' + ext)
                        for ext in 'png svg'.split()])

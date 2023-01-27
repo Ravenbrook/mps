@@ -116,7 +116,7 @@ Code    Name        Type               Example rendering
 ======= =========== ================== =======================================
 ``$A``  address     ``Addr``           ``000000019EF60010``
 ``$P``  pointer     ``void *``         ``000000019EF60100``
-``$F``  function    ``void *(*)()``    ``0001D69E01000000`` (see `.function`_)
+``$F``  function    ``void (*)(void)`` ``0001D69E01000000`` (see `.function`_)
 ``$S``  string      ``char *``         ``hello``
 ``$C``  character   ``char``           ``x``
 ``$W``  word        ``ULongest``       ``0000000000109AE0``
@@ -133,11 +133,30 @@ incredible snazzy output engine. We only need it for ``Describe()``
 methods. At the moment it's a simple bit of code -- let's keep it that
 way.
 
-_`.function`: The ``F`` code is used for function pointers. ISO C
-forbids casting function pointers to other types, so the bytes of
+_`.function`: The ``F`` code is used for function pointers. The C
+standard [C1999c]_ defines conversion between pointer-to-function
+types (§6.3.2.3.8), but it does not define conversion between pointers
+to functions and pointers to data. To work around this, the bytes of
 their representation are written sequentially, and may have a
-different endianness to other pointers. Could be smarter, or even look
-up function names, but see `.snazzy`_.
+different endianness to other pointer types. This output could be
+smarter, or even look up function names, but see `.snazzy`_. The
+particular type ``void (*)(void)`` is chosen because in GCC
+(version 8) this suppresses the warning that we would otherwise get
+from ``-Wcast-function-type``. See job004156_ and `GCC Warning
+Options`_.
+
+.. _job004156: https://www.ravenbrook.com/project/mps/issue/job004156/
+.. _GCC Warning Options: https://gcc.gnu.org/onlinedocs/gcc/Warning-Options.html
+
+
+
+References
+----------
+
+.. [C1999c]
+   International Standard ISO/IEC 9899:1999;
+   "Programming languages — C";
+   <http://www.open-std.org/jtc1/sc22/WG14/www/docs/n1256.pdf>
 
 
 Document History
@@ -151,48 +170,36 @@ Document History
 
 - 2014-04-17 GDR_ ``WriteF()`` now takes a ``depth`` parameter.
 
-.. _RB: http://www.ravenbrook.com/consultants/rb/
-.. _GDR: http://www.ravenbrook.com/consultants/gdr/
+- 2019-03-14 GDR_ Change type of ``WriteFF`` to avoid compiler warning.
+
+.. _RB: https://www.ravenbrook.com/consultants/rb/
+.. _GDR: https://www.ravenbrook.com/consultants/gdr/
 
 
 Copyright and License
 ---------------------
 
-Copyright © 2013-2015 Ravenbrook Limited <http://www.ravenbrook.com/>.
-All rights reserved. This is an open source license. Contact
-Ravenbrook for commercial licensing options.
+Copyright © 2013–2020 `Ravenbrook Limited <https://www.ravenbrook.com/>`_.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are
 met:
 
-#. Redistributions of source code must retain the above copyright
+1. Redistributions of source code must retain the above copyright
    notice, this list of conditions and the following disclaimer.
 
-#. Redistributions in binary form must reproduce the above copyright
+2. Redistributions in binary form must reproduce the above copyright
    notice, this list of conditions and the following disclaimer in the
    documentation and/or other materials provided with the distribution.
 
-#. Redistributions in any form must be accompanied by information on how
-   to obtain complete source code for this software and any
-   accompanying software that uses this software.  The source code must
-   either be included in the distribution or be available for no more than
-   the cost of distribution plus a nominal fee, and must be freely
-   redistributable under reasonable conditions.  For an executable file,
-   complete source code means the source code for all modules it contains.
-   It does not include source code for modules or files that typically
-   accompany the major components of the operating system on which the
-   executable file runs.
-
-**This software is provided by the copyright holders and contributors
-"as is" and any express or implied warranties, including, but not
-limited to, the implied warranties of merchantability, fitness for a
-particular purpose, or non-infringement, are disclaimed.  In no event
-shall the copyright holders and contributors be liable for any direct,
-indirect, incidental, special, exemplary, or consequential damages
-(including, but not limited to, procurement of substitute goods or
-services; loss of use, data, or profits; or business interruption)
-however caused and on any theory of liability, whether in contract,
-strict liability, or tort (including negligence or otherwise) arising in
-any way out of the use of this software, even if advised of the
-possibility of such damage.**
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+"AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.

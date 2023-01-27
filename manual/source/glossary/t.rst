@@ -101,14 +101,15 @@ Memory Management Glossary: T
         .. mps:specific::
 
             A :term:`bitmap` indicating which events the MPS should
-            include in the :term:`telemetry stream`. It can be read or
-            changed by calling :c:func:`mps_telemetry_control`.
+            include in the :term:`telemetry stream`. It can be read by
+            calling :c:func:`mps_telemetry_get` or changed by calling
+            :c:func:`mps_telemetry_set` or :c:func:`mps_telemetry_reset`.
 
     telemetry label
 
         .. mps:specific::
 
-            An indentifier representing a string, returned from
+            An identifier representing a string, returned from
             :c:func:`mps_telemetry_intern`, that can be associated
             with certain :term:`addresses`, and so appear in
             the :term:`telemetry stream` attached to events concerning

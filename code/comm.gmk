@@ -3,7 +3,7 @@
 # comm.gmk: COMMON GNUMAKEFILE FRAGMENT
 #
 # $Id$
-# Copyright (c) 2001-2018 Ravenbrook Limited.  See end of file for license.
+# Copyright (c) 2001-2020 Ravenbrook Limited.  See end of file for license.
 #
 # DESCRIPTION
 #
@@ -70,12 +70,17 @@ error "comm.gmk: CFLAGSOPT not defined"
 endif
 
 
+# TELEMETRY TARGETS
+
+EVENT_TARGETS = mpseventcnv mpseventpy mpseventsql mpseventtxt
+
+
 # EXTRA TARGETS
 #
 # Don't build mpseventsql by default (might not have sqlite3 installed),
-# but do build mpseventcnv, mpseventpy and mpseventtxt.
+# but do build the other event target.
 
-EXTRA_TARGETS ?= mpseventcnv mpseventpy mpseventtxt
+EXTRA_TARGETS ?= $(filter-out mpseventsql,$(EVENT_TARGETS))
 
 
 #
@@ -238,7 +243,7 @@ endif
 
 
 # == Test cases ==
-# 
+#
 # %%TARGET: When adding a new target, add it to one of the variables
 # in this section. Library components go in LIB_TARGETS.
 
@@ -262,8 +267,6 @@ TEST_TARGETS=\
     btcv \
     bttest \
     djbench \
-    exposet0 \
-    expt825 \
     finalcv \
     finaltest \
     forktest \
@@ -317,7 +320,7 @@ $(addprefix $(PFM)/$(VARIETY)/,$(TEST_SUITES)): $(TEST_TARGETS)
 
 
 # == Automated performance testing ==
-# 
+#
 # See design.mps.tests.target.testratio.
 
 TESTRATIO_SEED = 1564912146
@@ -356,7 +359,7 @@ testscheme: phony
 # These convenience targets allow one to type "make foo" to build target
 # foo in selected varieties (or none, for the latter rule).
 
-$(ALL_TARGETS) mpseventsql $(TEST_SUITES) testmmqa: phony
+$(LIB_TARGETS) $(TEST_TARGETS) $(EVENT_TARGETS) $(TEST_SUITES) testmmqa: phony
 ifdef VARIETY
 	$(MAKE) -f $(PFM).gmk TARGET=$@ variety
 else
@@ -483,12 +486,6 @@ $(PFM)/$(VARIETY)/bttest: $(PFM)/$(VARIETY)/bttest.o \
 
 $(PFM)/$(VARIETY)/djbench: $(PFM)/$(VARIETY)/djbench.o \
 	$(TESTLIBOBJ) $(TESTTHROBJ)
-
-$(PFM)/$(VARIETY)/exposet0: $(PFM)/$(VARIETY)/exposet0.o \
-	$(FMTDYTSTOBJ) $(TESTLIBOBJ) $(PFM)/$(VARIETY)/mps.a
-
-$(PFM)/$(VARIETY)/expt825: $(PFM)/$(VARIETY)/expt825.o \
-	$(FMTDYTSTOBJ) $(TESTLIBOBJ) $(PFM)/$(VARIETY)/mps.a
 
 $(PFM)/$(VARIETY)/finalcv: $(PFM)/$(VARIETY)/finalcv.o \
 	$(FMTDYTSTOBJ) $(TESTLIBOBJ) $(PFM)/$(VARIETY)/mps.a
@@ -618,7 +615,7 @@ $(PFM)/$(VARIETY)/%.o: %.c
 	$(run-cc-strict)
 
 $(PFM)/$(VARIETY)/eventsql.o: eventsql.c
-	$(run-cc-lax)                              
+	$(run-cc-lax)
 
 $(PFM)/$(VARIETY)/%.o: %.s
 	$(run-cc-strict)
@@ -710,40 +707,30 @@ find-puns: phony
 
 # C. COPYRIGHT AND LICENSE
 #
-# Copyright (c) 2001-2018 Ravenbrook Limited <http://www.ravenbrook.com/>.
-# All rights reserved.  This is an open source license.  Contact
-# Ravenbrook for commercial licensing options.
-# 
+# Copyright (C) 2001-2020 Ravenbrook Limited <https://www.ravenbrook.com/>.
+#
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions are
 # met:
-# 
+#
 # 1. Redistributions of source code must retain the above copyright
-# notice, this list of conditions and the following disclaimer.
-# 
+#    notice, this list of conditions and the following disclaimer.
+#
 # 2. Redistributions in binary form must reproduce the above copyright
-# notice, this list of conditions and the following disclaimer in the
-# documentation and/or other materials provided with the distribution.
-# 
-# 3. Redistributions in any form must be accompanied by information on how
-# to obtain complete source code for this software and any accompanying
-# software that uses this software.  The source code must either be
-# included in the distribution or be available for no more than the cost
-# of distribution plus a nominal fee, and must be freely redistributable
-# under reasonable conditions.  For an executable file, complete source
-# code means the source code for all modules it contains. It does not
-# include source code for modules or files that typically accompany the
-# major components of the operating system on which the executable file
-# runs.
-# 
-# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS
-# IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
-# TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR
-# PURPOSE, OR NON-INFRINGEMENT, ARE DISCLAIMED. IN NO EVENT SHALL THE
-# COPYRIGHT HOLDERS AND CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
-# INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
-# NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF
-# USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON
-# ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-# (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
-# THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+#    notice, this list of conditions and the following disclaimer in the
+#    documentation and/or other materials provided with the
+#    distribution.
+#
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+# "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+# LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+# A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+# HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+# SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+# LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+# DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+# THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+# (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+# OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+

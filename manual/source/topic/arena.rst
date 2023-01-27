@@ -36,10 +36,8 @@ other.
 .. note::
 
     The MPS allows creation of multiple arenas, but you would only do
-    this in unusual circumstances. It might be useful to have two
-    active arenas and to try different things out in them, or you
-    might be in the process of integrating two pieces of software that
-    each independently uses the MPS.
+    this in unusual circumstances, for example during the integration
+    of two pieces of software that each independently uses the MPS.
 
     Arenas do not normally interact, but they compete with each other
     for resources, and references from one arena to another are not
@@ -156,9 +154,9 @@ Client arenas
       ``sizeof(void *)``. Larger granularity reduces overheads, but
       increases :term:`fragmentation` and :term:`retention`.
 
-    * :c:macro:`MPS_KEY_PAUSE_TIME` (type :c:type:`double`, default
-      0.1) is the maximum time, in seconds, that operations within the
-      arena may pause the :term:`client program` for. See
+    * :c:macro:`MPS_KEY_PAUSE_TIME` (type ``double``, default 0.1) is
+      the maximum time, in seconds, that operations within the arena
+      may pause the :term:`client program` for. See
       :c:func:`mps_arena_pause_time_set` for details.
 
     For example::
@@ -264,16 +262,16 @@ Virtual memory arenas
       that's smaller than the operating system page size, the MPS
       rounds it up to the page size and continues.
 
-    * :c:macro:`MPS_KEY_SPARE` (type :c:type:`double`, default 0.75)
-      is the maximum proportion of committed memory that the arena
-      will keep spare for future allocations.  If the proportion of
-      spare committed memory exceeds this, then the arena will return
-      some of it to the operating system for use by other processes.
-      See :c:func:`mps_arena_spare` for details.
+    * :c:macro:`MPS_KEY_SPARE` (type ``double``, default 0.75) is the
+      maximum proportion of committed memory that the arena will keep
+      spare for future allocations. If the proportion of spare
+      committed memory exceeds this, then the arena will return some
+      of it to the operating system for use by other processes. See
+      :c:func:`mps_arena_spare` for details.
 
-    * :c:macro:`MPS_KEY_PAUSE_TIME` (type :c:type:`double`, default
-      0.1) is the maximum time, in seconds, that operations within the
-      arena may pause the :term:`client program` for. See
+    * :c:macro:`MPS_KEY_PAUSE_TIME` (type ``double``, default 0.1) is
+      the maximum time, in seconds, that operations within the arena
+      may pause the :term:`client program` for. See
       :c:func:`mps_arena_pause_time_set` for details.
 
     A sixth optional :term:`keyword argument` may be passed, but it
@@ -389,7 +387,11 @@ Arena properties
     Returns :c:macro:`MPS_RES_OK` if successful, or another
     :term:`result code` if not.
 
-    See :c:func:`mps_arena_spare` for details.
+    To effectively remove any commit limit, pass the maximum value of
+    the :c:type:`size_t` type for the :c:data:`limit` argument, that
+    is, ``((size_t)-1)``, or :c:macro:`SIZE_MAX` in C99 or later.
+
+    See :c:func:`mps_arena_commit_limit` for details.
 
 
 .. c:function:: size_t mps_arena_committed(mps_arena_t arena)
@@ -432,7 +434,7 @@ Arena properties
     operating system.
 
     The function :c:func:`mps_arena_committed` may be called whatever
-    state the the arena is in. If it is called when the arena is in
+    state the arena is in. If it is called when the arena is in
     the :term:`unclamped state` then the value may change after this
     function returns. A possible use might be to call it just after
     :c:func:`mps_arena_collect` to estimate the size of the heap.
@@ -949,8 +951,8 @@ Arena introspection and debugging
 
     * :c:func:`mps_addr_fmt`: determine the :term:`object format` to
       which an address belongs;
-    * :c:func:`mps_arena_formatted_objects_walk`: visit all
-      :term:`formatted objects` in an arena;
+    * :c:func:`mps_pool_walk`: visit all areas of :term:`formatted
+      objects` in a :term:`pool`;
     * :c:func:`mps_arena_roots_walk`: visit all references in
       :term:`roots` registered with an arena; and
     * :c:func:`mps_addr_pool`: determine the :term:`pool` to which an
@@ -1018,7 +1020,7 @@ Arena introspection and debugging
 
     In general, not all addresses are managed by any arena. This is
     what allows the MPS to cooperate with other memory managers,
-    shared object loaders, memory mapped file input/ouput, and so on:
+    shared object loaders, memory mapped file input/output, and so on:
     it does not steal the whole address space.
 
     .. note::

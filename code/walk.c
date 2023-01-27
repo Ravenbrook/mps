@@ -1,7 +1,7 @@
 /* walk.c: OBJECT WALKER
  *
  * $Id$
- * Copyright (c) 2001-2016 Ravenbrook Limited.  See end of file for license.
+ * Copyright (c) 2001-2020 Ravenbrook Limited.  See end of file for license.
  */
 
 #include "mpm.h"
@@ -381,43 +381,148 @@ void mps_arena_roots_walk(mps_arena_t mps_arena, mps_roots_stepper_t f,
 }
 
 
+/* walkNoFix -- third-stage fix function for poolWalk.
+ *
+ * The second-stage fix is not called via poolWalk; so this is not
+ * called either. The NOTREACHED checks that this is the case.
+ */
+static Res walkNoFix(Seg seg, ScanState ss, Addr *refIO)
+{
+  AVERT(Seg, seg);
+  AVERT(ScanState, ss);
+  AVER(refIO != NULL);
+
+  NOTREACHED;
+
+  return ResUNIMPL;
+}
+
+
+/* poolWalkScan -- format scanner for poolWalk */
+
+static mps_res_t poolWalkScan(mps_ss_t mps_ss, void *base, void *limit)
+{
+  ScanState ss = PARENT(ScanStateStruct, ss_s, mps_ss);
+
+  AVERT(ScanState, ss);
+  AVER(base != NULL);
+  AVER(limit != NULL);
+  AVER(base < limit);
+
+  return ss->areaScan(mps_ss, base, limit, ss->areaScanClosure);
+}
+
+
+/* poolWalk -- walk formatted areas in a pool
+ *
+ * See <design/walk>.
+ */
+
+static Res poolWalk(Arena arena, Pool pool, mps_area_scan_t area_scan, void *closure)
+{
+  Trace trace;
+  TraceSet ts;
+  ScanStateStruct ss;
+  Ring node, nextNode;
+  Res res = ResOK;
+
+  AVERT(Arena, arena);
+  AVERT(Pool, pool);
+  AVER(FUNCHECK(area_scan));
+  /* closure is arbitrary and can't be checked */
+
+  AVER(ArenaGlobals(arena)->clamped);          /* .assume.parked */
+  AVER(arena->busyTraces == TraceSetEMPTY);    /* .assume.parked */
+
+  /* Synthesize a flipped trace with an empty white set. The empty
+   * white set means that the MPS_FIX1 test will always fail and
+   * _mps_fix2 will never be called. */
+  res = TraceCreate(&trace, arena, TraceStartWhyWALK);
+  /* Fail if no trace available. Unlikely due to .assume.parked. */
+  if (res != ResOK)
+    return res;
+  trace->white = ZoneSetEMPTY;
+  trace->state = TraceFLIPPED;
+  arena->flippedTraces = TraceSetAdd(arena->flippedTraces, trace);
+  ts = TraceSetSingle(trace);
+
+  ScanStateInit(&ss, ts, arena, RankEXACT, trace->white);
+  ss.formatScan = poolWalkScan;
+  ss.areaScan = area_scan;
+  ss.areaScanClosure = closure;
+  ss.fix = walkNoFix;
+
+  RING_FOR(node, &pool->segRing, nextNode) {
+    Bool wasTotal;
+    Seg seg = SegOfPoolRing(node);
+    Bool needSummary = SegRankSet(seg) != RankSetEMPTY;
+
+    if (needSummary)
+      ScanStateSetSummary(&ss, RefSetEmpty);
+
+    /* Expose the segment to make sure we can scan it. */
+    ShieldExpose(arena, seg);
+    res = SegScan(&wasTotal, seg, &ss);
+    ShieldCover(arena, seg);
+
+    if (needSummary)
+      ScanStateUpdateSummary(&ss, seg, res == ResOK && wasTotal);
+
+    if (res != ResOK)
+      break;
+  }
+
+  ScanStateFinish(&ss);
+  trace->state = TraceFINISHED;
+  TraceDestroyFinished(trace);
+  AVER(!ArenaEmergency(arena)); /* There was no allocation. */
+
+  return res;
+}
+
+
+mps_res_t mps_pool_walk(mps_pool_t pool, mps_area_scan_t area_scan, void *closure)
+{
+  Arena arena;
+  Res res;
+
+  AVER(TESTT(Pool, pool));
+  arena = PoolArena(pool);
+  ArenaEnter(arena);
+  AVER(FUNCHECK(area_scan));
+  /* closure is arbitrary and can't be checked */
+
+  res = poolWalk(arena, pool, area_scan, closure);
+  ArenaLeave(arena);
+  return res;
+}
+
+
 /* C. COPYRIGHT AND LICENSE
  *
- * Copyright (C) 2001-2016 Ravenbrook Limited <http://www.ravenbrook.com/>.
- * All rights reserved.  This is an open source license.  Contact
- * Ravenbrook for commercial licensing options.
- * 
+ * Copyright (C) 2001-2020 Ravenbrook Limited <https://www.ravenbrook.com/>.
+ *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are
  * met:
- * 
+ *
  * 1. Redistributions of source code must retain the above copyright
- * notice, this list of conditions and the following disclaimer.
- * 
+ *    notice, this list of conditions and the following disclaimer.
+ *
  * 2. Redistributions in binary form must reproduce the above copyright
- * notice, this list of conditions and the following disclaimer in the
- * documentation and/or other materials provided with the distribution.
- * 
- * 3. Redistributions in any form must be accompanied by information on how
- * to obtain complete source code for this software and any accompanying
- * software that uses this software.  The source code must either be
- * included in the distribution or be available for no more than the cost
- * of distribution plus a nominal fee, and must be freely redistributable
- * under reasonable conditions.  For an executable file, complete source
- * code means the source code for all modules it contains. It does not
- * include source code for modules or files that typically accompany the
- * major components of the operating system on which the executable file
- * runs.
- * 
+ *    notice, this list of conditions and the following disclaimer in the
+ *    documentation and/or other materials provided with the
+ *    distribution.
+ *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS
  * IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
- * TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR
- * PURPOSE, OR NON-INFRINGEMENT, ARE DISCLAIMED. IN NO EVENT SHALL THE
- * COPYRIGHT HOLDERS AND CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
- * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
- * NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF
- * USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON
- * ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
- * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
- * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ * TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
+ * PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+ * HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+ * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+ * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+ * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */

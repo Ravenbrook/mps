@@ -1,7 +1,7 @@
 /* poolawl.c: AUTOMATIC WEAK LINKED POOL CLASS
  *
  * $Id$
- * Copyright (c) 2001-2018 Ravenbrook Limited.  See end of file for license.
+ * Copyright (c) 2001-2020 Ravenbrook Limited.  See end of file for license.
  *
  *
  * DESIGN
@@ -785,7 +785,7 @@ static Res awlSegWhiten(Seg seg, Trace trace)
                      PoolGrainsSize(pool, awlseg->oldGrains));
     SegSetWhite(seg, TraceSetAdd(SegWhite(seg), trace));
   }
-  
+
   return ResOK;
 }
 
@@ -852,7 +852,7 @@ static void awlSegBlacken(Seg seg, TraceSet traceSet)
 /* base and limit are both offset by the header size */
 
 static Res awlScanObject(Arena arena, AWL awl, ScanState ss,
-                         Format format, Addr base, Addr limit)
+                         Addr base, Addr limit)
 {
   Res res;
   Bool dependent;       /* is there a dependent object? */
@@ -862,7 +862,6 @@ static Res awlScanObject(Arena arena, AWL awl, ScanState ss,
   AVERT(Arena, arena);
   AVERT(AWL, awl);
   AVERT(ScanState, ss);
-  AVERT(Format, format);
   AVER(base != 0);
   AVER(base < limit);
 
@@ -875,7 +874,7 @@ static Res awlScanObject(Arena arena, AWL awl, ScanState ss,
       SegSetSummary(dependentSeg, RefSetUniv);
   }
 
-  res = FormatScan(format, ss, base, limit);
+  res = TraceScanFormat(ss, base, limit);
 
   if (dependent)
     ShieldCover(arena, dependentSeg);
@@ -931,7 +930,7 @@ static Res awlSegScanSinglePass(Bool *anyScannedReturn, ScanState ss,
     /* <design/poolawl#.fun.scan.pass.object> */
     if (scanAllObjects
         || (BTGet(awlseg->mark, i) && !BTGet(awlseg->scanned, i))) {
-      Res res = awlScanObject(arena, awl, ss, pool->format,
+      Res res = awlScanObject(arena, awl, ss,
                               hp, objectLimit);
       if (res != ResOK)
         return res;
@@ -1281,41 +1280,29 @@ static Bool AWLCheck(AWL awl)
 
 /* C. COPYRIGHT AND LICENSE
  *
- * Copyright (C) 2001-2018 Ravenbrook Limited <http://www.ravenbrook.com/>.
- * All rights reserved.  This is an open source license.  Contact
- * Ravenbrook for commercial licensing options.
- * 
+ * Copyright (C) 2001-2020 Ravenbrook Limited <https://www.ravenbrook.com/>.
+ *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are
  * met:
- * 
+ *
  * 1. Redistributions of source code must retain the above copyright
- * notice, this list of conditions and the following disclaimer.
- * 
+ *    notice, this list of conditions and the following disclaimer.
+ *
  * 2. Redistributions in binary form must reproduce the above copyright
- * notice, this list of conditions and the following disclaimer in the
- * documentation and/or other materials provided with the distribution.
- * 
- * 3. Redistributions in any form must be accompanied by information on how
- * to obtain complete source code for this software and any accompanying
- * software that uses this software.  The source code must either be
- * included in the distribution or be available for no more than the cost
- * of distribution plus a nominal fee, and must be freely redistributable
- * under reasonable conditions.  For an executable file, complete source
- * code means the source code for all modules it contains. It does not
- * include source code for modules or files that typically accompany the
- * major components of the operating system on which the executable file
- * runs.
- * 
+ *    notice, this list of conditions and the following disclaimer in the
+ *    documentation and/or other materials provided with the
+ *    distribution.
+ *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS
  * IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
- * TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR
- * PURPOSE, OR NON-INFRINGEMENT, ARE DISCLAIMED. IN NO EVENT SHALL THE
- * COPYRIGHT HOLDERS AND CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
- * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
- * NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF
- * USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON
- * ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
- * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
- * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ * TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
+ * PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+ * HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+ * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+ * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+ * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */

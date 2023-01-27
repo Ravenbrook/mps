@@ -1,7 +1,7 @@
 /* vmix.c: VIRTUAL MEMORY MAPPING (POSIX)
  *
  * $Id$
- * Copyright (c) 2001-2018 Ravenbrook Limited.  See end of file for license.
+ * Copyright (c) 2001-2020 Ravenbrook Limited.  See end of file for license.
  *
  * .purpose: This is the implementation of the virtual memory mapping
  * interface (vm.h) for Unix-like operating systems.  It was created
@@ -47,6 +47,7 @@
 #include "vm.h"
 
 #include <errno.h> /* errno */
+#include <signal.h> /* sig_atomic_t */
 #include <sys/mman.h> /* see .feature.li in config.h */
 #include <sys/types.h> /* mmap, munmap */
 #include <unistd.h> /* getpagesize */
@@ -156,11 +157,20 @@ void VMFinish(VM vm)
 }
 
 
+/* Value to use for protection of newly allocated pages.
+ * We use a global variable and not a constant so that we can clear
+ * the executable flag from future requests if Apple Hardened Runtime
+ * is detected. See <design/vm#impl.xc.prot.exec> for details. */
+
+static sig_atomic_t vm_prot = PROT_READ | PROT_WRITE | PROT_EXEC;
+
+
 /* VMMap -- map the given range of memory */
 
 Res VMMap(VM vm, Addr base, Addr limit)
 {
   Size size;
+  void *result;
 
   AVERT(VM, vm);
   AVER(sizeof(void *) == sizeof(Addr));
@@ -172,11 +182,22 @@ Res VMMap(VM vm, Addr base, Addr limit)
 
   size = AddrOffset(base, limit);
 
-  if(mmap((void *)base, (size_t)size,
-          PROT_READ | PROT_WRITE | PROT_EXEC,
-          MAP_ANON | MAP_PRIVATE | MAP_FIXED,
-          -1, 0)
-     == MAP_FAILED) {
+  result = mmap((void *)base, (size_t)size, (int)vm_prot,
+                MAP_ANON | MAP_PRIVATE | MAP_FIXED,
+                -1, 0);
+  if (MAYBE_HARDENED_RUNTIME && result == MAP_FAILED && errno == EACCES
+      && (vm_prot & PROT_WRITE) && (vm_prot & PROT_EXEC))
+  {
+    /* Apple Hardened Runtime is enabled, so that we cannot have
+     * memory that is simultaneously writable and executable. Handle
+     * this by dropping the executable part of the request. See
+     * <design/vm#impl.xc.prot.exec> for details. */
+    vm_prot = PROT_READ | PROT_WRITE;
+    result = mmap((void *)base, (size_t)size, vm_prot,
+                  MAP_ANON | MAP_PRIVATE | MAP_FIXED,
+                  -1, 0);
+  }
+  if (result == MAP_FAILED) {
     AVER(errno == ENOMEM); /* .assume.mmap.err */
     return ResMEMORY;
   }
@@ -220,41 +241,29 @@ void VMUnmap(VM vm, Addr base, Addr limit)
 
 /* C. COPYRIGHT AND LICENSE
  *
- * Copyright (C) 2001-2018 Ravenbrook Limited <http://www.ravenbrook.com/>.
- * All rights reserved.  This is an open source license.  Contact
- * Ravenbrook for commercial licensing options.
- * 
+ * Copyright (C) 2001-2020 Ravenbrook Limited <https://www.ravenbrook.com/>.
+ *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are
  * met:
- * 
+ *
  * 1. Redistributions of source code must retain the above copyright
- * notice, this list of conditions and the following disclaimer.
- * 
+ *    notice, this list of conditions and the following disclaimer.
+ *
  * 2. Redistributions in binary form must reproduce the above copyright
- * notice, this list of conditions and the following disclaimer in the
- * documentation and/or other materials provided with the distribution.
- * 
- * 3. Redistributions in any form must be accompanied by information on how
- * to obtain complete source code for this software and any accompanying
- * software that uses this software.  The source code must either be
- * included in the distribution or be available for no more than the cost
- * of distribution plus a nominal fee, and must be freely redistributable
- * under reasonable conditions.  For an executable file, complete source
- * code means the source code for all modules it contains. It does not
- * include source code for modules or files that typically accompany the
- * major components of the operating system on which the executable file
- * runs.
- * 
+ *    notice, this list of conditions and the following disclaimer in the
+ *    documentation and/or other materials provided with the
+ *    distribution.
+ *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS
  * IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
- * TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR
- * PURPOSE, OR NON-INFRINGEMENT, ARE DISCLAIMED. IN NO EVENT SHALL THE
- * COPYRIGHT HOLDERS AND CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
- * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
- * NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF
- * USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON
- * ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
- * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
- * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ * TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
+ * PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+ * HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+ * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+ * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+ * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */

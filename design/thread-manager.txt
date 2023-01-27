@@ -63,6 +63,28 @@ request.dylan.160022_ and request.mps.160093_.)
 .. _request.dylan.160022: https://info.ravenbrook.com/project/mps/import/2001-11-05/mmprevol/request/dylan/160022
 .. _request.mps.160093: https://info.ravenbrook.com/project/mps/import/2001-11-05/mmprevol/request/mps/160093/
 
+_`.req.thread.intr`: It would be nice if on POSIX systems the MPS does
+not cause system calls in the mutator to fail with EINTR due to the
+MPS thread-management signals being delivered while the mutator is
+blocked in a system call. (See `GitHub issue #9`_.)
+
+.. _GitHub issue #9: https://github.com/ravenbrook/mps/issues/9
+
+_`.req.thread.errno`: It would be nice if on POSIX systems the MPS
+does not cause system calls in the mutator to update ``errno`` due to
+the MPS thread-management signals being delivered while the mutator is
+blocked in a system call, and the MPS signal handlers updating
+``errno``. (See `GitHub issue #10`_.)
+
+.. _GitHub issue #10: https://github.com/ravenbrook/mps/issues/10
+
+_`.req.thread.lasterror`: It would be nice if on Windows systems the
+MPS does not cause system calls in the mutator to update the value
+returned from ``GetLastError()`` when the exception handler is called
+due to a fault. This may cause the MPS to destroy the previous value
+there. (See `GitHub issue #61`_.)
+
+.. _GitHub issue #61: https://github.com/Ravenbrook/mps/issues/61
 
 Design
 ------
@@ -95,6 +117,38 @@ _`.sol.thread.term.attempt`: Nonetheless, the thread manager makes a
 by moving the thread to a ring of dead threads, and avoiding scanning
 it. This might allow a malfunctioning client program to limp along.
 
+_`.sol.thread.intr`: The POSIX specification for sigaction_ says that
+if the ``SA_RESTART`` flag is set, and if "a function specified as
+interruptible is interrupted by this signal, the function shall
+restart and shall not fail with ``EINTR`` unless otherwise specified."
+
+.. |sigaction| replace:: ``sigaction()``
+.. _sigaction: https://pubs.opengroup.org/onlinepubs/9699919799/functions/sigaction.html
+
+_`.sol.thread.intr.linux`: Linux does not fully implement the POSIX
+specification, so that some system calls are "never restarted after
+being interrupted by a signal handler, regardless of the use of
+SA_RESTART; they always fail with the error EINTR when interrupted by
+a signal handler". The exceptional calls are listed in the |signal|_
+manual. There is nothing that the MPS can do about this except to warn
+users in the reference manual.
+
+.. |signal| replace:: signal(7)
+.. _signal: https://man7.org/linux/man-pages/man7/signal.7.html
+
+_`.sol.thread.errno`: The POSIX specification for sigaction_ says,
+"Note in particular that even the "safe" functions may modify
+``errno``; the signal-catching function, if not executing as an
+independent thread, should save and restore its value." All MPS
+signals handlers therefore save and restore ``errno`` using the macros
+``ERRNO_SAVE`` and ``ERRNO_RESTORE``.
+
+_`.sol.thread.lasterror`: The documentation for ``AddVectoredExceptionHandler``
+does not mention ``GetLastError()`` at all, but testing_ the behaviour
+reveals that any value in ``GetLastError()`` is not preserved. Therefore,
+this value is saved using ``LAST_ERROR_SAVE`` and ``LAST_ERROR_RESTORE``.
+
+.. _testing: https://github.com/Ravenbrook/mps/issues/61
 
 Interface
 ---------
@@ -335,41 +389,27 @@ Document History
 Copyright and License
 ---------------------
 
-Copyright © 2013-2018 Ravenbrook Limited <https://www.ravenbrook.com/>.
-All rights reserved. This is an open source license. Contact
-Ravenbrook for commercial licensing options.
+Copyright © 2013–2020 `Ravenbrook Limited <https://www.ravenbrook.com/>`_.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are
 met:
 
-#. Redistributions of source code must retain the above copyright
+1. Redistributions of source code must retain the above copyright
    notice, this list of conditions and the following disclaimer.
 
-#. Redistributions in binary form must reproduce the above copyright
+2. Redistributions in binary form must reproduce the above copyright
    notice, this list of conditions and the following disclaimer in the
    documentation and/or other materials provided with the distribution.
 
-#. Redistributions in any form must be accompanied by information on how
-   to obtain complete source code for this software and any
-   accompanying software that uses this software.  The source code must
-   either be included in the distribution or be available for no more than
-   the cost of distribution plus a nominal fee, and must be freely
-   redistributable under reasonable conditions.  For an executable file,
-   complete source code means the source code for all modules it contains.
-   It does not include source code for modules or files that typically
-   accompany the major components of the operating system on which the
-   executable file runs.
-
-**This software is provided by the copyright holders and contributors
-"as is" and any express or implied warranties, including, but not
-limited to, the implied warranties of merchantability, fitness for a
-particular purpose, or non-infringement, are disclaimed.  In no event
-shall the copyright holders and contributors be liable for any direct,
-indirect, incidental, special, exemplary, or consequential damages
-(including, but not limited to, procurement of substitute goods or
-services; loss of use, data, or profits; or business interruption)
-however caused and on any theory of liability, whether in contract,
-strict liability, or tort (including negligence or otherwise) arising in
-any way out of the use of this software, even if advised of the
-possibility of such damage.**
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+"AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.

@@ -1,7 +1,7 @@
 /* policy.c: POLICY DECISIONS
  *
  * $Id$
- * Copyright (c) 2001-2018 Ravenbrook Limited.  See end of file for license.
+ * Copyright (c) 2001-2020 Ravenbrook Limited.  See end of file for license.
  *
  * This module collects the decision-making code for the MPS, so that
  * policy can be maintained and adjusted.
@@ -138,7 +138,7 @@ static double policyCollectionTime(Arena arena)
   Size collectableSize;
   double collectionRate;
   double collectionTime;
-  
+
   AVERT(Arena, arena);
 
   collectableSize = ArenaCollectable(arena);
@@ -148,7 +148,7 @@ static double policyCollectionTime(Arena arena)
     collectionRate = arena->tracedWork / arena->tracedTime;
   else
     collectionRate = ARENA_DEFAULT_COLLECTION_RATE;
-  collectionTime = collectableSize / collectionRate;
+  collectionTime = (double)collectableSize / collectionRate;
   collectionTime += ARENA_DEFAULT_COLLECTION_OVERHEAD;
 
   return collectionTime;
@@ -189,8 +189,8 @@ Bool PolicyShouldCollectWorld(Arena arena, double availableTime,
   collectionTime = policyCollectionTime(arena);
 
   /* How long since we last collected the world? */
-  sinceLastWorldCollect = ((now - arena->lastWorldCollect) /
-                           (double) clocks_per_sec);
+  sinceLastWorldCollect = (double)(now - arena->lastWorldCollect) /
+    (double)clocks_per_sec;
 
   /* Offered enough time, and long enough since we last did it? */
   return availableTime > collectionTime
@@ -285,11 +285,13 @@ Bool PolicyStartTrace(Trace *traceReturn, Bool *collectWorldReturn,
     sFoundation = (Size)0; /* condemning everything, only roots @@@@ */
     /* @@@@ sCondemned should be scannable only */
     sCondemned = ArenaCommitted(arena) - ArenaSpareCommitted(arena);
-    sSurvivors = (Size)(sCondemned * (1 - TraceWorldMortality));
-    tTracePerScan = sFoundation + (sSurvivors * (1 + TraceCopyScanRATIO));
+    sSurvivors = (Size)((double)sCondemned * (1 - TraceWorldMortality));
+    tTracePerScan = (double)sFoundation
+      + ((double)sSurvivors * (1 + TraceCopyScanRATIO));
     AVER(TraceWorkFactor >= 0);
-    AVER(sSurvivors + tTracePerScan * TraceWorkFactor <= (double)SizeMAX);
-    sConsTrace = (Size)(sSurvivors + tTracePerScan * TraceWorkFactor);
+    AVER((double)sSurvivors + tTracePerScan * TraceWorkFactor
+         <= (double)SizeMAX);
+    sConsTrace = (Size)((double)sSurvivors + tTracePerScan * TraceWorkFactor);
     dynamicDeferral = (double)ArenaAvail(arena) - (double)sConsTrace;
 
     if (dynamicDeferral < 0.0) {
@@ -330,7 +332,8 @@ Bool PolicyStartTrace(Trace *traceReturn, Bool *collectWorldReturn,
         goto failCondemn;
       if (TraceIsEmpty(trace))
         goto nothingCondemned;
-      res = TraceStart(trace, mortality, trace->condemned * TraceWorkFactor);
+      res = TraceStart(trace, mortality,
+                       (double)trace->condemned * TraceWorkFactor);
       /* We don't expect normal GC traces to fail to start. */
       AVER(res == ResOK);
       *traceReturn = trace;
@@ -384,7 +387,8 @@ Bool PolicyPollAgain(Arena arena, Clock start, Bool moreWork, Work tracedWork)
     return TRUE;
 
   /* Is there more work to do and more time to do it in? */
-  moreTime = (ClockNow() - start) < ArenaPauseTime(arena) * ClocksPerSec();
+  moreTime = (double)(ClockNow() - start)
+    < ArenaPauseTime(arena) * (double)ClocksPerSec();
   if (moreWork && moreTime)
     return TRUE;
 
@@ -410,41 +414,29 @@ Bool PolicyPollAgain(Arena arena, Clock start, Bool moreWork, Work tracedWork)
 
 /* C. COPYRIGHT AND LICENSE
  *
- * Copyright (C) 2001-2018 Ravenbrook Limited <http://www.ravenbrook.com/>.
- * All rights reserved.  This is an open source license.  Contact
- * Ravenbrook for commercial licensing options.
+ * Copyright (C) 2001-2020 Ravenbrook Limited <https://www.ravenbrook.com/>.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are
  * met:
  *
  * 1. Redistributions of source code must retain the above copyright
- * notice, this list of conditions and the following disclaimer.
+ *    notice, this list of conditions and the following disclaimer.
  *
  * 2. Redistributions in binary form must reproduce the above copyright
- * notice, this list of conditions and the following disclaimer in the
- * documentation and/or other materials provided with the distribution.
- *
- * 3. Redistributions in any form must be accompanied by information on how
- * to obtain complete source code for this software and any accompanying
- * software that uses this software.  The source code must either be
- * included in the distribution or be available for no more than the cost
- * of distribution plus a nominal fee, and must be freely redistributable
- * under reasonable conditions.  For an executable file, complete source
- * code means the source code for all modules it contains. It does not
- * include source code for modules or files that typically accompany the
- * major components of the operating system on which the executable file
- * runs.
+ *    notice, this list of conditions and the following disclaimer in the
+ *    documentation and/or other materials provided with the
+ *    distribution.
  *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS
  * IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
- * TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR
- * PURPOSE, OR NON-INFRINGEMENT, ARE DISCLAIMED. IN NO EVENT SHALL THE
- * COPYRIGHT HOLDERS AND CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
- * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
- * NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF
- * USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON
- * ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
- * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
- * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ * TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
+ * PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+ * HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+ * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+ * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+ * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */

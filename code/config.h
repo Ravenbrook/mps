@@ -1,7 +1,7 @@
 /* config.h: MPS CONFIGURATION
  *
  * $Id$
- * Copyright (c) 2001-2018 Ravenbrook Limited.  See end of file for license.
+ * Copyright (c) 2001-2020 Ravenbrook Limited.  See end of file for license.
  * Portions copyright (c) 2002 Global Graphics Software.
  *
  * PURPOSE
@@ -152,7 +152,7 @@
 #endif
 
 
-/* CONFIG_PF_ANSI -- use the ANSI platform 
+/* CONFIG_PF_ANSI -- use the ANSI platform
  *
  * This symbol tells mps.c to exclude the sources for the
  * auto-detected platform, and use the generic ("ANSI") platform
@@ -576,7 +576,13 @@
    things like thread states.  These definitions fix that. */
 
 #if defined(MPS_OS_XC)
-#if defined(MPS_ARCH_I6)
+#if defined(MPS_ARCH_A6)
+
+#define THREAD_STATE_COUNT ARM_THREAD_STATE64_COUNT
+#define THREAD_STATE_FLAVOR ARM_THREAD_STATE64
+#define THREAD_STATE_S arm_thread_state64_t
+
+#elif defined(MPS_ARCH_I6)
 
 #define THREAD_STATE_COUNT x86_THREAD_STATE64_COUNT
 #define THREAD_STATE_FLAVOR x86_THREAD_STATE64
@@ -626,10 +632,6 @@
 #define TraceLIMIT ((size_t)1)
 /* I count 4 function calls to scan, 10 to copy. */
 #define TraceCopyScanRATIO (1.5)
-
-/* Chosen so that the RememberedSummaryBlockStruct packs nicely into
-   pages */
-#define RememberedSummaryBLOCK 15
 
 
 /* Events
@@ -708,46 +710,47 @@
 #define WB_DEFER_HIT   1  /* boring scans after barrier hit */
 
 
+/* Apple Hardened Runtime
+ *
+ * The MAYBE_HARDENED_RUNTIME macro is true if Apple's "Hardened
+ * Runtime" feature may be enabled, and so calls to mmap() and
+ * mprotect() with PROT_WRITE | PROT_EXEC may fail with EACCES.
+ * See <design/prot#impl.xc.prot.exec> for details.
+ */
+#if defined(MPS_OS_XC) && defined(MPS_ARCH_A6)
+#define MAYBE_HARDENED_RUNTIME 1
+#else
+#define MAYBE_HARDENED_RUNTIME 0
+#endif
+
 #endif /* config_h */
 
 
 /* C. COPYRIGHT AND LICENSE
  *
- * Copyright (C) 2001-2018 Ravenbrook Limited <https://www.ravenbrook.com/>.
- * All rights reserved.  This is an open source license.  Contact
- * Ravenbrook for commercial licensing options.
+ * Copyright (C) 2001-2020 Ravenbrook Limited <https://www.ravenbrook.com/>.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are
  * met:
  *
  * 1. Redistributions of source code must retain the above copyright
- * notice, this list of conditions and the following disclaimer.
+ *    notice, this list of conditions and the following disclaimer.
  *
  * 2. Redistributions in binary form must reproduce the above copyright
- * notice, this list of conditions and the following disclaimer in the
- * documentation and/or other materials provided with the distribution.
- *
- * 3. Redistributions in any form must be accompanied by information on how
- * to obtain complete source code for this software and any accompanying
- * software that uses this software.  The source code must either be
- * included in the distribution or be available for no more than the cost
- * of distribution plus a nominal fee, and must be freely redistributable
- * under reasonable conditions.  For an executable file, complete source
- * code means the source code for all modules it contains. It does not
- * include source code for modules or files that typically accompany the
- * major components of the operating system on which the executable file
- * runs.
+ *    notice, this list of conditions and the following disclaimer in the
+ *    documentation and/or other materials provided with the
+ *    distribution.
  *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS
  * IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
- * TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR
- * PURPOSE, OR NON-INFRINGEMENT, ARE DISCLAIMED. IN NO EVENT SHALL THE
- * COPYRIGHT HOLDERS AND CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
- * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
- * NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF
- * USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON
- * ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
- * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
- * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ * TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
+ * PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+ * HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+ * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+ * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+ * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */

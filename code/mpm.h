@@ -1,7 +1,7 @@
 /* mpm.h: MEMORY POOL MANAGER DEFINITIONS
  *
  * $Id$
- * Copyright (c) 2001-2018 Ravenbrook Limited.  See end of file for license.
+ * Copyright (c) 2001-2020 Ravenbrook Limited.  See end of file for license.
  * Portions copyright (C) 2002 Global Graphics Software.
  *
  * .trans.bufferinit: The Buffer data structure has an Init field and
@@ -341,19 +341,26 @@ extern const char *MessageNoGCStartWhy(Message message);
 #define TraceSetComp(ts)            BS_COMP(ts)
 
 #define TRACE_SET_ITER(ti, trace, ts, arena) \
-  for(ti = 0, trace = ArenaTrace(arena, ti); ti < TraceLIMIT; \
-      ++ti, trace = ArenaTrace(arena, ti)) BEGIN \
-    if (TraceSetIsMember(ts, trace)) {
+  BEGIN \
+    for (ti = 0; ti < TraceLIMIT; ++ti) { \
+      trace = ArenaTrace(arena, ti); \
+      if (TraceSetIsMember(ts, trace)) {
 
-#define TRACE_SET_ITER_END(ti, trace, ts, arena) } END
+#define TRACE_SET_ITER_END(ti, trace, ts, arena) \
+      } \
+    } \
+  END
 
 
 extern void ScanStateInit(ScanState ss, TraceSet ts, Arena arena,
                           Rank rank, ZoneSet white);
+extern void ScanStateInitSeg(ScanState ss, TraceSet ts, Arena arena,
+                             Rank rank, ZoneSet white, Seg seg);
 extern void ScanStateFinish(ScanState ss);
 extern Bool ScanStateCheck(ScanState ss);
 extern void ScanStateSetSummary(ScanState ss, RefSet summary);
 extern void ScanStateGetSummary(RefSet summaryReturn, ScanState ss);
+extern void ScanStateUpdateSummary(ScanState ss, Seg seg, Bool wasTotal);
 
 /* See impl.h.mpmst.ss */
 #define ScanStateZoneShift(ss)             ((Shift)(ss)->ss_s._zs)
@@ -432,9 +439,9 @@ extern void TraceIdMessagesDestroy(Arena arena, TraceId ti);
    *(refIO) = SCANref, \
    SCANres)
 
-/* Equivalent to <code/mps.h> MPS_FIX */
+/* Equivalent to <code/mps.h> MPS_FIX12 */
 
-#define TRACE_FIX(ss, refIO) \
+#define TRACE_FIX12(ss, refIO) \
   (TRACE_FIX1(ss, *(refIO)) ? TRACE_FIX2(ss, refIO) : ResOK)
 
 /* Equivalent to <code/mps.h> MPS_SCAN_END */
@@ -445,6 +452,7 @@ extern void TraceIdMessagesDestroy(Arena arena, TraceId ti);
     } \
   END
 
+extern Res TraceScanFormat(ScanState ss, Addr base, Addr limit);
 extern Res TraceScanArea(ScanState ss, Word *base, Word *limit,
                          mps_area_scan_t scan_area,
                          void *closure);
@@ -465,7 +473,7 @@ extern Res ArenaDescribe(Arena arena, mps_lib_FILE *stream, Count depth);
 extern Res ArenaDescribeTracts(Arena arena, mps_lib_FILE *stream, Count depth);
 extern Bool ArenaAccess(Addr addr, AccessSet mode, MutatorContext context);
 extern Res ArenaFreeLandInsert(Arena arena, Addr base, Addr limit);
-extern void ArenaFreeLandDelete(Arena arena, Addr base, Addr limit);
+extern Res ArenaFreeLandDelete(Arena arena, Addr base, Addr limit);
 
 extern Bool GlobalsCheck(Globals arena);
 extern Res GlobalsInit(Globals arena);
@@ -473,7 +481,6 @@ extern void GlobalsFinish(Globals arena);
 extern Res GlobalsCompleteCreate(Globals arenaGlobals);
 extern void GlobalsPrepareToDestroy(Globals arenaGlobals);
 extern Res GlobalsDescribe(Globals arena, mps_lib_FILE *stream, Count depth);
-extern Ring GlobalsRememberedSummaryRing(Globals);
 extern void GlobalsArenaMap(void (*func)(Arena arena));
 extern void GlobalsClaimAll(void);
 extern void GlobalsReleaseAll(void);
@@ -525,8 +532,6 @@ extern void ArenaClamp(Globals globals);
 extern void ArenaRelease(Globals globals);
 extern void ArenaPark(Globals globals);
 extern void ArenaPostmortem(Globals globals);
-extern void ArenaExposeRemember(Globals globals, Bool remember);
-extern void ArenaRestoreProtection(Globals globals);
 extern Res ArenaStartCollect(Globals globals, TraceStartWhy why);
 extern Res ArenaCollect(Globals globals, TraceStartWhy why);
 extern Bool ArenaBusy(Arena arena);
@@ -576,8 +581,8 @@ extern Size ArenaCommitted(Arena arena);
 extern Size ArenaSpareCommitted(Arena arena);
 extern double ArenaSpare(Arena arena);
 extern void ArenaSetSpare(Arena arena, double spare);
-#define ArenaSpareCommitLimit(arena) ((Size)(ArenaCommitted(arena) * ArenaSpare(arena)))
-#define ArenaCurrentSpare(arena) ((double)ArenaSpareCommitted(arena) / ArenaCommitted(arena))
+#define ArenaSpareCommitLimit(arena) ((Size)((double)ArenaCommitted(arena) * ArenaSpare(arena)))
+#define ArenaCurrentSpare(arena) ((double)ArenaSpareCommitted(arena) / (double)ArenaCommitted(arena))
 
 extern Size ArenaCommitLimit(Arena arena);
 extern Res ArenaSetCommitLimit(Arena arena, Size limit);
@@ -806,7 +811,7 @@ extern Res FormatCreate(Format *formatReturn, Arena arena, ArgList args);
 extern void FormatDestroy(Format format);
 extern Arena FormatArena(Format format);
 extern Res FormatDescribe(Format format, mps_lib_FILE *stream, Count depth);
-extern Res FormatScan(Format format, ScanState ss, Addr base, Addr limit);
+extern mps_res_t FormatNoScan(mps_ss_t mps_ss, mps_addr_t base, mps_addr_t limit);
 
 
 /* Reference Interface -- see <code/ref.c> */
@@ -1047,41 +1052,29 @@ DECLARE_CLASS(Land, Land, Inst);
 
 /* C. COPYRIGHT AND LICENSE
  *
- * Copyright (C) 2001-2018 Ravenbrook Limited <http://www.ravenbrook.com/>.
- * All rights reserved.  This is an open source license.  Contact
- * Ravenbrook for commercial licensing options.
- * 
+ * Copyright (C) 2001-2020 Ravenbrook Limited <https://www.ravenbrook.com/>.
+ *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are
  * met:
- * 
+ *
  * 1. Redistributions of source code must retain the above copyright
- * notice, this list of conditions and the following disclaimer.
- * 
+ *    notice, this list of conditions and the following disclaimer.
+ *
  * 2. Redistributions in binary form must reproduce the above copyright
- * notice, this list of conditions and the following disclaimer in the
- * documentation and/or other materials provided with the distribution.
- * 
- * 3. Redistributions in any form must be accompanied by information on how
- * to obtain complete source code for this software and any accompanying
- * software that uses this software.  The source code must either be
- * included in the distribution or be available for no more than the cost
- * of distribution plus a nominal fee, and must be freely redistributable
- * under reasonable conditions.  For an executable file, complete source
- * code means the source code for all modules it contains. It does not
- * include source code for modules or files that typically accompany the
- * major components of the operating system on which the executable file
- * runs.
- * 
+ *    notice, this list of conditions and the following disclaimer in the
+ *    documentation and/or other materials provided with the
+ *    distribution.
+ *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS
  * IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
- * TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR
- * PURPOSE, OR NON-INFRINGEMENT, ARE DISCLAIMED. IN NO EVENT SHALL THE
- * COPYRIGHT HOLDERS AND CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
- * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
- * NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF
- * USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON
- * ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
- * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
- * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ * TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
+ * PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+ * HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+ * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+ * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+ * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */

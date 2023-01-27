@@ -1,7 +1,7 @@
 /* protix.c: PROTECTION FOR UNIX
  *
  *  $Id$
- *  Copyright (c) 2001-2018 Ravenbrook Limited.  See end of file for license.
+ *  Copyright (c) 2001-2020 Ravenbrook Limited.  See end of file for license.
  *
  *  Somewhat generic across different Unix systems.  Shared between
  *  macOS, FreeBSD, and Linux.
@@ -41,12 +41,24 @@
 
 #include "vm.h"
 
+#include <errno.h>
 #include <limits.h>
+#include <signal.h> /* sig_atomic_t */
 #include <stddef.h>
 #include <sys/mman.h>
 #include <sys/types.h>
 
 SRCID(protix, "$Id$");
+
+
+/* Value for memory protection corresponding to AccessSetEMPTY.
+ * See .convert.access for an explanation of the conversion.
+ * We use a global variable and not a constant so that we can clear
+ * the executable flag from future requests if Apple Hardened Runtime
+ * is detected. See <design/prot#impl.xc.prot.exec> for details. */
+
+static sig_atomic_t prot_all = PROT_READ | PROT_WRITE | PROT_EXEC;
+
 
 /* ProtSet -- set protection
  *
@@ -55,7 +67,7 @@ SRCID(protix, "$Id$");
 
 void ProtSet(Addr base, Addr limit, AccessSet mode)
 {
-  int flags;
+  int flags, result;
 
   AVER(sizeof(size_t) == sizeof(Addr));
   AVER(base < limit);
@@ -63,7 +75,7 @@ void ProtSet(Addr base, Addr limit, AccessSet mode)
   AVER(AddrOffset(base, limit) <= INT_MAX);     /* should be redundant */
   AVERT(AccessSet, mode);
 
-  /* Convert between MPS AccessSet and UNIX PROT thingies.
+  /* .convert.access: Convert between MPS AccessSet and UNIX PROT thingies.
      In this function, AccessREAD means protect against read accesses
      (disallow them).  PROT_READ means allow read accesses.  Notice that
      this follows a difference in contract as well as style.  AccessREAD
@@ -82,7 +94,7 @@ void ProtSet(Addr base, Addr limit, AccessSet mode)
     flags = PROT_READ | PROT_EXEC;
     break;
   case AccessSetEMPTY:
-    flags = PROT_READ | PROT_WRITE | PROT_EXEC;
+    flags = (int)prot_all; /* potential narrowing cast, but safe */
     break;
   default:
     NOTREACHED;
@@ -90,7 +102,18 @@ void ProtSet(Addr base, Addr limit, AccessSet mode)
   }
 
   /* .assume.mprotect.base */
-  if(mprotect((void *)base, (size_t)AddrOffset(base, limit), flags) != 0)
+  result = mprotect((void *)base, (size_t)AddrOffset(base, limit), flags);
+  if (MAYBE_HARDENED_RUNTIME && result != 0 && errno == EACCES
+      && (flags & PROT_WRITE) && (flags & PROT_EXEC))
+  {
+    /* Apple Hardened Runtime is enabled, so that we cannot have
+     * memory that is simultaneously writable and executable. Handle
+     * this by dropping the executable part of the request. See
+     * <design/prot#impl.xc.prot.exec> for details. */
+    prot_all = PROT_READ | PROT_WRITE;
+    result = mprotect((void *)base, (size_t)AddrOffset(base, limit), flags & prot_all);
+  }
+  if (result != 0)
     NOTREACHED;
 }
 
@@ -118,41 +141,29 @@ Size ProtGranularity(void)
 
 /* C. COPYRIGHT AND LICENSE
  *
- * Copyright (C) 2001-2018 Ravenbrook Limited <http://www.ravenbrook.com/>.
- * All rights reserved.  This is an open source license.  Contact
- * Ravenbrook for commercial licensing options.
- * 
+ * Copyright (C) 2001-2020 Ravenbrook Limited <https://www.ravenbrook.com/>.
+ *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are
  * met:
- * 
+ *
  * 1. Redistributions of source code must retain the above copyright
- * notice, this list of conditions and the following disclaimer.
- * 
+ *    notice, this list of conditions and the following disclaimer.
+ *
  * 2. Redistributions in binary form must reproduce the above copyright
- * notice, this list of conditions and the following disclaimer in the
- * documentation and/or other materials provided with the distribution.
- * 
- * 3. Redistributions in any form must be accompanied by information on how
- * to obtain complete source code for this software and any accompanying
- * software that uses this software.  The source code must either be
- * included in the distribution or be available for no more than the cost
- * of distribution plus a nominal fee, and must be freely redistributable
- * under reasonable conditions.  For an executable file, complete source
- * code means the source code for all modules it contains. It does not
- * include source code for modules or files that typically accompany the
- * major components of the operating system on which the executable file
- * runs.
- * 
+ *    notice, this list of conditions and the following disclaimer in the
+ *    documentation and/or other materials provided with the
+ *    distribution.
+ *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS
  * IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
- * TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR
- * PURPOSE, OR NON-INFRINGEMENT, ARE DISCLAIMED. IN NO EVENT SHALL THE
- * COPYRIGHT HOLDERS AND CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
- * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
- * NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF
- * USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON
- * ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
- * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
- * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ * TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
+ * PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+ * HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+ * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+ * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+ * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
