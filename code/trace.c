@@ -1167,20 +1167,18 @@ void ScanStateUpdateSummary(ScanState ss, Seg seg, Bool wasTotal)
 
   /* Only apply the write barrier if it is not deferred. */
   if (seg->defer == 0) {
-    RefSetStruct ssSummary;
-
-    /* If we scanned every reference in the segment then we have a
-       complete summary we can set. Otherwise, we just have
-       information about more zones that the segment refers to. */
-    ScanStateGetSummary(&ssSummary, ss);
-    if (wasTotal) {
-      /* all objects on segment have been scanned, so... */
-      /* scanned summary should replace the segment summary. */
-      RefSetCopy(&summary, &ssSummary);
-    } else {
-      /* scan was partial, so... */
-      /* scanned summary should be ORed into segment summary. */
-      RefSetUnion(&summary, &ssSummary);
+    /* If we scanned every reference in the segment then the scan
+       state has a complete summary of the segment, and we can set it
+       as the segment summary.  Otherwise, the scan state summary is
+       just information about additional references from the
+       segment. */
+    ScanStateGetSummary(&summary, ss);
+    if (!wasTotal) {
+      /* scan was partial, so union the scanned summary into the
+	 segment summary */
+      RefSetStruct segSummary;
+      SegGetSummary(&segSummary, seg);
+      RefSetUnion(&summary, &segSummary);
     }
   } else {
     RefSetCopy(&summary, RefSetUniv);
