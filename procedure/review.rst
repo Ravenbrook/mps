@@ -813,6 +813,11 @@ _`.edit.log`: The log should be placed in the edit section of the
 review document.  The review document for a document of tag <tag> and
 revision <revision> will be review.<tag>.<revision>.
 
+[On GitHub, the edit log might include review and other comments
+displayed in the pull request.  These can have responses and be
+closed.  In this case, a separate log may not be necessary.  RB
+2023-01-28]
+
 _`.edit.order`: The log should be in numerical order, one issue per line.
 
 _`.edit.extra`: You may make corrections to defects which you spot
