@@ -179,8 +179,8 @@ has a procedure.  The phases involve varying groups of people
 (`.role`_) and have diverse purposes.
 
 _`.phase.handbook`: This section can be used as a short "handbook" for
-people who are very familiar with the procedure.  (Compare with "A
-one-page inspection handbook" [Gilb_93]_.)
+people who have learned the procedure.  (Compare with "A one-page
+inspection handbook" [Gilb_93]_.)
 
 _`.phase.order`: To review a change, the following procedures are
 executed roughly in the order below.
@@ -209,8 +209,8 @@ executed roughly in the order below.
 
 #. _`.phase.log`: `.role.leader`_, `.role.scribe`_, and
    `.role.checker`_ together execute `.log`_ to share and record what
-   has been found, and to find more major defects, stimulated by what
-   has been found so far.  `.phase.check`_ continues during this
+   has been found, and to find more `major defects`_, stimulated by
+   what has been found so far.  `.phase.check`_ continues during this
    phase.
 
 #. _`.phase.brainstorm`: `.role.leader`_, `.role.scribe`_, and
