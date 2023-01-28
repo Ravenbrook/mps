@@ -393,52 +393,65 @@ need (the change, source documents, rules, etc.)
 5.3. Review Kickoff
 -------------------
 
-[Sourced from [MM_proc.review.ko]_ and needs updating.  RB 2023-01-21]
-
 _`.ko`: `.role.leader`_ holds the *review kickoff* meeting to ensure
 that the review begins, and that everyone involved has what they need
 to perform their roles.
 
+_`.ko.record`: Record the kickoff procedure.
 
-5.3.1. In Advance
-.................
+- On GitHub, you can start a comment on the pull request.
 
-[This section moved to .plan.doc and .plan.train.  RB 2023-01-21]
+- Record the procedure you're following (this one).  Use a permalink.
+  For example::
 
+    Executing [review kickoff](https://github.com/Ravenbrook/mps/blob/b2050e2cf69029fc13c31a724421945952d3fab2/procedure/review.rst#53-review-kickoff)
 
-5.3.2. At The Meeting
-.....................
+_`.ko.doc`: Checks that every checker has all the documents they need.
 
-_`.ko.record`: Times, objectives, and anything else appropriate should all be 
-recorded in the review record.
+_`.ko.intro`: Optionally, ask the author for a short (one minute)
+introduction to the change.
 
-_`.ko.doc.check`: In the meeting, the leader checks that all checkers have access to 
-all necessary documents.
+- Listen for new information this reveals and start the `.log.record`_
+  early if there's anything that needs documenting, such as a hidden
+  assumption or requirement.  This happens!
 
-_`.ko.intro`: The leader may ask the author to prepare a short (one minute) 
-introduction to the product document.
-
-_`.ko.role`: The leader announces or negotiates any checking roles
-(`.role.check`_) they wish to assign, and ensures that checkers
-understand their assignments.
-
-_`.ko.improve`: The leader announces any relevant metrics and negotiates objectives.
-
-[How about asking people for suggestions or experiments?  RB 2023-01-23]
-
-_`.ko.log`: The leader announces the time of the logging meeting.  This should 
-normally be set at the estimate end of the kickoff meeting, plus the estimated 
-checking time, plus a short tea-break.  It should not normally be delayed to 
-another day.
-
-_`.ko.remind`: The leader reminds checkers of the purpose of review
+_`.ko.remind`: The leader reminds everyone of the purpose of review
 (see `2. Purpose`_).
 
-_`.ko.author`: The leader reminds the author that they can withdraw the
-document from review at any time.
+- Remind `.role.checker`_ that they are trying to find unique `major
+  defects`_ not found by other checkers.
 
-_`.ko.train.check`: The leader checks that checkers are familiar with their tasks and 
-solicits any questions or suggestions.
+- Remind `.role.checker`_ to avoid conferring until `.log`_.
+
+_`.ko.role`: Negotiate checking roles (`.role.check`_).
+
+- `.role.checker`_ can volunteer for roles based on how they feel at
+  the time.  Focus and enjoyment are important for good results.
+
+- Ensure checkers understand their checking roles.
+
+- Record who's doing what.
+
+_`.ko.train`: Offer private help to new `.role.checker`_ after `.ko`_
+so that you don't delay `.check`_.
+
+_`.ko.improve`: Announce any review metrics and negotiate review
+objectives.
+
+- Ask for suggestions or experiments with review procedure.
+
+- Record metrics and objectives.
+
+_`.ko.log`: Set a time for the logging meeting (`.log`_).
+
+- This should normally be set at the estimated end of `.ko`_, plus the
+  estimated checking time (see `.plan.time`_), plus a short break.
+  Avoid delay.
+
+_`.ko.author`: Reminds the author that they can withdraw the document
+from review at any time.
+
+_`.ko.go`: Send `.role.checker`_ away to start `.check`_.
 
 
 5.4. Review Checking
