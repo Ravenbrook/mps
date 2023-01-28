@@ -706,6 +706,12 @@ the end of the logging meeting.
 5.5.3. After The Meeting
 ........................
 
+[It should be possible to fail review at this stage, by estimating how
+many defects will remain even after editing.  See also `irreducible
+errors
+<https://en.wikipedia.org/wiki/The_Mythical_Man-Month#The_tendency_towards_irreducible_number_of_errors>`__.
+RB 2023-01-28]
+
 _`.log.inform`: The reviewed document is now ready for edit (see proc.review.edit).  
 The review leader should inform the editor of this by mail.
 
@@ -1012,53 +1018,59 @@ _`.pi.forget`: "Forget: <reason>"
 5.8. Review Exit
 ----------------
 
-[Sourced from [MM_proc.review.exit]_ and needs updating.  RB
-2023-01-21]
-
 _`.exit`: The *review exit procedure* is should be executed by
 `.role.leader`_ after editing (`.edit`_).  The purpose of exit is to
 determine whether the revised change passes review.
 
-[This text was in the phase section and may need to be incorporated here:
+_`.exit.record`: Record the exit procedure (`.doc.record`_).
 
-   The leader shall determine that some appropriate written action has
-   been taken on all logged issues.  The leader is not responsible for
-   the correctness (the editor is).
+- On GitHub, you can start a comment on the pull request.
 
-   The leader determines whether the formal exit criteria have been
-   met before signing off completion of the Inspection.  These include
-   follow-up completed, metrics delivered, planned rates kept to, and
-   level of remaining defects within acceptable bounds.
+- Record a the procedure you're following (this one).  Use a
+  permalink.  For example::
 
-RB 2023-01-23]
+    Executing (review exit)[https://github.com/Ravenbrook/mps/blob/645200a25e5e415a2a2978d550b5251e0284c43e/procedure/review.rst#58-review-exit]
 
-_`.exit.calc`: [Calculate and record final metrics using `.calc`_.  RB
-2023-01-26]
+_`.exit.check`: Check that the exit criteria hold (see
+`.entry.criteria`_).
 
-_`.exit.record`: [Include details of how to record exit.  RB
-2023-01-23]
+- Record any transgressions, like::
 
-_`.exit.check`: The leader checks that the document passes all
-relevant exit criteria.  These should be indicated in review record.
+    - exit.universal.quest: Question 5 answered in chat but not in docs.
  
-_`.exit.check.fix`: If it doesn't pass all exit criteria, but it is
-possible to fix it, he may either fix it himself, or return it to the
-editor.
+_`.exit.check.fix`: Fix transgressions, if it is feasible with low
+risk.  Otherwise ask `.role.editor`_ to fix them.  Record this action,
+and record edits in the same way as `.edit`_.
 
-_`.exit.check.fail`: If the document cannot be made to pass exit (if,
-say, there are two many estimated defects remaining), it may be passed
-back to development, and reviewed subsequently.  The document remains
-draft, and the review record becomes draft.  The reasons for failure
-should be documented in the review record.
+_`.exit.check.fail`: If transgressions remain, then the revised change
+is too defective.  It fails review and must not be used.
 
-_`.exit.check.pass`: If it passes all criteria, the leader sets the
-document status to "accepted" and the review record to "draft".  The
-date of exit and any notes should be recorded in the review record.
-The document is now suitable for release as appropriate.
+- Record this result, like::
 
-_`.exit.inform`: The leader should inform all review participants and
-some archived mailing list (such as "mm"), of the result of the
-review, and any notes that seem appropriate.
+    Revised change rejected.
+
+- Tell someone.  [Who and how?  RB 2023-01-28]
+
+_`.exit.check.pass`: Otherwise, the revised change passes review and
+can be used.
+
+- Record this result, like::
+
+    Revised change passed.
+
+- On GitHub, the approve the pull request for merge.
+
+- Tell the person who will put the change to use, such as someone who
+  will merge it to master.
+
+_`.exit.calc`: Calculate and record final review metrics (`.calc`_).  For example::
+
+  Hours used: 11
+  Hours saved: 70
+  Major defects remaining: 1.5
+
+_`.exit.inform`: Inform all review participants of the result of their
+efforts.
 
 
 6. Documents
@@ -1174,7 +1186,9 @@ should use the estimate <major defects found>/<number of pages>.  The
 obvious adjustment must be made for sampling.  The number of
 unresolved major issues (raised) should be added.  [In an ideal world,
 I believe we should know what proportion of major defects we find, and
-use that.  Perhaps we could use 75%? - GavinM]
+use that.  Perhaps we could use 75%? - GavinM] [Doesn't that mean we
+could determine whether a document fails review before `.edit`_?  RB
+2023-01-28]
 
 
 8. Checking Roles
@@ -1408,6 +1422,7 @@ B. Document History
                    from MM Group documents.
 2023-01-28  RB_    Developing the Rationale.
                    Tidying up remaining comments.
+                   Revising entry, planning, kickoff, and exit.
 ==========  =====  ==================================================
 
 .. _RB: mailto:rb@ravenbrook.com
