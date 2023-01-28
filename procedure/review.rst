@@ -23,8 +23,21 @@ Memory Pool System review procedure
 This is the procedure for reviewing a change to the MPS in order to
 prevent defects (`.purpose`_).
 
+This procedure may seem overwhelming at first, but it can be executed
+quickly [how quickly? kpa.qpm! RB 2023-01-21] once you have learned it
+[and how long does that take?  RB 2023-01-21].  [Insert example times
+here for different kinds of work.  RB 2023-01-21]
+
 [Insert time-to-execute estimates here based on measurements during
 testing of this procedure.  RB 2023-01-23.]
+
+This procedure requires *training*, preferably by an experienced
+review leader (`.role.leader`_).  At the very least, do not apply this
+procedure to risky changes without first:
+
+- reading and understanding the whole document and the related rules
+
+- practising it on low-risk changes
 
 This is a placeholder while we arrange to bring in documents from
 outside the MPS Git repository and tree.  For background, see `GitHub
@@ -39,26 +52,7 @@ no way specific to GitHub, Git, Perforce, or any other tool.
 This procedure was created by incorporating and updating review
 process documents from Ravenbrook and the Harlequin MM Group (see
 `A. References`_).  Those documents contain process improvements from
-thousands of hours of reviews.
-
-This procedure may seem overwhelming at first, but it can be executed
-quickly [how quickly? kpa.qpm! RB 2023-01-21] once you have learned it
-[and how long does that take?  RB 2023-01-21].  [Insert example times
-here for different kinds of work.  RB 2023-01-21]
-
-This procedure requires *training*, preferably by an experienced
-review leader (`.role.leader`_).  At the very least, do not apply this
-procedure to significant changes without first:
-
-- reading and understanding the whole document and the related rules
-
-- practising it on low-risk changes
-
-Hundreds of reviews have been conducted using it in the past, and
-every single one was profitable in terms of preventing defects versus
-cost of review [citation needed. RB 2023-01-21].  This is in part
-because *defects in garbage collectors are extremely expensive to
-fix*.
+hundreds of reviews and thousands of hours of effort.
 
 The process is largely derived from "Software Inspection" [Gilb_93]_.
 It was developed over years by Gavin Matthews of the Harlequin Memory
@@ -75,12 +69,10 @@ but also contributes a great deal to:
 [Notes for inclusion:
   - Review is not just (or even mostly) looking at diffs, though
     GitHub encourages this idea.
-  - History of MPS review.
-  - Why review is so important to the MPS.
   - Review is not just for code.
   - Check against book.gilb93.handbook [Gilb_93]_.
   - Check against kpa.pr, [CMU/SEI-93-TR-025]_, p L3-97
-  - proc.review.ref.]
+  - Review is about humans and mind tricks.]
 
 
 2. Purpose
@@ -106,8 +98,7 @@ _`.def.defect.major`: A major defect is a defect that
   -- `.class.major`_
 
 As with any procedure, you can vary this one to meet this purpose, but
-you should probably read section [Insert reference to Rationale here.
-RB 2023-01-20].
+you should probably read section `11. Rationale`_.
 
 
 3. Review Roles
@@ -1200,11 +1191,74 @@ the preceding.  It is important to mark new issues, in order to
 measure how worthwhile group logging sessions are (see `.log.just`_).
 
 
+11. Rationale
+=============
+
+Formal review is the key to the quality of the Memory Pool System.
+
+A full justification of the review process described by this procedure
+is not feasible here.  There are three sources:
+
+1. the process improvement history of the Memory Pool System project,
+
+2. Software Inspection [Gilb_93]_,
+
+3. the analysis work behind the Capability Maturity Model
+   [CMU/SEI-93-TR-024]_.
+
+Of these, (1) is unfortunately the least accessible, because the
+documents have travelled through several different systems, and
+version control did not always survive.
+
+
+11.1. Why formal reviews?
+-------------------------
+
+Ravenbrook does have hundreds of archived review records [MM_reviews]_
+with estimates of review productivity (produced by
+`.phase.estimation`_).  [At some point it would be good to summarize
+those here.  RB 2023-01-28]
+
+Every formal review has been worthwhile in terms of preventing defects
+versus the cost of review.
+
+The Harlequin MM Group adopted code review in the mid 1990s -- early
+compared to most of the industry.  Casual code reviews (where someone
+eyeballs diffs) have become standard practice for many projects, and
+it's quite hard to imagine a time without them.  However, full-on
+formal reviews or inspections are still relatively rare.
+
+Formal review is appropriate for the MPS because defects in memory
+managers, and especially in garbage collectors, are *extremely*
+expensive to find and fix compared to other software.
+
+It's the job of a garbage collector to destroy information by
+recycling (overwriting) objects and reorganizing memory.  A subtle
+failure of GC logic can cause a failure in the client software hours
+later.  When that failure happens to a user of an application
+delivered by developers using a compiler developed by your client that
+uses the MPS in its runtime system, well, forget about it.  A defect
+in the compiler (usually considered expensive) is relatively cheap!
+
+This means that the cost of `major defects`_ escalates *much* more
+steeply for the MPS than most software, so it is especially worthwhile
+to catch them early in the development process.
+
+Even testing is too late.
+
+
 A. References
 =============
 
+.. [CMU/SEI-93-TR-024] "Capability Maturity Model for Software,
+		       Version 1.1"; Mark C. Paulk, Bill Curtis, Mary
+		       Beth Chrissis, Charles V. Weber; Software
+		       Engineering Institute, Carnegie Mellon
+		       University; 1993-02;
+		       <https://resources.sei.cmu.edu/library/asset-view.cfm?assetid=11955>.
+
 .. [CMU/SEI-93-TR-025] "Key Practices of the Capability Maturity
-                       ModelSM, Version 1.1"; Mark C. Paulk,
+                       Model, Version 1.1"; Mark C. Paulk,
                        Charles V. Weber, Suzanne M. Garcia, Mary Beth
                        Chrissis, Marilyn Bush; Software Engineering
                        Institute, Carnegie Mellon University; 1993-02;
@@ -1253,6 +1307,10 @@ A. References
 			mminfo:proc.review.log;
 			//info.ravenbrook.com/project/mps/doc/2002-06-18/obsolete-mminfo/mminfo/proc/review/log/index.txt#1
 
+.. [MM_reviews] Review records of the MM Group; Harlequin Limited;
+		mminfo:review.*;
+		//info.ravenbrook.com/project/mps/doc/2002-06-18/obsolete-mminfo/mminfo/review/...
+
 
 B. Document History
 ===================
@@ -1262,6 +1320,8 @@ B. Document History
 2023-01-20  RB_    Importing material from MM Group proc.review.
 2023-01-26  RB_    Importing checking roles and issue classification
                    from MM Group documents.
+2023-01-28  RB_    Developing the Rationale.
+                   Tidying up remaining comments.
 ==========  =====  ==================================================
 
 .. _RB: mailto:rb@ravenbrook.com
