@@ -11,12 +11,17 @@ Memory Pool System review procedure
 :readership: MPS developers, [incorporate roles. RB 2023-01-20]
 :status: draft
 
+.. TODO: Consistent terminology for the work under review, rather than
+   "change", "work", "product document", etc.
+
+.. TODO: Check against book.gilb93.proc.* and consider dividing
+   procedures by role.
 
 1. Introduction
 ===============
 
 This is the procedure for reviewing a change to the MPS in order to
-`prevent defects <2. Purpose>`_.
+prevent defects (`.purpose`_).
 
 [Insert time-to-execute estimates here based on measurements during
 testing of this procedure.  RB 2023-01-23.]
@@ -31,10 +36,10 @@ Perforce to Git (and GitHub)
 give specifics on conducting review via GitHub.  But the process is in
 no way specific to GitHub, Git, Perforce, or any other tool.
 
-This procedure was created by locating `review process documents from
-the Harlequin MM Group <A. References>`_, incorporating the wisdom
-from thousands of hours of reviews.  The text was then edited to
-bring it up to date with current terms and tools.
+This procedure was created by incorporating and updating review
+process documents from Ravenbrook and the Harlequin MM Group (see
+`A. References`_).  Those documents contain process improvements from
+thousands of hours of reviews.
 
 This procedure may seem overwhelming at first, but it can be executed
 quickly [how quickly? kpa.qpm! RB 2023-01-21] once you have learned it
@@ -81,7 +86,7 @@ but also contributes a great deal to:
 2. Purpose
 ==========
 
-The purpose of the review procedure is:
+_`.purpose`: The purpose of the review procedure is:
 
 1. _`.goal.fix`: find and correct `major defects`_
 
@@ -118,9 +123,6 @@ done.
 
 _`.role.everyone`: Every person taking part in review should be assigned at
 least one role, to make it clear what they need to do.
-
-[See also book.gilb93.proc.* to cover what roles need to do during
-phases.  RB 2023-01-20]
 
 _`.role.leader`: The *leader* organises and plans the review, and
 ensures the procedures are executed.  The leader is responsible for
@@ -1201,7 +1203,7 @@ measure how worthwhile group logging sessions are (see `.log.just`_).
 A. References
 =============
 
-.. [CMU/SEU-93-TR-025] "Key Practices of the Capability Maturity
+.. [CMU/SEI-93-TR-025] "Key Practices of the Capability Maturity
                        ModelSM, Version 1.1"; Mark C. Paulk,
                        Charles V. Weber, Suzanne M. Garcia, Mary Beth
                        Chrissis, Marilyn Bush; Software Engineering
