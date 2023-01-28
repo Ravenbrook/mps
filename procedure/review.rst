@@ -54,9 +54,11 @@ process documents from Ravenbrook and the Harlequin MM Group (see
 `A. References`_).  Those documents contain process improvements from
 hundreds of reviews and thousands of hours of effort.
 
-The process is largely derived from "Software Inspection" [Gilb_93]_.
-It was developed over years by Gavin Matthews of the Harlequin Memory
-Management Group, who was eventually trained in the art.
+The process is largely derived from "Software Inspection" [Gilb_93]_,
+which was itself developed from `Fagan inspection
+<https://en.wikipedia.org/wiki/Fagan_inspection>`__.  It was developed
+over years by Gavin Matthews of the Harlequin Memory Management Group,
+a trained inspection leader.
 
 The process is an example of "Peer Review" (kpa.pr), a key process
 area of level 3 of the Capability Maturity Model [CMU/SEI-93-TR-025]_,
