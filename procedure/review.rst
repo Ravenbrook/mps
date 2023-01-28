@@ -275,6 +275,11 @@ _`.entry.change`: Record exactly what the change is.
 
 _`.entry.criteria`: Determine and record the entry and exit criteria.
 
+- The change *must* include (or permanently link to) the the reason
+  the change is needed, expressed in terms of requirements.  On
+  GitHub, should be the GitHub issue linked from the pull request.
+  [This could be in `entry.universal`_.  RB 2023-01-28]
+
 - `entry.universal`_ and `exit.universal`_ always apply.
 
 - Add criteria for the types of documents altered by the change (code,
@@ -304,43 +309,85 @@ _`.planning`: The *review planning procedure* should be executed when
 a change has passed `.entry`_.  The purpose of planning is to prepare
 the review and arrange for it to happen.
 
-_`.plan.record`: Create a record for the procedure.  On GitHub, you
-can start a comment on the pull request.  Record a *permalink* to the
-procedure you're following (this one) like::
+_`.plan.record`: Record the planning procedure.
 
-  Executing [review planning](https://github.com/Ravenbrook/mps/blob/d4ef690a7f2a3d3d6d0ed496eff46e09841b8633/procedure/review.rst#52-review-planning)
+- On GitHub, you can start a comment on the pull request.
 
-_`.plan.time`: Estimate the checking rate and time.  A single review
-should not have a checking time of more than one hour.  Record your
-estimate.  [Insert example GitHub comment.]
+- Record the procedure you're following (this one).  Use a permalink.
+  For example::
+
+    Executing [review planning](https://github.com/Ravenbrook/mps/blob/d4ef690a7f2a3d3d6d0ed496eff46e09841b8633/procedure/review.rst#52-review-planning)
+
+_`.plan.time`: Estimate the checking rate and time.
+
+- `.phase.check`_ should last more than one hour, so that checkers can
+  maintain concentration.  It may be necessary to plan multiple review
+  sessions.
+
+- Record your estimates.  For example::
+
+    Executing [review planning](https://github.com/Ravenbrook/mps/blob/d4ef690a7f2a3d3d6d0ed496eff46e09841b8633/procedure/review.rst#52-review-planning)
+
+    - proc.review.plan.time: About 500 lines of code @ 10 lines/minute
+      so about 50 mins of checking. 
 
 _`.plan.schedule`: Plan when this review may take place and who should
-attend.  Check with attendees if appropriate.  Record like::
+attend.  Check with attendees if appropriate.
 
-  @thejayps and @UNAA008 will review 2023-01-23 11:00 for about 2h.
+- Record like::
 
-_`.plan.source`: Determine and record the source documents
-(`.doc.source`_).  This *must* include the the reason the change is
-needed in terms of requirements.  [Entry should've ensured this.  RB
-2023-01-23]  On GitHub, this can be the GitHub issue linked from the
-pull request.
+    - @thejayps and @UNAA008 will review 2023-01-23 11:00 for about 2h.
+
+_`.plan.train`: Ensure that all participants are familiar with the
+review process.
+
+- Brief anyone new to the process about how it works and what is
+  expected of them.
+
+- Ensure that they have the process documents.
+
+- Allow extra time for training.
+
+_`.plan.source`: Determine and record the source documents that could
+be used for checking (`.doc.source`_).
+
+- Always include issues resolved or partially resolved by the change.
+  There must be at least one (ensured by `.entry.criteria`_).
+
+- Consider requirements, issues, designs, analysis, discussions,
+  records of failures (e.g. in email messages), user documentation,
+  standards.
 
 _`.plan.rule`: Determine and record the rules to apply (`.doc.rule`_).
-You can use the entry criteria recorded by `.entry.criteria`_ to
-select rule sets [from where?  RB 2023-01-23], but also consider the
-list of rule sets [where? RB 2023-01-23].  [We might want e.g. rules
-that apply to the critical path.  RB 2023-01-23]
+
+- Add rules for the types od documents altered by the change (code,
+  design, etc.) from the `procedure directory`_.
+
+- Also select other rules that apply from the `procedure directory`_,
+  for example special rules that apply to the critical path.  [Needs
+  example.  RB 2023-01-28]
 
 _`.plan.check`: Determine and record the checklists to apply [how and
 from where?  RB 2023-01-23].
 
 _`.plan.roles`: Determine and record the checking roles
-(`.role.check`_) to assign [how?  RB 2023-01-23].  [The leader and
-scribe will be somewhat occupied during logging.  RB 2023-01-23]
-[Always try to assign the backwards role.  RB 2023-01-23]
+(`.role.check`_) to assign.
+
+- Choose checking roles that are most likely to find `major defects`_
+  in the type of change under review.
+
+- Always try to assign `.role.check.backwards`_ or a similar
+  out-of-order sampling method, to help find defects in all parts of
+  the change.
+
+- Bear in mind that `.role.leader`_ and `.role.scribe`_ will be
+  somewhat occupied during logging and less able to check.
 
 _`.plan.invite`: Invite the checkers (`.role.checker`_) to the kickoff
 meeting (`.ko`_).
+
+_`.plan.doc`: Ensure that `.role.checker`_ have all the documents they
+need (the change, source documents, rules, etc.)
 
 
 5.3. Review Kickoff
@@ -350,21 +397,13 @@ meeting (`.ko`_).
 
 _`.ko`: `.role.leader`_ holds the *review kickoff* meeting to ensure
 that the review begins, and that everyone involved has what they need
-to carry out their roles.
+to perform their roles.
 
 
 5.3.1. In Advance
 .................
 
-[This section could be moved to the planning phase.  RB 2023-01-21]
-
-_`.ko.doc.prep`: In advance of the meeting, the leader ensures that checkers have 
-access to the necessary documents, either by supplying them with physical 
-copies, or by advising them of the documents in advance.
-
-_`.ko.train.prep`: If any checkers are not familiar with formal review, the leader 
-should ensure that they are briefed, and supplied with the relevant process 
-documents.
+[This section moved to .plan.doc and .plan.train.  RB 2023-01-21]
 
 
 5.3.2. At The Meeting
@@ -1009,6 +1048,9 @@ _`.doc.source`: Source document
 
   A document from which the product document is derived.  Note that
   this is nothing to do with source code.
+
+  [Give examples: issues, designs, user documentation, failure reports
+  (e.g. in email), standards.  RB 2023-01-28]
 
 _`.doc.product`: Product document
 
