@@ -233,11 +233,10 @@ executed roughly in the order below.
 #. _`.phase.pi`: `.role.improver`_ executes `.pi`_ to prevent `major
    defects`_ by correcting *causes*.
 
-#. _`.phase.exit`: `.role.editor`_ and `.role.leader`_ perform
-   `.exit`_.  If the revised change does not meet the exit criteria
-   then it fails review.  Otherwise it passes and can go on to be
-   used, e.g. by being merged into the master codeline
-   (`proc.merge.pull-request`_).
+#. _`.phase.exit`: `.role.leader`_ executes `.exit`_.  If the revised
+   change does not meet the exit criteria then it fails review.
+   Otherwise it passes and can go on to be used, e.g. by being merged
+   into the master codeline (`proc.merge.pull-request`_).
 
 .. _proc.merge.pull-request: pull-request-merge.rst
 
@@ -406,7 +405,7 @@ _`.ko.record`: Record the kickoff procedure.
 
     Executing [review kickoff](https://github.com/Ravenbrook/mps/blob/b2050e2cf69029fc13c31a724421945952d3fab2/procedure/review.rst#53-review-kickoff)
 
-_`.ko.doc`: Checks that every checker has all the documents they need.
+_`.ko.doc`: Ensure that every checker has all the documents they need.
 
 _`.ko.intro`: Optionally, ask the author for a short (one minute)
 introduction to the change.
@@ -422,6 +421,12 @@ _`.ko.remind`: The leader reminds everyone of the purpose of review
   defects`_ not found by other checkers.
 
 - Remind `.role.checker`_ to avoid conferring until `.log`_.
+
+- GitHub's review tool reveals comments made by one reviewer to every
+  other reviewer in real time, so they distract one another from
+  finding their own unique defects.  Avoid entering comments using
+  GitHub until `.log`_.  [Verify that this is the case and check
+  whether it can be disabled or worked around.  RB 2023-01-28]
 
 _`.ko.role`: Negotiate checking roles (`.role.check`_).
 
@@ -814,6 +819,10 @@ _`.edit.extra`: You may make corrections to defects which you spot
 yourself during editing work.  Log them like those found during
 `.check`_ or `.log`_ and inform `.role.leader`_ about them.
 
+_`.edit.exit`: After action has been taken and recorded on every
+logged issue, tell `.role.leader`_ that the revised change is ready
+for `.exit`_.
+
 
 5.7.1. Edit comments
 ....................
@@ -1002,9 +1011,8 @@ _`.pi.forget`: "Forget: <reason>"
 2023-01-21]
 
 _`.exit`: The *review exit procedure* is should be executed by
-`.role.leader`_ and `.role.editor`_ after editing (`.edit`_).  The
-purpose of exit is to check whether the revised change has passed
-review.
+`.role.leader`_ after editing (`.edit`_).  The purpose of exit is to
+determine whether the revised change passes review.
 
 [This text was in the phase section and may need to be incorporated here:
 
@@ -1019,9 +1027,8 @@ review.
 
 RB 2023-01-23]
 
-_`.exit.request`: The editor requests the leader to exit the document.  [Shouldn't this be in .edit?  RB 2023-01-23]
-
-_`.exit.calc`: [Calculate and record final metrics using `.calc`_.  RB 2023-01-26]
+_`.exit.calc`: [Calculate and record final metrics using `.calc`_.  RB
+2023-01-26]
 
 _`.exit.record`: [Include details of how to record exit.  RB
 2023-01-23]
