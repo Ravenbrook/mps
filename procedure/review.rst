@@ -255,33 +255,46 @@ change is submitted for review (`.phase.entry`_).  The purpose of
 entry is to check whether the change is ready for review before
 planning a review, committing resources, organizing meetings, etc.
 
-_`.entry.record`: Create record for the procedure.  It needs to be
-permanent and referenceable.  On GitHub, you can start a comment on
-the pull request.  Record a *permalink* to the procedure you're
-following (this one) like::
+_`.entry.record`: Record the entry procedure (`.doc.record`_).
 
-  Executing [review entry](https://github.com/Ravenbrook/mps/blob/d4ef690a7f2a3d3d6d0ed496eff46e09841b8633/procedure/review.rst#51-review-entry)
+- On GitHub, you can start a comment on the pull request.
 
-_`.entry.change`: Determine and record exactly what the change is, and
-ensure it can be identified unambiguously and permanently.  For
-example, in Git by branch name and commit hash.  [Note: Git fails at
-this because merged branches forget their branch points.  We need some
-way to fix that.  RB 2023-01-23] On GitHub, this information is
-implicitly recorded by commenting on the pull request in
-`.entry.record`_.
+- Record a the procedure you're following (this one).  Use a
+  permalink.  For example::
+
+    Executing [review entry](https://github.com/Ravenbrook/mps/blob/d4ef690a7f2a3d3d6d0ed496eff46e09841b8633/procedure/review.rst#51-review-entry)
+
+_`.entry.change`: Record exactly what the change is.
+
+- On GitHub, this information is implicitly recorded by commenting on
+  the pull request in `.entry.record`_.
+
+- Otherwise, record something like the branch name and commit hash.
+  [Note: Git fails at this because merged branches forget their branch
+  points.  We need some way to fix that.  RB 2023-01-23]
 
 _`.entry.criteria`: Determine and record the entry and exit criteria.
-Examine the types of documents altered by the change (code, design,
-etc.) then look up and record *permalinks* to the criteria for those
-types (e.g. entry.code, exit.design) along with entry.universal and
-exit.universal, which always apply.  [These are available in
-mminfo:rule.entry.* and mminfo:rule.exit.universal, and these need to
-be referencable from here, probably in their own documents.  RB
-2023-01-21]  [Insert example GitHub comment here.  RB 2023-01-23]
+
+- `entry.universal`_ and `exit.universal`_ always apply.
+
+- Add criteria for the types of documents altered by the change (code,
+  design, etc.) from the `procedure directory`_.
+
+- Record permalinks to the criteria.  For example::
+
+    Executing [review entry](https://github.com/Ravenbrook/mps/blob/d4ef690a7f2a3d3d6d0ed496eff46e09841b8633/procedure/review.rst#51-review-entry)
+
+    - Applying [entry.universal](https://github.com/Ravenbrook/mps/blob/eceaccdf5ab8d8614e9a8bb91a23bdcb99e7d0ce/procedure/entry.universal.rst) and [entry.impl](https://github.com/Ravenbrook/mps/blob/eceaccdf5ab8d8614e9a8bb91a23bdcb99e7d0ce/procedure/entry.impl.rst).  
 
 _`.entry.check`: Check that the entry criteria hold.  Record any
 transgressions.  Decide whether to reject the change from review by
 balancing `2. Purpose`_ and cost.
+
+.. _entry.universal: entry.universal.rst
+
+.. _exit.universal: exit.universal.rst
+
+.. _procedure directory: ./
 
 
 5.2. Review Planning
@@ -1006,11 +1019,17 @@ _`.doc.product`: Product document
   the tools, such as GitHub, focus on reviewing change.  Introducing a
   new product document is a change.  RB 2023-01-23]
 
-_`.doc.record`: Review record
+_`.doc.record`: Review records
 
   A document of type "review" that records the results of reviewing
   one document.  This includes the issue log, and the brainstormed
   improvement suggestions.
+
+  [This needs generalising to all kinds of records mentioned in this
+  procedure, and updating to GitHub.  RB 2023-01-28]
+
+  [All records must be specific, permanent, and referencable.  RB
+  2023-01-28]
 
 _`.doc.issue`: Issue log
 
