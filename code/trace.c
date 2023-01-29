@@ -343,19 +343,21 @@ static void traceSetUpdateCounts(TraceSet ts, Arena arena, ScanState ss,
 /* traceSetWhiteUnion
  *
  * Returns a ZoneSet describing the union of the white sets of all the
- * specified traces.  */
+ * specified traces.
+ */
 
-static ZoneSet traceSetWhiteUnion(TraceSet ts, Arena arena)
+static void traceSetWhiteUnion(RefSet rs, TraceSet ts, Arena arena)
 {
   TraceId ti;
   Trace trace;
-  ZoneSet white = ZoneSetEMPTY;
 
-  TRACE_SET_ITER(ti, trace, ts, arena)
-    white = ZoneSetUnion(white, trace->white);
-  TRACE_SET_ITER_END(ti, trace, ts, arena);
-
-  return white;
+  RefSetInit(rs);
+  TRACE_SET_ITER(ti, trace, ts, arena) {
+    /* FIXME: ZoneSet trace->white should be RefSetStruct trace->whiteStruct */
+    RefSetStruct traceWhite;
+    RefSetFromZones(&traceWhite, trace->white);
+    RefSetUnion(rs, &traceWhite);
+  } TRACE_SET_ITER_END(ti, trace, ts, arena);
 }
 
 
@@ -516,13 +518,14 @@ static void traceFlipBuffers(Globals arena)
 
 static Res traceScanRootRes(TraceSet ts, Rank rank, Arena arena, Root root)
 {
-  ZoneSet white;
+  RefSetStruct whiteStruct;
   Res res;
   ScanStateStruct ss;
 
-  white = traceSetWhiteUnion(ts, arena);
+  traceSetWhiteUnion(&whiteStruct, ts, arena);
 
-  ScanStateInit(&ss, ts, arena, rank, white);
+  /* FIXME: Should take a RefSet white, not a ZoneSet white */
+  ScanStateInit(&ss, ts, arena, rank, RefSetZones(&whiteStruct));
 
   res = RootScan(&ss, root);
 
@@ -1203,22 +1206,24 @@ Bool ScanStateSummaryEqual(ScanState ss, RefSet rs)
  * @@@@ During scanning, the segment should be write-shielded to prevent
  * any other threads from updating it while fix is being applied to it
  * (because fix is not atomic).  At the moment, we don't bother, because
- * we know that all threads are suspended.  */
+ * we know that all threads are suspended.
+ */
 
 static Res traceScanSegRes(TraceSet ts, Rank rank, Arena arena, Seg seg)
 {
   Bool wasTotal;
-  ZoneSet white;
+  RefSetStruct whiteStruct;
   Res res;
 
   /* The reason for scanning a segment is that it's grey. */
   AVER(TraceSetInter(ts, SegGrey(seg)) != TraceSetEMPTY);
+  /* FIXME: What happened to EVENT4(TraceScanSeg, ...)? */
 
   /* FIXME: Accumulate a refset here, not just a zoneset. */
-  white = traceSetWhiteUnion(ts, arena);
+  traceSetWhiteUnion(&whiteStruct, ts, arena);
 
   /* Only scan a segment if it refers to the white set. */
-  if (SegDoesNotReferenceZones(seg, white)) {
+  if (SegDoesNotReference(seg, &whiteStruct)) {
     SegBlacken(seg, ts);
     /* Setup result code to return later. */
     res = ResOK;
@@ -1227,7 +1232,8 @@ static Res traceScanSegRes(TraceSet ts, Rank rank, Arena arena, Seg seg)
     ScanState ss = &ssStruct;
     RefSetStruct summary;
 
-    ScanStateInitSeg(ss, ts, arena, rank, white, seg);
+    /* FIXME: Should take RefSet &whiteStruct, not ZoneSet white */
+    ScanStateInitSeg(ss, ts, arena, rank, RefSetZones(&whiteStruct), seg);
 
     /* Expose the segment to make sure we can scan it. */
     ShieldExpose(arena, seg);
@@ -1262,7 +1268,8 @@ static Res traceScanSegRes(TraceSet ts, Rank rank, Arena arena, Seg seg)
 
     /* Write barrier deferral -- see <design/write-barrier#.deferral>. */
     /* Did the segment refer to the white set? */
-    if (ZoneSetInter(ScanStateUnfixedZones(ss), white) == ZoneSetEMPTY) {
+    /* FIXME: Should be a RefSetIntersects */
+    if (ZoneSetInter(ScanStateUnfixedZones(ss), RefSetZones(&whiteStruct)) == ZoneSetEMPTY) {
       /* Boring scan.  One step closer to raising the write barrier. */
       if (seg->defer > 0)
         --seg->defer;
@@ -1491,18 +1498,19 @@ done:
 static Res traceScanSingleRefRes(TraceSet ts, Rank rank, Arena arena,
                                  Seg seg, Ref *refIO)
 {
-  ZoneSet white;
+  RefSetStruct whiteStruct;
   Res res;
   ScanStateStruct ss;
 
   EVENT4(TraceScanSingleRef, ts, rank, arena, refIO);
 
-  white = traceSetWhiteUnion(ts, arena);
-  if (SegDoesNotReferenceZones(seg, white)) {
+  traceSetWhiteUnion(&whiteStruct, ts, arena);
+  if (SegDoesNotReference(seg, &whiteStruct)) {
     return ResOK;
   }
 
-  ScanStateInit(&ss, ts, arena, rank, white);
+  /* FIXME: Should take RefSet &whiteStruct, not ZoneSet white */
+  ScanStateInit(&ss, ts, arena, rank, RefSetZones(&whiteStruct));
 
   ShieldExpose(arena, seg);
 
@@ -1615,11 +1623,14 @@ Res TraceScanArea(ScanState ss, Word *base, Word *limit,
 static Res rootGrey(Root root, void *p)
 {
   Trace trace = (Trace)p;
+  RefSetStruct whiteStruct;
 
   AVERT(Root, root);
   AVERT(Trace, trace);
 
-  if (!RootDoesNotReferenceZones(root, trace->white)) {
+  /* FIXME: Should be just &trace->whiteStruct */
+  RefSetFromZones(&whiteStruct, trace->white);
+  if (!RootDoesNotReference(root, &whiteStruct)) {
     RootGrey(root, trace);
   }
 
@@ -1669,11 +1680,14 @@ Res TraceStart(Trace trace, double mortality, double finishingTime)
       /* This is indicated by the rankSet begin non-empty.  Such */
       /* segments may only belong to scannable pools. */
       if(SegRankSet(seg) != RankSetEMPTY) {
+	RefSetStruct whiteStruct;
         /* Turn the segment grey if there might be a reference in it */
         /* to the white set.  This is done by seeing if the summary */
         /* of references in the segment intersects with the */
         /* approximation to the white set. */
-        if (!SegDoesNotReferenceZones(seg, trace->white)) {
+	/* FIXME: Should just be &trace->whiteStruct */
+	RefSetFromZones(&whiteStruct, trace->white);
+        if (!SegDoesNotReference(seg, &whiteStruct)) {
           /* Note: can a white seg get greyed as well?  At this point */
           /* we still assume it may.  (This assumption runs out in */
           /* PoolTrivGrey). */

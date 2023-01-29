@@ -89,9 +89,9 @@ Bool RefSetEqual(RefSet rs1, RefSet rs2)
   return rs1->zones == rs2->zones;
 }
 
-Bool RefSetInterZones(RefSet rs, ZoneSet zs)
+Bool RefSetIntersects(RefSet rs1, RefSet rs2)
 {
-  return ZoneSetInter(rs->zones, zs) != ZoneSetEMPTY;
+  return ZoneSetInter(rs1->zones, rs2->zones) != ZoneSetEMPTY;
 }
 
 

@@ -677,7 +677,7 @@ extern void SegGetSummary(RefSet summaryReturn, Seg seg);
 extern void SegSetSummary(Seg seg, RefSet summary);
 extern void SegSummaryAddMutatorRef(Seg seg, Arena arena, Ref ref);
 extern void SegSummaryAddFixedRef(Seg seg, Arena arena, Ref ref);
-extern Bool SegDoesNotReferenceZones(Seg seg, ZoneSet zs);
+extern Bool SegDoesNotReference(Seg seg, RefSet rs);
 extern Bool SegHasBuffer(Seg seg);
 extern Bool SegBuffer(Buffer *bufferReturn, Seg seg);
 extern void SegSetBuffer(Seg seg, Buffer buffer);
@@ -851,7 +851,7 @@ extern Bool RefSetSub(RefSet rs1, RefSet rs2);
 extern void RefSetUnion(RefSet rs1, RefSet rs2);
 extern void RefSetDiff(RefSet rs1, RefSet rs2);
 extern Bool RefSetEqual(RefSet rs1, RefSet rs2);
-extern Bool RefSetInterZones(RefSet rs, ZoneSet zs);
+extern Bool RefSetIntersects(RefSet rs1, RefSet rs2);
 
 /* Zone sets -- see <design/refset> */
 
@@ -972,7 +972,7 @@ extern Res RootsDescribe(Globals arenaGlobals, mps_lib_FILE *stream, Count depth
 extern Rank RootRank(Root root);
 extern AccessSet RootPM(Root root);
 extern void RootGetSummary(RefSet summaryReturn, Root root);
-extern Bool RootDoesNotReferenceZones(Root root, ZoneSet zs);
+extern Bool RootDoesNotReference(Root root, RefSet rs);
 extern void RootGrey(Root root, Trace trace);
 extern Res RootScan(ScanState ss, Root root);
 extern Arena RootArena(Root root);

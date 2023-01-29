@@ -488,12 +488,12 @@ void RootGetSummary(RefSet summaryReturn, Root root)
 }
 
 
-Bool RootDoesNotReferenceZones(Root root, ZoneSet zs)
+Bool RootDoesNotReference(Root root, RefSet rs)
 {
   RefSetStruct summary;
   AVERT(Root, root);
   RootGetSummary(&summary, root);
-  return !RefSetInterZones(&summary, zs);
+  return !RefSetIntersects(&summary, rs);
 }
 
 

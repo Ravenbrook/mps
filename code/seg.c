@@ -363,11 +363,11 @@ void SegSummaryAddFixedRef(Seg seg, Arena arena, Ref ref)
   SegSummaryAddRef(seg, arena, ref);
 }
 
-Bool SegDoesNotReferenceZones(Seg seg, ZoneSet zs)
+Bool SegDoesNotReference(Seg seg, RefSet rs)
 {
   RefSetStruct summary;
   SegGetSummary(&summary, seg);
-  return !RefSetInterZones(&summary, zs);
+  return !RefSetIntersects(&summary, rs);
 }
 
 
