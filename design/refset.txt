@@ -10,7 +10,7 @@ Reference Sets
 :Status: incomplete design
 :Revision: $Id$
 :Copyright: See `Copyright and License`_.
-:Index terms:   pair: splay trees; design
+:Index terms: pair: reference sets; design
 
 
 Introduction
@@ -19,6 +19,12 @@ Introduction
 _`.intro`: This document describes reference sets -- conservative
 approximations to sets of references -- which are widely used in the
 Memory Pool System to optimise garbage collection.
+
+[Reference critical path.  RB 2023-01-29]
+
+[Reference barriers.  RB 2023-01-29]
+
+[Reference remembered sets.  RB 2023-01-29]
 
 
 Overview
