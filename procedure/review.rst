@@ -1092,7 +1092,6 @@ email messages, GitHub comments, chat messages, and sometimes even
 printed on dead trees.
 
 _`.doc.source`: Source document
-
   A document from which the product document is derived.  Note that
   this does not mean "source code".
 
@@ -1105,7 +1104,6 @@ _`.doc.source`: Source document
   Other examples include `.doc.guide`_, manuals, and standards.
 
 _`.doc.product`: Product document
-
   The document developed from the source documents, and offered for
   review.  The work under review.  The changes under review.  The work
   product.  [Much of this procedure has been rephrased in term of
@@ -1114,7 +1112,6 @@ _`.doc.product`: Product document
   new product document is a change.  RB 2023-01-23]
 
 _`.doc.record`: Review records
-
   Documents produced by the review procedures, which record the
   progress and results of the review.  See `.entry.record`_,
   `.plan.record`_, `.ko.record`_, `.check.record`_, `.log.record`_,
@@ -1128,7 +1125,6 @@ _`.doc.record`: Review records
   referencable.
 
 _`.doc.issue`: Issue log
-
   A record of issues raised during the logging meeting, specifying
   their location, type, finder, and a brief description.
 
@@ -1143,17 +1139,14 @@ _`.doc.issue`: Issue log
   name.  RB 2023-01-28]
 
 _`.doc.rev`: Revised document
-
   The result of performing the edit procedure on the `.doc.product`_.
   The revised version of the change under review.
 
 _`.doc.acc`: Accepted document
-
   The result of a Revised document passing exit.  [This isn't
   mentioned.  RB 2023-01-28]
 
 _`.doc.rule`: Rules and rule sets
-
   A rule or set of rules that `.doc.product`_ should obey.
 
   Rules are developed by process improvement of the project as a
@@ -1164,21 +1157,19 @@ _`.doc.rule`: Rules and rule sets
   checking.
 
 _`.doc.guide`: Guides
-
   A guide that `.doc.product`_ is expected to follow, though not
   strictly.
 
   Guides are generally longer, more detailed, and more discursive than
   `.doc.rule`_ and contain advice about good practice.  As such, they
-  are less useful for review checking than `doc.rule`_ or
-  `doc.check`_.
+  are less useful for review checking than `.doc.rule`_ or
+  `.doc.check`_.
 
   Guides are developed by process improvement of the project as a
   whole.  In this procedure, they are updated by `.pi`_ as a result of
   `.brainstorm`_.
 
 _`.doc.check`: Checklists
-
   A list of questions to help check against `.doc.rule`_.  A negative
   answer to a checklist question indictes that a rule has been broken.
 
@@ -1198,28 +1189,23 @@ _`.doc.check`: Checklists
   `.brainstorm`_.
 
 _`.doc.entry`: Entry criteria
-
   `.doc.rule`_ that must be met before review to ensure that the
   `.doc.product`_ is likely to pass `.doc.exit`_, so that resources
   are not wasted on a premature review.
 
 _`.doc.exit`: Exit criteria
-
   `.doc.rule`_ that must be met for `.doc.rev`_ to pass review and be
   approved for use.
 
 _`.doc.proc`: Procedures
-
   Descriptions of the steps involved in completing any part of process
   (development, review, or otherwise).
 
 _`.doc.imp`: Brainstormed improvement suggestions
-
   Suggested improvements to process (and hence to some document)
   arising from the process brainstorm.
 
 _`.doc.request`: Requests for change
-
   An issue that the editor cannot deal with that is escalated to some
   other tracking system, such as a GitHub issue.
 
