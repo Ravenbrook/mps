@@ -24,6 +24,12 @@ Memory Pool System review procedure
 
 .. TODO: Update "familiar with" to "know".
 
+.. TODO: Explicitly incorporate `irreducible errors
+   <https://en.wikipedia.org/wiki/The_Mythical_Man-Month#The_tendency_towards_irreducible_number_of_errors>`__.
+
+.. TODO: More specific links to rationale, [Gilb-93]_ etc. for
+   justification and variation.
+
 
 1. Introduction
 ===============
@@ -108,7 +114,7 @@ _`.def.defect.major`: A major defect is a defect that
   -- `.class.major`_
 
 As with any procedure, you can vary this one to meet this purpose, but
-you should probably read section `11. Rationale`_.
+you should probably read section `12. Rationale`_.
 
 
 3. Review Roles
@@ -134,7 +140,8 @@ special instruction in review or inspection.
 
 _`.role.author`: The *author* is the person responsible for the change
 under review (`.doc.product`_).  For example, they're the developer
-who submitted a pull request.
+who submitted a pull request.  The author should read
+`.advice.author`_.
 
 _`.role.checker`: A *checker* checks the change (`.doc.product`_)
 during review.  There must be more than one checker.  Every person
@@ -303,7 +310,7 @@ _`.entry.criteria`: Determine and record the entry and exit criteria.
 
 _`.entry.check`: Check that the entry criteria hold.  Record any
 transgressions.  Decide whether to reject the change from review by
-balancing `2. Purpose`_ and cost.
+balancing `2. Purpose`_ and cost.  Will it pass `.exit`_?
 
 .. _entry.universal: entry.universal.rst
 
@@ -330,9 +337,13 @@ _`.plan.record`: Record the planning procedure.
 
 _`.plan.time`: Estimate the checking rate and time.
 
-- `.phase.check`_ should last more than one hour, so that checkers can
-  maintain concentration.  It may be necessary to plan multiple review
-  sessions.
+- `.phase.check`_ should last no more than one hour, so that checkers
+  can maintain concentration.
+
+- `.phase.log`_ should last no more than two hours, so that checkers
+  can maintain concentration.
+
+- It may be necessary to divide the review into multiple sessions.
 
 - Record your estimates.  For example::
 
@@ -458,7 +469,8 @@ objectives.
 
 - Record metrics and objectives.
 
-- [Checking rates should be announced or discussed.  RB 2023-01-29]
+- [Checking and logging rates should be announced or discussed.  RB
+  2023-01-29]
 
 _`.ko.log`: Set a time for the logging meeting (`.log`_).
 
@@ -466,7 +478,7 @@ _`.ko.log`: Set a time for the logging meeting (`.log`_).
   estimated checking time (see `.plan.time`_), plus a short break.
   Avoid delay.
 
-_`.ko.author`: Reminds the author that they can withdraw the document
+_`.ko.author`: Remind the author that they can withdraw the document
 from review at any time.
 
 _`.ko.go`: Send `.role.checker`_ away to start `.check`_.
@@ -507,9 +519,9 @@ _`.check.source`: Read `.doc.source`_ for your `.role.check`_.
 
 - Don't spend time searching for defects in `.doc.source`_.  If you
   happen to find any, that's a bonus.  Note them for logging as
-  `.class.imp`_.
+  `.class.imp`_ and possibly `.class.major`_ as well.
 
-_`.check.rule`: Ensure that you know `.doc.rules`_ and `.doc.check`_.
+_`.check.rule`: Ensure that you know `.doc.rule`_ and `.doc.check`_.
 
 - If they've changed since you last read them, study and understand
   the changes.
@@ -563,171 +575,151 @@ RB 2023-01-29]
 5.5. Review Logging
 -------------------
 
-[Sourced from [MM-proc.review.log]_ and needs updating.  RB 2023-01-21]
-
 _`.log`: The *review logging procedure* executed by `.role.leader`_
-and `.role.scribe`_ together with `.role.checker`_.  It has two
-purposes:
+and `.role.scribe`_ together with `.role.checker`_.
+
+_`.log.purpose`: It has two purposes:
 
 1. to record issues for action
 
-2. to find more `major defects`_ by sharing what has been found so far.
+2. to find more `major defects`_, stimulated by sharing what has been
+   found so far
 
-Checking continues during logging.
+_`.log.check`: Checking continues during logging.
 
-_`.log.just`: The main reason for having joint logging sessions is so
-that new issues are found.
+_`.log.advice`: Remind the author of `.advice.author`_.
 
-[This text was in the phase section and may need incorporating here.
-
-   The team concentrates on logging items at a rate of at least one
-   per minute.  Items logged include potential defects (issues),
-   improvement suggestions, and questions of intent to the author.
-   The leader permits little other verbal meeting activity.  Meetings
-   last as maximum of two hours at the known optimum rate.  If
-   necessary, work must be chunked to avoid tiredness.  Optimum
-   checking rate for the meeting is determined by the percentage of
-   new issues identified in the logging meeting as well as the
-   quantity of the documents.
-
-RB 2023-01-23]
-
-
-5.5.1. Advice for the author
-............................
-
-[Imported from mminfo:book.gilb93.proc.author.logging.  RB 2023-01-26]
-
-- Report your own noted issues after giving your team-mates a chance.
-
-- Don't say 'I found that too!'
-
-- Thank your colleagues for their efforts on your behalf.
-
-- Learn as much as possible about avoiding the issues as an author.
-
-- Respect the opinion of your team-mates.  Do not justify or defend.
-
-- Check the logging for legibility and intelligibility.
-
-- Answer any 'questions of intent' logged by checkers at the end of
-  the logging meeting.
-
-
-5.5.2. During The Meeting
-.........................
+_`.log.author`: Remind the author that they can withdraw
+`.doc.product`_ from review at any time.
 
 _`.log.record`: All information gathered should be recorded in the
-review log.  This may be deferred if the meeting is mediated by a
-logged medium, such as IRC.
+review log, which should be permanent and traceable from
+`.doc.product`_.
 
-_`.log.metrics`: Gather individual metrics of:
+[Update this for when checkers have used tools during `.check`_, such
+as the GitHub review tool.  It may not be necessary to copy down many
+issues, but it is still necessary to announce them to stimulate more
+checking.  RB 2023-01-29]
 
-- Issue counts by class;
+_`.log.metrics`: Gather individual metrics from `.check.record`_ of:
 
-- Time spent checking;
+- how many issues were found, by class (see `.check.class`_)
 
-- Amount of product document actually checked.
+- how long was spent checking
 
-_`.log.author`: The leader reminds the author that he may remove
-documents from review at any time.
+- how much of the product document was checked
 
-_`.log.decide`: The leader, in consultation with the author and
-editor, decides whether it is worth holding continuing with the
-logging meeting.  [Using what criteria?  We've never actually done
-this.  GavinM 1997-06-12] In particular, see exit.universal.rates [To
-what does this refer?  RB 2023-01-21].  [It could be that many or very
-serious issues are logged very early in the meeting, and so the work
-needs major revision and a new review later.  But there's a risk that
-issues won't be found in a second review, which is why we never
-cancelled.  RB 2023-01-23]
+_`.log.decide`: Now, and at intervals during logging, assess whether
+`.doc.product`_ is likely to pass `.exit`_.  If it seems very
+unlikely, consult with `.role.author`_ and `.role.editor`_ about
+aborting the logging meeting.  Bear in mind:
 
-_`.log.scribe`: Assign a scribe (usually the leader), and ensure the
-editor will be happy with the readability of the log.
+- Second reviews often find fewer issues, so it may be worth logging
+  them anyway.
 
-_`.log.explain`: The leader explains the order in which issues will be
-logged, and ensures everyone understand this.  He also explains the
-desired form of issues, namely:
+- `.brainstorm`_ needs `major defects`_ to work on, and might prevent
+  whatever went wrong here.
 
-- Location;
+- The MM Group never aborted logging.
 
-- `.class`_, including `.class.new`_ (N) if the issue was discovered
-  during logging;
+_`.log.plan`: Use the metrics to decide a logging rate.
 
-- Description of issue, concentrating on how it breaks a rule, rather
-  than on possible solutions, naming the rule or checklist question,
-  if possible.
+- The rate should be at least one per minute.  [Find this advice in
+  [Gilb-93]_.  RB 2023-01-29]
 
-_`.log.dup`: The leader should also explain that checkers should avoid
-logging issues that have are duplicates of ones already logged, ut
-that if in doubt, they should log.
+- Try to get all issues are logged during scheduled meeting time.
 
-_`.log.slow`: Issues are logged sufficienly slowly that all checkers
-can examine each issue.  This is so that checkers can find new issues.
+- Slow down if many new issues are being found.  Speed up if not.
 
-_`.log.order`: Unless instructed otherwise, checkers should try to
-list their issues in forwards document order.  This makes life easier
-for other checkers and the editor.
+- Schedule breaks to maintain concentration.
 
-_`.log.fast`: Logging should more fairly brisky, however, and the
-leader should be firm in discouraging discussion of:
+- Consider scheduling more logging meetings.
 
-- Whether issues are genuine defects;
+_`.log.scribe`: Assign `.role.scribe`_ (usually the leader), and
+ensure `.role.editor`_ will be happy with the readability of the log.
 
-- How a defect may be resolved;
+[I think the latter goes back to handwriting issues and may not be
+relevant now.  It might be worth checking that `.role.editor`_ will be
+able to use whatever form the log is in.  RB 2023-01-29]
 
-- The review process (other than to answer questions);
+_`.log.explain`: `.role.leader`_ ensures `.role.checker`_ understand
+the order in which issues will be logged, and the desired form of
+issues, namely:
 
-- The answers to questions logged.
+- location
 
-[And encouraging the search for more defects, see `.log.just`_.
-RB 2023-01-21]
+- `.class`_, including `.class.new`_ if the issue was discovered
+  during logging
 
-[ There has been much experimentation with the order of logging, but
-this represents current best practice.  GavinM 1997-06-12 ]
+- how it breaks which `.doc.rule`_ or `.doc.check`_, if known,
+  otherwise briefly what's wrong ("typo", "uninitialized", "obi-wan",
+  "missing requirement", etc.)
 
-_`.log.major`: The leader calls upon all checkers, one by one, to list
-their `major defects`_, preferable in order of their occurance in the
-product document.  He may chunk the product document and go round the
-checkers several times, but this is unusal.
+_`.log.dup`: `.role.leader`_ can remind `.role.checker`_ to avoid
+logging issues that have are duplicates of ones already logged.
 
-_`.log.decide.non-major`: The leader may decide not to log all minor
-issues (`.class.minor`_).  He should announce that each
-checker should offer some number, or fraction.  Other issues may be
-logged in writing.
+_`.log.order`: Ask `.role.checker`_ to try to list their issues in
+forwards document order.  This makes life easier for other checkers
+and the editor.  [There has been much experimentation with the order
+of logging, but this represents current best practice.  GavinM
+1997-06-12]
 
-_`.log.non-major`: The leader takes all checkers through the product
-document in order, at each stage:
+_`.log.major`: `.role.leader`_ calls upon `.role.checker`_ in turn to
+list `major defects`_ they found.
 
-- Announcing the section being looked at;
+- `.role.scribe`_ ensures that `major defects`_ are recorded in a way
+  [how? RB 2023-01-29] that can be used in `.edit`_.
 
-- Asking who has issues in this section;
+- [On GitHub, that probably means in review comments, the review
+  overview comment, or "individual comments", all of which are visible
+  from the pull request and have their own links.  RB 2023-01-29]
 
-- Requesting issues from checkers.  [This may be unnecessary if using
-  an asynchronous medium, such as IRC.  GavinM 1997-06-12]
+_`.log.slow`: Log issues slowly enough that `.role.checker`_ can
+examine each one and find new `major defects`_.
 
-Note that improvement suggestions arising from specific parts of the
-product document can be logged at this stage.
+_`.log.fast`: Log issues briskly.  Discourage discussion.  Encourage
+the search for more `major defects`_.  `.role.leader`_ should firmly
+discourage discussion of:
 
-_`.log.general`: The leader then requests, by checker, any general or
-new issues not already logged.
+- whether issues are genuine defects
 
-_`.log.brainstorm`: The leader negotiates a time for the process
-brainstorm.  This will normally be a tea-break (10-15 minutes) after
-the end of the logging meeting.
+- how a defect may be resolved
 
+- the review process (other than to answer questions);
 
-5.5.3. After The Meeting
-........................
+- the answers to questions logged
 
-[It should be possible to fail review at this stage, by estimating how
-many defects will remain even after editing.  See also `irreducible
-errors
-<https://en.wikipedia.org/wiki/The_Mythical_Man-Month#The_tendency_towards_irreducible_number_of_errors>`__.
-RB 2023-01-28]
+_`.log.decide.non-major`: Decide whether to log all minor issues
+(`.class.minor`_) during the meeting, considering `.log.purpose`_.
 
-_`.log.inform`: The reviewed document is now ready for edit (see proc.review.edit).  
-The review leader should inform the editor of this by mail.
+- Avoid fatigue.
+
+- Perhaps ask `.role.checker`_ to cherry-pick a fraction of their
+  minor issues and submit the rest later.
+
+- `.role.checker`_ may have already noted minor issues in a way that
+  can be found during `.edit`_
+
+_`.log.non-major`: Go through `.doc.product`_ in sections (or
+equivalent), at each stage announce the section, ask who has issues,
+and request the issues.
+
+- `.role.scribe`_ ensures the issues are recorded (see `.log.major`_).
+
+- This is a good time to log `.class.imp`_ (issues outside
+  `.doc.product`_) that came up while reviewing specific parts of
+  `.doc.product`_.
+
+_`.log.general`: Ask `.role.checker`_ in turn for any general or new
+issues not already logged.
+
+- `.role.scribe`_ ensures the issues are recorded (see `.log.major`_).
+
+_`.log.brainstorm`: Negotiate a time for the `.brainstorm`_.  This
+will normally be after a break at the end of `.log`_.
+
+_`.log.inform`: Inform `.role.editor`_ that `.doc.product`_ is ready for
+`.edit`_.
 
 
 5.6. Review Brainstorm
@@ -1053,12 +1045,12 @@ _`.exit.check`: Check that the exit criteria hold (see
 
     - exit.universal.quest: Question 5 answered in chat but not in docs.
  
-_`.exit.check.fix`: Fix transgressions, if it is feasible with low
-risk.  Otherwise ask `.role.editor`_ to fix them.  Record this action,
-and record edits in the same way as `.edit`_.
+_`.exit.fix`: Fix transgressions, if it is feasible with low risk.
+Otherwise ask `.role.editor`_ to fix them.  Record this action, and
+record edits in the same way as `.edit`_.
 
-_`.exit.check.fail`: If transgressions remain, then the revised change
-is too defective.  It fails review and must not be used.
+_`.exit.fail`: If transgressions remain, then the revised change is
+too defective.  It fails review and must not be used.
 
 - Record this result, like::
 
@@ -1066,8 +1058,8 @@ is too defective.  It fails review and must not be used.
 
 - Tell someone.  [Who and how?  RB 2023-01-28]
 
-_`.exit.check.pass`: Otherwise, the revised change passes review and
-can be used.
+_`.exit.pass`: Otherwise, the revised change passes review and can be
+used.
 
 - Record this result, like::
 
@@ -1298,7 +1290,8 @@ and whether dependencies and links are documented where appropriate.
 
   - checking using a different medium (printouts)
   - checking random things in a random order, using dice
-  - sampling large or repetitive changes at random.
+  - sampling large or repetitive changes at random
+  - build, test, lint, and other automated tools
 
 RB 2023-01-29]
 
@@ -1355,10 +1348,37 @@ improvement suggestions are:
 _`.class.new`: (N): Any issue found during logging (as opposed to
 during checking) is a new issue.  This classification is orthogonal to
 the preceding.  It is important to mark new issues, in order to
-measure how worthwhile group logging sessions are (see `.log.just`_).
+measure how worthwhile group logging sessions are (see
+`.log.purpose`_).
 
 
-11. Rationale
+11. Advice for the author
+=========================
+
+_`.advice.author`: The intense scrutiny a formal review of your work
+can be distressing.  Remember that you are not under attack.  Everyone
+is working to make your work *better*.
+
+With that in mind, here is some advice from [Gilb-93]_:
+
+  - Report your own noted issues after giving your team-mates a
+    chance.
+
+  - Don't say 'I found that too!'
+
+  - Thank your colleagues for their efforts on your behalf.
+
+  - Learn as much as possible about avoiding the issues as an author.
+
+  - Respect the opinion of your team-mates.  Do not justify or defend.
+
+  - Check the logging for legibility and intelligibility.
+
+  - Answer any 'questions of intent' logged by checkers at the end of
+    the logging meeting.
+
+
+12. Rationale
 =============
 
 Formal review is the key to the quality of the Memory Pool System.
@@ -1378,7 +1398,7 @@ documents have travelled through several different systems, and
 version control did not always survive.
 
 
-11.1. Why formal reviews?
+12.1. Why formal reviews?
 -------------------------
 
 Ravenbrook does have hundreds of archived review records [MM-reviews]_
@@ -1491,7 +1511,7 @@ B. Document History
                    Tidying up remaining comments.
                    Revising entry, planning, kickoff, and exit.
                    Revising documents section.
-2023-01-30  RB_    Revising checking.
+2023-01-30  RB_    Revising checking and logging.
 ==========  =====  ==================================================
 
 .. _RB: mailto:rb@ravenbrook.com
