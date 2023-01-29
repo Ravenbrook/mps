@@ -17,7 +17,13 @@ Memory Pool System review procedure
 .. TODO: Check against book.gilb93.proc.* and consider dividing
    procedures by role.
 
-.. TODO: Incorporate MM Group checklists from <https://info.ravenbrook.com/project/mps/doc/2002-06-18/obsolete-mminfo/mminfo/check/>.
+.. TODO: Incorporate MM Group checklists from
+   <https://info.ravenbrook.com/project/mps/doc/2002-06-18/obsolete-mminfo/mminfo/check/>.
+
+.. TODO: More explicit management of checking rates.
+
+.. TODO: Update "familiar with" to "know".
+
 
 1. Introduction
 ===============
@@ -452,6 +458,8 @@ objectives.
 
 - Record metrics and objectives.
 
+- [Checking rates should be announced or discussed.  RB 2023-01-29]
+
 _`.ko.log`: Set a time for the logging meeting (`.log`_).
 
 - This should normally be set at the estimated end of `.ko`_, plus the
@@ -467,88 +475,89 @@ _`.ko.go`: Send `.role.checker`_ away to start `.check`_.
 5.4. Review Checking
 --------------------
 
-[Sourced from [MM-proc.review.check]_ and needs updating.  RB 2023-01-21]
-
 _`.check`: The *checking procedure* should be executed by each
 individual `.role.checker`_ alone, carrying out their assigned
 checking roles (`.role.check`_) without conferring with other
-checkers.  The purpose of checking is to find `major defects`_ not
-found by other checkers.
-
-[Note: not all issues are local to a line.  RB 2023-01-21]
-
-[This text was in the phase section and might need to be incorporated here:
-
-   The checking phase has a recommended time or rate, but checkers
-   have instructions to deviate from that whenever individual
-   availability, role, or situation dictates, in order to increase
-   productivity.
-
-   The objective of individual checking is to identify a maximum of
-   unique major issues which no other checker will bring to the
-   logging meeting.  To do this each checker should have at least one
-   special "checking role".
-
-RB 2023-01-23]
+checkers.  The purpose of checking is to find unique `major defects`_
+that no other checker will bring to `.log`_.
 
 
 5.4.1. Start
 ............
 
-_`.check.doc`: Ensure that you have all the relevant documents.
+_`.check.doc`: Ensure that you have all the documents you need to
+perform your checking role (`.role.check`_).
 
-_`.check.ask`: Ask the review leader if you have any questions about
-checking procedure.
+_`.check.ask`: Ask `.role.leader`_ if you have any questions about
+checking.
+
+[Insert instructions for how to apply the GitHub review tool.
+
+- Press the "Start a review" button here?
+- Avoid looking at diffs.
+- Can issues be noted in GitHub without interrupting other checkers?
+
+RB 2023-01-29]
 
 
 5.4.2. Checking
 ...............
 
-_`.check.source`: First, read any source documents.  Review is not
-directed at finding defects in source documents, but any found are a
-bonus.  They will be improvement suggestions (see class.imp [To what
-does this refer?  RB 2023-01-21]).  Do not waste too much time finding
-defects in source documents.
+_`.check.source`: Read `.doc.source`_ for your `.role.check`_.
 
-_`.check.rule`: Ensure that you are familiar with all rule sets or
-check lists.
+- Don't spend time searching for defects in `.doc.source`_.  If you
+  happen to find any, that's a bonus.  Note them for logging as
+  `.class.imp`_.
 
-_`.check.role`: Ensure that you know and keep in mind the roles you
-have been assigned.
+_`.check.rule`: Ensure that you know `.doc.rules`_ and `.doc.check`_.
 
-_`.check.product`: Read through the product document (or documents) in
-the order specified.  Remember to read the product documents in
-reverse order if you were assigned `.role.check.backwards`_ during
-`.ko.role`_.
+- If they've changed since you last read them, study and understand
+  the changes.
 
-_`.check.major`: Concentrate on finding `major defects`_; this is of
-primary importance.
+_`.check.role`: Ensure that you know `.role.check`_ and keep it in
+mind as you check.
+
+_`.check.product`: Check `.doc.product`_.
+
+_`.check.rate`: Try to check at the planned checking rate
+(`.plan.time`_).  Do not rush.  Slower is usually better.  Control
+your attention.
+
+_`.check.major`: Concentrate on finding `major defects`_.
 
 _`.check.max`: Find as many issues as possible to help the author.
 
 _`.check.note`: Note all issues; you need not log them later.
 
-_`.check.rough`: Your log can be rough; concentrate on finding issues.
+_`.check.rough`: Your notes can be rough.  `.check.major`_.
 
-_`.check.trouble`: Consult the leader if you have any questions, or if
-you are finding too many or too few issues.
+- Do not spend time making your issues neat and clear or even putting
+  them in exactly the right place.  Save that for `.log`_.  Search for
+  more issues.  `.check.major`_!
 
-_`.check.class`: Classify each issue you find according to `.class`_.
+_`.check.trouble`: Consult `.role.leader`_ if you're having trouble:
+
+- you have questions
+- you are finding too many or too few issues
+
+_`.check.class`: Classify each issue you find (`.class`_).
 
 
 5.4.3. End
 ..........
 
-_`.check.record`: At the end of checking, record (for each product
-document):
+_`.check.record`: At the end of checking, record
 
-- How many defects were found, by class (see `.check.class`_);
+- how many issues you found, by class (see `.check.class`_)
 
-- How long was actually spent;
+- how long you actually spent checking
 
-- How much of the product document was actually checked;
+- how much of the product document you actually checked
 
-- Any problems encountered.
+- any problems encountered
+
+[This record should probably go in the GitHub overall review comment.
+RB 2023-01-29]
 
 
 5.5. Review Logging
@@ -1285,6 +1294,14 @@ _`.role.check.source`: The *source checking role* concentrates on
 whether the product document is consistent with any source documents,
 and whether dependencies and links are documented where appropriate.
 
+[Other possible checking roles:
+
+  - checking using a different medium (printouts)
+  - checking random things in a random order, using dice
+  - sampling large or repetitive changes at random.
+
+RB 2023-01-29]
+
 
 9. Issue Classification
 =======================
@@ -1474,6 +1491,7 @@ B. Document History
                    Tidying up remaining comments.
                    Revising entry, planning, kickoff, and exit.
                    Revising documents section.
+2023-01-30  RB_    Revising checking.
 ==========  =====  ==================================================
 
 .. _RB: mailto:rb@ravenbrook.com
