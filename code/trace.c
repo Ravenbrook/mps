@@ -1609,19 +1609,17 @@ Res TraceScanArea(ScanState ss, Word *base, Word *limit,
  * .start.black: All segments are black w.r.t. a newly allocated trace.
  * However, if TraceStart initialized segments to black when it
  * calculated the grey set then this condition could be relaxed, making
- * it easy to destroy traces half-way through.  */
+ * it easy to destroy traces half-way through.
+ */
 
 static Res rootGrey(Root root, void *p)
 {
   Trace trace = (Trace)p;
-  RefSetStruct summary;
 
   AVERT(Root, root);
   AVERT(Trace, trace);
 
-  /* FIXME: Implement RootDoesNotReferenceZones like Seg */
-  RootGetSummary(&summary, root);
-  if (RefSetInterZones(&summary, trace->white)) {
+  if (!RootDoesNotReferenceZones(root, trace->white)) {
     RootGrey(root, trace);
   }
 

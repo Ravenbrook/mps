@@ -972,6 +972,7 @@ extern Res RootsDescribe(Globals arenaGlobals, mps_lib_FILE *stream, Count depth
 extern Rank RootRank(Root root);
 extern AccessSet RootPM(Root root);
 extern void RootGetSummary(RefSet summaryReturn, Root root);
+extern Bool RootDoesNotReferenceZones(Root root, ZoneSet zs);
 extern void RootGrey(Root root, Trace trace);
 extern Res RootScan(ScanState ss, Root root);
 extern Arena RootArena(Root root);

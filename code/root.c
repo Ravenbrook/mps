@@ -488,6 +488,15 @@ void RootGetSummary(RefSet summaryReturn, Root root)
 }
 
 
+Bool RootDoesNotReferenceZones(Root root, ZoneSet zs)
+{
+  RefSetStruct summary;
+  AVERT(Root, root);
+  RootGetSummary(&summary, root);
+  return !RefSetInterZones(&summary, zs);
+}
+
+
 /* RootGrey -- mark root grey */
 
 void RootGrey(Root root, Trace trace)
