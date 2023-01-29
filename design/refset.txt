@@ -20,15 +20,39 @@ _`.intro`: This document describes reference sets -- conservative
 approximations to sets of references -- which are widely used in the
 Memory Pool System to optimise garbage collection.
 
-[Reference critical path.  RB 2023-01-29]
-
-[Reference barriers.  RB 2023-01-29]
-
-[Reference remembered sets.  RB 2023-01-29]
-
 
 Overview
 --------
+
+[These are notes that need tags and proper cross-references to other
+designs.  RB 2023-01-29]
+
+A reference set ("refset") is a probabalistic data structure that is
+used to test very quickly whether a reference is a member of a set.
+False positive matches are possible, but false negatives are not.  In
+other words, a query returns either "reference possibly in set" or
+"reference definitely not in set".
+
+A reference set is a conservative approximation to a set of
+references.
+
+Reference sets are widely used in the Memory Pool System to optimised
+garbage collection.
+
+On the *critical path*, the zone set part of a reference set is used
+as an extremely fast `Bloom filter
+<https://en.wikipedia.org/wiki/Bloom_filter>`_ to eliminate from
+consideration scanned references that are definitely not to white
+objects.
+
+In the generational collection strategy, reference set *summaries* are
+used to avoid scanning whole areas of memory that definitely do not
+contain references to white objects, thus implementing a *remembered
+set*.
+
+A *write barrier* is used to maintain remembered sets.  A segment
+whose summary is not the universal set is protected from writes by the
+mutator, so that the summary stays accurate.
 
 
 Implementation
@@ -54,7 +78,6 @@ other reference set properties, not just zones.
 References
 ----------
 
-[Bloom Filter]
 [Zones]
 
 
