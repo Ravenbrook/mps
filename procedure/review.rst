@@ -56,14 +56,14 @@ process documents from Ravenbrook and the Harlequin MM Group (see
 `A. References`_).  Those documents contain process improvements from
 hundreds of reviews and thousands of hours of effort.
 
-The process is largely derived from "Software Inspection" [Gilb_93]_,
+The process is largely derived from "Software Inspection" [Gilb-93]_,
 which was itself developed from `Fagan inspection
 <https://en.wikipedia.org/wiki/Fagan_inspection>`__.  It was developed
 over years by Gavin Matthews of the Harlequin Memory Management Group,
 a trained inspection leader.
 
 The process is an example of "Peer Review" (kpa.pr), a key process
-area of level 3 of the Capability Maturity Model [CMU/SEI-93-TR-025]_,
+area of level 3 of the Capability Maturity Model [CMU-SEI-93-TR-025]_,
 but also contributes a great deal to:
 
 - Defect Prevention (kpa.dp, level 5)
@@ -74,8 +74,8 @@ but also contributes a great deal to:
   - Review is not just (or even mostly) looking at diffs, though
     GitHub encourages this idea.
   - Review is not just for code.
-  - Check against book.gilb93.handbook [Gilb_93]_.
-  - Check against kpa.pr, [CMU/SEI-93-TR-025]_, p L3-97
+  - Check against book.gilb93.handbook [Gilb-93]_.
+  - Check against kpa.pr, [CMU-SEI-93-TR-025]_, p L3-97
   - Review is about humans and mind tricks.]
 
 
@@ -184,7 +184,7 @@ has a procedure.  The phases involve varying groups of people
 
 _`.phase.handbook`: This section can be used as a short "handbook" for
 people who have learned the procedure.  (Compare with "A one-page
-inspection handbook" [Gilb_93]_.)
+inspection handbook" [Gilb-93]_.)
 
 _`.phase.order`: To review a change, the following procedures are
 executed roughly in the order below.
@@ -467,7 +467,7 @@ _`.ko.go`: Send `.role.checker`_ away to start `.check`_.
 5.4. Review Checking
 --------------------
 
-[Sourced from [MM_proc.review.check]_ and needs updating.  RB 2023-01-21]
+[Sourced from [MM-proc.review.check]_ and needs updating.  RB 2023-01-21]
 
 _`.check`: The *checking procedure* should be executed by each
 individual `.role.checker`_ alone, carrying out their assigned
@@ -554,7 +554,7 @@ document):
 5.5. Review Logging
 -------------------
 
-[Sourced from [MM_proc.review.log]_ and needs updating.  RB 2023-01-21]
+[Sourced from [MM-proc.review.log]_ and needs updating.  RB 2023-01-21]
 
 _`.log`: The *review logging procedure* executed by `.role.leader`_
 and `.role.scribe`_ together with `.role.checker`_.  It has two
@@ -724,7 +724,7 @@ The review leader should inform the editor of this by mail.
 5.6. Review Brainstorm
 ----------------------
 
-[Sourced from [MM_proc.review.brainstorm]_ and needs updating.  RB
+[Sourced from [MM-proc.review.brainstorm]_ and needs updating.  RB
 2023-01-21]
 
 _`.brainstorm`: The *review brainstorm procedure* should be executed
@@ -803,7 +803,7 @@ to be made more specific.  RB 2023-01-21]
 5.7. Review Edit
 ----------------
 
-[Sourced from [MM_guide.review.edit]_ and needs updating.  RB 2023-01-21]
+[Sourced from [MM-guide.review.edit]_ and needs updating.  RB 2023-01-21]
 
 _`.edit`: The *review edit procedure* must be executed by
 `.role.editor`_ to analyse and correct defects, the review's primary
@@ -1082,7 +1082,7 @@ efforts.
 6. Documents
 ============
 
-[Sourced from [MM_process.review]_ and needs updating.  RB 2023-01-21]
+[Sourced from [MM-process.review]_ and needs updating.  RB 2023-01-21]
 
 _`.doc`: The review process involves a lot of documents.  This is a
 brief explanation of what they are.
@@ -1313,7 +1313,7 @@ one of the following classes.  The normal abbreviation is indicated.
 _`.class.major`: (M): A Major defect is a defect in the Product
 document that will probably have significantly increased costs to find
 and fix later in the development process, for example in testing or in
-use ([Gilb_93]_ p442).  A bug that is fixed after review typically
+use ([Gilb-93]_ p442).  A bug that is fixed after review typically
 takes one man-hour, after testing 10 man-hour, and in the field 100
 man-hours.  A defect that will waste downstream development effort is
 also major.  Typical major defects are:
@@ -1365,10 +1365,10 @@ is not feasible here.  There are three sources:
 
 1. the process improvement history of the Memory Pool System project,
 
-2. Software Inspection [Gilb_93]_,
+2. Software Inspection [Gilb-93]_,
 
 3. the analysis work behind the Capability Maturity Model
-   [CMU/SEI-93-TR-024]_.
+   [CMU-SEI-93-TR-024]_.
 
 Of these, (1) is unfortunately the least accessible, because the
 documents have travelled through several different systems, and
@@ -1378,7 +1378,7 @@ version control did not always survive.
 11.1. Why formal reviews?
 -------------------------
 
-Ravenbrook does have hundreds of archived review records [MM_reviews]_
+Ravenbrook does have hundreds of archived review records [MM-reviews]_
 with estimates of review productivity (produced by
 `.phase.estimation`_).  [At some point it would be good to summarize
 those here.  RB 2023-01-28]
@@ -1414,64 +1414,64 @@ Even testing is too late.
 A. References
 =============
 
-.. [CMU/SEI-93-TR-024] "Capability Maturity Model for Software,
+.. [CMU-SEI-93-TR-024] "Capability Maturity Model for Software,
 		       Version 1.1"; Mark C. Paulk, Bill Curtis, Mary
 		       Beth Chrissis, Charles V. Weber; Software
 		       Engineering Institute, Carnegie Mellon
 		       University; 1993-02;
 		       <https://resources.sei.cmu.edu/library/asset-view.cfm?assetid=11955>.
 
-.. [CMU/SEI-93-TR-025] "Key Practices of the Capability Maturity
+.. [CMU-SEI-93-TR-025] "Key Practices of the Capability Maturity
                        Model, Version 1.1"; Mark C. Paulk,
                        Charles V. Weber, Suzanne M. Garcia, Mary Beth
                        Chrissis, Marilyn Bush; Software Engineering
                        Institute, Carnegie Mellon University; 1993-02;
                        <https://resources.sei.cmu.edu/asset_files/TechnicalReport/1993_005_001_16214.pdf>.
 
-.. [Gilb_93] "Software Inspection"; Tom Gilb, Dorothy Graham; Addison
+.. [Gilb-93] "Software Inspection"; Tom Gilb, Dorothy Graham; Addison
              Wesley; 1993; ISBN 0-201-63181-4; book.gilb93.
 
-.. [MM_guide.review.edit] "Guidelines for review edits"; Gavin
+.. [MM-guide.review.edit] "Guidelines for review edits"; Gavin
 			  Matthews; Harlequin Limited; 1996-10-31;
 			  mminfo:guide.review.edit;
 			  //info.ravenbrook.com/project/mps/doc/2002-06-18/obsolete-mminfo/mminfo/guide/review/edit/index.txt#1.
 
-.. [MM_process.review] "The review process"; Richard Brooksby;
+.. [MM-process.review] "The review process"; Richard Brooksby;
 		       Harlequin Limited; 1995-08-18;
 		       mminfo:process.review;
 		       //info.ravenbrook.com/project/mps/doc/2002-06-18/obsolete-mminfo/mminfo/process/review/index.txt#1.
 
-.. [MM_proc.review.brainstorm] "Procedure for process brainstorm in
+.. [MM-proc.review.brainstorm] "Procedure for process brainstorm in
 			       review"; Gavin Matthews; Harelquin
 			       Limited; 1997-06-12;
 			       mminfo:proc.review.brainstorm;
 			       //info.ravenbrook.com/project/mps/doc/2002-06-18/obsolete-mminfo/mminfo/proc/review/brainstorm/index.txt#1.
 
-.. [MM_proc.review.check] "Procedure for checking in review"; Gavin
+.. [MM-proc.review.check] "Procedure for checking in review"; Gavin
 			  Matthews; Harlequin Limited; 1997-06-12;
 			  mminfo:proc.review.check;
 			  //info.ravenbrook.com/project/mps/doc/2002-06-18/obsolete-mminfo/mminfo/proc/review/check/index.txt#1.
 
-.. [MM_proc.review.entry] "Procedure for review entry"; Gavin
+.. [MM-proc.review.entry] "Procedure for review entry"; Gavin
 			  Matthews; Harlequin Limited; 1997-06-02; mminfo:proc.review.entry;
 			  //info.ravenbrook.com/project/mps/doc/2002-06-18/obsolete-mminfo/mminfo/proc/review/entry/index.txt#1.
 
-.. [MM_proc.review.exit] "Procedure for exiting a document from
+.. [MM-proc.review.exit] "Procedure for exiting a document from
 			 review"; Gavin Matthews; Harlequin Limited;
 			 1997-06-12; mminfo:proc.review.exit;
 			 //info.ravenbrook.com/project/mps/doc/2002-06-18/obsolete-mminfo/mminfo/proc/review/exit/index.txt#1.
 
-.. [MM_proc.review.ko] "Procedure for a review kickoff meeting"; Gavin
+.. [MM-proc.review.ko] "Procedure for a review kickoff meeting"; Gavin
 		       Matthews; Harlequin Limited; 1997-06-12;
 		       mminfo:proc.review.ko;
 		       //info.ravenbrook.com/project/mps/doc/2002-06-18/obsolete-mminfo/mminfo/proc/review/ko/index.txt#1.
 
-.. [MM_proc.review.log] "Procedure for review logging meeting"; Gavin
+.. [MM-proc.review.log] "Procedure for review logging meeting"; Gavin
 			Matthews; Harlequin Limited; 1997-06-12;
 			mminfo:proc.review.log;
 			//info.ravenbrook.com/project/mps/doc/2002-06-18/obsolete-mminfo/mminfo/proc/review/log/index.txt#1
 
-.. [MM_reviews] Review records of the MM Group; Harlequin Limited;
+.. [MM-reviews] Review records of the MM Group; Harlequin Limited;
 		mminfo:review.*;
 		//info.ravenbrook.com/project/mps/doc/2002-06-18/obsolete-mminfo/mminfo/review/...
 
