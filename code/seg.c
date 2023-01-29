@@ -320,7 +320,7 @@ void SegSetSummary(Seg seg, RefSet summary)
 #if defined(REMEMBERED_SET_NONE)
   /* .no-rem: Without protection, we can't maintain the remembered set
      because there are writes we don't know about. */
-  RefSetCopy(&summary, RefSetUniv);
+  RefSetCopy(summary, RefSetUniv);
 #endif
 
   if (!RefSetEqual(summary, segSummary(seg)))
@@ -338,7 +338,7 @@ void SegSetRankAndSummary(Seg seg, RankSet rankSet, RefSet summary)
 #if defined(REMEMBERED_SET_NONE)
   /* .no-rem */
   if (rankSet != RankSetEMPTY)
-    RefSetCopy(&summary, RefSetUniv);
+    RefSetCopy(summary, RefSetUniv);
 #endif
 
   Method(Seg, seg, setRankSummary)(seg, rankSet, summary);
