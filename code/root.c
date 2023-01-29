@@ -529,12 +529,7 @@ Res RootScan(ScanState ss, Root root)
   if (TraceSetInter(root->grey, ss->traces) == TraceSetEMPTY)
     return ResOK;
 
-  /* FIXME: Express this better. */
-  {
-    RefSetStruct summary;
-    ScanStateGetSummary(&summary, ss);
-    AVER(RefSetIsEmpty(&summary));
-  }
+  AVER(ScanStateSummaryIsEmpty(ss));
 
   if (root->pm != AccessSetEMPTY) {
     ProtSet(root->protBase, root->protLimit, AccessSetEMPTY);

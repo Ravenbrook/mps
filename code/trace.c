@@ -1125,11 +1125,7 @@ void ScanStateSetSummary(ScanState ss, RefSet summary)
 
   ScanStateSetUnfixedZones(ss, ZoneSetEMPTY);
   RefSetCopy(&ss->fixedSummary, summary);
-  {
-    RefSetStruct new;
-    ScanStateGetSummary(&new, ss);
-    AVER(RefSetEqual(&new, summary));
-  }
+  AVER(ScanStateSummaryEqual(ss, summary));
 }
 
 
@@ -1185,6 +1181,22 @@ void ScanStateUpdateSummary(ScanState ss, Seg seg, Bool wasTotal)
   }
   SegSetSummary(seg, &summary);
 }
+
+
+Bool ScanStateSummaryIsEmpty(ScanState ss)
+{
+  RefSetStruct summary;
+  ScanStateGetSummary(&summary, ss);
+  return RefSetIsEmpty(summary);
+}
+
+Bool ScanStateSummaryEqual(ScanState ss, RefSet rs)
+{
+  RefSetStruct summary;
+  ScanStateGetSummary(&summary, ss);
+  return RefSetIsEqual(summary, rs);
+}
+
 
 /* traceScanSegRes -- scan a segment to remove greyness
  *

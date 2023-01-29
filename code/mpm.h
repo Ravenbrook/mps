@@ -361,6 +361,9 @@ extern Bool ScanStateCheck(ScanState ss);
 extern void ScanStateSetSummary(ScanState ss, RefSet summary);
 extern void ScanStateGetSummary(RefSet summaryReturn, ScanState ss);
 extern void ScanStateUpdateSummary(ScanState ss, Seg seg, Bool wasTotal);
+extern Bool ScanStateSummaryIsEmpty(ScanState ss);
+extern Bool ScanStateSummaryEqual(ScanState ss, RefSet rs);
+
 
 /* See impl.h.mpmst.ss */
 #define ScanStateZoneShift(ss)             ((Shift)(ss)->ss_s._zs)
