@@ -199,8 +199,8 @@ executed roughly in the order below.
    who is an experienced `.role.leader`_ can do entry on their own
    work.
 
-#. _`.phase.planning`: `.role.leader`_ executes `.planning`_ to
-   prepare the review and arrange for it to happen.
+#. _`.phase.plan`: `.role.leader`_ executes `.plan`_ to prepare the
+   review and arrange for it to happen.
 
 #. _`.phase.kickoff`: `.role.leader`_ and `.role.checker`_ execute
    `.ko`_, beginning the review.
@@ -309,7 +309,7 @@ balancing `2. Purpose`_ and cost.
 5.2. Review Planning
 --------------------
 
-_`.planning`: The *review planning procedure* should be executed when
+_`.plan`: The *review planning procedure* should be executed when
 a change has passed `.entry`_.  The purpose of planning is to prepare
 the review and arrange for it to happen.
 
