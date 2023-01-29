@@ -101,7 +101,8 @@ _`.purpose`: The purpose of the review procedure is:
 2. _`.goal.prevent`: prevent future defects
 
 [What about getting required changes in to the MPS?  Review is not
-purely obstructive.  RB 2023-01-23]
+purely obstructive.  Perhaps `.goal.fix`_ should be split into "find"
+and "fix".  RB 2023-01-23]
 
 _`.def.defect`: A defect is a way in which the work does not meet its
 requirements.
@@ -268,9 +269,11 @@ executed roughly in the order below.
 -----------------
 
 _`.entry`: The *review entry procedure* should be executed when a
-change is submitted for review (`.phase.entry`_).  The purpose of
-entry is to check whether the change is ready for review before
-planning a review, committing resources, organizing meetings, etc.
+change is submitted for review (`.phase.entry`_).
+
+_`.entry.purpose`: The purpose of entry is to check whether the change
+is ready for review before planning a review, committing resources,
+organizing meetings, etc.
 
 _`.entry.record`: Record the entry procedure (`.doc.record`_).
 
@@ -323,8 +326,10 @@ balancing `2. Purpose`_ and cost.  Will it pass `.exit`_?
 --------------------
 
 _`.plan`: The *review planning procedure* should be executed when
-a change has passed `.entry`_.  The purpose of planning is to prepare
-the review and arrange for it to happen.
+a change has passed `.entry`_.
+
+_`.plan.purpose:` The purpose of planning is to prepare the review so
+that it is efficient and effective, and arrange for it to happen.
 
 _`.plan.record`: Record the planning procedure.
 
@@ -490,8 +495,10 @@ _`.ko.go`: Send `.role.checker`_ away to start `.check`_.
 _`.check`: The *checking procedure* should be executed by each
 individual `.role.checker`_ alone, carrying out their assigned
 checking roles (`.role.check`_) without conferring with other
-checkers.  The purpose of checking is to find unique `major defects`_
-that no other checker will bring to `.log`_.
+checkers.
+
+_`.check.purpose`: The purpose of checking is to find unique `major
+defects`_ that no other checker will bring to `.log`_.
 
 
 5.4.1. Start
@@ -541,7 +548,7 @@ _`.check.max`: Find as many issues as possible to help the author.
 
 _`.check.note`: Note all issues; you need not log them later.
 
-_`.check.rough`: Your notes can be rough.  `.check.major`_.
+_`.check.rough`: Your notes can be rough.  `.check.major`_!
 
 - Do not spend time making your issues neat and clear or even putting
   them in exactly the right place.  Save that for `.log`_.  Search for
@@ -730,15 +737,13 @@ _`.log.inform`: Inform `.role.editor`_ that `.doc.product`_ is ready for
 
 _`.brainstorm`: The *review brainstorm procedure* should be executed
 by `.role.leader`_, `.role.scribe`_, and `.role.checker`_ right after
-`.log`_.  The purpose is to come up with ways of preventing defects in
-future.  The meeting should *not* analyse the defects found by the
-review, or suggest ways to fix those defects, except insofar as it is
-necessary to develop ways to *prevent* those defects.
+`.log`_.
 
-_`.brainstorm.just`: The purpose of holding a process brainstorm
-meeting is to meet the second goal of review (`.goal.prevent`_) by
-finding ways to prevent the reoccurance of defects.  This closes the
-process improvement loop.
+_`.brainstorm.purpose`: The purpose of review brainstorm is to come up
+with ways of preventing defects in future (`.goal.prevent`_).  The
+meeting should *not* analyse the defects found by the review, or
+suggest ways to fix those defects, except insofar as it is necessary
+to develop ways to *prevent* those defects.
 
 [This text was in the phase section and may need incorporating here.
 
@@ -807,23 +812,18 @@ to be made more specific.  RB 2023-01-21]
 [Sourced from [MM-guide.review.edit]_ and needs updating.  RB 2023-01-21]
 
 _`.edit`: The *review edit procedure* must be executed by
-`.role.editor`_ to analyse and correct defects, the review's primary
-purpose (`.goal.fix`_).
+`.role.editor`_ to revise `.doc.product`_ into `.doc.rev`_ by
+processing `.doc.issue`_.
 
-[This text was in the phase section, and may need incorporating here.
+_`.edit.purpose`: The purpose of the review edit is to analyse and
+correct defects, part of the review's primary purpose (`.goal.fix`_).
 
-   Issue analysis and correction action is undertaken by an editor.
-   Some written action must be taken on all logged issues -- if
-   necessary by sending change requests to other authors.  The editor
-   makes the final classification of issues into defects, and reports
-   final defect metrics to the leader.  Edit also deals with
-   improvements and can deal with "questions to the author".
-
-RB 2023-01-23]
+_`.edit.record`: [Insert recording instructions here.  RB 2023-01-29]
 
 _`.edit.log`: The log should be placed in the edit section of the
 review document.  The review document for a document of tag <tag> and
-revision <revision> will be review.<tag>.<revision>.
+revision <revision> will be review.<tag>.<revision>.  [This is out of
+date for GitHub's review tools and records.  RB 2023-01-29]
 
 [On GitHub, the edit log might include review and other comments
 displayed in the pull request.  These can have responses and be
@@ -968,8 +968,13 @@ unless you are also `.role.improver`_.
 ------------------------
 
 _`.pi`: The *process improvement procedure* must be executed by
-`.role.improver`_ to take action to prevent future defects, the
-review's secondary purpose (`.goal.prevent`_).
+`.role.improver`_ to take action to prevent future defects by
+processing `.doc.issue`_, but especially the results of
+`.brainstorm`_.
+
+_`.pi.purpose`: The purpose of process improvement is to take action
+to prevent future defects, closing the process improvement loop
+(`.goal.prevent`_).
 
 _`.pi.scope`: The scope of actions that might be taken by the improver
 should not be limited, and could include:
@@ -1026,8 +1031,10 @@ _`.pi.forget`: "Forget: <reason>"
 ----------------
 
 _`.exit`: The *review exit procedure* is should be executed by
-`.role.leader`_ after editing (`.edit`_).  The purpose of exit is to
-determine whether the revised change passes review.
+`.role.leader`_ after editing (`.edit`_).
+
+_`.exit.purpose`: The purpose of exit is to determine whether the
+revised change passes review.
 
 _`.exit.record`: Record the exit procedure (`.doc.record`_).
 
