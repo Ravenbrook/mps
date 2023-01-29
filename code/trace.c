@@ -1187,14 +1187,14 @@ Bool ScanStateSummaryIsEmpty(ScanState ss)
 {
   RefSetStruct summary;
   ScanStateGetSummary(&summary, ss);
-  return RefSetIsEmpty(summary);
+  return RefSetIsEmpty(&summary);
 }
 
 Bool ScanStateSummaryEqual(ScanState ss, RefSet rs)
 {
   RefSetStruct summary;
   ScanStateGetSummary(&summary, ss);
-  return RefSetIsEqual(summary, rs);
+  return RefSetEqual(&summary, rs);
 }
 
 
@@ -1210,7 +1210,6 @@ static Res traceScanSegRes(TraceSet ts, Rank rank, Arena arena, Seg seg)
   Bool wasTotal;
   ZoneSet white;
   Res res;
-  RefSetStruct summary;
 
   /* The reason for scanning a segment is that it's grey. */
   AVER(TraceSetInter(ts, SegGrey(seg)) != TraceSetEMPTY);
@@ -1219,14 +1218,15 @@ static Res traceScanSegRes(TraceSet ts, Rank rank, Arena arena, Seg seg)
   white = traceSetWhiteUnion(ts, arena);
 
   /* Only scan a segment if it refers to the white set. */
-  SegGetSummary(&summary, seg);
-  if (!RefSetInterZones(&summary, white)) {
+  if (SegDoesNotReferenceZones(seg, white)) {
     SegBlacken(seg, ts);
     /* Setup result code to return later. */
     res = ResOK;
   } else {      /* scan it */
     ScanStateStruct ssStruct;
     ScanState ss = &ssStruct;
+    RefSetStruct summary;
+
     ScanStateInitSeg(ss, ts, arena, rank, white, seg);
 
     /* Expose the segment to make sure we can scan it. */
@@ -1491,7 +1491,6 @@ done:
 static Res traceScanSingleRefRes(TraceSet ts, Rank rank, Arena arena,
                                  Seg seg, Ref *refIO)
 {
-  RefSetStruct summary;
   ZoneSet white;
   Res res;
   ScanStateStruct ss;
@@ -1499,8 +1498,7 @@ static Res traceScanSingleRefRes(TraceSet ts, Rank rank, Arena arena,
   EVENT4(TraceScanSingleRef, ts, rank, arena, refIO);
 
   white = traceSetWhiteUnion(ts, arena);
-  SegGetSummary(&summary, seg);
-  if (RefSetInterZones(&summary, white)) {
+  if (SegDoesNotReferenceZones(seg, white)) {
     return ResOK;
   }
 
@@ -1513,9 +1511,7 @@ static Res traceScanSingleRefRes(TraceSet ts, Rank rank, Arena arena,
   } TRACE_SCAN_END(&ss);
   ss.scannedSize = sizeof *refIO;
 
-  SegGetSummary(&summary, seg);
-  RefSetAddFixedRef(&summary, arena, *refIO);
-  SegSetSummary(seg, &summary);
+  SegSummaryAddFixedRef(seg, arena, *refIO);
   
   ShieldCover(arena, seg);
 
@@ -1623,6 +1619,7 @@ static Res rootGrey(Root root, void *p)
   AVERT(Root, root);
   AVERT(Trace, trace);
 
+  /* FIXME: Implement RootDoesNotReferenceZones like Seg */
   RootGetSummary(&summary, root);
   if (RefSetInterZones(&summary, trace->white)) {
     RootGrey(root, trace);
@@ -1674,13 +1671,11 @@ Res TraceStart(Trace trace, double mortality, double finishingTime)
       /* This is indicated by the rankSet begin non-empty.  Such */
       /* segments may only belong to scannable pools. */
       if(SegRankSet(seg) != RankSetEMPTY) {
-        RefSetStruct summary;
         /* Turn the segment grey if there might be a reference in it */
         /* to the white set.  This is done by seeing if the summary */
         /* of references in the segment intersects with the */
         /* approximation to the white set. */
-        SegGetSummary(&summary, seg);
-        if (RefSetInterZones(&summary, trace->white)) {
+        if (!SegDoesNotReferenceZones(seg, trace->white)) {
           /* Note: can a white seg get greyed as well?  At this point */
           /* we still assume it may.  (This assumption runs out in */
           /* PoolTrivGrey). */

@@ -369,6 +369,7 @@ extern Bool ScanStateSummaryEqual(ScanState ss, RefSet rs);
 #define ScanStateZoneShift(ss)             ((Shift)(ss)->ss_s._zs)
 #define ScanStateWhiteZones(ss)            ((ZoneSet)(ss)->ss_s._w)
 #define ScanStateUnfixedZones(ss)          ((ZoneSet)(ss)->ss_s._ufs)
+#define ScanStateFixedZones(ss)            RefSetZones(&(ss)->fixedSummary) /* FIXME */
 #define ScanStateSetZoneShift(ss, shift)   ((void)((ss)->ss_s._zs = (shift)))
 #define ScanStateSetWhiteZones(ss, zs)     ((void)((ss)->ss_s._w = (zs)))
 #define ScanStateSetUnfixedZones(ss, zs)   ((void)((ss)->ss_s._ufs = (zs)))
@@ -674,6 +675,9 @@ extern Res SegAbsDescribe(Inst seg, mps_lib_FILE *stream, Count depth);
 extern Res SegDescribe(Seg seg, mps_lib_FILE *stream, Count depth);
 extern void SegGetSummary(RefSet summaryReturn, Seg seg);
 extern void SegSetSummary(Seg seg, RefSet summary);
+extern void SegSummaryAddMutatorRef(Seg seg, Arena arena, Ref ref);
+extern void SegSummaryAddFixedRef(Seg seg, Arena arena, Ref ref);
+extern Bool SegDoesNotReferenceZones(Seg seg, ZoneSet zs);
 extern Bool SegHasBuffer(Seg seg);
 extern Bool SegBuffer(Buffer *bufferReturn, Seg seg);
 extern void SegSetBuffer(Seg seg, Buffer buffer);

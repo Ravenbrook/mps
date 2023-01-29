@@ -345,6 +345,32 @@ void SegSetRankAndSummary(Seg seg, RankSet rankSet, RefSet summary)
 }
 
 
+static void SegSummaryAddRef(Seg seg, Arena arena, Ref ref)
+{
+  RefSetStruct summary;
+  SegGetSummary(&summary, seg);
+  RefSetAddMutatorRef(&summary, arena, ref);
+  SegSetSummary(seg, &summary);
+}
+
+void SegSummaryAddMutatorRef(Seg seg, Arena arena, Ref ref)
+{
+  SegSummaryAddRef(seg, arena, ref);
+}
+
+void SegSummaryAddFixedRef(Seg seg, Arena arena, Ref ref)
+{
+  SegSummaryAddRef(seg, arena, ref);
+}
+
+Bool SegDoesNotReferenceZones(Seg seg, ZoneSet zs)
+{
+  RefSetStruct summary;
+  SegGetSummary(&summary, seg);
+  return !RefSetInterZones(&summary, zs);
+}
+
+
 /* SegHasBuffer -- segment has a buffer? */
 
 Bool SegHasBuffer(Seg seg)
@@ -1336,13 +1362,7 @@ Res SegSingleAccess(Seg seg, Arena arena, Addr addr,
     ref = *(Ref *)addr;
     /* .tagging: ought to check the reference for a tag.  But
      * this is conservative. */
-    /* FIXME: Common code with ArenaPoke */
-    {
-      RefSetStruct summary;
-      SegGetSummary(&summary, seg);
-      RefSetAddMutatorRef(&summary, arena, ref);
-      SegSetSummary(seg, &summary);
-    }
+    SegSummaryAddMutatorRef(seg, arena, ref);
 
     ShieldCover(arena, seg);
 
