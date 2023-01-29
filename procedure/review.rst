@@ -17,6 +17,8 @@ Memory Pool System review procedure
 .. TODO: Check against book.gilb93.proc.* and consider dividing
    procedures by role.
 
+.. TODO: Incorporate MM Group checklists from <https://info.ravenbrook.com/project/mps/doc/2002-06-18/obsolete-mminfo/mminfo/check/>.
+
 1. Introduction
 ===============
 
@@ -128,13 +130,13 @@ _`.role.author`: The *author* is the person responsible for the change
 under review (`.doc.product`_).  For example, they're the developer
 who submitted a pull request.
 
-_`.role.checker`: A *checker* checks the change during review.  There
-must be more than one checker.  Every person taking part in a review
-is usually also a checker, including the author.  Checkers should be
-asked by the leader to check with certain *checking roles*
-(`.role.check`_) in mind; this is to increase coverage and reduce
-duplication of issues.  Checkers also take part defect prevention in
-`.phase.brainstorm`_.
+_`.role.checker`: A *checker* checks the change (`.doc.product`_)
+during review.  There must be more than one checker.  Every person
+taking part in a review is usually also a checker, including the
+author.  Checkers should be asked by the leader to check with certain
+*checking roles* (`.role.check`_) in mind; this is to increase
+coverage and reduce duplication of issues.  Checkers also take part
+defect prevention in `.phase.brainstorm`_.
 
 _`.role.editor`: The *editor* is the person responsible for acting on
 the issues found during review in order to bring the work to review
@@ -231,6 +233,7 @@ executed roughly in the order below.
 
 #. _`.phase.edit`: `.role.editor`_ executes `.edit`_, analysing and
    correcting defects, but taking *some* action on *every* issue.
+   This produces the *revised change* (`.doc.rev`_).
 
 #. _`.phase.pi`: `.role.improver`_ executes `.pi`_ to prevent `major
    defects`_ by correcting *causes*.
@@ -361,7 +364,7 @@ be used for checking (`.doc.source`_).
 
 _`.plan.rule`: Determine and record the rules to apply (`.doc.rule`_).
 
-- Add rules for the types od documents altered by the change (code,
+- Add rules for the types of documents altered by the change (code,
   design, etc.) from the `procedure directory`_.
 
 - Also select other rules that apply from the `procedure directory`_,
@@ -369,7 +372,7 @@ _`.plan.rule`: Determine and record the rules to apply (`.doc.rule`_).
   example.  RB 2023-01-28]
 
 _`.plan.check`: Determine and record the checklists to apply [how and
-from where?  RB 2023-01-23].
+from where?  See `mminfo:check.* <https://info.ravenbrook.com/project/mps/doc/2002-06-18/obsolete-mminfo/mminfo/check/>`__.  RB 2023-01-23].
 
 _`.plan.roles`: Determine and record the checking roles
 (`.role.check`_) to assign.
@@ -978,8 +981,9 @@ should not be limited, and could include:
 
 as well as changes like:
 
-- adding rules or checklist items
-- updating procedures
+- adding rules (`.doc.rule`_) or checklist items (`.doc.check`_)
+- updating procedures (`.doc.proc`_)
+- updating or writing guides (`.doc.guide`_)
 - creating tools
 - adding automated checks
 
@@ -1081,15 +1085,24 @@ efforts.
 [Sourced from [MM_process.review]_ and needs updating.  RB 2023-01-21]
 
 _`.doc`: The review process involves a lot of documents.  This is a
-brief explanation of what they are:
+brief explanation of what they are.
+
+_`.doc.forms`: Documents come in many forms.  They might be web pages,
+email messages, GitHub comments, chat messages, and sometimes even
+printed on dead trees.
 
 _`.doc.source`: Source document
 
   A document from which the product document is derived.  Note that
-  this is nothing to do with source code.
+  this does not mean "source code".
 
-  [Give examples: issues, designs, user documentation, failure reports
-  (e.g. in email), standards.  RB 2023-01-28]
+  For example, a failure of the software might result in a *failure
+  report*, which gets logged to an *issue*, where someone writes an
+  *analysis* and *designs* a solution.  All of those things are source
+  documents for the resulting *change* to be reviewed
+  (`.doc.product`_).
+
+  Other examples include `.doc.guide`_, manuals, and standards.
 
 _`.doc.product`: Product document
 
@@ -1102,49 +1115,98 @@ _`.doc.product`: Product document
 
 _`.doc.record`: Review records
 
-  A document of type "review" that records the results of reviewing
-  one document.  This includes the issue log, and the brainstormed
-  improvement suggestions.
+  Documents produced by the review procedures, which record the
+  progress and results of the review.  See `.entry.record`_,
+  `.plan.record`_, `.ko.record`_, `.check.record`_, `.log.record`_,
+  `.brainstorm.record`_, `.edit.record`_, `.pi.record`_, and
+  `.exit.record`_.
 
-  [This needs generalising to all kinds of records mentioned in this
-  procedure, and updating to GitHub.  RB 2023-01-28]
+  On GitHub, these records are made as comments on the pull request
+  for the change under review.  See also `.doc.issue`_.
 
-  [All records must be specific, permanent, and referencable.  RB
-  2023-01-28]
+  In any case, review records must be specific, permanent, and
+  referencable.
 
 _`.doc.issue`: Issue log
 
   A record of issues raised during the logging meeting, specifying
-  their location, type, finder, and a brief description.  The issue
-  log also gives each issue an identifying number.
+  their location, type, finder, and a brief description.
+
+  On GitHub, the issue log includes all GitHub review comments or
+  GitHub individual comments that appear in the pull request for the
+  change under review.  See also `.doc.record`_.
+
+  Every issue log entry must be specific, permanent, and
+  referencable.
+
+  [This naming clashes with "GitHub issue".  We should find another
+  name.  RB 2023-01-28]
 
 _`.doc.rev`: Revised document
 
-  The result of performing the edit procedure on the Product document.
+  The result of performing the edit procedure on the `.doc.product`_.
+  The revised version of the change under review.
 
 _`.doc.acc`: Accepted document
 
-  The result of a Revised document passing exit.
+  The result of a Revised document passing exit.  [This isn't
+  mentioned.  RB 2023-01-28]
 
-_`.doc.rule`: Rule
+_`.doc.rule`: Rules and rule sets
 
-  A rule set that a Product document is expected to obey.
+  A rule or set of rules that `.doc.product`_ should obey.
 
-_`.doc.guide`: Guidelines
+  Rules are developed by process improvement of the project as a
+  whole.  In this procedure, they are updated by `.pi`_ as a result of
+  `.brainstorm`_.
 
-  A "guide" document that a Product document may be expected to be in
-  line with.  [Explain how this is distinct from rules.  RB
-  2023-01-21]
+  Rule sets are kept short and and rules kept terse to help with
+  checking.
 
-_`.doc.check`: Checklist
+_`.doc.guide`: Guides
 
-  A list of questions, a negative answer to which indictes that a rule
-  has been broken (see .doc.rule).
+  A guide that `.doc.product`_ is expected to follow, though not
+  strictly.
+
+  Guides are generally longer, more detailed, and more discursive than
+  `.doc.rule`_ and contain advice about good practice.  As such, they
+  are less useful for review checking than `doc.rule`_ or
+  `doc.check`_.
+
+  Guides are developed by process improvement of the project as a
+  whole.  In this procedure, they are updated by `.pi`_ as a result of
+  `.brainstorm`_.
+
+_`.doc.check`: Checklists
+
+  A list of questions to help check against `.doc.rule`_.  A negative
+  answer to a checklist question indictes that a rule has been broken.
+
+  Checklists often contain specific questions that can help determine
+  whether rules are broken.  For example, a code checklist might say
+
+    .error.check: Are function status/error/exception returns
+    checked and acted upon?
+
+  which is ultimately part of a checking generic rule like
+
+    .achieve: A document must achieve (be consistent with) its
+    purpose.
+
+  Checklists are developed by process improvement of the project as a
+  whole.  In this procedure, they are updated by `.pi`_ as a result of
+  `.brainstorm`_.
 
 _`.doc.entry`: Entry criteria
 
-  Criteria that should be met before review to ensure that the
-  document is likely to pass exit.
+  `.doc.rule`_ that must be met before review to ensure that the
+  `.doc.product`_ is likely to pass `.doc.exit`_, so that resources
+  are not wasted on a premature review.
+
+_`.doc.exit`: Exit criteria
+
+  `.doc.rule`_ that must be met for `.doc.rev`_ to pass review and be
+  approved for use.
 
 _`.doc.proc`: Procedures
 
@@ -1159,7 +1221,7 @@ _`.doc.imp`: Brainstormed improvement suggestions
 _`.doc.request`: Requests for change
 
   An issue that the editor cannot deal with that is escalated to some
-  other tracking system, usually MM Evolution (see process.darwin).
+  other tracking system, such as a GitHub issue.
 
 
 7. Calculations
@@ -1425,6 +1487,7 @@ B. Document History
 2023-01-28  RB_    Developing the Rationale.
                    Tidying up remaining comments.
                    Revising entry, planning, kickoff, and exit.
+                   Revising documents section.
 ==========  =====  ==================================================
 
 .. _RB: mailto:rb@ravenbrook.com
