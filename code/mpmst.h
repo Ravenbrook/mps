@@ -442,7 +442,7 @@ typedef struct TraceStruct {
   TraceId ti;                   /* index into TraceSets */
   Arena arena;                  /* owning arena */
   TraceStartWhy why;            /* why the trace began */
-  ZoneSet white;                /* zones in the white set */
+  RefSetStruct whiteStruct;     /* reference set of condemned objects */
   ZoneSet mayMove;              /* zones containing possibly moving objs */
   TraceState state;             /* current state of trace */
   Rank band;                    /* current band */

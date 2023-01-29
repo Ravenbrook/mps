@@ -353,9 +353,9 @@ extern const char *MessageNoGCStartWhy(Message message);
 
 
 extern void ScanStateInit(ScanState ss, TraceSet ts, Arena arena,
-                          Rank rank, ZoneSet white);
+                          Rank rank, RefSet white);
 extern void ScanStateInitSeg(ScanState ss, TraceSet ts, Arena arena,
-                             Rank rank, ZoneSet white, Seg seg);
+                             Rank rank, RefSet white, Seg seg);
 extern void ScanStateFinish(ScanState ss);
 extern Bool ScanStateCheck(ScanState ss);
 extern void ScanStateSetSummary(ScanState ss, RefSet summary);

@@ -188,7 +188,7 @@ static void rootsStepClosureInit(rootsStepClosure rsc,
   /* First initialize the ScanState superclass */
   ss = &rsc->ssStruct;
   ScanStateInit(ss, TraceSetSingle(trace), GlobalsArena(arena), RankMIN,
-                trace->white);
+                &trace->whiteStruct);
 
   /* Initialize the fix method in the ScanState */
   ss->fix = rootFix;
@@ -313,7 +313,7 @@ static Res ArenaRootsWalk(Globals arenaGlobals, mps_roots_stepper_t f,
      _mps_fix2 for a reference in a root, the reference must pass the
      first-stage test (against the summary of the trace's white
      set), so make the summary universal. */
-  trace->white = ZoneSetUNIV;
+  RefSetCopy(&trace->whiteStruct, RefSetUniv);
 
   /* .roots-walk.second-stage: In order to fool _mps_fix2 into calling
      our fix function (RootsWalkFix), the reference must be to a
@@ -441,12 +441,12 @@ static Res poolWalk(Arena arena, Pool pool, mps_area_scan_t area_scan, void *clo
   /* Fail if no trace available. Unlikely due to .assume.parked. */
   if (res != ResOK)
     return res;
-  trace->white = ZoneSetEMPTY;
+  RefSetInit(&trace->whiteStruct);
   trace->state = TraceFLIPPED;
   arena->flippedTraces = TraceSetAdd(arena->flippedTraces, trace);
   ts = TraceSetSingle(trace);
 
-  ScanStateInit(&ss, ts, arena, RankEXACT, trace->white);
+  ScanStateInit(&ss, ts, arena, RankEXACT, &trace->whiteStruct);
   ss.formatScan = poolWalkScan;
   ss.areaScan = area_scan;
   ss.areaScanClosure = closure;
