@@ -736,74 +736,56 @@ _`.log.inform`: Inform `.role.editor`_ that `.doc.product`_ is ready for
 2023-01-21]
 
 _`.brainstorm`: The *review brainstorm procedure* should be executed
-by `.role.leader`_, `.role.scribe`_, and `.role.checker`_ right after
-`.log`_.
+by `.role.leader`_ with `.role.scribe`_ and `.role.checker`_ very soon
+after `.log`_.
 
 _`.brainstorm.purpose`: The purpose of review brainstorm is to come up
-with ways of preventing defects in future (`.goal.prevent`_).  The
-meeting should *not* analyse the defects found by the review, or
-suggest ways to fix those defects, except insofar as it is necessary
-to develop ways to *prevent* those defects.
-
-[This text was in the phase section and may need incorporating here.
-
-   The followup is done by the `.role.leader`_, and make take place any
-   time after the brainstorm meeting.  [What is the followup?  RB
-   2023-01-20]
-
-   Immediately after each logging meeting time is used to brainstorm
-   the process causes of major defects, and to brainstorm improvements
-   to remove these causes.  The meeting shall last no more than half
-   an hour.  The objective is to maximize production of useful ideas
-   and personal commitment to change within that time.
-
-RB 2023-01-23]
-
-
-5.6.1. In Advance
-.................
-
-_`.brainstorm.choose`: The leader chooses 3-6 major defects or groups
-of `major defects`_ found in review.  They makes this choice based on
-their importance and his own experience of which defects can be most
-profitably attacked.
-
-
-5.6.2. In The Meeting
-.....................
+with ways of preventing defects in future (`.goal.prevent`_).
 
 _`.brainstorm.time`: The process brainstorm should last no more than
 around 30 minutes.
 
-_`.brainstorm.record`: The brainstorm should be recorded in the review
-log as best as the scribe may.  This may be deferred if the process
-brainstorm takes place by some logged medium, such as IRC.
+_`.brainstorm.record`: Record the brainstorm procedure
+(`.doc.record`_).
 
-_`.brainstorm.remind`: The leader reminds participants that their
-purpose is to find process improvements that would have prevented
-major defects from occurring.
+- On GitHub, you can start a comment on the pull request.
 
-_`.brainstorm.raise`: The leader raises each issue in turn, reminding
+- Record a the procedure you're following (this one).  Use a
+  permalink.  For example::
+
+    Executing [brainstorm](https://github.com/Ravenbrook/mps/blob/branch/2023-01-19/review-procedure/procedure/review.rst#56-review-brainstorm)
+
+_`.brainstorm.choose`: Choose 3 to 6 `major defects`_ or groups
+of `major defects`_ found in review.
+
+- Make this choice based on defect importance and your experience of
+  which defects can be most profitably attacked.
+
+- Record the issues.  [How exactly?  RB 2023-01-29]
+
+_`.brainstorm.remind`: Remind everyone of `.brainstorm.purpose`_ and
+`.pi.scope`_.
+
+_`.brainstorm.focus`: Ask everyone *not* to spend time analysing the
+defects found by the review, or suggesting ways to fix those defects,
+except insofar as it is necessary to develop ways to *prevent* those
+defects.
+
+_`.brainstorm.raise`: Raises each major defect in turn, reminding
 participants of the issue, and asking how it happenned and what could
 have prevented it.
 
-_`.brainstorm.disc`: The participants should discuss each defect for
-no more than about five minutes.  They should focus on how the defect
-arose, and what improvement could prevent it.  The leader should be
-firm in curtailing discussion of how the defect can be fixed.
+_`.brainstorm.disc`: Encourage discussion for no more than about five
+minutes per defect.  Focus on how the defect arose, and what
+improvement could prevent it.  Curtailing discussion of how the defect
+can be fixed.
 
 _`.brainstorm.proc`: If time permits, the leader may solicit
 criticisms of the review process and apply `.brainstorm.disc`_ to
 them.
 
-
-5.6.3. After The Meeting
-........................
-
-_`.brainstorm.act`: The review leader should derive requests and
-solution suggestions for the process product from the record, and
-should note these in the review record where appropriate.  [This needs
-to be made more specific.  RB 2023-01-21]
+_`.brainstorm.log`: Record the suggestions.  [How exactly?  RB
+2023-01-29]
 
 
 5.7. Review Edit
@@ -962,6 +944,9 @@ Improvement Suggestions
 
 _`.edit.improve`: Improvement suggestions should be left for `.pi`_,
 unless you are also `.role.improver`_.
+
+[This is a mistake.  It's a conflation of `.class.imp`_ with process
+improvement.  Needs correcting.  RB 2023-01-29]
 
 
 5.8. Process Improvement
@@ -1518,7 +1503,7 @@ B. Document History
                    Tidying up remaining comments.
                    Revising entry, planning, kickoff, and exit.
                    Revising documents section.
-2023-01-30  RB_    Revising checking and logging.
+2023-01-30  RB_    Revising checking, logging, and brainstorm.
 ==========  =====  ==================================================
 
 .. _RB: mailto:rb@ravenbrook.com
