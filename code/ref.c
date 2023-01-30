@@ -65,15 +65,30 @@ ZoneSet RefSetZones(RefSet rs)
   return rs->zones;
 }
 
+
+/* RefSetAddMutatorRef -- add a mutator reference to a refset
+ *
+ * TODO: This is distinguished from RefSetAddFixedRef because we know
+ * different things about mutator and fixed references.  This will
+ * become important when we introduce object ages to refsets.
+ */
+
 void RefSetAddMutatorRef(RefSet rs, Arena arena, Ref ref)
 {
   rs->zones = ZoneSetAddAddr(arena, rs->zones, (Addr)ref);
 }
 
+
+/* RefSegAddFixedRef -- add a fixed reference to a refset
+ *
+ * See RefSetAddMutatorRef.
+ */
+
 void RefSetAddFixedRef(RefSet rs, Arena arena, Ref ref)
 {
   rs->zones = ZoneSetAddAddr(arena, rs->zones, (Addr)ref);
 }
+
 
 Bool RefSetSub(RefSet rs1, RefSet rs2)
 {
