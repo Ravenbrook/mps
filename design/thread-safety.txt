@@ -56,7 +56,7 @@ _`.req.perf`: Performance should not be unreasonably hindered.
 Analysis
 --------
 
-_`.anal.simple`: To have the code functioning correctly it should be
+_`.analysis.simple`: To have the code functioning correctly it should be
 easy to change correctly. So a simple approach is desirable. We have
 to also ensure that performance is not unreasonably downgraded.
 
@@ -74,14 +74,14 @@ _`.lock-cost`: The cost of locking in performance terms are:
 - _`.lock-cost.wait`: the time wasted by one thread being blocked on
   another thread.
 
-_`.anal.perf.signif`: `.lock-cost.pause`_ is significant if there are
+_`.analysis.perf.signif`: `.lock-cost.pause`_ is significant if there are
 MPS functions that take a long time. Using more locks, e.g. having a
 lock per pool as well as a lock per arena, is a way of decreasing the
 locking conflict between threads (`.lock-cost.pause`_ and
 `.lock-cost.wait`_). However this could increase
 `.lock-cost.overhead`_ significantly.
 
-_`.anal.perf.work`: But all MPS functions imply a small work-load
+_`.analysis.perf.work`: But all MPS functions imply a small work-load
 unless a collection is taking place. In the case of a collection, in
 practice and certainly in the near future, all threads will most
 likely be suspended while the collection work is going on. (The pages
@@ -89,7 +89,7 @@ being scanned will need to be unprotected which implies the mutator
 will have to be stopped.) We also have to remember that unless we are
 running on genuine multiprocessor `.lock-cost.wait`_ is irrelevant.
 
-_`.anal.perf.alloc`: During typical use we expect that it is
+_`.analysis.perf.alloc`: During typical use we expect that it is
 allocation that is the most frequent activity. Allocation buffers
 (design.mps.buffer_) are designed to allow allocation in concurrent
 threads without needing a lock. So the most significant time a thread
@@ -99,7 +99,7 @@ as a separate buffer will be required for each thread.
 
 .. _design.mps.buffer: buffer
 
-_`.anal.perf.lock`: So overall the performance cost of locking is, I
+_`.analysis.perf.lock`: So overall the performance cost of locking is, I
 estimate, most significantly the overhead of calling the locking
 functions. Hence it would be undesirable from a performance point of
 view to have more than one lock.
@@ -108,7 +108,7 @@ view to have more than one lock.
 Recursive vs binary locks
 .........................
 
-_`.anal.reentrance`: The simplest way to lock the code safely is to
+_`.analysis.reentrance`: The simplest way to lock the code safely is to
 define which code runs inside or outside the lock. Calling from the
 outside to the inside implies a lock has to be claimed. Returning
 means the lock has to be released. Control flow from outside to
@@ -131,7 +131,7 @@ ways to implement this:
    - more code
    - slightly easier to reason about
 
-_`.anal.strategy`: It seems that the `.recursive`_ strategy is the
+_`.analysis.strategy`: It seems that the `.recursive`_ strategy is the
 easiest to implement first, but could be evolved into a `.binary`_
 strategy. (That evolution has now happened. tony 1999-08-31).
 
@@ -141,26 +141,26 @@ Fork safety
 
 In order to support ``fork()``, we need to solve the following problems:
 
-_`.anal.fork.lock`: Any MPS lock might be held by another thread at
+_`.analysis.fork.lock`: Any MPS lock might be held by another thread at
 the point where ``fork()`` is called. The lock would be protecting the
 integrity of some data structure. But in the child the thread holding
 the lock no longer exists, and so there is no way to restore the
 integrity.
 
-_`.anal.fork.threads`: In the child process after a ``fork()``, there
+_`.analysis.fork.threads`: In the child process after a ``fork()``, there
 is only one thread, which is a copy of the thread that called
 ``fork()`` in the parent process. All other threads no longer exist.
 But the MPS maintains references to these threads, via the
 ``ThreadStruct`` object` created by calls to ``mps_thread_reg()``. If
 we try to communicate with these threads it will fail or crash.
 
-_`.anal.fork.exc-thread`: On macOS, the MPS handles protection faults
+_`.analysis.fork.exc-thread`: On macOS, the MPS handles protection faults
 using a dedicated thread. But in the child process after a ``fork()``,
 this dedicated thread no longer exists. Also, the Mach port on which
 the dedicated thread receives its messages does not exist in the child
 either.
 
-_`.anal.fork.mach-port`: On macOS, the MPS identifies threads via
+_`.analysis.fork.mach-port`: On macOS, the MPS identifies threads via
 their Mach port numbers, which are stashed in the ``ThreadStruct`` and
 used to identify the current thread, for example in
 ``ThreadSuspend()``. But in the child process after ``fork()`` the
@@ -209,8 +209,8 @@ design.mps.lock.req.global.binary_) that protects mutable data shared
 between all arenas (that is, the arena ring lock: see
 design.mps.arena.static.ring.lock_).
 
-.. _design.mps.lock.req.global.binary: lock#req-global-binary
-.. _design.mps.arena.static.ring.lock: arena#static-ring-lock
+.. _design.mps.lock.req.global.binary: lock#.req.global.binary
+.. _design.mps.arena.static.ring.lock: arena#.static.ring.lock
 
 _`.sol.global.once`: There is a global recursive lock (see
 design.mps.lock.req.global.recursive_) that protects static data which
@@ -220,8 +220,8 @@ claims the global recursive lock, checks to see if the data structure
 has been initialized yet, and does so if necessary (see
 design.mps.protocol.impl.define-class.lock_).
 
-.. _design.mps.lock.req.global.recursive: lock#req-global-recursive
-.. _design.mps.protocol.impl.define-class.lock: protocol#impl-define-class-lock
+.. _design.mps.lock.req.global.recursive: lock#.req.global.recursive
+.. _design.mps.protocol.impl.define-class.lock: protocol#.impl.define-class.lock
 
 _`.sol.deadlock`: A strict ordering is required between the global and
 arena locks to prevent deadlock. The binary global lock may not be
@@ -231,7 +231,7 @@ Each arena lock is independent of all other arena locks; that is, a
 thread may not attempt to claim more than one arena lock at a time.
 See design.mps.arena.lock.avoid_.
 
-.. _design.mps.arena.lock.avoid: arena#lock-avoid
+.. _design.mps.arena.lock.avoid: arena#.lock.avoid
 
 _`.sol.check`: The MPS interface design requires that a function must
 check the signatures on the data structures pointed to by its
@@ -242,8 +242,8 @@ checking interface provides a ``TESTT()`` macro that checks the
 signature in a thread-safe way (see
 design.mps.sig.check.arg.unlocked_).
 
-.. _design.mps.sig.check.arg: sig#check-arg
-.. _design.mps.sig.check.arg.unlocked: sig#check-arg-unlocked
+.. _design.mps.sig.check.arg: sig#.check.arg
+.. _design.mps.sig.check.arg.unlocked: sig#.check.arg.unlocked
 
 
 Fork safety
@@ -256,7 +256,7 @@ and in the parent and child processes just after fork (the "parent"
 and "child" handlers respectively).
 
 .. |pthread_atfork| replace:: ``pthread_atfork()``
-.. _pthread_atfork: http://pubs.opengroup.org/onlinepubs/9699919799/functions/pthread_atfork.html
+.. _pthread_atfork: https://pubs.opengroup.org/onlinepubs/9699919799/functions/pthread_atfork.html
 
 _`.sol.fork.lock`: In the prepare handler, the MPS takes all the
 locks: that is, the global locks, and then the arena lock for every
@@ -295,48 +295,34 @@ Document History
 
 - 2018-06-14 GDR_ Added fork safety design.
 
-.. _RB: http://www.ravenbrook.com/consultants/rb/
-.. _GDR: http://www.ravenbrook.com/consultants/gdr/
+.. _RB: https://www.ravenbrook.com/consultants/rb/
+.. _GDR: https://www.ravenbrook.com/consultants/gdr/
 
 
 Copyright and License
 ---------------------
 
-Copyright © 2013-2018 Ravenbrook Limited <http://www.ravenbrook.com/>.
-All rights reserved. This is an open source license. Contact
-Ravenbrook for commercial licensing options.
+Copyright © 2013–2020 `Ravenbrook Limited <https://www.ravenbrook.com/>`_.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are
 met:
 
-#. Redistributions of source code must retain the above copyright
+1. Redistributions of source code must retain the above copyright
    notice, this list of conditions and the following disclaimer.
 
-#. Redistributions in binary form must reproduce the above copyright
+2. Redistributions in binary form must reproduce the above copyright
    notice, this list of conditions and the following disclaimer in the
    documentation and/or other materials provided with the distribution.
 
-#. Redistributions in any form must be accompanied by information on how
-   to obtain complete source code for this software and any
-   accompanying software that uses this software.  The source code must
-   either be included in the distribution or be available for no more than
-   the cost of distribution plus a nominal fee, and must be freely
-   redistributable under reasonable conditions.  For an executable file,
-   complete source code means the source code for all modules it contains.
-   It does not include source code for modules or files that typically
-   accompany the major components of the operating system on which the
-   executable file runs.
-
-**This software is provided by the copyright holders and contributors
-"as is" and any express or implied warranties, including, but not
-limited to, the implied warranties of merchantability, fitness for a
-particular purpose, or non-infringement, are disclaimed.  In no event
-shall the copyright holders and contributors be liable for any direct,
-indirect, incidental, special, exemplary, or consequential damages
-(including, but not limited to, procurement of substitute goods or
-services; loss of use, data, or profits; or business interruption)
-however caused and on any theory of liability, whether in contract,
-strict liability, or tort (including negligence or otherwise) arising in
-any way out of the use of this software, even if advised of the
-possibility of such damage.**
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+"AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.

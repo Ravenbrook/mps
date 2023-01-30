@@ -13,10 +13,12 @@ Design
     clock
     config
     critical-path
+    doc
     exec-env
     failover
     finalize
     freelist
+    guide.developer
     guide.hex.trans
     guide.impl.c.format
     guide.impl.c.naming
@@ -26,6 +28,7 @@ Design
     land
     lock
     message
+    monitor
     nailboard
     pool
     prmc
@@ -38,11 +41,13 @@ Design
     sp
     splay
     stack-scan
+    tests
     testthr
     thread-manager
     thread-safety
     type
     version-library
     vm
+    walk
     write-barrier
     writef

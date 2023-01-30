@@ -54,7 +54,7 @@ demonstration of :term:`Lisp` in an appendix to his paper
 Telemetry utilities
 -------------------
 
-The telemetry system relies on three utility programs:
+There are four programs that help process telemetry streams:
 
 * :ref:`mpseventcnv <telemetry-mpseventcnv>` decodes the
   machine-dependent binary event stream into a portable text format.
@@ -68,6 +68,9 @@ The telemetry system relies on three utility programs:
 * :ref:`mpseventsql <telemetry-mpseventsql>` takes the output of
   :ref:`mpseventcnv <telemetry-mpseventcnv>` and loads it into a
   SQLite database for further analysis.
+
+* :ref:`mpseventpy <telemetry-mpseventpy>` emits Python data
+  structures and constants for decoding a telemetry stream.
 
 You must build and install these programs as described in
 :ref:`guide-build`. These programs are described in more detail below.
@@ -125,14 +128,14 @@ as the `Time Stamp Counter
 <https://en.wikipedia.org/wiki/Time_Stamp_Counter>`_ on IA-32 and
 x86-64, if one is available. All numbers are given in hexadecimal. ::
 
-    000021C9DB3812C7 0075 EventClockSync      clock:0000000000001EE3 
-    000021C9DB39E2FB 002B VMInit              vm:00007FFF5429C4B8 base:000000010BA4A000 limit:000000010BA4B000 
-    000021C9DB3A5630 002D VMMap               vm:00007FFF5429C4B8 base:000000010BA4A000 limit:000000010BA4B000 
-    000021C9DB3E6BAA 001A Intern              stringId:0000000000000002 string:"MFS" 
-    000021C9DB3E6E17 001B Label               address:000000010BA0C5D8["MFS"] stringId:0000000000000002 
-    000021C9DB3EB6F8 0044 PoolInitMFS         pool:000000010BA4A360 arena:000000010BA4A000 extendBy:0000000000001000 extendSelf:False unitSize:0000000000000030 
-    000021C9DB3EFE3B 002B VMInit              vm:00007FFF5429C3D0 base:000000010BC84000 limit:000000010CC24000 
-    000021C9DB3F33F3 002D VMMap               vm:00007FFF5429C3D0 base:000000010BC84000 limit:000000010BC85000 
+    000050C3BA05F734 0074 EventInit           major:2 median:3 minor:0 maxCode:143 maxNameLen:19 wordWidth:64 clocksPerSec:00000000000F4240 
+    000050C3BA09FC24 0075 EventClockSync      clock:000000000000086C 
+    000050C3BA0F22B7 002B VMInit              vm:00007FFEECCCB660 base:0000000103062000 limit:0000000103063000 
+    000050C3BA0FA02F 008D GenInit             arena:0000000103062000 gen:00000001030624D8 serial:0 capacity:0000000000000400 mortality:   0.500 
+    000050C3BA168B85 0044 PoolInitMFS         pool:0000000103062360 arena:0000000103062000 extendBy:0000000000001000 extendSelf:False unitSize:0000000000000030 
+    000050C3BA168C3F 0015 PoolInit            pool:0000000103062360 arena:0000000103062000 poolClass:000000010301CD10 serial:0 
+    000050C3BA16BB6F 002B VMInit              vm:00007FFEECCCB520 base:00000001032B3000 limit:000000010369B000 
+    000050C3BA1787FC 0005 ArenaCreateVM       arena:0000000103062000 userSize:00000000003E8000 chunkSize:00000000003E8000 grainSize:0000000000001000 arenaClass:0000000103014DA8 serial:0 
 
 You can search through the telemetry for events related to particular
 addresses of interest.
@@ -163,6 +166,8 @@ address was never fixed (no ``TraceFix`` event).
 .. index::
    single: telemetry; event categories
    single: event category
+
+.. _topic-telemetry-categories:
 
 Event categories
 ----------------
@@ -269,14 +274,14 @@ Here's some example output. The first column contains the timestamp of
 the event, the second column contains the event type, and remaining
 columns contain parameters related to the event. ::
 
-    000021C9DB3812C7   75 1EE3
-    000021C9DB39E2FB   2B 7FFF5429C4B8 10BA4A000 10BA4B000
-    000021C9DB3A5630   2D 7FFF5429C4B8 10BA4A000 10BA4B000
-    000021C9DB3E6BAA   1A 2 "MFS"
-    000021C9DB3E6E17   1B 10BA0C5D8 2
-    000021C9DB3EB6F8   44 10BA4A360 10BA4A000 1000 0 30
-    000021C9DB3EFE3B   2B 7FFF5429C3D0 10BC84000 10CC24000
-    000021C9DB3F33F3   2D 7FFF5429C3D0 10BC84000 10BC85000
+    000050C3BA05F734   74 2 3 0 8F 13 40 F4240
+    000050C3BA09FC24   75 86C
+    000050C3BA0F22B7   2B 7FFEECCCB660 103062000 103063000
+    000050C3BA0FA02F   8D 103062000 1030624D8 0 400 0.5
+    000050C3BA168B85   44 103062360 103062000 1000 0 30
+    000050C3BA168C3F   15 103062360 103062000 10301CD10 0
+    000050C3BA16BB6F   2B 7FFEECCCB520 1032B3000 10369B000
+    000050C3BA1787FC    5 103062000 3E8000 3E8000 1000 103014DA8 0
 
 
 .. index::
@@ -306,14 +311,14 @@ takes the following options:
 For example, here's the result of passing the output shown above
 through :program:`mpseventtxt`::
 
-    000021C9DB3812C7 0075 EventClockSync      clock:0000000000001EE3 
-    000021C9DB39E2FB 002B VMInit              vm:00007FFF5429C4B8 base:000000010BA4A000 limit:000000010BA4B000 
-    000021C9DB3A5630 002D VMMap               vm:00007FFF5429C4B8 base:000000010BA4A000 limit:000000010BA4B000 
-    000021C9DB3E6BAA 001A Intern              stringId:0000000000000002 string:"MFS" 
-    000021C9DB3E6E17 001B Label               address:000000010BA0C5D8["MFS"] stringId:0000000000000002 
-    000021C9DB3EB6F8 0044 PoolInitMFS         pool:000000010BA4A360 arena:000000010BA4A000 extendBy:0000000000001000 extendSelf:False unitSize:0000000000000030 
-    000021C9DB3EFE3B 002B VMInit              vm:00007FFF5429C3D0 base:000000010BC84000 limit:000000010CC24000 
-    000021C9DB3F33F3 002D VMMap               vm:00007FFF5429C3D0 base:000000010BC84000 limit:000000010BC85000 
+    000050C3BA05F734 0074 EventInit           major:2 median:3 minor:0 maxCode:143 maxNameLen:19 wordWidth:64 clocksPerSec:00000000000F4240 
+    000050C3BA09FC24 0075 EventClockSync      clock:000000000000086C 
+    000050C3BA0F22B7 002B VMInit              vm:00007FFEECCCB660 base:0000000103062000 limit:0000000103063000 
+    000050C3BA0FA02F 008D GenInit             arena:0000000103062000 gen:00000001030624D8 serial:0 capacity:0000000000000400 mortality:   0.500 
+    000050C3BA168B85 0044 PoolInitMFS         pool:0000000103062360 arena:0000000103062000 extendBy:0000000000001000 extendSelf:False unitSize:0000000000000030 
+    000050C3BA168C3F 0015 PoolInit            pool:0000000103062360 arena:0000000103062000 poolClass:000000010301CD10 serial:0 
+    000050C3BA16BB6F 002B VMInit              vm:00007FFEECCCB520 base:00000001032B3000 limit:000000010369B000 
+    000050C3BA1787FC 0005 ArenaCreateVM       arena:0000000103062000 userSize:00000000003E8000 chunkSize:00000000003E8000 grainSize:0000000000001000 arenaClass:0000000103014DA8 serial:0 
 
 
 .. index::
@@ -382,6 +387,128 @@ further analysis by running :program:`mpseventsql`.
     Rebuild the tables ``event_kind``, ``event_type``, and
     ``event_param``. (This is necessary if you changed the event
     descriptions in ``eventdef.h``.)
+
+
+.. index::
+   single: telemetry; decoding in Python
+
+.. _telemetry-mpseventpy:
+
+Decoding the telemetry stream in Python
+---------------------------------------
+
+.. program:: mpseventpy
+
+:program:`mpseventpy` takes no options, and emits Python code
+containing constants and data structures for decoding a telemetry
+stream generated by an application on the same platform and using the
+same version of the MPS.
+
+To decode an event from a telemetry stream, start by reading and
+decoding the header.
+
+.. py:data:: HEADER_SIZE
+
+    Number of bytes in an event header. The event header consists of
+    data that is common to all events, and precedes the event-specific
+    data.
+
+.. py:data:: HEADER_FORMAT
+
+    Format string to pass to |unpack|_ to decode an event header.
+
+    .. |unpack| replace:: :py:func:`struct.unpack`
+    .. _unpack: https://docs.python.org/3/library/struct.html#struct.unpack
+
+.. py:class:: HeaderDesc
+
+    Named tuple describing an event header. It has the following
+    attributes:
+
+    :py:attr:`code` is the code (an integer) for the event type.
+
+    :py:attr:`size` is the size of the remainder of event (in bytes).
+
+    :py:attr:`clock` is when the event occurred (in arbitrary time units).
+
+Using these data structures, you might read an event from a file
+:py:obj:`f` like this::
+
+    header_data = f.read(HEADER_SIZE)
+    if not header_data:
+        # No more telemetry.
+    header = HeaderDesc(*struct.unpack(HEADER_FORMAT, header_data))
+    event_data = f.read(header.size)
+    if not event_data:
+        # Telemetry was truncated.
+
+To decode the individual events, you'll need the following data structures:
+
+.. py:data:: EVENT
+
+    Mapping from event code to :py:class:`EventDesc`.
+
+.. py:class:: EventDesc
+
+    Named tuple describing an event type. It has the following attributes:
+
+    :py:attr:`name` is the name of the event type.
+
+    :py:attr:`code` is the code (an integer) for the event type.
+
+    :py:attr:`used` is :py:obj:`True` if the event is used by the MPS,
+    :py:obj:`False` if it is obsolete.
+
+    :py:attr:`kind` is the event category (see
+    :py::ref:`topic-telemetry-categories`), an instance of the
+    :py:class:`KindDesc` class.
+
+    :py:attr:`params` is a list of parameters of the event, each being
+    an instance of the :py:class:`EventParam` class.
+
+    :py:attr:`maxsize` is the maximum size of events of this type (in
+    bytes).
+
+    :py:attr:`format` is a format string to pass to |unpack|_ to
+    decode an event of this type.
+
+.. py:class:: EventParam
+
+    Named tuple describing a parameter to an event type. It has
+    the following attributes:
+
+    :py:attr:`sort` is a letter indicating the type of the parameter:
+    ``P`` for a pointer to an internal MPS data structures, ``A`` for
+    an address in the client program, ``W`` for a word, ``U`` for an
+    unsigned integer, ``B`` for a Boolean, ``D`` for a
+    double-precision floating-point number, and ``S`` for a string.
+
+    :py:attr:`name` is the name of the parameter.
+
+    :py:attr:`doc` is brief documentation for the parameter.
+
+Using these data structures, you might decode an event like this::
+
+    event_desc = EVENT[header.code]
+    event_namedtuple = namedtuple(event_desc.name, [p.name for p in event_desc.params])
+    event = event_namedtuple(*struct.unpack(event_desc.format, event_data))
+
+(In practice you'd want to cache the named tuple and reuse it for
+future events belonging to the same event type.)
+
+
+.. index::
+   single: telemetry; events
+
+Telemetry events
+----------------
+
+The set of telemetry events is not documented, and varies from version
+to version as we discover new requirements. You can see the current
+set of events by looking in the header ``eventdef.h``.
+
+If you have developed a tool that uses MPS telemetry, and would like
+to depend on particular telemetry events, :ref:`contact us <contact>`.
 
 
 .. index::
@@ -493,8 +620,8 @@ used in queries, for example:
         If the ``User`` event category is not turned on in the
         :term:`telemetry filter` (via :c:func:`mps_telemetry_set` or
         :envvar:`MPS_TELEMETRY_CONTROL`) then the string is not sent
-        to the telemetry stream. A label is still returned in this
-        case, but it is useless.
+        to the :term:`telemetry stream`. A label is still returned in
+        this case, but it is useless.
 
 
 .. c:function:: void mps_telemetry_label(mps_addr_t addr, mps_label_t label)
@@ -504,7 +631,7 @@ used in queries, for example:
 
     ``addr`` is an address.
 
-    ``label`` is a telemetry label returned from
+    ``label`` is a :term:`telemetry label` returned from
     :c:func:`mps_telemetry_intern`.
 
     The label will be associated with the address when it appears in
@@ -530,12 +657,12 @@ rather than writing it to a file on the local filesystem) then you may
 be able to do so by providing your own implementation of the
 :ref:`topic-plinth-io`.
 
-When it first needs to output telemetry, the MPS call the plinth
-function :c:func:`mps_io_create` to create an I/O stream. It then
-calls :c:func:`mps_io_write` to write binary data to the stream
-and :c:func:`mps_io_flush` to flush the stream in response to
-:c:func:`mps_telemetry_flush`. By providing your own implementations
-of these functions, you can direct the telemetry stream wherever you
-like.
+When it first needs to output the :term:`telemetry stream`, the MPS
+calls the plinth function :c:func:`mps_io_create` to create an I/O
+stream. It then calls :c:func:`mps_io_write` to write binary data to
+the stream and :c:func:`mps_io_flush` to flush the stream in response
+to :c:func:`mps_telemetry_flush`. By providing your own
+implementations of these functions, you can direct the telemetry
+stream wherever you like.
 
 See :ref:`topic-plinth` for details.

@@ -1,7 +1,7 @@
 /* steptest.c: TEST FOR ARENA STEPPING
  *
  * $Id$
- * Copyright (c) 1998-2014 Ravenbrook Limited.  See end of file for license.
+ * Copyright (c) 1998-2020 Ravenbrook Limited.  See end of file for license.
  *
  * Loosely based on <code/amcss.c>.
  */
@@ -120,10 +120,8 @@ static double my_clock(void)
     struct rusage ru;
     getrusage(RUSAGE_SELF, &ru);
     ++ clock_reads;
-    return ((ru.ru_utime.tv_sec +
-             ru.ru_stime.tv_sec) * 1000000.0 +
-            (ru.ru_utime.tv_usec +
-             ru.ru_stime.tv_usec));
+    return (double)(ru.ru_utime.tv_sec + ru.ru_stime.tv_sec) * 1000000.0
+      + (double)(ru.ru_utime.tv_usec + ru.ru_stime.tv_usec);
 }
 #endif
 
@@ -143,7 +141,7 @@ static double clock_time;      /* current estimate of time to read the clock */
 
 static void set_clock_timing(void)
 {
-    long i;
+    double i;
     double t1, t2, t3;
 
     t2 = 0.0;
@@ -402,9 +400,9 @@ static void test(mps_arena_t arena, unsigned long step_period)
     printf("  %"PRIuLONGEST" bytes survived.\n", (ulongest_t)live);
     if (condemned) {
         printf("  Mortality %5.2f%%.\n",
-               (1.0 - ((double)live)/condemned) * 100.0);
+               (1.0 - (double)live/(double)condemned) * 100.0);
         printf("  Condemned fraction %5.2f%%.\n",
-               ((double)condemned/(condemned + not_condemned)) * 100.0);
+               ((double)condemned/(double)(condemned + not_condemned)) * 100.0);
     }
     if (collections) {
         printf("  Condemned per collection %"PRIuLONGEST" bytes.\n",
@@ -420,18 +418,18 @@ static void test(mps_arena_t arena, unsigned long step_period)
 
     printf("Timings:\n");
     print_time("  Allocation took ", alloc_time, "");
-    print_time(", mean ", alloc_time / objs, "");
+    print_time(", mean ", alloc_time / (double)objs, "");
     print_time(", max ", max_alloc_time, ".\n");
     if (steps) {
         printf("  %ld steps took ", steps);
         print_time("", step_time, "");
-        print_time(", mean ", step_time/steps, "");
+        print_time(", mean ", step_time / (double)steps, "");
         print_time(", max ", max_step_time, ".\n");
     }
     if (no_steps) {
         printf("  %ld non-steps took ", no_steps);
         print_time("", no_step_time, "");
-        print_time(", mean ", no_step_time / no_steps, "");
+        print_time(", mean ", no_step_time / (double)no_steps, "");
         print_time(", max ", max_no_step_time, ".\n");
     }
     if (alloc_time > 0.0)
@@ -441,20 +439,20 @@ static void test(mps_arena_t arena, unsigned long step_period)
         printf("  Reclaimed %.2f bytes per us of step.\n",
                (double)(condemned - live)/step_time);
         if (collections > 0) {
-            printf("  Took %.2f steps ", (double)steps/collections);
-            print_time("(", step_time / collections, ") per collection.\n");
+            printf("  Took %.2f steps ", (double)steps / (double)collections);
+            print_time("(", step_time / (double)collections, ") per collection.\n");
         }
     }
     print_time("  Total time ", total_time, ".\n");
     print_time("  Total MPS time ", total_mps_time, "");
     printf(" (%5.2f%%, ", total_mps_time * 100.0 / total_time);
-    print_time("", total_mps_time/alloc_bytes, " per byte, ");
-    print_time("", total_mps_time/objs, " per object)\n");
+    print_time("", total_mps_time / (double)alloc_bytes, " per byte, ");
+    print_time("", total_mps_time / (double)objs, " per object)\n");
     print_time("  (adjusted for clock timing: ",
                total_clock_time,
                " spent reading the clock;\n");
     printf("   %"PRIuLONGEST" clock reads; ", (ulongest_t)clock_reads);
-    print_time("", total_clock_time / clock_reads, " per read;");
+    print_time("", total_clock_time / (double)clock_reads, " per read;");
     print_time(" recently measured as ", clock_time, ").\n");
 
     mps_arena_park(arena);
@@ -484,41 +482,29 @@ int main(int argc, char *argv[])
 
 /* C. COPYRIGHT AND LICENSE
  *
- * Copyright (c) 2001-2014 Ravenbrook Limited <http://www.ravenbrook.com/>.
- * All rights reserved.  This is an open source license.  Contact
- * Ravenbrook for commercial licensing options.
+ * Copyright (C) 1998-2020 Ravenbrook Limited <https://www.ravenbrook.com/>.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are
  * met:
  *
  * 1. Redistributions of source code must retain the above copyright
- * notice, this list of conditions and the following disclaimer.
+ *    notice, this list of conditions and the following disclaimer.
  *
  * 2. Redistributions in binary form must reproduce the above copyright
- * notice, this list of conditions and the following disclaimer in the
- * documentation and/or other materials provided with the distribution.
- *
- * 3. Redistributions in any form must be accompanied by information on how
- * to obtain complete source code for this software and any accompanying
- * software that uses this software.  The source code must either be
- * included in the distribution or be available for no more than the cost
- * of distribution plus a nominal fee, and must be freely redistributable
- * under reasonable conditions.  For an executable file, complete source
- * code means the source code for all modules it contains. It does not
- * include source code for modules or files that typically accompany the
- * major components of the operating system on which the executable file
- * runs.
+ *    notice, this list of conditions and the following disclaimer in the
+ *    documentation and/or other materials provided with the
+ *    distribution.
  *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS
  * IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
- * TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR
- * PURPOSE, OR NON-INFRINGEMENT, ARE DISCLAIMED. IN NO EVENT SHALL THE
- * COPYRIGHT HOLDERS AND CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
- * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
- * NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF
- * USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON
- * ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
- * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
- * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ * TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
+ * PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+ * HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+ * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+ * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+ * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */

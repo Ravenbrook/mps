@@ -63,6 +63,28 @@ request.dylan.160022_ and request.mps.160093_.)
 .. _request.dylan.160022: https://info.ravenbrook.com/project/mps/import/2001-11-05/mmprevol/request/dylan/160022
 .. _request.mps.160093: https://info.ravenbrook.com/project/mps/import/2001-11-05/mmprevol/request/mps/160093/
 
+_`.req.thread.intr`: It would be nice if on POSIX systems the MPS does
+not cause system calls in the mutator to fail with EINTR due to the
+MPS thread-management signals being delivered while the mutator is
+blocked in a system call. (See `GitHub issue #9`_.)
+
+.. _GitHub issue #9: https://github.com/ravenbrook/mps/issues/9
+
+_`.req.thread.errno`: It would be nice if on POSIX systems the MPS
+does not cause system calls in the mutator to update ``errno`` due to
+the MPS thread-management signals being delivered while the mutator is
+blocked in a system call, and the MPS signal handlers updating
+``errno``. (See `GitHub issue #10`_.)
+
+.. _GitHub issue #10: https://github.com/ravenbrook/mps/issues/10
+
+_`.req.thread.lasterror`: It would be nice if on Windows systems the
+MPS does not cause system calls in the mutator to update the value
+returned from ``GetLastError()`` when the exception handler is called
+due to a fault. This may cause the MPS to destroy the previous value
+there. (See `GitHub issue #61`_.)
+
+.. _GitHub issue #61: https://github.com/Ravenbrook/mps/issues/61
 
 Design
 ------
@@ -88,13 +110,45 @@ whose lifetime has ended, the behavior is undefined." For this reason,
 the documentation for ``mps_thread_reg()`` specifies that it is an
 error if a thread dies while registered.
 
-.. _POSIX: http://pubs.opengroup.org/onlinepubs/9699919799/functions/V2_chap02.html#tag_15_09_02
+.. _POSIX: https://pubs.opengroup.org/onlinepubs/9699919799/functions/V2_chap02.html#tag_15_09_02
 
 _`.sol.thread.term.attempt`: Nonetheless, the thread manager makes a
 "best effort" to continue running after detecting a terminated thread,
 by moving the thread to a ring of dead threads, and avoiding scanning
 it. This might allow a malfunctioning client program to limp along.
 
+_`.sol.thread.intr`: The POSIX specification for sigaction_ says that
+if the ``SA_RESTART`` flag is set, and if "a function specified as
+interruptible is interrupted by this signal, the function shall
+restart and shall not fail with ``EINTR`` unless otherwise specified."
+
+.. |sigaction| replace:: ``sigaction()``
+.. _sigaction: https://pubs.opengroup.org/onlinepubs/9699919799/functions/sigaction.html
+
+_`.sol.thread.intr.linux`: Linux does not fully implement the POSIX
+specification, so that some system calls are "never restarted after
+being interrupted by a signal handler, regardless of the use of
+SA_RESTART; they always fail with the error EINTR when interrupted by
+a signal handler". The exceptional calls are listed in the |signal|_
+manual. There is nothing that the MPS can do about this except to warn
+users in the reference manual.
+
+.. |signal| replace:: signal(7)
+.. _signal: https://man7.org/linux/man-pages/man7/signal.7.html
+
+_`.sol.thread.errno`: The POSIX specification for sigaction_ says,
+"Note in particular that even the "safe" functions may modify
+``errno``; the signal-catching function, if not executing as an
+independent thread, should save and restore its value." All MPS
+signals handlers therefore save and restore ``errno`` using the macros
+``ERRNO_SAVE`` and ``ERRNO_RESTORE``.
+
+_`.sol.thread.lasterror`: The documentation for ``AddVectoredExceptionHandler``
+does not mention ``GetLastError()`` at all, but testing_ the behaviour
+reveals that any value in ``GetLastError()`` is not preserved. Therefore,
+this value is saved using ``LAST_ERROR_SAVE`` and ``LAST_ERROR_RESTORE``.
+
+.. _testing: https://github.com/Ravenbrook/mps/issues/61
 
 Interface
 ---------
@@ -117,7 +171,7 @@ by ``mps_thread_dereg()``. It can't use ``AVER(TESTT(Thread,
 thread))``, as recommended by design.mps.sig.check.arg.unlocked_,
 since ``Thread`` is an opaque type.
 
-.. _design.mps.sig.check.arg.unlocked: sig#check-arg-unlocked
+.. _design.mps.sig.check.arg.unlocked: sig#.check.arg.unlocked
 
 ``Arena ThreadArena(Thread thread)``
 
@@ -203,25 +257,25 @@ _`.impl.ix.register`: ``ThreadRegister()`` records the thread id
 the current thread by calling |pthread_self|_.
 
 .. |pthread_self| replace:: ``pthread_self()``
-.. _pthread_self: http://pubs.opengroup.org/onlinepubs/9699919799/functions/pthread_self.html
+.. _pthread_self: https://pubs.opengroup.org/onlinepubs/9699919799/functions/pthread_self.html
 
 _`.impl.ix.register.multi`: Multiply-registered threads are handled
 specially by the POSIX thread extensions. See
 design.mps.pthreadext.req.suspend.multiple_ and
 design.mps.pthreadext.req.resume.multiple_.
 
-.. _design.mps.pthreadext.req.suspend.multiple: pthreadext#req-suspend-multiple
-.. _design.mps.pthreadext.req.resume.multiple: pthreadext#req-resume-multiple
+.. _design.mps.pthreadext.req.suspend.multiple: pthreadext#.req.suspend.multiple
+.. _design.mps.pthreadext.req.resume.multiple: pthreadext#.req.resume.multiple
 
 _`.impl.ix.suspend`: ``ThreadRingSuspend()`` calls
 ``PThreadextSuspend()``. See design.mps.pthreadext.if.suspend_.
 
-.. _design.mps.pthreadext.if.suspend: pthreadext#if-suspend
+.. _design.mps.pthreadext.if.suspend: pthreadext#.if.suspend
 
 _`.impl.ix.resume`: ``ThreadRingResume()`` calls
 ``PThreadextResume()``. See design.mps.pthreadext.if.resume_.
 
-.. _design.mps.pthreadext.if.resume: pthreadext#if-resume
+.. _design.mps.pthreadext.if.resume: pthreadext#.if.resume
 
 _`.impl.ix.scan.current`: ``ThreadScan()`` calls ``StackScan()`` if
 the thread is current.
@@ -251,11 +305,11 @@ information for the current thread:
     may be identified in the ring of threads.
 
 .. |SuspendThread| replace:: ``SuspendThread()``
-.. _SuspendThread: http://msdn.microsoft.com/en-us/library/windows/desktop/ms686345.aspx
+.. _SuspendThread: https://docs.microsoft.com/en-gb/windows/desktop/api/processthreadsapi/nf-processthreadsapi-suspendthread
 .. |ResumeThread| replace:: ``ResumeThread()``
-.. _ResumeThread: http://msdn.microsoft.com/en-us/library/windows/desktop/ms685086.aspx
+.. _ResumeThread: https://docs.microsoft.com/en-gb/windows/desktop/api/processthreadsapi/nf-processthreadsapi-resumethread
 .. |GetCurrentThreadId| replace:: ``GetCurrentThreadId()``
-.. _GetCurrentThreadId: http://msdn.microsoft.com/en-us/library/windows/desktop/ms683183.aspx
+.. _GetCurrentThreadId: https://docs.microsoft.com/en-gb/windows/desktop/api/processthreadsapi/nf-processthreadsapi-getcurrentthreadid
 
 _`.impl.w3.register.multi`: There is no need for any special treatment
 of multiple threads, because Windows maintains a suspend count that is
@@ -272,7 +326,7 @@ work on the current thread: the context would not necessarily have the
 values which were in the saved registers on entry to the MPS.
 
 .. |GetThreadContext| replace:: ``GetThreadContext()``
-.. _GetThreadContext: http://msdn.microsoft.com/en-us/library/windows/desktop/ms679362.aspx
+.. _GetThreadContext: https://docs.microsoft.com/en-us/windows/desktop/api/processthreadsapi/nf-processthreadsapi-getthreadcontext
 
 _`.impl.w3.scan.suspended`: Otherwise, ``ThreadScan()`` calls
 |GetThreadContext|_ to get the root registers and the stack
@@ -290,7 +344,7 @@ _`.impl.xc.register`: ``ThreadRegister()`` records the Mach port of
 the current thread by calling |mach_thread_self|_.
 
 .. |mach_thread_self| replace:: ``mach_thread_self()``
-.. _mach_thread_self: http://www.gnu.org/software/hurd/gnumach-doc/Thread-Information.html
+.. _mach_thread_self: https://www.gnu.org/software/hurd/gnumach-doc/Thread-Information.html
 
 _`.impl.xc.register.multi`: There is no need for any special treatment
 of multiple threads, because Mach maintains a suspend count that is
@@ -298,9 +352,9 @@ incremented on |thread_suspend|_ and decremented on
 |thread_resume|_.
 
 .. |thread_suspend| replace:: ``thread_suspend()``
-.. _thread_suspend: http://www.gnu.org/software/hurd/gnumach-doc/Thread-Execution.html
+.. _thread_suspend: https://www.gnu.org/software/hurd/gnumach-doc/Thread-Execution.html
 .. |thread_resume| replace:: ``thread_resume()``
-.. _thread_resume: http://www.gnu.org/software/hurd/gnumach-doc/Thread-Execution.html
+.. _thread_resume: https://www.gnu.org/software/hurd/gnumach-doc/Thread-Execution.html
 
 _`.impl.xc.suspend`: ``ThreadRingSuspend()`` calls
 |thread_suspend|_.
@@ -314,7 +368,7 @@ _`.impl.xc.scan.suspended`: Otherwise, ``ThreadScan()`` calls
 |thread_get_state|_ to get the root registers and the stack pointer.
 
 .. |thread_get_state| replace:: ``thread_get_state()``
-.. _thread_get_state: http://www.gnu.org/software/hurd/gnumach-doc/Thread-Execution.html
+.. _thread_get_state: https://www.gnu.org/software/hurd/gnumach-doc/Thread-Execution.html
 
 
 Document History
@@ -328,48 +382,34 @@ Document History
 
 - 2014-10-22 GDR_ Complete design.
 
-.. _RB: http://www.ravenbrook.com/consultants/rb/
-.. _GDR: http://www.ravenbrook.com/consultants/gdr/
+.. _RB: https://www.ravenbrook.com/consultants/rb/
+.. _GDR: https://www.ravenbrook.com/consultants/gdr/
 
 
 Copyright and License
 ---------------------
 
-Copyright © 2013-2018 Ravenbrook Limited <http://www.ravenbrook.com/>.
-All rights reserved. This is an open source license. Contact
-Ravenbrook for commercial licensing options.
+Copyright © 2013–2020 `Ravenbrook Limited <https://www.ravenbrook.com/>`_.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are
 met:
 
-#. Redistributions of source code must retain the above copyright
+1. Redistributions of source code must retain the above copyright
    notice, this list of conditions and the following disclaimer.
 
-#. Redistributions in binary form must reproduce the above copyright
+2. Redistributions in binary form must reproduce the above copyright
    notice, this list of conditions and the following disclaimer in the
    documentation and/or other materials provided with the distribution.
 
-#. Redistributions in any form must be accompanied by information on how
-   to obtain complete source code for this software and any
-   accompanying software that uses this software.  The source code must
-   either be included in the distribution or be available for no more than
-   the cost of distribution plus a nominal fee, and must be freely
-   redistributable under reasonable conditions.  For an executable file,
-   complete source code means the source code for all modules it contains.
-   It does not include source code for modules or files that typically
-   accompany the major components of the operating system on which the
-   executable file runs.
-
-**This software is provided by the copyright holders and contributors
-"as is" and any express or implied warranties, including, but not
-limited to, the implied warranties of merchantability, fitness for a
-particular purpose, or non-infringement, are disclaimed.  In no event
-shall the copyright holders and contributors be liable for any direct,
-indirect, incidental, special, exemplary, or consequential damages
-(including, but not limited to, procurement of substitute goods or
-services; loss of use, data, or profits; or business interruption)
-however caused and on any theory of liability, whether in contract,
-strict liability, or tort (including negligence or otherwise) arising in
-any way out of the use of this software, even if advised of the
-possibility of such damage.**
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+"AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.

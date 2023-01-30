@@ -1,7 +1,7 @@
 /* testlib.h: TEST LIBRARY INTERFACE
  *
  * $Id$
- * Copyright (c) 2001-2014 Ravenbrook Limited.  See end of file for license.
+ * Copyright (c) 2001-2020 Ravenbrook Limited.  See end of file for license.
  * Portions copyright (C) 2002 Global Graphics Software.
  *
  * .purpose: A library of functions that may be of use to unit tests.
@@ -40,24 +40,35 @@
 /* Function attributes */
 /* These are also defined in config.h */
 
-#if defined(MPS_BUILD_GC) || defined(MPS_BUILD_LL)
-
-/* GCC: <http://gcc.gnu.org/onlinedocs/gcc/Function-Attributes.html#index-Wformat-2850>
- * Clang: <http://clang.llvm.org/docs/AttributeReference.html#format-gnu-format>
+/* Attribute for functions that take a printf-like format argument, so
+ * that the compiler can check the format specifiers against the types
+ * of the arguments.
+ * GCC: <https://gcc.gnu.org/onlinedocs/gcc/Common-Function-Attributes.html#index-format-function-attribute>
+ * Clang: <https://clang.llvm.org/docs/AttributeReference.html#format-gnu-format>
  */
+#if defined(MPS_BUILD_GC) || defined(MPS_BUILD_LL)
 #define ATTRIBUTE_FORMAT(ARGLIST) __attribute__((__format__ ARGLIST))
-
 #else
-
 #define ATTRIBUTE_FORMAT(ARGLIST)
+#endif
 
+/* Attribute for functions that must not be inlined.
+ * GCC: <https://gcc.gnu.org/onlinedocs/gcc/Common-Function-Attributes.html#index-noinline-function-attribute>
+ * MSVC: <https://docs.microsoft.com/en-us/cpp/cpp/noinline>
+ */
+#if defined(MPS_BUILD_GC) || defined(MPS_BUILD_LL)
+#define ATTRIBUTE_NOINLINE __attribute__((__noinline__))
+#elif defined(MPS_BUILD_MV)
+#define ATTRIBUTE_NOINLINE __declspec(noinline)
+#else
+#define ATTRIBUTE_NOINLINE
 #endif
 
 
 /* alloca -- memory allocator
  *
  * Windows calls this function _alloca() instead of alloca().
- * <http://msdn.microsoft.com/en-us/library/wb1s57t5.aspx>
+ * <https://docs.microsoft.com/en-gb/cpp/c-runtime-library/reference/alloca>
  */
 
 #if defined(MPS_OS_W3)
@@ -70,7 +81,7 @@
 /* setenv -- set environment variable
  *
  * Windows lacks setenv(), but _putenv_s() has similar functionality.
- * <http://msdn.microsoft.com/en-us/library/eyw7eyfw.aspx>
+ * <https://docs.microsoft.com/en-gb/cpp/c-runtime-library/reference/putenv-s-wputenv-s>
  *
  * This macro version may evaluate the name argument twice.
  */
@@ -93,7 +104,7 @@
  * tests to root out any incompatible assumptions by breaking.
  */
 
-#if defined(MPS_ARCH_I6)
+#if defined(MPS_ARCH_A6) || defined(MPS_ARCH_I6)
 #define PRIwWORD "16"
 #elif defined(MPS_ARCH_I3)
 #define PRIwWORD "8"
@@ -134,7 +145,7 @@ typedef long longest_t;
 
 
 /* max -- return larger value
- * 
+ *
  * Note: evaluates its arguments twice.
  */
 
@@ -165,7 +176,7 @@ extern void die(mps_res_t res, const char *s);
 /* die_expect -- get expected result or die
  *
  * If the first argument is not the same as the second argument,
- * prints the third argument on stderr and exits the program. 
+ * prints the third argument on stderr and exits the program.
  * Otherwise does nothing.
  *
  * Typical use:
@@ -286,41 +297,29 @@ extern void testlib_init(int argc, char *argv[]);
 
 /* C. COPYRIGHT AND LICENSE
  *
- * Copyright (C) 2001-2014 Ravenbrook Limited <http://www.ravenbrook.com/>.
- * All rights reserved.  This is an open source license.  Contact
- * Ravenbrook for commercial licensing options.
- * 
+ * Copyright (C) 2001-2020 Ravenbrook Limited <https://www.ravenbrook.com/>.
+ *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are
  * met:
- * 
+ *
  * 1. Redistributions of source code must retain the above copyright
- * notice, this list of conditions and the following disclaimer.
- * 
+ *    notice, this list of conditions and the following disclaimer.
+ *
  * 2. Redistributions in binary form must reproduce the above copyright
- * notice, this list of conditions and the following disclaimer in the
- * documentation and/or other materials provided with the distribution.
- * 
- * 3. Redistributions in any form must be accompanied by information on how
- * to obtain complete source code for this software and any accompanying
- * software that uses this software.  The source code must either be
- * included in the distribution or be available for no more than the cost
- * of distribution plus a nominal fee, and must be freely redistributable
- * under reasonable conditions.  For an executable file, complete source
- * code means the source code for all modules it contains. It does not
- * include source code for modules or files that typically accompany the
- * major components of the operating system on which the executable file
- * runs.
- * 
+ *    notice, this list of conditions and the following disclaimer in the
+ *    documentation and/or other materials provided with the
+ *    distribution.
+ *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS
  * IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
- * TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR
- * PURPOSE, OR NON-INFRINGEMENT, ARE DISCLAIMED. IN NO EVENT SHALL THE
- * COPYRIGHT HOLDERS AND CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
- * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
- * NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF
- * USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON
- * ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
- * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
- * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ * TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
+ * PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+ * HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+ * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+ * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+ * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */

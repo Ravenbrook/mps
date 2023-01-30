@@ -244,15 +244,15 @@ _`.method.buffer-fill`: Allocate a block in the segment, of at least
 Otherwise, return ``FALSE``. The allocated block must be accounted as
 buffered (see design.mps.strategy.account.buffered_).
 
-.. _design.mps.strategy.account.buffered: strategy#account-buffered
+.. _design.mps.strategy.account.buffered: strategy#.account.buffered
 
 ``typedef void (*SegBufferEmptyMethod)(Seg seg, Buffer buffer)``
 
 _`.method.buffer-empty`: Free the unused part of the buffer to the
 segment. Account the used part as new (see design.mps.strategy.account.new_) and the unused part as free (see design.mps.strategy.account.free_).
 
-.. _design.mps.strategy.account.new: strategy#account-new
-.. _design.mps.strategy.account.free: strategy#account-free
+.. _design.mps.strategy.account.new: strategy#.account.new
+.. _design.mps.strategy.account.free: strategy#.account.free
 
 
 Garbage collection
@@ -312,15 +312,18 @@ called via the generic function ``SegBlacken()``.
 ``typedef Res (*SegScanMethod)(Bool *totalReturn, Seg seg, ScanState ss)``
 
 _`.method.scan`: The ``scan`` method scans all the grey objects on the
-segment ``seg``, passing the scan state ``ss`` to ``FormatScan``. The
-segment may additionally accumulate a summary of *all* its objects. If
-it succeeds in accumulating such a summary it must indicate that it
-has done so by setting the ``*totalReturn`` parameter to ``TRUE``.
-Otherwise it must set ``*totalReturn`` to ``FALSE``. Segment classes
-are not required to provide this method, and not doing so indicates
-that all instances of this class will have no fixable or traceable
-references in them. This method is called via the generic function
-``SegScan()``.
+segment ``seg``, passing the scan state ``ss`` to
+``TraceScanFormat()``. The segment may additionally accumulate a
+summary of *all* its objects. If it succeeds in accumulating such a
+summary it must indicate that it has done so by setting the
+``*totalReturn`` parameter to ``TRUE``. Otherwise it must set
+``*totalReturn`` to ``FALSE``. This method is called via the generic
+function ``SegScan()``.
+
+_`.method.scan.required`: Automatically managed segment classes are
+required to provide this method, even if all instances of this class
+will have no fixable or traceable references in them, in order to
+support ``mps_pool_walk()``.
 
 ``typedef Res (*SegFixMethod)(Seg seg, ScanState ss, Ref *refIO)``
 
@@ -365,13 +368,19 @@ via the generic function ``SegReclaim()``.
 
 _`.method.walk`: The ``walk`` method must call the visitor function
 ``f`` (along with its closure parameters ``v`` and ``s`` and the
-format ``format``) once for each of the *black* objects in the
-segment ``seg``. Padding objects may or may not be included in the
-walk, at the segment's discretion: it is the responsibility of the
-client program to handle them. Forwarding objects must not be included
-in the walk. Segment classes need not provide this method. This
-method is called by the genetic function ``SegWalk()``, which is
-called by the heap walker ``mps_arena_formatted_objects_walk()``.
+format ``format``) once for each of the *black* objects in the segment
+``seg``. Padding objects may or may not be included in the walk, at
+the segment's discretion: it is the responsibility of the client
+program to handle them. Forwarding objects must not be included in the
+walk. Segment classes need not provide this method. This method is
+called by the generic function ``SegWalk()``, which is called by the
+deprecated public functions ``mps_arena_formatted_objects_walk()`` and
+``mps_amc_apply()``.
+
+_`.method.walk.deprecated`: The ``walk`` method is deprecated along
+with the public functions ``mps_arena_formatted_objects_walk()`` and
+``mps_amc_apply()`` and will be removed along with them in a future
+release.
 
 ``typedef void (*SegFlipMethod)(Seg seg, Trace trace)``
 
@@ -399,7 +408,7 @@ _`.method.split.next`: A split method should always call the next
 method, either before or after any class-specific code (see
 design.mps.protocol.overview.next-method_).
 
-.. _design.mps.protocol.overview.next-method: protocol#overview-next-method
+.. _design.mps.protocol.overview.next-method: protocol#.overview.next-method
 
 _`.method.split.accounting`: If ``seg`` belongs to a generation in a
 chain, then the pool generation accounting must be updated. In the
@@ -421,7 +430,7 @@ _`.method.merge.next`: A merge method should always call the next
 method, either before or after any class-specific code (see
 design.mps.protocol.overview.next-method_).
 
-.. _design.mps.protocol.overview.next-method: protocol#overview-next-method
+.. _design.mps.protocol.overview.next-method: protocol#.overview.next-method
 
 _`.method.merge.accounting`: If ``seg`` belongs to a generation in a
 chain, then the pool generation accounting must be updated. In the
@@ -451,7 +460,7 @@ before calling the next method, the appropriate anti-method must be
 used (see design.mps.protocol.guide.fail.after-next_). Split methods
 are anti-methods for merge methods, and vice-versa.
 
-.. _design.mps.protocol.guide.fail.after-next: protocol#guide-fail-after-next
+.. _design.mps.protocol.guide.fail.after-next: protocol#.guide.fail.after-next
 
 _`.split-merge.fail.anti.constrain`: In general, care should be taken
 when writing split and merge methods to ensure that they really are
@@ -492,48 +501,34 @@ Document History
 
 - 2002-06-07 RB_ Converted from MMInfo database design document.
 
-.. _RB: http://www.ravenbrook.com/consultants/rb/
-.. _GDR: http://www.ravenbrook.com/consultants/gdr/
+.. _RB: https://www.ravenbrook.com/consultants/rb/
+.. _GDR: https://www.ravenbrook.com/consultants/gdr/
 
 
 Copyright and License
 ---------------------
 
-Copyright © 2001-2014 Ravenbrook Limited. All rights reserved. 
-<http://www.ravenbrook.com/>. This is an open source license. Contact
-Ravenbrook for commercial licensing options.
+Copyright © 2001–2020 `Ravenbrook Limited <https://www.ravenbrook.com/>`_.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are
 met:
 
-#. Redistributions of source code must retain the above copyright
+1. Redistributions of source code must retain the above copyright
    notice, this list of conditions and the following disclaimer.
 
-#. Redistributions in binary form must reproduce the above copyright
+2. Redistributions in binary form must reproduce the above copyright
    notice, this list of conditions and the following disclaimer in the
    documentation and/or other materials provided with the distribution.
 
-#. Redistributions in any form must be accompanied by information on how
-   to obtain complete source code for this software and any
-   accompanying software that uses this software.  The source code must
-   either be included in the distribution or be available for no more than
-   the cost of distribution plus a nominal fee, and must be freely
-   redistributable under reasonable conditions.  For an executable file,
-   complete source code means the source code for all modules it contains.
-   It does not include source code for modules or files that typically
-   accompany the major components of the operating system on which the
-   executable file runs.
-
-**This software is provided by the copyright holders and contributors
-"as is" and any express or implied warranties, including, but not
-limited to, the implied warranties of merchantability, fitness for a
-particular purpose, or non-infringement, are disclaimed.  In no event
-shall the copyright holders and contributors be liable for any direct,
-indirect, incidental, special, exemplary, or consequential damages
-(including, but not limited to, procurement of substitute goods or
-services; loss of use, data, or profits; or business interruption)
-however caused and on any theory of liability, whether in contract,
-strict liability, or tort (including negligence or otherwise) arising in
-any way out of the use of this software, even if advised of the
-possibility of such damage.**
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+"AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.

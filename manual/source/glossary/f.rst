@@ -64,7 +64,7 @@ Memory Management Glossary: F
         may suffer as the remainder blocks may have to be split again
         (or become fragments).
 
-        .. seealso:: :term:`buddy system`, :term:`allocation mechanism`.
+        .. seealso:: :term:`allocation mechanism`, :term:`buddy system`.
 
         .. bibref:: :ref:`Wilson et al. (1995) <WIL95>`.
 
@@ -150,7 +150,7 @@ Memory Management Glossary: F
         first fit` puts blocks on the end of the free list when they
         are :term:`freed (1)`.
 
-        .. seealso:: :term:`address-ordered first fit`, :term:`LIFO-ordered first fit`, :term:`FIFO-ordered first fit`, :term:`sequential fit`, :term:`next fit`, :term:`best fit`, :term:`worst fit`.
+        .. seealso:: :term:`address-ordered first fit`, :term:`best fit`, :term:`FIFO-ordered first fit`, :term:`LIFO-ordered first fit`, :term:`next fit`, :term:`sequential fit`, :term:`worst fit`.
 
     fix
 
@@ -342,7 +342,7 @@ Memory Management Glossary: F
 
         .. opposite:: :term:`allocate`.
 
-        .. seealso:: :term:`free (2)`, :term:`destructor (1)`.
+        .. seealso:: :term:`destructor (1)`, :term:`free (2)`.
 
     free (2)
 
@@ -463,7 +463,7 @@ Memory Management Glossary: F
         function, as distinct from a :term:`object pointer`. The C
         programming language does not guarantee that function and
         object pointers are the same size, or that a pointer of one
-        type can be cast to a pointer of the the other type without
+        type can be cast to a pointer of the other type without
         losing information (but on every mainstream C implementation,
         including all those supported by the MPS, they are in fact the
         same).

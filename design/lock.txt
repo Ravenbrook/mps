@@ -74,20 +74,20 @@ to protect the data structure allowing multiple arenas to coordinate
 handling of protection faults: see
 design.mps.thread-safety.sol.global.mutable_.)
 
-.. _design.mps.thread-safety.sol.global.mutable: thread-safety#sol-global-mutable
+.. _design.mps.thread-safety.sol.global.mutable: thread-safety#.sol.global.mutable
 
 _`.req.global.recursive`: Provide a global recursive lock. (This is
 required to protect protocol class initialization: see
 design.mps.thread-safety.sol.global.once_.)
 
-.. _design.mps.thread-safety.sol.global.once: thread-safety#sol-global-once
+.. _design.mps.thread-safety.sol.global.once: thread-safety#.sol.global.once
 
 _`.req.deadlock.not`: There is no requirement to provide protection
 against deadlock. (Clients are able to avoid deadlock using
 traditional strategies such as ordering of locks; see
 design.mps.thread-safety.sol.deadlock_.)
 
-.. _design.mps.thread-safety.sol.deadlock: thread-safety#sol-deadlock
+.. _design.mps.thread-safety.sol.deadlock: thread-safety#.sol.deadlock
 
 
 Interface
@@ -143,7 +143,7 @@ called in the following circumstances: the first time either of the
 global locks is claimed; and in the child process after a ``fork()``.
 See design.mps.thread-safety.sol.fork.lock_.
 
-.. _design.mps.thread-safety.sol.fork.lock: thread-safety#sol-fork-lock
+.. _design.mps.thread-safety.sol.fork.lock: thread-safety#.sol.fork.lock
 
 ``void LockClaimGlobal(void)``
 
@@ -255,7 +255,7 @@ _`.example.binary`: An example of using a binary lock::
 _`.example.recursive`: An example of using a recursive lock::
 
     void recursiveUse()
-    { 
+    {
         /* lock may or may not already be owned by this thread. */
         LockClaimRecursive(lock);
         /* lock is now owned by this thread. */
@@ -273,12 +273,12 @@ References
 .. [cso]
    Microsoft Developer Network;
    "Critical Section Objects";
-   <http://msdn.microsoft.com/en-us/library/windows/desktop/ms682530.aspx>
+   <https://docs.microsoft.com/en-gb/windows/desktop/Sync/critical-section-objects>
 
 .. [POSIXThreads]
    The Open Group;
    "The Single UNIX Specification, Version 2---Threads";
-   <http://pubs.opengroup.org/onlinepubs/7990989775/xsh/threads.html>
+   <https://pubs.opengroup.org/onlinepubs/7990989775/xsh/threads.html>
 
 
 Document History
@@ -294,48 +294,34 @@ Document History
 
 - 2018-06-14 GDR_ Added ``LockInitGlobal()``.
 
-.. _RB: http://www.ravenbrook.com/consultants/rb/
-.. _GDR: http://www.ravenbrook.com/consultants/gdr/
+.. _RB: https://www.ravenbrook.com/consultants/rb/
+.. _GDR: https://www.ravenbrook.com/consultants/gdr/
 
 
 Copyright and License
 ---------------------
 
-Copyright © 2013-2016 Ravenbrook Limited <http://www.ravenbrook.com/>.
-All rights reserved. This is an open source license. Contact
-Ravenbrook for commercial licensing options.
+Copyright © 2013–2020 `Ravenbrook Limited <https://www.ravenbrook.com/>`_.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are
 met:
 
-#. Redistributions of source code must retain the above copyright
+1. Redistributions of source code must retain the above copyright
    notice, this list of conditions and the following disclaimer.
 
-#. Redistributions in binary form must reproduce the above copyright
+2. Redistributions in binary form must reproduce the above copyright
    notice, this list of conditions and the following disclaimer in the
    documentation and/or other materials provided with the distribution.
 
-#. Redistributions in any form must be accompanied by information on how
-   to obtain complete source code for this software and any
-   accompanying software that uses this software.  The source code must
-   either be included in the distribution or be available for no more than
-   the cost of distribution plus a nominal fee, and must be freely
-   redistributable under reasonable conditions.  For an executable file,
-   complete source code means the source code for all modules it contains.
-   It does not include source code for modules or files that typically
-   accompany the major components of the operating system on which the
-   executable file runs.
-
-**This software is provided by the copyright holders and contributors
-"as is" and any express or implied warranties, including, but not
-limited to, the implied warranties of merchantability, fitness for a
-particular purpose, or non-infringement, are disclaimed.  In no event
-shall the copyright holders and contributors be liable for any direct,
-indirect, incidental, special, exemplary, or consequential damages
-(including, but not limited to, procurement of substitute goods or
-services; loss of use, data, or profits; or business interruption)
-however caused and on any theory of liability, whether in contract,
-strict liability, or tort (including negligence or otherwise) arising in
-any way out of the use of this software, even if advised of the
-possibility of such damage.**
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+"AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.

@@ -1,12 +1,12 @@
 /* locus.c: LOCUS MANAGER
  *
  * $Id$
- * Copyright (c) 2001-2018 Ravenbrook Limited.  See end of file for license.
+ * Copyright (c) 2001-2020 Ravenbrook Limited.  See end of file for license.
  *
  * DESIGN
  *
- * See <design/arenavm/> and <design/locus/> for basic locus stuff.
- * See <design/trace/> for chains. See <design/strategy/> for the
+ * <design/arenavm> and <design/locus> for basic locus stuff.
+ * <design/trace> for chains. <design/strategy> for the
  * collection strategy.
  */
 
@@ -132,13 +132,16 @@ static Bool GenParamCheck(GenParamStruct *params)
 
 /* GenDescInit -- initialize a generation in a chain */
 
-static void GenDescInit(GenDesc gen, GenParamStruct *params)
+static void GenDescInit(Arena arena, GenDesc gen, GenParamStruct *params)
 {
   TraceId ti;
 
+  AVER(arena != NULL); /* might not be initialized yet. */
   AVER(gen != NULL);
   AVER(GenParamCheck(params));
 
+  gen->serial = arena->genSerial;
+  ++ arena->genSerial;
   gen->zones = ZoneSetEMPTY;
   gen->capacity = params->capacity * 1024;
   gen->mortality = params->mortality;
@@ -149,17 +152,20 @@ static void GenDescInit(GenDesc gen, GenParamStruct *params)
     RingInit(&gen->trace[ti].traceRing);
   gen->sig = GenDescSig;
   AVERT(GenDesc, gen);
+  EVENT5(GenInit, arena, gen, gen->serial, gen->capacity, gen->mortality);
 }
 
 
 /* GenDescFinish -- finish a generation in a chain */
 
-static void GenDescFinish(GenDesc gen)
+static void GenDescFinish(Arena arena, GenDesc gen)
 {
   TraceId ti;
 
+  AVER(arena != NULL); /* might be being finished */
   AVERT(GenDesc, gen);
 
+  EVENT3(GenFinish, arena, gen, gen->serial);
   gen->sig = SigInvalid;
   RingFinish(&gen->locusRing);
   RingFinish(&gen->segRing);
@@ -225,11 +231,12 @@ void GenDescEndTrace(GenDesc gen, Trace trace)
   AVER(survived <= genTrace->condemned);
 
   if (genTrace->condemned > 0) {
-    double mortality = 1.0 - survived / (double)genTrace->condemned;
+    double mortality = 1.0 - (double)survived / (double)genTrace->condemned;
     double alpha = LocusMortalityALPHA;
     gen->mortality = gen->mortality * (1 - alpha) + mortality * alpha;
-    EVENT6(TraceEndGen, trace, gen, genTrace->condemned, genTrace->forwarded,
-           genTrace->preservedInPlace, gen->mortality);
+    EVENT8(TraceEndGen, trace->arena, trace, gen, genTrace->condemned,
+           genTrace->forwarded, genTrace->preservedInPlace, mortality,
+           gen->mortality);
   }
 }
 
@@ -379,7 +386,7 @@ Res ChainCreate(Chain *chainReturn, Arena arena, size_t genCount,
   gens = PointerAdd(p, sizeof(ChainStruct));
 
   for (i = 0; i < genCount; ++i)
-    GenDescInit(&gens[i], &params[i]);
+    GenDescInit(arena, &gens[i], &params[i]);
   ChainInit(chain, arena, gens, genCount);
 
   *chainReturn = chain;
@@ -420,7 +427,7 @@ void ChainDestroy(Chain chain)
   RingRemove(&chain->chainRing);
   chain->sig = SigInvalid;
   for (i = 0; i < genCount; ++i)
-    GenDescFinish(&chain->gens[i]);
+    GenDescFinish(arena, &chain->gens[i]);
 
   RingFinish(&chain->chainRing);
 
@@ -580,7 +587,7 @@ static void PoolGenAccountForAlloc(PoolGen pgen, Size size)
   pgen->totalSize += size;
   ++ pgen->segs;
   pgen->freeSize += size;
-}  
+}
 
 
 /* PoolGenAlloc -- allocate a segment in a pool generation
@@ -622,12 +629,12 @@ Res PoolGenAlloc(Seg *segReturn, PoolGen pgen, SegClass klass, Size size,
 
   moreZones = ZoneSetUnion(zones, ZoneSetOfSeg(arena, seg));
   gen->zones = moreZones;
-  
+
   if (!ZoneSetSuper(zones, moreZones)) {
     /* Tracking the whole zoneset for each generation gives more
      * understandable telemetry than just reporting the added
      * zones. */
-    EVENT3(ArenaGenZoneAdd, arena, gen, moreZones);
+    EVENT3(GenZoneSet, arena, gen, moreZones);
   }
 
   PoolGenAccountForAlloc(pgen, SegSize(seg));
@@ -642,7 +649,7 @@ Res PoolGenAlloc(Seg *segReturn, PoolGen pgen, SegClass klass, Size size,
  * Call this when the pool allocates memory to the client program via
  * BufferFill.
  *
- * See <design/strategy/#accounting.op.fill>
+ * <design/strategy#.accounting.op.fill>
  */
 
 void PoolGenAccountForFill(PoolGen pgen, Size size)
@@ -662,7 +669,7 @@ void PoolGenAccountForFill(PoolGen pgen, Size size)
  * the used memory (for the purpose of scheduling collections) should
  * be deferred until later.
  *
- * See <design/strategy/#accounting.op.empty>
+ * <design/strategy#.accounting.op.empty>
  */
 
 void PoolGenAccountForEmpty(PoolGen pgen, Size used, Size unused, Bool deferred)
@@ -688,7 +695,7 @@ void PoolGenAccountForEmpty(PoolGen pgen, Size used, Size unused, Bool deferred)
  * should be the amount of memory that is being condemned for the
  * first time. The deferred flag is as for PoolGenAccountForEmpty.
  *
- * See <design/strategy/#accounting.op.age>
+ * <design/strategy#.accounting.op.age>
  */
 
 void PoolGenAccountForAge(PoolGen pgen, Size wasBuffered, Size wasNew,
@@ -716,7 +723,7 @@ void PoolGenAccountForAge(PoolGen pgen, Size wasBuffered, Size wasNew,
  * Call this when reclaiming memory, passing the amount of memory that
  * was reclaimed. The deferred flag is as for PoolGenAccountForEmpty.
  *
- * See <design/strategy/#accounting.op.reclaim>
+ * <design/strategy#.accounting.op.reclaim>
  */
 
 void PoolGenAccountForReclaim(PoolGen pgen, Size reclaimed, Bool deferred)
@@ -741,7 +748,7 @@ void PoolGenAccountForReclaim(PoolGen pgen, Size reclaimed, Bool deferred)
  * (condemned at least once) and new (never condemned) memory whose
  * accounting was deferred (for example, during a ramp).
  *
- * See <design/strategy/#accounting.op.undefer>
+ * <design/strategy#.accounting.op.undefer>
  */
 
 void PoolGenUndefer(PoolGen pgen, Size oldSize, Size newSize)
@@ -802,7 +809,7 @@ static void PoolGenAccountForFree(PoolGen pgen, Size size,
  * old, or new, respectively. The deferred flag is as for
  * PoolGenAccountForEmpty.
  *
- * See <design/strategy/#accounting.op.free>
+ * <design/strategy#.accounting.op.free>
  */
 
 void PoolGenFree(PoolGen pgen, Seg seg, Size freeSize, Size oldSize,
@@ -837,7 +844,7 @@ Res PoolGenDescribe(PoolGen pgen, mps_lib_FILE *stream, Count depth)
     return ResPARAM;
 
   poolClass = ClassOfPoly(Pool, pgen->pool);
-  
+
   res = WriteF(stream, depth,
                "PoolGen $P {\n", (WriteFP)pgen,
                "  pool $P ($U) \"$S\"\n",
@@ -864,11 +871,12 @@ void LocusInit(Arena arena)
   GenParamStruct params;
 
   AVER(arena != NULL); /* not initialized yet. */
- 
+
   params.capacity = 1; /* unused since top generation is not on any chain */
   params.mortality = 0.5;
- 
-  GenDescInit(&arena->topGen, &params);
+
+  GenDescInit(arena, &arena->topGen, &params);
+  EventLabelPointer(&arena->topGen, EventInternString("TopGen"));
 }
 
 
@@ -878,7 +886,7 @@ void LocusFinish(Arena arena)
 {
   /* Can't check arena, because it's being finished. */
   AVER(arena != NULL);
-  GenDescFinish(&arena->topGen);
+  GenDescFinish(arena, &arena->topGen);
 }
 
 
@@ -894,41 +902,29 @@ Bool LocusCheck(Arena arena)
 
 /* C. COPYRIGHT AND LICENSE
  *
- * Copyright (C) 2001-2018 Ravenbrook Limited <http://www.ravenbrook.com/>.
- * All rights reserved.  This is an open source license.  Contact
- * Ravenbrook for commercial licensing options.
- * 
+ * Copyright (C) 2001-2020 Ravenbrook Limited <https://www.ravenbrook.com/>.
+ *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are
  * met:
- * 
+ *
  * 1. Redistributions of source code must retain the above copyright
- * notice, this list of conditions and the following disclaimer.
- * 
+ *    notice, this list of conditions and the following disclaimer.
+ *
  * 2. Redistributions in binary form must reproduce the above copyright
- * notice, this list of conditions and the following disclaimer in the
- * documentation and/or other materials provided with the distribution.
- * 
- * 3. Redistributions in any form must be accompanied by information on how
- * to obtain complete source code for this software and any accompanying
- * software that uses this software.  The source code must either be
- * included in the distribution or be available for no more than the cost
- * of distribution plus a nominal fee, and must be freely redistributable
- * under reasonable conditions.  For an executable file, complete source
- * code means the source code for all modules it contains. It does not
- * include source code for modules or files that typically accompany the
- * major components of the operating system on which the executable file
- * runs.
- * 
+ *    notice, this list of conditions and the following disclaimer in the
+ *    documentation and/or other materials provided with the
+ *    distribution.
+ *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS
  * IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
- * TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR
- * PURPOSE, OR NON-INFRINGEMENT, ARE DISCLAIMED. IN NO EVENT SHALL THE
- * COPYRIGHT HOLDERS AND CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
- * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
- * NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF
- * USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON
- * ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
- * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
- * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ * TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
+ * PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+ * HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+ * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+ * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+ * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */

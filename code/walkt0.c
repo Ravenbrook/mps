@@ -1,7 +1,7 @@
 /* walkt0.c: WALK TEST 0
  *
  * $Id$
- * Copyright (c) 1998-2014 Ravenbrook Limited.  See end of file for license.
+ * Copyright (c) 1998-2020 Ravenbrook Limited.  See end of file for license.
  *
  * Loosely based on <code/steptest.c>.
  */
@@ -79,7 +79,7 @@ static mps_addr_t make(void)
 /* A formatted objects stepper function. Passed to
  * mps_arena_formatted_objects_walk.
  *
- * Tests the (pool, format) values that MPS passes to it for each 
+ * Tests the (pool, format) values that MPS passes to it for each
  * object, by...
  *
  * ...1: making explicit queries with:
@@ -134,7 +134,31 @@ static void object_stepper(mps_addr_t object, mps_fmt_t format,
     } else {
       ++ sd->count;
       sd->objSize += size;
-    }      
+    }
+}
+
+
+/* area_scan -- area scanning function for mps_pool_walk */
+
+static mps_res_t area_scan(mps_ss_t ss, void *base, void *limit, void *closure)
+{
+  object_stepper_data_t sd = closure;
+  mps_res_t res;
+  while (base < limit) {
+    size_t size = AddrOffset(base, dylan_skip(base));
+    mps_addr_t prev = base;
+    if (dylan_ispad(base)) {
+      sd->padSize += size;
+    } else {
+      ++ sd->count;
+      sd->objSize += size;
+    }
+    res = dylan_scan1(ss, &base);
+    if (res != MPS_RES_OK) return res;
+    Insist(prev < base);
+  }
+  Insist(base == limit);
+  return MPS_RES_OK;
 }
 
 
@@ -169,6 +193,7 @@ static void test(mps_arena_t arena, mps_pool_class_t pool_class)
     unsigned long objs;
     object_stepper_data_s objectStepperData, *sd;
     roots_stepper_data_s rootsStepperData, *rsd;
+    int walk;
 
     die(dylan_fmt(&format, arena), "fmt_create");
     die(mps_chain_create(&chain, arena, genCOUNT, testChain), "chain_create");
@@ -217,29 +242,39 @@ static void test(mps_arena_t arena, mps_pool_class_t pool_class)
     printf("%lu %lu\n", (unsigned long)rsd->count, (unsigned long)exactRootsCOUNT);
     Insist(rsd->count == exactRootsCOUNT);
 
-    sd = &objectStepperData;
-    sd->arena = arena;
-    sd->expect_pool = pool;
-    sd->expect_fmt = format;
-    sd->count = 0;
-    sd->objSize = 0;
-    sd->padSize = 0;
-    mps_arena_formatted_objects_walk(arena, object_stepper, sd, sizeof *sd);
-    Insist(sd->count == objs);
+    for (walk = 0; walk < 2; ++walk)
+    {
+        sd = &objectStepperData;
+        sd->arena = arena;
+        sd->expect_pool = pool;
+        sd->expect_fmt = format;
+        sd->count = 0;
+        sd->objSize = 0;
+        sd->padSize = 0;
+        if (walk) {
+            mps_arena_formatted_objects_walk(arena, object_stepper,
+                                             sd, sizeof *sd);
+        } else {
+            die(mps_pool_walk(pool, area_scan, sd), "mps_pool_walk");
+        }
+        Insist(sd->count == objs);
 
-    totalSize = mps_pool_total_size(pool);
-    freeSize = mps_pool_free_size(pool);
-    allocSize = totalSize - freeSize;
-    bufferSize = AddrOffset(ap->init, ap->limit);
-    printf("%s: obj=%lu pad=%lu total=%lu free=%lu alloc=%lu buffer=%lu\n",
-           ClassName(pool_class),
-           (unsigned long)sd->objSize,
-           (unsigned long)sd->padSize,
-           (unsigned long)totalSize,
-           (unsigned long)freeSize,
-           (unsigned long)allocSize,
-           (unsigned long)bufferSize);
-    Insist(sd->objSize + sd->padSize + bufferSize == allocSize);
+        totalSize = mps_pool_total_size(pool);
+        freeSize = mps_pool_free_size(pool);
+        allocSize = totalSize - freeSize;
+        bufferSize = AddrOffset(ap->init, ap->limit);
+        printf("%s: obj=%lu pad=%lu total=%lu free=%lu alloc=%lu buffer=%lu\n",
+               ClassName(pool_class),
+               (unsigned long)sd->objSize,
+               (unsigned long)sd->padSize,
+               (unsigned long)totalSize,
+               (unsigned long)freeSize,
+               (unsigned long)allocSize,
+               (unsigned long)bufferSize);
+        Insist(sd->objSize + sd->padSize + bufferSize == allocSize);
+    }
+
+    mps_arena_collect(arena);
 
     mps_ap_destroy(ap);
     mps_root_destroy(exactRoot);
@@ -278,41 +313,29 @@ int main(int argc, char *argv[])
 
 /* C. COPYRIGHT AND LICENSE
  *
- * Copyright (c) 2001-2014 Ravenbrook Limited <http://www.ravenbrook.com/>.
- * All rights reserved.  This is an open source license.  Contact
- * Ravenbrook for commercial licensing options.
+ * Copyright (C) 1998-2020 Ravenbrook Limited <https://www.ravenbrook.com/>.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are
  * met:
  *
  * 1. Redistributions of source code must retain the above copyright
- * notice, this list of conditions and the following disclaimer.
+ *    notice, this list of conditions and the following disclaimer.
  *
  * 2. Redistributions in binary form must reproduce the above copyright
- * notice, this list of conditions and the following disclaimer in the
- * documentation and/or other materials provided with the distribution.
- *
- * 3. Redistributions in any form must be accompanied by information on how
- * to obtain complete source code for this software and any accompanying
- * software that uses this software.  The source code must either be
- * included in the distribution or be available for no more than the cost
- * of distribution plus a nominal fee, and must be freely redistributable
- * under reasonable conditions.  For an executable file, complete source
- * code means the source code for all modules it contains. It does not
- * include source code for modules or files that typically accompany the
- * major components of the operating system on which the executable file
- * runs.
+ *    notice, this list of conditions and the following disclaimer in the
+ *    documentation and/or other materials provided with the
+ *    distribution.
  *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS
  * IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
- * TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR
- * PURPOSE, OR NON-INFRINGEMENT, ARE DISCLAIMED. IN NO EVENT SHALL THE
- * COPYRIGHT HOLDERS AND CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
- * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
- * NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF
- * USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON
- * ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
- * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
- * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ * TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
+ * PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+ * HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+ * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+ * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+ * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */

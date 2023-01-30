@@ -1,11 +1,11 @@
 /* pthreadext.c: POSIX THREAD EXTENSIONS
  *
  *  $Id$
- *  Copyright (c) 2001-2018 Ravenbrook Limited.  See end of file for license.
+ *  Copyright (c) 2001-2020 Ravenbrook Limited.  See end of file for license.
  *
  * .purpose: Provides extension to Pthreads.
  *
- * .design: see <design/pthreadext/>
+ * .design: see <design/pthreadext>
  *
  * .acknowledgements: This was derived from code posted to
  * comp.programming.threads by Dave Butenhof and Raymond Lau
@@ -32,7 +32,7 @@ SRCID(pthreadext, "$Id$");
 
 
 /* Static data initialized on first use of the module
- * See <design/pthreadext/#impl.static>.*
+ * <design/pthreadext#.impl.static>
  */
 
 /* mutex */
@@ -47,7 +47,7 @@ static Bool pthreadextModuleInitialized = FALSE;
 
 
 /* Global variables protected by the mutex
- * See <design/pthreadext/#impl.global>.*
+ * <design/pthreadext#.impl.global>
  */
 
 static PThreadext suspendingVictim = NULL;  /* current victim */
@@ -56,7 +56,7 @@ static RingStruct suspendedRing;            /* PThreadext suspend ring */
 
 /* suspendSignalHandler -- signal handler called when suspending a thread
  *
- * See <design/pthreadext/#impl.suspend-handler>
+ * <design/pthreadext#.impl.suspend-handler>
  *
  * Handle PTHREADEXT_SIGSUSPEND in the target thread, to suspend it until
  * receiving PTHREADEXT_SIGRESUME (resume). Note that this is run with both
@@ -71,9 +71,11 @@ static void suspendSignalHandler(int sig,
                                  siginfo_t *info,
                                  void *uap)
 {
+  ERRNO_SAVE {
     sigset_t signal_set;
     ucontext_t ucontext;
     MutatorContextStruct context;
+    int status;
 
     AVER(sig == PTHREADEXT_SIGSUSPEND);
     UNUSED(sig);
@@ -86,29 +88,36 @@ static void suspendSignalHandler(int sig,
     MutatorContextInitThread(&context, &ucontext);
     suspendingVictim->context = &context;
     /* Block all signals except PTHREADEXT_SIGRESUME while suspended. */
-    sigfillset(&signal_set);
-    sigdelset(&signal_set, PTHREADEXT_SIGRESUME);
-    sem_post(&pthreadextSem);
-    sigsuspend(&signal_set);
+    status = sigfillset(&signal_set);
+    AVER(status == 0);
+    status = sigdelset(&signal_set, PTHREADEXT_SIGRESUME);
+    AVER(status == 0);
+    status = sem_post(&pthreadextSem);
+    AVER(status == 0);
+    status = sigsuspend(&signal_set);
+    AVER(status == -1);
 
     /* Once here, the resume signal handler has run to completion. */
+  } ERRNO_RESTORE;
 }
 
 
 /* resumeSignalHandler -- signal handler called when resuming a thread
  *
- * See <design/pthreadext/#impl.suspend-handler>
+ * <design/pthreadext#.impl.suspend-handler>
  */
 
 static void resumeSignalHandler(int sig)
 {
+  ERRNO_SAVE {
     AVER(sig == PTHREADEXT_SIGRESUME);
     UNUSED(sig);
+  } ERRNO_RESTORE;
 }
 
 /* PThreadextModuleInit -- Initialize the PThreadext module
  *
- * See <design/pthreadext/#impl.static.init>
+ * <design/pthreadext#.impl.static.init>
  *
  * Dynamically initialize all state when first used
  * (called by pthread_once).
@@ -118,7 +127,7 @@ static void PThreadextModuleInit(void)
 {
     int status;
     struct sigaction pthreadext_sigsuspend, pthreadext_sigresume;
-  
+
     AVER(pthreadextModuleInitialized == FALSE);
 
     /* Initialize the ring of suspended threads */
@@ -140,9 +149,9 @@ static void PThreadextModuleInit(void)
     status = sigaddset(&pthreadext_sigsuspend.sa_mask, PTHREADEXT_SIGRESUME);
     AVER(status == 0);
 
-    pthreadext_sigsuspend.sa_flags = SA_SIGINFO;
+    pthreadext_sigsuspend.sa_flags = SA_SIGINFO | SA_RESTART;
     pthreadext_sigsuspend.sa_sigaction = suspendSignalHandler;
-    pthreadext_sigresume.sa_flags = 0;
+    pthreadext_sigresume.sa_flags = SA_RESTART;
     pthreadext_sigresume.sa_handler = resumeSignalHandler;
     status = sigemptyset(&pthreadext_sigresume.sa_mask);
     AVER(status == 0);
@@ -212,7 +221,7 @@ void PThreadextInit(PThreadext pthreadext, pthread_t id)
 
 /* PThreadextFinish -- Finish a pthreadext
  *
- * See <design/pthreadext/#impl.finish>
+ * <design/pthreadext#.impl.finish>
  */
 
 void PThreadextFinish(PThreadext pthreadext)
@@ -246,7 +255,7 @@ void PThreadextFinish(PThreadext pthreadext)
 
 /* PThreadextSuspend -- suspend a thread
  *
- * See <design/pthreadext/#impl.suspend>
+ * <design/pthreadext#.impl.suspend>
  */
 
 Res PThreadextSuspend(PThreadext target, MutatorContext *contextReturn)
@@ -308,7 +317,7 @@ unlock:
 
 /* PThreadextResume -- resume a suspended thread
  *
- * See <design/pthreadext/#impl.resume>
+ * <design/pthreadext#.impl.resume>
  */
 
 Res PThreadextResume(PThreadext target)
@@ -356,41 +365,29 @@ unlock:
 
 /* C. COPYRIGHT AND LICENSE
  *
- * Copyright (C) 2001-2018 Ravenbrook Limited <http://www.ravenbrook.com/>.
- * All rights reserved.  This is an open source license.  Contact
- * Ravenbrook for commercial licensing options.
- * 
+ * Copyright (C) 2001-2020 Ravenbrook Limited <https://www.ravenbrook.com/>.
+ *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are
  * met:
- * 
+ *
  * 1. Redistributions of source code must retain the above copyright
- * notice, this list of conditions and the following disclaimer.
- * 
+ *    notice, this list of conditions and the following disclaimer.
+ *
  * 2. Redistributions in binary form must reproduce the above copyright
- * notice, this list of conditions and the following disclaimer in the
- * documentation and/or other materials provided with the distribution.
- * 
- * 3. Redistributions in any form must be accompanied by information on how
- * to obtain complete source code for this software and any accompanying
- * software that uses this software.  The source code must either be
- * included in the distribution or be available for no more than the cost
- * of distribution plus a nominal fee, and must be freely redistributable
- * under reasonable conditions.  For an executable file, complete source
- * code means the source code for all modules it contains. It does not
- * include source code for modules or files that typically accompany the
- * major components of the operating system on which the executable file
- * runs.
- * 
+ *    notice, this list of conditions and the following disclaimer in the
+ *    documentation and/or other materials provided with the
+ *    distribution.
+ *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS
  * IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
- * TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR
- * PURPOSE, OR NON-INFRINGEMENT, ARE DISCLAIMED. IN NO EVENT SHALL THE
- * COPYRIGHT HOLDERS AND CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
- * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
- * NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF
- * USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON
- * ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
- * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
- * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ * TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
+ * PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+ * HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+ * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+ * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+ * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */

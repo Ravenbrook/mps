@@ -10,11 +10,10 @@ END_HEADER
 #include "testlib.h"
 
 
-static void test(void)
+static void test(void *stack_pointer)
 {
  mps_arena_t arena;
 
- comment("Entered trampoline");
  mmqa_pause(10);
  cdie(mps_arena_create(&arena, mps_arena_class_vm(), mmqaArenaSIZE), "create arena");
  comment("Created arena");
@@ -31,8 +30,7 @@ int main(void)
 {
  comment("Started");
  mmqa_pause(10);
- easy_tramp(test);
- comment("Left trampoline");
+ run_test(test);
  mmqa_pause(10);
  pass();
  return 0;

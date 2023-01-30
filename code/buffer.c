@@ -1,7 +1,7 @@
 /* buffer.c: ALLOCATION BUFFER IMPLEMENTATION
  *
  * $Id$
- * Copyright (c) 2001-2016 Ravenbrook Limited.  See end of file for license.
+ * Copyright (c) 2001-2020 Ravenbrook Limited.  See end of file for license.
  *
  * .purpose: This is (part of) the implementation of allocation buffers.
  * Several macros which also form part of the implementation are in
@@ -10,7 +10,7 @@
  *
  * DESIGN
  *
- * .design: See <design/buffer/>.
+ * .design: <design/buffer>.
  *
  * .ap.async: The mutator is allowed to change certain AP fields
  * asynchronously.  Functions that can be called on buffers not
@@ -143,8 +143,8 @@ static Res BufferAbsDescribe(Inst inst, mps_lib_FILE *stream, Count depth)
                 (WriteFC)((buffer->mode & BufferModeLOGGED)     ? 'l' : '_'),
                 (WriteFC)((buffer->mode & BufferModeFLIPPED)    ? 'f' : '_'),
                 (WriteFC)((buffer->mode & BufferModeATTACHED)   ? 'a' : '_'),
-                "fillSize $UKb\n",  (WriteFU)(buffer->fillSize / 1024),
-                "emptySize $UKb\n", (WriteFU)(buffer->emptySize / 1024),
+                "fillSize $U\n",    (WriteFU)buffer->fillSize,
+                "emptySize $U\n",   (WriteFU)buffer->emptySize,
                 "alignment $W\n",   (WriteFW)buffer->alignment,
                 "base $A\n",        (WriteFA)buffer->base,
                 "initAtFlip $A\n",  (WriteFA)buffer->initAtFlip,
@@ -176,7 +176,7 @@ static Res BufferAbsInit(Buffer buffer, Pool pool, Bool isMutator, ArgList args)
 
   /* Superclass init */
   InstInit(CouldBeA(Inst, buffer));
-  
+
   arena = PoolArena(pool);
 
   /* Initialize the buffer.  See <code/mpmst.h> for a definition of
@@ -231,7 +231,7 @@ static Res BufferInit(Buffer buffer, BufferClass klass,
 
 /* BufferCreate -- create an allocation buffer
  *
- * See <design/buffer/#method.create>.
+ * <design/buffer#.method.create>.
  */
 
 Res BufferCreate(Buffer *bufferReturn, BufferClass klass,
@@ -292,13 +292,13 @@ void BufferDetach(Buffer buffer, Pool pool)
     init = BufferGetInit(buffer);
     limit = BufferLimit(buffer);
     spare = AddrOffset(init, limit);
-    buffer->emptySize += spare;
+    buffer->emptySize += (double)spare;
     if (buffer->isMutator) {
-      ArenaGlobals(buffer->arena)->emptyMutatorSize += spare;
-      ArenaGlobals(buffer->arena)->allocMutatorSize +=
-        AddrOffset(buffer->base, init);
+      ArenaGlobals(buffer->arena)->emptyMutatorSize += (double)spare;
+      ArenaGlobals(buffer->arena)->allocMutatorSize
+        += (double)AddrOffset(buffer->base, init);
     } else {
-      ArenaGlobals(buffer->arena)->emptyInternalSize += spare;
+      ArenaGlobals(buffer->arena)->emptyInternalSize += (double)spare;
     }
 
     /* Reset the buffer. */
@@ -318,7 +318,8 @@ void BufferDetach(Buffer buffer, Pool pool)
 
 /* BufferDestroy -- destroy an allocation buffer
  *
- * See <design/buffer/#method.destroy>.  */
+ * <design/buffer#.method.destroy>.
+ */
 
 void BufferDestroy(Buffer buffer)
 {
@@ -344,7 +345,7 @@ static void BufferAbsFinish(Inst inst)
   RingRemove(&buffer->poolRing);
   InstFinish(MustBeA(Inst, buffer));
   buffer->sig = SigInvalid;
- 
+
   /* Finish off the generic buffer fields. */
   RingFinish(&buffer->poolRing);
 
@@ -439,7 +440,8 @@ void BufferSetAllocAddr(Buffer buffer, Addr addr)
 
 /* BufferFramePush
  *
- * See <design/alloc-frame/>.  */
+ * <design/alloc-frame>.
+ */
 
 Res BufferFramePush(AllocFrame *frameReturn, Buffer buffer)
 {
@@ -462,7 +464,8 @@ Res BufferFramePush(AllocFrame *frameReturn, Buffer buffer)
 
 /* BufferFramePop
  *
- * See <design/alloc-frame/>.  */
+ * <design/alloc-frame>.
+ */
 
 Res BufferFramePop(Buffer buffer, AllocFrame frame)
 {
@@ -471,14 +474,15 @@ Res BufferFramePop(Buffer buffer, AllocFrame frame)
   /* frame is of an abstract type & can't be checked */
   pool = BufferPool(buffer);
   return Method(Pool, pool, framePop)(pool, buffer, frame);
- 
+
 }
 
 
 
 /* BufferReserve -- reserve memory from an allocation buffer
  *
- * .reserve: Keep in sync with <code/mps.h#reserve>.  */
+ * .reserve: Keep in sync with <code/mps.h#reserve>.
+ */
 
 Res BufferReserve(Addr *pReturn, Buffer buffer, Size size)
 {
@@ -537,15 +541,15 @@ void BufferAttach(Buffer buffer, Addr base, Addr limit,
   buffer->poolLimit = limit;
 
   filled = AddrOffset(init, limit);
-  buffer->fillSize += filled;
+  buffer->fillSize += (double)filled;
   if (buffer->isMutator) {
-    if (base != init) { /* see <design/buffer/#count.alloc.how> */
+    if (base != init) { /* see <design/buffer#.count.alloc.how> */
       Size prealloc = AddrOffset(base, init);
-      ArenaGlobals(buffer->arena)->allocMutatorSize -= prealloc;
+      ArenaGlobals(buffer->arena)->allocMutatorSize -= (double)prealloc;
     }
-    ArenaGlobals(buffer->arena)->fillMutatorSize += filled;
+    ArenaGlobals(buffer->arena)->fillMutatorSize += (double)filled;
   } else {
-    ArenaGlobals(buffer->arena)->fillInternalSize += filled;
+    ArenaGlobals(buffer->arena)->fillInternalSize += (double)filled;
   }
 
   /* run any class-specific attachment method */
@@ -634,7 +638,7 @@ Bool BufferCommit(Buffer buffer, Addr p, Size size)
   AVER(SizeIsAligned(size, BufferPool(buffer)->alignment));
   AVER(!BufferIsReady(buffer));
 
-  /* See <design/collection/#flip>. */
+  /* <design/collection#.flip>. */
   /* .commit.before: If a flip occurs before this point, when the */
   /* pool reads "initAtFlip" it will point below the object, so it */
   /* will be trashed and the commit must fail when trip is called.  */
@@ -1029,7 +1033,7 @@ Bool BufferClassCheck(BufferClass klass)
 
 /* BufferClass -- the vanilla buffer class definition
  *
- * See <design/buffer/#class.hierarchy.buffer>.  */
+ * <design/buffer#.class.hierarchy.buffer>.  */
 
 DEFINE_CLASS(Inst, BufferClass, klass)
 {
@@ -1080,7 +1084,7 @@ Bool SegBufCheck(SegBuf segbuf)
     CHECKD(Seg, segbuf->seg);
     /* To avoid recursive checking, leave it to SegCheck to make */
     /* sure the buffer and segment fields tally. */
-   
+
     if (buffer->mode & BufferModeFLIPPED) {
       /* Only buffers that allocate pointers get flipped. */
       CHECKL(segbuf->rankSet != RankSetEMPTY);
@@ -1243,7 +1247,7 @@ static Res segBufDescribe(Inst inst, mps_lib_FILE *stream, Count depth)
 /* SegBufClass -- SegBuf class definition
  *
  * Supports an association with a single segment when attached.  See
- * <design/buffer/#class.hierarchy.segbuf>.  */
+ * <design/buffer#.class.hierarchy.segbuf>.  */
 
 DEFINE_CLASS(Buffer, SegBuf, klass)
 {
@@ -1297,7 +1301,7 @@ static Res rankBufInit(Buffer buffer, Pool pool, Bool isMutator, ArgList args)
 
   SetClassOfPoly(buffer, CLASS(RankBuf));
   AVERC(RankBuf, buffer);
-  
+
   EVENT4(BufferInitRank, buffer, pool, BOOLOF(buffer->isMutator), rank);
 
   return ResOK;
@@ -1321,41 +1325,29 @@ DEFINE_CLASS(Buffer, RankBuf, klass)
 
 /* C. COPYRIGHT AND LICENSE
  *
- * Copyright (C) 2001-2016 Ravenbrook Limited <http://www.ravenbrook.com/>.
- * All rights reserved.  This is an open source license.  Contact
- * Ravenbrook for commercial licensing options.
- * 
+ * Copyright (C) 2001-2020 Ravenbrook Limited <https://www.ravenbrook.com/>.
+ *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are
  * met:
- * 
+ *
  * 1. Redistributions of source code must retain the above copyright
- * notice, this list of conditions and the following disclaimer.
- * 
+ *    notice, this list of conditions and the following disclaimer.
+ *
  * 2. Redistributions in binary form must reproduce the above copyright
- * notice, this list of conditions and the following disclaimer in the
- * documentation and/or other materials provided with the distribution.
- * 
- * 3. Redistributions in any form must be accompanied by information on how
- * to obtain complete source code for this software and any accompanying
- * software that uses this software.  The source code must either be
- * included in the distribution or be available for no more than the cost
- * of distribution plus a nominal fee, and must be freely redistributable
- * under reasonable conditions.  For an executable file, complete source
- * code means the source code for all modules it contains. It does not
- * include source code for modules or files that typically accompany the
- * major components of the operating system on which the executable file
- * runs.
- * 
+ *    notice, this list of conditions and the following disclaimer in the
+ *    documentation and/or other materials provided with the
+ *    distribution.
+ *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS
  * IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
- * TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR
- * PURPOSE, OR NON-INFRINGEMENT, ARE DISCLAIMED. IN NO EVENT SHALL THE
- * COPYRIGHT HOLDERS AND CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
- * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
- * NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF
- * USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON
- * ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
- * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
- * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ * TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
+ * PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+ * HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+ * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+ * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+ * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */

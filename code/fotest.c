@@ -1,7 +1,7 @@
 /* fotest.c: FAIL-OVER TEST
  *
  * $Id$
- * Copyright (c) 2001-2016 Ravenbrook Limited.  See end of file for license.
+ * Copyright (c) 2001-2020 Ravenbrook Limited.  See end of file for license.
  * Portions copyright (C) 2002 Global Graphics Software.
  *
  * This tests fail-over behaviour in low memory situations. The MVFF
@@ -31,7 +31,7 @@
 
 
 #define testArenaSIZE   ((((size_t)3)<<24) - 4)
-#define testSetSIZE 200
+#define testSetSIZE 200 /* TODO: 10 * arena grain size / sizeof cbs_struct */
 #define testLOOPS 10
 
 
@@ -55,20 +55,25 @@ static mps_res_t make(mps_addr_t *p, mps_ap_t ap, size_t size)
 static PoolAllocMethod mfs_alloc;
 
 
-/* oomAlloc -- allocation function that always fails
+/* Are we currently in a part of the test that is allowed to fail in the case
+ * where we run out of memory? This controls the behaviour of oomAlloc. */
+static Bool simulate_allocation_failure = FALSE;
+
+/* How many times has oomAlloc failed on purpose. */
+static unsigned long failure_count = 0;
+
+/* oomAlloc -- allocation function that reliably fails
  *
- * Returns a randomly chosen memory error code.
- */
+ * Returns a randomly chosen memory error code (and increments
+ * `failure_count`) if `simulate_allocation_failure`. The point is to verify
+ * that none of these errors affects the caller. */
 
 static Res oomAlloc(Addr *pReturn, Pool pool, Size size)
 {
-  MFS mfs = MustBeA(MFSPool, pool);
-  UNUSED(pReturn);
-  UNUSED(size);
-  if (mfs->extendSelf) {
-    /* This is the MFS block pool belonging to the CBS belonging to
-     * the MVFF or MVT pool under test, so simulate a failure to
-     * enforce the fail-over behaviour. */
+  if (simulate_allocation_failure) {
+    /* Simulate a single failure in order to enforce the fail-over behaviour. */
+    ++ failure_count;
+    simulate_allocation_failure = 0;
     switch (rnd() % 3) {
     case 0:
       return ResRESOURCE;
@@ -78,8 +83,8 @@ static Res oomAlloc(Addr *pReturn, Pool pool, Size size)
       return ResCOMMIT_LIMIT;
     }
   } else {
-    /* This is the MFS block pool belonging to the arena's free land,
-     * so succeed here (see job004041). */
+    /* Failure here is allowed, so attempt allocation as normal.
+     * (see job004041 and job004104). */
     return mfs_alloc(pReturn, pool, size);
   }
 }
@@ -110,25 +115,34 @@ static mps_res_t stress(size_t (*size)(unsigned long, mps_align_t),
       *ps[i] = 1; /* Write something, so it gets swap. */
   }
 
+  failure_count = 0;
+
   for (k=0; k<testLOOPS; ++k) {
+    /* Use oomAlloc for the first iteration and then with 0.5 probability. */
+    CLASS_STATIC(MFSPool).alloc = (k>0 && rnd() % 2) ? mfs_alloc : oomAlloc;
+
     /* shuffle all the objects */
     for (i=0; i<testSetSIZE; ++i) {
-      unsigned long j = rnd()%(testSetSIZE-i);
+      unsigned long j = i + rnd()%(testSetSIZE-i);
       void *tp;
       size_t ts;
-     
+
       tp = ps[j]; ts = ss[j];
       ps[j] = ps[i]; ss[j] = ss[i];
       ps[i] = tp; ss[i] = ts;
     }
+
     /* free half of the objects */
     /* upper half, as when allocating them again we want smaller objects */
     /* see randomSize() */
     for (i=testSetSIZE/2; i<testSetSIZE; ++i) {
+      simulate_allocation_failure = TRUE;
       mps_free(pool, (mps_addr_t)ps[i], ss[i]);
+      simulate_allocation_failure = FALSE;
       /* if (i == testSetSIZE/2) */
       /*   PoolDescribe((Pool)pool, mps_lib_stdout); */
     }
+
     /* allocate some new objects */
     for (i=testSetSIZE/2; i<testSetSIZE; ++i) {
       mps_addr_t obj;
@@ -138,10 +152,10 @@ static mps_res_t stress(size_t (*size)(unsigned long, mps_align_t),
         goto allocFail;
       ps[i] = obj;
     }
-
-    CLASS_STATIC(MFSPool).alloc = rnd() % 2 ? mfs_alloc : oomAlloc;
   }
   CLASS_STATIC(MFSPool).alloc = mfs_alloc;
+
+  Insist(failure_count > 0);
 
 allocFail:
   mps_ap_destroy(ap);
@@ -195,7 +209,7 @@ int main(int argc, char *argv[])
     MPS_ARGS_ADD(args, MPS_KEY_MAX_SIZE, (1 + rnd() % 4) * 1024);
     MPS_ARGS_ADD(args, MPS_KEY_MVT_RESERVE_DEPTH, (1 + rnd() % 64) * 16);
     MPS_ARGS_ADD(args, MPS_KEY_MVT_FRAG_LIMIT, (rnd() % 101) / 100.0);
-    die(mps_pool_create_k(&pool, arena, mps_class_mvt(), args), "create MVFF");
+    die(mps_pool_create_k(&pool, arena, mps_class_mvt(), args), "create MVT");
   } MPS_ARGS_END(args);
   die(stress(randomSizeAligned, alignment, pool), "stress MVT");
   mps_pool_destroy(pool);
@@ -208,41 +222,29 @@ int main(int argc, char *argv[])
 
 /* C. COPYRIGHT AND LICENSE
  *
- * Copyright (c) 2001-2016 Ravenbrook Limited <http://www.ravenbrook.com/>.
- * All rights reserved.  This is an open source license.  Contact
- * Ravenbrook for commercial licensing options.
- * 
+ * Copyright (C) 2001-2020 Ravenbrook Limited <https://www.ravenbrook.com/>.
+ *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are
  * met:
- * 
+ *
  * 1. Redistributions of source code must retain the above copyright
- * notice, this list of conditions and the following disclaimer.
- * 
+ *    notice, this list of conditions and the following disclaimer.
+ *
  * 2. Redistributions in binary form must reproduce the above copyright
- * notice, this list of conditions and the following disclaimer in the
- * documentation and/or other materials provided with the distribution.
- * 
- * 3. Redistributions in any form must be accompanied by information on how
- * to obtain complete source code for this software and any accompanying
- * software that uses this software.  The source code must either be
- * included in the distribution or be available for no more than the cost
- * of distribution plus a nominal fee, and must be freely redistributable
- * under reasonable conditions.  For an executable file, complete source
- * code means the source code for all modules it contains. It does not
- * include source code for modules or files that typically accompany the
- * major components of the operating system on which the executable file
- * runs.
- * 
+ *    notice, this list of conditions and the following disclaimer in the
+ *    documentation and/or other materials provided with the
+ *    distribution.
+ *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS
  * IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
- * TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR
- * PURPOSE, OR NON-INFRINGEMENT, ARE DISCLAIMED. IN NO EVENT SHALL THE
- * COPYRIGHT HOLDERS AND CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
- * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
- * NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF
- * USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON
- * ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
- * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
- * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ * TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
+ * PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+ * HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+ * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+ * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+ * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */

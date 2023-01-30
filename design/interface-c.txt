@@ -87,10 +87,10 @@ Naming conventions
 
 _`.naming`: The external interface names should adhere to the
 documented interface conventions; these are found in the “`Interface
-conventions`_” chapter of the Reference Manual. They are
+conventions <interface.html_>`_” chapter of the Reference Manual. They are
 paraphrased/recreated here.
 
-.. _Interface conventions: ../topic/interface.html
+.. _interface.html: ../topic/interface.html
 
 _`.naming.file`: All files in the external interface have names
 starting with ``mps``.
@@ -200,7 +200,7 @@ how the MPS is compiled (see design.mps.config.def.var_). It may
 expand to ``TESTT()``, or it may call the full checking function for
 the type.
 
-.. _design.mps.config.def.var: config#def-var
+.. _design.mps.config.def.var: config#.def.var
 
 _`.check.types`: We use definitions of types in both our external
 interface and our internal code, and we want to make sure that they
@@ -213,7 +213,7 @@ from `mail.richard.1996-08-07.09-49`_.
 ``COMPATLVALUE(lvalue1, lvalue2)``
 
 _`.check.types.compat.lvalue`: This macro checks the assignment
-compatibility of two lvalues. It uses ``sizeof()`` to ensure that the
+compatibility of two lvalues. It uses ``sizeof`` to ensure that the
 assignments have no effect. ::
 
     #define COMPATLVALUE(lv1, lv2) \
@@ -224,7 +224,7 @@ assignments have no effect. ::
 _`.check.types.compat.type`: This macro checks that two types are
 assignment-compatible and equal in size. The hack here is that it
 generates an lvalue for each type by casting zero to a pointer to the
-type. The use of ``sizeof()`` avoids the undefined behaviour that
+type. The use of ``sizeof`` avoids the undefined behaviour that
 would otherwise result from dereferencing a null pointer. ::
 
     #define COMPATTYPE(t1, t2) \
@@ -287,7 +287,7 @@ library.
 _`.compat.protocol.dependencies`: The protocol is determined by the
 implementation of the library.
 
-  
+
 Constraints
 -----------
 
@@ -298,7 +298,7 @@ _`.cons.addr`: The interface constrains the MPS address type, Addr
 (design.mps.type.addr_), to being the same as C's generic pointer type,
 ``void *``, so that the MPS can manage C objects in the natural way.
 
-.. _design.mps.type.addr: type#addr
+.. _design.mps.type.addr: type#.addr
 
 _`.pun.addr`: We pun the type of ``mps_addr_t`` (which is ``void *``)
 into ``Addr`` (an incomplete type, see design.mps.type.addr_). This
@@ -308,8 +308,8 @@ _`.cons.size`: The interface constrains the MPS size type, ``Size``
 (design.mps.type.size_), to being the same as C's size type,
 ``size_t``, so that the MPS can manage C objects in the natural way.
 
-.. _design.mps.type.size: type#size
- 
+.. _design.mps.type.size: type#.size
+
 _`.pun.size`: We pun the type of ``size_t`` in mps.h into ``Size`` in
 the MPM, as an argument to the format methods. We assume this works.
 
@@ -318,7 +318,7 @@ and ``Addr`` (design.mps.type.addr_) are the same size, and the
 interface constrains ``Word`` to being the same size as C's generic
 pointer type, ``void *``.
 
-.. _design.mps.type.word: type#word
+.. _design.mps.type.word: type#.word
 
 
 Implementation
@@ -398,48 +398,34 @@ Document History
 
 - 2013-05-23 GDR_ Converted to reStructuredText.
 
-.. _RB: http://www.ravenbrook.com/consultants/rb/
-.. _GDR: http://www.ravenbrook.com/consultants/gdr/
+.. _RB: https://www.ravenbrook.com/consultants/rb/
+.. _GDR: https://www.ravenbrook.com/consultants/gdr/
 
 
 Copyright and License
 ---------------------
 
-Copyright © 2013-2014 Ravenbrook Limited <http://www.ravenbrook.com/>.
-All rights reserved. This is an open source license. Contact
-Ravenbrook for commercial licensing options.
+Copyright © 2013–2020 `Ravenbrook Limited <https://www.ravenbrook.com/>`_.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are
 met:
 
-#. Redistributions of source code must retain the above copyright
+1. Redistributions of source code must retain the above copyright
    notice, this list of conditions and the following disclaimer.
 
-#. Redistributions in binary form must reproduce the above copyright
+2. Redistributions in binary form must reproduce the above copyright
    notice, this list of conditions and the following disclaimer in the
    documentation and/or other materials provided with the distribution.
 
-#. Redistributions in any form must be accompanied by information on how
-   to obtain complete source code for this software and any
-   accompanying software that uses this software.  The source code must
-   either be included in the distribution or be available for no more than
-   the cost of distribution plus a nominal fee, and must be freely
-   redistributable under reasonable conditions.  For an executable file,
-   complete source code means the source code for all modules it contains.
-   It does not include source code for modules or files that typically
-   accompany the major components of the operating system on which the
-   executable file runs.
-
-**This software is provided by the copyright holders and contributors
-"as is" and any express or implied warranties, including, but not
-limited to, the implied warranties of merchantability, fitness for a
-particular purpose, or non-infringement, are disclaimed.  In no event
-shall the copyright holders and contributors be liable for any direct,
-indirect, incidental, special, exemplary, or consequential damages
-(including, but not limited to, procurement of substitute goods or
-services; loss of use, data, or profits; or business interruption)
-however caused and on any theory of liability, whether in contract,
-strict liability, or tort (including negligence or otherwise) arising in
-any way out of the use of this software, even if advised of the
-possibility of such damage.**
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+"AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.

@@ -1,7 +1,7 @@
 /* protw3.c: PROTECTION FOR WIN32
  *
  *  $Id$
- *  Copyright (c) 2001-2018 Ravenbrook Limited.  See end of file for license.
+ *  Copyright (c) 2001-2020 Ravenbrook Limited.  See end of file for license.
  */
 
 #include "prmcw3.h"
@@ -44,12 +44,19 @@ LONG WINAPI ProtSEHfilter(LPEXCEPTION_POINTERS info)
   AccessSet mode;
   Addr base, limit;
   LONG action;
+  DWORD lastError;
   MutatorContextStruct context;
 
   er = info->ExceptionRecord;
 
   if(er->ExceptionCode != EXCEPTION_ACCESS_VIOLATION)
     return EXCEPTION_CONTINUE_SEARCH;
+
+  /* This is the first point where we call a Windows API function that
+   * might change the last error. There are also no early returns from
+   * this point onwards.
+   */
+  lastError = GetLastError();
 
   MutatorContextInitFault(&context, info);
 
@@ -74,7 +81,7 @@ LONG WINAPI ProtSEHfilter(LPEXCEPTION_POINTERS info)
     mode = AccessREAD | AccessWRITE;
     break;
   default:
-    /* <http://msdn.microsoft.com/en-us/library/aa363082%28VS.85%29.aspx> */
+    /* <https://docs.microsoft.com/en-gb/windows/desktop/api/winnt/ns-winnt-_exception_record> */
     NOTREACHED;
     mode = AccessREAD | AccessWRITE;
     break;
@@ -92,10 +99,13 @@ LONG WINAPI ProtSEHfilter(LPEXCEPTION_POINTERS info)
       action = EXCEPTION_CONTINUE_SEARCH;
   } else {
     /* Access on last sizeof(Addr) (ie 4 on this platform) bytes */
-    /* in memory.  We assume we can't get this page anyway (see */
-    /* <code/vmw3.c#assume.not-last>) so it can't be our fault. */
+    /* in memory.  We assume we can't get this page anyway */
+    /* <code/vmw3.c#assume.not-last> so it can't be our fault. */
     action = EXCEPTION_CONTINUE_SEARCH;
   }
+
+  /* Restore the last error value before returning. */
+  SetLastError(lastError);
 
   return action;
 }
@@ -107,7 +117,7 @@ void ProtSetup(void)
 {
   void *handler;
   /* See "AddVectoredExceptionHandler function (Windows)"
-     <http://msdn.microsoft.com/en-us/library/windows/desktop/ms679274%28v=vs.85%29.aspx> */
+     <https://msdn.microsoft.com/en-us/library/windows/desktop/ms679274%28v=vs.85%29.aspx> */
   /* ProtSetup is called only once per process, not once per arena, so
      this exception handler is only installed once. */
   handler = AddVectoredExceptionHandler(1uL, ProtSEHfilter);
@@ -138,41 +148,29 @@ void ProtSync(Arena arena)
 
 /* C. COPYRIGHT AND LICENSE
  *
- * Copyright (C) 2001-2018 Ravenbrook Limited <http://www.ravenbrook.com/>.
- * All rights reserved.  This is an open source license.  Contact
- * Ravenbrook for commercial licensing options.
- * 
+ * Copyright (C) 2001-2020 Ravenbrook Limited <https://www.ravenbrook.com/>.
+ *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are
  * met:
- * 
+ *
  * 1. Redistributions of source code must retain the above copyright
- * notice, this list of conditions and the following disclaimer.
- * 
+ *    notice, this list of conditions and the following disclaimer.
+ *
  * 2. Redistributions in binary form must reproduce the above copyright
- * notice, this list of conditions and the following disclaimer in the
- * documentation and/or other materials provided with the distribution.
- * 
- * 3. Redistributions in any form must be accompanied by information on how
- * to obtain complete source code for this software and any accompanying
- * software that uses this software.  The source code must either be
- * included in the distribution or be available for no more than the cost
- * of distribution plus a nominal fee, and must be freely redistributable
- * under reasonable conditions.  For an executable file, complete source
- * code means the source code for all modules it contains. It does not
- * include source code for modules or files that typically accompany the
- * major components of the operating system on which the executable file
- * runs.
- * 
+ *    notice, this list of conditions and the following disclaimer in the
+ *    documentation and/or other materials provided with the
+ *    distribution.
+ *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS
  * IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
- * TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR
- * PURPOSE, OR NON-INFRINGEMENT, ARE DISCLAIMED. IN NO EVENT SHALL THE
- * COPYRIGHT HOLDERS AND CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
- * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
- * NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF
- * USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON
- * ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
- * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
- * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ * TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
+ * PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+ * HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+ * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+ * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+ * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */

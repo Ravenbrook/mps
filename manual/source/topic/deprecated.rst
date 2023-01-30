@@ -19,22 +19,215 @@ the supported interface.
     makes a difference if we know that someone is using a feature.
 
 
+
+.. index::
+   single: deprecated interfaces; in version 1.118
+
+Deprecated in version 1.118
+...........................
+
+.. c:macro:: MPS_KEY_SPARE_COMMIT_LIMIT
+
+    .. deprecated::
+
+        Use :c:macro:`MPS_KEY_SPARE` instead.
+
+    When supplied as a :term:`keyword argument` to
+    :c:func:`mps_arena_create_k`, specifies the initial :term:`spare
+    commit limit` in :term:`bytes (1)` relative to the arena's
+    :term:`commit limit`. If the value is greater than the arena's
+    commit limit then the spare commit limit is set to 1.0 exactly.
+
+
+.. c:function:: size_t mps_arena_spare_commit_limit(mps_arena_t arena)
+
+    .. deprecated::
+
+        Use :c:func:`mps_arena_spare` instead.
+
+    Return the current :term:`spare commit limit` for an :term:`arena`
+    in :term:`bytes (1)`, that is, the product of the :term:`committed
+    <mapped>` memory and the spare fraction.
+
+
+.. c:function:: void mps_arena_spare_commit_limit_set(mps_arena_t arena, size_t limit)
+
+    .. deprecated::
+
+        Use :c:func:`mps_arena_spare_set` instead.
+
+    Change the :term:`spare commit limit` for an :term:`arena` in
+    terms of :term:`bytes (1)` relative to the current
+    :term:`committed <mapped>` memory. If the ``limit`` argument is
+    greater than the current committed memory then the spare commit
+    limit is set to 1.0 exactly.
+
+
+.. c:function:: void mps_arena_formatted_objects_walk(mps_arena_t arena, mps_formatted_objects_stepper_t f, void *p, size_t s)
+
+    .. deprecated::
+
+        Use :c:func:`mps_pool_walk` instead.
+
+    Visit all :term:`formatted objects` in an
+    :term:`arena`.
+
+    ``arena`` is the arena whose formatted objects you want to visit.
+
+    ``f`` is a formatted objects stepper function. It will be called for
+    each formatted object in the arena. See
+    :c:type:`mps_formatted_objects_stepper_t`.
+
+    ``p`` and ``s`` are arguments that will be passed to ``f`` each time it
+    is called. This is intended to make it easy to pass, for example,
+    an array and its size as parameters.
+
+    Each :term:`pool class` determines for which objects the stepper
+    function is called. Typically, all validly formatted objects are
+    visited. :term:`Padding objects` may be visited at the pool
+    class's discretion: the stepper function must handle this
+    case.
+
+    .. warning::
+
+        The callback function must obey the restrictions documented
+        under :c:type:`mps_formatted_objects_stepper_t`.
+
+        If a garbage collection is currently in progress (that is, if
+        the arena is in the :term:`clamped <clamped state>` or
+        :term:`unclamped state`), then only objects that are known to
+        be currently valid are visited.
+
+        If you need to be certain that all objects are visited, or if
+        the callback function needs to follow references from the
+        object to automatically managed memory, you must ensure that
+        the arena is in the :term:`parked state` by calling
+        :c:func:`mps_arena_park` before calling this function (and
+        release it by calling :c:func:`mps_arena_release` afterwards,
+        if desired).
+
+        If your application has requirements for introspection that
+        can't be met under these restrictions, :ref:`contact us
+        <contact>`.
+
+
+.. c:type:: void (*mps_formatted_objects_stepper_t)(mps_addr_t addr, mps_fmt_t fmt, mps_pool_t pool, void *p, size_t s)
+
+    .. deprecated::
+
+        Use :c:func:`mps_pool_walk` instead.
+
+    The type of a :term:`formatted objects`
+    :term:`stepper function`.
+
+    A function of this type can be passed to
+    :c:func:`mps_arena_formatted_objects_walk`, in which case it will
+    be called for each formatted object in an :term:`arena`. It
+    receives five arguments:
+
+    ``addr`` is the address of the object.
+
+    ``fmt`` is the :term:`object format` for that object.
+
+    ``pool`` is the :term:`pool` to which the object belongs.
+
+    ``p`` and ``s`` are the corresponding values that were passed to
+    :c:func:`mps_arena_formatted_objects_walk`.
+
+    The function may not call any function in the MPS. It may access:
+
+    a. memory inside the object or block pointed to by ``addr``;
+
+    b. memory managed by the MPS that is in pools that do not protect
+       their contents;
+
+    c. memory not managed by the MPS.
+
+    It must not:
+
+    d. access other memory managed by the MPS;
+
+    e. modify any of the references in the object.
+
+
+.. c:function:: void mps_amc_apply(mps_pool_t pool, mps_amc_apply_stepper_t f, void *p, size_t s)
+
+    .. deprecated::
+
+        Use :c:func:`mps_pool_walk` instead.
+
+    Visit all :term:`formatted objects` in an AMC pool.
+
+    ``pool`` is the pool whose formatted objects you want to visit.
+
+    ``f`` is a function that will be called for each formatted object in
+    the pool.
+
+    ``p`` and ``s`` are arguments that will be passed to ``f`` each time it
+    is called. This is intended to make it easy to pass, for example,
+    an array and its size as parameters.
+
+    It is an error to call this function when the :term:`arena` is not
+    in the :term:`parked state`. You need to call
+    :c:func:`mps_arena_collect` or :c:func:`mps_arena_park` before
+    calling :c:func:`mps_amc_apply`.
+
+    The function ``f`` will be called on both :term:`client <client
+    object>` and :term:`padding objects`. It is the job of ``f`` to
+    distinguish, if necessary, between the two. It may also be called
+    on :term:`dead` objects that the collector has not recycled or has
+    been unable to recycle.
+
+    .. note::
+
+        There is no equivalent function for other pool classes, but
+        there is a more general function
+        :c:func:`mps_arena_formatted_objects_walk` that visits all
+        formatted objects in the arena.
+
+    .. note::
+
+        This function is intended for heap analysis, tuning, and
+        debugging, not for frequent use in production.
+
+
+.. c:type:: void (*mps_amc_apply_stepper_t)(mps_addr_t addr, void *p, size_t s)
+
+    .. deprecated::
+
+        Use :c:func:`mps_pool_walk` instead.
+
+    The type of a :term:`stepper function` for :term:`formatted
+    objects` in an AMC pool.
+
+    ``addr`` is the address of an object in the pool.
+
+    ``p`` and ``s`` are the corresponding arguments that were passed
+    to :c:func:`mps_amc_apply`.
+
+    The function may not call any function in the MPS. It may access:
+
+    a. memory inside the object or block pointed to by ``addr``;
+
+    b. memory managed by the MPS that is in pools that do not protect
+       their contents;
+
+    c. memory not managed by the MPS;
+
+    It must not:
+
+    d. access other memory managed by the MPS;
+
+    e. modify any of the references in the object.
+
+
 .. index::
    single: deprecated interfaces; in version 1.115
 
 Deprecated in version 1.115
 ...........................
 
-.. c:function:: mps_res_t mps_ap_fill_with_reservoir_permit(mps_addr_t *p_o, mps_ap_t mps_ap, size_t size)
-
-    .. deprecated::
-
-        Identical to :c:func:`mps_ap_fill`, which should be used
-        instead. Formerly, this function gave the MPS permission to
-        draw on the ‘low-memory reservoir’, but this no longer exists.
-
-
-.. c:type:: typedef mps_pool_class_t mps_class_t
+.. c:type:: mps_pool_class_t mps_class_t
 
     .. deprecated::
 
@@ -42,7 +235,7 @@ Deprecated in version 1.115
         pools were the only objects in the MPS that belonged to
         classes.
 
-    
+
 .. c:function:: size_t mps_mvff_free_size(mps_pool_t pool)
 
     .. deprecated::
@@ -97,41 +290,6 @@ Deprecated in version 1.115
 
     Returns the total size of the pool, in :term:`bytes (1)`. This
     is the sum of allocated space and free space.
-
-
-.. c:function:: mps_res_t mps_reserve_with_reservoir_permit(mps_addr_t *p_o, mps_ap_t mps_ap, size_t size)
-
-    .. deprecated::
-
-        Identical to :c:func:`mps_reserve`, which should be used
-        instead. Formerly, this function gave the MPS permission to
-        draw on the ‘low-memory reservoir’, but this no longer
-        exists.
-
-
-.. c:function:: void mps_reservoir_limit_set(mps_arena_t arena, size_t size)
-
-    .. deprecated::
-
-        Has no effect. Formerly, it updated the recommended size of
-        the ‘low-memory reservoir’, but this no longer exists.
-
-
-.. c:function:: size_t mps_reservoir_limit(mps_arena_t arena)
-
-    .. deprecated::
-
-        Returns zero. Formerly, it returned the recommended size of
-        the ‘low-memory reservoir’, but this no longer exists.
-
-
-.. c:function:: size_t mps_reservoir_available(mps_arena_t arena)
-
-    .. deprecated::
-
-        Returns zero. Formerly, it returned the size of the available
-        memory in the ‘low-memory reservoir’, but this no longer
-        exists.
 
 
 .. c:function:: mps_res_t mps_root_create_reg(mps_root_t *root_o, mps_arena_t arena, mps_rank_t rank, mps_rm_t rm, mps_thr_t thr, mps_reg_scan_t reg_scan, void *p, size_t s)
@@ -313,7 +471,7 @@ Deprecated in version 1.115
     :c:func:`mps_root_create_reg`.
 
     ``ss`` is the :term:`scan state`. It must be passed to
-    :c:func:`MPS_SCAN_BEGIN` and :c:func:`MPS_SCAN_END` to delimit a
+    :c:macro:`MPS_SCAN_BEGIN` and :c:macro:`MPS_SCAN_END` to delimit a
     sequence of fix operations, and to the functions
     :c:func:`MPS_FIX1` and :c:func:`MPS_FIX2` when fixing a
     :term:`reference`.
@@ -339,7 +497,7 @@ Deprecated in version 1.115
         :ref:`topic-scanning`.
 
 
-.. c:function:: mps_reg_scan_t mps_stack_scan_ambig
+.. c:var:: mps_reg_scan_t mps_stack_scan_ambig
 
     .. deprecated::
 
@@ -367,7 +525,7 @@ Deprecated in version 1.115
 Deprecated in version 1.113
 ...........................
 
-.. c:function:: MPS_ARGS_DONE(args)
+.. c:macro:: MPS_ARGS_DONE(args)
 
     .. deprecated::
 
@@ -732,233 +890,3 @@ Deprecated in version 1.112
 
     Create an :term:`object format` based on a description of an
     object format of variant fixed.
-
-
-.. index::
-   single: deprecated interfaces; in version 1.111
-
-Deprecated in version 1.111
-...........................
-
-.. c:function:: mps_res_t mps_fix(mps_ss_t ss, mps_addr_t *ref_io)
-
-    .. deprecated::
-
-        Use :c:func:`MPS_FIX1` and :c:func:`MPS_FIX2` instead.
-
-    :term:`Fix` a :term:`reference`.
-
-    This is a function equivalent to::
-
-        MPS_SCAN_BEGIN(ss);
-        res = MPS_FIX12(ss, ref_io);
-        MPS_SCAN_END(ss);
-        return res;
-
-    Because :term:`scanning <scan>` is an operation on the
-    :term:`critical path`, we recommend that you use
-    :c:func:`MPS_FIX12` (or :c:func:`MPS_FIX1` and :c:func:`MPS_FIX2`)
-    to ensure that the "stage 1 fix" is inlined.
-
-    .. note::
-
-        If you call this between :c:func:`MPS_SCAN_BEGIN` and
-        :c:func:`MPS_SCAN_END`, you must use :c:func:`MPS_FIX_CALL` to
-        ensure that the scan state is passed correctly.
-
-
-.. c:function:: mps_word_t mps_telemetry_control(mps_word_t reset_mask, mps_word_t flip_mask)
-
-    .. deprecated::
-
-        Use :c:func:`mps_telemetry_get`,
-        :c:func:`mps_telemetry_reset`, and :c:func:`mps_telemetry_set`
-        instead.
-
-    Update and return the :term:`telemetry filter`.
-
-    ``reset_mask`` is a :term:`bitmask` indicating the bits in the
-    telemetry filter that should be reset.
-
-    ``flip_mask`` is a bitmask indicating the bits in the telemetry
-    filter whose value should be flipped after the resetting.
-
-    Returns the previous value of the telemetry filter, prior to the
-    reset and the flip.
-
-    The parameters ``reset_mask`` and ``flip_mask`` allow the
-    specification of any binary operation on the filter control. For
-    typical operations, the parameters should be set as follows:
-
-    ============  ==============  =============
-    Operation     ``reset_mask``  ``flip_mask``
-    ============  ==============  =============
-    ``set(M)``    ``M``           ``M``
-    ------------  --------------  -------------
-    ``reset(M)``  ``M``           ``0``
-    ------------  --------------  -------------
-    ``flip(M)``   ``0``           ``M``
-    ------------  --------------  -------------
-    ``read()``    ``0``           ``0``
-    ============  ==============  =============
-
-
-.. c:function:: void mps_tramp(void **r_o, mps_tramp_t f, void *p, size_t s)
-
-    .. deprecated::
-
-        The MPS trampoline is no longer required on any operating
-        system supported by the MPS.
-
-    Call a function via the MPS trampoline.
-
-    ``r_o`` points to a location that will store the result of calling
-    ``f``.
-
-    ``f`` is the function to call.
-
-    ``p`` and ``s`` are arguments that will be passed to ``f`` each
-    time it is called. This is intended to make it easy to pass, for
-    example, an array and its size as parameters.
-
-    The MPS relies on :term:`barriers (1)` to protect memory
-    that is in an inconsistent state. On some operating systems,
-    barrier hits generate exceptions that have to be caught by a
-    handler that is on the stack. On these operating systems, any code
-    that uses memory managed by the MPS must be called from inside
-    such an exception handler, that is, inside a call to
-    :c:func:`mps_tramp`.
-
-    If you have multiple threads that run code that uses memory
-    managed by the MPS, each thread must execute such code inside a
-    call to :c:func:`mps_tramp`.
-
-
-.. index::
-   single: trampoline
-
-.. c:type:: void *(*mps_tramp_t)(void *p, size_t s)
-
-    .. deprecated::
-
-        The MPS trampoline is no longer required on any operating
-        system supported by the MPS.
-
-    The type of a function called by :c:func:`mps_tramp`.
-
-    ``p`` and ``s`` are the corresponding arguments that were passed
-    to :c:func:`mps_tramp`.
-
-
-.. c:function:: void mps_arena_expose(mps_arena_t arena)
-
-    .. deprecated::
-
-        If you need access to protected memory for debugging,
-        :ref:`contact us <contact>`.
-
-    Ensure that the MPS is not protecting any :term:`page` in the
-    :term:`arena` with a :term:`read barrier` or :term:`write
-    barrier`.
-
-    ``arena`` is the arena to expose.
-
-    This is expected to only be useful for debugging. The arena is
-    left in the :term:`clamped state`.
-
-    Since barriers are used during a collection, calling this function
-    has the same effect as calling :c:func:`mps_arena_park`: all
-    collections are run to completion, and the arena is clamped so
-    that no new collections begin. The MPS also uses barriers to
-    maintain :term:`remembered sets`, so calling this
-    function will effectively destroy the remembered sets and any
-    optimization gains from them.
-
-    Calling this function is time-consuming: any active collections
-    will be run to completion; and the next collection will have to
-    recompute all the remembered sets by scanning the entire arena.
-
-    The recomputation of the remembered sets can be avoided by calling
-    :c:func:`mps_arena_unsafe_expose_remember_protection` instead of
-    :c:func:`mps_arena_expose`, and by calling
-    :c:func:`mps_arena_unsafe_restore_protection` before calling
-    :c:func:`mps_arena_release`. Those functions have unsafe aspects
-    and place restrictions on what the :term:`client program` can do
-    (basically no exposed data can be changed).
-
-
-.. c:function:: void mps_arena_unsafe_expose_remember_protection(mps_arena_t arena)
-
-    .. deprecated::
-
-        If you need access to protected memory for debugging,
-        :ref:`contact us <contact>`.
-
-    Ensure that the MPS is not protecting any :term:`page` in the
-    :term:`arena` with a :term:`read barrier` or :term:`write
-    barrier`. In addition, request the MPS to remember some parts of its
-    internal state so that they can be restored later.
-
-    ``arena`` is the arena to expose.
-
-    This function is the same as :c:func:`mps_arena_expose`, but
-    additionally causes the MPS to remember its protection state. The
-    remembered protection state can optionally be restored later by
-    calling the :c:func:`mps_arena_unsafe_restore_protection` function.
-    This is an optimization that avoids the MPS having to recompute
-    all the remembered sets by scanning the entire arena.
-
-    However, restoring the remembered protections is only safe if the
-    contents of the exposed pages have not been changed; therefore
-    this function should only be used if you do not intend to change
-    the pages, and the remembered protection must only be restored if
-    the pages have not been changed.
-
-    The MPS will only remember the protection state if resources
-    (memory) are available. If memory is low then only some or
-    possibly none of the protection state will be remembered, with a
-    corresponding necessity to recompute it later. The MPS provides no
-    mechanism for the :term:`client program` to determine whether the
-    MPS has in fact remembered the protection state.
-
-    The remembered protection state, if any, is discarded after
-    calling :c:func:`mps_arena_unsafe_restore_protection`, or as soon
-    as the arena leaves the :term:`clamped state` by calling
-    :c:func:`mps_arena_release`.
-
-
-.. c:function:: void mps_arena_unsafe_restore_protection(mps_arena_t arena)
-
-    .. deprecated::
-
-        If you need access to protected memory for debugging,
-        :ref:`contact us <contact>`.
-
-    Restore the remembered protection state for an :term:`arena`.
-
-    ``arena`` is the arena to restore the protection state for.
-
-    This function restores the protection state that the MPS has
-    remembered when the :term:`client program` called
-    :c:func:`mps_arena_unsafe_expose_remember_protection`. The purpose
-    of remembering and restoring the protection state is to avoid the
-    need for the MPS to recompute all the :term:`remembered sets` by
-    scanning the entire arena, that occurs when
-    :c:func:`mps_arena_expose` is used, and which causes the next
-    :term:`garbage collection` to be slow.
-
-    The client program must not change the exposed data between the
-    call to :c:func:`mps_arena_unsafe_expose_remember_protection` and
-    :c:func:`mps_arena_unsafe_restore_protection`. If the client
-    program has changed the exposed data then
-    :c:func:`mps_arena_unsafe_restore_protection` must not be called:
-    in this case simply call :c:func:`mps_arena_release`.
-
-    Calling this function does not release the arena from the clamped
-    state: :c:func:`mps_arena_release` must be called to continue
-    normal collections.
-
-    Calling this function causes the MPS to forget the remembered
-    protection state; as a consequence the same remembered state
-    cannot be restored more than once.
-

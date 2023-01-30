@@ -34,13 +34,14 @@ Run the script ``tool/branch``, passing the options:
 * ``-C CHANGELEVEL`` — changelevel at which to make the branch
 * ``-t TASK`` — task name: for example ``lii6ll``
 * ``-d "DESCRIPTION"`` — the description of the branch
+* ``-g`` - push this branch to GitHub.
 * ``-y`` — yes, really create the branch
 
 If omitted, the project and parent branch are deduced from the current
 directory, and the changelevel defaults to the most recent change on
 the parent branch. So a typical invocation looks like this::
 
-    tool/branch -p master -t lii6ll -d "Adding new supported platform lii6ll (job003596)." -y
+    tool/branch -p master -t lii6ll -d "Adding new supported platform lii6ll (job003596)." -g -y
 
 
 4. Creating a development branch (manual procedure)
@@ -161,50 +162,39 @@ B. Document History
 ==========  =====  ==================================================
 2014-01-09  GDR_   Created.
 2014-03-19  GDR_   Describe automated procedure.
+2018-08-18  DL     Added github flag reflecting current practice.
+2020-07-28  PNJ_   Updated licence text.
 ==========  =====  ==================================================
 
 .. _GDR: mailto:gdr@ravenbrook.com
+.. _PNJ: mailto:pnj@ravenbrook.com
 
 
 C. Copyright and License
 ------------------------
 
-Copyright © 2014 Ravenbrook Limited. All rights reserved.
-<http://www.ravenbrook.com/>. This is an open source license. Contact
-Ravenbrook for commercial licensing options.
+Copyright © 2014–2020 `Ravenbrook Limited <https://www.ravenbrook.com/>`_.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are
 met:
 
-#. Redistributions of source code must retain the above copyright
+1. Redistributions of source code must retain the above copyright
    notice, this list of conditions and the following disclaimer.
 
-#. Redistributions in binary form must reproduce the above copyright
+2. Redistributions in binary form must reproduce the above copyright
    notice, this list of conditions and the following disclaimer in the
    documentation and/or other materials provided with the distribution.
 
-#. Redistributions in any form must be accompanied by information on how
-   to obtain complete source code for the this software and any
-   accompanying software that uses this software. The source code must
-   either be included in the distribution or be available for no more
-   than the cost of distribution plus a nominal fee, and must be freely
-   redistributable under reasonable conditions. For an executable file,
-   complete source code means the source code for all modules it
-   contains. It does not include source code for modules or files that
-   typically accompany the major components of the operating system on
-   which the executable file runs.
-
-**This software is provided by the copyright holders and contributors
-“as is” and any express or implied warranties, including, but not
-limited to, the implied warranties of merchantability, fitness for a
-particular purpose, or non-infringement, are disclaimed. In no event
-shall the copyright holders and contributors be liable for any direct,
-indirect, incidental, special, exemplary, or consequential damages
-(including, but not limited to, procurement of substitute goods or
-services; loss of use, data, or profits; or business interruption)
-however caused and on any theory of liability, whether in contract,
-strict liability, or tort (including negligence or otherwise) arising in
-any way out of the use of this software, even if advised of the
-possibility of such damage.**
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+"AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 

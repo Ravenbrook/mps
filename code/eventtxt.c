@@ -1,8 +1,8 @@
 /* eventtxt.c: event text log to human-friendly format.
- * 
+ *
  * $Id$
- * 
- * Copyright (c) 2012-2014 Ravenbrook Limited.  See end of file for license.
+ *
+ * Copyright (c) 2012-2020 Ravenbrook Limited.  See end of file for license.
  *
  * This is a command-line tool that converts events from a text-format
  * MPS telemetry file into a more human-readable format.
@@ -22,7 +22,7 @@
  * conversion.
  *
  * Options:
- * 
+ *
  * -l <logfile>: Import events from the named logfile.  Defaults to
  * stdin.
  *
@@ -155,14 +155,14 @@ static EventClock parseClock(char **pInOut)
   int i, l;
   unsigned long low, high;
   char *p = *pInOut;
-  
+
   i = sscanf(p, "%08lX%08lX%n", &high, &low, &l);
   if (i != 2)
     everror("Couldn't read a clock from '%s'", p);
   EVENT_CLOCK_MAKE(val, low, high);
 
   *pInOut = p + l;
-  return val;  
+  return val;
 }
 
 static ulongest_t parseHex(char **pInOut)
@@ -206,7 +206,7 @@ static char *parseString(char **pInOut)
   char *q = strBuf;
   while(*p == ' ')
     ++p;
-        
+
   if (*p != '"')
     everror("String has no opening quotation mark: '%s'", p);
   ++p;
@@ -233,14 +233,16 @@ static char *parseString(char **pInOut)
 }
 
 /* Event logs have interned strings (i.e. they construct a partial
- * function from non-negatie integer IDs to strings), and can label
- * addresses with intern string IDs (i.e. they construct a partial
- * function from address to string ID). We need two tables to keep
- * track of these. */
+ * function from non-negative integer IDs to strings), and can label
+ * addresses and pointers with intern string IDs (i.e. they construct
+ * a partial function from address or pointer to string ID). We need
+ * three tables to keep track of these. */
 
 static Table internTable;      /* dictionary of intern ids to strings */
 
-static Table labelTable;       /* dictionary of addrs to intern ids */
+static Table labelAddrTable;   /* dictionary of addrs to intern ids */
+
+static Table labelPointerTable; /* dictionary of pointers to intern ids */
 
 static void createTables(mps_pool_t pool)
 {
@@ -250,16 +252,23 @@ static void createTables(mps_pool_t pool)
   res = TableCreate(&internTable,
                     (size_t)1<<4,
                     tableAlloc, tableFree, pool,
-                    (TableKey)-1, (TableKey)-2); 
+                    (TableKey)-1, (TableKey)-2);
   if (res != ResOK)
     everror("Couldn't make intern table.");
 
   /* We assume that 0 and 1 are invalid as Addrs. */
-  res = TableCreate(&labelTable, (size_t)1<<7,
+  res = TableCreate(&labelAddrTable, (size_t)1<<7,
                     tableAlloc, tableFree, pool,
                     0, 1);
   if (res != ResOK)
-    everror("Couldn't make label table.");
+    everror("Couldn't make address label table.");
+
+  /* We assume that 0 and 1 are invalid as Pointers. */
+  res = TableCreate(&labelPointerTable, (size_t)1<<7,
+                    tableAlloc, tableFree, pool,
+                    0, 1);
+  if (res != ResOK)
+    everror("Couldn't make pointer label table.");
 }
 
 /* recordIntern -- record an interned string in the table.  a copy of
@@ -272,7 +281,7 @@ static void recordIntern(mps_pool_t pool, char *p)
   mps_addr_t copy;
   size_t len;
   Res res;
-        
+
   stringId = parseHex(&p);
   string = parseString(&p);
   len = strlen(string);
@@ -326,8 +335,9 @@ static size_t labelFind(LabelList list, EventClock clock)
 }
 
 /* recordLabel records a label: an association (made at the time given
- * by 'clock') between an address and a string ID. These are encoded
- * as two hexadecimal numbers in the string pointed to by 'p'.
+ * by 'clock') between a client address or an internal pointer and a
+ * string ID. These are encoded as two hexadecimal numbers in the
+ * string pointed to by 'p'.
  *
  * Note that the event log may have been generated on a platform with
  * addresses larger than Word on the current platform. If that happens
@@ -344,7 +354,7 @@ static size_t labelFind(LabelList list, EventClock clock)
  * probably a bad idea and maybe doomed to failure.
  */
 
-static void recordLabel(mps_pool_t pool, EventClock clock, char *p)
+static void recordLabel(mps_pool_t pool, Table table, EventClock clock, char *p)
 {
   ulongest_t address;
   LabelList list;
@@ -359,7 +369,7 @@ static void recordLabel(mps_pool_t pool, EventClock clock, char *p)
     return;
   }
 
-  if (TableLookup(&tmp, labelTable, (TableKey)address)) {
+  if (TableLookup(&tmp, table, (TableKey)address)) {
     list = tmp;
   } else {
     /* First label for this address */
@@ -368,7 +378,7 @@ static void recordLabel(mps_pool_t pool, EventClock clock, char *p)
       everror("Can't allocate space for a label list");
     list = tmp;
     list->n = 0;
-    res = TableDefine(labelTable, (TableKey)address, list);
+    res = TableDefine(table, (TableKey)address, list);
     if (res != ResOK)
       everror("Couldn't create a label mapping.");
   }
@@ -400,15 +410,16 @@ static void recordLabel(mps_pool_t pool, EventClock clock, char *p)
 
 static int hexWordWidth = (MPS_WORD_WIDTH+3)/4;
 
-/* printAddr -- output a ulongest_t in hex, with the interned string
- * if the value is in the label table */
+/* printLabelled -- output a ulongest_t in hex, with the interned
+ * string if the value is in the table */
 
-static void printAddr(EventClock clock, ulongest_t addr, const char *ident)
+static void printLabelled(EventClock clock, ulongest_t value,
+                          const char *ident, Table table)
 {
   void *tmp;
-        
-  printf("%s:%0*" PRIXLONGEST, ident, hexWordWidth, addr);
-  if (TableLookup(&tmp, labelTable, (TableKey)addr)) {
+
+  printf("%s:%0*" PRIXLONGEST, ident, hexWordWidth, value);
+  if (table != NULL && TableLookup(&tmp, table, (TableKey)value)) {
     LabelList list = tmp;
     size_t pos = labelFind(list, clock);
     if (pos > 0) {
@@ -428,43 +439,49 @@ static void printAddr(EventClock clock, ulongest_t addr, const char *ident)
  * print it, preceded by its name and a colon and followed by a
  * space. */
 
-#define processParamA(ident)          \
-        val_hex = parseHex(&p);       \
-        printAddr(clock, val_hex, #ident);
+#define processParamA(ident)                                    \
+  val_hex = parseHex(&p);                                       \
+  printLabelled(clock, val_hex, #ident, labelAddrTable);
 
-#define processParamP processParamA
-#define processParamW processParamA
+#define processParamP(ident)                                    \
+  val_hex = parseHex(&p);                                       \
+  printLabelled(clock, val_hex, #ident, labelPointerTable);
 
-#define processParamU(ident)          \
-        val_hex = parseHex(&p);       \
-        printf(#ident ":%" PRIuLONGEST " ", val_hex);
+#define processParamW(ident)                    \
+  val_hex = parseHex(&p);                       \
+  printLabelled(clock, val_hex, #ident, NULL);
 
-#define processParamD(ident)          \
-        val_float = parseDouble(&p);  \
-        printf(#ident ":%#8.3g ", val_float);
+#define processParamU(ident)                    \
+  val_hex = parseHex(&p);                       \
+  printf(#ident ":%" PRIuLONGEST " ", val_hex);
 
-#define processParamS(ident)          \
-        val_string = parseString(&p); \
-        printf(#ident ":");           \
-        printStr(val_string);         \
-        putchar(' ');
+#define processParamD(ident)                    \
+  val_float = parseDouble(&p);                  \
+  printf(#ident ":%#8.3g ", val_float);
 
-#define processParamB(ident)          \
-        val_hex = parseHex(&p);       \
-        printf(#ident ":%s ", val_hex ? "True" : "False");
-        
-#define EVENT_PROCESS_PARAM(X, index, sort, ident) processParam##sort(ident);
+#define processParamS(ident)                    \
+  val_string = parseString(&p);                 \
+  printf(#ident ":");                           \
+  printStr(val_string);                         \
+  putchar(' ');
 
-#define EVENT_PROCESS(X, name, code, always, kind) \
-        case code: \
-                EVENT_##name##_PARAMS(EVENT_PROCESS_PARAM, X) \
-        break;
+#define processParamB(ident)                            \
+  val_hex = parseHex(&p);                               \
+  printf(#ident ":%s ", val_hex ? "True" : "False");
+
+#define EVENT_PROCESS_PARAM(X, index, sort, ident, doc) \
+  processParam##sort(ident);
+
+#define EVENT_PROCESS(X, name, code, used, kind)        \
+  case code:                                            \
+    EVENT_##name##_PARAMS(EVENT_PROCESS_PARAM, X)       \
+    break;
 
 /* a table of the event names */
 
 static const char *eventName[EventCodeMAX+EventCodeMAX];
 
-#define EVENT_SET_NAME(X, name, code, always, kind) \
+#define EVENT_SET_NAME(X, name, code, used, kind) \
         eventName[code] = #name;
 
 /* this is overkill, at present. */
@@ -506,7 +523,7 @@ static void readLog(mps_pool_t pool, FILE *input)
     printf(" %04X ", code);
     if (eventName[code])
       printf("%-19s ", eventName[code]);
-    else 
+    else
       printf("%-19s ", "[Unknown]");
 
     q = p;
@@ -515,7 +532,9 @@ static void readLog(mps_pool_t pool, FILE *input)
     if (code == EventInternCode) {
       recordIntern(pool, q);
     } else if (code == EventLabelCode) {
-      recordLabel(pool, clock, q);
+      recordLabel(pool, labelAddrTable, clock, q);
+    } else if (code == EventLabelPointerCode) {
+      recordLabel(pool, labelPointerTable, clock, q);
     } else if (code == EventEventInitCode) {
       ulongest_t major, median, minor, maxCode, maxNameLen, wordWidth, clocksPerSec;
       major = parseHex(&q);  /* EVENT_VERSION_MAJOR */
@@ -555,7 +574,7 @@ static void readLog(mps_pool_t pool, FILE *input)
         }
         hexWordWidth = newHexWordWidth;
       }
-      
+
       if (wordWidth > sizeof(ulongest_t) * CHAR_BIT) {
         everror("Event log word width %d is too wide for the current platform.",
                 (int)wordWidth);
@@ -614,41 +633,29 @@ int main(int argc, char *argv[])
 
 /* C. COPYRIGHT AND LICENSE
  *
- * Copyright (C) 2012-2014 Ravenbrook Limited <http://www.ravenbrook.com/>.
- * All rights reserved.  This is an open source license.  Contact
- * Ravenbrook for commercial licensing options.
- * 
+ * Copyright (C) 2012-2020 Ravenbrook Limited <https://www.ravenbrook.com/>.
+ *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are
  * met:
- * 
+ *
  * 1. Redistributions of source code must retain the above copyright
- * notice, this list of conditions and the following disclaimer.
- * 
+ *    notice, this list of conditions and the following disclaimer.
+ *
  * 2. Redistributions in binary form must reproduce the above copyright
- * notice, this list of conditions and the following disclaimer in the
- * documentation and/or other materials provided with the distribution.
- * 
- * 3. Redistributions in any form must be accompanied by information on how
- * to obtain complete source code for this software and any accompanying
- * software that uses this software.  The source code must either be
- * included in the distribution or be available for no more than the cost
- * of distribution plus a nominal fee, and must be freely redistributable
- * under reasonable conditions.  For an executable file, complete source
- * code means the source code for all modules it contains. It does not
- * include source code for modules or files that typically accompany the
- * major components of the operating system on which the executable file
- * runs.
- * 
+ *    notice, this list of conditions and the following disclaimer in the
+ *    documentation and/or other materials provided with the
+ *    distribution.
+ *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS
  * IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
- * TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR
- * PURPOSE, OR NON-INFRINGEMENT, ARE DISCLAIMED. IN NO EVENT SHALL THE
- * COPYRIGHT HOLDERS AND CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
- * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
- * NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF
- * USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON
- * ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
- * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
- * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ * TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
+ * PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+ * HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+ * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+ * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+ * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */

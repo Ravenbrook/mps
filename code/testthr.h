@@ -1,12 +1,12 @@
 /* testthr.h: MULTI-THREADED TEST INTERFACE
  *
  * $Id$
- * Copyright (c) 2014-2016 Ravenbrook Limited.  See end of file for license.
+ * Copyright (c) 2014-2020 Ravenbrook Limited.  See end of file for license.
  *
  * .purpose: Simple interface to threads that makes it possible to
  * write test cases that are portable between Windows (using the
  * implementation in testthrw3.c) and Unix (using the implementation
- * in testthrix.c). See <design/testthr/>.
+ * in testthrix.c). <design/testthr>.
  */
 
 #ifndef testthr_h
@@ -34,7 +34,7 @@ typedef void *(*testthr_routine_t)(void *);
 #include "mpswin.h"
 
 /* On Windows, a thread is identified by a HANDLE.
- * <http://msdn.microsoft.com/en-us/library/windows/desktop/aa383751.aspx>
+ * <https://docs.microsoft.com/en-gb/windows/desktop/WinProg/windows-data-types>
  * But use a structure so that the thread has somewhere to store its
  * result for use by testthr_join.
  */
@@ -51,7 +51,7 @@ typedef struct testthr_t {
 
 /* In pthreads, a thread is identified by a pthread_t, which is
  * allowed "to be defined as a structure" [IEEE Std 1003.1, sys/types.h]
- * <http://pubs.opengroup.org/onlinepubs/9699919799/basedefs/sys_types.h.html>
+ * <https://pubs.opengroup.org/onlinepubs/9699919799/basedefs/sys_types.h.html>
  */
 typedef pthread_t testthr_t;
 
@@ -69,7 +69,7 @@ typedef pthread_t testthr_t;
 void testthr_create(testthr_t *thread_o, testthr_routine_t start, void *arg);
 
 
-/* testthr_join -- wait for a thread to complete 
+/* testthr_join -- wait for a thread to complete
  *
  * Suspend execution of the calling thread until the target thread
  * terminates (if necessary), and if result_o is non-NULL, update
@@ -83,41 +83,29 @@ void testthr_join(testthr_t *thread, void **result_o);
 
 /* C. COPYRIGHT AND LICENSE
  *
- * Copyright (C) 2014-2016 Ravenbrook Limited <http://www.ravenbrook.com/>.
- * All rights reserved.  This is an open source license.  Contact
- * Ravenbrook for commercial licensing options.
- * 
+ * Copyright (C) 2001-2020 Ravenbrook Limited <https://www.ravenbrook.com/>.
+ *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are
  * met:
- * 
+ *
  * 1. Redistributions of source code must retain the above copyright
- * notice, this list of conditions and the following disclaimer.
- * 
+ *    notice, this list of conditions and the following disclaimer.
+ *
  * 2. Redistributions in binary form must reproduce the above copyright
- * notice, this list of conditions and the following disclaimer in the
- * documentation and/or other materials provided with the distribution.
- * 
- * 3. Redistributions in any form must be accompanied by information on how
- * to obtain complete source code for this software and any accompanying
- * software that uses this software.  The source code must either be
- * included in the distribution or be available for no more than the cost
- * of distribution plus a nominal fee, and must be freely redistributable
- * under reasonable conditions.  For an executable file, complete source
- * code means the source code for all modules it contains. It does not
- * include source code for modules or files that typically accompany the
- * major components of the operating system on which the executable file
- * runs.
- * 
+ *    notice, this list of conditions and the following disclaimer in the
+ *    documentation and/or other materials provided with the
+ *    distribution.
+ *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS
  * IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
- * TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR
- * PURPOSE, OR NON-INFRINGEMENT, ARE DISCLAIMED. IN NO EVENT SHALL THE
- * COPYRIGHT HOLDERS AND CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
- * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
- * NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF
- * USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON
- * ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
- * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
- * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ * TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
+ * PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+ * HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+ * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+ * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+ * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */

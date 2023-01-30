@@ -76,8 +76,9 @@ usable.
    stack` can be scanned.
 
    See :ref:`design-prmc` for the design, and ``prmc.h`` for the
-   interface. There are implementations on Unix, Windows, and macOS for
-   IA-32 and x86-64.
+   interface. There are implementations on FreeBSD and Windows for
+   IA-32 and x86-64, and on Linux and macOS for IA-32, x86-64, and
+   ARM64.
 
    There is a generic implementation in ``prmcan.c``, which can't
    provide these features, and so only supports a single thread.
@@ -144,7 +145,7 @@ that may need to be defined. For example::
      * We use the same alignment as MS malloc: 16, which is used for XMM
      * operations.
      * See MSDN -> x64 Software Conventions -> Overview of x64 Calling Conventions
-     * <http://msdn.microsoft.com/en-us/library/ms235286> 
+     * <https://docs.microsoft.com/en-gb/cpp/build/overview-of-x64-calling-conventions>
      */
 
     #elif defined(_MSC_VER) && defined(_WIN32) && defined(_WIN64) && defined(_M_X64) && !defined(__POCC__)

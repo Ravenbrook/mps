@@ -1,7 +1,7 @@
 /* djbench.c -- "DJ" Benchmark on ANSI C library
  *
  * $Id$
- * Copyright (c) 2013-2018 Ravenbrook Limited.  See end of file for license.
+ * Copyright (c) 2013-2020 Ravenbrook Limited.  See end of file for license.
  *
  * This is an allocation stress benchmark test for manual variable pools
  * and also for stdlib malloc/free (for comparison).
@@ -55,6 +55,7 @@ static unsigned rmax = 10;        /* maximum recursion depth */
 static mps_bool_t zoned = TRUE;   /* arena allocates using zones */
 static size_t arena_size = 256ul * 1024 * 1024; /* arena size */
 static size_t arena_grain_size = 1; /* arena grain size */
+static double spare = ARENA_SPARE_DEFAULT; /* spare commit fraction */
 
 #define DJRUN(fname, alloc, free) \
   static unsigned fname##_inner(mps_ap_t ap, unsigned depth, unsigned r) { \
@@ -146,10 +147,10 @@ static void weave(dj_t dj)
 {
   testthr_t *threads = alloca(sizeof(threads[0]) * nthreads);
   unsigned t;
-  
+
   for (t = 0; t < nthreads; ++t)
     testthr_create(&threads[t], dj, NULL);
-  
+
   for (t = 0; t < nthreads; ++t)
     testthr_join(&threads[t], NULL);
 }
@@ -158,14 +159,14 @@ static void weave(dj_t dj)
 static void watch(dj_t dj, const char *name)
 {
   clock_t start, finish;
-  
+
   start = clock();
   if (nthreads == 1)
     dj(NULL);
   else
     weave(dj);
   finish = clock();
-  
+
   printf("%s: %g\n", name, (double)(finish - start) / CLOCKS_PER_SEC);
 }
 
@@ -188,6 +189,7 @@ static void arena_wrap(dj_t dj, mps_pool_class_t pool_class, const char *name)
     MPS_ARGS_ADD(args, MPS_KEY_ARENA_SIZE, arena_size);
     MPS_ARGS_ADD(args, MPS_KEY_ARENA_GRAIN_SIZE, arena_grain_size);
     MPS_ARGS_ADD(args, MPS_KEY_ARENA_ZONED, zoned);
+    MPS_ARGS_ADD(args, MPS_KEY_SPARE, spare);
     DJMUST(mps_arena_create_k(&arena, mps_arena_class_vm(), args));
   } MPS_ARGS_END(args);
   DJMUST(mps_pool_create_k(&pool, arena, pool_class, mps_args_none));
@@ -213,6 +215,7 @@ static struct option longopts[] = {
   {"arena-size",       required_argument, NULL, 'm'},
   {"arena-grain-size", required_argument, NULL, 'a'},
   {"arena-unzoned",    no_argument,       NULL, 'z'},
+  {"spare",            required_argument, NULL, 'S'},
   {NULL,               0,                 NULL, 0  }
 };
 
@@ -246,8 +249,9 @@ int main(int argc, char *argv[])
   mps_bool_t seed_specified = FALSE;
 
   seed = rnd_seed();
-  
-  while ((ch = getopt_long(argc, argv, "ht:i:p:b:s:c:r:d:m:a:x:z", longopts, NULL)) != -1)
+
+  while ((ch = getopt_long(argc, argv, "ht:i:p:b:s:c:r:d:m:a:x:zS:",
+                           longopts, NULL)) != -1)
     switch (ch) {
     case 't':
       nthreads = (unsigned)strtoul(optarg, NULL, 10);
@@ -308,6 +312,9 @@ int main(int argc, char *argv[])
         }
       }
       break;
+    case 'S':
+      spare = strtod(optarg, NULL);
+      break;
     default:
       /* This is printed in parts to keep within the 509 character
          limit for string literals in portable standard C. */
@@ -315,19 +322,19 @@ int main(int argc, char *argv[])
               "Usage: %s [option...] [test...]\n"
               "Options:\n"
               "  -m n, --arena-size=n[KMG]?\n"
-              "    Initial size of arena (default %lu).\n"
+              "    Initial size of arena (default %lu)\n"
               "  -g n, --arena-grain-size=n[KMG]?\n"
-              "    Arena grain size (default %lu).\n"
+              "    Arena grain size (default %lu)\n"
               "  -t n, --nthreads=n\n"
               "    Launch n threads each running the test\n"
               "  -i n, --niter=n\n"
-              "    Iterate each test n times (default %u).\n"
+              "    Iterate each test n times (default %u)\n"
               "  -p n, --npass=n\n"
-              "    Pass over the block array n times (default %u).\n"
+              "    Pass over the block array n times (default %u)\n"
               "  -b n, --nblocks=n\n"
-              "    Length of the block array (default %u).\n"
+              "    Length of the block array (default %u)\n"
               "  -s n, --sshift=n\n"
-              "    Log2 max block size in words (default %u).\n",
+              "    Log2 max block size in words (default %u)\n",
               argv[0],
               (unsigned long)arena_size,
               (unsigned long)arena_grain_size,
@@ -337,29 +344,32 @@ int main(int argc, char *argv[])
               sshift);
       fprintf(stderr,
               "  -c p, --pact=p\n"
-              "    Probability of acting on a block (default %g).\n"
+              "    Probability of acting on a block (default %g)\n"
               "  -r n, --rinter=n\n"
-              "    Recurse every n passes if n > 0 (default %u).\n"
+              "    Recurse every n passes if n > 0 (default %u)\n"
               "  -d n, --rmax=n\n"
-              "    Maximum recursion depth (default %u).\n"
+              "    Maximum recursion depth (default %u)\n"
               "  -x n, --seed=n\n"
-              "    Random number seed (default from entropy).\n"
+              "    Random number seed (default from entropy)\n"
               "  -z, --arena-unzoned\n"
               "    Disabled zoned allocation in the arena\n"
-              "Tests:\n"
-              "  mvt   pool class MVT\n"
-              "  mvff  pool class MVFF\n"
-              "  mv    pool class MV\n"
-              "  mvb   pool class MV with buffers\n"
-              "  an    malloc\n",
+              "  -S f, --spare\n"
+              "    Maximum spare committed fraction (default %f)\n",
               pact,
               rinter,
-              rmax);
+              rmax,
+              spare);
+      fprintf(stderr,
+              "Tests:\n"
+              "  mvt   pool class MVT\n"
+              "  mvff  pool class MVFF (buffer interface)\n"
+              "  mvffa pool class MVFF (alloc interface)\n"
+              "  an    malloc\n");
       return EXIT_FAILURE;
     }
   argc -= optind;
   argv += optind;
-  
+
   if (!seed_specified) {
     printf("seed: %lu\n", seed);
     (void)fflush(stdout);
@@ -378,48 +388,36 @@ int main(int argc, char *argv[])
     --argc;
     ++argv;
   }
-  
+
   return EXIT_SUCCESS;
 }
 
 
 /* C. COPYRIGHT AND LICENSE
  *
- * Copyright (c) 2013-2018 Ravenbrook Limited <http://www.ravenbrook.com/>.
- * All rights reserved.  This is an open source license.  Contact
- * Ravenbrook for commercial licensing options.
- * 
+ * Copyright (C) 2013-2020 Ravenbrook Limited <https://www.ravenbrook.com/>.
+ *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are
  * met:
- * 
+ *
  * 1. Redistributions of source code must retain the above copyright
- * notice, this list of conditions and the following disclaimer.
- * 
+ *    notice, this list of conditions and the following disclaimer.
+ *
  * 2. Redistributions in binary form must reproduce the above copyright
- * notice, this list of conditions and the following disclaimer in the
- * documentation and/or other materials provided with the distribution.
- * 
- * 3. Redistributions in any form must be accompanied by information on how
- * to obtain complete source code for this software and any accompanying
- * software that uses this software.  The source code must either be
- * included in the distribution or be available for no more than the cost
- * of distribution plus a nominal fee, and must be freely redistributable
- * under reasonable conditions.  For an executable file, complete source
- * code means the source code for all modules it contains. It does not
- * include source code for modules or files that typically accompany the
- * major components of the operating system on which the executable file
- * runs.
- * 
+ *    notice, this list of conditions and the following disclaimer in the
+ *    documentation and/or other materials provided with the
+ *    distribution.
+ *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS
  * IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
- * TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR
- * PURPOSE, OR NON-INFRINGEMENT, ARE DISCLAIMED. IN NO EVENT SHALL THE
- * COPYRIGHT HOLDERS AND CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
- * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
- * NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF
- * USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON
- * ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
- * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
- * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ * TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
+ * PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+ * HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+ * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+ * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+ * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */

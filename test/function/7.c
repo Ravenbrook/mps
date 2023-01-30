@@ -10,7 +10,7 @@ END_HEADER
 
 #include "testlib.h"
 
-static void test(void)
+static void test(void *stack_pointer)
 {
  mps_arena_t arena;
  mps_arena_t arena1;
@@ -19,7 +19,7 @@ static void test(void)
 
  for (p=0; p<ARENAS; p++)
  {
-  die(mps_arena_create(&arena, mps_arena_class_vm(), mps_args_none), "create");
+  die(mps_arena_create_k(&arena, mps_arena_class_vm(), mps_args_none), "create");
   if (p > 0)
    mps_arena_destroy(arena1);
   arena1=arena;
@@ -29,7 +29,7 @@ static void test(void)
 
 int main(void)
 {
- easy_tramp(test);
+ run_test(test);
  pass();
  return 0;
 }

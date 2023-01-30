@@ -1,7 +1,7 @@
 /* teletest.c: TELEMETRY TEST
  *
  * $Id$
- * Copyright (c) 2001-2018 Ravenbrook Limited.  See end of file for license.
+ * Copyright (c) 2001-2020 Ravenbrook Limited.  See end of file for license.
  *
  * .source: The command parser here was taken and adapted from bttest.c.
  */
@@ -29,47 +29,24 @@ static char *stringArg;
 static Count argCount;
 
 
-static void callControl(mps_word_t reset, mps_word_t flip)
-{
-  mps_word_t old, new;
-  old = mps_telemetry_control(reset, flip);
-  new = mps_telemetry_control((mps_word_t)0, (mps_word_t)0);
-
-  printf(WORD_FORMAT " -> " WORD_FORMAT "\n",
-         (ulongest_t)old, (ulongest_t)new);
-}
-
-
-static void doControl(void)
-{
-  callControl(args[0], args[1]);
-}
-
-
-static void doRead(void)
+static void doGet(void)
 {
   mps_word_t old;
-  old = mps_telemetry_control((mps_word_t)0, (mps_word_t)0);
-      
+  old = mps_telemetry_get();
+
   (void)printf(WORD_FORMAT "\n", (ulongest_t)old);
 }
 
 
 static void doSet(void)
 {
-  callControl(args[0], args[0]);
+  mps_telemetry_set(args[0]);
 }
 
 
 static void doReset(void)
 {
-  callControl(args[0], (mps_word_t)0);
-}
-
-
-static void doFlip(void)
-{
-  callControl((mps_word_t)0, args[0]);
+  mps_telemetry_reset(args[0]);
 }
 
 
@@ -100,11 +77,9 @@ static void doQuit(void)
 
 static void doHelp(void)
 {
-  (void)printf("control <reset> <flip>   -> <old> <new>    Control filter\n"
-               "read                     -> <old>          Read filter\n"
+  (void)printf("get                      -> <old>          Get filter\n"
                "set <mask>               -> <old> <new>    Set filter\n"
-               "reset <mask>             -> <old> <new>    Reset filter\n"
-               "flip <mask>              -> <old> <new>    Toggle filter\n");
+               "reset <mask>             -> <old> <new>    Reset filter\n");
   (void)printf("intern <string>          -> <id>           Intern string\n"
                "label <address> <id>                       Label address\n"
                "flush                                      Flush buffer\n"
@@ -119,11 +94,9 @@ static struct commandShapeStruct {
   mps_bool_t string_arg;
   void (*fun)(void);
 } commandShapes[] = {
-  {"control", 2, 0, doControl},
-  {"read", 0, 0, doRead},
+  {"get", 0, 0, doGet},
   {"set", 1, 0, doSet},
   {"reset", 1, 0, doReset},
-  {"flip", 1, 0, doFlip},
   {"intern", 0, 1, doIntern},
   {"label", 2, 0, doLabel},
   {"flush", 0, 0, doFlush},
@@ -187,7 +160,7 @@ static void obeyCommand(char *command)
   printf("command not understood\n> %s\n", command);
   doHelp();
 }
-     
+
 
 #define testArenaSIZE (((size_t)64)<<20)
 
@@ -216,41 +189,29 @@ int main(int argc, char *argv[])
 
 /* C. COPYRIGHT AND LICENSE
  *
- * Copyright (C) 2001-2018 Ravenbrook Limited <http://www.ravenbrook.com/>.
- * All rights reserved.  This is an open source license.  Contact
- * Ravenbrook for commercial licensing options.
- * 
+ * Copyright (C) 2001-2020 Ravenbrook Limited <https://www.ravenbrook.com/>.
+ *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are
  * met:
- * 
+ *
  * 1. Redistributions of source code must retain the above copyright
- * notice, this list of conditions and the following disclaimer.
- * 
+ *    notice, this list of conditions and the following disclaimer.
+ *
  * 2. Redistributions in binary form must reproduce the above copyright
- * notice, this list of conditions and the following disclaimer in the
- * documentation and/or other materials provided with the distribution.
- * 
- * 3. Redistributions in any form must be accompanied by information on how
- * to obtain complete source code for this software and any accompanying
- * software that uses this software.  The source code must either be
- * included in the distribution or be available for no more than the cost
- * of distribution plus a nominal fee, and must be freely redistributable
- * under reasonable conditions.  For an executable file, complete source
- * code means the source code for all modules it contains. It does not
- * include source code for modules or files that typically accompany the
- * major components of the operating system on which the executable file
- * runs.
- * 
+ *    notice, this list of conditions and the following disclaimer in the
+ *    documentation and/or other materials provided with the
+ *    distribution.
+ *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS
  * IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
- * TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR
- * PURPOSE, OR NON-INFRINGEMENT, ARE DISCLAIMED. IN NO EVENT SHALL THE
- * COPYRIGHT HOLDERS AND CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
- * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
- * NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF
- * USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON
- * ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
- * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
- * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ * TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
+ * PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+ * HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+ * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+ * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+ * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */

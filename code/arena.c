@@ -1,9 +1,9 @@
 /* arena.c: ARENA ALLOCATION FEATURES
  *
  * $Id$
- * Copyright (c) 2001-2018 Ravenbrook Limited.  See end of file for license.
+ * Copyright (c) 2001-2020 Ravenbrook Limited.  See end of file for license.
  *
- * .sources: <design/arena/> is the main design document.  */
+ * .sources: <design/arena> is the main design document.  */
 
 #include "tract.h"
 #include "poolmvff.h"
@@ -27,7 +27,7 @@ SRCID(arena, "$Id$");
 Bool ArenaGrainSizeCheck(Size size)
 {
   CHECKL(size > 0);
-  /* <design/arena/#req.attr.block.align.min> */
+  /* <design/arena#.req.attr.block.align.min> */
   CHECKL(SizeIsAligned(size, MPS_PF_ALIGN));
   /* Grain size must be a power of 2 for the tract lookup and the
    * zones to work. */
@@ -178,7 +178,7 @@ Bool ArenaCheck(Arena arena)
   CHECKD(Globals, ArenaGlobals(arena));
 
   CHECKL(BoolCheck(arena->poolReady));
-  if (arena->poolReady) { /* <design/arena/#pool.ready> */
+  if (arena->poolReady) { /* <design/arena#.pool.ready> */
     CHECKD(MVFF, &arena->controlPoolStruct);
   }
 
@@ -190,6 +190,8 @@ Bool ArenaCheck(Arena arena)
    */
   CHECKL(arena->committed <= arena->commitLimit);
   CHECKL(arena->spareCommitted <= arena->committed);
+  CHECKL(0.0 <= arena->spare);
+  CHECKL(arena->spare <= 1.0);
   CHECKL(0.0 <= arena->pauseTime);
 
   CHECKL(arena->zoneShift == ZoneShiftUNSET
@@ -214,7 +216,7 @@ Bool ArenaCheck(Arena arena)
   CHECKL(TreeCheck(ArenaChunkTree(arena)));
   /* TODO: check that the chunkRing and chunkTree have identical members */
   /* nothing to check for chunkSerial */
-  
+
   CHECKL(LocusCheck(arena));
 
   CHECKL(BoolCheck(arena->hasFreeLand));
@@ -234,19 +236,26 @@ static Res ArenaAbsInit(Arena arena, Size grainSize, ArgList args)
   Res res;
   Bool zoned = ARENA_DEFAULT_ZONED;
   Size commitLimit = ARENA_DEFAULT_COMMIT_LIMIT;
-  Size spareCommitLimit = ARENA_DEFAULT_SPARE_COMMIT_LIMIT;
+  double spare = ARENA_SPARE_DEFAULT;
   double pauseTime = ARENA_DEFAULT_PAUSE_TIME;
   mps_arg_s arg;
 
   AVER(arena != NULL);
   AVERT(ArenaGrainSize, grainSize);
-  
+
   if (ArgPick(&arg, args, MPS_KEY_ARENA_ZONED))
     zoned = arg.val.b;
   if (ArgPick(&arg, args, MPS_KEY_COMMIT_LIMIT))
     commitLimit = arg.val.size;
-  if (ArgPick(&arg, args, MPS_KEY_SPARE_COMMIT_LIMIT))
-    spareCommitLimit = arg.val.size;
+  /* MPS_KEY_SPARE_COMMIT_LIMIT is deprecated */
+  if (ArgPick(&arg, args, MPS_KEY_SPARE_COMMIT_LIMIT)) {
+    if (0 < commitLimit && commitLimit <= arg.val.size)
+      spare = (double)arg.val.size / (double)commitLimit;
+    else
+      spare = 1.0;
+  }
+  if (ArgPick(&arg, args, MPS_KEY_SPARE))
+    spare = arg.val.d;
   if (ArgPick(&arg, args, MPS_KEY_PAUSE_TIME))
     pauseTime = arg.val.d;
 
@@ -257,12 +266,12 @@ static Res ArenaAbsInit(Arena arena, Size grainSize, ArgList args)
   arena->committed = (Size)0;
   arena->commitLimit = commitLimit;
   arena->spareCommitted = (Size)0;
-  arena->spareCommitLimit = spareCommitLimit;
+  arena->spare = spare;
   arena->pauseTime = pauseTime;
   arena->grainSize = grainSize;
   /* zoneShift must be overridden by arena class init */
   arena->zoneShift = ZoneShiftUNSET;
-  arena->poolReady = FALSE;     /* <design/arena/#pool.ready> */
+  arena->poolReady = FALSE;     /* <design/arena#.pool.ready> */
   arena->lastTract = NULL;
   arena->lastTractBase = NULL;
   arena->hasFreeLand = FALSE;
@@ -273,9 +282,9 @@ static Res ArenaAbsInit(Arena arena, Size grainSize, ArgList args)
   RingInit(ArenaChunkRing(arena));
   arena->chunkTree = TreeEMPTY;
   arena->chunkSerial = (Serial)0;
-  
+
   LocusInit(arena);
-  
+
   res = GlobalsInit(ArenaGlobals(arena));
   if (res != ResOK)
     goto failGlobalsInit;
@@ -283,7 +292,7 @@ static Res ArenaAbsInit(Arena arena, Size grainSize, ArgList args)
   SetClassOfPoly(arena, CLASS(AbstractArena));
   arena->sig = ArenaSig;
   AVERC(Arena, arena);
-  
+
   /* Initialise a pool to hold the CBS blocks for the arena's free
    * land. This pool can't be allowed to extend itself using
    * ArenaAlloc because it is used to implement ArenaAlloc, so
@@ -300,6 +309,7 @@ static Res ArenaAbsInit(Arena arena, Size grainSize, ArgList args)
   if (res != ResOK)
     goto failMFSInit;
 
+  EventLabelPointer(ArenaCBSBlockPool(arena), EventInternString("CBSBlock"));
   return ResOK;
 
 failMFSInit:
@@ -400,7 +410,7 @@ Res ArenaCreate(Arena *arenaReturn, ArenaClass klass, ArgList args)
   res = arenaFreeLandInit(arena);
   if (res != ResOK)
     goto failFreeLandInit;
-  
+
   res = ControlInit(arena);
   if (res != ResOK)
     goto failControlInit;
@@ -458,7 +468,7 @@ static void arenaFreeLandFinish(Arena arena)
 {
   AVERT(Arena, arena);
   AVER(arena->hasFreeLand);
-  
+
   /* We're about to free the memory occupied by the free land, which
      contains a CBS.  We want to make sure that LandFinish doesn't try
      to check the CBS, so nuke it here.  TODO: LandReset? */
@@ -507,7 +517,8 @@ Res ControlInit(Arena arena)
   } MPS_ARGS_END(args);
   if (res != ResOK)
     return res;
-  arena->poolReady = TRUE;      /* <design/arena/#pool.ready> */
+  arena->poolReady = TRUE;      /* <design/arena#.pool.ready> */
+  EventLabelPointer(&arena->controlPoolStruct, EventInternString("Control"));
   return ResOK;
 }
 
@@ -552,7 +563,7 @@ static Res ArenaAbsDescribe(Inst inst, mps_lib_FILE *stream, Count depth)
                "committed        $W\n", (WriteFW)arena->committed,
                "commitLimit      $W\n", (WriteFW)arena->commitLimit,
                "spareCommitted   $W\n", (WriteFW)arena->spareCommitted,
-               "spareCommitLimit $W\n", (WriteFW)arena->spareCommitLimit,
+               "spare            $D\n", (WriteFD)arena->spare,
                "zoneShift        $U\n", (WriteFU)arena->zoneShift,
                "grainSize        $W\n", (WriteFW)arena->grainSize,
                "lastTract        $P\n", (WriteFP)arena->lastTract,
@@ -666,7 +677,7 @@ Res ArenaDescribeTracts(Arena arena, mps_lib_FILE *stream, Count depth)
  * control pool, which is an MV pool embedded in the arena itself.
  *
  * .controlalloc.addr: In implementations where Addr is not compatible
- * with void* (<design/type/#addr.use>), ControlAlloc must take care of
+ * with void* <design/type#.addr.use>, ControlAlloc must take care of
  * allocating so that the block can be addressed with a void*.  */
 
 Res ControlAlloc(void **baseReturn, Arena arena, size_t size)
@@ -782,7 +793,7 @@ void ArenaChunkRemoved(Arena arena, Chunk chunk)
  * This is a primitive allocator used to allocate pages for the arena
  * Land. It is called rarely and can use a simple search. It may not
  * use the Land or any pool, because it is used as part of the
- * bootstrap.  See design.mps.bootstrap.land.sol.alloc.
+ * bootstrap.  <design/bootstrap#.land.sol.alloc>.
  */
 
 static Res arenaAllocPageInChunk(Addr *baseReturn, Chunk chunk, Pool pool)
@@ -800,7 +811,7 @@ static Res arenaAllocPageInChunk(Addr *baseReturn, Chunk chunk, Pool pool)
                            chunk->allocTable,
                            chunk->allocBase, chunk->pages, 1))
     return ResRESOURCE;
-  
+
   res = Method(Arena, arena, pagesMarkAllocated)(arena, chunk,
                                                  basePageIndex, 1,
                                                  pool);
@@ -814,7 +825,7 @@ static Res arenaAllocPageInChunk(Addr *baseReturn, Chunk chunk, Pool pool)
 static Res arenaAllocPage(Addr *baseReturn, Arena arena, Pool pool)
 {
   Res res;
-  
+
   AVER(baseReturn != NULL);
   AVERT(Arena, arena);
   AVERT(Pool, pool);
@@ -892,7 +903,7 @@ static void arenaExcludePage(Arena arena, Range pageRange)
  * The arena's free land can't get memory for its block pool in the
  * usual way (via ArenaAlloc), because it is the mechanism behind
  * ArenaAlloc! So we extend the block pool via a back door (see
- * arenaExtendCBSBlockPool).  See design.mps.bootstrap.land.sol.pool.
+ * arenaExtendCBSBlockPool).  <design/bootstrap#.land.sol.pool>.
  *
  * Only fails if it can't get a page for the block pool.
  */
@@ -902,7 +913,7 @@ static Res arenaFreeLandInsertExtend(Range rangeReturn, Arena arena,
 {
   Res res;
   Land land;
-  
+
   AVER(rangeReturn != NULL);
   AVERT(Arena, arena);
   AVERT(Range, range);
@@ -921,59 +932,8 @@ static Res arenaFreeLandInsertExtend(Range rangeReturn, Arena arena,
     AVER(res == ResOK); /* we just gave memory to the CBS block pool */
     arenaExcludePage(arena, &pageRange);
   }
-  
+
   return ResOK;
-}
-
-
-/* arenaFreeLandInsertSteal -- add range to arena's free land, maybe
- * stealing memory
- *
- * See arenaFreeLandInsertExtend. This function may only be applied to
- * mapped pages and may steal them to store Land nodes if it's unable
- * to allocate space for CBS blocks.
- *
- * IMPORTANT: May update rangeIO.
- */
-
-static void arenaFreeLandInsertSteal(Range rangeReturn, Arena arena,
-                                     Range rangeIO)
-{
-  Res res;
-  
-  AVER(rangeReturn != NULL);
-  AVERT(Arena, arena);
-  AVERT(Range, rangeIO);
-
-  res = arenaFreeLandInsertExtend(rangeReturn, arena, rangeIO);
-  
-  if (res != ResOK) {
-    Land land;
-    Addr pageBase, pageLimit;
-    Tract tract;
-    AVER(ResIsAllocFailure(res));
-
-    /* Steal a page from the memory we're about to free. */
-    AVER(RangeSize(rangeIO) >= ArenaGrainSize(arena));
-    pageBase = RangeBase(rangeIO);
-    pageLimit = AddrAdd(pageBase, ArenaGrainSize(arena));
-    AVER(pageLimit <= RangeLimit(rangeIO));
-    RangeInit(rangeIO, pageLimit, RangeLimit(rangeIO));
-
-    /* Steal the tract from its owning pool. */
-    tract = TractOfBaseAddr(arena, pageBase);
-    TractFinish(tract);
-    TractInit(tract, ArenaCBSBlockPool(arena), pageBase);
-  
-    MFSExtend(ArenaCBSBlockPool(arena), pageBase, pageLimit);
-
-    /* Try again. */
-    land = ArenaFreeLand(arena);
-    res = LandInsert(rangeReturn, land, rangeIO);
-    AVER(res == ResOK); /* we just gave memory to the CBS block pool */
-  }
-
-  AVER(res == ResOK); /* not expecting other kinds of error from the Land */
 }
 
 
@@ -1009,19 +969,11 @@ Res ArenaFreeLandInsert(Arena arena, Addr base, Addr limit)
 }
 
 
-/* ArenaFreeLandDelete -- remove range from arena's free land, maybe
- * extending block pool
- *
- * This is called from ChunkFinish in order to remove address space from
- * the arena.
- *
- * IMPORTANT: May only be called on whole chunk ranges, because we don't
- * deal with the case where the range is coalesced.  This restriction would
- * be easy to lift by extending the block pool on error, but doesn't happen,
- * so we can't test that path.
+/* ArenaFreeLandDelete -- remove range from arena's free land if
+ * possible without extending the block pool
  */
 
-void ArenaFreeLandDelete(Arena arena, Addr base, Addr limit)
+Res ArenaFreeLandDelete(Arena arena, Addr base, Addr limit)
 {
   RangeStruct range, oldRange;
   Res res;
@@ -1030,11 +982,8 @@ void ArenaFreeLandDelete(Arena arena, Addr base, Addr limit)
   RangeInit(&range, base, limit);
   land = ArenaFreeLand(arena);
   res = LandDelete(&oldRange, land, &range);
-  
-  /* Shouldn't be any other kind of failure because we were only deleting
-     a non-coalesced block.  See .chunk.no-coalesce and
-     <code/cbs.c#.delete.alloc>. */
-  AVER(res == ResOK);
+
+  return res;
 }
 
 
@@ -1058,7 +1007,7 @@ Res ArenaFreeLandAlloc(Tract *tractReturn, Arena arena, ZoneSet zones,
   Count pages;
   Res res;
   Land land;
-  
+
   AVER(tractReturn != NULL);
   AVERT(Arena, arena);
   /* ZoneSet is arbitrary */
@@ -1066,12 +1015,12 @@ Res ArenaFreeLandAlloc(Tract *tractReturn, Arena arena, ZoneSet zones,
   AVERT(Pool, pool);
   AVER(arena == PoolArena(pool));
   AVER(SizeIsArenaGrains(size, arena));
-  
+
   if (!arena->zoned)
     zones = ZoneSetUNIV;
 
   /* Step 1. Find a range of address space. */
-  
+
   land = ArenaFreeLand(arena);
   res = LandFindInZones(&found, &range, &oldRange, land, size, zones, high);
 
@@ -1091,7 +1040,7 @@ Res ArenaFreeLandAlloc(Tract *tractReturn, Arena arena, ZoneSet zones,
 
   if (!found) /* out of address space */
     return ResRESOURCE;
-  
+
   /* Step 2. Make memory available in the address space range. */
 
   b = ChunkOfAddr(&chunk, arena, RangeBase(&range));
@@ -1143,10 +1092,10 @@ Res ArenaAlloc(Addr *baseReturn, LocusPref pref, Size size, Pool pool)
   res = PolicyAlloc(&tract, arena, pref, size, pool);
   if (res != ResOK)
     goto allocFail;
-  
+
   base = TractBase(tract);
 
-  /* cache the tract - <design/arena/#tract.cache> */
+  /* cache the tract - <design/arena#.tract.cache> */
   arena->lastTract = tract;
   arena->lastTractBase = base;
 
@@ -1156,7 +1105,7 @@ Res ArenaAlloc(Addr *baseReturn, LocusPref pref, Size size, Pool pool)
   return ResOK;
 
 allocFail:
-   EVENT3(ArenaAllocFail, arena, size, pool); /* TODO: Should have res? */
+   EVENT4(ArenaAllocFail, arena, size, pool, (unsigned)res);
    return res;
 }
 
@@ -1166,10 +1115,8 @@ allocFail:
 void ArenaFree(Addr base, Size size, Pool pool)
 {
   Arena arena;
-  Addr limit;
-  Addr wholeBase;
-  Size wholeSize;
   RangeStruct range, oldRange;
+  Res res;
 
   AVERT(Pool, pool);
   AVER(base != NULL);
@@ -1179,26 +1126,30 @@ void ArenaFree(Addr base, Size size, Pool pool)
   AVER(AddrIsArenaGrain(base, arena));
   AVER(SizeIsArenaGrains(size, arena));
 
-  /* uncache the tract if in range - <design/arena/#tract.uncache> */
-  limit = AddrAdd(base, size);
-  if ((arena->lastTractBase >= base) && (arena->lastTractBase < limit)) {
+  RangeInitSize(&range, base, size);
+
+  /* uncache the tract if in range - <design/arena#.tract.uncache> */
+  if (base <= arena->lastTractBase && arena->lastTractBase < RangeLimit(&range))
+  {
     arena->lastTract = NULL;
     arena->lastTractBase = (Addr)0;
   }
-  
-  wholeBase = base;
-  wholeSize = size;
 
-  RangeInit(&range, base, limit);
-
-  arenaFreeLandInsertSteal(&oldRange, arena, &range); /* may update range */
-
+  res = arenaFreeLandInsertExtend(&oldRange, arena, &range);
+  if (res != ResOK) {
+    Land land = ArenaFreeLand(arena);
+    res = LandInsertSteal(&oldRange, land, &range); /* may update range */
+    AVER(res == ResOK);
+    if (RangeIsEmpty(&range))
+      goto done;
+  }
   Method(Arena, arena, free)(RangeBase(&range), RangeSize(&range), pool);
 
+done:
   /* Freeing memory might create spare pages, but not more than this. */
-  CHECKL(arena->spareCommitted <= arena->spareCommitLimit);
+  AVER(arena->spareCommitted <= ArenaSpareCommitLimit(arena));
 
-  EVENT3(ArenaFree, arena, wholeBase, wholeSize);
+  EVENT4(ArenaFree, arena, base, size, pool);
 }
 
 
@@ -1220,24 +1171,28 @@ Size ArenaSpareCommitted(Arena arena)
   return arena->spareCommitted;
 }
 
-Size ArenaSpareCommitLimit(Arena arena)
+double ArenaSpare(Arena arena)
 {
   AVERT(Arena, arena);
-  return arena->spareCommitLimit;
+  return arena->spare;
 }
 
-void ArenaSetSpareCommitLimit(Arena arena, Size limit)
+void ArenaSetSpare(Arena arena, double spare)
 {
-  AVERT(Arena, arena);
-  /* Can't check limit, as all possible values are allowed. */
+  Size spareMax;
 
-  arena->spareCommitLimit = limit;
-  if (arena->spareCommitLimit < arena->spareCommitted) {
-    Size excess = arena->spareCommitted - arena->spareCommitLimit;
+  AVERT(Arena, arena);
+  AVER(0.0 <= spare);
+  AVER(spare <= 1.0);
+
+  arena->spare = spare;
+  EVENT2(ArenaSetSpare, arena, spare);
+
+  spareMax = ArenaSpareCommitLimit(arena);
+  if (arena->spareCommitted > spareMax) {
+    Size excess = arena->spareCommitted - spareMax;
     (void)Method(Arena, arena, purgeSpare)(arena, excess);
   }
-
-  EVENT2(SpareCommitLimitSet, arena, limit);
 }
 
 double ArenaPauseTime(Arena arena)
@@ -1302,7 +1257,7 @@ Res ArenaSetCommitLimit(Arena arena, Size limit)
     arena->commitLimit = limit;
     res = ResOK;
   }
-  EVENT3(CommitLimitSet, arena, limit, (res == ResOK));
+  EVENT3(CommitLimitSet, arena, limit, (unsigned)res);
   return res;
 }
 
@@ -1347,7 +1302,7 @@ void ArenaAccumulateTime(Arena arena, Clock start, Clock end)
 {
   AVERT(Arena, arena);
   AVER(start <= end);
-  arena->tracedTime += (end - start) / (double) ClocksPerSec();
+  arena->tracedTime += (double)(end - start) / (double)ClocksPerSec();
 }
 
 
@@ -1412,41 +1367,29 @@ Bool ArenaHasAddr(Arena arena, Addr addr)
 
 /* C. COPYRIGHT AND LICENSE
  *
- * Copyright (C) 2001-2018 Ravenbrook Limited <http://www.ravenbrook.com/>.
- * All rights reserved.  This is an open source license.  Contact
- * Ravenbrook for commercial licensing options.
- * 
+ * Copyright (C) 2001-2020 Ravenbrook Limited <https://www.ravenbrook.com/>.
+ *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are
  * met:
- * 
+ *
  * 1. Redistributions of source code must retain the above copyright
- * notice, this list of conditions and the following disclaimer.
- * 
+ *    notice, this list of conditions and the following disclaimer.
+ *
  * 2. Redistributions in binary form must reproduce the above copyright
- * notice, this list of conditions and the following disclaimer in the
- * documentation and/or other materials provided with the distribution.
- * 
- * 3. Redistributions in any form must be accompanied by information on how
- * to obtain complete source code for this software and any accompanying
- * software that uses this software.  The source code must either be
- * included in the distribution or be available for no more than the cost
- * of distribution plus a nominal fee, and must be freely redistributable
- * under reasonable conditions.  For an executable file, complete source
- * code means the source code for all modules it contains. It does not
- * include source code for modules or files that typically accompany the
- * major components of the operating system on which the executable file
- * runs.
- * 
+ *    notice, this list of conditions and the following disclaimer in the
+ *    documentation and/or other materials provided with the
+ *    distribution.
+ *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS
  * IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
- * TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR
- * PURPOSE, OR NON-INFRINGEMENT, ARE DISCLAIMED. IN NO EVENT SHALL THE
- * COPYRIGHT HOLDERS AND CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
- * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
- * NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF
- * USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON
- * ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
- * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
- * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ * TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
+ * PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+ * HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+ * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+ * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+ * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */

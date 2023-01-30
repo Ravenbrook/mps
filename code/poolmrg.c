@@ -1,13 +1,13 @@
 /* poolmrg.c: MANUAL RANK GUARDIAN POOL
  *
  * $Id$
- * Copyright (c) 2001-2016 Ravenbrook Limited.  See end of file for license.
+ * Copyright (c) 2001-2020 Ravenbrook Limited.  See end of file for license.
  * Portions copyright (C) 2002 Global Graphics Software.
- * 
- * 
+ *
+ *
  * DESIGN
  *
- * .design: See <design/poolmrg/>.
+ * .design: <design/poolmrg>.
  *
  * NOTES
  *
@@ -19,7 +19,7 @@
  *
  * TRANSGRESSIONS
  *
- * .addr.void-star: Breaks <design/type/#addr.use> all over the place,
+ * .addr.void-star: Breaks <design/type#.addr.use> all over the place,
  * accessing the segments acquired from SegAlloc with C pointers.  It
  * would not be practical to use ArenaPeek/Poke everywhere.  Blocks
  * acquired from ControlAlloc must be directly accessible from C, or else
@@ -84,19 +84,9 @@ typedef struct RefPartStruct {
  */
 static Ref MRGRefPartRef(Arena arena, RefPart refPart)
 {
-  Ref ref;
-
   AVER(refPart != NULL);
 
-  ref = ArenaRead(arena, &refPart->ref);
-  return ref;
-}
-
-static Ref *MRGRefPartRefAddr(RefPart refPart)
-{
-  AVER(refPart != NULL);
-
-  return &refPart->ref;
+  return ArenaRead(arena, &refPart->ref);
 }
 
 static void MRGRefPartSetRef(Arena arena, RefPart refPart, Ref ref)
@@ -113,10 +103,10 @@ static void MRGRefPartSetRef(Arena arena, RefPart refPart, Ref ref)
 
 typedef struct MRGStruct {
   PoolStruct poolStruct;    /* generic pool structure */
-  RingStruct entryRing;     /* <design/poolmrg/#poolstruct.entry> */
-  RingStruct freeRing;      /* <design/poolmrg/#poolstruct.free> */
-  RingStruct refRing;       /* <design/poolmrg/#poolstruct.refring> */
-  Size extendBy;            /* <design/poolmrg/#extend> */
+  RingStruct entryRing;     /* <design/poolmrg#.poolstruct.entry> */
+  RingStruct freeRing;      /* <design/poolmrg#.poolstruct.free> */
+  RingStruct refRing;       /* <design/poolmrg#.poolstruct.refring> */
+  Size extendBy;            /* <design/poolmrg#.extend> */
   Sig sig;                  /* <code/mps.h#sig> */
 } MRGStruct;
 
@@ -152,14 +142,14 @@ typedef struct MRGRefSegStruct *MRGRefSeg;
 
 typedef struct MRGLinkSegStruct {
   SegStruct segStruct;      /* superclass fields must come first */
-  MRGRefSeg refSeg;         /* <design/poolmrg/#mrgseg.link.refseg> */
+  MRGRefSeg refSeg;         /* <design/poolmrg#.mrgseg.link.refseg> */
   Sig sig;                  /* <code/misc.h#sig> */
 } MRGLinkSegStruct;
 
 typedef struct MRGRefSegStruct {
   GCSegStruct gcSegStruct;  /* superclass fields must come first */
-  RingStruct mrgRing;       /* <design/poolmrg/#mrgseg.ref.segring> */
-  MRGLinkSeg linkSeg;       /* <design/poolmrg/#mrgseg.ref.linkseg> */
+  RingStruct mrgRing;       /* <design/poolmrg#.mrgseg.ref.segring> */
+  MRGLinkSeg linkSeg;       /* <design/poolmrg#.mrgseg.ref.linkseg> */
   Sig sig;                  /* <code/misc.h#sig> */
 } MRGRefSegStruct;
 
@@ -175,7 +165,7 @@ static Res mrgRefSegScan(Bool *totalReturn, Seg seg, ScanState ss);
  *
  * .link.nullref: During initialization of a link segment the refSeg
  * field will be NULL. This will be initialized when the reference
- * segment is initialized.  See <design/poolmrg/#mrgseg.link.refseg>.
+ * segment is initialized.  <design/poolmrg#.mrgseg.link.refseg>.
  */
 
 ATTRIBUTE_UNUSED
@@ -261,7 +251,7 @@ static Res MRGRefSegInit(Seg seg, Pool pool, Addr base, Size size, ArgList args)
   MRG mrg = MustBeA(MRGPool, pool);
   Res res;
   ArgStruct arg;
-  
+
   /* .ref.initarg: The paired link segment is passed as a keyword
      argument when creating the ref segment. Initially the
      refSeg field of the link segment is NULL (see .link.nullref).
@@ -278,7 +268,7 @@ static Res MRGRefSegInit(Seg seg, Pool pool, Addr base, Size size, ArgList args)
   /* no useful checks for base and size */
   AVERT(MRGLinkSeg, linkseg);
 
-  /* <design/seg/#field.rankset.start>, .improve.rank */
+  /* <design/seg#.field.rankset.start>, .improve.rank */
   SegSetRankSet(seg, RankSetSingle(RankFINAL));
 
   RingInit(&refseg->mrgRing);
@@ -350,7 +340,7 @@ static Count MRGGuardiansPerSeg(MRG mrg)
 }
 
 
-/* <design/poolmrg/#guardian.assoc> */
+/* <design/poolmrg#.guardian.assoc> */
 
 
 #define refPartOfIndex(refseg, index) \
@@ -421,7 +411,7 @@ static void MRGGuardianInit(MRG mrg, Link link, RefPart refPart)
   RingInit(&link->the.linkRing);
   link->state = MRGGuardianFREE;
   RingAppend(&mrg->freeRing, &link->the.linkRing);
-  /* <design/poolmrg/#free.overwrite> */
+  /* <design/poolmrg#.free.overwrite> */
   MRGRefPartSetRef(PoolArena(MustBeA(AbstractPool, mrg)), refPart, 0);
 }
 
@@ -457,7 +447,6 @@ static void MRGMessageDelete(Message message)
 static void MRGMessageFinalizationRef(Ref *refReturn,
                                       Arena arena, Message message)
 {
-  Ref *refp;
   Link link;
   Ref ref;
   RefPart refPart;
@@ -472,11 +461,7 @@ static void MRGMessageFinalizationRef(Ref *refReturn,
   AVER(link->state == MRGGuardianFINAL);
   refPart = MRGRefPartOfLink(link, arena);
 
-  refp = MRGRefPartRefAddr(refPart);
-
-  /* ensure that the reference is not (white and flipped) */
-  ref = ArenaRead(arena, refp);
-
+  ref = MRGRefPartRef(arena, refPart);
   AVER(ref != 0);
   *refReturn = ref;
 }
@@ -488,11 +473,11 @@ static MessageClassStruct MRGMessageClassStruct = {
   MessageTypeFINALIZATION,     /* Message Type */
   MRGMessageDelete,            /* Delete */
   MRGMessageFinalizationRef,   /* FinalizationRef */
-  MessageNoGCLiveSize,         /* GCLiveSize */   
+  MessageNoGCLiveSize,         /* GCLiveSize */
   MessageNoGCCondemnedSize,    /* GCCondemnedSize */
   MessageNoGCNotCondemnedSize, /* GCNotCondemnedSize */
   MessageNoGCStartWhy,         /* GCStartWhy */
-  MessageClassSig              /* <design/message/#class.sig.double> */
+  MessageClassSig              /* <design/message#.class.sig.double> */
 };
 
 
@@ -538,7 +523,7 @@ static Res MRGSegPairCreate(MRGRefSeg *refSegReturn, MRG mrg)
   if (res != ResOK)
     goto failLinkSegAlloc;
   linkseg = MustBeA(MRGLinkSeg, segLink);
-  
+
   MPS_ARGS_BEGIN(args) {
     MPS_ARGS_ADD_FIELD(args, mrgKeyLinkSeg, p, linkseg); /* .ref.initarg */
     res = SegAlloc(&segRefPart, CLASS(MRGRefSeg),
@@ -648,7 +633,7 @@ static Res MRGInit(Pool pool, Arena arena, PoolClass klass, ArgList args)
 {
   MRG mrg;
   Res res;
- 
+
   AVER(pool != NULL);
   AVERT(ArgList, args);
   UNUSED(args);
@@ -658,7 +643,7 @@ static Res MRGInit(Pool pool, Arena arena, PoolClass klass, ArgList args)
   if (res != ResOK)
     goto failNextInit;
   mrg = CouldBeA(MRGPool, pool);
- 
+
   RingInit(&mrg->entryRing);
   RingInit(&mrg->freeRing);
   RingInit(&mrg->refRing);
@@ -716,7 +701,7 @@ static void MRGFinish(Inst inst)
 
   mrg->sig = SigInvalid;
   RingFinish(&mrg->refRing);
-  /* <design/poolmrg/#trans.no-finish> */
+  /* <design/poolmrg#.trans.no-finish> */
 
   NextMethod(Inst, MRGPool, finish)(inst);
 }
@@ -736,9 +721,9 @@ Res MRGRegister(Pool pool, Ref ref)
 
   AVER(ref != 0);
 
-  /* <design/poolmrg/#alloc.grow> */
+  /* <design/poolmrg#.alloc.grow> */
   if (RingIsSingle(&mrg->freeRing)) {
-    res = MRGSegPairCreate(&junk, mrg);  
+    res = MRGSegPairCreate(&junk, mrg);
     if (res != ResOK)
       return res;
   }
@@ -747,12 +732,12 @@ Res MRGRegister(Pool pool, Ref ref)
 
   link = linkOfRing(freeNode);
   AVER(link->state == MRGGuardianFREE);
-  /* <design/poolmrg/#alloc.pop> */
+  /* <design/poolmrg#.alloc.pop> */
   RingRemove(freeNode);
   link->state = MRGGuardianPREFINAL;
   RingAppend(&mrg->entryRing, freeNode);
 
-  /* <design/poolmrg/#guardian.ref.alloc> */
+  /* <design/poolmrg#.guardian.ref.alloc> */
   refPart = MRGRefPartOfLink(link, arena);
   MRGRefPartSetRef(arena, refPart, ref);
 
@@ -783,16 +768,17 @@ Res MRGDeregister(Pool pool, Ref obj)
     MRGRefSeg refSeg = RING_ELT(MRGRefSeg, mrgRing, node);
     MRGLinkSeg linkSeg;
     Count i;
-    Link link;
-    RefPart refPart;
+    Link linkBase;
+    RefPart refPartBase;
 
     AVERT(MRGRefSeg, refSeg);
     linkSeg = refSeg->linkSeg;
+    linkBase = (Link)SegBase(MustBeA(Seg, linkSeg));
+    refPartBase = (RefPart)SegBase(MustBeA(Seg, refSeg));
     /* map over each guardian in the segment */
-    for(i = 0, link = (Link)SegBase(MustBeA(Seg, linkSeg)),
-          refPart = (RefPart)SegBase(MustBeA(Seg, refSeg));
-        i < nGuardians;
-        ++i, ++link, ++refPart) {
+    for (i = 0; i < nGuardians; ++i) {
+      Link link = linkBase + i;
+      RefPart refPart = refPartBase + i;
       /* check if it's allocated and points to obj */
       if (link->state == MRGGuardianPREFINAL
           && MRGRefPartRef(arena, refPart) == obj) {
@@ -878,41 +864,29 @@ PoolClass PoolClassMRG(void)
 
 /* C. COPYRIGHT AND LICENSE
  *
- * Copyright (C) 2001-2016 Ravenbrook Limited <http://www.ravenbrook.com/>.
- * All rights reserved.  This is an open source license.  Contact
- * Ravenbrook for commercial licensing options.
- * 
+ * Copyright (C) 2001-2020 Ravenbrook Limited <https://www.ravenbrook.com/>.
+ *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are
  * met:
- * 
+ *
  * 1. Redistributions of source code must retain the above copyright
- * notice, this list of conditions and the following disclaimer.
- * 
+ *    notice, this list of conditions and the following disclaimer.
+ *
  * 2. Redistributions in binary form must reproduce the above copyright
- * notice, this list of conditions and the following disclaimer in the
- * documentation and/or other materials provided with the distribution.
- * 
- * 3. Redistributions in any form must be accompanied by information on how
- * to obtain complete source code for this software and any accompanying
- * software that uses this software.  The source code must either be
- * included in the distribution or be available for no more than the cost
- * of distribution plus a nominal fee, and must be freely redistributable
- * under reasonable conditions.  For an executable file, complete source
- * code means the source code for all modules it contains. It does not
- * include source code for modules or files that typically accompany the
- * major components of the operating system on which the executable file
- * runs.
- * 
+ *    notice, this list of conditions and the following disclaimer in the
+ *    documentation and/or other materials provided with the
+ *    distribution.
+ *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS
  * IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
- * TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR
- * PURPOSE, OR NON-INFRINGEMENT, ARE DISCLAIMED. IN NO EVENT SHALL THE
- * COPYRIGHT HOLDERS AND CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
- * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
- * NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF
- * USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON
- * ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
- * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
- * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ * TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
+ * PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+ * HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+ * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+ * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+ * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */

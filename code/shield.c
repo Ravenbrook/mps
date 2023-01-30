@@ -1,12 +1,12 @@
 /* shield.c: SHIELD IMPLEMENTATION
  *
  * $Id$
- * Copyright (c) 2001-2018 Ravenbrook Limited.  See end of file for license.
+ * Copyright (c) 2001-2020 Ravenbrook Limited.  See end of file for license.
  *
- * See: idea.shield, design.mps.shield.
+ * See: idea.shield, <design/shield>.
  *
  * IMPORTANT: HERE BE DRAGONS! This code is subtle and
- * critical. Ensure you have read and understood design.mps.shield
+ * critical. Ensure you have read and understood <design/shield>
  * before you touch it.
  */
 
@@ -34,7 +34,7 @@ void ShieldInit(Shield shield)
 void ShieldDestroyQueue(Shield shield, Arena arena)
 {
   AVER(shield->limit == 0); /* queue must be empty */
-  
+
   if (shield->length != 0) {
     AVER(shield->queue != NULL);
     ControlFree(arena, shield->queue,
@@ -65,21 +65,21 @@ static Bool SegIsSynced(Seg seg);
 Bool ShieldCheck(Shield shield)
 {
   CHECKS(Shield, shield);
-  /* Can't check Boolean bitfields <design/type/#bool.bitfield.check> */
+  /* Can't check Boolean bitfields <design/type#.bool.bitfield.check> */
   CHECKL(shield->queue == NULL || shield->length > 0);
   CHECKL(shield->limit <= shield->length);
   CHECKL(shield->next <= shield->limit);
 
   /* The mutator is not suspended while outside the shield
-     (design.mps.shield.inv.outside.running). */
+     <design/shield#.inv.outside.running>. */
   CHECKL(shield->inside || !shield->suspended);
 
   /* If any segment is not synced, the mutator is suspended
-     (design.mps.shield.inv.unsynced.suspended). */
+     <design/shield#.inv.unsynced.suspended>. */
   CHECKL(shield->unsynced == 0 || shield->suspended);
 
   /* The total depth is zero while outside the shield
-     (design.mps.shield.inv.outside.depth). */
+     <design/shield#.inv.outside.depth>. */
   CHECKL(shield->inside || shield->depth == 0);
 
   /* There are no unsynced segments when we're outside the shield. */
@@ -116,7 +116,7 @@ Bool ShieldCheck(Shield shield)
 Res ShieldDescribe(Shield shield, mps_lib_FILE *stream, Count depth)
 {
   Res res;
-  
+
   res = WriteF(stream, depth,
                "Shield $P {\n",    (WriteFP)shield,
                "  ", shield->inside ? "inside" : "outside", " shield\n",
@@ -150,7 +150,7 @@ Res ShieldDescribe(Shield shield, mps_lib_FILE *stream, Count depth)
 
 /* SegIsSynced -- is a segment synced?
  *
- * See design.mps.shield.def.synced.
+ * <design/shield#.def.synced>.
  */
 
 static Bool SegIsSynced(Seg seg)
@@ -195,12 +195,12 @@ static void shieldSetPM(Shield shield, Seg seg, AccessSet mode)
       }
     }
   }
-}  
+}
 
 
 /* SegIsExposed -- is a segment exposed?
  *
- * See design.mps.shield.def.exposed.
+ * <design/shield#.def.exposed>.
  */
 
 static Bool SegIsExposed(Seg seg)
@@ -212,7 +212,7 @@ static Bool SegIsExposed(Seg seg)
 
 /* shieldSync -- synchronize a segment's protection
  *
- * See design.mps.shield.inv.prot.shield.
+ * <design/shield#.inv.prot.shield>.
  */
 
 static void shieldSync(Shield shield, Seg seg)
@@ -228,7 +228,7 @@ static void shieldSync(Shield shield, Seg seg)
 
 /* shieldSuspend -- suspend the mutator
  *
- * Called from inside impl.c.shield when any segment is not synced, in
+ * Called from inside <code/shield.c> when any segment is not synced, in
  * order to provide exclusive access to the segment by the MPS.  See
  * .inv.unsynced.suspended.
  */
@@ -236,7 +236,7 @@ static void shieldSync(Shield shield, Seg seg)
 static void shieldSuspend(Arena arena)
 {
   Shield shield;
-  
+
   AVERT(Arena, arena);
   shield = ArenaShield(arena);
   AVER(shield->inside);
@@ -250,7 +250,7 @@ static void shieldSuspend(Arena arena)
 
 /* ShieldHold -- suspend mutator access to the unprotectable
  *
- * From outside impl.c.shield, this is used when we really need to
+ * From outside <code/shield.c>, this is used when we really need to
  * lock everything against the mutator -- for example, during flip
  * when we must scan all thread registers at once.
  */
@@ -272,7 +272,7 @@ void (ShieldHold)(Arena arena)
 void (ShieldRelease)(Arena arena)
 {
   Shield shield;
-  
+
   AVERT(Arena, arena);
   shield = ArenaShield(arena);
   AVER(shield->inside);
@@ -284,7 +284,7 @@ void (ShieldRelease)(Arena arena)
   /* It is only correct to actually resume the mutator here if
      shield->depth is 0, shield->unsycned is 0, and the queue is
      empty. */
-  /* See design.mps.shield.improv.resume for a discussion of when it
+  /* See <design/shield#.improv.resume> for a discussion of when it
      might be a good idea to resume the mutator early. */
 }
 
@@ -296,7 +296,7 @@ void (ShieldRelease)(Arena arena)
 
 static void shieldProtLower(Shield shield, Seg seg, AccessSet mode)
 {
-  /* <design/trace/#fix.noaver> */
+  /* <design/trace#.fix.noaver> */
   SHIELD_AVERT_CRITICAL(Seg, seg);
   AVERT_CRITICAL(AccessSet, mode);
 
@@ -387,7 +387,7 @@ static Compare shieldQueueEntryCompare(void *left, void *right, void *closure)
  *
  * TODO: Could we keep extending the outstanding area over memory
  * that's *not* in the queue but has the same protection mode?  Might
- * require design.mps.shield.improve.noseg.
+ * require <design/shield#.improve.noseg>.
  */
 
 static void shieldFlushEntries(Shield shield)
@@ -440,8 +440,8 @@ static void shieldFlushEntries(Shield shield)
 static void shieldQueue(Arena arena, Seg seg)
 {
   Shield shield;
-  
-  /* <design/trace/#fix.noaver> */
+
+  /* <design/trace#.fix.noaver> */
   AVERT_CRITICAL(Arena, arena);
   shield = ArenaShield(arena);
   SHIELD_AVERT_CRITICAL(Seg, seg);
@@ -470,7 +470,7 @@ static void shieldQueue(Arena arena, Seg seg)
       length = ShieldQueueLENGTH;
     else
       length = shield->length * 2;
-    
+
     res = ControlAlloc(&p, arena, length * sizeof shield->queue[0]);
     if (res != ResOK) {
       AVER(ResIsAllocFailure(res));
@@ -542,11 +542,11 @@ void (ShieldRaise)(Arena arena, Seg seg, AccessSet mode)
   AVER(!shield->queuePending);
   shield->queuePending = TRUE;
 
-  /* design.mps.shield.inv.prot.shield preserved */
+  /* <design/shield#.inv.prot.shield> preserved */
   shieldSetSM(ArenaShield(arena), seg, BS_UNION(SegSM(seg), mode));
-  
-  /* Ensure design.mps.shield.inv.unsynced.suspended and
-     design.mps.shield.inv.unsynced.depth */
+
+  /* Ensure <design/shield#.inv.unsynced.suspended> and
+     <design/shield#.inv.unsynced.depth> */
   shieldQueue(arena, seg);
   shield->queuePending = FALSE;
 
@@ -561,19 +561,19 @@ void (ShieldRaise)(Arena arena, Seg seg, AccessSet mode)
 void (ShieldLower)(Arena arena, Seg seg, AccessSet mode)
 {
   Shield shield;
-  
+
   AVERT(Arena, arena);
   shield = ArenaShield(arena);
   SHIELD_AVERT(Seg, seg);
   AVERT(AccessSet, mode);
 
   /* SegIsSynced(seg) is not changed by the following preserving
-     design.mps.shield.inv.unsynced.suspended and
-     design.mps.shield.inv.prot.shield. */
+     <design/shield#.inv.unsynced.suspended> and
+     <design/shield#.inv.prot.shield>. */
   shieldSetSM(shield, seg, BS_DIFF(SegSM(seg), mode));
   /* TODO: Do we need to promptly call shieldProtLower here?  It
      loses the opportunity to coalesce the protection call. It would
-     violate design.mps.shield.prop.inside.access. */
+     violate <design/shield#.prop.inside.access>. */
   /* shieldQueue(arena, seg); */
   shieldProtLower(shield, seg, mode);
 
@@ -588,7 +588,7 @@ void (ShieldLower)(Arena arena, Seg seg, AccessSet mode)
 void (ShieldEnter)(Arena arena)
 {
   Shield shield;
-  
+
   AVERT(Arena, arena);
   shield = ArenaShield(arena);
   AVER(!shield->inside);
@@ -606,7 +606,7 @@ void (ShieldEnter)(Arena arena)
  * While developing the shield it is very easy to make a consistency
  * mistake that causes random corruption of the heap, usually because
  * all the attempts to avoid protection and suspension end up failing
- * to enforce design.mps.shield.prop.mutator.access.  In these cases,
+ * to enforce <design/shield#.prop.mutator.access>.  In these cases,
  * try enabling SHIELD_DEBUG and extending this code as necessary.
  *
  * The basic idea is to iterate over *all* segments and check
@@ -652,20 +652,20 @@ static void shieldDebugCheck(Arena arena)
  * called before queued segments are destroyed, to remove them from
  * the queue.  We flush the whole queue because finding the entry is
  * O(n) and we're very likely reclaiming and destroying loads of
- * segments.  See also design.mps.shield.improv.resume.
+ * segments.  See also <design/shield#.improv.resume>.
  *
  * The memory for the segment may become spare, and not released back
  * to the operating system. Since we keep track of protection on
  * segments and not grains we have no way of keeping track of the
  * protection state of spare grains. We therefore flush the protection
  * to get it back into the default state (unprotected).  See also
- * design.mps.shield.improv.noseg.
+ * <design/shield#.improv.noseg>.
  */
 
 void (ShieldFlush)(Arena arena)
 {
   Shield shield;
-  
+
   AVERT(Arena, arena);
   shield = ArenaShield(arena);
 #ifdef SHIELD_DEBUG
@@ -684,7 +684,7 @@ void (ShieldFlush)(Arena arena)
 void (ShieldLeave)(Arena arena)
 {
   Shield shield;
-  
+
   AVERT(Arena, arena);
   shield = ArenaShield(arena);
   AVER(shield->inside);
@@ -718,7 +718,7 @@ void (ShieldExpose)(Arena arena, Seg seg)
   Shield shield;
   AccessSet mode = AccessREAD | AccessWRITE;
 
-  /* <design/trace/#fix.noaver> */
+  /* <design/trace#.fix.noaver> */
   AVERT_CRITICAL(Arena, arena);
   shield = ArenaShield(arena);
   AVER_CRITICAL(shield->inside);
@@ -727,13 +727,13 @@ void (ShieldExpose)(Arena arena, Seg seg)
   AVER_CRITICAL(SegDepth(seg) > 0); /* overflow */
   ++shield->depth;
   AVER_CRITICAL(shield->depth > 0); /* overflow */
-  
+
   if (BS_INTER(SegPM(seg), mode) != AccessSetEMPTY)
     shieldSuspend(arena);
 
-  /* Ensure design.mps.shield.inv.expose.prot. */
+  /* Ensure <design/shield#.inv.expose.prot>. */
   /* TODO: Mass exposure -- see
-     design.mps.shield.improv.mass-expose. */
+     <design/shield#.improv.mass-expose>. */
   shieldProtLower(shield, seg, mode);
 }
 
@@ -743,60 +743,48 @@ void (ShieldExpose)(Arena arena, Seg seg)
 void (ShieldCover)(Arena arena, Seg seg)
 {
   Shield shield;
-  
-  /* <design/trace/#fix.noaver> */
+
+  /* <design/trace#.fix.noaver> */
   AVERT_CRITICAL(Arena, arena);
   shield = ArenaShield(arena);
   AVERT_CRITICAL(Seg, seg);
   AVER_CRITICAL(SegPM(seg) == AccessSetEMPTY);
- 
+
   AVER_CRITICAL(SegDepth(seg) > 0);
   SegSetDepth(seg, SegDepth(seg) - 1);
   AVER_CRITICAL(shield->depth > 0);
   --shield->depth;
 
-  /* Ensure design.mps.shield.inv.unsynced.depth. */
+  /* Ensure <design/shield#.inv.unsynced.depth>. */
   shieldQueue(arena, seg);
 }
 
 
 /* C. COPYRIGHT AND LICENSE
  *
- * Copyright (C) 2001-2018 Ravenbrook Limited <http://www.ravenbrook.com/>.
- * All rights reserved.  This is an open source license.  Contact
- * Ravenbrook for commercial licensing options.
- * 
+ * Copyright (C) 2001-2020 Ravenbrook Limited <https://www.ravenbrook.com/>.
+ *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are
  * met:
- * 
+ *
  * 1. Redistributions of source code must retain the above copyright
- * notice, this list of conditions and the following disclaimer.
- * 
+ *    notice, this list of conditions and the following disclaimer.
+ *
  * 2. Redistributions in binary form must reproduce the above copyright
- * notice, this list of conditions and the following disclaimer in the
- * documentation and/or other materials provided with the distribution.
- * 
- * 3. Redistributions in any form must be accompanied by information on how
- * to obtain complete source code for this software and any accompanying
- * software that uses this software.  The source code must either be
- * included in the distribution or be available for no more than the cost
- * of distribution plus a nominal fee, and must be freely redistributable
- * under reasonable conditions.  For an executable file, complete source
- * code means the source code for all modules it contains. It does not
- * include source code for modules or files that typically accompany the
- * major components of the operating system on which the executable file
- * runs.
- * 
+ *    notice, this list of conditions and the following disclaimer in the
+ *    documentation and/or other materials provided with the
+ *    distribution.
+ *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS
  * IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
- * TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR
- * PURPOSE, OR NON-INFRINGEMENT, ARE DISCLAIMED. IN NO EVENT SHALL THE
- * COPYRIGHT HOLDERS AND CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
- * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
- * NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF
- * USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON
- * ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
- * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
- * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ * TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
+ * PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+ * HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+ * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+ * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+ * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */

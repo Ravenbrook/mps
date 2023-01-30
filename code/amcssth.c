@@ -1,13 +1,13 @@
 /* amcssth.c: POOL CLASS AMC STRESS TEST WITH TWO THREADS
  *
  * $Id$
- * Copyright (c) 2001-2016 Ravenbrook Limited.  See end of file for license.
+ * Copyright (c) 2001-2020 Ravenbrook Limited.  See end of file for license.
  * Portions copyright (c) 2002 Global Graphics Software.
  *
  * The main thread parks the arena half way through the test case and
- * runs mps_arena_formatted_objects_walk(). This checks that walking
- * works while the other threads continue to allocate in the
- * background.
+ * runs mps_pool_walk() and mps_arena_formatted_objects_walk(). This
+ * checks that walking works while the other threads continue to
+ * allocate in the background.
  */
 
 #include "fmtdy.h"
@@ -86,6 +86,24 @@ static void test_stepper(mps_addr_t object, mps_fmt_t fmt, mps_pool_t pool,
 }
 
 
+/* area_scan -- area scanning function for mps_pool_walk */
+
+static mps_res_t area_scan(mps_ss_t ss, void *base, void *limit, void *closure)
+{
+  unsigned long *count = closure;
+  mps_res_t res;
+  while (base < limit) {
+    mps_addr_t prev = base;
+    ++ *count;
+    res = dylan_scan1(ss, &base);
+    if (res != MPS_RES_OK) return res;
+    Insist(prev < base);
+  }
+  Insist(base == limit);
+  return MPS_RES_OK;
+}
+
+
 /* churn -- create an object and install into roots */
 
 static void churn(mps_ap_t ap, size_t roots_count)
@@ -126,7 +144,7 @@ static void *kid_thread(void *arg)
   closure_t cl = arg;
 
   /* Register the thread twice to check this is supported -- see
-   * <design/thread-manager/#req.register.multi>
+   * <design/thread-manager#.req.register.multi>
    */
   die(mps_thread_reg(&thread1, arena), "thread_reg");
   die(mps_thread_reg(&thread2, arena), "thread_reg");
@@ -209,11 +227,13 @@ static void test_pool(const char *name, mps_pool_t pool, size_t roots_count)
 
         if (collections >= collectionsCOUNT / 2 && !walked)
         {
-          unsigned long count = 0;
+          unsigned long count1 = 0, count2 = 0;
           mps_arena_park(arena);
-          mps_arena_formatted_objects_walk(arena, test_stepper, &count, 0);
+          mps_arena_formatted_objects_walk(arena, test_stepper, &count1, 0);
+          die(mps_pool_walk(pool, area_scan, &count2), "mps_pool_walk");
           mps_arena_release(arena);
-          printf("stepped on %lu objects.\n", count);
+          printf("stepped on %lu objects.\n", count1);
+          printf("walked %lu objects.\n", count2);
           walked = TRUE;
         }
         if (collections >= rampSwitch && !ramped) {
@@ -339,41 +359,29 @@ int main(int argc, char *argv[])
 
 /* C. COPYRIGHT AND LICENSE
  *
- * Copyright (c) 2001-2016 Ravenbrook Limited <http://www.ravenbrook.com/>.
- * All rights reserved.  This is an open source license.  Contact
- * Ravenbrook for commercial licensing options.
+ * Copyright (C) 2001-2020 Ravenbrook Limited <https://www.ravenbrook.com/>.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are
  * met:
  *
  * 1. Redistributions of source code must retain the above copyright
- * notice, this list of conditions and the following disclaimer.
+ *    notice, this list of conditions and the following disclaimer.
  *
  * 2. Redistributions in binary form must reproduce the above copyright
- * notice, this list of conditions and the following disclaimer in the
- * documentation and/or other materials provided with the distribution.
- *
- * 3. Redistributions in any form must be accompanied by information on how
- * to obtain complete source code for this software and any accompanying
- * software that uses this software.  The source code must either be
- * included in the distribution or be available for no more than the cost
- * of distribution plus a nominal fee, and must be freely redistributable
- * under reasonable conditions.  For an executable file, complete source
- * code means the source code for all modules it contains. It does not
- * include source code for modules or files that typically accompany the
- * major components of the operating system on which the executable file
- * runs.
+ *    notice, this list of conditions and the following disclaimer in the
+ *    documentation and/or other materials provided with the
+ *    distribution.
  *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS
  * IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
- * TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR
- * PURPOSE, OR NON-INFRINGEMENT, ARE DISCLAIMED. IN NO EVENT SHALL THE
- * COPYRIGHT HOLDERS AND CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
- * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
- * NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF
- * USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON
- * ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
- * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
- * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ * TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
+ * PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+ * HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+ * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+ * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+ * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */

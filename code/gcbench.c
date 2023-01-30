@@ -1,7 +1,7 @@
 /* gcbench.c -- "GC" Benchmark on ANSI C library
  *
  * $Id$
- * Copyright (c) 2014-2018 Ravenbrook Limited.  See end of file for license.
+ * Copyright (c) 2014-2020 Ravenbrook Limited.  See end of file for license.
  *
  * This is an allocation stress benchmark test for gc pools
  */
@@ -56,6 +56,7 @@ static size_t arena_grain_size = 1; /* arena grain size */
 static unsigned pinleaf = FALSE;  /* are leaf objects pinned at start */
 static mps_bool_t zoned = TRUE;   /* arena allocates using zones */
 static double pause_time = ARENA_DEFAULT_PAUSE_TIME; /* maximum pause time */
+static double spare = ARENA_SPARE_DEFAULT; /* spare commit fraction */
 
 typedef struct gcthread_s *gcthread_t;
 
@@ -200,13 +201,13 @@ static void weave(gcthread_fn_t fn)
 {
   gcthread_t threads = alloca(sizeof(threads[0]) * nthreads);
   unsigned t;
-  
+
   for (t = 0; t < nthreads; ++t) {
     gcthread_t thread = &threads[t];
     thread->fn = fn;
     testthr_create(&thread->thread, start, thread);
   }
-  
+
   for (t = 0; t < nthreads; ++t)
     testthr_join(&threads[t].thread, NULL);
 }
@@ -214,7 +215,7 @@ static void weave(gcthread_fn_t fn)
 static void weave1(gcthread_fn_t fn)
 {
   gcthread_t thread = alloca(sizeof(thread[0]));
-  
+
   thread->fn = fn;
   start(thread);
 }
@@ -223,14 +224,14 @@ static void weave1(gcthread_fn_t fn)
 static void watch(gcthread_fn_t fn, const char *name)
 {
   clock_t begin, end;
-  
+
   begin = clock();
   if (nthreads == 1)
     weave1(fn);
   else
     weave(fn);
   end = clock();
-  
+
   printf("%s: %g\n", name, (double)(end - begin) / CLOCKS_PER_SEC);
 }
 
@@ -246,6 +247,7 @@ static void arena_setup(gcthread_fn_t fn,
     MPS_ARGS_ADD(args, MPS_KEY_ARENA_GRAIN_SIZE, arena_grain_size);
     MPS_ARGS_ADD(args, MPS_KEY_ARENA_ZONED, zoned);
     MPS_ARGS_ADD(args, MPS_KEY_PAUSE_TIME, pause_time);
+    MPS_ARGS_ADD(args, MPS_KEY_SPARE, spare);
     RESMUST(mps_arena_create_k(&arena, mps_arena_class_vm(), args));
   } MPS_ARGS_END(args);
   RESMUST(dylan_fmt(&format, arena));
@@ -288,6 +290,7 @@ static struct option longopts[] = {
   {"seed",             required_argument, NULL, 'x'},
   {"arena-unzoned",    no_argument,       NULL, 'z'},
   {"pause-time",       required_argument, NULL, 'P'},
+  {"spare",            required_argument, NULL, 'S'},
   {NULL,               0,                 NULL, 0  }
 };
 
@@ -312,8 +315,8 @@ int main(int argc, char *argv[])
   mps_bool_t seed_specified = FALSE;
 
   seed = rnd_seed();
-  
-  while ((ch = getopt_long(argc, argv, "ht:i:p:g:m:a:w:d:r:u:lx:zP:",
+
+  while ((ch = getopt_long(argc, argv, "ht:i:p:g:m:a:w:d:r:u:lx:zP:S:",
                            longopts, NULL)) != -1)
     switch (ch) {
     case 't':
@@ -407,6 +410,9 @@ int main(int argc, char *argv[])
     case 'P':
       pause_time = strtod(optarg, NULL);
       break;
+    case 'S':
+      spare = strtod(optarg, NULL);
+      break;
     default:
       /* This is printed in parts to keep within the 509 character
          limit for string literals in portable standard C. */
@@ -414,15 +420,15 @@ int main(int argc, char *argv[])
               "Usage: %s [option...] [test...]\n"
               "Options:\n"
               "  -m n, --arena-size=n[KMG]?\n"
-              "    Initial size of arena (default %lu).\n"
+              "    Initial size of arena (default %lu)\n"
               "  -a n, --arena-grain-size=n[KMG]?\n"
-              "    Arena grain size (default %lu).\n"
+              "    Arena grain size (default %lu)\n"
               "  -t n, --nthreads=n\n"
-              "    Launch n threads each running the test (default %u).\n"
+              "    Launch n threads each running the test (default %u)\n"
               "  -i n, --niter=n\n"
-              "    Iterate each test n times (default %u).\n"
+              "    Iterate each test n times (default %u)\n"
               "  -p n, --npass=n\n"
-              "    Pass over the tree n times (default %u).\n",
+              "    Pass over the tree n times (default %u)\n",
               argv[0],
               (unsigned long)arena_size,
               (unsigned long)arena_grain_size,
@@ -432,7 +438,7 @@ int main(int argc, char *argv[])
       fprintf(stderr,
               "  -g c,m, --gen=c[KMG],m\n"
               "    Generation with capacity c (in Kb) and mortality m\n"
-              "    Use multiple times for multiple generations.\n"
+              "    Use multiple times for multiple generations\n"
               "  -w n, --width=n\n"
               "    Width of tree nodes made (default %lu)\n"
               "  -d n, --depth=n\n"
@@ -442,7 +448,7 @@ int main(int argc, char *argv[])
               "  -u p, --pupdate=p\n"
               "    Probability of updating a node (default %g)\n"
               "  -l --pin-leaf\n"
-              "    Make a pinned object to use for leaves.\n"
+              "    Make a pinned object to use for leaves\n"
               "  -x n, --seed=n\n"
               "    Random number seed (default from entropy)\n",
               (unsigned long)width,
@@ -453,11 +459,15 @@ int main(int argc, char *argv[])
               "  -z, --arena-unzoned\n"
               "    Disable zoned allocation in the arena\n"
               "  -P t, --pause-time\n"
-              "    Maximum pause time in seconds (default %f) \n"
+              "    Maximum pause time in seconds (default %f)\n"
+              "  -S f, --spare\n"
+              "    Maximum spare committed fraction (default %f)\n"
               "Tests:\n"
               "  amc   pool class AMC\n"
-              "  ams   pool class AMS\n",
-              pause_time);
+              "  ams   pool class AMS\n"
+              "  awl   pool class AWL\n",
+              pause_time,
+              spare);
       return EXIT_FAILURE;
     }
   argc -= optind;
@@ -481,48 +491,36 @@ int main(int argc, char *argv[])
     --argc;
     ++argv;
   }
-  
+
   return EXIT_SUCCESS;
 }
 
 
 /* C. COPYRIGHT AND LICENSE
  *
- * Copyright (c) 2014-2018 Ravenbrook Limited <http://www.ravenbrook.com/>.
- * All rights reserved.  This is an open source license.  Contact
- * Ravenbrook for commercial licensing options.
- * 
+ * Copyright (C) 2014-2020 Ravenbrook Limited <https://www.ravenbrook.com/>.
+ *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are
  * met:
- * 
+ *
  * 1. Redistributions of source code must retain the above copyright
- * notice, this list of conditions and the following disclaimer.
- * 
+ *    notice, this list of conditions and the following disclaimer.
+ *
  * 2. Redistributions in binary form must reproduce the above copyright
- * notice, this list of conditions and the following disclaimer in the
- * documentation and/or other materials provided with the distribution.
- * 
- * 3. Redistributions in any form must be accompanied by information on how
- * to obtain complete source code for this software and any accompanying
- * software that uses this software.  The source code must either be
- * included in the distribution or be available for no more than the cost
- * of distribution plus a nominal fee, and must be freely redistributable
- * under reasonable conditions.  For an executable file, complete source
- * code means the source code for all modules it contains. It does not
- * include source code for modules or files that typically accompany the
- * major components of the operating system on which the executable file
- * runs.
- * 
+ *    notice, this list of conditions and the following disclaimer in the
+ *    documentation and/or other materials provided with the
+ *    distribution.
+ *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS
  * IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
- * TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR
- * PURPOSE, OR NON-INFRINGEMENT, ARE DISCLAIMED. IN NO EVENT SHALL THE
- * COPYRIGHT HOLDERS AND CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
- * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
- * NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF
- * USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON
- * ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
- * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
- * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ * TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
+ * PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+ * HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+ * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+ * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+ * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */

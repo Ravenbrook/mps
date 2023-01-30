@@ -1,11 +1,11 @@
 /* poollo.c: LEAF POOL CLASS
  *
  * $Id$
- * Copyright (c) 2001-2018 Ravenbrook Limited.  See end of file for license.
+ * Copyright (c) 2001-2020 Ravenbrook Limited.  See end of file for license.
  *
  * DESIGN
  *
- * .design: See <design/poollo/>.  This is a leaf pool class.
+ * .design: <design/poollo>.  This is a leaf pool class.
  */
 
 #include "mpsclo.h"
@@ -71,6 +71,7 @@ static Bool loSegBufferFill(Addr *baseReturn, Addr *limitReturn,
                             Seg seg, Size size, RankSet rankSet);
 static void loSegBufferEmpty(Seg seg, Buffer buffer);
 static Res loSegWhiten(Seg seg, Trace trace);
+static Res loSegScan(Bool *totalReturn, Seg seg, ScanState ss);
 static Res loSegFix(Seg seg, ScanState ss, Ref *refIO);
 static void loSegReclaim(Seg seg, Trace trace);
 static void loSegWalk(Seg seg, Format format, FormattedObjectsVisitor f,
@@ -89,6 +90,7 @@ DEFINE_CLASS(Seg, LOSeg, klass)
   klass->bufferFill = loSegBufferFill;
   klass->bufferEmpty = loSegBufferEmpty;
   klass->whiten = loSegWhiten;
+  klass->scan = loSegScan;
   klass->fix = loSegFix;
   klass->fixEmergency = loSegFix;
   klass->reclaim = loSegReclaim;
@@ -484,7 +486,7 @@ static Res LOInit(Pool pool, Arena arena, PoolClass klass, ArgList args)
   }
   if (ArgPick(&arg, args, MPS_KEY_GEN))
     gen = arg.val.u;
-  
+
   AVERT(Format, pool->format);
   AVER(FormatArena(pool->format) == arena);
   AVERT(Chain, chain);
@@ -499,7 +501,7 @@ static Res LOInit(Pool pool, Arena arena, PoolClass klass, ArgList args)
   SetClassOfPoly(pool, CLASS(LOPool));
   lo->sig = LOSig;
   AVERC(LOPool, lo);
-  
+
   res = PoolGenInit(&lo->pgenStruct, ChainGen(chain, gen), pool);
   if (res != ResOK)
     goto failGenInit;
@@ -646,6 +648,62 @@ static Res loSegWhiten(Seg seg, Trace trace)
 }
 
 
+static Res loSegScan(Bool *totalReturn, Seg seg, ScanState ss)
+{
+  LOSeg loseg = MustBeA(LOSeg, seg);
+  Pool pool = SegPool(seg);
+  Addr p, base, limit;
+  Buffer buffer;
+  Bool hasBuffer = SegBuffer(&buffer, seg);
+  Format format = NULL; /* suppress "may be used uninitialized" warning */
+  Bool b;
+
+  AVER(totalReturn != NULL);
+  AVERT(Seg, seg);
+  AVERT(ScanState, ss);
+
+  base = SegBase(seg);
+  limit = SegLimit(seg);
+
+  b = PoolFormat(&format, pool);
+  AVER(b);
+
+  p = base;
+  while (p < limit) {
+    Addr q;
+    Index i;
+
+    if (hasBuffer) {
+      if (p == BufferScanLimit(buffer)
+          && BufferScanLimit(buffer) != BufferLimit(buffer)) {
+        /* skip over buffered area */
+        p = BufferLimit(buffer);
+        continue;
+      }
+      /* since we skip over the buffered area we are always */
+      /* either before the buffer, or after it, never in it */
+      AVER(p < BufferGetInit(buffer) || BufferLimit(buffer) <= p);
+    }
+    i = PoolIndexOfAddr(base, pool, p);
+    if (!BTGet(loseg->alloc, i)) {
+      p = AddrAdd(p, PoolAlignment(pool));
+      continue;
+    }
+    q = (*format->skip)(AddrAdd(p, format->headerSize));
+    q = AddrSub(q, format->headerSize);
+    if (BTGet(loseg->mark, i)) {
+      Res res = TraceScanFormat(ss, p, q);
+      if (res != ResOK)
+        return res;
+    }
+    p = q;
+  }
+  AVER(p == limit);
+
+  return ResOK;
+}
+
+
 static Res loSegFix(Seg seg, ScanState ss, Ref *refIO)
 {
   LOSeg loseg = MustBeA_CRITICAL(LOSeg, seg);
@@ -684,7 +742,7 @@ static Res loSegFix(Seg seg, ScanState ss, Ref *refIO)
   }
 
   if(!BTGet(loseg->mark, i)) {
-    ss->wasMarked = FALSE;  /* <design/fix/#was-marked.not> */
+    ss->wasMarked = FALSE;  /* <design/fix#.was-marked.not> */
     if(ss->rank == RankWEAK) {
       *refIO = (Addr)0;
     } else {
@@ -760,41 +818,29 @@ static Bool LOCheck(LO lo)
 
 /* C. COPYRIGHT AND LICENSE
  *
- * Copyright (C) 2001-2018 Ravenbrook Limited <http://www.ravenbrook.com/>.
- * All rights reserved.  This is an open source license.  Contact
- * Ravenbrook for commercial licensing options.
- * 
+ * Copyright (C) 2001-2020 Ravenbrook Limited <https://www.ravenbrook.com/>.
+ *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are
  * met:
- * 
+ *
  * 1. Redistributions of source code must retain the above copyright
- * notice, this list of conditions and the following disclaimer.
- * 
+ *    notice, this list of conditions and the following disclaimer.
+ *
  * 2. Redistributions in binary form must reproduce the above copyright
- * notice, this list of conditions and the following disclaimer in the
- * documentation and/or other materials provided with the distribution.
- * 
- * 3. Redistributions in any form must be accompanied by information on how
- * to obtain complete source code for this software and any accompanying
- * software that uses this software.  The source code must either be
- * included in the distribution or be available for no more than the cost
- * of distribution plus a nominal fee, and must be freely redistributable
- * under reasonable conditions.  For an executable file, complete source
- * code means the source code for all modules it contains. It does not
- * include source code for modules or files that typically accompany the
- * major components of the operating system on which the executable file
- * runs.
- * 
+ *    notice, this list of conditions and the following disclaimer in the
+ *    documentation and/or other materials provided with the
+ *    distribution.
+ *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS
  * IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
- * TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR
- * PURPOSE, OR NON-INFRINGEMENT, ARE DISCLAIMED. IN NO EVENT SHALL THE
- * COPYRIGHT HOLDERS AND CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
- * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
- * NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF
- * USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON
- * ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
- * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
- * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ * TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
+ * PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+ * HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+ * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+ * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+ * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */

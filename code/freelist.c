@@ -1,9 +1,9 @@
 /* freelist.c: FREE LIST ALLOCATOR IMPLEMENTATION
  *
  * $Id$
- * Copyright (c) 2013-2015 Ravenbrook Limited.  See end of file for license.
+ * Copyright (c) 2013-2020 Ravenbrook Limited.  See end of file for license.
  *
- * .sources: <design/freelist/>.
+ * .sources: <design/freelist>.
  */
 
 #include "freelist.h"
@@ -176,7 +176,7 @@ Bool FreelistCheck(Freelist fl)
   CHECKL(AlignCheck(FreelistMinimumAlignment));
   CHECKL(sizeof(struct FreelistBlockSmall) < sizeof(struct FreelistBlockLarge));
   CHECKL(sizeof(struct FreelistBlockSmall) <= freelistAlignment(fl));
-  /* See <design/freelist/#impl.grain.align> */
+  /* <design/freelist#.impl.grain.align> */
   CHECKL(AlignIsAligned(freelistAlignment(fl), FreelistMinimumAlignment));
   CHECKL((fl->list == freelistEND) == (fl->listSize == 0));
   CHECKL((fl->list == freelistEND) == (fl->size == 0));
@@ -197,7 +197,7 @@ static Res freelistInit(Land land, Arena arena, Align alignment, ArgList args)
     return res;
   fl = CouldBeA(Freelist, land);
 
-  /* See <design/freelist/#impl.grain> */
+  /* <design/freelist#.impl.grain> */
   AVER(AlignIsAligned(LandAlignment(land), FreelistMinimumAlignment));
 
   fl->list = freelistEND;
@@ -207,7 +207,7 @@ static Res freelistInit(Land land, Arena arena, Align alignment, ArgList args)
   SetClassOfPoly(land, CLASS(Freelist));
   fl->sig = FreelistSig;
   AVERC(Freelist, fl);
-  
+
   return ResOK;
 }
 
@@ -254,7 +254,7 @@ static void freelistBlockSetPrevNext(Freelist fl, FreelistBlock prev,
   if (prev == freelistEND) {
     fl->list = next;
   } else {
-    /* Isolated range invariant (design.mps.freelist.impl.invariant). */
+    /* Isolated range invariant <design/freelist#.impl.invariant>. */
     AVER(next == freelistEND
          || freelistBlockLimit(fl, prev) < freelistBlockBase(next));
     freelistBlockSetNext(prev, next);
@@ -291,7 +291,7 @@ static Res freelistInsert(Range rangeReturn, Land land, Range range)
       break;
     next = freelistBlockNext(cur);
     if (next != freelistEND)
-      /* Isolated range invariant (design.mps.freelist.impl.invariant). */
+      /* Isolated range invariant <design/freelist#.impl.invariant>. */
       AVER(freelistBlockLimit(fl, cur) < freelistBlockBase(next));
     prev = cur;
     cur = next;
@@ -374,7 +374,7 @@ static void freelistDeleteFromBlock(Range rangeReturn, Freelist fl,
     freelistBlockSetNext(block, next);
     freelistBlockSetPrevNext(fl, prev, block, 0);
 
-  } else if (limit == blockLimit) {        
+  } else if (limit == blockLimit) {
     /* Block at left; no fragment at right. */
     freelistBlockSetLimit(fl, block, base);
 
@@ -419,7 +419,7 @@ static Res freelistDelete(Range rangeReturn, Land land, Range range)
       freelistDeleteFromBlock(rangeReturn, fl, range, prev, cur);
       return ResOK;
     }
-    
+
     next = freelistBlockNext(cur);
     prev = cur;
     cur = next;
@@ -516,7 +516,7 @@ static void freelistFindDeleteFromBlock(Range rangeReturn, Range oldRangeReturn,
   AVER(prev == freelistEND || freelistBlockNext(prev) == block);
   AVERT(FreelistBlock, block);
   AVER(freelistBlockSize(fl, block) >= size);
-  
+
   base = freelistBlockBase(block);
   limit = freelistBlockLimit(fl, block);
 
@@ -546,7 +546,7 @@ static void freelistFindDeleteFromBlock(Range rangeReturn, Range oldRangeReturn,
   if (callDelete) {
     freelistDeleteFromBlock(oldRangeReturn, fl, rangeReturn, prev, block);
   } else {
-    RangeInit(oldRangeReturn, base, limit);        
+    RangeInit(oldRangeReturn, base, limit);
   }
 }
 
@@ -787,7 +787,9 @@ DEFINE_CLASS(Land, Freelist, klass)
   klass->init = freelistInit;
   klass->sizeMethod = freelistSize;
   klass->insert = freelistInsert;
+  klass->insertSteal = freelistInsert; /* doesn't need to allocate */
   klass->delete = freelistDelete;
+  klass->deleteSteal = freelistDelete; /* doesn't need to allocate */
   klass->iterate = freelistIterate;
   klass->iterateAndDelete = freelistIterateAndDelete;
   klass->findFirst = freelistFindFirst;
@@ -800,41 +802,29 @@ DEFINE_CLASS(Land, Freelist, klass)
 
 /* C. COPYRIGHT AND LICENSE
  *
- * Copyright (C) 2013-2015 Ravenbrook Limited <http://www.ravenbrook.com/>.
- * All rights reserved.  This is an open source license.  Contact
- * Ravenbrook for commercial licensing options.
- * 
+ * Copyright (C) 2013-2020 Ravenbrook Limited <https://www.ravenbrook.com/>.
+ *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are
  * met:
- * 
+ *
  * 1. Redistributions of source code must retain the above copyright
- * notice, this list of conditions and the following disclaimer.
- * 
+ *    notice, this list of conditions and the following disclaimer.
+ *
  * 2. Redistributions in binary form must reproduce the above copyright
- * notice, this list of conditions and the following disclaimer in the
- * documentation and/or other materials provided with the distribution.
- * 
- * 3. Redistributions in any form must be accompanied by information on how
- * to obtain complete source code for this software and any accompanying
- * software that uses this software.  The source code must either be
- * included in the distribution or be available for no more than the cost
- * of distribution plus a nominal fee, and must be freely redistributable
- * under reasonable conditions.  For an executable file, complete source
- * code means the source code for all modules it contains. It does not
- * include source code for modules or files that typically accompany the
- * major components of the operating system on which the executable file
- * runs.
- * 
+ *    notice, this list of conditions and the following disclaimer in the
+ *    documentation and/or other materials provided with the
+ *    distribution.
+ *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS
  * IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
- * TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR
- * PURPOSE, OR NON-INFRINGEMENT, ARE DISCLAIMED. IN NO EVENT SHALL THE
- * COPYRIGHT HOLDERS AND CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
- * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
- * NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF
- * USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON
- * ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
- * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
- * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ * TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
+ * PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+ * HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+ * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+ * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+ * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */

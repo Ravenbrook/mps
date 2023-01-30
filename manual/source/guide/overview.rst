@@ -23,19 +23,11 @@ implementing specialized memory management policies.
 The MPS has been in development since 1994 and deployed in successful
 commercial products since 1997. Bugs are almost unknown in production.
 It is under continuous development and support by `Ravenbrook
-<http://www.ravenbrook.com>`_.
+<https://www.ravenbrook.com/>`_.
 
-The MPS is distributed under an :ref:`open source license
-<license>`. The license is designed to make it possible for you to use
-the MPS in your own projects, provided that you either don't
-distribute your product, or your product is open source too.
 
-If the licensing terms aren't suitable for you (for example, you're
-developing a closed-source commercial product or a compiler run-time
-system) you can easily license the MPS under different terms from
-Ravenbrook by arrangement. Please :ref:`contact us <contact>` at
-`mps-questions@ravenbrook.com <mailto:mps-questions@ravenbrook.com>`_
-for details.
+The MPS is distributed under the BSD 2-clause :ref:`open source license
+<license>`.
 
 .. comment: Keep this section synchronized with readme.txt
 
@@ -53,12 +45,12 @@ The MPS is currently supported for deployment on:
 - Windows Vista or later, on IA-32 and x86-64, using Microsoft Visual
   C/C++;
 
-- Linux 2.6 or later, on IA-32 using GCC and on x86-64 using GCC or
-  Clang/LLVM;
+- Linux 2.6 or later, on IA-32 using GCC and on x86-64 or ARM64 using
+  GCC or Clang/LLVM;
 
 - FreeBSD 7 or later, on IA-32 and x86-64, using GCC or Clang/LLVM;
 
-- macOS 10.4 or later, on IA-32 and x86-64, using Clang/LLVM.
+- macOS 10.4 or later, on x86-64 or ARM64, using Clang/LLVM.
 
 The MPS is highly portable and has run on many other processors and
 operating systems in the past (see :ref:`guide-build`). Most of the
@@ -70,9 +62,9 @@ anything.
     If you are running a multi-threaded 32-bit application on 64-bit
     Windows 7 via the WOW64 emulator, then you must install `this
     hotfix from Microsoft
-    <http://support.microsoft.com/kb/2864432/en-us>`_. See `WOW64 bug:
+    <https://support.microsoft.com/kb/2864432/en-us>`_. See `WOW64 bug:
     GetThreadContext() may return stale contents
-    <http://zachsaw.blogspot.co.uk/2010/11/wow64-bug-getthreadcontext-may-return.html>`_
+    <https://zachsaw.blogspot.com/2010/11/wow64-bug-getthreadcontext-may-return.html>`_
     for a description of the problem.
 
 

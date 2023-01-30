@@ -9,6 +9,45 @@ Release notes
 Release 1.118.0
 ---------------
 
+New features
+............
+
+#. New supported platforms:
+
+   * ``lia6gc`` (Linux, ARM64, GCC).
+   * ``lia6ll`` (Linux, ARM64, Clang/LLVM).
+   * ``xca6ll`` (macOS, ARM64, Clang/LLVM).
+
+   See :ref:`topic-platform-limitations` for limitations in the
+   support for Apple Hardened Runtime on ``xca6ll``.
+
+#. Support removed for platform:
+
+   * ``xci3ll`` (macOS, IA-32, Clang/LLVM).
+
+   Support for this platform was removed in macOS 10.15 (Catalina),
+   making it inconvenient to develop and test.
+
+#. The arena's :term:`spare commit limit` is now expressed as a
+   fraction of the :term:`committed <mapped>` memory (rather than a
+   fixed size, as previously). This allows the :term:`spare committed
+   memory` to scale with the :term:`working set` size. Set the spare
+   commit limit using the keyword argument :c:macro:`MPS_KEY_SPARE` to
+   :c:func:`mps_arena_create_k`, or the function
+   :c:func:`mps_arena_spare_set`, and query it using the function
+   :c:func:`mps_arena_spare`.
+
+#. A new support tool, the **monitor**, implements a graphical user
+   interface for analysis of :ref:`topic-telemetry`. This is
+   experimental: the implementation is likely to change in future
+   versions of the MPS. See :ref:`design-monitor`.
+
+#. The new function :c:func:`mps_pool_walk` visits all areas of
+   :term:`formatted objects` in a pool using the
+   :ref:`topic-scanning-protocol`. This allows the client program to
+   safely update references in the visited objects.
+
+
 Interface changes
 .................
 
@@ -17,6 +56,73 @@ Interface changes
    removed. Use :ref:`pool-mvff` and the generic functions
    :c:func:`mps_pool_free_size` and :c:func:`mps_pool_total_size`
    instead.
+
+#. The deprecated function :c:func:`mps_tramp` has been removed. The
+   MPS has had no need for a trampoline, and client programs have not
+   needed to take any special precautions before calling functions in
+   the MPS, since version 1.111.
+
+#. The deprecated functions :c:func:`mps_arena_expose`,
+   :c:func:`mps_arena_unsafe_expose_remember_protection` and
+   :c:func:`mps_arena_unsafe_expose_restore_protection` have been
+   removed. If you need access to protected memory for debugging a
+   fatal error, use :c:func:`mps_arena_postmortem` instead.
+
+#. The deprecated reservoir functions
+   :c:func:`mps_ap_fill_with_reservoir_permit`,
+   :c:func:`mps_reservoir_available`, :c:func:`mps_reservoir_limit`,
+   :c:func:`mps_reservoir_limit_set` and
+   :c:func:`mps_reserve_with_reservoir_permit`, have been removed.
+
+#. The deprecated function :c:func:`mps_fix` has been removed. Use
+   the macro :c:func:`MPS_FIX12` instead.
+
+#. The deprecated function :c:func:`mps_telemetry_control` has been
+   removed. Use :c:func:`mps_telemetry_get`,
+   :c:func:`mps_telemetry_set` and :c:func:`mps_telemetry_reset`
+   instead.
+
+#. The keyword argument ``MPS_KEY_SPARE_COMMIT_LIMIT`` to
+   :c:func:`mps_arena_create_k`, and the functions
+   :c:func:`mps_arena_spare_commit_limit` and
+   :c:func:`mps_arena_spare_commit_limit_set` are now deprecated. Use
+   :c:macro:`MPS_KEY_SPARE`, :c:func:`mps_arena_spare` and
+   :c:func:`mps_arena_spare_set` instead.
+
+#. The format of the :term:`telemetry stream` has changed: Booleans
+   are no longer packed into bitfields, but are emitted as unsigned
+   bytes. This makes it possible to decode the telemetry stream using
+   the Python function |unpack|_.
+
+   .. |unpack| replace:: :py:func:`struct.unpack`
+   .. _unpack: https://docs.python.org/3/library/struct.html#struct.unpack
+
+#. The functions :c:func:`mps_formatted_objects_walk` and
+   :c:func:`mps_amc_apply` are deprecated in favour of the new
+   function :c:func:`mps_pool_walk`.
+
+
+Other changes
+.............
+
+#. On FreeBSD and Linux, if the MPS handles a signal while the client
+   program is blocked in a system call, the system call is
+   automatically restarted and does not fail with ``EINTR``. See
+   :ref:`topic-thread-signal`.
+
+#. On FreeBSD and Linux, the MPS signal handlers no longer modify
+   ``errno``. See `GitHub issue #10`_.
+
+   .. _GitHub issue #10: https://github.com/Ravenbrook/mps/issues/10
+
+#. The MPS now builds with Clang 10 and
+   ``-Wimplicit-int-float-conversion``. See `GitHub issue #51`_.
+
+   .. _GitHub issue #51: https://github.com/Ravenbrook/mps/issues/51
+
+#. The MPS now builds with ``clang -Wcomma``. See `GitHub issue #47`_.
+
+   .. _GitHub issue #47: https://github.com/Ravenbrook/mps/issues/47
 
 
 .. _release-notes-1.117:
@@ -97,7 +203,7 @@ New features
    longer convenient to test against them.) See
    :ref:`guide-overview-platforms`.
 
-   .. _LinuxThreads: http://pauillac.inria.fr/~xleroy/linuxthreads/
+   .. _LinuxThreads: https://en.wikipedia.org/wiki/LinuxThreads
 
 #. New function :c:func:`mps_arena_postmortem` assists with postmortem
    debugging.
@@ -207,7 +313,7 @@ New features
 #. The function :c:func:`mps_arena_create_k` accepts two new
    :term:`keyword arguments`. :c:macro:`MPS_KEY_COMMIT_LIMIT`
    sets the :term:`commit limit` for the arena, and
-   :c:macro:`MPS_KEY_SPARE_COMMIT_LIMIT` sets the :term:`spare
+   ``MPS_KEY_SPARE_COMMIT_LIMIT`` sets the :term:`spare
    commit limit` for the arena.
 
 #. New area scanning functions :c:func:`mps_scan_area`,
@@ -344,8 +450,8 @@ Other changes
    X, but also has a significant effect on Linux. See job003371_ and
    job003975_.
 
-   .. _job003371: http://www.ravenbrook.com/project/mps/issue/job003371/
-   .. _job003975: http://www.ravenbrook.com/project/mps/issue/job003975/
+   .. _job003371: https://www.ravenbrook.com/project/mps/issue/job003371/
+   .. _job003975: https://www.ravenbrook.com/project/mps/issue/job003975/
 
 
 .. _release-notes-1.114:

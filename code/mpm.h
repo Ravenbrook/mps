@@ -1,7 +1,7 @@
 /* mpm.h: MEMORY POOL MANAGER DEFINITIONS
  *
  * $Id$
- * Copyright (c) 2001-2018 Ravenbrook Limited.  See end of file for license.
+ * Copyright (c) 2001-2020 Ravenbrook Limited.  See end of file for license.
  * Portions copyright (C) 2002 Global Graphics Software.
  *
  * .trans.bufferinit: The Buffer data structure has an Init field and
@@ -44,7 +44,7 @@ extern Bool MPMCheck(void);
 
 /* Miscellaneous Checks -- see <code/mpm.c> */
 
-/* <design/type/#bool.check> */
+/* <design/type#.bool.check> */
 #define BoolCheck(b) ((unsigned)(b) <= 1)
 
 extern Bool FunCheck(Fun f);
@@ -116,7 +116,7 @@ extern Addr (AddrAlignDown)(Addr addr, Align align);
 
 extern Addr (AddrSet)(Addr target, Byte value, Size size);
 /* This is one of the places that implements Addr, so it's allowed to */
-/* convert to void *, see <design/type/#addr.ops.mem>. */
+/* convert to void *, see <design/type#.addr.ops.mem>. */
 #define AddrSet(target, value, size) \
   mps_lib_memset(target, (int)(value), size)
 
@@ -164,7 +164,7 @@ extern Shift SizeFloorLog2(Size size);
 extern Bool (WordIsP2)(Word word);
 #define WordIsP2(word) ((word) > 0 && ((word) & ((word) - 1)) == 0)
 
-/* Formatted Output -- see <design/writef/>, <code/mpm.c> */
+/* Formatted Output -- see <design/writef>, <code/mpm.c> */
 
 extern Res WriteF(mps_lib_FILE *stream, Count depth, ...);
 extern Res WriteF_v(mps_lib_FILE *stream, Count depth, va_list args);
@@ -190,12 +190,12 @@ extern void QuickSort(void *array[], Count length,
 
 /* Version Determination
  *
- * See <design/version-library/>.  */
+ * <design/version-library>.  */
 
 extern char *MPSVersion(void);
 
 
-/* Pool Interface -- see impl.c.pool */
+/* Pool Interface -- see <code/pool.c> */
 
 extern Res PoolInit(Pool pool, Arena arena, PoolClass klass, ArgList args);
 extern void PoolFinish(Pool pool);
@@ -203,7 +203,7 @@ extern Bool PoolClassCheck(PoolClass klass);
 extern Bool PoolCheck(Pool pool);
 extern Res PoolDescribe(Pool pool, mps_lib_FILE *stream, Count depth);
 
-/* Must be thread-safe. See <design/interface-c/#thread-safety>. */
+/* Must be thread-safe. <design/interface-c#.thread-safety>. */
 #define PoolArena(pool)         ((pool)->arena)
 #define PoolAlignment(pool)     ((pool)->alignment)
 #define PoolSegRing(pool)       (&(pool)->segRing)
@@ -286,7 +286,7 @@ typedef Pool AbstractCollectPool;
 DECLARE_CLASS(Pool, AbstractCollectPool, AbstractSegBufPool);
 
 
-/* Message Interface -- see <design/message/> */
+/* Message Interface -- see <design/message> */
 /* -- Internal (MPM) Interface -- functions for message originator */
 extern Bool MessageCheck(Message message);
 extern Bool MessageClassCheck(MessageClass klass);
@@ -341,19 +341,26 @@ extern const char *MessageNoGCStartWhy(Message message);
 #define TraceSetComp(ts)            BS_COMP(ts)
 
 #define TRACE_SET_ITER(ti, trace, ts, arena) \
-  for(ti = 0, trace = ArenaTrace(arena, ti); ti < TraceLIMIT; \
-      ++ti, trace = ArenaTrace(arena, ti)) BEGIN \
-    if (TraceSetIsMember(ts, trace)) {
+  BEGIN \
+    for (ti = 0; ti < TraceLIMIT; ++ti) { \
+      trace = ArenaTrace(arena, ti); \
+      if (TraceSetIsMember(ts, trace)) {
 
-#define TRACE_SET_ITER_END(ti, trace, ts, arena) } END
+#define TRACE_SET_ITER_END(ti, trace, ts, arena) \
+      } \
+    } \
+  END
 
 
 extern void ScanStateInit(ScanState ss, TraceSet ts, Arena arena,
                           Rank rank, ZoneSet white);
+extern void ScanStateInitSeg(ScanState ss, TraceSet ts, Arena arena,
+                             Rank rank, ZoneSet white, Seg seg);
 extern void ScanStateFinish(ScanState ss);
 extern Bool ScanStateCheck(ScanState ss);
 extern void ScanStateSetSummary(ScanState ss, RefSet summary);
 extern RefSet ScanStateSummary(ScanState ss);
+extern void ScanStateUpdateSummary(ScanState ss, Seg seg, Bool wasTotal);
 
 /* See impl.h.mpmst.ss */
 #define ScanStateZoneShift(ss)             ((Shift)(ss)->ss_s._zs)
@@ -366,7 +373,7 @@ extern RefSet ScanStateSummary(ScanState ss);
 extern Bool TraceIdCheck(TraceId id);
 extern Bool TraceSetCheck(TraceSet ts);
 extern Bool TraceCheck(Trace trace);
-extern Res TraceCreate(Trace *traceReturn, Arena arena, int why);
+extern Res TraceCreate(Trace *traceReturn, Arena arena, TraceStartWhy why);
 extern void TraceDestroyInit(Trace trace);
 extern void TraceDestroyFinished(Trace trace);
 
@@ -382,13 +389,13 @@ extern Rank TraceRankForAccess(Arena arena, Seg seg);
 extern void TraceSegAccess(Arena arena, Seg seg, AccessSet mode);
 
 extern void TraceAdvance(Trace trace);
-extern Res TraceStartCollectAll(Trace *traceReturn, Arena arena, int why);
+extern Res TraceStartCollectAll(Trace *traceReturn, Arena arena, TraceStartWhy why);
 extern Res TraceDescribe(Trace trace, mps_lib_FILE *stream, Count depth);
 
 /* traceanc.c -- Trace Ancillary */
 
 extern Bool TraceStartMessageCheck(TraceStartMessage message);
-extern const char *TraceStartWhyToString(int why);
+extern const char *TraceStartWhyToString(TraceStartWhy why);
 extern void TracePostStartMessage(Trace trace);
 extern Bool TraceMessageCheck(TraceMessage message);  /* trace end */
 extern void TracePostMessage(Trace trace);  /* trace end */
@@ -432,9 +439,9 @@ extern void TraceIdMessagesDestroy(Arena arena, TraceId ti);
    *(refIO) = SCANref, \
    SCANres)
 
-/* Equivalent to <code/mps.h> MPS_FIX */
+/* Equivalent to <code/mps.h> MPS_FIX12 */
 
-#define TRACE_FIX(ss, refIO) \
+#define TRACE_FIX12(ss, refIO) \
   (TRACE_FIX1(ss, *(refIO)) ? TRACE_FIX2(ss, refIO) : ResOK)
 
 /* Equivalent to <code/mps.h> MPS_SCAN_END */
@@ -445,6 +452,7 @@ extern void TraceIdMessagesDestroy(Arena arena, TraceId ti);
     } \
   END
 
+extern Res TraceScanFormat(ScanState ss, Addr base, Addr limit);
 extern Res TraceScanArea(ScanState ss, Word *base, Word *limit,
                          mps_area_scan_t scan_area,
                          void *closure);
@@ -465,7 +473,7 @@ extern Res ArenaDescribe(Arena arena, mps_lib_FILE *stream, Count depth);
 extern Res ArenaDescribeTracts(Arena arena, mps_lib_FILE *stream, Count depth);
 extern Bool ArenaAccess(Addr addr, AccessSet mode, MutatorContext context);
 extern Res ArenaFreeLandInsert(Arena arena, Addr base, Addr limit);
-extern void ArenaFreeLandDelete(Arena arena, Addr base, Addr limit);
+extern Res ArenaFreeLandDelete(Arena arena, Addr base, Addr limit);
 
 extern Bool GlobalsCheck(Globals arena);
 extern Res GlobalsInit(Globals arena);
@@ -473,7 +481,6 @@ extern void GlobalsFinish(Globals arena);
 extern Res GlobalsCompleteCreate(Globals arenaGlobals);
 extern void GlobalsPrepareToDestroy(Globals arenaGlobals);
 extern Res GlobalsDescribe(Globals arena, mps_lib_FILE *stream, Count depth);
-extern Ring GlobalsRememberedSummaryRing(Globals);
 extern void GlobalsArenaMap(void (*func)(Arena arena));
 extern void GlobalsClaimAll(void);
 extern void GlobalsReleaseAll(void);
@@ -525,10 +532,8 @@ extern void ArenaClamp(Globals globals);
 extern void ArenaRelease(Globals globals);
 extern void ArenaPark(Globals globals);
 extern void ArenaPostmortem(Globals globals);
-extern void ArenaExposeRemember(Globals globals, Bool remember);
-extern void ArenaRestoreProtection(Globals globals);
-extern Res ArenaStartCollect(Globals globals, int why);
-extern Res ArenaCollect(Globals globals, int why);
+extern Res ArenaStartCollect(Globals globals, TraceStartWhy why);
+extern Res ArenaCollect(Globals globals, TraceStartWhy why);
 extern Bool ArenaBusy(Arena arena);
 extern Bool ArenaHasAddr(Arena arena, Addr addr);
 extern void ArenaChunkInsert(Arena arena, Chunk chunk);
@@ -574,11 +579,13 @@ extern void ArenaPokeSeg(Arena arena, Seg seg, Ref *p, Ref ref);
 extern Size ArenaReserved(Arena arena);
 extern Size ArenaCommitted(Arena arena);
 extern Size ArenaSpareCommitted(Arena arena);
+extern double ArenaSpare(Arena arena);
+extern void ArenaSetSpare(Arena arena, double spare);
+#define ArenaSpareCommitLimit(arena) ((Size)((double)ArenaCommitted(arena) * ArenaSpare(arena)))
+#define ArenaCurrentSpare(arena) ((double)ArenaSpareCommitted(arena) / (double)ArenaCommitted(arena))
 
 extern Size ArenaCommitLimit(Arena arena);
 extern Res ArenaSetCommitLimit(Arena arena, Size limit);
-extern Size ArenaSpareCommitLimit(Arena arena);
-extern void ArenaSetSpareCommitLimit(Arena arena, Size limit);
 extern double ArenaPauseTime(Arena arena);
 extern void ArenaSetPauseTime(Arena arena, double pauseTime);
 extern Size ArenaNoPurgeSpare(Arena arena, Size size);
@@ -805,7 +812,7 @@ extern Res FormatCreate(Format *formatReturn, Arena arena, ArgList args);
 extern void FormatDestroy(Format format);
 extern Arena FormatArena(Format format);
 extern Res FormatDescribe(Format format, mps_lib_FILE *stream, Count depth);
-extern Res FormatScan(Format format, ScanState ss, Addr base, Addr limit);
+extern mps_res_t FormatNoScan(mps_ss_t mps_ss, mps_addr_t base, mps_addr_t limit);
 
 
 /* Reference Interface -- see <code/ref.c> */
@@ -833,7 +840,7 @@ extern Bool RankSetCheck(RankSet rankSet);
 #define RefSetSub(rs1, rs2)     BS_SUB((rs1), (rs2))
 
 
-/* Zone sets -- see design.mps.refset */
+/* Zone sets -- see <design/refset> */
 
 #define ZoneSetUnion(zs1, zs2) BS_UNION(zs1, zs2)
 #define ZoneSetInter(zs1, zs2) BS_INTER(zs1, zs2)
@@ -961,7 +968,7 @@ typedef Res (*RootIterateFn)(Root root, void *p);
 extern Res RootsIterate(Globals arena, RootIterateFn f, void *p);
 
 
-/* Land Interface -- see <design/land/> */
+/* Land Interface -- see <design/land> */
 
 extern Bool LandCheck(Land land);
 #define LandArena(land) ((land)->arena)
@@ -970,7 +977,9 @@ extern Size (LandSize)(Land land);
 extern Res LandInit(Land land, LandClass klass, Arena arena, Align alignment, void *owner, ArgList args);
 extern void LandFinish(Land land);
 extern Res (LandInsert)(Range rangeReturn, Land land, Range range);
+extern Res LandInsertSteal(Range rangeReturn, Land land, Range rangeIO);
 extern Res (LandDelete)(Range rangeReturn, Land land, Range range);
+extern Res LandDeleteSteal(Range rangeReturn, Land land, Range range);
 extern Bool (LandIterate)(Land land, LandVisitor visitor, void *closure);
 extern Bool (LandIterateAndDelete)(Land land, LandDeleteVisitor visitor, void *closure);
 extern Bool (LandFindFirst)(Range rangeReturn, Range oldRangeReturn, Land land, Size size, FindDelete findDelete);
@@ -1013,7 +1022,7 @@ DECLARE_CLASS(Land, Land, Inst);
 
 /* STATISTIC -- gather statistics (in some varieties)
  *
- * See <design/diag/#stat>.
+ * <design/diag#.stat>.
  */
 
 #if defined(STATISTICS)
@@ -1037,41 +1046,29 @@ DECLARE_CLASS(Land, Land, Inst);
 
 /* C. COPYRIGHT AND LICENSE
  *
- * Copyright (C) 2001-2018 Ravenbrook Limited <http://www.ravenbrook.com/>.
- * All rights reserved.  This is an open source license.  Contact
- * Ravenbrook for commercial licensing options.
- * 
+ * Copyright (C) 2001-2020 Ravenbrook Limited <https://www.ravenbrook.com/>.
+ *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are
  * met:
- * 
+ *
  * 1. Redistributions of source code must retain the above copyright
- * notice, this list of conditions and the following disclaimer.
- * 
+ *    notice, this list of conditions and the following disclaimer.
+ *
  * 2. Redistributions in binary form must reproduce the above copyright
- * notice, this list of conditions and the following disclaimer in the
- * documentation and/or other materials provided with the distribution.
- * 
- * 3. Redistributions in any form must be accompanied by information on how
- * to obtain complete source code for this software and any accompanying
- * software that uses this software.  The source code must either be
- * included in the distribution or be available for no more than the cost
- * of distribution plus a nominal fee, and must be freely redistributable
- * under reasonable conditions.  For an executable file, complete source
- * code means the source code for all modules it contains. It does not
- * include source code for modules or files that typically accompany the
- * major components of the operating system on which the executable file
- * runs.
- * 
+ *    notice, this list of conditions and the following disclaimer in the
+ *    documentation and/or other materials provided with the
+ *    distribution.
+ *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS
  * IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
- * TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR
- * PURPOSE, OR NON-INFRINGEMENT, ARE DISCLAIMED. IN NO EVENT SHALL THE
- * COPYRIGHT HOLDERS AND CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
- * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
- * NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF
- * USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON
- * ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
- * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
- * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ * TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
+ * PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+ * HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+ * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+ * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+ * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */

@@ -43,7 +43,7 @@ Memory Management Glossary: C
 
     cache (1)
 
-        .. aka:: *memory cache*, *cache memory*.
+        .. aka:: *cache memory*, *memory cache*.
 
         A processor's memory cache is a small piece of fast, but more
         expensive memory, usually :term:`static memory (1)`, used for
@@ -62,7 +62,7 @@ Memory Management Glossary: C
         cache" is the fastest, smallest :term:`storage level`, "level
         2" the next fastest, and so on.
 
-        .. seealso:: :term:`storage hierarchy`, :term:`cache (2)`.
+        .. seealso:: :term:`cache (2)`, :term:`storage hierarchy`.
 
     cache (2)
 
@@ -287,8 +287,6 @@ Memory Management Glossary: C
 
     cold end
 
-        .. opposite:: :term:`hot end`
-
         A :term:`control stack` has two ends: the oldest items are at
         the *cold end* and the newest items are at the *hot end*.
         Sometimes the cold end is called the "bottom" of the stack,
@@ -303,6 +301,8 @@ Memory Management Glossary: C
             stack (or the part of the stack that might contain
             references to memory managed by the MPS) to
             :c:func:`mps_root_create_thread`.
+
+        .. opposite:: :term:`hot end`
 
     collect
 
@@ -515,7 +515,7 @@ Memory Management Glossary: C
 
         .. opposite:: :term:`exact garbage collection`.
 
-        .. seealso:: :term:`ambiguous root`, :term:`semi-conservative garbage collection`, :term:`interior pointer`.
+        .. seealso:: :term:`ambiguous root`, :term:`interior pointer`, :term:`semi-conservative garbage collection`.
 
         .. bibref:: :ref:`Boehm & Weiser (1988) <BW88>`, :ref:`Boehm (1993) <BOEHM93>`.
 

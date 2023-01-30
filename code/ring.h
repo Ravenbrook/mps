@@ -1,7 +1,7 @@
 /* ring.h: RING INTERFACE
  *
  * $Id$
- * Copyright (c) 2001-2014 Ravenbrook Limited.  See end of file for license.
+ * Copyright (c) 2001-2020 Ravenbrook Limited.  See end of file for license.
  * Portions copyright (C) 2001 Global Graphics Software.
  */
 
@@ -32,7 +32,7 @@ extern Bool RingCheckSingle(Ring ring);
 extern Bool RingIsSingle(Ring ring);
 extern Count RingLength(Ring ring);
 
-/* .ring.init: See <design/ring/#init> */
+/* .ring.init: <design/ring#.init> */
 extern void (RingInit)(Ring ring);
 #define RingInit(ring) \
   BEGIN \
@@ -43,7 +43,7 @@ extern void (RingInit)(Ring ring);
     AVER(RingCheck(_ring)); \
   END
 
-/* .ring.finish: See <design/ring/#finish> */
+/* .ring.finish: <design/ring#.finish> */
 extern void (RingFinish)(Ring ring);
 #define RingFinish(ring) \
   BEGIN \
@@ -53,7 +53,7 @@ extern void (RingFinish)(Ring ring);
     _ring->prev = RingNONE; \
   END
 
-/* .ring.append: See <design/ring/#append> */
+/* .ring.append: <design/ring#.append> */
 extern void (RingAppend)(Ring ring, Ring new);
 #define RingAppend(ring, new) \
   BEGIN \
@@ -79,7 +79,7 @@ extern void (RingInsert)(Ring ring, Ring new);
     _ring->next = _new; \
   END
 
-/* .ring.remove: See <design/ring/#remove> */
+/* .ring.remove: <design/ring#.remove> */
 extern void (RingRemove)(Ring old);
 #define RingRemove(old) \
   BEGIN \
@@ -92,23 +92,23 @@ extern void (RingRemove)(Ring old);
     _old->prev = _old; \
   END
 
-/* .ring.next: See <design/ring/#next> */
+/* .ring.next: <design/ring#.next> */
 extern Ring (RingNext)(Ring ring);
 #define RingNext(ring)  ((ring)->next)
 
-/* .ring.prev: See <design/ring/#prev> */
+/* .ring.prev: <design/ring#.prev> */
 extern Ring (RingPrev)(Ring ring);
 #define RingPrev(ring)  ((ring)->prev)
 
-/* .ring.elt: See <design/ring/#elt> */
+/* .ring.elt: <design/ring#.elt> */
 #define RING_ELT(type, field, node) \
   PARENT(type ## Struct, field, node)
 
-/* .ring.for: See <design/ring/#for> */
+/* .ring.for: <design/ring#.for> */
 #define RING_FOR(node, ring, next) \
-  for(node = RingNext(ring), next = RingNext(node); \
-      node != (ring); \
-      node = (next), next = RingNext(node))
+  for (ITER_PARALLEL(node = RingNext(ring), next = RingNext(node)); \
+       node != (ring); \
+       ITER_PARALLEL(node = (next), next = RingNext(node)))
 
 
 #endif /* ring_h */
@@ -116,41 +116,29 @@ extern Ring (RingPrev)(Ring ring);
 
 /* C. COPYRIGHT AND LICENSE
  *
- * Copyright (C) 2001-2014 Ravenbrook Limited <http://www.ravenbrook.com/>.
- * All rights reserved.  This is an open source license.  Contact
- * Ravenbrook for commercial licensing options.
- * 
+ * Copyright (C) 2001-2020 Ravenbrook Limited <https://www.ravenbrook.com/>.
+ *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are
  * met:
- * 
+ *
  * 1. Redistributions of source code must retain the above copyright
- * notice, this list of conditions and the following disclaimer.
- * 
+ *    notice, this list of conditions and the following disclaimer.
+ *
  * 2. Redistributions in binary form must reproduce the above copyright
- * notice, this list of conditions and the following disclaimer in the
- * documentation and/or other materials provided with the distribution.
- * 
- * 3. Redistributions in any form must be accompanied by information on how
- * to obtain complete source code for this software and any accompanying
- * software that uses this software.  The source code must either be
- * included in the distribution or be available for no more than the cost
- * of distribution plus a nominal fee, and must be freely redistributable
- * under reasonable conditions.  For an executable file, complete source
- * code means the source code for all modules it contains. It does not
- * include source code for modules or files that typically accompany the
- * major components of the operating system on which the executable file
- * runs.
- * 
+ *    notice, this list of conditions and the following disclaimer in the
+ *    documentation and/or other materials provided with the
+ *    distribution.
+ *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS
  * IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
- * TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR
- * PURPOSE, OR NON-INFRINGEMENT, ARE DISCLAIMED. IN NO EVENT SHALL THE
- * COPYRIGHT HOLDERS AND CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
- * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
- * NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF
- * USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON
- * ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
- * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
- * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ * TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
+ * PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+ * HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+ * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+ * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+ * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */

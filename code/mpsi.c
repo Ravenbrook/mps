@@ -1,16 +1,16 @@
 /* mpsi.c: MEMORY POOL SYSTEM C INTERFACE LAYER
  *
  * $Id$
- * Copyright (c) 2001-2018 Ravenbrook Limited.  See end of file for license.
+ * Copyright (c) 2001-2020 Ravenbrook Limited.  See end of file for license.
  * Portions copyright (c) 2002 Global Graphics Software.
  *
  * .purpose: This code bridges between the MPS interface to C,
  * <code/mps.h>, and the internal MPM interfaces, as defined by
  * <code/mpm.h>.  .purpose.check: It performs checking of the C client's
  * usage of the MPS Interface.  .purpose.thread: It excludes multiple
- * threads from the MPM by locking the Arena (see <design/thread-safety/>).
+ * threads from the MPM by locking the Arena (see <design/thread-safety>).
  *
- * .design: <design/interface-c/>
+ * .design: <design/interface-c>
  *
  *
  * NOTES
@@ -22,7 +22,7 @@
  * .note.avert: Use AVERT only when "inside" the Arena (between
  * ArenaEnter and ArenaLeave), as it's not thread-safe in all
  * varieties. Use AVER(TESTT) otherwise. See
- * <design/sig/#check.arg.unlocked>.
+ * <design/sig#.check.arg.unlocked>.
  *
  *
  * TRANSGRESSIONS (rule.impl.trans)
@@ -41,7 +41,7 @@
  * In future, it will.
  *
  * .naming: (rule.impl.guide) The exported identifiers do not follow the
- * normal MPS naming conventions.  See <design/interface-c/#naming>.
+ * normal MPS naming conventions.  <design/interface-c#.naming>.
  */
 
 #include "mpm.h"
@@ -84,7 +84,7 @@ static Bool mpsi_check(void)
          == (int)_mps_MESSAGE_TYPE_GC_START);
 
   /* The external idea of a word width and the internal one */
-  /* had better match.  See <design/interface-c/#cons>. */
+  /* had better match.  <design/interface-c#.cons>. */
   CHECKL(sizeof(mps_word_t) == sizeof(void *));
   CHECKL(COMPATTYPE(mps_word_t, Word));
 
@@ -93,8 +93,8 @@ static Bool mpsi_check(void)
   CHECKL(COMPATTYPE(mps_addr_t, Addr));
 
   /* The external idea of size and the internal one had */
-  /* better match.  See <design/interface-c/#cons.size> */
-  /* and <design/interface-c/#pun.size>. */
+  /* better match.  <design/interface-c#.cons.size> */
+  /* and <design/interface-c#.pun.size>. */
   CHECKL(COMPATTYPE(size_t, Size));
 
   /* Clock values are passed from external to internal and back */
@@ -197,10 +197,33 @@ mps_res_t mps_arena_commit_limit_set(mps_arena_t arena, size_t limit)
   return (mps_res_t)res;
 }
 
-void mps_arena_spare_commit_limit_set(mps_arena_t arena, size_t limit)
+void mps_arena_spare_set(mps_arena_t arena, double spare)
 {
   ArenaEnter(arena);
-  ArenaSetSpareCommitLimit(arena, limit);
+  ArenaSetSpare(arena, spare);
+  ArenaLeave(arena);
+}
+
+double mps_arena_spare(mps_arena_t arena)
+{
+  double spare;
+
+  ArenaEnter(arena);
+  spare = ArenaSpare(arena);
+  ArenaLeave(arena);
+
+  return spare;
+}
+
+void mps_arena_spare_commit_limit_set(mps_arena_t arena, size_t limit)
+{
+  double spare;
+  /* Can't check limit, as all possible values are allowed. */
+  ArenaEnter(arena);
+  spare = (double)limit / (double)ArenaCommitted(arena);
+  if (spare > 1.0)
+    spare = 1.0;
+  ArenaSetSpare(arena, spare);
   ArenaLeave(arena);
 }
 
@@ -266,29 +289,6 @@ void mps_arena_postmortem(mps_arena_t arena)
    * to release the arena lock if it's held */
   AVER(TESTT(Arena, arena));
   ArenaPostmortem(ArenaGlobals(arena));
-}
-
-
-void mps_arena_expose(mps_arena_t arena)
-{
-  ArenaEnter(arena);
-  ArenaExposeRemember(ArenaGlobals(arena), FALSE);
-  ArenaLeave(arena);
-}
-
-/* Null implementations of remember and restore */
-void mps_arena_unsafe_expose_remember_protection(mps_arena_t arena)
-{
-  ArenaEnter(arena);
-  ArenaExposeRemember(ArenaGlobals(arena), TRUE);
-  ArenaLeave(arena);
-}
-
-void mps_arena_unsafe_restore_protection(mps_arena_t arena)
-{
-  ArenaEnter(arena);
-  ArenaRestoreProtection(ArenaGlobals(arena));
-  ArenaLeave(arena);
 }
 
 
@@ -450,12 +450,12 @@ mps_bool_t mps_addr_pool(mps_pool_t *mps_pool_o,
 
 /* mps_addr_fmt -- what format might this address have?
  *
- * .per-pool: There's no reason why all objects in a pool should have 
- * the same format.  But currently, MPS internals support at most one 
+ * .per-pool: There's no reason why all objects in a pool should have
+ * the same format.  But currently, MPS internals support at most one
  * format per pool.
  *
- * If the address is in a pool and has a format, returns TRUE and 
- * updates *mps_fmt_o to be that format.  Otherwise, returns FALSE 
+ * If the address is in a pool and has a format, returns TRUE and
+ * updates *mps_fmt_o to be that format.  Otherwise, returns FALSE
  * and does not update *mps_fmt_o.
  *
  * Note: may return an MPS-internal format.
@@ -519,7 +519,7 @@ mps_res_t mps_fmt_create_k(mps_fmt_t *mps_fmt_o,
  *
  * .fmt.create.A.purpose: This function converts an object format spec
  * of variant "A" into an MPM Format object.  See
- * <design/interface-c/#fmt.extend> for justification of the way that
+ * <design/interface-c#.fmt.extend> for justification of the way that
  * the format structure is declared as "mps_fmt_A".  */
 
 mps_res_t mps_fmt_create_A(mps_fmt_t *mps_fmt_o,
@@ -784,8 +784,7 @@ mps_res_t mps_alloc(mps_addr_t *p_o, mps_pool_t pool, size_t size)
     AVERT_CRITICAL(Pool, pool);
     AVER_CRITICAL(size > 0);
     /* Note: class may allow unaligned size, see */
-    /* <design/pool/#method.alloc.size.align>. */
-    /* Rest ignored, see .varargs. */
+    /* <design/pool#.method.alloc.size.align>. */
 
     res = PoolAlloc(&p, pool, size);
 
@@ -796,19 +795,6 @@ mps_res_t mps_alloc(mps_addr_t *p_o, mps_pool_t pool, size_t size)
     return (mps_res_t)res;
   *p_o = (mps_addr_t)p;
   return MPS_RES_OK;
-}
-
-
-/* mps_alloc_v -- allocate in pool with varargs.  Deprecated in 1.112. */
-
-mps_res_t mps_alloc_v(mps_addr_t *p_o, mps_pool_t mps_pool, size_t size,
-                      va_list args)
-{
-  mps_res_t res;
-
-  UNUSED(args); /* See .varargs. */
-  res = mps_alloc(p_o, mps_pool, size);
-  return res;
 }
 
 
@@ -824,7 +810,7 @@ void mps_free(mps_pool_t pool, mps_addr_t p, size_t size)
   AVERT_CRITICAL(Pool, pool);
   AVER_CRITICAL(size > 0);
   /* Note: class may allow unaligned size, see */
-  /* <design/pool/#method.free.size.align>. */
+  /* <design/pool#.method.free.size.align>. */
 
   PoolFree(pool, (Addr)p, size);
   ArenaLeave(arena);
@@ -856,7 +842,7 @@ mps_res_t mps_ap_create_v(mps_ap_t *mps_ap_o, mps_pool_t pool,
   AVER(mps_ap_o != NULL);
   AVER(TESTT(Pool, pool));
   arena = PoolArena(pool);
-  
+
   ArenaEnter(arena);
   AVERT(Pool, pool);
   bufclass = PoolDefaultBufferClass(pool);
@@ -936,15 +922,6 @@ mps_res_t (mps_reserve)(mps_addr_t *p_o, mps_ap_t mps_ap, size_t size)
 }
 
 
-
-mps_res_t mps_reserve_with_reservoir_permit(mps_addr_t *p_o,
-                                            mps_ap_t mps_ap, size_t size)
-{
-  return mps_reserve(p_o, mps_ap, size);
-}
-
-
-
 /* mps_commit -- commit initialized object, finishing allocation
  *
  * .commit.call: mps_commit does not call BufferCommit, but instead uses
@@ -975,7 +952,7 @@ mps_bool_t (mps_commit)(mps_ap_t mps_ap, mps_addr_t p, size_t size)
 
 /* mps_ap_frame_push -- push a new allocation frame
  *
- * See <design/alloc-frame/#lw-frame.push>. */
+ * <design/alloc-frame#.lw-frame.push>. */
 
 mps_res_t (mps_ap_frame_push)(mps_frame_t *frame_o, mps_ap_t mps_ap)
 {
@@ -1016,7 +993,7 @@ mps_res_t (mps_ap_frame_push)(mps_frame_t *frame_o, mps_ap_t mps_ap)
 
 /* mps_ap_frame_pop -- push a new allocation frame
  *
- * See <design/alloc-frame/#lw-frame.pop>.  */
+ * <design/alloc-frame#.lw-frame.pop>.  */
 
 mps_res_t (mps_ap_frame_pop)(mps_ap_t mps_ap, mps_frame_t frame)
 {
@@ -1101,13 +1078,6 @@ mps_res_t mps_ap_fill(mps_addr_t *p_o, mps_ap_t mps_ap, size_t size)
     return (mps_res_t)res;
   *p_o = (mps_addr_t)p;
   return MPS_RES_OK;
-}
-
-
-mps_res_t mps_ap_fill_with_reservoir_permit(mps_addr_t *p_o, mps_ap_t mps_ap,
-                                            size_t size)
-{
-  return mps_ap_fill(p_o, mps_ap, size);
 }
 
 
@@ -1206,7 +1176,7 @@ void mps_sac_flush(mps_sac_t mps_sac)
 /* mps_sac_fill -- alloc an object, and perhaps fill the cache */
 
 mps_res_t mps_sac_fill(mps_addr_t *p_o, mps_sac_t mps_sac, size_t size,
-                       mps_bool_t has_reservoir_permit)
+                       mps_bool_t unused)
 {
   SAC sac = SACOfExternalSAC(mps_sac);
   Arena arena;
@@ -1216,7 +1186,7 @@ mps_res_t mps_sac_fill(mps_addr_t *p_o, mps_sac_t mps_sac, size_t size,
   AVER(p_o != NULL);
   AVER(TESTT(SAC, sac));
   arena = SACArena(sac);
-  UNUSED(has_reservoir_permit); /* deprecated */
+  UNUSED(unused);
 
   ArenaEnter(arena);
 
@@ -1252,7 +1222,7 @@ void mps_sac_empty(mps_sac_t mps_sac, mps_addr_t p, size_t size)
 /* mps_sac_alloc -- alloc an object, using cached space if possible */
 
 mps_res_t mps_sac_alloc(mps_addr_t *p_o, mps_sac_t mps_sac, size_t size,
-                        mps_bool_t has_reservoir_permit)
+                        mps_bool_t unused)
 {
   Res res;
 
@@ -1260,7 +1230,7 @@ mps_res_t mps_sac_alloc(mps_addr_t *p_o, mps_sac_t mps_sac, size_t size,
   AVER(TESTT(SAC, SACOfExternalSAC(mps_sac)));
   AVER(size > 0);
 
-  MPS_SAC_ALLOC_FAST(res, *p_o, mps_sac, size, (has_reservoir_permit != 0));
+  MPS_SAC_ALLOC_FAST(res, *p_o, mps_sac, size, (unused != 0));
   return (mps_res_t)res;
 }
 
@@ -1405,7 +1375,7 @@ mps_res_t mps_root_create_area_tagged(mps_root_t *mps_root_o,
   *mps_root_o = (mps_root_t)root;
   return MPS_RES_OK;
 }
-  
+
 
 mps_res_t mps_root_create_table_masked(mps_root_t *mps_root_o,
                                        mps_arena_t arena,
@@ -1607,18 +1577,6 @@ void mps_root_destroy(mps_root_t mps_root)
 }
 
 
-void (mps_tramp)(void **r_o,
-                 void *(*f)(void *p, size_t s),
-                 void *p, size_t s)
-{
-  AVER(r_o != NULL);
-  AVER(FUNCHECK(f));
-  /* Can't check p and s as they are interpreted by the client */
-
-  *r_o = (*f)(p, s);
-}
-
-
 mps_res_t mps_thread_reg(mps_thr_t *mps_thr_o, mps_arena_t arena)
 {
   Thread thread;
@@ -1663,7 +1621,7 @@ void mps_ld_reset(mps_ld_t ld, mps_arena_t arena)
 
 /* mps_ld_add -- add a reference to a location dependency
  *
- * See <design/interface-c/#lock-free>.  */
+ * <design/interface-c#.lock-free>.  */
 
 void mps_ld_add(mps_ld_t ld, mps_arena_t arena, mps_addr_t addr)
 {
@@ -1673,7 +1631,7 @@ void mps_ld_add(mps_ld_t ld, mps_arena_t arena, mps_addr_t addr)
 
 /* mps_ld_merge -- merge two location dependencies
  *
- * See <design/interface-c/#lock-free>.  */
+ * <design/interface-c#.lock-free>.  */
 
 void mps_ld_merge(mps_ld_t ld, mps_arena_t arena,
                   mps_ld_t from)
@@ -1684,7 +1642,7 @@ void mps_ld_merge(mps_ld_t ld, mps_arena_t arena,
 
 /* mps_ld_isstale -- check whether a location dependency is "stale"
  *
- * See <design/interface-c/#lock-free>.  */
+ * <design/interface-c#.lock-free>.  */
 
 mps_bool_t mps_ld_isstale(mps_ld_t ld, mps_arena_t arena,
                           mps_addr_t addr)
@@ -1703,17 +1661,6 @@ mps_bool_t mps_ld_isstale_any(mps_ld_t ld, mps_arena_t arena)
   b = LDIsStaleAny(ld, arena);
 
   return (mps_bool_t)b;
-}
-
-mps_res_t mps_fix(mps_ss_t mps_ss, mps_addr_t *ref_io)
-{
-  mps_res_t res;
-
-  MPS_SCAN_BEGIN(mps_ss) {
-    res = MPS_FIX12(mps_ss, ref_io);
-  } MPS_SCAN_END(mps_ss);
-
-  return res;
 }
 
 mps_word_t mps_collections(mps_arena_t arena)
@@ -1961,11 +1908,6 @@ const char *mps_message_gc_start_why(mps_arena_t arena,
 
 /* TODO: need to consider locking. See job003387, job003388. */
 
-mps_word_t mps_telemetry_control(mps_word_t resetMask, mps_word_t flipMask)
-{
-  return EventControl((Word)resetMask, (Word)flipMask);
-}
-
 void mps_telemetry_set(mps_word_t setMask)
 {
   (void)EventControl((Word)setMask, (Word)setMask);
@@ -2082,37 +2024,6 @@ mps_res_t mps_ap_alloc_pattern_reset(mps_ap_t mps_ap)
 }
 
 
-/* Low memory reservoir (deprecated -- see job003985) */
-
-
-/* mps_reservoir_limit_set -- set the reservoir size */
-
-void mps_reservoir_limit_set(mps_arena_t arena, size_t size)
-{
-  UNUSED(arena);
-  UNUSED(size);
-  NOOP;
-}
-
-
-/* mps_reservoir_limit -- return the reservoir size */
-
-size_t mps_reservoir_limit(mps_arena_t arena)
-{
-  UNUSED(arena);
-  return 0;
-}
-
-
-/* mps_reservoir_available -- return memory available in the reservoir */
-
-size_t mps_reservoir_available(mps_arena_t arena)
-{
-  UNUSED(arena);
-  return 0;
-}
-
-
 /* Chains */
 
 
@@ -2152,7 +2063,7 @@ void mps_chain_destroy(mps_chain_t chain)
 }
 
 
-/* _mps_args_set_key -- set the key for a keyword argument 
+/* _mps_args_set_key -- set the key for a keyword argument
  *
  * This sets the key for the i'th keyword argument in the array args,
  * with bounds checking on i. It is used by the MPS_ARGS_BEGIN,
@@ -2172,41 +2083,29 @@ void _mps_args_set_key(mps_arg_s args[MPS_ARGS_MAX], unsigned i,
 
 /* C. COPYRIGHT AND LICENSE
  *
- * Copyright (C) 2001-2018 Ravenbrook Limited <http://www.ravenbrook.com/>.
- * All rights reserved.  This is an open source license.  Contact
- * Ravenbrook for commercial licensing options.
- * 
+ * Copyright (C) 2001-2020 Ravenbrook Limited <https://www.ravenbrook.com/>.
+ *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are
  * met:
- * 
+ *
  * 1. Redistributions of source code must retain the above copyright
- * notice, this list of conditions and the following disclaimer.
- * 
+ *    notice, this list of conditions and the following disclaimer.
+ *
  * 2. Redistributions in binary form must reproduce the above copyright
- * notice, this list of conditions and the following disclaimer in the
- * documentation and/or other materials provided with the distribution.
- * 
- * 3. Redistributions in any form must be accompanied by information on how
- * to obtain complete source code for this software and any accompanying
- * software that uses this software.  The source code must either be
- * included in the distribution or be available for no more than the cost
- * of distribution plus a nominal fee, and must be freely redistributable
- * under reasonable conditions.  For an executable file, complete source
- * code means the source code for all modules it contains. It does not
- * include source code for modules or files that typically accompany the
- * major components of the operating system on which the executable file
- * runs.
- * 
+ *    notice, this list of conditions and the following disclaimer in the
+ *    documentation and/or other materials provided with the
+ *    distribution.
+ *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS
  * IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
- * TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR
- * PURPOSE, OR NON-INFRINGEMENT, ARE DISCLAIMED. IN NO EVENT SHALL THE
- * COPYRIGHT HOLDERS AND CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
- * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
- * NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF
- * USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON
- * ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
- * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
- * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ * TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
+ * PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+ * HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+ * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+ * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+ * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */

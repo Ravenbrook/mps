@@ -1,7 +1,7 @@
 /* mpsicv.c: MPSI COVERAGE TEST
  *
  * $Id$
- * Copyright (c) 2001-2016 Ravenbrook Limited.  See end of file for license.
+ * Copyright (c) 2001-2020 Ravenbrook Limited.  See end of file for license.
  * Portions copyright (c) 2002 Global Graphics Software.
  */
 
@@ -103,7 +103,7 @@ static void alignmentTest(mps_arena_t arena)
     die(mps_pool_create_k(&pool, arena, mps_class_mvff(), args),
         "alignment pool create");
   } MPS_ARGS_END(args);
-  
+
   size = max(sizeof(double), sizeof(long));
 #ifdef HAS_LONG_LONG
   size = max(size, sizeof(long_long_t));
@@ -173,21 +173,6 @@ static mps_addr_t make_no_inline(void)
 }
 
 
-/* alloc_v_test -- test mps_alloc_v */
-
-static void alloc_v_test(mps_pool_t pool, ...)
-{
-  void *p;
-  size_t size = 32;
-  va_list args;
-
-  va_start(args, pool);
-  die(mps_alloc_v(&p, pool, size, args), "alloc_v");
-  va_end(args);
-  mps_free(pool, p, size);
-}
-
-
 static void pool_create_v_test(mps_arena_t arena, ...)
 {
   va_list args;
@@ -235,7 +220,7 @@ static void addr_pool_test(mps_arena_t arena,
    *   5- pointer to memory not in any Chunk.
    *   ^^^(mps_addr_pool returns FALSE for these)
    *
-   * We actually test case 0 (for both unformatted and formatted 
+   * We actually test case 0 (for both unformatted and formatted
    * objects), and case 5.
    */
 
@@ -289,8 +274,15 @@ static void addr_pool_test(mps_arena_t arena,
 
 static mps_res_t root_single(mps_ss_t ss, void *p, size_t s)
 {
+  mps_res_t res;
+  mps_addr_t *ref = p;
   testlib_unused(s);
-  return mps_fix(ss, (mps_addr_t *)p);
+
+  MPS_SCAN_BEGIN(ss) {
+    res = MPS_FIX12(ss, ref);
+  } MPS_SCAN_END(ss);
+
+  return res;
 }
 
 
@@ -302,6 +294,9 @@ static mps_res_t root_single(mps_ss_t ss, void *p, size_t s)
  *   mps_arena_commit_limit_set
  *   mps_arena_committed
  *   mps_arena_reserved
+ *   mps_arena_spare
+ *   mps_arena_spare_committed
+ *   mps_arena_spare_set
  * incidentally tests:
  *   mps_alloc
  *   mps_arena_commit_limit_set
@@ -315,7 +310,9 @@ static void arena_commit_test(mps_arena_t arena)
   mps_pool_t pool;
   size_t committed;
   size_t reserved;
+  size_t spare_committed;
   size_t limit;
+  double spare;
   void *p;
   mps_res_t res;
 
@@ -326,11 +323,18 @@ static void arena_commit_test(mps_arena_t arena)
     die(mps_pool_create_k(&pool, arena, mps_class_mvff(), args),
         "commit pool create");
   } MPS_ARGS_END(args);
-  
+
   limit = mps_arena_commit_limit(arena);
   committed = mps_arena_committed(arena);
+  spare = mps_arena_spare(arena);
+  spare_committed = mps_arena_spare_committed(arena);
   reserved = mps_arena_reserved(arena);
-  cdie(reserved >= committed, "reserved < committed");
+  Insist(0.0 <= spare);
+  Insist(spare <= 1.0);
+  Insist((double)spare_committed <= spare * (double)committed);
+  Insist(spare_committed < committed);
+  Insist(committed <= reserved);
+  Insist(committed <= limit);
   die(mps_arena_commit_limit_set(arena, committed), "commit_limit_set before");
   do {
     res = mps_alloc(&p, pool, FILLER_OBJECT_SIZE);
@@ -339,13 +343,15 @@ static void arena_commit_test(mps_arena_t arena)
   die(mps_arena_commit_limit_set(arena, limit), "commit_limit_set after");
   res = mps_alloc(&p, pool, FILLER_OBJECT_SIZE);
   die_expect(res, MPS_RES_OK, "Allocation failed after raising commit_limit");
+  mps_arena_spare_set(arena, 0.0);
+  Insist(mps_arena_spare(arena) == 0.0);
+  Insist(mps_arena_spare_committed(arena) == 0);
   mps_pool_destroy(pool);
 }
 
 
-static void *test(void *arg, size_t s)
+static void test(mps_arena_t arena)
 {
-  mps_arena_t arena;
   mps_fmt_t format;
   mps_chain_t chain;
   mps_root_t exactAreaRoot, exactTableRoot, ambigAreaRoot, ambigTableRoot,
@@ -364,9 +370,6 @@ static void *test(void *arg, size_t s)
   mps_alloc_pattern_t ramp = mps_alloc_pattern_ramp();
   size_t rampCount = 0;
   mps_res_t res;
-
-  arena = (mps_arena_t)arg;
-  testlib_unused(s);
 
   if (rnd() & 1) {
     printf("Using auto_header format.\n");
@@ -479,19 +482,6 @@ static void *test(void *arg, size_t s)
         mps_arena_clamp(arena);
         clamp_until = i + 10000;
       }
-      if(collections % 6 == 0) {
-        mps_arena_expose(arena);
-        mps_arena_release(arena);
-      }
-      if(collections % 6 == 3) {
-        mps_arena_unsafe_expose_remember_protection(arena);
-        mps_arena_unsafe_restore_protection(arena);
-        mps_arena_release(arena);
-      }
-      if(collections % 6 == 4) {
-        mps_arena_unsafe_expose_remember_protection(arena);
-        mps_arena_release(arena);
-      }
       if(collections % 3 == 2) {
         mps_arena_park(arena);
         mps_arena_release(arena);
@@ -544,7 +534,6 @@ static void *test(void *arg, size_t s)
   mps_arena_release(arena);
 
   mps_free(mv, alloced_obj, 32);
-  alloc_v_test(mv);
 
   mps_arena_park(arena);
   mps_pool_destroy(mv);
@@ -558,8 +547,6 @@ static void *test(void *arg, size_t s)
   mps_pool_destroy(amcpool);
   mps_chain_destroy(chain);
   mps_fmt_destroy(format);
-
-  return NULL;
 }
 
 
@@ -571,7 +558,6 @@ int main(int argc, char *argv[])
   mps_arena_t arena;
   mps_thr_t thread;
   mps_root_t reg_root;
-  void *r;
   void *marker = &marker;
 
   testlib_init(argc, argv);
@@ -580,6 +566,7 @@ int main(int argc, char *argv[])
     /* Randomize pause time as a regression test for job004011. */
     MPS_ARGS_ADD(args, MPS_KEY_PAUSE_TIME, rnd_pause_time());
     MPS_ARGS_ADD(args, MPS_KEY_ARENA_SIZE, TEST_ARENA_SIZE);
+    MPS_ARGS_ADD(args, MPS_KEY_SPARE, rnd_double());
     die(mps_arena_create_k(&arena, mps_arena_class_vm(), args),
         "arena_create");
   } MPS_ARGS_END(args);
@@ -606,7 +593,7 @@ int main(int argc, char *argv[])
     break;
   }
 
-  mps_tramp(&r, test, arena, 0);
+  test(arena);
   switch (rnd() % 2) {
   default:
   case 0:
@@ -626,41 +613,29 @@ int main(int argc, char *argv[])
 
 /* C. COPYRIGHT AND LICENSE
  *
- * Copyright (c) 2001-2016 Ravenbrook Limited <http://www.ravenbrook.com/>.
- * All rights reserved.  This is an open source license.  Contact
- * Ravenbrook for commercial licensing options.
- * 
+ * Copyright (C) 2001-2020 Ravenbrook Limited <https://www.ravenbrook.com/>.
+ *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are
  * met:
- * 
+ *
  * 1. Redistributions of source code must retain the above copyright
- * notice, this list of conditions and the following disclaimer.
- * 
+ *    notice, this list of conditions and the following disclaimer.
+ *
  * 2. Redistributions in binary form must reproduce the above copyright
- * notice, this list of conditions and the following disclaimer in the
- * documentation and/or other materials provided with the distribution.
- * 
- * 3. Redistributions in any form must be accompanied by information on how
- * to obtain complete source code for this software and any accompanying
- * software that uses this software.  The source code must either be
- * included in the distribution or be available for no more than the cost
- * of distribution plus a nominal fee, and must be freely redistributable
- * under reasonable conditions.  For an executable file, complete source
- * code means the source code for all modules it contains. It does not
- * include source code for modules or files that typically accompany the
- * major components of the operating system on which the executable file
- * runs.
- * 
+ *    notice, this list of conditions and the following disclaimer in the
+ *    documentation and/or other materials provided with the
+ *    distribution.
+ *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS
  * IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
- * TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR
- * PURPOSE, OR NON-INFRINGEMENT, ARE DISCLAIMED. IN NO EVENT SHALL THE
- * COPYRIGHT HOLDERS AND CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
- * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
- * NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF
- * USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON
- * ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
- * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
- * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ * TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
+ * PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+ * HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+ * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+ * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+ * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */

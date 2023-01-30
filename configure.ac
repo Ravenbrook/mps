@@ -1,7 +1,7 @@
 # configure.ac -- autoconf configuration for the MPS    -*- Autoconf -*-
 #
 # $Id$
-# Copyright (C) 2012-2016 Ravenbrook Limited.  See end of file for license.
+# Copyright (C) 2012-2020 Ravenbrook Limited.  See end of file for license.
 #
 # YOU DON'T NEED AUTOCONF TO BUILD THE MPS
 # This is just here for people who want or expect a configure script.
@@ -19,7 +19,7 @@ AC_INIT([Memory Pool System Kit],
         m4_esyscmd_s([sed -n '/^#define MPS_RELEASE "\(.*\)"$/{s/.*"\(.*\)"/\1/;p;}' code/version.c]),
         [mps-questions@ravenbrook.com],
         [mps-kit],
-        [http://www.ravenbrook.com/project/mps/])
+        [https://www.ravenbrook.com/project/mps/])
 AC_CONFIG_AUX_DIR(tool/autoconf/build-aux)
 AC_CONFIG_SRCDIR([code/mps.c])
 
@@ -36,7 +36,7 @@ CFLAGS_GC="-ansi -pedantic -Wall -Werror -Wpointer-arith \
            -Wstrict-prototypes -Wmissing-prototypes \
            -Winline -Waggregate-return -Wnested-externs \
            -Wcast-qual -Wstrict-aliasing=2 -O -g3 -pthread"
-CFLAGS_LL="$CFLAGS_GC -Wno-extended-offsetof"
+CFLAGS_LL="$CFLAGS_GC"
 
 AC_CANONICAL_HOST
 AC_MSG_CHECKING([target platform])
@@ -45,6 +45,20 @@ CLEAN_TARGET=clean-make-build
 INSTALL_TARGET=install-make-build
 TEST_TARGET=test-make-build
 case $host/$CLANG in
+  aarch64-*-linux*/no)
+      AC_MSG_RESULT([Linux ARM64])
+      MPS_OS_NAME=li
+      MPS_ARCH_NAME=a6
+      MPS_BUILD_NAME=gc
+      PFMCFLAGS="$CFLAGS_GC"
+    ;;
+  aarch64-*-linux*/yes)
+      AC_MSG_RESULT([Linux ARM64])
+      MPS_OS_NAME=li
+      MPS_ARCH_NAME=a6
+      MPS_BUILD_NAME=ll
+      PFMCFLAGS="$CFLAGS_LL"
+    ;;
   i*86-*-linux*/no)
       AC_MSG_RESULT([Linux x86])
       MPS_OS_NAME=li
@@ -64,6 +78,17 @@ case $host/$CLANG in
       MPS_OS_NAME=li
       MPS_ARCH_NAME=i6
       MPS_BUILD_NAME=ll
+      PFMCFLAGS="$CFLAGS_LL"
+    ;;
+  aarch64-*-darwin*/*)
+      AC_MSG_RESULT([Mac OS X ARM64])
+      MPS_OS_NAME=xc
+      MPS_ARCH_NAME=a6
+      MPS_BUILD_NAME=ll
+      BUILD_TARGET=build-via-xcode
+      CLEAN_TARGET=clean-xcode-build
+      INSTALL_TARGET=install-xcode-build
+      TEST_TARGET=test-xcode-build
       PFMCFLAGS="$CFLAGS_LL"
     ;;
   i*86-*-darwin*/*)
@@ -147,7 +172,7 @@ if ! $MAKE --version | grep -q "GNU" 2> /dev/null; then
   AC_MSG_ERROR([MPS requires GNU make to build from configure, but see manual/build.txt])
 fi
 
-EXTRA_TARGETS="mpseventcnv mpseventtxt"
+EXTRA_TARGETS="mpseventcnv mpseventpy mpseventtxt"
 AC_CHECK_HEADER([sqlite3.h], [EXTRA_TARGETS="$EXTRA_TARGETS mpseventsql"])
 
 # Put platform compiler flags like -ansi -pedantic into CFLAGS only
@@ -170,45 +195,34 @@ AC_CONFIG_FILES(Makefile example/scheme/Makefile)
 
 AC_OUTPUT
 
-echo 1>&2 "CONFIGURE/MAKE IS NOT THE BEST WAY TO BUILD THE MPS -- see <manual/build.txt>"
+echo 1>&2 "CONFIGURE/MAKE IS NOT THE BEST WAY TO BUILD THE MPS
+-- see <manual/build.txt> for alternative approaches"
 
 
 # C. COPYRIGHT AND LICENSE
 #
-# Copyright (C) 2012-2016 Ravenbrook Limited <http://www.ravenbrook.com/>.
-# All rights reserved.  This is an open source license.  Contact
-# Ravenbrook for commercial licensing options.
-# 
+# Copyright (C) 2001-2020 Ravenbrook Limited <https://www.ravenbrook.com/>.
+#
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions are
 # met:
-# 
+#
 # 1. Redistributions of source code must retain the above copyright
-# notice, this list of conditions and the following disclaimer.
-# 
+#    notice, this list of conditions and the following disclaimer.
+#
 # 2. Redistributions in binary form must reproduce the above copyright
-# notice, this list of conditions and the following disclaimer in the
-# documentation and/or other materials provided with the distribution.
-# 
-# 3. Redistributions in any form must be accompanied by information on how
-# to obtain complete source code for this software and any accompanying
-# software that uses this software.  The source code must either be
-# included in the distribution or be available for no more than the cost
-# of distribution plus a nominal fee, and must be freely redistributable
-# under reasonable conditions.  For an executable file, complete source
-# code means the source code for all modules it contains. It does not
-# include source code for modules or files that typically accompany the
-# major components of the operating system on which the executable file
-# runs.
-# 
+#    notice, this list of conditions and the following disclaimer in the
+#    documentation and/or other materials provided with the
+#    distribution.
+#
 # THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS
 # IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
-# TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR
-# PURPOSE, OR NON-INFRINGEMENT, ARE DISCLAIMED. IN NO EVENT SHALL THE
-# COPYRIGHT HOLDERS AND CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
-# INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
-# NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF
-# USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON
-# ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-# (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
-# THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+# TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
+# PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+# HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+# SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+# LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+# DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+# THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+# (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+# OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.

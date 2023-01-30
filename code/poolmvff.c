@@ -1,7 +1,7 @@
 /* poolmvff.c: First Fit Manual Variable Pool
  *
  * $Id$
- * Copyright (c) 2001-2016 Ravenbrook Limited.  See end of file for license.
+ * Copyright (c) 2001-2020 Ravenbrook Limited.  See end of file for license.
  * Portions copyright (C) 2002 Global Graphics Software.
  *
  * **** RESTRICTION: This pool may not allocate from the arena control
@@ -83,7 +83,7 @@ static void MVFFReduce(MVFF mvff)
      threshold fraction of the total memory. */
 
   totalLand = MVFFTotalLand(mvff);
-  freeLimit = (Size)(LandSize(totalLand) * mvff->spare);
+  freeLimit = (Size)((double)LandSize(totalLand) * mvff->spare);
   freeLand = MVFFFreeLand(mvff);
   freeSize = LandSize(freeLand);
   if (freeSize < freeLimit)
@@ -122,7 +122,7 @@ static void MVFFReduce(MVFF mvff)
 
     base = AddrAlignUp(RangeBase(&freeRange), grainSize);
     limit = AddrAlignDown(RangeLimit(&freeRange), grainSize);
-    
+
     /* Give up if this block doesn't contain a whole aligned grain,
        even though smaller better-aligned blocks might, because
        LandFindLargest won't be able to find those anyway. */
@@ -191,8 +191,8 @@ static Res MVFFExtend(Range rangeReturn, MVFF mvff, Size size)
 
   AVER(SizeIsAligned(size, PoolAlignment(pool)));
 
-  /* Use extendBy unless it's too small (see */
-  /* <design/poolmvff/#design.acquire-size>). */
+  /* Use extendBy unless it's too small */
+  /* <design/poolmvff#.design.acquire-size>. */
   if (size <= mvff->extendBy)
     allocSize = mvff->extendBy;
   else
@@ -203,7 +203,7 @@ static Res MVFFExtend(Range rangeReturn, MVFF mvff, Size size)
   res = ArenaAlloc(&base, MVFFLocusPref(mvff), allocSize, pool);
   if (res != ResOK) {
     /* try again with a range just large enough for object */
-    /* see <design/poolmvff/#design.seg-fail> */
+    /* see <design/poolmvff#.design.seg-fail> */
     allocSize = SizeArenaGrains(size, arena);
     res = ArenaAlloc(&base, MVFFLocusPref(mvff), allocSize, pool);
     if (res != ResOK)
@@ -333,7 +333,7 @@ static void MVFFFree(Pool pool, Addr old, Size size)
 /* MVFFBufferFill -- Fill the buffer
  *
  * Fill it with the largest block we can find. This is worst-fit
- * allocation policy; see <design/poolmvff/#over.buffer>.
+ * allocation policy; see <design/poolmvff#.over.buffer>.
  */
 static Res MVFFBufferFill(Addr *baseReturn, Addr *limitReturn,
                           Pool pool, Buffer buffer, Size size)
@@ -364,7 +364,7 @@ static Res MVFFBufferFill(Addr *baseReturn, Addr *limitReturn,
 
 /* MVFFVarargs -- decode obsolete varargs */
 
-static void MVFFVarargs(ArgStruct args[MPS_ARGS_MAX], va_list varargs)
+static void MVFFVarargs(ArgStruct args[MPS_ARGS_MAX - 1], va_list varargs)
 {
   args[0].key = MPS_KEY_EXTEND_BY;
   args[0].val.size = va_arg(varargs, Size);
@@ -379,6 +379,7 @@ static void MVFFVarargs(ArgStruct args[MPS_ARGS_MAX], va_list varargs)
   args[5].key = MPS_KEY_MVFF_FIRST_FIT;
   args[5].val.b = va_arg(varargs, Bool);
   args[6].key = MPS_KEY_ARGS_END;
+  AVER(MPS_ARGS_MAX - 1 > 6);
   AVERT(ArgList, args);
 }
 
@@ -415,16 +416,16 @@ static Res MVFFInit(Pool pool, Arena arena, PoolClass klass, ArgList args)
   AVERC(PoolClass, klass);
 
   /* .arg: class-specific additional arguments; see */
-  /* <design/poolmvff/#method.init> */
+  /* <design/poolmvff#.method.init> */
   /* .arg.check: we do the same checks here and in MVFFCheck */
   /* except for arenaHigh, which is stored only in the locusPref. */
-  
+
   if (ArgPick(&arg, args, MPS_KEY_EXTEND_BY))
     extendBy = arg.val.size;
-  
+
   if (ArgPick(&arg, args, MPS_KEY_MEAN_SIZE))
     avgSize = arg.val.size;
-  
+
   if (ArgPick(&arg, args, MPS_KEY_ALIGN))
     align = arg.val.align;
 
@@ -433,10 +434,10 @@ static Res MVFFInit(Pool pool, Arena arena, PoolClass klass, ArgList args)
 
   if (ArgPick(&arg, args, MPS_KEY_MVFF_SLOT_HIGH))
     slotHigh = arg.val.b;
-  
+
   if (ArgPick(&arg, args, MPS_KEY_MVFF_ARENA_HIGH))
     arenaHigh = arg.val.b;
-  
+
   if (ArgPick(&arg, args, MPS_KEY_MVFF_FIRST_FIT))
     firstFit = arg.val.b;
 
@@ -448,7 +449,7 @@ static Res MVFFInit(Pool pool, Arena arena, PoolClass klass, ArgList args)
   AVERT(Align, align);
   /* This restriction on the alignment is necessary because of the use
      of a Freelist to store the free address ranges in low-memory
-     situations. <design/freelist/#impl.grain.align>. */
+     situations. <design/freelist#.impl.grain.align>. */
   AVER(AlignIsAligned(align, FreelistMinimumAlignment));
   AVER(align <= ArenaGrainSize(arena));
   AVERT(Bool, slotHigh);
@@ -518,8 +519,8 @@ static Res MVFFInit(Pool pool, Arena arena, PoolClass klass, ArgList args)
   SetClassOfPoly(pool, CLASS(MVFFPool));
   mvff->sig = MVFFSig;
   AVERC(MVFFPool, mvff);
-  
-  EVENT8(PoolInitMVFF, pool, arena, extendBy, avgSize, align,
+
+  EVENT7(PoolInitMVFF, pool, extendBy, avgSize, align,
          BOOLOF(slotHigh), BOOLOF(arenaHigh), BOOLOF(firstFit));
 
   return ResOK;
@@ -758,41 +759,29 @@ Bool MVFFCheck(MVFF mvff)
 
 /* C. COPYRIGHT AND LICENSE
  *
- * Copyright (C) 2001-2016 Ravenbrook Limited <http://www.ravenbrook.com/>.
- * All rights reserved.  This is an open source license.  Contact
- * Ravenbrook for commercial licensing options.
- * 
+ * Copyright (C) 2001-2020 Ravenbrook Limited <https://www.ravenbrook.com/>.
+ *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are
  * met:
- * 
+ *
  * 1. Redistributions of source code must retain the above copyright
- * notice, this list of conditions and the following disclaimer.
- * 
+ *    notice, this list of conditions and the following disclaimer.
+ *
  * 2. Redistributions in binary form must reproduce the above copyright
- * notice, this list of conditions and the following disclaimer in the
- * documentation and/or other materials provided with the distribution.
- * 
- * 3. Redistributions in any form must be accompanied by information on how
- * to obtain complete source code for this software and any accompanying
- * software that uses this software.  The source code must either be
- * included in the distribution or be available for no more than the cost
- * of distribution plus a nominal fee, and must be freely redistributable
- * under reasonable conditions.  For an executable file, complete source
- * code means the source code for all modules it contains. It does not
- * include source code for modules or files that typically accompany the
- * major components of the operating system on which the executable file
- * runs.
- * 
+ *    notice, this list of conditions and the following disclaimer in the
+ *    documentation and/or other materials provided with the
+ *    distribution.
+ *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS
  * IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
- * TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR
- * PURPOSE, OR NON-INFRINGEMENT, ARE DISCLAIMED. IN NO EVENT SHALL THE
- * COPYRIGHT HOLDERS AND CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
- * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
- * NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF
- * USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON
- * ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
- * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
- * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ * TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
+ * PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+ * HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+ * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+ * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+ * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */

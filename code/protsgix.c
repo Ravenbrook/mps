@@ -1,7 +1,7 @@
 /* protsgix.c: PROTECTION (SIGNAL HANDLER) FOR POSIX
  *
  *  $Id$
- *  Copyright (c) 2001-2018 Ravenbrook Limited.  See end of file for license.
+ *  Copyright (c) 2001-2020 Ravenbrook Limited.  See end of file for license.
  *
  * This implements protection exception handling using POSIX signals.
  * It is designed to run on any POSIX-compliant Unix.
@@ -10,8 +10,8 @@
  * SOURCES
  *
  * .source.posix: POSIX specifications for signal.h and sigaction
- * <http://pubs.opengroup.org/onlinepubs/9699919799/basedefs/signal.h.html>
- * <http://pubs.opengroup.org/onlinepubs/9699919799/functions/sigaction.html>
+ * <https://pubs.opengroup.org/onlinepubs/9699919799/basedefs/signal.h.html>
+ * <https://pubs.opengroup.org/onlinepubs/9699919799/functions/sigaction.html>
  *
  * .source.man: sigaction(2): FreeBSD System Calls Manual.
  *
@@ -28,6 +28,7 @@
 
 #include "prmcix.h"
 
+#include <errno.h>     /* for errno */
 #include <signal.h>    /* for many functions */
 #include <ucontext.h>  /* for ucontext_t */
 #include <unistd.h>    /* for getpid */
@@ -71,47 +72,55 @@ static struct sigaction sigNext;
 
 static void sigHandle(int sig, siginfo_t *info, void *uap)  /* .sigh.args */
 {
-  int e;
-  /* sigset renamed to asigset due to clash with global on Darwin. */
-  sigset_t asigset, oldset;
-  struct sigaction sa;
+  ERRNO_SAVE {
+    int e;
+    /* sigset renamed to asigset due to clash with global on Darwin. */
+    sigset_t asigset, oldset;
+    struct sigaction sa;
 
-  AVER(sig == PROT_SIGNAL);
+    AVER(sig == PROT_SIGNAL);
 
-  if(info->si_code == SEGV_ACCERR) {  /* .sigh.check */
-    AccessSet mode;
-    Addr base;
-    MutatorContextStruct context;
+    if (info->si_code == SEGV_ACCERR) {  /* .sigh.check */
+      AccessSet mode;
+      Addr base;
+      MutatorContextStruct context;
 
-    MutatorContextInitFault(&context, info, (ucontext_t *)uap);
+      MutatorContextInitFault(&context, info, (ucontext_t *)uap);
 
-    mode = AccessREAD | AccessWRITE; /* .sigh.mode */
+      mode = AccessREAD | AccessWRITE; /* .sigh.mode */
 
-    /* We assume that the access is for one word at the address. */
-    base = (Addr)info->si_addr;   /* .sigh.addr */
+      /* We assume that the access is for one word at the address. */
+      base = (Addr)info->si_addr;   /* .sigh.addr */
 
-    /* Offer each protection structure the opportunity to handle the */
-    /* exception.  If it succeeds, then allow the mutator to continue. */
-    if(ArenaAccess(base, mode, &context))
-      return;
-  }
+      /* Offer each protection structure the opportunity to handle the */
+      /* exception.  If it succeeds, then allow the mutator to continue. */
+      if (ArenaAccess(base, mode, &context))
+        goto done;
+    }
 
-  /* The exception was not handled by any known protection structure, */
-  /* so throw it to the previously installed handler.  That handler won't */
-  /* get an accurate context (the MPS would fail if it were the second in */
-  /* line) but it's the best we can do. */
+    /* The exception was not handled by any known protection structure, */
+    /* so throw it to the previously installed handler.  That handler won't */
+    /* get an accurate context (the MPS would fail if it were the second in */
+    /* line) but it's the best we can do. */
 
-  e = sigaction(PROT_SIGNAL, &sigNext, &sa);
-  AVER(e == 0);
-  sigemptyset(&asigset);
-  sigaddset(&asigset, PROT_SIGNAL);
-  e = sigprocmask(SIG_UNBLOCK, &asigset, &oldset);
-  AVER(e == 0);
-  kill(getpid(), PROT_SIGNAL);
-  e = sigprocmask(SIG_SETMASK, &oldset, NULL);
-  AVER(e == 0);
-  e = sigaction(PROT_SIGNAL, &sa, NULL);
-  AVER(e == 0);
+    e = sigaction(PROT_SIGNAL, &sigNext, &sa);
+    AVER(e == 0);
+    e = sigemptyset(&asigset);
+    AVER(e == 0);
+    e = sigaddset(&asigset, PROT_SIGNAL);
+    AVER(e == 0);
+    e = sigprocmask(SIG_UNBLOCK, &asigset, &oldset);
+    AVER(e == 0);
+    e = kill(getpid(), PROT_SIGNAL);
+    AVER(e == 0);
+    e = sigprocmask(SIG_SETMASK, &oldset, NULL);
+    AVER(e == 0);
+    e = sigaction(PROT_SIGNAL, &sa, NULL);
+    AVER(e == 0);
+
+  done:
+    ;
+  } ERRNO_RESTORE;
 }
 
 
@@ -134,8 +143,9 @@ void ProtSetup(void)
   int result;
 
   sa.sa_sigaction = sigHandle;
-  sigemptyset(&sa.sa_mask);
-  sa.sa_flags = SA_SIGINFO;
+  result = sigemptyset(&sa.sa_mask);
+  AVER(result == 0);
+  sa.sa_flags = SA_SIGINFO | SA_RESTART;
 
   result = sigaction(PROT_SIGNAL, &sa, &sigNext);
   AVER(result == 0);
@@ -144,41 +154,29 @@ void ProtSetup(void)
 
 /* C. COPYRIGHT AND LICENSE
  *
- * Copyright (C) 2001-2018 Ravenbrook Limited <http://www.ravenbrook.com/>.
- * All rights reserved.  This is an open source license.  Contact
- * Ravenbrook for commercial licensing options.
- * 
+ * Copyright (C) 2001-2020 Ravenbrook Limited <https://www.ravenbrook.com/>.
+ *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are
  * met:
- * 
+ *
  * 1. Redistributions of source code must retain the above copyright
- * notice, this list of conditions and the following disclaimer.
- * 
+ *    notice, this list of conditions and the following disclaimer.
+ *
  * 2. Redistributions in binary form must reproduce the above copyright
- * notice, this list of conditions and the following disclaimer in the
- * documentation and/or other materials provided with the distribution.
- * 
- * 3. Redistributions in any form must be accompanied by information on how
- * to obtain complete source code for this software and any accompanying
- * software that uses this software.  The source code must either be
- * included in the distribution or be available for no more than the cost
- * of distribution plus a nominal fee, and must be freely redistributable
- * under reasonable conditions.  For an executable file, complete source
- * code means the source code for all modules it contains. It does not
- * include source code for modules or files that typically accompany the
- * major components of the operating system on which the executable file
- * runs.
- * 
+ *    notice, this list of conditions and the following disclaimer in the
+ *    documentation and/or other materials provided with the
+ *    distribution.
+ *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS
  * IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
- * TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR
- * PURPOSE, OR NON-INFRINGEMENT, ARE DISCLAIMED. IN NO EVENT SHALL THE
- * COPYRIGHT HOLDERS AND CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
- * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
- * NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF
- * USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON
- * ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
- * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
- * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ * TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
+ * PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+ * HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+ * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+ * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+ * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */

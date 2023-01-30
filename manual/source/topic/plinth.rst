@@ -30,8 +30,7 @@ support it needs from the execution environment. The MPS uses the plinth instead
 
 #. The plinth gives the :term:`client program` complete control of
    interaction between the MPS and the user, including
-   :ref:`assertions <topic-error-assertion>` and :ref:`telemetry
-   <topic-telemetry>`.
+   :ref:`topic-error-assertion` and :ref:`topic-telemetry`.
 
 The plinth may be provided by the :term:`client program`; however, a
 sample implementation of the plinth using ANSI Standard C Library
@@ -64,7 +63,7 @@ into account the restrictions imposed by the operating system. (See
 "`Defining Signal Handlers`_" in the GNU C Library Reference Manual
 for useful advice.)
 
-.. _Defining Signal Handlers: http://www.gnu.org/software/libc/manual/html_node/Defining-Handlers.html
+.. _Defining Signal Handlers: https://www.gnu.org/software/libc/manual/html_node/Defining-Handlers.html
 
 
 .. c:macro:: CONFIG_PLINTH_NONE
@@ -267,7 +266,7 @@ Library module
         This function must not call any function in MPS, and it must
         not access memory managed by the MPS.
 
-.. c:function:: extern mps_lib_assert_fail_t mps_lib_assert_fail_install(mps_lib_assert_fail_t handler)
+.. c:function:: mps_lib_assert_fail_t mps_lib_assert_fail_install(mps_lib_assert_fail_t handler)
 
     This function customises the behaviour of the default assertion handler
     in the ANSI Library module.  It is not otherwise required by the MPS
@@ -287,7 +286,7 @@ Library module
         The installed assertion handler must not call any function in
         MPS, and it must not access memory managed by the MPS.
 
-.. c:type:: typedef void (*mps_lib_assert_fail_t)(const char *, unsigned, const char *)
+.. c:type:: void (*mps_lib_assert_fail_t)(const char *, unsigned, const char *)
 
     The type of assertion handlers passed to and returned by
     :c:func:`mps_lib_assert_fail_install`.
