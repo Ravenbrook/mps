@@ -838,6 +838,7 @@ extern Bool RankSetCheck(RankSet rankSet);
 
 extern RefSet RefSetEmpty, RefSetUniv;
 extern void RefSetInit(RefSet rs);
+extern Bool RefSetCheck(RefSet rs);
 extern void RefSetFromZones(RefSet rs, ZoneSet zs);
 extern Res RefSetDescribe(RefSet rs, mps_lib_FILE *stream, Count depth);
 extern void RefSetCopy(RefSet to, RefSet from);

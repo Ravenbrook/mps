@@ -24,6 +24,13 @@ void RefSetInit(RefSet rs)
   rs->zones = ZoneSetEMPTY;
 }
 
+Bool RefSetCheck(RefSet rs)
+{
+  /* rs->zones is an arbitrary bit pattern */
+  UNUSED(rs);
+  return TRUE;
+}
+
 void RefSetFromZones(RefSet rs, ZoneSet zs)
 {
   rs->zones = zs;

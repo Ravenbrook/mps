@@ -348,6 +348,8 @@ void SegSetRankAndSummary(Seg seg, RankSet rankSet, RefSet summary)
 static void SegSummaryAddRef(Seg seg, Arena arena, Ref ref)
 {
   RefSetStruct summary;
+  AVERT(Seg, seg);
+  AVERT(Arena, arena);
   SegGetSummary(&summary, seg);
   RefSetAddMutatorRef(&summary, arena, ref);
   SegSetSummary(seg, &summary);
@@ -366,6 +368,8 @@ void SegSummaryAddFixedRef(Seg seg, Arena arena, Ref ref)
 Bool SegDoesNotReference(Seg seg, RefSet rs)
 {
   RefSetStruct summary;
+  AVERT(Seg, seg);
+  AVER(RefSetCheck(rs));
   SegGetSummary(&summary, seg);
   return !RefSetIntersects(&summary, rs);
 }

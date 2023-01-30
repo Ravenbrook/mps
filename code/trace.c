@@ -79,7 +79,7 @@ void ScanStateInit(ScanState ss, TraceSet ts, Arena arena,
   AVERT(TraceSet, ts);
   AVERT(Arena, arena);
   AVERT(Rank, rank);
-  /* white is arbitrary and can't be checked FIXME: RefSetCheck */
+  AVER(RefSetCheck(white)); /* FIXME: Can we assert non-empty? */
 
   /* NOTE: We can only currently support scanning for a set of traces
      with the same fix method. To remove this restriction, it would be
@@ -134,7 +134,9 @@ void ScanStateInitSeg(ScanState ss, TraceSet ts, Arena arena,
                       Rank rank, RefSet white, Seg seg)
 {
   Format format;
+
   AVERT(Seg, seg);
+  AVER(RefSetCheck(white)); /* FIXME: Can we assert non-empty? */
 
   ScanStateInit(ss, ts, arena, rank, white);
   if (PoolFormat(&format, SegPool(seg))) {
@@ -1124,7 +1126,7 @@ static Bool traceFindGrey(Seg *segReturn, Rank *rankReturn,
 void ScanStateSetSummary(ScanState ss, RefSet summary)
 {
   AVERT(ScanState, ss);
-  /* Can't check summary, as it can be anything. */
+  AVER(RefSetCheck(summary));
 
   ScanStateSetUnfixedZones(ss, ZoneSetEMPTY);
   RefSetCopy(&ss->fixedSummary, summary);
@@ -1189,6 +1191,7 @@ void ScanStateUpdateSummary(ScanState ss, Seg seg, Bool wasTotal)
 Bool ScanStateSummaryIsEmpty(ScanState ss)
 {
   RefSetStruct summary;
+  AVERT(ScanState, ss);
   ScanStateGetSummary(&summary, ss);
   return RefSetIsEmpty(&summary);
 }
@@ -1196,6 +1199,8 @@ Bool ScanStateSummaryIsEmpty(ScanState ss)
 Bool ScanStateSummaryEqual(ScanState ss, RefSet rs)
 {
   RefSetStruct summary;
+  AVERT(ScanState, ss);
+  AVER(RefSetCheck(rs));
   ScanStateGetSummary(&summary, ss);
   return RefSetEqual(&summary, rs);
 }
