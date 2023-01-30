@@ -676,6 +676,7 @@ extern void SegGetSummary(RefSet summaryReturn, Seg seg);
 extern void SegSetSummary(Seg seg, RefSet summary);
 extern void SegSummaryAddMutatorRef(Seg seg, Arena arena, Ref ref);
 extern void SegSummaryAddFixedRef(Seg seg, Arena arena, Ref ref);
+extern void SegGetRefSet(RefSet rsReturn, Arena arena, Seg seg);
 extern Bool SegDoesNotReference(Seg seg, RefSet rs);
 extern Bool SegHasBuffer(Seg seg);
 extern Bool SegBuffer(Buffer *bufferReturn, Seg seg);

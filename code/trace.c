@@ -406,8 +406,7 @@ Res TraceAddWhite(Trace trace, Seg seg)
        pool made it white. */
     {
       RefSetStruct segRefSetStruct;
-      /* FIXME: Should use SegGetRefSet */
-      RefSetFromZones(&segRefSetStruct, ZoneSetOfSeg(trace->arena, seg));
+      SegGetRefSet(&segRefSetStruct, trace->arena, seg);
       RefSetUnion(&trace->whiteStruct, &segRefSetStruct);
     }
 

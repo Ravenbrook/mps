@@ -345,6 +345,16 @@ void SegSetRankAndSummary(Seg seg, RankSet rankSet, RefSet summary)
 }
 
 
+/* SegGetRefSet -- get the refset of all references to a segment */
+
+void SegGetRefSet(RefSet rsReturn, Arena arena, Seg seg)
+{
+  AVERT(Arena, arena);
+  AVERT(Seg, seg);
+  RefSetFromZones(rsReturn, ZoneSetOfSeg(arena, seg));
+}
+
+
 static void SegSummaryAddRef(Seg seg, Arena arena, Ref ref)
 {
   RefSetStruct summary;
