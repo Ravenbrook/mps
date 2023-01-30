@@ -45,8 +45,14 @@ quickly [how quickly? kpa.qpm! RB 2023-01-21] once you have learned it
 [and how long does that take?  RB 2023-01-21].  [Insert example times
 here for different kinds of work.  RB 2023-01-21]
 
-[Insert time-to-execute estimates here based on measurements during
-testing of this procedure.  RB 2023-01-23.]
+Time to execute:
+
+- first time, with experienced leader training checkers, on a small
+  low-risk change: 3h [cite
+  https://github.com/Ravenbrook/mps/pull/117#issuecomment-1405388814
+  et seq. RB 2023-01-30]
+
+[Insert further estimates from more testing.  RB 2023-01-30]
 
 This procedure requires *training*, preferably by an experienced
 review leader (`.role.leader`_).  At the very least, do not apply this
