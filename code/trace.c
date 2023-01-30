@@ -1200,6 +1200,12 @@ Bool ScanStateSummaryEqual(ScanState ss, RefSet rs)
   return RefSetEqual(&summary, rs);
 }
 
+ZoneSet ScanStateFixedZones(ScanState ss)
+{
+  AVERT(ScanState, ss);
+  return RefSetZones(&(ss)->fixedSummary);
+}
+
 
 /* traceScanSegRes -- scan a segment to remove greyness
  *

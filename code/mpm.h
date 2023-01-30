@@ -363,13 +363,12 @@ extern void ScanStateGetSummary(RefSet summaryReturn, ScanState ss);
 extern void ScanStateUpdateSummary(ScanState ss, Seg seg, Bool wasTotal);
 extern Bool ScanStateSummaryIsEmpty(ScanState ss);
 extern Bool ScanStateSummaryEqual(ScanState ss, RefSet rs);
-
+extern ZoneSet ScanStateFixedZones(ScanState ss);
 
 /* See impl.h.mpmst.ss */
 #define ScanStateZoneShift(ss)             ((Shift)(ss)->ss_s._zs)
 #define ScanStateWhiteZones(ss)            ((ZoneSet)(ss)->ss_s._w)
 #define ScanStateUnfixedZones(ss)          ((ZoneSet)(ss)->ss_s._ufs)
-#define ScanStateFixedZones(ss)            RefSetZones(&(ss)->fixedSummary) /* FIXME */
 #define ScanStateSetZoneShift(ss, shift)   ((void)((ss)->ss_s._zs = (shift)))
 #define ScanStateSetWhiteZones(ss, zs)     ((void)((ss)->ss_s._w = (zs)))
 #define ScanStateSetUnfixedZones(ss, zs)   ((void)((ss)->ss_s._ufs = (zs)))
