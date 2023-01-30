@@ -30,6 +30,9 @@ Memory Pool System review procedure
 .. TODO: More specific links to rationale, [Gilb-93]_ etc. for
    justification and variation.
 
+.. TODO: Lift review record advice, specifically GitHub comment
+   format, into a section.  rule.generic.once!
+
 
 1. Introduction
 ===============
@@ -282,7 +285,7 @@ _`.entry.record`: Record the entry procedure (`.doc.record`_).
 - Record a the procedure you're following (this one).  Use a
   permalink.  For example::
 
-    Executing [review entry](https://github.com/Ravenbrook/mps/blob/d4ef690a7f2a3d3d6d0ed496eff46e09841b8633/procedure/review.rst#51-review-entry)
+    Executing [proc.review.entry](https://github.com/Ravenbrook/mps/blob/d4ef690a7f2a3d3d6d0ed496eff46e09841b8633/procedure/review.rst#51-review-entry)
 
 _`.entry.change`: Record exactly what the change is.
 
@@ -307,9 +310,9 @@ _`.entry.criteria`: Determine and record the entry and exit criteria.
 
 - Record permalinks to the criteria.  For example::
 
-    Executing [review entry](https://github.com/Ravenbrook/mps/blob/d4ef690a7f2a3d3d6d0ed496eff46e09841b8633/procedure/review.rst#51-review-entry)
+    Executing [proc.review.entry](https://github.com/Ravenbrook/mps/blob/d4ef690a7f2a3d3d6d0ed496eff46e09841b8633/procedure/review.rst#51-review-entry)
 
-    - Applying [entry.universal](https://github.com/Ravenbrook/mps/blob/eceaccdf5ab8d8614e9a8bb91a23bdcb99e7d0ce/procedure/entry.universal.rst) and [entry.impl](https://github.com/Ravenbrook/mps/blob/eceaccdf5ab8d8614e9a8bb91a23bdcb99e7d0ce/procedure/entry.impl.rst).  
+    1. Applying [entry.universal](https://github.com/Ravenbrook/mps/blob/eceaccdf5ab8d8614e9a8bb91a23bdcb99e7d0ce/procedure/entry.universal.rst) and [entry.impl](https://github.com/Ravenbrook/mps/blob/eceaccdf5ab8d8614e9a8bb91a23bdcb99e7d0ce/procedure/entry.impl.rst).  
 
 _`.entry.check`: Check that the entry criteria hold.  Record any
 transgressions.  Decide whether to reject the change from review by
@@ -338,7 +341,7 @@ _`.plan.record`: Record the planning procedure.
 - Record the procedure you're following (this one).  Use a permalink.
   For example::
 
-    Executing [review planning](https://github.com/Ravenbrook/mps/blob/d4ef690a7f2a3d3d6d0ed496eff46e09841b8633/procedure/review.rst#52-review-planning)
+    Executing [proc.review.plan](https://github.com/Ravenbrook/mps/blob/d4ef690a7f2a3d3d6d0ed496eff46e09841b8633/procedure/review.rst#52-review-planning)
 
 _`.plan.time`: Estimate the checking rate and time.
 
@@ -352,17 +355,17 @@ _`.plan.time`: Estimate the checking rate and time.
 
 - Record your estimates.  For example::
 
-    Executing [review planning](https://github.com/Ravenbrook/mps/blob/d4ef690a7f2a3d3d6d0ed496eff46e09841b8633/procedure/review.rst#52-review-planning)
+    Executing [proc.review.plan](https://github.com/Ravenbrook/mps/blob/d4ef690a7f2a3d3d6d0ed496eff46e09841b8633/procedure/review.rst#52-review-planning)
 
-    - proc.review.plan.time: About 500 lines of code @ 10 lines/minute
-      so about 50 mins of checking. 
+    1. proc.review.plan.time: About 500 lines of code @ 10 lines/minute
+       so about 50 mins of checking. 
 
 _`.plan.schedule`: Plan when this review may take place and who should
 attend.  Check with attendees if appropriate.
 
 - Record like::
 
-    - @thejayps and @UNAA008 will review 2023-01-23 11:00 for about 2h.
+    2. proc.review.plan.schedule: @thejayps and @UNAA008 will review 2023-01-23 11:00 for about 2h.
 
 _`.plan.train`: Ensure that all participants are familiar with the
 review process.
@@ -430,7 +433,7 @@ _`.ko.record`: Record the kickoff procedure.
 - Record the procedure you're following (this one).  Use a permalink.
   For example::
 
-    Executing [review kickoff](https://github.com/Ravenbrook/mps/blob/b2050e2cf69029fc13c31a724421945952d3fab2/procedure/review.rst#53-review-kickoff)
+    Executing [proc.review.kickoff](https://github.com/Ravenbrook/mps/blob/b2050e2cf69029fc13c31a724421945952d3fab2/procedure/review.rst#53-review-kickoff)
 
 _`.ko.doc`: Ensure that every checker has all the documents they need.
 
@@ -753,7 +756,7 @@ _`.brainstorm.record`: Record the brainstorm procedure
 - Record a the procedure you're following (this one).  Use a
   permalink.  For example::
 
-    Executing [brainstorm](https://github.com/Ravenbrook/mps/blob/branch/2023-01-19/review-procedure/procedure/review.rst#56-review-brainstorm)
+    Executing [proc.review.brainstorm](https://github.com/Ravenbrook/mps/blob/branch/2023-01-19/review-procedure/procedure/review.rst#56-review-brainstorm)
 
 _`.brainstorm.choose`: Choose 3 to 6 `major defects`_ or groups
 of `major defects`_ found in review.
@@ -1028,14 +1031,14 @@ _`.exit.record`: Record the exit procedure (`.doc.record`_).
 - Record a the procedure you're following (this one).  Use a
   permalink.  For example::
 
-    Executing (review exit)[https://github.com/Ravenbrook/mps/blob/645200a25e5e415a2a2978d550b5251e0284c43e/procedure/review.rst#58-review-exit]
+    Executing (proc.review.exit)[https://github.com/Ravenbrook/mps/blob/645200a25e5e415a2a2978d550b5251e0284c43e/procedure/review.rst#58-review-exit]
 
 _`.exit.check`: Check that the exit criteria hold (see
 `.entry.criteria`_).
 
 - Record any transgressions, like::
 
-    - exit.universal.quest: Question 5 answered in chat but not in docs.
+    1. exit.universal.quest: Question 5 answered in chat but not in docs.
  
 _`.exit.fix`: Fix transgressions, if it is feasible with low risk.
 Otherwise ask `.role.editor`_ to fix them.  Record this action, and
@@ -1046,7 +1049,7 @@ too defective.  It fails review and must not be used.
 
 - Record this result, like::
 
-    Revised change rejected.
+    2. Revised change rejected.
 
 - Tell someone.  [Who and how?  RB 2023-01-28]
 
@@ -1055,18 +1058,20 @@ used.
 
 - Record this result, like::
 
-    Revised change passed.
+    2. Revised change passed.
 
 - On GitHub, the approve the pull request for merge.
 
 - Tell the person who will put the change to use, such as someone who
   will merge it to master.
 
-_`.exit.calc`: Calculate and record final review metrics (`.calc`_).  For example::
+_`.exit.calc`: Calculate and record final review metrics (`.calc`_).
+For example::
 
-  Hours used: 11
-  Hours saved: 70
-  Major defects remaining: 1.5
+    3. review.exit.calc:
+       - hours used: 11
+       - hours saved: 70
+       - major defects remaining: 1.5
 
 _`.exit.inform`: Inform all review participants of the result of their
 efforts.
