@@ -368,10 +368,10 @@ extern ZoneSet ScanStateFixedZones(ScanState ss);
 /* See impl.h.mpmst.ss */
 #define ScanStateZoneShift(ss)             ((Shift)(ss)->ss_s._zs)
 #define ScanStateWhiteZones(ss)            ((ZoneSet)(ss)->ss_s._w)
-#define ScanStateUnfixedZones(ss)          ((ZoneSet)(ss)->ss_s._ufs)
+#define ScanStateUnfixedZones(ss)          ((ZoneSet)(ss)->ss_s._ufzs)
 #define ScanStateSetZoneShift(ss, shift)   ((void)((ss)->ss_s._zs = (shift)))
 #define ScanStateSetWhiteZones(ss, zs)     ((void)((ss)->ss_s._w = (zs)))
-#define ScanStateSetUnfixedZones(ss, zs)   ((void)((ss)->ss_s._ufs = (zs)))
+#define ScanStateSetUnfixedZones(ss, zs)   ((void)((ss)->ss_s._ufzs = (zs)))
 
 extern Bool TraceIdCheck(TraceId id);
 extern Bool TraceSetCheck(TraceSet ts);
@@ -1061,7 +1061,7 @@ DECLARE_CLASS(Land, Land, Inst);
 
 /* C. COPYRIGHT AND LICENSE
  *
- * Copyright (C) 2001-2020 Ravenbrook Limited <https://www.ravenbrook.com/>.
+ * Copyright (C) 2001-2023 Ravenbrook Limited <https://www.ravenbrook.com/>.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are

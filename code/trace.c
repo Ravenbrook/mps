@@ -1266,18 +1266,22 @@ static Res traceScanSegRes(TraceSet ts, Rank rank, Arena arena, Seg seg)
 
     SegGetSummary(&summary, seg);
 
-    /* Following is true whether or not scan was total. */
-    /* <design/scan#.summary.subset>. */
-    /* .verify.segsummary: were the seg contents, as found by this
-     * scan, consistent with the recorded segment summary?
-     */
-    /* FIXME: Express in terms of refsets */
-    AVER(ZoneSetSub(ScanStateUnfixedZones(ss), RefSetZones(&summary))); /* FIXME: Update <design/check/#.common> */
+    /* .verify.segsummary: Were the seg contents, as found by this
+       scan, consistent with the recorded segment summary?  The set of
+       referenced zones seen by a scan is a subset of the previously
+       computed set.  This is true whether or not the scan was total.
+       See design.mps.scan.zones.subset.  Note that we are checking
+       using an implementation detail that MPS_FIX1 collects a set of
+       zones, not an approximation, and that it should be consistent
+       every time. */
+    /* FIXME: Update <design/check/#.common> */
+    AVER(ZoneSetSub(ScanStateUnfixedZones(ss),
+		    RefSetZones(&summary)));
 
     /* Write barrier deferral -- see <design/write-barrier#.deferral>. */
     /* Did the segment refer to the white set? */
-    /* FIXME: Should be a RefSetIntersects */
-    if (ZoneSetInter(ScanStateUnfixedZones(ss), RefSetZones(&whiteStruct)) == ZoneSetEMPTY) {
+    if (ZoneSetInter(ScanStateUnfixedZones(ss),
+		     RefSetZones(&whiteStruct)) == ZoneSetEMPTY) {
       /* Boring scan.  One step closer to raising the write barrier. */
       if (seg->defer > 0)
         --seg->defer;
@@ -1977,7 +1981,7 @@ Res TraceDescribe(Trace trace, mps_lib_FILE *stream, Count depth)
 
 /* C. COPYRIGHT AND LICENSE
  *
- * Copyright (C) 2001-2020 Ravenbrook Limited <https://www.ravenbrook.com/>.
+ * Copyright (C) 2001-2023 Ravenbrook Limited <https://www.ravenbrook.com/>.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are

@@ -396,9 +396,9 @@ typedef struct mps_fmt_s {
  * a word rather than a shift, so that the external mps_ss_s is a uniform
  * three-word structure.  See <code/mps.h#ss> and <design/interface-c>.
  *
- *   zs  Shift   zoneShift       copy of arena->zoneShift.  See .ss.zone
- *   w   ZoneSet white           white set, for inline fix test
- *   ufs RefSet  unfixedSummary  accumulated summary of scanned references
+ *   zs   Shift   zoneShift       copy of arena->zoneShift.  See .ss.zone
+ *   w    ZoneSet white           white set, for inline fix test
+ *   ufzs ZoneSet unfixedZoneSet  accumulated zones of scanned references
  *
  * NOTE: The mps_ss structure used to be obfuscated to preserve Harlequin's
  * trade secrets in the MPS technology.  These days they just seek to
@@ -843,7 +843,7 @@ typedef struct AllocPatternStruct {
 
 /* C. COPYRIGHT AND LICENSE
  *
- * Copyright (C) 2001-2020 Ravenbrook Limited <https://www.ravenbrook.com/>.
+ * Copyright (C) 2001-2023 Ravenbrook Limited <https://www.ravenbrook.com/>.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are

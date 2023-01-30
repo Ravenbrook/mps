@@ -366,7 +366,7 @@ typedef struct mps_ld_s {       /* location dependency descriptor */
 /* .ss: See also <code/mpmst.h#ss>. */
 
 typedef struct mps_ss_s {
-  mps_word_t _zs, _w, _ufs;
+  mps_word_t _zs, _w, _ufzs;
 } mps_ss_s;
 
 
@@ -802,14 +802,14 @@ extern mps_res_t mps_scan_area_tagged_or_zero(mps_ss_t, void *, void *, void *);
     mps_ss_t _ss = (ss); \
     mps_word_t _mps_zs = (_ss)->_zs; \
     mps_word_t _mps_w = (_ss)->_w; \
-    mps_word_t _mps_ufs = (_ss)->_ufs; \
+    mps_word_t _mps_ufzs = (_ss)->_ufzs; \
     mps_word_t _mps_wt; \
     {
 
 #define MPS_FIX1(ss, ref) \
   (_mps_wt = (mps_word_t)1 << ((mps_word_t)(ref) >> _mps_zs \
                                & (sizeof(mps_word_t) * CHAR_BIT - 1)), \
-   _mps_ufs |= _mps_wt, \
+   _mps_ufzs |= _mps_wt, \
    (_mps_w & _mps_wt) != 0)
 
 extern mps_res_t _mps_fix2(mps_ss_t, mps_addr_t *);
@@ -824,12 +824,12 @@ extern mps_res_t _mps_fix2(mps_ss_t, mps_addr_t *);
 
 #define MPS_FIX_CALL(ss, call) \
   MPS_BEGIN \
-    (call); _mps_ufs |= (ss)->_ufs; \
+    (call); _mps_ufzs |= (ss)->_ufzs; \
   MPS_END
 
 #define MPS_SCAN_END(ss) \
    } \
-   (ss)->_ufs = _mps_ufs; \
+   (ss)->_ufzs = _mps_ufzs; \
   MPS_END
 
 
@@ -838,7 +838,7 @@ extern mps_res_t _mps_fix2(mps_ss_t, mps_addr_t *);
 
 /* C. COPYRIGHT AND LICENSE
  *
- * Copyright (C) 2001-2020 Ravenbrook Limited <https://www.ravenbrook.com/>.
+ * Copyright (C) 2001-2023 Ravenbrook Limited <https://www.ravenbrook.com/>.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are
