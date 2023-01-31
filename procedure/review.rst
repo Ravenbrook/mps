@@ -349,7 +349,41 @@ _`.plan.record`: Record the planning procedure.
 
     Executing [proc.review.plan](https://github.com/Ravenbrook/mps/blob/d4ef690a7f2a3d3d6d0ed496eff46e09841b8633/procedure/review.rst#52-review-planning)
 
+_`.plan.iterate`: Consider all of this procedure.
+
+- This procedure is only in rough order.  Later steps may change
+  earier decisions.  For example, availability of people for
+  `.plan.roles`_ might affect `.plan.tactics`_.
+
+_`.plan.tactics`: Examine the change and decide how to check it to
+achieve `2. Purpose`_.
+
+- The default and most effective tactic is to have `.role.checker`_
+  examine every line of the change, evenly distributing their
+  attention by using a checking rate, such as 10 lines/minute.
+
+- Large repetitive automatic changes (seach-and-replace) might be best
+  handled by sampling using a random number generator and a strong
+  Brownian motion producer (dice and tea).
+
+- Large changes might be broken up by document type, or topic, but you
+  still want multiple `.role.checker`_ to look at everything.
+
+- Changes that cannot feasibly be checked should fail `.entry`_ and
+  may need to be reworked into stages that are feasible to review,
+  perhaps by version control transformations.  [Ensure
+  `entry.universal`_ has a rule for this.  RB 2023-01-31]
+  [branch/2014-02-19/remember-time ->
+  branch/2014-04-14/remember-time-2 ->
+  branch/2016-03-22/remember-time-3 -> branch/2018-08-08/refset-struct
+  is an example of this.  RB 2023-01-31]
+
+- Record any variations from the default tactic.
+
 _`.plan.time`: Estimate the checking rate and time.
+
+- GitHub provides diff stats on the pull request (to the right of
+  "Conversation").
 
 - `.phase.check`_ should last no more than one hour, so that checkers
   can maintain concentration.
@@ -367,7 +401,7 @@ _`.plan.time`: Estimate the checking rate and time.
        so about 50 mins of checking. 
 
 _`.plan.schedule`: Plan when this review may take place and who should
-attend.  Check with attendees if appropriate.
+attend.  Negotiate with attendees if appropriate.
 
 - Record like::
 
@@ -405,8 +439,10 @@ _`.plan.rule`: Determine and record the rules to apply (`.doc.rule`_).
 _`.plan.check`: Determine and record the checklists to apply [how and
 from where?  See `mminfo:check.* <https://info.ravenbrook.com/project/mps/doc/2002-06-18/obsolete-mminfo/mminfo/check/>`__.  RB 2023-01-23].
 
-_`.plan.roles`: Determine and record the checking roles
-(`.role.check`_) to assign.
+_`.plan.roles`: Decide and record the checking roles (`.role.check`_)
+to assign.
+
+- Consider and try to assign every checking role (`.role.check`_).
 
 - Choose checking roles that are most likely to find `major defects`_
   in the type of change under review.
@@ -417,6 +453,8 @@ _`.plan.roles`: Determine and record the checking roles
 
 - Bear in mind that `.role.leader`_ and `.role.scribe`_ will be
   somewhat occupied during logging and less able to check.
+
+- Assignments can be renegotiated in `.ko.role`_.
 
 _`.plan.invite`: Invite the checkers (`.role.checker`_) to the kickoff
 meeting (`.ko`_).
@@ -1400,14 +1438,14 @@ Of these, (1) is unfortunately the least accessible, because the
 documents have travelled through several different systems, and
 version control did not always survive.
 
-
-12.1. Why formal reviews?
--------------------------
-
 Ravenbrook does have hundreds of archived review records [MM-reviews]_
 with estimates of review productivity (produced by
 `.phase.estimation`_).  [At some point it would be good to summarize
 those here.  RB 2023-01-28]
+
+
+12.1. Why formal reviews?
+-------------------------
 
 Every formal review has been worthwhile in terms of preventing defects
 versus the cost of review.
@@ -1424,8 +1462,8 @@ expensive to find and fix compared to other software.
 
 It's the job of a garbage collector to destroy information by
 recycling (overwriting) objects and reorganizing memory.  A subtle
-failure of GC logic can cause a failure in the client software hours
-later.  When that failure happens to a user of an application
+failure of GC logic can cause a failure in the client software many
+hours later.  When that failure happens to a user of an application
 delivered by developers using a compiler developed by your client that
 uses the MPS in its runtime system, well, forget about it.  A defect
 in the compiler (usually considered expensive) is relatively cheap!
@@ -1515,9 +1553,12 @@ B. Document History
                    Revising entry, planning, kickoff, and exit.
                    Revising documents section.
 2023-01-30  RB_    Revising checking, logging, and brainstorm.
+2023-01-31  RB_    Revised based on `review test run`_.
 ==========  =====  ==================================================
 
 .. _RB: mailto:rb@ravenbrook.com
+
+.. _review test run: https://github.com/Ravenbrook/mps/pull/123#issuecomment-1408682681
 
 
 C. Copyright and License
