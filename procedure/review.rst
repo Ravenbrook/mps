@@ -708,17 +708,15 @@ _`.log.plan`: Use the metrics to decide a logging rate.
 - Try to get all issues are logged during scheduled meeting time.
 
 - Slow down if many new issues are being found.  Speed up if not.
+  `.role.checker`_ should tell you when they find issues
+  (`.log.new`_).
 
 - Schedule breaks to maintain concentration.
 
 - Consider scheduling more logging meetings.
 
 _`.log.scribe`: Assign `.role.scribe`_ (usually the leader), and
-ensure `.role.editor`_ will be happy with the readability of the log.
-
-[I think the latter goes back to handwriting issues and may not be
-relevant now.  It might be worth checking that `.role.editor`_ will be
-able to use whatever form the log is in.  RB 2023-01-29]
+ensure `.role.editor`_ will find and be able to read the log.
 
 _`.log.explain`: `.role.leader`_ ensures `.role.checker`_ understand
 the order in which issues will be logged.
@@ -740,9 +738,8 @@ logging issues that have are duplicates of ones already logged.
 
 _`.log.order`: Ask `.role.checker`_ to try to list their issues in
 forwards document order.  This makes life easier for other checkers
-and the editor.  [There has been much experimentation with the order
-of logging, but this represents current best practice.  GavinM
-1997-06-12]
+and the editor.  (There has been much experimentation with the order
+of logging, but was most effective the MM Group.)
 
 _`.log.major`: `.role.leader`_ calls upon `.role.checker`_ in turn to
 announce `major defects`_ they found.
@@ -755,12 +752,9 @@ announce `major defects`_ they found.
   comments" from the diffs, or just enter them in comments on the pull
   requests.
 
-_`.log.slow`: Log issues slowly enough that `.role.checker`_ can
-understand each one and use it to find more `major defects`_.
-
-_`.log.fast`: Log issues briskly.  Discourage discussion.  Encourage
-the search for more `major defects`_.  `.role.leader`_ should firmly
-discourage discussion of:
+_`.log.fast`: Log issues briskly.  Allow people to clarify the issue,
+but discourage discussion.  Encourage the search for more `major
+defects`_.  `.role.leader`_ should firmly discourage discussion of:
 
 - whether issues are genuine defects
 
@@ -770,16 +764,33 @@ discourage discussion of:
 
 - the answers to questions logged
 
-_`.log.decide.non-major`: Decide whether to log all minor issues
-(`.class.minor`_) during the meeting, considering `.log.purpose`_.
+_`.log.slow`: Log issues slowly enough that `.role.checker`_ have time
+to understand issues and use them to find more `major defects`_.
+
+_`.log.new`: When `.role.checker`_ find new `major defects`_ they
+should:
+
+- tell `.role.leader`_, for counting
+
+- note them as they did during `.check`_ and announce them later in
+  `.log.major`_ but ensure they are classified as "new"
+  (`.class.new`_).
+
+_`.log.decide.non-major`: After logging `major defects`_, decide
+whether and how many minor issues (`.class.minor`_) to log during the
+meeting, considering `.log.purpose`_.
 
 - Avoid fatigue.
 
-- Perhaps ask `.role.checker`_ to cherry-pick a fraction of their
-  minor issues and submit the rest later.
-
 - `.role.checker`_ may have already noted minor issues in a way that
-  can be found during `.edit`_
+  can be found during `.edit`_, such as in GitHub comments.
+
+- Perhaps ask `.role.checker`_ to cherry-pick a fraction of their
+  minor issues and submit the rest later.  
+
+- `.role.cheker`_ should cherry-pick issues that have the best chance
+  of helping to find `major defects`_ or prevent them via
+  `.brainstorm`_.
 
 _`.log.non-major`: Go through `.doc.product`_ in sections (or
 equivalent), at each stage announce the section, ask who has issues,
