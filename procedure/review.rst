@@ -496,11 +496,8 @@ _`.ko.remind`: The leader reminds everyone of the purpose of review
 
 - Remind `.role.checker`_ to avoid conferring until `.log`_.
 
-- GitHub's review tool reveals comments made by one reviewer to every
-  other reviewer in real time, so they distract one another from
-  finding their own unique defects.  Avoid entering comments using
-  GitHub until `.log`_.  [Verify that this is the case and check
-  whether it can be disabled or worked around.  RB 2023-01-28]
+- Ask `.role.checker`_ to avoid finishing GitHub reviews or submitting
+  "single comments" until `.log`_.
 
 _`.ko.role`: Negotiate checking roles (`.role.check`_).
 
@@ -557,17 +554,34 @@ perform your checking role (`.role.check`_).
 _`.check.ask`: Ask `.role.leader`_ if you have any questions about
 checking.
 
-[Insert instructions for how to apply the GitHub review tool.
-
-- Press the "Start a review" button here?
-- Avoid looking at diffs.
-- Can issues be noted in GitHub without interrupting other checkers?
-
-RB 2023-01-29]
-
 
 5.4.2. Checking
 ...............
+
+_`.check.record`: You can note what you find in any way you like.
+
+_`.check.record.github`: You can note issues using GitHub's review
+tool in a way that will save time during `.log`_.
+
+#. Open the "Files changed" tab of the pull request.
+
+#. Hover over the line where you want to make a note.
+
+#. Click the green "+" button.
+
+#. Type your note, e.g. "M: overruns array bounds".  It will help if
+   you use `.log.format`_.
+
+#. Then press "Start a review".
+
+#. Repeat for other notes.
+
+#. Do not "finish" your review before `.log`_ to avoid distracting
+   other `.role.checker`_.
+
+_`.check.diff.not`: Do not check using diffs unless your checking role
+says so.  Check the work *as it will be after the change* only using
+the diffs to help direct attention.
 
 _`.check.source`: Read `.doc.source`_ for your `.role.check`_.
 
@@ -612,7 +626,7 @@ _`.check.class`: Classify each issue you find (`.class`_).
 5.4.3. End
 ..........
 
-_`.check.record`: At the end of checking, record
+_`.check.metrics`: At the end of checking, record
 
 - how many issues you found, by class (see `.check.class`_)
 
@@ -622,8 +636,17 @@ _`.check.record`: At the end of checking, record
 
 - any problems encountered
 
-[This record should probably go in the GitHub overall review comment.
-RB 2023-01-29]
+_`.check.metrics.github`: You can record your metrics in a GitHub
+review.
+
+#. Open the "Files changed" tab of the pull request.
+
+#. Click the green "Review changes" button.
+
+#. Enter metrics in the text box.
+
+#. Do not "finish" your review before `.log`_ to avoid distracting
+   other `.role.checker`_.
 
 
 5.5. Review Logging
@@ -697,8 +720,10 @@ relevant now.  It might be worth checking that `.role.editor`_ will be
 able to use whatever form the log is in.  RB 2023-01-29]
 
 _`.log.explain`: `.role.leader`_ ensures `.role.checker`_ understand
-the order in which issues will be logged, and the desired form of
-issues, namely:
+the order in which issues will be logged.
+
+_`.log.format`: `.role.leader`_ ensures `.role.checker`_ understand
+the desired form of issues, namely:
 
 - location
 
