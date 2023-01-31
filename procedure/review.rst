@@ -671,15 +671,29 @@ _`.log.advice`: Remind the author of `.advice.author`_.
 _`.log.author`: Remind the author that they can withdraw
 `.doc.product`_ from review at any time.
 
-_`.log.record`: All information gathered should be recorded in the
-`.doc.issue`_.
+_`.log.record`: `.role.scribe_` should record the logging procedure.
+
+- On GitHub, you can start a comment on the pull request.
+
+- Record the procedure you're following (this one).  Use a permalink.
+  For example::
+
+    Executing [proc.review.log](https://github.com/Ravenbrook/mps/blob/12160d613b04045d6bd5380932f7560c91647556/procedure/review.rst#55-review-logging)
+
+- [Should make a note of the start time in this and other records, for
+  metrics.  RB 2023-01-31]
+
+- This opens `.doc.log`_.  `.role.scribe`_ can append issues to the
+  log, but see `.log.record.github`_.
 
 _`.log.record.github`: Ask `.role.checker`_ using the GitHub review
 tool to "finish" their reviews now, so that their notes and metrics
-are automatically included in `.doc.issue`_.  `Major defects`_ noted
-in this way must still be announced `.log.major`_.
+are automatically included in `.doc.log`_.  `Major defects`_ recorded
+in this way must still be "logged" by announcing them to the meeting
+(`.log.major`_).
 
-_`.log.metrics`: Gather individual metrics from `.check.record`_ of:
+_`.log.metrics`: "How many did you find?"  Gather, sum, and record
+individual metrics from `.check.record`_ of:
 
 - how many issues were found, by class (see `.check.class`_)
 
@@ -880,7 +894,7 @@ _`.brainstorm.log`: Record the suggestions.  [How exactly?  RB
 
 _`.edit`: The *review edit procedure* must be executed by
 `.role.editor`_ to revise `.doc.product`_ into `.doc.rev`_ by
-processing `.doc.issue`_.
+processing `.doc.log`_.
 
 _`.edit.purpose`: The purpose of the review edit is to analyse and
 correct defects, part of the review's primary purpose (`.goal.fix`_).
@@ -1039,7 +1053,7 @@ improvement.  Needs correcting.  RB 2023-01-29]
 
 _`.pi`: The *process improvement procedure* must be executed by
 `.role.improver`_ to take action to prevent future defects by
-processing `.doc.issue`_, but especially the results of
+processing `.doc.log`_, but especially the results of
 `.brainstorm`_.
 
 _`.pi.purpose`: The purpose of process improvement is to take action
@@ -1200,12 +1214,12 @@ _`.doc.record`: Review records
 
   On GitHub, the record of a review can consist of separate comments
   that appear in the pull request, e.g. by checkers submitting GitHub
-  reviews.  See also `.doc.issue`_.
+  reviews.  See also `.doc.log`_.
 
   In any case, review records must be specific, permanent, and
   referencable.
 
-_`.doc.issue`: Issue log
+_`.doc.log`: Issue log
   A record of issues raised during the logging meeting, specifying
   their location, type, finder, and a brief description.
 
@@ -1215,9 +1229,6 @@ _`.doc.issue`: Issue log
 
   Every issue log entry must be specific, permanent, referencable, and
   traceable from `.doc.product`_ and `.doc.rev`_.
-
-  [This naming clashes with "GitHub issue".  We should find another
-  name.  Change tag to "log"?  RB 2023-01-28]
 
 _`.doc.rev`: Revised document
   The result of performing the edit procedure on the `.doc.product`_.
