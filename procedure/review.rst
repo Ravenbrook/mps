@@ -670,13 +670,12 @@ _`.log.author`: Remind the author that they can withdraw
 `.doc.product`_ from review at any time.
 
 _`.log.record`: All information gathered should be recorded in the
-review log, which should be permanent and traceable from
-`.doc.product`_.
+`.doc.issue`_.
 
-[Update this for when checkers have used tools during `.check`_, such
-as the GitHub review tool.  It may not be necessary to copy down many
-issues, but it is still necessary to announce them to stimulate more
-checking.  RB 2023-01-29]
+_`.log.record.github`: Ask `.role.checker`_ using the GitHub review
+tool to "finish" their reviews now, so that their notes and metrics
+are automatically included in `.doc.issue`_.  `Major defects`_ noted
+in this way must still be announced `.log.major`_.
 
 _`.log.metrics`: Gather individual metrics from `.check.record`_ of:
 
@@ -744,17 +743,18 @@ of logging, but this represents current best practice.  GavinM
 1997-06-12]
 
 _`.log.major`: `.role.leader`_ calls upon `.role.checker`_ in turn to
-list `major defects`_ they found.
+announce `major defects`_ they found.
 
-- `.role.scribe`_ ensures that `major defects`_ are recorded in a way
-  [how? RB 2023-01-29] that can be used in `.edit`_.
+- `.role.scribe`_ ensures that `major defects`_ are recorded so that
+  they are *all* actioned by `.edit`_ and `.pi`_.
 
-- [On GitHub, that probably means in review comments, the review
-  overview comment, or "individual comments", all of which are visible
-  from the pull request and have their own links.  RB 2023-01-29]
+- On GitHub, the scribe can start a new GitHub review to record issues
+  not already recorded, as in `.check.record.github`_, or make "single
+  comments" from the diffs, or just enter them in comments on the pull
+  requests.
 
 _`.log.slow`: Log issues slowly enough that `.role.checker`_ can
-examine each one and find new `major defects`_.
+understand each one and use it to find more `major defects`_.
 
 _`.log.fast`: Log issues briskly.  Discourage discussion.  Encourage
 the search for more `major defects`_.  `.role.leader`_ should firmly
@@ -1185,8 +1185,9 @@ _`.doc.record`: Review records
   `.brainstorm.record`_, `.edit.record`_, `.pi.record`_, and
   `.exit.record`_.
 
-  On GitHub, these records are made as comments on the pull request
-  for the change under review.  See also `.doc.issue`_.
+  On GitHub, the record of a review can consist of separate comments
+  that appear in the pull request, e.g. by checkers submitting GitHub
+  reviews.  See also `.doc.issue`_.
 
   In any case, review records must be specific, permanent, and
   referencable.
@@ -1199,11 +1200,11 @@ _`.doc.issue`: Issue log
   GitHub individual comments that appear in the pull request for the
   change under review.  See also `.doc.record`_.
 
-  Every issue log entry must be specific, permanent, and
-  referencable.
+  Every issue log entry must be specific, permanent, referencable, and
+  traceable from `.doc.product`_ and `.doc.rev`_.
 
   [This naming clashes with "GitHub issue".  We should find another
-  name.  RB 2023-01-28]
+  name.  Change tag to "log"?  RB 2023-01-28]
 
 _`.doc.rev`: Revised document
   The result of performing the edit procedure on the `.doc.product`_.
