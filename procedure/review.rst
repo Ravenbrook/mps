@@ -158,8 +158,10 @@ during review.  There must be more than one checker.  Every person
 taking part in a review is usually also a checker, including the
 author.  Checkers should be asked by the leader to check with certain
 *checking roles* (`.role.check`_) in mind; this is to increase
-coverage and reduce duplication of issues.  Checkers also take part
-defect prevention in `.phase.brainstorm`_.
+coverage and reduce duplication of issues.  Not every checker needs to
+understand everything about a change (e.g. the programming language)
+thoroughly.  Many kinds of checking are useful.  Checkers also take
+part defect prevention in `.phase.brainstorm`_.
 
 _`.role.editor`: The *editor* is the person responsible for acting on
 the issues found during review in order to bring the work to review
