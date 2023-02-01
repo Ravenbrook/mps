@@ -33,6 +33,8 @@ Memory Pool System review procedure
 .. TODO: Lift review record advice, specifically GitHub comment
    format, into a section.  rule.generic.once!
 
+.. TODO: Explicitly say to record how long each step took.
+
 
 1. Introduction
 ===============
@@ -1029,38 +1031,29 @@ as well as changes like:
 - creating tools
 - adding automated checks
 
-_`.pi.record`: [Insert details of how to record PI actions.  RB
-2023-01-23]
+_`.pi.record`: Record the process improvement procedure.
 
-_`.pi.log`: The log should be placed in the process improvement
-section of the review document.  [Needs updating.  RB 2023-01-23]
+- On GitHub, you can start a comment on the pull request.
 
-_`.pi.action`: `.role.improver`_ must take a written action for every
-improvement suggestion logged (`.log`_).
+- Record the procedure you're following (this one).  Use a permalink.
+  For example::
 
-_`.pi.response`: Improvement suggestions should receive one of the
-following responses:
+    Executing [proc.review.pi](https://github.com/Ravenbrook/mps/blob/f8b6c94be9304d017d8a5cf57f7f4ab367ac51fc/procedure/review.rst#58-process-improvement)
 
-_`.pi.edit`: "Edit: <tag> <detail>"
+_`.pi.read`: Locate and read all of the suggestions recorded in
+`.brainstorm.log`_ before making any decisions.
 
-  edit of another document.  The detail is optional if it is obvious.
+_`.pi.log`: Record your actions in the same manner as edit actions
+(`.edit.log`_).
 
-_`.pi.pass`: "Pass: <person>"
+_`.pi.act`: You must take a written action for every improvement
+suggestion and record that action.  Record your response like an edit
+(`.edit.act`_).
 
-  passed to another person, who has accepted it.
-
-_`.pi.raise`: "Raise: <tag>"
-
-  elevated, usually to a request in MM Evolution.
-
-_`.pi.reject`: "Reject: <reason>"
-
-  rejected because it is not a valid issue.
-
-_`.pi.forget`: "Forget: <reason>"
-
-  it is a valid issue, but is not worth taking any action
-  over. [Should we have this?]
+_`.pi.exit`: After action has been taken and recorded on every
+suggestion, tell `.role.leader`_.  [This procedure doesn't make it
+clear how the leader tracks and receives this information, when it
+times out, etc.  RB 2023-02-01.]
 
 
 5.8. Review Exit
