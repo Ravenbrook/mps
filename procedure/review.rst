@@ -126,7 +126,7 @@ _`.def.defect.major`: A major defect is a defect that
   -- `.class.major`_
 
 As with any procedure, you can vary this one to meet this purpose, but
-you should probably read section `12. Rationale`_.
+you should probably read section `13. Rationale`_.
 
 
 3. Review Roles
@@ -270,6 +270,8 @@ executed roughly in the order below.
    Otherwise it passes and can go on to be used, e.g. by being merged
    into the master codeline (`proc.merge.pull-request`_).
 
+Even the express review procedure (`.express`_) has these phases.
+
 .. _proc.merge.pull-request: pull-request-merge.rst
 
 .. _major defects: `.def.defect.major`_
@@ -287,6 +289,9 @@ change is submitted for review (`.phase.entry`_).
 _`.entry.purpose`: The purpose of entry is to check whether the change
 is ready for review before planning a review, committing resources,
 organizing meetings, etc.
+
+_`.entry.express`: Does this change look low risk?  Is someone
+available?  Consider the *express review procedure* (`.express`_).
 
 _`.entry.record`: Record the entry procedure (`.doc.record`_).
 
@@ -1432,7 +1437,85 @@ With that in mind, here is some advice from [Gilb-93]_:
     the logging meeting.
 
 
-12. Rationale
+12. Express review
+==================
+
+_`.express`: The *express review procedure* [RB-2023-02-01]_ can be
+executed by an experienced `.role.leader`_ to get a low-risk change
+reviewed quickly, at low cost.
+
+_`.express.brief`: If anything in this section is unclear to you,
+you're not ready to run express reviews.
+
+_`.express.try`: If something goes wrong during an express review, and
+things turn out to be more complicated than you thought, then go back
+and `.plan`_ a full review.  Record that you did.  Don't delete the
+express review record.
+
+_`.express.record`: Record the express procedure (`.doc.record`_).
+You can squash the records for the other steps in one comment.
+
+_`.express.entry`: Execute `.entry`_ pretty much as usual.
+
+_`.express.call`: Call someone else in right now.
+
+_`.express.risk`: The other person must agree that the change has low
+risk, and that express review will achieve `2. Purpose`_.
+
+- Not every small change is low-risk, but size and the objects changed
+  are a useful guide.
+
+_`.express.time`: Express review should take no more than about 30
+minutes.  If it takes longer, revert to full review.
+
+_`.express.schedule`: No need to schedule. You both do it now.
+
+_`.express.train`: Choo choo!  Don't do this with untrained people.
+Revert to full review.
+
+_`.express.source`: If all source docs must be immediately available.
+If not, you know what to do by now.
+
+_`.express.rule`: Everyone must know the rules that apply.
+
+_`.express.homework`: If anyone would need homework, it's not an
+express review.
+
+_`.express.remind`: Remind everyone of `2. Purpose`_.
+
+_`.express.role`: Everyone will perform every role.  Not feasible?
+It's not an express review.
+
+_`.express.improve`: Express reviews don't support extra objectives.
+
+_`.express.major`: If anyone finds `major defects`_, stop the express
+review and `.plan`_ a full one.
+
+_`.express.check`: Do separate checking for some minutes.  Look for
+`major defects`_, note other issues.  Don't confer.
+
+_`.express.log`: Confer.  Announce issues, look for `major defects`_,
+note other issues.
+
+_`.express.log.proper`: You still need to record issues properly, even
+in an express review.  Don't know how?  You're not ready to run an
+express review.
+
+_`.express.brainstorm`: Take a pause and do a two-minute brainstorm.
+Prevention is still a goal.
+
+_`.express.edit`: If there are just a few minor edits, do them now,
+together (like pair programming).  But if there are many, drop out of
+express review into `.edit`_.  Record this decision, natch.
+
+_`.express.pi`: Defer/delegate `.pi`_ but don't drop it.  Prevention
+is worth it.
+
+_`.express.exit`: Execute `.exit`_ pretty much as normal.  Do record
+metrics.
+
+
+13. Rationale
 =============
 
 Formal review is the key to the quality of the Memory Pool System.
@@ -1457,7 +1540,7 @@ with estimates of review productivity (produced by
 those here.  RB 2023-01-28]
 
 
-12.1. Why formal reviews?
+13.1. Why formal reviews?
 -------------------------
 
 Every formal review has been worthwhile in terms of preventing defects
@@ -1552,6 +1635,10 @@ A. References
 		mminfo:review.*;
 		//info.ravenbrook.com/project/mps/doc/2002-06-18/obsolete-mminfo/mminfo/review/...
 
+.. [RB-2023-02-01] "Express review notes and test"; Richard Brooksby;
+		   Ravenbrook Limited; 2023-02-01;
+		   <https://info.ravenbrook.com/mail/2023/02/01/20-06-44/0/>.
+
 
 B. Document History
 ===================
@@ -1567,6 +1654,7 @@ B. Document History
                    Revising documents section.
 2023-01-30  RB_    Revising checking, logging, and brainstorm.
 2023-01-31  RB_    Revised based on `review test run`_.
+2023-02-01  RB_    Implementing `.express`_.
 ==========  =====  ==================================================
 
 .. _RB: mailto:rb@ravenbrook.com
