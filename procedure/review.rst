@@ -815,7 +815,7 @@ meeting, considering `.log.purpose`_.
 - Perhaps ask `.role.checker`_ to cherry-pick a fraction of their
   minor issues and submit the rest later.  
 
-- `.role.cheker`_ should cherry-pick issues that have the best chance
+- `.role.checker`_ should cherry-pick issues that have the best chance
   of helping to find `major defects`_ or prevent them via
   `.brainstorm`_.
 
@@ -903,8 +903,6 @@ _`.brainstorm.log`: Record the suggestions.  [How exactly?  RB
 5.7. Review Edit
 ----------------
 
-[Sourced from [MM-guide.review.edit]_ and needs updating.  RB 2023-01-21]
-
 _`.edit`: The *review edit procedure* must be executed by
 `.role.editor`_ to revise `.doc.product`_ into `.doc.rev`_ by
 processing `.doc.log`_.
@@ -912,19 +910,86 @@ processing `.doc.log`_.
 _`.edit.purpose`: The purpose of the review edit is to analyse and
 correct defects, part of the review's primary purpose (`.goal.fix`_).
 
-_`.edit.record`: [Insert recording instructions here.  RB 2023-01-29]
+_`.edit.record`: Record the edit procedure.
 
-_`.edit.log`: The log should be placed in the edit section of the
-review document.  The review document for a document of tag <tag> and
-revision <revision> will be review.<tag>.<revision>.  [This is out of
-date for GitHub's review tools and records.  RB 2023-01-29]
+- On GitHub, you can start a comment on the pull request.
 
-[On GitHub, the edit log might include review and other comments
-displayed in the pull request.  These can have responses and be
-closed.  In this case, a separate log may not be necessary.  RB
-2023-01-28]
+- Record the procedure you're following (this one).  Use a permalink.
+  For example::
 
-_`.edit.order`: The log should be in numerical order, one issue per line.
+    Executing [proc.review.edit](https://github.com/Ravenbrook/mps/blob/f8b6c94be9304d017d8a5cf57f7f4ab367ac51fc/procedure/review.rst#57-review-edit)
+
+_`.edit.read`: Locate and read all of `.doc.log`_ before making any
+edits.
+
+- On GitHub, the log should be visible as comments and reviews on the
+  pull request, starting at the kickoff record (`.ko.record`_).
+
+_`.edit.log`: Record your actions in one of these ways (in order of
+preference):
+
+- Respond to the issue like a conversation.  This works well for
+  GitHub review comments.
+
+- Quote the text of the issue in a comment.  This works well for
+  issues in comments on a pull request.
+
+- Edit the log and record your action in a comment, e.g. ::
+
+    m: Warthog too warty.  [Fixed: Warts reduced in f93b75dc]
+
+- Append your action to the `.edit.record`_ with a reference.
+
+- In any case, your actions must be recorded permanently in a way that
+  is traceable from `.doc.log`_.
+
+_`.edit.act`: You must take action on every issue in `.doc.log`_ and
+record that action.  Record one of the following responses:
+
+_`.edit.act.fix`: Fix the defect and say a few words about how.
+Always say where.
+
+- Write "Fix: <how> in <commit>"
+
+_`.edit.act.reject`: Reject the issue with a reason why it is not a
+valid issue.
+
+- Write "Reject: <reason>"
+
+_`.edit.act.comment`: Add a comment to `.doc.product`_ rather than
+"fixing" the issue.  Say why the issue cannot be fixed.  Note that
+this is not the same as fixing a defect in a comment.
+
+- Write "Comment: <reason> in <commit>"
+
+_`.edit.act.raise`: Escalate for later action, usually by creating an
+issue to go into the project queue, such as a GitHub issue.
+
+- Write "Raise: <reference>"
+
+- This can apply to `.class.question`_ if it a difficult one.
+
+_`.edit.act.forget`: Decide that the issue is not worth an action,
+even though it's valid.  Give your reason.
+
+- Write "Forget: <reason>"
+
+- Use with caution, and *never* for `.class.major`_.
+
+_`.edit.act.answer`: For `.class.question`_, give an answer, and tag
+or message the questioner so that they see it.
+
+- Write "Answer: <answer>"
+
+- You can send an answer by some other traceable means and link it.
+
+_`.edit.act.imp`: Pass the issue to another person, and ensure they
+accept it.
+
+- Write "Pass: <person>"
+
+- Mainly intended for `.class.imp`_, where some outside document needs
+  an edit.
 
 _`.edit.extra`: You may make corrections to defects which you spot
 yourself during editing work.  Log them like those found during
@@ -933,132 +998,6 @@ yourself during editing work.  Log them like those found during
 _`.edit.exit`: After action has been taken and recorded on every
 logged issue, tell `.role.leader`_ that the revised change is ready
 for `.exit`_.
-
-
-5.7.1. Edit comments
-....................
-
-_`.edit.edit-comments`: The following describes the format of edit
-comments for each issue, indicating the action taken.  See `.class`_
-for issue classification.
-
-_`.edit.record`: [Insert details of how to record edits.  RB
-2023-01-23]
-
-
-Major Issues
-~~~~~~~~~~~~
-
-_`.edit.major`: Major issues should receive one of the following
-responses:
-
-_`.edit.major.reject`: "Reject: <reason>"
-
-  reject the issue with a reason why it is not a valid issue.
-
-_`.edit.major.comment`: "Comment: <reason>"
-
-  it is a valid issue, but merely add a comment to the document, the
-  reason states why it cannot be fixed at this time.  Note that this
-  is not the same as fixing a defect in a comment.
-
-_`.edit.major.fix`: "Fix: <detail>"
-
-  fix the defect and give some indication of how.
-
-_`.edit.major.raise`: "Raise: <tag>"
-
-  escalate the defect, usually by creating a request in MM Evolution.
-
-_`.edit.major.other`: If a major defect results in a change to another document, that 
-document's tag must be quoted.
-
-
-Minor Issues
-~~~~~~~~~~~~
-
-_`.edit.minor`: Minor issues should receive one of the following
-responses:
-
-_`.edit.minor.reject`: "Reject: <reason>"
-
-  reject is issue with a reason why it is  not a valid issue.
-
-_`.edit.minor.forget`: "Forget: <reason>"
-
-  it is a valid issue but is not worth taking any action over.
-  [Should we have this?]
-
-_`.edit.minor.comment`: "Comment: <reason>"
-
-  it is a valid issue, but merely add a comment to the document, the
-  reason states why it cannot be fixed at this time.  Note that this
-  is not the same as fixing a defect in a comment.
-
-_`.edit.minor.fix`: "Fix: <detail>"
-
-  fix the defect and give an indication of how; the detail is optional
-  where the fix is obvious.
-
-_`.edit.minor.raise`: "Raise: <tag>"
-
-  escalate the defect, usually by creating a request in MM Evolution.
-
-_`.edit.minor.other`: If a minor defect results in a change to another document, that 
-document's tag must be quoted.
-
-
-Comments
-~~~~~~~~
-
-_`.edit.comment`: Comments on the product document should receive one of the following 
-responses:
-
-_`.edit.comment.reject`: "Reject: <reason>"
-
-  reject the comment with a reason why it is invalid.
-
-_`.edit.comment.forget`: "Forget: <reason>"
-
-  it is a valid comment, but isn't worth taking any action over.  The
-  reason is optional.
-
-_`.edit.comment.comment`: "Comment: <detail>"
-
-  a comment has been added to the document.  The detail is optional.
-
-_`.edit.comment.fix`: "Fix: <detail>"
-
-  the comment has resulted in a change to the product document.
-
-_`.edit.comment.other`: If a comment results in a change to another
-document, that document's tag must be quoted.
-
-
-Questions To The Author
-~~~~~~~~~~~~~~~~~~~~~~~
-
-_`.edit.question`: Questions to the author should receive one of the following 
-responses:
-
-_`.edit.question.mail`: "Mail: <tag>.."
-
-  the question is answered in the specified mail message(s).
-
-_`.edit.question.raise`: "Raise: <tag>"
-
-  the question has been escalated to the specified document, usually a
-  request in MM Evolution.
-
-
-Improvement Suggestions
-~~~~~~~~~~~~~~~~~~~~~~~
-
-_`.edit.improve`: Improvement suggestions should be left for `.pi`_,
-unless you are also `.role.improver`_.
-
-[This is a mistake.  It's a conflation of `.class.imp`_ with process
-improvement.  Needs correcting.  RB 2023-01-29]
 
 
 5.8. Process Improvement
@@ -1441,6 +1380,22 @@ document.  Typical comments are:
 
 - praise.
 
+_`.class.question`: (q): A question is any matter on which
+`.role.checker`_ wants clarification.
+
+- If a product document is unclear to the intended readership then
+  that's also `.class.major`_ or `.class.minor`_, by
+  `rule.generic.clear`_.
+
+- Questions will be answered in writing (`.edit.act.answer`_).
+  Answering them often spawns changes anyway.
+
+- Typical questions are:
+
+  - Clarifications on why things should be the way they are;
+
+  - Curiosity about the details of something.
+
 _`.class.imp`: (I): An improvement suggestion is any potential defect
 found in documents other than the product document.  Typical
 improvement suggestions are:
@@ -1454,6 +1409,8 @@ during checking) is a new issue.  This classification is orthogonal to
 the preceding.  It is important to mark new issues, in order to
 measure how worthwhile group logging sessions are (see
 `.log.purpose`_).
+
+.. _rule.generic.clear: rule.generic.rst#2
 
 
 11. Advice for the author
