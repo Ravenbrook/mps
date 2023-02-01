@@ -458,6 +458,19 @@ to assign.
 
 - Assignments can be renegotiated in `.ko.role`_.
 
+_`.plan.homework`: Assign work that people should do before the
+review.
+
+- Include background reading or other self-education that will help
+  review efficiency.  For example, reading about a technical aspect of
+  the change.
+
+- You should not request review activities like studying source
+  documents or looking at the change.  Plan properly.
+
+- Plan the review to function successfully (but perhaps take longer)
+  even if the work is not done.
+
 _`.plan.invite`: Invite the checkers (`.role.checker`_) to the kickoff
 meeting (`.ko`_).
 
