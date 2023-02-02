@@ -54,6 +54,8 @@ Time to execute:
   https://github.com/Ravenbrook/mps/pull/117#issuecomment-1405388814
   et seq. RB 2023-01-30]
 
+- express reviews (`.express`_): <30m
+
 [Insert further estimates from more testing.  RB 2023-01-30]
 
 This procedure requires *training*, preferably by an experienced
@@ -382,7 +384,7 @@ achieve `2. Purpose`_.
   still want multiple `.role.checker`_ to look at everything.
 
 - Changes that cannot feasibly be checked
-  (`entry.universal.feasible`_) may need to be reworked into stages,
+  (`entry.universal.reviewable`_) may need to be reworked into stages,
   perhaps by version control transformations.
   [branch/2014-02-19/remember-time ->
   branch/2014-04-14/remember-time-2 ->
@@ -390,6 +392,8 @@ achieve `2. Purpose`_.
   is an example of this.  RB 2023-01-31]
 
 - Record any variations from the default tactic.
+
+.. _entry.universal.reviewable: entry.universal#reviewable
 
 _`.plan.time`: Estimate the checking rate and time.
 
@@ -563,7 +567,7 @@ from review at any time.
 
 _`.ko.go`: Send `.role.checker`_ away to start `.check`_.
 
-_`.ko.record`: Record the time taken to execute `.ko`_.
+_`.ko.metrics`: Record the time taken to execute `.ko`_.
 
 
 5.4. Review Checking
@@ -724,7 +728,7 @@ are automatically included in `.doc.log`_.  `Major defects`_ recorded
 in this way must still be "logged" by announcing them to the meeting
 (`.log.major`_).
 
-_`.log.metrics`: "How many did you find?"  Gather, sum, and record
+_`.log.sums`: "How many did you find?"  Gather, sum, and record
 individual metrics from `.check.record`_ of:
 
 - how many issues were found, by class (see `.check.class`_)
@@ -893,8 +897,9 @@ of `major defects`_ found in review.
 - Make this choice based on defect importance and your experience of
   which defects can be most profitably attacked.
 
-- Record the issues.  [How exactly?  RB 2023-01-29]
-
+- Record the issues, e.g. by pasting links into the record comment, so
+  you can edit them for `.brainstorm.log`_.
+  
 _`.brainstorm.remind`: Remind everyone of `.brainstorm.purpose`_ and
 `.pi.scope`_.
 
@@ -1292,8 +1297,7 @@ _`.doc.request`: Requests for change
 7. Calculations
 ===============
 
-[This section was found in guide.review.edit but seems out
-of place.  RB 2021-01-21]
+[Update the gender-specific tags in this section.  RB 2023-02-02]
 
 _`.calc`: [Need to mention how this info is used.  Ref kpa.qpm.  RB
 2023-01-26]
@@ -1547,6 +1551,8 @@ a few minutes of brainstorm.  Prevention is still a goal.
 _`.express.edit`: If there are just a few minor edits, do them now,
 together (like `pair programming`_).  Otherwise, drop out of express
 review into `.edit`_.  Record this decision, natch.
+
+.. _pair programming: https://en.wikipedia.org/wiki/Pair_programming
 
 _`.express.pi`: Defer/delegate `.pi`_ but don't drop it.  Prevention
 is worth it.
