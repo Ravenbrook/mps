@@ -23,6 +23,9 @@ requirements.
 
 - On GitHub, this can be the GitHub issue linked via the pull request.
 
+_`.reviewable`: It must be feasible to review the change using the
+review procedure (`proc.review`_).  See `proc.review.plan.tactics`_.
+
 _`.source-available`: The `source documents`_ are available in
 writing.  [What is the purpose of "in writing" here and how to express
 it now?  RB 2023-01-24]
@@ -53,6 +56,7 @@ product document, and it has passed.  [What counts as "all"?  This
 means all the ones that are implemented in the MPS, e.g.
 ``make test``, CI checks, checks in ``tool/*``, etc.  RB 2023-01-24]
 
+.. _`proc.review`: review.rst
 .. _`proc.review.entry.criteria`: review.rst#51-review-entry
 .. _author: review.rst#3-review-roles
 .. _source: review.rst#6-documents

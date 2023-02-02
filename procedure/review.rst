@@ -302,6 +302,8 @@ _`.entry.record`: Record the entry procedure (`.doc.record`_).
 
     Executing [proc.review.entry](https://github.com/Ravenbrook/mps/blob/d4ef690a7f2a3d3d6d0ed496eff46e09841b8633/procedure/review.rst#51-review-entry)
 
+    1. Start time 11:03.
+
 _`.entry.change`: Record exactly what the change is.
 
 - On GitHub, this information is implicitly recorded by commenting on
@@ -322,11 +324,15 @@ _`.entry.criteria`: Determine and record the entry and exit criteria.
 
     Executing [proc.review.entry](https://github.com/Ravenbrook/mps/blob/d4ef690a7f2a3d3d6d0ed496eff46e09841b8633/procedure/review.rst#51-review-entry)
 
-    1. Applying [entry.universal](https://github.com/Ravenbrook/mps/blob/eceaccdf5ab8d8614e9a8bb91a23bdcb99e7d0ce/procedure/entry.universal.rst) and [entry.impl](https://github.com/Ravenbrook/mps/blob/eceaccdf5ab8d8614e9a8bb91a23bdcb99e7d0ce/procedure/entry.impl.rst).  
+    1. Start time 11:03.
+
+    2. Applying [entry.universal](https://github.com/Ravenbrook/mps/blob/eceaccdf5ab8d8614e9a8bb91a23bdcb99e7d0ce/procedure/entry.universal.rst) and [entry.impl](https://github.com/Ravenbrook/mps/blob/eceaccdf5ab8d8614e9a8bb91a23bdcb99e7d0ce/procedure/entry.impl.rst).  
 
 _`.entry.check`: Check that the entry criteria hold.  Record any
 transgressions.  Decide whether to reject the change from review by
 balancing `2. Purpose`_ and cost.  Will it pass `.exit`_?
+
+_`.entry.metrics`: Record the time taken to execute `.entry`_.
 
 .. _entry.universal: entry.universal.rst
 
@@ -353,6 +359,8 @@ _`.plan.record`: Record the planning procedure.
 
     Executing [proc.review.plan](https://github.com/Ravenbrook/mps/blob/d4ef690a7f2a3d3d6d0ed496eff46e09841b8633/procedure/review.rst#52-review-planning)
 
+    1. Start time 11:31.
+
 _`.plan.iterate`: Consider all of this procedure.
 
 - This procedure is only in rough order.  Later steps may change
@@ -373,10 +381,9 @@ achieve `2. Purpose`_.
 - Large changes might be broken up by document type, or topic, but you
   still want multiple `.role.checker`_ to look at everything.
 
-- Changes that cannot feasibly be checked should fail `.entry`_ and
-  may need to be reworked into stages that are feasible to review,
-  perhaps by version control transformations.  [Ensure
-  `entry.universal`_ has a rule for this.  RB 2023-01-31]
+- Changes that cannot feasibly be checked
+  (`entry.universal.feasible`_) may need to be reworked into stages,
+  perhaps by version control transformations.
   [branch/2014-02-19/remember-time ->
   branch/2014-04-14/remember-time-2 ->
   branch/2016-03-22/remember-time-3 -> branch/2018-08-08/refset-struct
@@ -401,7 +408,9 @@ _`.plan.time`: Estimate the checking rate and time.
 
     Executing [proc.review.plan](https://github.com/Ravenbrook/mps/blob/d4ef690a7f2a3d3d6d0ed496eff46e09841b8633/procedure/review.rst#52-review-planning)
 
-    1. proc.review.plan.time: About 500 lines of code @ 10 lines/minute
+    1. Start time 11:31.
+
+    2. proc.review.plan.time: About 500 lines of code @ 10 lines/minute
        so about 50 mins of checking. 
 
 _`.plan.schedule`: Plan when this review may take place and who should
@@ -409,7 +418,8 @@ attend.  Negotiate with attendees if appropriate.
 
 - Record like::
 
-    2. proc.review.plan.schedule: @thejayps and @UNAA008 will review 2023-01-23 11:00 for about 2h.
+    3. proc.review.plan.schedule: @thejayps and @UNAA008 will review
+       2023-01-23 11:00 for about 2h.
 
 _`.plan.train`: Ensure that all participants are familiar with the
 review process.
@@ -479,6 +489,8 @@ meeting (`.ko`_).
 _`.plan.doc`: Ensure that `.role.checker`_ have all the documents they
 need (the change, source documents, rules, etc.)
 
+_`.plan.metrics`: Record the time taken to execute `.plan`_.
+
 
 5.3. Review Kickoff
 -------------------
@@ -495,6 +507,8 @@ _`.ko.record`: Record the kickoff procedure.
   For example::
 
     Executing [proc.review.kickoff](https://github.com/Ravenbrook/mps/blob/b2050e2cf69029fc13c31a724421945952d3fab2/procedure/review.rst#53-review-kickoff)
+
+    1. Start time 15:00.
 
 _`.ko.doc`: Ensure that every checker has all the documents they need.
 
@@ -521,7 +535,8 @@ _`.ko.role`: Negotiate checking roles (`.role.check`_).
 - `.role.checker`_ can volunteer for roles based on how they feel at
   the time.  Focus and enjoyment are important for good results.
 
-- Ensure checkers understand their checking roles.
+- Ensure checkers understand their checking roles and checking rates
+  [ref?  RB 2023-02-02].
 
 - Record who's doing what.
 
@@ -531,12 +546,11 @@ so that you don't delay `.check`_.
 _`.ko.improve`: Announce any review metrics and negotiate review
 objectives.
 
+- Announce the rate 
+
 - Ask for suggestions or experiments with review procedure.
 
 - Record metrics and objectives.
-
-- [Checking and logging rates should be announced or discussed.  RB
-  2023-01-29]
 
 _`.ko.log`: Set a time for the logging meeting (`.log`_).
 
@@ -548,6 +562,8 @@ _`.ko.author`: Remind the author that they can withdraw the document
 from review at any time.
 
 _`.ko.go`: Send `.role.checker`_ away to start `.check`_.
+
+_`.ko.record`: Record the time taken to execute `.ko`_.
 
 
 5.4. Review Checking
@@ -576,6 +592,8 @@ checking.
 ...............
 
 _`.check.record`: You can note what you find in any way you like.
+
+_`.check.record.start`: Make a note of the start time.
 
 _`.check.record.github`: You can note issues using GitHub's review
 tool in a way that will save time during `.log`_.
@@ -695,8 +713,7 @@ _`.log.record`: `.role.scribe_` should record the logging procedure.
 
     Executing [proc.review.log](https://github.com/Ravenbrook/mps/blob/12160d613b04045d6bd5380932f7560c91647556/procedure/review.rst#55-review-logging)
 
-- [Should make a note of the start time in this and other records, for
-  metrics.  RB 2023-01-31]
+    1. Start time: 15:50.
 
 - This opens `.doc.log`_.  `.role.scribe`_ can append issues to the
   log, but see `.log.record.github`_.
@@ -842,12 +859,11 @@ will normally be after a break at the end of `.log`_.
 _`.log.inform`: Inform `.role.editor`_ that `.doc.product`_ is ready for
 `.edit`_.
 
+_`.log.metrics`: Record the time taken to execute `.log`_.
+
 
 5.6. Review Brainstorm
 ----------------------
-
-[Sourced from [MM-proc.review.brainstorm]_ and needs updating.  RB
-2023-01-21]
 
 _`.brainstorm`: The *review brainstorm procedure* should be executed
 by `.role.leader`_ with `.role.scribe`_ and `.role.checker`_ very soon
@@ -868,6 +884,8 @@ _`.brainstorm.record`: Record the brainstorm procedure
   permalink.  For example::
 
     Executing [proc.review.brainstorm](https://github.com/Ravenbrook/mps/blob/branch/2023-01-19/review-procedure/procedure/review.rst#56-review-brainstorm)
+
+    1. Start time: 16:33.
 
 _`.brainstorm.choose`: Choose 3 to 6 `major defects`_ or groups
 of `major defects`_ found in review.
@@ -898,8 +916,14 @@ _`.brainstorm.proc`: If time permits, the leader may solicit
 criticisms of the review process and apply `.brainstorm.disc`_ to
 them.
 
-_`.brainstorm.log`: Record the suggestions.  [How exactly?  RB
-2023-01-29]
+_`.brainstorm.log`: Record the suggestions like::
+
+  2. For https://github.com/Ravenbrook/mps/pull/117#discussion_r1090530823
+     : @thejayps suggests a checklist item perhaps, where you
+     deliberately try to misinterpret your sentences and improve
+     them if you can (misinterpret them).
+
+_`.brainstorm.metrics`: Record the time taken to execute `.brainstorm`_.
 
 
 5.7. Review Edit
@@ -920,6 +944,11 @@ _`.edit.record`: Record the edit procedure.
   For example::
 
     Executing [proc.review.edit](https://github.com/Ravenbrook/mps/blob/f8b6c94be9304d017d8a5cf57f7f4ab367ac51fc/procedure/review.rst#57-review-edit)
+
+    1. Start time 2023-02-02 09:45.
+
+_`.edit.record.time`: Edit might take several sessions.  Keep track of
+the working time spent for `.edit.metrics`_.
 
 _`.edit.read`: Locate and read all of `.doc.log`_ before making any
 edits.
@@ -1001,6 +1030,9 @@ _`.edit.exit`: After action has been taken and recorded on every
 logged issue, tell `.role.leader`_ that the revised change is ready
 for `.exit`_.
 
+_`.edit.metrics`: Record both the working time spent and the end time
+of `.edit`_.
+
 
 5.8. Process Improvement
 ------------------------
@@ -1040,6 +1072,10 @@ _`.pi.record`: Record the process improvement procedure.
 
     Executing [proc.review.pi](https://github.com/Ravenbrook/mps/blob/f8b6c94be9304d017d8a5cf57f7f4ab367ac51fc/procedure/review.rst#58-process-improvement)
 
+    1. Start time 2023-02-02 11:45.
+
+_`.pi.record.time`: See `.edit.record.time`_.
+
 _`.pi.read`: Locate and read all of the suggestions recorded in
 `.brainstorm.log`_ before making any decisions.
 
@@ -1054,6 +1090,8 @@ _`.pi.exit`: After action has been taken and recorded on every
 suggestion, tell `.role.leader`_.  [This procedure doesn't make it
 clear how the leader tracks and receives this information, when it
 times out, etc.  RB 2023-02-01.]
+
+_`.pi.metrics`: See `.edit.metrics`_.
 
 
 5.8. Review Exit
@@ -1074,12 +1112,14 @@ _`.exit.record`: Record the exit procedure (`.doc.record`_).
 
     Executing (proc.review.exit)[https://github.com/Ravenbrook/mps/blob/645200a25e5e415a2a2978d550b5251e0284c43e/procedure/review.rst#58-review-exit]
 
+    1. Start time 10:20.
+
 _`.exit.check`: Check that the exit criteria hold (see
 `.entry.criteria`_).
 
 - Record any transgressions, like::
 
-    1. exit.universal.quest: Question 5 answered in chat but not in docs.
+    2. exit.universal.quest: Question 5 answered in chat but not in docs.
  
 _`.exit.fix`: Fix transgressions, if it is feasible with low risk.
 Otherwise ask `.role.editor`_ to fix them.  Record this action, and
@@ -1090,7 +1130,7 @@ too defective.  It fails review and must not be used.
 
 - Record this result, like::
 
-    2. Revised change rejected.
+    3. Revised change rejected.
 
 - Tell someone.  [Who and how?  RB 2023-01-28]
 
@@ -1099,7 +1139,7 @@ used.
 
 - Record this result, like::
 
-    2. Revised change passed.
+    3. Revised change passed.
 
 - On GitHub, the approve the pull request for merge.
 
@@ -1109,13 +1149,15 @@ used.
 _`.exit.calc`: Calculate and record final review metrics (`.calc`_).
 For example::
 
-    3. review.exit.calc:
+    4. review.exit.calc:
        - hours used: 11
        - hours saved: 70
        - major defects remaining: 1.5
 
 _`.exit.inform`: Inform all review participants of the result of their
 efforts.
+
+_`.exit.metrics`: Record the time taken to execute `.exit`_.
 
 
 6. Documents
