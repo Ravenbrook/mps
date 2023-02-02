@@ -313,11 +313,6 @@ _`.entry.change`: Record exactly what the change is.
 
 _`.entry.criteria`: Determine and record the entry and exit criteria.
 
-- The change *must* include (or permanently link to) the the reason
-  the change is needed, expressed in terms of requirements.  On
-  GitHub, should be the GitHub issue linked from the pull request.
-  [This could be in `entry.universal`_.  RB 2023-01-28]
-
 - `entry.universal`_ and `exit.universal`_ always apply.
 
 - Add criteria for the types of documents altered by the change (code,

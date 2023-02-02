@@ -17,6 +17,12 @@ _`.scope`: These entry criteria are to be used for all reviews (see
 
 _`.author`: The author_ of the document agrees to the review.
 
+_`.reason`: The change must include, or permanently link to as a
+`source`_, the reason the change is needed, expressed in terms of
+requirements.
+
+- On GitHub, this can be the GitHub issue linked via the pull request.
+
 _`.source-available`: The `source documents`_ are available in
 writing.  [What is the purpose of "in writing" here and how to express
 it now?  RB 2023-01-24]
@@ -49,7 +55,8 @@ means all the ones that are implemented in the MPS, e.g.
 
 .. _`proc.review.entry.criteria`: review.rst#51-review-entry
 .. _author: review.rst#3-review-roles
-.. _source documents: review.rst#6-documents
+.. _source: review.rst#6-documents
+.. _source documents: source_
 .. _exited review: review.rst#58-review-exit
 
 
