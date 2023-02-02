@@ -1444,11 +1444,14 @@ _`.express`: The *express review procedure* [RB-2023-02-01]_ can be
 executed by an experienced `.role.leader`_ to get a low-risk change
 reviewed quickly, at low cost.
 
+_`.express.readership`: The readership of this section is experienced
+review leaders (`.role.leader`_).
+
 _`.express.brief`: If anything in this section is unclear to you,
 you're not ready to run express reviews.
 
-_`.express.try`: If something goes wrong during an express review, and
-things turn out to be more complicated than you thought, then go back
+_`.express.try`: During an express review, if things go wrong, or turn
+out to be riskier or more complicated than you thought, just go back
 and `.plan`_ a full review.  Record that you did.  Don't delete the
 express review record.
 
@@ -1462,8 +1465,8 @@ _`.express.call`: Call someone else in right now.
 _`.express.risk`: The other person must agree that the change has low
 risk, and that express review will achieve `2. Purpose`_.
 
-- Not every small change is low-risk, but size and the objects changed
-  are a useful guide.
+- Size is not risk.  It's much more important to consider *what* is
+  being changed and *how*.
 
 _`.express.time`: Express review should take no more than about 30
 minutes.  If it takes longer, revert to full review.
@@ -1473,18 +1476,18 @@ _`.express.schedule`: No need to schedule. You both do it now.
 _`.express.train`: Choo choo!  Don't do this with untrained people.
 Revert to full review.
 
-_`.express.source`: If all source docs must be immediately available.
+_`.express.source`: All source docs must be immediately available.
 If not, you know what to do by now.
 
-_`.express.rule`: Everyone must know the rules that apply.
+_`.express.rule`: Everyone must know the relevant rules.
 
-_`.express.homework`: If anyone would need homework, it's not an
-express review.
+_`.express.homework`: If homework is needed, it's not an express
+review.
 
 _`.express.remind`: Remind everyone of `2. Purpose`_.
 
-_`.express.role`: Everyone will perform every role.  Not feasible?
-It's not an express review.
+_`.express.role`: Everyone will perform every `.role.check`_.  Not
+feasible?  It's not an express review.
 
 _`.express.improve`: Express reviews don't support extra objectives.
 
@@ -1501,17 +1504,17 @@ _`.express.log.proper`: You still need to record issues properly, even
 in an express review.  Don't know how?  You're not ready to run an
 express review.
 
-_`.express.brainstorm`: Take a pause and do a two-minute brainstorm.
-Prevention is still a goal.
+_`.express.brainstorm`: Take a one minute break after logging then do
+a few minutes of brainstorm.  Prevention is still a goal.
 
 _`.express.edit`: If there are just a few minor edits, do them now,
-together (like pair programming).  But if there are many, drop out of
-express review into `.edit`_.  Record this decision, natch.
+together (like `pair programming`_).  Otherwise, drop out of express
+review into `.edit`_.  Record this decision, natch.
 
 _`.express.pi`: Defer/delegate `.pi`_ but don't drop it.  Prevention
 is worth it.
 
-_`.express.exit`: Execute `.exit`_ pretty much as normal.  Do record
+_`.express.exit`: Execute `.exit`_ pretty much as usual.  Do record
 metrics.
 
 
