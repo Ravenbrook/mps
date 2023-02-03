@@ -289,8 +289,8 @@ _`.entry.record`: Record the entry procedure (`.doc.record`_).
 
 - On GitHub, you can start a comment on the pull request.
 
-- Record a the procedure you're following (this one).  Use a
-  permalink.  For example::
+- Record a the procedure you're following (this one) and the start
+  time.  Use a permalink_.  For example::
 
     Executing [proc.review.entry](https://github.com/Ravenbrook/mps/blob/d4ef690a7f2a3d3d6d0ed496eff46e09841b8633/procedure/review.rst#51-review-entry)
 
@@ -344,10 +344,10 @@ that it is efficient and effective, and arrange for it to happen.
 
 _`.plan.record`: Record the planning procedure.
 
-- On GitHub, you can start a comment on the pull request.
+- On GitHub, start a `pull request comment`_.
 
-- Record the procedure you're following (this one).  Use a permalink.
-  For example::
+- Record the procedure you're following (this one) and the start time.
+  Use a permalink_.  For example::
 
     Executing [proc.review.plan](https://github.com/Ravenbrook/mps/blob/d4ef690a7f2a3d3d6d0ed496eff46e09841b8633/procedure/review.rst#52-review-planning)
 
@@ -444,8 +444,11 @@ _`.plan.rule`: Determine and record the rules to apply (`.doc.rule`_).
   for example special rules that apply to the critical path.  [Needs
   example.  RB 2023-01-28]
 
-_`.plan.check`: Determine and record the checklists to apply [how and
-from where?  See `mminfo:check.* <https://info.ravenbrook.com/project/mps/doc/2002-06-18/obsolete-mminfo/mminfo/check/>`__.  RB 2023-01-23].
+_`.plan.check`: Determine and record the checklists to apply.
+[Checklists are not currently available in the public MPS.  See
+`mminfo:check.*
+<https://info.ravenbrook.com/project/mps/doc/2002-06-18/obsolete-mminfo/mminfo/check/>`__.
+RB 2023-01-23].
 
 _`.plan.roles`: Decide and record the checking roles (`.role.check`_)
 to assign.
@@ -474,8 +477,11 @@ review.
 - You should not request review activities like studying source
   documents or looking at the change.  Plan properly.
 
-- Plan the review to function successfully (but perhaps take longer)
-  even if the work is not done.
+- Ask anyone new to the process to read this document (see
+  `.plan.train`_).
+
+- Plan the review to succeed (but perhaps take longer) even if the
+  homework is not done.
 
 _`.plan.invite`: Invite the checkers (`.role.checker`_) to the kickoff
 meeting (`.ko`_).
@@ -495,10 +501,10 @@ to perform their roles.
 
 _`.ko.record`: Record the kickoff procedure.
 
-- On GitHub, you can start a comment on the pull request.
+- On GitHub, start a `pull request comment`_.
 
-- Record the procedure you're following (this one).  Use a permalink.
-  For example::
+- Record the procedure you're following (this one) and the start time.
+  Use a permalink_.  For example::
 
     Executing [proc.review.kickoff](https://github.com/Ravenbrook/mps/blob/b2050e2cf69029fc13c31a724421945952d3fab2/procedure/review.rst#53-review-kickoff)
 
@@ -513,16 +519,23 @@ introduction to the change.
   early if there's anything that needs documenting, such as a hidden
   assumption or requirement.  This happens!
 
-_`.ko.remind`: The leader reminds everyone of the `.purpose`_ of
-review.
+_`.ko.remind`: The leader reminds everyoneL
 
-- Remind `.role.checker`_ that they are trying to find unique `major
-  defects`_ not found by other checkers.
+- of the `.purpose`_ of review
 
-- Remind `.role.checker`_ to avoid conferring until `.log`_.
+- that they are trying to find unique `major defects`_ not found by
+  other checkers
 
-- Ask `.role.checker`_ to avoid finishing GitHub reviews or submitting
-  "single comments" until `.log`_.
+- they are not restricted to finding defects caused by `.doc.product`_
+
+- not to confer until `.log`_
+
+- to avoid finishing `pull request reviews`_ or submitting `pull
+  request comments`_ until `.log`_.
+
+.. _pull request reviews: https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/reviewing-changes-in-pull-requests/about-pull-request-reviews
+
+.. _pull request comments: https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/reviewing-changes-in-pull-requests/commenting-on-a-pull-request#about-pull-request-comments
 
 _`.ko.role`: Negotiate checking roles (`.role.check`_).
 
@@ -589,8 +602,8 @@ _`.check.record`: You can note what you find in any way you like.
 
 _`.check.record.start`: Make a note of the start time.
 
-_`.check.record.github`: You can note issues using GitHub's review
-tool in a way that will save time during `.log`_.
+_`.check.record.github`: You can note issues using GitHub's `pull
+request reviews`_ in a way that will save time during `.log`_.
 
 #. Open the "Files changed" tab of the pull request.
 
@@ -666,7 +679,7 @@ _`.check.metrics`: At the end of checking, record
 - any problems encountered
 
 _`.check.metrics.github`: You can record your metrics in a GitHub
-review.
+`pull request review`_.
 
 #. Open the "Files changed" tab of the pull request.
 
@@ -676,6 +689,8 @@ review.
 
 #. Do not "finish" your review before `.log`_ to avoid distracting
    other `.role.checker`_.
+
+.. _pull request review: `pull request reviews`_
 
 
 5.5. Review Logging
@@ -700,10 +715,10 @@ _`.log.author`: Remind the author that they can withdraw
 
 _`.log.record`: `.role.scribe_` should record the logging procedure.
 
-- On GitHub, you can start a comment on the pull request.
+- On GitHub, start a `pull request comment`_.
 
-- Record the procedure you're following (this one).  Use a permalink.
-  For example::
+- Record the procedure you're following (this one) and the start time.
+  Use a permalink_.  For example::
 
     Executing [proc.review.log](https://github.com/Ravenbrook/mps/blob/12160d613b04045d6bd5380932f7560c91647556/procedure/review.rst#55-review-logging)
 
@@ -711,6 +726,10 @@ _`.log.record`: `.role.scribe_` should record the logging procedure.
 
 - This opens `.doc.log`_.  `.role.scribe`_ can append issues to the
   log, but see `.log.record.github`_.
+
+.. _permalink: https://docs.github.com/en/repositories/working-with-files/using-files/getting-permanent-links-to-files
+
+.. _pull request comment: `pull request comments`_
 
 _`.log.record.github`: Ask `.role.checker`_ using the GitHub review
 tool to "finish" their reviews now, so that their notes and metrics
@@ -784,13 +803,22 @@ of logging, but was most effective the MM Group.)
 _`.log.major`: `.role.leader`_ calls upon `.role.checker`_ in turn to
 announce `major defects`_ they found.
 
-- `.role.scribe`_ ensures that `major defects`_ are recorded so that
-  they are *all* actioned by `.edit`_ and `.pi`_.
+_`.log.scribble`: `.role.scribe`_ ensures that `major defects`_ are
+recorded so that they can *all* be found by `.edit`_ and `.pi`_.
 
-- On GitHub, the scribe can start a new GitHub review to record issues
-  not already recorded, as in `.check.record.github`_, or make "single
-  comments" from the diffs, or just enter them in comments on the pull
-  requests.
+- On GitHub, the scribe can:
+
+  - edit `.role.checker`_ comments for `.log.format`_
+
+  - start a new GitHub `pull request review`_ to record `.class.new`_ issues
+
+  - make `line comments`_ from the diffs
+
+  - append to `.log.record`_
+
+  - enter more `pull request comments`_.
+
+.. _line comments: https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/reviewing-changes-in-pull-requests/commenting-on-a-pull-request#adding-line-comments-to-a-pull-request
 
 _`.log.fast`: Log issues briskly.  Allow people to clarify the issue,
 but discourage discussion.  Encourage the search for more `major
@@ -823,7 +851,7 @@ meeting, considering `.log.purpose`_.
 - Avoid fatigue.
 
 - `.role.checker`_ may have already noted minor issues in a way that
-  can be found during `.edit`_, such as in GitHub comments.
+  can be found during `.edit`_, such as in a `pull request review`_.
 
 - Perhaps ask `.role.checker`_ to cherry-pick a fraction of their
   minor issues and submit the rest later.  
@@ -872,10 +900,10 @@ around 30 minutes.
 _`.brainstorm.record`: Record the brainstorm procedure
 (`.doc.record`_).
 
-- On GitHub, you can start a comment on the pull request.
+- On GitHub, start a `pull request comment`_.
 
-- Record a the procedure you're following (this one).  Use a
-  permalink.  For example::
+- Record a the procedure you're following (this one) and the start
+  time.  Use a permalink_.  For example::
 
     Executing [proc.review.brainstorm](https://github.com/Ravenbrook/mps/blob/branch/2023-01-19/review-procedure/procedure/review.rst#56-review-brainstorm)
 
@@ -933,10 +961,10 @@ correct defects, part of the review's primary purpose (`.goal.fix`_).
 
 _`.edit.record`: Record the edit procedure.
 
-- On GitHub, you can start a comment on the pull request.
+- On GitHub, start a `pull request comment`_.
 
-- Record the procedure you're following (this one).  Use a permalink.
-  For example::
+- Record the procedure you're following (this one) and the start time.
+  Use a permalink_.  For example::
 
     Executing [proc.review.edit](https://github.com/Ravenbrook/mps/blob/f8b6c94be9304d017d8a5cf57f7f4ab367ac51fc/procedure/review.rst#57-review-edit)
 
@@ -948,17 +976,20 @@ the working time spent for `.edit.metrics`_.
 _`.edit.read`: Locate and read all of `.doc.log`_ before making any
 edits.
 
-- On GitHub, the log should be visible as comments and reviews on the
-  pull request, starting at the kickoff record (`.ko.record`_).
+- On GitHub, `.doc.log`_ should be visible as comments, reviews, and
+  conversations_ on the pull request, starting at the kickoff record
+  (`.ko.record`_).
+
+.. _conversations: https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/reviewing-changes-in-pull-requests/about-pull-request-reviews#discovering-and-navigating-conversations
 
 _`.edit.log`: Record your actions in one of these ways (in order of
 preference):
 
 - Respond to the issue like a conversation.  This works well for
-  GitHub review comments.
+  GitHub review conversations_.
 
 - Quote the text of the issue in a comment.  This works well for
-  issues in comments on a pull request.
+  issues in `pull request comments`_.
 
 - Edit the log and record your action in a comment, e.g. ::
 
@@ -989,11 +1020,13 @@ this is not the same as fixing a defect in a comment.
 - Write "Comment: <reason> in <commit>"
 
 _`.edit.act.raise`: Escalate for later action, usually by creating an
-issue to go into the project queue, such as a GitHub issue.
+issue to go into the project queue, such as a `GitHub issue`_.
 
 - Write "Raise: <reference>"
 
 - This can apply to `.class.question`_ if it a difficult one.
+
+.. _GitHub issue: https://docs.github.com/en/issues
 
 _`.edit.act.forget`: Decide that the issue is not worth an action,
 even though it's valid.  Give your reason.
@@ -1060,10 +1093,10 @@ as well as changes like:
 
 _`.pi.record`: Record the process improvement procedure.
 
-- On GitHub, you can start a comment on the pull request.
+- On GitHub, you start a `pull request comment`_.
 
-- Record the procedure you're following (this one).  Use a permalink.
-  For example::
+- Record the procedure you're following (this one) and the start time.
+  Use a permalink_.  For example::
 
     Executing [proc.review.pi](https://github.com/Ravenbrook/mps/blob/f8b6c94be9304d017d8a5cf57f7f4ab367ac51fc/procedure/review.rst#58-process-improvement)
 
@@ -1100,10 +1133,10 @@ revised change passes review.
 
 _`.exit.record`: Record the exit procedure (`.doc.record`_).
 
-- On GitHub, you can start a comment on the pull request.
+- On GitHub, you start a `pull request comment`_.
 
-- Record a the procedure you're following (this one).  Use a
-  permalink.  For example::
+- Record a the procedure you're following (this one) and the start
+  time.  Use a permalink_.  For example::
 
     Executing (proc.review.exit)[https://github.com/Ravenbrook/mps/blob/645200a25e5e415a2a2978d550b5251e0284c43e/procedure/review.rst#58-review-exit]
 
@@ -1136,10 +1169,12 @@ used.
 
     3. Revised change passed.
 
-- On GitHub, the approve the pull request for merge.
+- On GitHub, `approve the pull request`_ for merge.
 
 - Tell the person who will put the change to use, such as someone who
   will merge it to master.
+
+.. _approve the pull request: https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/reviewing-changes-in-pull-requests/approving-a-pull-request-with-required-reviews
 
 _`.exit.calc`: Calculate and record final review metrics (`.calc`_).
 For example::
@@ -1194,9 +1229,9 @@ _`.doc.record`: Review records
   `.brainstorm.record`_, `.edit.record`_, `.pi.record`_, and
   `.exit.record`_.
 
-  On GitHub, the record of a review can consist of separate comments
-  that appear in the pull request, e.g. by checkers submitting GitHub
-  reviews.  See also `.doc.log`_.
+  On GitHub, the record of a review can consist of `pull request
+  comments`_, `pull request reviews`_, and `line comments`_.  See also
+  `.doc.log`_.
 
   In any case, review records must be specific, permanent, and
   referencable.
@@ -1205,9 +1240,9 @@ _`.doc.log`: Issue log
   A record of issues raised during the logging meeting, specifying
   their location, type, finder, and a brief description.
 
-  On GitHub, the issue log includes all GitHub review comments or
-  GitHub individual comments that appear in the pull request for the
-  change under review.  See also `.doc.record`_.
+  On GitHub, the issue log includes all GitHub `pull request reviews`_
+  or `pull request comments`_ for the change under review.  See also
+  `.doc.record`_.
 
   Every issue log entry must be specific, permanent, referencable, and
   traceable from `.doc.product`_ and `.doc.rev`_.
@@ -1281,7 +1316,7 @@ _`.doc.imp`: Brainstormed improvement suggestions
 
 _`.doc.request`: Requests for change
   An issue that the editor cannot deal with that is escalated to some
-  other tracking system, such as a GitHub issue.
+  other tracking system, such as a `GitHub issue`_.
 
 
 7. Calculations
