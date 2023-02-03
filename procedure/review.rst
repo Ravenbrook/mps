@@ -332,7 +332,7 @@ _`.entry.criteria`: Determine and record the entry and exit criteria.
 
 _`.entry.check`: Check that the entry criteria hold.  Record any
 transgressions.  Decide whether to reject the change from review by
-balancing `2. Purpose`_ and cost.  Will it pass `.exit`_?
+balancing `.purpose`_ and cost.  Will it pass `.exit`_?
 
 _`.entry.metrics`: Record the time taken to execute `.entry`_.
 
@@ -370,7 +370,7 @@ _`.plan.iterate`: Consider all of this procedure.
   `.plan.roles`_ might affect `.plan.tactics`_.
 
 _`.plan.tactics`: Examine the change and decide how to check it to
-achieve `2. Purpose`_.
+achieve the `.purpose`_.
 
 - The default and most effective tactic is to have `.role.checker`_
   examine every line of the change, evenly distributing their
@@ -523,8 +523,8 @@ introduction to the change.
   early if there's anything that needs documenting, such as a hidden
   assumption or requirement.  This happens!
 
-_`.ko.remind`: The leader reminds everyone of the purpose of review
-(see `2. Purpose`_).
+_`.ko.remind`: The leader reminds everyone of the `.purpose`_ of
+review.
 
 - Remind `.role.checker`_ that they are trying to find unique `major
   defects`_ not found by other checkers.
@@ -1504,7 +1504,7 @@ _`.express.entry`: Execute `.entry`_ pretty much as usual.
 _`.express.call`: Call someone else in right now.
 
 _`.express.risk`: The other person must agree that the change has low
-risk, and that express review will achieve `2. Purpose`_.
+risk, and that express review will achieve the `.purpose`_.
 
 - Size is not risk.  It's much more important to consider *what* is
   being changed and *how*.
@@ -1525,7 +1525,7 @@ _`.express.rule`: Everyone must know the relevant rules.
 _`.express.homework`: If homework is needed, it's not an express
 review.
 
-_`.express.remind`: Remind everyone of `2. Purpose`_.
+_`.express.remind`: Remind everyone of the `.purpose`_ of review.
 
 _`.express.role`: Everyone will perform every `.role.check`_.  Not
 feasible?  It's not an express review.
