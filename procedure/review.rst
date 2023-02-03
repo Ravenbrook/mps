@@ -43,9 +43,7 @@ This is the procedure for reviewing a change to the MPS in order to
 prevent defects (`.purpose`_).
 
 This procedure may seem overwhelming at first, but it can be executed
-quickly [how quickly? kpa.qpm! RB 2023-01-21] once you have learned it
-[and how long does that take?  RB 2023-01-21].  [Insert example times
-here for different kinds of work.  RB 2023-01-21]
+quickly with practice.
 
 Time to execute:
 
@@ -54,9 +52,10 @@ Time to execute:
   https://github.com/Ravenbrook/mps/pull/117#issuecomment-1405388814
   et seq. RB 2023-01-30]
 
-- express reviews (`.express`_): <30m
+- `.express`_ reviews: <30m
 
-[Insert further estimates from more testing.  RB 2023-01-30]
+[Insert further examlpes and estimates from more testing.  RB
+2023-01-30]
 
 This procedure requires *training*, preferably by an experienced
 review leader (`.role.leader`_).  At the very least, do not apply this
@@ -64,41 +63,32 @@ procedure to risky changes without first:
 
 - reading and understanding the whole document and the related rules
 
-- practising it on low-risk changes
+- practising the procedure on low-risk changes
 
-This is a placeholder while we arrange to bring in documents from
-outside the MPS Git repository and tree.  For background, see `GitHub
-issue #95 <https://github.com/Ravenbrook/mps/issues/95>`_.
-
-Since this document was created as part of `a project to migrate from
-Perforce to Git (and GitHub)
-<https://github.com/orgs/Ravenbrook/projects/1>`_, this procedure will
-give specifics on conducting review via GitHub.  But the process is in
-no way specific to GitHub, Git, Perforce, or any other tool.
+This version of review was created as part of `a project to migrate
+from Perforce to Git (and GitHub)
+<https://github.com/orgs/Ravenbrook/projects/1>`_, and has details on
+conducting review via GitHub.  The process is in no way specific to
+GitHub, Git, Perforce, or any other tool.
 
 This procedure was created by incorporating and updating review
 process documents from Ravenbrook and the Harlequin MM Group (see
-`A. References`_).  Those documents contain process improvements from
-hundreds of reviews and thousands of hours of effort.
+`A. References`_).  This document is the result of process
+improvements from hundreds of reviews and thousands of hours of
+productive effort.  The underlying process is largely derived from
+"Software Inspection" [Gilb-93]_, which was itself developed from
+`Fagan inspection <https://en.wikipedia.org/wiki/Fagan_inspection>`__,
+and incorporates experience and measurement going back to the 1980s.
 
-The process is largely derived from "Software Inspection" [Gilb-93]_,
-which was itself developed from `Fagan inspection
-<https://en.wikipedia.org/wiki/Fagan_inspection>`__.  It was developed
-over years by Gavin Matthews of the Harlequin Memory Management Group,
-a trained inspection leader.
-
-The process is an example of "Peer Review" (kpa.pr), a key process
-area of level 3 of the Capability Maturity Model [CMU-SEI-93-TR-025]_,
-but also contributes a great deal to:
+The process is an implementation of "Peer Review" (kpa.pr), a key
+process area of level 3 of the Capability Maturity Model
+[CMU-SEI-93-TR-025]_, but also contributes a great deal to:
 
 - Defect Prevention (kpa.dp, level 5)
 - Process Change Management (kpa.pcm, level 5)
 - Quantitive Process Management (kpa.qpm, level 4)
 
 [Notes for inclusion:
-  - Review is not just (or even mostly) looking at diffs, though
-    GitHub encourages this idea.
-  - Review is not just for code.
   - Check against book.gilb93.handbook [Gilb-93]_.
   - Check against kpa.pr, [CMU-SEI-93-TR-025]_, p L3-97
   - Review is about humans and mind tricks.]
