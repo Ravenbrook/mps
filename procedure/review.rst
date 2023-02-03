@@ -519,7 +519,7 @@ introduction to the change.
   early if there's anything that needs documenting, such as a hidden
   assumption or requirement.  This happens!
 
-_`.ko.remind`: The leader reminds everyoneL
+_`.ko.remind`: The leader reminds everyone:
 
 - of the `.purpose`_ of review
 
@@ -605,21 +605,8 @@ _`.check.record.start`: Make a note of the start time.
 _`.check.record.github`: You can note issues using GitHub's `pull
 request reviews`_ in a way that will save time during `.log`_.
 
-#. Open the "Files changed" tab of the pull request.
-
-#. Hover over the line where you want to make a note.
-
-#. Click the green "+" button.
-
-#. Type your note, e.g. "M: overruns array bounds".  It will help if
-   you use `.log.format`_.
-
-#. Then press "Start a review".
-
-#. Repeat for other notes.
-
-#. Do not "finish" your review before `.log`_ to avoid distracting
-   other `.role.checker`_.
+- Try to use `.log.format`_, e.g. "M: assumes array size,
+  rule.imple.assume", but concentrate on `.check.major`_.
 
 _`.check.diff.not`: Do not check using diffs unless your checking role
 says so.  Check the work *as it will be after the change* only using
