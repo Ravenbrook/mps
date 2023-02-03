@@ -35,6 +35,10 @@ Memory Pool System review procedure
 
 .. TODO: Explicitly say to record how long each step took.
 
+.. TODO: Check against [Gilb-93]_
+
+.. TODO: Check against [CMU-SEI-93-TR-025]_
+
 
 1. Introduction
 ===============
@@ -54,7 +58,7 @@ Time to execute:
 
 - `.express`_ reviews: <30m
 
-[Insert further examlpes and estimates from more testing.  RB
+[Insert further examples and estimates from more testing.  RB
 2023-01-30]
 
 This procedure requires *training*, preferably by an experienced
@@ -87,11 +91,6 @@ process area of level 3 of the Capability Maturity Model
 - Defect Prevention (kpa.dp, level 5)
 - Process Change Management (kpa.pcm, level 5)
 - Quantitive Process Management (kpa.qpm, level 4)
-
-[Notes for inclusion:
-  - Check against book.gilb93.handbook [Gilb-93]_.
-  - Check against kpa.pr, [CMU-SEI-93-TR-025]_, p L3-97
-  - Review is about humans and mind tricks.]
 
 
 2. Purpose
@@ -164,7 +163,7 @@ For example, they're the developer who submitted a pull request and
 needs to fix it up before it can be merged.
 
 _`.role.improver`: The *process improver* takes action to prevent
-future occurences of defects found by review.  This should be the same
+future occurrences of defects found by review.  This should be the same
 person as `.role.editor`_ so that they maintain a good understanding
 of (and commitment to) process improvement and defect prevention, but
 this isn't always possible, e.g. when `.role.author`_ is an outside
@@ -312,13 +311,15 @@ _`.entry.criteria`: Determine and record the entry and exit criteria.
 - Add criteria for the types of documents altered by the change (code,
   design, etc.) from the `procedure directory`_.
 
-- Record permalinks to the criteria.  For example::
+- Record permalinks_ to the criteria.  For example::
 
     Executing [proc.review.entry](https://github.com/Ravenbrook/mps/blob/d4ef690a7f2a3d3d6d0ed496eff46e09841b8633/procedure/review.rst#51-review-entry)
 
     1. Start time 11:03.
 
     2. Applying [entry.universal](https://github.com/Ravenbrook/mps/blob/eceaccdf5ab8d8614e9a8bb91a23bdcb99e7d0ce/procedure/entry.universal.rst) and [entry.impl](https://github.com/Ravenbrook/mps/blob/eceaccdf5ab8d8614e9a8bb91a23bdcb99e7d0ce/procedure/entry.impl.rst).  
+
+.. _permalinks: permalink_
 
 _`.entry.check`: Check that the entry criteria hold.  Record any
 transgressions.  Decide whether to reject the change from review by
@@ -356,7 +357,7 @@ _`.plan.record`: Record the planning procedure.
 _`.plan.iterate`: Consider all of this procedure.
 
 - This procedure is only in rough order.  Later steps may change
-  earier decisions.  For example, availability of people for
+  earlier decisions.  For example, availability of people for
   `.plan.roles`_ might affect `.plan.tactics`_.
 
 _`.plan.tactics`: Examine the change and decide how to check it to
@@ -366,7 +367,7 @@ achieve the `.purpose`_.
   examine every line of the change, evenly distributing their
   attention by using a checking rate, such as 10 lines/minute.
 
-- Large repetitive automatic changes (seach-and-replace) might be best
+- Large repetitive automatic changes (search-and-replace) might be best
   handled by sampling using a random number generator and a strong
   Brownian motion producer (dice and tea).
 
@@ -914,7 +915,7 @@ except insofar as it is necessary to develop ways to *prevent* those
 defects.
 
 _`.brainstorm.raise`: Raises each major defect in turn, reminding
-participants of the issue, and asking how it happenned and what could
+participants of the issue, and asking how it happened and what could
 have prevented it.
 
 _`.brainstorm.disc`: Encourage discussion for no more than about five
@@ -1267,7 +1268,7 @@ _`.doc.guide`: Guides
 
 _`.doc.check`: Checklists
   A list of questions to help check against `.doc.rule`_.  A negative
-  answer to a checklist question indictes that a rule has been broken.
+  answer to a checklist question indicates that a rule has been broken.
 
   Checklists often contain specific questions that can help determine
   whether rules are broken.  For example, a code checklist might say
@@ -1410,7 +1411,7 @@ also major.  Typical major defects are:
 
 - In an implementation, potentially failing to behave as specified;
 
-- In an implementation, failing to validate foriegn data;
+- In an implementation, failing to validate foreign data;
 
 - In a high-level document, being likely to cause major defects in
   derived documents.
@@ -1660,7 +1661,7 @@ A. References
 		       //info.ravenbrook.com/project/mps/doc/2002-06-18/obsolete-mminfo/mminfo/process/review/index.txt#1.
 
 .. [MM-proc.review.brainstorm] "Procedure for process brainstorm in
-			       review"; Gavin Matthews; Harelquin
+			       review"; Gavin Matthews; Harlequin
 			       Limited; 1997-06-12;
 			       mminfo:proc.review.brainstorm;
 			       //info.ravenbrook.com/project/mps/doc/2002-06-18/obsolete-mminfo/mminfo/proc/review/brainstorm/index.txt#1.
