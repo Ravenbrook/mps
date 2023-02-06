@@ -6,7 +6,11 @@ XCA6LL_task:
   macos_instance:
     # What does this syntax mean?
     image: ghcr.io/cirruslabs/macos-ventura-xcode:latest
-  script: ./configure --prefix=$PWD/prefix && make install && make test
+  script:
+    - uname -a
+    - cc --version
+    - cc -dumpmachine
+    - ./configure --prefix=$PWD/prefix && make install && make test
 
 # https://cirrus-ci.org/guide/writing-tasks/ doesn't seem to allow for FreeBSD on arm64
 FRI6LL_task:
@@ -14,11 +18,20 @@ FRI6LL_task:
     # Why is this a "family"?
     image_family: freebsd-13-1
   # Which compiler will this end up with by default?
-  script: ./configure --prefix=$PWD/prefix && make install && make test
+  script:
+    - uname -a
+    - cc --version
+    - cc -dumpmachine
+    - pkg install -y gmake
+    - ./configure --prefix=$PWD/prefix && make install && make test
 
 LIA6_task:
   arm_container:
     matrix:
     - image: clang:latest
     - image: gcc:latest
-  script: ./configure --prefix=$PWD/prefix && make install && make test
+  script:
+    - uname -a
+    - cc --version
+    - cc -dumpmachine
+    - ./configure --prefix=$PWD/prefix && make install && make test
