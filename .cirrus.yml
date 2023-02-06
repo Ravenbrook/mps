@@ -2,12 +2,23 @@
 
 # FIXME: Just a test based on https://cirrus-ci.org/guide/macOS/
 
-macos_instance:
-  image: ghcr.io/cirruslabs/macos-ventura-xcode:latest
+XCA6LL_task:
+  macos_instance:
+    # What does this syntax mean?
+    image: ghcr.io/cirruslabs/macos-ventura-xcode:latest
+  script: ./configure --prefix=$PWD/prefix && make install && make test
 
-task:
-  script:
-    - uname -a
-    - arch
-    - ./configure
-    - make
+# https://cirrus-ci.org/guide/writing-tasks/ doesn't seem to allow for FreeBSD on arm64
+FRI6LL_task:
+  freebsd_instance:
+    # Why is this a "family"?
+    image_family: freebsd-13-1
+  # Which compiler will this end up with by default?
+  script: ./configure --prefix=$PWD/prefix && make install && make test
+
+LIA6_task:
+  arm_container:
+    matrix:
+    - image: clang:latest
+    - image: gcc:latest
+  script: ./configure --prefix=$PWD/prefix && make install && make test
