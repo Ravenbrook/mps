@@ -51,8 +51,8 @@ quickly with practice.
 
 Time to execute:
 
-- first time, with experienced leader training checkers, on a small
-  low-risk change: 3h [cite
+- first time, with experienced leader (`.role.leader.experienced`_)
+  training checkers, on a small low-risk change: 3h [cite
   https://github.com/Ravenbrook/mps/pull/117#issuecomment-1405388814
   et seq. RB 2023-01-30]
 
@@ -62,8 +62,8 @@ Time to execute:
 2023-01-30]
 
 This procedure requires *training*, preferably by an experienced
-review leader (`.role.leader`_).  At the very least, do not apply this
-procedure to risky changes without first:
+review leader (`.role.leader.experienced`_).  At the very least, do
+not apply this procedure to risky changes without first:
 
 - reading and understanding the whole document and the related rules
 
@@ -82,7 +82,7 @@ improvements from hundreds of reviews and thousands of hours of
 productive effort.  The underlying process is largely derived from
 "Software Inspection" [Gilb-93]_, which was itself developed from
 `Fagan inspection <https://en.wikipedia.org/wiki/Fagan_inspection>`__,
-and incorporates experience and measurement going back to the 1980s.
+and incorporates experience and measurement going back to the 1970s.
 
 The process is an implementation of "Peer Review" (kpa.pr), a key
 process area of level 3 of the Capability Maturity Model
@@ -91,6 +91,9 @@ process area of level 3 of the Capability Maturity Model
 - Defect Prevention (kpa.dp, level 5)
 - Process Change Management (kpa.pcm, level 5)
 - Quantitive Process Management (kpa.qpm, level 4)
+
+For further comparisons and criticism, see "Inspection and Other
+Review Techniques — a Comparison" [Gilb-93]_ §1.2.
 
 
 2. Purpose
@@ -137,9 +140,14 @@ least one role, to make it clear what they need to do.
 _`.role.leader`: The *leader* organises and plans the review, and
 ensures the procedures are executed.  The leader is responsible for
 managing the process in all respects for productive results.  The
-author (`.role.author`_) can lead, but this should be avoided if not
-an experienced leader.  It is helpful if the leader has received
-special instruction in review or inspection.
+author (`.role.author`_) can lead, but this should be avoided if they
+are not `.role.leader.experienced`_.
+
+ _`.role.leader.experienced`: Ideally, the leader should be
+*experienced*, scoring 24 or more points on "Self-Assessment Audit of
+Your Inspection/Review Process" [Gilb-93]_ pp xi-xv.  In any case it
+is helpful if the leader has received special instruction in review or
+inspection.
 
 _`.role.author`: The *author* is the person responsible for the change
 under review (`.doc.product`_).  For example, they're the developer
@@ -214,8 +222,7 @@ executed roughly in the order below.
 #. _`.phase.entry`: `.role.leader`_ executes `.entry`_.  If the change
    doesn't meet the entry criteria then the change fails review, and
    the rest of the review process is not executed.  A `.role.author`_
-   who is an experienced `.role.leader`_ can do entry on their own
-   work.
+   who is `.role.leader.experienced`_ can do entry on their own work.
 
 #. _`.phase.plan`: `.role.leader`_ executes `.plan`_ to prepare the
    review and arrange for it to happen.
@@ -1495,11 +1502,11 @@ With that in mind, here is some advice from [Gilb-93]_:
 ==================
 
 _`.express`: The *express review procedure* [RB-2023-02-01]_ can be
-executed by an experienced `.role.leader`_ to get a low-risk change
+executed by `.role.leader.experienced`_ to get a low-risk change
 reviewed quickly, at low cost.
 
-_`.express.readership`: The readership of this section is experienced
-review leaders (`.role.leader`_).
+_`.express.readership`: The readership of this section is
+`.role.leader.experienced`_.
 
 _`.express.brief`: If anything in this section is unclear to you,
 you're not ready to run express reviews.
@@ -1714,6 +1721,7 @@ B. Document History
 2023-01-30  RB_    Revising checking, logging, and brainstorm.
 2023-01-31  RB_    Revised based on `review test run`_.
 2023-02-01  RB_    Implementing `.express`_.
+2023-02-06  RB_    Checking against and referencing [Gilb-93]_.
 ==========  =====  ==================================================
 
 .. _RB: mailto:rb@ravenbrook.com
