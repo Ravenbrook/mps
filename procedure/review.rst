@@ -39,6 +39,8 @@ Memory Pool System review procedure
 
 .. TODO: Check against [CMU-SEI-93-TR-025]_
 
+.. TODO: Incorporate NASA experience, e.g. https://archive.org/details/NASA_NTRS_Archive_20090038685/mode/2up
+
 
 1. Introduction
 ===============
@@ -1073,6 +1075,7 @@ _`.pi.scope`: The scope of actions that might be taken by the improver
 should not be limited, and could include:
 
 - filing process issues for later action
+- changing a personal habit
 - raising concerns with management
 - sending suggestions to anyone
 - suggesting wholesale review of working practices
