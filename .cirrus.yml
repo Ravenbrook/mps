@@ -1,0 +1,13 @@
+# .cirrus.yml -- Cirrus CI configuration for the MPS
+
+# FIXME: Just a test based on https://cirrus-ci.org/guide/macOS/
+
+macos_instance:
+  image: ghcr.io/cirruslabs/macos-ventura-xcode:latest
+
+task:
+  script:
+    - uname -a
+    - arch
+    - ./configure
+    - make
