@@ -80,7 +80,8 @@ case $host/$CLANG in
       MPS_BUILD_NAME=ll
       PFMCFLAGS="$CFLAGS_LL"
     ;;
-  aarch64-*-darwin*/*)
+  # FIXME: Cirrus CI build machines produce arm64 not aarch64.  Investigate.
+  aarch64-*-darwin*/*|arm64-*-darwin*/*)
       AC_MSG_RESULT([Mac OS X ARM64])
       MPS_OS_NAME=xc
       MPS_ARCH_NAME=a6
