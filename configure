@@ -3693,8 +3693,10 @@ printf "%s\n" "Linux x86_64" >&6; }
       MPS_BUILD_NAME=ll
       PFMCFLAGS="$CFLAGS_LL"
     ;;
-  # FIXME: Cirrus CI build machines produce arm64 not aarch64.  Investigate.
-  aarch64-*-darwin*/*|arm64-*-darwin*/*)
+  # FIXME: Cirrus CI build machines produce "arm64" from `cc
+  # -dumpmachine` but tools/autoconf/build-aux/config.sub produces
+  # "arm".  Neither produces "aarch64".  Investigate.
+  aarch64-*-darwin*/*|arm*-*-darwin*/*)
       { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: Mac OS X ARM64" >&5
 printf "%s\n" "Mac OS X ARM64" >&6; }
       MPS_OS_NAME=xc
