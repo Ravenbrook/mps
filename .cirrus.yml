@@ -4,7 +4,7 @@
 
 XCA6LL_task:
   macos_instance:
-    # What does this syntax mean?
+    # What does this syntax mean?  See <https://github.com/cirruslabs/cirrus-ci-docs/discussions/1147#discussioncomment-4902556>.
     image: ghcr.io/cirruslabs/macos-ventura-xcode
   script:
     - uname -a
@@ -16,9 +16,19 @@ XCA6LL_task:
 
 FRI6LL_task:
   freebsd_instance:
-    # Why is this a "family"?
+    # Why is this a "family"?  See <https://github.com/cirruslabs/cirrus-ci-docs/discussions/1147#discussioncomment-4902556>.
     image_family: freebsd-13-1
-  # Which compiler will this end up with by default?  Clang.
+  script:
+    - uname -a
+    - pkg install -y gmake
+    - clang --version
+    - clang -dumpmachine
+    - CC=clang ./configure --prefix=$PWD/prefix-clang && make install && make test
+
+FRA6LL_task:
+  freebsd_instance:
+    image_family: freebsd-13-1
+    architecture: arm64
   script:
     - uname -a
     - pkg install -y gmake
@@ -28,7 +38,6 @@ FRI6LL_task:
 
 FRI6GC_task:
   freebsd_instance:
-    # Why is this a "family"?
     image_family: freebsd-13-1
   script:
     - uname -a
@@ -52,6 +61,8 @@ LIA6LL_task:
     image: ubuntu # https://hub.docker.com/_/ubuntu
   script:
     - uname -a
+    - apt-get update
+    - apt search clang
     - apt-get install -y clang
     - clang --version
     - clang -dumpmachine
