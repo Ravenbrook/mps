@@ -19,10 +19,15 @@ language: c # see <https://docs.travis-ci.com/user/languages/c/>.
 #
 # Most x86_64/amd64 builds are in GitHub CI, configured by
 # .github/workflows/build-and-test.yml.
+#
+# FreeBSD on x86_64 builds are in Cirrus CI, configured by
+# .cirrus.yml.
+#
+# FIXME: The above information should appear once somewhere and be
+# referenced from here.
 
 os:
   - freebsd
-  - linux
 arch:
   - arm64
 compiler:
@@ -31,28 +36,6 @@ compiler:
 
 script: # see design.mps.test.ci.run.posix
 - ./configure --prefix=$PWD/prefix && make install && make test
-
-matrix:
-
-  # Extra build jobs to add to the matrix
-  include:
-
-    # GitHub CI does not provide FreeBSD
-    # <https://docs.github.com/en/actions/using-github-hosted-runners/about-github-hosted-runners#supported-runners-and-hardware-resources>
-    # on any architecture, so we add it here for amd64.  See also
-    # design.mps.tests.ci.travis.platforms.
-
-    - os: freebsd
-      arch: amd64
-      compiler: clang
-    - os: freebsd
-      arch: amd64
-      compiler: gcc
-
-  # Specific combinations to exclude from the matrix
-  exclude:
-    - os: osx
-      compiler: gcc
 
 notifications:
   email:
