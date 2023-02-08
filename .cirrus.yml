@@ -1,5 +1,7 @@
 # .cirrus.yml -- Cirrus CI configuration for the MPS
 
+# FIXME: Specify versions of OS and toolchains.  Source?
+
 # FIXME: Just a test based on https://cirrus-ci.org/guide/macOS/
 
 XCA6LL_task:
@@ -19,9 +21,10 @@ FRI6LL_task:
     # Why is this a "family"?  See <https://github.com/cirruslabs/cirrus-ci-docs/discussions/1147#discussioncomment-4902556>.
     image_family: freebsd-13-1
   script: |
+    set -x
     CC=clang
     uname -a
-    pkg install -y gmake $CC
+    pkg install -y gmake
     $CC --version
     $CC -dumpmachine
     CC=$CC ./configure --prefix=$PWD/prefix-clang && make install && make test
@@ -34,9 +37,10 @@ FRA6LL_task:
     image_family: freebsd-13-1
     architecture: arm64
   script: |
+    set -x
     CC=clang
     uname -a
-    pkg install -y gmake $CC
+    pkg install -y gmake
     $CC --version
     $CC -dumpmachine
     CC=$CC ./configure --prefix=$PWD/prefix-clang && make install && make test
@@ -45,31 +49,35 @@ FRI6GC_task:
   freebsd_instance:
     image_family: freebsd-13-1
   script: |
+    set -x
     CC=gcc
     uname -a
-    pkg install -y gmake $CC
+    pkg install -y gmake gcc
     $CC --version
     $CC -dumpmachine
     CC=$CC ./configure --prefix=$PWD/prefix-clang && make install && make test
 
 # Is this really "LI" if it's a docker container?  Does it matter?
+# Is gcc:latest what we want to test against?
 LIA6GC_task:
   arm_container:
     image: gcc # https://hub.docker.com/_/gcc
-  script:
-    - uname -a
-    - gcc --version
-    - gcc -dumpmachine
-    - CC=gcc ./configure --prefix=$PWD/prefix && make install && make test
+  script: |
+    set -x
+    uname -a
+    $CC --version
+    $CC -dumpmachine
+    CC=$CC ./configure --prefix=$PWD/prefix && make install && make test
 
 LIA6LL_task:
   arm_container:
     image: ubuntu # https://hub.docker.com/_/ubuntu
   script: |
+    set -x
     CC=clang
     uname -a
     apt-get update
-    apt-get install -y gmake $CC
+    apt-get install -y make clang
     $CC --version
     $CC -dumpmachine
     CC=$CC ./configure --prefix=$PWD/prefix && make install && make test
