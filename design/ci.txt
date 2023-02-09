@@ -15,7 +15,15 @@ Continuous Integration
 
 .. TODO: more index terms?
 
-.. TODO: Readership could be a role that doesn't include MPS programmers.
+.. TODO: Readership could be a role that doesn't include MPS
+   programmers.
+
+.. TODO: Section on service configuration and admin.
+
+.. TODO: Discussion of compilers and toolchains.
+
+.. TODO: Discussion of *versions* of platforms, e.g. whether and how
+   we specify compiler versions to CI.
 
 
 Introduction
@@ -57,6 +65,26 @@ Requirements
 RB 2023-02-09]
 
 
+[To include:
+
+_`.build`: translates correctly without errors or warnings
+
+- _`.build.code`: ``make -C code``
+- _`.build.manual`: ``make -C manual html``
+
+_`.test`: runs correctly
+
+- ``make test`` etc.
+
+_`.publish`: is made available to the public
+
+- Appears at https://memory-pool-system.readthedocs.io/
+- Published versions
+- Branches and pull requests
+
+RB 2023-02-09]
+
+
 Design
 ======
 
@@ -74,6 +102,9 @@ Design
 - 32-bit?
 
 RB 2023-02-09]
+
+[Mention how CI supports the pull request merge procedure (except that
+exists on a separate branch at the moment).  RB 2023-01-15]
 
 
 Implementation
@@ -121,6 +152,8 @@ integration services.
 
   - `Travis CI`_ is a paid service with limited concurrency.
 
+  - `Travis CI is slow and expensive`_
+
   - Ravenbrook has negotiated a quota of "OSS credits" with Travis for
     the public MPS repo.
 
@@ -136,8 +169,19 @@ integration services.
 
 .. _Read the Docs: https://readthedocs.org/
 
+.. _Travis CI is slow and expensive: https://github.com/Ravenbrook/mps/issues/109
+
 _`.service.choice`: Favour the services higher up this list when
 making changes.  [Why? Cost. Stability. RB 2023-02-09]
+
+[Previous text on service choice:
+
+_`.travis.platforms`: Where possible, we use `GitHub CI`_ for
+platforms, because `Travis CI is slow and expensive`_.  However
+`GitHub CI`_ does not provide ARM64 or FreeBSD, so we use `Travis CI`_
+for those.
+
+RB 2023-02-09]
 
 
 Platforms
@@ -176,34 +220,8 @@ platforms listed in "Building the MPS" manual/build.txt, but
 preferably the same set so that CI covers all defined platforms.
 
 
-[To include:
-
-_`.build`: translates correctly without errors or warnings
-
-- _`.build.code`: ``make -C code``
-- _`.build.manual`: ``make -C manual html``
-
-_`.test`: runs correctly
-
-- ``make test`` etc.
-
-_`.publish`: is made available to the public
-
-- Appears at https://memory-pool-system.readthedocs.io/
-- Published versions
-- Branches and pull requests
-
-RB 2023-02-09]
-
-[To include: service configuration and admin.  RB 2023-02-09]
-
-[This section needs: definition of CI goals and requirements, what we
-need CI to do and why, how the testci target meets those
-requirements.  'taint really a design without this.  Mention how CI
-supports the pull request merge procedure (except that exists on a
-separate branch at the moment).  RB 2023-01-15]
-
-[Need to discuss compilers and toolchains.  RB 2023-01-15]
+Commands
+--------
 
 _`.run.posix`: On Posix systems where we have autoconf, the CI
 services run commands equivalent to::
@@ -238,13 +256,21 @@ subject of `GitHub pull request #113
 branch/2023-01-13/rst-check.  When merged, they can be linked.  RB
 2023-01-15]
 
+
+Events
+------
+
 _`.when:`: CI is triggered on the `mps GitHub repo`_ by:
 
 - commits (pushes)
 - new pull requests
-- manually, using tools (see `.tools`_)
+- manually, using `.tools`_
 
 .. _mps GitHub repo: https://github.com/ravenbrook/mps
+
+
+Results
+-------
 
 _`.results`: CI results are visible via the GitHub web interface:
 
@@ -255,37 +281,36 @@ _`.results`: CI results are visible via the GitHub web interface:
 
 as well as in logs specific to the type of CI.
 
-_`.results.travis`: Results from Travis CI can be found at the
-`Travis CI build history for the MPS GitHub repo
-<https://app.travis-ci.com/github/Ravenbrook/mps/builds>`_.
-
-_`.results.github`: Results from GitHub CI can be found at `build
+_`.results.github`: Results from `GitHub CI`_ can be found at `build
 and test actions on the Actions tab at the Ravenbrook GitHub repo
 <https://github.com/Ravenbrook/mps/actions/workflows/build-and-test.yml>`_.
 
-_`.github`: [Insert overview of GitHub CI here.  RB 2023-01-15]
+_`.results.cirrus`: Results from `Cirrus CI`_ can be found at
+`Ravenbrook/mps - Cirrus CI
+<https://cirrus-ci.com/github/Ravenbrook/mps>`_.
 
-_`.github.platforms`: GitHub provides runners_ for Linux, Windows,
-and macOS, but only on x86_64.  See `.travis.platforms`_ for ARM64
-and FreeBSD.
+_`.results.travis`: Results from `Travis CI`_ can be found at `Travis
+CI build history for the MPS GitHub repo
+<https://app.travis-ci.com/github/Ravenbrook/mps/builds>`_.
 
-.. _runners: https://docs.github.com/en/actions/using-github-hosted-runners/about-github-hosted-runners#supported-runners-and-hardware-resources
+_`.results.readthedocs`: Results from `Read the Docs`_ can be found at
+`Builds | Read the Docs
+<https://readthedocs.org/projects/memory-pool-system/builds/>`_.
+
+
+Configuration
+-------------
 
 _`.github.config`: GitHub CI is configured using the
 `build-and-test.yml <../.github/workflows/build-and-test.yml>`_ file
 in the .github/workflows directory of the MPS tree.
 
-_`.travis`: [Insert overview of Travis CI here.  RB 2023-01-15]
-
-_`.travis.platforms`: Where possible, we use `GitHub CI`_ for
-platforms, because `Travis CI is slow and expensive`_.  However
-`GitHub CI`_ does not provide ARM64 or FreeBSD, so we use `Travis CI`_
-for those.
-
-.. _Travis CI is slow and expensive: https://github.com/Ravenbrook/mps/issues/109
-
 _`.travis.config`: Travis is configured using the `.travis.yml
 <../.travis.yml>`_ file at top level of the MPS tree.
+
+
+Tools
+-----
 
 _`.tools`: The MPS tree contains some simple tools for managing CI
 without the need to install whole packages such as the GitHub CLI or
@@ -297,6 +322,7 @@ without the need to push a change or make a pull request in the `mps
 GitHub repo`_.  In particular, they are useful for applying CI to work
 that was pushed while CI was disabled, for whatever reason.
 
+[FIXME: No cirrus-ci-kick?  Read the Docs kick?  RB 2023-02-09]
 
 
 References
