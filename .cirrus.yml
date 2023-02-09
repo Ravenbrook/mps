@@ -29,10 +29,11 @@ build_script_template: &BUILD_SCRIPT_TEMPLATE
 clone_script_template: &CLONE_SCRIPT_TEMPLATE
   clone_script: |
     set -x
-    if [ -z "$CIRRUS_PR" ]; then
-      git clone --recursive --branch=$CIRRUS_BRANCH https://x-access-token:${CIRRUS_REPO_CLONE_TOKEN}@github.com/${CIRRUS_REPO_FULL_NAME}.git $CIRRUS_WORKING_DIR
-    else
-      git clone --recursive --branch=pull/$CIRRUS_PR/merge https://x-access-token:${CIRRUS_REPO_CLONE_TOKEN}@github.com/${CIRRUS_REPO_FULL_NAME}.git $CIRRUS_WORKING_DIR
+    git clone --depth=1 --branch=$CIRRUS_BRANCH https://x-access-token:${CIRRUS_REPO_CLONE_TOKEN}@github.com/${CIRRUS_REPO_FULL_NAME}.git $CIRRUS_WORKING_DIR
+    if test -n "$CIRRUS_PR"; then
+      cd $CIRRUS_WORKING_DIR &&
+      git fetch --depth=1 origin pull/$CIRRUS_PR/merge &&
+      git checkout FETCH_HEAD
     fi
 
 
