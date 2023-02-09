@@ -10,11 +10,12 @@ XCA6LL_task:
   macos_instance:
     # What does this syntax mean?  See <https://github.com/cirruslabs/cirrus-ci-docs/discussions/1147#discussioncomment-4902556>.
     image: ghcr.io/cirruslabs/macos-ventura-xcode
+  env.CC: cc
   script:
     - uname -a
-    - cc --version
-    - cc -dumpmachine
-    - ./configure --prefix=$PWD/prefix && make install && make test
+    - $CC --version
+    - $CC -dumpmachine
+    - CC=$CC ./configure --prefix=$PWD/prefix && make install && make test
 
 # https://cirrus-ci.org/guide/writing-tasks/ doesn't seem to allow for FreeBSD on arm64
 
@@ -22,9 +23,9 @@ FRI6LL_task:
   freebsd_instance:
     # Why is this a "family"?  See <https://github.com/cirruslabs/cirrus-ci-docs/discussions/1147#discussioncomment-4902556>.
     image_family: freebsd-13-1
+  env.CC: clang
   script: |
     set -x
-    CC=clang
     uname -a
     pkg install -y gmake
     $CC --version
@@ -56,9 +57,9 @@ FRI6LL_task:
 FRI6GC_task:
   freebsd_instance:
     image_family: freebsd-13-1
+  env.CC: gcc
   script: |
     set -x
-    CC=gcc
     uname -a
     pkg install -y gmake gcc
     $CC --version
@@ -71,9 +72,9 @@ FRI6GC_task:
 LIA6GC_task:
   arm_container:
     image: gcc # https://hub.docker.com/_/gcc
+  env.CC: gcc
   script: |
     set -x
-    CC=gcc
     uname -a
     $CC --version
     $CC -dumpmachine
@@ -82,9 +83,9 @@ LIA6GC_task:
 LIA6LL_task:
   arm_container:
     image: ubuntu # https://hub.docker.com/_/ubuntu
+  env.CC: clang
   script: |
     set -x
-    CC=clang
     uname -a
     apt-get update
     apt-get install -y make clang
