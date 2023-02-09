@@ -4,16 +4,18 @@
 
 # FIXME: Specify versions of OS and toolchains.  Source?
 
-# FIXME: This is just a test based on <https://cirrus-ci.org/guide/writing-tasks/#environment-variables>.
+# Templates for inclusion in tasks.
+# See <https://cirrus-ci.org/guide/tips-and-tricks/#sharing-configuration-between-tasks>.
 
-echo_task:
-  container:
-    image: ubuntu
-  env:
-    FOO: Bar
-  echo_script: echo $FOO
+init_script_template: &INIT_SCRIPT_TEMPLATE
+  init_script:
+    - uname -a
 
-# FIXME: Just a test based on https://cirrus-ci.org/guide/macOS/
+build_script_template: &BUILD_SCRIPT_TEMPLATE
+  build_script:
+    - $CC --version
+    - $CC -dumpmachine
+    - CC=$CC ./configure --prefix=$PWD/prefix && make install && make test
 
 XCA6LL_task:
   macos_instance:
@@ -21,11 +23,8 @@ XCA6LL_task:
     image: ghcr.io/cirruslabs/macos-ventura-xcode
   env:
     CC: cc
-  script:
-    - uname -a
-    - $CC --version
-    - $CC -dumpmachine
-    - CC=$CC ./configure --prefix=$PWD/prefix && make install && make test
+  << : *INIT_SCRIPT_TEMPLATE
+  << : *BUILD_SCRIPT_TEMPLATE
 
 # https://cirrus-ci.org/guide/writing-tasks/ doesn't seem to allow for FreeBSD on arm64
 
@@ -33,14 +32,11 @@ FRI6LL_task:
   freebsd_instance:
     # Why is this a "family"?  See <https://github.com/cirruslabs/cirrus-ci-docs/discussions/1147#discussioncomment-4902556>.
     image_family: freebsd-13-1
-  env.CC: clang
-  script: |
-    set -x
-    uname -a
-    pkg install -y gmake
-    $CC --version
-    $CC -dumpmachine
-    CC=$CC ./configure --prefix=$PWD/prefix-clang && make install && make test
+  env:
+    CC: clang
+  << : *INIT_SCRIPT_TEMPLATE
+  install_script: pkg install -y gmake
+  << : *BUILD_SCRIPT_TEMPLATE
 
 # FRA6LL doesn't seem to work.  Cirrus CI gets an "Agent is not
 # responding!" error on its status page.
@@ -51,30 +47,15 @@ FRI6LL_task:
 #
 # Fortunately, we can do this using Travis CI.  See .travis.yml.
 
-# FRA6LL_task:
-#   freebsd_instance:
-#     image_family: freebsd-13-1
-#     architecture: arm64
-#   script: |
-#     set -x
-#     CC=clang
-#     uname -a
-#     pkg install -y gmake
-#     $CC --version
-#     $CC -dumpmachine
-#     CC=$CC ./configure --prefix=$PWD/prefix-clang && make install && make test
-
 FRI6GC_task:
   freebsd_instance:
     image_family: freebsd-13-1
-  env.CC: gcc
-  script: |
-    set -x
-    uname -a
-    pkg install -y gmake gcc
-    $CC --version
-    $CC -dumpmachine
-    CC=$CC ./configure --prefix=$PWD/prefix-clang && make install && make test
+  env:
+    CC: gcc
+  << : *INIT_SCRIPT_TEMPLATE
+  install_script:
+    - pkg install -y gmake gcc
+  << : *BUILD_SCRIPT_TEMPLATE
 
 # Is this really "LI" if it's a docker container?  Does it matter?
 # Is gcc:latest what we want to test against?
@@ -82,23 +63,18 @@ FRI6GC_task:
 LIA6GC_task:
   arm_container:
     image: gcc # https://hub.docker.com/_/gcc
-  env.CC: gcc
-  script: |
-    set -x
-    uname -a
-    $CC --version
-    $CC -dumpmachine
-    CC=$CC ./configure --prefix=$PWD/prefix && make install && make test
+  env:
+    CC: gcc
+  << : *INIT_SCRIPT_TEMPLATE
+  << : *BUILD_SCRIPT_TEMPLATE
 
 LIA6LL_task:
   arm_container:
     image: ubuntu # https://hub.docker.com/_/ubuntu
-  env.CC: clang
-  script: |
-    set -x
-    uname -a
-    apt-get update
-    apt-get install -y make clang
-    $CC --version
-    $CC -dumpmachine
-    CC=$CC ./configure --prefix=$PWD/prefix && make install && make test
+  env:
+    CC: clang
+  << : *INIT_SCRIPT_TEMPLATE
+  install_script:
+    - apt-get update
+    - apt-get install -y make clang
+  << : *BUILD_SCRIPT_TEMPLATE
