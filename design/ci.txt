@@ -12,8 +12,7 @@ Continuous Integration
 :Copyright: See `Copyright and License`_.
 :Readership: MPS developers
 :Index terms: pair: continuous integration; design
-
-.. TODO: more index terms?
+	      pair: CI; design
 
 .. TODO: Readership could be a role that doesn't include MPS
    programmers.
