@@ -3,6 +3,8 @@
 Design
 ******
 
+.. IMPORTANT: Keep in sync with the index at design/index.txt.
+
 .. toctree::
     :numbered:
 
@@ -10,6 +12,7 @@ Design
     an
     bootstrap
     cbs
+    ci
     clock
     config
     critical-path

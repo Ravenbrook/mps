@@ -58,9 +58,13 @@ This subset of tests are quick checks that the MPS is working. They
 run quickly enough for it to be practical to run them every time the
 MPS is built.
 
-_`.target.testci`: The ``testci`` target runs the continuous
-integration tests, the subset of tests that are expected to pass in
-full-featured build configurations.
+_`.target.testci`: The ``testci`` target runs the `continuous
+integration`_ tests, the subset of tests that are expected to pass in
+full-featured build configurations.  See `design.mps.ci`_.
+
+.. _continuous integration: `design.mps.ci`_
+
+.. _design.mps.ci: ci.txt
 
 _`.target.testansi`: The ``testansi`` target runs the subset of the
 tests that are expected to pass in the generic ("ANSI") build
@@ -169,7 +173,7 @@ Test runner
 -----------
 
 _`.runner.req.automated`: The test runner must execute without user
-interaction, so that it can be used for continuous integration.
+interaction, so that it can be used for `continuous integration`_.
 
 _`.runner.req.output.pass`: Test cases are expected to pass nearly all the
 time, and in these cases we almost never want to see the output, so
@@ -180,8 +184,8 @@ test runner must preserve the output from the failing test, including
 the random seed (see `.randomize.seed`_), so that this can be analyzed
 and the test repeated. Moreover, it must print the output from the
 failing test, so that if the test is being run on a `continuous
-integration`_ system (see `.ci`_), then the output of the failing
-tests is included in the failure report. (See job003489_.)
+integration`_ system, then the output of the
+failing tests is included in the failure report. (See job003489_.)
 
 .. _job003489: https://www.ravenbrook.com/project/mps/issue/job003489/
 
@@ -200,8 +204,8 @@ testing that this falls under an acceptable limit.
 
 _`.ratio.cpu-time`: Note that we use the CPU time (reported by
 ``/usr/bin/time``) and not the elapsed time (as reported by the
-benchmark) because we want to be able to run this test on continuous
-integration machines that might be heavily loaded.
+benchmark) because we want to be able to run this test on `continuous
+integration`_ machines that might be heavily loaded.
 
 _`.ratio.platform`: This target is currently supported only on Unix
 platforms using GNU Makefiles.
@@ -273,120 +277,6 @@ _`.new.manual`: Edit manual/source/code-index.rst and add the new test
 case to the "Automated test cases" section.
 
 
-Continuous integration
-----------------------
-
-[This section might need to become a document in its own right.  CI
-has grown in importance and complexity.  RB 2023-01-15]
-
-_`.ci`: Ravenbrook uses both `GitHub CI`_ and `Travis CI`_ for
-continuous integration of the MPS via GitHub.
-
-.. _Travis CI: https://travis-ci.com/
-
-.. _GitHub CI: https://docs.github.com/en/actions/automating-builds-and-tests/about-continuous-integration
-
-[This section needs: definition of CI goals and requirements, what we
-need CI to do and why, how the testci target meets those
-requirements.  'taint really a design without this.  Mention how CI
-supports the pull request merge procedure (except that exists on a
-separate branch at the moment).  RB 2023-01-15]
-
-[Need to discuss compilers and toolchains.  RB 2023-01-15]
-
-_`.ci.run.posix`: On Posix systems where we have autoconf, the CI
-services run commands equivalent to::
-
-  ./configure
-  make install
-  make test
-
-which execises the testci target, as defined by `Makefile.in
-<../Makefile.in>`_ in the root of the MPS tree.
-
-_`.ci.run.windows`: On Windows the CI services run commands that do at
-least::
-
-  make /f w3i6mv.nmk all testci
-
-as defined by the `.ci.github.config`_.
-
-_`.ci.run.other.targets`: On some platforms we arrange to run the testansi,
-testpollnone, testratio, and testscheme targets.  [Need to explain
-why, where, etc.  RB 2023-01-15]
-
-_`.ci.run.other.checks`: We could also run various non-build checks
-using CI to check:
-
-- document formatting
-- shell script syntax
-
-[In the branch of writing, these do not yet exist.  They are the
-subject of `GitHub pull request #113
-<https://github.com/Ravenbrook/mps/pull/112>`_ of
-branch/2023-01-13/rst-check.  When merged, they can be linked.  RB
-2023-01-15]
-
-_`.ci.when:`: CI is triggered on the `mps GitHub repo`_ by:
-
-- commits (pushes)
-- new pull requests
-- manually, using tools (see `.ci.tools`_)
-
-.. _mps GitHub repo: https://github.com/ravenbrook/mps
-
-_`.ci.results`: CI results are visible via the GitHub web interface:
-
-- in pull requests, under "Checks",
-
-- on the `branches page <https://github.com/Ravenbrook/mps/branches>`_
-  as green ticks or red crosses that link to details.
-
-as well as in logs specific to the type of CI.
-
-_`.ci.results.travis`: Results from Travis CI can be found at the
-`Travis CI build history for the MPS GitHub repo
-<https://app.travis-ci.com/github/Ravenbrook/mps/builds>`_.
-
-_`.ci.results.github`: Results from GitHub CI can be found at `build
-and test actions on the Actions tab at the Ravenbrook GitHub repo
-<https://github.com/Ravenbrook/mps/actions/workflows/build-and-test.yml>`_.
-
-_`.ci.github`: [Insert overview of GitHub CI here.  RB 2023-01-15]
-
-_`.ci.github.platforms`: GitHub provides runners_ for Linux, Windows,
-and macOS, but only on x86_64.  See `.ci.travis.platforms`_ for ARM64
-and FreeBSD.
-
-.. _runners: https://docs.github.com/en/actions/using-github-hosted-runners/about-github-hosted-runners#supported-runners-and-hardware-resources
-
-_`.ci.github.config`: GitHub CI is configured using the
-`build-and-test.yml <../.github/workflows/build-and-test.yml>`_ file
-in the .github/workflows directory of the MPS tree.
-
-_`.ci.travis`: [Insert overview of Travis CI here.  RB 2023-01-15]
-
-_`.ci.travis.platforms`: Where possible, we use `GitHub CI`_ for
-platforms, because `Travis CI is slow and expensive`_.  However
-`GitHub CI`_ does not provide ARM64 or FreeBSD, so we use `Travis CI`_
-for those.
-
-.. _Travis CI is slow and expensive: https://github.com/Ravenbrook/mps/issues/109
-
-_`.ci.travis.config`: Travis is configured using the `.travis.yml
-<../.travis.yml>`_ file at top level of the MPS tree.
-
-_`.ci.tools`: The MPS tree contains some simple tools for managing CI
-without the need to install whole packages such as the GitHub CLI or
-Travis CI's Ruby gem.
-
-_`.ci.tools.kick`: `tool/github-ci-kick <../tool/github-ci-kick>`_ and
-`tool/travis-ci-kick <../tool/travis-ci-kick>`_ both trigger CI builds
-without the need to push a change or make a pull request in the `mps
-GitHub repo`_.  In particular, they are useful for applying CI to work
-that was pushed while CI was disabled, for whatever reason.
-
-
 MMQA tests
 ----------
 
@@ -442,6 +332,8 @@ Document History
 
 - 2023-01-15 RB_ Bringing CI section up to date with Travis
   configuration.  Removing obsolete Jenkins info.  Adding GitHub CI.
+
+- 2023-02-09 RB_ Split CI into its own document: `design.mps.ci`_.
 
 .. _RB: https://www.ravenbrook.com/consultants/rb/
 .. _GDR: https://www.ravenbrook.com/consultants/gdr/

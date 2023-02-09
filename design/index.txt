@@ -36,6 +36,9 @@ product.
 Designs
 -------
 
+.. IMPORTANT: Keep in sync with the contents trees at
+   manual/source/design/index.rst and manual/source/design/old.rst.
+
 .. class:: index
 
 ======================  ================================================
@@ -49,6 +52,7 @@ bt_                     Bit tables
 buffer_                 Allocation buffers and allocation points
 cbs_                    Coalescing block structures
 check_                  Checking
+ci_                     Continuous integration
 clock_                  Fast high-resolution clock
 collection_             Collection framework
 config_                 MPS configuration
@@ -126,6 +130,7 @@ writef_                 The WriteF function
 .. _buffer: buffer
 .. _cbs: cbs
 .. _check: check
+.. _ci: ci
 .. _clock: clock
 .. _collection: collection
 .. _config: config

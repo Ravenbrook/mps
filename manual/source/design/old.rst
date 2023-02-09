@@ -3,6 +3,8 @@
 Old design
 **********
 
+.. IMPORTANT: Keep in sync with the index at design/index.txt.
+
 .. warning::
 
     Much of the documentation in this section is very old: some of it

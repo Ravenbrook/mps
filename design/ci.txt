@@ -1,0 +1,293 @@
+.. mode: -*- rst -*-
+
+======================
+Continuous Integration
+======================
+
+:Tag: design.mps.ci
+:Author: Richard Brooksby
+:Organization: Ravenbrook Limited
+:Date: 2023-02-09
+:Confidentiality: public
+:Copyright: See `Copyright and License`_.
+:Readership: MPS developers
+:Index terms: pair: continuous integration; design
+
+.. TODO: more index terms?
+
+.. TODO: Readership could be a role that doesn't include MPS programmers.
+
+
+Introduction
+============
+
+_`.intro`: This document describes the design and implementation of
+`continuous integration
+<https://en.wikipedia.org/wiki/Continuous_integration>`_ of the Memory
+Pool System.
+
+
+Goals
+=====
+
+[For inclusion:
+
+- Provide rapid feedback to developers.
+- Cover a wide array of target platforms.
+- Early detection of defects.
+- Deployment of documentation.
+
+RB 2023-02-09]
+
+
+Requirements
+============
+
+[For inclusion:
+
+- Cover all "supported" target platforms.
+- Zero monetary cost.
+- Low maintenance overheads.
+- Easy to extend with improvements and prevention.
+- Easy to switch providers.
+- Include all tests.
+- Portable outside GitHub.
+- Administration by more than one person.
+
+RB 2023-02-09]
+
+
+Design
+======
+
+[For inclusion:
+
+- the testci make target
+- third-party systems used
+- relationship to review
+- relationship to merge
+- configuration files
+- tool scripts
+- how to extend
+- KISS
+- forks
+- 32-bit?
+
+RB 2023-02-09]
+
+
+Implementation
+==============
+
+Services
+--------
+
+_`.service`: The `Ravenbrook MPS repository on GitHub`_ uses
+third-party continuous integration services.
+
+[Should be a table cross-referenced to the build instructions.  RB
+2023-02-09]
+
+- _`.service.github`: `GitHub CI`_ is used to `.build`_ and `.test`_
+  on Linux, macOS, and Windows on amd64 platforms (LII6GC, LII6LL,
+  XCI6LL, W3I6MV).  `GitHub CI`_ is also used to run checks
+  (`.run.other.checks`_).  `GitHub CI`_ only provides amd64 and does
+  not provide FreeBSD.
+
+- _`.service.cirrus`: `Cirrus CI`_ is used to `.build`_ and `.test`_
+  on macOS M1 (XCA6LL), Linux on arm64 (LIA6GC, LIA6LL), and FreeBSD
+  on amd64 (FRI6GC, FRI6LL).  `Cirrus CI`_ runs OS images on Google
+  Cloud Services by default, and no FreeBSD on arm64 image is
+  available.
+
+- _`.service.travis`: `Travis CI`_ is used to `.build`_ and `.test`_
+  on FreeBSD on arm64 (FRA6GC, FRA6LL).
+
+- _`.service.readthedocs`: `Read the Docs`_ is used to `.build`_ and
+  `.publish`_ the `MPS manual`_.
+
+.. _GitHub CI: https://docs.github.com/en/actions/automating-builds-and-tests/about-continuous-integration
+
+.. _Cirrus CI: https://cirrus-ci.com/
+
+.. _Travis CI: https://travis-ci.com/
+
+.. _Read the Docs: https://readthedocs.org/
+
+_`.service.choice`: Favour the services higher up this list when
+making changes.  [Why? Cost. Stability. RB 2023-02-09]
+
+[To include:
+
+_`.build`: translates correctly without errors or warnings
+
+- _`.build.code`: ``make -C code``
+- _`.build.manual`: ``make -C manual html``
+
+_`.test`: runs correctly
+
+- ``make test`` etc.
+
+_`.publish`: is made available to the public
+
+- Appears at https://memory-pool-system.readthedocs.io/
+- Published versions
+- Branches and pull requests
+
+RB 2023-02-09]
+
+[To include: service configuration and admin.  RB 2023-02-09]
+
+[This section needs: definition of CI goals and requirements, what we
+need CI to do and why, how the testci target meets those
+requirements.  'taint really a design without this.  Mention how CI
+supports the pull request merge procedure (except that exists on a
+separate branch at the moment).  RB 2023-01-15]
+
+[Need to discuss compilers and toolchains.  RB 2023-01-15]
+
+_`.run.posix`: On Posix systems where we have autoconf, the CI
+services run commands equivalent to::
+
+  ./configure
+  make install
+  make test
+
+which execises the testci target, as defined by `Makefile.in
+<../Makefile.in>`_ in the root of the MPS tree.
+
+_`.run.windows`: On Windows the CI services run commands that do at
+least::
+
+  make /f w3i6mv.nmk all testci
+
+as defined by the `.github.config`_.
+
+_`.run.other.targets`: On some platforms we arrange to run the testansi,
+testpollnone, testratio, and testscheme targets.  [Need to explain
+why, where, etc.  RB 2023-01-15]
+
+_`.run.other.checks`: We could also run various non-build checks
+using CI to check:
+
+- document formatting
+- shell script syntax
+
+[In the branch of writing, these do not yet exist.  They are the
+subject of `GitHub pull request #113
+<https://github.com/Ravenbrook/mps/pull/112>`_ of
+branch/2023-01-13/rst-check.  When merged, they can be linked.  RB
+2023-01-15]
+
+_`.when:`: CI is triggered on the `mps GitHub repo`_ by:
+
+- commits (pushes)
+- new pull requests
+- manually, using tools (see `.tools`_)
+
+.. _mps GitHub repo: https://github.com/ravenbrook/mps
+
+_`.results`: CI results are visible via the GitHub web interface:
+
+- in pull requests, under "Checks",
+
+- on the `branches page <https://github.com/Ravenbrook/mps/branches>`_
+  as green ticks or red crosses that link to details.
+
+as well as in logs specific to the type of CI.
+
+_`.results.travis`: Results from Travis CI can be found at the
+`Travis CI build history for the MPS GitHub repo
+<https://app.travis-ci.com/github/Ravenbrook/mps/builds>`_.
+
+_`.results.github`: Results from GitHub CI can be found at `build
+and test actions on the Actions tab at the Ravenbrook GitHub repo
+<https://github.com/Ravenbrook/mps/actions/workflows/build-and-test.yml>`_.
+
+_`.github`: [Insert overview of GitHub CI here.  RB 2023-01-15]
+
+_`.github.platforms`: GitHub provides runners_ for Linux, Windows,
+and macOS, but only on x86_64.  See `.travis.platforms`_ for ARM64
+and FreeBSD.
+
+.. _runners: https://docs.github.com/en/actions/using-github-hosted-runners/about-github-hosted-runners#supported-runners-and-hardware-resources
+
+_`.github.config`: GitHub CI is configured using the
+`build-and-test.yml <../.github/workflows/build-and-test.yml>`_ file
+in the .github/workflows directory of the MPS tree.
+
+_`.travis`: [Insert overview of Travis CI here.  RB 2023-01-15]
+
+_`.travis.platforms`: Where possible, we use `GitHub CI`_ for
+platforms, because `Travis CI is slow and expensive`_.  However
+`GitHub CI`_ does not provide ARM64 or FreeBSD, so we use `Travis CI`_
+for those.
+
+.. _Travis CI is slow and expensive: https://github.com/Ravenbrook/mps/issues/109
+
+_`.travis.config`: Travis is configured using the `.travis.yml
+<../.travis.yml>`_ file at top level of the MPS tree.
+
+_`.tools`: The MPS tree contains some simple tools for managing CI
+without the need to install whole packages such as the GitHub CLI or
+Travis CI's Ruby gem.
+
+_`.tools.kick`: `tool/github-ci-kick <../tool/github-ci-kick>`_ and
+`tool/travis-ci-kick <../tool/travis-ci-kick>`_ both trigger CI builds
+without the need to push a change or make a pull request in the `mps
+GitHub repo`_.  In particular, they are useful for applying CI to work
+that was pushed while CI was disabled, for whatever reason.
+
+
+
+References
+----------
+
+[To include:
+
+- CI system documentation
+
+RB 2023-02-09]
+
+
+Document History
+----------------
+
+==========  =====  ==================================================
+2023-02-09  RB_    Split from design.mps.tests as part of GitHub
+                   `pull request #145`_.
+==========  =====  ==================================================
+
+.. _RB: mailto:rb@ravenbrook.com
+.. _pull request #145: https://github.com/Ravenbrook/mps/pull/145
+		   
+
+Copyright and License
+---------------------
+
+Copyright © 2013–2023 `Ravenbrook Limited <https://www.ravenbrook.com/>`_.
+
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions are
+met:
+
+1. Redistributions of source code must retain the above copyright
+   notice, this list of conditions and the following disclaimer.
+
+2. Redistributions in binary form must reproduce the above copyright
+   notice, this list of conditions and the following disclaimer in the
+   documentation and/or other materials provided with the distribution.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+"AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+.. end
