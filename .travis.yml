@@ -2,7 +2,7 @@
 #
 # Copyright (c) 2013-2023 Ravenbrook Limited. See end of file for license.
 #
-# See design.mps.test.ci.
+# See design.mps.ci.
 
 # Some branches don't need builds.  Add them here to avoid using build
 # resources and unnecessary build messages.
@@ -15,16 +15,7 @@ language: c # see <https://docs.travis-ci.com/user/languages/c/>.
 
 # The build matrix for Travis CI
 #
-# See design.mps.tests.ci.travis.platforms.
-#
-# Most x86_64/amd64 builds are in GitHub CI, configured by
-# .github/workflows/build-and-test.yml.
-#
-# FreeBSD on x86_64 builds are in Cirrus CI, configured by
-# .cirrus.yml.
-#
-# FIXME: The above information should appear once somewhere and be
-# referenced from here.
+# See design.mps.ci.platforms.
 
 os:
   - freebsd
@@ -34,7 +25,7 @@ compiler:
   - clang
   - gcc
 
-script: # see design.mps.test.ci.run.posix
+script: # see design.mps.ci.run.posix
 - ./configure --prefix=$PWD/prefix && make install && make test
 
 notifications:

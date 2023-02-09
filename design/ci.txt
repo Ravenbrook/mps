@@ -116,49 +116,49 @@ _`.service`: The `Ravenbrook MPS repository on GitHub
 <https://github.com/Ravenbrook/mps>`_ uses third-party continuous
 integration services.
 
-- _`.service.github`: `GitHub CI`_ uses `GitHub Actions
-  <https://docs.github.com/en/actions>`__ to trigger builds on
-  `GitHub-hosted runners
-  <https://docs.github.com/en/actions/using-github-hosted-runners/about-github-hosted-runners>`_
-  and can orchestrate external "`self-hosted runners
-  <https://docs.github.com/en/actions/hosting-your-own-runners/about-self-hosted-runners>`__".
+_`.service.github`: `GitHub CI`_ uses `GitHub Actions
+<https://docs.github.com/en/actions>`__ to trigger builds on
+`GitHub-hosted runners
+<https://docs.github.com/en/actions/using-github-hosted-runners/about-github-hosted-runners>`_
+and can orchestrate external "`self-hosted runners
+<https://docs.github.com/en/actions/hosting-your-own-runners/about-self-hosted-runners>`__".
 
-  - `GitHub CI`_ is free to use for public repositories.
+- `GitHub CI`_ is free to use for public repositories.
 
-  - `GitHub CI`_ only provides hosted runners for amd64.
+- `GitHub CI`_ only provides hosted runners for amd64.
 
-  - `GitHub CI`_ does not support FreeBSD, even for self-hosted runners.
+- `GitHub CI`_ does not support FreeBSD, even for self-hosted runners.
 
-  - There is a hazard of GitHub lock-in.
+- There is a hazard of GitHub lock-in.
 
-  - `GitHub CI`_ is also used to run checks (`.run.other.checks`_).
+- `GitHub CI`_ is also used to run checks (`.run.other.checks`_).
 
-- _`.service.cirrus`: `Cirrus CI`_ mainly uses Google Compute Cloud to
-  run public images, mainly Docker images.
+_`.service.cirrus`: `Cirrus CI`_ mainly uses Google Compute Cloud to
+run public images, mainly Docker images.
 
-  - `Cirrus CI`_ is free to use for public repositories.
+- `Cirrus CI`_ is free to use for public repositories.
 
-  - `Cirrus CI`_ provides macOS M1 (Apple Silicon) using `Tart
-    <https://github.com/cirruslabs/tart>`_ and so can provide coverage
-    for XCA6LL.
+- `Cirrus CI`_ provides macOS M1 (Apple Silicon) using `Tart
+  <https://github.com/cirruslabs/tart>`_ and so can provide coverage
+  for XCA6LL.
 
-  - `Cirrus CI`_ can orchestrate Amazon EC2 for extra control.
+- `Cirrus CI`_ can orchestrate Amazon EC2 for extra control.
 
-  - `Cirrus CI`_ can provide FreeBSD on amd64 but not arm64.
+- `Cirrus CI`_ can provide FreeBSD on amd64 but not arm64.
 
-- _`.service.travis`: `Travis CI`_ is a commercial system that
-  provides a wide variety of platforms and simple configuration.
+_`.service.travis`: `Travis CI`_ is a commercial system that
+provides a wide variety of platforms and simple configuration.
 
-  - `Travis CI`_ is a paid service with limited concurrency.
+- `Travis CI`_ is a paid service with limited concurrency.
 
-  - `Travis CI is slow and expensive`_
+- `Travis CI is slow and expensive`_
 
-  - Ravenbrook has negotiated a quota of "OSS credits" with Travis for
-    the public MPS repo.
+- Ravenbrook has negotiated a quota of "OSS credits" with Travis for
+  the public MPS repo.
 
-- _`.service.readthedocs`: `Read the Docs`_ is used to `.build`_ and
-  `.publish`_ the `MPS manual
-  <https://memory-pool-system.readthedocs.io/>`_.
+_`.service.readthedocs`: `Read the Docs`_ is used to `.build`_ and
+`.publish`_ the `MPS manual
+<https://memory-pool-system.readthedocs.io/>`_.
 
 .. _GitHub CI: https://docs.github.com/en/actions/automating-builds-and-tests/about-continuous-integration
 
@@ -186,7 +186,7 @@ RB 2023-02-09]
 Platforms
 ---------
 
-_`.platform`: This table shows how each defined platform [ref? RB
+_`.platforms`: This table shows how each defined platform [ref? RB
 2023-02-09] is built and tested by CI.
 
 ==========   ============   =====================================
@@ -222,8 +222,9 @@ preferably the same set so that CI covers all defined platforms.
 Commands
 --------
 
-_`.run.posix`: On Posix systems where we have autoconf, the CI
-services run commands equivalent to::
+_`.run.posix`: On Posix systems where we have `autoconf
+<https://www.gnu.org/software/autoconf/>`_, the CI services run
+commands equivalent to::
 
   ./configure
   make install
@@ -235,7 +236,7 @@ which execises the testci target, as defined by `Makefile.in
 _`.run.windows`: On Windows the CI services run commands that do at
 least::
 
-  make /f w3i6mv.nmk all testci
+  nmake /f w3i6mv.nmk all testci
 
 as defined by the `.github.config`_.
 

@@ -3,7 +3,7 @@
 # Copyright (c) 2019-2022 `GitHub contributors`_ (MIT License).
 # Copyright (c) 2023 Ravenbrook Limited. See end of file for license.
 #
-# See design.mps.test.ci.
+# See design.mps.ci.
 #
 # TODO: Exclude certain branches.
 #
@@ -25,7 +25,7 @@ jobs:
 
     # The build matrix for GitHub CI on Posix platforms
     #
-    # See design.mps.tests.ci.github.platforms.
+    # See design.mps.ci.platforms.
     #
     # FreeBSD and ARM64 targets are in Travis CI, configured by
     # .travis.yml.
@@ -42,7 +42,7 @@ jobs:
 
     runs-on: ${{ matrix.os }}
 
-    # See design.mps.tests.ci.run.posix.
+    # See design.mps.ci.run.posix.
     steps:
     - uses: actions/checkout@v3
     - run: CC=${{ matrix.compiler }} ./configure
@@ -53,7 +53,7 @@ jobs:
 
     runs-on: windows-latest
 
-    # See design.mps.tests.ci.run.windows.
+    # See design.mps.ci.run.windows.
     #
     # The path to Visual Studio is documented at
     # <https://github.com/actions/runner-images/blob/e6fcf60b8e6c0f80a065327eaefe836881c28b68/images/win/Windows2022-Readme.md?plain=1#L215>.
