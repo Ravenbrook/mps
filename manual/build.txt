@@ -135,6 +135,14 @@ architecture, and ``CT`` the compiler toolchain.  Here are the
 platforms that we have regular access to and on which the MPS works
 well:
 
+.. IMPORTANT: The platforms here must be a superset of the platforms
+   listed as "supported" in readme.txt.
+
+.. IMPORTANT: The platforms listed here should be a superset of the
+   platforms listed in design.mps.ci [FIXME: precise tag?] and
+   preferably the same list so that the assertion of "regular access"
+   above stays true.
+
 ==========   =========   =============   ============  =================
 Platform     OS          Architecture    Compiler      Makefile
 ==========   =========   =============   ============  =================

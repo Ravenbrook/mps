@@ -117,6 +117,43 @@ third-party continuous integration services.
 _`.service.choice`: Favour the services higher up this list when
 making changes.  [Why? Cost. Stability. RB 2023-02-09]
 
+
+Platforms
+---------
+
+_`.platform`: This table shows how each defined platform [ref? RB
+2023-02-09] is built and tested by CI.
+
+==========   ============   =====================================
+Platform     Service        Notes
+==========   ============   =====================================
+``anangc``   [policy?]      not "supported", testing only
+``ananll``   [policy?]      not "supported", testing only
+``fra6gc``   `Travis CI`_   not "supported"
+``fra6ll``   `Travis CI`_   not "supported"
+``fri3gc``   none
+``fri3ll``   none
+``fri6gc``   `Cirrus CI`_   GitHub has no FreeBSD
+``fri6ll``   `Cirrus CI`_   GitHub has no FreeBSD
+``lia6gc``   `Cirrus CI`_   GitHub has no arm64, not supported
+``lia6ll``   `Cirrus CI`_   GitHub has no arm64, not supported
+``lii3gc``   none
+``lii6gc``   `GitHub CI`_
+``lii6ll``   `GitHub CI`_
+``w3i3mv``   none
+``w3i6mv``   `GitHub CI`_
+``xca6ll``   `Cirrus CI`_   Cirrus has Tart
+``xci6ll``   `GitHub CI`_
+==========   ============   =====================================
+
+_`.platform.supported`: The platforms here must be a superset of the platforms
+listed as "supported" in readme.txt.
+
+_`.platform.builds`: The platforms here must be a subset of the
+platforms listed in "Building the MPS" manual/build.txt, but
+preferably the same set so that CI covers all defined platforms.
+
+
 [To include:
 
 _`.build`: translates correctly without errors or warnings
