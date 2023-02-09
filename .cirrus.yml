@@ -29,7 +29,6 @@ build_script_template: &BUILD_SCRIPT_TEMPLATE
 clone_script_template: &CLONE_SCRIPT_TEMPLATE
   clone_script: |
     set -x
-    which go-git
     if [ -z "$CIRRUS_PR" ]; then
       git clone --recursive --branch=$CIRRUS_BRANCH https://x-access-token:${CIRRUS_REPO_CLONE_TOKEN}@github.com/${CIRRUS_REPO_FULL_NAME}.git $CIRRUS_WORKING_DIR
     else
