@@ -82,29 +82,51 @@ Implementation
 Services
 --------
 
-_`.service`: The `Ravenbrook MPS repository on GitHub`_ uses
-third-party continuous integration services.
+_`.service`: The `Ravenbrook MPS repository on GitHub
+<https://github.com/Ravenbrook/mps>`_ uses third-party continuous
+integration services.
 
-[Should be a table cross-referenced to the build instructions.  RB
-2023-02-09]
+- _`.service.github`: `GitHub CI`_ uses `GitHub Actions
+  <https://docs.github.com/en/actions>`__ to trigger builds on
+  `GitHub-hosted runners
+  <https://docs.github.com/en/actions/using-github-hosted-runners/about-github-hosted-runners>`_
+  and can orchestrate external "`self-hosted runners
+  <https://docs.github.com/en/actions/hosting-your-own-runners/about-self-hosted-runners>`__".
 
-- _`.service.github`: `GitHub CI`_ is used to `.build`_ and `.test`_
-  on Linux, macOS, and Windows on amd64 platforms (LII6GC, LII6LL,
-  XCI6LL, W3I6MV).  `GitHub CI`_ is also used to run checks
-  (`.run.other.checks`_).  `GitHub CI`_ only provides amd64 and does
-  not provide FreeBSD.
+  - `GitHub CI`_ is free to use for public repositories.
 
-- _`.service.cirrus`: `Cirrus CI`_ is used to `.build`_ and `.test`_
-  on macOS M1 (XCA6LL), Linux on arm64 (LIA6GC, LIA6LL), and FreeBSD
-  on amd64 (FRI6GC, FRI6LL).  `Cirrus CI`_ runs OS images on Google
-  Cloud Services by default, and no FreeBSD on arm64 image is
-  available.
+  - `GitHub CI`_ only provides hosted runners for amd64.
 
-- _`.service.travis`: `Travis CI`_ is used to `.build`_ and `.test`_
-  on FreeBSD on arm64 (FRA6GC, FRA6LL).
+  - `GitHub CI`_ does not support FreeBSD, even for self-hosted runners.
+
+  - There is a hazard of GitHub lock-in.
+
+  - `GitHub CI`_ is also used to run checks (`.run.other.checks`_).
+
+- _`.service.cirrus`: `Cirrus CI`_ mainly uses Google Compute Cloud to
+  run public images, mainly Docker images.
+
+  - `Cirrus CI`_ is free to use for public repositories.
+
+  - `Cirrus CI`_ provides macOS M1 (Apple Silicon) using `Tart
+    <https://github.com/cirruslabs/tart>`_ and so can provide coverage
+    for XCA6LL.
+
+  - `Cirrus CI`_ can orchestrate Amazon EC2 for extra control.
+
+  - `Cirrus CI`_ can provide FreeBSD on amd64 but not arm64.
+
+- _`.service.travis`: `Travis CI`_ is a commercial system that
+  provides a wide variety of platforms and simple configuration.
+
+  - `Travis CI`_ is a paid service with limited concurrency.
+
+  - Ravenbrook has negotiated a quota of "OSS credits" with Travis for
+    the public MPS repo.
 
 - _`.service.readthedocs`: `Read the Docs`_ is used to `.build`_ and
-  `.publish`_ the `MPS manual`_.
+  `.publish`_ the `MPS manual
+  <https://memory-pool-system.readthedocs.io/>`_.
 
 .. _GitHub CI: https://docs.github.com/en/actions/automating-builds-and-tests/about-continuous-integration
 
