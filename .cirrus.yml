@@ -7,6 +7,8 @@
 # FIXME: This is just a test based on <https://cirrus-ci.org/guide/writing-tasks/#environment-variables>.
 
 echo_task:
+  container:
+    image: ubuntu
   env:
     FOO: Bar
   echo_script: echo $FOO
