@@ -55,9 +55,9 @@ FRI6LL_task:
     image_family: freebsd-13-1
   env:
     CC: clang
+  install_script: pkg install -y git gmake
   << : *CLONE_SCRIPT_TEMPLATE
   << : *INIT_SCRIPT_TEMPLATE
-  install_script: pkg install -y gmake
   << : *BUILD_SCRIPT_TEMPLATE
 
 # FRA6LL doesn't seem to work.  Cirrus CI gets an "Agent is not
@@ -74,10 +74,9 @@ FRI6GC_task:
     image_family: freebsd-13-1
   env:
     CC: gcc
+  install_script: pkg install -y git gmake gcc
   << : *CLONE_SCRIPT_TEMPLATE
   << : *INIT_SCRIPT_TEMPLATE
-  install_script:
-    - pkg install -y gmake gcc
   << : *BUILD_SCRIPT_TEMPLATE
 
 # Is this really "LI" if it's a docker container?  Does it matter?
@@ -97,9 +96,9 @@ LIA6LL_task:
     image: ubuntu # https://hub.docker.com/_/ubuntu
   env:
     CC: clang
-  << : *CLONE_SCRIPT_TEMPLATE
-  << : *INIT_SCRIPT_TEMPLATE
   install_script:
     - apt-get update
-    - apt-get install -y make clang
+    - apt-get install -y git make clang
+  << : *CLONE_SCRIPT_TEMPLATE
+  << : *INIT_SCRIPT_TEMPLATE
   << : *BUILD_SCRIPT_TEMPLATE
