@@ -35,51 +35,64 @@ Pool System.
 Goals
 =====
 
-[For inclusion:
+.goal.platforms: Reduce the cost to developers of supporting target
+platforms.
 
-- Provide rapid feedback to developers.
-- Cover a wide array of target platforms.
-- Early detection of defects.
-- Deployment of documentation.
+.goal.detect: Detect introduced defects early in development so that
+they can be fixed at lower cost.
 
-RB 2023-02-09]
+.goal.publish: Publish documentation promptly and cheaply.
 
 
 Requirements
 ============
 
-[For inclusion:
+.req.rapid: Provide build and test results within 30 minutes of
+submission of changes.  (goal.detect)
 
-- Cover all "supported" target platforms.
-- Zero monetary cost.
-- Low maintenance overheads.
-- Easy to extend with improvements and prevention.
-- Easy to switch providers.
-- Include all tests.
-- Portable outside GitHub.
-- Administration by more than one person.
+.req.branch: Provide build and test results for submissions to
+development branches (pushes).  (goal.detect)
 
-RB 2023-02-09]
+.req.merge: Provide build and test results for merge candidate changes
+(pull requests) before they are merged to master.  (goal.detect)
 
+.req.platforms: Build and test on all supported target platforms.
+(goal.platforms)
+
+.req.cost: Cost no money in normal circumstances.  (goal.platforms,
+goal.detect, goal.publish)
+
+.req.maintinable: Low maintenance cost.  (goal.platforms)
+
+.req.extensible: Easy to extend with new platforms, improvements, and
+defect prevention.  (goal.platforms, goal.publish)
+
+.req.coverage: Includes all tests.  (goal.detect, goal.platforms)
+
+.req.portable: Be portable away from any particular hosting service,
+e.g. GitHub, at reasonable cost.  (goal.platforms, goal.publish)
+
+.req.admin: Administration is available to more than one person.
+(goal.platforms, goal,publish)
+
+.req.manual: Publish the manual.
+
+.req.manual.versions: Publish versions of the manual that document
+releases.
+
+.req.build.code: Check that changed code compiles correctly without errors
+or warnings.
+
+.req.build.manual: Check that the manual translates correctly without
+errors or warnings.
+
+.req.test: Check that tests do not find any defects.
 
 [To include:
 
-_`.build`: translates correctly without errors or warnings
+- What kinds of defects to find by testing (functional, performance, etc.)
 
-- _`.build.code`: ``make -C code``
-- _`.build.manual`: ``make -C manual html``
-
-_`.test`: runs correctly
-
-- ``make test`` etc.
-
-_`.publish`: is made available to the public
-
-- Appears at https://memory-pool-system.readthedocs.io/
-- Published versions
-- Branches and pull requests
-
-RB 2023-02-09]
+RB 2023-02-10]
 
 
 Design
