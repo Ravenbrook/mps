@@ -99,7 +99,8 @@ Design
 ======
 
 [For inclusion:
-
+- use third-party CI systems (req.cost, req.platforms, req.maintainable)
+- do third-party CI systems represent real platforms? (req.platforms)
 - the testci make target
 - third-party systems used
 - relationship to review
@@ -112,9 +113,6 @@ Design
 - 32-bit?
 
 RB 2023-02-09]
-
-[Mention how CI supports the pull request merge procedure (except that
-exists on a separate branch at the moment).  RB 2023-01-15]
 
 
 Implementation
