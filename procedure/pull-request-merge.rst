@@ -129,6 +129,8 @@ When you finish the checklist, decide whether to start
 
    You can also look for a build results in the `Travis CI build
    history for the repo`_ and in the `GitHub workflows for the repo`_.
+   [FIXME: Also Cirrus and Read the Docs.  And search elsewhere for
+   Travis.  RB 2023-02-10]
 
    If there is a failed build *of the branch* you should not execute
    `the merging procedure`_, but talk to the contributor about fixing
