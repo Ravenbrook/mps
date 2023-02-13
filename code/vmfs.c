@@ -1,8 +1,7 @@
-/* mpslibfs.c: RAVENBROOK MEMORY POOL SYSTEM LIBRARY INTERFACE (FREESTANDING)
+/* vmfs.c: FREESTANDING VM: VIRTUAL MEMORY MAPPING STUB
  *
  * $Id$
- * Copyright (c) 2001-2020 Ravenbrook Limited.  See end of file for license.
- * Portions copyright (c) 2002 Global Graphics Software.
+ * Copyright (c) 2001-2023 Ravenbrook Limited.  See end of file for license.
  *
  * .purpose: The purpose of this code is to test at compile time
  * whether the code MPS can be compiled as freestanding [FIXME: ref?]
@@ -11,106 +10,54 @@
  *   gcc -nostdlib -DCONFIG_PLINTH_NONE -DCONFIG_PF_ANSI \
  *       --entry mps_lib_assert_fail mps.c mpslibfs.c vmfs.c
  *
- * .readership: For MPS client application developers and MPS developers.
- * .sources: <design/lib>
+ * .sources: design.mps.lib
  */
 
-#include "mpslib.h"
-#include "mpsio.h"
+#include "mpm.h"
+#include "vm.h"
 
-#include "mpstd.h"
-#include "event.h"
+SRCID(vmfs, "$Id$");
 
-int mps_lib_get_EOF(void)
-{
-  NOTREACHED;
-}
 
-mps_lib_FILE *mps_lib_get_stderr(void)
-{
-  NOTREACHED;
-}
-
-mps_lib_FILE *mps_lib_get_stdout(void)
-{
-  NOTREACHED;
-}
-
-int mps_lib_fputc(int c, mps_lib_FILE *stream)
-{
-  NOTREACHED;
-}
-
-int mps_lib_fputs(const char *s, mps_lib_FILE *stream)
-{ 
-  NOTREACHED;
-}
-
-void mps_lib_assert_fail(const char *file,
-                          unsigned line,
-                          const char *condition)
-{
-  for (;;)
-    NOOP;
-}
-
-mps_lib_assert_fail_t mps_lib_assert_fail_install(mps_lib_assert_fail_t handler)
+Size PageSize(void)
 {
   NOTREACHED;
 }
 
 
-void *(mps_lib_memset)(void *s, int c, size_t n)
-{
-  NOTREACHED;
-}
-
-void *(mps_lib_memcpy)(void *s1, const void *s2, size_t n)
-{
-  NOTREACHED;
-}
-
-int (mps_lib_memcmp)(const void *s1, const void *s2, size_t n)
-{
-  NOTREACHED;
-}
-
-mps_clock_t mps_clock(void)
+Res VMParamFromArgs(void *params, size_t paramSize, ArgList args)
 {
   NOTREACHED;
 }
 
 
-mps_clock_t mps_clocks_per_sec(void)
-{
-  NOTREACHED;
-}
+/* VMInit -- reserve some virtual address space, and create a VM structure */
 
-unsigned long mps_lib_telemetry_control(void)
-{
-  NOTREACHED;
-}
-
-
-mps_res_t mps_io_create(mps_io_t *mps_io_r)
+Res VMInit(VM vm, Size size, Size grainSize, void *params)
 {
   NOTREACHED;
 }
 
 
-void mps_io_destroy(mps_io_t mps_io)
+/* VMFinish -- release all address space and finish VM structure */
+
+void VMFinish(VM vm)
 {
   NOTREACHED;
 }
 
 
-mps_res_t mps_io_write(mps_io_t mps_io, void *buf, size_t size)
+/* VMMap -- map the given range of memory */
+
+Res VMMap(VM vm, Addr base, Addr limit)
 {
   NOTREACHED;
 }
 
 
-mps_res_t mps_io_flush(mps_io_t mps_io)
+/* VMUnmap -- unmap the given range of memory */
+
+void VMUnmap(VM vm, Addr base, Addr limit)
 {
   NOTREACHED;
 }
