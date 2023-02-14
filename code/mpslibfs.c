@@ -1,15 +1,15 @@
-/* mpslibfs.c: RAVENBROOK MEMORY POOL SYSTEM LIBRARY INTERFACE (FREESTANDING)
+/* mpslibfs.c: FREESTANDING LIBRARY INTERFACE STUB
  *
  * $Id$
  * Copyright (c) 2001-2020 Ravenbrook Limited.  See end of file for license.
  * Portions copyright (c) 2002 Global Graphics Software.
  *
  * .purpose: The purpose of this code is to test at compile time
- * whether the code MPS can be compiled as freestanding [FIXME: ref?]
- * with a command like::
+ * whether the code MPS can be compiled as freestanding
+ * (design.mps.exec-env.req) with a command like::
  *
  *   gcc -nostdlib -DCONFIG_PLINTH_NONE -DCONFIG_PF_ANSI \
- *       --entry mps_lib_assert_fail mps.c mpslibfs.c vmfs.c
+ *       --entry mps_lib_assert_fail mps.c mpslibfs.c
  *
  * .readership: For MPS client application developers and MPS developers.
  * .sources: <design/lib>
@@ -59,6 +59,16 @@ mps_lib_assert_fail_t mps_lib_assert_fail_install(mps_lib_assert_fail_t handler)
   NOTREACHED;
 }
 
+
+void *mps_lib_malloc(size_t size)
+{
+  NOTREACHED;
+}
+
+void mps_lib_free(void *p)
+{
+  NOTREACHED;
+}
 
 void *(mps_lib_memset)(void *s, int c, size_t n)
 {

@@ -96,8 +96,6 @@
 #if defined(PLINTH)     /* see CONFIG_PLINTH_NONE in config.h  */
 #include "mpsliban.c"
 #include "mpsioan.c"
-/* FIXME: Is vman part of the plinth?  Not really.  Explain this. */
-#include "vman.c"       /* malloc-based pseudo memory mapping */
 #endif
 
 /* Generic ("ANSI") platform */
@@ -110,6 +108,7 @@
 #include "prmcan.c"     /* generic operating system mutator context */
 #include "prmcanan.c"   /* generic architecture mutator context */
 #include "span.c"       /* generic stack probe */
+#include "vman.c"       /* malloc-based pseudo memory mapping */
 
 /* macOS on ARM64 built with Clang */
 

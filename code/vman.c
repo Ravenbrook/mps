@@ -6,8 +6,7 @@
 
 #include "mpm.h"
 #include "vm.h"
-
-#include <stdlib.h>     /* for malloc and free */
+#include "mpslib.h"
 
 SRCID(vman, "$Id$");
 
@@ -58,7 +57,7 @@ Res VMInit(VM vm, Size size, Size grainSize, void *params)
   if (reserved < grainSize || reserved > (Size)(size_t)-1)
     return ResRESOURCE;
 
-  vbase = malloc((size_t)reserved);
+  vbase = mps_lib_malloc((size_t)reserved);
   if (vbase == NULL)
     return ResMEMORY;
   (void)mps_lib_memset(vbase, VMJunkBYTE, reserved);
@@ -96,7 +95,7 @@ void VMFinish(VM vm)
   vm->sig = SigInvalid;
 
   (void)mps_lib_memset(vm->block, VMJunkBYTE, vm->reserved);
-  free(vm->block);
+  mps_lib_free(vm->block);
 }
 
 
