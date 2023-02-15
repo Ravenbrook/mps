@@ -145,7 +145,7 @@ managing the process in all respects for productive results.  The
 author (`.role.author`_) can lead, but this should be avoided if they
 are not `.role.leader.experienced`_.
 
- _`.role.leader.experienced`: Ideally, the leader should be
+_`.role.leader.experienced`: Ideally, the leader should be
 *experienced*, scoring 24 or more points on "Self-Assessment Audit of
 Your Inspection/Review Process" [Gilb-93]_ pp xi-xv.  In any case it
 is helpful if the leader has received special instruction in review or
