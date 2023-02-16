@@ -9,7 +9,7 @@
 #
 # Invoke like::
 #
-#   cmake -DCMAKE_BUILD_TYPE=Debug . && make VERBOSE=1 clean all
+#   cmake -B hot -DCMAKE_BUILD_TYPE=RELEASE --log-level=VERBOSE . && cmake --build hot --verbose
 #
 # See GitHub issue #146 <https://github.com/Ravenbrook/mps/issues/146>
 # for discussion.
@@ -31,23 +31,17 @@ set(FMTDYTST fmtdy.c fmtno.c fmtdytst.c)
 set(TESTTHR testthrix.c) # FIXME: Platform specific, varies by OS
 
 
-# Targets
-#
-# Just using gcbench as an example target for now.
-
-add_executable(gcbench gcbench.c ${FMTDYTST} ${TESTLIB} ${TESTTHR})
-target_link_libraries(gcbench PRIVATE m)
-# FIXME: Should be C89 but CMake doesn't know it.
-# FIXME: How to set this for all targets not just gcbench?
-target_compile_features(gcbench PRIVATE c_std_90)
-
-
 # Varieties
 #
 # MPS varieties (HOT, COOL, etc.) probably map to CMake "Build
 # Configurations"
 # <https://cmake.org/cmake/help/latest/manual/cmake-buildsystem.7.html#build-configurations>.
 # I'm just mapping Debug and Release for now.
+
+# Unset CMake's default flags
+set(CMAKE_C_FLAGS_DEBUG "")
+set(CMAKE_C_FLAGS_RELEASE "")
+set(CMAKE_C_FLAGS "")
 
 add_compile_definitions(
   $<$<CONFIG:Debug>:CONFIG_VAR_COOL>
@@ -56,16 +50,15 @@ add_compile_definitions(
 
 
 # Compilers
-#
-# FIXME: How to set these for *all* targets, not just gcbench?
 
 if (CMAKE_C_COMPILER_ID STREQUAL "GNU")
 
   message(VERBOSE "compiler.gc detected")
 
-  # Lifted from CFLAGSCOMPILER in gc.gmk
-
-  target_compile_options(gcbench PRIVATE
+  # Lifted from variables in gc.gmk
+  set(CFLAGSDEBUG -O -g3)
+  set(CFLAGSOPT -O2 -g3)
+  set(CFLAGSCOMPILER
     -Waggregate-return
     -Wall
     -Wcast-qual
@@ -80,16 +73,20 @@ if (CMAKE_C_COMPILER_ID STREQUAL "GNU")
     -Wstrict-prototypes
     -Wswitch-default
     -Wwrite-strings
+  )
+  set(CFLAGSCOMPILERSTRICT
+    -std=c89
     -pedantic
   )
-
+  
 elseif (CMAKE_C_COMPILER_ID STREQUAL "Clang")
 
   message(VERBOSE "compiler.cl detected")
 
-  # Lifted from CFLAGSCOMPILER in ll.gmk
-
-  target_compile_options(gcbench PRIVATE
+  # Lifted from variables in ll.gmk
+  set(CFLAGSDEBUG, -O0 -g3)
+  set(CFLAGSOPT, O2 -g3)
+  set(CFLAGSCOMPILER,
     -Waggregate-return
     -Wall
     -Wcast-qual
@@ -107,6 +104,9 @@ elseif (CMAKE_C_COMPILER_ID STREQUAL "Clang")
     -Wstrict-prototypes
     -Wunreachable-code
     -Wwrite-strings
+  )
+  set(CFLAGSCOMPILERSTRICT,
+    -std=c89
     -pedantic
   )
 
@@ -114,9 +114,19 @@ elseif (CMAKE_C_COMPILER_ID STREQUAL "MSVC")
 
   message(VERBOSE "compiler.mv detected")
 
-  # Lifted from CFLAGSCOMMONPRE in mv.nmk.
+  # Lifted from variables in mv.nmk.
+  set(CFLAGSDEBUG, /MTd /Od)
+  set(CFLAGSOPT, /O2 /MT)
+  set(CFLAGSCOMPILER,
+    # from CFLAGSCOMMONPRE in commpre.nmk
+    /nologo
+    # FIXME: PFMDEFS?
+    # FIXME: CFLAGSTARGETPRE?
+    /W4 /WX
+  )
+  set(CFLAGSCOMPILERSTRICT, )
 
-  target_compile_options(gcbench PRIVATE /W4 /WX)
+  # FIXME: LINKFLAGS* from mv.nmk
 
 else ()
 
@@ -124,4 +134,20 @@ else ()
 
 endif ()
 
+add_compile_options(
+  "$<$<CONFIG:Debug>:${CFLAGSDEBUG}>"
+  "$<$<CONFIG:Release>:${CFLAGSOPT}>"
+  ${CFLAGSCOMPILER}
+  # FIXME: CFLAGSCOMPILERSTRICT or LAX
+)
 
+
+# Targets
+#
+# Just using gcbench as an example target for now.
+
+add_executable(gcbench gcbench.c ${FMTDYTST} ${TESTLIB} ${TESTTHR})
+target_link_libraries(gcbench PRIVATE m)
+# FIXME: Should be C89 but CMake doesn't know it.
+# FIXME: How to set this for all targets not just gcbench?
+target_compile_features(gcbench PRIVATE c_std_90)
