@@ -23,6 +23,134 @@ cmake_minimum_required(VERSION 3.15)
 project(mps LANGUAGES C)
 
 
+# Architectures
+#
+# "it appears that CMake has no functionality to detect the target
+# architecture whatsoever." -- https://stackoverflow.com/a/12024211
+#
+# TODO: How does this work for multi-arch builds such as Xcode?
+
+include(TargetArch.cmake)
+target_architecture(TARGET_ARCHITECTURE)
+message(VERBOSE "Target architecture ${TARGET_ARCHITECTURE}")
+
+
+# Operating Systems
+
+if (APPLE) # Must come before UNIX, which is also true for macOS
+
+  # FIXME: Needs filling in
+  
+elseif (UNIX)
+
+  # FIXME: Lifted from lii6gc.gmk and not general for all Posix
+  # platforms
+  set(MPMPF
+    lockix.c
+    prmci6.c
+    prmcix.c
+    prmclii6.c
+    protix.c
+    protsgix.c
+    pthrdext.c
+    span.c
+    thix.c
+    vmix.c
+  )
+
+elseif (WIN32)
+
+  # FIXME: Import from w3*.nmk
+  
+endif ()
+
+
+# Compilers
+
+if (CMAKE_C_COMPILER_ID STREQUAL "GNU")
+
+  message(VERBOSE "compiler.gc detected")
+
+  # Lifted from variables in gc.gmk
+  set(CFLAGSDEBUG -O -g3)
+  set(CFLAGSOPT -O2 -g3)
+  set(CFLAGSCOMPILER
+    -Waggregate-return
+    -Wall
+    -Wcast-qual
+    -Werror
+    -Wextra
+    -Winline
+    -Wmissing-prototypes
+    -Wnested-externs
+    -Wpointer-arith
+    -Wshadow
+    -Wstrict-aliasing=2
+    -Wstrict-prototypes
+    -Wswitch-default
+    -Wwrite-strings
+  )
+  set(CFLAGSCOMPILERSTRICT
+    -std=c89
+    -pedantic
+  )
+  
+elseif (CMAKE_C_COMPILER_ID STREQUAL "Clang")
+
+  message(VERBOSE "compiler.cl detected")
+
+  # Lifted from variables in ll.gmk
+  set(CFLAGSDEBUG, -O0 -g3)
+  set(CFLAGSOPT, O2 -g3)
+  set(CFLAGSCOMPILER,
+    -Waggregate-return
+    -Wall
+    -Wcast-qual
+    -Wconversion
+    -Wduplicate-enum
+    -Werror
+    -Wextra
+    -Winline
+    -Wmissing-prototypes
+    -Wmissing-variable-declarations
+    -Wnested-externs
+    -Wpointer-arith
+    -Wshadow
+    -Wstrict-aliasing=2
+    -Wstrict-prototypes
+    -Wunreachable-code
+    -Wwrite-strings
+  )
+  set(CFLAGSCOMPILERSTRICT,
+    -std=c89
+    -pedantic
+  )
+
+elseif (CMAKE_C_COMPILER_ID STREQUAL "MSVC")
+
+  message(VERBOSE "compiler.mv detected")
+
+  # Lifted from variables in mv.nmk.
+  set(CFLAGSDEBUG, /MTd /Od)
+  set(CFLAGSOPT, /O2 /MT)
+  set(CFLAGSCOMPILER,
+    # from CFLAGSCOMMONPRE in commpre.nmk
+    /nologo
+    # FIXME: PFMDEFS?
+    # FIXME: CFLAGSTARGETPRE?
+    /W4 /WX
+  )
+  set(CFLAGSCOMPILERSTRICT, )
+
+  # FIXME: LINKFLAGS* from mv.nmk
+
+else ()
+
+  message(WARNING "Unknown compiler toolchain.  Compiling without warning flags.")
+
+endif ()
+
+
 # Common definitions
 #
 # Lifted from comm.gmk section "Common definitions".
@@ -120,91 +248,6 @@ add_compile_definitions(
 )
 
 
-# Compilers
-
-if (CMAKE_C_COMPILER_ID STREQUAL "GNU")
-
-  message(VERBOSE "compiler.gc detected")
-
-  # Lifted from variables in gc.gmk
-  set(CFLAGSDEBUG -O -g3)
-  set(CFLAGSOPT -O2 -g3)
-  set(CFLAGSCOMPILER
-    -Waggregate-return
-    -Wall
-    -Wcast-qual
-    -Werror
-    -Wextra
-    -Winline
-    -Wmissing-prototypes
-    -Wnested-externs
-    -Wpointer-arith
-    -Wshadow
-    -Wstrict-aliasing=2
-    -Wstrict-prototypes
-    -Wswitch-default
-    -Wwrite-strings
-  )
-  set(CFLAGSCOMPILERSTRICT
-    -std=c89
-    -pedantic
-  )
-  
-elseif (CMAKE_C_COMPILER_ID STREQUAL "Clang")
-
-  message(VERBOSE "compiler.cl detected")
-
-  # Lifted from variables in ll.gmk
-  set(CFLAGSDEBUG, -O0 -g3)
-  set(CFLAGSOPT, O2 -g3)
-  set(CFLAGSCOMPILER,
-    -Waggregate-return
-    -Wall
-    -Wcast-qual
-    -Wconversion
-    -Wduplicate-enum
-    -Werror
-    -Wextra
-    -Winline
-    -Wmissing-prototypes
-    -Wmissing-variable-declarations
-    -Wnested-externs
-    -Wpointer-arith
-    -Wshadow
-    -Wstrict-aliasing=2
-    -Wstrict-prototypes
-    -Wunreachable-code
-    -Wwrite-strings
-  )
-  set(CFLAGSCOMPILERSTRICT,
-    -std=c89
-    -pedantic
-  )
-
-elseif (CMAKE_C_COMPILER_ID STREQUAL "MSVC")
-
-  message(VERBOSE "compiler.mv detected")
-
-  # Lifted from variables in mv.nmk.
-  set(CFLAGSDEBUG, /MTd /Od)
-  set(CFLAGSOPT, /O2 /MT)
-  set(CFLAGSCOMPILER,
-    # from CFLAGSCOMMONPRE in commpre.nmk
-    /nologo
-    # FIXME: PFMDEFS?
-    # FIXME: CFLAGSTARGETPRE?
-    /W4 /WX
-  )
-  set(CFLAGSCOMPILERSTRICT, )
-
-  # FIXME: LINKFLAGS* from mv.nmk
-
-else ()
-
-  message(WARNING "Unknown compiler toolchain.  Compiling without warning flags.")
-
-endif ()
-
 add_compile_options(
   "$<$<CONFIG:Debug>:${CFLAGSDEBUG}>"
   "$<$<CONFIG:Release>:${CFLAGSOPT}>"
@@ -219,6 +262,7 @@ add_compile_options(
 
 add_executable(gcbench gcbench.c ${FMTDYTST} ${TESTLIB} ${TESTTHR})
 target_link_libraries(gcbench PRIVATE m)
+target_compile_options(gcbench PRIVATE ${CFLAGSCOMPILERSTRICT})
 # FIXME: Should be C89 but CMake doesn't know it.
 # FIXME: How to set this for all targets not just gcbench?
 # target_compile_features(gcbench PRIVATE c_std_90)
@@ -231,3 +275,9 @@ add_library(mps STATIC
   $<$<CONFIG:Debug>:${MPM}>
 )
 target_compile_options(mps PRIVATE ${CFLAGSCOMPILERSTRICT})
+
+add_library(mpsplan STATIC ${PLINTH})
+target_compile_options(mpsplan PRIVATE ${CFLAGSCOMPILERSTRICT})
+
+add_executable(abqtest abqtest.c ${TESTLIB})
+target_link_libraries(abqtest PRIVATE m mps)
