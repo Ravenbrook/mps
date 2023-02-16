@@ -29,27 +29,77 @@ project(mps LANGUAGES C)
 # architecture whatsoever." -- https://stackoverflow.com/a/12024211
 #
 # TODO: How does this work for multi-arch builds such as Xcode?
+#
+# NOTE: A possible alternative is to invoke ``cc -dumpmachine``.
 
 include(TargetArch.cmake)
 target_architecture(TARGET_ARCHITECTURE)
 message(VERBOSE "Target architecture ${TARGET_ARCHITECTURE}")
 
+if (TARGET_ARCHITECTURE STREQUAL "x86_64")
+  message(VERBOSE, "arch.i6 detected")
+  set(ARCH i6)
+elseif (TARGET_ARCHITECTURE STREQUAL "i386")
+  message(VERBOSE, "arch.i3 detected")
+  set(ARCH i3)
+else ()
+
+  # FIXME: Needs filling in
+
+endif ()  
+  
 
 # Operating Systems
 
-if (APPLE) # Must come before UNIX, which is also true for macOS
+if (APPLE)
+  message(VERBOSE, "os.xc detected")
+  set(OS xc)
+elseif (LINUX)
+  message(VERBOSE, "os.li detected")
+  set(OS li)
+elseif (BSD)
+  message(VERBOSE, "os.fr detected")
+  set(OS fr)
+elseif (WIN32)
+  message(VERBOSE, "os.w3 detected")
+  set(OS w3)
+else ()
+  message(FATAL_ERROR "Unable to detect target OS")
+endif ()
 
-  # FIXME: Needs filling in
-  
-elseif (UNIX)
+# FIXME: What about ANSI platform?
+# FIXME: What about Freestanding platform?
 
-  # FIXME: Lifted from lii6gc.gmk and not general for all Posix
-  # platforms
+if (OS STREQUAL "xc")
+
+  # Lifted from xci3ll.gmk and xci6ll.gmk
+  #
+  # FIXME: Untested
+  #
+  # FIXME: xci3ll.gmk includes this line::
+  #
+  #   CC = clang -arch i386
+
   set(MPMPF
     lockix.c
-    prmci6.c
+    prmc${ARCH}.c
+    prmc${OS}.c
+    prmcxc${ARCH}.c
+    protix.c
+    prot${OS}.c
+    span.c
+    thxc.c
+    vmix.c
+  )
+  
+elseif (OS STREQUAL "li")
+
+  # Lifted from lii3ll.gmk and lii6ll.gmk
+  set(MPMPF
+    lockix.c
+    prmc${ARCH}.c
     prmcix.c
-    prmclii6.c
+    prmc${OS}${ARCH}.c
     protix.c
     protsgix.c
     pthrdext.c
@@ -58,9 +108,31 @@ elseif (UNIX)
     vmix.c
   )
 
-elseif (WIN32)
+elseif (OS STREQUAL "fr")
 
-  # FIXME: Import from w3*.nmk
+  # FIXME: Fill this in from fr*.gmk
+
+elseif (OS STREQUAL "w3")
+
+  # Lifted from w3i6mv.nmk
+  #
+  # FIXME: Untested
+  
+  set(MPMPF
+    lock${OS}.c
+    mpsi${OS}.c
+    prmc${ARCH}.c
+    prmc${OS}.c
+    prmc${OS}${ARCH}.c
+    prot${OS}.c
+    sp${OS}${ARCH}.c
+    th${OS}.c
+    vm${OS}.c
+  )
+
+else ()
+
+  message(FATAL_ERROR "Unable to detect target OS")
   
 endif ()
 
@@ -100,9 +172,9 @@ elseif (CMAKE_C_COMPILER_ID STREQUAL "Clang")
   message(VERBOSE "compiler.cl detected")
 
   # Lifted from variables in ll.gmk
-  set(CFLAGSDEBUG, -O0 -g3)
-  set(CFLAGSOPT, O2 -g3)
-  set(CFLAGSCOMPILER,
+  set(CFLAGSDEBUG -O0 -g3)
+  set(CFLAGSOPT O2 -g3)
+  set(CFLAGSCOMPILER
     -Waggregate-return
     -Wall
     -Wcast-qual
@@ -121,7 +193,7 @@ elseif (CMAKE_C_COMPILER_ID STREQUAL "Clang")
     -Wunreachable-code
     -Wwrite-strings
   )
-  set(CFLAGSCOMPILERSTRICT,
+  set(CFLAGSCOMPILERSTRICT
     -std=c89
     -pedantic
   )
@@ -131,16 +203,16 @@ elseif (CMAKE_C_COMPILER_ID STREQUAL "MSVC")
   message(VERBOSE "compiler.mv detected")
 
   # Lifted from variables in mv.nmk.
-  set(CFLAGSDEBUG, /MTd /Od)
-  set(CFLAGSOPT, /O2 /MT)
-  set(CFLAGSCOMPILER,
+  set(CFLAGSDEBUG /MTd /Od)
+  set(CFLAGSOPT /O2 /MT)
+  set(CFLAGSCOMPILER
     # from CFLAGSCOMMONPRE in commpre.nmk
     /nologo
     # FIXME: PFMDEFS?
     # FIXME: CFLAGSTARGETPRE?
     /W4 /WX
   )
-  set(CFLAGSCOMPILERSTRICT, )
+  set(CFLAGSCOMPILERSTRICT )
 
   # FIXME: LINKFLAGS* from mv.nmk
 
@@ -260,13 +332,6 @@ add_compile_options(
 #
 # Just using gcbench as an example target for now.
 
-add_executable(gcbench gcbench.c ${FMTDYTST} ${TESTLIB} ${TESTTHR})
-target_link_libraries(gcbench PRIVATE m)
-target_compile_options(gcbench PRIVATE ${CFLAGSCOMPILERSTRICT})
-# FIXME: Should be C89 but CMake doesn't know it.
-# FIXME: How to set this for all targets not just gcbench?
-# target_compile_features(gcbench PRIVATE c_std_90)
-
 #add_library(mps OBJECT mps.c)
 #target_compile_options(mps PRIVATE ${CFLAGSCOMPILERSTRICT})
 
@@ -281,3 +346,10 @@ target_compile_options(mpsplan PRIVATE ${CFLAGSCOMPILERSTRICT})
 
 add_executable(abqtest abqtest.c ${TESTLIB})
 target_link_libraries(abqtest PRIVATE m mps)
+
+add_executable(gcbench gcbench.c ${FMTDYTST} ${TESTLIB} ${TESTTHR})
+target_link_libraries(gcbench PRIVATE m)
+target_compile_options(gcbench PRIVATE ${CFLAGSCOMPILERSTRICT})
+# FIXME: Should be C89 but CMake doesn't know it.
+# FIXME: How to set this for all targets not just gcbench?
+# target_compile_features(gcbench PRIVATE c_std_90)
