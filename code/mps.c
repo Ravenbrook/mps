@@ -104,11 +104,11 @@
 
 #include "lockan.c"     /* generic locks */
 #include "than.c"       /* generic threads manager */
-#include "vman.c"       /* malloc-based pseudo memory mapping */
 #include "protan.c"     /* generic memory protection */
 #include "prmcan.c"     /* generic operating system mutator context */
 #include "prmcanan.c"   /* generic architecture mutator context */
 #include "span.c"       /* generic stack probe */
+#include "vman.c"       /* malloc-based pseudo memory mapping */
 
 /* macOS on ARM64 built with Clang */
 

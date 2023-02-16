@@ -55,6 +55,13 @@ typedef void (*mps_lib_assert_fail_t)(const char *, unsigned, const char *);
 extern mps_lib_assert_fail_t mps_lib_assert_fail_install(mps_lib_assert_fail_t);
 
 
+/* Allocate or free memory.  Analogous to `malloc` and `free` from
+   stdlib.h.  NOTE: These must not be used outside the ANSI VM
+   (vman.c) to ensure the MPS remains able to bootstrap itself from
+   raw memory. */
+extern void *mps_lib_malloc(size_t);
+extern void mps_lib_free(void *);
+
 /* Set, copy, or compare memory.  Analagous to `memset`, `memcpy`, and
    `memcmp` from string.h. */
 extern void *(mps_lib_memset)(void *, int, size_t);

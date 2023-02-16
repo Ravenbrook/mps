@@ -201,7 +201,7 @@ static Res rootCreate(Root *rootReturn, Arena arena,
   root->arena = arena;
   root->rank = rank;
   root->var = type;
-  root->the  = *theUnionP;
+  mps_lib_memcpy(&root->the, theUnionP, sizeof(root->the));
   root->grey = TraceSetEMPTY;
   root->summary = RefSetUNIV;
   root->mode = mode;

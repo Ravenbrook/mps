@@ -95,6 +95,16 @@ mps_lib_assert_fail_t mps_lib_assert_fail_install(mps_lib_assert_fail_t handler)
 }
 
 
+void *mps_lib_malloc(size_t size)
+{
+  return malloc(size);
+}
+
+void mps_lib_free(void *p)
+{
+  free(p);
+}
+
 void *(mps_lib_memset)(void *s, int c, size_t n)
 {
   return memset(s, c, n);
