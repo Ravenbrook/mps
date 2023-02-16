@@ -8,6 +8,16 @@
 #
 # Imported from
 # https://github.com/axr/solar-cmake/blob/73cfea0db0284c5e2010aca23989046e5bda95c9/TargetArch.cmake
+#
+# FIXME: This doesn't seem to deal with macOS on Apple Silicon (arm64).
+#
+# NOTE: A possible alternative is to invoke ``cc -dumpmachine`` for
+# Clang or GCC (all platforms except Windows).
+#
+# NOTE: A possible alternative is to substitute mpstd.h for the
+# ``archdetect_c_code`` in this file, substituting ``#define
+# MPS_PF_STRING`` with ``#error MPS_PF_STRING``.
+
 
 # Based on the Qt 5 processor detection code, so should be very accurate
 # https://qt.gitorious.org/qt/qtbase/blobs/master/src/corelib/global/qprocessordetection.h
