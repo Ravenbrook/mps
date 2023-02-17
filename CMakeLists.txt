@@ -24,7 +24,12 @@ project(mps LANGUAGES C)
 
 # Some people say this defaults to "Release", but it's sometimes
 # blank.
-message(VERBOSE "Build type ${CMAKE_BUILD_TYPE}")
+if (CMAKE_BUILD_TYPE)
+  message(VERBOSE "Build type ${CMAKE_BUILD_TYPE}")
+else ()
+  set(CMAKE_BUILD_TYPE "RELEASE")
+  message(VERBOSE "Set build type to ${CMAKE_BUILD_TYPE}")
+endif ()
 
 
 # Detect target platform
