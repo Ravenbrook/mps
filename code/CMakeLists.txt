@@ -18,54 +18,54 @@
 
 # Tutorial says to put this in but does not give any advice about the
 # argument, so I'm guessing based on feature documentation I've used.
-cmake_minimum_required(VERSION 3.15)
+cmake_minimum_required(VERSION 3.25)
 
 project(mps LANGUAGES C)
 
+# Some people say this defaults to "Release", but it's sometimes
+# blank.
+message(VERBOSE "Build type ${CMAKE_BUILD_TYPE}")
 
-# Architectures
-#
-# "it appears that CMake has no functionality to detect the target
-# architecture whatsoever." -- https://stackoverflow.com/a/12024211
-#
-# TODO: How does this work for multi-arch builds such as Xcode?
-#
-# NOTE: A possible alternative is to invoke ``cc -dumpmachine``.
 
-include(TargetArch.cmake)
-target_architecture(TARGET_ARCHITECTURE)
-message(VERBOSE "Target architecture ${TARGET_ARCHITECTURE}")
+# Detect target platform
+#
+# This is a nasty hack.  CMake doesn't provide a reliably way of
+# determining the target platform; nothing like the target triple from
+# ``cc -dumpmachine``.  Variables like CMAKE_SYSTEM_PROCESSOR are
+# documented as "not guaranteed" and are therefore useless
+# <https://cmake.org/cmake/help/latest/variable/CMAKE_SYSTEM_PROCESSOR.html#variable:CMAKE_SYSTEM_PROCESSOR>.
+# Astounding hacks like <https://stackoverflow.com/a/12024211> seem to
+# be necessary.  This is based on that, but uses try_compile rather
+# than try_run, and so should work when cross-compiling
+# <https://cmake.org/cmake/help/book/mastering-cmake/chapter/Cross%20Compiling%20With%20CMake.html>.
 
-if (TARGET_ARCHITECTURE STREQUAL "x86_64")
-  message(VERBOSE, "arch.i6 detected")
-  set(ARCH i6)
-elseif (TARGET_ARCHITECTURE STREQUAL "i386")
-  message(VERBOSE, "arch.i3 detected")
-  set(ARCH i3)
+# FIXME: This creates a dependency on the layout of mpstd.h.  Document
+# and link at both ends.
+
+# FIXME: How to override detection?
+
+file(READ mpstd.h FILE_MPSTD_H)
+string(
+  REGEX REPLACE "\n[ \t]*#define[ \t]+MPS_PF_STRING[ \t]+" "\n#error "
+  FILE_MPSTDE_C "${FILE_MPSTD_H}"
+)
+string(APPEND FILE_MPSTDE_C "int main(void) { return 0; }\n")
+try_compile(
+  MPSTDE_RESULT
+  SOURCE_FROM_VAR "mpstde.c" FILE_MPSTDE_C
+  OUTPUT_VARIABLE MPSTDE_OUTPUT
+)
+if (MPSTDE_OUTPUT MATCHES "#error[ \t]+\"((..)(..)(..))\"")
+  set(MPS_PF_STRING ${CMAKE_MATCH_1})
+  set(OS ${CMAKE_MATCH_2})
+  set(ARCH ${CMAKE_MATCH_3})
+  set(COMPILER ${CMAKE_MATCH_4})
+  message(VERBOSE "MPS_PF_STRING = ${CMAKE_MATCH_1}")
+  message(VERBOSE "OS = ${OS}  ARCH = ${ARCH}  COMPILER = ${COMPILER}")
 else ()
-
-  # FIXME: Needs filling in
-
-endif ()  
-  
-
-# Operating Systems
-
-if (APPLE)
-  message(VERBOSE, "os.xc detected")
-  set(OS xc)
-elseif (LINUX)
-  message(VERBOSE, "os.li detected")
-  set(OS li)
-elseif (BSD)
-  message(VERBOSE, "os.fr detected")
-  set(OS fr)
-elseif (WIN32)
-  message(VERBOSE, "os.w3 detected")
-  set(OS w3)
-else ()
-  message(FATAL_ERROR "Unable to detect target OS")
+  message(FATAL_ERROR "Unable to detect target platform")
 endif ()
+
 
 # FIXME: What about ANSI platform?
 # FIXME: What about Freestanding platform?
@@ -139,9 +139,7 @@ endif ()
 
 # Compilers
 
-if (CMAKE_C_COMPILER_ID STREQUAL "GNU")
-
-  message(VERBOSE "compiler.gc detected")
+if (COMPILER STREQUAL "gc")
 
   # Lifted from variables in gc.gmk
   set(CFLAGSDEBUG -O -g3)
@@ -167,9 +165,7 @@ if (CMAKE_C_COMPILER_ID STREQUAL "GNU")
     -pedantic
   )
   
-elseif (CMAKE_C_COMPILER_ID STREQUAL "Clang")
-
-  message(VERBOSE "compiler.cl detected")
+elseif (COMPILER STREQUAL "ll")
 
   # Lifted from variables in ll.gmk
   set(CFLAGSDEBUG -O0 -g3)
@@ -198,9 +194,7 @@ elseif (CMAKE_C_COMPILER_ID STREQUAL "Clang")
     -pedantic
   )
 
-elseif (CMAKE_C_COMPILER_ID STREQUAL "MSVC")
-
-  message(VERBOSE "compiler.mv detected")
+elseif (COMPILER STREQUAL "mv")
 
   # Lifted from variables in mv.nmk.
   set(CFLAGSDEBUG /MTd /Od)
