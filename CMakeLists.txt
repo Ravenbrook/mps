@@ -9,7 +9,7 @@
 #
 # Invoke like::
 #
-#   cmake -B hot -DCMAKE_BUILD_TYPE=RELEASE --log-level=VERBOSE . && cmake --build hot --verbose
+#   cmake . -B hot -DCMAKE_BUILD_TYPE=RELEASE --log-level=VERBOSE && cmake --build hot --verbose
 #
 # See GitHub issue #146 <https://github.com/Ravenbrook/mps/issues/146>
 # for discussion.
@@ -44,7 +44,7 @@ message(VERBOSE "Build type ${CMAKE_BUILD_TYPE}")
 
 # FIXME: How to override detection?
 
-file(READ mpstd.h FILE_MPSTD_H)
+file(READ code/mpstd.h FILE_MPSTD_H)
 string(
   REGEX REPLACE "\n[ \t]*#define[ \t]+MPS_PF_STRING[ \t]+" "\n#error "
   FILE_MPSTDE_C "${FILE_MPSTD_H}"
@@ -296,6 +296,14 @@ set(POOLS ${AMC} ${AMS} ${AWL} ${LO} ${MV2} ${MVFF} ${SNC})
 set(MPM ${MPMCOMMON} ${MPMPF} ${POOLS} ${PLINTH})
 
 
+# FIXME: There's probably a better way to do this
+list(TRANSFORM MPM PREPEND "code/")
+list(TRANSFORM PLINTH PREPEND "code/")
+list(TRANSFORM TESTLIB PREPEND "code/")
+list(TRANSFORM FMTDYTST PREPEND "code/")
+list(TRANSFORM TESTTHR PREPEND "code/")
+
+
 # Varieties
 #
 # MPS varieties (HOT, COOL, etc.) probably map to CMake "Build
@@ -330,7 +338,7 @@ add_compile_options(
 #target_compile_options(mps PRIVATE ${CFLAGSCOMPILERSTRICT})
 
 add_library(mps STATIC
-  $<$<CONFIG:Release>:mps.c>
+  $<$<CONFIG:Release>:code/mps.c>
   $<$<CONFIG:Debug>:${MPM}>
 )
 target_compile_options(mps PRIVATE ${CFLAGSCOMPILERSTRICT})
@@ -338,10 +346,10 @@ target_compile_options(mps PRIVATE ${CFLAGSCOMPILERSTRICT})
 add_library(mpsplan STATIC ${PLINTH})
 target_compile_options(mpsplan PRIVATE ${CFLAGSCOMPILERSTRICT})
 
-add_executable(abqtest abqtest.c ${TESTLIB})
+add_executable(abqtest code/abqtest.c ${TESTLIB})
 target_link_libraries(abqtest PRIVATE m mps)
 
-add_executable(gcbench gcbench.c ${FMTDYTST} ${TESTLIB} ${TESTTHR})
+add_executable(gcbench code/gcbench.c ${FMTDYTST} ${TESTLIB} ${TESTTHR})
 target_link_libraries(gcbench PRIVATE m)
 target_compile_options(gcbench PRIVATE ${CFLAGSCOMPILERSTRICT})
 # FIXME: Should be C89 but CMake doesn't know it.

@@ -61,7 +61,3 @@ tags
 *~
 # GNU make dependencies
 */*/*.d
-# CMake output
-CMakeFiles
-CMakeCache.txt
-cmake_install.cmake
