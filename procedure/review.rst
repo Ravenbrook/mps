@@ -943,6 +943,13 @@ _`.brainstorm.log`: Record the suggestions like::
      deliberately try to misinterpret your sentences and improve
      them if you can (misinterpret them).
 
+_`.brainstorm.pending`: If you record a suggestion, ensure that the
+pull request is labelled_ "pending" so that it doesn't get forgotten
+when the pull request is closed.  [Insert cross-reference to procedure
+that will pick it up.  RB 2023-02-17]
+
+.. _labelled: https://github.com/Ravenbrook/mps/issues/labels
+
 _`.brainstorm.metrics`: Record the time taken to execute `.brainstorm`_.
 
 
