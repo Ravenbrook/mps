@@ -1558,6 +1558,10 @@ _`.express.improve`: Express reviews don't support extra objectives.
 _`.express.major`: If anyone finds `major defects`_, stop the express
 review and `.plan`_ a full one.
 
+_`.express.save`: Save the review record before you check by
+submitting the review record comment.  GitHub has a tendency to lose
+the draft if you start using your browser for checking.
+
 _`.express.check`: Do separate checking for some minutes.  Look for
 `major defects`_, note other issues.  Don't confer.
 
