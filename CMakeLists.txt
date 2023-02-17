@@ -11,6 +11,11 @@
 #
 #   cmake . -B hot -DCMAKE_BUILD_TYPE=RELEASE --log-level=VERBOSE && cmake --build hot --verbose
 #
+# or like::
+#
+#   cmake . -B cool -DCMAKE_BUILD_TYPE=DEBUG
+#   make -C cool all test
+#
 # See GitHub issue #146 <https://github.com/Ravenbrook/mps/issues/146>
 # for discussion.
 #
@@ -351,12 +356,27 @@ target_compile_options(mps PRIVATE ${CFLAGSCOMPILERSTRICT})
 add_library(mpsplan STATIC ${PLINTH})
 target_compile_options(mpsplan PRIVATE ${CFLAGSCOMPILERSTRICT})
 
-add_executable(abqtest code/abqtest.c ${TESTLIB})
-target_link_libraries(abqtest PRIVATE m mps)
-
 add_executable(gcbench code/gcbench.c ${FMTDYTST} ${TESTLIB} ${TESTTHR})
 target_link_libraries(gcbench PRIVATE m)
 target_compile_options(gcbench PRIVATE ${CFLAGSCOMPILERSTRICT})
 # FIXME: Should be C89 but CMake doesn't know it.
 # FIXME: How to set this for all targets not just gcbench?
 # target_compile_features(gcbench PRIVATE c_std_90)
+
+
+# Tests
+#
+# Tests specified with ``add_test`` can be run with e.g.
+# ``make -C cool test``.
+#
+# See <https://cmake.org/cmake/help/book/mastering-cmake/chapter/Testing%20With%20CMake%20and%20CTest.html>.
+
+include(CTest)
+
+add_executable(amcss code/amcss.c ${TESTLIB} ${FMTDYTST})
+target_link_libraries(amcss PRIVATE m mps)
+add_test(NAME amcss COMMAND amcss)
+
+add_executable(abqtest code/abqtest.c ${TESTLIB})
+target_link_libraries(abqtest PRIVATE m mps)
+add_test(NAME abqtest COMMAND abqtest)
