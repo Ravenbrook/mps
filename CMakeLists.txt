@@ -16,6 +16,12 @@
 #   cmake . -B cool -DCMAKE_BUILD_TYPE=DEBUG
 #   make -C cool all test
 #
+# or like (on Windows)::
+#
+#   cmake . -B cool -DCMAKE_BUILD_TYPE=DEBUG -G "NMake Makefiles"
+#   cd cool
+#   nmake all test
+#
 # See GitHub issue #146 <https://github.com/Ravenbrook/mps/issues/146>
 # for discussion.
 #
@@ -23,6 +29,9 @@
 
 # Tutorial says to put this in but does not give any advice about the
 # argument, so I'm guessing based on feature documentation I've used.
+#
+# FIXME: The default CMake with Visual Studio 2017 is 3.12.  Check
+# features to see if we can work with that.
 cmake_minimum_required(VERSION 3.25)
 
 project(mps LANGUAGES C)
@@ -65,7 +74,12 @@ try_compile(
   SOURCE_FROM_VAR "mpstde.c" FILE_MPSTDE_C
   OUTPUT_VARIABLE MPSTDE_OUTPUT
 )
-if (MPSTDE_OUTPUT MATCHES "#error[ \t]+\"((..)(..)(..))\"")
+if (MPSTDE_RESULT)
+  message(FATAL_ERROR "Target detection should have failed due to #error")
+endif ()
+# Uncomment the following line to help debug the #error match
+# message(VERBOSE "MPSTDE_OUTPUT = ${MPSTDE_OUTPUT}")
+if (MPSTDE_OUTPUT MATCHES "#error:?[ \t]+\"((..)(..)(..))\"")
   set(MPS_PF_STRING ${CMAKE_MATCH_1})
   set(OS ${CMAKE_MATCH_2})
   set(ARCH ${CMAKE_MATCH_3})
@@ -102,6 +116,12 @@ if (OS STREQUAL "xc")
     vmix.c
   )
   
+  set(TESTLIB testlib.c)
+  set(TESTTHR testthrix.c)
+
+  # FIXME: Is this necessary on macOS?
+  link_libraries(m)
+
 elseif (OS STREQUAL "li")
 
   # Lifted from lii3ll.gmk and lii6ll.gmk
@@ -118,9 +138,19 @@ elseif (OS STREQUAL "li")
     vmix.c
   )
 
+  set(TESTLIB testlib.c)
+  set(TESTTHR testthrix.c)
+
+  link_libraries(m)
+
 elseif (OS STREQUAL "fr")
 
   # FIXME: Fill this in from fr*.gmk
+
+  set(TESTLIB testlib.c)
+  set(TESTTHR testthrix.c)
+
+  link_libraries(m)
 
 elseif (OS STREQUAL "w3")
 
@@ -139,6 +169,9 @@ elseif (OS STREQUAL "w3")
     th${OS}.c
     vm${OS}.c
   )
+
+  set(TESTLIB testlib.c getoptl.c)
+  set(TESTTHR testthr${OS}.c)
 
 else ()
 
@@ -209,16 +242,32 @@ elseif (COMPILER STREQUAL "mv")
   # Lifted from variables in mv.nmk.
   set(CFLAGSDEBUG /MTd /Od)
   set(CFLAGSOPT /O2 /MT)
+
   set(CFLAGSCOMPILER
     # from CFLAGSCOMMONPRE in commpre.nmk
     /nologo
     # FIXME: PFMDEFS?
     # FIXME: CFLAGSTARGETPRE?
-    /W4 /WX
+    /Zi
+    # from mv.nmk
+    /D_CRT_SECURE_NO_WARNINGS /W4 /WX /Gs
   )
   set(CFLAGSCOMPILERSTRICT )
 
   # FIXME: LINKFLAGS* from mv.nmk
+  # What about PDBs?
+  set(CMAKE_EXE_LINKER_FLAGS /LARGEADDRESSAWARE)
+
+  # These may be the defaults for CMake. Investigate.
+  # Defaults seem to be:
+  # Debug: /debug /INCREMENTAL
+  # Release: /INCREMENTAL:NO
+  # message(VERBOSE "Linker flags debug: ${CMAKE_EXE_LINKER_FLAGS_DEBUG}")
+  # message(VERBOSE "Linker flags release: ${CMAKE_EXE_LINKER_FLAGS_RELEASE}")
+  # Lifted from commpre.nmk
+  # FIXME: mv.nmk specifies libcmt.lib and libcmtd.lib.  Why?
+  set(CMAKE_EXE_LINKER_FLAGS_DEBUG /DEBUG)
+  set(CMAKE_EXE_LINKER_FLAGS_RELEASE /RELEASE)
 
 else ()
 
@@ -243,8 +292,6 @@ set(SNC poolsnc.c)
 set(POOLN pooln.c)
 set(MV2 poolmv2.c)
 set(MVFF poolmvff.c)
-set(TESTLIB testlib.c)
-set(TESTTHR testthrix.c)  # FIXME: Platform specific, varies by OS
 set(FMTDY fmtdy.c fmtno.c)
 set(FMTDYTST fmtdy.c fmtno.c fmtdytst.c)
 set(FMTHETST fmthe.c fmtdy.c fmtno.c fmtdytst.c)
@@ -322,6 +369,9 @@ list(TRANSFORM TESTTHR PREPEND "code/")
 # I'm just mapping Debug and Release for now.
 
 # Unset CMake's default flags
+# message(VERBOSE "CMAKE_C_FLAGS = ${CMAKE_C_FLAGS}")
+# message(VERBOSE "CMAKE_C_FLAGS_DEBUG = ${CMAKE_C_FLAGS_DEBUG}")
+# message(VERBOSE "CMAKE_C_FLAGS_RELEASE = ${CMAKE_C_FLAGS_RELEASE}")
 set(CMAKE_C_FLAGS_DEBUG "")
 set(CMAKE_C_FLAGS_RELEASE "")
 set(CMAKE_C_FLAGS "")
@@ -357,7 +407,6 @@ add_library(mpsplan STATIC ${PLINTH})
 target_compile_options(mpsplan PRIVATE ${CFLAGSCOMPILERSTRICT})
 
 add_executable(gcbench code/gcbench.c ${FMTDYTST} ${TESTLIB} ${TESTTHR})
-target_link_libraries(gcbench PRIVATE m)
 target_compile_options(gcbench PRIVATE ${CFLAGSCOMPILERSTRICT})
 # FIXME: Should be C89 but CMake doesn't know it.
 # FIXME: How to set this for all targets not just gcbench?
@@ -374,9 +423,9 @@ target_compile_options(gcbench PRIVATE ${CFLAGSCOMPILERSTRICT})
 include(CTest)
 
 add_executable(amcss code/amcss.c ${TESTLIB} ${FMTDYTST})
-target_link_libraries(amcss PRIVATE m mps)
+target_link_libraries(amcss PRIVATE mps)
 add_test(NAME amcss COMMAND amcss)
 
 add_executable(abqtest code/abqtest.c ${TESTLIB})
-target_link_libraries(abqtest PRIVATE m mps)
+target_link_libraries(abqtest PRIVATE mps)
 add_test(NAME abqtest COMMAND abqtest)
