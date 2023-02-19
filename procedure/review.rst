@@ -22,8 +22,6 @@ Memory Pool System review procedure
 
 .. TODO: More explicit management of checking rates.
 
-.. TODO: Update "familiar with" to "know".
-
 .. TODO: Explicitly incorporate `irreducible errors
    <https://en.wikipedia.org/wiki/The_Mythical_Man-Month#The_tendency_towards_irreducible_number_of_errors>`__.
 
@@ -32,8 +30,6 @@ Memory Pool System review procedure
 
 .. TODO: Lift review record advice, specifically GitHub comment
    format, into a section.  rule.generic.once!
-
-.. TODO: Explicitly say to record how long each step took.
 
 .. TODO: Check against [Gilb-93]_
 
