@@ -37,6 +37,9 @@ Memory Pool System review procedure
 
 .. TODO: Incorporate NASA experience, e.g. https://archive.org/details/NASA_NTRS_Archive_20090038685/mode/2up
 
+.. TODO: Fix gender-specific language, such as "man-hours",
+   "manpower", etc.
+
 
 1. Introduction
 ===============
@@ -66,6 +69,12 @@ not apply this procedure to risky changes without first:
 - reading and understanding the whole document and the related rules
 
 - practising the procedure on low-risk changes
+
+The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT",
+"SHOULD", "SHOULD NOT", "RECOMMENDED", "NOT RECOMMENDED", "MAY", and
+"OPTIONAL" in this document are to be interpreted as described in RFC
+2119 [RFC-2119]_.  They indicate what is requried for the review
+procedure to succeed in achieving its `.purpose`_.
 
 This version of review was created as part of `a project to migrate
 from Perforce to Git (and GitHub)
@@ -110,15 +119,12 @@ and "fix".  RB 2023-01-23]
 _`.def.defect`: A defect is a way in which the work does not meet its
 requirements.
 
-_`.def.defect.major`: A major defect is a defect that
+_`.def.defect.major`: A major defect is a defect that will probably
+have significantly increased costs to find and fix later in the
+development process (see `.class.major`_).
 
-  will probably have significantly increased costs to find and fix
-  later in the development process, for example in testing or in use.
-
-  -- `.class.major`_
-
-As with any procedure, you can vary this one to meet this purpose, but
-you should probably read section `13. Rationale`_.
+As with any procedure, you MAY vary this one to meet this purpose, but
+you SHOULD read the `.rationale`_.
 
 
 3. Review Roles
@@ -126,36 +132,37 @@ you should probably read section `13. Rationale`_.
 
 _`.role`: People taking part in review are given *roles*.
 
-_`.role.two`: All the roles can be covered by just two people.
+_`.role.two`: All the roles MAY be covered by just two people.  It's
+RECOMMENDED to have more people.
 
-_`.role.all`: The leader (`.role.leader`_) must ensure that all roles
+_`.role.all`: The leader (`.role.leader`_) MUST ensure that all roles
 are assigned to someone, to ensure that everything necessary gets
 done.
 
-_`.role.everyone`: Every person taking part in review should be assigned at
-least one role, to make it clear what they need to do.
+_`.role.everyone`: Every person taking part in review SHOULD be
+assigned at least one role, to make it clear what they need to do.
 
 _`.role.leader`: The *leader* organises and plans the review, and
 ensures the procedures are executed.  The leader is responsible for
 managing the process in all respects for productive results.  The
-author (`.role.author`_) can lead, but this should be avoided if they
-are not `.role.leader.experienced`_.
+author (`.role.author`_) MAY lead, but this NOT RECOMMENDED, and MUST
+be avoided if they are not `.role.leader.experienced`_.
 
-_`.role.leader.experienced`: Ideally, the leader should be
-*experienced*, scoring 24 or more points on "Self-Assessment Audit of
-Your Inspection/Review Process" [Gilb-93]_ pp xi-xv.  In any case it
-is helpful if the leader has received special instruction in review or
-inspection.
+_`.role.leader.experienced`: The leader SHOULD be *experienced*,
+scoring 24 or more points on "Self-Assessment Audit of Your
+Inspection/Review Process" [Gilb-93]_ pp xi-xv.  In any case it is
+RECOMMENDED that the leader has received special instruction in review
+or inspection.
 
 _`.role.author`: The *author* is the person responsible for the change
 under review (`.doc.product`_).  For example, they're the developer
-who submitted a pull request.  The author should read
+who submitted a pull request.  The author SHOULD read
 `.advice.author`_.
 
 _`.role.checker`: A *checker* checks the change (`.doc.product`_)
-during review.  There must be more than one checker.  Every person
-taking part in a review is usually also a checker, including the
-author.  Checkers should be asked by the leader to check with certain
+during review.  There MUST be more than one checker.  Every person
+taking part in a review is usually also be a checker, including the
+author.  Checkers will be asked by the leader to check with certain
 *checking roles* (`.role.check`_) in mind; this is to increase
 coverage and reduce duplication of issues.  Not every checker needs to
 understand everything about a change (e.g. the programming language)
@@ -164,12 +171,12 @@ part defect prevention in `.phase.brainstorm`_.
 
 _`.role.editor`: The *editor* is the person responsible for acting on
 the issues found during review in order to bring the work to review
-exit.  The editor and `.role.author`_ are usually the same person.
-For example, they're the developer who submitted a pull request and
-needs to fix it up before it can be merged.
+exit.  It's RECOMMENDED that the editor and `.role.author`_ are the
+same person.  For example, they're the developer who submitted a pull
+request and needs to fix it up before it can be merged.
 
 _`.role.improver`: The *process improver* takes action to prevent
-future occurrences of defects found by review.  This should be the same
+future occurrences of defects found by review.  This SHOULD be the same
 person as `.role.editor`_ so that they maintain a good understanding
 of (and commitment to) process improvement and defect prevention, but
 this isn't always possible, e.g. when `.role.author`_ is an outside
@@ -179,24 +186,9 @@ _`.role.scribe`: The scribe is the person who records information (not
 just issues) during review meetings.  They are usually the same person
 as `.role.leader`_.  During `.phase.check`_, review tools (such as
 GitHub) will often allow checkers to record issues as they check, in
-which case the scribe should just ensure that this has been done.  The
+which case the scribe MUST ensure that this has been done.  The
 scribe also records information during other phases, such as how much
-time a review took, who was there, who did what, etc.  [Make sure
-necessary information to record is documented in this procedure under
-a uniform tag.  RB 2023-01-23]
-
-[The following two roles may not be relevant to this section.  They do
-not need to be assigned during a review.  RB 2023-01-23]
-
-_`.role.chief`: [Chief Inspection Leader in book.gilb93.  Need to look
-this up.  Probably an organizational role to do with communicating
-improvements to the review process.  Not relevant to the MPS.  RB
-2023-01-20]
-
-_`.role.manager`: The *manager* ensures adequate resources are
-assigned to review and that reviews are happening.  [Project Manager
-in book.gilb93.  Need to look this up.  Probably not required to
-attend the review, and therefore is not assigned. RB 2023-01-20]
+time a review took, who was there, who did what, etc.
 
 
 4. Phases
@@ -206,7 +198,7 @@ _`.phase`: This section describes the phases of a review.  Each phase
 has a procedure.  The phases involve varying groups of people
 (`.role`_) and have diverse purposes.
 
-_`.phase.handbook`: This section can be used as a short "handbook" for
+_`.phase.handbook`: This section may be used as a short "handbook" for
 people who have learned the procedure.  (Compare with "A one-page
 inspection handbook" [Gilb-93]_.)
 
@@ -220,7 +212,7 @@ executed roughly in the order below.
 #. _`.phase.entry`: `.role.leader`_ executes `.entry`_.  If the change
    doesn't meet the entry criteria then the change fails review, and
    the rest of the review process is not executed.  A `.role.author`_
-   who is `.role.leader.experienced`_ can do entry on their own work.
+   who is `.role.leader.experienced`_ MAY do entry on their own work.
 
 #. _`.phase.plan`: `.role.leader`_ executes `.plan`_ to prepare the
    review and arrange for it to happen.
@@ -263,7 +255,7 @@ executed roughly in the order below.
 
 #. _`.phase.exit`: `.role.leader`_ executes `.exit`_.  If the revised
    change does not meet the exit criteria then it fails review.
-   Otherwise it passes and can go on to be used, e.g. by being merged
+   Otherwise it passes and may go on to be used, e.g. by being merged
    into the master codeline (`proc.merge.pull-request`_).
 
 Even the express review procedure (`.express`_) has these phases.
@@ -279,7 +271,7 @@ Even the express review procedure (`.express`_) has these phases.
 5.1. Review Entry
 -----------------
 
-_`.entry`: The *review entry procedure* should be executed when a
+_`.entry`: The *review entry procedure* MUST be executed when a
 change is submitted for review (`.phase.entry`_).
 
 _`.entry.purpose`: The purpose of entry is to check whether the change
@@ -291,7 +283,7 @@ available?  Consider the *express review procedure* (`.express`_).
 
 _`.entry.record`: Record the entry procedure (`.doc.record`_).
 
-- On GitHub, you can start a comment on the pull request.
+- On GitHub, you SHOULD start a comment on the pull request.
 
 - Record a the procedure you're following (this one) and the start
   time.  Use a permalink_.  For example::
@@ -342,7 +334,7 @@ _`.entry.metrics`: Record the time taken to execute `.entry`_.
 5.2. Review Planning
 --------------------
 
-_`.plan`: The *review planning procedure* should be executed when
+_`.plan`: The *review planning procedure* MUST be executed when
 a change has passed `.entry`_.
 
 _`.plan.purpose:` The purpose of planning is to prepare the review so
@@ -396,10 +388,10 @@ _`.plan.time`: Estimate the checking rate and time.
 - GitHub provides diff stats on the pull request (to the right of
   "Conversation").
 
-- `.phase.check`_ should last no more than one hour, so that checkers
+- `.phase.check`_ SHOULD last no more than one hour, so that checkers
   can maintain concentration.
 
-- `.phase.log`_ should last no more than two hours, so that checkers
+- `.phase.log`_ SHOULD last no more than two hours, so that checkers
   can maintain concentration.
 
 - It may be necessary to divide the review into multiple sessions.
@@ -413,7 +405,7 @@ _`.plan.time`: Estimate the checking rate and time.
     2. proc.review.plan.time: About 500 lines of code @ 10 lines/minute
        so about 50 mins of checking. 
 
-_`.plan.schedule`: Plan when this review may take place and who should
+_`.plan.schedule`: Plan when this review may take place and who will
 attend.  Negotiate with attendees if appropriate.
 
 - Record like::
@@ -435,7 +427,7 @@ _`.plan.source`: Determine and record the source documents that could
 be used for checking (`.doc.source`_).
 
 - Always include issues resolved or partially resolved by the change.
-  There must be at least one (ensured by `.entry.criteria`_).
+  There SHOULD be at least one (ensured by `.entry.criteria`_).
 
 - Consider requirements, issues, designs, analysis, discussions,
   records of failures (e.g. in email messages), user documentation,
@@ -480,7 +472,7 @@ review.
   review efficiency.  For example, reading about a technical aspect of
   the change.
 
-- You should not request review activities like studying source
+- You SHOULD NOT request review activities like studying source
   documents or looking at the change.  Plan properly.
 
 - Ask anyone new to the process to read this document (see
@@ -545,7 +537,7 @@ _`.ko.remind`: The leader reminds everyone:
 
 _`.ko.role`: Negotiate checking roles (`.role.check`_).
 
-- `.role.checker`_ can volunteer for roles based on how they feel at
+- `.role.checker`_ may volunteer for roles based on how they feel at
   the time.  Focus and enjoyment are important for good results.
 
 - Ensure checkers understand their checking roles and checking rates
@@ -559,7 +551,7 @@ so that you don't delay `.check`_.
 _`.ko.improve`: Announce any review metrics and negotiate review
 objectives.
 
-- Announce the rate 
+- Announce the rate.
 
 - Ask for suggestions or experiments with review procedure.
 
@@ -567,7 +559,7 @@ objectives.
 
 _`.ko.log`: Set a time for the logging meeting (`.log`_).
 
-- This should normally be set at the estimated end of `.ko`_, plus the
+- This SHOULD be set at the estimated end of `.ko`_, plus the
   estimated checking time (see `.plan.time`_), plus a short break.
   Avoid delay.
 
@@ -582,7 +574,7 @@ _`.ko.metrics`: Record the time taken to execute `.ko`_.
 5.4. Review Checking
 --------------------
 
-_`.check`: The *checking procedure* should be executed by each
+_`.check`: The *checking procedure* SHOULD be executed by each
 individual `.role.checker`_ alone, carrying out their assigned
 checking roles (`.role.check`_) without conferring with other
 checkers.
@@ -604,19 +596,19 @@ checking.
 5.4.2. Checking
 ...............
 
-_`.check.record`: You can note what you find in any way you like.
+_`.check.record`: You may note what you find in any way you like.
 
 _`.check.record.start`: Make a note of the start time.
 
-_`.check.record.github`: You can note issues using GitHub's `pull
+_`.check.record.github`: You SHOULD note issues using GitHub's `pull
 request reviews`_ in a way that will save time during `.log`_.
 
-- Try to use `.log.format`_, e.g. "M: assumes array size,
+- You SHOULD use `.log.format`_, e.g. "M: assumes array size,
   rule.imple.assume", but concentrate on `.check.major`_.
 
-_`.check.diff.not`: Do not check using diffs unless your checking role
-says so.  Check the work *as it will be after the change* only using
-the diffs to help direct attention.
+_`.check.diff.not`: You SHOULD NOT check using diffs unless your
+checking role says so.  Check the work *as it will be after the
+change* only using the diffs to help direct attention.
 
 _`.check.source`: Read `.doc.source`_ for your `.role.check`_.
 
@@ -671,7 +663,7 @@ _`.check.metrics`: At the end of checking, record
 
 - any problems encountered
 
-_`.check.metrics.github`: You can record your metrics in a GitHub
+_`.check.metrics.github`: You MAY record your metrics in a GitHub
 `pull request review`_.
 
 #. Open the "Files changed" tab of the pull request.
@@ -689,7 +681,7 @@ _`.check.metrics.github`: You can record your metrics in a GitHub
 5.5. Review Logging
 -------------------
 
-_`.log`: The *review logging procedure* executed by `.role.leader`_
+_`.log`: The *review logging procedure* is executed by `.role.leader`_
 and `.role.scribe`_ together with `.role.checker`_.
 
 _`.log.purpose`: It has two purposes:
@@ -706,7 +698,7 @@ _`.log.advice`: Remind the author of `.advice.author`_.
 _`.log.author`: Remind the author that they can withdraw
 `.doc.product`_ from review at any time.
 
-_`.log.record`: `.role.scribe_` should record the logging procedure.
+_`.log.record`: `.role.scribe_` MUST record the logging procedure.
 
 - On GitHub, start a `pull request comment`_.
 
@@ -717,7 +709,7 @@ _`.log.record`: `.role.scribe_` should record the logging procedure.
 
     1. Start time: 15:50.
 
-- This opens `.doc.log`_.  `.role.scribe`_ can append issues to the
+- This opens `.doc.log`_.  `.role.scribe`_ MAY append issues to the
   log, but see `.log.record.github`_.
 
 .. _permalink: https://docs.github.com/en/repositories/working-with-files/using-files/getting-permanent-links-to-files
@@ -727,7 +719,7 @@ _`.log.record`: `.role.scribe_` should record the logging procedure.
 _`.log.record.github`: Ask `.role.checker`_ using the GitHub review
 tool to "finish" their reviews now, so that their notes and metrics
 are automatically included in `.doc.log`_.  `Major defects`_ recorded
-in this way must still be "logged" by announcing them to the meeting
+in this way MUST still be "logged" by announcing them to the meeting
 (`.log.major`_).
 
 _`.log.sums`: "How many did you find?"  Gather, sum, and record
@@ -754,13 +746,13 @@ aborting the logging meeting.  Bear in mind:
 
 _`.log.plan`: Use the metrics to decide a logging rate.
 
-- The rate should be at least one per minute.  [Find this advice in
-  [Gilb-93]_.  RB 2023-01-29]
+- The RECOMMENDED rate is at least one per minute.  [Find this advice
+  in [Gilb-93]_.  RB 2023-01-29]
 
 - Try to get all issues are logged during scheduled meeting time.
 
 - Slow down if many new issues are being found.  Speed up if not.
-  `.role.checker`_ should tell you when they find issues
+  `.role.checker`_ will tell you when they find issues
   (`.log.new`_).
 
 - Schedule breaks to maintain concentration.
@@ -785,7 +777,7 @@ the desired form of issues, namely:
   otherwise briefly what's wrong ("typo", "uninitialized", "obi-wan",
   "missing requirement", etc.)
 
-_`.log.dup`: `.role.leader`_ can remind `.role.checker`_ to avoid
+_`.log.dup`: `.role.leader`_ MAY remind `.role.checker`_ to avoid
 logging issues that have are duplicates of ones already logged.
 
 _`.log.order`: Ask `.role.checker`_ to try to list their issues in
@@ -799,9 +791,8 @@ announce `major defects`_ they found.
 _`.log.scribble`: `.role.scribe`_ ensures that `major defects`_ are
 recorded so that they can *all* be found by `.edit`_ and `.pi`_.
 
-- On GitHub, the scribe can:
-
-  - edit `.role.checker`_ comments for `.log.format`_
+- On GitHub, the scribe SHOULD edit `.role.checker`_ comments for
+  `.log.format`_, and MAY
 
   - start a new GitHub `pull request review`_ to record `.class.new`_ issues
 
@@ -926,7 +917,7 @@ have prevented it.
 _`.brainstorm.disc`: Encourage discussion for no more than about five
 minutes per defect.  Focus on how the defect arose, and what
 improvement could prevent it.  Curtailing discussion of how the defect
-can be fixed.
+might be fixed.
 
 _`.brainstorm.new`: If `.role.checker`_ find new `major defects`_ do
 the same as `.log.new`_.
@@ -955,7 +946,7 @@ _`.brainstorm.metrics`: Record the time taken to execute `.brainstorm`_.
 5.7. Review Edit
 ----------------
 
-_`.edit`: The *review edit procedure* must be executed by
+_`.edit`: The *review edit procedure* MUST be executed by
 `.role.editor`_ to revise `.doc.product`_ into `.doc.rev`_ by
 processing `.doc.log`_.
 
@@ -1000,10 +991,10 @@ preference):
 
 - Append your action to the `.edit.record`_ with a reference.
 
-- In any case, your actions must be recorded permanently in a way that
+- In any case, your actions MUST be recorded permanently in a way that
   is traceable from `.doc.log`_.
 
-_`.edit.act`: You must take action on every issue in `.doc.log`_ and
+_`.edit.act`: You MUST take action on every issue in `.doc.log`_ and
 record that action.  Record one of the following responses:
 
 _`.edit.act.fix`: Fix the defect and say a few words about how.
@@ -1043,7 +1034,7 @@ or message the questioner so that they see it.
 
 - Write "Answer: <answer>"
 
-- You can send an answer by some other traceable means and link it.
+- You MAY send an answer by some other traceable means and link it.
 
 _`.edit.act.imp`: Pass the issue to another person, and ensure they
 accept it.
@@ -1068,7 +1059,7 @@ of `.edit`_.
 5.8. Process Improvement
 ------------------------
 
-_`.pi`: The *process improvement procedure* must be executed by
+_`.pi`: The *process improvement procedure* MUST be executed by
 `.role.improver`_ to take action to prevent future defects by
 processing `.doc.log`_, but especially the results of
 `.brainstorm`_.
@@ -1114,7 +1105,7 @@ _`.pi.read`: Locate and read all of the suggestions recorded in
 _`.pi.log`: Record your actions in the same manner as edit actions
 (`.edit.log`_).
 
-_`.pi.act`: You must take a written action for every improvement
+_`.pi.act`: You MUST take a written action for every improvement
 suggestion and record that action.  Record your response like an edit
 (`.edit.act`_).
 
@@ -1129,7 +1120,7 @@ _`.pi.metrics`: See `.edit.metrics`_.
 5.8. Review Exit
 ----------------
 
-_`.exit`: The *review exit procedure* is should be executed by
+_`.exit`: The *review exit procedure* is MUST be executed by
 `.role.leader`_ after editing (`.edit`_).
 
 _`.exit.purpose`: The purpose of exit is to determine whether the
@@ -1158,7 +1149,7 @@ Otherwise ask `.role.editor`_ to fix them.  Record this action, and
 record edits in the same way as `.edit`_.
 
 _`.exit.fail`: If transgressions remain, then the revised change is
-too defective.  It fails review and must not be used.
+too defective.  It fails review and MUST NOT be used.
 
 - Record this result, like::
 
@@ -1166,7 +1157,7 @@ too defective.  It fails review and must not be used.
 
 - Tell someone.  [Who and how?  RB 2023-01-28]
 
-_`.exit.pass`: Otherwise, the revised change passes review and can be
+_`.exit.pass`: Otherwise, the revised change passes review and MAY be
 used.
 
 - Record this result, like::
@@ -1233,12 +1224,12 @@ _`.doc.record`: Review records
   `.brainstorm.record`_, `.edit.record`_, `.pi.record`_, and
   `.exit.record`_.
 
-  On GitHub, the record of a review can consist of `pull request
+  On GitHub, the record of a review SHOULD consist of `pull request
   comments`_, `pull request reviews`_, and `line comments`_.  See also
   `.doc.log`_.
 
-  In any case, review records must be specific, permanent, and
-  referencable.
+  In any case, review records SHOULD be specific, permanent, and
+  MUST be referencable.
 
 _`.doc.log`: Issue log
   A record of issues raised during the logging meeting, specifying
@@ -1248,8 +1239,8 @@ _`.doc.log`: Issue log
   or `pull request comments`_ for the change under review.  See also
   `.doc.record`_.
 
-  Every issue log entry must be specific, permanent, referencable, and
-  traceable from `.doc.product`_ and `.doc.rev`_.
+  Every issue log entry SHOULD be specific, permanent, referencable, and
+  MUST be traceable from `.doc.product`_ and `.doc.rev`_.
 
 _`.doc.rev`: Revised document
   The result of performing the edit procedure on the `.doc.product`_.
@@ -1302,12 +1293,12 @@ _`.doc.check`: Checklists
   `.brainstorm`_.
 
 _`.doc.entry`: Entry criteria
-  `.doc.rule`_ that must be met before review to ensure that the
+  `.doc.rule`_ that SHOULD be met before review to ensure that the
   `.doc.product`_ is likely to pass `.doc.exit`_, so that resources
   are not wasted on a premature review.
 
 _`.doc.exit`: Exit criteria
-  `.doc.rule`_ that must be met for `.doc.rev`_ to pass review and be
+  `.doc.rule`_ that SHOULD be met for `.doc.rev`_ to pass review and be
   approved for use.
 
 _`.doc.proc`: Procedures
@@ -1333,7 +1324,7 @@ _`.calc`: [Need to mention how this info is used.  Ref kpa.qpm.  RB
 
 _`.calc.manpower-used`: The manpower used is the time for entry,
 kickoff, checking, logging, brainstorm, edit, and exit.  Kickoff,
-checking, logging and brainstorm must be multiplies by the number of
+checking, logging and brainstorm should be multiplied by the number of
 checkers.  Entry and kickoff may be assigned to another document
 reviewed at the same time.
 
@@ -1345,7 +1336,7 @@ better estimate can be made, with justification.
 
 _`.calc.defects-remaining`: The calculation of defects remaining
 should use the estimate <major defects found>/<number of pages>.  The
-obvious adjustment must be made for sampling.  The number of
+obvious adjustment should be made for sampling.  The number of
 unresolved major issues (raised) should be added.  [In an ideal world,
 I believe we should know what proportion of major defects we find, and
 use that.  Perhaps we could use 75%? - GavinM] [Doesn't that mean we
@@ -1414,7 +1405,7 @@ RB 2023-01-29]
 2023-01-26]
 
 _`.class`: There are many possible schemes for defect classification,
-but only a coarse one is used here.  Any issue raised, must fall into
+but only a coarse one is used here.  Any issue raised, should fall into
 one of the following classes.  The normal abbreviation is indicated.
 
 _`.class.major`: (M): A Major defect is a defect in the Product
@@ -1422,8 +1413,9 @@ document that will probably have significantly increased costs to find
 and fix later in the development process, for example in testing or in
 use ([Gilb-93]_ p442).  A bug that is fixed after review typically
 takes one man-hour, after testing 10 man-hour, and in the field 100
-man-hours.  A defect that will waste downstream development effort is
-also major.  Typical major defects are:
+man-hours; and it's much worse for a garbage collector
+(`.rationale.gc`_).  A defect that will waste downstream development
+effort is also major.  Typical major defects are:
 
 - In an implementation, potentially failing to behave as specified;
 
@@ -1510,7 +1502,7 @@ With that in mind, here is some advice from [Gilb-93]_:
 12. Express review
 ==================
 
-_`.express`: The *express review procedure* [RB-2023-02-01]_ can be
+_`.express`: The *express review procedure* [RB-2023-02-01]_ MAY be
 executed by `.role.leader.experienced`_ to get a low-risk change
 reviewed quickly, at low cost.
 
@@ -1526,13 +1518,13 @@ and `.plan`_ a full review.  Record that you did.  Don't delete the
 express review record.
 
 _`.express.record`: Record the express procedure (`.doc.record`_).
-You can squash the records for the other steps in one comment.
+You MAY squash the records for the other steps in one comment.
 
 _`.express.entry`: Execute `.entry`_ pretty much as usual.
 
 _`.express.call`: Call someone else in right now.
 
-_`.express.risk`: The other person must agree that the change has low
+_`.express.risk`: The other person MUST agree that the change has low
 risk, and that express review will achieve the `.purpose`_.
 
 - Size is not risk.  It's much more important to consider *what* is
@@ -1546,10 +1538,10 @@ _`.express.schedule`: No need to schedule. You both do it now.
 _`.express.train`: Choo choo!  Don't do this with untrained people.
 Revert to full review.
 
-_`.express.source`: All source docs must be immediately available.
+_`.express.source`: All source docs MUST be immediately available.
 If not, you know what to do by now.
 
-_`.express.rule`: Everyone must know the relevant rules.
+_`.express.rule`: Everyone SHOULD know the relevant rules.
 
 _`.express.homework`: If homework is needed, it's not an express
 review.
@@ -1597,7 +1589,8 @@ metrics.
 13. Rationale
 =============
 
-Formal review is the key to the quality of the Memory Pool System.
+_`.rationale`: Formal review is the key to the quality of the Memory
+Pool System.
 
 A full justification of the review process described by this procedure
 is not feasible here.  There are three sources:
@@ -1631,9 +1624,9 @@ eyeballs diffs) have become standard practice for many projects, and
 it's quite hard to imagine a time without them.  However, full-on
 formal reviews or inspections are still relatively rare.
 
-Formal review is appropriate for the MPS because defects in memory
-managers, and especially in garbage collectors, are *extremely*
-expensive to find and fix compared to other software.
+_`.rationale.gc`: Formal review is appropriate for the MPS because
+defects in memory managers, and especially in garbage collectors, are
+*extremely* expensive to find and fix compared to other software.
 
 It's the job of a garbage collector to destroy information by
 recycling (overwriting) objects and reorganizing memory.  A subtle
@@ -1717,6 +1710,11 @@ A. References
 .. [RB-2023-02-01] "Express review notes and test"; Richard Brooksby;
 		   Ravenbrook Limited; 2023-02-01;
 		   <https://info.ravenbrook.com/mail/2023/02/01/20-06-44/0/>.
+
+.. [RFC-2119] "Key words for use in RFCs to Indicate Requirement
+	      Levels"; S. Bradner; Harvard University; 1997-03;
+	      <https://www.ietf.org/rfc/inline-errata/rfc2119.html>
+	      (with errata).
 
 
 B. Document History
