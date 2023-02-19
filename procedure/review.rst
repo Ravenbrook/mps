@@ -923,7 +923,7 @@ defects found by the review, or suggesting ways to fix those defects,
 except insofar as it is necessary to develop ways to *prevent* those
 defects.
 
-_`.brainstorm.raise`: Raises each major defect in turn, reminding
+_`.brainstorm.raise`: Raise each major defect in turn, reminding
 participants of the issue, and asking how it happened and what could
 have prevented it.
 
@@ -931,6 +931,9 @@ _`.brainstorm.disc`: Encourage discussion for no more than about five
 minutes per defect.  Focus on how the defect arose, and what
 improvement could prevent it.  Curtailing discussion of how the defect
 can be fixed.
+
+_`.brainstorm.new`: If `.role.checker`_ find new `major defects`_ do
+the same as `.log.new`_.
 
 _`.brainstorm.proc`: If time permits, the leader may solicit
 criticisms of the review process and apply `.brainstorm.disc`_ to
