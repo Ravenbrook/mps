@@ -27,14 +27,18 @@
 #
 # TODO: Incorporate %% instructions
 
-# Tutorial says to put this in but does not give any advice about the
-# argument, so I'm guessing based on feature documentation I've used.
+# Specify CMake version
 #
-# FIXME: The default CMake with Visual Studio 2017 is 3.12.  Check
-# features to see if we can work with that.
+# The latest feature use is try_compile, which requires CMake 3.25
+# <https://cmake.org/cmake/help/latest/command/try_compile.html#try-compiling-source-files>.
 cmake_minimum_required(VERSION 3.25)
 
-project(mps LANGUAGES C)
+project(
+  mps
+  LANGUAGES C
+  DESCRIPTION "Memory Pool System" # New in CMake 3.9
+  HOMEPAGE_URL "https://www.ravenbrook.com/project/mps" # New in CMake 3.12
+)
 
 # Some people say this defaults to "Release", but it's sometimes
 # blank.
@@ -69,7 +73,7 @@ string(
   FILE_MPSTDE_C "${FILE_MPSTD_H}"
 )
 string(APPEND FILE_MPSTDE_C "int main(void) { return 0; }\n")
-try_compile(
+try_compile( # New in CMake 3.25
   MPSTDE_RESULT
   SOURCE_FROM_VAR "mpstde.c" FILE_MPSTDE_C
   OUTPUT_VARIABLE MPSTDE_OUTPUT
