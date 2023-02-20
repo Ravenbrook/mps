@@ -1,4 +1,4 @@
-# code/CMakeLists.txt -- CMake configuration for the MPS
+# CMakeLists.txt -- CMake configuration for the MPS
 #
 # This is just an experimental demonstration configuration to see how
 # we might use CMake to replace GNU Make, NMAKE, and Xcodebuild in the
@@ -41,7 +41,7 @@ project(
 )
 
 # Some people say this defaults to "Release", but it's sometimes
-# blank.
+# blank.  This file relies on it being set.
 if (CMAKE_BUILD_TYPE)
   message(VERBOSE "Build type ${CMAKE_BUILD_TYPE}")
 else ()
@@ -66,6 +66,8 @@ endif ()
 # and link at both ends.
 
 # FIXME: How to override detection?
+
+# TODO: Test with cross-compilation.
 
 file(READ code/mpstd.h FILE_MPSTD_H)
 string(
@@ -95,8 +97,9 @@ else ()
 endif ()
 
 
-# FIXME: What about ANSI platform?
-# FIXME: What about Freestanding platform?
+# FIXME: What about ANSI platform?  Override with PLATFORM_ANSI passed
+# to CMake with ``-D``, as in mps.c.  Same for freestanding platform
+# (see branch/2023-02-13/freestanding).
 
 if (OS STREQUAL "xc")
 
@@ -109,19 +112,19 @@ if (OS STREQUAL "xc")
   #   CC = clang -arch i386
 
   set(MPMPF
-    lockix.c
-    prmc${ARCH}.c
-    prmc${OS}.c
-    prmcxc${ARCH}.c
-    protix.c
-    prot${OS}.c
-    span.c
-    thxc.c
-    vmix.c
+    code/lockix.c
+    code/prmc${ARCH}.c
+    code/prmc${OS}.c
+    code/prmcxc${ARCH}.c
+    code/protix.c
+    code/prot${OS}.c
+    code/span.c
+    code/thxc.c
+    code/vmix.c
   )
   
-  set(TESTLIB testlib.c)
-  set(TESTTHR testthrix.c)
+  set(TESTLIB code/testlib.c)
+  set(TESTTHR code/testthrix.c)
 
   # FIXME: Is this necessary on macOS?
   link_libraries(m)
@@ -130,20 +133,20 @@ elseif (OS STREQUAL "li")
 
   # Lifted from lii3ll.gmk and lii6ll.gmk
   set(MPMPF
-    lockix.c
-    prmc${ARCH}.c
-    prmcix.c
-    prmc${OS}${ARCH}.c
-    protix.c
-    protsgix.c
-    pthrdext.c
-    span.c
-    thix.c
-    vmix.c
+    code/lockix.c
+    code/prmc${ARCH}.c
+    code/prmcix.c
+    code/prmc${OS}${ARCH}.c
+    code/protix.c
+    code/protsgix.c
+    code/pthrdext.c
+    code/span.c
+    code/thix.c
+    code/vmix.c
   )
 
-  set(TESTLIB testlib.c)
-  set(TESTTHR testthrix.c)
+  set(TESTLIB code/testlib.c)
+  set(TESTTHR code/testthrix.c)
 
   link_libraries(m)
 
@@ -151,8 +154,8 @@ elseif (OS STREQUAL "fr")
 
   # FIXME: Fill this in from fr*.gmk
 
-  set(TESTLIB testlib.c)
-  set(TESTTHR testthrix.c)
+  set(TESTLIB code/testlib.c)
+  set(TESTTHR code/testthrix.c)
 
   link_libraries(m)
 
@@ -163,19 +166,19 @@ elseif (OS STREQUAL "w3")
   # FIXME: Untested
   
   set(MPMPF
-    lock${OS}.c
-    mpsi${OS}.c
-    prmc${ARCH}.c
-    prmc${OS}.c
-    prmc${OS}${ARCH}.c
-    prot${OS}.c
-    sp${OS}${ARCH}.c
-    th${OS}.c
-    vm${OS}.c
+    code/lock${OS}.c
+    code/mpsi${OS}.c
+    code/prmc${ARCH}.c
+    code/prmc${OS}.c
+    code/prmc${OS}${ARCH}.c
+    code/prot${OS}.c
+    code/sp${OS}${ARCH}.c
+    code/th${OS}.c
+    code/vm${OS}.c
   )
 
-  set(TESTLIB testlib.c getoptl.c)
-  set(TESTTHR testthr${OS}.c)
+  set(TESTLIB code/testlib.c code/getoptl.c)
+  set(TESTTHR code/testthr${OS}.c)
 
 else ()
 
@@ -288,81 +291,73 @@ endif ()
 # These values are defined here because they have no variation between
 # platforms.
 
-set(AMC poolamc.c)
-set(AMS poolams.c)
-set(AWL poolawl.c)
-set(LO poollo.c)
-set(SNC poolsnc.c)
-set(POOLN pooln.c)
-set(MV2 poolmv2.c)
-set(MVFF poolmvff.c)
-set(FMTDY fmtdy.c fmtno.c)
-set(FMTDYTST fmtdy.c fmtno.c fmtdytst.c)
-set(FMTHETST fmthe.c fmtdy.c fmtno.c fmtdytst.c)
-set(FMTSCM fmtscheme.c)
-set(PLINTH mpsliban.c mpsioan.c)
+set(AMC code/poolamc.c)
+set(AMS code/poolams.c)
+set(AWL code/poolawl.c)
+set(LO code/poollo.c)
+set(SNC code/poolsnc.c)
+set(POOLN code/pooln.c)
+set(MV2 code/poolmv2.c)
+set(MVFF code/poolmvff.c)
+set(FMTDY code/fmtdy.c code/fmtno.c)
+set(FMTDYTST code/fmtdy.c code/fmtno.c code/fmtdytst.c)
+set(FMTHETST code/fmthe.c code/fmtdy.c code/fmtno.c code/fmtdytst.c)
+set(FMTSCM code/fmtscheme.c)
+set(PLINTH code/mpsliban.c code/mpsioan.c)
 set(MPMCOMMON
-    abq.c
-    arena.c
-    arenacl.c
-    arenavm.c
-    arg.c
-    boot.c
-    bt.c
-    buffer.c
-    cbs.c
-    dbgpool.c
-    dbgpooli.c
-    event.c
-    failover.c
-    format.c
-    freelist.c
-    global.c
-    land.c
-    ld.c
-    locus.c
-    message.c
-    meter.c
-    mpm.c
-    mpsi.c
-    nailboard.c
-    policy.c
-    pool.c
-    poolabs.c
-    poolmfs.c
-    poolmrg.c
-    protocol.c
-    range.c
-    rangetree.c
-    ref.c
-    ring.c
-    root.c
-    sa.c
-    sac.c
-    scan.c
-    seg.c
-    shield.c
-    splay.c
-    ss.c
-    table.c
-    trace.c
-    traceanc.c
-    tract.c
-    tree.c
-    version.c
-    vm.c
-    walk.c
+    code/abq.c
+    code/arena.c
+    code/arenacl.c
+    code/arenavm.c
+    code/arg.c
+    code/boot.c
+    code/bt.c
+    code/buffer.c
+    code/cbs.c
+    code/dbgpool.c
+    code/dbgpooli.c
+    code/event.c
+    code/failover.c
+    code/format.c
+    code/freelist.c
+    code/global.c
+    code/land.c
+    code/ld.c
+    code/locus.c
+    code/message.c
+    code/meter.c
+    code/mpm.c
+    code/mpsi.c
+    code/nailboard.c
+    code/policy.c
+    code/pool.c
+    code/poolabs.c
+    code/poolmfs.c
+    code/poolmrg.c
+    code/protocol.c
+    code/range.c
+    code/rangetree.c
+    code/ref.c
+    code/ring.c
+    code/root.c
+    code/sa.c
+    code/sac.c
+    code/scan.c
+    code/seg.c
+    code/shield.c
+    code/splay.c
+    code/ss.c
+    code/table.c
+    code/trace.c
+    code/traceanc.c
+    code/tract.c
+    code/tree.c
+    code/version.c
+    code/vm.c
+    code/walk.c
 )
 set(POOLS ${AMC} ${AMS} ${AWL} ${LO} ${MV2} ${MVFF} ${SNC})
 set(MPM ${MPMCOMMON} ${MPMPF} ${POOLS} ${PLINTH})
-
-
-# FIXME: There's probably a better way to do this
-list(TRANSFORM MPM PREPEND "code/")
-list(TRANSFORM PLINTH PREPEND "code/")
-list(TRANSFORM TESTLIB PREPEND "code/")
-list(TRANSFORM FMTDYTST PREPEND "code/")
-list(TRANSFORM TESTTHR PREPEND "code/")
 
 
 # Varieties
@@ -370,35 +365,31 @@ list(TRANSFORM TESTTHR PREPEND "code/")
 # MPS varieties (HOT, COOL, etc.) probably map to CMake "Build
 # Configurations"
 # <https://cmake.org/cmake/help/latest/manual/cmake-buildsystem.7.html#build-configurations>.
-# I'm just mapping Debug and Release for now.
-
-# Unset CMake's default flags
-# message(VERBOSE "CMAKE_C_FLAGS = ${CMAKE_C_FLAGS}")
-# message(VERBOSE "CMAKE_C_FLAGS_DEBUG = ${CMAKE_C_FLAGS_DEBUG}")
-# message(VERBOSE "CMAKE_C_FLAGS_RELEASE = ${CMAKE_C_FLAGS_RELEASE}")
-set(CMAKE_C_FLAGS_DEBUG "")
-set(CMAKE_C_FLAGS_RELEASE "")
-set(CMAKE_C_FLAGS "")
+#
+# FIXME: I'm just mapping variety.cool (Debug) and variety.hot
+# (Release) for now, but we need to add variety.rash at least for
+# automatic comparison with hot.  It would be good to see if
+# variety.cold builds and runs too.
 
 add_compile_definitions(
   $<$<CONFIG:Debug>:CONFIG_VAR_COOL>
   $<$<CONFIG:Release>:CONFIG_VAR_HOT>
 )
 
-
-add_compile_options(
-  "$<$<CONFIG:Debug>:${CFLAGSDEBUG}>"
-  "$<$<CONFIG:Release>:${CFLAGSOPT}>"
-  ${CFLAGSCOMPILER}
-  # FIXME: CFLAGSCOMPILERSTRICT or LAX
-)
+# Override CMake's default flags because we specify all flags.
+message(VERBOSE "Setting CMAKE_C_FLAGS from ${CMAKE_C_FLAGS} to ${CFLAGSCOMPILER}")
+list(JOIN CFLAGSCOMPILER " " CMAKE_C_FLAGS)
+message(VERBOSE "Setting CMAKE_C_FLAGS_DEBUG from ${CMAKE_C_FLAGS_DEBUG} to ${CFLAGSDEBUG}")
+list(JOIN CFLAGSDEBUG " " CMAKE_C_FLAGS_DEBUG)
+message(VERBOSE "Setting CMAKE_C_FLAGS_RELEASE from ${CMAKE_C_FLAGS_RELEASE} to ${CFLAGSOPT}")
+list(JOIN CFLAGSOPT " " CMAKE_C_FLAGS_RELEASE)
 
 
 # Targets
 #
 # Just using gcbench as an example target for now.
 
-#add_library(mps OBJECT mps.c)
+#add_library(mps OBJECT code/mps.c)
 #target_compile_options(mps PRIVATE ${CFLAGSCOMPILERSTRICT})
 
 add_library(mps STATIC
@@ -427,6 +418,7 @@ target_compile_options(gcbench PRIVATE ${CFLAGSCOMPILERSTRICT})
 include(CTest)
 
 add_executable(amcss code/amcss.c ${TESTLIB} ${FMTDYTST})
+# FIXME: target_compile_options(amcss PRIVATE ${CFLAGSCOMPILERLAX}) etc. ?
 target_link_libraries(amcss PRIVATE mps)
 add_test(NAME amcss COMMAND amcss)
 
