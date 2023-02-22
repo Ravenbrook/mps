@@ -31,17 +31,17 @@ This document is not confidential.
 Version 1.118
 .............
 
-Migration from Perforce to Git.
+Migration from Perforce to Git:
 
-Bring Configura forward from version 1.115.
+* `GitHub issue #125 <https://github.com/Ravenbrook/mps/issues/125>`_
+  (Version and release procedures use Perforce)
+
+Bring Configura forward from version 1.115:
 
 * Assessment of risk to Configura of all changes since 1.115.
 
 * `GitHub issue #110 <https://github.com/Ravenbrook/mps/issues/110>`_
   (Ravenbrook MPS sources are out of sync with Configura's sources)
-
-* `GitHub issue #125 <https://github.com/Ravenbrook/mps/issues/125>`_
-  (Version and release procedures use Perforce)
 
 * `GitHub pull request #76 <https://github.com/Ravenbrook/mps/pull/76>`_
   (Apply all changes from Configura to the public MPS)
