@@ -10,19 +10,16 @@ Memory Pool System Project Plan
 :Status: live
 :confidentiality: public
 :copyright: See `C. Copyright and License`_
-:readership: MPS project managers, MPS developers
+:readership: MPS users, MPS project managers, MPS developers
 
 
 1. Introduction
 ---------------
 
-This is the plan for development of the Memory Pool System.
+This is the version plan [RB-1999-05-20]_ for development of the
+Memory Pool System.
 
 This document will be modified as the project progresses.
-
-The readership of this document is anyone interested in the project.
-
-This document is not confidential.
 
 
 2. Future versions
@@ -190,6 +187,10 @@ A. References
 .. [GDR_2014-05-15] "More MPS strategy"; Gareth Rees;
    Ravenbrook Limited; 2014-05-15;
    <https://info.ravenbrook.com/mail/2014/05/15/19-19-13/0/>.
+
+.. [RB-1999-05-20] "Product Quality through Change Management";
+   Richard Brooksby; Ravenbrook Limited; 1999-05-20;
+   <https://www.ravenbrook.com/doc/1999/05/20/pqtcm/>.
 
 
 B. Document History
