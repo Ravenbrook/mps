@@ -1,17 +1,20 @@
 .. mode: -*- rst -*-
 
+===============================
 Memory Pool System Project Plan
 ===============================
 
+:tag: plan.mps
 :Author: Gareth Rees
 :Date: 2014-05-16
 :Status: live
-:Revision: $Id$
-:Copyright: See `Copyright and License`_.
+:confidentiality: public
+:copyright: See `C. Copyright and License`_
+:readership: MPS project managers, MPS developers
 
 
-Introduction
-------------
+1. Introduction
+---------------
 
 This is the plan for development of the Memory Pool System.
 
@@ -22,8 +25,8 @@ The readership of this document is anyone interested in the project.
 This document is not confidential.
 
 
-Future versions
----------------
+2. Future versions
+------------------
 
 Version 1.116
 .............
@@ -65,8 +68,8 @@ Improvements to testing:
 .. _job003839: https://www.ravenbrook.com/project/mps/issue/job003839/
 
 
-Past versions
--------------
+3. Past versions
+----------------
 
 Version 1.115
 .............
@@ -143,8 +146,8 @@ Improvements to testing:
 .. _Coverity: http://www.coverity.com/
 
 
-References
-----------
+A. References
+-------------
 
 .. [GDR_2014-05-14] "MPS strategic direction proposals"; Gareth Rees;
    Ravenbrook Limited; 2014-05-14;
@@ -155,45 +158,45 @@ References
    <https://info.ravenbrook.com/mail/2014/05/15/19-19-13/0/>.
 
 
+B. Document History
+-------------------
 
-Copyright and License
----------------------
+==========  =====  ==================================================
+2023-02-22  RB_    Migrated from Perforce to `MPS public Git repo`_
+==========  =====  ==================================================
 
-Copyright © 2013-2014 Ravenbrook Limited. All rights reserved.
-<https://www.ravenbrook.com/>. This is an open source license. Contact
-Ravenbrook for commercial licensing options.
+.. _RB: mailto:rb@ravenbrook.com
+
+.. _MPS public Git repo: https://github.com/Ravenbrook/mps
+
+
+C. Copyright and License
+------------------------
+
+Copyright © 2013–2023 `Ravenbrook Limited <https://www.ravenbrook.com/>`_.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are
 met:
 
-#. Redistributions of source code must retain the above copyright
+1. Redistributions of source code must retain the above copyright
    notice, this list of conditions and the following disclaimer.
 
-#. Redistributions in binary form must reproduce the above copyright
+2. Redistributions in binary form must reproduce the above copyright
    notice, this list of conditions and the following disclaimer in the
    documentation and/or other materials provided with the distribution.
 
-#. Redistributions in any form must be accompanied by information on how
-   to obtain complete source code for this software and any
-   accompanying software that uses this software.  The source code must
-   either be included in the distribution or be available for no more than
-   the cost of distribution plus a nominal fee, and must be freely
-   redistributable under reasonable conditions.  For an executable file,
-   complete source code means the source code for all modules it contains.
-   It does not include source code for modules or files that typically
-   accompany the major components of the operating system on which the
-   executable file runs.
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+"AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-**This software is provided by the copyright holders and contributors
-"as is" and any express or implied warranties, including, but not
-limited to, the implied warranties of merchantability, fitness for a
-particular purpose, or non-infringement, are disclaimed.  In no event
-shall the copyright holders and contributors be liable for any direct,
-indirect, incidental, special, exemplary, or consequential damages
-(including, but not limited to, procurement of substitute goods or
-services; loss of use, data, or profits; or business interruption)
-however caused and on any theory of liability, whether in contract,
-strict liability, or tort (including negligence or otherwise) arising in
-any way out of the use of this software, even if advised of the
-possibility of such damage.**
+
+.. end
