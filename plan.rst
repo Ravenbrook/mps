@@ -28,6 +28,43 @@ This document is not confidential.
 2. Future versions
 ------------------
 
+Version 1.118
+.............
+
+Migration from Perforce to Git.
+
+Bring Configura forward from version 1.115.
+
+* Assessment of risk to Configura of all changes since 1.115.
+
+* `GitHub issue #110 <https://github.com/Ravenbrook/mps/issues/110>`_
+  (Ravenbrook MPS sources are out of sync with Configura's sources)
+
+* `GitHub issue #125 <https://github.com/Ravenbrook/mps/issues/125>`_
+  (Version and release procedures use Perforce)
+
+* `GitHub pull request #76 <https://github.com/Ravenbrook/mps/pull/76>`_
+  (Apply all changes from Configura to the public MPS)
+
+* Inspection of `GitHub pull request #34
+  <https://github.com/Ravenbrook/mps/pull/34>`_ (New API function
+  mps_pool_walk) with particular attention to Configura requirements
+
+[FIXME: These are the outstanding items as of 2023-02-22.  The plan
+should be updated with items closed and included since 1.117.  RB
+2023-02-22]
+
+
+3. Past versions
+----------------
+
+Version 1.117
+.............
+
+[The plan for version 1.117 was not recorded in
+//info.ravenbrook.com/project/mps/plan/index.rst#14.  RB 2023-02-22]
+
+
 Version 1.116
 .............
 
@@ -67,9 +104,6 @@ Improvements to testing:
 
 .. _job003839: https://www.ravenbrook.com/project/mps/issue/job003839/
 
-
-3. Past versions
-----------------
 
 Version 1.115
 .............
