@@ -528,12 +528,16 @@ _`.ko.remind`: The leader reminds everyone:
 
 - not to confer until `.log`_
 
+- to open and apply `proc.review.check`_
+
 - to avoid finishing `pull request reviews`_ or submitting `pull
   request comments`_ until `.log`_.
 
 .. _pull request reviews: https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/reviewing-changes-in-pull-requests/about-pull-request-reviews
 
 .. _pull request comments: https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/reviewing-changes-in-pull-requests/commenting-on-a-pull-request#about-pull-request-comments
+
+.. _proc.review.check: `.check`_
 
 _`.ko.role`: Negotiate checking roles (`.role.check`_).
 
