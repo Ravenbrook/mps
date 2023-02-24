@@ -15,24 +15,35 @@
 #
 # Developed from <https://info.ravenbrook.com/mail/2023/02/21/17-08-50/0/>.
 
+if difftmp=$(mktemp); then
+    trap "rm -f -- '$difftmp'" EXIT
+else
+    echo 1>&2 "Unable to create temporary file"
+    exit 1
+fi
+    
 git log --format="%H %h %s" "$@" |
 while read -r hash commit subject; do
+    # Get a diff for the change.  Ignoring lines that look like
+    # comments, or with just white space changes.  This is hacky
+    # because it only recognizes C comments.
+    git show --pretty="format:" --patch \
+	--diff-merges=first-parent \
+	--ignore-matching-lines='^[[:space:]]+\*[[:space:]]' \
+	--ignore-matching-lines='^[[:space:]]*/\*[[:space:]]' \
+	--ignore-space-change \
+	"$hash" > $difftmp
+    loc=$(wc -l < "$difftmp")
+    # Edit diff to just a list of files changed
+    sed --in-place --quiet --expression='s!--- a/!!p' "$difftmp"
     risks=$(
 	# Strip comments and blank lines from git-riskiness.
 	sed --regexp-extended \
-	    --expression='s/[[:space:]]*#.*$//; /^[[:space:]]*$/ d' < tool/git-riskiness |
+	    --expression='s/[[:space:]]*#.*$//; /^[[:space:]]*$/ d' \
+	    < tool/git-riskiness |
 	    # Filter for lines that mention files changed in the commit.
-	    # Ignores lines that look like comments.
 	    (
-		grep --fixed-strings \
-		     --file=<(git show --pretty="format:" \
-				  --patch \
-				  --diff-merges=first-parent \
-				  --ignore-matching-lines='^[[:space:]]+\*[[:space:]]' \
-				  --ignore-matching-lines='^[[:space:]]*/\*[[:space:]]' \
-				  --ignore-space-change \
-				  "$hash" |
-				  sed --quiet --expression='s!--- a/!!p') ||
+		grep --fixed-strings --file="$difftmp" ||
 		    echo "0 0 no-match"
 	    ) |
 	    # Pick the riskiest.
@@ -40,5 +51,5 @@ while read -r hash commit subject; do
 	    sort --numeric --reverse --key=2 |
 	    head --lines=1
 	 )
-    echo "$commit $loc $risks $subject"
+    echo "$commit $risks $loc $subject"
 done
