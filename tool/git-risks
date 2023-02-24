@@ -11,9 +11,22 @@
 # The estimate of the risks of changing files is stored in
 # tool/git-riskiness
 #
-# TODO: Take option to select risk column argument to sort.
-#
 # Developed from <https://info.ravenbrook.com/mail/2023/02/21/17-08-50/0/>.
+
+usage() {
+    echo 1>&2 "Usage: ${0} [-k column] [-- git log options] [<git log path>...]"
+    exit 1
+}
+
+# Default to general risk (column 1 in git-riskiness)
+key=1
+while getopts k: flag; do
+    case "${flag}" in
+	k) key="${OPTARG}";;
+	*) usage;;
+    esac
+done
+shift $((OPTIND-1))
 
 if difftmp=$(mktemp); then
     # shellcheck disable=SC2064
@@ -49,7 +62,7 @@ while read -r hash commit subject; do
 	    ) |
 	    # Pick the riskiest.
 	    # NOTE: --key is 1-based.
-	    sort --numeric --reverse --key=2 |
+	    sort --numeric --reverse --key="$key" |
 	    head --lines=1
 	 )
     printf "%s %5d %s %s\n" "$commit" "$loc" "$risks" "$subject"
