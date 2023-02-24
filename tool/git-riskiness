@@ -10,6 +10,8 @@
 # This file can contain blank lines and comments starting with '#'.
 # See tool/git-risks.
 
+# First column is risk to general MPS users
+# Second column is risk to Configura
 0 0 code/.gitignore
 0 0 code/.p4ignore
 1 0 code/abq.c
