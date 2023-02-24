@@ -18,20 +18,27 @@
 git log --format="%H %h %s" "$@" |
 while read -r hash commit subject; do
     risks=$(
-	# Strip comments and blank lines from git-riskiness
+	# Strip comments and blank lines from git-riskiness.
 	sed --regexp-extended \
 	    --expression='s/[[:space:]]*#.*$//; /^[[:space:]]*$/ d' < tool/git-riskiness |
-	# Filter lines that mention files changed in the commit
-	(
-	    grep --fixed-strings \
-		 --file=<(git log --max-count=1 --patch \
-			     --diff-merges=on --name-only \
-			     --pretty="format:" "$hash") ||
-		echo "0 0 no-match"
-	) |
-	# Pick the riskiest
-        sort --numeric --reverse --key=1 |
-	head --lines=1
-    )
-    echo "$commit $risks $subject"
+	    # Filter for lines that mention files changed in the commit.
+	    # Ignores lines that look like comments.
+	    (
+		grep --fixed-strings \
+		     --file=<(git show --pretty="format:" \
+				  --patch \
+				  --diff-merges=first-parent \
+				  --ignore-matching-lines='^[[:space:]]+\*[[:space:]]' \
+				  --ignore-matching-lines='^[[:space:]]*/\*[[:space:]]' \
+				  --ignore-space-change \
+				  "$hash" |
+				  sed --quiet --expression='s!--- a/!!p') ||
+		    echo "0 0 no-match"
+	    ) |
+	    # Pick the riskiest.
+	    # NOTE: --key is 1-based.
+	    sort --numeric --reverse --key=2 |
+	    head --lines=1
+	 )
+    echo "$commit $loc $risks $subject"
 done
