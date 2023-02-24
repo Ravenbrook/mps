@@ -16,6 +16,7 @@
 # Developed from <https://info.ravenbrook.com/mail/2023/02/21/17-08-50/0/>.
 
 if difftmp=$(mktemp); then
+    # shellcheck disable=SC2064
     trap "rm -f -- '$difftmp'" EXIT
 else
     echo 1>&2 "Unable to create temporary file"
@@ -32,7 +33,7 @@ while read -r hash commit subject; do
 	--ignore-matching-lines='^[[:space:]]+\*[[:space:]]' \
 	--ignore-matching-lines='^[[:space:]]*/\*[[:space:]]' \
 	--ignore-space-change \
-	"$hash" > $difftmp
+	"$hash" > "$difftmp"
     loc=$(wc -l < "$difftmp")
     # Edit diff to just a list of files changed
     sed --in-place --quiet --expression='s!--- a/!!p' "$difftmp"
@@ -51,5 +52,5 @@ while read -r hash commit subject; do
 	    sort --numeric --reverse --key=2 |
 	    head --lines=1
 	 )
-    echo "$commit $risks $loc $subject"
+    printf "%s %5d %s %s\n" "$commit" "$loc" "$risks" "$subject"
 done
