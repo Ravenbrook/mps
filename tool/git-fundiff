@@ -1,0 +1,50 @@
+#!/bin/sh
+# tool/git-fundiff -- C functions changed between commits
+#
+# Prints a list of functions that differ in a C source file at the
+# LLVM intermediate code level between two Git commits.
+#
+# NOTE: This will print false positivies because llvm-diff produces
+# them, even when comparing a file with itself, e.g. ``llvm-diff x x``
+
+set -e # exit on error
+
+usage() {
+    echo 1>&2 "Usage: $0 <tree-ish> <tree-ish> <clang source>..."
+    echo 1>&2 "Example: $0 HEAD^ HEAD trace.c"
+    exit 2
+}
+
+if ! which clang llvm-diff-14 > /dev/null; then
+    echo 1>&2 "$0: clang or llvm-diff-14 command not found"
+    exit 2
+fi
+
+if test "$#" -lt 2; then usage; fi
+left="$1"
+right="$2"
+shift 2
+
+tmpdir=$(mktemp --directory)
+# shellcheck disable=SC2064
+trap "rm -rf -- '$tmpdir'" EXIT
+mkdir -p "$tmpdir/left" "$tmpdir/right"
+git archive "$left" code | tar -x -C "$tmpdir/left"
+git archive "$right" code | tar -x -C "$tmpdir/right"
+
+status=0
+while test $# -gt 0; do
+    file="$1"
+    shift
+    (cd "$tmpdir/left/code" &&
+	 clang -S -emit-llvm -o "../../left.ll" "$file")
+    (cd "$tmpdir/right/code" &&
+	 clang -S -emit-llvm -o "../../right.ll" "$file")
+    # Try to reduce false positives where the output is identical
+    cmp "$tmpdir/left.ll" "$tmpdir/right.ll" && continue
+    llvm-diff-14 "$tmpdir/left.ll" "$tmpdir/right.ll" \
+		 > "$tmpdir/diff" 2>&1 && continue
+    status=1
+    sed -ne 's/^in function \(.*\):$/\1/p' < "$tmpdir/diff"
+done
+exit "$status"
