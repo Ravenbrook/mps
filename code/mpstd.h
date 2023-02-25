@@ -407,6 +407,10 @@
 #define MPS_WORD_SHIFT  5
 #define MPS_PF_ALIGN    4
 
+#if !defined(__EMSCRIPTEN_PTHREADS__)
+#define CONFIG_THREAD_SINGLE
+#endif
+
 
 #elif defined(__EMSCRIPTEN__) && defined(__wasm64__)
 #if defined(CONFIG_PF_STRING) && ! defined(CONFIG_PF_EMJ6LL)
@@ -422,6 +426,10 @@
 #define MPS_WORD_WIDTH  64
 #define MPS_WORD_SHIFT  6
 #define MPS_PF_ALIGN    8
+
+#if !defined(__EMSCRIPTEN_PTHREADS__)
+#define CONFIG_THREAD_SINGLE
+#endif
 
 
 #else
