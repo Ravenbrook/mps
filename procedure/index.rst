@@ -41,6 +41,9 @@ expose extensions, as recommended by Tim Berners-Lee.  But they don't
 work on GitHub.  We should probably make them work there.  RB
 2023-01-07]
 
+[FIXME: Update with other documents in the procedure directory.  RB
+2023-02-26]
+
 
 A. References
 -------------

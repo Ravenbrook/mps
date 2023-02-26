@@ -3,7 +3,7 @@
 C Style -- naming
 =================
 
-:Tag: guide.impl.c.naming
+:Tag: guide.code.c.naming
 :Author: Gareth Rees
 :Date: 2014-10-07
 :Status: incomplete guide
@@ -95,14 +95,18 @@ Document History
 
 - 2014-10-07  GDR_  Created based on job003693_.
 
+- 2023-02-26 RB_ Renamed to guide.code.c.format pending merged into
+  GitHub-based proc.review.
+
 .. _job003693: https://www.ravenbrook.com/project/mps/issue/job003693/
 .. _GDR: https://www.ravenbrook.com/consultants/gdr
+.. _RB: https://www.ravenbrook.com/consultants/rb
 
 
 Copyright and License
 ---------------------
 
-Copyright © 2002–2020 `Ravenbrook Limited <https://www.ravenbrook.com/>`_.
+Copyright © 2002–2023 `Ravenbrook Limited <https://www.ravenbrook.com/>`_.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are
