@@ -506,6 +506,30 @@
 #define VMJunkBYTE ((unsigned char)0xA9)
 #define VMParamSize (sizeof(Word))
 
+/* .feature.em: Emscripten feature specification
+ *
+ * The MPS needs the following symbols which are not defined by default:
+ *
+ * Source      Symbols                   Header        Feature
+ * =========== ========================= ============= ====================
+ * djbench.c   alloca                    <stdlib.h>    _GNU_SOURCE
+ * eventtxt.c  setenv                    <stdlib.h>    _GNU_SOURCE
+ * gcbench.c   alloca                    <stdlib.h>    _GNU_SOURCE
+ *
+ * It is not possible to localize these feature specifications around
+ * the individual headers: all headers share a common set of features
+ * (via <sys/cdefs.h>) and so all sources in the same compilation unit
+ * must turn on the same set of features.
+ */
+
+#if defined(MPS_OS_EM)
+
+#if !defined(_GNU_SOURCE)
+#define _GNU_SOURCE
+#endif
+
+#endif
+
 
 /* .feature.li: Linux feature specification
  *
