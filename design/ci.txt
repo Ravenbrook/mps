@@ -35,8 +35,9 @@ Pool System.
 Goals
 =====
 
-.goal.platforms: Reduce the cost to developers of supporting target
-platforms.
+.goal.platforms: Reduce the cost to developers and collaborators of
+supporting target platforms.  [Cross-reference to where those are
+defined.  RB 2023-02-26]
 
 .goal.detect: Detect introduced defects early in development so that
 they can be fixed at lower cost.
@@ -59,15 +60,16 @@ development branches (pushes).  (goal.detect)
 .req.platforms: Build and test on all supported target platforms.
 (goal.platforms)
 
-.req.cost: Cost no money in normal circumstances.  (goal.platforms,
-goal.detect, goal.publish)
+.req.cost: Cost no money in normal circumstances.  (This also supports
+.req.fork.)  (goal.platforms, goal.detect, goal.publish)
 
-.req.maintinable: Low maintenance cost.  (goal.platforms)
+.req.fork: Operate on forks of the repo.  (goal.platforms, goal.detect)
+
+.req.maintinable: Low maintenance overhead.  [Around 20 h/year or 1%.
+RB 2023-02-26] (goal.platforms)
 
 .req.extensible: Easy to extend with new platforms, improvements, and
 defect prevention.  (goal.platforms, goal.publish)
-
-.req.coverage: Includes all tests.  (goal.detect, goal.platforms)
 
 .req.portable: Be portable away from any particular hosting service,
 e.g. GitHub, at reasonable cost.  (goal.platforms, goal.publish)
@@ -80,13 +82,28 @@ e.g. GitHub, at reasonable cost.  (goal.platforms, goal.publish)
 .req.manual.versions: Publish versions of the manual that document
 releases.
 
-.req.build.code: Check that changed code compiles correctly without errors
-or warnings.
-
-.req.build.manual: Check that the manual translates correctly without
+.req.build.code: Check that changed code compiles correctly without
 errors or warnings.
 
-.req.test: Check that tests do not find any defects.
+.req.build.manual: Check that the manual builds correctly without
+errors or warnings.
+
+.req.test: Allow the running of tests (.def.test) on target platforms.
+(goal.detect)
+
+.def.test: A "test" is something that runs the compiled MPS in order
+to determine facts about it: find defects, check performance, etc.
+
+.req.test.coverage: Includes all tests.  (goal.detect, goal.platforms)
+
+.req.test.detect: Detect wheter tests find any defects.  (goal.detect)
+
+.req.test.results: Provide detailed test results to diagnose defects.
+(goal.platforms)
+
+.req.test.real: Test realistic target platforms, e.g. test interacting
+with the real target kernel rather than a virtualized simulation.
+(goal.detect)
 
 [To include:
 
@@ -94,9 +111,60 @@ errors or warnings.
 
 RB 2023-02-10]
 
+.req.check: Allow programmatic checks (.def.check) of the MPS source
+tree.
+
+.def.check: A "check", as opposed to a "test" of the compiled MPS, is
+something that e.g. finds missing cross-references, inconsistencies,
+or runs a lint tool.
+
+.req.check.coverage: Include all checks.  (goal.detect)
+
+.req.check.detect: Detect whether checks find any defects.  (goal.detect)
+
+.req.check.results: Provide detailed results of checks.  (goal.platforms)
+
+
+
 
 Design
 ======
+
+CI configurations
+-----------------
+
+.design.config: CI systems are usually configured though simple YAML
+files that give instructions for what to do on various events.
+
+.design.config.kiss: Keep the CI setups and configurations as simple
+as possible to meet .req.maintainable and .req.portable.
+
+.design.config.one-line: As far as possible, each CI configuration
+should be a single command line that invokes part of the MPS build
+system.  Something like ``./configure && make all testci``.
+
+.design.config.cross-platform: The .design.config.one-line command
+should invoke a platform independent script, so that we get uniform
+coverage of platforms.  For example, ``test/check-rst`` or ``make
+testci``.  Unfortunately, Windows often demands a different script.
+Minimise duplication on Windows.
+
+
+Checks
+------
+
+.design.check.posix: Checks must run on Posix but may also run on
+Windows.  The majority of CI systems run on Posix, with macOS as a
+special case.  Linux features that are not available in macOS (which
+is based on BSD) should not be used.
+
+.design.check.cross-platform: Checks should be designed to be
+independent of platforms, so that defects in the Windows build are
+detected by checks run on Posix.  Therefore, checks should not exclude
+files by platform.
+
+[TODO: Review against each requirement and each implementation point.
+Design connects them.  RB 2023-02-26]
 
 [For inclusion:
 - use third-party CI systems (req.cost, req.platforms, req.maintainable)
