@@ -8,7 +8,7 @@
 PFM = emj6ll
 
 MPMPF = \
-    lockix.c \
+    lockan.c \
     protan.c \
     prmcan.c \
     prmcanan.c \
@@ -16,7 +16,7 @@ MPMPF = \
     than.c \
     vman.c
 
-LIBS = -lm -lpthread
+LIBS = -lm
 
 # Doing a 64 bit build issues a warning that this is experimental
 # on every file and we don't want that to kill the build.
@@ -37,6 +37,9 @@ LINKFLAGS = \
     -Wno-limited-postlink-optimizations
 
 include ll.gmk
+
+CFLAGSCOMPILER += -DCONFIG_THREAD_SINGLE
+
 include comm.gmk
 
 CC=emcc

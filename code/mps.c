@@ -259,7 +259,7 @@
 
 #elif defined(MPS_PF_EMJ3LL) || defined(MPS_PF_EMJ6LL)
 
-#include "lockix.c"     /* generic locks */
+#include "lockan.c"     /* generic locks */
 #include "than.c"       /* generic threads manager */
 #include "vman.c"       /* malloc-based pseudo memory mapping */
 #include "protan.c"     /* generic memory protection */

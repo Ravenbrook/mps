@@ -8,7 +8,7 @@
 PFM = emj3ll
 
 MPMPF = \
-    lockix.c \
+    lockan.c \
     protan.c \
     prmcan.c \
     prmcanan.c \
@@ -16,7 +16,7 @@ MPMPF = \
     than.c \
     vman.c
 
-LIBS = -lm -lpthread
+LIBS = -lm
 
 # We suppress unused warnings until the corresponding PR lands.
 CFLAGS += -Wno-error=unused
@@ -31,6 +31,9 @@ LINKFLAGS = \
     -Wno-error=limited-postlink-optimizations
 
 include ll.gmk
+
+CFLAGSCOMPILER += -DCONFIG_THREAD_SINGLE
+
 include comm.gmk
 
 CC=emcc
