@@ -528,6 +528,10 @@ _`.ko.remind`: The leader reminds everyone:
 
 - not to confer until `.log`_
 
+- not to check using diffs (`.check.diff.not`_) and how to avoid it
+  [This may need even more emphasis and a rationale, since GitHub
+  makes it such an easy pitfall.  RB 2023-02-28]
+
 - to open and apply `proc.review.check`_
 
 - to avoid finishing `pull request reviews`_ or submitting `pull
