@@ -32,7 +32,7 @@ build:
     post_build:
       - if test -n "${MMREF}"; then
           mv "${READTHEDOCS_OUTPUT}/html" "${READTHEDOCS_OUTPUT}/mmref.in" &&
-          python manual/make-mmref.py "${READTHEDOCS_OUTPUT}/mmref.in" "${READTHEDOCS_OUTPUT}/html"
+          python manual/make-mmref.py "${READTHEDOCS_OUTPUT}/mmref.in" "${READTHEDOCS_OUTPUT}/html";
         fi
 
 python:
