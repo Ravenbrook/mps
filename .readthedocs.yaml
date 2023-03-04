@@ -30,7 +30,11 @@ build:
     #
     # See <https://docs.readthedocs.io/en/stable/build-customization.html#extend-the-build-process>.
     post_build:
-      - if [ 'A' = 'A' ]; then echo 'B'; fi
+      - |
+        if [ "$READTHEDOCS_VERSION_TYPE" = "external" ] && git diff --quiet origin/main -- docs/ .readthedocs.yaml;
+        then
+          exit 183;
+        fi
 
 python:
   install:
