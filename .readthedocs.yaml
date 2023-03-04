@@ -30,7 +30,7 @@ build:
     #
     # See <https://docs.readthedocs.io/en/stable/build-customization.html#extend-the-build-process>.
     post_build:
-      - if [ "A" = "A" ]; then echo "B"; fi
+      - if [ 'A' = 'A' ]; then echo 'B'; fi
 
 python:
   install:
