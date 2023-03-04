@@ -30,7 +30,7 @@ build:
     #
     # See <https://docs.readthedocs.io/en/stable/build-customization.html#extend-the-build-process>.
     post_build:
-      - if test -n "${MMREF}"; then mv "${READTHEDOCS_OUTPUT}/html" "${READTHEDOCS_OUTPUT}/mmref.in" && python manual/make-mmref.py "${READTHEDOCS_OUTPUT}/mmref.in" "${READTHEDOCS_OUTPUT}/html"; fi
+      - echo A B C D; echo E F G H
 
 python:
   install:
