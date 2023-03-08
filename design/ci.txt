@@ -173,16 +173,12 @@ files by platform.
 Design connects them.  RB 2023-02-26]
 
 [For inclusion:
-- use third-party CI systems (req.cost, req.platforms, req.maintainable)
-- do third-party CI systems represent real platforms? (req.platforms)
 - the testci make target
-- third-party systems used
 - relationship to review
 - relationship to merge
 - configuration files
 - tool scripts
 - how to extend
-- KISS
 - forks
 - 32-bit?
 
@@ -204,6 +200,8 @@ maintaining a lot systems.
 _`.service.choice`: The services have been chosen to best meet
 requirements, with the best fit earliest in the list.  Therefore, we
 SHOULD favour the services higher up this list when making changes.
+
+[TODO: Is .req.test.real adequately met?  RB 2023-03-08]
 
 _`.service.github`: `GitHub CI`_ uses `GitHub Actions
 <https://docs.github.com/en/actions>`__ to trigger builds on
