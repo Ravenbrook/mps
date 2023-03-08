@@ -220,6 +220,10 @@ and can orchestrate external "`self-hosted runners
 
 - `GitHub CI`_ is also used to run checks (`.run.other.checks`_, .req.check).
 
+- `GitHub CI`_ builds both `pushes and pull requests
+  <https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/incorporating-changes-from-a-pull-request/about-pull-request-merges>`__
+  (.req.branch, .req.merge).
+
 _`.service.cirrus`: `Cirrus CI`_ mainly uses Google Compute Cloud to
 run public images, mainly Docker images.
 
@@ -236,6 +240,11 @@ run public images, mainly Docker images.
 - `Cirrus CI`_ can provide FreeBSD on amd64 but not arm64
   (.req.platforms).
 
+- `Cirrus CI`_ builds either pushes or pull requests, but not both.
+  [TODO: Escalate `my workaround
+  <https://github.com/cirruslabs/cirrus-ci-docs/discussions/1110#discussioncomment-4917295>`__
+  or figure out how to fix it.  RB 2023-03-08]
+
 _`.service.travis`: `Travis CI`_ is a commercial system that provides
 a wide variety of platforms and simple configuration
 (.req.maintainable).
@@ -247,10 +256,19 @@ a wide variety of platforms and simple configuration
 - Ravenbrook has negotiated a quota of "OSS credits" with Travis for
   the public MPS repo [Travis_42376]_.
 
-_`.service.readthedocs`: `Read the Docs`_ is used to `.build`_ and
-`.publish`_ the `MPS manual
-<https://memory-pool-system.readthedocs.io/>`_ (.req.manual,
-req.build.manual).
+- `Travis CI`_ builds both `pushes and pull requests
+  <https://docs.travis-ci.com/user/pull-requests/#how-pull-requests-are-built>`__
+  (.req.branch, .req.merge).
+
+_`.service.readthedocs`: `Read the Docs`_ is used build and publish
+the `MPS manual <https://memory-pool-system.readthedocs.io/>`_
+(.req.manual, req.build.manual).
+
+- `Read the Docs`_ builds `pull requests
+  <https://docs.readthedocs.io/en/stable/pull-requests.html#preview-documentation-from-pull-requests>`__
+  automatically, and can build `branches
+  <https://docs.readthedocs.io/en/stable/versions.html#versioned-documentation>`__
+  (.req.branch, .req.merge).
 
 .. _GitHub CI: https://docs.github.com/en/actions/automating-builds-and-tests/about-continuous-integration
 
