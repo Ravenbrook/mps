@@ -19,6 +19,22 @@ Continuous Integration
 
 .. TODO: Discussion of compilers and toolchains.
 
+.. TODO: Investigate and document the testci make target.
+
+.. TODO: Explain the relationship of CI to review.
+
+.. TODO: Explain the relationship of CI to merge.
+
+.. TODO: Explain the tool scripts for talking to CI systems.
+
+.. TODO: Give instructions for maintenance and extension.
+
+.. TODO: Explain how CI will interact with forks.  What is required
+   for us to work with third-party submissions?
+
+.. FIXME: Link each design and implementation point to requirements.
+   RB 2023-02-26
+
 
 Introduction
 ============
@@ -136,8 +152,8 @@ versions, compiler versions, etc.?  RB 2023-03-08]
 Design
 ======
 
-CI configurations
------------------
+Configuration
+-------------
 
 .config: CI systems are usually configured though simple YAML files
 that give instructions for what to do on various events.
@@ -155,6 +171,37 @@ of platforms.  For example, ``test/check-rst`` or ``make testci``.
 Unfortunately, Windows often demands a different script.  Duplication
 for Windows SHOULD be minimized.
 
+_`.github.config`: `GitHub CI`_ is configured using several
+"workflows" in the `.github/workflows directory
+<../.github/workflows/>`_ of the MPS tree:
+
+- the `build-and-test.yml <../.github/workflows/build-and-test.yml>`_
+  file runs build and test commands (`.run.posix`_ , `.run.windows`_).
+
+- the `shell-script-check.yml
+  <../.github/workflows/shell-script-check.yml>`_ file runs the
+  lint checks on shell scripts
+
+- the `rst-check.yml <../.github/workflows/shell-script-check.yml>`_
+  file runs syntax checks on reStructuredText documents
+
+_`.cirrus.config`: `Cirrus CI`_ is configured using the `.cirrus.yml
+<../.cirrus.yml>`_ file at top level of the MPS tree.
+
+_`.travis.config`: `Travis CI`_ is configured using the `.travis.yml
+<../.travis.yml>`_ file at top level of the MPS tree.
+
+_`.readthedocs.config`: `Read the Docs`_ is configured using the
+`.readthedocs.yml <../.readthedocs.yml>`_ file at the top level of the
+MPS tree.
+
+
+Administration
+--------------
+
+[FIXME: Insert links, instructions, and setups on the CI sites and in
+the repo settings.  RB 2023-02-09]
+
 
 Checks
 ------
@@ -168,21 +215,6 @@ is based on BSD) SHOULD NOT be used.
 independent of platforms, so that defects in the Windows build are
 detected by checks run on Posix.  Therefore, checks SHOULD NOT exclude
 files by platform.
-
-[TODO: Review against each requirement and each implementation point.
-Design connects them.  RB 2023-02-26]
-
-[For inclusion:
-- the testci make target
-- relationship to review
-- relationship to merge
-- configuration files
-- tool scripts
-- how to extend
-- forks
-- 32-bit?
-
-RB 2023-02-09]
 
 
 Implementation
@@ -397,41 +429,6 @@ _`.results.readthedocs`: Results from `Read the Docs`_ can be found at
 <https://readthedocs.org/projects/memory-pool-system/builds/>`_.
 
 
-Configuration
--------------
-
-_`.github.config`: `GitHub CI`_ is configured using several
-"workflows" in the `.github/workflows directory
-<../.github/workflows/>`_ of the MPS tree:
-
-- the `build-and-test.yml <../.github/workflows/build-and-test.yml>`_
-  file runs build and test commands (`.run.posix`_ , `.run.windows`_).
-
-- the `shell-script-check.yml
-  <../.github/workflows/shell-script-check.yml>`_ file runs the
-  lint checks on shell scripts
-
-[Coming soon from a branch/2023-01-13/rst-check near you:
-
-- the `rst-check.yml <../.github/workflows/shell-script-check.yml>`_
-  file runs syntax checks on reStructuredText documents
-
-RB 2023-02-09]
-
-_`.cirrus.config`: `Cirrus CI`_ is configured using the `.cirrus.yml
-<../.cirrus.yml>`_ file at top level of the MPS tree.
-
-_`.travis.config`: `Travis CI`_ is configured using the `.travis.yml
-<../.travis.yml>`_ file at top level of the MPS tree.
-
-
-Administration
---------------
-
-[FIXME: Insert links, instructions, and setups on the CI sites and in
-the repo settings.  RB 2023-02-09]
-
-
 Tools
 -----
 
@@ -443,9 +440,9 @@ _`.tools.kick`: `tool/github-ci-kick <../tool/github-ci-kick>`_ and
 `tool/travis-ci-kick <../tool/travis-ci-kick>`_ both trigger CI builds
 without the need to push a change or make a pull request in the `mps
 GitHub repo`_.  In particular, they are useful for applying CI to work
-that was pushed while CI was disabled, for whatever reason.
-
-[FIXME: No cirrus-ci-kick?  Read the Docs kick?  RB 2023-02-09]
+that was pushed while CI was disabled, for whatever reason.  There are
+currently no kick scripts for `Cirrus CI`_ or `Read the Docs`_.  As of
+2023-03 they haven't been needed.
 
 
 References
@@ -465,11 +462,7 @@ References
    2023-02-08;
    <https://info.ravenbrook.com/mail/2023/02/08/15-49-52/0/>.
 
-[To include:
-
-- CI system documentation
-
-RB 2023-02-09]
+[FIXME: include CI system documentation. RB 2023-02-09]
 
 
 Document History
@@ -478,6 +471,8 @@ Document History
 ==========  =====  ==================================================
 2023-02-09  RB_    Split from design.mps.tests as part of GitHub
                    `pull request #145`_.
+2023-03-08  RB_    Including goals, requirements, and justification
+                   of design.
 ==========  =====  ==================================================
 
 .. _RB: mailto:rb@ravenbrook.com
