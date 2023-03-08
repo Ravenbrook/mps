@@ -139,21 +139,21 @@ Design
 CI configurations
 -----------------
 
-.design.config: CI systems are usually configured though simple YAML
-files that give instructions for what to do on various events.
+.config: CI systems are usually configured though simple YAML files
+that give instructions for what to do on various events.
 
-.design.config.kiss: CI setups SHOULD be kept as simple as possible to
-meet .req.maintainable and .req.portable.
+.config.kiss: CI setups SHOULD be kept as simple as possible to meet
+.req.maintainable and .req.portable.
 
-.design.config.one-line: Each CI configuration SHOULD be a single
-command line that invokes part of the MPS build system.  Something
-like ``./configure && make all testci``.
+.config.one-line: Each CI configuration SHOULD be a single command
+line that invokes part of the MPS build system.  Something like
+``./configure && make all testci``.
 
-.design.config.cross-platform: The .design.config.one-line command
-SHOULD invoke a platform independent script, so that we get uniform
-coverage of platforms.  For example, ``test/check-rst`` or ``make
-testci``.  Unfortunately, Windows often demands a different script.
-Duplication for Windows SHOULD be minimized.
+.config.cross-platform: The .design.config.one-line command SHOULD
+invoke a platform independent script, so that we get uniform coverage
+of platforms.  For example, ``test/check-rst`` or ``make testci``.
+Unfortunately, Windows often demands a different script.  Duplication
+for Windows SHOULD be minimized.
 
 
 Checks
@@ -197,7 +197,13 @@ Services
 
 _`.service`: The `Ravenbrook MPS repository on GitHub
 <https://github.com/Ravenbrook/mps>`_ uses third-party continuous
-integration services.
+integration services in order to meet .req.platforms,
+.req.maintainable, and .req.extensible without the overhead of
+maintaining a lot systems.
+
+_`.service.choice`: The services have been chosen to best meet
+requirements, with the best fit earliest in the list.  Therefore, we
+SHOULD favour the services higher up this list when making changes.
 
 _`.service.github`: `GitHub CI`_ uses `GitHub Actions
 <https://docs.github.com/en/actions>`__ to trigger builds on
@@ -206,42 +212,47 @@ _`.service.github`: `GitHub CI`_ uses `GitHub Actions
 and can orchestrate external "`self-hosted runners
 <https://docs.github.com/en/actions/hosting-your-own-runners/about-self-hosted-runners>`__".
 
-- `GitHub CI`_ is free to use for public repositories.
+- `GitHub CI`_ is free to use for public repositories (.req.cost).
 
-- `GitHub CI`_ only provides hosted runners for amd64.
+- `GitHub CI`_ only provides hosted runners for amd64 (.req.plaforms).
 
-- `GitHub CI`_ does not support FreeBSD, even for self-hosted runners.
+- `GitHub CI`_ does not support FreeBSD, even for self-hosted runners (.req.platforms).
 
-- There is a hazard of GitHub lock-in.
+- There is a hazard of GitHub lock-in (.req.portable).
 
-- `GitHub CI`_ is also used to run checks (`.run.other.checks`_).
+- `GitHub CI`_ is also used to run checks (`.run.other.checks`_, .req.check).
 
 _`.service.cirrus`: `Cirrus CI`_ mainly uses Google Compute Cloud to
 run public images, mainly Docker images.
 
-- `Cirrus CI`_ is free to use for public repositories.
+- `Cirrus CI`_ is free to use for public repositories (.req.cost).
 
 - `Cirrus CI`_ provides macOS M1 (Apple Silicon) using `Tart
   <https://github.com/cirruslabs/tart>`_ and so can provide coverage
-  for XCA6LL.
+  for XCA6LL (.req.platforms).
 
-- `Cirrus CI`_ can orchestrate Amazon EC2 for extra control.
+- `Cirrus CI`_ can orchestrate Amazon EC2 for extra control, though we
+  don't currently use this feature.  It could be used to meet
+  .req.test.real.
 
-- `Cirrus CI`_ can provide FreeBSD on amd64 but not arm64.
+- `Cirrus CI`_ can provide FreeBSD on amd64 but not arm64
+  (.req.platforms).
 
-_`.service.travis`: `Travis CI`_ is a commercial system that
-provides a wide variety of platforms and simple configuration.
+_`.service.travis`: `Travis CI`_ is a commercial system that provides
+a wide variety of platforms and simple configuration
+(.req.maintainable).
 
-- `Travis CI`_ is a paid service with limited concurrency.
+- `Travis CI`_ is a paid service with limited concurrency (.req.cost).
 
-- `Travis CI is slow and expensive`_
+- `Travis CI is slow and expensive`_ (.req.cost, .req.rapid).
 
 - Ravenbrook has negotiated a quota of "OSS credits" with Travis for
-  the public MPS repo.
+  the public MPS repo [Travis_42376]_.
 
 _`.service.readthedocs`: `Read the Docs`_ is used to `.build`_ and
 `.publish`_ the `MPS manual
-<https://memory-pool-system.readthedocs.io/>`_.
+<https://memory-pool-system.readthedocs.io/>`_ (.req.manual,
+req.build.manual).
 
 .. _GitHub CI: https://docs.github.com/en/actions/automating-builds-and-tests/about-continuous-integration
 
@@ -252,18 +263,6 @@ _`.service.readthedocs`: `Read the Docs`_ is used to `.build`_ and
 .. _Read the Docs: https://readthedocs.org/
 
 .. _Travis CI is slow and expensive: https://github.com/Ravenbrook/mps/issues/109
-
-_`.service.choice`: Favour the services higher up this list when
-making changes.  [Why? Cost. Stability. RB 2023-02-09]
-
-[Previous text on service choice:
-
-_`.travis.platforms`: Where possible, we use `GitHub CI`_ for
-platforms, because `Travis CI is slow and expensive`_.  However
-`GitHub CI`_ does not provide ARM64 or FreeBSD, so we use `Travis CI`_
-for those.
-
-RB 2023-02-09]
 
 
 Platforms
@@ -309,9 +308,7 @@ _`.run.posix`: On Posix systems where we have `autoconf
 <https://www.gnu.org/software/autoconf/>`_, the CI services run
 commands equivalent to::
 
-  ./configure
-  make install
-  make test
+  ./configure && make install && make test
 
 which execises the testci target, as defined by `Makefile.in
 <../Makefile.in>`_ in the root of the MPS tree.
@@ -444,6 +441,13 @@ References
    Harvard University;
    1997-03;
    <https://www.ietf.org/rfc/inline-errata/rfc2119.html> (with errata).
+
+.. [Travis_42376]
+   "Travis CI: [42376] - OSS credit request";
+   Manish Nagdewan;
+   Travis CI;
+   2023-02-08;
+   <https://info.ravenbrook.com/mail/2023/02/08/15-49-52/0/>.
 
 [To include:
 
