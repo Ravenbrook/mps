@@ -28,6 +28,12 @@ _`.intro`: This document describes the design and implementation of
 <https://en.wikipedia.org/wiki/Continuous_integration>`_ of the Memory
 Pool System.
 
+_`.levels`: The key words "MUST", "MUST NOT", "REQUIRED", "SHALL",
+"SHALL NOT", "SHOULD", "SHOULD NOT", "RECOMMENDED", "NOT RECOMMENDED",
+"MAY", and "OPTIONAL" in this document are to be interpreted as
+described in RFC 2119 [RFC-2119]_.  They indicate what is requried for
+the design to succeed in achieving its goals.
+
 
 Goals
 =====
@@ -134,31 +140,31 @@ CI configurations
 .design.config: CI systems are usually configured though simple YAML
 files that give instructions for what to do on various events.
 
-.design.config.kiss: Keep the CI setups and configurations as simple
-as possible to meet .req.maintainable and .req.portable.
+.design.config.kiss: CI setups SHOULD be kept as simple as possible to
+meet .req.maintainable and .req.portable.
 
-.design.config.one-line: As far as possible, each CI configuration
-should be a single command line that invokes part of the MPS build
-system.  Something like ``./configure && make all testci``.
+.design.config.one-line: Each CI configuration SHOULD be a single
+command line that invokes part of the MPS build system.  Something
+like ``./configure && make all testci``.
 
 .design.config.cross-platform: The .design.config.one-line command
-should invoke a platform independent script, so that we get uniform
+SHOULD invoke a platform independent script, so that we get uniform
 coverage of platforms.  For example, ``test/check-rst`` or ``make
 testci``.  Unfortunately, Windows often demands a different script.
-Minimise duplication on Windows.
+Duplication for Windows SHOULD be minimized.
 
 
 Checks
 ------
 
-.design.check.posix: Checks must run on Posix but may also run on
+.design.check.posix: Checks MUST run on Posix but MAY also run on
 Windows.  The majority of CI systems run on Posix, with macOS as a
 special case.  Linux features that are not available in macOS (which
-is based on BSD) should not be used.
+is based on BSD) SHOULD NOT be used.
 
-.design.check.cross-platform: Checks should be designed to be
+.design.check.cross-platform: Checks SHOULD be designed to be
 independent of platforms, so that defects in the Windows build are
-detected by checks run on Posix.  Therefore, checks should not exclude
+detected by checks run on Posix.  Therefore, checks SHOULD NOT exclude
 files by platform.
 
 [TODO: Review against each requirement and each implementation point.
@@ -429,6 +435,13 @@ that was pushed while CI was disabled, for whatever reason.
 
 References
 ----------
+
+.. [RFC-2119]
+   "Key words for use in RFCs to Indicate Requirement Levels";
+   S. Bradner;
+   Harvard University;
+   1997-03;
+   <https://www.ietf.org/rfc/inline-errata/rfc2119.html> (with errata).
 
 [To include:
 
