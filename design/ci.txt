@@ -19,9 +19,6 @@ Continuous Integration
 
 .. TODO: Discussion of compilers and toolchains.
 
-.. TODO: Discussion of *versions* of platforms, e.g. whether and how
-   we specify compiler versions to CI.
-
 
 Introduction
 ============
@@ -101,15 +98,15 @@ to determine facts about it: find defects, check performance, etc.
 .req.test.results: Provide detailed test results to diagnose defects.
 (goal.platforms)
 
-.req.test.real: Test realistic target platforms, e.g. test interacting
-with the real target kernel rather than a virtualized simulation.
-(goal.detect)
+.req.test.real: Test the attributes of realistic target platforms,
+e.g. test interacting with the real target kernel rather than a
+virtualized simulation.  This is especially important for performance
+tests.  (goal.detect)
 
-[To include:
-
-- What kinds of defects to find by testing (functional, performance, etc.)
-
-RB 2023-02-10]
+.req.test.type: Test for all the types defects for which we have
+tests.  [TODO: Analyse and specify explicitly what types of tests are
+required, probably in design.mps.tests, and reference here.  RB
+2023-03-08.]
 
 .req.check: Allow programmatic checks (.def.check) of the MPS source
 tree.
@@ -124,7 +121,8 @@ or runs a lint tool.
 
 .req.check.results: Provide detailed results of checks.  (goal.platforms)
 
-
+[TODO: What do we need to do about *version* of platforms, e.g. kernel
+versions, compiler versions, etc.?  RB 2023-03-08]
 
 
 Design
