@@ -39,8 +39,7 @@ Goals
 =====
 
 .goal.platforms: Reduce the cost to developers and collaborators of
-supporting target platforms.  [Cross-reference to where those are
-defined.  RB 2023-02-26]
+supporting target platforms.
 
 .goal.detect: Detect introduced defects early in development so that
 they can be fixed at lower cost.
@@ -60,8 +59,11 @@ development branches (pushes).  (goal.detect)
 .req.merge: Provide build and test results for merge candidate changes
 (pull requests) before they are merged to master.  (goal.detect)
 
-.req.platforms: Build and test on all supported target platforms.
-(goal.platforms)
+.req.platforms: Build and test on all supported target platforms
+defined in `Building the Memory Pool System <../manual/build.txt>`_
+(goal.platforms).  [TODO: The target platforms should be referencable
+by tag.  See also `GitHub issue #147
+<https://github.com/Ravenbrook/mps/issues/147>`_.  RB 2023-03-08]
 
 .req.cost: Cost no money in normal circumstances.  (This also supports
 .req.fork.)  (goal.platforms, goal.detect, goal.publish)
@@ -267,8 +269,8 @@ RB 2023-02-09]
 Platforms
 ---------
 
-_`.platforms`: This table shows how each defined platform [ref? RB
-2023-02-09] is built and tested by CI.
+_`.platforms`: This table shows how each defined platform
+(.req.platforms) is built and tested by CI.
 
 ==========   ============   =====================================
 Platform     Service        Notes
@@ -292,12 +294,12 @@ Platform     Service        Notes
 ``xci6ll``   `GitHub CI`_
 ==========   ============   =====================================
 
-_`.platform.supported`: The platforms here must be a superset of the platforms
-listed as "supported" in readme.txt.
+_`.platform.supported`: The platforms here MUST be a superset of the
+platforms listed as "supported" in readme.txt (.req.platforms).
 
-_`.platform.builds`: The platforms here must be a subset of the
-platforms listed in "Building the MPS" manual/build.txt, but
-preferably the same set so that CI covers all defined platforms.
+_`.platform.builds`: The platforms here MUST be a subset of the
+platforms listed in "Building the MPS" manual/build.txt, but SHOULD be
+the same set so that CI covers all defined platforms (.req.platforms).
 
 
 Commands
