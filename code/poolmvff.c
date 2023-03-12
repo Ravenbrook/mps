@@ -84,7 +84,7 @@ static void MVFFReduce(MVFF mvff)
      threshold fraction of the total memory. */
 
   totalLand = MVFFTotalLand(mvff);
-  freeLimit = (Size)(LandSize(totalLand) * mvff->spare);
+  freeLimit = (Size)((double)LandSize(totalLand) * mvff->spare);
   freeLand = MVFFFreeLand(mvff);
   freeSize = LandSize(freeLand);
   if (freeSize < freeLimit)
@@ -365,7 +365,7 @@ static Res MVFFBufferFill(Addr *baseReturn, Addr *limitReturn,
 
 /* MVFFVarargs -- decode obsolete varargs */
 
-static void MVFFVarargs(ArgStruct args[MPS_ARGS_MAX], va_list varargs)
+static void MVFFVarargs(ArgStruct args[MPS_ARGS_MAX - 1], va_list varargs)
 {
   args[0].key = MPS_KEY_EXTEND_BY;
   args[0].val.size = va_arg(varargs, Size);
@@ -380,6 +380,7 @@ static void MVFFVarargs(ArgStruct args[MPS_ARGS_MAX], va_list varargs)
   args[5].key = MPS_KEY_MVFF_FIRST_FIT;
   args[5].val.b = va_arg(varargs, Bool);
   args[6].key = MPS_KEY_ARGS_END;
+  AVER(MPS_ARGS_MAX - 1 > 6);
   AVERT(ArgList, args);
 }
 
@@ -784,7 +785,7 @@ static Res mvInit(Pool pool, Arena arena, PoolClass klass, ArgList args)
   return NextMethod(Pool, MVPool, init)(pool, arena, klass, args);
 }
 
-static void mvVarargs(ArgStruct args[MPS_ARGS_MAX], va_list varargs)
+static void mvVarargs(ArgStruct args[MPS_ARGS_MAX - 1], va_list varargs)
 {
   args[0].key = MPS_KEY_EXTEND_BY;
   args[0].val.size = va_arg(varargs, Size);
@@ -793,6 +794,7 @@ static void mvVarargs(ArgStruct args[MPS_ARGS_MAX], va_list varargs)
   args[2].key = MPS_KEY_MAX_SIZE;
   args[2].val.size = va_arg(varargs, Size);
   args[3].key = MPS_KEY_ARGS_END;
+  AVER(MPS_ARGS_MAX - 1 > 3);
   AVERT(ArgList, args);
 }
 

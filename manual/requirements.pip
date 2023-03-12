@@ -1,0 +1,29 @@
+# manual/requirements.pip -- MPS manual build requirements for pip
+
+# version/1.117 manual breaks in Sphinx >= 2.  See
+# <https://info.ravenbrook.com/mail/2023/03/11/11-23-55/0/>.
+#
+# This list was extracted from a working configuration by::
+#
+#   ssh berunda lxc exec www -- sudo -u www -i www.ravenbrook.com/project/mps/custom/cet/main/manual/tool/bin/pip freeze >> requirements.pip
+
+alabaster==0.7.13
+Babel==2.11.0
+certifi==2022.12.7
+charset-normalizer==2.0.12
+docutils==0.17.1
+idna==3.4
+imagesize==1.4.1
+Jinja2==3.0.3
+MarkupSafe==2.0.1
+packaging==21.3
+Pygments==2.14.0
+pyparsing==3.0.9
+pytz==2022.7.1
+requests==2.27.1
+six==1.16.0
+snowballstemmer==2.2.0
+Sphinx==1.8.6
+sphinxcontrib-serializinghtml==1.1.5
+sphinxcontrib-websupport==1.2.4
+urllib3==1.26.15
