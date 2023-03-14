@@ -1,7 +1,7 @@
 .. mode: -*- rst -*-
 
 ===============================
-Memory Pool System Project Plan
+Memory Pool System Version Plan
 ===============================
 
 :tag: plan.mps
@@ -31,21 +31,19 @@ Version 1.118
 Migration from Perforce to Git:
 
 * `GitHub issue #125 <https://github.com/Ravenbrook/mps/issues/125>`_
-  (Version and release procedures use Perforce)
+  (Version and release procedures use Perforce).  This will be the
+  first version created and managed in Git, and the first release from
+  a Git version.
 
 Bring Configura forward from version 1.115:
 
-* Assessment of risk to Configura of all changes since 1.115.
-
 * `GitHub issue #110 <https://github.com/Ravenbrook/mps/issues/110>`_
-  (Ravenbrook MPS sources are out of sync with Configura's sources)
+  (Ravenbrook MPS sources are out of sync with Configura's sources).
+  This includes a complete assessment of risk to Configura of all
+  changes since 1.115.
 
-* `GitHub pull request #76 <https://github.com/Ravenbrook/mps/pull/76>`_
-  (Apply all changes from Configura to the public MPS)
-
-* Inspection of `GitHub pull request #34
-  <https://github.com/Ravenbrook/mps/pull/34>`_ (New API function
-  mps_pool_walk) with particular attention to Configura requirements
+* `GitHub issue #111 <https://github.com/Ravenbrook/mps/issues/111>`_
+  (Public MPS source code does not include transforms).
 
 [FIXME: These are the outstanding items as of 2023-02-22.  The plan
 should be updated with items closed and included since 1.117.  RB
