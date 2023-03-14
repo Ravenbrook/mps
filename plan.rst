@@ -28,14 +28,14 @@ This document will be modified as the project progresses.
 Version 1.118
 .............
 
-Migration from Perforce to Git:
+`Migrate the MPS from Perforce to Git <https://github.com/orgs/Ravenbrook/projects/1>`_:
 
 * `GitHub issue #125 <https://github.com/Ravenbrook/mps/issues/125>`_
   (Version and release procedures use Perforce).  This will be the
   first version created and managed in Git, and the first release from
   a Git version.
 
-Bring Configura forward from version 1.115:
+`Bring Configura forward from version 1.115 <https://github.com/orgs/Ravenbrook/projects/2>`_:
 
 * `GitHub issue #110 <https://github.com/Ravenbrook/mps/issues/110>`_
   (Ravenbrook MPS sources are out of sync with Configura's sources).
@@ -44,10 +44,6 @@ Bring Configura forward from version 1.115:
 
 * `GitHub issue #111 <https://github.com/Ravenbrook/mps/issues/111>`_
   (Public MPS source code does not include transforms).
-
-[FIXME: These are the outstanding items as of 2023-02-22.  The plan
-should be updated with items closed and included since 1.117.  RB
-2023-02-22]
 
 
 3. Past versions
