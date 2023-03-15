@@ -172,7 +172,7 @@ well:
    listed as "supported" in readme.txt.
 
 .. IMPORTANT: The platforms listed here MAY be a superset of the
-   platforms listed in design.mps.ci.platforms but SHOULD be the same
+   platforms listed in design.ci.platforms but SHOULD be the same
    list so that the assertion of "regular access" above stays true.
 
 ==========   =========   =============   ============  =================

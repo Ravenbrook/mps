@@ -1,6 +1,6 @@
 # .github/workflows/shell-script-check.yml -- check shell scripts
 #
-# See design.mps.ci.run.other.checks.
+# See design.ci.run.other.checks.
 #
 # This is a GitHub CI workflow
 # <https://docs.github.com/en/actions/using-workflows/about-workflows>

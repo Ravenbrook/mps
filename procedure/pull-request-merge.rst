@@ -131,7 +131,7 @@ When you finish the checklist, decide whether to start
    results are missing, inform sysadmins that CI isn't functioning.
 
    You can also look for a build results in the logs of CI systems.
-   See `design.mps.ci.results <../design/tests.txt#ci-results>`_.
+   See `design.ci.results <../design/tests.txt#ci-results>`_.
 
    Are the build results up to date?  If master has changed since the
    date of the commit that kicked off the build (the one immediately
@@ -158,9 +158,9 @@ When you finish the checklist, decide whether to start
 .. [#trial-merge] CI is run against both the branch (labelled "push"),
                   and a `pull request merge branch`_ (labelled "pull
                   request") automatically created by GitHub.  See
-                  `design.mps.ci.req.merge`_.
+                  `design.ci.req.merge`_.
 
-.. _design.mps.ci.req.merge: ../design/ci.txt#req-merge
+.. _design.ci.req.merge: ../design/ci.txt#req-merge
 
 .. _permalink: https://docs.github.com/en/repositories/working-with-files/using-files/getting-permanent-links-to-files
 
@@ -343,7 +343,7 @@ working repo before that point.
      git push github HEAD:merge/2023-01-06/speed-hax
 
    You will need to wait for results from CI.  See
-   `design.mps.ci.results`_.
+   `design.ci.results`_.
 
    See build (step 5) about what to do if tests do not pass.
 
@@ -463,7 +463,7 @@ According to `GitHub's "About pull request merges"
   request on GitHub.com, all commits from the feature branch are added
   to the base branch in a merge commit.
 
-We also ensure (`design.mps.ci.req.merge`_) that CI results are valid
+We also ensure (`design.ci.req.merge`_) that CI results are valid
 for this merge in advance.
 
 So, `once Git becomes the home

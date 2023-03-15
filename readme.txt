@@ -78,7 +78,7 @@ The MPS is currently supported for deployment on:
 .. IMPORTANT: Maintain as a subset of platforms listed in
    manual/build.txt.
 
-.. IMPORTANT: Maintain design.mps.ci as a superset of these platforms.
+.. IMPORTANT: Maintain design.ci as a superset of these platforms.
 
 ======================  =============  ======================
 Operating system        Archtectures   Toolchains

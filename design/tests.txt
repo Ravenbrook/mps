@@ -60,11 +60,11 @@ MPS is built.
 
 _`.target.testci`: The ``testci`` target runs the `continuous
 integration`_ tests, the subset of tests that are expected to pass in
-full-featured build configurations.  See `design.mps.ci`_.
+full-featured build configurations.  See `design.ci`_.
 
-.. _continuous integration: `design.mps.ci`_
+.. _continuous integration: `design.ci`_
 
-.. _design.mps.ci: ci.txt
+.. _design.ci: ci.txt
 
 _`.target.testansi`: The ``testansi`` target runs the subset of the
 tests that are expected to pass in the generic ("ANSI") build
@@ -333,7 +333,7 @@ Document History
 - 2023-01-15 RB_ Bringing CI section up to date with Travis
   configuration.  Removing obsolete Jenkins info.  Adding GitHub CI.
 
-- 2023-02-09 RB_ Split CI into its own document: `design.mps.ci`_.
+- 2023-02-09 RB_ Split CI into its own document: `design.ci`_.
 
 .. _RB: https://www.ravenbrook.com/consultants/rb/
 .. _GDR: https://www.ravenbrook.com/consultants/gdr/

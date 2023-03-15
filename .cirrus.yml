@@ -2,7 +2,7 @@
 #
 # Copyright (c) 2023 Ravenbrook Limited. See end of file for license.
 #
-# See design.mps.ci.
+# See design.ci.cirrus.config.
 
 # FIXME: Specify versions of OS and toolchains.  Source?
 
@@ -22,7 +22,7 @@ build_script_template: &BUILD_SCRIPT_TEMPLATE
     # so gather it here.
     - $CC --version
     - $CC -dumpmachine
-    # see design.mps.ci.run.posix
+    # see design.ci.run.posix
     - CC=$CC ./configure --prefix=$PWD/prefix && make install && make test
 
 # Override clone script to get the *trial merge* of a pull request
@@ -44,7 +44,7 @@ clone_script_template: &CLONE_SCRIPT_TEMPLATE
 
 # The builds for Cirrus CI
 #
-# See design.mps.ci.platforms
+# See design.ci.platforms.
 
 XCA6LL_task:
   macos_instance:
