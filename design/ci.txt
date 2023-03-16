@@ -15,7 +15,7 @@ Continuous Integration
 	      pair: CI; design
 
 .. TODO: Readership could be a role that doesn't include MPS
-   programmers.
+   programmers, such as "integrators".
 
 .. TODO: Discussion of compilers and toolchains.
 
@@ -34,6 +34,8 @@ Continuous Integration
 
 .. FIXME: Link each design and implementation point to requirements.
    RB 2023-02-26
+
+.. FIXME: Link tags.  RB 2023-03-16
 
 
 Introduction
@@ -145,7 +147,7 @@ or runs a lint tool.
 
 .req.check.results: Provide detailed results of checks.  (goal.platforms)
 
-[TODO: What do we need to do about *version* of platforms, e.g. kernel
+[TODO: What is required about *version* of platforms, e.g. kernel
 versions, compiler versions, etc.?  RB 2023-03-08]
 
 
@@ -199,12 +201,48 @@ MPS tree.
 Administration
 --------------
 
-[FIXME: Insert links, instructions, and setups on the CI sites and in
-the repo settings.  RB 2023-02-09]
+_`.github.admin`: `GitHub CI`_ is build on GitHub Actions, which are
+managed in `the Actions section of the MPS repo settings
+<https://github.com/Ravenbrook/mps/settings/actions>`__.  The repo
+uses the default settings.
+
+_`.cirrus.admin`: `Cirrus CI`_ is managed in the `Settings for
+Ravenbrook page of the Cirrus CI app
+<https://cirrus-ci.com/settings/github/Ravenbrook>`__.  The settings
+are defaults.
+
+_`.cirrus.github`: `Cirrus CI`_ uses a GitHub app to monitor activity
+in the MPS repo and kick off builds.  The app is managed in the
+`GitHub apps section of the MPS repo settings
+<https://github.com/Ravenbrook/mps/settings/installations>`__.  The
+settings are defaults.
+
+_`.travis.admin`: `Travis CI`_ is managed on the `Ravenbrook / mps
+page of the Travis CI app
+<https://app.travis-ci.com/github/Ravenbrook/mps>`__ but the *account
+plan* is managed on the `Ravenbrook plan page
+<https://app.travis-ci.com/organizations/Ravenbrook/plan>`__.
+
+_`.travis.github`: `Travis CI`_ uses a GitHub app to monitor activity
+in the MPS repo and kick off builds.  The app is managed in the
+`GitHub apps section of the MPS repo settings
+<https://github.com/Ravenbrook/mps/settings/installations>`__.  The
+settings are defaults.
+
+_`.readthedocs.admin`: `Read the Docs`_ is managed on the `Memory Pool
+System project page
+<https://readthedocs.org/projects/memory-pool-system/>`__.  [FIXME:
+Write about managing Read the Docs versions and builds.  RB
+2023-03-16]
 
 
 Checks
 ------
+
+.design.check.script: Checks SHOULD be implemented as executable
+scripts in the tool directory at the root of the MPS tree.  This keeps
+the CI config simple (.config.kiss) and allows checks, like builds, to
+be run by developers from the command line.
 
 .design.check.posix: Checks MUST run on Posix but MAY also run on
 Windows.  The majority of CI systems run on Posix, with macOS as a
@@ -359,33 +397,32 @@ commands equivalent to::
   ./configure && make install && make test
 
 which execises the testci target, as defined by `Makefile.in
-<../Makefile.in>`_ in the root of the MPS tree.
+<../Makefile.in>`_ in the root of the MPS tree.  See also
+.config.kiss.
 
 _`.run.windows`: On Windows the CI services run commands that do at
 least::
 
   nmake /f w3i6mv.nmk all testci
 
-as defined by the `.github.config`_.
+as defined by the `.github.config`_.  See also .config.kiss.
 
-_`.run.other.targets`: On some platforms we arrange to run the testansi,
-testpollnone, testratio, and testscheme targets.  [Need to explain
-why, where, etc.  RB 2023-01-15]
+_`.run.other.targets`: On some platforms we arrange to run the
+testansi, testpollnone, testratio, and testscheme targets.  [TODO:
+Investigate and explain why, where, etc.  RB 2023-01-15]
 
-_`.run.manual`: The manual is built by Read the Docs which directly
-invokes Sphinx, so there are no commands.
+_`.run.manual`: The manual is built by Read the Docs which `directly
+invokes Sphinx
+<https://docs.readthedocs.io/en/stable/config-file/v2.html#sphinx>`__,
+so there are no commands.
 
-_`.run.other.checks`: We could also run various non-build checks
-using CI to check:
+_`.run.checks`: We also run various non-build checks using CI to check
+things like document formatting and lint shell scripts.  Each of these
+runs a single command like::
 
-- document formatting
-- shell script syntax
+  tool/check-rst
 
-[In the branch of writing, these do not yet exist.  They are the
-subject of `GitHub pull request #113
-<https://github.com/Ravenbrook/mps/pull/113>`_ of
-branch/2023-01-13/rst-check.  When merged, they can be linked.  RB
-2023-01-15]
+(see .design.check.script).
 
 
 Events
