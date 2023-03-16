@@ -56,96 +56,96 @@ the design to succeed in achieving its goals.
 Goals
 =====
 
-.goal.platforms: Reduce the cost to developers and collaborators of
+_`.goal.platforms`: Reduce the cost to developers and collaborators of
 supporting target platforms.
 
-.goal.detect: Detect introduced defects early in development so that
+_`.goal.detect`: Detect introduced defects early in development so that
 they can be fixed at lower cost.
 
-.goal.publish: Publish documentation promptly and cheaply.
+_`.goal.publish`: Publish documentation promptly and cheaply.
 
 
 Requirements
 ============
 
-.req.rapid: Provide build and test results within 30 minutes of
-submission of changes.  (goal.detect)
+_`.req.rapid`: Provide build and test results within 30 minutes of
+submission of changes.  (`.goal.detect`_)
 
-.req.branch: Provide build and test results for submissions to
-development branches (pushes).  (goal.detect)
+_`.req.branch`: Provide build and test results for submissions to
+development branches (pushes).  (`.goal.detect`_)
 
-.req.merge: Provide build and test results for merge candidate changes
-(pull requests) before they are merged to master.  (goal.detect)
+_`.req.merge`: Provide build and test results for merge candidate changes
+(pull requests) before they are merged to master.  (`.goal.detect`_)
 
-.req.platforms: Build and test on all supported target platforms
+_`.req.platforms`: Build and test on all supported target platforms
 defined in `Building the Memory Pool System <../manual/build.txt>`_
-(goal.platforms).  [TODO: The target platforms should be referencable
+(`.goal.platforms`_).  [TODO: The target platforms should be referencable
 by tag.  See also `GitHub issue #147
 <https://github.com/Ravenbrook/mps/issues/147>`_.  RB 2023-03-08]
 
-.req.cost: Cost no money in normal circumstances.  (This also supports
-.req.fork.)  (goal.platforms, goal.detect, goal.publish)
+_`.req.cost`: Cost no money in normal circumstances.  (This also supports
+.req.fork.)  (`.goal.platforms`_, `.goal.detect`_, `.goal.publish`_)
 
-.req.fork: Operate on forks of the repo.  (goal.platforms, goal.detect)
+_`.req.fork`: Operate on forks of the repo.  (`.goal.platforms`_, `.goal.detect`_)
 
-.req.maintinable: Low maintenance overhead.  [Around 20 h/year or 1%.
-RB 2023-02-26] (goal.platforms)
+_`.req.maintainable`: Low maintenance overhead.  [Around 20 h/year or 1%.
+RB 2023-02-26] (`.goal.platforms`_)
 
-.req.extensible: Easy to extend with new platforms, improvements, and
-defect prevention.  (goal.platforms, goal.publish)
+_`.req.extensible`: Easy to extend with new platforms, improvements, and
+defect prevention.  (`.goal.platforms`_, `.goal.publish`_)
 
-.req.portable: Be portable away from any particular hosting service,
-e.g. GitHub, at reasonable cost.  (goal.platforms, goal.publish)
+_`.req.portable`: Be portable away from any particular hosting service,
+e.g. GitHub, at reasonable cost.  (`.goal.platforms`_, `.goal.publish`_)
 
-.req.admin: Administration is available to more than one person.
-(goal.platforms, goal,publish)
+_`.req.admin`: Administration is available to more than one person.
+(`.goal.platforms`_, goal,publish)
 
-.req.manual: Publish the manual.
+_`.req.manual`: Publish the manual.
 
-.req.manual.versions: Publish versions of the manual that document
+_`.req.manual.versions`: Publish versions of the manual that document
 releases.
 
-.req.build.code: Check that changed code compiles correctly without
+_`.req.build.code`: Check that changed code compiles correctly without
 errors or warnings.
 
-.req.build.manual: Check that the manual builds correctly without
+_`.req.build.manual`: Check that the manual builds correctly without
 errors or warnings.
 
-.req.test: Allow the running of tests (.def.test) on target platforms.
-(goal.detect)
+_`.req.test`: Allow the running of tests (`.def.test`_) on target platforms.
+(`.goal.detect`_)
 
-.def.test: A "test" is something that runs the compiled MPS in order
+_`.def.test`: A "test" is something that runs the compiled MPS in order
 to determine facts about it: find defects, check performance, etc.
 
-.req.test.coverage: Includes all tests.  (goal.detect, goal.platforms)
+_`.req.test.coverage`: Includes all tests.  (`.goal.detect`_, `.goal.platforms`_)
 
-.req.test.detect: Detect wheter tests find any defects.  (goal.detect)
+_`.req.test.detect`: Detect wheter tests find any defects.  (`.goal.detect`_)
 
-.req.test.results: Provide detailed test results to diagnose defects.
-(goal.platforms)
+_`.req.test.results`: Provide detailed test results to diagnose defects.
+(`.goal.platforms`_)
 
-.req.test.real: Test the attributes of realistic target platforms,
+_`.req.test.real`: Test the attributes of realistic target platforms,
 e.g. test interacting with the real target kernel rather than a
 virtualized simulation.  This is especially important for performance
-tests.  (goal.detect)
+tests.  (`.goal.detect`_)
 
-.req.test.type: Test for all the types defects for which we have
+_`.req.test.type`: Test for all the types defects for which we have
 tests.  [TODO: Analyse and specify explicitly what types of tests are
 required, probably in design.mps.tests, and reference here.  RB
 2023-03-08.]
 
-.req.check: Allow programmatic checks (.def.check) of the MPS source
+_`.req.check`: Allow programmatic checks (`.def.check`_) of the MPS source
 tree.
 
-.def.check: A "check", as opposed to a "test" of the compiled MPS, is
+_`.def.check`: A "check", as opposed to a "test" of the compiled MPS, is
 something that e.g. finds missing cross-references, inconsistencies,
 or runs a lint tool.
 
-.req.check.coverage: Include all checks.  (goal.detect)
+_`.req.check.coverage`: Include all checks.  (`.goal.detect`_)
 
-.req.check.detect: Detect whether checks find any defects.  (goal.detect)
+_`.req.check.detect`: Detect whether checks find any defects.  (`.goal.detect`_)
 
-.req.check.results: Provide detailed results of checks.  (goal.platforms)
+_`.req.check.results`: Provide detailed results of checks.  (`.goal.platforms`_)
 
 [TODO: What is required about *version* of platforms, e.g. kernel
 versions, compiler versions, etc.?  RB 2023-03-08]
@@ -157,17 +157,17 @@ Design
 Configuration
 -------------
 
-.config: CI systems are usually configured though simple YAML files
+_`.config`: CI systems are usually configured though simple YAML files
 that give instructions for what to do on various events.
 
-.config.kiss: CI setups SHOULD be kept as simple as possible to meet
-.req.maintainable and .req.portable.
+_`.config.kiss`: CI setups SHOULD be kept as simple as possible to meet
+`.req.maintainable`_ and `.req.portable`_.
 
-.config.one-line: Each CI configuration SHOULD be a single command
+_`.config.one-line`: Each CI configuration SHOULD be a single command
 line that invokes part of the MPS build system.  Something like
 ``./configure && make all testci``.
 
-.config.cross-platform: The .design.config.one-line command SHOULD
+_`.config.cross-platform`: The .design.config.one-line command SHOULD
 invoke a platform independent script, so that we get uniform coverage
 of platforms.  For example, ``test/check-rst`` or ``make testci``.
 Unfortunately, Windows often demands a different script.  Duplication
@@ -239,17 +239,17 @@ Write about managing Read the Docs versions and builds.  RB
 Checks
 ------
 
-.design.check.script: Checks SHOULD be implemented as executable
+_`.design.check.script`: Checks SHOULD be implemented as executable
 scripts in the tool directory at the root of the MPS tree.  This keeps
 the CI config simple (.config.kiss) and allows checks, like builds, to
 be run by developers from the command line.
 
-.design.check.posix: Checks MUST run on Posix but MAY also run on
+_`.design.check.posix`: Checks MUST run on Posix but MAY also run on
 Windows.  The majority of CI systems run on Posix, with macOS as a
 special case.  Linux features that are not available in macOS (which
 is based on BSD) SHOULD NOT be used.
 
-.design.check.cross-platform: Checks SHOULD be designed to be
+_`.design.check.cross-platform`: Checks SHOULD be designed to be
 independent of platforms, so that defects in the Windows build are
 detected by checks run on Posix.  Therefore, checks SHOULD NOT exclude
 files by platform.
@@ -263,8 +263,8 @@ Services
 
 _`.service`: The `Ravenbrook MPS repository on GitHub
 <https://github.com/Ravenbrook/mps>`_ uses third-party continuous
-integration services in order to meet .req.platforms,
-.req.maintainable, and .req.extensible without the overhead of
+integration services in order to meet `.req.platforms`_,
+`.req.maintainable`_, and `.req.extensible`_ without the overhead of
 maintaining a lot systems.
 
 _`.service.choice`: The services have been chosen to best meet
@@ -280,35 +280,35 @@ _`.service.github`: `GitHub CI`_ uses `GitHub Actions
 and can orchestrate external "`self-hosted runners
 <https://docs.github.com/en/actions/hosting-your-own-runners/about-self-hosted-runners>`__".
 
-- `GitHub CI`_ is free to use for public repositories (.req.cost).
+- `GitHub CI`_ is free to use for public repositories (`.req.cost`_).
 
-- `GitHub CI`_ only provides hosted runners for amd64 (.req.plaforms).
+- `GitHub CI`_ only provides hosted runners for amd64 (`.req.platforms`_).
 
-- `GitHub CI`_ does not support FreeBSD, even for self-hosted runners (.req.platforms).
+- `GitHub CI`_ does not support FreeBSD, even for self-hosted runners (`.req.platforms`_).
 
-- There is a hazard of GitHub lock-in (.req.portable).
+- There is a hazard of GitHub lock-in (`.req.portable`_).
 
-- `GitHub CI`_ is also used to run checks (`.run.other.checks`_, .req.check).
+- `GitHub CI`_ is also used to run checks (`.run.checks`_, `.req.check`_).
 
 - `GitHub CI`_ builds both `pushes and pull requests
   <https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/incorporating-changes-from-a-pull-request/about-pull-request-merges>`__
-  (.req.branch, .req.merge).
+  (`.req.branch`_, `.req.merge`_).
 
 _`.service.cirrus`: `Cirrus CI`_ mainly uses Google Compute Cloud to
 run public images, mainly Docker images.
 
-- `Cirrus CI`_ is free to use for public repositories (.req.cost).
+- `Cirrus CI`_ is free to use for public repositories (`.req.cost`_).
 
 - `Cirrus CI`_ provides macOS M1 (Apple Silicon) using `Tart
   <https://github.com/cirruslabs/tart>`_ and so can provide coverage
-  for XCA6LL (.req.platforms).
+  for XCA6LL (`.req.platforms`_).
 
 - `Cirrus CI`_ can orchestrate Amazon EC2 for extra control, though we
   don't currently use this feature.  It could be used to meet
-  .req.test.real.
+  `.req.test.real`_.
 
 - `Cirrus CI`_ can provide FreeBSD on amd64 but not arm64
-  (.req.platforms).
+  (`.req.platforms`_).
 
 - `Cirrus CI`_ builds either pushes or pull requests, but not both.
   [TODO: Escalate `my workaround
@@ -317,28 +317,28 @@ run public images, mainly Docker images.
 
 _`.service.travis`: `Travis CI`_ is a commercial system that provides
 a wide variety of platforms and simple configuration
-(.req.maintainable).
+(`.req.maintainable`_).
 
-- `Travis CI`_ is a paid service with limited concurrency (.req.cost).
+- `Travis CI`_ is a paid service with limited concurrency (`.req.cost`_).
 
-- `Travis CI is slow and expensive`_ (.req.cost, .req.rapid).
+- `Travis CI is slow and expensive`_ (`.req.cost`_, `.req.rapid`_).
 
 - Ravenbrook has negotiated a quota of "OSS credits" with Travis for
   the public MPS repo [Travis_42376]_.
 
 - `Travis CI`_ builds both `pushes and pull requests
   <https://docs.travis-ci.com/user/pull-requests/#how-pull-requests-are-built>`__
-  (.req.branch, .req.merge).
+  (`.req.branch`_, `.req.merge`_).
 
 _`.service.readthedocs`: `Read the Docs`_ is used build and publish
 the `MPS manual <https://memory-pool-system.readthedocs.io/>`_
-(.req.manual, req.build.manual).
+(`.req.manual`_, `.req.build.manual`_).
 
 - `Read the Docs`_ builds `pull requests
   <https://docs.readthedocs.io/en/stable/pull-requests.html#preview-documentation-from-pull-requests>`__
   automatically, and can build `branches
   <https://docs.readthedocs.io/en/stable/versions.html#versioned-documentation>`__
-  (.req.branch, .req.merge).
+  (`.req.branch`_, `.req.merge`_).
 
 .. _GitHub CI: https://docs.github.com/en/actions/automating-builds-and-tests/about-continuous-integration
 
@@ -355,7 +355,7 @@ Platforms
 ---------
 
 _`.platforms`: This table shows how each defined platform
-(.req.platforms) is built and tested by CI.
+(`.req.platforms`_) is built and tested by CI.
 
 ==========   ============   =====================================
 Platform     Service        Notes
@@ -380,11 +380,11 @@ Platform     Service        Notes
 ==========   ============   =====================================
 
 _`.platform.supported`: The platforms here MUST be a superset of the
-platforms listed as "supported" in readme.txt (.req.platforms).
+platforms listed as "supported" in readme.txt (`.req.platforms`_).
 
 _`.platform.builds`: The platforms here MUST be a subset of the
 platforms listed in "Building the MPS" manual/build.txt, but SHOULD be
-the same set so that CI covers all defined platforms (.req.platforms).
+the same set so that CI covers all defined platforms (`.req.platforms`_).
 
 
 Commands
