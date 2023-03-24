@@ -6,13 +6,13 @@
 #
 # FIXME: Only works for Ravenbrook copyrights.  Should perhaps look
 # for the last notice in a group of lines.
-#
-# FIXME: Should probably use ``find`` rather than ``git ls-tree`` so
-# that it can check files not in Git, and be consistent with other
-# checking scripts.
+
+this_year="$(date '+%Y')"
 
 {
-    git ls-tree -r --name-only HEAD |
+    find . -path './.git' -prune -o \
+	 -type f ! -name '*~' ! -name '#*#' -print |
+    # git ls-tree -r --name-only HEAD |
     while read -r path; do
 	# Skip binary files
 	if ! file --brief -- "$path" | grep -q 'text'; then continue; fi
@@ -25,21 +25,34 @@
 			  sed --silent --regexp-extended \
 			      --expression='s/^([[:digit:]]{4})-.*$/\1/p')
 
+	# ``git log`` has empty output if the file is not in Git
+	if test -z "$author_year"; then
+	    author_year=0
+	fi
+
 	# Search for copyright notices and extract the end years
 	nl < "$path" |
 	    sed --silent --regexp-extended \
 		--expression='s/^[[:space:]]*([[:digit:]]+)[[:space:]].*Copyright[[:space:]]+(.*[[:space:]]+)?([[:digit:]]{4}[[:space:]]*-[[:space:]]*)?([[:digit:]]{4})[[:space:]]+Ravenbrook[[:space:]].*$/\1 \4/p' |
 	    while read -r line end_year; do
-		if test "$end_year" -ne "$author_year"; then
-		    echo "$path $line $author_year $end_year"
+		if test "$end_year" -eq "$author_year"; then
+		    continue
+		elif test "$author_year" -eq 0 -a "$end_year" -eq "$this_year"; then
+	            continue
 		fi
+		echo "$path $line $author_year $end_year"
 	    done
     done
 } | {
     code=0
     while read -r path line author_year end_year; do
 	code=1
-	echo 1>&2 "$path:$line: Copyright end year $end_year does not match Git author year $author_year"
+	if test "$author_year" -ne 0; then
+	    year="Git author year $author_year"
+	else
+	    year="this year $this_year"
+	fi
+	echo 1>&2 "$path:$line: Copyright end year $end_year does not match $year"
     done
     exit $code
 }
