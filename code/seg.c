@@ -185,8 +185,6 @@ static void segAbsFinish(Inst inst)
 
   AVERT(Seg, seg);
 
-  RingRemove(SegPoolRing(seg));
-
   arena = PoolArena(SegPool(seg));
 
   /* TODO: It would be good to avoid deprotecting segments eagerly
@@ -204,6 +202,11 @@ static void segAbsFinish(Inst inst)
   if (seg->queued)
     ShieldFlush(PoolArena(SegPool(seg)));
   AVER(!seg->queued);
+
+  /* shieldDebugCheck requires SegFirst/SegNext to find all segments,
+     so the segment must remain on the pool ring until shield
+     operations are complete. */
+  RingRemove(SegPoolRing(seg));
 
   limit = SegLimit(seg);
 
