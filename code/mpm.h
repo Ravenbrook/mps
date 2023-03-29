@@ -1,7 +1,7 @@
 /* mpm.h: MEMORY POOL MANAGER DEFINITIONS
  *
  * $Id$
- * Copyright (c) 2001-2020 Ravenbrook Limited.  See end of file for license.
+ * Copyright (c) 2001-2023 Ravenbrook Limited.  See end of file for license.
  * Portions copyright (C) 2002 Global Graphics Software.
  *
  * .trans.bufferinit: The Buffer data structure has an Init field and
@@ -499,7 +499,7 @@ extern void GlobalsReinitializeAll(void);
 #define ArenaGreyRing(arena, rank) (&(arena)->greyRing[rank])
 #define ArenaPoolRing(arena) (&ArenaGlobals(arena)->poolRing)
 #define ArenaChunkTree(arena) RVALUE((arena)->chunkTree)
-#define ArenaChunkRing(arena)   (&(arena)->chunkRing)
+#define ArenaChunkRing(arena) RVALUE(&(arena)->chunkRing)
 #define ArenaShield(arena)      (&(arena)->shieldStruct)
 #define ArenaHistory(arena)     (&(arena)->historyStruct)
 
@@ -703,7 +703,7 @@ extern Addr (SegLimit)(Seg seg);
 #define SegGrey(seg)            RVALUE((TraceSet)(seg)->grey)
 #define SegWhite(seg)           RVALUE((TraceSet)(seg)->white)
 #define SegNailed(seg)          RVALUE((TraceSet)(seg)->nailed)
-#define SegPoolRing(seg)        (&(seg)->poolRing)
+#define SegPoolRing(seg)        RVALUE(&(seg)->poolRing)
 #define SegOfPoolRing(node)     RING_ELT(Seg, poolRing, (node))
 #define SegOfGreyRing(node)     (&(RING_ELT(GCSeg, greyRing, (node)) \
                                    ->segStruct))
@@ -1046,7 +1046,7 @@ DECLARE_CLASS(Land, Land, Inst);
 
 /* C. COPYRIGHT AND LICENSE
  *
- * Copyright (C) 2001-2020 Ravenbrook Limited <https://www.ravenbrook.com/>.
+ * Copyright (C) 2001-2023 Ravenbrook Limited <https://www.ravenbrook.com/>.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are
