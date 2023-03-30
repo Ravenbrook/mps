@@ -324,7 +324,11 @@ Bool ChunkOfAddr(Chunk *chunkReturn, Arena arena, Addr addr)
   Tree tree;
 
   AVER_CRITICAL(chunkReturn != NULL);
-  AVERT_CRITICAL(Arena, arena);
+
+  /* Avoid AVERT on arena because ChunkOfAddr is used by ArenaCheck
+     and it causes indefinite recursion in deep checking. */
+  AVER_CRITICAL(TESTT(Arena, arena));
+
   /* addr is arbitrary */
 
   if (TreeFind(&tree, ArenaChunkTree(arena), TreeKeyOfAddrVar(addr),
