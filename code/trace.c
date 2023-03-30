@@ -191,20 +191,20 @@ Bool TraceCheck(Trace trace)
       break;
 
     case TraceUNFLIPPED:
-      CHECKL(!RingIsSingle(&trace->genRing));
+      /* CHECKL(!RingIsSingle(&trace->genRing)); FIXME: Not true for walks and probably transforms */
       CHECKL(!TraceSetIsMember(trace->arena->flippedTraces, trace));
       /* @@@@ Assert that mutator is grey for trace. */
       break;
 
     case TraceFLIPPED:
-      CHECKL(!RingIsSingle(&trace->genRing));
+      /* CHECKL(!RingIsSingle(&trace->genRing)); FIXME: Not true for walks and probably transforms */
       CHECKL(TraceSetIsMember(trace->arena->flippedTraces, trace));
       CHECKL(RankCheck(trace->band));
       /* @@@@ Assert that mutator is black for trace. */
       break;
 
     case TraceRECLAIM:
-      CHECKL(!RingIsSingle(&trace->genRing));
+      /* CHECKL(!RingIsSingle(&trace->genRing)); FIXME: Not true for walks and probably transforms */
       CHECKL(TraceSetIsMember(trace->arena->flippedTraces, trace));
       /* @@@@ Assert that grey set is empty for trace. */
       break;
