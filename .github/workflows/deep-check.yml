@@ -1,0 +1,25 @@
+# .github/workflows/deep-check.yml -- GitHub CI deep check configuration for the MPS
+#
+# Copyright (c) 2023 Ravenbrook Limited. See end of file for license.
+#
+# FIXME: Document the design for this.
+#
+# Part of a fix for GitHub issue #208
+# <https://github.com/Ravenbrook/mps/issues/208> to ensure deep
+# checking does not rot.
+
+name: deep check
+
+on:
+  - push
+  - pull_request
+  # Also run when triggered manually, e.g. by tool/github-ci-kick
+  # <https://docs.github.com/en/actions/managing-workflow-runs/manually-running-a-workflow>
+  - workflow_dispatch
+
+jobs:
+  deep-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - run: make -C code -f lii6ll.gmk VARIETY=cool CFLAGS='-DCHECKLEVEL=CheckLevelDEEP' testci
