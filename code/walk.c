@@ -328,6 +328,9 @@ static Res ArenaRootsWalk(Globals arenaGlobals, mps_roots_stepper_t f,
   /* Make the roots grey so that they are scanned */
   res = RootsIterate(arenaGlobals, rootWalkGrey, trace);
   /* Make this trace look like any other trace. */
+  /* FIXME: In traceFlip the roots are scanned *before* the trace
+     state is set to flipped.  Why is this different? */
+  trace->state = TraceFLIPPED;
   arena->flippedTraces = TraceSetAdd(arena->flippedTraces, trace);
 
   rootsStepClosureInit(rsc, arenaGlobals, trace, RootsWalkFix, f, p, s);
