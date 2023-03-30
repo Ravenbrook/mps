@@ -814,7 +814,7 @@ static void traceDestroyCommon(Trace trace)
     GenDesc gen = GenDescOfTraceRing(node, trace);
     GenDescEndTrace(gen, trace);
   }
-  RingFinish(&trace->genRing);
+  AVER(RingIsSingle(&trace->genRing));
 
   /* Ensure that address space is returned to the operating system for
    * traces that don't have any condemned objects (there might be
@@ -827,6 +827,8 @@ static void traceDestroyCommon(Trace trace)
    * Do this before removing the trace from busyTraces, to avoid
    * violating <code/global.c#emergency.invariant>. */
   ArenaSetEmergency(trace->arena, FALSE);
+
+  RingFinish(&trace->genRing);
 
   trace->sig = SigInvalid;
   trace->arena->busyTraces = TraceSetDel(trace->arena->busyTraces, trace);
