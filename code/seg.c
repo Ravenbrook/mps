@@ -194,7 +194,7 @@ static void segAbsFinish(Inst inst)
      unmapped. This would require tracking of protection independent
      of the existence of a SegStruct. */
   if (seg->sm != AccessSetEMPTY) {
-    ShieldLower(arena, seg, seg->sm);
+    ShieldLower(ArenaShield(arena), seg, seg->sm);
   }
 
   seg->rankSet = RankSetEMPTY;
@@ -202,7 +202,7 @@ static void segAbsFinish(Inst inst)
   /* See <code/shield.c#shield.flush> */
   AVER(seg->depth == 0);
   if (seg->queued)
-    ShieldFlush(PoolArena(SegPool(seg)));
+    ShieldFlush(ArenaShield(PoolArena(SegPool(seg))));
   AVER(!seg->queued);
 
   limit = SegLimit(seg);
@@ -624,7 +624,7 @@ Res SegMerge(Seg *mergedSegReturn, Seg segLo, Seg segHi)
   arena = PoolArena(SegPool(segLo));
 
   if (segLo->queued || segHi->queued)
-    ShieldFlush(arena);  /* see <design/seg#.split-merge.shield> */
+    ShieldFlush(ArenaShield(arena));  /* see <design/seg#.split-merge.shield> */
 
   /* Invoke class-specific methods to do the merge */
   res = Method(Seg, segLo, merge)(segLo, segHi, base, mid, limit);
@@ -678,7 +678,7 @@ Res SegSplit(Seg *segLoReturn, Seg *segHiReturn, Seg seg, Addr at)
   AVER(!SegBuffer(&buffer, seg) || BufferLimit(buffer) <= at);
 
   if (seg->queued)
-    ShieldFlush(arena);  /* see <design/seg#.split-merge.shield> */
+    ShieldFlush(ArenaShield(arena));  /* see <design/seg#.split-merge.shield> */
   AVER(SegSM(seg) == SegPM(seg));
 
   /* Allocate the new segment object from the control pool */
@@ -1297,7 +1297,7 @@ Res SegSingleAccess(Seg seg, Arena arena, Addr addr,
     Ref ref;
     Res res;
 
-    ShieldExpose(arena, seg);
+    ShieldExpose(ArenaShield(arena), seg);
 
     if(mode & SegSM(seg) & AccessREAD) {
       /* Read access. */
@@ -1325,7 +1325,7 @@ Res SegSingleAccess(Seg seg, Arena arena, Addr addr,
      * this is conservative. */
     SegSetSummary(seg, RefSetAdd(arena, SegSummary(seg), ref));
 
-    ShieldCover(arena, seg);
+    ShieldCover(ArenaShield(arena), seg);
 
     return ResOK;
   } else {
@@ -1608,10 +1608,10 @@ static void mutatorSegSetGrey(Seg seg, TraceSet grey)
   flippedTraces = arena->flippedTraces;
   if (TraceSetInter(oldGrey, flippedTraces) == TraceSetEMPTY) {
     if (TraceSetInter(grey, flippedTraces) != TraceSetEMPTY)
-      ShieldRaise(arena, seg, AccessREAD);
+      ShieldRaise(ArenaShield(arena), seg, AccessREAD);
   } else {
     if (TraceSetInter(grey, flippedTraces) == TraceSetEMPTY)
-      ShieldLower(arena, seg, AccessREAD);
+      ShieldLower(ArenaShield(arena), seg, AccessREAD);
   }
 }
 
@@ -1631,7 +1631,7 @@ static void mutatorSegFlip(Seg seg, Trace trace)
   /* Raise the read barrier if the segment was not grey for any
      currently flipped trace. */
   if (TraceSetInter(SegGrey(seg), flippedTraces) == TraceSetEMPTY) {
-    ShieldRaise(arena, seg, AccessREAD);
+    ShieldRaise(ArenaShield(arena), seg, AccessREAD);
   } else {
     /* If the segment is grey for some currently flipped trace then
        the read barrier must already have been raised, either in this
@@ -1702,12 +1702,12 @@ static void mutatorSegSetRankSet(Seg seg, RankSet rankSet)
   if (oldRankSet == RankSetEMPTY) {
     if (rankSet != RankSetEMPTY) {
       AVER_CRITICAL(SegGCSeg(seg)->summary == RefSetEMPTY);
-      ShieldRaise(PoolArena(SegPool(seg)), seg, AccessWRITE);
+      ShieldRaise(ArenaShield(PoolArena(SegPool(seg))), seg, AccessWRITE);
     }
   } else {
     if (rankSet == RankSetEMPTY) {
       AVER_CRITICAL(SegGCSeg(seg)->summary == RefSetEMPTY);
-      ShieldLower(PoolArena(SegPool(seg)), seg, AccessWRITE);
+      ShieldLower(ArenaShield(PoolArena(SegPool(seg))), seg, AccessWRITE);
     }
   }
 }
@@ -1727,9 +1727,9 @@ static void mutatorSegSyncWriteBarrier(Seg seg)
   Arena arena = PoolArena(SegPool(seg));
   /* Can't check seg -- this function enforces invariants tested by SegCheck. */
   if (SegSummary(seg) == RefSetUNIV)
-    ShieldLower(arena, seg, AccessWRITE);
+    ShieldLower(ArenaShield(arena), seg, AccessWRITE);
   else
-    ShieldRaise(arena, seg, AccessWRITE);
+    ShieldRaise(ArenaShield(arena), seg, AccessWRITE);
 }
 
 
@@ -1888,7 +1888,7 @@ static Res gcSegMerge(Seg seg, Seg segHi,
     /* This shield won't cope with a partially-protected segment, so
        flush the shield queue to bring both halves in sync.  See also
        <design/seg#.split-merge.shield.re-flush>. */
-    ShieldFlush(PoolArena(SegPool(seg)));
+    ShieldFlush(ArenaShield(PoolArena(SegPool(seg))));
   }
 
   /* Merge the superclass fields via next-method call */

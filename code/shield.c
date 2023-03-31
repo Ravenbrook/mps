@@ -265,16 +265,13 @@ static void shieldSync(Shield shield, Seg seg)
  * .inv.unsynced.suspended.
  */
 
-static void shieldSuspend(Arena arena)
+static void shieldSuspend(Shield shield)
 {
-  Shield shield;
-
-  AVERT(Arena, arena);
-  shield = ArenaShield(arena);
   AVERT(Shield, shield);
   AVER(shield->inside);
 
   if (!shield->suspended) {
+    Arena arena = ShieldArena(shield);
     ThreadRingSuspend(ArenaThreadRing(arena), ArenaDeadRing(arena));
     shield->suspended = TRUE;
   }
@@ -288,11 +285,11 @@ static void shieldSuspend(Arena arena)
  * when we must scan all thread registers at once.
  */
 
-void (ShieldHold)(Arena arena)
+void (ShieldHold)(Shield shield)
 {
-  AVERT(Arena, arena);
-  shieldSuspend(arena);
-  ++ArenaShield(arena)->holds;
+  AVERT(Shield, shield);
+  shieldSuspend(shield);
+  ++shield->holds;
 }
 
 
@@ -302,16 +299,11 @@ void (ShieldHold)(Arena arena)
  * this marks the earliest point at which we could resume.
  */
 
-void (ShieldRelease)(Arena arena)
+void (ShieldRelease)(Shield shield)
 {
-  Shield shield;
-
-  AVERT(Arena, arena);
-  shield = ArenaShield(arena);
   AVERT(Shield, shield);
   AVER(shield->inside);
   AVER(shield->suspended);
-
   AVER(shield->holds > 0);
   --shield->holds;
 
@@ -444,6 +436,7 @@ static void shieldFlushEntries(Shield shield)
             shieldQueueEntryCompare, UNUSED_POINTER,
             &shield->sortStruct);
 
+  /* Coalesce runs of segments that need the same protection mode. */
   mode = AccessSetEMPTY;
   limit = NULL;
   for (i = 0; i < shield->limit; ++i) {
@@ -480,13 +473,9 @@ static void shieldFlushEntries(Shield shield)
  * queued and the mutator is suspended.
  */
 
-static void shieldQueue(Arena arena, Seg seg)
+static void shieldQueue(Shield shield, Seg seg)
 {
-  Shield shield;
-
   /* <design/trace#.fix.noaver> */
-  AVERT_CRITICAL(Arena, arena);
-  shield = ArenaShield(arena);
   AVERT_CRITICAL(Shield, shield);
   SHIELD_AVERT_CRITICAL(Seg, seg);
 
@@ -501,7 +490,7 @@ static void shieldQueue(Arena arena, Seg seg)
        segment, then raise the shield on it.  In this case, the
        mutator isn't allowed to see the segment, but we don't need to
        queue it until its covered. */
-    shieldSuspend(arena);
+    shieldSuspend(shield);
     return;
   }
 
@@ -518,7 +507,7 @@ static void shieldQueue(Arena arena, Seg seg)
     else
       length = shield->length * 2;
 
-    res = ControlAlloc(&p, arena, length * sizeof shield->queue[0]);
+    res = ControlAlloc(&p, ShieldArena(shield), length * sizeof shield->queue[0]);
     if (res != ResOK) {
       AVER(ResIsAllocFailure(res));
       /* Carry on with the existing queue. */
@@ -527,7 +516,7 @@ static void shieldQueue(Arena arena, Seg seg)
         Size oldSize = shield->length * sizeof shield->queue[0];
         AVER(shield->queue != NULL);
         mps_lib_memcpy(p, shield->queue, oldSize);
-        ControlFree(arena, shield->queue, oldSize);
+        ControlFree(ShieldArena(shield), shield->queue, oldSize);
       }
       shield->queue = p;
       shield->length = length;
@@ -579,37 +568,30 @@ static void shieldQueue(Arena arena, Seg seg)
  * covered and the shield queue is unavailable.
  */
 
-void (ShieldRaise)(Arena arena, Seg seg, AccessSet mode)
+void (ShieldRaise)(Shield shield, Seg seg, AccessSet mode)
 {
-  Shield shield;
-
-  SHIELD_AVERT(Arena, arena);
+  SHIELD_AVERT(Shield, shield);
   SHIELD_AVERT(Seg, seg);
   AVERT(AccessSet, mode);
-  shield = ArenaShield(arena);
-  AVERT(Shield, shield);
 
   /* <design/shield#.inv.prot.shield> preserved */
-  shieldSetSM(ArenaShield(arena), seg, BS_UNION(SegSM(seg), mode));
+  shieldSetSM(shield, seg, BS_UNION(SegSM(seg), mode));
 
   /* Ensure <design/shield#.inv.unsynced.suspended> and
      <design/shield#.inv.unsynced.depth> */
-  shieldQueue(arena, seg);
+  shieldQueue(shield, seg);
 
   /* Check queue and segment consistency. */
-  AVERT(Arena, arena);
+  AVERT(Shield, shield); /* FIXME: Does this acheive the above comment? */
   AVERT(Seg, seg);
 }
 
 
 /* ShieldLower -- declare segment may be accessed by mutator */
 
-void (ShieldLower)(Arena arena, Seg seg, AccessSet mode)
+void (ShieldLower)(Shield shield, Seg seg, AccessSet mode)
 {
-  Shield shield;
-
-  AVERT(Arena, arena);
-  shield = ArenaShield(arena);
+  AVERT(Shield, shield);
   SHIELD_AVERT(Seg, seg);
   AVERT(AccessSet, mode);
 
@@ -620,23 +602,19 @@ void (ShieldLower)(Arena arena, Seg seg, AccessSet mode)
   /* TODO: Do we need to promptly call shieldProtLower here?  It
      loses the opportunity to coalesce the protection call. It would
      violate <design/shield#.prop.inside.access>. */
-  /* shieldQueue(arena, seg); */
+  /* shieldQueue(shield, seg); */
   shieldProtLower(shield, seg, mode);
 
   /* Check queue and segment consistency. */
-  AVERT(Arena, arena);
+  AVERT(Shield, shield); /* FIXME: Does this acheive the above comment? */
   AVERT(Seg, seg);
 }
 
 
 /* ShieldEnter -- enter the shield, allowing exposes */
 
-void (ShieldEnter)(Arena arena)
+void (ShieldEnter)(Shield shield)
 {
-  Shield shield;
-
-  AVERT(Arena, arena);
-  shield = ArenaShield(arena);
   AVERT(Shield, shield);
   AVER(!shield->inside);
   AVER(shield->depth == 0);
@@ -661,9 +639,9 @@ void (ShieldEnter)(Arena arena)
  */
 
 #if defined(SHIELD_DEBUG)
-static void shieldDebugCheck(Arena arena)
+static void shieldDebugCheck(Shield shield)
 {
-  Shield shield;
+  Arena arena;
   Seg seg;
   Count queued = 0;
   Count depth = 0;
@@ -671,12 +649,11 @@ static void shieldDebugCheck(Arena arena)
   Count unsynced = 0;
   Count synced = 0;
 
-  AVERT(Arena, arena);
-  shield = ArenaShield(arena);
   AVERT(Shield, shield);
   AVER(shield->inside || shield->limit == 0);
 
-  if (SegFirst(&seg, arena))
+  arena = ShieldArena(shield);
+  if (SegFirst(&seg, arena)) {
     do {
       depth += SegDepth(seg);
       if (shield->limit == 0) {
@@ -695,6 +672,7 @@ static void shieldDebugCheck(Arena arena)
       if (!seg->queued && !SegIsSynced(seg))
         ++unqueued;
     } while(SegNext(&seg, arena, seg));
+  }
 
   AVER(depth == shield->depth);
   AVER(queued == shield->limit);
@@ -721,44 +699,37 @@ static void shieldDebugCheck(Arena arena)
  * <design/shield#.improv.noseg>.
  */
 
-void (ShieldFlush)(Arena arena)
+void (ShieldFlush)(Shield shield)
 {
-  Shield shield;
-
-  AVERT(Arena, arena);
-  shield = ArenaShield(arena);
   AVERT(Shield, shield);
 #ifdef SHIELD_DEBUG
-  shieldDebugCheck(arena);
+  shieldDebugCheck(shield);
 #endif
   shieldFlushEntries(shield);
   AVER(shield->unsynced == 0); /* everything back in sync */
 #ifdef SHIELD_DEBUG
-  shieldDebugCheck(arena);
+  shieldDebugCheck(shield);
 #endif
 }
 
 
 /* ShieldLeave -- leave the shield, protect segs from mutator */
 
-void (ShieldLeave)(Arena arena)
+void (ShieldLeave)(Shield shield)
 {
-  Shield shield;
-
-  AVERT(Arena, arena);
-  shield = ArenaShield(arena);
   AVERT(Shield, shield);
   AVER(shield->inside);
   AVER(shield->depth == 0); /* no pending covers */
   AVER(shield->holds == 0);
 
-  ShieldFlush(arena);
+  ShieldFlush(shield);
 
   AVER(shield->unsynced == 0); /* everything back in sync */
 
   /* Ensuring the mutator is running at this point guarantees
      .inv.outside.running */
   if (shield->suspended) {
+    Arena arena = ShieldArena(shield);
     ThreadRingResume(ArenaThreadRing(arena), ArenaDeadRing(arena));
     shield->suspended = FALSE;
   }
@@ -774,15 +745,12 @@ void (ShieldLeave)(Arena arena)
  * ensure the MPS has exclusive access.
  */
 
-void (ShieldExpose)(Arena arena, Seg seg)
+void (ShieldExpose)(Shield shield, Seg seg)
 {
-  Shield shield;
   AccessSet mode = AccessREAD | AccessWRITE;
 
   /* <design/trace#.fix.noaver> */
-  AVERT_CRITICAL(Arena, arena);
-  shield = ArenaShield(arena);
-  AVERT(Shield, shield);
+  AVERT_CRITICAL(Shield, shield);
   AVER_CRITICAL(shield->inside);
 
   SegSetDepth(seg, SegDepth(seg) + 1);
@@ -791,7 +759,7 @@ void (ShieldExpose)(Arena arena, Seg seg)
   AVER_CRITICAL(shield->depth > 0); /* overflow */
 
   if (BS_INTER(SegPM(seg), mode) != AccessSetEMPTY)
-    shieldSuspend(arena);
+    shieldSuspend(shield);
 
   /* Ensure <design/shield#.inv.expose.prot>. */
   /* TODO: Mass exposure -- see
@@ -802,13 +770,9 @@ void (ShieldExpose)(Arena arena, Seg seg)
 
 /* ShieldCover -- declare MPS no longer needs access to seg */
 
-void (ShieldCover)(Arena arena, Seg seg)
+void (ShieldCover)(Shield shield, Seg seg)
 {
-  Shield shield;
-
   /* <design/trace#.fix.noaver> */
-  AVERT_CRITICAL(Arena, arena);
-  shield = ArenaShield(arena);
   AVERT_CRITICAL(Shield, shield);
   AVERT_CRITICAL(Seg, seg);
   AVER_CRITICAL(SegPM(seg) == AccessSetEMPTY);
@@ -819,7 +783,7 @@ void (ShieldCover)(Arena arena, Seg seg)
   --shield->depth;
 
   /* Ensure <design/shield#.inv.unsynced.depth>. */
-  shieldQueue(arena, seg);
+  shieldQueue(shield, seg);
 }
 
 

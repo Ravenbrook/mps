@@ -454,7 +454,7 @@ Res TraceCondemnEnd(double *mortalityReturn, Trace trace)
   AVER(trace->state == TraceINIT);
   AVER(trace->white == ZoneSetEMPTY);
 
-  ShieldHold(trace->arena);
+  ShieldHold(ArenaShield(trace->arena));
   RING_FOR(genNode, &trace->genRing, genNext) {
     Size condemnedBefore, condemnedGen;
     Ring segNode, segNext;
@@ -472,7 +472,7 @@ Res TraceCondemnEnd(double *mortalityReturn, Trace trace)
     condemnedGen = trace->condemned - condemnedBefore;
     casualtySize += (Size)((double)condemnedGen * gen->mortality);
   }
-  ShieldRelease(trace->arena);
+  ShieldRelease(ArenaShield(trace->arena));
 
   if (TraceIsEmpty(trace))
     return ResFAIL;
@@ -489,7 +489,7 @@ failBegin:
      triggered. In that case, we'll have to recover here by blackening
      the segments again. */
   AVER(TraceIsEmpty(trace));
-  ShieldRelease(trace->arena);
+  ShieldRelease(ArenaShield(trace->arena));
   return res;
 }
 
@@ -624,7 +624,7 @@ static Res traceFlip(Trace trace)
 
   arena = trace->arena;
   rfc.arena = arena;
-  ShieldHold(arena);
+  ShieldHold(ArenaShield(arena));
 
   AVER(trace->state == TraceUNFLIPPED);
   AVER(!TraceSetIsMember(arena->flippedTraces, trace));
@@ -681,11 +681,11 @@ static Res traceFlip(Trace trace)
 
   EVENT2(TraceFlipEnd, trace, arena);
 
-  ShieldRelease(arena);
+  ShieldRelease(ArenaShield(arena));
   return ResOK;
 
 failRootFlip:
-  ShieldRelease(arena);
+  ShieldRelease(ArenaShield(arena));
   return res;
 }
 
@@ -1202,10 +1202,10 @@ static Res traceScanSegRes(TraceSet ts, Rank rank, Arena arena, Seg seg)
     ScanStateInitSeg(ss, ts, arena, rank, white, seg);
 
     /* Expose the segment to make sure we can scan it. */
-    ShieldExpose(arena, seg);
+    ShieldExpose(ArenaShield(arena), seg);
     res = SegScan(&wasTotal, seg, ss);
     /* Cover, regardless of result */
-    ShieldCover(arena, seg);
+    ShieldCover(ArenaShield(arena), seg);
 
     traceSetUpdateCounts(ts, arena, ss, traceAccountingPhaseSegScan);
     /* Count segments scanned pointlessly */
@@ -1473,7 +1473,7 @@ static Res traceScanSingleRefRes(TraceSet ts, Rank rank, Arena arena,
   }
 
   ScanStateInit(&ss, ts, arena, rank, white);
-  ShieldExpose(arena, seg);
+  ShieldExpose(ArenaShield(arena), seg);
 
   TRACE_SCAN_BEGIN(&ss) {
     res = TRACE_FIX12(&ss, refIO);
@@ -1483,7 +1483,7 @@ static Res traceScanSingleRefRes(TraceSet ts, Rank rank, Arena arena,
   summary = SegSummary(seg);
   summary = RefSetAdd(arena, summary, *refIO);
   SegSetSummary(seg, summary);
-  ShieldCover(arena, seg);
+  ShieldCover(ArenaShield(arena), seg);
 
   traceSetUpdateCounts(ts, arena, &ss, traceAccountingPhaseSingleScan);
   ScanStateFinish(&ss);

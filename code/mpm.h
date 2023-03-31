@@ -872,37 +872,38 @@ extern ZoneSet ZoneSetBlacklist(Arena arena);
 
 /* Shield Interface -- see <code/shield.c> */
 
+#define ShieldArena(shield) PARENT(ArenaStruct, shieldStruct, shield)
 extern void ShieldInit(Shield shield);
 extern void ShieldFinish(Shield shield);
 extern Bool ShieldCheck(Shield shield);
 extern Res ShieldDescribe(Shield shield, mps_lib_FILE *stream, Count depth);
 extern void ShieldDestroyQueue(Shield shield, Arena arena);
-extern void (ShieldRaise)(Arena arena, Seg seg, AccessSet mode);
-extern void (ShieldLower)(Arena arena, Seg seg, AccessSet mode);
-extern void (ShieldEnter)(Arena arena);
-extern void (ShieldLeave)(Arena arena);
-extern void (ShieldExpose)(Arena arena, Seg seg);
-extern void (ShieldCover)(Arena arena, Seg seg);
-extern void (ShieldHold)(Arena arena);
-extern void (ShieldRelease)(Arena arena);
-extern void (ShieldFlush)(Arena arena);
+extern void (ShieldRaise)(Shield shield, Seg seg, AccessSet mode);
+extern void (ShieldLower)(Shield shield, Seg seg, AccessSet mode);
+extern void (ShieldEnter)(Shield shield);
+extern void (ShieldLeave)(Shield shield);
+extern void (ShieldExpose)(Shield shield, Seg seg);
+extern void (ShieldCover)(Shield shield, Seg seg);
+extern void (ShieldHold)(Shield shield);
+extern void (ShieldRelease)(Shield shield);
+extern void (ShieldFlush)(Shield shield);
 
 #if defined(SHIELD)
 /* Nothing to do: functions declared in all shield configurations. */
 #elif defined(SHIELD_NONE)
-#define ShieldRaise(arena, seg, mode) \
-  BEGIN UNUSED(arena); UNUSED(seg); UNUSED(mode); END
-#define ShieldLower(arena, seg, mode) \
-  BEGIN UNUSED(arena); UNUSED(seg); UNUSED(mode); END
-#define ShieldEnter(arena) BEGIN UNUSED(arena); END
-#define ShieldLeave(arena) AVER(arena->busyTraces == TraceSetEMPTY)
-#define ShieldExpose(arena, seg)  \
-  BEGIN UNUSED(arena); UNUSED(seg); END
-#define ShieldCover(arena, seg) \
-  BEGIN UNUSED(arena); UNUSED(seg); END
-#define ShieldHold(arena) BEGIN UNUSED(arena); END
-#define ShieldRelease(arena) BEGIN UNUSED(arena); END
-#define ShieldFlush(arena) BEGIN UNUSED(arena); END
+#define ShieldRaise(shield, seg, mode) \
+  BEGIN UNUSED(shield); UNUSED(seg); UNUSED(mode); END
+#define ShieldLower(shield, seg, mode) \
+  BEGIN UNUSED(shield); UNUSED(seg); UNUSED(mode); END
+#define ShieldEnter(shield) BEGIN UNUSED(shield); END
+#define ShieldLeave(shield) AVER(ShieldArena(shield)->busyTraces == TraceSetEMPTY)
+#define ShieldExpose(shield, seg)  \
+  BEGIN UNUSED(shield); UNUSED(seg); END
+#define ShieldCover(shield, seg) \
+  BEGIN UNUSED(shield); UNUSED(seg); END
+#define ShieldHold(shield) BEGIN UNUSED(shield); END
+#define ShieldRelease(shield) BEGIN UNUSED(shield); END
+#define ShieldFlush(shield) BEGIN UNUSED(shield); END
 #else
 #error "No shield configuration."
 #endif  /* SHIELD */

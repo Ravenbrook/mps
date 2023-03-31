@@ -75,9 +75,9 @@ static void ArenaFormattedObjectsWalk(Arena arena, FormattedObjectsVisitor f,
   if (SegFirst(&seg, arena)) {
     do {
       if (PoolFormat(&format, SegPool(seg))) {
-        ShieldExpose(arena, seg);
+        ShieldExpose(ArenaShield(arena), seg);
         SegWalk(seg, format, f, p, s);
-        ShieldCover(arena, seg);
+        ShieldCover(ArenaShield(arena), seg);
       }
     } while(SegNext(&seg, arena, seg));
   }
@@ -476,9 +476,9 @@ static Res poolWalk(Arena arena, Pool pool, mps_area_scan_t area_scan, void *clo
       ScanStateSetSummary(&ss, RefSetEMPTY);
 
     /* Expose the segment to make sure we can scan it. */
-    ShieldExpose(arena, seg);
+    ShieldExpose(ArenaShield(arena), seg);
     res = SegScan(&wasTotal, seg, &ss);
-    ShieldCover(arena, seg);
+    ShieldCover(ArenaShield(arena), seg);
 
     if (needSummary)
       ScanStateUpdateSummary(&ss, seg, res == ResOK && wasTotal);
