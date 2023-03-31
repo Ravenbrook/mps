@@ -187,6 +187,9 @@ static void segAbsFinish(Inst inst)
 
   arena = PoolArena(SegPool(seg));
 
+  /* Don't finish exposed segments (design.mps.shield.def.depth). */
+  AVER(seg->depth == 0);
+
   /* TODO: It would be good to avoid deprotecting segments eagerly
      when we free them, especially if they're going to be
      unmapped. This would require tracking of protection independent
@@ -203,6 +206,11 @@ static void segAbsFinish(Inst inst)
     ShieldFlush(ArenaShield(PoolArena(SegPool(seg))));
   AVER(!seg->queued);
 
+  /* Ensure spare committed pages are not protected
+     (design.mps.arena.spare-committed). */
+  AVER(seg->sm == AccessSetEMPTY);
+  AVER(seg->pm == AccessSetEMPTY);
+
   RingRemove(SegPoolRing(seg));
 
   limit = SegLimit(seg);
@@ -213,14 +221,6 @@ static void segAbsFinish(Inst inst)
   AVER(addr == seg->limit);
 
   RingFinish(SegPoolRing(seg));
-
-  /* Check that the segment is not exposed, or in the shield */
-  /* cache <code/shield.c#def.depth>. */
-  AVER(seg->depth == 0);
-  /* Check not shielded or protected (so that pages in hysteresis */
-  /* fund are not protected) */
-  AVER(seg->sm == AccessSetEMPTY);
-  AVER(seg->pm == AccessSetEMPTY);
 
   seg->sig = SigInvalid;
   InstFinish(CouldBeA(Inst, seg));
