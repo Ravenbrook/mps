@@ -450,6 +450,9 @@ static void shieldFlushEntries(Shield shield)
     Seg seg = shieldDequeue(shield, i);
     if (!SegIsSynced(seg)) {
       shieldSetPM(shield, seg, SegSM(seg));
+      /* If the segment has a different mode from the previous run, or
+         it's not contiguous with the previous run, then set the OS
+         protection on the previous run, and start a new run. */
       if (SegSM(seg) != mode || SegBase(seg) != limit) {
         if (base != NULL) {
           AVER(base < limit);
@@ -461,6 +464,7 @@ static void shieldFlushEntries(Shield shield)
       limit = SegLimit(seg);
     }
   }
+  /* Set the OS protection on the last run, if there is one. */
   if (base != NULL) {
     AVER(base < limit);
     ProtSet(base, limit, mode);
