@@ -185,8 +185,6 @@ static void segAbsFinish(Inst inst)
 
   AVERT(Seg, seg);
 
-  RingRemove(SegPoolRing(seg));
-
   arena = PoolArena(SegPool(seg));
 
   /* TODO: It would be good to avoid deprotecting segments eagerly
@@ -205,8 +203,9 @@ static void segAbsFinish(Inst inst)
     ShieldFlush(ArenaShield(PoolArena(SegPool(seg))));
   AVER(!seg->queued);
 
-  limit = SegLimit(seg);
+  RingRemove(SegPoolRing(seg));
 
+  limit = SegLimit(seg);
   TRACT_TRACT_FOR(tract, addr, arena, seg->firstTract, limit) {
     AVERT(Tract, tract);
     TRACT_UNSET_SEG(tract);
