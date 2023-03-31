@@ -1,7 +1,7 @@
 /* shield.c: SHIELD IMPLEMENTATION
  *
  * $Id$
- * Copyright (c) 2001-2020 Ravenbrook Limited.  See end of file for license.
+ * Copyright (c) 2001-2023 Ravenbrook Limited.  See end of file for license.
  *
  * See: idea.shield, <design/shield>.
  *
@@ -582,7 +582,7 @@ void (ShieldRaise)(Shield shield, Seg seg, AccessSet mode)
   shieldQueue(shield, seg);
 
   /* Check queue and segment consistency. */
-  AVERT(Shield, shield); /* FIXME: Does this acheive the above comment? */
+  AVERT(Shield, shield);
   AVERT(Seg, seg);
 }
 
@@ -606,7 +606,7 @@ void (ShieldLower)(Shield shield, Seg seg, AccessSet mode)
   shieldProtLower(shield, seg, mode);
 
   /* Check queue and segment consistency. */
-  AVERT(Shield, shield); /* FIXME: Does this acheive the above comment? */
+  AVERT(Shield, shield);
   AVERT(Seg, seg);
 }
 
@@ -789,7 +789,7 @@ void (ShieldCover)(Shield shield, Seg seg)
 
 /* C. COPYRIGHT AND LICENSE
  *
- * Copyright (C) 2001-2020 Ravenbrook Limited <https://www.ravenbrook.com/>.
+ * Copyright (C) 2001-2023 Ravenbrook Limited <https://www.ravenbrook.com/>.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are
