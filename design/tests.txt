@@ -311,6 +311,12 @@ least::
 
 as defined by the `.ci.github.config`_.
 
+_`.ci.run.other.deep`: CI services also run the test-make-build-deep
+target (defined in `Makefile.in`_) in order to exercise
+`design.mps.check.level.deep`_ and ensure that it stays usable.  This
+target is only run on GitHub's "ubuntu-latest" platform in order to
+save resources, but could be extended.
+
 _`.ci.run.other.targets`: On some platforms we arrange to run the testansi,
 testpollnone, testratio, and testscheme targets.  [Need to explain
 why, where, etc.  RB 2023-01-15]
