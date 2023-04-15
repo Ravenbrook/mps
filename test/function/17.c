@@ -33,7 +33,7 @@ static void test(void *stack_pointer)
  cdie(mps_arena_create(&arena, mps_arena_class_vm(), mmqaArenaSIZE),
       "create arena");
  die(mps_thread_reg(&thread, arena), "register thread");
- die(mps_fmt_create_A(&format, arena, &fmtA), "create format");
+ cdie(make_format(&format, arena), "create format");
  cdie(mps_chain_create(&chain, arena, genCOUNT, testChain), "chain_create");
 
  die(mmqa_pool_create_chain(&pool1, arena, mps_class_amc(), format, chain),

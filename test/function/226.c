@@ -100,9 +100,8 @@ static void test(void *stack_pointer)
   mps_root_create_table(&root2, arena, mps_rank_exact(), 0,
                         (mps_addr_t *)obj_table, MAXLDS),
   "create table root");
- cdie(mps_root_create_thread(&root1, arena, thread, stack_pointer), "thread root"); cdie(
-  mps_fmt_create_A(&format, arena, &fmtA),
-  "create format");
+ cdie(mps_root_create_thread(&root1, arena, thread, stack_pointer), "thread root");
+ cdie(make_format(&format, arena), "create format");
  cdie(
   mps_pool_create(&poolawl, arena, mps_class_awl(), format, getassociated),
   "create awl pool");

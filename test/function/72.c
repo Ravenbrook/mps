@@ -41,9 +41,7 @@ static void test(void *stack_pointer)
  cdie(mps_root_create_area(&root, arena, mps_rank_exact(), 0, &a[0], &a[3],
                            mps_scan_area, NULL), "create area");
 
- cdie(
-  mps_fmt_create_A(&format, arena, &fmtA),
-  "create format");
+ cdie(make_format(&format, arena), "create format");
 
  cdie(mps_chain_create(&chain, arena, genCOUNT, testChain), "chain_create");
 

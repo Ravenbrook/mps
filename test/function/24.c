@@ -28,35 +28,6 @@ static mps_addr_t myskip(mps_addr_t object)
  return (mps_addr_t) ((char *) object + OBJSIZE);
 }
 
-static void mycopy(mps_addr_t object, mps_addr_t to)
-{
-}
-
-static void mypad(mps_addr_t base, size_t size)
-{
-}
-
-static mps_addr_t myisfwd(mps_addr_t object)
-{
- return NULL;
-}
-
-static void myfwd(mps_addr_t object, mps_addr_t to)
-{
-}
-
-struct mps_fmt_A_s fmtA =
-{
- 1,
- &myscan,
- &myskip,
- &mycopy,
- &myfwd,
- &myisfwd,
- &mypad
-};
-
-
 static void test(void *stack_pointer)
 {
  mps_arena_t arena;
@@ -77,9 +48,12 @@ static void test(void *stack_pointer)
  cdie(mps_thread_reg(&thread, arena), "register thread");
 
  cdie(mps_root_create_thread(&root, arena, thread, stack_pointer), "thread root");
- cdie(
-  mps_fmt_create_A(&format, arena, &fmtA),
-  "create format");
+
+ MPS_ARGS_BEGIN(args) {
+  MPS_ARGS_ADD(args, MPS_KEY_FMT_SCAN, myscan);
+  MPS_ARGS_ADD(args, MPS_KEY_FMT_SKIP, myskip);
+  cdie(mps_fmt_create_k(&format, arena, args), "create format");
+ } MPS_ARGS_END(args);
 
  cdie(mps_chain_create(&chain, arena, genCOUNT, testChain), "chain_create");
 

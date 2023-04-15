@@ -67,9 +67,7 @@ static void test(void *stack_pointer)
  cdie(mps_thread_reg(&thread, arena), "register thread");
 
  cdie(mps_root_create_thread(&root, arena, thread, stack_pointer), "thread root");
- cdie(
-  mps_fmt_create_A(&format, arena, &fmtLO),
-  "create format");
+ cdie(make_format(&format, arena), "create format");
 
  cdie(
   mps_pool_create(&pool, arena, mps_class_lo(), format),

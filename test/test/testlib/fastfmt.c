@@ -40,19 +40,21 @@ static mps_res_t myscan(mps_ss_t ss, mps_addr_t base, mps_addr_t limit);
 static mps_addr_t myskip(mps_addr_t object);
 static void myfwd(mps_addr_t object, mps_addr_t to);
 static mps_addr_t myisfwd(mps_addr_t object);
-static void mycopy(mps_addr_t object, mps_addr_t to);
 static void mypad(mps_addr_t base, size_t size);
 
-struct mps_fmt_A_s fmtA =
+mps_res_t make_format(mps_fmt_t *fmt_o, mps_arena_t arena)
 {
- MPS_PF_ALIGN,
- &myscan,
- &myskip,
- &mycopy,
- &myfwd,
- &myisfwd,
- &mypad
-};
+ mps_res_t res;
+ MPS_ARGS_BEGIN(args) {
+  MPS_ARGS_ADD(args, MPS_KEY_FMT_SCAN, myscan);
+  MPS_ARGS_ADD(args, MPS_KEY_FMT_SKIP, myskip);
+  MPS_ARGS_ADD(args, MPS_KEY_FMT_FWD, myfwd);
+  MPS_ARGS_ADD(args, MPS_KEY_FMT_ISFWD, myisfwd);
+  MPS_ARGS_ADD(args, MPS_KEY_FMT_PAD, mypad);
+  res = mps_fmt_create_k(fmt_o, arena, args);
+ } MPS_ARGS_END(args);
+ return res;
+}
 
 /* in the following, size is the number of refs you want
    the allocated object to have
@@ -78,7 +80,6 @@ mycell *allocdumb(mps_ap_t ap, size_t size, mps_rank_t rank)
   q->data.tag = (mps_word_t) wrapper;
   q->data.assoc = NULL;
   q->data.id = nextid;
-  q->data.copycount = 0;
   q->data.numrefs = 0;
   q->data.checkedflag = 0;
   q->data.rank = rank;
@@ -111,7 +112,6 @@ mycell *allocone(mps_ap_t ap, int size, mps_rank_t rank)
   q->data.tag = MCdata + (mps_word_t) wrapper;
   q->data.assoc = NULL;
   q->data.id = nextid;
-  q->data.copycount = 0;
   q->data.numrefs = size;
   q->data.checkedflag = 0;
   q->data.rank = rank;
@@ -196,13 +196,6 @@ static mps_addr_t myskip(mps_addr_t object)
    asserts(0, "skip: bizarre obj tag at %p.", obj);
    return 0; /* not reached */
  }
-}
-
-static void mycopy(mps_addr_t object, mps_addr_t to)
-{
- mycell *boj = object;
-
- memmove(to, object, boj->data.size);
 }
 
 /* pad stores not its size but a pointer to the next object,

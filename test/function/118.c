@@ -55,23 +55,6 @@ static void simple_pad(mps_addr_t addr, size_t size)
 {
 }
 
-static void simple_copy(mps_addr_t obj, mps_addr_t to)
-{
- error("copy method not implemented in this test");
-}
-
-
-struct mps_fmt_A_s simple_fmt_A = {
-  4,
-  &simple_scan,
-  &simple_skip,
-  &simple_copy,
-  &simple_fwd,
-  &simple_is_fwd,
-  &simple_pad
-};
-
-
 static mps_addr_t make(void)
 {
   size_t size = objSIZE;
@@ -105,7 +88,15 @@ static void test(void *stack_pointer)
 
   die(mps_thread_reg(&thread, arena), "thread_reg");
 
-  die(mps_fmt_create_A(&format, arena, &simple_fmt_A), "fmt_create");
+  MPS_ARGS_BEGIN(args) {
+    MPS_ARGS_ADD(args, MPS_KEY_FMT_SCAN, simple_scan);
+    MPS_ARGS_ADD(args, MPS_KEY_FMT_SKIP, simple_skip);
+    MPS_ARGS_ADD(args, MPS_KEY_FMT_FWD, simple_fwd);
+    MPS_ARGS_ADD(args, MPS_KEY_FMT_ISFWD, simple_is_fwd);
+    MPS_ARGS_ADD(args, MPS_KEY_FMT_PAD, simple_pad);
+    die(mps_fmt_create_k(&format, arena, args), "fmt_create");
+  } MPS_ARGS_END(args);
+
   die(mps_chain_create(&chain, arena, genCOUNT, testChain), "chain_create");
 
   die(mmqa_pool_create_chain(&pool, arena, mps_class_amc(), format, chain),

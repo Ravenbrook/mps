@@ -22,22 +22,9 @@ static mps_res_t scan(mps_ss_t ss, mps_addr_t base, mps_addr_t limit);
 static mps_addr_t skip(mps_addr_t object);
 static void move(mps_addr_t object, mps_addr_t to);
 static mps_addr_t isMoved(mps_addr_t object);
-static void copy(mps_addr_t old, mps_addr_t new);
-static void pad(mps_addr_t base, size_t size);
 
 static void stepper(mps_addr_t addr, mps_fmt_t fmt, mps_pool_t pool,
                     void *p, size_t s);
-
-static mps_fmt_A_s locv_fmt =
-  {
-    (mps_align_t)0,  /* .fmt.align.delayed: to be filled in */
-    scan,
-    skip,
-    copy,
-    move,
-    isMoved,
-    pad
-  };
 
 static mps_addr_t roots[4];
 
@@ -70,8 +57,6 @@ int main(int argc, char *argv[])
 
   testlib_init(argc, argv);
 
-  locv_fmt.align = sizeof(void *);  /* .fmt.align.delayed */
-
   die(mps_arena_create(&arena, mps_arena_class_vm(), testArenaSIZE),
       "mps_arena_create");
   die(mps_root_create_table(&root, arena, mps_rank_exact(),
@@ -79,7 +64,14 @@ int main(int argc, char *argv[])
                             roots, (sizeof(roots)/sizeof(*roots))),
       "RootCreate");
 
-  die(mps_fmt_create_A(&format, arena, &locv_fmt), "FormatCreate");
+  MPS_ARGS_BEGIN(args) {
+    MPS_ARGS_ADD(args, MPS_KEY_ALIGN, sizeof(void *));
+    MPS_ARGS_ADD(args, MPS_KEY_FMT_SCAN, scan);
+    MPS_ARGS_ADD(args, MPS_KEY_FMT_SKIP, skip);
+    MPS_ARGS_ADD(args, MPS_KEY_FMT_FWD, move);
+    MPS_ARGS_ADD(args, MPS_KEY_FMT_ISFWD, isMoved);
+    die(mps_fmt_create_k(&format, arena, args), "FormatCreate");
+  } MPS_ARGS_END(args);
 
   die(mps_pool_create(&pool, arena, mps_class_lo(), format), "LOCreate");
 
@@ -160,21 +152,6 @@ static mps_addr_t isMoved(mps_addr_t object)
   return (mps_addr_t)NULL;
 }
 
-
-static void copy(mps_addr_t old, mps_addr_t new)
-{
-  testlib_unused(old);
-  testlib_unused(new);
-  cdie(0, "copy");
-}
-
-
-static void pad(mps_addr_t base, size_t size)
-{
-  testlib_unused(base);
-  testlib_unused(size);
-  cdie(0, "pad");
-}
 
 static void stepper(mps_addr_t addr, mps_fmt_t fmt, mps_pool_t pool,
                     void *p, size_t s)

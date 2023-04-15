@@ -63,7 +63,6 @@ int counters[PAD_MULTI_COUNT+1];
 int prevcounters[PAD_MULTI_COUNT+1];
 int maxcounters[PAD_MULTI_COUNT+1] = {0};
 
-static long int maxcopy = 0;
 static int freeze=0;
 
 #define INCCOUNT(c) if(!freeze) counters[c]+=1
@@ -124,19 +123,7 @@ static mps_res_t myscan(mps_ss_t ss, mps_addr_t base, mps_addr_t limit);
 static mps_addr_t myskip(mps_addr_t object);
 static void myfwd(mps_addr_t object, mps_addr_t to);
 static mps_addr_t myisfwd(mps_addr_t object);
-static void mycopy(mps_addr_t object, mps_addr_t to);
 static void mypad(mps_addr_t base, size_t size);
-
-struct mps_fmt_A_s fmtA =
-{
- MPS_PF_ALIGN,
- &myscan,
- &myskip,
- &mycopy,
- &myfwd,
- &myisfwd,
- &mypad
-};
 
 /* in the following, size is the number of refs you want
    the allocated object to have
@@ -264,30 +251,6 @@ static mps_addr_t myskip(mps_addr_t object)
  }
 }
 
-static void mycopy(mps_addr_t object, mps_addr_t to)
-{
- mycell *boj = object;
- mycell *toj = to;
-
- asserts(boj->tag = MCdata, "copy: non-data object");
-
- INCCOUNT(COPY_COUNT);
- commentif(formatcomments, "copy: %p -> %p\n", object, to);
-
-/* this line would be bad, because the objects might overlap,
-   and then C doesn't guarantee to do the right thing!
-
-   *toj = *boj;
-*/
-
- memmove(to, object, boj->data.size);
- if (!freeze)
- {
-  toj->data.copycount = (toj->data.copycount)+1;
-  if (toj->data.copycount > maxcopy) maxcopy = toj->data.copycount;
- }
-}
-
 /* pad stores not its size but a pointer to the next object,
    because we know we'll never be asked to copy it
 */
@@ -393,9 +356,15 @@ static void test(void *stack_pointer)
  cdie(mps_thread_reg(&thread, arena), "register thread");
 
  cdie(mps_root_create_thread(&root, arena, thread, stack_pointer), "thread root");
- cdie(
-  mps_fmt_create_A(&format, arena, &fmtA),
-  "create format");
+
+ MPS_ARGS_BEGIN(args) {
+  MPS_ARGS_ADD(args, MPS_KEY_FMT_SCAN, myscan);
+  MPS_ARGS_ADD(args, MPS_KEY_FMT_SKIP, myskip);
+  MPS_ARGS_ADD(args, MPS_KEY_FMT_FWD, myfwd);
+  MPS_ARGS_ADD(args, MPS_KEY_FMT_ISFWD, myisfwd);
+  MPS_ARGS_ADD(args, MPS_KEY_FMT_PAD, mypad);
+  die(mps_fmt_create_k(&format, arena, args), "create format");
+ } MPS_ARGS_END(args);
 
  formatcomments = 0;
 

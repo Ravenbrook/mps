@@ -239,7 +239,7 @@ static void test_pool(int mode, mps_arena_t arena, mps_chain_t chain,
   mps_pool_t pool;
   mps_root_t mps_root;
 
-  die(mps_fmt_create_A(&fmt, arena, dylan_fmt_A()), "fmt_create\n");
+  die(dylan_fmt(&fmt, arena), "fmt_create");
   MPS_ARGS_BEGIN(args) {
     MPS_ARGS_ADD(args, MPS_KEY_FORMAT, fmt);
     if (mode == ModePOLL) {

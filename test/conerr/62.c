@@ -31,7 +31,7 @@ static void test(void *stack_pointer)
  mps_arena_park(arena);
  cdie(mps_thread_reg(&thread, arena), "register thread");
  cdie(mps_root_create_thread(&root, arena, thread, marker), "create root");
- cdie(mps_fmt_create_A(&format, arena, &fmtA), "create format");
+ cdie(make_format(&format, arena), "create format");
  MPS_ARGS_BEGIN(args) {
    MPS_ARGS_ADD(args, MPS_KEY_FORMAT, format);
    cdie(mps_pool_create_k(&pool_ams, arena, mps_class_ams(), args), "ams pool");

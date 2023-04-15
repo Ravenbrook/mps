@@ -55,7 +55,7 @@ static void test(void *stack_pointer)
   mps_root_create_table(&root, arena, mps_rank_exact(), 0, (mps_addr_t*)&z[0], 10),
   "create table root");
 
- die(mps_fmt_create_A(&format, arena, &fmtA), "create format");
+ cdie(make_format(&format, arena), "create format");
  cdie(mps_chain_create(&chain, arena, genCOUNT, testChain), "chain_create");
 
  cdie(mmqa_pool_create_chain(&pool, arena, mps_class_amc(), format, chain),

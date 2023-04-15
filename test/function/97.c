@@ -118,7 +118,7 @@ static mps_res_t area_scan(mps_ss_t ss, mps_addr_t base, mps_addr_t limit, void 
   {
    mycell *obj = base;
    mps_res_t res;
-   mps_addr_t p, q;
+   mps_addr_t p;
 
    switch (obj->tag & 0x3)
    {
@@ -187,9 +187,7 @@ static void test(void *stack_pointer)
   mps_root_create_table(&root1, arena, mps_rank_ambig(), 0, addr, 4),
   "create b root table");
 
- cdie(
-  mps_fmt_create_A(&format, arena, &fmtA),
-  "create format");
+ cdie(make_format(&format, arena), "create format");
 
  cdie(mps_chain_create(&chain, arena, genCOUNT, testChain), "chain_create");
 

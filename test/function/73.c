@@ -37,8 +37,7 @@ static void test(void *stack_pointer)
                             (mps_addr_t *)&exfmt_root, 1),
       "create table root");
 
- cdie(mps_fmt_create_A(&format, arena, &fmtA),
-      "create format");
+ cdie(make_format(&format, arena), "create format");
 
  cdie(mps_pool_create(&poolawl, arena, mps_class_awl(), format, getassociated),
       "create pool");

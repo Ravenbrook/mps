@@ -9,7 +9,6 @@
  */
 
 #include "fmtdy.h"
-#include "fmtno.h"
 #include "fmthe.h"
 #include "mps.h"
 
@@ -23,8 +22,6 @@
 #define notreached()    assert(0)
 
 #define AddHeader(p) ((mps_addr_t)((char*)(p) + headerSIZE))
-
-static mps_fmt_A_s *dylan_format;
 
 static mps_res_t dylan_header_scan(mps_ss_t mps_ss,
                                    mps_addr_t base, mps_addr_t limit)
@@ -103,7 +100,7 @@ static mps_addr_t dylan_header_skip(mps_addr_t object)
       break;
   }
 
-  p = dylan_format->skip(object);
+  p = dylan_skip(object);
   p = AddHeader(p);
   return p;
 }
@@ -119,7 +116,7 @@ static mps_addr_t dylan_header_isfwd(mps_addr_t object)
 
   assert(header == realHeader);
 
-  return dylan_format->isfwd(object);
+  return dylan_isfwd(object);
 }
 
 
@@ -129,41 +126,22 @@ static void dylan_header_pad(mps_addr_t addr, size_t fullSize)
 }
 
 
-/* HeaderFormat -- format descriptor for this format */
-
-static struct mps_fmt_auto_header_s HeaderFormat =
-{
-  ALIGN,
-  dylan_header_scan,
-  dylan_header_skip,
-  NULL, /* later overwritten by dylan format forward method */
-  dylan_header_isfwd,
-  dylan_header_pad,
-  (size_t)headerSIZE
-};
-
-
-/* HeaderWeakFormat -- format descriptor for this format */
-
-static struct mps_fmt_auto_header_s HeaderWeakFormat =
-{
-  ALIGN,
-  dylan_header_scan_weak,
-  dylan_header_skip,
-  no_fwd,
-  no_isfwd,
-  no_pad,
-  (size_t)headerSIZE
-};
-
-
 /* EnsureHeaderFormat -- create a format object for this format */
 
 mps_res_t EnsureHeaderFormat(mps_fmt_t *mps_fmt_o, mps_arena_t arena)
 {
-    dylan_format = dylan_fmt_A();
-    HeaderFormat.fwd = dylan_format->fwd;
-    return mps_fmt_create_auto_header(mps_fmt_o, arena, &HeaderFormat);
+  mps_res_t res;
+  MPS_ARGS_BEGIN(args) {
+    MPS_ARGS_ADD(args, MPS_KEY_ALIGN, ALIGN);
+    MPS_ARGS_ADD(args, MPS_KEY_FMT_HEADER_SIZE, headerSIZE);
+    MPS_ARGS_ADD(args, MPS_KEY_FMT_SCAN, dylan_header_scan);
+    MPS_ARGS_ADD(args, MPS_KEY_FMT_SKIP, dylan_header_skip);
+    MPS_ARGS_ADD(args, MPS_KEY_FMT_FWD, dylan_fwd);
+    MPS_ARGS_ADD(args, MPS_KEY_FMT_ISFWD, dylan_header_isfwd);
+    MPS_ARGS_ADD(args, MPS_KEY_FMT_PAD, dylan_header_pad);
+    res = mps_fmt_create_k(mps_fmt_o, arena, args);
+  } MPS_ARGS_END(args);
+  return res;
 }
 
 
@@ -171,8 +149,18 @@ mps_res_t EnsureHeaderFormat(mps_fmt_t *mps_fmt_o, mps_arena_t arena)
 
 mps_res_t EnsureHeaderWeakFormat(mps_fmt_t *mps_fmt_o, mps_arena_t arena)
 {
-    dylan_format = dylan_fmt_A();
-    return mps_fmt_create_auto_header(mps_fmt_o, arena, &HeaderWeakFormat);
+  mps_res_t res;
+  MPS_ARGS_BEGIN(args) {
+    MPS_ARGS_ADD(args, MPS_KEY_ALIGN, ALIGN);
+    MPS_ARGS_ADD(args, MPS_KEY_FMT_HEADER_SIZE, headerSIZE);
+    MPS_ARGS_ADD(args, MPS_KEY_FMT_SCAN, dylan_header_scan_weak);
+    MPS_ARGS_ADD(args, MPS_KEY_FMT_SKIP, dylan_header_skip);
+    MPS_ARGS_ADD(args, MPS_KEY_FMT_FWD, dylan_fwd);
+    MPS_ARGS_ADD(args, MPS_KEY_FMT_ISFWD, dylan_header_isfwd);
+    MPS_ARGS_ADD(args, MPS_KEY_FMT_PAD, dylan_header_pad);
+    res = mps_fmt_create_k(mps_fmt_o, arena, args);
+  } MPS_ARGS_END(args);
+  return res;
 }
 
 

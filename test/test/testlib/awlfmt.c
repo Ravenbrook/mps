@@ -31,7 +31,6 @@ enum
  SCANOBJ_COUNT, /* = #objects scanned (real ones, that is) */
  SCANPAD_COUNT,  /* = #pads scanned */
  SCANHEART_COUNT,
- COPY_COUNT,
  SKIP_COUNT,
  FWD_COUNT,
  ISFWD_COUNT,
@@ -45,7 +44,6 @@ int counters[PAD_COUNT+1];
 int prevcounters[PAD_COUNT+1];
 int maxcounters[PAD_COUNT+1] = {0};
 
-static long int maxcopy = 0;
 static int freeze=0;
 
 /* The AWL pool makes certain assumptions about the object format,
@@ -103,20 +101,21 @@ static mps_res_t myscan(mps_ss_t ss, mps_addr_t base, mps_addr_t limit);
 static mps_addr_t myskip(mps_addr_t object);
 static void myfwd(mps_addr_t object, mps_addr_t to);
 static mps_addr_t myisfwd(mps_addr_t object);
-static void mycopy(mps_addr_t object, mps_addr_t to);
 static void mypad(mps_addr_t base, size_t size);
 
-struct mps_fmt_A_s fmtA =
+mps_res_t make_format(mps_fmt_t *fmt_o, mps_arena_t arena)
 {
- MPS_PF_ALIGN,
- &myscan,
- &myskip,
- &mycopy,
- &myfwd,
- &myisfwd,
- &mypad
-};
-
+ mps_res_t res;
+ MPS_ARGS_BEGIN(args) {
+  MPS_ARGS_ADD(args, MPS_KEY_FMT_SCAN, myscan);
+  MPS_ARGS_ADD(args, MPS_KEY_FMT_SKIP, myskip);
+  MPS_ARGS_ADD(args, MPS_KEY_FMT_FWD, myfwd);
+  MPS_ARGS_ADD(args, MPS_KEY_FMT_ISFWD, myisfwd);
+  MPS_ARGS_ADD(args, MPS_KEY_FMT_PAD, mypad);
+  res = mps_fmt_create_k(fmt_o, arena, args);
+ } MPS_ARGS_END(args);
+ return res;
+}
 
 /* in the following, size is the number of refs you want
    the allocated object to have
@@ -144,7 +143,6 @@ mycell *allocdumb(mps_ap_t ap, size_t size, int countflag)
   q->data.tag = (mps_word_t) wrapper;
   q->data.assoc = NULL;
   q->data.id = nextid;
-  q->data.copycount = 0;
   q->data.numrefs = 0;
   q->data.checkedflag = 0;
   q->data.countflag = countflag;
@@ -181,7 +179,6 @@ mycell *allocone(mps_ap_t ap, int size, int countflag)
   q->data.tag = MCdata + (mps_word_t) wrapper;
   q->data.assoc = NULL;
   q->data.id = nextid;
-  q->data.copycount = 0;
   q->data.numrefs = size;
   q->data.checkedflag = 0;
   q->data.countflag = countflag;
@@ -296,32 +293,6 @@ static mps_addr_t myskip(mps_addr_t object)
  }
 }
 
-static void mycopy(mps_addr_t object, mps_addr_t to)
-{
- mycell *boj = object;
- mycell *toj = to;
-
- asserts(boj->tag == MCdata + (mps_word_t) wrapper,
-  "copy: non-data object");
-
- INCCOUNTIF(boj->data.countflag, COPY_COUNT);
- commentif(formatcomments, "copy: %li: %p -> %p\n",
-  boj->data.id, object, to);
-
-/* this line would be bad, because the objects might overlap,
-   and then C doesn't guarantee to do the right thing!
-
-   *toj = *boj;
-*/
-
- memmove(to, object, boj->data.size);
- if (!freeze)
- {
-  toj->data.copycount = (toj->data.copycount)+1;
-  if (toj->data.copycount > maxcopy) maxcopy = toj->data.copycount;
- }
-}
-
 /* pad stores not its size but a pointer to the next object,
    because we know we'll never be asked to copy it
 */
@@ -420,13 +391,6 @@ long int getid(mycell *obj)
  return obj->data.id;
 }
 
-long int getcopycount(mycell *obj)
-{
- asserts(obj->tag == MCdata + (mps_word_t) wrapper,
-  "getcopycount: non-data object.");
- return obj->data.copycount;
-}
-
 long int getsize(mycell *obj)
 {
  asserts(obj->tag == MCdata + (mps_word_t) wrapper,
@@ -507,7 +471,6 @@ void resetcounters(void)
   prevcounters[i]=0;
   maxcounters[i]=0;
  }
- maxcopy = 0;
 }
 
 void updatecounters(void)
@@ -542,7 +505,6 @@ void displaycounters(void)
  d_c(SCANOBJ_COUNT, "object scans");
  d_c(SCANHEART_COUNT, "heart scans");
  d_c(SCANPAD_COUNT, "pad scans");
- d_c(COPY_COUNT, "copys");
  d_c(SKIP_COUNT, "skips");
  d_c(FWD_COUNT, "fwds");
  d_c(ISFWD_COUNT, "isfwds");
@@ -561,7 +523,6 @@ void displaymaxcounters(void)
  d_mc(SCANOBJ_COUNT, "object scans");
  d_mc(SCANHEART_COUNT, "heart scans");
  d_mc(SCANPAD_COUNT, "pad scans");
- d_mc(COPY_COUNT, "copys");
  d_mc(SKIP_COUNT, "skips");
  d_mc(FWD_COUNT, "fwds");
  d_mc(ISFWD_COUNT, "isfwds");
@@ -569,7 +530,5 @@ void displaymaxcounters(void)
  d_mc(ALLOC_COUNT, "allocations");
  d_mc(DYING_REFERENCE_COUNT, "references fixed to NULL");
  d_mc(PAD_COUNT, "pads");
- comment("--------");
- comment("max copies of a single object: %li.", maxcopy);
  comment("--------");
 }

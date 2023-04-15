@@ -47,7 +47,7 @@ static void test(void *stack_pointer)
   mps_root_create_table(&root1,arena,mps_rank_ambig(),0,&exfmt_root,1),
   "create table root");
 
- die(mps_fmt_create_A(&format, arena, &fmtA), "create format");
+ cdie(make_format(&format, arena), "create format");
  cdie(mps_chain_create(&chain, arena, genCOUNT, testChain), "chain_create");
 
  die(mmqa_pool_create_chain(&poolamc, arena, mps_class_amc(), format, chain),

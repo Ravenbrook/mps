@@ -308,7 +308,7 @@ static void testscriptB(testDataStruct *testData)
   thr = testData->thr;
   script = testData->script;
 
-  die(mps_fmt_create_A(&fmt, arena, dylan_fmt_A()), "fmt_create");
+  die(dylan_fmt(&fmt, arena), "fmt_create");
   die(mps_chain_create(&chain, arena, genCOUNT, testChain), "chain_create");
   die(mps_pool_create(&amc, arena, mps_class_amc(), fmt, chain),
       "pool_create amc");

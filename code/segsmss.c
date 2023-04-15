@@ -735,7 +735,7 @@ static void test(mps_arena_t arena)
   mps_chain_t chain;
   static mps_gen_param_s genParam = {1024, 0.2};
 
-  die(mps_fmt_create_A(&format, arena, dylan_fmt_A()), "fmt_create");
+  die(dylan_fmt(&format, arena), "fmt_create");
   die(mps_chain_create(&chain, arena, 1, &genParam), "chain_create");
 
   MPS_ARGS_BEGIN(args) {

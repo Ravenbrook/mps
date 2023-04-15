@@ -100,7 +100,7 @@ static void test(void *stack_pointer)
   struct timespec timespec = { 0, 1000000 };
 
   die(mps_arena_create_k(&arena, mps_arena_class_vm(), mps_args_none), "mps_arena_create_k");
-  die(mps_fmt_create_A(&format, arena, &fmtA), "create format");
+  cdie(make_format(&format, arena), "create format");
   MPS_ARGS_BEGIN(args) {
      MPS_ARGS_ADD(args, MPS_KEY_FORMAT, format);
      die(mps_pool_create_k(&pool, arena, mps_class_amc(), args), "mps_pool_create_k");
