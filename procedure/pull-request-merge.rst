@@ -101,7 +101,14 @@ When you finish the checklist, decide whether to start
 
 #. Is the merge approved by an approving review?
 
-   [FIXME: Should this refer to proc.review.exit?  RB 2023-05-30]
+   [Technically, the work to be merged must have passed
+   `proc.review.exit
+   <https://github.com/Ravenbrook/mps/blob/branch/2023-01-19/review-procedure/procedure/review.rst#58-review-exit>`_
+   but at the time of writing, proc.review has not itself been
+   merged.  It is pending in `GitHub pull request #123
+   <https://github.com/Ravenbrook/mps/pull/123>`_.  In practice, we
+   are applying that procedure.  Once we merge the review procedure
+   itself, this comment should be updated.  RB 2023-05-30]
 
 #. Has the contributor licensed their work?
 
@@ -386,8 +393,9 @@ use the button to to replace sections 4 and 5, the procedure, but not
 section 3, the pre-merge checklist.  We may be able to incorporate the
 checklist into GitHub's interface using a `pull request template
 <https://docs.github.com/en/communities/using-templates-to-encourage-useful-issues-and-pull-requests/creating-a-pull-request-template-for-your-repository>`_.
-
-[FIXME: Create a GitHub issue for this.  RB 2023-05-30]
+[See `this comment on GitHub issue #98
+<https://github.com/Ravenbrook/mps/issues/98#issuecomment-1376945162>`__.
+RB 2023-05-30]
 
 
 .. _durable branch naming convention:
