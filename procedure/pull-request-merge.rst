@@ -52,8 +52,8 @@ The purpose of this procedure is:
 
 2. protect the MPS from introduction of defects
 
-3. maintain and protect the permanent record of the MPS in Perforce
-   and Git, so that defects can be discovered, fixed, and prevented
+3. maintain and protect the permanent record of the MPS in Git, so
+   that defects can be discovered, fixed, and prevented
 
 As with any procedure, you can vary this one to meet this purpose, but
 you should probably read section "`6. Rationale`_".
@@ -101,11 +101,7 @@ When you finish the checklist, decide whether to start
 
 #. Is the merge approved by an approving review?
 
-   The `Ravenbrook MPS repo on GitHub`_ is set to require an approving
-   review and GitHub will block a push (step 8) without one.  If you
-   push an unapproved merge to Perforce, this will cause gitpushbot to
-   fail, and leave Perforce and GitHub out of sync.  *Do not push to
-   Perforce without GitHub approval.*
+   [FIXME: Should this refer to proc.review.exit?  RB 2023-05-30]
 
 #. Has the contributor licensed their work?
 
@@ -181,46 +177,12 @@ These steps will only rarely need repeating.
 #. If the merge has conflicts, you will need competence in using Git
    to resolve merge conflicts.
 
-#. If you want to vary the procedure, you will need to understand how
-   Perforce Git Fusion [Perforce_2017]_ connects Ravenbrook's Perforce
-   repository to the `Ravenbrook MPS repo on GitHub`_.
-
-#. Ensure your public SSH key is submitted in Perforce at
-   //.git-fusion/users/USER/keys/
-
-   This is the public key that the SSH used by your Git will use to
-   connect to perforce.ravenbrook.com.
-
-   **NOTE**: As of 2022-11, you may not be able to connect to Perforce
-   Git Fusion without specifying an old public key algorithm.  See
-   `"Connecting to Git Fusion"
-   <https://info.ravenbrook.com/mail/2022/11/29/21-01-14/0/>`__.
-
-#. Ensure your e-mail address is submitted in Perforce at
-   //.git-fusion/users/p4gf_usermap and matches your Perforce user
-   record.
-
 #. Clone the Ravenbrook MPS GitHub repository and name the remote
    "github" [#github]_.  This will give you access to CI to
    build and test the merge.  (If you're an MPS developer you can use
    your existing repo.)  ::
 
      git clone -o github git@github.com:Ravenbrook/mps.git
-
-#. Set your e-mail address for commits to the repo to match the one in
-   your Perforce user record, e.g. from within the "mps" repo
-   directory ::
-
-     git config user.email spqr@ravenbrook.com
-
-   and possibly your name if you don't have that set in Git globally ::
-
-     git config user.name 'Julius Cesar'
-
-#. Add the Git Fusion mps-public repo, which is the interface to
-   Ravenbrook's Perforce.  From within the "mps" repo directory ::
-
-     git remote add perforce ssh://git@perforce.ravenbrook.com:1622/mps-public
 
 .. [#github] There's nothing special about this name -- it's just
              assumed in the examples in the procedure.
@@ -263,35 +225,11 @@ working repo before that point.
      git remote add captain-contrib https://gitlab.com/captcontrib/mps.git
      git fetch captain-contrib mps-speed-hax:branch/2023-01-06/speed-hax
 
-   Double check you've got the branch name right.  Using the wrong
-   branch naming `causes permanent pollution in the Ravenbrook
-   Perforce repository
-   <https://info.ravenbrook.com/mail/2023/01/07/15-06-41/0/>`_.
-
 2. Optionally, let other people know that you're working on a merge
    into master.  Negotiate to avoid racing them to push to the master
    codeline (step 7) because that will create extra merging work.
 
-3. Ensure your local master is up to date with Perforce::
-
-     git pull --ff-only perforce master
-
-   If you get an error, then GitHub's master and Perforce's master are
-   in out of sync, and this procedure fails.
-
-   Ensure your local master is not ahead of Perforce::
-
-     git push --dry-run perforce
-
-   If this shows anything other than "Everything up-to-date." then
-   GitHub's master and Perforce's master are in out of sync, and this
-   procedure fails.
-
-   [It may be possible to fix that here and now and continue.  That's
-   a subject for a whole nother procedure that we don't currently
-   have.  RB 2023-01-12]
-
-4. Merge the branch in to your local master::
+3. Merge the branch in to your local master::
 
      git merge --no-ff branch/2023-01-06/speed-hax
 
@@ -310,7 +248,7 @@ working repo before that point.
    branch.  If you still can't resolve conflicts, this procedure
    fails.
 
-5. Maybe build and test locally.  If either
+4. Maybe build and test locally.  If either
 
    - the merge was non-trivial
    - there has been any rebasing (see step 7)
@@ -329,7 +267,7 @@ working repo before that point.
    fails, and you need to go back to the source of the branch,
    e.g. the pull request and its original author.  Something's wrong!
 
-6. Maybe build and test using CI.  As with step 5, if either
+5. Maybe build and test using CI.  As with step 5, if either
 
    - the merge was non-trivial
    - there has been any rebasing (see step 7)
@@ -347,52 +285,17 @@ working repo before that point.
 
    See build (step 5) about what to do if tests do not pass.
 
-7. Submit your merged master and the branch to Perforce::
-
-     git push perforce master branch/2023-01-06/speed-hax
-
-   **Important**: Do *not* force this push.
-
-   If this fails, someone has submitted changes to the master codeline
-   since you started.
-
-   You can attempt to rebase your work on those changes::
-
-     git pull --rebase perforce
-
-   then go back to testing (step 5).
-
-   Alternatively, you could undo your merging work::
-
-     git reset --hard perforce/master
-
-   then go back to merging (step 4).
-
-8. Optionally, if and *only if* the Perforce push (step 7) succeeded,
-   you can also push to GitHub::
+6. Submit your merged master and the branch to GitHub::
 
      git push github master branch/2023-01-06/speed-hax
 
-   If you don't do this, then within `30 minutes
-   <https://info.ravenbrook.com/infosys/robots/gitpushbot/etc/crontab>`_
-   check that the merge appears in `the commits in the Ravenbrook MPS
-   repo on GitHub <https://github.com/Ravenbrook/mps/commits/master>`_.
-
-   If they do not appear:
-
-   1. Check email for error messages from gitpushbot and resolve them.
-
-   2. Check (or ask a sysadmin to check) that gitpushbot is running
-      on Berunda and restart it if necessary, or ask a sysadmin to do
-      this.
-
-9. Eyeball the pull request and related issues on GitHub to make sure
+7. Eyeball the pull request and related issues on GitHub to make sure
    the merge was recorded correctly.  Check that any issues *not
    completely resolved* by the merge were not closed.  Re-open them if
    necessary.
 
-10. Edit the comment you made in `3. Pre-merge checklist`_ to record
-    the end time of the merge and how long you spent merging, like::
+8. Edit the comment you made in `3. Pre-merge checklist`_ to record
+   the end time of the merge and how long you spent merging, like::
 
       6. End time 11:20.  Merge took 17 mins.
 
@@ -451,10 +354,10 @@ and so we should not edit it.
 6.2. Why not press the GitHub merge button?
 ...........................................
 
-We cannot use the GitHub pull request merge button because it would
-put the GitHub master branch out of sync with (ahead of) Perforce.
-Currently, Perforce is the authoritative home of the MPS, and the Git
-repository is a mirror.
+In the past, we could not use the GitHub pull request merge button
+because it would have put the GitHub master branch out of sync with
+(ahead of) Perforce.  However, Git is now the authoritative home of
+the MPS, and the Perforce repository is mothballed.
 
 According to `GitHub's "About pull request merges"
 <https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/incorporating-changes-from-a-pull-request/about-pull-request-merges>`_:
@@ -477,12 +380,14 @@ says:
   GITHUB_SHA for this event is the last merge commit of the pull
   request merge branch.
 
-So, `once Git becomes the home
-<https://github.com/Ravenbrook/mps/issues/98>`_ we will be able to use
-the button to to replace sections 4 and 5, the procedure, but not
+Now that `Git has becomes the home
+<https://github.com/Ravenbrook/mps/issues/98>`_ we could potentially
+use the button to to replace sections 4 and 5, the procedure, but not
 section 3, the pre-merge checklist.  We may be able to incorporate the
 checklist into GitHub's interface using a `pull request template
 <https://docs.github.com/en/communities/using-templates-to-encourage-useful-issues-and-pull-requests/creating-a-pull-request-template-for-your-repository>`_.
+
+[FIXME: Create a GitHub issue for this.  RB 2023-05-30]
 
 
 .. _durable branch naming convention:
@@ -553,6 +458,7 @@ B. Document History
 2023-01-23  RB_    Adding measurements.
 2023-01-25  RB_    Responding to mini-review_.
 2023-01-31  RB_    Adding instructions for recording the merge.
+2023-05-30  RB_    Perforce Divorce: removing synchronisation with Perforce repository.
 ==========  =====  ==================================================
 
 .. _RB: mailto:rb@ravenbrook.com
