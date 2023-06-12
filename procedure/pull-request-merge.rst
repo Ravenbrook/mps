@@ -200,7 +200,7 @@ These steps will only rarely need repeating.
 5. Merging procedure
 --------------------
 
-Note: At any point before a successful "push" in step 7, this
+Note: At any point before a successful "push" in step 6, this
 procedure can be abandoned without harm.  All work is local to your
 working repo before that point.
 
@@ -234,7 +234,7 @@ working repo before that point.
 
 2. Optionally, let other people know that you're working on a merge
    into master.  Negotiate to avoid racing them to push to the master
-   codeline (step 7) because that will create extra merging work.
+   codeline (step 6) because that will create extra merging work.
 
 3. Merge the branch in to your local master::
 
@@ -258,7 +258,7 @@ working repo before that point.
 4. Maybe build and test locally.  If either
 
    - the merge was non-trivial
-   - there has been any rebasing (see step 7)
+   - there has been any rebasing (see step 6)
    - there were failed or missing build results from CI
 
    then build and test the merge result locally if possible.  For
@@ -270,14 +270,14 @@ working repo before that point.
    platforms.
 
    If tests do not pass, review your conflict resolution from the
-   merge (step 4), and if that doesn't fix things, the procedure
+   merge (step 3), and if that doesn't fix things, the procedure
    fails, and you need to go back to the source of the branch,
    e.g. the pull request and its original author.  Something's wrong!
 
-5. Maybe build and test using CI.  As with step 5, if either
+5. Maybe build and test using CI.  As with step 4, if either
 
    - the merge was non-trivial
-   - there has been any rebasing (see step 7)
+   - there has been any rebasing (see step 6)
    - there were failed or missing build results from CI
 
    then push the merge to a fresh branch in the `Ravenbrook MPS repo
@@ -290,11 +290,28 @@ working repo before that point.
    results in the `Travis CI build history for the repo`_ and in the
    `GitHub workflows for the repo`_.
 
-   See build (step 5) about what to do if tests do not pass.
+   See build (step 4) about what to do if tests do not pass.
 
 6. Submit your merged master and the branch to GitHub::
 
      git push github master branch/2023-01-06/speed-hax
+
+   **Important**: Do *not* force this push.
+
+   If this fails, someone has submitted changes to the master codeline
+   since you started.
+
+   You can attempt to rebase your work on those changes::
+
+     git pull --rebase perforce
+
+   then go back to testing (step 4).
+
+   Alternatively, you could undo your merging work::
+
+     git reset --hard perforce/master
+
+   then go back to merging (step 3).
 
 7. Eyeball the pull request and related issues on GitHub to make sure
    the merge was recorded correctly.  Check that any issues *not
