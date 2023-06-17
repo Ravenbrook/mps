@@ -273,6 +273,7 @@ TEST_TARGETS=\
     finalcv \
     finaltest \
     forktest \
+    forth \
     fotest \
     gcbench \
     landtest \
@@ -504,6 +505,9 @@ $(PFM)/$(VARIETY)/finaltest: $(PFM)/$(VARIETY)/finaltest.o \
 	$(FMTDYTSTOBJ) $(TESTLIBOBJ) $(PFM)/$(VARIETY)/mps.a
 
 $(PFM)/$(VARIETY)/forktest: $(PFM)/$(VARIETY)/forktest.o \
+	$(TESTLIBOBJ) $(PFM)/$(VARIETY)/mps.a
+
+$(PFM)/$(VARIETY)/forth: $(PFM)/$(VARIETY)/forth.o \
 	$(TESTLIBOBJ) $(PFM)/$(VARIETY)/mps.a
 
 $(PFM)/$(VARIETY)/fotest: $(PFM)/$(VARIETY)/fotest.o \
