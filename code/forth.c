@@ -7,8 +7,8 @@
  */
 
 #include "mps.h"
-#include "mpscmvff.h"
 #include "mpsavm.h"
+#include "mpscamc.h"
 #include "testlib.h"
 
 #include <assert.h>
@@ -31,21 +31,154 @@
  * whose first field points to the type of types.
  */
 
+#define OBJ_ALIGN sizeof(obj_t)
+
+typedef struct obj_s *obj_t;
+
 typedef struct type_s *type_t;
 typedef struct type_s {
   type_t type;          /* == &type_type */
   const char *name;     /* printable name of type */
+  mps_res_t (*scan)(mps_ss_t, obj_t);
+  mps_addr_t (*skip)(mps_addr_t);
 } type_s;
 
-typedef struct obj_s *obj_t;
 typedef struct obj_s {
   type_t type;          /* object type */
 } obj_s;
 
+static mps_res_t obj_scan(mps_ss_t ss, obj_t obj)
+{
+  MPS_SCAN_BEGIN(ss) {
+    mps_res_t res;
+    mps_addr_t addr = obj->type;
+    res = MPS_FIX12(ss, &addr);
+    if (res != MPS_RES_OK) return res;
+    obj->type = addr;
+  } MPS_SCAN_END(ss);
+  return MPS_RES_OK;
+}
+
+static mps_addr_t type_skip(mps_addr_t addr)
+{
+  return (char *)addr + sizeof(type_s);
+}
+
 static type_s type_type = {
   &type_type,
-  "type"
+  "type",
+  obj_scan, /* type_s has no other scannable fields */
+  type_skip
 };
+
+
+/* Object format for MPS */
+
+static mps_addr_t fmt_skip(mps_addr_t addr)
+{
+  return ((obj_t)addr)->type->skip(addr);
+}
+
+static mps_res_t fmt_scan(mps_ss_t ss, mps_addr_t base, mps_addr_t limit)
+{
+  while (base < limit) {
+    mps_res_t res = ((obj_t)base)->type->scan(ss, base);
+    if (res != MPS_RES_OK)
+      return res;
+    base = fmt_skip(base);
+  }
+  return MPS_RES_OK;
+}
+
+typedef struct fwd_s *fwd_t;
+typedef struct fwd_s {
+  type_t type;          /* == &type_fwd */
+  mps_addr_t new;       /* where the object has been moved */
+  size_t size;          /* size of this fwd object */
+} fwd_s;
+
+static mps_addr_t fwd_skip(mps_addr_t addr)
+{
+  return (char *)addr + ((fwd_t)addr)->size;
+}
+
+static type_s fwd_type = {
+  &type_type,
+  "fwd",
+  obj_scan, /* fwd has no scannable fields */
+  fwd_skip
+};
+
+typedef struct fwd2_s *fwd2_t;
+typedef struct fwd2_s {
+  type_t type;          /* == &type_fwd */
+  mps_addr_t new;       /* where the object has been moved */
+} fwd2_s;
+
+static mps_addr_t fwd2_skip(mps_addr_t addr)
+{
+  return (char *)addr + sizeof(fwd2_s);
+}
+
+static type_s fwd2_type = {
+  &type_type,
+  "fwd2",
+  obj_scan, /* fwd has no scannable fields */
+  fwd2_skip
+};
+
+static void fmt_fwd(mps_addr_t old, mps_addr_t new)
+{
+  obj_t obj = old;
+  mps_addr_t limit = fmt_skip(old);
+  size_t size = (size_t)((char *)limit - (char *)old);
+  assert(size >= alignUp(sizeof(fwd2_s), OBJ_ALIGN));
+  if (size == alignUp(sizeof(fwd2_s), OBJ_ALIGN)) {
+    obj->type = &fwd2_type;
+    ((fwd2_t)obj)->new = new;
+  } else {
+    obj->type = &fwd_type;
+    ((fwd_t)obj)->new = new;
+    ((fwd_t)obj)->size = size;
+  }
+}
+
+static mps_addr_t fmt_isfwd(mps_addr_t addr)
+{
+  obj_t obj = addr;
+  if (obj->type == &fwd_type)
+    return ((fwd_t)obj)->new;
+  else if (obj->type == &fwd2_type)
+    return ((fwd2_t)obj)->new;
+  else
+    return NULL;
+}
+
+typedef struct pad_s *pad_t;
+typedef struct pad_s {
+  type_t type;          /* == &type_pad */
+  size_t size;          /* size of padding object */
+} pad_s;
+
+static mps_addr_t pad_skip(mps_addr_t addr)
+{
+  return (char *)addr + ((pad_t)addr)->size;
+}
+
+static type_s type_pad = {
+  &type_type,
+  "pad",
+  obj_scan, /* padding does not have scannable fields */
+  pad_skip
+};
+
+static void fmt_pad(mps_addr_t addr, size_t size)
+{
+  obj_t obj = addr;
+  assert(size >= alignUp(sizeof(pad_s), OBJ_ALIGN));
+  obj->type = &type_pad;
+  ((pad_t)obj)->size = size;
+}
 
 
 /* Abstract machine state objects
@@ -94,9 +227,44 @@ typedef struct state_s {
   obj_t reg[STATE_NR];  /* registers */
 } state_s;
 
+static mps_res_t state_scan(mps_ss_t ss, obj_t obj)
+{
+  state_t state = (state_t)obj;
+
+#define FIX(ref) \
+  do { \
+    mps_addr_t _addr = (ref); \
+    mps_res_t res = MPS_FIX12(ss, &_addr); \
+    if (res != MPS_RES_OK) return res; \
+    (ref) = _addr; \
+  } while(0)
+
+  MPS_SCAN_BEGIN(ss) {
+    size_t i;
+    FIX(state->type);
+    FIX(state->rands);
+    FIX(state->rators);
+    FIX(state->dictionary);
+    FIX(state->baby);
+    for (i = 0; i < sizeof(state->reg) / sizeof(state->reg[0]); ++i)
+      FIX(state->reg[i]);
+  } MPS_SCAN_END(ss);
+
+#undef FIX
+
+  return MPS_RES_OK;
+}
+
+static mps_addr_t state_skip(mps_addr_t addr)
+{
+  return (char *)addr + sizeof(state_s);
+}
+
 static struct type_s type_state = {
   &type_type,
-  "state"
+  "state",
+  state_scan,
+  state_skip
 };
 
 /* run -- run the abstract machine */
@@ -123,9 +291,16 @@ typedef struct special_s {
   const char *name;     /* printable name of special object */
 } special_s;
 
+static mps_addr_t special_skip(mps_addr_t addr)
+{
+  return (char *)addr + sizeof(special_s);
+}
+
 static type_s type_special = {
   &type_type,
-  "special"
+  "special",
+  obj_scan, /* special_s has no other scannable fields */
+  special_skip
 };
 
 static special_s list_empty = {
@@ -143,9 +318,39 @@ typedef struct pair_s {
   obj_t cdr;            /* right / tail of list */
 } pair_s;
 
+static mps_res_t pair_scan(mps_ss_t ss, obj_t obj)
+{
+  pair_t pair = (pair_t)obj;
+  
+#define FIX(ref) \
+  do { \
+    mps_addr_t _addr = (ref); \
+    mps_res_t res = MPS_FIX12(ss, &_addr); \
+    if (res != MPS_RES_OK) return res; \
+    (ref) = _addr; \
+  } while(0)
+
+  MPS_SCAN_BEGIN(ss) {
+    FIX(pair->type);
+    FIX(pair->car);
+    FIX(pair->cdr);
+  } MPS_SCAN_END(ss);
+
+#undef FIX
+
+  return MPS_RES_OK;
+}
+
+static mps_addr_t pair_skip(mps_addr_t addr)
+{
+  return (char *)addr + sizeof(pair_s);
+}
+
 static type_s type_pair = {
   &type_type,
-  "pair"
+  "pair",
+  pair_scan,
+  pair_skip
 };
 
 
@@ -158,9 +363,38 @@ typedef struct fun_s {
   obj_t closure;        /* whatever the function code needs */
 } fun_s;
 
+static mps_res_t fun_scan(mps_ss_t ss, obj_t obj)
+{
+  fun_t fun = (fun_t)obj;
+
+#define FIX(ref) \
+  do { \
+    mps_addr_t _addr = (ref); \
+    mps_res_t res = MPS_FIX12(ss, &_addr); \
+    if (res != MPS_RES_OK) return res; \
+    (ref) = _addr; \
+  } while(0)
+
+  MPS_SCAN_BEGIN(ss) {
+    FIX(fun->type);
+    FIX(fun->closure);
+  } MPS_SCAN_END(ss);
+
+#undef FIX
+
+  return MPS_RES_OK;
+}
+
+static mps_addr_t fun_skip(mps_addr_t addr)
+{
+  return (char *)addr + sizeof(fun_s);
+}
+
 static type_s type_fun = {
   &type_type,
-  "fun"
+  "fun",
+  fun_scan,
+  fun_skip
 };
 
 /* op_jump -- jump to a function
@@ -277,9 +511,18 @@ typedef struct string_s {
   char c[1];            /* multibyte-encoded C string */
 } string_s;
 
+static mps_addr_t string_skip(mps_addr_t addr)
+{
+  string_t string = (string_t)addr;
+  size_t size = alignUp(offsetof(string_s, c) + string->n, OBJ_ALIGN);
+  return (char *)addr + size;
+}
+
 static type_s type_string = {
   &type_type,
-  "string"
+  "string",
+  obj_scan, /* string_s has no other scannable fields */
+  string_skip
 };
 
 
@@ -317,7 +560,7 @@ static void abort_entry(state_t state)
 
 /* Make a state */
 
-static void state_init(state_s *state, mps_arena_t arena)
+static void state_init(state_s *state, mps_arena_t arena, mps_fmt_t fmt)
 {
   size_t i;
 
@@ -330,7 +573,8 @@ static void state_init(state_s *state, mps_arena_t arena)
     state->reg[i] = NULL;
 
   MPS_ARGS_BEGIN(args) {
-    die(mps_pool_create_k(&state->pool, arena, mps_class_mvff(), args),
+    MPS_ARGS_ADD(args, MPS_KEY_FORMAT, fmt);
+    die(mps_pool_create_k(&state->pool, arena, mps_class_amc(), args),
         "state_init / mps_pool_create_k");
   } MPS_ARGS_END(args);
 
@@ -352,8 +596,7 @@ static void state_init(state_s *state, mps_arena_t arena)
 static void make_string(state_t state, const char *s)
 {
   size_t length = strlen(s);
-  /* FIXME: where does alignment come from? */
-  size_t size = alignUp(offsetof(string_s, c) + length + 1, sizeof(obj_t));
+  size_t size = alignUp(offsetof(string_s, c) + length + 1, OBJ_ALIGN);
 
   do {
     die(mps_reserve(&state->baby, state->ap, size),
@@ -373,14 +616,36 @@ int main(void)
   state_s state_s;
   state_t state;
   mps_arena_t arena;
+  mps_fmt_t fmt;
+  mps_root_t root;
 
   MPS_ARGS_BEGIN(args) {
     die(mps_arena_create_k(&arena, mps_arena_class_vm(), args),
         "main / mps_arena_create_k");
   } MPS_ARGS_END(args);
 
-  state_init(&state_s, arena);
+  MPS_ARGS_BEGIN(args) {
+    MPS_ARGS_ADD(args, MPS_KEY_FMT_ALIGN, OBJ_ALIGN);
+    MPS_ARGS_ADD(args, MPS_KEY_FMT_SCAN, fmt_scan);
+    MPS_ARGS_ADD(args, MPS_KEY_FMT_SKIP, fmt_skip);
+    MPS_ARGS_ADD(args, MPS_KEY_FMT_FWD, fmt_fwd);
+    MPS_ARGS_ADD(args, MPS_KEY_FMT_ISFWD, fmt_isfwd);
+    MPS_ARGS_ADD(args, MPS_KEY_FMT_PAD, fmt_pad);
+    die(mps_fmt_create_k(&fmt, arena, args),
+        "main / mps_fmt_create_k");
+  } MPS_ARGS_END(args);
+
+  state_init(&state_s, arena, fmt);
   state = &state_s;
+
+  die(mps_root_create_fmt(&root,
+                          arena,
+                          mps_rank_exact(),
+                          0,
+                          fmt_scan,
+                          &state,
+                          &state + 1),
+      "main / mps_root_create_fmt");
 
   make_string(state, "Hello, world!\n");
 
