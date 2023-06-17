@@ -6,6 +6,11 @@
  * :Date: 2023-05-16
  */
 
+#include "mps.h"
+#include "mpscmvff.h"
+#include "mpsavm.h"
+#include "testlib.h"
+
 #include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -60,7 +65,7 @@ static type_s type_type = {
  *      protection barrier.
  *
  * To ensure that access to state fields can't be optimised away and
- * hidden from the GC, all state objects are volatile:
+ * hidden from the GC, all state objects should be volatile:
  *
  *   Since variables marked as volatile are prone to change outside
  *   the standard flow of code, the compiler has to perform every read
@@ -69,11 +74,13 @@ static type_s type_type = {
  *   registers for storage of intermediate values.
  *
  *   -- Wikipedia
+ *
+ * FIXME: mps_reserve discards the volatile qualifier.
  */
 
 #define STATE_NR 3
 
-typedef volatile struct state_s *state_t;
+typedef /* volatile */ struct state_s *state_t;
 typedef void (*entry_t)(state_t);
 typedef struct state_s {
   type_t type;          /* == &type_state */
@@ -81,6 +88,9 @@ typedef struct state_s {
   obj_t rators;         /* operator (return) stack, a list of closures */
   obj_t dictionary;     /* dictonary of words (environment) */
   entry_t pc;           /* program counter */
+  mps_pool_t pool;      /* heap memory pool */
+  mps_ap_t ap;          /* allocation point */
+  void *baby;           /* newly-born object pointer TODO: explain purpose */
   obj_t reg[STATE_NR];  /* registers */
 } state_s;
 
@@ -179,19 +189,23 @@ static void op_jump(state_t state)
 
 static void op_call(state_t state, entry_t link)
 {
-  state->reg[1] = malloc(sizeof(fun_s)); /* reserve */
-  if (state->reg[1] == NULL) exit(99);
-  ((fun_t)state->reg[1])->type = &type_fun;
-  ((fun_t)state->reg[1])->entry = link;
-  ((fun_t)state->reg[1])->closure = state->reg[0];
-  /* commit */
+  do {
+    die(mps_reserve(&state->baby, state->ap, sizeof(fun_s)),
+        "op_call / mps_reserve(fun)");
+    state->reg[1] = state->baby;
+    ((fun_t)state->reg[1])->type = &type_fun;
+    ((fun_t)state->reg[1])->entry = link;
+    ((fun_t)state->reg[1])->closure = state->reg[0];
+  } while (!mps_commit(state->ap, state->baby, sizeof(fun_s)));
 
-  state->reg[2] = malloc(sizeof(pair_s)); /* reserve */
-  if (state->reg[2] == NULL) exit(99);
-  ((pair_t)state->reg[2])->type = &type_pair;
-  ((pair_t)state->reg[2])->car = (obj_t)state->reg[1];
-  ((pair_t)state->reg[2])->cdr = state->rators;
-  /* commit */
+  do {
+    die(mps_reserve(&state->baby, state->ap, sizeof(pair_s)),
+        "op_call / mps_reserve(pair)");
+    state->reg[2] = state->baby;
+    ((pair_t)state->reg[2])->type = &type_pair;
+    ((pair_t)state->reg[2])->car = (obj_t)state->reg[1];
+    ((pair_t)state->reg[2])->cdr = state->rators;
+  } while (!mps_commit(state->ap, state->baby, sizeof(pair_s)));
 
   state->rators = state->reg[2];
 
@@ -227,11 +241,15 @@ static void op_ret(state_t state)
 
 static void op_push(state_t state)
 {
-  state->reg[2] = malloc(sizeof(pair_s)); /* reserve */
-  if (state->reg[2] == NULL) exit(99);
-  ((pair_t)state->reg[2])->type = &type_pair;
-  ((pair_t)state->reg[2])->car = state->reg[1];
-  ((pair_t)state->reg[2])->cdr = state->rands;
+  do {
+    die(mps_reserve(&state->baby, state->ap, sizeof(pair_s)),
+        "op_push / mps_reserve");
+    state->reg[2] = state->baby;
+    ((pair_t)state->reg[2])->type = &type_pair;
+    ((pair_t)state->reg[2])->car = state->reg[1];
+    ((pair_t)state->reg[2])->cdr = state->rands;
+  } while(!mps_commit(state->ap, state->baby, sizeof(pair_s)));
+  
   state->rands = state->reg[2];
 }
 
@@ -255,7 +273,7 @@ static void op_pop(state_t state)
 typedef struct string_s *string_t;
 typedef struct string_s {
   type_t type;		/* == &type_string */
-  size_t length;        /* length of c array */
+  size_t n;             /* length of c array (including NUL) */
   char c[1];            /* multibyte-encoded C string */
 } string_s;
 
@@ -299,9 +317,10 @@ static void abort_entry(state_t state)
 
 /* Make a state */
 
-static void state_init(state_s *state)
+static void state_init(state_s *state, mps_arena_t arena)
 {
   size_t i;
+
   state->type = &type_state;
   state->rands = (obj_t)&list_empty;
   state->rators = (obj_t)&list_empty;
@@ -309,6 +328,16 @@ static void state_init(state_s *state)
   state->pc = abort_entry;
   for (i = 0; i < sizeof(state->reg) / sizeof(state->reg[0]); ++i)
     state->reg[i] = NULL;
+
+  MPS_ARGS_BEGIN(args) {
+    die(mps_pool_create_k(&state->pool, arena, mps_class_mvff(), args),
+        "state_init / mps_pool_create_k");
+  } MPS_ARGS_END(args);
+
+  MPS_ARGS_BEGIN(args) {
+    die(mps_ap_create_k(&state->ap, state->pool, args),
+        "state_init / mps_ap_create_k");
+  } MPS_ARGS_END(args);
 }  
 
 
@@ -322,11 +351,19 @@ static void state_init(state_s *state)
 
 static void make_string(state_t state, const char *s)
 {
-  size_t size = strlen(s) + 1;
-  state->reg[1] = malloc(offsetof(string_s, c) + size);
-  ((string_t)state->reg[1])->type = &type_string;
-  ((string_t)state->reg[1])->length = size;
-  memcpy(((string_t)state->reg[1])->c, s, size);
+  size_t length = strlen(s);
+  /* FIXME: where does alignment come from? */
+  size_t size = alignUp(offsetof(string_s, c) + length + 1, sizeof(obj_t));
+
+  do {
+    die(mps_reserve(&state->baby, state->ap, size),
+        "make_string / mps_reserve");
+    state->reg[1] = state->baby;
+    ((string_t)state->reg[1])->type = &type_string;
+    ((string_t)state->reg[1])->n = length + 1; /* includes NUL */
+    memcpy(((string_t)state->reg[1])->c, s, length + 1);
+  } while(!mps_commit(state->ap, state->baby, size));
+
   op_push(state);
 }  
 
@@ -335,8 +372,14 @@ int main(void)
 {
   state_s state_s;
   state_t state;
+  mps_arena_t arena;
 
-  state_init(&state_s);
+  MPS_ARGS_BEGIN(args) {
+    die(mps_arena_create_k(&arena, mps_arena_class_vm(), args),
+        "main / mps_arena_create_k");
+  } MPS_ARGS_END(args);
+
+  state_init(&state_s, arena);
   state = &state_s;
 
   make_string(state, "Hello, world!\n");
