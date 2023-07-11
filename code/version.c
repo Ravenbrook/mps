@@ -1,7 +1,7 @@
 /* version.c: VERSION INSPECTION
  *
  * $Id$
- * Copyright (c) 2001-2020 Ravenbrook Limited.
+ * Copyright (c) 2001-2023 Ravenbrook Limited.
  * See end of file for license.
  *
  * PURPOSE
@@ -50,7 +50,7 @@ SRCID(version, "$Id$");
 
 extern char MPSCopyrightNotice[];
 char MPSCopyrightNotice[] =
-  "Portions copyright (c) 2010-2020 Ravenbrook Limited and Global Graphics Software.";
+  "Portions copyright (c) 2010-2023 Ravenbrook Limited and Global Graphics Software.";
 
 
 /* MPSVersion -- return version string
@@ -75,7 +75,7 @@ char *MPSVersion(void)
 
 /* C. COPYRIGHT AND LICENSE
  *
- * Copyright (C) 2001-2020 Ravenbrook Limited <https://www.ravenbrook.com/>.
+ * Copyright (C) 2001-2023 Ravenbrook Limited <https://www.ravenbrook.com/>.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are
