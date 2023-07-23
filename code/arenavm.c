@@ -600,7 +600,7 @@ static Res VMArenaCreate(Arena *arenaReturn, ArgList args)
   VM vm = &vmStruct;
   Chunk chunk;
   mps_arg_s arg;
-  char vmParams[VMParamSize];
+  char vmParams[VMParamSize] = {0}; /* suppress uninitialized warning from GCC 12.2 */
 
   AVER(arenaReturn != NULL);
   AVERT(ArgList, args);
