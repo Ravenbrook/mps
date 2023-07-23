@@ -47,6 +47,7 @@ jobs:
     # See design.mps.tests.ci.run.posix.
     steps:
     - uses: actions/checkout@v3
+    - run: CC=${{ matrix.compiler }} $CC --version
     - run: CC=${{ matrix.compiler }} ./configure
     - run: make
     - run: make test
