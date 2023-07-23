@@ -31,7 +31,7 @@ jobs:
     # .travis.yml.
     #
     # See <https://docs.github.com/en/actions/using-jobs/using-a-matrix-for-your-jobs#using-a-matrix-strategy>.
-    
+
     strategy:
       matrix:
         os: [ubuntu-latest, macos-latest]
@@ -48,6 +48,21 @@ jobs:
     - run: CC=${{ matrix.compiler }} ./configure
     - run: make
     - run: make test
+
+  fedora:
+    strategy:
+      fail-fast: true
+    runs-on: ubuntu-latest
+    container: fedora:rawhide
+
+    # See design.mps.tests.ci.run.posix.
+    steps:
+      - name: Install build tools
+        run: dnf -y install gcc-c++ make
+      - uses: actions/checkout@v3
+      - run: CC=${{ matrix.compiler }} ./configure
+      - run: make
+      - run: make test
 
   windows:
 
@@ -94,10 +109,10 @@ jobs:
 # publish, distribute, sublicense, and/or sell copies of the Software,
 # and to permit persons to whom the Software is furnished to do so,
 # subject to the following conditions:
-# 
+#
 # The above copyright notice and this permission notice shall be
 # included in all copies or substantial portions of the Software.
-# 
+#
 # THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
 # EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
 # MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
