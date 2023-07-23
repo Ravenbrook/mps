@@ -51,14 +51,16 @@ jobs:
 
   fedora:
     strategy:
-      fail-fast: true
+      matrix:
+        compiler: [clang, gcc]
+
     runs-on: ubuntu-latest
     container: fedora:rawhide
 
     # See design.mps.tests.ci.run.posix.
     steps:
       - name: Install build tools
-        run: dnf -y install gcc-c++ make
+        run: dnf -y install gcc-c++ clang make
       - uses: actions/checkout@v3
       - run: CC=${{ matrix.compiler }} ./configure
       - run: make
