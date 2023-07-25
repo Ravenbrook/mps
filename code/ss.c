@@ -1,7 +1,7 @@
 /* ss.c: STACK SCANNING
  *
  * $Id$
- * Copyright (c) 2001-2020 Ravenbrook Limited.  See end of file for license.
+ * Copyright (c) 2001-2023 Ravenbrook Limited.  See end of file for license.
  *
  * This scans the mutator's stack and fixes the registers that may
  * contain roots. <design/stack-scan>.
@@ -30,12 +30,22 @@ SRCID(ss, "$Id$");
  * stack by the caller below its other local data, so as long as
  * it does not use something like alloca, the address of the argument
  * is a hot stack pointer.  <design/ss#.sol.stack.hot>.
+ *
+ * GCC 13.1 legitimately complains about us leaking a dangling pointer
+ * (-Wdangling-pointer) -- it's exactly what we are trying to do.
+ * Rather that suppressing this warning globally, we use Diagnostic
+ * Pragmas
+ * <https://gcc.gnu.org/onlinedocs/gcc/Diagnostic-Pragmas.html> to
+ * suppress the warning only here.
  */
 
 ATTRIBUTE_NOINLINE
 void StackHot(void **stackOut)
 {
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdangling-pointer"
   *stackOut = &stackOut;
+#pragma GCC diagnostic pop
 }
 
 
@@ -71,7 +81,7 @@ Res StackScan(ScanState ss, void *stackCold,
 
 /* C. COPYRIGHT AND LICENSE
  *
- * Copyright (C) 2001-2020 Ravenbrook Limited <https://www.ravenbrook.com/>.
+ * Copyright (C) 2001-2023 Ravenbrook Limited <https://www.ravenbrook.com/>.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are
