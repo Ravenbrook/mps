@@ -43,6 +43,7 @@ ATTRIBUTE_NOINLINE
 void StackHot(void **stackOut)
 {
 #pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunknown-warning-option"
 #pragma GCC diagnostic ignored "-Wdangling-pointer"
   *stackOut = &stackOut;
 #pragma GCC diagnostic pop
