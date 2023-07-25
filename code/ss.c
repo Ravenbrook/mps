@@ -31,18 +31,21 @@ SRCID(ss, "$Id$");
  * it does not use something like alloca, the address of the argument
  * is a hot stack pointer.  <design/ss#.sol.stack.hot>.
  *
- * GCC 13.1 legitimately complains about us leaking a dangling pointer
- * (-Wdangling-pointer) -- it's exactly what we are trying to do.
- * Rather that suppressing this warning globally, we use Diagnostic
- * Pragmas
- * <https://gcc.gnu.org/onlinedocs/gcc/Diagnostic-Pragmas.html> to
- * suppress the warning only here.
  */
 
 ATTRIBUTE_NOINLINE
 void StackHot(void **stackOut)
 {
+ /* GCC 13.1 legitimately complains about us leaking a dangling
+    pointer (-Wdangling-pointer) -- it's exactly what we are trying to
+    do.  Rather that suppressing this warning globally, we use
+    Diagnostic Pragmas
+    <https://gcc.gnu.org/onlinedocs/gcc/Diagnostic-Pragmas.html> to
+    suppress the warning only here. */
 #pragma GCC diagnostic push
+  /* Prevent GCC 11 and GCC 12 producing warnings that they don't know
+     about -Wdangling-pointer and -Wunknown-warning-option. */
+#pragma GCC diagnostic ignored "-Wpragmas"
 #pragma GCC diagnostic ignored "-Wunknown-warning-option"
 #pragma GCC diagnostic ignored "-Wdangling-pointer"
   *stackOut = &stackOut;
