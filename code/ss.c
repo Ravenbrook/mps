@@ -42,14 +42,20 @@ void StackHot(void **stackOut)
     Diagnostic Pragmas
     <https://gcc.gnu.org/onlinedocs/gcc/Diagnostic-Pragmas.html> to
     suppress the warning only here. */
-#pragma GCC diagnostic push
+#if CONFIG_BUILD_GC
+#  pragma GCC diagnostic push
   /* Prevent GCC 11 and GCC 12 producing warnings that they don't know
      about -Wdangling-pointer and -Wunknown-warning-option. */
-#pragma GCC diagnostic ignored "-Wpragmas"
-#pragma GCC diagnostic ignored "-Wunknown-warning-option"
-#pragma GCC diagnostic ignored "-Wdangling-pointer"
+#  pragma GCC diagnostic ignored "-Wpragmas"
+#  pragma GCC diagnostic ignored "-Wunknown-warning-option"
+#  pragma GCC diagnostic ignored "-Wdangling-pointer"
+#endif
+
   *stackOut = &stackOut;
-#pragma GCC diagnostic pop
+
+#if CONFIG_BUILD_GC
+#  pragma GCC diagnostic pop
+#endif
 }
 
 
