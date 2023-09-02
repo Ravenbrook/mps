@@ -2,3 +2,7 @@
 
 # Layout breaks in Sphinx >= 5.  See <https://github.com/Ravenbrook/mps/issues/121>.
 sphinx >= 4, < 5
+
+# HTML parser based on the WHATWG HTML specification
+# Required by make-mmref.py
+html5lib

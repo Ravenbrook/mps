@@ -19,6 +19,16 @@ build:
   os: ubuntu-22.04
   tools:
     python: '3'
+  # Override the Read the Docs build with our own.  This uses a beta
+  # feature of Read the Docs that loses some features
+  # <https://docs.readthedocs.io/en/stable/build-customization.html#override-the-build-process>
+  # but attempts at using post_build to do post-processing have so far
+  # failed
+  # <https://github.com/readthedocs/readthedocs.org/issues/10103>.
+  commands:
+    - make -C manual html mmref
+    - mkdir -p _readthedocs
+    - if test -n "$MMREF"; then mv manual/mmref _readthedocs/html; else mv manual/html _readthedocs/html; fi
 
 python:
   install:
@@ -37,6 +47,7 @@ sphinx:
 # B. DOCUMENT HISTORY
 #
 # 2023-02-02 RB Created as part of MPS GitHub migration.
+# 2023-03-03 RB Updated to also build the Memory Management Reference.
 #
 #
 # C. COPYRIGHT AND LICENSE
