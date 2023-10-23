@@ -80,7 +80,7 @@ case $host/$CLANG in
       MPS_BUILD_NAME=ll
       PFMCFLAGS="$CFLAGS_LL"
     ;;
-  aarch64-*-darwin*/*)
+  aarch64-*-darwin*/*|arm-*-darwin*/*)
       AC_MSG_RESULT([Mac OS X ARM64])
       MPS_OS_NAME=xc
       MPS_ARCH_NAME=a6

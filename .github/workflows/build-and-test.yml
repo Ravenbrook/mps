@@ -66,6 +66,19 @@ jobs:
          nmake /f w3i6mv.nmk all testci testansi testpollnone
       shell: cmd
 
+  macos:
+
+    # See <https://docs.github.com/en/actions/hosting-your-own-runners/managing-self-hosted-runners/using-self-hosted-runners-in-a-workflow#using-default-labels-to-route-jobs>.
+
+    runs-on: [self-hosted, macOS]
+
+    # See design.mps.tests.ci.run.posix.
+    steps:
+    - uses: actions/checkout@v3
+    - run: CC=${{ matrix.compiler }} ./configure
+    - run: make
+    - run: make test
+
 
 # A. REFERENCES
 #
