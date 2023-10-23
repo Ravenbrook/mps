@@ -702,11 +702,10 @@ static Res AMSSegCreate(Seg *segReturn, Pool pool, Size size,
   }
 
   /* see <design/seg#.field.rankset> */
-  if (rankSet != RankSetEMPTY) {
-    SegSetRankAndSummary(seg, rankSet, RefSetUNIV);
-  } else {
-    SegSetRankAndSummary(seg, rankSet, RefSetEMPTY);
-  }
+  if (rankSet != RankSetEMPTY)
+    SegSetRankAndSummary(seg, rankSet, RefSetUniv);
+  else
+    SegSetRankAndSummary(seg, rankSet, RefSetEmpty);
   DebugPoolFreeSplat(pool, SegBase(seg), SegLimit(seg));
 
   AVERT(AMSSeg, Seg2AMSSeg(seg));
@@ -893,7 +892,7 @@ static Bool amsSegBufferFill(Addr *baseReturn, Addr *limitReturn,
     /* Don't bother trying to allocate from a buffered segment */
     return FALSE;
 
-  if (RefSetUnion(SegWhite(seg), SegGrey(seg)) != TraceSetEMPTY)
+  if (TraceSetUnion(SegWhite(seg), SegGrey(seg)) != TraceSetEMPTY)
     /* Can't use a white or grey segment, see <design/poolams#.fill.colour> */
     return FALSE;
 

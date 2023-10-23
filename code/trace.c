@@ -35,7 +35,7 @@ Bool ScanStateCheck(ScanState ss)
 {
   TraceId ti;
   Trace trace;
-  ZoneSet white;
+  RefSetStruct whiteStruct;
 
   CHECKS(ScanState, ss);
   CHECKL(FUNCHECK(ss->formatScan));
@@ -44,11 +44,11 @@ Bool ScanStateCheck(ScanState ss)
   CHECKL(FUNCHECK(ss->fix));
   /* Can't check ss->fixClosure. */
   CHECKL(ScanStateZoneShift(ss) == ss->arena->zoneShift);
-  white = ZoneSetEMPTY;
+  RefSetInit(&whiteStruct);
   TRACE_SET_ITER(ti, trace, ss->traces, ss->arena)
-    white = ZoneSetUnion(white, ss->arena->trace[ti].white);
+    RefSetUnion(&whiteStruct, &ss->arena->trace[ti].whiteStruct);
   TRACE_SET_ITER_END(ti, trace, ss->traces, ss->arena);
-  CHECKL(ScanStateWhite(ss) == white);
+  CHECKL(ScanStateWhiteZones(ss) == RefSetZones(&whiteStruct));
   CHECKU(Arena, ss->arena);
   /* Summaries could be anything, and can't be checked. */
   CHECKL(TraceSetCheck(ss->traces));
@@ -72,7 +72,7 @@ static mps_res_t traceNoAreaScan(mps_ss_t ss, void *base, void *limit, void *clo
 /* ScanStateInit -- Initialize a ScanState object */
 
 void ScanStateInit(ScanState ss, TraceSet ts, Arena arena,
-                   Rank rank, ZoneSet white)
+                   Rank rank, RefSet white)
 {
   TraceId ti;
   Trace trace;
@@ -80,7 +80,7 @@ void ScanStateInit(ScanState ss, TraceSet ts, Arena arena,
   AVERT(TraceSet, ts);
   AVERT(Arena, arena);
   AVERT(Rank, rank);
-  /* white is arbitrary and can't be checked */
+  AVER(RefSetCheck(white)); /* FIXME: Can we assert non-empty? */
 
   /* .fix.single: NOTE: We can only currently support scanning for a
      set of traces with the same fix method. To remove this
@@ -109,11 +109,11 @@ void ScanStateInit(ScanState ss, TraceSet ts, Arena arena,
   ss->rank = rank;
   ss->traces = ts;
   ScanStateSetZoneShift(ss, arena->zoneShift);
-  ScanStateSetUnfixedSummary(ss, RefSetEMPTY);
-  ss->fixedSummary = RefSetEMPTY;
+  ScanStateSetUnfixedZones(ss, ZoneSetEMPTY);
+  RefSetInit(&ss->fixedSummary);
   ss->arena = arena;
   ss->wasMarked = TRUE;
-  ScanStateSetWhite(ss, white);
+  ScanStateSetWhiteZones(ss, RefSetZones(white));
   STATISTIC(ss->fixRefCount = (Count)0);
   STATISTIC(ss->segRefCount = (Count)0);
   STATISTIC(ss->whiteSegRefCount = (Count)0);
@@ -132,10 +132,12 @@ void ScanStateInit(ScanState ss, TraceSet ts, Arena arena,
 /* ScanStateInitSeg -- Initialize a ScanState object for scanning a segment */
 
 void ScanStateInitSeg(ScanState ss, TraceSet ts, Arena arena,
-                      Rank rank, ZoneSet white, Seg seg)
+                      Rank rank, RefSet white, Seg seg)
 {
   Format format;
+
   AVERT(Seg, seg);
+  AVER(RefSetCheck(white)); /* FIXME: Can we assert non-empty? */
 
   ScanStateInit(ss, ts, arena, rank, white);
   if (PoolFormat(&format, SegPool(seg))) {
@@ -182,7 +184,7 @@ Bool TraceCheck(Trace trace)
   CHECKL(TraceIdCheck(trace->ti));
   CHECKL(trace == &trace->arena->trace[trace->ti]);
   CHECKL(TraceSetIsMember(trace->arena->busyTraces, trace));
-  CHECKL(ZoneSetSub(trace->mayMove, trace->white));
+  CHECKL(ZoneSetSub(trace->mayMove, RefSetZones(&trace->whiteStruct)));
   CHECKD_NOSIG(Ring, &trace->genRing);
   /* Use trace->state to check more invariants. */
   switch(trace->state) {
@@ -344,19 +346,18 @@ static void traceSetUpdateCounts(TraceSet ts, Arena arena, ScanState ss,
 /* traceSetWhiteUnion
  *
  * Returns a ZoneSet describing the union of the white sets of all the
- * specified traces.  */
+ * specified traces.
+ */
 
-static ZoneSet traceSetWhiteUnion(TraceSet ts, Arena arena)
+static void traceSetWhiteUnion(RefSet rs, TraceSet ts, Arena arena)
 {
   TraceId ti;
   Trace trace;
-  ZoneSet white = ZoneSetEMPTY;
 
+  RefSetInit(rs);
   TRACE_SET_ITER(ti, trace, ts, arena)
-    white = ZoneSetUnion(white, trace->white);
+    RefSetUnion(rs, &trace->whiteStruct);
   TRACE_SET_ITER_END(ti, trace, ts, arena);
-
-  return white;
 }
 
 
@@ -404,7 +405,11 @@ Res TraceAddWhite(Trace trace, Seg seg)
 
     /* Add the segment to the approximation of the white set if the
        pool made it white. */
-    trace->white = ZoneSetUnion(trace->white, ZoneSetOfSeg(trace->arena, seg));
+    {
+      RefSetStruct segRefSetStruct;
+      SegGetRefSet(&segRefSetStruct, trace->arena, seg);
+      RefSetUnion(&trace->whiteStruct, &segRefSetStruct);
+    }
 
     /* if the pool is a moving GC, then condemned objects may move */
     if (PoolHasAttr(pool, AttrMOVINGGC)) {
@@ -423,7 +428,7 @@ void TraceCondemnStart(Trace trace)
 {
   AVERT(Trace, trace);
   AVER(trace->state == TraceINIT);
-  AVER(trace->white == ZoneSetEMPTY);
+  AVER(RefSetIsEmpty(&trace->whiteStruct));
   AVER(RingIsSingle(&trace->genRing));
 }
 
@@ -453,7 +458,7 @@ Res TraceCondemnEnd(double *mortalityReturn, Trace trace)
   AVER(mortalityReturn != NULL);
   AVERT(Trace, trace);
   AVER(trace->state == TraceINIT);
-  AVER(trace->white == ZoneSetEMPTY);
+  AVER(RefSetIsEmpty(&trace->whiteStruct));
 
   ShieldHold(trace->arena);
   RING_FOR(genNode, &trace->genRing, genNext) {
@@ -517,13 +522,12 @@ static void traceFlipBuffers(Globals arena)
 
 static Res traceScanRootRes(TraceSet ts, Rank rank, Arena arena, Root root)
 {
-  ZoneSet white;
+  RefSetStruct whiteStruct;
   Res res;
   ScanStateStruct ss;
 
-  white = traceSetWhiteUnion(ts, arena);
-
-  ScanStateInit(&ss, ts, arena, rank, white);
+  traceSetWhiteUnion(&whiteStruct, ts, arena);
+  ScanStateInit(&ss, ts, arena, rank, &whiteStruct);
 
   res = RootScan(&ss, root);
 
@@ -638,7 +642,10 @@ static Res traceFlip(Trace trace)
   /* mayMove is a conservative approximation of the zones of objects */
   /* which may move during this collection. */
   if(trace->mayMove != ZoneSetEMPTY) {
-    LDAge(arena, trace->mayMove);
+    RefSetStruct mayMove;
+    /* FIXME: Consider whether trace->mayMove can be a RefSet */
+    RefSetFromZones(&mayMove, trace->mayMove);
+    LDAge(arena, &mayMove);
   }
 
   /* .root.rank: At the moment we must scan all roots, because we don't have */
@@ -738,7 +745,7 @@ found:
 
   trace->arena = arena;
   trace->why = why;
-  trace->white = ZoneSetEMPTY;
+  RefSetInit(&trace->whiteStruct);
   trace->mayMove = ZoneSetEMPTY;
   trace->ti = ti;
   trace->state = TraceINIT;
@@ -1113,16 +1120,17 @@ static Bool traceFindGrey(Seg *segReturn, Rank *rankReturn,
  *
  * This function sets unfixedSummary and fixedSummary such that
  * ScanStateSummary will return the summary passed.  Subsequently fixed
- * references are accumulated into this result.  */
+ * references are accumulated into this result.
+ */
 
 void ScanStateSetSummary(ScanState ss, RefSet summary)
 {
   AVERT(ScanState, ss);
-  /* Can't check summary, as it can be anything. */
+  AVER(RefSetCheck(summary));
 
-  ScanStateSetUnfixedSummary(ss, RefSetEMPTY);
-  ss->fixedSummary = summary;
-  AVER(ScanStateSummary(ss) == summary);
+  ScanStateSetUnfixedZones(ss, ZoneSetEMPTY);
+  RefSetCopy(&ss->fixedSummary, summary);
+  AVER(ScanStateSummaryEqual(ss, summary));
 }
 
 
@@ -1134,13 +1142,14 @@ void ScanStateSetSummary(ScanState ss, RefSet summary)
  * the white set, and accumulates a summary of references after they
  * have been fixed.  */
 
-RefSet ScanStateSummary(ScanState ss)
+void ScanStateGetSummary(RefSet summaryReturn, ScanState ss)
 {
   AVERT(ScanState, ss);
 
-  return RefSetUnion(ss->fixedSummary,
-                     RefSetDiff(ScanStateUnfixedSummary(ss),
-                                ScanStateWhite(ss)));
+  RefSetFromZones(summaryReturn,
+                  ZoneSetDiff(ScanStateUnfixedZones(ss),
+                              ScanStateWhiteZones(ss)));
+  RefSetUnion(summaryReturn, &ss->fixedSummary);
 }
 
 
@@ -1151,7 +1160,7 @@ RefSet ScanStateSummary(ScanState ss)
  */
 void ScanStateUpdateSummary(ScanState ss, Seg seg, Bool wasTotal)
 {
-  RefSet summary;
+  RefSetStruct summary;
 
   AVERT(ScanState, ss);
   AVERT(Seg, seg);
@@ -1159,46 +1168,81 @@ void ScanStateUpdateSummary(ScanState ss, Seg seg, Bool wasTotal)
 
   /* Only apply the write barrier if it is not deferred. */
   if (seg->defer == 0) {
-    /* If we scanned every reference in the segment then we have a
-       complete summary we can set. Otherwise, we just have
-       information about more zones that the segment refers to. */
-    if (wasTotal)
-      summary = ScanStateSummary(ss);
-    else
-      summary = RefSetUnion(SegSummary(seg), ScanStateSummary(ss));
+    /* If we scanned every reference in the segment then the scan
+       state has a complete summary of the segment, and we can set it
+       as the segment summary.  Otherwise, the scan state summary is
+       just information about additional references from the
+       segment. */
+    ScanStateGetSummary(&summary, ss);
+    if (!wasTotal) {
+      /* scan was partial, so union the scanned summary into the
+	 segment summary */
+      RefSetStruct segSummary;
+      SegGetSummary(&segSummary, seg);
+      RefSetUnion(&summary, &segSummary);
+    }
   } else {
-    summary = RefSetUNIV;
+    RefSetCopy(&summary, RefSetUniv);
   }
-  SegSetSummary(seg, summary);
+  SegSetSummary(seg, &summary);
 }
+
+
+Bool ScanStateSummaryIsEmpty(ScanState ss)
+{
+  RefSetStruct summary;
+  AVERT(ScanState, ss);
+  ScanStateGetSummary(&summary, ss);
+  return RefSetIsEmpty(&summary);
+}
+
+Bool ScanStateSummaryEqual(ScanState ss, RefSet rs)
+{
+  RefSetStruct summary;
+  AVERT(ScanState, ss);
+  AVER(RefSetCheck(rs));
+  ScanStateGetSummary(&summary, ss);
+  return RefSetEqual(&summary, rs);
+}
+
+ZoneSet ScanStateFixedZones(ScanState ss)
+{
+  AVERT(ScanState, ss);
+  return RefSetZones(&(ss)->fixedSummary);
+}
+
 
 /* traceScanSegRes -- scan a segment to remove greyness
  *
  * @@@@ During scanning, the segment should be write-shielded to prevent
  * any other threads from updating it while fix is being applied to it
  * (because fix is not atomic).  At the moment, we don't bother, because
- * we know that all threads are suspended.  */
+ * we know that all threads are suspended.
+ */
 
 static Res traceScanSegRes(TraceSet ts, Rank rank, Arena arena, Seg seg)
 {
   Bool wasTotal;
-  ZoneSet white;
+  RefSetStruct whiteStruct;
   Res res;
 
   /* The reason for scanning a segment is that it's grey. */
   AVER(TraceSetInter(ts, SegGrey(seg)) != TraceSetEMPTY);
+  /* FIXME: What happened to EVENT4(TraceScanSeg, ...)? */
 
-  white = traceSetWhiteUnion(ts, arena);
+  traceSetWhiteUnion(&whiteStruct, ts, arena);
 
   /* Only scan a segment if it refers to the white set. */
-  if(ZoneSetInter(white, SegSummary(seg)) == ZoneSetEMPTY) {
+  if (SegDoesNotReference(seg, &whiteStruct)) {
     SegBlacken(seg, ts);
     /* Setup result code to return later. */
     res = ResOK;
   } else {      /* scan it */
     ScanStateStruct ssStruct;
     ScanState ss = &ssStruct;
-    ScanStateInitSeg(ss, ts, arena, rank, white, seg);
+    RefSetStruct summary;
+
+    ScanStateInitSeg(ss, ts, arena, rank, &whiteStruct, seg);
 
     /* Expose the segment to make sure we can scan it. */
     ShieldExpose(arena, seg);
@@ -1221,16 +1265,24 @@ static Res traceScanSegRes(TraceSet ts, Rank rank, Arena arena, Seg seg)
         TRACE_SET_ITER_END(ti, trace, ts, arena);
     });
 
-    /* Following is true whether or not scan was total. */
-    /* <design/scan#.summary.subset>. */
-    /* .verify.segsummary: were the seg contents, as found by this
-     * scan, consistent with the recorded SegSummary?
-     */
-    AVER(RefSetSub(ScanStateUnfixedSummary(ss), SegSummary(seg))); /* <design/check/#.common> */
+    SegGetSummary(&summary, seg);
+
+    /* .verify.segsummary: Were the seg contents, as found by this
+       scan, consistent with the recorded segment summary?  The set of
+       referenced zones seen by a scan is a subset of the previously
+       computed set.  This is true whether or not the scan was total.
+       See design.mps.scan.zones.subset.  Note that we are checking
+       using an implementation detail that MPS_FIX1 collects a set of
+       zones, not an approximation, and that it should be consistent
+       every time. */
+    /* FIXME: Update <design/check/#.common> */
+    AVER(ZoneSetSub(ScanStateUnfixedZones(ss),
+		    RefSetZones(&summary)));
 
     /* Write barrier deferral -- see <design/write-barrier#.deferral>. */
     /* Did the segment refer to the white set? */
-    if (ZoneSetInter(ScanStateUnfixedSummary(ss), white) == ZoneSetEMPTY) {
+    if (ZoneSetInter(ScanStateUnfixedZones(ss),
+		     RefSetZones(&whiteStruct)) == ZoneSetEMPTY) {
       /* Boring scan.  One step closer to raising the write barrier. */
       if (seg->defer > 0)
         --seg->defer;
@@ -1299,8 +1351,8 @@ void TraceSegAccess(Arena arena, Seg seg, AccessSet mode)
 
   /* If it's a write access, then the segment must have a summary that */
   /* is smaller than the mutator's summary (which is assumed to be */
-  /* RefSetUNIV). */
-  AVER(!writeHit || SegSummary(seg) != RefSetUNIV);
+  /* RefSetUniv). */
+  AVER(!writeHit || !RefSetIsUniv(&MustBeA(GCSeg, seg)->summary));
 
   EVENT3(TraceAccess, arena, seg, mode);
 
@@ -1341,7 +1393,7 @@ void TraceSegAccess(Arena arena, Seg seg, AccessSet mode)
   /* The write barrier handling must come after the read barrier, */
   /* because the latter may set the summary and raise the write barrier. */
   if (writeHit)
-    SegSetSummary(seg, RefSetUNIV);
+    SegSetSummary(seg, RefSetUniv);
 
   /* The segment must now be accessible. */
   AVER(BS_INTER(mode, SegSM(seg)) == AccessSetEMPTY);
@@ -1379,7 +1431,7 @@ mps_res_t _mps_fix2(mps_ss_t mps_ss, mps_addr_t *mps_ref_io)
   ref = (Ref)*mps_ref_io;
 
   /* The zone test should already have been passed by MPS_FIX1 in mps.h. */
-  AVER_CRITICAL(ZoneSetInter(ScanStateWhite(ss),
+  AVER_CRITICAL(ZoneSetInter(ScanStateWhiteZones(ss),
                              ZoneSetAddAddr(ss->arena, ZoneSetEMPTY, ref)) !=
                 ZoneSetEMPTY);
 
@@ -1447,7 +1499,7 @@ mps_res_t _mps_fix2(mps_ss_t mps_ss, mps_addr_t *mps_ref_io)
 
 done:
   /* <design/trace#.fix.fixed.all> */
-  ss->fixedSummary = RefSetAdd(ss->arena, ss->fixedSummary, ref);
+  RefSetAddFixedRef(&ss->fixedSummary, ss->arena, ref);
 
   *mps_ref_io = (mps_addr_t)ref;
   return ResOK;
@@ -1459,19 +1511,19 @@ done:
 static Res traceScanSingleRefRes(TraceSet ts, Rank rank, Arena arena,
                                  Seg seg, Ref *refIO)
 {
-  RefSet summary;
-  ZoneSet white;
+  RefSetStruct whiteStruct;
   Res res;
   ScanStateStruct ss;
 
   EVENT4(TraceScanSingleRef, ts, rank, arena, refIO);
 
-  white = traceSetWhiteUnion(ts, arena);
-  if(ZoneSetInter(SegSummary(seg), white) == ZoneSetEMPTY) {
+  traceSetWhiteUnion(&whiteStruct, ts, arena);
+  if (SegDoesNotReference(seg, &whiteStruct)) {
     return ResOK;
   }
 
-  ScanStateInit(&ss, ts, arena, rank, white);
+  ScanStateInit(&ss, ts, arena, rank, &whiteStruct);
+
   ShieldExpose(arena, seg);
 
   TRACE_SCAN_BEGIN(&ss) {
@@ -1479,9 +1531,8 @@ static Res traceScanSingleRefRes(TraceSet ts, Rank rank, Arena arena,
   } TRACE_SCAN_END(&ss);
   ss.scannedSize = sizeof *refIO;
 
-  summary = SegSummary(seg);
-  summary = RefSetAdd(arena, summary, *refIO);
-  SegSetSummary(seg, summary);
+  SegSummaryAddFixedRef(seg, arena, *refIO);
+  
   ShieldCover(arena, seg);
 
   traceSetUpdateCounts(ts, arena, &ss, traceAccountingPhaseSingleScan);
@@ -1578,7 +1629,8 @@ Res TraceScanArea(ScanState ss, Word *base, Word *limit,
  * .start.black: All segments are black w.r.t. a newly allocated trace.
  * However, if TraceStart initialized segments to black when it
  * calculated the grey set then this condition could be relaxed, making
- * it easy to destroy traces half-way through.  */
+ * it easy to destroy traces half-way through.
+ */
 
 static Res rootGrey(Root root, void *p)
 {
@@ -1587,7 +1639,7 @@ static Res rootGrey(Root root, void *p)
   AVERT(Root, root);
   AVERT(Trace, trace);
 
-  if(ZoneSetInter(RootSummary(root), trace->white) != ZoneSetEMPTY) {
+  if (!RootDoesNotReference(root, &trace->whiteStruct)) {
     RootGrey(root, trace);
   }
 
@@ -1641,7 +1693,7 @@ Res TraceStart(Trace trace, double mortality, double finishingTime)
         /* to the white set.  This is done by seeing if the summary */
         /* of references in the segment intersects with the */
         /* approximation to the white set. */
-        if(ZoneSetInter(SegSummary(seg), trace->white) != ZoneSetEMPTY) {
+        if (!SegDoesNotReference(seg, &trace->whiteStruct)) {
           /* Note: can a white seg get greyed as well?  At this point */
           /* we still assume it may.  (This assumption runs out in */
           /* PoolTrivGrey). */
@@ -1683,9 +1735,10 @@ Res TraceStart(Trace trace, double mortality, double finishingTime)
 
   /* TODO: compute rate of scanning here. */
 
+  /* FIXME: How to log &trace->whiteStruct? */
   EVENT9(TraceStart, trace->arena, trace, mortality, finishingTime,
          trace->condemned, trace->notCondemned, trace->foundation,
-         trace->white, trace->quantumWork);
+         RefSetZones(&trace->whiteStruct), trace->quantumWork);
 
   trace->state = TraceUNFLIPPED;
   TracePostStartMessage(trace);
@@ -1887,7 +1940,15 @@ Res TraceDescribe(Trace trace, mps_lib_FILE *stream, Count depth)
                "  why \"$S\"\n", (WriteFS)TraceStartWhyToString(trace->why),
                "  state $S\n", (WriteFS)state,
                "  band $U\n", (WriteFU)trace->band,
-               "  white   $B\n", (WriteFB)trace->white,
+	       NULL);
+  if (res != ResOK)
+    return res;
+
+  res = RefSetDescribe(&trace->whiteStruct, stream, depth + 2);
+  if (res != ResOK)
+    return res;
+
+  res = WriteF(stream, depth,
                "  mayMove $B\n", (WriteFB)trace->mayMove,
                "  condemned $U\n", (WriteFU)trace->condemned,
                "  notCondemned $U\n", (WriteFU)trace->notCondemned,

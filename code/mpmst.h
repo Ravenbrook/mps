@@ -235,6 +235,16 @@ typedef struct SegStruct {      /* segment structure */
 } SegStruct;
 
 
+/* RefSetStruct -- approximation to a set of references
+ *
+ * See design.mps.refset.
+ */
+
+typedef struct RefSetStruct {
+  ZoneSet zones;                /* set of zones referenced */
+} RefSetStruct;
+
+
 /* GCSegStruct -- GCable segment structure
  *
  * .seggc: GCSeg is a subclass of Seg with support for buffered
@@ -245,7 +255,7 @@ typedef struct SegStruct {      /* segment structure */
 typedef struct GCSegStruct {    /* GC segment structure */
   SegStruct segStruct;          /* superclass fields must come first */
   RingStruct greyRing;          /* link in list of grey segs */
-  RefSet summary;               /* summary of references out of seg */
+  RefSetStruct summary;         /* summary of references out of seg */
   Buffer buffer;                /* non-NULL if seg is buffered */
   RingStruct genRing;           /* link in list of segs in gen */
   Sig sig;                      /* design.mps.sig.field.end.outer */
@@ -384,9 +394,9 @@ typedef struct mps_fmt_s {
  * a word rather than a shift, so that the external mps_ss_s is a uniform
  * three-word structure.  See <code/mps.h#ss> and <design/interface-c>.
  *
- *   zs  Shift   zoneShift       copy of arena->zoneShift.  See .ss.zone
- *   w   ZoneSet white           white set, for inline fix test
- *   ufs RefSet  unfixedSummary  accumulated summary of scanned references
+ *   zs   Shift   zoneShift       copy of arena->zoneShift.  See .ss.zone
+ *   w    ZoneSet white           white set, for inline fix test
+ *   ufzs ZoneSet unfixedZoneSet  accumulated zones of scanned references
  *
  * NOTE: The mps_ss structure used to be obfuscated to preserve Harlequin's
  * trade secrets in the MPS technology.  These days they just seek to
@@ -408,7 +418,7 @@ typedef struct ScanStateStruct {
   TraceSet traces;              /* traces to scan for */
   Rank rank;                    /* reference rank of scanning */
   Bool wasMarked;               /* <design/fix#.protocol.was-ready> */
-  RefSet fixedSummary;          /* accumulated summary of fixed references */
+  RefSetStruct fixedSummary;    /* accumulated summary of fixed references */
   STATISTIC_DECL(Count fixRefCount) /* refs which pass zone check */
   STATISTIC_DECL(Count segRefCount) /* refs which refer to segs */
   STATISTIC_DECL(Count whiteSegRefCount) /* refs which refer to white segs */
@@ -430,7 +440,7 @@ typedef struct TraceStruct {
   TraceId ti;                   /* index into TraceSets */
   Arena arena;                  /* owning arena */
   TraceStartWhy why;            /* why the trace began */
-  ZoneSet white;                /* zones in the white set */
+  RefSetStruct whiteStruct;     /* reference set of condemned objects */
   ZoneSet mayMove;              /* zones containing possibly moving objs */
   TraceState state;             /* current state of trace */
   Rank band;                    /* current band */
@@ -692,9 +702,9 @@ typedef struct ShieldStruct {
 typedef struct HistoryStruct {
   Sig sig;                         /* design.mps.sig.field */
   Epoch epoch;                     /* <design/arena#.ld.epoch> */
-  RefSet prehistory;               /* <design/arena#.ld.prehistory> */
-  RefSet history[LDHistoryLENGTH]; /* <design/arena#.ld.history> */
-} HistoryStruct;
+  RefSetStruct prehistory;               /* <design/arena#.ld.prehistory> */
+  RefSetStruct history[LDHistoryLENGTH]; /* <design/arena#.ld.history> */
+} HistoryStruct;  
 
 
 /* MVFFStruct -- MVFF (Manual Variable First Fit) pool outer structure
@@ -831,7 +841,7 @@ typedef struct AllocPatternStruct {
 
 /* C. COPYRIGHT AND LICENSE
  *
- * Copyright (C) 2001-2020 Ravenbrook Limited <https://www.ravenbrook.com/>.
+ * Copyright (C) 2001-2023 Ravenbrook Limited <https://www.ravenbrook.com/>.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are

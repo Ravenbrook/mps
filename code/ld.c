@@ -44,6 +44,9 @@
  * "wrapped" with an ShieldExpose/Cover pair if and only if the access
  * is taking place inside the arena.  Currently this is only the case for
  * LDReset.
+ *
+ * FIXME: Move above to design document.
+ * FIXME: Note possibility of using RefSets in LDs.
  */
 
 #include "mpm.h"
@@ -58,9 +61,9 @@ void HistoryInit(History history)
   AVER(history != NULL);
 
   history->epoch = 0;
-  history->prehistory = RefSetEMPTY;
+  RefSetInit(&history->prehistory);
   for (i = 0; i < LDHistoryLENGTH; ++i)
-    history->history[i] = RefSetEMPTY;
+    RefSetInit(&history->history[i]);
 
   history->sig = HistorySig;
   AVERT(History, history);
@@ -69,21 +72,21 @@ void HistoryInit(History history)
 Bool HistoryCheck(History history)
 {
   Index i;
-  RefSet rs;
+  RefSetStruct rs;
 
   CHECKS(History, history);
 
   /* check that each history entry is a subset of the next oldest */
-  rs = RefSetEMPTY;
+  RefSetInit(&rs);
   /* note this loop starts from 1; there is no history age 0 */
   for (i = 1; i <= LDHistoryLENGTH; ++i) {
     /* check history age 'i'; 'j' is the history index. */
     Index j = (history->epoch + LDHistoryLENGTH - i) % LDHistoryLENGTH;
-    CHECKL(RefSetSub(rs, history->history[j]));
-    rs = history->history[j];
+    CHECKL(RefSetSub(&rs, &history->history[j]));
+    RefSetCopy(&rs, &history->history[j]);
   }
   /* the oldest history entry must be a subset of the prehistory */
-  CHECKL(RefSetSub(rs, history->prehistory));
+  CHECKL(RefSetSub(&rs, &history->prehistory));
 
   return TRUE;
 }
@@ -105,27 +108,44 @@ Res HistoryDescribe(History history, mps_lib_FILE *stream, Count depth)
     return ResPARAM;
 
   res = WriteF(stream, depth,
-               "History $P {\n",      (WriteFP)history,
-               "  epoch      = $U\n", (WriteFU)history->epoch,
-               "  prehistory = $B\n", (WriteFB)history->prehistory,
-               "  history {\n",
-               "    [note: indices are raw, not rotated]\n",
+               "History $P {\n", (WriteFP)history,
+               NULL);
+  if (res != ResOK)
+    return res;
+  
+  res = WriteF(stream, depth + 2,
+               "epoch $U\n", (WriteFU)history->epoch,
+               "prehistory = \n",
+               NULL);
+  if (res != ResOK)
+    return res;
+
+  res = RefSetDescribe(&history->prehistory, stream, depth + 4);
+  if (res != ResOK)
+    return res;
+
+  res = WriteF(stream, depth + 2,
+               "history { [note: indices are raw, not rotated]\n",
                NULL);
   if (res != ResOK)
     return res;
 
   for (i = 0; i < LDHistoryLENGTH; ++i) {
     res = WriteF(stream, depth + 4,
-                 "[$U] = $B\n", (WriteFU)i, (WriteFB)history->history[i],
+                 "[$U] = \n", (WriteFU)i,
                  NULL);
+    if (res != ResOK)
+      return res;
+    res = RefSetDescribe(&history->history[i], stream, depth + 6);
     if (res != ResOK)
       return res;
   }
 
   res = WriteF(stream, depth,
-               "  }\n",
+               "  } history\n",
                "} History $P\n", (WriteFP)history,
                NULL);
+
   if (res != ResOK)
     return res;
 
@@ -151,7 +171,7 @@ void LDReset(mps_ld_t ld, Arena arena)
   if (b)
     ShieldExpose(arena, seg);   /* .ld.access */
   ld->_epoch = ArenaHistory(arena)->epoch;
-  ld->_rs = RefSetEMPTY;
+  ld->_zs = ZoneSetEMPTY;
   if (b)
     ShieldCover(arena, seg);
 }
@@ -190,7 +210,7 @@ void LDAdd(mps_ld_t ld, Arena arena, Addr addr)
   AVER(TESTT(Arena, arena)); /* see .add.lock-free */
   AVER(ld->_epoch <= ArenaHistory(arena)->epoch);
 
-  ld->_rs = RefSetAdd(arena, ld->_rs, addr);
+  ld->_zs = ZoneSetAddAddr(arena, ld->_zs, addr);
 }
 
 
@@ -230,14 +250,14 @@ Bool LDIsStaleAny(mps_ld_t ld, Arena arena)
   /* Load the history refset, _then_ check to see if it's recent.
    * This may in fact load an okay refset, which we decide to throw
    * away and use the pre-history instead. */
-  rs = history->history[ld->_epoch % LDHistoryLENGTH];
+  rs = &history->history[ld->_epoch % LDHistoryLENGTH];
   /* .stale.recent */
   /* .stale.recent.conservative */
   if (history->epoch - ld->_epoch > LDHistoryLENGTH) {
-    rs = history->prehistory;     /* .stale.old */
+    rs = &history->prehistory;     /* .stale.old */
   }
 
-  return RefSetInter(ld->_rs, rs) != RefSetEMPTY;
+  return ZoneSetInter(ld->_zs, RefSetZones(rs)) != ZoneSetEMPTY;
 }
 
 
@@ -275,21 +295,21 @@ void LDAge(Arena arena, RefSet rs)
 
   AVERT(Arena, arena);
   history = ArenaHistory(arena);
-  AVER(rs != RefSetEMPTY);
+  AVER(!RefSetIsEmpty(rs));
 
   /* Replace the entry for epoch - LDHistoryLENGTH by an empty */
   /* set which will become the set which has moved since the */
   /* current epoch. */
-  history->history[history->epoch % LDHistoryLENGTH] = RefSetEMPTY;
+  RefSetInit(&history->history[history->epoch % LDHistoryLENGTH]);
 
   /* Record the fact that the moved set has moved, by adding it */
   /* to all the sets in the history, including the set for the */
   /* current epoch. */
   for(i = 0; i < LDHistoryLENGTH; ++i)
-    history->history[i] = RefSetUnion(history->history[i], rs);
+    RefSetUnion(&history->history[i], rs);
 
   /* This is the union of all movement since time zero. */
-  history->prehistory = RefSetUnion(history->prehistory, rs);
+  RefSetUnion(&history->prehistory, rs);
 
   /* Advance the epoch by one. */
   ++history->epoch;
@@ -318,7 +338,7 @@ void LDMerge(mps_ld_t ld, Arena arena, mps_ld_t from)
     ld->_epoch = from->_epoch;
 
   /* The set of references added is the union of the two. */
-  ld->_rs = RefSetUnion(ld->_rs, from->_rs);
+  ld->_zs = ZoneSetUnion(ld->_zs, from->_zs);
 }
 
 

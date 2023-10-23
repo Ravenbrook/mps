@@ -166,10 +166,12 @@ _`.impl.splay.zones`: In the ``CBSZonedLandClass`` class,
 to store, in each block, the union of the zones of the ranges in the
 tree rooted at the corresponding splay node. This allows rapid
 location of a block in a set of zones.  For example, this is used to
-allocate segments in particular zones in the arena to optimised
-garbage collection (see design.mps.critical-path_).
+allocate segments in particular zones in the arena
+(see design.mps.arenavm.req.fun.place_) to optimise garbage collection (see
+design.mps.critical-path_).
 
 .. _design.mps.critical-path: critical-path
+.. _design.mps.arenavm.req.fun.place: arenavm#req-fun-place
 
 
 Low memory behaviour
