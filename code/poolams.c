@@ -1491,10 +1491,11 @@ static Res amsSegFix(Seg seg, ScanState ss, Ref *refIO)
         if (SegRankSet(seg) == RankSetEMPTY && ss->rank != RankAMBIG) {
           /* <design/poolams#.fix.to-black> */
           Addr clientNext, next;
+	  Shield shield = ArenaShield(PoolArena(pool));
 
-          ShieldExpose(PoolArena(pool), seg);
+          ShieldExpose(shield, seg);
           clientNext = (*pool->format->skip)(clientRef);
-          ShieldCover(PoolArena(pool), seg);
+          ShieldCover(shield, seg);
           next = AddrSub(clientNext, format->headerSize);
           /* Part of the object might be grey, because of ambiguous */
           /* fixes, but that's OK, because scan will ignore that. */

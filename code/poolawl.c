@@ -869,7 +869,7 @@ static Res awlScanObject(Arena arena, AWL awl, ScanState ss,
   dependent = SegOfAddr(&dependentSeg, arena, dependentObject);
   if (dependent) {
       /* <design/poolawl#.fun.scan.pass.object.dependent.expose> */
-      ShieldExpose(arena, dependentSeg);
+    ShieldExpose(ArenaShield(arena), dependentSeg);
       /* <design/poolawl#.fun.scan.pass.object.dependent.summary> */
       SegSetSummary(dependentSeg, RefSetUNIV);
   }
@@ -877,7 +877,7 @@ static Res awlScanObject(Arena arena, AWL awl, ScanState ss,
   res = TraceScanFormat(ss, base, limit);
 
   if (dependent)
-    ShieldCover(arena, dependentSeg);
+    ShieldCover(ArenaShield(arena), dependentSeg);
 
   return res;
 }

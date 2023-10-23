@@ -984,9 +984,9 @@ static Res AMCBufferFill(Addr *baseReturn, Addr *limitReturn,
     AVER(SizeIsAligned(padSize, PoolAlignment(pool)));
     AVER(AddrAdd(limit, padSize) == SegLimit(seg));
     if(padSize > 0) {
-      ShieldExpose(arena, seg);
+      ShieldExpose(ArenaShield(arena), seg);
       (*pool->format->pad)(limit, padSize);
-      ShieldCover(arena, seg);
+      ShieldCover(ArenaShield(arena), seg);
     }
   }
 
@@ -1031,9 +1031,9 @@ static void amcSegBufferEmpty(Seg seg, Buffer buffer)
 
   /* <design/poolamc#.flush.pad> */
   if (init < limit) {
-    ShieldExpose(arena, seg);
+    ShieldExpose(ArenaShield(arena), seg);
     (*pool->format->pad)(init, AddrOffset(init, limit));
-    ShieldCover(arena, seg);
+    ShieldCover(ArenaShield(arena), seg);
   }
 
   /* Any allocation in the buffer (including the padding object just
@@ -1507,9 +1507,9 @@ static Res amcSegFixEmergency(Seg seg, ScanState ss, Ref *refIO)
   if(ss->rank == RankAMBIG)
     goto fixInPlace;
 
-  ShieldExpose(arena, seg);
+  ShieldExpose(ArenaShield(arena), seg);
   newRef = (*pool->format->isMoved)(*refIO);
-  ShieldCover(arena, seg);
+  ShieldCover(ArenaShield(arena), seg);
   if(newRef != (Addr)0) {
     /* Object has been forwarded already, so snap-out pointer. */
     /* TODO: Implement weak pointer semantics in emergency fixing.  This
@@ -1591,7 +1591,7 @@ static Res amcSegFix(Seg seg, ScanState ss, Ref *refIO)
 
   /* .exposed.seg: Statements tagged ".exposed.seg" below require */
   /* that "seg" (that is: the 'from' seg) has been ShieldExposed. */
-  ShieldExpose(arena, seg);
+  ShieldExpose(ArenaShield(arena), seg);
   newRef = (*format->isMoved)(ref);  /* .exposed.seg */
 
   if(newRef == (Addr)0) {
@@ -1636,7 +1636,7 @@ static Res amcSegFix(Seg seg, ScanState ss, Ref *refIO)
       newRef = AddrAdd(newBase, headerSize);
 
       toSeg = BufferSeg(buffer);
-      ShieldExpose(arena, toSeg);
+      ShieldExpose(ArenaShield(arena), toSeg);
 
       /* Since we're moving an object from one segment to another, */
       /* union the greyness and the summaries together. */
@@ -1652,7 +1652,7 @@ static Res amcSegFix(Seg seg, ScanState ss, Ref *refIO)
       /* <design/trace#.fix.copy> */
       (void)AddrCopy(newBase, base, length);  /* .exposed.seg */
 
-      ShieldCover(arena, toSeg);
+      ShieldCover(ArenaShield(arena), toSeg);
     } while (!BUFFER_COMMIT(buffer, newBase, length));
 
     STATISTIC(ss->copiedSize += length);
@@ -1674,7 +1674,7 @@ updateReference:
   res = ResOK;
 
 returnRes:
-  ShieldCover(arena, seg);  /* .exposed.seg */
+  ShieldCover(ArenaShield(arena), seg);  /* .exposed.seg */
   return res;
 }
 
@@ -1705,7 +1705,7 @@ static void amcSegReclaimNailed(Pool pool, Trace trace, Seg seg)
 
   /* see <design/poolamc#.nailboard.limitations> for improvements */
   headerSize = format->headerSize;
-  ShieldExpose(arena, seg);
+  ShieldExpose(ArenaShield(arena), seg);
   p = SegBase(seg);
   limit = SegBufferScanLimit(seg);
   padBase = p;
@@ -1752,7 +1752,7 @@ static void amcSegReclaimNailed(Pool pool, Trace trace, Seg seg)
     (*format->pad)(padBase, padLength);
     STATISTIC(bytesReclaimed += padLength);
   }
-  ShieldCover(arena, seg);
+  ShieldCover(ArenaShield(arena), seg);
 
   SegSetNailed(seg, TraceSetDel(SegNailed(seg), trace));
   SegSetWhite(seg, TraceSetDel(SegWhite(seg), trace));
@@ -1886,9 +1886,9 @@ static void amcWalkAll(Pool pool, FormattedObjectsVisitor f, void *p, size_t s)
   RING_FOR(node, ring, next) {
     Seg seg = SegOfPoolRing(node);
 
-    ShieldExpose(arena, seg);
+    ShieldExpose(ArenaShield(arena), seg);
     amcSegWalk(seg, format, f, p, s);
-    ShieldCover(arena, seg);
+    ShieldCover(ArenaShield(arena), seg);
   }
 }
 

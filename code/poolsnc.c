@@ -287,9 +287,9 @@ static void sncRecordFreeSeg(Arena arena, SNC snc, Seg seg)
   SegSetRankAndSummary(seg, RankSetEMPTY, RefSetEMPTY);
 
   /* Pad the whole segment so we don't try to walk it. */
-  ShieldExpose(arena, seg);
+  ShieldExpose(ArenaShield(arena), seg);
   (*SNCPool(snc)->format->pad)(SegBase(seg), SegSize(seg));
-  ShieldCover(arena, seg);
+  ShieldCover(ArenaShield(arena), seg);
 
   sncSegSetNext(seg, snc->freeSegs);
   snc->freeSegs = seg;
@@ -498,9 +498,9 @@ static void sncSegBufferEmpty(Seg seg, Buffer buffer)
 
   /* Pad the unused space at the end of the segment */
   if (init < limit) {
-    ShieldExpose(arena, seg);
+    ShieldExpose(ArenaShield(arena), seg);
     (*pool->format->pad)(init, AddrOffset(init, limit));
-    ShieldCover(arena, seg);
+    ShieldCover(ArenaShield(arena), seg);
   }
 }
 

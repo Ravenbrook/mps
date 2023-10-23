@@ -75,9 +75,9 @@ static void ArenaFormattedObjectsWalk(Arena arena, FormattedObjectsVisitor f,
   if (SegFirst(&seg, arena)) {
     do {
       if (PoolFormat(&format, SegPool(seg))) {
-        ShieldExpose(arena, seg);
+        ShieldExpose(ArenaShield(arena), seg);
         SegWalk(seg, format, f, p, s);
-        ShieldCover(arena, seg);
+        ShieldCover(ArenaShield(arena), seg);
       }
     } while(SegNext(&seg, arena, seg));
   }
@@ -305,9 +305,12 @@ static Res ArenaRootsWalk(Globals arenaGlobals, mps_roots_stepper_t f,
   /* operations of its own. */
 
   res = TraceCreate(&trace, arena, TraceStartWhyWALK);
-  /* Have to fail if no trace available.  Unlikely due to .assume.parked. */
-  if (res != ResOK)
+  if (res != ResOK) {
+    NOTREACHED; /* .assume.parked means a trace should be available */
     return res;
+  }
+
+  /* Whiten everything.  This step is equivalent to TraceCondemn. */
 
   /* .roots-walk.first-stage: In order to fool MPS_FIX12 into calling
      _mps_fix2 for a reference in a root, the reference must pass the
@@ -325,14 +328,17 @@ static Res ArenaRootsWalk(Globals arenaGlobals, mps_roots_stepper_t f,
     } while (SegNext(&seg, arena, seg));
   }
 
+  /* Start the trace.  This step is equivalent to TraceStart. */
+
   /* Make the roots grey so that they are scanned */
   res = RootsIterate(arenaGlobals, rootWalkGrey, trace);
-  /* Make this trace look like any other trace. */
-  arena->flippedTraces = TraceSetAdd(arena->flippedTraces, trace);
 
+  trace->state = TraceUNFLIPPED;
+
+  /* Scan the roots.  This step is equivalent to traceFlip. */
+  
   rootsStepClosureInit(rsc, arenaGlobals, trace, RootsWalkFix, f, p, s);
   ss = rootsStepClosure2ScanState(rsc);
-
   for(rank = RankMIN; rank < RankLIMIT; ++rank) {
     ss->rank = rank;
     AVERT(ScanState, ss);
@@ -340,16 +346,24 @@ static Res ArenaRootsWalk(Globals arenaGlobals, mps_roots_stepper_t f,
     if (res != ResOK)
       break;
   }
+  rootsStepClosureFinish(rsc);
 
-  /* Turn segments black again. */
+  trace->state = TraceFLIPPED;
+  arena->flippedTraces = TraceSetAdd(arena->flippedTraces, trace);
+
+  /* At this point in a normal trace we'd search and scan grey
+     segments, but there aren't any, so we can proceed directly to
+     reclaim. */
+  trace->state = TraceRECLAIM;
+
+  /* Turn segments black again.  This is equivalent to traceReclaim,
+     but in this case nothing is reclaimed. */
   if (SegFirst(&seg, arena)) {
     do {
       SegSetWhite(seg, TraceSetDel(SegWhite(seg), trace));
     } while (SegNext(&seg, arena, seg));
   }
 
-  rootsStepClosureFinish(rsc);
-  /* Make this trace look like any other finished trace. */
   trace->state = TraceFINISHED;
   TraceDestroyFinished(trace);
   AVER(!ArenaEmergency(arena)); /* There was no allocation. */
@@ -438,9 +452,10 @@ static Res poolWalk(Arena arena, Pool pool, mps_area_scan_t area_scan, void *clo
    * white set means that the MPS_FIX1 test will always fail and
    * _mps_fix2 will never be called. */
   res = TraceCreate(&trace, arena, TraceStartWhyWALK);
-  /* Fail if no trace available. Unlikely due to .assume.parked. */
-  if (res != ResOK)
+  if (res != ResOK) {
+    NOTREACHED; /* .assume.parked means a trace should be available */
     return res;
+  }
   trace->white = ZoneSetEMPTY;
   trace->state = TraceFLIPPED;
   arena->flippedTraces = TraceSetAdd(arena->flippedTraces, trace);
@@ -461,9 +476,9 @@ static Res poolWalk(Arena arena, Pool pool, mps_area_scan_t area_scan, void *clo
       ScanStateSetSummary(&ss, RefSetEMPTY);
 
     /* Expose the segment to make sure we can scan it. */
-    ShieldExpose(arena, seg);
+    ShieldExpose(ArenaShield(arena), seg);
     res = SegScan(&wasTotal, seg, &ss);
-    ShieldCover(arena, seg);
+    ShieldCover(ArenaShield(arena), seg);
 
     if (needSummary)
       ScanStateUpdateSummary(&ss, seg, res == ResOK && wasTotal);

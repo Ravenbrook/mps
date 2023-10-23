@@ -356,12 +356,12 @@ static void debugPoolSegIterate(Arena arena, Addr base, Addr limit,
 
 static void debugPoolShieldExpose(Arena arena, Seg seg)
 {
-  ShieldExpose(arena, seg);
+  ShieldExpose(ArenaShield(arena), seg);
 }
 
 static void debugPoolShieldCover(Arena arena, Seg seg)
 {
-  ShieldCover(arena, seg);
+  ShieldCover(ArenaShield(arena), seg);
 }
 
 

@@ -829,13 +829,13 @@ static Res MRGDescribe(Inst inst, mps_lib_FILE *stream, Count depth)
     Bool outsideShield = !ArenaShield(arena)->inside;
     refPart = MRGRefPartOfLink(linkOfRing(node), arena);
     if (outsideShield) {
-      ShieldEnter(arena);
+      ShieldEnter(ArenaShield(arena));
     }
     res = WriteF(stream, depth + 2, "at $A Ref $A\n",
                  (WriteFA)refPart, (WriteFA)MRGRefPartRef(arena, refPart),
                  NULL);
     if (outsideShield) {
-      ShieldLeave(arena);
+      ShieldLeave(ArenaShield(arena));
     }
     if (res != ResOK)
       return res;

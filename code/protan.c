@@ -60,9 +60,9 @@ void ProtSync(Arena arena)
     if (SegFirst(&seg, arena)) {
       do {
         if (SegPM(seg) != AccessSetEMPTY) { /* <design/protan#.fun.sync.seg> */
-          ShieldEnter(arena);
+          ShieldEnter(ArenaShield(arena));
           TraceSegAccess(arena, seg, SegPM(seg));
-          ShieldLeave(arena);
+          ShieldLeave(ArenaShield(arena));
           synced = FALSE;
         }
       } while(SegNext(&seg, arena, seg));

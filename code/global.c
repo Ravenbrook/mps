@@ -78,7 +78,7 @@ void GlobalsReleaseAll(void)
 static void arenaReinitLock(Arena arena)
 {
   AVERT(Arena, arena);
-  ShieldLeave(arena);
+  ShieldLeave(ArenaShield(arena));
   LockInit(ArenaGlobals(arena)->lock);
 }
 
@@ -579,7 +579,7 @@ void ArenaEnterLock(Arena arena, Bool recursive)
   if(recursive) {
     /* already in shield */
   } else {
-    ShieldEnter(arena);
+    ShieldEnter(ArenaShield(arena));
   }
 }
 
@@ -611,7 +611,7 @@ void ArenaLeaveLock(Arena arena, Bool recursive)
   if(recursive) {
     /* no need to leave shield */
   } else {
-    ShieldLeave(arena);
+    ShieldLeave(ArenaShield(arena));
   }
   ProtSync(arena);              /* <design/prot#.if.sync> */
   if(recursive) {
@@ -917,9 +917,9 @@ Ref ArenaPeekSeg(Arena arena, Seg seg, Ref *p)
   /* We don't need to update the Seg Summary as in PoolSingleAccess
    * because we are not changing it after it has been scanned. */
 
-  ShieldExpose(arena, seg);
+  ShieldExpose(ArenaShield(arena), seg);
   ref = *p;
-  ShieldCover(arena, seg);
+  ShieldCover(ArenaShield(arena), seg);
   return ref;
 }
 
@@ -953,12 +953,12 @@ void ArenaPokeSeg(Arena arena, Seg seg, Ref *p, Ref ref)
   /* TODO: Consider checking p's alignment using seg->pool->alignment */
   /* ref is arbitrary and can't be checked */
 
-  ShieldExpose(arena, seg);
+  ShieldExpose(ArenaShield(arena), seg);
   *p = ref;
   summary = SegSummary(seg);
   summary = RefSetAdd(arena, summary, (Addr)ref);
   SegSetSummary(seg, summary);
-  ShieldCover(arena, seg);
+  ShieldCover(ArenaShield(arena), seg);
 }
 
 /* ArenaRead -- like ArenaPeek, but reference known to be owned by arena */
