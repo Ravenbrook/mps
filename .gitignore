@@ -30,3 +30,9 @@ test/test/obj
 *~
 .#.*
 core
+# CMake output
+CMakeFiles
+CMakeCache.txt
+cmake_install.cmake
+hot
+cool
