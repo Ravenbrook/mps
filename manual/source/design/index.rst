@@ -20,6 +20,8 @@ Design
     of the MPS.  They vary a great deal in detail depending on the
     risks associated with the things they describe.
 
+.. IMPORTANT: Keep in sync with the index at design/index.txt.
+
 .. toctree::
     :numbered:
 
@@ -27,6 +29,7 @@ Design
     an
     bootstrap
     cbs
+    ci
     clock
     config
     critical-path

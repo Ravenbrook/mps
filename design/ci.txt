@@ -1,0 +1,563 @@
+.. mode: -*- rst -*-
+
+======================
+Continuous Integration
+======================
+
+:Tag: design.ci
+:Author: Richard Brooksby
+:Organization: Ravenbrook Limited
+:Date: 2023-02-09
+:Confidentiality: public
+:Copyright: See `Copyright and License`_.
+:Readership: MPS developers
+:Index terms: pair: continuous integration; design
+	      pair: CI; design
+
+.. TODO: Readership could be a role that doesn't include MPS
+   programmers, such as "integrators".
+
+.. TODO: Discussion of compilers and toolchains.
+
+.. TODO: Investigate and document the testci make target.
+
+.. TODO: Explain the relationship of CI to review.
+
+.. TODO: Explain the relationship of CI to merge.
+
+.. TODO: Explain the tool scripts for talking to CI systems.
+
+.. TODO: Give instructions for maintenance and extension.
+
+.. TODO: Explain how CI will interact with forks.  What is required
+   for us to work with third-party submissions?
+
+.. FIXME: Link each design and implementation point to requirements.
+   RB 2023-02-26
+
+.. FIXME: Link tags.  RB 2023-03-16
+
+
+Introduction
+============
+
+_`.intro`: This document describes the design and implementation of
+`continuous integration
+<https://en.wikipedia.org/wiki/Continuous_integration>`_ of the Memory
+Pool System.
+
+_`.levels`: The key words "MUST", "MUST NOT", "REQUIRED", "SHALL",
+"SHALL NOT", "SHOULD", "SHOULD NOT", "RECOMMENDED", "NOT RECOMMENDED",
+"MAY", and "OPTIONAL" in this document are to be interpreted as
+described in RFC 2119 [RFC-2119]_.  They indicate what is requried for
+the design to succeed in achieving its goals.
+
+
+Goals
+=====
+
+_`.goal.platforms`: Reduce the cost to developers and collaborators of
+supporting target platforms.
+
+_`.goal.detect`: Detect introduced defects early in development so that
+they can be fixed at lower cost.
+
+_`.goal.publish`: Publish documentation promptly and cheaply.
+
+
+Requirements
+============
+
+_`.req.rapid`: Provide build and test results within 30 minutes of
+submission of changes.  (`.goal.detect`_)
+
+_`.req.branch`: Provide build and test results for submissions to
+development branches (pushes).  (`.goal.detect`_)
+
+_`.req.merge`: Provide build and test results for merge candidate changes
+(pull requests) before they are merged to master.  (`.goal.detect`_)
+
+_`.req.platforms`: Build and test on all supported target platforms
+defined in `Building the Memory Pool System <../manual/build.txt>`_
+(`.goal.platforms`_).  [TODO: The target platforms should be referencable
+by tag.  See also `GitHub issue #147
+<https://github.com/Ravenbrook/mps/issues/147>`_.  RB 2023-03-08]
+
+_`.req.cost`: Cost no money in normal circumstances.  (This also
+supports `.req.fork`_) (`.goal.platforms`_, `.goal.detect`_,
+`.goal.publish`_)
+
+_`.req.fork`: Operate on forks of the repo, to further promote early
+detection. (`.goal.platforms`_, `.goal.detect`_)
+
+_`.req.maintainable`: Low maintenance overhead.  Around 20 h/year,
+which is about 1% of a person.  (`.goal.platforms`_)
+
+_`.req.extensible`: Easy to extend with new platforms, improvements,
+and defect prevention.  Less than 4 h of work to add a new platform or
+check (not including the development of the port or check).
+(`.goal.platforms`_, `.goal.publish`_)
+
+_`.req.portable`: Be portable away from any particular hosting
+service, e.g. GitHub, in less than 40 h of work.  (`.goal.platforms`_,
+`.goal.publish`_)
+
+_`.req.admin`: Administration is available to more than one person in
+the organization.  (`.goal.platforms`_, `.goal.publish`_)
+
+_`.req.manual`: Publish the manual.  [TODO: Define where, how prompty,
+etc.  RB 2023-03-17]
+
+_`.req.manual.versions`: Publish versions of the manual that document
+releases.  [TODO: Connect with version and release procedures.  RB
+2023-03-17]
+
+_`.req.build.code`: Check that the MPS code compiles correctly without
+errors or warnings.
+
+_`.req.build.manual`: Check that the manual builds correctly without
+errors or warnings.
+
+_`.req.test`: Detect defects detected by tests
+(`design.mps.tests`_) on target platforms.  (`.goal.detect`_)
+
+.. _design.mps.tests: tests.txt
+
+_`.req.test.coverage`: Includes all CI tests
+(`design.mps.tests.target.testci`_).  (`.goal.detect`_,
+`.goal.platforms`_) [TODO: This is a circular definition.  What
+determines whether a test is in this set?  RB 2023-03-17]
+
+.. _design.mps.tests.target.testci: tests.txt#target-testci
+
+_`.req.test.detect`: Detect wheter tests find any defects.  (`.goal.detect`_)
+
+_`.req.test.results`: Provide detailed test results to diagnose defects.
+(`.goal.platforms`_)
+
+_`.req.test.real`: Test the attributes of realistic target platforms,
+e.g. test interacting with the real target kernel rather than a
+virtualized simulation.  This is especially important for performance
+tests.  (`.goal.detect`_)
+
+_`.req.test.type`: Test for all the types defects for which we have
+tests.  [TODO: Analyse and specify explicitly what types of tests are
+required, probably in `design.mps.tests`_, and reference here.  RB
+2023-03-08.]
+
+_`.req.check`: Detect defects detected by programmatic checks
+(`.def.check`_) of the MPS source tree.
+
+_`.def.check`: A "check", as opposed to a "test" of the compiled MPS, is
+something that e.g. finds missing cross-references, inconsistencies,
+or runs a lint tool.
+
+_`.req.check.coverage`: Include all checks.  (`.goal.detect`_)
+
+_`.req.check.detect`: Detect whether checks find any defects.  (`.goal.detect`_)
+
+_`.req.check.results`: Provide detailed results of checks.  (`.goal.platforms`_)
+
+[TODO: What is required about *version* of platforms, e.g. kernel
+versions, compiler versions, etc.?  RB 2023-03-08]
+
+
+Design
+======
+
+Configuration
+-------------
+
+_`.config`: CI systems are usually configured though simple YAML files
+that give instructions for what to do on various events.
+
+_`.config.kiss`: CI setups SHOULD be kept as simple as possible to meet
+`.req.maintainable`_ and `.req.portable`_.
+
+_`.config.one-line`: Each CI configuration SHOULD be a single command
+line that invokes part of the MPS build system.  (See `.run.posix`_
+and `.run.windows`_.)
+
+_`.config.cross-platform`: The `.config.one-line`_ command SHOULD
+invoke a platform independent script, so that we get uniform coverage
+of platforms.  For example, ``test/check-rst`` or ``make testci``.
+Unfortunately, Windows often demands a different script.  Duplication
+for Windows SHOULD be minimized.
+
+_`.github.config`: `GitHub CI`_ is configured using several
+`"workflows"
+<https://docs.github.com/en/actions/using-workflows/about-workflows>`__
+in the `.github/workflows directory <../.github/workflows/>`_ of the
+MPS tree:
+
+- the `build-and-test.yml <../.github/workflows/build-and-test.yml>`_
+  file runs build and test commands (`.run.posix`_ , `.run.windows`_).
+
+- the `shell-script-check.yml
+  <../.github/workflows/shell-script-check.yml>`_ file runs the
+  lint checks on shell scripts
+
+- the `rst-check.yml <../.github/workflows/shell-script-check.yml>`_
+  file runs syntax checks on reStructuredText documents
+
+_`.cirrus.config`: `Cirrus CI`_ is configured using the `.cirrus.yml
+<../.cirrus.yml>`_ file at top level of the MPS tree.
+
+_`.travis.config`: `Travis CI`_ is configured using the `.travis.yml
+<../.travis.yml>`_ file at top level of the MPS tree.
+
+_`.readthedocs.config`: `Read the Docs`_ is configured using the
+`.readthedocs.yml <../.readthedocs.yml>`_ file at the top level of the
+MPS tree.
+
+
+Administration
+--------------
+
+_`.github.admin`: `GitHub CI`_ is build on GitHub Actions, which are
+managed in `the Actions section of the MPS repo settings
+<https://github.com/Ravenbrook/mps/settings/actions>`__.  The repo
+uses the default settings.
+
+_`.cirrus.admin`: `Cirrus CI`_ is managed in the `Settings for
+Ravenbrook page of the Cirrus CI app
+<https://cirrus-ci.com/settings/github/Ravenbrook>`__.  The settings
+are defaults.
+
+_`.cirrus.github`: `Cirrus CI`_ uses a GitHub app to monitor activity
+in the MPS repo and kick off builds.  The app is managed in the
+`GitHub apps section of the MPS repo settings
+<https://github.com/Ravenbrook/mps/settings/installations>`__.  The
+settings are defaults.
+
+_`.travis.admin`: `Travis CI`_ is managed on the `Ravenbrook / mps
+page of the Travis CI app
+<https://app.travis-ci.com/github/Ravenbrook/mps>`__ but the *account
+plan* is managed on the `Ravenbrook plan page
+<https://app.travis-ci.com/organizations/Ravenbrook/plan>`__.
+
+_`.travis.github`: `Travis CI`_ uses a GitHub app to monitor activity
+in the MPS repo and kick off builds.  The app is managed in the
+`GitHub apps section of the MPS repo settings
+<https://github.com/Ravenbrook/mps/settings/installations>`__.  The
+settings are defaults.
+
+_`.readthedocs.admin`: `Read the Docs`_ is managed on the `Memory Pool
+System project page
+<https://readthedocs.org/projects/memory-pool-system/>`__.  [FIXME:
+Write about managing Read the Docs versions and builds.  RB
+2023-03-16]
+
+
+Checks
+------
+
+_`.design.check.script`: Checks SHOULD be implemented as executable
+scripts in the tool directory at the root of the MPS tree.  This keeps
+the CI config simple (`.config.kiss`_) and allows checks, like builds,
+to be run by developers from the command line (`.goal.detect`_).
+
+_`.design.check.posix`: Checks MUST run on Posix.  Checks MAY also run
+on Windows.  Checks SHOULD run on Posix layered on Windows, such
+`WSL`_.  The majority of CI systems run on Posix, which includes
+macOS.  Linux features that are not available in macOS (which is based
+on BSD) SHOULD NOT be used.
+
+.. _WSL: https://learn.microsoft.com/en-us/windows/wsl/about
+
+_`.design.check.cross-platform`: Checks SHOULD be designed to be
+independent of target platforms, so that defects in the Windows build
+are detected by checks run on Posix.  Therefore, checks SHOULD NOT
+exclude files by platform (`.goal.detect`_).
+
+
+Implementation
+==============
+
+Services
+--------
+
+_`.service`: The `Ravenbrook MPS repository on GitHub
+<https://github.com/Ravenbrook/mps>`_ uses third-party continuous
+integration services in order to meet `.req.platforms`_,
+`.req.maintainable`_, and `.req.extensible`_ without the overhead of
+maintaining a lot systems.
+
+_`.service.choice`: The services have been chosen to best meet
+requirements, with the best fit earliest in the list.  Therefore, we
+SHOULD favour the services higher up this list when making changes.
+
+[TODO: Is `.req.test.real`_ adequately met?  RB 2023-03-08]
+
+_`.service.github`: `GitHub CI`_ uses `GitHub Actions
+<https://docs.github.com/en/actions>`__ to trigger builds on
+`GitHub-hosted runners
+<https://docs.github.com/en/actions/using-github-hosted-runners/about-github-hosted-runners>`_
+and can orchestrate external "`self-hosted runners
+<https://docs.github.com/en/actions/hosting-your-own-runners/about-self-hosted-runners>`__".
+
+- `GitHub CI`_ is free to use for public repositories (`.req.cost`_).
+
+- `GitHub CI`_ only provides hosted runners for amd64 (`.req.platforms`_).
+
+- `GitHub CI`_ does not support FreeBSD, even for self-hosted runners (`.req.platforms`_).
+
+- There is a hazard of GitHub lock-in (`.req.portable`_).
+
+- `GitHub CI`_ is also used to run checks (`.run.checks`_, `.req.check`_).
+
+- `GitHub CI`_ builds both `pushes and pull requests
+  <https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/incorporating-changes-from-a-pull-request/about-pull-request-merges>`__
+  (`.req.branch`_, `.req.merge`_).
+
+_`.service.cirrus`: `Cirrus CI`_ mainly uses Google Compute Cloud to
+run public images, mainly Docker images.
+
+- `Cirrus CI`_ is free to use for public repositories (`.req.cost`_).
+
+- `Cirrus CI`_ provides macOS M1 (Apple Silicon) using `Tart
+  <https://github.com/cirruslabs/tart>`_ and so can provide coverage
+  for XCA6LL (`.req.platforms`_).
+
+- `Cirrus CI`_ can orchestrate Amazon EC2 for extra control, though we
+  don't currently use this feature.  It could be used to meet
+  `.req.test.real`_.
+
+- `Cirrus CI`_ can provide FreeBSD on amd64 but not arm64
+  (`.req.platforms`_).
+
+- `Cirrus CI`_ builds either pushes or pull requests, but not both.
+  [TODO: Escalate `my workaround
+  <https://github.com/cirruslabs/cirrus-ci-docs/discussions/1110#discussioncomment-4917295>`__
+  or figure out how to fix it.  RB 2023-03-08]
+
+_`.service.travis`: `Travis CI`_ is a commercial system that provides
+a wide variety of platforms and simple configuration
+(`.req.maintainable`_).
+
+- `Travis CI`_ is a paid service with limited concurrency (`.req.cost`_).
+
+- `Travis CI is slow and expensive`_ (`.req.cost`_, `.req.rapid`_).
+
+- Ravenbrook has negotiated a quota of "OSS credits" with Travis for
+  the public MPS repo [Travis_42376]_.
+
+- `Travis CI`_ builds both `pushes and pull requests
+  <https://docs.travis-ci.com/user/pull-requests/#how-pull-requests-are-built>`__
+  (`.req.branch`_, `.req.merge`_).
+
+_`.service.readthedocs`: `Read the Docs`_ is used build and publish
+the `MPS manual <https://memory-pool-system.readthedocs.io/>`_
+(`.req.manual`_, `.req.build.manual`_).
+
+- `Read the Docs`_ builds `pull requests
+  <https://docs.readthedocs.io/en/stable/pull-requests.html#preview-documentation-from-pull-requests>`__
+  automatically, and can build `branches
+  <https://docs.readthedocs.io/en/stable/versions.html#versioned-documentation>`__
+  (`.req.branch`_, `.req.merge`_).
+
+.. _GitHub CI: https://docs.github.com/en/actions/automating-builds-and-tests/about-continuous-integration
+
+.. _Cirrus CI: https://cirrus-ci.com/
+
+.. _Travis CI: https://travis-ci.com/
+
+.. _Read the Docs: https://readthedocs.org/
+
+.. _Travis CI is slow and expensive: https://github.com/Ravenbrook/mps/issues/109
+
+
+Platforms
+---------
+
+_`.platforms`: This table shows how each defined platform
+(`.req.platforms`_) is built and tested by CI.
+
+==========   ============   =====================================
+Platform     Service        Notes
+==========   ============   =====================================
+``anangc``   [policy?]      not "supported", testing only
+``ananll``   [policy?]      not "supported", testing only
+``fra6gc``   `Travis CI`_   not "supported"
+``fra6ll``   `Travis CI`_   not "supported"
+``fri3gc``   none
+``fri3ll``   none
+``fri6gc``   `Cirrus CI`_   GitHub has no FreeBSD
+``fri6ll``   `Cirrus CI`_   GitHub has no FreeBSD
+``lia6gc``   `Cirrus CI`_   GitHub has no arm64, not supported
+``lia6ll``   `Cirrus CI`_   GitHub has no arm64, not supported
+``lii3gc``   none
+``lii6gc``   `GitHub CI`_
+``lii6ll``   `GitHub CI`_
+``w3i3mv``   none
+``w3i6mv``   `GitHub CI`_
+``xca6ll``   `Cirrus CI`_   Cirrus has Tart
+``xci6ll``   `GitHub CI`_
+==========   ============   =====================================
+
+_`.platform.supported`: The platforms here MUST be a superset of the
+platforms listed as "supported" in readme.txt (`.req.platforms`_).
+
+_`.platform.builds`: The platforms here MUST be a subset of the
+platforms listed in "Building the MPS" manual/build.txt, but SHOULD be
+the same set so that CI covers all defined platforms (`.req.platforms`_).
+
+
+Commands
+--------
+
+_`.run.posix`: On Posix systems where we have `autoconf
+<https://www.gnu.org/software/autoconf/>`_, the CI services run
+commands equivalent to::
+
+  ./configure && make install && make test
+
+which execises the testci target, as defined by `Makefile.in
+<../Makefile.in>`_ in the root of the MPS tree.  (See
+`.config.one-line`_.)
+
+_`.run.windows`: On Windows the CI services run commands that do at
+least::
+
+  nmake /f w3i6mv.nmk all testci
+
+as defined by the `.github.config`_.  (See `.config.one-line`_.)
+
+_`.run.other.targets`: On some platforms we arrange to run the
+testansi, testpollnone, testratio, and testscheme targets.  [TODO:
+Investigate and explain why, where, etc.  RB 2023-01-15]
+
+_`.run.manual`: The manual is built by Read the Docs which `directly
+invokes Sphinx
+<https://docs.readthedocs.io/en/stable/config-file/v2.html#sphinx>`__,
+so there are no commands.
+
+_`.run.checks`: We also run various non-build checks using CI to check
+things like document formatting and lint shell scripts.  Each of these
+runs a single command like::
+
+  tool/check-rst
+
+(see `.design.check.script`_).
+
+
+Events
+------
+
+_`.when:`: CI is triggered on the `mps GitHub repo`_ by:
+
+- commits (pushes)
+- new pull requests
+- manually, using `.tools`_
+
+.. _mps GitHub repo: https://github.com/ravenbrook/mps
+
+
+Results
+-------
+
+_`.results`: CI results are visible via the GitHub web interface:
+
+- in pull requests, under "Checks",
+
+- on the `branches page <https://github.com/Ravenbrook/mps/branches>`_
+  as green ticks or red crosses that link to details.
+
+as well as in logs specific to the type of CI.
+
+_`.results.github`: Results from `GitHub CI`_ can be found at `build
+and test actions on the Actions tab at the Ravenbrook GitHub repo
+<https://github.com/Ravenbrook/mps/actions/workflows/build-and-test.yml>`_.
+
+_`.results.cirrus`: Results from `Cirrus CI`_ can be found at
+`Ravenbrook/mps - Cirrus CI
+<https://cirrus-ci.com/github/Ravenbrook/mps>`_.
+
+_`.results.travis`: Results from `Travis CI`_ can be found at `Travis
+CI build history for the MPS GitHub repo
+<https://app.travis-ci.com/github/Ravenbrook/mps/builds>`_.
+
+_`.results.readthedocs`: Results from `Read the Docs`_ can be found at
+`Builds | Read the Docs
+<https://readthedocs.org/projects/memory-pool-system/builds/>`_.
+
+
+Tools
+-----
+
+_`.tools`: The MPS tree contains some simple tools for managing CI
+without the need to install whole packages such as the GitHub CLI or
+Travis CI's Ruby gem.
+
+_`.tools.kick`: `tool/github-ci-kick <../tool/github-ci-kick>`_ and
+`tool/travis-ci-kick <../tool/travis-ci-kick>`_ both trigger CI builds
+without the need to push a change or make a pull request in the `mps
+GitHub repo`_.  In particular, they are useful for applying CI to work
+that was pushed while CI was disabled, for whatever reason.  There are
+currently no kick scripts for `Cirrus CI`_ or `Read the Docs`_.  As of
+2023-03 they haven't been needed.
+
+
+References
+----------
+
+.. [RFC-2119]
+   "Key words for use in RFCs to Indicate Requirement Levels";
+   S. Bradner;
+   Harvard University;
+   1997-03;
+   <https://www.ietf.org/rfc/inline-errata/rfc2119.html> (with errata).
+
+.. [Travis_42376]
+   "Travis CI: [42376] - OSS credit request";
+   Manish Nagdewan;
+   Travis CI;
+   2023-02-08;
+   <https://info.ravenbrook.com/mail/2023/02/08/15-49-52/0/>.
+
+[FIXME: include CI system documentation. RB 2023-02-09]
+
+
+Document History
+----------------
+
+==========  =====  ==================================================
+2023-02-09  RB_    Split from design.mps.tests as part of GitHub
+                   `pull request #145`_.
+2023-03-08  RB_    Including goals, requirements, and justification
+                   of design.
+==========  =====  ==================================================
+
+.. _RB: mailto:rb@ravenbrook.com
+.. _pull request #145: https://github.com/Ravenbrook/mps/pull/145
+		   
+
+Copyright and License
+---------------------
+
+Copyright © 2013–2023 `Ravenbrook Limited <https://www.ravenbrook.com/>`_.
+
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions are
+met:
+
+1. Redistributions of source code must retain the above copyright
+   notice, this list of conditions and the following disclaimer.
+
+2. Redistributions in binary form must reproduce the above copyright
+   notice, this list of conditions and the following disclaimer in the
+   documentation and/or other materials provided with the distribution.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+"AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+.. end

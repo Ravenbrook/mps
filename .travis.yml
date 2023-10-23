@@ -2,7 +2,7 @@
 #
 # Copyright (c) 2013-2023 Ravenbrook Limited. See end of file for license.
 #
-# See design.mps.test.ci.
+# See design.ci.travis.config.
 
 # Some branches don't need builds.  Add them here to avoid using build
 # resources and unnecessary build messages.
@@ -15,44 +15,18 @@ language: c # see <https://docs.travis-ci.com/user/languages/c/>.
 
 # The build matrix for Travis CI
 #
-# See design.mps.tests.ci.travis.platforms.
-#
-# Most x86_64/amd64 builds are in GitHub CI, configured by
-# .github/workflows/build-and-test.yml.
+# See design.ci.platforms.
 
 os:
   - freebsd
-  - linux
 arch:
   - arm64
 compiler:
   - clang
   - gcc
 
-script: # see design.mps.test.ci.run.posix
+script: # see design.ci.run.posix
 - ./configure --prefix=$PWD/prefix && make install && make test
-
-matrix:
-
-  # Extra build jobs to add to the matrix
-  include:
-
-    # GitHub CI does not provide FreeBSD
-    # <https://docs.github.com/en/actions/using-github-hosted-runners/about-github-hosted-runners#supported-runners-and-hardware-resources>
-    # on any architecture, so we add it here for amd64.  See also
-    # design.mps.tests.ci.travis.platforms.
-
-    - os: freebsd
-      arch: amd64
-      compiler: clang
-    - os: freebsd
-      arch: amd64
-      compiler: gcc
-
-  # Specific combinations to exclude from the matrix
-  exclude:
-    - os: osx
-      compiler: gcc
 
 notifications:
   email:

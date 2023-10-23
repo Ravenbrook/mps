@@ -131,7 +131,7 @@ When you finish the checklist, decide whether to start
    results are missing, inform sysadmins that CI isn't functioning.
 
    You can also look for a build results in the logs of CI systems.
-   See `design.mps.ci.results <../design/tests.txt#ci-results>`__.
+   See `design.ci.results <../design/tests.txt#ci-results>`_.
 
    Are the build results up to date?  If master has changed since the
    date of the commit that kicked off the build (the one immediately
@@ -157,13 +157,14 @@ When you finish the checklist, decide whether to start
 
 .. [#trial-merge] CI is run against both the branch (labelled "push"),
                   and a `pull request merge branch`_ (labelled "pull
-                  request") automatically created by GitHub.
+                  request") automatically created by GitHub.  See
+                  `design.ci.req.merge`_.
+
+.. _design.ci.req.merge: ../design/ci.txt#req-merge
 
 .. _permalink: https://docs.github.com/en/repositories/working-with-files/using-files/getting-permanent-links-to-files
 
 .. _pull request merge branch: https://docs.github.com/en/actions/using-workflows/events-that-trigger-workflows#pull_request
-
-.. _Travis CI build history for the repo: https://app.travis-ci.com/github/Ravenbrook/mps/builds
 
 .. _GitHub workflows for the repo: https://github.com/Ravenbrook/mps/actions
 
@@ -341,9 +342,8 @@ working repo before that point.
 
      git push github HEAD:merge/2023-01-06/speed-hax
 
-   You will need to wait for results from CI.  Look for a build
-   results in the `Travis CI build history for the repo`_ and in the
-   `GitHub workflows for the repo`_.
+   You will need to wait for results from CI.  See
+   `design.ci.results`_.
 
    See build (step 5) about what to do if tests do not pass.
 
@@ -463,19 +463,8 @@ According to `GitHub's "About pull request merges"
   request on GitHub.com, all commits from the feature branch are added
   to the base branch in a merge commit.
 
-`Travis CI builds and tests this merge in advance <https://docs.travis-ci.com/user/pull-requests/#how-pull-requests-are-built>`_:
-
-  Rather than build the commits that have been pushed to the branch
-  the pull request is from, we build the merge between the source
-  branch and the upstream branch.
-
-When we use a GitHub CI on pull requests, that's also run on the merge
-results.  As `GitHub's pull request event documentation
-<https://docs.github.com/en/actions/using-workflows/events-that-trigger-workflows#pull_request>`_
-says:
-
-  GITHUB_SHA for this event is the last merge commit of the pull
-  request merge branch.
+We also ensure (`design.ci.req.merge`_) that CI results are valid
+for this merge in advance.
 
 So, `once Git becomes the home
 <https://github.com/Ravenbrook/mps/issues/98>`_ we will be able to use

@@ -619,6 +619,10 @@ static Res VMArenaCreate(Arena *arenaReturn, ArgList args)
        zones. Make it easier to write portable programs by rounding up. */
     size = grainSize * MPS_WORD_WIDTH;
 
+  /* Suppress uninitialized warning on platforms where VMParamFromArgs
+     does nothing.  Discovered by GCC 12.2.0. */
+  mps_lib_memset(vmParams, 0, sizeof(vmParams));
+
   /* Parse remaining arguments, if any, into VM parameters. We must do
      this into some stack-allocated memory for the moment, since we
      don't have anywhere else to put it. It gets copied later. */

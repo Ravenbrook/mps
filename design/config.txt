@@ -172,18 +172,15 @@ predefined when compiling the module sources::
 _`.var.codes`: The variety codes are as follows:
 
 _`.var.hot`: ``HOT``
-
     Intended for release in products.  Optimised, reduced internal
     checking, especially on the critical path [RB_2012-09-07]_.
 
 _`.var.cool`: ``COOL``
-
     Intended for use during development.  Moderately thorough internal
     consistency checking.  Reduced optimisation to allow for
     single-stepping.
 
 _`.var.rash`: ``RASH``
-
     No internal checking at all.  Slight performance improvement over
     `.var.hot`_ at the cost of early detection of memory management
     bugs.  We do not advise use of this variety, as memory management

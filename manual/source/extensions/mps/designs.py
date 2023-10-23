@@ -50,7 +50,7 @@ mode = re.compile(r'\.\. mode: .*\n')
 # design.mps.doc.metadata.tag
 prefix = re.compile(r'^:Tag: ([a-z][a-z.0-9-]*[a-z0-9])$', re.MULTILINE)
 
-rst_tag = re.compile(r'^:(?:Author|Date|Status|Revision|Copyright|Organization|Format|Index terms|Readership):.*?$\n', re.MULTILINE | re.IGNORECASE)
+rst_tag = re.compile(r'^:(?:Author|Date|Status|Revision|Copyright|Organization|Format|Index terms|Readership|Confidentiality):.*?$\n', re.MULTILINE | re.IGNORECASE)
 
 # design.mps.doc.fmt.tag
 mps_tag = re.compile(r'_`\.([a-z][A-Za-z.0-9_-]*[A-Za-z0-9])`:')

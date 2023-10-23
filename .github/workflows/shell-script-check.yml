@@ -1,5 +1,7 @@
 # .github/workflows/shell-script-check.yml -- check shell scripts
 #
+# See design.ci.run.checks.
+#
 # This is a GitHub CI workflow
 # <https://docs.github.com/en/actions/using-workflows/about-workflows>
 # to check shell scripts.

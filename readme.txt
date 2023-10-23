@@ -75,17 +75,20 @@ Supported target platforms
 
 The MPS is currently supported for deployment on:
 
-- Windows Vista or later, on IA-32 and x86-64, using Microsoft Visual
-  C/C++;
+.. IMPORTANT: Maintain as a subset of platforms listed in
+   manual/build.txt.
 
-- Linux 2.6 or later, on IA-32 using GCC and on x86-64 using GCC or
-  Clang/LLVM;
+.. IMPORTANT: Maintain design.ci as a superset of these platforms.
 
-- FreeBSD 7 or later, on IA-32 and x86-64, using GCC or Clang/LLVM;
-
-- macOS 10.4 or later, on x86-64, using Clang/LLVM.
-
-.. TODO: Reformat the above as a table.  RB 2023-02-01.
+======================  =============  ======================
+Operating system        Archtectures   Toolchains
+======================  =============  ======================
+Windows Vista or later  IA-32, x86-64  Microsoft Visual C/C++
+Linux 2.6 or later      IA-32, x86-64  GCC, Clang/LLVM
+                                       (x86-64 only)
+FreeBSD 7 or later      IA-32, x86-64  GCC, Clang/LLVM
+macOS 10.4 or later     x86-64         Clang/LLVM (Xcode)
+======================  =============  ======================
 
 The MPS is highly portable and has run on many other processors and
 operating systems in the past (see `Building the MPS
