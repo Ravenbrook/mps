@@ -35,16 +35,19 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest, macos-latest]
-        compiler: [clang, gcc]
+        compiler: [clang, gcc, gcc-12]
         exclude:
           - os: macos-latest
             compiler: gcc
+          - os: macos-latest
+            compiler: gcc-12
 
     runs-on: ${{ matrix.os }}
 
     # See design.mps.tests.ci.run.posix.
     steps:
     - uses: actions/checkout@v3
+    - run: ${{ matrix.compiler }} --version
     - run: CC=${{ matrix.compiler }} ./configure
     - run: make
     - run: make test
