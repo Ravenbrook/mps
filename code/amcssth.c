@@ -108,19 +108,22 @@ static mps_res_t area_scan(mps_ss_t ss, void *base, void *limit, void *closure)
 
 static void churn(mps_ap_t ap, size_t roots_count)
 {
-  size_t i;
-  size_t r;
+  size_t i, j, r;
 
   ++objs;
   r = (size_t)rnd();
   if (r & 1) {
+    mps_addr_t root;
     i = (r >> 1) % exactRootsCOUNT;
-    if (exactRoots[i] != objNULL)
-      cdie(dylan_check(exactRoots[i]), "dying root check");
-    exactRoots[i] = make(ap, roots_count);
-    if (exactRoots[(exactRootsCOUNT-1) - i] != objNULL)
-      dylan_write(exactRoots[(exactRootsCOUNT-1) - i],
-                  exactRoots, exactRootsCOUNT);
+    atomic_load(&exactRoots[i], &root);
+    if (root != objNULL)
+      cdie(dylan_check(root), "dying root check");
+    root = make(ap, roots_count);
+    atomic_store(&exactRoots[i], &root);
+    j = exactRootsCOUNT - i - 1;
+    atomic_load(&exactRoots[j], &root);
+    if (root != objNULL)
+      dylan_write(root, exactRoots, exactRootsCOUNT);
   } else {
     i = (r >> 1) % ambigRootsCOUNT;
     ambigRoots[(ambigRootsCOUNT-1) - i] = make(ap, roots_count);
@@ -221,9 +224,11 @@ static void test_pool(const char *name, mps_pool_t pool, size_t roots_count)
                (unsigned long)collections, objs,
                (unsigned long)mps_arena_committed(arena));
 
-        for (i = 0; i < exactRootsCOUNT; ++i)
-          cdie(exactRoots[i] == objNULL || dylan_check(exactRoots[i]),
-               "all roots check");
+        for (i = 0; i < exactRootsCOUNT; ++i) {
+          mps_addr_t root;
+          atomic_load(&exactRoots[i], &root);
+          cdie(root == objNULL || dylan_check(root), "all roots check");
+        }
 
         if (collections >= collectionsCOUNT / 2 && !walked)
         {
@@ -248,9 +253,12 @@ static void test_pool(const char *name, mps_pool_t pool, size_t roots_count)
             ramping = 0;
             /* kill half of the roots */
             for(i = 0; i < exactRootsCOUNT; i += 2) {
-              if (exactRoots[i] != objNULL) {
-                cdie(dylan_check(exactRoots[i]), "ramp kill check");
-                exactRoots[i] = objNULL;
+              mps_addr_t root;
+              atomic_load(&exactRoots[i], &root);
+              if (root != objNULL) {
+                cdie(dylan_check(root), "ramp kill check");
+                root = objNULL;
+                atomic_store(&exactRoots[i], &root);
               }
             }
           }
@@ -297,6 +305,8 @@ static void test_arena(void)
   mps_root_t reg_root;
   mps_pool_t amc_pool, amcz_pool;
   void *marker = &marker;
+
+  die(dylan_make_wrappers(), "make wrappers");
 
   MPS_ARGS_BEGIN(args) {
     MPS_ARGS_ADD(args, MPS_KEY_ARENA_SIZE, testArenaSIZE);
