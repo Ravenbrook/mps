@@ -1,0 +1,70 @@
+# -*- makefile -*-
+#
+# emj3ll.gmk: BUILD FOR Emscripten/WebAssembly 32-bit/Clang PLATFORM
+#
+# $Id$
+# Copyright (c) 2001-2020 Ravenbrook Limited.  See end of file for license.
+
+PFM = emj3ll
+
+MPMPF = \
+    lockan.c \
+    protan.c \
+    prmcan.c \
+    prmcanan.c \
+    span.c \
+    than.c \
+    vman.c
+
+LIBS = -lm
+
+# We suppress unused warnings until the corresponding PR lands.
+CFLAGS += -Wno-error=unused
+
+# We ask that memory growth be enabled rather than hardcoding
+# the size of the WebAssembly memory.
+# The limited postlink optimizations warning is from binaryen
+# and emcc when debug info is requested in an optimized build
+# as not all optimizations will be run in that scenario.
+LINKFLAGS = \
+    -s ALLOW_MEMORY_GROWTH \
+    -Wno-error=limited-postlink-optimizations
+
+include ll.gmk
+
+CFLAGSCOMPILER += -DCONFIG_THREAD_SINGLE
+
+include comm.gmk
+
+CC=emcc
+AR=emar
+
+
+# C. COPYRIGHT AND LICENSE
+#
+# Copyright (C) 2001-2020 Ravenbrook Limited <https://www.ravenbrook.com/>.
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions are
+# met:
+#
+# 1. Redistributions of source code must retain the above copyright
+#    notice, this list of conditions and the following disclaimer.
+#
+# 2. Redistributions in binary form must reproduce the above copyright
+#    notice, this list of conditions and the following disclaimer in the
+#    documentation and/or other materials provided with the
+#    distribution.
+#
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+# "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+# LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+# A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+# HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+# SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+# LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+# DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+# THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+# (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+# OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+

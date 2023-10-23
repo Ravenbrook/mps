@@ -311,6 +311,9 @@ least::
 
 as defined by the `.ci.github.config`_.
 
+_`.ci.run.emscripten`: On Windows, the CI services run commands to install
+the Emscripten SDK and then perform some basic builds with it.
+
 _`.ci.run.other.targets`: On some platforms we arrange to run the testansi,
 testpollnone, testratio, and testscheme targets.  [Need to explain
 why, where, etc.  RB 2023-01-15]

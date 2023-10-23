@@ -392,6 +392,38 @@
 #define MPS_PF_ALIGN    8
 
 
+#elif defined(__EMSCRIPTEN__) && defined(__wasm32__)
+#if defined(CONFIG_PF_STRING) && ! defined(CONFIG_PF_EMJ3LL)
+#error "specified CONFIG_PF_... inconsistent with detected emj3ll"
+#endif
+#define MPS_PF_EMJ3LL
+#define MPS_PF_STRING   "emj3ll"
+#define MPS_OS_EM
+#define MPS_ARCH_J3
+#define MPS_BUILD_LL
+#define MPS_T_WORD      unsigned long
+#define MPS_T_ULONGEST  unsigned long
+#define MPS_WORD_WIDTH  32
+#define MPS_WORD_SHIFT  5
+#define MPS_PF_ALIGN    4
+
+
+#elif defined(__EMSCRIPTEN__) && defined(__wasm64__)
+#if defined(CONFIG_PF_STRING) && ! defined(CONFIG_PF_EMJ6LL)
+#error "specified CONFIG_PF_... inconsistent with detected emj6ll"
+#endif
+#define MPS_PF_EMJ6LL
+#define MPS_PF_STRING   "emj6ll"
+#define MPS_OS_EM
+#define MPS_ARCH_J6
+#define MPS_BUILD_LL
+#define MPS_T_WORD      unsigned long
+#define MPS_T_ULONGEST  unsigned long
+#define MPS_WORD_WIDTH  64
+#define MPS_WORD_SHIFT  6
+#define MPS_PF_ALIGN    8
+
+
 #else
 #error "The MPS Kit does not have a configuration for this platform out of the box; see manual/build.txt"
 #endif

@@ -104,9 +104,9 @@
  * tests to root out any incompatible assumptions by breaking.
  */
 
-#if defined(MPS_ARCH_A6) || defined(MPS_ARCH_I6)
+#if defined(MPS_ARCH_A6) || defined(MPS_ARCH_I6) || defined(MPS_ARCH_J6)
 #define PRIwWORD "16"
-#elif defined(MPS_ARCH_I3)
+#elif defined(MPS_ARCH_I3) || defined(MPS_ARCH_J3)
 #define PRIwWORD "8"
 #else
 #error "How many beans make five?"
