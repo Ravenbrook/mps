@@ -1697,7 +1697,7 @@ mps_bool_t mps_ld_isstale_any(mps_ld_t ld, mps_arena_t arena)
 
 mps_word_t mps_collections(mps_arena_t arena)
 {
-  return ArenaEpoch(arena); /* thread safe: see <code/arena.h#epoch.ts> */
+    return ArenaCollections(arena);
 }
 
 

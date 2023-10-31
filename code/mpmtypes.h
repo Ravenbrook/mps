@@ -380,7 +380,9 @@ enum {
     "Client requests: immediate full collection.")                      \
   X(WALK, "walk", "Walking all live objects.")                          \
   X(EXTENSION, "extension", \
-    "Extension: an MPS extension started the trace.")
+    "Extension: an MPS extension started the trace.")                   \
+  X(CHAINFULL, "chain full",                                            \
+    "Chain full: Chain is filling top generation.")
 
 enum {
 #define X(WHY, SHORT, LONG) TraceStartWhy ## WHY,

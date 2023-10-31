@@ -494,6 +494,7 @@ extern void GlobalsReinitializeAll(void);
 #define ArenaThreadRing(arena)  (&(arena)->threadRing)
 #define ArenaDeadRing(arena)    (&(arena)->deadRing)
 #define ArenaEpoch(arena)       (ArenaHistory(arena)->epoch) /* .epoch.ts */
+#define ArenaCollections(arena) (ArenaHistory(arena)->collections)
 #define ArenaTrace(arena, ti)   (&(arena)->trace[ti])
 #define ArenaZoneShift(arena)   ((arena)->zoneShift)
 #define ArenaStripeSize(arena)  ((Size)1 << ArenaZoneShift(arena))
@@ -921,7 +922,7 @@ extern void LDReset(mps_ld_t ld, Arena arena);
 extern void LDAdd(mps_ld_t ld, Arena arena, Addr addr);
 extern Bool LDIsStaleAny(mps_ld_t ld, Arena arena);
 extern Bool LDIsStale(mps_ld_t ld, Arena arena, Addr addr);
-extern void LDAge(Arena arena, RefSet moved);
+extern void LDAdvance(Arena arena, RefSet moved);
 extern void LDMerge(mps_ld_t ld, Arena arena, mps_ld_t from);
 
 
