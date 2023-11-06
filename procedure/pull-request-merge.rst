@@ -303,13 +303,13 @@ working repo before that point.
 
    You can attempt to rebase your work on those changes::
 
-     git pull --rebase perforce
+     git pull --rebase github
 
    then go back to testing (step 4).
 
    Alternatively, you could undo your merging work::
 
-     git reset --hard perforce/master
+     git reset --hard github/master
 
    then go back to merging (step 3).
 
