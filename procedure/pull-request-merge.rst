@@ -303,7 +303,7 @@ working repo before that point.
 
    You can attempt to rebase your work on those changes::
 
-     git pull --rebase github
+     git pull --rebase=merges github
 
    then go back to testing (step 4).
 
