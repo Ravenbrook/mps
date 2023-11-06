@@ -166,10 +166,6 @@ When you finish the checklist, decide whether to start
 
 .. _pull request merge branch: https://docs.github.com/en/actions/using-workflows/events-that-trigger-workflows#pull_request
 
-.. _Travis CI build history for the repo: https://app.travis-ci.com/github/Ravenbrook/mps/builds
-
-.. _GitHub workflows for the repo: https://github.com/Ravenbrook/mps/actions
-
 .. _MPS interface: https://www.ravenbrook.com/project/mps/master/manual/html/topic/interface.html
 
 
@@ -286,9 +282,8 @@ working repo before that point.
 
      git push github HEAD:merge/2023-01-06/speed-hax
 
-   You will need to wait for results from CI.  Look for a build
-   results in the `Travis CI build history for the repo`_ and in the
-   `GitHub workflows for the repo`_.
+   You will need to wait for `results from CI
+   <../design/tests.txt#continuous-integration>`_.
 
    See build (step 4) about what to do if tests do not pass.
 
