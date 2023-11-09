@@ -1,5 +1,9 @@
+.. mode: -*- rst -*-
+
+=============================
 Memory Pool System Kit Readme
 =============================
+
 :author: Richard Brooksby
 :organization: Ravenbrook Limited
 :date: 2002-05-20
@@ -14,6 +18,9 @@ very brief overview and tell you where to find more information.
 
 Overview of the MPS
 -------------------
+
+.. IMPORTANT: If you change the paragraph below, also change
+   manual/source/guide/overview.rst
 
 The Memory Pool System (MPS) is a very general, adaptable, flexible,
 reliable, and efficient memory management system.  It permits the
@@ -37,8 +44,11 @@ Getting started
 
 The MPS Kit is a complete set of sources and documentation to enable
 you to use, modify, and adapt the MPS: source code, manuals,
-procedures, design documentation, and so on. See
-`<manual/html/index.html>`_ for an index.
+procedures, design documentation, and so on.  See the manual_ for an
+index.  (If for some reason the manual_ isn't available, you can build
+it.  See below.)
+
+.. _manual: https://memory-pool-system.readthedocs.io/
 
 The MPS Kit is distributed in source form.  You need to build it before
 using it.  The basic case is straightforward on supported platforms
@@ -49,14 +59,15 @@ using it.  The basic case is straightforward on supported platforms
     cl /O2 /c mps.c     Windows (with Microsoft SDK or Visual Studio 2010)
 
 This will produce an object file you can link with your project.  For
-details of how to configure the MPS, build libraries and tests, use
-IDEs, autoconf, etc. see `Building the MPS <manual/build.txt>`__.
+details of how to configure the MPS, build the manual, libraries and
+tests, use IDEs, autoconf, etc. see `Building the MPS
+<manual/build.txt>`__.
 
 For an example of using the MPS, see the `Scheme interpreter
 example <example/scheme/>`_.
 
 Then, to program and integrate the MPS you'll definitely need to read
-the `manual <manual/html/index.html>`_.
+the manual_.
 
 
 Supported target platforms
@@ -73,6 +84,8 @@ The MPS is currently supported for deployment on:
 - FreeBSD 7 or later, on IA-32 and x86-64, using GCC or Clang/LLVM;
 
 - macOS 10.4 or later, on x86-64, using Clang/LLVM.
+
+.. TODO: Reformat the above as a table.  RB 2023-02-01.
 
 The MPS is highly portable and has run on many other processors and
 operating systems in the past (see `Building the MPS
@@ -127,6 +140,7 @@ Document History
 2014-07-04  GDR_   Link to hotfix for WOW64 bug.
 2016-03-24  RB_    Adding support for FreeBSD with Clang/LLVM.
 2020-05-22  PNJ_   Changed to BSD 2-clause licence.
+2023-02-02  RB_    Migrating from Ravenbrook Perforce to GitHub.
 ==========  =====  ======================================================
 
 .. _PNJ: mailto:pnj@ravenbrook.com
@@ -165,3 +179,4 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+.. end
