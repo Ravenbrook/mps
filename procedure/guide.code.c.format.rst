@@ -3,7 +3,7 @@
 C Style -- formatting
 =====================
 
-:Tag: guide.impl.c.format
+:Tag: guide.code.c.format
 :Author: Richard Brooksby
 :Date: 1995-08-07
 :Status: complete guide
@@ -371,6 +371,9 @@ Document History
 - 2012-09-26  RB_  Converted to Markdown and reversed inconsistent
   switch "law".
 
+- 2023-02-26 RB_ Renamed to guide.code.c.format pending merger into
+  GitHub-based proc.review.
+
 .. _DRJ: https://www.ravenbrook.com/consultants/drj
 .. _RHSK: https://www.ravenbrook.com/consultants/rhsk
 .. _RB: https://www.ravenbrook.com/consultants/rb
@@ -379,7 +382,7 @@ Document History
 Copyright and License
 ---------------------
 
-Copyright © 2002–2020 `Ravenbrook Limited <https://www.ravenbrook.com/>`_.
+Copyright © 2002–2023 `Ravenbrook Limited <https://www.ravenbrook.com/>`_.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are

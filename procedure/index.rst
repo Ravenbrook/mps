@@ -8,21 +8,15 @@ Memory Pool System Product Procedures
 :revision: $Id$
 :confidentiality: public
 :copyright: See `C. Copyright and License`_
+:readership: anyone
 
 
 1. Introduction
 ---------------
 
-This document lists the procedures which are applied to the product
-sources of the Memory Pool System project. (Compare with the `procedures
-which govern the *project* </project/mps/procedure/>`__.)
+This document lists the procedures of the Memory Pool System project.
 
-This document will be updated as new procedures are created.
-
-The readership of this document is anyone developing or extending the
-product sources.
-
-This document is not confidential.
+This document should be updated when new procedures are created.
 
 
 2. Procedures
@@ -32,11 +26,13 @@ This document is not confidential.
 `branch-merge`_         Branching and merging for development.
 `pull-request-merge`_   Pull request merge procedure for GitHub.
 `release-build`_        Build product releases from the sources.
+`review`_               Review a change to prevent defects.
 `version-create`_       Create a new MPS version branch.
 =====================   ==================================================
 
 .. _branch-merge: branch-merge
 .. _release-build: release-build
+.. _review: review
 .. _version-create: version-create
 .. _pull-request-merge: pull-request-merge
 
@@ -44,6 +40,9 @@ This document is not confidential.
 expose extensions, as recommended by Tim Berners-Lee.  But they don't
 work on GitHub.  We should probably make them work there.  RB
 2023-01-07]
+
+[FIXME: Update with other documents in the procedure directory.  RB
+2023-02-26]
 
 
 A. References
@@ -62,12 +61,14 @@ B. Document History
 2014-01-13    GDR_      Added branch-merge.
 2020-07-28    PNJ_      Updated licence text.
 2023-01-07    RB_       Added pull-request-merge.
+2023-01-28    RB_       Added review.
 ==========    =======   ==================================================
 
 .. _GDR: mailto:gdr@ravenbrook.com
 .. _RB: mailto:rb@ravenbrook.com
 .. _RHSK: mailto:rhsk@ravenbrook.com
 .. _PNJ:  mailto:pnj@ravenbrook.com
+
 
 C. Copyright and License
 ------------------------

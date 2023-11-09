@@ -3,7 +3,7 @@
 Review checklist
 ================
 
-:Tag: guide.review
+:Tag: guide.code
 :Status: incomplete documentation
 :Author: Gareth Rees
 :Organization: Ravenbrook Limited
@@ -48,15 +48,19 @@ correspond? Example: job003922_. See `.diff`_.
 Document History
 ----------------
 
-2015-08-10  GDR_  Created.
+- 2015-08-10  GDR_  Created.
+
+- 2023-02-26 RB_ Renamed to guide.code.c.format pending merged into
+  GitHub-based proc.review.
 
 .. _GDR: https://www.ravenbrook.com/consultants/gdr/
+.. _RB: https://www.ravenbrook.com/consultants/rb
 
 
 Copyright and License
 ---------------------
 
-Copyright © 2015–2020 `Ravenbrook Limited <https://www.ravenbrook.com/>`_.
+Copyright © 2015–2023 `Ravenbrook Limited <https://www.ravenbrook.com/>`_.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are
