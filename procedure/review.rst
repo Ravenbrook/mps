@@ -18,7 +18,8 @@ Memory Pool System review procedure
    procedures by role.
 
 .. TODO: Incorporate MM Group checklists from
-   <https://info.ravenbrook.com/project/mps/doc/2002-06-18/obsolete-mminfo/mminfo/check/>.
+   <https://info.ravenbrook.com/project/mps/doc/2002-06-18/obsolete-mminfo/mminfo/check/>
+   and firm up .plan.check as a step.
 
 .. TODO: More explicit management of checking rates.
 
@@ -40,6 +41,9 @@ Memory Pool System review procedure
 .. TODO: Fix gender-specific language, such as "man-hours",
    "manpower", etc.
 
+.. TODO: Link .pi.exit to the procedure developed by `GitHub issue
+   #274 <https://github.com/Ravenbrook/mps/issues/274>`_.
+
 
 1. Introduction
 ===============
@@ -59,7 +63,8 @@ Time to execute:
 
 - `.express`_ reviews: <30m
 
-[Insert further examples and estimates from more testing.  RB
+[TODO: Insert further examples and estimates from our records,
+especially recent experiences recorded in GitHub pull requests.  RB
 2023-01-30]
 
 This procedure requires *training*, preferably by an experienced
@@ -112,9 +117,8 @@ _`.purpose`: The purpose of the review procedure is:
 
 2. _`.goal.prevent`: prevent future defects
 
-[What about getting required changes in to the MPS?  Review is not
-purely obstructive.  Perhaps `.goal.fix`_ should be split into "find"
-and "fix".  RB 2023-01-23]
+By doing this, review gets required changes into the MPS while
+protecting it from expensive defects (see `.rationale`_).
 
 _`.def.defect`: A defect is a way in which the work does not meet its
 requirements.
@@ -246,6 +250,10 @@ executed roughly in the order below.
 
    and `.role.scribe`_ records this information.
 
+   [FIXME: There's nothing in the procedure sections about this.
+   There needs to be at least a placeholder, so it doesn't get lost.
+   RB 2023-11-09]
+
 #. _`.phase.edit`: `.role.editor`_ executes `.edit`_, analysing and
    correcting defects, but taking *some* action on *every* issue.
    This produces the *revised change* (`.doc.rev`_).
@@ -298,8 +306,8 @@ _`.entry.change`: Record exactly what the change is.
   the pull request in `.entry.record`_.
 
 - Otherwise, record something like the branch name and commit hash.
-  [Note: Git fails at this because merged branches forget their branch
-  points.  We need some way to fix that.  RB 2023-01-23]
+  [Note: That's not really enough.  See `GitHub issue #273
+  <https://github.com/Ravenbrook/mps/issues/273>`_.  RB 2023-11-09]
 
 _`.entry.criteria`: Determine and record the entry and exit criteria.
 
@@ -357,6 +365,11 @@ _`.plan.iterate`: Consider all of this procedure.
   earlier decisions.  For example, availability of people for
   `.plan.roles`_ might affect `.plan.tactics`_.
 
+_`.plan.identify`: Identify the change to be checked.  This is often
+quite simply the documents altered by the change, but might need to
+expand to include dependent documents, or even things outside the
+project.
+
 _`.plan.tactics`: Examine the change and decide how to check it to
 achieve the `.purpose`_.
 
@@ -373,11 +386,11 @@ achieve the `.purpose`_.
 
 - Changes that cannot feasibly be checked
   (`entry.universal.reviewable`_) may need to be reworked into stages,
-  perhaps by version control transformations.
-  [branch/2014-02-19/remember-time ->
-  branch/2014-04-14/remember-time-2 ->
-  branch/2016-03-22/remember-time-3 -> branch/2018-08-08/refset-struct
-  is an example of this.  RB 2023-01-31]
+  perhaps by version control transformations.  (For example, the
+  prototype branch/2014-02-19/remember-time was reworked into
+  branch/2014-04-14/remember-time-2,
+  branch/2016-03-22/remember-time-3, branch/2018-08-08/refset-struct
+  etc.)
 
 - Record any variations from the default tactic.
 
@@ -439,14 +452,11 @@ _`.plan.rule`: Determine and record the rules to apply (`.doc.rule`_).
   design, etc.) from the `procedure directory`_.
 
 - Also select other rules that apply from the `procedure directory`_,
-  for example special rules that apply to the critical path.  [Needs
-  example.  RB 2023-01-28]
+  for example special rules that apply to the critical path.  [These
+  do not exist yet.  RB 2023-11-09]
 
-_`.plan.check`: Determine and record the checklists to apply.
-[Checklists are not currently available in the public MPS.  See
-`mminfo:check.*
-<https://info.ravenbrook.com/project/mps/doc/2002-06-18/obsolete-mminfo/mminfo/check/>`__.
-RB 2023-01-23].
+_`.plan.check`: If there are relevant checklists available, determine
+and record which ones to apply.
 
 _`.plan.roles`: Decide and record the checking roles (`.role.check`_)
 to assign.
@@ -513,9 +523,9 @@ _`.ko.doc`: Ensure that every checker has all the documents they need.
 _`.ko.intro`: Optionally, ask the author for a short (one minute)
 introduction to the change.
 
-- Listen for new information this reveals and start the `.log.record`_
-  early if there's anything that needs documenting, such as a hidden
-  assumption or requirement.  This happens!
+- Everyone should listen for new information this reveals.  Start the
+  `.log.record`_ early if there's anything that needs documenting,
+  such as a hidden assumption or requirement.  This happens!
 
 _`.ko.remind`: The leader reminds everyone:
 
@@ -528,10 +538,10 @@ _`.ko.remind`: The leader reminds everyone:
 
 - not to confer until `.log`_
 
-- not to check using diffs (`.check.diff.not`_) and how to avoid it
-  [This may need even more emphasis and a rationale, since GitHub
-  makes it such an easy pitfall.  RB 2023-02-28]
-
+- to check the document *as it will be after the change* and not only
+  check diffs (`.check.diff.not`_), and especially to not get
+  distracted by the "Files changed" tab in a GitHub pull request
+  
 - to open and apply `proc.review.check`_
 
 - to avoid finishing `pull request reviews`_ or submitting `pull
@@ -548,8 +558,7 @@ _`.ko.role`: Negotiate checking roles (`.role.check`_).
 - `.role.checker`_ may volunteer for roles based on how they feel at
   the time.  Focus and enjoyment are important for good results.
 
-- Ensure checkers understand their checking roles and checking rates
-  [ref?  RB 2023-02-02].
+- Ensure checkers understand their checking roles and checking rates.
 
 - Record who's doing what.
 
@@ -754,8 +763,8 @@ aborting the logging meeting.  Bear in mind:
 
 _`.log.plan`: Use the metrics to decide a logging rate.
 
-- The RECOMMENDED rate is at least one per minute.  [Find this advice
-  in [Gilb-93]_.  RB 2023-01-29]
+- The RECOMMENDED rate is at least one per minute.  (This comes from
+  MM Group experience.  See [Gilb-93]_ §5.2.4 for detailed advice.)
 
 - Try to get all issues are logged during scheduled meeting time.
 
@@ -943,8 +952,10 @@ _`.brainstorm.log`: Record the suggestions like::
 
 _`.brainstorm.pending`: If you record a suggestion, ensure that the
 pull request is labelled_ "pending" so that it doesn't get forgotten
-when the pull request is closed.  [Insert cross-reference to procedure
-that will pick it up.  RB 2023-02-17]
+when the pull request is closed.  These are picked up during regular
+management of pull requests by `proc.regular`_.
+
+.. _proc.regular: https://info.ravenbrook.com/project/mps/doc/2023-03-03/regular-tasks/proc.regular
 
 .. _labelled: https://github.com/Ravenbrook/mps/issues/labels
 
@@ -1118,9 +1129,7 @@ suggestion and record that action.  Record your response like an edit
 (`.edit.act`_).
 
 _`.pi.exit`: After action has been taken and recorded on every
-suggestion, tell `.role.leader`_.  [This procedure doesn't make it
-clear how the leader tracks and receives this information, when it
-times out, etc.  RB 2023-02-01.]
+suggestion, tell `.role.leader`_.
 
 _`.pi.metrics`: See `.edit.metrics`_.
 
@@ -1163,10 +1172,11 @@ too defective.  It fails review and MUST NOT be used.
 
     3. Revised change rejected.
 
-- Tell someone.  [Who and how?  RB 2023-01-28]
+- Tell project management, because they need to decide how to handle
+  the situation.
 
-_`.exit.pass`: Otherwise, the revised change passes review and MAY be
-used.
+_`.exit.pass`: Otherwise, the revised change passes review and the
+resulting `.doc.acc`_ MAY be used.
 
 - Record this result, like::
 
@@ -1174,7 +1184,7 @@ used.
 
 - On GitHub, `approve the pull request`_ for merge.
 
-- Tell the person who will put the change to use, such as someone who
+- Tell the person who will deploy `.doc.acc`_, such as someone who
   will merge it to master.
 
 .. _approve the pull request: https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/reviewing-changes-in-pull-requests/approving-a-pull-request-with-required-reviews
@@ -1220,10 +1230,14 @@ _`.doc.source`: Source document
 _`.doc.product`: Product document
   The document developed from the source documents, and offered for
   review.  The work under review.  The changes under review.  The work
-  product.  [Much of this procedure has been rephrased in term of
-  reviewing a *change*, since this is a *change review procedure* and
-  the tools, such as GitHub, focus on reviewing change.  Introducing a
-  new product document is a change.  RB 2023-01-23]
+  product.
+
+  Often, we are reviewing a *change* to the MPS, in the form of a
+  branch to be merged in order to meet a requirement.  In this case,
+  the product is technically the change, and yet we focus the review
+  on the MPS as it will be after the change, in order to find defects
+  that would be introduced (see also `.plan.identify`_).  The
+  admonition `.check.diff.not`_ is a manifestion of this principle.
 
 _`.doc.record`: Review records
   Documents produced by the review procedures, which record the
@@ -1255,8 +1269,7 @@ _`.doc.rev`: Revised document
   The revised version of the change under review.
 
 _`.doc.acc`: Accepted document
-  The result of a Revised document passing exit.  [This isn't
-  mentioned.  RB 2023-01-28]
+  The result of a Revised document passing exit.
 
 _`.doc.rule`: Rules and rule sets
   A rule or set of rules that `.doc.product`_ should obey.
@@ -1741,6 +1754,8 @@ B. Document History
 2023-01-31  RB_    Revised based on `review test run`_.
 2023-02-01  RB_    Implementing `.express`_.
 2023-02-06  RB_    Checking against and referencing [Gilb-93]_.
+2023-11-09  RB_    Updating prior to reviewing the review to fill in
+                   holes based on recent experience.
 ==========  =====  ==================================================
 
 .. _RB: mailto:rb@ravenbrook.com
