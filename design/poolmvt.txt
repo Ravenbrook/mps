@@ -171,10 +171,10 @@ with a particular response time or throughput, just so long as we
 don't block for too long. Clearly there is a missing requirement.]
 
 _`.req.attr.performance.time`: By inference, the time overhead must be
-competetive.
+competitive.
 
 _`.req.attr.performance.space`: By inference, the space overhead must
-be competetive.
+be competitive.
 
 _`.req.attr.reliability`: The pool class must have "rock-solid
 reliability" (source: req.dylan.attr.rel.mtbf, req.epcore.attr.rel,
