@@ -38,7 +38,11 @@ void StackHot(void **stackOut);
 
 /* STACK_CONTEXT_BEGIN -- save context */
 
-#define STACK_CONTEXT_BEGIN(arena) \
+#define STACK_CONTEXT_BEGIN(arena) STACK_CONTEXT_BEGIN_NOP
+
+#define STACK_CONTEXT_BEGIN_NOP BEGIN
+
+#define STACK_CONTEXT_BEGIN_SETJMP(arena) \
   BEGIN \
     StackContextStruct _sc; \
     STACK_CONTEXT_SAVE(&_sc); \
@@ -50,7 +54,11 @@ void StackHot(void **stackOut);
 
 /* STACK_CONTEXT_END -- clear context */
 
-#define STACK_CONTEXT_END(arena) \
+#define STACK_CONTEXT_END(arena) STACK_CONTEXT_END_NOP
+
+#define STACK_CONTEXT_END_NOP END
+
+#define STACK_CONTEXT_END_SETJMP(arena) \
     END; \
     AVER(arena->stackWarm != NULL); \
     arena->stackWarm = NULL; \

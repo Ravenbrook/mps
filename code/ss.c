@@ -54,7 +54,14 @@ Res StackScan(ScanState ss, void *stackCold,
 
   arena = ss->arena;
 
-  AVER(arena->stackWarm != NULL);
+  /* If we save stack context efficiently at all entry points to the MPS,
+    we should not need to save the stack context here, and so we should 
+    AVER(arena->stackWarm != NULL) here , to make sure that we have 
+    succeeded in writing the correct code at every entry point; However, 
+    we do not save stack context at entry points, as the performance 
+    penalty is too great. So we expect arena->stackWarm to be NULL at 
+    this point, and the stack context is saved here */
+  
   warmest = arena->stackWarm;
   if (warmest == NULL) {
     /* Somehow missed saving the context at the entry point
