@@ -250,7 +250,7 @@ found:
   segBase = SegBase(seg);
   base = PoolAddrOfIndex(segBase, pool, baseIndex);
   limit = PoolAddrOfIndex(segBase, pool, limitIndex);
-  PoolGenAccountForFill(PoolSegPoolGen(pool, seg), AddrOffset(base, limit));
+  PoolGenAccountForFill(PoolSegPoolGen(pool, seg), AddrOffset(base, limit), FALSE);
 
   *baseReturn = base;
   *limitReturn = limit;

@@ -652,13 +652,16 @@ Res PoolGenAlloc(Seg *segReturn, PoolGen pgen, SegClass klass, Size size,
  * <design/strategy#.accounting.op.fill>
  */
 
-void PoolGenAccountForFill(PoolGen pgen, Size size)
+void PoolGenAccountForFill(PoolGen pgen, Size size, Bool deferred)
 {
   AVERT(PoolGen, pgen);
 
   AVER(pgen->freeSize >= size);
   pgen->freeSize -= size;
-  pgen->bufferedSize += size;
+  if (deferred)
+    pgen->newDeferredSize += size;
+  else
+    pgen->newSize += size;
 }
 
 
@@ -676,13 +679,13 @@ void PoolGenAccountForEmpty(PoolGen pgen, Size used, Size unused, Bool deferred)
 {
   AVERT(PoolGen, pgen);
   AVERT(Bool, deferred);
+  
+  UNUSED(used);
 
-  AVER(pgen->bufferedSize >= used + unused);
-  pgen->bufferedSize -= used + unused;
   if (deferred) {
-    pgen->newDeferredSize += used;
+    pgen->newDeferredSize -= unused;
   } else {
-    pgen->newSize += used;
+    pgen->newSize -= unused;
   }
   pgen->freeSize += unused;
 }
@@ -704,15 +707,13 @@ void PoolGenAccountForAge(PoolGen pgen, Size wasBuffered, Size wasNew,
   AVERT(PoolGen, pgen);
   AVERT(Bool, deferred);
 
-  AVER(pgen->bufferedSize >= wasBuffered);
-  pgen->bufferedSize -= wasBuffered;
   if (deferred) {
     AVER(pgen->newDeferredSize >= wasNew);
-    pgen->newDeferredSize -= wasNew;
+    pgen->newDeferredSize -= wasNew + wasBuffered;
     pgen->oldDeferredSize += wasBuffered + wasNew;
   } else {
     AVER(pgen->newSize >= wasNew);
-    pgen->newSize -= wasNew;
+    pgen->newSize -= wasNew + wasBuffered;
     pgen->oldSize += wasBuffered + wasNew;
   }
 }

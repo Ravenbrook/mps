@@ -990,7 +990,7 @@ static Res AMCBufferFill(Addr *baseReturn, Addr *limitReturn,
     }
   }
 
-  PoolGenAccountForFill(pgen, SegSize(seg));
+  PoolGenAccountForFill(pgen, SegSize(seg), MustBeA(amcSeg, seg)->deferred);
   MustBeA(amcSeg, seg)->accountedAsBuffered = TRUE;
 
   *baseReturn = base;
