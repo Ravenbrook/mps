@@ -149,7 +149,16 @@ can be understood.
 
 _`.justification-limits`: [Nothing written yet.  RB 1998-07-01]
 
-_`.justification-minimal`: [Nothing written yet.  RB 1998-07-01]
+_`.justification-minimal`: The minimal rule avoids software entropy
+and atrophy caused by Hyrum's Law [Hyrum-2020]_ :
+
+  With a sufficient number of users of an API,
+  it does not matter what you promise in the contract:
+  all observable behaviors of your system
+  will be depended on by somebody.
+
+Enforcing minimal functionality enforces abstractions and prevents
+dependency on unintended behaviour.
 
 _`.justification-req`:  This is a restatement of the generic/achieve
 rule. The difference here is that the purpose of code is more often
@@ -224,6 +233,13 @@ A. References
     1995;
     ISBN 0-201-63181-4.
   
+.. [Hyrum-2020]
+   "Software engineering at Google: lessons learned from programming over time";
+   Titus Winters, Tom Manshreck, Hyrum Wright, eds. (2020).;
+   O'Reilly Media, 2020;
+   ISBN 9781492082798;
+   <https://www.hyrumslaw.com/>.
+
 .. [RB-1998-06-30a]
     "General Code Ruleset";
     `Richard Brooksby`_;
