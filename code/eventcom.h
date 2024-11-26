@@ -91,7 +91,7 @@ typedef void *EventFP;                  /* pointer to C object */
 typedef Addr EventFA;                   /* address on the heap */
 typedef Word EventFW;                   /* word */
 typedef unsigned EventFU;               /* unsigned integer */
-typedef char EventFS[EventStringLengthMAX + sizeof('\0')]; /* string */
+typedef char EventFS[EventStringLengthMAX + 1 /* NUL */]; /* string */
 typedef double EventFD;                 /* double */
 typedef unsigned char EventFB;          /* Boolean */
 
