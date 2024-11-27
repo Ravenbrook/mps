@@ -33,6 +33,7 @@ jobs:
     # See <https://docs.github.com/en/actions/using-jobs/using-a-matrix-for-your-jobs#using-a-matrix-strategy>.
     
     strategy:
+      fail-fast: false # don't cancel all builds when one build fails
       matrix:
         os: [ubuntu-latest, macos-latest]
         compiler: [clang, gcc]
@@ -44,7 +45,7 @@ jobs:
 
     # See design.mps.tests.ci.run.posix.
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4 # see <https://github.com/actions/checkout/blob/main/README.md#usage>
     - run: CC=${{ matrix.compiler }} ./configure
     - run: make
     - run: make test
@@ -59,7 +60,7 @@ jobs:
     # <https://github.com/actions/runner-images/blob/e6fcf60b8e6c0f80a065327eaefe836881c28b68/images/win/Windows2022-Readme.md?plain=1#L215>.
 
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4 # see <https://github.com/actions/checkout/blob/main/README.md#usage>
     - run: |
          call "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvarsall.bat" x64
          cd code
