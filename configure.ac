@@ -13,10 +13,10 @@
 #     autoreconf -vif
 #
 
-AC_PREREQ([2.50])
+AC_PREREQ([2.72])
 # http://www.gnu.org/software/autoconf/manual/autoconf.html#Initializing-configure
 AC_INIT([Memory Pool System Kit],
-        m4_esyscmd_s([sed -n '/^#define MPS_RELEASE "\(.*\)"$/{s/.*"\(.*\)"/\1/;p;}' code/version.c]),
+        [m4_esyscmd_s([sed -n '/^#define MPS_RELEASE "\(.*\)"$/{s/.*"\(.*\)"/\1/;p;}' code/version.c])],
         [mps-questions@ravenbrook.com],
         [mps-kit],
         [https://www.ravenbrook.com/project/mps/])
@@ -25,7 +25,7 @@ AC_CONFIG_SRCDIR([code/mps.c])
 
 # Checks for programs.
 AC_PROG_CC
-AC_LANG_C
+AC_LANG([C])
 AC_PROG_INSTALL
 
 # Check for Clang/LLVM.
