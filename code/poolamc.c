@@ -1674,6 +1674,20 @@ updateReference:
   res = ResOK;
 
 returnRes:
+  /* AMC does not scan white segments unless they're nailed.  We don't
+     need to pay the write protection costs of maintaining the
+     remembered set on such segments.  Now that ambiguous fixing is
+     done, we can get rid of it. */
+  AVER_CRITICAL(ss->rank != RankAMBIG);
+  /* TODO: Forgetting the remembered set might not be wise for
+     multiple traces, since another trace might be able to eliminate
+     this segment from scanning, and we have not yet proved that its
+     contents are dead. */
+  AVER_CRITICAL(TraceLIMIT == 1);
+  if (SegRankSet(seg) != RankSetEMPTY && /* not for AMCZ */
+      SegNailed(seg) == TraceSetEMPTY)
+    SegSetSummary(seg, RefSetUNIV);
+
   ShieldCover(arena, seg);  /* .exposed.seg */
   return res;
 }
