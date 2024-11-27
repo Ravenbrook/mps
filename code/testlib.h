@@ -294,6 +294,25 @@ extern void randomize(int argc, char *argv[]);
 extern void testlib_init(int argc, char *argv[]);
 
 
+/* Memory-model-aware operations */
+
+#if defined(MPS_BUILD_GC) || defined(MPS_BUILD_LL)
+
+/* See <https://gcc.gnu.org/onlinedocs/gcc/_005f_005fatomic-Builtins.html>
+ * and <https://clang.llvm.org/docs/LanguageExtensions.html> */
+#define atomic_load(SRC, DEST) __atomic_load(SRC, DEST, __ATOMIC_ACQUIRE)
+#define atomic_store(DEST, SRC) __atomic_store(DEST, SRC, __ATOMIC_RELEASE)
+
+#elif defined(MPS_BUILD_MV)
+
+/* Microsoft Visual C/C++ does not need memory-model-aware load and store as
+ * loads and stores of register-sized values are atomic on Intel. */
+#define atomic_load(SRC, DEST) (*(DEST) = *(SRC))
+#define atomic_store(DEST, SRC) (*(DEST) = *(SRC))
+
+#endif
+
+
 #endif /* testlib_h */
 
 
