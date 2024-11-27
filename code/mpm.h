@@ -355,22 +355,25 @@ extern const char *MessageNoGCStartWhy(Message message);
 
 
 extern void ScanStateInit(ScanState ss, TraceSet ts, Arena arena,
-                          Rank rank, ZoneSet white);
+                          Rank rank, RefSet white);
 extern void ScanStateInitSeg(ScanState ss, TraceSet ts, Arena arena,
-                             Rank rank, ZoneSet white, Seg seg);
+                             Rank rank, RefSet white, Seg seg);
 extern void ScanStateFinish(ScanState ss);
 extern Bool ScanStateCheck(ScanState ss);
 extern void ScanStateSetSummary(ScanState ss, RefSet summary);
-extern RefSet ScanStateSummary(ScanState ss);
+extern void ScanStateGetSummary(RefSet summaryReturn, ScanState ss);
 extern void ScanStateUpdateSummary(ScanState ss, Seg seg, Bool wasTotal);
+extern Bool ScanStateSummaryIsEmpty(ScanState ss);
+extern Bool ScanStateSummaryEqual(ScanState ss, RefSet rs);
+extern ZoneSet ScanStateFixedZones(ScanState ss);
 
 /* See impl.h.mpmst.ss */
 #define ScanStateZoneShift(ss)             ((Shift)(ss)->ss_s._zs)
-#define ScanStateWhite(ss)                 ((ZoneSet)(ss)->ss_s._w)
-#define ScanStateUnfixedSummary(ss)        ((RefSet)(ss)->ss_s._ufs)
+#define ScanStateWhiteZones(ss)            ((ZoneSet)(ss)->ss_s._w)
+#define ScanStateUnfixedZones(ss)          ((ZoneSet)(ss)->ss_s._ufzs)
 #define ScanStateSetZoneShift(ss, shift)   ((void)((ss)->ss_s._zs = (shift)))
-#define ScanStateSetWhite(ss, zs)          ((void)((ss)->ss_s._w = (zs)))
-#define ScanStateSetUnfixedSummary(ss, rs) ((void)((ss)->ss_s._ufs = (rs)))
+#define ScanStateSetWhiteZones(ss, zs)     ((void)((ss)->ss_s._w = (zs)))
+#define ScanStateSetUnfixedZones(ss, zs)   ((void)((ss)->ss_s._ufzs = (zs)))
 
 extern Bool TraceIdCheck(TraceId id);
 extern Bool TraceSetCheck(TraceSet ts);
@@ -413,8 +416,8 @@ extern void TraceIdMessagesDestroy(Arena arena, TraceId ti);
     AVER(ScanStateZoneShift(ss) < MPS_WORD_WIDTH); \
     { \
       Shift SCANzoneShift = ScanStateZoneShift(ss); \
-      ZoneSet SCANwhite = ScanStateWhite(ss); \
-      RefSet SCANsummary = ScanStateUnfixedSummary(ss); \
+      ZoneSet SCANwhite = ScanStateWhiteZones(ss); \
+      ZoneSet SCANzones = ScanStateUnfixedZones(ss); \
       Word SCANt; \
       mps_addr_t SCANref; \
       Res SCANres; \
@@ -424,7 +427,7 @@ extern void TraceIdMessagesDestroy(Arena arena, TraceId ti);
 
 #define TRACE_FIX1(ss, ref) \
   (SCANt = (Word)1 << ((Word)(ref) >> SCANzoneShift & (MPS_WORD_WIDTH-1)), \
-   SCANsummary |= SCANt, \
+   SCANzones |= SCANt, \
    (SCANwhite & SCANt) != 0)
 
 /* Equivalent to <code/mps.h> MPS_FIX2 */
@@ -450,7 +453,7 @@ extern void TraceIdMessagesDestroy(Arena arena, TraceId ti);
 
 #define TRACE_SCAN_END(ss) \
       } \
-      ScanStateSetUnfixedSummary(ss, SCANsummary); \
+      ScanStateSetUnfixedZones(ss, SCANzones); \
     } \
   END
 
@@ -672,7 +675,12 @@ extern void SegWalk(Seg seg, Format format, FormattedObjectsVisitor f,
                     void *v, size_t s);
 extern Res SegAbsDescribe(Inst seg, mps_lib_FILE *stream, Count depth);
 extern Res SegDescribe(Seg seg, mps_lib_FILE *stream, Count depth);
+extern void SegGetSummary(RefSet summaryReturn, Seg seg);
 extern void SegSetSummary(Seg seg, RefSet summary);
+extern void SegSummaryAddMutatorRef(Seg seg, Arena arena, Ref ref);
+extern void SegSummaryAddFixedRef(Seg seg, Arena arena, Ref ref);
+extern void SegGetRefSet(RefSet rsReturn, Arena arena, Seg seg);
+extern Bool SegDoesNotReference(Seg seg, RefSet rs);
 extern Bool SegHasBuffer(Seg seg);
 extern Bool SegBuffer(Buffer *bufferReturn, Seg seg);
 extern void SegSetBuffer(Seg seg, Buffer buffer);
@@ -710,8 +718,6 @@ extern Addr (SegLimit)(Seg seg);
 #define SegOfPoolRing(node)     RING_ELT(Seg, poolRing, (node))
 #define SegOfGreyRing(node)     (&(RING_ELT(GCSeg, greyRing, (node)) \
                                    ->segStruct))
-
-#define SegSummary(seg)         (((GCSeg)(seg))->summary)
 
 #define SegSetPM(seg, mode)     ((void)((seg)->pm = BS_BITFIELD(Access, (mode))))
 #define SegSetSM(seg, mode)     ((void)((seg)->sm = BS_BITFIELD(Access, (mode))))
@@ -832,16 +838,24 @@ extern Bool RankSetCheck(RankSet rankSet);
 #define AddrZone(arena, addr) \
   (((Word)(addr) >> (arena)->zoneShift) & (MPS_WORD_WIDTH - 1))
 
-#define RefSetUnion(rs1, rs2)   BS_UNION((rs1), (rs2))
-#define RefSetInter(rs1, rs2)   BS_INTER((rs1), (rs2))
-#define RefSetDiff(rs1, rs2)    BS_DIFF((rs1), (rs2))
-#define RefSetAdd(arena, rs, addr) \
-  BS_ADD(RefSet, rs, AddrZone(arena, addr))
-#define RefSetIsMember(arena, rs, addr) \
-  BS_IS_MEMBER(rs, AddrZone(arena, addr))
-#define RefSetSuper(rs1, rs2)   BS_SUPER((rs1), (rs2))
-#define RefSetSub(rs1, rs2)     BS_SUB((rs1), (rs2))
+/* Reference sets -- see design.mps.refset */
 
+extern RefSet RefSetEmpty, RefSetUniv;
+extern void RefSetInit(RefSet rs);
+extern Bool RefSetCheck(RefSet rs);
+extern void RefSetFromZones(RefSet rs, ZoneSet zs);
+extern Res RefSetDescribe(RefSet rs, mps_lib_FILE *stream, Count depth);
+extern void RefSetCopy(RefSet to, RefSet from);
+extern Bool RefSetIsEmpty(RefSet rs);
+extern Bool RefSetIsUniv(RefSet rs);
+extern ZoneSet RefSetZones(RefSet rs);
+extern void RefSetAddMutatorRef(RefSet rs, Arena arena, Ref ref);
+extern void RefSetAddFixedRef(RefSet rs, Arena arena, Ref ref);
+extern Bool RefSetSub(RefSet rs1, RefSet rs2);
+extern void RefSetUnion(RefSet rs1, RefSet rs2);
+extern void RefSetDiff(RefSet rs1, RefSet rs2);
+extern Bool RefSetEqual(RefSet rs1, RefSet rs2);
+extern Bool RefSetIntersects(RefSet rs1, RefSet rs2);
 
 /* Zone sets -- see <design/refset> */
 
@@ -961,7 +975,8 @@ extern Res RootDescribe(Root root, mps_lib_FILE *stream, Count depth);
 extern Res RootsDescribe(Globals arenaGlobals, mps_lib_FILE *stream, Count depth);
 extern Rank RootRank(Root root);
 extern AccessSet RootPM(Root root);
-extern RefSet RootSummary(Root root);
+extern void RootGetSummary(RefSet summaryReturn, Root root);
+extern Bool RootDoesNotReference(Root root, RefSet rs);
 extern void RootGrey(Root root, Trace trace);
 extern Res RootScan(ScanState ss, Root root);
 extern Arena RootArena(Root root);
@@ -1049,7 +1064,7 @@ DECLARE_CLASS(Land, Land, Inst);
 
 /* C. COPYRIGHT AND LICENSE
  *
- * Copyright (C) 2001-2020 Ravenbrook Limited <https://www.ravenbrook.com/>.
+ * Copyright (C) 2001-2023 Ravenbrook Limited <https://www.ravenbrook.com/>.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are

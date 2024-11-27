@@ -15,26 +15,26 @@ The generic scanner
 Summaries
 ---------
 
-Scanned summary
-...............
+Scanned zone set
+................
 
-_`.summary.subset`: The summary of reference seens by scan
-(``ss.unfixedSummary``) is a subset of the summary previously computed
-(``SegSummary()``).
+_`.zones.subset`: The set of referenced zones seen by a scan
+(``ScanStateUnfixedZones()``) is a subset of the previously computed
+set (``RefSetZones(SegSummary())``).
 
 There are two reasons that it is not an equality relation:
 
 1. If the segment has had objects forwarded onto it then its summary
    will get unioned with the summary of the segment that the object
-   was forwarded from. This may increase the summary. The forwarded
-   object of course may have a smaller summary (if such a thing were
-   to be computed) and so subsequent scanning of the segment may
-   reduce the summary. (The forwarding process may erroneously
-   introduce zones into the destination's summary).
+   was forwarded from [FIXME: ref?].  This may increase the summary.
+   The forwarded object of course may have a smaller summary (if such
+   a thing were to be computed) and so subsequent scanning of the
+   segment may reduce the segment summary.  (The forwarding process
+   may erroneously introduce zones into the destination's summary).
 
 2. A write barrier hit will set the summary to ``RefSetUNIV``.
 
-The reason that ``ss.unfixedSummary`` is always a subset of the
+The reason that ``ScanStateUnfixedZones()`` is always a subset of the
 previous summary is due to an "optimization" which has not been made
 in ``TraceFix()``. See design.mps.trace.fix.fixed.all_.
 
@@ -114,6 +114,8 @@ Document History
 
 - 2013-05-22 GDR_ Converted to reStructuredText.
 
+- 2023-01-30 RB_ Being specific about zonesets vs refsets.
+
 .. _RB: https://www.ravenbrook.com/consultants/rb/
 .. _GDR: https://www.ravenbrook.com/consultants/gdr/
 
@@ -121,7 +123,7 @@ Document History
 Copyright and License
 ---------------------
 
-Copyright © 2001–2020 `Ravenbrook Limited <https://www.ravenbrook.com/>`_.
+Copyright © 2001–2023 `Ravenbrook Limited <https://www.ravenbrook.com/>`_.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are

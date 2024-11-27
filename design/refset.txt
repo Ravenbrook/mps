@@ -1,0 +1,136 @@
+.. mode: -*- rst -*-
+
+==============
+Reference Sets
+==============
+
+:Tag: design.mps.refset
+:Author: Richard Brooksby
+:Date: 2016-03-25
+:Status: incomplete design
+:Revision: $Id$
+:Copyright: See `Copyright and License`_.
+:Index terms: pair: reference sets; design
+
+
+Introduction
+------------
+
+_`.intro`: This document describes reference sets -- conservative
+approximations to sets of references -- which are widely used in the
+Memory Pool System to optimise garbage collection.
+
+
+Overview
+--------
+
+[These are notes that need tags and proper cross-references to other
+designs.  RB 2023-01-29]
+
+A reference set ("refset") is a probabalistic data structure that is
+used to test very quickly whether a reference is a member of a set.
+False positive matches are possible, but false negatives are not.  In
+other words, a query returns either "reference possibly in set" or
+"reference definitely not in set".
+
+A reference set is a conservative approximation to a set of
+references.
+
+Reference sets are widely used in the Memory Pool System to optimised
+garbage collection.
+
+On the *critical path*, the zone set part of a reference set is used
+as an extremely fast `Bloom filter
+<https://en.wikipedia.org/wiki/Bloom_filter>`_ to eliminate from
+consideration scanned references that are definitely not to white
+objects.
+
+In the generational collection strategy, reference set *summaries* are
+used to avoid scanning whole areas of memory that definitely do not
+contain references to white objects, thus implementing a *remembered
+set*.
+
+A *write barrier* is used to maintain remembered sets.  A segment
+whose summary is not the universal set is protected from writes by the
+mutator, so that the summary stays accurate.
+
+
+Implementation
+--------------
+
+_`.type`: Reference sets are represented in the MPS by the type
+``RefSet`` which is a pointer to a structure of type ``RefSetStruct``.
+
+_`.type.just`: A structure type is chosen to make it easy to
+experiment with representations of reference sets.
+
+
+Improvement ideas
+-----------------
+
+Age
+...
+
+.improv.age: Store a range of epochs in the reference set, to improve
+discrimination based on the birthday epoch of objects and improve the
+accuracy of the MPS use of the generational hypothesis and of the
+remembered set (see job003764_ / `GitHub issue #136`_).
+
+.. _job003764: https://www.ravenbrook.com/project/mps/issue/job003764/
+.. _`GitHub issue #136`: https://github.com/Ravenbrook/mps/issues/136
+
+
+Generalised placement
+.....................
+
+.improv.placement: Generalise design.mps.arenavm.req.fun.place for
+other reference set properties, not just zones.
+
+
+References
+----------
+
+[Zones]
+
+
+Copyright and License
+---------------------
+
+Copyright © 2013-2014 Ravenbrook Limited. All rights reserved.
+<http://www.ravenbrook.com/>. This is an open source license. Contact
+Ravenbrook for commercial licensing options.
+
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions are
+met:
+
+#. Redistributions of source code must retain the above copyright
+   notice, this list of conditions and the following disclaimer.
+
+#. Redistributions in binary form must reproduce the above copyright
+   notice, this list of conditions and the following disclaimer in the
+   documentation and/or other materials provided with the distribution.
+
+#. Redistributions in any form must be accompanied by information on how
+   to obtain complete source code for this software and any
+   accompanying software that uses this software.  The source code must
+   either be included in the distribution or be available for no more than
+   the cost of distribution plus a nominal fee, and must be freely
+   redistributable under reasonable conditions.  For an executable file,
+   complete source code means the source code for all modules it contains.
+   It does not include source code for modules or files that typically
+   accompany the major components of the operating system on which the
+   executable file runs.
+
+**This software is provided by the copyright holders and contributors
+"as is" and any express or implied warranties, including, but not
+limited to, the implied warranties of merchantability, fitness for a
+particular purpose, or non-infringement, are disclaimed.  In no event
+shall the copyright holders and contributors be liable for any direct,
+indirect, incidental, special, exemplary, or consequential damages
+(including, but not limited to, procurement of substitute goods or
+services; loss of use, data, or profits; or business interruption)
+however caused and on any theory of liability, whether in contract,
+strict liability, or tort (including negligence or otherwise) arising in
+any way out of the use of this software, even if advised of the
+possibility of such damage.**

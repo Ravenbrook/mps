@@ -284,7 +284,7 @@ static void sncRecordFreeSeg(Arena arena, SNC snc, Seg seg)
   /* Make sure it's not grey, and set to RankSetEMPTY */
   /* This means it won't be scanned */
   SegSetGrey(seg, TraceSetEMPTY);
-  SegSetRankAndSummary(seg, RankSetEMPTY, RefSetEMPTY);
+  SegSetRankAndSummary(seg, RankSetEMPTY, RefSetEmpty);
 
   /* Pad the whole segment so we don't try to walk it. */
   ShieldExpose(arena, seg);
@@ -464,9 +464,9 @@ static Res SNCBufferFill(Addr *baseReturn, Addr *limitReturn,
 found:
   /* <design/seg#.field.rankSet.start> */
   if (BufferRankSet(buffer) == RankSetEMPTY)
-    SegSetRankAndSummary(seg, BufferRankSet(buffer), RefSetEMPTY);
+    SegSetRankAndSummary(seg, BufferRankSet(buffer), RefSetEmpty);
   else
-    SegSetRankAndSummary(seg, BufferRankSet(buffer), RefSetUNIV);
+    SegSetRankAndSummary(seg, BufferRankSet(buffer), RefSetUniv);
 
   AVERT(Seg, seg);
   /* put the segment on the buffer chain */

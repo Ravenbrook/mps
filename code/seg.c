@@ -17,6 +17,9 @@
 SRCID(seg, "$Id$");
 
 
+#define segSummary(seg)         (&MustBeA(GCSeg, seg)->summary)
+
+
 /* forward declarations */
 
 static void SegFinish(Seg seg);
@@ -292,8 +295,18 @@ void SegSetRankSet(Seg seg, RankSet rankSet)
 {
   AVERT(Seg, seg);
   AVERT(RankSet, rankSet);
-  AVER(rankSet != RankSetEMPTY || SegSummary(seg) == RefSetEMPTY);
+  /* FIXME: Hidden cast to GCSeg in the next line */
+  AVER(rankSet != RankSetEMPTY || RefSetIsEmpty(segSummary(seg)));
   Method(Seg, seg, setRankSet)(seg, rankSet);
+}
+
+
+/* SegGetSummary -- get the summary from a segment */
+
+void SegGetSummary(RefSet summaryReturn, Seg seg)
+{
+  AVERT(Seg, seg);
+  RefSetCopy(summaryReturn, segSummary(seg));
 }
 
 
@@ -302,15 +315,15 @@ void SegSetRankSet(Seg seg, RankSet rankSet)
 void SegSetSummary(Seg seg, RefSet summary)
 {
   AVERT(Seg, seg);
-  AVER(summary == RefSetEMPTY || SegRankSet(seg) != RankSetEMPTY);
+  AVER(RefSetIsEmpty(summary) || SegRankSet(seg) != RankSetEMPTY);
 
 #if defined(REMEMBERED_SET_NONE)
-  /* Without protection, we can't maintain the remembered set because
-     there are writes we don't know about. */
-  summary = RefSetUNIV;
+  /* .no-rem: Without protection, we can't maintain the remembered set
+     because there are writes we don't know about. */
+  RefSetCopy(summary, RefSetUniv);
 #endif
 
-  if (summary != SegSummary(seg))
+  if (!RefSetEqual(summary, segSummary(seg)))
     Method(Seg, seg, setSummary)(seg, summary);
 }
 
@@ -323,12 +336,52 @@ void SegSetRankAndSummary(Seg seg, RankSet rankSet, RefSet summary)
   AVERT(RankSet, rankSet);
 
 #if defined(REMEMBERED_SET_NONE)
-  if (rankSet != RankSetEMPTY) {
-    summary = RefSetUNIV;
-  }
+  /* .no-rem */
+  if (rankSet != RankSetEMPTY)
+    RefSetCopy(summary, RefSetUniv);
 #endif
 
   Method(Seg, seg, setRankSummary)(seg, rankSet, summary);
+}
+
+
+/* SegGetRefSet -- get the refset of all references to a segment */
+
+void SegGetRefSet(RefSet rsReturn, Arena arena, Seg seg)
+{
+  AVERT(Arena, arena);
+  AVERT(Seg, seg);
+  RefSetFromZones(rsReturn, ZoneSetOfSeg(arena, seg));
+}
+
+
+static void SegSummaryAddRef(Seg seg, Arena arena, Ref ref)
+{
+  RefSetStruct summary;
+  AVERT(Seg, seg);
+  AVERT(Arena, arena);
+  SegGetSummary(&summary, seg);
+  RefSetAddMutatorRef(&summary, arena, ref);
+  SegSetSummary(seg, &summary);
+}
+
+void SegSummaryAddMutatorRef(Seg seg, Arena arena, Ref ref)
+{
+  SegSummaryAddRef(seg, arena, ref);
+}
+
+void SegSummaryAddFixedRef(Seg seg, Arena arena, Ref ref)
+{
+  SegSummaryAddRef(seg, arena, ref);
+}
+
+Bool SegDoesNotReference(Seg seg, RefSet rs)
+{
+  RefSetStruct summary;
+  AVERT(Seg, seg);
+  AVER(RefSetCheck(rs));
+  SegGetSummary(&summary, seg);
+  return !RefSetIntersects(&summary, rs);
 }
 
 
@@ -1319,11 +1372,11 @@ Res SegSingleAccess(Seg seg, Arena arena, Addr addr,
     res = MutatorContextStepInstruction(context);
     AVER(res == ResOK);
 
-    /* Update SegSummary according to the possibly changed reference. */
+    /* Update segment summary according to the possibly changed reference. */
     ref = *(Ref *)addr;
     /* .tagging: ought to check the reference for a tag.  But
      * this is conservative. */
-    SegSetSummary(seg, RefSetAdd(arena, SegSummary(seg), ref));
+    SegSummaryAddMutatorRef(seg, arena, ref);
 
     ShieldCover(arena, seg);
 
@@ -1444,7 +1497,7 @@ Bool GCSegCheck(GCSeg gcseg)
 
   if (seg->rankSet == RankSetEMPTY) {
     /* <design/seg#.field.rankSet.empty> */
-    CHECKL(gcseg->summary == RefSetEMPTY);
+    CHECKL(RefSetIsEmpty(&gcseg->summary));
   }
 
   CHECKD_NOSIG(Ring, &gcseg->genRing);
@@ -1466,7 +1519,7 @@ static Res gcSegInit(Seg seg, Pool pool, Addr base, Size size, ArgList args)
     return res;
   gcseg = CouldBeA(GCSeg, seg);
 
-  gcseg->summary = RefSetEMPTY;
+  RefSetInit(&gcseg->summary);
   gcseg->buffer = NULL;
   RingInit(&gcseg->greyRing);
   RingInit(&gcseg->genRing);
@@ -1492,9 +1545,9 @@ static void gcSegFinish(Inst inst)
   }
 
   EVENT5(SegSetSummary, PoolArena(SegPool(seg)), seg, SegSize(seg),
-         gcseg->summary, RefSetEMPTY);
+         RefSetZones(&gcseg->summary), ZoneSetEMPTY);
 
-  gcseg->summary = RefSetEMPTY;
+  RefSetInit(&gcseg->summary);
 
   gcseg->sig = SigInvalid;
 
@@ -1701,12 +1754,12 @@ static void mutatorSegSetRankSet(Seg seg, RankSet rankSet)
 
   if (oldRankSet == RankSetEMPTY) {
     if (rankSet != RankSetEMPTY) {
-      AVER_CRITICAL(SegGCSeg(seg)->summary == RefSetEMPTY);
+      AVER_CRITICAL(RefSetIsEmpty(segSummary(seg)));
       ShieldRaise(PoolArena(SegPool(seg)), seg, AccessWRITE);
     }
   } else {
     if (rankSet == RankSetEMPTY) {
-      AVER_CRITICAL(SegGCSeg(seg)->summary == RefSetEMPTY);
+      AVER_CRITICAL(RefSetIsEmpty(segSummary(seg)));
       ShieldLower(PoolArena(SegPool(seg)), seg, AccessWRITE);
     }
   }
@@ -1726,7 +1779,7 @@ static void mutatorSegSyncWriteBarrier(Seg seg)
 {
   Arena arena = PoolArena(SegPool(seg));
   /* Can't check seg -- this function enforces invariants tested by SegCheck. */
-  if (SegSummary(seg) == RefSetUNIV)
+  if (RefSetIsUniv(segSummary(seg)))
     ShieldLower(arena, seg, AccessWRITE);
   else
     ShieldRaise(arena, seg, AccessWRITE);
@@ -1745,9 +1798,10 @@ static void gcSegSetSummary(Seg seg, RefSet summary)
   AVER_CRITICAL(&gcseg->segStruct == seg);
 
   EVENT5(SegSetSummary, PoolArena(SegPool(seg)), seg, SegSize(seg),
-         gcseg->summary, summary);
+         RefSetZones(&gcseg->summary), RefSetZones(summary));
 
-  gcseg->summary = summary;
+  RefSetCopy(&gcseg->summary, summary);
+
 
   AVER_CRITICAL(seg->rankSet != RankSetEMPTY);
 }
@@ -1765,7 +1819,6 @@ static void mutatorSegSetSummary(Seg seg, RefSet summary)
 }
 
 
-
 /* gcSegSetRankSummary -- GCSeg method to set both rank set and summary */
 
 static void gcSegSetRankSummary(Seg seg, RankSet rankSet, RefSet summary)
@@ -1780,13 +1833,15 @@ static void gcSegSetRankSummary(Seg seg, RankSet rankSet, RefSet summary)
   AVERT_CRITICAL(GCSeg, gcseg);
   AVER_CRITICAL(&gcseg->segStruct == seg);
 
-  /* rankSet == RankSetEMPTY implies summary == RefSetEMPTY */
-  AVER_CRITICAL(rankSet != RankSetEMPTY || summary == RefSetEMPTY);
+  /* rankSet is empty implies summary is empty */
+  AVER_CRITICAL(rankSet != RankSetEMPTY || RefSetIsEmpty(summary));
 
   seg->rankSet = BS_BITFIELD(Rank, rankSet);
+
   EVENT5(SegSetSummary, PoolArena(SegPool(seg)), seg, SegSize(seg),
-         gcseg->summary, summary);
-  gcseg->summary = summary;
+         RefSetZones(&gcseg->summary), RefSetZones(summary));
+
+  RefSetCopy(&gcseg->summary, summary);
 }
 
 static void mutatorSegSetRankSummary(Seg seg, RankSet rankSet, RefSet summary)
@@ -1854,7 +1909,7 @@ static Res gcSegMerge(Seg seg, Seg segHi,
 {
   GCSeg gcseg, gcsegHi;
   TraceSet grey;
-  RefSet summary;
+  RefSetStruct summary;
   Buffer buf;
   Res res;
 
@@ -1880,9 +1935,10 @@ static Res gcSegMerge(Seg seg, Seg segHi,
      the remembered set only, and so we can merge the shield and
      protection modes by unioning the segment summaries.  See also
      <design/seg#.merge.inv.similar>. */
-  summary = RefSetUnion(gcseg->summary, gcsegHi->summary);
-  SegSetSummary(seg, summary);
-  SegSetSummary(segHi, summary);
+  RefSetCopy(&summary, &gcseg->summary);
+  RefSetUnion(&summary, &gcsegHi->summary);
+  SegSetSummary(seg, &summary);
+  SegSetSummary(segHi, &summary);
   AVER(SegSM(seg) == SegSM(segHi));
   if (SegPM(seg) != SegPM(segHi)) {
     /* This shield won't cope with a partially-protected segment, so
@@ -1898,7 +1954,7 @@ static Res gcSegMerge(Seg seg, Seg segHi,
 
   /* Update fields of gcseg. Finish gcsegHi. */
   gcSegSetGreyInternal(segHi, grey, TraceSetEMPTY);
-  gcsegHi->summary = RefSetEMPTY;
+  RefSetInit(&gcsegHi->summary);
   gcsegHi->sig = SigInvalid;
   RingFinish(&gcsegHi->greyRing);
   RingRemove(&gcsegHi->genRing);
@@ -1959,7 +2015,7 @@ static Res gcSegSplit(Seg seg, Seg segHi,
 
   /* Full initialization for segHi. */
   gcsegHi = SegGCSeg(segHi);
-  gcsegHi->summary = gcseg->summary;
+  RefSetCopy(&gcsegHi->summary, &gcseg->summary);
   gcsegHi->buffer = NULL;
   RingInit(&gcsegHi->greyRing);
   RingInit(&gcsegHi->genRing);
@@ -2047,9 +2103,7 @@ static Res gcSegDescribe(Inst inst, mps_lib_FILE *stream, Count depth)
   if (res != ResOK)
     return res;
 
-  res = WriteF(stream, depth + 2,
-               "summary $W\n", (WriteFW)gcseg->summary,
-               NULL);
+  res = RefSetDescribe(&gcseg->summary, stream, depth);
   if (res != ResOK)
     return res;
 

@@ -222,7 +222,7 @@ static Res AWLSegInit(Seg seg, Pool pool, Addr base, Size size, ArgList args)
   BTResRange(awlseg->mark, 0, bits);
   BTResRange(awlseg->scanned, 0, bits);
   BTResRange(awlseg->alloc, 0, bits);
-  SegSetRankAndSummary(seg, rankSet, RefSetUNIV);
+  SegSetRankAndSummary(seg, rankSet, RefSetUniv);
   awlseg->freeGrains = bits;
   awlseg->bufferedGrains = (Count)0;
   awlseg->newGrains = (Count)0;
@@ -871,7 +871,7 @@ static Res awlScanObject(Arena arena, AWL awl, ScanState ss,
       /* <design/poolawl#.fun.scan.pass.object.dependent.expose> */
       ShieldExpose(arena, dependentSeg);
       /* <design/poolawl#.fun.scan.pass.object.dependent.summary> */
-      SegSetSummary(dependentSeg, RefSetUNIV);
+      SegSetSummary(dependentSeg, RefSetUniv);
   }
 
   res = TraceScanFormat(ss, base, limit);
