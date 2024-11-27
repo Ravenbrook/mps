@@ -101,11 +101,10 @@ usable.
    :term:`registers` and :term:`control stack` of the thread that
    entered the MPS.
 
-   See :ref:`design-stack-scan` for the design, ``ss.h`` for the
-   interface, and ``ss.c`` for a generic implementation that makes
-   assumptions about the platform (in particular, that the stack grows
-   downwards and :c:func:`setjmp` reliably captures the registers; see
-   the design for details).
+   See :ref:`design-stack-scan` for the design, and ``ss.h`` and
+   ``ss.c`` for the implementation. There is a generic implementation
+   that relies on :c:func:`setjmp` to capture the callee-save
+   registers.
 
 #. The **thread manager** module suspends and resumes :term:`threads`,
    so that the MPS can gain exclusive access to :term:`memory (2)`,

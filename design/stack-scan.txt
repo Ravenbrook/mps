@@ -78,10 +78,6 @@ unnecessary pinning and zone pollution; see job003525_.)
 _`.req.setjmp`: The implementation must follow the C Standard in its
 use of the ``setjmp()`` macro. (So that it is reliable and portable.)
 
-_`.req.assembly.not`: The implementation should not use assembly
-language. (So that it can be developed in tools like Microsoft Visual
-Studio that don't support this.)
-
 
 Design
 ------
@@ -91,12 +87,12 @@ and stack must be recorded when the mutator enters the MPS, if there
 is a possibility that the MPS might need to know the mutator context.
 
 _`.sol.entry-points.fragile`: The analysis of which entry points might
-need to save the context (see `.analysis.entry-points`_ below) is fragile.
-It might be incorrect now, or become incomplete if we refactor the
-internals of tracing and polling. As a defence against errors of this
-form, ``StackScan()`` asserts that the context was saved, but if the
-client program continues from the assertion, it saves the context
-anyway and continues.
+need to save the context (see `.analysis.entry-points`_ below) is
+fragile. It might be incorrect now, or become incomplete if we
+refactor the internals of tracing and polling. As a defence against
+errors of this form, ``StackScan()`` asserts that the context was
+saved, but if the client program continues from the assertion, it
+saves the context anyway and continues.
 
 _`.sol.registers`: Implementations spill the root registers onto the
 stack so that they can be scanned there.
@@ -108,69 +104,23 @@ _`.sol.registers.root.justify`: The caller-save registers will have
 been spilled onto the stack by the time the MPS is entered, so will be
 scanned by the stack scan.
 
-_`.sol.setjmp`: The values in callee-save registers can be found by
-invoking ``setjmp()``. This forces any of the caller's callee-save
-registers into either the ``jmp_buf`` or the current stack frame.
+_`.sol.registers.root.i3`: On IA-32, the callee-save registers are
+EBX, ESI, EDI and EBP [Fog]_.
 
-_`.sol.setjmp.scan`: Although we might be able to decode the jump
-buffer in a platform-dependent way, it's hard to guarantee that an
-uncooperative compiler won't temporarily store a reference in any
-register or stack location. We must conservatively scan the whole of
-both.
+_`.sol.registers.root.i6`: On x86-64, the callee-save registers are
+RBP, RBX, R12, R13, R14, and R15 [Fog]_.
 
-_`.sol.setjmp.justify`: The [C1990]_ standard specifies that
-``jmp_buf``:
+_`.sol.assembler`: On platforms that support inline assembler, it is
+straightforward to copy the callee-save registers into the
+``StackContextStruct`` using assembler instructions.
 
-    is an array type suitable for holding the information needed to
-    restore a calling environment. The environment of a call to the
-    ``setjmp()`` macro consists of information sufficient for a call
-    to the ``longjmp()`` function to return execution to the correct
-    block and invocation of that block, were it called recursively.
+_`.sol.setjmp`: On platforms that do not support inline assembler (in
+particular, Microsoft Visual C/C++) or where we do not know the
+callee-save registers (the generic or "ANSI" platform), the
+``StackContextStruct`` contains a ``jmp_buf`` structure, and the
+values in callee-save registers are saved by invoking ``setjmp()``.
 
-We believe that any reasonable implementation of ``setjmp()`` must
-copy the callee-save registers either into the jump buffer or into the
-stack frame that invokes it in order to work as described. Otherwise,
-once the callee-save registers have been overwritten by other function
-calls, a ``longjmp()`` would result in the callee-save registers
-having the wrong values. A ``longjmp()`` can come from anywhere, and
-so the function using ``setjmp()`` can't rely on callee-save registers
-being saved by callees.
-
-_`.sol.stack.hot`: We could decode the frame of the function that
-invokes ``setjmp()`` from the jump buffer in a platform-specific way,
-but we can do something simpler (if more hacky) by calling the stub
-function ``StackHot()`` which takes the address of its argument. So
-long as this stub function is not inlined into the caller, then on all
-supported platforms this yields a pointer that is pretty much at the
-hot end of the frame.
-
-_`.sol.stack.hot.noinline`: The reason that ``StackHot()`` must not be
-inlined is that after inlining, the compiler might place ``stackOut``
-at a colder stack address than the ``StackContextStruct``, causing the
-latter not to be scanned. See `mail.gdr.2018-07-11.09-48`_.
-
-.. _mail.gdr.2018-07-11.09-48: https://info.ravenbrook.com/mail/2018/07/11/09-48-49/0/
-
-_`.sol.stack.nest`: We can take care of scanning the jump buffer
-itself by storing it in the same stack frame. That way a scan from the
-hot end determined by `.sol.stack.hot`_ to the cold end will contain
-all of the roots.
-
-_`.sol.stack.platform`: As of version 1.115, all supported platforms
-are *full* and *descending* so the implementation in ``StackScan()``
-assumes this. New platforms must check this assumption.
-
-_`.sol.xc.alternative`: On macOS, we could use ``getcontext()`` from
-libunwind (see here_), but that produces deprecation warnings and
-introduces a dependency on that library.
-
-.. _here: https://stackoverflow.com/questions/3592914/
-
-
-Analysis
---------
-
-_`.analysis.setjmp`: The [C1990]_ standard says:
+The [C1990]_ standard says:
 
     An invocation of the ``setjmp`` macro shall appear only in one of
     the following contexts:
@@ -194,6 +144,39 @@ And the [C1999]_ standard adds:
 
     If the invocation appears in any other context, the behavior is
     undefined.
+
+_`.sol.stack.hot`: We could decode the ``StackContextStruct`` in a
+platform-specific way, but we can do something simpler (if more hacky)
+by calling the stub function ``StackHot()`` which takes the address of
+its argument. So long as this stub function is not inlined into the
+caller, then on all supported platforms this yields a pointer that is
+pretty much at the hot end of the stack.
+
+_`.sol.stack.hot.noinline`: The reason that ``StackHot()`` must not be
+inlined is that after inlining, the compiler might place ``stackOut``
+at a colder stack address than the ``StackContextStruct``, causing the
+latter not to be scanned. See `mail.gdr.2018-07-11.09-48`_.
+
+.. _mail.gdr.2018-07-11.09-48: https://info.ravenbrook.com/mail/2018/07/11/09-48-49/0/
+
+_`.sol.stack.nest`: We can take care of scanning the
+``StackContextStruct`` itself by storing it in the same stack frame.
+That way a scan from the hot end determined by `.sol.stack.hot`_ to
+the cold end will contain all of the roots.
+
+_`.sol.stack.platform`: As of version 1.115, all supported platforms
+are *full* and *descending* so the implementation in ``StackScan()``
+assumes this. New platforms must check this assumption.
+
+_`.sol.xc.alternative`: On macOS, we could use ``getcontext()`` from
+libunwind (see here_), but that produces deprecation warnings and
+introduces a dependency on that library.
+
+.. _here: https://stackoverflow.com/questions/3592914/
+
+
+Analysis
+--------
 
 _`.analysis.entry-points`: Here's a reverse call graph (in the master
 sources at changelevel 189652) showing which entry points might call
