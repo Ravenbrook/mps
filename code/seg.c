@@ -241,16 +241,19 @@ static void SegFinish(Seg seg)
 
 void SegSetGrey(Seg seg, TraceSet grey)
 {
-  AVERT(Seg, seg);
-  AVERT(TraceSet, grey);
-  AVER(grey == TraceSetEMPTY || SegRankSet(seg) != RankSetEMPTY);
+  AVERT_CRITICAL(Seg, seg);
+  AVERT_CRITICAL(TraceSet, grey);
+  AVER_CRITICAL(grey == TraceSetEMPTY || SegRankSet(seg) != RankSetEMPTY);
 
   /* Don't dispatch to the class method if there's no actual change in
      greyness, or if the segment doesn't contain any references. */
+  /* FIXME: ``Method`` includes ``MustBeA`` and not
+     ``MustBeA_CRITICAL``.  Experiment with a new ``Method_CRITICAL``
+     and measure if it's worthwhile. */
   if (grey != SegGrey(seg) && SegRankSet(seg) != RankSetEMPTY)
     Method(Seg, seg, setGrey)(seg, grey);
 
-  EVENT3(SegSetGrey, PoolArena(SegPool(seg)), seg, grey);
+  EVENT_CRITICAL3(SegSetGrey, PoolArena(SegPool(seg)), seg, grey);
 }
 
 
