@@ -52,6 +52,11 @@ html: $(SPHINXBUILD)
 	@echo
 	@echo "Build finished. The HTML pages are in $(BUILDDIR)/html."
 
+pdf: $(SPHINXBUILD)
+	$(SPHINXBUILD) -b rinoh $(ALLSPHINXOPTS) $(BUILDDIR)/pdf
+	@echo
+	@echo "Build finished. The PDF is in $(BUILDDIR)/pdf."
+
 dirhtml: $(SPHINXBUILD)
 	$(SPHINXBUILD) -b dirhtml $(ALLSPHINXOPTS) $(BUILDDIR)/dirhtml
 	@echo
