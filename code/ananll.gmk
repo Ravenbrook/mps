@@ -16,7 +16,7 @@ MPMPF = \
     than.c \
     vman.c
 
-LIBS = -lm -lpthread
+LIBS = -lm
 
 include ll.gmk
 
