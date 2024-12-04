@@ -477,7 +477,7 @@ static void AMSAllocateRange(AMS ams, Seg seg, Addr base, Addr limit)
   AVER(amsseg->freeGrains >= allocatedGrains);
   amsseg->freeGrains -= allocatedGrains;
   amsseg->bufferedGrains += allocatedGrains;
-  PoolGenAccountForFill(ams->pgen, AddrOffset(base, limit));
+  PoolGenAccountForFill(ams->pgen, AddrOffset(base, limit), FALSE);
 }
 
 
