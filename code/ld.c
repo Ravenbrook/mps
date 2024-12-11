@@ -149,11 +149,11 @@ void LDReset(mps_ld_t ld, Arena arena)
 
   b = SegOfAddr(&seg, arena, (Addr)ld);
   if (b)
-    ShieldExpose(arena, seg);   /* .ld.access */
+    ShieldExpose(ArenaShield(arena), seg);   /* .ld.access */
   ld->_epoch = ArenaHistory(arena)->epoch;
   ld->_rs = RefSetEMPTY;
   if (b)
-    ShieldCover(arena, seg);
+    ShieldCover(ArenaShield(arena), seg);
 }
 
 

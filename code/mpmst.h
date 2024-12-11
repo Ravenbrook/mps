@@ -670,13 +670,14 @@ typedef struct ShieldStruct {
   Sig sig;           /* design.mps.sig.field */
   BOOLFIELD(inside); /* <design/shield#.def.inside> */
   BOOLFIELD(suspended); /* mutator suspended? */
-  BOOLFIELD(queuePending); /* queue insertion pending? */
   Seg *queue;        /* queue of unsynced segs */
   Count length;      /* number of elements in shield queue */
   Index next;        /* next free element in shield queue */
   Index limit;       /* high water mark for cache usage */
   Count depth;       /* sum of depths of all segs */
   Count unsynced;    /* number of unsynced segments */
+  Count unqueued;    /* number of unsynced unqueued segments */
+  Count synced;      /* number of synced queued segments */
   Count holds;       /* number of holds */
   SortStruct sortStruct; /* workspace for queue sort */
 } ShieldStruct;

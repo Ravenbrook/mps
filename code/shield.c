@@ -1,7 +1,7 @@
 /* shield.c: SHIELD IMPLEMENTATION
  *
  * $Id$
- * Copyright (c) 2001-2020 Ravenbrook Limited.  See end of file for license.
+ * Copyright (c) 2001-2023 Ravenbrook Limited.  See end of file for license.
  *
  * See: idea.shield, <design/shield>.
  *
@@ -19,13 +19,14 @@ void ShieldInit(Shield shield)
 {
   shield->inside = FALSE;
   shield->suspended = FALSE;
-  shield->queuePending = FALSE;
   shield->queue = NULL;
   shield->length = 0;
   shield->next = 0;
   shield->limit = 0;
   shield->depth = 0;
   shield->unsynced = 0;
+  shield->unqueued = 0;
+  shield->synced = 0;
   shield->holds = 0;
   shield->sig = ShieldSig;
 }
@@ -55,6 +56,8 @@ void ShieldFinish(Shield shield)
 
   AVER(shield->depth == 0);
   AVER(shield->unsynced == 0);
+  AVER(shield->unqueued == 0);
+  AVER(shield->synced == 0);
   AVER(shield->holds == 0);
   shield->sig = SigInvalid;
 }
@@ -69,6 +72,8 @@ Bool ShieldCheck(Shield shield)
   CHECKL(shield->queue == NULL || shield->length > 0);
   CHECKL(shield->limit <= shield->length);
   CHECKL(shield->next <= shield->limit);
+  CHECKL(shield->unqueued <= shield->unsynced);
+  CHECKL(shield->synced <= shield->limit);
 
   /* The mutator is not suspended while outside the shield
      <design/shield#.inv.outside.running>. */
@@ -85,9 +90,9 @@ Bool ShieldCheck(Shield shield)
   /* There are no unsynced segments when we're outside the shield. */
   CHECKL(shield->inside || shield->unsynced == 0);
 
-  /* Every unsynced segment should be on the queue, because we have to
-     remember to sync it before we return to the mutator. */
-  CHECKL(shield->limit + shield->queuePending >= shield->unsynced);
+  /* The queue contains exactly all the unsynced segments that aren't
+     unqueued, and the queued synced segments. */
+  CHECKL(shield->limit == shield->unsynced - shield->unqueued + shield->synced);
 
   /* The mutator is suspended if there are any holds. */
   CHECKL(shield->holds == 0 || shield->suspended);
@@ -105,7 +110,8 @@ Bool ShieldCheck(Shield shield)
       if (!SegIsSynced(seg))
         ++unsynced;
     }
-    CHECKL(unsynced + shield->queuePending == shield->unsynced);
+    CHECKL(unsynced == shield->limit - shield->synced);
+    CHECKL(unsynced + shield->unqueued == shield->unsynced);
   }
 #endif
 
@@ -125,6 +131,8 @@ Res ShieldDescribe(Shield shield, mps_lib_FILE *stream, Count depth)
                "  next      $U\n", (WriteFU)shield->next,
                "  length    $U\n", (WriteFU)shield->length,
                "  unsynced  $U\n", (WriteFU)shield->unsynced,
+               "  unqueued  $U\n", (WriteFU)shield->unqueued,
+               "  synced    $U\n", (WriteFU)shield->synced,
                "  holds     $U\n", (WriteFU)shield->holds,
                "} Shield $P\n",    (WriteFP)shield,
                NULL);
@@ -168,11 +176,22 @@ static void shieldSetSM(Shield shield, Seg seg, AccessSet mode)
     if (SegIsSynced(seg)) {
       SegSetSM(seg, mode);
       ++shield->unsynced;
+      if (seg->queued) {
+        AVER(shield->synced > 0);
+        --shield->synced;
+      } else
+        ++shield->unqueued;
     } else {
       SegSetSM(seg, mode);
       if (SegIsSynced(seg)) {
         AVER(shield->unsynced > 0);
         --shield->unsynced;
+        if (seg->queued)
+          ++shield->synced;
+        else {
+          AVER(shield->unqueued > 0);
+          --shield->unqueued;
+        }
       }
     }
   }
@@ -187,11 +206,22 @@ static void shieldSetPM(Shield shield, Seg seg, AccessSet mode)
     if (SegIsSynced(seg)) {
       SegSetPM(seg, mode);
       ++shield->unsynced;
+      if (seg->queued) {
+        AVER(shield->synced > 0);
+        --shield->synced;
+      } else
+        ++shield->unqueued;
     } else {
       SegSetPM(seg, mode);
       if (SegIsSynced(seg)) {
         AVER(shield->unsynced > 0);
         --shield->unsynced;
+        if (seg->queued)
+          ++shield->synced;
+        else {
+          AVER(shield->unqueued > 0);
+          --shield->unqueued;
+        }
       }
     }
   }
@@ -220,9 +250,11 @@ static void shieldSync(Shield shield, Seg seg)
   SHIELD_AVERT_CRITICAL(Seg, seg);
 
   if (!SegIsSynced(seg)) {
+    /* TODO: Could assert something about the unsync count going down. */
     shieldSetPM(shield, seg, SegSM(seg));
     ProtSet(SegBase(seg), SegLimit(seg), SegPM(seg));
   }
+  AVER_CRITICAL(SegIsSynced(seg));
 }
 
 
@@ -233,15 +265,13 @@ static void shieldSync(Shield shield, Seg seg)
  * .inv.unsynced.suspended.
  */
 
-static void shieldSuspend(Arena arena)
+static void shieldSuspend(Shield shield)
 {
-  Shield shield;
-
-  AVERT(Arena, arena);
-  shield = ArenaShield(arena);
+  AVERT(Shield, shield);
   AVER(shield->inside);
 
   if (!shield->suspended) {
+    Arena arena = ShieldArena(shield);
     ThreadRingSuspend(ArenaThreadRing(arena), ArenaDeadRing(arena));
     shield->suspended = TRUE;
   }
@@ -255,11 +285,11 @@ static void shieldSuspend(Arena arena)
  * when we must scan all thread registers at once.
  */
 
-void (ShieldHold)(Arena arena)
+void (ShieldHold)(Shield shield)
 {
-  AVERT(Arena, arena);
-  shieldSuspend(arena);
-  ++ArenaShield(arena)->holds;
+  AVERT(Shield, shield);
+  shieldSuspend(shield);
+  ++shield->holds;
 }
 
 
@@ -269,15 +299,11 @@ void (ShieldHold)(Arena arena)
  * this marks the earliest point at which we could resume.
  */
 
-void (ShieldRelease)(Arena arena)
+void (ShieldRelease)(Shield shield)
 {
-  Shield shield;
-
-  AVERT(Arena, arena);
-  shield = ArenaShield(arena);
+  AVERT(Shield, shield);
   AVER(shield->inside);
   AVER(shield->suspended);
-
   AVER(shield->holds > 0);
   --shield->holds;
 
@@ -318,6 +344,11 @@ static Seg shieldDequeue(Shield shield, Index i)
   AVER(seg->queued);
   shield->queue[i] = NULL; /* to ensure it can't get re-used */
   seg->queued = FALSE;
+  if (SegIsSynced(seg)) {
+    AVER(shield->synced > 0);
+    --shield->synced;
+  } else
+    ++shield->unqueued;
   return seg;
 }
 
@@ -405,12 +436,16 @@ static void shieldFlushEntries(Shield shield)
             shieldQueueEntryCompare, UNUSED_POINTER,
             &shield->sortStruct);
 
+  /* Coalesce runs of segments that need the same protection mode. */
   mode = AccessSetEMPTY;
   limit = NULL;
   for (i = 0; i < shield->limit; ++i) {
     Seg seg = shieldDequeue(shield, i);
     if (!SegIsSynced(seg)) {
       shieldSetPM(shield, seg, SegSM(seg));
+      /* If the segment has a different mode from the previous run, or
+         it's not contiguous with the previous run, then set the OS
+         protection on the previous run, and start a new run. */
       if (SegSM(seg) != mode || SegBase(seg) != limit) {
         if (base != NULL) {
           AVER(base < limit);
@@ -422,6 +457,7 @@ static void shieldFlushEntries(Shield shield)
       limit = SegLimit(seg);
     }
   }
+  /* Set the OS protection on the last run, if there is one. */
   if (base != NULL) {
     AVER(base < limit);
     ProtSet(base, limit, mode);
@@ -437,24 +473,24 @@ static void shieldFlushEntries(Shield shield)
  * queued and the mutator is suspended.
  */
 
-static void shieldQueue(Arena arena, Seg seg)
+static void shieldQueue(Shield shield, Seg seg)
 {
-  Shield shield;
-
   /* <design/trace#.fix.noaver> */
-  AVERT_CRITICAL(Arena, arena);
-  shield = ArenaShield(arena);
+  AVERT_CRITICAL(Shield, shield);
   SHIELD_AVERT_CRITICAL(Seg, seg);
 
   if (SegIsSynced(seg) || seg->queued)
     return;
+
+  /* This segment is unsynced and not queued. */
+  AVER(shield->unqueued > 0);
 
   if (SegIsExposed(seg)) {
     /* This can occur if the mutator isn't suspended, we expose a
        segment, then raise the shield on it.  In this case, the
        mutator isn't allowed to see the segment, but we don't need to
        queue it until its covered. */
-    shieldSuspend(arena);
+    shieldSuspend(shield);
     return;
   }
 
@@ -471,7 +507,7 @@ static void shieldQueue(Arena arena, Seg seg)
     else
       length = shield->length * 2;
 
-    res = ControlAlloc(&p, arena, length * sizeof shield->queue[0]);
+    res = ControlAlloc(&p, ShieldArena(shield), length * sizeof shield->queue[0]);
     if (res != ResOK) {
       AVER(ResIsAllocFailure(res));
       /* Carry on with the existing queue. */
@@ -480,7 +516,7 @@ static void shieldQueue(Arena arena, Seg seg)
         Size oldSize = shield->length * sizeof shield->queue[0];
         AVER(shield->queue != NULL);
         mps_lib_memcpy(p, shield->queue, oldSize);
-        ControlFree(arena, shield->queue, oldSize);
+        ControlFree(ShieldArena(shield), shield->queue, oldSize);
       }
       shield->queue = p;
       shield->length = length;
@@ -519,6 +555,7 @@ static void shieldQueue(Arena arena, Seg seg)
   shield->queue[shield->next] = seg;
   ++shield->next;
   seg->queued = TRUE;
+  --shield->unqueued;
 
   if (shield->next >= shield->limit)
     shield->limit = shield->next;
@@ -531,39 +568,30 @@ static void shieldQueue(Arena arena, Seg seg)
  * covered and the shield queue is unavailable.
  */
 
-void (ShieldRaise)(Arena arena, Seg seg, AccessSet mode)
+void (ShieldRaise)(Shield shield, Seg seg, AccessSet mode)
 {
-  Shield shield;
-
-  SHIELD_AVERT(Arena, arena);
+  SHIELD_AVERT(Shield, shield);
   SHIELD_AVERT(Seg, seg);
   AVERT(AccessSet, mode);
-  shield = ArenaShield(arena);
-  AVER(!shield->queuePending);
-  shield->queuePending = TRUE;
 
   /* <design/shield#.inv.prot.shield> preserved */
-  shieldSetSM(ArenaShield(arena), seg, BS_UNION(SegSM(seg), mode));
+  shieldSetSM(shield, seg, BS_UNION(SegSM(seg), mode));
 
   /* Ensure <design/shield#.inv.unsynced.suspended> and
      <design/shield#.inv.unsynced.depth> */
-  shieldQueue(arena, seg);
-  shield->queuePending = FALSE;
+  shieldQueue(shield, seg);
 
   /* Check queue and segment consistency. */
-  AVERT(Arena, arena);
+  AVERT(Shield, shield);
   AVERT(Seg, seg);
 }
 
 
 /* ShieldLower -- declare segment may be accessed by mutator */
 
-void (ShieldLower)(Arena arena, Seg seg, AccessSet mode)
+void (ShieldLower)(Shield shield, Seg seg, AccessSet mode)
 {
-  Shield shield;
-
-  AVERT(Arena, arena);
-  shield = ArenaShield(arena);
+  AVERT(Shield, shield);
   SHIELD_AVERT(Seg, seg);
   AVERT(AccessSet, mode);
 
@@ -574,23 +602,20 @@ void (ShieldLower)(Arena arena, Seg seg, AccessSet mode)
   /* TODO: Do we need to promptly call shieldProtLower here?  It
      loses the opportunity to coalesce the protection call. It would
      violate <design/shield#.prop.inside.access>. */
-  /* shieldQueue(arena, seg); */
+  /* shieldQueue(shield, seg); */
   shieldProtLower(shield, seg, mode);
 
   /* Check queue and segment consistency. */
-  AVERT(Arena, arena);
+  AVERT(Shield, shield);
   AVERT(Seg, seg);
 }
 
 
 /* ShieldEnter -- enter the shield, allowing exposes */
 
-void (ShieldEnter)(Arena arena)
+void (ShieldEnter)(Shield shield)
 {
-  Shield shield;
-
-  AVERT(Arena, arena);
-  shield = ArenaShield(arena);
+  AVERT(Shield, shield);
   AVER(!shield->inside);
   AVER(shield->depth == 0);
   AVER(!shield->suspended);
@@ -614,34 +639,46 @@ void (ShieldEnter)(Arena arena)
  */
 
 #if defined(SHIELD_DEBUG)
-static void shieldDebugCheck(Arena arena)
+static void shieldDebugCheck(Shield shield)
 {
-  Shield shield;
+  Arena arena;
   Seg seg;
   Count queued = 0;
   Count depth = 0;
+  Count unqueued = 0;
+  Count unsynced = 0;
+  Count synced = 0;
 
-  AVERT(Arena, arena);
-  shield = ArenaShield(arena);
+  AVERT(Shield, shield);
   AVER(shield->inside || shield->limit == 0);
 
-  if (SegFirst(&seg, arena))
+  arena = ShieldArena(shield);
+  if (SegFirst(&seg, arena)) {
     do {
       depth += SegDepth(seg);
       if (shield->limit == 0) {
         AVER(!seg->queued);
-        AVER(SegIsSynced(seg));
+        AVER(shield->unsynced > 0 || SegIsSynced(seg));
         /* You can directly set protections here to see if it makes a
            difference. */
         /* ProtSet(SegBase(seg), SegLimit(seg), SegPM(seg)); */
-      } else {
-        if (seg->queued)
-          ++queued;
       }
+      if (seg->queued)
+        ++queued;
+      if (!SegIsSynced(seg))
+        ++unsynced;
+      if (seg->queued && SegIsSynced(seg))
+        ++synced;
+      if (!seg->queued && !SegIsSynced(seg))
+        ++unqueued;
     } while(SegNext(&seg, arena, seg));
+  }
 
   AVER(depth == shield->depth);
   AVER(queued == shield->limit);
+  AVER(unsynced == shield->unsynced);
+  AVER(unqueued == shield->unqueued);
+  AVER(synced == shield->synced);
 }
 #endif
 
@@ -662,42 +699,37 @@ static void shieldDebugCheck(Arena arena)
  * <design/shield#.improv.noseg>.
  */
 
-void (ShieldFlush)(Arena arena)
+void (ShieldFlush)(Shield shield)
 {
-  Shield shield;
-
-  AVERT(Arena, arena);
-  shield = ArenaShield(arena);
+  AVERT(Shield, shield);
 #ifdef SHIELD_DEBUG
-  shieldDebugCheck(arena);
+  shieldDebugCheck(shield);
 #endif
   shieldFlushEntries(shield);
   AVER(shield->unsynced == 0); /* everything back in sync */
 #ifdef SHIELD_DEBUG
-  shieldDebugCheck(arena);
+  shieldDebugCheck(shield);
 #endif
 }
 
 
 /* ShieldLeave -- leave the shield, protect segs from mutator */
 
-void (ShieldLeave)(Arena arena)
+void (ShieldLeave)(Shield shield)
 {
-  Shield shield;
-
-  AVERT(Arena, arena);
-  shield = ArenaShield(arena);
+  AVERT(Shield, shield);
   AVER(shield->inside);
   AVER(shield->depth == 0); /* no pending covers */
   AVER(shield->holds == 0);
 
-  ShieldFlush(arena);
+  ShieldFlush(shield);
 
   AVER(shield->unsynced == 0); /* everything back in sync */
 
   /* Ensuring the mutator is running at this point guarantees
      .inv.outside.running */
   if (shield->suspended) {
+    Arena arena = ShieldArena(shield);
     ThreadRingResume(ArenaThreadRing(arena), ArenaDeadRing(arena));
     shield->suspended = FALSE;
   }
@@ -713,14 +745,12 @@ void (ShieldLeave)(Arena arena)
  * ensure the MPS has exclusive access.
  */
 
-void (ShieldExpose)(Arena arena, Seg seg)
+void (ShieldExpose)(Shield shield, Seg seg)
 {
-  Shield shield;
   AccessSet mode = AccessREAD | AccessWRITE;
 
   /* <design/trace#.fix.noaver> */
-  AVERT_CRITICAL(Arena, arena);
-  shield = ArenaShield(arena);
+  AVERT_CRITICAL(Shield, shield);
   AVER_CRITICAL(shield->inside);
 
   SegSetDepth(seg, SegDepth(seg) + 1);
@@ -729,7 +759,7 @@ void (ShieldExpose)(Arena arena, Seg seg)
   AVER_CRITICAL(shield->depth > 0); /* overflow */
 
   if (BS_INTER(SegPM(seg), mode) != AccessSetEMPTY)
-    shieldSuspend(arena);
+    shieldSuspend(shield);
 
   /* Ensure <design/shield#.inv.expose.prot>. */
   /* TODO: Mass exposure -- see
@@ -740,13 +770,10 @@ void (ShieldExpose)(Arena arena, Seg seg)
 
 /* ShieldCover -- declare MPS no longer needs access to seg */
 
-void (ShieldCover)(Arena arena, Seg seg)
+void (ShieldCover)(Shield shield, Seg seg)
 {
-  Shield shield;
-
   /* <design/trace#.fix.noaver> */
-  AVERT_CRITICAL(Arena, arena);
-  shield = ArenaShield(arena);
+  AVERT_CRITICAL(Shield, shield);
   AVERT_CRITICAL(Seg, seg);
   AVER_CRITICAL(SegPM(seg) == AccessSetEMPTY);
 
@@ -756,13 +783,13 @@ void (ShieldCover)(Arena arena, Seg seg)
   --shield->depth;
 
   /* Ensure <design/shield#.inv.unsynced.depth>. */
-  shieldQueue(arena, seg);
+  shieldQueue(shield, seg);
 }
 
 
 /* C. COPYRIGHT AND LICENSE
  *
- * Copyright (C) 2001-2020 Ravenbrook Limited <https://www.ravenbrook.com/>.
+ * Copyright (C) 2001-2023 Ravenbrook Limited <https://www.ravenbrook.com/>.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are

@@ -67,6 +67,16 @@ jobs:
          nmake /f w3i6mv.nmk all testci testansi testpollnone
       shell: cmd
 
+  # See design.mps.tests.ci.run.other.deep.
+  deep-check:
+
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3
+      - run: ./configure
+      - run: make test-make-build-deep
+
 
 # A. REFERENCES
 #
