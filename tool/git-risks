@@ -1,0 +1,69 @@
+#!/bin/bash
+# Estimate the risk of changes to the MPS.
+#
+# [Insert why this was developed, ref to issue, etc.  RB 2023-02-24]
+#
+# Takes arguments to ``git log``.  For example, to assess changes on
+# master::
+#
+#   tool/git-risks --first-parent -n 10 master
+#
+# The estimate of the risks of changing files is stored in
+# tool/git-riskiness
+#
+# Developed from <https://info.ravenbrook.com/mail/2023/02/21/17-08-50/0/>.
+
+usage() {
+    echo 1>&2 "Usage: ${0} [-k column] [-- git log options] [<git log path>...]"
+    exit 1
+}
+
+# Default to general risk (column 1 in git-riskiness)
+key=1
+while getopts k: flag; do
+    case "${flag}" in
+	k) key="${OPTARG}";;
+	*) usage;;
+    esac
+done
+shift $((OPTIND-1))
+
+if difftmp=$(mktemp); then
+    # shellcheck disable=SC2064
+    trap "rm -f -- '$difftmp'" EXIT
+else
+    echo 1>&2 "Unable to create temporary file"
+    exit 1
+fi
+    
+git log --format="%H %h %s" "$@" |
+while read -r hash commit subject; do
+    # Get a diff for the change.  Ignoring lines that look like
+    # comments, or with just white space changes.  This is hacky
+    # because it only recognizes C comments.
+    git show --pretty="format:" --patch \
+	--diff-merges=first-parent \
+	--ignore-matching-lines='^[[:space:]]+\*[[:space:]]' \
+	--ignore-matching-lines='^[[:space:]]*/\*[[:space:]]' \
+	--ignore-space-change \
+	"$hash" > "$difftmp"
+    loc=$(wc -l < "$difftmp")
+    # Edit diff to just a list of files changed
+    sed --in-place --quiet --expression='s!--- a/!!p' "$difftmp"
+    risks=$(
+	# Strip comments and blank lines from git-riskiness.
+	sed --regexp-extended \
+	    --expression='s/[[:space:]]*#.*$//; /^[[:space:]]*$/ d' \
+	    < tool/git-riskiness |
+	    # Filter for lines that mention files changed in the commit.
+	    (
+		grep --fixed-strings --file="$difftmp" ||
+		    echo "0 0 no-match"
+	    ) |
+	    # Pick the riskiest.
+	    # NOTE: --key is 1-based.
+	    sort --numeric --reverse --key="$key" |
+	    head --lines=1
+	 )
+    printf "%s %5d %s %s\n" "$commit" "$loc" "$risks" "$subject"
+done
