@@ -453,8 +453,9 @@ static Res poolWalk(Arena arena, Pool pool, mps_area_scan_t area_scan, void *clo
   ss.fix = walkNoFix;
 
   RING_FOR(node, &pool->segRing, nextNode) {
-    Bool wasTotal;
+    Bool wasTotal; /* did we scan every object in the seg? */
     Seg seg = SegOfPoolRing(node);
+    /* Only segments that contain references need a summary. */
     Bool needSummary = SegRankSet(seg) != RankSetEMPTY;
 
     if (needSummary)
