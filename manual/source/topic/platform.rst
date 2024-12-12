@@ -17,6 +17,7 @@ six-character code breaks down into three pairs of characters:
 ======  ================  ====================
 ``OS``  Operating system  Constant
 ======  ================  ====================
+``em``  Emscripten        :c:macro:`MPS_OS_EM`
 ``fr``  FreeBSD           :c:macro:`MPS_OS_FR`
 ``li``  Linux             :c:macro:`MPS_OS_LI`
 ``w3``  Windows           :c:macro:`MPS_OS_W3`
@@ -31,6 +32,8 @@ The second pair of characters names the processor architecture:
 ``a6``  ARM64                   :c:macro:`MPS_ARCH_A6`
 ``i3``  Intel/AMD IA-32         :c:macro:`MPS_ARCH_I3`
 ``i6``  Intel/AMD x86-64        :c:macro:`MPS_ARCH_I6`
+``j3``  WebAssembly (32 bit)    :c:macro:`MPS_ARCH_WA`
+``j6``  WebAssembly (64 bit)    :c:macro:`MPS_ARCH_WA`
 ======  ======================  ======================
 
 The third pair of characters names the compiler toolchain:
@@ -92,6 +95,20 @@ Platform interface
         The MPS is not supported on IA-64 (Itanium).
 
 
+.. c:macro:: MPS_ARCH_J3
+
+    A :term:`C` preprocessor macro that indicates, if defined, that
+    the target processor architecture of the compilation is 32-bit
+    WebAssembly.
+
+
+.. c:macro:: MPS_ARCH_J6
+
+    A :term:`C` preprocessor macro that indicates, if defined, that
+    the target processor architecture of the compilation is 64-bit
+    WebAssembly.
+
+
 .. c:macro:: MPS_BUILD_GC
 
     A :term:`C` preprocessor macro that indicates, if defined, that
@@ -111,6 +128,12 @@ Platform interface
     A :term:`C` preprocessor macro that indicates, if defined, that
     the MPS was compiled by the C compiler from Microsoft Visual
     Studio.
+
+
+.. c:macro:: MPS_OS_EM
+
+    A :term:`C` preprocessor macro that indicates, if defined, that
+    the MPS was compiled for Emscripten.
 
 
 .. c:macro:: MPS_OS_FR
@@ -141,6 +164,20 @@ Platform interface
 
     A :term:`C` preprocessor macro that expands to an integer giving
     the :term:`natural alignment` of the :term:`platform`.
+
+
+.. c:macro:: MPS_PF_EMJ3LL
+
+    A :term:`C` preprocessor macro that indicates, if defined, that
+    the :term:`platform` consists of the Emscripten operating environment,
+    the 32-bit WebAssembly target architecture, and the Clang/LLVM compiler.
+
+
+.. c:macro:: MPS_PF_EMJ6LL
+
+    A :term:`C` preprocessor macro that indicates, if defined, that
+    the :term:`platform` consists of the Emscripten operating environment,
+    the 64-bit WebAssembly target architecture, and the Clang/LLVM compiler.
 
 
 .. c:macro:: MPS_PF_FRI3GC
@@ -381,6 +418,8 @@ the Memory Pool System, with their current status.
 ==========  =======================
 Platform    Status
 ==========  =======================
+``emj3ll``  In development
+``emj6ll``  In development
 ``fri3gc``  Supported
 ``fri3ll``  Supported
 ``fri4gc``  Corrected to ``fri3gc``

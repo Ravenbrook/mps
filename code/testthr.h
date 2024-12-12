@@ -45,7 +45,8 @@ typedef struct testthr_t {
   void *result;               /* result returned from start */
 } testthr_t;
 
-#elif defined(MPS_OS_FR) || defined(MPS_OS_LI) || defined(MPS_OS_XC)
+/* FIXME: This isn't always true for MPS_OS_EM. Only when threads are enabled. */
+#elif defined(MPS_OS_EM) || defined(MPS_OS_FR) || defined(MPS_OS_LI) || defined(MPS_OS_XC)
 
 #include <pthread.h>
 

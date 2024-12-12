@@ -67,6 +67,35 @@ jobs:
          nmake /f w3i6mv.nmk all testci testansi testpollnone
       shell: cmd
 
+  emscripten:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v3
+    - name: emsdk
+      run: |
+        git clone https://github.com/emscripten-core/emsdk.git
+        cd emsdk
+        ./emsdk install latest
+        ./emsdk activate latest
+    - name: build via emscripten
+      run: |
+        source emsdk/emsdk_env.sh
+        mkdir build
+        cd build
+        emcc -I../code -o mps.o -c ../code/mps.c
+        emcc -Icode -o testlib.o -c ../code/testlib.c
+        emcc -Icode -o fmtdy.o -c ../code/fmtdy.c
+        emcc -Icode -o fmtdytst.o -c ../code/fmtdytst.c
+        emcc -Icode -o amsss.o -c ../code/amsss.c
+        emcc -o amsss amsss.o mps.o testlib.o fmtdy.o fmtdytst.o
+    - name: test via node
+      run: |
+        source emsdk/emsdk_env.sh
+        cd build
+        node ./amsss
+
 
 # A. REFERENCES
 #
