@@ -91,6 +91,7 @@ typedef struct VMArenaStruct {  /* VM arena structure */
 static void VMFree(Addr base, Size size, Pool pool);
 static Size VMPurgeSpare(Arena arena, Size size);
 static Size vmArenaUnmapSpare(Arena arena, Size size, Chunk filter);
+static void VMChunkFinish(Chunk chunk);
 DECLARE_CLASS(Arena, VMArena, AbstractArena);
 static void VMCompact(Arena arena, Trace trace);
 static void pageDescUnmap(VMChunk vmChunk, Index basePI, Index limitPI);
@@ -350,7 +351,13 @@ static Res VMChunkCreate(Chunk *chunkReturn, VMArena vmArena, Size size)
   return ResOK;
 
 failChunkInit:
-  VMUnmap(vm, VMBase(vm), chunkStructLimit);
+  /* ChunkInit leaves undoing VMChunkInit to its caller. VMChunkFinish
+     unmaps the chunk's overhead through vmArenaUnmap, so that
+     arena->committed stays equal to what is mapped, and finishes the VM.
+     See GitHub issue #319 <https://github.com/Ravenbrook/mps/issues/319>. */
+  VMChunkFinish(VMChunk2Chunk(vmChunk));
+  return res;
+
 failChunkMap:
 failChunkAlloc:
 failBootInit:

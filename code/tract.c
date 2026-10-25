@@ -238,9 +238,11 @@ Res ChunkInit(Chunk chunk, Arena arena, Addr base, Addr limit, Size reserved,
   return ResOK;
 
 failLandInsert:
-  Method(Arena, arena, chunkFinish)(chunk);
   /* .no-clean: No clean-ups needed past this point for boot, as we will
-     discard the chunk. */
+     discard the chunk. The caller undoes the arena class's chunkInit, as
+     it must for every failure after it: calling chunkFinish here as well
+     made the VM arena unmap and finish the chunk's VM twice. See GitHub
+     issue #319 <https://github.com/Ravenbrook/mps/issues/319>. */
 failClassInit:
 failAllocTable:
   return res;
