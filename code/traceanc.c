@@ -634,6 +634,17 @@ Res ArenaStartCollect(Globals globals, TraceStartWhy why)
   res = TraceStartCollectAll(&trace, arena, why);
   if(res != ResOK)
     goto failStart;
+
+  /* The trace has been flipped, so the mutator may hit the read
+   * barrier on a grey segment as soon as the arena is released.
+   * TraceRankForAccess needs the trace to be past its initial band,
+   * RankAMBIG, but the band only advances in traceFindGrey.
+   * ArenaRelease advances the trace only if a poll is due, so advance
+   * it once here, as TracePoll and ArenaStep do after starting a
+   * trace.  Afterwards either the band is past RankAMBIG or no
+   * segment is grey for the trace. */
+  TraceAdvance(trace);
+
   ArenaRelease(globals);
   return ResOK;
 
